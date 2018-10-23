@@ -7,11 +7,21 @@ import (
 	"syscall"
 
 	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
+	"code.waarp.fr/waarp/gateway-ng/pkg/log"
 )
 
 // WG is the top level service handler. It manages all other components.
 type WG struct {
+	*log.Logger
 	Config *conf.ServerConfig
+}
+
+// NewWG creates a new application
+func NewWG(config *conf.ServerConfig) *WG {
+	return &WG{
+		Config: config,
+		Logger: log.NewLogger(),
+	}
 }
 
 // Start starts the main service of the Gateway

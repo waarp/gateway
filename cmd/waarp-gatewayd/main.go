@@ -61,8 +61,6 @@ func main() {
 		return
 	}
 
-	s := &WG{
-		Config: config,
-	}
+	s := NewWG(config)
 	s.Start()
 }
