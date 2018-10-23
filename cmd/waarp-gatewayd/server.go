@@ -5,10 +5,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
 )
 
 // WG is the top level service handler. It manages all other components.
 type WG struct {
+	Config *conf.ServerConfig
 }
 
 // Start starts the main service of the Gateway
