@@ -62,5 +62,7 @@ func main() {
 	}
 
 	s := NewWG(config)
-	s.Start()
+	if err := s.Start(); err != nil {
+		fmt.Printf("ERROR: %v\n", err.Error())
+	}
 }

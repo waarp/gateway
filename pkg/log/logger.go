@@ -26,3 +26,25 @@ func (l *Logger) SetLevel(level string) error {
 	return nil
 }
 
+// SetOutput sets the outpur of the underlying backend.
+// It expects out to be a file path. It can also be 'stdout' to log to the
+// standard output or 'syslog' to log to a syslog daemon .
+func (l *Logger) SetOutput(out string, syslogfacility string) error {
+	var (
+		b logging.Backend
+		err error
+	)
+
+	switch out{
+	case "stdout":
+		b = logging.NewStdoutBackend()
+	case "syslog":
+		b, err = logging.NewSyslogBackend(syslogfacility, "waarp-manager-ng")
+	default:
+		b, err = logging.NewFileBackend(out)
+	}
+
+	l.Logger.SetBackend(b)
+	
+	return err
+}
