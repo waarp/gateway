@@ -61,8 +61,8 @@ func main() {
 		return
 	}
 
-	s := &WG{
-		Config: config,
+	s := NewWG(config)
+	if err := s.Start(); err != nil {
+		fmt.Printf("ERROR: %v\n", err.Error())
 	}
-	s.Start()
 }
