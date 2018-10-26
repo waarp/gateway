@@ -1,0 +1,26 @@
+# This file is a template, and might need editing before it works on your project.
+image: golang:latest
+
+before_script:
+  - cd $CI_PROJECT_DIR
+
+stages:
+    - test
+    - build
+
+tests:
+    stage: test
+    script:
+      - gofmt -d -e ./pkg/ ./cmd/
+      - go get -x code.bcarlin.xyz/go/logging@v0.1.0
+      - go vet ./cmd/... ./pkg/...
+      - go test -race ./cmd/... ./pkg/...
+
+compile:
+    stage: build
+    script:
+      - export CGO_ENABLED=0
+      - go build -ldflags "-s -w" -o $CI_PROJECT_DIR/waarp-gatewayd ./cmd/waarp-gatewayd
+    artifacts:
+      paths:
+        - waarp-gatewayd
