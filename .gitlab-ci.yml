@@ -13,7 +13,8 @@ tests:
     script:
       - gofmt -d -e ./pkg/ ./cmd/
       - go vet ./cmd/... ./pkg/...
-      - go test -v ./cmd/... ./pkg/...
+      - go test -coverpkg ./cmd/...,./pkg/... -coverprofile cover.out -v ./cmd/... ./pkg/...
+      - go tool cover -func=cover.out
 
 compile:
     stage: build
