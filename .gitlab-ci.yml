@@ -12,6 +12,7 @@ tests:
     stage: test
     script:
       - gofmt -d -e ./pkg/ ./cmd/
+      - go get -x code.bcarlin.xyz/go/logging@v0.1.0
       - go vet ./cmd/... ./pkg/...
       - go test -race ./cmd/... ./pkg/...
 
