@@ -9,9 +9,9 @@ import (
 	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
 )
 type options struct {
-	ConfigFile string `short:"c" long:"config" description:"the configuration file"`
-	Update     bool   `short:"u" long:"update"`
-	Create     bool   `short:"n" long:"create"`
+	ConfigFile string `short:"c" long:"config" description:"The configuration file to use"`
+	Update     bool   `short:"u" long:"update" description:"Updates the configuration file at the location given with --config"`
+	Create     bool   `short:"n" long:"create" description:"Creates a new configuration file at the location given with --config"`
 }
 
 func main() {

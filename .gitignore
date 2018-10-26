@@ -1,0 +1,4 @@
+doc/.venv
+doc/build
+waarp-gatewayd
+*.ini
