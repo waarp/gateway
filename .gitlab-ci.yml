@@ -8,7 +8,7 @@ stages:
     - test
     - build
 
-format:
+tests:
     stage: test
     script:
       - gofmt -d -e ./pkg/ ./cmd/
