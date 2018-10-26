@@ -13,11 +13,6 @@ type ServerConfig struct {
 		LogTo string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout' and 'syslog' log respectively to the standard outpout and to the syslog daemon"` 
 		SyslogFacility string `ini-name:"SyslogFacility" default:"local0" description:"If LogTo is set on 'syslog', the logs will be written to this facility."` 
 	} `group:"log"`
-
-	// Needed for test purpose (to be removed later)
-	Foo string `ini-name:"Foo" default:"default-foo" description:"foo desc"`
-	Bar string `ini-name:"Bar" default:"default-bar"`
-	Baz string `ini-name:"Baz" default:"default-baz"`
 }
 
 // LoadServerConfig creates a configuration object.

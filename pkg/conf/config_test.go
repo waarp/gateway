@@ -10,22 +10,22 @@ import (
 )
 
 func TestLoadServerConfig(t *testing.T) {
-	directContent := []byte(`[global]
-Foo = direct-foo
-Bar = direct-bar
+	directContent := []byte(`[Log]
+LogTo = direct-foo
+Level = direct-bar
 
 `)
-	parentEtcContent := []byte(`[global]
-Foo = parent-etc-foo
-Baz = parent-etc-baz
+	parentEtcContent := []byte(`[Log]
+LogTo = parent-etc-foo
+SyslogFacility = parent-etc-baz
 
 `)
-	userConfContent := []byte(`[global]
-Foo = user-foo
+	userConfContent := []byte(`[Log]
+LogTo = user-foo
 
 `)
-	badContent := []byte(`[global]
-Foo user-foo
+	badContent := []byte(`[Log]
+LogTo user-foo
 
 `)
 
@@ -42,7 +42,7 @@ Foo user-foo
 				})
 
 				Convey("Then the default configuration is used", func() {
-					So(c.Foo, ShouldEqual, "default-foo")
+					So(c.Log.LogTo, ShouldEqual, "stdout")
 				})
 
 			})
@@ -62,7 +62,7 @@ Foo user-foo
 					})
 
 					Convey("Then it is parsed", func() {
-						So(c.Foo, ShouldEqual, "direct-foo")
+						So(c.Log.LogTo, ShouldEqual, "direct-foo")
 					})
 
 				})
@@ -103,7 +103,7 @@ Foo user-foo
 				})
 
 				Convey("Then it is parsed", func() {
-					So(c.Foo, ShouldEqual, "parent-etc-foo")
+					So(c.Log.LogTo, ShouldEqual, "parent-etc-foo")
 				})
 
 			})
@@ -128,8 +128,8 @@ Foo user-foo
 				})
 
 				Convey("Then only the one in the same directory is parsed", func() {
-					So(c.Foo, ShouldEqual, "direct-foo")
-					So(c.Baz, ShouldEqual, "default-baz")
+					So(c.Log.LogTo, ShouldEqual, "direct-foo")
+					So(c.Log.SyslogFacility, ShouldEqual, "local0")
 				})
 
 			})
@@ -158,7 +158,7 @@ Foo user-foo
 					})
 
 					Convey("Then it is parsed", func() {
-						So(c.Foo, ShouldEqual, "user-foo")
+						So(c.Log.LogTo, ShouldEqual, "user-foo")
 					})
 
 				})
@@ -181,12 +181,12 @@ Foo user-foo
 					})
 
 					Convey("Then it is parsed", func() {
-						So(c.Foo, ShouldEqual, "user-foo")
+						So(c.Log.LogTo, ShouldEqual, "user-foo")
 					})
 
 					Convey("Then the other configuration files are not used", func() {
-						So(c.Bar, ShouldEqual, "default-bar")
-						So(c.Baz, ShouldEqual, "default-baz")
+						So(c.Log.Level, ShouldEqual, "INFO")
+						So(c.Log.SyslogFacility, ShouldEqual, "local0")
 					})
 
 				})
@@ -238,7 +238,7 @@ Foo user-foo
 func TestUpdateServerConfig(t *testing.T) {
 	oldContent := []byte(`[global]
 ; old desc
-; Foo = old-default-foo
+; LogTo = old-default-foo
 Bar = direct-bar
 HasBeenRemoved = true
 
@@ -271,17 +271,17 @@ HasBeenRemoved = true
 				})
 
 				Convey("And the new values are added", func() {
-					So(newContent, ShouldContainSubstring, "Baz")
+					So(newContent, ShouldContainSubstring, "SyslogFacility")
 				})
 
 				Convey("And default values are changed if needed", func() {
-					So(newContent, ShouldNotContainSubstring, "; Foo = old-default-foo")
-					So(newContent, ShouldContainSubstring, "; Foo = default-foo")
+					So(newContent, ShouldNotContainSubstring, "; LogTo = old-default-foo")
+					So(newContent, ShouldContainSubstring, "; LogTo = stdout")
 				})
 
 				Convey("And comments are updated if needed", func() {
 					So(newContent, ShouldNotContainSubstring, "; old desc")
-					So(newContent, ShouldContainSubstring, "; foo desc")
+					So(newContent, ShouldContainSubstring, "; All messages")
 				})
 
 			})
