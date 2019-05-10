@@ -1,12 +1,40 @@
 package rest
 
-import "code.waarp.fr/waarp/gateway-ng/pkg/log"
+import (
+	"context"
+	"net/http"
 
-// The port on which the REST interface is listening
-const PORT string = ":8080"
+	"code.waarp.fr/waarp/gateway-ng/pkg/log"
+)
 
+type Service struct {
+	port   string
+	logger *log.Logger
+	server http.Server
+}
 
-// Starts all the REST handlers
-func StartRestService(logger *log.Logger) {
-	go StartStatusHandler(PORT, logger)
+func (service *Service) StartRestService() {
+	service.server = http.Server{Addr: service.port}
+
+	status := &StatusHandler{logger: service.logger}
+
+	http.HandleFunc(STATUS_URI, status.ServeHTTP)
+
+	go func() {
+		if err := service.server.ListenAndServe(); err != http.ErrServerClosed {
+			service.logger.Errorf("Unexpected REST service shutdown: %s", err)
+		} else {
+			service.logger.Info("REST service shutting down.")
+		}
+	}()
+}
+
+func (service *Service) stopRestService() {
+	service.logger.Info("REST service shutdown initiated.")
+
+	if err := service.server.Shutdown(context.Background()); err != nil {
+		service.logger.Error("Failed to shutdown the REST service gracefully.")
+	}
+
+	service.logger.Info("REST service shutdown complete.")
 }
