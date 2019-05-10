@@ -11,7 +11,7 @@ import (
 const STATUS_URI string = "/status"
 
 // Status handler is the handler in charge of status requests
-type StatusHandler struct {
+type statusHandler struct {
 	http.Handler
 
 	mutex  sync.Mutex
@@ -20,7 +20,7 @@ type StatusHandler struct {
 
 // Function called when an HTTP request is received on the STATUS_URI path.
 // For now, it just send an OK status code.
-func (handler *StatusHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (handler *statusHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	handler.mutex.Lock()
 	defer handler.mutex.Unlock()
 

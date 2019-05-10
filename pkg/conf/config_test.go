@@ -14,14 +14,23 @@ func TestLoadServerConfig(t *testing.T) {
 LogTo = direct-foo
 Level = direct-bar
 
+[Rest]
+port = direct-port
+
 `)
 	parentEtcContent := []byte(`[Log]
 LogTo = parent-etc-foo
 SyslogFacility = parent-etc-baz
 
+[Rest]
+Port = parent-etc-port
+
 `)
 	userConfContent := []byte(`[Log]
 LogTo = user-foo
+
+[Rest]
+Port = user-port
 
 `)
 	badContent := []byte(`[Log]
@@ -43,6 +52,7 @@ LogTo user-foo
 
 				Convey("Then the default configuration is used", func() {
 					So(c.Log.LogTo, ShouldEqual, "stdout")
+					So(c.Rest.Port, ShouldEqual, "8080")
 				})
 
 			})
@@ -63,6 +73,7 @@ LogTo user-foo
 
 					Convey("Then it is parsed", func() {
 						So(c.Log.LogTo, ShouldEqual, "direct-foo")
+						So(c.Rest.Port, ShouldEqual, "direct-port")
 					})
 
 				})
@@ -104,6 +115,7 @@ LogTo user-foo
 
 				Convey("Then it is parsed", func() {
 					So(c.Log.LogTo, ShouldEqual, "parent-etc-foo")
+					So(c.Rest.Port, ShouldEqual, "parent-etc-port")
 				})
 
 			})
@@ -130,6 +142,7 @@ LogTo user-foo
 				Convey("Then only the one in the same directory is parsed", func() {
 					So(c.Log.LogTo, ShouldEqual, "direct-foo")
 					So(c.Log.SyslogFacility, ShouldEqual, "local0")
+					So(c.Rest.Port, ShouldEqual, "direct-port")
 				})
 
 			})
@@ -159,6 +172,7 @@ LogTo user-foo
 
 					Convey("Then it is parsed", func() {
 						So(c.Log.LogTo, ShouldEqual, "user-foo")
+						So(c.Rest.Port, ShouldEqual, "user-port")
 					})
 
 				})
@@ -182,6 +196,7 @@ LogTo user-foo
 
 					Convey("Then it is parsed", func() {
 						So(c.Log.LogTo, ShouldEqual, "user-foo")
+						So(c.Rest.Port, ShouldEqual, "user-port")
 					})
 
 					Convey("Then the other configuration files are not used", func() {

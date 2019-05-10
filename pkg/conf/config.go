@@ -13,6 +13,9 @@ type ServerConfig struct {
 		LogTo          string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout' and 'syslog' log respectively to the standard outpout and to the syslog daemon"`
 		SyslogFacility string `ini-name:"SyslogFacility" default:"local0" description:"If LogTo is set on 'syslog', the logs will be written to this facility."`
 	} `group:"log"`
+	Rest struct {
+		Port string `ini-name:"Port" default:"8080" description:"The TCP port used by the REST interface."`
+	} `group:"rest"`
 }
 
 // LoadServerConfig creates a configuration object.
