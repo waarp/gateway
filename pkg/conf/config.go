@@ -14,7 +14,9 @@ type ServerConfig struct {
 		SyslogFacility string `ini-name:"SyslogFacility" default:"local0" description:"If LogTo is set on 'syslog', the logs will be written to this facility."`
 	} `group:"log"`
 	Rest struct {
-		Port string `ini-name:"Port" default:"8080" description:"The TCP port used by the REST interface."`
+		Port    string `ini-name:"Port" default:"8080" description:"The TCP port used by the REST interface."`
+		SslCert string `ini-name:"SslCert" default:"" description:"Path of the SSL certificate for the REST service."`
+		SslKey  string `ini-name:"SslKey" default:"" description:"Path of the key of the SSL certificate."`
 	} `group:"rest"`
 }
 
