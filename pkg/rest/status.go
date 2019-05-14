@@ -17,6 +17,5 @@ type statusHandler struct {
 // For now, it just send an OK status code.
 func (handler *statusHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	handler.logger.Debug("Received status request")
-	_, _ = writer.Write([]byte{})
-
+	writer.WriteHeader(http.StatusOK)
 }

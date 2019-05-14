@@ -60,6 +60,7 @@ func (service *Service) listen() {
 	}
 }
 
+// Starts the http.Server instance
 func (service *Service) startServer() error {
 	// Load REST service address
 	port := service.Config.Rest.Port
