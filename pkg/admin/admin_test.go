@@ -1,4 +1,4 @@
-package rest
+package admin
 
 import (
 	"crypto/tls"
@@ -14,7 +14,7 @@ func TestStart(t *testing.T) {
 	Convey("Given a correct configuration", t, func() {
 		config := conf.ServerConfig{}
 		config.Rest.Port = "9000"
-		rest := Service{
+		rest := Server{
 			Config: &config,
 		}
 		err := rest.Start()
@@ -27,7 +27,7 @@ func TestStart(t *testing.T) {
 	Convey("Given an incorrect configuration", t, func() {
 		config := conf.ServerConfig{}
 		config.Rest.Port = "999999"
-		rest := Service{
+		rest := Server{
 			Config: &config,
 		}
 
@@ -46,7 +46,7 @@ func TestSSL(t *testing.T) {
 		config.Rest.Port = "9001"
 		config.Rest.SslCert = "test-cert/cert.pem"
 		config.Rest.SslKey = "test-cert/key.pem"
-		rest := Service{
+		rest := Server{
 			Config: &config,
 		}
 		err := rest.Start()
@@ -57,7 +57,17 @@ func TestSSL(t *testing.T) {
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
 			client := &http.Client{Transport: tr}
-			response, err := client.Get("https://localhost:9001/status")
+			request := &http.Request{
+				Method: http.MethodGet,
+				Header: http.Header{},
+				URL: &url.URL{
+					Scheme: "https",
+					Host:   "localhost:9001",
+					Path:   "/api/status",
+				},
+			}
+			request.SetBasicAuth("admin", "adminpassword")
+			response, err := client.Do(request)
 
 			Convey("Then the service should respond OK in SSL", func() {
 				So(err, ShouldBeNil)
@@ -73,7 +83,7 @@ func TestStop(t *testing.T) {
 	Convey("Given a REST service", t, func() {
 		config := conf.ServerConfig{}
 		config.Rest.Port = "9002"
-		rest := Service{
+		rest := Server{
 			Config: &config,
 		}
 		err := rest.Start()
@@ -84,7 +94,7 @@ func TestStop(t *testing.T) {
 
 			Convey("Then the service should no longer respond to requests", func() {
 				client := new(http.Client)
-				response, err := client.Get("http://localhost:9002/status")
+				response, err := client.Get("http://localhost:9002/api/status")
 
 				So(response, ShouldBeNil)
 				urlError := new(url.Error)
@@ -98,15 +108,25 @@ func TestStatus(t *testing.T) {
 	Convey("Given a REST service", t, func() {
 		config := conf.ServerConfig{}
 		config.Rest.Port = "9100"
-		rest := Service{
+		rest := Server{
 			Config: &config,
 		}
 		err := rest.Start()
 		So(err, ShouldBeNil)
 
 		Convey("When a status request is made", func() {
-			client := new(http.Client)
-			response, err := client.Get("http://localhost:9100/status")
+			client := &http.Client{}
+			request := &http.Request{
+				Method: http.MethodGet,
+				Header: http.Header{},
+				URL: &url.URL{
+					Scheme: "http",
+					Host:   "localhost:9100",
+					Path:   "/api/status",
+				},
+			}
+			request.SetBasicAuth("admin", "adminpassword")
+			response, err := client.Do(request)
 
 			Convey("Then the service should respond OK", func() {
 				So(err, ShouldBeNil)
