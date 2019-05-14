@@ -1,30 +1,22 @@
 package rest
 
 import (
-	"net/http"
-	"sync"
-
 	"code.waarp.fr/waarp/gateway-ng/pkg/log"
+	"net/http"
 )
 
 // This is the access path to this handler
-const STATUS_URI string = "/status"
+const statusUri string = "/status"
 
 // Status handler is the handler in charge of status requests
 type statusHandler struct {
-	http.Handler
-
-	mutex  sync.Mutex
 	logger *log.Logger
 }
 
-// Function called when an HTTP request is received on the STATUS_URI path.
+// Function called when an HTTP request is received on the statusUri path.
 // For now, it just send an OK status code.
 func (handler *statusHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	handler.mutex.Lock()
-	defer handler.mutex.Unlock()
-
-	handler.logger.Info("Received status request.")
+	handler.logger.Debug("Received status request")
 	_, _ = writer.Write([]byte{})
 
 }
