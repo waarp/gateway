@@ -13,11 +13,11 @@ type ServerConfig struct {
 		LogTo          string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout' and 'syslog' log respectively to the standard outpout and to the syslog daemon"`
 		SyslogFacility string `ini-name:"SyslogFacility" default:"local0" description:"If LogTo is set on 'syslog', the logs will be written to this facility."`
 	} `group:"log"`
-	Rest struct {
-		Port    string `ini-name:"Port" default:"8080" description:"The TCP port used by the REST interface."`
-		SslCert string `ini-name:"SslCert" default:"" description:"Path of the SSL certificate for the REST service."`
+	Admin struct {
+		Address string `ini-name:"Address" default:":8080" description:"The IP address + TCP port used by the admin interface."`
+		SslCert string `ini-name:"SslCert" default:"" description:"Path of the SSL certificate for the admin interface."`
 		SslKey  string `ini-name:"SslKey" default:"" description:"Path of the key of the SSL certificate."`
-	} `group:"rest"`
+	} `group:"admin"`
 }
 
 // LoadServerConfig creates a configuration object.

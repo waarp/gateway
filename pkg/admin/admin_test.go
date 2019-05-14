@@ -13,7 +13,7 @@ import (
 func TestStart(t *testing.T) {
 	Convey("Given a correct configuration", t, func() {
 		config := conf.ServerConfig{}
-		config.Rest.Port = "9000"
+		config.Admin.Address = ":9000"
 		rest := Server{
 			Config: &config,
 		}
@@ -26,7 +26,9 @@ func TestStart(t *testing.T) {
 
 	Convey("Given an incorrect configuration", t, func() {
 		config := conf.ServerConfig{}
-		config.Rest.Port = "999999"
+		config.Admin.Address = ":999999"
+		config.Admin.SslCert = "not_a_cert"
+		config.Admin.SslKey = "not_a_key"
 		rest := Server{
 			Config: &config,
 		}
@@ -43,9 +45,9 @@ func TestStart(t *testing.T) {
 func TestSSL(t *testing.T) {
 	Convey("Given an SSL REST service", t, func() {
 		config := conf.ServerConfig{}
-		config.Rest.Port = "9001"
-		config.Rest.SslCert = "test-cert/cert.pem"
-		config.Rest.SslKey = "test-cert/key.pem"
+		config.Admin.Address = "localhost:9001"
+		config.Admin.SslCert = "test-cert/cert.pem"
+		config.Admin.SslKey = "test-cert/key.pem"
 		rest := Server{
 			Config: &config,
 		}
@@ -82,7 +84,7 @@ func TestSSL(t *testing.T) {
 func TestStop(t *testing.T) {
 	Convey("Given a REST service", t, func() {
 		config := conf.ServerConfig{}
-		config.Rest.Port = "9002"
+		config.Admin.Address = "127.0.0.1:9002"
 		rest := Server{
 			Config: &config,
 		}
@@ -107,7 +109,7 @@ func TestStop(t *testing.T) {
 func TestStatus(t *testing.T) {
 	Convey("Given a REST service", t, func() {
 		config := conf.ServerConfig{}
-		config.Rest.Port = "9100"
+		config.Admin.Address = ":9100"
 		rest := Server{
 			Config: &config,
 		}

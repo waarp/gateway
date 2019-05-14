@@ -14,7 +14,7 @@ func TestLoadServerConfig(t *testing.T) {
 LogTo = direct-foo
 Level = direct-bar
 
-[Rest]
+[Admin]
 port = direct-port
 
 `)
@@ -22,15 +22,15 @@ port = direct-port
 LogTo = parent-etc-foo
 SyslogFacility = parent-etc-baz
 
-[Rest]
-Port = parent-etc-port
+[Admin]
+Address = parent-etc-port
 
 `)
 	userConfContent := []byte(`[Log]
 LogTo = user-foo
 
-[Rest]
-Port = user-port
+[Admin]
+Address = user-port
 
 `)
 	badContent := []byte(`[Log]
@@ -52,7 +52,7 @@ LogTo user-foo
 
 				Convey("Then the default configuration is used", func() {
 					So(c.Log.LogTo, ShouldEqual, "stdout")
-					So(c.Rest.Port, ShouldEqual, "8080")
+					So(c.Admin.Address, ShouldEqual, "8080")
 				})
 
 			})
@@ -73,7 +73,7 @@ LogTo user-foo
 
 					Convey("Then it is parsed", func() {
 						So(c.Log.LogTo, ShouldEqual, "direct-foo")
-						So(c.Rest.Port, ShouldEqual, "direct-port")
+						So(c.Admin.Address, ShouldEqual, "direct-port")
 					})
 
 				})
@@ -115,7 +115,7 @@ LogTo user-foo
 
 				Convey("Then it is parsed", func() {
 					So(c.Log.LogTo, ShouldEqual, "parent-etc-foo")
-					So(c.Rest.Port, ShouldEqual, "parent-etc-port")
+					So(c.Admin.Address, ShouldEqual, "parent-etc-port")
 				})
 
 			})
@@ -142,7 +142,7 @@ LogTo user-foo
 				Convey("Then only the one in the same directory is parsed", func() {
 					So(c.Log.LogTo, ShouldEqual, "direct-foo")
 					So(c.Log.SyslogFacility, ShouldEqual, "local0")
-					So(c.Rest.Port, ShouldEqual, "direct-port")
+					So(c.Admin.Address, ShouldEqual, "direct-port")
 				})
 
 			})
@@ -172,7 +172,7 @@ LogTo user-foo
 
 					Convey("Then it is parsed", func() {
 						So(c.Log.LogTo, ShouldEqual, "user-foo")
-						So(c.Rest.Port, ShouldEqual, "user-port")
+						So(c.Admin.Address, ShouldEqual, "user-port")
 					})
 
 				})
@@ -196,7 +196,7 @@ LogTo user-foo
 
 					Convey("Then it is parsed", func() {
 						So(c.Log.LogTo, ShouldEqual, "user-foo")
-						So(c.Rest.Port, ShouldEqual, "user-port")
+						So(c.Admin.Address, ShouldEqual, "user-port")
 					})
 
 					Convey("Then the other configuration files are not used", func() {
