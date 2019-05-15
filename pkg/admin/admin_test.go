@@ -11,6 +11,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+
 func TestStart(t *testing.T) {
 	Convey("Given a correct configuration", t, func() {
 		config := conf.ServerConfig{}
@@ -18,10 +19,22 @@ func TestStart(t *testing.T) {
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
-		err := rest.Start()
+		Convey("When starting the service", func () {
+			err := rest.Start()
+			Convey("Then the service should start without errors", func() {
+				So(err, ShouldBeNil)
+			})
+		})
+	})
 
-		Convey("Then the service should start without errors", func() {
-			So(err, ShouldBeNil)
+	Convey("Given no configuration", t, func() {
+		rest := Server{}
+
+		Convey("When starting the service", func() {
+			err := rest.Start()
+			Convey("Then it should produce an error ", func() {
+				So(err, ShouldNotBeNil)
+			})
 		})
 	})
 
@@ -44,17 +57,16 @@ func TestStart(t *testing.T) {
 }
 
 func TestSSL(t *testing.T) {
-	Convey("Given an SSL REST service", t, func() {
-		config := conf.ServerConfig{}
-		config.Admin.Address = "localhost:9001"
-		config.Admin.SslCert = "test-cert/cert.pem"
-		config.Admin.SslKey = "test-cert/key.pem"
-		rest := Server{
-			WG: gatewayd.NewWG(&config),
-		}
-		err := rest.Start()
-		So(err, ShouldBeNil)
+	config := conf.ServerConfig{}
+	config.Admin.Address = "localhost:9001"
+	config.Admin.SslCert = "test-cert/cert.pem"
+	config.Admin.SslKey = "test-cert/key.pem"
+	rest := Server{
+		WG: gatewayd.NewWG(&config),
+	}
+	_ = rest.Start()
 
+	Convey("Given an SSL REST service", t, func() {
 		Convey("When a status request is made", func() {
 			tr := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -108,14 +120,14 @@ func TestStop(t *testing.T) {
 }
 
 func TestStatus(t *testing.T) {
+	config := conf.ServerConfig{}
+	config.Admin.Address = ":9100"
+	rest := Server{
+		WG: gatewayd.NewWG(&config),
+	}
+	_ = rest.Start()
+
 	Convey("Given a REST service", t, func() {
-		config := conf.ServerConfig{}
-		config.Admin.Address = ":9100"
-		rest := Server{
-			WG: gatewayd.NewWG(&config),
-		}
-		err := rest.Start()
-		So(err, ShouldBeNil)
 
 		Convey("When a status request is made", func() {
 			client := &http.Client{}
@@ -128,13 +140,27 @@ func TestStatus(t *testing.T) {
 					Path:   "/api/status",
 				},
 			}
-			request.SetBasicAuth("admin", "adminpassword")
-			response, err := client.Do(request)
 
-			Convey("Then the service should respond OK", func() {
-				So(err, ShouldBeNil)
-				So(response, ShouldNotBeNil)
-				So(response.StatusCode, ShouldEqual, http.StatusOK)
+			Convey("Given valid credentials", func() {
+				request.SetBasicAuth("admin", "adminpassword")
+				response, err := client.Do(request)
+
+				Convey("Then the service should respond OK", func() {
+					So(err, ShouldBeNil)
+					So(response, ShouldNotBeNil)
+					So(response.StatusCode, ShouldEqual, http.StatusOK)
+				})
+			})
+
+			Convey("Given invalid credentials", func() {
+				request.SetBasicAuth("admin", "notadminpassword")
+				response, err := client.Do(request)
+
+				Convey("Then the service should respond Unauthorized", func() {
+					So(err, ShouldBeNil)
+					So(response, ShouldNotBeNil)
+					So(response.StatusCode, ShouldEqual, http.StatusUnauthorized)
+				})
 			})
 		})
 	})
