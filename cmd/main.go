@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	flags "github.com/jessevdk/go-flags"
 
 	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
+	"code.waarp.fr/waarp/gateway-ng/pkg/gatewayd"
 )
 
 type options struct {
@@ -62,7 +63,7 @@ func main() {
 		return
 	}
 
-	s := NewWG(config)
+	s := gatewayd.NewWG(config)
 	if err := s.Start(); err != nil {
 		fmt.Printf("ERROR: %v\n", err.Error())
 	}

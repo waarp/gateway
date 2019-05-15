@@ -15,11 +15,11 @@ const statusUri string = "/status"
 func Authentication(logger *log.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger.Infof("Received %s on %s", r.Method, r.URL)
+			logger.Admin.Infof("Received %s on %s", r.Method, r.URL)
 
 			user, pswd, ok := r.BasicAuth()
 			if !ok || user != "admin" || pswd != "adminpassword" {
-				logger.Info("Authentication failed.")
+				logger.Admin.Info("Authentication failed.")
 				w.Header().Set("WWW-Authenticate", "Basic")
 				http.Error(w, "Authentication failed", http.StatusUnauthorized)
 			} else {

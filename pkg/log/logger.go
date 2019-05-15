@@ -7,12 +7,14 @@ import (
 // Logger is an internal abstraction of the underlying logging library
 type Logger struct {
 	*logging.Logger
+	Admin *logging.Logger
 }
 
 // NewLogger initiates a new logger
 func NewLogger() *Logger {
 	return &Logger{
 		Logger: logging.GetLogger("waarp-gateway-ng"),
+		Admin:  logging.GetLogger("admin"),
 	}
 }
 

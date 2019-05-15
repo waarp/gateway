@@ -3,3 +3,4 @@ doc/build
 waarp-gatewayd
 *.ini
 .idea
+*.iml

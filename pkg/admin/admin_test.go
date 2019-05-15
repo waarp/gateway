@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
+	"code.waarp.fr/waarp/gateway-ng/pkg/gatewayd"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -15,7 +16,7 @@ func TestStart(t *testing.T) {
 		config := conf.ServerConfig{}
 		config.Admin.Address = ":9000"
 		rest := Server{
-			Config: &config,
+			WG: gatewayd.NewWG(&config),
 		}
 		err := rest.Start()
 
@@ -30,7 +31,7 @@ func TestStart(t *testing.T) {
 		config.Admin.SslCert = "not_a_cert"
 		config.Admin.SslKey = "not_a_key"
 		rest := Server{
-			Config: &config,
+			WG: gatewayd.NewWG(&config),
 		}
 
 		Convey("When starting the service", func() {
@@ -49,7 +50,7 @@ func TestSSL(t *testing.T) {
 		config.Admin.SslCert = "test-cert/cert.pem"
 		config.Admin.SslKey = "test-cert/key.pem"
 		rest := Server{
-			Config: &config,
+			WG: gatewayd.NewWG(&config),
 		}
 		err := rest.Start()
 		So(err, ShouldBeNil)
@@ -86,7 +87,7 @@ func TestStop(t *testing.T) {
 		config := conf.ServerConfig{}
 		config.Admin.Address = "127.0.0.1:9002"
 		rest := Server{
-			Config: &config,
+			WG: gatewayd.NewWG(&config),
 		}
 		err := rest.Start()
 		So(err, ShouldBeNil)
@@ -111,7 +112,7 @@ func TestStatus(t *testing.T) {
 		config := conf.ServerConfig{}
 		config.Admin.Address = ":9100"
 		rest := Server{
-			Config: &config,
+			WG: gatewayd.NewWG(&config),
 		}
 		err := rest.Start()
 		So(err, ShouldBeNil)

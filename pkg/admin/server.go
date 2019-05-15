@@ -1,30 +1,28 @@
 package admin
 
 import (
-	"code.bcarlin.xyz/go/logging"
 	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
 	"time"
 
-	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
-	"code.waarp.fr/waarp/gateway-ng/pkg/log"
+	"code.bcarlin.xyz/go/logging"
+
+	"code.waarp.fr/waarp/gateway-ng/pkg/gatewayd"
 	"github.com/gorilla/mux"
 )
 
-// This is the REST service interface
+// Server is the administration service
 type Server struct {
-	Config *conf.ServerConfig
-	Logger *log.Logger
+	*gatewayd.WG
 
 	server http.Server
 }
 
-// Starts the server listener, and restarts the service if an unexpected
-// error occurred while listening
+// listen starts the HTTP server listener on the configured port
 func (admin *Server) listen() {
-	admin.Logger.Infof("Listening at address %s", admin.server.Addr)
+	admin.Logger.Admin.Infof("Listening at address %s", admin.server.Addr)
 	var err error
 	if admin.server.TLSConfig == nil {
 		err = admin.server.ListenAndServe()
@@ -33,12 +31,14 @@ func (admin *Server) listen() {
 	}
 
 	if err != http.ErrServerClosed {
-		admin.Logger.Criticalf("Unexpected error: %s", err)
+		admin.Logger.Admin.Criticalf("Unexpected error: %s", err)
 	}
 }
 
-// Starts the http.Server instance
-func (admin *Server) startServer() error {
+// initServer initializes the HTTP server instance using the parameters defined
+// in the Admin configuration.
+// If the configuration is invalid, this function returns an error.
+func (admin *Server) initServer() error {
 	// Load REST admin address
 	addr := admin.Config.Admin.Address
 
@@ -68,47 +68,41 @@ func (admin *Server) startServer() error {
 		Addr:      addr,
 		TLSConfig: tlsConfig,
 		Handler:   handler,
-		ErrorLog:  admin.Logger.AsStdLog(logging.ERROR),
+		ErrorLog:  admin.Logger.Admin.AsStdLog(logging.ERROR),
 	}
 	return nil
 }
 
-// Starts the REST service
+// Start launches the administration service. If the service fails to launch,
+// the function returns an error
 func (admin *Server) Start() error {
-	if admin.Logger == nil {
-		admin.Logger = &log.Logger{
-			Logger: logging.GetLogger("admin"),
-		}
-		_ = admin.Logger.SetOutput("stdout", "")
+	if admin.WG == nil {
+		return fmt.Errorf("missing application configuration")
 	}
 
-	if admin.Config == nil {
-		return fmt.Errorf("missing REST configuration")
-	}
-
-	if err := admin.startServer(); err != nil {
+	if err := admin.initServer(); err != nil {
 		return err
 	}
 
 	go admin.listen()
 
-	admin.Logger.Info("Server started.")
+	admin.Logger.Admin.Info("Server started.")
 	return nil
 }
 
-// Stops the REST service by first trying to shut down the service gracefully.
+// Stop halts the admin service by first trying to shut it down gracefully.
 // If it fails after a 10 seconds delay, the service is forcefully stopped.
 func (admin *Server) Stop() {
-	admin.Logger.Info("Shutdown initiated.")
+	admin.Logger.Admin.Info("Shutdown initiated.")
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
 	err := admin.server.Shutdown(ctx)
 
 	if err != nil && err != http.ErrServerClosed {
-		admin.Logger.Warningf("Failed to shutdown gracefully : %s", err)
+		admin.Logger.Admin.Warningf("Failed to shutdown gracefully : %s", err)
 		_ = admin.server.Close()
-		admin.Logger.Warning("The admin was forcefully stopped.")
+		admin.Logger.Admin.Warning("The admin was forcefully stopped.")
 	} else {
-		admin.Logger.Info("Shutdown complete.")
+		admin.Logger.Admin.Info("Shutdown complete.")
 	}
 }
