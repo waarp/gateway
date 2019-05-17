@@ -14,7 +14,7 @@ t_test() {
 t_check() {
     go vet ./cmd/... ./pkg/...
     golangci-lint run \
-        --enable-all --disable depguard,gochecknoglobals,gochecknoinits,gocritic,interfacer,maligned,prealloci,lll \
+        --enable-all --disable depguard,gochecknoglobals,gochecknoinits,gocritic,interfacer,maligned,prealloc,lll \
         --max-issues-per-linter 0 --max-same-issues 0 
 }
 
