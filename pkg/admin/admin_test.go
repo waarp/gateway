@@ -1,25 +1,28 @@
 package admin
 
 import (
-	"crypto/tls"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
 	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
 	"code.waarp.fr/waarp/gateway-ng/pkg/gatewayd"
+	"code.waarp.fr/waarp/gateway-ng/pkg/log"
 	. "github.com/smartystreets/goconvey/convey"
 )
-
 
 func TestStart(t *testing.T) {
 	Convey("Given a correct configuration", t, func() {
 		config := conf.ServerConfig{}
 		config.Admin.Address = ":9000"
+		config.Admin.SslCert = "test-cert/cert.pem"
+		config.Admin.SslKey = "test-cert/key.pem"
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
-		Convey("When starting the service", func () {
+
+		Convey("When starting the service", func() {
 			err := rest.Start()
 			Convey("Then the service should start without errors", func() {
 				So(err, ShouldBeNil)
@@ -38,11 +41,9 @@ func TestStart(t *testing.T) {
 		})
 	})
 
-	Convey("Given an incorrect configuration", t, func() {
+	Convey("Given an invalid address", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = ":999999"
-		config.Admin.SslCert = "not_a_cert"
-		config.Admin.SslKey = "not_a_key"
+		config.Admin.Address = "not_an_address"
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
@@ -54,41 +55,50 @@ func TestStart(t *testing.T) {
 			})
 		})
 	})
-}
 
-func TestSSL(t *testing.T) {
-	config := conf.ServerConfig{}
-	config.Admin.Address = ":9001"
-	config.Admin.SslCert = "test-cert/cert.pem"
-	config.Admin.SslKey = "test-cert/key.pem"
-	rest := Server{
-		WG: gatewayd.NewWG(&config),
-	}
-	_ = rest.Start()
+	Convey("Given an incorrect host", t, func() {
+		config := conf.ServerConfig{}
+		config.Admin.Address = "not.a.valid.host:9000"
+		rest := Server{
+			WG: gatewayd.NewWG(&config),
+		}
 
-	Convey("Given an SSL REST service", t, func() {
-		Convey("When a status request is made", func() {
-			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			}
-			client := &http.Client{Transport: tr}
-			request := &http.Request{
-				Method: http.MethodGet,
-				Header: http.Header{},
-				URL: &url.URL{
-					Scheme: "https",
-					Host:   "localhost:9001",
-					Path:   "/api/status",
-				},
-			}
-			request.SetBasicAuth("admin", "adminpassword")
-			response, err := client.Do(request)
+		Convey("When starting the service", func() {
+			err := rest.Start()
+			Convey("Then it should produce an error", func() {
+				So(err, ShouldNotBeNil)
+			})
+		})
+	})
 
-			Convey("Then the service should respond OK in SSL", func() {
-				So(err, ShouldBeNil)
-				So(response, ShouldNotBeNil)
-				So(response.StatusCode, ShouldEqual, http.StatusOK)
-				So(response.TLS, ShouldNotBeNil)
+	Convey("Given an incorrect port number", t, func() {
+		config := conf.ServerConfig{}
+		config.Admin.Address = ":999999"
+		rest := Server{
+			WG: gatewayd.NewWG(&config),
+		}
+
+		Convey("When starting the service", func() {
+			err := rest.Start()
+			Convey("Then it should produce an error", func() {
+				So(err, ShouldNotBeNil)
+			})
+		})
+	})
+
+	Convey("Given an incorrect certificate", t, func() {
+		config := conf.ServerConfig{}
+		config.Admin.Address = ":9000"
+		config.Admin.SslCert = "not_a_cert"
+		config.Admin.SslKey = "not_a_key"
+		rest := Server{
+			WG: gatewayd.NewWG(&config),
+		}
+
+		Convey("When starting the service", func() {
+			err := rest.Start()
+			Convey("Then it should produce an error", func() {
+				So(err, ShouldNotBeNil)
 			})
 		})
 	})
@@ -119,49 +129,55 @@ func TestStop(t *testing.T) {
 	})
 }
 
+func TestAuthentication(t *testing.T) {
+	logger := log.NewLogger()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	Convey("Given valid credentials", t, func() {
+		w := httptest.NewRecorder()
+		r, err := http.NewRequest(http.MethodGet, "/api", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.SetBasicAuth("admin", "adminpassword")
+
+		Convey("The function should reply OK", func() {
+			Authentication(logger).Middleware(handler).ServeHTTP(w, r)
+
+			So(w.Code, ShouldEqual, http.StatusOK)
+		})
+	})
+
+	Convey("Given invalid credentials", t, func() {
+		w := httptest.NewRecorder()
+		r, err := http.NewRequest(http.MethodGet, "/api", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.SetBasicAuth("not_admin", "not_the_password")
+
+		Convey("The function should reply Unauthorized", func() {
+			Authentication(logger).Middleware(handler).ServeHTTP(w, r)
+
+			So(w.Code, ShouldEqual, http.StatusUnauthorized)
+		})
+	})
+}
+
 func TestStatus(t *testing.T) {
-	config := conf.ServerConfig{}
-	config.Admin.Address = ":9100"
-	rest := Server{
-		WG: gatewayd.NewWG(&config),
-	}
-	_ = rest.Start()
+	Convey("Given a status request service", t, func() {
+		r, err := http.NewRequest(http.MethodGet, "/api/status", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		w := httptest.NewRecorder()
 
-	Convey("Given a REST service", t, func() {
+		Convey("Then the service should reply OK", func() {
+			GetStatus(w, r)
 
-		Convey("When a status request is made", func() {
-			client := &http.Client{}
-			request := &http.Request{
-				Method: http.MethodGet,
-				Header: http.Header{},
-				URL: &url.URL{
-					Scheme: "http",
-					Host:   "localhost:9100",
-					Path:   "/api/status",
-				},
-			}
-
-			Convey("Given valid credentials", func() {
-				request.SetBasicAuth("admin", "adminpassword")
-				response, err := client.Do(request)
-
-				Convey("Then the service should respond OK", func() {
-					So(err, ShouldBeNil)
-					So(response, ShouldNotBeNil)
-					So(response.StatusCode, ShouldEqual, http.StatusOK)
-				})
-			})
-
-			Convey("Given invalid credentials", func() {
-				request.SetBasicAuth("admin", "notadminpassword")
-				response, err := client.Do(request)
-
-				Convey("Then the service should respond Unauthorized", func() {
-					So(err, ShouldBeNil)
-					So(response, ShouldNotBeNil)
-					So(response.StatusCode, ShouldEqual, http.StatusUnauthorized)
-				})
-			})
+			So(w.Code, ShouldEqual, http.StatusOK)
 		})
 	})
 }

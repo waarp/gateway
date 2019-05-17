@@ -35,3 +35,33 @@ génération des traces du démon.
    l'origine (*facility*) du message.
 
    Valeur par défaut : ``local0``
+
+
+Section ``[admin]``
+===================
+
+La section ``[admin]`` regroupe toutes les options de configuration des
+interfaces d'administration de la gateway. Cela comprend l'interface d'admin
+et l'API REST.
+
+.. confval:: Address
+
+   L'adresse complete (IP + port) à laquelle le serveur HTTP va écouter les
+   requêtes faites à l'interface d'administration.
+
+   Valeur par défaut : ``127.0.0.1:8080``
+
+.. confval:: SslCert
+
+   Le chemin du certificat SSL pour le serveur HTTP.
+   Si ce paramètre n'est pas définit, le serveur utilisera HTTP à la place de
+   HTTPS.
+
+.. confval:: SslKey
+
+   Le chemin de la clé du certificat SSL.
+   Si ce paramètre n'est pas définit, le serveur utilisera HTTP à la place de
+   HTTPS.
+
+
+
