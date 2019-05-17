@@ -2,6 +2,7 @@
 image: golang:latest
 
 before_script:
+  - git config --global url."https://code.bcarlin.xyz".insteadOf "ssh://:git@code.bcarlin.xyz"
   - cd $CI_PROJECT_DIR
 
 stages:
