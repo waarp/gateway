@@ -11,6 +11,13 @@ t_test() {
     go test $@ ./cmd/... ./pkg/...
 }
 
+t_check() {
+    go vet ./cmd/... ./pkg/...
+    golangci-lint run \
+        --enable-all --disable depguard,gochecknoglobals,gochecknoinits,gocritic,interfacer,maligned,prealloc \
+        --max-issues-per-linter 0 --max-same-issues 0 
+}
+
 t_test_watch() {
     goconvey -launchBrowser=false -port=8081 $@
 }
@@ -30,6 +37,7 @@ t_usage() {
     echo ""
     echo "Available actions"
     echo ""
+    echo "  check       Run static analysis"
     echo "  test        Run tests"
     echo "  test watch  Starts convey to watch code and run tests when"
     echo "              it has been changed"
@@ -44,6 +52,10 @@ t_usage() {
 #####################################################################
 
 case $ACTION in
+    check)
+        t_check
+        ;;
+
     test)
         SUB=$1
         case $SUB in

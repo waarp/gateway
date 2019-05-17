@@ -12,7 +12,8 @@ tests:
     stage: test
     script:
       - gofmt -d -e ./pkg/ ./cmd/
-      - go vet ./cmd/... ./pkg/...
+      - test $(which golangci-lint >/dev/null 2>&1) && go get github.com/golangci/golangci-lint/cmd/golangci-lint
+      - ./make.sh check
       - go test -coverpkg ./cmd/...,./pkg/... -coverprofile cover.out -v ./cmd/... ./pkg/...
       - go tool cover -func=cover.out
 
