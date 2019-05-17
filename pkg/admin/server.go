@@ -4,7 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
+	//"net"
 	"net/http"
+	//"strings"
 	"time"
 
 	"code.bcarlin.xyz/go/logging"
@@ -12,6 +15,8 @@ import (
 	"code.waarp.fr/waarp/gateway-ng/pkg/gatewayd"
 	"github.com/gorilla/mux"
 )
+
+const apiURI = "/api"
 
 // Server is the administration service
 type Server struct {
@@ -35,12 +40,35 @@ func (admin *Server) listen() {
 	}
 }
 
+// checkAddress checks if the address given in the configuration is a
+// valid address on which the server can listen
+func checkAddress(strAddr string) error {
+	host, port, err := net.SplitHostPort(strAddr)
+	if err != nil {
+		return err
+	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if _, err := net.LookupIP(host); err != nil {
+		return fmt.Errorf("invalid admin address '%s'", host)
+	}
+	if _, err := net.LookupPort("tcp", port); err != nil {
+		return  fmt.Errorf("invalid admin port '%s'", port)
+	}
+	return nil
+}
+
 // initServer initializes the HTTP server instance using the parameters defined
 // in the Admin configuration.
 // If the configuration is invalid, this function returns an error.
 func (admin *Server) initServer() error {
 	// Load REST admin address
 	addr := admin.Config.Admin.Address
+	err := checkAddress(addr)
+	if err != nil {
+		return err
+	}
 
 	// Load TLS configuration
 	certFile := admin.Config.Admin.SslCert
@@ -59,7 +87,7 @@ func (admin *Server) initServer() error {
 	// Add the REST handler
 	handler := mux.NewRouter()
 	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(admin.Logger))
-	apiHandler := handler.PathPrefix("/api").Subrouter()
+	apiHandler := handler.PathPrefix(apiURI).Subrouter()
 	apiHandler.HandleFunc(statusUri, GetStatus).
 		Methods(http.MethodGet)
 
@@ -73,8 +101,8 @@ func (admin *Server) initServer() error {
 	return nil
 }
 
-// Start launches the administration service. If the service fails to launch,
-// the function returns an error
+// Start launches the administration service. If the service cannot be launched,
+// the function returns an error.
 func (admin *Server) Start() error {
 	if admin.WG == nil {
 		return fmt.Errorf("missing application configuration")

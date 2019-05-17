@@ -58,7 +58,7 @@ func TestStart(t *testing.T) {
 
 func TestSSL(t *testing.T) {
 	config := conf.ServerConfig{}
-	config.Admin.Address = "localhost:9001"
+	config.Admin.Address = ":9001"
 	config.Admin.SslCert = "test-cert/cert.pem"
 	config.Admin.SslKey = "test-cert/key.pem"
 	rest := Server{
@@ -97,7 +97,7 @@ func TestSSL(t *testing.T) {
 func TestStop(t *testing.T) {
 	Convey("Given a REST service", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = "127.0.0.1:9002"
+		config.Admin.Address = ":9002"
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
