@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -12,10 +13,16 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func getFreePort() string {
+	l, _ := net.Listen("tcp", ":0")
+	defer l.Close()
+	return l.Addr().String()
+}
+
 func TestStart(t *testing.T) {
 	Convey("Given a correct configuration", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = ":9000"
+		config.Admin.Address = getFreePort()
 		config.Admin.SslCert = "test-cert/cert.pem"
 		config.Admin.SslKey = "test-cert/key.pem"
 		rest := Server{
@@ -24,7 +31,7 @@ func TestStart(t *testing.T) {
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
-			Convey("Then the service should start without errors", func() {
+			Convey("Then it should start without errors", func() {
 				So(err, ShouldBeNil)
 			})
 		})
@@ -58,7 +65,7 @@ func TestStart(t *testing.T) {
 
 	Convey("Given an incorrect host", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = "not.a.valid.host:9000"
+		config.Admin.Address = "not_a_valid_host:0"
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
@@ -73,7 +80,7 @@ func TestStart(t *testing.T) {
 
 	Convey("Given an incorrect port number", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = ":999999"
+		config.Admin.Address = ":not_a_valid_port"
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
@@ -88,7 +95,7 @@ func TestStart(t *testing.T) {
 
 	Convey("Given an incorrect certificate", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = ":9000"
+		config.Admin.Address = ":1"
 		config.Admin.SslCert = "not_a_cert"
 		config.Admin.SslKey = "not_a_key"
 		rest := Server{
@@ -107,19 +114,21 @@ func TestStart(t *testing.T) {
 func TestStop(t *testing.T) {
 	Convey("Given a REST service", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = ":9002"
+		config.Admin.Address = getFreePort()
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
 		err := rest.Start()
 		So(err, ShouldBeNil)
 
-		Convey("When the service is stopped", func() {
+		Convey("When the service is stopped, even multiple times", func() {
+			rest.Stop()
 			rest.Stop()
 
 			Convey("Then the service should no longer respond to requests", func() {
 				client := new(http.Client)
-				response, err := client.Get("http://localhost:9002/api/status")
+				t.Log(rest.server.Addr)
+				response, err := client.Get(config.Admin.Address)
 
 				So(response, ShouldBeNil)
 				urlError := new(url.Error)

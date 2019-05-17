@@ -5,9 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
-	//"net"
 	"net/http"
-	//"strings"
 	"time"
 
 	"code.bcarlin.xyz/go/logging"
@@ -53,8 +51,8 @@ func checkAddress(strAddr string) error {
 	if _, err := net.LookupIP(host); err != nil {
 		return fmt.Errorf("invalid admin address '%s'", host)
 	}
-	if _, err := net.LookupPort("tcp", port); err != nil {
-		return  fmt.Errorf("invalid admin port '%s'", port)
+	if p, err := net.LookupPort("tcp", port); p == 0 || err != nil {
+		return fmt.Errorf("invalid admin port '%s'", port)
 	}
 	return nil
 }

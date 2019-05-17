@@ -1,19 +1,30 @@
+.. _rest-status
+
+#################
 Statut du service
 #################
 
-Pour savoir si l'interface REST de la gateway est active, le client peut
-interroger le point d'accès ``/api/status`` au moyen d'une requête HTTP
-``GET``.
+Afficher le statut du service
+=============================
 
-Requête
-=======
+.. http:get:: /api/status
 
-Cette requête ne prend aucun paramètres.
+   :reqheader Authorization: Les identifiants de l'utilisateur
 
-Réponses
-========
+   :statuscode 200: Le service est actif
+   :statuscode 401: Authentification d'utilisateur invalide
 
-200 - OK
-********
+   **Exemples**
 
-L'interface REST est bien active.
+   * Requête :
+
+   .. sourcecode:: http
+
+      GET /log HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+
+   * Réponse :
+
+   .. sourcecode:: http
+
+      HTTP/1.1 200 OK
