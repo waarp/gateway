@@ -280,11 +280,13 @@ func TestUpdateFile(t *testing.T) {
 Foo = bar
 Old = baz
 `)
-		ioutil.WriteFile("config-test.ini", content, 0644)
+		err := ioutil.WriteFile("config-test.ini", content, 0644)
+		So(err, ShouldBeNil)
 
 		Convey("When UpdateConf is called", func() {
 			p := NewParser(&C{})
-			p.UpdateFile("config-test.ini")
+			err := p.UpdateFile("config-test.ini")
+			So(err, ShouldBeNil)
 			contentBytes, err := ioutil.ReadFile("config-test.ini")
 			So(err, ShouldBeNil)
 			content := string(contentBytes)

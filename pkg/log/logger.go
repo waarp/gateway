@@ -31,11 +31,11 @@ func (l *Logger) SetLevel(level string) error {
 // standard output or 'syslog' to log to a syslog daemon .
 func (l *Logger) SetOutput(out string, syslogfacility string) error {
 	var (
-		b logging.Backend
+		b   logging.Backend
 		err error
 	)
 
-	switch out{
+	switch out {
 	case "stdout":
 		b = logging.NewStdoutBackend()
 	case "syslog":
@@ -45,6 +45,6 @@ func (l *Logger) SetOutput(out string, syslogfacility string) error {
 	}
 
 	l.Logger.SetBackend(b)
-	
+
 	return err
 }

@@ -1,13 +1,14 @@
 package main
 
 import (
-	"os"
 	"fmt"
+	"os"
 
 	flags "github.com/jessevdk/go-flags"
 
 	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
 )
+
 type options struct {
 	ConfigFile string `short:"c" long:"config" description:"The configuration file to use"`
 	Update     bool   `short:"u" long:"update" description:"Updates the configuration file at the location given with --config"`
@@ -15,7 +16,7 @@ type options struct {
 }
 
 func main() {
-	opts := options{} 
+	opts := options{}
 	parser := flags.NewParser(&opts, flags.Default)
 	if _, err := parser.Parse(); err != nil {
 		if !flags.WroteHelp(err) {
