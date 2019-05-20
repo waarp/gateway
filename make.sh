@@ -12,8 +12,17 @@ t_test() {
 }
 
 t_check() {
-    if test -n $(which golangci-lint >/dev/null 2>&1) -a -n $(golangci-lint --version | grep '1\.16\.0' >/dev/null 2>&1); then
-        echo 'WARNING: Continuous integration uses golangci-lint version 1.16.0'
+    if ! $(which golangci-lint >/dev/null 2>&1); then
+        echo "golangci-lint cannot be found. Please, install it and re-run checks"
+        return 1
+    fi
+    if ! $(golangci-lint --version | grep '1\.16\.0' >/dev/null 2>&1); then
+        echo "***********************************************"
+        echo "WARNING"
+        echo "***********************************************"
+        echo "Your version os golangci-lint is: $(golangci-lint --version | sed 's:.*\s\([0-9\.]\+\)\s.*:\1:')"
+        echo "CI runs version 1.16.0"
+        echo "***********************************************"
     fi
     go vet ./cmd/... ./pkg/...
     golangci-lint run \
