@@ -12,6 +12,9 @@ t_test() {
 }
 
 t_check() {
+    if test -n $(which golangci-lint >/dev/null 2>&1) -a -n $(golangci-lint --version | grep '1\.16\.0' >/dev/null 2>&1); then
+        echo 'WARNING: Continuous integration uses golangci-lint version 1.16.0'
+    fi
     go vet ./cmd/... ./pkg/...
     golangci-lint run \
         --enable-all --disable depguard,gochecknoglobals,gochecknoinits,gocritic,interfacer,maligned,prealloc,lll \

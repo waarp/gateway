@@ -7,8 +7,7 @@ before_script:
   - mkdir -p .gocache
   - export GOPATH="$CI_PROJECT_DIR/.gocache"
   - export PATH="$CI_PROJECT_DIR/.gocache/bin:$PATH"
-  - test -n $(which golangci-lint >/dev/null 2>&1) \
-    -a -n $(golangci-lint --version | grep '1\.16\.0' >/dev/null 2>&1) \
+  - test -n $(which golangci-lint >/dev/null 2>&1 golangci-lint --version | grep '1\.16\.0' >/dev/null 2>&1)
     && curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v1.6.0
   - env
 
@@ -26,7 +25,6 @@ tests:
     stage: test
     script:
       - gofmt -d -e ./pkg/ ./cmd/
-      - test -n $(which golangci-lint >/dev/null 2>&1) && go get github.com/golangci/golangci-lint/cmd/golangci-lint
       - ./make.sh check
       - go test -coverpkg ./cmd/...,./pkg/... -coverprofile cover.out -v ./cmd/... ./pkg/...
       - go tool cover -func=cover.out
