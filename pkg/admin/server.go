@@ -60,8 +60,8 @@ func (admin *Server) initServer() error {
 	}
 
 	// Load TLS configuration
-	certFile := admin.Config.Admin.SslCert
-	keyFile := admin.Config.Admin.SslKey
+	certFile := admin.Config.Admin.TlsCert
+	keyFile := admin.Config.Admin.TlsKey
 	var tlsConfig *tls.Config = nil
 	if certFile != "" && keyFile != "" {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
@@ -71,6 +71,8 @@ func (admin *Server) initServer() error {
 		tlsConfig = &tls.Config{
 			Certificates: []tls.Certificate{cert},
 		}
+	} else {
+		admin.Logger.Admin.Info("No TLS certificate found, using plain HTTP.")
 	}
 
 	// Add the REST handler

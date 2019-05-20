@@ -16,8 +16,8 @@ func TestStart(t *testing.T) {
 	Convey("Given a correct configuration", t, func() {
 		config := conf.ServerConfig{}
 		config.Admin.Address = "localhost:0"
-		config.Admin.SslCert = "test-cert/cert.pem"
-		config.Admin.SslKey = "test-cert/key.pem"
+		config.Admin.TlsCert = "test-cert/cert.pem"
+		config.Admin.TlsKey = "test-cert/key.pem"
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
@@ -89,8 +89,8 @@ func TestStart(t *testing.T) {
 	Convey("Given an incorrect certificate", t, func() {
 		config := conf.ServerConfig{}
 		config.Admin.Address = ":0"
-		config.Admin.SslCert = "not_a_cert"
-		config.Admin.SslKey = "not_a_key"
+		config.Admin.TlsCert = "not_a_cert"
+		config.Admin.TlsKey = "not_a_key"
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
