@@ -9,8 +9,7 @@ import (
 // ServerConfig holds the server configuration options
 type ServerConfig struct {
 	Log struct {
-		Level string `ini-name:"Level" default:"INFO"
-							   description:"All messages with a severity above this level will be logged. Possible values are DEBUG, INFO, WARNING, ERROR and CRITICAL."`
+		Level          string `ini-name:"Level" default:"INFO" description:"All messages with a severity above this level will be logged. Possible values are DEBUG, INFO, WARNING, ERROR and CRITICAL."`
 		LogTo          string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout' and 'syslog' log respectively to the standard outpout and to the syslog daemon"`
 		SyslogFacility string `ini-name:"SyslogFacility" default:"local0" description:"If LogTo is set on 'syslog', the logs will be written to this facility."`
 	} `group:"log"`

@@ -4,7 +4,15 @@ image: golang:latest
 before_script:
   - git config --global url."https://code.bcarlin.xyz".insteadOf "ssh://git@code.bcarlin.xyz:2222"
   - cd $CI_PROJECT_DIR
+  - mkdir -p .gocache
+  - export GOPATH="$CI_PROJECT_DIR/.gocache"
   - env
+
+cache:
+  key: go_dependencies_cache
+  paths:
+  - $CI_PROJECT_DIR/.gocache/
+
 
 stages:
     - test
