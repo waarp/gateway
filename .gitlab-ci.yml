@@ -1,14 +1,17 @@
 # This file is a template, and might need editing before it works on your project.
 image: golang:latest
 
+variables:
+  GOLANGCI_LINT_VERSION: 1.16.0
+
 before_script:
   - git config --global url."https://code.bcarlin.xyz".insteadOf "ssh://git@code.bcarlin.xyz:2222"
   - cd $CI_PROJECT_DIR
   - mkdir -p .gocache
   - export GOPATH="$CI_PROJECT_DIR/.gocache"
   - export PATH="$CI_PROJECT_DIR/.gocache/bin:$PATH"
-  - test -n $(which golangci-lint >/dev/null 2>&1 && golangci-lint --version | grep '1\.16\.0' >/dev/null 2>&1)
-    && curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v1.16.0
+  - test -n $(which golangci-lint >/dev/null 2>&1 && golangci-lint --version | grep "$GOLANGCI_LINT_VERSION" >/dev/null 2>&1)
+    || curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v$GOLANGCI_LINT_VERSION
   - env
 
 cache:
@@ -31,6 +34,7 @@ tests:
 
 compile:
     stage: build
+    only: tags
     script:
       - export CGO_ENABLED=0
       - go build -ldflags "-s -w" -o $CI_PROJECT_DIR/waarp-gatewayd ./cmd/waarp-gatewayd
