@@ -15,8 +15,8 @@ type ServerConfig struct {
 	} `group:"log"`
 	Admin struct {
 		Address string `ini-name:"Address" default:":8080" description:"The IP address + TCP port used by the admin interface."`
-		TlsCert string `ini-name:"TlsCert" default:"" description:"Path of the TLS certificate for the admin interface."`
-		TlsKey  string `ini-name:"TlsKey" default:"" description:"Path of the key of the TLS certificate."`
+		TLSCert string `ini-name:"TLSCert" default:"" description:"Path of the TLS certificate for the admin interface."`
+		TLSKey  string `ini-name:"TLSKey" default:"" description:"Path of the key of the TLS certificate."`
 	} `group:"admin"`
 }
 

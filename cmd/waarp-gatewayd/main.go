@@ -1,4 +1,4 @@
-package waarp_gatewayd
+package main
 
 import (
 	"fmt"

@@ -2,6 +2,8 @@ code.bcarlin.xyz/go/logging v0.1.0 h1:dZawJNyTnfxUzdntZ3IDHJ1yA4Sh9fvHvCvg4//eFY
 code.bcarlin.xyz/go/logging v0.1.0/go.mod h1:y6jTyhj91rolUw/u+70uQrmbZWAt86Q9UGMRmUsn1bo=
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
+github.com/gorilla/mux v1.7.2 h1:zoNxOV7WjqXptQOVngLmcSQgXmgk4NMz1HibBchjl/I=
+github.com/gorilla/mux v1.7.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/jessevdk/go-flags v1.4.1-0.20181006083204-9c49a3351d49 h1:qmX6Q/msrDo5AFieM5SfI2Er+po4fB9O1UkJB4VhHF8=
 github.com/jessevdk/go-flags v1.4.1-0.20181006083204-9c49a3351d49/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jtolds/gls v4.2.1+incompatible h1:fSuqC+Gmlu6l/ZYAoZzx2pyucC8Xza35fpRVWLVmUEE=

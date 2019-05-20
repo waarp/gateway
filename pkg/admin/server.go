@@ -70,9 +70,9 @@ func (admin *Server) initServer() error {
 	}
 
 	// Load TLS configuration
-	certFile := admin.Config.Admin.TlsCert
-	keyFile := admin.Config.Admin.TlsKey
-	var tlsConfig *tls.Config = nil
+	certFile := admin.Config.Admin.TLSCert
+	keyFile := admin.Config.Admin.TLSKey
+	var tlsConfig *tls.Config
 	if certFile != "" && keyFile != "" {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err != nil {
@@ -89,7 +89,7 @@ func (admin *Server) initServer() error {
 	handler := mux.NewRouter()
 	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(admin.Logger))
 	apiHandler := handler.PathPrefix(apiURI).Subrouter()
-	apiHandler.HandleFunc(statusUri, GetStatus).
+	apiHandler.HandleFunc(statusURI, GetStatus).
 		Methods(http.MethodGet)
 
 	// Create http.Server instance
@@ -137,8 +137,9 @@ func (admin *Server) Stop() {
 		return
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, f := context.WithTimeout(context.Background(), time.Second*10)
 	err := admin.server.Shutdown(ctx)
+	f()
 
 	if err == nil {
 		<-admin.listener

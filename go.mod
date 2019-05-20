@@ -3,6 +3,7 @@ module code.waarp.fr/waarp/gateway-ng
 require (
 	code.bcarlin.xyz/go/logging v0.1.0
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
+	github.com/gorilla/mux v1.7.2
 	github.com/jessevdk/go-flags v1.4.1-0.20181006083204-9c49a3351d49
 	github.com/smartystreets/assertions v0.0.0-20190401211740-f487f9de1cd3 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a

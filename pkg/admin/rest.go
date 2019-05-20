@@ -1,14 +1,14 @@
 package admin
 
 import (
-	"github.com/gorilla/mux"
 	"net/http"
 
 	"code.waarp.fr/waarp/gateway-ng/pkg/log"
+	"github.com/gorilla/mux"
 )
 
 // This is the access path to the status entry point
-const statusUri string = "/status"
+const statusURI string = "/status"
 
 // Authentication checks if the request is authenticated using Basic HTTP
 // authentication.
@@ -29,7 +29,7 @@ func Authentication(logger *log.Logger) mux.MiddlewareFunc {
 	}
 }
 
-// Function called when an HTTP request is received on the statusUri path.
+// Function called when an HTTP request is received on the statusURI path.
 // For now, it just send an OK status code.
 func GetStatus(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
