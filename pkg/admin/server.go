@@ -40,21 +40,13 @@ func (admin *Server) listen() {
 
 // checkAddress checks if the address given in the configuration is a
 // valid address on which the server can listen
-func checkAddress(strAddr string) error {
-	host, port, err := net.SplitHostPort(strAddr)
-	if err != nil {
-		return err
+func checkAddress(addr string) (string, error) {
+	l, err := net.Listen("tcp", addr)
+	if err == nil {
+		defer l.Close()
+		return l.Addr().String(), nil
 	}
-	if host == "" {
-		host = "127.0.0.1"
-	}
-	if _, err := net.LookupIP(host); err != nil {
-		return fmt.Errorf("invalid admin address '%s'", host)
-	}
-	if p, err := net.LookupPort("tcp", port); p == 0 || err != nil {
-		return fmt.Errorf("invalid admin port '%s'", port)
-	}
-	return nil
+	return "", err
 }
 
 // initServer initializes the HTTP server instance using the parameters defined
@@ -62,8 +54,7 @@ func checkAddress(strAddr string) error {
 // If the configuration is invalid, this function returns an error.
 func (admin *Server) initServer() error {
 	// Load REST admin address
-	addr := admin.Config.Admin.Address
-	err := checkAddress(addr)
+	addr, err := checkAddress(admin.Config.Admin.Address)
 	if err != nil {
 		return err
 	}

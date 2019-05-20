@@ -47,7 +47,8 @@ et l'API REST.
 .. confval:: Address
 
    L'adresse complete (IP + port) à laquelle le serveur HTTP va écouter les
-   requêtes faites à l'interface d'administration.
+   requêtes faites à l'interface d'administration. Si le port est mis à 0,
+   le programme choisira un port libre au hasard.
 
    Valeur par défaut : ``127.0.0.1:8080``
 

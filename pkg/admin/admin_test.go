@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,16 +12,10 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func getFreePort() string {
-	l, _ := net.Listen("tcp", ":0")
-	defer l.Close()
-	return l.Addr().String()
-}
-
 func TestStart(t *testing.T) {
 	Convey("Given a correct configuration", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = getFreePort()
+		config.Admin.Address = "localhost:0"
 		config.Admin.SslCert = "test-cert/cert.pem"
 		config.Admin.SslKey = "test-cert/key.pem"
 		rest := Server{
@@ -95,7 +88,7 @@ func TestStart(t *testing.T) {
 
 	Convey("Given an incorrect certificate", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = ":1"
+		config.Admin.Address = ":0"
 		config.Admin.SslCert = "not_a_cert"
 		config.Admin.SslKey = "not_a_key"
 		rest := Server{
@@ -114,7 +107,7 @@ func TestStart(t *testing.T) {
 func TestStop(t *testing.T) {
 	Convey("Given a REST service", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = getFreePort()
+		config.Admin.Address = "localhost:0"
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
@@ -127,8 +120,7 @@ func TestStop(t *testing.T) {
 
 			Convey("Then the service should no longer respond to requests", func() {
 				client := new(http.Client)
-				t.Log(rest.server.Addr)
-				response, err := client.Get(config.Admin.Address)
+				response, err := client.Get(rest.server.Addr)
 
 				So(response, ShouldBeNil)
 				urlError := new(url.Error)
