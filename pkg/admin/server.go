@@ -20,13 +20,22 @@ const apiURI = "/api"
 type Server struct {
 	*gatewayd.WG
 
-	server http.Server
+	listener chan signal
+	server   *http.Server
 }
+
+type signal byte
+
+const (
+	LISTENING signal = iota
+	SHUTDOWN
+)
 
 // listen starts the HTTP server listener on the configured port
 func (admin *Server) listen() {
 	admin.Logger.Admin.Infof("Listening at address %s", admin.server.Addr)
 	var err error
+	admin.listener <- LISTENING
 	if admin.server.TLSConfig == nil {
 		err = admin.server.ListenAndServe()
 	} else {
@@ -36,6 +45,7 @@ func (admin *Server) listen() {
 	if err != http.ErrServerClosed {
 		admin.Logger.Admin.Criticalf("Unexpected error: %s", err)
 	}
+	admin.listener <- SHUTDOWN
 }
 
 // checkAddress checks if the address given in the configuration is a
@@ -83,7 +93,7 @@ func (admin *Server) initServer() error {
 		Methods(http.MethodGet)
 
 	// Create http.Server instance
-	admin.server = http.Server{
+	admin.server = &http.Server{
 		Addr:      addr,
 		TLSConfig: tlsConfig,
 		Handler:   handler,
@@ -99,11 +109,20 @@ func (admin *Server) Start() error {
 		return fmt.Errorf("missing application configuration")
 	}
 
+	admin.Logger.Admin.Info("Startup command received.")
+	if admin.server != nil {
+		admin.Logger.Admin.Warning("The admin server is already running")
+		return nil
+	}
+
 	if err := admin.initServer(); err != nil {
+		admin.Logger.Admin.Errorf("Failed to start: %s", err)
 		return err
 	}
 
+	admin.listener = make(chan signal, 2)
 	go admin.listen()
+	<-admin.listener
 
 	admin.Logger.Admin.Info("Server started.")
 	return nil
@@ -112,16 +131,22 @@ func (admin *Server) Start() error {
 // Stop halts the admin service by first trying to shut it down gracefully.
 // If it fails after a 10 seconds delay, the service is forcefully stopped.
 func (admin *Server) Stop() {
-	admin.Logger.Admin.Info("Shutdown initiated.")
+	admin.Logger.Admin.Info("Shutdown command received...")
+	if admin.server == nil {
+		admin.Logger.Admin.Warning("The server was already stopped.")
+		return
+	}
 
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
 	err := admin.server.Shutdown(ctx)
 
-	if err != nil && err != http.ErrServerClosed {
+	if err == nil {
+		<-admin.listener
+		admin.Logger.Admin.Info("Shutdown complete.")
+	} else {
 		admin.Logger.Admin.Warningf("Failed to shutdown gracefully : %s", err)
 		_ = admin.server.Close()
 		admin.Logger.Admin.Warning("The admin was forcefully stopped.")
-	} else {
-		admin.Logger.Admin.Info("Shutdown complete.")
 	}
+	admin.server = nil
 }

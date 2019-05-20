@@ -22,10 +22,13 @@ func TestStart(t *testing.T) {
 			WG: gatewayd.NewWG(&config),
 		}
 
-		Convey("When starting the service", func() {
-			err := rest.Start()
+		Convey("When starting the service, even multiple times", func() {
+			err1 := rest.Start()
+			err2 := rest.Start()
+
 			Convey("Then it should start without errors", func() {
-				So(err, ShouldBeNil)
+				So(err1, ShouldBeNil)
+				So(err2, ShouldBeNil)
 			})
 		})
 	})
@@ -35,6 +38,7 @@ func TestStart(t *testing.T) {
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
+
 			Convey("Then it should produce an error ", func() {
 				So(err, ShouldNotBeNil)
 			})
@@ -43,13 +47,14 @@ func TestStart(t *testing.T) {
 
 	Convey("Given an invalid address", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = "not_an_address"
+		config.Admin.Address = "invalid_address"
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
+
 			Convey("Then it should produce an error", func() {
 				So(err, ShouldNotBeNil)
 			})
@@ -58,13 +63,14 @@ func TestStart(t *testing.T) {
 
 	Convey("Given an incorrect host", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = "not_a_valid_host:0"
+		config.Admin.Address = "invalid_host:0"
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
+
 			Convey("Then it should produce an error", func() {
 				So(err, ShouldNotBeNil)
 			})
@@ -73,13 +79,14 @@ func TestStart(t *testing.T) {
 
 	Convey("Given an incorrect port number", t, func() {
 		config := conf.ServerConfig{}
-		config.Admin.Address = ":not_a_valid_port"
+		config.Admin.Address = ":999999"
 		rest := Server{
 			WG: gatewayd.NewWG(&config),
 		}
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
+
 			Convey("Then it should produce an error", func() {
 				So(err, ShouldNotBeNil)
 			})
@@ -97,6 +104,7 @@ func TestStart(t *testing.T) {
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
+
 			Convey("Then it should produce an error", func() {
 				So(err, ShouldNotBeNil)
 			})
@@ -115,12 +123,13 @@ func TestStop(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("When the service is stopped, even multiple times", func() {
+			addr := rest.server.Addr
 			rest.Stop()
 			rest.Stop()
 
 			Convey("Then the service should no longer respond to requests", func() {
 				client := new(http.Client)
-				response, err := client.Get(rest.server.Addr)
+				response, err := client.Get(addr)
 
 				So(response, ShouldBeNil)
 				urlError := new(url.Error)
