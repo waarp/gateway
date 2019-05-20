@@ -16,6 +16,7 @@ t_check() {
     golangci-lint run \
         --enable-all --disable depguard,gochecknoglobals,gochecknoinits,gocritic,interfacer,maligned,prealloc,lll \
         --max-issues-per-linter 0 --max-same-issues 0 \
+        --exclude-use-default  \
         --skip-dirs .gocache
 }
 

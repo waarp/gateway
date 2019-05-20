@@ -4,10 +4,10 @@ image: golang:latest
 before_script:
   - git config --global url."https://code.bcarlin.xyz".insteadOf "ssh://git@code.bcarlin.xyz:2222"
   - cd $CI_PROJECT_DIR
-  - mkdir -p .gocache
-  - export GOPATH="$CI_PROJECT_DIR/.gocache"
-  - export PATH="$CI_PROJECT_DIR/.gocache/bin:$PATH"
   - env
+  - go get github.com/golangci/golangci-lint/cmd/golangci-lint
+after_script:
+  - ln -s $GOPATH .gocache
 
 cache:
   key: go_dependencies_cache
@@ -23,7 +23,6 @@ tests:
     stage: test
     script:
       - gofmt -d -e ./pkg/ ./cmd/
-      - test -n $(which golangci-lint >/dev/null 2>&1) && go get github.com/golangci/golangci-lint/cmd/golangci-lint
       - ./make.sh check
       - go test -coverpkg ./cmd/...,./pkg/... -coverprofile cover.out -v ./cmd/... ./pkg/...
       - go tool cover -func=cover.out
