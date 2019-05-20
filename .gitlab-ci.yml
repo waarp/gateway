@@ -1,8 +1,24 @@
 # This file is a template, and might need editing before it works on your project.
 image: golang:latest
 
+variables:
+  GOLANGCI_LINT_VERSION: 1.16.0
+
 before_script:
+  - git config --global url."https://code.bcarlin.xyz".insteadOf "ssh://git@code.bcarlin.xyz:2222"
   - cd $CI_PROJECT_DIR
+  - mkdir -p .gocache
+  - export GOPATH="$CI_PROJECT_DIR/.gocache"
+  - export PATH="$CI_PROJECT_DIR/.gocache/bin:$PATH"
+  - which golangci-lint >/dev/null 2>&1 && golangci-lint --version | grep "$GOLANGCI_LINT_VERSION" >/dev/null 2>&1
+    || curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v$GOLANGCI_LINT_VERSION
+  - env
+
+cache:
+  key: go_dependencies_cache
+  paths:
+  - $CI_PROJECT_DIR/.gocache/
+
 
 stages:
     - test
@@ -12,12 +28,13 @@ tests:
     stage: test
     script:
       - gofmt -d -e ./pkg/ ./cmd/
-      - go vet ./cmd/... ./pkg/...
+      - ./make.sh check
       - go test -coverpkg ./cmd/...,./pkg/... -coverprofile cover.out -v ./cmd/... ./pkg/...
       - go tool cover -func=cover.out
 
 compile:
     stage: build
+    only: [ tags ]
     script:
       - export CGO_ENABLED=0
       - go build -ldflags "-s -w" -o $CI_PROJECT_DIR/waarp-gatewayd ./cmd/waarp-gatewayd

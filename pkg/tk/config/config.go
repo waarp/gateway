@@ -24,12 +24,14 @@ type Parser struct {
 func NewParser(data interface{}) *Parser {
 	var options flags.Options = flags.Default | flags.IgnoreUnknown
 	parser := flags.NewNamedParser(path.Base(os.Args[0]), options)
-	parser.AddGroup("global", "", data)
+	// FIXME error should not be discarded
+	_, _ = parser.AddGroup("global", "", data)
 
 	p := &Parser{
 		parser: parser,
 	}
-	p.parser.ParseArgs([]string{})
+	// FIXME error should not be discarded
+	_, _ = p.parser.ParseArgs([]string{})
 	return p
 }
 
