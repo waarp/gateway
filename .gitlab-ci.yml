@@ -34,7 +34,7 @@ tests:
 
 compile:
     stage: build
-    only: tags
+    only: [ tags ]
     script:
       - export CGO_ENABLED=0
       - go build -ldflags "-s -w" -o $CI_PROJECT_DIR/waarp-gatewayd ./cmd/waarp-gatewayd
