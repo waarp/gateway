@@ -3,9 +3,10 @@ image: golang:latest
 
 before_script:
   - git config --global url."https://code.bcarlin.xyz".insteadOf "ssh://git@code.bcarlin.xyz:2222"
+  - go get github.com/golangci/golangci-lint/cmd/golangci-lint
   - cd $CI_PROJECT_DIR
   - env
-  - go get github.com/golangci/golangci-lint/cmd/golangci-lint
+
 after_script:
   - ln -s $GOPATH .gocache
 
