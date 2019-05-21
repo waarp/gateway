@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const apiURI = "/api"
+const RestURI = "/api"
 
 // Server is the administration service
 type Server struct {
@@ -83,8 +83,8 @@ func (s *Server) initServer() error {
 	// Add the REST handler
 	handler := mux.NewRouter()
 	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(s.Logger))
-	apiHandler := handler.PathPrefix(apiURI).Subrouter()
-	apiHandler.HandleFunc(statusURI, GetStatus).
+	apiHandler := handler.PathPrefix(RestURI).Subrouter()
+	apiHandler.HandleFunc(StatusURI, GetStatus).
 		Methods(http.MethodGet)
 
 	// Create http.Server instance
@@ -107,7 +107,7 @@ func (s *Server) Start() error {
 
 	s.Logger.Admin.Info("Startup command received...")
 	if state, _ := s.state.Get(); state != service.Offline && state != service.Error {
-		s.Logger.Admin.Info("Cannot start because the server is already running.")
+		s.Logger.Admin.Infof("Cannot start because the server is already running.")
 		return nil
 	}
 	s.state.Set(service.Starting, "")

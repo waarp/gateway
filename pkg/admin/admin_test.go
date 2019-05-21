@@ -179,7 +179,7 @@ func TestAuthentication(t *testing.T) {
 		}
 		r.SetBasicAuth("not_admin", "not_the_password")
 
-		Convey("The function should reply Unauthorized", func() {
+		Convey("The function should reply '401 - Unauthorized'", func() {
 			Authentication(logger).Middleware(handler).ServeHTTP(w, r)
 
 			So(w.Code, ShouldEqual, http.StatusUnauthorized)

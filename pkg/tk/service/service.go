@@ -35,6 +35,21 @@ const (
 	Error
 )
 
+func (s StateCode) Name() string {
+	switch s {
+	case Starting:
+		return "Starting"
+	case Running:
+		return "Running"
+	case ShuttingDown:
+		return "Shutting down"
+	case Error:
+		return "Error"
+	default:
+		return "Offline"
+	}
+}
+
 type State struct {
 	code   StateCode
 	reason string

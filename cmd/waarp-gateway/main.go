@@ -15,8 +15,9 @@ func main() {
 
 	if err != nil {
 		if !flags.WroteHelp(err) {
-			fmt.Println("")
+			fmt.Fprintln(os.Stderr, "")
 			parser.WriteHelp(os.Stderr)
+			fmt.Fprintln(os.Stderr, "")
 		}
 		os.Exit(1)
 	}
