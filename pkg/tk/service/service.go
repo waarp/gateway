@@ -25,12 +25,14 @@ func NewEnvironment(config *conf.ServerConfig) *Environment {
 	}
 }
 
-type StateCode byte
+type StateCode uint8
 
 const (
-	DOWN StateCode = iota
-	RUNNING
-	ERROR
+	Offline StateCode = iota
+	Starting
+	Running
+	ShuttingDown
+	Error
 )
 
 type State struct {

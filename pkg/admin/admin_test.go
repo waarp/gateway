@@ -129,6 +129,9 @@ func TestStop(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 			err1 := rest.Stop(ctx)
+			cancel()
+
+			ctx, cancel = context.WithTimeout(context.Background(), time.Second*10)
 			err2 := rest.Stop(ctx)
 			cancel()
 

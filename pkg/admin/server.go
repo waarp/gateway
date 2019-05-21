@@ -24,10 +24,10 @@ type Server struct {
 // listen starts the HTTP server listener on the configured port
 func (s *Server) listen() {
 	s.Logger.Admin.Infof("Listening at address %s", s.server.Addr)
-	var err error
-	s.state.Set(service.RUNNING, "")
 
 	go func() {
+		s.state.Set(service.Running, "")
+		var err error
 		if s.server.TLSConfig == nil {
 			err = s.server.ListenAndServe()
 		} else {
@@ -35,9 +35,9 @@ func (s *Server) listen() {
 		}
 		if err != http.ErrServerClosed {
 			s.Logger.Admin.Errorf("Unexpected error: %s", err)
-			s.state.Set(service.ERROR, err.Error())
+			s.state.Set(service.Error, err.Error())
 		} else {
-			s.state.Set(service.DOWN, "")
+			s.state.Set(service.Offline, "")
 		}
 	}()
 
@@ -101,17 +101,20 @@ func (s *Server) initServer() error {
 // the function returns an error.
 func (s *Server) Start() error {
 	if s.Environment == nil {
-		return fmt.Errorf("missing application configuration")
+		s.state.Set(service.Error, "Missing application environment")
+		return fmt.Errorf("missing application environment")
 	}
 
 	s.Logger.Admin.Info("Startup command received...")
-	if state, _ := s.state.Get(); state == service.RUNNING {
+	if state, _ := s.state.Get(); state != service.Offline && state != service.Error {
 		s.Logger.Admin.Info("Cannot start because the server is already running.")
 		return nil
 	}
+	s.state.Set(service.Starting, "")
 
 	if err := s.initServer(); err != nil {
 		s.Logger.Admin.Errorf("Failed to start: %s", err)
+		s.state.Set(service.Error, err.Error())
 		return err
 	}
 
@@ -125,11 +128,12 @@ func (s *Server) Start() error {
 // If it fails, the service is forcefully stopped.
 func (s *Server) Stop(ctx context.Context) error {
 	s.Logger.Admin.Info("Shutdown command received...")
-	if state, _ := s.state.Get(); state != service.RUNNING {
+	if state, _ := s.state.Get(); state != service.Running {
 		s.Logger.Admin.Info("Cannot stop because the server is not running.")
 		return nil
 	}
 
+	s.state.Set(service.ShuttingDown, "")
 	err := s.server.Shutdown(ctx)
 
 	if err == nil {

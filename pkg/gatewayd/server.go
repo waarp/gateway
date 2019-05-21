@@ -43,7 +43,7 @@ func (wg *WG) startServices() {
 
 func (wg *WG) stopServices() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	cancel()
+	defer cancel()
 	for _, wgService := range wg.Services {
 		_ = wgService.Stop(ctx)
 	}
