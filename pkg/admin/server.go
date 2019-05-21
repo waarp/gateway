@@ -84,7 +84,7 @@ func (s *Server) initServer() error {
 	handler := mux.NewRouter()
 	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(s.Logger))
 	apiHandler := handler.PathPrefix(RestURI).Subrouter()
-	apiHandler.HandleFunc(StatusURI, GetStatus).
+	apiHandler.HandleFunc(StatusURI, GetStatus(&s.state)).
 		Methods(http.MethodGet)
 
 	// Create http.Server instance

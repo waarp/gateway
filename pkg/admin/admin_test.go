@@ -122,7 +122,9 @@ func TestStop(t *testing.T) {
 			Environment: service.NewEnvironment(&config),
 		}
 		err := rest.Start()
-		So(err, ShouldBeNil)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		Convey("When the service is stopped, even multiple times", func() {
 			addr := rest.server.Addr
@@ -195,10 +197,12 @@ func TestStatus(t *testing.T) {
 		}
 		w := httptest.NewRecorder()
 
-		Convey("Then the function should reply OK", func() {
-			GetStatus(w, r)
+		Convey("Then the function should reply OK with a JSON", func() {
+			GetStatus(&service.State{}).ServeHTTP(w, r)
+			contentType := w.Header().Get("Content-Type")
 
 			So(w.Code, ShouldEqual, http.StatusOK)
+			So(contentType, ShouldEqual, "application/json")
 		})
 	})
 }

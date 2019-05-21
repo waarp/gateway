@@ -32,23 +32,34 @@ func Authentication(logger *log.Logger) mux.MiddlewareFunc {
 }
 
 type status struct {
-	Admin string
+	State  string
+	Reason string
+}
+
+type statuses struct {
+	Admin status
 }
 
 // Function called when an HTTP request is received on the StatusURI path.
 // For now, it just send an OK status code.
-func GetStatus(w http.ResponseWriter, _ *http.Request) {
-	status := &status{
-		Admin: service.Running.Name(),
-	}
-	resp, err := json.Marshal(status)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(resp)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+func GetStatus(state *service.State) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		code, reason := state.Get()
+		status := statuses{
+			Admin: status{
+				State:  code.Name(),
+				Reason: reason,
+			},
+		}
+		resp, err := json.Marshal(status)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write(resp)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	}
 }
