@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp/gateway-ng/pkg/gatewayd"
 	"code.waarp.fr/waarp/gateway-ng/pkg/tk/service"
 	"github.com/gorilla/mux"
 )
@@ -17,10 +16,9 @@ const apiURI = "/api"
 
 // Server is the administration service
 type Server struct {
-	*gatewayd.WG
-
-	state   service.State
-	server  http.Server
+	*service.Environment
+	state  service.State
+	server http.Server
 }
 
 // listen starts the HTTP server listener on the configured port
@@ -61,14 +59,14 @@ func checkAddress(addr string) (string, error) {
 // If the configuration is invalid, this function returns an error.
 func (s *Server) initServer() error {
 	// Load REST s address
-	addr, err := checkAddress(s.Config.Admin.Address)
+	addr, err := checkAddress(s.Conf.Admin.Address)
 	if err != nil {
 		return err
 	}
 
 	// Load TLS configuration
-	certFile := s.Config.Admin.TLSCert
-	keyFile := s.Config.Admin.TLSKey
+	certFile := s.Conf.Admin.TLSCert
+	keyFile := s.Conf.Admin.TLSKey
 	var tlsConfig *tls.Config
 	if certFile != "" && keyFile != "" {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
@@ -102,7 +100,7 @@ func (s *Server) initServer() error {
 // Start launches the administration service. If the service cannot be launched,
 // the function returns an error.
 func (s *Server) Start() error {
-	if s.WG == nil {
+	if s.Environment == nil {
 		return fmt.Errorf("missing application configuration")
 	}
 

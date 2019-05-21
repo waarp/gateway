@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
-	"code.waarp.fr/waarp/gateway-ng/pkg/gatewayd"
 	"code.waarp.fr/waarp/gateway-ng/pkg/log"
+	"code.waarp.fr/waarp/gateway-ng/pkg/tk/service"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -21,7 +21,7 @@ func TestStart(t *testing.T) {
 		config.Admin.TLSCert = "test-cert/cert.pem"
 		config.Admin.TLSKey = "test-cert/key.pem"
 		rest := Server{
-			WG: gatewayd.NewWG(&config),
+			Environment: service.NewEnvironment(&config),
 		}
 
 		Convey("When starting the service, even multiple times", func() {
@@ -51,7 +51,7 @@ func TestStart(t *testing.T) {
 		config := conf.ServerConfig{}
 		config.Admin.Address = "invalid_address"
 		rest := Server{
-			WG: gatewayd.NewWG(&config),
+			Environment: service.NewEnvironment(&config),
 		}
 
 		Convey("When starting the service", func() {
@@ -67,7 +67,7 @@ func TestStart(t *testing.T) {
 		config := conf.ServerConfig{}
 		config.Admin.Address = "invalid_host:0"
 		rest := Server{
-			WG: gatewayd.NewWG(&config),
+			Environment: service.NewEnvironment(&config),
 		}
 
 		Convey("When starting the service", func() {
@@ -83,7 +83,7 @@ func TestStart(t *testing.T) {
 		config := conf.ServerConfig{}
 		config.Admin.Address = ":999999"
 		rest := Server{
-			WG: gatewayd.NewWG(&config),
+			Environment: service.NewEnvironment(&config),
 		}
 
 		Convey("When starting the service", func() {
@@ -101,7 +101,7 @@ func TestStart(t *testing.T) {
 		config.Admin.TLSCert = "not_a_cert"
 		config.Admin.TLSKey = "not_a_key"
 		rest := Server{
-			WG: gatewayd.NewWG(&config),
+			Environment: service.NewEnvironment(&config),
 		}
 
 		Convey("When starting the service", func() {
@@ -119,7 +119,7 @@ func TestStop(t *testing.T) {
 		config := conf.ServerConfig{}
 		config.Admin.Address = "localhost:0"
 		rest := Server{
-			WG: gatewayd.NewWG(&config),
+			Environment: service.NewEnvironment(&config),
 		}
 		err := rest.Start()
 		So(err, ShouldBeNil)
@@ -127,7 +127,7 @@ func TestStop(t *testing.T) {
 		Convey("When the service is stopped, even multiple times", func() {
 			addr := rest.server.Addr
 
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second * 10)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 			err1 := rest.Stop(ctx)
 			err2 := rest.Stop(ctx)
 			cancel()

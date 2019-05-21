@@ -3,11 +3,26 @@ package service
 import (
 	"context"
 	"sync"
+
+	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
+	"code.waarp.fr/waarp/gateway-ng/pkg/log"
 )
 
 type Service interface {
 	Start() error
 	Stop(ctx context.Context) error
+}
+
+type Environment struct {
+	*log.Logger
+	Conf *conf.ServerConfig
+}
+
+func NewEnvironment(config *conf.ServerConfig) *Environment {
+	return &Environment{
+		Logger: log.NewLogger(),
+		Conf:   config,
+	}
 }
 
 type StateCode byte
