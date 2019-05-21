@@ -1,10 +1,12 @@
 package admin
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
 	"code.waarp.fr/waarp/gateway-ng/pkg/gatewayd"
@@ -124,8 +126,14 @@ func TestStop(t *testing.T) {
 
 		Convey("When the service is stopped, even multiple times", func() {
 			addr := rest.server.Addr
-			rest.Stop()
-			rest.Stop()
+
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second * 10)
+			err1 := rest.Stop(ctx)
+			err2 := rest.Stop(ctx)
+			cancel()
+
+			So(err1, ShouldBeNil)
+			So(err2, ShouldBeNil)
 
 			Convey("Then the service should no longer respond to requests", func() {
 				client := new(http.Client)
@@ -177,14 +185,14 @@ func TestAuthentication(t *testing.T) {
 }
 
 func TestStatus(t *testing.T) {
-	Convey("Given a status request service", t, func() {
+	Convey("Given a status handling function and a status request", t, func() {
 		r, err := http.NewRequest(http.MethodGet, "/api/status", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		w := httptest.NewRecorder()
 
-		Convey("Then the service should reply OK", func() {
+		Convey("Then the function should reply OK", func() {
 			GetStatus(w, r)
 
 			So(w.Code, ShouldEqual, http.StatusOK)

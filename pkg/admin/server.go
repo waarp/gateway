@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"time"
 
 	"code.bcarlin.xyz/go/logging"
-
 	"code.waarp.fr/waarp/gateway-ng/pkg/gatewayd"
+	"code.waarp.fr/waarp/gateway-ng/pkg/tk/service"
 	"github.com/gorilla/mux"
 )
 
@@ -20,32 +19,30 @@ const apiURI = "/api"
 type Server struct {
 	*gatewayd.WG
 
-	listener chan signal
-	server   *http.Server
+	state   service.State
+	server  http.Server
 }
 
-type signal byte
-
-const (
-	LISTENING signal = iota
-	SHUTDOWN
-)
-
 // listen starts the HTTP server listener on the configured port
-func (admin *Server) listen() {
-	admin.Logger.Admin.Infof("Listening at address %s", admin.server.Addr)
+func (s *Server) listen() {
+	s.Logger.Admin.Infof("Listening at address %s", s.server.Addr)
 	var err error
-	admin.listener <- LISTENING
-	if admin.server.TLSConfig == nil {
-		err = admin.server.ListenAndServe()
-	} else {
-		err = admin.server.ListenAndServeTLS("", "")
-	}
+	s.state.Set(service.RUNNING, "")
 
-	if err != http.ErrServerClosed {
-		admin.Logger.Admin.Criticalf("Unexpected error: %s", err)
-	}
-	admin.listener <- SHUTDOWN
+	go func() {
+		if s.server.TLSConfig == nil {
+			err = s.server.ListenAndServe()
+		} else {
+			err = s.server.ListenAndServeTLS("", "")
+		}
+		if err != http.ErrServerClosed {
+			s.Logger.Admin.Errorf("Unexpected error: %s", err)
+			s.state.Set(service.ERROR, err.Error())
+		} else {
+			s.state.Set(service.DOWN, "")
+		}
+	}()
+
 }
 
 // checkAddress checks if the address given in the configuration is a
@@ -62,16 +59,16 @@ func checkAddress(addr string) (string, error) {
 // initServer initializes the HTTP server instance using the parameters defined
 // in the Admin configuration.
 // If the configuration is invalid, this function returns an error.
-func (admin *Server) initServer() error {
-	// Load REST admin address
-	addr, err := checkAddress(admin.Config.Admin.Address)
+func (s *Server) initServer() error {
+	// Load REST s address
+	addr, err := checkAddress(s.Config.Admin.Address)
 	if err != nil {
 		return err
 	}
 
 	// Load TLS configuration
-	certFile := admin.Config.Admin.TLSCert
-	keyFile := admin.Config.Admin.TLSKey
+	certFile := s.Config.Admin.TLSCert
+	keyFile := s.Config.Admin.TLSKey
 	var tlsConfig *tls.Config
 	if certFile != "" && keyFile != "" {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
@@ -82,72 +79,67 @@ func (admin *Server) initServer() error {
 			Certificates: []tls.Certificate{cert},
 		}
 	} else {
-		admin.Logger.Admin.Info("No TLS certificate found, using plain HTTP.")
+		s.Logger.Admin.Info("No TLS certificate found, using plain HTTP.")
 	}
 
 	// Add the REST handler
 	handler := mux.NewRouter()
-	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(admin.Logger))
+	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(s.Logger))
 	apiHandler := handler.PathPrefix(apiURI).Subrouter()
 	apiHandler.HandleFunc(statusURI, GetStatus).
 		Methods(http.MethodGet)
 
 	// Create http.Server instance
-	admin.server = &http.Server{
+	s.server = http.Server{
 		Addr:      addr,
 		TLSConfig: tlsConfig,
 		Handler:   handler,
-		ErrorLog:  admin.Logger.Admin.AsStdLog(logging.ERROR),
+		ErrorLog:  s.Logger.Admin.AsStdLog(logging.ERROR),
 	}
 	return nil
 }
 
 // Start launches the administration service. If the service cannot be launched,
 // the function returns an error.
-func (admin *Server) Start() error {
-	if admin.WG == nil {
+func (s *Server) Start() error {
+	if s.WG == nil {
 		return fmt.Errorf("missing application configuration")
 	}
 
-	admin.Logger.Admin.Info("Startup command received.")
-	if admin.server != nil {
-		admin.Logger.Admin.Warning("The admin server is already running")
+	s.Logger.Admin.Info("Startup command received...")
+	if state, _ := s.state.Get(); state == service.RUNNING {
+		s.Logger.Admin.Info("Cannot start because the server is already running.")
 		return nil
 	}
 
-	if err := admin.initServer(); err != nil {
-		admin.Logger.Admin.Errorf("Failed to start: %s", err)
+	if err := s.initServer(); err != nil {
+		s.Logger.Admin.Errorf("Failed to start: %s", err)
 		return err
 	}
 
-	admin.listener = make(chan signal, 2)
-	go admin.listen()
-	<-admin.listener
+	s.listen()
 
-	admin.Logger.Admin.Info("Server started.")
+	s.Logger.Admin.Info("Server started.")
 	return nil
 }
 
 // Stop halts the admin service by first trying to shut it down gracefully.
-// If it fails after a 10 seconds delay, the service is forcefully stopped.
-func (admin *Server) Stop() {
-	admin.Logger.Admin.Info("Shutdown command received...")
-	if admin.server == nil {
-		admin.Logger.Admin.Warning("The server was already stopped.")
-		return
+// If it fails, the service is forcefully stopped.
+func (s *Server) Stop(ctx context.Context) error {
+	s.Logger.Admin.Info("Shutdown command received...")
+	if state, _ := s.state.Get(); state != service.RUNNING {
+		s.Logger.Admin.Info("Cannot stop because the server is not running.")
+		return nil
 	}
 
-	ctx, f := context.WithTimeout(context.Background(), time.Second*10)
-	err := admin.server.Shutdown(ctx)
-	f()
+	err := s.server.Shutdown(ctx)
 
 	if err == nil {
-		<-admin.listener
-		admin.Logger.Admin.Info("Shutdown complete.")
+		s.Logger.Admin.Info("Shutdown complete.")
 	} else {
-		admin.Logger.Admin.Warningf("Failed to shutdown gracefully : %s", err)
-		_ = admin.server.Close()
-		admin.Logger.Admin.Warning("The admin was forcefully stopped.")
+		s.Logger.Admin.Warningf("Failed to shutdown gracefully : %s", err)
+		err = s.server.Close()
+		s.Logger.Admin.Warning("The server was forcefully stopped.")
 	}
-	admin.server = nil
+	return err
 }
