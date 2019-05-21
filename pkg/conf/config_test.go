@@ -14,14 +14,23 @@ func TestLoadServerConfig(t *testing.T) {
 LogTo = direct-foo
 Level = direct-bar
 
+[Admin]
+Address = direct-address
+
 `)
 	parentEtcContent := []byte(`[Log]
 LogTo = parent-etc-foo
 SyslogFacility = parent-etc-baz
 
+[Admin]
+Address = parent-etc-address
+
 `)
 	userConfContent := []byte(`[Log]
 LogTo = user-foo
+
+[Admin]
+Address = user-address
 
 `)
 	badContent := []byte(`[Log]
@@ -43,6 +52,7 @@ LogTo user-foo
 
 				Convey("Then the default configuration is used", func() {
 					So(c.Log.LogTo, ShouldEqual, "stdout")
+					So(c.Admin.Address, ShouldEqual, ":8080")
 				})
 
 			})
@@ -63,6 +73,7 @@ LogTo user-foo
 
 					Convey("Then it is parsed", func() {
 						So(c.Log.LogTo, ShouldEqual, "direct-foo")
+						So(c.Admin.Address, ShouldEqual, "direct-address")
 					})
 
 				})
@@ -104,6 +115,7 @@ LogTo user-foo
 
 				Convey("Then it is parsed", func() {
 					So(c.Log.LogTo, ShouldEqual, "parent-etc-foo")
+					So(c.Admin.Address, ShouldEqual, "parent-etc-address")
 				})
 
 			})
@@ -130,6 +142,7 @@ LogTo user-foo
 				Convey("Then only the one in the same directory is parsed", func() {
 					So(c.Log.LogTo, ShouldEqual, "direct-foo")
 					So(c.Log.SyslogFacility, ShouldEqual, "local0")
+					So(c.Admin.Address, ShouldEqual, "direct-address")
 				})
 
 			})
@@ -159,6 +172,7 @@ LogTo user-foo
 
 					Convey("Then it is parsed", func() {
 						So(c.Log.LogTo, ShouldEqual, "user-foo")
+						So(c.Admin.Address, ShouldEqual, "user-address")
 					})
 
 				})
@@ -182,6 +196,7 @@ LogTo user-foo
 
 					Convey("Then it is parsed", func() {
 						So(c.Log.LogTo, ShouldEqual, "user-foo")
+						So(c.Admin.Address, ShouldEqual, "user-address")
 					})
 
 					Convey("Then the other configuration files are not used", func() {

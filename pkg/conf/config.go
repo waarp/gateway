@@ -13,6 +13,11 @@ type ServerConfig struct {
 		LogTo          string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout' and 'syslog' log respectively to the standard outpout and to the syslog daemon"`
 		SyslogFacility string `ini-name:"SyslogFacility" default:"local0" description:"If LogTo is set on 'syslog', the logs will be written to this facility."`
 	} `group:"log"`
+	Admin struct {
+		Address string `ini-name:"Address" default:":8080" description:"The IP address + TCP port used by the admin interface."`
+		TLSCert string `ini-name:"TLSCert" default:"" description:"Path of the TLS certificate for the admin interface."`
+		TLSKey  string `ini-name:"TLSKey" default:"" description:"Path of the key of the TLS certificate."`
+	} `group:"admin"`
 }
 
 // LoadServerConfig creates a configuration object.

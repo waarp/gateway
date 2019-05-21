@@ -1,4 +1,5 @@
 doc/.venv
 doc/build
-waarp-gatewayd
 *.ini
+.idea
+*.iml

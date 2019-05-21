@@ -33,7 +33,7 @@ t_check() {
 }
 
 t_test_watch() {
-    goconvey -launchBrowser=false -port=8081 $@
+    goconvey -launchBrowser=false -port=8081 -excludedDirs=doc $@
 }
 
 t_doc() {
