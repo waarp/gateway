@@ -38,9 +38,9 @@ type status struct {
 
 // Function called when an HTTP request is received on the StatusURI path.
 // For now, it just send an OK status code.
-func GetStatus(services map[service.Name]service.Service) http.HandlerFunc {
+func GetStatus(services map[string]service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
-		var statuses = make(map[service.Name]status)
+		var statuses = make(map[string]status)
 		for name, serv := range services {
 			code, reason := serv.State().Get()
 			statuses[name] = status{

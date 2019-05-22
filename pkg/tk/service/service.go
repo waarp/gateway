@@ -8,10 +8,8 @@ import (
 	"code.waarp.fr/waarp/gateway-ng/pkg/log"
 )
 
-type Name string
-
 const (
-	Admin Name = "Admin"
+	Admin string = "Admin"
 )
 
 type Service interface {
@@ -23,7 +21,7 @@ type Service interface {
 type Environment struct {
 	*log.Logger
 	Conf     *conf.ServerConfig
-	Services map[Name]Service
+	Services map[string]Service
 }
 
 func NewEnvironment(config *conf.ServerConfig) *Environment {

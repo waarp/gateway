@@ -27,7 +27,7 @@ func NewWG(config *conf.ServerConfig) *WG {
 
 //
 func (wg *WG) initServices() {
-	wg.Services = make(map[service.Name]service.Service)
+	wg.Services = make(map[string]service.Service)
 
 	adminServer := &admin.Server{
 		Environment: wg.Environment,

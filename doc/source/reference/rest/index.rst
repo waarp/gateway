@@ -10,4 +10,3 @@ en interrogeant l'adresse d'administration donnée dans la configuration.
    authentication
    status
 
-

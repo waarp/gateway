@@ -192,7 +192,7 @@ func TestAuthentication(t *testing.T) {
 
 func TestStatus(t *testing.T) {
 	Convey("Given a status handling function", t, func() {
-		var services = make(map[service.Name]service.Service)
+		var services = make(map[string]service.Service)
 		services["Admin"] = &Server{}
 
 		Convey("When a request is passed to it", func() {

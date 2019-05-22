@@ -77,7 +77,7 @@ func (s *Server) initServer() error {
 			Certificates: []tls.Certificate{cert},
 		}
 	} else {
-		s.Logger.Admin.Info("No TLS certificate found, using plain HTTP.")
+		s.Logger.Admin.Info("No TLS certificate configured, using plain HTTP.")
 	}
 
 	// Add the REST handler
