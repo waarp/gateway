@@ -16,7 +16,6 @@ import (
 // WG is the top level service handler. It manages all other components.
 type WG struct {
 	*service.Environment
-	Services []service.Service
 }
 
 // NewWG creates a new application
@@ -28,11 +27,13 @@ func NewWG(config *conf.ServerConfig) *WG {
 
 //
 func (wg *WG) initServices() {
+	wg.Services = make(map[service.Name]service.Service)
+
 	adminServer := &admin.Server{
 		Environment: wg.Environment,
 	}
 
-	wg.Services = append(wg.Services, adminServer)
+	wg.Services[service.Admin] = adminServer
 }
 
 func (wg *WG) startServices() {
