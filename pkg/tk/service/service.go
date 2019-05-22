@@ -18,10 +18,12 @@ type Service interface {
 	State() *State
 }
 
+type Services map[string]Service
+
 type Environment struct {
 	*log.Logger
 	Conf     *conf.ServerConfig
-	Services map[string]Service
+	Services Services
 }
 
 func NewEnvironment(config *conf.ServerConfig) *Environment {

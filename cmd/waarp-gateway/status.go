@@ -1,10 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"sort"
 
 	"code.waarp.fr/waarp/gateway-ng/pkg/admin"
+	"code.waarp.fr/waarp/gateway-ng/pkg/tk/service"
 )
 
 var status statusCommand
@@ -40,6 +44,40 @@ func (s *statusCommand) makeRequest() (*http.Response, error) {
 	return client.Do(req)
 }
 
+func showStatus(statuses admin.Statuses) {
+	var errors = make([]string, 0)
+	var actives = make([]string, 0)
+	var offlines = make([]string, 0)
+
+	fmt.Println("\033[30;1;4mWaarp-Gateway services :\033[0m")
+	fmt.Println()
+	for name, status := range statuses {
+		switch status.State {
+		case service.Running.Name():
+			actives = append(actives, name)
+		case service.Error.Name():
+			errors = append(errors, name)
+		default:
+			offlines = append(offlines, name)
+		}
+	}
+
+	sort.Strings(errors)
+	sort.Strings(actives)
+	sort.Strings(offlines)
+
+	for _, name := range errors {
+		fmt.Println("[\033[31;1mError\033[0m]   \033[1m" + name +
+			"\033[0m : " + statuses[name].Reason)
+	}
+	for _, name := range actives {
+		fmt.Println("[\033[32;1mActive\033[0m]  \033[1m" + name + "\033[0m")
+	}
+	for _, name := range offlines {
+		fmt.Println("[\033[37;1mOffline\033[0m] \033[1m" + name + "\033[0m")
+	}
+}
+
 // Execute executes the 'status' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
@@ -48,11 +86,17 @@ func (s *statusCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	body, err := readJSON(res)
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Waarp-Gatewayd services status :\n%v", body)
+	var statuses = make(admin.Statuses)
+	err = json.Unmarshal(body, &statuses)
+	if err != nil {
+		return err
+	}
+	showStatus(statuses)
+
 	return nil
 }
