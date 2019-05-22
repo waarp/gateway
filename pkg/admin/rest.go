@@ -36,22 +36,19 @@ type status struct {
 	Reason string
 }
 
-type statuses struct {
-	Admin status
-}
-
 // Function called when an HTTP request is received on the StatusURI path.
 // For now, it just send an OK status code.
-func GetStatus(state *service.State) http.HandlerFunc {
+func GetStatus(services map[service.Name]service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
-		code, reason := state.Get()
-		status := statuses{
-			Admin: status{
+		var statuses = make(map[service.Name]status)
+		for name, serv := range services {
+			code, reason := serv.State().Get()
+			statuses[name] = status{
 				State:  code.Name(),
 				Reason: reason,
-			},
+			}
 		}
-		resp, err := json.Marshal(status)
+		resp, err := json.Marshal(statuses)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

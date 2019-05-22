@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -190,19 +191,25 @@ func TestAuthentication(t *testing.T) {
 }
 
 func TestStatus(t *testing.T) {
-	Convey("Given a status handling function and a status request", t, func() {
-		r, err := http.NewRequest(http.MethodGet, "/api/status", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		w := httptest.NewRecorder()
+	Convey("Given a status handling function", t, func() {
+		var services = make(map[service.Name]service.Service)
+		services["Admin"] = &Server{}
 
-		Convey("Then the function should reply OK with a JSON", func() {
-			GetStatus(&service.State{}).ServeHTTP(w, r)
-			contentType := w.Header().Get("Content-Type")
+		Convey("When a request is passed to it", func() {
+			r, err := http.NewRequest(http.MethodGet, "/api/status", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			w := httptest.NewRecorder()
 
-			So(w.Code, ShouldEqual, http.StatusOK)
-			So(contentType, ShouldEqual, "application/json")
+			Convey("Then the function should reply OK with a JSON body", func() {
+				GetStatus(services).ServeHTTP(w, r)
+				contentType := w.Header().Get("Content-Type")
+
+				So(w.Code, ShouldEqual, http.StatusOK)
+				So(contentType, ShouldEqual, "application/json")
+				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
+			})
 		})
 	})
 }

@@ -1,12 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"strconv"
 
 	"code.waarp.fr/waarp/gateway-ng/pkg/admin"
 )
@@ -30,6 +26,9 @@ type statusCommand struct {
 	Password string `required:"true" short:"p" long:"password" description:"The user's password for authentication"`
 }
 
+// makeRequest makes a status request to the address stored in the statusCommand
+// parameter, using the provided credentials. Returns the generated http.Response
+// or an error.
 func (s *statusCommand) makeRequest() (*http.Response, error) {
 	addr := s.Address + admin.RestURI + admin.StatusURI
 	req, err := http.NewRequest(http.MethodGet, addr, nil)
@@ -41,26 +40,6 @@ func (s *statusCommand) makeRequest() (*http.Response, error) {
 	return client.Do(req)
 }
 
-func readResponse(res *http.Response) (string, error) {
-	l, err := strconv.ParseUint(res.Header.Get("Content-Length"), 10, 64)
-	if err != nil {
-		return "", err
-	}
-	var body = make([]byte, l)
-	defer res.Body.Close()
-	_, err = res.Body.Read(body)
-	if err != nil && err != io.EOF {
-		return "", err
-	}
-	var out bytes.Buffer
-	err = json.Indent(&out, body, "", "  ")
-	if err != nil {
-		return "", err
-	}
-
-	return out.String(), nil
-}
-
 // Execute executes the 'status' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
@@ -69,7 +48,7 @@ func (s *statusCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	body, err := readResponse(res)
+	body, err := readJSON(res)
 	if err != nil {
 		return err
 	}

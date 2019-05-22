@@ -84,7 +84,7 @@ func (s *Server) initServer() error {
 	handler := mux.NewRouter()
 	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(s.Logger))
 	apiHandler := handler.PathPrefix(RestURI).Subrouter()
-	apiHandler.HandleFunc(StatusURI, GetStatus(&s.state)).
+	apiHandler.HandleFunc(StatusURI, GetStatus(s.Services)).
 		Methods(http.MethodGet)
 
 	// Create http.Server instance
@@ -144,4 +144,8 @@ func (s *Server) Stop(ctx context.Context) error {
 		s.Logger.Admin.Warning("The server was forcefully stopped.")
 	}
 	return err
+}
+
+func (s *Server) State() *service.State {
+	return &s.state
 }
