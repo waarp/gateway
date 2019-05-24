@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -8,15 +9,11 @@ import (
 	"os"
 	"testing"
 
+	"code.waarp.fr/waarp/gateway-ng/pkg/admin"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestRequestStatus(t *testing.T) {
-
-	err := os.Setenv("WG_PASSWORD", "pswd")
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	Convey("Given a server replying correctly", t, func() {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -29,11 +26,13 @@ func TestRequestStatus(t *testing.T) {
 		server := httptest.NewServer(handler)
 
 		s := statusCommand{
-			Address: server.URL,
+			Address:     server.URL,
+			Username:    "test",
+			envPassword: "test",
 		}
 
 		Convey("When calling requestStatus", func() {
-			res, err := s.requestStatus()
+			res, err := s.requestStatus(os.Stdin, os.Stdout)
 
 			Convey("Then it should return a JSON http.Response and no error", func() {
 				So(err, ShouldBeNil)
@@ -51,7 +50,7 @@ func TestRequestStatus(t *testing.T) {
 		s := statusCommand{}
 
 		Convey("When requestStatus is called", func() {
-			res, err := s.requestStatus()
+			res, err := s.requestStatus(os.Stdin, os.Stdout)
 
 			Convey("Then it should return an error", func() {
 				So(res, ShouldBeNil)
@@ -67,15 +66,51 @@ func TestRequestStatus(t *testing.T) {
 		server := httptest.NewServer(handler)
 
 		s := statusCommand{
-			Address: server.URL,
+			Address:     server.URL,
+			Username:    "test",
+			envPassword: "test",
 		}
 
 		Convey("When requestStatus is called", func() {
-			res, err := s.requestStatus()
+			res, err := s.requestStatus(os.Stdin, os.Stdout)
 
 			Convey("Then it should return an error", func() {
 				So(res, ShouldBeNil)
 				So(err, ShouldNotBeNil)
+			})
+		})
+	})
+}
+
+func TestShowStatus(t *testing.T) {
+
+	Convey("Given a list of status", t, func() {
+		statuses := make(map[string]admin.Status)
+		statuses["Test running 1"] = admin.Status{State: "Running", Reason: ""}
+		statuses["Test running 2"] = admin.Status{State: "Running", Reason: ""}
+		statuses["Test offline 1"] = admin.Status{State: "Offline", Reason: ""}
+		statuses["Test offline 2"] = admin.Status{State: "Offline", Reason: ""}
+		statuses["Test error 1"] = admin.Status{State: "Error", Reason: "Reason 1"}
+		statuses["Test error 2"] = admin.Status{State: "Error", Reason: "Reason 2"}
+
+		Convey("When calling 'showStatus'", func() {
+			w := bytes.Buffer{}
+			showStatus(statuses, &w)
+			result := w.String()
+
+			Convey("Then it should display the statuses correctly", func() {
+				expected := "\n" +
+					"Waarp-Gateway services :\n" +
+					"[Error]   Test error 1 : Reason 1\n" +
+					"[Error]   Test error 2 : Reason 2\n" +
+					"[Active]  Test running 1\n" +
+					"[Active]  Test running 2\n" +
+					"[Offline] Test offline 1\n" +
+					"[Offline] Test offline 2\n" +
+					"\n"
+
+				So(result, ShouldNotBeNil)
+				So(result, ShouldEqual, expected)
 			})
 		})
 	})
