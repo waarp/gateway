@@ -52,13 +52,13 @@ et l'API REST.
 
    Valeur par défaut : ``127.0.0.1:8080``
 
-.. confval:: TlsCert
+.. confval:: TLSCert
 
    Le chemin du certificat TLS pour le serveur HTTP.
    Si ce paramètre n'est pas définit, le serveur utilisera HTTP à la place de
    HTTPS.
 
-.. confval:: TlsKey
+.. confval:: TLSKey
 
    Le chemin de la clé du certificat TLS.
    Si ce paramètre n'est pas définit, le serveur utilisera HTTP à la place de

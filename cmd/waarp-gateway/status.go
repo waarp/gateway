@@ -30,7 +30,7 @@ func init() {
 // statusCommand regroups all the Options of the 'status' command
 type statusCommand struct {
 	Address     string `required:"true" short:"a" long:"address" description:"The address of the waarp-gatewayd server to query"`
-	Username    string `required:"true" short:"u" long:"username" description:"The user's name for authentication"`
+	Username    string `required:"true" short:"u" long:"user" description:"The user's name for authentication"`
 	envPassword string
 }
 

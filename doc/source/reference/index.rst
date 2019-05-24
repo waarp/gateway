@@ -6,4 +6,5 @@ Référence
 
    configuration
    gatewayd
+   client
    rest/index
