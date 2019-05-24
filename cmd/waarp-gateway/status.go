@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"sort"
+	"syscall"
 
 	"code.waarp.fr/waarp/gateway-ng/pkg/admin"
 	"code.waarp.fr/waarp/gateway-ng/pkg/tk/service"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var status statusCommand
@@ -27,21 +30,50 @@ func init() {
 type statusCommand struct {
 	Address  string `required:"true" short:"a" long:"address" description:"The address of the waarp-gatewayd server to query"`
 	Username string `required:"true" short:"u" long:"username" description:"The user's name for authentication"`
-	Password string `required:"true" short:"p" long:"password" description:"The user's password for authentication"`
 }
 
-// makeRequest makes a status request to the address stored in the statusCommand
-// parameter, using the provided credentials. Returns the generated http.Response
-// or an error.
-func (s *statusCommand) makeRequest() (*http.Response, error) {
+// requestStatus makes a status request to the address stored in the statusCommand
+// parameter, using the provided credentials, and returns the generated http.Response.
+// If the server did not reply, or if the response code was not '200 - OK', then
+// the function returns an error.
+func (s *statusCommand) requestStatus() (*http.Response, error) {
 	addr := s.Address + admin.RestURI + admin.StatusURI
+
 	req, err := http.NewRequest(http.MethodGet, addr, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.SetBasicAuth(s.Username, s.Password)
-	client := http.Client{}
-	return client.Do(req)
+
+	for tries := 3; tries > 0; tries-- {
+		var password string
+		if envPassword := os.Getenv("WG_PASSWORD"); envPassword != "" {
+			password = envPassword
+		} else {
+			fmt.Printf("Enter %s's password: ", s.Username)
+			bytePassword, err := terminal.ReadPassword(syscall.Stdin)
+			fmt.Println()
+			if err != nil {
+				return nil, err
+			}
+			password = string(bytePassword)
+		}
+		req.SetBasicAuth(s.Username, password)
+		client := http.Client{}
+		res, err := client.Do(req)
+
+		if err != nil {
+			return nil, err
+		}
+		switch res.StatusCode {
+		case http.StatusOK:
+			return res, nil
+		case http.StatusUnauthorized:
+			fmt.Fprintln(os.Stderr, "Invalid authentication")
+		default:
+			return nil, fmt.Errorf(http.StatusText(res.StatusCode))
+		}
+	}
+	return nil, fmt.Errorf("authentication failed too many times")
 }
 
 func showStatus(statuses admin.Statuses) {
@@ -49,8 +81,8 @@ func showStatus(statuses admin.Statuses) {
 	var actives = make([]string, 0)
 	var offlines = make([]string, 0)
 
-	fmt.Println("\033[30;1;4mWaarp-Gateway services :\033[0m")
 	fmt.Println()
+	fmt.Println("\033[30;1;4mWaarp-Gateway services :\033[0m")
 	for name, status := range statuses {
 		switch status.State {
 		case service.Running.Name():
@@ -76,16 +108,20 @@ func showStatus(statuses admin.Statuses) {
 	for _, name := range offlines {
 		fmt.Println("[\033[37;1mOffline\033[0m] \033[1m" + name + "\033[0m")
 	}
+	fmt.Println()
+
 }
 
 // Execute executes the 'status' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
 func (s *statusCommand) Execute(_ []string) error {
-	res, err := s.makeRequest()
+
+	res, err := s.requestStatus()
 	if err != nil {
 		return err
 	}
+
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return err

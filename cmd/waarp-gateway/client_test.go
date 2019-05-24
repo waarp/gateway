@@ -5,12 +5,18 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestMakeRequest(t *testing.T) {
+func TestRequestStatus(t *testing.T) {
+
+	err := os.Setenv("WG_PASSWORD", "pswd")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	Convey("Given a server replying correctly", t, func() {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -26,8 +32,8 @@ func TestMakeRequest(t *testing.T) {
 			Address: server.URL,
 		}
 
-		Convey("When calling makeRequest", func() {
-			res, err := s.makeRequest()
+		Convey("When calling requestStatus", func() {
+			res, err := s.requestStatus()
 
 			Convey("Then it should return a JSON http.Response and no error", func() {
 				So(err, ShouldBeNil)
@@ -42,14 +48,10 @@ func TestMakeRequest(t *testing.T) {
 
 	Convey("Given no server", t, func() {
 
-		s := statusCommand{
-			Address:  "",
-			Username: "",
-			Password: "",
-		}
+		s := statusCommand{}
 
-		Convey("When makeRequest is called", func() {
-			res, err := s.makeRequest()
+		Convey("When requestStatus is called", func() {
+			res, err := s.requestStatus()
 
 			Convey("Then it should return an error", func() {
 				So(res, ShouldBeNil)
@@ -58,47 +60,22 @@ func TestMakeRequest(t *testing.T) {
 		})
 	})
 
-	Convey("Given a server replying 'Unauthorized'", t, func() {
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusUnauthorized)
-		})
-		server := httptest.NewServer(handler)
-
-		s := statusCommand{
-			Address:  server.URL,
-			Username: "admin",
-			Password: "incorrect_password",
-		}
-
-		Convey("When makeRequest is called", func() {
-			res, err := s.makeRequest()
-
-			Convey("Then it should return an http.response with code 401", func() {
-				So(err, ShouldBeNil)
-				So(res.StatusCode, ShouldEqual, http.StatusUnauthorized)
-			})
-		})
-	})
-
 	Convey("Given a server replying anything but 'OK'", t, func() {
-		status := http.StatusInternalServerError
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(status)
+			w.WriteHeader(http.StatusInternalServerError)
 		})
 		server := httptest.NewServer(handler)
 
 		s := statusCommand{
-			Address:  server.URL,
-			Username: "admin",
-			Password: "incorrect_password",
+			Address: server.URL,
 		}
 
-		Convey("When makeRequest is called", func() {
-			res, err := s.makeRequest()
+		Convey("When requestStatus is called", func() {
+			res, err := s.requestStatus()
 
-			Convey("Then it should return an http.response with the corresponding code", func() {
-				So(err, ShouldBeNil)
-				So(res.StatusCode, ShouldEqual, status)
+			Convey("Then it should return an error", func() {
+				So(res, ShouldBeNil)
+				So(err, ShouldNotBeNil)
 			})
 		})
 	})
