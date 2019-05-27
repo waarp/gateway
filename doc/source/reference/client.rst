@@ -3,7 +3,7 @@ Client invité de commande
 
 .. program:: waarp-gateway
 
-``waarp-gateway`` est l'application terminal permattant d'envoyer des commandes
+``waarp-gateway`` est l'application terminal permettant d'envoyer des commandes
 à une instance waarp-gatewayd.
 
 

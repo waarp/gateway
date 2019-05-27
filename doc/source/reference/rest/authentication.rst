@@ -8,8 +8,8 @@ Ce schéma d'authentification ce fait au moyen du header HTTP *Authorization*.
 Pour s'authentifier, le client doit :
 
 1. Obtenir le login et le mot de passe de l'utilisateur
-2. Construire l'identifiant de l'utilisateur en concatennant le login,
-   un charactère deux-points (":") et le mot de passe
+2. Construire l'identifiant de l'utilisateur en concaténant le login,
+   un caractère deux-points (":") et le mot de passe
 3. Encoder l'identifiant obtenu en Base64
 4. Préfixer l'identifiant encodé par une déclaration du schéma d'authentification
    basique ("Basic")

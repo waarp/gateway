@@ -59,7 +59,32 @@ func TestRequestStatus(t *testing.T) {
 		})
 	})
 
-	Convey("Given a server replying anything but 'OK'", t, func() {
+	Convey("Given a server replying '401 - Unauthorized'", t, func() {
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusUnauthorized)
+		})
+		server := httptest.NewServer(handler)
+
+		s := statusCommand{
+			Address:     server.URL,
+			Username:    "test",
+			envPassword: "test",
+		}
+
+		Convey("Given that the password is given via an environment variable", func() {
+
+			Convey("When requestStatus is called", func() {
+				res, err := s.requestStatus(os.Stdin, os.Stdout)
+
+				Convey("Then it should return an error", func() {
+					So(res, ShouldBeNil)
+					So(err, ShouldNotBeNil)
+				})
+			})
+		})
+	})
+
+	Convey("Given a server replying anything other than '200' or '401'", t, func() {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 		})

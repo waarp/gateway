@@ -83,6 +83,8 @@ func (s *statusCommand) requestStatus(in *os.File, out *os.File) (*http.Response
 	return nil, fmt.Errorf("authentication failed too many times")
 }
 
+// showStatusANSI writes the status of the gateway services in the given
+// writer with colors, using ANSI coloration codes.
 func showStatusANSI(statuses admin.Statuses, w io.Writer) {
 	var errors = make([]string, 0)
 	var actives = make([]string, 0)
@@ -118,6 +120,8 @@ func showStatusANSI(statuses admin.Statuses, w io.Writer) {
 	fmt.Fprintln(w)
 }
 
+// showStatusNoANSI writes the status of the gateway services in the given
+// writer without using any ANSI coloration codes
 func showStatusNoANSI(statuses admin.Statuses, w io.Writer) {
 	var errors = make([]string, 0)
 	var actives = make([]string, 0)
@@ -152,6 +156,9 @@ func showStatusNoANSI(statuses admin.Statuses, w io.Writer) {
 	fmt.Fprintln(w)
 }
 
+// showStatus writes the given gateway service statuses in the given writer.
+// If the writer is a terminal, the output will be colored using ANSI escape
+// codes.
 func showStatus(statuses admin.Statuses, w io.Writer) {
 	if terminal.IsTerminal(int(os.Stdout.Fd())) {
 		showStatusANSI(statuses, w)

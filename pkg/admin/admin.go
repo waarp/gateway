@@ -143,6 +143,7 @@ func (s *Server) Stop(ctx context.Context) error {
 		err = s.server.Close()
 		s.Logger.Admin.Warning("The server was forcefully stopped.")
 	}
+	s.state.Set(service.Offline, "")
 	return err
 }
 
