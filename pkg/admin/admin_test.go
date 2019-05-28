@@ -21,9 +21,8 @@ func TestStart(t *testing.T) {
 		config.Admin.Address = "localhost:0"
 		config.Admin.TLSCert = "test-cert/cert.pem"
 		config.Admin.TLSKey = "test-cert/key.pem"
-		rest := Server{
-			Environment: service.NewEnvironment(&config),
-		}
+		env := service.NewEnvironment(&config)
+		rest := NewAdmin(env)
 
 		Convey("When starting the service, even multiple times", func() {
 			err1 := rest.Start()
@@ -51,9 +50,8 @@ func TestStart(t *testing.T) {
 	Convey("Given an invalid address", t, func() {
 		config := conf.ServerConfig{}
 		config.Admin.Address = "invalid_address"
-		rest := Server{
-			Environment: service.NewEnvironment(&config),
-		}
+		env := service.NewEnvironment(&config)
+		rest := NewAdmin(env)
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
@@ -67,9 +65,8 @@ func TestStart(t *testing.T) {
 	Convey("Given an incorrect host", t, func() {
 		config := conf.ServerConfig{}
 		config.Admin.Address = "invalid_host:0"
-		rest := Server{
-			Environment: service.NewEnvironment(&config),
-		}
+		env := service.NewEnvironment(&config)
+		rest := NewAdmin(env)
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
@@ -83,9 +80,8 @@ func TestStart(t *testing.T) {
 	Convey("Given an incorrect port number", t, func() {
 		config := conf.ServerConfig{}
 		config.Admin.Address = ":999999"
-		rest := Server{
-			Environment: service.NewEnvironment(&config),
-		}
+		env := service.NewEnvironment(&config)
+		rest := NewAdmin(env)
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
@@ -101,9 +97,8 @@ func TestStart(t *testing.T) {
 		config.Admin.Address = ":0"
 		config.Admin.TLSCert = "not_a_cert"
 		config.Admin.TLSKey = "not_a_key"
-		rest := Server{
-			Environment: service.NewEnvironment(&config),
-		}
+		env := service.NewEnvironment(&config)
+		rest := NewAdmin(env)
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
@@ -119,9 +114,9 @@ func TestStop(t *testing.T) {
 	Convey("Given a REST service", t, func() {
 		config := conf.ServerConfig{}
 		config.Admin.Address = "localhost:0"
-		rest := Server{
-			Environment: service.NewEnvironment(&config),
-		}
+		env := service.NewEnvironment(&config)
+		rest := NewAdmin(env)
+
 		err := rest.Start()
 		if err != nil {
 			t.Fatal(err)

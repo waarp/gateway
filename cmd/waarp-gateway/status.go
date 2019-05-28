@@ -85,7 +85,7 @@ func (s *statusCommand) requestStatus(in *os.File, out *os.File) (*http.Response
 
 // showStatusANSI writes the status of the gateway services in the given
 // writer with colors, using ANSI coloration codes.
-func showStatusANSI(statuses admin.Statuses, w io.Writer) {
+func showStatusANSI(w io.Writer, statuses admin.Statuses) {
 	var errors = make([]string, 0)
 	var actives = make([]string, 0)
 	var offlines = make([]string, 0)
@@ -122,7 +122,7 @@ func showStatusANSI(statuses admin.Statuses, w io.Writer) {
 
 // showStatusNoANSI writes the status of the gateway services in the given
 // writer without using any ANSI coloration codes
-func showStatusNoANSI(statuses admin.Statuses, w io.Writer) {
+func showStatusNoANSI(w io.Writer, statuses admin.Statuses) {
 	var errors = make([]string, 0)
 	var actives = make([]string, 0)
 	var offlines = make([]string, 0)
@@ -159,11 +159,11 @@ func showStatusNoANSI(statuses admin.Statuses, w io.Writer) {
 // showStatus writes the given gateway service statuses in the given writer.
 // If the writer is a terminal, the output will be colored using ANSI escape
 // codes.
-func showStatus(statuses admin.Statuses, w io.Writer) {
+func showStatus(w io.Writer, statuses admin.Statuses) {
 	if terminal.IsTerminal(int(os.Stdout.Fd())) {
-		showStatusANSI(statuses, w)
+		showStatusANSI(w, statuses)
 	} else {
-		showStatusNoANSI(statuses, w)
+		showStatusNoANSI(w, statuses)
 	}
 }
 
@@ -186,7 +186,7 @@ func (s *statusCommand) Execute(_ []string) error {
 	if err = json.Unmarshal(body, &statuses); err != nil {
 		return err
 	}
-	showStatus(statuses, os.Stdout)
+	showStatus(os.Stdout, statuses)
 
 	return nil
 }

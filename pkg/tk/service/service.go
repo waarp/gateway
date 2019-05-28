@@ -8,10 +8,6 @@ import (
 	"code.waarp.fr/waarp/gateway-ng/pkg/log"
 )
 
-const (
-	Admin string = "Admin"
-)
-
 type Service interface {
 	Start() error
 	Stop(ctx context.Context) error

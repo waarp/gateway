@@ -1,5 +1,5 @@
-Client invité de commande
-#########################
+Client en ligne de commande
+###########################
 
 .. program:: waarp-gateway
 
@@ -20,6 +20,7 @@ Client invité de commande
 
       Le nom de l'utilisateur pour authentifier la requête. Ce paramètre est requis.
 
-      Le mot de passe peut être renseigné avec la variable d'environnement
-      ``WG_PASSWORD``. Si la variable d'environnement est vide, le mot de passe
-      sera demandé dans l'invité de commande.
+   .. envvar::  WG_PASSWORD
+
+      Le mot de passe de l'utilisateur. Si la variable d'environnement est vide,
+      le mot de passe sera demandé dans l'invité de commande.

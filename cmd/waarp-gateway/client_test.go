@@ -120,7 +120,7 @@ func TestShowStatus(t *testing.T) {
 
 		Convey("When calling 'showStatus'", func() {
 			w := bytes.Buffer{}
-			showStatus(statuses, &w)
+			showStatus(&w, statuses)
 			result := w.String()
 
 			Convey("Then it should display the statuses correctly", func() {

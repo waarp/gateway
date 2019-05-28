@@ -12,13 +12,20 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const RestURI = "/api"
+const (
+	Name    = "admin"
+	RestURI = "/api"
+)
 
 // Server is the administration service
 type Server struct {
 	*service.Environment
 	state  service.State
 	server http.Server
+}
+
+func NewAdmin(e *service.Environment) *Server {
+	return &Server{Environment: e}
 }
 
 // listen starts the HTTP server listener on the configured port
