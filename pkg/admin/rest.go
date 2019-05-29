@@ -1,14 +1,16 @@
 package admin
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"code.waarp.fr/waarp/gateway-ng/pkg/log"
+	"code.waarp.fr/waarp/gateway-ng/pkg/tk/service"
 	"github.com/gorilla/mux"
 )
 
 // This is the access path to the status entry point
-const statusURI string = "/status"
+const StatusURI string = "/status"
 
 // Authentication checks if the request is authenticated using Basic HTTP
 // authentication.
@@ -29,8 +31,34 @@ func Authentication(logger *log.Logger) mux.MiddlewareFunc {
 	}
 }
 
-// Function called when an HTTP request is received on the statusURI path.
+type Status struct {
+	State  string
+	Reason string
+}
+
+type Statuses map[string]Status
+
+// Function called when an HTTP request is received on the StatusURI path.
 // For now, it just send an OK status code.
-func GetStatus(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+func GetStatus(services service.Services) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		var statuses = make(Statuses)
+		for name, serv := range services {
+			code, reason := serv.State().Get()
+			statuses[name] = Status{
+				State:  code.Name(),
+				Reason: reason,
+			}
+		}
+		resp, err := json.Marshal(statuses)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write(resp)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}
 }

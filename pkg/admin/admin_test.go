@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -20,9 +21,8 @@ func TestStart(t *testing.T) {
 		config.Admin.Address = "localhost:0"
 		config.Admin.TLSCert = "test-cert/cert.pem"
 		config.Admin.TLSKey = "test-cert/key.pem"
-		rest := Server{
-			Environment: service.NewEnvironment(&config),
-		}
+		env := service.NewEnvironment(&config)
+		rest := NewAdmin(env)
 
 		Convey("When starting the service, even multiple times", func() {
 			err1 := rest.Start()
@@ -50,9 +50,8 @@ func TestStart(t *testing.T) {
 	Convey("Given an invalid address", t, func() {
 		config := conf.ServerConfig{}
 		config.Admin.Address = "invalid_address"
-		rest := Server{
-			Environment: service.NewEnvironment(&config),
-		}
+		env := service.NewEnvironment(&config)
+		rest := NewAdmin(env)
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
@@ -66,9 +65,8 @@ func TestStart(t *testing.T) {
 	Convey("Given an incorrect host", t, func() {
 		config := conf.ServerConfig{}
 		config.Admin.Address = "invalid_host:0"
-		rest := Server{
-			Environment: service.NewEnvironment(&config),
-		}
+		env := service.NewEnvironment(&config)
+		rest := NewAdmin(env)
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
@@ -82,9 +80,8 @@ func TestStart(t *testing.T) {
 	Convey("Given an incorrect port number", t, func() {
 		config := conf.ServerConfig{}
 		config.Admin.Address = ":999999"
-		rest := Server{
-			Environment: service.NewEnvironment(&config),
-		}
+		env := service.NewEnvironment(&config)
+		rest := NewAdmin(env)
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
@@ -100,9 +97,8 @@ func TestStart(t *testing.T) {
 		config.Admin.Address = ":0"
 		config.Admin.TLSCert = "not_a_cert"
 		config.Admin.TLSKey = "not_a_key"
-		rest := Server{
-			Environment: service.NewEnvironment(&config),
-		}
+		env := service.NewEnvironment(&config)
+		rest := NewAdmin(env)
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
@@ -118,11 +114,13 @@ func TestStop(t *testing.T) {
 	Convey("Given a REST service", t, func() {
 		config := conf.ServerConfig{}
 		config.Admin.Address = "localhost:0"
-		rest := Server{
-			Environment: service.NewEnvironment(&config),
-		}
+		env := service.NewEnvironment(&config)
+		rest := NewAdmin(env)
+
 		err := rest.Start()
-		So(err, ShouldBeNil)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		Convey("When the service is stopped, even multiple times", func() {
 			addr := rest.server.Addr
@@ -179,7 +177,7 @@ func TestAuthentication(t *testing.T) {
 		}
 		r.SetBasicAuth("not_admin", "not_the_password")
 
-		Convey("The function should reply Unauthorized", func() {
+		Convey("The function should reply '401 - Unauthorized'", func() {
 			Authentication(logger).Middleware(handler).ServeHTTP(w, r)
 
 			So(w.Code, ShouldEqual, http.StatusUnauthorized)
@@ -188,17 +186,25 @@ func TestAuthentication(t *testing.T) {
 }
 
 func TestStatus(t *testing.T) {
-	Convey("Given a status handling function and a status request", t, func() {
-		r, err := http.NewRequest(http.MethodGet, "/api/status", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		w := httptest.NewRecorder()
+	Convey("Given a status handling function", t, func() {
+		var services = make(map[string]service.Service)
+		services["Admin"] = &Server{}
 
-		Convey("Then the function should reply OK", func() {
-			GetStatus(w, r)
+		Convey("When a request is passed to it", func() {
+			r, err := http.NewRequest(http.MethodGet, "/api/status", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			w := httptest.NewRecorder()
 
-			So(w.Code, ShouldEqual, http.StatusOK)
+			Convey("Then the function should reply OK with a JSON body", func() {
+				GetStatus(services).ServeHTTP(w, r)
+				contentType := w.Header().Get("Content-Type")
+
+				So(w.Code, ShouldEqual, http.StatusOK)
+				So(contentType, ShouldEqual, "application/json")
+				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
+			})
 		})
 	})
 }

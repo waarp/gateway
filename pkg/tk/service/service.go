@@ -11,11 +11,15 @@ import (
 type Service interface {
 	Start() error
 	Stop(ctx context.Context) error
+	State() *State
 }
+
+type Services map[string]Service
 
 type Environment struct {
 	*log.Logger
-	Conf *conf.ServerConfig
+	Conf     *conf.ServerConfig
+	Services Services
 }
 
 func NewEnvironment(config *conf.ServerConfig) *Environment {
@@ -34,6 +38,21 @@ const (
 	ShuttingDown
 	Error
 )
+
+func (s StateCode) Name() string {
+	switch s {
+	case Starting:
+		return "Starting"
+	case Running:
+		return "Running"
+	case ShuttingDown:
+		return "Shutting down"
+	case Error:
+		return "Error"
+	default:
+		return "Offline"
+	}
+}
 
 type State struct {
 	code   StateCode

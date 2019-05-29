@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/jessevdk/go-flags"
@@ -13,11 +12,7 @@ func main() {
 
 	_, err := parser.Parse()
 
-	if err != nil {
-		if !flags.WroteHelp(err) {
-			fmt.Println("")
-			parser.WriteHelp(os.Stderr)
-		}
+	if err != nil && !flags.WroteHelp(err) {
 		os.Exit(1)
 	}
 }

@@ -12,13 +12,20 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const apiURI = "/api"
+const (
+	Name    = "admin"
+	RestURI = "/api"
+)
 
 // Server is the administration service
 type Server struct {
 	*service.Environment
 	state  service.State
 	server http.Server
+}
+
+func NewAdmin(e *service.Environment) *Server {
+	return &Server{Environment: e}
 }
 
 // listen starts the HTTP server listener on the configured port
@@ -77,14 +84,14 @@ func (s *Server) initServer() error {
 			Certificates: []tls.Certificate{cert},
 		}
 	} else {
-		s.Logger.Admin.Info("No TLS certificate found, using plain HTTP.")
+		s.Logger.Admin.Info("No TLS certificate configured, using plain HTTP.")
 	}
 
 	// Add the REST handler
 	handler := mux.NewRouter()
 	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(s.Logger))
-	apiHandler := handler.PathPrefix(apiURI).Subrouter()
-	apiHandler.HandleFunc(statusURI, GetStatus).
+	apiHandler := handler.PathPrefix(RestURI).Subrouter()
+	apiHandler.HandleFunc(StatusURI, GetStatus(s.Services)).
 		Methods(http.MethodGet)
 
 	// Create http.Server instance
@@ -107,7 +114,7 @@ func (s *Server) Start() error {
 
 	s.Logger.Admin.Info("Startup command received...")
 	if state, _ := s.state.Get(); state != service.Offline && state != service.Error {
-		s.Logger.Admin.Info("Cannot start because the server is already running.")
+		s.Logger.Admin.Infof("Cannot start because the server is already running.")
 		return nil
 	}
 	s.state.Set(service.Starting, "")
@@ -143,5 +150,10 @@ func (s *Server) Stop(ctx context.Context) error {
 		err = s.server.Close()
 		s.Logger.Admin.Warning("The server was forcefully stopped.")
 	}
+	s.state.Set(service.Offline, "")
 	return err
+}
+
+func (s *Server) State() *service.State {
+	return &s.state
 }
