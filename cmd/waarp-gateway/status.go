@@ -9,8 +9,8 @@ import (
 	"os"
 	"sort"
 
-	"code.waarp.fr/waarp/gateway-ng/pkg/admin"
-	"code.waarp.fr/waarp/gateway-ng/pkg/tk/service"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -35,10 +35,10 @@ type statusCommand struct {
 }
 
 // requestStatus makes a status request to the address stored in the statusCommand
-// parameter, using the provided credentials, and returns the generated http.Response.
+// parameter, using the provided credentials, and returns the body of the response.
 // If the server did not reply, or if the response code was not '200 - OK', then
 // the function returns an error.
-func (s *statusCommand) requestStatus(in *os.File, out *os.File) (*http.Response, error) {
+func (s *statusCommand) requestStatus(in *os.File, out *os.File) ([]byte, error) {
 	addr := s.Address + admin.RestURI + admin.StatusURI
 
 	req, err := http.NewRequest(http.MethodGet, addr, nil)
@@ -64,19 +64,29 @@ func (s *statusCommand) requestStatus(in *os.File, out *os.File) (*http.Response
 		req.SetBasicAuth(s.Username, password)
 		client := http.Client{}
 		res, err := client.Do(req)
-
 		if err != nil {
 			return nil, err
 		}
+
 		switch res.StatusCode {
 		case http.StatusOK:
-			return res, nil
+			body, err := ioutil.ReadAll(res.Body)
+			if err != nil {
+				_ = res.Body.Close()
+				return nil, err
+			}
+			_ = res.Body.Close()
+			return body, nil
 		case http.StatusUnauthorized:
 			fmt.Fprintln(os.Stderr, "Invalid authentication")
 			if s.envPassword != "" {
+				_ = res.Body.Close()
+				// FIXME: maybe not the reason
+				// FIXME: is it supposed to be a continue ?
 				return nil, fmt.Errorf("invalid environment password")
 			}
 		default:
+			_ = res.Body.Close()
 			return nil, fmt.Errorf(http.StatusText(res.StatusCode))
 		}
 	}
@@ -172,18 +182,13 @@ func showStatus(w io.Writer, statuses admin.Statuses) {
 // parameter.
 func (s *statusCommand) Execute(_ []string) error {
 
-	res, err := s.requestStatus(os.Stdin, os.Stdout)
-	if err != nil {
-		return err
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
+	content, err := s.requestStatus(os.Stdin, os.Stdout)
 	if err != nil {
 		return err
 	}
 
 	var statuses = make(admin.Statuses)
-	if err = json.Unmarshal(body, &statuses); err != nil {
+	if err = json.Unmarshal(content, &statuses); err != nil {
 		return err
 	}
 	showStatus(os.Stdout, statuses)

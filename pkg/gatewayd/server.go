@@ -8,36 +8,51 @@ import (
 	"syscall"
 	"time"
 
-	"code.waarp.fr/waarp/gateway-ng/pkg/admin"
-	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
-	"code.waarp.fr/waarp/gateway-ng/pkg/tk/service"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
 
 // WG is the top level service handler. It manages all other components.
 type WG struct {
-	*service.Environment
+	*log.Logger
+	Conf      *conf.ServerConfig
+	Services  map[string]service.Servicer
+	dbService *database.Db
 }
 
 // NewWG creates a new application
 func NewWG(config *conf.ServerConfig) *WG {
 	return &WG{
-		Environment: service.NewEnvironment(config),
+		Logger: log.NewLogger("Waarp-Gateway"),
+		Conf:   config,
 	}
 }
 
 //
 func (wg *WG) initServices() {
-	wg.Services = make(map[string]service.Service)
+	wg.Services = make(map[string]service.Servicer)
 
-	adminService := admin.NewAdmin(wg.Environment)
+	wg.dbService = &database.Db{Conf: wg.Conf}
+	adminService := &admin.Server{Conf: wg.Conf, Db: wg.dbService, Services: wg.Services}
 
-	wg.Services[admin.Name] = adminService
+	wg.Services[database.ServiceName] = wg.dbService
+	wg.Services[admin.ServiceName] = adminService
 }
 
-func (wg *WG) startServices() {
-	for _, wgService := range wg.Services {
-		_ = wgService.Start()
+func (wg *WG) startServices() error {
+	if err := wg.dbService.Start(); err != nil {
+		return err
 	}
+
+	for _, serv := range wg.Services {
+		if state, _ := serv.State().Get(); state != service.Running {
+			_ = serv.Start()
+		}
+	}
+	return nil
 }
 
 func (wg *WG) stopServices() {
@@ -58,7 +73,9 @@ func (wg *WG) Start() error {
 	}
 	wg.Info("Waarp Gateway NG is starting")
 	wg.initServices()
-	wg.startServices()
+	if err := wg.startServices(); err != nil {
+		return err
+	}
 	wg.Infof("Waarp Gateway NG has started")
 
 	c := make(chan os.Signal, 1)

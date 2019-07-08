@@ -6,8 +6,8 @@ import (
 
 	flags "github.com/jessevdk/go-flags"
 
-	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
-	"code.waarp.fr/waarp/gateway-ng/pkg/gatewayd"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
 )
 
 type options struct {

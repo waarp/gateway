@@ -3,13 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
-	"code.waarp.fr/waarp/gateway-ng/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -34,13 +33,10 @@ func TestRequestStatus(t *testing.T) {
 		Convey("When calling requestStatus", func() {
 			res, err := s.requestStatus(os.Stdin, os.Stdout)
 
-			Convey("Then it should return a JSON http.Response and no error", func() {
+			Convey("Then it should return a valid JSON content and no error", func() {
 				So(err, ShouldBeNil)
-				So(res.StatusCode, ShouldEqual, http.StatusOK)
-				So(res.Header.Get("Content-Type"), ShouldEqual, "application/json")
-				body, err := ioutil.ReadAll(res.Body)
-				So(err, ShouldBeNil)
-				So(json.Valid(body), ShouldBeTrue)
+				So(res, ShouldNotBeNil)
+				So(json.Valid(res), ShouldBeTrue)
 			})
 		})
 	})

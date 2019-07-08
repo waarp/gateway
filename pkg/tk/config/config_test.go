@@ -302,6 +302,6 @@ Old = baz
 			})
 		})
 
-		os.Remove("config-test.ini")
+		So(os.Remove("config-test.ini"), ShouldBeNil)
 	})
 }

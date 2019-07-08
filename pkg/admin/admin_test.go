@@ -9,20 +9,20 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp/gateway-ng/pkg/conf"
-	"code.waarp.fr/waarp/gateway-ng/pkg/log"
-	"code.waarp.fr/waarp/gateway-ng/pkg/tk/service"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestStart(t *testing.T) {
 	Convey("Given a correct configuration", t, func() {
-		config := conf.ServerConfig{}
+		config := &conf.ServerConfig{}
 		config.Admin.Address = "localhost:0"
 		config.Admin.TLSCert = "test-cert/cert.pem"
 		config.Admin.TLSKey = "test-cert/key.pem"
-		env := service.NewEnvironment(&config)
-		rest := NewAdmin(env)
+		rest := &Server{Conf: config, Services: make(map[string]service.Servicer)}
 
 		Convey("When starting the service, even multiple times", func() {
 			err1 := rest.Start()
@@ -35,76 +35,60 @@ func TestStart(t *testing.T) {
 		})
 	})
 
-	Convey("Given no configuration", t, func() {
-		rest := Server{}
-
-		Convey("When starting the service", func() {
-			err := rest.Start()
-
-			Convey("Then it should produce an error ", func() {
-				So(err, ShouldNotBeNil)
-			})
-		})
-	})
-
 	Convey("Given an invalid address", t, func() {
-		config := conf.ServerConfig{}
+		config := &conf.ServerConfig{}
 		config.Admin.Address = "invalid_address"
-		env := service.NewEnvironment(&config)
-		rest := NewAdmin(env)
+		rest := &Server{Conf: config, Services: make(map[string]service.Servicer)}
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
 
 			Convey("Then it should produce an error", func() {
-				So(err, ShouldNotBeNil)
+				So(err, ShouldBeError)
 			})
 		})
 	})
 
 	Convey("Given an incorrect host", t, func() {
-		config := conf.ServerConfig{}
+		config := &conf.ServerConfig{}
 		config.Admin.Address = "invalid_host:0"
-		env := service.NewEnvironment(&config)
-		rest := NewAdmin(env)
+		rest := &Server{Conf: config, Services: make(map[string]service.Servicer)}
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
 
 			Convey("Then it should produce an error", func() {
-				So(err, ShouldNotBeNil)
+				So(err, ShouldBeError)
 			})
 		})
 	})
 
 	Convey("Given an incorrect port number", t, func() {
-		config := conf.ServerConfig{}
+		config := &conf.ServerConfig{}
 		config.Admin.Address = ":999999"
-		env := service.NewEnvironment(&config)
-		rest := NewAdmin(env)
+		rest := &Server{Conf: config, Services: make(map[string]service.Servicer)}
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
 
 			Convey("Then it should produce an error", func() {
-				So(err, ShouldNotBeNil)
+				So(err, ShouldBeError)
 			})
 		})
 	})
 
 	Convey("Given an incorrect certificate", t, func() {
-		config := conf.ServerConfig{}
+		config := &conf.ServerConfig{}
 		config.Admin.Address = ":0"
 		config.Admin.TLSCert = "not_a_cert"
 		config.Admin.TLSKey = "not_a_key"
-		env := service.NewEnvironment(&config)
-		rest := NewAdmin(env)
+		rest := &Server{Conf: config, Services: make(map[string]service.Servicer)}
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
 
 			Convey("Then it should produce an error", func() {
-				So(err, ShouldNotBeNil)
+				So(err, ShouldBeError)
 			})
 		})
 	})
@@ -112,10 +96,9 @@ func TestStart(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	Convey("Given a REST service", t, func() {
-		config := conf.ServerConfig{}
+		config := &conf.ServerConfig{}
 		config.Admin.Address = "localhost:0"
-		env := service.NewEnvironment(&config)
-		rest := NewAdmin(env)
+		rest := &Server{Conf: config, Services: make(map[string]service.Servicer)}
 
 		err := rest.Start()
 		if err != nil {
@@ -127,10 +110,12 @@ func TestStop(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 			err1 := rest.Stop(ctx)
+			// FIXME: Should be `defer cancel()`?
 			cancel()
 
 			ctx, cancel = context.WithTimeout(context.Background(), time.Second*10)
 			err2 := rest.Stop(ctx)
+			// FIXME: Should be `defer cancel()`?
 			cancel()
 
 			So(err1, ShouldBeNil)
@@ -140,19 +125,26 @@ func TestStop(t *testing.T) {
 				client := new(http.Client)
 				response, err := client.Get(addr)
 
-				So(response, ShouldBeNil)
 				urlError := new(url.Error)
 				So(err, ShouldHaveSameTypeAs, urlError)
+				So(response, ShouldBeNil)
+				if response != nil {
+					_ = response.Body.Close()
+				}
 			})
 		})
 	})
 }
 
 func TestAuthentication(t *testing.T) {
-	logger := log.NewLogger()
+	logger := log.NewLogger(ServiceName)
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
+	db := database.GetTestDatabase()
+	defer func() {
+		_ = db.Stop(context.Background())
+	}()
 
 	Convey("Given valid credentials", t, func() {
 		w := httptest.NewRecorder()
@@ -160,10 +152,10 @@ func TestAuthentication(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		r.SetBasicAuth("admin", "adminpassword")
+		r.SetBasicAuth("admin", "admin_password")
 
 		Convey("The function should reply OK", func() {
-			Authentication(logger).Middleware(handler).ServeHTTP(w, r)
+			Authentication(logger, db).Middleware(handler).ServeHTTP(w, r)
 
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
@@ -178,7 +170,7 @@ func TestAuthentication(t *testing.T) {
 		r.SetBasicAuth("not_admin", "not_the_password")
 
 		Convey("The function should reply '401 - Unauthorized'", func() {
-			Authentication(logger).Middleware(handler).ServeHTTP(w, r)
+			Authentication(logger, db).Middleware(handler).ServeHTTP(w, r)
 
 			So(w.Code, ShouldEqual, http.StatusUnauthorized)
 		})
@@ -187,7 +179,7 @@ func TestAuthentication(t *testing.T) {
 
 func TestStatus(t *testing.T) {
 	Convey("Given a status handling function", t, func() {
-		var services = make(map[string]service.Service)
+		var services = make(map[string]service.Servicer)
 		services["Admin"] = &Server{}
 
 		Convey("When a request is passed to it", func() {
