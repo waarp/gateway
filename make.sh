@@ -12,23 +12,26 @@ t_test() {
 }
 
 t_check() {
+    local CI_VERSION=$(grep GOLANGCI_LINT_VERSION .gitlab-ci.yml | head -n 1 | cut -d' ' -f4)
     if ! $(which golangci-lint >/dev/null 2>&1); then
         echo "golangci-lint cannot be found. Please, install it and re-run checks"
         return 1
     fi
-    if ! $(golangci-lint --version | grep '1\.16\.0' >/dev/null 2>&1); then
+    if ! $(golangci-lint --version | grep $CI_VERSION >/dev/null 2>&1); then
         echo "***********************************************"
         echo "WARNING"
         echo "***********************************************"
         echo "Your version os golangci-lint is: $(golangci-lint --version | sed 's:.*\s\([0-9\.]\+\)\s.*:\1:')"
-        echo "CI runs version 1.16.0"
+        echo "CI runs version $CI_VERSION"
         echo "***********************************************"
     fi
     go vet ./cmd/... ./pkg/...
     golangci-lint run \
         --enable-all --disable depguard,gochecknoglobals,gochecknoinits,gocritic,interfacer,maligned,prealloc,lll \
         --max-issues-per-linter 0 --max-same-issues 0 \
-        --exclude-use-default  \
+        --exclude-use-default=false  \
+        --exclude 'Potential file inclusion via variable' \
+        --exclude 'Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked' \
         --skip-dirs .gocache
 }
 

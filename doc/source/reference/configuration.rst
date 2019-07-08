@@ -46,7 +46,7 @@ et l'API REST.
 
 .. confval:: Address
 
-   L'adresse complete (IP + port) à laquelle le serveur HTTP va écouter les
+   L'adresse complète (IP + port) à laquelle le serveur HTTP va écouter les
    requêtes faites à l'interface d'administration. Si le port est mis à 0,
    le programme choisira un port libre au hasard.
 
@@ -55,14 +55,48 @@ et l'API REST.
 .. confval:: TLSCert
 
    Le chemin du certificat TLS pour le serveur HTTP.
-   Si ce paramètre n'est pas définit, le serveur utilisera HTTP à la place de
+   Si ce paramètre n'est pas défini, le serveur utilisera HTTP à la place de
    HTTPS.
 
 .. confval:: TLSKey
 
    Le chemin de la clé du certificat TLS.
-   Si ce paramètre n'est pas définit, le serveur utilisera HTTP à la place de
+   Si ce paramètre n'est pas défini, le serveur utilisera HTTP à la place de
    HTTPS.
 
 
+Section ``[database]``
+======================
 
+La section ``[database]`` regroupe toutes les options de configuration de la
+base de données de la gateway.
+
+.. confval:: Type
+
+   Le nom (en minuscules) du type de système de gestion de base de données utilisé.
+   Les valeurs autorisées sont: ``postgresql``, ``mysql``, ``sqlite``.
+
+.. confval:: Address
+
+   L'adresse de la base de données.
+
+   Valeur par défaut : ``localhost``
+
+.. confval:: Port
+
+   Le port sur lequel écoute le serveur de base de donnée.
+
+   Valeur par défaut : dépend du type de base de donnée (``5432`` pour PostgreSQL,
+   ``3306`` pour MySQL, aucun pour SQLite).
+
+.. confval:: Name
+
+   Le nom de la base de donnée utilisée.
+
+.. confval:: User
+
+   Le nom d'utilisateur du SGBD utilisé par la gateway pour faire des requêtes.
+
+.. confval:: Password
+
+   Le mot de passe de l'utilisateur du SGBD.

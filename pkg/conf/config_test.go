@@ -101,7 +101,7 @@ LogTo user-foo
 		})
 
 		Convey("Given a configuration file in the etc folder", func() {
-			err := os.Mkdir("etc", 0755)
+			err := os.Mkdir("etc", 0750)
 			So(err, ShouldBeNil)
 			err = ioutil.WriteFile("etc/gatewayd.ini", parentEtcContent, 0644)
 			So(err, ShouldBeNil)
@@ -127,7 +127,7 @@ LogTo user-foo
 		Convey("Given both configuration files exist", func() {
 			err := ioutil.WriteFile("gatewayd.ini", directContent, 0644)
 			So(err, ShouldBeNil)
-			err = os.Mkdir("etc", 0755)
+			err = os.Mkdir("etc", 0750)
 			So(err, ShouldBeNil)
 			err = ioutil.WriteFile("etc/gatewayd.ini", parentEtcContent, 0644)
 			So(err, ShouldBeNil)
@@ -182,7 +182,7 @@ LogTo user-foo
 			Convey("Given both other configuration files exist", func() {
 				err := ioutil.WriteFile("gatewayd.ini", directContent, 0644)
 				So(err, ShouldBeNil)
-				err = os.Mkdir("etc", 0755)
+				err = os.Mkdir("etc", 0750)
 				So(err, ShouldBeNil)
 				err = ioutil.WriteFile("etc/gatewayd.ini", parentEtcContent, 0644)
 				So(err, ShouldBeNil)

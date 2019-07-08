@@ -3,21 +3,38 @@ package conf
 import (
 	"os"
 
-	"code.waarp.fr/waarp/gateway-ng/pkg/tk/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/config"
 )
 
 // ServerConfig holds the server configuration options
 type ServerConfig struct {
-	Log struct {
-		Level          string `ini-name:"Level" default:"INFO" description:"All messages with a severity above this level will be logged. Possible values are DEBUG, INFO, WARNING, ERROR and CRITICAL."`
-		LogTo          string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout' and 'syslog' log respectively to the standard outpout and to the syslog daemon"`
-		SyslogFacility string `ini-name:"SyslogFacility" default:"local0" description:"If LogTo is set on 'syslog', the logs will be written to this facility."`
-	} `group:"log"`
-	Admin struct {
-		Address string `ini-name:"Address" default:":8080" description:"The IP address + TCP port used by the admin interface."`
-		TLSCert string `ini-name:"TLSCert" default:"" description:"Path of the TLS certificate for the admin interface."`
-		TLSKey  string `ini-name:"TLSKey" default:"" description:"Path of the key of the TLS certificate."`
-	} `group:"admin"`
+	Log      LogConfig      `group:"log"`
+	Admin    AdminConfig    `group:"admin"`
+	Database DatabaseConfig `group:"database"`
+}
+
+// LogConfig holds the server logging options
+type LogConfig struct {
+	Level          string `ini-name:"Level" default:"INFO" description:"All messages with a severity above this level will be logged. Possible values are DEBUG, INFO, WARNING, ERROR and CRITICAL."`
+	LogTo          string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout' and 'syslog' log respectively to the standard outpout and to the syslog daemon"`
+	SyslogFacility string `ini-name:"SyslogFacility" default:"local0" description:"If LogTo is set on 'syslog', the logs will be written to this facility."`
+}
+
+// AdminConfig holds the server administration options
+type AdminConfig struct {
+	Address string `ini-name:"Address" default:":8080" description:"The IP address + TCP port used by the admin interface."`
+	TLSCert string `ini-name:"TLSCert" default:"" description:"Path of the TLS certificate for the admin interface."`
+	TLSKey  string `ini-name:"TLSKey" default:"" description:"Path of the key of the TLS certificate."`
+}
+
+// DatabaseConfig holds the server database options
+type DatabaseConfig struct {
+	Type     string `ini-name:"Type" default:"" description:"Name of the RDBMS used for the gateway database"`
+	Address  string `ini-name:"Address" default:"localhost" description:"Address of the database"`
+	Port     uint16 `ini-name:"Port" default:"" description:"Port of the database"`
+	Name     string `ini-name:"Name" default:"waarp_gatewayd" description:"The name of the database"`
+	User     string `ini-name:"User" default:"waarp_gatewayd" description:"The name of the gateway database user"`
+	Password string `ini-name:"Password" default:"" description:"The password of the gateway database user"`
 }
 
 // LoadServerConfig creates a configuration object.

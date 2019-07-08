@@ -8,29 +8,35 @@ import (
 	"net/http"
 
 	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp/gateway-ng/pkg/tk/service"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"github.com/gorilla/mux"
 )
 
 const (
-	Name    = "admin"
+	// ServiceName is the nameof the administration interface service
+	ServiceName = "Admin"
+
+	// RestURI is the root path for the Rest API endpoints
 	RestURI = "/api"
 )
 
 // Server is the administration service
 type Server struct {
-	*service.Environment
+	Logger   *log.Logger
+	Conf     *conf.ServerConfig
+	Db       *database.Db
+	Services map[string]service.Servicer
+
 	state  service.State
 	server http.Server
 }
 
-func NewAdmin(e *service.Environment) *Server {
-	return &Server{Environment: e}
-}
-
 // listen starts the HTTP server listener on the configured port
 func (s *Server) listen() {
-	s.Logger.Admin.Infof("Listening at address %s", s.server.Addr)
+	s.Logger.Infof("Listening at address %s", s.server.Addr)
 
 	go func() {
 		s.state.Set(service.Running, "")
@@ -41,7 +47,7 @@ func (s *Server) listen() {
 			err = s.server.ListenAndServeTLS("", "")
 		}
 		if err != http.ErrServerClosed {
-			s.Logger.Admin.Errorf("Unexpected error: %s", err)
+			s.Logger.Errorf("Unexpected error: %s", err)
 			s.state.Set(service.Error, err.Error())
 		} else {
 			s.state.Set(service.Offline, "")
@@ -84,12 +90,12 @@ func (s *Server) initServer() error {
 			Certificates: []tls.Certificate{cert},
 		}
 	} else {
-		s.Logger.Admin.Info("No TLS certificate configured, using plain HTTP.")
+		s.Logger.Info("No TLS certificate configured, using plain HTTP.")
 	}
 
 	// Add the REST handler
 	handler := mux.NewRouter()
-	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(s.Logger))
+	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(s.Logger, s.Db))
 	apiHandler := handler.PathPrefix(RestURI).Subrouter()
 	apiHandler.HandleFunc(StatusURI, GetStatus(s.Services)).
 		Methods(http.MethodGet)
@@ -99,7 +105,7 @@ func (s *Server) initServer() error {
 		Addr:      addr,
 		TLSConfig: tlsConfig,
 		Handler:   handler,
-		ErrorLog:  s.Logger.Admin.AsStdLog(logging.ERROR),
+		ErrorLog:  s.Logger.AsStdLog(logging.ERROR),
 	}
 	return nil
 }
@@ -107,36 +113,36 @@ func (s *Server) initServer() error {
 // Start launches the administration service. If the service cannot be launched,
 // the function returns an error.
 func (s *Server) Start() error {
-	if s.Environment == nil {
-		s.state.Set(service.Error, "Missing application environment")
-		return fmt.Errorf("missing application environment")
+	if s.Logger == nil {
+		s.Logger = log.NewLogger(ServiceName)
 	}
 
-	s.Logger.Admin.Info("Startup command received...")
+	s.Logger.Info("Startup command received...")
 	if state, _ := s.state.Get(); state != service.Offline && state != service.Error {
-		s.Logger.Admin.Infof("Cannot start because the server is already running.")
+		s.Logger.Infof("Cannot start because the server is already running.")
 		return nil
 	}
+
 	s.state.Set(service.Starting, "")
 
 	if err := s.initServer(); err != nil {
-		s.Logger.Admin.Errorf("Failed to start: %s", err)
+		s.Logger.Errorf("Failed to start: %s", err)
 		s.state.Set(service.Error, err.Error())
 		return err
 	}
 
 	s.listen()
 
-	s.Logger.Admin.Info("Server started.")
+	s.Logger.Info("Server started.")
 	return nil
 }
 
 // Stop halts the admin service by first trying to shut it down gracefully.
 // If it fails, the service is forcefully stopped.
 func (s *Server) Stop(ctx context.Context) error {
-	s.Logger.Admin.Info("Shutdown command received...")
+	s.Logger.Info("Shutdown command received...")
 	if state, _ := s.state.Get(); state != service.Running {
-		s.Logger.Admin.Info("Cannot stop because the server is not running.")
+		s.Logger.Info("Cannot stop because the server is not running.")
 		return nil
 	}
 
@@ -144,16 +150,17 @@ func (s *Server) Stop(ctx context.Context) error {
 	err := s.server.Shutdown(ctx)
 
 	if err == nil {
-		s.Logger.Admin.Info("Shutdown complete.")
+		s.Logger.Info("Shutdown complete.")
 	} else {
-		s.Logger.Admin.Warningf("Failed to shutdown gracefully : %s", err)
+		s.Logger.Warningf("Failed to shutdown gracefully : %s", err)
 		err = s.server.Close()
-		s.Logger.Admin.Warning("The server was forcefully stopped.")
+		s.Logger.Warning("The server was forcefully stopped.")
 	}
 	s.state.Set(service.Offline, "")
 	return err
 }
 
+// State returns the state of the service
 func (s *Server) State() *service.State {
 	return &s.state
 }

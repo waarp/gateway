@@ -7,15 +7,11 @@ import (
 // Logger is an internal abstraction of the underlying logging library
 type Logger struct {
 	*logging.Logger
-	Admin *logging.Logger
 }
 
 // NewLogger initiates a new logger
-func NewLogger() *Logger {
-	return &Logger{
-		Logger: logging.GetLogger("waarp-gateway-ng"),
-		Admin:  logging.GetLogger("admin"),
-	}
+func NewLogger(name string) *Logger {
+	return &Logger{Logger: logging.GetLogger(name)}
 }
 
 // SetLevel sets the level of the logger
