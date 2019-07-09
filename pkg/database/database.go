@@ -15,6 +15,10 @@ import (
 const (
 	// ServiceName is he name of the gatewayd database service
 	ServiceName = "Database"
+
+	// BcryptRounds defines the number of rounds taken by bcrypt to hash passwords
+	// in the database
+	BcryptRounds = 14
 )
 
 var (

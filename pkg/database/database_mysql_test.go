@@ -37,6 +37,6 @@ func TestMySQL(t *testing.T) {
 	}()
 
 	Convey("Given a MySQL service", t, func() {
-		testDatabase(t, mysqlTestDatabase)
+		testDatabase(mysqlTestDatabase)
 	})
 }
