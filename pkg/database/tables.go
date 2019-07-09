@@ -1,14 +1,9 @@
 package database
 
 import (
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"golang.org/x/crypto/bcrypt"
 )
-
-// The Table enum lists all database tables
-type Table byte
-
-// Tables lists the schema of all database tables
-var Tables = make([]interface{}, 0)
 
 const (
 	defaultUser     = "admin"
@@ -22,7 +17,7 @@ func initTables(db *Db) error {
 	trans := db.engine.NewSession()
 	defer trans.Close()
 
-	for _, table := range Tables {
+	for _, table := range model.Tables {
 		if ok, err := trans.IsTableExist(table); err != nil {
 			return err
 		} else if !ok {
@@ -32,11 +27,11 @@ func initTables(db *Db) error {
 		}
 	}
 
-	password, err := bcrypt.GenerateFromPassword([]byte(defaultPassword), 14)
+	password, err := bcrypt.GenerateFromPassword([]byte(defaultPassword), BcryptRounds)
 	if err != nil {
 		return err
 	}
-	admin := &User{
+	admin := &model.User{
 		Login:    defaultUser,
 		Password: password,
 	}

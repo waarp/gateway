@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	. "github.com/smartystreets/goconvey/convey"
@@ -23,21 +24,25 @@ func init() {
 	sqliteTestDatabase = &Db{Conf: sqliteConfig}
 }
 
-func testGet(acc Accessor, env *testEnv) {
+func testGet(db *Db) {
+	getTestUser := &model.User{
+		Login:    "get",
+		Password: []byte("get_password"),
+	}
 
-	Convey("When calling the 'Get' method", func() {
-
+	runTests := func(acc Accessor) {
 		Convey("With an existing key", func() {
-			err := acc.Get(env.get)
+			result := &model.User{Login: getTestUser.Login}
+			err := acc.Get(result)
 
 			Convey("Then the parameter should contain the result", func() {
 				So(err, ShouldBeNil)
-				So(env.get, ShouldResemble, env.getExpected)
+				So(result, ShouldResemble, getTestUser)
 			})
 		})
 
 		Convey("With an unknown key", func() {
-			err := acc.Get(env.fail)
+			err := acc.Get(&model.User{Login: "unknown"})
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError, ErrNotFound)
@@ -51,43 +56,118 @@ func testGet(acc Accessor, env *testEnv) {
 				So(err, ShouldBeError, ErrNilRecord)
 			})
 		})
+	}
+
+	Convey("When calling the 'Get' method", func() {
+		_, err := db.engine.InsertOne(getTestUser)
+		So(err, ShouldBeNil)
+
+		Reset(func() {
+			_, err := db.engine.Delete(getTestUser)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Using the standalone accessor", func() {
+			runTests(db)
+		})
+
+		Convey("Using the transaction accessor", func() {
+			ses, err := db.BeginTransaction()
+			So(err, ShouldBeNil)
+
+			Reset(ses.session.Close)
+
+			runTests(ses)
+		})
+
 	})
 }
 
-func testSelect(acc Accessor, env *testEnv) {
+func testSelect(db *Db) {
+	selectTestUser1 := &model.User{
+		Login:    "select1",
+		Password: []byte("select_password"),
+	}
+	selectTestUser2 := &model.User{
+		Login:    "select2",
+		Password: selectTestUser1.Password,
+	}
+	selectTestUser3 := &model.User{
+		Login:    "select3",
+		Password: []byte("not_select_password"),
+	}
+	selectTestUser4 := &model.User{
+		Login:    "select4",
+		Password: selectTestUser1.Password,
+	}
+	selectTestUser5 := &model.User{
+		Login:    "select5",
+		Password: selectTestUser1.Password,
+	}
 
-	Convey("When calling the 'Select' method", func() {
-		filters := &Filters{
-			Limit:      2,
-			Offset:     1,
-			Order:      env.selectOrder,
-			Conditions: env.selectCondition,
-			Args:       env.selectArgs,
-		}
+	runTests := func(acc Accessor) {
+		filters := &Filters{Conditions: "password = ?", Args: []interface{}{selectTestUser1.Password}}
+		result := &[]*model.User{}
 
-		Convey("With valid filters", func() {
-			err := acc.Select(env.selectResult, filters)
+		Convey("With just a condition", func() {
+			filtered := &[]*model.User{selectTestUser1, selectTestUser2,
+				selectTestUser4, selectTestUser5}
+			err := acc.Select(result, filters)
 
 			Convey("Then it should return all the valid entries", func() {
 				So(err, ShouldBeNil)
-				So(env.selectResult, ShouldResemble, env.selectExpected)
+				So(result, ShouldResemble, filtered)
 			})
 		})
 
-		Convey("With nil filters", func() {
-			err := acc.Select(env.selectResult, nil)
+		Convey("With a condition and a limit", func() {
+			filters.Limit = 2
+			limited := &[]*model.User{selectTestUser1, selectTestUser2}
+			err := acc.Select(result, filters)
+
+			Convey("Then it should return `limit` amount of entries at most", func() {
+				So(err, ShouldBeNil)
+				So(result, ShouldResemble, limited)
+			})
+		})
+
+		Convey("With a condition, an offset", func() {
+			filters.Limit = 10
+			filters.Offset = 1
+			offset := &[]*model.User{selectTestUser2, selectTestUser4, selectTestUser5}
+			err := acc.Select(result, filters)
+
+			Convey("Then it should return all valid entries except the `offset` first ones", func() {
+				So(err, ShouldBeNil)
+				So(result, ShouldResemble, offset)
+			})
+		})
+
+		Convey("With a condition and an order", func() {
+			filters.Order = "login DESC"
+			ordered := &[]*model.User{selectTestUser5, selectTestUser4, selectTestUser2, selectTestUser1}
+			err := acc.Select(result, filters)
+
+			Convey("Then it should return all valid entries sorted in the specified order", func() {
+				So(err, ShouldBeNil)
+				So(result, ShouldResemble, ordered)
+			})
+		})
+
+		Convey("With no filters", func() {
+			err := acc.Select(result, nil)
 
 			Convey("Then it should return all entries", func() {
 				So(err, ShouldBeNil)
-				expected, err := acc.Query(builder.Select().From(env.table))
+				expected, err := acc.Query(builder.Select().From("users"))
 				So(err, ShouldBeNil)
-				nbRes := reflect.Indirect(reflect.ValueOf(env.selectResult)).Len()
+				nbRes := reflect.Indirect(reflect.ValueOf(result)).Len()
 				So(nbRes, ShouldEqual, len(expected))
 			})
 		})
 
 		Convey("With invalid filters", func() {
-			err := acc.Select(env.selectResult, &Filters{Conditions: "error"})
+			err := acc.Select(result, &Filters{Conditions: "error"})
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
@@ -101,215 +181,270 @@ func testSelect(acc Accessor, env *testEnv) {
 				So(err, ShouldBeError, ErrNilRecord)
 			})
 		})
-	})
 
-}
+	}
 
-func createFails(acc Accessor, env *testEnv) {
+	Convey("When calling the 'Select' method", func() {
 
-	Convey("With a existing record", func() {
-		err := acc.Create(env.getExpected)
+		_, err := db.engine.Insert(selectTestUser1, selectTestUser2,
+			selectTestUser3, selectTestUser4, selectTestUser5)
+		So(err, ShouldBeNil)
 
-		Convey("Then it should return an error", func() {
-			So(err, ShouldBeError)
-		})
-	})
-
-	Convey("With an unknown record type", func() {
-		err := acc.Create(&struct{}{})
-
-		Convey("Then it should return an error", func() {
-			So(err, ShouldBeError, xorm.ErrTableNotFound)
-		})
-	})
-
-	Convey("With a nil record ", func() {
-		err := acc.Create(nil)
-
-		Convey("Then it should return an error", func() {
-			So(err, ShouldBeError, ErrNilRecord)
-		})
-	})
-}
-
-func testDbCreate(db *Db, env *testEnv) {
-
-	Convey("When calling the 'Create' method", func() {
-
-		Convey("With a valid record", func() {
-			err := db.Create(env.create)
-
-			Convey("Then the record should be inserted without error", func() {
-				So(err, ShouldBeNil)
-				exists, err := db.engine.Exist(env.create)
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
-			})
-		})
-
-		createFails(db, env)
-	})
-}
-
-func testSesCreate(ses *Session, env *testEnv) {
-	Convey("When calling the 'Create' method", func() {
-
-		Convey("With a valid record", func() {
-			err := ses.Create(env.create)
-
-			Convey("Then the record should be inserted without error", func() {
-				So(err, ShouldBeNil)
-				err := ses.session.Commit()
-				So(err, ShouldBeNil)
-				exists, err := ses.session.Exist(env.create)
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
-			})
-		})
-
-		createFails(ses, env)
-	})
-}
-
-func updateFails(acc Accessor, env *testEnv) {
-	Convey("With an unknown record", func() {
-		err := acc.Update(env.fail, env.fail)
-
-		Convey("Then it should return an error", func() {
-			So(err, ShouldBeError)
-		})
-	})
-
-	Convey("With an invalid record type", func() {
-		err := acc.Update(&struct{}{}, &struct{}{})
-
-		Convey("Then it should return an error", func() {
-			So(err, ShouldBeError, xorm.ErrTableNotFound)
-		})
-	})
-
-	Convey("With an nil record", func() {
-		err := acc.Update(nil, nil)
-
-		Convey("Then it should return an error", func() {
-			So(err, ShouldBeError, ErrNilRecord)
-		})
-	})
-}
-
-func testDbUpdate(db *Db, env *testEnv) {
-
-	Convey("When calling the 'Update' method", func() {
-
-		Convey("With an existing record", func() {
-			err := db.Update(env.updateBefore, env.updateAfter)
-
-			Convey("Then the record should be updated without error", func() {
-				So(err, ShouldBeNil)
-				exists, err := db.engine.Exist(env.updateAfter)
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
-			})
-		})
-
-		updateFails(db, env)
-	})
-}
-
-func testSesUpdate(ses *Session, env *testEnv) {
-
-	Convey("When calling the 'Update' method", func() {
-
-		Convey("With an existing record", func() {
-			err := ses.Update(env.updateBefore, env.updateAfter)
-
-			Convey("Then the record should be updated without error", func() {
-				So(err, ShouldBeNil)
-				err := ses.session.Commit()
-				So(err, ShouldBeNil)
-				exists, err := ses.session.Exist(env.updateAfter)
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
-			})
-		})
-
-		updateFails(ses, env)
-	})
-}
-
-func deleteFails(acc Accessor, env *testEnv) {
-
-	Convey("With an unknown record", func() {
-		err := acc.Delete(env.fail)
-
-		Convey("Then it should not change anything", func() {
+		Reset(func() {
+			_, err := db.engine.Delete(selectTestUser1)
+			So(err, ShouldBeNil)
+			_, err = db.engine.Delete(selectTestUser2)
+			So(err, ShouldBeNil)
+			_, err = db.engine.Delete(selectTestUser3)
+			So(err, ShouldBeNil)
+			_, err = db.engine.Delete(selectTestUser4)
+			So(err, ShouldBeNil)
+			_, err = db.engine.Delete(selectTestUser5)
 			So(err, ShouldBeNil)
 		})
-	})
 
-	Convey("With an invalid record type", func() {
-		err := acc.Delete(&struct{ Test string }{Test: "test"})
+		Convey("Using the standalone accessor", func() {
+			runTests(db)
+		})
 
-		Convey("Then it should return an error", func() {
-			So(err, ShouldBeError)
+		Convey("Using the transaction accessor", func() {
+			ses, err := db.BeginTransaction()
+			So(err, ShouldBeNil)
+
+			Reset(ses.session.Close)
+
+			runTests(ses)
 		})
 	})
 
-	Convey("With a nil record", func() {
-		err := acc.Delete(nil)
-
-		Convey("Then it should return an error", func() {
-			So(err, ShouldBeError, ErrNilRecord)
-		})
-	})
 }
 
-func testDbDelete(db *Db, env *testEnv) {
+func testCreate(db *Db) {
+	createTestUserFail := &model.User{
+		Login:    "existing",
+		Password: []byte("create_fail_password"),
+	}
+	createTestUserSuccess := &model.User{
+		Login:    "create",
+		Password: []byte("create_success_password"),
+	}
 
-	Convey("When calling the 'Delete' method", func() {
-
+	runTests := func(acc Accessor) {
 		Convey("With a valid record", func() {
-			err := db.Delete(env.delete)
+			err := db.Create(createTestUserSuccess)
 
-			Convey("Then the record should be deleted without error", func() {
+			Convey("Then the record should be inserted without error", func() {
 				So(err, ShouldBeNil)
-				exists, err := db.engine.Exist(env.delete)
+				exists, err := acc.Exists(createTestUserSuccess)
 				So(err, ShouldBeNil)
-				So(exists, ShouldBeFalse)
+				So(exists, ShouldBeTrue)
 			})
 		})
 
-		deleteFails(db, env)
-	})
-}
+		Convey("With a existing record", func() {
+			err := acc.Create(createTestUserFail)
 
-func testSesDelete(ses *Session, env *testEnv) {
-
-	Convey("When calling the 'Delete' method", func() {
-
-		Convey("With a valid record", func() {
-			err := ses.Delete(env.delete)
-
-			Convey("Then the record should be deleted without error", func() {
-				So(err, ShouldBeNil)
-				err := ses.session.Commit()
-				So(err, ShouldBeNil)
-				exists, err := ses.session.Exist(env.delete)
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeFalse)
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
 			})
 		})
 
-		deleteFails(ses, env)
+		Convey("With an unknown record type", func() {
+			err := acc.Create(&struct{}{})
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError, xorm.ErrTableNotFound)
+			})
+		})
+
+		Convey("With a nil record ", func() {
+			err := acc.Create(nil)
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError, ErrNilRecord)
+			})
+		})
+	}
+
+	Convey("When calling the 'Create' method", func() {
+
+		_, err := db.engine.InsertOne(createTestUserFail)
+		So(err, ShouldBeNil)
+
+		Reset(func() {
+			_, err := db.engine.Delete(createTestUserFail)
+			So(err, ShouldBeNil)
+			_, err = db.engine.Delete(createTestUserSuccess)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Using the standalone accessor", func() {
+			runTests(db)
+		})
+
+		Convey("Using the transaction accessor", func() {
+			ses, err := db.BeginTransaction()
+			So(err, ShouldBeNil)
+
+			Reset(ses.session.Close)
+
+			runTests(ses)
+		})
 	})
 }
 
-func testExist(acc Accessor, env *testEnv) {
+func testUpdate(db *Db) {
 
-	Convey("When calling the 'Exists' method", func() {
+	updateTestUserBefore := &model.User{
+		Login:    "update",
+		Password: []byte("update_password"),
+	}
+	updateTestUserAfter := &model.User{
+		Login:    "updated",
+		Password: []byte("updated_password"),
+	}
 
+	runTests := func(acc Accessor) {
 		Convey("With an existing record", func() {
-			exists, err := acc.Exists(env.get)
+			err := db.Update(updateTestUserBefore, updateTestUserAfter)
+
+			Convey("Then the record should be updated without error", func() {
+				So(err, ShouldBeNil)
+				exists, err := acc.Exists(updateTestUserAfter)
+				So(err, ShouldBeNil)
+				So(exists, ShouldBeTrue)
+			})
+		})
+
+		Convey("With an unknown record", func() {
+			err := acc.Update(&model.User{Login: "unknown"}, &model.User{})
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
+			})
+		})
+
+		Convey("With an invalid record type", func() {
+			err := acc.Update(&struct{}{}, &struct{}{})
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError, xorm.ErrTableNotFound)
+			})
+		})
+
+		Convey("With an nil record", func() {
+			err := acc.Update(nil, nil)
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError, ErrNilRecord)
+			})
+		})
+	}
+
+	Convey("When calling the 'Update' method", func() {
+		_, err := db.engine.InsertOne(updateTestUserBefore)
+		So(err, ShouldBeNil)
+
+		Reset(func() {
+			_, err := db.engine.Delete(updateTestUserBefore)
+			So(err, ShouldBeNil)
+			_, err = db.engine.Delete(updateTestUserAfter)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Using the standalone accessor", func() {
+			runTests(db)
+		})
+
+		Convey("Using the transaction accessor", func() {
+			ses, err := db.BeginTransaction()
+			So(err, ShouldBeNil)
+
+			Reset(ses.session.Close)
+
+			runTests(ses)
+		})
+	})
+}
+
+func testDelete(db *Db) {
+
+	deleteTestUser := &model.User{
+		Login:    "delete",
+		Password: []byte("delete_password"),
+	}
+
+	runTests := func(acc Accessor) {
+		Convey("With a valid record", func() {
+			err := db.Delete(deleteTestUser)
+
+			Convey("Then the record should be deleted without error", func() {
+				So(err, ShouldBeNil)
+				exists, err := acc.Exists(deleteTestUser)
+				So(err, ShouldBeNil)
+				So(exists, ShouldBeFalse)
+			})
+		})
+
+		Convey("With an unknown record", func() {
+			err := acc.Delete(&model.User{Login: "unknown"})
+
+			Convey("Then it should not change anything", func() {
+				So(err, ShouldBeNil)
+			})
+		})
+
+		Convey("With an invalid record type", func() {
+			err := acc.Delete(&struct{ Test string }{Test: "test"})
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
+			})
+		})
+
+		Convey("With a nil record", func() {
+			err := acc.Delete(nil)
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError, ErrNilRecord)
+			})
+		})
+	}
+
+	Convey("When calling the 'Delete' method", func() {
+		_, err := db.engine.InsertOne(deleteTestUser)
+		So(err, ShouldBeNil)
+
+		Reset(func() {
+			_, err := db.engine.Delete(deleteTestUser)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Using the standalone accessor", func() {
+			runTests(db)
+		})
+
+		Convey("Using the session accessor", func() {
+			ses, err := db.BeginTransaction()
+			So(err, ShouldBeNil)
+
+			Reset(ses.session.Close)
+
+			runTests(ses)
+		})
+
+	})
+}
+
+func testExist(db *Db) {
+	existTestUser := &model.User{
+		Login:    "exists",
+		Password: []byte("exists_password"),
+	}
+
+	runTests := func(acc Accessor) {
+		Convey("With an existing record", func() {
+			exists, err := acc.Exists(existTestUser)
 
 			Convey("Then it should return true", func() {
 				So(err, ShouldBeNil)
@@ -318,7 +453,7 @@ func testExist(acc Accessor, env *testEnv) {
 		})
 
 		Convey("With a non-existing record", func() {
-			exists, err := acc.Exists(env.fail)
+			exists, err := acc.Exists(&model.User{Login: "unknown"})
 
 			Convey("Then it should return false", func() {
 				So(err, ShouldBeNil)
@@ -341,237 +476,245 @@ func testExist(acc Accessor, env *testEnv) {
 				So(err, ShouldBeError, ErrNilRecord)
 			})
 		})
+	}
+
+	Convey("When calling the 'Exists' method", func() {
+		_, err := db.engine.InsertOne(existTestUser)
+		So(err, ShouldBeNil)
+
+		Reset(func() {
+			_, err := db.engine.Delete(existTestUser)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Using the standalone accessor", func() {
+			runTests(db)
+		})
+
+		Convey("Using the transaction accessor", func() {
+			ses, err := db.BeginTransaction()
+			So(err, ShouldBeNil)
+
+			Reset(ses.session.Close)
+
+			runTests(ses)
+		})
 	})
 }
 
-func execFails(acc Accessor) {
+func testExecute(db *Db) {
 
-	Convey("With an invalid custom SQL command", func() {
-		invalid := "SELECT * FROM 'unknown'"
-		err := acc.Execute(invalid)
+	execTestUser := &model.User{
+		Login:    "execute",
+		Password: []byte("execute_password"),
+	}
+	execInsert := builder.Eq{
+		"login":    "execute",
+		"password": []byte("execute_password"),
+	}
 
-		Convey("Then it should return an error", func() {
-			So(err, ShouldBeError)
-		})
-	})
-
-	Convey("With a nil SQL command", func() {
-		err := acc.Execute(nil)
-
-		Convey("Then it should return an error", func() {
-			So(err, ShouldBeError, xorm.ErrUnSupportedType)
-		})
-	})
-}
-
-func testDbExecute(db *Db, env *testEnv) {
-
-	Convey("When calling the 'Execute' method", func() {
-
+	runTests := func(acc Accessor) {
 		Convey("With a valid SQL command", func() {
-			err := db.Execute(builder.Insert(env.exec).Into(env.table))
+			err := db.Execute(builder.Insert(execInsert).Into("users"))
 
 			Convey("Then it should execute the command without error", func() {
 				So(err, ShouldBeNil)
-				exists, err := db.engine.Exist(env.execExpected)
+				exists, err := acc.Exists(execTestUser)
 				So(err, ShouldBeNil)
 				So(exists, ShouldBeTrue)
 			})
 		})
 
-		execFails(db)
-	})
-}
+		Convey("With an invalid custom SQL command", func() {
+			invalid := "SELECT * FROM 'unknown'"
+			err := acc.Execute(invalid)
 
-func testSesExecute(ses *Session, env *testEnv) {
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
+			})
+		})
+
+		Convey("With an invalid command type", func() {
+			invalid := 10
+			err := acc.Execute(invalid)
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
+			})
+		})
+
+		Convey("With a nil SQL command", func() {
+			err := acc.Execute(nil)
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError, xorm.ErrUnSupportedType)
+			})
+		})
+	}
 
 	Convey("When calling the 'Execute' method", func() {
 
-		Convey("With a valid SQL command", func() {
-			err := ses.Execute(builder.Insert(env.exec).Into(env.table))
-
-			Convey("Then it should execute the command without error", func() {
-				So(err, ShouldBeNil)
-				err := ses.session.Commit()
-				So(err, ShouldBeNil)
-				exists, err := ses.session.Exist(env.execExpected)
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
-			})
+		Reset(func() {
+			_, err := db.engine.Delete(execTestUser)
+			So(err, ShouldBeNil)
 		})
 
-		execFails(ses)
-	})
-}
-
-func queryFails(acc Accessor) {
-	Convey("With an invalid SQL query", func() {
-		invalid := builder.Select().From("unknown")
-		res, err := acc.Query(invalid)
-
-		Convey("Then it should return an error", func() {
-			So(err, ShouldBeError)
-			So(res, ShouldBeNil)
+		Convey("Using the standalone accessor", func() {
+			runTests(db)
 		})
-	})
 
-	Convey("With a nil SQL query", func() {
-		_, err := acc.Query(nil)
+		Convey("Using the transaction accessor", func() {
+			ses, err := db.BeginTransaction()
+			So(err, ShouldBeNil)
 
-		Convey("Then it should return an error", func() {
-			So(err, ShouldBeError, xorm.ErrUnSupportedType)
+			Reset(ses.session.Close)
+
+			runTests(ses)
 		})
 	})
 }
 
-func testDbQuery(db *Db, env *testEnv) {
+func testQuery(db *Db) {
 
-	Convey("When calling the 'Query' method", func() {
-
+	runTests := func(acc Accessor, count func(...interface{}) (int64, error)) {
 		Convey("With a valid custom SQL query", func() {
-			res, err := db.Query(builder.Select().From(env.table))
+			res, err := db.Query(builder.Select().From("users"))
 
 			Convey("Then it should execute the command without error", func() {
 				So(err, ShouldBeNil)
-				count, err := db.engine.Count(env.empty)
+				count, err := count(&model.User{})
 				So(err, ShouldBeNil)
 				So(len(res), ShouldEqual, count)
 			})
 		})
 
-		queryFails(db)
-	})
-}
+		Convey("With an invalid SQL query", func() {
+			invalid := builder.Select().From("unknown")
+			res, err := acc.Query(invalid)
 
-func testSesQuery(ses *Session, env *testEnv) {
-
-	Convey("When calling the 'Query' method", func() {
-
-		Convey("With a valid custom SQL query", func() {
-			res, err := ses.Query(builder.Select().From(env.table))
-
-			Convey("Then it should execute the command without error", func() {
-				So(err, ShouldBeNil)
-				count, err := ses.session.Count(env.empty)
-				So(err, ShouldBeNil)
-				So(len(res), ShouldEqual, count)
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
+				So(res, ShouldBeNil)
 			})
 		})
 
-		queryFails(ses)
+		Convey("With an invalid query type", func() {
+			invalid := 10
+			res, err := acc.Query(invalid)
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
+				So(res, ShouldBeNil)
+			})
+		})
+
+		Convey("With a nil SQL query", func() {
+			_, err := acc.Query(nil)
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError, xorm.ErrUnSupportedType)
+			})
+		})
+	}
+
+	Convey("When calling the 'Query' method", func() {
+
+		Convey("Using the standalone accessor", func() {
+			runTests(db, db.engine.Count)
+		})
+
+		Convey("Using the transaction accessor", func() {
+			ses, err := db.BeginTransaction()
+			So(err, ShouldBeNil)
+
+			Reset(ses.session.Close)
+
+			runTests(ses, ses.session.Count)
+		})
 	})
 }
 
-func testCommit(ses *Session, env *testEnv) {
+func testCommit(db *Db) {
+	commitTestUser := &model.User{
+		Login:    "commit",
+		Password: []byte("commit_password"),
+	}
 
 	Convey("When calling the 'Commit' method", func() {
-		_, err := ses.session.Insert(env.commit)
-
-		Convey("Then the changes should take effect", func() {
-			So(err, ShouldBeNil)
-			err := ses.Commit()
-			So(err, ShouldBeNil)
-			exists, err := ses.session.Exist(env.commit)
-			So(err, ShouldBeNil)
-			So(exists, ShouldBeTrue)
-		})
-	})
-}
-
-func testRollback(ses *Session, env *testEnv) {
-
-	Convey("When calling the 'Rollback' method", func() {
-		_, err := ses.session.Insert(env.commit)
-
-		Convey("Then the changes should not take effect", func() {
-			So(err, ShouldBeNil)
-			ses.Rollback()
-			exists, err := ses.session.Exist(env.commit)
-			So(err, ShouldBeNil)
-			So(exists, ShouldBeFalse)
-		})
-	})
-}
-
-func testDb(db *Db, env *testEnv) {
-
-	Convey("Using the standalone Accessor", func() {
-		testGet(db, env)
-		testSelect(db, env)
-		testDbCreate(db, env)
-		testDbUpdate(db, env)
-		testDbDelete(db, env)
-		testExist(db, env)
-		testDbExecute(db, env)
-		testDbQuery(db, env)
-	})
-}
-
-func testSession(db *Db, env *testEnv) {
-
-	Convey("Using the transaction Accessor", func() {
 		ses, err := db.BeginTransaction()
 		So(err, ShouldBeNil)
 
-		Reset(ses.session.Close)
+		Reset(func() {
+			ses.session.Close()
+			_, err := db.engine.Delete(commitTestUser)
+			So(err, ShouldBeNil)
+		})
 
-		testGet(ses, env)
-		testSelect(ses, env)
-		testSesCreate(ses, env)
-		testSesUpdate(ses, env)
-		testSesDelete(ses, env)
-		testExist(ses, env)
-		testSesExecute(ses, env)
-		testSesQuery(ses, env)
-		testCommit(ses, env)
-		testRollback(ses, env)
+		Convey("Using the transaction accessor", func() {
+			_, err := ses.session.Insert(commitTestUser)
+
+			Convey("Then the changes should take effect", func() {
+				So(err, ShouldBeNil)
+				err := ses.Commit()
+				So(err, ShouldBeNil)
+				exists, err := db.engine.Exist(commitTestUser)
+				So(err, ShouldBeNil)
+				So(exists, ShouldBeTrue)
+			})
+		})
 	})
 }
 
-func setupTable(db *Db, env *testEnv) {
-	err := db.engine.CreateTables(env.empty)
-	So(err, ShouldBeNil)
-
-	_, err = db.engine.Insert(env.getExpected, env.select1, env.select2, env.select3,
-		env.select4, env.select5, env.updateBefore, env.delete)
-	So(err, ShouldBeNil)
-}
-
-func cleanTable(t *testing.T, db *Db, env *testEnv) func() {
-	return func() {
-		if err := db.engine.DropTables(env.empty); err != nil {
-			t.Fatal(err)
-		}
+func testRollback(db *Db) {
+	rollbackTestUser := &model.User{
+		Login:    "rollback",
+		Password: []byte("rollback_password"),
 	}
-}
 
-func testTable(t *testing.T, db *Db, table string, f func() *testEnv) {
+	Convey("When calling the 'Rollback' method", func() {
+		ses, err := db.BeginTransaction()
+		So(err, ShouldBeNil)
 
-	Convey("Testing the '"+table+"' table", func() {
-		env := f()
-		setupTable(db, env)
+		Reset(func() {
+			ses.session.Close()
+			_, err := db.engine.Delete(rollbackTestUser)
+			So(err, ShouldBeNil)
+		})
 
-		Reset(cleanTable(t, db, env))
+		Convey("Using the transaction accessor", func() {
+			_, err := ses.session.Insert(rollbackTestUser)
 
-		testDb(db, env)
-		testSession(db, env)
+			Convey("Then the changes should be dropped", func() {
+				So(err, ShouldBeNil)
+				ses.Rollback()
+				exists, err := db.engine.Exist(rollbackTestUser)
+				So(err, ShouldBeNil)
+				So(exists, ShouldBeFalse)
+			})
+		})
 	})
 }
 
-func testDatabase(t *testing.T, db *Db) {
-	testTable(t, db, (&User{}).TableName(), usersTestEnv)
-	//testTable(t, db, Partner{}.TableName(), partnersTestEnv)
-	//testTable(t, db, Account{}.TableName(), accountsTestEnv)
-	//testTable(t, db, CertChain{}.TableName(), certsTestEnv)
+func testDatabase(db *Db) {
+	testGet(db)
+	testSelect(db)
+	testCreate(db)
+	testUpdate(db)
+	testDelete(db)
+	testExist(db)
+	testExecute(db)
+	testQuery(db)
+	testCommit(db)
+	testRollback(db)
 }
 
 func cleanDatabase(t *testing.T, db *Db) {
-	_ = db.engine.DropTables(&User{})
-	//_ = db.engine.DropTables(&Partner{})
-	//_ = db.engine.DropTables(&Account{})
-	//_ = db.engine.DropTables(&CertChain{})
+	for _, table := range model.Tables {
+		_ = db.engine.DropTables(table)
+	}
 	_ = db.Stop(context.Background())
 	if r := recover(); r != nil {
+		fmt.Println(r)
 		t.Fatal(r)
 	}
 }
@@ -590,6 +733,6 @@ func TestSqlite(t *testing.T) {
 	}()
 
 	Convey("Given a Sqlite service", t, func() {
-		testDatabase(t, db)
+		testDatabase(db)
 	})
 }

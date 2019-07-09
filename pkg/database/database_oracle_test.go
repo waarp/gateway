@@ -15,7 +15,7 @@ var oracleTestDatabase *Db
 
 func init() {
 	oracleConfig := &conf.ServerConfig{}
-	oracleConfig.Database.Type = oracledb
+	oracleConfig.Database.Type = oracle
 	oracleConfig.Database.User = "waarp"
 	oracleConfig.Database.Password = "password"
 	oracleConfig.Database.Name = "XE"
@@ -38,6 +38,6 @@ func TestOracleDB(t *testing.T) {
 	}()
 
 	Convey("Given an Oracledb service", t, func() {
-		testDatabase(t, oracleTestDatabase)
+		testDatabase(oracleTestDatabase)
 	})
 }

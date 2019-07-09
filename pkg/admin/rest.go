@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
@@ -42,7 +43,7 @@ func Authentication(logger *log.Logger, db *database.Db) mux.MiddlewareFunc {
 				return
 			}
 
-			user := &database.User{
+			user := &model.User{
 				Login: login,
 			}
 			if err := db.Get(user); err != nil {

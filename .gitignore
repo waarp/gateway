@@ -4,3 +4,4 @@ doc/build
 .idea
 waarp_gatewayd_test.db
 *.goconvey
+*.iml

@@ -37,6 +37,6 @@ func TestPostgreSQL(t *testing.T) {
 	}()
 
 	Convey("Given a PostgreSQL service", t, func() {
-		testDatabase(t, psqlTestDatabase)
+		testDatabase(psqlTestDatabase)
 	})
 }
