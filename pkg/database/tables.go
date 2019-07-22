@@ -2,7 +2,6 @@ package database
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -27,16 +26,12 @@ func initTables(db *Db) error {
 		}
 	}
 
-	password, err := bcrypt.GenerateFromPassword([]byte(defaultPassword), BcryptRounds)
-	if err != nil {
-		return err
-	}
 	admin := &model.User{
 		Login:    defaultUser,
-		Password: password,
+		Password: []byte(defaultPassword),
 	}
 
-	if _, err = trans.Insert(admin); err != nil {
+	if _, err := trans.Insert(admin); err != nil {
 		return err
 	}
 

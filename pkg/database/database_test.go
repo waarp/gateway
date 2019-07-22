@@ -62,11 +62,6 @@ func testGet(db *Db) {
 		_, err := db.engine.InsertOne(getTestUser)
 		So(err, ShouldBeNil)
 
-		Reset(func() {
-			_, err := db.engine.Delete(getTestUser)
-			So(err, ShouldBeNil)
-		})
-
 		Convey("Using the standalone accessor", func() {
 			runTests(db)
 		})
@@ -94,7 +89,7 @@ func testSelect(db *Db) {
 	}
 	selectTestUser3 := &model.User{
 		Login:    "select3",
-		Password: []byte("not_select_password"),
+		Password: selectTestUser1.Password,
 	}
 	selectTestUser4 := &model.User{
 		Login:    "select4",
@@ -106,7 +101,8 @@ func testSelect(db *Db) {
 	}
 
 	runTests := func(acc Accessor) {
-		filters := &Filters{Conditions: "password = ?", Args: []interface{}{selectTestUser1.Password}}
+		filters := &Filters{Conditions: builder.In("login", selectTestUser1.Login,
+			selectTestUser2.Login, selectTestUser4.Login, selectTestUser5.Login)}
 		result := &[]*model.User{}
 
 		Convey("With just a condition", func() {
@@ -167,7 +163,7 @@ func testSelect(db *Db) {
 		})
 
 		Convey("With invalid filters", func() {
-			err := acc.Select(result, &Filters{Conditions: "error"})
+			err := acc.Select(result, &Filters{Conditions: builder.In("error", 1)})
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
@@ -189,19 +185,6 @@ func testSelect(db *Db) {
 		_, err := db.engine.Insert(selectTestUser1, selectTestUser2,
 			selectTestUser3, selectTestUser4, selectTestUser5)
 		So(err, ShouldBeNil)
-
-		Reset(func() {
-			_, err := db.engine.Delete(selectTestUser1)
-			So(err, ShouldBeNil)
-			_, err = db.engine.Delete(selectTestUser2)
-			So(err, ShouldBeNil)
-			_, err = db.engine.Delete(selectTestUser3)
-			So(err, ShouldBeNil)
-			_, err = db.engine.Delete(selectTestUser4)
-			So(err, ShouldBeNil)
-			_, err = db.engine.Delete(selectTestUser5)
-			So(err, ShouldBeNil)
-		})
 
 		Convey("Using the standalone accessor", func() {
 			runTests(db)
@@ -271,13 +254,6 @@ func testCreate(db *Db) {
 		_, err := db.engine.InsertOne(createTestUserFail)
 		So(err, ShouldBeNil)
 
-		Reset(func() {
-			_, err := db.engine.Delete(createTestUserFail)
-			So(err, ShouldBeNil)
-			_, err = db.engine.Delete(createTestUserSuccess)
-			So(err, ShouldBeNil)
-		})
-
 		Convey("Using the standalone accessor", func() {
 			runTests(db)
 		})
@@ -310,17 +286,30 @@ func testUpdate(db *Db) {
 
 			Convey("Then the record should be updated without error", func() {
 				So(err, ShouldBeNil)
-				exists, err := acc.Exists(updateTestUserAfter)
+
+				existsAfter, err := acc.Exists(updateTestUserAfter)
 				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
+				So(existsAfter, ShouldBeTrue)
+
+				existsBefore, err := acc.Exists(updateTestUserBefore)
+				So(err, ShouldBeNil)
+				So(existsBefore, ShouldBeFalse)
 			})
 		})
 
 		Convey("With an unknown record", func() {
 			err := acc.Update(&model.User{Login: "unknown"}, &model.User{})
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+			Convey("Then it should do nothing", func() {
+				So(err, ShouldBeNil)
+
+				existsAfter, err := acc.Exists(updateTestUserAfter)
+				So(err, ShouldBeNil)
+				So(existsAfter, ShouldBeFalse)
+
+				existsBefore, err := acc.Exists(updateTestUserBefore)
+				So(err, ShouldBeNil)
+				So(existsBefore, ShouldBeTrue)
 			})
 		})
 
@@ -344,13 +333,6 @@ func testUpdate(db *Db) {
 	Convey("When calling the 'Update' method", func() {
 		_, err := db.engine.InsertOne(updateTestUserBefore)
 		So(err, ShouldBeNil)
-
-		Reset(func() {
-			_, err := db.engine.Delete(updateTestUserBefore)
-			So(err, ShouldBeNil)
-			_, err = db.engine.Delete(updateTestUserAfter)
-			So(err, ShouldBeNil)
-		})
 
 		Convey("Using the standalone accessor", func() {
 			runTests(db)
@@ -415,11 +397,6 @@ func testDelete(db *Db) {
 		_, err := db.engine.InsertOne(deleteTestUser)
 		So(err, ShouldBeNil)
 
-		Reset(func() {
-			_, err := db.engine.Delete(deleteTestUser)
-			So(err, ShouldBeNil)
-		})
-
 		Convey("Using the standalone accessor", func() {
 			runTests(db)
 		})
@@ -481,11 +458,6 @@ func testExist(db *Db) {
 	Convey("When calling the 'Exists' method", func() {
 		_, err := db.engine.InsertOne(existTestUser)
 		So(err, ShouldBeNil)
-
-		Reset(func() {
-			_, err := db.engine.Delete(existTestUser)
-			So(err, ShouldBeNil)
-		})
 
 		Convey("Using the standalone accessor", func() {
 			runTests(db)
@@ -553,11 +525,6 @@ func testExecute(db *Db) {
 	}
 
 	Convey("When calling the 'Execute' method", func() {
-
-		Reset(func() {
-			_, err := db.engine.Delete(execTestUser)
-			So(err, ShouldBeNil)
-		})
 
 		Convey("Using the standalone accessor", func() {
 			runTests(db)
@@ -644,11 +611,7 @@ func testCommit(db *Db) {
 		ses, err := db.BeginTransaction()
 		So(err, ShouldBeNil)
 
-		Reset(func() {
-			ses.session.Close()
-			_, err := db.engine.Delete(commitTestUser)
-			So(err, ShouldBeNil)
-		})
+		Reset(ses.session.Close)
 
 		Convey("Using the transaction accessor", func() {
 			_, err := ses.session.Insert(commitTestUser)
@@ -675,11 +638,7 @@ func testRollback(db *Db) {
 		ses, err := db.BeginTransaction()
 		So(err, ShouldBeNil)
 
-		Reset(func() {
-			ses.session.Close()
-			_, err := db.engine.Delete(rollbackTestUser)
-			So(err, ShouldBeNil)
-		})
+		Reset(ses.session.Close)
 
 		Convey("Using the transaction accessor", func() {
 			_, err := ses.session.Insert(rollbackTestUser)
@@ -733,6 +692,12 @@ func TestSqlite(t *testing.T) {
 	}()
 
 	Convey("Given a Sqlite service", t, func() {
+
+		Reset(func() {
+			_, err := db.engine.Exec("DELETE FROM 'users'")
+			So(err, ShouldBeNil)
+		})
+
 		testDatabase(db)
 	})
 }

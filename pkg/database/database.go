@@ -15,10 +15,6 @@ import (
 const (
 	// ServiceName is he name of the gatewayd database service
 	ServiceName = "Database"
-
-	// BcryptRounds defines the number of rounds taken by bcrypt to hash passwords
-	// in the database
-	BcryptRounds = 14
 )
 
 var (
@@ -213,8 +209,9 @@ func (db *Db) Select(bean interface{}, filters *Filters) error {
 	}
 	var query xorm.Interface = db.engine
 	if filters != nil {
-		query = query.Where(filters.Conditions, filters.Args...).
-			Limit(filters.Limit, filters.Offset).OrderBy(filters.Order)
+		query = query.Where(filters.Conditions).Limit(filters.Limit, filters.Offset).
+			OrderBy(filters.Order)
+
 	}
 
 	if err := query.Find(bean); err != nil {
@@ -408,8 +405,8 @@ func (s *Session) Select(bean interface{}, filters *Filters) error {
 	}
 	var query xorm.Interface = s.session
 	if filters != nil {
-		query = query.Where(filters.Conditions, filters.Args...).
-			Limit(filters.Limit, filters.Offset).OrderBy(filters.Order)
+		query = query.Where(filters.Conditions).Limit(filters.Limit, filters.Offset).
+			OrderBy(filters.Order)
 	}
 
 	if err := query.Find(bean); err != nil {
