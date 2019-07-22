@@ -35,7 +35,7 @@ type Server struct {
 }
 
 // listen starts the HTTP server listener on the configured port
-func (s *Server) listen() {
+func listen(s *Server) {
 	s.Logger.Infof("Listening at address %s", s.server.Addr)
 
 	go func() {
@@ -67,10 +67,65 @@ func checkAddress(addr string) (string, error) {
 	return "", err
 }
 
+func makeHandler(s *Server) http.Handler {
+
+	// REST handler
+	handler := mux.NewRouter()
+	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(s.Logger, s.Db))
+	apiHandler := handler.PathPrefix(RestURI).Subrouter()
+	apiHandler.HandleFunc(StatusURI, getStatus(s.Logger, s.Services)).
+		Methods(http.MethodGet)
+
+	// Partners handler
+	partnersHandler := apiHandler.PathPrefix(PartnersURI).Subrouter()
+	partnersHandler.HandleFunc("", listPartners(s.Logger, s.Db)).
+		Methods(http.MethodGet)
+	partnersHandler.HandleFunc("", createPartner(s.Logger, s.Db)).
+		Methods(http.MethodPost)
+
+	partHandler := partnersHandler.PathPrefix("/{partner}").Subrouter()
+	partHandler.HandleFunc("", getPartner(s.Logger, s.Db)).
+		Methods(http.MethodGet)
+	partHandler.HandleFunc("", deletePartner(s.Logger, s.Db)).
+		Methods(http.MethodDelete)
+	partHandler.HandleFunc("", updatePartner(s.Logger, s.Db)).
+		Methods(http.MethodPatch, http.MethodPut)
+
+	// Accounts handler
+	accountsHandler := partHandler.PathPrefix(AccountsURI).Subrouter()
+	accountsHandler.HandleFunc("", listAccounts(s.Logger, s.Db)).
+		Methods(http.MethodGet)
+	accountsHandler.HandleFunc("", listAccounts(s.Logger, s.Db)).
+		Methods(http.MethodPost)
+
+	accHandler := accountsHandler.PathPrefix("/{account}").Subrouter()
+	accHandler.HandleFunc("", deleteAccount(s.Logger, s.Db)).
+		Methods(http.MethodDelete)
+	accHandler.HandleFunc("", updateAccount(s.Logger, s.Db)).
+		Methods(http.MethodPatch, http.MethodPut)
+
+	// Certificates handler
+	certificatesHandler := accHandler.PathPrefix(CertsURI).Subrouter()
+	certificatesHandler.HandleFunc("", listCertificates(s.Logger, s.Db)).
+		Methods(http.MethodGet)
+	certificatesHandler.HandleFunc("", createCertificate(s.Logger, s.Db)).
+		Methods(http.MethodPost)
+
+	certHandler := certificatesHandler.PathPrefix("/{certificate}").Subrouter()
+	certHandler.HandleFunc("", getCertificate(s.Logger, s.Db)).
+		Methods(http.MethodGet)
+	certHandler.HandleFunc("", deleteCertificate(s.Logger, s.Db)).
+		Methods(http.MethodDelete)
+	certHandler.HandleFunc("", updateCertificate(s.Logger, s.Db)).
+		Methods(http.MethodPatch, http.MethodPut)
+
+	return handler
+}
+
 // initServer initializes the HTTP server instance using the parameters defined
 // in the Admin configuration.
 // If the configuration is invalid, this function returns an error.
-func (s *Server) initServer() error {
+func initServer(s *Server) error {
 	// Load REST s address
 	addr, err := checkAddress(s.Conf.Admin.Address)
 	if err != nil {
@@ -93,12 +148,7 @@ func (s *Server) initServer() error {
 		s.Logger.Info("No TLS certificate configured, using plain HTTP.")
 	}
 
-	// Add the REST handler
-	handler := mux.NewRouter()
-	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(s.Logger, s.Db))
-	apiHandler := handler.PathPrefix(RestURI).Subrouter()
-	apiHandler.HandleFunc(StatusURI, GetStatus(s.Services)).
-		Methods(http.MethodGet)
+	handler := makeHandler(s)
 
 	// Create http.Server instance
 	s.server = http.Server{
@@ -125,13 +175,13 @@ func (s *Server) Start() error {
 
 	s.state.Set(service.Starting, "")
 
-	if err := s.initServer(); err != nil {
+	if err := initServer(s); err != nil {
 		s.Logger.Errorf("Failed to start: %s", err)
 		s.state.Set(service.Error, err.Error())
 		return err
 	}
 
-	s.listen()
+	listen(s)
 
 	s.Logger.Info("Server started.")
 	return nil

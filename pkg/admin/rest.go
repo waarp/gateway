@@ -2,9 +2,10 @@ package admin
 
 import (
 	"encoding/json"
-	"net/http"
-
 	"fmt"
+	"net/http"
+	"sort"
+	"strconv"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -14,8 +15,100 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// StatusURI is the access path to the status entry point
-const StatusURI string = "/status"
+const (
+	// StatusURI is the access path to the status entry point
+	StatusURI = "/status"
+	// PartnersURI is the access path to the partners entry point
+	PartnersURI = "/partners"
+	// AccountsURI is the access path to the partner accounts entry point
+	AccountsURI = "/accounts"
+	// CertsURI is the access path to the account certificates entry point
+	CertsURI = "/certificates"
+)
+
+var validOrders = []string{"asc", "desc"}
+
+func init() {
+	sort.Strings(validOrders)
+}
+
+type badRequest struct {
+	msg string
+}
+
+func (e *badRequest) Error() string {
+	return e.msg
+}
+
+type notFound struct{}
+
+func (e *notFound) Error() string {
+	return "Record not found"
+}
+
+func parseLimitOffsetOrder(r *http.Request, limit, offset *int, order *string,
+	validSorting []string) error {
+
+	sort.Strings(validSorting)
+	if limStr := r.FormValue("limit"); limStr != "" {
+		lim, err := strconv.Atoi(limStr)
+		if err != nil {
+			return &badRequest{msg: "'limit' must be an int"}
+		}
+		*limit = lim
+	}
+	if offStr := r.FormValue("offset"); offStr != "" {
+		off, err := strconv.Atoi(offStr)
+		if err != nil {
+			return &badRequest{msg: "'offset' must be an int"}
+		}
+		*offset = off
+	}
+	if sortStr := r.FormValue("sortby"); sortStr != "" {
+		if i := sort.SearchStrings(validSorting, sortStr); i != len(validSorting) {
+			*order = sortStr
+		} else {
+			return &badRequest{msg: fmt.Sprintf("invalid value '%s' for parameter 'sortby'", sortStr)}
+		}
+	}
+	if ordStr := r.FormValue("order"); ordStr != "" {
+		if i := sort.SearchStrings(validOrders, ordStr); i != len(validOrders) {
+			*order += " " + ordStr
+		} else {
+			return &badRequest{msg: fmt.Sprintf("invalid value '%s' for parameter 'order'", ordStr)}
+		}
+	} else {
+		*order += " asc"
+	}
+	return nil
+}
+
+func handleErrors(w http.ResponseWriter, logger *log.Logger, err error) {
+	switch err.(type) {
+	case *notFound:
+		http.Error(w, err.Error(), http.StatusNotFound)
+	case *badRequest:
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	default:
+		logger.Warning(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func writeJSON(w http.ResponseWriter, bean interface{}) error {
+	w.Header().Set("Content-Type", "application/json")
+	return json.NewEncoder(w).Encode(bean)
+}
+
+func readJSON(r *http.Request, dest interface{}) error {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(dest); err != nil {
+		return &badRequest{msg: err.Error()}
+	}
+	return nil
+}
 
 // Authentication checks if the request is authenticated using Basic HTTP
 // authentication.
@@ -27,19 +120,12 @@ func Authentication(logger *log.Logger, db *database.Db) mux.MiddlewareFunc {
 				w.Header().Set("WWW-Authenticate", "Basic")
 				http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			}
-			internalError := func(err error) {
-				msg := fmt.Sprintf("Internal error : %s", err)
-				logger.Warning(msg)
-				http.Error(w, msg, http.StatusInternalServerError)
-			}
 
 			logger.Debugf("Received %s on %s", r.Method, r.URL)
 
 			login, pswd, ok := r.BasicAuth()
 			if !ok {
-				logger.Warning("Missing credentials")
-				w.Header().Set("WWW-Authenticate", "Basic")
-				http.Error(w, "Missing credentials", http.StatusUnauthorized)
+				invalidCredentials()
 				return
 			}
 
@@ -50,7 +136,7 @@ func Authentication(logger *log.Logger, db *database.Db) mux.MiddlewareFunc {
 				if err == database.ErrNotFound {
 					invalidCredentials()
 				} else {
-					internalError(err)
+					handleErrors(w, logger, err)
 				}
 				return
 			}
@@ -59,7 +145,7 @@ func Authentication(logger *log.Logger, db *database.Db) mux.MiddlewareFunc {
 				if err == bcrypt.ErrMismatchedHashAndPassword {
 					invalidCredentials()
 				} else {
-					internalError(err)
+					handleErrors(w, logger, err)
 				}
 				return
 			}
@@ -78,9 +164,8 @@ type Status struct {
 // Statuses maps a service name to its state
 type Statuses map[string]Status
 
-// GetStatus called when an HTTP request is received on the StatusURI path.
-// For now, it just send an OK status code.
-func GetStatus(services map[string]service.Servicer) http.HandlerFunc {
+// getStatus is called when an HTTP request is received on the StatusURI path.
+func getStatus(logger *log.Logger, services map[string]service.Servicer) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		var statuses = make(Statuses)
 		for name, serv := range services {
@@ -90,15 +175,61 @@ func GetStatus(services map[string]service.Servicer) http.HandlerFunc {
 				Reason: reason,
 			}
 		}
-		resp, err := json.Marshal(statuses)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+
+		if err := writeJSON(w, statuses); err != nil {
+			handleErrors(w, logger, err)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_, err = w.Write(resp)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
+
 	}
+}
+
+func restGet(db *database.Db, bean interface{}) error {
+	if err := db.Get(bean); err != nil {
+		if err == database.ErrNotFound {
+			return &notFound{}
+		}
+		return err
+	}
+
+	return nil
+}
+
+func restCreate(db *database.Db, bean, test interface{}) error {
+	if ok, err := db.Exists(test); err != nil {
+		return err
+	} else if ok {
+		return &badRequest{msg: "The record already exist"}
+	}
+
+	if err := db.Create(bean); err != nil {
+		return err
+	}
+	return nil
+}
+
+func restDelete(db *database.Db, bean interface{}) error {
+	if exist, err := db.Exists(bean); err != nil {
+		return err
+	} else if !exist {
+		return &notFound{}
+	}
+
+	if err := db.Delete(bean); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func restUpdate(db *database.Db, old, new interface{}) error {
+	if exist, err := db.Exists(old); err != nil {
+		return err
+	} else if !exist {
+		return &notFound{}
+	}
+
+	if err := db.Update(old, new); err != nil {
+		return err
+	}
+	return nil
 }

@@ -9,12 +9,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/smartystreets/assertions"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+var testLogger = log.NewLogger("admin-test")
 
 func TestStart(t *testing.T) {
 	Convey("Given a correct configuration", t, func() {
@@ -184,18 +188,27 @@ func TestStatus(t *testing.T) {
 
 		Convey("When a request is passed to it", func() {
 			r, err := http.NewRequest(http.MethodGet, "/api/status", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
 
 			Convey("Then the function should reply OK with a JSON body", func() {
-				GetStatus(services).ServeHTTP(w, r)
+				getStatus(testLogger, services).ServeHTTP(w, r)
 				contentType := w.Header().Get("Content-Type")
 
 				So(w.Code, ShouldEqual, http.StatusOK)
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
+
+				code, reason := services["Admin"].State().Get()
+				admin := Status{
+					State:  code.Name(),
+					Reason: reason,
+				}
+				statuses := map[string]Status{"Admin": admin}
+				expected, err := json.Marshal(statuses)
+				So(err, ShouldBeNil)
+
+				So(w.Body.String(), assertions.ShouldEqualTrimSpace, string(expected))
 			})
 		})
 	})
