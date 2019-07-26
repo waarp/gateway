@@ -4,15 +4,6 @@ func init() {
 	Tables = append(Tables, &Partner{})
 }
 
-const (
-	// TypeSFTP is the string constant used to designate partners which use SFTP
-	TypeSFTP = "sftp"
-	// TypeHTTP is the string constant used to designate partners which use HTTP
-	// TypeHTTP = "http"
-	// TypeFTP is the string constant used to designate partners which use FTP
-	// TypeFTP = "ftp"
-)
-
 // Partner represents one record of the 'partners' table.
 type Partner struct {
 	// The partner's unique ID

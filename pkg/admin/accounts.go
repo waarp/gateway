@@ -93,7 +93,8 @@ func createAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			return
 		}
 		partnerName := mux.Vars(r)["partner"]
-		w.Header().Set("Location", RestURI+PartnersURI+partnerName+AccountsURI+"/"+account.Username)
+		w.Header().Set("Location", RestURI+PartnersURI+"/"+partnerName+
+			AccountsURI+"/"+account.Username)
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -148,7 +149,8 @@ func updateAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			return
 		}
 		partnerName := mux.Vars(r)["partner"]
-		w.Header().Set("Location", RestURI+PartnersURI+partnerName+AccountsURI+"/"+account.Username)
+		w.Header().Set("Location", RestURI+PartnersURI+"/"+partnerName+
+			AccountsURI+"/"+account.Username)
 		w.WriteHeader(http.StatusCreated)
 	}
 }

@@ -95,7 +95,7 @@ func makeHandler(s *Server) http.Handler {
 	accountsHandler := partHandler.PathPrefix(AccountsURI).Subrouter()
 	accountsHandler.HandleFunc("", listAccounts(s.Logger, s.Db)).
 		Methods(http.MethodGet)
-	accountsHandler.HandleFunc("", listAccounts(s.Logger, s.Db)).
+	accountsHandler.HandleFunc("", createAccount(s.Logger, s.Db)).
 		Methods(http.MethodPost)
 
 	accHandler := accountsHandler.PathPrefix("/{account}").Subrouter()
