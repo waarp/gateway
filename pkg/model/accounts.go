@@ -10,7 +10,7 @@ type Account struct {
 	ID uint64 `xorm:"pk autoincr 'id'" json:"-"`
 	// The account's username
 	Username string `xorm:"unique notnull 'username'" json:"username"`
-	// The account's password
+	// The account's password hash
 	Password []byte `xorm:"notnull 'password'" json:"password,omitempty"`
 	// The Id of the partner this account belongs to
 	PartnerID uint64 `xorm:"notnull 'partner_id'" json:"-"`
