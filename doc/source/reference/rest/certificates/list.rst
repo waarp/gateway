@@ -1,10 +1,11 @@
+**********************
 Lister les certificats
-======================
+**********************
 
-.. http:get:: /api/partners/(partner)/accounts/(account)/certificates
+.. http:get:: /api/certificates
 
-   Renvoie une liste des certificats du compte `account` rattaché au partenaire
-   nommé `partner` qui remplissent les critères données en paramètres de requête.
+   Renvoie une liste des certificats emplissant les critères données en paramètre
+   de requête.
 
    **Requête**
 
@@ -18,11 +19,15 @@ Lister les certificats
    :type sortby: [name]
    :param order: L'ordre dans lequel les certificats sont triés *(défaut: asc)*
    :type order: [asc|desc]
+   :param account: Filtre uniquement les certificats rattaché au compte portant ce numéro.
+                   Peut être renseigné plusieurs fois pour filtrer plusieurs comptes.
+   :type account: uint64
 
-   :Example:
+   **Exemple de requête**
+
        .. code-block:: http
 
-          GET /api/partners/partenaire1/accounts/utilisateur1/certificates?limit=5 HTTP/1.1
+          GET /api/certificates?limit=5 HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
 
@@ -31,33 +36,36 @@ Lister les certificats
    :statuscode 200: La liste a été renvoyée avec succès
    :statuscode 400: Un ou plusieurs des paramètres de requêtes sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
-   :statuscode 404: Le certificat, compte ou partenaire demandé n'existe pas
 
-   :Response JSON Object:
-       * **Certificates** (*array* of *object*) - La liste des certificats demandés
+   :resjson array Certificates: La liste des certificats demandés
+   :resjsonarr number ID: Le numéro unique du certificat
+   :resjsonarr string Name: Le nom du certificat
+   :resjsonarr number AccountID: Le numéro du compte auquel appartient le certificat
+   :resjsonarr string PrivateKey: La clé privée du compte
+   :resjsonarr string PublicKey: La clé publique du compte
+   :resjsonarr string Cert: Le certificat de la clé publique
 
-           * **Name** (*string*) - Le nom du certificat
-           * **PrivateKey** (*string*) - La clé privée du certificat
-           * **PublicKey** (*string*) - La clé publique du certificat
-           * **PrivateCert** (*string*) - Le certificat privé du compte
-           * **PublicCert** (*string*) - Le certificat public du compte
+   **Exemple de réponse**
 
-   :Example:
        .. code-block:: http
 
           HTTP/1.1 200 OK
           Content-Type: application/json
-          Content-Length: 377
+          Content-Length: 453
 
           {
             "Certificates": [{
+              "ID": "1234",
               "Name": "certificat1",
+              "PartnerID": "12345",
               "PrivateKey": "*clé privée*",
               "PublicKey": "*clé publique*",
               "PrivateCert": "*certificat privée*",
               "PublicCert": "*certificat public*"
             },{
+              "ID": "5678",
               "Name": "certificat2",
+              "PartnerID": "67890",
               "PrivateKey": "*clé privée*",
               "PublicKey": "*clé publique*",
               "PrivateCert": "*certificat privée*",

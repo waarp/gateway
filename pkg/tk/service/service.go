@@ -5,8 +5,8 @@ import (
 	"sync"
 )
 
-// Servicer is the interface of an object which is considered to be a service
-type Servicer interface {
+// Service is the interface of an object which is considered to be a service
+type Service interface {
 	// Start is the method called to start the service
 	Start() error
 

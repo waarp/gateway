@@ -2,55 +2,81 @@ package main
 
 import (
 	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"os"
+	"strconv"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
-	testAccountName      = "test_account"
-	incorrectAccountName = "incorrect"
+	testCertPartner model.Partner
+	testCertAccount model.Account
 )
 
-func TestCertCreate(t *testing.T) {
-	testCert := &model.CertChain{
-		Name:        "test_cert_create",
-		PrivateKey:  []byte("private_key"),
-		PublicKey:   []byte("public_key"),
-		PrivateCert: []byte("private_cert"),
-		PublicCert:  []byte("public_cert"),
+func init() {
+	testCertPartner = model.Partner{
+		Name:    "test_account_partner",
+		Address: "test_account_partner_address",
+		Port:    1,
+		Type:    "sftp",
 	}
-	path := admin.RestURI + admin.PartnersURI + "/" + testPartnerName + admin.AccountsURI +
-		"/" + testAccountName + admin.CertsURI
-	createHandler := testHandler(http.MethodPost, path, testCert, nil, nil,
-		http.StatusCreated)
+	if err := testDb.Create(&testCertPartner); err != nil {
+		panic(err)
+	}
+
+	testCertAccount = model.Account{
+		Username:  "test_cert_account",
+		PartnerID: testCertPartner.ID,
+		Password:  []byte("test_cert_account_password"),
+	}
+	if err := testDb.Create(&testCertAccount); err != nil {
+		panic(err)
+	}
+}
+
+func TestCertCreate(t *testing.T) {
 
 	Convey("Testing the certificate creation function", t, func() {
-		server := httptest.NewServer(createHandler)
-		auth = ConnectionOptions{
-			Address:  server.URL,
-			Username: "test",
+		testCert := &model.CertChain{
+			Name:       "test_cert_create",
+			AccountID:  testCertAccount.ID,
+			PrivateKey: []byte("private_key"),
+			PublicKey:  []byte("public_key"),
+			Cert:       []byte("cert"),
 		}
-		c := certificateCreateCommand{certificateCommand: &certificateCommand{
-			Partner: testPartnerName,
-			Account: testAccountName,
-		}}
+		existingCert := &model.CertChain{
+			Name:       "test_cert_existing",
+			AccountID:  testCertAccount.ID,
+			PrivateKey: []byte("private_key"),
+			PublicKey:  []byte("public_key"),
+			Cert:       []byte("cert"),
+		}
 
-		Reset(server.Close)
+		auth = ConnectionOptions{
+			Address:  testServer.URL,
+			Username: "admin",
+		}
+		c := certificateCreateCommand{}
 
-		Convey("Given correct flags", func() {
+		err := testDb.Create(existingCert)
+		So(err, ShouldBeNil)
+
+		Reset(func() {
+			err := testDb.Delete(existingCert)
+			So(err, ShouldBeNil)
+			err = testDb.Delete(testCert)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Given correct values", func() {
 			args := []string{"-n", testCert.Name,
+				"-i", strconv.FormatUint(testCert.AccountID, 10),
 				"--private_key=" + string(testCert.PrivateKey),
 				"--public_key=" + string(testCert.PublicKey),
-				"--private_cert=" + string(testCert.PrivateCert),
-				"--public_cert=" + string(testCert.PublicCert),
+				"--cert=" + string(testCert.Cert),
 			}
 			args, err := flags.ParseArgs(&c, args)
 			So(err, ShouldBeNil)
@@ -61,12 +87,12 @@ func TestCertCreate(t *testing.T) {
 			})
 		})
 
-		Convey("Given incorrect flags", func() {
-			args := []string{"-n", "incorrect",
-				"--private_key=incorrect",
-				"--public_key=incorrect",
-				"--private_cert=incorrect",
-				"--public_cert=incorrect",
+		Convey("Given already existing values", func() {
+			args := []string{"-n", existingCert.Name,
+				"-i", strconv.FormatUint(existingCert.AccountID, 10),
+				"--private_key=" + string(existingCert.PrivateKey),
+				"--public_key=" + string(existingCert.PublicKey),
+				"--cert=" + string(existingCert.Cert),
 			}
 			args, err := flags.ParseArgs(&c, args)
 			So(err, ShouldBeNil)
@@ -74,18 +100,15 @@ func TestCertCreate(t *testing.T) {
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusBadRequest))
 			})
 		})
 
-		Convey("Given an incorrect partner name", func() {
-			c.Partner = incorrectPartnerName
+		Convey("Given a non-existent account id", func() {
 			args := []string{"-n", testCert.Name,
+				"-i", "1000",
 				"--private_key=" + string(testCert.PrivateKey),
 				"--public_key=" + string(testCert.PublicKey),
-				"--private_cert=" + string(testCert.PrivateCert),
-				"--public_cert=" + string(testCert.PublicCert),
+				"--cert=" + string(testCert.Cert),
 			}
 			args, err := flags.ParseArgs(&c, args)
 			So(err, ShouldBeNil)
@@ -93,174 +116,142 @@ func TestCertCreate(t *testing.T) {
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 
-		Convey("Given an incorrect account name", func() {
-			c.Account = incorrectAccountName
+		Convey("Given a non-numeric account id", func() {
 			args := []string{"-n", testCert.Name,
+				"-i", "not_an_id",
 				"--private_key=" + string(testCert.PrivateKey),
 				"--public_key=" + string(testCert.PublicKey),
-				"--private_cert=" + string(testCert.PrivateCert),
-				"--public_cert=" + string(testCert.PublicCert),
+				"--cert=" + string(testCert.Cert),
 			}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
+			_, err := flags.ParseArgs(&c, args)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 	})
 }
 
 func TestCertGet(t *testing.T) {
-	testCert := &model.CertChain{
-		Name:        "test_cert_get",
-		PrivateKey:  []byte("private_key"),
-		PublicKey:   []byte("public_key"),
-		PrivateCert: []byte("private_cert"),
-		PublicCert:  []byte("public_cert"),
-	}
 
 	Convey("Testing the account get function", t, func() {
-		path := admin.RestURI + admin.PartnersURI + "/" + testPartnerName + admin.AccountsURI +
-			"/" + testAccountName + admin.CertsURI + "/" + testCert.Name
-		getHandler := testHandler(http.MethodGet, path, nil, testCert, nil,
-			http.StatusOK)
-
-		server := httptest.NewServer(getHandler)
-		auth = ConnectionOptions{
-			Address:  server.URL,
-			Username: "test",
+		testCert := &model.CertChain{
+			Name:       "test_cert_get",
+			AccountID:  testCertAccount.ID,
+			PrivateKey: []byte("private_key"),
+			PublicKey:  []byte("public_key"),
+			Cert:       []byte("cert"),
 		}
-		c := certificateGetCommand{certificateCommand: &certificateCommand{
-			Partner: testPartnerName,
-			Account: testAccountName,
-		}}
 
-		Reset(server.Close)
+		auth = ConnectionOptions{
+			Address:  testServer.URL,
+			Username: "admin",
+		}
+		c := certificateGetCommand{}
 
-		Convey("Given a correct name", func() {
-			args := []string{testCert.Name}
+		err := testDb.Create(testCert)
+		So(err, ShouldBeNil)
+
+		Reset(func() {
+			err := testDb.Delete(testCert)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Given a correct id", func() {
+			args := []string{strconv.FormatUint(testCert.ID, 10)}
 			err := c.Execute(args)
-
-			Reset(server.Close)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
 			})
 		})
 
-		Convey("Given an incorrect name", func() {
-			args := []string{"unknown"}
+		Convey("Given an non-existent id", func() {
+			args := []string{"1000"}
 			err := c.Execute(args)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 
-		Convey("Given a no name", func() {
+		Convey("Given a no id", func() {
 			args := []string{}
 			err := c.Execute(args)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, "missing certificate name")
-			})
-		})
-
-		Convey("Given an incorrect partner name", func() {
-			c.Partner = incorrectPartnerName
-			args := []string{testCert.Name}
-			err := c.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
-			})
-		})
-
-		Convey("Given an incorrect account name", func() {
-			c.Account = incorrectAccountName
-			args := []string{testCert.Name}
-			err := c.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 	})
 }
 
 func TestCertSelect(t *testing.T) {
-	testCert1 := &model.CertChain{
-		Name:        "test_cert_create1",
-		PrivateKey:  []byte("private_key"),
-		PublicKey:   []byte("public_key"),
-		PrivateCert: []byte("private_cert"),
-		PublicCert:  []byte("public_cert"),
-	}
-	testCert2 := &model.CertChain{
-		Name:        "test_cert_create2",
-		PrivateKey:  []byte("private_key"),
-		PublicKey:   []byte("public_key"),
-		PrivateCert: []byte("private_cert"),
-		PublicCert:  []byte("public_cert"),
-	}
-	testCert3 := &model.CertChain{
-		Name:        "test_cert_create3",
-		PrivateKey:  []byte("private_key"),
-		PublicKey:   []byte("public_key"),
-		PrivateCert: []byte("private_cert"),
-		PublicCert:  []byte("public_cert"),
-	}
-	testCert4 := &model.CertChain{
-		Name:        "test_cert_create4",
-		PrivateKey:  []byte("private_key"),
-		PublicKey:   []byte("public_key"),
-		PrivateCert: []byte("private_cert"),
-		PublicCert:  []byte("public_cert"),
-	}
-	path := admin.RestURI + admin.PartnersURI + "/" + testPartnerName + admin.AccountsURI +
-		"/" + testAccountName + admin.CertsURI
 
 	Convey("Testing the account listing function", t, func() {
-		c := certificateListCommand{certificateCommand: &certificateCommand{
-			Partner: testPartnerName,
-			Account: testAccountName,
-		}}
+		testCert1 := &model.CertChain{
+			Name:       "test_cert_create1",
+			AccountID:  testCertAccount.ID,
+			PrivateKey: []byte("private_key"),
+			PublicKey:  []byte("public_key"),
+			Cert:       []byte("cert"),
+		}
+		testCert2 := &model.CertChain{
+			Name:       "test_cert_create2",
+			AccountID:  testCertAccount.ID,
+			PrivateKey: []byte("private_key"),
+			PublicKey:  []byte("public_key"),
+			Cert:       []byte("cert"),
+		}
+		testCert3 := &model.CertChain{
+			Name:       "test_cert_create3",
+			AccountID:  testCertAccount.ID,
+			PrivateKey: []byte("private_key"),
+			PublicKey:  []byte("public_key"),
+			Cert:       []byte("cert"),
+		}
+		testCert4 := &model.CertChain{
+			Name:       "test_cert_create4",
+			AccountID:  testCertAccount.ID,
+			PrivateKey: []byte("private_key"),
+			PublicKey:  []byte("public_key"),
+			Cert:       []byte("cert"),
+		}
+
+		auth = ConnectionOptions{
+			Address:  testServer.URL,
+			Username: "admin",
+		}
+		c := certificateListCommand{}
+
+		err := testDb.Create(testCert1)
+		So(err, ShouldBeNil)
+		err = testDb.Create(testCert2)
+		So(err, ShouldBeNil)
+		err = testDb.Create(testCert3)
+		So(err, ShouldBeNil)
+		err = testDb.Create(testCert4)
+		So(err, ShouldBeNil)
+
+		Reset(func() {
+			err := testDb.Delete(testCert1)
+			So(err, ShouldBeNil)
+			err = testDb.Delete(testCert2)
+			So(err, ShouldBeNil)
+			err = testDb.Delete(testCert3)
+			So(err, ShouldBeNil)
+			err = testDb.Delete(testCert4)
+			So(err, ShouldBeNil)
+		})
 
 		Convey("Given no flags", func() {
-			arrayResult := []*model.CertChain{testCert1, testCert2, testCert3, testCert4}
-			expectedResults := map[string][]*model.CertChain{"certificates": arrayResult}
-			selectHandler := testHandler(http.MethodGet, path, nil, expectedResults,
-				nil, http.StatusOK)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
 			args := []string{}
 			args, err := flags.ParseArgs(&c, args)
 			So(err, ShouldBeNil)
 			err = c.Execute(args)
-
-			Reset(server.Close)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -268,25 +259,10 @@ func TestCertSelect(t *testing.T) {
 		})
 
 		Convey("Given a limit flag", func() {
-			arrayResult := []*model.CertChain{testCert1, testCert2}
-			expectedResults := map[string][]*model.CertChain{"certificates": arrayResult}
-			expectedParams := url.Values{"limit": []string{"2"}}
-			selectHandler := testHandler(http.MethodGet, path, nil, expectedResults,
-				expectedParams, http.StatusOK)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
 			args := []string{"-l", "2"}
 			args, err := flags.ParseArgs(&c, args)
 			So(err, ShouldBeNil)
-			So(c.Limit, ShouldEqual, 2)
 			err = c.Execute(args)
-
-			Reset(server.Close)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -294,24 +270,10 @@ func TestCertSelect(t *testing.T) {
 		})
 
 		Convey("Given an offset flag", func() {
-			arrayResult := []*model.CertChain{testCert3, testCert4}
-			expectedResults := map[string][]*model.CertChain{"accounts": arrayResult}
-			expectedParams := url.Values{"offset": []string{"2"}}
-			selectHandler := testHandler(http.MethodGet, path, nil, expectedResults,
-				expectedParams, http.StatusOK)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
 			args := []string{"-o", "2"}
 			args, err := flags.ParseArgs(&c, args)
 			So(err, ShouldBeNil)
 			err = c.Execute(args)
-
-			Reset(server.Close)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -319,24 +281,10 @@ func TestCertSelect(t *testing.T) {
 		})
 
 		Convey("Given a sort flag", func() {
-			arrayResult := []*model.CertChain{testCert1, testCert2, testCert3, testCert4}
-			expectedResults := map[string][]*model.CertChain{"certificates": arrayResult}
-			expectedParams := url.Values{"sortby": []string{"name"}}
-			selectHandler := testHandler(http.MethodGet, path, nil, expectedResults,
-				expectedParams, http.StatusOK)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
 			args := []string{"-s", "name"}
 			args, err := flags.ParseArgs(&c, args)
 			So(err, ShouldBeNil)
 			err = c.Execute(args)
-
-			Reset(server.Close)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -344,192 +292,123 @@ func TestCertSelect(t *testing.T) {
 		})
 
 		Convey("Given an order flag", func() {
-			arrayResult := []*model.CertChain{testCert4, testCert3, testCert2, testCert1}
-			expectedResults := map[string][]*model.CertChain{"certificates": arrayResult}
-			expectedParams := url.Values{"order": []string{"desc"}}
-			selectHandler := testHandler(http.MethodGet, path, nil, expectedResults,
-				expectedParams, http.StatusOK)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
 			args := []string{"-d"}
 			args, err := flags.ParseArgs(&c, args)
 			So(err, ShouldBeNil)
 			err = c.Execute(args)
 
-			Reset(server.Close)
-
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
-			})
-		})
-
-		Convey("Given an incorrect partner name", func() {
-			selectHandler := testHandler(http.MethodGet, path, nil,
-				http.StatusText(http.StatusNotFound), nil, http.StatusNotFound)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
-			c.Partner = incorrectPartnerName
-			args := []string{}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
-			})
-		})
-
-		Convey("Given an incorrect account name", func() {
-			selectHandler := testHandler(http.MethodGet, path, nil,
-				http.StatusText(http.StatusNotFound), nil, http.StatusNotFound)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
-			c.Account = incorrectAccountName
-			args := []string{}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 	})
 }
 
 func TestCertDelete(t *testing.T) {
-	testCertificateName := "test_certificate"
 
 	Convey("Testing the account deletion function", t, func() {
-		path := admin.RestURI + admin.PartnersURI + "/" + testPartnerName + admin.AccountsURI +
-			"/" + testAccountName + admin.CertsURI + "/" + testCertificateName
-		getHandler := testHandler(http.MethodDelete, path, nil, nil, nil,
-			http.StatusNoContent)
-
-		server := httptest.NewServer(getHandler)
-		auth = ConnectionOptions{
-			Address:  server.URL,
-			Username: "test",
+		testCert := &model.CertChain{
+			Name:       "test_cert_delete",
+			AccountID:  testCertAccount.ID,
+			PrivateKey: []byte("private_key"),
+			PublicKey:  []byte("public_key"),
+			Cert:       []byte("cert"),
 		}
-		c := certificateDeleteCommand{certificateCommand: &certificateCommand{
-			Partner: testPartnerName,
-			Account: testAccountName,
-		}}
 
-		Reset(server.Close)
+		auth = ConnectionOptions{
+			Address:  testServer.URL,
+			Username: "admin",
+		}
+		c := certificateDeleteCommand{}
 
-		Convey("Given a correct name", func() {
-			args := []string{testCertificateName}
+		err := testDb.Create(testCert)
+		So(err, ShouldBeNil)
+
+		Reset(func() {
+			err := testDb.Delete(testCert)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Given a correct id", func() {
+			args := []string{strconv.FormatUint(testCert.ID, 10)}
 			err := c.Execute(args)
-
-			Reset(server.Close)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
 			})
 		})
 
-		Convey("Given an incorrect name", func() {
-			args := []string{"unknown"}
+		Convey("Given a non-existent id", func() {
+			args := []string{"1000"}
 			err := c.Execute(args)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 
-		Convey("Given a no name", func() {
+		Convey("Given a non-numeric id", func() {
+			args := []string{"not_an_id"}
+			err := c.Execute(args)
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
+			})
+		})
+
+		Convey("Given a no id", func() {
 			args := []string{}
 			err := c.Execute(args)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, "missing certificate name")
-			})
-		})
-
-		Convey("Given an incorrect partner name", func() {
-			c.Partner = incorrectPartnerName
-			args := []string{testCertificateName}
-			err := c.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
-			})
-		})
-
-		Convey("Given an incorrect account name", func() {
-			c.Account = incorrectAccountName
-			args := []string{testCertificateName}
-			err := c.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 	})
 }
 
 func TestCertUpdate(t *testing.T) {
-	testCertificateName := "test_cert_before"
-	testCertAfter := &model.CertChain{
-		Name:        "test_cert_after",
-		PrivateKey:  []byte("private_key"),
-		PublicKey:   []byte("public_key"),
-		PrivateCert: []byte("private_cert"),
-		PublicCert:  []byte("public_cert"),
-	}
-	path := admin.RestURI + admin.PartnersURI + "/" + testPartnerName + admin.AccountsURI +
-		"/" + testAccountName + admin.CertsURI + "/" + testCertificateName
-	createHandler := testHandler(http.MethodPatch, path, testCertAfter, nil, nil,
-		http.StatusCreated)
 
 	Convey("Testing the account update function", t, func() {
-		server := httptest.NewServer(createHandler)
-		auth = ConnectionOptions{
-			Address:  server.URL,
-			Username: "test",
+		testCertBefore := &model.CertChain{
+			Name:       "test_cert_before",
+			AccountID:  testCertAccount.ID,
+			PrivateKey: []byte("private_key"),
+			PublicKey:  []byte("public_key"),
+			Cert:       []byte("cert"),
 		}
-		c := certificateUpdateCommand{certificateCommand: &certificateCommand{
-			Partner: testPartnerName,
-			Account: testAccountName,
-		}}
+		testCertAfter := &model.CertChain{
+			Name:       "test_cert_after",
+			AccountID:  testCertAccount.ID,
+			PrivateKey: []byte("private_key"),
+			PublicKey:  []byte("public_key"),
+			Cert:       []byte("cert"),
+		}
 
-		Reset(server.Close)
+		auth = ConnectionOptions{
+			Address:  testServer.URL,
+			Username: "admin",
+		}
+		c := certificateUpdateCommand{}
 
-		Convey("Given correct flags", func() {
+		err := testDb.Create(testCertBefore)
+		So(err, ShouldBeNil)
+		id := strconv.FormatUint(testCertBefore.ID, 10)
+
+		Reset(func() {
+			err := testDb.Delete(testCertBefore)
+			So(err, ShouldBeNil)
+			err = testDb.Delete(testCertAfter)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Given correct values", func() {
 			args := []string{"-n", testCertAfter.Name,
+				"-i", strconv.FormatUint(testCertAfter.AccountID, 10),
 				"--private_key=" + string(testCertAfter.PrivateKey),
 				"--public_key=" + string(testCertAfter.PublicKey),
-				"--private_cert=" + string(testCertAfter.PrivateCert),
-				"--public_cert=" + string(testCertAfter.PublicCert),
-				testCertificateName,
+				"--cert=" + string(testCertAfter.Cert),
+				id,
 			}
 			args, err := flags.ParseArgs(&c, args)
 			So(err, ShouldBeNil)
@@ -540,13 +419,13 @@ func TestCertUpdate(t *testing.T) {
 			})
 		})
 
-		Convey("Given incorrect flags", func() {
-			args := []string{"-n", "incorrect",
-				"--private_key=incorrect",
-				"--public_key=incorrect",
-				"--private_cert=incorrect",
-				"--public_cert=incorrect",
-				testCertificateName,
+		Convey("Given a non-existent account id", func() {
+			args := []string{"-n", testCertAfter.Name,
+				"-i", "1000",
+				"--private_key=" + string(testCertAfter.PrivateKey),
+				"--public_key=" + string(testCertAfter.PublicKey),
+				"--cert=" + string(testCertAfter.Cert),
+				id,
 			}
 			args, err := flags.ParseArgs(&c, args)
 			So(err, ShouldBeNil)
@@ -554,37 +433,30 @@ func TestCertUpdate(t *testing.T) {
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusBadRequest))
 			})
 		})
 
-		Convey("Given no certificate name", func() {
+		Convey("Given a non-numeric account id", func() {
 			args := []string{"-n", testCertAfter.Name,
+				"-i", "not_an_id",
 				"--private_key=" + string(testCertAfter.PrivateKey),
 				"--public_key=" + string(testCertAfter.PublicKey),
-				"--private_cert=" + string(testCertAfter.PrivateCert),
-				"--public_cert=" + string(testCertAfter.PublicCert),
+				"--cert=" + string(testCertAfter.Cert),
+				id,
 			}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
+			_, err := flags.ParseArgs(&c, args)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, "missing certificate name")
 			})
 		})
 
-		Convey("Given an incorrect partner name", func() {
-			c.Partner = incorrectPartnerName
+		Convey("Given no id", func() {
 			args := []string{"-n", testCertAfter.Name,
+				"-i", strconv.FormatUint(testCertAfter.AccountID, 10),
 				"--private_key=" + string(testCertAfter.PrivateKey),
 				"--public_key=" + string(testCertAfter.PublicKey),
-				"--private_cert=" + string(testCertAfter.PrivateCert),
-				"--public_cert=" + string(testCertAfter.PublicCert),
-				testCertificateName,
+				"--cert=" + string(testCertAfter.Cert),
 			}
 			args, err := flags.ParseArgs(&c, args)
 			So(err, ShouldBeNil)
@@ -592,8 +464,6 @@ func TestCertUpdate(t *testing.T) {
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 	})
@@ -603,12 +473,15 @@ func TestDisplayCertificate(t *testing.T) {
 
 	Convey("Given a certificate", t, func() {
 		testCert := &model.CertChain{
-			Name:        "test_cert",
-			PrivateKey:  []byte("private_key"),
-			PublicKey:   []byte("public_key"),
-			PrivateCert: []byte("private_cert"),
-			PublicCert:  []byte("public_cert"),
+			ID:         123,
+			AccountID:  789,
+			Name:       "test_cert",
+			PrivateKey: []byte("private_key"),
+			PublicKey:  []byte("public_key"),
+			Cert:       []byte("cert"),
 		}
+		id := strconv.FormatUint(testCert.ID, 10)
+		accID := strconv.FormatUint(testCert.AccountID, 10)
 
 		Convey("When calling the 'displayCertificate' function", func() {
 			out, err := ioutil.TempFile(".", "waarp_gateway")
@@ -629,11 +502,12 @@ func TestDisplayCertificate(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				expected :=
-					"Certificate '" + testCert.Name + "':\n" +
+					"Certificate n°" + id + ":\n" +
+						"├─Name: " + testCert.Name + "\n" +
+						"├─AccountID: " + accID + "\n" +
 						"├─Private Key: " + string(testCert.PrivateKey) + "\n" +
 						"├─Public Key: " + string(testCert.PublicKey) + "\n" +
-						"├─Private Cert: " + string(testCert.PrivateCert) + "\n" +
-						"└─Public Cert: " + string(testCert.PublicCert) + "\n"
+						"└─Cert: " + string(testCert.Cert) + "\n"
 
 				So(string(result), ShouldEqual, expected)
 			})

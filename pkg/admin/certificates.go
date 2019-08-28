@@ -1,7 +1,9 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-xorm/builder"
 
@@ -11,55 +13,17 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func getAccountID(r *http.Request, db *database.Db) (uint64, error) {
-	partnerID, err := getPartnerID(r, db)
-	if err != nil {
-		return 0, err
-	}
-
-	account := &model.Account{
-		Username:  mux.Vars(r)["account"],
-		PartnerID: partnerID,
-	}
-
-	if err := db.Get(account); err != nil {
-		if err == database.ErrNotFound {
-			return 0, &notFound{}
-		}
-		return 0, err
-	}
-
-	return account.ID, nil
-}
-
 func createCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := getAccountID(r, db)
-		if err != nil {
-			handleErrors(w, logger, err)
-			return
-		}
 		cert := &model.CertChain{}
 
-		if err := readJSON(r, cert); err != nil {
+		if err := restCreate(db, r, cert); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
-		cert.AccountID = id
 
-		test := &model.CertChain{
-			AccountID: cert.AccountID,
-			Name:      cert.Name,
-		}
-
-		if err := restCreate(db, cert, test); err != nil {
-			handleErrors(w, logger, err)
-			return
-		}
-		partnerName := mux.Vars(r)["partner"]
-		accountName := mux.Vars(r)["account"]
-		w.Header().Set("Location", RestURI+PartnersURI+partnerName+AccountsURI+
-			"/"+accountName+CertsURI+"/"+cert.Name)
+		id := strconv.FormatUint(cert.ID, 10)
+		w.Header().Set("Location", RestURI+CertsURI+"/"+id)
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -76,19 +40,28 @@ func listCertificates(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			return
 		}
 
-		id, err := getAccountID(r, db)
-		if err != nil {
-			handleErrors(w, logger, err)
-			return
-		}
+		accounts := r.Form["account"]
+		conditions := make([]builder.Cond, 0)
+		if len(accounts) > 0 {
+			ids := make([]uint64, len(accounts))
+			for i, account := range accounts {
+				id, err := strconv.ParseUint(account, 10, 64)
+				if err != nil {
+					handleErrors(w, logger, &badRequest{
+						msg: fmt.Sprintf("'%s' is not a valid account ID", account)})
+					return
+				}
+				ids[i] = id
+			}
 
-		cond := builder.In("account_id", id)
+			conditions = append(conditions, builder.In("account_id", ids))
+		}
 
 		filters := &database.Filters{
 			Limit:      limit,
 			Offset:     offset,
 			Order:      order,
-			Conditions: cond,
+			Conditions: builder.And(conditions...),
 		}
 
 		results := &[]*model.CertChain{}
@@ -106,16 +79,12 @@ func listCertificates(logger *log.Logger, db *database.Db) http.HandlerFunc {
 
 func getCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := getAccountID(r, db)
+		id, err := strconv.ParseUint(mux.Vars(r)["certificate"], 10, 64)
 		if err != nil {
-			handleErrors(w, logger, err)
+			handleErrors(w, logger, &notFound{})
 			return
 		}
-
-		cert := &model.CertChain{
-			Name:      mux.Vars(r)["certificate"],
-			AccountID: id,
-		}
+		cert := &model.CertChain{ID: id}
 
 		if err := restGet(db, cert); err != nil {
 			handleErrors(w, logger, err)
@@ -131,15 +100,12 @@ func getCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 
 func deleteCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := getAccountID(r, db)
+		id, err := strconv.ParseUint(mux.Vars(r)["certificate"], 10, 64)
 		if err != nil {
-			handleErrors(w, logger, err)
+			handleErrors(w, logger, &notFound{})
 			return
 		}
-		cert := &model.CertChain{
-			Name:      mux.Vars(r)["certificate"],
-			AccountID: id,
-		}
+		cert := &model.CertChain{ID: id}
 		if err := restDelete(db, cert); err != nil {
 			handleErrors(w, logger, err)
 			return
@@ -150,38 +116,21 @@ func deleteCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 
 func updateCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := getAccountID(r, db)
+		id, err := strconv.ParseUint(mux.Vars(r)["certificate"], 10, 64)
 		if err != nil {
+			handleErrors(w, logger, &notFound{})
+			return
+		}
+		oldCert := &model.CertChain{ID: id}
+		newCert := &model.CertChain{ID: id}
+
+		if err := restUpdate(db, r, oldCert, newCert); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
 
-		old := &model.CertChain{
-			Name:      mux.Vars(r)["certificate"],
-			AccountID: id,
-		}
-
-		cert := &model.CertChain{}
-		if r.Method == http.MethodPatch {
-			if err := restGet(db, cert); err != nil {
-				handleErrors(w, logger, err)
-				return
-			}
-		}
-
-		if err := readJSON(r, cert); err != nil {
-			handleErrors(w, logger, err)
-			return
-		}
-
-		if err := restUpdate(db, old, cert); err != nil {
-			handleErrors(w, logger, err)
-			return
-		}
-		partnerName := mux.Vars(r)["partner"]
-		accountName := mux.Vars(r)["account"]
-		w.Header().Set("Location", RestURI+PartnersURI+partnerName+AccountsURI+
-			"/"+accountName+CertsURI+"/"+cert.Name)
+		strID := strconv.FormatUint(id, 10)
+		w.Header().Set("Location", RestURI+CertsURI+"/"+strID)
 		w.WriteHeader(http.StatusCreated)
 	}
 }

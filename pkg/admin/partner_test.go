@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -19,30 +20,32 @@ type invalidObject struct {
 	InvalidField2 string
 }
 
+const partnerPath = RestURI + PartnersURI + "/"
+
 func testListPartners(db *database.Db) {
 	testPartner1 := &model.Partner{
-		Name:    "testPartner1",
-		Address: "test-address1",
+		Name:    "test_partner1",
+		Address: "test_partner_address1",
 		Port:    1,
-		Type:    "type1",
+		Type:    "sftp",
 	}
 	testPartner2 := &model.Partner{
-		Name:    "testPartner2",
-		Address: "test-address3",
+		Name:    "test_partner2",
+		Address: "test_partner_address3",
 		Port:    1,
-		Type:    "type2",
+		Type:    "http",
 	}
 	testPartner3 := &model.Partner{
-		Name:    "testPartner3",
-		Address: "test-address2",
+		Name:    "test_partner3",
+		Address: "test_partner_address2",
 		Port:    1,
-		Type:    "type2",
+		Type:    "http",
 	}
 	testPartner4 := &model.Partner{
-		Name:    "testPartner4",
-		Address: "test-address4",
+		Name:    "test_partner4",
+		Address: "test_partner_address4",
 		Port:    1,
-		Type:    "type3",
+		Type:    "r66",
 	}
 
 	Convey("Given a partners listing function", func() {
@@ -56,7 +59,7 @@ func testListPartners(db *database.Db) {
 		So(err, ShouldBeNil)
 
 		Convey("When calling it with no filters", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners", nil)
+			r, err := http.NewRequest(http.MethodGet, partnerPath, nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
 
@@ -77,7 +80,7 @@ func testListPartners(db *database.Db) {
 		})
 
 		Convey("When calling it with a limit", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners?limit=1", nil)
+			r, err := http.NewRequest(http.MethodGet, partnerPath+"?limit=1", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
 
@@ -98,7 +101,7 @@ func testListPartners(db *database.Db) {
 		})
 
 		Convey("When calling it with an offset", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners?offset=1", nil)
+			r, err := http.NewRequest(http.MethodGet, partnerPath+"?offset=1", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
 
@@ -120,7 +123,7 @@ func testListPartners(db *database.Db) {
 
 		Convey("When calling it with an specific order", func() {
 			r, err := http.NewRequest(http.MethodGet,
-				"/api/partners?sortby=address&order=desc", nil)
+				partnerPath+"?sortby=address&order=desc", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
 
@@ -142,7 +145,7 @@ func testListPartners(db *database.Db) {
 
 		Convey("When calling it with a filter by type", func() {
 			r, err := http.NewRequest(http.MethodGet,
-				"/api/partners?type=type1&type=type2", nil)
+				partnerPath+"?type=sftp&type=http", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
 
@@ -164,7 +167,7 @@ func testListPartners(db *database.Db) {
 
 		Convey("When calling it with a filter by address", func() {
 			r, err := http.NewRequest(http.MethodGet,
-				"/api/partners?address=test-address2&address=test-address3", nil)
+				partnerPath+"?address=test_partner_address2&address=test_partner_address3", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
 
@@ -186,7 +189,7 @@ func testListPartners(db *database.Db) {
 
 		Convey("When calling it with a filter by type and address", func() {
 			r, err := http.NewRequest(http.MethodGet,
-				"/api/partners?address=test-address2&type=type2", nil)
+				partnerPath+"?address=test_partner_address2&type=http", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
 
@@ -210,10 +213,10 @@ func testListPartners(db *database.Db) {
 
 func testGetPartner(db *database.Db) {
 	testPartner := &model.Partner{
-		Name:    "testPartner",
-		Address: "test-address",
+		Name:    "test_partner",
+		Address: "test_partner_address",
 		Port:    1,
-		Type:    "type",
+		Type:    "sftp",
 	}
 
 	Convey("Given a partner get function", func() {
@@ -221,10 +224,11 @@ func testGetPartner(db *database.Db) {
 		So(err, ShouldBeNil)
 
 		Convey("When calling it with a valid name", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners/testPartner", nil)
+			id := strconv.FormatUint(testPartner.ID, 10)
+			r, err := http.NewRequest(http.MethodGet, partnerPath+id, nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name})
+			r = mux.SetURLVars(r, map[string]string{"partner": id})
 
 			Convey("Then it should reply OK with a JSON body", func() {
 				getPartner(testLogger, db).ServeHTTP(w, r)
@@ -242,9 +246,10 @@ func testGetPartner(db *database.Db) {
 		})
 
 		Convey("When calling it with an invalid name", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners/unknown", nil)
+			r, err := http.NewRequest(http.MethodGet, partnerPath+"unknown", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
+
 			r = mux.SetURLVars(r, map[string]string{"partner": "unknown"})
 
 			Convey("Then it should reply 'Not Found'", func() {
@@ -258,16 +263,16 @@ func testGetPartner(db *database.Db) {
 
 func testCreatePartner(db *database.Db) {
 	testPartner := &model.Partner{
-		Name:    "testPartner",
-		Address: "test-address",
+		Name:    "test_partner",
+		Address: "test_partner_address",
 		Port:    1,
-		Type:    "type1",
+		Type:    "sftp",
 	}
 	testPartnerFail := &model.Partner{
-		Name:    "testPartnerFail",
-		Address: "test-address-fail",
+		Name:    "test_partner_fail",
+		Address: "test_partner_address_fail",
 		Port:    1,
-		Type:    "type2",
+		Type:    "http",
 	}
 
 	Convey("Given a partner creation function", func() {
@@ -278,7 +283,7 @@ func testCreatePartner(db *database.Db) {
 			body, err := json.Marshal(testPartner)
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPost, "/api/partners", reader)
+			r, err := http.NewRequest(http.MethodPost, partnerPath, reader)
 			So(err, ShouldBeNil)
 			r.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -290,6 +295,11 @@ func testCreatePartner(db *database.Db) {
 				exist, err := db.Exists(testPartner)
 				So(err, ShouldBeNil)
 				So(exist, ShouldBeTrue)
+
+				err = db.Get(testPartner)
+				So(err, ShouldBeNil)
+				id := strconv.FormatUint(testPartner.ID, 10)
+				So(w.Header().Get("Location"), ShouldResemble, partnerPath+id)
 			})
 		})
 
@@ -297,7 +307,7 @@ func testCreatePartner(db *database.Db) {
 			body, err := json.Marshal(testPartnerFail)
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPost, "/api/partners", reader)
+			r, err := http.NewRequest(http.MethodPost, partnerPath, reader)
 			So(err, ShouldBeNil)
 			r.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -312,7 +322,7 @@ func testCreatePartner(db *database.Db) {
 			body, err := json.Marshal(invalidObject{})
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPost, "/api/partners", reader)
+			r, err := http.NewRequest(http.MethodPost, partnerPath, reader)
 			So(err, ShouldBeNil)
 			r.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -327,10 +337,10 @@ func testCreatePartner(db *database.Db) {
 
 func testDeletePartner(db *database.Db) {
 	testPartner := &model.Partner{
-		Name:    "testPartner",
-		Address: "test-address",
+		Name:    "test_partner",
+		Address: "test_partner_address",
 		Port:    1,
-		Type:    "type",
+		Type:    "sftp",
 	}
 
 	Convey("Given a partner deletion function", func() {
@@ -338,10 +348,11 @@ func testDeletePartner(db *database.Db) {
 		So(err, ShouldBeNil)
 
 		Convey("When called with an existing name", func() {
-			r, err := http.NewRequest(http.MethodDelete, "/api/partners/testPartner", nil)
+			id := strconv.FormatUint(testPartner.ID, 10)
+			r, err := http.NewRequest(http.MethodDelete, partnerPath+id, nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name})
+			r = mux.SetURLVars(r, map[string]string{"partner": id})
 
 			Convey("Then it should delete the partner and reply 'No Content'", func() {
 				deletePartner(testLogger, db).ServeHTTP(w, r)
@@ -354,7 +365,7 @@ func testDeletePartner(db *database.Db) {
 		})
 
 		Convey("When called with an unknown name", func() {
-			r, err := http.NewRequest(http.MethodDelete, "/api/partners/unknown", nil)
+			r, err := http.NewRequest(http.MethodDelete, partnerPath+"unknown", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
 			r = mux.SetURLVars(r, map[string]string{"partner": "unknown"})
@@ -369,33 +380,35 @@ func testDeletePartner(db *database.Db) {
 
 func testUpdatePartner(db *database.Db) {
 	testPartnerBefore := &model.Partner{
-		Name:    "testPartnerBefore",
-		Address: "test-address-before",
+		Name:    "test_partner_before",
+		Address: "test_partner_address_before",
 		Port:    1,
-		Type:    "type1",
+		Type:    "sftp",
 	}
 	testPartnerAfter := &model.Partner{
-		Name:    "testPartnerAfter",
-		Address: "test-address-after",
-		Type:    "type2",
+		Name:    "test_partner_after",
+		Address: "test_partner_address_after",
 	}
 
 	Convey("Given a partner update function", func() {
 		err := db.Create(testPartnerBefore)
 		So(err, ShouldBeNil)
 
+		id := strconv.FormatUint(testPartnerBefore.ID, 10)
+
 		Convey("When called with an existing name", func() {
 			body, err := json.Marshal(testPartnerAfter)
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch, "/api/partners/testPartnerBefore", reader)
+			r, err := http.NewRequest(http.MethodPatch, partnerPath+id, reader)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartnerBefore.Name})
+			r = mux.SetURLVars(r, map[string]string{"partner": id})
 
 			Convey("Then it should update the partner and reply 'Created'", func() {
 				updatePartner(testLogger, db).ServeHTTP(w, r)
 				So(w.Code, ShouldEqual, http.StatusCreated)
+				So(w.Header().Get("Location"), ShouldResemble, partnerPath+id)
 
 				testPartnerAfter.Port = testPartnerBefore.Port
 				existAfter, err := db.Exists(testPartnerAfter)
@@ -412,7 +425,7 @@ func testUpdatePartner(db *database.Db) {
 			body, err := json.Marshal(testPartnerAfter)
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch, "/api/partners/unknown", reader)
+			r, err := http.NewRequest(http.MethodPatch, partnerPath+"unknown", reader)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
 			r = mux.SetURLVars(r, map[string]string{"partner": "unknown"})
@@ -427,10 +440,10 @@ func testUpdatePartner(db *database.Db) {
 			body, err := json.Marshal(invalidObject{})
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch, "/api/partners/testPartnerBefore", reader)
+			r, err := http.NewRequest(http.MethodPatch, partnerPath+id, reader)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartnerBefore.Name})
+			r = mux.SetURLVars(r, map[string]string{"partner": id})
 
 			Convey("Then it should reply 'Bad Request'", func() {
 				updatePartner(testLogger, db).ServeHTTP(w, r)
@@ -442,30 +455,31 @@ func testUpdatePartner(db *database.Db) {
 
 func testReplacePartner(db *database.Db) {
 	testPartnerBefore := &model.Partner{
-		Name:    "testPartnerBefore",
-		Address: "test-address-before",
+		Name:    "test_partner_before",
+		Address: "test_partner_address-before",
 		Port:    1,
-		Type:    "type1",
+		Type:    "sftp",
 	}
 	testPartnerAfter := &model.Partner{
-		Name:    "testPartnerAfter",
-		Address: "test-address-after",
-		Type:    "type2",
+		Name:    "test_partner_after",
+		Address: "test_partner_address-after",
+		Type:    "http",
 	}
 
 	Convey("Given a partner replacing function", func() {
 		err := db.Create(testPartnerBefore)
 		So(err, ShouldBeNil)
 
-		Convey("When called with an existing name", func() {
+		id := strconv.FormatUint(testPartnerBefore.ID, 10)
 
+		Convey("When called with an existing name", func() {
 			body, err := json.Marshal(testPartnerAfter)
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPut, "/api/partners/testPartnerBefore", reader)
+			r, err := http.NewRequest(http.MethodPut, partnerPath+id, reader)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartnerBefore.Name})
+			r = mux.SetURLVars(r, map[string]string{"partner": id})
 
 			Convey("Then it should update the partner and reply 'Created'", func() {
 				updatePartner(testLogger, db).ServeHTTP(w, r)
@@ -478,6 +492,11 @@ func testReplacePartner(db *database.Db) {
 				existBefore, err := db.Exists(testPartnerBefore)
 				So(err, ShouldBeNil)
 				So(existBefore, ShouldBeFalse)
+
+				err = db.Get(testPartnerAfter)
+				So(err, ShouldBeNil)
+				newID := strconv.FormatUint(testPartnerAfter.ID, 10)
+				So(w.Header().Get("Location"), ShouldResemble, partnerPath+newID)
 			})
 		})
 
@@ -485,7 +504,7 @@ func testReplacePartner(db *database.Db) {
 			body, err := json.Marshal(testPartnerAfter)
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPut, "/api/partners/unknown", reader)
+			r, err := http.NewRequest(http.MethodPut, partnerPath+"unknown", reader)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
 			r = mux.SetURLVars(r, map[string]string{"partner": "unknown"})
@@ -500,13 +519,13 @@ func testReplacePartner(db *database.Db) {
 			body, err := json.Marshal(invalidObject{})
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPut, "/api/partners/testPartnerBefore", reader)
+			r, err := http.NewRequest(http.MethodPut, partnerPath+id, reader)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartnerBefore.Name})
+			r = mux.SetURLVars(r, map[string]string{"partner": id})
 
 			Convey("Then it should reply 'Bad Request'", func() {
-				updateAccount(testLogger, db).ServeHTTP(w, r)
+				updatePartner(testLogger, db).ServeHTTP(w, r)
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
 			})
 		})

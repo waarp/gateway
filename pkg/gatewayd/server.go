@@ -19,7 +19,7 @@ import (
 type WG struct {
 	*log.Logger
 	Conf      *conf.ServerConfig
-	Services  map[string]service.Servicer
+	Services  map[string]service.Service
 	dbService *database.Db
 }
 
@@ -33,7 +33,7 @@ func NewWG(config *conf.ServerConfig) *WG {
 
 //
 func (wg *WG) initServices() {
-	wg.Services = make(map[string]service.Servicer)
+	wg.Services = make(map[string]service.Service)
 
 	wg.dbService = &database.Db{Conf: wg.Conf}
 	adminService := &admin.Server{Conf: wg.Conf, Db: wg.dbService, Services: wg.Services}

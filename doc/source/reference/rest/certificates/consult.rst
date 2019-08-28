@@ -1,16 +1,16 @@
 Consulter un certificat
 =======================
 
-.. http:get:: /api/partners/(partner)/accounts/(account)/certificates/(certificate)
+.. http:get:: /api/certificates/(int:certificate_id)
 
-   Renvoie le certificat `certificate` du compte `account` associé au partenaire
-   nommé `partner`.
+   Renvoie le certificat portant le numéro ``certificate_id``.
 
    **Requête**
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
-   :Example:
+   **Ememple de requête**
+
        .. code-block:: http
 
           GET /api/partners/partenaire1/accounts/utilisateur1/certificates/certificat1 HTTP/1.1
@@ -21,27 +21,29 @@ Consulter un certificat
 
    :statuscode 200: Le certificat a été renvoyée avec succès
    :statuscode 401: Authentification d'utilisateur invalide
-   :statuscode 404: Le certificat, compte ou partenaire demandé n'existe pas
+   :statuscode 404: Le certificat demandé n'existe pas
 
-   :Response JSON Object:
+   :resjson number ID: Le numéro unique du certificat
+   :resjson string Name: Le nom du certificat
+   :resjson number AccountID: Le numéro du compte auquel appartient le certificat
+   :resjson string PrivateKey: La clé privée du compte
+   :resjson string PublicKey: La clé publique du compte
+   :resjson string Cert: Le certificat de la clé publique
 
-       * **Name** (*string*) - Le nom du certificat
-       * **PrivateKey** (*string*) - La clé privée du certificat
-       * **PublicKey** (*string*) - La clé publique du certificat
-       * **PrivateCert** (*string*) - Le certificat privé du compte
-       * **PublicCert** (*string*) - Le certificat public du compte
+   **Exemple de réponse**
 
-   :Example:
        .. code-block:: http
 
           HTTP/1.1 200 OK
           Content-Type: application/json
-          Content-Length: 163
+          Content-Length: 197
 
           {
+            "ID": 1234,
             "Name": "certificat1",
+            "PartnerID": 12345,
             "PrivateKey": "*clé privée*",
             "PublicKey": "*clé publique*"
-            "PrivateCert": "*certificat privée*"
+            "PrivateCert": "*certificat privée*",
             "PublicCert": "*certificat public*"
           }

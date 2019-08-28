@@ -12,86 +12,29 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-// init adds the 'certificate' command to the program arguments parser
-func init() {
-	var certificate certificateCommand
-	p, err := parser.AddCommand("certificate", "Manage waarp-gateway certificates",
-		"The command to manage the waarp-gateway certificates.",
-		&certificate)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	updateCert := certificateUpdateCommand{certificateCommand: &certificate}
-	_, err = p.AddCommand("update", "Update certificate",
-		"Updates a certificate entry in the database.",
-		&updateCert)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	deleteCert := certificateDeleteCommand{certificateCommand: &certificate}
-	_, err = p.AddCommand("delete", "Delete certificate",
-		"Removes a certificate entry from the database.",
-		&deleteCert)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	getCert := certificateGetCommand{certificateCommand: &certificate}
-	_, err = p.AddCommand("get", "Get certificate",
-		"Retrieve a certificate entry from the database.",
-		&getCert)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	listCert := certificateListCommand{certificateCommand: &certificate}
-	_, err = p.AddCommand("list", "List certificates",
-		"List the certificate entries.",
-		&listCert)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	createCert := certificateCreateCommand{certificateCommand: &certificate}
-	_, err = p.AddCommand("create", "Create certificate",
-		"Create a certificate and add it to the database.",
-		&createCert)
-	if err != nil {
-		panic(err.Error())
-	}
-}
-
-type certificateCommand struct {
-	Partner string `required:"true" short:"p" long:"partner" description:"The name of the partner the account certificate belongs to"`
-	Account string `required:"true" short:"a" long:"account" description:"The username of the account the certificate belongs to"`
-}
+type certificateCommand struct{}
 
 func displayCertificate(out *os.File, certificate *model.CertChain) error {
 	w := getColorable(out)
 
-	fmt.Fprintf(w, "\033[97;1mCertificate '%s':\033[0m\n", certificate.Name)
+	fmt.Fprintf(w, "\033[97;1mCertificate n°%v:\033[0m\n", certificate.ID)
+	fmt.Fprintf(w, "├─\033[97mName:\033[0m \033[37m%s\033[0m\n", certificate.Name)
+	fmt.Fprintf(w, "├─\033[97mAccountID:\033[0m \033[37m%v\033[0m\n", certificate.AccountID)
 	fmt.Fprintf(w, "├─\033[97mPrivate Key:\033[0m \033[37m%s\033[0m\n",
 		string(certificate.PrivateKey))
 	fmt.Fprintf(w, "├─\033[97mPublic Key:\033[0m \033[37m%v\033[0m\n",
 		string(certificate.PublicKey))
-	fmt.Fprintf(w, "├─\033[97mPrivate Cert:\033[0m \033[37m%v\033[0m\n",
-		string(certificate.PrivateCert))
-	fmt.Fprintf(w, "└─\033[97mPublic Cert:\033[0m \033[37m%s\033[0m\n",
-		string(certificate.PublicCert))
+	fmt.Fprintf(w, "└─\033[97mCert:\033[0m \033[37m%v\033[0m\n",
+		string(certificate.Cert))
 	return nil
 }
 
 // ############################## GET #####################################
 
-type certificateGetCommand struct {
-	*certificateCommand `no-flag:"true"`
-}
+type certificateGetCommand struct{}
 
-func (c *certificateGetCommand) getCertificate(in *os.File, out *os.File, name string) (*model.CertChain, error) {
-	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + c.Partner +
-		admin.AccountsURI + "/" + c.Account + admin.CertsURI + "/" + name
+func (c *certificateGetCommand) getCertificate(in *os.File, out *os.File, id string) (*model.CertChain, error) {
+	addr := auth.Address + admin.RestURI + admin.CertsURI + "/" + id
 
 	req, err := http.NewRequest(http.MethodGet, addr, nil)
 	if err != nil {
@@ -140,16 +83,14 @@ func (c *certificateGetCommand) Execute(args []string) error {
 // ############################### LIST #######################################
 
 type certificateListCommand struct {
-	*certificateCommand `no-flag:"true"`
-	Limit               int    `short:"l" long:"limit" description:"The max number of entries which can be returned" default:"20"`
-	Offset              int    `short:"o" long:"offset" description:"The offset from which the first entry is taken" default:"0"`
-	Sort                string `short:"s" long:"sort" description:"The parameter used to sort the returned entries" choice:"name" default:"name"`
-	Reverse             bool   `short:"d" long:"descending" description:"If present, the order of the sorting will be reversed"`
+	Limit   int    `short:"l" long:"limit" description:"The max number of entries which can be returned" default:"20"`
+	Offset  int    `short:"o" long:"offset" description:"The offset from which the first entry is taken" default:"0"`
+	Sort    string `short:"s" long:"sort" description:"The parameter used to sort the returned entries" choice:"name" default:"name"`
+	Reverse bool   `short:"d" long:"descending" description:"If present, the order of the sorting will be reversed"`
 }
 
 func (c *certificateListCommand) listCertificates(in *os.File, out *os.File) ([]byte, error) {
-	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + c.Partner +
-		admin.AccountsURI + "/" + c.Account + admin.CertsURI
+	addr := auth.Address + admin.RestURI + admin.CertsURI
 
 	addr += "?limit=" + strconv.Itoa(c.Limit)
 	addr += "&offset=" + strconv.Itoa(c.Offset)
@@ -203,27 +144,25 @@ func (c *certificateListCommand) Execute(_ []string) error {
 // ############################### CREATE #######################################
 
 type certificateCreateCommand struct {
-	*certificateCommand `no-flag:"true"`
-	Name                string `required:"true" short:"n" long:"name" description:"The certificate's name"`
-	PrivateKey          string `long:"private_key" description:"The certificate's password"`
-	PublicKey           string `long:"public_key" description:"The certificate's password"`
-	PrivateCert         string `long:"private_cert" description:"The certificate's password"`
-	PublicCert          string `long:"public_cert" description:"The certificate's password"`
+	Name       string `required:"true" short:"n" long:"name" description:"The certificate's name"`
+	AccountID  uint64 `required:"true" short:"i" long:"account_id" description:"The account to which the certificate will be attached"`
+	PrivateKey string `long:"private_key" description:"The private key"`
+	PublicKey  string `long:"public_key" description:"The public key"`
+	Cert       string `long:"cert" description:"The public key certificate"`
 }
 
 // Execute executes the 'create' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
 func (c *certificateCreateCommand) Execute(_ []string) error {
-	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + c.Partner +
-		admin.AccountsURI + "/" + c.Account + admin.CertsURI
+	addr := auth.Address + admin.RestURI + admin.CertsURI
 
 	certificate := &model.CertChain{
-		Name:        c.Name,
-		PrivateKey:  []byte(c.PrivateKey),
-		PublicKey:   []byte(c.PublicKey),
-		PrivateCert: []byte(c.PrivateCert),
-		PublicCert:  []byte(c.PublicCert),
+		Name:       c.Name,
+		AccountID:  c.AccountID,
+		PrivateKey: []byte(c.PrivateKey),
+		PublicKey:  []byte(c.PublicKey),
+		Cert:       []byte(c.Cert),
 	}
 
 	path, err := sendBean(certificate, os.Stdin, os.Stdout, addr, http.MethodPost)
@@ -240,12 +179,11 @@ func (c *certificateCreateCommand) Execute(_ []string) error {
 //################################### UPDATE ######################################
 
 type certificateUpdateCommand struct {
-	*certificateCommand `no-flag:"true"`
-	Name                string `short:"n" long:"name" description:"The certificate's name"`
-	PrivateKey          string `long:"private_key" description:"The certificate's password"`
-	PublicKey           string `long:"public_key" description:"The certificate's password"`
-	PrivateCert         string `long:"private_cert" description:"The certificate's password"`
-	PublicCert          string `long:"public_cert" description:"The certificate's password"`
+	Name       string `short:"n" long:"name" description:"The certificate's name"`
+	AccountID  uint64 `short:"i" long:"account_id" description:"The account to which the certificate will be attached"`
+	PrivateKey string `long:"private_key" description:"The private key"`
+	PublicKey  string `long:"public_key" description:"The public key"`
+	Cert       string `long:"cert" description:"The public key certificate"`
 }
 
 // Execute executes the 'update' command. The command flags are stored in
@@ -256,15 +194,14 @@ func (c *certificateUpdateCommand) Execute(args []string) error {
 		return fmt.Errorf("missing certificate name")
 	}
 
-	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + c.Partner +
-		admin.AccountsURI + "/" + c.Account + admin.CertsURI + "/" + args[0]
+	addr := auth.Address + admin.RestURI + admin.CertsURI + "/" + args[0]
 
 	certificate := &model.CertChain{
-		Name:        c.Name,
-		PrivateKey:  []byte(c.PrivateKey),
-		PublicKey:   []byte(c.PublicKey),
-		PrivateCert: []byte(c.PrivateCert),
-		PublicCert:  []byte(c.PublicCert),
+		Name:       c.Name,
+		AccountID:  c.AccountID,
+		PrivateKey: []byte(c.PrivateKey),
+		PublicKey:  []byte(c.PublicKey),
+		Cert:       []byte(c.Cert),
 	}
 
 	path, err := sendBean(certificate, os.Stdin, os.Stdout, addr, http.MethodPatch)
@@ -280,9 +217,7 @@ func (c *certificateUpdateCommand) Execute(args []string) error {
 
 // ############################## DELETE #####################################
 
-type certificateDeleteCommand struct {
-	*certificateCommand `no-flag:"true"`
-}
+type certificateDeleteCommand struct{}
 
 // Execute executes the 'certificate' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
@@ -292,8 +227,7 @@ func (c *certificateDeleteCommand) Execute(args []string) error {
 		return fmt.Errorf("missing certificate name")
 	}
 
-	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + c.Partner +
-		admin.AccountsURI + "/" + c.Account + admin.CertsURI + "/" + args[0]
+	addr := auth.Address + admin.RestURI + admin.CertsURI + "/" + args[0]
 
 	req, err := http.NewRequest(http.MethodDelete, addr, nil)
 	if err != nil {

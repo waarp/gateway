@@ -165,7 +165,7 @@ type Status struct {
 type Statuses map[string]Status
 
 // getStatus is called when an HTTP request is received on the StatusURI path.
-func getStatus(logger *log.Logger, services map[string]service.Servicer) http.HandlerFunc {
+func getStatus(logger *log.Logger, services map[string]service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		var statuses = make(Statuses)
 		for name, serv := range services {
@@ -194,11 +194,18 @@ func restGet(db *database.Db, bean interface{}) error {
 	return nil
 }
 
-func restCreate(db *database.Db, bean, test interface{}) error {
-	if ok, err := db.Exists(test); err != nil {
+func restCreate(db *database.Db, r *http.Request, bean model.Validator) error {
+	if err := readJSON(r, bean); err != nil {
 		return err
-	} else if ok {
-		return &badRequest{msg: "The record already exist"}
+	}
+
+	if err := bean.Validate(db.Exists); err != nil {
+		switch err.(type) {
+		case model.ErrInvalid:
+			return &badRequest{msg: err.Error()}
+		default:
+			return err
+		}
 	}
 
 	if err := db.Create(bean); err != nil {
@@ -221,11 +228,28 @@ func restDelete(db *database.Db, bean interface{}) error {
 	return nil
 }
 
-func restUpdate(db *database.Db, old, new interface{}) error {
+func restUpdate(db *database.Db, r *http.Request, old, new model.Validator) error {
 	if exist, err := db.Exists(old); err != nil {
 		return err
 	} else if !exist {
 		return &notFound{}
+	}
+
+	if r.Method == http.MethodPatch {
+		if err := restGet(db, new); err != nil {
+			return err
+		}
+	}
+	if err := readJSON(r, new); err != nil {
+		return err
+	}
+	if err := new.Validate(db.Exists); err != nil {
+		switch err.(type) {
+		case model.ErrInvalid:
+			return &badRequest{msg: err.Error()}
+		default:
+			return err
+		}
 	}
 
 	if err := db.Update(old, new); err != nil {

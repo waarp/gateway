@@ -10,14 +10,13 @@ Créer un partenaire
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
-   :Request JSON Object:
+   :reqjson string Name: Le nom du partenaire
+   :reqjson string Address: L'address (IP ou DNS) du partenaire
+   :reqjson number Port: Le port sur lequel le partenaire écoute
+   :reqjson [sftp] Type: Le type de partenaire
 
-       * **Name** (*string*) - Le nom du partenaire
-       * **Address** (*string*) - L'address (IP ou DNS) du partenaire
-       * **Port** (*int*) - Le port sur lequel le partenaire écoute
-       * **Type** (*[sftp|http]*) - Le type de partenaire
+   **Exemple de requête**
 
-   :Example:
        .. code-block:: http
 
           GET /api/partners HTTP/1.1
@@ -41,8 +40,9 @@ Créer un partenaire
 
    :resheader Location: Le chemin d'accès au nouveau partenaire créé
 
-   :Example:
+   **Exemple de réponse**
+
        .. code-block:: http
 
           HTTP/1.1 201 CREATED
-          Location: /api/partners/partenaire1
+          Location: /api/partners/1234

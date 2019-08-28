@@ -25,7 +25,8 @@ Lister les partenaires
                 plusieurs fois pour filtrer plusieurs types.
    :type type: [sftp|http]
 
-   :Example:
+   **Exemple de requête**
+
        .. code-block:: http
 
           GET /api/partners?limit=10&address=waarp.org&address=waarp.fr HTTP/1.1
@@ -38,28 +39,30 @@ Lister les partenaires
    :statuscode 400: Un ou plusieurs des paramètres de requêtes sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
 
-   :Response JSON Object:
-       * **Partners** (*array* of *object*) - La liste des partenaires demandés
+   :resjson array Partners: La liste des partenaires demandés
+   :resjsonarr number ID: L'identifiant unique du partenaire
+   :resjsonarr string Name: Le nom du partenaire
+   :resjsonarr string Address: L'address (IP ou DNS) du partenaire
+   :resjsonarr number Port: Le port sur lequel le partenaire écoute
+   :resjsonarr [sftp] Type: Le type de partenaire
 
-           * **Name** (*string*) - Le nom du partenaire
-           * **Address** (*string*) - L'address (IP ou DNS) du partenaire
-           * **Port** (*int*) - Le port sur lequel le partenaire écoute
-           * **Type** (*[sftp|http]*) - Le type de partenaire
+   **Exemple de réponse**
 
-   :Example:
        .. code-block:: http
 
           HTTP/1.1 200 OK
           Content-Type: application/json
-          Content-Length: 202
+          Content-Length: 228
 
           {
             "Partners": [{
+              "ID": 1234,
               "Name": "partenaire1",
               "Addresse": "waarp.fr",
               "Port": 21,
               "Type": "sftp"
             },{
+              "ID": 5678,
               "Name": "partenaire2",
               "Addresse": "waarp.org",
               "Port": 8080,

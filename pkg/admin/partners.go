@@ -2,6 +2,7 @@ package admin
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/go-xorm/builder"
 
@@ -13,9 +14,12 @@ import (
 
 func getPartner(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		partner := &model.Partner{
-			Name: mux.Vars(r)["partner"],
+		id, err := strconv.ParseUint(mux.Vars(r)["partner"], 10, 64)
+		if err != nil {
+			handleErrors(w, logger, &notFound{})
+			return
 		}
+		partner := &model.Partner{ID: id}
 
 		if err := restGet(db, partner); err != nil {
 			handleErrors(w, logger, err)
@@ -75,27 +79,26 @@ func createPartner(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		partner := &model.Partner{}
 
-		if err := readJSON(r, partner); err != nil {
+		if err := restCreate(db, r, partner); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
 
-		test := &model.Partner{Name: partner.Name}
-
-		if err := restCreate(db, partner, test); err != nil {
-			handleErrors(w, logger, err)
-			return
-		}
-		w.Header().Set("Location", RestURI+PartnersURI+"/"+partner.Name)
+		newID := strconv.FormatUint(partner.ID, 10)
+		w.Header().Set("Location", RestURI+PartnersURI+"/"+newID)
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func deletePartner(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		partner := &model.Partner{
-			Name: mux.Vars(r)["partner"],
+		id, err := strconv.ParseUint(mux.Vars(r)["partner"], 10, 64)
+		if err != nil {
+			handleErrors(w, logger, &notFound{})
+			return
 		}
+		partner := &model.Partner{ID: id}
+
 		if err := restDelete(db, partner); err != nil {
 			handleErrors(w, logger, err)
 			return
@@ -106,29 +109,21 @@ func deletePartner(logger *log.Logger, db *database.Db) http.HandlerFunc {
 
 func updatePartner(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old := &model.Partner{
-			Name: mux.Vars(r)["partner"],
+		id, err := strconv.ParseUint(mux.Vars(r)["partner"], 10, 64)
+		if err != nil {
+			handleErrors(w, logger, &notFound{})
+			return
 		}
+		oldPart := &model.Partner{ID: id}
+		newPart := &model.Partner{ID: id}
 
-		partner := &model.Partner{}
-		if r.Method == http.MethodPatch {
-			if err := restGet(db, partner); err != nil {
-				handleErrors(w, logger, err)
-				return
-			}
-		}
-
-		if err := readJSON(r, partner); err != nil {
+		if err := restUpdate(db, r, oldPart, newPart); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
 
-		if err := restUpdate(db, old, partner); err != nil {
-			handleErrors(w, logger, err)
-			return
-		}
-
-		w.Header().Set("Location", RestURI+PartnersURI+"/"+partner.Name)
+		strID := strconv.FormatUint(id, 10)
+		w.Header().Set("Location", RestURI+PartnersURI+"/"+strID)
 		w.WriteHeader(http.StatusCreated)
 	}
 }
