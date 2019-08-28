@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -9,7 +10,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
-	"github.com/pkg/errors"
 )
 
 const (

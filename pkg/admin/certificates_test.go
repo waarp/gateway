@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -14,23 +15,25 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func testListCerts(db *database.Db, testPartner *model.Partner, testAccount *model.Account) {
+const certPath = RestURI + CertsURI + "/"
+
+func testListCerts(db *database.Db, accountID uint64) {
 
 	testCert1 := &model.CertChain{
-		Name:      "testCert1",
-		AccountID: testAccount.ID,
+		Name:      "test_cert1",
+		AccountID: accountID,
 	}
 	testCert2 := &model.CertChain{
-		Name:      "testCert2",
-		AccountID: testAccount.ID,
+		Name:      "test_cert2",
+		AccountID: accountID,
 	}
 	testCert3 := &model.CertChain{
-		Name:      "testCert3",
+		Name:      "test_cert3",
 		AccountID: 100,
 	}
 	testCert4 := &model.CertChain{
-		Name:      "testCert4",
-		AccountID: testAccount.ID,
+		Name:      "test_cert4",
+		AccountID: accountID,
 	}
 
 	Convey("Given an certificates listing function", func() {
@@ -44,12 +47,9 @@ func testListCerts(db *database.Db, testPartner *model.Partner, testAccount *mod
 		So(err, ShouldBeNil)
 
 		Convey("When calling it with no filters", func() {
-			r, err := http.NewRequest(http.MethodGet,
-				"/api/partners/testPartner/accounts/testAccount/certificates", nil)
+			r, err := http.NewRequest(http.MethodGet, certPath, nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username})
 
 			Convey("Then it should reply OK with a JSON body", func() {
 				listCertificates(testLogger, db).ServeHTTP(w, r)
@@ -59,7 +59,8 @@ func testListCerts(db *database.Db, testPartner *model.Partner, testAccount *mod
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.CertChain{testCert1, testCert2, testCert4}
+				testResults := &[]*model.CertChain{testCert1, testCert2,
+					testCert3, testCert4}
 				expected, err := json.Marshal(map[string]*[]*model.CertChain{"certificates": testResults})
 				So(err, ShouldBeNil)
 
@@ -68,12 +69,9 @@ func testListCerts(db *database.Db, testPartner *model.Partner, testAccount *mod
 		})
 
 		Convey("When calling it with a limit", func() {
-			r, err := http.NewRequest(http.MethodGet,
-				"/api/partners/testPartner/accounts/testAccount/certificates?limit=1", nil)
+			r, err := http.NewRequest(http.MethodGet, certPath+"?limit=1", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username})
 
 			Convey("Then it should reply OK with a JSON body", func() {
 				listCertificates(testLogger, db).ServeHTTP(w, r)
@@ -92,12 +90,9 @@ func testListCerts(db *database.Db, testPartner *model.Partner, testAccount *mod
 		})
 
 		Convey("When calling it with an offset", func() {
-			r, err := http.NewRequest(http.MethodGet,
-				"/api/partners/testPartner/accounts/testAccount/certificates?offset=1", nil)
+			r, err := http.NewRequest(http.MethodGet, certPath+"?offset=1", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username})
 
 			Convey("Then it should reply OK with a JSON body", func() {
 				listCertificates(testLogger, db).ServeHTTP(w, r)
@@ -107,7 +102,7 @@ func testListCerts(db *database.Db, testPartner *model.Partner, testAccount *mod
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.CertChain{testCert2, testCert4}
+				testResults := &[]*model.CertChain{testCert2, testCert3, testCert4}
 				expected, err := json.Marshal(map[string]*[]*model.CertChain{"certificates": testResults})
 				So(err, ShouldBeNil)
 
@@ -116,11 +111,8 @@ func testListCerts(db *database.Db, testPartner *model.Partner, testAccount *mod
 		})
 
 		Convey("When calling it with an specific order", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners/testPartner/accounts"+
-				"/testAccount/certificates?sortby=name&order=desc", nil)
+			r, err := http.NewRequest(http.MethodGet, certPath+"?sortby=name&order=desc", nil)
 			So(err, ShouldBeNil)
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username})
 			w := httptest.NewRecorder()
 
 			Convey("Then it should reply OK with a JSON body", func() {
@@ -132,7 +124,7 @@ func testListCerts(db *database.Db, testPartner *model.Partner, testAccount *mod
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.CertChain{testCert4, testCert2, testCert1}
+				testResults := &[]*model.CertChain{testCert4, testCert3, testCert2, testCert1}
 				object := map[string]*[]*model.CertChain{"certificates": testResults}
 				expected, err := json.Marshal(object)
 
@@ -140,46 +132,18 @@ func testListCerts(db *database.Db, testPartner *model.Partner, testAccount *mod
 				So(w.Body.String(), ShouldResemble, string(expected)+"\n")
 			})
 		})
-
-		Convey("When calling it with an non-existing partner name", func() {
-			r, err := http.NewRequest(http.MethodGet,
-				"/api/partners/unknown/accounts/testAccount/certificates", nil)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": "unknown",
-				"account": testAccount.Username})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				listCertificates(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When calling it with an non-existing account name", func() {
-			r, err := http.NewRequest(http.MethodGet,
-				"/api/partners/testPartner/accounts/unknown/certificates", nil)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": "unknown"})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				listCertificates(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
 	})
 }
 
-func testCreateCert(db *database.Db, testPartner *model.Partner, testAccount *model.Account) {
+func testCreateCert(db *database.Db, accountID uint64) {
 
 	testCert := &model.CertChain{
-		Name:      "testCert",
-		AccountID: testAccount.ID,
+		Name:      "test_cert",
+		AccountID: accountID,
 	}
 	testCertFail := &model.CertChain{
-		Name:      "testCertFail",
-		AccountID: testAccount.ID,
+		Name:      "test_cert_fail",
+		AccountID: accountID,
 	}
 
 	Convey("Given a certificate creation function", func() {
@@ -190,21 +154,23 @@ func testCreateCert(db *database.Db, testPartner *model.Partner, testAccount *mo
 			body, err := json.Marshal(testCert)
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPost,
-				"/api/partners/testPartner/accounts/testAccount/certificates", reader)
+			r, err := http.NewRequest(http.MethodPost, certPath, reader)
 			So(err, ShouldBeNil)
 			r.Header.Set("Content-Type", "application/json")
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username})
 			w := httptest.NewRecorder()
 
 			Convey("Then it should create the certificate and reply 'Created'", func() {
 				createCertificate(testLogger, db).ServeHTTP(w, r)
 				So(w.Code, ShouldEqual, http.StatusCreated)
 
-				exist, err := db.Exists(&model.CertChain{Name: testCert.Name, AccountID: testAccount.ID})
+				exist, err := db.Exists(&model.CertChain{Name: testCert.Name, AccountID: accountID})
 				So(err, ShouldBeNil)
 				So(exist, ShouldBeTrue)
+
+				err = db.Get(testCert)
+				So(err, ShouldBeNil)
+				id := strconv.FormatUint(testCert.ID, 10)
+				So(w.Header().Get("Location"), ShouldResemble, certPath+id)
 			})
 		})
 
@@ -212,12 +178,9 @@ func testCreateCert(db *database.Db, testPartner *model.Partner, testAccount *mo
 			body, err := json.Marshal(testCertFail)
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPost,
-				"/api/partners/testPartner/accounts/testAccount/certificates", reader)
+			r, err := http.NewRequest(http.MethodPost, certPath, reader)
 			So(err, ShouldBeNil)
 			r.Header.Set("Content-Type", "application/json")
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username})
 			w := httptest.NewRecorder()
 
 			Convey("Then it should reply 'Bad Request'", func() {
@@ -226,51 +189,13 @@ func testCreateCert(db *database.Db, testPartner *model.Partner, testAccount *mo
 			})
 		})
 
-		Convey("When calling it with an non-existing partner name", func() {
-			body, err := json.Marshal(testCert)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPost,
-				"/api/partners/unknown/accounts/testAccount/certificates", reader)
-			So(err, ShouldBeNil)
-			r.Header.Set("Content-Type", "application/json")
-			r = mux.SetURLVars(r, map[string]string{"partner": "unknown",
-				"account": testAccount.Username})
-			w := httptest.NewRecorder()
-
-			Convey("Then it should reply 'Not Found'", func() {
-				createCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When calling it with an non-existing account name", func() {
-			body, err := json.Marshal(testCert)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPost,
-				"/api/partners/testPartner/accounts/unknown/certificates", reader)
-			So(err, ShouldBeNil)
-			r.Header.Set("Content-Type", "application/json")
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": "unknown"})
-			w := httptest.NewRecorder()
-
-			Convey("Then it should reply 'Not Found'", func() {
-				createCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
 		Convey("When calling it with an invalid JSON body", func() {
 			body, err := json.Marshal(invalidObject{})
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPost, "/api/partners/testPartner/accounts", reader)
+			r, err := http.NewRequest(http.MethodPost, certPath, reader)
 			So(err, ShouldBeNil)
 			r.Header.Set("Content-Type", "application/json")
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username})
 			w := httptest.NewRecorder()
 
 			Convey("Then it should reply 'Bad Request'", func() {
@@ -281,24 +206,23 @@ func testCreateCert(db *database.Db, testPartner *model.Partner, testAccount *mo
 	})
 }
 
-func testGetCert(db *database.Db, testPartner *model.Partner, testAccount *model.Account) {
-
+func testGetCert(db *database.Db, accountID uint64) {
 	testCert := &model.CertChain{
-		Name:      "testCert",
-		AccountID: testAccount.ID,
+		Name:      "test_cert",
+		AccountID: accountID,
 	}
 
 	Convey("Given a certificate get function", func() {
 		err := db.Create(testCert)
 		So(err, ShouldBeNil)
 
+		id := strconv.FormatUint(testCert.ID, 10)
+
 		Convey("When calling it with a valid name", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners/testPartner/"+
-				"accounts/testAccount/certificates/testCert", nil)
+			r, err := http.NewRequest(http.MethodGet, certPath+id, nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username, "certificate": testCert.Name})
+			r = mux.SetURLVars(r, map[string]string{"certificate": id})
 
 			Convey("Then it should reply OK with a JSON body", func() {
 				getCertificate(testLogger, db).ServeHTTP(w, r)
@@ -316,42 +240,10 @@ func testGetCert(db *database.Db, testPartner *model.Partner, testAccount *model
 		})
 
 		Convey("When calling it with an invalid name", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners/testPartner/"+
-				"accounts/testAccount/certificates/unknown", nil)
+			r, err := http.NewRequest(http.MethodGet, certPath+"unknown", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username, "certificate": "unknown"})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				getCertificate(testLogger, db).ServeHTTP(w, r)
-
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When calling it with an invalid account name", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners/testPartner/"+
-				"accounts/unknown/certificates/testCert", nil)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": "unknown", "certificate": testCert.Name})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				getCertificate(testLogger, db).ServeHTTP(w, r)
-
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When calling it with an invalid partner name", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners/unknown/"+
-				"accounts/testAccount/certificates/testCert", nil)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": "unknown",
-				"account": testAccount.Username, "certificate": testCert.Name})
+			r = mux.SetURLVars(r, map[string]string{"certificate": "unknown"})
 
 			Convey("Then it should reply 'Not Found'", func() {
 				getCertificate(testLogger, db).ServeHTTP(w, r)
@@ -362,293 +254,65 @@ func testGetCert(db *database.Db, testPartner *model.Partner, testAccount *model
 	})
 }
 
-func testDeleteCert(db *database.Db, testPartner *model.Partner, testAccount *model.Account) {
+func testDeleteCert(db *database.Db, accountID uint64) {
 	testCert := &model.CertChain{
-		Name:      "testCert",
-		AccountID: testAccount.ID,
+		Name:      "test_cert",
+		AccountID: accountID,
 	}
 
 	Convey("Given a certificate deletion function", func() {
 		err := db.Create(testCert)
 		So(err, ShouldBeNil)
 
-		Convey("When called with an existing certificate name", func() {
-			r, err := http.NewRequest(http.MethodDelete, "/api/partners/testPartner/"+
-				"accounts/testAccount/certificates/testCert", nil)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username, "certificate": testCert.Name})
+		id := strconv.FormatUint(testCert.ID, 10)
 
-			Convey("Then it should delete the account and reply 'No Content'", func() {
-				deleteCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNoContent)
-
-				exist, err := db.Exists(testCert)
-				So(err, ShouldBeNil)
-				So(exist, ShouldBeFalse)
-			})
-		})
-
-		Convey("When called with an unknown certificate name", func() {
-			r, err := http.NewRequest(http.MethodDelete, "/api/partners/testPartner/"+
-				"accounts/testAccount/certificates/unknown", nil)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username, "certificate": "unknown"})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				deleteCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an unknown account name", func() {
-			r, err := http.NewRequest(http.MethodDelete, "/api/partners/testPartner/"+
-				"accounts/testAccount/certificates/unknown", nil)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": "unknown", "certificate": testCert.Name})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				deleteCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an unknown partner name", func() {
-			r, err := http.NewRequest(http.MethodDelete, "/api/partners/unknown/"+
-				"accounts/testAccount/certificates/testCert", nil)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": "unknown",
-				"account": testAccount.Username, "certificate": testCert.Name})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				deleteCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
+		deleteTest(deleteCertificate(testLogger, db), db, testCert, id, "certificate", certPath)
 	})
 }
 
-func checkCertValidUpdate(w *httptest.ResponseRecorder, db *database.Db,
-	before, after *model.CertChain) {
-
-	So(w.Code, ShouldEqual, http.StatusCreated)
-
-	existAfter, err := db.Exists(after)
-	So(err, ShouldBeNil)
-	So(existAfter, ShouldBeTrue)
-
-	existBefore, err := db.Exists(before)
-	So(err, ShouldBeNil)
-	So(existBefore, ShouldBeFalse)
-}
-
-func testUpdateCert(db *database.Db, testPartner *model.Partner, testAccount *model.Account) {
+func testUpdateCert(db *database.Db, accountID uint64) {
 	testCertBefore := &model.CertChain{
-		Name:      "testCertBefore",
-		AccountID: testAccount.ID,
+		Name:      "test_cert_before",
+		AccountID: accountID,
 		PublicKey: []byte("test_public_key"),
 	}
 	testCertAfter := &model.CertChain{
-		Name:      "testCertAfter",
-		AccountID: testAccount.ID,
+		Name:      "test_cert_after",
+		AccountID: accountID,
 	}
 
 	Convey("Given a certificate update function", func() {
 		err := db.Create(testCertBefore)
 		So(err, ShouldBeNil)
+		testCertAfter.ID = testCertBefore.ID
 
-		Convey("When called with an existing name", func() {
-			body, err := json.Marshal(testCertAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch, "/api/partners/testPartner/"+
-				"accounts/testAccount/certificates/testCert", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username, "certificate": testCertBefore.Name})
+		id := strconv.FormatUint(testCertBefore.ID, 10)
 
-			Convey("Then it should update the account and reply 'Created'", func() {
-				updateCertificate(testLogger, db).ServeHTTP(w, r)
-				testCertAfter.PublicKey = testCertBefore.PublicKey
-				checkCertValidUpdate(w, db, testCertBefore, testCertAfter)
-			})
-		})
-
-		Convey("When called with an unknown certificate name", func() {
-			body, err := json.Marshal(testCertAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch, "/api/partners/testPartner/"+
-				"accounts/testAccount/certificates/unknown", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username, "certificate": "unknown"})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				updateCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an unknown account name", func() {
-			body, err := json.Marshal(testCertAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch, "/api/partners/testPartner/"+
-				"accounts/unknown/certificates/testCert", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": "unknown", "certificate": testCertBefore.Name})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				updateCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an unknown partner name", func() {
-			body, err := json.Marshal(testCertAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch, "/api/partners/unknown/"+
-				"accounts/testAccount/certificates/testCert", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": "unknown",
-				"account": testAccount.Username, "certificate": testCertBefore.Name})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				updateCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an invalid JSON object", func() {
-			body, err := json.Marshal(invalidObject{})
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch,
-				"/api/partners/testPartner/accounts/testAccountBefore", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username, "certificate": testCertBefore.Name})
-
-			Convey("Then it should reply 'Bad Request'", func() {
-				updateCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusBadRequest)
-			})
-		})
+		updateTest(updateCertificate(testLogger, db), db, testCertBefore, testCertAfter,
+			certPath, "certificate", id, false)
 	})
 }
 
-func testReplaceCert(db *database.Db, testPartner *model.Partner, testAccount *model.Account) {
+func testReplaceCert(db *database.Db, accountID uint64) {
 	testCertBefore := &model.CertChain{
-		Name:      "testCertBefore",
-		AccountID: testAccount.ID,
+		Name:      "test_cert_before",
+		AccountID: accountID,
+		PublicKey: []byte("test_public_key"),
 	}
 	testCertAfter := &model.CertChain{
-		Name:      "testCertAfter",
-		AccountID: testAccount.ID,
+		Name:      "test_cert_after",
+		AccountID: accountID,
 	}
 
 	Convey("Given a certificate replacing function", func() {
 		err := db.Create(testCertBefore)
 		So(err, ShouldBeNil)
+		testCertAfter.ID = testCertBefore.ID
 
-		Convey("When called with an existing name", func() {
-			body, err := json.Marshal(testCertAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPut, "/api/partners/testPartner/"+
-				"accounts/testAccount/certificates/testCert", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username, "certificate": testCertBefore.Name})
+		id := strconv.FormatUint(testCertBefore.ID, 10)
 
-			Convey("Then it should replace the account and reply 'Created'", func() {
-				updateCertificate(testLogger, db).ServeHTTP(w, r)
-				checkCertValidUpdate(w, db, testCertBefore, testCertAfter)
-			})
-		})
-
-		Convey("When called with an unknown certificate name", func() {
-			body, err := json.Marshal(testCertAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPut, "/api/partners/testPartner/"+
-				"accounts/testAccount/certificates/unknown", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username, "certificate": "unknown"})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				updateCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an unknown account name", func() {
-			body, err := json.Marshal(testCertAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPut, "/api/partners/testPartner/"+
-				"accounts/unknown/certificates/testCert", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": "unknown", "certificate": testCertBefore.Name})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				updateCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an unknown partner name", func() {
-			body, err := json.Marshal(testCertAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPut, "/api/partners/unknown/"+
-				"accounts/testAccount/certificates/testCert", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": "unknown",
-				"account": testAccount.Username, "certificate": testCertBefore.Name})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				updateCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an invalid JSON object", func() {
-			body, err := json.Marshal(invalidObject{})
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch,
-				"/api/partners/testPartner/accounts/testAccountBefore", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username, "certificate": testCertBefore.Name})
-
-			Convey("Then it should reply 'Bad Request'", func() {
-				updateCertificate(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusBadRequest)
-			})
-		})
+		updateTest(updateCertificate(testLogger, db), db, testCertBefore, testCertAfter,
+			certPath, "certificate", id, true)
 	})
 }
 
@@ -656,13 +320,13 @@ func TestCerts(t *testing.T) {
 	testDb := database.GetTestDatabase()
 
 	testPartner := &model.Partner{
-		Name:    "testPartner",
-		Address: "test-address",
+		Name:    "test_partner",
+		Address: "test_partner_address",
 		Port:    1,
 		Type:    "type",
 	}
 	testAccount := &model.Account{
-		Username: "testAccount",
+		Username: "test_account",
 		Password: []byte("test_account_password"),
 	}
 	if err := testDb.Create(testPartner); err != nil {
@@ -680,12 +344,12 @@ func TestCerts(t *testing.T) {
 			So(err, ShouldBeNil)
 		})
 
-		testListCerts(testDb, testPartner, testAccount)
-		testCreateCert(testDb, testPartner, testAccount)
-		testGetCert(testDb, testPartner, testAccount)
-		testDeleteCert(testDb, testPartner, testAccount)
-		testUpdateCert(testDb, testPartner, testAccount)
-		testReplaceCert(testDb, testPartner, testAccount)
+		testListCerts(testDb, testAccount.ID)
+		testCreateCert(testDb, testAccount.ID)
+		testGetCert(testDb, testAccount.ID)
+		testDeleteCert(testDb, testAccount.ID)
+		testUpdateCert(testDb, testAccount.ID)
+		testReplaceCert(testDb, testAccount.ID)
 	})
 
 	_ = testDb.Execute("DELETE FROM 'partners'")

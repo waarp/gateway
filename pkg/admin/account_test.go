@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -14,26 +15,74 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func testListAccounts(db *database.Db, testPartner *model.Partner) {
+const accountsPath = RestURI + AccountsURI + "/"
+
+func testGetAccount(db *database.Db, partnerID uint64) {
+	testAccount := &model.Account{
+		Username:  "test_account",
+		Password:  []byte("test_account_password"),
+		PartnerID: partnerID,
+	}
+
+	Convey("Given a account get function", func() {
+		err := db.Create(testAccount)
+		So(err, ShouldBeNil)
+
+		id := strconv.FormatUint(testAccount.ID, 10)
+
+		Convey("When called with an existing id", func() {
+			r, err := http.NewRequest(http.MethodGet, accountsPath+id, nil)
+			So(err, ShouldBeNil)
+			w := httptest.NewRecorder()
+			r = mux.SetURLVars(r, map[string]string{"account": id})
+
+			Convey("Then it should return the account and reply 'OK'", func() {
+				getAccount(testLogger, db).ServeHTTP(w, r)
+				So(w.Code, ShouldEqual, http.StatusOK)
+
+				contentType := w.Header().Get("Content-Type")
+				So(contentType, ShouldEqual, "application/json")
+
+				expected, err := json.Marshal(testAccount)
+				So(err, ShouldBeNil)
+				So(w.Body.String(), ShouldResemble, string(expected)+"\n")
+			})
+		})
+
+		Convey("When called with an unknown username", func() {
+			r, err := http.NewRequest(http.MethodDelete, accountsPath+"/unknown", nil)
+			So(err, ShouldBeNil)
+			w := httptest.NewRecorder()
+			r = mux.SetURLVars(r, map[string]string{"account": "unknown"})
+
+			Convey("Then it should reply 'Not Found'", func() {
+				getAccount(testLogger, db).ServeHTTP(w, r)
+				So(w.Code, ShouldEqual, http.StatusNotFound)
+			})
+		})
+	})
+}
+
+func testListAccounts(db *database.Db, partnerID uint64) {
 	testAccount1 := &model.Account{
-		Username:  "testAccount1",
-		Password:  []byte("test-password"),
-		PartnerID: testPartner.ID,
+		Username:  "test_account1",
+		Password:  []byte("test_account_password"),
+		PartnerID: partnerID,
 	}
 	testAccount2 := &model.Account{
-		Username:  "testAccount2",
-		Password:  []byte("test-password"),
-		PartnerID: testPartner.ID,
+		Username:  "test_account2",
+		Password:  []byte("test_account_password"),
+		PartnerID: partnerID,
 	}
 	testAccount3 := &model.Account{
-		Username:  "testAccount3",
-		Password:  []byte("test-password"),
+		Username:  "test_account3",
+		Password:  []byte("test_account_password"),
 		PartnerID: 1000,
 	}
 	testAccount4 := &model.Account{
-		Username:  "testAccount4",
-		Password:  []byte("test-password"),
-		PartnerID: testPartner.ID,
+		Username:  "test_account4",
+		Password:  []byte("test_account_password"),
+		PartnerID: partnerID,
 	}
 
 	Convey("Given an account listing function", func() {
@@ -51,10 +100,9 @@ func testListAccounts(db *database.Db, testPartner *model.Partner) {
 		testAccount4.Password = nil
 
 		Convey("When calling it with no filters", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners/testPartner/accounts", nil)
+			r, err := http.NewRequest(http.MethodGet, accountsPath, nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name})
 
 			Convey("Then it should reply OK with a JSON body", func() {
 				listAccounts(testLogger, db).ServeHTTP(w, r)
@@ -64,7 +112,8 @@ func testListAccounts(db *database.Db, testPartner *model.Partner) {
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.Account{testAccount1, testAccount2, testAccount4}
+				testResults := &[]*model.Account{testAccount1, testAccount2,
+					testAccount3, testAccount4}
 				expected, err := json.Marshal(map[string]*[]*model.Account{"accounts": testResults})
 				So(err, ShouldBeNil)
 
@@ -73,10 +122,9 @@ func testListAccounts(db *database.Db, testPartner *model.Partner) {
 		})
 
 		Convey("When calling it with a limit", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners/testPartner/accounts?limit=1", nil)
+			r, err := http.NewRequest(http.MethodGet, accountsPath+"?limit=1", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name})
 
 			Convey("Then it should reply OK with a JSON body", func() {
 				listAccounts(testLogger, db).ServeHTTP(w, r)
@@ -95,11 +143,9 @@ func testListAccounts(db *database.Db, testPartner *model.Partner) {
 		})
 
 		Convey("When calling it with an offset", func() {
-			r, err := http.NewRequest(http.MethodGet,
-				"/api/partners/testPartner/accounts?offset=1", nil)
+			r, err := http.NewRequest(http.MethodGet, accountsPath+"?offset=1", nil)
 			So(err, ShouldBeNil)
 			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name})
 
 			Convey("Then it should reply OK with a JSON body", func() {
 				listAccounts(testLogger, db).ServeHTTP(w, r)
@@ -109,7 +155,7 @@ func testListAccounts(db *database.Db, testPartner *model.Partner) {
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.Account{testAccount2, testAccount4}
+				testResults := &[]*model.Account{testAccount2, testAccount3, testAccount4}
 				expected, err := json.Marshal(map[string]*[]*model.Account{"accounts": testResults})
 				So(err, ShouldBeNil)
 
@@ -118,10 +164,8 @@ func testListAccounts(db *database.Db, testPartner *model.Partner) {
 		})
 
 		Convey("When calling it with an specific order", func() {
-			r, err := http.NewRequest(http.MethodGet,
-				"/api/partners/testPartner/accounts?sortby=username&order=desc", nil)
+			r, err := http.NewRequest(http.MethodGet, accountsPath+"?sortby=username&order=desc", nil)
 			So(err, ShouldBeNil)
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name})
 			w := httptest.NewRecorder()
 
 			Convey("Then it should reply OK with a JSON body", func() {
@@ -133,7 +177,8 @@ func testListAccounts(db *database.Db, testPartner *model.Partner) {
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.Account{testAccount4, testAccount2, testAccount1}
+				testResults := &[]*model.Account{testAccount4, testAccount3,
+					testAccount2, testAccount1}
 				object := map[string]*[]*model.Account{"accounts": testResults}
 				expected, err := json.Marshal(object)
 
@@ -141,31 +186,19 @@ func testListAccounts(db *database.Db, testPartner *model.Partner) {
 				So(w.Body.String(), ShouldResemble, string(expected)+"\n")
 			})
 		})
-
-		Convey("When calling it with an non-existing partner name", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/partners/unknown/accounts", nil)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": "unknown"})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				listAccounts(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
 	})
 }
 
-func testCreateAccount(db *database.Db, testPartner *model.Partner) {
+func testCreateAccount(db *database.Db, partnerID uint64) {
 	testAccount := &model.Account{
-		Username:  "testAccount",
+		Username:  "test_account",
 		Password:  []byte("test_account_password"),
-		PartnerID: testPartner.ID,
+		PartnerID: partnerID,
 	}
 	testAccountFail := &model.Account{
-		Username:  "testAccountFail",
+		Username:  "test_account_fail",
 		Password:  []byte("test_account_password"),
-		PartnerID: testPartner.ID,
+		PartnerID: partnerID,
 	}
 
 	Convey("Given a account creation function", func() {
@@ -176,51 +209,45 @@ func testCreateAccount(db *database.Db, testPartner *model.Partner) {
 			body, err := json.Marshal(testAccount)
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPost, "/api/partners/testPartner/accounts", reader)
+			r, err := http.NewRequest(http.MethodPost, accountsPath, reader)
 			So(err, ShouldBeNil)
 			r.Header.Set("Content-Type", "application/json")
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name})
 			w := httptest.NewRecorder()
 
 			Convey("Then it should create the account and reply 'Created'", func() {
 				createAccount(testLogger, db).ServeHTTP(w, r)
+				if w.Code != http.StatusCreated {
+					So(w.Body.String(), ShouldBeNil)
+				}
 				So(w.Code, ShouldEqual, http.StatusCreated)
 
-				exist, err := db.Exists(&model.Account{Username: testAccount.Username})
+				testAccount.Password = nil
+				exist, err := db.Exists(testAccount)
 				So(err, ShouldBeNil)
 				So(exist, ShouldBeTrue)
+
+				err = db.Get(testAccount)
+				So(err, ShouldBeNil)
+				id := strconv.FormatUint(testAccount.ID, 10)
+				So(w.Header().Get("Location"), ShouldResemble, accountsPath+id)
 			})
 		})
 
-		Convey("When calling it with an already existing username", func() {
+		Convey("When calling it with an already existing id", func() {
 			body, err := json.Marshal(testAccountFail)
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPost, "/api/partners/testPartner/accounts", reader)
+			r, err := http.NewRequest(http.MethodPost, accountsPath, reader)
 			So(err, ShouldBeNil)
 			r.Header.Set("Content-Type", "application/json")
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name})
 			w := httptest.NewRecorder()
 
 			Convey("Then it should reply 'Bad Request'", func() {
 				createAccount(testLogger, db).ServeHTTP(w, r)
+				if w.Code != http.StatusBadRequest {
+					So(w.Body.String(), ShouldBeNil)
+				}
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
-			})
-		})
-
-		Convey("When calling it with an non-existing partner name", func() {
-			body, err := json.Marshal(testAccount)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPost, "/api/partners/unknown/accounts", reader)
-			So(err, ShouldBeNil)
-			r.Header.Set("Content-Type", "application/json")
-			r = mux.SetURLVars(r, map[string]string{"partner": "unknown"})
-			w := httptest.NewRecorder()
-
-			Convey("Then it should reply 'Not Found'", func() {
-				createAccount(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
 			})
 		})
 
@@ -228,10 +255,9 @@ func testCreateAccount(db *database.Db, testPartner *model.Partner) {
 			body, err := json.Marshal(invalidObject{})
 			So(err, ShouldBeNil)
 			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPost, "/api/partners/testPartner/accounts", reader)
+			r, err := http.NewRequest(http.MethodPost, accountsPath, reader)
 			So(err, ShouldBeNil)
 			r.Header.Set("Content-Type", "application/json")
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name})
 			w := httptest.NewRecorder()
 
 			Convey("Then it should reply 'Bad Request'", func() {
@@ -242,244 +268,67 @@ func testCreateAccount(db *database.Db, testPartner *model.Partner) {
 	})
 }
 
-func testDeleteAccount(db *database.Db, testPartner *model.Partner) {
+func testDeleteAccount(db *database.Db, partnerID uint64) {
 	testAccount := &model.Account{
-		Username:  "testAccount",
+		Username:  "test_account",
 		Password:  []byte("test_account_password"),
-		PartnerID: testPartner.ID,
+		PartnerID: partnerID,
 	}
 
 	Convey("Given a account deletion function", func() {
 		err := db.Create(testAccount)
 		So(err, ShouldBeNil)
 
-		Convey("When called with an existing username", func() {
-			r, err := http.NewRequest(http.MethodDelete,
-				"/api/partners/testPartner/accounts/testAccount", nil)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccount.Username})
+		id := strconv.FormatUint(testAccount.ID, 10)
 
-			Convey("Then it should delete the account and reply 'No Content'", func() {
-				deleteAccount(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNoContent)
-
-				exist, err := db.Exists(testAccount)
-				So(err, ShouldBeNil)
-				So(exist, ShouldBeFalse)
-			})
-		})
-
-		Convey("When called with an unknown username", func() {
-			r, err := http.NewRequest(http.MethodDelete,
-				"/api/partners/testPartner/accounts/unknown", nil)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name, "account": "unknown"})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				deleteAccount(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an unknown name", func() {
-			r, err := http.NewRequest(http.MethodDelete,
-				"/api/partners/unknown/accounts/testPartner", nil)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": "unknown", "account": testAccount.Username})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				deleteAccount(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
+		deleteTest(deleteAccount(testLogger, db), db, testAccount, id, "account", accountsPath)
 	})
 }
 
-func checkAccountValidUpdate(w *httptest.ResponseRecorder, db *database.Db,
-	before, after *model.Account) {
-
-	So(w.Code, ShouldEqual, http.StatusCreated)
-
-	existAfter, err := db.Exists(&model.Account{Username: after.Username})
-	So(err, ShouldBeNil)
-	So(existAfter, ShouldBeTrue)
-
-	existBefore, err := db.Exists(&model.Account{Username: before.Username})
-	So(err, ShouldBeNil)
-	So(existBefore, ShouldBeFalse)
-}
-
-func testUpdateAccount(db *database.Db, testPartner *model.Partner) {
+func testUpdateAccount(db *database.Db, partnerID uint64) {
 	testAccountBefore := &model.Account{
-		Username:  "testAccountBefore",
-		Password:  []byte("test_account_password"),
-		PartnerID: testPartner.ID,
+		Username:  "test_account_before",
+		Password:  []byte("test_account_password_before"),
+		PartnerID: partnerID,
 	}
 	testAccountAfter := &model.Account{
-		Username:  "testAccountAfter",
-		PartnerID: testPartner.ID,
+		Username:  "test_account_after",
+		PartnerID: partnerID,
 	}
 
 	Convey("Given a account update function", func() {
 		err := db.Create(testAccountBefore)
 		So(err, ShouldBeNil)
+		testAccountAfter.ID = testAccountBefore.ID
 
-		Convey("When called with an existing name", func() {
-			body, err := json.Marshal(testAccountAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch,
-				"/api/partners/testPartner/accounts/testAccountBefore", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccountBefore.Username})
+		id := strconv.FormatUint(testAccountBefore.ID, 10)
 
-			Convey("Then it should update the account and reply 'Created'", func() {
-				updateAccount(testLogger, db).ServeHTTP(w, r)
-				testAccountAfter.Password = testAccountBefore.Password
-				checkAccountValidUpdate(w, db, testAccountBefore, testAccountAfter)
-			})
-		})
-
-		Convey("When called with an unknown username", func() {
-			body, err := json.Marshal(testAccountAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch,
-				"/api/partners/unknown/accounts/testAccountBefore", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": "unknown",
-				"account": testAccountBefore.Username})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				updateAccount(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an unknown partner name", func() {
-			body, err := json.Marshal(testAccountAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch,
-				"/api/partners/testPartner/accounts/unknown", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name, "account": "unknown"})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				updateAccount(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an invalid JSON object", func() {
-			body, err := json.Marshal(invalidObject{})
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPatch,
-				"/api/partners/testPartner/accounts/testAccountBefore", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccountBefore.Username})
-
-			Convey("Then it should reply 'Bad Request'", func() {
-				updateAccount(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusBadRequest)
-			})
-		})
+		updateTest(updateAccount(testLogger, db), db, testAccountBefore, testAccountAfter,
+			accountsPath, "account", id, false)
 	})
 }
 
-func testReplaceAccount(db *database.Db, testPartner *model.Partner) {
+func testReplaceAccount(db *database.Db, partnerID uint64) {
 	testAccountBefore := &model.Account{
-		Username:  "testAccountBefore",
+		Username:  "test_account_before",
 		Password:  []byte("test_account_password"),
-		PartnerID: testPartner.ID,
+		PartnerID: partnerID,
 	}
 	testAccountAfter := &model.Account{
-		Username:  "testAccountAfter",
-		PartnerID: testPartner.ID,
+		Username:  "test_account_after",
+		Password:  []byte("new_test_account_password"),
+		PartnerID: partnerID,
 	}
 
 	Convey("Given a account replace function", func() {
 		err := db.Create(testAccountBefore)
 		So(err, ShouldBeNil)
+		testAccountAfter.ID = testAccountBefore.ID
 
-		Convey("When called with an existing name", func() {
-			body, err := json.Marshal(testAccountAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPut,
-				"/api/partners/testPartner/accounts/testAccountBefore", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccountBefore.Username})
+		id := strconv.FormatUint(testAccountBefore.ID, 10)
 
-			Convey("Then it should update the partner and reply 'Created'", func() {
-				updateAccount(testLogger, db).ServeHTTP(w, r)
-				checkAccountValidUpdate(w, db, testAccountBefore, testAccountAfter)
-			})
-		})
-
-		Convey("When called with an non-existing username", func() {
-			body, err := json.Marshal(testAccountAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPut,
-				"/api/partners/testPartner/accounts/unknown", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccountAfter.Username})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				updateAccount(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an unknown partner name", func() {
-			body, err := json.Marshal(testAccountAfter)
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPut,
-				"/api/partners/unknown/accounts/testAccountBefore", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": "unknown",
-				"account": testAccountBefore.Username})
-
-			Convey("Then it should reply 'Not Found'", func() {
-				updateAccount(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusNotFound)
-			})
-		})
-
-		Convey("When called with an invalid JSON object", func() {
-			body, err := json.Marshal(invalidObject{})
-			So(err, ShouldBeNil)
-			reader := bytes.NewReader(body)
-			r, err := http.NewRequest(http.MethodPut,
-				"/api/partners/testPartner/accounts/testAccountBefore", reader)
-			So(err, ShouldBeNil)
-			w := httptest.NewRecorder()
-			r = mux.SetURLVars(r, map[string]string{"partner": testPartner.Name,
-				"account": testAccountBefore.Username})
-
-			Convey("Then it should reply 'Bad Request'", func() {
-				updateAccount(testLogger, db).ServeHTTP(w, r)
-				So(w.Code, ShouldEqual, http.StatusBadRequest)
-			})
-		})
+		updateTest(updateAccount(testLogger, db), db, testAccountBefore, testAccountAfter,
+			accountsPath, "account", id, true)
 	})
 }
 
@@ -487,8 +336,8 @@ func TestAccounts(t *testing.T) {
 	testDb := database.GetTestDatabase()
 
 	testPartner := &model.Partner{
-		Name:    "testPartner",
-		Address: "test-address",
+		Name:    "test_partner",
+		Address: "test_partner_address",
 		Port:    1,
 		Type:    "type",
 	}
@@ -503,11 +352,12 @@ func TestAccounts(t *testing.T) {
 			So(err, ShouldBeNil)
 		})
 
-		testListAccounts(testDb, testPartner)
-		testCreateAccount(testDb, testPartner)
-		testDeleteAccount(testDb, testPartner)
-		testUpdateAccount(testDb, testPartner)
-		testReplaceAccount(testDb, testPartner)
+		testGetAccount(testDb, testPartner.ID)
+		testListAccounts(testDb, testPartner.ID)
+		testCreateAccount(testDb, testPartner.ID)
+		testDeleteAccount(testDb, testPartner.ID)
+		testUpdateAccount(testDb, testPartner.ID)
+		testReplaceAccount(testDb, testPartner.ID)
 	})
 
 	_ = testDb.Execute("DELETE FROM 'partners'")

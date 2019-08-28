@@ -12,11 +12,14 @@ import (
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var sqliteTestDatabase *Db
 
 func init() {
+	model.BcryptRounds = bcrypt.MinCost
+
 	sqliteConfig := &conf.ServerConfig{}
 	sqliteConfig.Database.Type = sqlite
 	sqliteConfig.Database.Name = "file::memory:?mode=memory&cache=shared"

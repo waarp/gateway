@@ -12,73 +12,70 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-// init adds the 'account' command to the program arguments parser
-func init() {
-	var account accountCommand
-	p, err := parser.AddCommand("account", "Manage waarp-gateway accounts",
-		"The command to manage the waarp-gateway accounts.",
-		&account)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	listAccount := accountListCommand{accountCommand: &account}
-	_, err = p.AddCommand("list", "List accounts",
-		"List the account entries.",
-		&listAccount)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	createAccount := accountCreateCommand{accountCommand: &account}
-	_, err = p.AddCommand("create", "Create account",
-		"Create a account and add it to the database.",
-		&createAccount)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	updateAccount := accountUpdateCommand{accountCommand: &account}
-	_, err = p.AddCommand("update", "Update account",
-		"Updates a account entry in the database.",
-		&updateAccount)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	deleleAccount := accountDeleteCommand{accountCommand: &account}
-	_, err = p.AddCommand("delete", "Delete account",
-		"Removes a account entry from the database.",
-		&deleleAccount)
-	if err != nil {
-		panic(err.Error())
-	}
-}
-
-type accountCommand struct {
-	Partner string `required:"true" short:"p" long:"partner" description:"The name of the partner the account belongs to"`
-}
+type accountCommand struct{}
 
 func displayAccount(out *os.File, account *model.Account) error {
 	w := getColorable(out)
 
-	fmt.Fprintf(w, "\033[97;1mAccount '%s'\033[0m\n", account.Username)
+	fmt.Fprintf(w, "\033[97;1mAccount n°%v:\033[0m\n", account.ID)
+	fmt.Fprintf(w, "├─\033[97mUsername:\033[0m \033[37m%s\033[0m\n", account.Username)
+	fmt.Fprintf(w, "└─\033[97mPartnerID:\033[0m \033[37m%v\033[0m\n", account.PartnerID)
+	return nil
+}
+
+// ############################## GET #####################################
+
+type accountGetCommand struct{}
+
+// Execute executes the 'account' command. The command flags are stored in
+// the 's' parameter, while the program arguments are stored in the 'args'
+// parameter.
+func (a *accountGetCommand) Execute(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("missing account name")
+	}
+
+	addr := auth.Address + admin.RestURI + admin.AccountsURI + "/" + args[0]
+
+	req, err := http.NewRequest(http.MethodGet, addr, nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := executeRequest(req, auth.Username, os.Stdin, os.Stdout)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	account := &model.Account{}
+	if err := json.Unmarshal(body, account); err != nil {
+		return err
+	}
+
+	fmt.Println()
+	if err := displayAccount(os.Stdout, account); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // ############################### LIST #######################################
 
 type accountListCommand struct {
-	*accountCommand `no-flag:"true"`
-	Limit           int    `short:"l" long:"limit" description:"The max number of entries which can be returned" default:"20"`
-	Offset          int    `short:"o" long:"offset" description:"The offset from which the first entry is taken" default:"0"`
-	Sort            string `short:"s" long:"sort" description:"The parameter used to sort the returned entries" choice:"username" default:"username"`
-	Reverse         bool   `short:"d" long:"descending" description:"If present, the order of the sorting will be reversed"`
+	Limit   int    `short:"l" long:"limit" description:"The max number of entries which can be returned" default:"20"`
+	Offset  int    `short:"o" long:"offset" description:"The offset from which the first entry is taken" default:"0"`
+	Sort    string `short:"s" long:"sort" description:"The parameter used to sort the returned entries" choice:"username" default:"username"`
+	Reverse bool   `short:"d" long:"descending" description:"If present, the order of the sorting will be reversed"`
 }
 
 func (a *accountListCommand) listAccounts(in *os.File, out *os.File) ([]byte, error) {
-	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + a.Partner +
-		admin.AccountsURI
+	addr := auth.Address + admin.RestURI + admin.AccountsURI
 
 	addr += "?limit=" + strconv.Itoa(a.Limit)
 	addr += "&offset=" + strconv.Itoa(a.Offset)
@@ -132,21 +129,21 @@ func (a *accountListCommand) Execute(_ []string) error {
 // ############################### CREATE #######################################
 
 type accountCreateCommand struct {
-	*accountCommand `no-flag:"true"`
-	Username        string `required:"true" short:"n" long:"name" description:"The account's username'"`
-	Password        string `required:"true" short:"p" long:"password" description:"The account's password"`
+	Username  string `required:"true" short:"n" long:"name" description:"The account's username'"`
+	Password  string `required:"true" short:"p" long:"password" description:"The account's password"`
+	PartnerID uint64 `required:"true" short:"i" long:"partner_id" description:"The partner to which the account will be attached"`
 }
 
 // Execute executes the 'create' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
 func (a *accountCreateCommand) Execute(_ []string) error {
-	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + a.Partner +
-		admin.AccountsURI
+	addr := auth.Address + admin.RestURI + admin.AccountsURI
 
 	account := &model.Account{
-		Username: a.Username,
-		Password: []byte(a.Password),
+		Username:  a.Username,
+		Password:  []byte(a.Password),
+		PartnerID: a.PartnerID,
 	}
 
 	path, err := sendBean(account, os.Stdin, os.Stdout, addr, http.MethodPost)
@@ -163,9 +160,9 @@ func (a *accountCreateCommand) Execute(_ []string) error {
 //################################### UPDATE ######################################
 
 type accountUpdateCommand struct {
-	*accountCommand `no-flag:"true"`
-	Username        string `short:"n" long:"name" description:"The account's username'"`
-	Password        string `short:"p" long:"password" description:"The account's password"`
+	Username  string `short:"n" long:"name" description:"The account's username'"`
+	Password  string `short:"p" long:"password" description:"The account's password"`
+	PartnerID uint64 `short:"i" long:"partner_id" description:"The partner to which the account will be attached"`
 }
 
 // Execute executes the 'update' command. The command flags are stored in
@@ -176,12 +173,12 @@ func (a *accountUpdateCommand) Execute(args []string) error {
 		return fmt.Errorf("missing account name")
 	}
 
-	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + a.Partner +
-		admin.AccountsURI + "/" + args[0]
+	addr := auth.Address + admin.RestURI + admin.AccountsURI + "/" + args[0]
 
 	account := &model.Account{
-		Username: a.Username,
-		Password: []byte(a.Password),
+		Username:  a.Username,
+		Password:  []byte(a.Password),
+		PartnerID: a.PartnerID,
 	}
 
 	path, err := sendBean(account, os.Stdin, os.Stdout, addr, http.MethodPatch)
@@ -197,9 +194,7 @@ func (a *accountUpdateCommand) Execute(args []string) error {
 
 // ############################## DELETE #####################################
 
-type accountDeleteCommand struct {
-	*accountCommand `no-flag:"true"`
-}
+type accountDeleteCommand struct{}
 
 // Execute executes the 'account' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
@@ -209,8 +204,7 @@ func (a *accountDeleteCommand) Execute(args []string) error {
 		return fmt.Errorf("missing account name")
 	}
 
-	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + a.Partner +
-		admin.AccountsURI + "/" + args[0]
+	addr := auth.Address + admin.RestURI + admin.AccountsURI + "/" + args[0]
 
 	req, err := http.NewRequest(http.MethodDelete, addr, nil)
 	if err != nil {

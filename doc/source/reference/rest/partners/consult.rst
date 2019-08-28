@@ -1,18 +1,19 @@
 Consulter un partenaire
 =======================
 
-.. http:get:: /api/partners/(partner)
+.. http:get:: /api/partners/(int:partner_id)
 
-   Renvoie le partenaire nommé `partner`.
+   Renvoie portant l'identifiant ``partner_id``.
 
    **Requête**
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
-   :Example:
+   **Exemple de requête**
+
        .. code-block:: http
 
-          GET /api/partners/partenaire1 HTTP/1.1
+          GET /api/partners/1234 HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
 
@@ -22,21 +23,22 @@ Consulter un partenaire
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: Le partenaire demandé n'existe pas
 
-   :Response JSON Object:
+   :resjson number ID: L'identifiant unique du partenaire
+   :resjson string Name: Le nom du partenaire
+   :resjson string Address: L'address (IP ou DNS) du partenaire
+   :resjson number Port: Le port sur lequel le partenaire écoute
+   :resjson [sftp] Type: Le type de partenaire
 
-       * **Name** (*string*) - Le nom du partenaire
-       * **Address** (*string*) - L'address (IP ou DNS) du partenaire
-       * **Port** (*int*) - Le port sur lequel le partenaire écoute
-       * **Type** (*[sftp|http]*) - Le type de partenaire
+   **Exemple de réponse**
 
-   :Example:
        .. code-block:: http
 
           HTTP/1.1 200 OK
           Content-Type: application/json
-          Content-Length: 88
+          Content-Length: 101
 
           {
+            "ID": 1234,
             "Name": "partenaire1",
             "Addresse": "waarp.fr",
             "Port": 21,

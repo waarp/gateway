@@ -1,32 +1,33 @@
 Remplacer un partenaire
 =======================
 
-.. http:put:: /api/partners/(partner)
+.. http:put:: /api/partners/(int:partner_id)
 
-   Remplace le partenaire portant le nom `partner` avec les informations renseignées
-   en format JSON dans le corps de la requête. Les champs non-spécifiés seront remplacés
-   par leur valeur par défaut.
+   Remplace le partenaire portant le numéro ``partner_id`` par celui renseigné
+   en format JSON dans le corps de la requête. Les champs non-spécifiés seront
+   remplacés par leur valeur par défaut.
 
    **Requête**
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
-   :Request JSON Object:
+   :reqjson number ID: L'identifiant unique du partenaire
+   :reqjson string Name: Le nom du partenaire
+   :reqjson string Address: L'address (IP ou DNS) du partenaire
+   :reqjson number Port: Le port sur lequel le partenaire écoute
+   :reqjson [sftp] Type: Le type de partenaire
 
-       * **Name** (*string*) - Le nom du partenaire
-       * **Address** (*string*) - L'address (IP ou DNS) du partenaire
-       * **Port** (*int*) - Le port sur lequel le partenaire écoute
-       * **Type** (*[sftp|http]*) - Le type de partenaire
+   **Exemple de requête**
 
-   :Example:
        .. code-block:: http
 
-          PUT /api/partners/partenaire1 HTTP/1.1
+          PUT /api/partners/1234 HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
           Content-Type: application/json
-          Content-Length: 88
+          Content-Length: 101
 
           {
+            "ID": 2345,
             "Name": "partenaire1b",
             "Addresse": "waarp.org",
             "Port": 80,
@@ -47,4 +48,4 @@ Remplacer un partenaire
        .. code-block:: http
 
           HTTP/1.1 201 CREATED
-          Location: /api/partners/partenaire1b
+          Location: /api/partners/2345

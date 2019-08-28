@@ -1,9 +1,9 @@
 Supprimer un partenaire
 =======================
 
-.. http:delete:: /api/partners/(partner)
+.. http:delete:: /api/partners/(int:partner_id)
 
-   Supprime le partenaire portant le nom `partner`.
+   Supprime le partenaire portant le numéro ``partner_id``.
 
    **Requête**
 
@@ -12,7 +12,7 @@ Supprimer un partenaire
    :Example:
        .. code-block:: http
 
-          DELETE /api/partners/partenaire1 HTTP/1.1
+          DELETE /api/partners/1234 HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
 

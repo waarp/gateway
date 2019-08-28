@@ -6,13 +6,13 @@ func init() {
 	Tables = append(Tables, &User{})
 }
 
-// bcryptRounds defines the number of rounds taken by bcrypt to hash passwords
+// BcryptRounds defines the number of rounds taken by bcrypt to hash passwords
 // in the database
-const bcryptRounds = 12
+var BcryptRounds = 12
 
 func hashPassword(clear []byte) []byte {
 	if _, isHashed := bcrypt.Cost(clear); isHashed != nil {
-		hashed, err := bcrypt.GenerateFromPassword(clear, bcryptRounds)
+		hashed, err := bcrypt.GenerateFromPassword(clear, BcryptRounds)
 		if err != nil {
 			return nil
 		}

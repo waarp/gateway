@@ -2,45 +2,64 @@ package main
 
 import (
 	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"os"
+	"strconv"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	testPartnerName      = "test_partner"
-	incorrectPartnerName = "incorrect"
-)
+var testAccountPartner model.Partner
+
+func init() {
+	testAccountPartner = model.Partner{
+		Name:    "test_account_partner",
+		Address: "test_account_partner_address",
+		Port:    1,
+		Type:    "sftp",
+	}
+	if err := testDb.Create(&testAccountPartner); err != nil {
+		panic(err)
+	}
+}
 
 func TestAccountCreate(t *testing.T) {
-	testAccount := &model.Account{
-		Username: "test_account_create",
-		Password: []byte("test_account_create_password"),
-	}
-	path := admin.RestURI + admin.PartnersURI + "/" + testPartnerName + admin.AccountsURI
-	createHandler := testHandler(http.MethodPost, path, testAccount, nil, nil,
-		http.StatusCreated)
 
 	Convey("Testing the account creation function", t, func() {
-		server := httptest.NewServer(createHandler)
-		auth = ConnectionOptions{
-			Address:  server.URL,
-			Username: "test",
+		testAccount := &model.Account{
+			Username:  "test_account_create",
+			Password:  []byte("test_account_create_password"),
+			PartnerID: testAccountPartner.ID,
 		}
-		a := accountCreateCommand{accountCommand: &accountCommand{Partner: testPartnerName}}
+		existingAccount := &model.Account{
+			Username:  "test_account_existing",
+			Password:  []byte("test_account_existing_password"),
+			PartnerID: testAccountPartner.ID,
+		}
 
-		Reset(server.Close)
+		auth = ConnectionOptions{
+			Address:  testServer.URL,
+			Username: "admin",
+		}
+		a := accountCreateCommand{}
 
-		Convey("Given correct flags", func() {
+		err := testDb.Create(existingAccount)
+		So(err, ShouldBeNil)
+
+		Reset(func() {
+			err := testDb.Delete(existingAccount)
+			So(err, ShouldBeNil)
+			err = testDb.Delete(testAccount)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Given correct values", func() {
 			args := []string{"-n", testAccount.Username,
 				"-p", string(testAccount.Password),
+				"-i", strconv.FormatUint(testAccount.PartnerID, 10),
 			}
 			args, err := flags.ParseArgs(&a, args)
 			So(err, ShouldBeNil)
@@ -51,9 +70,10 @@ func TestAccountCreate(t *testing.T) {
 			})
 		})
 
-		Convey("Given incorrect flags", func() {
-			args := []string{"-n", "incorrect",
-				"-p", "incorrect",
+		Convey("Given a non-existent partner id", func() {
+			args := []string{"-n", testAccount.Username,
+				"-p", string(testAccount.Password),
+				"-i", "1000",
 			}
 			args, err := flags.ParseArgs(&a, args)
 			So(err, ShouldBeNil)
@@ -61,69 +81,76 @@ func TestAccountCreate(t *testing.T) {
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusBadRequest))
 			})
 		})
 
-		Convey("Given an incorrect partner name", func() {
-			a.Partner = incorrectPartnerName
+		Convey("Given a non-numeric partner id", func() {
 			args := []string{"-n", testAccount.Username,
 				"-p", string(testAccount.Password),
+				"-i", "not_an_id",
 			}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			err = a.Execute(args)
+			_, err := flags.ParseArgs(&a, args)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 	})
 }
 
 func TestAccountSelect(t *testing.T) {
-	testAccount1 := &model.Account{
-		Username: "test_account_select1",
-		Password: []byte("test_account_select1_password"),
-	}
-	testAccount2 := &model.Account{
-		Username: "test_account_select2",
-		Password: []byte("test_account_select2_password"),
-	}
-	testAccount3 := &model.Account{
-		Username: "test_account_select3",
-		Password: []byte("test_account_select3_password"),
-	}
-	testAccount4 := &model.Account{
-		Username: "test_account_select4",
-		Password: []byte("test_account_select4_password"),
-	}
-	path := admin.RestURI + admin.PartnersURI + "/" + testPartnerName + admin.AccountsURI
 
 	Convey("Testing the account listing function", t, func() {
-		a := accountListCommand{accountCommand: &accountCommand{Partner: testPartnerName}}
+		So(model.BcryptRounds, ShouldEqual, bcrypt.MinCost)
+
+		testAccount1 := &model.Account{
+			Username: "test_account_select1",
+			Password: []byte("test_account_select1_password"),
+		}
+		testAccount2 := &model.Account{
+			Username: "test_account_select2",
+			Password: []byte("test_account_select2_password"),
+		}
+		testAccount3 := &model.Account{
+			Username: "test_account_select3",
+			Password: []byte("test_account_select3_password"),
+		}
+		testAccount4 := &model.Account{
+			Username: "test_account_select4",
+			Password: []byte("test_account_select4_password"),
+		}
+
+		auth = ConnectionOptions{
+			Address:  testServer.URL,
+			Username: "admin",
+		}
+		a := accountListCommand{}
+
+		err := testDb.Create(testAccount1)
+		So(err, ShouldBeNil)
+		err = testDb.Create(testAccount2)
+		So(err, ShouldBeNil)
+		err = testDb.Create(testAccount3)
+		So(err, ShouldBeNil)
+		err = testDb.Create(testAccount4)
+		So(err, ShouldBeNil)
+
+		Reset(func() {
+			err := testDb.Delete(testAccount1)
+			So(err, ShouldBeNil)
+			err = testDb.Delete(testAccount2)
+			So(err, ShouldBeNil)
+			err = testDb.Delete(testAccount3)
+			So(err, ShouldBeNil)
+			err = testDb.Delete(testAccount4)
+			So(err, ShouldBeNil)
+		})
 
 		Convey("Given no flags", func() {
-			arrayResult := []*model.Account{testAccount1, testAccount2, testAccount3, testAccount4}
-			expectedResults := map[string][]*model.Account{"accounts": arrayResult}
-			selectHandler := testHandler(http.MethodGet, path, nil, expectedResults,
-				nil, http.StatusOK)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
 			args := []string{}
 			args, err := flags.ParseArgs(&a, args)
 			So(err, ShouldBeNil)
 			err = a.Execute(args)
-
-			Reset(server.Close)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -131,25 +158,11 @@ func TestAccountSelect(t *testing.T) {
 		})
 
 		Convey("Given a limit flag", func() {
-			arrayResult := []*model.Account{testAccount1, testAccount2}
-			expectedResults := map[string][]*model.Account{"accounts": arrayResult}
-			expectedParams := url.Values{"limit": []string{"2"}}
-			selectHandler := testHandler(http.MethodGet, path, nil, expectedResults,
-				expectedParams, http.StatusOK)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
 			args := []string{"-l", "2"}
 			args, err := flags.ParseArgs(&a, args)
 			So(err, ShouldBeNil)
 			So(a.Limit, ShouldEqual, 2)
 			err = a.Execute(args)
-
-			Reset(server.Close)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -157,24 +170,10 @@ func TestAccountSelect(t *testing.T) {
 		})
 
 		Convey("Given an offset flag", func() {
-			arrayResult := []*model.Account{testAccount3, testAccount4}
-			expectedResults := map[string][]*model.Account{"accounts": arrayResult}
-			expectedParams := url.Values{"offset": []string{"2"}}
-			selectHandler := testHandler(http.MethodGet, path, nil, expectedResults,
-				expectedParams, http.StatusOK)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
 			args := []string{"-o", "2"}
 			args, err := flags.ParseArgs(&a, args)
 			So(err, ShouldBeNil)
 			err = a.Execute(args)
-
-			Reset(server.Close)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -182,24 +181,10 @@ func TestAccountSelect(t *testing.T) {
 		})
 
 		Convey("Given a sort flag", func() {
-			arrayResult := []*model.Account{testAccount3, testAccount1, testAccount4, testAccount2}
-			expectedResults := map[string][]*model.Account{"accounts": arrayResult}
-			expectedParams := url.Values{"sortby": []string{"username"}}
-			selectHandler := testHandler(http.MethodGet, path, nil, expectedResults,
-				expectedParams, http.StatusOK)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
 			args := []string{"-s", "username"}
 			args, err := flags.ParseArgs(&a, args)
 			So(err, ShouldBeNil)
 			err = a.Execute(args)
-
-			Reset(server.Close)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -207,145 +192,115 @@ func TestAccountSelect(t *testing.T) {
 		})
 
 		Convey("Given an order flag", func() {
-			arrayResult := []*model.Account{testAccount4, testAccount3, testAccount2, testAccount1}
-			expectedResults := map[string][]*model.Account{"accounts": arrayResult}
-			expectedParams := url.Values{"order": []string{"desc"}}
-			selectHandler := testHandler(http.MethodGet, path, nil, expectedResults,
-				expectedParams, http.StatusOK)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
 			args := []string{"-d"}
 			args, err := flags.ParseArgs(&a, args)
 			So(err, ShouldBeNil)
 			err = a.Execute(args)
 
-			Reset(server.Close)
-
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
-			})
-		})
-
-		Convey("Given an incorrect partner name", func() {
-			selectHandler := testHandler(http.MethodGet, path, nil,
-				http.StatusText(http.StatusNotFound), nil, http.StatusNotFound)
-
-			server := httptest.NewServer(selectHandler)
-			auth = ConnectionOptions{
-				Address:  server.URL,
-				Username: "test",
-			}
-
-			a.Partner = incorrectPartnerName
-			args := []string{}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			err = a.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 	})
 }
 
 func TestAccountDelete(t *testing.T) {
-	testAccountName := "test_account_delete"
 
 	Convey("Testing the account deletion function", t, func() {
-		path := admin.RestURI + admin.PartnersURI + "/" + testPartnerName +
-			admin.AccountsURI + "/" + testAccountName
-		getHandler := testHandler(http.MethodDelete, path, nil, nil, nil,
-			http.StatusNoContent)
-
-		server := httptest.NewServer(getHandler)
-		auth = ConnectionOptions{
-			Address:  server.URL,
-			Username: "test",
+		testAccount := &model.Account{
+			Username:  "test_account_delete",
+			Password:  []byte("test_account_delete_password"),
+			PartnerID: testAccountPartner.ID,
 		}
-		a := accountDeleteCommand{accountCommand: &accountCommand{Partner: testPartnerName}}
 
-		Reset(server.Close)
+		auth = ConnectionOptions{
+			Address:  testServer.URL,
+			Username: "admin",
+		}
+		a := accountDeleteCommand{}
 
-		Convey("Given a correct name", func() {
-			args := []string{testAccountName}
+		err := testDb.Create(testAccount)
+		So(err, ShouldBeNil)
+
+		Reset(func() {
+			err := testDb.Delete(testAccount)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Given a correct id", func() {
+			args := []string{strconv.FormatUint(testAccount.ID, 10)}
 			err := a.Execute(args)
-
-			Reset(server.Close)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
 			})
 		})
 
-		Convey("Given an incorrect name", func() {
-			args := []string{"unknown"}
+		Convey("Given an non-existent id", func() {
+			args := []string{"1000"}
 			err := a.Execute(args)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 
-		Convey("Given a no name", func() {
+		Convey("Given an non-numeric id", func() {
+			args := []string{"not_an_id"}
+			err := a.Execute(args)
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
+			})
+		})
+
+		Convey("Given a no id", func() {
 			args := []string{}
 			err := a.Execute(args)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, "missing account name")
-			})
-		})
-
-		Convey("Given an incorrect partner name", func() {
-			a.Partner = incorrectPartnerName
-			args := []string{testAccountName}
-			err := a.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 	})
 }
 
 func TestAccountUpdate(t *testing.T) {
-	testAccountName := "test_account_before"
-	testAccountAfter := &model.Account{
-		Username: "test_account_after",
-		Password: []byte("test_account_after_password"),
-	}
-	path := admin.RestURI + admin.PartnersURI + "/" + testPartnerName +
-		admin.AccountsURI + "/" + testAccountName
-	createHandler := testHandler(http.MethodPatch, path, testAccountAfter, nil, nil,
-		http.StatusCreated)
 
 	Convey("Testing the account update function", t, func() {
-		server := httptest.NewServer(createHandler)
-		auth = ConnectionOptions{
-			Address:  server.URL,
-			Username: "test",
+		testAccountBefore := &model.Account{
+			Username:  "test_account_update_before",
+			Password:  []byte("test_account_update_before_password"),
+			PartnerID: testAccountPartner.ID,
 		}
-		a := accountUpdateCommand{accountCommand: &accountCommand{Partner: testPartnerName}}
+		testAccountAfter := &model.Account{
+			Username:  "test_account_update_after",
+			Password:  []byte("test_account_update_after_password"),
+			PartnerID: testAccountPartner.ID,
+		}
 
-		Reset(server.Close)
+		auth = ConnectionOptions{
+			Address:  testServer.URL,
+			Username: "admin",
+		}
+		a := accountUpdateCommand{}
 
-		Convey("Given correct flags", func() {
+		err := testDb.Create(testAccountBefore)
+		So(err, ShouldBeNil)
+		id := strconv.FormatUint(testAccountBefore.ID, 10)
+
+		Reset(func() {
+			err := testDb.Delete(testAccountBefore)
+			So(err, ShouldBeNil)
+			err = testDb.Delete(testAccountAfter)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Given correct values", func() {
 			args := []string{"-n", testAccountAfter.Username,
 				"-p", string(testAccountAfter.Password),
-				testAccountName,
+				"-i", strconv.FormatUint(testAccountAfter.PartnerID, 10),
+				id,
 			}
 			args, err := flags.ParseArgs(&a, args)
 			So(err, ShouldBeNil)
@@ -356,10 +311,11 @@ func TestAccountUpdate(t *testing.T) {
 			})
 		})
 
-		Convey("Given incorrect flags", func() {
-			args := []string{"-n", "incorrect",
-				"-p", "incorrect",
-				testAccountName,
+		Convey("Given a non-existent partner id", func() {
+			args := []string{"-n", testAccountAfter.Username,
+				"-p", string(testAccountAfter.Password),
+				"-i", "1000",
+				id,
 			}
 			args, err := flags.ParseArgs(&a, args)
 			So(err, ShouldBeNil)
@@ -367,31 +323,26 @@ func TestAccountUpdate(t *testing.T) {
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusBadRequest))
 			})
 		})
 
-		Convey("Given no username", func() {
+		Convey("Given a non-numeric partner id", func() {
 			args := []string{"-n", testAccountAfter.Username,
 				"-p", string(testAccountAfter.Password),
+				"-i", "not_an_id",
+				id,
 			}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			err = a.Execute(args)
+			_, err := flags.ParseArgs(&a, args)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, "missing account name")
 			})
 		})
 
-		Convey("Given an incorrect partner name", func() {
-			a.Partner = incorrectPartnerName
+		Convey("Given a no partner id", func() {
 			args := []string{"-n", testAccountAfter.Username,
 				"-p", string(testAccountAfter.Password),
-				testAccountName,
+				"-i", strconv.FormatUint(testAccountAfter.PartnerID, 10),
 			}
 			args, err := flags.ParseArgs(&a, args)
 			So(err, ShouldBeNil)
@@ -399,8 +350,6 @@ func TestAccountUpdate(t *testing.T) {
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-
-				So(err.Error(), ShouldResemble, http.StatusText(http.StatusNotFound))
 			})
 		})
 	})
@@ -410,9 +359,13 @@ func TestDisplayAccount(t *testing.T) {
 
 	Convey("Given an account", t, func() {
 		testAccount := &model.Account{
-			Username: "test_account",
-			Password: []byte("test_account_password"),
+			ID:        123,
+			PartnerID: 789,
+			Username:  "test_account",
+			Password:  []byte("test_account_password"),
 		}
+		id := strconv.FormatUint(testAccount.ID, 10)
+		parID := strconv.FormatUint(testAccount.PartnerID, 10)
 
 		Convey("When calling the 'displayAccount' function", func() {
 			out, err := ioutil.TempFile(".", "waarp_gateway")
@@ -432,7 +385,9 @@ func TestDisplayAccount(t *testing.T) {
 				result, err := ioutil.ReadAll(in)
 				So(err, ShouldBeNil)
 
-				expected := "Account '" + testAccount.Username + "'\n"
+				expected := "Account n°" + id + ":\n" +
+					"├─Username: " + testAccount.Username + "\n" +
+					"└─PartnerID: " + parID + "\n"
 
 				So(string(result), ShouldEqual, expected)
 			})

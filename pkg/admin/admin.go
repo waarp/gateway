@@ -28,7 +28,7 @@ type Server struct {
 	Logger   *log.Logger
 	Conf     *conf.ServerConfig
 	Db       *database.Db
-	Services map[string]service.Servicer
+	Services map[string]service.Service
 
 	state  service.State
 	server http.Server
@@ -67,56 +67,59 @@ func checkAddress(addr string) (string, error) {
 	return "", err
 }
 
-func makeHandler(s *Server) http.Handler {
+// MakeHandler returns the router for the REST & Admin http interface
+func MakeHandler(logger *log.Logger, db *database.Db, services map[string]service.Service) http.Handler {
 
 	// REST handler
 	handler := mux.NewRouter()
-	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(s.Logger, s.Db))
+	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(logger, db))
 	apiHandler := handler.PathPrefix(RestURI).Subrouter()
-	apiHandler.HandleFunc(StatusURI, getStatus(s.Logger, s.Services)).
+	apiHandler.HandleFunc(StatusURI, getStatus(logger, services)).
 		Methods(http.MethodGet)
 
 	// Partners handler
 	partnersHandler := apiHandler.PathPrefix(PartnersURI).Subrouter()
-	partnersHandler.HandleFunc("", listPartners(s.Logger, s.Db)).
+	partnersHandler.HandleFunc("", listPartners(logger, db)).
 		Methods(http.MethodGet)
-	partnersHandler.HandleFunc("", createPartner(s.Logger, s.Db)).
+	partnersHandler.HandleFunc("", createPartner(logger, db)).
 		Methods(http.MethodPost)
 
-	partHandler := partnersHandler.PathPrefix("/{partner}").Subrouter()
-	partHandler.HandleFunc("", getPartner(s.Logger, s.Db)).
+	partHandler := partnersHandler.PathPrefix("/{partner:[0-9]+}").Subrouter()
+	partHandler.HandleFunc("", getPartner(logger, db)).
 		Methods(http.MethodGet)
-	partHandler.HandleFunc("", deletePartner(s.Logger, s.Db)).
+	partHandler.HandleFunc("", deletePartner(logger, db)).
 		Methods(http.MethodDelete)
-	partHandler.HandleFunc("", updatePartner(s.Logger, s.Db)).
+	partHandler.HandleFunc("", updatePartner(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 
 	// Accounts handler
-	accountsHandler := partHandler.PathPrefix(AccountsURI).Subrouter()
-	accountsHandler.HandleFunc("", listAccounts(s.Logger, s.Db)).
+	accountsHandler := apiHandler.PathPrefix(AccountsURI).Subrouter()
+	accountsHandler.HandleFunc("", listAccounts(logger, db)).
 		Methods(http.MethodGet)
-	accountsHandler.HandleFunc("", createAccount(s.Logger, s.Db)).
+	accountsHandler.HandleFunc("", createAccount(logger, db)).
 		Methods(http.MethodPost)
 
-	accHandler := accountsHandler.PathPrefix("/{account}").Subrouter()
-	accHandler.HandleFunc("", deleteAccount(s.Logger, s.Db)).
+	accHandler := accountsHandler.PathPrefix("/{account:[0-9]+}").Subrouter()
+	accHandler.HandleFunc("", getAccount(logger, db)).
+		Methods(http.MethodGet)
+	accHandler.HandleFunc("", deleteAccount(logger, db)).
 		Methods(http.MethodDelete)
-	accHandler.HandleFunc("", updateAccount(s.Logger, s.Db)).
+	accHandler.HandleFunc("", updateAccount(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 
 	// Certificates handler
-	certificatesHandler := accHandler.PathPrefix(CertsURI).Subrouter()
-	certificatesHandler.HandleFunc("", listCertificates(s.Logger, s.Db)).
+	certificatesHandler := apiHandler.PathPrefix(CertsURI).Subrouter()
+	certificatesHandler.HandleFunc("", listCertificates(logger, db)).
 		Methods(http.MethodGet)
-	certificatesHandler.HandleFunc("", createCertificate(s.Logger, s.Db)).
+	certificatesHandler.HandleFunc("", createCertificate(logger, db)).
 		Methods(http.MethodPost)
 
-	certHandler := certificatesHandler.PathPrefix("/{certificate}").Subrouter()
-	certHandler.HandleFunc("", getCertificate(s.Logger, s.Db)).
+	certHandler := certificatesHandler.PathPrefix("/{certificate:[0-9]+}").Subrouter()
+	certHandler.HandleFunc("", getCertificate(logger, db)).
 		Methods(http.MethodGet)
-	certHandler.HandleFunc("", deleteCertificate(s.Logger, s.Db)).
+	certHandler.HandleFunc("", deleteCertificate(logger, db)).
 		Methods(http.MethodDelete)
-	certHandler.HandleFunc("", updateCertificate(s.Logger, s.Db)).
+	certHandler.HandleFunc("", updateCertificate(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 
 	return handler
@@ -148,7 +151,7 @@ func initServer(s *Server) error {
 		s.Logger.Info("No TLS certificate configured, using plain HTTP.")
 	}
 
-	handler := makeHandler(s)
+	handler := MakeHandler(s.Logger, s.Db, s.Services)
 
 	// Create http.Server instance
 	s.server = http.Server{

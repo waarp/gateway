@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -13,63 +12,13 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-// init adds the 'partner' command to the program arguments parser
-func init() {
-	var partner partnerCommand
-	p, err := parser.AddCommand("partner", "Manage waarp-gateway partners",
-		"The command to manage the waarp-gateway partners.",
-		&partner)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	var get partnerGetCommand
-	_, err = p.AddCommand("get", "Get partner",
-		"Retrieve a single partner entry.",
-		&get)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	var list partnerListCommand
-	_, err = p.AddCommand("list", "List partners",
-		"List the partner entries.",
-		&list)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	var create partnerCreateCommand
-	_, err = p.AddCommand("create", "Create partner",
-		"Create a partner and add it to the database.",
-		&create)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	var update partnerUpdateCommand
-	_, err = p.AddCommand("update", "Update partner",
-		"Updates a partner entry in the database.",
-		&update)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	var del partnerDeleteCommand
-	_, err = p.AddCommand("delete", "Delete partner",
-		"Removes a partner entry from the database.",
-		&del)
-	if err != nil {
-		panic(err.Error())
-	}
-}
-
 type partnerCommand struct{}
 
 func displayPartner(out *os.File, partner *model.Partner) error {
 	w := getColorable(out)
 
-	fmt.Fprintf(w, "\033[97;1mPartner '%s':\033[0m\n", partner.Name)
+	fmt.Fprintf(w, "\033[97;1mPartner n°%v:\033[0m\n", partner.ID)
+	fmt.Fprintf(w, "├─\033[97mName:\033[0m \033[34;4m%s\033[0m\n", partner.Name)
 	fmt.Fprintf(w, "├─\033[97mAddress:\033[0m \033[34;4m%s\033[0m\n", partner.Address)
 	fmt.Fprintf(w, "├─\033[97mPort:\033[0m \033[33m%v\033[0m\n", partner.Port)
 	fmt.Fprintf(w, "└─\033[97mType:\033[0m \033[37m%s\033[0m\n", partner.Type)
@@ -77,34 +26,12 @@ func displayPartner(out *os.File, partner *model.Partner) error {
 	return nil
 }
 
-func sendBean(bean interface{}, in, out *os.File, addr, method string) (string, error) {
-
-	content, err := json.Marshal(bean)
-	if err != nil {
-		return "", err
-	}
-	body := bytes.NewReader(content)
-
-	req, err := http.NewRequest(method, addr, body)
-	if err != nil {
-		return "", err
-	}
-
-	res, err := executeRequest(req, auth.Username, in, out)
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-
-	return res.Header.Get("Location"), nil
-}
-
 // ############################## GET #####################################
 
 type partnerGetCommand struct{}
 
-func (p *partnerGetCommand) getPartner(in *os.File, out *os.File, name string) (*model.Partner, error) {
-	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + name
+func (p *partnerGetCommand) getPartner(in *os.File, out *os.File, id string) (*model.Partner, error) {
+	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + id
 
 	req, err := http.NewRequest(http.MethodGet, addr, nil)
 	if err != nil {

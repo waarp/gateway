@@ -1,10 +1,10 @@
 Gestion des partenaires
 #######################
 
-Le point d'accès pour gérer les partenaires de transferts est ``/partners``.
+Le point d'accès pour gérer les partenaires de transferts est ``/api/partners``.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    create
    list
@@ -12,4 +12,3 @@ Le point d'accès pour gérer les partenaires de transferts est ``/partners``.
    update
    replace
    delete
-   accounts/index

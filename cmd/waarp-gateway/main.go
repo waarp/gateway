@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -21,6 +23,152 @@ var (
 
 	auth ConnectionOptions
 )
+
+func init() {
+	var partner partnerCommand
+	p, err := parser.AddCommand("partner", "Manage waarp-gateway partners",
+		"The command to manage the waarp-gateway partners.",
+		&partner)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var get partnerGetCommand
+	_, err = p.AddCommand("get", "Get partner",
+		"Retrieve a single partner entry.",
+		&get)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var list partnerListCommand
+	_, err = p.AddCommand("list", "List partners",
+		"List the partner entries.",
+		&list)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var create partnerCreateCommand
+	_, err = p.AddCommand("create", "Create partner",
+		"Create a partner and add it to the database.",
+		&create)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var update partnerUpdateCommand
+	_, err = p.AddCommand("update", "Update partner",
+		"Updates a partner entry in the database.",
+		&update)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var del partnerDeleteCommand
+	_, err = p.AddCommand("delete", "Delete partner",
+		"Removes a partner entry from the database.",
+		&del)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var account accountCommand
+	a, err := parser.AddCommand("account", "Manage waarp-gateway accounts",
+		"The command to manage the waarp-gateway accounts.",
+		&account)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var listAccount accountListCommand
+	_, err = a.AddCommand("list", "List accounts",
+		"List the account entries.",
+		&listAccount)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var createAccount accountCreateCommand
+	_, err = a.AddCommand("create", "Create account",
+		"Create an account and add it to the database.",
+		&createAccount)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var updateAccount accountUpdateCommand
+	_, err = a.AddCommand("update", "Update account",
+		"Updates an account entry in the database.",
+		&updateAccount)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var deleteAccount accountDeleteCommand
+	_, err = a.AddCommand("delete", "Delete account",
+		"Removes an account entry from the database.",
+		&deleteAccount)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var getAccount accountGetCommand
+	_, err = a.AddCommand("get", "Get account",
+		"Retrieves an account entry from the database.",
+		&getAccount)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var certificate certificateCommand
+	c, err := parser.AddCommand("certificate", "Manage waarp-gateway certificates",
+		"The command to manage the waarp-gateway certificates.",
+		&certificate)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var updateCert certificateUpdateCommand
+	_, err = c.AddCommand("update", "Update certificate",
+		"Updates a certificate entry in the database.",
+		&updateCert)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var deleteCert certificateDeleteCommand
+	_, err = c.AddCommand("delete", "Delete certificate",
+		"Removes a certificate entry from the database.",
+		&deleteCert)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var getCert certificateGetCommand
+	_, err = c.AddCommand("get", "Get certificate",
+		"Retrieve a certificate entry from the database.",
+		&getCert)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var listCert certificateListCommand
+	_, err = c.AddCommand("list", "List certificates",
+		"List the certificate entries.",
+		&listCert)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var createCert certificateCreateCommand
+	_, err = c.AddCommand("create", "Create certificate",
+		"Create a certificate and add it to the database.",
+		&createCert)
+	if err != nil {
+		panic(err.Error())
+	}
+}
 
 // ConnectionOptions regroups the flags common to all commands
 type ConnectionOptions struct {
@@ -96,6 +244,28 @@ func executeRequest(req *http.Request, user string, in *os.File, out *os.File) (
 		}
 	}
 	return nil, fmt.Errorf("authentication failed too many times")
+}
+
+func sendBean(bean interface{}, in, out *os.File, addr, method string) (string, error) {
+
+	content, err := json.Marshal(bean)
+	if err != nil {
+		return "", err
+	}
+	body := bytes.NewReader(content)
+
+	req, err := http.NewRequest(method, addr, body)
+	if err != nil {
+		return "", err
+	}
+
+	res, err := executeRequest(req, auth.Username, in, out)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	return res.Header.Get("Location"), nil
 }
 
 func getColorable(f *os.File) io.Writer {
