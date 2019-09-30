@@ -1,51 +1,59 @@
 package database
 
 import (
-	"context"
-	"fmt"
 	"reflect"
 	"testing"
-	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 )
 
+const tblName = "test"
+
 var sqliteTestDatabase *Db
 
+type testBean struct {
+	StrPK string `xorm:"pk 'str_pk'"`
+	ByteA []byte `xorm:"notnull 'bytea'"`
+}
+
+func (*testBean) TableName() string {
+	return tblName
+}
+
 func init() {
-	model.BcryptRounds = bcrypt.MinCost
+	BcryptRounds = bcrypt.MinCost
 
 	sqliteConfig := &conf.ServerConfig{}
 	sqliteConfig.Database.Type = sqlite
 	sqliteConfig.Database.Name = "file::memory:?mode=memory&cache=shared"
+	sqliteConfig.Database.AESPassphrase = "/tmp/aes_passphrase"
 
 	sqliteTestDatabase = &Db{Conf: sqliteConfig}
 }
 
 func testGet(db *Db) {
-	getTestUser := &model.User{
-		Login:    "get",
-		Password: []byte("get_password"),
+	getBean := &testBean{
+		StrPK: "get",
+		ByteA: []byte("get"),
 	}
 
 	runTests := func(acc Accessor) {
 		Convey("With an existing key", func() {
-			result := &model.User{Login: getTestUser.Login}
+			result := &testBean{StrPK: getBean.StrPK}
 			err := acc.Get(result)
 
 			Convey("Then the parameter should contain the result", func() {
 				So(err, ShouldBeNil)
-				So(result, ShouldResemble, getTestUser)
+				So(result, ShouldResemble, getBean)
 			})
 		})
 
 		Convey("With an unknown key", func() {
-			err := acc.Get(&model.User{Login: "unknown"})
+			err := acc.Get(&testBean{StrPK: "unknown"})
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError, ErrNotFound)
@@ -62,7 +70,7 @@ func testGet(db *Db) {
 	}
 
 	Convey("When calling the 'Get' method", func() {
-		_, err := db.engine.InsertOne(getTestUser)
+		_, err := db.engine.InsertOne(getBean)
 		So(err, ShouldBeNil)
 
 		Convey("Using the standalone accessor", func() {
@@ -82,35 +90,35 @@ func testGet(db *Db) {
 }
 
 func testSelect(db *Db) {
-	selectTestUser1 := &model.User{
-		Login:    "select1",
-		Password: []byte("select_password"),
+	selectBean1 := &testBean{
+		StrPK: "select1",
+		ByteA: []byte("select"),
 	}
-	selectTestUser2 := &model.User{
-		Login:    "select2",
-		Password: selectTestUser1.Password,
+	selectBean2 := &testBean{
+		StrPK: "select2",
+		ByteA: selectBean1.ByteA,
 	}
-	selectTestUser3 := &model.User{
-		Login:    "select3",
-		Password: selectTestUser1.Password,
+	selectBean3 := &testBean{
+		StrPK: "select3",
+		ByteA: selectBean1.ByteA,
 	}
-	selectTestUser4 := &model.User{
-		Login:    "select4",
-		Password: selectTestUser1.Password,
+	selectBean4 := &testBean{
+		StrPK: "select4",
+		ByteA: selectBean1.ByteA,
 	}
-	selectTestUser5 := &model.User{
-		Login:    "select5",
-		Password: selectTestUser1.Password,
+	selectBean5 := &testBean{
+		StrPK: "select5",
+		ByteA: selectBean1.ByteA,
 	}
 
 	runTests := func(acc Accessor) {
-		filters := &Filters{Conditions: builder.In("login", selectTestUser1.Login,
-			selectTestUser2.Login, selectTestUser4.Login, selectTestUser5.Login)}
-		result := &[]*model.User{}
+		filters := &Filters{Conditions: builder.In("str_pk", selectBean1.StrPK,
+			selectBean2.StrPK, selectBean4.StrPK, selectBean5.StrPK)}
+		result := &[]*testBean{}
 
 		Convey("With just a condition", func() {
-			filtered := &[]*model.User{selectTestUser1, selectTestUser2,
-				selectTestUser4, selectTestUser5}
+			filtered := &[]*testBean{selectBean1, selectBean2,
+				selectBean4, selectBean5}
 			err := acc.Select(result, filters)
 
 			Convey("Then it should return all the valid entries", func() {
@@ -121,7 +129,7 @@ func testSelect(db *Db) {
 
 		Convey("With a condition and a limit", func() {
 			filters.Limit = 2
-			limited := &[]*model.User{selectTestUser1, selectTestUser2}
+			limited := &[]*testBean{selectBean1, selectBean2}
 			err := acc.Select(result, filters)
 
 			Convey("Then it should return `limit` amount of entries at most", func() {
@@ -133,7 +141,7 @@ func testSelect(db *Db) {
 		Convey("With a condition, an offset", func() {
 			filters.Limit = 10
 			filters.Offset = 1
-			offset := &[]*model.User{selectTestUser2, selectTestUser4, selectTestUser5}
+			offset := &[]*testBean{selectBean2, selectBean4, selectBean5}
 			err := acc.Select(result, filters)
 
 			Convey("Then it should return all valid entries except the `offset` first ones", func() {
@@ -143,8 +151,8 @@ func testSelect(db *Db) {
 		})
 
 		Convey("With a condition and an order", func() {
-			filters.Order = "login DESC"
-			ordered := &[]*model.User{selectTestUser5, selectTestUser4, selectTestUser2, selectTestUser1}
+			filters.Order = "str_pk DESC"
+			ordered := &[]*testBean{selectBean5, selectBean4, selectBean2, selectBean1}
 			err := acc.Select(result, filters)
 
 			Convey("Then it should return all valid entries sorted in the specified order", func() {
@@ -158,7 +166,7 @@ func testSelect(db *Db) {
 
 			Convey("Then it should return all entries", func() {
 				So(err, ShouldBeNil)
-				expected, err := acc.Query(builder.Select().From("users"))
+				expected, err := acc.Query(builder.Select().From(tblName))
 				So(err, ShouldBeNil)
 				nbRes := reflect.Indirect(reflect.ValueOf(result)).Len()
 				So(nbRes, ShouldEqual, len(expected))
@@ -185,8 +193,8 @@ func testSelect(db *Db) {
 
 	Convey("When calling the 'Select' method", func() {
 
-		_, err := db.engine.Insert(selectTestUser1, selectTestUser2,
-			selectTestUser3, selectTestUser4, selectTestUser5)
+		_, err := db.engine.Insert(selectBean1, selectBean2,
+			selectBean3, selectBean4, selectBean5)
 		So(err, ShouldBeNil)
 
 		Convey("Using the standalone accessor", func() {
@@ -206,29 +214,29 @@ func testSelect(db *Db) {
 }
 
 func testCreate(db *Db) {
-	createTestUserFail := &model.User{
-		Login:    "existing",
-		Password: []byte("create_fail_password"),
+	existingBean := &testBean{
+		StrPK: "existing",
+		ByteA: []byte("existing"),
 	}
-	createTestUserSuccess := &model.User{
-		Login:    "create",
-		Password: []byte("create_success_password"),
+	createBean := &testBean{
+		StrPK: "create",
+		ByteA: []byte("create"),
 	}
 
 	runTests := func(acc Accessor) {
 		Convey("With a valid record", func() {
-			err := db.Create(createTestUserSuccess)
+			err := db.Create(createBean)
 
 			Convey("Then the record should be inserted without error", func() {
 				So(err, ShouldBeNil)
-				exists, err := acc.Exists(createTestUserSuccess)
+				exists, err := acc.Exists(createBean)
 				So(err, ShouldBeNil)
 				So(exists, ShouldBeTrue)
 			})
 		})
 
 		Convey("With a existing record", func() {
-			err := acc.Create(createTestUserFail)
+			err := acc.Create(existingBean)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
@@ -254,7 +262,7 @@ func testCreate(db *Db) {
 
 	Convey("When calling the 'Create' method", func() {
 
-		_, err := db.engine.InsertOne(createTestUserFail)
+		_, err := db.engine.InsertOne(existingBean)
 		So(err, ShouldBeNil)
 
 		Convey("Using the standalone accessor", func() {
@@ -274,43 +282,43 @@ func testCreate(db *Db) {
 
 func testUpdate(db *Db) {
 
-	updateTestUserBefore := &model.User{
-		Login:    "update",
-		Password: []byte("update_password"),
+	updateBeanBefore := &testBean{
+		StrPK: "update",
+		ByteA: []byte("update"),
 	}
-	updateTestUserAfter := &model.User{
-		Login:    "updated",
-		Password: []byte("updated_password"),
+	updateBeanAfter := &testBean{
+		StrPK: "updated",
+		ByteA: []byte("updated"),
 	}
 
 	runTests := func(acc Accessor) {
 		Convey("With an existing record", func() {
-			err := db.Update(updateTestUserBefore, updateTestUserAfter)
+			err := db.Update(updateBeanBefore, updateBeanAfter)
 
 			Convey("Then the record should be updated without error", func() {
 				So(err, ShouldBeNil)
 
-				existsAfter, err := acc.Exists(updateTestUserAfter)
+				existsAfter, err := acc.Exists(updateBeanAfter)
 				So(err, ShouldBeNil)
 				So(existsAfter, ShouldBeTrue)
 
-				existsBefore, err := acc.Exists(updateTestUserBefore)
+				existsBefore, err := acc.Exists(updateBeanBefore)
 				So(err, ShouldBeNil)
 				So(existsBefore, ShouldBeFalse)
 			})
 		})
 
 		Convey("With an unknown record", func() {
-			err := acc.Update(&model.User{Login: "unknown"}, &model.User{})
+			err := acc.Update(&testBean{StrPK: "unknown"}, updateBeanAfter)
 
 			Convey("Then it should do nothing", func() {
 				So(err, ShouldBeNil)
 
-				existsAfter, err := acc.Exists(updateTestUserAfter)
+				existsAfter, err := acc.Exists(updateBeanAfter)
 				So(err, ShouldBeNil)
 				So(existsAfter, ShouldBeFalse)
 
-				existsBefore, err := acc.Exists(updateTestUserBefore)
+				existsBefore, err := acc.Exists(updateBeanBefore)
 				So(err, ShouldBeNil)
 				So(existsBefore, ShouldBeTrue)
 			})
@@ -334,7 +342,7 @@ func testUpdate(db *Db) {
 	}
 
 	Convey("When calling the 'Update' method", func() {
-		_, err := db.engine.InsertOne(updateTestUserBefore)
+		_, err := db.engine.InsertOne(updateBeanBefore)
 		So(err, ShouldBeNil)
 
 		Convey("Using the standalone accessor", func() {
@@ -354,25 +362,25 @@ func testUpdate(db *Db) {
 
 func testDelete(db *Db) {
 
-	deleteTestUser := &model.User{
-		Login:    "delete",
-		Password: []byte("delete_password"),
+	deleteBean := &testBean{
+		StrPK: "delete",
+		ByteA: []byte("delete"),
 	}
 
 	runTests := func(acc Accessor) {
 		Convey("With a valid record", func() {
-			err := db.Delete(deleteTestUser)
+			err := db.Delete(deleteBean)
 
 			Convey("Then the record should be deleted without error", func() {
 				So(err, ShouldBeNil)
-				exists, err := acc.Exists(deleteTestUser)
+				exists, err := acc.Exists(deleteBean)
 				So(err, ShouldBeNil)
 				So(exists, ShouldBeFalse)
 			})
 		})
 
 		Convey("With an unknown record", func() {
-			err := acc.Delete(&model.User{Login: "unknown"})
+			err := acc.Delete(&testBean{StrPK: "unknown"})
 
 			Convey("Then it should not change anything", func() {
 				So(err, ShouldBeNil)
@@ -397,7 +405,7 @@ func testDelete(db *Db) {
 	}
 
 	Convey("When calling the 'Delete' method", func() {
-		_, err := db.engine.InsertOne(deleteTestUser)
+		_, err := db.engine.InsertOne(deleteBean)
 		So(err, ShouldBeNil)
 
 		Convey("Using the standalone accessor", func() {
@@ -417,14 +425,14 @@ func testDelete(db *Db) {
 }
 
 func testExist(db *Db) {
-	existTestUser := &model.User{
-		Login:    "exists",
-		Password: []byte("exists_password"),
+	existBean := &testBean{
+		StrPK: "exists",
+		ByteA: []byte("exists"),
 	}
 
 	runTests := func(acc Accessor) {
 		Convey("With an existing record", func() {
-			exists, err := acc.Exists(existTestUser)
+			exists, err := acc.Exists(existBean)
 
 			Convey("Then it should return true", func() {
 				So(err, ShouldBeNil)
@@ -433,7 +441,7 @@ func testExist(db *Db) {
 		})
 
 		Convey("With a non-existing record", func() {
-			exists, err := acc.Exists(&model.User{Login: "unknown"})
+			exists, err := acc.Exists(&testBean{StrPK: "unknown"})
 
 			Convey("Then it should return false", func() {
 				So(err, ShouldBeNil)
@@ -459,7 +467,7 @@ func testExist(db *Db) {
 	}
 
 	Convey("When calling the 'Exists' method", func() {
-		_, err := db.engine.InsertOne(existTestUser)
+		_, err := db.engine.InsertOne(existBean)
 		So(err, ShouldBeNil)
 
 		Convey("Using the standalone accessor", func() {
@@ -479,22 +487,22 @@ func testExist(db *Db) {
 
 func testExecute(db *Db) {
 
-	execTestUser := &model.User{
-		Login:    "execute",
-		Password: []byte("execute_password"),
+	execBean := &testBean{
+		StrPK: "execute",
+		ByteA: []byte("execute"),
 	}
 	execInsert := builder.Eq{
-		"login":    "execute",
-		"password": []byte("execute_password"),
+		"str_pk": execBean.StrPK,
+		"bytea":  execBean.ByteA,
 	}
 
 	runTests := func(acc Accessor) {
 		Convey("With a valid SQL command", func() {
-			err := db.Execute(builder.Insert(execInsert).Into("users"))
+			err := db.Execute(builder.Insert(execInsert).Into(tblName))
 
 			Convey("Then it should execute the command without error", func() {
 				So(err, ShouldBeNil)
-				exists, err := acc.Exists(execTestUser)
+				exists, err := acc.Exists(execBean)
 				So(err, ShouldBeNil)
 				So(exists, ShouldBeTrue)
 			})
@@ -548,11 +556,11 @@ func testQuery(db *Db) {
 
 	runTests := func(acc Accessor, count func(...interface{}) (int64, error)) {
 		Convey("With a valid custom SQL query", func() {
-			res, err := db.Query(builder.Select().From("users"))
+			res, err := db.Query(builder.Select().From(tblName))
 
 			Convey("Then it should execute the command without error", func() {
 				So(err, ShouldBeNil)
-				count, err := count(&model.User{})
+				count, err := count(&testBean{})
 				So(err, ShouldBeNil)
 				So(len(res), ShouldEqual, count)
 			})
@@ -605,9 +613,9 @@ func testQuery(db *Db) {
 }
 
 func testCommit(db *Db) {
-	commitTestUser := &model.User{
-		Login:    "commit",
-		Password: []byte("commit_password"),
+	commitBean := &testBean{
+		StrPK: "commit",
+		ByteA: []byte("commit"),
 	}
 
 	Convey("When calling the 'Commit' method", func() {
@@ -617,13 +625,13 @@ func testCommit(db *Db) {
 		Reset(ses.session.Close)
 
 		Convey("Using the transaction accessor", func() {
-			_, err := ses.session.Insert(commitTestUser)
+			_, err := ses.session.Insert(commitBean)
 
 			Convey("Then the changes should take effect", func() {
 				So(err, ShouldBeNil)
 				err := ses.Commit()
 				So(err, ShouldBeNil)
-				exists, err := db.engine.Exist(commitTestUser)
+				exists, err := db.engine.Exist(commitBean)
 				So(err, ShouldBeNil)
 				So(exists, ShouldBeTrue)
 			})
@@ -632,9 +640,9 @@ func testCommit(db *Db) {
 }
 
 func testRollback(db *Db) {
-	rollbackTestUser := &model.User{
-		Login:    "rollback",
-		Password: []byte("rollback_password"),
+	rollbackBean := &testBean{
+		StrPK: "rollback",
+		ByteA: []byte("rollback"),
 	}
 
 	Convey("When calling the 'Rollback' method", func() {
@@ -644,12 +652,12 @@ func testRollback(db *Db) {
 		Reset(ses.session.Close)
 
 		Convey("Using the transaction accessor", func() {
-			_, err := ses.session.Insert(rollbackTestUser)
+			_, err := ses.session.Insert(rollbackBean)
 
 			Convey("Then the changes should be dropped", func() {
 				So(err, ShouldBeNil)
 				ses.Rollback()
-				exists, err := db.engine.Exist(rollbackTestUser)
+				exists, err := db.engine.Exist(rollbackBean)
 				So(err, ShouldBeNil)
 				So(exists, ShouldBeFalse)
 			})
@@ -658,6 +666,11 @@ func testRollback(db *Db) {
 }
 
 func testDatabase(db *Db) {
+	Reset(func() {
+		_, err := db.engine.Exec("DELETE FROM " + tblName)
+		So(err, ShouldBeNil)
+	})
+
 	testGet(db)
 	testSelect(db)
 	testCreate(db)
@@ -670,37 +683,16 @@ func testDatabase(db *Db) {
 	testRollback(db)
 }
 
-func cleanDatabase(t *testing.T, db *Db) {
-	for _, table := range model.Tables {
-		_ = db.engine.DropTables(table)
-	}
-	_ = db.Stop(context.Background())
-	if r := recover(); r != nil {
-		fmt.Println(r)
-		t.Fatal(r)
-	}
-}
-
 func TestSqlite(t *testing.T) {
-	start := time.Now()
-
 	db := sqliteTestDatabase
 	if err := db.Start(); err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		cleanDatabase(t, db)
-		dur := time.Since(start)
-		fmt.Printf("\nSqlite test finished in %s\n", dur)
-	}()
+	if err := db.engine.CreateTables(&testBean{}); err != nil {
+		t.Fatal(err)
+	}
 
 	Convey("Given a Sqlite service", t, func() {
-
-		Reset(func() {
-			_, err := db.engine.Exec("DELETE FROM 'users'")
-			So(err, ShouldBeNil)
-		})
-
 		testDatabase(db)
 	})
 }

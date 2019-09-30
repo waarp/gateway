@@ -11,26 +11,39 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+var testPartnerInterface model.Interface
+
+func init() {
+	testPartnerInterface = model.Interface{
+		Name: "test_partner_interface",
+		Port: 1,
+		Type: "sftp",
+	}
+	if err := testDb.Create(&testPartnerInterface); err != nil {
+		panic(err)
+	}
+}
+
 func TestPartnerGet(t *testing.T) {
 
 	Convey("Testing the partner get function", t, func() {
-		testPartner := &model.Partner{
-			Name:    "test_partner_get",
-			Address: "test_partner_get_address",
-			Port:    1,
-			Type:    "sftp",
+		testPartner := model.Partner{
+			Name:        "test_partner_get",
+			Address:     "test_partner_get_address",
+			Port:        1,
+			InterfaceID: testPartnerInterface.ID,
 		}
 
 		auth = ConnectionOptions{
 			Address:  testServer.URL,
 			Username: "admin",
 		}
-		err := testDb.Create(testPartner)
+		err := testDb.Create(&testPartner)
 		So(err, ShouldBeNil)
 		id := strconv.FormatUint(testPartner.ID, 10)
 
 		Reset(func() {
-			err := testDb.Delete(testPartner)
+			err := testDb.Delete(&testPartner)
 			So(err, ShouldBeNil)
 		})
 
@@ -69,17 +82,17 @@ func TestPartnerGet(t *testing.T) {
 func TestPartnerCreate(t *testing.T) {
 
 	Convey("Testing the partner creation function", t, func() {
-		testPartner := &model.Partner{
-			Name:    "test_partner_create",
-			Address: "test_partner_create_address",
-			Port:    1,
-			Type:    "sftp",
+		testPartner := model.Partner{
+			Name:        "test_partner_create",
+			Address:     "test_partner_create_address",
+			Port:        1,
+			InterfaceID: testPartnerInterface.ID,
 		}
-		existingPartner := &model.Partner{
-			Name:    "test_partner_existing",
-			Address: "test_partner_existing_address",
-			Port:    2,
-			Type:    "sftp",
+		existingPartner := model.Partner{
+			Name:        "test_partner_existing",
+			Address:     "test_partner_existing_address",
+			Port:        2,
+			InterfaceID: testPartnerInterface.ID,
 		}
 
 		auth = ConnectionOptions{
@@ -90,14 +103,14 @@ func TestPartnerCreate(t *testing.T) {
 		args := []string{"-n", testPartner.Name,
 			"-a", testPartner.Address,
 			"-p", strconv.FormatUint(uint64(testPartner.Port), 10),
-			"-t", testPartner.Type,
+			"-i", strconv.FormatUint(testPartner.InterfaceID, 10),
 		}
 
-		err := testDb.Create(existingPartner)
+		err := testDb.Create(&existingPartner)
 		So(err, ShouldBeNil)
 
 		Reset(func() {
-			err := testDb.Delete(existingPartner)
+			err := testDb.Delete(&existingPartner)
 			So(err, ShouldBeNil)
 		})
 
@@ -107,7 +120,7 @@ func TestPartnerCreate(t *testing.T) {
 			err = p.Execute(args)
 
 			Reset(func() {
-				_ = testDb.Delete(testPartner)
+				_ = testDb.Delete(&testPartner)
 			})
 
 			Convey("Then it should not return an error", func() {
@@ -119,7 +132,7 @@ func TestPartnerCreate(t *testing.T) {
 			args := []string{"-n", existingPartner.Name,
 				"-a", existingPartner.Address,
 				"-p", strconv.FormatUint(uint64(existingPartner.Port), 10),
-				"-t", existingPartner.Type,
+				"-i", strconv.FormatUint(existingPartner.InterfaceID, 10),
 			}
 			args, err := flags.ParseArgs(&p, args)
 			So(err, ShouldBeNil)
@@ -134,20 +147,6 @@ func TestPartnerCreate(t *testing.T) {
 			args := []string{"-n", testPartner.Name,
 				"-a", testPartner.Address,
 				"-p", "not_a_port",
-				"-t", testPartner.Type,
-			}
-			_, err := flags.ParseArgs(&p, args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
-
-		Convey("Given an invalid type", func() {
-			args := []string{"-n", testPartner.Name,
-				"-a", testPartner.Address,
-				"-p", strconv.FormatUint(uint64(testPartner.Port), 10),
-				"-t", "not_a_type",
 			}
 			_, err := flags.ParseArgs(&p, args)
 
@@ -189,29 +188,29 @@ func TestPartnerCreate(t *testing.T) {
 func TestPartnerSelect(t *testing.T) {
 
 	Convey("Testing the partner listing function", t, func() {
-		testPartner1 := &model.Partner{
-			Name:    "test_partner_select1",
-			Address: "test_partner_select1_address",
-			Port:    2,
-			Type:    "type3",
+		testPartner1 := model.Partner{
+			Name:        "test_partner_select1",
+			Address:     "test_partner_select1_address",
+			Port:        2,
+			InterfaceID: testPartnerInterface.ID,
 		}
-		testPartner2 := &model.Partner{
-			Name:    "test_partner_select2",
-			Address: "test_partner_select3_address",
-			Port:    4,
-			Type:    "type1",
+		testPartner2 := model.Partner{
+			Name:        "test_partner_select2",
+			Address:     "test_partner_select3_address",
+			Port:        4,
+			InterfaceID: testPartnerInterface.ID,
 		}
-		testPartner3 := &model.Partner{
-			Name:    "test_partner_select3",
-			Address: "test_partner_select4_address",
-			Port:    1,
-			Type:    "type2",
+		testPartner3 := model.Partner{
+			Name:        "test_partner_select3",
+			Address:     "test_partner_select4_address",
+			Port:        1,
+			InterfaceID: testPartnerInterface.ID,
 		}
-		testPartner4 := &model.Partner{
-			Name:    "test_partner_select4",
-			Address: "test_partner_select2_address",
-			Port:    3,
-			Type:    "type4",
+		testPartner4 := model.Partner{
+			Name:        "test_partner_select4",
+			Address:     "test_partner_select2_address",
+			Port:        3,
+			InterfaceID: testPartnerInterface.ID,
 		}
 
 		auth = ConnectionOptions{
@@ -220,23 +219,23 @@ func TestPartnerSelect(t *testing.T) {
 		}
 		p := partnerListCommand{}
 
-		err := testDb.Create(testPartner1)
+		err := testDb.Create(&testPartner1)
 		So(err, ShouldBeNil)
-		err = testDb.Create(testPartner2)
+		err = testDb.Create(&testPartner2)
 		So(err, ShouldBeNil)
-		err = testDb.Create(testPartner3)
+		err = testDb.Create(&testPartner3)
 		So(err, ShouldBeNil)
-		err = testDb.Create(testPartner4)
+		err = testDb.Create(&testPartner4)
 		So(err, ShouldBeNil)
 
 		Reset(func() {
-			err := testDb.Delete(testPartner1)
+			err := testDb.Delete(&testPartner1)
 			So(err, ShouldBeNil)
-			err = testDb.Delete(testPartner2)
+			err = testDb.Delete(&testPartner2)
 			So(err, ShouldBeNil)
-			err = testDb.Delete(testPartner3)
+			err = testDb.Delete(&testPartner3)
 			So(err, ShouldBeNil)
-			err = testDb.Delete(testPartner4)
+			err = testDb.Delete(&testPartner4)
 			So(err, ShouldBeNil)
 		})
 
@@ -307,13 +306,13 @@ func TestPartnerSelect(t *testing.T) {
 			})
 		})
 
-		Convey("Given a type flag", func() {
-			args := []string{"-t", testPartner2.Type, "-t", testPartner4.Type}
+		Convey("Given an interface flag", func() {
+			args := []string{"-i", strconv.FormatUint(testPartnerInterface.ID, 10)}
 			args, err := flags.ParseArgs(&p, args)
 			So(err, ShouldBeNil)
 			err = p.Execute(args)
 
-			Convey("Then it should not return an error", func() {
+			Convey("Then it should return an error", func() {
 				So(err, ShouldBeNil)
 			})
 		})
@@ -323,11 +322,11 @@ func TestPartnerSelect(t *testing.T) {
 func TestPartnerDelete(t *testing.T) {
 
 	Convey("Testing the partner deletion function", t, func() {
-		testPartner := &model.Partner{
-			Name:    "test_partner_delete",
-			Address: "test_partner_delete_address",
-			Port:    1,
-			Type:    "sftp",
+		testPartner := model.Partner{
+			Name:        "test_partner_delete",
+			Address:     "test_partner_delete_address",
+			Port:        1,
+			InterfaceID: testPartnerInterface.ID,
 		}
 
 		auth = ConnectionOptions{
@@ -336,11 +335,11 @@ func TestPartnerDelete(t *testing.T) {
 		}
 		p := partnerDeleteCommand{}
 
-		err := testDb.Create(testPartner)
+		err := testDb.Create(&testPartner)
 		So(err, ShouldBeNil)
 
 		Reset(func() {
-			err := testDb.Delete(testPartner)
+			err := testDb.Delete(&testPartner)
 			So(err, ShouldBeNil)
 		})
 
@@ -376,19 +375,20 @@ func TestPartnerDelete(t *testing.T) {
 func TestPartnerUpdate(t *testing.T) {
 
 	Convey("Testing the partner update function", t, func() {
-		testPartnerBefore := &model.Partner{
-			Name:    "test_partner_update_before",
-			Address: "test_partner_update_before_address",
-			Port:    1,
-			Type:    "sftp",
+		testPartnerBefore := model.Partner{
+			Name:        "test_partner_update_before",
+			Address:     "test_partner_update_before_address",
+			Port:        1,
+			InterfaceID: testPartnerInterface.ID,
 		}
-		testPartnerAfter := &model.Partner{
-			Name:    "test_partner_update_after",
-			Address: "test_partner_update_after_address",
-			Port:    1,
-			Type:    "sftp",
+		testPartnerAfter := model.Partner{
+			Name:        "test_partner_update_after",
+			Address:     "test_partner_update_after_address",
+			Port:        1,
+			InterfaceID: testPartnerInterface.ID,
 		}
 		newPort := strconv.FormatUint(uint64(testPartnerAfter.Port), 10)
+		newInterface := strconv.FormatUint(testPartnerAfter.InterfaceID, 10)
 
 		auth = ConnectionOptions{
 			Address:  testServer.URL,
@@ -396,14 +396,14 @@ func TestPartnerUpdate(t *testing.T) {
 		}
 		p := partnerUpdateCommand{}
 
-		err := testDb.Create(testPartnerBefore)
+		err := testDb.Create(&testPartnerBefore)
 		So(err, ShouldBeNil)
 		id := strconv.FormatUint(testPartnerBefore.ID, 10)
 
 		Reset(func() {
-			err := testDb.Delete(testPartnerBefore)
+			err := testDb.Delete(&testPartnerBefore)
 			So(err, ShouldBeNil)
-			err = testDb.Delete(testPartnerAfter)
+			err = testDb.Delete(&testPartnerAfter)
 			So(err, ShouldBeNil)
 		})
 
@@ -411,7 +411,7 @@ func TestPartnerUpdate(t *testing.T) {
 			args := []string{"-n", testPartnerAfter.Name,
 				"-a", testPartnerAfter.Address,
 				"-p", newPort,
-				"-t", testPartnerAfter.Type,
+				"-i", newInterface,
 				id,
 			}
 			args, err := flags.ParseArgs(&p, args)
@@ -427,21 +427,7 @@ func TestPartnerUpdate(t *testing.T) {
 			args := []string{"-n", testPartnerAfter.Name,
 				"-a", testPartnerAfter.Address,
 				"-p", "not_a_port",
-				"-t", testPartnerAfter.Type,
-				id,
-			}
-			_, err := flags.ParseArgs(&p, args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
-
-		Convey("Given an incorrect type", func() {
-			args := []string{"-n", testPartnerAfter.Name,
-				"-a", testPartnerAfter.Address,
-				"-p", newPort,
-				"-t", "not_a_type",
+				"-i", newInterface,
 				id,
 			}
 			_, err := flags.ParseArgs(&p, args)
@@ -455,11 +441,40 @@ func TestPartnerUpdate(t *testing.T) {
 			args := []string{"-n", testPartnerAfter.Name,
 				"-a", testPartnerAfter.Address,
 				"-p", newPort,
-				"-t", testPartnerAfter.Type,
 			}
 			args, err := flags.ParseArgs(&p, args)
 			So(err, ShouldBeNil)
 			err = p.Execute(args)
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
+			})
+		})
+
+		Convey("Given a non-existent interface id", func() {
+			args := []string{"-n", testPartnerAfter.Name,
+				"-a", testPartnerAfter.Address,
+				"-p", newPort,
+				"-i", "1000",
+				id,
+			}
+			args, err := flags.ParseArgs(&p, args)
+			So(err, ShouldBeNil)
+			err = p.Execute(args)
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
+			})
+		})
+
+		Convey("Given a non-numeric interface id", func() {
+			args := []string{"-n", testPartnerAfter.Name,
+				"-a", testPartnerAfter.Address,
+				"-p", newPort,
+				"-i", "not_an_id",
+				id,
+			}
+			_, err := flags.ParseArgs(&p, args)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
@@ -471,20 +486,21 @@ func TestPartnerUpdate(t *testing.T) {
 func TestDisplayPartner(t *testing.T) {
 
 	Convey("Given a partner", t, func() {
-		testPartner := &model.Partner{
-			ID:      1234,
-			Name:    "test_partner",
-			Address: "test_partner_address",
-			Port:    1,
-			Type:    "sftp",
+		testPartner := model.Partner{
+			ID:          1234,
+			Name:        "test_partner",
+			Address:     "test_partner_address",
+			Port:        1,
+			InterfaceID: testPartnerInterface.ID,
 		}
 		id := strconv.FormatUint(testPartner.ID, 10)
 
 		Convey("When calling the 'displayPartner' function", func() {
 			out, err := ioutil.TempFile(".", "waarp_gateway")
 			So(err, ShouldBeNil)
-			err = displayPartner(out, testPartner)
-			So(err, ShouldBeNil)
+
+			displayPartner(out, testPartner)
+
 			err = out.Close()
 			So(err, ShouldBeNil)
 
@@ -501,9 +517,9 @@ func TestDisplayPartner(t *testing.T) {
 				expected :=
 					"Partner n°" + id + ":\n" +
 						"├─Name: " + testPartner.Name + "\n" +
+						"├─InterfaceID: " + strconv.FormatUint(testPartner.InterfaceID, 10) + "\n" +
 						"├─Address: " + testPartner.Address + "\n" +
-						"├─Port: " + strconv.Itoa(int(testPartner.Port)) + "\n" +
-						"└─Type: " + testPartner.Type + "\n"
+						"└─Port: " + strconv.FormatUint(uint64(testPartner.Port), 10) + "\n"
 
 				So(string(result), ShouldEqual, expected)
 			})

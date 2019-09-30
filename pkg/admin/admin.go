@@ -77,6 +77,21 @@ func MakeHandler(logger *log.Logger, db *database.Db, services map[string]servic
 	apiHandler.HandleFunc(StatusURI, getStatus(logger, services)).
 		Methods(http.MethodGet)
 
+	// Interfaces handler
+	interfacesHandler := apiHandler.PathPrefix(InterfacesURI).Subrouter()
+	interfacesHandler.HandleFunc("", listInterfaces(logger, db)).
+		Methods(http.MethodGet)
+	interfacesHandler.HandleFunc("", createInterface(logger, db)).
+		Methods(http.MethodPost)
+
+	interHandler := interfacesHandler.PathPrefix("/{interface:[0-9]+}").Subrouter()
+	interHandler.HandleFunc("", getInterface(logger, db)).
+		Methods(http.MethodGet)
+	interHandler.HandleFunc("", deleteInterface(logger, db)).
+		Methods(http.MethodDelete)
+	interHandler.HandleFunc("", updateInterface(logger, db)).
+		Methods(http.MethodPatch, http.MethodPut)
+
 	// Partners handler
 	partnersHandler := apiHandler.PathPrefix(PartnersURI).Subrouter()
 	partnersHandler.HandleFunc("", listPartners(logger, db)).

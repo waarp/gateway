@@ -74,9 +74,6 @@ func listAccounts(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			handleErrors(w, logger, err)
 			return
 		}
-		for i := range results {
-			results[i].Password = nil
-		}
 
 		resp := map[string][]model.Account{"accounts": results}
 		if err := writeJSON(w, resp); err != nil {

@@ -14,47 +14,19 @@ import (
 
 type partnerCommand struct{}
 
-func displayPartner(out *os.File, partner *model.Partner) error {
+func displayPartner(out *os.File, partner model.Partner) {
 	w := getColorable(out)
 
 	fmt.Fprintf(w, "\033[97;1mPartner n°%v:\033[0m\n", partner.ID)
 	fmt.Fprintf(w, "├─\033[97mName:\033[0m \033[34;4m%s\033[0m\n", partner.Name)
+	fmt.Fprintf(w, "├─\033[97mInterfaceID:\033[0m \033[34;4m%v\033[0m\n", partner.InterfaceID)
 	fmt.Fprintf(w, "├─\033[97mAddress:\033[0m \033[34;4m%s\033[0m\n", partner.Address)
-	fmt.Fprintf(w, "├─\033[97mPort:\033[0m \033[33m%v\033[0m\n", partner.Port)
-	fmt.Fprintf(w, "└─\033[97mType:\033[0m \033[37m%s\033[0m\n", partner.Type)
-
-	return nil
+	fmt.Fprintf(w, "└─\033[97mPort:\033[0m \033[33m%v\033[0m\n", partner.Port)
 }
 
 // ############################## GET #####################################
 
 type partnerGetCommand struct{}
-
-func (p *partnerGetCommand) getPartner(in *os.File, out *os.File, id string) (*model.Partner, error) {
-	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + id
-
-	req, err := http.NewRequest(http.MethodGet, addr, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := executeRequest(req, auth.Username, in, out)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	partner := &model.Partner{}
-	if err := json.Unmarshal(body, partner); err != nil {
-		return nil, err
-	}
-
-	return partner, nil
-}
 
 // Execute executes the 'partner' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
@@ -64,15 +36,15 @@ func (p *partnerGetCommand) Execute(args []string) error {
 		return fmt.Errorf("missing partner name")
 	}
 
-	partner, err := p.getPartner(os.Stdin, os.Stdout, args[0])
+	subpath := admin.PartnersURI + "/" + args[0]
+	partner := model.Partner{}
+	err := getCommand(os.Stdin, os.Stdout, subpath, &partner)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println()
-	if err := displayPartner(os.Stdout, partner); err != nil {
-		return err
-	}
+	displayPartner(os.Stdout, partner)
 
 	return nil
 }
@@ -82,10 +54,10 @@ func (p *partnerGetCommand) Execute(args []string) error {
 type partnerListCommand struct {
 	Limit     int      `short:"l" long:"limit" description:"The max number of entries which can be returned" default:"20"`
 	Offset    int      `short:"o" long:"offset" description:"The offset from which the first entry is taken" default:"0"`
-	Sort      string   `short:"s" long:"sort" description:"The parameter used to sort the returned entries" choice:"name" choice:"address" choice:"type" default:"name"`
+	Sort      string   `short:"s" long:"sort" description:"The parameter used to sort the returned entries" choice:"name" choice:"address" default:"name"`
 	Reverse   bool     `short:"d" long:"descending" description:"If present, the order of the sorting will be reversed"`
-	Types     []string `short:"t" long:"type" description:"Filter the partners based on their types"`
 	Addresses []string `short:"a" long:"address" description:"Filter the partners based on their host addresses"`
+	Interface uint64   `short:"i" long:"interface" description:"Filter the partners based on the interface they are attached to"`
 }
 
 func (p *partnerListCommand) listPartners(in *os.File, out *os.File) ([]byte, error) {
@@ -97,11 +69,13 @@ func (p *partnerListCommand) listPartners(in *os.File, out *os.File) ([]byte, er
 	if p.Reverse {
 		addr += orderDesc
 	}
-	for _, typ := range p.Types {
-		addr += "&type=" + typ
-	}
+
 	for _, host := range p.Addresses {
 		addr += "&address=" + host
+	}
+
+	if p.Interface != 0 {
+		addr += "&interface=" + strconv.FormatUint(p.Interface, 10)
 	}
 
 	req, err := http.NewRequest(http.MethodGet, addr, nil)
@@ -131,16 +105,14 @@ func (p *partnerListCommand) Execute(_ []string) error {
 		return err
 	}
 
-	partners := map[string][]*model.Partner{}
+	partners := map[string][]model.Partner{}
 	if err := json.Unmarshal(content, &partners); err != nil {
 		return err
 	}
 
 	fmt.Println()
 	for _, partner := range partners["partners"] {
-		if err := displayPartner(os.Stdout, partner); err != nil {
-			return err
-		}
+		displayPartner(os.Stdout, partner)
 	}
 
 	return nil
@@ -149,10 +121,10 @@ func (p *partnerListCommand) Execute(_ []string) error {
 // ############################### CREATE #######################################
 
 type partnerCreateCommand struct {
-	Name string `required:"true" short:"n" long:"name" description:"The partner's name'"`
-	Host string `required:"true" short:"a" long:"address" description:"The address of the partner's host'"`
-	Port uint16 `required:"true" short:"p" long:"port" description:"The TCP port used by the partner"`
-	Type string `required:"true" short:"t" long:"type" description:"The type of the partner" choice:"sftp"`
+	Name        string `required:"true" short:"n" long:"name" description:"The partner's name'"`
+	Host        string `required:"true" short:"a" long:"address" description:"The address of the partner's host'"`
+	Port        uint16 `required:"true" short:"p" long:"port" description:"The TCP port used by the partner"`
+	InterfaceID uint64 `required:"true" short:"i" long:"interface_id" description:"The interface to which the partner will be attached"`
 }
 
 // Execute executes the 'create' command. The command flags are stored in
@@ -162,10 +134,10 @@ func (p *partnerCreateCommand) Execute(_ []string) error {
 	addr := auth.Address + admin.RestURI + admin.PartnersURI
 
 	partner := &model.Partner{
-		Name:    p.Name,
-		Address: p.Host,
-		Port:    p.Port,
-		Type:    p.Type,
+		Name:        p.Name,
+		Address:     p.Host,
+		Port:        p.Port,
+		InterfaceID: p.InterfaceID,
 	}
 
 	path, err := sendBean(partner, os.Stdin, os.Stdout, addr, http.MethodPost)
@@ -182,10 +154,10 @@ func (p *partnerCreateCommand) Execute(_ []string) error {
 //################################### UPDATE ######################################
 
 type partnerUpdateCommand struct {
-	Name string `short:"n" long:"name" description:"The partner's name'"`
-	Host string `short:"a" long:"address" description:"The address of the partner's host'"`
-	Port uint16 `short:"p" long:"port" description:"The TCP port used by the partner"`
-	Type string `short:"t" long:"type" description:"The type of the partner" choice:"sftp"`
+	Name        string `short:"n" long:"name" description:"The partner's name'"`
+	Host        string `short:"a" long:"address" description:"The address of the partner's host'"`
+	Port        uint16 `short:"p" long:"port" description:"The TCP port used by the partner"`
+	InterfaceID uint64 `short:"i" long:"interface_id" description:"The interface to which the partner will be attached"`
 }
 
 // Execute executes the 'update' command. The command flags are stored in
@@ -198,11 +170,15 @@ func (p *partnerUpdateCommand) Execute(args []string) error {
 
 	addr := auth.Address + admin.RestURI + admin.PartnersURI + "/" + args[0]
 
-	partner := &model.Partner{
-		Name:    p.Name,
-		Address: p.Host,
-		Port:    p.Port,
-		Type:    p.Type,
+	partner := &struct {
+		Name, Address string
+		Port          uint16
+		InterfaceID   uint64
+	}{
+		Name:        p.Name,
+		Address:     p.Host,
+		Port:        p.Port,
+		InterfaceID: p.InterfaceID,
 	}
 
 	path, err := sendBean(partner, os.Stdin, os.Stdout, addr, http.MethodPatch)

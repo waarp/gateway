@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+
 	"github.com/jessevdk/go-flags"
 	"github.com/mattn/go-colorable"
 	"golang.org/x/crypto/ssh/terminal"
@@ -168,6 +170,54 @@ func init() {
 	if err != nil {
 		panic(err.Error())
 	}
+
+	var inter interfaceCommand
+	i, err := parser.AddCommand("interface", "Manage waarp-gateway interfaces",
+		"The command to manage the waarp-gateway interfaces.",
+		&inter)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var updateInter interfaceUpdateCommand
+	_, err = i.AddCommand("update", "Update interface",
+		"Updates an interface entry in the database.",
+		&updateInter)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var deleteInter interfaceDeleteCommand
+	_, err = i.AddCommand("delete", "Delete interface",
+		"Removes an interface entry from the database.",
+		&deleteInter)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var getInter interfaceGetCommand
+	_, err = i.AddCommand("get", "Get interface",
+		"Retrieve an interface entry from the database.",
+		&getInter)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var listInter interfaceListCommand
+	_, err = i.AddCommand("list", "List interfaces",
+		"List the interface entries.",
+		&listInter)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var createInter interfaceCreateCommand
+	_, err = i.AddCommand("create", "Create interface",
+		"Create an interface and add it to the database.",
+		&createInter)
+	if err != nil {
+		panic(err.Error())
+	}
 }
 
 // ConnectionOptions regroups the flags common to all commands
@@ -273,4 +323,30 @@ func getColorable(f *os.File) io.Writer {
 		return colorable.NewColorable(f)
 	}
 	return colorable.NewNonColorable(f)
+}
+
+func getCommand(in, out *os.File, subpath string, bean interface{}) error {
+	addr := auth.Address + admin.RestURI + subpath
+
+	req, err := http.NewRequest(http.MethodGet, addr, nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := executeRequest(req, auth.Username, in, out)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(body, bean); err != nil {
+		return err
+	}
+
+	return nil
 }

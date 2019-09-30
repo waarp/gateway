@@ -2,8 +2,13 @@ package database
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -32,6 +37,9 @@ var (
 	ErrNotFound = errors.New("the record does not exist")
 )
 
+// GCM is the Galois Counter Mode cipher used to encrypt external accounts passwords.
+var GCM cipher.AEAD
+
 // Accessor is the interface that lists the method sets needed to query a
 // database.
 type Accessor interface {
@@ -45,7 +53,7 @@ type Accessor interface {
 	Query(sqlorArgs ...interface{}) ([]map[string]interface{}, error)
 }
 
-// Db is the database service. it encasulates a data connection and implements
+// Db is the database service. It encapsulates a data connection and implements
 // Accessor
 type Db struct {
 	// The service logger
@@ -58,6 +66,37 @@ type Db struct {
 	engine *xorm.Engine
 	// The name of the SQL database driver used by the engine
 	driverName string
+}
+
+func loadAESKey(filename string) error {
+
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		key := make([]byte, 32)
+		if _, err := rand.Read(key); err != nil {
+			return err
+		}
+
+		if err := ioutil.WriteFile(filename, key, 0666); err != nil {
+			return err
+		}
+	}
+
+	key, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		return err
+	}
+
+	GCM, err = cipher.NewGCM(c)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // createDSN creates and returns the dataSourceName string necessary to open
@@ -95,6 +134,12 @@ func (db *Db) Start() error {
 	}
 	db.state.Set(service.Starting, "")
 
+	if err := loadAESKey(db.Conf.Database.AESPassphrase); err != nil {
+		db.state.Set(service.Error, err.Error())
+		db.Logger.Criticalf("Failed to load AES key: %s", err)
+		return err
+	}
+
 	driver, dsn, err := db.createConnectionInfo()
 	if err != nil {
 		db.state.Set(service.Error, err.Error())
@@ -119,13 +164,16 @@ func (db *Db) Start() error {
 		return err
 	}
 
+	db.state.Set(service.Running, "")
+
 	if err := initTables(db); err != nil {
+		db.state.Set(service.Error, err.Error())
 		db.Logger.Errorf("Failed to create tables: %s", err)
 		return err
 	}
 
-	db.state.Set(service.Running, "")
 	db.Logger.Info("Startup successful")
+
 	return nil
 }
 

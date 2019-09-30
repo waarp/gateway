@@ -1,21 +1,23 @@
 package database
 
 import (
+	"os"
+
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // GetTestDatabase returns a testing Sqlite database stored in memory. If the
 // database cannot be started, the function will panic.
 func GetTestDatabase() *Db {
-	model.BcryptRounds = bcrypt.MinCost
+	BcryptRounds = bcrypt.MinCost
 
 	config := &conf.ServerConfig{}
 	config.Database.Type = sqlite
-	config.Database.Name = "file::memory:?mode=memory&cache=shared"
+	config.Database.Name = "file::memory:?mode=memory" //&cache=shared"
+	config.Database.AESPassphrase = os.TempDir() + "/aes_passphrase"
 
 	logger := log.NewLogger("test-database")
 	discard, err := logging.NewNoopBackend()

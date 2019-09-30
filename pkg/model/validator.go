@@ -1,13 +1,12 @@
 package model
 
-// Tables lists the schema of all database tables
-var Tables = make([]interface{}, 0)
+import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 
 // Validator adds a 'Validate' function which checks if an entry can be inserted
 // in database.
 type Validator interface {
 	// Validate checks if the struct can be inserted in the database
-	Validate(func(interface{}) (bool, error)) error
+	Validate(db *database.Db, isInsert bool) error
 }
 
 // ErrInvalid is returned by 'Validate' if the entry is invalid.

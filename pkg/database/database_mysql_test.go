@@ -3,9 +3,7 @@
 package database
 
 import (
-	"fmt"
 	"testing"
-	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	. "github.com/smartystreets/goconvey/convey"
@@ -19,22 +17,19 @@ func init() {
 	mysqlConfig.Database.User = "waarp"
 	mysqlConfig.Database.Name = "waarp_gatewayd_test"
 	mysqlConfig.Database.Address = "localhost"
+	mysqlConfig.Database.AESPassphrase = "/tmp/aes_passphrase"
 
 	mysqlTestDatabase = &Db{Conf: mysqlConfig}
 }
 
 func TestMySQL(t *testing.T) {
-	start := time.Now()
-
 	db := mysqlTestDatabase
 	if err := db.Start(); err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		cleanDatabase(t, db)
-		dur := time.Since(start)
-		fmt.Printf("\nMySQL test finished in %s\n", dur)
-	}()
+	if err := db.engine.CreateTables(&testBean{}); err != nil {
+		t.Fatal(err)
+	}
 
 	Convey("Given a MySQL service", t, func() {
 		testDatabase(mysqlTestDatabase)

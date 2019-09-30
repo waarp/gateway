@@ -14,13 +14,12 @@ import (
 
 type accountCommand struct{}
 
-func displayAccount(out *os.File, account *model.Account) error {
+func displayAccount(out *os.File, account model.Account) {
 	w := getColorable(out)
 
 	fmt.Fprintf(w, "\033[97;1mAccount n°%v:\033[0m\n", account.ID)
 	fmt.Fprintf(w, "├─\033[97mUsername:\033[0m \033[37m%s\033[0m\n", account.Username)
 	fmt.Fprintf(w, "└─\033[97mPartnerID:\033[0m \033[37m%v\033[0m\n", account.PartnerID)
-	return nil
 }
 
 // ############################## GET #####################################
@@ -35,32 +34,15 @@ func (a *accountGetCommand) Execute(args []string) error {
 		return fmt.Errorf("missing account name")
 	}
 
-	addr := auth.Address + admin.RestURI + admin.AccountsURI + "/" + args[0]
-
-	req, err := http.NewRequest(http.MethodGet, addr, nil)
+	subpath := admin.AccountsURI + "/" + args[0]
+	account := model.Account{}
+	err := getCommand(os.Stdin, os.Stdout, subpath, &account)
 	if err != nil {
-		return err
-	}
-
-	res, err := executeRequest(req, auth.Username, os.Stdin, os.Stdout)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-	account := &model.Account{}
-	if err := json.Unmarshal(body, account); err != nil {
 		return err
 	}
 
 	fmt.Println()
-	if err := displayAccount(os.Stdout, account); err != nil {
-		return err
-	}
+	displayAccount(os.Stdout, account)
 
 	return nil
 }
@@ -111,16 +93,14 @@ func (a *accountListCommand) Execute(_ []string) error {
 		return err
 	}
 
-	accounts := map[string][]*model.Account{}
+	accounts := map[string][]model.Account{}
 	if err := json.Unmarshal(content, &accounts); err != nil {
 		return err
 	}
 
 	fmt.Println()
 	for _, account := range accounts["accounts"] {
-		if err := displayAccount(os.Stdout, account); err != nil {
-			return err
-		}
+		displayAccount(os.Stdout, account)
 	}
 
 	return nil
@@ -140,7 +120,7 @@ type accountCreateCommand struct {
 func (a *accountCreateCommand) Execute(_ []string) error {
 	addr := auth.Address + admin.RestURI + admin.AccountsURI
 
-	account := &model.Account{
+	account := model.Account{
 		Username:  a.Username,
 		Password:  []byte(a.Password),
 		PartnerID: a.PartnerID,
@@ -175,7 +155,11 @@ func (a *accountUpdateCommand) Execute(args []string) error {
 
 	addr := auth.Address + admin.RestURI + admin.AccountsURI + "/" + args[0]
 
-	account := &model.Account{
+	account := &struct {
+		Username  string
+		Password  []byte
+		PartnerID uint64
+	}{
 		Username:  a.Username,
 		Password:  []byte(a.Password),
 		PartnerID: a.PartnerID,

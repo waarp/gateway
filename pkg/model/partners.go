@@ -2,47 +2,75 @@ package model
 
 import (
 	"fmt"
-	"sort"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 )
 
 func init() {
-	Tables = append(Tables, &Partner{})
+	database.Tables = append(database.Tables, &Partner{})
 }
-
-var types = []string{"http", "r66", "sftp"}
 
 // Partner represents one record of the 'partners' table.
 type Partner struct {
 	// The partner's unique ID
 	ID uint64 `xorm:"pk autoincr 'id'" json:"id"`
 	// The partner's name
-	Name string `xorm:"unique notnull 'name'" json:"name"`
+	Name string `xorm:"unique(part) notnull 'name'" json:"name"`
+	// The ID of the interface this partner is attached to.
+	InterfaceID uint64 `xorm:"unique(part) notnull 'interface_id'" json:"interfaceID"`
 	// The partner's address
 	Address string `xorm:"notnull 'address'" json:"address"`
 	// The partner's password
 	Port uint16 `xorm:"notnull 'port'" json:"port"`
-	// The protocol used by the partner
-	Type string `xorm:"notnull 'type'" json:"type"`
 }
 
 // Validate checks that the partner entry can be inserted into the database
-func (p *Partner) Validate(exists func(interface{}) (bool, error)) error {
+func (p *Partner) Validate(db *database.Db, isInsert bool) error {
 	if p.Name == "" {
 		return ErrInvalid{msg: "The partner's name cannot be empty"}
 	}
 	if p.Address == "" {
 		return ErrInvalid{msg: "The partner's address cannot be empty"}
 	}
-	if sort.SearchStrings(types, p.Type) == len(types) {
-		return ErrInvalid{msg: fmt.Sprintf("The partner's type must be one of %s", types)}
+
+	ints, err := db.Query("SELECT id FROM interfaces WHERE id=?", p.InterfaceID)
+	if err != nil {
+		return err
+	}
+	if len(ints) == 0 {
+		return ErrInvalid{msg: fmt.Sprintf("No interface found with id '%v'", p.InterfaceID)}
 	}
 
-	test := &Partner{Name: p.Name}
-	if ok, err := exists(test); err != nil {
+	names, err := db.Query("SELECT id FROM partners WHERE interface_id=? AND name=?",
+		p.InterfaceID, p.Name)
+	if err != nil {
 		return err
-	} else if ok {
-		return ErrInvalid{msg: fmt.Sprintf("A partner named '%s' already exists",
-			p.Name)}
+	}
+
+	if isInsert {
+		if len(names) > 0 {
+			return ErrInvalid{msg: "A partner with the same name already exist for this interface"}
+		}
+
+		ids, err := db.Query("SELECT id FROM partners WHERE id=?", p.ID)
+		if err != nil {
+			return err
+		}
+		if len(ids) > 0 {
+			return ErrInvalid{msg: "A partner with the same ID already exist"}
+		}
+	} else {
+		if len(names) > 0 && names[0]["id"] != p.ID {
+			return ErrInvalid{msg: "A partner with the same name already exist for this interface"}
+		}
+
+		res, err := db.Query("SELECT id FROM partners WHERE id=?", p.ID)
+		if err != nil {
+			return err
+		}
+		if len(res) == 0 {
+			return ErrInvalid{fmt.Sprintf("Unknown partner id: '%v'", p.ID)}
+		}
 	}
 
 	return nil
