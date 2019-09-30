@@ -14,50 +14,23 @@ import (
 
 type certificateCommand struct{}
 
-func displayCertificate(out *os.File, certificate *model.CertChain) error {
+func displayCertificate(out *os.File, certificate model.CertChain) {
 	w := getColorable(out)
 
 	fmt.Fprintf(w, "\033[97;1mCertificate n°%v:\033[0m\n", certificate.ID)
 	fmt.Fprintf(w, "├─\033[97mName:\033[0m \033[37m%s\033[0m\n", certificate.Name)
-	fmt.Fprintf(w, "├─\033[97mAccountID:\033[0m \033[37m%v\033[0m\n", certificate.AccountID)
+	fmt.Fprintf(w, "├─\033[97mAccountID:\033[0m \033[37m%v\033[0m\n", certificate.OwnerID)
 	fmt.Fprintf(w, "├─\033[97mPrivate Key:\033[0m \033[37m%s\033[0m\n",
 		string(certificate.PrivateKey))
 	fmt.Fprintf(w, "├─\033[97mPublic Key:\033[0m \033[37m%v\033[0m\n",
 		string(certificate.PublicKey))
 	fmt.Fprintf(w, "└─\033[97mCert:\033[0m \033[37m%v\033[0m\n",
 		string(certificate.Cert))
-	return nil
 }
 
 // ############################## GET #####################################
 
 type certificateGetCommand struct{}
-
-func (c *certificateGetCommand) getCertificate(in *os.File, out *os.File, id string) (*model.CertChain, error) {
-	addr := auth.Address + admin.RestURI + admin.CertsURI + "/" + id
-
-	req, err := http.NewRequest(http.MethodGet, addr, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := executeRequest(req, auth.Username, in, out)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	partner := &model.CertChain{}
-	if err := json.Unmarshal(body, partner); err != nil {
-		return nil, err
-	}
-
-	return partner, nil
-}
 
 // Execute executes the 'certificate' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
@@ -67,15 +40,15 @@ func (c *certificateGetCommand) Execute(args []string) error {
 		return fmt.Errorf("missing certificate name")
 	}
 
-	cert, err := c.getCertificate(os.Stdin, os.Stdout, args[0])
+	subpath := admin.CertsURI + "/" + args[0]
+	cert := model.CertChain{}
+	err := getCommand(os.Stdin, os.Stdout, subpath, &cert)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println()
-	if err := displayCertificate(os.Stdout, cert); err != nil {
-		return err
-	}
+	displayCertificate(os.Stdout, cert)
 
 	return nil
 }
@@ -126,16 +99,14 @@ func (c *certificateListCommand) Execute(_ []string) error {
 		return err
 	}
 
-	certificates := map[string][]*model.CertChain{}
+	certificates := map[string][]model.CertChain{}
 	if err := json.Unmarshal(content, &certificates); err != nil {
 		return err
 	}
 
 	fmt.Println()
 	for _, certificate := range certificates["certificates"] {
-		if err := displayCertificate(os.Stdout, certificate); err != nil {
-			return err
-		}
+		displayCertificate(os.Stdout, certificate)
 	}
 
 	return nil
@@ -145,7 +116,8 @@ func (c *certificateListCommand) Execute(_ []string) error {
 
 type certificateCreateCommand struct {
 	Name       string `required:"true" short:"n" long:"name" description:"The certificate's name"`
-	AccountID  uint64 `required:"true" short:"i" long:"account_id" description:"The account to which the certificate will be attached"`
+	OwnerType  string `required:"true" short:"t" long:"type" description:"The type of owner the certificate is attached to (ACCOUNT or PARTNER)"`
+	OwnerID    uint64 `required:"true" short:"i" long:"owner_id" description:"The account to which the certificate will be attached"`
 	PrivateKey string `long:"private_key" description:"The private key"`
 	PublicKey  string `long:"public_key" description:"The public key"`
 	Cert       string `long:"cert" description:"The public key certificate"`
@@ -157,9 +129,10 @@ type certificateCreateCommand struct {
 func (c *certificateCreateCommand) Execute(_ []string) error {
 	addr := auth.Address + admin.RestURI + admin.CertsURI
 
-	certificate := &model.CertChain{
+	certificate := model.CertChain{
 		Name:       c.Name,
-		AccountID:  c.AccountID,
+		OwnerType:  c.OwnerType,
+		OwnerID:    c.OwnerID,
 		PrivateKey: []byte(c.PrivateKey),
 		PublicKey:  []byte(c.PublicKey),
 		Cert:       []byte(c.Cert),
@@ -180,7 +153,8 @@ func (c *certificateCreateCommand) Execute(_ []string) error {
 
 type certificateUpdateCommand struct {
 	Name       string `short:"n" long:"name" description:"The certificate's name"`
-	AccountID  uint64 `short:"i" long:"account_id" description:"The account to which the certificate will be attached"`
+	OwnerType  string `short:"t" long:"type" description:"The type of owner the certificate is attached to (ACCOUNT or PARTNER)"`
+	OwnerID    uint64 `short:"i" long:"account_id" description:"The account to which the certificate will be attached"`
 	PrivateKey string `long:"private_key" description:"The private key"`
 	PublicKey  string `long:"public_key" description:"The public key"`
 	Cert       string `long:"cert" description:"The public key certificate"`
@@ -196,9 +170,15 @@ func (c *certificateUpdateCommand) Execute(args []string) error {
 
 	addr := auth.Address + admin.RestURI + admin.CertsURI + "/" + args[0]
 
-	certificate := &model.CertChain{
+	certificate := &struct {
+		Name                        string
+		OwnerType                   string
+		OwnerID                     uint64
+		PrivateKey, PublicKey, Cert []byte
+	}{
 		Name:       c.Name,
-		AccountID:  c.AccountID,
+		OwnerType:  c.OwnerType,
+		OwnerID:    c.OwnerID,
 		PrivateKey: []byte(c.PrivateKey),
 		PublicKey:  []byte(c.PublicKey),
 		Cert:       []byte(c.Cert),

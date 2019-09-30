@@ -6,7 +6,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestModel(t *testing.T) {
+func TestTableNames(t *testing.T) {
 
 	Convey("Testing the database model", t, func() {
 		So((&Account{}).TableName(), ShouldResemble, "accounts")

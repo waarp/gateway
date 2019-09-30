@@ -18,14 +18,14 @@ import (
 const accountsPath = RestURI + AccountsURI + "/"
 
 func testGetAccount(db *database.Db, partnerID uint64) {
-	testAccount := &model.Account{
+	testAccount := model.Account{
 		Username:  "test_account",
 		Password:  []byte("test_account_password"),
 		PartnerID: partnerID,
 	}
 
 	Convey("Given a account get function", func() {
-		err := db.Create(testAccount)
+		err := db.Create(&testAccount)
 		So(err, ShouldBeNil)
 
 		id := strconv.FormatUint(testAccount.ID, 10)
@@ -43,7 +43,7 @@ func testGetAccount(db *database.Db, partnerID uint64) {
 				contentType := w.Header().Get("Content-Type")
 				So(contentType, ShouldEqual, "application/json")
 
-				expected, err := json.Marshal(testAccount)
+				expected, err := json.Marshal(&testAccount)
 				So(err, ShouldBeNil)
 				So(w.Body.String(), ShouldResemble, string(expected)+"\n")
 			})
@@ -64,40 +64,36 @@ func testGetAccount(db *database.Db, partnerID uint64) {
 }
 
 func testListAccounts(db *database.Db, partnerID uint64) {
-	testAccount1 := &model.Account{
+	testAccount1 := model.Account{
 		Username:  "test_account1",
 		Password:  []byte("test_account_password"),
 		PartnerID: partnerID,
 	}
-	testAccount2 := &model.Account{
+	testAccount2 := model.Account{
 		Username:  "test_account2",
 		Password:  []byte("test_account_password"),
 		PartnerID: partnerID,
 	}
-	testAccount3 := &model.Account{
+	testAccount3 := model.Account{
 		Username:  "test_account3",
 		Password:  []byte("test_account_password"),
 		PartnerID: 1000,
 	}
-	testAccount4 := &model.Account{
+	testAccount4 := model.Account{
 		Username:  "test_account4",
 		Password:  []byte("test_account_password"),
 		PartnerID: partnerID,
 	}
 
 	Convey("Given an account listing function", func() {
-		err := db.Create(testAccount1)
+		err := db.Create(&testAccount1)
 		So(err, ShouldBeNil)
-		err = db.Create(testAccount2)
+		err = db.Create(&testAccount2)
 		So(err, ShouldBeNil)
-		err = db.Create(testAccount3)
+		err = db.Create(&testAccount3)
 		So(err, ShouldBeNil)
-		err = db.Create(testAccount4)
+		err = db.Create(&testAccount4)
 		So(err, ShouldBeNil)
-		testAccount1.Password = nil
-		testAccount2.Password = nil
-		testAccount3.Password = nil
-		testAccount4.Password = nil
 
 		Convey("When calling it with no filters", func() {
 			r, err := http.NewRequest(http.MethodGet, accountsPath, nil)
@@ -112,9 +108,9 @@ func testListAccounts(db *database.Db, partnerID uint64) {
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.Account{testAccount1, testAccount2,
+				testResults := []model.Account{testAccount1, testAccount2,
 					testAccount3, testAccount4}
-				expected, err := json.Marshal(map[string]*[]*model.Account{"accounts": testResults})
+				expected, err := json.Marshal(map[string][]model.Account{"accounts": testResults})
 				So(err, ShouldBeNil)
 
 				So(w.Body.String(), ShouldResemble, string(expected)+"\n")
@@ -134,8 +130,8 @@ func testListAccounts(db *database.Db, partnerID uint64) {
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.Account{testAccount1}
-				expected, err := json.Marshal(map[string]*[]*model.Account{"accounts": testResults})
+				testResults := []model.Account{testAccount1}
+				expected, err := json.Marshal(map[string][]model.Account{"accounts": testResults})
 				So(err, ShouldBeNil)
 
 				So(w.Body.String(), ShouldResemble, string(expected)+"\n")
@@ -155,8 +151,8 @@ func testListAccounts(db *database.Db, partnerID uint64) {
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.Account{testAccount2, testAccount3, testAccount4}
-				expected, err := json.Marshal(map[string]*[]*model.Account{"accounts": testResults})
+				testResults := []model.Account{testAccount2, testAccount3, testAccount4}
+				expected, err := json.Marshal(map[string][]model.Account{"accounts": testResults})
 				So(err, ShouldBeNil)
 
 				So(w.Body.String(), ShouldResemble, string(expected)+"\n")
@@ -177,9 +173,33 @@ func testListAccounts(db *database.Db, partnerID uint64) {
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.Account{testAccount4, testAccount3,
+				testResults := []model.Account{testAccount4, testAccount3,
 					testAccount2, testAccount1}
-				object := map[string]*[]*model.Account{"accounts": testResults}
+				object := map[string][]model.Account{"accounts": testResults}
+				expected, err := json.Marshal(object)
+
+				So(err, ShouldBeNil)
+				So(w.Body.String(), ShouldResemble, string(expected)+"\n")
+			})
+		})
+
+		Convey("When calling it with a partner id filter", func() {
+			id := strconv.FormatUint(partnerID, 10)
+			r, err := http.NewRequest(http.MethodGet, accountsPath+"?partner="+id, nil)
+			So(err, ShouldBeNil)
+			w := httptest.NewRecorder()
+
+			Convey("Then it should reply OK with a JSON body", func() {
+				listAccounts(testLogger, db).ServeHTTP(w, r)
+
+				So(w.Code, ShouldEqual, http.StatusOK)
+
+				contentType := w.Header().Get("Content-Type")
+				So(contentType, ShouldEqual, "application/json")
+				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
+
+				testResults := []model.Account{testAccount1, testAccount2, testAccount4}
+				object := map[string][]model.Account{"accounts": testResults}
 				expected, err := json.Marshal(object)
 
 				So(err, ShouldBeNil)
@@ -190,19 +210,19 @@ func testListAccounts(db *database.Db, partnerID uint64) {
 }
 
 func testCreateAccount(db *database.Db, partnerID uint64) {
-	testAccount := &model.Account{
+	testAccount := model.Account{
 		Username:  "test_account",
 		Password:  []byte("test_account_password"),
 		PartnerID: partnerID,
 	}
-	testAccountFail := &model.Account{
+	testAccountFail := model.Account{
 		Username:  "test_account_fail",
 		Password:  []byte("test_account_password"),
 		PartnerID: partnerID,
 	}
 
 	Convey("Given a account creation function", func() {
-		err := db.Create(testAccountFail)
+		err := db.Create(&testAccountFail)
 		So(err, ShouldBeNil)
 
 		Convey("When calling it with a valid JSON account", func() {
@@ -216,17 +236,15 @@ func testCreateAccount(db *database.Db, partnerID uint64) {
 
 			Convey("Then it should create the account and reply 'Created'", func() {
 				createAccount(testLogger, db).ServeHTTP(w, r)
-				if w.Code != http.StatusCreated {
-					So(w.Body.String(), ShouldBeNil)
-				}
+
 				So(w.Code, ShouldEqual, http.StatusCreated)
 
 				testAccount.Password = nil
-				exist, err := db.Exists(testAccount)
+				exist, err := db.Exists(&testAccount)
 				So(err, ShouldBeNil)
 				So(exist, ShouldBeTrue)
 
-				err = db.Get(testAccount)
+				err = db.Get(&testAccount)
 				So(err, ShouldBeNil)
 				id := strconv.FormatUint(testAccount.ID, 10)
 				So(w.Header().Get("Location"), ShouldResemble, accountsPath+id)
@@ -244,9 +262,7 @@ func testCreateAccount(db *database.Db, partnerID uint64) {
 
 			Convey("Then it should reply 'Bad Request'", func() {
 				createAccount(testLogger, db).ServeHTTP(w, r)
-				if w.Code != http.StatusBadRequest {
-					So(w.Body.String(), ShouldBeNil)
-				}
+
 				So(w.Code, ShouldEqual, http.StatusBadRequest)
 			})
 		})
@@ -269,79 +285,86 @@ func testCreateAccount(db *database.Db, partnerID uint64) {
 }
 
 func testDeleteAccount(db *database.Db, partnerID uint64) {
-	testAccount := &model.Account{
+	testAccount := model.Account{
 		Username:  "test_account",
 		Password:  []byte("test_account_password"),
 		PartnerID: partnerID,
 	}
 
 	Convey("Given a account deletion function", func() {
-		err := db.Create(testAccount)
+		err := db.Create(&testAccount)
 		So(err, ShouldBeNil)
 
 		id := strconv.FormatUint(testAccount.ID, 10)
 
-		deleteTest(deleteAccount(testLogger, db), db, testAccount, id, "account", accountsPath)
+		deleteTest(deleteAccount(testLogger, db), db, &testAccount, id, "account", accountsPath)
 	})
 }
 
 func testUpdateAccount(db *database.Db, partnerID uint64) {
-	testAccountBefore := &model.Account{
+	testAccountBefore := model.Account{
 		Username:  "test_account_before",
 		Password:  []byte("test_account_password_before"),
 		PartnerID: partnerID,
 	}
-	testAccountAfter := &model.Account{
+	testAccountUpdate := &struct {
+		Username  string
+		PartnerID uint64
+	}{
 		Username:  "test_account_after",
 		PartnerID: partnerID,
 	}
 
 	Convey("Given a account update function", func() {
-		err := db.Create(testAccountBefore)
+		err := db.Create(&testAccountBefore)
 		So(err, ShouldBeNil)
-		testAccountAfter.ID = testAccountBefore.ID
+		testAccountAfter := model.Account{
+			ID:        testAccountBefore.ID,
+			Username:  testAccountUpdate.Username,
+			PartnerID: testAccountUpdate.PartnerID,
+			Password:  testAccountBefore.Password,
+		}
 
 		id := strconv.FormatUint(testAccountBefore.ID, 10)
 
-		updateTest(updateAccount(testLogger, db), db, testAccountBefore, testAccountAfter,
-			accountsPath, "account", id, false)
+		updateTest(updateAccount(testLogger, db), db, &testAccountBefore, testAccountUpdate,
+			&testAccountAfter, accountsPath, "account", id, false)
 	})
 }
 
 func testReplaceAccount(db *database.Db, partnerID uint64) {
-	testAccountBefore := &model.Account{
+	testAccountBefore := model.Account{
 		Username:  "test_account_before",
 		Password:  []byte("test_account_password"),
 		PartnerID: partnerID,
 	}
-	testAccountAfter := &model.Account{
+	testAccountUpdate := model.Account{
 		Username:  "test_account_after",
-		Password:  []byte("new_test_account_password"),
 		PartnerID: partnerID,
 	}
 
 	Convey("Given a account replace function", func() {
-		err := db.Create(testAccountBefore)
+		err := db.Create(&testAccountBefore)
 		So(err, ShouldBeNil)
-		testAccountAfter.ID = testAccountBefore.ID
+		testAccountUpdate.ID = testAccountBefore.ID
+		testAccountUpdate.Password = testAccountBefore.Password
 
 		id := strconv.FormatUint(testAccountBefore.ID, 10)
 
-		updateTest(updateAccount(testLogger, db), db, testAccountBefore, testAccountAfter,
-			accountsPath, "account", id, true)
+		updateTest(updateAccount(testLogger, db), db, &testAccountBefore, testAccountUpdate,
+			&testAccountUpdate, accountsPath, "account", id, true)
 	})
 }
 
 func TestAccounts(t *testing.T) {
 	testDb := database.GetTestDatabase()
 
-	testPartner := &model.Partner{
+	testPartner := model.Partner{
 		Name:    "test_partner",
 		Address: "test_partner_address",
 		Port:    1,
-		Type:    "type",
 	}
-	if err := testDb.Create(testPartner); err != nil {
+	if err := testDb.Create(&testPartner); err != nil {
 		t.Fatal(err)
 	}
 

@@ -19,31 +19,47 @@ const certPath = RestURI + CertsURI + "/"
 
 func testListCerts(db *database.Db, accountID uint64) {
 
-	testCert1 := &model.CertChain{
-		Name:      "test_cert1",
-		AccountID: accountID,
+	testCert1 := model.CertChain{
+		Name:       "test_cert1",
+		OwnerType:  "ACCOUNT",
+		OwnerID:    accountID,
+		PrivateKey: []byte("private_key"),
+		PublicKey:  []byte("public_key"),
+		Cert:       []byte("cert"),
 	}
-	testCert2 := &model.CertChain{
-		Name:      "test_cert2",
-		AccountID: accountID,
+	testCert2 := model.CertChain{
+		Name:       "test_cert2",
+		OwnerType:  "ACCOUNT",
+		OwnerID:    accountID,
+		PrivateKey: []byte("private_key"),
+		PublicKey:  []byte("public_key"),
+		Cert:       []byte("cert"),
 	}
-	testCert3 := &model.CertChain{
-		Name:      "test_cert3",
-		AccountID: 100,
+	testCert3 := model.CertChain{
+		Name:       "test_cert3",
+		OwnerType:  "ACCOUNT",
+		OwnerID:    100,
+		PrivateKey: []byte("private_key"),
+		PublicKey:  []byte("public_key"),
+		Cert:       []byte("cert"),
 	}
-	testCert4 := &model.CertChain{
-		Name:      "test_cert4",
-		AccountID: accountID,
+	testCert4 := model.CertChain{
+		Name:       "test_cert4",
+		OwnerType:  "ACCOUNT",
+		OwnerID:    accountID,
+		PrivateKey: []byte("private_key"),
+		PublicKey:  []byte("public_key"),
+		Cert:       []byte("cert"),
 	}
 
 	Convey("Given an certificates listing function", func() {
-		err := db.Create(testCert1)
+		err := db.Create(&testCert1)
 		So(err, ShouldBeNil)
-		err = db.Create(testCert2)
+		err = db.Create(&testCert2)
 		So(err, ShouldBeNil)
-		err = db.Create(testCert3)
+		err = db.Create(&testCert3)
 		So(err, ShouldBeNil)
-		err = db.Create(testCert4)
+		err = db.Create(&testCert4)
 		So(err, ShouldBeNil)
 
 		Convey("When calling it with no filters", func() {
@@ -59,9 +75,9 @@ func testListCerts(db *database.Db, accountID uint64) {
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.CertChain{testCert1, testCert2,
+				testResults := []model.CertChain{testCert1, testCert2,
 					testCert3, testCert4}
-				expected, err := json.Marshal(map[string]*[]*model.CertChain{"certificates": testResults})
+				expected, err := json.Marshal(map[string][]model.CertChain{"certificates": testResults})
 				So(err, ShouldBeNil)
 
 				So(w.Body.String(), ShouldResemble, string(expected)+"\n")
@@ -81,8 +97,8 @@ func testListCerts(db *database.Db, accountID uint64) {
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.CertChain{testCert1}
-				expected, err := json.Marshal(map[string]*[]*model.CertChain{"certificates": testResults})
+				testResults := []model.CertChain{testCert1}
+				expected, err := json.Marshal(map[string][]model.CertChain{"certificates": testResults})
 				So(err, ShouldBeNil)
 
 				So(w.Body.String(), ShouldResemble, string(expected)+"\n")
@@ -102,8 +118,8 @@ func testListCerts(db *database.Db, accountID uint64) {
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.CertChain{testCert2, testCert3, testCert4}
-				expected, err := json.Marshal(map[string]*[]*model.CertChain{"certificates": testResults})
+				testResults := []model.CertChain{testCert2, testCert3, testCert4}
+				expected, err := json.Marshal(map[string][]model.CertChain{"certificates": testResults})
 				So(err, ShouldBeNil)
 
 				So(w.Body.String(), ShouldResemble, string(expected)+"\n")
@@ -124,8 +140,8 @@ func testListCerts(db *database.Db, accountID uint64) {
 				So(contentType, ShouldEqual, "application/json")
 				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
 
-				testResults := &[]*model.CertChain{testCert4, testCert3, testCert2, testCert1}
-				object := map[string]*[]*model.CertChain{"certificates": testResults}
+				testResults := []model.CertChain{testCert4, testCert3, testCert2, testCert1}
+				object := map[string][]model.CertChain{"certificates": testResults}
 				expected, err := json.Marshal(object)
 
 				So(err, ShouldBeNil)
@@ -137,17 +153,25 @@ func testListCerts(db *database.Db, accountID uint64) {
 
 func testCreateCert(db *database.Db, accountID uint64) {
 
-	testCert := &model.CertChain{
-		Name:      "test_cert",
-		AccountID: accountID,
+	testCert := model.CertChain{
+		Name:       "test_cert",
+		OwnerType:  "ACCOUNT",
+		OwnerID:    accountID,
+		PrivateKey: []byte("private_key"),
+		PublicKey:  []byte("public_key"),
+		Cert:       []byte("cert"),
 	}
-	testCertFail := &model.CertChain{
-		Name:      "test_cert_fail",
-		AccountID: accountID,
+	testCertFail := model.CertChain{
+		Name:       "test_cert_fail",
+		OwnerType:  "ACCOUNT",
+		OwnerID:    accountID,
+		PrivateKey: []byte("private_key"),
+		PublicKey:  []byte("public_key"),
+		Cert:       []byte("cert"),
 	}
 
 	Convey("Given a certificate creation function", func() {
-		err := db.Create(testCertFail)
+		err := db.Create(&testCertFail)
 		So(err, ShouldBeNil)
 
 		Convey("When calling it with a valid JSON account", func() {
@@ -163,11 +187,11 @@ func testCreateCert(db *database.Db, accountID uint64) {
 				createCertificate(testLogger, db).ServeHTTP(w, r)
 				So(w.Code, ShouldEqual, http.StatusCreated)
 
-				exist, err := db.Exists(&model.CertChain{Name: testCert.Name, AccountID: accountID})
+				exist, err := db.Exists(&model.CertChain{Name: testCert.Name, OwnerID: accountID})
 				So(err, ShouldBeNil)
 				So(exist, ShouldBeTrue)
 
-				err = db.Get(testCert)
+				err = db.Get(&testCert)
 				So(err, ShouldBeNil)
 				id := strconv.FormatUint(testCert.ID, 10)
 				So(w.Header().Get("Location"), ShouldResemble, certPath+id)
@@ -207,13 +231,17 @@ func testCreateCert(db *database.Db, accountID uint64) {
 }
 
 func testGetCert(db *database.Db, accountID uint64) {
-	testCert := &model.CertChain{
-		Name:      "test_cert",
-		AccountID: accountID,
+	testCert := model.CertChain{
+		Name:       "test_cert",
+		OwnerType:  "ACCOUNT",
+		OwnerID:    accountID,
+		PrivateKey: []byte("private_key"),
+		PublicKey:  []byte("public_key"),
+		Cert:       []byte("cert"),
 	}
 
 	Convey("Given a certificate get function", func() {
-		err := db.Create(testCert)
+		err := db.Create(&testCert)
 		So(err, ShouldBeNil)
 
 		id := strconv.FormatUint(testCert.ID, 10)
@@ -255,85 +283,113 @@ func testGetCert(db *database.Db, accountID uint64) {
 }
 
 func testDeleteCert(db *database.Db, accountID uint64) {
-	testCert := &model.CertChain{
-		Name:      "test_cert",
-		AccountID: accountID,
+	testCert := model.CertChain{
+		Name:       "test_cert",
+		OwnerType:  "ACCOUNT",
+		OwnerID:    accountID,
+		PrivateKey: []byte("private_key"),
+		PublicKey:  []byte("public_key"),
+		Cert:       []byte("cert"),
 	}
 
 	Convey("Given a certificate deletion function", func() {
-		err := db.Create(testCert)
+		err := db.Create(&testCert)
 		So(err, ShouldBeNil)
 
 		id := strconv.FormatUint(testCert.ID, 10)
 
-		deleteTest(deleteCertificate(testLogger, db), db, testCert, id, "certificate", certPath)
+		deleteTest(deleteCertificate(testLogger, db), db, &testCert, id, "certificate", certPath)
 	})
 }
 
 func testUpdateCert(db *database.Db, accountID uint64) {
-	testCertBefore := &model.CertChain{
-		Name:      "test_cert_before",
-		AccountID: accountID,
-		PublicKey: []byte("test_public_key"),
+	testCertBefore := model.CertChain{
+		Name:       "test_cert_before",
+		OwnerType:  "ACCOUNT",
+		OwnerID:    accountID,
+		PrivateKey: []byte("private_key"),
+		PublicKey:  []byte("public_key"),
+		Cert:       []byte("cert"),
 	}
-	testCertAfter := &model.CertChain{
-		Name:      "test_cert_after",
-		AccountID: accountID,
+	testCertUpdate := &struct {
+		Name       string
+		OwnerID    uint64
+		PrivateKey []byte
+	}{
+		Name:       "test_cert_after",
+		OwnerID:    accountID,
+		PrivateKey: []byte("new_private_key"),
 	}
 
 	Convey("Given a certificate update function", func() {
-		err := db.Create(testCertBefore)
+		err := db.Create(&testCertBefore)
 		So(err, ShouldBeNil)
-		testCertAfter.ID = testCertBefore.ID
+		testCertAfter := model.CertChain{
+			ID:         testCertBefore.ID,
+			OwnerType:  "ACCOUNT",
+			OwnerID:    testCertUpdate.OwnerID,
+			Name:       testCertUpdate.Name,
+			PrivateKey: testCertUpdate.PrivateKey,
+			PublicKey:  testCertBefore.PublicKey,
+			Cert:       testCertBefore.Cert,
+		}
 
 		id := strconv.FormatUint(testCertBefore.ID, 10)
 
-		updateTest(updateCertificate(testLogger, db), db, testCertBefore, testCertAfter,
-			certPath, "certificate", id, false)
+		updateTest(updateCertificate(testLogger, db), db, &testCertBefore, testCertUpdate,
+			&testCertAfter, certPath, "certificate", id, false)
 	})
 }
 
 func testReplaceCert(db *database.Db, accountID uint64) {
-	testCertBefore := &model.CertChain{
-		Name:      "test_cert_before",
-		AccountID: accountID,
-		PublicKey: []byte("test_public_key"),
+	testCertBefore := model.CertChain{
+		Name:       "test_cert_before",
+		OwnerType:  "ACCOUNT",
+		OwnerID:    accountID,
+		PrivateKey: []byte("private_key"),
+		PublicKey:  []byte("public_key"),
+		Cert:       []byte("cert"),
 	}
-	testCertAfter := &model.CertChain{
-		Name:      "test_cert_after",
-		AccountID: accountID,
+	testCertAfter := model.CertChain{
+		Name:       "test_cert_after",
+		OwnerType:  "ACCOUNT",
+		OwnerID:    accountID,
+		PrivateKey: []byte("new_private_key"),
+		PublicKey:  []byte("new_public_key"),
+		Cert:       []byte("new_cert"),
 	}
 
 	Convey("Given a certificate replacing function", func() {
-		err := db.Create(testCertBefore)
+		err := db.Create(&testCertBefore)
 		So(err, ShouldBeNil)
 		testCertAfter.ID = testCertBefore.ID
 
 		id := strconv.FormatUint(testCertBefore.ID, 10)
 
-		updateTest(updateCertificate(testLogger, db), db, testCertBefore, testCertAfter,
-			certPath, "certificate", id, true)
+		updateTest(updateCertificate(testLogger, db), db, &testCertBefore, testCertAfter,
+			&testCertAfter, certPath, "certificate", id, true)
 	})
 }
 
 func TestCerts(t *testing.T) {
 	testDb := database.GetTestDatabase()
 
-	testPartner := &model.Partner{
+	testPartner := model.Partner{
+		ID:      1,
 		Name:    "test_partner",
 		Address: "test_partner_address",
 		Port:    1,
-		Type:    "type",
 	}
-	testAccount := &model.Account{
-		Username: "test_account",
-		Password: []byte("test_account_password"),
+	testAccount := model.Account{
+		ID:        1,
+		PartnerID: testPartner.ID,
+		Username:  "test_account",
+		Password:  []byte("test_account_password"),
 	}
-	if err := testDb.Create(testPartner); err != nil {
+	if err := testDb.Create(&testPartner); err != nil {
 		t.Fatal(err)
 	}
-	testAccount.PartnerID = testPartner.ID
-	if err := testDb.Create(testAccount); err != nil {
+	if err := testDb.Create(&testAccount); err != nil {
 		t.Fatal(err)
 	}
 

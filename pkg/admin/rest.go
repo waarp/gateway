@@ -18,6 +18,8 @@ import (
 const (
 	// StatusURI is the access path to the status entry point
 	StatusURI = "/status"
+	// InterfacesURI is the access path to the interfaces entry point
+	InterfacesURI = "/interfaces"
 	// PartnersURI is the access path to the partners entry point
 	PartnersURI = "/partners"
 	// AccountsURI is the access path to the partner accounts entry point
@@ -199,7 +201,7 @@ func restCreate(db *database.Db, r *http.Request, bean model.Validator) error {
 		return err
 	}
 
-	if err := bean.Validate(db.Exists); err != nil {
+	if err := bean.Validate(db, true); err != nil {
 		switch err.(type) {
 		case model.ErrInvalid:
 			return &badRequest{msg: err.Error()}
@@ -243,7 +245,7 @@ func restUpdate(db *database.Db, r *http.Request, old, new model.Validator) erro
 	if err := readJSON(r, new); err != nil {
 		return err
 	}
-	if err := new.Validate(db.Exists); err != nil {
+	if err := new.Validate(db, false); err != nil {
 		switch err.(type) {
 		case model.ErrInvalid:
 			return &badRequest{msg: err.Error()}

@@ -27,12 +27,14 @@ t_check() {
     fi
     go vet ./cmd/... ./pkg/...
     golangci-lint run \
-        --enable-all --disable depguard,gochecknoglobals,gochecknoinits,gocritic,interfacer,maligned,prealloc,lll \
+        --enable-all --disable goconst,depguard,gochecknoglobals,gochecknoinits,gocritic,interfacer,maligned,prealloc,lll \
         --max-issues-per-linter 0 --max-same-issues 0 \
         --exclude-use-default=false  \
         --exclude 'Potential file inclusion via variable' \
         --exclude 'Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked' \
-        --skip-dirs .gocache
+        --skip-dirs .gocache \
+        --exclude 'not declared by package utf8' \
+        --exclude 'unicode/utf8/utf8.go'
 }
 
 t_test_watch() {

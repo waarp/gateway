@@ -11,25 +11,12 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var (
-	testCertPartner model.Partner
-	testCertAccount model.Account
-)
+var testCertAccount model.Account
 
 func init() {
-	testCertPartner = model.Partner{
-		Name:    "test_account_partner",
-		Address: "test_account_partner_address",
-		Port:    1,
-		Type:    "sftp",
-	}
-	if err := testDb.Create(&testCertPartner); err != nil {
-		panic(err)
-	}
-
 	testCertAccount = model.Account{
 		Username:  "test_cert_account",
-		PartnerID: testCertPartner.ID,
+		PartnerID: 0,
 		Password:  []byte("test_cert_account_password"),
 	}
 	if err := testDb.Create(&testCertAccount); err != nil {
@@ -40,16 +27,18 @@ func init() {
 func TestCertCreate(t *testing.T) {
 
 	Convey("Testing the certificate creation function", t, func() {
-		testCert := &model.CertChain{
+		testCert := model.CertChain{
 			Name:       "test_cert_create",
-			AccountID:  testCertAccount.ID,
+			OwnerType:  "ACCOUNT",
+			OwnerID:    testCertAccount.ID,
 			PrivateKey: []byte("private_key"),
 			PublicKey:  []byte("public_key"),
 			Cert:       []byte("cert"),
 		}
-		existingCert := &model.CertChain{
+		existingCert := model.CertChain{
 			Name:       "test_cert_existing",
-			AccountID:  testCertAccount.ID,
+			OwnerType:  "ACCOUNT",
+			OwnerID:    testCertAccount.ID,
 			PrivateKey: []byte("private_key"),
 			PublicKey:  []byte("public_key"),
 			Cert:       []byte("cert"),
@@ -61,19 +50,20 @@ func TestCertCreate(t *testing.T) {
 		}
 		c := certificateCreateCommand{}
 
-		err := testDb.Create(existingCert)
+		err := testDb.Create(&existingCert)
 		So(err, ShouldBeNil)
 
 		Reset(func() {
-			err := testDb.Delete(existingCert)
+			err := testDb.Delete(&existingCert)
 			So(err, ShouldBeNil)
-			err = testDb.Delete(testCert)
+			err = testDb.Delete(&testCert)
 			So(err, ShouldBeNil)
 		})
 
 		Convey("Given correct values", func() {
 			args := []string{"-n", testCert.Name,
-				"-i", strconv.FormatUint(testCert.AccountID, 10),
+				"-t", "ACCOUNT",
+				"-i", strconv.FormatUint(testCert.OwnerID, 10),
 				"--private_key=" + string(testCert.PrivateKey),
 				"--public_key=" + string(testCert.PublicKey),
 				"--cert=" + string(testCert.Cert),
@@ -89,7 +79,8 @@ func TestCertCreate(t *testing.T) {
 
 		Convey("Given already existing values", func() {
 			args := []string{"-n", existingCert.Name,
-				"-i", strconv.FormatUint(existingCert.AccountID, 10),
+				"-t", "ACCOUNT",
+				"-i", strconv.FormatUint(existingCert.OwnerID, 10),
 				"--private_key=" + string(existingCert.PrivateKey),
 				"--public_key=" + string(existingCert.PublicKey),
 				"--cert=" + string(existingCert.Cert),
@@ -105,6 +96,7 @@ func TestCertCreate(t *testing.T) {
 
 		Convey("Given a non-existent account id", func() {
 			args := []string{"-n", testCert.Name,
+				"-t", "ACCOUNT",
 				"-i", "1000",
 				"--private_key=" + string(testCert.PrivateKey),
 				"--public_key=" + string(testCert.PublicKey),
@@ -138,9 +130,10 @@ func TestCertCreate(t *testing.T) {
 func TestCertGet(t *testing.T) {
 
 	Convey("Testing the account get function", t, func() {
-		testCert := &model.CertChain{
+		testCert := model.CertChain{
 			Name:       "test_cert_get",
-			AccountID:  testCertAccount.ID,
+			OwnerType:  "ACCOUNT",
+			OwnerID:    testCertAccount.ID,
 			PrivateKey: []byte("private_key"),
 			PublicKey:  []byte("public_key"),
 			Cert:       []byte("cert"),
@@ -152,11 +145,11 @@ func TestCertGet(t *testing.T) {
 		}
 		c := certificateGetCommand{}
 
-		err := testDb.Create(testCert)
+		err := testDb.Create(&testCert)
 		So(err, ShouldBeNil)
 
 		Reset(func() {
-			err := testDb.Delete(testCert)
+			err := testDb.Delete(&testCert)
 			So(err, ShouldBeNil)
 		})
 
@@ -192,30 +185,34 @@ func TestCertGet(t *testing.T) {
 func TestCertSelect(t *testing.T) {
 
 	Convey("Testing the account listing function", t, func() {
-		testCert1 := &model.CertChain{
+		testCert1 := model.CertChain{
 			Name:       "test_cert_create1",
-			AccountID:  testCertAccount.ID,
+			OwnerType:  "ACCOUNT",
+			OwnerID:    testCertAccount.ID,
 			PrivateKey: []byte("private_key"),
 			PublicKey:  []byte("public_key"),
 			Cert:       []byte("cert"),
 		}
-		testCert2 := &model.CertChain{
+		testCert2 := model.CertChain{
 			Name:       "test_cert_create2",
-			AccountID:  testCertAccount.ID,
+			OwnerType:  "ACCOUNT",
+			OwnerID:    testCertAccount.ID,
 			PrivateKey: []byte("private_key"),
 			PublicKey:  []byte("public_key"),
 			Cert:       []byte("cert"),
 		}
-		testCert3 := &model.CertChain{
+		testCert3 := model.CertChain{
 			Name:       "test_cert_create3",
-			AccountID:  testCertAccount.ID,
+			OwnerType:  "ACCOUNT",
+			OwnerID:    testCertAccount.ID,
 			PrivateKey: []byte("private_key"),
 			PublicKey:  []byte("public_key"),
 			Cert:       []byte("cert"),
 		}
-		testCert4 := &model.CertChain{
+		testCert4 := model.CertChain{
 			Name:       "test_cert_create4",
-			AccountID:  testCertAccount.ID,
+			OwnerType:  "ACCOUNT",
+			OwnerID:    testCertAccount.ID,
 			PrivateKey: []byte("private_key"),
 			PublicKey:  []byte("public_key"),
 			Cert:       []byte("cert"),
@@ -227,23 +224,23 @@ func TestCertSelect(t *testing.T) {
 		}
 		c := certificateListCommand{}
 
-		err := testDb.Create(testCert1)
+		err := testDb.Create(&testCert1)
 		So(err, ShouldBeNil)
-		err = testDb.Create(testCert2)
+		err = testDb.Create(&testCert2)
 		So(err, ShouldBeNil)
-		err = testDb.Create(testCert3)
+		err = testDb.Create(&testCert3)
 		So(err, ShouldBeNil)
-		err = testDb.Create(testCert4)
+		err = testDb.Create(&testCert4)
 		So(err, ShouldBeNil)
 
 		Reset(func() {
-			err := testDb.Delete(testCert1)
+			err := testDb.Delete(&testCert1)
 			So(err, ShouldBeNil)
-			err = testDb.Delete(testCert2)
+			err = testDb.Delete(&testCert2)
 			So(err, ShouldBeNil)
-			err = testDb.Delete(testCert3)
+			err = testDb.Delete(&testCert3)
 			So(err, ShouldBeNil)
-			err = testDb.Delete(testCert4)
+			err = testDb.Delete(&testCert4)
 			So(err, ShouldBeNil)
 		})
 
@@ -307,9 +304,10 @@ func TestCertSelect(t *testing.T) {
 func TestCertDelete(t *testing.T) {
 
 	Convey("Testing the account deletion function", t, func() {
-		testCert := &model.CertChain{
+		testCert := model.CertChain{
 			Name:       "test_cert_delete",
-			AccountID:  testCertAccount.ID,
+			OwnerType:  "ACCOUNT",
+			OwnerID:    testCertAccount.ID,
 			PrivateKey: []byte("private_key"),
 			PublicKey:  []byte("public_key"),
 			Cert:       []byte("cert"),
@@ -321,11 +319,11 @@ func TestCertDelete(t *testing.T) {
 		}
 		c := certificateDeleteCommand{}
 
-		err := testDb.Create(testCert)
+		err := testDb.Create(&testCert)
 		So(err, ShouldBeNil)
 
 		Reset(func() {
-			err := testDb.Delete(testCert)
+			err := testDb.Delete(&testCert)
 			So(err, ShouldBeNil)
 		})
 
@@ -370,16 +368,18 @@ func TestCertDelete(t *testing.T) {
 func TestCertUpdate(t *testing.T) {
 
 	Convey("Testing the account update function", t, func() {
-		testCertBefore := &model.CertChain{
+		testCertBefore := model.CertChain{
 			Name:       "test_cert_before",
-			AccountID:  testCertAccount.ID,
+			OwnerType:  "ACCOUNT",
+			OwnerID:    testCertAccount.ID,
 			PrivateKey: []byte("private_key"),
 			PublicKey:  []byte("public_key"),
 			Cert:       []byte("cert"),
 		}
-		testCertAfter := &model.CertChain{
+		testCertAfter := model.CertChain{
 			Name:       "test_cert_after",
-			AccountID:  testCertAccount.ID,
+			OwnerType:  "ACCOUNT",
+			OwnerID:    testCertAccount.ID,
 			PrivateKey: []byte("private_key"),
 			PublicKey:  []byte("public_key"),
 			Cert:       []byte("cert"),
@@ -391,20 +391,21 @@ func TestCertUpdate(t *testing.T) {
 		}
 		c := certificateUpdateCommand{}
 
-		err := testDb.Create(testCertBefore)
+		err := testDb.Create(&testCertBefore)
 		So(err, ShouldBeNil)
 		id := strconv.FormatUint(testCertBefore.ID, 10)
 
 		Reset(func() {
-			err := testDb.Delete(testCertBefore)
+			err := testDb.Delete(&testCertBefore)
 			So(err, ShouldBeNil)
-			err = testDb.Delete(testCertAfter)
+			err = testDb.Delete(&testCertAfter)
 			So(err, ShouldBeNil)
 		})
 
 		Convey("Given correct values", func() {
 			args := []string{"-n", testCertAfter.Name,
-				"-i", strconv.FormatUint(testCertAfter.AccountID, 10),
+				"-t", "ACCOUNT",
+				"-i", strconv.FormatUint(testCertAfter.OwnerID, 10),
 				"--private_key=" + string(testCertAfter.PrivateKey),
 				"--public_key=" + string(testCertAfter.PublicKey),
 				"--cert=" + string(testCertAfter.Cert),
@@ -421,6 +422,7 @@ func TestCertUpdate(t *testing.T) {
 
 		Convey("Given a non-existent account id", func() {
 			args := []string{"-n", testCertAfter.Name,
+				"-t", "ACCOUNT",
 				"-i", "1000",
 				"--private_key=" + string(testCertAfter.PrivateKey),
 				"--public_key=" + string(testCertAfter.PublicKey),
@@ -438,6 +440,7 @@ func TestCertUpdate(t *testing.T) {
 
 		Convey("Given a non-numeric account id", func() {
 			args := []string{"-n", testCertAfter.Name,
+				"-t", "ACCOUNT",
 				"-i", "not_an_id",
 				"--private_key=" + string(testCertAfter.PrivateKey),
 				"--public_key=" + string(testCertAfter.PublicKey),
@@ -453,7 +456,8 @@ func TestCertUpdate(t *testing.T) {
 
 		Convey("Given no id", func() {
 			args := []string{"-n", testCertAfter.Name,
-				"-i", strconv.FormatUint(testCertAfter.AccountID, 10),
+				"-t", "ACCOUNT",
+				"-i", strconv.FormatUint(testCertAfter.OwnerID, 10),
 				"--private_key=" + string(testCertAfter.PrivateKey),
 				"--public_key=" + string(testCertAfter.PublicKey),
 				"--cert=" + string(testCertAfter.Cert),
@@ -472,22 +476,24 @@ func TestCertUpdate(t *testing.T) {
 func TestDisplayCertificate(t *testing.T) {
 
 	Convey("Given a certificate", t, func() {
-		testCert := &model.CertChain{
+		testCert := model.CertChain{
 			ID:         123,
-			AccountID:  789,
+			OwnerType:  "ACCOUNT",
+			OwnerID:    789,
 			Name:       "test_cert",
 			PrivateKey: []byte("private_key"),
 			PublicKey:  []byte("public_key"),
 			Cert:       []byte("cert"),
 		}
 		id := strconv.FormatUint(testCert.ID, 10)
-		accID := strconv.FormatUint(testCert.AccountID, 10)
+		accID := strconv.FormatUint(testCert.OwnerID, 10)
 
 		Convey("When calling the 'displayCertificate' function", func() {
 			out, err := ioutil.TempFile(".", "waarp_gateway")
 			So(err, ShouldBeNil)
-			err = displayCertificate(out, testCert)
-			So(err, ShouldBeNil)
+
+			displayCertificate(out, testCert)
+
 			err = out.Close()
 			So(err, ShouldBeNil)
 

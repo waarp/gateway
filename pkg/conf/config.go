@@ -29,12 +29,13 @@ type AdminConfig struct {
 
 // DatabaseConfig holds the server database options
 type DatabaseConfig struct {
-	Type     string `ini-name:"Type" default:"" description:"Name of the RDBMS used for the gateway database"`
-	Address  string `ini-name:"Address" default:"localhost" description:"Address of the database"`
-	Port     uint16 `ini-name:"Port" default:"" description:"Port of the database"`
-	Name     string `ini-name:"Name" default:"waarp_gatewayd" description:"The name of the database"`
-	User     string `ini-name:"User" default:"waarp_gatewayd" description:"The name of the gateway database user"`
-	Password string `ini-name:"Password" default:"" description:"The password of the gateway database user"`
+	Type          string `ini-name:"Type" default:"" description:"Name of the RDBMS used for the gateway database"`
+	Address       string `ini-name:"Address" default:"localhost" description:"Address of the database"`
+	Port          uint16 `ini-name:"Port" default:"" description:"Port of the database"`
+	Name          string `ini-name:"Name" default:"waarp_gatewayd" description:"The name of the database"`
+	User          string `ini-name:"User" default:"waarp_gatewayd" description:"The name of the gateway database user"`
+	Password      string `ini-name:"Password" default:"" description:"The password of the gateway database user"`
+	AESPassphrase string `ini-name:"AESPassphrase" default:"aes_passphrase" description:"The path to the file containing the passphrase used to encrypt account passwords using AES"`
 }
 
 // LoadServerConfig creates a configuration object.

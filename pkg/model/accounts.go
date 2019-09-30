@@ -1,9 +1,32 @@
 package model
 
-import "fmt"
+import (
+	"crypto/rand"
+	"encoding/json"
+	"fmt"
+	"io"
+	"strings"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+)
 
 func init() {
-	Tables = append(Tables, &Account{})
+	database.Tables = append(database.Tables, &Account{})
+}
+
+func encryptPassword(password []byte) []byte {
+	// If password is already encrypted, don't encrypt it again.
+	if strings.HasPrefix(string(password), "$AES$") {
+		return password
+	}
+
+	nonce := make([]byte, database.GCM.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil
+	}
+
+	cipherText := database.GCM.Seal(nonce, nonce, password, nil)
+	return append([]byte("$AES$"), cipherText...)
 }
 
 // Account represents one record of the 'accounts' table.
@@ -12,54 +35,89 @@ type Account struct {
 	ID uint64 `xorm:"pk autoincr 'id'" json:"id"`
 	// The account's username
 	Username string `xorm:"unique(acc) notnull 'username'" json:"username"`
-	// The account's password hash
+	// The account's password hash if the account is internal. If the account is
+	// not internal, then this is the password cypher.
 	Password []byte `xorm:"notnull 'password'" json:"password,omitempty"`
 	// The Id of the partner this account belongs to
 	PartnerID uint64 `xorm:"unique(acc) notnull 'partner_id'" json:"partnerID"`
+	// If true then the account is used by the partner to connect to the gateway,
+	// if false it is used by the gateway to connect to the partner
+	IsInternal bool `xorm:"notnull 'is_internal'" json:"isInternal"`
+}
+
+// MarshalJSON removes the password before marshalling the account to JSON.
+func (a *Account) MarshalJSON() ([]byte, error) {
+	a.Password = nil
+	return json.Marshal(*a)
 }
 
 // Validate checks that the account entry can be inserted into the database
-func (a *Account) Validate(exists func(interface{}) (bool, error)) error {
+func (a *Account) Validate(db *database.Db, isInsert bool) error {
 	if a.Username == "" {
-		return ErrInvalid{msg: "The account's username cannot be empty."}
+		return ErrInvalid{msg: "The account's username cannot be empty"}
 	}
 	if len(a.Password) == 0 {
-		return ErrInvalid{msg: "The account's password cannot be empty."}
+		return ErrInvalid{msg: "The account's password cannot be empty"}
 	}
 	if a.PartnerID == 0 {
-		return ErrInvalid{msg: "The account's partnerID cannot be empty."}
+		return ErrInvalid{msg: "The account's partnerID cannot be empty"}
 	}
 
-	parent := &Partner{ID: a.PartnerID}
-	if ok, err := exists(parent); err != nil {
+	parts, err := db.Query("SELECT id FROM partners WHERE id=?", a.PartnerID)
+	if err != nil {
 		return err
-	} else if !ok {
-		return ErrInvalid{msg: fmt.Sprintf("The partner n°%v does not exist",
-			parent.ID)}
+	}
+	if len(parts) == 0 {
+		return ErrInvalid{msg: fmt.Sprintf("No partner found with id '%v'", a.PartnerID)}
 	}
 
-	test := &Account{
-		PartnerID: a.PartnerID,
-		Username:  a.Username,
-	}
-	if ok, err := exists(test); err != nil {
+	names, err := db.Query("SELECT id FROM accounts WHERE partner_id=? AND username=?",
+		a.PartnerID, a.Username)
+	if err != nil {
 		return err
-	} else if ok {
-		return ErrInvalid{msg: fmt.Sprintf("An account named '%s' already exists",
-			a.Username)}
+	}
+
+	if isInsert {
+		if len(names) > 0 {
+			return ErrInvalid{msg: "An account with the same username already exist for this partner"}
+		}
+
+		ids, err := db.Query("SELECT id FROM accounts WHERE id=?", a.ID)
+		if err != nil {
+			return err
+		}
+		if len(ids) > 0 {
+			return ErrInvalid{msg: "An account with the same ID already exist"}
+		}
+	} else {
+		if len(names) > 0 && names[0]["id"] != a.ID {
+			return ErrInvalid{msg: "An account with the same username already exist for this partner"}
+		}
+
+		res, err := db.Query("SELECT id FROM accounts WHERE id=?", a.ID)
+		if err != nil {
+			return err
+		}
+		if len(res) == 0 {
+			return ErrInvalid{fmt.Sprintf("Unknown account id: '%v'", a.ID)}
+		}
 	}
 
 	return nil
 }
 
-// BeforeUpdate hashes the account password before updating the record.
+// BeforeUpdate encrypts or hashes the account password before updating the record.
 func (a *Account) BeforeUpdate() {
-	a.Password = hashPassword(a.Password)
+	if a.IsInternal {
+		a.Password = hashPassword(a.Password)
+	} else {
+		a.Password = encryptPassword(a.Password)
+	}
 }
 
-// BeforeInsert hashes the account password before updating the record.
+// BeforeInsert encrypts or hashes the account password before updating the record.
 func (a *Account) BeforeInsert() {
-	a.Password = hashPassword(a.Password)
+	a.BeforeUpdate()
 }
 
 // TableName returns the name of the accounts SQL table

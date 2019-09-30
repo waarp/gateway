@@ -1,54 +1,59 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
-
-	"github.com/go-xorm/builder"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"github.com/go-xorm/builder"
 	"github.com/gorilla/mux"
 )
 
-func getPartner(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getInterface(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.ParseUint(mux.Vars(r)["partner"], 10, 64)
+		id, err := strconv.ParseUint(mux.Vars(r)["interface"], 10, 64)
 		if err != nil {
 			handleErrors(w, logger, &notFound{})
 			return
 		}
-		partner := &model.Partner{ID: id}
+		inter := &model.Interface{ID: id}
 
-		if err := restGet(db, partner); err != nil {
+		if err := restGet(db, inter); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
-		if err := writeJSON(w, partner); err != nil {
+		if err := writeJSON(w, inter); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
 	}
 }
 
-func listPartners(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listInterfaces(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limit := 20
 		offset := 0
 		order := "name"
-		validSorting := []string{"address", "name", "port"}
+		validSorting := []string{"name", "port", "type"}
 
 		if err := parseLimitOffsetOrder(r, &limit, &offset, &order, validSorting); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
 
-		addresses := r.Form["address"]
-
+		types := r.Form["type"]
 		conditions := make([]builder.Cond, 0)
-		if len(addresses) > 0 {
-			conditions = append(conditions, builder.In("address", addresses))
+		if len(types) > 0 {
+			for _, typ := range types {
+				if !model.Exists(model.Types, typ) {
+					handleErrors(w, logger, &badRequest{
+						msg: fmt.Sprintf("'%s' is not a valid protocol", typ)})
+				}
+			}
+			conditions = append(conditions, builder.In("type", types))
 		}
 
 		filters := &database.Filters{
@@ -58,44 +63,44 @@ func listPartners(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			Conditions: builder.And(conditions...),
 		}
 
-		results := &[]*model.Partner{}
-		if err := db.Select(results, filters); err != nil {
+		results := []model.Interface{}
+		if err := db.Select(&results, filters); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
 
-		resp := map[string]*[]*model.Partner{"partners": results}
+		resp := map[string][]model.Interface{"interfaces": results}
 		if err := writeJSON(w, resp); err != nil {
 			handleErrors(w, logger, err)
 		}
 	}
 }
 
-func createPartner(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createInterface(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		partner := &model.Partner{}
+		inter := &model.Interface{}
 
-		if err := restCreate(db, r, partner); err != nil {
+		if err := restCreate(db, r, inter); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
 
-		newID := strconv.FormatUint(partner.ID, 10)
-		w.Header().Set("Location", RestURI+PartnersURI+"/"+newID)
+		newID := strconv.FormatUint(inter.ID, 10)
+		w.Header().Set("Location", RestURI+InterfacesURI+"/"+newID)
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
-func deletePartner(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteInterface(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.ParseUint(mux.Vars(r)["partner"], 10, 64)
+		id, err := strconv.ParseUint(mux.Vars(r)["interface"], 10, 64)
 		if err != nil {
 			handleErrors(w, logger, &notFound{})
 			return
 		}
-		partner := &model.Partner{ID: id}
+		inter := &model.Interface{ID: id}
 
-		if err := restDelete(db, partner); err != nil {
+		if err := restDelete(db, inter); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
@@ -103,15 +108,15 @@ func deletePartner(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func updatePartner(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateInterface(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.ParseUint(mux.Vars(r)["partner"], 10, 64)
+		id, err := strconv.ParseUint(mux.Vars(r)["interface"], 10, 64)
 		if err != nil {
 			handleErrors(w, logger, &notFound{})
 			return
 		}
-		oldPart := &model.Partner{ID: id}
-		newPart := &model.Partner{ID: id}
+		oldPart := &model.Interface{ID: id}
+		newPart := &model.Interface{ID: id}
 
 		if err := restUpdate(db, r, oldPart, newPart); err != nil {
 			handleErrors(w, logger, err)
@@ -119,7 +124,7 @@ func updatePartner(logger *log.Logger, db *database.Db) http.HandlerFunc {
 		}
 
 		strID := strconv.FormatUint(id, 10)
-		w.Header().Set("Location", RestURI+PartnersURI+"/"+strID)
+		w.Header().Set("Location", RestURI+InterfacesURI+"/"+strID)
 		w.WriteHeader(http.StatusCreated)
 	}
 }

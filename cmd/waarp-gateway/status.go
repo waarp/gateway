@@ -60,7 +60,7 @@ func (s *statusCommand) requestStatus(in *os.File, out *os.File) (admin.Statuses
 	return statuses, nil
 }
 
-// showStatusANSI writes the status of the gateway services in the given
+// showStatus writes the status of the gateway services in the given
 // writer with colors, using ANSI coloration codes.
 func showStatus(f *os.File, statuses admin.Statuses) {
 	var errors = make([]string, 0)
