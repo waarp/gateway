@@ -1,227 +1,256 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	"os"
-	"strconv"
+	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-type certificateCommand struct{}
-
-func displayCertificate(out *os.File, certificate model.CertChain) {
-	w := getColorable(out)
-
-	fmt.Fprintf(w, "\033[97;1mCertificate n°%v:\033[0m\n", certificate.ID)
-	fmt.Fprintf(w, "├─\033[97mName:\033[0m \033[37m%s\033[0m\n", certificate.Name)
-	fmt.Fprintf(w, "├─\033[97mAccountID:\033[0m \033[37m%v\033[0m\n", certificate.OwnerID)
-	fmt.Fprintf(w, "├─\033[97mPrivate Key:\033[0m \033[37m%s\033[0m\n",
-		string(certificate.PrivateKey))
-	fmt.Fprintf(w, "├─\033[97mPublic Key:\033[0m \033[37m%v\033[0m\n",
-		string(certificate.PublicKey))
-	fmt.Fprintf(w, "└─\033[97mCert:\033[0m \033[37m%v\033[0m\n",
-		string(certificate.Cert))
+type certificateCommand struct {
+	Get    certGetCommand    `command:"get" description:"Retrieve a certificate's information"`
+	Add    certAddCommand    `command:"add" description:"Add a new certificate"`
+	Delete certDeleteCommand `command:"delete" description:"Delete a certificate"`
+	List   certListCommand   `command:"list" description:"List the known certificates"`
+	Update certUpdateCommand `command:"update" description:"Update an existing certificate"`
 }
 
-// ############################## GET #####################################
+func displayCertificate(cert model.Cert) {
+	w := getColorable()
 
-type certificateGetCommand struct{}
+	fmt.Fprintf(w, "\033[97;1mCertificate n°%v:\033[0m\n", cert.ID)
+	fmt.Fprintf(w, "├─\033[97mName:\033[0m \033[34;4m%s\033[0m\n", cert.Name)
+	fmt.Fprintf(w, "├─\033[97mType:\033[0m \033[34;4m%s\033[0m\n", cert.OwnerType)
+	fmt.Fprintf(w, "├─\033[97mOwner:\033[0m \033[34;4m%v\033[0m\n", cert.OwnerID)
+	fmt.Fprintf(w, "├─\033[97mPrivate key:\033[0m \033[34;4m%s\033[0m\n", string(cert.PrivateKey))
+	fmt.Fprintf(w, "├─\033[97mPublic key:\033[0m \033[34;4m%s\033[0m\n", string(cert.PublicKey))
+	fmt.Fprintf(w, "└─\033[97mContent:\033[0m \033[33m%v\033[0m\n", cert.Certificate)
+}
 
-// Execute executes the 'certificate' command. The command flags are stored in
-// the 's' parameter, while the program arguments are stored in the 'args'
-// parameter.
-func (c *certificateGetCommand) Execute(args []string) error {
+// ######################## GET ##########################
+
+type certGetCommand struct{}
+
+func (c *certGetCommand) Execute(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("missing certificate name")
+		return fmt.Errorf("missing certificate ID")
 	}
 
-	subpath := admin.CertsURI + "/" + args[0]
-	cert := model.CertChain{}
-	err := getCommand(os.Stdin, os.Stdout, subpath, &cert)
+	res := model.Cert{}
+	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
 	}
+	conn.Path = admin.APIPath + admin.CertificatesPath + "/" + args[0]
 
-	fmt.Println()
-	displayCertificate(os.Stdout, cert)
+	if err := getCommand(&res, conn); err != nil {
+		return err
+	}
+
+	displayCertificate(res)
 
 	return nil
 }
 
-// ############################### LIST #######################################
+// ######################## ADD ##########################
 
-type certificateListCommand struct {
-	Limit   int    `short:"l" long:"limit" description:"The max number of entries which can be returned" default:"20"`
-	Offset  int    `short:"o" long:"offset" description:"The offset from which the first entry is taken" default:"0"`
-	Sort    string `short:"s" long:"sort" description:"The parameter used to sort the returned entries" choice:"name" default:"name"`
-	Reverse bool   `short:"d" long:"descending" description:"If present, the order of the sorting will be reversed"`
+type certAddCommand struct {
+	Name        string `required:"true" short:"n" long:"name" description:"The certificate's name"`
+	Type        string `required:"true" short:"t" long:"type" description:"The type of the certificates's owner" choice:"local_agents" choice:"remote_agents" choice:"local_accounts" choice:"remote_accounts"`
+	Owner       uint64 `required:"true" short:"o" long:"owner" description:"The ID of the certificate's owner"`
+	PrivateKey  string `long:"private_key" description:"The path to the certificate's private key file"`
+	PublicKey   string `long:"public_key" description:"The path to the certificate's public key file"`
+	Certificate string `long:"certificate" description:"The path to the certificate file"`
 }
 
-func (c *certificateListCommand) listCertificates(in *os.File, out *os.File) ([]byte, error) {
-	addr := auth.Address + admin.RestURI + admin.CertsURI
-
-	addr += "?limit=" + strconv.Itoa(c.Limit)
-	addr += "&offset=" + strconv.Itoa(c.Offset)
-	addr += "&sortby=" + c.Sort
-	if c.Reverse {
-		addr += orderDesc
-	}
-
-	req, err := http.NewRequest(http.MethodGet, addr, nil)
+func (c *certAddCommand) Execute(_ []string) error {
+	prK, err := ioutil.ReadFile(c.PrivateKey)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	res, err := executeRequest(req, auth.Username, in, out)
+	puK, err := ioutil.ReadFile(c.PublicKey)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	return body, nil
-}
-
-// Execute executes the 'certificate' command. The command flags are stored in
-// the 's' parameter, while the program arguments are stored in the 'args'
-// parameter.
-func (c *certificateListCommand) Execute(_ []string) error {
-	content, err := c.listCertificates(os.Stdin, os.Stdout)
+	crt, err := ioutil.ReadFile(c.Certificate)
 	if err != nil {
 		return err
 	}
 
-	certificates := map[string][]model.CertChain{}
-	if err := json.Unmarshal(content, &certificates); err != nil {
+	newCert := model.Cert{
+		OwnerType:   c.Type,
+		OwnerID:     c.Owner,
+		Name:        c.Name,
+		PrivateKey:  prK,
+		PublicKey:   puK,
+		Certificate: crt,
+	}
+
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + admin.CertificatesPath
+
+	loc, err := addCommand(newCert, conn)
+	if err != nil {
 		return err
 	}
 
-	fmt.Println()
-	for _, certificate := range certificates["certificates"] {
-		displayCertificate(os.Stdout, certificate)
-	}
+	w := getColorable()
+	fmt.Fprintf(w, "The certificate \033[33m'%s'\033[0m was successfully added. "+
+		"It can be consulted at the address: \033[37m%s\033[0m\n", newCert.Name, loc)
 
 	return nil
 }
 
-// ############################### CREATE #######################################
+// ######################## DELETE ##########################
 
-type certificateCreateCommand struct {
-	Name       string `required:"true" short:"n" long:"name" description:"The certificate's name"`
-	OwnerType  string `required:"true" short:"t" long:"type" description:"The type of owner the certificate is attached to (ACCOUNT or PARTNER)"`
-	OwnerID    uint64 `required:"true" short:"i" long:"owner_id" description:"The account to which the certificate will be attached"`
-	PrivateKey string `long:"private_key" description:"The private key"`
-	PublicKey  string `long:"public_key" description:"The public key"`
-	Cert       string `long:"cert" description:"The public key certificate"`
-}
+type certDeleteCommand struct{}
 
-// Execute executes the 'create' command. The command flags are stored in
-// the 's' parameter, while the program arguments are stored in the 'args'
-// parameter.
-func (c *certificateCreateCommand) Execute(_ []string) error {
-	addr := auth.Address + admin.RestURI + admin.CertsURI
-
-	certificate := model.CertChain{
-		Name:       c.Name,
-		OwnerType:  c.OwnerType,
-		OwnerID:    c.OwnerID,
-		PrivateKey: []byte(c.PrivateKey),
-		PublicKey:  []byte(c.PublicKey),
-		Cert:       []byte(c.Cert),
-	}
-
-	path, err := sendBean(certificate, os.Stdin, os.Stdout, addr, http.MethodPost)
-	if err != nil {
-		return err
-	}
-
-	w := getColorable(os.Stdout)
-	fmt.Fprintf(w, "\033[97mCertificate successfully created at:\033[0m \033[34;4m%s\033[0m\n",
-		auth.Address+path)
-	return nil
-}
-
-//################################### UPDATE ######################################
-
-type certificateUpdateCommand struct {
-	Name       string `short:"n" long:"name" description:"The certificate's name"`
-	OwnerType  string `short:"t" long:"type" description:"The type of owner the certificate is attached to (ACCOUNT or PARTNER)"`
-	OwnerID    uint64 `short:"i" long:"account_id" description:"The account to which the certificate will be attached"`
-	PrivateKey string `long:"private_key" description:"The private key"`
-	PublicKey  string `long:"public_key" description:"The public key"`
-	Cert       string `long:"cert" description:"The public key certificate"`
-}
-
-// Execute executes the 'update' command. The command flags are stored in
-// the 's' parameter, while the program arguments are stored in the 'args'
-// parameter.
-func (c *certificateUpdateCommand) Execute(args []string) error {
+func (c *certDeleteCommand) Execute(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("missing certificate name")
+		return fmt.Errorf("missing certificate ID")
 	}
 
-	addr := auth.Address + admin.RestURI + admin.CertsURI + "/" + args[0]
-
-	certificate := &struct {
-		Name                        string
-		OwnerType                   string
-		OwnerID                     uint64
-		PrivateKey, PublicKey, Cert []byte
-	}{
-		Name:       c.Name,
-		OwnerType:  c.OwnerType,
-		OwnerID:    c.OwnerID,
-		PrivateKey: []byte(c.PrivateKey),
-		PublicKey:  []byte(c.PublicKey),
-		Cert:       []byte(c.Cert),
-	}
-
-	path, err := sendBean(certificate, os.Stdin, os.Stdout, addr, http.MethodPatch)
+	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
 	}
+	conn.Path = admin.APIPath + admin.CertificatesPath + "/" + args[0]
 
-	w := getColorable(os.Stdout)
-	fmt.Fprintf(w, "\033[97mCertificate successfully updated at:\033[0m \033[34;4m%s\033[0m\n",
-		auth.Address+path)
+	if err := deleteCommand(conn); err != nil {
+		return err
+	}
+
+	w := getColorable()
+	fmt.Fprintf(w, "The certificate n°\033[33m%s\033[0m was successfully deleted from "+
+		"the database\n", args[0])
+
 	return nil
 }
 
-// ############################## DELETE #####################################
+// ######################## LIST ##########################
 
-type certificateDeleteCommand struct{}
+type certListCommand struct {
+	listOptions
+	SortBy  string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name" default:"name"`
+	Access  []uint64 `long:"access" description:"Filter the certificates based on the ID of the local account they are attached to. Can be repeated multiple times to filter multiple accounts."`
+	Account []uint64 `long:"account" description:"Filter the certificates based on the ID of the remote account they are attached to. Can be repeated multiple times to filter multiple accounts."`
+	Partner []uint64 `long:"partner" description:"Filter the certificates based on the ID of the distant partner they are attached to. Can be repeated multiple times to filter multiple partners."`
+	Server  []uint64 `long:"server" description:"Filter the certificates based on the ID of the local server they are attached to. Can be repeated multiple times to filter multiple servers."`
+}
 
-// Execute executes the 'certificate' command. The command flags are stored in
-// the 's' parameter, while the program arguments are stored in the 'args'
-// parameter.
-func (c *certificateDeleteCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing certificate name")
-	}
-
-	addr := auth.Address + admin.RestURI + admin.CertsURI + "/" + args[0]
-
-	req, err := http.NewRequest(http.MethodDelete, addr, nil)
+func (c *certListCommand) Execute(_ []string) error {
+	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
 	}
 
-	res, err := executeRequest(req, auth.Username, os.Stdin, os.Stdout)
+	conn.Path = admin.APIPath + admin.CertificatesPath
+	query := url.Values{}
+	query.Set("limit", fmt.Sprint(c.Limit))
+	query.Set("offset", fmt.Sprint(c.Offset))
+	query.Set("sortby", c.SortBy)
+	if c.DescOrder {
+		query.Set("order", "desc")
+	}
+	for _, acc := range c.Access {
+		query.Add("local_accounts", fmt.Sprint(acc))
+	}
+	for _, acc := range c.Access {
+		query.Add("remote_accounts", fmt.Sprint(acc))
+	}
+	for _, par := range c.Partner {
+		query.Add("remote_agents", fmt.Sprint(par))
+	}
+	for _, ser := range c.Server {
+		query.Add("local_agents", fmt.Sprint(ser))
+	}
+	conn.RawQuery = query.Encode()
+
+	res := map[string][]model.Cert{}
+	if err := getCommand(&res, conn); err != nil {
+		return err
+	}
+
+	w := getColorable()
+	certs := res["certificates"]
+	if len(certs) > 0 {
+		fmt.Fprintf(w, "\033[33mCertificates:\033[0m\n")
+		for _, cert := range certs {
+			displayCertificate(cert)
+		}
+	} else {
+		fmt.Fprintln(w, "\033[31mNo certificates found\033[0m")
+	}
+
+	return nil
+}
+
+// ######################## UPDATE ##########################
+
+type certUpdateCommand struct {
+	Name        string `short:"n" long:"name" description:"The certificate's name"`
+	Type        string `short:"t" long:"type" description:"The type of the certificates's owner" choice:"local_agents" choice:"remote_agents" choice:"local_accounts" choice:"remote_accounts"`
+	Owner       uint64 `short:"o" long:"owner" description:"The ID of the certificate's owner"`
+	PrivateKey  string `long:"private_key" description:"The path to the certificate's private key file"`
+	PublicKey   string `long:"public_key" description:"The path to the certificate's public key file"`
+	Certificate string `long:"certificate" description:"The path to the certificate file"`
+}
+
+func (c *certUpdateCommand) Execute(args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("missing certificate ID")
+	}
+
+	newCert := map[string]interface{}{}
+	if c.Name != "" {
+		newCert["name"] = c.Name
+	}
+	if c.Type != "" {
+		newCert["ownerType"] = c.Type
+	}
+	if c.Owner != 0 {
+		newCert["ownerID"] = c.Owner
+	}
+	if c.PrivateKey != "" {
+		prK, err := ioutil.ReadFile(c.PrivateKey)
+		if err != nil {
+			return err
+		}
+		newCert["privateKey"] = prK
+	}
+	if c.PublicKey != "" {
+		puK, err := ioutil.ReadFile(c.PublicKey)
+		if err != nil {
+			return err
+		}
+		newCert["publicKey"] = puK
+	}
+	if c.PrivateKey != "" {
+		crt, err := ioutil.ReadFile(c.Certificate)
+		if err != nil {
+			return err
+		}
+		newCert["cert"] = crt
+	}
+
+	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	conn.Path = admin.APIPath + admin.CertificatesPath + "/" + args[0]
 
-	w := getColorable(os.Stdout)
-	fmt.Fprintf(w, "\033[97mCertificate\033[0m \033[33;1m'%s'\033[0m"+
-		" \033[97msuccessfully deleted\033[0m\n", args[0])
+	_, err = updateCommand(newCert, conn)
+	if err != nil {
+		return err
+	}
+
+	w := getColorable()
+	fmt.Fprintf(w, "The certificate n°\033[33m%s\033[0m was successfully updated", args[0])
+
 	return nil
 }

@@ -12,7 +12,7 @@ Supprimer un partenaire
    :Example:
        .. code-block:: http
 
-          DELETE /api/partners/1234 HTTP/1.1
+          DELETE https://my_waarp_gateway.net/api/partners/1 HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
 

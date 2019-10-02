@@ -13,12 +13,13 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"github.com/go-xorm/builder"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 )
 
 const (
-	// ServiceName is he name of the gatewayd database service
+	// ServiceName is the name of the gatewayd database service
 	ServiceName = "Database"
 )
 
@@ -29,7 +30,7 @@ var (
 
 	// ErrNilRecord is the error returned by database operation when the object
 	// Which should be  used to generate the query or used to unmarshal the
-	// query resultis nil
+	// query result is nil
 	ErrNilRecord = errors.New("the record cannot be nil")
 
 	// ErrNotFound is the error returned by the Get operations when the queried
@@ -37,8 +38,13 @@ var (
 	ErrNotFound = errors.New("the record does not exist")
 )
 
-// GCM is the Galois Counter Mode cipher used to encrypt external accounts passwords.
-var GCM cipher.AEAD
+var (
+	// GCM is the Galois Counter Mode cipher used to encrypt external accounts passwords.
+	GCM cipher.AEAD
+
+	// Owner is the name of the gateway instance specified in the configuration file.
+	Owner string
+)
 
 // Accessor is the interface that lists the method sets needed to query a
 // database.
@@ -46,7 +52,7 @@ type Accessor interface {
 	Get(bean interface{}) error
 	Select(bean interface{}, filters *Filters) error
 	Create(bean interface{}) error
-	Update(before, after interface{}) error
+	Update(bean interface{}, id uint64, isReplace bool) error
 	Delete(bean interface{}) error
 	Exists(bean interface{}) (bool, error)
 	Execute(sqlorArgs ...interface{}) error
@@ -133,6 +139,8 @@ func (db *Db) Start() error {
 		return nil
 	}
 	db.state.Set(service.Starting, "")
+
+	Owner = db.Conf.GatewayName
 
 	if err := loadAESKey(db.Conf.Database.AESPassphrase); err != nil {
 		db.state.Set(service.Error, err.Error())
@@ -221,25 +229,19 @@ func (db *Db) State() *service.State {
 // Get retrieves one record from the database and fills the bean with it. Non-empty
 // fields are used as conditions.
 func (db *Db) Get(bean interface{}) error {
-	db.Logger.Debugf("Get requested with %s", bean)
+	db.Logger.Debugf("Get requested with %#v", bean)
 
-	if s, _ := db.state.Get(); s != service.Running {
-		return ErrServiceUnavailable
-	}
-	if bean == nil {
-		return ErrNilRecord
-	}
-
-	has, err := db.engine.Get(bean)
+	ses, err := db.BeginTransaction()
 	if err != nil {
-		if err := ping(&db.state, db.engine, db.Logger); err != nil {
-			return err
-		}
-
 		return err
 	}
-	if !has {
-		return ErrNotFound
+
+	if err := ses.Get(bean); err != nil {
+		ses.Rollback()
+		return err
+	}
+	if err := ses.Commit(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -248,24 +250,18 @@ func (db *Db) Get(bean interface{}) error {
 // and fills the bean with it. The bean should be of type []Struct or []*Struct,
 // and it should be empty.
 func (db *Db) Select(bean interface{}, filters *Filters) error {
-	db.Logger.Debugf("Select requested with %s", bean)
-	if s, _ := db.state.Get(); s != service.Running {
-		return ErrServiceUnavailable
-	}
-	if bean == nil {
-		return ErrNilRecord
-	}
-	var query xorm.Interface = db.engine
-	if filters != nil {
-		query = query.Where(filters.Conditions).Limit(filters.Limit, filters.Offset).
-			OrderBy(filters.Order)
+	db.Logger.Debugf("Select requested with %#v", bean)
 
+	ses, err := db.BeginTransaction()
+	if err != nil {
+		return err
 	}
 
-	if err := query.Find(bean); err != nil {
-		if err := ping(&db.state, db.engine, db.Logger); err != nil {
-			return err
-		}
+	if err := ses.Select(bean, filters); err != nil {
+		ses.Rollback()
+		return err
+	}
+	if err := ses.Commit(); err != nil {
 		return err
 	}
 	return nil
@@ -274,18 +270,18 @@ func (db *Db) Select(bean interface{}, filters *Filters) error {
 // Create inserts the given bean in the database. If the struct cannot be inserted,
 // the function returns an error.
 func (db *Db) Create(bean interface{}) error {
-	db.Logger.Debugf("Create requested with %s", bean)
-	if s, _ := db.state.Get(); s != service.Running {
-		return ErrServiceUnavailable
-	}
-	if bean == nil {
-		return ErrNilRecord
+	db.Logger.Debugf("Create requested with %#v", bean)
+
+	ses, err := db.BeginTransaction()
+	if err != nil {
+		return err
 	}
 
-	if _, err := db.engine.InsertOne(bean); err != nil {
-		if err := ping(&db.state, db.engine, db.Logger); err != nil {
-			return err
-		}
+	if err := ses.Create(bean); err != nil {
+		ses.Rollback()
+		return err
+	}
+	if err := ses.Commit(); err != nil {
 		return err
 	}
 	return nil
@@ -293,19 +289,19 @@ func (db *Db) Create(bean interface{}) error {
 
 // Update updates the given bean in the database. If the struct cannot be updated,
 // the function returns an error.
-func (db *Db) Update(before, after interface{}) error {
-	db.Logger.Debugf("Update requested with %s", after)
-	if s, _ := db.state.Get(); s != service.Running {
-		return ErrServiceUnavailable
-	}
-	if before == nil || after == nil {
-		return ErrNilRecord
+func (db *Db) Update(bean interface{}, id uint64, isReplace bool) error {
+	db.Logger.Debugf("Update requested with %#v", bean)
+
+	ses, err := db.BeginTransaction()
+	if err != nil {
+		return err
 	}
 
-	if _, err := db.engine.Update(after, before); err != nil {
-		if err := ping(&db.state, db.engine, db.Logger); err != nil {
-			return err
-		}
+	if err := ses.Update(bean, id, isReplace); err != nil {
+		ses.Rollback()
+		return err
+	}
+	if err := ses.Commit(); err != nil {
 		return err
 	}
 	return nil
@@ -314,18 +310,18 @@ func (db *Db) Update(before, after interface{}) error {
 // Delete deletes the given bean from the database. If the record cannot be deleted,
 // an error is returned.
 func (db *Db) Delete(bean interface{}) error {
-	db.Logger.Debugf("Delete requested with %s", bean)
-	if s, _ := db.state.Get(); s != service.Running {
-		return ErrServiceUnavailable
-	}
-	if bean == nil {
-		return ErrNilRecord
+	db.Logger.Debugf("Delete requested with %#v", bean)
+
+	ses, err := db.BeginTransaction()
+	if err != nil {
+		return err
 	}
 
-	if _, err := db.engine.Delete(bean); err != nil {
-		if err := ping(&db.state, db.engine, db.Logger); err != nil {
-			return err
-		}
+	if err := ses.Delete(bean); err != nil {
+		ses.Rollback()
+		return err
+	}
+	if err := ses.Commit(); err != nil {
 		return err
 	}
 	return nil
@@ -334,36 +330,39 @@ func (db *Db) Delete(bean interface{}) error {
 // Exists checks if the given record exists in the database. If the database
 // cannot be queried, an error is returned.
 func (db *Db) Exists(bean interface{}) (bool, error) {
-	db.Logger.Debugf("Exists requested with %s", bean)
-	if s, _ := db.state.Get(); s != service.Running {
-		return false, ErrServiceUnavailable
-	}
-	if bean == nil {
-		return false, ErrNilRecord
-	}
+	db.Logger.Debugf("Exists requested with %#v", bean)
 
-	has, err := db.engine.Exist(bean)
+	ses, err := db.BeginTransaction()
 	if err != nil {
-		if err := ping(&db.state, db.engine, db.Logger); err != nil {
-			return false, err
-		}
 		return false, err
 	}
-	return has, nil
+
+	exist, err := ses.Exists(bean)
+	if err != nil {
+		ses.Rollback()
+		return false, err
+	}
+	if err := ses.Commit(); err != nil {
+		return false, err
+	}
+	return exist, nil
 }
 
 // Execute executes the given SQL command. The command can be a raw string with
 // arguments, or an xorm.Builder struct.
-func (db *Db) Execute(sqlorArgs ...interface{}) error {
-	db.Logger.Debugf("Execute requested with %s", sqlorArgs)
-	if s, _ := db.state.Get(); s != service.Running {
-		return ErrServiceUnavailable
+func (db *Db) Execute(sqlOrArgs ...interface{}) error {
+	db.Logger.Debugf("Execute requested with %#v", sqlOrArgs)
+
+	ses, err := db.BeginTransaction()
+	if err != nil {
+		return err
 	}
 
-	if _, err := db.engine.Exec(sqlorArgs...); err != nil {
-		if err := ping(&db.state, db.engine, db.Logger); err != nil {
-			return err
-		}
+	if err := ses.Execute(sqlOrArgs...); err != nil {
+		ses.Rollback()
+		return err
+	}
+	if err := ses.Commit(); err != nil {
 		return err
 	}
 	return nil
@@ -371,17 +370,20 @@ func (db *Db) Execute(sqlorArgs ...interface{}) error {
 
 // Query executes the given SQL query and returns the result. The query can be
 // a raw string with arguments, or an xorm.Builder struct.
-func (db *Db) Query(sqlorArgs ...interface{}) ([]map[string]interface{}, error) {
-	db.Logger.Debugf("Query requested with %s", sqlorArgs)
-	if s, _ := db.state.Get(); s != service.Running {
-		return nil, ErrServiceUnavailable
+func (db *Db) Query(sqlOrArgs ...interface{}) ([]map[string]interface{}, error) {
+	db.Logger.Debugf("Query requested with %#v", sqlOrArgs)
+
+	ses, err := db.BeginTransaction()
+	if err != nil {
+		return nil, err
 	}
 
-	res, err := db.engine.QueryInterface(sqlorArgs...)
+	res, err := ses.Query(sqlOrArgs...)
 	if err != nil {
-		if err := ping(&db.state, db.engine, db.Logger); err != nil {
-			return nil, err
-		}
+		ses.Rollback()
+		return nil, err
+	}
+	if err := ses.Commit(); err != nil {
 		return nil, err
 	}
 	return res, nil
@@ -422,7 +424,7 @@ type Session struct {
 // Get adds a 'get' query to the transaction. If the query cannot be executed,
 // an error is returned.
 func (s *Session) Get(bean interface{}) error {
-	s.logger.Debugf("Transaction 'Get' with %s", bean)
+	s.logger.Debugf("Transaction 'Get' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
 		return ErrServiceUnavailable
 	}
@@ -444,7 +446,7 @@ func (s *Session) Get(bean interface{}) error {
 // Select adds a 'select' query to the transaction with the conditions given in
 // the `filters` parameter.  If the query cannot be executed, an error is returned.
 func (s *Session) Select(bean interface{}, filters *Filters) error {
-	s.logger.Debugf("Transaction 'Select' with %s", bean)
+	s.logger.Debugf("Transaction 'Select' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
 		return ErrServiceUnavailable
 	}
@@ -469,7 +471,7 @@ func (s *Session) Select(bean interface{}, filters *Filters) error {
 // Create adds an 'insert' query to the transaction. If the query cannot be executed,
 // an error is returned.
 func (s *Session) Create(bean interface{}) error {
-	s.logger.Debugf("Transaction 'Create' with %s", bean)
+	s.logger.Debugf("Transaction 'Create' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
 		return ErrServiceUnavailable
 	}
@@ -477,7 +479,27 @@ func (s *Session) Create(bean interface{}) error {
 		return ErrNilRecord
 	}
 
-	if _, err := s.session.InsertOne(bean); err != nil {
+	exec := func() error {
+		if hook, ok := bean.(insertHook); ok {
+			if err := hook.BeforeInsert(s); err != nil {
+				return err
+			}
+		}
+
+		if val, ok := bean.(insertValidator); ok {
+			if err := val.ValidateInsert(s); err != nil {
+				return err
+			}
+		}
+
+		if _, err := s.session.InsertOne(bean); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if err := exec(); err != nil {
 		if err := ping(s.state, s.session, s.logger); err != nil {
 			return err
 		}
@@ -488,16 +510,49 @@ func (s *Session) Create(bean interface{}) error {
 
 // Update adds an 'update' query to the transaction. If the query cannot be executed,
 // an error is returned.
-func (s *Session) Update(before, after interface{}) error {
-	s.logger.Debugf("Transaction 'Update' with %s", after)
+func (s *Session) Update(bean interface{}, id uint64, isReplace bool) error {
+	s.logger.Debugf("Transaction 'Update' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
 		return ErrServiceUnavailable
 	}
-	if before == nil || after == nil {
+	if bean == nil {
 		return ErrNilRecord
 	}
+	if t, ok := bean.(xorm.TableName); ok {
+		query := builder.Select("id").From(t.TableName()).Where(builder.Eq{"id": id})
+		if res, err := s.session.Query(query); err != nil {
+			return err
+		} else if len(res) == 0 {
+			return ErrNotFound
+		}
+	}
 
-	if _, err := s.session.Update(after, before); err != nil {
+	exec := func() error {
+		if hook, ok := bean.(updateHook); ok {
+			if err := hook.BeforeUpdate(s); err != nil {
+				return err
+			}
+		}
+
+		if val, ok := bean.(updateValidator); ok {
+			if err := val.ValidateUpdate(s, id); err != nil {
+				return err
+			}
+		}
+
+		if isReplace {
+			if _, err := s.session.AllCols().ID(id).Update(bean); err != nil {
+				return err
+			}
+		}
+		if _, err := s.session.ID(id).Update(bean); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if err := exec(); err != nil {
 		if err := ping(s.state, s.session, s.logger); err != nil {
 			return err
 		}
@@ -509,15 +564,34 @@ func (s *Session) Update(before, after interface{}) error {
 // Delete adds an 'delete' query to the transaction. If the query cannot be executed,
 // an error is returned.
 func (s *Session) Delete(bean interface{}) error {
-	s.logger.Debugf("Transaction 'Delete' with %s", bean)
+	s.logger.Debugf("Transaction 'Delete' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
 		return ErrServiceUnavailable
 	}
 	if bean == nil {
 		return ErrNilRecord
 	}
+	if exist, err := s.Exists(bean); err != nil {
+		return err
+	} else if !exist {
+		return ErrNotFound
+	}
 
-	if _, err := s.session.Delete(bean); err != nil {
+	exec := func() error {
+		if hook, ok := bean.(deleteHook); ok {
+			if err := hook.BeforeDelete(s); err != nil {
+				return err
+			}
+		}
+
+		if _, err := s.session.Delete(bean); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if err := exec(); err != nil {
 		if err := ping(s.state, s.session, s.logger); err != nil {
 			return err
 		}
@@ -529,7 +603,7 @@ func (s *Session) Delete(bean interface{}) error {
 // Exists adds an 'exist' query to the transaction. If the query cannot be executed,
 // an error is returned.
 func (s *Session) Exists(bean interface{}) (bool, error) {
-	s.logger.Debugf("Transaction 'Exists' with %s", bean)
+	s.logger.Debugf("Transaction 'Exists' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
 		return false, ErrServiceUnavailable
 	}
@@ -550,7 +624,7 @@ func (s *Session) Exists(bean interface{}) (bool, error) {
 // Execute adds a custom raw query to the transaction. If the query cannot be executed,
 // an error is returned. If the command must return a result, use `Query` instead.
 func (s *Session) Execute(sqlorArgs ...interface{}) error {
-	s.logger.Debugf("Transaction 'Execute' with %s", sqlorArgs)
+	s.logger.Debugf("Transaction 'Execute' with %#v", sqlorArgs)
 	if s, _ := s.state.Get(); s != service.Running {
 		return ErrServiceUnavailable
 	}
@@ -568,7 +642,7 @@ func (s *Session) Execute(sqlorArgs ...interface{}) error {
 // an error is returned. The function returns a slice of map[string]interface{}
 // which contains the result of the query.
 func (s *Session) Query(sqlorArgs ...interface{}) ([]map[string]interface{}, error) {
-	s.logger.Debugf("Transaction 'Execute' with %s", sqlorArgs)
+	s.logger.Debugf("Transaction 'Execute' with %#v", sqlorArgs)
 	if s, _ := s.state.Get(); s != service.Running {
 		return nil, ErrServiceUnavailable
 	}
@@ -587,7 +661,7 @@ func (s *Session) Query(sqlorArgs ...interface{}) ([]map[string]interface{}, err
 // database. When this function is called, the session is closed, which means
 // it cannot be used to perform any more transactions.
 func (s *Session) Rollback() {
-	s.logger.Info("Rolling back changes")
+	s.logger.Debugf("Rolling back changes %v", s)
 	s.session.Close()
 }
 
@@ -596,9 +670,9 @@ func (s *Session) Rollback() {
 // this function is returned, the session is closed and no more transactions can
 // be performed using this instance.
 func (s *Session) Commit() error {
-	s.logger.Info("Committing transaction")
+	s.logger.Debug("Committing transaction")
 	defer s.session.Close()
-	if s, _ := s.state.Get(); s != service.Running {
+	if st, _ := s.state.Get(); st != service.Running {
 		return ErrServiceUnavailable
 	}
 	err := s.session.Commit()

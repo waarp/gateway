@@ -3,7 +3,7 @@ Consulter un partenaire
 
 .. http:get:: /api/partners/(int:partner_id)
 
-   Renvoie portant l'identifiant ``partner_id``.
+   Renvoie les informations du partenaire portant l'identifiant ``partner_id``.
 
    **Requête**
 
@@ -13,21 +13,21 @@ Consulter un partenaire
 
        .. code-block:: http
 
-          GET /api/partners/1234 HTTP/1.1
+          GET https://my_waarp_gateway.net/api/partners/1 HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
 
    **Réponse**
 
-   :statuscode 200: Le partenaire a été renvoyée avec succès
+   :statuscode 200: Les informations du partenaire ont été renvoyées avec succès
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: Le partenaire demandé n'existe pas
 
-   :resjson number ID: L'identifiant unique du partenaire
-   :resjson string Name: Le nom du partenaire
-   :resjson string Address: L'address (IP ou DNS) du partenaire
-   :resjson number Port: Le port sur lequel le partenaire écoute
-   :resjson [sftp] Type: Le type de partenaire
+   :resjson number id: L'identifiant unique du partenaire
+   :resjson string name: Le nom du partenaire
+   :resjson string protocol: Le protocole utilisé par le partenaire
+   :resjson string protoConfig: La configuration du partenaire encodé dans une
+      chaîne de caractères au format JSON.
 
    **Exemple de réponse**
 
@@ -35,12 +35,11 @@ Consulter un partenaire
 
           HTTP/1.1 200 OK
           Content-Type: application/json
-          Content-Length: 101
+          Content-Length: 97
 
           {
-            "ID": 1234,
-            "Name": "partenaire1",
-            "Addresse": "waarp.fr",
-            "Port": 21,
-            "Type": "sftp"
+            "id": 1,
+            "name": "waarp_sftp",
+            "protocol": "sftp",
+            "protoConfig": "{\"address\":\"waarp.org\",\"port\":21}
           }

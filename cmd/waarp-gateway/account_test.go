@@ -1,397 +1,512 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
-	"os"
-	"strconv"
+	"net/http/httptest"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
 )
 
-var testAccountPartner model.Partner
+func TestGetAccount(t *testing.T) {
 
-func init() {
-	testAccountPartner = model.Partner{
-		Name:        "test_account_partner",
-		Address:     "test_account_partner_address",
-		Port:        1,
-		InterfaceID: 0,
-	}
-	if err := testDb.Create(&testAccountPartner); err != nil {
-		panic(err)
-	}
-}
+	Convey("Testing the account 'get' command", t, func() {
+		out = testFile()
+		command := &accountGetCommand{}
 
-func TestAccountCreate(t *testing.T) {
+		Convey("Given a gateway with 1 remote account", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-	Convey("Testing the account creation function", t, func() {
-		testAccount := model.Account{
-			Username:  "test_account_create",
-			Password:  []byte("test_account_create_password"),
-			PartnerID: testAccountPartner.ID,
-		}
-		existingAccount := model.Account{
-			Username:  "test_account_existing",
-			Password:  []byte("test_account_existing_password"),
-			PartnerID: testAccountPartner.ID,
-		}
-
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		a := accountCreateCommand{}
-
-		err := testDb.Create(&existingAccount)
-		So(err, ShouldBeNil)
-
-		Reset(func() {
-			err := testDb.Delete(&existingAccount)
-			So(err, ShouldBeNil)
-			err = testDb.Delete(&testAccount)
-			So(err, ShouldBeNil)
-		})
-
-		Convey("Given correct values", func() {
-			args := []string{"-n", testAccount.Username,
-				"-p", string(testAccount.Password),
-				"-i", strconv.FormatUint(testAccount.PartnerID, 10),
+			parentAgent := model.RemoteAgent{
+				Name:        "parent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
 			}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			err = a.Execute(args)
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+			err := db.Create(&parentAgent)
+			So(err, ShouldBeNil)
+
+			remoteAccount := model.RemoteAccount{
+				Login:         "remote_account",
+				Password:      []byte("password"),
+				RemoteAgentID: parentAgent.ID,
+			}
+
+			err = db.Create(&remoteAccount)
+			So(err, ShouldBeNil)
+
+			Convey("Given a valid account ID", func() {
+				id := fmt.Sprint(remoteAccount.ID)
+
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute([]string{id})
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should display the account's info", func() {
+
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+
+						agentID := fmt.Sprint(remoteAccount.RemoteAgentID)
+						So(string(cont), ShouldEqual, "Remote account n°1:\n"+
+							"├─Login: "+remoteAccount.Login+"\n"+
+							"└─Partner ID: "+agentID+"\n",
+						)
+					})
+				})
 			})
-		})
 
-		Convey("Given a non-existent partner id", func() {
-			args := []string{"-n", testAccount.Username,
-				"-p", string(testAccount.Password),
-				"-i", "1000",
-			}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			err = a.Execute(args)
+			Convey("Given an invalid account ID", func() {
+				id := "1000"
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
+
+					err := command.Execute([]string{id})
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
+							addr+admin.APIPath+admin.RemoteAccountsPath+
+							"/1000' does not exist")
+
+					})
+				})
 			})
-		})
 
-		Convey("Given a non-numeric partner id", func() {
-			args := []string{"-n", testAccount.Username,
-				"-p", string(testAccount.Password),
-				"-i", "not_an_id",
-			}
-			_, err := flags.ParseArgs(&a, args)
+			Convey("Given no account ID", func() {
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "missing account ID")
+					})
+				})
 			})
 		})
 	})
 }
 
-func TestAccountSelect(t *testing.T) {
+func TestAddAccount(t *testing.T) {
 
-	Convey("Testing the account listing function", t, func() {
-		So(database.BcryptRounds, ShouldEqual, bcrypt.MinCost)
+	Convey("Testing the account 'add' command", t, func() {
+		out = testFile()
+		command := &accountAddCommand{}
 
-		testAccount1 := model.Account{
-			Username: "test_account_select1",
-			Password: []byte("test_account_select1_password"),
-		}
-		testAccount2 := model.Account{
-			Username: "test_account_select2",
-			Password: []byte("test_account_select2_password"),
-		}
-		testAccount3 := model.Account{
-			Username: "test_account_select3",
-			Password: []byte("test_account_select3_password"),
-		}
-		testAccount4 := model.Account{
-			Username: "test_account_select4",
-			Password: []byte("test_account_select4_password"),
-		}
+		Convey("Given a gateway", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		a := accountListCommand{}
+			parentAgent := model.RemoteAgent{
+				Name:        "parent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
+			}
 
-		err := testDb.Create(&testAccount1)
-		So(err, ShouldBeNil)
-		err = testDb.Create(&testAccount2)
-		So(err, ShouldBeNil)
-		err = testDb.Create(&testAccount3)
-		So(err, ShouldBeNil)
-		err = testDb.Create(&testAccount4)
-		So(err, ShouldBeNil)
-
-		Reset(func() {
-			err := testDb.Delete(&testAccount1)
+			err := db.Create(&parentAgent)
 			So(err, ShouldBeNil)
-			err = testDb.Delete(&testAccount2)
-			So(err, ShouldBeNil)
-			err = testDb.Delete(&testAccount3)
-			So(err, ShouldBeNil)
-			err = testDb.Delete(&testAccount4)
-			So(err, ShouldBeNil)
-		})
 
-		Convey("Given no flags", func() {
-			args := []string{}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			err = a.Execute(args)
+			Convey("Given valid flags", func() {
+				command.Login = "remote_account"
+				command.Password = "password"
+				command.PartnerID = parentAgent.ID
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then is should display a message saying the account was added", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "The account '"+command.Login+
+							"' was successfully added. It can be consulted at "+
+							"the address: "+gw.URL+admin.APIPath+
+							admin.RemoteAccountsPath+"/1\n")
+					})
+
+					Convey("Then the new partner should have been added", func() {
+						account := model.RemoteAccount{
+							ID:            1,
+							Login:         command.Login,
+							RemoteAgentID: command.PartnerID,
+						}
+						err := db.Get(&account)
+						So(err, ShouldBeNil)
+
+						clearPwd, err := model.DecryptPassword(account.Password)
+						So(err, ShouldBeNil)
+						So(string(clearPwd), ShouldEqual, command.Password)
+					})
+				})
 			})
-		})
 
-		Convey("Given a limit flag", func() {
-			args := []string{"-l", "2"}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			So(a.Limit, ShouldEqual, 2)
-			err = a.Execute(args)
+			Convey("Given an invalid server ID", func() {
+				command.Login = "remote_account"
+				command.Password = "password"
+				command.PartnerID = 1000
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
-			})
-		})
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
 
-		Convey("Given an offset flag", func() {
-			args := []string{"-o", "2"}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			err = a.Execute(args)
+					err := command.Execute(nil)
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
-			})
-		})
-
-		Convey("Given a sort flag", func() {
-			args := []string{"-s", "username"}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			err = a.Execute(args)
-
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
-			})
-		})
-
-		Convey("Given an order flag", func() {
-			args := []string{"-d"}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			err = a.Execute(args)
-
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "400 - Invalid request: "+
+							"No remote agent found with the ID '1000'")
+					})
+				})
 			})
 		})
 	})
 }
 
-func TestAccountDelete(t *testing.T) {
+func TestDeleteAccount(t *testing.T) {
 
-	Convey("Testing the account deletion function", t, func() {
-		testAccount := model.Account{
-			Username:  "test_account_delete",
-			Password:  []byte("test_account_delete_password"),
-			PartnerID: testAccountPartner.ID,
-		}
+	Convey("Testing the account 'delete' command", t, func() {
+		out = testFile()
+		command := &accountDeleteCommand{}
 
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		a := accountDeleteCommand{}
+		Convey("Given a gateway with 1 remote account", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-		err := testDb.Create(&testAccount)
-		So(err, ShouldBeNil)
+			parentAgent := model.RemoteAgent{
+				Name:        "parent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
+			}
 
-		Reset(func() {
-			err := testDb.Delete(&testAccount)
+			err := db.Create(&parentAgent)
 			So(err, ShouldBeNil)
-		})
 
-		Convey("Given a correct id", func() {
-			args := []string{strconv.FormatUint(testAccount.ID, 10)}
-			err := a.Execute(args)
+			account := model.RemoteAccount{
+				RemoteAgentID: parentAgent.ID,
+				Login:         "remote_account",
+				Password:      []byte("password"),
+			}
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+			err = db.Create(&account)
+			So(err, ShouldBeNil)
+
+			Convey("Given a valid account ID", func() {
+				id := fmt.Sprint(account.ID)
+
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
+
+					err := command.Execute([]string{id})
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then is should display a message saying the account was deleted", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "The account n°"+id+
+							" was successfully deleted from the database\n")
+					})
+
+					Convey("Then the account should have been removed", func() {
+						exists, err := db.Exists(&model.RemoteAccount{ID: account.ID})
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeFalse)
+					})
+				})
 			})
-		})
 
-		Convey("Given an non-existent id", func() {
-			args := []string{"1000"}
-			err := a.Execute(args)
+			Convey("Given an invalid ID", func() {
+				id := "1000"
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
 
-		Convey("Given an non-numeric id", func() {
-			args := []string{"not_an_id"}
-			err := a.Execute(args)
+					err := command.Execute([]string{id})
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
+							addr+admin.APIPath+admin.RemoteAccountsPath+
+							"/1000' does not exist")
+					})
 
-		Convey("Given a no id", func() {
-			args := []string{}
-			err := a.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+					Convey("Then the partner should still exist", func() {
+						exists, err := db.Exists(&model.RemoteAccount{ID: account.ID})
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
+					})
+				})
 			})
 		})
 	})
 }
 
-func TestAccountUpdate(t *testing.T) {
+func TestUpdateAccount(t *testing.T) {
 
-	Convey("Testing the account update function", t, func() {
-		testAccountBefore := model.Account{
-			Username:  "test_account_update_before",
-			Password:  []byte("test_account_update_before_password"),
-			PartnerID: testAccountPartner.ID,
-		}
-		testAccountAfter := model.Account{
-			Username:  "test_account_update_after",
-			Password:  []byte("test_account_update_after_password"),
-			PartnerID: testAccountPartner.ID,
-		}
+	Convey("Testing the account 'delete' command", t, func() {
+		out = testFile()
+		command := &accountUpdateCommand{}
 
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		a := accountUpdateCommand{}
+		Convey("Given a gateway with 1 remote account", func() {
 
-		err := testDb.Create(&testAccountBefore)
-		So(err, ShouldBeNil)
-		id := strconv.FormatUint(testAccountBefore.ID, 10)
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-		Reset(func() {
-			err := testDb.Delete(&testAccountBefore)
-			So(err, ShouldBeNil)
-			err = testDb.Delete(&testAccountAfter)
-			So(err, ShouldBeNil)
-		})
-
-		Convey("Given correct values", func() {
-			args := []string{"-n", testAccountAfter.Username,
-				"-p", string(testAccountAfter.Password),
-				"-i", strconv.FormatUint(testAccountAfter.PartnerID, 10),
-				id,
+			parentAgent := model.RemoteAgent{
+				Name:        "parent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
 			}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			err = a.Execute(args)
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+			err := db.Create(&parentAgent)
+			So(err, ShouldBeNil)
+
+			account := model.RemoteAccount{
+				RemoteAgentID: parentAgent.ID,
+				Login:         "remote_account",
+				Password:      []byte("password"),
+			}
+
+			err = db.Create(&account)
+			So(err, ShouldBeNil)
+
+			Convey("Given a valid account ID", func() {
+				id := fmt.Sprint(account.ID)
+
+				Convey("Given all valid flags", func() {
+					command.Login = "new_remote_account"
+					command.Password = "new_password"
+					command.PartnerID = parentAgent.ID
+
+					Convey("When executing the command", func() {
+						addr := gw.Listener.Addr().String()
+						dsn := "http://admin:admin_password@" + addr
+						auth.DSN = dsn
+
+						err := command.Execute([]string{id})
+
+						Convey("Then it should NOT return an error", func() {
+							So(err, ShouldBeNil)
+						})
+
+						Convey("Then is should display a message saying the account was updated", func() {
+							_, err = out.Seek(0, 0)
+							So(err, ShouldBeNil)
+							cont, err := ioutil.ReadAll(out)
+							So(err, ShouldBeNil)
+							So(string(cont), ShouldEqual, "The account n°"+id+
+								" was successfully updated")
+						})
+
+						Convey("Then the old account should have been removed", func() {
+							exists, err := db.Exists(&account)
+							So(err, ShouldBeNil)
+							So(exists, ShouldBeFalse)
+						})
+
+						Convey("Then the new account should exist", func() {
+							newAccount := model.RemoteAccount{
+								ID:            account.ID,
+								Login:         command.Login,
+								RemoteAgentID: command.PartnerID,
+							}
+							err := db.Get(&newAccount)
+							So(err, ShouldBeNil)
+
+							clearPwd, err := model.DecryptPassword(newAccount.Password)
+							So(err, ShouldBeNil)
+							So(string(clearPwd), ShouldEqual, command.Password)
+						})
+					})
+				})
+
+				Convey("Given an invalid server ID", func() {
+					command.Login = "new_remote_account"
+					command.Password = "new_password"
+					command.PartnerID = 1000
+
+					Convey("When executing the command", func() {
+						addr := gw.Listener.Addr().String()
+						dsn := "http://admin:admin_password@" + addr
+						auth.DSN = dsn
+
+						err := command.Execute([]string{id})
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
+								"No remote agent found with the ID '1000'")
+						})
+					})
+				})
 			})
-		})
 
-		Convey("Given a non-existent partner id", func() {
-			args := []string{"-n", testAccountAfter.Username,
-				"-p", string(testAccountAfter.Password),
-				"-i", "1000",
-				id,
-			}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			err = a.Execute(args)
+			Convey("Given an invalid ID", func() {
+				id := "1000"
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
 
-		Convey("Given a non-numeric partner id", func() {
-			args := []string{"-n", testAccountAfter.Username,
-				"-p", string(testAccountAfter.Password),
-				"-i", "not_an_id",
-				id,
-			}
-			_, err := flags.ParseArgs(&a, args)
+					err := command.Execute([]string{id})
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
+							addr+admin.APIPath+admin.RemoteAccountsPath+
+							"/1000' does not exist")
+					})
 
-		Convey("Given a no partner id", func() {
-			args := []string{"-n", testAccountAfter.Username,
-				"-p", string(testAccountAfter.Password),
-				"-i", strconv.FormatUint(testAccountAfter.PartnerID, 10),
-			}
-			args, err := flags.ParseArgs(&a, args)
-			So(err, ShouldBeNil)
-			err = a.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+					Convey("Then the partner should stay unchanged", func() {
+						exists, err := db.Exists(&account)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
+					})
+				})
 			})
 		})
 	})
 }
 
-func TestDisplayAccount(t *testing.T) {
+func TestListAccount(t *testing.T) {
 
-	Convey("Given an account", t, func() {
-		testAccount := model.Account{
-			ID:        123,
-			PartnerID: 789,
-			Username:  "test_account",
-			Password:  []byte("test_account_password"),
-		}
-		id := strconv.FormatUint(testAccount.ID, 10)
-		parID := strconv.FormatUint(testAccount.PartnerID, 10)
+	Convey("Testing the account 'list' command", t, func() {
+		out = testFile()
+		command := &accountListCommand{}
+		_, err := flags.ParseArgs(command, []string{"waarp_gateway"})
+		So(err, ShouldBeNil)
 
-		Convey("When calling the 'displayAccount' function", func() {
-			out, err := ioutil.TempFile(".", "waarp_gateway")
+		Convey("Given a gateway with 2 remote accounts", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+
+			parent1 := model.RemoteAgent{
+				Name:        "parent_agent_1",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
+			}
+			err := db.Create(&parent1)
 			So(err, ShouldBeNil)
 
-			displayAccount(out, testAccount)
-
-			err = out.Close()
+			parent2 := model.RemoteAgent{
+				Name:        "remote_agent2",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
+			}
+			err = db.Create(&parent2)
 			So(err, ShouldBeNil)
 
-			Reset(func() {
-				_ = os.Remove(out.Name())
+			account1 := model.RemoteAccount{
+				RemoteAgentID: parent1.ID,
+				Login:         "account1",
+				Password:      []byte("password"),
+			}
+			err = db.Create(&account1)
+			So(err, ShouldBeNil)
+
+			account2 := model.RemoteAccount{
+				RemoteAgentID: parent2.ID,
+				Login:         "account2",
+				Password:      []byte("password"),
+			}
+			err = db.Create(&account2)
+			So(err, ShouldBeNil)
+
+			Convey("Given no parameters", func() {
+
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should display the accounts' info", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Remote accounts:\n"+
+							"Remote account n°1:\n"+
+							"├─Login: "+account1.Login+"\n"+
+							"└─Partner ID: "+fmt.Sprint(account1.RemoteAgentID)+"\n"+
+							"Remote account n°2:\n"+
+							"├─Login: "+account2.Login+"\n"+
+							"└─Partner ID: "+fmt.Sprint(account2.RemoteAgentID)+"\n",
+						)
+					})
+				})
 			})
 
-			Convey("Then it should display the account correctly", func() {
-				in, err := os.Open(out.Name())
-				So(err, ShouldBeNil)
-				result, err := ioutil.ReadAll(in)
-				So(err, ShouldBeNil)
+			Convey("Given a partner_id parameter", func() {
+				command.RemoteAgentID = []uint64{parent1.ID}
 
-				expected := "Account n°" + id + ":\n" +
-					"├─Username: " + testAccount.Username + "\n" +
-					"└─PartnerID: " + parID + "\n"
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
 
-				So(string(result), ShouldEqual, expected)
+					err := command.Execute(nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should display the accounts' info", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Remote accounts:\n"+
+							"Remote account n°1:\n"+
+							"├─Login: "+account1.Login+"\n"+
+							"└─Partner ID: "+fmt.Sprint(account1.RemoteAgentID)+"\n",
+						)
+					})
+				})
 			})
 		})
 	})

@@ -3,6 +3,7 @@ package admin
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -15,7 +16,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const certPath = RestURI + CertsURI + "/"
+const certURI = APIPath + CertificatesPath + "/"
 
 func TestGetCert(t *testing.T) {
 	logger := log.NewLogger("rest_cert_get_test")
@@ -25,34 +26,25 @@ func TestGetCert(t *testing.T) {
 		handler := getCertificate(logger, db)
 		w := httptest.NewRecorder()
 
+		_, err := db.Query("SELECT * FROM certificates")
+		So(err, ShouldBeNil)
+
 		Convey("Given a database with 1 certificate", func() {
-			grandparent := model.Partner{
-				ID:          1,
-				Name:        "grandparent",
-				Address:     "address",
-				Port:        1,
-				InterfaceID: 1,
+			parent := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
 			}
-			err := db.Create(&grandparent)
+			err := db.Create(&parent)
 			So(err, ShouldBeNil)
 
-			parent := model.Account{
-				ID:        1,
-				Username:  "parent",
-				Password:  []byte("password"),
-				PartnerID: grandparent.ID,
-			}
-			err = db.Create(&parent)
-			So(err, ShouldBeNil)
-
-			expected := model.CertChain{
-				ID:         1,
-				OwnerType:  "ACCOUNT",
-				OwnerID:    parent.ID,
-				Name:       "expected",
-				PrivateKey: []byte("private_key"),
-				PublicKey:  []byte("public_key"),
-				Cert:       []byte("certificate"),
+			expected := model.Cert{
+				OwnerType:   parent.TableName(),
+				OwnerID:     parent.ID,
+				Name:        "expected",
+				PrivateKey:  []byte("private_key"),
+				PublicKey:   []byte("public_key"),
+				Certificate: []byte("certificate"),
 			}
 			err = db.Create(&expected)
 			So(err, ShouldBeNil)
@@ -60,7 +52,7 @@ func TestGetCert(t *testing.T) {
 			id := strconv.FormatUint(expected.ID, 10)
 
 			Convey("Given a request with the valid certificate ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, certPath+id, nil)
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"certificate": id})
 
@@ -80,17 +72,16 @@ func TestGetCert(t *testing.T) {
 					Convey("Then the body should contain the requested certificate "+
 						"in JSON format", func() {
 
-						res := model.CertChain{}
-						err := json.Unmarshal(w.Body.Bytes(), &res)
+						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
-						So(res, ShouldResemble, expected)
+						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
 					})
 				})
 			})
 
 			Convey("Given a request with a non-existing certificate ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, certPath+"1000", nil)
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"certificate": "1000"})
 
@@ -109,7 +100,7 @@ func TestGetCert(t *testing.T) {
 func TestListCerts(t *testing.T) {
 	logger := log.NewLogger("rest_cert_list_test")
 
-	check := func(w *httptest.ResponseRecorder, expected map[string][]model.CertChain) {
+	check := func(w *httptest.ResponseRecorder, expected map[string][]model.Cert) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
@@ -124,11 +115,10 @@ func TestListCerts(t *testing.T) {
 		Convey("Then the response body should contain an array "+
 			"of the requested certificates in JSON format", func() {
 
-			response := map[string][]model.CertChain{}
-			err := json.Unmarshal(w.Body.Bytes(), &response)
+			exp, err := json.Marshal(expected)
 
 			So(err, ShouldBeNil)
-			So(response, ShouldResemble, expected)
+			So(w.Body.String(), ShouldEqual, string(exp)+"\n")
 		})
 	}
 
@@ -136,132 +126,183 @@ func TestListCerts(t *testing.T) {
 		db := database.GetTestDatabase()
 		handler := listCertificates(logger, db)
 		w := httptest.NewRecorder()
-		expected := map[string][]model.CertChain{}
+		expected := map[string][]model.Cert{}
 
-		Convey("Given a database with 4 certificates", func() {
-			grandParent := model.Partner{
-				ID:          1,
-				Name:        "grandparent",
-				Address:     "address",
-				Port:        1,
-				InterfaceID: 1,
+		Convey("Given a database with 4 parents", func() {
+			localAgentParent := model.LocalAgent{
+				Name:        "local_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
 			}
-			err := db.Create(&grandParent)
+			err := db.Create(&localAgentParent)
 			So(err, ShouldBeNil)
 
-			parent := model.Account{
-				ID:        1,
-				Username:  "parent",
-				Password:  []byte("password"),
-				PartnerID: grandParent.ID,
+			remoteAgentParent := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
 			}
-			err = db.Create(&parent)
+			err = db.Create(&remoteAgentParent)
 			So(err, ShouldBeNil)
 
-			cert1 := model.CertChain{
-				ID:         1,
-				OwnerType:  "ACCOUNT",
-				OwnerID:    parent.ID,
-				Name:       "cert1",
-				PrivateKey: []byte("private_key"),
-				PublicKey:  []byte("public_key"),
-				Cert:       []byte("certificate"),
+			localAccountParent := model.LocalAccount{
+				Login:        "local_account",
+				LocalAgentID: localAgentParent.ID,
+				Password:     []byte("local_account"),
 			}
-			cert2 := model.CertChain{
-				ID:         2,
-				OwnerType:  "ACCOUNT",
-				OwnerID:    parent.ID,
-				Name:       "cert2",
-				PrivateKey: []byte("private_key"),
-				PublicKey:  []byte("public_key"),
-				Cert:       []byte("certificate"),
-			}
-			cert3 := model.CertChain{
-				ID:         3,
-				OwnerType:  "ACCOUNT",
-				OwnerID:    1000,
-				Name:       "cert3",
-				PrivateKey: []byte("private_key"),
-				PublicKey:  []byte("public_key"),
-				Cert:       []byte("certificate"),
-			}
-			cert4 := model.CertChain{
-				ID:         4,
-				OwnerType:  "ACCOUNT",
-				OwnerID:    parent.ID,
-				Name:       "cert4",
-				PrivateKey: []byte("private_key"),
-				PublicKey:  []byte("public_key"),
-				Cert:       []byte("certificate"),
-			}
-			err = db.Create(&cert1)
-			So(err, ShouldBeNil)
-			err = db.Create(&cert2)
-			So(err, ShouldBeNil)
-			err = db.Create(&cert3)
-			So(err, ShouldBeNil)
-			err = db.Create(&cert4)
+			err = db.Create(&localAccountParent)
 			So(err, ShouldBeNil)
 
-			Convey("Given a request with with no parameters", func() {
-				r, err := http.NewRequest(http.MethodGet, certPath, nil)
+			remoteAccountParent := model.RemoteAccount{
+				Login:         "remote_account",
+				RemoteAgentID: remoteAgentParent.ID,
+				Password:      []byte("remote_account"),
+			}
+			err = db.Create(&remoteAccountParent)
+			So(err, ShouldBeNil)
+
+			Convey("Given a database with 4 certificates", func() {
+				localAgentCert := model.Cert{
+					OwnerType:   localAgentParent.TableName(),
+					OwnerID:     localAgentParent.ID,
+					Name:        "local_agent_cert",
+					PrivateKey:  []byte("private_key"),
+					PublicKey:   []byte("public_key"),
+					Certificate: []byte("certificate"),
+				}
+				err = db.Create(&localAgentCert)
 				So(err, ShouldBeNil)
 
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
+				remoteAgentCert := model.Cert{
+					OwnerType:   remoteAgentParent.TableName(),
+					OwnerID:     remoteAgentParent.ID,
+					Name:        "remote_agent_cert",
+					PrivateKey:  []byte("private_key"),
+					PublicKey:   []byte("public_key"),
+					Certificate: []byte("certificate"),
+				}
+				err = db.Create(&remoteAgentCert)
+				So(err, ShouldBeNil)
 
-					expected["certificates"] = []model.CertChain{cert1, cert2, cert3, cert4}
-					check(w, expected)
+				localAccountCert := model.Cert{
+					OwnerType:   localAccountParent.TableName(),
+					OwnerID:     localAccountParent.ID,
+					Name:        "local_account_cert",
+					PrivateKey:  []byte("private_key"),
+					PublicKey:   []byte("public_key"),
+					Certificate: []byte("certificate"),
+				}
+				err = db.Create(&localAccountCert)
+				So(err, ShouldBeNil)
+
+				remoteAccountCert := model.Cert{
+					OwnerType:   remoteAccountParent.TableName(),
+					OwnerID:     remoteAccountParent.ID,
+					Name:        "remote_account_cert",
+					PrivateKey:  []byte("private_key"),
+					PublicKey:   []byte("public_key"),
+					Certificate: []byte("certificate"),
+				}
+				err = db.Create(&remoteAccountCert)
+				So(err, ShouldBeNil)
+
+				Convey("Given a request with with no parameters", func() {
+					r, err := http.NewRequest(http.MethodGet, "", nil)
+					So(err, ShouldBeNil)
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						expected["certificates"] = []model.Cert{localAccountCert,
+							localAgentCert, remoteAccountCert, remoteAgentCert}
+						check(w, expected)
+					})
 				})
-			})
 
-			Convey("Given a request with a limit parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, accountsPath+"?limit=1", nil)
-				So(err, ShouldBeNil)
+				Convey("Given a request with a limit parameter", func() {
+					r, err := http.NewRequest(http.MethodGet, "?limit=1", nil)
+					So(err, ShouldBeNil)
 
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
 
-					expected["certificates"] = []model.CertChain{cert1}
-					check(w, expected)
+						expected["certificates"] = []model.Cert{localAccountCert}
+						check(w, expected)
+					})
 				})
-			})
 
-			Convey("Given a request with a offset parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, certPath+"?offset=1", nil)
-				So(err, ShouldBeNil)
+				Convey("Given a request with a offset parameter", func() {
+					r, err := http.NewRequest(http.MethodGet, "?offset=1", nil)
+					So(err, ShouldBeNil)
 
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
 
-					expected["certificates"] = []model.CertChain{cert2, cert3, cert4}
-					check(w, expected)
+						expected["certificates"] = []model.Cert{localAgentCert,
+							remoteAccountCert, remoteAgentCert}
+						check(w, expected)
+					})
 				})
-			})
 
-			Convey("Given a request with a sort & order parameters", func() {
-				r, err := http.NewRequest(http.MethodGet, certPath+
-					"?sortby=name&order=desc", nil)
-				So(err, ShouldBeNil)
+				Convey("Given a request with a sort & order parameters", func() {
+					r, err := http.NewRequest(http.MethodGet, "?sortby=name&order=desc", nil)
+					So(err, ShouldBeNil)
 
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
 
-					expected["certificates"] = []model.CertChain{cert4, cert3,
-						cert2, cert1}
-					check(w, expected)
+						expected["certificates"] = []model.Cert{remoteAgentCert,
+							remoteAccountCert, localAgentCert, localAccountCert}
+						check(w, expected)
+					})
 				})
-			})
 
-			Convey("Given a request with an account parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, certPath+"?account=1", nil)
-				So(err, ShouldBeNil)
+				Convey("Given a request with a local account parameter", func() {
+					r, err := http.NewRequest(http.MethodGet, "?local_accounts=1", nil)
+					So(err, ShouldBeNil)
 
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
 
-					expected["certificates"] = []model.CertChain{cert1, cert2, cert4}
-					check(w, expected)
+						expected["certificates"] = []model.Cert{localAccountCert}
+						check(w, expected)
+					})
+				})
+
+				Convey("Given a request with a local agent parameter", func() {
+					r, err := http.NewRequest(http.MethodGet, "?local_agents=1", nil)
+					So(err, ShouldBeNil)
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						expected["certificates"] = []model.Cert{localAgentCert}
+						check(w, expected)
+					})
+				})
+
+				Convey("Given a request with a remote account parameter", func() {
+					r, err := http.NewRequest(http.MethodGet, "?remote_accounts=1", nil)
+					So(err, ShouldBeNil)
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						expected["certificates"] = []model.Cert{remoteAccountCert}
+						check(w, expected)
+					})
+				})
+
+				Convey("Given a request with a remote agent parameter", func() {
+					r, err := http.NewRequest(http.MethodGet, "?remote_agents=1", nil)
+					So(err, ShouldBeNil)
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						expected["certificates"] = []model.Cert{remoteAgentCert}
+						check(w, expected)
+					})
 				})
 			})
 		})
@@ -277,52 +318,39 @@ func TestCreateCert(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 certificate", func() {
-			grandParent := model.Partner{
-				ID:          1,
-				Name:        "grandparent",
-				Address:     "address",
-				Port:        1,
-				InterfaceID: 1,
+			parent := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
 			}
-			err := db.Create(&grandParent)
+			err := db.Create(&parent)
 			So(err, ShouldBeNil)
 
-			parent := model.Account{
-				ID:        1,
-				Username:  "parent",
-				Password:  []byte("password"),
-				PartnerID: grandParent.ID,
-			}
-			err = db.Create(&parent)
-			So(err, ShouldBeNil)
-
-			existing := model.CertChain{
-				ID:         1,
-				OwnerType:  "ACCOUNT",
-				OwnerID:    parent.ID,
-				Name:       "existing",
-				PrivateKey: []byte("private_key"),
-				PublicKey:  []byte("public_key"),
-				Cert:       []byte("certificate"),
+			existing := model.Cert{
+				OwnerType:   parent.TableName(),
+				OwnerID:     parent.ID,
+				Name:        "existing",
+				PrivateKey:  []byte("private_key"),
+				PublicKey:   []byte("public_key"),
+				Certificate: []byte("certificate"),
 			}
 			err = db.Create(&existing)
 			So(err, ShouldBeNil)
 
 			Convey("Given a new certificate to insert in the database", func() {
-				newCert := model.CertChain{
-					ID:         2,
-					OwnerType:  "ACCOUNT",
-					OwnerID:    parent.ID,
-					Name:       "new_cert",
-					PrivateKey: []byte("private_key"),
-					PublicKey:  []byte("public_key"),
-					Cert:       []byte("certificate"),
+				newCert := model.Cert{
+					OwnerType:   parent.TableName(),
+					OwnerID:     parent.ID,
+					Name:        "new_cert",
+					PrivateKey:  []byte("new_private_key"),
+					PublicKey:   []byte("new_public_key"),
+					Certificate: []byte("new_certificate"),
 				}
 
 				Convey("Given that the new account is valid for insertion", func() {
 					body, err := json.Marshal(newCert)
 					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, certPath, bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
 
 					So(err, ShouldBeNil)
 
@@ -337,8 +365,7 @@ func TestCreateCert(t *testing.T) {
 							"of the new account", func() {
 
 							location := w.Header().Get("Location")
-							expected := certPath + strconv.FormatUint(newCert.ID, 10)
-							So(location, ShouldEqual, expected)
+							So(location, ShouldStartWith, certURI)
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -363,12 +390,12 @@ func TestCreateCert(t *testing.T) {
 					})
 				})
 
-				Convey("Given that the new certificate's ID already exist", func() {
+				Convey("Given that the new certificate has an ID", func() {
 					newCert.ID = existing.ID
 
 					body, err := json.Marshal(newCert)
 					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, accountsPath, bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
 
 					So(err, ShouldBeNil)
 
@@ -382,8 +409,8 @@ func TestCreateCert(t *testing.T) {
 						Convey("Then the response body should contain "+
 							"a message stating that the ID already exist", func() {
 
-							So(w.Body.String(), ShouldEqual, "A certificate "+
-								"with the same ID already exist\n")
+							So(w.Body.String(), ShouldEqual, "The certificate's "+
+								"ID cannot be entered manually\n")
 						})
 
 						Convey("Then the new certificate should NOT be "+
@@ -401,7 +428,7 @@ func TestCreateCert(t *testing.T) {
 
 					body, err := json.Marshal(newCert)
 					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, certPath, bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
 
 					So(err, ShouldBeNil)
 
@@ -413,10 +440,10 @@ func TestCreateCert(t *testing.T) {
 						})
 
 						Convey("Then the response body should contain a message stating "+
-							"that the naùe already exist", func() {
+							"that the name already exist", func() {
 
 							So(w.Body.String(), ShouldEqual, "A certificate "+
-								"with the same name already exist for this account\n")
+								"with the same name '"+existing.Name+"' already exist\n")
 						})
 
 						Convey("Then the new certificate should NOT be "+
@@ -435,7 +462,7 @@ func TestCreateCert(t *testing.T) {
 
 					body, err := json.Marshal(newCert)
 					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, certPath, bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
 
 					So(err, ShouldBeNil)
 
@@ -449,8 +476,8 @@ func TestCreateCert(t *testing.T) {
 						Convey("Then the response body should contain a message stating "+
 							"that the accountID is not valid", func() {
 
-							So(w.Body.String(), ShouldEqual,
-								"No account found with ID '1000'\n")
+							So(w.Body.String(), ShouldEqual, "No "+newCert.OwnerType+
+								" found with ID '1000'\n")
 						})
 
 						Convey("Then the new certificate should NOT be "+
@@ -476,33 +503,21 @@ func TestDeleteCert(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 certificate", func() {
-			grandParent := model.Partner{
-				ID:          1,
-				Name:        "grandparent",
-				Address:     "address",
-				Port:        1,
-				InterfaceID: 1,
+			parent := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
 			}
-			err := db.Create(&grandParent)
+			err := db.Create(&parent)
 			So(err, ShouldBeNil)
 
-			parent := model.Account{
-				ID:        1,
-				Username:  "parent",
-				Password:  []byte("password"),
-				PartnerID: grandParent.ID,
-			}
-			err = db.Create(&parent)
-			So(err, ShouldBeNil)
-
-			existing := model.CertChain{
-				ID:         1,
-				OwnerType:  "ACCOUNT",
-				OwnerID:    parent.ID,
-				Name:       "existing",
-				PrivateKey: []byte("private_key"),
-				PublicKey:  []byte("public_key"),
-				Cert:       []byte("certificate"),
+			existing := model.Cert{
+				OwnerType:   parent.TableName(),
+				OwnerID:     parent.ID,
+				Name:        "existing",
+				PrivateKey:  []byte("private_key"),
+				PublicKey:   []byte("public_key"),
+				Certificate: []byte("certificate"),
 			}
 			err = db.Create(&existing)
 			So(err, ShouldBeNil)
@@ -510,7 +525,7 @@ func TestDeleteCert(t *testing.T) {
 			id := strconv.FormatUint(existing.ID, 10)
 
 			Convey("Given a request with the valid certificate ID parameter", func() {
-				r, err := http.NewRequest(http.MethodDelete, certPath+id, nil)
+				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"certificate": id})
 
@@ -536,7 +551,7 @@ func TestDeleteCert(t *testing.T) {
 			})
 
 			Convey("Given a request with a non-existing certificate ID parameter", func() {
-				r, err := http.NewRequest(http.MethodDelete, certPath+"1000", nil)
+				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"certificate": "1000"})
 
@@ -561,45 +576,33 @@ func TestUpdateCert(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 2 certificates", func() {
-			grandParent := model.Partner{
-				ID:          1,
-				Name:        "grandparent",
-				Address:     "address",
-				Port:        1,
-				InterfaceID: 1,
+			parent := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
 			}
-			err := db.Create(&grandParent)
+			err := db.Create(&parent)
 			So(err, ShouldBeNil)
 
-			parent := model.Account{
-				ID:        1,
-				Username:  "parent",
-				Password:  []byte("password"),
-				PartnerID: grandParent.ID,
-			}
-			err = db.Create(&parent)
-			So(err, ShouldBeNil)
-
-			old := model.CertChain{
-				ID:         1,
-				OwnerType:  "ACCOUNT",
-				OwnerID:    parent.ID,
-				Name:       "old",
-				PrivateKey: []byte("private_key"),
-				PublicKey:  []byte("public_key"),
-				Cert:       []byte("certificate"),
-			}
-			other := model.CertChain{
-				ID:         2,
-				OwnerType:  "ACCOUNT",
-				OwnerID:    parent.ID,
-				Name:       "other",
-				PrivateKey: []byte("private_key"),
-				PublicKey:  []byte("public_key"),
-				Cert:       []byte("certificate"),
+			old := model.Cert{
+				OwnerType:   parent.TableName(),
+				OwnerID:     parent.ID,
+				Name:        "old",
+				PrivateKey:  []byte("private_key"),
+				PublicKey:   []byte("public_key"),
+				Certificate: []byte("certificate"),
 			}
 			err = db.Create(&old)
 			So(err, ShouldBeNil)
+
+			other := model.Cert{
+				OwnerType:   parent.TableName(),
+				OwnerID:     parent.ID,
+				Name:        "other",
+				PrivateKey:  []byte("private_key"),
+				PublicKey:   []byte("public_key"),
+				Certificate: []byte("certificate"),
+			}
 			err = db.Create(&other)
 			So(err, ShouldBeNil)
 
@@ -612,17 +615,16 @@ func TestUpdateCert(t *testing.T) {
 					body, err := json.Marshal(update)
 					So(err, ShouldBeNil)
 
-					expected := model.CertChain{
-						ID:         old.ID,
-						OwnerType:  old.OwnerType,
-						OwnerID:    old.OwnerID,
-						Name:       update.Name,
-						PrivateKey: old.PrivateKey,
-						PublicKey:  old.PublicKey,
-						Cert:       old.Cert,
+					expected := model.Cert{
+						OwnerType:   old.OwnerType,
+						OwnerID:     old.OwnerID,
+						Name:        update.Name,
+						PrivateKey:  old.PrivateKey,
+						PublicKey:   old.PublicKey,
+						Certificate: old.Certificate,
 					}
 
-					checkValidUpdate(db, w, http.MethodPatch, certPath, id,
+					checkValidUpdate(db, w, http.MethodPatch, certURI, id,
 						"certificate", body, handler, &old, &expected)
 				})
 
@@ -631,18 +633,9 @@ func TestUpdateCert(t *testing.T) {
 					body, err := json.Marshal(update)
 					So(err, ShouldBeNil)
 
-					msg := "A certificate with the same name already exist for this account\n"
-					checkInvalidUpdate(db, handler, w, body, certPath, id,
-						"certificate", &old, msg)
-				})
-
-				Convey("Given an invalid new account ID", func() {
-					update := struct{ OwnerID uint64 }{OwnerID: 1000}
-					body, err := json.Marshal(update)
-					So(err, ShouldBeNil)
-
-					msg := "No account found with ID '1000'\n"
-					checkInvalidUpdate(db, handler, w, body, certPath, id,
+					msg := "A certificate with the same name '" + update.Name +
+						"' already exist\n"
+					checkInvalidUpdate(db, handler, w, body, certURI, id,
 						"certificate", &old, msg)
 				})
 			})
@@ -659,94 +652,78 @@ func TestReplaceCert(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 2 certificates", func() {
-			grandParent := model.Partner{
-				ID:          1,
-				Name:        "grandparent",
-				Address:     "address",
-				Port:        1,
-				InterfaceID: 1,
+			parent := model.RemoteAgent{
+				Name:        "remote_account",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
 			}
-			err := db.Create(&grandParent)
+			err := db.Create(&parent)
 			So(err, ShouldBeNil)
 
-			parent := model.Account{
-				ID:        1,
-				Username:  "parent",
-				Password:  []byte("password"),
-				PartnerID: grandParent.ID,
-			}
-			err = db.Create(&parent)
-			So(err, ShouldBeNil)
-
-			old := model.CertChain{
-				ID:         1,
-				OwnerType:  "ACCOUNT",
-				OwnerID:    parent.ID,
-				Name:       "old",
-				PrivateKey: []byte("private_key"),
-				PublicKey:  []byte("public_key"),
-				Cert:       []byte("certificate"),
-			}
-			other := model.CertChain{
-				ID:         2,
-				OwnerType:  "ACCOUNT",
-				OwnerID:    parent.ID,
-				Name:       "other",
-				PrivateKey: []byte("private_key"),
-				PublicKey:  []byte("public_key"),
-				Cert:       []byte("certificate"),
+			old := model.Cert{
+				OwnerType:   parent.TableName(),
+				OwnerID:     parent.ID,
+				Name:        "old",
+				PrivateKey:  []byte("private_key"),
+				PublicKey:   []byte("public_key"),
+				Certificate: []byte("certificate"),
 			}
 			err = db.Create(&old)
 			So(err, ShouldBeNil)
+
+			other := model.Cert{
+				OwnerType:   parent.TableName(),
+				OwnerID:     parent.ID,
+				Name:        "other",
+				PrivateKey:  []byte("private_key"),
+				PublicKey:   []byte("public_key"),
+				Certificate: []byte("certificate"),
+			}
 			err = db.Create(&other)
 			So(err, ShouldBeNil)
 
-			id := strconv.FormatUint(old.ID, 10)
+			id := fmt.Sprint(old.ID)
+
+			replace := model.Cert{
+				OwnerType:   parent.TableName(),
+				OwnerID:     parent.ID,
+				Name:        "replace",
+				PrivateKey:  []byte("new_private_key"),
+				PublicKey:   []byte("new_public_key"),
+				Certificate: []byte("new_certificate"),
+			}
 
 			Convey("Given a valid new certificate", func() {
-				replace := struct {
-					OwnerType                   string
-					OwnerID                     uint64
-					Name                        string
-					PrivateKey, PublicKey, Cert []byte
-				}{
-					OwnerType:  "ACCOUNT",
-					OwnerID:    parent.ID,
-					Name:       "replace",
-					PrivateKey: []byte("new_private_key"),
-					PublicKey:  []byte("new_public_key"),
-					Cert:       []byte("new_certificate"),
-				}
-
 				body, err := json.Marshal(replace)
 				So(err, ShouldBeNil)
 
-				expected := model.CertChain{
-					ID:      old.ID,
-					OwnerID: replace.OwnerID,
-					Name:    replace.Name,
+				expected := model.Cert{
+					ID:          old.ID,
+					OwnerType:   replace.OwnerType,
+					OwnerID:     replace.OwnerID,
+					Name:        replace.Name,
+					PrivateKey:  replace.PrivateKey,
+					PublicKey:   replace.PublicKey,
+					Certificate: replace.Certificate,
 				}
 
-				checkValidUpdate(db, w, http.MethodPut, certPath,
-					id, "certificate", body, handler, &old, &expected)
-			})
+				Convey("Given a valid certificate ID parameter", func() {
+					checkValidUpdate(db, w, http.MethodPut, certURI,
+						id, "certificate", body, handler, &old, &expected)
+				})
 
-			Convey("Given a non-existing certificate ID parameter", func() {
-				replace := struct{}{}
+				Convey("Given a non-existing certificate ID parameter", func() {
 
-				body, err := json.Marshal(replace)
-				So(err, ShouldBeNil)
+					Convey("When sending the request to the handler", func() {
+						r, err := http.NewRequest(http.MethodPut, "", bytes.NewReader(body))
+						So(err, ShouldBeNil)
+						r = mux.SetURLVars(r, map[string]string{"certificate": "1000"})
 
-				Convey("When sending the request to the handler", func() {
-					r, err := http.NewRequest(http.MethodPut, certPath+"1000",
-						bytes.NewReader(body))
-					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"certificate": "1000"})
+						handler.ServeHTTP(w, r)
 
-					handler.ServeHTTP(w, r)
-
-					Convey("Then it should reply with a 'Not Found' error", func() {
-						So(w.Code, ShouldEqual, http.StatusNotFound)
+						Convey("Then it should reply with a 'Not Found' error", func() {
+							So(w.Code, ShouldEqual, http.StatusNotFound)
+						})
 					})
 				})
 			})

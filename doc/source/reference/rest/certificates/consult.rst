@@ -13,7 +13,7 @@ Consulter un certificat
 
        .. code-block:: http
 
-          GET /api/partners/partenaire1/accounts/utilisateur1/certificates/certificat1 HTTP/1.1
+          GET https://my_waarp_gateway.net/api/certificates/1 HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
 
@@ -23,12 +23,13 @@ Consulter un certificat
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: Le certificat demandé n'existe pas
 
-   :resjson number ID: Le numéro unique du certificat
-   :resjson string Name: Le nom du certificat
-   :resjson number AccountID: Le numéro du compte auquel appartient le certificat
-   :resjson string PrivateKey: La clé privée du compte
-   :resjson string PublicKey: La clé publique du compte
-   :resjson string Cert: Le certificat de la clé publique
+   :resjson number id: L'identifiant unique du certificat
+   :resjson string name: Le nom du certificat
+   :resjson string ownerType: Le type d'entité
+   :resjson number ownerID: L'identifiant de l'entité à laquelle appartient le certificat
+   :resjson string privateKey: La clé privée de l'entité
+   :resjson string publicKey: La clé publique de l'entité
+   :resjson string cert: Le certificat de l'entité
 
    **Exemple de réponse**
 
@@ -39,11 +40,11 @@ Consulter un certificat
           Content-Length: 197
 
           {
-            "ID": 1234,
-            "Name": "certificat1",
-            "PartnerID": 12345,
-            "PrivateKey": "*clé privée*",
-            "PublicKey": "*clé publique*"
-            "PrivateCert": "*certificat privée*",
-            "PublicCert": "*certificat public*"
+            "id": 1,
+            "name": "certificat_sftp",
+            "ownerType": "local_agents",
+            "ownerID": 1,
+            "privateKey": "<clé privée>",
+            "publicKey": "<clé publique>",
+            "cert": "<certificat>"
           }

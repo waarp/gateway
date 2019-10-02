@@ -1,5 +1,5 @@
-Gestion des partenaires
-#######################
+Gestion des partenaires distants
+################################
 
 Le point d'accès pour gérer les partenaires de transferts est ``/api/partners``.
 

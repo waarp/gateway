@@ -13,7 +13,7 @@ Supprimer un certificat
 
        .. code-block:: http
 
-          DELETE /api/certificates/1234 HTTP/1.1
+          DELETE https://my_waarp_gateway.net/api/certificates/1 HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
 

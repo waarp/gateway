@@ -1,527 +1,568 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
-	"os"
-	"strconv"
+	"net/http/httptest"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var testPartnerInterface model.Interface
+func TestGetPartner(t *testing.T) {
 
-func init() {
-	testPartnerInterface = model.Interface{
-		Name: "test_partner_interface",
-		Port: 1,
-		Type: "sftp",
-	}
-	if err := testDb.Create(&testPartnerInterface); err != nil {
-		panic(err)
-	}
-}
+	Convey("Testing the partner 'get' command", t, func() {
+		out = testFile()
+		command := &partnerGetCommand{}
 
-func TestPartnerGet(t *testing.T) {
+		Convey("Given a gateway with 1 distant partner", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-	Convey("Testing the partner get function", t, func() {
-		testPartner := model.Partner{
-			Name:        "test_partner_get",
-			Address:     "test_partner_get_address",
-			Port:        1,
-			InterfaceID: testPartnerInterface.ID,
-		}
+			partner := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte(`{"key":"value"}`),
+			}
 
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		err := testDb.Create(&testPartner)
-		So(err, ShouldBeNil)
-		id := strconv.FormatUint(testPartner.ID, 10)
-
-		Reset(func() {
-			err := testDb.Delete(&testPartner)
+			err := db.Create(&partner)
 			So(err, ShouldBeNil)
-		})
 
-		Convey("Given a correct id", func() {
-			p := partnerGetCommand{}
-			args := []string{id}
-			err := p.Execute(args)
+			Convey("Given a valid partner ID", func() {
+				id := fmt.Sprint(partner.ID)
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute([]string{id})
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should display the partner's info", func() {
+						var config bytes.Buffer
+						err := json.Indent(&config, partner.ProtoConfig, "  ", "  ")
+						So(err, ShouldBeNil)
+
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Remote agent n°1:\n"+
+							"├─Name: "+partner.Name+"\n"+
+							"├─Protocol: "+partner.Protocol+"\n"+
+							"└─Configuration: "+config.String()+"\n",
+						)
+					})
+				})
 			})
-		})
 
-		Convey("Given an incorrect id", func() {
-			p := partnerGetCommand{}
-			args := []string{"unknown"}
-			err := p.Execute(args)
+			Convey("Given an invalid partner ID", func() {
+				id := "1000"
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
 
-		Convey("Given no id", func() {
-			p := partnerGetCommand{}
-			args := []string{}
-			err := p.Execute(args)
+					err := command.Execute([]string{id})
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
+							addr+admin.APIPath+admin.RemoteAgentsPath+
+							"/1000' does not exist")
+
+					})
+				})
 			})
 		})
 	})
 }
 
-func TestPartnerCreate(t *testing.T) {
+func TestAddPartner(t *testing.T) {
 
-	Convey("Testing the partner creation function", t, func() {
-		testPartner := model.Partner{
-			Name:        "test_partner_create",
-			Address:     "test_partner_create_address",
-			Port:        1,
-			InterfaceID: testPartnerInterface.ID,
-		}
-		existingPartner := model.Partner{
-			Name:        "test_partner_existing",
-			Address:     "test_partner_existing_address",
-			Port:        2,
-			InterfaceID: testPartnerInterface.ID,
-		}
+	Convey("Testing the partner 'add' command", t, func() {
+		out = testFile()
+		command := &partnerAddCommand{}
 
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		p := partnerCreateCommand{}
-		args := []string{"-n", testPartner.Name,
-			"-a", testPartner.Address,
-			"-p", strconv.FormatUint(uint64(testPartner.Port), 10),
-			"-i", strconv.FormatUint(testPartner.InterfaceID, 10),
-		}
+		Convey("Given a gateway", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-		err := testDb.Create(&existingPartner)
-		So(err, ShouldBeNil)
+			Convey("Given valid flags", func() {
+				command.Name = "remote_agent"
+				command.Protocol = "sftp"
+				command.ProtoConfig = "{}"
 
-		Reset(func() {
-			err := testDb.Delete(&existingPartner)
-			So(err, ShouldBeNil)
-		})
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
 
-		Convey("Given correct values", func() {
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			err = p.Execute(args)
+					err := command.Execute(nil)
 
-			Reset(func() {
-				_ = testDb.Delete(&testPartner)
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then is should display a message saying the partner was added", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "The partner '"+command.Name+
+							"' was successfully added. It can be consulted at "+
+							"the address: "+gw.URL+admin.APIPath+
+							admin.RemoteAgentsPath+"/1\n")
+					})
+
+					Convey("Then the new partner should have been added", func() {
+						partner := model.RemoteAgent{
+							Name:        command.Name,
+							Protocol:    command.Protocol,
+							ProtoConfig: []byte(command.ProtoConfig),
+						}
+						exists, err := db.Exists(&partner)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
+					})
+				})
 			})
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+			Convey("Given an invalid protocol", func() {
+				command.Name = "partner"
+				command.Protocol = "not a protocol"
+				command.ProtoConfig = "{}"
+
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "400 - Invalid request: "+
+							"The agent's protocol must be one of: [sftp]")
+					})
+				})
 			})
-		})
 
-		Convey("Given already existing values", func() {
-			args := []string{"-n", existingPartner.Name,
-				"-a", existingPartner.Address,
-				"-p", strconv.FormatUint(uint64(existingPartner.Port), 10),
-				"-i", strconv.FormatUint(existingPartner.InterfaceID, 10),
-			}
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			err = p.Execute(args)
+			Convey("Given an invalid configuration", func() {
+				command.Name = "partner"
+				command.Protocol = "sftp"
+				command.ProtoConfig = "{"
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
 
-		Convey("Given an invalid port", func() {
-			args := []string{"-n", testPartner.Name,
-				"-a", testPartner.Address,
-				"-p", "not_a_port",
-			}
-			_, err := flags.ParseArgs(&p, args)
+					err := command.Execute(nil)
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
-
-		Convey("Given an incorrect address", func() {
-			auth = ConnectionOptions{
-				Address:  "incorrect",
-				Username: "test",
-			}
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			err = p.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
-
-		Convey("Given incorrect credentials", func() {
-			auth = ConnectionOptions{
-				Address:  testServer.URL,
-				Username: "unknown",
-			}
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			err = p.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "400 - Invalid request: The "+
+							"agent's configuration is not a valid JSON configuration")
+					})
+				})
 			})
 		})
 	})
 }
 
-func TestPartnerSelect(t *testing.T) {
+func TestListPartners(t *testing.T) {
 
-	Convey("Testing the partner listing function", t, func() {
-		testPartner1 := model.Partner{
-			Name:        "test_partner_select1",
-			Address:     "test_partner_select1_address",
-			Port:        2,
-			InterfaceID: testPartnerInterface.ID,
-		}
-		testPartner2 := model.Partner{
-			Name:        "test_partner_select2",
-			Address:     "test_partner_select3_address",
-			Port:        4,
-			InterfaceID: testPartnerInterface.ID,
-		}
-		testPartner3 := model.Partner{
-			Name:        "test_partner_select3",
-			Address:     "test_partner_select4_address",
-			Port:        1,
-			InterfaceID: testPartnerInterface.ID,
-		}
-		testPartner4 := model.Partner{
-			Name:        "test_partner_select4",
-			Address:     "test_partner_select2_address",
-			Port:        3,
-			InterfaceID: testPartnerInterface.ID,
-		}
-
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		p := partnerListCommand{}
-
-		err := testDb.Create(&testPartner1)
-		So(err, ShouldBeNil)
-		err = testDb.Create(&testPartner2)
-		So(err, ShouldBeNil)
-		err = testDb.Create(&testPartner3)
-		So(err, ShouldBeNil)
-		err = testDb.Create(&testPartner4)
+	Convey("Testing the partner 'list' command", t, func() {
+		out = testFile()
+		command := &partnerListCommand{}
+		_, err := flags.ParseArgs(command, []string{"waarp_gateway"})
 		So(err, ShouldBeNil)
 
-		Reset(func() {
-			err := testDb.Delete(&testPartner1)
-			So(err, ShouldBeNil)
-			err = testDb.Delete(&testPartner2)
-			So(err, ShouldBeNil)
-			err = testDb.Delete(&testPartner3)
-			So(err, ShouldBeNil)
-			err = testDb.Delete(&testPartner4)
-			So(err, ShouldBeNil)
-		})
+		Convey("Given a gateway with 2 distant partners", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-		Convey("Given no flags", func() {
-			args := []string{}
-			args, err := flags.ParseArgs(&p, args)
+			partner1 := model.RemoteAgent{
+				Name:        "remote_agent1",
+				Protocol:    "sftp",
+				ProtoConfig: []byte(`{"key1":"value1","key2":"value2"}`),
+			}
+			err := db.Create(&partner1)
 			So(err, ShouldBeNil)
-			err = p.Execute(args)
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+			partner2 := model.RemoteAgent{
+				Name:        "remote_agent2",
+				Protocol:    "sftp",
+				ProtoConfig: []byte(`{"key3":"value3","key4":"value4"}`),
+			}
+			err = db.Create(&partner2)
+			So(err, ShouldBeNil)
+
+			Convey("Given no parameters", func() {
+
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should display the partners' info", func() {
+						var config1 bytes.Buffer
+						err := json.Indent(&config1, partner1.ProtoConfig, "  ", "  ")
+						So(err, ShouldBeNil)
+
+						var config2 bytes.Buffer
+						err = json.Indent(&config2, partner2.ProtoConfig, "  ", "  ")
+						So(err, ShouldBeNil)
+
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Remote agents:\n"+
+							"Remote agent n°1:\n"+
+							"├─Name: "+partner1.Name+"\n"+
+							"├─Protocol: "+partner1.Protocol+"\n"+
+							"└─Configuration: "+config1.String()+"\n"+
+							"Remote agent n°2:\n"+
+							"├─Name: "+partner2.Name+"\n"+
+							"├─Protocol: "+partner2.Protocol+"\n"+
+							"└─Configuration: "+config2.String()+"\n",
+						)
+					})
+				})
 			})
-		})
 
-		Convey("Given a limit flag", func() {
-			args := []string{"-l", "2"}
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			So(p.Limit, ShouldEqual, 2)
-			err = p.Execute(args)
+			Convey("Given a 'limit' parameter of 1", func() {
+				command.Limit = 1
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should only display 1 partner's info", func() {
+						var config1 bytes.Buffer
+						err := json.Indent(&config1, partner1.ProtoConfig, "  ", "  ")
+						So(err, ShouldBeNil)
+
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Remote agents:\n"+
+							"Remote agent n°1:\n"+
+							"├─Name: "+partner1.Name+"\n"+
+							"├─Protocol: "+partner1.Protocol+"\n"+
+							"└─Configuration: "+config1.String()+"\n",
+						)
+					})
+				})
 			})
-		})
 
-		Convey("Given an offset flag", func() {
-			args := []string{"-o", "2"}
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			err = p.Execute(args)
+			Convey("Given an 'offset' parameter of 1", func() {
+				command.Offset = 1
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should NOT display the 1st partner's info", func() {
+						var config2 bytes.Buffer
+						err := json.Indent(&config2, partner2.ProtoConfig, "  ", "  ")
+						So(err, ShouldBeNil)
+
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Remote agents:\n"+
+							"Remote agent n°2:\n"+
+							"├─Name: "+partner2.Name+"\n"+
+							"├─Protocol: "+partner2.Protocol+"\n"+
+							"└─Configuration: "+config2.String()+"\n",
+						)
+					})
+				})
 			})
-		})
 
-		Convey("Given a sort flag", func() {
-			args := []string{"-s", "address"}
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			err = p.Execute(args)
+			Convey("Given that the 'desc' flag is set", func() {
+				command.DescOrder = true
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
-			})
-		})
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
 
-		Convey("Given an order flag", func() {
-			args := []string{"-d"}
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			err = p.Execute(args)
+					err := command.Execute(nil)
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
-			})
-		})
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
 
-		Convey("Given an address flag", func() {
-			args := []string{"-a", testPartner1.Address, "-a", testPartner3.Address}
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			err = p.Execute(args)
+					Convey("Then it should display the partners' info in reverse", func() {
+						var config1 bytes.Buffer
+						err := json.Indent(&config1, partner1.ProtoConfig, "  ", "  ")
+						So(err, ShouldBeNil)
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeNil)
-			})
-		})
+						var config2 bytes.Buffer
+						err = json.Indent(&config2, partner2.ProtoConfig, "  ", "  ")
+						So(err, ShouldBeNil)
 
-		Convey("Given an interface flag", func() {
-			args := []string{"-i", strconv.FormatUint(testPartnerInterface.ID, 10)}
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			err = p.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeNil)
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Remote agents:\n"+
+							"Remote agent n°2:\n"+
+							"├─Name: "+partner2.Name+"\n"+
+							"├─Protocol: "+partner2.Protocol+"\n"+
+							"└─Configuration: "+config2.String()+"\n"+
+							"Remote agent n°1:\n"+
+							"├─Name: "+partner1.Name+"\n"+
+							"├─Protocol: "+partner1.Protocol+"\n"+
+							"└─Configuration: "+config1.String()+"\n",
+						)
+					})
+				})
 			})
 		})
 	})
 }
 
-func TestPartnerDelete(t *testing.T) {
+func TestDeletePartner(t *testing.T) {
 
-	Convey("Testing the partner deletion function", t, func() {
-		testPartner := model.Partner{
-			Name:        "test_partner_delete",
-			Address:     "test_partner_delete_address",
-			Port:        1,
-			InterfaceID: testPartnerInterface.ID,
-		}
+	Convey("Testing the partner 'delete' command", t, func() {
+		out = testFile()
+		command := &partnerDeleteCommand{}
 
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		p := partnerDeleteCommand{}
+		Convey("Given a gateway with 1 distant partner", func() {
 
-		err := testDb.Create(&testPartner)
-		So(err, ShouldBeNil)
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-		Reset(func() {
-			err := testDb.Delete(&testPartner)
+			partner := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
+			}
+
+			err := db.Create(&partner)
 			So(err, ShouldBeNil)
-		})
 
-		Convey("Given a correct id", func() {
-			args := []string{strconv.FormatUint(testPartner.ID, 10)}
-			err := p.Execute(args)
+			Convey("Given a valid partner ID", func() {
+				id := fmt.Sprint(partner.ID)
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
+
+					err := command.Execute([]string{id})
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then is should display a message saying the partner was deleted", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "The partner n°"+id+
+							" was successfully deleted from the database\n")
+					})
+
+					Convey("Then the partner should have been removed", func() {
+						exists, err := db.Exists(&partner)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeFalse)
+					})
+				})
 			})
-		})
 
-		Convey("Given an incorrect id", func() {
-			args := []string{"unknown"}
-			err := p.Execute(args)
+			Convey("Given an invalid ID", func() {
+				id := "1000"
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
 
-		Convey("Given a no id", func() {
-			args := []string{}
-			err := p.Execute(args)
+					err := command.Execute([]string{id})
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
+							addr+admin.APIPath+admin.RemoteAgentsPath+
+							"/1000' does not exist")
+					})
+
+					Convey("Then the partner should still exist", func() {
+						exists, err := db.Exists(&partner)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
+					})
+				})
 			})
 		})
 	})
 }
 
-func TestPartnerUpdate(t *testing.T) {
+func TestUpdatePartner(t *testing.T) {
 
-	Convey("Testing the partner update function", t, func() {
-		testPartnerBefore := model.Partner{
-			Name:        "test_partner_update_before",
-			Address:     "test_partner_update_before_address",
-			Port:        1,
-			InterfaceID: testPartnerInterface.ID,
-		}
-		testPartnerAfter := model.Partner{
-			Name:        "test_partner_update_after",
-			Address:     "test_partner_update_after_address",
-			Port:        1,
-			InterfaceID: testPartnerInterface.ID,
-		}
-		newPort := strconv.FormatUint(uint64(testPartnerAfter.Port), 10)
-		newInterface := strconv.FormatUint(testPartnerAfter.InterfaceID, 10)
+	Convey("Testing the partner 'delete' command", t, func() {
+		out = testFile()
+		command := &partnerUpdateCommand{}
 
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		p := partnerUpdateCommand{}
+		Convey("Given a gateway with 1 distant partner", func() {
 
-		err := testDb.Create(&testPartnerBefore)
-		So(err, ShouldBeNil)
-		id := strconv.FormatUint(testPartnerBefore.ID, 10)
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-		Reset(func() {
-			err := testDb.Delete(&testPartnerBefore)
-			So(err, ShouldBeNil)
-			err = testDb.Delete(&testPartnerAfter)
-			So(err, ShouldBeNil)
-		})
-
-		Convey("Given correct values", func() {
-			args := []string{"-n", testPartnerAfter.Name,
-				"-a", testPartnerAfter.Address,
-				"-p", newPort,
-				"-i", newInterface,
-				id,
+			partner := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
 			}
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			err = p.Execute(args)
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
-			})
-		})
-
-		Convey("Given an incorrect port", func() {
-			args := []string{"-n", testPartnerAfter.Name,
-				"-a", testPartnerAfter.Address,
-				"-p", "not_a_port",
-				"-i", newInterface,
-				id,
-			}
-			_, err := flags.ParseArgs(&p, args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
-
-		Convey("Given no id", func() {
-			args := []string{"-n", testPartnerAfter.Name,
-				"-a", testPartnerAfter.Address,
-				"-p", newPort,
-			}
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			err = p.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
-
-		Convey("Given a non-existent interface id", func() {
-			args := []string{"-n", testPartnerAfter.Name,
-				"-a", testPartnerAfter.Address,
-				"-p", newPort,
-				"-i", "1000",
-				id,
-			}
-			args, err := flags.ParseArgs(&p, args)
-			So(err, ShouldBeNil)
-			err = p.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
-
-		Convey("Given a non-numeric interface id", func() {
-			args := []string{"-n", testPartnerAfter.Name,
-				"-a", testPartnerAfter.Address,
-				"-p", newPort,
-				"-i", "not_an_id",
-				id,
-			}
-			_, err := flags.ParseArgs(&p, args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
-	})
-}
-
-func TestDisplayPartner(t *testing.T) {
-
-	Convey("Given a partner", t, func() {
-		testPartner := model.Partner{
-			ID:          1234,
-			Name:        "test_partner",
-			Address:     "test_partner_address",
-			Port:        1,
-			InterfaceID: testPartnerInterface.ID,
-		}
-		id := strconv.FormatUint(testPartner.ID, 10)
-
-		Convey("When calling the 'displayPartner' function", func() {
-			out, err := ioutil.TempFile(".", "waarp_gateway")
+			err := db.Create(&partner)
 			So(err, ShouldBeNil)
 
-			displayPartner(out, testPartner)
+			Convey("Given a valid partner ID", func() {
+				id := fmt.Sprint(partner.ID)
 
-			err = out.Close()
-			So(err, ShouldBeNil)
+				command.Name = "new_remote_agent"
+				command.Protocol = "sftp"
+				command.ProtoConfig = `{"new_key":"new_value"}`
 
-			Reset(func() {
-				_ = os.Remove(out.Name())
+				Convey("Given all valid flags", func() {
+
+					Convey("When executing the command", func() {
+						addr := gw.Listener.Addr().String()
+						dsn := "http://admin:admin_password@" + addr
+						auth.DSN = dsn
+
+						err := command.Execute([]string{id})
+
+						Convey("Then it should NOT return an error", func() {
+							So(err, ShouldBeNil)
+						})
+
+						Convey("Then is should display a message saying the partner was updated", func() {
+							_, err = out.Seek(0, 0)
+							So(err, ShouldBeNil)
+							cont, err := ioutil.ReadAll(out)
+							So(err, ShouldBeNil)
+							So(string(cont), ShouldEqual, "The partner n°"+id+
+								" was successfully updated")
+						})
+
+						Convey("Then the old partner should have been removed", func() {
+							exists, err := db.Exists(&partner)
+							So(err, ShouldBeNil)
+							So(exists, ShouldBeFalse)
+						})
+
+						Convey("Then the new partner should exist", func() {
+							newPartner := model.RemoteAgent{
+								ID:          partner.ID,
+								Name:        command.Name,
+								Protocol:    command.Protocol,
+								ProtoConfig: []byte(command.ProtoConfig),
+							}
+							exists, err := db.Exists(&newPartner)
+							So(err, ShouldBeNil)
+							So(exists, ShouldBeTrue)
+						})
+					})
+				})
+
+				Convey("Given an invalid protocol", func() {
+					command.Protocol = "not a protocol"
+
+					Convey("When executing the command", func() {
+						addr := gw.Listener.Addr().String()
+						dsn := "http://admin:admin_password@" + addr
+						auth.DSN = dsn
+
+						err := command.Execute([]string{id})
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
+								"The agent's protocol must be one of: [sftp]")
+						})
+					})
+				})
+
+				Convey("Given an invalid configuration", func() {
+					command.ProtoConfig = "{"
+
+					Convey("When executing the command", func() {
+						addr := gw.Listener.Addr().String()
+						dsn := "http://admin:admin_password@" + addr
+						auth.DSN = dsn
+
+						err := command.Execute([]string{id})
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldEqual, "400 - Invalid request: The "+
+								"agent's configuration is not a valid JSON configuration")
+						})
+					})
+				})
 			})
 
-			Convey("Then it should display the partner correctly", func() {
-				in, err := os.Open(out.Name())
-				So(err, ShouldBeNil)
-				result, err := ioutil.ReadAll(in)
-				So(err, ShouldBeNil)
+			Convey("Given an invalid ID", func() {
+				id := "1000"
 
-				expected :=
-					"Partner n°" + id + ":\n" +
-						"├─Name: " + testPartner.Name + "\n" +
-						"├─InterfaceID: " + strconv.FormatUint(testPartner.InterfaceID, 10) + "\n" +
-						"├─Address: " + testPartner.Address + "\n" +
-						"└─Port: " + strconv.FormatUint(uint64(testPartner.Port), 10) + "\n"
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
 
-				So(string(result), ShouldEqual, expected)
+					err := command.Execute([]string{id})
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
+							addr+admin.APIPath+admin.RemoteAgentsPath+
+							"/1000' does not exist")
+					})
+
+					Convey("Then the partner should stay unchanged", func() {
+						exists, err := db.Exists(&partner)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
+					})
+				})
 			})
 		})
 	})

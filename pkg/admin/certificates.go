@@ -15,15 +15,15 @@ import (
 
 func createCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cert := &model.CertChain{}
+		cert := model.Cert{}
 
-		if err := restCreate(db, r, cert); err != nil {
+		if err := restCreate(db, r, &cert); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
 
 		id := strconv.FormatUint(cert.ID, 10)
-		w.Header().Set("Location", RestURI+CertsURI+"/"+id)
+		w.Header().Set("Location", APIPath+CertificatesPath+"/"+id)
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -40,37 +40,27 @@ func listCertificates(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			return
 		}
 
+		validOwners := []string{"local_agents", "remote_agents", "local_accounts",
+			"remote_accounts"}
 		conditions := make([]builder.Cond, 0)
-		accounts := r.Form["account"]
-		partners := r.Form["parnter"]
-		if len(accounts) > 0 {
-			ids := make([]uint64, len(accounts))
-			for i, account := range accounts {
-				id, err := strconv.ParseUint(account, 10, 64)
-				if err != nil {
-					handleErrors(w, logger, &badRequest{
-						msg: fmt.Sprintf("'%s' is not a valid account ID", account)})
-					return
-				}
-				ids[i] = id
-			}
 
-			conditions = append(conditions, builder.Eq{"owner_type": "ACCOUNT"})
-			conditions = append(conditions, builder.In("owner_id", ids))
-		} else if len(partners) > 0 {
-			ids := make([]uint64, len(partners))
-			for i, partner := range partners {
-				id, err := strconv.ParseUint(partner, 10, 64)
-				if err != nil {
-					handleErrors(w, logger, &badRequest{
-						msg: fmt.Sprintf("'%s' is not a valid partner ID", partner)})
-					return
-				}
-				ids[i] = id
-			}
+		for _, ownerType := range validOwners {
+			owners := r.Form[ownerType]
 
-			conditions = append(conditions, builder.Eq{"owner_type": "PARTNER"})
-			conditions = append(conditions, builder.In("owner_id", ids))
+			if len(owners) > 0 {
+				ownerIDs := make([]uint64, len(owners))
+				for i, owner := range owners {
+					id, err := strconv.ParseUint(owner, 10, 64)
+					if err != nil {
+						msg := fmt.Sprintf("'%s' is not a valid %s ID", owner, ownerType)
+						handleErrors(w, logger, &badRequest{msg})
+						return
+					}
+					ownerIDs[i] = id
+				}
+				conditions = append(conditions, builder.Eq{"owner_type": ownerType})
+				conditions = append(conditions, builder.In("owner_id", ownerIDs))
+			}
 		}
 
 		filters := &database.Filters{
@@ -80,13 +70,13 @@ func listCertificates(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			Conditions: builder.And(conditions...),
 		}
 
-		results := &[]*model.CertChain{}
-		if err := db.Select(results, filters); err != nil {
+		results := []model.Cert{}
+		if err := db.Select(&results, filters); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
 
-		resp := map[string]*[]*model.CertChain{"certificates": results}
+		resp := map[string][]model.Cert{"certificates": results}
 		if err := writeJSON(w, resp); err != nil {
 			handleErrors(w, logger, err)
 		}
@@ -100,13 +90,13 @@ func getCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			handleErrors(w, logger, &notFound{})
 			return
 		}
-		cert := &model.CertChain{ID: id}
+		cert := model.Cert{ID: id}
 
-		if err := restGet(db, cert); err != nil {
+		if err := restGet(db, &cert); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
-		if err := writeJSON(w, cert); err != nil {
+		if err := writeJSON(w, &cert); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
@@ -121,8 +111,9 @@ func deleteCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			handleErrors(w, logger, &notFound{})
 			return
 		}
-		cert := &model.CertChain{ID: id}
-		if err := restDelete(db, cert); err != nil {
+		cert := model.Cert{ID: id}
+
+		if err := restDelete(db, &cert); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
@@ -137,16 +128,15 @@ func updateCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			handleErrors(w, logger, &notFound{})
 			return
 		}
-		oldCert := &model.CertChain{ID: id}
-		newCert := &model.CertChain{ID: id}
+		newCert := model.Cert{}
 
-		if err := restUpdate(db, r, oldCert, newCert); err != nil {
+		if err := restUpdate(db, r, &newCert, id); err != nil {
 			handleErrors(w, logger, err)
 			return
 		}
 
 		strID := strconv.FormatUint(id, 10)
-		w.Header().Set("Location", RestURI+CertsURI+"/"+strID)
+		w.Header().Set("Location", APIPath+CertificatesPath+"/"+strID)
 		w.WriteHeader(http.StatusCreated)
 	}
 }
