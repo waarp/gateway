@@ -71,7 +71,7 @@ func (u *User) Validate(db *database.Db, isInsert bool) error {
 			return err
 		}
 		if len(res) == 0 {
-			return ErrInvalid{fmt.Sprintf("Unknown user id: '%v'", u.ID)}
+			return ErrInvalid{fmt.Sprintf("Unknown user ID: '%v'", u.ID)}
 		}
 
 		loginCheck := &User{Login: u.Login}

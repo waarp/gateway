@@ -68,7 +68,7 @@ func (a *Account) Validate(db *database.Db, isInsert bool) error {
 		return err
 	}
 	if len(parts) == 0 {
-		return ErrInvalid{msg: fmt.Sprintf("No partner found with id '%v'", a.PartnerID)}
+		return ErrInvalid{msg: fmt.Sprintf("No partner found with ID '%v'", a.PartnerID)}
 	}
 
 	names, err := db.Query("SELECT id FROM accounts WHERE partner_id=? AND username=?",
@@ -99,7 +99,7 @@ func (a *Account) Validate(db *database.Db, isInsert bool) error {
 			return err
 		}
 		if len(res) == 0 {
-			return ErrInvalid{fmt.Sprintf("Unknown account id: '%v'", a.ID)}
+			return ErrInvalid{fmt.Sprintf("Unknown account ID: '%v'", a.ID)}
 		}
 	}
 

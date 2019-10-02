@@ -181,7 +181,7 @@ func TestPartnerValidate(t *testing.T) {
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "Unknown partner id: '25'")
+							So(err.Error(), ShouldEqual, "Unknown partner ID: '25'")
 						})
 					})
 				})

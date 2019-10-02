@@ -196,7 +196,7 @@ func TestUserValidate(t *testing.T) {
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "Unknown user id: '25'")
+							So(err.Error(), ShouldEqual, "Unknown user ID: '25'")
 						})
 					})
 				})
