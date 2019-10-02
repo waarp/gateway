@@ -32,7 +32,7 @@ type interfaceGetCommand struct{}
 // parameter.
 func (p *interfaceGetCommand) Execute(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("missing interface name")
+		return fmt.Errorf("missing interface ID")
 	}
 
 	subpath := admin.InterfacesURI + "/" + args[0]
@@ -122,7 +122,7 @@ func (p *interfaceListCommand) Execute(_ []string) error {
 type interfaceCreateCommand struct {
 	Name string `required:"true" short:"n" long:"name" description:"The interface's name"`
 	Port uint16 `required:"true" short:"p" long:"port" description:"The TCP port used by the interface"`
-	Type string `required:"true" short:"t" long:"type" description:"The protocol the interface will use"`
+	Type string `required:"true" short:"t" long:"type" description:"The protocol the interface will use" choice:"sftp" choice:"http" choice:"r66"`
 }
 
 // Execute executes the 'create' command. The command flags are stored in
@@ -153,7 +153,7 @@ func (p *interfaceCreateCommand) Execute(_ []string) error {
 type interfaceUpdateCommand struct {
 	Name string `short:"n" long:"name" description:"The interface's name"`
 	Port uint16 `short:"p" long:"port" description:"The TCP port used by the interface"`
-	Type string `short:"t" long:"type" description:"The protocol the interface will use"`
+	Type string `short:"t" long:"type" description:"The protocol the interface will use" choice:"sftp" choice:"http" choice:"r66"`
 }
 
 // Execute executes the 'update' command. The command flags are stored in
@@ -161,7 +161,7 @@ type interfaceUpdateCommand struct {
 // parameter.
 func (p *interfaceUpdateCommand) Execute(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("missing interface name")
+		return fmt.Errorf("missing interface ID")
 	}
 
 	addr := auth.Address + admin.RestURI + admin.InterfacesURI + "/" + args[0]
@@ -195,7 +195,7 @@ type interfaceDeleteCommand struct{}
 // parameter.
 func (p *interfaceDeleteCommand) Execute(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("missing interface name")
+		return fmt.Errorf("missing interface ID")
 	}
 
 	addr := auth.Address + admin.RestURI + admin.InterfacesURI + "/" + args[0]

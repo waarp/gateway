@@ -40,8 +40,9 @@ func listCertificates(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			return
 		}
 
-		accounts := r.Form["account"]
 		conditions := make([]builder.Cond, 0)
+		accounts := r.Form["account"]
+		partners := r.Form["parnter"]
 		if len(accounts) > 0 {
 			ids := make([]uint64, len(accounts))
 			for i, account := range accounts {
@@ -54,7 +55,22 @@ func listCertificates(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				ids[i] = id
 			}
 
-			conditions = append(conditions, builder.In("account_id", ids))
+			conditions = append(conditions, builder.Eq{"owner_type": "ACCOUNT"})
+			conditions = append(conditions, builder.In("owner_id", ids))
+		} else if len(partners) > 0 {
+			ids := make([]uint64, len(partners))
+			for i, partner := range partners {
+				id, err := strconv.ParseUint(partner, 10, 64)
+				if err != nil {
+					handleErrors(w, logger, &badRequest{
+						msg: fmt.Sprintf("'%s' is not a valid partner ID", partner)})
+					return
+				}
+				ids[i] = id
+			}
+
+			conditions = append(conditions, builder.Eq{"owner_type": "PARTNER"})
+			conditions = append(conditions, builder.In("owner_id", ids))
 		}
 
 		filters := &database.Filters{

@@ -6,23 +6,19 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
-
-	"github.com/gorilla/mux"
-	"github.com/smartystreets/assertions"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var testLogger = log.NewLogger("admin-test")
-
 func TestStart(t *testing.T) {
+
 	Convey("Given a correct configuration", t, func() {
 		config := &conf.ServerConfig{}
 		config.Admin.Address = "localhost:0"
@@ -30,13 +26,33 @@ func TestStart(t *testing.T) {
 		config.Admin.TLSKey = "test-cert/key.pem"
 		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
 
-		Convey("When starting the service, even multiple times", func() {
-			err1 := rest.Start()
-			err2 := rest.Start()
+		Convey("When starting the service", func() {
+			err := rest.Start()
 
-			Convey("Then it should start without errors", func() {
-				So(err1, ShouldBeNil)
-				So(err2, ShouldBeNil)
+			Convey("Then it should return no error", func() {
+				So(err, ShouldBeNil)
+			})
+
+			Convey("Then the service should be running", func() {
+				code, reason := rest.State().Get()
+
+				So(code, ShouldEqual, service.Running)
+				So(reason, ShouldBeEmpty)
+			})
+
+			Convey("When starting the service a second time", func() {
+				err := rest.Start()
+
+				Convey("Then it should not return an error", func() {
+					So(err, ShouldBeNil)
+				})
+
+				Convey("Then the service should still be running", func() {
+					code, reason := rest.State().Get()
+
+					So(code, ShouldEqual, service.Running)
+					So(reason, ShouldBeEmpty)
+				})
 			})
 		})
 	})
@@ -101,231 +117,203 @@ func TestStart(t *testing.T) {
 }
 
 func TestStop(t *testing.T) {
-	Convey("Given a REST service", t, func() {
+	Convey("Given a running REST service", t, func() {
 		config := &conf.ServerConfig{}
 		config.Admin.Address = "localhost:0"
 		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
 
 		err := rest.Start()
-		if err != nil {
-			t.Fatal(err)
-		}
+		So(err, ShouldBeNil)
 
-		Convey("When the service is stopped, even multiple times", func() {
+		Convey("When the service is stopped", func() {
 			addr := rest.server.Addr
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-			err1 := rest.Stop(ctx)
-			// FIXME: Should be `defer cancel()`?
-			cancel()
+			err := rest.Stop(ctx)
 
-			ctx, cancel = context.WithTimeout(context.Background(), time.Second*10)
-			err2 := rest.Stop(ctx)
-			// FIXME: Should be `defer cancel()`?
-			cancel()
+			Reset(cancel)
 
-			So(err1, ShouldBeNil)
-			So(err2, ShouldBeNil)
+			Convey("Then it should return no error", func() {
+				So(err, ShouldBeNil)
+			})
 
 			Convey("Then the service should no longer respond to requests", func() {
 				client := new(http.Client)
 				response, err := client.Get(addr)
 
-				urlError := new(url.Error)
-				So(err, ShouldHaveSameTypeAs, urlError)
+				So(err, ShouldBeError)
 				So(response, ShouldBeNil)
 				if response != nil {
 					_ = response.Body.Close()
 				}
+			})
+
+			Convey("When the service is stopped a 2nd time", func() {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+				err := rest.Stop(ctx)
+
+				Reset(cancel)
+
+				Convey("Then it should not do anything", func() {
+					So(err, ShouldBeNil)
+				})
 			})
 		})
 	})
 }
 
 func TestAuthentication(t *testing.T) {
-	logger := log.NewLogger(ServiceName)
+	authLogger := log.NewLogger("rest_auth_test")
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 	db := database.GetTestDatabase()
-	defer func() {
-		_ = db.Stop(context.Background())
-	}()
 
-	Convey("Given valid credentials", t, func() {
-		w := httptest.NewRecorder()
-		r, err := http.NewRequest(http.MethodGet, "/api", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.SetBasicAuth("admin", "admin_password")
+	Convey("Given an authentication handler", t, func() {
+		auth := Authentication(authLogger, db).Middleware(handler)
 
-		Convey("The function should reply OK", func() {
-			Authentication(logger, db).Middleware(handler).ServeHTTP(w, r)
-
-			So(w.Code, ShouldEqual, http.StatusOK)
-		})
-	})
-
-	Convey("Given invalid credentials", t, func() {
-		w := httptest.NewRecorder()
-		r, err := http.NewRequest(http.MethodGet, "/api", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.SetBasicAuth("not_admin", "not_the_password")
-
-		Convey("The function should reply '401 - Unauthorized'", func() {
-			Authentication(logger, db).Middleware(handler).ServeHTTP(w, r)
-
-			So(w.Code, ShouldEqual, http.StatusUnauthorized)
-		})
-	})
-}
-
-func TestStatus(t *testing.T) {
-	Convey("Given a status handling function", t, func() {
-		var services = make(map[string]service.Service)
-		services["Admin"] = &Server{}
-
-		Convey("When a request is passed to it", func() {
-			r, err := http.NewRequest(http.MethodGet, "/api/status", nil)
-			So(err, ShouldBeNil)
+		Convey("Given an incoming request", func() {
 			w := httptest.NewRecorder()
+			r, err := http.NewRequest(http.MethodGet, "/api", nil)
 
-			Convey("Then the function should reply OK with a JSON body", func() {
-				getStatus(testLogger, services).ServeHTTP(w, r)
-				contentType := w.Header().Get("Content-Type")
+			So(err, ShouldBeNil)
 
-				So(w.Code, ShouldEqual, http.StatusOK)
-				So(contentType, ShouldEqual, "application/json")
-				So(json.Valid(w.Body.Bytes()), ShouldBeTrue)
+			Convey("Given valid credentials", func() {
+				r.SetBasicAuth("admin", "admin_password")
 
-				code, reason := services["Admin"].State().Get()
-				admin := Status{
-					State:  code.Name(),
-					Reason: reason,
-				}
-				statuses := map[string]Status{"Admin": admin}
-				expected, err := json.Marshal(statuses)
-				So(err, ShouldBeNil)
+				Convey("When sending the request", func() {
+					auth.ServeHTTP(w, r)
 
-				So(w.Body.String(), assertions.ShouldEqualTrimSpace, string(expected))
+					Convey("Then the handler should reply 'OK'", func() {
+						So(w.Code, ShouldEqual, http.StatusOK)
+					})
+				})
+			})
+
+			Convey("Given an invalid login", func() {
+				r.SetBasicAuth("not_admin", "admin_password")
+
+				Convey("When sending the request", func() {
+					auth.ServeHTTP(w, r)
+
+					Convey("Then the handler should reply 'Unauthorized'", func() {
+						So(w.Code, ShouldEqual, http.StatusUnauthorized)
+					})
+				})
+			})
+
+			Convey("Given an incorrect password", func() {
+				r.SetBasicAuth("admin", "not_admin_password")
+
+				Convey("When sending the request", func() {
+					auth.ServeHTTP(w, r)
+
+					Convey("Then the handler should reply 'Unauthorized'", func() {
+						So(w.Code, ShouldEqual, http.StatusUnauthorized)
+					})
+				})
 			})
 		})
 	})
 }
 
-func deleteTest(handler http.Handler, db *database.Db, bean interface{}, id, param, path string) {
-	Convey("When called with an existing "+param+" name", func() {
-		r, err := http.NewRequest(http.MethodDelete, path+id, nil)
-		So(err, ShouldBeNil)
-		w := httptest.NewRecorder()
-		r = mux.SetURLVars(r, map[string]string{param: id})
+type testService struct {
+	state service.State
+}
 
-		Convey("Then it should delete the "+param+" and reply 'No Content'", func() {
-			handler.ServeHTTP(w, r)
-			So(w.Code, ShouldEqual, http.StatusNoContent)
+func (*testService) Start() error               { return nil }
+func (*testService) Stop(context.Context) error { return nil }
+func (t *testService) State() *service.State    { return &t.state }
 
-			exist, err := db.Exists(bean)
+func TestStatus(t *testing.T) {
+	statusLogger := log.NewLogger("rest_status_test")
+
+	var services = make(map[string]service.Service)
+	services["Test Running Service"] = &testService{state: service.State{}}
+	services["Test Running Service"].State().Set(service.Running, "")
+	services["Test Offline Service"] = &testService{state: service.State{}}
+	services["Test Offline Service"].State().Set(service.Offline, "")
+	services["Test Error Service"] = &testService{state: service.State{}}
+	services["Test Error Service"].State().Set(service.Error, "Test Reason")
+
+	statuses := map[string]Status{
+		"Test Error Service":   {service.Error.Name(), "Test Reason"},
+		"Test Offline Service": {service.Offline.Name(), ""},
+		"Test Running Service": {service.Running.Name(), ""},
+	}
+
+	Convey("Given the REST status handler", t, func() {
+		handler := getStatus(statusLogger, services)
+
+		Convey("Given a status request", func() {
+			w := httptest.NewRecorder()
+			r, err := http.NewRequest(http.MethodGet, "/api/status", nil)
+
 			So(err, ShouldBeNil)
-			So(exist, ShouldBeFalse)
-		})
-	})
 
-	Convey("When called with an unknown "+param+" name", func() {
-		r, err := http.NewRequest(http.MethodDelete, path+"unknown", nil)
-		So(err, ShouldBeNil)
-		w := httptest.NewRecorder()
-		r = mux.SetURLVars(r, map[string]string{param: "unknown"})
+			Convey("When the request is sent to the handler", func() {
+				handler.ServeHTTP(w, r)
 
-		Convey("Then it should reply 'Not Found'", func() {
-			handler.ServeHTTP(w, r)
-			So(w.Code, ShouldEqual, http.StatusNotFound)
+				Convey("Then the handler should reply 'OK'", func() {
+					So(w.Code, ShouldEqual, http.StatusOK)
+				})
+
+				Convey("Then the 'Content-Type' header should contain 'application/json", func() {
+					contentType := w.Header().Get("Content-Type")
+
+					So(contentType, ShouldEqual, "application/json")
+				})
+
+				Convey("Then the response body should contain the services in JSON format", func() {
+					response := map[string]Status{}
+					err := json.Unmarshal(w.Body.Bytes(), &response)
+
+					So(err, ShouldBeNil)
+					So(response, ShouldResemble, statuses)
+				})
+			})
 		})
 	})
 }
 
-func updateTest(handler http.Handler, db *database.Db, before, update, after interface{},
-	path, param, id string, replace bool) {
+func checkValidUpdate(db *database.Db, w *httptest.ResponseRecorder, method,
+	path, id, parameter string, body []byte, handler http.Handler, old, expected interface{}) {
 
-	Convey("When called with an existing id", func() {
-		body, err := json.Marshal(update)
+	Convey("When sending the request to the handler", func() {
+		r, err := http.NewRequest(method, path+id, bytes.NewReader(body))
 		So(err, ShouldBeNil)
-		reader := bytes.NewReader(body)
-		var method string
-		if replace {
-			method = http.MethodPut
-		} else {
-			method = http.MethodPatch
-		}
-		r, err := http.NewRequest(method, path+id, reader)
-		So(err, ShouldBeNil)
-		w := httptest.NewRecorder()
-		r = mux.SetURLVars(r, map[string]string{param: id})
+		r = mux.SetURLVars(r, map[string]string{parameter: id})
 
-		Convey("Then it should replace the "+param+" and reply 'Created'", func() {
-			handler.ServeHTTP(w, r)
-			//So(w.Code, ShouldEqual, http.StatusCreated)
+		handler.ServeHTTP(w, r)
 
-			So(w.Body.String(), ShouldBeBlank)
-
-			existAfter, err := db.Exists(after)
-			So(err, ShouldBeNil)
-			So(existAfter, ShouldBeTrue)
-
-			existBefore, err := db.Exists(before)
-			So(err, ShouldBeNil)
-			So(existBefore, ShouldBeFalse)
-
-			err = db.Get(after)
-			So(err, ShouldBeNil)
-			So(w.Header().Get("Location"), ShouldResemble, path+id)
+		Convey("Then it should reply 'Created'", func() {
+			So(w.Code, ShouldEqual, http.StatusCreated)
 		})
-	})
 
-	Convey("When called with an non-existing id", func() {
-		body, err := json.Marshal(update)
-		So(err, ShouldBeNil)
-		reader := bytes.NewReader(body)
-		r, err := http.NewRequest(http.MethodPut, path+"1000", reader)
-		So(err, ShouldBeNil)
-		w := httptest.NewRecorder()
-		r = mux.SetURLVars(r, map[string]string{param: "1000"})
+		Convey("Then the 'Location' header should contain "+
+			"the URI of the updated "+parameter, func() {
 
-		Convey("Then it should reply 'Not Found'", func() {
-			handler.ServeHTTP(w, r)
-			So(w.Code, ShouldEqual, http.StatusNotFound)
+			location := w.Header().Get("Location")
+			So(location, ShouldEqual, path+id)
 		})
-	})
 
-	Convey("When called with an non-numeric id", func() {
-		body, err := json.Marshal(update)
-		So(err, ShouldBeNil)
-		reader := bytes.NewReader(body)
-		r, err := http.NewRequest(http.MethodPut, path+"not_an_id", reader)
-		So(err, ShouldBeNil)
-		w := httptest.NewRecorder()
-		r = mux.SetURLVars(r, map[string]string{param: "not_an_id"})
-
-		Convey("Then it should reply 'Not Found'", func() {
-			handler.ServeHTTP(w, r)
-			So(w.Code, ShouldEqual, http.StatusNotFound)
+		Convey("Then the response body should be empty", func() {
+			So(w.Body.String(), ShouldBeEmpty)
 		})
-	})
 
-	Convey("When called with an invalid JSON object", func() {
-		body, err := json.Marshal(invalidObject{})
-		So(err, ShouldBeNil)
-		reader := bytes.NewReader(body)
-		r, err := http.NewRequest(http.MethodPatch, path+id, reader)
-		So(err, ShouldBeNil)
-		w := httptest.NewRecorder()
-		r = mux.SetURLVars(r, map[string]string{param: id})
+		Convey("Then the updated "+parameter+" should exist in the database", func() {
+			exist, err := db.Exists(expected)
 
-		Convey("Then it should reply 'Bad Request'", func() {
-			handler.ServeHTTP(w, r)
-			So(w.Code, ShouldEqual, http.StatusBadRequest)
+			So(err, ShouldBeNil)
+			So(exist, ShouldBeTrue)
+		})
+
+		Convey("Then the old "+parameter+" should no longer exist", func() {
+			exist, err := db.Exists(old)
+
+			So(err, ShouldBeNil)
+			So(exist, ShouldBeFalse)
 		})
 	})
 }

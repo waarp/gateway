@@ -143,7 +143,7 @@ func TestAccountValidate(t *testing.T) {
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
 							So(err.Error(), ShouldEqual,
-								"No partner found with id '2'")
+								"No partner found with ID '2'")
 						})
 					})
 				})
@@ -219,7 +219,7 @@ func TestAccountValidate(t *testing.T) {
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "Unknown account id: '25'")
+							So(err.Error(), ShouldEqual, "Unknown account ID: '25'")
 						})
 					})
 				})
@@ -247,12 +247,53 @@ func TestAccountValidate(t *testing.T) {
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
 							So(err.Error(), ShouldEqual,
-								"No partner found with id '2'")
+								"No partner found with ID '2'")
 						})
 					})
 				})
 			})
 		})
 
+	})
+}
+
+func TestAccountPasswordEncrypt(t *testing.T) {
+
+	Convey("Given a test database", t, func() {
+		db := database.GetTestDatabase()
+
+		Convey("Given an external account", func() {
+			password := "test_password"
+			account := Account{
+				ID:         1,
+				Username:   "account",
+				Password:   []byte(password),
+				PartnerID:  0,
+				IsInternal: false,
+			}
+
+			Convey("When inserting the account in the database", func() {
+				err := db.Create(&account)
+				So(err, ShouldBeNil)
+
+				Convey("Then the password should be encrypted", func() {
+					So(string(account.Password), ShouldStartWith, "$AES$")
+				})
+
+				Convey("When decrypting the password", func() {
+					nonceSize := database.GCM.NonceSize()
+					cipherText := account.Password[5:]
+					So(len(cipherText), ShouldBeGreaterThan, nonceSize)
+
+					Convey("Then it should return the original password", func() {
+						nonce, cipherText := cipherText[:nonceSize], cipherText[nonceSize:]
+						plainText, err := database.GCM.Open(nil, nonce, cipherText, nil)
+
+						So(err, ShouldBeNil)
+						So(string(plainText), ShouldEqual, password)
+					})
+				})
+			})
+		})
 	})
 }

@@ -51,7 +51,7 @@ func (c *CertChain) Validate(db *database.Db, isInsert bool) error {
 			return err
 		}
 		if len(owner) == 0 {
-			return ErrInvalid{msg: fmt.Sprintf("No account found with id '%v'", c.OwnerID)}
+			return ErrInvalid{msg: fmt.Sprintf("No account found with ID '%v'", c.OwnerID)}
 		}
 	} else if c.OwnerType == "PARTNER" {
 		owner, err := db.Query("SELECT id FROM partners WHERE id=?", c.OwnerID)
@@ -59,7 +59,7 @@ func (c *CertChain) Validate(db *database.Db, isInsert bool) error {
 			return err
 		}
 		if len(owner) == 0 {
-			return ErrInvalid{msg: fmt.Sprintf("No partners found with id '%v'", c.OwnerID)}
+			return ErrInvalid{msg: fmt.Sprintf("No partners found with ID '%v'", c.OwnerID)}
 		}
 	} else {
 		return ErrInvalid{msg: fmt.Sprintf("Owner type unknown '%v'", c.OwnerType)}
@@ -93,7 +93,7 @@ func (c *CertChain) Validate(db *database.Db, isInsert bool) error {
 			return err
 		}
 		if len(res) == 0 {
-			return ErrInvalid{fmt.Sprintf("Unknown certificate id: '%v'", c.ID)}
+			return ErrInvalid{fmt.Sprintf("Unknown certificate ID: '%v'", c.ID)}
 		}
 	}
 	return nil

@@ -201,6 +201,7 @@ func (s *Server) Start() error {
 
 	listen(s)
 
+	s.state.Set(service.Running, "")
 	s.Logger.Info("Server started.")
 	return nil
 }

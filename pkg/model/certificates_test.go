@@ -165,7 +165,7 @@ func TestCertificatesValidate(t *testing.T) {
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
 							So(err.Error(), ShouldEqual,
-								"No account found with id '2'")
+								"No account found with ID '2'")
 						})
 					})
 				})
@@ -216,7 +216,7 @@ func TestCertificatesValidate(t *testing.T) {
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "Unknown certificate id: '25'")
+							So(err.Error(), ShouldEqual, "Unknown certificate ID: '25'")
 						})
 					})
 				})
@@ -244,7 +244,7 @@ func TestCertificatesValidate(t *testing.T) {
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
 							So(err.Error(), ShouldEqual,
-								"No account found with id '2'")
+								"No account found with ID '2'")
 						})
 					})
 				})

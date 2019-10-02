@@ -69,7 +69,7 @@ func (p *Partner) Validate(db *database.Db, isInsert bool) error {
 			return err
 		}
 		if len(res) == 0 {
-			return ErrInvalid{fmt.Sprintf("Unknown partner id: '%v'", p.ID)}
+			return ErrInvalid{fmt.Sprintf("Unknown partner ID: '%v'", p.ID)}
 		}
 	}
 
