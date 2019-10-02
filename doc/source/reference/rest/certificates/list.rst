@@ -1,6 +1,5 @@
-**********************
 Lister les certificats
-**********************
+======================
 
 .. http:get:: /api/certificates
 
@@ -19,15 +18,28 @@ Lister les certificats
    :type sortby: [name]
    :param order: L'ordre dans lequel les certificats sont triés *(défaut: asc)*
    :type order: [asc|desc]
-   :param account: Filtre uniquement les certificats rattaché au compte portant ce numéro.
-                   Peut être renseigné plusieurs fois pour filtrer plusieurs comptes.
-   :type account: uint64
+   :param local_agents: Filtre uniquement les certificats rattaché au serveur
+      local portant ce numéro. Peut être renseigné plusieurs fois pour filtrer
+      plusieurs serveurs.
+   :type local_agents: uint64
+   :param remote_agents: Filtre uniquement les certificats rattaché au partenaire
+      distant portant ce numéro. Peut être renseigné plusieurs fois pour filtrer
+      plusieurs partenaires.
+   :type remote_agents: uint64
+   :param local_acounts: Filtre uniquement les certificats rattaché au compte
+      local portant ce numéro. Peut être renseigné plusieurs fois pour filtrer
+      plusieurs comptes.
+   :type local_acounts: uint64
+   :param remote_acounts: Filtre uniquement les certificats rattaché au compte
+      partenaire portant ce numéro. Peut être renseigné plusieurs fois pour filtrer
+      plusieurs comptes.
+   :type remote_acounts: uint64
 
    **Exemple de requête**
 
        .. code-block:: http
 
-          GET /api/certificates?limit=5 HTTP/1.1
+          GET https://my_waarp_gateway.net/api/certificates?limit=5 HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
 
@@ -37,13 +49,14 @@ Lister les certificats
    :statuscode 400: Un ou plusieurs des paramètres de requêtes sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
 
-   :resjson array Certificates: La liste des certificats demandés
-   :resjsonarr number ID: Le numéro unique du certificat
-   :resjsonarr string Name: Le nom du certificat
-   :resjsonarr number AccountID: Le numéro du compte auquel appartient le certificat
-   :resjsonarr string PrivateKey: La clé privée du compte
-   :resjsonarr string PublicKey: La clé publique du compte
-   :resjsonarr string Cert: Le certificat de la clé publique
+   :resjson array certificates: La liste des certificats demandés
+   :resjsonarr number id: L'identifiant unique du certificat
+   :resjsonarr string name: Le nom du certificat
+   :resjsonarr string ownerType: Le type d'entité
+   :resjsonarr number ownerID: L'identifiant de l'entité à laquelle appartient le certificat
+   :resjsonarr string privateKey: La clé privée de l'entité
+   :resjsonarr string publicKey: La clé publique de l'entité
+   :resjsonarr string cert: Le certificat de l'entité
 
    **Exemple de réponse**
 
@@ -54,21 +67,21 @@ Lister les certificats
           Content-Length: 453
 
           {
-            "Certificates": [{
-              "ID": "1234",
-              "Name": "certificat1",
-              "PartnerID": "12345",
-              "PrivateKey": "*clé privée*",
-              "PublicKey": "*clé publique*",
-              "PrivateCert": "*certificat privée*",
-              "PublicCert": "*certificat public*"
+            "certificates": [{
+              "id": 1,
+              "name": "certificat_sftp_1",
+              "ownerType": "local_agents",
+              "ownerID": 1,
+              "privateKey": "<clé privée 1>",
+              "publicKey": "<clé publique 1>",
+              "cert": "<certificat 1>"
             },{
-              "ID": "5678",
-              "Name": "certificat2",
-              "PartnerID": "67890",
-              "PrivateKey": "*clé privée*",
-              "PublicKey": "*clé publique*",
-              "PrivateCert": "*certificat privée*",
-              "PublicCert": "*certificat public*"
+              "id": 2,
+              "name": "certificat_sftp_2",
+              "ownerType": "local_agents",
+              "ownerID": 1,
+              "privateKey": "<clé privée 2>",
+              "publicKey": "<clé publique 2>",
+              "cert": "<certificat 2>"
             }]
           }

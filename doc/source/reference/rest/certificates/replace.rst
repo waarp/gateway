@@ -11,30 +11,29 @@ Remplacer un certificat
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
-   :reqjson number ID: Le numéro unique du certificat
-   :reqjson string Name: Le nom du certificat
-   :reqjson number AccountID: Le numéro du compte auquel appartient le certificat
-   :reqjson string PrivateKey: La clé privée du compte
-   :reqjson string PublicKey: La clé publique du compte
-   :reqjson string Cert: Le certificat de la clé publique
+   :reqjson string name: Le nom du certificat
+   :reqjson string ownerType: Le type d'entité
+   :reqjson number ownerID: L'identifiant de l'entité à laquelle appartient le certificat
+   :reqjson string privateKey: La clé privée de l'entité
+   :reqjson string publicKey: La clé publique de l'entité
+   :reqjson string cert: Le certificat de l'entité
 
    **Exemple de requête**
 
        .. code-block:: http
 
-          PUT /api/certificates/1234 HTTP/1.1
+          PUT https://my_waarp_gateway.net/api/certificates/1 HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
           Content-Type: application/json
           Content-Length: 104
 
           {
-            "ID": 2345,
-            "Name": "certificat1b",
-            "PartnerID": 23456,
-            "PrivateKey": "*nouvelle clé privée*",
-            "PublicKey": "*nouvelle clé publique*",
-            "PrivateCert": "*nouvelle certificat privée*",
-            "PublicCert": "*nouvelle certificat public*"
+            "name": "certificat_sftp_new",
+            "ownerType": "local_agents",
+            "ownerID": 1,
+            "privateKey": "<clé privée>",
+            "publicKey": "<clé publique>",
+            "cert": "<certificat>"
           }
 
 
@@ -52,4 +51,4 @@ Remplacer un certificat
        .. code-block:: http
 
           HTTP/1.1 201 CREATED
-          Location: /api/certificates/2345
+          Location: https://my_waarp_gateway.net/api/certificates/1

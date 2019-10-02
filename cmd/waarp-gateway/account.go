@@ -1,208 +1,195 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strconv"
+	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-type accountCommand struct{}
-
-func displayAccount(out *os.File, account model.Account) {
-	w := getColorable(out)
-
-	fmt.Fprintf(w, "\033[97;1mAccount n°%v:\033[0m\n", account.ID)
-	fmt.Fprintf(w, "├─\033[97mUsername:\033[0m \033[37m%s\033[0m\n", account.Username)
-	fmt.Fprintf(w, "└─\033[97mPartnerID:\033[0m \033[37m%v\033[0m\n", account.PartnerID)
+type accountCommand struct {
+	Get    accountGetCommand    `command:"get" description:"Retrieve a remote account's information"`
+	Add    accountAddCommand    `command:"add" description:"Add a new remote account"`
+	Delete accountDeleteCommand `command:"delete" description:"Delete a remote account"`
+	Update accountUpdateCommand `command:"update" description:"Update an existing remote account"`
+	List   accountListCommand   `command:"list" description:"List the known remote accounts"`
 }
 
-// ############################## GET #####################################
+func displayRemoteAccount(account model.RemoteAccount) {
+	w := getColorable()
+
+	fmt.Fprintf(w, "\033[97;1mRemote account n°%v:\033[0m\n", account.ID)
+	fmt.Fprintf(w, "├─\033[97mLogin:\033[0m \033[34;4m%s\033[0m\n", account.Login)
+	fmt.Fprintf(w, "└─\033[97mPartner ID:\033[0m \033[33;4m%v\033[0m\n", account.RemoteAgentID)
+}
+
+// ######################## GET ##########################
 
 type accountGetCommand struct{}
 
-// Execute executes the 'account' command. The command flags are stored in
-// the 's' parameter, while the program arguments are stored in the 'args'
-// parameter.
 func (a *accountGetCommand) Execute(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("missing account name")
+		return fmt.Errorf("missing account ID")
 	}
 
-	subpath := admin.AccountsURI + "/" + args[0]
-	account := model.Account{}
-	err := getCommand(os.Stdin, os.Stdout, subpath, &account)
+	res := model.RemoteAccount{}
+	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
 	}
+	conn.Path = admin.APIPath + admin.RemoteAccountsPath + "/" + args[0]
 
-	fmt.Println()
-	displayAccount(os.Stdout, account)
+	if err := getCommand(&res, conn); err != nil {
+		return err
+	}
+
+	displayRemoteAccount(res)
 
 	return nil
 }
 
-// ############################### LIST #######################################
+// ######################## ADD ##########################
 
-type accountListCommand struct {
-	Limit   int    `short:"l" long:"limit" description:"The max number of entries which can be returned" default:"20"`
-	Offset  int    `short:"o" long:"offset" description:"The offset from which the first entry is taken" default:"0"`
-	Sort    string `short:"s" long:"sort" description:"The parameter used to sort the returned entries" choice:"username" default:"username"`
-	Reverse bool   `short:"d" long:"descending" description:"If present, the order of the sorting will be reversed"`
-}
-
-func (a *accountListCommand) listAccounts(in *os.File, out *os.File) ([]byte, error) {
-	addr := auth.Address + admin.RestURI + admin.AccountsURI
-
-	addr += "?limit=" + strconv.Itoa(a.Limit)
-	addr += "&offset=" + strconv.Itoa(a.Offset)
-	addr += "&sortby=" + a.Sort
-	if a.Reverse {
-		addr += orderDesc
-	}
-
-	req, err := http.NewRequest(http.MethodGet, addr, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := executeRequest(req, auth.Username, in, out)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	return body, nil
-}
-
-// Execute executes the 'account' command. The command flags are stored in
-// the 's' parameter, while the program arguments are stored in the 'args'
-// parameter.
-func (a *accountListCommand) Execute(_ []string) error {
-	content, err := a.listAccounts(os.Stdin, os.Stdout)
-	if err != nil {
-		return err
-	}
-
-	accounts := map[string][]model.Account{}
-	if err := json.Unmarshal(content, &accounts); err != nil {
-		return err
-	}
-
-	fmt.Println()
-	for _, account := range accounts["accounts"] {
-		displayAccount(os.Stdout, account)
-	}
-
-	return nil
-}
-
-// ############################### CREATE #######################################
-
-type accountCreateCommand struct {
-	Username  string `required:"true" short:"n" long:"name" description:"The account's username'"`
+type accountAddCommand struct {
+	PartnerID uint64 `required:"true" long:"partner_id" description:"The ID of the remote agent the account is attached to"`
+	Login     string `required:"true" short:"l" long:"name" description:"The account's login"`
 	Password  string `required:"true" short:"p" long:"password" description:"The account's password"`
-	PartnerID uint64 `required:"true" short:"i" long:"partner_id" description:"The partner to which the account will be attached"`
 }
 
-// Execute executes the 'create' command. The command flags are stored in
-// the 's' parameter, while the program arguments are stored in the 'args'
-// parameter.
-func (a *accountCreateCommand) Execute(_ []string) error {
-	addr := auth.Address + admin.RestURI + admin.AccountsURI
-
-	account := model.Account{
-		Username:  a.Username,
-		Password:  []byte(a.Password),
-		PartnerID: a.PartnerID,
+func (a *accountAddCommand) Execute(_ []string) error {
+	newAccount := model.RemoteAccount{
+		Login:         a.Login,
+		Password:      []byte(a.Password),
+		RemoteAgentID: a.PartnerID,
 	}
 
-	path, err := sendBean(account, os.Stdin, os.Stdout, addr, http.MethodPost)
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + admin.RemoteAccountsPath
+
+	loc, err := addCommand(newAccount, conn)
 	if err != nil {
 		return err
 	}
 
-	w := getColorable(os.Stdout)
-	fmt.Fprintf(w, "\033[97mAccount successfully created at:\033[0m \033[34;4m%s\033[0m\n",
-		auth.Address+path)
+	w := getColorable()
+	fmt.Fprintf(w, "The account \033[33m'%s'\033[0m was successfully added. "+
+		"It can be consulted at the address: \033[37m%s\033[0m\n", newAccount.Login, loc)
+
 	return nil
 }
 
-//################################### UPDATE ######################################
-
-type accountUpdateCommand struct {
-	Username  string `short:"n" long:"name" description:"The account's username'"`
-	Password  string `short:"p" long:"password" description:"The account's password"`
-	PartnerID uint64 `short:"i" long:"partner_id" description:"The partner to which the account will be attached"`
-}
-
-// Execute executes the 'update' command. The command flags are stored in
-// the 's' parameter, while the program arguments are stored in the 'args'
-// parameter.
-func (a *accountUpdateCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing account name")
-	}
-
-	addr := auth.Address + admin.RestURI + admin.AccountsURI + "/" + args[0]
-
-	account := &struct {
-		Username  string
-		Password  []byte
-		PartnerID uint64
-	}{
-		Username:  a.Username,
-		Password:  []byte(a.Password),
-		PartnerID: a.PartnerID,
-	}
-
-	path, err := sendBean(account, os.Stdin, os.Stdout, addr, http.MethodPatch)
-	if err != nil {
-		return err
-	}
-
-	w := getColorable(os.Stdout)
-	fmt.Fprintf(w, "\033[97mAccount successfully updated at:\033[0m \033[34;4m%s\033[0m\n",
-		auth.Address+path)
-	return nil
-}
-
-// ############################## DELETE #####################################
+// ######################## DELETE ##########################
 
 type accountDeleteCommand struct{}
 
-// Execute executes the 'account' command. The command flags are stored in
-// the 's' parameter, while the program arguments are stored in the 'args'
-// parameter.
 func (a *accountDeleteCommand) Execute(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("missing account name")
+		return fmt.Errorf("missing account ID")
 	}
 
-	addr := auth.Address + admin.RestURI + admin.AccountsURI + "/" + args[0]
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + admin.RemoteAccountsPath + "/" + args[0]
 
-	req, err := http.NewRequest(http.MethodDelete, addr, nil)
+	if err := deleteCommand(conn); err != nil {
+		return err
+	}
+
+	w := getColorable()
+	fmt.Fprintf(w, "The account n°\033[33m%s\033[0m was successfully deleted from "+
+		"the database\n", args[0])
+
+	return nil
+}
+
+// ######################## UPDATE ##########################
+
+type accountUpdateCommand struct {
+	PartnerID uint64 `long:"partner_id" description:"The ID of the remote agent the account is attached to"`
+	Login     string `short:"l" long:"name" description:"The account's login"`
+	Password  string `short:"p" long:"protocol" description:"The account's password"`
+}
+
+func (a *accountUpdateCommand) Execute(args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("missing account ID")
+	}
+
+	newAccount := map[string]interface{}{}
+	if a.Login != "" {
+		newAccount["login"] = a.Login
+	}
+	if a.Password != "" {
+		newAccount["password"] = []byte(a.Password)
+	}
+	if a.PartnerID != 0 {
+		newAccount["remoteAgentID"] = a.PartnerID
+	}
+
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + admin.RemoteAccountsPath + "/" + args[0]
+
+	_, err = updateCommand(newAccount, conn)
 	if err != nil {
 		return err
 	}
 
-	res, err := executeRequest(req, auth.Username, os.Stdin, os.Stdout)
+	w := getColorable()
+	fmt.Fprintf(w, "The account n°\033[33m%s\033[0m was successfully updated", args[0])
+
+	return nil
+}
+
+// ######################## LIST ##########################
+
+type accountListCommand struct {
+	listOptions
+	SortBy        string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"login" choice:"remote_agent_id" default:"login"`
+	RemoteAgentID []uint64 `long:"partner_id" description:"Filter accounts based on the ID of the remote agent they are attached to. Can be repeated multiple times to filter multiple agents."`
+}
+
+func (s *accountListCommand) Execute(_ []string) error {
+	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	conn.Path = admin.APIPath + admin.RemoteAccountsPath
+	query := url.Values{}
+	query.Set("limit", fmt.Sprint(s.Limit))
+	query.Set("offset", fmt.Sprint(s.Offset))
+	query.Set("sortby", s.SortBy)
+	if s.DescOrder {
+		query.Set("order", "desc")
+	}
+	for _, partner := range s.RemoteAgentID {
+		query.Add("agent", fmt.Sprint(partner))
+	}
+	conn.RawQuery = query.Encode()
 
-	w := getColorable(os.Stdout)
-	fmt.Fprintf(w, "\033[97mAccount\033[0m \033[33;1m'%s'\033[0m"+
-		" \033[97msuccessfully deleted\033[0m\n", args[0])
+	res := map[string][]model.RemoteAccount{}
+	if err := getCommand(&res, conn); err != nil {
+		return err
+	}
+
+	w := getColorable()
+	accounts := res["remoteAccounts"]
+	if len(accounts) > 0 {
+		fmt.Fprintf(w, "\033[33mRemote accounts:\033[0m\n")
+		for _, account := range accounts {
+			displayRemoteAccount(account)
+		}
+	} else {
+		fmt.Fprintln(w, "\033[31mNo remote accounts found\033[0m")
+	}
+
 	return nil
 }

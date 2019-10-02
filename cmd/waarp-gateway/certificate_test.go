@@ -1,521 +1,713 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
+	"net/http/httptest"
 	"os"
-	"strconv"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var testCertAccount model.Account
-
-func init() {
-	testCertAccount = model.Account{
-		Username:  "test_cert_account",
-		PartnerID: 0,
-		Password:  []byte("test_cert_account_password"),
-	}
-	if err := testDb.Create(&testCertAccount); err != nil {
-		panic(err)
-	}
+func writeFile(content string) *os.File {
+	file := testFile()
+	_, err := file.WriteString(content)
+	So(err, ShouldBeNil)
+	return file
 }
 
-func TestCertCreate(t *testing.T) {
+func TestGetCertificate(t *testing.T) {
 
-	Convey("Testing the certificate creation function", t, func() {
-		testCert := model.CertChain{
-			Name:       "test_cert_create",
-			OwnerType:  "ACCOUNT",
-			OwnerID:    testCertAccount.ID,
-			PrivateKey: []byte("private_key"),
-			PublicKey:  []byte("public_key"),
-			Cert:       []byte("cert"),
-		}
-		existingCert := model.CertChain{
-			Name:       "test_cert_existing",
-			OwnerType:  "ACCOUNT",
-			OwnerID:    testCertAccount.ID,
-			PrivateKey: []byte("private_key"),
-			PublicKey:  []byte("public_key"),
-			Cert:       []byte("cert"),
-		}
+	Convey("Testing the certificate 'get' command", t, func() {
+		out = testFile()
+		command := &certGetCommand{}
 
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		c := certificateCreateCommand{}
+		Convey("Given a gateway with 1 certificate", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-		err := testDb.Create(&existingCert)
-		So(err, ShouldBeNil)
-
-		Reset(func() {
-			err := testDb.Delete(&existingCert)
-			So(err, ShouldBeNil)
-			err = testDb.Delete(&testCert)
-			So(err, ShouldBeNil)
-		})
-
-		Convey("Given correct values", func() {
-			args := []string{"-n", testCert.Name,
-				"-t", "ACCOUNT",
-				"-i", strconv.FormatUint(testCert.OwnerID, 10),
-				"--private_key=" + string(testCert.PrivateKey),
-				"--public_key=" + string(testCert.PublicKey),
-				"--cert=" + string(testCert.Cert),
+			owner := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
 			}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+			err := db.Create(&owner)
+			So(err, ShouldBeNil)
+
+			cert := model.Cert{
+				OwnerType:   owner.TableName(),
+				OwnerID:     owner.ID,
+				Name:        "cert",
+				PrivateKey:  []byte("private_key"),
+				PublicKey:   []byte("public_key"),
+				Certificate: []byte("certificate_content"),
+			}
+
+			err = db.Create(&cert)
+			So(err, ShouldBeNil)
+
+			Convey("Given a valid server ID", func() {
+				id := fmt.Sprint(cert.ID)
+
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute([]string{id})
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should display the certificate's info", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Certificate n°1:\n"+
+							"├─Name: "+cert.Name+"\n"+
+							"├─Type: "+cert.OwnerType+"\n"+
+							"├─Owner: "+fmt.Sprint(cert.OwnerID)+"\n"+
+							"├─Private key: "+string(cert.PrivateKey)+"\n"+
+							"├─Public key: "+string(cert.PublicKey)+"\n"+
+							"└─Content: "+fmt.Sprint(cert.Certificate)+"\n",
+						)
+					})
+				})
 			})
-		})
 
-		Convey("Given already existing values", func() {
-			args := []string{"-n", existingCert.Name,
-				"-t", "ACCOUNT",
-				"-i", strconv.FormatUint(existingCert.OwnerID, 10),
-				"--private_key=" + string(existingCert.PrivateKey),
-				"--public_key=" + string(existingCert.PublicKey),
-				"--cert=" + string(existingCert.Cert),
-			}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
+			Convey("Given an invalid server ID", func() {
+				id := "1000"
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
 
-		Convey("Given a non-existent account id", func() {
-			args := []string{"-n", testCert.Name,
-				"-t", "ACCOUNT",
-				"-i", "1000",
-				"--private_key=" + string(testCert.PrivateKey),
-				"--public_key=" + string(testCert.PublicKey),
-				"--cert=" + string(testCert.Cert),
-			}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
+					err := command.Execute([]string{id})
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
+							addr+admin.APIPath+admin.CertificatesPath+
+							"/1000' does not exist")
 
-		Convey("Given a non-numeric account id", func() {
-			args := []string{"-n", testCert.Name,
-				"-i", "not_an_id",
-				"--private_key=" + string(testCert.PrivateKey),
-				"--public_key=" + string(testCert.PublicKey),
-				"--cert=" + string(testCert.Cert),
-			}
-			_, err := flags.ParseArgs(&c, args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+					})
+				})
 			})
 		})
 	})
 }
 
-func TestCertGet(t *testing.T) {
+func TestAddCertificate(t *testing.T) {
 
-	Convey("Testing the account get function", t, func() {
-		testCert := model.CertChain{
-			Name:       "test_cert_get",
-			OwnerType:  "ACCOUNT",
-			OwnerID:    testCertAccount.ID,
-			PrivateKey: []byte("private_key"),
-			PublicKey:  []byte("public_key"),
-			Cert:       []byte("cert"),
-		}
+	Convey("Testing the cert 'add' command", t, func() {
+		out = testFile()
+		command := &certAddCommand{}
 
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		c := certificateGetCommand{}
+		Convey("Given a gateway", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-		err := testDb.Create(&testCert)
-		So(err, ShouldBeNil)
+			owner := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
+			}
 
-		Reset(func() {
-			err := testDb.Delete(&testCert)
+			err := db.Create(&owner)
 			So(err, ShouldBeNil)
-		})
 
-		Convey("Given a correct id", func() {
-			args := []string{strconv.FormatUint(testCert.ID, 10)}
-			err := c.Execute(args)
+			Convey("When adding a new certificate", func() {
+				prK := writeFile("private_key")
+				puK := writeFile("public_key")
+				crt := writeFile("certificate")
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
-			})
-		})
+				command.Name = "new_cert"
+				command.Type = owner.TableName()
+				command.Owner = owner.ID
+				command.PrivateKey = prK.Name()
+				command.PublicKey = puK.Name()
+				command.Certificate = crt.Name()
 
-		Convey("Given an non-existent id", func() {
-			args := []string{"1000"}
-			err := c.Execute(args)
+				Convey("Given valid parameters", func() {
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
+					Convey("When executing the command", func() {
+						addr := gw.Listener.Addr().String()
+						dsn := "http://admin:admin_password@" + addr
+						auth.DSN = dsn
 
-		Convey("Given a no id", func() {
-			args := []string{}
-			err := c.Execute(args)
+						err := command.Execute(nil)
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+						Convey("Then it should NOT return an error", func() {
+							So(err, ShouldBeNil)
+						})
+
+						Convey("Then is should display a message saying the cert was added", func() {
+							_, err = out.Seek(0, 0)
+							So(err, ShouldBeNil)
+							cont, err := ioutil.ReadAll(out)
+							So(err, ShouldBeNil)
+							So(string(cont), ShouldEqual, "The certificate '"+command.Name+
+								"' was successfully added. It can be consulted at "+
+								"the address: "+gw.URL+admin.APIPath+
+								admin.CertificatesPath+"/1\n")
+						})
+
+						Convey("Then the new certificate should have been added", func() {
+							cert := model.Cert{
+								OwnerType:   command.Type,
+								OwnerID:     command.Owner,
+								Name:        command.Name,
+								PrivateKey:  []byte("private_key"),
+								PublicKey:   []byte("public_key"),
+								Certificate: []byte("certificate"),
+							}
+							exists, err := db.Exists(&cert)
+							So(err, ShouldBeNil)
+							So(exists, ShouldBeTrue)
+						})
+					})
+				})
+
+				Convey("Given an invalid 'type'", func() {
+					command.Type = "invalid"
+
+					Convey("When executing the command", func() {
+						addr := gw.Listener.Addr().String()
+						dsn := "http://admin:admin_password@" + addr
+						auth.DSN = dsn
+
+						err := command.Execute(nil)
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
+								"The certificate's owner type must be one of "+
+								"[local_agents remote_agents local_accounts remote_accounts]")
+						})
+					})
+				})
+
+				Convey("Given an invalid 'owner'", func() {
+					command.Owner = 1000
+
+					Convey("When executing the command", func() {
+						addr := gw.Listener.Addr().String()
+						dsn := "http://admin:admin_password@" + addr
+						auth.DSN = dsn
+
+						err := command.Execute(nil)
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
+								"No remote_agents found with ID '1000'")
+						})
+					})
+				})
 			})
 		})
 	})
 }
 
-func TestCertSelect(t *testing.T) {
+func TestDeleteCertificate(t *testing.T) {
 
-	Convey("Testing the account listing function", t, func() {
-		testCert1 := model.CertChain{
-			Name:       "test_cert_create1",
-			OwnerType:  "ACCOUNT",
-			OwnerID:    testCertAccount.ID,
-			PrivateKey: []byte("private_key"),
-			PublicKey:  []byte("public_key"),
-			Cert:       []byte("cert"),
-		}
-		testCert2 := model.CertChain{
-			Name:       "test_cert_create2",
-			OwnerType:  "ACCOUNT",
-			OwnerID:    testCertAccount.ID,
-			PrivateKey: []byte("private_key"),
-			PublicKey:  []byte("public_key"),
-			Cert:       []byte("cert"),
-		}
-		testCert3 := model.CertChain{
-			Name:       "test_cert_create3",
-			OwnerType:  "ACCOUNT",
-			OwnerID:    testCertAccount.ID,
-			PrivateKey: []byte("private_key"),
-			PublicKey:  []byte("public_key"),
-			Cert:       []byte("cert"),
-		}
-		testCert4 := model.CertChain{
-			Name:       "test_cert_create4",
-			OwnerType:  "ACCOUNT",
-			OwnerID:    testCertAccount.ID,
-			PrivateKey: []byte("private_key"),
-			PublicKey:  []byte("public_key"),
-			Cert:       []byte("cert"),
-		}
+	Convey("Testing the certificate 'delete' command", t, func() {
+		out = testFile()
+		command := &certDeleteCommand{}
 
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		c := certificateListCommand{}
+		Convey("Given a gateway with 1 certificate", func() {
 
-		err := testDb.Create(&testCert1)
-		So(err, ShouldBeNil)
-		err = testDb.Create(&testCert2)
-		So(err, ShouldBeNil)
-		err = testDb.Create(&testCert3)
-		So(err, ShouldBeNil)
-		err = testDb.Create(&testCert4)
-		So(err, ShouldBeNil)
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-		Reset(func() {
-			err := testDb.Delete(&testCert1)
+			owner := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
+			}
+			err := db.Create(&owner)
 			So(err, ShouldBeNil)
-			err = testDb.Delete(&testCert2)
-			So(err, ShouldBeNil)
-			err = testDb.Delete(&testCert3)
-			So(err, ShouldBeNil)
-			err = testDb.Delete(&testCert4)
-			So(err, ShouldBeNil)
-		})
 
-		Convey("Given no flags", func() {
-			args := []string{}
-			args, err := flags.ParseArgs(&c, args)
+			cert := model.Cert{
+				OwnerType:   owner.TableName(),
+				OwnerID:     owner.ID,
+				Name:        "cert",
+				PrivateKey:  []byte("private_key"),
+				PublicKey:   []byte("public_key"),
+				Certificate: []byte("certificate_content"),
+			}
+			err = db.Create(&cert)
 			So(err, ShouldBeNil)
-			err = c.Execute(args)
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+			Convey("Given a valid cert ID", func() {
+				id := fmt.Sprint(cert.ID)
+
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
+
+					err := command.Execute([]string{id})
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then is should display a message saying the certificate was deleted", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "The certificate n°"+id+
+							" was successfully deleted from the database\n")
+					})
+
+					Convey("Then the certificate should have been removed", func() {
+						exists, err := db.Exists(&cert)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeFalse)
+					})
+				})
 			})
-		})
 
-		Convey("Given a limit flag", func() {
-			args := []string{"-l", "2"}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
+			Convey("Given an invalid ID", func() {
+				id := "1000"
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
-			})
-		})
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
 
-		Convey("Given an offset flag", func() {
-			args := []string{"-o", "2"}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
+					err := command.Execute([]string{id})
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
-			})
-		})
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
+							addr+admin.APIPath+admin.CertificatesPath+
+							"/1000' does not exist")
+					})
 
-		Convey("Given a sort flag", func() {
-			args := []string{"-s", "name"}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
-
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
-			})
-		})
-
-		Convey("Given an order flag", func() {
-			args := []string{"-d"}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
-
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+					Convey("Then the cert should still exist", func() {
+						exists, err := db.Exists(&cert)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
+					})
+				})
 			})
 		})
 	})
 }
 
-func TestCertDelete(t *testing.T) {
+func TestListCertificate(t *testing.T) {
 
-	Convey("Testing the account deletion function", t, func() {
-		testCert := model.CertChain{
-			Name:       "test_cert_delete",
-			OwnerType:  "ACCOUNT",
-			OwnerID:    testCertAccount.ID,
-			PrivateKey: []byte("private_key"),
-			PublicKey:  []byte("public_key"),
-			Cert:       []byte("cert"),
-		}
-
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		c := certificateDeleteCommand{}
-
-		err := testDb.Create(&testCert)
+	Convey("Testing the certificate 'list' command", t, func() {
+		out = testFile()
+		command := &certListCommand{}
+		_, err := flags.ParseArgs(command, []string{"waarp_gateway"})
 		So(err, ShouldBeNil)
 
-		Reset(func() {
-			err := testDb.Delete(&testCert)
+		Convey("Given a gateway with 2 certificates", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+
+			owner1 := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
+			}
+			err := db.Create(&owner1)
 			So(err, ShouldBeNil)
-		})
 
-		Convey("Given a correct id", func() {
-			args := []string{strconv.FormatUint(testCert.ID, 10)}
-			err := c.Execute(args)
+			owner2 := model.LocalAgent{
+				Name:        "local_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
+			}
+			err = db.Create(&owner2)
+			So(err, ShouldBeNil)
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
+			cert1 := model.Cert{
+				OwnerType:   owner1.TableName(),
+				OwnerID:     owner1.ID,
+				Name:        "cert1",
+				PrivateKey:  []byte("private_key_1"),
+				PublicKey:   []byte("public_key_1"),
+				Certificate: []byte("certificate_content_1"),
+			}
+			err = db.Create(&cert1)
+			So(err, ShouldBeNil)
+
+			cert2 := model.Cert{
+				OwnerType:   owner2.TableName(),
+				OwnerID:     owner2.ID,
+				Name:        "cert2",
+				PrivateKey:  []byte("private_key_2"),
+				PublicKey:   []byte("public_key_2"),
+				Certificate: []byte("certificate_content_2"),
+			}
+			err = db.Create(&cert2)
+			So(err, ShouldBeNil)
+
+			Convey("Given no parameters", func() {
+
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should display the certificates' info", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Certificates:\n"+
+							"Certificate n°1:\n"+
+							"├─Name: "+cert1.Name+"\n"+
+							"├─Type: "+cert1.OwnerType+"\n"+
+							"├─Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
+							"├─Private key: "+string(cert1.PrivateKey)+"\n"+
+							"├─Public key: "+string(cert1.PublicKey)+"\n"+
+							"└─Content: "+fmt.Sprint(cert1.Certificate)+"\n"+
+							"Certificate n°2:\n"+
+							"├─Name: "+cert2.Name+"\n"+
+							"├─Type: "+cert2.OwnerType+"\n"+
+							"├─Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
+							"├─Private key: "+string(cert2.PrivateKey)+"\n"+
+							"├─Public key: "+string(cert2.PublicKey)+"\n"+
+							"└─Content: "+fmt.Sprint(cert2.Certificate)+"\n",
+						)
+					})
+				})
 			})
-		})
 
-		Convey("Given a non-existent id", func() {
-			args := []string{"1000"}
-			err := c.Execute(args)
+			Convey("Given a 'limit' parameter of 1", func() {
+				command.Limit = 1
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should display only 1 certificate's info", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Certificates:\n"+
+							"Certificate n°1:\n"+
+							"├─Name: "+cert1.Name+"\n"+
+							"├─Type: "+cert1.OwnerType+"\n"+
+							"├─Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
+							"├─Private key: "+string(cert1.PrivateKey)+"\n"+
+							"├─Public key: "+string(cert1.PublicKey)+"\n"+
+							"└─Content: "+fmt.Sprint(cert1.Certificate)+"\n",
+						)
+					})
+				})
 			})
-		})
 
-		Convey("Given a non-numeric id", func() {
-			args := []string{"not_an_id"}
-			err := c.Execute(args)
+			Convey("Given an 'offset' parameter of 1", func() {
+				command.Offset = 1
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should NOT display the 1st certificate", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Certificates:\n"+
+							"Certificate n°2:\n"+
+							"├─Name: "+cert2.Name+"\n"+
+							"├─Type: "+cert2.OwnerType+"\n"+
+							"├─Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
+							"├─Private key: "+string(cert2.PrivateKey)+"\n"+
+							"├─Public key: "+string(cert2.PublicKey)+"\n"+
+							"└─Content: "+fmt.Sprint(cert2.Certificate)+"\n",
+						)
+					})
+				})
 			})
-		})
 
-		Convey("Given a no id", func() {
-			args := []string{}
-			err := c.Execute(args)
+			Convey("Given the 'desc' flag is set", func() {
+				command.DescOrder = true
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should display the certificates' info in reverse", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Certificates:\n"+
+							"Certificate n°2:\n"+
+							"├─Name: "+cert2.Name+"\n"+
+							"├─Type: "+cert2.OwnerType+"\n"+
+							"├─Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
+							"├─Private key: "+string(cert2.PrivateKey)+"\n"+
+							"├─Public key: "+string(cert2.PublicKey)+"\n"+
+							"└─Content: "+fmt.Sprint(cert2.Certificate)+"\n"+
+							"Certificate n°1:\n"+
+							"├─Name: "+cert1.Name+"\n"+
+							"├─Type: "+cert1.OwnerType+"\n"+
+							"├─Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
+							"├─Private key: "+string(cert1.PrivateKey)+"\n"+
+							"├─Public key: "+string(cert1.PublicKey)+"\n"+
+							"└─Content: "+fmt.Sprint(cert1.Certificate)+"\n",
+						)
+					})
+				})
+			})
+
+			Convey("Given a 'partner' parameter", func() {
+				command.Partner = []uint64{owner1.ID}
+
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should only display the partner's certificates", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Certificates:\n"+
+							"Certificate n°1:\n"+
+							"├─Name: "+cert1.Name+"\n"+
+							"├─Type: "+cert1.OwnerType+"\n"+
+							"├─Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
+							"├─Private key: "+string(cert1.PrivateKey)+"\n"+
+							"├─Public key: "+string(cert1.PublicKey)+"\n"+
+							"└─Content: "+fmt.Sprint(cert1.Certificate)+"\n",
+						)
+					})
+				})
+			})
+
+			Convey("Given a 'server' parameter", func() {
+				command.Server = []uint64{owner2.ID}
+
+				Convey("When executing the command", func() {
+					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
+					auth.DSN = dsn
+
+					err := command.Execute(nil)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then it should display the server's certificates", func() {
+						_, err = out.Seek(0, 0)
+						So(err, ShouldBeNil)
+						cont, err := ioutil.ReadAll(out)
+						So(err, ShouldBeNil)
+						So(string(cont), ShouldEqual, "Certificates:\n"+
+							"Certificate n°2:\n"+
+							"├─Name: "+cert2.Name+"\n"+
+							"├─Type: "+cert2.OwnerType+"\n"+
+							"├─Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
+							"├─Private key: "+string(cert2.PrivateKey)+"\n"+
+							"├─Public key: "+string(cert2.PublicKey)+"\n"+
+							"└─Content: "+fmt.Sprint(cert2.Certificate)+"\n",
+						)
+					})
+				})
 			})
 		})
 	})
 }
 
-func TestCertUpdate(t *testing.T) {
+func TestUpdateCertificate(t *testing.T) {
 
-	Convey("Testing the account update function", t, func() {
-		testCertBefore := model.CertChain{
-			Name:       "test_cert_before",
-			OwnerType:  "ACCOUNT",
-			OwnerID:    testCertAccount.ID,
-			PrivateKey: []byte("private_key"),
-			PublicKey:  []byte("public_key"),
-			Cert:       []byte("cert"),
-		}
-		testCertAfter := model.CertChain{
-			Name:       "test_cert_after",
-			OwnerType:  "ACCOUNT",
-			OwnerID:    testCertAccount.ID,
-			PrivateKey: []byte("private_key"),
-			PublicKey:  []byte("public_key"),
-			Cert:       []byte("cert"),
-		}
+	Convey("Testing the certificate 'delete' command", t, func() {
+		out = testFile()
+		command := &certUpdateCommand{}
 
-		auth = ConnectionOptions{
-			Address:  testServer.URL,
-			Username: "admin",
-		}
-		c := certificateUpdateCommand{}
+		Convey("Given a gateway with 1 certificate", func() {
 
-		err := testDb.Create(&testCertBefore)
-		So(err, ShouldBeNil)
-		id := strconv.FormatUint(testCertBefore.ID, 10)
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-		Reset(func() {
-			err := testDb.Delete(&testCertBefore)
-			So(err, ShouldBeNil)
-			err = testDb.Delete(&testCertAfter)
-			So(err, ShouldBeNil)
-		})
-
-		Convey("Given correct values", func() {
-			args := []string{"-n", testCertAfter.Name,
-				"-t", "ACCOUNT",
-				"-i", strconv.FormatUint(testCertAfter.OwnerID, 10),
-				"--private_key=" + string(testCertAfter.PrivateKey),
-				"--public_key=" + string(testCertAfter.PublicKey),
-				"--cert=" + string(testCertAfter.Cert),
-				id,
+			owner := model.RemoteAgent{
+				Name:        "remote_agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
 			}
-			args, err := flags.ParseArgs(&c, args)
+			err := db.Create(&owner)
 			So(err, ShouldBeNil)
-			err = c.Execute(args)
 
-			Convey("Then it should not return an error", func() {
-				So(err, ShouldBeNil)
-			})
-		})
-
-		Convey("Given a non-existent account id", func() {
-			args := []string{"-n", testCertAfter.Name,
-				"-t", "ACCOUNT",
-				"-i", "1000",
-				"--private_key=" + string(testCertAfter.PrivateKey),
-				"--public_key=" + string(testCertAfter.PublicKey),
-				"--cert=" + string(testCertAfter.Cert),
-				id,
+			cert := model.Cert{
+				OwnerType:   owner.TableName(),
+				OwnerID:     owner.ID,
+				Name:        "cert",
+				PrivateKey:  []byte("private_key"),
+				PublicKey:   []byte("public_key"),
+				Certificate: []byte("certificate_content"),
 			}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
-
-		Convey("Given a non-numeric account id", func() {
-			args := []string{"-n", testCertAfter.Name,
-				"-t", "ACCOUNT",
-				"-i", "not_an_id",
-				"--private_key=" + string(testCertAfter.PrivateKey),
-				"--public_key=" + string(testCertAfter.PublicKey),
-				"--cert=" + string(testCertAfter.Cert),
-				id,
-			}
-			_, err := flags.ParseArgs(&c, args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
-
-		Convey("Given no id", func() {
-			args := []string{"-n", testCertAfter.Name,
-				"-t", "ACCOUNT",
-				"-i", strconv.FormatUint(testCertAfter.OwnerID, 10),
-				"--private_key=" + string(testCertAfter.PrivateKey),
-				"--public_key=" + string(testCertAfter.PublicKey),
-				"--cert=" + string(testCertAfter.Cert),
-			}
-			args, err := flags.ParseArgs(&c, args)
-			So(err, ShouldBeNil)
-			err = c.Execute(args)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
-	})
-}
-
-func TestDisplayCertificate(t *testing.T) {
-
-	Convey("Given a certificate", t, func() {
-		testCert := model.CertChain{
-			ID:         123,
-			OwnerType:  "ACCOUNT",
-			OwnerID:    789,
-			Name:       "test_cert",
-			PrivateKey: []byte("private_key"),
-			PublicKey:  []byte("public_key"),
-			Cert:       []byte("cert"),
-		}
-		id := strconv.FormatUint(testCert.ID, 10)
-		accID := strconv.FormatUint(testCert.OwnerID, 10)
-
-		Convey("When calling the 'displayCertificate' function", func() {
-			out, err := ioutil.TempFile(".", "waarp_gateway")
+			err = db.Create(&cert)
 			So(err, ShouldBeNil)
 
-			displayCertificate(out, testCert)
+			Convey("Given a valid certificate ID", func() {
+				id := fmt.Sprint(owner.ID)
 
-			err = out.Close()
-			So(err, ShouldBeNil)
+				prK := writeFile("new_private_key")
+				puK := writeFile("new_public_key")
+				crt := writeFile("new_certificate")
 
-			Reset(func() {
-				_ = os.Remove(out.Name())
+				command.Name = "new_cert"
+				command.Type = owner.TableName()
+				command.Owner = owner.ID
+				command.PrivateKey = prK.Name()
+				command.PublicKey = puK.Name()
+				command.Certificate = crt.Name()
+
+				Convey("Given all valid flags", func() {
+
+					Convey("When executing the command", func() {
+						addr := gw.Listener.Addr().String()
+						dsn := "http://admin:admin_password@" + addr
+						auth.DSN = dsn
+
+						err := command.Execute([]string{id})
+
+						Convey("Then it should NOT return an error", func() {
+							So(err, ShouldBeNil)
+						})
+
+						Convey("Then is should display a message saying the certificate was updated", func() {
+							_, err = out.Seek(0, 0)
+							So(err, ShouldBeNil)
+							cont, err := ioutil.ReadAll(out)
+							So(err, ShouldBeNil)
+							So(string(cont), ShouldEqual, "The certificate n°"+id+
+								" was successfully updated")
+						})
+
+						Convey("Then the old certificate should have been removed", func() {
+							exists, err := db.Exists(&cert)
+							So(err, ShouldBeNil)
+							So(exists, ShouldBeFalse)
+						})
+
+						Convey("Then the new certificate should exist", func() {
+							newCert := model.Cert{
+								ID:          cert.ID,
+								OwnerType:   command.Type,
+								OwnerID:     command.Owner,
+								Name:        command.Name,
+								PrivateKey:  []byte("new_private_key"),
+								PublicKey:   []byte("new_public_key"),
+								Certificate: []byte("new_certificate"),
+							}
+							exists, err := db.Exists(&newCert)
+							So(err, ShouldBeNil)
+							So(exists, ShouldBeTrue)
+						})
+					})
+				})
+
+				Convey("Given an invalid 'type'", func() {
+					command.Type = "invalid"
+
+					Convey("When executing the command", func() {
+						addr := gw.Listener.Addr().String()
+						dsn := "http://admin:admin_password@" + addr
+						auth.DSN = dsn
+
+						err := command.Execute([]string{id})
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
+								"The certificate's owner type must be one of "+
+								"[local_agents remote_agents local_accounts remote_accounts]")
+						})
+					})
+				})
+
+				Convey("Given an invalid 'owner'", func() {
+					command.Owner = 1000
+
+					Convey("When executing the command", func() {
+						addr := gw.Listener.Addr().String()
+						dsn := "http://admin:admin_password@" + addr
+						auth.DSN = dsn
+
+						err := command.Execute([]string{id})
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
+								"No remote_agents found with ID '1000'")
+						})
+					})
+				})
 			})
 
-			Convey("Then it should display the certificate correctly", func() {
-				in, err := os.Open(out.Name())
-				So(err, ShouldBeNil)
-				result, err := ioutil.ReadAll(in)
-				So(err, ShouldBeNil)
+			Convey("Given an invalid ID", func() {
+				id := "1000"
 
-				expected :=
-					"Certificate n°" + id + ":\n" +
-						"├─Name: " + testCert.Name + "\n" +
-						"├─AccountID: " + accID + "\n" +
-						"├─Private Key: " + string(testCert.PrivateKey) + "\n" +
-						"├─Public Key: " + string(testCert.PublicKey) + "\n" +
-						"└─Cert: " + string(testCert.Cert) + "\n"
+				Convey("When executing the command", func() {
+					addr := gw.Listener.Addr().String()
+					dsn := "http://admin:admin_password@" + addr
+					auth.DSN = dsn
 
-				So(string(result), ShouldEqual, expected)
+					err := command.Execute([]string{id})
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
+							addr+admin.APIPath+admin.CertificatesPath+
+							"/1000' does not exist")
+					})
+
+					Convey("Then the certificate should stay unchanged", func() {
+						exists, err := db.Exists(&cert)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
+					})
+				})
 			})
 		})
 	})

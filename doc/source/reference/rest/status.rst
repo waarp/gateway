@@ -13,7 +13,7 @@ Afficher le statut du service
    :Example:
        .. code-block:: http
 
-          GET /api/status HTTP/1.1
+          GET https://my_waarp_gateway.net/api/status HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
 

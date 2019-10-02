@@ -11,24 +11,24 @@ Modifier un partenaire
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
-   :reqjson number ID: L'identifiant unique du partenaire
-   :reqjson string Name: Le nom du partenaire
-   :reqjson string Address: L'address (IP ou DNS) du partenaire
-   :reqjson number Port: Le port sur lequel le partenaire écoute
-   :reqjson [sftp] Type: Le type de partenaire
+   :reqjson string name: Le nom du partenaire
+   :reqjson string protocol: Le protocole utilisé par le partenaire
+   :reqjson string protoConfig: La configuration du partenaire encodé dans une
+      chaîne de caractères au format JSON.
 
    **Exemple de requête**
 
        .. code-block:: http
 
-          PATCH /api/partners/1234 HTTP/1.1
+          PATCH https://my_waarp_gateway.net/api/partners/1 HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
           Content-Type: application/json
-          Content-Length: 88
+          Content-Length: 83
 
           {
-            "Addresse": "waarp.org",
-            "Type": "http"
+            "name": "waarp_sftp_new",
+            "protocol": "sftp",
+            "protoConfig": "{\"address\":\"waarp.fr\",\"port\":22}
           }
 
 
@@ -45,4 +45,4 @@ Modifier un partenaire
        .. code-block:: http
 
           HTTP/1.1 201 CREATED
-          Location: /api/partners/1234
+          Location: https://my_waarp_gateway.net/api/partners/1

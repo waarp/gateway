@@ -10,25 +10,24 @@ Créer un partenaire
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
-   :reqjson string Name: Le nom du partenaire
-   :reqjson string Address: L'address (IP ou DNS) du partenaire
-   :reqjson number Port: Le port sur lequel le partenaire écoute
-   :reqjson [sftp] Type: Le type de partenaire
+   :reqjson string name: Le nom du partenaire
+   :reqjson string protocol: Le protocole utilisé par le partenaire
+   :reqjson string protoConfig: La configuration du partenaire encodé dans une
+      chaîne de caractères au format JSON.
 
    **Exemple de requête**
 
        .. code-block:: http
 
-          GET /api/partners HTTP/1.1
+          POST https://my_waarp_gateway.net/api/partners HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
           Content-Type: application/json
           Content-Length: 88
 
           {
-            "Name": "partenaire1",
-            "Addresse": "waarp.fr",
-            "Port": 21,
-            "Type": "sftp"
+            "name": "waarp_sftp",
+            "protocol": "sftp",
+            "protoConfig": "{\"address\":\"waarp.org\",\"port\":21}
           }
 
 
@@ -45,4 +44,4 @@ Créer un partenaire
        .. code-block:: http
 
           HTTP/1.1 201 CREATED
-          Location: /api/partners/1234
+          Location: https://my_waarp_gateway.net/api/partners/1

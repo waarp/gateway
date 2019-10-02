@@ -8,9 +8,10 @@ import (
 
 // ServerConfig holds the server configuration options
 type ServerConfig struct {
-	Log      LogConfig      `group:"log"`
-	Admin    AdminConfig    `group:"admin"`
-	Database DatabaseConfig `group:"database"`
+	GatewayName string         `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
+	Log         LogConfig      `group:"log"`
+	Admin       AdminConfig    `group:"admin"`
+	Database    DatabaseConfig `group:"database"`
 }
 
 // LogConfig holds the server logging options

@@ -39,5 +39,5 @@ func initTables(db *Db) error {
 		}
 	}
 
-	return trans.session.Commit()
+	return trans.Commit()
 }

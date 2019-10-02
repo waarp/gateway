@@ -19,8 +19,8 @@ const (
 	// ServiceName is the nameof the administration interface service
 	ServiceName = "Admin"
 
-	// RestURI is the root path for the Rest API endpoints
-	RestURI = "/api"
+	// APIPath is the root path for the Rest API endpoints
+	APIPath = "/api"
 )
 
 // Server is the administration service
@@ -73,57 +73,72 @@ func MakeHandler(logger *log.Logger, db *database.Db, services map[string]servic
 	// REST handler
 	handler := mux.NewRouter()
 	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(logger, db))
-	apiHandler := handler.PathPrefix(RestURI).Subrouter()
-	apiHandler.HandleFunc(StatusURI, getStatus(logger, services)).
+	apiHandler := handler.PathPrefix(APIPath).Subrouter()
+	apiHandler.HandleFunc(StatusPath, getStatus(logger, services)).
 		Methods(http.MethodGet)
 
-	// Interfaces handler
-	interfacesHandler := apiHandler.PathPrefix(InterfacesURI).Subrouter()
-	interfacesHandler.HandleFunc("", listInterfaces(logger, db)).
+	// Local agents handler
+	localAgentsHandler := apiHandler.PathPrefix(LocalAgentsPath).Subrouter()
+	localAgentsHandler.HandleFunc("", listLocalAgents(logger, db)).
 		Methods(http.MethodGet)
-	interfacesHandler.HandleFunc("", createInterface(logger, db)).
+	localAgentsHandler.HandleFunc("", createLocalAgent(logger, db)).
 		Methods(http.MethodPost)
 
-	interHandler := interfacesHandler.PathPrefix("/{interface:[0-9]+}").Subrouter()
-	interHandler.HandleFunc("", getInterface(logger, db)).
+	locAgHandler := localAgentsHandler.PathPrefix("/{local_agent:[0-9]+}").Subrouter()
+	locAgHandler.HandleFunc("", getLocalAgent(logger, db)).
 		Methods(http.MethodGet)
-	interHandler.HandleFunc("", deleteInterface(logger, db)).
+	locAgHandler.HandleFunc("", deleteLocalAgent(logger, db)).
 		Methods(http.MethodDelete)
-	interHandler.HandleFunc("", updateInterface(logger, db)).
+	locAgHandler.HandleFunc("", updateLocalAgent(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 
-	// Partners handler
-	partnersHandler := apiHandler.PathPrefix(PartnersURI).Subrouter()
-	partnersHandler.HandleFunc("", listPartners(logger, db)).
+	// Remote agents handler
+	remoteAgentsHandler := apiHandler.PathPrefix(RemoteAgentsPath).Subrouter()
+	remoteAgentsHandler.HandleFunc("", listRemoteAgents(logger, db)).
 		Methods(http.MethodGet)
-	partnersHandler.HandleFunc("", createPartner(logger, db)).
+	remoteAgentsHandler.HandleFunc("", createRemoteAgent(logger, db)).
 		Methods(http.MethodPost)
 
-	partHandler := partnersHandler.PathPrefix("/{partner:[0-9]+}").Subrouter()
-	partHandler.HandleFunc("", getPartner(logger, db)).
+	remAgHandler := remoteAgentsHandler.PathPrefix("/{remote_agent:[0-9]+}").Subrouter()
+	remAgHandler.HandleFunc("", getRemoteAgent(logger, db)).
 		Methods(http.MethodGet)
-	partHandler.HandleFunc("", deletePartner(logger, db)).
+	remAgHandler.HandleFunc("", deleteRemoteAgent(logger, db)).
 		Methods(http.MethodDelete)
-	partHandler.HandleFunc("", updatePartner(logger, db)).
+	remAgHandler.HandleFunc("", updateRemoteAgent(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 
-	// Accounts handler
-	accountsHandler := apiHandler.PathPrefix(AccountsURI).Subrouter()
-	accountsHandler.HandleFunc("", listAccounts(logger, db)).
+	// Local accounts handler
+	localAccountsHandler := apiHandler.PathPrefix(LocalAccountsPath).Subrouter()
+	localAccountsHandler.HandleFunc("", listLocalAccounts(logger, db)).
 		Methods(http.MethodGet)
-	accountsHandler.HandleFunc("", createAccount(logger, db)).
+	localAccountsHandler.HandleFunc("", createLocalAccount(logger, db)).
 		Methods(http.MethodPost)
 
-	accHandler := accountsHandler.PathPrefix("/{account:[0-9]+}").Subrouter()
-	accHandler.HandleFunc("", getAccount(logger, db)).
+	locAcHandler := localAccountsHandler.PathPrefix("/{local_account:[0-9]+}").Subrouter()
+	locAcHandler.HandleFunc("", getLocalAccount(logger, db)).
 		Methods(http.MethodGet)
-	accHandler.HandleFunc("", deleteAccount(logger, db)).
+	locAcHandler.HandleFunc("", deleteLocalAccount(logger, db)).
 		Methods(http.MethodDelete)
-	accHandler.HandleFunc("", updateAccount(logger, db)).
+	locAcHandler.HandleFunc("", updateLocalAccount(logger, db)).
+		Methods(http.MethodPatch, http.MethodPut)
+
+	// Remote accounts handler
+	remoteAccountsHandler := apiHandler.PathPrefix(RemoteAccountsPath).Subrouter()
+	remoteAccountsHandler.HandleFunc("", listRemoteAccounts(logger, db)).
+		Methods(http.MethodGet)
+	remoteAccountsHandler.HandleFunc("", createRemoteAccount(logger, db)).
+		Methods(http.MethodPost)
+
+	remAcHandler := remoteAccountsHandler.PathPrefix("/{remote_account:[0-9]+}").Subrouter()
+	remAcHandler.HandleFunc("", getRemoteAccount(logger, db)).
+		Methods(http.MethodGet)
+	remAcHandler.HandleFunc("", deleteRemoteAccount(logger, db)).
+		Methods(http.MethodDelete)
+	remAcHandler.HandleFunc("", updateRemoteAccount(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 
 	// Certificates handler
-	certificatesHandler := apiHandler.PathPrefix(CertsURI).Subrouter()
+	certificatesHandler := apiHandler.PathPrefix(CertificatesPath).Subrouter()
 	certificatesHandler.HandleFunc("", listCertificates(logger, db)).
 		Methods(http.MethodGet)
 	certificatesHandler.HandleFunc("", createCertificate(logger, db)).

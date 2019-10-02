@@ -1,6 +1,7 @@
 package database
 
 import (
+	"io/ioutil"
 	"os"
 
 	"code.bcarlin.xyz/go/logging"
@@ -15,11 +16,17 @@ func GetTestDatabase() *Db {
 	BcryptRounds = bcrypt.MinCost
 
 	config := &conf.ServerConfig{}
+	config.GatewayName = "test_gateway"
 	config.Database.Type = sqlite
-	config.Database.Name = "file::memory:?mode=memory" //&cache=shared"
 	config.Database.AESPassphrase = os.TempDir() + "/aes_passphrase"
+	f, err := ioutil.TempFile("", "*.db")
+	if err != nil {
+		panic(err)
+	}
+	config.Database.Name = "file:" + f.Name() + "?mode=memory&cache=shared"
+	_ = f.Close()
 
-	logger := log.NewLogger("test-database")
+	logger := log.NewLogger("test_database")
 	discard, err := logging.NewNoopBackend()
 	if err != nil {
 		panic(err)
