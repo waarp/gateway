@@ -37,6 +37,10 @@ func transferInfo(db *database.Db, trans *model.Transfer) (*model.RemoteAgent,
 		}
 		return nil, nil, nil, nil, err
 	}
+	if account.RemoteAgentID != remote.ID {
+		return nil, nil, nil, nil, &badRequest{msg: fmt.Sprintf("The account n°%v does not belong to agent n°%v",
+			account.ID, remote.ID)}
+	}
 
 	rule := model.Rule{ID: trans.RuleID}
 	if err := db.Get(&rule); err != nil {

@@ -148,7 +148,7 @@ func TestAddTransfer(t *testing.T) {
 								})
 							})
 
-							SkipConvey("Given another Remote Agent", func() {
+							Convey("Given another Remote Agent", func() {
 								p2 := model.RemoteAgent{
 									Name:        "dummy",
 									Protocol:    "sftp",
