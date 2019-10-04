@@ -47,8 +47,8 @@ func TestAddTransfer(t *testing.T) {
 			}
 			So(db.Create(&account), ShouldBeNil)
 
-			push := model.Rule{Name: "push"}
-			So(db.Get(&push), ShouldBeNil)
+			push := model.Rule{Name: "test_push", IsGet: false}
+			So(db.Create(&push), ShouldBeNil)
 
 			trans := model.Transfer{
 				RuleID:      push.ID,
