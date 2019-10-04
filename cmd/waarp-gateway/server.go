@@ -125,23 +125,10 @@ type serverListCommand struct {
 }
 
 func (s *serverListCommand) Execute(_ []string) error {
-	conn, err := url.Parse(auth.DSN)
+	conn, err := agentListURL(admin.LocalAgentsPath, &s.listOptions, s.SortBy, s.Protocols)
 	if err != nil {
 		return err
 	}
-
-	conn.Path = admin.APIPath + admin.LocalAgentsPath
-	query := url.Values{}
-	query.Set("limit", fmt.Sprint(s.Limit))
-	query.Set("offset", fmt.Sprint(s.Offset))
-	query.Set("sortby", s.SortBy)
-	if s.DescOrder {
-		query.Set("order", "desc")
-	}
-	for _, proto := range s.Protocols {
-		query.Add("protocol", proto)
-	}
-	conn.RawQuery = query.Encode()
 
 	res := map[string][]model.LocalAgent{}
 	if err := getCommand(&res, conn); err != nil {

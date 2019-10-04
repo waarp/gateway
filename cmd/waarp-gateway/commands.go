@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -112,7 +113,7 @@ func sendBean(bean interface{}, conn *url.URL, method string) (string, error) {
 		return "", err
 	}
 
-	// TODO May be usefull to delete http.StatusAcepted when it is not longer used
+	// TODO May be useful to delete http.StatusAccepted when it is not longer used
 	if res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusAccepted {
 		return "", handleErrors(res, conn)
 	}
@@ -140,4 +141,47 @@ func deleteCommand(conn *url.URL) error {
 		return handleErrors(res, conn)
 	}
 	return nil
+}
+
+func agentListURL(path string, s *listOptions, sort string, protos []string) (*url.URL, error) {
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return nil, err
+	}
+
+	conn.Path = admin.APIPath + path
+	query := url.Values{}
+	query.Set("limit", fmt.Sprint(s.Limit))
+	query.Set("offset", fmt.Sprint(s.Offset))
+	query.Set("sortby", sort)
+	if s.DescOrder {
+		query.Set("order", "desc")
+	}
+	for _, proto := range protos {
+		query.Add("protocol", proto)
+	}
+	conn.RawQuery = query.Encode()
+
+	return conn, nil
+}
+
+func accountListURL(path string, s *listOptions, sort string, agents []uint64) (*url.URL, error) {
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return nil, err
+	}
+	conn.Path = admin.APIPath + path
+	query := url.Values{}
+	query.Set("limit", fmt.Sprint(s.Limit))
+	query.Set("offset", fmt.Sprint(s.Offset))
+	query.Set("sortby", sort)
+	if s.DescOrder {
+		query.Set("order", "desc")
+	}
+	for _, agent := range agents {
+		query.Add("agent", fmt.Sprint(agent))
+	}
+	conn.RawQuery = query.Encode()
+
+	return conn, nil
 }

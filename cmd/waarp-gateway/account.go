@@ -158,22 +158,11 @@ type accountListCommand struct {
 }
 
 func (s *accountListCommand) Execute(_ []string) error {
-	conn, err := url.Parse(auth.DSN)
+	conn, err := accountListURL(admin.RemoteAccountsPath, &s.listOptions, s.SortBy,
+		s.RemoteAgentID)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RemoteAccountsPath
-	query := url.Values{}
-	query.Set("limit", fmt.Sprint(s.Limit))
-	query.Set("offset", fmt.Sprint(s.Offset))
-	query.Set("sortby", s.SortBy)
-	if s.DescOrder {
-		query.Set("order", "desc")
-	}
-	for _, partner := range s.RemoteAgentID {
-		query.Add("agent", fmt.Sprint(partner))
-	}
-	conn.RawQuery = query.Encode()
 
 	res := map[string][]model.RemoteAccount{}
 	if err := getCommand(&res, conn); err != nil {

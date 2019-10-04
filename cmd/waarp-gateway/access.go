@@ -24,31 +24,6 @@ func displayLocalAccount(account model.LocalAccount) {
 	fmt.Fprintf(w, "└─\033[97mServer ID:\033[0m \033[33;4m%v\033[0m\n", account.LocalAgentID)
 }
 
-// ######################## GET ##########################
-
-type accessGetCommand struct{}
-
-func (a *accessGetCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing account ID")
-	}
-
-	res := model.LocalAccount{}
-	conn, err := url.Parse(auth.DSN)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + admin.LocalAccountsPath + "/" + args[0]
-
-	if err := getCommand(&res, conn); err != nil {
-		return err
-	}
-
-	displayLocalAccount(res)
-
-	return nil
-}
-
 // ######################## ADD ##########################
 
 type accessAddCommand struct {
@@ -82,28 +57,27 @@ func (a *accessAddCommand) Execute(_ []string) error {
 	return nil
 }
 
-// ######################## DELETE ##########################
+// ######################## GET ##########################
 
-type accessDeleteCommand struct{}
+type accessGetCommand struct{}
 
-func (a *accessDeleteCommand) Execute(args []string) error {
+func (a *accessGetCommand) Execute(args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("missing account ID")
 	}
 
+	res := model.LocalAccount{}
 	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
 	}
 	conn.Path = admin.APIPath + admin.LocalAccountsPath + "/" + args[0]
 
-	if err := deleteCommand(conn); err != nil {
+	if err := getCommand(&res, conn); err != nil {
 		return err
 	}
 
-	w := getColorable()
-	fmt.Fprintf(w, "The account n°\033[33m%s\033[0m was successfully deleted from "+
-		"the database\n", args[0])
+	displayLocalAccount(res)
 
 	return nil
 }
@@ -149,6 +123,32 @@ func (a *accessUpdateCommand) Execute(args []string) error {
 	return nil
 }
 
+// ######################## DELETE ##########################
+
+type accessDeleteCommand struct{}
+
+func (a *accessDeleteCommand) Execute(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("missing account ID")
+	}
+
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + admin.LocalAccountsPath + "/" + args[0]
+
+	if err := deleteCommand(conn); err != nil {
+		return err
+	}
+
+	w := getColorable()
+	fmt.Fprintf(w, "The account n°\033[33m%s\033[0m was successfully deleted from "+
+		"the database\n", args[0])
+
+	return nil
+}
+
 // ######################## LIST ##########################
 
 type accessListCommand struct {
@@ -158,22 +158,11 @@ type accessListCommand struct {
 }
 
 func (s *accessListCommand) Execute(_ []string) error {
-	conn, err := url.Parse(auth.DSN)
+	conn, err := accountListURL(admin.LocalAccountsPath, &s.listOptions, s.SortBy,
+		s.LocalAgentID)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAccountsPath
-	query := url.Values{}
-	query.Set("limit", fmt.Sprint(s.Limit))
-	query.Set("offset", fmt.Sprint(s.Offset))
-	query.Set("sortby", s.SortBy)
-	if s.DescOrder {
-		query.Set("order", "desc")
-	}
-	for _, agent := range s.LocalAgentID {
-		query.Add("agent", fmt.Sprint(agent))
-	}
-	conn.RawQuery = query.Encode()
 
 	res := map[string][]model.LocalAccount{}
 	if err := getCommand(&res, conn); err != nil {
