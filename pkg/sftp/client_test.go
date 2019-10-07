@@ -216,6 +216,10 @@ func TestDoTransfer(t *testing.T) {
 				Name:  "push",
 				IsGet: false,
 			}
+			pull := model.Rule{
+				Name:  "pull",
+				IsGet: true,
+			}
 			account := model.RemoteAccount{
 				Login:    testSFTPUser,
 				Password: []byte(testSFTPPassword),
@@ -293,7 +297,7 @@ func TestDoTransfer(t *testing.T) {
 
 			Convey("Given a valid pull transfer", func() {
 				transfer := model.Transfer{
-					RuleID:      push.ID,
+					RuleID:      pull.ID,
 					RemoteID:    remote.ID,
 					AccountID:   account.ID,
 					Source:      "test_sftp_root/test.src",
@@ -302,7 +306,7 @@ func TestDoTransfer(t *testing.T) {
 
 				Convey("When calling DoTransfer", func() {
 
-					err := DoTransfer(client, transfer, push)
+					err := DoTransfer(client, transfer, pull)
 
 					Reset(func() {
 						_ = os.Remove(transfer.Destination)
