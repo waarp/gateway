@@ -43,6 +43,9 @@ func (t *TransferHistory) ValidateInsert(database.Accessor) error {
 	if t.Owner == "" {
 		return database.InvalidError("The transfer's owner cannot be empty")
 	}
+	if t.ID == 0 {
+		return database.InvalidError("The transfer's ID cannot be empty")
+	}
 	if t.Rule == "" {
 		return database.InvalidError("The transfer's rule cannot be empty")
 	}

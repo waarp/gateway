@@ -47,6 +47,7 @@ func TestHistoryValidateInsert(t *testing.T) {
 
 		Convey("Given a new history entry", func() {
 			hist := &TransferHistory{
+				ID:       1,
 				Rule:     "rule",
 				From:     "from",
 				To:       "to",
