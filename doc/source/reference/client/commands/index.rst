@@ -10,3 +10,4 @@ Commandes
    access
    account
    certificate
+   transfer
