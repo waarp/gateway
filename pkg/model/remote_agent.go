@@ -54,7 +54,7 @@ func (r *RemoteAgent) GetCerts(ses database.Accessor) ([]Cert, error) {
 
 // ValidateInsert is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RemoteAgent) ValidateInsert(ses *database.Session) error {
+func (r *RemoteAgent) ValidateInsert(acc database.Accessor) error {
 	if r.ID != 0 {
 		return database.InvalidError("The agent's ID cannot be entered manually")
 	}
@@ -70,7 +70,7 @@ func (r *RemoteAgent) ValidateInsert(ses *database.Session) error {
 			"JSON configuration")
 	}
 
-	if res, err := ses.Query("SELECT id FROM remote_agents WHERE name=?", r.Name); err != nil {
+	if res, err := acc.Query("SELECT id FROM remote_agents WHERE name=?", r.Name); err != nil {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("A remote agent with the same name '%s' "+
@@ -82,7 +82,7 @@ func (r *RemoteAgent) ValidateInsert(ses *database.Session) error {
 
 // ValidateUpdate is called before updating an existing `RemoteAgent` entry from
 // the database. It checks whether the updated entry is valid or not.
-func (r *RemoteAgent) ValidateUpdate(ses *database.Session, id uint64) error {
+func (r *RemoteAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if r.ID != 0 {
 		return database.InvalidError("The agent's ID cannot be entered manually")
 	}
@@ -101,7 +101,7 @@ func (r *RemoteAgent) ValidateUpdate(ses *database.Session, id uint64) error {
 	}
 
 	if r.Name != "" {
-		if res, err := ses.Query("SELECT id FROM remote_agents WHERE name=? AND "+
+		if res, err := acc.Query("SELECT id FROM remote_agents WHERE name=? AND "+
 			"id<>?", r.Name, id); err != nil {
 			return err
 		} else if len(res) > 0 {

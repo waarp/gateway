@@ -34,7 +34,7 @@ type LocalAgent struct {
 
 // BeforeInsert is called before inserting the agent in the database. Its
 // role is to set the agent's owner.
-func (l *LocalAgent) BeforeInsert(ses *database.Session) error {
+func (l *LocalAgent) BeforeInsert(acc database.Accessor) error {
 	l.Owner = database.Owner
 	return nil
 }
@@ -46,7 +46,7 @@ func (l *LocalAgent) TableName() string {
 
 // ValidateInsert is called before inserting a new `LocalAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (l *LocalAgent) ValidateInsert(ses *database.Session) error {
+func (l *LocalAgent) ValidateInsert(acc database.Accessor) error {
 	if l.ID != 0 {
 		return database.InvalidError("The agent's ID cannot be entered manually")
 	}
@@ -62,7 +62,7 @@ func (l *LocalAgent) ValidateInsert(ses *database.Session) error {
 			"valid JSON configuration")
 	}
 
-	if res, err := ses.Query("SELECT id FROM local_agents WHERE owner=? AND name=?",
+	if res, err := acc.Query("SELECT id FROM local_agents WHERE owner=? AND name=?",
 		l.Owner, l.Name); err != nil {
 		return err
 	} else if len(res) > 0 {
@@ -75,7 +75,7 @@ func (l *LocalAgent) ValidateInsert(ses *database.Session) error {
 
 // ValidateUpdate is called before updating an existing `LocalAgent` entry from
 // the database. It checks whether the updated entry is valid or not.
-func (l *LocalAgent) ValidateUpdate(ses *database.Session, id uint64) error {
+func (l *LocalAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if l.ID != 0 {
 		return database.InvalidError("The agent's ID cannot be entered manually")
 	}
@@ -84,7 +84,7 @@ func (l *LocalAgent) ValidateUpdate(ses *database.Session, id uint64) error {
 	}
 
 	if l.Name != "" {
-		if res, err := ses.Query("SELECT id FROM local_agents WHERE owner=? "+
+		if res, err := acc.Query("SELECT id FROM local_agents WHERE owner=? "+
 			"AND name=? AND id<>?", database.Owner, l.Name, id); err != nil {
 			return err
 		} else if len(res) > 0 {

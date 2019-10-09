@@ -212,6 +212,10 @@ func TestDoTransfer(t *testing.T) {
 			cert := model.Cert{
 				PublicKey: serverKey,
 			}
+			push := model.Rule{
+				Name:  "push",
+				IsGet: false,
+			}
 			account := model.RemoteAccount{
 				Login:    testSFTPUser,
 				Password: []byte(testSFTPPassword),
@@ -227,15 +231,15 @@ func TestDoTransfer(t *testing.T) {
 			// TODO Handle transfer rules
 			Convey("Given a valid push transfer", func() {
 				transfer := model.Transfer{
-					IsGet:       false,
-					Remote:      remote,
-					Account:     account,
+					RuleID:      push.ID,
+					RemoteID:    remote.ID,
+					AccountID:   account.ID,
 					Source:      "client.go",
 					Destination: "test_sftp_root/client.ds",
 				}
 
 				Convey("When calling DoTransfer", func() {
-					err := DoTransfer(client, transfer)
+					err := DoTransfer(client, transfer, push)
 
 					Reset(func() {
 						_ = os.Remove(transfer.Destination)
@@ -261,15 +265,15 @@ func TestDoTransfer(t *testing.T) {
 
 			Convey("Given a push transfer with a non exiting file", func() {
 				transfer := model.Transfer{
-					IsGet:       false,
-					Remote:      remote,
-					Account:     account,
+					RuleID:      push.ID,
+					RemoteID:    remote.ID,
+					AccountID:   account.ID,
 					Source:      "unknown",
 					Destination: "test_sftp_root/client.ds",
 				}
 
 				Convey("When calling DoTransfer", func() {
-					err := DoTransfer(client, transfer)
+					err := DoTransfer(client, transfer, push)
 
 					Reset(func() {
 						_ = os.Remove(transfer.Destination)
@@ -289,16 +293,16 @@ func TestDoTransfer(t *testing.T) {
 
 			Convey("Given a valid pull transfer", func() {
 				transfer := model.Transfer{
-					IsGet:       true,
-					Remote:      remote,
-					Account:     account,
+					RuleID:      push.ID,
+					RemoteID:    remote.ID,
+					AccountID:   account.ID,
 					Source:      "test_sftp_root/test.src",
 					Destination: "test.ds",
 				}
 
 				Convey("When calling DoTransfer", func() {
 
-					err := DoTransfer(client, transfer)
+					err := DoTransfer(client, transfer, push)
 
 					Reset(func() {
 						_ = os.Remove(transfer.Destination)

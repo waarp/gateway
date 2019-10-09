@@ -36,7 +36,7 @@ func (l *LocalAccount) MarshalJSON() ([]byte, error) {
 
 // BeforeInsert is called before inserting the account in the database. Its
 // role is to hash the password, if one was entered.
-func (l *LocalAccount) BeforeInsert(ses *database.Session) error {
+func (l *LocalAccount) BeforeInsert(acc database.Accessor) error {
 	if l.Password != nil {
 		var err error
 		if l.Password, err = hashPassword(l.Password); err != nil {
@@ -48,8 +48,8 @@ func (l *LocalAccount) BeforeInsert(ses *database.Session) error {
 
 // BeforeUpdate is called before updating the account from the database. Its
 // role is to hash the password, if a new one was entered.
-func (l *LocalAccount) BeforeUpdate(ses *database.Session) error {
-	return l.BeforeInsert(ses)
+func (l *LocalAccount) BeforeUpdate(acc database.Accessor) error {
+	return l.BeforeInsert(acc)
 }
 
 // TableName returns the local accounts table name.
@@ -59,7 +59,7 @@ func (l *LocalAccount) TableName() string {
 
 // ValidateInsert checks if the new `LocalAccount` entry is valid and can be
 // inserted in the database.
-func (l *LocalAccount) ValidateInsert(ses *database.Session) error {
+func (l *LocalAccount) ValidateInsert(acc database.Accessor) error {
 	if l.ID != 0 {
 		return database.InvalidError("The account's ID cannot be entered manually")
 	}
@@ -70,13 +70,13 @@ func (l *LocalAccount) ValidateInsert(ses *database.Session) error {
 		return database.InvalidError("The account's login cannot be empty")
 	}
 
-	if res, err := ses.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
+	if res, err := acc.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
 		return err
 	} else if len(res) == 0 {
 		return database.InvalidError("No local agent found with the ID '%v'", l.LocalAgentID)
 	}
 
-	if res, err := ses.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
+	if res, err := acc.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
 		"AND login=?", l.LocalAgentID, l.Login); err != nil {
 		return err
 	} else if len(res) > 0 {
@@ -89,13 +89,13 @@ func (l *LocalAccount) ValidateInsert(ses *database.Session) error {
 
 // ValidateUpdate checks if the updated `LocalAccount` entry is valid and can be
 // updated in the database.
-func (l *LocalAccount) ValidateUpdate(ses *database.Session, id uint64) error {
+func (l *LocalAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if l.ID != 0 {
 		return database.InvalidError("The account's ID cannot be entered manually")
 	}
 
 	if l.LocalAgentID != 0 {
-		if res, err := ses.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
+		if res, err := acc.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
 			return err
 		} else if len(res) == 0 {
 			return database.InvalidError("No local agent found with the ID '%v'", l.LocalAgentID)
@@ -104,14 +104,14 @@ func (l *LocalAccount) ValidateUpdate(ses *database.Session, id uint64) error {
 
 	if l.Login != "" {
 		old := LocalAccount{ID: id}
-		if err := ses.Get(&old); err != nil {
+		if err := acc.Get(&old); err != nil {
 			return err
 		}
 		if l.LocalAgentID != 0 {
 			old.LocalAgentID = l.LocalAgentID
 		}
 
-		if res, err := ses.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
+		if res, err := acc.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
 			"AND login=?", old.LocalAgentID, l.Login); err != nil {
 			return err
 		} else if len(res) > 0 {

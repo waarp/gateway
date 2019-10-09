@@ -152,6 +152,11 @@ func MakeHandler(logger *log.Logger, db *database.Db, services map[string]servic
 	certHandler.HandleFunc("", updateCertificate(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 
+	// Transfers handler
+	transfersHandler := apiHandler.PathPrefix(TransfersPath).Subrouter()
+	transfersHandler.HandleFunc("", addTransfer(logger, db)).
+		Methods(http.MethodPost)
+
 	return handler
 }
 

@@ -41,7 +41,7 @@ func (r *RemoteAccount) MarshalJSON() ([]byte, error) {
 
 // BeforeInsert is called before inserting the account in the database. Its
 // role is to encrypt the password, if one was entered.
-func (r *RemoteAccount) BeforeInsert(ses *database.Session) error {
+func (r *RemoteAccount) BeforeInsert(acc database.Accessor) error {
 	if r.Password != nil {
 		var err error
 		if r.Password, err = encryptPassword(r.Password); err != nil {
@@ -53,13 +53,13 @@ func (r *RemoteAccount) BeforeInsert(ses *database.Session) error {
 
 // BeforeUpdate is called before updating the account from the database. Its
 // role is to encrypt the password, if a new one was entered.
-func (r *RemoteAccount) BeforeUpdate(ses *database.Session) error {
-	return r.BeforeInsert(ses)
+func (r *RemoteAccount) BeforeUpdate(acc database.Accessor) error {
+	return r.BeforeInsert(acc)
 }
 
 // ValidateInsert checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
-func (r *RemoteAccount) ValidateInsert(ses *database.Session) error {
+func (r *RemoteAccount) ValidateInsert(acc database.Accessor) error {
 	if r.ID != 0 {
 		return database.InvalidError("The account's ID cannot be entered manually")
 	}
@@ -70,13 +70,13 @@ func (r *RemoteAccount) ValidateInsert(ses *database.Session) error {
 		return database.InvalidError("The account's login cannot be empty")
 	}
 
-	if res, err := ses.Query("SELECT id FROM remote_agents WHERE id=?", r.RemoteAgentID); err != nil {
+	if res, err := acc.Query("SELECT id FROM remote_agents WHERE id=?", r.RemoteAgentID); err != nil {
 		return err
 	} else if len(res) == 0 {
 		return database.InvalidError("No remote agent found with the ID '%v'", r.RemoteAgentID)
 	}
 
-	if res, err := ses.Query("SELECT id FROM remote_accounts WHERE remote_agent_id=? "+
+	if res, err := acc.Query("SELECT id FROM remote_accounts WHERE remote_agent_id=? "+
 		"AND login=?", r.RemoteAgentID, r.Login); err != nil {
 		return err
 	} else if len(res) > 0 {
@@ -89,21 +89,21 @@ func (r *RemoteAccount) ValidateInsert(ses *database.Session) error {
 
 // ValidateUpdate checks if the updated `RemoteAccount` entry is valid and can be
 // updated in the database.
-func (r *RemoteAccount) ValidateUpdate(ses *database.Session, id uint64) error {
+func (r *RemoteAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if r.ID != 0 {
 		return database.InvalidError("The account's ID cannot be entered manually")
 	}
 
 	if r.Login != "" {
 		old := RemoteAccount{ID: id}
-		if err := ses.Get(&old); err != nil {
+		if err := acc.Get(&old); err != nil {
 			return err
 		}
 		if r.RemoteAgentID != 0 {
 			old.RemoteAgentID = r.RemoteAgentID
 		}
 
-		if res, err := ses.Query("SELECT id FROM remote_accounts WHERE "+
+		if res, err := acc.Query("SELECT id FROM remote_accounts WHERE "+
 			"remote_agent_id=? AND login=?", old.RemoteAgentID, r.Login); err != nil {
 			return err
 		} else if len(res) > 0 {
@@ -113,7 +113,7 @@ func (r *RemoteAccount) ValidateUpdate(ses *database.Session, id uint64) error {
 	}
 
 	if r.RemoteAgentID != 0 {
-		if res, err := ses.Query("SELECT id FROM remote_agents WHERE id=?",
+		if res, err := acc.Query("SELECT id FROM remote_agents WHERE id=?",
 			r.RemoteAgentID); err != nil {
 			return err
 		} else if len(res) == 0 {
