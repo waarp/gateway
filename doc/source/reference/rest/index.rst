@@ -7,6 +7,7 @@ en interrogeant l'adresse d'administration donnée dans la configuration.
 .. toctree::
    :maxdepth: 2
 
+   transfers/index
    servers/index
    partners/index
    local_accounts/index

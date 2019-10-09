@@ -27,6 +27,8 @@ const (
 	RemoteAccountsPath = "/remote_accounts"
 	// CertificatesPath is the access path to the account certificates entry point
 	CertificatesPath = "/certificates"
+	// TransfersPath is the access path to the transfers entry point
+	TransfersPath = "/transfers"
 )
 
 var validOrders = []string{"asc", "desc"}
