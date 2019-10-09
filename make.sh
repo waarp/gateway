@@ -37,7 +37,8 @@ t_check() {
         --exclude 'ST1000' \
         --exclude 'SA5008' \
         --exclude 'Line contains TODO/BUG/FIXME' \
-        --skip-dirs .gocache
+        --skip-dirs .gocache \
+    	--tests=false
 }
 
 t_test_watch() {
