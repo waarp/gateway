@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"github.com/go-xorm/builder"
 )
 
 func init() {
@@ -31,6 +32,24 @@ type RemoteAgent struct {
 // TableName returns the local_agent table name.
 func (r *RemoteAgent) TableName() string {
 	return "remote_agents"
+}
+
+// GetCerts fetch in the database then return the associated Certificates if they exist
+func (r *RemoteAgent) GetCerts(ses database.Accessor) ([]Cert, error) {
+	conditions := make([]builder.Cond, 0)
+	conditions = append(conditions, builder.Eq{"owner_type": "remote_agents"})
+	conditions = append(conditions, builder.Eq{"owner_id": r.ID})
+
+	filters := &database.Filters{
+		Conditions: builder.And(conditions...),
+	}
+
+	// TODO get only validate certificates
+	results := []Cert{}
+	if err := ses.Select(&results, filters); err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
 // ValidateInsert is called before inserting a new `RemoteAgent` entry in the
