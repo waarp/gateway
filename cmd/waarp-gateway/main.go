@@ -21,6 +21,7 @@ type commands struct {
 	Access      accessCommand      `command:"access" description:"Manage the gateway's local accounts"`
 	Account     accountCommand     `command:"account" description:"Manage the gateway's remote accounts"`
 	Certificate certificateCommand `command:"certificate" description:"Manage the gateway's certificates"`
+	Transfer    transferCommand    `command:"transfer" description:"Manage the gateway's transfers"`
 }
 
 type connectionOptions struct {

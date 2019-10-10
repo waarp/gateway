@@ -125,23 +125,10 @@ type partnerListCommand struct {
 }
 
 func (p *partnerListCommand) Execute(_ []string) error {
-	conn, err := url.Parse(auth.DSN)
+	conn, err := agentListURL(admin.RemoteAgentsPath, &p.listOptions, p.SortBy, p.Protocols)
 	if err != nil {
 		return err
 	}
-
-	conn.Path = admin.APIPath + admin.RemoteAgentsPath
-	query := url.Values{}
-	query.Set("limit", fmt.Sprint(p.Limit))
-	query.Set("offset", fmt.Sprint(p.Offset))
-	query.Set("sortby", p.SortBy)
-	if p.DescOrder {
-		query.Set("order", "desc")
-	}
-	for _, proto := range p.Protocols {
-		query.Add("protocol", proto)
-	}
-	conn.RawQuery = query.Encode()
 
 	res := map[string][]model.RemoteAgent{}
 	if err := getCommand(&res, conn); err != nil {
