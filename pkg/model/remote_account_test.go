@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -16,6 +17,129 @@ func TestRemoteAccountTableName(t *testing.T) {
 
 			Convey("Then it should return the name of the remote account table", func() {
 				So(name, ShouldEqual, "remote_accounts")
+			})
+		})
+	})
+}
+
+func TestRemoteAccountMarshalJSON(t *testing.T) {
+	Convey("Given a remote account entry", t, func() {
+		acc := &RemoteAccount{
+			ID:            1,
+			RemoteAgentID: 1,
+			Login:         "login",
+			Password:      []byte("password"),
+		}
+
+		Convey("When calling the `MarshalJSON` method", func() {
+			res, err := acc.MarshalJSON()
+
+			Convey("Then it should NOT return an error", func() {
+				So(err, ShouldBeNil)
+			})
+
+			Convey("Then it should return the account in JSON", func() {
+				expected := fmt.Sprintf(`{"id":%v,"remoteAgentID":%v,"login":"%s"}`,
+					acc.ID, acc.RemoteAgentID, acc.Login)
+				So(string(res), ShouldEqual, expected)
+			})
+		})
+	})
+}
+
+func TestRemoteAccountBeforeInsert(t *testing.T) {
+	Convey("Given a remote account entry", t, func() {
+		acc := &RemoteAccount{
+			ID:            1,
+			RemoteAgentID: 1,
+			Login:         "login",
+			Password:      []byte("password"),
+		}
+
+		Convey("When calling the `BeforeInsert` hook", func() {
+			err := acc.BeforeInsert(nil)
+
+			Convey("Then it should NOT return an error", func() {
+				So(err, ShouldBeNil)
+			})
+
+			Convey("Then the account's password should be encrypted", func() {
+				cipher, err := encryptPassword(acc.Password)
+				So(err, ShouldBeNil)
+				So(string(acc.Password), ShouldEqual, string(cipher))
+			})
+		})
+	})
+}
+
+func TestRemoteAccountBeforeUpdate(t *testing.T) {
+	Convey("Given a remote account entry", t, func() {
+		acc := &RemoteAccount{
+			ID:            1,
+			RemoteAgentID: 1,
+			Login:         "login",
+			Password:      []byte("password"),
+		}
+
+		Convey("When calling the `BeforeUpdate` hook", func() {
+			err := acc.BeforeUpdate(nil)
+
+			Convey("Then it should NOT return an error", func() {
+				So(err, ShouldBeNil)
+			})
+
+			Convey("Then the account's password should be encrypted", func() {
+				cipher, err := encryptPassword(acc.Password)
+				So(err, ShouldBeNil)
+				So(string(acc.Password), ShouldEqual, string(cipher))
+			})
+		})
+	})
+}
+
+func TestRemoteAccountBeforeDelete(t *testing.T) {
+	Convey("Given a database", t, func() {
+		db := database.GetTestDatabase()
+
+		Convey("Given a remote account entry", func() {
+			ag := &RemoteAgent{
+				Name:        "test agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
+			}
+			So(db.Create(ag), ShouldBeNil)
+
+			acc := &RemoteAccount{
+				RemoteAgentID: ag.ID,
+				Login:         "login",
+				Password:      []byte("password"),
+			}
+			So(db.Create(acc), ShouldBeNil)
+
+			Convey("Given the account has a certificate", func() {
+				cert := &Cert{
+					OwnerType:   acc.TableName(),
+					OwnerID:     acc.ID,
+					Name:        "test cert",
+					PrivateKey:  []byte("private key"),
+					PublicKey:   []byte("public key"),
+					Certificate: []byte("certificate"),
+				}
+				So(db.Create(cert), ShouldBeNil)
+
+				Convey("When calling the `BeforeDelete` hook", func() {
+					err := acc.BeforeDelete(db)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then the account's certificate should have been deleted", func() {
+						exist, err := db.Exists(cert)
+						So(err, ShouldBeNil)
+						So(exist, ShouldBeFalse)
+					})
+				})
 			})
 		})
 	})

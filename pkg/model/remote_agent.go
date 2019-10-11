@@ -34,6 +34,33 @@ func (r *RemoteAgent) TableName() string {
 	return "remote_agents"
 }
 
+// BeforeDelete is called before deleting the account from the database. Its
+// role is to delete all the certificates tied to the account.
+func (r *RemoteAgent) BeforeDelete(acc database.Accessor) error {
+	filterCert := builder.Eq{"owner_type": r.TableName(), "owner_id": r.ID}
+	if err := acc.Execute(builder.Delete().From((&Cert{}).TableName()).
+		Where(filterCert)); err != nil {
+		return err
+	}
+
+	accounts := []*RemoteAccount{}
+	filterAcc := builder.Eq{"remote_agent_id": r.ID}
+	if err := acc.Select(&accounts, &database.Filters{Conditions: filterAcc}); err != nil {
+		return err
+	}
+	for _, account := range accounts {
+		if err := account.BeforeDelete(acc); err != nil {
+			return err
+		}
+	}
+	if err := acc.Execute(builder.Delete().From((&RemoteAccount{}).TableName()).
+		Where(filterAcc)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetCerts fetch in the database then return the associated Certificates if they exist
 func (r *RemoteAgent) GetCerts(ses database.Accessor) ([]Cert, error) {
 	conditions := make([]builder.Cond, 0)
