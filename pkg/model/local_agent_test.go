@@ -22,6 +22,99 @@ func TestLocalAgentTableName(t *testing.T) {
 	})
 }
 
+func TestLocalAgentBeforeInsert(t *testing.T) {
+	Convey("Given a local agent entry", t, func() {
+		ag := &LocalAgent{
+			ID:          1,
+			Name:        "test agent",
+			Protocol:    "sftp",
+			ProtoConfig: []byte("{}"),
+		}
+
+		Convey("When calling the `BeforeInsert` hook", func() {
+			err := ag.BeforeInsert(nil)
+
+			Convey("Then it should NOT return an error", func() {
+				So(err, ShouldBeNil)
+			})
+
+			Convey("Then the agent's owner should be set", func() {
+				So(ag.Owner, ShouldEqual, database.Owner)
+			})
+		})
+	})
+}
+
+func TestLocalAgentBeforeDelete(t *testing.T) {
+	Convey("Given a database", t, func() {
+		db := database.GetTestDatabase()
+
+		Convey("Given a local agent entry", func() {
+			ag := &LocalAgent{
+				Name:        "test agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
+			}
+			So(db.Create(ag), ShouldBeNil)
+
+			Convey("Given the agent has a certificate, and an account with a certificate", func() {
+				certAg := &Cert{
+					OwnerType:   ag.TableName(),
+					OwnerID:     ag.ID,
+					Name:        "test agent cert",
+					PrivateKey:  []byte("private key"),
+					PublicKey:   []byte("public key"),
+					Certificate: []byte("certificate"),
+				}
+				So(db.Create(certAg), ShouldBeNil)
+
+				acc := &LocalAccount{
+					LocalAgentID: ag.ID,
+					Login:        "login",
+					Password:     []byte("password"),
+				}
+				So(db.Create(acc), ShouldBeNil)
+
+				certAcc := &Cert{
+					OwnerType:   acc.TableName(),
+					OwnerID:     acc.ID,
+					Name:        "test account cert",
+					PrivateKey:  []byte("private key"),
+					PublicKey:   []byte("public key"),
+					Certificate: []byte("certificate"),
+				}
+				So(db.Create(certAcc), ShouldBeNil)
+
+				Convey("When calling the `BeforeDelete` hook", func() {
+					err := ag.BeforeDelete(db)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then the agent's certificate should have been deleted", func() {
+						exist, err := db.Exists(certAg)
+						So(err, ShouldBeNil)
+						So(exist, ShouldBeFalse)
+					})
+
+					Convey("Then the agent's account should have been deleted", func() {
+						exist, err := db.Exists(acc)
+						So(err, ShouldBeNil)
+						So(exist, ShouldBeFalse)
+					})
+
+					Convey("Then the account's certificate should have been deleted", func() {
+						exist, err := db.Exists(certAcc)
+						So(err, ShouldBeNil)
+						So(exist, ShouldBeFalse)
+					})
+				})
+			})
+		})
+	})
+}
+
 func TestLocalAgentValidateInsert(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()

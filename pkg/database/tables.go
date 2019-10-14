@@ -30,11 +30,11 @@ func initTables(db *Db) error {
 			if err := trans.session.CreateTable(table); err != nil {
 				return err
 			}
-		}
 
-		if init, ok := table.(initer); ok {
-			if err := init.Init(trans); err != nil {
-				return err
+			if init, ok := table.(initer); ok {
+				if err := init.Init(trans); err != nil {
+					return err
+				}
 			}
 		}
 	}

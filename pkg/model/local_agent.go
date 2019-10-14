@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"github.com/go-xorm/builder"
 )
 
 func init() {
@@ -36,6 +37,33 @@ type LocalAgent struct {
 // role is to set the agent's owner.
 func (l *LocalAgent) BeforeInsert(acc database.Accessor) error {
 	l.Owner = database.Owner
+	return nil
+}
+
+// BeforeDelete is called before deleting the account from the database. Its
+// role is to delete all the certificates tied to the account.
+func (l *LocalAgent) BeforeDelete(acc database.Accessor) error {
+	accounts := []*LocalAccount{}
+	filterAcc := builder.Eq{"local_agent_id": l.ID}
+	if err := acc.Select(&accounts, &database.Filters{Conditions: filterAcc}); err != nil {
+		return err
+	}
+	for _, account := range accounts {
+		if err := account.BeforeDelete(acc); err != nil {
+			return err
+		}
+	}
+	if err := acc.Execute(builder.Delete().From((&LocalAccount{}).TableName()).
+		Where(filterAcc)); err != nil {
+		return err
+	}
+
+	filterCert := builder.Eq{"owner_type": l.TableName(), "owner_id": l.ID}
+	if err := acc.Execute(builder.Delete().From((&Cert{}).TableName()).
+		Where(filterCert)); err != nil {
+		return err
+	}
+
 	return nil
 }
 

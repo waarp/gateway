@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"github.com/go-xorm/builder"
 )
 
 func init() {
@@ -29,14 +30,13 @@ type LocalAccount struct {
 
 // MarshalJSON removes the password and then returns the account in JSON format.
 func (l *LocalAccount) MarshalJSON() ([]byte, error) {
-	acc := *l
-	acc.Password = nil
-	return json.Marshal(acc)
+	l.Password = nil
+	return json.Marshal(*l)
 }
 
 // BeforeInsert is called before inserting the account in the database. Its
 // role is to hash the password, if one was entered.
-func (l *LocalAccount) BeforeInsert(acc database.Accessor) error {
+func (l *LocalAccount) BeforeInsert(database.Accessor) error {
 	if l.Password != nil {
 		var err error
 		if l.Password, err = hashPassword(l.Password); err != nil {
@@ -48,8 +48,20 @@ func (l *LocalAccount) BeforeInsert(acc database.Accessor) error {
 
 // BeforeUpdate is called before updating the account from the database. Its
 // role is to hash the password, if a new one was entered.
-func (l *LocalAccount) BeforeUpdate(acc database.Accessor) error {
-	return l.BeforeInsert(acc)
+func (l *LocalAccount) BeforeUpdate(database.Accessor) error {
+	return l.BeforeInsert(nil)
+}
+
+// BeforeDelete is called before deleting the account from the database. Its
+// role is to delete all the certificates tied to the account.
+func (l *LocalAccount) BeforeDelete(acc database.Accessor) error {
+	filter := builder.Eq{"owner_type": l.TableName(), "owner_id": l.ID}
+	if err := acc.Execute(builder.Delete().From((&Cert{}).TableName()).
+		Where(filter)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // TableName returns the local accounts table name.

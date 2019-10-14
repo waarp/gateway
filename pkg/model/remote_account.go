@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"github.com/go-xorm/builder"
 )
 
 func init() {
@@ -34,14 +35,13 @@ func (r *RemoteAccount) TableName() string {
 
 // MarshalJSON removes the password and then returns the account in JSON format.
 func (r *RemoteAccount) MarshalJSON() ([]byte, error) {
-	acc := *r
-	acc.Password = nil
-	return json.Marshal(acc)
+	r.Password = nil
+	return json.Marshal(*r)
 }
 
 // BeforeInsert is called before inserting the account in the database. Its
 // role is to encrypt the password, if one was entered.
-func (r *RemoteAccount) BeforeInsert(acc database.Accessor) error {
+func (r *RemoteAccount) BeforeInsert(database.Accessor) error {
 	if r.Password != nil {
 		var err error
 		if r.Password, err = encryptPassword(r.Password); err != nil {
@@ -53,8 +53,20 @@ func (r *RemoteAccount) BeforeInsert(acc database.Accessor) error {
 
 // BeforeUpdate is called before updating the account from the database. Its
 // role is to encrypt the password, if a new one was entered.
-func (r *RemoteAccount) BeforeUpdate(acc database.Accessor) error {
-	return r.BeforeInsert(acc)
+func (r *RemoteAccount) BeforeUpdate(database.Accessor) error {
+	return r.BeforeInsert(nil)
+}
+
+// BeforeDelete is called before deleting the account from the database. Its
+// role is to delete all the certificates tied to the account.
+func (r *RemoteAccount) BeforeDelete(acc database.Accessor) error {
+	filter := builder.Eq{"owner_type": r.TableName(), "owner_id": r.ID}
+	if err := acc.Execute(builder.Delete().From((&Cert{}).TableName()).
+		Where(filter)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ValidateInsert checks if the new `RemoteAccount` entry is valid and can be

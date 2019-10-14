@@ -22,6 +22,76 @@ func TestRemoteAgentTableName(t *testing.T) {
 	})
 }
 
+func TestRemoteAgentBeforeDelete(t *testing.T) {
+	Convey("Given a database", t, func() {
+		db := database.GetTestDatabase()
+
+		Convey("Given a remote agent entry", func() {
+			ag := &RemoteAgent{
+				Name:        "test agent",
+				Protocol:    "sftp",
+				ProtoConfig: []byte("{}"),
+			}
+			So(db.Create(ag), ShouldBeNil)
+
+			Convey("Given the agent has a certificate, and an account with a certificate", func() {
+				certAg := &Cert{
+					OwnerType:   ag.TableName(),
+					OwnerID:     ag.ID,
+					Name:        "test agent cert",
+					PrivateKey:  []byte("private key"),
+					PublicKey:   []byte("public key"),
+					Certificate: []byte("certificate"),
+				}
+				So(db.Create(certAg), ShouldBeNil)
+
+				acc := &RemoteAccount{
+					RemoteAgentID: ag.ID,
+					Login:         "login",
+					Password:      []byte("password"),
+				}
+				So(db.Create(acc), ShouldBeNil)
+
+				certAcc := &Cert{
+					OwnerType:   acc.TableName(),
+					OwnerID:     acc.ID,
+					Name:        "test account cert",
+					PrivateKey:  []byte("private key"),
+					PublicKey:   []byte("public key"),
+					Certificate: []byte("certificate"),
+				}
+				So(db.Create(certAcc), ShouldBeNil)
+
+				Convey("When calling the `BeforeDelete` hook", func() {
+					err := ag.BeforeDelete(db)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then the agent's certificate should have been deleted", func() {
+						exist, err := db.Exists(certAg)
+						So(err, ShouldBeNil)
+						So(exist, ShouldBeFalse)
+					})
+
+					Convey("Then the agent's account should have been deleted", func() {
+						exist, err := db.Exists(acc)
+						So(err, ShouldBeNil)
+						So(exist, ShouldBeFalse)
+					})
+
+					Convey("Then the account's certificate should have been deleted", func() {
+						exist, err := db.Exists(certAcc)
+						So(err, ShouldBeNil)
+						So(exist, ShouldBeFalse)
+					})
+				})
+			})
+		})
+	})
+}
+
 func TestRemoteAgentValidateInsert(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()

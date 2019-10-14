@@ -12,7 +12,10 @@ import (
 
 const tblName = "test"
 
-var sqliteTestDatabase *Db
+var (
+	sqliteTestDatabase *Db
+	signals            string
+)
 
 type testBean struct {
 	ID     uint64 `xorm:"pk 'id'"`
@@ -21,6 +24,21 @@ type testBean struct {
 
 func (*testBean) TableName() string {
 	return tblName
+}
+
+func (*testBean) BeforeInsert(Accessor) error {
+	signals = "insert hook"
+	return nil
+}
+
+func (*testBean) BeforeUpdate(Accessor) error {
+	signals = "update hook"
+	return nil
+}
+
+func (*testBean) BeforeDelete(Accessor) error {
+	signals = "delete hook"
+	return nil
 }
 
 func init() {
@@ -111,52 +129,65 @@ func testSelect(db *Db) {
 	}
 
 	runTests := func(acc Accessor) {
-		filters := &Filters{Conditions: builder.In("id", selectBean1.ID,
-			selectBean2.ID, selectBean4.ID, selectBean5.ID)}
+		filters := &Filters{}
 		result := []testBean{}
 
 		Convey("With just a condition", func() {
-			filtered := []testBean{selectBean1, selectBean2,
-				selectBean4, selectBean5}
+			filters.Conditions = builder.Eq{"id": selectBean1.ID}
 			err := acc.Select(&result, filters)
 
-			Convey("Then it should return all the valid entries", func() {
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
-				So(result, ShouldResemble, filtered)
+
+				Convey("Then it should return all the valid entries", func() {
+					filtered := []testBean{selectBean1}
+					So(result, ShouldResemble, filtered)
+				})
 			})
 		})
 
-		Convey("With a condition and a limit", func() {
+		Convey("With a limit of 2", func() {
 			filters.Limit = 2
 			limited := []testBean{selectBean1, selectBean2}
 			err := acc.Select(&result, filters)
 
-			Convey("Then it should return `limit` amount of entries at most", func() {
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
-				So(result, ShouldResemble, limited)
+
+				Convey("Then it should return 2 entries at most", func() {
+					So(result, ShouldResemble, limited)
+				})
 			})
 		})
 
-		Convey("With a condition, an offset", func() {
+		Convey("With an offset of 1", func() {
 			filters.Limit = 10
 			filters.Offset = 1
-			offset := []testBean{selectBean2, selectBean4, selectBean5}
 			err := acc.Select(&result, filters)
 
-			Convey("Then it should return all valid entries except the `offset` first ones", func() {
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
-				So(result, ShouldResemble, offset)
+
+				Convey("Then it should return all valid entries except the first one", func() {
+					offset := []testBean{selectBean2, selectBean3, selectBean4,
+						selectBean5}
+					So(result, ShouldResemble, offset)
+				})
 			})
 		})
 
-		Convey("With a condition and an order", func() {
+		Convey("With an order", func() {
 			filters.Order = "id DESC"
-			ordered := []testBean{selectBean5, selectBean4, selectBean2, selectBean1}
 			err := acc.Select(&result, filters)
 
-			Convey("Then it should return all valid entries sorted in the specified order", func() {
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
-				So(result, ShouldResemble, ordered)
+
+				Convey("Then it should return all valid entries sorted in the specified order", func() {
+					ordered := []testBean{selectBean5, selectBean4, selectBean3,
+						selectBean2, selectBean1}
+					So(result, ShouldResemble, ordered)
+				})
 			})
 		})
 
@@ -165,9 +196,12 @@ func testSelect(db *Db) {
 				selectBean5}
 			err := acc.Select(&result, nil)
 
-			Convey("Then it should return all entries", func() {
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
-				So(result, ShouldResemble, all)
+
+				Convey("Then it should return all entries", func() {
+					So(result, ShouldResemble, all)
+				})
 			})
 		})
 
@@ -225,11 +259,20 @@ func testCreate(db *Db) {
 		Convey("With a valid record", func() {
 			err := db.Create(&createBean)
 
-			Convey("Then the record should be inserted without error", func() {
+			Reset(func() { signals = "" })
+
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
-				exists, err := acc.Exists(&createBean)
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
+
+				Convey("Then the record should have been inserted", func() {
+					exists, err := acc.Exists(&createBean)
+					So(err, ShouldBeNil)
+					So(exists, ShouldBeTrue)
+				})
+
+				Convey("Then the `BeforeInsert` hook should have been called", func() {
+					So(signals, ShouldEqual, "insert hook")
+				})
 			})
 		})
 
@@ -293,16 +336,24 @@ func testUpdate(db *Db) {
 		Convey("With an existing record", func() {
 			err := db.Update(&updateBeanAfter, updateBeanBefore.ID, false)
 
-			Convey("Then the record should be updated without error", func() {
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
 
-				existsAfter, err := acc.Exists(&updateBeanAfter)
-				So(err, ShouldBeNil)
-				So(existsAfter, ShouldBeTrue)
+				Convey("Then the new record should be present in the database", func() {
+					existsAfter, err := acc.Exists(&updateBeanAfter)
+					So(err, ShouldBeNil)
+					So(existsAfter, ShouldBeTrue)
+				})
 
-				existsBefore, err := acc.Exists(&updateBeanBefore)
-				So(err, ShouldBeNil)
-				So(existsBefore, ShouldBeFalse)
+				Convey("Then the old record should no longer be present in the database", func() {
+					existsBefore, err := acc.Exists(&updateBeanBefore)
+					So(err, ShouldBeNil)
+					So(existsBefore, ShouldBeFalse)
+				})
+
+				Convey("Then the `BeforeUpdate` hook should have been called", func() {
+					So(signals, ShouldEqual, "update hook")
+				})
 			})
 		})
 
@@ -361,11 +412,18 @@ func testDelete(db *Db) {
 		Convey("With a valid record", func() {
 			err := db.Delete(&deleteBean)
 
-			Convey("Then the record should be deleted without error", func() {
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
-				exists, err := acc.Exists(&deleteBean)
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeFalse)
+
+				Convey("Then the record should no longer be present in the database", func() {
+					exists, err := acc.Exists(&deleteBean)
+					So(err, ShouldBeNil)
+					So(exists, ShouldBeFalse)
+				})
+
+				Convey("Then the `BeforeDelete` hook should have been called", func() {
+					So(signals, ShouldEqual, "delete hook")
+				})
 			})
 		})
 
@@ -424,18 +482,24 @@ func testExist(db *Db) {
 		Convey("With an existing record", func() {
 			exists, err := acc.Exists(&existBean)
 
-			Convey("Then it should return true", func() {
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
+
+				Convey("Then it should return true", func() {
+					So(exists, ShouldBeTrue)
+				})
 			})
 		})
 
 		Convey("With a non-existing record", func() {
 			exists, err := acc.Exists(&testBean{ID: 1000})
 
-			Convey("Then it should return false", func() {
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
-				So(exists, ShouldBeFalse)
+
+				Convey("Then it should return false", func() {
+					So(exists, ShouldBeFalse)
+				})
 			})
 		})
 
@@ -487,14 +551,17 @@ func testExecute(db *Db) {
 	}
 
 	runTests := func(acc Accessor) {
-		Convey("With a valid SQL command", func() {
+		Convey("With a valid SQL `INSERT` command", func() {
 			err := db.Execute(builder.Insert(execInsert).Into(tblName))
 
-			Convey("Then it should execute the command without error", func() {
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
-				exists, err := acc.Exists(&execBean)
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
+
+				Convey("Then it should have inserted the entry", func() {
+					exists, err := acc.Exists(&execBean)
+					So(err, ShouldBeNil)
+					So(exists, ShouldBeTrue)
+				})
 			})
 		})
 
@@ -545,34 +612,35 @@ func testExecute(db *Db) {
 func testQuery(db *Db) {
 
 	runTests := func(acc Accessor, count func(...interface{}) (int64, error)) {
-		Convey("With a valid custom SQL query", func() {
+		Convey("With a valid custom SQL `SELECT` query", func() {
 			res, err := db.Query(builder.Select().From(tblName))
 
-			Convey("Then it should execute the command without error", func() {
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
-				count, err := count(&testBean{})
-				So(err, ShouldBeNil)
-				So(len(res), ShouldEqual, count)
+
+				Convey("Then it should execute the command without error", func() {
+					count, err := count(&testBean{})
+					So(err, ShouldBeNil)
+					So(len(res), ShouldEqual, count)
+				})
 			})
 		})
 
 		Convey("With an invalid SQL query", func() {
 			invalid := builder.Select().From("unknown")
-			res, err := acc.Query(invalid)
+			_, err := acc.Query(invalid)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-				So(res, ShouldBeNil)
 			})
 		})
 
 		Convey("With an invalid query type", func() {
 			invalid := 10
-			res, err := acc.Query(invalid)
+			_, err := acc.Query(invalid)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
-				So(res, ShouldBeNil)
 			})
 		})
 
@@ -602,54 +670,42 @@ func testQuery(db *Db) {
 	})
 }
 
-func testCommit(db *Db) {
-	commitBean := testBean{
+func testTrans(db *Db) {
+	bean := testBean{
 		ID:     1,
-		String: "commit",
+		String: "test trans",
 	}
 
-	Convey("When calling the 'Commit' method", func() {
+	Convey("Given a new transaction", func() {
 		ses, err := db.BeginTransaction()
 		So(err, ShouldBeNil)
 
-		Reset(ses.session.Close)
+		Convey("Given a pending insertion operation", func() {
+			err := ses.Create(&bean)
+			So(err, ShouldBeNil)
 
-		Convey("Using the transaction accessor", func() {
-			_, err := ses.session.Insert(&commitBean)
-
-			Convey("Then the changes should take effect", func() {
-				So(err, ShouldBeNil)
+			Convey("When calling the 'Commit' method", func() {
 				err := ses.Commit()
-				So(err, ShouldBeNil)
-				exists, err := db.engine.Exist(&commitBean)
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeTrue)
+
+				Convey("Then it should NOT return an error", func() {
+					So(err, ShouldBeNil)
+
+					Convey("Then the new insertion should have been committed", func() {
+						exists, err := db.engine.Exist(&bean)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
+					})
+				})
 			})
-		})
-	})
-}
 
-func testRollback(db *Db) {
-	rollbackBean := testBean{
-		ID:     1,
-		String: "rollback",
-	}
-
-	Convey("When calling the 'Rollback' method", func() {
-		ses, err := db.BeginTransaction()
-		So(err, ShouldBeNil)
-
-		Reset(ses.session.Close)
-
-		Convey("Using the transaction accessor", func() {
-			_, err := ses.session.Insert(&rollbackBean)
-
-			Convey("Then the changes should be dropped", func() {
-				So(err, ShouldBeNil)
+			Convey("When calling the 'Rollback' method", func() {
 				ses.Rollback()
-				exists, err := db.engine.Exist(&rollbackBean)
-				So(err, ShouldBeNil)
-				So(exists, ShouldBeFalse)
+
+				Convey("Then the new insertion should NOT have been committed", func() {
+					exists, err := db.engine.Exist(&bean)
+					So(err, ShouldBeNil)
+					So(exists, ShouldBeFalse)
+				})
 			})
 		})
 	})
@@ -669,8 +725,7 @@ func testDatabase(db *Db) {
 	testExist(db)
 	testExecute(db)
 	testQuery(db)
-	testCommit(db)
-	testRollback(db)
+	testTrans(db)
 }
 
 func TestSqlite(t *testing.T) {

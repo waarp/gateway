@@ -455,8 +455,10 @@ func (s *Session) Select(bean interface{}, filters *Filters) error {
 	}
 	var query xorm.Interface = s.session
 	if filters != nil {
-		query = query.Where(filters.Conditions).Limit(filters.Limit, filters.Offset).
-			OrderBy(filters.Order)
+		if filters.Conditions != nil {
+			query = query.Where(filters.Conditions)
+		}
+		query = query.Limit(filters.Limit, filters.Offset).OrderBy(filters.Order)
 	}
 
 	if err := query.Find(bean); err != nil {
