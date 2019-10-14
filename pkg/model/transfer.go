@@ -156,11 +156,11 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		return nil, err
 	}
 
-	from := account.Login
-	to := remote.Name
+	source := account.Login
+	dest := remote.Name
 	if rule.IsGet {
-		from = remote.Name
-		to = account.Login
+		source = remote.Name
+		dest = account.Login
 	}
 
 	if !validateStatusForHistory(t.Status) {
@@ -173,8 +173,8 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	hist := TransferHistory{
 		ID:       t.ID,
 		Owner:    t.Owner,
-		From:     from,
-		To:       to,
+		Source:   source,
+		Dest:     dest,
 		Protocol: remote.Protocol,
 		Filename: t.Source,
 		Rule:     rule.Name,

@@ -600,8 +600,8 @@ func TestTransferToHistory(t *testing.T) {
 					expected := &TransferHistory{
 						ID:       trans.ID,
 						Owner:    trans.Owner,
-						From:     account.Login,
-						To:       remote.Name,
+						Source:   account.Login,
+						Dest:     remote.Name,
 						Protocol: remote.Protocol,
 						Filename: trans.Source,
 						Rule:     rule.Name,

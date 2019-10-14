@@ -157,8 +157,8 @@ func TestExecutorLogTransfer(t *testing.T) {
 						hist := &model.TransferHistory{
 							ID:       trans.ID,
 							Owner:    trans.Owner,
-							From:     account.Login,
-							To:       remote.Name,
+							Source:   account.Login,
+							Dest:     remote.Name,
 							Protocol: remote.Protocol,
 							Filename: trans.Source,
 							Rule:     rule.Name,
@@ -190,8 +190,8 @@ func TestExecutorLogTransfer(t *testing.T) {
 						hist := &model.TransferHistory{
 							ID:       trans.ID,
 							Owner:    trans.Owner,
-							From:     account.Login,
-							To:       remote.Name,
+							Source:   account.Login,
+							Dest:     remote.Name,
 							Protocol: remote.Protocol,
 							Filename: trans.Source,
 							Rule:     rule.Name,
@@ -281,8 +281,8 @@ func TestExecutorRunTransfer(t *testing.T) {
 							hist := &model.TransferHistory{
 								ID:       trans.ID,
 								Owner:    trans.Owner,
-								From:     account.Login,
-								To:       remote.Name,
+								Source:   account.Login,
+								Dest:     remote.Name,
 								Protocol: remote.Protocol,
 								Filename: trans.Source,
 								Rule:     rule.Name,
@@ -316,8 +316,8 @@ func TestExecutorRunTransfer(t *testing.T) {
 							hist := &model.TransferHistory{
 								ID:       trans.ID,
 								Owner:    trans.Owner,
-								From:     account.Login,
-								To:       remote.Name,
+								Source:   account.Login,
+								Dest:     remote.Name,
 								Protocol: remote.Protocol,
 								Filename: trans.Source,
 								Rule:     rule.Name,

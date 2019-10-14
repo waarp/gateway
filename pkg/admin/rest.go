@@ -29,6 +29,8 @@ const (
 	CertificatesPath = "/certificates"
 	// TransfersPath is the access path to the transfers entry point
 	TransfersPath = "/transfers"
+	// HistoryPath is the access path to the transfers history entry point
+	HistoryPath = "/history"
 )
 
 var validOrders = []string{"asc", "desc"}

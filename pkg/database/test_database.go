@@ -32,7 +32,6 @@ func GetTestDatabase() *Db {
 		panic(err)
 	}
 	logger.SetBackend(discard)
-
 	db := &Db{
 		Conf:   config,
 		Logger: logger,
