@@ -35,7 +35,7 @@ func getHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func makeConditions(form url.Values) ([]builder.Cond, error) {
+func makeHistoryConditions(form url.Values) ([]builder.Cond, error) {
 	conditions := make([]builder.Cond, 0)
 
 	conditions = append(conditions, builder.Eq{"owner": database.Owner})
@@ -99,7 +99,7 @@ func listHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			return
 		}
 
-		conditions, err := makeConditions(r.Form)
+		conditions, err := makeHistoryConditions(r.Form)
 		if err != nil {
 			handleErrors(w, logger, &badRequest{msg: err.Error()})
 			return

@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"strconv"
+	"time"
 
 	"github.com/go-xorm/builder"
 
@@ -59,6 +62,62 @@ func getTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
+func getIDs(src []string) ([]uint64, error) {
+	res := make([]uint64, len(src))
+	for i, item := range src {
+		id, err := strconv.ParseUint(item, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("'%s' is not a valid ID", item)
+		}
+		res[i] = id
+	}
+	return res, nil
+}
+
+func makeTransfersConditions(form url.Values) ([]builder.Cond, error) {
+	conditions := make([]builder.Cond, 0)
+
+	conditions = append(conditions, builder.Eq{"owner": database.Owner})
+
+	remotes := form["remote"]
+	if len(remotes) > 0 {
+		remoteIDs, err := getIDs(remotes)
+		if err != nil {
+			return nil, err
+		}
+		conditions = append(conditions, builder.In("remote_id", remoteIDs))
+	}
+	accounts := form["account"]
+	if len(accounts) > 0 {
+		accountIDs, err := getIDs(accounts)
+		if err != nil {
+			return nil, err
+		}
+		conditions = append(conditions, builder.In("account_id", accountIDs))
+	}
+	rules := form["rule"]
+	if len(rules) > 0 {
+		ruleIDs, err := getIDs(rules)
+		if err != nil {
+			return nil, err
+		}
+		conditions = append(conditions, builder.In("rule_id", ruleIDs))
+	}
+	statuses := form["status"]
+	if len(statuses) > 0 {
+		conditions = append(conditions, builder.In("status", statuses))
+	}
+	starts := form["start"]
+	if len(starts) > 0 {
+		start, err := time.Parse(time.RFC3339, starts[0])
+		if err != nil {
+			return nil, err
+		}
+		conditions = append(conditions, builder.Gte{"start": start.UTC()})
+	}
+	return conditions, nil
+}
+
 func listTransfers(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limit := 20
@@ -72,29 +131,10 @@ func listTransfers(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			return
 		}
 
-		conditions := make([]builder.Cond, 0)
-
-		conditions = append(conditions, builder.Eq{"owner": database.Owner})
-		remotes := r.Form["remote"]
-		if len(remotes) > 0 {
-			conditions = append(conditions, builder.In("remote", remotes))
-		}
-		accounts := r.Form["account"]
-		if len(accounts) > 0 {
-			conditions = append(conditions, builder.In("account", accounts))
-		}
-		rules := r.Form["rule"]
-		if len(rules) > 0 {
-			conditions = append(conditions, builder.In("rule", rules))
-		}
-		statuses := r.Form["status"]
-		if len(statuses) > 0 {
-			conditions = append(conditions, builder.In("status", statuses))
-		}
-		// TODO parse as time.Time
-		start := r.Form["start"]
-		if len(start) > 0 {
-			conditions = append(conditions, builder.Gt{"start": start[0]})
+		conditions, err := makeTransfersConditions(r.Form)
+		if err != nil {
+			handleErrors(w, logger, &badRequest{msg: err.Error()})
+			return
 		}
 
 		filters := &database.Filters{
