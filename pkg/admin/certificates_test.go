@@ -304,6 +304,18 @@ func TestListCerts(t *testing.T) {
 						check(w, expected)
 					})
 				})
+				Convey("Given a request with a remote agent & remote accounts parameters", func() {
+					r, err := http.NewRequest(http.MethodGet, "?remote_agents=1&remote_accounts=1", nil)
+					So(err, ShouldBeNil)
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						expected["certificates"] = []model.Cert{remoteAccountCert,
+							remoteAgentCert}
+						check(w, expected)
+					})
+				})
 			})
 		})
 	})

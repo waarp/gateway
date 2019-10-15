@@ -91,8 +91,22 @@ func makeCertificatesHandler(logger *log.Logger, db *database.Db, apiHandler *mu
 
 func makeTransfersHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
 	transfersHandler := apiHandler.PathPrefix(TransfersPath).Subrouter()
+	transfersHandler.HandleFunc("", listTransfers(logger, db)).
+		Methods(http.MethodGet)
 	transfersHandler.HandleFunc("", addTransfer(logger, db)).
 		Methods(http.MethodPost)
+	transferHandler := transfersHandler.PathPrefix("/{transfer:[0-9]+}").Subrouter()
+	transferHandler.HandleFunc("", getTransfer(logger, db)).
+		Methods(http.MethodGet)
+}
+
+func makeHistoryHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+	historyHandler := apiHandler.PathPrefix(HistoryPath).Subrouter()
+	historyHandler.HandleFunc("", listHistory(logger, db)).
+		Methods(http.MethodGet)
+	histHandler := historyHandler.PathPrefix("/{history:[0-9]+}").Subrouter()
+	histHandler.HandleFunc("", getHistory(logger, db)).
+		Methods(http.MethodGet)
 }
 
 // MakeHandler returns the router for the REST & Admin http interface
@@ -111,6 +125,7 @@ func MakeHandler(logger *log.Logger, db *database.Db, services map[string]servic
 	makeRemoteAccountsHandler(logger, db, apiHandler)
 	makeCertificatesHandler(logger, db, apiHandler)
 	makeTransfersHandler(logger, db, apiHandler)
+	makeHistoryHandler(logger, db, apiHandler)
 
 	return handler
 }

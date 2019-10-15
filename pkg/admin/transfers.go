@@ -2,6 +2,8 @@ package admin
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/go-xorm/builder"
@@ -31,7 +33,8 @@ func addTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			handleErrors(w, logger, err)
 			return
 		}
-
+		newID := fmt.Sprint(trans.ID)
+		w.Header().Set("Location", APIPath+TransfersPath+"/"+newID)
 		w.WriteHeader(http.StatusCreated)
 	}
 }
