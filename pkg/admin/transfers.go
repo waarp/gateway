@@ -2,7 +2,6 @@ package admin
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/go-xorm/builder"
