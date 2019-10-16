@@ -3,7 +3,7 @@ Lister les comptes locaux
 
 .. http:get:: /api/local_accounts
 
-   Renvoie une liste des comptes locaux remplissant les critères données en
+   Renvoie une liste des comptes locaux remplissant les critères donnés en
    paramètres de requête.
 
    **Requête**

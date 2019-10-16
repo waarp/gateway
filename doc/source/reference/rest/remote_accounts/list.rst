@@ -3,7 +3,7 @@ Lister les comptes partenaires
 
 .. http:get:: /api/remote_accounts
 
-   Renvoie une liste des comptes partenaires remplissant les critères données en
+   Renvoie une liste des comptes partenaires remplissant les critères donnés en
    paramètres de requête.
 
    **Requête**
