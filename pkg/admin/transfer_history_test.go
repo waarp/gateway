@@ -22,12 +22,12 @@ const historyURI = APIPath + HistoryPath + "/"
 func TestGetHistory(t *testing.T) {
 	logger := log.NewLogger("rest_history_get_test")
 
-	Convey("Testing the transfer get handler", t, func() {
+	Convey("Testing the transfer history get handler", t, func() {
 		db := database.GetTestDatabase()
 		handler := getHistory(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 transfer", func() {
+		Convey("Given a database with 1 transfer history", func() {
 			h := model.TransferHistory{
 				ID:       1,
 				Rule:     "rule",
@@ -45,7 +45,7 @@ func TestGetHistory(t *testing.T) {
 			h.Start = h.Start.Local()
 			h.Stop = h.Stop.Local()
 
-			Convey("Given a request with the valid transfer ID parameter", func() {
+			Convey("Given a request with the valid transfer history ID parameter", func() {
 				req, err := http.NewRequest(http.MethodGet, historyURI+id, nil)
 				So(err, ShouldBeNil)
 				req = mux.SetURLVars(req, map[string]string{"history": id})
@@ -64,7 +64,7 @@ func TestGetHistory(t *testing.T) {
 						So(contentType, ShouldEqual, "application/json")
 					})
 
-					Convey("Then the body should contain the requested transfer_historyr "+
+					Convey("Then the body should contain the requested transfer history "+
 						"in JSON format", func() {
 
 						exp, err := json.Marshal(&h)
@@ -75,7 +75,7 @@ func TestGetHistory(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a non-existing transfer ID parameter", func() {
+			Convey("Given a request with a non-existing transfer history ID parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, historyURI+"1000", nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"history": "1000"})
@@ -95,7 +95,7 @@ func TestGetHistory(t *testing.T) {
 func TestListHistory(t *testing.T) {
 	logger := log.NewLogger("rest_history_get_test")
 
-	Convey("Testing the transfer get handler", t, func() {
+	Convey("Testing the transfer history list handler", t, func() {
 		db := database.GetTestDatabase()
 		handler := listHistory(logger, db)
 		w := httptest.NewRecorder()
@@ -179,7 +179,7 @@ func TestListHistory(t *testing.T) {
 						So(contentType, ShouldEqual, "application/json")
 					})
 
-					Convey("Then it should return 2 history", func() {
+					Convey("Then it should return 2 transfer history", func() {
 						expected["history"] = []interface{}{h2, h1}
 						exp, err := json.Marshal(expected)
 
@@ -200,7 +200,7 @@ func TestListHistory(t *testing.T) {
 						So(w.Code, ShouldEqual, http.StatusOK)
 					})
 
-					Convey("Then it should return 2 history", func() {
+					Convey("Then it should return 2 transfer history", func() {
 						expected["history"] = []interface{}{h2, h3}
 						exp, err := json.Marshal(expected)
 
@@ -221,7 +221,7 @@ func TestListHistory(t *testing.T) {
 						So(w.Code, ShouldEqual, http.StatusOK)
 					})
 
-					Convey("Then it should return 2 history", func() {
+					Convey("Then it should return 2 transfer history", func() {
 						expected["history"] = []interface{}{h1, h3}
 						exp, err := json.Marshal(expected)
 
@@ -260,7 +260,7 @@ func TestListHistory(t *testing.T) {
 						So(w.Code, ShouldEqual, http.StatusOK)
 					})
 
-					Convey("Then it should return all 4 history", func() {
+					Convey("Then it should return all 4 transfer history", func() {
 						expected["history"] = []interface{}{h2, h1, h3, h4}
 						exp, err := json.Marshal(expected)
 
@@ -283,7 +283,7 @@ func TestListHistory(t *testing.T) {
 						So(w.Code, ShouldEqual, http.StatusOK)
 					})
 
-					Convey("Then it should return 3 history", func() {
+					Convey("Then it should return 3 transfer history", func() {
 						expected["history"] = []interface{}{h1, h3, h4}
 						exp, err := json.Marshal(expected)
 
@@ -306,7 +306,7 @@ func TestListHistory(t *testing.T) {
 						So(w.Code, ShouldEqual, http.StatusOK)
 					})
 
-					Convey("Then it should return 1 history", func() {
+					Convey("Then it should return 1 transfer history", func() {
 						expected["history"] = []interface{}{h4}
 						exp, err := json.Marshal(expected)
 
@@ -331,7 +331,7 @@ func TestListHistory(t *testing.T) {
 						So(w.Code, ShouldEqual, http.StatusOK)
 					})
 
-					Convey("Then it should return 1 history", func() {
+					Convey("Then it should return 1 transfer history", func() {
 						expected["history"] = []interface{}{h3, h4}
 						exp, err := json.Marshal(expected)
 
@@ -352,7 +352,7 @@ func TestListHistory(t *testing.T) {
 						So(w.Code, ShouldEqual, http.StatusOK)
 					})
 
-					Convey("Then it should return 1 history", func() {
+					Convey("Then it should return 1 tranfer history", func() {
 						expected["history"] = []interface{}{h1, h4}
 						exp, err := json.Marshal(expected)
 

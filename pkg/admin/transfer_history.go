@@ -86,32 +86,38 @@ func makeHistoryConditions(form url.Values) ([]builder.Cond, error) {
 	return conditions, nil
 }
 
+func makeHistoryFilters(r *http.Request) (*database.Filters, error) {
+	limit := 20
+	offset := 0
+	order := "start"
+
+	validSorting := []string{"source", "dest", "rule", "status", "protocol", "start"}
+
+	if err := parseLimitOffsetOrder(r, &limit, &offset, &order, validSorting); err != nil {
+		return nil, err
+	}
+
+	conditions, err := makeHistoryConditions(r.Form)
+	if err != nil {
+		return nil, err
+	}
+
+	filters := &database.Filters{
+		Limit:      limit,
+		Offset:     offset,
+		Order:      order,
+		Conditions: builder.And(conditions...),
+	}
+	return filters, nil
+}
+
 func listHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		limit := 20
-		offset := 0
-		order := "start"
-
-		validSorting := []string{"start"}
-
-		if err := parseLimitOffsetOrder(r, &limit, &offset, &order, validSorting); err != nil {
-			handleErrors(w, logger, err)
-			return
-		}
-
-		conditions, err := makeHistoryConditions(r.Form)
+		filters, err := makeHistoryFilters(r)
 		if err != nil {
 			handleErrors(w, logger, &badRequest{msg: err.Error()})
 			return
 		}
-
-		filters := &database.Filters{
-			Limit:      limit,
-			Offset:     offset,
-			Order:      order,
-			Conditions: builder.And(conditions...),
-		}
-
 		results := []model.TransferHistory{}
 		if err := db.Select(&results, filters); err != nil {
 			handleErrors(w, logger, err)
