@@ -78,12 +78,12 @@ func parseServerAddr(server *model.LocalAgent) (string, uint16, error) {
 		return "", 0, fmt.Errorf("invalid SFTP server address")
 	}
 
-	port, ok := p.(uint16)
+	port, ok := p.(float64)
 	if !ok {
 		return "", 0, fmt.Errorf("invalid SFTP server port")
 	}
 
-	return addr, port, nil
+	return addr, uint16(port), nil
 }
 
 func (s *Server) listen(listener net.Listener, config *ssh.ServerConfig) {
@@ -100,7 +100,7 @@ func (s *Server) listen(listener net.Listener, config *ssh.ServerConfig) {
 	for {
 		nConn, err := listener.Accept()
 		if err != nil {
-			continue
+			break
 		}
 
 		_, channels, reqs, err := ssh.NewServerConn(nConn, config)
@@ -134,15 +134,12 @@ func (s *Server) listen(listener net.Listener, config *ssh.ServerConfig) {
 			}(requests)
 
 			server = sftp.NewRequestServer(channel, handlers)
-			if err != nil {
-				break
-			}
-
 			if err := server.Serve(); err != nil && err != io.EOF {
 				break
 			}
 
 			_ = server.Close()
+			_ = nConn.Close()
 		}
 	}
 }
@@ -174,6 +171,7 @@ func (s *Server) Start() error {
 		return nil
 	}
 
+	s.shutdown = make(chan bool)
 	s.logger = log.NewLogger(s.Config.Name)
 	s.state.Set(service.Starting, "")
 
