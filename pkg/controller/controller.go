@@ -33,8 +33,9 @@ func (c *Controller) listen(run func(model.Transfer)) {
 	owner := builder.Eq{"owner": database.Owner}
 	start := builder.Lte{"start": time.Now()}
 	planned := builder.Eq{"status": model.StatusPlanned}
+	client := builder.Eq{"is_server": false}
 	filters := database.Filters{
-		Conditions: builder.And(owner, start, planned),
+		Conditions: builder.And(owner, start, planned, client),
 	}
 
 	go func() {

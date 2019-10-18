@@ -83,6 +83,7 @@ func TestTransferValidateInsert(t *testing.T) {
 			Convey("Given a new transfer", func() {
 				trans := &Transfer{
 					RuleID:     rule.ID,
+					IsServer:   false,
 					RemoteID:   remote.ID,
 					AccountID:  account.ID,
 					SourcePath: "test/source/path",
@@ -403,8 +404,9 @@ func TestTransferValidateInsert(t *testing.T) {
 func TestTransferValidateUpdate(t *testing.T) {
 	Convey("Given a `Transfer` instance", t, func() {
 		trans := &Transfer{
-			Status: StatusTransfer,
-			Start:  time.Now(),
+			Status:   StatusTransfer,
+			Start:    time.Now(),
+			IsServer: false,
 		}
 
 		Convey("Given that the entry is valid", func() {
@@ -579,6 +581,7 @@ func TestTransferToHistory(t *testing.T) {
 			trans := &Transfer{
 				ID:         1,
 				RuleID:     rule.ID,
+				IsServer:   false,
 				RemoteID:   remote.ID,
 				AccountID:  account.ID,
 				SourcePath: "test/source/path",

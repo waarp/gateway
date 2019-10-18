@@ -15,6 +15,7 @@ func init() {
 type Transfer struct {
 	ID         uint64         `xorm:"pk autoincr <- 'id'" json:"id"`
 	RuleID     uint64         `xorm:"notnull 'rule_id'" json:"ruleID"`
+	IsServer   bool           `xorm:"notnull 'is_server'" json:"isServer'"`
 	RemoteID   uint64         `xorm:"notnull 'remote_id'" json:"remoteID"`
 	AccountID  uint64         `xorm:"notnull 'account_id'" json:"accountID"`
 	SourcePath string         `xorm:"notnull 'source_path'" json:"sourcePath"`
@@ -67,6 +68,21 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 		}
 		return err
 	}
+
+	if t.IsServer {
+		if err := t.validateServerTransfer(acc); err != nil {
+			return err
+		}
+	} else {
+		if err := t.validateClientTransfer(acc); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (t *Transfer) validateClientTransfer(acc database.Accessor) error {
 	remote := RemoteAgent{ID: t.RemoteID}
 	if err := acc.Get(&remote); err != nil {
 		if err == database.ErrNotFound {
@@ -90,7 +106,28 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 			return database.InvalidError("No certificate found for agent %d", t.RemoteID)
 		}
 	}
+	return nil
+}
 
+func (t *Transfer) validateServerTransfer(acc database.Accessor) error {
+	remote := LocalAgent{ID: t.RemoteID}
+	if err := acc.Get(&remote); err != nil {
+		if err == database.ErrNotFound {
+			return database.InvalidError("The partner %d does not exist", t.RemoteID)
+		}
+		return err
+	}
+	if res, err := acc.Query("SELECT id FROM local_accounts WHERE id=? AND local_agent_id=?",
+		t.AccountID, t.RemoteID); err != nil {
+		return err
+	} else if len(res) == 0 {
+		return database.InvalidError("The agent %d does not have an account %d",
+			t.RemoteID, t.AccountID)
+	}
+	/*
+		if remote.Protocol == "sftp" {
+		}
+	*/
 	return nil
 }
 
