@@ -1,10 +1,15 @@
 package sftp
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/pkg/sftp"
 )
 
@@ -32,31 +37,85 @@ func (la listerAtFunc) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 	return la(ls, offset)
 }
 
-func makeHandlers() sftp.Handlers {
+func makeHandlers(db *database.Db, agent *model.LocalAgent, account *model.LocalAccount) sftp.Handlers {
+	root, _ := os.Getwd()
+	var conf map[string]interface{}
+	if err := json.Unmarshal(agent.ProtoConfig, &conf); err == nil {
+		root, _ = conf["root"].(string)
+	}
 	return sftp.Handlers{
-		FileGet:  makeFileReader(),
-		FilePut:  makeFileWriter(),
+		FileGet:  makeFileReader(db, agent.ID, account.ID, root),
+		FilePut:  makeFileWriter(db, agent.ID, account.ID, root),
 		FileCmd:  nil,
-		FileList: makeFileLister(),
+		FileList: makeFileLister(root),
 	}
 }
 
-func makeFileReader() fileReaderFunc {
+func makeFileReader(db *database.Db, agentID, accountID uint64, root string) fileReaderFunc {
 	return func(r *sftp.Request) (io.ReaderAt, error) {
-		dir, _ := os.Getwd()
-		file, err := os.Open(dir + "/" + r.Filepath)
-		if err != nil {
+		// Get rule according to request filepath
+		dir := filepath.Dir(r.Filepath)
+		if dir == "." || dir == "/" {
+			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
+		}
+		rule := model.Rule{Name: dir, IsGet: true}
+		if err := db.Get(&rule); err != nil {
 			return nil, err
 		}
 
+		// Create Transfer
+		trans := model.Transfer{
+			RuleID:      rule.ID,
+			IsServer:    true,
+			RemoteID:    agentID,
+			AccountID:   accountID,
+			Source:      filepath.Base(r.Filepath),
+			Destination: r.Filepath,
+			Start:       time.Now(),
+			Status:      model.StatusTransfer,
+		}
+		if err := db.Create(&trans); err != nil {
+			return nil, err
+		}
+
+		// Open requested file
+		file, err := os.Open(root + "/" + r.Filepath)
+		if err != nil {
+			return nil, err
+		}
 		return file, nil
 	}
 }
 
-func makeFileWriter() fileWriterFunc {
+func makeFileWriter(db *database.Db, agentID, accountID uint64, root string) fileWriterFunc {
 	return func(r *sftp.Request) (io.WriterAt, error) {
-		dir, _ := os.Getwd()
-		file, err := os.Create(dir + "/" + r.Filepath)
+		// Get rule according to request filepath
+		dir := filepath.Dir(r.Filepath)
+		if dir == "." || dir == "/" {
+			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
+		}
+		rule := model.Rule{Name: dir, IsGet: false}
+		if err := db.Get(&rule); err != nil {
+			return nil, err
+		}
+
+		// Create Transfer
+		trans := model.Transfer{
+			RuleID:      rule.ID,
+			IsServer:    true,
+			RemoteID:    agentID,
+			AccountID:   accountID,
+			Source:      r.Filepath,
+			Destination: filepath.Base(r.Filepath),
+			Start:       time.Now(),
+			Status:      model.StatusTransfer,
+		}
+		if err := db.Create(&trans); err != nil {
+			return nil, err
+		}
+
+		// Create file
+		file, err := os.Create(root + "/" + r.Filepath)
 		if err != nil {
 			return nil, err
 		}
@@ -65,11 +124,10 @@ func makeFileWriter() fileWriterFunc {
 	}
 }
 
-func makeFileLister() fileListerFunc {
+func makeFileLister(root string) fileListerFunc {
 	listerAt := func(ls []os.FileInfo, offset int64) (int, error) {
-		dir, _ := os.Getwd()
 		infos := []os.FileInfo{}
-		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			infos = append(infos, info)
 			return nil
 		})
