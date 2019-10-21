@@ -88,6 +88,7 @@ func parseServerAddr(server *model.LocalAgent) (string, uint16, error) {
 
 func (s *Server) listen(listener net.Listener, config *ssh.ServerConfig) {
 	var server *sftp.RequestServer
+	shutdown := make(chan bool)
 
 	go func() {
 		<-s.shutdown
@@ -95,6 +96,7 @@ func (s *Server) listen(listener net.Listener, config *ssh.ServerConfig) {
 		if server != nil {
 			_ = server.Close()
 		}
+		shutdown <- true
 	}()
 	for {
 		nConn, err := listener.Accept()
@@ -111,6 +113,9 @@ func (s *Server) listen(listener net.Listener, config *ssh.ServerConfig) {
 		acc := &model.LocalAccount{
 			LocalAgentID: s.Config.ID,
 			Login:        conn.Conn.User(),
+		}
+		if err := s.Db.Get(acc); err != nil {
+			continue
 		}
 
 		go ssh.DiscardRequests(reqs)
@@ -138,7 +143,7 @@ func (s *Server) listen(listener net.Listener, config *ssh.ServerConfig) {
 				}
 			}(requests)
 
-			server = sftp.NewRequestServer(channel, makeHandlers(s.Db, s.Config, acc))
+			server = sftp.NewRequestServer(channel, makeHandlers(s.Db, s.Config, acc, shutdown))
 			if err := server.Serve(); err != nil && err != io.EOF {
 				break
 			}
