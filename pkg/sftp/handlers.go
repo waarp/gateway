@@ -88,11 +88,11 @@ func makeHandlers(db *database.Db, agent *model.LocalAgent, account *model.Local
 func makeFileReader(db *database.Db, agentID, accountID uint64, root string, shutdown <-chan bool) fileReaderFunc {
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		// Get rule according to request filepath
-		dir := filepath.Dir(r.Filepath)
-		if dir == "." || dir == "/" {
+		path := filepath.Dir(r.Filepath)
+		if path == "." || path == "/" {
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
-		rule := model.Rule{OutPath: dir, IsGet: true}
+		rule := model.Rule{OutPath: path, IsGet: true}
 		if err := db.Get(&rule); err != nil {
 			return nil, err
 		}
@@ -117,7 +117,7 @@ func makeFileReader(db *database.Db, agentID, accountID uint64, root string, shu
 		}
 
 		// Open requested file
-		file, err := os.Open(root + "/" + r.Filepath)
+		file, err := os.Open(filepath.FromSlash(fmt.Sprintf("%s/%s", root, r.Filepath)))
 		if err != nil {
 			return nil, err
 		}
@@ -128,13 +128,25 @@ func makeFileReader(db *database.Db, agentID, accountID uint64, root string, shu
 func makeFileWriter(db *database.Db, agentID, accountID uint64, root string, shutdown <-chan bool) fileWriterFunc {
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		// Get rule according to request filepath
-		dir := filepath.Dir(r.Filepath)
-		if dir == "." || dir == "/" {
+		path := filepath.Dir(r.Filepath)
+		if path == "." || path == "/" {
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
-		rule := model.Rule{InPath: dir, IsGet: false}
+		rule := model.Rule{InPath: path, IsGet: false}
 		if err := db.Get(&rule); err != nil {
 			return nil, err
+		}
+
+		// Create dir if it doesn't exist
+		dir := filepath.FromSlash(fmt.Sprintf("%s/%s", root, rule.InPath))
+		if info, err := os.Lstat(dir); err != nil {
+			if os.IsNotExist(err) {
+				os.MkdirAll(dir, 1744)
+			} else {
+				return nil, err
+			}
+		} else if !info.IsDir() {
+			os.MkdirAll(dir, 1744)
 		}
 
 		// Create Transfer
@@ -157,7 +169,7 @@ func makeFileWriter(db *database.Db, agentID, accountID uint64, root string, shu
 		}
 
 		// Create file
-		file, err := os.Create(root + "/" + r.Filepath)
+		file, err := os.Create(filepath.FromSlash(fmt.Sprintf("%s/%s", root, r.Filepath)))
 		if err != nil {
 			return nil, err
 		}
