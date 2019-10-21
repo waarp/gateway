@@ -125,23 +125,11 @@ func (s *Server) listen(listener net.Listener, config *ssh.ServerConfig) {
 				_ = newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
 				continue
 			}
-			channel, requests, err := newChannel.Accept()
+
+			channel, err := acceptChannel(newChannel)
 			if err != nil {
 				break
 			}
-
-			go func(in <-chan *ssh.Request) {
-				for req := range in {
-					ok := false
-					switch req.Type {
-					case "subsystem":
-						if string(req.Payload[4:]) == "sftp" {
-							ok = true
-						}
-					}
-					_ = req.Reply(ok, nil)
-				}
-			}(requests)
 
 			server = sftp.NewRequestServer(channel, makeHandlers(s.Db, s.Config, acc, shutdown))
 			if err := server.Serve(); err != nil && err != io.EOF {
@@ -152,6 +140,27 @@ func (s *Server) listen(listener net.Listener, config *ssh.ServerConfig) {
 			_ = nConn.Close()
 		}
 	}
+}
+
+func acceptChannel(newChannel ssh.NewChannel) (ssh.Channel, error) {
+	channel, requests, err := newChannel.Accept()
+	if err != nil {
+		return nil, err
+	}
+
+	go func(in <-chan *ssh.Request) {
+		for req := range in {
+			ok := false
+			switch req.Type {
+			case "subsystem":
+				if string(req.Payload[4:]) == "sftp" {
+					ok = true
+				}
+			}
+			_ = req.Reply(ok, nil)
+		}
+	}(requests)
+	return channel, nil
 }
 
 // Start starts the SFTP server.

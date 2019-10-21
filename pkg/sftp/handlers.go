@@ -141,12 +141,16 @@ func makeFileWriter(db *database.Db, agentID, accountID uint64, root string, shu
 		dir := filepath.FromSlash(fmt.Sprintf("%s/%s", root, rule.InPath))
 		if info, err := os.Lstat(dir); err != nil {
 			if os.IsNotExist(err) {
-				os.MkdirAll(dir, 1744)
+				if err := os.MkdirAll(dir, 0740); err != nil {
+					return nil, err
+				}
 			} else {
 				return nil, err
 			}
 		} else if !info.IsDir() {
-			os.MkdirAll(dir, 1744)
+			if err := os.MkdirAll(dir, 0740); err != nil {
+				return nil, err
+			}
 		}
 
 		// Create Transfer
