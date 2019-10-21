@@ -55,10 +55,10 @@ func (*Rule) Init(acc database.Accessor) error {
 // entered.
 func (r *Rule) BeforeInsert(acc database.Accessor) error {
 	if r.InPath == "" {
-		r.InPath = fmt.Sprintf("%s%sin", r.Name, string(os.PathSeparator))
+		r.InPath = fmt.Sprintf("%s%s%sin", string(os.PathSeparator), r.Name, string(os.PathSeparator))
 	}
 	if r.OutPath == "" {
-		r.OutPath = fmt.Sprintf("%s%sout", r.Name, string(os.PathSeparator))
+		r.OutPath = fmt.Sprintf("%s%s%sout", string(os.PathSeparator), r.Name, string(os.PathSeparator))
 	}
 	return nil
 }

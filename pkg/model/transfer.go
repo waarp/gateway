@@ -54,8 +54,8 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 	if t.Start.IsZero() {
 		return database.InvalidError("The transfer's starting date cannot be empty")
 	}
-	if t.Status != StatusPlanned {
-		return database.InvalidError("The transfer's status must be 'planned'")
+	if t.Status != StatusPlanned && t.Status != StatusTransfer {
+		return database.InvalidError("The transfer's status must be 'planned' or 'transfer'")
 	}
 	if t.Owner == "" {
 		return database.InvalidError("The transfer's owner cannot be empty")
@@ -139,7 +139,9 @@ func (t *Transfer) BeforeInsert(database.Accessor) error {
 	if t.Start.IsZero() {
 		t.Start = time.Now().Truncate(time.Second)
 	}
-	t.Status = StatusPlanned
+	if t.Status == "" {
+		t.Status = StatusPlanned
+	}
 	return nil
 }
 

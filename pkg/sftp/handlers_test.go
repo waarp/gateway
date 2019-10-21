@@ -1,6 +1,7 @@
 package sftp
 
 import (
+	"path/filepath"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -14,8 +15,9 @@ func TestFileReader(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		rule := &model.Rule{
-			Name:  "test",
-			IsGet: true,
+			Name:    "test",
+			IsGet:   true,
+			OutPath: "/test",
 		}
 		So(db.Create(rule), ShouldBeNil)
 
@@ -37,7 +39,7 @@ func TestFileReader(t *testing.T) {
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
-					Filepath: "test/file.test",
+					Filepath: "/test/file.test",
 				}
 
 				Convey("When calling the handler", func() {
@@ -48,6 +50,19 @@ func TestFileReader(t *testing.T) {
 					})
 
 					Convey("Then a transfer should be present in db", func() {
+						trans := &model.Transfer{
+							RuleID:    rule.ID,
+							IsServer:  true,
+							RemoteID:  agent.ID,
+							AccountID: account.ID,
+						}
+						So(db.Get(trans), ShouldBeNil)
+
+						Convey("With a valid Source, Desitation and Status", func() {
+							So(trans.Source, ShouldEqual, request.Filepath)
+							So(trans.Destination, ShouldEqual, filepath.Base(request.Filepath))
+							So(trans.Status, ShouldEqual, model.StatusTransfer)
+						})
 					})
 				})
 			})
@@ -88,8 +103,9 @@ func TestFileWriter(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		rule := &model.Rule{
-			Name:  "test",
-			IsGet: false,
+			Name:   "test",
+			IsGet:  false,
+			InPath: "/test",
 		}
 		So(db.Create(rule), ShouldBeNil)
 
@@ -111,7 +127,7 @@ func TestFileWriter(t *testing.T) {
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
-					Filepath: "test/file.test",
+					Filepath: "/test/file.test",
 				}
 
 				Convey("When calling the handler", func() {
@@ -122,13 +138,26 @@ func TestFileWriter(t *testing.T) {
 					})
 
 					Convey("Then a transfer should be present in db", func() {
+						trans := &model.Transfer{
+							RuleID:    rule.ID,
+							IsServer:  true,
+							RemoteID:  agent.ID,
+							AccountID: account.ID,
+						}
+						So(db.Get(trans), ShouldBeNil)
+
+						Convey("With a valid Source, Desitation and Status", func() {
+							So(trans.Source, ShouldEqual, filepath.Base(request.Filepath))
+							So(trans.Destination, ShouldEqual, request.Filepath)
+							So(trans.Status, ShouldEqual, model.StatusTransfer)
+						})
 					})
 				})
 			})
 
 			Convey("Given a request for an non existing rule", func() {
 				request := &sftp.Request{
-					Filepath: "toto/file.test",
+					Filepath: "/toto/file.test",
 				}
 
 				Convey("When calling the handler", func() {

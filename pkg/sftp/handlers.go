@@ -58,7 +58,7 @@ func makeFileReader(db *database.Db, agentID, accountID uint64, root string) fil
 		if dir == "." || dir == "/" {
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
-		rule := model.Rule{Name: dir, IsGet: true}
+		rule := model.Rule{OutPath: dir, IsGet: true}
 		if err := db.Get(&rule); err != nil {
 			return nil, err
 		}
@@ -69,8 +69,8 @@ func makeFileReader(db *database.Db, agentID, accountID uint64, root string) fil
 			IsServer:    true,
 			RemoteID:    agentID,
 			AccountID:   accountID,
-			Source:      filepath.Base(r.Filepath),
-			Destination: r.Filepath,
+			Source:      r.Filepath,
+			Destination: filepath.Base(r.Filepath),
 			Start:       time.Now(),
 			Status:      model.StatusTransfer,
 		}
@@ -94,7 +94,7 @@ func makeFileWriter(db *database.Db, agentID, accountID uint64, root string) fil
 		if dir == "." || dir == "/" {
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
-		rule := model.Rule{Name: dir, IsGet: false}
+		rule := model.Rule{InPath: dir, IsGet: false}
 		if err := db.Get(&rule); err != nil {
 			return nil, err
 		}
@@ -105,8 +105,8 @@ func makeFileWriter(db *database.Db, agentID, accountID uint64, root string) fil
 			IsServer:    true,
 			RemoteID:    agentID,
 			AccountID:   accountID,
-			Source:      r.Filepath,
-			Destination: filepath.Base(r.Filepath),
+			Source:      filepath.Base(r.Filepath),
+			Destination: r.Filepath,
 			Start:       time.Now(),
 			Status:      model.StatusTransfer,
 		}
