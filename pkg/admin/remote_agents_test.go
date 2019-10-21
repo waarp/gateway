@@ -27,22 +27,22 @@ func TestListRemoteAgent(t *testing.T) {
 		remoteAgent1 := model.RemoteAgent{
 			Name:        "remoteAgent1",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 		remoteAgent2 := model.RemoteAgent{
 			Name:        "remoteAgent2",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 		remoteAgent3 := model.RemoteAgent{
 			Name:        "remoteAgent3",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 		remoteAgent4 := model.RemoteAgent{
 			Name:        "remoteAgent4",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 
 		agentListTest(handler, db, "remoteAgents", &remoteAgent1, &remoteAgent2,
@@ -62,7 +62,7 @@ func TestGetRemoteAgent(t *testing.T) {
 			expected := model.RemoteAgent{
 				Name:        "existing",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&expected)
 			So(err, ShouldBeNil)
@@ -128,7 +128,7 @@ func TestCreateRemoteAgent(t *testing.T) {
 			existingRemoteAgent := model.RemoteAgent{
 				Name:        "existing",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&existingRemoteAgent)
 			So(err, ShouldBeNil)
@@ -137,7 +137,7 @@ func TestCreateRemoteAgent(t *testing.T) {
 				newRemoteAgent := model.RemoteAgent{
 					Name:        "new_remote_agent",
 					Protocol:    "sftp",
-					ProtoConfig: []byte("{\"new\":\"test\"}"),
+					ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"tata"}`),
 				}
 
 				Convey("Given that the new remote agent is valid for insertion", func() {
@@ -260,7 +260,7 @@ func TestDeleteRemoteAgent(t *testing.T) {
 			existing := model.RemoteAgent{
 				Name:        "existing",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&existing)
 			So(err, ShouldBeNil)
@@ -284,12 +284,12 @@ func TestUpdateRemoteAgent(t *testing.T) {
 			old := model.RemoteAgent{
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			other := model.RemoteAgent{
 				Name:        "other",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&old)
 			So(err, ShouldBeNil)
@@ -362,12 +362,12 @@ func TestReplaceRemoteAgent(t *testing.T) {
 			old := model.RemoteAgent{
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			other := model.RemoteAgent{
 				Name:        "other",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&old)
 			So(err, ShouldBeNil)
@@ -383,7 +383,7 @@ func TestReplaceRemoteAgent(t *testing.T) {
 				}{
 					Name:        "replace",
 					Protocol:    "sftp",
-					ProtoConfig: []byte("{\"update\":\"test\"}"),
+					ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"tata"}`),
 				}
 
 				body, err := json.Marshal(replace)

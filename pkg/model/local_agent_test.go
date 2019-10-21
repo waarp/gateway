@@ -28,7 +28,7 @@ func TestLocalAgentBeforeInsert(t *testing.T) {
 			ID:          1,
 			Name:        "test agent",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 
 		Convey("When calling the `BeforeInsert` hook", func() {
@@ -53,7 +53,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			ag := &LocalAgent{
 				Name:        "test agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			So(db.Create(ag), ShouldBeNil)
 
@@ -124,7 +124,7 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&oldAgent)
 			So(err, ShouldBeNil)
@@ -134,7 +134,7 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 					Owner:       "test_gateway",
 					Name:        "new",
 					Protocol:    "sftp",
-					ProtoConfig: []byte("{}"),
+					ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 				}
 
 				Convey("Given that the new agent is valid", func() {
@@ -262,8 +262,8 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 						})
 
 						Convey("Then the error should say that the configuration is invalid", func() {
-							So(err.Error(), ShouldEqual, "The agent's configuration "+
-								"is not a valid JSON configuration")
+							So(err.Error(), ShouldEqual, "Invalid agent configuration: "+
+								"invalid character 'i' looking for beginning of value")
 						})
 					})
 				})
@@ -281,7 +281,7 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&oldAgent)
 			So(err, ShouldBeNil)
@@ -290,7 +290,7 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "other",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"titi"}`),
 			}
 			err = db.Create(&otherAgent)
 			So(err, ShouldBeNil)
@@ -299,7 +299,7 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 				updatedAgent := LocalAgent{
 					Name:        "updated",
 					Protocol:    "sftp",
-					ProtoConfig: []byte("{\"update\":\"test\"}"),
+					ProtoConfig: []byte(`{"address":"localhost","port":2024,"root":"tata"}`),
 				}
 
 				Convey("Given that the updated agent is valid", func() {
@@ -410,8 +410,8 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 						})
 
 						Convey("Then the error should say that the configuration is invalid", func() {
-							So(err.Error(), ShouldEqual, "The agent's configuration "+
-								"is not a valid JSON configuration")
+							So(err.Error(), ShouldEqual, "Invalid agent configuration: "+
+								"invalid character 'i' looking for beginning of value")
 						})
 					})
 				})

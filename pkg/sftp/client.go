@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
@@ -39,16 +40,13 @@ func (c *Context) Close() {
 // Connect opens and returns a sftp connection to the remote agent with the given Cert and RemoteAccount
 func Connect(r *model.RemoteAgent, c *model.Cert, a *model.RemoteAccount) (*Context, error) {
 	// Unmarshal Remote ProtoConfig
-	var remoteConf map[string]interface{}
-	if err := json.Unmarshal(r.ProtoConfig, &remoteConf); err != nil {
+	remoteConf := &config.SftpProtoConfig{}
+	if err := json.Unmarshal(r.ProtoConfig, remoteConf); err != nil {
 		return nil, err
 	}
 
 	// Build Remote address
-	addr, err := getRemoteAddress(remoteConf)
-	if err != nil {
-		return nil, err
-	}
+	addr := getRemoteAddress(remoteConf)
 
 	// Create SSH config
 	sshConfig, err := getSSHConfig(c, a)
@@ -71,12 +69,8 @@ func Connect(r *model.RemoteAgent, c *model.Cert, a *model.RemoteAccount) (*Cont
 }
 
 // getPartnerAddress return the remote address as "address:port"
-func getRemoteAddress(conf map[string]interface{}) (string, error) {
-	port, ok := conf["port"].(float64)
-	if !ok {
-		return "", fmt.Errorf("invalid value (%b) for port", conf["port"])
-	}
-	return fmt.Sprintf("%s:%d", conf["address"], int(port)), nil
+func getRemoteAddress(conf *config.SftpProtoConfig) string {
+	return fmt.Sprintf("%s:%d", conf.Address, conf.Port)
 }
 
 // getSshConfig return a SSH ClientConfig using the given Cert and Account

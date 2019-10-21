@@ -28,7 +28,7 @@ func TestGetServer(t *testing.T) {
 			server := model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"key1":"value1","key2":"value2"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&server)
@@ -101,7 +101,7 @@ func TestAddServer(t *testing.T) {
 			Convey("Given valid flags", func() {
 				command.Name = "local_agent"
 				command.Protocol = "sftp"
-				command.ProtoConfig = "{}"
+				command.ProtoConfig = `{"address":"localhost","port":2022,"root":"toto"}`
 
 				Convey("When executing the command", func() {
 					addr := gw.Listener.Addr().String()
@@ -172,8 +172,8 @@ func TestAddServer(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "400 - Invalid request: The "+
-							"agent's configuration is not a valid JSON configuration")
+						So(err.Error(), ShouldEqual, "400 - Invalid request: "+
+							"Invalid agent configuration: unexpected end of JSON input")
 					})
 				})
 			})
@@ -196,7 +196,7 @@ func TestListServers(t *testing.T) {
 			server1 := model.LocalAgent{
 				Name:        "local_agent1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"key1":"value1","key2":"value2"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&server1)
 			So(err, ShouldBeNil)
@@ -204,7 +204,7 @@ func TestListServers(t *testing.T) {
 			server2 := model.LocalAgent{
 				Name:        "local_agent2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"key3":"value3","key4":"value4"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"titi"}`),
 			}
 			err = db.Create(&server2)
 			So(err, ShouldBeNil)
@@ -369,7 +369,7 @@ func TestDeleteServer(t *testing.T) {
 			server := model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&server)
@@ -448,7 +448,7 @@ func TestUpdateServer(t *testing.T) {
 			server := model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&server)
@@ -459,7 +459,7 @@ func TestUpdateServer(t *testing.T) {
 
 				command.Name = "new_local_agent"
 				command.Protocol = "sftp"
-				command.ProtoConfig = `{"new_key":"new_value"}`
+				command.ProtoConfig = `{"address":"localhost","port":2023,"root":"titi"}`
 
 				Convey("Given all valid flags", func() {
 
@@ -534,8 +534,8 @@ func TestUpdateServer(t *testing.T) {
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "400 - Invalid request: The "+
-								"agent's configuration is not a valid JSON configuration")
+							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
+								"Invalid agent configuration: unexpected end of JSON input")
 						})
 					})
 				})

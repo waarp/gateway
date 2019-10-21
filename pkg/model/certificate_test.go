@@ -31,7 +31,7 @@ func TestCertValidateInsert(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost", "port":21, "root":"toto"}`),
 			}
 			err := db.Create(&parentAgent)
 			So(err, ShouldBeNil)
@@ -277,7 +277,7 @@ func TestCertValidateInsert(t *testing.T) {
 						Owner:       "test_gateway",
 						Name:        "other",
 						Protocol:    "sftp",
-						ProtoConfig: []byte("{}"),
+						ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 					}
 					err := db.Create(&otherAgent)
 					So(err, ShouldBeNil)
@@ -321,7 +321,7 @@ func TestCertValidateUpdate(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost", "port":21, "root":"toto"}`),
 			}
 			err := db.Create(&parentAgent)
 			So(err, ShouldBeNil)
@@ -436,7 +436,7 @@ func TestCertValidateUpdate(t *testing.T) {
 					otherAgent := RemoteAgent{
 						Name:        "other",
 						Protocol:    "sftp",
-						ProtoConfig: []byte("{}"),
+						ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 					}
 					err := db.Create(&otherAgent)
 					So(err, ShouldBeNil)

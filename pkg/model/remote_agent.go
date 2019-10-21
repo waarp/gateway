@@ -1,9 +1,8 @@
 package model
 
 import (
-	"encoding/json"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/go-xorm/builder"
 )
 
@@ -92,9 +91,11 @@ func (r *RemoteAgent) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError("The agent's protocol must be one of: %s",
 			validProtocols)
 	}
-	if !json.Valid(r.ProtoConfig) {
-		return database.InvalidError("The agent's configuration is not a valid " +
-			"JSON configuration")
+	if r.ProtoConfig == nil {
+		return database.InvalidError("The agent's configuration cannot be empty")
+	}
+	if err := r.validateProtoConfig(); err != nil {
+		return database.InvalidError("Invalid agent configuration: %s", err.Error())
 	}
 
 	if res, err := acc.Query("SELECT id FROM remote_agents WHERE name=?", r.Name); err != nil {
@@ -105,6 +106,14 @@ func (r *RemoteAgent) ValidateInsert(acc database.Accessor) error {
 	}
 
 	return nil
+}
+
+func (r *RemoteAgent) validateProtoConfig() error {
+	conf, err := config.GetProtoConfig(r.Protocol, r.ProtoConfig)
+	if err != nil {
+		return err
+	}
+	return conf.ValidServer()
 }
 
 // ValidateUpdate is called before updating an existing `RemoteAgent` entry from
@@ -121,9 +130,8 @@ func (r *RemoteAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 		}
 	}
 	if r.ProtoConfig != nil {
-		if !json.Valid(r.ProtoConfig) {
-			return database.InvalidError("The agent's configuration is not a valid " +
-				"JSON configuration")
+		if err := r.validateProtoConfig(); err != nil {
+			return database.InvalidError("Invalid agent configuration: %s", err.Error())
 		}
 	}
 

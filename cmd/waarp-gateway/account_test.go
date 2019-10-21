@@ -26,7 +26,7 @@ func TestGetAccount(t *testing.T) {
 			parentAgent := model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&parentAgent)
@@ -122,7 +122,7 @@ func TestAddAccount(t *testing.T) {
 			parentAgent := model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&parentAgent)
@@ -207,7 +207,7 @@ func TestDeleteAccount(t *testing.T) {
 			parentAgent := model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&parentAgent)
@@ -295,7 +295,7 @@ func TestUpdateAccount(t *testing.T) {
 			parentAgent := model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&parentAgent)
@@ -424,7 +424,7 @@ func TestListAccount(t *testing.T) {
 			parent1 := model.RemoteAgent{
 				Name:        "parent_agent_1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent1)
 			So(err, ShouldBeNil)
@@ -432,7 +432,7 @@ func TestListAccount(t *testing.T) {
 			parent2 := model.RemoteAgent{
 				Name:        "remote_agent2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err = db.Create(&parent2)
 			So(err, ShouldBeNil)
