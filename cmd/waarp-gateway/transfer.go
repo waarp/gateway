@@ -22,8 +22,8 @@ func displayTransfer(trans model.Transfer) {
 	fmt.Fprintf(w, "          \033[37mRule ID:\033[0m \033[33m%v\033[0m\n", trans.RuleID)
 	fmt.Fprintf(w, "       \033[37mPartner ID:\033[0m \033[33m%v\033[0m\n", trans.RemoteID)
 	fmt.Fprintf(w, "       \033[37mAccount ID:\033[0m \033[33m%v\033[0m\n", trans.AccountID)
-	fmt.Fprintf(w, "      \033[37mSource file:\033[0m \033[37m%s\033[0m\n", trans.Source)
-	fmt.Fprintf(w, " \033[37mDestination file:\033[0m \033[37m%s\033[0m\n", trans.Destination)
+	fmt.Fprintf(w, "      \033[37mSource file:\033[0m \033[37m%s\033[0m\n", trans.SourcePath)
+	fmt.Fprintf(w, " \033[37mDestination file:\033[0m \033[37m%s\033[0m\n", trans.DestPath)
 	fmt.Fprintf(w, "       \033[37mStart time:\033[0m \033[33m%s\033[0m\n",
 		trans.Start.Format(time.RFC3339))
 	fmt.Fprintf(w, "           \033[37mStatus:\033[0m \033[37;1m%s\033[0m\n", trans.Status)
@@ -40,11 +40,11 @@ type transferAddCommand struct {
 
 func (t *transferAddCommand) Execute(_ []string) error {
 	newTransfer := model.Transfer{
-		RemoteID:    t.ServerID,
-		AccountID:   t.AccountID,
-		Source:      t.File,
-		RuleID:      t.RuleID,
-		Destination: t.File,
+		RemoteID:   t.ServerID,
+		AccountID:  t.AccountID,
+		SourcePath: t.File,
+		RuleID:     t.RuleID,
+		DestPath:   t.File,
 	}
 
 	conn, err := url.Parse(auth.DSN)
@@ -95,7 +95,7 @@ type transferListCommand struct {
 	Accounts []uint64 `long:"account_id" description:"Filter the transfers based on the ID the account used. Can be repeated multiple times to filter multiple accounts."`
 	Rules    []uint64 `long:"rule_id" description:"Filter the transfers based on the ID of the transfer rule used. Can be repeated multiple times to filter multiple rules."`
 	Statuses []string `long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"PLANNED" choice:"TRANSFER"`
-	Start    string   `long:"start" description:"Filter the transfers which started after a given date. Date must be in RFC3339 format."`
+	Start    string   `long:"start" on:"Filter the transfers which started after a given date. Date must be in RFC3339 format."`
 }
 
 func (t *transferListCommand) listURL() (*url.URL, error) {

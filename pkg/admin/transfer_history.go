@@ -40,13 +40,13 @@ func makeHistoryConditions(form url.Values) ([]builder.Cond, error) {
 
 	conditions = append(conditions, builder.Eq{"owner": database.Owner})
 
-	sources := form["source"]
-	if len(sources) > 0 {
-		conditions = append(conditions, builder.In("source", sources))
+	accounts := form["account"]
+	if len(accounts) > 0 {
+		conditions = append(conditions, builder.In("account", accounts))
 	}
-	dests := form["dest"]
-	if len(dests) > 0 {
-		conditions = append(conditions, builder.In("dest", dests))
+	remotes := form["remote"]
+	if len(remotes) > 0 {
+		conditions = append(conditions, builder.In("remote", remotes))
 	}
 	rules := form["rule"]
 	if len(rules) > 0 {
@@ -91,7 +91,7 @@ func makeHistoryFilters(r *http.Request) (*database.Filters, error) {
 	offset := 0
 	order := "start"
 
-	validSorting := []string{"source", "dest", "rule", "status", "protocol", "start"}
+	validSorting := []string{"account", "remote", "rule", "status", "protocol", "start"}
 
 	if err := parseLimitOffsetOrder(r, &limit, &offset, &order, validSorting); err != nil {
 		return nil, err

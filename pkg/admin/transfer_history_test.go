@@ -30,9 +30,11 @@ func TestGetHistory(t *testing.T) {
 		Convey("Given a database with 1 transfer history", func() {
 			h := model.TransferHistory{
 				ID:       1,
+				IsServer: true,
+				Send:     false,
 				Rule:     "rule",
-				Source:   "acc",
-				Dest:     "server",
+				Account:  "acc",
+				Remote:   "server",
 				Protocol: "sftp",
 				Filename: "file.test",
 				Start:    time.Date(2019, 01, 01, 00, 00, 00, 00, time.UTC),
@@ -105,8 +107,10 @@ func TestListHistory(t *testing.T) {
 		Convey("Given a database with 4 transfer history", func() {
 			h1 := model.TransferHistory{
 				ID:       1,
-				Source:   "from1",
-				Dest:     "to3",
+				IsServer: true,
+				Send:     false,
+				Account:  "from1",
+				Remote:   "to3",
 				Protocol: "sftp",
 				Rule:     "rule1",
 				Start:    time.Date(2019, 01, 01, 02, 00, 00, 00, time.UTC),
@@ -120,8 +124,10 @@ func TestListHistory(t *testing.T) {
 
 			h2 := model.TransferHistory{
 				ID:       2,
-				Source:   "from2",
-				Dest:     "to1",
+				IsServer: false,
+				Send:     false,
+				Account:  "from2",
+				Remote:   "to1",
 				Protocol: "sftp",
 				Rule:     "rule2",
 				Start:    time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
@@ -135,8 +141,10 @@ func TestListHistory(t *testing.T) {
 
 			h3 := model.TransferHistory{
 				ID:       3,
-				Source:   "from3",
-				Dest:     "to2",
+				IsServer: false,
+				Send:     true,
+				Account:  "from3",
+				Remote:   "to2",
 				Protocol: "sftp",
 				Rule:     "rule1",
 				Start:    time.Date(2019, 01, 01, 03, 00, 00, 00, time.UTC),
@@ -150,8 +158,10 @@ func TestListHistory(t *testing.T) {
 
 			h4 := model.TransferHistory{
 				ID:       4,
-				Source:   "from4",
-				Dest:     "to3",
+				IsServer: false,
+				Send:     true,
+				Account:  "from4",
+				Remote:   "to3",
 				Protocol: "sftp",
 				Rule:     "rule2",
 				Start:    time.Date(2019, 01, 01, 04, 00, 00, 00, time.UTC),
@@ -163,8 +173,8 @@ func TestListHistory(t *testing.T) {
 			h4.Start = h4.Start.Local()
 			h4.Stop = h4.Stop.Local()
 
-			Convey("Given a request with 2 valid 'from' parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, "?source=from1&source=from2", nil)
+			Convey("Given a request with 2 valid 'account' parameter", func() {
+				req, err := http.NewRequest(http.MethodGet, "?account=from1&account=from2", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -189,8 +199,8 @@ func TestListHistory(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with 2 valid 'to' parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, "?dest=to1&dest=to2", nil)
+			Convey("Given a request with 2 valid 'remote' parameter", func() {
+				req, err := http.NewRequest(http.MethodGet, "?remote=to1&remote=to2", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {

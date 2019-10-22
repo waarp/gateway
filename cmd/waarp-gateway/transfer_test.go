@@ -18,8 +18,8 @@ func transferInfoString(t *model.Transfer) string {
 		"          Rule ID: " + fmt.Sprint(t.RuleID) + "\n" +
 		"       Partner ID: " + fmt.Sprint(t.RemoteID) + "\n" +
 		"       Account ID: " + fmt.Sprint(t.AccountID) + "\n" +
-		"      Source file: " + t.Source + "\n" +
-		" Destination file: " + t.Destination + "\n" +
+		"      Source file: " + t.SourcePath + "\n" +
+		" Destination file: " + t.DestPath + "\n" +
 		"       Start time: " + t.Start.Local().Format(time.RFC3339) + "\n" +
 		"           Status: " + string(t.Status) + "\n"
 }
@@ -30,15 +30,15 @@ func TestDisplayTransfer(t *testing.T) {
 		out = testFile()
 
 		trans := model.Transfer{
-			ID:          1,
-			RuleID:      2,
-			RemoteID:    3,
-			AccountID:   4,
-			Source:      "source/path",
-			Destination: "dest/path",
-			Start:       time.Now(),
-			Status:      model.StatusPlanned,
-			Owner:       database.Owner,
+			ID:         1,
+			RuleID:     2,
+			RemoteID:   3,
+			AccountID:  4,
+			SourcePath: "source/path",
+			DestPath:   "dest/path",
+			Start:      time.Now(),
+			Status:     model.StatusPlanned,
+			Owner:      database.Owner,
 		}
 		Convey("When calling the `displayTransfer` function", func() {
 			displayTransfer(trans)
@@ -278,13 +278,13 @@ func TestTransferGetCommand(t *testing.T) {
 				So(db.Create(&r), ShouldBeNil)
 
 				trans := model.Transfer{
-					RuleID:      r.ID,
-					RemoteID:    p.ID,
-					AccountID:   a.ID,
-					Source:      "test/source/path",
-					Destination: "test/dest/path",
-					Start:       time.Now(),
-					Status:      model.StatusPlanned,
+					RuleID:     r.ID,
+					RemoteID:   p.ID,
+					AccountID:  a.ID,
+					SourcePath: "test/source/path",
+					DestPath:   "test/dest/path",
+					Start:      time.Now(),
+					Status:     model.StatusPlanned,
 				}
 				So(db.Create(&trans), ShouldBeNil)
 
@@ -423,36 +423,36 @@ func TestTransferListCommand(t *testing.T) {
 			Convey("Given 4 valid transfers", func() {
 
 				t1 := model.Transfer{
-					RuleID:      r1.ID,
-					RemoteID:    p1.ID,
-					AccountID:   a1.ID,
-					Source:      "test/source/path",
-					Destination: "test/dest/path",
-					Start:       time.Date(2019, 1, 1, 1, 0, 0, 0, time.UTC),
+					RuleID:     r1.ID,
+					RemoteID:   p1.ID,
+					AccountID:  a1.ID,
+					SourcePath: "test/source/path",
+					DestPath:   "test/dest/path",
+					Start:      time.Date(2019, 1, 1, 1, 0, 0, 0, time.UTC),
 				}
 				t2 := model.Transfer{
-					RuleID:      r2.ID,
-					RemoteID:    p2.ID,
-					AccountID:   a2.ID,
-					Source:      "test/source/path",
-					Destination: "test/dest/path",
-					Start:       time.Date(2019, 1, 1, 2, 0, 0, 0, time.UTC),
+					RuleID:     r2.ID,
+					RemoteID:   p2.ID,
+					AccountID:  a2.ID,
+					SourcePath: "test/source/path",
+					DestPath:   "test/dest/path",
+					Start:      time.Date(2019, 1, 1, 2, 0, 0, 0, time.UTC),
 				}
 				t3 := model.Transfer{
-					RuleID:      r3.ID,
-					RemoteID:    p3.ID,
-					AccountID:   a3.ID,
-					Source:      "test/source/path",
-					Destination: "test/dest/path",
-					Start:       time.Date(2019, 1, 1, 3, 0, 0, 0, time.UTC),
+					RuleID:     r3.ID,
+					RemoteID:   p3.ID,
+					AccountID:  a3.ID,
+					SourcePath: "test/source/path",
+					DestPath:   "test/dest/path",
+					Start:      time.Date(2019, 1, 1, 3, 0, 0, 0, time.UTC),
 				}
 				t4 := model.Transfer{
-					RuleID:      r4.ID,
-					RemoteID:    p4.ID,
-					AccountID:   a4.ID,
-					Source:      "test/source/path",
-					Destination: "test/dest/path",
-					Start:       time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
+					RuleID:     r4.ID,
+					RemoteID:   p4.ID,
+					AccountID:  a4.ID,
+					SourcePath: "test/source/path",
+					DestPath:   "test/dest/path",
+					Start:      time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
 				}
 				So(db.Create(&t1), ShouldBeNil)
 				So(db.Create(&t2), ShouldBeNil)

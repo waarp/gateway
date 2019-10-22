@@ -57,11 +57,11 @@ func TestAddTransfer(t *testing.T) {
 			So(db.Create(&push), ShouldBeNil)
 
 			trans := model.Transfer{
-				RuleID:      push.ID,
-				RemoteID:    partner.ID,
-				AccountID:   account.ID,
-				Source:      "src/test/path",
-				Destination: "dst/test/path",
+				RuleID:     push.ID,
+				RemoteID:   partner.ID,
+				AccountID:  account.ID,
+				SourcePath: "src/test/path",
+				DestPath:   "dst/test/path",
 			}
 
 			Convey("Given a valid new transfer", func() {
@@ -218,11 +218,11 @@ func TestGetTransfer(t *testing.T) {
 			So(db.Create(&push), ShouldBeNil)
 
 			trans := model.Transfer{
-				RuleID:      push.ID,
-				RemoteID:    partner.ID,
-				AccountID:   account.ID,
-				Source:      "src/test/path",
-				Destination: "dst/test/path",
+				RuleID:     push.ID,
+				RemoteID:   partner.ID,
+				AccountID:  account.ID,
+				SourcePath: "src/test/path",
+				DestPath:   "dst/test/path",
 			}
 			So(db.Create(&trans), ShouldBeNil)
 
@@ -338,30 +338,30 @@ func TestListTransfer(t *testing.T) {
 			So(db.Create(&r2), ShouldBeNil)
 
 			t1 := model.Transfer{
-				RuleID:      r1.ID,
-				RemoteID:    p1.ID,
-				AccountID:   a1.ID,
-				Source:      "src/test/path",
-				Destination: "dst/test/path",
+				RuleID:     r1.ID,
+				RemoteID:   p1.ID,
+				AccountID:  a1.ID,
+				SourcePath: "src/test/path",
+				DestPath:   "dst/test/path",
 			}
 			So(db.Create(&t1), ShouldBeNil)
 
 			t2 := model.Transfer{
-				RuleID:      r2.ID,
-				RemoteID:    p2.ID,
-				AccountID:   a2.ID,
-				Source:      "src/test/path",
-				Destination: "dst/test/path",
+				RuleID:     r2.ID,
+				RemoteID:   p2.ID,
+				AccountID:  a2.ID,
+				SourcePath: "src/test/path",
+				DestPath:   "dst/test/path",
 			}
 			So(db.Create(&t2), ShouldBeNil)
 
 			t3 := model.Transfer{
-				RuleID:      r2.ID,
-				RemoteID:    p1.ID,
-				AccountID:   a1.ID,
-				Source:      "src/test/path",
-				Destination: "dst/test/path",
-				Start:       t2.Start.Add(2 * time.Hour),
+				RuleID:     r2.ID,
+				RemoteID:   p1.ID,
+				AccountID:  a1.ID,
+				SourcePath: "src/test/path",
+				DestPath:   "dst/test/path",
+				Start:      t2.Start.Add(2 * time.Hour),
 			}
 			So(db.Create(&t3), ShouldBeNil)
 

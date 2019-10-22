@@ -18,9 +18,9 @@ import (
 func DoTransfer(client *sftp.Client, t *model.Transfer, r *model.Rule) error {
 	// Do the Transfer
 	if r.IsGet {
-		return getFile(client, t.Source, t.Destination)
+		return getFile(client, t.SourcePath, t.DestPath)
 	}
-	return putFile(client, t.Source, t.Destination)
+	return putFile(client, t.SourcePath, t.DestPath)
 }
 
 // Connect opens and returns a sftp connection to the remote agent with the given Cert and RemoteAccount

@@ -82,14 +82,14 @@ func TestTransferValidateInsert(t *testing.T) {
 
 			Convey("Given a new transfer", func() {
 				trans := &Transfer{
-					RuleID:      rule.ID,
-					RemoteID:    remote.ID,
-					AccountID:   account.ID,
-					Source:      "test/source/path",
-					Destination: "test/dest/path",
-					Start:       time.Now(),
-					Status:      "PLANNED",
-					Owner:       database.Owner,
+					RuleID:     rule.ID,
+					RemoteID:   remote.ID,
+					AccountID:  account.ID,
+					SourcePath: "test/source/path",
+					DestPath:   "test/dest/path",
+					Start:      time.Now(),
+					Status:     "PLANNED",
+					Owner:      database.Owner,
 				}
 
 				Convey("Given that the new transfer is valid", func() {
@@ -207,7 +207,7 @@ func TestTransferValidateInsert(t *testing.T) {
 				})
 
 				Convey("Given that the source is missing", func() {
-					trans.Source = ""
+					trans.SourcePath = ""
 
 					Convey("When calling the 'ValidateInsert' function", func() {
 						ses, err := db.BeginTransaction()
@@ -227,7 +227,7 @@ func TestTransferValidateInsert(t *testing.T) {
 				})
 
 				Convey("Given that the destination is missing", func() {
-					trans.Destination = ""
+					trans.DestPath = ""
 
 					Convey("When calling the 'ValidateInsert' function", func() {
 						ses, err := db.BeginTransaction()
@@ -504,7 +504,7 @@ func TestTransferValidateUpdate(t *testing.T) {
 		})
 
 		Convey("Given that the entry changes the source", func() {
-			trans.Source = "source"
+			trans.SourcePath = "source"
 
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := trans.ValidateUpdate(nil, 0)
@@ -521,7 +521,7 @@ func TestTransferValidateUpdate(t *testing.T) {
 		})
 
 		Convey("Given that the entry changes the destination", func() {
-			trans.Destination = "dest"
+			trans.DestPath = "dest"
 
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := trans.ValidateUpdate(nil, 0)
@@ -577,15 +577,15 @@ func TestTransferToHistory(t *testing.T) {
 
 		Convey("Given a transfer entry", func() {
 			trans := &Transfer{
-				ID:          1,
-				RuleID:      rule.ID,
-				RemoteID:    remote.ID,
-				AccountID:   account.ID,
-				Source:      "test/source/path",
-				Destination: "test/dest/path",
-				Start:       time.Now(),
-				Status:      StatusDone,
-				Owner:       database.Owner,
+				ID:         1,
+				RuleID:     rule.ID,
+				RemoteID:   remote.ID,
+				AccountID:  account.ID,
+				SourcePath: "test/source/path",
+				DestPath:   "test/dest/path",
+				Start:      time.Now(),
+				Status:     StatusDone,
+				Owner:      database.Owner,
 			}
 
 			Convey("When calling the `ToHistory` method", func() {
@@ -600,10 +600,12 @@ func TestTransferToHistory(t *testing.T) {
 					expected := &TransferHistory{
 						ID:       trans.ID,
 						Owner:    trans.Owner,
-						Source:   account.Login,
-						Dest:     remote.Name,
+						IsServer: false,
+						Send:     true,
+						Account:  account.Login,
+						Remote:   remote.Name,
 						Protocol: remote.Protocol,
-						Filename: trans.Source,
+						Filename: trans.SourcePath,
 						Rule:     rule.Name,
 						Start:    trans.Start,
 						Stop:     stop,

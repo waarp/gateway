@@ -49,8 +49,10 @@ func TestHistoryValidateInsert(t *testing.T) {
 			hist := &TransferHistory{
 				ID:       1,
 				Rule:     "rule",
-				Source:   "from",
-				Dest:     "to",
+				IsServer: true,
+				Send:     true,
+				Remote:   "from",
+				Account:  "to",
 				Filename: "test/source/path",
 				Start:    time.Now(),
 				Stop:     time.Now(),
@@ -113,8 +115,8 @@ func TestHistoryValidateInsert(t *testing.T) {
 				})
 			})
 
-			Convey("Given that the source is missing", func() {
-				hist.Source = ""
+			Convey("Given that the account is missing", func() {
+				hist.Account = ""
 
 				Convey("When calling the 'ValidateInsert' function", func() {
 					ses, err := db.BeginTransaction()
@@ -127,14 +129,14 @@ func TestHistoryValidateInsert(t *testing.T) {
 					})
 
 					Convey("Then the error should say the source is missing", func() {
-						So(err.Error(), ShouldEqual, "The transfer's source "+
+						So(err.Error(), ShouldEqual, "The transfer's account "+
 							"cannot be empty")
 					})
 				})
 			})
 
-			Convey("Given that the destination is missing", func() {
-				hist.Dest = ""
+			Convey("Given that the remote is missing", func() {
+				hist.Remote = ""
 
 				Convey("When calling the 'ValidateInsert' function", func() {
 					ses, err := db.BeginTransaction()
@@ -147,7 +149,7 @@ func TestHistoryValidateInsert(t *testing.T) {
 					})
 
 					Convey("Then the error should say the destination is missing", func() {
-						So(err.Error(), ShouldEqual, "The transfer's destination "+
+						So(err.Error(), ShouldEqual, "The transfer's remote "+
 							"cannot be empty")
 					})
 				})
@@ -319,8 +321,8 @@ func TestHistoryValidateUpdate(t *testing.T) {
 			})
 		})
 
-		Convey("Given that the entry changes the source", func() {
-			hist.Source = "source"
+		Convey("Given that the entry changes the account", func() {
+			hist.Account = "source"
 
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := hist.ValidateUpdate(nil, 0)
@@ -330,14 +332,14 @@ func TestHistoryValidateUpdate(t *testing.T) {
 				})
 
 				Convey("Then the error should say that the source cannot be changed", func() {
-					So(err.Error(), ShouldEqual, "The transfer's source cannot be "+
+					So(err.Error(), ShouldEqual, "The transfer's account cannot be "+
 						"changed")
 				})
 			})
 		})
 
-		Convey("Given that the entry changes the destination", func() {
-			hist.Dest = "dest"
+		Convey("Given that the entry changes the remote", func() {
+			hist.Remote = "dest"
 
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := hist.ValidateUpdate(nil, 0)
@@ -347,7 +349,7 @@ func TestHistoryValidateUpdate(t *testing.T) {
 				})
 
 				Convey("Then the error should say that the destination cannot be changed", func() {
-					So(err.Error(), ShouldEqual, "The transfer's destination "+
+					So(err.Error(), ShouldEqual, "The transfer's remote "+
 						"cannot be changed")
 				})
 			})

@@ -48,15 +48,15 @@ func TestTransferInfo(t *testing.T) {
 
 		Convey("Given a transfer entry", func() {
 			trans := &model.Transfer{
-				ID:          1,
-				RuleID:      expectedRule.ID,
-				RemoteID:    expectedRemote.ID,
-				AccountID:   expectedAccount.ID,
-				Source:      "test/source/path",
-				Destination: "test/dest/path",
-				Start:       time.Now(),
-				Status:      model.StatusPlanned,
-				Owner:       database.Owner,
+				ID:         1,
+				RuleID:     expectedRule.ID,
+				RemoteID:   expectedRemote.ID,
+				AccountID:  expectedAccount.ID,
+				SourcePath: "test/source/path",
+				DestPath:   "test/dest/path",
+				Start:      time.Now(),
+				Status:     model.StatusPlanned,
+				Owner:      database.Owner,
 			}
 
 			Convey("When calling the `transferInfo` function", func() {
@@ -123,14 +123,14 @@ func TestExecutorLogTransfer(t *testing.T) {
 
 		Convey("Given a transfer entry", func() {
 			trans := &model.Transfer{
-				RuleID:      rule.ID,
-				RemoteID:    remote.ID,
-				AccountID:   account.ID,
-				Source:      "test/source/path",
-				Destination: "test/dest/path",
-				Start:       time.Now(),
-				Status:      model.StatusPlanned,
-				Owner:       database.Owner,
+				RuleID:     rule.ID,
+				RemoteID:   remote.ID,
+				AccountID:  account.ID,
+				SourcePath: "test/source/path",
+				DestPath:   "test/dest/path",
+				Start:      time.Now(),
+				Status:     model.StatusPlanned,
+				Owner:      database.Owner,
 			}
 			So(db.Create(trans), ShouldBeNil)
 
@@ -157,10 +157,12 @@ func TestExecutorLogTransfer(t *testing.T) {
 						hist := &model.TransferHistory{
 							ID:       trans.ID,
 							Owner:    trans.Owner,
-							Source:   account.Login,
-							Dest:     remote.Name,
+							IsServer: false,
+							Send:     true,
+							Account:  account.Login,
+							Remote:   remote.Name,
 							Protocol: remote.Protocol,
-							Filename: trans.Source,
+							Filename: trans.SourcePath,
 							Rule:     rule.Name,
 							Start:    trans.Start,
 							Status:   model.StatusDone,
@@ -190,10 +192,12 @@ func TestExecutorLogTransfer(t *testing.T) {
 						hist := &model.TransferHistory{
 							ID:       trans.ID,
 							Owner:    trans.Owner,
-							Source:   account.Login,
-							Dest:     remote.Name,
+							IsServer: false,
+							Send:     true,
+							Account:  account.Login,
+							Remote:   remote.Name,
 							Protocol: remote.Protocol,
-							Filename: trans.Source,
+							Filename: trans.SourcePath,
 							Rule:     rule.Name,
 							Start:    trans.Start,
 							Status:   model.StatusError,
@@ -246,14 +250,14 @@ func TestExecutorRunTransfer(t *testing.T) {
 
 		Convey("Given a transfer entry", func() {
 			trans := &model.Transfer{
-				RuleID:      rule.ID,
-				RemoteID:    remote.ID,
-				AccountID:   account.ID,
-				Source:      "test/source/path",
-				Destination: "test/dest/path",
-				Start:       time.Now(),
-				Status:      model.StatusPlanned,
-				Owner:       database.Owner,
+				RuleID:     rule.ID,
+				RemoteID:   remote.ID,
+				AccountID:  account.ID,
+				SourcePath: "test/source/path",
+				DestPath:   "test/dest/path",
+				Start:      time.Now(),
+				Status:     model.StatusPlanned,
+				Owner:      database.Owner,
 			}
 			So(db.Create(trans), ShouldBeNil)
 
@@ -281,10 +285,12 @@ func TestExecutorRunTransfer(t *testing.T) {
 							hist := &model.TransferHistory{
 								ID:       trans.ID,
 								Owner:    trans.Owner,
-								Source:   account.Login,
-								Dest:     remote.Name,
+								IsServer: false,
+								Send:     true,
+								Account:  account.Login,
+								Remote:   remote.Name,
 								Protocol: remote.Protocol,
-								Filename: trans.Source,
+								Filename: trans.SourcePath,
 								Rule:     rule.Name,
 								Start:    trans.Start,
 								Status:   model.StatusDone,
@@ -316,10 +322,12 @@ func TestExecutorRunTransfer(t *testing.T) {
 							hist := &model.TransferHistory{
 								ID:       trans.ID,
 								Owner:    trans.Owner,
-								Source:   account.Login,
-								Dest:     remote.Name,
+								IsServer: false,
+								Send:     true,
+								Account:  account.Login,
+								Remote:   remote.Name,
 								Protocol: remote.Protocol,
-								Filename: trans.Source,
+								Filename: trans.SourcePath,
 								Rule:     rule.Name,
 								Start:    trans.Start,
 								Status:   model.StatusError,

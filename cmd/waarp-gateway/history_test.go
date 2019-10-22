@@ -15,10 +15,12 @@ import (
 
 func historyInfoString(t *model.TransferHistory) string {
 	return "Transfer " + fmt.Sprint(t.ID) + "=>\n" +
+		"    IsServer: " + fmt.Sprint(t.IsServer) + "\n" +
+		"        Send: " + fmt.Sprint(t.Send) + "\n" +
 		"    Protocol: " + fmt.Sprint(t.Protocol) + "\n" +
 		"        Rule: " + fmt.Sprint(t.Rule) + "\n" +
-		"      Source: " + fmt.Sprint(t.Source) + "\n" +
-		" Destination: " + fmt.Sprint(t.Dest) + "\n" +
+		"     Account: " + fmt.Sprint(t.Account) + "\n" +
+		"      Remote: " + fmt.Sprint(t.Remote) + "\n" +
 		"        File: " + t.Filename + "\n" +
 		"  Start date: " + t.Start.Local().Format(time.RFC3339) + "\n" +
 		"    End date: " + t.Stop.Local().Format(time.RFC3339) + "\n" +
@@ -32,9 +34,11 @@ func TestDisplayHistory(t *testing.T) {
 
 		hist := model.TransferHistory{
 			ID:       1,
+			IsServer: true,
+			Send:     false,
 			Rule:     "rule",
-			Source:   "source",
-			Dest:     "destination",
+			Account:  "source",
+			Remote:   "destination",
 			Protocol: "sftp",
 			Filename: "file/path",
 			Start:    time.Now(),
@@ -70,9 +74,11 @@ func TestHistoryGetCommand(t *testing.T) {
 			Convey("Given a valid history entry", func() {
 				hist := model.TransferHistory{
 					ID:       1,
+					IsServer: true,
+					Send:     false,
 					Rule:     "rule",
-					Source:   "source",
-					Dest:     "destination",
+					Account:  "source",
+					Remote:   "destination",
 					Protocol: "sftp",
 					Filename: "file/path",
 					Start:    time.Now(),
@@ -133,8 +139,10 @@ func TestHistoryListCommand(t *testing.T) {
 			Convey("Given 4 valid history entries", func() {
 				h1 := model.TransferHistory{
 					ID:       1,
-					Source:   "src1",
-					Dest:     "dst1",
+					IsServer: true,
+					Send:     false,
+					Account:  "src1",
+					Remote:   "dst1",
 					Protocol: "sftp",
 					Filename: "file1",
 					Rule:     "rule1",
@@ -144,8 +152,10 @@ func TestHistoryListCommand(t *testing.T) {
 				}
 				h2 := model.TransferHistory{
 					ID:       2,
-					Source:   "src2",
-					Dest:     "dst2",
+					IsServer: true,
+					Send:     false,
+					Account:  "src2",
+					Remote:   "dst2",
 					Protocol: "sftp",
 					Filename: "file2",
 					Rule:     "rule2",
@@ -155,8 +165,10 @@ func TestHistoryListCommand(t *testing.T) {
 				}
 				h3 := model.TransferHistory{
 					ID:       3,
-					Source:   "src3",
-					Dest:     "dst3",
+					IsServer: true,
+					Send:     false,
+					Account:  "src3",
+					Remote:   "dst3",
 					Protocol: "sftp",
 					Filename: "file3",
 					Rule:     "rule3",
@@ -166,8 +178,10 @@ func TestHistoryListCommand(t *testing.T) {
 				}
 				h4 := model.TransferHistory{
 					ID:       4,
-					Source:   "src4",
-					Dest:     "dst4",
+					IsServer: true,
+					Send:     false,
+					Account:  "src4",
+					Remote:   "dst4",
 					Protocol: "sftp",
 					Filename: "file4",
 					Rule:     "rule4",
@@ -324,7 +338,7 @@ func TestHistoryListCommand(t *testing.T) {
 				})
 
 				Convey("Given a source parameter", func() {
-					command.Source = []string{h1.Source, h2.Source}
+					command.Account = []string{h1.Account, h2.Account}
 
 					Convey("When executing the command", func() {
 						err := command.Execute(nil)
@@ -347,7 +361,7 @@ func TestHistoryListCommand(t *testing.T) {
 				})
 
 				Convey("Given a destination parameter", func() {
-					command.Destination = []string{h2.Dest, h3.Dest}
+					command.Remote = []string{h2.Remote, h3.Remote}
 
 					Convey("When executing the command", func() {
 						err := command.Execute(nil)
@@ -443,8 +457,8 @@ func TestHistoryListCommand(t *testing.T) {
 				Convey("Given a combination of multiple parameters", func() {
 					command.Start = time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
 					command.Stop = time.Date(2019, 1, 3, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
-					command.Source = []string{h1.Source, h2.Source}
-					command.Destination = []string{h4.Dest, h1.Dest}
+					command.Account = []string{h1.Account, h2.Account}
+					command.Remote = []string{h4.Remote, h1.Remote}
 					command.Rules = []string{h3.Rule, h1.Rule, h2.Rule}
 					command.Statuses = []string{"DONE", "TRANSFER"}
 					command.Protocol = []string{"sftp"}
