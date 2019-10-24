@@ -113,8 +113,7 @@ func sendBean(bean interface{}, conn *url.URL, method string) (string, error) {
 		return "", err
 	}
 
-	// TODO May be useful to delete http.StatusAccepted when it is not longer used
-	if res.StatusCode != http.StatusCreated && res.StatusCode != http.StatusAccepted {
+	if res.StatusCode != http.StatusCreated {
 		return "", handleErrors(res, conn)
 	}
 

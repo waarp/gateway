@@ -31,7 +31,7 @@ func (*Rule) Init(acc database.Accessor) error {
 		return err
 	}
 
-	pull := Rule{Name: "pull", IsGet: false}
+	pull := Rule{Name: "pull", IsGet: true}
 	if err := acc.Create(&pull); err != nil {
 		return err
 	}

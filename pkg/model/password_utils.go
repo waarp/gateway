@@ -39,7 +39,7 @@ func encryptPassword(password []byte) ([]byte, error) {
 // If the password cannot be decrypted, an error is returned.
 func DecryptPassword(cipher []byte) ([]byte, error) {
 	if !strings.HasPrefix(string(cipher), "$AES$") {
-		return nil, errors.New("the input is not a valid password cipher")
+		return cipher, nil
 	}
 	cryptPassword := cipher[5:]
 

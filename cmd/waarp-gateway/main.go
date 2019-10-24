@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -35,16 +36,18 @@ func main() {
 	cmd := flags.NewNamedParser("waarp-gateway", flags.Default)
 	_, err := cmd.AddGroup("Connection Options", "", &auth)
 	if err != nil {
+		fmt.Fprint(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 	if _, err := cmd.AddGroup("Database Commands", "", &commands{}); err != nil {
-		os.Exit(1)
+		fmt.Fprint(os.Stderr, err.Error())
+		os.Exit(2)
 	}
 
 	_, err = cmd.Parse()
 
 	if err != nil && !flags.WroteHelp(err) {
-		os.Exit(2)
+		os.Exit(3)
 	}
 }
 

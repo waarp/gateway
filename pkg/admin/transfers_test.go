@@ -69,8 +69,8 @@ func TestAddTransfer(t *testing.T) {
 
 					handler.ServeHTTP(w, r)
 
-					Convey("Then it should return a code 202", func() {
-						So(w.Code, ShouldEqual, http.StatusAccepted)
+					Convey("Then it should return a code 201", func() {
+						So(w.Code, ShouldEqual, http.StatusCreated)
 					})
 
 					Convey("Then the response body should be empty", func() {
@@ -97,7 +97,7 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the response body should say the partner is invalid", func() {
 						So(w.Body.String(), ShouldEqual, fmt.Sprintf("The rule "+
-							"n°%v does not exist\n", trans.RuleID))
+							"%v does not exist\n", trans.RuleID))
 					})
 				})
 			})
@@ -120,7 +120,7 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the response body should say the partner is invalid", func() {
 						So(w.Body.String(), ShouldEqual, fmt.Sprintf("The partner "+
-							"n°%v does not exist\n", trans.RemoteID))
+							"%v does not exist\n", trans.RemoteID))
 					})
 				})
 			})
@@ -142,8 +142,9 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, fmt.Sprintf("The account "+
-							"n°%v does not exist\n", trans.AccountID))
+						So(w.Body.String(), ShouldEqual, fmt.Sprintf("The agent "+
+							"%v does not have an account %v\n", trans.RemoteID,
+							trans.AccountID))
 					})
 				})
 			})
@@ -166,7 +167,7 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the response body should say no certificates were found", func() {
 						So(w.Body.String(), ShouldEqual, fmt.Sprintf("No "+
-							"certificates found for agent n°%v\n", trans.RemoteID))
+							"certificate found for agent %v\n", trans.RemoteID))
 					})
 				})
 			})

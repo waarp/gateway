@@ -335,7 +335,7 @@ func TestUpdateAccount(t *testing.T) {
 							cont, err := ioutil.ReadAll(out)
 							So(err, ShouldBeNil)
 							So(string(cont), ShouldEqual, "The account n°"+id+
-								" was successfully updated")
+								" was successfully updated\n")
 						})
 
 						Convey("Then the old account should have been removed", func() {

@@ -53,7 +53,7 @@ func (a *accountGetCommand) Execute(args []string) error {
 
 type accountAddCommand struct {
 	PartnerID uint64 `required:"true" long:"partner_id" description:"The ID of the remote agent the account is attached to"`
-	Login     string `required:"true" short:"l" long:"name" description:"The account's login"`
+	Login     string `required:"true" short:"l" long:"login" description:"The account's login"`
 	Password  string `required:"true" short:"p" long:"password" description:"The account's password"`
 }
 
@@ -144,7 +144,7 @@ func (a *accountUpdateCommand) Execute(args []string) error {
 	}
 
 	w := getColorable()
-	fmt.Fprintf(w, "The account n°\033[33m%s\033[0m was successfully updated", args[0])
+	fmt.Fprintf(w, "The account n°\033[33m%s\033[0m was successfully updated\n", args[0])
 
 	return nil
 }

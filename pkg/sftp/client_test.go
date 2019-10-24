@@ -114,7 +114,7 @@ func handleSFTP(listener net.Listener, config *ssh.ServerConfig) {
 
 func TestConnect(t *testing.T) {
 	Convey("Given a SFTP Server registered as a Remote Agent", t, func() {
-		remote := model.RemoteAgent{
+		remote := &model.RemoteAgent{
 			Name:     "test",
 			Protocol: "sftp",
 			ProtoConfig: []byte(
@@ -126,12 +126,12 @@ func TestConnect(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			cert := model.Cert{
+			cert := &model.Cert{
 				PublicKey: serverKey,
 			}
 
 			Convey("Given a valid Remote Account", func() {
-				account := model.RemoteAccount{
+				account := &model.RemoteAccount{
 					Login:    testSFTPUser,
 					Password: []byte(testSFTPPassword),
 				}
@@ -151,7 +151,7 @@ func TestConnect(t *testing.T) {
 				})
 			})
 			Convey("Given an incorrect Account", func() {
-				account := model.RemoteAccount{
+				account := &model.RemoteAccount{
 					Login:    testSFTPUser,
 					Password: []byte("Giberish"),
 				}
@@ -169,11 +169,11 @@ func TestConnect(t *testing.T) {
 			})
 		})
 		Convey("Given a unvalid certificate", func() {
-			cert := model.Cert{
+			cert := &model.Cert{
 				PublicKey: []byte("Giberish"),
 			}
 			Convey("Given a valid Remote Account", func() {
-				account := model.RemoteAccount{
+				account := &model.RemoteAccount{
 					Login:    testSFTPUser,
 					Password: []byte(testSFTPPassword),
 				}
@@ -197,7 +197,7 @@ func TestConnect(t *testing.T) {
 
 func TestDoTransfer(t *testing.T) {
 	Convey("Given a SFTP Server registered as a Remote Agent", t, func() {
-		remote := model.RemoteAgent{
+		remote := &model.RemoteAgent{
 			Name:     "test",
 			Protocol: "sftp",
 			ProtoConfig: []byte(
@@ -209,18 +209,18 @@ func TestDoTransfer(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			cert := model.Cert{
+			cert := &model.Cert{
 				PublicKey: serverKey,
 			}
-			push := model.Rule{
+			push := &model.Rule{
 				Name:  "push",
 				IsGet: false,
 			}
-			pull := model.Rule{
+			pull := &model.Rule{
 				Name:  "pull",
 				IsGet: true,
 			}
-			account := model.RemoteAccount{
+			account := &model.RemoteAccount{
 				Login:    testSFTPUser,
 				Password: []byte(testSFTPPassword),
 			}
@@ -234,7 +234,7 @@ func TestDoTransfer(t *testing.T) {
 
 			// TODO Handle transfer rules
 			Convey("Given a valid push transfer", func() {
-				transfer := model.Transfer{
+				transfer := &model.Transfer{
 					RuleID:      push.ID,
 					RemoteID:    remote.ID,
 					AccountID:   account.ID,
@@ -268,7 +268,7 @@ func TestDoTransfer(t *testing.T) {
 			})
 
 			Convey("Given a push transfer with a non exiting file", func() {
-				transfer := model.Transfer{
+				transfer := &model.Transfer{
 					RuleID:      push.ID,
 					RemoteID:    remote.ID,
 					AccountID:   account.ID,
@@ -296,7 +296,7 @@ func TestDoTransfer(t *testing.T) {
 			})
 
 			Convey("Given a valid pull transfer", func() {
-				transfer := model.Transfer{
+				transfer := &model.Transfer{
 					RuleID:      pull.ID,
 					RemoteID:    remote.ID,
 					AccountID:   account.ID,
