@@ -10,6 +10,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/controller"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
@@ -37,9 +38,11 @@ func (wg *WG) initServices() {
 
 	wg.dbService = &database.Db{Conf: wg.Conf}
 	adminService := &admin.Server{Conf: wg.Conf, Db: wg.dbService, Services: wg.Services}
+	controllerService := &controller.Controller{Conf: wg.Conf, Db: wg.dbService}
 
 	wg.Services[database.ServiceName] = wg.dbService
 	wg.Services[admin.ServiceName] = adminService
+	wg.Services[controller.ServiceName] = controllerService
 }
 
 func (wg *WG) startServices() error {

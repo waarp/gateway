@@ -12,7 +12,7 @@ import (
 )
 
 // DoTransfer realise a sftp transfer according to the given Transfer
-func DoTransfer(client *sftp.Client, t model.Transfer, r model.Rule) error {
+func DoTransfer(client *sftp.Client, t *model.Transfer, r *model.Rule) error {
 	// Do the Transfer
 	if r.IsGet {
 		return getFile(client, t.Source, t.Destination)
@@ -21,7 +21,7 @@ func DoTransfer(client *sftp.Client, t model.Transfer, r model.Rule) error {
 }
 
 // Connect opens and returns a sftp connection to the remote agent with the given Cert and RemoteAccount
-func Connect(r model.RemoteAgent, c model.Cert, a model.RemoteAccount) (*sftp.Client, error) {
+func Connect(r *model.RemoteAgent, c *model.Cert, a *model.RemoteAccount) (*sftp.Client, error) {
 	// Unmarshal Remote ProtoConfig
 	var remoteConf map[string]interface{}
 	if err := json.Unmarshal(r.ProtoConfig, &remoteConf); err != nil {
@@ -59,15 +59,20 @@ func getRemoteAddress(conf map[string]interface{}) (string, error) {
 }
 
 // getSshConfig return a SSH ClientConfig using the given Cert and Account
-func getSSHConfig(c model.Cert, a model.RemoteAccount) (*ssh.ClientConfig, error) {
+func getSSHConfig(c *model.Cert, a *model.RemoteAccount) (*ssh.ClientConfig, error) {
 	key, _, _, _, err := ssh.ParseAuthorizedKey(c.PublicKey) //nolint:dogsled
 	if err != nil {
 		return nil, err
 	}
+	pwd, err := model.DecryptPassword(a.Password)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ssh.ClientConfig{
 		User: a.Login,
 		Auth: []ssh.AuthMethod{
-			ssh.Password(string(a.Password)),
+			ssh.Password(string(pwd)),
 		},
 		HostKeyCallback: ssh.FixedHostKey(key),
 	}, nil

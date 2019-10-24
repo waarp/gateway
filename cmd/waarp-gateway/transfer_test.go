@@ -19,7 +19,7 @@ func TestAddTransfer(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			Convey("Given a valid Remote Agents", func() {
+			Convey("Given a valid remote agents", func() {
 				p := model.RemoteAgent{
 					Name:        "test",
 					Protocol:    "sftp",
@@ -29,7 +29,7 @@ func TestAddTransfer(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				// TODO delete Given a valid Certificate
-				Convey("Given a valid Certificate", func() {
+				Convey("Given a valid certificate", func() {
 					c := model.Cert{
 						Name:        "test",
 						PublicKey:   []byte("test"),
@@ -40,7 +40,7 @@ func TestAddTransfer(t *testing.T) {
 					err := db.Create(&c)
 					So(err, ShouldBeNil)
 
-					Convey("Given a valid Acount", func() {
+					Convey("Given a valid account", func() {
 						a := model.RemoteAccount{
 							Login:         "login",
 							Password:      []byte("password"),
@@ -49,7 +49,7 @@ func TestAddTransfer(t *testing.T) {
 						err := db.Create(&a)
 						So(err, ShouldBeNil)
 
-						Convey("Given a valid Rule", func() {
+						Convey("Given a valid rule", func() {
 							r := model.Rule{
 								Name:  "rule",
 								IsGet: false,
@@ -76,7 +76,7 @@ func TestAddTransfer(t *testing.T) {
 								})
 							})
 
-							SkipConvey("Given no Rule", func() {
+							Convey("Given no rule", func() {
 								command.ServerID = p.ID
 								command.AccountID = a.ID
 								command.File = "test"
@@ -94,7 +94,7 @@ func TestAddTransfer(t *testing.T) {
 								})
 							})
 
-							SkipConvey("Given no Account", func() {
+							Convey("Given no account", func() {
 								command.ServerID = p.ID
 								command.RuleID = r.ID
 								command.File = "test"
@@ -112,7 +112,7 @@ func TestAddTransfer(t *testing.T) {
 								})
 							})
 
-							SkipConvey("Given no Remote", func() {
+							Convey("Given no remote", func() {
 								command.AccountID = a.ID
 								command.RuleID = r.ID
 								command.File = "test"
@@ -130,7 +130,7 @@ func TestAddTransfer(t *testing.T) {
 								})
 							})
 
-							SkipConvey("Given no File", func() {
+							Convey("Given no File", func() {
 								command.ServerID = p.ID
 								command.AccountID = a.ID
 								command.RuleID = r.ID
@@ -148,7 +148,7 @@ func TestAddTransfer(t *testing.T) {
 								})
 							})
 
-							Convey("Given another Remote Agent", func() {
+							Convey("Given another remote agent", func() {
 								p2 := model.RemoteAgent{
 									Name:        "dummy",
 									Protocol:    "sftp",
@@ -157,7 +157,7 @@ func TestAddTransfer(t *testing.T) {
 								err := db.Create(&p2)
 								So(err, ShouldBeNil)
 
-								Convey("Given an Account link to another Remote Agent", func() {
+								Convey("Given an account link to another remote agent", func() {
 									a2 := model.RemoteAccount{
 										Login:         "login",
 										Password:      []byte("password"),
@@ -166,7 +166,7 @@ func TestAddTransfer(t *testing.T) {
 									err := db.Create(&a2)
 									So(err, ShouldBeNil)
 
-									Convey("Given an Incorect Account", func() {
+									Convey("Given an incorrect account", func() {
 										command.ServerID = p.ID
 										command.AccountID = a2.ID
 										command.RuleID = r.ID

@@ -621,7 +621,7 @@ func TestUpdateCertificate(t *testing.T) {
 							cont, err := ioutil.ReadAll(out)
 							So(err, ShouldBeNil)
 							So(string(cont), ShouldEqual, "The certificate n°"+id+
-								" was successfully updated")
+								" was successfully updated\n")
 						})
 
 						Convey("Then the old certificate should have been removed", func() {

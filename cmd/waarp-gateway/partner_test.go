@@ -480,7 +480,7 @@ func TestUpdatePartner(t *testing.T) {
 							cont, err := ioutil.ReadAll(out)
 							So(err, ShouldBeNil)
 							So(string(cont), ShouldEqual, "The partner n°"+id+
-								" was successfully updated")
+								" was successfully updated\n")
 						})
 
 						Convey("Then the old partner should have been removed", func() {

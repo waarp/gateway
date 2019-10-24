@@ -185,7 +185,7 @@ func (p *partnerUpdateCommand) Execute(args []string) error {
 	}
 
 	w := getColorable()
-	fmt.Fprintf(w, "The partner n°\033[33m%s\033[0m was successfully updated", args[0])
+	fmt.Fprintf(w, "The partner n°\033[33m%s\033[0m was successfully updated\n", args[0])
 
 	return nil
 }

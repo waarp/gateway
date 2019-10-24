@@ -66,17 +66,26 @@ type certAddCommand struct {
 }
 
 func (c *certAddCommand) Execute(_ []string) error {
-	prK, err := ioutil.ReadFile(c.PrivateKey)
-	if err != nil {
-		return err
+	var prK, puK, crt []byte
+	var err error
+
+	if c.PrivateKey != "" {
+		prK, err = ioutil.ReadFile(c.PrivateKey)
+		if err != nil {
+			return err
+		}
 	}
-	puK, err := ioutil.ReadFile(c.PublicKey)
-	if err != nil {
-		return err
+	if c.PublicKey != "" {
+		puK, err = ioutil.ReadFile(c.PublicKey)
+		if err != nil {
+			return err
+		}
 	}
-	crt, err := ioutil.ReadFile(c.Certificate)
-	if err != nil {
-		return err
+	if c.Certificate != "" {
+		crt, err = ioutil.ReadFile(c.Certificate)
+		if err != nil {
+			return err
+		}
 	}
 
 	newCert := model.Cert{
@@ -250,7 +259,7 @@ func (c *certUpdateCommand) Execute(args []string) error {
 	}
 
 	w := getColorable()
-	fmt.Fprintf(w, "The certificate n°\033[33m%s\033[0m was successfully updated", args[0])
+	fmt.Fprintf(w, "The certificate n°\033[33m%s\033[0m was successfully updated\n", args[0])
 
 	return nil
 }

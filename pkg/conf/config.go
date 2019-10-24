@@ -2,16 +2,18 @@ package conf
 
 import (
 	"os"
+	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/config"
 )
 
 // ServerConfig holds the server configuration options
 type ServerConfig struct {
-	GatewayName string         `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
-	Log         LogConfig      `group:"log"`
-	Admin       AdminConfig    `group:"admin"`
-	Database    DatabaseConfig `group:"database"`
+	GatewayName string           `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
+	Log         LogConfig        `group:"log"`
+	Admin       AdminConfig      `group:"admin"`
+	Database    DatabaseConfig   `group:"database"`
+	Controller  ControllerConfig `group:"controller"`
 }
 
 // LogConfig holds the server logging options
@@ -37,6 +39,11 @@ type DatabaseConfig struct {
 	User          string `ini-name:"User" default:"waarp_gatewayd" description:"The name of the gateway database user"`
 	Password      string `ini-name:"Password" default:"" description:"The password of the gateway database user"`
 	AESPassphrase string `ini-name:"AESPassphrase" default:"aes_passphrase" description:"The path to the file containing the passphrase used to encrypt account passwords using AES"`
+}
+
+// ControllerConfig holds the transfer controller options
+type ControllerConfig struct {
+	Delay time.Duration `ini-name:"Delay" default:"5s" description:"The frequency at which the database will be probed for new transfers"`
 }
 
 // LoadServerConfig creates a configuration object.
