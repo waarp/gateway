@@ -361,7 +361,7 @@ func TestListTransfer(t *testing.T) {
 				AccountID:   a1.ID,
 				Source:      "src/test/path",
 				Destination: "dst/test/path",
-				Start:  t2.Start.Add(2* time.Hour),
+				Start:       t2.Start.Add(2 * time.Hour),
 			}
 			So(db.Create(&t3), ShouldBeNil)
 

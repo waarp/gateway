@@ -14,8 +14,8 @@ func init() {
 type TransferHistory struct {
 	ID       uint64         `xorm:"pk 'id'" json:"id"`
 	Owner    string         `xorm:"notnull" json:"-"`
-	Source   string    `xorm:"notnull 'source'" json:"source"`
-	Dest     string    `xorm:"notnull 'dest'" json:"dest"`
+	Source   string         `xorm:"notnull 'source'" json:"source"`
+	Dest     string         `xorm:"notnull 'dest'" json:"dest"`
 	Protocol string         `xorm:"notnull" json:"protocol"`
 	Filename string         `xorm:"notnull" json:"filename"`
 	Rule     string         `xorm:"notnull" json:"rule"`
