@@ -19,10 +19,10 @@ import (
 // DoTransfer realise a sftp transfer according to the given Transfer
 func DoTransfer(client *sftp.Client, t *model.Transfer, r *model.Rule) error {
 	// Do the Transfer
-	if r.IsGet {
-		return getFile(client, t.SourcePath, t.DestPath)
+	if r.Send {
+		return putFile(client, t.SourcePath, t.DestPath)
 	}
-	return putFile(client, t.SourcePath, t.DestPath)
+	return getFile(client, t.SourcePath, t.DestPath)
 }
 
 // Context is a struct containing both the SSHClient and the SftpClient
