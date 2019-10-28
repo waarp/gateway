@@ -47,9 +47,10 @@ func TestHistoryValidateInsert(t *testing.T) {
 
 		Convey("Given a new history entry", func() {
 			hist := &TransferHistory{
+				ID:       1,
 				Rule:     "rule",
-				From:     "from",
-				To:       "to",
+				Source:   "from",
+				Dest:     "to",
 				Filename: "test/source/path",
 				Start:    time.Now(),
 				Stop:     time.Now(),
@@ -113,7 +114,7 @@ func TestHistoryValidateInsert(t *testing.T) {
 			})
 
 			Convey("Given that the source is missing", func() {
-				hist.From = ""
+				hist.Source = ""
 
 				Convey("When calling the 'ValidateInsert' function", func() {
 					ses, err := db.BeginTransaction()
@@ -133,7 +134,7 @@ func TestHistoryValidateInsert(t *testing.T) {
 			})
 
 			Convey("Given that the destination is missing", func() {
-				hist.To = ""
+				hist.Dest = ""
 
 				Convey("When calling the 'ValidateInsert' function", func() {
 					ses, err := db.BeginTransaction()
@@ -319,7 +320,7 @@ func TestHistoryValidateUpdate(t *testing.T) {
 		})
 
 		Convey("Given that the entry changes the source", func() {
-			hist.From = "source"
+			hist.Source = "source"
 
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := hist.ValidateUpdate(nil, 0)
@@ -336,7 +337,7 @@ func TestHistoryValidateUpdate(t *testing.T) {
 		})
 
 		Convey("Given that the entry changes the destination", func() {
-			hist.To = "dest"
+			hist.Dest = "dest"
 
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := hist.ValidateUpdate(nil, 0)

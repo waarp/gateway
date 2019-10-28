@@ -58,8 +58,9 @@ func listCertificates(logger *log.Logger, db *database.Db) http.HandlerFunc {
 					}
 					ownerIDs[i] = id
 				}
-				conditions = append(conditions, builder.Eq{"owner_type": ownerType})
-				conditions = append(conditions, builder.In("owner_id", ownerIDs))
+				condition := builder.And(builder.Eq{"owner_type": ownerType},
+					builder.In("owner_id", ownerIDs))
+				conditions = append(conditions, condition)
 			}
 		}
 
@@ -67,7 +68,7 @@ func listCertificates(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			Limit:      limit,
 			Offset:     offset,
 			Order:      order,
-			Conditions: builder.And(conditions...),
+			Conditions: builder.Or(conditions...),
 		}
 
 		results := []model.Cert{}

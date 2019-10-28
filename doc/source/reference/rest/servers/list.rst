@@ -3,7 +3,7 @@ Lister les serveurs
 
 .. http:get:: /api/servers
 
-   Renvoie une liste des serveurs remplissant les critères données en paramètre
+   Renvoie une liste des serveurs remplissant les critères donnés en paramètres
    de requête.
 
    **Requête**

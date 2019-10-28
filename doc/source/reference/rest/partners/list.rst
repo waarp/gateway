@@ -3,7 +3,7 @@ Lister les partenaires
 
 .. http:get:: /api/partners
 
-   Renvoie une liste des partenaires remplissant les critères données en paramètre
+   Renvoie une liste des partenaires remplissant les critères donnés en paramètres
    de requête.
 
    **Requête**

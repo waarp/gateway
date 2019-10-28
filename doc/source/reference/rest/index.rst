@@ -8,6 +8,7 @@ en interrogeant l'adresse d'administration donnée dans la configuration.
    :maxdepth: 2
 
    transfers/index
+   history/index
    servers/index
    partners/index
    local_accounts/index

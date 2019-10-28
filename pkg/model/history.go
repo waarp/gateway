@@ -14,8 +14,8 @@ func init() {
 type TransferHistory struct {
 	ID       uint64         `xorm:"pk 'id'" json:"id"`
 	Owner    string         `xorm:"notnull" json:"-"`
-	From     string         `xorm:"notnull" json:"from"`
-	To       string         `xorm:"notnull" json:"to"`
+	Source   string         `xorm:"notnull 'source'" json:"source"`
+	Dest     string         `xorm:"notnull 'dest'" json:"dest"`
 	Protocol string         `xorm:"notnull" json:"protocol"`
 	Filename string         `xorm:"notnull" json:"filename"`
 	Rule     string         `xorm:"notnull" json:"rule"`
@@ -43,13 +43,16 @@ func (t *TransferHistory) ValidateInsert(database.Accessor) error {
 	if t.Owner == "" {
 		return database.InvalidError("The transfer's owner cannot be empty")
 	}
+	if t.ID == 0 {
+		return database.InvalidError("The transfer's ID cannot be empty")
+	}
 	if t.Rule == "" {
 		return database.InvalidError("The transfer's rule cannot be empty")
 	}
-	if t.From == "" {
+	if t.Source == "" {
 		return database.InvalidError("The transfer's source cannot be empty")
 	}
-	if t.To == "" {
+	if t.Dest == "" {
 		return database.InvalidError("The transfer's destination cannot be empty")
 	}
 	if t.Filename == "" {
@@ -90,10 +93,10 @@ func (t *TransferHistory) ValidateUpdate(database.Accessor, uint64) error {
 	if t.Rule != "" {
 		return database.InvalidError("The transfer's rule cannot be changed")
 	}
-	if t.From != "" {
+	if t.Source != "" {
 		return database.InvalidError("The transfer's source cannot be changed")
 	}
-	if t.To != "" {
+	if t.Dest != "" {
 		return database.InvalidError("The transfer's destination cannot be changed")
 	}
 	if t.Filename != "" {

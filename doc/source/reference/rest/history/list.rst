@@ -1,0 +1,102 @@
+Filtrer l'historique
+====================
+
+.. _RFC 3339: https://www.ietf.org/rfc/rfc3339.txt
+
+.. http:get:: /api/history
+
+   Renvoie une liste des entrées de l'historique de transfert remplissant les
+   critères donnés en paramètres de requête.
+
+   **Requête**
+
+   :reqheader Authorization: Les identifiants de l'utilisateur
+
+   :param limit: Le nombre maximum de résultats souhaités *(défaut: 20)*
+   :type limit: int
+   :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
+   :type offset: int
+   :param sortby: Le paramètre selon lequel les transferts seront triés *(défaut: start)*
+   :type sortby: [start|id|status|rule_id]
+   :param order: L'ordre dans lequel les serveurs sont triés *(défaut: asc)*
+   :type order: [asc|desc]
+   :param source: Filtre uniquement les transferts provenant de l'agent renseigné.
+      Peut être renseigné plusieurs fois pour filtrer plusieurs sources.
+   :type source: string
+   :param dest: Filtre uniquement les transferts à destination de l'agent renseigné.
+      Peut être renseigné plusieurs fois pour filtrer plusieurs destinations.
+   :type dest: string
+   :param rule: Filtre uniquement les transferts avec la règle renseignée.
+      Peut être renseigné plusieurs fois pour filtrer plusieurs règles.
+   :type rule: string
+   :param protocol: Filtre uniquement les transferts utilisant le protocole renseigné.
+      Peut être renseigné plusieurs fois pour filtrer plusieurs protocoles.
+   :type protocol: [sftp]
+   :param status: Filtre uniquement les transferts ayant le statut renseigné.
+      Peut être renseigné plusieurs fois pour filtrer plusieurs status.
+   :type status: [PLANNED|TRANSFER]
+   :param start: Filtre uniquement les transferts ayant commencé après la date
+      renseignée. La date doit être renseignée en format ISO 8601 tel qu'il
+      est spécifié dans la `RFC 3339`_.
+   :type start: date
+   :param stop: Filtre uniquement les transferts ayant terminé avant la date
+      renseignée. La date doit être renseignée en format ISO 8601 tel qu'il
+      est spécifié dans la `RFC 3339`_.
+   :type stop: date
+
+   **Exemple de requête**
+
+       .. code-block:: http
+
+          GET https://my_waarp_gateway.net/api/history?limit=10&order=desc&rule=regle_sftp&start=2019-01-01T00:00:00+02:00&stop=2019-01-01T04:00:00+02:00 HTTP/1.1
+          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+
+
+   **Réponse**
+
+   :statuscode 200: La liste a été renvoyée avec succès
+   :statuscode 400: Un ou plusieurs des paramètres de requêtes sont invalides
+   :statuscode 401: Authentification d'utilisateur invalide
+
+   :resjson array history: La liste des transferts demandés
+   :resjsonarr number id: L'identifiant unique du transfert
+   :resjsonarr string rule: Le nom de la règle de transfert
+   :resjsonarr string source: Le nom de l'émetteur du transfert
+   :resjsonarr string dest: Le nom du destinataire du transfert
+   :resjsonarr string protocol: Le protocole utilisé pour le transfert
+   :resjsonarr string filename: Le nom du fichier transféré
+   :resjsonarr date start: La date de début du transfert
+   :resjsonarr date stop: La date de fin du transfert
+   :resjsonarr string status: Le statut final du transfert (*DONE* ou *ERROR*)
+
+   **Exemple de réponse**
+
+       .. code-block:: http
+
+          HTTP/1.1 200 OK
+          Content-Type: application/json
+          Content-Length: 267
+
+          {
+            "history": [{
+              "id": 1,
+              "rule": "regle_sftp",
+              "source": "compte_sftp_1",
+              "dest": "serveur_sftp_1",
+              "protocol": "sftp",
+              "filename": "nom/de/fichier/1",
+              "start": "2019-01-01T01:00:00+02:00",
+              "stop": "2019-01-01T02:00:00+02:00",
+              "status": "DONE"
+            },{
+              "id": 2,
+              "rule": "regle_sftp",
+              "source": "compte_sftp_2",
+              "dest": "serveur_sftp_1",
+              "protocol": "sftp",
+              "filename": "nom/de/fichier/2",
+              "start": "2019-01-01T02:00:00+02:00",
+              "stop": "2019-01-01T03:00:00+02:00",
+              "status": "ERROR"
+            }]
+          }

@@ -1,5 +1,5 @@
-Démarrer un transfert
-=====================
+Programmer un transfert
+=======================
 
 .. http:post:: /api/transfers
 

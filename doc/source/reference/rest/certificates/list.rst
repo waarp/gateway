@@ -3,7 +3,7 @@ Lister les certificats
 
 .. http:get:: /api/certificates
 
-   Renvoie une liste des certificats emplissant les critères données en paramètre
+   Renvoie une liste des certificats emplissant les critères donnés en paramètres
    de requête.
 
    **Requête**
