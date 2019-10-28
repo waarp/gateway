@@ -30,7 +30,7 @@ func GetTestDatabase() *Db {
 	config.Database.Name = fmt.Sprintf("file:%s?mode=memory&cache=shared", name)
 	atomic.AddUint64(&num, 1)
 
-	logger := log.NewLogger("test_database")
+	logger := log.NewLogger("test_database", conf.LogConfig{})
 	discard, err := logging.NewNoopBackend()
 	convey.So(err, convey.ShouldBeNil)
 

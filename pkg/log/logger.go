@@ -3,6 +3,7 @@ package log
 
 import (
 	"code.bcarlin.xyz/go/logging"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 )
 
 // Logger is an internal abstraction of the underlying logging library
@@ -11,8 +12,11 @@ type Logger struct {
 }
 
 // NewLogger initiates a new logger
-func NewLogger(name string) *Logger {
-	return &Logger{Logger: logging.GetLogger(name)}
+func NewLogger(name string, conf conf.LogConfig) *Logger {
+	l := &Logger{Logger: logging.GetLogger(name)}
+	_ = l.SetLevel(conf.Level)
+	_ = l.SetOutput(conf.LogTo, conf.SyslogFacility)
+	return l
 }
 
 // SetLevel sets the level of the logger

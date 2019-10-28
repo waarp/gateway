@@ -184,15 +184,15 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 
 	rule := &Rule{ID: t.RuleID}
 	if err := acc.Get(rule); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rule: %s", err)
 	}
 	remote := &RemoteAgent{ID: t.RemoteID}
 	if err := acc.Get(remote); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("remote: %s", err)
 	}
 	account := &RemoteAccount{ID: t.AccountID}
 	if err := acc.Get(account); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("account: %s", err)
 	}
 
 	if !validateStatusForHistory(t.Status) {

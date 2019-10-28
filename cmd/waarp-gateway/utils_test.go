@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"code.bcarlin.xyz/go/logging"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -12,7 +13,11 @@ import (
 var discard *log.Logger
 
 func init() {
-	discard = log.NewLogger("test_client")
+	logConf := conf.LogConfig{
+		Level: "DEBUG",
+		LogTo: "stdout",
+	}
+	discard = log.NewLogger("test_client", logConf)
 	discard.SetBackend(&logging.NoopBackend{})
 }
 

@@ -20,7 +20,7 @@ import (
 const historyURI = APIPath + HistoryPath + "/"
 
 func TestGetHistory(t *testing.T) {
-	logger := log.NewLogger("rest_history_get_test")
+	logger := log.NewLogger("rest_history_get_test", logConf)
 
 	Convey("Testing the transfer history get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -96,7 +96,7 @@ func TestGetHistory(t *testing.T) {
 }
 
 func TestListHistory(t *testing.T) {
-	logger := log.NewLogger("rest_history_get_test")
+	logger := log.NewLogger("rest_history_get_test", logConf)
 
 	Convey("Testing the transfer history list handler", t, func() {
 		db := database.GetTestDatabase()

@@ -60,7 +60,7 @@ func (c *Controller) listen(run func(model.Transfer)) {
 // Start starts the transfer controller service.
 func (c *Controller) Start() error {
 	if c.logger == nil {
-		c.logger = log.NewLogger(ServiceName)
+		c.logger = log.NewLogger(ServiceName, c.Conf.Log)
 	}
 
 	c.ticker = *time.NewTicker(c.Conf.Controller.Delay)

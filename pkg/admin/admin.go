@@ -110,7 +110,7 @@ func initServer(s *Server) error {
 // the function returns an error.
 func (s *Server) Start() error {
 	if s.Logger == nil {
-		s.Logger = log.NewLogger(ServiceName)
+		s.Logger = log.NewLogger(ServiceName, s.Conf.Log)
 	}
 
 	s.Logger.Info("Startup command received...")

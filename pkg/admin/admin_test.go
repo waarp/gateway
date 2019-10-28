@@ -16,6 +16,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+var logConf = conf.LogConfig{
+	Level: "DEBUG",
+	LogTo: "stdout",
+}
+
 func TestStart(t *testing.T) {
 
 	Convey("Given a correct configuration", t, func() {
@@ -162,7 +167,11 @@ func TestStop(t *testing.T) {
 }
 
 func TestAuthentication(t *testing.T) {
-	authLogger := log.NewLogger("rest_auth_test")
+	logConf := conf.LogConfig{
+		Level: "DEBUG",
+		LogTo: "stdout",
+	}
+	authLogger := log.NewLogger("rest_auth_test", logConf)
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

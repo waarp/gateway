@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -12,6 +13,10 @@ import (
 )
 
 func TestControllerListen(t *testing.T) {
+	logConf := conf.LogConfig{
+		Level: "DEBUG",
+		LogTo: "stdout",
+	}
 
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
@@ -67,7 +72,7 @@ func TestControllerListen(t *testing.T) {
 				cont := &Controller{
 					ticker: *time.NewTicker(tick),
 					Db:     db,
-					logger: log.NewLogger("test_controller"),
+					logger: log.NewLogger("test_controller", logConf),
 					state:  service.State{},
 				}
 				cont.state.Set(service.Running, "")

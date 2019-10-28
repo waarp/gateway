@@ -131,7 +131,7 @@ var supportedRBMS = map[string]dbinfo{}
 // If the service is already running, this function does nothing.
 func (db *Db) Start() error {
 	if db.Logger == nil {
-		db.Logger = log.NewLogger(ServiceName)
+		db.Logger = log.NewLogger(ServiceName, db.Conf.Log)
 	}
 
 	db.Logger.Info("Starting database service...")
