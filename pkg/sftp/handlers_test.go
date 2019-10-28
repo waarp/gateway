@@ -35,7 +35,8 @@ func TestFileReader(t *testing.T) {
 		So(db.Create(account), ShouldBeNil)
 
 		Convey("Given the Filereader", func() {
-			handler := makeHandlers(db, agent, account, make(chan bool)).FileGet
+			report := make(chan *model.Transfer, 1)
+			handler := makeHandlers(db, agent, account, report).FileGet
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
@@ -59,8 +60,8 @@ func TestFileReader(t *testing.T) {
 						So(db.Get(trans), ShouldBeNil)
 
 						Convey("With a valid Source, Desitation and Status", func() {
-							So(trans.Source, ShouldEqual, request.Filepath)
-							So(trans.Destination, ShouldEqual, filepath.Base(request.Filepath))
+							So(trans.SourcePath, ShouldEqual, request.Filepath)
+							So(trans.DestPath, ShouldEqual, filepath.Base(request.Filepath))
 							So(trans.Status, ShouldEqual, model.StatusTransfer)
 						})
 					})
@@ -122,8 +123,9 @@ func TestFileWriter(t *testing.T) {
 		}
 		So(db.Create(account), ShouldBeNil)
 
-		Convey("Given the Filewriterr", func() {
-			handler := makeHandlers(db, agent, account, make(chan bool)).FilePut
+		Convey("Given the Filewriter", func() {
+			report := make(chan *model.Transfer, 1)
+			handler := makeHandlers(db, agent, account, report).FilePut
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
@@ -147,8 +149,8 @@ func TestFileWriter(t *testing.T) {
 						So(db.Get(trans), ShouldBeNil)
 
 						Convey("With a valid Source, Desitation and Status", func() {
-							So(trans.Source, ShouldEqual, filepath.Base(request.Filepath))
-							So(trans.Destination, ShouldEqual, request.Filepath)
+							So(trans.SourcePath, ShouldEqual, filepath.Base(request.Filepath))
+							So(trans.DestPath, ShouldEqual, request.Filepath)
 							So(trans.Status, ShouldEqual, model.StatusTransfer)
 						})
 					})

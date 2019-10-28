@@ -300,8 +300,8 @@ func TestDoTransfer(t *testing.T) {
 					RuleID:     pull.ID,
 					RemoteID:   remote.ID,
 					AccountID:  account.ID,
-					SourcePath: "test_sftp_root/test.src",
-					DestPath:   "test.ds",
+					SourcePath: "test_sftp_root/pull/out/test_pull.src",
+					DestPath:   "test_pull.dst",
 				}
 
 				Convey("When calling DoTransfer", func() {

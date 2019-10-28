@@ -67,7 +67,7 @@ func (c *Controller) Start() error {
 
 	c.state.Set(service.Running, "")
 
-	exe := executor.Executor{Db: c.Db, Logger: log.NewLogger("executor")}
+	exe := executor.Executor{Db: c.Db, Logger: log.NewLogger("executor", c.Conf.Log)}
 	c.listen(exe.Run)
 
 	return nil

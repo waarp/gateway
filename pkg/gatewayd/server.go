@@ -5,7 +5,6 @@ package gatewayd
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,6 +18,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"github.com/go-xorm/builder"
 )
 
 // WG is the top level service handler. It manages all other components.
@@ -32,7 +32,7 @@ type WG struct {
 // NewWG creates a new application
 func NewWG(config *conf.ServerConfig) *WG {
 	return &WG{
-		Logger: log.NewLogger("Waarp-Gateway"),
+		Logger: log.NewLogger("Waarp-Gateway", config.Log),
 		Conf:   config,
 	}
 }
@@ -45,7 +45,6 @@ func (wg *WG) initServices() {
 	adminService := &admin.Server{Conf: wg.Conf, Db: wg.dbService, Services: wg.Services}
 	controllerService := &controller.Controller{Conf: wg.Conf, Db: wg.dbService}
 
-	wg.Services[database.ServiceName] = wg.dbService
 	wg.Services[admin.ServiceName] = adminService
 	wg.Services[controller.ServiceName] = controllerService
 }
@@ -56,48 +55,53 @@ func (wg *WG) startServices() error {
 	}
 
 	servers := []*model.LocalAgent{}
-	if err := wg.dbService.Select(&servers, nil); err != nil {
+	filters := &database.Filters{Conditions: builder.Eq{"owner": database.Owner}}
+	if err := wg.dbService.Select(&servers, filters); err != nil {
 		return err
 	}
+
 	for _, server := range servers {
 		switch server.Protocol {
 		case "sftp":
-			wg.Services[server.Name] = &sftp.Server{Db: wg.dbService, Config: server}
+			l := log.NewLogger(server.Name, wg.Conf.Log)
+			wg.Services[server.Name] = sftp.NewServer(wg.dbService, server, l)
 		default:
-			return fmt.Errorf("unknown server protocol '%s'", server.Protocol)
+			wg.Logger.Warningf("Unknown server protocol '%s'", server.Protocol)
 		}
 	}
 
 	for _, serv := range wg.Services {
-		if state, _ := serv.State().Get(); state != service.Running {
-			_ = serv.Start()
+		if err := serv.Start(); err != nil {
+			wg.Logger.Errorf("Error starting service: %s", err)
 		}
+
 	}
+	wg.Services[database.ServiceName] = wg.dbService
+
 	return nil
 }
 
 func (wg *WG) stopServices() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
+
+	delete(wg.Services, database.ServiceName)
+
 	for _, wgService := range wg.Services {
 		_ = wgService.Stop(ctx)
 	}
+
+	_ = wg.dbService.Stop(ctx)
 }
 
 // Start starts the main service of the Gateway
 func (wg *WG) Start() error {
-	if err := wg.SetOutput(wg.Conf.Log.LogTo, wg.Conf.Log.SyslogFacility); err != nil {
-		return fmt.Errorf("log configuration failed: %s", err.Error())
-	}
-	if err := wg.SetLevel(wg.Conf.Log.Level); err != nil {
-		return fmt.Errorf("log configuration failed: %s", err.Error())
-	}
-	wg.Info("Waarp Gateway NG is starting")
+	wg.Infof("Waarp Gateway '%s' is starting", wg.Conf.GatewayName)
 	wg.initServices()
 	if err := wg.startServices(); err != nil {
 		return err
 	}
-	wg.Infof("Waarp Gateway NG has started")
+	wg.Infof("Waarp Gateway '%s' has started", wg.Conf.GatewayName)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
