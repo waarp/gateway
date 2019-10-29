@@ -1,3 +1,5 @@
+// Package service defines an interface implemented by all the gateway's
+// modules.
 package service
 
 import (

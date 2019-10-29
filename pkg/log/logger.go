@@ -1,3 +1,4 @@
+// Package log manages all the gateway's different loggers.
 package log
 
 import (

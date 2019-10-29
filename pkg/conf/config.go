@@ -1,3 +1,5 @@
+// Package conf contains the structure representing the gateway's
+// configuration as defined in the configuration file.
 package conf
 
 import (

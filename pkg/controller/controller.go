@@ -1,3 +1,5 @@
+// Package controller defines the controller module whose purpose is to
+// periodically scan the database for new transfers to launch.
 package controller
 
 import (

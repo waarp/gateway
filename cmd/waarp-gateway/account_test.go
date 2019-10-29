@@ -63,8 +63,8 @@ func TestGetAccount(t *testing.T) {
 
 						agentID := fmt.Sprint(remoteAccount.RemoteAgentID)
 						So(string(cont), ShouldEqual, "Remote account n°1:\n"+
-							"├─Login: "+remoteAccount.Login+"\n"+
-							"└─Partner ID: "+agentID+"\n",
+							"      Login: "+remoteAccount.Login+"\n"+
+							" Partner ID: "+agentID+"\n",
 						)
 					})
 				})
@@ -472,11 +472,11 @@ func TestListAccount(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote accounts:\n"+
 							"Remote account n°1:\n"+
-							"├─Login: "+account1.Login+"\n"+
-							"└─Partner ID: "+fmt.Sprint(account1.RemoteAgentID)+"\n"+
+							"      Login: "+account1.Login+"\n"+
+							" Partner ID: "+fmt.Sprint(account1.RemoteAgentID)+"\n"+
 							"Remote account n°2:\n"+
-							"├─Login: "+account2.Login+"\n"+
-							"└─Partner ID: "+fmt.Sprint(account2.RemoteAgentID)+"\n",
+							"      Login: "+account2.Login+"\n"+
+							" Partner ID: "+fmt.Sprint(account2.RemoteAgentID)+"\n",
 						)
 					})
 				})
@@ -502,8 +502,8 @@ func TestListAccount(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote accounts:\n"+
 							"Remote account n°1:\n"+
-							"├─Login: "+account1.Login+"\n"+
-							"└─Partner ID: "+fmt.Sprint(account1.RemoteAgentID)+"\n",
+							"      Login: "+account1.Login+"\n"+
+							" Partner ID: "+fmt.Sprint(account1.RemoteAgentID)+"\n",
 						)
 					})
 				})

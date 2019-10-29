@@ -64,8 +64,8 @@ func TestGetAccess(t *testing.T) {
 
 						agentID := fmt.Sprint(localAccount.LocalAgentID)
 						So(string(cont), ShouldEqual, "Local account n°1:\n"+
-							"├─Login: "+localAccount.Login+"\n"+
-							"└─Server ID: "+agentID+"\n",
+							"     Login: "+localAccount.Login+"\n"+
+							" Server ID: "+agentID+"\n",
 						)
 					})
 				})
@@ -471,11 +471,11 @@ func TestListAccess(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local accounts:\n"+
 							"Local account n°1:\n"+
-							"├─Login: "+account1.Login+"\n"+
-							"└─Server ID: "+fmt.Sprint(account1.LocalAgentID)+"\n"+
+							"     Login: "+account1.Login+"\n"+
+							" Server ID: "+fmt.Sprint(account1.LocalAgentID)+"\n"+
 							"Local account n°2:\n"+
-							"├─Login: "+account2.Login+"\n"+
-							"└─Server ID: "+fmt.Sprint(account2.LocalAgentID)+"\n",
+							"     Login: "+account2.Login+"\n"+
+							" Server ID: "+fmt.Sprint(account2.LocalAgentID)+"\n",
 						)
 					})
 				})
@@ -501,8 +501,8 @@ func TestListAccess(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local accounts:\n"+
 							"Local account n°1:\n"+
-							"├─Login: "+account1.Login+"\n"+
-							"└─Server ID: "+fmt.Sprint(account1.LocalAgentID)+"\n",
+							"     Login: "+account1.Login+"\n"+
+							" Server ID: "+fmt.Sprint(account1.LocalAgentID)+"\n",
 						)
 					})
 				})

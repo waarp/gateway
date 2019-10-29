@@ -42,8 +42,8 @@ Gestion des serveurs locaux
 
       .. option:: -l <LIMIT>, --limit=<LIMIT>
 
-         Limite le nombre de maximum serveurs autorisés dans la réponse. Fixé à
-         20 par défaut.
+         Limite le nombre de maximum de serveurs autorisés dans la réponse. Fixé
+         à 20 par défaut.
 
       .. option:: -o <OFFSET>, --offset=<OFFSET>
 

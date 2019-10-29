@@ -19,9 +19,9 @@ type accountCommand struct {
 func displayRemoteAccount(account model.RemoteAccount) {
 	w := getColorable()
 
-	fmt.Fprintf(w, "\033[97;1mRemote account n°%v:\033[0m\n", account.ID)
-	fmt.Fprintf(w, "├─\033[97mLogin:\033[0m \033[34;4m%s\033[0m\n", account.Login)
-	fmt.Fprintf(w, "└─\033[97mPartner ID:\033[0m \033[33;4m%v\033[0m\n", account.RemoteAgentID)
+	fmt.Fprintf(w, "\033[37;1;4mRemote account n°%v:\033[0m\n", account.ID)
+	fmt.Fprintf(w, "      \033[37mLogin:\033[0m \033[37;1m%s\033[0m\n", account.Login)
+	fmt.Fprintf(w, " \033[37mPartner ID:\033[0m \033[33m%v\033[0m\n", account.RemoteAgentID)
 }
 
 // ######################## GET ##########################

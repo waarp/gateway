@@ -23,10 +23,10 @@ func displayServer(agent model.LocalAgent) {
 
 	var config bytes.Buffer
 	_ = json.Indent(&config, agent.ProtoConfig, "  ", "  ")
-	fmt.Fprintf(w, "\033[97;1mLocal agent n°%v:\033[0m\n", agent.ID)
-	fmt.Fprintf(w, "├─\033[97mName:\033[0m \033[34;4m%s\033[0m\n", agent.Name)
-	fmt.Fprintf(w, "├─\033[97mProtocol:\033[0m \033[34;4m%s\033[0m\n", agent.Protocol)
-	fmt.Fprintf(w, "└─\033[97mConfiguration:\033[0m \033[33m%s\033[0m\n", config.String())
+	fmt.Fprintf(w, "\033[37;1;4mLocal agent n°%v:\033[0m\n", agent.ID)
+	fmt.Fprintf(w, "          \033[37mName:\033[0m \033[37;1m%s\033[0m\n", agent.Name)
+	fmt.Fprintf(w, "      \033[37mProtocol:\033[0m \033[37;1m%s\033[0m\n", agent.Protocol)
+	fmt.Fprintf(w, " \033[37mConfiguration:\033[0m \033[37m%s\033[0m\n", config.String())
 }
 
 // ######################## GET ##########################

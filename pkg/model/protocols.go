@@ -1,3 +1,5 @@
+// Package model contains all the definitions of the database models. Each
+// model instance represents an entry in one of the database's tables.
 package model
 
 var validProtocols = []string{"sftp"}

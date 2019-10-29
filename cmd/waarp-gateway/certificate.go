@@ -20,13 +20,13 @@ type certificateCommand struct {
 func displayCertificate(cert model.Cert) {
 	w := getColorable()
 
-	fmt.Fprintf(w, "\033[97;1mCertificate n°%v:\033[0m\n", cert.ID)
-	fmt.Fprintf(w, "├─\033[97mName:\033[0m \033[34;4m%s\033[0m\n", cert.Name)
-	fmt.Fprintf(w, "├─\033[97mType:\033[0m \033[34;4m%s\033[0m\n", cert.OwnerType)
-	fmt.Fprintf(w, "├─\033[97mOwner:\033[0m \033[34;4m%v\033[0m\n", cert.OwnerID)
-	fmt.Fprintf(w, "├─\033[97mPrivate key:\033[0m \033[34;4m%s\033[0m\n", string(cert.PrivateKey))
-	fmt.Fprintf(w, "├─\033[97mPublic key:\033[0m \033[34;4m%s\033[0m\n", string(cert.PublicKey))
-	fmt.Fprintf(w, "└─\033[97mContent:\033[0m \033[33m%v\033[0m\n", cert.Certificate)
+	fmt.Fprintf(w, "\033[37;1;4mCertificate n°%v:\033[0m\n", cert.ID)
+	fmt.Fprintf(w, "        \033[37mName:\033[0m \033[37;1m%s\033[0m\n", cert.Name)
+	fmt.Fprintf(w, "        \033[37mType:\033[0m \033[33m%s\033[0m\n", cert.OwnerType)
+	fmt.Fprintf(w, "       \033[37mOwner:\033[0m \033[33m%v\033[0m\n", cert.OwnerID)
+	fmt.Fprintf(w, " \033[37mPrivate key:\033[0m \033[90m%s\033[0m\n", string(cert.PrivateKey))
+	fmt.Fprintf(w, "  \033[37mPublic key:\033[0m \033[90m%s\033[0m\n", string(cert.PublicKey))
+	fmt.Fprintf(w, "     \033[37mContent:\033[0m \033[90m%v\033[0m\n", cert.Certificate)
 }
 
 // ######################## GET ##########################
