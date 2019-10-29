@@ -27,16 +27,12 @@ t_check() {
     fi
     go vet ./cmd/... ./pkg/...
     golangci-lint run \
-        --enable-all --disable goconst,depguard,gochecknoglobals,gochecknoinits,gocritic,interfacer,maligned,prealloc,lll,wsl \
+        --enable bodyclose,dogsled,dupl,funlen,gocognit,gocyclo,gofmt,goimports,golint,gosec,misspell,maligned,nakedret,scopelint,stylecheck,unconvert,unparam \
         --max-issues-per-linter 0 --max-same-issues 0 \
         --exclude-use-default=false  \
         --exclude 'Potential file inclusion via variable' \
         --exclude 'Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked' \
-        --exclude 'unnecessary leading newline' \
-        --exclude 'unnecessary trailing newline' \
-        --exclude 'ST1000' \
         --exclude 'SA5008' \
-        --exclude 'Line contains TODO/BUG/FIXME' \
         --skip-dirs .gocache \
     	  --tests=false
 }

@@ -71,12 +71,12 @@ func TestGetCertificate(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificate n°1:\n"+
-							"├─Name: "+cert.Name+"\n"+
-							"├─Type: "+cert.OwnerType+"\n"+
-							"├─Owner: "+fmt.Sprint(cert.OwnerID)+"\n"+
-							"├─Private key: "+string(cert.PrivateKey)+"\n"+
-							"├─Public key: "+string(cert.PublicKey)+"\n"+
-							"└─Content: "+fmt.Sprint(cert.Certificate)+"\n",
+							"        Name: "+cert.Name+"\n"+
+							"        Type: "+cert.OwnerType+"\n"+
+							"       Owner: "+fmt.Sprint(cert.OwnerID)+"\n"+
+							" Private key: "+string(cert.PrivateKey)+"\n"+
+							"  Public key: "+string(cert.PublicKey)+"\n"+
+							"     Content: "+fmt.Sprint(cert.Certificate)+"\n",
 						)
 					})
 				})
@@ -375,19 +375,19 @@ func TestListCertificate(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificates:\n"+
 							"Certificate n°1:\n"+
-							"├─Name: "+cert1.Name+"\n"+
-							"├─Type: "+cert1.OwnerType+"\n"+
-							"├─Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
-							"├─Private key: "+string(cert1.PrivateKey)+"\n"+
-							"├─Public key: "+string(cert1.PublicKey)+"\n"+
-							"└─Content: "+fmt.Sprint(cert1.Certificate)+"\n"+
+							"        Name: "+cert1.Name+"\n"+
+							"        Type: "+cert1.OwnerType+"\n"+
+							"       Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
+							" Private key: "+string(cert1.PrivateKey)+"\n"+
+							"  Public key: "+string(cert1.PublicKey)+"\n"+
+							"     Content: "+fmt.Sprint(cert1.Certificate)+"\n"+
 							"Certificate n°2:\n"+
-							"├─Name: "+cert2.Name+"\n"+
-							"├─Type: "+cert2.OwnerType+"\n"+
-							"├─Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
-							"├─Private key: "+string(cert2.PrivateKey)+"\n"+
-							"├─Public key: "+string(cert2.PublicKey)+"\n"+
-							"└─Content: "+fmt.Sprint(cert2.Certificate)+"\n",
+							"        Name: "+cert2.Name+"\n"+
+							"        Type: "+cert2.OwnerType+"\n"+
+							"       Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
+							" Private key: "+string(cert2.PrivateKey)+"\n"+
+							"  Public key: "+string(cert2.PublicKey)+"\n"+
+							"     Content: "+fmt.Sprint(cert2.Certificate)+"\n",
 						)
 					})
 				})
@@ -413,12 +413,12 @@ func TestListCertificate(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificates:\n"+
 							"Certificate n°1:\n"+
-							"├─Name: "+cert1.Name+"\n"+
-							"├─Type: "+cert1.OwnerType+"\n"+
-							"├─Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
-							"├─Private key: "+string(cert1.PrivateKey)+"\n"+
-							"├─Public key: "+string(cert1.PublicKey)+"\n"+
-							"└─Content: "+fmt.Sprint(cert1.Certificate)+"\n",
+							"        Name: "+cert1.Name+"\n"+
+							"        Type: "+cert1.OwnerType+"\n"+
+							"       Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
+							" Private key: "+string(cert1.PrivateKey)+"\n"+
+							"  Public key: "+string(cert1.PublicKey)+"\n"+
+							"     Content: "+fmt.Sprint(cert1.Certificate)+"\n",
 						)
 					})
 				})
@@ -444,12 +444,12 @@ func TestListCertificate(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificates:\n"+
 							"Certificate n°2:\n"+
-							"├─Name: "+cert2.Name+"\n"+
-							"├─Type: "+cert2.OwnerType+"\n"+
-							"├─Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
-							"├─Private key: "+string(cert2.PrivateKey)+"\n"+
-							"├─Public key: "+string(cert2.PublicKey)+"\n"+
-							"└─Content: "+fmt.Sprint(cert2.Certificate)+"\n",
+							"        Name: "+cert2.Name+"\n"+
+							"        Type: "+cert2.OwnerType+"\n"+
+							"       Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
+							" Private key: "+string(cert2.PrivateKey)+"\n"+
+							"  Public key: "+string(cert2.PublicKey)+"\n"+
+							"     Content: "+fmt.Sprint(cert2.Certificate)+"\n",
 						)
 					})
 				})
@@ -475,19 +475,19 @@ func TestListCertificate(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificates:\n"+
 							"Certificate n°2:\n"+
-							"├─Name: "+cert2.Name+"\n"+
-							"├─Type: "+cert2.OwnerType+"\n"+
-							"├─Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
-							"├─Private key: "+string(cert2.PrivateKey)+"\n"+
-							"├─Public key: "+string(cert2.PublicKey)+"\n"+
-							"└─Content: "+fmt.Sprint(cert2.Certificate)+"\n"+
+							"        Name: "+cert2.Name+"\n"+
+							"        Type: "+cert2.OwnerType+"\n"+
+							"       Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
+							" Private key: "+string(cert2.PrivateKey)+"\n"+
+							"  Public key: "+string(cert2.PublicKey)+"\n"+
+							"     Content: "+fmt.Sprint(cert2.Certificate)+"\n"+
 							"Certificate n°1:\n"+
-							"├─Name: "+cert1.Name+"\n"+
-							"├─Type: "+cert1.OwnerType+"\n"+
-							"├─Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
-							"├─Private key: "+string(cert1.PrivateKey)+"\n"+
-							"├─Public key: "+string(cert1.PublicKey)+"\n"+
-							"└─Content: "+fmt.Sprint(cert1.Certificate)+"\n",
+							"        Name: "+cert1.Name+"\n"+
+							"        Type: "+cert1.OwnerType+"\n"+
+							"       Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
+							" Private key: "+string(cert1.PrivateKey)+"\n"+
+							"  Public key: "+string(cert1.PublicKey)+"\n"+
+							"     Content: "+fmt.Sprint(cert1.Certificate)+"\n",
 						)
 					})
 				})
@@ -513,12 +513,12 @@ func TestListCertificate(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificates:\n"+
 							"Certificate n°1:\n"+
-							"├─Name: "+cert1.Name+"\n"+
-							"├─Type: "+cert1.OwnerType+"\n"+
-							"├─Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
-							"├─Private key: "+string(cert1.PrivateKey)+"\n"+
-							"├─Public key: "+string(cert1.PublicKey)+"\n"+
-							"└─Content: "+fmt.Sprint(cert1.Certificate)+"\n",
+							"        Name: "+cert1.Name+"\n"+
+							"        Type: "+cert1.OwnerType+"\n"+
+							"       Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
+							" Private key: "+string(cert1.PrivateKey)+"\n"+
+							"  Public key: "+string(cert1.PublicKey)+"\n"+
+							"     Content: "+fmt.Sprint(cert1.Certificate)+"\n",
 						)
 					})
 				})
@@ -544,12 +544,12 @@ func TestListCertificate(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificates:\n"+
 							"Certificate n°2:\n"+
-							"├─Name: "+cert2.Name+"\n"+
-							"├─Type: "+cert2.OwnerType+"\n"+
-							"├─Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
-							"├─Private key: "+string(cert2.PrivateKey)+"\n"+
-							"├─Public key: "+string(cert2.PublicKey)+"\n"+
-							"└─Content: "+fmt.Sprint(cert2.Certificate)+"\n",
+							"        Name: "+cert2.Name+"\n"+
+							"        Type: "+cert2.OwnerType+"\n"+
+							"       Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
+							" Private key: "+string(cert2.PrivateKey)+"\n"+
+							"  Public key: "+string(cert2.PublicKey)+"\n"+
+							"     Content: "+fmt.Sprint(cert2.Certificate)+"\n",
 						)
 					})
 				})

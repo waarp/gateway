@@ -57,9 +57,9 @@ func TestGetPartner(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote agent n°1:\n"+
-							"├─Name: "+partner.Name+"\n"+
-							"├─Protocol: "+partner.Protocol+"\n"+
-							"└─Configuration: "+config.String()+"\n",
+							"          Name: "+partner.Name+"\n"+
+							"      Protocol: "+partner.Protocol+"\n"+
+							" Configuration: "+config.String()+"\n",
 						)
 					})
 				})
@@ -236,13 +236,13 @@ func TestListPartners(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote agents:\n"+
 							"Remote agent n°1:\n"+
-							"├─Name: "+partner1.Name+"\n"+
-							"├─Protocol: "+partner1.Protocol+"\n"+
-							"└─Configuration: "+config1.String()+"\n"+
+							"          Name: "+partner1.Name+"\n"+
+							"      Protocol: "+partner1.Protocol+"\n"+
+							" Configuration: "+config1.String()+"\n"+
 							"Remote agent n°2:\n"+
-							"├─Name: "+partner2.Name+"\n"+
-							"├─Protocol: "+partner2.Protocol+"\n"+
-							"└─Configuration: "+config2.String()+"\n",
+							"          Name: "+partner2.Name+"\n"+
+							"      Protocol: "+partner2.Protocol+"\n"+
+							" Configuration: "+config2.String()+"\n",
 						)
 					})
 				})
@@ -272,9 +272,9 @@ func TestListPartners(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote agents:\n"+
 							"Remote agent n°1:\n"+
-							"├─Name: "+partner1.Name+"\n"+
-							"├─Protocol: "+partner1.Protocol+"\n"+
-							"└─Configuration: "+config1.String()+"\n",
+							"          Name: "+partner1.Name+"\n"+
+							"      Protocol: "+partner1.Protocol+"\n"+
+							" Configuration: "+config1.String()+"\n",
 						)
 					})
 				})
@@ -304,9 +304,9 @@ func TestListPartners(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote agents:\n"+
 							"Remote agent n°2:\n"+
-							"├─Name: "+partner2.Name+"\n"+
-							"├─Protocol: "+partner2.Protocol+"\n"+
-							"└─Configuration: "+config2.String()+"\n",
+							"          Name: "+partner2.Name+"\n"+
+							"      Protocol: "+partner2.Protocol+"\n"+
+							" Configuration: "+config2.String()+"\n",
 						)
 					})
 				})
@@ -340,13 +340,13 @@ func TestListPartners(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote agents:\n"+
 							"Remote agent n°2:\n"+
-							"├─Name: "+partner2.Name+"\n"+
-							"├─Protocol: "+partner2.Protocol+"\n"+
-							"└─Configuration: "+config2.String()+"\n"+
+							"          Name: "+partner2.Name+"\n"+
+							"      Protocol: "+partner2.Protocol+"\n"+
+							" Configuration: "+config2.String()+"\n"+
 							"Remote agent n°1:\n"+
-							"├─Name: "+partner1.Name+"\n"+
-							"├─Protocol: "+partner1.Protocol+"\n"+
-							"└─Configuration: "+config1.String()+"\n",
+							"          Name: "+partner1.Name+"\n"+
+							"      Protocol: "+partner1.Protocol+"\n"+
+							" Configuration: "+config1.String()+"\n",
 						)
 					})
 				})

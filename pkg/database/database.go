@@ -1,3 +1,4 @@
+// Package database contains the module for accessing the gateway's database.
 package database
 
 import (

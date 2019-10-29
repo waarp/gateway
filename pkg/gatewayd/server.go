@@ -1,3 +1,6 @@
+// Package gatewayd contains the "root" service responsible for starting all
+// the other gateway services. It is the first service started when the gateway
+// is launched.
 package gatewayd
 
 import (

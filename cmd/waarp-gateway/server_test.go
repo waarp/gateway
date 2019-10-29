@@ -57,9 +57,9 @@ func TestGetServer(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agent n°1:\n"+
-							"├─Name: "+server.Name+"\n"+
-							"├─Protocol: "+server.Protocol+"\n"+
-							"└─Configuration: "+config.String()+"\n",
+							"          Name: "+server.Name+"\n"+
+							"      Protocol: "+server.Protocol+"\n"+
+							" Configuration: "+config.String()+"\n",
 						)
 					})
 				})
@@ -236,13 +236,13 @@ func TestListServers(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agents:\n"+
 							"Local agent n°1:\n"+
-							"├─Name: "+server1.Name+"\n"+
-							"├─Protocol: "+server1.Protocol+"\n"+
-							"└─Configuration: "+config1.String()+"\n"+
+							"          Name: "+server1.Name+"\n"+
+							"      Protocol: "+server1.Protocol+"\n"+
+							" Configuration: "+config1.String()+"\n"+
 							"Local agent n°2:\n"+
-							"├─Name: "+server2.Name+"\n"+
-							"├─Protocol: "+server2.Protocol+"\n"+
-							"└─Configuration: "+config2.String()+"\n",
+							"          Name: "+server2.Name+"\n"+
+							"      Protocol: "+server2.Protocol+"\n"+
+							" Configuration: "+config2.String()+"\n",
 						)
 					})
 				})
@@ -272,9 +272,9 @@ func TestListServers(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agents:\n"+
 							"Local agent n°1:\n"+
-							"├─Name: "+server1.Name+"\n"+
-							"├─Protocol: "+server1.Protocol+"\n"+
-							"└─Configuration: "+config1.String()+"\n",
+							"          Name: "+server1.Name+"\n"+
+							"      Protocol: "+server1.Protocol+"\n"+
+							" Configuration: "+config1.String()+"\n",
 						)
 					})
 				})
@@ -304,9 +304,9 @@ func TestListServers(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agents:\n"+
 							"Local agent n°2:\n"+
-							"├─Name: "+server2.Name+"\n"+
-							"├─Protocol: "+server2.Protocol+"\n"+
-							"└─Configuration: "+config2.String()+"\n",
+							"          Name: "+server2.Name+"\n"+
+							"      Protocol: "+server2.Protocol+"\n"+
+							" Configuration: "+config2.String()+"\n",
 						)
 					})
 				})
@@ -340,13 +340,13 @@ func TestListServers(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agents:\n"+
 							"Local agent n°2:\n"+
-							"├─Name: "+server2.Name+"\n"+
-							"├─Protocol: "+server2.Protocol+"\n"+
-							"└─Configuration: "+config2.String()+"\n"+
+							"          Name: "+server2.Name+"\n"+
+							"      Protocol: "+server2.Protocol+"\n"+
+							" Configuration: "+config2.String()+"\n"+
 							"Local agent n°1:\n"+
-							"├─Name: "+server1.Name+"\n"+
-							"├─Protocol: "+server1.Protocol+"\n"+
-							"└─Configuration: "+config1.String()+"\n",
+							"          Name: "+server1.Name+"\n"+
+							"      Protocol: "+server1.Protocol+"\n"+
+							" Configuration: "+config1.String()+"\n",
 						)
 					})
 				})

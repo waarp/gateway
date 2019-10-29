@@ -3,7 +3,7 @@ Commandes
 #########
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    server
    partner
@@ -11,3 +11,4 @@ Commandes
    account
    certificate
    transfer
+   history

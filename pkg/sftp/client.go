@@ -1,3 +1,6 @@
+// Package sftp contains the functions necessary to execute a file transfer
+// using the SFTP protocol. The package defines both a client and a server for
+// SFTP.
 package sftp
 
 import (

@@ -1,3 +1,5 @@
+// Package executor contains the module responsible for the execution and
+// monitoring of a transfer, as well as executing the tasks tied to the transfer.
 package executor
 
 import (

@@ -1,3 +1,5 @@
+// Package admin contains the administration module which allows the user to
+// manage the gateway via an HTTP interface.
 package admin
 
 import (
@@ -15,7 +17,7 @@ import (
 )
 
 const (
-	// ServiceName is the nameof the administration interface service
+	// ServiceName is the name of the administration interface service
 	ServiceName = "Admin"
 
 	// APIPath is the root path for the Rest API endpoints
