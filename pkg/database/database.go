@@ -83,7 +83,7 @@ func loadAESKey(filename string) error {
 			return err
 		}
 
-		if err := ioutil.WriteFile(filename, key, 0666); err != nil {
+		if err := ioutil.WriteFile(filename, key, 0600); err != nil {
 			return err
 		}
 	}
