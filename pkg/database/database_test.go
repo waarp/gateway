@@ -1,6 +1,8 @@
 package database
 
 import (
+	"context"
+	"os"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -739,5 +741,33 @@ func TestSqlite(t *testing.T) {
 
 	Convey("Given a Sqlite service", t, func() {
 		testDatabase(db)
+	})
+}
+
+func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
+	Convey("Given a test database", t, func() {
+		db := GetTestDatabase()
+		db.Stop(context.Background())
+		os.Remove(db.Conf.Database.AESPassphrase)
+
+		Convey("Given there is no passphrase file", func() {
+			_, err := os.Stat(db.Conf.Database.AESPassphrase)
+			So(os.IsNotExist(err), ShouldBeTrue)
+
+			Convey("When the database service is started", func() {
+				err := db.Start()
+				So(err, ShouldBeNil)
+
+				Convey("Then there is a new passphrase file", func() {
+					stats, err := os.Stat(db.Conf.Database.AESPassphrase)
+					So(err, ShouldBeNil)
+					So(stats, ShouldNotBeNil)
+
+					Convey("Then the permissions of the files are secure", func() {
+						So(int(stats.Mode().Perm()), ShouldEqual, 0600)
+					})
+				})
+			})
+		})
 	})
 }
