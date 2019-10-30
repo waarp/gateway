@@ -100,3 +100,11 @@ base de données de la gateway.
 .. confval:: Password
 
    Le mot de passe de l'utilisateur du SGBD.
+
+.. confval:: AESPassphrase
+
+   Le chemin vers le fichier qui contient la clef AES utilisée pour chiffrer les
+   mots de passes des comptes enregistrés dans la base de données.
+
+   Si le fichier renseigné n'existe pas, une nouvelle clef est automatiquement
+   générée et écrite à cet emplacement.
