@@ -167,9 +167,9 @@ func TestAuthentication(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	db := database.GetTestDatabase()
 
 	SkipConvey("Given an authentication handler", t, func() {
+		db := database.GetTestDatabase()
 		auth := Authentication(authLogger, db).Middleware(handler)
 
 		Convey("Given an incoming request", func() {
