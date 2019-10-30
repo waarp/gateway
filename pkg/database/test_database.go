@@ -1,14 +1,18 @@
 package database
 
 import (
-	"io/ioutil"
+	"fmt"
 	"os"
+	"sync/atomic"
 
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var num uint64 = 0
 
 // GetTestDatabase returns a testing Sqlite database stored in memory. If the
 // database cannot be started, the function will panic.
@@ -18,26 +22,24 @@ func GetTestDatabase() *Db {
 	config := &conf.ServerConfig{}
 	config.GatewayName = "test_gateway"
 	config.Database.Type = sqlite
-	config.Database.AESPassphrase = os.TempDir() + "/aes_passphrase"
-	f, err := ioutil.TempFile("", "*.db")
-	if err != nil {
-		panic(err)
-	}
-	config.Database.Name = "file:" + f.Name() + "?mode=memory&cache=shared"
-	_ = f.Close()
+
+	name := fmt.Sprint(atomic.LoadUint64(&num))
+	convey.Reset(func() { _ = os.Remove(name) })
+	config.Database.AESPassphrase = name
+
+	config.Database.Name = fmt.Sprintf("file:%s?mode=memory&cache=shared", name)
+	atomic.AddUint64(&num, 1)
 
 	logger := log.NewLogger("test_database")
 	discard, err := logging.NewNoopBackend()
-	if err != nil {
-		panic(err)
-	}
+	convey.So(err, convey.ShouldBeNil)
+
 	logger.SetBackend(discard)
 	db := &Db{
 		Conf:   config,
 		Logger: logger,
 	}
-	if err := db.Start(); err != nil {
-		panic(err)
-	}
+	convey.So(db.Start(), convey.ShouldBeNil)
+
 	return db
 }
