@@ -18,31 +18,31 @@ const tblName = "test"
 var (
 	sqliteTestDatabase *Db
 	sqliteConfig       *conf.ServerConfig
-
-	signals string
 )
 
 type testBean struct {
 	ID     uint64 `xorm:"pk 'id'"`
 	String string `xorm:"notnull 'string'"`
+
+	signals string `xorm:"-"`
 }
 
 func (*testBean) TableName() string {
 	return tblName
 }
 
-func (*testBean) BeforeInsert(Accessor) error {
-	signals = "insert hook"
+func (t *testBean) BeforeInsert(Accessor) error {
+	t.signals = "insert hook"
 	return nil
 }
 
-func (*testBean) BeforeUpdate(Accessor) error {
-	signals = "update hook"
+func (t *testBean) BeforeUpdate(Accessor) error {
+	t.signals = "update hook"
 	return nil
 }
 
-func (*testBean) BeforeDelete(Accessor) error {
-	signals = "delete hook"
+func (t *testBean) BeforeDelete(Accessor) error {
+	t.signals = "delete hook"
 	return nil
 }
 
@@ -265,8 +265,6 @@ func testCreate(db *Db) {
 		Convey("With a valid record", func() {
 			err := db.Create(&createBean)
 
-			Reset(func() { signals = "" })
-
 			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
 
@@ -277,7 +275,7 @@ func testCreate(db *Db) {
 				})
 
 				Convey("Then the `BeforeInsert` hook should have been called", func() {
-					So(signals, ShouldEqual, "insert hook")
+					So(createBean.signals, ShouldEqual, "insert hook")
 				})
 			})
 		})
@@ -358,7 +356,7 @@ func testUpdate(db *Db) {
 				})
 
 				Convey("Then the `BeforeUpdate` hook should have been called", func() {
-					So(signals, ShouldEqual, "update hook")
+					So(updateBeanAfter.signals, ShouldEqual, "update hook")
 				})
 			})
 		})
@@ -428,7 +426,7 @@ func testDelete(db *Db) {
 				})
 
 				Convey("Then the `BeforeDelete` hook should have been called", func() {
-					So(signals, ShouldEqual, "delete hook")
+					So(deleteBean.signals, ShouldEqual, "delete hook")
 				})
 			})
 		})
