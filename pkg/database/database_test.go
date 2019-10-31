@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -16,7 +17,9 @@ const tblName = "test"
 
 var (
 	sqliteTestDatabase *Db
-	signals            string
+	sqliteConfig       *conf.ServerConfig
+
+	signals string
 )
 
 type testBean struct {
@@ -46,10 +49,11 @@ func (*testBean) BeforeDelete(Accessor) error {
 func init() {
 	BcryptRounds = bcrypt.MinCost
 
-	sqliteConfig := &conf.ServerConfig{}
+	sqliteConfig = &conf.ServerConfig{}
 	sqliteConfig.Database.Type = sqlite
 	sqliteConfig.Database.Name = "file::memory:?mode=memory&cache=shared"
-	sqliteConfig.Database.AESPassphrase = "/tmp/aes_passphrase"
+	sqliteConfig.Database.AESPassphrase = fmt.Sprintf("%s%ssqlite_test_passphrase.aes",
+		os.TempDir(), string(os.PathSeparator))
 
 	sqliteTestDatabase = &Db{Conf: sqliteConfig}
 }
@@ -731,6 +735,7 @@ func testDatabase(db *Db) {
 }
 
 func TestSqlite(t *testing.T) {
+	defer func() { _ = os.Remove(sqliteConfig.Database.AESPassphrase) }()
 	db := sqliteTestDatabase
 	if err := db.Start(); err != nil {
 		t.Fatal(err)
