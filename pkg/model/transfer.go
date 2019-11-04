@@ -186,13 +186,34 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	if err := acc.Get(rule); err != nil {
 		return nil, fmt.Errorf("rule: %s", err)
 	}
-	remote := &RemoteAgent{ID: t.RemoteID}
-	if err := acc.Get(remote); err != nil {
-		return nil, fmt.Errorf("remote: %s", err)
-	}
-	account := &RemoteAccount{ID: t.AccountID}
-	if err := acc.Get(account); err != nil {
-		return nil, fmt.Errorf("account: %s", err)
+	agentName := ""
+	accountLogin := ""
+	protocol := ""
+
+	if t.IsServer {
+		agent := &LocalAgent{ID: t.RemoteID}
+		if err := acc.Get(agent); err != nil {
+			return nil, fmt.Errorf("agent: %s", err)
+		}
+		account := LocalAccount{ID: t.AccountID}
+		if err := acc.Get(account); err != nil {
+			return nil, fmt.Errorf("account: %s", err)
+		}
+		agentName = agent.Name
+		accountLogin = account.Login
+		protocol = agent.Protocol
+	} else {
+		agent := &RemoteAgent{ID: t.RemoteID}
+		if err := acc.Get(agent); err != nil {
+			return nil, fmt.Errorf("agent: %s", err)
+		}
+		account := &RemoteAccount{ID: t.AccountID}
+		if err := acc.Get(account); err != nil {
+			return nil, fmt.Errorf("account: %s", err)
+		}
+		agentName = agent.Name
+		accountLogin = account.Login
+		protocol = agent.Protocol
 	}
 
 	if !validateStatusForHistory(t.Status) {
@@ -205,13 +226,14 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	hist := TransferHistory{
 		ID:             t.ID,
 		Owner:          t.Owner,
-		Account:        account.Login,
-		Remote:         remote.Name,
-		Protocol:       remote.Protocol,
+		IsServer:       t.IsServer,
+		IsSend:         !rule.IsGet,
+		Account:        accountLogin,
+		Remote:         agentName,
+		Protocol:       protocol,
 		SourceFilename: t.SourcePath,
 		DestFilename:   t.DestPath,
 		Rule:           rule.Name,
-		IsSend:         !rule.IsGet,
 		Start:          t.Start,
 		Stop:           stop,
 		Status:         t.Status,
