@@ -47,18 +47,19 @@ func TestHistoryValidateInsert(t *testing.T) {
 
 		Convey("Given a new history entry", func() {
 			hist := &TransferHistory{
-				ID:       1,
-				Rule:     "rule",
-				IsServer: true,
-				Send:     true,
-				Remote:   "from",
-				Account:  "to",
-				Filename: "test/source/path",
-				Start:    time.Now(),
-				Stop:     time.Now(),
-				Protocol: "sftp",
-				Status:   "DONE",
-				Owner:    database.Owner,
+				ID:             1,
+				Rule:           "rule",
+				IsServer:       true,
+				IsSend:         true,
+				Remote:         "from",
+				Account:        "to",
+				SourceFilename: "test/source/path",
+				DestFilename:   "test/source/path",
+				Start:          time.Now(),
+				Stop:           time.Now(),
+				Protocol:       "sftp",
+				Status:         "DONE",
+				Owner:          database.Owner,
 			}
 
 			Convey("Given that the new transfer is valid", func() {
@@ -156,7 +157,7 @@ func TestHistoryValidateInsert(t *testing.T) {
 			})
 
 			Convey("Given that the filename is missing", func() {
-				hist.Filename = ""
+				hist.DestFilename = ""
 
 				Convey("When calling the 'ValidateInsert' function", func() {
 					ses, err := db.BeginTransaction()
@@ -169,7 +170,7 @@ func TestHistoryValidateInsert(t *testing.T) {
 					})
 
 					Convey("Then the error should say the filename is missing", func() {
-						So(err.Error(), ShouldEqual, "The transfer's filename "+
+						So(err.Error(), ShouldEqual, "The transfer's destination filename "+
 							"cannot be empty")
 					})
 				})
@@ -373,7 +374,7 @@ func TestHistoryValidateUpdate(t *testing.T) {
 		})
 
 		Convey("Given that the entry changes the filename", func() {
-			hist.Filename = "file"
+			hist.SourceFilename = "file"
 
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := hist.ValidateUpdate(nil, 0)
@@ -383,7 +384,7 @@ func TestHistoryValidateUpdate(t *testing.T) {
 				})
 
 				Convey("Then the error should say that the filename cannot be changed", func() {
-					So(err.Error(), ShouldEqual, "The transfer's filename cannot be "+
+					So(err.Error(), ShouldEqual, "The transfer's source filename cannot be "+
 						"changed")
 				})
 			})

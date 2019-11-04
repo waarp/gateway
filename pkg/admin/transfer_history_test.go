@@ -29,17 +29,18 @@ func TestGetHistory(t *testing.T) {
 
 		Convey("Given a database with 1 transfer history", func() {
 			h := model.TransferHistory{
-				ID:       1,
-				IsServer: true,
-				Send:     false,
-				Rule:     "rule",
-				Account:  "acc",
-				Remote:   "server",
-				Protocol: "sftp",
-				Filename: "file.test",
-				Start:    time.Date(2019, 01, 01, 00, 00, 00, 00, time.UTC),
-				Stop:     time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
-				Status:   "DONE",
+				ID:             1,
+				IsServer:       true,
+				IsSend:         false,
+				Rule:           "rule",
+				Account:        "acc",
+				Remote:         "server",
+				Protocol:       "sftp",
+				SourceFilename: "file.test",
+				DestFilename:   "file.test",
+				Start:          time.Date(2019, 01, 01, 00, 00, 00, 00, time.UTC),
+				Stop:           time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
+				Status:         "DONE",
 			}
 			So(db.Create(&h), ShouldBeNil)
 
@@ -106,68 +107,72 @@ func TestListHistory(t *testing.T) {
 
 		Convey("Given a database with 4 transfer history", func() {
 			h1 := model.TransferHistory{
-				ID:       1,
-				IsServer: true,
-				Send:     false,
-				Account:  "from1",
-				Remote:   "to3",
-				Protocol: "sftp",
-				Rule:     "rule1",
-				Start:    time.Date(2019, 01, 01, 02, 00, 00, 00, time.UTC),
-				Stop:     time.Date(2019, 01, 01, 06, 00, 00, 00, time.UTC),
-				Status:   "DONE",
-				Filename: "file.test",
+				ID:             1,
+				IsServer:       true,
+				IsSend:         false,
+				Account:        "from1",
+				Remote:         "to3",
+				Protocol:       "sftp",
+				Rule:           "rule1",
+				Start:          time.Date(2019, 01, 01, 02, 00, 00, 00, time.UTC),
+				Stop:           time.Date(2019, 01, 01, 06, 00, 00, 00, time.UTC),
+				Status:         "DONE",
+				SourceFilename: "file.test",
+				DestFilename:   "file.test",
 			}
 			So(db.Create(&h1), ShouldBeNil)
 			h1.Start = h1.Start.Local()
 			h1.Stop = h1.Stop.Local()
 
 			h2 := model.TransferHistory{
-				ID:       2,
-				IsServer: false,
-				Send:     false,
-				Account:  "from2",
-				Remote:   "to1",
-				Protocol: "sftp",
-				Rule:     "rule2",
-				Start:    time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
-				Stop:     time.Date(2019, 01, 01, 07, 00, 00, 00, time.UTC),
-				Status:   "ERROR",
-				Filename: "file.test",
+				ID:             2,
+				IsServer:       false,
+				IsSend:         false,
+				Account:        "from2",
+				Remote:         "to1",
+				Protocol:       "sftp",
+				Rule:           "rule2",
+				Start:          time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
+				Stop:           time.Date(2019, 01, 01, 07, 00, 00, 00, time.UTC),
+				Status:         "ERROR",
+				SourceFilename: "file.test",
+				DestFilename:   "file.test",
 			}
 			So(db.Create(&h2), ShouldBeNil)
 			h2.Start = h2.Start.Local()
 			h2.Stop = h2.Stop.Local()
 
 			h3 := model.TransferHistory{
-				ID:       3,
-				IsServer: false,
-				Send:     true,
-				Account:  "from3",
-				Remote:   "to2",
-				Protocol: "sftp",
-				Rule:     "rule1",
-				Start:    time.Date(2019, 01, 01, 03, 00, 00, 00, time.UTC),
-				Stop:     time.Date(2019, 01, 01, 8, 00, 00, 00, time.UTC),
-				Status:   "ERROR",
-				Filename: "file.test",
+				ID:             3,
+				IsServer:       false,
+				IsSend:         true,
+				Account:        "from3",
+				Remote:         "to2",
+				Protocol:       "sftp",
+				Rule:           "rule1",
+				Start:          time.Date(2019, 01, 01, 03, 00, 00, 00, time.UTC),
+				Stop:           time.Date(2019, 01, 01, 8, 00, 00, 00, time.UTC),
+				Status:         "ERROR",
+				SourceFilename: "file.test",
+				DestFilename:   "file.test",
 			}
 			So(db.Create(&h3), ShouldBeNil)
 			h3.Start = h3.Start.Local()
 			h3.Stop = h3.Stop.Local()
 
 			h4 := model.TransferHistory{
-				ID:       4,
-				IsServer: false,
-				Send:     true,
-				Account:  "from4",
-				Remote:   "to3",
-				Protocol: "sftp",
-				Rule:     "rule2",
-				Start:    time.Date(2019, 01, 01, 04, 00, 00, 00, time.UTC),
-				Stop:     time.Date(2019, 01, 01, 05, 00, 00, 00, time.UTC),
-				Status:   "DONE",
-				Filename: "file.test",
+				ID:             4,
+				IsServer:       false,
+				IsSend:         true,
+				Account:        "from4",
+				Remote:         "to3",
+				Protocol:       "sftp",
+				Rule:           "rule2",
+				Start:          time.Date(2019, 01, 01, 04, 00, 00, 00, time.UTC),
+				Stop:           time.Date(2019, 01, 01, 05, 00, 00, 00, time.UTC),
+				Status:         "DONE",
+				SourceFilename: "file.test",
+				DestFilename:   "file.test",
 			}
 			So(db.Create(&h4), ShouldBeNil)
 			h4.Start = h4.Start.Local()

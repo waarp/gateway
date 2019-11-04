@@ -598,18 +598,19 @@ func TestTransferToHistory(t *testing.T) {
 
 				Convey("Then it should return an equivalent `TransferHistory` entry", func() {
 					expected := &TransferHistory{
-						ID:       trans.ID,
-						Owner:    trans.Owner,
-						IsServer: false,
-						Send:     true,
-						Account:  account.Login,
-						Remote:   remote.Name,
-						Protocol: remote.Protocol,
-						Filename: trans.SourcePath,
-						Rule:     rule.Name,
-						Start:    trans.Start,
-						Stop:     stop,
-						Status:   trans.Status,
+						ID:             trans.ID,
+						Owner:          trans.Owner,
+						IsServer:       false,
+						IsSend:         true,
+						Account:        account.Login,
+						Remote:         remote.Name,
+						Protocol:       remote.Protocol,
+						SourceFilename: trans.SourcePath,
+						DestFilename:   trans.DestPath,
+						Rule:           rule.Name,
+						Start:          trans.Start,
+						Stop:           stop,
+						Status:         trans.Status,
 					}
 
 					So(hist, ShouldResemble, expected)

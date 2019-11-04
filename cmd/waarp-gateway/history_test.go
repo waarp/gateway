@@ -16,12 +16,13 @@ import (
 func historyInfoString(t *model.TransferHistory) string {
 	return "Transfer " + fmt.Sprint(t.ID) + "=>\n" +
 		"    IsServer: " + fmt.Sprint(t.IsServer) + "\n" +
-		"        Send: " + fmt.Sprint(t.Send) + "\n" +
+		"        Send: " + fmt.Sprint(t.IsSend) + "\n" +
 		"    Protocol: " + fmt.Sprint(t.Protocol) + "\n" +
 		"        Rule: " + fmt.Sprint(t.Rule) + "\n" +
 		"     Account: " + fmt.Sprint(t.Account) + "\n" +
 		"      Remote: " + fmt.Sprint(t.Remote) + "\n" +
-		"        File: " + t.Filename + "\n" +
+		"     SrcFile: " + t.SourceFilename + "\n" +
+		"    DestFile: " + t.DestFilename + "\n" +
 		"  Start date: " + t.Start.Local().Format(time.RFC3339) + "\n" +
 		"    End date: " + t.Stop.Local().Format(time.RFC3339) + "\n" +
 		"      Status: " + string(t.Status) + "\n"
@@ -33,18 +34,19 @@ func TestDisplayHistory(t *testing.T) {
 		out = testFile()
 
 		hist := model.TransferHistory{
-			ID:       1,
-			IsServer: true,
-			Send:     false,
-			Rule:     "rule",
-			Account:  "source",
-			Remote:   "destination",
-			Protocol: "sftp",
-			Filename: "file/path",
-			Start:    time.Now(),
-			Stop:     time.Now().Add(time.Hour),
-			Status:   model.StatusPlanned,
-			Owner:    database.Owner,
+			ID:             1,
+			IsServer:       true,
+			IsSend:         false,
+			Rule:           "rule",
+			Account:        "source",
+			Remote:         "destination",
+			Protocol:       "sftp",
+			SourceFilename: "file/path",
+			DestFilename:   "file/path",
+			Start:          time.Now(),
+			Stop:           time.Now().Add(time.Hour),
+			Status:         model.StatusPlanned,
+			Owner:          database.Owner,
 		}
 		Convey("When calling the `displayHistory` function", func() {
 			displayHistory(hist)
@@ -73,18 +75,19 @@ func TestHistoryGetCommand(t *testing.T) {
 
 			Convey("Given a valid history entry", func() {
 				hist := model.TransferHistory{
-					ID:       1,
-					IsServer: true,
-					Send:     false,
-					Rule:     "rule",
-					Account:  "source",
-					Remote:   "destination",
-					Protocol: "sftp",
-					Filename: "file/path",
-					Start:    time.Now(),
-					Stop:     time.Now().Add(time.Hour),
-					Status:   model.StatusDone,
-					Owner:    database.Owner,
+					ID:             1,
+					IsServer:       true,
+					IsSend:         false,
+					Rule:           "rule",
+					Account:        "source",
+					Remote:         "destination",
+					Protocol:       "sftp",
+					SourceFilename: "file/path",
+					DestFilename:   "file/path",
+					Start:          time.Now(),
+					Stop:           time.Now().Add(time.Hour),
+					Status:         model.StatusDone,
+					Owner:          database.Owner,
 				}
 				So(db.Create(&hist), ShouldBeNil)
 
@@ -138,56 +141,60 @@ func TestHistoryListCommand(t *testing.T) {
 
 			Convey("Given 4 valid history entries", func() {
 				h1 := model.TransferHistory{
-					ID:       1,
-					IsServer: true,
-					Send:     false,
-					Account:  "src1",
-					Remote:   "dst1",
-					Protocol: "sftp",
-					Filename: "file1",
-					Rule:     "rule1",
-					Start:    time.Date(2019, 1, 1, 1, 0, 0, 0, time.UTC),
-					Stop:     time.Date(2019, 1, 1, 1, 1, 0, 0, time.UTC),
-					Status:   model.StatusDone,
+					ID:             1,
+					IsServer:       true,
+					IsSend:         false,
+					Account:        "src1",
+					Remote:         "dst1",
+					Protocol:       "sftp",
+					SourceFilename: "file1",
+					DestFilename:   "file1",
+					Rule:           "rule1",
+					Start:          time.Date(2019, 1, 1, 1, 0, 0, 0, time.UTC),
+					Stop:           time.Date(2019, 1, 1, 1, 1, 0, 0, time.UTC),
+					Status:         model.StatusDone,
 				}
 				h2 := model.TransferHistory{
-					ID:       2,
-					IsServer: true,
-					Send:     false,
-					Account:  "src2",
-					Remote:   "dst2",
-					Protocol: "sftp",
-					Filename: "file2",
-					Rule:     "rule2",
-					Start:    time.Date(2019, 1, 1, 2, 0, 0, 0, time.UTC),
-					Stop:     time.Date(2019, 1, 1, 2, 1, 0, 0, time.UTC),
-					Status:   model.StatusError,
+					ID:             2,
+					IsServer:       true,
+					IsSend:         false,
+					Account:        "src2",
+					Remote:         "dst2",
+					Protocol:       "sftp",
+					SourceFilename: "file2",
+					DestFilename:   "file2",
+					Rule:           "rule2",
+					Start:          time.Date(2019, 1, 1, 2, 0, 0, 0, time.UTC),
+					Stop:           time.Date(2019, 1, 1, 2, 1, 0, 0, time.UTC),
+					Status:         model.StatusError,
 				}
 				h3 := model.TransferHistory{
-					ID:       3,
-					IsServer: true,
-					Send:     false,
-					Account:  "src3",
-					Remote:   "dst3",
-					Protocol: "sftp",
-					Filename: "file3",
-					Rule:     "rule3",
-					Start:    time.Date(2019, 1, 1, 3, 0, 0, 0, time.UTC),
-					Stop:     time.Date(2019, 1, 1, 3, 1, 0, 0, time.UTC),
-					Status:   model.StatusDone,
+					ID:             3,
+					IsServer:       true,
+					IsSend:         false,
+					Account:        "src3",
+					Remote:         "dst3",
+					Protocol:       "sftp",
+					SourceFilename: "file3",
+					DestFilename:   "file3",
+					Rule:           "rule3",
+					Start:          time.Date(2019, 1, 1, 3, 0, 0, 0, time.UTC),
+					Stop:           time.Date(2019, 1, 1, 3, 1, 0, 0, time.UTC),
+					Status:         model.StatusDone,
 				}
 				h4 := model.TransferHistory{
-					ID:       4,
-					IsServer: true,
-					Send:     false,
-					Account:  "src4",
-					Remote:   "dst4",
-					Protocol: "sftp",
-					Filename: "file4",
-					Rule:     "rule4",
-					Start:    time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
-					Stop:     time.Date(2019, 1, 1, 4, 1, 0, 0, time.UTC),
-					Status:   model.StatusError,
+					ID:             4,
+					IsServer:       true,
+					IsSend:         false,
+					Account:        "src4",
+					Remote:         "dst4",
+					Protocol:       "sftp",
+					SourceFilename: "file4",
+					DestFilename:   "file4",
+					Rule:           "rule4",
+					Start:          time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
+					Stop:           time.Date(2019, 1, 1, 4, 1, 0, 0, time.UTC),
+					Status:         model.StatusError,
 				}
 				So(db.Create(&h1), ShouldBeNil)
 				So(db.Create(&h2), ShouldBeNil)

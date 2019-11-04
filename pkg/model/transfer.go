@@ -164,17 +164,18 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	}
 
 	hist := TransferHistory{
-		ID:       t.ID,
-		Owner:    t.Owner,
-		Account:  account.Login,
-		Remote:   remote.Name,
-		Protocol: remote.Protocol,
-		Filename: t.SourcePath,
-		Rule:     rule.Name,
-		Send:     !rule.IsGet,
-		Start:    t.Start,
-		Stop:     stop,
-		Status:   t.Status,
+		ID:             t.ID,
+		Owner:          t.Owner,
+		Account:        account.Login,
+		Remote:         remote.Name,
+		Protocol:       remote.Protocol,
+		SourceFilename: t.SourcePath,
+		DestFilename:   t.DestPath,
+		Rule:           rule.Name,
+		IsSend:         !rule.IsGet,
+		Start:          t.Start,
+		Stop:           stop,
+		Status:         t.Status,
 	}
 
 	return &hist, nil

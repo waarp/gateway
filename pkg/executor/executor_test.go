@@ -155,17 +155,18 @@ func TestExecutorLogTransfer(t *testing.T) {
 
 					Convey("Then the corresponding `TransferHistory` entry should exist", func() {
 						hist := &model.TransferHistory{
-							ID:       trans.ID,
-							Owner:    trans.Owner,
-							IsServer: false,
-							Send:     true,
-							Account:  account.Login,
-							Remote:   remote.Name,
-							Protocol: remote.Protocol,
-							Filename: trans.SourcePath,
-							Rule:     rule.Name,
-							Start:    trans.Start,
-							Status:   model.StatusDone,
+							ID:             trans.ID,
+							Owner:          trans.Owner,
+							IsServer:       false,
+							IsSend:         true,
+							Account:        account.Login,
+							Remote:         remote.Name,
+							Protocol:       remote.Protocol,
+							SourceFilename: trans.SourcePath,
+							DestFilename:   trans.DestPath,
+							Rule:           rule.Name,
+							Start:          trans.Start,
+							Status:         model.StatusDone,
 						}
 
 						exist, err := db.Exists(hist)
@@ -190,17 +191,18 @@ func TestExecutorLogTransfer(t *testing.T) {
 					Convey("Then the corresponding `TransferHistory` entry should "+
 						"exist with an ERROR status", func() {
 						hist := &model.TransferHistory{
-							ID:       trans.ID,
-							Owner:    trans.Owner,
-							IsServer: false,
-							Send:     true,
-							Account:  account.Login,
-							Remote:   remote.Name,
-							Protocol: remote.Protocol,
-							Filename: trans.SourcePath,
-							Rule:     rule.Name,
-							Start:    trans.Start,
-							Status:   model.StatusError,
+							ID:             trans.ID,
+							Owner:          trans.Owner,
+							IsServer:       false,
+							IsSend:         true,
+							Account:        account.Login,
+							Remote:         remote.Name,
+							Protocol:       remote.Protocol,
+							SourceFilename: trans.SourcePath,
+							DestFilename:   trans.DestPath,
+							Rule:           rule.Name,
+							Start:          trans.Start,
+							Status:         model.StatusError,
 						}
 
 						exist, err := db.Exists(hist)
@@ -283,17 +285,18 @@ func TestExecutorRunTransfer(t *testing.T) {
 
 						Convey("Then the corresponding `TransferHistory` entry should exist", func() {
 							hist := &model.TransferHistory{
-								ID:       trans.ID,
-								Owner:    trans.Owner,
-								IsServer: false,
-								Send:     true,
-								Account:  account.Login,
-								Remote:   remote.Name,
-								Protocol: remote.Protocol,
-								Filename: trans.SourcePath,
-								Rule:     rule.Name,
-								Start:    trans.Start,
-								Status:   model.StatusDone,
+								ID:             trans.ID,
+								Owner:          trans.Owner,
+								IsServer:       false,
+								IsSend:         true,
+								Account:        account.Login,
+								Remote:         remote.Name,
+								Protocol:       remote.Protocol,
+								SourceFilename: trans.SourcePath,
+								DestFilename:   trans.DestPath,
+								Rule:           rule.Name,
+								Start:          trans.Start,
+								Status:         model.StatusDone,
 							}
 
 							exist, err := db.Exists(hist)
@@ -320,17 +323,18 @@ func TestExecutorRunTransfer(t *testing.T) {
 						Convey("Then the corresponding `TransferHistory` entry "+
 							"should exist with an ERROR status", func() {
 							hist := &model.TransferHistory{
-								ID:       trans.ID,
-								Owner:    trans.Owner,
-								IsServer: false,
-								Send:     true,
-								Account:  account.Login,
-								Remote:   remote.Name,
-								Protocol: remote.Protocol,
-								Filename: trans.SourcePath,
-								Rule:     rule.Name,
-								Start:    trans.Start,
-								Status:   model.StatusError,
+								ID:             trans.ID,
+								Owner:          trans.Owner,
+								IsServer:       false,
+								IsSend:         true,
+								Account:        account.Login,
+								Remote:         remote.Name,
+								Protocol:       remote.Protocol,
+								SourceFilename: trans.SourcePath,
+								DestFilename:   trans.DestPath,
+								Rule:           rule.Name,
+								Start:          trans.Start,
+								Status:         model.StatusError,
 							}
 
 							exist, err := db.Exists(hist)
