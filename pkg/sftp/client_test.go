@@ -235,18 +235,18 @@ func TestDoTransfer(t *testing.T) {
 			// TODO Handle transfer rules
 			Convey("Given a valid push transfer", func() {
 				transfer := &model.Transfer{
-					RuleID:      push.ID,
-					RemoteID:    remote.ID,
-					AccountID:   account.ID,
-					Source:      "client.go",
-					Destination: "test_sftp_root/client.ds",
+					RuleID:     push.ID,
+					RemoteID:   remote.ID,
+					AccountID:  account.ID,
+					SourcePath: "client.go",
+					DestPath:   "test_sftp_root/client.ds",
 				}
 
 				Convey("When calling DoTransfer", func() {
 					err := DoTransfer(client, transfer, push)
 
 					Reset(func() {
-						_ = os.Remove(transfer.Destination)
+						_ = os.Remove(transfer.DestPath)
 					})
 
 					Convey("It should return no error", func() {
@@ -254,11 +254,11 @@ func TestDoTransfer(t *testing.T) {
 					})
 
 					Convey("The destination file should exist", func() {
-						dstContent, err := ioutil.ReadFile(transfer.Destination)
+						dstContent, err := ioutil.ReadFile(transfer.DestPath)
 						So(err, ShouldBeNil)
 
 						Convey("The destination file should be the same as the source file", func() {
-							srcContent, err := ioutil.ReadFile(transfer.Source)
+							srcContent, err := ioutil.ReadFile(transfer.SourcePath)
 							So(err, ShouldBeNil)
 
 							So(dstContent, ShouldResemble, srcContent)
@@ -269,18 +269,18 @@ func TestDoTransfer(t *testing.T) {
 
 			Convey("Given a push transfer with a non exiting file", func() {
 				transfer := &model.Transfer{
-					RuleID:      push.ID,
-					RemoteID:    remote.ID,
-					AccountID:   account.ID,
-					Source:      "unknown",
-					Destination: "test_sftp_root/client.ds",
+					RuleID:     push.ID,
+					RemoteID:   remote.ID,
+					AccountID:  account.ID,
+					SourcePath: "unknown",
+					DestPath:   "test_sftp_root/client.ds",
 				}
 
 				Convey("When calling DoTransfer", func() {
 					err := DoTransfer(client, transfer, push)
 
 					Reset(func() {
-						_ = os.Remove(transfer.Destination)
+						_ = os.Remove(transfer.DestPath)
 					})
 
 					Convey("It should return an error", func() {
@@ -288,7 +288,7 @@ func TestDoTransfer(t *testing.T) {
 					})
 
 					Convey("The destination file should NOT exist", func() {
-						_, err := os.Open(transfer.Destination)
+						_, err := os.Open(transfer.DestPath)
 						So(err, ShouldBeError)
 						So(err, ShouldHaveSameTypeAs, &os.PathError{})
 					})
@@ -297,11 +297,11 @@ func TestDoTransfer(t *testing.T) {
 
 			Convey("Given a valid pull transfer", func() {
 				transfer := &model.Transfer{
-					RuleID:      pull.ID,
-					RemoteID:    remote.ID,
-					AccountID:   account.ID,
-					Source:      "test_sftp_root/test.src",
-					Destination: "test.ds",
+					RuleID:     pull.ID,
+					RemoteID:   remote.ID,
+					AccountID:  account.ID,
+					SourcePath: "test_sftp_root/test.src",
+					DestPath:   "test.ds",
 				}
 
 				Convey("When calling DoTransfer", func() {
@@ -309,7 +309,7 @@ func TestDoTransfer(t *testing.T) {
 					err := DoTransfer(client, transfer, pull)
 
 					Reset(func() {
-						_ = os.Remove(transfer.Destination)
+						_ = os.Remove(transfer.DestPath)
 					})
 
 					Convey("It should return no error", func() {
@@ -317,11 +317,11 @@ func TestDoTransfer(t *testing.T) {
 					})
 
 					Convey("The destination file should exist", func() {
-						dstContent, err := ioutil.ReadFile(transfer.Destination)
+						dstContent, err := ioutil.ReadFile(transfer.DestPath)
 						So(err, ShouldBeNil)
 
 						Convey("The destination file should be the same as the source file", func() {
-							srcContent, err := ioutil.ReadFile(transfer.Source)
+							srcContent, err := ioutil.ReadFile(transfer.SourcePath)
 							So(err, ShouldBeNil)
 
 							So(dstContent, ShouldResemble, srcContent)

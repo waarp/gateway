@@ -50,14 +50,14 @@ func TestControllerListen(t *testing.T) {
 			start := time.Now().Truncate(time.Second)
 
 			trans := &model.Transfer{
-				RuleID:      rule.ID,
-				RemoteID:    remote.ID,
-				AccountID:   account.ID,
-				Source:      "test/source/path",
-				Destination: "test/dest/path",
-				Start:       start,
-				Status:      model.StatusPlanned,
-				Owner:       database.Owner,
+				RuleID:     rule.ID,
+				RemoteID:   remote.ID,
+				AccountID:  account.ID,
+				SourcePath: "test/source/path",
+				DestPath:   "test/dest/path",
+				Start:      start,
+				Status:     model.StatusPlanned,
+				Owner:      database.Owner,
 			}
 			So(db.Create(trans), ShouldBeNil)
 

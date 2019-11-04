@@ -12,16 +12,19 @@ func init() {
 
 // TransferHistory represents one record of the 'transfers_history' table.
 type TransferHistory struct {
-	ID       uint64         `xorm:"pk 'id'" json:"id"`
-	Owner    string         `xorm:"notnull" json:"-"`
-	Source   string         `xorm:"notnull 'source'" json:"source"`
-	Dest     string         `xorm:"notnull 'dest'" json:"dest"`
-	Protocol string         `xorm:"notnull" json:"protocol"`
-	Filename string         `xorm:"notnull" json:"filename"`
-	Rule     string         `xorm:"notnull" json:"rule"`
-	Start    time.Time      `xorm:"notnull" json:"start"`
-	Stop     time.Time      `xorm:"notnull" json:"stop"`
-	Status   TransferStatus `xorm:"notnull" json:"status"`
+	ID             uint64         `xorm:"pk 'id'" json:"id"`
+	Owner          string         `xorm:"notnull 'owner'" json:"-"`
+	IsServer       bool           `xorm:"notnull 'is_server'" json:"isServer"`
+	IsSend         bool           `xorm:"notnull 'is_send'" json:"isSend"`
+	Account        string         `xorm:"notnull 'account'" json:"account"`
+	Remote         string         `xorm:"notnull 'remote'" json:"remote"`
+	Protocol       string         `xorm:"notnull 'protocol'" json:"protocol"`
+	SourceFilename string         `xorm:"notnull 'source_filename'" json:"sourceFilename"`
+	DestFilename   string         `xorm:"notnull 'dest_filename'" json:"destFilename"`
+	Rule           string         `xorm:"notnull 'rule'" json:"rule"`
+	Start          time.Time      `xorm:"notnull 'start'" json:"start"`
+	Stop           time.Time      `xorm:"notnull 'stop'" json:"stop"`
+	Status         TransferStatus `xorm:"notnull 'status'" json:"status"`
 }
 
 // TableName returns the name of the transfer history table.
@@ -49,14 +52,25 @@ func (t *TransferHistory) ValidateInsert(database.Accessor) error {
 	if t.Rule == "" {
 		return database.InvalidError("The transfer's rule cannot be empty")
 	}
-	if t.Source == "" {
-		return database.InvalidError("The transfer's source cannot be empty")
+	if t.Account == "" {
+		return database.InvalidError("The transfer's account cannot be empty")
 	}
-	if t.Dest == "" {
-		return database.InvalidError("The transfer's destination cannot be empty")
+	if t.Remote == "" {
+		return database.InvalidError("The transfer's remote cannot be empty")
 	}
-	if t.Filename == "" {
-		return database.InvalidError("The transfer's filename cannot be empty")
+	if t.IsServer {
+		if t.IsSend && t.DestFilename == "" {
+			return database.InvalidError("The transfer's destination filename cannot be empty")
+		} else if !t.IsSend && t.SourceFilename == "" {
+			return database.InvalidError("The transfer's destination filename cannot be empty")
+		}
+	} else {
+		if t.SourceFilename == "" {
+			return database.InvalidError("The transfer's source filename cannot be empty")
+		}
+		if t.DestFilename == "" {
+			return database.InvalidError("The transfer's destination filename cannot be empty")
+		}
 	}
 	if t.Start.IsZero() {
 		return database.InvalidError("The transfer's start date cannot be empty")
@@ -93,14 +107,17 @@ func (t *TransferHistory) ValidateUpdate(database.Accessor, uint64) error {
 	if t.Rule != "" {
 		return database.InvalidError("The transfer's rule cannot be changed")
 	}
-	if t.Source != "" {
-		return database.InvalidError("The transfer's source cannot be changed")
+	if t.Account != "" {
+		return database.InvalidError("The transfer's account cannot be changed")
 	}
-	if t.Dest != "" {
-		return database.InvalidError("The transfer's destination cannot be changed")
+	if t.Remote != "" {
+		return database.InvalidError("The transfer's remote cannot be changed")
 	}
-	if t.Filename != "" {
-		return database.InvalidError("The transfer's filename cannot be changed")
+	if t.SourceFilename != "" {
+		return database.InvalidError("The transfer's source filename cannot be changed")
+	}
+	if t.DestFilename != "" {
+		return database.InvalidError("The transfer's destination filename cannot be changed")
 	}
 	if t.Protocol != "" {
 		return database.InvalidError("The transfer's protocol cannot be changed")

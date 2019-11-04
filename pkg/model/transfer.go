@@ -13,15 +13,15 @@ func init() {
 
 // Transfer represents one record of the 'transfers' table.
 type Transfer struct {
-	ID          uint64         `xorm:"pk autoincr <- 'id'" json:"id"`
-	RuleID      uint64         `xorm:"notnull 'rule_id'" json:"ruleID"`
-	RemoteID    uint64         `xorm:"notnull 'remote_id'" json:"remoteID"`
-	AccountID   uint64         `xorm:"notnull 'account_id'" json:"accountID"`
-	Source      string         `xorm:"notnull 'source'" json:"source"`
-	Destination string         `xorm:"notnull 'destination'" json:"destination"`
-	Start       time.Time      `xorm:"notnull 'start'" json:"start"`
-	Status      TransferStatus `xorm:"notnull 'status'" json:"status"`
-	Owner       string         `xorm:"notnull 'owner'"`
+	ID         uint64         `xorm:"pk autoincr <- 'id'" json:"id"`
+	RuleID     uint64         `xorm:"notnull 'rule_id'" json:"ruleID"`
+	RemoteID   uint64         `xorm:"notnull 'remote_id'" json:"remoteID"`
+	AccountID  uint64         `xorm:"notnull 'account_id'" json:"accountID"`
+	SourcePath string         `xorm:"notnull 'source_path'" json:"sourcePath"`
+	DestPath   string         `xorm:"notnull 'dest_path'" json:"destPath"`
+	Start      time.Time      `xorm:"notnull 'start'" json:"start"`
+	Status     TransferStatus `xorm:"notnull 'status'" json:"status"`
+	Owner      string         `xorm:"notnull 'owner'"`
 }
 
 // TableName returns the name of the transfers table.
@@ -44,10 +44,10 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 	if t.AccountID == 0 {
 		return database.InvalidError("The transfer's account ID cannot be empty")
 	}
-	if t.Source == "" {
+	if t.SourcePath == "" {
 		return database.InvalidError("The transfer's source cannot be empty")
 	}
-	if t.Destination == "" {
+	if t.DestPath == "" {
 		return database.InvalidError("The transfer's destination cannot be empty")
 	}
 	if t.Start.IsZero() {
@@ -125,10 +125,10 @@ func (t *Transfer) ValidateUpdate(database.Accessor, uint64) error {
 	if t.AccountID != 0 {
 		return database.InvalidError("The transfer's account cannot be changed")
 	}
-	if t.Source != "" {
+	if t.SourcePath != "" {
 		return database.InvalidError("The transfer's source cannot be changed")
 	}
-	if t.Destination != "" {
+	if t.DestPath != "" {
 		return database.InvalidError("The transfer's destination cannot be changed")
 	}
 
@@ -156,13 +156,6 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		return nil, err
 	}
 
-	source := account.Login
-	dest := remote.Name
-	if rule.IsGet {
-		source = remote.Name
-		dest = account.Login
-	}
-
 	if !validateStatusForHistory(t.Status) {
 		return nil, fmt.Errorf(
 			"a transfer cannot be recorded in history with status '%s'",
@@ -171,16 +164,18 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	}
 
 	hist := TransferHistory{
-		ID:       t.ID,
-		Owner:    t.Owner,
-		Source:   source,
-		Dest:     dest,
-		Protocol: remote.Protocol,
-		Filename: t.Source,
-		Rule:     rule.Name,
-		Start:    t.Start,
-		Stop:     stop,
-		Status:   t.Status,
+		ID:             t.ID,
+		Owner:          t.Owner,
+		Account:        account.Login,
+		Remote:         remote.Name,
+		Protocol:       remote.Protocol,
+		SourceFilename: t.SourcePath,
+		DestFilename:   t.DestPath,
+		Rule:           rule.Name,
+		IsSend:         !rule.IsGet,
+		Start:          t.Start,
+		Stop:           stop,
+		Status:         t.Status,
 	}
 
 	return &hist, nil

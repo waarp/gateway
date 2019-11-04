@@ -18,11 +18,14 @@ func displayHistory(hist model.TransferHistory) {
 	w := getColorable()
 
 	fmt.Fprintf(w, "\033[37;1;4mTransfer %v=>\033[0m\n", hist.ID)
+	fmt.Fprintf(w, "    \033[37mIsServer:\033[0m \033[37;1m%t\033[0m\n", hist.IsServer)
+	fmt.Fprintf(w, "        \033[37mSend:\033[0m \033[37;1m%t\033[0m\n", hist.IsSend)
 	fmt.Fprintf(w, "    \033[37mProtocol:\033[0m \033[37;1m%s\033[0m\n", hist.Protocol)
 	fmt.Fprintf(w, "        \033[37mRule:\033[0m \033[37m%v\033[0m\n", hist.Rule)
-	fmt.Fprintf(w, "      \033[37mSource:\033[0m \033[37m%v\033[0m\n", hist.Source)
-	fmt.Fprintf(w, " \033[37mDestination:\033[0m \033[37m%v\033[0m\n", hist.Dest)
-	fmt.Fprintf(w, "        \033[37mFile:\033[0m \033[37m%s\033[0m\n", hist.Filename)
+	fmt.Fprintf(w, "     \033[37mAccount:\033[0m \033[37m%v\033[0m\n", hist.Account)
+	fmt.Fprintf(w, "      \033[37mRemote:\033[0m \033[37m%v\033[0m\n", hist.Remote)
+	fmt.Fprintf(w, "     \033[37mSrcFile:\033[0m \033[37m%s\033[0m\n", hist.SourceFilename)
+	fmt.Fprintf(w, "    \033[37mDestFile:\033[0m \033[37m%s\033[0m\n", hist.DestFilename)
 	fmt.Fprintf(w, "  \033[37mStart date:\033[0m \033[33m%s\033[0m\n",
 		hist.Start.Format(time.RFC3339))
 	fmt.Fprintf(w, "    \033[37mEnd date:\033[0m \033[33m%s\033[0m\n",
@@ -59,14 +62,14 @@ func (h *historyGetCommand) Execute(args []string) error {
 
 type historyListCommand struct {
 	listOptions
-	SortBy      string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start" choice:"id" choice:"source" choice:"destination" choice:"rule" default:"start"`
-	Source      []string `long:"source" description:"Filter the transfers based on the transfer's source. Can be repeated multiple times to filter multiple sources."`
-	Destination []string `long:"destination" description:"Filter the transfers based on the transfer's destination. Can be repeated multiple times to filter multiple destinations."`
-	Rules       []string `long:"rule" description:"Filter the transfers based on the transfer rule used. Can be repeated multiple times to filter multiple rules."`
-	Statuses    []string `long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"DONE" choice:"ERROR"`
-	Protocol    []string `long:"protocol" description:"Filter the transfers based on the protocol used. Can be repeated multiple times to filter multiple protocols." choice:"sftp"`
-	Start       string   `long:"start" description:"Filter the transfers which started after a given date. Date must be in RFC3339 format."`
-	Stop        string   `long:"stop" description:"Filter the transfers which ended before a given date. Date must be in RFC3339 format."`
+	SortBy   string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start" choice:"id" choice:"source" choice:"destination" choice:"rule" default:"start"`
+	Account  []string `long:"source" description:"Filter the transfers based on the transfer's source. Can be repeated multiple times to filter multiple sources."`
+	Remote   []string `long:"destination" description:"Filter the transfers based on the transfer's destination. Can be repeated multiple times to filter multiple destinations."`
+	Rules    []string `long:"rule" description:"Filter the transfers based on the transfer rule used. Can be repeated multiple times to filter multiple rules."`
+	Statuses []string `long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"DONE" choice:"ERROR"`
+	Protocol []string `long:"protocol" description:"Filter the transfers based on the protocol used. Can be repeated multiple times to filter multiple protocols." choice:"sftp"`
+	Start    string   `long:"start" description:"Filter the transfers which started after a given date. Date must be in RFC3339 format."`
+	Stop     string   `long:"stop" description:"Filter the transfers which ended before a given date. Date must be in RFC3339 format."`
 }
 
 func (h *historyListCommand) listURL() (*url.URL, error) {
@@ -83,11 +86,11 @@ func (h *historyListCommand) listURL() (*url.URL, error) {
 	if h.DescOrder {
 		query.Set("order", "desc")
 	}
-	for _, src := range h.Source {
-		query.Add("source", src)
+	for _, acc := range h.Account {
+		query.Add("account", acc)
 	}
-	for _, dst := range h.Destination {
-		query.Add("dest", dst)
+	for _, remote := range h.Remote {
+		query.Add("remote", remote)
 	}
 	for _, rul := range h.Rules {
 		query.Add("rule", rul)
