@@ -8,16 +8,10 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
 const maxConn = 5
-
-type result struct {
-	*model.Transfer
-	error
-}
 
 type sshServer struct {
 	db       *database.Db
@@ -27,7 +21,6 @@ type sshServer struct {
 	conf     *ssh.ServerConfig
 
 	connections chan net.Conn
-	results     chan result
 	finished    chan bool
 	shutdown    chan bool
 }
@@ -41,13 +34,12 @@ func newListener(db *database.Db, logger *log.Logger, listener net.Listener,
 		agent:       agent,
 		conf:        conf,
 		connections: make(chan net.Conn),
-		results:     make(chan result),
 		finished:    make(chan bool),
 		shutdown:    make(chan bool),
 	}
 }
 
-func (s *sshServer) handle(wg *sync.WaitGroup) {
+func (s *sshServer) handleConnection(wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
 	}()
@@ -61,46 +53,26 @@ func (s *sshServer) handle(wg *sync.WaitGroup) {
 
 		go ssh.DiscardRequests(reqs)
 
-		for newChannel := range channels {
+	sessionLoop:
+		for {
+			var newChannel ssh.NewChannel
+			var ok bool
 			select {
 			case <-s.shutdown:
-				_ = newChannel.Reject(ssh.ResourceShortage, "server shutting down")
-				continue
-			default:
+				break sessionLoop
+			case newChannel, ok = <-channels:
+				if !ok {
+					break sessionLoop
+				}
+				select {
+				case <-s.shutdown:
+					_ = newChannel.Reject(ssh.ResourceShortage, "server shutting down")
+					continue
+				default:
+				}
 			}
 
-			if newChannel.ChannelType() != "session" {
-				s.logger.Warning("Unknown channel type received")
-				_ = newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
-				continue
-			}
-
-			channel, requests, err := newChannel.Accept()
-			if err != nil {
-				s.logger.Errorf("Failed to accept SFTP session: %s", err)
-				continue
-			}
-			go acceptRequests(requests)
-
-			// Resolve conn.User() to model.LocalAccount
-			acc := &model.LocalAccount{
-				LocalAgentID: s.agent.ID,
-				Login:        servConn.Conn.User(),
-			}
-			if err := s.db.Get(acc); err != nil {
-				s.logger.Errorf("Failed to retrieve user: %s", err)
-				continue
-			}
-
-			report := make(chan *model.Transfer, 1)
-			server := sftp.NewRequestServer(channel, makeHandlers(s.db, s.agent,
-				acc, report))
-
-			errReport := make(chan error, 1)
-			go s.handleAnswer(server, report, errReport)
-			errReport <- server.Serve()
-			close(errReport)
-			_ = channel.Close()
+			s.handleSession(servConn.User(), newChannel)
 		}
 		_ = servConn.Close()
 	}
@@ -111,15 +83,13 @@ func (s *sshServer) listen() {
 	wg := &sync.WaitGroup{}
 	for i := 0; i < maxConn; i++ {
 		wg.Add(1)
-		go s.handle(wg)
+		go s.handleConnection(wg)
 	}
 
 	go func() {
 		wg.Wait()
-		close(s.results)
+		close(s.finished)
 	}()
-
-	go s.toHistory()
 
 	go func() {
 		for {

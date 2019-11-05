@@ -39,7 +39,7 @@ func (la listerAtFunc) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 }
 
 func makeHandlers(db *database.Db, agent *model.LocalAgent, account *model.LocalAccount,
-	report chan<- *model.Transfer) sftp.Handlers {
+	report chan<- progress) sftp.Handlers {
 
 	root, _ := os.Getwd()
 	var conf map[string]interface{}
@@ -55,7 +55,7 @@ func makeHandlers(db *database.Db, agent *model.LocalAgent, account *model.Local
 }
 
 func makeFileReader(db *database.Db, agentID, accountID uint64, root string,
-	report chan<- *model.Transfer) fileReaderFunc {
+	report chan<- progress) fileReaderFunc {
 
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		// Get rule according to request filepath
@@ -82,7 +82,6 @@ func makeFileReader(db *database.Db, agentID, accountID uint64, root string,
 		if err := db.Create(trans); err != nil {
 			return nil, err
 		}
-		report <- trans
 
 		// Open requested file
 		file, err := os.Open(filepath.FromSlash(fmt.Sprintf("%s/%s", root, r.Filepath)))
@@ -90,12 +89,18 @@ func makeFileReader(db *database.Db, agentID, accountID uint64, root string,
 			return nil, err
 		}
 
-		return file, nil
+		stream := uploadStream{
+			File:   file,
+			ID:     trans.ID,
+			Report: report,
+		}
+
+		return &stream, nil
 	}
 }
 
 func makeFileWriter(db *database.Db, agentID, accountID uint64, root string,
-	report chan<- *model.Transfer) fileWriterFunc {
+	report chan<- progress) fileWriterFunc {
 
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		// Get rule according to request filepath
@@ -138,7 +143,6 @@ func makeFileWriter(db *database.Db, agentID, accountID uint64, root string,
 		if err := db.Create(trans); err != nil {
 			return nil, err
 		}
-		report <- trans
 
 		// Create file
 		file, err := os.Create(filepath.FromSlash(fmt.Sprintf("%s/%s", root, r.Filepath)))
@@ -146,7 +150,13 @@ func makeFileWriter(db *database.Db, agentID, accountID uint64, root string,
 			return nil, err
 		}
 
-		return file, nil
+		stream := downloadStream{
+			File:   file,
+			ID:     trans.ID,
+			Report: report,
+		}
+
+		return &stream, nil
 	}
 }
 
@@ -172,15 +182,12 @@ func makeFileLister(root string) fileListerFunc {
 
 		statAt := func(ls []os.FileInfo, offset int64) (int, error) {
 			path := root + r.Filepath
-			fmt.Printf("\n\nSTAT: %s\n", path)
 			fi, err := os.Stat(path)
 			if err != nil {
-				fmt.Printf("STAT ERROR: %s\n\n", err)
 				return 0, err
 			}
 			tmp := []os.FileInfo{fi}
 			n := copy(ls, tmp)
-			fmt.Printf("STAT SUCCESS: %#v\n\n", fi)
 			if n < len(ls) {
 				return n, io.EOF
 			}

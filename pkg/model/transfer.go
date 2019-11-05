@@ -195,7 +195,7 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		if err := acc.Get(agent); err != nil {
 			return nil, fmt.Errorf("agent: %s", err)
 		}
-		account := LocalAccount{ID: t.AccountID}
+		account := &LocalAccount{ID: t.AccountID}
 		if err := acc.Get(account); err != nil {
 			return nil, fmt.Errorf("account: %s", err)
 		}

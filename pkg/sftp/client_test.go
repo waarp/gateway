@@ -15,43 +15,28 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-const (
-	testSFTPPubKey   = "test_sftp_root/id_rsa.pub"
-	testSFTPPrivKey  = "test_sftp_root/id_rsa"
-	testInitPort     = 0
-	testSFTPUser     = "test_user"
-	testSFTPPassword = "test_password"
-)
-
-var testSFTPPort int
-
 func init() {
 	config := &ssh.ServerConfig{
 		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			if c.User() == testSFTPUser && string(pass) == testSFTPPassword {
+			if c.User() == testLogin && string(pass) == testPassword {
 				return nil, nil
 			}
 			return nil, fmt.Errorf("password '%s' rejected for user '%s'", pass, c.User())
 		},
 	}
 
-	privateBytes, err := ioutil.ReadFile(testSFTPPrivKey)
+	privateKey, err := ssh.ParsePrivateKey(testPK)
 	if err != nil {
-		log.Fatal("Failed to open SFTP server key", err)
-	}
-
-	privateKey, err := ssh.ParsePrivateKey(privateBytes)
-	if err != nil {
-		log.Fatal("Failed to parse SFTP server key", err)
+		log.Fatalf("Failed to parse SFTP server key: %s", err)
 	}
 
 	config.AddHostKey(privateKey)
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", testInitPort))
+	listener, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
-		log.Fatal("Failed to open SFTP server key", err)
+		log.Fatalf("Failed to open SFTP server key: %s", err)
 	}
-	testSFTPPort = listener.Addr().(*net.TCPAddr).Port
+	port = listener.Addr().(*net.TCPAddr).Port
 
 	go handleSFTP(listener, config)
 }
@@ -118,22 +103,18 @@ func TestConnect(t *testing.T) {
 			Name:     "test",
 			Protocol: "sftp",
 			ProtoConfig: []byte(
-				fmt.Sprintf(`{"address":%s, "port":%d}`, `"127.0.0.1"`, testSFTPPort)),
+				fmt.Sprintf(`{"address":%s, "port":%d}`, `"127.0.0.1"`, port)),
 		}
 
 		Convey("Given a valid certificate", func() {
-			serverKey, err := ioutil.ReadFile(testSFTPPubKey)
-			if err != nil {
-				t.Fatal(err)
-			}
 			cert := &model.Cert{
-				PublicKey: serverKey,
+				PublicKey: testPBK,
 			}
 
 			Convey("Given a valid Remote Account", func() {
 				account := &model.RemoteAccount{
-					Login:    testSFTPUser,
-					Password: []byte(testSFTPPassword),
+					Login:    testLogin,
+					Password: []byte(testPassword),
 				}
 
 				Convey("When calling 'Connect' function", func() {
@@ -152,7 +133,7 @@ func TestConnect(t *testing.T) {
 			})
 			Convey("Given an incorrect Account", func() {
 				account := &model.RemoteAccount{
-					Login:    testSFTPUser,
+					Login:    testLogin,
 					Password: []byte("Giberish"),
 				}
 				Convey("When calling 'Connect' function", func() {
@@ -174,8 +155,8 @@ func TestConnect(t *testing.T) {
 			}
 			Convey("Given a valid Remote Account", func() {
 				account := &model.RemoteAccount{
-					Login:    testSFTPUser,
-					Password: []byte(testSFTPPassword),
+					Login:    testLogin,
+					Password: []byte(testPassword),
 				}
 
 				Convey("When calling 'Connect' function", func() {
@@ -197,20 +178,20 @@ func TestConnect(t *testing.T) {
 
 func TestDoTransfer(t *testing.T) {
 	Convey("Given a SFTP Server registered as a Remote Agent", t, func() {
+		root := "client_test_root"
+		So(os.Mkdir(root, 0700), ShouldBeNil)
+		Reset(func() { _ = os.RemoveAll(root) })
+
 		remote := &model.RemoteAgent{
 			Name:     "test",
 			Protocol: "sftp",
 			ProtoConfig: []byte(
-				fmt.Sprintf(`{"address":%s, "port":%d}`, `"127.0.0.1"`, testSFTPPort)),
+				fmt.Sprintf(`{"address":%s, "port":%d}`, `"127.0.0.1"`, port)),
 		}
 
 		Convey("Given a valid connection to the server", func() {
-			serverKey, err := ioutil.ReadFile(testSFTPPubKey)
-			if err != nil {
-				t.Fatal(err)
-			}
 			cert := &model.Cert{
-				PublicKey: serverKey,
+				PublicKey: testPBK,
 			}
 			push := &model.Rule{
 				Name:  "push",
@@ -221,8 +202,8 @@ func TestDoTransfer(t *testing.T) {
 				IsGet: true,
 			}
 			account := &model.RemoteAccount{
-				Login:    testSFTPUser,
-				Password: []byte(testSFTPPassword),
+				Login:    testLogin,
+				Password: []byte(testPassword),
 			}
 			client, err := Connect(remote, cert, account)
 			if err != nil {
@@ -234,12 +215,13 @@ func TestDoTransfer(t *testing.T) {
 
 			// TODO Handle transfer rules
 			Convey("Given a valid push transfer", func() {
+
 				transfer := &model.Transfer{
 					RuleID:     push.ID,
 					RemoteID:   remote.ID,
 					AccountID:  account.ID,
 					SourcePath: "client.go",
-					DestPath:   "test_sftp_root/client.ds",
+					DestPath:   root + "/client.ds",
 				}
 
 				Convey("When calling DoTransfer", func() {
@@ -273,7 +255,7 @@ func TestDoTransfer(t *testing.T) {
 					RemoteID:   remote.ID,
 					AccountID:  account.ID,
 					SourcePath: "unknown",
-					DestPath:   "test_sftp_root/client.ds",
+					DestPath:   root + "/client.ds",
 				}
 
 				Convey("When calling DoTransfer", func() {
@@ -296,11 +278,15 @@ func TestDoTransfer(t *testing.T) {
 			})
 
 			Convey("Given a valid pull transfer", func() {
+				err := ioutil.WriteFile(root+"/test_pull.src",
+					[]byte("test client pull"), 0600)
+				So(err, ShouldBeNil)
+
 				transfer := &model.Transfer{
 					RuleID:     pull.ID,
 					RemoteID:   remote.ID,
 					AccountID:  account.ID,
-					SourcePath: "test_sftp_root/pull/out/test_pull.src",
+					SourcePath: root + "/test_pull.src",
 					DestPath:   "test_pull.dst",
 				}
 

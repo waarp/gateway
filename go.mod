@@ -8,16 +8,13 @@ require (
 	github.com/go-xorm/xorm v0.7.3
 	github.com/gorilla/mux v1.7.2
 	github.com/jessevdk/go-flags v1.4.1-0.20181006083204-9c49a3351d49
-	github.com/kr/fs v0.1.0 // indirect
 	github.com/lib/pq v1.0.0
 	github.com/mattn/go-colorable v0.1.2
 	github.com/mattn/go-oci8 v0.0.0-20190524004114-abcafa411cc8
 	github.com/mattn/go-sqlite3 v1.10.0
-	github.com/pkg/errors v0.8.1
-	github.com/pkg/sftp v1.10.0
-	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
+	github.com/pkg/sftp v1.10.2-0.20191102210727-6d50bf4a2122
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a
-	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
+	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 )
 
 go 1.13
