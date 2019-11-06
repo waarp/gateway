@@ -58,8 +58,6 @@ func (s *sshServer) handleConnection(wg *sync.WaitGroup) {
 			var newChannel ssh.NewChannel
 			var ok bool
 			select {
-			case <-s.shutdown:
-				break sessionLoop
 			case newChannel, ok = <-channels:
 				if !ok {
 					break sessionLoop
@@ -70,6 +68,9 @@ func (s *sshServer) handleConnection(wg *sync.WaitGroup) {
 					continue
 				default:
 				}
+			case <-s.shutdown:
+				_ = servConn.Close()
+				continue
 			}
 
 			s.handleSession(servConn.User(), newChannel)

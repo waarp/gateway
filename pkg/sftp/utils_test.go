@@ -1,4 +1,26 @@
------BEGIN OPENSSH PRIVATE KEY-----
+package sftp
+
+import (
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+)
+
+const (
+	testLogin    = "test_user"
+	testPassword = "test_password"
+)
+
+var (
+	port    int
+	testPK  = []byte(pk)
+	testPBK = []byte(pbk)
+
+	testLogConf = conf.LogConfig{
+		Level: "DEBUG",
+		LogTo: "stdout",
+	}
+)
+
+const pk = `-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAYEAxQ388N0YOsjS+/4qBQZT458Ickw5OKUbMTd6HHUNFk2kXzI/EzoC
 VctKboNi5bF/oBJcIzfP5ddG2EelrxcU+MsQnfxvzxvGu6NwhJIylrrAxpBvSP2zVtn6AH
@@ -35,4 +57,13 @@ g8kHDgDozZcH0XLNplIIsC4KC78e86zmNOUccyV9qEL7e2Nq7SkRnqtQZHhQB7rSx6LebQ
 +CSKE4s23AkvWTv6hJgwavDwK/F6V2ihHWfBLHxE6NGlBgbmFrq0clMBiHCp3MSbyjaBdd
 cdyqnkAJ4dgBLxGqJmJL6HdKnXY1uBMM56dVomPiBiizDOGwC0te2Kc/SemHSiBrkDuyC3
 Ku9aYVMWJrluF5AAAACnRlc3RAd2FhcnA=
------END OPENSSH PRIVATE KEY-----
+-----END OPENSSH PRIVATE KEY-----`
+
+const pbk = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDFDfzw3Rg6yNL7/ioFBlPjnwhy" +
+	"TDk4pRsxN3ocdQ0WTaRfMj8TOgJVy0pug2LlsX+gElwjN8/l10bYR6WvFxT4yxCd/G/PG8a7" +
+	"o3CEkjKWusDGkG9I/bNW2foAdHep10dJmdYIdJy6664Rzd7q/VRfUueRcqOk726+W51XenoK" +
+	"c4YD2cF24QM6+NL/fbNFi34e5fD6rVPZuUwDIQz033KB58tIzD0cNW5EUVIuCPCTqJHzuDMk" +
+	"Z/F3gbLExkcCmU2K5m2NiBlvsfSfvnWimueDoURklyyhClDuTzmpjZxhKLSzSyE6Xis/7z2G" +
+	"7san4aUjSVMi68kRi3bnH2pUECZda7hQvbcfTK0xgpEikNIcOyLq99u4x4Jn/0ckoJnAJCYh" +
+	"uxuHg2o2255TIC1Z/5BoCp0NG6jMYlAaVjAwGQ+VJQuZAG5AwjB/68hKvalNWu4cWFqWgl3u" +
+	"OHrH1dPn01LfTeSzcP1E913Yg7zYkmL0P6eOBLO8SK48hLG4bBkhJmk= test@waarp"

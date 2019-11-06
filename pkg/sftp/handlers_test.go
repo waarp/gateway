@@ -1,6 +1,8 @@
 package sftp
 
 import (
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -12,6 +14,13 @@ import (
 
 func TestFileReader(t *testing.T) {
 	Convey("Given a database with a rule, a localAgent and a localAccount", t, func() {
+		root := "test_file_reader"
+		Reset(func() { _ = os.RemoveAll(root) })
+		So(os.MkdirAll(root+"/test", 0700), ShouldBeNil)
+
+		err := ioutil.WriteFile(root+"/test/file.test", []byte("Test file"), 0600)
+		So(err, ShouldBeNil)
+
 		db := database.GetTestDatabase()
 
 		rule := &model.Rule{
@@ -22,9 +31,10 @@ func TestFileReader(t *testing.T) {
 		So(db.Create(rule), ShouldBeNil)
 
 		agent := &model.LocalAgent{
-			Name:        "test_sftp_server",
-			Protocol:    "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":2023, "root":"test_sftp_root"}`),
+			Name:     "test_sftp_server",
+			Protocol: "sftp",
+			ProtoConfig: []byte(`{"address":"localhost","port":2023, "root":"` +
+				root + `"}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
 
@@ -101,6 +111,9 @@ func TestFileReader(t *testing.T) {
 
 func TestFileWriter(t *testing.T) {
 	Convey("Given a database with a rule and a localAgent", t, func() {
+		root := "test_file_writer"
+		Reset(func() { _ = os.RemoveAll(root) })
+
 		db := database.GetTestDatabase()
 
 		rule := &model.Rule{
@@ -111,9 +124,10 @@ func TestFileWriter(t *testing.T) {
 		So(db.Create(rule), ShouldBeNil)
 
 		agent := &model.LocalAgent{
-			Name:        "test_sftp_server",
-			Protocol:    "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":2023, "root":"test_sftp_root"}`),
+			Name:     "test_sftp_server",
+			Protocol: "sftp",
+			ProtoConfig: []byte(`{"address":"localhost","port":2023, "root":"` +
+				root + `"}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
 
