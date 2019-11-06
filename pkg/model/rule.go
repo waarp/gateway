@@ -87,10 +87,10 @@ func (r *Rule) ValidateInsert(acc database.Accessor) error {
 // the database. It checks whether the updated entry is valid or not.
 func (r *Rule) ValidateUpdate(acc database.Accessor, id uint64) error {
 
-	if res, err := acc.Query("SELECT id FROM rules WHERE name=? AND id<>?", r.Name, id); err != nil {
+	if res, err := acc.Query("SELECT id FROM rules WHERE name=? and send=? and id<>?", r.Name, r.Send, id); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("A rule named '%s' already exist", r.Name)
+		return database.InvalidError("A rule Send: %t named '%s' already exist", r.Send, r.Name)
 	}
 	return nil
 }

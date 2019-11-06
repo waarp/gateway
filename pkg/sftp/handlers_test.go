@@ -24,9 +24,9 @@ func TestFileReader(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		rule := &model.Rule{
-			Name:    "test",
-			IsGet:   true,
-			OutPath: "/test",
+			Name: "test",
+			Send: true,
+			Path: "/test",
 		}
 		So(db.Create(rule), ShouldBeNil)
 
@@ -117,9 +117,9 @@ func TestFileWriter(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		rule := &model.Rule{
-			Name:   "test",
-			IsGet:  false,
-			InPath: "/test",
+			Name: "test",
+			Send: false,
+			Path: "/test",
 		}
 		So(db.Create(rule), ShouldBeNil)
 

@@ -25,7 +25,7 @@ func (*RuleAccess) TableName() string {
 func (r *RuleAccess) ValidateInsert(acc database.Accessor) error {
 	if res, err := acc.Query("SELECT id FROM rules WHERE id=?", r.RuleID); err != nil {
 		return err
-	} else if len(res) > 0 {
+	} else if len(res) < 1 {
 		return database.InvalidError("No rule found with ID %d", r.RuleID)
 	}
 

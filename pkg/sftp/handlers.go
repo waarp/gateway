@@ -63,7 +63,7 @@ func makeFileReader(db *database.Db, agentID, accountID uint64, root string,
 		if path == "." || path == "/" {
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
-		rule := model.Rule{OutPath: path, IsGet: true}
+		rule := model.Rule{Path: path, Send: true}
 		if err := db.Get(&rule); err != nil {
 			return nil, err
 		}
@@ -108,13 +108,13 @@ func makeFileWriter(db *database.Db, agentID, accountID uint64, root string,
 		if path == "." || path == "/" {
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
-		rule := model.Rule{InPath: path, IsGet: false}
+		rule := model.Rule{Path: path, Send: false}
 		if err := db.Get(&rule); err != nil {
 			return nil, err
 		}
 
 		// Create dir if it doesn't exist
-		dir := filepath.FromSlash(fmt.Sprintf("%s/%s", root, rule.InPath))
+		dir := filepath.FromSlash(fmt.Sprintf("%s/%s", root, rule.Path))
 		if info, err := os.Lstat(dir); err != nil {
 			if os.IsNotExist(err) {
 				if err := os.MkdirAll(dir, 0740); err != nil {

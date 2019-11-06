@@ -26,7 +26,7 @@ const (
 type Task struct {
 	RuleID uint64 `xorm:"notnull 'rule_id'" json:"rule_id"`
 	Chain  Chain  `xorm:"notnull 'chain'" json:"chain"`
-	Order  uint32 `xorm:"notnull 'order'" json:"order"`
+	Rank   uint32 `xorm:"notnull 'rank'" json:"rank"`
 	Type   string `xorm:"notnull 'type'" json:"type"`
 	Args   string `xorm:"notnull 'args'" json:"args"`
 }
@@ -41,7 +41,7 @@ func (*Task) TableName() string {
 func (t *Task) ValidateInsert(acc database.Accessor) error {
 	if res, err := acc.Query("SELECT id FROM rules WHERE id=?", t.RuleID); err != nil {
 		return err
-	} else if len(res) < 0 {
+	} else if len(res) < 1 {
 		return database.InvalidError("No rule found with ID %d", t.RuleID)
 	}
 
@@ -49,11 +49,11 @@ func (t *Task) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError("%s is not a valid task chain", t.Chain)
 	}
 
-	if res, err := acc.Query("SELECT rule_id FROM tasks WHERE rule_id=? and chain=? and order=?",
-		t.RuleID, t.Chain, t.Order); err != nil {
+	if res, err := acc.Query("SELECT rule_id FROM tasks WHERE rule_id=? AND chain=? AND rank=?",
+		t.RuleID, t.Chain, t.Rank); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("Rule %d as already a task in %s at %d", t.RuleID, t.Chain, t.Order)
+		return database.InvalidError("Rule %d already has a task in %s at %d", t.RuleID, t.Chain, t.Rank)
 	}
 
 	return nil
