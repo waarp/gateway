@@ -99,6 +99,13 @@ func (t *Transfer) validateClientTransfer(acc database.Accessor) error {
 			t.AgentID, t.AccountID)
 	}
 
+	// Check for rule access
+	if auth, err := IsRuleAuthorized(acc, t); err != nil {
+		return err
+	} else if !auth {
+		return database.InvalidError("Rule %d is not authorized for this transfer", t.RuleID)
+	}
+
 	if remote.Protocol == "sftp" {
 		if res, err := acc.Query("SELECT id FROM certificates WHERE owner_type=? AND owner_id=?",
 			(&RemoteAgent{}).TableName(), t.AgentID); err != nil {

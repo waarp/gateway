@@ -22,6 +22,79 @@ func TestRuleAccessTableName(t *testing.T) {
 	})
 }
 
+func TestIsRuleAuthorized(t *testing.T) {
+	Convey("Given a database", t, func() {
+		db := database.GetTestDatabase()
+
+		Convey("Given a rule entry", func() {
+			r := &Rule{
+				Name:   "Test",
+				IsSend: true,
+			}
+			So(db.Create(r), ShouldBeNil)
+
+			rAgent := &RemoteAgent{
+				Name:        "Test",
+				Protocol:    "sftp",
+				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+			}
+			So(db.Create(rAgent), ShouldBeNil)
+
+			rAccount := &RemoteAccount{
+				RemoteAgentID: rAgent.ID,
+				Login:         "Test",
+				Password:      []byte(""),
+			}
+			So(db.Create(rAccount), ShouldBeNil)
+
+			lAgent := &LocalAgent{
+				Name:        "Test",
+				Protocol:    "sftp",
+				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+			}
+			So(db.Create(lAgent), ShouldBeNil)
+
+			lAccount := &LocalAccount{
+				LocalAgentID: lAgent.ID,
+				Login:        "Test",
+				Password:     []byte(""),
+			}
+			So(db.Create(lAccount), ShouldBeNil)
+
+			Convey("Given a remote_agent authorized for the rule", func() {
+
+				lAccess := &RuleAccess{
+					RuleID:     r.ID,
+					ObjectType: "local_agents",
+					ObjectID:   lAgent.ID,
+				}
+				So(db.Create(lAccess), ShouldBeNil)
+
+				Convey("Given a non authorized transfer", func() {
+					t := &Transfer{
+						IsServer:  false,
+						RuleID:    r.ID,
+						AgentID:   rAgent.ID,
+						AccountID: rAccount.ID,
+					}
+
+					Convey("When calling the `IsRuleAuthorized` method", func() {
+						auth, err := IsRuleAuthorized(db, t)
+
+						Convey("Then it should NOT return an error", func() {
+							So(err, ShouldBeNil)
+						})
+
+						Convey("Then is should not authorized", func() {
+							So(auth, ShouldBeFalse)
+						})
+					})
+				})
+			})
+		})
+	})
+}
+
 func TestRuleAccessValidateInsert(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()

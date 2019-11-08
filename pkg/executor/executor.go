@@ -124,7 +124,14 @@ func sftpTransfer(info *transferInfo) error {
 func (e *Executor) runTransfer(trans *model.Transfer, run runner) {
 
 	exec := func() error {
-		err := e.Db.Update(&model.Transfer{Status: model.StatusTransfer}, trans.ID, false)
+		auth, err := model.IsRuleAuthorized(e.Db, trans)
+		if err != nil {
+			return err
+		} else if !auth {
+			return database.InvalidError("Rule %d is not authorized for this transfer", trans.RuleID)
+		}
+
+		err = e.Db.Update(&model.Transfer{Status: model.StatusTransfer}, trans.ID, false)
 		if err != nil {
 			return err
 		}
