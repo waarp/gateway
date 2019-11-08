@@ -229,6 +229,91 @@ func TestSSHServer(t *testing.T) {
 					})
 				})
 
+				Convey("Given that 2 transfers launch simultaneously", func() {
+					src := bytes.NewBuffer([]byte(content))
+
+					dst1, err := client.Create("/pull/in/test_in_1.dst")
+					So(err, ShouldBeNil)
+					dst2, err := client.Create("/pull/in/test_in_2.dst")
+					So(err, ShouldBeNil)
+
+					res1 := make(chan error)
+					res2 := make(chan error)
+					go func() {
+						_, err := io.Copy(dst1, src)
+						res1 <- err
+					}()
+					go func() {
+						_, err := io.Copy(dst2, src)
+						res2 <- err
+					}()
+
+					So(<-res1, ShouldBeNil)
+					So(<-res2, ShouldBeNil)
+
+					err = dst1.Close()
+					So(err, ShouldBeNil)
+					err = dst2.Close()
+					So(err, ShouldBeNil)
+
+					Convey("Then the destination files should exist", func() {
+						path1 := root + "/pull/in/test_in_1.dst"
+						_, err := os.Stat(path1)
+						So(err, ShouldBeNil)
+
+						path2 := root + "/pull/in/test_in_2.dst"
+						_, err = os.Stat(path2)
+						So(err, ShouldBeNil)
+
+						Convey("Then the files' content should be identical to "+
+							"the originals", func() {
+							dstContent1, err := ioutil.ReadFile(path1)
+							So(err, ShouldBeNil)
+							dstContent2, err := ioutil.ReadFile(path2)
+							So(err, ShouldBeNil)
+
+							So(string(dstContent1), ShouldEqual, content)
+							So(string(dstContent2), ShouldEqual, content)
+						})
+					})
+
+					Convey("Then the transfers should appear in the history", func() {
+						hist1 := &model.TransferHistory{
+							IsServer:       true,
+							IsSend:         false,
+							Account:        user.Login,
+							Remote:         agent.Name,
+							Protocol:       "sftp",
+							SourceFilename: "test_in_1.dst",
+							DestFilename:   "/pull/in/test_in_1.dst",
+							Rule:           "pull",
+							Status:         model.StatusDone,
+						}
+						hist2 := &model.TransferHistory{
+							IsServer:       true,
+							IsSend:         false,
+							Account:        user.Login,
+							Remote:         agent.Name,
+							Protocol:       "sftp",
+							SourceFilename: "test_in_2.dst",
+							DestFilename:   "/pull/in/test_in_2.dst",
+							Rule:           "pull",
+							Status:         model.StatusDone,
+						}
+
+						err := client.Close()
+						So(err, ShouldBeNil)
+
+						ok, err := db.Exists(hist1)
+						So(err, ShouldBeNil)
+						So(ok, ShouldBeTrue)
+
+						ok, err = db.Exists(hist2)
+						So(err, ShouldBeNil)
+						So(ok, ShouldBeTrue)
+					})
+				})
+
 				Convey("Given that the transfer fails", func() {
 					src := rand.Reader
 
