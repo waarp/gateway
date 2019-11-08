@@ -19,5 +19,6 @@ func init() {
 func testFile() *os.File {
 	tmp, err := ioutil.TempFile("", "*")
 	So(err, ShouldBeNil)
+	Reset(func() { _ = os.Remove(tmp.Name()) })
 	return tmp
 }

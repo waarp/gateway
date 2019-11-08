@@ -3,27 +3,34 @@
 package database
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var oracleTestDatabase *Db
+var (
+	oracleTestDatabase *Db
+	oracleConfig       *conf.ServerConfig
+)
 
 func init() {
-	oracleConfig := &conf.ServerConfig{}
+	oracleConfig = &conf.ServerConfig{}
 	oracleConfig.Database.Type = oracle
 	oracleConfig.Database.User = "waarp"
 	oracleConfig.Database.Password = "password"
 	oracleConfig.Database.Name = "XE"
 	oracleConfig.Database.Address = "localhost"
-	oracleConfig.Database.AESPassphrase = "/tmp/aes_passphrase"
+	oracleConfig.Database.AESPassphrase = fmt.Sprintf("%s%soracle_test_passphrase.aes",
+		os.TempDir(), string(os.PathSeparator))
 
 	oracleTestDatabase = &Db{Conf: oracleConfig}
 }
 
 func TestOracleDB(t *testing.T) {
+	defer func() { _ = os.Remove(oracleConfig.Database.AESPassphrase) }()
 	db := oracleTestDatabase
 	if err := db.Start(); err != nil {
 		t.Fatal(err)
