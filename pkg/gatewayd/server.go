@@ -16,6 +16,8 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/controller"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
 
@@ -51,6 +53,19 @@ func (wg *WG) initServices() {
 func (wg *WG) startServices() error {
 	if err := wg.dbService.Start(); err != nil {
 		return err
+	}
+
+	servers := []*model.LocalAgent{}
+	if err := wg.dbService.Select(&servers, nil); err != nil {
+		return err
+	}
+	for _, server := range servers {
+		switch server.Protocol {
+		case "sftp":
+			wg.Services[server.Name] = &sftp.Server{Db: wg.dbService, Config: server}
+		default:
+			return fmt.Errorf("unknown server protocol '%s'", server.Protocol)
+		}
 	}
 
 	for _, serv := range wg.Services {
