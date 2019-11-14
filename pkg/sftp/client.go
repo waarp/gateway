@@ -112,12 +112,13 @@ func getFile(client *sftp.Client, source string, destination string) error {
 		return err
 	}
 	defer func() { _ = localFile.Close() }()
+
 	// Read remote file into local file
-	_, err = remoteFile.WriteTo(localFile)
-	if closeErr := remoteFile.Close(); closeErr != nil {
-		return closeErr
+	if _, err = remoteFile.WriteTo(localFile); err != nil {
+		_ = remoteFile.Close()
+		return err
 	}
-	return err
+	return remoteFile.Close()
 }
 
 // putFile write the source File in the destination on the sftp client
@@ -134,9 +135,9 @@ func putFile(client *sftp.Client, source string, destination string) error {
 		return err
 	}
 	// Read copy local file into remote file
-	_, err = io.Copy(remoteFile, localFile)
-	if closeErr := remoteFile.Close(); closeErr != nil {
-		return closeErr
+	if _, err = io.Copy(remoteFile, localFile); err != nil {
+		_ = remoteFile.Close()
+		return err
 	}
-	return err
+	return remoteFile.Close()
 }
