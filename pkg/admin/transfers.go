@@ -81,13 +81,13 @@ func makeTransfersConditions(form url.Values) ([]builder.Cond, error) {
 
 	conditions = append(conditions, builder.Eq{"owner": database.Owner})
 
-	remotes := form["remote"]
-	if len(remotes) > 0 {
-		remoteIDs, err := getIDs(remotes)
+	agents := form["agent"]
+	if len(agents) > 0 {
+		agentIDs, err := getIDs(agents)
 		if err != nil {
 			return nil, err
 		}
-		conditions = append(conditions, builder.In("remote_id", remoteIDs))
+		conditions = append(conditions, builder.In("agent_id", agentIDs))
 	}
 	accounts := form["account"]
 	if len(accounts) > 0 {

@@ -20,7 +20,7 @@ func displayTransfer(trans model.Transfer) {
 
 	fmt.Fprintf(w, "\033[37;1;4mTransfer n°%v:\033[0m\n", trans.ID)
 	fmt.Fprintf(w, "          \033[37mRule ID:\033[0m \033[33m%v\033[0m\n", trans.RuleID)
-	fmt.Fprintf(w, "       \033[37mPartner ID:\033[0m \033[33m%v\033[0m\n", trans.RemoteID)
+	fmt.Fprintf(w, "       \033[37mPartner ID:\033[0m \033[33m%v\033[0m\n", trans.AgentID)
 	fmt.Fprintf(w, "       \033[37mAccount ID:\033[0m \033[33m%v\033[0m\n", trans.AccountID)
 	fmt.Fprintf(w, "      \033[37mSource file:\033[0m \033[37m%s\033[0m\n", trans.SourcePath)
 	fmt.Fprintf(w, " \033[37mDestination file:\033[0m \033[37m%s\033[0m\n", trans.DestPath)
@@ -40,7 +40,7 @@ type transferAddCommand struct {
 
 func (t *transferAddCommand) Execute(_ []string) error {
 	newTransfer := model.Transfer{
-		RemoteID:   t.ServerID,
+		AgentID:    t.ServerID,
 		AccountID:  t.AccountID,
 		SourcePath: t.File,
 		RuleID:     t.RuleID,
@@ -90,7 +90,7 @@ func (t *transferGetCommand) Execute(args []string) error {
 
 type transferListCommand struct {
 	listOptions
-	SortBy   string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start" choice:"id" choice:"remote_id" choice:"rule_id" default:"start"`
+	SortBy   string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start" choice:"id" choice:"agent_id" choice:"rule_id" default:"start"`
 	Remotes  []uint64 `long:"server_id" description:"Filter the transfers based on the ID of the transfer partner. Can be repeated multiple times to filter multiple partners."`
 	Accounts []uint64 `long:"account_id" description:"Filter the transfers based on the ID the account used. Can be repeated multiple times to filter multiple accounts."`
 	Rules    []uint64 `long:"rule_id" description:"Filter the transfers based on the ID of the transfer rule used. Can be repeated multiple times to filter multiple rules."`
@@ -113,7 +113,7 @@ func (t *transferListCommand) listURL() (*url.URL, error) {
 		query.Set("order", "desc")
 	}
 	for _, rem := range t.Remotes {
-		query.Add("remote", fmt.Sprint(rem))
+		query.Add("agent", fmt.Sprint(rem))
 	}
 	for _, acc := range t.Accounts {
 		query.Add("account", fmt.Sprint(acc))

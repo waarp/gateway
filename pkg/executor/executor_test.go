@@ -56,7 +56,7 @@ func TestTransferInfo(t *testing.T) {
 			trans := &model.Transfer{
 				ID:         1,
 				RuleID:     expectedRule.ID,
-				RemoteID:   expectedRemote.ID,
+				AgentID:    expectedRemote.ID,
 				AccountID:  expectedAccount.ID,
 				SourcePath: "test/source/path",
 				DestPath:   "test/dest/path",
@@ -130,7 +130,7 @@ func TestExecutorLogTransfer(t *testing.T) {
 		Convey("Given a transfer entry", func() {
 			trans := &model.Transfer{
 				RuleID:     rule.ID,
-				RemoteID:   remote.ID,
+				AgentID:    remote.ID,
 				AccountID:  account.ID,
 				SourcePath: "test/source/path",
 				DestPath:   "test/dest/path",
@@ -259,7 +259,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 		Convey("Given a transfer entry", func() {
 			trans := &model.Transfer{
 				RuleID:     rule.ID,
-				RemoteID:   remote.ID,
+				AgentID:    remote.ID,
 				AccountID:  account.ID,
 				SourcePath: "test/source/path",
 				DestPath:   "test/dest/path",

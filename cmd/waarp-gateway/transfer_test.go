@@ -16,7 +16,7 @@ import (
 func transferInfoString(t *model.Transfer) string {
 	return "Transfer n°" + fmt.Sprint(t.ID) + ":\n" +
 		"          Rule ID: " + fmt.Sprint(t.RuleID) + "\n" +
-		"       Partner ID: " + fmt.Sprint(t.RemoteID) + "\n" +
+		"       Partner ID: " + fmt.Sprint(t.AgentID) + "\n" +
 		"       Account ID: " + fmt.Sprint(t.AccountID) + "\n" +
 		"      Source file: " + t.SourcePath + "\n" +
 		" Destination file: " + t.DestPath + "\n" +
@@ -32,7 +32,7 @@ func TestDisplayTransfer(t *testing.T) {
 		trans := model.Transfer{
 			ID:         1,
 			RuleID:     2,
-			RemoteID:   3,
+			AgentID:    3,
 			AccountID:  4,
 			SourcePath: "source/path",
 			DestPath:   "dest/path",
@@ -279,7 +279,7 @@ func TestTransferGetCommand(t *testing.T) {
 
 				trans := model.Transfer{
 					RuleID:     r.ID,
-					RemoteID:   p.ID,
+					AgentID:    p.ID,
 					AccountID:  a.ID,
 					SourcePath: "test/source/path",
 					DestPath:   "test/dest/path",
@@ -424,7 +424,7 @@ func TestTransferListCommand(t *testing.T) {
 
 				t1 := model.Transfer{
 					RuleID:     r1.ID,
-					RemoteID:   p1.ID,
+					AgentID:    p1.ID,
 					AccountID:  a1.ID,
 					SourcePath: "test/source/path",
 					DestPath:   "test/dest/path",
@@ -432,7 +432,7 @@ func TestTransferListCommand(t *testing.T) {
 				}
 				t2 := model.Transfer{
 					RuleID:     r2.ID,
-					RemoteID:   p2.ID,
+					AgentID:    p2.ID,
 					AccountID:  a2.ID,
 					SourcePath: "test/source/path",
 					DestPath:   "test/dest/path",
@@ -440,7 +440,7 @@ func TestTransferListCommand(t *testing.T) {
 				}
 				t3 := model.Transfer{
 					RuleID:     r3.ID,
-					RemoteID:   p3.ID,
+					AgentID:    p3.ID,
 					AccountID:  a3.ID,
 					SourcePath: "test/source/path",
 					DestPath:   "test/dest/path",
@@ -448,7 +448,7 @@ func TestTransferListCommand(t *testing.T) {
 				}
 				t4 := model.Transfer{
 					RuleID:     r4.ID,
-					RemoteID:   p4.ID,
+					AgentID:    p4.ID,
 					AccountID:  a4.ID,
 					SourcePath: "test/source/path",
 					DestPath:   "test/dest/path",
@@ -586,7 +586,7 @@ func TestTransferListCommand(t *testing.T) {
 				})
 
 				Convey("Given a remote parameter", func() {
-					command.Remotes = []uint64{t1.RemoteID, t3.RemoteID}
+					command.Remotes = []uint64{t1.AgentID, t3.AgentID}
 
 					Convey("When executing the command", func() {
 						err := command.Execute(nil)
@@ -680,7 +680,7 @@ func TestTransferListCommand(t *testing.T) {
 				Convey("Given multiple parameters", func() {
 					command.Start = time.Date(2019, 1, 1, 1, 30, 0, 0, time.UTC).
 						Format(time.RFC3339)
-					command.Remotes = []uint64{t1.RemoteID, t2.RemoteID}
+					command.Remotes = []uint64{t1.AgentID, t2.AgentID}
 					command.Accounts = []uint64{t2.AccountID, t4.AccountID}
 					command.Rules = []uint64{t1.RuleID, t2.RuleID, t3.RuleID}
 					command.Statuses = []string{"TRANSFER", "PLANNED"}

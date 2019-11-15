@@ -16,7 +16,7 @@ type Transfer struct {
 	ID         uint64         `xorm:"pk autoincr <- 'id'" json:"id"`
 	RuleID     uint64         `xorm:"notnull 'rule_id'" json:"ruleID"`
 	IsServer   bool           `xorm:"notnull 'is_server'" json:"isServer'"`
-	RemoteID   uint64         `xorm:"notnull 'remote_id'" json:"remoteID"`
+	AgentID    uint64         `xorm:"notnull 'agent_id'" json:"agentID"`
 	AccountID  uint64         `xorm:"notnull 'account_id'" json:"accountID"`
 	SourcePath string         `xorm:"notnull 'source_path'" json:"sourcePath"`
 	DestPath   string         `xorm:"notnull 'dest_path'" json:"destPath"`
@@ -39,7 +39,7 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 	if t.RuleID == 0 {
 		return database.InvalidError("The transfer's rule ID cannot be empty")
 	}
-	if t.RemoteID == 0 {
+	if t.AgentID == 0 {
 		return database.InvalidError("The transfer's remote ID cannot be empty")
 	}
 	if t.AccountID == 0 {
@@ -83,46 +83,46 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 }
 
 func (t *Transfer) validateClientTransfer(acc database.Accessor) error {
-	remote := RemoteAgent{ID: t.RemoteID}
+	remote := RemoteAgent{ID: t.AgentID}
 	if err := acc.Get(&remote); err != nil {
 		if err == database.ErrNotFound {
-			return database.InvalidError("The partner %d does not exist", t.RemoteID)
+			return database.InvalidError("The partner %d does not exist", t.AgentID)
 		}
 		return err
 	}
 	if res, err := acc.Query("SELECT id FROM remote_accounts WHERE id=? AND remote_agent_id=?",
-		t.AccountID, t.RemoteID); err != nil {
+		t.AccountID, t.AgentID); err != nil {
 		return err
 	} else if len(res) == 0 {
 		return database.InvalidError("The agent %d does not have an account %d",
-			t.RemoteID, t.AccountID)
+			t.AgentID, t.AccountID)
 	}
 
 	if remote.Protocol == "sftp" {
 		if res, err := acc.Query("SELECT id FROM certificates WHERE owner_type=? AND owner_id=?",
-			(&RemoteAgent{}).TableName(), t.RemoteID); err != nil {
+			(&RemoteAgent{}).TableName(), t.AgentID); err != nil {
 			return err
 		} else if len(res) == 0 {
-			return database.InvalidError("No certificate found for agent %d", t.RemoteID)
+			return database.InvalidError("No certificate found for agent %d", t.AgentID)
 		}
 	}
 	return nil
 }
 
 func (t *Transfer) validateServerTransfer(acc database.Accessor) error {
-	remote := LocalAgent{ID: t.RemoteID}
+	remote := LocalAgent{ID: t.AgentID}
 	if err := acc.Get(&remote); err != nil {
 		if err == database.ErrNotFound {
-			return database.InvalidError("The partner %d does not exist", t.RemoteID)
+			return database.InvalidError("The partner %d does not exist", t.AgentID)
 		}
 		return err
 	}
 	if res, err := acc.Query("SELECT id FROM local_accounts WHERE id=? AND local_agent_id=?",
-		t.AccountID, t.RemoteID); err != nil {
+		t.AccountID, t.AgentID); err != nil {
 		return err
 	} else if len(res) == 0 {
 		return database.InvalidError("The agent %d does not have an account %d",
-			t.RemoteID, t.AccountID)
+			t.AgentID, t.AccountID)
 	}
 	/*
 		if remote.Protocol == "sftp" {
@@ -158,7 +158,7 @@ func (t *Transfer) ValidateUpdate(database.Accessor, uint64) error {
 	if t.RuleID != 0 {
 		return database.InvalidError("The transfer's rule cannot be changed")
 	}
-	if t.RemoteID != 0 {
+	if t.AgentID != 0 {
 		return database.InvalidError("The transfer's partner cannot be changed")
 	}
 	if t.AccountID != 0 {
@@ -191,7 +191,7 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	protocol := ""
 
 	if t.IsServer {
-		agent := &LocalAgent{ID: t.RemoteID}
+		agent := &LocalAgent{ID: t.AgentID}
 		if err := acc.Get(agent); err != nil {
 			return nil, fmt.Errorf("agent: %s", err)
 		}
@@ -203,7 +203,7 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		accountLogin = account.Login
 		protocol = agent.Protocol
 	} else {
-		agent := &RemoteAgent{ID: t.RemoteID}
+		agent := &RemoteAgent{ID: t.AgentID}
 		if err := acc.Get(agent); err != nil {
 			return nil, fmt.Errorf("agent: %s", err)
 		}
@@ -226,8 +226,6 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	hist := TransferHistory{
 		ID:             t.ID,
 		Owner:          t.Owner,
-		IsServer:       t.IsServer,
-		IsSend:         rule.Send,
 		Account:        accountLogin,
 		Remote:         agentName,
 		Protocol:       protocol,

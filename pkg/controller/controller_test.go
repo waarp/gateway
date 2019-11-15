@@ -57,7 +57,7 @@ func TestControllerListen(t *testing.T) {
 			trans := &model.Transfer{
 				RuleID:     rule.ID,
 				IsServer:   false,
-				RemoteID:   remote.ID,
+				AgentID:    remote.ID,
 				AccountID:  account.ID,
 				SourcePath: "test/source/path",
 				DestPath:   "test/dest/path",

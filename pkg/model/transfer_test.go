@@ -84,7 +84,7 @@ func TestTransferValidateInsert(t *testing.T) {
 				trans := &Transfer{
 					RuleID:     rule.ID,
 					IsServer:   false,
-					RemoteID:   remote.ID,
+					AgentID:    remote.ID,
 					AccountID:  account.ID,
 					SourcePath: "test/source/path",
 					DestPath:   "test/dest/path",
@@ -168,7 +168,7 @@ func TestTransferValidateInsert(t *testing.T) {
 				})
 
 				Convey("Given that the remote ID is missing", func() {
-					trans.RemoteID = 0
+					trans.AgentID = 0
 
 					Convey("When calling the 'ValidateInsert' function", func() {
 						ses, err := db.BeginTransaction()
@@ -307,7 +307,7 @@ func TestTransferValidateInsert(t *testing.T) {
 				})
 
 				Convey("Given that the remote id is invalid", func() {
-					trans.RemoteID = 1000
+					trans.AgentID = 1000
 
 					Convey("When calling the 'ValidateInsert' function", func() {
 						ses, err := db.BeginTransaction()
@@ -359,7 +359,7 @@ func TestTransferValidateInsert(t *testing.T) {
 					}
 					So(db.Create(account2), ShouldBeNil)
 
-					trans.RemoteID = remote.ID
+					trans.AgentID = remote.ID
 					trans.AccountID = account2.ID
 
 					Convey("When calling the 'ValidateInsert' function", func() {
@@ -455,7 +455,7 @@ func TestTransferValidateUpdate(t *testing.T) {
 		})
 
 		Convey("Given that the entry changes the remote ID", func() {
-			trans.RemoteID = 1
+			trans.AgentID = 1
 
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := trans.ValidateUpdate(nil, 0)
@@ -582,7 +582,7 @@ func TestTransferToHistory(t *testing.T) {
 				ID:         1,
 				RuleID:     rule.ID,
 				IsServer:   false,
-				RemoteID:   remote.ID,
+				AgentID:    remote.ID,
 				AccountID:  account.ID,
 				SourcePath: "test/source/path",
 				DestPath:   "test/dest/path",

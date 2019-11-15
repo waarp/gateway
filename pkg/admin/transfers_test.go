@@ -58,7 +58,7 @@ func TestAddTransfer(t *testing.T) {
 
 			trans := model.Transfer{
 				RuleID:     push.ID,
-				RemoteID:   partner.ID,
+				AgentID:    partner.ID,
 				AccountID:  account.ID,
 				SourcePath: "src/test/path",
 				DestPath:   "dst/test/path",
@@ -109,7 +109,7 @@ func TestAddTransfer(t *testing.T) {
 			})
 
 			Convey("Given a new transfer with an invalid partnerID", func() {
-				trans.RemoteID = 1000
+				trans.AgentID = 1000
 
 				Convey("When calling the handler", func() {
 					content, err := json.Marshal(&trans)
@@ -126,7 +126,7 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the response body should say the partner is invalid", func() {
 						So(w.Body.String(), ShouldEqual, fmt.Sprintf("The partner "+
-							"%v does not exist\n", trans.RemoteID))
+							"%v does not exist\n", trans.AgentID))
 					})
 				})
 			})
@@ -149,7 +149,7 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the response body should say the partner is invalid", func() {
 						So(w.Body.String(), ShouldEqual, fmt.Sprintf("The agent "+
-							"%v does not have an account %v\n", trans.RemoteID,
+							"%v does not have an account %v\n", trans.AgentID,
 							trans.AccountID))
 					})
 				})
@@ -173,7 +173,7 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the response body should say no certificates were found", func() {
 						So(w.Body.String(), ShouldEqual, fmt.Sprintf("No "+
-							"certificate found for agent %v\n", trans.RemoteID))
+							"certificate found for agent %v\n", trans.AgentID))
 					})
 				})
 			})
@@ -219,7 +219,7 @@ func TestGetTransfer(t *testing.T) {
 
 			trans := model.Transfer{
 				RuleID:     push.ID,
-				RemoteID:   partner.ID,
+				AgentID:    partner.ID,
 				AccountID:  account.ID,
 				SourcePath: "src/test/path",
 				DestPath:   "dst/test/path",
@@ -339,7 +339,7 @@ func TestListTransfer(t *testing.T) {
 
 			t1 := model.Transfer{
 				RuleID:     r1.ID,
-				RemoteID:   p1.ID,
+				AgentID:    p1.ID,
 				AccountID:  a1.ID,
 				SourcePath: "src/test/path",
 				DestPath:   "dst/test/path",
@@ -348,7 +348,7 @@ func TestListTransfer(t *testing.T) {
 
 			t2 := model.Transfer{
 				RuleID:     r2.ID,
-				RemoteID:   p2.ID,
+				AgentID:    p2.ID,
 				AccountID:  a2.ID,
 				SourcePath: "src/test/path",
 				DestPath:   "dst/test/path",
@@ -357,7 +357,7 @@ func TestListTransfer(t *testing.T) {
 
 			t3 := model.Transfer{
 				RuleID:     r2.ID,
-				RemoteID:   p1.ID,
+				AgentID:    p1.ID,
 				AccountID:  a1.ID,
 				SourcePath: "src/test/path",
 				DestPath:   "dst/test/path",
@@ -366,7 +366,7 @@ func TestListTransfer(t *testing.T) {
 			So(db.Create(&t3), ShouldBeNil)
 
 			Convey("Given a request with a valid 'remoteID' parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("?remote=%d", p1.ID), nil)
+				req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("?agent=%d", p1.ID), nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {

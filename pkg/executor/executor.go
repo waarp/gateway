@@ -28,10 +28,10 @@ type Executor struct {
 
 func newTransferInfo(db *database.Db, trans *model.Transfer) (*transferInfo, error) {
 
-	remote := model.RemoteAgent{ID: trans.RemoteID}
+	remote := model.RemoteAgent{ID: trans.AgentID}
 	if err := db.Get(&remote); err != nil {
 		if err == database.ErrNotFound {
-			return nil, fmt.Errorf("the partner n°%v does not exist", trans.RemoteID)
+			return nil, fmt.Errorf("the partner n°%v does not exist", trans.AgentID)
 		}
 		return nil, err
 	}
