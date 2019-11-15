@@ -28,8 +28,8 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 
 		Convey("Given a rule entry", func() {
 			r := &Rule{
-				Name: "Test",
-				Send: true,
+				Name:   "Test",
+				IsSend: true,
 			}
 			So(db.Create(r), ShouldBeNil)
 

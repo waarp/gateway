@@ -238,12 +238,12 @@ func TestDoTransfer(t *testing.T) {
 				PublicKey: testPBK,
 			}
 			push := &model.Rule{
-				Name: "push",
-				Send: true,
+				Name:   "push",
+				IsSend: true,
 			}
 			pull := &model.Rule{
-				Name: "pull",
-				Send: false,
+				Name:   "pull",
+				IsSend: false,
 			}
 			account := &model.RemoteAccount{
 				Login:    testLogin,

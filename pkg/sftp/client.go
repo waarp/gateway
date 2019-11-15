@@ -19,7 +19,7 @@ import (
 // DoTransfer realise a sftp transfer according to the given Transfer
 func DoTransfer(client *sftp.Client, t *model.Transfer, r *model.Rule) error {
 	// Do the Transfer
-	if r.Send {
+	if r.IsSend {
 		return putFile(client, t.SourcePath, t.DestPath)
 	}
 	return getFile(client, t.SourcePath, t.DestPath)

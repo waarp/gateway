@@ -47,8 +47,8 @@ func TestTransferInfo(t *testing.T) {
 		So(db.Create(expectedCert), ShouldBeNil)
 
 		expectedRule := &model.Rule{
-			Name: "test rule",
-			Send: true,
+			Name:   "test rule",
+			IsSend: true,
 		}
 		So(db.Create(expectedRule), ShouldBeNil)
 
@@ -122,8 +122,8 @@ func TestExecutorLogTransfer(t *testing.T) {
 		So(db.Create(cert), ShouldBeNil)
 
 		rule := &model.Rule{
-			Name: "test rule",
-			Send: true,
+			Name:   "test rule",
+			IsSend: true,
 		}
 		So(db.Create(rule), ShouldBeNil)
 
@@ -251,8 +251,8 @@ func TestExecutorRunTransfer(t *testing.T) {
 		So(db.Create(cert), ShouldBeNil)
 
 		rule := &model.Rule{
-			Name: "test rule",
-			Send: false,
+			Name:   "test rule",
+			IsSend: false,
 		}
 		So(db.Create(rule), ShouldBeNil)
 

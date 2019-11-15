@@ -24,9 +24,9 @@ func TestFileReader(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		rule := &model.Rule{
-			Name: "test",
-			Send: true,
-			Path: "/test",
+			Name:   "test",
+			IsSend: true,
+			Path:   "/test",
 		}
 		So(db.Create(rule), ShouldBeNil)
 
@@ -64,7 +64,7 @@ func TestFileReader(t *testing.T) {
 						trans := &model.Transfer{
 							RuleID:    rule.ID,
 							IsServer:  true,
-							RemoteID:  agent.ID,
+							AgentID:   agent.ID,
 							AccountID: account.ID,
 						}
 						So(db.Get(trans), ShouldBeNil)
@@ -117,9 +117,9 @@ func TestFileWriter(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		rule := &model.Rule{
-			Name: "test",
-			Send: false,
-			Path: "/test",
+			Name:   "test",
+			IsSend: false,
+			Path:   "/test",
 		}
 		So(db.Create(rule), ShouldBeNil)
 
@@ -157,7 +157,7 @@ func TestFileWriter(t *testing.T) {
 						trans := &model.Transfer{
 							RuleID:    rule.ID,
 							IsServer:  true,
-							RemoteID:  agent.ID,
+							AgentID:   agent.ID,
 							AccountID: account.ID,
 						}
 						So(db.Get(trans), ShouldBeNil)

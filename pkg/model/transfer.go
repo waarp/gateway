@@ -226,6 +226,8 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	hist := TransferHistory{
 		ID:             t.ID,
 		Owner:          t.Owner,
+		IsServer:       t.IsServer,
+		IsSend:         rule.IsSend,
 		Account:        accountLogin,
 		Remote:         agentName,
 		Protocol:       protocol,

@@ -26,8 +26,8 @@ func TestRuleTableName(t *testing.T) {
 func TestRuleBeforeInsert(t *testing.T) {
 	Convey("Given a rule send entry", t, func() {
 		rule := &Rule{
-			Name: "Test",
-			Send: true,
+			Name:   "Test",
+			IsSend: true,
 		}
 
 		Convey("When calling the `BeforeInsert` hook", func() {
@@ -45,8 +45,8 @@ func TestRuleBeforeInsert(t *testing.T) {
 
 	Convey("Given a rule recv entry", t, func() {
 		rule := &Rule{
-			Name: "Test",
-			Send: false,
+			Name:   "Test",
+			IsSend: false,
 		}
 
 		Convey("When calling the `BeforeInsert` hook", func() {
@@ -69,16 +69,16 @@ func TestRuleValidateInsert(t *testing.T) {
 
 		Convey("Given a rule entry", func() {
 			r := &Rule{
-				Name: "Test",
-				Send: true,
+				Name:   "Test",
+				IsSend: true,
 			}
 			So(db.Create(r), ShouldBeNil)
 
 			Convey("Given a rule with a different a name", func() {
 				r2 := &Rule{
-					Name: "Test2",
-					Send: true,
-					Path: "dummy",
+					Name:   "Test2",
+					IsSend: true,
+					Path:   "dummy",
 				}
 
 				Convey("When calling `ValidateUpdate`", func() {
@@ -95,9 +95,9 @@ func TestRuleValidateInsert(t *testing.T) {
 
 			Convey("Given a rule with the same name but with different send", func() {
 				r2 := &Rule{
-					Name: r.Name,
-					Send: !r.Send,
-					Path: "dummy",
+					Name:   r.Name,
+					IsSend: !r.IsSend,
+					Path:   "dummy",
 				}
 
 				Convey("When calling `ValidateUpdate`", func() {
@@ -114,9 +114,9 @@ func TestRuleValidateInsert(t *testing.T) {
 
 			Convey("Given a rule with the same name and same send", func() {
 				r2 := &Rule{
-					Name: r.Name,
-					Send: r.Send,
-					Path: "dummy",
+					Name:   r.Name,
+					IsSend: r.IsSend,
+					Path:   "dummy",
 				}
 
 				Convey("When calling `ValidateUpdate`", func() {
@@ -131,15 +131,15 @@ func TestRuleValidateInsert(t *testing.T) {
 
 					Convey("Then the error should say that rule already exist", func() {
 						So(err.Error(), ShouldEqual, fmt.Sprintf(
-							"A rule named '%s' with send: %t already exist", r.Name, r.Send))
+							"A rule named '%s' with send: %t already exist", r.Name, r.IsSend))
 					})
 				})
 			})
 
 			Convey("Given a rule without a path", func() {
 				r2 := &Rule{
-					Name: "Test2",
-					Send: r.Send,
+					Name:   "Test2",
+					IsSend: r.IsSend,
 				}
 
 				Convey("When calling `ValidateUpdate`", func() {
@@ -167,20 +167,20 @@ func TestRuleValidateUpdate(t *testing.T) {
 
 		Convey("Given two rule entry", func() {
 			r := &Rule{
-				Name: "Test",
-				Send: true,
+				Name:   "Test",
+				IsSend: true,
 			}
 			So(db.Create(r), ShouldBeNil)
 
 			r2 := &Rule{
-				Name: "Toto",
-				Send: true,
+				Name:   "Toto",
+				IsSend: true,
 			}
 			So(db.Create(r2), ShouldBeNil)
 
 			Convey("When updating with invalid data", func() {
 				r.Name = r2.Name
-				r.Send = r2.Send
+				r.IsSend = r2.IsSend
 
 				Convey("When calling the `ValidateUpdate` function", func() {
 					ses, err := db.BeginTransaction()
@@ -194,7 +194,7 @@ func TestRuleValidateUpdate(t *testing.T) {
 
 					Convey("Then the error should say aaaa", func() {
 						So(err.Error(), ShouldEqual,
-							fmt.Sprintf("A rule Send: %t named '%s' already exist", r.Send, r.Name))
+							fmt.Sprintf("A rule Send: %t named '%s' already exist", r.IsSend, r.Name))
 					})
 
 				})
@@ -202,7 +202,7 @@ func TestRuleValidateUpdate(t *testing.T) {
 
 			Convey("When updating with valid data", func() {
 				r.Name = r2.Name
-				r.Send = !r2.Send
+				r.IsSend = !r2.IsSend
 
 				Convey("When calling the `ValidateUpdate` function", func() {
 					ses, err := db.BeginTransaction()

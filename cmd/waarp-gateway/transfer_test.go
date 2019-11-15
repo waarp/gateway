@@ -94,8 +94,8 @@ func TestAddTransfer(t *testing.T) {
 
 						Convey("Given a valid rule", func() {
 							r := model.Rule{
-								Name: "rule",
-								Send: false,
+								Name:   "rule",
+								IsSend: false,
 							}
 							err := db.Create(&r)
 							So(err, ShouldBeNil)
@@ -272,8 +272,8 @@ func TestTransferGetCommand(t *testing.T) {
 				So(db.Create(&a), ShouldBeNil)
 
 				r := model.Rule{
-					Name: "rule",
-					Send: false,
+					Name:   "rule",
+					IsSend: false,
 				}
 				So(db.Create(&r), ShouldBeNil)
 
@@ -393,10 +393,10 @@ func TestTransferListCommand(t *testing.T) {
 			So(db.Create(&a3), ShouldBeNil)
 			So(db.Create(&a4), ShouldBeNil)
 
-			r1 := model.Rule{Name: "rule1", Send: false}
-			r2 := model.Rule{Name: "rule2", Send: false}
-			r3 := model.Rule{Name: "rule3", Send: false}
-			r4 := model.Rule{Name: "rule4", Send: false}
+			r1 := model.Rule{Name: "rule1", IsSend: false}
+			r2 := model.Rule{Name: "rule2", IsSend: false}
+			r3 := model.Rule{Name: "rule3", IsSend: false}
+			r4 := model.Rule{Name: "rule4", IsSend: false}
 			So(db.Create(&r1), ShouldBeNil)
 			So(db.Create(&r2), ShouldBeNil)
 			So(db.Create(&r3), ShouldBeNil)
