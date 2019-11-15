@@ -10,7 +10,7 @@ func init() {
 
 // RuleAccess represents a authorised access to a rule.
 type RuleAccess struct {
-	RuleID     uint64 `xorm:"notnull 'rule_id'" json:"ruleId"`
+	RuleID     uint64 `xorm:"notnull 'rule_id'" json:"-"`
 	ObjectID   uint64 `xorm:"notnull 'object_id'" json:"objectId"`
 	ObjectType string `xorm:"notnull 'object_type'" json:"objectType"`
 }
@@ -47,7 +47,7 @@ func (r *RuleAccess) ValidateInsert(acc database.Accessor) error {
 	if err != nil {
 		return err
 	} else if len(res) == 0 {
-		return database.InvalidError("No "+r.ObjectType+" found with ID '%v'", r.ObjectID)
+		return database.InvalidError("No %s found with ID '%v'", r.ObjectType, r.ObjectID)
 	}
 
 	return nil

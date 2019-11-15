@@ -109,6 +109,16 @@ func makeHistoryHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Rou
 		Methods(http.MethodGet)
 }
 
+func makeRulesHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+	rulesHandler := apiHandler.PathPrefix(RulesPath).Subrouter()
+	rulesHandler.HandleFunc("", listRules(logger, db)).Methods(http.MethodGet)
+	rulesHandler.HandleFunc("", createRule(logger, db)).Methods(http.MethodPost)
+
+	ruleHandler := rulesHandler.PathPrefix("/{rule:[0-9]+}").Subrouter()
+	ruleHandler.HandleFunc("", getRule(logger, db)).Methods(http.MethodGet)
+	ruleHandler.HandleFunc("", deleteRule(logger, db)).Methods(http.MethodDelete)
+}
+
 // MakeHandler returns the router for the REST & Admin http interface
 func MakeHandler(logger *log.Logger, db *database.Db, services map[string]service.Service) http.Handler {
 
@@ -126,6 +136,7 @@ func MakeHandler(logger *log.Logger, db *database.Db, services map[string]servic
 	makeCertificatesHandler(logger, db, apiHandler)
 	makeTransfersHandler(logger, db, apiHandler)
 	makeHistoryHandler(logger, db, apiHandler)
+	makeRulesHandler(logger, db, apiHandler)
 
 	return handler
 }

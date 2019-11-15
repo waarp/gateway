@@ -34,21 +34,6 @@ func (*Rule) TableName() string {
 	return "rules"
 }
 
-// Init initialises the database with 2 basic 'push' and 'pull' rules.
-func (*Rule) Init(acc database.Accessor) error {
-	push := Rule{Name: "push", IsSend: true}
-	if err := acc.Create(&push); err != nil {
-		return err
-	}
-
-	pull := Rule{Name: "pull", IsSend: false}
-	if err := acc.Create(&pull); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // BeforeInsert is called before inserting the rule in the database. Its
 // role is to set the IN and OUT path to the default value if non was
 // entered.
@@ -63,9 +48,18 @@ func (r *Rule) BeforeInsert(acc database.Accessor) error {
 	return nil
 }
 
+// BeforeDelete is called before deleting the rule from the database. Its
+// role is to delete all the RuleAccess entries attached to this rule.
+func (r *Rule) BeforeDelete(acc database.Accessor) error {
+	return acc.Execute("DELETE FROM rule_access WHERE rule_id=?", r.ID)
+}
+
 // ValidateInsert is called before inserting a new `Rule` entry in the
 // database. It checks whether the new entry is valid or not.
 func (r *Rule) ValidateInsert(acc database.Accessor) error {
+	if r.ID != 0 {
+		return database.InvalidError("The rule's ID cannot be entered manually")
+	}
 	if r.Name == "" {
 		return database.InvalidError("The rule's name cannot be empty")
 	}
