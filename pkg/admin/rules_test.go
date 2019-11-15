@@ -19,7 +19,7 @@ import (
 const ruleURI = APIPath + RulesPath + "/"
 
 func TestCreateRule(t *testing.T) {
-	logger := log.NewLogger("rest_rule_create_logger")
+	logger := log.NewLogger("rest_rule_create_logger", logConf)
 
 	Convey("Given the rule creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -30,7 +30,7 @@ func TestCreateRule(t *testing.T) {
 			existing := &model.Rule{
 				Name:    "existing",
 				Comment: "",
-				Send:    false,
+				IsSend:  false,
 				Path:    "/test/existing/path",
 			}
 			So(db.Create(existing), ShouldBeNil)
@@ -39,7 +39,7 @@ func TestCreateRule(t *testing.T) {
 				newRule := &model.Rule{
 					Name:    "new rule",
 					Comment: "",
-					Send:    false,
+					IsSend:  false,
 					Path:    "/test/rule/path",
 				}
 
@@ -58,7 +58,7 @@ func TestCreateRule(t *testing.T) {
 						})
 
 						Convey("Then the 'Location' header should contain the URI "+
-							"of the new account", func() {
+							"of the new rule", func() {
 
 							location := w.Header().Get("Location")
 							So(location, ShouldStartWith, ruleURI)
@@ -140,7 +140,7 @@ func TestCreateRule(t *testing.T) {
 
 							So(w.Body.String(), ShouldEqual, fmt.Sprintf(
 								"A rule named '%s' with send: %t already exist\n",
-								newRule.Name, newRule.Send))
+								newRule.Name, newRule.IsSend))
 						})
 
 						Convey("Then the new rule should NOT be "+
@@ -158,7 +158,7 @@ func TestCreateRule(t *testing.T) {
 }
 
 func TestGetRule(t *testing.T) {
-	logger := log.NewLogger("rest_rule_get_test")
+	logger := log.NewLogger("rest_rule_get_test", logConf)
 
 	Convey("Given the rule get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -169,7 +169,7 @@ func TestGetRule(t *testing.T) {
 			rule := &model.Rule{
 				Name:    "existing",
 				Comment: "",
-				Send:    false,
+				IsSend:  false,
 				Path:    "/test/existing/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
@@ -223,7 +223,7 @@ func TestGetRule(t *testing.T) {
 }
 
 func TestListRules(t *testing.T) {
-	logger := log.NewLogger("rest_rules_list_test")
+	logger := log.NewLogger("rest_rules_list_test", logConf)
 
 	Convey("Testing the transfer list handler", t, func() {
 		db := database.GetTestDatabase()
@@ -234,14 +234,14 @@ func TestListRules(t *testing.T) {
 
 		Convey("Given a database with 2 rules", func() {
 			r1 := &model.Rule{
-				Name: "rule1",
-				Send: false,
+				Name:   "rule1",
+				IsSend: false,
 			}
 			So(db.Create(r1), ShouldBeNil)
 
 			r2 := &model.Rule{
-				Name: "rule2",
-				Send: true,
+				Name:   "rule2",
+				IsSend: true,
 			}
 			So(db.Create(r2), ShouldBeNil)
 
@@ -275,7 +275,7 @@ func TestListRules(t *testing.T) {
 }
 
 func TestDeleteRule(t *testing.T) {
-	logger := log.NewLogger("rest_rule_delete_test")
+	logger := log.NewLogger("rest_rule_delete_test", logConf)
 
 	Convey("Given the rules deletion handler", t, func() {
 		db := database.GetTestDatabase()

@@ -15,24 +15,27 @@ import (
 )
 
 const (
-	// StatusPath is the access path to the status entry point
+	// StatusPath is the access path to the status entry point.
 	StatusPath = "/status"
-	// LocalAgentsPath is the access path to the local servers entry point
+	// LocalAgentsPath is the access path to the local servers entry point.
 	LocalAgentsPath = "/servers"
-	// RemoteAgentsPath is the access path to the partners entry point
+	// RemoteAgentsPath is the access path to the partners entry point.
 	RemoteAgentsPath = "/partners"
-	// LocalAccountsPath is the access path to the local gateway accounts entry point
+	// LocalAccountsPath is the access path to the local gateway accounts entry point.
 	LocalAccountsPath = "/local_accounts"
-	// RemoteAccountsPath is the access path to the distant partners accounts entry point
+	// RemoteAccountsPath is the access path to the distant partners accounts entry point.
 	RemoteAccountsPath = "/remote_accounts"
-	// CertificatesPath is the access path to the account certificates entry point
+	// CertificatesPath is the access path to the account certificates entry point.
 	CertificatesPath = "/certificates"
-	// TransfersPath is the access path to the transfers entry point
+	// TransfersPath is the access path to the transfers entry point.
 	TransfersPath = "/transfers"
-	// HistoryPath is the access path to the transfers history entry point
+	// HistoryPath is the access path to the transfers history entry point.
 	HistoryPath = "/history"
-	// RulesPath is the access path to the transfers rules entry point
+	// RulesPath is the access path to the transfers rules entry point.
 	RulesPath = "/rules"
+	// RulePermissionPath is the access path to the transfer rule permissions
+	// entry point.
+	RulePermissionPath = "/access"
 )
 
 var validOrders = []string{"asc", "desc"}

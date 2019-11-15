@@ -10,9 +10,9 @@ func init() {
 
 // RuleAccess represents a authorised access to a rule.
 type RuleAccess struct {
-	RuleID     uint64 `xorm:"notnull 'rule_id'" json:"-"`
-	ObjectID   uint64 `xorm:"notnull 'object_id'" json:"objectId"`
-	ObjectType string `xorm:"notnull 'object_type'" json:"objectType"`
+	RuleID     uint64 `xorm:"notnull unique(perm) 'rule_id'" json:"-"`
+	ObjectID   uint64 `xorm:"notnull unique(perm) 'object_id'" json:"objectId"`
+	ObjectType string `xorm:"notnull unique(perm) 'object_type'" json:"objectType"`
 }
 
 // TableName returns the rule access table name.
@@ -48,6 +48,13 @@ func (r *RuleAccess) ValidateInsert(acc database.Accessor) error {
 		return err
 	} else if len(res) == 0 {
 		return database.InvalidError("No %s found with ID '%v'", r.ObjectType, r.ObjectID)
+	}
+
+	if ok, err := acc.Exists(r); err != nil {
+		return err
+	} else if ok {
+		return database.InvalidError("The agent has already been granted access " +
+			"to this rule")
 	}
 
 	return nil
