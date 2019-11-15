@@ -24,9 +24,9 @@ const (
 
 // Task represents one record of the 'tasks' table.
 type Task struct {
-	RuleID uint64 `xorm:"notnull 'rule_id'" json:"rule_id"`
-	Chain  Chain  `xorm:"notnull 'chain'" json:"chain"`
-	Rank   uint32 `xorm:"notnull 'rank'" json:"rank"`
+	RuleID uint64 `xorm:"notnull 'rule_id'" json:"-"`
+	Chain  Chain  `xorm:"notnull 'chain'" json:"-"`
+	Rank   uint32 `xorm:"notnull 'rank'" json:"-"`
 	Type   string `xorm:"notnull 'type'" json:"type"`
 	Args   string `xorm:"notnull 'args'" json:"args"`
 }

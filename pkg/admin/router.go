@@ -122,6 +122,10 @@ func makeRulesHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Route
 	permHandler.HandleFunc("", createAccess(logger, db)).Methods(http.MethodPost)
 	permHandler.HandleFunc("", listAccess(logger, db)).Methods(http.MethodGet)
 	permHandler.HandleFunc("", deleteAccess(logger, db)).Methods(http.MethodDelete)
+
+	taskHandler := ruleHandler.PathPrefix(RuleTasksPath).Subrouter()
+	taskHandler.HandleFunc("", listTasks(logger, db)).Methods(http.MethodGet)
+	taskHandler.HandleFunc("", updateTasks(logger, db)).Methods(http.MethodPut)
 }
 
 // MakeHandler returns the router for the REST & Admin http interface

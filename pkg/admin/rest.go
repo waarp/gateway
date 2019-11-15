@@ -36,6 +36,8 @@ const (
 	// RulePermissionPath is the access path to the transfer rule permissions
 	// entry point.
 	RulePermissionPath = "/access"
+	// RuleTasksPath is the access path to the transfer rule tasks entry point.
+	RuleTasksPath = "/tasks"
 )
 
 var validOrders = []string{"asc", "desc"}
