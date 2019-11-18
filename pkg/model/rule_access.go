@@ -11,7 +11,7 @@ func init() {
 // RuleAccess represents a authorised access to a rule.
 type RuleAccess struct {
 	RuleID     uint64 `xorm:"notnull unique(perm) 'rule_id'" json:"-"`
-	ObjectID   uint64 `xorm:"notnull unique(perm) 'object_id'" json:"objectId"`
+	ObjectID   uint64 `xorm:"notnull unique(perm) 'object_id'" json:"objectID"`
 	ObjectType string `xorm:"notnull unique(perm) 'object_type'" json:"objectType"`
 }
 

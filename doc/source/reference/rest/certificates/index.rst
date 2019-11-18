@@ -2,7 +2,7 @@
 Gestion des certificats
 #######################
 
-Le point d'accès pour gérer les certificats est ``api/certificates``.
+Le point d'accès pour gérer les certificats est ``/api/certificates``.
 
 Un certificat est toujours rattaché à une entité pouvant être:
 

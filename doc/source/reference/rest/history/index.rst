@@ -4,7 +4,7 @@
 Gestion de l'historique
 #######################
 
-Le point d'accès pour gérer l'historique des transferts terminés est ``api/history``.
+Le point d'accès pour gérer l'historique des transferts terminés est ``/api/history``.
 
 Pour les transferts en cours, voir :ref:`REST_transfers`.
 

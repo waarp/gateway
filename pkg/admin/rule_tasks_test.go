@@ -16,7 +16,7 @@ import (
 )
 
 func TestListTasks(t *testing.T) {
-	logger := log.NewLogger("rest_access_list_logger")
+	logger := log.NewLogger("rest_access_list_logger", logConf)
 
 	Convey("Given the rule creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -27,7 +27,7 @@ func TestListTasks(t *testing.T) {
 			rule := &model.Rule{
 				Name:    "existing",
 				Comment: "",
-				Send:    false,
+				IsSend:  false,
 				Path:    "/test/existing/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
@@ -115,7 +115,7 @@ func TestListTasks(t *testing.T) {
 }
 
 func TestUpdateTasks(t *testing.T) {
-	logger := log.NewLogger("rest_access_list_logger")
+	logger := log.NewLogger("rest_access_list_logger", logConf)
 
 	Convey("Given the rule creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -126,7 +126,7 @@ func TestUpdateTasks(t *testing.T) {
 			rule := &model.Rule{
 				Name:    "existing",
 				Comment: "",
-				Send:    false,
+				IsSend:  false,
 				Path:    "/test/existing/path",
 			}
 			So(db.Create(rule), ShouldBeNil)

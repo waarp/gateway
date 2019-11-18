@@ -17,13 +17,13 @@ type Rule struct {
 	ID uint64 `xorm:"pk autoincr 'id'" json:"id"`
 
 	// The rule's name
-	Name string `xorm:"unique(send) unique(path) notnull 'name'"`
+	Name string `xorm:"unique(send) unique(path) notnull 'name'" json:"name"`
 
 	// The rule's comment
 	Comment string `xorm:"notnull 'comment'" json:"comment"`
 
 	// The rule's direction (pull/push)
-	IsSend bool `xorm:"unique(send) notnull 'send'" json:"send"`
+	IsSend bool `xorm:"unique(send) notnull 'send'" json:"isSend"`
 
 	// The rule's directory
 	Path string `xorm:"unique(path) notnull 'path'" json:"path"`
@@ -67,7 +67,7 @@ func (r *Rule) ValidateInsert(acc database.Accessor) error {
 	if res, err := acc.Query("SELECT id FROM rules WHERE name=? and send=?", r.Name, r.IsSend); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("A rule named '%s' with send: %t already exist", r.Name, r.IsSend)
+		return database.InvalidError("A rule named '%s' with send = %t already exist", r.Name, r.IsSend)
 	}
 
 	if res, err := acc.Query("SELECT id FROM rules WHERE name=? and path=?", r.Name, r.Path); err != nil {

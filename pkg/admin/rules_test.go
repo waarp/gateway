@@ -139,7 +139,7 @@ func TestCreateRule(t *testing.T) {
 							"that the name already exist", func() {
 
 							So(w.Body.String(), ShouldEqual, fmt.Sprintf(
-								"A rule named '%s' with send: %t already exist\n",
+								"A rule named '%s' with send = %t already exist\n",
 								newRule.Name, newRule.IsSend))
 						})
 

@@ -9,7 +9,7 @@ Consulter un certificat
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
-   **Ememple de requête**
+   **Exemple de requête**
 
        .. code-block:: http
 
@@ -19,7 +19,7 @@ Consulter un certificat
 
    **Réponse**
 
-   :statuscode 200: Le certificat a été renvoyée avec succès
+   :statuscode 200: Le certificat a été renvoyé avec succès
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: Le certificat demandé n'existe pas
 
