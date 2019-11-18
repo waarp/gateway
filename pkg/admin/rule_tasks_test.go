@@ -132,7 +132,7 @@ func TestUpdateTasks(t *testing.T) {
 			So(db.Create(rule), ShouldBeNil)
 			ruleID := strconv.FormatUint(rule.ID, 10)
 
-			Convey("When adding new tasks to the rule", func() {
+			Convey("Given all valid new tasks", func() {
 				pre := []model.Task{{
 					Type: "COPY",
 					Args: "{}",
@@ -195,6 +195,111 @@ func TestUpdateTasks(t *testing.T) {
 							exist, err = db.Exists(&er[0])
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
+						})
+					})
+				})
+
+				Convey("Given a request with a non-existing rule ID parameter", func() {
+					r, err := http.NewRequest(http.MethodGet, "", nil)
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"rule": "1000"})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply with a 'Not Found' error", func() {
+							So(w.Code, ShouldEqual, http.StatusNotFound)
+						})
+
+						Convey("Then the body should contain the error message", func() {
+							So(w.Body.String(), ShouldEqual, "Record not found\n")
+						})
+					})
+				})
+			})
+
+			Convey("Given partial valid new tasks", func() {
+				pre := []model.Task{{
+					Type: "COPY",
+					Args: "{}",
+				}}
+
+				obj := map[string][]model.Task{
+					"preTasks": pre,
+				}
+
+				Convey("Given a request with the valid rule ID parameter", func() {
+					body, err := json.Marshal(obj)
+					So(err, ShouldBeNil)
+
+					r, err := http.NewRequest(http.MethodGet, "", bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply 'Created'", func() {
+							So(w.Code, ShouldEqual, http.StatusCreated)
+						})
+
+						Convey("Then the response body should be empty", func() {
+							So(w.Body.String(), ShouldBeEmpty)
+						})
+
+						Convey("Then the 'Location' header should contain the URI "+
+							"of the new access", func() {
+
+							accessURI := APIPath + RulesPath + "/" + ruleID +
+								RuleTasksPath
+							location := w.Header().Get("Location")
+							So(location, ShouldStartWith, accessURI)
+						})
+
+						Convey("Then the new tasks should be inserted "+
+							"in the database", func() {
+							exist, err := db.Exists(&pre[0])
+							So(err, ShouldBeNil)
+							So(exist, ShouldBeTrue)
+
+							exist, err = db.Exists(&model.Task{Chain: model.ChainPost})
+							So(err, ShouldBeNil)
+							So(exist, ShouldBeFalse)
+
+							exist, err = db.Exists(&model.Task{Chain: model.ChainError})
+							So(err, ShouldBeNil)
+							So(exist, ShouldBeFalse)
+						})
+					})
+				})
+			})
+
+			Convey("Given invalid new tasks", func() {
+				body := []byte("invalid JSON body")
+
+				Convey("Given a request with the valid rule ID parameter", func() {
+					r, err := http.NewRequest(http.MethodGet, "", bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply 'Bad Request'", func() {
+							So(w.Code, ShouldEqual, http.StatusBadRequest)
+						})
+
+						Convey("Then the response body should contain the error "+
+							"message", func() {
+							So(w.Body.String(), ShouldEqual, "invalid character "+
+								"'i' looking for beginning of value\n")
+						})
+
+						Convey("Then the new tasks should NOT have been inserted "+
+							"in the database", func() {
+							exist, err := db.Exists(&model.Task{})
+							So(err, ShouldBeNil)
+							So(exist, ShouldBeFalse)
 						})
 					})
 				})

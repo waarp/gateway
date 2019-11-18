@@ -84,6 +84,35 @@ func TestCreateAccess(t *testing.T) {
 					})
 				})
 
+				Convey("Given that the new access already exist", func() {
+					ex := &model.RuleAccess{
+						RuleID:     rule.ID,
+						ObjectID:   acc.ObjectID,
+						ObjectType: acc.ObjectType,
+					}
+					So(db.Create(ex), ShouldBeNil)
+
+					body, err := json.Marshal(acc)
+					So(err, ShouldBeNil)
+					r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply 'Created'", func() {
+							So(w.Code, ShouldEqual, http.StatusBadRequest)
+						})
+
+						Convey("Then the response body should state that access "+
+							"to the rule is now restricted", func() {
+							So(w.Body.String(), ShouldEqual, "The agent has "+
+								"already been granted access to this rule\n")
+						})
+					})
+				})
+
 				Convey("Given a request with a non-existing rule ID parameter", func() {
 					body, err := json.Marshal(acc)
 					So(err, ShouldBeNil)
@@ -101,6 +130,27 @@ func TestCreateAccess(t *testing.T) {
 						Convey("Then the body should contain the error message", func() {
 							So(w.Body.String(), ShouldEqual, "Record not found\n")
 						})
+					})
+				})
+			})
+
+			Convey("Given that the JSON body in invalid", func() {
+				body := []byte("invalid JSON body")
+				r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
+				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply 'Created'", func() {
+						So(w.Code, ShouldEqual, http.StatusBadRequest)
+					})
+
+					Convey("Then the response body should state that access "+
+						"to the rule is now restricted", func() {
+						So(w.Body.String(), ShouldEqual, "invalid character 'i' "+
+							"looking for beginning of value\n")
 					})
 				})
 			})
