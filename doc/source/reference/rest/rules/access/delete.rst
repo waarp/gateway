@@ -32,7 +32,7 @@ Révoquer un accès à une règle
 
    **Réponse**
 
-   :statuscode 204: L'accès à la règle a été supprimé avec succès
+   :statuscode 200: L'accès à la règle a été supprimé avec succès
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: La règle demandée n'existe pas
 

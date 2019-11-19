@@ -41,10 +41,11 @@ func createAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 
 			w.Header().Set("Location", APIPath+RulesPath+"/"+mux.Vars(r)["rule"]+
 				RulePermissionPath)
-			w.WriteHeader(http.StatusCreated)
 			if len(res) == 1 {
-				msg := fmt.Sprintf("Access to rule %v is now restricted", ruleID)
-				fmt.Fprintln(w, msg)
+				msg := fmt.Sprintf("Access to rule %v is now restricted.", ruleID)
+				http.Error(w, msg, http.StatusCreated)
+			} else {
+				w.WriteHeader(http.StatusCreated)
 			}
 
 			return nil
@@ -115,11 +116,11 @@ func deleteAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
-
-			w.WriteHeader(http.StatusNoContent)
 			if len(res) == 0 {
-				msg := fmt.Sprintf("Access to rule %v is now unrestricted", ruleID)
-				fmt.Fprintln(w, msg)
+				msg := fmt.Sprintf("Access to rule %v is now unrestricted.", ruleID)
+				http.Error(w, msg, http.StatusOK)
+			} else {
+				w.WriteHeader(http.StatusOK)
 			}
 
 			return nil

@@ -71,7 +71,7 @@ func TestCreateAccess(t *testing.T) {
 						Convey("Then the response body should state that access "+
 							"to the rule is now restricted", func() {
 							So(w.Body.String(), ShouldEqual, "Access to rule 1 "+
-								"is now restricted\n")
+								"is now restricted.\n")
 						})
 
 						Convey("Then the new access should be inserted "+
@@ -299,13 +299,13 @@ func TestDeleteAccess(t *testing.T) {
 					handler.ServeHTTP(w, r)
 
 					Convey("Then it should reply 'No Content'", func() {
-						So(w.Code, ShouldEqual, http.StatusNoContent)
+						So(w.Code, ShouldEqual, http.StatusOK)
 					})
 
 					Convey("Then the response body should state that access "+
 						"to the rule is now unrestricted", func() {
 						So(w.Body.String(), ShouldEqual, "Access to rule 1 is "+
-							"now unrestricted\n")
+							"now unrestricted.\n")
 					})
 
 					Convey("Then the access should have been deleted from the "+
