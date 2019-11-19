@@ -59,3 +59,33 @@ func getColorable() io.Writer {
 	}
 	return colorable.NewNonColorable(out)
 }
+
+func toTableName(entity string) string {
+	switch entity {
+	case "local agent":
+		return "local_agents"
+	case "remote agent":
+		return "remote_agents"
+	case "local account":
+		return "local_accounts"
+	case "remote account":
+		return "remote_accounts"
+	default:
+		panic(fmt.Sprintf("invalid entity name '%s'", entity))
+	}
+}
+
+func fromTableName(tableName string) string {
+	switch tableName {
+	case "local_agents":
+		return "local agent"
+	case "remote_agents":
+		return "remote agent"
+	case "local_accounts":
+		return "local account"
+	case "remote_accounts":
+		return "remote account"
+	default:
+		panic(fmt.Sprintf("invalid table name '%s'", tableName))
+	}
+}

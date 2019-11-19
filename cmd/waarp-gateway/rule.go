@@ -13,6 +13,7 @@ type ruleCommand struct {
 	Add    ruleAddCommand    `command:"add" description:"Add a new rule"`
 	Delete ruleDeleteCommand `command:"delete" description:"Delete a rule"`
 	List   ruleListCommand   `command:"list" description:"List the known rules"`
+	Access ruleAccessCommand `command:"access" description:"Manage the permissions for a rule"`
 }
 
 func displayRule(rule model.Rule) {

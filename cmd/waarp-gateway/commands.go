@@ -119,8 +119,17 @@ func sendBean(bean interface{}, conn *url.URL, method string) (string, error) {
 
 	loc, err := res.Location()
 	if err != nil {
-		return "", nil
+		return "", err
 	}
+
+	if res.ContentLength > 0 {
+		msg, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprint(out, string(msg))
+	}
+
 	loc.User = nil
 	return loc.String(), nil
 }
