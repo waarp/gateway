@@ -14,6 +14,7 @@ type ruleCommand struct {
 	Delete ruleDeleteCommand `command:"delete" description:"Delete a rule"`
 	List   ruleListCommand   `command:"list" description:"List the known rules"`
 	Access ruleAccessCommand `command:"access" description:"Manage the permissions for a rule"`
+	Tasks  ruleTasksCommand  `command:"tasks" description:"Manage the rule's task chain"`
 }
 
 func displayRule(rule model.Rule) {

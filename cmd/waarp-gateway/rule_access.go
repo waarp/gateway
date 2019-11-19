@@ -21,7 +21,7 @@ type ruleAccessCommand struct {
 func displayRuleAccess(acc model.RuleAccess) {
 	w := getColorable()
 
-	fmt.Fprintf(w, "\033[37;1;4mAccess to \033[37;1m%s\033[0m n°\033[37;1m%v\033[0m\n",
+	fmt.Fprintf(w, "Access to \033[37;1m%s\033[0m n°\033[37;1m%v\033[0m\n",
 		fromTableName(acc.ObjectType), acc.ObjectID)
 }
 

@@ -15,7 +15,7 @@ import (
 
 func TestAddRuleAccess(t *testing.T) {
 
-	Convey("Testing the rule 'grant' command", t, func() {
+	Convey("Testing the rule access 'grant' command", t, func() {
 		out = testFile()
 		command := &ruleAccessGrantCommand{}
 
@@ -230,7 +230,7 @@ func TestListRuleAccesses(t *testing.T) {
 		_, err := flags.ParseArgs(command, []string{"waarp_gateway"})
 		So(err, ShouldBeNil)
 
-		Convey("Given a gateway with 2 rules", func() {
+		Convey("Given a gateway with 2 rule accesses", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
