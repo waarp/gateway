@@ -41,42 +41,42 @@ func TestChangeRuleTasks(t *testing.T) {
 						Chain:  model.ChainPre,
 						Rank:   0,
 						Type:   "COPY",
-						Args:   "{}",
+						Args:   []byte("{}"),
 					}
 					pre2 := &model.Task{
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
 						Rank:   1,
 						Type:   "EXEC",
-						Args:   "{}",
+						Args:   []byte("{}"),
 					}
 					post1 := &model.Task{
 						RuleID: rule.ID,
 						Chain:  model.ChainPost,
 						Rank:   0,
 						Type:   "DELETE",
-						Args:   "{}",
+						Args:   []byte("{}"),
 					}
 					post2 := &model.Task{
 						RuleID: rule.ID,
 						Chain:  model.ChainPost,
 						Rank:   1,
 						Type:   "TRANSFER",
-						Args:   "{}",
+						Args:   []byte("{}"),
 					}
 					err1 := &model.Task{
 						RuleID: rule.ID,
 						Chain:  model.ChainError,
 						Rank:   0,
 						Type:   "MOVE",
-						Args:   "{}",
+						Args:   []byte("{}"),
 					}
 					err2 := &model.Task{
 						RuleID: rule.ID,
 						Chain:  model.ChainError,
 						Rank:   1,
 						Type:   "RENAME",
-						Args:   "{}",
+						Args:   []byte("{}"),
 					}
 
 					preTasks, err := json.Marshal([]*model.Task{pre1, pre2})
@@ -182,14 +182,14 @@ func TestListRuleTasks(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   1,
 				Type:   "COPY",
-				Args:   "{}",
+				Args:   []byte("{}"),
 			}
 			pre2 := &model.Task{
 				RuleID: rule.ID,
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "EXEC",
-				Args:   "{}",
+				Args:   []byte("{}"),
 			}
 			So(db.Create(pre1), ShouldBeNil)
 			So(db.Create(pre2), ShouldBeNil)
@@ -199,14 +199,14 @@ func TestListRuleTasks(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   0,
 				Type:   "DELETE",
-				Args:   "{}",
+				Args:   []byte("{}"),
 			}
 			post2 := &model.Task{
 				RuleID: rule.ID,
 				Chain:  model.ChainPost,
 				Rank:   1,
 				Type:   "TRANSFER",
-				Args:   "{}",
+				Args:   []byte("{}"),
 			}
 			So(db.Create(post1), ShouldBeNil)
 			So(db.Create(post2), ShouldBeNil)
@@ -216,14 +216,14 @@ func TestListRuleTasks(t *testing.T) {
 				Chain:  model.ChainError,
 				Rank:   1,
 				Type:   "MOVE",
-				Args:   "{}",
+				Args:   []byte("{}"),
 			}
 			err2 := &model.Task{
 				RuleID: rule.ID,
 				Chain:  model.ChainError,
 				Rank:   2,
 				Type:   "RENAME",
-				Args:   "{}",
+				Args:   []byte("{}"),
 			}
 			So(db.Create(err1), ShouldBeNil)
 			So(db.Create(err2), ShouldBeNil)
@@ -249,19 +249,19 @@ func TestListRuleTasks(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Pre tasks:\n"+
 							"  Command: "+pre2.Type+"\n"+
-							"    Arguments: "+pre2.Args+"\n"+
+							"    Arguments: "+string(pre2.Args)+"\n"+
 							"  Command: "+pre1.Type+"\n"+
-							"    Arguments: "+pre1.Args+"\n"+
+							"    Arguments: "+string(pre1.Args)+"\n"+
 							"Post tasks:\n"+
 							"  Command: "+post1.Type+"\n"+
-							"    Arguments: "+post1.Args+"\n"+
+							"    Arguments: "+string(post1.Args)+"\n"+
 							"  Command: "+post2.Type+"\n"+
-							"    Arguments: "+post2.Args+"\n"+
+							"    Arguments: "+string(post2.Args)+"\n"+
 							"Error tasks:\n"+
 							"  Command: "+err1.Type+"\n"+
-							"    Arguments: "+err1.Args+"\n"+
+							"    Arguments: "+string(err1.Args)+"\n"+
 							"  Command: "+err2.Type+"\n"+
-							"    Arguments: "+err2.Args+"\n",
+							"    Arguments: "+string(err2.Args)+"\n",
 						)
 					})
 				})
