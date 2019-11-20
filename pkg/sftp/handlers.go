@@ -44,7 +44,7 @@ func makeHandlers() sftp.Handlers {
 func makeFileReader() fileReaderFunc {
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		dir, _ := os.Getwd()
-		file, err := os.Open(dir + "/" + r.Filepath)
+		file, err := os.Open(filepath.FromSlash(dir + "/" + r.Filepath))
 		if err != nil {
 			return nil, err
 		}
@@ -56,7 +56,7 @@ func makeFileReader() fileReaderFunc {
 func makeFileWriter() fileWriterFunc {
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		dir, _ := os.Getwd()
-		file, err := os.Create(dir + "/" + r.Filepath)
+		file, err := os.Create(filepath.FromSlash(dir + "/" + r.Filepath))
 		if err != nil {
 			return nil, err
 		}
