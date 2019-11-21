@@ -53,7 +53,9 @@ func (r *TasksRunner) setup(t *model.Task) (map[string]interface{}, error) {
 func (r *TasksRunner) replace(t *model.Task) []byte {
 	res := t.Args
 	for key, f := range replacers {
-		res = bytes.ReplaceAll(res, []byte(key), f(r))
+		if bytes.Contains(res, []byte(key)) {
+			res = bytes.ReplaceAll(res, []byte(key), f(r))
+		}
 	}
 	return res
 }

@@ -18,12 +18,11 @@ func TestSetup(t *testing.T) {
 		Convey("Given a TasksRunner", func() {
 			r := &TasksRunner{
 				Rule: &model.Rule{
-					Name: "Test",
+					Name:   "Test",
 					IsSend: true,
-					Path: "path/to/test",
+					Path:   "path/to/test",
 				},
-				Transfer: &model.Transfer{
-				},
+				Transfer: &model.Transfer{},
 			}
 
 			Convey("When calling the `setup` function", func() {

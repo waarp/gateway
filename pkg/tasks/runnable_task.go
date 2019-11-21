@@ -5,7 +5,7 @@ import (
 )
 
 // RunnableTasks is a list of all the tasks known by the gateway
-var RunnableTasks map[string]Runner
+var RunnableTasks = map[string]Runner{}
 
 // Validator permits to validate the arguments for a given task
 type Validator interface {
