@@ -7,12 +7,14 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
 // TasksRunner provides a way to execute tasks
 // given a transfer context (rule, transfer)
 type TasksRunner struct {
+	Db       *database.Db
 	Rule     *model.Rule
 	Transfer *model.Transfer
 }
@@ -29,7 +31,7 @@ func (r *TasksRunner) RunTasks(tasks []*model.Task) error {
 		if err != nil {
 			return err
 		}
-		err = runnable.Run(args, r.Rule, r.Transfer)
+		err = runnable.Run(args, r)
 		if err != nil {
 			return err
 		}

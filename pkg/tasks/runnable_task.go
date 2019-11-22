@@ -14,5 +14,5 @@ type Validator interface {
 
 // Runner permits to execute a given task
 type Runner interface {
-	Run(map[string]interface{}, *model.Rule, *model.Transfer) error
+	Run(map[string]interface{}, *TasksRunner) error
 }
