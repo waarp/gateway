@@ -147,11 +147,7 @@ func TestExecutorLogTransfer(t *testing.T) {
 				}
 
 				Convey("When calling the `logTransfer` method with NO error", func() {
-					err := exe.logTransfer(trans, nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					exe.logTransfer(trans, nil)
 
 					Convey("Then the `Transfer` entry should no longer exist", func() {
 						exist, err := db.Exists(trans)
@@ -182,11 +178,7 @@ func TestExecutorLogTransfer(t *testing.T) {
 				})
 
 				Convey("When calling the `logTransfer` method with an error", func() {
-					err := exe.logTransfer(trans, fmt.Errorf("error"))
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					exe.logTransfer(trans, fmt.Errorf("error"))
 
 					Convey("Then the `Transfer` entry should no longer exist", func() {
 						exist, err := db.Exists(trans)

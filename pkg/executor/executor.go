@@ -10,6 +10,8 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
+	"github.com/go-xorm/builder"
 )
 
 type transferInfo struct {
@@ -71,37 +73,42 @@ func newTransferInfo(db *database.Db, trans *model.Transfer) (*transferInfo, err
 	}, nil
 }
 
-func (e *Executor) logTransfer(trans *model.Transfer, errTrans error) error {
+func (e *Executor) logTransfer(trans *model.Transfer, errTrans error) {
 
-	ses, err := e.Db.BeginTransaction()
-	if err != nil {
-		return err
+	dbErr := func() error {
+		ses, err := e.Db.BeginTransaction()
+		if err != nil {
+			return err
+		}
+
+		if err := ses.Delete(trans); err != nil {
+			ses.Rollback()
+			return err
+		}
+
+		if errTrans != nil {
+			trans.Status = model.StatusError
+			e.Logger.Errorf("Transfer error => %s", errTrans)
+		} else {
+			trans.Status = model.StatusDone
+		}
+
+		hist, err := trans.ToHistory(ses, time.Now())
+		if err != nil {
+			ses.Rollback()
+			return err
+		}
+
+		if err := ses.Create(hist); err != nil {
+			ses.Rollback()
+			return err
+		}
+
+		return ses.Commit()
+	}()
+	if dbErr != nil {
+		e.Logger.Errorf("Database error => %s", dbErr)
 	}
-
-	if err := ses.Delete(trans); err != nil {
-		ses.Rollback()
-		return err
-	}
-
-	if errTrans != nil {
-		trans.Status = model.StatusError
-		e.Logger.Errorf("Transfer error => %s", errTrans)
-	} else {
-		trans.Status = model.StatusDone
-	}
-
-	hist, err := trans.ToHistory(ses, time.Now())
-	if err != nil {
-		ses.Rollback()
-		return err
-	}
-
-	if err := ses.Create(hist); err != nil {
-		ses.Rollback()
-		return err
-	}
-
-	return ses.Commit()
 }
 
 type runner func(*transferInfo) error
@@ -121,32 +128,99 @@ func sftpTransfer(info *transferInfo) error {
 	return nil
 }
 
-func (e *Executor) runTransfer(trans *model.Transfer, run runner) {
+func updateStatus(db *database.Db, trans *model.Transfer, status model.TransferStatus) error {
+	err := db.Update(&model.Transfer{Status: status}, trans.ID, false)
+	if err != nil {
+		return err
+	}
+	trans.Status = status
+	return nil
+}
+
+func getTasks(db *database.Db, ruleID uint64, chain model.Chain) ([]*model.Task, error) {
+	list := []*model.Task{}
+	filters := &database.Filters{
+		Order:      "rank ASC",
+		Conditions: builder.Eq{"rule_id": ruleID, "chain": chain},
+	}
+
+	if err := db.Select(&list, filters); err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func transferPrologue(db *database.Db, trans *model.Transfer) (*transferInfo, error) {
+	auth, err := model.IsRuleAuthorized(db, trans)
+	if err != nil {
+		return nil, err
+	} else if !auth {
+		return nil, database.InvalidError("Rule %d is not authorized for this transfer", trans.RuleID)
+	}
+
+	info, err := newTransferInfo(db, trans)
+	if err != nil {
+		return nil, err
+	}
+
+	return info, nil
+}
+
+func runTasks(chain model.Chain, db *database.Db, info *transferInfo) error {
+	if err := updateStatus(db, info.Transfer, model.StatusPreTasks); err != nil {
+		return err
+	}
+
+	preTasks, err := getTasks(db, info.Transfer.ID, chain)
+	if err != nil {
+		return err
+	}
+	taskRunner := tasks.Processor{
+		Db:       db,
+		Rule:     info.rule,
+		Transfer: info.Transfer,
+	}
+	if err := taskRunner.RunTasks(preTasks); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (e *Executor) runTransfer(trans *model.Transfer, runTransfer runner) {
+	info, err := transferPrologue(e.Db, trans)
+	if err != nil {
+		e.logTransfer(trans, err)
+		return
+	}
 
 	exec := func() error {
-		auth, err := model.IsRuleAuthorized(e.Db, trans)
-		if err != nil {
+		if err := runTasks(model.ChainPre, e.Db, info); err != nil {
 			return err
-		} else if !auth {
-			return database.InvalidError("Rule %d is not authorized for this transfer", trans.RuleID)
+		}
+		if err := updateStatus(e.Db, info.Transfer, model.StatusTransfer); err != nil {
+			return err
 		}
 
-		err = e.Db.Update(&model.Transfer{Status: model.StatusTransfer}, trans.ID, false)
-		if err != nil {
+		if err := runTransfer(info); err != nil {
 			return err
 		}
-		trans.Status = model.StatusTransfer
 
-		info, err := newTransferInfo(e.Db, trans)
-		if err != nil {
+		if err := runTasks(model.ChainPost, e.Db, info); err != nil {
 			return err
 		}
-		return run(info)
+
+		return nil
 	}
 
-	if err := e.logTransfer(trans, exec()); err != nil {
-		e.Logger.Errorf("Database error => %s", err)
+	transErr := exec()
+	if transErr != nil {
+		if err := runTasks(model.ChainError, e.Db, info); err != nil {
+			e.logTransfer(trans, err)
+			return
+		}
 	}
+	e.logTransfer(trans, transErr)
 }
 
 // Run executes the given transfer.
