@@ -17,16 +17,16 @@ type Rule struct {
 	ID uint64 `xorm:"pk autoincr 'id'" json:"id"`
 
 	// The rule's name
-	Name string `xorm:"unique notnull 'name'"`
+	Name string `xorm:"unique(send) unique(path) notnull 'name'"`
 
 	// The rule's comment
 	Comment string `xorm:"notnull 'comment'" json:"comment"`
 
 	// The rule's direction (pull/push)
-	Send bool `xorm:"notnull 'send'" json:"send"`
+	Send bool `xorm:"unique(send) notnull 'send'" json:"send"`
 
 	// The rule's directory
-	Path string `xorm:"notnull 'path'" json:"path"`
+	Path string `xorm:"unique(path) notnull 'path'" json:"path"`
 }
 
 // TableName returns the remote accounts table name.
@@ -74,6 +74,12 @@ func (r *Rule) ValidateInsert(acc database.Accessor) error {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("A rule named '%s' with send: %t already exist", r.Name, r.Send)
+	}
+
+	if res, err := acc.Query("SELECT id FROM rules WHERE name=? and path=?", r.Name, r.Path); err != nil {
+		return err
+	} else if len(res) > 0 {
+		return database.InvalidError("A rule named '%s' with path: %s already exist", r.Name, r.Path)
 	}
 
 	if r.Path == "" {
