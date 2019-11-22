@@ -24,8 +24,20 @@ func DoTransfer(client *sftp.Client, t *model.Transfer, r *model.Rule) error {
 	return putFile(client, t.SourcePath, t.DestPath)
 }
 
+// Context is a struct containing both the SSHClient and the SftpClient
+type Context struct {
+	SSHClient  *ssh.Client
+	SftpClient *sftp.Client
+}
+
+// Close the SftpContext by closing the SFTPClient then the SSHClient
+func (c *Context) Close() {
+	_ = c.SftpClient.Close()
+	_ = c.SSHClient.Close()
+}
+
 // Connect opens and returns a sftp connection to the remote agent with the given Cert and RemoteAccount
-func Connect(r *model.RemoteAgent, c *model.Cert, a *model.RemoteAccount) (*sftp.Client, error) {
+func Connect(r *model.RemoteAgent, c *model.Cert, a *model.RemoteAccount) (*Context, error) {
 	// Unmarshal Remote ProtoConfig
 	var remoteConf map[string]interface{}
 	if err := json.Unmarshal(r.ProtoConfig, &remoteConf); err != nil {
@@ -50,7 +62,12 @@ func Connect(r *model.RemoteAgent, c *model.Cert, a *model.RemoteAccount) (*sftp
 		return nil, err
 	}
 	// Create SFTP Client using ssh connection
-	return sftp.NewClient(conn)
+	client, err := sftp.NewClient(conn)
+
+	return &Context{
+		SSHClient:  conn,
+		SftpClient: client,
+	}, err
 }
 
 // getPartnerAddress return the remote address as "address:port"
@@ -94,9 +111,14 @@ func getFile(client *sftp.Client, source string, destination string) error {
 	if err != nil {
 		return err
 	}
+	defer func() { _ = localFile.Close() }()
+
 	// Read remote file into local file
-	_, err = remoteFile.WriteTo(localFile)
-	return err
+	if _, err = remoteFile.WriteTo(localFile); err != nil {
+		_ = remoteFile.Close()
+		return err
+	}
+	return remoteFile.Close()
 }
 
 // putFile write the source File in the destination on the sftp client
@@ -106,12 +128,16 @@ func putFile(client *sftp.Client, source string, destination string) error {
 	if err != nil {
 		return err
 	}
+	defer func() { _ = localFile.Close() }()
 	// Create remote destination file
 	remoteFile, err := client.Create(destination)
 	if err != nil {
 		return err
 	}
 	// Read copy local file into remote file
-	_, err = io.Copy(remoteFile, localFile)
-	return err
+	if _, err = io.Copy(remoteFile, localFile); err != nil {
+		_ = remoteFile.Close()
+		return err
+	}
+	return remoteFile.Close()
 }

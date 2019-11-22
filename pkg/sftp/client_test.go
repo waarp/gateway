@@ -195,6 +195,54 @@ func TestConnect(t *testing.T) {
 
 }
 
+func TestClose(t *testing.T) {
+	Convey("Given a SFTP Server registered as a Remote Agent", t, func() {
+		remote := &model.RemoteAgent{
+			Name:     "test",
+			Protocol: "sftp",
+			ProtoConfig: []byte(
+				fmt.Sprintf(`{"address":%s, "port":%d}`, `"127.0.0.1"`, testSFTPPort)),
+		}
+
+		Convey("Given a valid connection to the server", func() {
+			serverKey, err := ioutil.ReadFile(testSFTPPubKey)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cert := &model.Cert{
+				PublicKey: serverKey,
+			}
+			account := &model.RemoteAccount{
+				Login:    testSFTPUser,
+				Password: []byte(testSFTPPassword),
+			}
+			context, err := Connect(remote, cert, account)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if context != nil {
+				defer context.Close()
+			}
+
+			Convey("When calling the Close function", func() {
+				context.Close()
+
+				Convey("Then when trying to use thhe ssh connection", func() {
+					err := context.SSHClient.Wait()
+
+					Convey("Then err should NOT be nil", func() {
+						So(err, ShouldNotBeNil)
+					})
+
+					Convey("err should be Used of closed connection", func() {
+						So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+					})
+				})
+			})
+		})
+	})
+}
+
 func TestDoTransfer(t *testing.T) {
 	Convey("Given a SFTP Server registered as a Remote Agent", t, func() {
 		remote := &model.RemoteAgent{
@@ -224,12 +272,12 @@ func TestDoTransfer(t *testing.T) {
 				Login:    testSFTPUser,
 				Password: []byte(testSFTPPassword),
 			}
-			client, err := Connect(remote, cert, account)
+			context, err := Connect(remote, cert, account)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if client != nil {
-				defer client.Close()
+			if context != nil {
+				defer context.Close()
 			}
 
 			// TODO Handle transfer rules
@@ -243,7 +291,7 @@ func TestDoTransfer(t *testing.T) {
 				}
 
 				Convey("When calling DoTransfer", func() {
-					err := DoTransfer(client, transfer, push)
+					err := DoTransfer(context.SftpClient, transfer, push)
 
 					Reset(func() {
 						_ = os.Remove(transfer.DestPath)
@@ -277,7 +325,7 @@ func TestDoTransfer(t *testing.T) {
 				}
 
 				Convey("When calling DoTransfer", func() {
-					err := DoTransfer(client, transfer, push)
+					err := DoTransfer(context.SftpClient, transfer, push)
 
 					Reset(func() {
 						_ = os.Remove(transfer.DestPath)
@@ -306,7 +354,7 @@ func TestDoTransfer(t *testing.T) {
 
 				Convey("When calling DoTransfer", func() {
 
-					err := DoTransfer(client, transfer, pull)
+					err := DoTransfer(context.SftpClient, transfer, pull)
 
 					Reset(func() {
 						_ = os.Remove(transfer.DestPath)

@@ -108,12 +108,13 @@ type runner func(*transferInfo) error
 
 func sftpTransfer(info *transferInfo) error {
 
-	conn, err := sftp.Connect(info.remoteAgent, info.remoteCert, info.remoteAccount)
+	context, err := sftp.Connect(info.remoteAgent, info.remoteCert, info.remoteAccount)
 	if err != nil {
 		return err
 	}
+	defer context.Close()
 
-	if err := sftp.DoTransfer(conn, info.Transfer, info.rule); err != nil {
+	if err := sftp.DoTransfer(context.SftpClient, info.Transfer, info.rule); err != nil {
 		return err
 	}
 
