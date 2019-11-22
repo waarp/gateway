@@ -5,11 +5,17 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+var logConf = conf.LogConfig{
+	Level: "DEBUG",
+	LogTo: "stdout",
+}
 
 func TestTransferInfo(t *testing.T) {
 
@@ -137,7 +143,7 @@ func TestExecutorLogTransfer(t *testing.T) {
 			Convey("Given an executor", func() {
 				exe := &Executor{
 					Db:     db,
-					Logger: log.NewLogger("test_executor"),
+					Logger: log.NewLogger("test_executor", logConf),
 				}
 
 				Convey("When calling the `logTransfer` method with NO error", func() {
@@ -266,7 +272,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 			Convey("Given an executor", func() {
 				exe := &Executor{
 					Db:     db,
-					Logger: log.NewLogger("test_executor"),
+					Logger: log.NewLogger("test_executor", logConf),
 				}
 
 				Convey("Given that the SFTP transfer is successful", func() {

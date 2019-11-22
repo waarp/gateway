@@ -33,8 +33,9 @@ func (c *Controller) listen(run func(model.Transfer)) {
 	owner := builder.Eq{"owner": database.Owner}
 	start := builder.Lte{"start": time.Now()}
 	planned := builder.Eq{"status": model.StatusPlanned}
+	client := builder.Eq{"is_server": false}
 	filters := database.Filters{
-		Conditions: builder.And(owner, start, planned),
+		Conditions: builder.And(owner, start, planned, client),
 	}
 
 	go func() {
@@ -59,14 +60,14 @@ func (c *Controller) listen(run func(model.Transfer)) {
 // Start starts the transfer controller service.
 func (c *Controller) Start() error {
 	if c.logger == nil {
-		c.logger = log.NewLogger(ServiceName)
+		c.logger = log.NewLogger(ServiceName, c.Conf.Log)
 	}
 
 	c.ticker = *time.NewTicker(c.Conf.Controller.Delay)
 
 	c.state.Set(service.Running, "")
 
-	exe := executor.Executor{Db: c.Db, Logger: log.NewLogger("executor")}
+	exe := executor.Executor{Db: c.Db, Logger: log.NewLogger("executor", c.Conf.Log)}
 	c.listen(exe.Run)
 
 	return nil

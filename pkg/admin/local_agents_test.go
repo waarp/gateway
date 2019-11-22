@@ -18,7 +18,7 @@ import (
 const localAgentURI = APIPath + LocalAgentsPath + "/"
 
 func TestListLocalAgents(t *testing.T) {
-	logger := log.NewLogger("rest_local agent_list_test")
+	logger := log.NewLogger("rest_local agent_list_test", logConf)
 
 	Convey("Given the local agents listing handler", t, func() {
 		db := database.GetTestDatabase()
@@ -51,7 +51,7 @@ func TestListLocalAgents(t *testing.T) {
 }
 
 func TestGetLocalAgent(t *testing.T) {
-	logger := log.NewLogger("rest_local agent_get_test")
+	logger := log.NewLogger("rest_local agent_get_test", logConf)
 
 	Convey("Given the local agent get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -116,7 +116,7 @@ func TestGetLocalAgent(t *testing.T) {
 }
 
 func TestCreateLocalAgent(t *testing.T) {
-	logger := log.NewLogger("rest_local agent_create_logger")
+	logger := log.NewLogger("rest_local agent_create_logger", logConf)
 
 	Convey("Given the local agent creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -251,7 +251,7 @@ func TestCreateLocalAgent(t *testing.T) {
 }
 
 func TestDeleteLocalAgent(t *testing.T) {
-	logger := log.NewLogger("rest_local agent_delete_test")
+	logger := log.NewLogger("rest_local agent_delete_test", logConf)
 
 	Convey("Given the local agent deletion handler", t, func() {
 		db := database.GetTestDatabase()
@@ -274,7 +274,7 @@ func TestDeleteLocalAgent(t *testing.T) {
 }
 
 func TestUpdateLocalAgent(t *testing.T) {
-	logger := log.NewLogger("rest_local agent_update_logger")
+	logger := log.NewLogger("rest_local agent_update_logger", logConf)
 
 	Convey("Given the local agent updating handler", t, func() {
 		db := database.GetTestDatabase()
@@ -342,7 +342,7 @@ func TestUpdateLocalAgent(t *testing.T) {
 }
 
 func TestReplaceLocalAgent(t *testing.T) {
-	logger := log.NewLogger("rest_local agent_replace_logger")
+	logger := log.NewLogger("rest_local agent_replace_logger", logConf)
 
 	Convey("Given the local agent replacing handler", t, func() {
 		db := database.GetTestDatabase()

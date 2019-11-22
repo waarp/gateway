@@ -18,7 +18,7 @@ import (
 const remoteAgentURI = APIPath + RemoteAgentsPath + "/"
 
 func TestListRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_remote_agent_list_test")
+	logger := log.NewLogger("rest_remote_agent_list_test", logConf)
 
 	Convey("Given the remote agents listing handler", t, func() {
 		db := database.GetTestDatabase()
@@ -51,7 +51,7 @@ func TestListRemoteAgent(t *testing.T) {
 }
 
 func TestGetRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_remote_agent_get_test")
+	logger := log.NewLogger("rest_remote_agent_get_test", logConf)
 
 	Convey("Given the remote agent get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -117,7 +117,7 @@ func TestGetRemoteAgent(t *testing.T) {
 }
 
 func TestCreateRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_remote_agent_create_logger")
+	logger := log.NewLogger("rest_remote_agent_create_logger", logConf)
 
 	Convey("Given the remote agent creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -250,7 +250,7 @@ func TestCreateRemoteAgent(t *testing.T) {
 }
 
 func TestDeleteRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_remote_agent_delete_test")
+	logger := log.NewLogger("rest_remote_agent_delete_test", logConf)
 
 	Convey("Given the remote agent deletion handler", t, func() {
 		db := database.GetTestDatabase()
@@ -273,7 +273,7 @@ func TestDeleteRemoteAgent(t *testing.T) {
 }
 
 func TestUpdateRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_remote_agent_update_logger")
+	logger := log.NewLogger("rest_remote_agent_update_logger", logConf)
 
 	Convey("Given the remote agent updating handler", t, func() {
 		db := database.GetTestDatabase()
@@ -351,7 +351,7 @@ func TestUpdateRemoteAgent(t *testing.T) {
 }
 
 func TestReplaceRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_remote_agent_replace_logger")
+	logger := log.NewLogger("rest_remote_agent_replace_logger", logConf)
 
 	Convey("Given the remote agent replacing handler", t, func() {
 		db := database.GetTestDatabase()

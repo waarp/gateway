@@ -31,6 +31,8 @@ func addTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			handleErrors(w, logger, err)
 			return
 		}
+		// A created transfer is always a client transfer
+		trans.IsServer = false
 
 		if err = db.Create(&trans); err != nil {
 			handleErrors(w, logger, err)

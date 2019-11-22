@@ -19,7 +19,7 @@ import (
 const certURI = APIPath + CertificatesPath + "/"
 
 func TestGetCert(t *testing.T) {
-	logger := log.NewLogger("rest_cert_get_test")
+	logger := log.NewLogger("rest_cert_get_test", logConf)
 
 	Convey("Given the certificate get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -98,7 +98,7 @@ func TestGetCert(t *testing.T) {
 }
 
 func TestListCerts(t *testing.T) {
-	logger := log.NewLogger("rest_cert_list_test")
+	logger := log.NewLogger("rest_cert_list_test", logConf)
 
 	check := func(w *httptest.ResponseRecorder, expected map[string][]model.Cert) {
 		Convey("Then it should reply 'OK'", func() {
@@ -322,7 +322,7 @@ func TestListCerts(t *testing.T) {
 }
 
 func TestCreateCert(t *testing.T) {
-	logger := log.NewLogger("rest_cert_create_logger")
+	logger := log.NewLogger("rest_cert_create_logger", logConf)
 
 	Convey("Given the certificate creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -507,7 +507,7 @@ func TestCreateCert(t *testing.T) {
 }
 
 func TestDeleteCert(t *testing.T) {
-	logger := log.NewLogger("rest_cert_delete_test")
+	logger := log.NewLogger("rest_cert_delete_test", logConf)
 
 	Convey("Given the certificate deletion handler", t, func() {
 		db := database.GetTestDatabase()
@@ -580,7 +580,7 @@ func TestDeleteCert(t *testing.T) {
 }
 
 func TestUpdateCert(t *testing.T) {
-	logger := log.NewLogger("rest_cert_update_logger")
+	logger := log.NewLogger("rest_cert_update_logger", logConf)
 
 	Convey("Given the certificate updating handler", t, func() {
 		db := database.GetTestDatabase()
@@ -656,7 +656,7 @@ func TestUpdateCert(t *testing.T) {
 }
 
 func TestReplaceCert(t *testing.T) {
-	logger := log.NewLogger("rest_cert_replace_logger")
+	logger := log.NewLogger("rest_cert_replace_logger", logConf)
 
 	Convey("Given the certificate replacing handler", t, func() {
 		db := database.GetTestDatabase()

@@ -2,162 +2,48 @@ package sftp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"github.com/pkg/sftp"
-	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/crypto/ssh"
 )
 
 // Server represents an instance of SFTP server.
 type Server struct {
-	Db     *database.Db
-	Config *model.LocalAgent
+	db     *database.Db
+	agent  *model.LocalAgent
+	logger *log.Logger
 
-	shutdown chan bool
-	logger   *log.Logger
 	state    service.State
+	listener *sshServer
 }
 
-func loadCert(db *database.Db, server *model.LocalAgent) (*model.Cert, error) {
-	cert := &model.Cert{OwnerType: server.TableName(), OwnerID: server.ID}
-	if err := db.Get(cert); err != nil {
-		if err == database.ErrNotFound {
-			return nil, fmt.Errorf("no certificate found for SFTP server '%s'",
-				server.Name)
-		}
-		return nil, err
-	}
-
-	return cert, nil
-}
-
-func loadSSHConfig(db *database.Db, cert *model.Cert) (*ssh.ServerConfig, error) {
-	config := &ssh.ServerConfig{
-		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			user := &model.LocalAccount{Login: c.User()}
-			if err := db.Get(user); err != nil {
-				return nil, err
-			}
-			if bcrypt.CompareHashAndPassword(user.Password, pass) != nil {
-				return nil, fmt.Errorf("authentication failed")
-			}
-
-			return &ssh.Permissions{}, nil
-		},
-	}
-
-	privateKey, err := ssh.ParsePrivateKey(cert.PrivateKey)
-	if err != nil {
-		return nil, err
-	}
-	config.AddHostKey(privateKey)
-
-	return config, nil
-}
-
-func parseServerAddr(server *model.LocalAgent) (string, uint16, error) {
-	conf := map[string]interface{}{}
-
-	if err := json.Unmarshal(server.ProtoConfig, &conf); err != nil {
-		return "", 0, err
-	}
-
-	a := conf["address"]
-	p := conf["port"]
-
-	addr, ok := a.(string)
-	if !ok {
-		return "", 0, fmt.Errorf("invalid SFTP server address")
-	}
-
-	port, ok := p.(float64)
-	if !ok {
-		return "", 0, fmt.Errorf("invalid SFTP server port")
-	}
-
-	return addr, uint16(port), nil
-}
-
-func (s *Server) listen(listener net.Listener, config *ssh.ServerConfig) {
-	var server *sftp.RequestServer
-	handlers := makeHandlers()
-
-	go func() {
-		<-s.shutdown
-		_ = listener.Close()
-		if server != nil {
-			_ = server.Close()
-		}
-	}()
-	for {
-		nConn, err := listener.Accept()
-		if err != nil {
-			break
-		}
-
-		_, channels, reqs, err := ssh.NewServerConn(nConn, config)
-		if err != nil {
-			continue
-		}
-
-		go ssh.DiscardRequests(reqs)
-
-		for newChannel := range channels {
-			if newChannel.ChannelType() != "session" {
-				_ = newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
-				continue
-			}
-			channel, requests, err := newChannel.Accept()
-			if err != nil {
-				break
-			}
-
-			go func(in <-chan *ssh.Request) {
-				for req := range in {
-					ok := false
-					switch req.Type {
-					case "subsystem":
-						if string(req.Payload[4:]) == "sftp" {
-							ok = true
-						}
-					}
-					_ = req.Reply(ok, nil)
-				}
-			}(requests)
-
-			server = sftp.NewRequestServer(channel, handlers)
-			if err := server.Serve(); err != nil && err != io.EOF {
-				break
-			}
-
-			_ = server.Close()
-			_ = nConn.Close()
-		}
+// NewServer returns a new SFTP server instance with the given attributes.
+func NewServer(db *database.Db, agent *model.LocalAgent, logger *log.Logger) *Server {
+	return &Server{
+		db:     db,
+		agent:  agent,
+		logger: logger,
 	}
 }
 
 // Start starts the SFTP server.
 func (s *Server) Start() error {
 	start := func() error {
-		cert, err := loadCert(s.Db, s.Config)
+		cert, err := loadCert(s.db, s.agent)
 		if err != nil {
 			return err
 		}
 
-		sshConf, err := loadSSHConfig(s.Db, cert)
+		sshConf, err := loadSSHConfig(s.db, cert)
 		if err != nil {
 			return err
 		}
 
-		addr, port, err := parseServerAddr(s.Config)
+		addr, port, err := parseServerAddr(s.agent)
 		if err != nil {
 			return err
 		}
@@ -167,26 +53,33 @@ func (s *Server) Start() error {
 			return err
 		}
 
-		go s.listen(listener, sshConf)
+		s.listener = newListener(s.db, s.logger, listener, s.agent, sshConf)
+		s.listener.listen()
 		return nil
 	}
 
-	s.shutdown = make(chan bool)
-	s.logger = log.NewLogger(s.Config.Name)
+	s.logger.Info("Starting SFTP server...")
 	s.state.Set(service.Starting, "")
 
 	if err := start(); err != nil {
 		s.state.Set(service.Error, err.Error())
+		s.logger.Infof("Failed to start SFTP server: %s", err)
 		return err
 	}
 
+	s.logger.Info("SFTP server started successfully")
 	s.state.Set(service.Running, "")
 	return nil
 }
 
 // Stop stops the SFTP server.
 func (s *Server) Stop(ctx context.Context) error {
-	s.shutdown <- true
+	s.logger.Infof("Shutting down SFTP service '%s'", s.agent.Name)
+	if s.listener.close(ctx) != nil {
+		s.logger.Errorf("Failed to shut SFTP server down, forcing exit")
+	} else {
+		s.logger.Info("SFTP server shutdown successful")
+	}
 	s.state.Set(service.Offline, "")
 	return nil
 }

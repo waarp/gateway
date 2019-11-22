@@ -15,6 +15,7 @@ func init() {
 type Transfer struct {
 	ID         uint64         `xorm:"pk autoincr <- 'id'" json:"id"`
 	RuleID     uint64         `xorm:"notnull 'rule_id'" json:"ruleID"`
+	IsServer   bool           `xorm:"notnull 'is_server'" json:"isServer'"`
 	RemoteID   uint64         `xorm:"notnull 'remote_id'" json:"remoteID"`
 	AccountID  uint64         `xorm:"notnull 'account_id'" json:"accountID"`
 	SourcePath string         `xorm:"notnull 'source_path'" json:"sourcePath"`
@@ -53,8 +54,8 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 	if t.Start.IsZero() {
 		return database.InvalidError("The transfer's starting date cannot be empty")
 	}
-	if t.Status != StatusPlanned {
-		return database.InvalidError("The transfer's status must be 'planned'")
+	if t.Status != StatusPlanned && t.Status != StatusTransfer {
+		return database.InvalidError("The transfer's status must be 'planned' or 'transfer'")
 	}
 	if t.Owner == "" {
 		return database.InvalidError("The transfer's owner cannot be empty")
@@ -67,6 +68,21 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 		}
 		return err
 	}
+
+	if t.IsServer {
+		if err := t.validateServerTransfer(acc); err != nil {
+			return err
+		}
+	} else {
+		if err := t.validateClientTransfer(acc); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (t *Transfer) validateClientTransfer(acc database.Accessor) error {
 	remote := RemoteAgent{ID: t.RemoteID}
 	if err := acc.Get(&remote); err != nil {
 		if err == database.ErrNotFound {
@@ -90,7 +106,28 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 			return database.InvalidError("No certificate found for agent %d", t.RemoteID)
 		}
 	}
+	return nil
+}
 
+func (t *Transfer) validateServerTransfer(acc database.Accessor) error {
+	remote := LocalAgent{ID: t.RemoteID}
+	if err := acc.Get(&remote); err != nil {
+		if err == database.ErrNotFound {
+			return database.InvalidError("The partner %d does not exist", t.RemoteID)
+		}
+		return err
+	}
+	if res, err := acc.Query("SELECT id FROM local_accounts WHERE id=? AND local_agent_id=?",
+		t.AccountID, t.RemoteID); err != nil {
+		return err
+	} else if len(res) == 0 {
+		return database.InvalidError("The agent %d does not have an account %d",
+			t.RemoteID, t.AccountID)
+	}
+	/*
+		if remote.Protocol == "sftp" {
+		}
+	*/
 	return nil
 }
 
@@ -102,7 +139,9 @@ func (t *Transfer) BeforeInsert(database.Accessor) error {
 	if t.Start.IsZero() {
 		t.Start = time.Now().Truncate(time.Second)
 	}
-	t.Status = StatusPlanned
+	if t.Status == "" {
+		t.Status = StatusPlanned
+	}
 	return nil
 }
 
@@ -145,15 +184,36 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 
 	rule := &Rule{ID: t.RuleID}
 	if err := acc.Get(rule); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rule: %s", err)
 	}
-	remote := &RemoteAgent{ID: t.RemoteID}
-	if err := acc.Get(remote); err != nil {
-		return nil, err
-	}
-	account := &RemoteAccount{ID: t.AccountID}
-	if err := acc.Get(account); err != nil {
-		return nil, err
+	agentName := ""
+	accountLogin := ""
+	protocol := ""
+
+	if t.IsServer {
+		agent := &LocalAgent{ID: t.RemoteID}
+		if err := acc.Get(agent); err != nil {
+			return nil, fmt.Errorf("agent: %s", err)
+		}
+		account := &LocalAccount{ID: t.AccountID}
+		if err := acc.Get(account); err != nil {
+			return nil, fmt.Errorf("account: %s", err)
+		}
+		agentName = agent.Name
+		accountLogin = account.Login
+		protocol = agent.Protocol
+	} else {
+		agent := &RemoteAgent{ID: t.RemoteID}
+		if err := acc.Get(agent); err != nil {
+			return nil, fmt.Errorf("agent: %s", err)
+		}
+		account := &RemoteAccount{ID: t.AccountID}
+		if err := acc.Get(account); err != nil {
+			return nil, fmt.Errorf("account: %s", err)
+		}
+		agentName = agent.Name
+		accountLogin = account.Login
+		protocol = agent.Protocol
 	}
 
 	if !validateStatusForHistory(t.Status) {
@@ -166,13 +226,14 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	hist := TransferHistory{
 		ID:             t.ID,
 		Owner:          t.Owner,
-		Account:        account.Login,
-		Remote:         remote.Name,
-		Protocol:       remote.Protocol,
+		IsServer:       t.IsServer,
+		IsSend:         !rule.IsGet,
+		Account:        accountLogin,
+		Remote:         agentName,
+		Protocol:       protocol,
 		SourceFilename: t.SourcePath,
 		DestFilename:   t.DestPath,
 		Rule:           rule.Name,
-		IsSend:         !rule.IsGet,
 		Start:          t.Start,
 		Stop:           stop,
 		Status:         t.Status,
