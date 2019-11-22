@@ -14,7 +14,8 @@ require (
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/pkg/sftp v1.10.2-0.20191102210727-6d50bf4a2122
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a
-	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+	golang.org/x/tools v0.0.0-20191218040434-6f9e13bbec44 // indirect
 )
 
 go 1.13

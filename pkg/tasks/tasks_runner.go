@@ -9,13 +9,17 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
+
+var errWarning = fmt.Errorf("warning")
 
 // Processor provides a way to execute tasks
 // given a transfer context (rule, transfer)
 type Processor struct {
 	Db       *database.Db
+	Logger   *log.Logger
 	Rule     *model.Rule
 	Transfer *model.Transfer
 }
@@ -24,6 +28,9 @@ type Processor struct {
 // according to the Processor context
 func (p *Processor) RunTasks(tasks []*model.Task) error {
 	for _, task := range tasks {
+		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, p.Rule.Name,
+			task.Chain, task.Rank)
+
 		runnable, ok := RunnableTasks[task.Type]
 		if !ok {
 			return fmt.Errorf("unknown task")
@@ -32,10 +39,26 @@ func (p *Processor) RunTasks(tasks []*model.Task) error {
 		if err != nil {
 			return err
 		}
-		err = runnable.Run(args, p)
+
+		msg, err := runnable.Run(args, p)
+		logMsg := fmt.Sprintf("%s: %s", taskInfo, msg)
 		if err != nil {
-			return err
+			trans := &model.Transfer{}
+			if err != errWarning {
+				p.Logger.Error(logMsg)
+				trans.Error = model.NewTransferError(model.TeExternalOperation, logMsg)
+				if err := p.Db.Update(trans, p.Transfer.ID, false); err != nil {
+					return err
+				}
+				return err
+			}
+			p.Logger.Warning(logMsg)
+			trans.Error = model.NewTransferError(model.TeWarning, logMsg)
+			if err := p.Db.Update(trans, p.Transfer.ID, false); err != nil {
+				return err
+			}
 		}
+		p.Logger.Info(logMsg)
 	}
 	return nil
 }

@@ -60,6 +60,10 @@ const (
 	// execution of the pre-/post-/error-tasks.
 	TeExternalOperation
 
+	// TeWarning should be used when a pre-/post-/error-task ended with a
+	// warning code. This type of error does not stop the transfer.
+	TeWarning
+
 	// TeStopped should be used when the transfer has been stopped
 	TeStopped
 
