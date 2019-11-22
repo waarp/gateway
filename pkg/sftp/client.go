@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/pkg/sftp"
@@ -89,7 +90,7 @@ func getFile(client *sftp.Client, source string, destination string) error {
 		return err
 	}
 	// Create local destination file
-	localFile, err := os.Create(destination)
+	localFile, err := os.Create(filepath.FromSlash(destination))
 	if err != nil {
 		return err
 	}
@@ -101,7 +102,7 @@ func getFile(client *sftp.Client, source string, destination string) error {
 // putFile write the source File in the destination on the sftp client
 func putFile(client *sftp.Client, source string, destination string) error {
 	// Open local source file
-	localFile, err := os.Open(source)
+	localFile, err := os.Open(filepath.FromSlash(source))
 	if err != nil {
 		return err
 	}

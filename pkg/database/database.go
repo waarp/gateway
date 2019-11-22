@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -77,18 +78,18 @@ type Db struct {
 
 func loadAESKey(filename string) error {
 
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.FromSlash(filename)); os.IsNotExist(err) {
 		key := make([]byte, 32)
 		if _, err := rand.Read(key); err != nil {
 			return err
 		}
 
-		if err := ioutil.WriteFile(filename, key, 0600); err != nil {
+		if err := ioutil.WriteFile(filepath.FromSlash(filename), key, 0600); err != nil {
 			return err
 		}
 	}
 
-	key, err := ioutil.ReadFile(filename)
+	key, err := ioutil.ReadFile(filepath.FromSlash(filename))
 	if err != nil {
 		return err
 	}
