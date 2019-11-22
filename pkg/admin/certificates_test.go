@@ -33,7 +33,7 @@ func TestGetCert(t *testing.T) {
 			parent := model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent)
 			So(err, ShouldBeNil)
@@ -132,7 +132,7 @@ func TestListCerts(t *testing.T) {
 			localAgentParent := model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&localAgentParent)
 			So(err, ShouldBeNil)
@@ -140,7 +140,7 @@ func TestListCerts(t *testing.T) {
 			remoteAgentParent := model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err = db.Create(&remoteAgentParent)
 			So(err, ShouldBeNil)
@@ -333,7 +333,7 @@ func TestCreateCert(t *testing.T) {
 			parent := model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent)
 			So(err, ShouldBeNil)
@@ -518,7 +518,7 @@ func TestDeleteCert(t *testing.T) {
 			parent := model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent)
 			So(err, ShouldBeNil)
@@ -591,7 +591,7 @@ func TestUpdateCert(t *testing.T) {
 			parent := model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent)
 			So(err, ShouldBeNil)
@@ -667,7 +667,7 @@ func TestReplaceCert(t *testing.T) {
 			parent := model.RemoteAgent{
 				Name:        "remote_account",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent)
 			So(err, ShouldBeNil)

@@ -27,7 +27,7 @@ func TestGetAccess(t *testing.T) {
 			parentAgent := model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&parentAgent)
@@ -123,7 +123,7 @@ func TestAddAccess(t *testing.T) {
 			parentAgent := model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&parentAgent)
@@ -207,7 +207,7 @@ func TestDeleteAccess(t *testing.T) {
 			parentAgent := model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&parentAgent)
@@ -295,7 +295,7 @@ func TestUpdateAccess(t *testing.T) {
 			parentAgent := model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&parentAgent)
@@ -423,7 +423,7 @@ func TestListAccess(t *testing.T) {
 			parent1 := model.LocalAgent{
 				Name:        "parent_agent_1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent1)
 			So(err, ShouldBeNil)
@@ -431,7 +431,7 @@ func TestListAccess(t *testing.T) {
 			parent2 := model.LocalAgent{
 				Name:        "remote_agent2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err = db.Create(&parent2)
 			So(err, ShouldBeNil)

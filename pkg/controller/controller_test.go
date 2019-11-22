@@ -24,7 +24,7 @@ func TestControllerListen(t *testing.T) {
 		remote := &model.RemoteAgent{
 			Name:        "test remote",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 		So(db.Create(remote), ShouldBeNil)
 

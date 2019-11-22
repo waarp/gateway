@@ -26,22 +26,22 @@ func TestListLocalAgents(t *testing.T) {
 		localAgent1 := model.LocalAgent{
 			Name:        "local agent1",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 		localAgent2 := model.LocalAgent{
 			Name:        "local agent2",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 		localAgent3 := model.LocalAgent{
 			Name:        "local agent3",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 		localAgent4 := model.LocalAgent{
 			Name:        "local agent4",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 		handler := listLocalAgents(logger, db)
 
@@ -62,7 +62,7 @@ func TestGetLocalAgent(t *testing.T) {
 			expected := model.LocalAgent{
 				Name:        "existing",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&expected)
 			So(err, ShouldBeNil)
@@ -127,7 +127,7 @@ func TestCreateLocalAgent(t *testing.T) {
 			existingLocalAgent := model.LocalAgent{
 				Name:        "existing",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&existingLocalAgent)
 			So(err, ShouldBeNil)
@@ -136,7 +136,7 @@ func TestCreateLocalAgent(t *testing.T) {
 				newLocalAgent := model.LocalAgent{
 					Name:        "new_local agent",
 					Protocol:    "sftp",
-					ProtoConfig: []byte("{\"new\":\"test\"}"),
+					ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"tata"}`),
 				}
 
 				Convey("Given that the new local agent is valid for insertion", func() {
@@ -261,7 +261,7 @@ func TestDeleteLocalAgent(t *testing.T) {
 			existing := model.LocalAgent{
 				Name:        "existing1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&existing)
 			So(err, ShouldBeNil)
@@ -285,12 +285,12 @@ func TestUpdateLocalAgent(t *testing.T) {
 			old := model.LocalAgent{
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			other := model.LocalAgent{
 				Name:        "other",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&old)
 			So(err, ShouldBeNil)
@@ -353,12 +353,12 @@ func TestReplaceLocalAgent(t *testing.T) {
 			old := model.LocalAgent{
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			other := model.LocalAgent{
 				Name:        "other",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&old)
 			So(err, ShouldBeNil)
@@ -371,7 +371,7 @@ func TestReplaceLocalAgent(t *testing.T) {
 				replace := model.LocalAgent{
 					Name:        "replace",
 					Protocol:    "sftp",
-					ProtoConfig: []byte("{}"),
+					ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 				}
 
 				body, err := json.Marshal(replace)

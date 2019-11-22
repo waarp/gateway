@@ -25,7 +25,7 @@ func TestTransferInfo(t *testing.T) {
 		expectedRemote := &model.RemoteAgent{
 			Name:        "test remote",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 		So(db.Create(expectedRemote), ShouldBeNil)
 
@@ -100,7 +100,7 @@ func TestExecutorLogTransfer(t *testing.T) {
 		remote := &model.RemoteAgent{
 			Name:        "test remote",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 		So(db.Create(remote), ShouldBeNil)
 
@@ -229,7 +229,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 		remote := &model.RemoteAgent{
 			Name:        "test remote",
 			Protocol:    "sftp",
-			ProtoConfig: []byte("{}"),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 		}
 		So(db.Create(remote), ShouldBeNil)
 

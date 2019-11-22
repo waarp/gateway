@@ -67,7 +67,7 @@ func TestAddTransfer(t *testing.T) {
 				p := model.RemoteAgent{
 					Name:        "test",
 					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"port":1}`),
+					ProtoConfig: []byte(`{"address":"localhost","port":1,"root":"toto"}`),
 				}
 				err := db.Create(&p)
 				So(err, ShouldBeNil)
@@ -195,7 +195,7 @@ func TestAddTransfer(t *testing.T) {
 								p2 := model.RemoteAgent{
 									Name:        "dummy",
 									Protocol:    "sftp",
-									ProtoConfig: []byte(`{"port":1}`),
+									ProtoConfig: []byte(`{"address":"localhost","port":2,"root":"titi"}`),
 								}
 								err := db.Create(&p2)
 								So(err, ShouldBeNil)
@@ -251,7 +251,7 @@ func TestTransferGetCommand(t *testing.T) {
 				p := model.RemoteAgent{
 					Name:        "test",
 					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"port":1}`),
+					ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 				}
 				So(db.Create(&p), ShouldBeNil)
 
@@ -346,22 +346,22 @@ func TestTransferListCommand(t *testing.T) {
 			p1 := model.RemoteAgent{
 				Name:        "remote1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			p2 := model.RemoteAgent{
 				Name:        "remote2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"titi"}`),
 			}
 			p3 := model.RemoteAgent{
 				Name:        "remote3",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2024,"root":"tata"}`),
 			}
 			p4 := model.RemoteAgent{
 				Name:        "remote4",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2025,"root":"tutu"}`),
 			}
 			So(db.Create(&p1), ShouldBeNil)
 			So(db.Create(&p2), ShouldBeNil)

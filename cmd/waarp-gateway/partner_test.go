@@ -28,7 +28,7 @@ func TestGetPartner(t *testing.T) {
 			partner := model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"key":"value"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&partner)
@@ -101,7 +101,7 @@ func TestAddPartner(t *testing.T) {
 			Convey("Given valid flags", func() {
 				command.Name = "remote_agent"
 				command.Protocol = "sftp"
-				command.ProtoConfig = "{}"
+				command.ProtoConfig = `{"address":"localhost","port":2022,"root":"toto"}`
 
 				Convey("When executing the command", func() {
 					addr := gw.Listener.Addr().String()
@@ -172,8 +172,8 @@ func TestAddPartner(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "400 - Invalid request: The "+
-							"agent's configuration is not a valid JSON configuration")
+						So(err.Error(), ShouldEqual, "400 - Invalid request: "+
+							"Invalid agent configuration: unexpected end of JSON input")
 					})
 				})
 			})
@@ -196,7 +196,7 @@ func TestListPartners(t *testing.T) {
 			partner1 := model.RemoteAgent{
 				Name:        "remote_agent1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"key1":"value1","key2":"value2"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&partner1)
 			So(err, ShouldBeNil)
@@ -204,7 +204,7 @@ func TestListPartners(t *testing.T) {
 			partner2 := model.RemoteAgent{
 				Name:        "remote_agent2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"key3":"value3","key4":"value4"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"titi"}`),
 			}
 			err = db.Create(&partner2)
 			So(err, ShouldBeNil)
@@ -369,7 +369,7 @@ func TestDeletePartner(t *testing.T) {
 			partner := model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&partner)
@@ -448,7 +448,7 @@ func TestUpdatePartner(t *testing.T) {
 			partner := model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 
 			err := db.Create(&partner)
@@ -459,7 +459,7 @@ func TestUpdatePartner(t *testing.T) {
 
 				command.Name = "new_remote_agent"
 				command.Protocol = "sftp"
-				command.ProtoConfig = `{"new_key":"new_value"}`
+				command.ProtoConfig = `{"address":"localhost","port":2023,"root":"titi"}`
 
 				Convey("Given all valid flags", func() {
 
@@ -533,8 +533,8 @@ func TestUpdatePartner(t *testing.T) {
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "400 - Invalid request: The "+
-								"agent's configuration is not a valid JSON configuration")
+							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
+								"Invalid agent configuration: unexpected end of JSON input")
 						})
 					})
 				})

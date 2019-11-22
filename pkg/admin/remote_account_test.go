@@ -31,7 +31,7 @@ func TestGetRemoteAccount(t *testing.T) {
 			parent := model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent)
 			So(err, ShouldBeNil)
@@ -131,12 +131,12 @@ func TestListRemoteAccounts(t *testing.T) {
 			parent1 := model.RemoteAgent{
 				Name:        "parent1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			parent2 := model.RemoteAgent{
 				Name:        "parent2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent1)
 			So(err, ShouldBeNil)
@@ -256,7 +256,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 			parent := model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent)
 			So(err, ShouldBeNil)
@@ -455,7 +455,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 			parent := model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent)
 			So(err, ShouldBeNil)
@@ -529,7 +529,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 			parent := model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent)
 			So(err, ShouldBeNil)
@@ -605,7 +605,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 			parent := model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
 			err := db.Create(&parent)
 			So(err, ShouldBeNil)

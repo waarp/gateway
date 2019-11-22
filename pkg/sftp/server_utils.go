@@ -7,6 +7,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ssh"
@@ -26,7 +27,7 @@ func loadCert(db *database.Db, server *model.LocalAgent) (*model.Cert, error) {
 }
 
 func loadSSHConfig(db *database.Db, cert *model.Cert) (*ssh.ServerConfig, error) {
-	config := &ssh.ServerConfig{
+	conf := &ssh.ServerConfig{
 		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			user := &model.LocalAccount{Login: c.User()}
 			if err := db.Get(user); err != nil {
@@ -44,32 +45,19 @@ func loadSSHConfig(db *database.Db, cert *model.Cert) (*ssh.ServerConfig, error)
 	if err != nil {
 		return nil, err
 	}
-	config.AddHostKey(privateKey)
+	conf.AddHostKey(privateKey)
 
-	return config, nil
+	return conf, nil
 }
 
 func parseServerAddr(server *model.LocalAgent) (string, uint16, error) {
-	conf := map[string]interface{}{}
+	conf := &config.SftpProtoConfig{}
 
-	if err := json.Unmarshal(server.ProtoConfig, &conf); err != nil {
+	if err := json.Unmarshal(server.ProtoConfig, conf); err != nil {
 		return "", 0, err
 	}
 
-	a := conf["address"]
-	p := conf["port"]
-
-	addr, ok := a.(string)
-	if !ok {
-		return "", 0, fmt.Errorf("invalid SFTP server address")
-	}
-
-	port, ok := p.(float64)
-	if !ok {
-		return "", 0, fmt.Errorf("invalid SFTP server port")
-	}
-
-	return addr, uint16(port), nil
+	return conf.Address, conf.Port, nil
 }
 
 func (s *sshServer) toHistory(prog progress) {
