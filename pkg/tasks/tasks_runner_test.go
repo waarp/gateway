@@ -15,8 +15,8 @@ func TestSetup(t *testing.T) {
 			Args: []byte("{\"test\":\"#RULE#\", \"date\":\"#DATE#\", \"path\":\"#OUTPATH#\"}"),
 		}
 
-		Convey("Given a TasksRunner", func() {
-			r := &TasksRunner{
+		Convey("Given a Processor", func() {
+			r := &Processor{
 				Rule: &model.Rule{
 					Name:   "Test",
 					IsSend: true,
