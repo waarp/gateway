@@ -1,6 +1,7 @@
 package sftp
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -43,8 +44,12 @@ func makeHandlers() sftp.Handlers {
 
 func makeFileReader() fileReaderFunc {
 	return func(r *sftp.Request) (io.ReaderAt, error) {
-		dir, _ := os.Getwd()
-		file, err := os.Open(filepath.FromSlash(dir + "/" + r.Filepath))
+		dir, err := os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("cannot get working directory: %w", err)
+		}
+
+		file, err := os.Open(filepath.Clean(filepath.Join(dir, r.Filepath)))
 		if err != nil {
 			return nil, err
 		}
@@ -55,8 +60,12 @@ func makeFileReader() fileReaderFunc {
 
 func makeFileWriter() fileWriterFunc {
 	return func(r *sftp.Request) (io.WriterAt, error) {
-		dir, _ := os.Getwd()
-		file, err := os.Create(filepath.FromSlash(dir + "/" + r.Filepath))
+		dir, err := os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("cannot get working directory: %w", err)
+		}
+
+		file, err := os.Create(filepath.Clean(filepath.Join(dir, r.Filepath)))
 		if err != nil {
 			return nil, err
 		}
@@ -67,9 +76,13 @@ func makeFileWriter() fileWriterFunc {
 
 func makeFileLister() fileListerFunc {
 	listerAt := func(ls []os.FileInfo, offset int64) (int, error) {
-		dir, _ := os.Getwd()
+		dir, err := os.Getwd()
+		if err != nil {
+			return 0, fmt.Errorf("cannot get working directory: %w", err)
+		}
+
 		infos := []os.FileInfo{}
-		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			infos = append(infos, info)
 			return nil
 		})
