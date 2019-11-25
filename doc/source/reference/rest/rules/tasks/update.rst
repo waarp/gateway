@@ -26,18 +26,24 @@ Modifier les traitements d'une règle
           Content-Length: 185
 
           {
-            "preTasks": {
-              "type": "COPY",
-              "args": "{\"dst\": \"copy/destination\"}"
-            },
-            "postTasks":
-              "type": "DELETE",
-              "args": "{}"
-            },
-            "errorTasks": {
-              "type": "EXEC",
-              "args": "{\"target\": \"program\"}"
-            }
+            "preTasks": [
+              {
+                "type": "COPY",
+                "args": "{\"dst\": \"copy/destination\"}"
+              }
+            ],
+            "postTasks": [
+              {
+                "type": "DELETE",
+                "args": "{}"
+              }
+            ],
+            "errorTasks": [
+              {
+                "type": "EXEC",
+                "args": "{\"target\": \"program\"}"
+              }
+            ]
           }
 
    **Réponse**
