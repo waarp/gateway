@@ -25,6 +25,8 @@ type TransferHistory struct {
 	Start          time.Time      `xorm:"notnull 'start'" json:"start"`
 	Stop           time.Time      `xorm:"notnull 'stop'" json:"stop"`
 	Status         TransferStatus `xorm:"notnull 'status'" json:"status"`
+	ErrorCode      ReadOnlyByte   `xorm:"notnull 'error_code'" json:"errorCode"`
+	ErrorMsg       ReadOnlyString `xorm:"notnull 'error_msg'" json:"errorMsg"`
 }
 
 // TableName returns the name of the transfer history table.
@@ -57,6 +59,12 @@ func (t *TransferHistory) ValidateInsert(database.Accessor) error {
 	}
 	if t.Remote == "" {
 		return database.InvalidError("The transfer's remote cannot be empty")
+	}
+	if t.ErrorCode != 0 {
+		return database.InvalidError("The transfer's error code must be empty")
+	}
+	if t.ErrorMsg != "" {
+		return database.InvalidError("The transfer's error message must be empty")
 	}
 	if t.IsServer {
 		if t.IsSend && t.DestFilename == "" {

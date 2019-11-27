@@ -31,6 +31,8 @@ Consulter un transfert
    :resjson string destination: Le chemin de destination du fichier
    :resjson date start: La date de début du transfert
    :resjson string status: Le statut actuel du transfert (*PLANNED* ou *TRANSFER*)
+   :resjson number errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
+   :resjson string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
    **Exemple de réponse**
 

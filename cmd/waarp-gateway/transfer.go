@@ -27,6 +27,14 @@ func displayTransfer(trans model.Transfer) {
 	fmt.Fprintf(w, "       \033[37mStart time:\033[0m \033[33m%s\033[0m\n",
 		trans.Start.Format(time.RFC3339))
 	fmt.Fprintf(w, "           \033[37mStatus:\033[0m \033[37;1m%s\033[0m\n", trans.Status)
+	if trans.ErrorCode != 0 {
+		fmt.Fprintf(w, "       \033[37mError code:\033[0m \033[33%v\033[0m\n",
+			trans.ErrorCode)
+	}
+	if trans.ErrorMsg != "" {
+		fmt.Fprintf(w, "    \033[37mError message:\033[0m \033[33%s\033[0m\n",
+			trans.ErrorMsg)
+	}
 }
 
 // ######################## ADD ##########################

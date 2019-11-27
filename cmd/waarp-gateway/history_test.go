@@ -15,17 +15,17 @@ import (
 
 func historyInfoString(t *model.TransferHistory) string {
 	return "Transfer " + fmt.Sprint(t.ID) + "=>\n" +
-		"    IsServer: " + fmt.Sprint(t.IsServer) + "\n" +
-		"        Send: " + fmt.Sprint(t.IsSend) + "\n" +
-		"    Protocol: " + fmt.Sprint(t.Protocol) + "\n" +
-		"        Rule: " + fmt.Sprint(t.Rule) + "\n" +
-		"     Account: " + fmt.Sprint(t.Account) + "\n" +
-		"      Remote: " + fmt.Sprint(t.Remote) + "\n" +
-		"     SrcFile: " + t.SourceFilename + "\n" +
-		"    DestFile: " + t.DestFilename + "\n" +
-		"  Start date: " + t.Start.Local().Format(time.RFC3339) + "\n" +
-		"    End date: " + t.Stop.Local().Format(time.RFC3339) + "\n" +
-		"      Status: " + string(t.Status) + "\n"
+		"      IsServer: " + fmt.Sprint(t.IsServer) + "\n" +
+		"          Send: " + fmt.Sprint(t.IsSend) + "\n" +
+		"      Protocol: " + fmt.Sprint(t.Protocol) + "\n" +
+		"          Rule: " + fmt.Sprint(t.Rule) + "\n" +
+		"       Account: " + fmt.Sprint(t.Account) + "\n" +
+		"        Remote: " + fmt.Sprint(t.Remote) + "\n" +
+		"       SrcFile: " + t.SourceFilename + "\n" +
+		"      DestFile: " + t.DestFilename + "\n" +
+		"    Start date: " + t.Start.Local().Format(time.RFC3339) + "\n" +
+		"      End date: " + t.Stop.Local().Format(time.RFC3339) + "\n" +
+		"        Status: " + string(t.Status) + "\n"
 }
 
 func TestDisplayHistory(t *testing.T) {

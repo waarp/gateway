@@ -32,6 +32,8 @@ Consulter une entrée de l'historique
    :resjson date start: La date de début du transfert
    :resjson date stop: La date de fin du transfert
    :resjson string status: Le statut final du transfert (*DONE* ou *ERROR*)
+   :resjson number errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
+   :resjson string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
    **Exemple de réponse**
 

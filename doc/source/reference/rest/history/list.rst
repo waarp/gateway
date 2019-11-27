@@ -68,6 +68,8 @@ Filtrer l'historique
    :resjsonarr date start: La date de début du transfert
    :resjsonarr date stop: La date de fin du transfert
    :resjsonarr string status: Le statut final du transfert (*DONE* ou *ERROR*)
+   :resjsonarr number errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
+   :resjsonarr string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
    **Exemple de réponse**
 
