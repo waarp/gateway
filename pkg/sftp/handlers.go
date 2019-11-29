@@ -177,7 +177,6 @@ func makeFileWriter(db *database.Db, logger *log.Logger, agentID, accountID uint
 		if err := db.Get(rule); err != nil {
 			return nil, err
 		}
-
 		if err := makeDir(root, rule.Path); err != nil {
 			return nil, err
 		}
@@ -203,17 +202,14 @@ func makeFileWriter(db *database.Db, logger *log.Logger, agentID, accountID uint
 			return nil, err
 		}
 
-		stream := &downloadStream{
-			transferStream: &transferStream{
-				db:       db,
-				logger:   logger,
-				file:     file,
-				trans:    trans,
-				rule:     rule,
-				shutdown: shutdown,
-			},
-		}
-
+		stream := &downloadStream{transferStream: &transferStream{
+			db:       db,
+			logger:   logger,
+			file:     file,
+			trans:    trans,
+			rule:     rule,
+			shutdown: shutdown,
+		}}
 		if err := runTasks(db, logger, model.ChainPre, rule, trans); err != nil {
 			stream.fail = err
 			if err := stream.Close(); err != nil {
@@ -221,7 +217,6 @@ func makeFileWriter(db *database.Db, logger *log.Logger, agentID, accountID uint
 			}
 			return nil, err
 		}
-
 		if err := db.Update(&model.Transfer{Status: model.StatusTransfer},
 			trans.ID, false); err != nil {
 			return nil, err

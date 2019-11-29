@@ -130,7 +130,7 @@ func (d *downloadStream) WriteAt(p []byte, off int64) (n int, err error) {
 	if err != nil {
 		d.fail = err
 	}
-	d.bytes += uint64(n)
+	d.transferStream.bytes += uint64(n)
 	//TODO: update transfer progress in database
 
 	return
@@ -157,7 +157,7 @@ func (u *uploadStream) ReadAt(p []byte, off int64) (n int, err error) {
 	if err != nil && err != io.EOF {
 		u.fail = err
 	}
-	u.bytes += uint64(n)
+	u.transferStream.bytes += uint64(n)
 	//TODO: update transfer progress in database
 
 	return

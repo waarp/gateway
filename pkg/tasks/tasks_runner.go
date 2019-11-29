@@ -94,7 +94,10 @@ func (p *Processor) RunTasks(tasks []*model.Task) error {
 // setup contextualise and unmarshal the tasks arguments
 // It return a json object exploitable by the task
 func (p *Processor) setup(t *model.Task) (map[string]interface{}, error) {
-	sArgs := p.replace(t)
+	sArgs, err := p.replace(t)
+	if err != nil {
+		return nil, err
+	}
 	args := map[string]interface{}{}
 	if err := json.Unmarshal(sArgs, &args); err != nil {
 		return nil, err
@@ -104,103 +107,209 @@ func (p *Processor) setup(t *model.Task) (map[string]interface{}, error) {
 
 // replace replace all the context variables (#varname#) in the tasks arguments
 // by their context value
-func (p *Processor) replace(t *model.Task) []byte {
+func (p *Processor) replace(t *model.Task) ([]byte, error) {
 	res := t.Args
 	for key, f := range replacers {
 		if bytes.Contains(res, []byte(key)) {
-			res = bytes.ReplaceAll(res, []byte(key), f(p))
+			rep, err := f(p)
+			if err != nil {
+				return []byte(""), err
+			}
+			res = bytes.ReplaceAll(res, []byte(key), rep)
 		}
 	}
-	return res
+	return res, nil
 }
 
-type replacer func(*Processor) []byte
+type replacer func(*Processor) ([]byte, error)
 
 var replacers = map[string]replacer{
-	"#TRUEFULLPATH#": func(r *Processor) []byte {
-		if r.Rule.IsSend {
-			return []byte(r.Transfer.SourcePath)
+	"#TRUEFULLPATH#": func(p *Processor) ([]byte, error) {
+		if p.Rule.IsSend {
+			return []byte(p.Transfer.SourcePath), nil
 		}
-		return []byte(r.Transfer.DestPath)
+		return []byte(p.Transfer.DestPath), nil
 	},
-	"#TRUEFILENAME#": func(r *Processor) []byte {
-		if r.Rule.IsSend {
-			return []byte(filepath.Base(r.Transfer.SourcePath))
+	"#TRUEFILENAME#": func(p *Processor) ([]byte, error) {
+		if p.Rule.IsSend {
+			return []byte(filepath.Base(p.Transfer.SourcePath)), nil
 		}
-		return []byte(filepath.Base(r.Transfer.DestPath))
+		return []byte(filepath.Base(p.Transfer.DestPath)), nil
 	},
-	"#ORIGINALFULLPATH#": func(r *Processor) []byte {
-		if r.Rule.IsSend {
-			return []byte(r.Transfer.SourcePath)
+	"#ORIGINALFULLPATH#": func(p *Processor) ([]byte, error) {
+		if p.Rule.IsSend {
+			return []byte(p.Transfer.SourcePath), nil
 		}
-		return []byte(r.Transfer.DestPath)
+		return []byte(p.Transfer.DestPath), nil
 	},
-	"#ORIGINALFILENAME#": func(r *Processor) []byte {
-		if r.Rule.IsSend {
-			return []byte(filepath.Base(r.Transfer.SourcePath))
+	"#ORIGINALFILENAME#": func(p *Processor) ([]byte, error) {
+		if p.Rule.IsSend {
+			return []byte(filepath.Base(p.Transfer.SourcePath)), nil
 		}
-		return []byte(filepath.Base(r.Transfer.DestPath))
+		return []byte(filepath.Base(p.Transfer.DestPath)), nil
 	},
-	"#FILESIZE#": func(r *Processor) []byte {
-		return []byte("0")
+	"#FILESIZE#": func(p *Processor) ([]byte, error) {
+		return []byte("0"), nil
 	},
-	"#INPATH#": func(r *Processor) []byte {
-		if !r.Rule.IsSend {
-			return []byte(r.Rule.Path)
+	"#INPATH#": func(p *Processor) ([]byte, error) {
+		if !p.Rule.IsSend {
+			return []byte(p.Rule.Path), nil
 		}
-		return []byte("")
+		return []byte{}, fmt.Errorf("send rule cannot use #INPATH#")
 	},
-	"#OUTPATH#": func(r *Processor) []byte {
-		if r.Rule.IsSend {
-			return []byte(r.Rule.Path)
+	"#OUTPATH#": func(p *Processor) ([]byte, error) {
+		if p.Rule.IsSend {
+			return []byte(p.Rule.Path), nil
 		}
-		return []byte("")
+		return []byte{}, fmt.Errorf("receive rule cannot use #OUTPATH#")
 	},
-	"#WORKPATH#": func(r *Processor) []byte {
+	"#WORKPATH#": func(p *Processor) ([]byte, error) {
 		// DEPRECATED
-		return []byte("")
+		return []byte{}, nil
 	},
-	"#ARCHPATH#": func(r *Processor) []byte {
+	"#ARCHPATH#": func(p *Processor) ([]byte, error) {
 		// DEPRECATED
-		return []byte("")
+		return []byte{}, nil
 	},
-	"#HOMEPATH#": func(r *Processor) []byte {
+	"#HOMEPATH#": func(p *Processor) ([]byte, error) {
 		// TODO ???
-		return []byte("")
+		return []byte{}, nil
 	},
-	"#RULE#": func(r *Processor) []byte {
-		return []byte(r.Rule.Name)
+	"#RULE#": func(p *Processor) ([]byte, error) {
+		return []byte(p.Rule.Name), nil
 	},
-	"#DATE#": func(r *Processor) []byte {
+	"#DATE#": func(p *Processor) ([]byte, error) {
 		t := time.Now()
-		return []byte(t.Format("20060102"))
+		return []byte(t.Format("20060102")), nil
 	},
-	"#HOUR#": func(r *Processor) []byte {
+	"#HOUR#": func(p *Processor) ([]byte, error) {
 		t := time.Now()
-		return []byte(t.Format("030405"))
+		return []byte(t.Format("030405")), nil
 	},
-	"#REMOTEHOST#": func(r *Processor) []byte {
+	"#REMOTEHOST#": func(p *Processor) ([]byte, error) {
+		if p.Transfer.IsServer {
+			account := &model.LocalAccount{
+				ID: p.Transfer.AccountID,
+			}
+			if err := p.Db.Get(account); err != nil {
+				return []byte{}, err
+			}
+			return []byte(account.Login), nil
+		}
+		agent := &model.RemoteAgent{
+			ID: p.Transfer.AgentID,
+		}
+		if err := p.Db.Get(agent); err != nil {
+			return []byte{}, err
+		}
+		return []byte(agent.Name), nil
+	},
+	"#REMOTEHOSTIP#": func(p *Processor) ([]byte, error) {
 		// TODO
-		return []byte("")
+		return []byte{}, nil
 	},
-	"#LOCALHOST#": func(r *Processor) []byte {
+	"#LOCALHOST#": func(p *Processor) ([]byte, error) {
+		if p.Transfer.IsServer {
+			agent := &model.LocalAgent{
+				ID: p.Transfer.AgentID,
+			}
+			if err := p.Db.Get(agent); err != nil {
+				return []byte{}, err
+			}
+			return []byte(agent.Name), nil
+		}
+		account := &model.RemoteAccount{
+			ID: p.Transfer.AccountID,
+		}
+		if err := p.Db.Get(account); err != nil {
+			return []byte{}, err
+		}
+		return []byte(account.Login), nil
+	},
+	"#LOCALHOSTIP#": func(p *Processor) ([]byte, error) {
 		// TODO
-		return []byte("")
+		return []byte{}, nil
 	},
-	"#REMOTEHOSTIP#": func(r *Processor) []byte {
-		// TODO
-		return []byte("")
+	"#TRANFERID#": func(p *Processor) ([]byte, error) {
+		return []byte(fmt.Sprint(p.Transfer.ID)), nil
 	},
-	"#LOCALHOSTIP#": func(r *Processor) []byte {
-		// TODO
-		return []byte("")
+	"#REQUESTERHOST#": func(p *Processor) ([]byte, error) {
+		client, err := getClient(p)
+		return []byte(client), err
 	},
-	"#REQUESTERHOST#": func(r *Processor) []byte {
-		// TODO
-		return []byte("")
+	"#REQUESTEDHOST#": func(p *Processor) ([]byte, error) {
+		server, err := getServer(p)
+		return []byte(server), err
 	},
-	"#REQUESTEDHOST#": func(r *Processor) []byte {
-		// TODO
-		return []byte("")
+	"#FULLTRANFERID#": func(p *Processor) ([]byte, error) {
+		//DEPRECATED
+		client, err := getClient(p)
+		if err != nil {
+			return []byte{}, nil
+		}
+		server, err := getServer(p)
+		if err != nil {
+			return []byte{}, nil
+		}
+		return []byte(fmt.Sprintf("%d_%s_%s", p.Transfer.ID, client, server)), nil
 	},
+	"#RANKTRANSFER#": func(p *Processor) ([]byte, error) {
+		return []byte("0"), nil
+	},
+	"#BLOCKSIZE#": func(p *Processor) ([]byte, error) {
+		return []byte("1"), nil
+	},
+	"#ERRORMSG#": func(p *Processor) ([]byte, error) {
+		return []byte(p.Transfer.Error.Details), nil
+	},
+	"#ERRORCODE#": func(p *Processor) ([]byte, error) {
+		return []byte{p.Transfer.Error.Code.R66Code()}, nil
+	},
+	"#ERRORSTRCODE#": func(p *Processor) ([]byte, error) {
+		return []byte(p.Transfer.Error.Details), nil
+	},
+	"#NOWAIT#": func(p *Processor) ([]byte, error) {
+		return []byte{}, nil
+	},
+	"#LOCALEXEC#": func(p *Processor) ([]byte, error) {
+		return []byte{}, nil
+	},
+}
+
+func getClient(p *Processor) (string, error) {
+	if p.Transfer.IsServer {
+		account := &model.LocalAccount{
+			ID: p.Transfer.AccountID,
+		}
+		if err := p.Db.Get(account); err != nil {
+			return "", err
+		}
+		return account.Login, nil
+	}
+	account := &model.RemoteAccount{
+		ID: p.Transfer.AccountID,
+	}
+	if err := p.Db.Get(account); err != nil {
+		return "", err
+	}
+	return account.Login, nil
+}
+
+func getServer(p *Processor) (string, error) {
+	if p.Transfer.IsServer {
+		agent := &model.LocalAgent{
+			ID: p.Transfer.AgentID,
+		}
+		if err := p.Db.Get(agent); err != nil {
+			return "", err
+		}
+		return agent.Name, nil
+	}
+	agent := &model.RemoteAgent{
+		ID: p.Transfer.AgentID,
+	}
+	if err := p.Db.Get(agent); err != nil {
+		return "", err
+	}
+	return agent.Name, nil
 }
