@@ -460,3 +460,279 @@ func TestSSHServer(t *testing.T) {
 		})
 	})
 }
+
+func TestSSHServerTasks(t *testing.T) {
+	port := "2024"
+	logger := log.NewLogger("test_sftp_server", testLogConf)
+
+	Convey("Given an SFTP server", t, func() {
+		root := "test_tasks_root"
+		So(os.Mkdir(root, 0700), ShouldBeNil)
+		Reset(func() { _ = os.RemoveAll(root) })
+
+		db := database.GetTestDatabase()
+		agent := &model.LocalAgent{
+			Name:     "test_sftp_server",
+			Protocol: "sftp",
+			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `,"root":"` +
+				root + `"}`),
+		}
+		So(db.Create(agent), ShouldBeNil)
+
+		pwd := "tata"
+		user := &model.LocalAccount{
+			LocalAgentID: agent.ID,
+			Login:        "toto",
+			Password:     []byte(pwd),
+		}
+		So(db.Create(user), ShouldBeNil)
+
+		cert := &model.Cert{
+			OwnerType:   agent.TableName(),
+			OwnerID:     agent.ID,
+			Name:        "test_sftp_server_cert",
+			PrivateKey:  testPK,
+			PublicKey:   testPBK,
+			Certificate: []byte("cert"),
+		}
+		So(db.Create(cert), ShouldBeNil)
+
+		config, err := loadSSHConfig(db, cert)
+		So(err, ShouldBeNil)
+
+		listener, err := net.Listen("tcp", "localhost:"+port)
+		So(err, ShouldBeNil)
+
+		sshServ := newListener(db, logger, listener, agent, config)
+		sshServ.listen()
+
+		Reset(func() {
+			select {
+			case <-sshServ.shutdown:
+			default:
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				defer cancel()
+				So(sshServ.close(ctx), ShouldBeNil)
+			}
+		})
+
+		Convey("Given an SSH client", func() {
+			key, _, _, _, err := ssh.ParseAuthorizedKey(testPBK) //nolint:dogsled
+			So(err, ShouldBeNil)
+
+			clientConf := &ssh.ClientConfig{
+				User: user.Login,
+				Auth: []ssh.AuthMethod{
+					ssh.Password(pwd),
+				},
+				HostKeyCallback: ssh.FixedHostKey(key),
+			}
+
+			conn, err := ssh.Dial("tcp", "localhost:"+port, clientConf)
+			So(err, ShouldBeNil)
+			Reset(func() { _ = conn.Close() })
+
+			client, err := sftp.NewClient(conn)
+			So(err, ShouldBeNil)
+
+			Convey("Given an incoming transfer", func() {
+				pull := &model.Rule{
+					Name:   "pull",
+					IsSend: false,
+					Path:   "/pull",
+				}
+				So(db.Create(pull), ShouldBeNil)
+
+				content := "Test incoming file"
+
+				err := os.MkdirAll(root+pull.Path, 0700)
+				So(err, ShouldBeNil)
+
+				Reset(func() { _ = os.RemoveAll(root + pull.Path) })
+
+				Convey("Given that the preTasks succeed", func() {
+					task := &model.Task{
+						RuleID: pull.ID,
+						Chain:  model.ChainPre,
+						Rank:   0,
+						Type:   "TESTSUCCESS",
+						Args:   []byte("{}"),
+					}
+					So(db.Create(task), ShouldBeNil)
+
+					Convey("Given that the transfer finishes normally", func() {
+						src := bytes.NewBuffer([]byte(content))
+
+						dst, err := client.Create(pull.Path + "/test_in.dst")
+						So(err, ShouldBeNil)
+
+						_, err = io.Copy(dst, src)
+						So(err, ShouldBeNil)
+
+						err = dst.Close()
+						So(err, ShouldBeNil)
+
+						Convey("Then the transfer should have succeeded", func() {
+							hist := &model.TransferHistory{
+								IsServer:       true,
+								IsSend:         pull.IsSend,
+								Account:        user.Login,
+								Remote:         agent.Name,
+								Protocol:       "sftp",
+								SourceFilename: "test_in.dst",
+								DestFilename:   pull.Path + "/test_in.dst",
+								Rule:           pull.Name,
+								Status:         model.StatusDone,
+							}
+
+							err := client.Close()
+							So(err, ShouldBeNil)
+
+							ok, err := db.Exists(hist)
+							So(err, ShouldBeNil)
+							So(ok, ShouldBeTrue)
+						})
+					})
+				})
+
+				Convey("Given that the preTasks fails", func() {
+					task := &model.Task{
+						RuleID: pull.ID,
+						Chain:  model.ChainPre,
+						Rank:   0,
+						Type:   "TESTFAIL",
+						Args:   []byte("{}"),
+					}
+					So(db.Create(task), ShouldBeNil)
+
+					Convey("Given that the transfer finishes normally", func() {
+						_, err := client.Create(pull.Path + "/test_in.dst")
+						So(err, ShouldNotBeNil)
+
+						Convey("Then the transfer should have failed", func() {
+							hist := &model.TransferHistory{
+								IsServer:       true,
+								IsSend:         pull.IsSend,
+								Account:        user.Login,
+								Remote:         agent.Name,
+								Protocol:       "sftp",
+								SourceFilename: "test_in.dst",
+								DestFilename:   pull.Path + "/test_in.dst",
+								Rule:           pull.Name,
+								Status:         model.StatusError,
+							}
+
+							err := client.Close()
+							So(err, ShouldBeNil)
+
+							So(db.Get(hist), ShouldBeNil)
+							So(hist.Error, ShouldResemble, model.NewTransferError(
+								model.TeExternalOperation, "Task TESTFAIL @ pull PRE[0]: task failed"))
+						})
+					})
+				})
+			})
+
+			Convey("Given an outgoing transfer", func() {
+				push := &model.Rule{
+					Name:   "push",
+					IsSend: true,
+					Path:   "/push",
+				}
+				So(db.Create(push), ShouldBeNil)
+
+				content := "Test outgoing file"
+
+				err := os.MkdirAll(root+push.Path, 0700)
+				So(err, ShouldBeNil)
+
+				err = ioutil.WriteFile(root+push.Path+"/test_out.src", []byte(content), 0600)
+				So(err, ShouldBeNil)
+
+				Reset(func() { _ = os.RemoveAll(root + push.Path) })
+
+				Convey("Given that the preTasks succeed", func() {
+					task := &model.Task{
+						RuleID: push.ID,
+						Chain:  model.ChainPre,
+						Rank:   0,
+						Type:   "TESTSUCCESS",
+						Args:   []byte("{}"),
+					}
+					So(db.Create(task), ShouldBeNil)
+
+					Convey("Given that the transfer finishes normally", func() {
+						src, err := client.Open(push.Path + "/test_out.src")
+						So(err, ShouldBeNil)
+
+						dst := &bytes.Buffer{}
+
+						_, err = src.WriteTo(dst)
+						So(err, ShouldBeNil)
+
+						err = src.Close()
+						So(err, ShouldBeNil)
+
+						Convey("Then the transfer should have succeeded", func() {
+							hist := &model.TransferHistory{
+								IsServer:       true,
+								IsSend:         push.IsSend,
+								Account:        user.Login,
+								Remote:         agent.Name,
+								Protocol:       "sftp",
+								SourceFilename: push.Path + "/test_out.src",
+								DestFilename:   "test_out.src",
+								Rule:           push.Name,
+								Status:         model.StatusDone,
+							}
+
+							err := client.Close()
+							So(err, ShouldBeNil)
+
+							ok, err := db.Exists(hist)
+							So(err, ShouldBeNil)
+							So(ok, ShouldBeTrue)
+						})
+					})
+				})
+
+				Convey("Given that the preTasks fails", func() {
+					task := &model.Task{
+						RuleID: push.ID,
+						Chain:  model.ChainPre,
+						Rank:   0,
+						Type:   "TESTFAIL",
+						Args:   []byte("{}"),
+					}
+					So(db.Create(task), ShouldBeNil)
+
+					Convey("Given that the transfer finishes normally", func() {
+						_, err := client.Open(push.Path + "/test_out.src")
+						So(err, ShouldNotBeNil)
+
+						Convey("Then the transfer should have failed", func() {
+							hist := &model.TransferHistory{
+								IsServer:       true,
+								IsSend:         push.IsSend,
+								Account:        user.Login,
+								Remote:         agent.Name,
+								Protocol:       "sftp",
+								SourceFilename: push.Path + "/test_out.src",
+								DestFilename:   "test_out.src",
+								Rule:           push.Name,
+								Status:         model.StatusError,
+							}
+
+							err := client.Close()
+							So(err, ShouldBeNil)
+
+							So(db.Get(hist), ShouldBeNil)
+							So(hist.Error, ShouldResemble, model.NewTransferError(
+								model.TeExternalOperation, "Task TESTFAIL @ push PRE[0]: task failed"))
+						})
+					})
+				})
+			})
+		})
+	})
+}

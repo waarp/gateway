@@ -72,7 +72,7 @@ func (s *sshServer) toHistory(prog progress) {
 		s.logger.Errorf("Error starting transaction: %s", err)
 		return
 	}
-	if err := ses.Delete(trans); err != nil {
+	if err := ses.Delete(&model.Transfer{ID: trans.ID}); err != nil {
 		s.logger.Errorf("Error deleting the old transfer: %s", err)
 		ses.Rollback()
 		return
@@ -159,7 +159,7 @@ func (s *sshServer) handleSession(user string, newChannel ssh.NewChannel) {
 	}
 
 	report := make(chan progress)
-	server := sftp.NewRequestServer(channel, makeHandlers(s.db, s.agent,
+	server := sftp.NewRequestServer(channel, makeHandlers(s.db, s.logger, s.agent,
 		acc, report))
 
 	done := make(chan bool)

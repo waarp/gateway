@@ -282,7 +282,7 @@ func TestTransferValidateInsert(t *testing.T) {
 
 						Convey("Then the error should say the status must be planned", func() {
 							So(err.Error(), ShouldEqual, "The transfer's status "+
-								"must be 'planned' or 'transfer'")
+								"must be 'planned' or 'pre-tasks'")
 						})
 					})
 				})

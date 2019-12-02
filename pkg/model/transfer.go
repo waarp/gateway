@@ -55,8 +55,8 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 	if t.Start.IsZero() {
 		return database.InvalidError("The transfer's starting date cannot be empty")
 	}
-	if t.Status != StatusPlanned && t.Status != StatusTransfer {
-		return database.InvalidError("The transfer's status must be 'planned' or 'transfer'")
+	if t.Status != StatusPlanned && t.Status != StatusPreTasks {
+		return database.InvalidError("The transfer's status must be 'planned' or 'pre-tasks'")
 	}
 	if t.Owner == "" {
 		return database.InvalidError("The transfer's owner cannot be empty")
