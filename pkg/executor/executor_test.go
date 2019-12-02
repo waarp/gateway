@@ -345,3 +345,304 @@ func TestExecutorRunTransfer(t *testing.T) {
 		})
 	})
 }
+
+func TestExecutorTasks(t *testing.T) {
+
+	Convey("Given a database", t, func() {
+		db := database.GetTestDatabase()
+
+		remote := &model.RemoteAgent{
+			Name:        "test remote",
+			Protocol:    "sftp",
+			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+		}
+		So(db.Create(remote), ShouldBeNil)
+
+		account := &model.RemoteAccount{
+			RemoteAgentID: remote.ID,
+			Login:         "test login",
+			Password:      []byte("test password"),
+		}
+		So(db.Create(account), ShouldBeNil)
+
+		cert := &model.Cert{
+			OwnerType:   remote.TableName(),
+			OwnerID:     remote.ID,
+			Name:        "test cert",
+			PrivateKey:  nil,
+			PublicKey:   []byte("public key"),
+			Certificate: []byte("certificate"),
+		}
+		So(db.Create(cert), ShouldBeNil)
+
+		rule := &model.Rule{
+			Name:   "test rule",
+			IsSend: false,
+		}
+		So(db.Create(rule), ShouldBeNil)
+
+		Convey("Given a transfer entry", func() {
+			trans := &model.Transfer{
+				RuleID:     rule.ID,
+				AgentID:    remote.ID,
+				AccountID:  account.ID,
+				SourcePath: "test/source/path",
+				DestPath:   "test/dest/path",
+				Start:      time.Now(),
+				Status:     model.StatusPlanned,
+				Owner:      database.Owner,
+			}
+			So(db.Create(trans), ShouldBeNil)
+
+			Convey("Given an executor", func() {
+				exe := &Executor{
+					Db:     db,
+					Logger: log.NewLogger("test_executor", logConf),
+				}
+
+				Convey("Given that the SFTP transfer is successful", func() {
+					run := func(*transferInfo) error {
+						return nil
+					}
+
+					Convey("Given that the preTasks are successful", func() {
+						task := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainPre,
+							Rank:   0,
+							Type:   "TESTSUCCESS",
+							Args:   []byte("{}"),
+						}
+						So(db.Create(task), ShouldBeNil)
+
+						Convey("When calling the `runTransfer` method", func() {
+							exe.runTransfer(trans, run)
+
+							Convey("Then the transfer should have succeeded", func() {
+
+								hist := &model.TransferHistory{
+									ID:             trans.ID,
+									Owner:          trans.Owner,
+									IsServer:       trans.IsServer,
+									IsSend:         rule.IsSend,
+									Account:        account.Login,
+									Remote:         remote.Name,
+									Protocol:       remote.Protocol,
+									SourceFilename: trans.SourcePath,
+									DestFilename:   trans.DestPath,
+									Rule:           rule.Name,
+									Start:          trans.Start.Truncate(time.Second),
+									Status:         model.StatusDone,
+								}
+
+								exist, err := db.Exists(hist)
+								So(err, ShouldBeNil)
+								So(exist, ShouldBeTrue)
+							})
+						})
+					})
+
+					Convey("Given that the preTasks fail", func() {
+						task := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainPre,
+							Rank:   0,
+							Type:   "TESTFAIL",
+							Args:   []byte("{}"),
+						}
+						So(db.Create(task), ShouldBeNil)
+
+						Convey("When calling the `runTransfer` method", func() {
+							exe.runTransfer(trans, run)
+
+							Convey("Then the transfer should have failed", func() {
+								expected := &model.TransferHistory{
+									ID:             trans.ID,
+									Owner:          trans.Owner,
+									IsServer:       trans.IsServer,
+									IsSend:         rule.IsSend,
+									Account:        account.Login,
+									Remote:         remote.Name,
+									Protocol:       remote.Protocol,
+									SourceFilename: trans.SourcePath,
+									DestFilename:   trans.DestPath,
+									Rule:           rule.Name,
+									Start:          trans.Start.Truncate(time.Second),
+									Status:         model.StatusError,
+									Error: model.NewTransferError(model.TeExternalOperation,
+										"Task TESTFAIL @ test rule PRE[0]: task failed"),
+								}
+
+								hist := &model.TransferHistory{ID: trans.ID}
+								So(db.Get(hist), ShouldBeNil)
+
+								expected.Stop = hist.Stop
+								So(hist, ShouldResemble, expected)
+							})
+						})
+					})
+
+					Convey("Given that the postTasks are successful", func() {
+						task := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainPost,
+							Rank:   0,
+							Type:   "TESTSUCCESS",
+							Args:   []byte("{}"),
+						}
+						So(db.Create(task), ShouldBeNil)
+
+						Convey("When calling the `runTransfer` method", func() {
+							exe.runTransfer(trans, run)
+
+							Convey("Then the transfer should have succeeded", func() {
+
+								hist := &model.TransferHistory{
+									ID:             trans.ID,
+									Owner:          trans.Owner,
+									IsServer:       trans.IsServer,
+									IsSend:         rule.IsSend,
+									Account:        account.Login,
+									Remote:         remote.Name,
+									Protocol:       remote.Protocol,
+									SourceFilename: trans.SourcePath,
+									DestFilename:   trans.DestPath,
+									Rule:           rule.Name,
+									Start:          trans.Start.Truncate(time.Second),
+									Status:         model.StatusDone,
+								}
+
+								exist, err := db.Exists(hist)
+								So(err, ShouldBeNil)
+								So(exist, ShouldBeTrue)
+							})
+						})
+					})
+
+					Convey("Given that the postTasks fail", func() {
+						task := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainPost,
+							Rank:   0,
+							Type:   "TESTFAIL",
+							Args:   []byte("{}"),
+						}
+						So(db.Create(task), ShouldBeNil)
+
+						Convey("When calling the `runTransfer` method", func() {
+							exe.runTransfer(trans, run)
+
+							Convey("Then the transfer should have failed", func() {
+
+								expected := &model.TransferHistory{
+									ID:             trans.ID,
+									Owner:          trans.Owner,
+									IsServer:       trans.IsServer,
+									IsSend:         rule.IsSend,
+									Account:        account.Login,
+									Remote:         remote.Name,
+									Protocol:       remote.Protocol,
+									SourceFilename: trans.SourcePath,
+									DestFilename:   trans.DestPath,
+									Rule:           rule.Name,
+									Start:          trans.Start.Truncate(time.Second),
+									Status:         model.StatusError,
+									Error: model.NewTransferError(model.TeExternalOperation,
+										"Task TESTFAIL @ test rule POST[0]: task failed"),
+								}
+
+								hist := &model.TransferHistory{ID: trans.ID}
+								So(db.Get(hist), ShouldBeNil)
+
+								expected.Stop = hist.Stop
+								So(hist, ShouldResemble, expected)
+							})
+						})
+					})
+				})
+
+				Convey("Given that the SFTP transfer fails", func() {
+					run := func(*transferInfo) error {
+						return fmt.Errorf("transfer failed")
+					}
+
+					Convey("Given that the errorTasks are successful", func() {
+						task := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainError,
+							Rank:   0,
+							Type:   "TESTSUCCESS",
+							Args:   []byte("{}"),
+						}
+						So(db.Create(task), ShouldBeNil)
+
+						Convey("When calling the `runTransfer` method", func() {
+							exe.runTransfer(trans, run)
+
+							Convey("Then the transfer should be in error", func() {
+								hist := &model.TransferHistory{
+									ID:             trans.ID,
+									Owner:          trans.Owner,
+									IsServer:       trans.IsServer,
+									IsSend:         rule.IsSend,
+									Account:        account.Login,
+									Remote:         remote.Name,
+									Protocol:       remote.Protocol,
+									SourceFilename: trans.SourcePath,
+									DestFilename:   trans.DestPath,
+									Rule:           rule.Name,
+									Start:          trans.Start.Truncate(time.Second),
+									Status:         model.StatusError,
+								}
+
+								exist, err := db.Exists(hist)
+								So(err, ShouldBeNil)
+								So(exist, ShouldBeTrue)
+							})
+						})
+					})
+
+					Convey("Given that the errorTasks fail", func() {
+						task := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainError,
+							Rank:   0,
+							Type:   "TESTFAIL",
+							Args:   []byte("{}"),
+						}
+						So(db.Create(task), ShouldBeNil)
+
+						Convey("When calling the `runTransfer` method", func() {
+							exe.runTransfer(trans, run)
+
+							Convey("Then the transfer should be in error", func() {
+								expected := &model.TransferHistory{
+									ID:             trans.ID,
+									Owner:          trans.Owner,
+									IsServer:       trans.IsServer,
+									IsSend:         rule.IsSend,
+									Account:        account.Login,
+									Remote:         remote.Name,
+									Protocol:       remote.Protocol,
+									SourceFilename: trans.SourcePath,
+									DestFilename:   trans.DestPath,
+									Rule:           rule.Name,
+									Start:          trans.Start.Truncate(time.Second),
+									Status:         model.StatusError,
+									Error: model.NewTransferError(model.TeExternalOperation,
+										"Task TESTFAIL @ test rule ERROR[0]: task failed"),
+								}
+
+								hist := &model.TransferHistory{ID: trans.ID}
+								So(db.Get(hist), ShouldBeNil)
+
+								expected.Stop = hist.Stop
+								So(hist, ShouldResemble, expected)
+							})
+						})
+					})
+				})
+			})
+		})
+	})
+}

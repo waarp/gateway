@@ -179,8 +179,10 @@ func (t *Transfer) ValidateUpdate(database.Accessor, uint64) error {
 		return database.InvalidError("The transfer's destination cannot be changed")
 	}
 
-	if !validateStatusForTransfer(t.Status) {
-		return database.InvalidError("'%s' is not a valid transfer status", t.Status)
+	if t.Status != "" {
+		if !validateStatusForTransfer(t.Status) {
+			return database.InvalidError("'%s' is not a valid transfer status", t.Status)
+		}
 	}
 
 	return nil

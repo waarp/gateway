@@ -81,7 +81,7 @@ func (e *Executor) logTransfer(trans *model.Transfer, errTrans error) {
 			return err
 		}
 
-		if err := ses.Delete(trans); err != nil {
+		if err := ses.Delete(&model.Transfer{ID: trans.ID}); err != nil {
 			ses.Rollback()
 			return err
 		}
@@ -129,7 +129,7 @@ func sftpTransfer(info *transferInfo) error {
 }
 
 func updateStatus(db *database.Db, trans *model.Transfer, status model.TransferStatus) error {
-	err := db.Update(&model.Transfer{Status: status}, trans.ID, false)
+	err := db.Update(&model.Transfer{Status: status, Error: trans.Error}, trans.ID, false)
 	if err != nil {
 		return err
 	}
@@ -166,21 +166,18 @@ func transferPrologue(db *database.Db, trans *model.Transfer) (*transferInfo, er
 	return info, nil
 }
 
-func runTasks(chain model.Chain, db *database.Db, info *transferInfo) error {
-	if err := updateStatus(db, info.Transfer, model.StatusPreTasks); err != nil {
-		return err
-	}
-
-	preTasks, err := getTasks(db, info.Transfer.ID, chain)
+func (e *Executor) runTasks(chain model.Chain, info *transferInfo) error {
+	taskChain, err := getTasks(e.Db, info.rule.ID, chain)
 	if err != nil {
 		return err
 	}
 	taskRunner := tasks.Processor{
-		Db:       db,
+		Db:       e.Db,
+		Logger:   e.Logger,
 		Rule:     info.rule,
 		Transfer: info.Transfer,
 	}
-	if err := taskRunner.RunTasks(preTasks); err != nil {
+	if err := taskRunner.RunTasks(taskChain); err != nil {
 		return err
 	}
 
@@ -194,8 +191,10 @@ func (e *Executor) runTransfer(trans *model.Transfer, runTransfer runner) {
 		return
 	}
 
-	exec := func() error {
-		if err := runTasks(model.ChainPre, e.Db, info); err != nil {
+	transErr := func() error {
+		if err := e.runTasks(model.ChainPre, info); err != nil {
+			t := &model.Transfer{ID: trans.ID}
+			_ = e.Db.Get(t)
 			return err
 		}
 		if err := updateStatus(e.Db, info.Transfer, model.StatusTransfer); err != nil {
@@ -206,16 +205,26 @@ func (e *Executor) runTransfer(trans *model.Transfer, runTransfer runner) {
 			return err
 		}
 
-		if err := runTasks(model.ChainPost, e.Db, info); err != nil {
+		if err := updateStatus(e.Db, info.Transfer, model.StatusPostTasks); err != nil {
+			return err
+		}
+
+		if err := e.runTasks(model.ChainPost, info); err != nil {
 			return err
 		}
 
 		return nil
-	}
-
-	transErr := exec()
+	}()
 	if transErr != nil {
-		if err := runTasks(model.ChainError, e.Db, info); err != nil {
+		t := &model.Transfer{ID: trans.ID}
+		_ = e.Db.Get(t)
+		if err := updateStatus(e.Db, info.Transfer, model.StatusErrorTasks); err != nil {
+			e.logTransfer(trans, err)
+			return
+		}
+		t2 := &model.Transfer{ID: trans.ID}
+		_ = e.Db.Get(t2)
+		if err := e.runTasks(model.ChainError, info); err != nil {
 			e.logTransfer(trans, err)
 			return
 		}
