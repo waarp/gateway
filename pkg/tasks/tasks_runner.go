@@ -11,9 +11,24 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"github.com/go-xorm/builder"
 )
 
 var errWarning = fmt.Errorf("warning")
+
+// GetTasks returns the list of all tasks of the given rule & chain.
+func GetTasks(db *database.Db, ruleID uint64, chain model.Chain) ([]*model.Task, error) {
+	list := []*model.Task{}
+	filters := &database.Filters{
+		Order:      "rank ASC",
+		Conditions: builder.Eq{"rule_id": ruleID, "chain": chain},
+	}
+
+	if err := db.Select(&list, filters); err != nil {
+		return nil, err
+	}
+	return list, nil
+}
 
 // Processor provides a way to execute tasks
 // given a transfer context (rule, transfer)

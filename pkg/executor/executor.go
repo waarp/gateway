@@ -193,8 +193,6 @@ func (e *Executor) runTransfer(trans *model.Transfer, runTransfer runner) {
 
 	transErr := func() error {
 		if err := e.runTasks(model.ChainPre, info); err != nil {
-			t := &model.Transfer{ID: trans.ID}
-			_ = e.Db.Get(t)
 			return err
 		}
 		if err := updateStatus(e.Db, info.Transfer, model.StatusTransfer); err != nil {
@@ -216,14 +214,10 @@ func (e *Executor) runTransfer(trans *model.Transfer, runTransfer runner) {
 		return nil
 	}()
 	if transErr != nil {
-		t := &model.Transfer{ID: trans.ID}
-		_ = e.Db.Get(t)
 		if err := updateStatus(e.Db, info.Transfer, model.StatusErrorTasks); err != nil {
 			e.logTransfer(trans, err)
 			return
 		}
-		t2 := &model.Transfer{ID: trans.ID}
-		_ = e.Db.Get(t2)
 		if err := e.runTasks(model.ChainError, info); err != nil {
 			e.logTransfer(trans, err)
 			return

@@ -48,8 +48,7 @@ func TestFileReader(t *testing.T) {
 		So(db.Create(account), ShouldBeNil)
 
 		Convey("Given the Filereader", func() {
-			report := make(chan progress, 1)
-			handler := makeHandlers(db, logger, agent, account, report).FileGet
+			handler := makeHandlers(db, logger, agent, account, make(chan bool)).FileGet
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
@@ -143,8 +142,7 @@ func TestFileWriter(t *testing.T) {
 		So(db.Create(account), ShouldBeNil)
 
 		Convey("Given the Filewriter", func() {
-			report := make(chan progress, 1)
-			handler := makeHandlers(db, logger, agent, account, report).FilePut
+			handler := makeHandlers(db, logger, agent, account, make(chan bool)).FilePut
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{

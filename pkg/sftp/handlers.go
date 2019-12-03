@@ -42,7 +42,7 @@ func (la listerAtFunc) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 }
 
 func makeHandlers(db *database.Db, logger *log.Logger, agent *model.LocalAgent,
-	account *model.LocalAccount, report chan<- progress) sftp.Handlers {
+	account *model.LocalAccount, shutdown <-chan bool) sftp.Handlers {
 
 	root, _ := os.Getwd()
 	var conf map[string]interface{}
@@ -50,8 +50,8 @@ func makeHandlers(db *database.Db, logger *log.Logger, agent *model.LocalAgent,
 		root, _ = conf["root"].(string)
 	}
 	return sftp.Handlers{
-		FileGet:  makeFileReader(db, logger, agent.ID, account.ID, root, report),
-		FilePut:  makeFileWriter(db, logger, agent.ID, account.ID, root, report),
+		FileGet:  makeFileReader(db, logger, agent.ID, account.ID, root, shutdown),
+		FilePut:  makeFileWriter(db, logger, agent.ID, account.ID, root, shutdown),
 		FileCmd:  nil,
 		FileList: makeFileLister(root),
 	}
@@ -83,7 +83,7 @@ func runTasks(db *database.Db, logger *log.Logger, chain model.Chain,
 }
 
 func makeFileReader(db *database.Db, logger *log.Logger, agentID, accountID uint64,
-	root string, report chan<- progress) fileReaderFunc {
+	root string, shutdown <-chan bool) fileReaderFunc {
 
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		// Get rule according to request filepath
@@ -118,13 +118,22 @@ func makeFileReader(db *database.Db, logger *log.Logger, agentID, accountID uint
 		}
 
 		stream := &uploadStream{
-			File:   file,
-			ID:     trans.ID,
-			Report: report,
+			transferStream: &transferStream{
+				db:       db,
+				logger:   logger,
+				file:     file,
+				trans:    trans,
+				rule:     rule,
+				shutdown: shutdown,
+			},
 		}
 
 		if err := runTasks(db, logger, model.ChainPre, rule, trans); err != nil {
-			return stream, err
+			stream.fail = err
+			if err := stream.Close(); err != nil {
+				return nil, err
+			}
+			return nil, err
 		}
 
 		if err := db.Update(&model.Transfer{Status: model.StatusTransfer},
@@ -156,7 +165,7 @@ func makeDir(root, path string) error {
 }
 
 func makeFileWriter(db *database.Db, logger *log.Logger, agentID, accountID uint64,
-	root string, report chan<- progress) fileWriterFunc {
+	root string, shutdown <-chan bool) fileWriterFunc {
 
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		// Get rule according to request filepath
@@ -195,18 +204,27 @@ func makeFileWriter(db *database.Db, logger *log.Logger, agentID, accountID uint
 		}
 
 		stream := &downloadStream{
-			File:   file,
-			ID:     trans.ID,
-			Report: report,
+			transferStream: &transferStream{
+				db:       db,
+				logger:   logger,
+				file:     file,
+				trans:    trans,
+				rule:     rule,
+				shutdown: shutdown,
+			},
 		}
 
 		if err := runTasks(db, logger, model.ChainPre, rule, trans); err != nil {
-			return stream, err
+			stream.fail = err
+			if err := stream.Close(); err != nil {
+				return nil, err
+			}
+			return nil, err
 		}
 
 		if err := db.Update(&model.Transfer{Status: model.StatusTransfer},
 			trans.ID, false); err != nil {
-			return stream, err
+			return nil, err
 		}
 
 		return stream, nil
