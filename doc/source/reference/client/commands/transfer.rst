@@ -67,7 +67,7 @@ Gestion des transferts
 
          Spécifie l'attribut selon lequel les serveurs seront triés. Les choix
          possibles sont: tri par date (``start``), par identifiant (``id``), par
-         partenaire (``remote_id``) ou par règle (``rule_id``).
+         partenaire (``agent_id``) ou par règle (``rule_id``).
 
       .. option:: -d, --desc
 

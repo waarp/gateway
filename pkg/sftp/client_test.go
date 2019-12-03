@@ -238,12 +238,12 @@ func TestDoTransfer(t *testing.T) {
 				PublicKey: testPBK,
 			}
 			push := &model.Rule{
-				Name: "push",
-				Send: true,
+				Name:   "push",
+				IsSend: true,
 			}
 			pull := &model.Rule{
-				Name: "pull",
-				Send: false,
+				Name:   "pull",
+				IsSend: false,
 			}
 			account := &model.RemoteAccount{
 				Login:    testLogin,
@@ -262,7 +262,7 @@ func TestDoTransfer(t *testing.T) {
 
 				transfer := &model.Transfer{
 					RuleID:     push.ID,
-					RemoteID:   remote.ID,
+					AgentID:    remote.ID,
 					AccountID:  account.ID,
 					SourcePath: "client.go",
 					DestPath:   root + "/client.ds",
@@ -296,7 +296,7 @@ func TestDoTransfer(t *testing.T) {
 			Convey("Given a push transfer with a non exiting file", func() {
 				transfer := &model.Transfer{
 					RuleID:     push.ID,
-					RemoteID:   remote.ID,
+					AgentID:    remote.ID,
 					AccountID:  account.ID,
 					SourcePath: "unknown",
 					DestPath:   root + "/client.ds",
@@ -328,7 +328,7 @@ func TestDoTransfer(t *testing.T) {
 
 				transfer := &model.Transfer{
 					RuleID:     pull.ID,
-					RemoteID:   remote.ID,
+					AgentID:    remote.ID,
 					AccountID:  account.ID,
 					SourcePath: root + "/test_pull.src",
 					DestPath:   "test_pull.dst",

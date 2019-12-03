@@ -47,8 +47,8 @@ func TestTransferInfo(t *testing.T) {
 		So(db.Create(expectedCert), ShouldBeNil)
 
 		expectedRule := &model.Rule{
-			Name: "test rule",
-			Send: true,
+			Name:   "test rule",
+			IsSend: true,
 		}
 		So(db.Create(expectedRule), ShouldBeNil)
 
@@ -56,7 +56,7 @@ func TestTransferInfo(t *testing.T) {
 			trans := &model.Transfer{
 				ID:         1,
 				RuleID:     expectedRule.ID,
-				RemoteID:   expectedRemote.ID,
+				AgentID:    expectedRemote.ID,
 				AccountID:  expectedAccount.ID,
 				SourcePath: "test/source/path",
 				DestPath:   "test/dest/path",
@@ -122,15 +122,15 @@ func TestExecutorLogTransfer(t *testing.T) {
 		So(db.Create(cert), ShouldBeNil)
 
 		rule := &model.Rule{
-			Name: "test rule",
-			Send: true,
+			Name:   "test rule",
+			IsSend: true,
 		}
 		So(db.Create(rule), ShouldBeNil)
 
 		Convey("Given a transfer entry", func() {
 			trans := &model.Transfer{
 				RuleID:     rule.ID,
-				RemoteID:   remote.ID,
+				AgentID:    remote.ID,
 				AccountID:  account.ID,
 				SourcePath: "test/source/path",
 				DestPath:   "test/dest/path",
@@ -251,15 +251,15 @@ func TestExecutorRunTransfer(t *testing.T) {
 		So(db.Create(cert), ShouldBeNil)
 
 		rule := &model.Rule{
-			Name: "test rule",
-			Send: false,
+			Name:   "test rule",
+			IsSend: false,
 		}
 		So(db.Create(rule), ShouldBeNil)
 
 		Convey("Given a transfer entry", func() {
 			trans := &model.Transfer{
 				RuleID:     rule.ID,
-				RemoteID:   remote.ID,
+				AgentID:    remote.ID,
 				AccountID:  account.ID,
 				SourcePath: "test/source/path",
 				DestPath:   "test/dest/path",

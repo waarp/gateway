@@ -46,8 +46,8 @@ func TestControllerListen(t *testing.T) {
 		So(db.Create(cert), ShouldBeNil)
 
 		rule := &model.Rule{
-			Name: "test rule",
-			Send: false,
+			Name:   "test rule",
+			IsSend: false,
 		}
 		So(db.Create(rule), ShouldBeNil)
 
@@ -57,7 +57,7 @@ func TestControllerListen(t *testing.T) {
 			trans := &model.Transfer{
 				RuleID:     rule.ID,
 				IsServer:   false,
-				RemoteID:   remote.ID,
+				AgentID:    remote.ID,
 				AccountID:  account.ID,
 				SourcePath: "test/source/path",
 				DestPath:   "test/dest/path",

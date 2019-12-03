@@ -63,7 +63,7 @@ func makeFileReader(db *database.Db, agentID, accountID uint64, root string,
 		if path == "." || path == "/" {
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
-		rule := model.Rule{Path: path, Send: true}
+		rule := model.Rule{Path: path, IsSend: true}
 		if err := db.Get(&rule); err != nil {
 			return nil, err
 		}
@@ -72,7 +72,7 @@ func makeFileReader(db *database.Db, agentID, accountID uint64, root string,
 		trans := &model.Transfer{
 			RuleID:     rule.ID,
 			IsServer:   true,
-			RemoteID:   agentID,
+			AgentID:    agentID,
 			AccountID:  accountID,
 			SourcePath: r.Filepath,
 			DestPath:   filepath.Base(r.Filepath),
@@ -108,7 +108,7 @@ func makeFileWriter(db *database.Db, agentID, accountID uint64, root string,
 		if path == "." || path == "/" {
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
-		rule := model.Rule{Path: path, Send: false}
+		rule := model.Rule{Path: path, IsSend: false}
 		if err := db.Get(&rule); err != nil {
 			return nil, err
 		}
@@ -133,7 +133,7 @@ func makeFileWriter(db *database.Db, agentID, accountID uint64, root string,
 		trans := &model.Transfer{
 			RuleID:     rule.ID,
 			IsServer:   true,
-			RemoteID:   agentID,
+			AgentID:    agentID,
 			AccountID:  accountID,
 			SourcePath: filepath.Base(r.Filepath),
 			DestPath:   r.Filepath,
