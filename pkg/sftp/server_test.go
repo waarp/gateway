@@ -136,6 +136,21 @@ func TestSSHServer(t *testing.T) {
 		}
 		So(db.Create(cert), ShouldBeNil)
 
+		pull := &model.Rule{
+			Name:    "pull",
+			Comment: "",
+			IsSend:  false,
+			Path:    "/pull/in",
+		}
+		push := &model.Rule{
+			Name:    "push",
+			Comment: "",
+			IsSend:  true,
+			Path:    "/push/out",
+		}
+		So(db.Create(pull), ShouldBeNil)
+		So(db.Create(push), ShouldBeNil)
+
 		config, err := loadSSHConfig(db, cert)
 		So(err, ShouldBeNil)
 

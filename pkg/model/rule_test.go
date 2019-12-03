@@ -131,7 +131,8 @@ func TestRuleValidateInsert(t *testing.T) {
 
 					Convey("Then the error should say that rule already exist", func() {
 						So(err.Error(), ShouldEqual, fmt.Sprintf(
-							"A rule named '%s' with send: %t already exist", r.Name, r.IsSend))
+							"A rule named '%s' with send "+
+								"= %t already exist", r.Name, r.IsSend))
 					})
 				})
 			})

@@ -15,22 +15,29 @@ import (
 )
 
 const (
-	// StatusPath is the access path to the status entry point
+	// StatusPath is the access path to the status entry point.
 	StatusPath = "/status"
-	// LocalAgentsPath is the access path to the local servers entry point
+	// LocalAgentsPath is the access path to the local servers entry point.
 	LocalAgentsPath = "/servers"
-	// RemoteAgentsPath is the access path to the partners entry point
+	// RemoteAgentsPath is the access path to the partners entry point.
 	RemoteAgentsPath = "/partners"
-	// LocalAccountsPath is the access path to the local gateway accounts entry point
+	// LocalAccountsPath is the access path to the local gateway accounts entry point.
 	LocalAccountsPath = "/local_accounts"
-	// RemoteAccountsPath is the access path to the distant partners accounts entry point
+	// RemoteAccountsPath is the access path to the distant partners accounts entry point.
 	RemoteAccountsPath = "/remote_accounts"
-	// CertificatesPath is the access path to the account certificates entry point
+	// CertificatesPath is the access path to the account certificates entry point.
 	CertificatesPath = "/certificates"
-	// TransfersPath is the access path to the transfers entry point
+	// TransfersPath is the access path to the transfers entry point.
 	TransfersPath = "/transfers"
-	// HistoryPath is the access path to the transfers history entry point
+	// HistoryPath is the access path to the transfers history entry point.
 	HistoryPath = "/history"
+	// RulesPath is the access path to the transfers rules entry point.
+	RulesPath = "/rules"
+	// RulePermissionPath is the access path to the transfer rule permissions
+	// entry point.
+	RulePermissionPath = "/access"
+	// RuleTasksPath is the access path to the transfer rule tasks entry point.
+	RuleTasksPath = "/tasks"
 )
 
 var validOrders = []string{"asc", "desc"}
@@ -148,8 +155,8 @@ func Authentication(logger *log.Logger, _ *database.Db) mux.MiddlewareFunc {
 	}
 }
 
-func restGet(db *database.Db, bean interface{}) error {
-	if err := db.Get(bean); err != nil {
+func restGet(acc database.Accessor, bean interface{}) error {
+	if err := acc.Get(bean); err != nil {
 		if err == database.ErrNotFound {
 			return &notFound{}
 		}
@@ -159,35 +166,35 @@ func restGet(db *database.Db, bean interface{}) error {
 	return nil
 }
 
-func restCreate(db *database.Db, r *http.Request, bean interface{}) error {
+func restCreate(acc database.Accessor, r *http.Request, bean interface{}) error {
 	if err := readJSON(r, bean); err != nil {
 		return err
 	}
 
-	if err := db.Create(bean); err != nil {
+	if err := acc.Create(bean); err != nil {
 		return err
 	}
 	return nil
 }
 
-func restDelete(db *database.Db, bean interface{}) error {
-	if exist, err := db.Exists(bean); err != nil {
+func restDelete(acc database.Accessor, bean interface{}) error {
+	if exist, err := acc.Exists(bean); err != nil {
 		return err
 	} else if !exist {
 		return &notFound{}
 	}
 
-	if err := db.Delete(bean); err != nil {
+	if err := acc.Delete(bean); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func restUpdate(db *database.Db, r *http.Request, bean interface{}, id uint64) error {
+func restUpdate(acc database.Accessor, r *http.Request, bean interface{}, id uint64) error {
 	if t, ok := bean.(xorm.TableName); ok {
 		query := builder.Select().From(t.TableName()).Where(builder.Eq{"id": id})
-		if res, err := db.Query(query); err != nil {
+		if res, err := acc.Query(query); err != nil {
 			return err
 		} else if len(res) == 0 {
 			return &notFound{}
@@ -203,7 +210,7 @@ func restUpdate(db *database.Db, r *http.Request, bean interface{}, id uint64) e
 		isReplace = true
 	}
 
-	if err := db.Update(bean, id, isReplace); err != nil {
+	if err := acc.Update(bean, id, isReplace); err != nil {
 		return err
 	}
 	return nil
