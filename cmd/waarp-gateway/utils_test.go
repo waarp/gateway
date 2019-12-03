@@ -27,3 +27,11 @@ func testFile() *os.File {
 	Reset(func() { _ = os.Remove(tmp.Name()) })
 	return tmp
 }
+
+func getOutput() string {
+	_, err := out.Seek(0, 0)
+	So(err, ShouldBeNil)
+	cont, err := ioutil.ReadAll(out)
+	So(err, ShouldBeNil)
+	return string(cont)
+}

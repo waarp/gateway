@@ -23,7 +23,8 @@ type commands struct {
 	Account     accountCommand     `command:"account" description:"Manage the gateway's remote accounts"`
 	Certificate certificateCommand `command:"certificate" description:"Manage the gateway's certificates"`
 	Transfer    transferCommand    `command:"transfer" description:"Manage the gateway's planned transfers"`
-	History     historyCommand     `command:"history" description:"Manage the gateway's transfer history'"`
+	History     historyCommand     `command:"history" description:"Manage the gateway's transfer history"`
+	Rule        ruleCommand        `command:"rule" description:"Manage the gateway's transfer rules"`
 }
 
 type connectionOptions struct {
@@ -57,4 +58,34 @@ func getColorable() io.Writer {
 		return colorable.NewColorable(out)
 	}
 	return colorable.NewNonColorable(out)
+}
+
+func toTableName(entity string) string {
+	switch entity {
+	case "local agent":
+		return "local_agents"
+	case "remote agent":
+		return "remote_agents"
+	case "local account":
+		return "local_accounts"
+	case "remote account":
+		return "remote_accounts"
+	default:
+		panic(fmt.Sprintf("invalid entity name '%s'", entity))
+	}
+}
+
+func fromTableName(tableName string) string {
+	switch tableName {
+	case "local_agents":
+		return "local agent"
+	case "remote_agents":
+		return "remote agent"
+	case "local_accounts":
+		return "local account"
+	case "remote_accounts":
+		return "remote account"
+	default:
+		panic(fmt.Sprintf("invalid table name '%s'", tableName))
+	}
 }

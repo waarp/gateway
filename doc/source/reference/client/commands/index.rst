@@ -12,3 +12,4 @@ Commandes
    certificate
    transfer
    history
+   rule
