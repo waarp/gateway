@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"os"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 )
@@ -18,16 +17,16 @@ type Rule struct {
 	ID uint64 `xorm:"pk autoincr 'id'" json:"id"`
 
 	// The rule's name
-	Name string `xorm:"unique notnull 'name'"`
+	Name string `xorm:"unique(send) unique(path) notnull 'name'"`
+
+	// The rule's comment
+	Comment string `xorm:"notnull 'comment'" json:"comment"`
 
 	// The rule's direction (pull/push)
-	IsGet bool `xorm:"notnull 'is_get'"`
+	Send bool `xorm:"unique(send) notnull 'send'" json:"send"`
 
-	// The rule's direction (pull/push)
-	InPath string `xorm:"notnull 'in_path'"`
-
-	// The rule's direction (pull/push)
-	OutPath string `xorm:"notnull 'out_path'"`
+	// The rule's directory
+	Path string `xorm:"unique(path) notnull 'path'" json:"path"`
 }
 
 // TableName returns the remote accounts table name.
@@ -37,12 +36,12 @@ func (*Rule) TableName() string {
 
 // Init initialises the database with 2 basic 'push' and 'pull' rules.
 func (*Rule) Init(acc database.Accessor) error {
-	push := Rule{Name: "push", IsGet: false}
+	push := Rule{Name: "push", Send: true}
 	if err := acc.Create(&push); err != nil {
 		return err
 	}
 
-	pull := Rule{Name: "pull", IsGet: true}
+	pull := Rule{Name: "pull", Send: false}
 	if err := acc.Create(&pull); err != nil {
 		return err
 	}
@@ -54,11 +53,12 @@ func (*Rule) Init(acc database.Accessor) error {
 // role is to set the IN and OUT path to the default value if non was
 // entered.
 func (r *Rule) BeforeInsert(acc database.Accessor) error {
-	if r.InPath == "" {
-		r.InPath = fmt.Sprintf("%s%s%sin", string(os.PathSeparator), r.Name, string(os.PathSeparator))
-	}
-	if r.OutPath == "" {
-		r.OutPath = fmt.Sprintf("%s%s%sout", string(os.PathSeparator), r.Name, string(os.PathSeparator))
+	if r.Path == "" {
+		if r.Send {
+			r.Path = fmt.Sprintf("/%s/out", r.Name)
+		} else {
+			r.Path = fmt.Sprintf("/%s/in", r.Name)
+		}
 	}
 	return nil
 }
@@ -70,17 +70,20 @@ func (r *Rule) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError("The rule's name cannot be empty")
 	}
 
-	if res, err := acc.Query("SELECT id FROM rules WHERE name=?", r.Name); err != nil {
+	if res, err := acc.Query("SELECT id FROM rules WHERE name=? and send=?", r.Name, r.Send); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("A rule named '%s' already exist", r.Name)
+		return database.InvalidError("A rule named '%s' with send: %t already exist", r.Name, r.Send)
 	}
 
-	if r.InPath == "" {
-		return database.InvalidError("The rule's in path cannot be empty")
+	if res, err := acc.Query("SELECT id FROM rules WHERE name=? and path=?", r.Name, r.Path); err != nil {
+		return err
+	} else if len(res) > 0 {
+		return database.InvalidError("A rule named '%s' with path: %s already exist", r.Name, r.Path)
 	}
-	if r.OutPath == "" {
-		return database.InvalidError("The rule's out path cannot be empty")
+
+	if r.Path == "" {
+		return database.InvalidError("The rule's path cannot be empty")
 	}
 
 	return nil
@@ -89,10 +92,11 @@ func (r *Rule) ValidateInsert(acc database.Accessor) error {
 // ValidateUpdate is called before updating an existing `Rule` entry from
 // the database. It checks whether the updated entry is valid or not.
 func (r *Rule) ValidateUpdate(acc database.Accessor, id uint64) error {
-	if res, err := acc.Query("SELECT id FROM rules WHERE name=? AND id<>?", r.Name, id); err != nil {
+
+	if res, err := acc.Query("SELECT id FROM rules WHERE name=? and send=? and id<>?", r.Name, r.Send, id); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("A rule named '%s' already exist", r.Name)
+		return database.InvalidError("A rule Send: %t named '%s' already exist", r.Send, r.Name)
 	}
 	return nil
 }

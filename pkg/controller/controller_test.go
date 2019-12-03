@@ -46,8 +46,8 @@ func TestControllerListen(t *testing.T) {
 		So(db.Create(cert), ShouldBeNil)
 
 		rule := &model.Rule{
-			Name:  "test rule",
-			IsGet: false,
+			Name: "test rule",
+			Send: false,
 		}
 		So(db.Create(rule), ShouldBeNil)
 

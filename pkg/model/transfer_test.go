@@ -75,8 +75,8 @@ func TestTransferValidateInsert(t *testing.T) {
 			So(db.Create(cert), ShouldBeNil)
 
 			rule := &Rule{
-				Name:  "test rule",
-				IsGet: false,
+				Name: "test rule",
+				Send: true,
 			}
 			So(db.Create(rule), ShouldBeNil)
 
@@ -572,8 +572,8 @@ func TestTransferToHistory(t *testing.T) {
 		So(db.Create(account), ShouldBeNil)
 
 		rule := &Rule{
-			Name:  "test rule",
-			IsGet: false,
+			Name: "test rule",
+			Send: true,
 		}
 		So(db.Create(rule), ShouldBeNil)
 
