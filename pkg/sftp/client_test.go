@@ -222,8 +222,8 @@ func TestClose(t *testing.T) {
 
 func TestDoTransfer(t *testing.T) {
 	Convey("Given a SFTP Server registered as a Remote Agent", t, func() {
-		root := "client_test_root"
-		So(os.Mkdir(root, 0700), ShouldBeNil)
+		root, err := ioutil.TempDir("", "gateway-test")
+		So(err, ShouldBeNil)
 		Reset(func() { _ = os.RemoveAll(root) })
 
 		remote := &model.RemoteAgent{
