@@ -3,8 +3,10 @@ package admin
 import (
 	"bytes"
 	"context"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -16,18 +18,21 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var logConf = conf.LogConfig{
-	Level: "DEBUG",
-	LogTo: "stdout",
-}
-
 func TestStart(t *testing.T) {
 
 	Convey("Given a correct configuration", t, func() {
+		So(ioutil.WriteFile("cert.pem", []byte(cert), 0700), ShouldBeNil)
+		So(ioutil.WriteFile("key.pem", []byte(key), 0700), ShouldBeNil)
+
+		Reset(func() {
+			_ = os.Remove("cert.pem")
+			_ = os.Remove("key.pem")
+		})
+
 		config := &conf.ServerConfig{}
 		config.Admin.Address = "localhost:0"
-		config.Admin.TLSCert = "test-cert/cert.pem"
-		config.Admin.TLSKey = "test-cert/key.pem"
+		config.Admin.TLSCert = "cert.pem"
+		config.Admin.TLSKey = "key.pem"
 		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
 
 		Convey("When starting the service", func() {
