@@ -1,8 +1,6 @@
 package model
 
 import (
-	"encoding/json"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"github.com/go-xorm/builder"
 )
@@ -14,24 +12,17 @@ func init() {
 // LocalAccount represents an account on a local agent. It is used by remote
 // partners to authenticate on the gateway for transfers.
 type LocalAccount struct {
-
 	// The account's database ID
-	ID uint64 `xorm:"pk autoincr <- 'id'" json:"id"`
+	ID uint64 `xorm:"pk autoincr <- 'id'"`
 
 	// The ID of the `LocalAgent` this account is attached to
-	LocalAgentID uint64 `xorm:"unique(loc_ac) notnull 'local_agent_id'" json:"localAgentID"`
+	LocalAgentID uint64 `xorm:"unique(loc_ac) notnull 'local_agent_id'"`
 
 	// The account's login
-	Login string `xorm:"unique(loc_ac) notnull 'login'" json:"login"`
+	Login string `xorm:"unique(loc_ac) notnull 'login'"`
 
 	// The account's password
-	Password []byte `xorm:"'password'" json:"password,omitempty"`
-}
-
-// MarshalJSON removes the password and then returns the account in JSON format.
-func (l *LocalAccount) MarshalJSON() ([]byte, error) {
-	l.Password = nil
-	return json.Marshal(*l)
+	Password []byte `xorm:"'password'"`
 }
 
 // BeforeInsert is called before inserting the account in the database. Its

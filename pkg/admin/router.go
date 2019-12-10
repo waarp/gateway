@@ -3,6 +3,7 @@ package admin
 import (
 	"net/http"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
@@ -38,38 +39,6 @@ func makeRemoteAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mu
 	remAgHandler.HandleFunc("", deleteRemoteAgent(logger, db)).
 		Methods(http.MethodDelete)
 	remAgHandler.HandleFunc("", updateRemoteAgent(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
-}
-
-func makeLocalAccountsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
-	localAccountsHandler := apiHandler.PathPrefix(LocalAccountsPath).Subrouter()
-	localAccountsHandler.HandleFunc("", listLocalAccounts(logger, db)).
-		Methods(http.MethodGet)
-	localAccountsHandler.HandleFunc("", createLocalAccount(logger, db)).
-		Methods(http.MethodPost)
-
-	locAcHandler := localAccountsHandler.PathPrefix("/{local_account:[0-9]+}").Subrouter()
-	locAcHandler.HandleFunc("", getLocalAccount(logger, db)).
-		Methods(http.MethodGet)
-	locAcHandler.HandleFunc("", deleteLocalAccount(logger, db)).
-		Methods(http.MethodDelete)
-	locAcHandler.HandleFunc("", updateLocalAccount(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
-}
-
-func makeRemoteAccountsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
-	remoteAccountsHandler := apiHandler.PathPrefix(RemoteAccountsPath).Subrouter()
-	remoteAccountsHandler.HandleFunc("", listRemoteAccounts(logger, db)).
-		Methods(http.MethodGet)
-	remoteAccountsHandler.HandleFunc("", createRemoteAccount(logger, db)).
-		Methods(http.MethodPost)
-
-	remAcHandler := remoteAccountsHandler.PathPrefix("/{remote_account:[0-9]+}").Subrouter()
-	remAcHandler.HandleFunc("", getRemoteAccount(logger, db)).
-		Methods(http.MethodGet)
-	remAcHandler.HandleFunc("", deleteRemoteAccount(logger, db)).
-		Methods(http.MethodDelete)
-	remAcHandler.HandleFunc("", updateRemoteAccount(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 }
 
@@ -140,12 +109,12 @@ func MakeHandler(logger *log.Logger, db *database.Db, services map[string]servic
 
 	makeLocalAgentsHandler(logger, db, apiHandler)
 	makeRemoteAgentsHandler(logger, db, apiHandler)
-	makeLocalAccountsHandler(logger, db, apiHandler)
-	makeRemoteAccountsHandler(logger, db, apiHandler)
 	makeCertificatesHandler(logger, db, apiHandler)
 	makeTransfersHandler(logger, db, apiHandler)
 	makeHistoryHandler(logger, db, apiHandler)
 	makeRulesHandler(logger, db, apiHandler)
+
+	rest.MakeRESTHandler(logger, db, apiHandler)
 
 	return handler
 }
