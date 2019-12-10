@@ -16,25 +16,25 @@ func init() {
 type LocalAgent struct {
 
 	// The agent's database ID.
-	ID uint64 `xorm:"pk autoincr <- 'id'" json:"id"`
+	ID uint64 `xorm:"pk autoincr <- 'id'"`
 
 	// The agent's owner (i.e. the name of the gateway instance to which the
 	// agent belongs to.
-	Owner string `xorm:"unique(loc_ag) notnull 'owner'" json:"-"`
+	Owner string `xorm:"unique(loc_ag) notnull 'owner'"`
 
 	// The agent's display name.
-	Name string `xorm:"unique(loc_ag) notnull 'name'" json:"name"`
+	Name string `xorm:"unique(loc_ag) notnull 'name'"`
 
 	// The protocol used by the agent.
-	Protocol string `xorm:"notnull 'protocol'" json:"protocol"`
+	Protocol string `xorm:"notnull 'protocol'"`
 
 	// The agent's configuration in raw JSON format.
-	ProtoConfig []byte `xorm:"notnull 'proto_config'" json:"protoConfig"`
+	ProtoConfig []byte `xorm:"notnull 'proto_config'"`
 }
 
 // BeforeInsert is called before inserting the agent in the database. Its
 // role is to set the agent's owner.
-func (l *LocalAgent) BeforeInsert(acc database.Accessor) error {
+func (l *LocalAgent) BeforeInsert(database.Accessor) error {
 	l.Owner = database.Owner
 	return nil
 }

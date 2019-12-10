@@ -67,7 +67,7 @@ func TestGetRemoteAccount(t *testing.T) {
 					Convey("Then the body should contain the requested partner "+
 						"in JSON format", func() {
 
-						exp, err := json.Marshal(fromRemote(expected))
+						exp, err := json.Marshal(fromRemoteAccount(expected))
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
@@ -162,10 +162,10 @@ func TestListRemoteAccounts(t *testing.T) {
 			So(db.Create(a3), ShouldBeNil)
 			So(db.Create(a4), ShouldBeNil)
 
-			account1 := *fromRemote(a1)
-			account2 := *fromRemote(a2)
-			account3 := *fromRemote(a3)
-			account4 := *fromRemote(a4)
+			account1 := *fromRemoteAccount(a1)
+			account2 := *fromRemoteAccount(a2)
+			account3 := *fromRemoteAccount(a3)
+			account4 := *fromRemoteAccount(a4)
 
 			Convey("Given a request with with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, remoteAccountsURI, nil)

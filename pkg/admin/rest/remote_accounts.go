@@ -32,7 +32,7 @@ func listRemoteAccounts(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutAccount{"remoteAccounts": fromRemoteArray(results)}
+			resp := map[string][]OutAccount{"remoteAccounts": fromRemoteAccounts(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -54,7 +54,7 @@ func getRemoteAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			return writeJSON(w, fromRemote(result))
+			return writeJSON(w, fromRemoteAccount(result))
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

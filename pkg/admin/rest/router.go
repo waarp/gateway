@@ -8,6 +8,35 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const (
+	// APIPath is the root path for the Rest API endpoints
+	APIPath = "/api"
+
+	// LocalAgentsPath is the access path to the local servers entry point.
+	LocalAgentsPath = "/servers"
+	// LocalAccountsPath is the access path to the local gateway accounts entry point.
+	LocalAccountsPath = "/local_accounts"
+	// RemoteAccountsPath is the access path to the distant partners accounts entry point.
+	RemoteAccountsPath = "/remote_accounts"
+	// CertificatesPath is the access path to the account certificates entry point.
+)
+
+func makeLocalAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+	localAgentsHandler := apiHandler.PathPrefix(LocalAgentsPath).Subrouter()
+	localAgentsHandler.HandleFunc("", listLocalAgents(logger, db)).
+		Methods(http.MethodGet)
+	localAgentsHandler.HandleFunc("", createLocalAgent(logger, db)).
+		Methods(http.MethodPost)
+
+	locAgHandler := localAgentsHandler.PathPrefix("/{local_agent:[0-9]+}").Subrouter()
+	locAgHandler.HandleFunc("", getLocalAgent(logger, db)).
+		Methods(http.MethodGet)
+	locAgHandler.HandleFunc("", deleteLocalAgent(logger, db)).
+		Methods(http.MethodDelete)
+	locAgHandler.HandleFunc("", updateLocalAgent(logger, db)).
+		Methods(http.MethodPatch, http.MethodPut)
+}
+
 func makeLocalAccountsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
 	localAccountsHandler := apiHandler.PathPrefix(LocalAccountsPath).Subrouter()
 	localAccountsHandler.HandleFunc("", listLocalAccounts(logger, db)).
@@ -42,6 +71,7 @@ func makeRemoteAccountsHandler(logger *log.Logger, db *database.Db, apiHandler *
 
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
 func MakeRESTHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+	makeLocalAgentsHandler(logger, db, apiHandler)
 	makeLocalAccountsHandler(logger, db, apiHandler)
 	makeRemoteAccountsHandler(logger, db, apiHandler)
 }

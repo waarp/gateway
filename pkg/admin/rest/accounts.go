@@ -42,7 +42,7 @@ type OutAccount struct {
 	Login   string `json:"login"`
 }
 
-func fromLocal(acc *model.LocalAccount) *OutAccount {
+func fromLocalAccount(acc *model.LocalAccount) *OutAccount {
 	return &OutAccount{
 		ID:      acc.ID,
 		AgentID: acc.LocalAgentID,
@@ -50,7 +50,7 @@ func fromLocal(acc *model.LocalAccount) *OutAccount {
 	}
 }
 
-func fromLocalArray(accs []model.LocalAccount) []OutAccount {
+func fromLocalAccounts(accs []model.LocalAccount) []OutAccount {
 	accounts := make([]OutAccount, len(accs))
 	for i, acc := range accs {
 		accounts[i] = OutAccount{
@@ -62,7 +62,7 @@ func fromLocalArray(accs []model.LocalAccount) []OutAccount {
 	return accounts
 }
 
-func fromRemote(acc *model.RemoteAccount) *OutAccount {
+func fromRemoteAccount(acc *model.RemoteAccount) *OutAccount {
 	return &OutAccount{
 		ID:      acc.ID,
 		AgentID: acc.RemoteAgentID,
@@ -70,7 +70,7 @@ func fromRemote(acc *model.RemoteAccount) *OutAccount {
 	}
 }
 
-func fromRemoteArray(accs []model.RemoteAccount) []OutAccount {
+func fromRemoteAccounts(accs []model.RemoteAccount) []OutAccount {
 	accounts := make([]OutAccount, len(accs))
 	for i, acc := range accs {
 		accounts[i] = OutAccount{

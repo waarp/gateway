@@ -8,20 +8,20 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func getLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "local_account")
+			id, err := parseID(r, "local_agent")
 			if err != nil {
 				return err
 			}
-			result := &model.LocalAccount{ID: id}
+			result := &model.LocalAgent{ID: id}
 
 			if err := get(db, result); err != nil {
 				return err
 			}
 
-			return writeJSON(w, fromLocalAccount(result))
+			return writeJSON(w, fromLocalAgent(result))
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)
@@ -29,13 +29,13 @@ func getLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func listLocalAccounts(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listLocalAgents(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	validSorting := map[string]string{
-		"default": "login ASC",
-		"agent+":  "local_agent_id ASC",
-		"agent-":  "local_agent_id DESC",
-		"login+":  "login ASC",
-		"login-":  "login DESC",
+		"default": "name ASC",
+		"proto+":  "protocol ASC",
+		"proto-":  "protocol DESC",
+		"name+":   "name ASC",
+		"name-":   "name DESC",
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -44,16 +44,16 @@ func listLocalAccounts(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			if err := parseAgentParam(r, filters, "local_agent_id"); err != nil {
+			if err := parseProtoParam(r, filters); err != nil {
 				return err
 			}
 
-			var results []model.LocalAccount
+			var results []model.LocalAgent
 			if err := db.Select(&results, filters); err != nil {
 				return err
 			}
 
-			resp := map[string][]OutAccount{"localAccounts": fromLocalAccounts(results)}
+			resp := map[string][]OutAgent{"localAgents": fromLocalAgents(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -62,20 +62,20 @@ func listLocalAccounts(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func createLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonAccount := &InAccount{}
-			if err := readJSON(r, jsonAccount); err != nil {
+			jsonAgent := &InAgent{}
+			if err := readJSON(r, jsonAgent); err != nil {
 				return err
 			}
 
-			account := jsonAccount.toLocal()
-			if err := db.Create(account); err != nil {
+			agent := jsonAgent.toLocal()
+			if err := db.Create(agent); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, account.ID))
+			w.Header().Set("Location", location(r, agent.ID))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -86,24 +86,24 @@ func createLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 }
 
 //nolint:dupl
-func updateLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "local_account")
+			id, err := parseID(r, "local_agent")
 			if err != nil {
 				return &notFound{}
 			}
 
-			if err := exist(db, &model.LocalAccount{ID: id}); err != nil {
+			if err := exist(db, &model.LocalAgent{ID: id}); err != nil {
 				return err
 			}
 
-			account := &InAccount{}
-			if err := readJSON(r, account); err != nil {
+			agent := &InAgent{}
+			if err := readJSON(r, agent); err != nil {
 				return err
 			}
 
-			if err := db.Update(account.toLocal(), id, false); err != nil {
+			if err := db.Update(agent.toLocal(), id, false); err != nil {
 				return err
 			}
 
@@ -117,20 +117,20 @@ func updateLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func deleteLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "local_account")
+			id, err := parseID(r, "local_agent")
 			if err != nil {
 				return &notFound{}
 			}
 
-			acc := &model.LocalAccount{ID: id}
-			if err := get(db, acc); err != nil {
+			ag := &model.LocalAgent{ID: id}
+			if err := get(db, ag); err != nil {
 				return err
 			}
 
-			if err := db.Delete(acc); err != nil {
+			if err := db.Delete(ag); err != nil {
 				return err
 			}
 			w.WriteHeader(http.StatusNoContent)

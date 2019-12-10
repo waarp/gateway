@@ -12,17 +12,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const (
-	// APIPath is the root path for the Rest API endpoints
-	APIPath = "/api"
-
-	// LocalAccountsPath is the access path to the local gateway accounts entry point.
-	LocalAccountsPath = "/local_accounts"
-	// RemoteAccountsPath is the access path to the distant partners accounts entry point.
-	RemoteAccountsPath = "/remote_accounts"
-	// CertificatesPath is the access path to the account certificates entry point.
-)
-
 type badRequest struct {
 	msg string
 }
