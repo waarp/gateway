@@ -10,22 +10,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func makeRemoteAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
-	remoteAgentsHandler := apiHandler.PathPrefix(RemoteAgentsPath).Subrouter()
-	remoteAgentsHandler.HandleFunc("", listRemoteAgents(logger, db)).
-		Methods(http.MethodGet)
-	remoteAgentsHandler.HandleFunc("", createRemoteAgent(logger, db)).
-		Methods(http.MethodPost)
-
-	remAgHandler := remoteAgentsHandler.PathPrefix("/{remote_agent:[0-9]+}").Subrouter()
-	remAgHandler.HandleFunc("", getRemoteAgent(logger, db)).
-		Methods(http.MethodGet)
-	remAgHandler.HandleFunc("", deleteRemoteAgent(logger, db)).
-		Methods(http.MethodDelete)
-	remAgHandler.HandleFunc("", updateRemoteAgent(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
-}
-
 func makeCertificatesHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
 	certificatesHandler := apiHandler.PathPrefix(CertificatesPath).Subrouter()
 	certificatesHandler.HandleFunc("", listCertificates(logger, db)).
@@ -91,7 +75,6 @@ func MakeHandler(logger *log.Logger, db *database.Db, services map[string]servic
 	apiHandler.HandleFunc(StatusPath, getStatus(logger, services)).
 		Methods(http.MethodGet)
 
-	makeRemoteAgentsHandler(logger, db, apiHandler)
 	makeCertificatesHandler(logger, db, apiHandler)
 	makeTransfersHandler(logger, db, apiHandler)
 	makeHistoryHandler(logger, db, apiHandler)

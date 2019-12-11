@@ -13,27 +13,34 @@ import (
 // InAgent is the JSON representation of a local/remote agent in requests
 // made to the REST interface.
 type InAgent struct {
-	Name        string                 `json:"name"`
-	Protocol    string                 `json:"protocol"`
-	ProtoConfig map[string]interface{} `json:"password"`
+	Name        string          `json:"name"`
+	Protocol    string          `json:"protocol"`
+	ProtoConfig json.RawMessage `json:"protoConfig"`
 }
 
 func (i *InAgent) toLocal() *model.LocalAgent {
-	protoConfig, _ := json.Marshal(&i.ProtoConfig)
 	return &model.LocalAgent{
 		Name:        i.Name,
 		Protocol:    i.Protocol,
-		ProtoConfig: protoConfig,
+		ProtoConfig: i.ProtoConfig,
+	}
+}
+
+func (i *InAgent) toRemote() *model.RemoteAgent {
+	return &model.RemoteAgent{
+		Name:        i.Name,
+		Protocol:    i.Protocol,
+		ProtoConfig: i.ProtoConfig,
 	}
 }
 
 // OutAgent is the JSON representation of a local/remote agent in responses
-//// sent by the REST interface.
+// sent by the REST interface.
 type OutAgent struct {
 	ID          uint64                 `json:"id"`
 	Name        string                 `json:"name"`
 	Protocol    string                 `json:"protocol"`
-	ProtoConfig map[string]interface{} `json:"password"`
+	ProtoConfig map[string]interface{} `json:"protoConfig"`
 }
 
 func fromLocalAgent(ag *model.LocalAgent) *OutAgent {
@@ -48,6 +55,30 @@ func fromLocalAgent(ag *model.LocalAgent) *OutAgent {
 }
 
 func fromLocalAgents(ags []model.LocalAgent) []OutAgent {
+	agents := make([]OutAgent, len(ags))
+	for i, acc := range ags {
+		agents[i] = OutAgent{
+			ID:       acc.ID,
+			Name:     acc.Name,
+			Protocol: acc.Protocol,
+		}
+		_ = json.Unmarshal(acc.ProtoConfig, &agents[i].ProtoConfig)
+	}
+	return agents
+}
+
+func fromRemoteAgent(ag *model.RemoteAgent) *OutAgent {
+	var protoConfig map[string]interface{}
+	_ = json.Unmarshal(ag.ProtoConfig, &protoConfig)
+	return &OutAgent{
+		ID:          ag.ID,
+		Name:        ag.Name,
+		Protocol:    ag.Protocol,
+		ProtoConfig: protoConfig,
+	}
+}
+
+func fromRemoteAgents(ags []model.RemoteAgent) []OutAgent {
 	agents := make([]OutAgent, len(ags))
 	for i, acc := range ags {
 		agents[i] = OutAgent{

@@ -14,6 +14,8 @@ const (
 
 	// LocalAgentsPath is the access path to the local servers entry point.
 	LocalAgentsPath = "/servers"
+	// RemoteAgentsPath is the access path to the partners entry point.
+	RemoteAgentsPath = "/partners"
 	// LocalAccountsPath is the access path to the local gateway accounts entry point.
 	LocalAccountsPath = "/local_accounts"
 	// RemoteAccountsPath is the access path to the distant partners accounts entry point.
@@ -34,6 +36,22 @@ func makeLocalAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mux
 	locAgHandler.HandleFunc("", deleteLocalAgent(logger, db)).
 		Methods(http.MethodDelete)
 	locAgHandler.HandleFunc("", updateLocalAgent(logger, db)).
+		Methods(http.MethodPatch, http.MethodPut)
+}
+
+func makeRemoteAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+	remoteAgentsHandler := apiHandler.PathPrefix(RemoteAgentsPath).Subrouter()
+	remoteAgentsHandler.HandleFunc("", listRemoteAgents(logger, db)).
+		Methods(http.MethodGet)
+	remoteAgentsHandler.HandleFunc("", createRemoteAgent(logger, db)).
+		Methods(http.MethodPost)
+
+	remAgHandler := remoteAgentsHandler.PathPrefix("/{remote_agent:[0-9]+}").Subrouter()
+	remAgHandler.HandleFunc("", getRemoteAgent(logger, db)).
+		Methods(http.MethodGet)
+	remAgHandler.HandleFunc("", deleteRemoteAgent(logger, db)).
+		Methods(http.MethodDelete)
+	remAgHandler.HandleFunc("", updateRemoteAgent(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 }
 
@@ -72,6 +90,7 @@ func makeRemoteAccountsHandler(logger *log.Logger, db *database.Db, apiHandler *
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
 func MakeRESTHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
 	makeLocalAgentsHandler(logger, db, apiHandler)
+	makeRemoteAgentsHandler(logger, db, apiHandler)
 	makeLocalAccountsHandler(logger, db, apiHandler)
 	makeRemoteAccountsHandler(logger, db, apiHandler)
 }
