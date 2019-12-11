@@ -9,8 +9,6 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
 	"github.com/gorilla/mux"
 )
 
@@ -166,17 +164,6 @@ func restGet(acc database.Accessor, bean interface{}) error {
 	return nil
 }
 
-func restCreate(acc database.Accessor, r *http.Request, bean interface{}) error {
-	if err := readJSON(r, bean); err != nil {
-		return err
-	}
-
-	if err := acc.Create(bean); err != nil {
-		return err
-	}
-	return nil
-}
-
 func restDelete(acc database.Accessor, bean interface{}) error {
 	if exist, err := acc.Exists(bean); err != nil {
 		return err
@@ -188,30 +175,5 @@ func restDelete(acc database.Accessor, bean interface{}) error {
 		return err
 	}
 
-	return nil
-}
-
-func restUpdate(acc database.Accessor, r *http.Request, bean interface{}, id uint64) error {
-	if t, ok := bean.(xorm.TableName); ok {
-		query := builder.Select().From(t.TableName()).Where(builder.Eq{"id": id})
-		if res, err := acc.Query(query); err != nil {
-			return err
-		} else if len(res) == 0 {
-			return &notFound{}
-		}
-	}
-
-	if err := readJSON(r, bean); err != nil {
-		return err
-	}
-
-	var isReplace bool
-	if r.Method == http.MethodPut {
-		isReplace = true
-	}
-
-	if err := acc.Update(bean, id, isReplace); err != nil {
-		return err
-	}
 	return nil
 }

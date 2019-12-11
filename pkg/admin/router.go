@@ -10,22 +10,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func makeCertificatesHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
-	certificatesHandler := apiHandler.PathPrefix(CertificatesPath).Subrouter()
-	certificatesHandler.HandleFunc("", listCertificates(logger, db)).
-		Methods(http.MethodGet)
-	certificatesHandler.HandleFunc("", createCertificate(logger, db)).
-		Methods(http.MethodPost)
-
-	certHandler := certificatesHandler.PathPrefix("/{certificate:[0-9]+}").Subrouter()
-	certHandler.HandleFunc("", getCertificate(logger, db)).
-		Methods(http.MethodGet)
-	certHandler.HandleFunc("", deleteCertificate(logger, db)).
-		Methods(http.MethodDelete)
-	certHandler.HandleFunc("", updateCertificate(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
-}
-
 func makeTransfersHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
 	transfersHandler := apiHandler.PathPrefix(TransfersPath).Subrouter()
 	transfersHandler.HandleFunc("", listTransfers(logger, db)).
@@ -75,7 +59,6 @@ func MakeHandler(logger *log.Logger, db *database.Db, services map[string]servic
 	apiHandler.HandleFunc(StatusPath, getStatus(logger, services)).
 		Methods(http.MethodGet)
 
-	makeCertificatesHandler(logger, db, apiHandler)
 	makeTransfersHandler(logger, db, apiHandler)
 	makeHistoryHandler(logger, db, apiHandler)
 	makeRulesHandler(logger, db, apiHandler)
