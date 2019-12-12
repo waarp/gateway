@@ -10,17 +10,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func makeTransfersHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
-	transfersHandler := apiHandler.PathPrefix(TransfersPath).Subrouter()
-	transfersHandler.HandleFunc("", listTransfers(logger, db)).
-		Methods(http.MethodGet)
-	transfersHandler.HandleFunc("", addTransfer(logger, db)).
-		Methods(http.MethodPost)
-	transferHandler := transfersHandler.PathPrefix("/{transfer:[0-9]+}").Subrouter()
-	transferHandler.HandleFunc("", getTransfer(logger, db)).
-		Methods(http.MethodGet)
-}
-
 func makeHistoryHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
 	historyHandler := apiHandler.PathPrefix(HistoryPath).Subrouter()
 	historyHandler.HandleFunc("", listHistory(logger, db)).
@@ -59,7 +48,6 @@ func MakeHandler(logger *log.Logger, db *database.Db, services map[string]servic
 	apiHandler.HandleFunc(StatusPath, getStatus(logger, services)).
 		Methods(http.MethodGet)
 
-	makeTransfersHandler(logger, db, apiHandler)
 	makeHistoryHandler(logger, db, apiHandler)
 	makeRulesHandler(logger, db, apiHandler)
 

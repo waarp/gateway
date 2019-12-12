@@ -156,7 +156,6 @@ func (t *Transfer) BeforeInsert(database.Accessor) error {
 // ValidateUpdate is called before updating an existing `Transfer` entry from
 // the database. It checks whether the updated entry is valid or not.
 func (t *Transfer) ValidateUpdate(database.Accessor, uint64) error {
-
 	if t.ID != 0 {
 		return database.InvalidError("The transfer's ID cannot be entered manually")
 	}

@@ -22,6 +22,8 @@ const (
 	RemoteAccountsPath = "/remote_accounts"
 	// CertificatesPath is the access path to the account certificates entry point.
 	CertificatesPath = "/certificates"
+	// TransfersPath is the access path to the transfers entry point.
+	TransfersPath = "/transfers"
 )
 
 func makeLocalAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
@@ -104,6 +106,17 @@ func makeCertificatesHandler(logger *log.Logger, db *database.Db, apiHandler *mu
 		Methods(http.MethodPatch, http.MethodPut)
 }
 
+func makeTransfersHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+	transfersHandler := apiHandler.PathPrefix(TransfersPath).Subrouter()
+	transfersHandler.HandleFunc("", listTransfers(logger, db)).
+		Methods(http.MethodGet)
+	transfersHandler.HandleFunc("", createTransfer(logger, db)).
+		Methods(http.MethodPost)
+	transferHandler := transfersHandler.PathPrefix("/{transfer:[0-9]+}").Subrouter()
+	transferHandler.HandleFunc("", getTransfer(logger, db)).
+		Methods(http.MethodGet)
+}
+
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
 func MakeRESTHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
 	makeLocalAgentsHandler(logger, db, apiHandler)
@@ -111,4 +124,5 @@ func MakeRESTHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router
 	makeLocalAccountsHandler(logger, db, apiHandler)
 	makeRemoteAccountsHandler(logger, db, apiHandler)
 	makeCertificatesHandler(logger, db, apiHandler)
+	makeTransfersHandler(logger, db, apiHandler)
 }
