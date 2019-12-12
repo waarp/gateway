@@ -195,3 +195,8 @@ func (te TransferError) Error() string {
 
 	return rv
 }
+
+// UnmarshalJSON implements json.Unmarshaler. It is a noop.
+func (te TransferError) UnmarshalJSON(data []byte) error {
+	return nil
+}

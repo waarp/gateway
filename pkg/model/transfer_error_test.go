@@ -174,6 +174,35 @@ func TestTransferError(t *testing.T) {
 			e := NewTransferError(TeOk, "some details about the error")
 			So(e.Details, ShouldEqual, "")
 		})
+
+		Convey("Given a new default TransferError", func() {
+			var e TransferError
+
+			Convey("Then it has no error", func() {
+				So(e.Code, ShouldEqual, TeOk)
+			})
+			Convey("Then it has no details", func() {
+				So(e.Details, ShouldEqual, "")
+			})
+		})
+
+		Convey("When UnmarshalError is called with an error", func() {
+			e1 := NewTransferError(TeOk, "")
+			e2 := NewTransferError(TeUnknown, "error info")
+
+			err := json.Unmarshal([]byte(`{"code":"TeBadSize","details":"foobar"}`), &e1)
+			So(err, ShouldBeNil)
+			err = json.Unmarshal([]byte(`{"code":"TeOk","details":""}`), &e2)
+			So(err, ShouldBeNil)
+
+			Convey("Then it must not change the TransferError", func() {
+				So(e1.Code, ShouldEqual, TeOk)
+				So(e1.Details, ShouldEqual, "")
+
+				So(e2.Code, ShouldEqual, TeUnknown)
+				So(e2.Details, ShouldEqual, "error info")
+			})
+		})
 	})
 
 }
