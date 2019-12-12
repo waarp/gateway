@@ -52,6 +52,7 @@ t_doc() {
 
 t_doc_watch() {
     cd doc
+    . .venv/bin/activate
     .venv/bin/sphinx-autobuild -p 8082 source/ build/html/
 }
 

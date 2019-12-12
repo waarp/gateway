@@ -8,3 +8,4 @@ Référence
    gatewayd
    client/index
    rest/index
+   errorcodes
