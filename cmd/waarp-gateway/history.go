@@ -18,26 +18,26 @@ func displayHistory(hist model.TransferHistory) {
 	w := getColorable()
 
 	fmt.Fprintf(w, "\033[37;1;4mTransfer %v=>\033[0m\n", hist.ID)
-	fmt.Fprintf(w, "      \033[37mIsServer:\033[0m \033[37;1m%t\033[0m\n", hist.IsServer)
-	fmt.Fprintf(w, "          \033[37mSend:\033[0m \033[37;1m%t\033[0m\n", hist.IsSend)
-	fmt.Fprintf(w, "      \033[37mProtocol:\033[0m \033[37;1m%s\033[0m\n", hist.Protocol)
-	fmt.Fprintf(w, "          \033[37mRule:\033[0m \033[37m%v\033[0m\n", hist.Rule)
-	fmt.Fprintf(w, "       \033[37mAccount:\033[0m \033[37m%v\033[0m\n", hist.Account)
-	fmt.Fprintf(w, "        \033[37mRemote:\033[0m \033[37m%v\033[0m\n", hist.Remote)
-	fmt.Fprintf(w, "       \033[37mSrcFile:\033[0m \033[37m%s\033[0m\n", hist.SourceFilename)
-	fmt.Fprintf(w, "      \033[37mDestFile:\033[0m \033[37m%s\033[0m\n", hist.DestFilename)
-	fmt.Fprintf(w, "    \033[37mStart date:\033[0m \033[33m%s\033[0m\n",
+	fmt.Fprintf(w, "          \033[37mIsServer:\033[0m \033[37;1m%t\033[0m\n", hist.IsServer)
+	fmt.Fprintf(w, "              \033[37mSend:\033[0m \033[37;1m%t\033[0m\n", hist.IsSend)
+	fmt.Fprintf(w, "          \033[37mProtocol:\033[0m \033[37;1m%s\033[0m\n", hist.Protocol)
+	fmt.Fprintf(w, "              \033[37mRule:\033[0m \033[37m%v\033[0m\n", hist.Rule)
+	fmt.Fprintf(w, "           \033[37mAccount:\033[0m \033[37m%v\033[0m\n", hist.Account)
+	fmt.Fprintf(w, "            \033[37mRemote:\033[0m \033[37m%v\033[0m\n", hist.Remote)
+	fmt.Fprintf(w, "           \033[37mSrcFile:\033[0m \033[37m%s\033[0m\n", hist.SourceFilename)
+	fmt.Fprintf(w, "          \033[37mDestFile:\033[0m \033[37m%s\033[0m\n", hist.DestFilename)
+	fmt.Fprintf(w, "        \033[37mStart date:\033[0m \033[33m%s\033[0m\n",
 		hist.Start.Format(time.RFC3339))
-	fmt.Fprintf(w, "      \033[37mEnd date:\033[0m \033[33m%s\033[0m\n",
+	fmt.Fprintf(w, "          \033[37mEnd date:\033[0m \033[33m%s\033[0m\n",
 		hist.Stop.Format(time.RFC3339))
-	fmt.Fprintf(w, "        \033[37mStatus:\033[0m \033[37;1m%s\033[0m\n", hist.Status)
-	if hist.ErrorCode != 0 {
-		fmt.Fprintf(w, "    \033[37mError code:\033[0m \033[33%v\033[0m\n",
-			hist.ErrorCode)
+	fmt.Fprintf(w, "            \033[37mStatus:\033[0m \033[37;1m%s\033[0m\n", hist.Status)
+	if hist.Error.Code != model.TeOk {
+		fmt.Fprintf(w, "       \033[37mError code:\033[0m \033[33m%v\033[0m\n",
+			hist.Error.Code)
 	}
-	if hist.ErrorMsg != "" {
-		fmt.Fprintf(w, " \033[37mError message:\033[0m \033[33%s\033[0m\n",
-			hist.ErrorMsg)
+	if hist.Error.Details != "" {
+		fmt.Fprintf(w, "    \033[37mError message:\033[0m \033[33m%s\033[0m\n",
+			hist.Error.Details)
 	}
 }
 

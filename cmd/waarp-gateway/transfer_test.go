@@ -14,7 +14,7 @@ import (
 )
 
 func transferInfoString(t *model.Transfer) string {
-	return "Transfer n°" + fmt.Sprint(t.ID) + ":\n" +
+	rv := "Transfer n°" + fmt.Sprint(t.ID) + ":\n" +
 		"          Rule ID: " + fmt.Sprint(t.RuleID) + "\n" +
 		"       Partner ID: " + fmt.Sprint(t.AgentID) + "\n" +
 		"       Account ID: " + fmt.Sprint(t.AccountID) + "\n" +
@@ -22,6 +22,13 @@ func transferInfoString(t *model.Transfer) string {
 		" Destination file: " + t.DestPath + "\n" +
 		"       Start time: " + t.Start.Local().Format(time.RFC3339) + "\n" +
 		"           Status: " + string(t.Status) + "\n"
+	if t.Error.Code != model.TeOk {
+		rv += "       Error code: " + t.Error.Code.String() + "\n"
+	}
+	if t.Error.Details != "" {
+		rv += "    Error message: " + t.Error.Details + "\n"
+	}
+	return rv
 }
 
 func TestDisplayTransfer(t *testing.T) {
@@ -39,6 +46,33 @@ func TestDisplayTransfer(t *testing.T) {
 			Start:      time.Now(),
 			Status:     model.StatusPlanned,
 			Owner:      database.Owner,
+		}
+		Convey("When calling the `displayTransfer` function", func() {
+			displayTransfer(trans)
+
+			Convey("Then it should display the transfer's info correctly", func() {
+				_, err := out.Seek(0, 0)
+				So(err, ShouldBeNil)
+				cont, err := ioutil.ReadAll(out)
+				So(err, ShouldBeNil)
+				So(string(cont), ShouldEqual, transferInfoString(&trans))
+			})
+		})
+	})
+	Convey("Given a transfer entry with an error", t, func() {
+		out = testFile()
+
+		trans := model.Transfer{
+			ID:         1,
+			RuleID:     2,
+			AgentID:    3,
+			AccountID:  4,
+			SourcePath: "source/path",
+			DestPath:   "dest/path",
+			Start:      time.Now(),
+			Status:     model.StatusPlanned,
+			Owner:      database.Owner,
+			Error:      model.NewTransferError(model.TeForbidden, "custom error message"),
 		}
 		Convey("When calling the `displayTransfer` function", func() {
 			displayTransfer(trans)
