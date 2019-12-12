@@ -23,8 +23,7 @@ type Transfer struct {
 	Start      time.Time      `xorm:"notnull 'start'" json:"start"`
 	Status     TransferStatus `xorm:"notnull 'status'" json:"status"`
 	Owner      string         `xorm:"notnull 'owner'" json:"-"`
-	ErrorCode  ReadOnlyByte   `xorm:"notnull 'error_code'" json:"errorCode"`
-	ErrorMsg   ReadOnlyString `xorm:"notnull 'error_msg'" json:"errorMsg"`
+	Error      TransferError  `xorm:"extends" json:"error,omitempty"`
 }
 
 // TableName returns the name of the transfers table.
@@ -238,8 +237,7 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		Start:          t.Start,
 		Stop:           stop,
 		Status:         t.Status,
-		ErrorCode:      t.ErrorCode,
-		ErrorMsg:       t.ErrorMsg,
+		Error:          t.Error,
 	}
 
 	return &hist, nil

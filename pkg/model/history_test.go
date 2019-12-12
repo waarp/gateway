@@ -255,6 +255,49 @@ func TestHistoryValidateInsert(t *testing.T) {
 				})
 			})
 
+			Convey("Given that there is an error", func() {
+				hist.Error = NewTransferError(TeDataTransfer, "error message")
+
+				Convey("When calling the 'ValidateInsert' function", func() {
+					ses, err := db.BeginTransaction()
+					So(err, ShouldBeNil)
+
+					err = hist.ValidateInsert(ses)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+
+						Convey("Then the error should say there must be no error code", func() {
+							So(err.Error(), ShouldEqual,
+								"The transfer's error code must be empty")
+						})
+					})
+				})
+			})
+			Convey("Given that there is an error message", func() {
+				// This must not happen in real life: NewErrorTransfer shuold
+				// be used instead of the literal. However, as there is no way
+				// to force anyone to use NewTransferError, the case should be
+				// considered
+				hist.Error = TransferError{TeOk, "error message"}
+
+				Convey("When calling the 'ValidateInsert' function", func() {
+					ses, err := db.BeginTransaction()
+					So(err, ShouldBeNil)
+
+					err = hist.ValidateInsert(ses)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError)
+
+						Convey("Then the error should say there must be no error message", func() {
+							So(err.Error(), ShouldEqual,
+								"The transfer's error message must be empty")
+						})
+					})
+				})
+			})
+
 			statusTestCases := []statusTestCase{
 				{StatusPlanned, false},
 				{StatusTransfer, false},
