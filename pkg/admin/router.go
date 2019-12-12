@@ -10,15 +10,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func makeHistoryHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
-	historyHandler := apiHandler.PathPrefix(HistoryPath).Subrouter()
-	historyHandler.HandleFunc("", listHistory(logger, db)).
-		Methods(http.MethodGet)
-	histHandler := historyHandler.PathPrefix("/{history:[0-9]+}").Subrouter()
-	histHandler.HandleFunc("", getHistory(logger, db)).
-		Methods(http.MethodGet)
-}
-
 func makeRulesHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
 	rulesHandler := apiHandler.PathPrefix(RulesPath).Subrouter()
 	rulesHandler.HandleFunc("", listRules(logger, db)).Methods(http.MethodGet)
@@ -48,7 +39,6 @@ func MakeHandler(logger *log.Logger, db *database.Db, services map[string]servic
 	apiHandler.HandleFunc(StatusPath, getStatus(logger, services)).
 		Methods(http.MethodGet)
 
-	makeHistoryHandler(logger, db, apiHandler)
 	makeRulesHandler(logger, db, apiHandler)
 
 	rest.MakeRESTHandler(logger, db, apiHandler)

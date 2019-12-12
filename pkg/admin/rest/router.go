@@ -24,6 +24,8 @@ const (
 	CertificatesPath = "/certificates"
 	// TransfersPath is the access path to the transfers entry point.
 	TransfersPath = "/transfers"
+	// HistoryPath is the access path to the transfers history entry point.
+	HistoryPath = "/history"
 )
 
 func makeLocalAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
@@ -117,6 +119,15 @@ func makeTransfersHandler(logger *log.Logger, db *database.Db, apiHandler *mux.R
 		Methods(http.MethodGet)
 }
 
+func makeHistoryHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+	historyHandler := apiHandler.PathPrefix(HistoryPath).Subrouter()
+	historyHandler.HandleFunc("", listHistory(logger, db)).
+		Methods(http.MethodGet)
+	histHandler := historyHandler.PathPrefix("/{history:[0-9]+}").Subrouter()
+	histHandler.HandleFunc("", getHistory(logger, db)).
+		Methods(http.MethodGet)
+}
+
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
 func MakeRESTHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
 	makeLocalAgentsHandler(logger, db, apiHandler)
@@ -125,4 +136,5 @@ func MakeRESTHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router
 	makeRemoteAccountsHandler(logger, db, apiHandler)
 	makeCertificatesHandler(logger, db, apiHandler)
 	makeTransfersHandler(logger, db, apiHandler)
+	makeHistoryHandler(logger, db, apiHandler)
 }

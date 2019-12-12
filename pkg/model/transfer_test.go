@@ -281,8 +281,7 @@ func TestTransferValidateInsert(t *testing.T) {
 						})
 
 						Convey("Then the error should say the status must be planned", func() {
-							So(err.Error(), ShouldEqual, "The transfer's status "+
-								"must be 'planned' or 'pre-tasks'")
+							So(err.Error(), ShouldEqual, "'DONE' is not a valid transfer status")
 						})
 					})
 				})
@@ -396,6 +395,61 @@ func TestTransferValidateInsert(t *testing.T) {
 						})
 					})
 				})
+
+				Convey("Given that there is an error", func() {
+					trans.Error = NewTransferError(TeDataTransfer, "error message")
+
+					Convey("When calling the 'ValidateInsert' function", func() {
+						ses, err := db.BeginTransaction()
+						So(err, ShouldBeNil)
+
+						err = trans.ValidateInsert(ses)
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+
+							Convey("Then the error should say there must be no error code", func() {
+								So(err.Error(), ShouldEqual,
+									"The transfer's error code must be empty")
+							})
+						})
+					})
+				})
+
+				Convey("Given that there is an error message", func() {
+					// This must not happen in real life: NewErrorTransfer shuold
+					// be used instead of the literal. However, as there is no way
+					// to force anyone to use NewTransferError, the case should be
+					// considered
+					trans.Error = TransferError{TeOk, "error message"}
+
+					Convey("When calling the 'ValidateInsert' function", func() {
+						ses, err := db.BeginTransaction()
+						So(err, ShouldBeNil)
+
+						err = trans.ValidateInsert(ses)
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+
+							Convey("Then the error should say there must be no error message", func() {
+								So(err.Error(), ShouldEqual,
+									"The transfer's error message must be empty")
+							})
+						})
+					})
+				})
+
+				statusTestCases := []statusTestCase{
+					{StatusPlanned, true},
+					{StatusTransfer, true},
+					{StatusDone, false},
+					{StatusError, false},
+					{"toto", false},
+				}
+				for _, tc := range statusTestCases {
+					testTransferStatus(tc, "ValidateInsert", trans, db)
+				}
 			})
 		})
 	})
@@ -548,7 +602,7 @@ func TestTransferValidateUpdate(t *testing.T) {
 		}
 
 		for _, tc := range statusesTestCases {
-			testHistoryStatus(tc, "ValidateUpdate", trans, nil)
+			testTransferStatus(tc, "ValidateUpdate", trans, nil)
 		}
 	})
 }

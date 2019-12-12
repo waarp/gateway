@@ -109,17 +109,6 @@ func handleErrors(w http.ResponseWriter, logger *log.Logger, err error) {
 	}
 }
 
-func parseID(r *http.Request, param string) (uint64, error) {
-	id, err := strconv.ParseUint(mux.Vars(r)[param], 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	if id == 0 {
-		return 0, &notFound{}
-	}
-	return id, nil
-}
-
 func writeJSON(w http.ResponseWriter, bean interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(bean)

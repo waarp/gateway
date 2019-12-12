@@ -40,17 +40,17 @@ func (i *InTransfer) toModel() *model.Transfer {
 // OutTransfer is the JSON representation of a transfer in responses sent by
 // the REST interface.
 type OutTransfer struct {
-	ID         uint64               `json:"id"`
-	RuleID     uint64               `json:"ruleID"`
-	IsServer   bool                 `json:"isServer"`
-	AgentID    uint64               `json:"agentID"`
-	AccountID  uint64               `json:"accountID"`
-	SourcePath string               `json:"sourcePath"`
-	DestPath   string               `json:"destPath"`
-	Start      time.Time            `json:"startDate"`
-	Status     model.TransferStatus `json:"status"`
-	ErrorCode  string               `json:"errorCode"`
-	ErrorMsg   string               `json:"errorMsg"`
+	ID         uint64                  `json:"id"`
+	RuleID     uint64                  `json:"ruleID"`
+	IsServer   bool                    `json:"isServer"`
+	AgentID    uint64                  `json:"agentID"`
+	AccountID  uint64                  `json:"accountID"`
+	SourcePath string                  `json:"sourcePath"`
+	DestPath   string                  `json:"destPath"`
+	Start      time.Time               `json:"startDate"`
+	Status     model.TransferStatus    `json:"status"`
+	ErrorCode  model.TransferErrorCode `json:"errorCode"`
+	ErrorMsg   string                  `json:"errorMsg"`
 }
 
 func fromTransfer(t *model.Transfer) *OutTransfer {
@@ -64,7 +64,7 @@ func fromTransfer(t *model.Transfer) *OutTransfer {
 		DestPath:   t.DestPath,
 		Start:      t.Start,
 		Status:     t.Status,
-		ErrorCode:  t.Error.Code.String(),
+		ErrorCode:  t.Error.Code,
 		ErrorMsg:   t.Error.Details,
 	}
 }
@@ -82,7 +82,7 @@ func fromTransfers(ts []model.Transfer) []OutTransfer {
 			DestPath:   trans.DestPath,
 			Start:      trans.Start,
 			Status:     trans.Status,
-			ErrorCode:  trans.Error.Code.String(),
+			ErrorCode:  trans.Error.Code,
 			ErrorMsg:   trans.Error.Details,
 		}
 	}
@@ -138,7 +138,7 @@ func getIDs(src []string) ([]uint64, error) {
 	for i, item := range src {
 		id, err := strconv.ParseUint(item, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("'%s' is not a valid ID", item)
+			return nil, &badRequest{msg: fmt.Sprintf("'%s' is not a valid ID", item)}
 		}
 		res[i] = id
 	}
@@ -191,6 +191,7 @@ func parseTransferCond(r *http.Request, filters *database.Filters) error {
 	return nil
 }
 
+//nolint:dupl
 func listTransfers(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default":  "id ASC",
