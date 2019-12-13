@@ -25,7 +25,8 @@ type InTransfer struct {
 	Start      time.Time `json:"startDate"`
 }
 
-func (i *InTransfer) toModel() *model.Transfer {
+// ToModel transforms the JSON transfer into its database equivalent.
+func (i *InTransfer) ToModel() *model.Transfer {
 	return &model.Transfer{
 		RuleID:     i.RuleID,
 		IsServer:   i.IsServer,
@@ -53,7 +54,8 @@ type OutTransfer struct {
 	ErrorMsg   string                  `json:"errorMsg,omitempty"`
 }
 
-func fromTransfer(t *model.Transfer) *OutTransfer {
+// FromTransfer transforms the given database transfer into its JSON equivalent.
+func FromTransfer(t *model.Transfer) *OutTransfer {
 	return &OutTransfer{
 		ID:         t.ID,
 		RuleID:     t.RuleID,
@@ -69,7 +71,9 @@ func fromTransfer(t *model.Transfer) *OutTransfer {
 	}
 }
 
-func fromTransfers(ts []model.Transfer) []OutTransfer {
+// FromTransfers transforms the given list of database transfers into its
+// JSON equivalent.
+func FromTransfers(ts []model.Transfer) []OutTransfer {
 	transfers := make([]OutTransfer, len(ts))
 	for i, trans := range ts {
 		transfers[i] = OutTransfer{
@@ -97,7 +101,7 @@ func createTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			trans := jsonTrans.toModel()
+			trans := jsonTrans.ToModel()
 			if err := db.Create(trans); err != nil {
 				return err
 			}
@@ -125,7 +129,7 @@ func getTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			return writeJSON(w, fromTransfer(result))
+			return writeJSON(w, FromTransfer(result))
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)
@@ -224,7 +228,7 @@ func listTransfers(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutTransfer{"transfers": fromTransfers(results)}
+			resp := map[string][]OutTransfer{"transfers": FromTransfers(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {

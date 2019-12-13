@@ -92,7 +92,7 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the new transfer should be inserted in "+
 						"the database", func() {
-						exist, err := db.Exists(trans.toModel())
+						exist, err := db.Exists(trans.ToModel())
 
 						So(err, ShouldBeNil)
 						So(exist, ShouldBeTrue)
@@ -262,7 +262,7 @@ func TestGetTransfer(t *testing.T) {
 
 					Convey("Then the body should contain the requested transfer "+
 						"in JSON format", func() {
-						exp, err := json.Marshal(fromTransfer(trans))
+						exp, err := json.Marshal(FromTransfer(trans))
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
@@ -380,9 +380,9 @@ func TestListTransfer(t *testing.T) {
 			}
 			So(db.Create(t3), ShouldBeNil)
 
-			trans1 := *fromTransfer(t1)
-			trans2 := *fromTransfer(t2)
-			trans3 := *fromTransfer(t3)
+			trans1 := *FromTransfer(t1)
+			trans2 := *FromTransfer(t2)
+			trans3 := *FromTransfer(t3)
 
 			Convey("Given a request with a valid 'remoteID' parameter", func() {
 				req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("?agent=%d", p1.ID), nil)

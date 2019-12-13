@@ -69,7 +69,7 @@ func TestCreateRule(t *testing.T) {
 
 						Convey("Then the new rule should be inserted "+
 							"in the database", func() {
-							exist, err := db.Exists(newRule.toModel())
+							exist, err := db.Exists(newRule.ToModel())
 
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
@@ -129,7 +129,7 @@ func TestGetRule(t *testing.T) {
 					Convey("Then the body should contain the requested rule "+
 						"in JSON format", func() {
 
-						exp, err := json.Marshal(fromRule(rule))
+						exp, err := json.Marshal(FromRule(rule))
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
@@ -177,8 +177,8 @@ func TestListRules(t *testing.T) {
 			}
 			So(db.Create(r2), ShouldBeNil)
 
-			rule1 := *fromRule(r1)
-			rule2 := *fromRule(r2)
+			rule1 := *FromRule(r1)
+			rule2 := *FromRule(r2)
 
 			Convey("Given a valid request", func() {
 				req, err := http.NewRequest(http.MethodGet, "", nil)

@@ -257,7 +257,7 @@ func TestCreateRemoteAgent(t *testing.T) {
 
 						Convey("Then the new remote agent should be inserted in "+
 							"the database", func() {
-							exist, err := db.Exists(newAgent.toRemote())
+							exist, err := db.Exists(newAgent.ToRemote())
 
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)

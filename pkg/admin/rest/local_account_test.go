@@ -69,7 +69,7 @@ func TestGetLocalAccount(t *testing.T) {
 					Convey("Then the body should contain the requested partner "+
 						"in JSON format", func() {
 
-						exp, err := json.Marshal(fromLocalAccount(expected))
+						exp, err := json.Marshal(FromLocalAccount(expected))
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
@@ -164,10 +164,10 @@ func TestListLocalAccounts(t *testing.T) {
 			So(db.Create(a3), ShouldBeNil)
 			So(db.Create(a4), ShouldBeNil)
 
-			account1 := *fromLocalAccount(a1)
-			account2 := *fromLocalAccount(a2)
-			account3 := *fromLocalAccount(a3)
-			account4 := *fromLocalAccount(a4)
+			account1 := *FromLocalAccount(a1)
+			account2 := *FromLocalAccount(a2)
+			account3 := *FromLocalAccount(a3)
+			account4 := *FromLocalAccount(a4)
 
 			Convey("Given a request with with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, localAccountsURI, nil)
@@ -293,7 +293,7 @@ func TestCreateLocalAccount(t *testing.T) {
 							clearPwd := newAccount.Password
 							newAccount.Password = nil
 
-							test := newAccount.toLocal()
+							test := newAccount.ToLocal()
 							err := db.Get(test)
 							So(err, ShouldBeNil)
 

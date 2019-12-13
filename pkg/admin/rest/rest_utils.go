@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -26,7 +27,6 @@ func (e *notFound) Error() string {
 	return "Record not found"
 }
 
-//
 func parseListFilters(r *http.Request, validOrders map[string]string) (*database.Filters, error) {
 	filters := &database.Filters{
 		Limit:  20,
@@ -122,7 +122,10 @@ func location(r *http.Request, id ...uint64) string {
 	r.URL.RawQuery = ""
 	r.URL.Fragment = ""
 	if len(id) > 0 {
-		return fmt.Sprintf("%s%v", r.URL.String(), id[0])
+		if strings.HasSuffix(r.URL.String(), "/") {
+			return fmt.Sprintf("%s%v", r.URL.String(), id[0])
+		}
+		return fmt.Sprintf("%s/%v", r.URL.String(), id[0])
 	}
 	return r.URL.String()
 }

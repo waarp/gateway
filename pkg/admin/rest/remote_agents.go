@@ -16,7 +16,7 @@ func createRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			agent := jsonAgent.toRemote()
+			agent := jsonAgent.ToRemote()
 			if err := db.Create(agent); err != nil {
 				return err
 			}
@@ -128,7 +128,7 @@ func updateRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(agent.toRemote(), id, false); err != nil {
+			if err := db.Update(agent.ToRemote(), id, false); err != nil {
 				return err
 			}
 

@@ -21,7 +21,7 @@ func getLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			return writeJSON(w, fromLocalAccount(result))
+			return writeJSON(w, FromLocalAccount(result))
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)
@@ -53,7 +53,7 @@ func listLocalAccounts(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutAccount{"localAccounts": fromLocalAccounts(results)}
+			resp := map[string][]OutAccount{"localAccounts": FromLocalAccounts(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -70,7 +70,7 @@ func createLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			account := jsonAccount.toLocal()
+			account := jsonAccount.ToLocal()
 			if err := db.Create(account); err != nil {
 				return err
 			}
@@ -103,7 +103,7 @@ func updateLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(account.toLocal(), id, false); err != nil {
+			if err := db.Update(account.ToLocal(), id, false); err != nil {
 				return err
 			}
 

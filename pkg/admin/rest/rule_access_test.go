@@ -84,7 +84,7 @@ func TestCreateAccess(t *testing.T) {
 
 						Convey("Then the new access should be inserted "+
 							"in the database", func() {
-							exist, err := db.Exists(acc.toModel())
+							exist, err := db.Exists(acc.ToModel())
 
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)

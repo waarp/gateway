@@ -19,7 +19,8 @@ type InRuleTask struct {
 	Args json.RawMessage `json:"args"`
 }
 
-func (i InRuleTask) toModel() *model.Task {
+// ToModel transforms the JSON task into its database equivalent.
+func (i InRuleTask) ToModel() *model.Task {
 	return &model.Task{
 		Type: i.Type,
 		Args: i.Args,
@@ -33,7 +34,9 @@ type OutRuleTask struct {
 	Args json.RawMessage `json:"args"`
 }
 
-func fromRuleTasks(ts []model.Task) []OutRuleTask {
+// FromRuleTasks transforms the given list of database tasks into its JSON
+// equivalent.
+func FromRuleTasks(ts []model.Task) []OutRuleTask {
 	tasks := make([]OutRuleTask, len(ts))
 	for i, task := range ts {
 		tasks[i] = OutRuleTask{
@@ -86,9 +89,9 @@ func listTasks(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			}
 
 			res := map[string][]OutRuleTask{
-				"preTasks":   fromRuleTasks(preTasks),
-				"postTasks":  fromRuleTasks(postTasks),
-				"errorTasks": fromRuleTasks(errorTasks),
+				"preTasks":   FromRuleTasks(preTasks),
+				"postTasks":  FromRuleTasks(postTasks),
+				"errorTasks": FromRuleTasks(errorTasks),
 			}
 
 			if err := writeJSON(w, res); err != nil {
@@ -109,7 +112,7 @@ func doTaskUpdate(ses *database.Session, req map[string][]InRuleTask, ruleID uin
 		return err
 	}
 	for rank, t := range req["preTasks"] {
-		task := t.toModel()
+		task := t.ToModel()
 		task.RuleID = ruleID
 		task.Chain = model.ChainPre
 		task.Rank = uint32(rank)
@@ -118,7 +121,7 @@ func doTaskUpdate(ses *database.Session, req map[string][]InRuleTask, ruleID uin
 		}
 	}
 	for rank, t := range req["postTasks"] {
-		task := t.toModel()
+		task := t.ToModel()
 		task.RuleID = ruleID
 		task.Chain = model.ChainPost
 		task.Rank = uint32(rank)
@@ -127,7 +130,7 @@ func doTaskUpdate(ses *database.Session, req map[string][]InRuleTask, ruleID uin
 		}
 	}
 	for rank, t := range req["errorTasks"] {
-		task := t.toModel()
+		task := t.ToModel()
 		task.RuleID = ruleID
 		task.Chain = model.ChainError
 		task.Rank = uint32(rank)

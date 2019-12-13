@@ -17,7 +17,8 @@ type InRule struct {
 	Path    string `json:"path"`
 }
 
-func (i *InRule) toModel() *model.Rule {
+// ToModel transforms the JSON transfer rule into its database equivalent.
+func (i *InRule) ToModel() *model.Rule {
 	return &model.Rule{
 		Name:    i.Name,
 		Comment: i.Comment,
@@ -36,7 +37,8 @@ type OutRule struct {
 	Path    string `json:"path"`
 }
 
-func fromRule(r *model.Rule) *OutRule {
+// FromRule transforms the given database transfer rule into its JSON equivalent.
+func FromRule(r *model.Rule) *OutRule {
 	return &OutRule{
 		ID:      r.ID,
 		Name:    r.Name,
@@ -46,7 +48,9 @@ func fromRule(r *model.Rule) *OutRule {
 	}
 }
 
-func fromRules(rs []model.Rule) []OutRule {
+// FromRules transforms the given list of database transfer rules into its JSON
+// equivalent.
+func FromRules(rs []model.Rule) []OutRule {
 	rules := make([]OutRule, len(rs))
 	for i, rule := range rs {
 		rules[i] = OutRule{
@@ -68,7 +72,7 @@ func createRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			rule := jsonRule.toModel()
+			rule := jsonRule.ToModel()
 			if err := db.Create(rule); err != nil {
 				return err
 			}
@@ -96,7 +100,7 @@ func getRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			return writeJSON(w, fromRule(result))
+			return writeJSON(w, FromRule(result))
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)
@@ -123,7 +127,7 @@ func listRules(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutRule{"rules": fromRules(results)}
+			resp := map[string][]OutRule{"rules": FromRules(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -150,7 +154,7 @@ func updateRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(rule.toModel(), id, false); err != nil {
+			if err := db.Update(rule.ToModel(), id, false); err != nil {
 				return err
 			}
 

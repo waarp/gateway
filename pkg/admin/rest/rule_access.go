@@ -17,7 +17,8 @@ type InRuleAccess struct {
 	ObjectType string `json:"objectType"`
 }
 
-func (i *InRuleAccess) toModel() *model.RuleAccess {
+// ToModel transforms the JSON rule access into its database equivalent.
+func (i *InRuleAccess) ToModel() *model.RuleAccess {
 	return &model.RuleAccess{
 		ObjectID:   i.ObjectID,
 		ObjectType: i.ObjectType,
@@ -31,7 +32,9 @@ type OutRuleAccess struct {
 	ObjectType string `json:"objectType"`
 }
 
-func fromRuleAccess(as []model.RuleAccess) []OutRuleAccess {
+// FromRuleAccess transforms the given list of database rule accesses into its
+// JSON equivalent.
+func FromRuleAccess(as []model.RuleAccess) []OutRuleAccess {
 	accesses := make([]OutRuleAccess, len(as))
 	for i, acc := range as {
 		accesses[i] = OutRuleAccess{
@@ -65,7 +68,7 @@ func createAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			access := jsonAccess.toModel()
+			access := jsonAccess.ToModel()
 			access.RuleID = ruleID
 			if err := db.Create(access); err != nil {
 				return err
@@ -106,7 +109,7 @@ func listAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			}
 
 			res := map[string][]OutRuleAccess{}
-			res["permissions"] = fromRuleAccess(acc)
+			res["permissions"] = FromRuleAccess(acc)
 			if err := writeJSON(w, res); err != nil {
 				return err
 			}
@@ -133,7 +136,7 @@ func deleteAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			acc := jsonAcc.toModel()
+			acc := jsonAcc.ToModel()
 			acc.RuleID = ruleID
 			if err := get(db, acc); err != nil {
 				return err

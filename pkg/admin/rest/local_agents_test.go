@@ -75,10 +75,10 @@ func TestListLocalAgents(t *testing.T) {
 			So(db.Create(a3), ShouldBeNil)
 			So(db.Create(a4), ShouldBeNil)
 
-			agent1 := *fromLocalAgent(a1)
-			agent2 := *fromLocalAgent(a2)
-			agent3 := *fromLocalAgent(a3)
-			agent4 := *fromLocalAgent(a4)
+			agent1 := *FromLocalAgent(a1)
+			agent2 := *FromLocalAgent(a2)
+			agent3 := *FromLocalAgent(a3)
+			agent4 := *FromLocalAgent(a4)
 
 			Convey("Given a request with with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -182,7 +182,7 @@ func TestGetLocalAgent(t *testing.T) {
 					Convey("Then the body should contain the requested local agent "+
 						"in JSON format", func() {
 
-						exp, err := json.Marshal(fromLocalAgent(existing))
+						exp, err := json.Marshal(FromLocalAgent(existing))
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
@@ -257,7 +257,7 @@ func TestCreateLocalAgent(t *testing.T) {
 
 						Convey("Then the new local agent should be inserted in "+
 							"the database", func() {
-							exist, err := db.Exists(newAgent.toLocal())
+							exist, err := db.Exists(newAgent.ToLocal())
 
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)

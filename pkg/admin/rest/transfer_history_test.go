@@ -70,7 +70,7 @@ func TestGetHistory(t *testing.T) {
 					Convey("Then the body should contain the requested transfer history "+
 						"in JSON format", func() {
 
-						exp, err := json.Marshal(fromHistory(h))
+						exp, err := json.Marshal(FromHistory(h))
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
@@ -178,10 +178,10 @@ func TestListHistory(t *testing.T) {
 			h4.Start = h4.Start.Local()
 			h4.Stop = h4.Stop.Local()
 
-			hist1 := *fromHistory(h1)
-			hist2 := *fromHistory(h2)
-			hist3 := *fromHistory(h3)
-			hist4 := *fromHistory(h4)
+			hist1 := *FromHistory(h1)
+			hist2 := *FromHistory(h2)
+			hist3 := *FromHistory(h3)
+			hist4 := *FromHistory(h4)
 
 			Convey("Given a request with 2 valid 'account' parameter", func() {
 				req, err := http.NewRequest(http.MethodGet, "?account=from1&account=from2", nil)

@@ -191,15 +191,15 @@ func TestUpdateTasks(t *testing.T) {
 
 						Convey("Then the new tasks should be inserted "+
 							"in the database", func() {
-							exist, err := db.Exists(pre[0].toModel())
+							exist, err := db.Exists(pre[0].ToModel())
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
 
-							exist, err = db.Exists(post[0].toModel())
+							exist, err = db.Exists(post[0].ToModel())
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
 
-							exist, err = db.Exists(er[0].toModel())
+							exist, err = db.Exists(er[0].ToModel())
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
 						})
@@ -263,7 +263,7 @@ func TestUpdateTasks(t *testing.T) {
 
 						Convey("Then the new tasks should be inserted "+
 							"in the database", func() {
-							exist, err := db.Exists(pre[0].toModel())
+							exist, err := db.Exists(pre[0].ToModel())
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
 

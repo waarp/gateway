@@ -11,7 +11,7 @@ import (
 	"github.com/go-xorm/builder"
 )
 
-// OutHistory is the JSON representation of a transfer in responses sent by
+// OutHistory is the JSON representation of a history entry in responses sent by
 // the REST interface.
 type OutHistory struct {
 	ID             uint64                  `json:"id"`
@@ -30,7 +30,8 @@ type OutHistory struct {
 	ErrorMsg       string                  `json:"errorMsg,omitempty"`
 }
 
-func fromHistory(h *model.TransferHistory) *OutHistory {
+// FromHistory transforms the given database history entry into its JSON equivalent.
+func FromHistory(h *model.TransferHistory) *OutHistory {
 	return &OutHistory{
 		ID:             h.ID,
 		IsServer:       h.IsServer,
@@ -49,7 +50,9 @@ func fromHistory(h *model.TransferHistory) *OutHistory {
 	}
 }
 
-func fromHistories(hs []model.TransferHistory) []OutHistory {
+// FromHistories transforms the given list of database history entries into its
+// JSON equivalent.
+func FromHistories(hs []model.TransferHistory) []OutHistory {
 	hist := make([]OutHistory, len(hs))
 	for i, h := range hs {
 		hist[i] = OutHistory{
@@ -138,7 +141,7 @@ func getHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			return writeJSON(w, fromHistory(result))
+			return writeJSON(w, FromHistory(result))
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)
@@ -179,7 +182,7 @@ func listHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutHistory{"history": fromHistories(results)}
+			resp := map[string][]OutHistory{"history": FromHistories(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {

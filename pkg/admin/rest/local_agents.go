@@ -21,7 +21,7 @@ func getLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			return writeJSON(w, fromLocalAgent(result))
+			return writeJSON(w, FromLocalAgent(result))
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)
@@ -70,7 +70,7 @@ func createLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			agent := jsonAgent.toLocal()
+			agent := jsonAgent.ToLocal()
 			if err := db.Create(agent); err != nil {
 				return err
 			}
@@ -103,7 +103,7 @@ func updateLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(agent.toLocal(), id, false); err != nil {
+			if err := db.Update(agent.ToLocal(), id, false); err != nil {
 				return err
 			}
 

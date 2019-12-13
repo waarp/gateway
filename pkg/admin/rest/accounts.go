@@ -18,7 +18,8 @@ type InAccount struct {
 	Password []byte `json:"password"`
 }
 
-func (i *InAccount) toLocal() *model.LocalAccount {
+// ToLocal transforms the JSON local account into its database equivalent.
+func (i *InAccount) ToLocal() *model.LocalAccount {
 	return &model.LocalAccount{
 		LocalAgentID: i.AgentID,
 		Login:        i.Login,
@@ -26,7 +27,8 @@ func (i *InAccount) toLocal() *model.LocalAccount {
 	}
 }
 
-func (i *InAccount) toRemote() *model.RemoteAccount {
+// ToRemote transforms the JSON remote account into its database equivalent.
+func (i *InAccount) ToRemote() *model.RemoteAccount {
 	return &model.RemoteAccount{
 		RemoteAgentID: i.AgentID,
 		Login:         i.Login,
@@ -42,7 +44,9 @@ type OutAccount struct {
 	Login   string `json:"login"`
 }
 
-func fromLocalAccount(acc *model.LocalAccount) *OutAccount {
+// FromLocalAccount transforms the given database local account into its JSON
+// equivalent.
+func FromLocalAccount(acc *model.LocalAccount) *OutAccount {
 	return &OutAccount{
 		ID:      acc.ID,
 		AgentID: acc.LocalAgentID,
@@ -50,7 +54,9 @@ func fromLocalAccount(acc *model.LocalAccount) *OutAccount {
 	}
 }
 
-func fromLocalAccounts(accs []model.LocalAccount) []OutAccount {
+// FromLocalAccounts transforms the given list of database local accounts into
+// its JSON equivalent.
+func FromLocalAccounts(accs []model.LocalAccount) []OutAccount {
 	accounts := make([]OutAccount, len(accs))
 	for i, acc := range accs {
 		accounts[i] = OutAccount{
@@ -62,7 +68,9 @@ func fromLocalAccounts(accs []model.LocalAccount) []OutAccount {
 	return accounts
 }
 
-func fromRemoteAccount(acc *model.RemoteAccount) *OutAccount {
+// FromRemoteAccount transforms the given database remote account into its JSON
+// equivalent.
+func FromRemoteAccount(acc *model.RemoteAccount) *OutAccount {
 	return &OutAccount{
 		ID:      acc.ID,
 		AgentID: acc.RemoteAgentID,
@@ -70,7 +78,9 @@ func fromRemoteAccount(acc *model.RemoteAccount) *OutAccount {
 	}
 }
 
-func fromRemoteAccounts(accs []model.RemoteAccount) []OutAccount {
+// FromRemoteAccounts transforms the given list of database remote accounts into
+// its JSON equivalent.
+func FromRemoteAccounts(accs []model.RemoteAccount) []OutAccount {
 	accounts := make([]OutAccount, len(accs))
 	for i, acc := range accs {
 		accounts[i] = OutAccount{

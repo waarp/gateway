@@ -23,6 +23,7 @@ type InCert struct {
 	Certificate []byte `json:"certificate"`
 }
 
+// ToModel transforms the JSON certificate into its database equivalent.
 func (i *InCert) toModel() *model.Cert {
 	return &model.Cert{
 		OwnerType:   i.OwnerType,
@@ -46,6 +47,7 @@ type OutCert struct {
 	Certificate []byte `json:"certificate"`
 }
 
+// FromCert transforms the given database certificate into its JSON equivalent.
 func fromCert(c *model.Cert) *OutCert {
 	return &OutCert{
 		ID:          c.ID,
@@ -58,7 +60,9 @@ func fromCert(c *model.Cert) *OutCert {
 	}
 }
 
-func fromCerts(cs []model.Cert) []OutCert {
+// FromCerts transforms the given list of database certificates into its JSON
+// equivalent.
+func FromCerts(cs []model.Cert) []OutCert {
 	certs := make([]OutCert, len(cs))
 	for i, cert := range cs {
 		certs[i] = OutCert{
@@ -165,7 +169,7 @@ func listCertificates(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutCert{"certificates": fromCerts(results)}
+			resp := map[string][]OutCert{"certificates": FromCerts(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
