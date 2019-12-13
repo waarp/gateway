@@ -14,18 +14,25 @@ import (
 )
 
 func historyInfoString(t *model.TransferHistory) string {
-	return "Transfer " + fmt.Sprint(t.ID) + "=>\n" +
-		"    IsServer: " + fmt.Sprint(t.IsServer) + "\n" +
-		"        Send: " + fmt.Sprint(t.IsSend) + "\n" +
-		"    Protocol: " + fmt.Sprint(t.Protocol) + "\n" +
-		"        Rule: " + fmt.Sprint(t.Rule) + "\n" +
-		"     Account: " + fmt.Sprint(t.Account) + "\n" +
-		"      Remote: " + fmt.Sprint(t.Remote) + "\n" +
-		"     SrcFile: " + t.SourceFilename + "\n" +
-		"    DestFile: " + t.DestFilename + "\n" +
-		"  Start date: " + t.Start.Local().Format(time.RFC3339) + "\n" +
-		"    End date: " + t.Stop.Local().Format(time.RFC3339) + "\n" +
-		"      Status: " + string(t.Status) + "\n"
+	rv := "Transfer " + fmt.Sprint(t.ID) + "=>\n" +
+		"          IsServer: " + fmt.Sprint(t.IsServer) + "\n" +
+		"              Send: " + fmt.Sprint(t.IsSend) + "\n" +
+		"          Protocol: " + fmt.Sprint(t.Protocol) + "\n" +
+		"              Rule: " + fmt.Sprint(t.Rule) + "\n" +
+		"           Account: " + fmt.Sprint(t.Account) + "\n" +
+		"            Remote: " + fmt.Sprint(t.Remote) + "\n" +
+		"           SrcFile: " + t.SourceFilename + "\n" +
+		"          DestFile: " + t.DestFilename + "\n" +
+		"        Start date: " + t.Start.Local().Format(time.RFC3339) + "\n" +
+		"          End date: " + t.Stop.Local().Format(time.RFC3339) + "\n" +
+		"            Status: " + string(t.Status) + "\n"
+	if t.Error.Code != model.TeOk {
+		rv += "       Error code: " + t.Error.Code.String() + "\n"
+	}
+	if t.Error.Details != "" {
+		rv += "    Error message: " + t.Error.Details + "\n"
+	}
+	return rv
 }
 
 func TestDisplayHistory(t *testing.T) {
@@ -47,6 +54,37 @@ func TestDisplayHistory(t *testing.T) {
 			Stop:           time.Now().Add(time.Hour),
 			Status:         model.StatusPlanned,
 			Owner:          database.Owner,
+		}
+		Convey("When calling the `displayHistory` function", func() {
+			displayHistory(hist)
+
+			Convey("Then it should display the entry's info correctly", func() {
+				_, err := out.Seek(0, 0)
+				So(err, ShouldBeNil)
+				cont, err := ioutil.ReadAll(out)
+				So(err, ShouldBeNil)
+				So(string(cont), ShouldEqual, historyInfoString(&hist))
+			})
+		})
+	})
+	Convey("Given a history entry with error", t, func() {
+		out = testFile()
+
+		hist := model.TransferHistory{
+			ID:             1,
+			IsServer:       true,
+			IsSend:         false,
+			Rule:           "rule",
+			Account:        "source",
+			Remote:         "destination",
+			Protocol:       "sftp",
+			SourceFilename: "file/path",
+			DestFilename:   "file/path",
+			Start:          time.Now(),
+			Stop:           time.Now().Add(time.Hour),
+			Status:         model.StatusPlanned,
+			Owner:          database.Owner,
+			Error:          model.NewTransferError(model.TeConnectionReset, "connexion reset by peer"),
 		}
 		Convey("When calling the `displayHistory` function", func() {
 			displayHistory(hist)

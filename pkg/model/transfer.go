@@ -22,7 +22,8 @@ type Transfer struct {
 	DestPath   string         `xorm:"notnull 'dest_path'" json:"destPath"`
 	Start      time.Time      `xorm:"notnull 'start'" json:"start"`
 	Status     TransferStatus `xorm:"notnull 'status'" json:"status"`
-	Owner      string         `xorm:"notnull 'owner'"`
+	Owner      string         `xorm:"notnull 'owner'" json:"-"`
+	Error      TransferError  `xorm:"extends" json:"error,omitempty"`
 }
 
 // TableName returns the name of the transfers table.
@@ -218,8 +219,7 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 
 	if !validateStatusForHistory(t.Status) {
 		return nil, fmt.Errorf(
-			"a transfer cannot be recorded in history with status '%s'",
-			t.Status,
+			"a transfer cannot be recorded in history with status '%s'", t.Status,
 		)
 	}
 
@@ -237,6 +237,7 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		Start:          t.Start,
 		Stop:           stop,
 		Status:         t.Status,
+		Error:          t.Error,
 	}
 
 	return &hist, nil

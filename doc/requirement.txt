@@ -1,4 +1,4 @@
 git+ssh://git@code.waarp.fr:2222/waarp/sphinx-template.git
 sphinx
 sphinx-autobuild
-sphinxcontrib.httpdomain
+sphinxcontrib-httpdomain
