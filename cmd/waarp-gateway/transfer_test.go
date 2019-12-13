@@ -8,12 +8,14 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func transferInfoString(t *model.Transfer) string {
+func transferInfoString(t *rest.OutTransfer) string {
 	rv := "Transfer n°" + fmt.Sprint(t.ID) + ":\n" +
 		"          Rule ID: " + fmt.Sprint(t.RuleID) + "\n" +
 		"       Partner ID: " + fmt.Sprint(t.AgentID) + "\n" +
@@ -22,11 +24,11 @@ func transferInfoString(t *model.Transfer) string {
 		" Destination file: " + t.DestPath + "\n" +
 		"       Start time: " + t.Start.Local().Format(time.RFC3339) + "\n" +
 		"           Status: " + string(t.Status) + "\n"
-	if t.Error.Code != model.TeOk {
-		rv += "       Error code: " + t.Error.Code.String() + "\n"
+	if t.ErrorCode != model.TeOk {
+		rv += "       Error code: " + t.ErrorCode.String() + "\n"
 	}
-	if t.Error.Details != "" {
-		rv += "    Error message: " + t.Error.Details + "\n"
+	if t.ErrorMsg != "" {
+		rv += "    Error message: " + t.ErrorMsg + "\n"
 	}
 	return rv
 }
@@ -36,7 +38,7 @@ func TestDisplayTransfer(t *testing.T) {
 	Convey("Given a transfer entry", t, func() {
 		out = testFile()
 
-		trans := model.Transfer{
+		trans := &rest.OutTransfer{
 			ID:         1,
 			RuleID:     2,
 			AgentID:    3,
@@ -45,24 +47,24 @@ func TestDisplayTransfer(t *testing.T) {
 			DestPath:   "dest/path",
 			Start:      time.Now(),
 			Status:     model.StatusPlanned,
-			Owner:      database.Owner,
 		}
 		Convey("When calling the `displayTransfer` function", func() {
-			displayTransfer(trans)
+			displayTransfer(*trans)
 
 			Convey("Then it should display the transfer's info correctly", func() {
 				_, err := out.Seek(0, 0)
 				So(err, ShouldBeNil)
 				cont, err := ioutil.ReadAll(out)
 				So(err, ShouldBeNil)
-				So(string(cont), ShouldEqual, transferInfoString(&trans))
+				So(string(cont), ShouldEqual, transferInfoString(trans))
 			})
 		})
 	})
+
 	Convey("Given a transfer entry with an error", t, func() {
 		out = testFile()
 
-		trans := model.Transfer{
+		trans := &rest.OutTransfer{
 			ID:         1,
 			RuleID:     2,
 			AgentID:    3,
@@ -71,18 +73,18 @@ func TestDisplayTransfer(t *testing.T) {
 			DestPath:   "dest/path",
 			Start:      time.Now(),
 			Status:     model.StatusPlanned,
-			Owner:      database.Owner,
-			Error:      model.NewTransferError(model.TeForbidden, "custom error message"),
+			ErrorCode:  model.TeForbidden,
+			ErrorMsg:   "custom error message",
 		}
 		Convey("When calling the `displayTransfer` function", func() {
-			displayTransfer(trans)
+			displayTransfer(*trans)
 
 			Convey("Then it should display the transfer's info correctly", func() {
 				_, err := out.Seek(0, 0)
 				So(err, ShouldBeNil)
 				cont, err := ioutil.ReadAll(out)
 				So(err, ShouldBeNil)
-				So(string(cont), ShouldEqual, transferInfoString(&trans))
+				So(string(cont), ShouldEqual, transferInfoString(trans))
 			})
 		})
 	})
@@ -271,7 +273,7 @@ func TestAddTransfer(t *testing.T) {
 	})
 }
 
-func TestTransferGetCommand(t *testing.T) {
+func TestGetTransfer(t *testing.T) {
 
 	Convey("Testing the partner 'get' command", t, func() {
 		out = testFile()
@@ -282,36 +284,36 @@ func TestTransferGetCommand(t *testing.T) {
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
 			Convey("Given a valid transfer", func() {
-				p := model.RemoteAgent{
+				p := &model.RemoteAgent{
 					Name:        "test",
 					Protocol:    "sftp",
 					ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 				}
-				So(db.Create(&p), ShouldBeNil)
+				So(db.Create(p), ShouldBeNil)
 
-				c := model.Cert{
+				c := &model.Cert{
 					Name:        "test",
 					PublicKey:   []byte("test"),
 					Certificate: []byte("test"),
 					OwnerType:   "remote_agents",
 					OwnerID:     p.ID,
 				}
-				So(db.Create(&c), ShouldBeNil)
+				So(db.Create(c), ShouldBeNil)
 
-				a := model.RemoteAccount{
+				a := &model.RemoteAccount{
 					Login:         "login",
 					Password:      []byte("password"),
 					RemoteAgentID: p.ID,
 				}
-				So(db.Create(&a), ShouldBeNil)
+				So(db.Create(a), ShouldBeNil)
 
-				r := model.Rule{
+				r := &model.Rule{
 					Name:   "rule",
 					IsSend: false,
 				}
-				So(db.Create(&r), ShouldBeNil)
+				So(db.Create(r), ShouldBeNil)
 
-				trans := model.Transfer{
+				trans := &model.Transfer{
 					RuleID:     r.ID,
 					AgentID:    p.ID,
 					AccountID:  a.ID,
@@ -320,7 +322,7 @@ func TestTransferGetCommand(t *testing.T) {
 					Start:      time.Now(),
 					Status:     model.StatusPlanned,
 				}
-				So(db.Create(&trans), ShouldBeNil)
+				So(db.Create(trans), ShouldBeNil)
 
 				Convey("Given a valid transfer ID", func() {
 					id := fmt.Sprint(trans.ID)
@@ -341,7 +343,7 @@ func TestTransferGetCommand(t *testing.T) {
 							So(err, ShouldBeNil)
 							cont, err := ioutil.ReadAll(out)
 							So(err, ShouldBeNil)
-							So(string(cont), ShouldEqual, transferInfoString(&trans))
+							So(string(cont), ShouldEqual, transferInfoString(rest.FromTransfer(trans)))
 						})
 					})
 				})
@@ -366,97 +368,99 @@ func TestTransferGetCommand(t *testing.T) {
 	})
 }
 
-func TestTransferListCommand(t *testing.T) {
+func TestListTransfer(t *testing.T) {
 
 	Convey("Testing the transfer 'list' command", t, func() {
 		out = testFile()
 		command := &transferListCommand{}
+		_, err := flags.ParseArgs(command, nil)
+		So(err, ShouldBeNil)
 
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
-			p1 := model.RemoteAgent{
+			p1 := &model.RemoteAgent{
 				Name:        "remote1",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			p2 := model.RemoteAgent{
+			p2 := &model.RemoteAgent{
 				Name:        "remote2",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"titi"}`),
 			}
-			p3 := model.RemoteAgent{
+			p3 := &model.RemoteAgent{
 				Name:        "remote3",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2024,"root":"tata"}`),
 			}
-			p4 := model.RemoteAgent{
+			p4 := &model.RemoteAgent{
 				Name:        "remote4",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2025,"root":"tutu"}`),
 			}
-			So(db.Create(&p1), ShouldBeNil)
-			So(db.Create(&p2), ShouldBeNil)
-			So(db.Create(&p3), ShouldBeNil)
-			So(db.Create(&p4), ShouldBeNil)
+			So(db.Create(p1), ShouldBeNil)
+			So(db.Create(p2), ShouldBeNil)
+			So(db.Create(p3), ShouldBeNil)
+			So(db.Create(p4), ShouldBeNil)
 
-			a1 := model.RemoteAccount{
+			a1 := &model.RemoteAccount{
 				RemoteAgentID: p1.ID,
 				Login:         "login",
 				Password:      []byte("password"),
 			}
-			a2 := model.RemoteAccount{
+			a2 := &model.RemoteAccount{
 				RemoteAgentID: p2.ID,
 				Login:         "login",
 				Password:      []byte("password"),
 			}
-			a3 := model.RemoteAccount{
+			a3 := &model.RemoteAccount{
 				RemoteAgentID: p3.ID,
 				Login:         "login",
 				Password:      []byte("password"),
 			}
-			a4 := model.RemoteAccount{
+			a4 := &model.RemoteAccount{
 				RemoteAgentID: p4.ID,
 				Login:         "login",
 				Password:      []byte("password"),
 			}
-			So(db.Create(&a1), ShouldBeNil)
-			So(db.Create(&a2), ShouldBeNil)
-			So(db.Create(&a3), ShouldBeNil)
-			So(db.Create(&a4), ShouldBeNil)
+			So(db.Create(a1), ShouldBeNil)
+			So(db.Create(a2), ShouldBeNil)
+			So(db.Create(a3), ShouldBeNil)
+			So(db.Create(a4), ShouldBeNil)
 
-			r1 := model.Rule{Name: "rule1", IsSend: false}
-			r2 := model.Rule{Name: "rule2", IsSend: false}
-			r3 := model.Rule{Name: "rule3", IsSend: false}
-			r4 := model.Rule{Name: "rule4", IsSend: false}
-			So(db.Create(&r1), ShouldBeNil)
-			So(db.Create(&r2), ShouldBeNil)
-			So(db.Create(&r3), ShouldBeNil)
-			So(db.Create(&r4), ShouldBeNil)
+			r1 := &model.Rule{Name: "rule1", IsSend: false}
+			r2 := &model.Rule{Name: "rule2", IsSend: false}
+			r3 := &model.Rule{Name: "rule3", IsSend: false}
+			r4 := &model.Rule{Name: "rule4", IsSend: false}
+			So(db.Create(r1), ShouldBeNil)
+			So(db.Create(r2), ShouldBeNil)
+			So(db.Create(r3), ShouldBeNil)
+			So(db.Create(r4), ShouldBeNil)
 
-			c := model.Cert{
+			c := &model.Cert{
 				Name:        "cert",
 				PublicKey:   []byte("test"),
 				Certificate: []byte("test"),
 				OwnerType:   "remote_agents",
 			}
 			c.OwnerID = p1.ID
-			So(db.Create(&c), ShouldBeNil)
+			So(db.Create(c), ShouldBeNil)
 			c.OwnerID = p2.ID
 			c.ID = 0
-			So(db.Create(&c), ShouldBeNil)
+			So(db.Create(c), ShouldBeNil)
 			c.OwnerID = p3.ID
 			c.ID = 0
-			So(db.Create(&c), ShouldBeNil)
+			So(db.Create(c), ShouldBeNil)
 			c.OwnerID = p4.ID
 			c.ID = 0
-			So(db.Create(&c), ShouldBeNil)
+			So(db.Create(c), ShouldBeNil)
 
 			Convey("Given 4 valid transfers", func() {
 
-				t1 := model.Transfer{
+				t1 := &model.Transfer{
 					RuleID:     r1.ID,
 					AgentID:    p1.ID,
 					AccountID:  a1.ID,
@@ -464,7 +468,7 @@ func TestTransferListCommand(t *testing.T) {
 					DestPath:   "test/dest/path",
 					Start:      time.Date(2019, 1, 1, 1, 0, 0, 0, time.UTC),
 				}
-				t2 := model.Transfer{
+				t2 := &model.Transfer{
 					RuleID:     r2.ID,
 					AgentID:    p2.ID,
 					AccountID:  a2.ID,
@@ -472,7 +476,7 @@ func TestTransferListCommand(t *testing.T) {
 					DestPath:   "test/dest/path",
 					Start:      time.Date(2019, 1, 1, 2, 0, 0, 0, time.UTC),
 				}
-				t3 := model.Transfer{
+				t3 := &model.Transfer{
 					RuleID:     r3.ID,
 					AgentID:    p3.ID,
 					AccountID:  a3.ID,
@@ -480,7 +484,7 @@ func TestTransferListCommand(t *testing.T) {
 					DestPath:   "test/dest/path",
 					Start:      time.Date(2019, 1, 1, 3, 0, 0, 0, time.UTC),
 				}
-				t4 := model.Transfer{
+				t4 := &model.Transfer{
 					RuleID:     r4.ID,
 					AgentID:    p4.ID,
 					AccountID:  a4.ID,
@@ -488,10 +492,10 @@ func TestTransferListCommand(t *testing.T) {
 					DestPath:   "test/dest/path",
 					Start:      time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
 				}
-				So(db.Create(&t1), ShouldBeNil)
-				So(db.Create(&t2), ShouldBeNil)
-				So(db.Create(&t3), ShouldBeNil)
-				So(db.Create(&t4), ShouldBeNil)
+				So(db.Create(t1), ShouldBeNil)
+				So(db.Create(t2), ShouldBeNil)
+				So(db.Create(t3), ShouldBeNil)
+				So(db.Create(t4), ShouldBeNil)
 
 				t2.Status = model.StatusTransfer
 				t3.Status = model.StatusTransfer
@@ -513,10 +517,10 @@ func TestTransferListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(&t1)+
-									transferInfoString(&t2)+
-									transferInfoString(&t3)+
-									transferInfoString(&t4))
+									transferInfoString(rest.FromTransfer(t1))+
+									transferInfoString(rest.FromTransfer(t2))+
+									transferInfoString(rest.FromTransfer(t3))+
+									transferInfoString(rest.FromTransfer(t4)))
 							})
 						})
 					})
@@ -538,8 +542,8 @@ func TestTransferListCommand(t *testing.T) {
 									cont, err := ioutil.ReadAll(out)
 									So(err, ShouldBeNil)
 									So(string(cont), ShouldEqual, "Transfers:\n"+
-										transferInfoString(&t1)+
-										transferInfoString(&t2))
+										transferInfoString(rest.FromTransfer(t1))+
+										transferInfoString(rest.FromTransfer(t2)))
 								})
 						})
 					})
@@ -562,8 +566,8 @@ func TestTransferListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(&t3)+
-									transferInfoString(&t4))
+									transferInfoString(rest.FromTransfer(t3))+
+									transferInfoString(rest.FromTransfer(t4)))
 							})
 						})
 					})
@@ -586,10 +590,10 @@ func TestTransferListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(&t4)+
-									transferInfoString(&t3)+
-									transferInfoString(&t2)+
-									transferInfoString(&t1))
+									transferInfoString(rest.FromTransfer(t4))+
+									transferInfoString(rest.FromTransfer(t3))+
+									transferInfoString(rest.FromTransfer(t2))+
+									transferInfoString(rest.FromTransfer(t1)))
 							})
 						})
 					})
@@ -612,8 +616,8 @@ func TestTransferListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(&t3)+
-									transferInfoString(&t4))
+									transferInfoString(rest.FromTransfer(t3))+
+									transferInfoString(rest.FromTransfer(t4)))
 							})
 						})
 					})
@@ -635,8 +639,8 @@ func TestTransferListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(&t1)+
-									transferInfoString(&t3))
+									transferInfoString(rest.FromTransfer(t1))+
+									transferInfoString(rest.FromTransfer(t3)))
 							})
 						})
 					})
@@ -658,8 +662,8 @@ func TestTransferListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(&t2)+
-									transferInfoString(&t3))
+									transferInfoString(rest.FromTransfer(t2))+
+									transferInfoString(rest.FromTransfer(t3)))
 							})
 						})
 					})
@@ -681,8 +685,8 @@ func TestTransferListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(&t1)+
-									transferInfoString(&t4))
+									transferInfoString(rest.FromTransfer(t1))+
+									transferInfoString(rest.FromTransfer(t4)))
 							})
 						})
 					})
@@ -704,8 +708,8 @@ func TestTransferListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(&t1)+
-									transferInfoString(&t4))
+									transferInfoString(rest.FromTransfer(t1))+
+									transferInfoString(rest.FromTransfer(t4)))
 							})
 						})
 					})
@@ -732,7 +736,7 @@ func TestTransferListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(&t2))
+									transferInfoString(rest.FromTransfer(t2)))
 							})
 						})
 					})

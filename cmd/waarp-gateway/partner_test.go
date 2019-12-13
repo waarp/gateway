@@ -172,8 +172,9 @@ func TestAddPartner(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "400 - Invalid request: "+
-							"Invalid agent configuration: unexpected end of JSON input")
+						So(err.Error(), ShouldEqual, "json: error calling "+
+							"MarshalJSON for type json.RawMessage: unexpected "+
+							"end of JSON input")
 					})
 				})
 			})
@@ -186,7 +187,7 @@ func TestListPartners(t *testing.T) {
 	Convey("Testing the partner 'list' command", t, func() {
 		out = testFile()
 		command := &partnerListCommand{}
-		_, err := flags.ParseArgs(command, []string{"waarp_gateway"})
+		_, err := flags.ParseArgs(command, nil)
 		So(err, ShouldBeNil)
 
 		Convey("Given a gateway with 2 distant partners", func() {
@@ -454,12 +455,12 @@ func TestUpdatePartner(t *testing.T) {
 			err := db.Create(&partner)
 			So(err, ShouldBeNil)
 
+			command.Name = "new_remote_agent"
+			command.Protocol = "sftp"
+			command.ProtoConfig = `{"address":"localhost","port":2023,"root":"titi"}`
+
 			Convey("Given a valid partner ID", func() {
 				id := fmt.Sprint(partner.ID)
-
-				command.Name = "new_remote_agent"
-				command.Protocol = "sftp"
-				command.ProtoConfig = `{"address":"localhost","port":2023,"root":"titi"}`
 
 				Convey("Given all valid flags", func() {
 
@@ -533,8 +534,9 @@ func TestUpdatePartner(t *testing.T) {
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
-								"Invalid agent configuration: unexpected end of JSON input")
+							So(err.Error(), ShouldEqual, "json: error calling "+
+								"MarshalJSON for type json.RawMessage: "+
+								"unexpected end of JSON input")
 						})
 					})
 				})

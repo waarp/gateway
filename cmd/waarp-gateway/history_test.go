@@ -8,12 +8,14 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func historyInfoString(t *model.TransferHistory) string {
+func historyInfoString(t *rest.OutHistory) string {
 	rv := "Transfer " + fmt.Sprint(t.ID) + "=>\n" +
 		"          IsServer: " + fmt.Sprint(t.IsServer) + "\n" +
 		"              Send: " + fmt.Sprint(t.IsSend) + "\n" +
@@ -26,11 +28,11 @@ func historyInfoString(t *model.TransferHistory) string {
 		"        Start date: " + t.Start.Local().Format(time.RFC3339) + "\n" +
 		"          End date: " + t.Stop.Local().Format(time.RFC3339) + "\n" +
 		"            Status: " + string(t.Status) + "\n"
-	if t.Error.Code != model.TeOk {
-		rv += "       Error code: " + t.Error.Code.String() + "\n"
+	if t.ErrorCode != model.TeOk {
+		rv += "       Error code: " + t.ErrorCode.String() + "\n"
 	}
-	if t.Error.Details != "" {
-		rv += "    Error message: " + t.Error.Details + "\n"
+	if t.ErrorMsg != "" {
+		rv += "    Error message: " + t.ErrorMsg + "\n"
 	}
 	return rv
 }
@@ -40,7 +42,7 @@ func TestDisplayHistory(t *testing.T) {
 	Convey("Given a history entry", t, func() {
 		out = testFile()
 
-		hist := model.TransferHistory{
+		hist := &rest.OutHistory{
 			ID:             1,
 			IsServer:       true,
 			IsSend:         false,
@@ -53,24 +55,24 @@ func TestDisplayHistory(t *testing.T) {
 			Start:          time.Now(),
 			Stop:           time.Now().Add(time.Hour),
 			Status:         model.StatusPlanned,
-			Owner:          database.Owner,
 		}
 		Convey("When calling the `displayHistory` function", func() {
-			displayHistory(hist)
+			displayHistory(*hist)
 
 			Convey("Then it should display the entry's info correctly", func() {
 				_, err := out.Seek(0, 0)
 				So(err, ShouldBeNil)
 				cont, err := ioutil.ReadAll(out)
 				So(err, ShouldBeNil)
-				So(string(cont), ShouldEqual, historyInfoString(&hist))
+				So(string(cont), ShouldEqual, historyInfoString(hist))
 			})
 		})
 	})
+
 	Convey("Given a history entry with error", t, func() {
 		out = testFile()
 
-		hist := model.TransferHistory{
+		hist := &rest.OutHistory{
 			ID:             1,
 			IsServer:       true,
 			IsSend:         false,
@@ -83,18 +85,18 @@ func TestDisplayHistory(t *testing.T) {
 			Start:          time.Now(),
 			Stop:           time.Now().Add(time.Hour),
 			Status:         model.StatusPlanned,
-			Owner:          database.Owner,
-			Error:          model.NewTransferError(model.TeConnectionReset, "connexion reset by peer"),
+			ErrorCode:      model.TeConnectionReset,
+			ErrorMsg:       "connexion reset by peer",
 		}
 		Convey("When calling the `displayHistory` function", func() {
-			displayHistory(hist)
+			displayHistory(*hist)
 
 			Convey("Then it should display the entry's info correctly", func() {
 				_, err := out.Seek(0, 0)
 				So(err, ShouldBeNil)
 				cont, err := ioutil.ReadAll(out)
 				So(err, ShouldBeNil)
-				So(string(cont), ShouldEqual, historyInfoString(&hist))
+				So(string(cont), ShouldEqual, historyInfoString(hist))
 			})
 		})
 	})
@@ -112,7 +114,7 @@ func TestHistoryGetCommand(t *testing.T) {
 			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given a valid history entry", func() {
-				hist := model.TransferHistory{
+				h := &model.TransferHistory{
 					ID:             1,
 					IsServer:       true,
 					IsSend:         false,
@@ -127,7 +129,9 @@ func TestHistoryGetCommand(t *testing.T) {
 					Status:         model.StatusDone,
 					Owner:          database.Owner,
 				}
-				So(db.Create(&hist), ShouldBeNil)
+				So(db.Create(h), ShouldBeNil)
+
+				hist := rest.FromHistory(h)
 
 				Convey("Given a valid history entry ID", func() {
 					id := fmt.Sprint(hist.ID)
@@ -144,7 +148,7 @@ func TestHistoryGetCommand(t *testing.T) {
 								So(err, ShouldBeNil)
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, historyInfoString(&hist))
+								So(string(cont), ShouldEqual, historyInfoString(hist))
 							})
 						})
 					})
@@ -171,6 +175,8 @@ func TestHistoryListCommand(t *testing.T) {
 	Convey("Testing the history 'list' command", t, func() {
 		out = testFile()
 		command := &historyListCommand{}
+		_, err := flags.ParseArgs(command, nil)
+		So(err, ShouldBeNil)
 
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
@@ -178,7 +184,7 @@ func TestHistoryListCommand(t *testing.T) {
 			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given 4 valid history entries", func() {
-				h1 := model.TransferHistory{
+				h1 := &model.TransferHistory{
 					ID:             1,
 					IsServer:       true,
 					IsSend:         false,
@@ -192,7 +198,7 @@ func TestHistoryListCommand(t *testing.T) {
 					Stop:           time.Date(2019, 1, 1, 1, 1, 0, 0, time.UTC),
 					Status:         model.StatusDone,
 				}
-				h2 := model.TransferHistory{
+				h2 := &model.TransferHistory{
 					ID:             2,
 					IsServer:       true,
 					IsSend:         false,
@@ -206,7 +212,7 @@ func TestHistoryListCommand(t *testing.T) {
 					Stop:           time.Date(2019, 1, 1, 2, 1, 0, 0, time.UTC),
 					Status:         model.StatusError,
 				}
-				h3 := model.TransferHistory{
+				h3 := &model.TransferHistory{
 					ID:             3,
 					IsServer:       true,
 					IsSend:         false,
@@ -220,7 +226,7 @@ func TestHistoryListCommand(t *testing.T) {
 					Stop:           time.Date(2019, 1, 1, 3, 1, 0, 0, time.UTC),
 					Status:         model.StatusDone,
 				}
-				h4 := model.TransferHistory{
+				h4 := &model.TransferHistory{
 					ID:             4,
 					IsServer:       true,
 					IsSend:         false,
@@ -234,10 +240,15 @@ func TestHistoryListCommand(t *testing.T) {
 					Stop:           time.Date(2019, 1, 1, 4, 1, 0, 0, time.UTC),
 					Status:         model.StatusError,
 				}
-				So(db.Create(&h1), ShouldBeNil)
-				So(db.Create(&h2), ShouldBeNil)
-				So(db.Create(&h3), ShouldBeNil)
-				So(db.Create(&h4), ShouldBeNil)
+				So(db.Create(h1), ShouldBeNil)
+				So(db.Create(h2), ShouldBeNil)
+				So(db.Create(h3), ShouldBeNil)
+				So(db.Create(h4), ShouldBeNil)
+
+				hist1 := rest.FromHistory(h1)
+				hist2 := rest.FromHistory(h2)
+				hist3 := rest.FromHistory(h3)
+				hist4 := rest.FromHistory(h4)
 
 				Convey("Given a no filters", func() {
 
@@ -253,10 +264,10 @@ func TestHistoryListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(&h1)+
-									historyInfoString(&h2)+
-									historyInfoString(&h3)+
-									historyInfoString(&h4))
+									historyInfoString(hist1)+
+									historyInfoString(hist2)+
+									historyInfoString(hist3)+
+									historyInfoString(hist4))
 							})
 						})
 					})
@@ -277,8 +288,8 @@ func TestHistoryListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(&h1)+
-									historyInfoString(&h2))
+									historyInfoString(hist1)+
+									historyInfoString(hist2))
 							})
 						})
 					})
@@ -301,8 +312,8 @@ func TestHistoryListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(&h3)+
-									historyInfoString(&h4))
+									historyInfoString(hist3)+
+									historyInfoString(hist4))
 							})
 						})
 					})
@@ -325,10 +336,10 @@ func TestHistoryListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(&h4)+
-									historyInfoString(&h3)+
-									historyInfoString(&h2)+
-									historyInfoString(&h1))
+									historyInfoString(hist4)+
+									historyInfoString(hist3)+
+									historyInfoString(hist2)+
+									historyInfoString(hist1))
 							})
 						})
 					})
@@ -351,8 +362,8 @@ func TestHistoryListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(&h3)+
-									historyInfoString(&h4))
+									historyInfoString(hist3)+
+									historyInfoString(hist4))
 							})
 						})
 					})
@@ -375,8 +386,8 @@ func TestHistoryListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(&h1)+
-									historyInfoString(&h2))
+									historyInfoString(hist1)+
+									historyInfoString(hist2))
 							})
 						})
 					})
@@ -398,8 +409,8 @@ func TestHistoryListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(&h1)+
-									historyInfoString(&h2))
+									historyInfoString(hist1)+
+									historyInfoString(hist2))
 							})
 						})
 					})
@@ -421,8 +432,8 @@ func TestHistoryListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(&h2)+
-									historyInfoString(&h3))
+									historyInfoString(hist2)+
+									historyInfoString(hist3))
 							})
 						})
 					})
@@ -444,8 +455,8 @@ func TestHistoryListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(&h3)+
-									historyInfoString(&h4))
+									historyInfoString(hist3)+
+									historyInfoString(hist4))
 							})
 						})
 					})
@@ -467,8 +478,8 @@ func TestHistoryListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(&h1)+
-									historyInfoString(&h3))
+									historyInfoString(hist1)+
+									historyInfoString(hist3))
 							})
 						})
 					})
@@ -490,10 +501,10 @@ func TestHistoryListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(&h1)+
-									historyInfoString(&h2)+
-									historyInfoString(&h3)+
-									historyInfoString(&h4))
+									historyInfoString(hist1)+
+									historyInfoString(hist2)+
+									historyInfoString(hist3)+
+									historyInfoString(hist4))
 							})
 						})
 					})
@@ -521,7 +532,7 @@ func TestHistoryListCommand(t *testing.T) {
 								cont, err := ioutil.ReadAll(out)
 								So(err, ShouldBeNil)
 								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(&h1))
+									historyInfoString(hist1))
 							})
 						})
 					})

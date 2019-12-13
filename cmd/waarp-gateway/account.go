@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 )
 
 type accountCommand struct {
@@ -16,12 +16,12 @@ type accountCommand struct {
 	List   accountListCommand   `command:"list" description:"List the known remote accounts"`
 }
 
-func displayRemoteAccount(account model.RemoteAccount) {
+func displayRemoteAccount(account rest.OutAccount) {
 	w := getColorable()
 
 	fmt.Fprintf(w, "\033[37;1;4mRemote account n°%v:\033[0m\n", account.ID)
 	fmt.Fprintf(w, "      \033[37mLogin:\033[0m \033[37;1m%s\033[0m\n", account.Login)
-	fmt.Fprintf(w, " \033[37mPartner ID:\033[0m \033[33m%v\033[0m\n", account.RemoteAgentID)
+	fmt.Fprintf(w, " \033[37mPartner ID:\033[0m \033[33m%v\033[0m\n", account.AgentID)
 }
 
 // ######################## GET ##########################
@@ -33,7 +33,7 @@ func (a *accountGetCommand) Execute(args []string) error {
 		return fmt.Errorf("missing account ID")
 	}
 
-	res := model.RemoteAccount{}
+	res := rest.OutAccount{}
 	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
@@ -58,10 +58,10 @@ type accountAddCommand struct {
 }
 
 func (a *accountAddCommand) Execute(_ []string) error {
-	newAccount := model.RemoteAccount{
-		Login:         a.Login,
-		Password:      []byte(a.Password),
-		RemoteAgentID: a.PartnerID,
+	newAccount := rest.InAccount{
+		Login:    a.Login,
+		Password: []byte(a.Password),
+		AgentID:  a.PartnerID,
 	}
 
 	conn, err := url.Parse(auth.DSN)
@@ -121,15 +121,10 @@ func (a *accountUpdateCommand) Execute(args []string) error {
 		return fmt.Errorf("missing account ID")
 	}
 
-	newAccount := map[string]interface{}{}
-	if a.Login != "" {
-		newAccount["login"] = a.Login
-	}
-	if a.Password != "" {
-		newAccount["password"] = []byte(a.Password)
-	}
-	if a.PartnerID != 0 {
-		newAccount["remoteAgentID"] = a.PartnerID
+	newAccount := rest.InAccount{
+		Login:    a.Login,
+		Password: []byte(a.Password),
+		AgentID:  a.PartnerID,
 	}
 
 	conn, err := url.Parse(auth.DSN)
@@ -164,7 +159,7 @@ func (s *accountListCommand) Execute(_ []string) error {
 		return err
 	}
 
-	res := map[string][]model.RemoteAccount{}
+	res := map[string][]rest.OutAccount{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}

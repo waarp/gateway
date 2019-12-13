@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 )
 
 type ruleCommand struct {
@@ -17,7 +17,7 @@ type ruleCommand struct {
 	Tasks  ruleTasksCommand  `command:"tasks" description:"Manage the rule's task chain"`
 }
 
-func displayRule(rule model.Rule) {
+func displayRule(rule rest.OutRule) {
 	w := getColorable()
 
 	fmt.Fprintf(w, "\033[37;1;4mRule n°%v:\033[0m\n", rule.ID)
@@ -40,7 +40,7 @@ func (r *ruleGetCommand) Execute(args []string) error {
 		return fmt.Errorf("missing rule ID")
 	}
 
-	res := model.Rule{}
+	res := rest.OutRule{}
 	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ type ruleAddCommand struct {
 }
 
 func (r *ruleAddCommand) Execute(_ []string) error {
-	rule := model.Rule{
+	rule := rest.InRule{
 		Name:    r.Name,
 		Comment: r.Comment,
 		IsSend:  r.Direction == "SEND",
@@ -134,13 +134,14 @@ func (r *ruleListCommand) Execute(_ []string) error {
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(r.Limit))
 	query.Set("offset", fmt.Sprint(r.Offset))
-	query.Set("sortby", r.SortBy)
 	if r.DescOrder {
-		query.Set("order", "desc")
+		query.Set("sort", r.SortBy+"-")
+	} else {
+		query.Set("sort", r.SortBy+"+")
 	}
 	conn.RawQuery = query.Encode()
 
-	res := map[string][]model.Rule{}
+	res := map[string][]rest.OutRule{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}

@@ -39,22 +39,20 @@ func (i *InAgent) ToRemote() *model.RemoteAgent {
 // OutAgent is the JSON representation of a local/remote agent in responses
 // sent by the REST interface.
 type OutAgent struct {
-	ID          uint64                 `json:"id"`
-	Name        string                 `json:"name"`
-	Protocol    string                 `json:"protocol"`
-	ProtoConfig map[string]interface{} `json:"protoConfig"`
+	ID          uint64          `json:"id"`
+	Name        string          `json:"name"`
+	Protocol    string          `json:"protocol"`
+	ProtoConfig json.RawMessage `json:"protoConfig"`
 }
 
 // FromLocalAgent transforms the given database local agent into its JSON
 // equivalent.
 func FromLocalAgent(ag *model.LocalAgent) *OutAgent {
-	var protoConfig map[string]interface{}
-	_ = json.Unmarshal(ag.ProtoConfig, &protoConfig)
 	return &OutAgent{
 		ID:          ag.ID,
 		Name:        ag.Name,
 		Protocol:    ag.Protocol,
-		ProtoConfig: protoConfig,
+		ProtoConfig: ag.ProtoConfig,
 	}
 }
 
@@ -64,11 +62,11 @@ func fromLocalAgents(ags []model.LocalAgent) []OutAgent {
 	agents := make([]OutAgent, len(ags))
 	for i, ag := range ags {
 		agents[i] = OutAgent{
-			ID:       ag.ID,
-			Name:     ag.Name,
-			Protocol: ag.Protocol,
+			ID:          ag.ID,
+			Name:        ag.Name,
+			Protocol:    ag.Protocol,
+			ProtoConfig: ag.ProtoConfig,
 		}
-		_ = json.Unmarshal(ag.ProtoConfig, &agents[i].ProtoConfig)
 	}
 	return agents
 }
@@ -76,13 +74,11 @@ func fromLocalAgents(ags []model.LocalAgent) []OutAgent {
 // FromRemoteAgent transforms the given database remote agent into its JSON
 // equivalent.
 func fromRemoteAgent(ag *model.RemoteAgent) *OutAgent {
-	var protoConfig map[string]interface{}
-	_ = json.Unmarshal(ag.ProtoConfig, &protoConfig)
 	return &OutAgent{
 		ID:          ag.ID,
 		Name:        ag.Name,
 		Protocol:    ag.Protocol,
-		ProtoConfig: protoConfig,
+		ProtoConfig: ag.ProtoConfig,
 	}
 }
 
@@ -92,11 +88,11 @@ func fromRemoteAgents(ags []model.RemoteAgent) []OutAgent {
 	agents := make([]OutAgent, len(ags))
 	for i, ag := range ags {
 		agents[i] = OutAgent{
-			ID:       ag.ID,
-			Name:     ag.Name,
-			Protocol: ag.Protocol,
+			ID:          ag.ID,
+			Name:        ag.Name,
+			Protocol:    ag.Protocol,
+			ProtoConfig: ag.ProtoConfig,
 		}
-		_ = json.Unmarshal(ag.ProtoConfig, &agents[i].ProtoConfig)
 	}
 	return agents
 }

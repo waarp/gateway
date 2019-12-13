@@ -76,7 +76,8 @@ func createAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 
 			w.Header().Set("Location", location(r))
 			if !ok {
-				http.Error(w, fmt.Sprintf("Access to rule %v is now restricted", ruleID), http.StatusCreated)
+				http.Error(w, fmt.Sprintf("Access to rule %v is now restricted.",
+					ruleID), http.StatusCreated)
 			} else {
 				w.WriteHeader(http.StatusCreated)
 			}
@@ -146,17 +147,16 @@ func deleteAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			res, err := db.Query("SELECT * FROM rule_access WHERE rule_id=?", ruleID)
+			ok, err := db.Exists(&model.RuleAccess{RuleID: ruleID})
 			if err != nil {
 				return err
 			}
-			if len(res) == 0 {
-				msg := fmt.Sprintf("Access to rule %v is now unrestricted.", ruleID)
-				http.Error(w, msg, http.StatusOK)
+			if !ok {
+				http.Error(w, fmt.Sprintf("Access to rule %v is now unrestricted.",
+					ruleID), http.StatusOK)
 			} else {
 				w.WriteHeader(http.StatusOK)
 			}
-
 			return nil
 		}()
 		if res != nil {

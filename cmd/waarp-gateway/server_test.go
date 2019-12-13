@@ -172,8 +172,9 @@ func TestAddServer(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "400 - Invalid request: "+
-							"Invalid agent configuration: unexpected end of JSON input")
+						So(err.Error(), ShouldEqual, "json: error calling "+
+							"MarshalJSON for type json.RawMessage: unexpected "+
+							"end of JSON input")
 					})
 				})
 			})
@@ -454,12 +455,12 @@ func TestUpdateServer(t *testing.T) {
 			err := db.Create(&server)
 			So(err, ShouldBeNil)
 
+			command.Name = "new_local_agent"
+			command.Protocol = "sftp"
+			command.ProtoConfig = `{"address":"localhost","port":2023,"root":"titi"}`
+
 			Convey("Given a valid server ID", func() {
 				id := fmt.Sprint(server.ID)
-
-				command.Name = "new_local_agent"
-				command.Protocol = "sftp"
-				command.ProtoConfig = `{"address":"localhost","port":2023,"root":"titi"}`
 
 				Convey("Given all valid flags", func() {
 
@@ -534,8 +535,9 @@ func TestUpdateServer(t *testing.T) {
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
-								"Invalid agent configuration: unexpected end of JSON input")
+							So(err.Error(), ShouldEqual, "json: error calling "+
+								"MarshalJSON for type json.RawMessage: unexpected "+
+								"end of JSON input")
 						})
 					})
 				})

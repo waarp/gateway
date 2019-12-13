@@ -9,7 +9,7 @@ import (
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 )
 
 type ruleAccessCommand struct {
@@ -18,7 +18,7 @@ type ruleAccessCommand struct {
 	Revoke ruleAccessRevokeCommand `command:"revoke" description:"Revoke access to a rule"`
 }
 
-func displayRuleAccess(acc model.RuleAccess) {
+func displayRuleAccess(acc rest.OutRuleAccess) {
 	w := getColorable()
 
 	fmt.Fprintf(w, "Access to \033[37;1m%s\033[0m n°\033[37;1m%v\033[0m\n",
@@ -37,7 +37,7 @@ func (r *ruleAccessGrantCommand) Execute(args []string) error {
 		return fmt.Errorf("missing rule ID")
 	}
 
-	acc := model.RuleAccess{
+	acc := rest.OutRuleAccess{
 		ObjectID:   r.ID,
 		ObjectType: toTableName(r.Type),
 	}
@@ -80,7 +80,7 @@ func (r *ruleAccessRevokeCommand) Execute(args []string) error {
 	}
 	conn.Path = admin.APIPath + admin.RulesPath + "/" + args[0] + admin.RulePermissionPath
 
-	acc := &model.RuleAccess{
+	acc := &rest.InRuleAccess{
 		ObjectID:   r.ID,
 		ObjectType: toTableName(r.Type),
 	}
@@ -136,7 +136,7 @@ func (r *ruleAccessListCommand) Execute(args []string) error {
 	}
 	conn.Path = admin.APIPath + admin.RulesPath + "/" + args[0] + admin.RulePermissionPath
 
-	res := map[string][]model.RuleAccess{}
+	res := map[string][]rest.OutRuleAccess{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}

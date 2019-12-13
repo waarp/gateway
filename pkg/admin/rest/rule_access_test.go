@@ -79,7 +79,7 @@ func TestCreateAccess(t *testing.T) {
 						Convey("Then the response body should state that access "+
 							"to the rule is now restricted", func() {
 							So(w.Body.String(), ShouldEqual, "Access to rule 1 "+
-								"is now restricted\n")
+								"is now restricted.\n")
 						})
 
 						Convey("Then the new access should be inserted "+
