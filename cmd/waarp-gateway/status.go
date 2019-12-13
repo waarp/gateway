@@ -9,6 +9,7 @@ import (
 	"sort"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
 
@@ -17,7 +18,7 @@ type statusCommand struct{}
 
 // showStatus writes the status of the gateway services in the given
 // writer with colors, using ANSI coloration codes.
-func showStatus(statuses admin.Statuses) {
+func showStatus(statuses rest.Statuses) {
 	var errors = make([]string, 0)
 	var actives = make([]string, 0)
 	var offlines = make([]string, 0)
@@ -77,7 +78,7 @@ func (s *statusCommand) Execute(_ []string) error {
 		return err
 	}
 
-	var statuses = make(admin.Statuses)
+	var statuses = make(rest.Statuses)
 	if err = json.Unmarshal(body, &statuses); err != nil {
 		return err
 	}

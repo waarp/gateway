@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"encoding/json"
 	"net/http"
 	"sort"
 
@@ -40,39 +39,6 @@ var validOrders = []string{"asc", "desc"}
 
 func init() {
 	sort.Strings(validOrders)
-}
-
-type badRequest struct {
-	msg string
-}
-
-func (e *badRequest) Error() string {
-	return e.msg
-}
-
-type notFound struct{}
-
-func (e *notFound) Error() string {
-	return "Record not found"
-}
-
-func handleErrors(w http.ResponseWriter, logger *log.Logger, err error) {
-	switch err.(type) {
-	case *notFound:
-		http.Error(w, err.Error(), http.StatusNotFound)
-	case *badRequest:
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	case *database.ErrInvalid:
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	default:
-		logger.Warning(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func writeJSON(w http.ResponseWriter, bean interface{}) error {
-	w.Header().Set("Content-Type", "application/json")
-	return json.NewEncoder(w).Encode(bean)
 }
 
 // Authentication checks if the request is authenticated using Basic HTTP

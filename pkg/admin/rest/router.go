@@ -5,12 +5,16 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"github.com/gorilla/mux"
 )
 
 const (
 	// APIPath is the root path for the Rest API endpoints
 	APIPath = "/api"
+
+	// StatusPath is the access path to the status entry point.
+	StatusPath = "/status"
 
 	// LocalAgentsPath is the access path to the local servers entry point.
 	LocalAgentsPath = "/servers"
@@ -165,7 +169,14 @@ func makeRulesHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Route
 }
 
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
-func MakeRESTHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+func MakeRESTHandler(logger *log.Logger, db *database.Db, adminHandler *mux.Router,
+	services map[string]service.Service) {
+
+	apiHandler := adminHandler.PathPrefix(APIPath).Subrouter()
+
+	apiHandler.HandleFunc(StatusPath, getStatus(logger, services)).
+		Methods(http.MethodGet)
+
 	makeLocalAgentsHandler(logger, db, apiHandler)
 	makeRemoteAgentsHandler(logger, db, apiHandler)
 	makeLocalAccountsHandler(logger, db, apiHandler)

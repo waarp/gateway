@@ -14,13 +14,10 @@ import (
 func MakeHandler(logger *log.Logger, db *database.Db, services map[string]service.Service) http.Handler {
 
 	// REST handler
-	handler := mux.NewRouter()
-	handler.Use(mux.CORSMethodMiddleware(handler), Authentication(logger, db))
-	apiHandler := handler.PathPrefix(APIPath).Subrouter()
-	apiHandler.HandleFunc(StatusPath, getStatus(logger, services)).
-		Methods(http.MethodGet)
+	adminHandler := mux.NewRouter()
+	adminHandler.Use(mux.CORSMethodMiddleware(adminHandler), Authentication(logger, db))
 
-	rest.MakeRESTHandler(logger, db, apiHandler)
+	rest.MakeRESTHandler(logger, db, adminHandler, services)
 
-	return handler
+	return adminHandler
 }
