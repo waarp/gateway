@@ -1,4 +1,4 @@
-package admin
+package rest
 
 import (
 	"bytes"
@@ -15,15 +15,24 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+const tasksURI = ruleURI + RuleTasksPath
+
+func fromTask(t *model.Task) OutRuleTask {
+	return OutRuleTask{
+		Type: t.Type,
+		Args: json.RawMessage(t.Args),
+	}
+}
+
 func TestListTasks(t *testing.T) {
-	logger := log.NewLogger("rest_access_list_logger", logConf)
+	logger := log.NewLogger("rest_tasks_list_logger", logConf)
 
 	Convey("Given the rule creation handler", t, func() {
 		db := database.GetTestDatabase()
 		handler := listTasks(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 rule access", func() {
+		Convey("Given a database with 1 rule", func() {
 			rule := &model.Rule{
 				Name:    "existing",
 				Comment: "",
@@ -78,13 +87,13 @@ func TestListTasks(t *testing.T) {
 						So(contentType, ShouldEqual, "application/json")
 					})
 
-					Convey("Then the body should contain the requested accesses "+
+					Convey("Then the body should contain the requested tasks "+
 						"in JSON format", func() {
 
-						expected := map[string][]*model.Task{}
-						expected["preTasks"] = []*model.Task{pre}
-						expected["postTasks"] = []*model.Task{post}
-						expected["errorTasks"] = []*model.Task{er}
+						expected := map[string][]OutRuleTask{}
+						expected["preTasks"] = []OutRuleTask{fromTask(pre)}
+						expected["postTasks"] = []OutRuleTask{fromTask(post)}
+						expected["errorTasks"] = []OutRuleTask{fromTask(er)}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -115,14 +124,14 @@ func TestListTasks(t *testing.T) {
 }
 
 func TestUpdateTasks(t *testing.T) {
-	logger := log.NewLogger("rest_access_list_logger", logConf)
+	logger := log.NewLogger("rest_tasks_list_logger", logConf)
 
 	Convey("Given the rule creation handler", t, func() {
 		db := database.GetTestDatabase()
 		handler := updateTasks(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 rule access", func() {
+		Convey("Given a database with 1 rule", func() {
 			rule := &model.Rule{
 				Name:    "existing",
 				Comment: "",
@@ -133,22 +142,22 @@ func TestUpdateTasks(t *testing.T) {
 			ruleID := strconv.FormatUint(rule.ID, 10)
 
 			Convey("Given all valid new tasks", func() {
-				pre := []model.Task{{
+				pre := []InRuleTask{{
 					Type: "COPY",
-					Args: []byte("{}"),
+					Args: json.RawMessage("{}"),
 				}}
 
-				post := []model.Task{{
+				post := []InRuleTask{{
 					Type: "MOVE",
-					Args: []byte("{}"),
+					Args: json.RawMessage("{}"),
 				}}
 
-				er := []model.Task{{
+				er := []InRuleTask{{
 					Type: "DELETE",
-					Args: []byte("{}"),
+					Args: json.RawMessage("{}"),
 				}}
 
-				obj := map[string][]model.Task{
+				obj := map[string][]InRuleTask{
 					"preTasks":   pre,
 					"postTasks":  post,
 					"errorTasks": er,
@@ -158,7 +167,7 @@ func TestUpdateTasks(t *testing.T) {
 					body, err := json.Marshal(obj)
 					So(err, ShouldBeNil)
 
-					r, err := http.NewRequest(http.MethodGet, "", bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodGet, tasksURI, bytes.NewReader(body))
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
 
@@ -174,25 +183,23 @@ func TestUpdateTasks(t *testing.T) {
 						})
 
 						Convey("Then the 'Location' header should contain the URI "+
-							"of the new access", func() {
+							"of the new tasks", func() {
 
-							accessURI := APIPath + RulesPath + "/" + ruleID +
-								RuleTasksPath
 							location := w.Header().Get("Location")
-							So(location, ShouldStartWith, accessURI)
+							So(location, ShouldEqual, tasksURI)
 						})
 
 						Convey("Then the new tasks should be inserted "+
 							"in the database", func() {
-							exist, err := db.Exists(&pre[0])
+							exist, err := db.Exists(pre[0].toModel())
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
 
-							exist, err = db.Exists(&post[0])
+							exist, err = db.Exists(post[0].toModel())
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
 
-							exist, err = db.Exists(&er[0])
+							exist, err = db.Exists(er[0].toModel())
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
 						})
@@ -200,7 +207,7 @@ func TestUpdateTasks(t *testing.T) {
 				})
 
 				Convey("Given a request with a non-existing rule ID parameter", func() {
-					r, err := http.NewRequest(http.MethodGet, "", nil)
+					r, err := http.NewRequest(http.MethodGet, tasksURI, nil)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"rule": "1000"})
 
@@ -219,12 +226,12 @@ func TestUpdateTasks(t *testing.T) {
 			})
 
 			Convey("Given partial valid new tasks", func() {
-				pre := []model.Task{{
+				pre := []InRuleTask{{
 					Type: "COPY",
-					Args: []byte("{}"),
+					Args: json.RawMessage("{}"),
 				}}
 
-				obj := map[string][]model.Task{
+				obj := map[string][]InRuleTask{
 					"preTasks": pre,
 				}
 
@@ -232,7 +239,7 @@ func TestUpdateTasks(t *testing.T) {
 					body, err := json.Marshal(obj)
 					So(err, ShouldBeNil)
 
-					r, err := http.NewRequest(http.MethodGet, "", bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodGet, tasksURI, bytes.NewReader(body))
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
 
@@ -248,17 +255,15 @@ func TestUpdateTasks(t *testing.T) {
 						})
 
 						Convey("Then the 'Location' header should contain the URI "+
-							"of the new access", func() {
+							"of the new tasks", func() {
 
-							accessURI := APIPath + RulesPath + "/" + ruleID +
-								RuleTasksPath
 							location := w.Header().Get("Location")
-							So(location, ShouldStartWith, accessURI)
+							So(location, ShouldEqual, tasksURI)
 						})
 
 						Convey("Then the new tasks should be inserted "+
 							"in the database", func() {
-							exist, err := db.Exists(&pre[0])
+							exist, err := db.Exists(pre[0].toModel())
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
 
@@ -278,7 +283,7 @@ func TestUpdateTasks(t *testing.T) {
 				body := []byte("invalid JSON body")
 
 				Convey("Given a request with the valid rule ID parameter", func() {
-					r, err := http.NewRequest(http.MethodGet, "", bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodGet, tasksURI, bytes.NewReader(body))
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
 
@@ -297,6 +302,7 @@ func TestUpdateTasks(t *testing.T) {
 
 						Convey("Then the new tasks should NOT have been inserted "+
 							"in the database", func() {
+
 							exist, err := db.Exists(&model.Task{})
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeFalse)

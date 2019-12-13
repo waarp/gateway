@@ -15,12 +15,12 @@ import (
 // InCert is the JSON representation of a certificate in requests made to
 // the REST interface.
 type InCert struct {
-	OwnerType   string
-	OwnerID     uint64
-	Name        string
-	PrivateKey  []byte
-	PublicKey   []byte
-	Certificate []byte
+	OwnerType   string `json:"ownerType"`
+	OwnerID     uint64 `json:"ownerID"`
+	Name        string `json:"name"`
+	PrivateKey  []byte `json:"privateKey"`
+	PublicKey   []byte `json:"publicKey"`
+	Certificate []byte `json:"certificate"`
 }
 
 func (i *InCert) toModel() *model.Cert {
@@ -37,13 +37,13 @@ func (i *InCert) toModel() *model.Cert {
 // OutCert is the JSON representation of a certificate in responses sent by
 // the REST interface.
 type OutCert struct {
-	ID          uint64
-	OwnerType   string
-	OwnerID     uint64
-	Name        string
-	PrivateKey  []byte
-	PublicKey   []byte
-	Certificate []byte
+	ID          uint64 `json:"id"`
+	OwnerType   string `json:"ownerType"`
+	OwnerID     uint64 `json:"ownerID"`
+	Name        string `json:"name"`
+	PrivateKey  []byte `json:"privateKey"`
+	PublicKey   []byte `json:"publicKey"`
+	Certificate []byte `json:"certificate"`
 }
 
 func fromCert(c *model.Cert) *OutCert {

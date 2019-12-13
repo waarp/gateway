@@ -49,8 +49,8 @@ type OutTransfer struct {
 	DestPath   string                  `json:"destPath"`
 	Start      time.Time               `json:"startDate"`
 	Status     model.TransferStatus    `json:"status"`
-	ErrorCode  model.TransferErrorCode `json:"errorCode"`
-	ErrorMsg   string                  `json:"errorMsg"`
+	ErrorCode  model.TransferErrorCode `json:"errorCode,omitempty"`
+	ErrorMsg   string                  `json:"errorMsg,omitempty"`
 }
 
 func fromTransfer(t *model.Transfer) *OutTransfer {

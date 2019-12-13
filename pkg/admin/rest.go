@@ -2,10 +2,8 @@ package admin
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"sort"
-	"strconv"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -58,43 +56,6 @@ func (e *notFound) Error() string {
 	return "Record not found"
 }
 
-func parseLimitOffsetOrder(r *http.Request, limit, offset *int, order *string,
-	validSorting []string) error {
-
-	sort.Strings(validSorting)
-	if limStr := r.FormValue("limit"); limStr != "" {
-		lim, err := strconv.Atoi(limStr)
-		if err != nil {
-			return &badRequest{msg: "'limit' must be an int"}
-		}
-		*limit = lim
-	}
-	if offStr := r.FormValue("offset"); offStr != "" {
-		off, err := strconv.Atoi(offStr)
-		if err != nil {
-			return &badRequest{msg: "'offset' must be an int"}
-		}
-		*offset = off
-	}
-	if sortStr := r.FormValue("sortby"); sortStr != "" {
-		if i := sort.SearchStrings(validSorting, sortStr); i != len(validSorting) {
-			*order = sortStr
-		} else {
-			return &badRequest{msg: fmt.Sprintf("invalid value '%s' for parameter 'sortby'", sortStr)}
-		}
-	}
-	if ordStr := r.FormValue("order"); ordStr != "" {
-		if i := sort.SearchStrings(validOrders, ordStr); i != len(validOrders) {
-			*order += " " + ordStr
-		} else {
-			return &badRequest{msg: fmt.Sprintf("invalid value '%s' for parameter 'order'", ordStr)}
-		}
-	} else {
-		*order += " asc"
-	}
-	return nil
-}
-
 func handleErrors(w http.ResponseWriter, logger *log.Logger, err error) {
 	switch err.(type) {
 	case *notFound:
@@ -114,16 +75,6 @@ func writeJSON(w http.ResponseWriter, bean interface{}) error {
 	return json.NewEncoder(w).Encode(bean)
 }
 
-func readJSON(r *http.Request, dest interface{}) error {
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-
-	if err := decoder.Decode(dest); err != nil {
-		return &badRequest{msg: err.Error()}
-	}
-	return nil
-}
-
 // Authentication checks if the request is authenticated using Basic HTTP
 // authentication.
 func Authentication(logger *log.Logger, _ *database.Db) mux.MiddlewareFunc {
@@ -140,29 +91,4 @@ func Authentication(logger *log.Logger, _ *database.Db) mux.MiddlewareFunc {
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-func restGet(acc database.Accessor, bean interface{}) error {
-	if err := acc.Get(bean); err != nil {
-		if err == database.ErrNotFound {
-			return &notFound{}
-		}
-		return err
-	}
-
-	return nil
-}
-
-func restDelete(acc database.Accessor, bean interface{}) error {
-	if exist, err := acc.Exists(bean); err != nil {
-		return err
-	} else if !exist {
-		return &notFound{}
-	}
-
-	if err := acc.Delete(bean); err != nil {
-		return err
-	}
-
-	return nil
 }

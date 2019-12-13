@@ -1,58 +1,86 @@
-package admin
+package rest
 
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
-	"github.com/gorilla/mux"
 )
+
+// InRuleAccess is the JSON representation of a rule access in requests made to
+// the REST interface.
+type InRuleAccess struct {
+	ObjectID   uint64 `json:"objectID"`
+	ObjectType string `json:"objectType"`
+}
+
+func (i *InRuleAccess) toModel() *model.RuleAccess {
+	return &model.RuleAccess{
+		ObjectID:   i.ObjectID,
+		ObjectType: i.ObjectType,
+	}
+}
+
+// OutRuleAccess is the JSON representation of a rule access in responses sent by
+// the REST interface.
+type OutRuleAccess struct {
+	ObjectID   uint64 `json:"objectID"`
+	ObjectType string `json:"objectType"`
+}
+
+func fromRuleAccess(as []model.RuleAccess) []OutRuleAccess {
+	accesses := make([]OutRuleAccess, len(as))
+	for i, acc := range as {
+		accesses[i] = OutRuleAccess{
+			ObjectID:   acc.ObjectID,
+			ObjectType: acc.ObjectType,
+		}
+	}
+	return accesses
+}
 
 func createAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		res := func() error {
-			ruleID, err := strconv.ParseUint(mux.Vars(r)["rule"], 10, 64)
+		err := func() error {
+			ruleID, err := parseID(r, "rule")
 			if err != nil {
-				return &notFound{}
+				return err
 			}
-
 			if ok, err := db.Exists(&model.Rule{ID: ruleID}); err != nil {
 				return err
 			} else if !ok {
 				return &notFound{}
 			}
 
-			acc := &model.RuleAccess{RuleID: ruleID}
-			if err := readJSON(r, acc); err != nil {
-				return err
-			}
-			if err := db.Create(acc); err != nil {
+			jsonAccess := &InRuleAccess{}
+			if err := readJSON(r, jsonAccess); err != nil {
 				return err
 			}
 
-			res, err := db.Query("SELECT * FROM rule_access WHERE rule_id=?", ruleID)
+			ok, err := db.Exists(&model.RuleAccess{RuleID: ruleID})
 			if err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", APIPath+RulesPath+"/"+mux.Vars(r)["rule"]+
-				RulePermissionPath)
-			if len(res) == 1 {
-				msg := fmt.Sprintf("Access to rule %v is now restricted.", ruleID)
-				http.Error(w, msg, http.StatusCreated)
+			access := jsonAccess.toModel()
+			access.RuleID = ruleID
+			if err := db.Create(access); err != nil {
+				return err
+			}
+
+			w.Header().Set("Location", location(r))
+			if !ok {
+				http.Error(w, fmt.Sprintf("Access to rule %v is now restricted", ruleID), http.StatusCreated)
 			} else {
 				w.WriteHeader(http.StatusCreated)
 			}
-
 			return nil
 		}()
-		if res != nil {
-			handleErrors(w, logger, res)
-			return
+		if err != nil {
+			handleErrors(w, logger, err)
 		}
 	}
 }
@@ -60,7 +88,7 @@ func createAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 func listAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := func() error {
-			ruleID, err := strconv.ParseUint(mux.Vars(r)["rule"], 10, 64)
+			ruleID, err := parseID(r, "rule")
 			if err != nil {
 				return err
 			}
@@ -77,8 +105,8 @@ func listAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			res := map[string][]model.RuleAccess{}
-			res["permissions"] = acc
+			res := map[string][]OutRuleAccess{}
+			res["permissions"] = fromRuleAccess(acc)
 			if err := writeJSON(w, res); err != nil {
 				return err
 			}
@@ -88,7 +116,6 @@ func listAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 		}()
 		if res != nil {
 			handleErrors(w, logger, res)
-			return
 		}
 	}
 }
@@ -96,19 +123,23 @@ func listAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 func deleteAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := func() error {
-			ruleID, err := strconv.ParseUint(mux.Vars(r)["rule"], 10, 64)
+			ruleID, err := parseID(r, "rule")
 			if err != nil {
-				return &notFound{}
-			}
-
-			acc := &model.RuleAccess{RuleID: ruleID}
-			if err := readJSON(r, acc); err != nil {
 				return err
 			}
+
+			jsonAcc := &InRuleAccess{}
+			if err := readJSON(r, jsonAcc); err != nil {
+				return err
+			}
+
+			acc := jsonAcc.toModel()
+			acc.RuleID = ruleID
+			if err := get(db, acc); err != nil {
+				return err
+			}
+
 			if err := db.Delete(acc); err != nil {
-				if err == database.ErrNotFound {
-					return &notFound{}
-				}
 				return err
 			}
 
@@ -127,7 +158,6 @@ func deleteAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 		}()
 		if res != nil {
 			handleErrors(w, logger, res)
-			return
 		}
 
 	}

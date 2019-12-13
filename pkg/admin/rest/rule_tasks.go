@@ -1,6 +1,7 @@
-package admin
+package rest
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -11,10 +12,42 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// InRuleTask is the JSON representation of a rule task in requests made to
+// the REST interface.
+type InRuleTask struct {
+	Type string          `json:"type"`
+	Args json.RawMessage `json:"args"`
+}
+
+func (i InRuleTask) toModel() *model.Task {
+	return &model.Task{
+		Type: i.Type,
+		Args: i.Args,
+	}
+}
+
+// OutRuleTask is the JSON representation of a rule task in responses sent by
+// the REST interface.
+type OutRuleTask struct {
+	Type string          `json:"type"`
+	Args json.RawMessage `json:"args"`
+}
+
+func fromRuleTasks(ts []model.Task) []OutRuleTask {
+	tasks := make([]OutRuleTask, len(ts))
+	for i, task := range ts {
+		tasks[i] = OutRuleTask{
+			Type: task.Type,
+			Args: json.RawMessage(task.Args),
+		}
+	}
+	return tasks
+}
+
 func listTasks(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := func() error {
-			ruleID, err := strconv.ParseUint(mux.Vars(r)["rule"], 10, 64)
+			ruleID, err := parseID(r, "rule")
 			if err != nil {
 				return err
 			}
@@ -52,10 +85,10 @@ func listTasks(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			res := map[string][]model.Task{
-				"preTasks":   preTasks,
-				"postTasks":  postTasks,
-				"errorTasks": errorTasks,
+			res := map[string][]OutRuleTask{
+				"preTasks":   fromRuleTasks(preTasks),
+				"postTasks":  fromRuleTasks(postTasks),
+				"errorTasks": fromRuleTasks(errorTasks),
 			}
 
 			if err := writeJSON(w, res); err != nil {
@@ -67,16 +100,16 @@ func listTasks(logger *log.Logger, db *database.Db) http.HandlerFunc {
 		}()
 		if res != nil {
 			handleErrors(w, logger, res)
-			return
 		}
 	}
 }
 
-func doTaskUpdate(ses *database.Session, req map[string][]*model.Task, ruleID uint64) error {
+func doTaskUpdate(ses *database.Session, req map[string][]InRuleTask, ruleID uint64) error {
 	if err := ses.Execute("DELETE FROM tasks WHERE rule_id=?", ruleID); err != nil {
 		return err
 	}
-	for rank, task := range req["preTasks"] {
+	for rank, t := range req["preTasks"] {
+		task := t.toModel()
 		task.RuleID = ruleID
 		task.Chain = model.ChainPre
 		task.Rank = uint32(rank)
@@ -84,7 +117,8 @@ func doTaskUpdate(ses *database.Session, req map[string][]*model.Task, ruleID ui
 			return err
 		}
 	}
-	for rank, task := range req["postTasks"] {
+	for rank, t := range req["postTasks"] {
+		task := t.toModel()
 		task.RuleID = ruleID
 		task.Chain = model.ChainPost
 		task.Rank = uint32(rank)
@@ -92,7 +126,8 @@ func doTaskUpdate(ses *database.Session, req map[string][]*model.Task, ruleID ui
 			return err
 		}
 	}
-	for rank, task := range req["errorTasks"] {
+	for rank, t := range req["errorTasks"] {
+		task := t.toModel()
 		task.RuleID = ruleID
 		task.Chain = model.ChainError
 		task.Rank = uint32(rank)
@@ -121,7 +156,7 @@ func updateTasks(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return &notFound{}
 			}
 
-			req := map[string][]*model.Task{}
+			req := map[string][]InRuleTask{}
 			if err := readJSON(r, &req); err != nil {
 				return err
 			}
@@ -135,15 +170,13 @@ func updateTasks(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", APIPath+RulesPath+"/"+mux.Vars(r)["rule"]+
-				RuleTasksPath)
+			w.Header().Set("Location", location(r))
 			w.WriteHeader(http.StatusCreated)
 
 			return nil
 		}()
 		if res != nil {
 			handleErrors(w, logger, res)
-			return
 		}
 	}
 }

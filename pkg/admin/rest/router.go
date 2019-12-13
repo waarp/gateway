@@ -14,18 +14,34 @@ const (
 
 	// LocalAgentsPath is the access path to the local servers entry point.
 	LocalAgentsPath = "/servers"
+
 	// RemoteAgentsPath is the access path to the partners entry point.
 	RemoteAgentsPath = "/partners"
+
 	// LocalAccountsPath is the access path to the local gateway accounts entry point.
 	LocalAccountsPath = "/local_accounts"
+
 	// RemoteAccountsPath is the access path to the distant partners accounts entry point.
 	RemoteAccountsPath = "/remote_accounts"
+
 	// CertificatesPath is the access path to the account certificates entry point.
 	CertificatesPath = "/certificates"
+
 	// TransfersPath is the access path to the transfers entry point.
 	TransfersPath = "/transfers"
+
 	// HistoryPath is the access path to the transfers history entry point.
 	HistoryPath = "/history"
+
+	// RulesPath is the access path to the transfers rules entry point.
+	RulesPath = "/rules"
+
+	// RulePermissionPath is the access path to the transfer rule permissions
+	// entry point.
+	RulePermissionPath = "/access"
+
+	// RuleTasksPath is the access path to the transfer rule tasks entry point.
+	RuleTasksPath = "/tasks"
 )
 
 func makeLocalAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
@@ -128,6 +144,26 @@ func makeHistoryHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Rou
 		Methods(http.MethodGet)
 }
 
+func makeRulesHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+	rulesHandler := apiHandler.PathPrefix(RulesPath).Subrouter()
+	rulesHandler.HandleFunc("", listRules(logger, db)).Methods(http.MethodGet)
+	rulesHandler.HandleFunc("", createRule(logger, db)).Methods(http.MethodPost)
+
+	ruleHandler := rulesHandler.PathPrefix("/{rule:[0-9]+}").Subrouter()
+	ruleHandler.HandleFunc("", getRule(logger, db)).Methods(http.MethodGet)
+	ruleHandler.HandleFunc("", updateRule(logger, db)).Methods(http.MethodPatch, http.MethodPut)
+	ruleHandler.HandleFunc("", deleteRule(logger, db)).Methods(http.MethodDelete)
+
+	permHandler := ruleHandler.PathPrefix(RulePermissionPath).Subrouter()
+	permHandler.HandleFunc("", createAccess(logger, db)).Methods(http.MethodPost)
+	permHandler.HandleFunc("", listAccess(logger, db)).Methods(http.MethodGet)
+	permHandler.HandleFunc("", deleteAccess(logger, db)).Methods(http.MethodDelete)
+
+	taskHandler := ruleHandler.PathPrefix(RuleTasksPath).Subrouter()
+	taskHandler.HandleFunc("", listTasks(logger, db)).Methods(http.MethodGet)
+	taskHandler.HandleFunc("", updateTasks(logger, db)).Methods(http.MethodPut)
+}
+
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
 func MakeRESTHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
 	makeLocalAgentsHandler(logger, db, apiHandler)
@@ -137,4 +173,5 @@ func MakeRESTHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router
 	makeCertificatesHandler(logger, db, apiHandler)
 	makeTransfersHandler(logger, db, apiHandler)
 	makeHistoryHandler(logger, db, apiHandler)
+	makeRulesHandler(logger, db, apiHandler)
 }

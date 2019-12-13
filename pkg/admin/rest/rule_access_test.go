@@ -1,4 +1,4 @@
-package admin
+package rest
 
 import (
 	"bytes"
@@ -14,6 +14,15 @@ import (
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+func fromAccess(a *model.RuleAccess) *OutRuleAccess {
+	return &OutRuleAccess{
+		ObjectID:   a.ObjectID,
+		ObjectType: a.ObjectType,
+	}
+}
+
+const accessURI = ruleURI + RulePermissionPath
 
 func TestCreateAccess(t *testing.T) {
 	logger := log.NewLogger("rest_access_create_logger", logConf)
@@ -41,7 +50,7 @@ func TestCreateAccess(t *testing.T) {
 			ruleID := strconv.FormatUint(rule.ID, 10)
 
 			Convey("Given a new access to insert in the database", func() {
-				acc := &model.RuleAccess{
+				acc := &InRuleAccess{
 					ObjectID:   object.ID,
 					ObjectType: object.TableName(),
 				}
@@ -49,7 +58,7 @@ func TestCreateAccess(t *testing.T) {
 				Convey("Given that the new access is valid for insertion", func() {
 					body, err := json.Marshal(acc)
 					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPost, accessURI, bytes.NewReader(body))
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
 
@@ -63,20 +72,19 @@ func TestCreateAccess(t *testing.T) {
 						Convey("Then the 'Location' header should contain the URI "+
 							"of the new access", func() {
 
-							accessURI := APIPath + RulesPath + "/" + ruleID + RulePermissionPath
 							location := w.Header().Get("Location")
-							So(location, ShouldStartWith, accessURI)
+							So(location, ShouldEqual, accessURI)
 						})
 
 						Convey("Then the response body should state that access "+
 							"to the rule is now restricted", func() {
 							So(w.Body.String(), ShouldEqual, "Access to rule 1 "+
-								"is now restricted.\n")
+								"is now restricted\n")
 						})
 
 						Convey("Then the new access should be inserted "+
 							"in the database", func() {
-							exist, err := db.Exists(acc)
+							exist, err := db.Exists(acc.toModel())
 
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
@@ -94,7 +102,7 @@ func TestCreateAccess(t *testing.T) {
 
 					body, err := json.Marshal(acc)
 					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPost, accessURI, bytes.NewReader(body))
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
 
@@ -116,7 +124,7 @@ func TestCreateAccess(t *testing.T) {
 				Convey("Given a request with a non-existing rule ID parameter", func() {
 					body, err := json.Marshal(acc)
 					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPost, accessURI, bytes.NewReader(body))
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"rule": "1000"})
 
@@ -136,7 +144,7 @@ func TestCreateAccess(t *testing.T) {
 
 			Convey("Given that the JSON body in invalid", func() {
 				body := []byte("invalid JSON body")
-				r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
+				r, err := http.NewRequest(http.MethodPost, accessURI, bytes.NewReader(body))
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
 
@@ -167,19 +175,19 @@ func TestListAccess(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 rule access", func() {
-			object1 := &model.LocalAgent{
+			o1 := &model.LocalAgent{
 				Name:        "object1",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
 			}
-			So(db.Create(object1), ShouldBeNil)
+			So(db.Create(o1), ShouldBeNil)
 
-			object2 := &model.LocalAgent{
+			o2 := &model.LocalAgent{
 				Name:        "object2",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
 			}
-			So(db.Create(object2), ShouldBeNil)
+			So(db.Create(o2), ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:    "existing",
@@ -190,19 +198,22 @@ func TestListAccess(t *testing.T) {
 			So(db.Create(rule), ShouldBeNil)
 			ruleID := strconv.FormatUint(rule.ID, 10)
 
-			acc1 := &model.RuleAccess{
+			a1 := &model.RuleAccess{
 				RuleID:     rule.ID,
-				ObjectID:   object1.ID,
-				ObjectType: object1.TableName(),
+				ObjectID:   o1.ID,
+				ObjectType: o1.TableName(),
 			}
-			So(db.Create(acc1), ShouldBeNil)
+			So(db.Create(a1), ShouldBeNil)
 
-			acc2 := &model.RuleAccess{
+			a2 := &model.RuleAccess{
 				RuleID:     rule.ID,
-				ObjectID:   object2.ID,
-				ObjectType: object2.TableName(),
+				ObjectID:   o2.ID,
+				ObjectType: o2.TableName(),
 			}
-			So(db.Create(acc2), ShouldBeNil)
+			So(db.Create(a2), ShouldBeNil)
+
+			acc1 := *fromAccess(a1)
+			acc2 := *fromAccess(a2)
 
 			Convey("Given a request with the valid rule ID parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -225,8 +236,8 @@ func TestListAccess(t *testing.T) {
 					Convey("Then the body should contain the requested accesses "+
 						"in JSON format", func() {
 
-						expected := map[string][]*model.RuleAccess{}
-						expected["permissions"] = []*model.RuleAccess{acc1, acc2}
+						expected := map[string][]OutRuleAccess{}
+						expected["permissions"] = []OutRuleAccess{acc1, acc2}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -288,8 +299,10 @@ func TestDeleteAccess(t *testing.T) {
 			}
 			So(db.Create(acc), ShouldBeNil)
 
+			access := fromAccess(acc)
+
 			Convey("Given that the access can be deleted", func() {
-				body, err := json.Marshal(acc)
+				body, err := json.Marshal(access)
 				So(err, ShouldBeNil)
 				r, err := http.NewRequest(http.MethodDelete, "", bytes.NewReader(body))
 				So(err, ShouldBeNil)
@@ -319,7 +332,7 @@ func TestDeleteAccess(t *testing.T) {
 			})
 
 			Convey("Given a request with a non-existing rule ID parameter", func() {
-				body, err := json.Marshal(acc)
+				body, err := json.Marshal(access)
 				So(err, ShouldBeNil)
 				r, err := http.NewRequest(http.MethodDelete, "", bytes.NewReader(body))
 				So(err, ShouldBeNil)
@@ -339,7 +352,7 @@ func TestDeleteAccess(t *testing.T) {
 			})
 
 			Convey("Given that the access does not exist", func() {
-				other := &model.RuleAccess{
+				other := &OutRuleAccess{
 					ObjectID:   1000,
 					ObjectType: object.TableName(),
 				}

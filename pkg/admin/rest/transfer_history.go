@@ -14,20 +14,20 @@ import (
 // OutHistory is the JSON representation of a transfer in responses sent by
 // the REST interface.
 type OutHistory struct {
-	ID             uint64
-	IsServer       bool
-	IsSend         bool
-	Account        string
-	Remote         string
-	Protocol       string
-	SourceFilename string
-	DestFilename   string
-	Rule           string
-	Start          time.Time
-	Stop           time.Time
-	Status         model.TransferStatus
-	ErrorCode      model.TransferErrorCode
-	ErrorMsg       string
+	ID             uint64                  `json:"id"`
+	IsServer       bool                    `json:"isServer"`
+	IsSend         bool                    `json:"isSend"`
+	Account        string                  `json:"account"`
+	Remote         string                  `json:"remote"`
+	Protocol       string                  `json:"protocol"`
+	SourceFilename string                  `json:"sourceFilename"`
+	DestFilename   string                  `json:"destFilename"`
+	Rule           string                  `json:"rule"`
+	Start          time.Time               `json:"start"`
+	Stop           time.Time               `json:"stop"`
+	Status         model.TransferStatus    `json:"status"`
+	ErrorCode      model.TransferErrorCode `json:"errorCode,omitempty"`
+	ErrorMsg       string                  `json:"errorMsg,omitempty"`
 }
 
 func fromHistory(h *model.TransferHistory) *OutHistory {
