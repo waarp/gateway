@@ -169,16 +169,16 @@ func (c *certListCommand) Execute(_ []string) error {
 	}
 
 	for _, acc := range c.Access {
-		query.Add("local_accounts", fmt.Sprint(acc))
+		query.Add("local_account", fmt.Sprint(acc))
 	}
-	for _, acc := range c.Access {
-		query.Add("remote_accounts", fmt.Sprint(acc))
+	for _, acc := range c.Account {
+		query.Add("remote_account", fmt.Sprint(acc))
 	}
 	for _, par := range c.Partner {
-		query.Add("remote_agents", fmt.Sprint(par))
+		query.Add("partner", fmt.Sprint(par))
 	}
 	for _, ser := range c.Server {
-		query.Add("local_agents", fmt.Sprint(ser))
+		query.Add("server", fmt.Sprint(ser))
 	}
 	conn.RawQuery = query.Encode()
 

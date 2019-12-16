@@ -247,7 +247,7 @@ func TestListCerts(t *testing.T) {
 				})
 
 				Convey("Given a request with a local account parameter", func() {
-					r, err := http.NewRequest(http.MethodGet, "?local_accounts=1", nil)
+					r, err := http.NewRequest(http.MethodGet, "?local_account=1", nil)
 					So(err, ShouldBeNil)
 
 					Convey("When sending the request to the handler", func() {
@@ -258,8 +258,8 @@ func TestListCerts(t *testing.T) {
 					})
 				})
 
-				Convey("Given a request with a local agent parameter", func() {
-					r, err := http.NewRequest(http.MethodGet, "?local_agents=1", nil)
+				Convey("Given a request with a server parameter", func() {
+					r, err := http.NewRequest(http.MethodGet, "?server=1", nil)
 					So(err, ShouldBeNil)
 
 					Convey("When sending the request to the handler", func() {
@@ -271,7 +271,7 @@ func TestListCerts(t *testing.T) {
 				})
 
 				Convey("Given a request with a remote account parameter", func() {
-					r, err := http.NewRequest(http.MethodGet, "?remote_accounts=1", nil)
+					r, err := http.NewRequest(http.MethodGet, "?remote_account=1", nil)
 					So(err, ShouldBeNil)
 
 					Convey("When sending the request to the handler", func() {
@@ -282,8 +282,8 @@ func TestListCerts(t *testing.T) {
 					})
 				})
 
-				Convey("Given a request with a remote agent parameter", func() {
-					r, err := http.NewRequest(http.MethodGet, "?remote_agents=1", nil)
+				Convey("Given a request with a partner parameter", func() {
+					r, err := http.NewRequest(http.MethodGet, "?partner=1", nil)
 					So(err, ShouldBeNil)
 
 					Convey("When sending the request to the handler", func() {
@@ -293,8 +293,8 @@ func TestListCerts(t *testing.T) {
 						check(w, expected)
 					})
 				})
-				Convey("Given a request with a remote agent & remote accounts parameters", func() {
-					r, err := http.NewRequest(http.MethodGet, "?remote_agents=1&remote_accounts=1", nil)
+				Convey("Given a request with a partner & remote accounts parameters", func() {
+					r, err := http.NewRequest(http.MethodGet, "?partner=1&remote_account=1", nil)
 					So(err, ShouldBeNil)
 
 					Convey("When sending the request to the handler", func() {

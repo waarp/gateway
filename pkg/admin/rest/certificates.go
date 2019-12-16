@@ -79,10 +79,15 @@ func FromCerts(cs []model.Cert) []OutCert {
 }
 
 func parseOwnerParam(r *http.Request, filters *database.Filters) error {
-	ownerTypes := []string{"local_agents", "remote_agents", "local_accounts", "remote_accounts"}
+	ownerTypes := map[string]string{
+		"server":         "local_agents",
+		"partner":        "remote_agents",
+		"local_account":  "local_accounts",
+		"remote_account": "remote_accounts",
+	}
 	conditions := []builder.Cond{}
-	for _, ownerType := range ownerTypes {
-		owners := r.Form[ownerType]
+	for param, ownerType := range ownerTypes {
+		owners := r.Form[param]
 
 		if len(owners) > 0 {
 			ownerIDs := make([]uint64, len(owners))
@@ -90,7 +95,7 @@ func parseOwnerParam(r *http.Request, filters *database.Filters) error {
 				id, err := strconv.ParseUint(owner, 10, 64)
 				if err != nil {
 					return &badRequest{msg: fmt.Sprintf("'%s' is not a valid %s ID",
-						owner, ownerType)}
+						owner, param)}
 				}
 				ownerIDs[i] = id
 			}
