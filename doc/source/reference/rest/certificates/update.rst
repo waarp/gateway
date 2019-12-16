@@ -1,7 +1,7 @@
 Modifier un certificat
 ======================
 
-.. http:patch:: /api/certificates/(int:certificate_id)
+.. http:put:: /api/certificates/(int:certificate_id)
 
    Met à jour le certificat portant le numéro ``certificate_id`` avec les informations
    renseignées en format JSON dans le corps de la requête. Les champs non-spécifiés
@@ -16,7 +16,7 @@ Modifier un certificat
    :reqjson number ownerID: L'identifiant de l'entité à laquelle appartient le certificat
    :reqjson string privateKey: La clé privée de l'entité
    :reqjson string publicKey: La clé publique de l'entité
-   :reqjson string cert: Le certificat de l'entité
+   :reqjson string certificate: Le certificat de l'entité
 
    **Exemple de requête**
 

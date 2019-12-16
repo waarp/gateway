@@ -12,8 +12,8 @@ Créer un partenaire
 
    :reqjson string name: Le nom du partenaire
    :reqjson string protocol: Le protocole utilisé par le partenaire
-   :reqjson string protoConfig: La configuration du partenaire encodé dans une
-      chaîne de caractères au format JSON.
+   :reqjson object protoConfig: La configuration du partenaire encodé sous forme
+      d'un objet JSON.
 
    **Exemple de requête**
 
@@ -22,12 +22,16 @@ Créer un partenaire
           POST https://my_waarp_gateway.net/api/partners HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
           Content-Type: application/json
-          Content-Length: 88
+          Content-Length: 98
 
           {
             "name": "waarp_sftp",
             "protocol": "sftp",
-            "protoConfig": "{\"address\":\"waarp.org\",\"port\":21}
+            "protoConfig": {
+              "address": "waarp.org",
+              "port": 21,
+              "root": "/sftp/root"
+            }
           }
 
 

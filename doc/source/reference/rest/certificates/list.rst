@@ -14,26 +14,24 @@ Lister les certificats
    :type limit: int
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
-   :param sortby: Le paramètre selon lequel les certificats seront triés *(défaut: name)*
-   :type sortby: [name]
-   :param order: L'ordre dans lequel les certificats sont triés *(défaut: asc)*
-   :type order: [asc|desc]
-   :param local_agents: Filtre uniquement les certificats rattaché au serveur
+   :param sort: Le paramètre selon lequel les certificats seront triés *(défaut: name+)*
+   :type sort: [name+|name-]
+   :param server: Filtre uniquement les certificats rattaché au serveur
       local portant ce numéro. Peut être renseigné plusieurs fois pour filtrer
       plusieurs serveurs.
-   :type local_agents: uint64
-   :param remote_agents: Filtre uniquement les certificats rattaché au partenaire
+   :type server: uint64
+   :param partner: Filtre uniquement les certificats rattaché au partenaire
       distant portant ce numéro. Peut être renseigné plusieurs fois pour filtrer
       plusieurs partenaires.
-   :type remote_agents: uint64
-   :param local_acounts: Filtre uniquement les certificats rattaché au compte
+   :type partner: uint64
+   :param local_account: Filtre uniquement les certificats rattaché au compte
       local portant ce numéro. Peut être renseigné plusieurs fois pour filtrer
       plusieurs comptes.
-   :type local_acounts: uint64
-   :param remote_acounts: Filtre uniquement les certificats rattaché au compte
+   :type local_account: uint64
+   :param remote_account: Filtre uniquement les certificats rattaché au compte
       partenaire portant ce numéro. Peut être renseigné plusieurs fois pour filtrer
       plusieurs comptes.
-   :type remote_acounts: uint64
+   :type remote_account: uint64
 
    **Exemple de requête**
 
@@ -56,7 +54,7 @@ Lister les certificats
    :resjsonarr number ownerID: L'identifiant de l'entité à laquelle appartient le certificat
    :resjsonarr string privateKey: La clé privée de l'entité
    :resjsonarr string publicKey: La clé publique de l'entité
-   :resjsonarr string cert: Le certificat de l'entité
+   :resjsonarr string certificate: Le certificat de l'entité
 
    **Exemple de réponse**
 

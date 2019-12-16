@@ -1,7 +1,7 @@
 Modifier un partenaire
 ======================
 
-.. http:patch:: /api/partners/(int:partner_id)
+.. http:put:: /api/partners/(int:partner_id)
 
    Met à jour le partenaire portant le numéro ``partner_id`` avec les informations
    renseignées en format JSON dans le corps de la requête. Les champs non-spécifiés
@@ -13,8 +13,8 @@ Modifier un partenaire
 
    :reqjson string name: Le nom du partenaire
    :reqjson string protocol: Le protocole utilisé par le partenaire
-   :reqjson string protoConfig: La configuration du partenaire encodé dans une
-      chaîne de caractères au format JSON.
+   :reqjson object protoConfig: La configuration du partenaire encodé sous forme
+      d'un objet JSON.
 
    **Exemple de requête**
 
@@ -23,12 +23,16 @@ Modifier un partenaire
           PATCH https://my_waarp_gateway.net/api/partners/1 HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
           Content-Type: application/json
-          Content-Length: 83
+          Content-Length: 105
 
           {
             "name": "waarp_sftp_new",
             "protocol": "sftp",
-            "protoConfig": "{\"address\":\"waarp.fr\",\"port\":22}
+            "protoConfig": {
+              "address": "waarp.fr",
+              "port": 22,
+              "root": "/new/sftp/root"
+            }
           }
 
 

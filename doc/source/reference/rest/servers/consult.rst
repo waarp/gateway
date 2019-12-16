@@ -26,8 +26,8 @@ Consulter un serveur
    :resjson number id: L'identifiant unique du serveur
    :resjson string name: Le nom du serveur
    :resjson string protocol: Le protocole utilisé par le serveur
-   :resjson string protoConfig: La configuration du serveur encodé dans une
-      chaîne de caractères au format JSON.
+   :resjson object protoConfig: La configuration du partenaire encodé sous forme
+      d'un objet JSON.
 
    **Exemple de réponse**
 
@@ -35,11 +35,15 @@ Consulter un serveur
 
           HTTP/1.1 200 OK
           Content-Type: application/json
-          Content-Length: 97
+          Content-Length: 118
 
           {
             "id": 1,
-            "name": "sftp_server",
+            "name": "sftp server",
             "protocol": "sftp",
-            "protoConfig": "{\"address\":\"localhost\",\"port\":21}
+            "protoConfig": {
+              "address": "localhost",
+              "port": 21,
+              "root": "/sftp/root"
+            }
           }

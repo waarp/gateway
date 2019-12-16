@@ -10,11 +10,13 @@ Programmer un transfert
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
+   :reqjson bool isServer: Précise si la gateway était à l'origine du transfert
    :reqjson string ruleID: L'identifiant de la règle utilisée
-   :reqjson string remoteID: L'identifiant du partenaire de transfert
+   :reqjson string agentID: L'identifiant du serveur de transfert
    :reqjson number accountID: L'identifiant compte partenaire utilisé
-   :reqjson string source: Le chemin du fichier source
-   :reqjson string destination: Le chemin de destination du fichier
+   :reqjson string sourcePath: Le chemin du fichier source
+   :reqjson string destPath: Le chemin de destination du fichier
+   :reqjson date start: La date de début du transfert
 
    **Exemple de requête**
 
@@ -26,11 +28,13 @@ Programmer un transfert
           Content-Length: 156
 
           {
+            "isServer": false,
             "ruleID": 1,
-            "remoteID": 1,
+            "agentID": 1,
             "accountID": 1,
-            "source": "chemin/du/fichier",
-            "destination": "chemin/de/destination"
+            "sourcePath": "chemin/du/fichier",
+            "destPath": "chemin/de/destination",
+            "start": "2019-01-01T02:00:00+02:00"
           }
 
    **Réponse**

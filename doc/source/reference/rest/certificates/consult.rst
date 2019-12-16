@@ -29,7 +29,7 @@ Consulter un certificat
    :resjson number ownerID: L'identifiant de l'entité à laquelle appartient le certificat
    :resjson string privateKey: La clé privée de l'entité
    :resjson string publicKey: La clé publique de l'entité
-   :resjson string cert: Le certificat de l'entité
+   :resjson string certificate: Le certificat de l'entité
 
    **Exemple de réponse**
 

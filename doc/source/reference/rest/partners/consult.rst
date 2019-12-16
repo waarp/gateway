@@ -26,8 +26,8 @@ Consulter un partenaire
    :resjson number id: L'identifiant unique du partenaire
    :resjson string name: Le nom du partenaire
    :resjson string protocol: Le protocole utilisé par le partenaire
-   :resjson string protoConfig: La configuration du partenaire encodé dans une
-      chaîne de caractères au format JSON.
+   :resjson object protoConfig: La configuration du partenaire encodé sous forme
+      d'un objet JSON.
 
    **Exemple de réponse**
 
@@ -35,11 +35,15 @@ Consulter un partenaire
 
           HTTP/1.1 200 OK
           Content-Type: application/json
-          Content-Length: 97
+          Content-Length: 119
 
           {
             "id": 1,
             "name": "waarp_sftp",
             "protocol": "sftp",
-            "protoConfig": "{\"address\":\"waarp.org\",\"port\":21}
+            "protoConfig": {
+              "address": "waarp.org",
+              "port": 21,
+              "root": "/sftp/root"
+            }
           }
