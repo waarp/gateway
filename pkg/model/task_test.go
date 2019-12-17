@@ -126,8 +126,8 @@ func TestTaskValidateUpdate(t *testing.T) {
 				So(err, ShouldNotBeNil)
 			})
 
-			Convey("Then the error should say that operation is unallowed", func() {
-				So(err.Error(), ShouldEqual, "Unallowed operation")
+			Convey("Then the error should say that operation is not allowed", func() {
+				So(err.Error(), ShouldEqual, "Operation not allowed")
 			})
 		})
 	})

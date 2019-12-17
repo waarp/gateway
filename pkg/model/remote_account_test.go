@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -17,31 +16,6 @@ func TestRemoteAccountTableName(t *testing.T) {
 
 			Convey("Then it should return the name of the remote account table", func() {
 				So(name, ShouldEqual, "remote_accounts")
-			})
-		})
-	})
-}
-
-func TestRemoteAccountMarshalJSON(t *testing.T) {
-	Convey("Given a remote account entry", t, func() {
-		acc := &RemoteAccount{
-			ID:            1,
-			RemoteAgentID: 1,
-			Login:         "login",
-			Password:      []byte("password"),
-		}
-
-		Convey("When calling the `MarshalJSON` method", func() {
-			res, err := acc.MarshalJSON()
-
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
-			})
-
-			Convey("Then it should return the account in JSON", func() {
-				expected := fmt.Sprintf(`{"id":%v,"remoteAgentID":%v,"login":"%s"}`,
-					acc.ID, acc.RemoteAgentID, acc.Login)
-				So(string(res), ShouldEqual, expected)
 			})
 		})
 	})

@@ -24,11 +24,11 @@ const (
 
 // Task represents one record of the 'tasks' table.
 type Task struct {
-	RuleID uint64 `xorm:"notnull 'rule_id'" json:"-"`
-	Chain  Chain  `xorm:"notnull 'chain'" json:"-"`
-	Rank   uint32 `xorm:"notnull 'rank'" json:"-"`
-	Type   string `xorm:"notnull 'type'" json:"type"`
-	Args   []byte `xorm:"notnull 'args'" json:"args"`
+	RuleID uint64 `xorm:"notnull 'rule_id'"`
+	Chain  Chain  `xorm:"notnull 'chain'"`
+	Rank   uint32 `xorm:"notnull 'rank'"`
+	Type   string `xorm:"notnull 'type'"`
+	Args   []byte `xorm:"notnull 'args'"`
 }
 
 // TableName returns the name of the tasks table.
@@ -61,8 +61,8 @@ func (t *Task) ValidateInsert(acc database.Accessor) error {
 
 // ValidateUpdate is called before updating and existing `Task` entry from
 // the database. It rejects all update.
-func (t *Task) ValidateUpdate(acc database.Accessor) error {
-	return database.InvalidError("Unallowed operation")
+func (t *Task) ValidateUpdate(database.Accessor) error {
+	return database.InvalidError("Operation not allowed")
 }
 
 func validateChain(c Chain) bool {

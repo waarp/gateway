@@ -16,16 +16,16 @@ func init() {
 type RemoteAgent struct {
 
 	// The agent's database ID.
-	ID uint64 `xorm:"pk autoincr 'id'" json:"id"`
+	ID uint64 `xorm:"pk autoincr 'id'"`
 
 	// The agent's display name.
-	Name string `xorm:"unique notnull 'name'" json:"name"`
+	Name string `xorm:"unique notnull 'name'"`
 
 	// The protocol used by the agent.
-	Protocol string `xorm:"notnull 'protocol'" json:"protocol"`
+	Protocol string `xorm:"notnull 'protocol'"`
 
 	// The agent's configuration in raw JSON format.
-	ProtoConfig []byte `xorm:"notnull 'proto_config'" json:"protoConfig"`
+	ProtoConfig []byte `xorm:"notnull 'proto_config'"`
 }
 
 // TableName returns the local_agent table name.

@@ -1,8 +1,6 @@
 package model
 
 import (
-	"encoding/json"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"github.com/go-xorm/builder"
 )
@@ -16,27 +14,21 @@ func init() {
 type RemoteAccount struct {
 
 	// The account's database ID
-	ID uint64 `xorm:"pk autoincr <- 'id'" json:"id"`
+	ID uint64 `xorm:"pk autoincr <- 'id'"`
 
 	// The ID of the `RemoteAgent` this account is attached to
-	RemoteAgentID uint64 `xorm:"unique(rem_ac) notnull 'remote_agent_id'" json:"remoteAgentID"`
+	RemoteAgentID uint64 `xorm:"unique(rem_ac) notnull 'remote_agent_id'"`
 
 	// The account's login
-	Login string `xorm:"unique(rem_ac) notnull 'login'" json:"login"`
+	Login string `xorm:"unique(rem_ac) notnull 'login'"`
 
 	// The account's password
-	Password []byte `xorm:"'password'" json:"password,omitempty"`
+	Password []byte `xorm:"'password'"`
 }
 
 // TableName returns the remote accounts table name.
 func (r *RemoteAccount) TableName() string {
 	return "remote_accounts"
-}
-
-// MarshalJSON removes the password and then returns the account in JSON format.
-func (r *RemoteAccount) MarshalJSON() ([]byte, error) {
-	r.Password = nil
-	return json.Marshal(*r)
 }
 
 // BeforeInsert is called before inserting the account in the database. Its
