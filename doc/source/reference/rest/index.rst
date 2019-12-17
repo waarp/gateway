@@ -10,6 +10,7 @@ est spécifié dans la `RFC 3339`_.
 .. toctree::
    :maxdepth: 1
 
+   users/index
    transfers/index
    history/index
    servers/index
