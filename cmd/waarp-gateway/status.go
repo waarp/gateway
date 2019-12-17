@@ -55,7 +55,7 @@ func showStatus(statuses rest.Statuses) {
 // Execute executes the 'status' command. The command flags are stored in
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
-func (s *statusCommand) Execute(_ []string) error {
+func (s *statusCommand) Execute([]string) error {
 	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err

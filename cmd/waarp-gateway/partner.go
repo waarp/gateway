@@ -37,7 +37,7 @@ type partnerAddCommand struct {
 	ProtoConfig string `long:"config" description:"The partner's configuration in JSON"`
 }
 
-func (p *partnerAddCommand) Execute(_ []string) error {
+func (p *partnerAddCommand) Execute([]string) error {
 	if p.ProtoConfig == "" {
 		p.ProtoConfig = "{}"
 	}
@@ -73,7 +73,7 @@ type partnerListCommand struct {
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
-func (p *partnerListCommand) Execute(_ []string) error {
+func (p *partnerListCommand) Execute([]string) error {
 	conn, err := agentListURL(rest.RemoteAgentsPath, &p.listOptions, p.SortBy, p.Protocols)
 	if err != nil {
 		return err

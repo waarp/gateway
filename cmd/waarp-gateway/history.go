@@ -132,7 +132,7 @@ func (h *historyListCommand) listURL() (*url.URL, error) {
 	return conn, nil
 }
 
-func (h *historyListCommand) Execute(_ []string) error {
+func (h *historyListCommand) Execute([]string) error {
 	conn, err := h.listURL()
 	if err != nil {
 		return err

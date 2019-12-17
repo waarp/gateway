@@ -62,7 +62,7 @@ type serverAddCommand struct {
 	ProtoConfig string `long:"config" description:"The server's configuration in JSON"`
 }
 
-func (s *serverAddCommand) Execute(_ []string) error {
+func (s *serverAddCommand) Execute([]string) error {
 	if s.ProtoConfig == "" {
 		s.ProtoConfig = "{}"
 	}
@@ -124,7 +124,7 @@ type serverListCommand struct {
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
-func (s *serverListCommand) Execute(_ []string) error {
+func (s *serverListCommand) Execute([]string) error {
 	conn, err := agentListURL(rest.LocalAgentsPath, &s.listOptions, s.SortBy, s.Protocols)
 	if err != nil {
 		return err

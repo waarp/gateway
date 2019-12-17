@@ -17,6 +17,7 @@ var (
 
 type commands struct {
 	Status      statusCommand      `command:"status" description:"Show the status of the gateway services"`
+	User        userCommand        `command:"user" description:"Manage the gateway's users"`
 	Server      serverCommand      `command:"server" description:"Manage the gateway's local servers"`
 	Partner     partnerCommand     `command:"partner" description:"Manage the gateway's remote partners"`
 	Access      accessCommand      `command:"access" description:"Manage the gateway's local accounts"`
