@@ -60,7 +60,7 @@ func (t *transferAddCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.TransfersPath
+	conn.Path = admin.APIPath + rest.TransfersPath
 
 	_, err = addCommand(newTransfer, conn)
 	if err != nil {
@@ -83,7 +83,7 @@ func (t *transferGetCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.TransfersPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.TransfersPath + "/" + args[0]
 
 	res := rest.OutTransfer{}
 	if err := getCommand(&res, conn); err != nil {
@@ -113,7 +113,7 @@ func (t *transferListCommand) listURL() (*url.URL, error) {
 		return nil, err
 	}
 
-	conn.Path = admin.APIPath + admin.TransfersPath
+	conn.Path = admin.APIPath + rest.TransfersPath
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(t.Limit))
 	query.Set("offset", fmt.Sprint(t.Offset))

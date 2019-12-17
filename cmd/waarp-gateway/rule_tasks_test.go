@@ -97,8 +97,8 @@ func TestChangeRuleTasks(t *testing.T) {
 								So(getOutput(), ShouldEqual, "The task chains of "+
 									"rule n°1 were successfully changed. The rule's "+
 									"chains can be consulted at the address: "+
-									gw.URL+admin.APIPath+admin.RulesPath+"/"+ruleID+
-									admin.RuleTasksPath)
+									gw.URL+admin.APIPath+rest.RulesPath+"/"+ruleID+
+									rest.RuleTasksPath)
 							})
 
 							Convey("Then the new tasks should have been added", func() {
@@ -134,8 +134,8 @@ func TestChangeRuleTasks(t *testing.T) {
 							Convey("Then it should return an error", func() {
 								So(err, ShouldBeError)
 								So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-									addr+admin.APIPath+admin.RulesPath+"/1000"+
-									admin.RuleTasksPath+"' does not exist")
+									addr+admin.APIPath+rest.RulesPath+"/1000"+
+									rest.RuleTasksPath+"' does not exist")
 							})
 
 							Convey("Then the new tasks should NOT have been added", func() {
@@ -286,8 +286,8 @@ func TestListRuleTasks(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.RulesPath+"/1000"+
-							admin.RuleTasksPath+"' does not exist")
+							addr+admin.APIPath+rest.RulesPath+"/1000"+
+							rest.RuleTasksPath+"' does not exist")
 					})
 				})
 			})

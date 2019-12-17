@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
@@ -95,7 +96,7 @@ func TestGetCertificate(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.CertificatesPath+
+							addr+admin.APIPath+rest.CertificatesPath+
 							"/1000' does not exist")
 
 					})
@@ -157,7 +158,7 @@ func TestAddCertificate(t *testing.T) {
 							So(string(cont), ShouldEqual, "The certificate '"+command.Name+
 								"' was successfully added. It can be consulted at "+
 								"the address: "+gw.URL+admin.APIPath+
-								admin.CertificatesPath+"/1\n")
+								rest.CertificatesPath+"/1\n")
 						})
 
 						Convey("Then the new certificate should have been added", func() {
@@ -291,7 +292,7 @@ func TestDeleteCertificate(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.CertificatesPath+
+							addr+admin.APIPath+rest.CertificatesPath+
 							"/1000' does not exist")
 					})
 
@@ -698,7 +699,7 @@ func TestUpdateCertificate(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.CertificatesPath+
+							addr+admin.APIPath+rest.CertificatesPath+
 							"/1000' does not exist")
 					})
 

@@ -46,7 +46,7 @@ func (r *ruleAccessGrantCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RulesPath + "/" + args[0] + admin.RulePermissionPath
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + args[0] + rest.RulePermissionPath
 
 	loc, err := addCommand(acc, conn)
 	if err != nil {
@@ -78,7 +78,7 @@ func (r *ruleAccessRevokeCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RulesPath + "/" + args[0] + admin.RulePermissionPath
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + args[0] + rest.RulePermissionPath
 
 	acc := &rest.InRuleAccess{
 		ObjectID:   r.ID,
@@ -134,7 +134,7 @@ func (r *ruleAccessListCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RulesPath + "/" + args[0] + admin.RulePermissionPath
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + args[0] + rest.RulePermissionPath
 
 	res := map[string][]rest.OutRuleAccess{}
 	if err := getCommand(&res, conn); err != nil {

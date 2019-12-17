@@ -45,7 +45,7 @@ func (r *ruleGetCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RulesPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + args[0]
 
 	if err := getCommand(&res, conn); err != nil {
 		return err
@@ -77,7 +77,7 @@ func (r *ruleAddCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RulesPath
+	conn.Path = admin.APIPath + rest.RulesPath
 
 	loc, err := addCommand(rule, conn)
 	if err != nil {
@@ -104,7 +104,7 @@ func (r *ruleDeleteCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RulesPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + args[0]
 
 	if err := deleteCommand(conn); err != nil {
 		return err
@@ -130,7 +130,7 @@ func (r *ruleListCommand) Execute(_ []string) error {
 		return err
 	}
 
-	conn.Path = admin.APIPath + admin.RulesPath
+	conn.Path = admin.APIPath + rest.RulesPath
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(r.Limit))
 	query.Set("offset", fmt.Sprint(r.Offset))

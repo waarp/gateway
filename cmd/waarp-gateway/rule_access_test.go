@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
@@ -70,8 +71,8 @@ func TestAddRuleAccess(t *testing.T) {
 								"now restricted.\nAccess to rule n°1 "+
 								"was successfully granted to remote agent n°1. "+
 								"Granted accesses can be consulted at the address: "+
-								gw.URL+admin.APIPath+admin.RulesPath+"/"+ruleID+
-								admin.RulePermissionPath)
+								gw.URL+admin.APIPath+rest.RulesPath+"/"+ruleID+
+								rest.RulePermissionPath)
 						})
 
 						Convey("Then the new rule access should have been added", func() {
@@ -207,8 +208,8 @@ func TestRevokeRuleAccess(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.RulesPath+"/1000"+
-							admin.RulePermissionPath+"' does not exist")
+							addr+admin.APIPath+rest.RulesPath+"/1000"+
+							rest.RulePermissionPath+"' does not exist")
 					})
 
 					Convey("Then the access should still exist", func() {
@@ -310,8 +311,8 @@ func TestListRuleAccesses(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.RulesPath+"/1000"+
-							admin.RulePermissionPath+"' does not exist")
+							addr+admin.APIPath+rest.RulesPath+"/1000"+
+							rest.RulePermissionPath+"' does not exist")
 					})
 				})
 			})

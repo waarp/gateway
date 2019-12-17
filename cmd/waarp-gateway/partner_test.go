@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
@@ -78,7 +79,7 @@ func TestGetPartner(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.RemoteAgentsPath+
+							addr+admin.APIPath+rest.RemoteAgentsPath+
 							"/1000' does not exist")
 
 					})
@@ -122,7 +123,7 @@ func TestAddPartner(t *testing.T) {
 						So(string(cont), ShouldEqual, "The partner '"+command.Name+
 							"' was successfully added. It can be consulted at "+
 							"the address: "+gw.URL+admin.APIPath+
-							admin.RemoteAgentsPath+"/1\n")
+							rest.RemoteAgentsPath+"/1\n")
 					})
 
 					Convey("Then the new partner should have been added", func() {
@@ -420,7 +421,7 @@ func TestDeletePartner(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.RemoteAgentsPath+
+							addr+admin.APIPath+rest.RemoteAgentsPath+
 							"/1000' does not exist")
 					})
 
@@ -555,7 +556,7 @@ func TestUpdatePartner(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.RemoteAgentsPath+
+							addr+admin.APIPath+rest.RemoteAgentsPath+
 							"/1000' does not exist")
 					})
 

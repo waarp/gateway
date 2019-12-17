@@ -10,6 +10,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const (
+	// APIPath is the root path for the Rest API endpoints
+	APIPath = "/api"
+)
+
 // MakeHandler returns the router for the REST & Admin http interface
 func MakeHandler(logger *log.Logger, db *database.Db, services map[string]service.Service) http.Handler {
 

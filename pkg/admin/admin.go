@@ -19,9 +19,6 @@ import (
 const (
 	// ServiceName is the name of the administration interface service
 	ServiceName = "Admin"
-
-	// APIPath is the root path for the Rest API endpoints
-	APIPath = "/api"
 )
 
 // Server is the administration service

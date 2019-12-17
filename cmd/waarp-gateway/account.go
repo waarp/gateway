@@ -38,7 +38,7 @@ func (a *accountGetCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RemoteAccountsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RemoteAccountsPath + "/" + args[0]
 
 	if err := getCommand(&res, conn); err != nil {
 		return err
@@ -68,7 +68,7 @@ func (a *accountAddCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RemoteAccountsPath
+	conn.Path = admin.APIPath + rest.RemoteAccountsPath
 
 	loc, err := addCommand(newAccount, conn)
 	if err != nil {
@@ -95,7 +95,7 @@ func (a *accountDeleteCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RemoteAccountsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RemoteAccountsPath + "/" + args[0]
 
 	if err := deleteCommand(conn); err != nil {
 		return err
@@ -131,7 +131,7 @@ func (a *accountUpdateCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RemoteAccountsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RemoteAccountsPath + "/" + args[0]
 
 	_, err = updateCommand(newAccount, conn)
 	if err != nil {
@@ -153,7 +153,7 @@ type accountListCommand struct {
 }
 
 func (s *accountListCommand) Execute(_ []string) error {
-	conn, err := accountListURL(admin.RemoteAccountsPath, &s.listOptions, s.SortBy,
+	conn, err := accountListURL(rest.RemoteAccountsPath, &s.listOptions, s.SortBy,
 		s.RemoteAgentID)
 	if err != nil {
 		return err

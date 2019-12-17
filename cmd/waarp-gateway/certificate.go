@@ -43,7 +43,7 @@ func (c *certGetCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.CertificatesPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.CertificatesPath + "/" + args[0]
 
 	if err := getCommand(&res, conn); err != nil {
 		return err
@@ -101,7 +101,7 @@ func (c *certAddCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.CertificatesPath
+	conn.Path = admin.APIPath + rest.CertificatesPath
 
 	loc, err := addCommand(newCert, conn)
 	if err != nil {
@@ -128,7 +128,7 @@ func (c *certDeleteCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.CertificatesPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.CertificatesPath + "/" + args[0]
 
 	if err := deleteCommand(conn); err != nil {
 		return err
@@ -158,7 +158,7 @@ func (c *certListCommand) Execute(_ []string) error {
 		return err
 	}
 
-	conn.Path = admin.APIPath + admin.CertificatesPath
+	conn.Path = admin.APIPath + rest.CertificatesPath
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(c.Limit))
 	query.Set("offset", fmt.Sprint(c.Offset))
@@ -252,7 +252,7 @@ func (c *certUpdateCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.CertificatesPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.CertificatesPath + "/" + args[0]
 
 	_, err = updateCommand(newCert, conn)
 	if err != nil {

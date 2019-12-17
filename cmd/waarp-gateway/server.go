@@ -43,7 +43,7 @@ func (s *serverGetCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + args[0]
 
 	if err := getCommand(&res, conn); err != nil {
 		return err
@@ -76,7 +76,7 @@ func (s *serverAddCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAgentsPath
+	conn.Path = admin.APIPath + rest.LocalAgentsPath
 
 	loc, err := addCommand(newAgent, conn)
 	if err != nil {
@@ -103,7 +103,7 @@ func (s *serverDeleteCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + args[0]
 
 	if err := deleteCommand(conn); err != nil {
 		return err
@@ -125,7 +125,7 @@ type serverListCommand struct {
 }
 
 func (s *serverListCommand) Execute(_ []string) error {
-	conn, err := agentListURL(admin.LocalAgentsPath, &s.listOptions, s.SortBy, s.Protocols)
+	conn, err := agentListURL(rest.LocalAgentsPath, &s.listOptions, s.SortBy, s.Protocols)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func (s *serverUpdateCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + args[0]
 
 	_, err = updateCommand(newAgent, conn)
 	if err != nil {

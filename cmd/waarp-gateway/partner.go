@@ -51,7 +51,7 @@ func (p *partnerAddCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RemoteAgentsPath
+	conn.Path = admin.APIPath + rest.RemoteAgentsPath
 
 	loc, err := addCommand(newAgent, conn)
 	if err != nil {
@@ -74,7 +74,7 @@ type partnerListCommand struct {
 }
 
 func (p *partnerListCommand) Execute(_ []string) error {
-	conn, err := agentListURL(admin.RemoteAgentsPath, &p.listOptions, p.SortBy, p.Protocols)
+	conn, err := agentListURL(rest.RemoteAgentsPath, &p.listOptions, p.SortBy, p.Protocols)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (p *partnerGetCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RemoteAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + args[0]
 
 	if err := getCommand(&res, conn); err != nil {
 		return err
@@ -136,7 +136,7 @@ func (p *partnerDeleteCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RemoteAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + args[0]
 
 	if err := deleteCommand(conn); err != nil {
 		return err
@@ -172,7 +172,7 @@ func (p *partnerUpdateCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RemoteAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + args[0]
 
 	_, err = updateCommand(newAgent, conn)
 	if err != nil {

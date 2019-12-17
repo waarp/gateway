@@ -60,7 +60,7 @@ func (s *statusCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.StatusPath
+	conn.Path = admin.APIPath + rest.StatusPath
 
 	req, err := http.NewRequest(http.MethodGet, conn.String(), nil)
 	if err != nil {

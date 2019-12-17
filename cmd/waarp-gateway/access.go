@@ -43,7 +43,7 @@ func (a *accessAddCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAccountsPath
+	conn.Path = admin.APIPath + rest.LocalAccountsPath
 
 	loc, err := addCommand(newAccount, conn)
 	if err != nil {
@@ -71,7 +71,7 @@ func (a *accessGetCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAccountsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.LocalAccountsPath + "/" + args[0]
 
 	if err := getCommand(&res, conn); err != nil {
 		return err
@@ -105,7 +105,7 @@ func (a *accessUpdateCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAccountsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.LocalAccountsPath + "/" + args[0]
 
 	_, err = updateCommand(newAccount, conn)
 	if err != nil {
@@ -131,7 +131,7 @@ func (a *accessDeleteCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAccountsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.LocalAccountsPath + "/" + args[0]
 
 	if err := deleteCommand(conn); err != nil {
 		return err
@@ -153,7 +153,7 @@ type accessListCommand struct {
 }
 
 func (s *accessListCommand) Execute(_ []string) error {
-	conn, err := accountListURL(admin.LocalAccountsPath, &s.listOptions, s.SortBy,
+	conn, err := accountListURL(rest.LocalAccountsPath, &s.listOptions, s.SortBy,
 		s.LocalAgentID)
 	if err != nil {
 		return err

@@ -55,7 +55,7 @@ func (r *ruleTasksChangeCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RulesPath + "/" + args[0] + admin.RuleTasksPath
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + args[0] + rest.RuleTasksPath
 
 	loc, err := sendBean(tasks, conn, http.MethodPut)
 	if err != nil {
@@ -82,7 +82,7 @@ func (r *ruleTasksListCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RulesPath + "/" + args[0] + admin.RuleTasksPath
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + args[0] + rest.RuleTasksPath
 
 	res := map[string][]rest.OutRuleTask{}
 	if err := getCommand(&res, conn); err != nil {

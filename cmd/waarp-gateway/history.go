@@ -55,7 +55,7 @@ func (h *historyGetCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.HistoryPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.HistoryPath + "/" + args[0]
 
 	res := rest.OutHistory{}
 	if err := getCommand(&res, conn); err != nil {
@@ -87,7 +87,7 @@ func (h *historyListCommand) listURL() (*url.URL, error) {
 		return nil, err
 	}
 
-	conn.Path = admin.APIPath + admin.HistoryPath
+	conn.Path = admin.APIPath + rest.HistoryPath
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(h.Limit))
 	query.Set("offset", fmt.Sprint(h.Offset))

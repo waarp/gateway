@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
@@ -78,7 +79,7 @@ func TestGetServer(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.LocalAgentsPath+
+							addr+admin.APIPath+rest.LocalAgentsPath+
 							"/1000' does not exist")
 
 					})
@@ -122,7 +123,7 @@ func TestAddServer(t *testing.T) {
 						So(string(cont), ShouldEqual, "The server '"+command.Name+
 							"' was successfully added. It can be consulted at "+
 							"the address: "+gw.URL+admin.APIPath+
-							admin.LocalAgentsPath+"/1\n")
+							rest.LocalAgentsPath+"/1\n")
 					})
 
 					Convey("Then the new server should have been added", func() {
@@ -420,7 +421,7 @@ func TestDeleteServer(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.LocalAgentsPath+
+							addr+admin.APIPath+rest.LocalAgentsPath+
 							"/1000' does not exist")
 					})
 
@@ -556,7 +557,7 @@ func TestUpdateServer(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.LocalAgentsPath+
+							addr+admin.APIPath+rest.LocalAgentsPath+
 							"/1000' does not exist")
 					})
 
