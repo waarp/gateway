@@ -16,6 +16,9 @@ const (
 	// StatusPath is the access path to the status entry point.
 	StatusPath = "/status"
 
+	// UsersPath is the access path to the status entry point.
+	UsersPath = "/users"
+
 	// LocalAgentsPath is the access path to the local servers entry point.
 	LocalAgentsPath = "/servers"
 
@@ -47,6 +50,22 @@ const (
 	// RuleTasksPath is the access path to the transfer rule tasks entry point.
 	RuleTasksPath = "/tasks"
 )
+
+func makeUsersHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+	usersHandler := apiHandler.PathPrefix(UsersPath).Subrouter()
+	usersHandler.HandleFunc("", listUsers(logger, db)).
+		Methods(http.MethodGet)
+	usersHandler.HandleFunc("", createUser(logger, db)).
+		Methods(http.MethodPost)
+
+	userHandler := usersHandler.PathPrefix("/{user:[0-9]+}").Subrouter()
+	userHandler.HandleFunc("", getUser(logger, db)).
+		Methods(http.MethodGet)
+	userHandler.HandleFunc("", deleteUser(logger, db)).
+		Methods(http.MethodDelete)
+	userHandler.HandleFunc("", updateUser(logger, db)).
+		Methods(http.MethodPatch, http.MethodPut)
+}
 
 func makeLocalAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
 	localAgentsHandler := apiHandler.PathPrefix(LocalAgentsPath).Subrouter()
@@ -177,6 +196,7 @@ func MakeRESTHandler(logger *log.Logger, db *database.Db, adminHandler *mux.Rout
 	apiHandler.HandleFunc(StatusPath, getStatus(logger, services)).
 		Methods(http.MethodGet)
 
+	makeUsersHandler(logger, db, apiHandler)
 	makeLocalAgentsHandler(logger, db, apiHandler)
 	makeRemoteAgentsHandler(logger, db, apiHandler)
 	makeLocalAccountsHandler(logger, db, apiHandler)

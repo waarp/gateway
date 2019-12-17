@@ -44,7 +44,7 @@ func (p *partnerAddCommand) Execute(_ []string) error {
 	newAgent := rest.InAgent{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
-		ProtoConfig: []byte(p.ProtoConfig),
+		ProtoConfig: json.RawMessage(p.ProtoConfig),
 	}
 
 	conn, err := url.Parse(auth.DSN)
@@ -165,7 +165,7 @@ func (p *partnerUpdateCommand) Execute(args []string) error {
 	newAgent := rest.InAgent{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
-		ProtoConfig: []byte(p.ProtoConfig),
+		ProtoConfig: json.RawMessage(p.ProtoConfig),
 	}
 
 	conn, err := url.Parse(auth.DSN)
