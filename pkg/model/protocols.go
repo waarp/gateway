@@ -2,7 +2,7 @@
 // model instance represents an entry in one of the database's tables.
 package model
 
-var validProtocols = []string{"sftp"}
+var validProtocols = []string{"sftp", "r66"}
 
 // IsValidProtocol returns whether the given protocol is a valid protocol for
 // the gateway.

@@ -332,7 +332,7 @@ func TestUpdateLocalAgent(t *testing.T) {
 					body, err := json.Marshal(update)
 					So(err, ShouldBeNil)
 
-					msg := "The agent's protocol must be one of: [sftp]\n"
+					msg := "The agent's protocol must be one of: [sftp r66]\n"
 					checkInvalidUpdate(db, handler, w, body, localAgentURI, id,
 						"local_agent", &old, msg)
 				})

@@ -71,6 +71,7 @@ func (c *Controller) Start() error {
 	exe := executor.Executor{
 		Db:       c.Db,
 		Logger:   log.NewLogger("executor", c.Conf.Log),
+		R66Home:  c.Conf.Controller.R66Home,
 		Shutdown: c.shutdown,
 	}
 	c.listen(exe.Run)

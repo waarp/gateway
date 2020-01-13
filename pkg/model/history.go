@@ -26,6 +26,7 @@ type TransferHistory struct {
 	Stop           time.Time      `xorm:"notnull 'stop'" json:"stop"`
 	Status         TransferStatus `xorm:"notnull 'status'" json:"status"`
 	Error          TransferError  `xorm:"extends" json:"error,omitempty"`
+	ExtInfo        []byte         `xorm:"ext_info" json:"extInfo"`
 }
 
 // TableName returns the name of the transfer history table.

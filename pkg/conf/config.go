@@ -45,7 +45,8 @@ type DatabaseConfig struct {
 
 // ControllerConfig holds the transfer controller options
 type ControllerConfig struct {
-	Delay time.Duration `ini-name:"Delay" default:"5s" description:"The frequency at which the database will be probed for new transfers"`
+	Delay   time.Duration `ini-name:"Delay" default:"5s" description:"The frequency at which the database will be probed for new transfers"`
+	R66Home string        `ini-name:"R66Home" description:"The installation directory of Waarp-R66"`
 }
 
 // LoadServerConfig creates a configuration object.
