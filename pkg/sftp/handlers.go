@@ -13,7 +13,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
-	"github.com/go-xorm/builder"
 	"github.com/pkg/sftp"
 )
 
@@ -57,17 +56,8 @@ func makeHandlers(db *database.Db, logger *log.Logger, agent *model.LocalAgent,
 	}
 }
 
-func runTasks(db *database.Db, logger *log.Logger, chain model.Chain,
-	rule *model.Rule, trans *model.Transfer) error {
-
-	var taskChain []*model.Task
-	filters := &database.Filters{
-		Order:      "rank ASC",
-		Conditions: builder.Eq{"rule_id": rule.ID, "chain": chain},
-	}
-	if err := db.Select(&taskChain, filters); err != nil {
-		return err
-	}
+func preTasks(db *database.Db, logger *log.Logger, rule *model.Rule,
+	trans *model.Transfer) model.TransferError {
 
 	taskRunner := tasks.Processor{
 		Db:       db,
@@ -75,11 +65,14 @@ func runTasks(db *database.Db, logger *log.Logger, chain model.Chain,
 		Rule:     rule,
 		Transfer: trans,
 	}
-	if err := taskRunner.RunTasks(taskChain); err != nil {
-		return err
+
+	tasksList, err := taskRunner.GetTasks(model.ChainPre)
+	if err != nil {
+		logger.Criticalf("Failed to retrieve transfer tasks: %s", err)
+		return model.NewTransferError(model.TeInternal, err.Error())
 	}
 
-	return nil
+	return taskRunner.RunTasks(tasksList)
 }
 
 func makeFileReader(db *database.Db, logger *log.Logger, agentID, accountID uint64,
@@ -128,7 +121,7 @@ func makeFileReader(db *database.Db, logger *log.Logger, agentID, accountID uint
 			},
 		}
 
-		if err := runTasks(db, logger, model.ChainPre, rule, trans); err != nil {
+		if err := preTasks(db, logger, rule, trans); err.Code != model.TeOk {
 			stream.fail = err
 			if err := stream.Close(); err != nil {
 				return nil, err
@@ -166,8 +159,8 @@ func makeDir(root, path string) error {
 
 func makeFileWriter(db *database.Db, logger *log.Logger, agentID, accountID uint64,
 	root string, shutdown <-chan bool) fileWriterFunc {
-
 	return func(r *sftp.Request) (io.WriterAt, error) {
+		logger.Debug("'GET' SFTP request received")
 		// Get rule according to request filepath
 		path := filepath.Dir(r.Filepath)
 		if path == "." || path == "/" {
@@ -181,6 +174,7 @@ func makeFileWriter(db *database.Db, logger *log.Logger, agentID, accountID uint
 			return nil, err
 		}
 
+		logger.Debug("Directory created")
 		// Create Transfer
 		trans := &model.Transfer{
 			RuleID:     rule.ID,
@@ -195,12 +189,14 @@ func makeFileWriter(db *database.Db, logger *log.Logger, agentID, accountID uint
 		if err := db.Create(trans); err != nil {
 			return nil, err
 		}
+		logger.Debug("Transfer created")
 
 		// Create file
 		file, err := os.Create(filepath.Clean(filepath.Join(root, r.Filepath)))
 		if err != nil {
 			return nil, err
 		}
+		logger.Debug("File created")
 
 		stream := &downloadStream{transferStream: &transferStream{
 			db:       db,
@@ -210,18 +206,16 @@ func makeFileWriter(db *database.Db, logger *log.Logger, agentID, accountID uint
 			rule:     rule,
 			shutdown: shutdown,
 		}}
-		if err := runTasks(db, logger, model.ChainPre, rule, trans); err != nil {
+		if err := preTasks(db, logger, rule, trans); err.Code != model.TeOk {
 			stream.fail = err
 			if err := stream.Close(); err != nil {
 				return nil, err
 			}
 			return nil, err
 		}
-		if err := db.Update(&model.Transfer{Status: model.StatusTransfer},
-			trans.ID, false); err != nil {
+		if err := db.Update(&model.Transfer{Status: model.StatusTransfer}, trans.ID, false); err != nil {
 			return nil, err
 		}
-
 		return stream, nil
 	}
 }

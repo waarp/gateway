@@ -1,3 +1,5 @@
+//+build REDO
+
 package sftp
 
 import (

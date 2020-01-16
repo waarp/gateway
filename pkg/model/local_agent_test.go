@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -242,8 +241,8 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 						})
 
 						Convey("Then the error should say that the protocol is invalid", func() {
-							So(err.Error(), ShouldEqual, "The agent's protocol "+
-								"must be one of: "+fmt.Sprint(validProtocols))
+							So(err.Error(), ShouldEqual, "Invalid agent configuration: "+
+								"unknown protocol")
 						})
 					})
 				})
@@ -390,8 +389,8 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 						})
 
 						Convey("Then the error should say that the protocol is invalid", func() {
-							So(err.Error(), ShouldEqual, "The agent's protocol "+
-								"must be one of: "+fmt.Sprint(validProtocols))
+							So(err.Error(), ShouldEqual, "Invalid agent configuration: "+
+								"unknown protocol")
 						})
 					})
 				})

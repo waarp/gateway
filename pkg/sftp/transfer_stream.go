@@ -19,11 +19,47 @@ type transferStream struct {
 	rule     *model.Rule
 	shutdown <-chan bool
 
-	fail  error
+	fail  model.TransferError
 	bytes uint64
 }
 
-func (t *transferStream) endTasks() error {
+func (t *transferStream) postTasks(proc *tasks.Processor) model.TransferError {
+	if err := t.db.Update(&model.Transfer{Status: model.StatusPostTasks},
+		t.trans.ID, false); err != nil {
+		return model.NewTransferError(model.TeInternal, err.Error())
+	}
+
+	postTasks, err := proc.GetTasks(model.ChainPost)
+	if err != nil {
+		t.logger.Criticalf("Failed to retrieve transfer PostTasks: %s", err)
+		return model.NewTransferError(model.TeInternal, err.Error())
+	}
+
+	return proc.RunTasks(postTasks)
+}
+
+func (t *transferStream) errorTasks(proc *tasks.Processor) {
+	stat := &model.Transfer{
+		Status: model.StatusPostTasks,
+		Error:  t.fail,
+	}
+
+	if err := t.db.Update(stat, t.trans.ID, false); err != nil {
+		t.logger.Criticalf("Failed to update transfer status: %s", err)
+		return
+	}
+
+	errTasks, err := proc.GetTasks(model.ChainError)
+	if err != nil {
+		t.logger.Criticalf("Failed to retrieve transfer ErrorTasks: %s", err)
+		return
+	}
+
+	_ = proc.RunTasks(errTasks)
+	t.trans.Status = model.StatusDone
+}
+
+func (t *transferStream) close() {
 	proc := &tasks.Processor{
 		Db:       t.db,
 		Logger:   t.logger,
@@ -31,44 +67,18 @@ func (t *transferStream) endTasks() error {
 		Transfer: t.trans,
 	}
 
-	if t.fail == nil {
-		if err := t.db.Update(&model.Transfer{Status: model.StatusPostTasks},
-			t.trans.ID, false); err != nil {
-			return err
-		}
-
-		postTasks, err := tasks.GetTasks(t.db, t.rule.ID, model.ChainPost)
-		if err != nil {
-			return err
-		}
-
-		t.fail = proc.RunTasks(postTasks)
-		if t.fail == nil {
-			t.trans.Status = model.StatusDone
-			return nil
+	if t.fail.Code == model.TeOk {
+		if t.fail = t.postTasks(proc); t.fail.Code == model.TeOk {
+			t.toHistory(model.StatusDone)
+			return
 		}
 	}
 
-	stat := &model.Transfer{
-		Status: model.StatusErrorTasks,
-		Error:  t.trans.Error,
-	}
-	if err := t.db.Update(stat, t.trans.ID, false); err != nil {
-		return err
-	}
-
-	errTasks, err := tasks.GetTasks(t.db, t.rule.ID, model.ChainError)
-	if err != nil {
-		return err
-	}
-
-	_ = proc.RunTasks(errTasks)
-	t.trans.Status = model.StatusError
-
-	return nil
+	t.errorTasks(proc)
+	t.toHistory(model.StatusError)
 }
 
-func (t *transferStream) toHistory() {
+func (t *transferStream) toHistory(status model.TransferStatus) {
 	trans := &model.Transfer{ID: t.trans.ID}
 	if err := t.db.Get(trans); err != nil {
 		t.logger.Errorf("Error retrieving transfer entry: %s", err)
@@ -86,7 +96,7 @@ func (t *transferStream) toHistory() {
 		return
 	}
 
-	trans.Status = t.trans.Status
+	trans.Status = status
 	hist, err := trans.ToHistory(t.db, time.Now().UTC())
 	if err != nil {
 		t.logger.Errorf("Error converting transfer to history: %s", err)
@@ -110,15 +120,15 @@ func (t *transferStream) transferError(err error) {
 	if err == io.EOF {
 		select {
 		case <-t.shutdown:
-			t.trans.Error = model.NewTransferError(model.TeShuttingDown,
+			t.fail = model.NewTransferError(model.TeShuttingDown,
 				"SFTP server shutdown initiated")
 		default:
-			t.trans.Error = model.NewTransferError(model.TeConnectionReset,
+			t.fail = model.NewTransferError(model.TeConnectionReset,
 				"SFTP connection closed unexpectedly")
 		}
 
 	}
-	t.fail = err
+	t.fail = model.NewTransferError(model.TeDataTransfer, err.Error())
 }
 
 type downloadStream struct {
@@ -128,7 +138,7 @@ type downloadStream struct {
 func (d *downloadStream) WriteAt(p []byte, off int64) (n int, err error) {
 	n, err = d.file.WriteAt(p, off)
 	if err != nil {
-		d.fail = err
+		d.fail = model.NewTransferError(model.TeInternal, err.Error())
 	}
 	d.transferStream.bytes += uint64(n)
 	//TODO: update transfer progress in database
@@ -141,10 +151,7 @@ func (d *downloadStream) TransferError(err error) {
 }
 
 func (d *downloadStream) Close() error {
-	if err := d.endTasks(); err != nil {
-		return err
-	}
-	d.toHistory()
+	d.close()
 	return nil
 }
 
@@ -155,7 +162,7 @@ type uploadStream struct {
 func (u *uploadStream) ReadAt(p []byte, off int64) (n int, err error) {
 	n, err = u.file.ReadAt(p, off)
 	if err != nil && err != io.EOF {
-		u.fail = err
+		u.fail = model.NewTransferError(model.TeInternal, err.Error())
 	}
 	u.transferStream.bytes += uint64(n)
 	//TODO: update transfer progress in database
@@ -168,9 +175,6 @@ func (u *uploadStream) TransferError(err error) {
 }
 
 func (u *uploadStream) Close() error {
-	if err := u.endTasks(); err != nil {
-		return err
-	}
-	u.toHistory()
+	u.close()
 	return nil
 }

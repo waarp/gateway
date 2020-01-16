@@ -10,13 +10,14 @@ import (
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
 )
 
 func init() {
-	config := &ssh.ServerConfig{
+	conf := &ssh.ServerConfig{
 		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			if c.User() == testLogin && string(pass) == testPassword {
 				return nil, nil
@@ -30,15 +31,15 @@ func init() {
 		log.Fatalf("Failed to parse SFTP server key: %s", err)
 	}
 
-	config.AddHostKey(privateKey)
+	conf.AddHostKey(privateKey)
 
 	listener, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		log.Fatalf("Failed to open SFTP server key: %s", err)
 	}
-	port = listener.Addr().(*net.TCPAddr).Port
+	clientTestPort = uint16(listener.Addr().(*net.TCPAddr).Port)
 
-	go handleSFTP(listener, config)
+	go handleSFTP(listener, conf)
 }
 
 func handleSFTP(listener net.Listener, config *ssh.ServerConfig) {
@@ -98,121 +99,43 @@ func handleSFTP(listener net.Listener, config *ssh.ServerConfig) {
 }
 
 func TestConnect(t *testing.T) {
-	Convey("Given a SFTP Server registered as a Remote Agent", t, func() {
-		remote := &model.RemoteAgent{
-			Name:     "test",
-			Protocol: "sftp",
-			ProtoConfig: []byte(
-				fmt.Sprintf(`{"address":%s, "port":%d}`, `"127.0.0.1"`, port)),
-		}
+	Convey("Given a SFTP client", t, func() {
+		client := &Client{}
 
-		Convey("Given a valid certificate", func() {
-			cert := &model.Cert{
-				PublicKey: testPBK,
+		Convey("Given a valid address", func() {
+			client.conf = &config.SftpProtoConfig{
+				Port:    clientTestPort,
+				Address: "localhost",
 			}
 
-			Convey("Given a valid Remote Account", func() {
-				account := &model.RemoteAccount{
-					Login:    testLogin,
-					Password: []byte(testPassword),
-				}
+			Convey("When calling the `Connect` method", func() {
+				err := client.Connect()
 
-				Convey("When calling 'Connect' function", func() {
-					client, err := Connect(remote, cert, account)
-					Convey("Then it should return a client", func() {
-						So(client, ShouldNotBeNil)
-					})
+				Convey("Then it should NOT return an error", func() {
+					So(err, ShouldBeNil)
 
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
-					if client != nil {
-						client.Close()
-					}
-				})
-			})
-			Convey("Given an incorrect Account", func() {
-				account := &model.RemoteAccount{
-					Login:    testLogin,
-					Password: []byte("Giberish"),
-				}
-				Convey("When calling 'Connect' function", func() {
-					client, err := Connect(remote, cert, account)
-
-					Convey("Then it should return NO client", func() {
-						So(client, ShouldBeNil)
-					})
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
+					Convey("Then the connection should be open", func() {
+						So(client.conn, ShouldNotBeNil)
+						So(client.conn.Close(), ShouldBeNil)
 					})
 				})
 			})
 		})
-		Convey("Given a unvalid certificate", func() {
-			cert := &model.Cert{
-				PublicKey: []byte("Giberish"),
-			}
-			Convey("Given a valid Remote Account", func() {
-				account := &model.RemoteAccount{
-					Login:    testLogin,
-					Password: []byte(testPassword),
-				}
 
-				Convey("When calling 'Connect' function", func() {
-					client, err := Connect(remote, cert, account)
-
-					Convey("Then it should return NO client", func() {
-						So(client, ShouldBeNil)
-					})
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-					})
-				})
-			})
-		})
-	})
-
-}
-
-func TestClose(t *testing.T) {
-	Convey("Given a SFTP Server registered as a Remote Agent", t, func() {
-		remote := &model.RemoteAgent{
-			Name:     "test",
-			Protocol: "sftp",
-			ProtoConfig: []byte(
-				fmt.Sprintf(`{"address":%s, "port":%d}`, `"127.0.0.1"`, port)),
-		}
-
-		Convey("Given a valid connection to the server", func() {
-			cert := &model.Cert{
-				PublicKey: testPBK,
-			}
-			account := &model.RemoteAccount{
-				Login:    testLogin,
-				Password: []byte(testPassword),
-			}
-			context, err := Connect(remote, cert, account)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if context != nil {
-				defer context.Close()
+		Convey("Given an incorrect address", func() {
+			client.conf = &config.SftpProtoConfig{
+				Port:    clientTestPort,
+				Address: "255.255.255.255",
 			}
 
-			Convey("When calling the Close function", func() {
-				context.Close()
+			Convey("When calling the `Connect` method", func() {
+				err := client.Connect()
 
-				Convey("Then when trying to use thhe ssh connection", func() {
-					err := context.SSHClient.Wait()
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError)
 
-					Convey("Then err should NOT be nil", func() {
-						So(err, ShouldNotBeNil)
-					})
-
-					Convey("err should be Used of closed connection", func() {
-						So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+					Convey("Then the connection should NOT be open", func() {
+						So(client.conn, ShouldBeNil)
 					})
 				})
 			})
@@ -220,143 +143,234 @@ func TestClose(t *testing.T) {
 	})
 }
 
-func TestDoTransfer(t *testing.T) {
-	Convey("Given a SFTP Server registered as a Remote Agent", t, func() {
-		root, err := ioutil.TempDir("", "gateway-test")
-		So(err, ShouldBeNil)
-		Reset(func() { _ = os.RemoveAll(root) })
-
-		remote := &model.RemoteAgent{
-			Name:     "test",
-			Protocol: "sftp",
-			ProtoConfig: []byte(
-				fmt.Sprintf(`{"address":%s, "port":%d}`, `"127.0.0.1"`, port)),
+func TestAuthenticate(t *testing.T) {
+	Convey("Given a SFTP client", t, func() {
+		client := &Client{
+			conf: &config.SftpProtoConfig{
+				Port:    clientTestPort,
+				Address: "localhost",
+			},
 		}
+		So(client.Connect(), ShouldBeNil)
+		Reset(func() { _ = client.conn.Close() })
 
-		Convey("Given a valid connection to the server", func() {
-			cert := &model.Cert{
-				PublicKey: testPBK,
-			}
-			push := &model.Rule{
-				Name:   "push",
-				IsSend: true,
-			}
-			pull := &model.Rule{
-				Name:   "pull",
-				IsSend: false,
-			}
-			account := &model.RemoteAccount{
-				Login:    testLogin,
-				Password: []byte(testPassword),
-			}
-			context, err := Connect(remote, cert, account)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if context != nil {
-				defer context.Close()
+		Convey("Given a valid SFTP configuration", func() {
+			client.Info = model.OutTransferInfo{
+				Account: model.RemoteAccount{
+					Login:    testLogin,
+					Password: []byte(testPassword),
+				},
+				Certs: []model.Cert{{
+					PublicKey: testPBK,
+				}},
 			}
 
-			// TODO Handle transfer rules
-			Convey("Given a valid push transfer", func() {
+			err := client.Authenticate()
 
-				transfer := &model.Transfer{
-					RuleID:     push.ID,
-					AgentID:    remote.ID,
-					AccountID:  account.ID,
-					SourcePath: "client.go",
-					DestPath:   root + "/client.ds",
-				}
-
-				Convey("When calling DoTransfer", func() {
-					err := DoTransfer(context.SftpClient, transfer, push)
-
-					Reset(func() {
-						_ = os.Remove(transfer.DestPath)
-					})
-
-					Convey("It should return no error", func() {
-						So(err, ShouldBeNil)
-					})
-
-					Convey("The destination file should exist", func() {
-						dstContent, err := ioutil.ReadFile(transfer.DestPath)
-						So(err, ShouldBeNil)
-
-						Convey("The destination file should be the same as the source file", func() {
-							srcContent, err := ioutil.ReadFile(transfer.SourcePath)
-							So(err, ShouldBeNil)
-
-							So(dstContent, ShouldResemble, srcContent)
-						})
-					})
-				})
-			})
-
-			Convey("Given a push transfer with a non exiting file", func() {
-				transfer := &model.Transfer{
-					RuleID:     push.ID,
-					AgentID:    remote.ID,
-					AccountID:  account.ID,
-					SourcePath: "unknown",
-					DestPath:   root + "/client.ds",
-				}
-
-				Convey("When calling DoTransfer", func() {
-					err := DoTransfer(context.SftpClient, transfer, push)
-
-					Reset(func() {
-						_ = os.Remove(transfer.DestPath)
-					})
-
-					Convey("It should return an error", func() {
-						So(err, ShouldBeError)
-					})
-
-					Convey("The destination file should NOT exist", func() {
-						_, err := os.Open(transfer.DestPath)
-						So(err, ShouldBeError)
-						So(err, ShouldHaveSameTypeAs, &os.PathError{})
-					})
-				})
-			})
-
-			Convey("Given a valid pull transfer", func() {
-				err := ioutil.WriteFile(root+"/test_pull.src",
-					[]byte("test client pull"), 0600)
+			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
 
-				transfer := &model.Transfer{
-					RuleID:     pull.ID,
-					AgentID:    remote.ID,
-					AccountID:  account.ID,
-					SourcePath: root + "/test_pull.src",
-					DestPath:   "test_pull.dst",
-				}
+				Convey("Then the SSH tunnel should be opened", func() {
+					So(client.client, ShouldNotBeNil)
+					So(client.client.Close(), ShouldBeNil)
+				})
+			})
+		})
 
-				Convey("When calling DoTransfer", func() {
+		SkipConvey("Given an incorrect SFTP configuration", func() {
+			client.Info = model.OutTransferInfo{
+				Account: model.RemoteAccount{
+					Login:    testLogin,
+					Password: []byte("tutu"),
+				},
+				Certs: []model.Cert{{
+					PublicKey: testPBK,
+				}},
+			}
 
-					err := DoTransfer(context.SftpClient, transfer, pull)
+			err := client.Authenticate()
 
-					Reset(func() {
-						_ = os.Remove(transfer.DestPath)
-					})
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
 
-					Convey("It should return no error", func() {
-						So(err, ShouldBeNil)
-					})
+				Convey("Then the SSH tunnel NOT should be opened", func() {
+					So(client.client, ShouldBeNil)
+				})
+			})
+		})
+	})
+}
 
-					Convey("The destination file should exist", func() {
-						dstContent, err := ioutil.ReadFile(transfer.DestPath)
-						So(err, ShouldBeNil)
+func TestRequest(t *testing.T) {
+	Convey("Given a SFTP client", t, func() {
+		client := &Client{
+			conf: &config.SftpProtoConfig{
+				Port:    clientTestPort,
+				Address: "localhost",
+			},
+		}
+		So(client.Connect(), ShouldBeNil)
+		Reset(func() { _ = client.conn.Close() })
 
-						Convey("The destination file should be the same as the source file", func() {
-							srcContent, err := ioutil.ReadFile(transfer.SourcePath)
-							So(err, ShouldBeNil)
+		client.Info = model.OutTransferInfo{
+			Account: model.RemoteAccount{
+				Login:    testLogin,
+				Password: []byte(testPassword),
+			},
+			Certs: []model.Cert{{
+				PublicKey: testPBK,
+			}},
+		}
 
-							So(dstContent, ShouldResemble, srcContent)
-						})
-					})
+		So(client.Authenticate(), ShouldBeNil)
+		Reset(func() { _ = client.client.Close() })
+
+		Convey("Given a valid out file transfer", func() {
+			client.Info.Transfer = model.Transfer{
+				DestPath: "client_test.dst",
+			}
+			client.Info.Rule = model.Rule{
+				IsSend: true,
+			}
+
+			err := client.Request()
+			Reset(func() { _ = os.Remove(client.Info.Transfer.DestPath) })
+
+			Convey("Then it should NOT return an error", func() {
+				So(err, ShouldBeNil)
+
+				Convey("Then the file stream should be open", func() {
+					So(client.remoteFile, ShouldNotBeNil)
+					So(client.remoteFile.Close(), ShouldBeNil)
+				})
+			})
+		})
+
+		Convey("Given a valid in file transfer", func() {
+			client.Info.Transfer = model.Transfer{
+				SourcePath: "client.go",
+			}
+			client.Info.Rule = model.Rule{
+				IsSend: false,
+			}
+
+			err := client.Request()
+
+			Convey("Then it should NOT return an error", func() {
+				So(err, ShouldBeNil)
+
+				Convey("Then the file stream should be open", func() {
+					So(client.remoteFile, ShouldNotBeNil)
+					So(client.remoteFile.Close(), ShouldBeNil)
+				})
+			})
+		})
+
+		Convey("Given an invalid in file transfer", func() {
+			client.Info.Transfer = model.Transfer{
+				SourcePath: "unknown.file",
+			}
+			client.Info.Rule = model.Rule{
+				IsSend: true,
+			}
+
+			err := client.Request()
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
+
+				Convey("Then the file stream should NOT be open", func() {
+					So(client.remoteFile, ShouldBeNil)
+				})
+			})
+		})
+	})
+}
+
+func TestData(t *testing.T) {
+	Convey("Given a SFTP client", t, func() {
+		client := &Client{
+			conf: &config.SftpProtoConfig{
+				Port:    clientTestPort,
+				Address: "localhost",
+			},
+		}
+		So(client.Connect(), ShouldBeNil)
+		Reset(func() { _ = client.conn.Close() })
+
+		client.Info = model.OutTransferInfo{
+			Account: model.RemoteAccount{
+				Login:    testLogin,
+				Password: []byte(testPassword),
+			},
+			Certs: []model.Cert{{
+				PublicKey: testPBK,
+			}},
+		}
+
+		So(client.Authenticate(), ShouldBeNil)
+		Reset(func() { _ = client.client.Close() })
+
+		Convey("Given a valid out file transfer", func() {
+			client.Info.Transfer = model.Transfer{
+				DestPath:   "client_test_in.dst",
+				SourcePath: "client.go",
+			}
+			client.Info.Rule = model.Rule{
+				IsSend: true,
+			}
+
+			So(client.Request(), ShouldBeNil)
+			Reset(func() { _ = os.Remove(client.Info.Transfer.DestPath) })
+
+			file, err := os.Open(client.Info.Transfer.SourcePath)
+			So(err, ShouldBeNil)
+			client.localFile = file
+
+			err = client.Data()
+
+			Convey("Then it should NOT return an error", func() {
+				So(err, ShouldBeNil)
+
+				Convey("Then the file should have been copied", func() {
+					src, err := ioutil.ReadFile(client.Info.Transfer.SourcePath)
+					So(err, ShouldBeNil)
+					dst, err := ioutil.ReadFile(client.Info.Transfer.DestPath)
+					So(err, ShouldBeNil)
+
+					So(src, ShouldResemble, dst)
+				})
+			})
+		})
+
+		Convey("Given a valid in file transfer", func() {
+			client.Info.Transfer = model.Transfer{
+				DestPath:   "client_test_out.dst",
+				SourcePath: "client.go",
+			}
+			client.Info.Rule = model.Rule{
+				IsSend: false,
+			}
+
+			So(client.Request(), ShouldBeNil)
+
+			file, err := os.Create(client.Info.Transfer.DestPath)
+			So(err, ShouldBeNil)
+			client.localFile = file
+			Reset(func() { _ = os.Remove(client.Info.Transfer.DestPath) })
+
+			err = client.Data()
+
+			Convey("Then it should NOT return an error", func() {
+				So(err, ShouldBeNil)
+
+				Convey("Then the file should have been copied", func() {
+					src, err := ioutil.ReadFile(client.Info.Transfer.SourcePath)
+					So(err, ShouldBeNil)
+					dst, err := ioutil.ReadFile(client.Info.Transfer.DestPath)
+					So(err, ShouldBeNil)
+
+					So(src, ShouldResemble, dst)
 				})
 			})
 		})

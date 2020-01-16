@@ -4,6 +4,10 @@ import (
 	"fmt"
 )
 
+func init() {
+	ProtoConfigs["sftp"] = func() ProtoConfig { return new(SftpProtoConfig) }
+}
+
 // SftpProtoConfig represents the configuration of an SFTP agent.
 type SftpProtoConfig struct {
 	Port    uint16

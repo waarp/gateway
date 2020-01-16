@@ -3,330 +3,291 @@
 package executor
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"os/exec"
+	"os"
+	"sync"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
-	"github.com/go-xorm/builder"
 )
 
-var errShutdown = errors.New("server shutdown signal received")
+// ClientConstructor is the type representing the constructors used to make new
+// instances of transfer clients. All transfer clients must have a ClientConstructor
+// function in order to be called by the transfer executor.
+type ClientConstructor func(model.OutTransferInfo, *os.File, <-chan pipeline.Signal) (pipeline.Client, error)
 
-type transferInfo struct {
-	*model.Transfer
-	remoteAgent   *model.RemoteAgent
-	remoteAccount *model.RemoteAccount
-	remoteCert    *model.Cert
-	rule          *model.Rule
-}
+var (
+	// ClientsConstructors is a map associating a protocol to its client constructor.
+	ClientsConstructors = map[string]ClientConstructor{}
+
+	// Signals is a map regrouping the signal channels of all ongoing transfers.
+	// The signal channel of a specific transfer can be retrieved from this map
+	// using the transfer's ID.
+	Signals sync.Map
+)
 
 // Executor is the process responsible for executing outgoing transfers.
 type Executor struct {
-	Db       *database.Db
-	Logger   *log.Logger
-	R66Home  string
-	Shutdown <-chan bool
+	Db        *database.Db
+	Logger    *log.Logger
+	R66Home   string
+	Transfers <-chan model.Transfer
+
+	finished chan bool
 }
 
-func newTransferInfo(db *database.Db, trans *model.Transfer) (*transferInfo, error) {
-	remote := model.RemoteAgent{ID: trans.AgentID}
-	if err := db.Get(&remote); err != nil {
-		if err == database.ErrNotFound {
-			return nil, fmt.Errorf("the partner n°%v does not exist", trans.AgentID)
-		}
-		return nil, err
-	}
-	certs, err := remote.GetCerts(db)
-	if err != nil || len(certs) == 0 {
-		if len(certs) == 0 {
-			return nil, fmt.Errorf("no certificates found for agent n°%v", remote.ID)
-		}
-		return nil, err
-	}
-	account := model.RemoteAccount{ID: trans.AccountID}
-	if err := db.Get(&account); err != nil {
-		if err == database.ErrNotFound {
-			return nil, fmt.Errorf("the account n°%v does not exist", account.ID)
-		}
-		return nil, err
-	}
-	if account.RemoteAgentID != remote.ID {
-		return nil, fmt.Errorf("the account n°%v does not belong to agent n°%v",
-			account.ID, remote.ID)
-	}
+func (e *Executor) toHistory(id uint64, isError bool) {
+	trans := &model.Transfer{ID: id}
 
-	rule := model.Rule{ID: trans.RuleID}
-	if err := db.Get(&rule); err != nil {
-		if err == database.ErrNotFound {
-			return nil, fmt.Errorf("the rule n°%v does not exist", rule.ID)
-		}
-		return nil, err
-	}
-
-	return &transferInfo{
-		Transfer:      trans,
-		remoteAgent:   &remote,
-		remoteAccount: &account,
-		remoteCert:    &certs[0],
-		rule:          &rule,
-	}, nil
-}
-
-func (e *Executor) logTransfer(trans *model.Transfer, errTrans error) {
-
-	dbErr := func() error {
-		ses, err := e.Db.BeginTransaction()
-		if err != nil {
-			return err
-		}
-
-		if err := ses.Delete(&model.Transfer{ID: trans.ID}); err != nil {
-			ses.Rollback()
-			return err
-		}
-
-		if errTrans != nil {
-			trans.Status = model.StatusError
-			e.Logger.Errorf("Transfer error => %s", errTrans)
-		} else {
-			trans.Status = model.StatusDone
-		}
-
-		hist, err := trans.ToHistory(ses, time.Now())
-		if err != nil {
-			ses.Rollback()
-			return err
-		}
-
-		if err := ses.Create(hist); err != nil {
-			ses.Rollback()
-			return err
-		}
-
-		return ses.Commit()
-	}()
-	if dbErr != nil {
-		e.Logger.Errorf("Database error => %s", dbErr)
-	}
-}
-
-type runner func(*transferInfo) error
-
-func (e *Executor) sftpTransfer(info *transferInfo) error {
-
-	context, err := sftp.Connect(info.remoteAgent, info.remoteCert, info.remoteAccount)
-	if err != nil {
-		return err
-	}
-	defer context.Close()
-
-	done := make(chan bool)
-	go func() {
-		select {
-		case <-e.Shutdown:
-			updt := &model.Transfer{
-				Error: model.NewTransferError(model.TeShuttingDown, errShutdown.Error()),
-			}
-			if err := e.Db.Update(updt, info.Transfer.ID, false); err != nil {
-				e.Logger.Criticalf("Database error: %s", err)
-			}
-			context.Close()
-		case <-done:
-		}
-	}()
-	if err := sftp.DoTransfer(context.SftpClient, info.Transfer, info.rule); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (e *Executor) r66Transfer(info *transferInfo) error {
-
-	script := fmt.Sprintf("%s/bin/waarp-r66client.sh", e.R66Home)
-	args := []string{
-		info.remoteAccount.Login,
-		"send",
-		"-to", info.remoteAgent.Name,
-		"-file", info.Transfer.SourcePath,
-		"-rule", info.rule.Name,
-	}
-	cmd := exec.Command(script, args...) //nolint:gosec
-	out, err := cmd.Output()
-	if err != nil {
-		info.Transfer.Error = model.TransferError{
-			Code:    model.TeExternalOperation,
-			Details: err.Error(),
-		}
-	}
-	if len(out) > 0 {
-		// Get the second line of the output
-		arrays := bytes.Split(out, []byte("\n"))
-		if len(arrays) < 2 {
-			return fmt.Errorf("bad output")
-		}
-		// Parse into a r66Result
-		result := &r66Result{}
-		if err := json.Unmarshal(arrays[1], result); err != nil {
-			return err
-		}
-		// Add R66 result info to the transfer
-		if err = info.Transfer.Error.Code.Scan(result.StatusCode); err != nil {
-			return err
-		}
-		info.Transfer.Error.Details = result.StatusTxt
-		info.Transfer.DestPath = result.FinalPath
-		buf, err := json.Marshal(result)
-		if err != nil {
-			return err
-		}
-		info.Transfer.ExtInfo = buf
-	}
-	return err
-}
-
-type r66Result struct {
-	SpecialID       int
-	StatusCode      string
-	StatusTxt       string
-	FinalPath       string
-	FileInformation string
-	OriginalSize    uint
-}
-
-func updateStatus(db *database.Db, trans *model.Transfer, status model.TransferStatus) error {
-	err := db.Update(&model.Transfer{Status: status, Error: trans.Error}, trans.ID, false)
-	if err != nil {
-		return err
-	}
-	trans.Status = status
-	return nil
-}
-
-func getTasks(db *database.Db, ruleID uint64, chain model.Chain) ([]*model.Task, error) {
-	list := []*model.Task{}
-	filters := &database.Filters{
-		Order:      "rank ASC",
-		Conditions: builder.Eq{"rule_id": ruleID, "chain": chain},
-	}
-
-	if err := db.Select(&list, filters); err != nil {
-		return nil, err
-	}
-	return list, nil
-}
-
-func transferPrologue(db *database.Db, trans *model.Transfer) (*transferInfo, error) {
-	auth, err := model.IsRuleAuthorized(db, trans)
-	if err != nil {
-		return nil, err
-	} else if !auth {
-		return nil, database.InvalidError("Rule %d is not authorized for this transfer", trans.RuleID)
-	}
-
-	info, err := newTransferInfo(db, trans)
-	if err != nil {
-		return nil, err
-	}
-
-	return info, nil
-}
-
-func (e *Executor) runTasks(chain model.Chain, info *transferInfo) error {
-	taskChain, err := getTasks(e.Db, info.rule.ID, chain)
-	if err != nil {
-		return err
-	}
-
-	processor := tasks.Processor{
-		Db:       e.Db,
-		Logger:   e.Logger,
-		Rule:     info.rule,
-		Transfer: info.Transfer,
-		Shutdown: e.Shutdown,
-	}
-
-	err = processor.RunTasks(taskChain)
-	if err == tasks.ErrShutdown {
-		info.Transfer.Error = model.NewTransferError(model.TeShuttingDown,
-			errShutdown.Error())
-		return errShutdown
-	}
-	return err
-}
-
-func (e *Executor) runTransfer(info *transferInfo, run runner) {
-	err := func() error {
-		if info.remoteAgent.Protocol != "r66" {
-			if err := updateStatus(e.Db, info.Transfer, model.StatusPreTasks); err != nil {
-				return err
-			}
-
-			if err := e.runTasks(model.ChainPre, info); err != nil {
-				return err
-			}
-		}
-
-		if err := run(info); err != nil {
-			return err
-		}
-
-		if info.remoteAgent.Protocol != "r66" {
-			if err := updateStatus(e.Db, info.Transfer, model.StatusPostTasks); err != nil {
-				return err
-			}
-
-			return e.runTasks(model.ChainPost, info)
-		}
-
-		return nil
-	}()
-	if err != nil {
-		_ = e.runTasks(model.ChainError, info)
-	}
-	e.logTransfer(info.Transfer, err)
-}
-
-// Run executes the given transfer.
-func (e *Executor) Run(trans model.Transfer) {
-
-	info, err := transferPrologue(e.Db, &trans)
-	if err != nil {
-		e.logTransfer(&trans, err)
+	if err := e.Db.Get(trans); err != nil {
+		e.Logger.Criticalf("Failed to retrieve transfer for archival: %s", err)
 		return
 	}
 
-	runner := e.getProtocolRunner(info.remoteAgent.Protocol)
-	if runner == nil {
-		e.logTransfer(&trans, fmt.Errorf("unknown protocol"))
+	ses, err := e.Db.BeginTransaction()
+	if err != nil {
+		e.Logger.Criticalf("Failed to start archival transaction: %s", err)
 		return
 	}
 
-	if err := updateStatus(e.Db, info.Transfer, model.StatusTransfer); err != nil {
-		if err := updateStatus(e.Db, info.Transfer, model.StatusErrorTasks); err != nil {
-			e.logTransfer(&trans, err)
+	if err := ses.Delete(&model.Transfer{ID: id}); err != nil {
+		e.Logger.Criticalf("Failed to delete transfer for archival: %s", err)
+		ses.Rollback()
+		return
+	}
+
+	if isError {
+		trans.Status = model.StatusError
+	} else {
+		trans.Status = model.StatusDone
+	}
+
+	hist, err := trans.ToHistory(ses, time.Now())
+	if err != nil {
+		e.Logger.Criticalf("Failed to convert transfer to history: %s", err)
+		ses.Rollback()
+		return
+	}
+
+	if err := ses.Create(hist); err != nil {
+		e.Logger.Criticalf("Failed to create new history entry: %s", err)
+		ses.Rollback()
+		return
+	}
+
+	if err := ses.Commit(); err != nil {
+		e.Logger.Criticalf("Failed to commit archival transaction: %s", err)
+		return
+	}
+}
+
+func (e *Executor) setup(trans model.Transfer, s <-chan pipeline.Signal) (client pipeline.Client,
+	proc *tasks.Processor, te model.TransferError) {
+
+	info, err := model.NewOutTransferInfo(e.Db, trans)
+	if err != nil {
+		msg := fmt.Sprintf("Failed to retrieve transfer info: %s", err)
+		e.Logger.Critical(msg)
+		te = model.NewTransferError(model.TeInternal, msg)
+		return
+	}
+
+	var file *os.File
+	if info.Rule.IsSend {
+		file, err = os.OpenFile(info.Transfer.SourcePath, os.O_RDONLY, 0600)
+		if err != nil {
+			msg := fmt.Sprintf("Failed to open local file: %s", err)
+			e.Logger.Critical(msg)
+			te = model.NewTransferError(model.TeFileNotFound, msg)
+			return
+		}
+	} else {
+		file, err = os.OpenFile(info.Transfer.SourcePath, os.O_CREATE|os.O_EXCL, 0600)
+		if err != nil {
+			msg := fmt.Sprintf("Failed to create file: %s", err)
+			e.Logger.Critical(msg)
+			te = model.NewTransferError(model.TeForbidden, msg)
 			return
 		}
 	}
 
-	e.runTransfer(info, runner)
+	constr, ok := ClientsConstructors[info.Agent.Protocol]
+	if !ok {
+		msg := fmt.Sprintf("Unknown transfer protocol")
+		e.Logger.Critical(msg)
+		te = model.NewTransferError(model.TeConnection, msg)
+		return
+	}
+	client, err = constr(*info, file, s)
+	if err != nil {
+		msg := fmt.Sprintf("Failed to create transfer client: %s", err)
+		e.Logger.Critical(msg)
+		te = model.NewTransferError(model.TeConnection, msg)
+		return
+	}
+
+	proc = &tasks.Processor{
+		Db:       e.Db,
+		Logger:   e.Logger,
+		Rule:     &info.Rule,
+		Transfer: &info.Transfer,
+		Signals:  s,
+	}
+
+	return client, proc, te
 }
 
-func (e *Executor) getProtocolRunner(protocol string) runner {
-
-	switch protocol {
-	case "sftp":
-		return e.sftpTransfer
-	case "r66":
-		return e.r66Transfer
+func (e *Executor) prologue(client pipeline.Client) model.TransferError {
+	if err := client.Connect(); err != nil {
+		msg := fmt.Sprintf("Failed to connect to remote agent: %s", err)
+		e.Logger.Error(msg)
+		return model.NewTransferError(model.TeConnection, msg)
 	}
-	return nil
+
+	if err := client.Authenticate(); err != nil {
+		msg := fmt.Sprintf("Failed to authenticate on remote agent: %s", err)
+		e.Logger.Error(msg)
+		return model.NewTransferError(model.TeBadAuthentication, msg)
+	}
+
+	if err := client.Request(); err != nil {
+		msg := fmt.Sprintf("Failed to make transfer request: %s", err)
+		e.Logger.Error(msg)
+		return model.NewTransferError(model.TeUnknown, msg)
+	}
+
+	return model.NewTransferError(model.TeOk, "")
+}
+
+func (e *Executor) preTasks(id uint64, proc *tasks.Processor) model.TransferError {
+	stat := &model.Transfer{Status: model.StatusPreTasks}
+	if err := e.Db.Update(stat, id, false); err != nil {
+		e.Logger.Criticalf("Failed to update transfer status: %s", err)
+		return model.NewTransferError(model.TeInternal, err.Error())
+	}
+
+	preTasks, err := proc.GetTasks(model.ChainPre)
+	if err != nil {
+		e.Logger.Criticalf("Failed to retrieve pre-tasks: %s", err)
+		return model.NewTransferError(model.TeInternal, err.Error())
+	}
+
+	return proc.RunTasks(preTasks)
+}
+
+func (e *Executor) data(id uint64, client pipeline.Client) model.TransferError {
+	stat := &model.Transfer{Status: model.StatusTransfer}
+	if err := e.Db.Update(stat, id, false); err != nil {
+		e.Logger.Criticalf("Failed to update transfer status: %s", err)
+		return model.NewTransferError(model.TeInternal, err.Error())
+	}
+
+	if err := client.Data(); err != nil {
+		e.Logger.Errorf("Error while transmitting data: %s", err)
+		return model.NewTransferError(model.TeDataTransfer, err.Error())
+	}
+	return model.NewTransferError(model.TeOk, "")
+}
+
+func (e *Executor) postTasks(id uint64, proc *tasks.Processor) model.TransferError {
+	stat := &model.Transfer{Status: model.StatusPostTasks}
+	if err := e.Db.Update(stat, id, false); err != nil {
+		e.Logger.Criticalf("Failed to update transfer status: %s", err)
+		return model.NewTransferError(model.TeInternal, err.Error())
+	}
+
+	postTasks, err := proc.GetTasks(model.ChainPost)
+	if err != nil {
+		e.Logger.Criticalf("Failed to retrieve post-tasks: %s", err)
+		return model.NewTransferError(model.TeInternal, err.Error())
+	}
+
+	return proc.RunTasks(postTasks)
+}
+
+func (e *Executor) errorTasks(id uint64, proc *tasks.Processor) model.TransferError {
+	stat := &model.Transfer{Status: model.StatusErrorTasks}
+	if err := e.Db.Update(stat, id, false); err != nil {
+		e.Logger.Criticalf("Failed to update transfer status: %s", err)
+		return model.NewTransferError(model.TeInternal, err.Error())
+	}
+
+	errorTasks, err := proc.GetTasks(model.ChainError)
+	if err != nil {
+		e.Logger.Criticalf("Failed to retrieve error-tasks: %s", err)
+		return model.NewTransferError(model.TeInternal, err.Error())
+	}
+
+	return proc.RunTasks(errorTasks)
+}
+
+func (e *Executor) handleError(id uint64, err model.TransferError) {
+	if dbErr := e.Db.Update(&model.Transfer{Error: err}, id, false); dbErr != nil {
+		e.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
+		return
+	}
+	e.toHistory(id, true)
+}
+
+func (e *Executor) runTransfer(trans model.Transfer, s <-chan pipeline.Signal) {
+	client, proc, sErr := e.setup(trans, s)
+	if sErr.Code != model.TeOk {
+		e.handleError(trans.ID, sErr)
+		return
+	}
+
+	if pErr := e.prologue(client); pErr.Code != model.TeOk {
+		e.handleError(trans.ID, pErr)
+		return
+	}
+
+	tErr := func() model.TransferError {
+		if pErr := e.preTasks(trans.ID, proc); pErr.Code != model.TeOk {
+			return pErr
+		}
+		if dErr := e.data(trans.ID, client); dErr.Code != model.TeOk {
+			return dErr
+		}
+		if pErr := e.postTasks(trans.ID, proc); pErr.Code != model.TeOk {
+			return pErr
+		}
+		e.toHistory(trans.ID, false)
+		return model.NewTransferError(model.TeOk, "")
+	}()
+
+	if tErr.Code == model.TeShuttingDown {
+		e.handleError(trans.ID, tErr)
+		return
+	}
+	if tErr.Code != model.TeOk {
+		if dbErr := e.Db.Update(&model.Transfer{Error: tErr}, trans.ID, false); dbErr != nil {
+			e.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
+			return
+		}
+		if eErr := e.errorTasks(trans.ID, proc); eErr.Code != model.TeOk {
+			return
+		}
+		e.toHistory(trans.ID, true)
+	}
+}
+
+// Run starts the transfer executor. The executor will execute transfers received
+// on the transfers channel until the `Close` method is called.
+func (e *Executor) Run(wg *sync.WaitGroup) {
+	wg.Add(1)
+	go func() {
+		e.finished = make(chan bool)
+		for trans := range e.Transfers {
+			s := make(chan pipeline.Signal)
+			Signals.Store(trans.ID, s)
+			e.runTransfer(trans, s)
+			Signals.Delete(trans.ID)
+		}
+		close(e.finished)
+		wg.Done()
+	}()
 }

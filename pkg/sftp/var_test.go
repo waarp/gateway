@@ -14,9 +14,9 @@ const (
 )
 
 var (
-	port    int
-	testPK  = []byte(pk)
-	testPBK = []byte(pbk)
+	clientTestPort uint16
+	testPK         = []byte(pk)
+	testPBK        = []byte(pbk)
 
 	testLogConf = conf.LogConfig{
 		Level: "DEBUG",

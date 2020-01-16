@@ -87,10 +87,6 @@ func (r *RemoteAgent) ValidateInsert(acc database.Accessor) error {
 	if r.Name == "" {
 		return database.InvalidError("The agent's name cannot be empty")
 	}
-	if !IsValidProtocol(r.Protocol) {
-		return database.InvalidError("The agent's protocol must be one of: %s",
-			validProtocols)
-	}
 	if r.ProtoConfig == nil {
 		return database.InvalidError("The agent's configuration cannot be empty")
 	}
@@ -123,13 +119,7 @@ func (r *RemoteAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 		return database.InvalidError("The agent's ID cannot be entered manually")
 	}
 
-	if r.Protocol != "" {
-		if !IsValidProtocol(r.Protocol) {
-			return database.InvalidError("The agent's protocol must be one of: %s",
-				validProtocols)
-		}
-	}
-	if r.ProtoConfig != nil {
+	if r.Protocol != "" || r.ProtoConfig != nil {
 		if err := r.validateProtoConfig(); err != nil {
 			return database.InvalidError("Invalid agent configuration: %s", err.Error())
 		}

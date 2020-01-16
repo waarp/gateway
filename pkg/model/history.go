@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 )
 
 func init() {
@@ -86,7 +87,7 @@ func (t *TransferHistory) ValidateInsert(database.Accessor) error {
 			"to the start date")
 	}
 
-	if !IsValidProtocol(t.Protocol) {
+	if _, ok := config.ProtoConfigs[t.Protocol]; !ok {
 		return database.InvalidError("'%s' is not a valid protocol", t.Protocol)
 	}
 

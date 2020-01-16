@@ -80,10 +80,6 @@ func (l *LocalAgent) ValidateInsert(acc database.Accessor) error {
 	if l.Name == "" {
 		return database.InvalidError("The agent's name cannot be empty")
 	}
-	if !IsValidProtocol(l.Protocol) {
-		return database.InvalidError("The agent's protocol must be one of: %s",
-			validProtocols)
-	}
 	if l.ProtoConfig == nil {
 		return database.InvalidError("The agent's configuration cannot be empty")
 	}
@@ -130,14 +126,7 @@ func (l *LocalAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 		}
 	}
 
-	if l.Protocol != "" {
-		if !IsValidProtocol(l.Protocol) {
-			return database.InvalidError("The agent's protocol must be one of: %s",
-				validProtocols)
-		}
-	}
-
-	if l.ProtoConfig != nil {
+	if l.Protocol != "" || l.ProtoConfig != nil {
 		if err := l.validateProtoConfig(); err != nil {
 			return database.InvalidError("Invalid agent configuration: %s", err.Error())
 		}
