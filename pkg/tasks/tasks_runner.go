@@ -4,6 +4,7 @@ package tasks
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -11,11 +12,10 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/go-xorm/builder"
 )
 
-var errWarning = fmt.Errorf("warning")
+var errWarning = errors.New("warning")
 
 // Processor provides a way to execute tasks
 // given a transfer context (rule, transfer)
@@ -24,7 +24,7 @@ type Processor struct {
 	Logger   *log.Logger
 	Rule     *model.Rule
 	Transfer *model.Transfer
-	Signals  <-chan pipeline.Signal
+	Signals  <-chan model.Signal
 }
 
 // GetTasks returns the list of all tasks of the given rule & chain.
@@ -45,14 +45,13 @@ func (p *Processor) runTask(task model.Task, taskInfo string) error {
 	runnable, ok := RunnableTasks[task.Type]
 	if !ok {
 		logMsg := fmt.Sprintf("%s: %s", taskInfo, "unknown task")
-		p.Logger.Error(logMsg)
-		return fmt.Errorf("unknown task")
+		return fmt.Errorf(logMsg)
 	}
 	args, err := p.setup(&task)
 	if err != nil {
 		logMsg := fmt.Sprintf("%s: %s", taskInfo, err.Error())
 		p.Logger.Error(logMsg)
-		return err
+		return fmt.Errorf(logMsg)
 	}
 
 	msg, err := runnable.Run(args, p)
@@ -60,13 +59,13 @@ func (p *Processor) runTask(task model.Task, taskInfo string) error {
 	if err != nil {
 		if err != errWarning {
 			p.Logger.Error(logMsg)
-			return err
+			return fmt.Errorf(logMsg)
 		}
 		p.Logger.Warning(logMsg)
 		if err := p.Db.Update(&model.Transfer{Error: model.NewTransferError(
 			model.TeWarning, logMsg)}, p.Transfer.ID, false); err != nil {
 
-			return err
+			return fmt.Errorf("failed to update task status: %s", err.Error())
 		}
 	}
 	p.Logger.Info(logMsg)
@@ -81,8 +80,8 @@ func (p *Processor) RunTasks(tasks []model.Task) model.TransferError {
 			task.Chain, task.Rank)
 		select {
 		case signal := <-p.Signals:
-			if signal == pipeline.Shutdown {
-				return model.NewTransferError(model.TeShuttingDown, "shutdown signal received")
+			if signal == model.SignalShutdown {
+				return model.NewTransferError(model.TeShuttingDown, "server shutting down")
 			}
 		default:
 		}
@@ -91,7 +90,7 @@ func (p *Processor) RunTasks(tasks []model.Task) model.TransferError {
 			return model.NewTransferError(model.TeExternalOperation, err.Error())
 		}
 	}
-	return model.NewTransferError(model.TeOk, "")
+	return model.TransferError{}
 }
 
 // setup contextualise and unmarshal the tasks arguments

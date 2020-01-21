@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -18,16 +17,11 @@ import (
 // ClientConstructor is the type representing the constructors used to make new
 // instances of transfer clients. All transfer clients must have a ClientConstructor
 // function in order to be called by the transfer executor.
-type ClientConstructor func(model.OutTransferInfo, *os.File, <-chan pipeline.Signal) (pipeline.Client, error)
+type ClientConstructor func(model.OutTransferInfo, *os.File, <-chan model.Signal) (pipeline.Client, error)
 
 var (
 	// ClientsConstructors is a map associating a protocol to its client constructor.
 	ClientsConstructors = map[string]ClientConstructor{}
-
-	// Signals is a map regrouping the signal channels of all ongoing transfers.
-	// The signal channel of a specific transfer can be retrieved from this map
-	// using the transfer's ID.
-	Signals sync.Map
 )
 
 // Executor is the process responsible for executing outgoing transfers.
@@ -40,52 +34,7 @@ type Executor struct {
 	finished chan bool
 }
 
-func (e *Executor) toHistory(id uint64, isError bool) {
-	trans := &model.Transfer{ID: id}
-
-	if err := e.Db.Get(trans); err != nil {
-		e.Logger.Criticalf("Failed to retrieve transfer for archival: %s", err)
-		return
-	}
-
-	ses, err := e.Db.BeginTransaction()
-	if err != nil {
-		e.Logger.Criticalf("Failed to start archival transaction: %s", err)
-		return
-	}
-
-	if err := ses.Delete(&model.Transfer{ID: id}); err != nil {
-		e.Logger.Criticalf("Failed to delete transfer for archival: %s", err)
-		ses.Rollback()
-		return
-	}
-
-	if isError {
-		trans.Status = model.StatusError
-	} else {
-		trans.Status = model.StatusDone
-	}
-
-	hist, err := trans.ToHistory(ses, time.Now())
-	if err != nil {
-		e.Logger.Criticalf("Failed to convert transfer to history: %s", err)
-		ses.Rollback()
-		return
-	}
-
-	if err := ses.Create(hist); err != nil {
-		e.Logger.Criticalf("Failed to create new history entry: %s", err)
-		ses.Rollback()
-		return
-	}
-
-	if err := ses.Commit(); err != nil {
-		e.Logger.Criticalf("Failed to commit archival transaction: %s", err)
-		return
-	}
-}
-
-func (e *Executor) setup(trans model.Transfer, s <-chan pipeline.Signal) (client pipeline.Client,
+func (e *Executor) setup(trans model.Transfer, s <-chan model.Signal) (client pipeline.Client,
 	proc *tasks.Processor, te model.TransferError) {
 
 	info, err := model.NewOutTransferInfo(e.Db, trans)
@@ -163,22 +112,6 @@ func (e *Executor) prologue(client pipeline.Client) model.TransferError {
 	return model.NewTransferError(model.TeOk, "")
 }
 
-func (e *Executor) preTasks(id uint64, proc *tasks.Processor) model.TransferError {
-	stat := &model.Transfer{Status: model.StatusPreTasks}
-	if err := e.Db.Update(stat, id, false); err != nil {
-		e.Logger.Criticalf("Failed to update transfer status: %s", err)
-		return model.NewTransferError(model.TeInternal, err.Error())
-	}
-
-	preTasks, err := proc.GetTasks(model.ChainPre)
-	if err != nil {
-		e.Logger.Criticalf("Failed to retrieve pre-tasks: %s", err)
-		return model.NewTransferError(model.TeInternal, err.Error())
-	}
-
-	return proc.RunTasks(preTasks)
-}
-
 func (e *Executor) data(id uint64, client pipeline.Client) model.TransferError {
 	stat := &model.Transfer{Status: model.StatusTransfer}
 	if err := e.Db.Update(stat, id, false); err != nil {
@@ -192,48 +125,15 @@ func (e *Executor) data(id uint64, client pipeline.Client) model.TransferError {
 	}
 	return model.NewTransferError(model.TeOk, "")
 }
-
-func (e *Executor) postTasks(id uint64, proc *tasks.Processor) model.TransferError {
-	stat := &model.Transfer{Status: model.StatusPostTasks}
-	if err := e.Db.Update(stat, id, false); err != nil {
-		e.Logger.Criticalf("Failed to update transfer status: %s", err)
-		return model.NewTransferError(model.TeInternal, err.Error())
-	}
-
-	postTasks, err := proc.GetTasks(model.ChainPost)
-	if err != nil {
-		e.Logger.Criticalf("Failed to retrieve post-tasks: %s", err)
-		return model.NewTransferError(model.TeInternal, err.Error())
-	}
-
-	return proc.RunTasks(postTasks)
-}
-
-func (e *Executor) errorTasks(id uint64, proc *tasks.Processor) model.TransferError {
-	stat := &model.Transfer{Status: model.StatusErrorTasks}
-	if err := e.Db.Update(stat, id, false); err != nil {
-		e.Logger.Criticalf("Failed to update transfer status: %s", err)
-		return model.NewTransferError(model.TeInternal, err.Error())
-	}
-
-	errorTasks, err := proc.GetTasks(model.ChainError)
-	if err != nil {
-		e.Logger.Criticalf("Failed to retrieve error-tasks: %s", err)
-		return model.NewTransferError(model.TeInternal, err.Error())
-	}
-
-	return proc.RunTasks(errorTasks)
-}
-
 func (e *Executor) handleError(id uint64, err model.TransferError) {
 	if dbErr := e.Db.Update(&model.Transfer{Error: err}, id, false); dbErr != nil {
 		e.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		return
 	}
-	e.toHistory(id, true)
+	pipeline.ToHistory(e.Db, e.Logger, id, true)
 }
 
-func (e *Executor) runTransfer(trans model.Transfer, s <-chan pipeline.Signal) {
+func (e *Executor) runTransfer(trans model.Transfer, s <-chan model.Signal) {
 	client, proc, sErr := e.setup(trans, s)
 	if sErr.Code != model.TeOk {
 		e.handleError(trans.ID, sErr)
@@ -246,16 +146,16 @@ func (e *Executor) runTransfer(trans model.Transfer, s <-chan pipeline.Signal) {
 	}
 
 	tErr := func() model.TransferError {
-		if pErr := e.preTasks(trans.ID, proc); pErr.Code != model.TeOk {
+		if pErr := pipeline.PreTasks(e.Db, e.Logger, proc); pErr.Code != model.TeOk {
 			return pErr
 		}
 		if dErr := e.data(trans.ID, client); dErr.Code != model.TeOk {
 			return dErr
 		}
-		if pErr := e.postTasks(trans.ID, proc); pErr.Code != model.TeOk {
+		if pErr := pipeline.PostTasks(e.Db, e.Logger, proc); pErr.Code != model.TeOk {
 			return pErr
 		}
-		e.toHistory(trans.ID, false)
+		pipeline.ToHistory(e.Db, e.Logger, trans.ID, false)
 		return model.NewTransferError(model.TeOk, "")
 	}()
 
@@ -268,10 +168,10 @@ func (e *Executor) runTransfer(trans model.Transfer, s <-chan pipeline.Signal) {
 			e.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 			return
 		}
-		if eErr := e.errorTasks(trans.ID, proc); eErr.Code != model.TeOk {
+		if eErr := pipeline.ErrorTasks(e.Db, e.Logger, proc, tErr); eErr.Code != model.TeOk {
 			return
 		}
-		e.toHistory(trans.ID, true)
+		pipeline.ToHistory(e.Db, e.Logger, trans.ID, true)
 	}
 }
 
@@ -282,10 +182,10 @@ func (e *Executor) Run(wg *sync.WaitGroup) {
 	go func() {
 		e.finished = make(chan bool)
 		for trans := range e.Transfers {
-			s := make(chan pipeline.Signal)
-			Signals.Store(trans.ID, s)
+			s := make(chan model.Signal)
+			pipeline.Signals.Store(trans.ID, s)
 			e.runTransfer(trans, s)
-			Signals.Delete(trans.ID)
+			pipeline.Signals.Delete(trans.ID)
 		}
 		close(e.finished)
 		wg.Done()

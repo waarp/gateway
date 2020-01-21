@@ -7,7 +7,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"github.com/pkg/sftp"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ssh"
 )
@@ -59,6 +58,17 @@ func parseServerAddr(server *model.LocalAgent) (string, uint16, error) {
 	return conf.Address, conf.Port, nil
 }
 
+func getAccountID(db *database.Db, agentID uint64, login string) (uint64, error) {
+	account := model.LocalAccount{
+		LocalAgentID: agentID,
+		Login:        login,
+	}
+	if err := db.Get(&account); err != nil {
+		return 0, err
+	}
+	return account.ID, nil
+}
+
 func acceptRequests(in <-chan *ssh.Request) {
 	for req := range in {
 		ok := false
@@ -70,45 +80,4 @@ func acceptRequests(in <-chan *ssh.Request) {
 		}
 		_ = req.Reply(ok, nil)
 	}
-}
-
-func (s *sshServer) handleSession(user string, newChannel ssh.NewChannel) {
-	if newChannel.ChannelType() != "session" {
-		s.logger.Warning("Unknown channel type received")
-		_ = newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
-		return
-	}
-
-	channel, requests, err := newChannel.Accept()
-	if err != nil {
-		s.logger.Errorf("Failed to accept SFTP session: %s", err)
-		return
-	}
-	go acceptRequests(requests)
-
-	// Resolve conn.User() to model.LocalAccount
-	acc := &model.LocalAccount{
-		LocalAgentID: s.agent.ID,
-		Login:        user,
-	}
-	if err := s.db.Get(acc); err != nil {
-		s.logger.Errorf("Failed to retrieve user: %s", err)
-		return
-	}
-
-	server := sftp.NewRequestServer(channel, makeHandlers(s.db, s.logger, s.agent,
-		acc, s.shutdown))
-
-	done := make(chan bool)
-	go func() {
-		select {
-		case <-s.shutdown:
-			_ = server.Close()
-		case <-done:
-		}
-	}()
-
-	_ = server.Serve()
-	close(done)
-	_ = channel.Close()
 }

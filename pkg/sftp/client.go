@@ -24,7 +24,7 @@ func init() {
 // Client is the SFTP implementation of the `pipeline.Client` interface which
 // enables the gateway to initiate SFTP transfers.
 type Client struct {
-	Signals <-chan pipeline.Signal
+	Signals <-chan model.Signal
 	Info    model.OutTransferInfo
 
 	conf       *config.SftpProtoConfig
@@ -38,7 +38,7 @@ type Client struct {
 // local file, and signal channel. An error is returned if the client
 // configuration is incorrect.
 func NewClient(info model.OutTransferInfo, localFile *os.File,
-	signals <-chan pipeline.Signal) (pipeline.Client, error) {
+	signals <-chan model.Signal) (pipeline.Client, error) {
 
 	client := &Client{
 		Info:      info,

@@ -1,5 +1,3 @@
-//+build REDO
-
 package sftp
 
 import (
@@ -10,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -44,7 +43,7 @@ func TestServerStop(t *testing.T) {
 		}
 		So(db.Create(cert), ShouldBeNil)
 
-		server := NewServer(db, agent, log.NewLogger("test_sftp_server", testLogConf))
+		server := NewService(db, agent, log.NewLogger("test_sftp_server", testLogConf))
 		So(server.Start(), ShouldBeNil)
 
 		Convey("When stopping the service", func() {
@@ -86,7 +85,7 @@ func TestServerStart(t *testing.T) {
 		}
 		So(db.Create(cert), ShouldBeNil)
 
-		sftpServer := NewServer(db, agent, log.NewLogger("test_sftp_server", testLogConf))
+		sftpServer := NewService(db, agent, log.NewLogger("test_sftp_server", testLogConf))
 
 		Convey("When starting the server", func() {
 			err := sftpServer.Start()
@@ -138,20 +137,20 @@ func TestSSHServer(t *testing.T) {
 		}
 		So(db.Create(cert), ShouldBeNil)
 
-		pull := &model.Rule{
-			Name:    "pull",
+		receive := &model.Rule{
+			Name:    "receive",
 			Comment: "",
 			IsSend:  false,
-			Path:    "/pull",
+			Path:    "/receive",
 		}
-		push := &model.Rule{
-			Name:    "push",
+		send := &model.Rule{
+			Name:    "send",
 			Comment: "",
 			IsSend:  true,
-			Path:    "/push",
+			Path:    "/send",
 		}
-		So(db.Create(pull), ShouldBeNil)
-		So(db.Create(push), ShouldBeNil)
+		So(db.Create(receive), ShouldBeNil)
+		So(db.Create(send), ShouldBeNil)
 
 		config, err := loadSSHConfig(db, cert)
 		So(err, ShouldBeNil)
@@ -159,17 +158,20 @@ func TestSSHServer(t *testing.T) {
 		listener, err := net.Listen("tcp", "localhost:"+port)
 		So(err, ShouldBeNil)
 
-		sshServ := newListener(db, logger, listener, agent, config)
-		sshServ.listen()
+		sshList := &sshListener{
+			Db:       db,
+			Logger:   logger,
+			Agent:    agent,
+			Conf:     config,
+			Listener: listener,
+			connWg:   sync.WaitGroup{},
+		}
+		sshList.listen()
 
 		Reset(func() {
-			select {
-			case <-sshServ.shutdown:
-			default:
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-				defer cancel()
-				So(sshServ.close(ctx), ShouldBeNil)
-			}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			So(sshList.close(ctx), ShouldBeNil)
 		})
 
 		Convey("Given an SSH client", func() {
@@ -194,25 +196,26 @@ func TestSSHServer(t *testing.T) {
 			Convey("Given an incoming transfer", func() {
 				content := "Test incoming file"
 
-				err := os.MkdirAll(root+pull.Path, 0700)
+				err := os.MkdirAll(root+receive.Path, 0700)
 				So(err, ShouldBeNil)
 
-				Reset(func() { _ = os.RemoveAll(root + pull.Path) })
+				Reset(func() { _ = os.RemoveAll(root + receive.Path) })
 
 				Convey("Given that the transfer finishes normally", func() {
 					src := bytes.NewBuffer([]byte(content))
 
-					dst, err := client.Create(pull.Path + "/test_in.dst")
+					dst, err := client.Create(receive.Path + "/test_in.dst")
 					So(err, ShouldBeNil)
 
 					_, err = io.Copy(dst, src)
 					So(err, ShouldBeNil)
 
-					err = dst.Close()
-					So(err, ShouldBeNil)
+					So(dst.Close(), ShouldBeNil)
+					So(client.Close(), ShouldBeNil)
+					So(conn.Close(), ShouldBeNil)
 
 					Convey("Then the destination file should exist", func() {
-						path := root + pull.Path + "/test_in.dst"
+						path := root + receive.Path + "/test_in.dst"
 						_, err := os.Stat(path)
 						So(err, ShouldBeNil)
 
@@ -227,22 +230,15 @@ func TestSSHServer(t *testing.T) {
 					Convey("Then the transfer should appear in the history", func() {
 						hist := &model.TransferHistory{
 							IsServer:       true,
-							IsSend:         pull.IsSend,
+							IsSend:         receive.IsSend,
 							Account:        user.Login,
 							Remote:         agent.Name,
 							Protocol:       "sftp",
-							SourceFilename: "test_in.dst",
-							DestFilename:   pull.Path + "/test_in.dst",
-							Rule:           pull.Name,
+							SourceFilename: ".",
+							DestFilename:   "test_in.dst",
+							Rule:           receive.Name,
 							Status:         model.StatusDone,
 						}
-
-						err := client.Close()
-						So(err, ShouldBeNil)
-
-						var h []model.TransferHistory
-						So(db.Select(&h, nil), ShouldBeNil)
-						Printf("\nHISTORY => %+v\n", h)
 
 						ok, err := db.Exists(hist)
 						So(err, ShouldBeNil)
@@ -253,9 +249,9 @@ func TestSSHServer(t *testing.T) {
 				Convey("Given that 2 transfers launch simultaneously", func() {
 					src := bytes.NewBuffer([]byte(content))
 
-					dst1, err := client.Create(pull.Path + "/test_in_1.dst")
+					dst1, err := client.Create(receive.Path + "/test_in_1.dst")
 					So(err, ShouldBeNil)
-					dst2, err := client.Create(pull.Path + "/test_in_2.dst")
+					dst2, err := client.Create(receive.Path + "/test_in_2.dst")
 					So(err, ShouldBeNil)
 
 					res1 := make(chan error)
@@ -278,11 +274,11 @@ func TestSSHServer(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then the destination files should exist", func() {
-						path1 := root + pull.Path + "/test_in_1.dst"
+						path1 := root + receive.Path + "/test_in_1.dst"
 						_, err := os.Stat(path1)
 						So(err, ShouldBeNil)
 
-						path2 := root + pull.Path + "/test_in_2.dst"
+						path2 := root + receive.Path + "/test_in_2.dst"
 						_, err = os.Stat(path2)
 						So(err, ShouldBeNil)
 
@@ -301,24 +297,24 @@ func TestSSHServer(t *testing.T) {
 					Convey("Then the transfers should appear in the history", func() {
 						hist1 := &model.TransferHistory{
 							IsServer:       true,
-							IsSend:         pull.IsSend,
+							IsSend:         receive.IsSend,
 							Account:        user.Login,
 							Remote:         agent.Name,
 							Protocol:       "sftp",
-							SourceFilename: "test_in_1.dst",
-							DestFilename:   pull.Path + "/test_in_1.dst",
-							Rule:           pull.Name,
+							SourceFilename: ".",
+							DestFilename:   "test_in_1.dst",
+							Rule:           receive.Name,
 							Status:         model.StatusDone,
 						}
 						hist2 := &model.TransferHistory{
 							IsServer:       true,
-							IsSend:         pull.IsSend,
+							IsSend:         receive.IsSend,
 							Account:        user.Login,
 							Remote:         agent.Name,
 							Protocol:       "sftp",
-							SourceFilename: "test_in_2.dst",
-							DestFilename:   pull.Path + "/test_in_2.dst",
-							Rule:           pull.Name,
+							SourceFilename: ".",
+							DestFilename:   "test_in_2.dst",
+							Rule:           receive.Name,
 							Status:         model.StatusDone,
 						}
 
@@ -338,7 +334,7 @@ func TestSSHServer(t *testing.T) {
 				Convey("Given that the transfer fails", func() {
 					src := rand.Reader
 
-					dst, err := client.Create(pull.Path + "/test_in_fail.dst")
+					dst, err := client.Create(receive.Path + "/test_in_fail.dst")
 					So(err, ShouldBeNil)
 
 					reply := make(chan error)
@@ -347,37 +343,38 @@ func TestSSHServer(t *testing.T) {
 						reply <- res
 					}()
 
-					err = client.Close()
-					So(err, ShouldBeNil)
+					So(conn.Close(), ShouldBeNil)
 					err = <-reply
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, "failed to send packet: EOF")
-					})
 
-					Convey("Then the transfer should appear in the history", func() {
-						hist := &model.TransferHistory{
-							IsServer:       true,
-							IsSend:         pull.IsSend,
-							Account:        user.Login,
-							Remote:         agent.Name,
-							Protocol:       "sftp",
-							SourceFilename: "test_in_fail.dst",
-							DestFilename:   pull.Path + "/test_in_fail.dst",
-							Rule:           pull.Name,
-							Status:         model.StatusError,
-						}
+						Convey("Then the transfer should appear in the history", func() {
+							hist := &model.TransferHistory{
+								IsServer:       true,
+								IsSend:         receive.IsSend,
+								Account:        user.Login,
+								Remote:         agent.Name,
+								Protocol:       "sftp",
+								SourceFilename: ".",
+								DestFilename:   "test_in_fail.dst",
+								Rule:           receive.Name,
+								Status:         model.StatusError,
+							}
 
-						So(db.Get(hist), ShouldBeNil)
-						So(hist.Error, ShouldResemble, model.NewTransferError(
-							model.TeConnectionReset, "SFTP connection closed unexpectedly"))
+							time.Sleep(time.Second)
+
+							So(db.Get(hist), ShouldBeNil)
+							So(hist.Error, ShouldResemble, model.NewTransferError(
+								model.TeConnectionReset, "SFTP connection closed unexpectedly"))
+						})
 					})
 				})
 
-				Convey("Given that the server shuts down", func() {
+				SkipConvey("Given that the server shuts down", func() {
 					src := rand.Reader
 
-					dst, err := client.Create(pull.Path + "/test_in_shutdown.dst")
+					dst, err := client.Create(receive.Path + "/test_in_shutdown.dst")
 					So(err, ShouldBeNil)
 
 					go func() {
@@ -386,18 +383,18 @@ func TestSSHServer(t *testing.T) {
 
 					ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 					defer cancel()
-					So(sshServ.close(ctx), ShouldBeNil)
+					So(sshList.close(ctx), ShouldBeNil)
 
 					Convey("Then the transfer should appear in the history", func() {
 						hist := &model.TransferHistory{
 							IsServer:       true,
-							IsSend:         pull.IsSend,
+							IsSend:         receive.IsSend,
 							Account:        user.Login,
 							Remote:         agent.Name,
 							Protocol:       "sftp",
 							SourceFilename: "test_in_shutdown.dst",
-							DestFilename:   pull.Path + "/test_in_shutdown.dst",
-							Rule:           pull.Name,
+							DestFilename:   receive.Path + "/test_in_shutdown.dst",
+							Rule:           receive.Name,
 							Status:         model.StatusError,
 						}
 
@@ -411,16 +408,16 @@ func TestSSHServer(t *testing.T) {
 			Convey("Given an outgoing transfer", func() {
 				content := "Test outgoing file"
 
-				err := os.MkdirAll(root+push.Path, 0700)
+				err := os.MkdirAll(root+send.Path, 0700)
 				So(err, ShouldBeNil)
 
-				err = ioutil.WriteFile(root+push.Path+"/test_out.src", []byte(content), 0600)
+				err = ioutil.WriteFile(root+send.Path+"/test_out.src", []byte(content), 0600)
 				So(err, ShouldBeNil)
 
-				Reset(func() { _ = os.RemoveAll(root + push.Path) })
+				Reset(func() { _ = os.RemoveAll(root + send.Path) })
 
 				Convey("Given that the transfer finishes normally", func() {
-					src, err := client.Open(push.Path + "/test_out.src")
+					src, err := client.Open(send.Path + "/test_out.src")
 					So(err, ShouldBeNil)
 
 					dst := &bytes.Buffer{}
@@ -428,8 +425,9 @@ func TestSSHServer(t *testing.T) {
 					_, err = src.WriteTo(dst)
 					So(err, ShouldBeNil)
 
-					err = src.Close()
-					So(err, ShouldBeNil)
+					So(src.Close(), ShouldBeNil)
+					So(client.Close(), ShouldBeNil)
+					So(conn.Close(), ShouldBeNil)
 
 					Convey("Then the destination file should exist", func() {
 						dstContent, err := ioutil.ReadAll(dst)
@@ -444,18 +442,15 @@ func TestSSHServer(t *testing.T) {
 					Convey("Then the transfer should appear in the history", func() {
 						hist := &model.TransferHistory{
 							IsServer:       true,
-							IsSend:         push.IsSend,
+							IsSend:         send.IsSend,
 							Account:        user.Login,
 							Remote:         agent.Name,
 							Protocol:       "sftp",
-							SourceFilename: push.Path + "/test_out.src",
-							DestFilename:   "test_out.src",
-							Rule:           push.Name,
+							SourceFilename: "test_out.src",
+							DestFilename:   ".",
+							Rule:           send.Name,
 							Status:         model.StatusDone,
 						}
-
-						err := client.Close()
-						So(err, ShouldBeNil)
 
 						ok, err := db.Exists(hist)
 						So(err, ShouldBeNil)
@@ -509,17 +504,20 @@ func TestSSHServerTasks(t *testing.T) {
 		listener, err := net.Listen("tcp", "localhost:"+port)
 		So(err, ShouldBeNil)
 
-		sshServ := newListener(db, logger, listener, agent, config)
-		sshServ.listen()
+		sshList := &sshListener{
+			Db:       db,
+			Logger:   logger,
+			Agent:    agent,
+			Conf:     config,
+			Listener: listener,
+			connWg:   sync.WaitGroup{},
+		}
+		sshList.listen()
 
 		Reset(func() {
-			select {
-			case <-sshServ.shutdown:
-			default:
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-				defer cancel()
-				So(sshServ.close(ctx), ShouldBeNil)
-			}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			So(sshList.close(ctx), ShouldBeNil)
 		})
 
 		Convey("Given an SSH client", func() {
@@ -542,23 +540,23 @@ func TestSSHServerTasks(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Given an incoming transfer", func() {
-				pull := &model.Rule{
-					Name:   "pull",
+				receive := &model.Rule{
+					Name:   "receive",
 					IsSend: false,
-					Path:   "/pull",
+					Path:   "/receive",
 				}
-				So(db.Create(pull), ShouldBeNil)
+				So(db.Create(receive), ShouldBeNil)
 
 				content := "Test incoming file"
 
-				err := os.MkdirAll(root+pull.Path, 0700)
+				err := os.MkdirAll(root+receive.Path, 0700)
 				So(err, ShouldBeNil)
 
-				Reset(func() { _ = os.RemoveAll(root + pull.Path) })
+				Reset(func() { _ = os.RemoveAll(root + receive.Path) })
 
 				Convey("Given that the preTasks succeed", func() {
 					task := &model.Task{
-						RuleID: pull.ID,
+						RuleID: receive.ID,
 						Chain:  model.ChainPre,
 						Rank:   0,
 						Type:   "TESTSUCCESS",
@@ -569,30 +567,28 @@ func TestSSHServerTasks(t *testing.T) {
 					Convey("Given that the transfer finishes normally", func() {
 						src := bytes.NewBuffer([]byte(content))
 
-						dst, err := client.Create(pull.Path + "/test_in.dst")
+						dst, err := client.Create(receive.Path + "/test_in.dst")
 						So(err, ShouldBeNil)
 
 						_, err = io.Copy(dst, src)
 						So(err, ShouldBeNil)
 
-						err = dst.Close()
-						So(err, ShouldBeNil)
+						So(dst.Close(), ShouldBeNil)
+						So(client.Close(), ShouldBeNil)
+						So(conn.Close(), ShouldBeNil)
 
 						Convey("Then the transfer should have succeeded", func() {
 							hist := &model.TransferHistory{
 								IsServer:       true,
-								IsSend:         pull.IsSend,
+								IsSend:         receive.IsSend,
 								Account:        user.Login,
 								Remote:         agent.Name,
 								Protocol:       "sftp",
-								SourceFilename: "test_in.dst",
-								DestFilename:   pull.Path + "/test_in.dst",
-								Rule:           pull.Name,
+								SourceFilename: ".",
+								DestFilename:   "test_in.dst",
+								Rule:           receive.Name,
 								Status:         model.StatusDone,
 							}
-
-							err := client.Close()
-							So(err, ShouldBeNil)
 
 							ok, err := db.Exists(hist)
 							So(err, ShouldBeNil)
@@ -603,7 +599,7 @@ func TestSSHServerTasks(t *testing.T) {
 
 				Convey("Given that the preTasks fails", func() {
 					task := &model.Task{
-						RuleID: pull.ID,
+						RuleID: receive.ID,
 						Chain:  model.ChainPre,
 						Rank:   0,
 						Type:   "TESTFAIL",
@@ -612,19 +608,19 @@ func TestSSHServerTasks(t *testing.T) {
 					So(db.Create(task), ShouldBeNil)
 
 					Convey("Given that the transfer finishes normally", func() {
-						_, err := client.Create(pull.Path + "/test_in.dst")
+						_, err := client.Create(receive.Path + "/test_in.dst")
 						So(err, ShouldNotBeNil)
 
 						Convey("Then the transfer should have failed", func() {
 							hist := &model.TransferHistory{
 								IsServer:       true,
-								IsSend:         pull.IsSend,
+								IsSend:         receive.IsSend,
 								Account:        user.Login,
 								Remote:         agent.Name,
 								Protocol:       "sftp",
-								SourceFilename: "test_in.dst",
-								DestFilename:   pull.Path + "/test_in.dst",
-								Rule:           pull.Name,
+								SourceFilename: ".",
+								DestFilename:   "test_in.dst",
+								Rule:           receive.Name,
 								Status:         model.StatusError,
 							}
 
@@ -633,14 +629,14 @@ func TestSSHServerTasks(t *testing.T) {
 
 							So(db.Get(hist), ShouldBeNil)
 							So(hist.Error, ShouldResemble, model.NewTransferError(
-								model.TeExternalOperation, "Task TESTFAIL @ pull PRE[0]: task failed"))
+								model.TeExternalOperation, "Task TESTFAIL @ receive PRE[0]: task failed"))
 						})
 					})
 				})
 
 				Convey("Given that the postTasks succeed", func() {
 					task := &model.Task{
-						RuleID: pull.ID,
+						RuleID: receive.ID,
 						Chain:  model.ChainPost,
 						Rank:   0,
 						Type:   "TESTSUCCESS",
@@ -651,30 +647,28 @@ func TestSSHServerTasks(t *testing.T) {
 					Convey("Given that the transfer finishes normally", func() {
 						src := bytes.NewBuffer([]byte(content))
 
-						dst, err := client.Create(pull.Path + "/test_in.dst")
+						dst, err := client.Create(receive.Path + "/test_in.dst")
 						So(err, ShouldBeNil)
 
 						_, err = io.Copy(dst, src)
 						So(err, ShouldBeNil)
 
-						err = dst.Close()
-						So(err, ShouldBeNil)
+						So(dst.Close(), ShouldBeNil)
+						So(client.Close(), ShouldBeNil)
+						So(conn.Close(), ShouldBeNil)
 
 						Convey("Then the transfer should have succeeded", func() {
 							hist := &model.TransferHistory{
 								IsServer:       true,
-								IsSend:         pull.IsSend,
+								IsSend:         receive.IsSend,
 								Account:        user.Login,
 								Remote:         agent.Name,
 								Protocol:       "sftp",
-								SourceFilename: "test_in.dst",
-								DestFilename:   pull.Path + "/test_in.dst",
-								Rule:           pull.Name,
+								SourceFilename: ".",
+								DestFilename:   "test_in.dst",
+								Rule:           receive.Name,
 								Status:         model.StatusDone,
 							}
-
-							err := client.Close()
-							So(err, ShouldBeNil)
 
 							ok, err := db.Exists(hist)
 							So(err, ShouldBeNil)
@@ -685,7 +679,7 @@ func TestSSHServerTasks(t *testing.T) {
 
 				Convey("Given that the postTasks fails", func() {
 					task := &model.Task{
-						RuleID: pull.ID,
+						RuleID: receive.ID,
 						Chain:  model.ChainPost,
 						Rank:   0,
 						Type:   "TESTFAIL",
@@ -696,60 +690,63 @@ func TestSSHServerTasks(t *testing.T) {
 					Convey("Given that the transfer finishes normally", func() {
 						src := bytes.NewBuffer([]byte(content))
 
-						dst, err := client.Create(pull.Path + "/test_in.dst")
+						dst, err := client.Create(receive.Path + "/test_in.dst")
 						So(err, ShouldBeNil)
 
 						_, err = io.Copy(dst, src)
 						So(err, ShouldBeNil)
 
 						err = dst.Close()
-						So(err, ShouldBeNil)
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+						})
+
+						So(client.Close(), ShouldBeNil)
+						So(conn.Close(), ShouldBeNil)
 
 						Convey("Then the transfer should have failed", func() {
 							hist := &model.TransferHistory{
 								IsServer:       true,
-								IsSend:         pull.IsSend,
+								IsSend:         receive.IsSend,
 								Account:        user.Login,
 								Remote:         agent.Name,
 								Protocol:       "sftp",
-								SourceFilename: "test_in.dst",
-								DestFilename:   pull.Path + "/test_in.dst",
-								Rule:           pull.Name,
+								SourceFilename: ".",
+								DestFilename:   "test_in.dst",
+								Rule:           receive.Name,
 								Status:         model.StatusError,
 							}
 
-							err := client.Close()
-							So(err, ShouldBeNil)
-
 							So(db.Get(hist), ShouldBeNil)
 							So(hist.Error, ShouldResemble, model.NewTransferError(
-								model.TeExternalOperation, "Task TESTFAIL @ pull POST[0]: task failed"))
+								model.TeExternalOperation, "Task TESTFAIL @ receive POST[0]: task failed"))
 						})
 					})
 				})
 			})
 
 			Convey("Given an outgoing transfer", func() {
-				push := &model.Rule{
-					Name:   "push",
+				send := &model.Rule{
+					Name:   "send",
 					IsSend: true,
-					Path:   "/push",
+					Path:   "/send",
 				}
-				So(db.Create(push), ShouldBeNil)
+				So(db.Create(send), ShouldBeNil)
 
 				content := "Test outgoing file"
 
-				err := os.MkdirAll(root+push.Path, 0700)
+				err := os.MkdirAll(root+send.Path, 0700)
 				So(err, ShouldBeNil)
 
-				err = ioutil.WriteFile(root+push.Path+"/test_out.src", []byte(content), 0600)
+				err = ioutil.WriteFile(root+send.Path+"/test_out.src", []byte(content), 0600)
 				So(err, ShouldBeNil)
 
-				Reset(func() { _ = os.RemoveAll(root + push.Path) })
+				Reset(func() { _ = os.RemoveAll(root + send.Path) })
 
 				Convey("Given that the preTasks succeed", func() {
 					task := &model.Task{
-						RuleID: push.ID,
+						RuleID: send.ID,
 						Chain:  model.ChainPre,
 						Rank:   0,
 						Type:   "TESTSUCCESS",
@@ -758,7 +755,7 @@ func TestSSHServerTasks(t *testing.T) {
 					So(db.Create(task), ShouldBeNil)
 
 					Convey("Given that the transfer finishes normally", func() {
-						src, err := client.Open(push.Path + "/test_out.src")
+						src, err := client.Open(send.Path + "/test_out.src")
 						So(err, ShouldBeNil)
 
 						dst := &bytes.Buffer{}
@@ -766,24 +763,22 @@ func TestSSHServerTasks(t *testing.T) {
 						_, err = src.WriteTo(dst)
 						So(err, ShouldBeNil)
 
-						err = src.Close()
-						So(err, ShouldBeNil)
+						So(src.Close(), ShouldBeNil)
+						So(client.Close(), ShouldBeNil)
+						So(conn.Close(), ShouldBeNil)
 
 						Convey("Then the transfer should have succeeded", func() {
 							hist := &model.TransferHistory{
 								IsServer:       true,
-								IsSend:         push.IsSend,
+								IsSend:         send.IsSend,
 								Account:        user.Login,
 								Remote:         agent.Name,
 								Protocol:       "sftp",
-								SourceFilename: push.Path + "/test_out.src",
-								DestFilename:   "test_out.src",
-								Rule:           push.Name,
+								SourceFilename: "test_out.src",
+								DestFilename:   ".",
+								Rule:           send.Name,
 								Status:         model.StatusDone,
 							}
-
-							err := client.Close()
-							So(err, ShouldBeNil)
 
 							ok, err := db.Exists(hist)
 							So(err, ShouldBeNil)
@@ -794,7 +789,7 @@ func TestSSHServerTasks(t *testing.T) {
 
 				Convey("Given that the preTasks fails", func() {
 					task := &model.Task{
-						RuleID: push.ID,
+						RuleID: send.ID,
 						Chain:  model.ChainPre,
 						Rank:   0,
 						Type:   "TESTFAIL",
@@ -803,105 +798,35 @@ func TestSSHServerTasks(t *testing.T) {
 					So(db.Create(task), ShouldBeNil)
 
 					Convey("Given that the transfer finishes normally", func() {
-						_, err := client.Open(push.Path + "/test_out.src")
-						So(err, ShouldNotBeNil)
+						_, err := client.Open(send.Path + "/test_out.src")
+						So(err, ShouldBeError)
+
+						So(client.Close(), ShouldBeNil)
+						So(conn.Close(), ShouldBeNil)
 
 						Convey("Then the transfer should have failed", func() {
 							hist := &model.TransferHistory{
 								IsServer:       true,
-								IsSend:         push.IsSend,
+								IsSend:         send.IsSend,
 								Account:        user.Login,
 								Remote:         agent.Name,
 								Protocol:       "sftp",
-								SourceFilename: push.Path + "/test_out.src",
-								DestFilename:   "test_out.src",
-								Rule:           push.Name,
+								SourceFilename: "test_out.src",
+								DestFilename:   ".",
+								Rule:           send.Name,
 								Status:         model.StatusError,
 							}
 
-							err := client.Close()
-							So(err, ShouldBeNil)
-
 							So(db.Get(hist), ShouldBeNil)
 							So(hist.Error, ShouldResemble, model.NewTransferError(
-								model.TeExternalOperation, "Task TESTFAIL @ push PRE[0]: task failed"))
-						})
-					})
-
-					Convey("Given that the errorTasks succeeds", func() {
-						task := &model.Task{
-							RuleID: push.ID,
-							Chain:  model.ChainError,
-							Rank:   0,
-							Type:   "TESTSUCCESS",
-							Args:   []byte("{}"),
-						}
-						So(db.Create(task), ShouldBeNil)
-
-						_, err := client.Open(push.Path + "/test_out.src")
-						So(err, ShouldNotBeNil)
-
-						Convey("Then the transfer should have failed", func() {
-							hist := &model.TransferHistory{
-								IsServer:       true,
-								IsSend:         push.IsSend,
-								Account:        user.Login,
-								Remote:         agent.Name,
-								Protocol:       "sftp",
-								SourceFilename: push.Path + "/test_out.src",
-								DestFilename:   "test_out.src",
-								Rule:           push.Name,
-								Status:         model.StatusError,
-							}
-
-							err := client.Close()
-							So(err, ShouldBeNil)
-
-							So(db.Get(hist), ShouldBeNil)
-							So(hist.Error, ShouldResemble, model.NewTransferError(
-								model.TeExternalOperation, "Task TESTFAIL @ push PRE[0]: task failed"))
-						})
-					})
-
-					Convey("Given that the errorTasks fails", func() {
-						task := &model.Task{
-							RuleID: push.ID,
-							Chain:  model.ChainError,
-							Rank:   0,
-							Type:   "TESTFAIL",
-							Args:   []byte("{}"),
-						}
-						So(db.Create(task), ShouldBeNil)
-
-						_, err := client.Open(push.Path + "/test_out.src")
-						So(err, ShouldNotBeNil)
-
-						Convey("Then the transfer should have failed", func() {
-							hist := &model.TransferHistory{
-								IsServer:       true,
-								IsSend:         push.IsSend,
-								Account:        user.Login,
-								Remote:         agent.Name,
-								Protocol:       "sftp",
-								SourceFilename: push.Path + "/test_out.src",
-								DestFilename:   "test_out.src",
-								Rule:           push.Name,
-								Status:         model.StatusError,
-							}
-
-							err := client.Close()
-							So(err, ShouldBeNil)
-
-							So(db.Get(hist), ShouldBeNil)
-							So(hist.Error, ShouldResemble, model.NewTransferError(
-								model.TeExternalOperation, "Task TESTFAIL @ push ERROR[0]: task failed"))
+								model.TeExternalOperation, "Task TESTFAIL @ send PRE[0]: task failed"))
 						})
 					})
 				})
 
 				Convey("Given that the postTasks succeed", func() {
 					task := &model.Task{
-						RuleID: push.ID,
+						RuleID: send.ID,
 						Chain:  model.ChainPost,
 						Rank:   0,
 						Type:   "TESTSUCCESS",
@@ -910,7 +835,7 @@ func TestSSHServerTasks(t *testing.T) {
 					So(db.Create(task), ShouldBeNil)
 
 					Convey("Given that the transfer finishes normally", func() {
-						src, err := client.Open(push.Path + "/test_out.src")
+						src, err := client.Open(send.Path + "/test_out.src")
 						So(err, ShouldBeNil)
 
 						dst := &bytes.Buffer{}
@@ -918,24 +843,22 @@ func TestSSHServerTasks(t *testing.T) {
 						_, err = src.WriteTo(dst)
 						So(err, ShouldBeNil)
 
-						err = src.Close()
-						So(err, ShouldBeNil)
+						So(src.Close(), ShouldBeNil)
+						So(client.Close(), ShouldBeNil)
+						So(conn.Close(), ShouldBeNil)
 
 						Convey("Then the transfer should have succeeded", func() {
 							hist := &model.TransferHistory{
 								IsServer:       true,
-								IsSend:         push.IsSend,
+								IsSend:         send.IsSend,
 								Account:        user.Login,
 								Remote:         agent.Name,
 								Protocol:       "sftp",
-								SourceFilename: push.Path + "/test_out.src",
-								DestFilename:   "test_out.src",
-								Rule:           push.Name,
+								SourceFilename: "test_out.src",
+								DestFilename:   ".",
+								Rule:           send.Name,
 								Status:         model.StatusDone,
 							}
-
-							err := client.Close()
-							So(err, ShouldBeNil)
 
 							ok, err := db.Exists(hist)
 							So(err, ShouldBeNil)
@@ -946,7 +869,7 @@ func TestSSHServerTasks(t *testing.T) {
 
 				Convey("Given that the postTasks fails", func() {
 					task := &model.Task{
-						RuleID: push.ID,
+						RuleID: send.ID,
 						Chain:  model.ChainPost,
 						Rank:   0,
 						Type:   "TESTFAIL",
@@ -955,7 +878,7 @@ func TestSSHServerTasks(t *testing.T) {
 					So(db.Create(task), ShouldBeNil)
 
 					Convey("Given that the transfer finishes normally", func() {
-						src, err := client.Open(push.Path + "/test_out.src")
+						src, err := client.Open(send.Path + "/test_out.src")
 						So(err, ShouldBeNil)
 
 						dst := &bytes.Buffer{}
@@ -964,113 +887,30 @@ func TestSSHServerTasks(t *testing.T) {
 						So(err, ShouldBeNil)
 
 						err = src.Close()
-						So(err, ShouldBeNil)
 
-						Convey("Then the transfer should have failed", func() {
-							hist := &model.TransferHistory{
-								IsServer:       true,
-								IsSend:         push.IsSend,
-								Account:        user.Login,
-								Remote:         agent.Name,
-								Protocol:       "sftp",
-								SourceFilename: push.Path + "/test_out.src",
-								DestFilename:   "test_out.src",
-								Rule:           push.Name,
-								Status:         model.StatusError,
-							}
-
-							err := client.Close()
-							So(err, ShouldBeNil)
-
-							So(db.Get(hist), ShouldBeNil)
-							So(hist.Error, ShouldResemble, model.NewTransferError(
-								model.TeExternalOperation, "Task TESTFAIL @ push POST[0]: task failed"))
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
 						})
-					})
 
-					Convey("Given that the errorTasks succeeds", func() {
-						task := &model.Task{
-							RuleID: push.ID,
-							Chain:  model.ChainError,
-							Rank:   0,
-							Type:   "TESTSUCCESS",
-							Args:   []byte("{}"),
-						}
-						So(db.Create(task), ShouldBeNil)
-
-						src, err := client.Open(push.Path + "/test_out.src")
-						So(err, ShouldBeNil)
-
-						dst := &bytes.Buffer{}
-
-						_, err = src.WriteTo(dst)
-						So(err, ShouldBeNil)
-
-						err = src.Close()
-						So(err, ShouldBeNil)
+						So(client.Close(), ShouldBeNil)
+						So(conn.Close(), ShouldBeNil)
 
 						Convey("Then the transfer should have failed", func() {
 							hist := &model.TransferHistory{
 								IsServer:       true,
-								IsSend:         push.IsSend,
+								IsSend:         send.IsSend,
 								Account:        user.Login,
 								Remote:         agent.Name,
 								Protocol:       "sftp",
-								SourceFilename: push.Path + "/test_out.src",
-								DestFilename:   "test_out.src",
-								Rule:           push.Name,
+								SourceFilename: "test_out.src",
+								DestFilename:   ".",
+								Rule:           send.Name,
 								Status:         model.StatusError,
 							}
 
-							err := client.Close()
-							So(err, ShouldBeNil)
-
 							So(db.Get(hist), ShouldBeNil)
 							So(hist.Error, ShouldResemble, model.NewTransferError(
-								model.TeExternalOperation, "Task TESTFAIL @ push POST[0]: task failed"))
-						})
-					})
-
-					Convey("Given that the errorTasks fails", func() {
-						task := &model.Task{
-							RuleID: push.ID,
-							Chain:  model.ChainError,
-							Rank:   0,
-							Type:   "TESTFAIL",
-							Args:   []byte("{}"),
-						}
-						So(db.Create(task), ShouldBeNil)
-
-						src, err := client.Open(push.Path + "/test_out.src")
-						So(err, ShouldBeNil)
-
-						dst := &bytes.Buffer{}
-
-						_, err = src.WriteTo(dst)
-						So(err, ShouldBeNil)
-
-						err = src.Close()
-						So(err, ShouldBeNil)
-
-						Convey("Then the transfer should have failed", func() {
-							hist := &model.TransferHistory{
-								IsServer:       true,
-								IsSend:         push.IsSend,
-								Account:        user.Login,
-								Remote:         agent.Name,
-								Protocol:       "sftp",
-								SourceFilename: push.Path + "/test_out.src",
-								DestFilename:   "test_out.src",
-								Rule:           push.Name,
-								Status:         model.StatusError,
-							}
-
-							err := client.Close()
-							So(err, ShouldBeNil)
-
-							So(db.Get(hist), ShouldBeNil)
-							So(hist.Error, ShouldResemble, model.NewTransferError(
-								model.TeExternalOperation, "Task TESTFAIL @ push ERROR[0]: task failed"))
+								model.TeExternalOperation, "Task TESTFAIL @ send POST[0]: task failed"))
 						})
 					})
 				})

@@ -8,7 +8,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -70,7 +69,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 					Db:     db,
 					Logger: log.NewLogger("test_executor", logConf),
 				}
-				signals := make(chan pipeline.Signal)
+				signals := make(chan model.Signal)
 
 				Convey("Given that the transfer is successful", func() {
 					ClientsConstructors["test"] = NewAllSuccess

@@ -96,11 +96,11 @@ func (c *Controller) Stop(ctx context.Context) error {
 	c.ticker.Stop()
 
 	shutdown := func(k, v interface{}) bool {
-		s := v.(chan pipeline.Signal)
-		s <- pipeline.Shutdown
+		s := v.(chan model.Signal)
+		s <- model.SignalShutdown
 		return true
 	}
-	executor.Signals.Range(shutdown)
+	pipeline.Signals.Range(shutdown)
 
 	select {
 	case <-func() chan bool {
