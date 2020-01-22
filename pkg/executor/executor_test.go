@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -69,13 +70,14 @@ func TestExecutorRunTransfer(t *testing.T) {
 					Db:     db,
 					Logger: log.NewLogger("test_executor", logConf),
 				}
-				signals := make(chan model.Signal)
+				stream, err := pipeline.NewTransferStream(exe.Logger, exe.Db, "", *trans)
+				So(err, ShouldBeNil)
 
 				Convey("Given that the transfer is successful", func() {
 					ClientsConstructors["test"] = NewAllSuccess
 
 					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(*trans, signals)
+						exe.runTransfer(stream)
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -110,7 +112,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 					ClientsConstructors["test"] = NewConnectFail
 
 					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(*trans, signals)
+						exe.runTransfer(stream)
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -135,9 +137,10 @@ func TestExecutorRunTransfer(t *testing.T) {
 								Status:         model.StatusError,
 							}
 
-							exist, err := db.Exists(hist)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(db.Get(hist), ShouldBeNil)
+							expErr := model.NewTransferError(model.TeConnection,
+								"Failed to connect to remote agent: failed")
+							So(hist.Error, ShouldResemble, expErr)
 						})
 					})
 				})
@@ -146,7 +149,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 					ClientsConstructors["test"] = NewAuthFail
 
 					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(*trans, signals)
+						exe.runTransfer(stream)
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -182,7 +185,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 					ClientsConstructors["test"] = NewRequestFail
 
 					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(*trans, signals)
+						exe.runTransfer(stream)
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -227,7 +230,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 					So(db.Create(preTask), ShouldBeNil)
 
 					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(*trans, signals)
+						exe.runTransfer(stream)
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -263,7 +266,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 					ClientsConstructors["test"] = NewDataFail
 
 					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(*trans, signals)
+						exe.runTransfer(stream)
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -308,7 +311,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 					So(db.Create(preTask), ShouldBeNil)
 
 					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(*trans, signals)
+						exe.runTransfer(stream)
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)

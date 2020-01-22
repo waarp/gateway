@@ -156,7 +156,7 @@ func TestAuthenticate(t *testing.T) {
 
 		Convey("Given a valid SFTP configuration", func() {
 			client.Info = model.OutTransferInfo{
-				Account: model.RemoteAccount{
+				Account: &model.RemoteAccount{
 					Login:    testLogin,
 					Password: []byte(testPassword),
 				},
@@ -179,7 +179,7 @@ func TestAuthenticate(t *testing.T) {
 
 		SkipConvey("Given an incorrect SFTP configuration", func() {
 			client.Info = model.OutTransferInfo{
-				Account: model.RemoteAccount{
+				Account: &model.RemoteAccount{
 					Login:    testLogin,
 					Password: []byte("tutu"),
 				},
@@ -213,7 +213,7 @@ func TestRequest(t *testing.T) {
 		Reset(func() { _ = client.conn.Close() })
 
 		client.Info = model.OutTransferInfo{
-			Account: model.RemoteAccount{
+			Account: &model.RemoteAccount{
 				Login:    testLogin,
 				Password: []byte(testPassword),
 			},
@@ -226,10 +226,10 @@ func TestRequest(t *testing.T) {
 		Reset(func() { _ = client.client.Close() })
 
 		Convey("Given a valid out file transfer", func() {
-			client.Info.Transfer = model.Transfer{
+			client.Info.Transfer = &model.Transfer{
 				DestPath: "client_test.dst",
 			}
-			client.Info.Rule = model.Rule{
+			client.Info.Rule = &model.Rule{
 				IsSend: true,
 			}
 
@@ -247,10 +247,10 @@ func TestRequest(t *testing.T) {
 		})
 
 		Convey("Given a valid in file transfer", func() {
-			client.Info.Transfer = model.Transfer{
+			client.Info.Transfer = &model.Transfer{
 				SourcePath: "client.go",
 			}
-			client.Info.Rule = model.Rule{
+			client.Info.Rule = &model.Rule{
 				IsSend: false,
 			}
 
@@ -267,10 +267,10 @@ func TestRequest(t *testing.T) {
 		})
 
 		Convey("Given an invalid in file transfer", func() {
-			client.Info.Transfer = model.Transfer{
+			client.Info.Transfer = &model.Transfer{
 				SourcePath: "unknown.file",
 			}
-			client.Info.Rule = model.Rule{
+			client.Info.Rule = &model.Rule{
 				IsSend: true,
 			}
 
@@ -299,7 +299,7 @@ func TestData(t *testing.T) {
 		Reset(func() { _ = client.conn.Close() })
 
 		client.Info = model.OutTransferInfo{
-			Account: model.RemoteAccount{
+			Account: &model.RemoteAccount{
 				Login:    testLogin,
 				Password: []byte(testPassword),
 			},
@@ -312,11 +312,11 @@ func TestData(t *testing.T) {
 		Reset(func() { _ = client.client.Close() })
 
 		Convey("Given a valid out file transfer", func() {
-			client.Info.Transfer = model.Transfer{
+			client.Info.Transfer = &model.Transfer{
 				DestPath:   "client_test_in.dst",
 				SourcePath: "client.go",
 			}
-			client.Info.Rule = model.Rule{
+			client.Info.Rule = &model.Rule{
 				IsSend: true,
 			}
 
@@ -325,9 +325,8 @@ func TestData(t *testing.T) {
 
 			file, err := os.Open(client.Info.Transfer.SourcePath)
 			So(err, ShouldBeNil)
-			client.localFile = file
 
-			err = client.Data()
+			err = client.Data(file)
 
 			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
@@ -344,11 +343,11 @@ func TestData(t *testing.T) {
 		})
 
 		Convey("Given a valid in file transfer", func() {
-			client.Info.Transfer = model.Transfer{
+			client.Info.Transfer = &model.Transfer{
 				DestPath:   "client_test_out.dst",
 				SourcePath: "client.go",
 			}
-			client.Info.Rule = model.Rule{
+			client.Info.Rule = &model.Rule{
 				IsSend: false,
 			}
 
@@ -356,10 +355,9 @@ func TestData(t *testing.T) {
 
 			file, err := os.Create(client.Info.Transfer.DestPath)
 			So(err, ShouldBeNil)
-			client.localFile = file
 			Reset(func() { _ = os.Remove(client.Info.Transfer.DestPath) })
 
-			err = client.Data()
+			err = client.Data(file)
 
 			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)

@@ -62,10 +62,9 @@ func (p *Processor) runTask(task model.Task, taskInfo string) error {
 			return fmt.Errorf(logMsg)
 		}
 		p.Logger.Warning(logMsg)
-		if err := p.Db.Update(&model.Transfer{Error: model.NewTransferError(
-			model.TeWarning, logMsg)}, p.Transfer.ID, false); err != nil {
-
-			return fmt.Errorf("failed to update task status: %s", err.Error())
+		p.Transfer.Error = model.NewTransferError(model.TeWarning, logMsg)
+		if err := p.Transfer.Update(p.Db); err != nil {
+			p.Logger.Warningf("failed to update task status: %s", err.Error())
 		}
 	}
 	p.Logger.Info(logMsg)

@@ -6,8 +6,8 @@ package sftp
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
-	"os"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -30,20 +30,17 @@ type Client struct {
 	conf       *config.SftpProtoConfig
 	conn       net.Conn
 	client     *sftp.Client
-	localFile  *os.File
 	remoteFile *sftp.File
 }
 
 // NewClient returns a new SFTP transfer client with the given transfer info,
 // local file, and signal channel. An error is returned if the client
 // configuration is incorrect.
-func NewClient(info model.OutTransferInfo, localFile *os.File,
-	signals <-chan model.Signal) (pipeline.Client, error) {
+func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipeline.Client, error) {
 
 	client := &Client{
-		Info:      info,
-		Signals:   signals,
-		localFile: localFile,
+		Info:    info,
+		Signals: signals,
 	}
 
 	conf := &config.SftpProtoConfig{}
@@ -104,20 +101,20 @@ func (c *Client) Request() (err error) {
 }
 
 // Data copies the content of the source file into the destination file.
-func (c *Client) Data() error {
+func (c *Client) Data(file io.ReadWriteCloser) error {
 	defer func() {
-		_ = c.localFile.Close()
 		_ = c.remoteFile.Close()
 		_ = c.client.Close()
 		_ = c.conn.Close()
+		_ = file.Close()
 	}()
 
 	if c.Info.Rule.IsSend {
-		if _, err := c.remoteFile.ReadFrom(c.localFile); err != nil {
+		if _, err := c.remoteFile.ReadFrom(file); err != nil {
 			return err
 		}
 	} else {
-		if _, err := c.remoteFile.WriteTo(c.localFile); err != nil {
+		if _, err := c.remoteFile.WriteTo(file); err != nil {
 			return err
 		}
 	}

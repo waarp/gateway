@@ -15,7 +15,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
@@ -133,11 +132,11 @@ func (l *sshListener) makeFileReader(accountID uint64, conf config.SftpProtoConf
 			Status:     model.StatusPlanned,
 		}
 
-		stream, err := pipeline.NewServerStream(trans, l.Db, l.Logger, conf.Root)
-		return &sftpStream{
-			TransferStream: stream,
-			errors:         make(chan model.TransferError, 1),
-		}, err
+		stream, err := newSftpStream(l.Logger, l.Db, conf.Root, trans)
+		if err != nil {
+			return nil, err
+		}
+		return stream, nil
 	}
 }
 
@@ -148,12 +147,9 @@ func (l *sshListener) makeFileWriter(accountID uint64, conf config.SftpProtoConf
 		if path == "." || path == "/" {
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
-		rule := model.Rule{Path: path, IsSend: true}
+		rule := model.Rule{Path: path, IsSend: false}
 		if err := l.Db.Get(&rule); err != nil {
 			l.Logger.Errorf("No rule found for directory '%s'", path)
-			return nil, err
-		}
-		if err := pipeline.MakeDir(conf.Root, rule.Path); err != nil {
 			return nil, err
 		}
 
@@ -169,11 +165,11 @@ func (l *sshListener) makeFileWriter(accountID uint64, conf config.SftpProtoConf
 			Status:     model.StatusPlanned,
 		}
 
-		stream, err := pipeline.NewServerStream(trans, l.Db, l.Logger, conf.Root)
-		return &sftpStream{
-			TransferStream: stream,
-			errors:         make(chan model.TransferError, 1),
-		}, err
+		stream, err := newSftpStream(l.Logger, l.Db, conf.Root, trans)
+		if err != nil {
+			return nil, err
+		}
+		return stream, nil
 	}
 }
 

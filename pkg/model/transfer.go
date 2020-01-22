@@ -258,3 +258,14 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 
 	return &hist, nil
 }
+
+// Update updates the transfer start, status & error in the database.
+func (t *Transfer) Update(acc database.Accessor) error {
+	trans := &Transfer{
+		Start:  t.Start,
+		Status: t.Status,
+		Error:  t.Error,
+	}
+
+	return acc.Update(trans, t.ID, false)
+}

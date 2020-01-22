@@ -1,112 +1,53 @@
 package pipeline
 
 import (
-	"os"
-	"path/filepath"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 )
 
-type pipeline struct {
-	Info   model.InTransferInfo
-	Db     *database.Db
-	Logger *log.Logger
-	Root   string
+// Pipeline is the structure regrouping all elements of the transfer pipeline
+// which are not protocol-dependent, such as task execution.
+type Pipeline struct {
+	Db       *database.Db
+	Logger   *log.Logger
+	Root     string
+	Transfer *model.Transfer
 
-	signals chan model.Signal
+	rule    *model.Rule
+	Signals chan model.Signal
 	proc    *tasks.Processor
 }
 
-func (p *pipeline) createTransfer() model.TransferError {
-	err := p.Db.Create(&p.Info.Transfer)
-	if err != nil {
-		p.Logger.Criticalf("Failed to create transfer entry: %s", err)
-		return model.NewTransferError(model.TeInternal, err.Error())
-	}
-	return model.TransferError{}
+// PreTasks executes the transfer's pre-tasks. It returns an error if the
+// execution fails.
+func (p *Pipeline) PreTasks() model.TransferError {
+	return execTasks(p.proc, model.ChainPre, model.StatusPreTasks)
 }
 
-func (p *pipeline) makeFile() (*os.File, model.TransferError) {
-	if p.Info.Rule.IsSend {
-		path := filepath.Clean(filepath.Join(p.Root, p.Info.Rule.Path, p.Info.Transfer.SourcePath))
-		file, err := os.Open(path)
-		if err != nil {
-			p.Logger.Errorf("Failed to open source file: %s", err)
-			t := &model.Transfer{Error: model.NewTransferError(model.TeFileNotFound, err.Error())}
-			if dbErr := p.Db.Update(t, p.Info.Transfer.ID, false); dbErr != nil {
-				return nil, model.NewTransferError(model.TeInternal, dbErr.Error())
-			}
-			return nil, t.Error
-		}
-		return file, model.TransferError{}
-	}
-
-	path := filepath.Clean(filepath.Join(p.Root, p.Info.Rule.Path, p.Info.Transfer.DestPath))
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
-	if err != nil {
-		p.Logger.Errorf("Failed to create destination file: %s", err)
-		t := &model.Transfer{Error: model.NewTransferError(model.TeForbidden, err.Error())}
-		if dbErr := p.Db.Update(t, p.Info.Transfer.ID, false); dbErr != nil {
-			return nil, model.NewTransferError(model.TeInternal, dbErr.Error())
-		}
-		return nil, t.Error
-	}
-	return file, model.TransferError{}
+// PostTasks executes the transfer's post-tasks. It returns an error if the
+// execution fails.
+func (p *Pipeline) PostTasks() model.TransferError {
+	return execTasks(p.proc, model.ChainPost, model.StatusPostTasks)
 }
 
-func (p *pipeline) prologue() (*os.File, model.TransferError) {
-	if err := p.createTransfer(); err.Code != model.TeOk {
-		return nil, err
-	}
-
-	p.signals = make(chan model.Signal)
-	Signals.Store(p.Info.Transfer.ID, p.signals)
-
-	p.proc = &tasks.Processor{
-		Db:       p.Db,
-		Logger:   p.Logger,
-		Rule:     &p.Info.Rule,
-		Transfer: &p.Info.Transfer,
-		Signals:  p.signals,
-	}
-
-	file, err := p.makeFile()
-	if err.Code != model.TeOk {
-		return nil, err
-	}
-
-	if err := PreTasks(p.Db, p.Logger, p.proc); err.Code != model.TeOk {
-		return nil, err
-	}
-
-	stat := &model.Transfer{Status: model.StatusPreTasks}
-	if err := p.Db.Update(stat, p.Info.Transfer.ID, false); err != nil {
-		p.Logger.Criticalf("Failed to update transfer status: %s", err)
-		return nil, model.NewTransferError(model.TeInternal, err.Error())
-	}
-
-	return file, model.TransferError{}
-}
-
-func (p *pipeline) epilogue() model.TransferError {
-	if err := PostTasks(p.Db, p.Logger, p.proc); err.Code != model.TeOk {
-		return err
-	}
-
-	ToHistory(p.Db, p.Logger, p.Info.Transfer.ID, false)
-	return model.TransferError{}
-}
-
-func (p *pipeline) handleError(err model.TransferError) {
-	t := &model.Transfer{Error: err}
-	if err := p.Db.Update(t, p.Info.Transfer.ID, false); err != nil {
-		p.Logger.Criticalf("Failed to update transfer status: %s", err)
+// ErrorTasks updates the transfer's error in the database with the given one,
+// and then executes the transfer's error-tasks.
+func (p *Pipeline) ErrorTasks(te model.TransferError) {
+	p.Transfer.Error = te
+	if err := p.Transfer.Update(p.Db); err != nil {
+		p.Logger.Criticalf("Failed to update transfer error: %s", err.Error())
 		return
 	}
 
-	_ = ErrorTasks(p.Db, p.Logger, p.proc, err)
-	ToHistory(p.Db, p.Logger, p.Info.Transfer.ID, true)
+	_ = execTasks(p.proc, model.ChainError, model.StatusErrorTasks)
+}
+
+// Exit deletes the transfer entry and saves it in the history. It also deletes
+// the transfer's signal channel.
+func (p *Pipeline) Exit() {
+	toHistory(p.Db, p.Logger, p.Transfer)
+	close(p.Signals)
+	Signals.Delete(p.Transfer.ID)
 }

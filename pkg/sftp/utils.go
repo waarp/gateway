@@ -5,7 +5,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func getSSHConfig(c model.Cert, a model.RemoteAccount) (*ssh.ClientConfig, error) {
+func getSSHConfig(c model.Cert, a *model.RemoteAccount) (*ssh.ClientConfig, error) {
 	key, _, _, _, err := ssh.ParseAuthorizedKey(c.PublicKey) //nolint:dogsled
 	if err != nil {
 		return nil, err

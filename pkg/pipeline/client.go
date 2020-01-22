@@ -1,5 +1,7 @@
 package pipeline
 
+import "io"
+
 // Client is the interface defining a protocol client. All protocol clients
 // (SFTP, R66, HTTP...) must implement this interface in order to be usable by
 // the transfer executor.
@@ -28,5 +30,5 @@ type Client interface {
 	// the data has been transmitted, this method should close both the connection
 	// and the local file. If an error occurs while transmitting the data, an
 	// error is returned.
-	Data() error
+	Data(io.ReadWriteCloser) error
 }
