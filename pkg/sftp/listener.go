@@ -102,7 +102,7 @@ func (l *sshListener) makeHandlers(accountID uint64) sftp.Handlers {
 	return sftp.Handlers{
 		FileGet:  l.makeFileReader(accountID, conf),
 		FilePut:  l.makeFileWriter(accountID, conf),
-		FileCmd:  nil,
+		FileCmd:  makeFileCmder(),
 		FileList: makeFileLister(root),
 	}
 }

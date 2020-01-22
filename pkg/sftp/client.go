@@ -53,22 +53,18 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 }
 
 // Connect opens a TCP connection to the remote.
-func (c *Client) Connect() error {
+func (c *Client) Connect() model.TransferError {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", c.conf.Address, c.conf.Port))
 	if err != nil {
-		return err
+		return model.NewTransferError(model.TeConnection, err.Error())
 	}
 	c.conn = conn
 
-	return nil
+	return model.TransferError{}
 }
 
 // Authenticate opens the SSH tunnel to the remote.
-func (c *Client) Authenticate() error {
-	if c.conn == nil {
-		return fmt.Errorf("no connection to authenticate")
-	}
-
+func (c *Client) Authenticate() model.TransferError {
 	for _, cert := range c.Info.Certs {
 		conf, err := getSSHConfig(cert, c.Info.Account)
 		if err != nil {
@@ -85,23 +81,30 @@ func (c *Client) Authenticate() error {
 		if err != nil {
 			continue
 		}
-		return nil
+		return model.TransferError{}
 	}
-	return fmt.Errorf("no valid certificate found")
+	return model.NewTransferError(model.TeBadAuthentication, "no valid credentials found")
 }
 
 // Request opens/creates the remote file.
-func (c *Client) Request() (err error) {
+func (c *Client) Request() model.TransferError {
+	var err error
 	if c.Info.Rule.IsSend {
 		c.remoteFile, err = c.client.Create(c.Info.Transfer.DestPath)
+		if err != nil {
+			return model.NewTransferError(model.TeForbidden, err.Error())
+		}
 	} else {
 		c.remoteFile, err = c.client.Open(c.Info.Transfer.SourcePath)
+		if err != nil {
+			return model.NewTransferError(model.TeFileNotFound, err.Error())
+		}
 	}
-	return
+	return model.TransferError{}
 }
 
 // Data copies the content of the source file into the destination file.
-func (c *Client) Data(file io.ReadWriteCloser) error {
+func (c *Client) Data(file io.ReadWriteCloser) model.TransferError {
 	defer func() {
 		_ = c.remoteFile.Close()
 		_ = c.client.Close()
@@ -109,14 +112,14 @@ func (c *Client) Data(file io.ReadWriteCloser) error {
 		_ = file.Close()
 	}()
 
+	var err error
 	if c.Info.Rule.IsSend {
-		if _, err := c.remoteFile.ReadFrom(file); err != nil {
-			return err
-		}
+		_, err = c.remoteFile.ReadFrom(file)
 	} else {
-		if _, err := c.remoteFile.WriteTo(file); err != nil {
-			return err
-		}
+		_, err = c.remoteFile.WriteTo(file)
 	}
-	return nil
+	if err != nil {
+		return model.NewTransferError(model.TeDataTransfer, err.Error())
+	}
+	return model.TransferError{}
 }

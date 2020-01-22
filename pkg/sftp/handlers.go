@@ -20,6 +20,12 @@ func (fr fileReaderFunc) Fileread(r *sftp.Request) (io.ReaderAt, error) {
 	return fr(r)
 }
 
+type fileCmdFunc func(r *sftp.Request) error
+
+func (fc fileCmdFunc) Filecmd(r *sftp.Request) error {
+	return fc(r)
+}
+
 type fileListerFunc func(r *sftp.Request) (sftp.ListerAt, error)
 
 func (fl fileListerFunc) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
@@ -30,6 +36,12 @@ type listerAtFunc func(ls []os.FileInfo, offset int64) (int, error)
 
 func (la listerAtFunc) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 	return la(ls, offset)
+}
+
+func makeFileCmder() fileCmdFunc {
+	return func(r *sftp.Request) error {
+		return sftp.ErrSSHFxOpUnsupported
+	}
 }
 
 func makeFileLister(root string) fileListerFunc {

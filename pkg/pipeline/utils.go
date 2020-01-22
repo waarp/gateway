@@ -19,13 +19,13 @@ import (
 // using the transfer's ID.
 var Signals sync.Map
 
-func createTransfer(logger *log.Logger, db *database.Db, trans *model.Transfer) error {
+func createTransfer(logger *log.Logger, db *database.Db, trans *model.Transfer) model.TransferError {
 	err := db.Create(trans)
 	if err != nil {
 		logger.Criticalf("Failed to create transfer entry: %s", err)
-		return err
+		return model.NewTransferError(model.TeInternal, err.Error())
 	}
-	return err
+	return model.TransferError{}
 }
 
 func toHistory(db *database.Db, logger *log.Logger, trans *model.Transfer) {

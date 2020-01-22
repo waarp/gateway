@@ -48,7 +48,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 
 		Convey("Given an outgoing transfer", func() {
 			rule := &model.Rule{
-				Name:   "test rule",
+				Name:   "test_rule",
 				IsSend: true,
 			}
 			So(db.Create(rule), ShouldBeNil)
@@ -71,7 +71,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 					Logger: log.NewLogger("test_executor", logConf),
 				}
 				stream, err := pipeline.NewTransferStream(exe.Logger, exe.Db, "", *trans)
-				So(err, ShouldBeNil)
+				So(err.Code, ShouldEqual, model.TeOk)
 
 				Convey("Given that the transfer is successful", func() {
 					ClientsConstructors["test"] = NewAllSuccess
@@ -139,7 +139,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 
 							So(db.Get(hist), ShouldBeNil)
 							expErr := model.NewTransferError(model.TeConnection,
-								"Failed to connect to remote agent: failed")
+								"connection failed")
 							So(hist.Error, ShouldResemble, expErr)
 						})
 					})
@@ -174,9 +174,10 @@ func TestExecutorRunTransfer(t *testing.T) {
 								Status:         model.StatusError,
 							}
 
-							exist, err := db.Exists(hist)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(db.Get(hist), ShouldBeNil)
+							expErr := model.NewTransferError(model.TeBadAuthentication,
+								"authentication failed")
+							So(hist.Error, ShouldResemble, expErr)
 						})
 					})
 				})
@@ -210,9 +211,10 @@ func TestExecutorRunTransfer(t *testing.T) {
 								Status:         model.StatusError,
 							}
 
-							exist, err := db.Exists(hist)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(db.Get(hist), ShouldBeNil)
+							expErr := model.NewTransferError(model.TeForbidden,
+								"request failed")
+							So(hist.Error, ShouldResemble, expErr)
 						})
 					})
 				})
@@ -255,9 +257,10 @@ func TestExecutorRunTransfer(t *testing.T) {
 								Status:         model.StatusError,
 							}
 
-							exist, err := db.Exists(hist)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(db.Get(hist), ShouldBeNil)
+							expErr := model.NewTransferError(model.TeExternalOperation,
+								"Task TESTFAIL @ test_rule PRE[0]: task failed")
+							So(hist.Error, ShouldResemble, expErr)
 						})
 					})
 				})
@@ -291,9 +294,10 @@ func TestExecutorRunTransfer(t *testing.T) {
 								Status:         model.StatusError,
 							}
 
-							exist, err := db.Exists(hist)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(db.Get(hist), ShouldBeNil)
+							expErr := model.NewTransferError(model.TeDataTransfer,
+								"data failed")
+							So(hist.Error, ShouldResemble, expErr)
 						})
 					})
 				})
@@ -336,9 +340,10 @@ func TestExecutorRunTransfer(t *testing.T) {
 								Status:         model.StatusError,
 							}
 
-							exist, err := db.Exists(hist)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(db.Get(hist), ShouldBeNil)
+							expErr := model.NewTransferError(model.TeExternalOperation,
+								"Task TESTFAIL @ test_rule POST[0]: task failed")
+							So(hist.Error, ShouldResemble, expErr)
 						})
 					})
 				})

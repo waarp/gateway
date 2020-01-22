@@ -60,25 +60,25 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) (client pipeline.C
 }
 
 func (e *Executor) prologue(client pipeline.Client) model.TransferError {
-	if err := client.Connect(); err != nil {
+	if err := client.Connect(); err.Code != model.TeOk {
 		msg := fmt.Sprintf("Failed to connect to remote agent: %s", err)
 		e.Logger.Error(msg)
-		return model.NewTransferError(model.TeConnection, msg)
+		return err
 	}
 
-	if err := client.Authenticate(); err != nil {
+	if err := client.Authenticate(); err.Code != model.TeOk {
 		msg := fmt.Sprintf("Failed to authenticate on remote agent: %s", err)
 		e.Logger.Error(msg)
-		return model.NewTransferError(model.TeBadAuthentication, msg)
+		return err
 	}
 
-	if err := client.Request(); err != nil {
+	if err := client.Request(); err.Code != model.TeOk {
 		msg := fmt.Sprintf("Failed to make transfer request: %s", err)
 		e.Logger.Error(msg)
-		return model.NewTransferError(model.TeUnknown, msg)
+		return err
 	}
 
-	return model.NewTransferError(model.TeOk, "")
+	return model.TransferError{}
 }
 
 func (e *Executor) data(stream *pipeline.TransferStream, client pipeline.Client) model.TransferError {
@@ -88,11 +88,11 @@ func (e *Executor) data(stream *pipeline.TransferStream, client pipeline.Client)
 		return model.NewTransferError(model.TeInternal, err.Error())
 	}
 
-	if err := client.Data(stream); err != nil {
+	err := client.Data(stream)
+	if err.Code != model.TeOk {
 		e.Logger.Errorf("Error while transmitting data: %s", err)
-		return model.NewTransferError(model.TeDataTransfer, err.Error())
 	}
-	return model.NewTransferError(model.TeOk, "")
+	return err
 }
 
 func (e *Executor) runTransfer(stream *pipeline.TransferStream) {
@@ -143,7 +143,7 @@ func (e *Executor) Run(wg *sync.WaitGroup) {
 	go func() {
 		for trans := range e.Transfers {
 			stream, err := pipeline.NewTransferStream(e.Logger, e.Db, "", trans)
-			if err != nil {
+			if err.Code != model.TeOk {
 				e.Logger.Errorf("Failed to create transfer stream: %s", err.Error())
 			}
 			e.runTransfer(stream)
