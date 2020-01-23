@@ -13,18 +13,20 @@ func init() {
 
 // Transfer represents one record of the 'transfers' table.
 type Transfer struct {
-	ID         uint64         `xorm:"pk autoincr <- 'id'" json:"id"`
-	RuleID     uint64         `xorm:"notnull 'rule_id'" json:"ruleID"`
-	IsServer   bool           `xorm:"notnull 'is_server'" json:"isServer'"`
-	AgentID    uint64         `xorm:"notnull 'agent_id'" json:"agentID"`
-	AccountID  uint64         `xorm:"notnull 'account_id'" json:"accountID"`
-	SourcePath string         `xorm:"notnull 'source_path'" json:"sourcePath"`
-	DestPath   string         `xorm:"notnull 'dest_path'" json:"destPath"`
-	Start      time.Time      `xorm:"notnull 'start'" json:"start"`
-	Status     TransferStatus `xorm:"notnull 'status'" json:"status"`
-	Owner      string         `xorm:"notnull 'owner'" json:"-"`
-	Error      TransferError  `xorm:"extends" json:"error,omitempty"`
-	ExtInfo    []byte         `xorm:"'ext_info'" json:"extInfo"`
+	ID         uint64         `xorm:"pk autoincr <- 'id'"`
+	RuleID     uint64         `xorm:"notnull 'rule_id'"`
+	IsServer   bool           `xorm:"notnull 'is_server'"`
+	AgentID    uint64         `xorm:"notnull 'agent_id'"`
+	AccountID  uint64         `xorm:"notnull 'account_id'"`
+	SourcePath string         `xorm:"notnull 'source_path'"`
+	DestPath   string         `xorm:"notnull 'dest_path'"`
+	Start      time.Time      `xorm:"notnull 'start'"`
+	Status     TransferStatus `xorm:"notnull 'status'"`
+	Owner      string         `xorm:"notnull 'owner'"`
+	Progress   uint64         `xorm:"notnull 'progression'"`
+	TaskNumber uint64         `xorm:"notnull 'task_number'"`
+	Error      TransferError  `xorm:"extends"`
+	ExtInfo    []byte         `xorm:"'ext_info'"`
 }
 
 // TableName returns the name of the transfers table.

@@ -23,7 +23,9 @@ func transferInfoString(t *rest.OutTransfer) string {
 		"      Source file: " + t.SourcePath + "\n" +
 		" Destination file: " + t.DestPath + "\n" +
 		"       Start time: " + t.Start.Local().Format(time.RFC3339) + "\n" +
-		"           Status: " + string(t.Status) + "\n"
+		"           Status: " + string(t.Status) + "\n" +
+		"         Progress: " + fmt.Sprint(t.Progress) + "\n" +
+		"      Task number: " + fmt.Sprint(t.TaskNumber) + "\n"
 	if t.ErrorCode != model.TeOk {
 		rv += "       Error code: " + t.ErrorCode.String() + "\n"
 	}
