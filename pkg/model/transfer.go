@@ -246,7 +246,7 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		IsServer:       t.IsServer,
 		IsSend:         rule.IsSend,
 		Account:        accountLogin,
-		Remote:         agentName,
+		Agent:          agentName,
 		Protocol:       protocol,
 		SourceFilename: t.SourcePath,
 		DestFilename:   t.DestPath,

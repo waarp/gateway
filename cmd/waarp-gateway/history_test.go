@@ -22,7 +22,7 @@ func historyInfoString(t *rest.OutHistory) string {
 		"          Protocol: " + fmt.Sprint(t.Protocol) + "\n" +
 		"              Rule: " + fmt.Sprint(t.Rule) + "\n" +
 		"           Account: " + fmt.Sprint(t.Account) + "\n" +
-		"            Remote: " + fmt.Sprint(t.Remote) + "\n" +
+		"             Agent: " + fmt.Sprint(t.Agent) + "\n" +
 		"           SrcFile: " + t.SourceFilename + "\n" +
 		"          DestFile: " + t.DestFilename + "\n" +
 		"        Start date: " + t.Start.Local().Format(time.RFC3339) + "\n" +
@@ -48,7 +48,7 @@ func TestDisplayHistory(t *testing.T) {
 			IsSend:         false,
 			Rule:           "rule",
 			Account:        "source",
-			Remote:         "destination",
+			Agent:          "destination",
 			Protocol:       "sftp",
 			SourceFilename: "file/path",
 			DestFilename:   "file/path",
@@ -78,7 +78,7 @@ func TestDisplayHistory(t *testing.T) {
 			IsSend:         false,
 			Rule:           "rule",
 			Account:        "source",
-			Remote:         "destination",
+			Agent:          "destination",
 			Protocol:       "sftp",
 			SourceFilename: "file/path",
 			DestFilename:   "file/path",
@@ -120,7 +120,7 @@ func TestHistoryGetCommand(t *testing.T) {
 					IsSend:         false,
 					Rule:           "rule",
 					Account:        "source",
-					Remote:         "destination",
+					Agent:          "destination",
 					Protocol:       "sftp",
 					SourceFilename: "file/path",
 					DestFilename:   "file/path",
@@ -189,7 +189,7 @@ func TestHistoryListCommand(t *testing.T) {
 					IsServer:       true,
 					IsSend:         false,
 					Account:        "src1",
-					Remote:         "dst1",
+					Agent:          "dst1",
 					Protocol:       "sftp",
 					SourceFilename: "file1",
 					DestFilename:   "file1",
@@ -203,7 +203,7 @@ func TestHistoryListCommand(t *testing.T) {
 					IsServer:       true,
 					IsSend:         false,
 					Account:        "src2",
-					Remote:         "dst2",
+					Agent:          "dst2",
 					Protocol:       "sftp",
 					SourceFilename: "file2",
 					DestFilename:   "file2",
@@ -217,7 +217,7 @@ func TestHistoryListCommand(t *testing.T) {
 					IsServer:       true,
 					IsSend:         false,
 					Account:        "src3",
-					Remote:         "dst3",
+					Agent:          "dst3",
 					Protocol:       "sftp",
 					SourceFilename: "file3",
 					DestFilename:   "file3",
@@ -231,7 +231,7 @@ func TestHistoryListCommand(t *testing.T) {
 					IsServer:       true,
 					IsSend:         false,
 					Account:        "src4",
-					Remote:         "dst4",
+					Agent:          "dst4",
 					Protocol:       "sftp",
 					SourceFilename: "file4",
 					DestFilename:   "file4",
@@ -417,7 +417,7 @@ func TestHistoryListCommand(t *testing.T) {
 				})
 
 				Convey("Given a destination parameter", func() {
-					command.Remote = []string{h2.Remote, h3.Remote}
+					command.Agent = []string{h2.Agent, h3.Agent}
 
 					Convey("When executing the command", func() {
 						err := command.Execute(nil)
@@ -514,7 +514,7 @@ func TestHistoryListCommand(t *testing.T) {
 					command.Start = time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
 					command.Stop = time.Date(2019, 1, 3, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
 					command.Account = []string{h1.Account, h2.Account}
-					command.Remote = []string{h4.Remote, h1.Remote}
+					command.Agent = []string{h4.Agent, h1.Agent}
 					command.Rules = []string{h3.Rule, h1.Rule, h2.Rule}
 					command.Statuses = []string{"DONE", "TRANSFER"}
 					command.Protocol = []string{"sftp"}
@@ -534,6 +534,123 @@ func TestHistoryListCommand(t *testing.T) {
 								So(string(cont), ShouldEqual, "History:\n"+
 									historyInfoString(hist1))
 							})
+						})
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestHistoryRestartCommand(t *testing.T) {
+
+	Convey("Testing the partner 'get' command", t, func() {
+		out = testFile()
+		command := &historyRestartCommand{}
+
+		Convey("Given a database", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			Convey("Given a failed history entry", func() {
+				p := &model.RemoteAgent{
+					Name:        "test",
+					Protocol:    "sftp",
+					ProtoConfig: []byte(`{"address":"localhost","port":1,"root":"toto"}`),
+				}
+				So(db.Create(p), ShouldBeNil)
+
+				c := &model.Cert{
+					Name:        "test",
+					PublicKey:   []byte("test"),
+					Certificate: []byte("test"),
+					OwnerType:   "remote_agents",
+					OwnerID:     p.ID,
+				}
+				So(db.Create(c), ShouldBeNil)
+
+				a := &model.RemoteAccount{
+					Login:         "login",
+					Password:      []byte("password"),
+					RemoteAgentID: p.ID,
+				}
+				So(db.Create(a), ShouldBeNil)
+
+				r := &model.Rule{
+					Name:   "rule",
+					IsSend: true,
+				}
+				So(db.Create(r), ShouldBeNil)
+
+				h := &model.TransferHistory{
+					ID:             1,
+					IsServer:       false,
+					IsSend:         r.IsSend,
+					Rule:           r.Name,
+					Account:        a.Login,
+					Agent:          p.Name,
+					Protocol:       p.Protocol,
+					SourceFilename: "source",
+					DestFilename:   "destination",
+					Start:          time.Now(),
+					Stop:           time.Now().Add(time.Hour),
+					Status:         model.StatusError,
+					Owner:          database.Owner,
+				}
+				So(db.Create(h), ShouldBeNil)
+
+				Convey("Given a valid history entry ID and date", func() {
+					id := fmt.Sprint(h.ID)
+					date := time.Now().Truncate(time.Second)
+					command.Date = date.Format(time.RFC3339)
+
+					Convey("When executing the command", func() {
+						err := command.Execute([]string{id})
+
+						Convey("Then it should NOT return an error", func() {
+							So(err, ShouldBeNil)
+
+							Convey("Then is should display a message saying the transfer was restarted", func() {
+								_, err = out.Seek(0, 0)
+								So(err, ShouldBeNil)
+								cont, err := ioutil.ReadAll(out)
+								So(err, ShouldBeNil)
+								So(string(cont), ShouldEqual, "The transfer n°"+id+
+									" was successfully restarted. It can be consulted at "+
+									"the address: "+gw.URL+admin.APIPath+rest.TransfersPath+"/1\n")
+							})
+
+							Convey("Then the transfer should have been added", func() {
+								expected := model.Transfer{
+									ID:         1,
+									RuleID:     r.ID,
+									IsServer:   false,
+									AgentID:    p.ID,
+									AccountID:  a.ID,
+									SourcePath: h.SourceFilename,
+									DestPath:   h.DestFilename,
+									Start:      date,
+									Status:     model.StatusPlanned,
+									Owner:      h.Owner,
+								}
+
+								var t []model.Transfer
+								So(db.Select(&t, nil), ShouldBeNil)
+								So(t[0], ShouldResemble, expected)
+							})
+						})
+					})
+				})
+
+				Convey("Given an invalid entry ID", func() {
+					id := "1000"
+
+					Convey("When executing the command", func() {
+						err := command.Execute([]string{id})
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
 						})
 					})
 				})

@@ -51,7 +51,7 @@ func TestHistoryValidateInsert(t *testing.T) {
 				Rule:           "rule",
 				IsServer:       true,
 				IsSend:         true,
-				Remote:         "from",
+				Agent:          "from",
 				Account:        "to",
 				SourceFilename: "test/source/path",
 				DestFilename:   "test/source/path",
@@ -136,8 +136,8 @@ func TestHistoryValidateInsert(t *testing.T) {
 				})
 			})
 
-			Convey("Given that the remote is missing", func() {
-				hist.Remote = ""
+			Convey("Given that the agent is missing", func() {
+				hist.Agent = ""
 
 				Convey("When calling the 'ValidateInsert' function", func() {
 					ses, err := db.BeginTransaction()
@@ -150,7 +150,7 @@ func TestHistoryValidateInsert(t *testing.T) {
 					})
 
 					Convey("Then the error should say the destination is missing", func() {
-						So(err.Error(), ShouldEqual, "The transfer's remote "+
+						So(err.Error(), ShouldEqual, "The transfer's agent "+
 							"cannot be empty")
 					})
 				})
@@ -339,8 +339,8 @@ func TestHistoryValidateUpdate(t *testing.T) {
 			})
 		})
 
-		Convey("Given that the entry changes the remote", func() {
-			hist.Remote = "dest"
+		Convey("Given that the entry changes the agent", func() {
+			hist.Agent = "dest"
 
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := hist.ValidateUpdate(nil, 0)
@@ -350,7 +350,7 @@ func TestHistoryValidateUpdate(t *testing.T) {
 				})
 
 				Convey("Then the error should say that the destination cannot be changed", func() {
-					So(err.Error(), ShouldEqual, "The transfer's remote "+
+					So(err.Error(), ShouldEqual, "The transfer's agent "+
 						"cannot be changed")
 				})
 			})

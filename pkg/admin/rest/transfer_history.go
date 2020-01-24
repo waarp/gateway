@@ -19,7 +19,7 @@ type OutHistory struct {
 	IsServer       bool                    `json:"isServer"`
 	IsSend         bool                    `json:"isSend"`
 	Account        string                  `json:"account"`
-	Remote         string                  `json:"remote"`
+	Agent          string                  `json:"agent"`
 	Protocol       string                  `json:"protocol"`
 	SourceFilename string                  `json:"sourceFilename"`
 	DestFilename   string                  `json:"destFilename"`
@@ -38,7 +38,7 @@ func FromHistory(h *model.TransferHistory) *OutHistory {
 		IsServer:       h.IsServer,
 		IsSend:         h.IsSend,
 		Account:        h.Account,
-		Remote:         h.Remote,
+		Agent:          h.Agent,
 		Protocol:       h.Protocol,
 		SourceFilename: h.SourceFilename,
 		DestFilename:   h.DestFilename,
@@ -61,7 +61,7 @@ func FromHistories(hs []model.TransferHistory) []OutHistory {
 			IsServer:       h.IsServer,
 			IsSend:         h.IsSend,
 			Account:        h.Account,
-			Remote:         h.Remote,
+			Agent:          h.Agent,
 			Protocol:       h.Protocol,
 			SourceFilename: h.SourceFilename,
 			DestFilename:   h.DestFilename,
@@ -85,9 +85,9 @@ func parseHistoryCond(r *http.Request, filters *database.Filters) error {
 	if len(accounts) > 0 {
 		conditions = append(conditions, builder.In("account", accounts))
 	}
-	remotes := r.Form["remote"]
-	if len(remotes) > 0 {
-		conditions = append(conditions, builder.In("remote", remotes))
+	agents := r.Form["agent"]
+	if len(agents) > 0 {
+		conditions = append(conditions, builder.In("agent", agents))
 	}
 	rules := r.Form["rule"]
 	if len(rules) > 0 {
@@ -156,8 +156,8 @@ func listHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
 		"default":  "start ASC",
 		"id+":      "id ASC",
 		"id-":      "id DESC",
-		"remote+":  "remote ASC",
-		"remote-":  "remote DESC",
+		"agent+":   "agent ASC",
+		"agent-":   "agent DESC",
 		"account+": "account ASC",
 		"account-": "account DESC",
 		"rule+":    "rule ASC",
@@ -185,6 +185,51 @@ func listHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
 
 			resp := map[string][]OutHistory{"history": FromHistories(results)}
 			return writeJSON(w, resp)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func restartTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			id, err := parseID(r, "history")
+			if err != nil {
+				return err
+			}
+			result := &model.TransferHistory{ID: id}
+
+			if err := get(db, result); err != nil {
+				return err
+			}
+
+			date := time.Now().UTC()
+			if dateStr := r.FormValue("date"); dateStr != "" {
+				date, err = time.Parse(time.RFC3339, dateStr)
+				if err != nil {
+					return err
+				}
+			}
+
+			if result.Status == model.StatusDone {
+				return &badRequest{msg: "cannot restart a finished transfer"}
+			}
+
+			trans, err := result.Reprogram(db, date)
+			if err != nil {
+				return err
+			}
+
+			if err := db.Create(trans); err != nil {
+				return err
+			}
+
+			r.URL.Path = APIPath + TransfersPath
+			w.Header().Set("Location", location(r, id))
+			w.WriteHeader(http.StatusCreated)
+			return nil
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

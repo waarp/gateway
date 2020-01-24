@@ -14,3 +14,4 @@ Pour les transferts en cours, voir :ref:`REST_transfers`.
 
    list
    consult
+   restart

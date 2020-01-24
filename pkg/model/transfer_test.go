@@ -660,7 +660,7 @@ func TestTransferToHistory(t *testing.T) {
 						IsServer:       false,
 						IsSend:         true,
 						Account:        account.Login,
-						Remote:         remote.Name,
+						Agent:          remote.Name,
 						Protocol:       remote.Protocol,
 						SourceFilename: trans.SourcePath,
 						DestFilename:   trans.DestPath,
