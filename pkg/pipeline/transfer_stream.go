@@ -67,3 +67,41 @@ func (t *TransferStream) Start() (err model.TransferError) {
 	t.File, err = getFile(t.Logger, t.Root, t.rule, t.Transfer)
 	return
 }
+
+func (t *TransferStream) Read(p []byte) (n int, err error) {
+	n, err = t.File.Read(p)
+	t.Transfer.Progress += uint64(n)
+	if err := t.Transfer.Update(t.Db); err != nil {
+		return 0, err
+	}
+	return
+}
+
+func (t *TransferStream) Write(p []byte) (n int, err error) {
+	n, err = t.File.Write(p)
+	t.Transfer.Progress += uint64(n)
+	if err := t.Transfer.Update(t.Db); err != nil {
+		return 0, err
+	}
+	return
+}
+
+// ReadAt reads the stream, starting at the given offset.
+func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
+	n, err = t.File.ReadAt(p, off)
+	t.Transfer.Progress += uint64(n)
+	if err := t.Transfer.Update(t.Db); err != nil {
+		return 0, err
+	}
+	return
+}
+
+// WriteAt writes the given bytes to the stream, starting at the given offset.
+func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
+	n, err = t.File.WriteAt(p, off)
+	t.Transfer.Progress += uint64(n)
+	if err := t.Transfer.Update(t.Db); err != nil {
+		return 0, err
+	}
+	return
+}

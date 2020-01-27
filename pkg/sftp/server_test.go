@@ -268,10 +268,8 @@ func TestSSHServer(t *testing.T) {
 					So(<-res1, ShouldBeNil)
 					So(<-res2, ShouldBeNil)
 
-					err = dst1.Close()
-					So(err, ShouldBeNil)
-					err = dst2.Close()
-					So(err, ShouldBeNil)
+					So(dst1.Close(), ShouldBeNil)
+					So(dst2.Close(), ShouldBeNil)
 
 					Convey("Then the destination files should exist", func() {
 						path1 := root + receive.Path + "/test_in_1.dst"
