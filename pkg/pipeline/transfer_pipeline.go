@@ -22,32 +22,29 @@ type Pipeline struct {
 
 // PreTasks executes the transfer's pre-tasks. It returns an error if the
 // execution fails.
-func (p *Pipeline) PreTasks() model.TransferError {
+func (p *Pipeline) PreTasks() *model.PipelineError {
 	return execTasks(p.proc, model.ChainPre, model.StatusPreTasks)
 }
 
 // PostTasks executes the transfer's post-tasks. It returns an error if the
 // execution fails.
-func (p *Pipeline) PostTasks() model.TransferError {
+func (p *Pipeline) PostTasks() *model.PipelineError {
 	return execTasks(p.proc, model.ChainPost, model.StatusPostTasks)
 }
 
 // ErrorTasks updates the transfer's error in the database with the given one,
 // and then executes the transfer's error-tasks.
-func (p *Pipeline) ErrorTasks(te model.TransferError) {
-	p.Transfer.Error = te
-	if err := p.Transfer.Update(p.Db); err != nil {
-		p.Logger.Criticalf("Failed to update transfer error: %s", err.Error())
-		return
-	}
-
+func (p *Pipeline) ErrorTasks() {
 	_ = execTasks(p.proc, model.ChainError, model.StatusErrorTasks)
 }
 
-// Exit deletes the transfer entry and saves it in the history. It also deletes
-// the transfer's signal channel.
-func (p *Pipeline) Exit() {
+// Archive deletes the transfer entry and saves it in the history.
+func (p *Pipeline) Archive() {
 	toHistory(p.Db, p.Logger, p.Transfer)
+}
+
+// Exit deletes the transfer's signal channel.
+func (p *Pipeline) Exit() {
 	close(p.Signals)
 	Signals.Delete(p.Transfer.ID)
 }

@@ -213,6 +213,10 @@ func restartTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				}
 			}
 
+			if result.IsServer {
+				return &badRequest{msg: "only the client can restart a transfer"}
+			}
+
 			if result.Status == model.StatusDone {
 				return &badRequest{msg: "cannot restart a finished transfer"}
 			}

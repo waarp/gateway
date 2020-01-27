@@ -71,7 +71,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 					Logger: log.NewLogger("test_executor", logConf),
 				}
 				stream, err := pipeline.NewTransferStream(exe.Logger, exe.Db, "", *trans)
-				So(err.Code, ShouldEqual, model.TeOk)
+				So(err, ShouldBeNil)
 
 				Convey("Given that the transfer is successful", func() {
 					ClientsConstructors["test"] = NewAllSuccess

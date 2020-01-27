@@ -18,21 +18,21 @@ type Client interface {
 	// Connect is the method which opens the TCP connection to the transfer
 	// remote. The connection must be handled entirely by the client. The method
 	// returns an error if the connection failed.
-	Connect() model.TransferError
+	Connect() *model.PipelineError
 
 	// Authenticate is the method used to authenticate the connection made with
 	// the `Connect` method. Thus, this method should never be called before the
 	// `Connect` method. If the authentication fails, the method returns an error.
-	Authenticate() model.TransferError
+	Authenticate() *model.PipelineError
 
 	// Request it the method which transmits the transfer request to the remote
 	// using the specified protocol. The content of the file should not be sent
 	// with this method. If the transfer request fails, an error is returned.
-	Request() model.TransferError
+	Request() *model.PipelineError
 
 	// Data is the method which transfers the file content to the remote. Once
 	// the data has been transmitted, this method should close both the connection
 	// and the local file. If an error occurs while transmitting the data, an
 	// error is returned.
-	Data(io.ReadWriteCloser) model.TransferError
+	Data(io.ReadWriteCloser) *model.PipelineError
 }

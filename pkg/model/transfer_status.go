@@ -19,6 +19,15 @@ const (
 	// StatusErrorTasks is the state of a transfer while it's running the error tasks.
 	StatusErrorTasks TransferStatus = "ERROR TASKS"
 
+	// StatusInterrupted is the state of a transfer when interrupted unexpectedly.
+	StatusInterrupted TransferStatus = "INTERRUPTED"
+
+	// StatusPaused is the state of a transfer when paused by a user.
+	StatusPaused TransferStatus = "PAUSED"
+
+	// StatusCancelled is the state of a transfer when canceled by a user.
+	StatusCancelled TransferStatus = "CANCELLED"
+
 	// StatusDone is the state of a transfer when finished without error
 	StatusDone TransferStatus = "DONE"
 
@@ -37,9 +46,9 @@ const (
 
 func validateStatusForTransfer(t TransferStatus) bool {
 	return t == StatusPlanned || t == StatusTransfer || t == StatusPreTasks ||
-		t == StatusPostTasks || t == StatusErrorTasks
+		t == StatusPostTasks || t == StatusErrorTasks || t == StatusPaused
 }
 
 func validateStatusForHistory(t TransferStatus) bool {
-	return t == StatusDone || t == StatusError
+	return t == StatusDone || t == StatusError || t == StatusCancelled
 }

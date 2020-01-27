@@ -20,10 +20,10 @@ type TransferStream struct {
 // NewTransferStream initialises a new stream for the given transfer. This stream
 // can then be used to execute a transfer.
 func NewTransferStream(logger *log.Logger, db *database.Db, root string,
-	trans model.Transfer) (*TransferStream, model.TransferError) {
+	trans model.Transfer) (*TransferStream, error) {
 
 	if trans.ID == 0 {
-		if err := createTransfer(logger, db, &trans); err.Code != model.TeOk {
+		if err := createTransfer(logger, db, &trans); err != nil {
 			return nil, err
 		}
 	}
@@ -39,7 +39,7 @@ func NewTransferStream(logger *log.Logger, db *database.Db, root string,
 
 	t.Pipeline.rule = &model.Rule{ID: trans.RuleID}
 	if err := t.Db.Get(t.rule); err != nil {
-		return nil, model.NewTransferError(model.TeInternal, err.Error())
+		return nil, err
 	}
 
 	t.Signals = make(chan model.Signal)
@@ -52,15 +52,15 @@ func NewTransferStream(logger *log.Logger, db *database.Db, root string,
 		Transfer: t.Transfer,
 		Signals:  t.Signals,
 	}
-	return t, model.TransferError{}
+	return t, nil
 }
 
 // Start opens/creates the stream's local file. If necessary, the method also
 // creates the file's parent directories.
-func (t *TransferStream) Start() (err model.TransferError) {
+func (t *TransferStream) Start() (err *model.PipelineError) {
 	if !t.rule.IsSend {
 		if err := makeDir(t.Root, t.rule.Path); err != nil {
-			return model.NewTransferError(model.TeForbidden, err.Error())
+			return model.NewPipelineError(model.TeForbidden, err.Error())
 		}
 	}
 

@@ -19,13 +19,13 @@ import (
 // using the transfer's ID.
 var Signals sync.Map
 
-func createTransfer(logger *log.Logger, db *database.Db, trans *model.Transfer) model.TransferError {
+func createTransfer(logger *log.Logger, db *database.Db, trans *model.Transfer) error {
 	err := db.Create(trans)
 	if err != nil {
 		logger.Criticalf("Failed to create transfer entry: %s", err)
-		return model.NewTransferError(model.TeInternal, err.Error())
+		return err
 	}
-	return model.TransferError{}
+	return nil
 }
 
 func toHistory(db *database.Db, logger *log.Logger, trans *model.Transfer) {
@@ -39,12 +39,6 @@ func toHistory(db *database.Db, logger *log.Logger, trans *model.Transfer) {
 		logger.Criticalf("Failed to delete transfer for archival: %s", err)
 		ses.Rollback()
 		return
-	}
-
-	if trans.Error.Code != model.TeOk && trans.Error.Code != model.TeWarning {
-		trans.Status = model.StatusError
-	} else {
-		trans.Status = model.StatusDone
 	}
 
 	hist, err := trans.ToHistory(ses, time.Now())
@@ -67,43 +61,43 @@ func toHistory(db *database.Db, logger *log.Logger, trans *model.Transfer) {
 }
 
 func execTasks(proc *tasks.Processor, chain model.Chain,
-	status model.TransferStatus) model.TransferError {
+	status model.TransferStatus) *model.PipelineError {
 
 	proc.Transfer.Status = status
 	if err := proc.Transfer.Update(proc.Db); err != nil {
 		proc.Logger.Criticalf("Failed to update transfer status: %s", err)
-		return model.NewTransferError(model.TeInternal, err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 
 	tasksList, err := proc.GetTasks(chain)
 	if err != nil {
 		proc.Logger.Criticalf("Failed to retrieve tasks: %s", err)
-		return model.NewTransferError(model.TeInternal, err.Error())
+		return err
 	}
 
 	return proc.RunTasks(tasksList)
 }
 
 func getFile(logger *log.Logger, root string, rule *model.Rule,
-	trans *model.Transfer) (*os.File, model.TransferError) {
+	trans *model.Transfer) (*os.File, *model.PipelineError) {
 
 	if rule.IsSend {
 		path := filepath.Clean(filepath.Join(root, rule.Path, trans.SourcePath))
 		file, err := os.Open(path)
 		if err != nil {
 			logger.Errorf("Failed to open source file: %s", err)
-			return nil, model.NewTransferError(model.TeForbidden, err.Error())
+			return nil, model.NewPipelineError(model.TeForbidden, err.Error())
 		}
-		return file, model.TransferError{}
+		return file, nil
 	}
 
 	path := filepath.Clean(filepath.Join(root, rule.Path, trans.DestPath))
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		logger.Errorf("Failed to create destination file: %s", err)
-		return nil, model.NewTransferError(model.TeForbidden, err.Error())
+		return nil, model.NewPipelineError(model.TeForbidden, err.Error())
 	}
-	return file, model.TransferError{}
+	return file, nil
 }
 
 func makeDir(root, path string) error {
@@ -122,4 +116,31 @@ func makeDir(root, path string) error {
 		}
 	}
 	return nil
+}
+
+// HandleError analyses the given error, and executes the necessary steps
+// corresponding to the error kind.
+func HandleError(stream *TransferStream, err *model.PipelineError) {
+	switch err.Kind {
+	case model.KindCancel:
+		stream.Transfer.Status = model.StatusCancelled
+		stream.Archive()
+	case model.KindDatabase:
+	case model.KindInterrupt:
+		stream.Transfer.Status = model.StatusInterrupted
+		_ = stream.Transfer.Update(stream.Db)
+	case model.KindPause:
+		stream.Transfer.Status = model.StatusPaused
+		_ = stream.Transfer.Update(stream.Db)
+	case model.KindTransfer:
+		stream.Transfer.Error = err.Cause
+		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
+			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
+			return
+		}
+		stream.ErrorTasks()
+		stream.Transfer.Status = model.StatusError
+		stream.Archive()
+	}
+	stream.Exit()
 }

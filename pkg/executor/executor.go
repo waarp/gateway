@@ -31,13 +31,13 @@ type Executor struct {
 }
 
 func (e *Executor) getClient(stream *pipeline.TransferStream) (client pipeline.Client,
-	te model.TransferError) {
+	te *model.PipelineError) {
 
 	info, err := model.NewOutTransferInfo(e.Db, stream.Transfer)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to retrieve transfer info: %s", err)
 		e.Logger.Critical(msg)
-		te = model.NewTransferError(model.TeInternal, msg)
+		te = &model.PipelineError{Kind: model.KindDatabase}
 		return
 	}
 
@@ -45,94 +45,88 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) (client pipeline.C
 	if !ok {
 		msg := fmt.Sprintf("Unknown transfer protocol")
 		e.Logger.Critical(msg)
-		te = model.NewTransferError(model.TeConnection, msg)
+		te = model.NewPipelineError(model.TeConnection, msg)
 		return
 	}
 	client, err = constr(*info, stream.Signals)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to create transfer client: %s", err)
 		e.Logger.Critical(msg)
-		te = model.NewTransferError(model.TeConnection, msg)
+		te = model.NewPipelineError(model.TeConnection, msg)
 		return
 	}
 
 	return client, te
 }
 
-func (e *Executor) prologue(client pipeline.Client) model.TransferError {
-	if err := client.Connect(); err.Code != model.TeOk {
+func (e *Executor) prologue(client pipeline.Client) *model.PipelineError {
+	if err := client.Connect(); err != nil {
 		msg := fmt.Sprintf("Failed to connect to remote agent: %s", err)
 		e.Logger.Error(msg)
 		return err
 	}
 
-	if err := client.Authenticate(); err.Code != model.TeOk {
+	if err := client.Authenticate(); err != nil {
 		msg := fmt.Sprintf("Failed to authenticate on remote agent: %s", err)
 		e.Logger.Error(msg)
 		return err
 	}
 
-	if err := client.Request(); err.Code != model.TeOk {
+	if err := client.Request(); err != nil {
 		msg := fmt.Sprintf("Failed to make transfer request: %s", err)
 		e.Logger.Error(msg)
 		return err
 	}
 
-	return model.TransferError{}
+	return nil
 }
 
-func (e *Executor) data(stream *pipeline.TransferStream, client pipeline.Client) model.TransferError {
+func (e *Executor) data(stream *pipeline.TransferStream, client pipeline.Client) *model.PipelineError {
 	stream.Transfer.Status = model.StatusTransfer
 	if err := stream.Transfer.Update(e.Db); err != nil {
 		e.Logger.Criticalf("Failed to update transfer status: %s", err)
-		return model.NewTransferError(model.TeInternal, err.Error())
+		return model.NewPipelineError(model.TeInternal, err.Error())
 	}
 
 	err := client.Data(stream)
-	if err.Code != model.TeOk {
+	if err != nil {
 		e.Logger.Errorf("Error while transmitting data: %s", err)
 	}
 	return err
 }
 
 func (e *Executor) runTransfer(stream *pipeline.TransferStream) {
-	client, cErr := e.getClient(stream)
-	if cErr.Code != model.TeOk {
-		stream.Transfer.Error = cErr
-		stream.Exit()
-		return
-	}
+	tErr := func() *model.PipelineError {
+		client, cErr := e.getClient(stream)
+		if cErr != nil {
+			return cErr
+		}
 
-	if pErr := e.prologue(client); pErr.Code != model.TeOk {
-		stream.Transfer.Error = pErr
-		stream.Exit()
-		return
-	}
-
-	tErr := func() model.TransferError {
-		if pErr := stream.PreTasks(); pErr.Code != model.TeOk {
+		if pErr := e.prologue(client); pErr != nil {
 			return pErr
 		}
-		if dErr := e.data(stream, client); dErr.Code != model.TeOk {
+
+		if pErr := stream.PreTasks(); pErr != nil {
+			return pErr
+		}
+		if dErr := e.data(stream, client); dErr != nil {
 			return dErr
 		}
-		if pErr := stream.PostTasks(); pErr.Code != model.TeOk {
+		if e := stream.Close(); e != nil {
+			stream.Logger.Warningf("Failed to close local file: %s", e.Error())
+		}
+		if pErr := stream.PostTasks(); pErr != nil {
 			return pErr
 		}
 
+		stream.Transfer.Status = model.StatusDone
+		stream.Archive()
 		stream.Exit()
-		return model.TransferError{}
+		return nil
 	}()
 
-	if tErr.Code != model.TeOk {
-		if tErr.Code == model.TeShuttingDown {
-			stream.Transfer.Error = tErr
-			stream.Exit()
-			return
-		}
-
-		stream.ErrorTasks(tErr)
-		stream.Exit()
+	if tErr != nil {
+		pipeline.HandleError(stream, tErr)
 	}
 }
 
@@ -143,8 +137,9 @@ func (e *Executor) Run(wg *sync.WaitGroup) {
 	go func() {
 		for trans := range e.Transfers {
 			stream, err := pipeline.NewTransferStream(e.Logger, e.Db, "", trans)
-			if err.Code != model.TeOk {
+			if err != nil {
 				e.Logger.Errorf("Failed to create transfer stream: %s", err.Error())
+				continue
 			}
 			e.runTransfer(stream)
 		}

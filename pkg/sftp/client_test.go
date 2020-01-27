@@ -112,7 +112,7 @@ func TestConnect(t *testing.T) {
 				err := client.Connect()
 
 				Convey("Then it should NOT return an error", func() {
-					So(err, ShouldResemble, model.TransferError{})
+					So(err, ShouldBeNil)
 
 					Convey("Then the connection should be open", func() {
 						So(client.conn, ShouldNotBeNil)
@@ -132,7 +132,8 @@ func TestConnect(t *testing.T) {
 				err := client.Connect()
 
 				Convey("Then it should return an error", func() {
-					So(err.Code, ShouldResemble, model.TeConnection)
+					So(err.Kind, ShouldEqual, model.KindTransfer)
+					So(err.Cause.Code, ShouldEqual, model.TeConnection)
 
 					Convey("Then the connection should NOT be open", func() {
 						So(client.conn, ShouldBeNil)
@@ -151,7 +152,7 @@ func TestAuthenticate(t *testing.T) {
 				Address: "localhost",
 			},
 		}
-		So(client.Connect(), ShouldResemble, model.TransferError{})
+		So(client.Connect(), ShouldBeNil)
 		Reset(func() { _ = client.conn.Close() })
 
 		Convey("Given a valid SFTP configuration", func() {
@@ -168,7 +169,7 @@ func TestAuthenticate(t *testing.T) {
 			err := client.Authenticate()
 
 			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldResemble, model.TransferError{})
+				So(err, ShouldBeNil)
 
 				Convey("Then the SSH tunnel should be opened", func() {
 					So(client.client, ShouldNotBeNil)
@@ -191,7 +192,7 @@ func TestAuthenticate(t *testing.T) {
 			err := client.Authenticate()
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldResemble, model.TransferError{})
+				So(err, ShouldBeNil)
 
 				Convey("Then the SSH tunnel NOT should be opened", func() {
 					So(client.client, ShouldBeNil)
@@ -209,7 +210,7 @@ func TestRequest(t *testing.T) {
 				Address: "localhost",
 			},
 		}
-		So(client.Connect(), ShouldResemble, model.TransferError{})
+		So(client.Connect(), ShouldBeNil)
 		Reset(func() { _ = client.conn.Close() })
 
 		client.Info = model.OutTransferInfo{
@@ -222,7 +223,7 @@ func TestRequest(t *testing.T) {
 			}},
 		}
 
-		So(client.Authenticate(), ShouldResemble, model.TransferError{})
+		So(client.Authenticate(), ShouldBeNil)
 		Reset(func() { _ = client.client.Close() })
 
 		Convey("Given a valid out file transfer", func() {
@@ -237,7 +238,7 @@ func TestRequest(t *testing.T) {
 			Reset(func() { _ = os.Remove(client.Info.Transfer.DestPath) })
 
 			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldResemble, model.TransferError{})
+				So(err, ShouldBeNil)
 
 				Convey("Then the file stream should be open", func() {
 					So(client.remoteFile, ShouldNotBeNil)
@@ -257,7 +258,7 @@ func TestRequest(t *testing.T) {
 			err := client.Request()
 
 			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldResemble, model.TransferError{})
+				So(err, ShouldBeNil)
 
 				Convey("Then the file stream should be open", func() {
 					So(client.remoteFile, ShouldNotBeNil)
@@ -277,7 +278,7 @@ func TestRequest(t *testing.T) {
 			err := client.Request()
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldResemble, model.NewTransferError(model.TeFileNotFound,
+				So(err, ShouldResemble, model.NewPipelineError(model.TeFileNotFound,
 					"file does not exist"))
 
 				Convey("Then the file stream should NOT be open", func() {
@@ -296,7 +297,7 @@ func TestData(t *testing.T) {
 				Address: "localhost",
 			},
 		}
-		So(client.Connect(), ShouldResemble, model.TransferError{})
+		So(client.Connect(), ShouldBeNil)
 		Reset(func() { _ = client.conn.Close() })
 
 		client.Info = model.OutTransferInfo{
@@ -309,7 +310,7 @@ func TestData(t *testing.T) {
 			}},
 		}
 
-		So(client.Authenticate(), ShouldResemble, model.TransferError{})
+		So(client.Authenticate(), ShouldBeNil)
 		Reset(func() { _ = client.client.Close() })
 
 		Convey("Given a valid out file transfer", func() {
@@ -321,7 +322,7 @@ func TestData(t *testing.T) {
 				IsSend: true,
 			}
 
-			So(client.Request(), ShouldResemble, model.TransferError{})
+			So(client.Request(), ShouldBeNil)
 			Reset(func() { _ = os.Remove(client.Info.Transfer.DestPath) })
 
 			file, err := os.Open(client.Info.Transfer.SourcePath)
@@ -330,7 +331,7 @@ func TestData(t *testing.T) {
 			err = client.Data(file)
 
 			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldResemble, model.TransferError{})
+				So(err, ShouldBeNil)
 
 				Convey("Then the file should have been copied", func() {
 					src, err := ioutil.ReadFile(client.Info.Transfer.SourcePath)
@@ -352,7 +353,7 @@ func TestData(t *testing.T) {
 				IsSend: false,
 			}
 
-			So(client.Request(), ShouldResemble, model.TransferError{})
+			So(client.Request(), ShouldBeNil)
 
 			file, err := os.Create(client.Info.Transfer.DestPath)
 			So(err, ShouldBeNil)
@@ -361,7 +362,7 @@ func TestData(t *testing.T) {
 			err = client.Data(file)
 
 			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldResemble, model.TransferError{})
+				So(err, ShouldBeNil)
 
 				Convey("Then the file should have been copied", func() {
 					src, err := ioutil.ReadFile(client.Info.Transfer.SourcePath)

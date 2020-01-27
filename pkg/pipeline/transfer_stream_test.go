@@ -70,9 +70,9 @@ func TestStreamRead(t *testing.T) {
 		So(db.Create(trans), ShouldBeNil)
 
 		stream, tErr := NewTransferStream(logger, db, ".", *trans)
-		So(tErr, ShouldResemble, model.TransferError{})
+		So(tErr, ShouldBeNil)
 
-		So(stream.Start(), ShouldResemble, model.TransferError{})
+		So(stream.Start(), ShouldBeNil)
 
 		Convey("When reading the stream", func() {
 			b := make([]byte, 15)
@@ -175,9 +175,9 @@ func TestStreamWrite(t *testing.T) {
 		So(db.Create(trans), ShouldBeNil)
 
 		stream, tErr := NewTransferStream(logger, db, ".", *trans)
-		So(tErr, ShouldResemble, model.TransferError{})
+		So(tErr, ShouldBeNil)
 
-		So(stream.Start(), ShouldResemble, model.TransferError{})
+		So(stream.Start(), ShouldBeNil)
 		Reset(func() { _ = os.Remove(filename) })
 
 		Convey("When writing to the stream", func() {
