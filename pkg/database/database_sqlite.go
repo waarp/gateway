@@ -26,10 +26,10 @@ func sqliteinfo(config conf.DatabaseConfig) (string, string) {
 func sqliteDSN(config conf.DatabaseConfig) string {
 	var user, pass string
 	if config.User != "" {
-		user = fmt.Sprintf("?_auth_user=%s", config.User)
+		user = fmt.Sprintf("&_auth_user=%s", config.User)
 	}
 	if config.Password != "" {
 		pass = fmt.Sprintf("&_auth_pass=%s", config.Password)
 	}
-	return fmt.Sprintf("%s%s%s", config.Name, user, pass)
+	return fmt.Sprintf("file:%s?cache=shared&mode=rwc%s%s", config.Name, user, pass)
 }

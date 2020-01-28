@@ -398,18 +398,25 @@ func (db *Db) BeginTransaction() (*Session, error) {
 		return nil, ErrServiceUnavailable
 	}
 
+	if testDbLock != nil {
+		testDbLock.Lock()
+	}
 	s := &Session{
 		session: db.engine.NewSession(),
 		logger:  db.Logger,
 		state:   &db.state,
 	}
 	if err := s.session.Begin(); err != nil {
+		if testDbLock != nil {
+			testDbLock.Unlock()
+		}
 		if err := ping(&db.state, db.engine, db.Logger); err != nil {
 			return nil, err
 		}
 		return nil, err
 	}
 	db.Logger.Debug("Transaction started")
+
 	return s, nil
 }
 
@@ -665,6 +672,12 @@ func (s *Session) Query(sqlorArgs ...interface{}) ([]map[string]interface{}, err
 // database. When this function is called, the session is closed, which means
 // it cannot be used to perform any more transactions.
 func (s *Session) Rollback() {
+	defer func() {
+		if testDbLock != nil {
+			testDbLock.Unlock()
+		}
+	}()
+
 	s.logger.Debugf("Rolling back changes %v", s)
 	s.session.Close()
 }
@@ -675,7 +688,13 @@ func (s *Session) Rollback() {
 // be performed using this instance.
 func (s *Session) Commit() error {
 	s.logger.Debug("Committing transaction")
-	defer s.session.Close()
+	defer func() {
+		if testDbLock != nil {
+			testDbLock.Unlock()
+		}
+		s.session.Close()
+	}()
+
 	if st, _ := s.state.Get(); st != service.Running {
 		return ErrServiceUnavailable
 	}

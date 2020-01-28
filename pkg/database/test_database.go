@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"os"
+	"sync"
 	"sync/atomic"
 
 	"code.bcarlin.xyz/go/logging"
@@ -14,6 +15,25 @@ import (
 
 var num uint64 = 0
 
+var testDbLock *sync.Mutex
+
+const (
+	test       = "test"
+	testDriver = "sqlite3"
+)
+
+func init() {
+	supportedRBMS[test] = testinfo
+}
+
+func testinfo(config conf.DatabaseConfig) (string, string) {
+	return testDriver, testDSN(config)
+}
+
+func testDSN(config conf.DatabaseConfig) string {
+	return fmt.Sprintf("file:%s?mode=memory&cache=shared", config.Name)
+}
+
 // GetTestDatabase returns a testing Sqlite database stored in memory. If the
 // database cannot be started, the function will panic.
 func GetTestDatabase() *Db {
@@ -21,13 +41,12 @@ func GetTestDatabase() *Db {
 
 	config := &conf.ServerConfig{}
 	config.GatewayName = "test_gateway"
-	config.Database.Type = sqlite
+	config.Database.Type = test
 
 	name := fmt.Sprint(atomic.LoadUint64(&num))
 	convey.Reset(func() { _ = os.Remove(name) })
 	config.Database.AESPassphrase = name
-
-	config.Database.Name = fmt.Sprintf("file:%s?mode=memory&cache=shared", name)
+	config.Database.Name = name
 	atomic.AddUint64(&num, 1)
 
 	logger := log.NewLogger("test_database", conf.LogConfig{})
