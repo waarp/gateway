@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -14,10 +13,23 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 )
 
-// Signals is a map regrouping the signal channels of all ongoing transfers.
-// The signal channel of a specific transfer can be retrieved from this map
-// using the transfer's ID.
-var Signals sync.Map
+func checkSignal(ch <-chan model.Signal) *model.PipelineError {
+	select {
+	case signal := <-ch:
+		switch signal {
+		case model.SignalCancel:
+			return &model.PipelineError{Kind: model.KindCancel}
+		case model.SignalPause:
+			return &model.PipelineError{Kind: model.KindPause}
+		case model.SignalShutdown:
+			return &model.PipelineError{Kind: model.KindInterrupt}
+		default:
+			return nil
+		}
+	default:
+		return nil
+	}
+}
 
 func createTransfer(logger *log.Logger, db *database.Db, trans *model.Transfer) error {
 	err := db.Create(trans)
@@ -128,10 +140,16 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 	case model.KindDatabase:
 	case model.KindInterrupt:
 		stream.Transfer.Status = model.StatusInterrupted
-		_ = stream.Transfer.Update(stream.Db)
+		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
+			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
+			return
+		}
 	case model.KindPause:
 		stream.Transfer.Status = model.StatusPaused
-		_ = stream.Transfer.Update(stream.Db)
+		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
+			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
+			return
+		}
 	case model.KindTransfer:
 		stream.Transfer.Error = err.Cause
 		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {

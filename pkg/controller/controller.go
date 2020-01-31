@@ -95,12 +95,18 @@ func (c *Controller) Stop(ctx context.Context) error {
 	c.state.Set(service.Offline, "")
 	c.ticker.Stop()
 
-	shutdown := func(k, v interface{}) bool {
-		s := v.(chan model.Signal)
-		s <- model.SignalShutdown
-		return true
+	var transfers []model.Transfer
+	filters := &database.Filters{
+		Conditions: builder.And(builder.Eq{"is_server": false},
+			builder.NotIn("status", model.StatusInterrupted, model.StatusPaused)),
 	}
-	pipeline.Signals.Range(shutdown)
+	if err := c.Db.Select(&transfers, filters); err != nil {
+		c.logger.Criticalf("Failed to retrieve ongoing transfers: %s", err)
+		return err
+	}
+	for _, trans := range transfers {
+		pipeline.Signals.SendSignal(trans.ID, model.SignalShutdown)
+	}
 
 	select {
 	case <-func() chan bool {

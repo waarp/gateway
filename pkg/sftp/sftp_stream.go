@@ -6,12 +6,14 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
 )
 
 type sftpStream struct {
 	*pipeline.TransferStream
 
 	transErr *model.PipelineError
+	servConn *ssh.ServerConn
 }
 
 // modelToSFTP converts the given PipelineError into its closest equivalent
@@ -39,13 +41,13 @@ func modelToSFTP(err *model.PipelineError) error {
 // the SFTP server. This constructor initialises a TransferStream, opens the
 // local file and executes the pre-tasks.
 func newSftpStream(logger *log.Logger, db *database.Db, root string,
-	trans model.Transfer) (*sftpStream, error) {
+	trans model.Transfer, servConn *ssh.ServerConn) (*sftpStream, error) {
 
 	s, err := pipeline.NewTransferStream(logger, db, root, trans)
 	if err != nil {
 		return nil, sftp.ErrSSHFxFailure
 	}
-	stream := &sftpStream{TransferStream: s}
+	stream := &sftpStream{TransferStream: s, servConn: servConn}
 
 	if te := s.Start(); te != nil {
 		pipeline.HandleError(s, te)
@@ -57,19 +59,54 @@ func newSftpStream(logger *log.Logger, db *database.Db, root string,
 		return nil, modelToSFTP(pe)
 	}
 
+	s.Transfer.Status = model.StatusTransfer
+	if de := s.Transfer.Update(s.Db); de != nil {
+		dbErr := &model.PipelineError{Kind: model.KindDatabase}
+		pipeline.HandleError(s, dbErr)
+		return nil, modelToSFTP(dbErr)
+	}
+
 	return stream, nil
 }
 
 func (s *sftpStream) TransferError(err error) {
-	if te, ok := err.(*model.PipelineError); ok {
-		s.transErr = te
-		return
+	s.Logger.Criticalf("ERROR CAUGHT: %#v", err)
+	if s.transErr == nil {
+		if te, ok := err.(*model.PipelineError); ok {
+			s.transErr = te
+			return
+		}
+		//if err == io.EOF && !s.Rule.IsSend {
+		s.transErr = model.NewPipelineError(model.TeConnectionReset,
+			"SFTP connection closed unexpectedly")
+		//	return
+		//}
+		//s.transErr = model.NewPipelineError(model.TeDataTransfer, err.Error())
 	}
-	s.transErr = model.NewPipelineError(model.TeConnectionReset,
-		"SFTP connection closed unexpectedly")
+}
+
+func (s *sftpStream) ReadAt(p []byte, off int64) (int, error) {
+	s.Logger.Criticalf("READING STREAM")
+	n, err := s.TransferStream.ReadAt(p, off)
+	if pe, ok := err.(*model.PipelineError); ok {
+		return n, modelToSFTP(pe)
+	}
+	return n, err
+}
+
+func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
+	s.Logger.Criticalf("WRITING STREAM")
+	n, err := s.TransferStream.WriteAt(p, off)
+	if err != nil {
+		s.TransferError(err)
+		_ = s.Close()
+		return n, modelToSFTP(s.transErr)
+	}
+	return n, nil
 }
 
 func (s *sftpStream) Close() error {
+	s.Logger.Criticalf("CLOSING STREAM")
 	if e := s.TransferStream.Close(); e != nil {
 		s.Logger.Warningf("Failed to close the local file: %s", e.Error())
 	}
@@ -84,6 +121,10 @@ func (s *sftpStream) Close() error {
 		}
 	}
 
+	s.Logger.Criticalf("HANDLING ERROR: %s", s.transErr)
 	pipeline.HandleError(s.TransferStream, s.transErr)
+	if s.transErr.Kind == model.KindInterrupt {
+		_ = s.servConn.Close()
+	}
 	return modelToSFTP(s.transErr)
 }

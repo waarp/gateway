@@ -38,6 +38,7 @@ func testDSN(config conf.DatabaseConfig) string {
 // database cannot be started, the function will panic.
 func GetTestDatabase() *Db {
 	BcryptRounds = bcrypt.MinCost
+	testDbLock = &sync.Mutex{}
 
 	config := &conf.ServerConfig{}
 	config.GatewayName = "test_gateway"

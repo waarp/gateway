@@ -46,7 +46,8 @@ const (
 
 func validateStatusForTransfer(t TransferStatus) bool {
 	return t == StatusPlanned || t == StatusTransfer || t == StatusPreTasks ||
-		t == StatusPostTasks || t == StatusErrorTasks || t == StatusPaused
+		t == StatusPostTasks || t == StatusErrorTasks || t == StatusPaused ||
+		t == StatusInterrupted
 }
 
 func validateStatusForHistory(t TransferStatus) bool {

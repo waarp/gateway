@@ -37,18 +37,17 @@ func NewTransferStream(logger *log.Logger, db *database.Db, root string,
 		},
 	}
 
-	t.Pipeline.rule = &model.Rule{ID: trans.RuleID}
-	if err := t.Db.Get(t.rule); err != nil {
+	t.Pipeline.Rule = &model.Rule{ID: trans.RuleID}
+	if err := t.Db.Get(t.Rule); err != nil {
 		return nil, err
 	}
 
-	t.Signals = make(chan model.Signal)
-	Signals.Store(t.Transfer.ID, t.Signals)
+	t.Signals = Signals.Add(t.Transfer.ID)
 
 	t.proc = &tasks.Processor{
 		Db:       t.Db,
 		Logger:   t.Logger,
-		Rule:     t.rule,
+		Rule:     t.Rule,
 		Transfer: t.Transfer,
 		Signals:  t.Signals,
 	}
@@ -58,17 +57,21 @@ func NewTransferStream(logger *log.Logger, db *database.Db, root string,
 // Start opens/creates the stream's local file. If necessary, the method also
 // creates the file's parent directories.
 func (t *TransferStream) Start() (err *model.PipelineError) {
-	if !t.rule.IsSend {
-		if err := makeDir(t.Root, t.rule.Path); err != nil {
+	if !t.Rule.IsSend {
+		if err := makeDir(t.Root, t.Rule.Path); err != nil {
 			return model.NewPipelineError(model.TeForbidden, err.Error())
 		}
 	}
 
-	t.File, err = getFile(t.Logger, t.Root, t.rule, t.Transfer)
+	t.File, err = getFile(t.Logger, t.Root, t.Rule, t.Transfer)
 	return
 }
 
 func (t *TransferStream) Read(p []byte) (n int, err error) {
+	if e := checkSignal(t.Signals); e != nil {
+		return 0, e
+	}
+
 	n, err = t.File.Read(p)
 	t.Transfer.Progress += uint64(n)
 	if err := t.Transfer.Update(t.Db); err != nil {
@@ -78,6 +81,10 @@ func (t *TransferStream) Read(p []byte) (n int, err error) {
 }
 
 func (t *TransferStream) Write(p []byte) (n int, err error) {
+	if e := checkSignal(t.Signals); e != nil {
+		return 0, e
+	}
+
 	n, err = t.File.Write(p)
 	t.Transfer.Progress += uint64(n)
 	if err := t.Transfer.Update(t.Db); err != nil {
@@ -88,6 +95,11 @@ func (t *TransferStream) Write(p []byte) (n int, err error) {
 
 // ReadAt reads the stream, starting at the given offset.
 func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
+	if e := checkSignal(t.Signals); e != nil {
+		t.Logger.Criticalf("SIGNAL RECEIVED ON READ")
+		return 0, e
+	}
+
 	n, err = t.File.ReadAt(p, off)
 	t.Transfer.Progress += uint64(n)
 	if err := t.Transfer.Update(t.Db); err != nil {
@@ -98,6 +110,11 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 
 // WriteAt writes the given bytes to the stream, starting at the given offset.
 func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
+	if e := checkSignal(t.Signals); e != nil {
+		t.Logger.Criticalf("SIGNAL RECEIVED ON WRITE")
+		return 0, e
+	}
+
 	n, err = t.File.WriteAt(p, off)
 	t.Transfer.Progress += uint64(n)
 	if err := t.Transfer.Update(t.Db); err != nil {

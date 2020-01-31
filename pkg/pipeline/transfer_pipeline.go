@@ -15,7 +15,7 @@ type Pipeline struct {
 	Root     string
 	Transfer *model.Transfer
 
-	rule    *model.Rule
+	Rule    *model.Rule
 	Signals chan model.Signal
 	proc    *tasks.Processor
 }
@@ -45,6 +45,5 @@ func (p *Pipeline) Archive() {
 
 // Exit deletes the transfer's signal channel.
 func (p *Pipeline) Exit() {
-	close(p.Signals)
 	Signals.Delete(p.Transfer.ID)
 }
