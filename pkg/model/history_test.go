@@ -257,7 +257,7 @@ func TestHistoryValidateInsert(t *testing.T) {
 
 			statusTestCases := []statusTestCase{
 				{StatusPlanned, false},
-				{StatusTransfer, false},
+				{StatusRunning, false},
 				{StatusDone, true},
 				{StatusError, true},
 				{"toto", false},
@@ -409,7 +409,7 @@ func TestHistoryValidateUpdate(t *testing.T) {
 
 		statusTestCases := []statusTestCase{
 			{StatusPlanned, false},
-			{StatusTransfer, false},
+			{StatusRunning, false},
 			{StatusDone, true},
 			{StatusError, true},
 			{"toto", false},

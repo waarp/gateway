@@ -34,6 +34,16 @@ func historyInfoString(t *rest.OutHistory) string {
 	if t.ErrorMsg != "" {
 		rv += "    Error message: " + t.ErrorMsg + "\n"
 	}
+	if t.Step != "" {
+		rv += "              Step: " + string(t.Step) + "\n"
+	}
+	if t.Progress != 0 {
+		rv += "          Progress: " + fmt.Sprint(t.Progress) + "\n"
+	}
+	if t.TaskNumber != 0 {
+		rv += "       Task number: " + fmt.Sprint(t.TaskNumber) + "\n"
+	}
+
 	return rv
 }
 

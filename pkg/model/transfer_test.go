@@ -442,7 +442,7 @@ func TestTransferValidateInsert(t *testing.T) {
 
 				statusTestCases := []statusTestCase{
 					{StatusPlanned, true},
-					{StatusTransfer, true},
+					{StatusRunning, true},
 					{StatusDone, false},
 					{StatusError, false},
 					{"toto", false},
@@ -456,9 +456,9 @@ func TestTransferValidateInsert(t *testing.T) {
 }
 
 func TestTransferValidateUpdate(t *testing.T) {
-	Convey("Given a `Transfer` instance", t, func() {
+	Convey("Given a `Running` instance", t, func() {
 		trans := &Transfer{
-			Status:   StatusTransfer,
+			Status:   StatusRunning,
 			Start:    time.Now(),
 			IsServer: false,
 		}
@@ -595,7 +595,7 @@ func TestTransferValidateUpdate(t *testing.T) {
 
 		statusesTestCases := []statusTestCase{
 			{StatusPlanned, true},
-			{StatusTransfer, true},
+			{StatusRunning, true},
 			{StatusDone, false},
 			{StatusError, false},
 			{"toto", false},
@@ -679,7 +679,7 @@ func TestTransferToHistory(t *testing.T) {
 				}
 				statusesTestCases := []statusTestCase{
 					{StatusPlanned, false},
-					{StatusTransfer, false},
+					{StatusRunning, false},
 					{StatusDone, true},
 					{StatusError, true},
 					{"toto", false},

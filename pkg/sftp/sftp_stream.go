@@ -59,7 +59,7 @@ func newSftpStream(logger *log.Logger, db *database.Db, root string,
 		return nil, modelToSFTP(pe)
 	}
 
-	s.Transfer.Status = model.StatusTransfer
+	s.Transfer.Step = model.StepData
 	if de := s.Transfer.Update(s.Db); de != nil {
 		dbErr := &model.PipelineError{Kind: model.KindDatabase}
 		pipeline.HandleError(s, dbErr)

@@ -24,6 +24,7 @@ func transferInfoString(t *rest.OutTransfer) string {
 		" Destination file: " + t.DestPath + "\n" +
 		"       Start time: " + t.Start.Local().Format(time.RFC3339) + "\n" +
 		"           Status: " + string(t.Status) + "\n" +
+		"             Step: " + string(t.Step) + "\n" +
 		"         Progress: " + fmt.Sprint(t.Progress) + "\n" +
 		"      Task number: " + fmt.Sprint(t.TaskNumber) + "\n"
 	if t.ErrorCode != model.TeOk {
@@ -499,10 +500,10 @@ func TestListTransfer(t *testing.T) {
 				So(db.Create(t3), ShouldBeNil)
 				So(db.Create(t4), ShouldBeNil)
 
-				t2.Status = model.StatusTransfer
-				t3.Status = model.StatusTransfer
-				So(db.Update(&model.Transfer{Status: model.StatusTransfer}, t2.ID, false), ShouldBeNil)
-				So(db.Update(&model.Transfer{Status: model.StatusTransfer}, t3.ID, false), ShouldBeNil)
+				t2.Status = model.StatusRunning
+				t3.Status = model.StatusRunning
+				So(db.Update(&model.Transfer{Status: model.StatusRunning}, t2.ID, false), ShouldBeNil)
+				So(db.Update(&model.Transfer{Status: model.StatusRunning}, t3.ID, false), ShouldBeNil)
 
 				Convey("Given a no filters", func() {
 
@@ -723,7 +724,7 @@ func TestListTransfer(t *testing.T) {
 					command.Remotes = []uint64{t1.AgentID, t2.AgentID}
 					command.Accounts = []uint64{t2.AccountID, t4.AccountID}
 					command.Rules = []uint64{t1.RuleID, t2.RuleID, t3.RuleID}
-					command.Statuses = []string{"TRANSFER", "PLANNED"}
+					command.Statuses = []string{"RUNNING", "PLANNED"}
 
 					Convey("When executing the command", func() {
 						err := command.Execute(nil)

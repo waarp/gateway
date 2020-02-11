@@ -29,6 +29,9 @@ type OutHistory struct {
 	Status         model.TransferStatus    `json:"status"`
 	ErrorCode      model.TransferErrorCode `json:"errorCode,omitempty"`
 	ErrorMsg       string                  `json:"errorMsg,omitempty"`
+	Step           model.TransferStep      `json:"step,omitempty"`
+	Progress       uint64                  `json:"progress,omitempty"`
+	TaskNumber     uint64                  `json:"taskNumber,omitempty"`
 }
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
@@ -48,6 +51,9 @@ func FromHistory(h *model.TransferHistory) *OutHistory {
 		Status:         h.Status,
 		ErrorCode:      h.Error.Code,
 		ErrorMsg:       h.Error.Details,
+		Step:           h.Step,
+		Progress:       h.Progress,
+		TaskNumber:     h.TaskNumber,
 	}
 }
 
@@ -71,6 +77,9 @@ func FromHistories(hs []model.TransferHistory) []OutHistory {
 			Status:         h.Status,
 			ErrorCode:      h.Error.Code,
 			ErrorMsg:       h.Error.Details,
+			Step:           h.Step,
+			Progress:       h.Progress,
+			TaskNumber:     h.TaskNumber,
 		}
 	}
 	return hist

@@ -73,9 +73,9 @@ func toHistory(db *database.Db, logger *log.Logger, trans *model.Transfer) {
 }
 
 func execTasks(proc *tasks.Processor, chain model.Chain,
-	status model.TransferStatus) *model.PipelineError {
+	step model.TransferStep) *model.PipelineError {
 
-	proc.Transfer.Status = status
+	proc.Transfer.Step = step
 	if err := proc.Transfer.Update(proc.Db); err != nil {
 		proc.Logger.Criticalf("Failed to update transfer status: %s", err)
 		return &model.PipelineError{Kind: model.KindDatabase}

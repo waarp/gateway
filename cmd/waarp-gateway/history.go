@@ -42,6 +42,15 @@ func displayHistory(hist rest.OutHistory) {
 		fmt.Fprintf(w, "    \033[37mError message:\033[0m \033[33m%s\033[0m\n",
 			hist.ErrorMsg)
 	}
+	if hist.Step != "" {
+		fmt.Fprintf(w, "       \033[37mFailed step:\033[0m \033[37;1m%s\033[0m\n", hist.Step)
+	}
+	if hist.Progress != 0 {
+		fmt.Fprintf(w, "          \033[37mProgress:\033[0m \033[33m%v\033[0m\n", hist.Progress)
+	}
+	if hist.TaskNumber != 0 {
+		fmt.Fprintf(w, "       \033[37mTask number:\033[0m \033[33m%v\033[0m\n", hist.TaskNumber)
+	}
 }
 
 // ######################## GET ##########################

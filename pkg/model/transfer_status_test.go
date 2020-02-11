@@ -47,7 +47,7 @@ func TestTransferStatusValidateForTransfer(t *testing.T) {
 		expected bool
 	}{
 		{StatusPlanned, true},
-		{StatusTransfer, true},
+		{StatusRunning, true},
 		{StatusDone, false},
 		{StatusError, false},
 		{"toto", false},
@@ -80,7 +80,7 @@ func TestTransferStatusValidateForHistory(t *testing.T) {
 		expected bool
 	}{
 		{StatusPlanned, false},
-		{StatusTransfer, false},
+		{StatusRunning, false},
 		{StatusDone, true},
 		{StatusError, true},
 		{"toto", false},

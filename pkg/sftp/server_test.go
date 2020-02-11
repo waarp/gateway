@@ -219,6 +219,7 @@ func TestSSHServer(t *testing.T) {
 								DestPath:   "test_in_shutdown.dst",
 								RuleID:     receive.ID,
 								Status:     model.StatusInterrupted,
+								Step:       model.StepData,
 								Owner:      database.Owner,
 							}
 							So(t[0], ShouldResemble, trans)
@@ -267,6 +268,7 @@ func TestSSHServer(t *testing.T) {
 								DestPath:   "test_out_shutdown.src",
 								RuleID:     send.ID,
 								Status:     model.StatusInterrupted,
+								Step:       model.StepData,
 								Owner:      database.Owner,
 							}
 							So(t[0], ShouldResemble, trans)
@@ -478,6 +480,7 @@ func TestSSHServer(t *testing.T) {
 									Start:          h[0].Start,
 									Stop:           h[0].Stop,
 									Status:         model.StatusError,
+									Step:           model.StepData,
 									Error: model.NewTransferError(model.TeConnectionReset,
 										"SFTP connection closed unexpectedly"),
 								}
@@ -577,6 +580,7 @@ func TestSSHServer(t *testing.T) {
 									Start:          h[0].Start,
 									Stop:           h[0].Stop,
 									Status:         model.StatusError,
+									Step:           model.StepData,
 									Error: model.NewTransferError(model.TeConnectionReset,
 										"SFTP connection closed unexpectedly"),
 								}

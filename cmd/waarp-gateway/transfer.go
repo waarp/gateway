@@ -28,6 +28,7 @@ func displayTransfer(trans rest.OutTransfer) {
 	fmt.Fprintf(w, "       \033[37mStart time:\033[0m \033[33m%s\033[0m\n",
 		trans.Start.Format(time.RFC3339))
 	fmt.Fprintf(w, "           \033[37mStatus:\033[0m \033[37;1m%s\033[0m\n", trans.Status)
+	fmt.Fprintf(w, "             \033[37mStep:\033[0m \033[37;1m%s\033[0m\n", trans.Step)
 	fmt.Fprintf(w, "         \033[37mProgress:\033[0m \033[33m%v\033[0m\n", trans.Progress)
 	fmt.Fprintf(w, "      \033[37mTask number:\033[0m \033[33m%v\033[0m\n", trans.TaskNumber)
 	if trans.ErrorCode != model.TeOk {

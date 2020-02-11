@@ -83,7 +83,7 @@ func TestFileReader(t *testing.T) {
 						Convey("With a valid Source, Destination and Status", func() {
 							So(trans.SourcePath, ShouldEqual, filepath.Base(request.Filepath))
 							So(trans.DestPath, ShouldEqual, ".")
-							So(trans.Status, ShouldEqual, model.StatusTransfer)
+							So(trans.Status, ShouldEqual, model.StatusRunning)
 						})
 					})
 				})
@@ -184,7 +184,7 @@ func TestFileWriter(t *testing.T) {
 						Convey("With a valid Source, Destination and Status", func() {
 							So(trans.SourcePath, ShouldEqual, ".")
 							So(trans.DestPath, ShouldEqual, filepath.Base(request.Filepath))
-							So(trans.Status, ShouldEqual, model.StatusTransfer)
+							So(trans.Status, ShouldEqual, model.StatusRunning)
 						})
 					})
 				})

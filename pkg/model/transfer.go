@@ -21,6 +21,7 @@ type Transfer struct {
 	SourcePath string         `xorm:"notnull 'source_path'"`
 	DestPath   string         `xorm:"notnull 'dest_path'"`
 	Start      time.Time      `xorm:"notnull 'start'"`
+	Step       TransferStep   `xorm:"notnull 'step'"`
 	Status     TransferStatus `xorm:"notnull 'status'"`
 	Owner      string         `xorm:"notnull 'owner'"`
 	Progress   uint64         `xorm:"notnull 'progression'"`
@@ -199,7 +200,6 @@ func (t *Transfer) ValidateUpdate(database.Accessor, uint64) error {
 // ToHistory converts the `Transfer` entry into an equivalent `TransferHistory`
 // entry with the given time as the end date.
 func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHistory, error) {
-
 	rule := &Rule{ID: t.RuleID}
 	if err := acc.Get(rule); err != nil {
 		return nil, fmt.Errorf("rule: %s", err)
@@ -233,7 +233,6 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		accountLogin = account.Login
 		protocol = agent.Protocol
 	}
-
 	if !validateStatusForHistory(t.Status) {
 		return nil, fmt.Errorf(
 			"a transfer cannot be recorded in history with status '%s'", t.Status,
@@ -255,9 +254,11 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		Stop:           stop,
 		Status:         t.Status,
 		Error:          t.Error,
+		Step:           t.Step,
+		Progress:       t.Progress,
+		TaskNumber:     t.TaskNumber,
 		ExtInfo:        t.ExtInfo,
 	}
-
 	return &hist, nil
 }
 
@@ -266,6 +267,7 @@ func (t *Transfer) Update(acc database.Accessor) error {
 	trans := &Transfer{
 		Start:      t.Start,
 		Status:     t.Status,
+		Step:       t.Step,
 		Error:      t.Error,
 		Progress:   t.Progress,
 		TaskNumber: t.TaskNumber,

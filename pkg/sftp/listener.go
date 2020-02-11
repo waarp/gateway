@@ -137,7 +137,7 @@ func (l *sshListener) makeFileReader(accountID uint64, conf config.SftpProtoConf
 			SourcePath: filepath.Base(r.Filepath),
 			DestPath:   ".",
 			Start:      time.Now(),
-			Status:     model.StatusPlanned,
+			Status:     model.StatusRunning,
 		}
 
 		stream, err := newSftpStream(l.Logger, l.Db, conf.Root, trans, servConn)
@@ -172,7 +172,7 @@ func (l *sshListener) makeFileWriter(accountID uint64, conf config.SftpProtoConf
 			SourcePath: ".",
 			DestPath:   filepath.Base(r.Filepath),
 			Start:      time.Now(),
-			Status:     model.StatusPlanned,
+			Status:     model.StatusRunning,
 		}
 
 		stream, err := newSftpStream(l.Logger, l.Db, conf.Root, trans, servConn)

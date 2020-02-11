@@ -28,7 +28,10 @@ type TransferHistory struct {
 	Stop           time.Time      `xorm:"notnull 'stop'"`
 	Status         TransferStatus `xorm:"notnull 'status'"`
 	Error          TransferError  `xorm:"extends"`
-	ExtInfo        []byte         `xorm:"ext_info" json:"extInfo"`
+	Step           TransferStep   `xorm:"notnull 'step'"`
+	Progress       uint64         `xorm:"notnull 'progression'"`
+	TaskNumber     uint64         `xorm:"notnull 'task_number'"`
+	ExtInfo        []byte         `xorm:"ext_info"`
 }
 
 // TableName returns the name of the transfer history table.
@@ -187,6 +190,10 @@ func (h *TransferHistory) Reprogram(acc database.Accessor, date time.Time) (*Tra
 		DestPath:   h.DestFilename,
 		Start:      date.UTC(),
 		Status:     StatusPlanned,
+		Step:       h.Step,
 		Owner:      h.Owner,
+		Progress:   h.Progress,
+		TaskNumber: h.TaskNumber,
+		ExtInfo:    h.ExtInfo,
 	}, nil
 }

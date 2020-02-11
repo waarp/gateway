@@ -23,19 +23,21 @@ type Pipeline struct {
 // PreTasks executes the transfer's pre-tasks. It returns an error if the
 // execution fails.
 func (p *Pipeline) PreTasks() *model.PipelineError {
-	return execTasks(p.proc, model.ChainPre, model.StatusPreTasks)
+	return execTasks(p.proc, model.ChainPre, model.StepPreTasks)
 }
 
 // PostTasks executes the transfer's post-tasks. It returns an error if the
 // execution fails.
 func (p *Pipeline) PostTasks() *model.PipelineError {
-	return execTasks(p.proc, model.ChainPost, model.StatusPostTasks)
+	return execTasks(p.proc, model.ChainPost, model.StepPostTasks)
 }
 
 // ErrorTasks updates the transfer's error in the database with the given one,
 // and then executes the transfer's error-tasks.
 func (p *Pipeline) ErrorTasks() {
-	_ = execTasks(p.proc, model.ChainError, model.StatusErrorTasks)
+	failedStep := p.Transfer.Step
+	_ = execTasks(p.proc, model.ChainError, model.StepErrorTasks)
+	p.Transfer.Step = failedStep
 }
 
 // Archive deletes the transfer entry and saves it in the history.

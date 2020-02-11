@@ -50,8 +50,9 @@ type OutTransfer struct {
 	DestPath   string                  `json:"destPath"`
 	Start      time.Time               `json:"startDate"`
 	Status     model.TransferStatus    `json:"status"`
-	Progress   uint64                  `json:"progress"`
-	TaskNumber uint64                  `json:"taskNumber"`
+	Step       model.TransferStep      `json:"step,omitempty"`
+	Progress   uint64                  `json:"progress,omitempty"`
+	TaskNumber uint64                  `json:"taskNumber,omitempty"`
 	ErrorCode  model.TransferErrorCode `json:"errorCode,omitempty"`
 	ErrorMsg   string                  `json:"errorMsg,omitempty"`
 }
@@ -68,6 +69,7 @@ func FromTransfer(t *model.Transfer) *OutTransfer {
 		DestPath:   t.DestPath,
 		Start:      t.Start,
 		Status:     t.Status,
+		Step:       t.Step,
 		Progress:   t.Progress,
 		TaskNumber: t.TaskNumber,
 		ErrorCode:  t.Error.Code,
@@ -90,6 +92,9 @@ func FromTransfers(ts []model.Transfer) []OutTransfer {
 			DestPath:   trans.DestPath,
 			Start:      trans.Start,
 			Status:     trans.Status,
+			Step:       trans.Step,
+			Progress:   trans.Progress,
+			TaskNumber: trans.TaskNumber,
 			ErrorCode:  trans.Error.Code,
 			ErrorMsg:   trans.Error.Details,
 		}

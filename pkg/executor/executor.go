@@ -82,7 +82,7 @@ func (e *Executor) prologue(client pipeline.Client) *model.PipelineError {
 }
 
 func (e *Executor) data(stream *pipeline.TransferStream, client pipeline.Client) *model.PipelineError {
-	stream.Transfer.Status = model.StatusTransfer
+	stream.Transfer.Step = model.StepData
 	if err := stream.Transfer.Update(e.Db); err != nil {
 		e.Logger.Criticalf("Failed to update transfer status: %s", err)
 		return model.NewPipelineError(model.TeInternal, err.Error())
