@@ -77,7 +77,7 @@ func execTasks(proc *tasks.Processor, chain model.Chain,
 
 	proc.Transfer.Step = step
 	if err := proc.Transfer.Update(proc.Db); err != nil {
-		proc.Logger.Criticalf("Failed to update transfer status: %s", err)
+		proc.Logger.Criticalf("Failed to update transfer step: %s", err)
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 
@@ -157,6 +157,11 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 			return
 		}
 		stream.ErrorTasks()
+		stream.Transfer.Error = err.Cause
+		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
+			stream.Logger.Criticalf("Failed to update transfer step: %s", dbErr)
+			return
+		}
 		stream.Transfer.Status = model.StatusError
 		stream.Archive()
 	}

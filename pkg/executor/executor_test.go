@@ -59,7 +59,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 				AccountID:  account.ID,
 				SourcePath: "executor.go",
 				DestPath:   "test/dest/path",
-				Start:      time.Now(),
+				Start:      time.Now().Truncate(time.Second),
 				Status:     model.StatusPlanned,
 				Owner:      database.Owner,
 			}
@@ -242,7 +242,12 @@ func TestExecutorRunTransfer(t *testing.T) {
 
 						Convey("Then the corresponding `TransferHistory` entry "+
 							"should exist with an ERROR status", func() {
-							hist := &model.TransferHistory{
+
+							var h []model.TransferHistory
+							So(db.Select(&h, nil), ShouldBeNil)
+							So(h, ShouldNotBeEmpty)
+
+							hist := model.TransferHistory{
 								ID:             trans.ID,
 								Owner:          trans.Owner,
 								IsServer:       false,
@@ -254,13 +259,14 @@ func TestExecutorRunTransfer(t *testing.T) {
 								DestFilename:   trans.DestPath,
 								Rule:           rule.Name,
 								Start:          trans.Start,
+								Stop:           h[0].Stop,
 								Status:         model.StatusError,
+								Step:           model.StepPreTasks,
+								Error: model.NewTransferError(model.TeExternalOperation,
+									"Task TESTFAIL @ test_rule PRE[0]: task failed"),
 							}
 
-							So(db.Get(hist), ShouldBeNil)
-							expErr := model.NewTransferError(model.TeExternalOperation,
-								"Task TESTFAIL @ test_rule PRE[0]: task failed")
-							So(hist.Error, ShouldResemble, expErr)
+							So(h[0], ShouldResemble, hist)
 						})
 					})
 				})

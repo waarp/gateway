@@ -33,6 +33,13 @@ type Executor struct {
 func (e *Executor) getClient(stream *pipeline.TransferStream) (client pipeline.Client,
 	te *model.PipelineError) {
 
+	stream.Transfer.Step = model.StepSetup
+	if err := stream.Transfer.Update(stream.Db); err != nil {
+		e.Logger.Criticalf("Failed to update transfer step: %s", err)
+		te = &model.PipelineError{Kind: model.KindDatabase}
+		return
+	}
+
 	info, err := model.NewOutTransferInfo(e.Db, stream.Transfer)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to retrieve transfer info: %s", err)
@@ -82,6 +89,10 @@ func (e *Executor) prologue(client pipeline.Client) *model.PipelineError {
 }
 
 func (e *Executor) data(stream *pipeline.TransferStream, client pipeline.Client) *model.PipelineError {
+	if stream.Transfer.Step != model.StepPreTasks && stream.Transfer.Step != model.StepData {
+		return nil
+	}
+
 	stream.Transfer.Step = model.StepData
 	if err := stream.Transfer.Update(e.Db); err != nil {
 		e.Logger.Criticalf("Failed to update transfer status: %s", err)
