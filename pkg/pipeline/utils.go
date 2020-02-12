@@ -53,6 +53,11 @@ func toHistory(db *database.Db, logger *log.Logger, trans *model.Transfer) {
 		return
 	}
 
+	if trans.Error.Code == model.TeOk || trans.Error.Code == model.TeWarning {
+		trans.Progress = 0
+		trans.Step = ""
+	}
+
 	hist, err := trans.ToHistory(ses, time.Now())
 	if err != nil {
 		logger.Criticalf("Failed to convert transfer to history: %s", err)

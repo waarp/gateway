@@ -33,6 +33,13 @@ type Executor struct {
 func (e *Executor) getClient(stream *pipeline.TransferStream) (client pipeline.Client,
 	te *model.PipelineError) {
 
+	if oldStep := stream.Transfer.Step; oldStep != "" {
+		defer func() {
+			if te == nil {
+				stream.Transfer.Step = oldStep
+			}
+		}()
+	}
 	stream.Transfer.Step = model.StepSetup
 	if err := stream.Transfer.Update(stream.Db); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step: %s", err)

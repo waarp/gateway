@@ -357,3 +357,275 @@ func TestExecutorRunTransfer(t *testing.T) {
 		})
 	})
 }
+
+func TestTransferResume(t *testing.T) {
+
+	Convey("Given a test database", t, func() {
+		db := database.GetTestDatabase()
+
+		remote := &model.RemoteAgent{
+			Name:        "test remote",
+			Protocol:    "test",
+			ProtoConfig: []byte(`{}`),
+		}
+		So(db.Create(remote), ShouldBeNil)
+
+		account := &model.RemoteAccount{
+			RemoteAgentID: remote.ID,
+			Login:         "test login",
+			Password:      []byte("test password"),
+		}
+		So(db.Create(account), ShouldBeNil)
+
+		cert := &model.Cert{
+			OwnerType:   remote.TableName(),
+			OwnerID:     remote.ID,
+			Name:        "test cert",
+			PrivateKey:  nil,
+			PublicKey:   []byte("public key"),
+			Certificate: []byte("certificate"),
+		}
+		So(db.Create(cert), ShouldBeNil)
+
+		rule := &model.Rule{
+			Name:   "resume",
+			IsSend: true,
+			Path:   "resume",
+		}
+		So(db.Create(rule), ShouldBeNil)
+
+		Convey("Given a transfer interrupted during pre-tasks", func() {
+			ClientsConstructors["test"] = NewAllSuccess
+
+			pre1 := &model.Task{
+				RuleID: rule.ID,
+				Chain:  model.ChainPre,
+				Rank:   0,
+				Type:   "TESTFAIL",
+				Args:   []byte("{}"),
+			}
+			pre2 := &model.Task{
+				RuleID: rule.ID,
+				Chain:  model.ChainPre,
+				Rank:   1,
+				Type:   "TESTSUCCESS",
+				Args:   []byte("{}"),
+			}
+			So(db.Create(pre1), ShouldBeNil)
+			So(db.Create(pre2), ShouldBeNil)
+
+			trans := &model.Transfer{
+				RuleID:     rule.ID,
+				IsServer:   false,
+				AgentID:    remote.ID,
+				AccountID:  account.ID,
+				SourcePath: "file.src",
+				DestPath:   "file.dst",
+				Start:      time.Now().Truncate(time.Second),
+				Step:       model.StepPreTasks,
+				Status:     model.StatusPlanned,
+				Owner:      database.Owner,
+				Progress:   0,
+				TaskNumber: 1,
+			}
+			So(db.Create(trans), ShouldBeNil)
+
+			Convey("When starting the transfer", func() {
+				exe := &Executor{
+					Db:     db,
+					Logger: log.NewLogger("test_executor", logConf),
+				}
+				stream, err := pipeline.NewTransferStream(exe.Logger, exe.Db, "", *trans)
+				So(err, ShouldBeNil)
+
+				exe.runTransfer(stream)
+
+				Convey("Then the `Transfer` entry should no longer exist", func() {
+					exist, err := db.Exists(trans)
+					So(err, ShouldBeNil)
+					So(exist, ShouldBeFalse)
+				})
+
+				Convey("Then the corresponding `TransferHistory` entry should exist", func() {
+					var h []model.TransferHistory
+					So(db.Select(&h, nil), ShouldBeNil)
+					So(h, ShouldNotBeEmpty)
+
+					hist := model.TransferHistory{
+						ID:             trans.ID,
+						Owner:          trans.Owner,
+						IsServer:       false,
+						IsSend:         true,
+						Account:        account.Login,
+						Agent:          remote.Name,
+						Protocol:       remote.Protocol,
+						SourceFilename: trans.SourcePath,
+						DestFilename:   trans.DestPath,
+						Rule:           rule.Name,
+						Start:          trans.Start,
+						Stop:           h[0].Stop,
+						Status:         model.StatusDone,
+					}
+
+					So(h[0], ShouldResemble, hist)
+				})
+			})
+		})
+
+		Convey("Given a transfer interrupted during data transfer", func() {
+			ClientsConstructors["test"] = NewAllSuccess
+
+			pre1 := &model.Task{
+				RuleID: rule.ID,
+				Chain:  model.ChainPre,
+				Rank:   0,
+				Type:   "TESTFAIL",
+				Args:   []byte("{}"),
+			}
+			So(db.Create(pre1), ShouldBeNil)
+
+			trans := &model.Transfer{
+				RuleID:     rule.ID,
+				IsServer:   false,
+				AgentID:    remote.ID,
+				AccountID:  account.ID,
+				SourcePath: "file.src",
+				DestPath:   "file.dst",
+				Start:      time.Now().Truncate(time.Second),
+				Step:       model.StepData,
+				Status:     model.StatusPlanned,
+				Owner:      database.Owner,
+				Progress:   10,
+				TaskNumber: 0,
+			}
+			So(db.Create(trans), ShouldBeNil)
+
+			Convey("When starting the transfer", func() {
+				exe := &Executor{
+					Db:     db,
+					Logger: log.NewLogger("test_executor", logConf),
+				}
+				stream, err := pipeline.NewTransferStream(exe.Logger, exe.Db, "", *trans)
+				So(err, ShouldBeNil)
+
+				exe.runTransfer(stream)
+
+				Convey("Then the `Transfer` entry should no longer exist", func() {
+					exist, err := db.Exists(trans)
+					So(err, ShouldBeNil)
+					So(exist, ShouldBeFalse)
+				})
+
+				Convey("Then the corresponding `TransferHistory` entry should exist", func() {
+					var h []model.TransferHistory
+					So(db.Select(&h, nil), ShouldBeNil)
+					So(h, ShouldNotBeEmpty)
+
+					hist := model.TransferHistory{
+						ID:             trans.ID,
+						Owner:          trans.Owner,
+						IsServer:       false,
+						IsSend:         true,
+						Account:        account.Login,
+						Agent:          remote.Name,
+						Protocol:       remote.Protocol,
+						SourceFilename: trans.SourcePath,
+						DestFilename:   trans.DestPath,
+						Rule:           rule.Name,
+						Start:          trans.Start,
+						Stop:           h[0].Stop,
+						Status:         model.StatusDone,
+					}
+
+					So(h[0], ShouldResemble, hist)
+				})
+			})
+		})
+
+		Convey("Given a transfer interrupted during post tasks", func() {
+			ClientsConstructors["test"] = NewDataFail
+
+			pre1 := &model.Task{
+				RuleID: rule.ID,
+				Chain:  model.ChainPre,
+				Rank:   0,
+				Type:   "TESTFAIL",
+				Args:   []byte("{}"),
+			}
+			post1 := &model.Task{
+				RuleID: rule.ID,
+				Chain:  model.ChainPost,
+				Rank:   0,
+				Type:   "TESTFAIL",
+				Args:   []byte("{}"),
+			}
+			post2 := &model.Task{
+				RuleID: rule.ID,
+				Chain:  model.ChainPost,
+				Rank:   1,
+				Type:   "TESTSUCCESS",
+				Args:   []byte("{}"),
+			}
+			So(db.Create(pre1), ShouldBeNil)
+			So(db.Create(post1), ShouldBeNil)
+			So(db.Create(post2), ShouldBeNil)
+
+			trans := &model.Transfer{
+				RuleID:     rule.ID,
+				IsServer:   false,
+				AgentID:    remote.ID,
+				AccountID:  account.ID,
+				SourcePath: "file.src",
+				DestPath:   "file.dst",
+				Start:      time.Now().Truncate(time.Second),
+				Step:       model.StepPostTasks,
+				Status:     model.StatusPlanned,
+				Owner:      database.Owner,
+				Progress:   0,
+				TaskNumber: 1,
+			}
+			So(db.Create(trans), ShouldBeNil)
+
+			Convey("When starting the transfer", func() {
+				exe := &Executor{
+					Db:     db,
+					Logger: log.NewLogger("test_executor", logConf),
+				}
+				stream, err := pipeline.NewTransferStream(exe.Logger, exe.Db, "", *trans)
+				So(err, ShouldBeNil)
+
+				exe.runTransfer(stream)
+
+				Convey("Then the `Transfer` entry should no longer exist", func() {
+					exist, err := db.Exists(trans)
+					So(err, ShouldBeNil)
+					So(exist, ShouldBeFalse)
+				})
+
+				Convey("Then the corresponding `TransferHistory` entry should exist", func() {
+					var h []model.TransferHistory
+					So(db.Select(&h, nil), ShouldBeNil)
+					So(h, ShouldNotBeEmpty)
+
+					hist := model.TransferHistory{
+						ID:             trans.ID,
+						Owner:          trans.Owner,
+						IsServer:       false,
+						IsSend:         true,
+						Account:        account.Login,
+						Agent:          remote.Name,
+						Protocol:       remote.Protocol,
+						SourceFilename: trans.SourcePath,
+						DestFilename:   trans.DestPath,
+						Rule:           rule.Name,
+						Start:          trans.Start,
+						Stop:           h[0].Stop,
+						Status:         model.StatusDone,
+					}
+
+					So(h[0], ShouldResemble, hist)
+				})
+			})
+		})
+	})
+}

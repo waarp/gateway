@@ -68,6 +68,11 @@ func (p *Processor) runTask(task model.Task, taskInfo string) *model.PipelineErr
 			return &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
+	p.Transfer.TaskNumber++
+	if err := p.Transfer.Update(p.Db); err != nil {
+		p.Logger.Warningf("failed to update task number: %s", err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
+	}
 	p.Logger.Info(logMsg)
 	return nil
 }
@@ -75,7 +80,8 @@ func (p *Processor) runTask(task model.Task, taskInfo string) *model.PipelineErr
 // RunTasks execute sequentially the list of tasks given
 // according to the Processor context
 func (p *Processor) RunTasks(tasks []model.Task) *model.PipelineError {
-	for _, task := range tasks {
+	for i := p.Transfer.TaskNumber; i < uint64(len(tasks)); i++ {
+		task := tasks[i]
 		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, p.Rule.Name,
 			task.Chain, task.Rank)
 		select {
@@ -94,6 +100,11 @@ func (p *Processor) RunTasks(tasks []model.Task) *model.PipelineError {
 		if err := p.runTask(task, taskInfo); err != nil {
 			return err
 		}
+	}
+	p.Transfer.TaskNumber = 0
+	if err := p.Transfer.Update(p.Db); err != nil {
+		p.Logger.Warningf("failed to update task number: %s", err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 	return nil
 }
