@@ -554,7 +554,7 @@ func TestHistoryListCommand(t *testing.T) {
 
 func TestHistoryRestartCommand(t *testing.T) {
 
-	Convey("Testing the partner 'get' command", t, func() {
+	Convey("Testing the history 'restart' command", t, func() {
 		out = testFile()
 		command := &historyRestartCommand{}
 
@@ -565,9 +565,9 @@ func TestHistoryRestartCommand(t *testing.T) {
 
 			Convey("Given a failed history entry", func() {
 				p := &model.RemoteAgent{
-					Name:        "test",
-					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"localhost","port":1,"root":"toto"}`),
+					Name:        "partner",
+					Protocol:    "test",
+					ProtoConfig: []byte(`{}`),
 				}
 				So(db.Create(p), ShouldBeNil)
 

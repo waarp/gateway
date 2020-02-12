@@ -51,7 +51,7 @@ func (p *Pipeline) ErrorTasks() {
 
 // Archive deletes the transfer entry and saves it in the history.
 func (p *Pipeline) Archive() {
-	toHistory(p.Db, p.Logger, p.Transfer)
+	_ = ToHistory(p.Db, p.Logger, p.Transfer)
 }
 
 // Exit deletes the transfer's signal channel.

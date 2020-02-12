@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -11,9 +12,12 @@ import (
 )
 
 type transferCommand struct {
-	Add  transferAddCommand  `command:"add" description:"Add a new transfer to be executed"`
-	Get  transferGetCommand  `command:"get" description:"Consult a planned transfer"`
-	List transferListCommand `command:"list" description:"List the planned transfers"`
+	Add    transferAddCommand    `command:"add" description:"Add a new transfer to be executed"`
+	Get    transferGetCommand    `command:"get" description:"Consult a transfer"`
+	List   transferListCommand   `command:"list" description:"List the transfers"`
+	Pause  transferPauseCommand  `command:"pause" description:"Pause a running transfer"`
+	Resume transferResumeCommand `command:"resume" description:"Resume a paused transfer"`
+	Cancel transferCancelCommand `command:"cancel" description:"Cancel a transfer"`
 }
 
 func displayTransfer(trans rest.OutTransfer) {
@@ -171,6 +175,131 @@ func (t *transferListCommand) Execute([]string) error {
 	} else {
 		fmt.Fprintln(w, "\033[31mNo transfers found\033[0m")
 	}
+
+	return nil
+}
+
+// ######################## PAUSE ##########################
+
+type transferPauseCommand struct{}
+
+func (t *transferPauseCommand) Execute(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("missing transfer history ID")
+	}
+
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + rest.TransfersPath + "/" + args[0] + "/pause"
+
+	req, err := http.NewRequest(http.MethodPut, conn.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := executeRequest(req, conn)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusCreated {
+		return handleErrors(res, conn)
+	}
+
+	loc, err := res.Location()
+	if err != nil {
+		return err
+	}
+	loc.User = nil
+
+	w := getColorable()
+	fmt.Fprintf(w, "The transfer n°\033[33m%s\033[0m was successfully paused."+
+		" It can be resumed using the 'resume' command.\n", args[0])
+
+	return nil
+}
+
+// ######################## RESUME ##########################
+
+type transferResumeCommand struct{}
+
+func (t *transferResumeCommand) Execute(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("missing transfer history ID")
+	}
+
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + rest.TransfersPath + "/" + args[0] + "/resume"
+
+	req, err := http.NewRequest(http.MethodPut, conn.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := executeRequest(req, conn)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusCreated {
+		return handleErrors(res, conn)
+	}
+
+	loc, err := res.Location()
+	if err != nil {
+		return err
+	}
+	loc.User = nil
+
+	w := getColorable()
+	fmt.Fprintf(w, "The transfer n°\033[33m%s\033[0m was successfully resumed.\n", args[0])
+
+	return nil
+}
+
+// ######################## CANCEL ##########################
+
+type transferCancelCommand struct{}
+
+func (t *transferCancelCommand) Execute(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("missing transfer history ID")
+	}
+
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + rest.TransfersPath + "/" + args[0] + "/cancel"
+
+	req, err := http.NewRequest(http.MethodPut, conn.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := executeRequest(req, conn)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusCreated {
+		return handleErrors(res, conn)
+	}
+
+	loc, err := res.Location()
+	if err != nil {
+		return err
+	}
+	loc.User = nil
+
+	w := getColorable()
+	fmt.Fprintf(w, "The transfer n°\033[33m%s\033[0m was successfully cancelled. "+
+		"It can be consulted at the address: \033[37m%s\033[0m\n", args[0], loc.String())
 
 	return nil
 }

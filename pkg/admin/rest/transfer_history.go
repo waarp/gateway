@@ -230,7 +230,11 @@ func restartTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return &badRequest{msg: "cannot restart a finished transfer"}
 			}
 
-			trans, err := result.Reprogram(db, date)
+			if result.Protocol == "sftp" {
+				return &badRequest{msg: "cannot restart an SFTP transfer"}
+			}
+
+			trans, err := result.Restart(db, date)
 			if err != nil {
 				return err
 			}

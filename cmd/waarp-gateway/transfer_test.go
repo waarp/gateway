@@ -748,3 +748,324 @@ func TestListTransfer(t *testing.T) {
 		})
 	})
 }
+
+func TestPauseTransfer(t *testing.T) {
+
+	Convey("Testing the transfer 'pause' command", t, func() {
+		out = testFile()
+		command := &transferPauseCommand{}
+
+		Convey("Given a database", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			Convey("Given a paused transfer entry", func() {
+				p := &model.RemoteAgent{
+					Name:        "partner",
+					Protocol:    "test",
+					ProtoConfig: []byte(`{}`),
+				}
+				So(db.Create(p), ShouldBeNil)
+
+				c := &model.Cert{
+					Name:        "test",
+					PublicKey:   []byte("test"),
+					Certificate: []byte("test"),
+					OwnerType:   "remote_agents",
+					OwnerID:     p.ID,
+				}
+				So(db.Create(c), ShouldBeNil)
+
+				a := &model.RemoteAccount{
+					Login:         "login",
+					Password:      []byte("password"),
+					RemoteAgentID: p.ID,
+				}
+				So(db.Create(a), ShouldBeNil)
+
+				r := &model.Rule{
+					Name:   "rule",
+					IsSend: true,
+				}
+				So(db.Create(r), ShouldBeNil)
+
+				trans := &model.Transfer{
+					IsServer:   false,
+					RuleID:     r.ID,
+					AccountID:  a.ID,
+					AgentID:    p.ID,
+					SourcePath: "source",
+					DestPath:   "destination",
+					Start:      time.Now().Truncate(time.Second),
+					Status:     model.StatusPlanned,
+					Owner:      database.Owner,
+				}
+				So(db.Create(trans), ShouldBeNil)
+
+				Convey("Given a valid transfer ID", func() {
+					id := fmt.Sprint(trans.ID)
+
+					Convey("When executing the command", func() {
+						err := command.Execute([]string{id})
+
+						Convey("Then it should NOT return an error", func() {
+							So(err, ShouldBeNil)
+
+							Convey("Then is should display a message saying the transfer was restarted", func() {
+								_, err = out.Seek(0, 0)
+								So(err, ShouldBeNil)
+								cont, err := ioutil.ReadAll(out)
+								So(err, ShouldBeNil)
+								So(string(cont), ShouldEqual, "The transfer n°"+id+
+									" was successfully paused. It can be resumed"+
+									" using the 'resume' command.\n")
+							})
+
+							Convey("Then the transfer should have been updated", func() {
+								trans.Status = model.StatusPaused
+
+								var t []model.Transfer
+								So(db.Select(&t, nil), ShouldBeNil)
+								So(t, ShouldNotBeEmpty)
+								So(t[0], ShouldResemble, *trans)
+							})
+						})
+					})
+				})
+
+				Convey("Given an invalid entry ID", func() {
+					id := "1000"
+
+					Convey("When executing the command", func() {
+						err := command.Execute([]string{id})
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+						})
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestResumeTransfer(t *testing.T) {
+
+	Convey("Testing the transfer 'resume' command", t, func() {
+		out = testFile()
+		command := &transferResumeCommand{}
+
+		Convey("Given a database", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			Convey("Given a paused transfer entry", func() {
+				p := &model.RemoteAgent{
+					Name:        "partner",
+					Protocol:    "test",
+					ProtoConfig: []byte(`{}`),
+				}
+				So(db.Create(p), ShouldBeNil)
+
+				c := &model.Cert{
+					Name:        "test",
+					PublicKey:   []byte("test"),
+					Certificate: []byte("test"),
+					OwnerType:   "remote_agents",
+					OwnerID:     p.ID,
+				}
+				So(db.Create(c), ShouldBeNil)
+
+				a := &model.RemoteAccount{
+					Login:         "login",
+					Password:      []byte("password"),
+					RemoteAgentID: p.ID,
+				}
+				So(db.Create(a), ShouldBeNil)
+
+				r := &model.Rule{
+					Name:   "rule",
+					IsSend: true,
+				}
+				So(db.Create(r), ShouldBeNil)
+
+				trans := &model.Transfer{
+					IsServer:   false,
+					RuleID:     r.ID,
+					AccountID:  a.ID,
+					AgentID:    p.ID,
+					SourcePath: "source",
+					DestPath:   "destination",
+					Start:      time.Now().Truncate(time.Second),
+					Status:     model.StatusPaused,
+					Owner:      database.Owner,
+				}
+				So(db.Create(trans), ShouldBeNil)
+
+				Convey("Given a valid transfer ID", func() {
+					id := fmt.Sprint(trans.ID)
+
+					Convey("When executing the command", func() {
+						err := command.Execute([]string{id})
+
+						Convey("Then it should NOT return an error", func() {
+							So(err, ShouldBeNil)
+
+							Convey("Then is should display a message saying the transfer was restarted", func() {
+								_, err = out.Seek(0, 0)
+								So(err, ShouldBeNil)
+								cont, err := ioutil.ReadAll(out)
+								So(err, ShouldBeNil)
+								So(string(cont), ShouldEqual, "The transfer n°"+id+
+									" was successfully resumed.\n")
+							})
+
+							Convey("Then the transfer should have been updated", func() {
+								trans.Status = model.StatusPlanned
+
+								var t []model.Transfer
+								So(db.Select(&t, nil), ShouldBeNil)
+								So(t, ShouldNotBeEmpty)
+								So(t[0], ShouldResemble, *trans)
+							})
+						})
+					})
+				})
+
+				Convey("Given an invalid entry ID", func() {
+					id := "1000"
+
+					Convey("When executing the command", func() {
+						err := command.Execute([]string{id})
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+						})
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestCancelTransfer(t *testing.T) {
+
+	Convey("Testing the transfer 'cancel' command", t, func() {
+		out = testFile()
+		command := &transferCancelCommand{}
+
+		Convey("Given a database", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			Convey("Given a paused transfer entry", func() {
+				p := &model.RemoteAgent{
+					Name:        "partner",
+					Protocol:    "test",
+					ProtoConfig: []byte(`{}`),
+				}
+				So(db.Create(p), ShouldBeNil)
+
+				c := &model.Cert{
+					Name:        "test",
+					PublicKey:   []byte("test"),
+					Certificate: []byte("test"),
+					OwnerType:   "remote_agents",
+					OwnerID:     p.ID,
+				}
+				So(db.Create(c), ShouldBeNil)
+
+				a := &model.RemoteAccount{
+					Login:         "login",
+					Password:      []byte("password"),
+					RemoteAgentID: p.ID,
+				}
+				So(db.Create(a), ShouldBeNil)
+
+				r := &model.Rule{
+					Name:   "rule",
+					IsSend: true,
+				}
+				So(db.Create(r), ShouldBeNil)
+
+				trans := &model.Transfer{
+					IsServer:   false,
+					RuleID:     r.ID,
+					AccountID:  a.ID,
+					AgentID:    p.ID,
+					SourcePath: "source",
+					DestPath:   "destination",
+					Start:      time.Now().Truncate(time.Second),
+					Status:     model.StatusPlanned,
+					Owner:      database.Owner,
+				}
+				So(db.Create(trans), ShouldBeNil)
+
+				Convey("Given a valid transfer ID", func() {
+					id := fmt.Sprint(trans.ID)
+
+					Convey("When executing the command", func() {
+						err := command.Execute([]string{id})
+
+						Convey("Then it should NOT return an error", func() {
+							So(err, ShouldBeNil)
+
+							Convey("Then is should display a message saying the transfer was restarted", func() {
+								_, err = out.Seek(0, 0)
+								So(err, ShouldBeNil)
+								cont, err := ioutil.ReadAll(out)
+								So(err, ShouldBeNil)
+								So(string(cont), ShouldEqual, "The transfer n°"+id+
+									" was successfully cancelled. It can be consulted"+
+									" at the address: "+gw.URL+admin.APIPath+rest.HistoryPath+"/1\n")
+							})
+
+							Convey("Then the transfer should have been updated", func() {
+								var h []model.TransferHistory
+								So(db.Select(&h, nil), ShouldBeNil)
+								So(h, ShouldNotBeEmpty)
+
+								hist := model.TransferHistory{
+									ID:             trans.ID,
+									Owner:          trans.Owner,
+									IsServer:       trans.IsServer,
+									IsSend:         r.IsSend,
+									Account:        a.Login,
+									Agent:          p.Name,
+									Protocol:       p.Protocol,
+									SourceFilename: trans.SourcePath,
+									DestFilename:   trans.DestPath,
+									Rule:           r.Name,
+									Start:          trans.Start,
+									Stop:           h[0].Stop,
+									Status:         model.StatusCancelled,
+									Error:          model.TransferError{},
+									Step:           "",
+									Progress:       0,
+									TaskNumber:     0,
+								}
+
+								So(h[0], ShouldResemble, hist)
+							})
+						})
+					})
+				})
+
+				Convey("Given an invalid entry ID", func() {
+					id := "1000"
+
+					Convey("When executing the command", func() {
+						err := command.Execute([]string{id})
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError)
+						})
+					})
+				})
+			})
+		})
+	})
+}

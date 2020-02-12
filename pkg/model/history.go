@@ -149,9 +149,9 @@ func (h *TransferHistory) ValidateUpdate(database.Accessor, uint64) error {
 	return nil
 }
 
-// Reprogram takes a History entry and converts it to a Transfer entry ready
+// Restart takes a History entry and converts it to a Transfer entry ready
 // to be executed.
-func (h *TransferHistory) Reprogram(acc database.Accessor, date time.Time) (*Transfer, error) {
+func (h *TransferHistory) Restart(acc database.Accessor, date time.Time) (*Transfer, error) {
 	rule := &Rule{Name: h.Rule, IsSend: h.IsSend}
 	if err := acc.Get(rule); err != nil {
 		return nil, fmt.Errorf("failed to retrieve rule: %s", err)

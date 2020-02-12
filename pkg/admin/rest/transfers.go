@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/go-xorm/builder"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -239,6 +240,121 @@ func listTransfers(logger *log.Logger, db *database.Db) http.HandlerFunc {
 
 			resp := map[string][]OutTransfer{"transfers": FromTransfers(results)}
 			return writeJSON(w, resp)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func pauseTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			id, err := parseID(r, "transfer")
+			if err != nil {
+				return err
+			}
+			result := &model.Transfer{ID: id}
+
+			if err := get(db, result); err != nil {
+				return err
+			}
+
+			if result.Status == model.StatusPaused || result.Status == model.StatusInterrupted {
+				return &badRequest{msg: "cannot pause an already interrupted transfer"}
+			}
+
+			if result.Status == model.StatusPlanned {
+				result.Status = model.StatusPaused
+				if err := result.Update(db); err != nil {
+					return err
+				}
+			} else {
+				pipeline.Signals.SendSignal(result.ID, model.SignalPause)
+			}
+
+			w.Header().Set("Location", location(r, result.ID))
+			w.WriteHeader(http.StatusCreated)
+			return nil
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func cancelTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			id, err := parseID(r, "transfer")
+			if err != nil {
+				return err
+			}
+			result := &model.Transfer{ID: id}
+
+			if err := get(db, result); err != nil {
+				return err
+			}
+
+			if result.Status != model.StatusRunning {
+				result.Status = model.StatusCancelled
+				if err := pipeline.ToHistory(db, logger, result); err != nil {
+					return err
+				}
+			} else {
+				pipeline.Signals.SendSignal(result.ID, model.SignalPause)
+			}
+
+			r.URL.Path = APIPath + HistoryPath
+			w.Header().Set("Location", location(r, result.ID))
+			w.WriteHeader(http.StatusCreated)
+			return nil
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func resumeTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			id, err := parseID(r, "transfer")
+			if err != nil {
+				return err
+			}
+			result := &model.Transfer{ID: id}
+
+			if err := get(db, result); err != nil {
+				return err
+			}
+
+			if result.IsServer {
+				return &badRequest{msg: "only the client can restart a transfer"}
+			}
+
+			if result.Status != model.StatusPaused && result.Status != model.StatusInterrupted {
+				return &badRequest{msg: "cannot resume an already running transfer"}
+			}
+
+			agent := &model.RemoteAgent{ID: result.AgentID}
+			if err := get(db, agent); err != nil {
+				return err
+			}
+			if agent.Protocol == "sftp" {
+				return &badRequest{msg: "cannot restart an SFTP transfer"}
+			}
+
+			result.Status = model.StatusPlanned
+			if err := result.Update(db); err != nil {
+				return err
+			}
+
+			w.Header().Set("Location", location(r, result.ID))
+			w.WriteHeader(http.StatusCreated)
+			return nil
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

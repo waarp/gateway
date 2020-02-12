@@ -26,6 +26,7 @@ Redémarrer un transfert échoué
    **Réponse**
 
    :statuscode 201: Le transfert a été rédémarré avec succès
+   :statuscode 400: Le transfert demandé ne peut pas être redémarré
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: Le transfert demandé n'existe pas
 

@@ -429,7 +429,7 @@ func TestRestartTransfer(t *testing.T) {
 				Rule:           rule.Name,
 				Account:        account.Login,
 				Agent:          partner.Name,
-				Protocol:       "sftp",
+				Protocol:       "test",
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 				Start:          time.Date(2019, 01, 01, 00, 00, 00, 00, time.UTC),
@@ -489,6 +489,7 @@ func TestRestartTransfer(t *testing.T) {
 
 						var t []model.Transfer
 						So(db.Select(&t, nil), ShouldBeNil)
+						So(t, ShouldNotBeEmpty)
 						So(t[0], ShouldResemble, expected)
 					})
 				})

@@ -40,17 +40,20 @@ func createTransfer(logger *log.Logger, db *database.Db, trans *model.Transfer) 
 	return nil
 }
 
-func toHistory(db *database.Db, logger *log.Logger, trans *model.Transfer) {
+// ToHistory removes the given transfer from the database, converts it into a
+// history entry, and inserts the new history entry in the database.
+// If any of these steps fails, the changes are reverted and an error is returned.
+func ToHistory(db *database.Db, logger *log.Logger, trans *model.Transfer) error {
 	ses, err := db.BeginTransaction()
 	if err != nil {
 		logger.Criticalf("Failed to start archival transaction: %s", err)
-		return
+		return err
 	}
 
 	if err := ses.Delete(&model.Transfer{ID: trans.ID}); err != nil {
 		logger.Criticalf("Failed to delete transfer for archival: %s", err)
 		ses.Rollback()
-		return
+		return err
 	}
 
 	if trans.Error.Code == model.TeOk || trans.Error.Code == model.TeWarning {
@@ -62,19 +65,20 @@ func toHistory(db *database.Db, logger *log.Logger, trans *model.Transfer) {
 	if err != nil {
 		logger.Criticalf("Failed to convert transfer to history: %s", err)
 		ses.Rollback()
-		return
+		return err
 	}
 
 	if err := ses.Create(hist); err != nil {
 		logger.Criticalf("Failed to create new history entry: %s", err)
 		ses.Rollback()
-		return
+		return err
 	}
 
 	if err := ses.Commit(); err != nil {
 		logger.Criticalf("Failed to commit archival transaction: %s", err)
-		return
+		return err
 	}
+	return nil
 }
 
 func execTasks(proc *tasks.Processor, chain model.Chain,

@@ -156,6 +156,12 @@ func makeTransfersHandler(logger *log.Logger, db *database.Db, apiHandler *mux.R
 	transferHandler := transfersHandler.PathPrefix("/{transfer:[0-9]+}").Subrouter()
 	transferHandler.HandleFunc("", getTransfer(logger, db)).
 		Methods(http.MethodGet)
+	transferHandler.HandleFunc("/pause", pauseTransfer(logger, db)).
+		Methods(http.MethodPut)
+	transferHandler.HandleFunc("/cancel", cancelTransfer(logger, db)).
+		Methods(http.MethodPut)
+	transferHandler.HandleFunc("/resume", resumeTransfer(logger, db)).
+		Methods(http.MethodPut)
 }
 
 func makeHistoryHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {

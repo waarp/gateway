@@ -110,3 +110,40 @@ Gestion des transferts
 
          waarp-gateway -a http://user:password@localhost:8080 transfer list -l 10 -o 5 -s id -d --server_id=1 --account_id=1 --rule_id=1 --status=PLANNED --start=2019-01-01T12:00:00+02:00
 
+
+   .. option:: pause
+
+         Commande de pause de transfert en cours. L'ID du transfert doit être
+         fournit en argument de programme après la commande. Seuls les transferts
+         en cours ou programmés peuvent être mis en pause.
+
+         **Exemple**
+
+         .. code-block:: bash
+
+            waarp-gateway -a http://user:password@localhost:8080 transfer pause 1
+
+
+   .. option:: resume
+
+         Commande de reprise de transfert interrompu. L'ID du transfert doit être
+         fournit en argument de programme après la commande. Seuls les transferts
+         interrompus ou en pause peuvent être repris.
+
+         **Exemple**
+
+         .. code-block:: bash
+
+            waarp-gateway -a http://user:password@localhost:8080 transfer resume 1
+
+
+   .. option:: cancel
+
+         Commande d'annulation de transfert. L'ID du transfert doit être fournit
+         en argument de programme après la commande.
+
+         **Exemple**
+
+         .. code-block:: bash
+
+            waarp-gateway -a http://user:password@localhost:8080 transfer cancel 1
