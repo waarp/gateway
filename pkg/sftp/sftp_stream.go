@@ -106,22 +106,19 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 }
 
 func (s *sftpStream) Close() error {
-	s.Logger.Criticalf("CLOSING STREAM")
-	if e := s.TransferStream.Close(); e != nil {
-		s.Logger.Warningf("Failed to close the local file: %s", e.Error())
-	}
-
 	if s.transErr == nil {
 		s.transErr = s.PostTasks()
 		if s.transErr == nil {
-			s.Transfer.Status = model.StatusDone
-			s.Archive()
-			s.Exit()
-			return nil
+			s.transErr = s.Finalize()
+			if s.transErr == nil {
+				s.Transfer.Status = model.StatusDone
+				s.Archive()
+				s.Exit()
+				return nil
+			}
 		}
 	}
 
-	s.Logger.Criticalf("HANDLING ERROR: %s", s.transErr)
 	pipeline.HandleError(s.TransferStream, s.transErr)
 	if s.transErr.Kind == model.KindInterrupt {
 		_ = s.servConn.Close()

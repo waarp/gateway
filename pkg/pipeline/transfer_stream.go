@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"os"
+	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -59,6 +60,11 @@ func NewTransferStream(logger *log.Logger, db *database.Db, root string,
 func (t *TransferStream) Start() (err *model.PipelineError) {
 	if !t.Rule.IsSend {
 		if err := makeDir(t.Root, t.Rule.Path); err != nil {
+			t.Logger.Errorf("Failed to create dest directory: %s", err)
+			return model.NewPipelineError(model.TeForbidden, err.Error())
+		}
+		if err := makeDir(t.Root, "tmp"); err != nil {
+			t.Logger.Errorf("Failed to create temp directory: %s", err)
 			return model.NewPipelineError(model.TeForbidden, err.Error())
 		}
 	}
@@ -121,4 +127,21 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 		return 0, err
 	}
 	return
+}
+
+// Finalize closes the file, and then (if the file is the transfer's destination)
+// moves the file from the temporary directory to its final destination.
+// The method returns an error if the file cannot be move.
+func (t *TransferStream) Finalize() *model.PipelineError {
+	if e := t.File.Close(); e != nil {
+		t.Logger.Warningf("Failed to close the local file: %s", e.Error())
+	}
+
+	if !t.Rule.IsSend {
+		path := filepath.Clean(filepath.Join(t.Root, t.Rule.Path, t.Transfer.DestPath))
+		if err := os.Rename(t.File.Name(), path); err != nil {
+			return model.NewPipelineError(model.TeFinalization, err.Error())
+		}
+	}
+	return nil
 }

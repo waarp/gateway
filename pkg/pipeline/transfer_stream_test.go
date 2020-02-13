@@ -3,6 +3,7 @@ package pipeline
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -131,6 +132,7 @@ func TestStreamWrite(t *testing.T) {
 	logger := log.NewLogger("test_stream_read", logConf)
 
 	filename := "test_stream_write.dst"
+	file := filepath.Join("tmp", filename)
 	content := "Transfer stream write test content"
 
 	Convey("Given a transfer stream", t, func() {
@@ -178,7 +180,7 @@ func TestStreamWrite(t *testing.T) {
 		So(tErr, ShouldBeNil)
 
 		So(stream.Start(), ShouldBeNil)
-		Reset(func() { _ = os.Remove(filename) })
+		Reset(func() { _ = os.RemoveAll("tmp") })
 
 		Convey("When writing to the stream", func() {
 			b := []byte(content[:15])
@@ -200,7 +202,7 @@ func TestStreamWrite(t *testing.T) {
 				})
 
 				Convey("Then the file should contain the array content", func() {
-					s, err := ioutil.ReadFile(filename)
+					s, err := ioutil.ReadFile(file)
 					So(err, ShouldBeNil)
 
 					So(string(s), ShouldEqual, string(b))
@@ -229,7 +231,7 @@ func TestStreamWrite(t *testing.T) {
 				})
 
 				Convey("Then the file should contain the array content", func() {
-					s, err := ioutil.ReadFile(filename)
+					s, err := ioutil.ReadFile(file)
 					So(err, ShouldBeNil)
 
 					So(string(s[off:]), ShouldEqual, string(b))

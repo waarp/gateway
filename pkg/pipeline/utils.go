@@ -2,7 +2,7 @@
 package pipeline
 
 import (
-	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -104,25 +104,37 @@ func getFile(logger *log.Logger, root string, rule *model.Rule,
 
 	if rule.IsSend {
 		path := filepath.Clean(filepath.Join(root, rule.Path, trans.SourcePath))
-		file, err := os.Open(path)
+		file, err := os.OpenFile(path, os.O_RDONLY, 0100)
 		if err != nil {
 			logger.Errorf("Failed to open source file: %s", err)
 			return nil, model.NewPipelineError(model.TeForbidden, err.Error())
 		}
+		if trans.Progress != 0 {
+			if _, err := file.Seek(int64(trans.Progress), io.SeekStart); err != nil {
+				logger.Errorf("Failed to seek inside file: %s", err)
+				return nil, model.NewPipelineError(model.TeForbidden, err.Error())
+			}
+		}
 		return file, nil
 	}
 
-	path := filepath.Clean(filepath.Join(root, rule.Path, trans.DestPath))
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
+	path := filepath.Clean(filepath.Join(root, "tmp", trans.DestPath))
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		logger.Errorf("Failed to create destination file: %s", err)
 		return nil, model.NewPipelineError(model.TeForbidden, err.Error())
+	}
+	if trans.Progress != 0 {
+		if _, err := file.Seek(int64(trans.Progress), io.SeekStart); err != nil {
+			logger.Errorf("Failed to seek inside file: %s", err)
+			return nil, model.NewPipelineError(model.TeForbidden, err.Error())
+		}
 	}
 	return file, nil
 }
 
 func makeDir(root, path string) error {
-	dir := filepath.FromSlash(fmt.Sprintf("%s/%s", root, path))
+	dir := filepath.Clean(filepath.Join(root, path))
 	if info, err := os.Lstat(dir); err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(dir, 0740); err != nil {
@@ -142,10 +154,15 @@ func makeDir(root, path string) error {
 // HandleError analyses the given error, and executes the necessary steps
 // corresponding to the error kind.
 func HandleError(stream *TransferStream, err *model.PipelineError) {
+	if e := stream.Close(); e != nil {
+		stream.Logger.Warningf("Failed to close the local file: %s", e.Error())
+	}
+
 	switch err.Kind {
 	case model.KindCancel:
 		stream.Transfer.Status = model.StatusCancelled
 		stream.Archive()
+		_ = os.Remove(stream.File.Name())
 	case model.KindDatabase:
 	case model.KindInterrupt:
 		stream.Transfer.Status = model.StatusInterrupted

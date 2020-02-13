@@ -115,9 +115,9 @@ func (e *Executor) data(stream *pipeline.TransferStream, client pipeline.Client)
 
 func (e *Executor) runTransfer(stream *pipeline.TransferStream) {
 	tErr := func() *model.PipelineError {
-		client, cErr := e.getClient(stream)
-		if cErr != nil {
-			return cErr
+		client, gErr := e.getClient(stream)
+		if gErr != nil {
+			return gErr
 		}
 
 		if pErr := e.prologue(client); pErr != nil {
@@ -130,11 +130,11 @@ func (e *Executor) runTransfer(stream *pipeline.TransferStream) {
 		if dErr := e.data(stream, client); dErr != nil {
 			return dErr
 		}
-		if e := stream.Close(); e != nil {
-			stream.Logger.Warningf("Failed to close local file: %s", e.Error())
-		}
 		if pErr := stream.PostTasks(); pErr != nil {
 			return pErr
+		}
+		if fErr := stream.Finalize(); fErr != nil {
+			return fErr
 		}
 
 		stream.Transfer.Status = model.StatusDone
