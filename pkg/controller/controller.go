@@ -39,13 +39,20 @@ type Controller struct {
 func (c *Controller) listen() {
 	owner := builder.Eq{"owner": database.Owner}
 	start := builder.Lte{"start": time.Now()}
-	planned := builder.Eq{"status": model.StatusPlanned}
+	status := builder.In("status", model.StatusPlanned, model.StatusInterrupted)
 	client := builder.Eq{"is_server": false}
 	filters := database.Filters{
-		Conditions: builder.And(owner, start, planned, client),
+		Conditions: builder.And(owner, start, status, client),
+	}
+
+	statusDown := builder.In("status", model.StatusPlanned, model.StatusInterrupted,
+		model.StatusRunning)
+	filtersDown := database.Filters{
+		Conditions: builder.And(owner, start, statusDown, client),
 	}
 
 	go func() {
+		isDbDown := false
 		for {
 			if s, _ := c.state.Get(); s != service.Running {
 				return
@@ -53,10 +60,25 @@ func (c *Controller) listen() {
 
 			<-c.ticker.C
 			newTrans := []model.Transfer{}
-			if err := c.Db.Select(&newTrans, &filters); err != nil {
-				c.logger.Error(err.Error())
-				continue
+			if isDbDown {
+				if st, _ := c.Db.State().Get(); st != service.Running {
+					continue
+				}
+				if err := c.Db.Select(&newTrans, &filtersDown); err != nil {
+					c.logger.Errorf("Failed to access database: %s", err.Error())
+					continue
+				}
+				isDbDown = false
+			} else {
+				if err := c.Db.Select(&newTrans, &filters); err != nil {
+					c.logger.Errorf("Failed to access database: %s", err.Error())
+					if err == database.ErrServiceUnavailable {
+						isDbDown = true
+					}
+					continue
+				}
 			}
+
 			for _, trans := range newTrans {
 				c.pool <- trans
 			}
