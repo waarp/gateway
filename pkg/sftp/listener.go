@@ -125,7 +125,7 @@ func (l *sshListener) makeFileReader(accountID uint64, conf config.SftpProtoConf
 		rule := model.Rule{Path: path, IsSend: true}
 		if err := l.Db.Get(&rule); err != nil {
 			l.Logger.Errorf("No rule found for directory '%s'", path)
-			return nil, err
+			return nil, fmt.Errorf("cannot retrieve transfer rule: %s", err)
 		}
 
 		// Create Transfer
@@ -161,7 +161,7 @@ func (l *sshListener) makeFileWriter(accountID uint64, conf config.SftpProtoConf
 		rule := model.Rule{Path: path, IsSend: false}
 		if err := l.Db.Get(&rule); err != nil {
 			l.Logger.Errorf("No rule found for directory '%s'", path)
-			return nil, err
+			return nil, fmt.Errorf("cannot retrieve transfer rule: %s", err)
 		}
 
 		// Create Transfer
@@ -202,7 +202,6 @@ func (l *sshListener) close(ctx context.Context) error {
 	for _, trans := range transfers {
 		pipeline.Signals.SendSignal(trans.ID, model.SignalShutdown)
 	}
-	l.Logger.Criticalf("SHUTDOWN SENT")
 
 	finished := make(chan bool)
 	go func() {

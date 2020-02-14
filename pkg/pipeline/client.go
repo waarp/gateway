@@ -35,4 +35,8 @@ type Client interface {
 	// and the local file. If an error occurs while transmitting the data, an
 	// error is returned.
 	Data(io.ReadWriteCloser) *model.PipelineError
+
+	// Close is the method which informs the remote that the data transfer is
+	// finished, and that the post-tasks should now be executed.
+	Close() *model.PipelineError
 }

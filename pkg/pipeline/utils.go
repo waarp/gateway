@@ -103,7 +103,12 @@ func getFile(logger *log.Logger, root string, rule *model.Rule,
 	trans *model.Transfer) (*os.File, *model.PipelineError) {
 
 	if rule.IsSend {
-		path := filepath.Clean(filepath.Join(root, rule.Path, trans.SourcePath))
+		var path string
+		if trans.IsServer {
+			path = filepath.Clean(filepath.Join(root, rule.Path, trans.SourcePath))
+		} else {
+			path = filepath.Clean(filepath.Join(root, trans.SourcePath))
+		}
 		file, err := os.OpenFile(path, os.O_RDONLY, 0100)
 		if err != nil {
 			logger.Errorf("Failed to open source file: %s", err)
@@ -154,9 +159,7 @@ func makeDir(root, path string) error {
 // HandleError analyses the given error, and executes the necessary steps
 // corresponding to the error kind.
 func HandleError(stream *TransferStream, err *model.PipelineError) {
-	if e := stream.Close(); e != nil {
-		stream.Logger.Warningf("Failed to close the local file: %s", e.Error())
-	}
+	_ = stream.Close()
 
 	switch err.Kind {
 	case model.KindCancel:
@@ -182,6 +185,7 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 			return
 		}
+		stream.Logger.Criticalf("HANDLING ERROR FOR %s", stream.Rule.Name)
 		stream.ErrorTasks()
 		stream.Transfer.Error = err.Cause
 		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {

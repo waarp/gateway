@@ -90,7 +90,7 @@ func (c *Client) Authenticate() *model.PipelineError {
 func (c *Client) Request() *model.PipelineError {
 	var err error
 	if c.Info.Rule.IsSend {
-		c.remoteFile, err = c.client.Create(c.Info.Transfer.DestPath)
+		c.remoteFile, err = c.client.Create(c.Info.Rule.Path + "/" + c.Info.Transfer.DestPath)
 		if err != nil {
 			return model.NewPipelineError(model.TeForbidden, err.Error())
 		}
@@ -106,9 +106,6 @@ func (c *Client) Request() *model.PipelineError {
 // Data copies the content of the source file into the destination file.
 func (c *Client) Data(file io.ReadWriteCloser) *model.PipelineError {
 	defer func() {
-		_ = c.remoteFile.Close()
-		_ = c.client.Close()
-		_ = c.conn.Close()
 		_ = file.Close()
 	}()
 
@@ -121,5 +118,19 @@ func (c *Client) Data(file io.ReadWriteCloser) *model.PipelineError {
 	if err != nil {
 		return model.NewPipelineError(model.TeDataTransfer, err.Error())
 	}
+	return nil
+}
+
+// Close ends the SFTP session and closes the connection.
+func (c *Client) Close() *model.PipelineError {
+	defer func() {
+		_ = c.client.Close()
+		_ = c.conn.Close()
+	}()
+
+	if err := c.remoteFile.Close(); err != nil {
+		return model.NewPipelineError(model.TeExternalOperation, "Remote post-tasks failed")
+	}
+
 	return nil
 }

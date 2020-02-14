@@ -44,7 +44,7 @@ func (p *Processor) GetTasks(chain model.Chain) ([]model.Task, *model.PipelineEr
 func (p *Processor) runTask(task model.Task, taskInfo string) *model.PipelineError {
 	runnable, ok := RunnableTasks[task.Type]
 	if !ok {
-		logMsg := fmt.Sprintf("%s: %s", taskInfo, "unknown task")
+		logMsg := fmt.Sprintf("%s: unknown task", taskInfo)
 		return model.NewPipelineError(model.TeExternalOperation, logMsg)
 	}
 	args, err := p.setup(&task)
@@ -52,6 +52,14 @@ func (p *Processor) runTask(task model.Task, taskInfo string) *model.PipelineErr
 		logMsg := fmt.Sprintf("%s: %s", taskInfo, err.Error())
 		p.Logger.Error(logMsg)
 		return model.NewPipelineError(model.TeExternalOperation, logMsg)
+	}
+
+	if val, ok := runnable.(model.Validator); ok {
+		if err := val.Validate(args); err != nil {
+			logMsg := fmt.Sprintf("%s: %s", taskInfo, err.Error())
+			p.Logger.Error(logMsg)
+			return model.NewPipelineError(model.TeExternalOperation, logMsg)
+		}
 	}
 
 	msg, err := runnable.Run(args, p)

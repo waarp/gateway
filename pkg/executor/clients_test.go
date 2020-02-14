@@ -33,6 +33,7 @@ func (AllSuccess) Connect() *model.PipelineError                { return nil }
 func (AllSuccess) Authenticate() *model.PipelineError           { return nil }
 func (AllSuccess) Request() *model.PipelineError                { return nil }
 func (AllSuccess) Data(io.ReadWriteCloser) *model.PipelineError { return nil }
+func (AllSuccess) Close() *model.PipelineError                  { return nil }
 
 type ConnectFail struct{}
 
@@ -43,6 +44,7 @@ func (ConnectFail) Connect() *model.PipelineError                { return errCon
 func (ConnectFail) Authenticate() *model.PipelineError           { return nil }
 func (ConnectFail) Request() *model.PipelineError                { return nil }
 func (ConnectFail) Data(io.ReadWriteCloser) *model.PipelineError { return nil }
+func (ConnectFail) Close() *model.PipelineError                  { return nil }
 
 type AuthFail struct{}
 
@@ -53,6 +55,7 @@ func (AuthFail) Connect() *model.PipelineError                { return nil }
 func (AuthFail) Authenticate() *model.PipelineError           { return errAuth }
 func (AuthFail) Request() *model.PipelineError                { return nil }
 func (AuthFail) Data(io.ReadWriteCloser) *model.PipelineError { return nil }
+func (AuthFail) Close() *model.PipelineError                  { return nil }
 
 type RequestFail struct{}
 
@@ -63,6 +66,7 @@ func (RequestFail) Connect() *model.PipelineError                { return nil }
 func (RequestFail) Authenticate() *model.PipelineError           { return nil }
 func (RequestFail) Request() *model.PipelineError                { return errReq }
 func (RequestFail) Data(io.ReadWriteCloser) *model.PipelineError { return nil }
+func (RequestFail) Close() *model.PipelineError                  { return nil }
 
 type DataFail struct{}
 
@@ -73,3 +77,4 @@ func (DataFail) Connect() *model.PipelineError                { return nil }
 func (DataFail) Authenticate() *model.PipelineError           { return nil }
 func (DataFail) Request() *model.PipelineError                { return nil }
 func (DataFail) Data(io.ReadWriteCloser) *model.PipelineError { return errData }
+func (DataFail) Close() *model.PipelineError                  { return nil }

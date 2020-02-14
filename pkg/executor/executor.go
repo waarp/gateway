@@ -106,19 +106,25 @@ func (e *Executor) data(stream *pipeline.TransferStream, client pipeline.Client)
 		return model.NewPipelineError(model.TeInternal, err.Error())
 	}
 
-	err := client.Data(stream)
-	if err != nil {
+	if err := client.Data(stream); err != nil {
 		e.Logger.Errorf("Error while transmitting data: %s", err)
+		_ = client.Close()
+		return err
 	}
-	return err
+	return nil
 }
 
 func (e *Executor) runTransfer(stream *pipeline.TransferStream) {
 	tErr := func() *model.PipelineError {
+		if sErr := stream.Start(); sErr != nil {
+			return sErr
+		}
+
 		client, gErr := e.getClient(stream)
 		if gErr != nil {
 			return gErr
 		}
+		defer func() { _ = client.Close() }()
 
 		if pErr := e.prologue(client); pErr != nil {
 			return pErr
@@ -132,6 +138,10 @@ func (e *Executor) runTransfer(stream *pipeline.TransferStream) {
 		}
 		if pErr := stream.PostTasks(); pErr != nil {
 			return pErr
+		}
+		if cErr := client.Close(); cErr != nil {
+			e.Logger.Errorf("Remote post-task failed")
+			return cErr
 		}
 		if fErr := stream.Finalize(); fErr != nil {
 			return fErr

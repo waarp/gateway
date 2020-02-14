@@ -233,7 +233,8 @@ func TestSSHServer(t *testing.T) {
 					err := os.MkdirAll(root+send.Path, 0700)
 					So(err, ShouldBeNil)
 
-					err = ioutil.WriteFile(root+send.Path+"/test_out_shutdown.src", []byte(content), 0600)
+					err = ioutil.WriteFile(root+send.Path+"/test_out_shutdown.src",
+						[]byte(content), 0600)
 					So(err, ShouldBeNil)
 
 					Reset(func() { _ = os.RemoveAll(root + send.Path) })

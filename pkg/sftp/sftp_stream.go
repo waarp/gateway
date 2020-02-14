@@ -1,6 +1,8 @@
 package sftp
 
 import (
+	"io"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -70,7 +72,6 @@ func newSftpStream(logger *log.Logger, db *database.Db, root string,
 }
 
 func (s *sftpStream) TransferError(err error) {
-	s.Logger.Criticalf("ERROR CAUGHT: %#v", err)
 	if s.transErr == nil {
 		if te, ok := err.(*model.PipelineError); ok {
 			s.transErr = te
@@ -86,16 +87,16 @@ func (s *sftpStream) TransferError(err error) {
 }
 
 func (s *sftpStream) ReadAt(p []byte, off int64) (int, error) {
-	s.Logger.Criticalf("READING STREAM")
 	n, err := s.TransferStream.ReadAt(p, off)
-	if pe, ok := err.(*model.PipelineError); ok {
-		return n, modelToSFTP(pe)
+	if err != nil && err != io.EOF {
+		s.TransferError(err)
+		_ = s.Close()
+		return n, modelToSFTP(s.transErr)
 	}
 	return n, err
 }
 
 func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
-	s.Logger.Criticalf("WRITING STREAM")
 	n, err := s.TransferStream.WriteAt(p, off)
 	if err != nil {
 		s.TransferError(err)
