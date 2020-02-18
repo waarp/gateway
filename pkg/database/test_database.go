@@ -15,8 +15,6 @@ import (
 
 var num uint64 = 0
 
-var testDbLock *sync.Mutex
-
 const (
 	test       = "test"
 	testDriver = "sqlite3"
@@ -38,7 +36,6 @@ func testDSN(config conf.DatabaseConfig) string {
 // database cannot be started, the function will panic.
 func GetTestDatabase() *Db {
 	BcryptRounds = bcrypt.MinCost
-	testDbLock = &sync.Mutex{}
 
 	config := &conf.ServerConfig{}
 	config.GatewayName = "test_gateway"
@@ -56,8 +53,9 @@ func GetTestDatabase() *Db {
 
 	logger.SetBackend(discard)
 	db := &Db{
-		Conf:   config,
-		Logger: logger,
+		Conf:       config,
+		Logger:     logger,
+		testDbLock: &sync.Mutex{},
 	}
 	convey.So(db.Start(), convey.ShouldBeNil)
 

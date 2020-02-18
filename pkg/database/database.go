@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -74,6 +75,8 @@ type Db struct {
 	engine *xorm.Engine
 	// The name of the SQL database driver used by the engine
 	driverName string
+	// The mutex used for the test database
+	testDbLock *sync.Mutex
 }
 
 func loadAESKey(filename string) error {
@@ -393,31 +396,37 @@ func (db *Db) Query(sqlOrArgs ...interface{}) ([]map[string]interface{}, error) 
 
 // BeginTransaction returns a new session on which a database transaction can
 // be performed.
-func (db *Db) BeginTransaction() (*Session, error) {
+func (db *Db) BeginTransaction() (ses *Session, err error) {
 	if s, _ := db.state.Get(); s != service.Running {
 		return nil, ErrServiceUnavailable
 	}
 
-	if testDbLock != nil {
-		testDbLock.Lock()
+	if db.testDbLock != nil {
+		db.testDbLock.Lock()
+		defer func() {
+			if err != nil {
+				db.testDbLock.Unlock()
+			}
+		}()
 	}
-	s := &Session{
-		session: db.engine.NewSession(),
-		logger:  db.Logger,
-		state:   &db.state,
+
+	s := db.engine.NewSession()
+	if err = s.Begin(); err != nil {
+		if pErr := ping(&db.state, db.engine, db.Logger); pErr != nil {
+			err = pErr
+			return
+		}
+		return
 	}
-	if err := s.session.Begin(); err != nil {
-		if testDbLock != nil {
-			testDbLock.Unlock()
-		}
-		if err := ping(&db.state, db.engine, db.Logger); err != nil {
-			return nil, err
-		}
-		return nil, err
+	ses = &Session{
+		session:    s,
+		logger:     db.Logger,
+		state:      &db.state,
+		testDbLock: db.testDbLock,
 	}
 	db.Logger.Debug("Transaction started")
 
-	return s, nil
+	return ses, err
 }
 
 // Session is a struct used to perform transactions on the database. A session
@@ -425,9 +434,10 @@ func (db *Db) BeginTransaction() (*Session, error) {
 // complete, it can be committed using `Commit`, it can also be canceled using
 // the `Rollback` function.
 type Session struct {
-	session *xorm.Session
-	logger  *log.Logger
-	state   *service.State
+	session    *xorm.Session
+	logger     *log.Logger
+	state      *service.State
+	testDbLock *sync.Mutex
 }
 
 // Get adds a 'get' query to the transaction. If the query cannot be executed,
@@ -673,8 +683,8 @@ func (s *Session) Query(sqlorArgs ...interface{}) ([]map[string]interface{}, err
 // it cannot be used to perform any more transactions.
 func (s *Session) Rollback() {
 	defer func() {
-		if testDbLock != nil {
-			testDbLock.Unlock()
+		if s.testDbLock != nil {
+			s.testDbLock.Unlock()
 		}
 	}()
 
@@ -689,8 +699,8 @@ func (s *Session) Rollback() {
 func (s *Session) Commit() error {
 	s.logger.Debug("Committing transaction")
 	defer func() {
-		if testDbLock != nil {
-			testDbLock.Unlock()
+		if s.testDbLock != nil {
+			s.testDbLock.Unlock()
 		}
 		s.session.Close()
 	}()

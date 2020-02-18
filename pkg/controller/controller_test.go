@@ -108,7 +108,8 @@ func TestControllerListen(t *testing.T) {
 						test := <-cont.pool
 						cont.state.Set(service.Offline, "")
 
-						Convey("Then it should have retrieved the planned transfer entry", func() {
+						Convey("Then it should have retrieved the planned "+
+							"transfer entry", func() {
 							So(test, ShouldResemble, *trans1)
 						})
 					})
@@ -125,15 +126,20 @@ func TestControllerListen(t *testing.T) {
 							db.State().Set(service.Running, "")
 
 							Convey("After waiting enough time", func() {
-								test2 := <-cont.pool
-								test1 := <-cont.pool
+								test := <-cont.pool
 								cont.state.Set(service.Offline, "")
 
-								Convey("Then it should have retrieved both"+
-									" transfer entries", func() {
+								Convey("Then it should have retrieved the planned"+
+									" transfer entry", func() {
+									So(test, ShouldResemble, *trans1)
+								})
 
-									So(test1, ShouldResemble, *trans1)
-									So(test2, ShouldResemble, *trans2)
+								Convey("Then the running entry should now be "+
+									"interrupted", func() {
+
+									result := &model.Transfer{ID: trans2.ID}
+									So(db.Get(result), ShouldBeNil)
+									So(result.Status, ShouldEqual, model.StatusInterrupted)
 								})
 							})
 						})
