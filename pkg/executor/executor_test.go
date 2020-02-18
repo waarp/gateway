@@ -357,6 +357,43 @@ func TestExecutorRunTransfer(t *testing.T) {
 						})
 					})
 				})
+
+				Convey("Given that the remote post-tasks fail", func() {
+					ClientsConstructors["test"] = NewCloseFail
+
+					Convey("When calling the `runTransfer` method", func() {
+						exe.runTransfer(stream)
+
+						Convey("Then the `Transfer` entry should no longer exist", func() {
+							exist, err := db.Exists(trans)
+							So(err, ShouldBeNil)
+							So(exist, ShouldBeFalse)
+						})
+
+						Convey("Then the corresponding `TransferHistory` entry "+
+							"should exist with an ERROR status", func() {
+							hist := &model.TransferHistory{
+								ID:             trans.ID,
+								Owner:          trans.Owner,
+								IsServer:       false,
+								IsSend:         true,
+								Account:        account.Login,
+								Agent:          remote.Name,
+								Protocol:       remote.Protocol,
+								SourceFilename: trans.SourcePath,
+								DestFilename:   trans.DestPath,
+								Rule:           rule.Name,
+								Start:          trans.Start,
+								Status:         model.StatusError,
+							}
+
+							So(db.Get(hist), ShouldBeNil)
+							expErr := model.NewTransferError(model.TeExternalOperation,
+								"remote post-tasks failed")
+							So(hist.Error, ShouldResemble, expErr)
+						})
+					})
+				})
 			})
 		})
 	})

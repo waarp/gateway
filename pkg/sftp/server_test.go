@@ -239,20 +239,21 @@ func TestSSHServer(t *testing.T) {
 
 					Reset(func() { _ = os.RemoveAll(root + send.Path) })
 
-					dst := ioutil.Discard
-
 					src, err := client.Create(send.Path + "/test_out_shutdown.src")
 					So(err, ShouldBeNil)
 
 					Convey("When the server shuts down", func() {
+						_, err := src.Read(make([]byte, 1))
+						So(err, ShouldBeNil)
 
 						go func() {
-							_, _ = src.WriteTo(dst)
+							ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+							defer cancel()
+							_ = sshList.close(ctx)
 						}()
 
-						ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-						defer cancel()
-						_ = sshList.close(ctx)
+						_, err = src.Read(make([]byte, 1))
+						So(err, ShouldBeError, io.EOF)
 
 						Convey("Then the transfer should appear interrupted", func() {
 							var t []model.Transfer
@@ -269,7 +270,7 @@ func TestSSHServer(t *testing.T) {
 								DestPath:   "test_out_shutdown.src",
 								RuleID:     send.ID,
 								Status:     model.StatusInterrupted,
-								Step:       model.StepData,
+								Step:       model.StepPostTasks,
 								Owner:      database.Owner,
 							}
 							So(t[0], ShouldResemble, trans)
@@ -332,7 +333,8 @@ func TestSSHServer(t *testing.T) {
 							_, err := os.Stat(path)
 							So(err, ShouldBeNil)
 
-							Convey("Then the file's content should be identical to the original", func() {
+							Convey("Then the file's content should be identical "+
+								"to the original", func() {
 								dstContent, err := ioutil.ReadFile(path)
 								So(err, ShouldBeNil)
 
@@ -444,11 +446,13 @@ func TestSSHServer(t *testing.T) {
 					})
 
 					Convey("Given that the transfer fails", func() {
-						src := rand.Reader
+						src := bytes.NewBufferString("est fail content")
 
 						dst, err := client.Create(receive.Path + "/test_in_fail.dst")
 						So(err, ShouldBeNil)
 
+						_, err = dst.Write([]byte("t"))
+						So(err, ShouldBeNil)
 						So(conn.Close(), ShouldBeNil)
 						_, err = dst.ReadFrom(src)
 
@@ -457,7 +461,7 @@ func TestSSHServer(t *testing.T) {
 							So(err.Error(), ShouldStartWith, "failed to send packet")
 
 							Convey("Then the transfer should appear in the history", func() {
-								time.Sleep(time.Millisecond)
+								time.Sleep(100 * time.Millisecond)
 
 								var t []model.Transfer
 								So(db.Select(&t, nil), ShouldBeNil)
@@ -484,6 +488,7 @@ func TestSSHServer(t *testing.T) {
 									Step:           model.StepData,
 									Error: model.NewTransferError(model.TeConnectionReset,
 										"SFTP connection closed unexpectedly"),
+									Progress: 1,
 								}
 								So(h[0], ShouldResemble, hist)
 							})
@@ -515,14 +520,9 @@ func TestSSHServer(t *testing.T) {
 						So(client.Close(), ShouldBeNil)
 						So(conn.Close(), ShouldBeNil)
 
-						Convey("Then the destination file should exist", func() {
-							dstContent, err := ioutil.ReadAll(dst)
-							So(err, ShouldBeNil)
-							So(dstContent, ShouldNotBeNil)
-
-							Convey("Then the file's content should be identical to the original", func() {
-								So(string(dstContent), ShouldEqual, content)
-							})
+						Convey("Then the file's content should be identical "+
+							"to the original", func() {
+							So(dst.String(), ShouldEqual, content)
 						})
 
 						Convey("Then the transfer should appear in the history", func() {
@@ -550,6 +550,8 @@ func TestSSHServer(t *testing.T) {
 
 						dst := ioutil.Discard
 
+						_, err = src.Read(make([]byte, 1))
+						So(err, ShouldBeNil)
 						So(conn.Close(), ShouldBeNil)
 						_, err = src.WriteTo(dst)
 
@@ -584,6 +586,7 @@ func TestSSHServer(t *testing.T) {
 									Step:           model.StepData,
 									Error: model.NewTransferError(model.TeConnectionReset,
 										"SFTP connection closed unexpectedly"),
+									Progress: 1,
 								}
 								So(h[0], ShouldResemble, hist)
 							})
@@ -900,6 +903,10 @@ func TestSSHServerTasks(t *testing.T) {
 						So(client.Close(), ShouldBeNil)
 						So(conn.Close(), ShouldBeNil)
 
+						Convey("Then the dest file should contain the source's content", func() {
+							So(dst.String(), ShouldEqual, content)
+						})
+
 						Convey("Then the transfer should have succeeded", func() {
 							hist := &model.TransferHistory{
 								IsServer:       true,
@@ -952,7 +959,8 @@ func TestSSHServerTasks(t *testing.T) {
 
 							So(db.Get(hist), ShouldBeNil)
 							So(hist.Error, ShouldResemble, model.NewTransferError(
-								model.TeExternalOperation, "Task TESTFAIL @ send PRE[0]: task failed"))
+								model.TeExternalOperation, "Task TESTFAIL @ send"+
+									" PRE[0]: task failed"))
 						})
 					})
 				})
@@ -979,6 +987,10 @@ func TestSSHServerTasks(t *testing.T) {
 						So(src.Close(), ShouldBeNil)
 						So(client.Close(), ShouldBeNil)
 						So(conn.Close(), ShouldBeNil)
+
+						Convey("Then the dest file should contain the source's content", func() {
+							So(dst.String(), ShouldEqual, content)
+						})
 
 						Convey("Then the transfer should have succeeded", func() {
 							hist := &model.TransferHistory{
@@ -1028,6 +1040,10 @@ func TestSSHServerTasks(t *testing.T) {
 						So(client.Close(), ShouldBeNil)
 						So(conn.Close(), ShouldBeNil)
 
+						Convey("Then the dest file should contain the source's content", func() {
+							So(dst.String(), ShouldEqual, content)
+						})
+
 						Convey("Then the transfer should have failed", func() {
 							hist := &model.TransferHistory{
 								IsServer:       true,
@@ -1043,7 +1059,8 @@ func TestSSHServerTasks(t *testing.T) {
 
 							So(db.Get(hist), ShouldBeNil)
 							So(hist.Error, ShouldResemble, model.NewTransferError(
-								model.TeExternalOperation, "Task TESTFAIL @ send POST[0]: task failed"))
+								model.TeExternalOperation, "Task TESTFAIL @ send"+
+									" POST[0]: task failed"))
 						})
 					})
 				})

@@ -266,6 +266,187 @@ func TestSFTPPackage(t *testing.T) {
 					})
 				})
 
+				Convey("Given that the server pre-tasks fail", func() {
+					receivePreTaskFail := &model.Task{
+						RuleID: receive.ID,
+						Chain:  model.ChainPre,
+						Rank:   1,
+						Type:   "TESTFAIL",
+						Args:   []byte("{}"),
+					}
+					So(db.Create(receivePreTaskFail), ShouldBeNil)
+
+					Convey("When launching the transfer with the client", func() {
+						channel <- trans
+						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | PRE-TASK[0]")
+						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | ERROR-TASK[0]")
+						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | ERROR-TASK[0]")
+						channel <- model.Transfer{}
+
+						SkipConvey("Then the destination file should NOT exist", func() {
+							_, err := os.Stat("utils.go")
+							So(os.IsNotExist(err), ShouldBeTrue)
+						})
+
+						Convey("Then the server transfer should be in error", func() {
+							var transfers []model.Transfer
+							So(db.Select(&transfers, nil), ShouldBeNil)
+							So(transfers, ShouldBeEmpty)
+
+							var results []model.TransferHistory
+							So(db.Select(&results, nil), ShouldBeNil)
+							So(len(results), ShouldEqual, 2)
+
+							expected := model.TransferHistory{
+								ID:             1,
+								Owner:          database.Owner,
+								IsServer:       !trans.IsServer,
+								IsSend:         receive.IsSend,
+								Account:        localAccount.Login,
+								Agent:          localAgent.Name,
+								Protocol:       "sftp",
+								SourceFilename: ".",
+								DestFilename:   trans.DestPath,
+								Rule:           receive.Name,
+								Start:          results[0].Start,
+								Stop:           results[0].Stop,
+								Status:         model.StatusError,
+								Error: model.TransferError{
+									Code:    model.TeExternalOperation,
+									Details: "Task TESTFAIL @ receive PRE[1]: task failed",
+								},
+								Step:       model.StepPreTasks,
+								Progress:   0,
+								TaskNumber: 1,
+							}
+
+							So(results[0], ShouldResemble, expected)
+						})
+
+						Convey("Then the client transfer should be in error", func() {
+							var results []model.TransferHistory
+							So(db.Select(&results, nil), ShouldBeNil)
+							So(len(results), ShouldEqual, 2)
+
+							expected := model.TransferHistory{
+								ID:             2,
+								Owner:          database.Owner,
+								IsServer:       trans.IsServer,
+								IsSend:         send.IsSend,
+								Account:        remoteAccount.Login,
+								Agent:          remoteAgent.Name,
+								Protocol:       "sftp",
+								SourceFilename: trans.SourcePath,
+								DestFilename:   trans.DestPath,
+								Rule:           send.Name,
+								Start:          start,
+								Stop:           results[1].Stop,
+								Status:         model.StatusError,
+								Error: model.TransferError{
+									Code:    model.TeExternalOperation,
+									Details: "Remote pre-tasks failed",
+								},
+								Step:       model.StepPreTasks,
+								Progress:   0,
+								TaskNumber: 0,
+							}
+
+							So(results[1], ShouldResemble, expected)
+						})
+					})
+				})
+
+				Convey("Given that the client pre-tasks fail", func() {
+					sendPreTaskFail := &model.Task{
+						RuleID: send.ID,
+						Chain:  model.ChainPre,
+						Rank:   1,
+						Type:   "TESTFAIL",
+						Args:   []byte("{}"),
+					}
+					So(db.Create(sendPreTaskFail), ShouldBeNil)
+
+					Convey("When launching the transfer with the client", func() {
+						channel <- trans
+						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | PRE-TASK[0]")
+						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | PRE-TASK[0]")
+						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | ERROR-TASK[0]")
+						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | ERROR-TASK[0]")
+						channel <- model.Transfer{}
+
+						SkipConvey("Then the destination file should NOT exist", func() {
+							_, err := os.Stat("utils.go")
+							So(os.IsNotExist(err), ShouldBeTrue)
+						})
+
+						Convey("Then the server transfer should be in error", func() {
+							var transfers []model.Transfer
+							So(db.Select(&transfers, nil), ShouldBeNil)
+							So(transfers, ShouldBeEmpty)
+
+							var results []model.TransferHistory
+							So(db.Select(&results, nil), ShouldBeNil)
+							So(len(results), ShouldEqual, 2)
+
+							expected := model.TransferHistory{
+								ID:             1,
+								Owner:          database.Owner,
+								IsServer:       !trans.IsServer,
+								IsSend:         receive.IsSend,
+								Account:        localAccount.Login,
+								Agent:          localAgent.Name,
+								Protocol:       "sftp",
+								SourceFilename: ".",
+								DestFilename:   trans.DestPath,
+								Rule:           receive.Name,
+								Start:          results[0].Start,
+								Stop:           results[0].Stop,
+								Status:         model.StatusError,
+								Error: model.TransferError{
+									Code:    model.TeExternalOperation,
+									Details: "Remote pre-tasks failed",
+								},
+								Step:       model.StepPreTasks,
+								Progress:   0,
+								TaskNumber: 0,
+							}
+
+							So(results[0], ShouldResemble, expected)
+						})
+
+						Convey("Then the client transfer should be in error", func() {
+							var results []model.TransferHistory
+							So(db.Select(&results, nil), ShouldBeNil)
+							So(len(results), ShouldEqual, 2)
+
+							expected := model.TransferHistory{
+								ID:             2,
+								Owner:          database.Owner,
+								IsServer:       trans.IsServer,
+								IsSend:         send.IsSend,
+								Account:        remoteAccount.Login,
+								Agent:          remoteAgent.Name,
+								Protocol:       "sftp",
+								SourceFilename: trans.SourcePath,
+								DestFilename:   trans.DestPath,
+								Rule:           send.Name,
+								Start:          start,
+								Stop:           results[1].Stop,
+								Status:         model.StatusError,
+								Error: model.TransferError{
+									Code:    model.TeExternalOperation,
+									Details: "Task TESTFAIL @ send PRE[1]: task failed",
+								},
+								Step:       model.StepPreTasks,
+								Progress:   0,
+								TaskNumber: 1,
+							}
+
+							So(results[1], ShouldResemble, expected)
+						})
+					})
+				})
+
 				Convey("Given that the server post-tasks fail", func() {
 					receivePostTaskFail := &model.Task{
 						RuleID: receive.ID,
@@ -291,7 +472,7 @@ func TestSFTPPackage(t *testing.T) {
 							So(os.IsNotExist(err), ShouldBeTrue)
 						})
 
-						Convey("Then the server transfer should be over", func() {
+						Convey("Then the server transfer should be in error", func() {
 							var transfers []model.Transfer
 							So(db.Select(&transfers, nil), ShouldBeNil)
 							So(transfers, ShouldBeEmpty)
@@ -326,7 +507,7 @@ func TestSFTPPackage(t *testing.T) {
 							So(results[0], ShouldResemble, expected)
 						})
 
-						Convey("Then the client transfer should be over", func() {
+						Convey("Then the client transfer should be in error", func() {
 							var results []model.TransferHistory
 							So(db.Select(&results, nil), ShouldBeNil)
 							So(len(results), ShouldEqual, 2)
@@ -352,6 +533,98 @@ func TestSFTPPackage(t *testing.T) {
 								Step:       model.StepPostTasks,
 								Progress:   0,
 								TaskNumber: 0,
+							}
+
+							So(results[1], ShouldResemble, expected)
+						})
+					})
+				})
+
+				Convey("Given that the client post-tasks fail", func() {
+					sendPostTaskFail := &model.Task{
+						RuleID: send.ID,
+						Chain:  model.ChainPost,
+						Rank:   1,
+						Type:   "TESTFAIL",
+						Args:   []byte("{}"),
+					}
+					So(db.Create(sendPostTaskFail), ShouldBeNil)
+
+					Convey("When launching the transfer with the client", func() {
+						channel <- trans
+						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | PRE-TASK[0]")
+						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | PRE-TASK[0]")
+						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | POST-TASK[0]")
+						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | ERROR-TASK[0]")
+						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | ERROR-TASK[0]")
+						channel <- model.Transfer{}
+
+						SkipConvey("Then the destination file should NOT exist", func() {
+							_, err := os.Stat("utils.go")
+							So(os.IsNotExist(err), ShouldBeTrue)
+						})
+
+						Convey("Then the server transfer should be in error", func() {
+							var transfers []model.Transfer
+							So(db.Select(&transfers, nil), ShouldBeNil)
+							So(transfers, ShouldBeEmpty)
+
+							var results []model.TransferHistory
+							So(db.Select(&results, nil), ShouldBeNil)
+							So(len(results), ShouldEqual, 2)
+
+							expected := model.TransferHistory{
+								ID:             1,
+								Owner:          database.Owner,
+								IsServer:       !trans.IsServer,
+								IsSend:         receive.IsSend,
+								Account:        localAccount.Login,
+								Agent:          localAgent.Name,
+								Protocol:       "sftp",
+								SourceFilename: ".",
+								DestFilename:   trans.DestPath,
+								Rule:           receive.Name,
+								Start:          results[0].Start,
+								Stop:           results[0].Stop,
+								Status:         model.StatusError,
+								Error: model.TransferError{
+									Code:    model.TeExternalOperation,
+									Details: "Remote post-tasks failed",
+								},
+								Step:       model.StepPostTasks,
+								Progress:   0,
+								TaskNumber: 0,
+							}
+
+							So(results[0], ShouldResemble, expected)
+						})
+
+						Convey("Then the client transfer should be in error", func() {
+							var results []model.TransferHistory
+							So(db.Select(&results, nil), ShouldBeNil)
+							So(len(results), ShouldEqual, 2)
+
+							expected := model.TransferHistory{
+								ID:             2,
+								Owner:          database.Owner,
+								IsServer:       trans.IsServer,
+								IsSend:         send.IsSend,
+								Account:        remoteAccount.Login,
+								Agent:          remoteAgent.Name,
+								Protocol:       "sftp",
+								SourceFilename: trans.SourcePath,
+								DestFilename:   trans.DestPath,
+								Rule:           send.Name,
+								Start:          start,
+								Stop:           results[1].Stop,
+								Status:         model.StatusError,
+								Error: model.TransferError{
+									Code:    model.TeExternalOperation,
+									Details: "Task TESTFAIL @ send POST[1]: task failed",
+								},
+								Step:       model.StepPostTasks,
+								Progress:   0,
+								TaskNumber: 1,
 							}
 
 							So(results[1], ShouldResemble, expected)

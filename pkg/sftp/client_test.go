@@ -280,7 +280,7 @@ func TestRequest(t *testing.T) {
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldResemble, model.NewPipelineError(model.TeFileNotFound,
-					"file does not exist"))
+					"Target file does not exist"))
 
 				Convey("Then the file stream should NOT be open", func() {
 					So(client.remoteFile, ShouldBeNil)

@@ -61,46 +61,69 @@ func newSftpStream(logger *log.Logger, db *database.Db, root string,
 		return nil, modelToSFTP(pe)
 	}
 
-	s.Transfer.Step = model.StepData
-	if de := s.Transfer.Update(s.Db); de != nil {
-		dbErr := &model.PipelineError{Kind: model.KindDatabase}
-		pipeline.HandleError(s, dbErr)
-		return nil, modelToSFTP(dbErr)
-	}
-
 	return stream, nil
 }
 
 func (s *sftpStream) TransferError(err error) {
 	if s.transErr == nil {
-		if te, ok := err.(*model.PipelineError); ok {
-			s.transErr = te
-			return
+		switch s.Transfer.Step {
+		case model.StepPreTasks:
+			s.transErr = model.NewPipelineError(model.TeExternalOperation,
+				"Remote pre-tasks failed")
+		case model.StepData:
+			s.transErr = model.NewPipelineError(model.TeConnectionReset,
+				"SFTP connection closed unexpectedly")
+		case model.StepPostTasks:
+			s.transErr = model.NewPipelineError(model.TeExternalOperation,
+				"Remote post-tasks failed")
 		}
-		//if err == io.EOF && !s.Rule.IsSend {
-		s.transErr = model.NewPipelineError(model.TeConnectionReset,
-			"SFTP connection closed unexpectedly")
-		//	return
-		//}
-		//s.transErr = model.NewPipelineError(model.TeDataTransfer, err.Error())
 	}
 }
 
 func (s *sftpStream) ReadAt(p []byte, off int64) (int, error) {
+	if s.transErr != nil {
+		return 0, modelToSFTP(s.transErr)
+	}
 	n, err := s.TransferStream.ReadAt(p, off)
-	if err != nil && err != io.EOF {
-		s.TransferError(err)
-		_ = s.Close()
+	if err == io.EOF {
+		s.Transfer.Progress = 0
+		s.Transfer.Step = model.StepPostTasks
+		if dbErr := s.Transfer.Update(s.Db); dbErr != nil {
+			return 0, dbErr
+		}
+		return n, err
+	}
+	if err != nil {
+		pErr := err.(*model.PipelineError)
+		s.transErr = pErr
+		if pErr.Kind != model.KindTransfer {
+			_ = s.Close()
+		}
 		return n, modelToSFTP(s.transErr)
 	}
 	return n, err
 }
 
 func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
+	if s.transErr != nil {
+		return 0, modelToSFTP(s.transErr)
+	}
+	if len(p) == 0 {
+		s.Logger.Criticalf("END OF FILE RECEIVED")
+		s.Transfer.Progress = 0
+		s.Transfer.Step = model.StepPostTasks
+		if err := s.Transfer.Update(s.Db); err != nil {
+			return 0, err
+		}
+	}
+
 	n, err := s.TransferStream.WriteAt(p, off)
 	if err != nil {
-		s.TransferError(err)
-		_ = s.Close()
+		pErr := err.(*model.PipelineError)
+		s.transErr = pErr
+		if pErr.Kind != model.KindTransfer {
+			_ = s.Close()
+		}
 		return n, modelToSFTP(s.transErr)
 	}
 	return n, nil

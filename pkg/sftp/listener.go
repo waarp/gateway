@@ -186,32 +186,33 @@ func (l *sshListener) makeFileWriter(accountID uint64, conf config.SftpProtoConf
 }
 
 func (l *sshListener) close(ctx context.Context) error {
-	if err := l.Listener.Close(); err != nil {
-		return err
-	}
+	finished := make(chan error)
 
-	var transfers []model.Transfer
-	filters := &database.Filters{
-		Conditions: builder.And(builder.Eq{"is_server": true}, builder.Eq{"agent_id": l.Agent.ID},
-			builder.NotIn("status", model.StatusInterrupted, model.StatusPaused)),
-	}
-	if err := l.Db.Select(&transfers, filters); err != nil {
-		l.Logger.Criticalf("Failed to retrieve ongoing transfers: %s", err)
-		return err
-	}
-	for _, trans := range transfers {
-		pipeline.Signals.SendSignal(trans.ID, model.SignalShutdown)
-	}
-
-	finished := make(chan bool)
 	go func() {
+		if err := l.Listener.Close(); err != nil {
+			finished <- err
+		}
+
+		var transfers []model.Transfer
+		filters := &database.Filters{
+			Conditions: builder.And(builder.Eq{"is_server": true}, builder.Eq{"agent_id": l.Agent.ID},
+				builder.NotIn("status", model.StatusInterrupted, model.StatusPaused)),
+		}
+		if err := l.Db.Select(&transfers, filters); err != nil {
+			l.Logger.Criticalf("Failed to retrieve ongoing transfers: %s", err)
+			finished <- err
+		}
+		for _, trans := range transfers {
+			pipeline.Signals.SendSignal(trans.ID, model.SignalShutdown)
+		}
+
 		l.connWg.Wait()
 		close(finished)
 	}()
 
 	select {
-	case <-finished:
-		return nil
+	case err := <-finished:
+		return err
 	case <-ctx.Done():
 		return ctx.Err()
 	}

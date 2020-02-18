@@ -185,7 +185,6 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 			return
 		}
-		stream.Logger.Criticalf("HANDLING ERROR FOR %s", stream.Rule.Name)
 		stream.ErrorTasks()
 		stream.Transfer.Error = err.Cause
 		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
