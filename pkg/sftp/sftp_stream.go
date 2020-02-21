@@ -18,25 +18,27 @@ type sftpStream struct {
 	servConn *ssh.ServerConn
 }
 
-// modelToSFTP converts the given PipelineError into its closest equivalent
+// modelToSFTP converts the given error into its closest equivalent
 // SFTP error code. Since SFTP v3 only supports 8 error codes (9 with code Ok),
 // most errors will be converted to the generic code SSH_FX_FAILURE.
-func modelToSFTP(err *model.PipelineError) error {
-	if err.Kind == model.KindTransfer {
-		switch err.Cause.Code {
-		case model.TeOk:
-			return sftp.ErrSSHFxOk
-		case model.TeUnimplemented:
-			return sftp.ErrSSHFxOpUnsupported
-		case model.TeIntegrity:
-			return sftp.ErrSSHFxBadMessage
-		case model.TeFileNotFound:
-			return sftp.ErrSSHFxNoSuchFile
-		case model.TeForbidden:
-			return sftp.ErrSSHFxPermissionDenied
+func modelToSFTP(err error) error {
+	if pErr, ok := err.(*model.PipelineError); ok {
+		if pErr.Kind == model.KindTransfer {
+			switch pErr.Cause.Code {
+			case model.TeOk:
+				return sftp.ErrSSHFxOk
+			case model.TeUnimplemented:
+				return sftp.ErrSSHFxOpUnsupported
+			case model.TeIntegrity:
+				return sftp.ErrSSHFxBadMessage
+			case model.TeFileNotFound:
+				return sftp.ErrSSHFxNoSuchFile
+			case model.TeForbidden:
+				return sftp.ErrSSHFxPermissionDenied
+			}
 		}
 	}
-	return sftp.ErrSSHFxFailure
+	return err
 }
 
 // newSftpStream initialises a special kind of TransferStream tailored for
@@ -47,7 +49,7 @@ func newSftpStream(logger *log.Logger, db *database.Db, root string,
 
 	s, err := pipeline.NewTransferStream(logger, db, root, trans)
 	if err != nil {
-		return nil, sftp.ErrSSHFxFailure
+		return nil, modelToSFTP(err)
 	}
 	stream := &sftpStream{TransferStream: s, servConn: servConn}
 
@@ -109,7 +111,6 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 		return 0, modelToSFTP(s.transErr)
 	}
 	if len(p) == 0 {
-		s.Logger.Criticalf("END OF FILE RECEIVED")
 		s.Transfer.Progress = 0
 		s.Transfer.Step = model.StepPostTasks
 		if err := s.Transfer.Update(s.Db); err != nil {

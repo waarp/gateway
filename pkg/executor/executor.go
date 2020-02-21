@@ -141,7 +141,6 @@ func (e *Executor) runTransfer(stream *pipeline.TransferStream) {
 			return dErr
 		}
 		if pErr := stream.PostTasks(); pErr != nil {
-			e.Logger.Criticalf("ERROR IN POST-TASKS")
 			_ = client.Close(pErr)
 			return pErr
 		}

@@ -22,7 +22,7 @@ type TransferStream struct {
 // NewTransferStream initialises a new stream for the given transfer. This stream
 // can then be used to execute a transfer.
 func NewTransferStream(logger *log.Logger, db *database.Db, root string,
-	trans model.Transfer) (*TransferStream, error) {
+	trans model.Transfer) (*TransferStream, *model.PipelineError) {
 
 	if trans.ID == 0 {
 		if err := createTransfer(logger, db, &trans); err != nil {
@@ -41,7 +41,8 @@ func NewTransferStream(logger *log.Logger, db *database.Db, root string,
 
 	t.Pipeline.Rule = &model.Rule{ID: trans.RuleID}
 	if err := t.Db.Get(t.Rule); err != nil {
-		return nil, err
+		logger.Criticalf("Failed to retrieve transfer rule: %s", err.Error())
+		return nil, &model.PipelineError{Kind: model.KindDatabase}
 	}
 
 	t.Signals = Signals.Add(t.Transfer.ID)
@@ -164,9 +165,7 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 // moves the file from the temporary directory to its final destination.
 // The method returns an error if the file cannot be move.
 func (t *TransferStream) Finalize() *model.PipelineError {
-	if e := t.File.Close(); e != nil {
-		t.Logger.Warningf("Failed to close the local file: %s", e.Error())
-	}
+	_ = t.File.Close()
 
 	if !t.Rule.IsSend {
 		path := filepath.Clean(filepath.Join(t.Root, t.Rule.Path, t.Transfer.DestPath))

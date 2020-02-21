@@ -494,6 +494,31 @@ func TestSSHServer(t *testing.T) {
 							})
 						})
 					})
+
+					Convey("Given that the account is not authorized to use the rule", func() {
+						other := &model.LocalAccount{
+							LocalAgentID: agent.ID,
+							Login:        "other",
+							Password:     []byte("password"),
+						}
+						So(db.Create(other), ShouldBeNil)
+
+						access := &model.RuleAccess{
+							RuleID:     receive.ID,
+							ObjectID:   other.ID,
+							ObjectType: other.TableName(),
+						}
+						So(db.Create(access), ShouldBeNil)
+
+						Convey("When starting a transfer", func() {
+							_, err := client.Create(receive.Path + "/test_in.dst")
+
+							Convey("Then it should return an error", func() {
+								So(err, ShouldBeError, `sftp: "Permission Denied"`+
+									` (SSH_FX_PERMISSION_DENIED)`)
+							})
+						})
+					})
 				})
 
 				Convey("Given an outgoing transfer", func() {

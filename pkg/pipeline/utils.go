@@ -31,11 +31,15 @@ func checkSignal(ch <-chan model.Signal) *model.PipelineError {
 	}
 }
 
-func createTransfer(logger *log.Logger, db *database.Db, trans *model.Transfer) error {
+func createTransfer(logger *log.Logger, db *database.Db, trans *model.Transfer) *model.PipelineError {
 	err := db.Create(trans)
 	if err != nil {
-		logger.Criticalf("Failed to create transfer entry: %s", err)
-		return err
+		if _, ok := err.(*database.ErrInvalid); ok {
+			logger.Errorf("Failed to create transfer entry: %s", err.Error())
+			return model.NewPipelineError(model.TeForbidden, err.Error())
+		}
+		logger.Criticalf("Failed to create transfer entry: %s", err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 	return nil
 }
