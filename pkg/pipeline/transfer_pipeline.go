@@ -66,4 +66,9 @@ func (p *Pipeline) Archive() {
 // Exit deletes the transfer's signal channel.
 func (p *Pipeline) Exit() {
 	Signals.Delete(p.Transfer.ID)
+	if p.Transfer.IsServer {
+		TransferInCount.sub()
+	} else {
+		TransferOutCount.sub()
+	}
 }

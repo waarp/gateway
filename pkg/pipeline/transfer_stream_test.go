@@ -19,6 +19,62 @@ var logConf = conf.LogConfig{
 	LogTo: "stdout",
 }
 
+func TestNewTransferStream(t *testing.T) {
+	logger := log.NewLogger("test_new_transfer_stream", logConf)
+
+	Convey("Given a new transfer", t, func() {
+		TransferInCount = &Count{}
+		TransferOutCount = &Count{}
+
+		db := database.GetTestDatabase()
+
+		rule := &model.Rule{
+			Name:   "rule",
+			IsSend: false,
+			Path:   ".",
+		}
+		So(db.Create(rule), ShouldBeNil)
+
+		trans := model.Transfer{
+			ID:         1,
+			RuleID:     1,
+			IsServer:   true,
+			AgentID:    1,
+			AccountID:  1,
+			SourcePath: ".",
+			DestPath:   ".",
+		}
+
+		Convey("Given no transfer limit", func() {
+			TransferInCount.SetLimit(0)
+			Reset(func() { TransferInCount = &Count{} })
+
+			Convey("When creating a new transfer stream", func() {
+				stream, err := NewTransferStream(logger, db, ".", trans)
+				So(err, ShouldBeNil)
+
+				Convey("Then it should  return a new transfer stream", func() {
+					So(stream, ShouldNotBeNil)
+				})
+			})
+		})
+
+		Convey("Given a transfer limit", func() {
+			TransferInCount.SetLimit(1)
+			So(TransferInCount.add(), ShouldBeNil)
+			Reset(func() { TransferInCount = &Count{} })
+
+			Convey("When creating a new transfer stream", func() {
+				_, err := NewTransferStream(logger, db, ".", trans)
+
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, ErrLimitReached)
+				})
+			})
+		})
+	})
+}
+
 func TestStreamRead(t *testing.T) {
 	logger := log.NewLogger("test_stream_read", logConf)
 

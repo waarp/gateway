@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -163,37 +164,37 @@ func TestSFTPPackage(t *testing.T) {
 			_ = sshList.close(ctx)
 		})
 
-		Convey("Given an executor", func() {
-			channel := make(chan model.Transfer)
-			exe := executor.Executor{
-				Db:        db,
-				Logger:    logger,
-				Transfers: channel,
+		Convey("Given a transfer from SFTP client to server", func() {
+			start := time.Now().Truncate(time.Second)
+			trans := model.Transfer{
+				RuleID:     send.ID,
+				IsServer:   false,
+				AgentID:    remoteAgent.ID,
+				AccountID:  remoteAccount.ID,
+				SourcePath: "utils.go",
+				DestPath:   "utils.dst",
+				Start:      start,
+				Status:     model.StatusPlanned,
 			}
-			exe.Run(&sync.WaitGroup{})
-			Reset(func() { close(channel) })
+			So(db.Create(&trans), ShouldBeNil)
 
-			Convey("Given a transfer from SFTP client to server", func() {
-				start := time.Now().Truncate(time.Second)
-				trans := model.Transfer{
-					RuleID:     send.ID,
-					IsServer:   false,
-					AgentID:    remoteAgent.ID,
-					AccountID:  remoteAccount.ID,
-					SourcePath: "utils.go",
-					DestPath:   "utils.dst",
-					Start:      start,
-					Status:     model.StatusPlanned,
-				}
-				So(db.Create(&trans), ShouldBeNil)
+			Convey("Given an executor", func() {
+				stream, err := pipeline.NewTransferStream(logger, db, "", trans)
+				So(err, ShouldBeNil)
+
+				exe := executor.Executor{TransferStream: stream}
+				finished := make(chan bool)
+				go func() {
+					exe.Run()
+					close(finished)
+				}()
 
 				Convey("When launching the transfer with the client", func() {
-					channel <- trans
 					So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | PRE-TASK[0]")
 					So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | PRE-TASK[0]")
 					So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | POST-TASK[0]")
 					So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | POST-TASK[0]")
-					channel <- model.Transfer{}
+					<-finished
 
 					Convey("Then the destination file should exist", func() {
 						src, err := ioutil.ReadFile("utils.go")
@@ -276,11 +277,10 @@ func TestSFTPPackage(t *testing.T) {
 					So(db.Create(receivePreTaskFail), ShouldBeNil)
 
 					Convey("When launching the transfer with the client", func() {
-						channel <- trans
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | PRE-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | ERROR-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | ERROR-TASK[0]")
-						channel <- model.Transfer{}
+						<-finished
 
 						SkipConvey("Then the destination file should NOT exist", func() {
 							_, err := os.Stat("utils.go")
@@ -366,12 +366,11 @@ func TestSFTPPackage(t *testing.T) {
 					So(db.Create(sendPreTaskFail), ShouldBeNil)
 
 					Convey("When launching the transfer with the client", func() {
-						channel <- trans
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | PRE-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | PRE-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | ERROR-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | ERROR-TASK[0]")
-						channel <- model.Transfer{}
+						<-finished
 
 						SkipConvey("Then the destination file should NOT exist", func() {
 							_, err := os.Stat("utils.go")
@@ -457,14 +456,13 @@ func TestSFTPPackage(t *testing.T) {
 					So(db.Create(receivePostTaskFail), ShouldBeNil)
 
 					Convey("When launching the transfer with the client", func() {
-						channel <- trans
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | PRE-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | PRE-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | POST-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | POST-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | ERROR-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | ERROR-TASK[0]")
-						channel <- model.Transfer{}
+						<-finished
 
 						SkipConvey("Then the destination file should NOT exist", func() {
 							_, err := os.Stat("utils.go")
@@ -550,13 +548,12 @@ func TestSFTPPackage(t *testing.T) {
 					So(db.Create(sendPostTaskFail), ShouldBeNil)
 
 					Convey("When launching the transfer with the client", func() {
-						channel <- trans
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | PRE-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | PRE-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | POST-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 1 | ERROR-TASK[0]")
 						So(<-checkChannel, ShouldEqual, "TESTCHECK | Rule 2 | ERROR-TASK[0]")
-						channel <- model.Transfer{}
+						<-finished
 
 						SkipConvey("Then the destination file should NOT exist", func() {
 							_, err := os.Stat("utils.go")

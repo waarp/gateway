@@ -17,7 +17,8 @@ var logConf = conf.LogConfig{
 	LogTo: "stdout",
 }
 
-func TestExecutorRunTransfer(t *testing.T) {
+func TestExecutorRun(t *testing.T) {
+	logger := log.NewLogger("test_executor_run", logConf)
 
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
@@ -67,18 +68,15 @@ func TestExecutorRunTransfer(t *testing.T) {
 			So(db.Create(trans), ShouldBeNil)
 
 			Convey("Given an executor", func() {
-				exe := &Executor{
-					Db:     db,
-					Logger: log.NewLogger("test_executor", logConf),
-				}
-				stream, err := pipeline.NewTransferStream(exe.Logger, exe.Db, "", *trans)
+				stream, err := pipeline.NewTransferStream(logger, db, "", *trans)
 				So(err, ShouldBeNil)
+				exe := &Executor{TransferStream: stream}
 
 				Convey("Given that the transfer is successful", func() {
 					ClientsConstructors["test"] = NewAllSuccess
 
-					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(stream)
+					Convey("When calling the `Run` method", func() {
+						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -115,8 +113,8 @@ func TestExecutorRunTransfer(t *testing.T) {
 				Convey("Given that the connection fails", func() {
 					ClientsConstructors["test"] = NewConnectFail
 
-					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(stream)
+					Convey("When calling the `Run` method", func() {
+						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -152,8 +150,8 @@ func TestExecutorRunTransfer(t *testing.T) {
 				Convey("Given that the authentication fails", func() {
 					ClientsConstructors["test"] = NewAuthFail
 
-					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(stream)
+					Convey("When calling the `Run` method", func() {
+						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -189,8 +187,8 @@ func TestExecutorRunTransfer(t *testing.T) {
 				Convey("Given that the request fails", func() {
 					ClientsConstructors["test"] = NewRequestFail
 
-					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(stream)
+					Convey("When calling the `Run` method", func() {
+						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -235,8 +233,8 @@ func TestExecutorRunTransfer(t *testing.T) {
 					}
 					So(db.Create(preTask), ShouldBeNil)
 
-					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(stream)
+					Convey("When calling the `Run` method", func() {
+						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -278,8 +276,8 @@ func TestExecutorRunTransfer(t *testing.T) {
 				Convey("Given that the data transfer fails", func() {
 					ClientsConstructors["test"] = NewDataFail
 
-					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(stream)
+					Convey("When calling the `Run` method", func() {
+						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -324,8 +322,8 @@ func TestExecutorRunTransfer(t *testing.T) {
 					}
 					So(db.Create(preTask), ShouldBeNil)
 
-					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(stream)
+					Convey("When calling the `Run` method", func() {
+						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -361,8 +359,8 @@ func TestExecutorRunTransfer(t *testing.T) {
 				Convey("Given that the remote post-tasks fail", func() {
 					ClientsConstructors["test"] = NewCloseFail
 
-					Convey("When calling the `runTransfer` method", func() {
-						exe.runTransfer(stream)
+					Convey("When calling the `Run` method", func() {
+						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
 							exist, err := db.Exists(trans)
@@ -400,6 +398,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 }
 
 func TestTransferResume(t *testing.T) {
+	logger := log.NewLogger("test_transfer_resume", logConf)
 
 	Convey("Given a test database", t, func() {
 		db := database.GetTestDatabase()
@@ -472,14 +471,11 @@ func TestTransferResume(t *testing.T) {
 			So(db.Create(trans), ShouldBeNil)
 
 			Convey("When starting the transfer", func() {
-				exe := &Executor{
-					Db:     db,
-					Logger: log.NewLogger("test_executor", logConf),
-				}
-				stream, err := pipeline.NewTransferStream(exe.Logger, exe.Db, "", *trans)
+				stream, err := pipeline.NewTransferStream(logger, db, "", *trans)
 				So(err, ShouldBeNil)
+				exe := &Executor{TransferStream: stream}
 
-				exe.runTransfer(stream)
+				exe.Run()
 
 				Convey("Then the `Transfer` entry should no longer exist", func() {
 					exist, err := db.Exists(trans)
@@ -542,14 +538,11 @@ func TestTransferResume(t *testing.T) {
 			So(db.Create(trans), ShouldBeNil)
 
 			Convey("When starting the transfer", func() {
-				exe := &Executor{
-					Db:     db,
-					Logger: log.NewLogger("test_executor", logConf),
-				}
-				stream, err := pipeline.NewTransferStream(exe.Logger, exe.Db, "", *trans)
+				stream, err := pipeline.NewTransferStream(logger, db, "", *trans)
 				So(err, ShouldBeNil)
+				exe := &Executor{TransferStream: stream}
 
-				exe.runTransfer(stream)
+				exe.Run()
 
 				Convey("Then the `Transfer` entry should no longer exist", func() {
 					exist, err := db.Exists(trans)
@@ -628,14 +621,11 @@ func TestTransferResume(t *testing.T) {
 			So(db.Create(trans), ShouldBeNil)
 
 			Convey("When starting the transfer", func() {
-				exe := &Executor{
-					Db:     db,
-					Logger: log.NewLogger("test_executor", logConf),
-				}
-				stream, err := pipeline.NewTransferStream(exe.Logger, exe.Db, "", *trans)
+				stream, err := pipeline.NewTransferStream(logger, db, "", *trans)
 				So(err, ShouldBeNil)
+				exe := &Executor{TransferStream: stream}
 
-				exe.runTransfer(stream)
+				exe.Run()
 
 				Convey("Then the `Transfer` entry should no longer exist", func() {
 					exist, err := db.Exists(trans)
