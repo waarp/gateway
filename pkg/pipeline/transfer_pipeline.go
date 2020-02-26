@@ -1,6 +1,8 @@
 package pipeline
 
 import (
+	"context"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -17,6 +19,7 @@ type Pipeline struct {
 
 	Rule    *model.Rule
 	Signals chan model.Signal
+	Ctx     context.Context
 	proc    *tasks.Processor
 }
 

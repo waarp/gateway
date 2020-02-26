@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -50,7 +51,8 @@ func TestNewTransferStream(t *testing.T) {
 			Reset(func() { TransferInCount = &Count{} })
 
 			Convey("When creating a new transfer stream", func() {
-				stream, err := NewTransferStream(logger, db, ".", trans)
+				stream, err := NewTransferStream(context.Background(), logger,
+					db, ".", trans)
 				So(err, ShouldBeNil)
 
 				Convey("Then it should  return a new transfer stream", func() {
@@ -65,7 +67,8 @@ func TestNewTransferStream(t *testing.T) {
 			Reset(func() { TransferInCount = &Count{} })
 
 			Convey("When creating a new transfer stream", func() {
-				_, err := NewTransferStream(logger, db, ".", trans)
+				_, err := NewTransferStream(context.Background(), logger, db,
+					".", trans)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError, ErrLimitReached)
@@ -126,7 +129,7 @@ func TestStreamRead(t *testing.T) {
 		}
 		So(db.Create(trans), ShouldBeNil)
 
-		stream, tErr := NewTransferStream(logger, db, ".", *trans)
+		stream, tErr := NewTransferStream(context.Background(), logger, db, ".", *trans)
 		So(tErr, ShouldBeNil)
 
 		So(stream.Start(), ShouldBeNil)
@@ -232,7 +235,7 @@ func TestStreamWrite(t *testing.T) {
 		}
 		So(db.Create(trans), ShouldBeNil)
 
-		stream, tErr := NewTransferStream(logger, db, ".", *trans)
+		stream, tErr := NewTransferStream(context.Background(), logger, db, ".", *trans)
 		So(tErr, ShouldBeNil)
 
 		So(stream.Start(), ShouldBeNil)

@@ -60,6 +60,7 @@ func (s *Service) Start() error {
 			Conf:     sshConf,
 			Listener: listener,
 		}
+		s.listener.ctx, s.listener.cancel = context.WithCancel(context.Background())
 		s.listener.listen()
 		return nil
 	}

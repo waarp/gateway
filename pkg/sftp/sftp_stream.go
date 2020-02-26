@@ -1,6 +1,7 @@
 package sftp
 
 import (
+	"context"
 	"io"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -8,14 +9,12 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
 )
 
 type sftpStream struct {
 	*pipeline.TransferStream
 
 	transErr *model.PipelineError
-	servConn *ssh.ServerConn
 }
 
 // modelToSFTP converts the given error into its closest equivalent
@@ -44,14 +43,14 @@ func modelToSFTP(err error) error {
 // newSftpStream initialises a special kind of TransferStream tailored for
 // the SFTP server. This constructor initialises a TransferStream, opens the
 // local file and executes the pre-tasks.
-func newSftpStream(logger *log.Logger, db *database.Db, root string,
-	trans model.Transfer, servConn *ssh.ServerConn) (*sftpStream, error) {
+func newSftpStream(ctx context.Context, logger *log.Logger, db *database.Db,
+	root string, trans model.Transfer) (*sftpStream, error) {
 
-	s, err := pipeline.NewTransferStream(logger, db, root, trans)
+	s, err := pipeline.NewTransferStream(ctx, logger, db, root, trans)
 	if err != nil {
 		return nil, modelToSFTP(err)
 	}
-	stream := &sftpStream{TransferStream: s, servConn: servConn}
+	stream := &sftpStream{TransferStream: s}
 
 	if te := s.Start(); te != nil {
 		pipeline.HandleError(s, te)
@@ -67,6 +66,12 @@ func newSftpStream(logger *log.Logger, db *database.Db, root string,
 }
 
 func (s *sftpStream) TransferError(err error) {
+	select {
+	case <-s.Ctx.Done():
+		s.transErr = &model.PipelineError{Kind: model.KindInterrupt}
+		return
+	default:
+	}
 	if s.transErr == nil {
 		switch s.Transfer.Step {
 		case model.StepPreTasks:
@@ -145,8 +150,5 @@ func (s *sftpStream) Close() error {
 	}
 
 	pipeline.HandleError(s.TransferStream, s.transErr)
-	if s.transErr.Kind == model.KindInterrupt {
-		_ = s.servConn.Close()
-	}
 	return modelToSFTP(s.transErr)
 }

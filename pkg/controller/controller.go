@@ -30,7 +30,11 @@ type Controller struct {
 	logger *log.Logger
 	state  service.State
 
-	shutdown chan bool
+	wg   *sync.WaitGroup
+	pool chan model.Transfer
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func (c *Controller) checkIsDbDown() bool {
@@ -63,26 +67,26 @@ func (c *Controller) listen() {
 	status := builder.Eq{"status": model.StatusPlanned}
 	client := builder.Eq{"is_server": false}
 	wg := sync.WaitGroup{}
-	c.shutdown = make(chan bool)
+
+	c.ctx, c.cancel = context.WithCancel(context.Background())
 
 	go func() {
 		isDbDown := false
 		for {
 			select {
-			case <-c.shutdown:
-				wg.Wait()
-				close(c.shutdown)
+			case <-c.ctx.Done():
+				close(c.pool)
 				return
 			case <-c.ticker.C:
-			}
-
-			if isDbDown {
-				isDbDown = c.checkIsDbDown()
 			}
 
 			start := builder.Lte{"start": time.Now()}
 			filters := database.Filters{
 				Conditions: builder.And(owner, start, status, client),
+			}
+
+			if isDbDown {
+				isDbDown = c.checkIsDbDown()
 			}
 
 			plannedTrans := []model.Transfer{}
@@ -114,7 +118,7 @@ func (c *Controller) listen() {
 }
 
 func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, error) {
-	stream, err := pipeline.NewTransferStream(c.logger, c.Db, "", trans)
+	stream, err := pipeline.NewTransferStream(c.ctx, c.logger, c.Db, "", trans)
 	if err != nil {
 		c.logger.Errorf("Failed to create transfer stream: %s", err.Error())
 		return nil, err
@@ -142,25 +146,20 @@ func (c *Controller) Start() error {
 
 // Stop stops the transfer controller service.
 func (c *Controller) Stop(ctx context.Context) error {
-	defer c.ticker.Stop()
-	c.state.Set(service.Offline, "")
-	c.shutdown <- true
+	defer func() {
+		c.state.Set(service.Offline, "")
+		c.ticker.Stop()
+	}()
 
-	var transfers []model.Transfer
-	filters := &database.Filters{
-		Conditions: builder.And(builder.Eq{"is_server": false},
-			builder.NotIn("status", model.StatusInterrupted, model.StatusPaused)),
-	}
-	if err := c.Db.Select(&transfers, filters); err != nil {
-		c.logger.Criticalf("Failed to retrieve ongoing transfers: %s", err)
-		return err
-	}
-	for _, trans := range transfers {
-		pipeline.Signals.SendSignal(trans.ID, model.SignalShutdown)
-	}
+	c.cancel()
+	finished := make(chan struct{})
+	go func() {
+		c.wg.Wait()
+		close(finished)
+	}()
 
 	select {
-	case <-c.shutdown:
+	case <-finished:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()

@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -21,8 +22,8 @@ type TransferStream struct {
 
 // NewTransferStream initialises a new stream for the given transfer. This stream
 // can then be used to execute a transfer.
-func NewTransferStream(logger *log.Logger, db *database.Db, root string,
-	trans model.Transfer) (*TransferStream, error) {
+func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.Db,
+	root string, trans model.Transfer) (*TransferStream, error) {
 
 	if trans.IsServer {
 		if err := TransferInCount.add(); err != nil {
@@ -46,6 +47,7 @@ func NewTransferStream(logger *log.Logger, db *database.Db, root string,
 			Logger:   logger,
 			Root:     root,
 			Transfer: &trans,
+			Ctx:      ctx,
 		},
 	}
 
@@ -63,6 +65,7 @@ func NewTransferStream(logger *log.Logger, db *database.Db, root string,
 		Rule:     t.Rule,
 		Transfer: t.Transfer,
 		Signals:  t.Signals,
+		Ctx:      ctx,
 	}
 	return t, nil
 }
@@ -92,7 +95,7 @@ func (t *TransferStream) Read(p []byte) (n int, err error) {
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
-	if e := checkSignal(t.Signals); e != nil {
+	if e := checkSignal(t.Ctx, t.Signals); e != nil {
 		return 0, e
 	}
 
@@ -111,7 +114,7 @@ func (t *TransferStream) Write(p []byte) (n int, err error) {
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
-	if e := checkSignal(t.Signals); e != nil {
+	if e := checkSignal(t.Ctx, t.Signals); e != nil {
 		return 0, e
 	}
 
@@ -131,7 +134,7 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
-	if e := checkSignal(t.Signals); e != nil {
+	if e := checkSignal(t.Ctx, t.Signals); e != nil {
 		return 0, e
 	}
 
@@ -155,7 +158,7 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
-	if e := checkSignal(t.Signals); e != nil {
+	if e := checkSignal(t.Ctx, t.Signals); e != nil {
 		return 0, e
 	}
 
