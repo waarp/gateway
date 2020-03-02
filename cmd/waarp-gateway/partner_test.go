@@ -26,14 +26,12 @@ func TestGetPartner(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			partner := model.RemoteAgent{
+			partner := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-
-			err := db.Create(&partner)
-			So(err, ShouldBeNil)
+			So(db.Create(partner), ShouldBeNil)
 
 			Convey("Given a valid partner ID", func() {
 				id := fmt.Sprint(partner.ID)
@@ -57,11 +55,9 @@ func TestGetPartner(t *testing.T) {
 						So(err, ShouldBeNil)
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Remote agent n°1:\n"+
-							"          Name: "+partner.Name+"\n"+
-							"      Protocol: "+partner.Protocol+"\n"+
-							" Configuration: "+config.String()+"\n",
-						)
+
+						p := rest.FromRemoteAgent(partner)
+						So(string(cont), ShouldEqual, agentInfoString(p))
 					})
 				})
 			})
@@ -127,12 +123,12 @@ func TestAddPartner(t *testing.T) {
 					})
 
 					Convey("Then the new partner should have been added", func() {
-						partner := model.RemoteAgent{
+						partner := &model.RemoteAgent{
 							Name:        command.Name,
 							Protocol:    command.Protocol,
 							ProtoConfig: []byte(command.ProtoConfig),
 						}
-						exists, err := db.Exists(&partner)
+						exists, err := db.Exists(partner)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeTrue)
 					})
@@ -195,21 +191,22 @@ func TestListPartners(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			partner1 := model.RemoteAgent{
+			partner1 := &model.RemoteAgent{
 				Name:        "remote_agent1",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			err := db.Create(&partner1)
-			So(err, ShouldBeNil)
+			So(db.Create(partner1), ShouldBeNil)
 
-			partner2 := model.RemoteAgent{
+			partner2 := &model.RemoteAgent{
 				Name:        "remote_agent2",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"titi"}`),
 			}
-			err = db.Create(&partner2)
-			So(err, ShouldBeNil)
+			So(db.Create(partner2), ShouldBeNil)
+
+			p1 := rest.FromRemoteAgent(partner1)
+			p2 := rest.FromRemoteAgent(partner2)
 
 			Convey("Given no parameters", func() {
 
@@ -237,15 +234,7 @@ func TestListPartners(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote agents:\n"+
-							"Remote agent n°1:\n"+
-							"          Name: "+partner1.Name+"\n"+
-							"      Protocol: "+partner1.Protocol+"\n"+
-							" Configuration: "+config1.String()+"\n"+
-							"Remote agent n°2:\n"+
-							"          Name: "+partner2.Name+"\n"+
-							"      Protocol: "+partner2.Protocol+"\n"+
-							" Configuration: "+config2.String()+"\n",
-						)
+							agentInfoString(p1)+agentInfoString(p2))
 					})
 				})
 			})
@@ -273,11 +262,7 @@ func TestListPartners(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote agents:\n"+
-							"Remote agent n°1:\n"+
-							"          Name: "+partner1.Name+"\n"+
-							"      Protocol: "+partner1.Protocol+"\n"+
-							" Configuration: "+config1.String()+"\n",
-						)
+							agentInfoString(p1))
 					})
 				})
 			})
@@ -305,11 +290,7 @@ func TestListPartners(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote agents:\n"+
-							"Remote agent n°2:\n"+
-							"          Name: "+partner2.Name+"\n"+
-							"      Protocol: "+partner2.Protocol+"\n"+
-							" Configuration: "+config2.String()+"\n",
-						)
+							agentInfoString(p2))
 					})
 				})
 			})
@@ -341,15 +322,7 @@ func TestListPartners(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote agents:\n"+
-							"Remote agent n°2:\n"+
-							"          Name: "+partner2.Name+"\n"+
-							"      Protocol: "+partner2.Protocol+"\n"+
-							" Configuration: "+config2.String()+"\n"+
-							"Remote agent n°1:\n"+
-							"          Name: "+partner1.Name+"\n"+
-							"      Protocol: "+partner1.Protocol+"\n"+
-							" Configuration: "+config1.String()+"\n",
-						)
+							agentInfoString(p2)+agentInfoString(p1))
 					})
 				})
 			})
@@ -368,14 +341,12 @@ func TestDeletePartner(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			partner := model.RemoteAgent{
+			partner := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-
-			err := db.Create(&partner)
-			So(err, ShouldBeNil)
+			So(db.Create(partner), ShouldBeNil)
 
 			Convey("Given a valid partner ID", func() {
 				id := fmt.Sprint(partner.ID)
@@ -401,7 +372,7 @@ func TestDeletePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should have been removed", func() {
-						exists, err := db.Exists(&partner)
+						exists, err := db.Exists(partner)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeFalse)
 					})
@@ -426,7 +397,7 @@ func TestDeletePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should still exist", func() {
-						exists, err := db.Exists(&partner)
+						exists, err := db.Exists(partner)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeTrue)
 					})
@@ -447,14 +418,12 @@ func TestUpdatePartner(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			partner := model.RemoteAgent{
+			partner := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-
-			err := db.Create(&partner)
-			So(err, ShouldBeNil)
+			So(db.Create(partner), ShouldBeNil)
 
 			command.Name = "new_remote_agent"
 			command.Protocol = "sftp"
@@ -476,7 +445,8 @@ func TestUpdatePartner(t *testing.T) {
 							So(err, ShouldBeNil)
 						})
 
-						Convey("Then is should display a message saying the partner was updated", func() {
+						Convey("Then is should display a message saying the "+
+							"partner was updated", func() {
 							_, err = out.Seek(0, 0)
 							So(err, ShouldBeNil)
 							cont, err := ioutil.ReadAll(out)
@@ -486,19 +456,19 @@ func TestUpdatePartner(t *testing.T) {
 						})
 
 						Convey("Then the old partner should have been removed", func() {
-							exists, err := db.Exists(&partner)
+							exists, err := db.Exists(partner)
 							So(err, ShouldBeNil)
 							So(exists, ShouldBeFalse)
 						})
 
 						Convey("Then the new partner should exist", func() {
-							newPartner := model.RemoteAgent{
+							newPartner := &model.RemoteAgent{
 								ID:          partner.ID,
 								Name:        command.Name,
 								Protocol:    command.Protocol,
 								ProtoConfig: []byte(command.ProtoConfig),
 							}
-							exists, err := db.Exists(&newPartner)
+							exists, err := db.Exists(newPartner)
 							So(err, ShouldBeNil)
 							So(exists, ShouldBeTrue)
 						})
@@ -561,7 +531,7 @@ func TestUpdatePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
-						exists, err := db.Exists(&partner)
+						exists, err := db.Exists(partner)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeTrue)
 					})

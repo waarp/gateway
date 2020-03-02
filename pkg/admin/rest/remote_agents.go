@@ -55,7 +55,7 @@ func listRemoteAgents(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutAgent{"remoteAgents": fromRemoteAgents(results)}
+			resp := map[string][]OutAgent{"remoteAgents": FromRemoteAgents(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -77,7 +77,7 @@ func getRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			return writeJSON(w, fromRemoteAgent(result))
+			return writeJSON(w, FromRemoteAgent(result))
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

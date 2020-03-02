@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -15,11 +17,11 @@ type ruleTasksCommand struct {
 	Change ruleTasksChangeCommand `command:"change" description:"Change the tasks assigned to a rule"`
 }
 
-func displayRuleTask(task rest.OutRuleTask) {
-	w := getColorable()
+func displayRuleTask(w io.Writer, task rest.OutRuleTask) {
+	args := &bytes.Buffer{}
+	_ = json.Indent(args, task.Args, "  ", "  ")
 
-	fmt.Fprintf(w, "  \033[37;1mCommand:\033[0m %s\n", task.Type)
-	fmt.Fprintf(w, "    \033[37;1mArguments:\033[0m %s\n", task.Args)
+	fmt.Fprintf(w, "\033[97;1m● %s with args %s\033[0m\n", task.Type, args.String())
 }
 
 // ######################## CHANGE ##########################
@@ -101,7 +103,7 @@ func (r *ruleTasksListCommand) Execute(args []string) error {
 	if preTasks := res["preTasks"]; len(preTasks) > 0 {
 		fmt.Fprintf(w, "\033[33mPre tasks:\033[0m\n")
 		for _, task := range preTasks {
-			displayRuleTask(task)
+			displayRuleTask(w, task)
 		}
 	} else {
 		fmt.Fprintf(w, "\033[33mNo pre tasks.\033[0m\n")
@@ -110,7 +112,7 @@ func (r *ruleTasksListCommand) Execute(args []string) error {
 	if postTasks := res["postTasks"]; len(postTasks) > 0 {
 		fmt.Fprintf(w, "\033[33mPost tasks:\033[0m\n")
 		for _, task := range postTasks {
-			displayRuleTask(task)
+			displayRuleTask(w, task)
 		}
 	} else {
 		fmt.Fprintf(w, "\033[33mNo post tasks.\033[0m\n")
@@ -119,7 +121,7 @@ func (r *ruleTasksListCommand) Execute(args []string) error {
 	if errorTasks := res["errorTasks"]; len(errorTasks) > 0 {
 		fmt.Fprintf(w, "\033[33mError tasks:\033[0m\n")
 		for _, task := range errorTasks {
-			displayRuleTask(task)
+			displayRuleTask(w, task)
 		}
 	} else {
 		fmt.Fprintf(w, "\033[33mNo error tasks.\033[0m\n")

@@ -22,6 +22,15 @@ func writeFile(content string) *os.File {
 	return file
 }
 
+func certInfoString(c *rest.OutCert) string {
+	return "● " + c.Name + " (ID " + fmt.Sprint(c.ID) + ")\n" +
+		"  -Type       : " + c.OwnerType + "\n" +
+		"  -Owner      : " + fmt.Sprint(c.OwnerID) + "\n" +
+		"  -Private key: " + string(c.PrivateKey) + "\n" +
+		"  -Public key : " + string(c.PublicKey) + "\n" +
+		"  -Content    : " + fmt.Sprint(c.Certificate) + "\n"
+}
+
 func TestGetCertificate(t *testing.T) {
 
 	Convey("Testing the certificate 'get' command", t, func() {
@@ -41,7 +50,7 @@ func TestGetCertificate(t *testing.T) {
 			err := db.Create(&owner)
 			So(err, ShouldBeNil)
 
-			cert := model.Cert{
+			cert := &model.Cert{
 				OwnerType:   owner.TableName(),
 				OwnerID:     owner.ID,
 				Name:        "cert",
@@ -49,9 +58,7 @@ func TestGetCertificate(t *testing.T) {
 				PublicKey:   []byte("public_key"),
 				Certificate: []byte("certificate_content"),
 			}
-
-			err = db.Create(&cert)
-			So(err, ShouldBeNil)
+			So(db.Create(cert), ShouldBeNil)
 
 			Convey("Given a valid server ID", func() {
 				id := fmt.Sprint(cert.ID)
@@ -71,14 +78,9 @@ func TestGetCertificate(t *testing.T) {
 						So(err, ShouldBeNil)
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Certificate n°1:\n"+
-							"        Name: "+cert.Name+"\n"+
-							"        Type: "+cert.OwnerType+"\n"+
-							"       Owner: "+fmt.Sprint(cert.OwnerID)+"\n"+
-							" Private key: "+string(cert.PrivateKey)+"\n"+
-							"  Public key: "+string(cert.PublicKey)+"\n"+
-							"     Content: "+fmt.Sprint(cert.Certificate)+"\n",
-						)
+
+						c := rest.FromCert(cert)
+						So(string(cont), ShouldEqual, certInfoString(c))
 					})
 				})
 			})
@@ -131,7 +133,7 @@ func TestAddCertificate(t *testing.T) {
 				crt := writeFile("certificate")
 
 				command.Name = "new_cert"
-				command.Type = owner.TableName()
+				command.Type = fromTableName(owner.TableName())
 				command.Owner = owner.ID
 				command.PrivateKey = prK.Name()
 				command.PublicKey = puK.Name()
@@ -162,36 +164,17 @@ func TestAddCertificate(t *testing.T) {
 						})
 
 						Convey("Then the new certificate should have been added", func() {
-							cert := model.Cert{
-								OwnerType:   command.Type,
+							cert := &model.Cert{
+								OwnerType:   toTableName(command.Type),
 								OwnerID:     command.Owner,
 								Name:        command.Name,
 								PrivateKey:  []byte("private_key"),
 								PublicKey:   []byte("public_key"),
 								Certificate: []byte("certificate"),
 							}
-							exists, err := db.Exists(&cert)
+							exists, err := db.Exists(cert)
 							So(err, ShouldBeNil)
 							So(exists, ShouldBeTrue)
-						})
-					})
-				})
-
-				Convey("Given an invalid 'type'", func() {
-					command.Type = "invalid"
-
-					Convey("When executing the command", func() {
-						addr := gw.Listener.Addr().String()
-						dsn := "http://admin:admin_password@" + addr
-						auth.DSN = dsn
-
-						err := command.Execute(nil)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
-								"The certificate's owner type must be one of "+
-								"[local_agents remote_agents local_accounts remote_accounts]")
 						})
 					})
 				})
@@ -237,7 +220,7 @@ func TestDeleteCertificate(t *testing.T) {
 			err := db.Create(&owner)
 			So(err, ShouldBeNil)
 
-			cert := model.Cert{
+			cert := &model.Cert{
 				OwnerType:   owner.TableName(),
 				OwnerID:     owner.ID,
 				Name:        "cert",
@@ -245,8 +228,7 @@ func TestDeleteCertificate(t *testing.T) {
 				PublicKey:   []byte("public_key"),
 				Certificate: []byte("certificate_content"),
 			}
-			err = db.Create(&cert)
-			So(err, ShouldBeNil)
+			So(db.Create(cert), ShouldBeNil)
 
 			Convey("Given a valid cert ID", func() {
 				id := fmt.Sprint(cert.ID)
@@ -272,7 +254,7 @@ func TestDeleteCertificate(t *testing.T) {
 					})
 
 					Convey("Then the certificate should have been removed", func() {
-						exists, err := db.Exists(&cert)
+						exists, err := db.Exists(cert)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeFalse)
 					})
@@ -297,7 +279,7 @@ func TestDeleteCertificate(t *testing.T) {
 					})
 
 					Convey("Then the cert should still exist", func() {
-						exists, err := db.Exists(&cert)
+						exists, err := db.Exists(cert)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeTrue)
 					})
@@ -319,23 +301,21 @@ func TestListCertificate(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			owner1 := model.RemoteAgent{
+			owner1 := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			err := db.Create(&owner1)
-			So(err, ShouldBeNil)
+			So(db.Create(owner1), ShouldBeNil)
 
-			owner2 := model.LocalAgent{
+			owner2 := &model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			err = db.Create(&owner2)
-			So(err, ShouldBeNil)
+			So(db.Create(owner2), ShouldBeNil)
 
-			cert1 := model.Cert{
+			cert1 := &model.Cert{
 				OwnerType:   owner1.TableName(),
 				OwnerID:     owner1.ID,
 				Name:        "cert1",
@@ -343,10 +323,9 @@ func TestListCertificate(t *testing.T) {
 				PublicKey:   []byte("public_key_1"),
 				Certificate: []byte("certificate_content_1"),
 			}
-			err = db.Create(&cert1)
-			So(err, ShouldBeNil)
+			So(db.Create(cert1), ShouldBeNil)
 
-			cert2 := model.Cert{
+			cert2 := &model.Cert{
 				OwnerType:   owner2.TableName(),
 				OwnerID:     owner2.ID,
 				Name:        "cert2",
@@ -354,8 +333,10 @@ func TestListCertificate(t *testing.T) {
 				PublicKey:   []byte("public_key_2"),
 				Certificate: []byte("certificate_content_2"),
 			}
-			err = db.Create(&cert2)
-			So(err, ShouldBeNil)
+			So(db.Create(cert2), ShouldBeNil)
+
+			c1 := rest.FromCert(cert1)
+			c2 := rest.FromCert(cert2)
 
 			Convey("Given no parameters", func() {
 
@@ -375,21 +356,7 @@ func TestListCertificate(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificates:\n"+
-							"Certificate n°1:\n"+
-							"        Name: "+cert1.Name+"\n"+
-							"        Type: "+cert1.OwnerType+"\n"+
-							"       Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
-							" Private key: "+string(cert1.PrivateKey)+"\n"+
-							"  Public key: "+string(cert1.PublicKey)+"\n"+
-							"     Content: "+fmt.Sprint(cert1.Certificate)+"\n"+
-							"Certificate n°2:\n"+
-							"        Name: "+cert2.Name+"\n"+
-							"        Type: "+cert2.OwnerType+"\n"+
-							"       Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
-							" Private key: "+string(cert2.PrivateKey)+"\n"+
-							"  Public key: "+string(cert2.PublicKey)+"\n"+
-							"     Content: "+fmt.Sprint(cert2.Certificate)+"\n",
-						)
+							certInfoString(c1)+certInfoString(c2))
 					})
 				})
 			})
@@ -413,14 +380,7 @@ func TestListCertificate(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificates:\n"+
-							"Certificate n°1:\n"+
-							"        Name: "+cert1.Name+"\n"+
-							"        Type: "+cert1.OwnerType+"\n"+
-							"       Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
-							" Private key: "+string(cert1.PrivateKey)+"\n"+
-							"  Public key: "+string(cert1.PublicKey)+"\n"+
-							"     Content: "+fmt.Sprint(cert1.Certificate)+"\n",
-						)
+							certInfoString(c1))
 					})
 				})
 			})
@@ -444,14 +404,7 @@ func TestListCertificate(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificates:\n"+
-							"Certificate n°2:\n"+
-							"        Name: "+cert2.Name+"\n"+
-							"        Type: "+cert2.OwnerType+"\n"+
-							"       Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
-							" Private key: "+string(cert2.PrivateKey)+"\n"+
-							"  Public key: "+string(cert2.PublicKey)+"\n"+
-							"     Content: "+fmt.Sprint(cert2.Certificate)+"\n",
-						)
+							certInfoString(c2))
 					})
 				})
 			})
@@ -475,21 +428,7 @@ func TestListCertificate(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificates:\n"+
-							"Certificate n°2:\n"+
-							"        Name: "+cert2.Name+"\n"+
-							"        Type: "+cert2.OwnerType+"\n"+
-							"       Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
-							" Private key: "+string(cert2.PrivateKey)+"\n"+
-							"  Public key: "+string(cert2.PublicKey)+"\n"+
-							"     Content: "+fmt.Sprint(cert2.Certificate)+"\n"+
-							"Certificate n°1:\n"+
-							"        Name: "+cert1.Name+"\n"+
-							"        Type: "+cert1.OwnerType+"\n"+
-							"       Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
-							" Private key: "+string(cert1.PrivateKey)+"\n"+
-							"  Public key: "+string(cert1.PublicKey)+"\n"+
-							"     Content: "+fmt.Sprint(cert1.Certificate)+"\n",
-						)
+							certInfoString(c2)+certInfoString(c1))
 					})
 				})
 			})
@@ -513,14 +452,7 @@ func TestListCertificate(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificates:\n"+
-							"Certificate n°1:\n"+
-							"        Name: "+cert1.Name+"\n"+
-							"        Type: "+cert1.OwnerType+"\n"+
-							"       Owner: "+fmt.Sprint(cert1.OwnerID)+"\n"+
-							" Private key: "+string(cert1.PrivateKey)+"\n"+
-							"  Public key: "+string(cert1.PublicKey)+"\n"+
-							"     Content: "+fmt.Sprint(cert1.Certificate)+"\n",
-						)
+							certInfoString(c1))
 					})
 				})
 			})
@@ -544,14 +476,7 @@ func TestListCertificate(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Certificates:\n"+
-							"Certificate n°2:\n"+
-							"        Name: "+cert2.Name+"\n"+
-							"        Type: "+cert2.OwnerType+"\n"+
-							"       Owner: "+fmt.Sprint(cert2.OwnerID)+"\n"+
-							" Private key: "+string(cert2.PrivateKey)+"\n"+
-							"  Public key: "+string(cert2.PublicKey)+"\n"+
-							"     Content: "+fmt.Sprint(cert2.Certificate)+"\n",
-						)
+							certInfoString(c2))
 					})
 				})
 			})
@@ -578,7 +503,7 @@ func TestUpdateCertificate(t *testing.T) {
 			err := db.Create(&owner)
 			So(err, ShouldBeNil)
 
-			cert := model.Cert{
+			cert := &model.Cert{
 				OwnerType:   owner.TableName(),
 				OwnerID:     owner.ID,
 				Name:        "cert",
@@ -586,8 +511,7 @@ func TestUpdateCertificate(t *testing.T) {
 				PublicKey:   []byte("public_key"),
 				Certificate: []byte("certificate_content"),
 			}
-			err = db.Create(&cert)
-			So(err, ShouldBeNil)
+			So(db.Create(cert), ShouldBeNil)
 
 			Convey("Given a valid certificate ID", func() {
 				id := fmt.Sprint(owner.ID)
@@ -616,7 +540,8 @@ func TestUpdateCertificate(t *testing.T) {
 							So(err, ShouldBeNil)
 						})
 
-						Convey("Then is should display a message saying the certificate was updated", func() {
+						Convey("Then is should display a message saying the "+
+							"certificate was updated", func() {
 							_, err = out.Seek(0, 0)
 							So(err, ShouldBeNil)
 							cont, err := ioutil.ReadAll(out)
@@ -626,13 +551,13 @@ func TestUpdateCertificate(t *testing.T) {
 						})
 
 						Convey("Then the old certificate should have been removed", func() {
-							exists, err := db.Exists(&cert)
+							exists, err := db.Exists(cert)
 							So(err, ShouldBeNil)
 							So(exists, ShouldBeFalse)
 						})
 
 						Convey("Then the new certificate should exist", func() {
-							newCert := model.Cert{
+							newCert := &model.Cert{
 								ID:          cert.ID,
 								OwnerType:   command.Type,
 								OwnerID:     command.Owner,
@@ -641,7 +566,7 @@ func TestUpdateCertificate(t *testing.T) {
 								PublicKey:   []byte("new_public_key"),
 								Certificate: []byte("new_certificate"),
 							}
-							exists, err := db.Exists(&newCert)
+							exists, err := db.Exists(newCert)
 							So(err, ShouldBeNil)
 							So(exists, ShouldBeTrue)
 						})
@@ -704,7 +629,7 @@ func TestUpdateCertificate(t *testing.T) {
 					})
 
 					Convey("Then the certificate should stay unchanged", func() {
-						exists, err := db.Exists(&cert)
+						exists, err := db.Exists(cert)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeTrue)
 					})

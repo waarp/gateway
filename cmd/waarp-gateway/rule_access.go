@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -18,11 +19,9 @@ type ruleAccessCommand struct {
 	Revoke ruleAccessRevokeCommand `command:"revoke" description:"Revoke access to a rule"`
 }
 
-func displayRuleAccess(acc rest.OutRuleAccess) {
-	w := getColorable()
-
-	fmt.Fprintf(w, "Access to \033[37;1m%s\033[0m n°\033[37;1m%v\033[0m\n",
-		fromTableName(acc.ObjectType), acc.ObjectID)
+func displayRuleAccess(w io.Writer, acc rest.OutRuleAccess) {
+	fmt.Fprintf(w, "\033[97;1m● %s, ID %v\033[0m\n", fromTableName(acc.ObjectType),
+		acc.ObjectID)
 }
 
 // ######################## GRANT ##########################
@@ -144,12 +143,12 @@ func (r *ruleAccessListCommand) Execute(args []string) error {
 	w := getColorable()
 	perms := res["permissions"]
 	if len(perms) > 0 {
-		fmt.Fprintf(w, "\033[33mPermissions:\033[0m\n")
+		fmt.Fprintf(w, "\033[33;1mAgents allowed to use rule %s:\033[0m\n", args[0])
 		for _, acc := range perms {
-			displayRuleAccess(acc)
+			displayRuleAccess(w, acc)
 		}
 	} else {
-		fmt.Fprintf(w, "\033[31mAccess to rule %s is unrestricted\033[0m\n", args[0])
+		fmt.Fprintf(w, "\033[32;1mAccess to rule %s is unrestricted\033[0m\n", args[0])
 	}
 
 	return nil

@@ -15,6 +15,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+func userInfoString(u *rest.OutUser) string {
+	return "● User " + u.Username + " (ID " + fmt.Sprint(u.ID) + ")\n"
+}
+
 func TestGetUser(t *testing.T) {
 
 	Convey("Testing the user 'get' command", t, func() {
@@ -25,14 +29,16 @@ func TestGetUser(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			localAccount := &model.User{
+			user := &model.User{
 				Username: "user",
 				Password: []byte("password"),
 			}
-			So(db.Create(localAccount), ShouldBeNil)
+			So(db.Create(user), ShouldBeNil)
+
+			u := rest.FromUser(user)
 
 			Convey("Given a valid user ID", func() {
-				id := fmt.Sprint(localAccount.ID)
+				id := fmt.Sprint(user.ID)
 
 				Convey("When executing the command", func() {
 					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
@@ -50,9 +56,7 @@ func TestGetUser(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 
-						So(string(cont), ShouldEqual, "User n°"+id+":\n"+
-							" Username: "+localAccount.Username+"\n",
-						)
+						So(string(cont), ShouldEqual, userInfoString(u))
 					})
 				})
 			})
@@ -337,6 +341,9 @@ func TestListUser(t *testing.T) {
 			}
 			So(db.Create(user2), ShouldBeNil)
 
+			u1 := rest.FromUser(user1)
+			u2 := rest.FromUser(user2)
+
 			Convey("Given no parameters", func() {
 
 				Convey("When executing the command", func() {
@@ -354,14 +361,10 @@ func TestListUser(t *testing.T) {
 						So(err, ShouldBeNil)
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Users:\n"+
-							"User n°1:\n"+
-							" Username: admin\n"+
-							"User n°"+fmt.Sprint(user1.ID)+":\n"+
-							" Username: "+user1.Username+"\n"+
-							"User n°"+fmt.Sprint(user2.ID)+":\n"+
-							" Username: "+user2.Username+"\n",
-						)
+
+						a := &rest.OutUser{ID: 1, Username: "admin"}
+						So(string(cont), ShouldEqual, "Users:\n"+userInfoString(a)+
+							userInfoString(u1)+userInfoString(u2))
 					})
 				})
 			})

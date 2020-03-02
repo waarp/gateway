@@ -69,7 +69,7 @@ func TestGetCert(t *testing.T) {
 					Convey("Then the body should contain the requested certificate "+
 						"in JSON format", func() {
 
-						exp, err := json.Marshal(fromCert(expected))
+						exp, err := json.Marshal(FromCert(expected))
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
@@ -190,10 +190,10 @@ func TestListCerts(t *testing.T) {
 				So(db.Create(c3), ShouldBeNil)
 				So(db.Create(c4), ShouldBeNil)
 
-				localAgentCert := *fromCert(c1)
-				remoteAgentCert := *fromCert(c2)
-				localAccountCert := *fromCert(c3)
-				remoteAccountCert := *fromCert(c4)
+				localAgentCert := *FromCert(c1)
+				remoteAgentCert := *FromCert(c2)
+				localAccountCert := *FromCert(c3)
+				remoteAccountCert := *FromCert(c4)
 
 				Convey("Given a request with with no parameters", func() {
 					r, err := http.NewRequest(http.MethodGet, "", nil)

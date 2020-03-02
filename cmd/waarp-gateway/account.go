@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -16,12 +17,9 @@ type accountCommand struct {
 	List   accountListCommand   `command:"list" description:"List the known remote accounts"`
 }
 
-func displayRemoteAccount(account rest.OutAccount) {
-	w := getColorable()
-
-	fmt.Fprintf(w, "\033[37;1;4mRemote account n°%v:\033[0m\n", account.ID)
-	fmt.Fprintf(w, "      \033[37mLogin:\033[0m \033[37;1m%s\033[0m\n", account.Login)
-	fmt.Fprintf(w, " \033[37mPartner ID:\033[0m \033[33m%v\033[0m\n", account.AgentID)
+func displayRemoteAccount(w io.Writer, account rest.OutAccount) {
+	fmt.Fprintf(w, "\033[97;1m● %s\033[0m (ID %v)\n", account.Login, account.ID)
+	fmt.Fprintf(w, "  \033[97m-Partner ID:\033[0m \033[33m%v\033[0m\n", account.AgentID)
 }
 
 // ######################## GET ##########################
@@ -44,7 +42,7 @@ func (a *accountGetCommand) Execute(args []string) error {
 		return err
 	}
 
-	displayRemoteAccount(res)
+	displayRemoteAccount(getColorable(), res)
 
 	return nil
 }
@@ -167,9 +165,9 @@ func (s *accountListCommand) Execute([]string) error {
 	w := getColorable()
 	accounts := res["remoteAccounts"]
 	if len(accounts) > 0 {
-		fmt.Fprintf(w, "\033[33mRemote accounts:\033[0m\n")
+		fmt.Fprintf(w, "\033[33;1mRemote accounts:\033[0m\n")
 		for _, account := range accounts {
-			displayRemoteAccount(account)
+			displayRemoteAccount(w, account)
 		}
 	} else {
 		fmt.Fprintln(w, "\033[31mNo remote accounts found\033[0m")

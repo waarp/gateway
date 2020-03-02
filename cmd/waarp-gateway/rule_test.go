@@ -14,6 +14,18 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func ruleInfoString(r *rest.OutRule) string {
+	rv := "● Rule " + r.Name + " (ID " + fmt.Sprint(r.ID) + ")\n" +
+		"  -Comment : " + r.Comment + "\n" +
+		"  -Path    : " + r.Path + "\n"
+	if r.IsSend {
+		rv += "  -Direction: SEND\n"
+	} else {
+		rv += "  -Direction: RECEIVE\n"
+	}
+	return rv
+}
+
 func TestGetRule(t *testing.T) {
 
 	Convey("Testing the rule 'get' command", t, func() {
@@ -30,7 +42,6 @@ func TestGetRule(t *testing.T) {
 				IsSend:  false,
 				Path:    "/test/rule/path",
 			}
-
 			So(db.Create(rule), ShouldBeNil)
 
 			Convey("Given a valid rule ID", func() {
@@ -51,12 +62,9 @@ func TestGetRule(t *testing.T) {
 						So(err, ShouldBeNil)
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Rule n°1:\n"+
-							"      Name: "+rule.Name+"\n"+
-							"   Comment: "+rule.Comment+"\n"+
-							" Direction: RECEIVE\n"+
-							"      Path: "+rule.Path+"\n",
-						)
+
+						r := rest.FromRule(rule)
+						So(string(cont), ShouldEqual, ruleInfoString(r))
 					})
 				})
 			})
@@ -289,6 +297,9 @@ func TestListRules(t *testing.T) {
 			}
 			So(db.Create(rule2), ShouldBeNil)
 
+			r1 := rest.FromRule(rule1)
+			r2 := rest.FromRule(rule2)
+
 			Convey("Given no parameters", func() {
 
 				Convey("When executing the command", func() {
@@ -307,17 +318,7 @@ func TestListRules(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Rules:\n"+
-							"Rule n°1:\n"+
-							"      Name: "+rule1.Name+"\n"+
-							"   Comment: "+rule1.Comment+"\n"+
-							" Direction: SEND\n"+
-							"      Path: "+rule1.Path+"\n"+
-							"Rule n°2:\n"+
-							"      Name: "+rule2.Name+"\n"+
-							"   Comment: "+rule2.Comment+"\n"+
-							" Direction: SEND\n"+
-							"      Path: "+rule2.Path+"\n",
-						)
+							ruleInfoString(r1)+ruleInfoString(r2))
 					})
 				})
 			})
@@ -341,12 +342,7 @@ func TestListRules(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Rules:\n"+
-							"Rule n°1:\n"+
-							"      Name: "+rule1.Name+"\n"+
-							"   Comment: "+rule1.Comment+"\n"+
-							" Direction: SEND\n"+
-							"      Path: "+rule1.Path+"\n",
-						)
+							ruleInfoString(r1))
 					})
 				})
 			})
@@ -370,12 +366,7 @@ func TestListRules(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Rules:\n"+
-							"Rule n°2:\n"+
-							"      Name: "+rule2.Name+"\n"+
-							"   Comment: "+rule2.Comment+"\n"+
-							" Direction: SEND\n"+
-							"      Path: "+rule2.Path+"\n",
-						)
+							ruleInfoString(r2))
 					})
 				})
 			})
@@ -399,17 +390,7 @@ func TestListRules(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Rules:\n"+
-							"Rule n°2:\n"+
-							"      Name: "+rule2.Name+"\n"+
-							"   Comment: "+rule2.Comment+"\n"+
-							" Direction: SEND\n"+
-							"      Path: "+rule2.Path+"\n"+
-							"Rule n°1:\n"+
-							"      Name: "+rule1.Name+"\n"+
-							"   Comment: "+rule1.Comment+"\n"+
-							" Direction: SEND\n"+
-							"      Path: "+rule1.Path+"\n",
-						)
+							ruleInfoString(r2)+ruleInfoString(r1))
 					})
 				})
 			})

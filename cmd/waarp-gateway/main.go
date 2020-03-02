@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	in, out *os.File
-	auth    connectionOptions
+	in   = os.Stdin
+	out  = os.Stdout
+	auth connectionOptions
 )
 
 type commands struct {
@@ -33,9 +34,6 @@ type connectionOptions struct {
 }
 
 func main() {
-	in = os.Stdin
-	out = os.Stdout
-
 	cmd := flags.NewNamedParser("waarp-gateway", flags.Default)
 	_, err := cmd.AddGroup("Connection Options", "", &auth)
 	if err != nil {

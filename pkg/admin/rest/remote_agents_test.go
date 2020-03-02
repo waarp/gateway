@@ -75,10 +75,10 @@ func TestListRemoteAgents(t *testing.T) {
 			So(db.Create(a3), ShouldBeNil)
 			So(db.Create(a4), ShouldBeNil)
 
-			agent1 := *fromRemoteAgent(a1)
-			agent2 := *fromRemoteAgent(a2)
-			agent3 := *fromRemoteAgent(a3)
-			agent4 := *fromRemoteAgent(a4)
+			agent1 := *FromRemoteAgent(a1)
+			agent2 := *FromRemoteAgent(a2)
+			agent3 := *FromRemoteAgent(a3)
+			agent4 := *FromRemoteAgent(a4)
 
 			Convey("Given a request with with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -182,7 +182,7 @@ func TestGetRemoteAgent(t *testing.T) {
 					Convey("Then the body should contain the requested remote agent "+
 						"in JSON format", func() {
 
-						exp, err := json.Marshal(fromRemoteAgent(existing))
+						exp, err := json.Marshal(FromRemoteAgent(existing))
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")

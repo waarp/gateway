@@ -16,32 +16,31 @@ import (
 )
 
 func historyInfoString(t *rest.OutHistory) string {
-	rv := "Transfer " + fmt.Sprint(t.ID) + "=>\n" +
-		"          IsServer: " + fmt.Sprint(t.IsServer) + "\n" +
-		"              Send: " + fmt.Sprint(t.IsSend) + "\n" +
-		"          Protocol: " + fmt.Sprint(t.Protocol) + "\n" +
-		"              Rule: " + fmt.Sprint(t.Rule) + "\n" +
-		"           Account: " + fmt.Sprint(t.Account) + "\n" +
-		"             Agent: " + fmt.Sprint(t.Agent) + "\n" +
-		"           SrcFile: " + t.SourceFilename + "\n" +
-		"          DestFile: " + t.DestFilename + "\n" +
-		"        Start date: " + t.Start.Local().Format(time.RFC3339) + "\n" +
-		"          End date: " + t.Stop.Local().Format(time.RFC3339) + "\n" +
-		"            Status: " + string(t.Status) + "\n"
+	rv := "● Transfer n°" + fmt.Sprint(t.ID) + " (" + string(t.Status) + ")\n" +
+		"  -IsServer     : " + fmt.Sprint(t.IsServer) + "\n" +
+		"  -Send         : " + fmt.Sprint(t.IsSend) + "\n" +
+		"  -Protocol     : " + fmt.Sprint(t.Protocol) + "\n" +
+		"  -Rule         : " + fmt.Sprint(t.Rule) + "\n" +
+		"  -Account      : " + fmt.Sprint(t.Account) + "\n" +
+		"  -Agent        : " + fmt.Sprint(t.Agent) + "\n" +
+		"  -SrcFile      : " + t.SourceFilename + "\n" +
+		"  -DestFile     : " + t.DestFilename + "\n" +
+		"  -Start date   : " + t.Start.Local().Format(time.RFC3339) + "\n" +
+		"  -End date     : " + t.Stop.Local().Format(time.RFC3339) + "\n"
 	if t.ErrorCode != model.TeOk {
-		rv += "       Error code: " + t.ErrorCode.String() + "\n"
+		rv += "  -Error code   : " + t.ErrorCode.String() + "\n"
 	}
 	if t.ErrorMsg != "" {
-		rv += "    Error message: " + t.ErrorMsg + "\n"
+		rv += "  -Error message: " + t.ErrorMsg + "\n"
 	}
 	if t.Step != "" {
-		rv += "              Step: " + string(t.Step) + "\n"
+		rv += "  -Failed step  : " + string(t.Step) + "\n"
 	}
 	if t.Progress != 0 {
-		rv += "          Progress: " + fmt.Sprint(t.Progress) + "\n"
+		rv += "  -Progress     : " + fmt.Sprint(t.Progress) + "\n"
 	}
 	if t.TaskNumber != 0 {
-		rv += "       Task number: " + fmt.Sprint(t.TaskNumber) + "\n"
+		rv += "  -Task number  : " + fmt.Sprint(t.TaskNumber) + "\n"
 	}
 
 	return rv
@@ -52,29 +51,35 @@ func TestDisplayHistory(t *testing.T) {
 	Convey("Given a history entry", t, func() {
 		out = testFile()
 
-		hist := &rest.OutHistory{
+		hist := rest.OutHistory{
 			ID:             1,
 			IsServer:       true,
 			IsSend:         false,
-			Rule:           "rule",
-			Account:        "source",
-			Agent:          "destination",
+			Rule:           "Rule",
+			Account:        "Account",
+			Agent:          "Server",
 			Protocol:       "sftp",
-			SourceFilename: "file/path",
-			DestFilename:   "file/path",
+			SourceFilename: "source/path",
+			DestFilename:   "dest/path",
 			Start:          time.Now(),
 			Stop:           time.Now().Add(time.Hour),
 			Status:         model.StatusPlanned,
+			Step:           model.StepSetup,
+			Progress:       1,
+			TaskNumber:     2,
+			ErrorMsg:       "error message",
+			ErrorCode:      model.TeUnknown,
 		}
 		Convey("When calling the `displayHistory` function", func() {
-			displayHistory(*hist)
+			w := getColorable()
+			displayHistory(w, hist)
 
 			Convey("Then it should display the entry's info correctly", func() {
 				_, err := out.Seek(0, 0)
 				So(err, ShouldBeNil)
 				cont, err := ioutil.ReadAll(out)
 				So(err, ShouldBeNil)
-				So(string(cont), ShouldEqual, historyInfoString(hist))
+				So(string(cont), ShouldEqual, historyInfoString(&hist))
 			})
 		})
 	})
@@ -82,7 +87,7 @@ func TestDisplayHistory(t *testing.T) {
 	Convey("Given a history entry with error", t, func() {
 		out = testFile()
 
-		hist := &rest.OutHistory{
+		hist := rest.OutHistory{
 			ID:             1,
 			IsServer:       true,
 			IsSend:         false,
@@ -99,14 +104,15 @@ func TestDisplayHistory(t *testing.T) {
 			ErrorMsg:       "connexion reset by peer",
 		}
 		Convey("When calling the `displayHistory` function", func() {
-			displayHistory(*hist)
+			w := getColorable()
+			displayHistory(w, hist)
 
 			Convey("Then it should display the entry's info correctly", func() {
 				_, err := out.Seek(0, 0)
 				So(err, ShouldBeNil)
 				cont, err := ioutil.ReadAll(out)
 				So(err, ShouldBeNil)
-				So(string(cont), ShouldEqual, historyInfoString(hist))
+				So(string(cont), ShouldEqual, historyInfoString(&hist))
 			})
 		})
 	})

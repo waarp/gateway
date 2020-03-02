@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -18,15 +19,12 @@ type serverCommand struct {
 	Update serverUpdateCommand `command:"update" description:"Modify a local agent's information"`
 }
 
-func displayServer(agent rest.OutAgent) {
-	w := getColorable()
-
+func displayAgent(w io.Writer, agent rest.OutAgent) {
 	var config bytes.Buffer
-	_ = json.Indent(&config, agent.ProtoConfig, "  ", "  ")
-	fmt.Fprintf(w, "\033[37;1;4mLocal agent n°%v:\033[0m\n", agent.ID)
-	fmt.Fprintf(w, "          \033[37mName:\033[0m \033[37;1m%s\033[0m\n", agent.Name)
-	fmt.Fprintf(w, "      \033[37mProtocol:\033[0m \033[37;1m%s\033[0m\n", agent.Protocol)
-	fmt.Fprintf(w, " \033[37mConfiguration:\033[0m \033[37m%s\033[0m\n", config.String())
+	_ = json.Indent(&config, agent.ProtoConfig, "    ", "  ")
+	fmt.Fprintf(w, "\033[97;1m● %s\033[0m (ID %v)\n", agent.Name, agent.ID)
+	fmt.Fprintf(w, "  \033[97m-Protocol     :\033[0m \033[33m%s\033[0m\n", agent.Protocol)
+	fmt.Fprintf(w, "  \033[97m-Configuration:\033[0m \033[37m%s\033[0m\n", config.String())
 }
 
 // ######################## GET ##########################
@@ -49,7 +47,7 @@ func (s *serverGetCommand) Execute(args []string) error {
 		return err
 	}
 
-	displayServer(res)
+	displayAgent(getColorable(), res)
 
 	return nil
 }
@@ -58,7 +56,7 @@ func (s *serverGetCommand) Execute(args []string) error {
 
 type serverAddCommand struct {
 	Name        string `required:"true" short:"n" long:"name" description:"The server's name"`
-	Protocol    string `required:"true" short:"p" long:"protocol" description:"The server's protocol'" choice:"sftp"`
+	Protocol    string `required:"true" short:"p" long:"protocol" description:"The server's protocol" choice:"sftp"`
 	ProtoConfig string `long:"config" description:"The server's configuration in JSON"`
 }
 
@@ -138,9 +136,9 @@ func (s *serverListCommand) Execute([]string) error {
 	w := getColorable()
 	agents := res["localAgents"]
 	if len(agents) > 0 {
-		fmt.Fprintf(w, "\033[33mLocal agents:\033[0m\n")
+		fmt.Fprintf(w, "\033[33;1mLocal agents:\033[0m\n")
 		for _, server := range agents {
-			displayServer(server)
+			displayAgent(w, server)
 		}
 	} else {
 		fmt.Fprintln(w, "\033[31mNo local agents found\033[0m")
@@ -153,7 +151,7 @@ func (s *serverListCommand) Execute([]string) error {
 
 type serverUpdateCommand struct {
 	Name        string `short:"n" long:"name" description:"The server's name"`
-	Protocol    string `short:"p" long:"protocol" description:"The server's protocol'" choice:"sftp"`
+	Protocol    string `short:"p" long:"protocol" description:"The server's protocol" choice:"sftp"`
 	ProtoConfig string `long:"config" description:"The server's configuration in JSON"`
 }
 
