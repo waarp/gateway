@@ -23,18 +23,18 @@ const (
 
 // Server is the administration service
 type Server struct {
-	Logger   *log.Logger
 	Conf     *conf.ServerConfig
 	Db       *database.Db
 	Services map[string]service.Service
 
+	logger *log.Logger
 	state  service.State
 	server http.Server
 }
 
 // listen starts the HTTP server listener on the configured port
 func listen(s *Server) {
-	s.Logger.Infof("Listening at address %s", s.server.Addr)
+	s.logger.Infof("Listening at address %s", s.server.Addr)
 
 	go func() {
 		s.state.Set(service.Running, "")
@@ -45,7 +45,7 @@ func listen(s *Server) {
 			err = s.server.ListenAndServeTLS("", "")
 		}
 		if err != http.ErrServerClosed {
-			s.Logger.Errorf("Unexpected error: %s", err)
+			s.logger.Errorf("Unexpected error: %s", err)
 			s.state.Set(service.Error, err.Error())
 		} else {
 			s.state.Set(service.Offline, "")
@@ -56,7 +56,8 @@ func listen(s *Server) {
 
 // checkAddress checks if the address given in the configuration is a
 // valid address on which the server can listen
-func checkAddress(addr string) (string, error) {
+func checkAddress(config conf.AdminConfig) (string, error) {
+	addr := net.JoinHostPort(config.Host, fmt.Sprint(config.Port))
 	l, err := net.Listen("tcp", addr)
 	if err == nil {
 		defer l.Close()
@@ -70,7 +71,7 @@ func checkAddress(addr string) (string, error) {
 // If the configuration is invalid, this function returns an error.
 func initServer(s *Server) error {
 	// Load REST s address
-	addr, err := checkAddress(s.Conf.Admin.Address)
+	addr, err := checkAddress(s.Conf.Admin)
 	if err != nil {
 		return err
 	}
@@ -88,17 +89,17 @@ func initServer(s *Server) error {
 			Certificates: []tls.Certificate{cert},
 		}
 	} else {
-		s.Logger.Info("No TLS certificate configured, using plain HTTP.")
+		s.logger.Info("No TLS certificate configured, using plain HTTP.")
 	}
 
-	handler := MakeHandler(s.Logger, s.Db, s.Services)
+	handler := MakeHandler(s.logger, s.Db, s.Services)
 
 	// Create http.Server instance
 	s.server = http.Server{
 		Addr:      addr,
 		TLSConfig: tlsConfig,
 		Handler:   handler,
-		ErrorLog:  s.Logger.AsStdLog(logging.ERROR),
+		ErrorLog:  s.logger.AsStdLog(logging.ERROR),
 	}
 	return nil
 }
@@ -106,20 +107,18 @@ func initServer(s *Server) error {
 // Start launches the administration service. If the service cannot be launched,
 // the function returns an error.
 func (s *Server) Start() error {
-	if s.Logger == nil {
-		s.Logger = log.NewLogger(ServiceName, s.Conf.Log)
-	}
+	s.logger = log.NewLogger(ServiceName, s.Conf.Log)
 
-	s.Logger.Info("Startup command received...")
+	s.logger.Info("Startup command received...")
 	if state, _ := s.state.Get(); state != service.Offline && state != service.Error {
-		s.Logger.Infof("Cannot start because the server is already running.")
+		s.logger.Infof("Cannot start because the server is already running.")
 		return nil
 	}
 
 	s.state.Set(service.Starting, "")
 
 	if err := initServer(s); err != nil {
-		s.Logger.Errorf("Failed to start: %s", err)
+		s.logger.Errorf("Failed to start: %s", err)
 		s.state.Set(service.Error, err.Error())
 		return err
 	}
@@ -127,16 +126,16 @@ func (s *Server) Start() error {
 	listen(s)
 
 	s.state.Set(service.Running, "")
-	s.Logger.Info("Server started.")
+	s.logger.Info("Server started")
 	return nil
 }
 
 // Stop halts the admin service by first trying to shut it down gracefully.
 // If it fails, the service is forcefully stopped.
 func (s *Server) Stop(ctx context.Context) error {
-	s.Logger.Info("Shutdown command received...")
+	s.logger.Info("Shutdown command received...")
 	if state, _ := s.state.Get(); state != service.Running {
-		s.Logger.Info("Cannot stop because the server is not running.")
+		s.logger.Info("Cannot stop because the server is not running")
 		return nil
 	}
 
@@ -144,11 +143,11 @@ func (s *Server) Stop(ctx context.Context) error {
 	err := s.server.Shutdown(ctx)
 
 	if err == nil {
-		s.Logger.Info("Shutdown complete.")
+		s.logger.Info("Shutdown complete")
 	} else {
-		s.Logger.Warningf("Failed to shutdown gracefully : %s", err)
+		s.logger.Warningf("Failed to shutdown gracefully : %s", err)
 		err = s.server.Close()
-		s.Logger.Warning("The server was forcefully stopped.")
+		s.logger.Warning("The server was forcefully stopped")
 	}
 	s.state.Set(service.Offline, "")
 	return err

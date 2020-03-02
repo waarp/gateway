@@ -2,7 +2,9 @@ package admin
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -28,34 +30,36 @@ func TestStart(t *testing.T) {
 		})
 
 		config := &conf.ServerConfig{}
-		config.Admin.Address = "localhost:0"
+		config.Admin.Host = "localhost"
+		config.Admin.Port = 0
 		config.Admin.TLSCert = "cert.pem"
 		config.Admin.TLSKey = "key.pem"
-		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
+		server := &Server{Conf: config, Services: make(map[string]service.Service)}
+		Reset(func() { _ = server.server.Close() })
 
 		Convey("When starting the service", func() {
-			err := rest.Start()
+			err := server.Start()
 
 			Convey("Then it should return no error", func() {
 				So(err, ShouldBeNil)
 			})
 
 			Convey("Then the service should be running", func() {
-				code, reason := rest.State().Get()
+				code, reason := server.State().Get()
 
 				So(code, ShouldEqual, service.Running)
 				So(reason, ShouldBeEmpty)
 			})
 
 			Convey("When starting the service a second time", func() {
-				err := rest.Start()
+				err := server.Start()
 
 				Convey("Then it should not return an error", func() {
 					So(err, ShouldBeNil)
 				})
 
 				Convey("Then the service should still be running", func() {
-					code, reason := rest.State().Get()
+					code, reason := server.State().Get()
 
 					So(code, ShouldEqual, service.Running)
 					So(reason, ShouldBeEmpty)
@@ -64,23 +68,10 @@ func TestStart(t *testing.T) {
 		})
 	})
 
-	Convey("Given an invalid address", t, func() {
-		config := &conf.ServerConfig{}
-		config.Admin.Address = "invalid_address"
-		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
-
-		Convey("When starting the service", func() {
-			err := rest.Start()
-
-			Convey("Then it should produce an error", func() {
-				So(err, ShouldBeError)
-			})
-		})
-	})
-
 	Convey("Given an incorrect host", t, func() {
 		config := &conf.ServerConfig{}
-		config.Admin.Address = "invalid_host:0"
+		config.Admin.Host = "invalid_host"
+		config.Admin.Port = 0
 		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
 
 		Convey("When starting the service", func() {
@@ -94,8 +85,12 @@ func TestStart(t *testing.T) {
 
 	Convey("Given an incorrect port number", t, func() {
 		config := &conf.ServerConfig{}
-		config.Admin.Address = ":999999"
+		config.Admin.Host = "localhost"
+		config.Admin.Port = 9999
 		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
+		l, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", config.Admin.Port))
+		So(err, ShouldBeNil)
+		Reset(func() { _ = l.Close() })
 
 		Convey("When starting the service", func() {
 			err := rest.Start()
@@ -108,7 +103,8 @@ func TestStart(t *testing.T) {
 
 	Convey("Given an incorrect certificate", t, func() {
 		config := &conf.ServerConfig{}
-		config.Admin.Address = ":0"
+		config.Admin.Host = "localhost"
+		config.Admin.Port = 0
 		config.Admin.TLSCert = "not_a_cert"
 		config.Admin.TLSKey = "not_a_key"
 		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
@@ -126,7 +122,8 @@ func TestStart(t *testing.T) {
 func TestStop(t *testing.T) {
 	Convey("Given a running REST service", t, func() {
 		config := &conf.ServerConfig{}
-		config.Admin.Address = "localhost:0"
+		config.Admin.Host = "localhost"
+		config.Admin.Port = 0
 		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
 
 		err := rest.Start()
