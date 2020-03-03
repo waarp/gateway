@@ -48,7 +48,7 @@ func (s *Service) Start() error {
 			return err
 		}
 
-		listener, err := net.Listen("tcp", fmt.Sprintf("%s:%v", addr, port))
+		listener, err := net.Listen("tcp", net.JoinHostPort(addr, fmt.Sprint(port)))
 		if err != nil {
 			return err
 		}
@@ -65,7 +65,7 @@ func (s *Service) Start() error {
 		return nil
 	}
 
-	s.logger.Info("Starting SFTP server...")
+	s.logger.Infof("Starting SFTP server...")
 	s.state.Set(service.Starting, "")
 
 	if err := start(); err != nil {
@@ -74,7 +74,7 @@ func (s *Service) Start() error {
 		return err
 	}
 
-	s.logger.Info("SFTP service started successfully")
+	s.logger.Infof("SFTP server started successfully on %s", s.listener.Listener.Addr().String())
 	s.state.Set(service.Running, "")
 	return nil
 }
