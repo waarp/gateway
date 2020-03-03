@@ -20,32 +20,6 @@ var (
 	sqliteConfig       *conf.ServerConfig
 )
 
-type testBean struct {
-	ID     uint64 `xorm:"pk 'id'"`
-	String string `xorm:"notnull 'string'"`
-
-	signals string `xorm:"-"`
-}
-
-func (*testBean) TableName() string {
-	return tblName
-}
-
-func (t *testBean) BeforeInsert(Accessor) error {
-	t.signals = "insert hook"
-	return nil
-}
-
-func (t *testBean) BeforeUpdate(Accessor) error {
-	t.signals = "update hook"
-	return nil
-}
-
-func (t *testBean) BeforeDelete(Accessor) error {
-	t.signals = "delete hook"
-	return nil
-}
-
 func init() {
 	BcryptRounds = bcrypt.MinCost
 

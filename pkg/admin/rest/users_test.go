@@ -19,7 +19,7 @@ import (
 const usersURI = "http://localhost:8080" + APIPath + UsersPath + "/"
 
 func TestGetUser(t *testing.T) {
-	logger := log.NewLogger("rest_user_get_test", logConf)
+	logger := log.NewLogger("rest_user_get_test")
 
 	Convey("Given the user get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -83,7 +83,7 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestListUsers(t *testing.T) {
-	logger := log.NewLogger("rest_user_list_test", logConf)
+	logger := log.NewLogger("rest_user_list_test")
 
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutUser) {
 		Convey("Then it should reply 'OK'", func() {
@@ -195,7 +195,7 @@ func TestListUsers(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
-	logger := log.NewLogger("rest_user_create_logger", logConf)
+	logger := log.NewLogger("rest_user_create_logger")
 
 	Convey("Given the user creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -262,7 +262,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	logger := log.NewLogger("rest_user_delete_test", logConf)
+	logger := log.NewLogger("rest_user_delete_test")
 
 	Convey("Given the user deletion handler", t, func() {
 		db := database.GetTestDatabase()
@@ -337,7 +337,7 @@ func TestDeleteUser(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	logger := log.NewLogger("rest_user_update_logger", logConf)
+	logger := log.NewLogger("rest_user_update_logger")
 
 	Convey("Given the user updating handler", t, func() {
 		db := database.GetTestDatabase()

@@ -21,7 +21,7 @@ import (
 const historyURI = "http://localhost:8080" + APIPath + HistoryPath + "/"
 
 func TestGetHistory(t *testing.T) {
-	logger := log.NewLogger("rest_history_get_test", logConf)
+	logger := log.NewLogger("rest_history_get_test")
 
 	Convey("Testing the transfer history get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -97,7 +97,7 @@ func TestGetHistory(t *testing.T) {
 }
 
 func TestListHistory(t *testing.T) {
-	logger := log.NewLogger("rest_history_get_test", logConf)
+	logger := log.NewLogger("rest_history_get_test")
 
 	Convey("Testing the transfer history list handler", t, func() {
 		db := database.GetTestDatabase()
@@ -387,7 +387,7 @@ func TestListHistory(t *testing.T) {
 }
 
 func TestRestartTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_history_restart_test", logConf)
+	logger := log.NewLogger("rest_history_restart_test")
 
 	Convey("Testing the transfer restart handler", t, func() {
 		db := database.GetTestDatabase()

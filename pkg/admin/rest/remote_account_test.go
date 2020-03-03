@@ -19,7 +19,7 @@ import (
 const remoteAccountsURI = "http://localhost:8080" + APIPath + RemoteAccountsPath + "/"
 
 func TestGetRemoteAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_get_test", logConf)
+	logger := log.NewLogger("rest_account_get_test")
 
 	Convey("Given the account get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -93,7 +93,7 @@ func TestGetRemoteAccount(t *testing.T) {
 }
 
 func TestListRemoteAccounts(t *testing.T) {
-	logger := log.NewLogger("rest_account_list_test", logConf)
+	logger := log.NewLogger("rest_account_list_test")
 
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutAccount) {
 		Convey("Then it should reply 'OK'", func() {
@@ -237,7 +237,7 @@ func TestListRemoteAccounts(t *testing.T) {
 }
 
 func TestCreateRemoteAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_create_logger", logConf)
+	logger := log.NewLogger("rest_account_create_logger")
 
 	Convey("Given the account creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -307,7 +307,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 }
 
 func TestDeleteRemoteAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_delete_test", logConf)
+	logger := log.NewLogger("rest_account_delete_test")
 
 	Convey("Given the account deletion handler", t, func() {
 		db := database.GetTestDatabase()
@@ -378,7 +378,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 }
 
 func TestUpdateRemoteAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_update_logger", logConf)
+	logger := log.NewLogger("rest_account_update_logger")
 
 	Convey("Given the account updating handler", t, func() {
 		db := database.GetTestDatabase()

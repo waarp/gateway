@@ -30,7 +30,7 @@ func fromTask(t *model.Task) OutRuleTask {
 }
 
 func TestListTasks(t *testing.T) {
-	logger := log.NewLogger("rest_tasks_list_logger", logConf)
+	logger := log.NewLogger("rest_tasks_list_logger")
 
 	Convey("Given the rule creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -129,7 +129,7 @@ func TestListTasks(t *testing.T) {
 }
 
 func TestUpdateTasks(t *testing.T) {
-	logger := log.NewLogger("rest_tasks_list_logger", logConf)
+	logger := log.NewLogger("rest_tasks_list_logger")
 
 	Convey("Given the rule creation handler", t, func() {
 		db := database.GetTestDatabase()

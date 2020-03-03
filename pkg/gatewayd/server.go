@@ -32,7 +32,7 @@ type WG struct {
 // NewWG creates a new application
 func NewWG(config *conf.ServerConfig) *WG {
 	return &WG{
-		Logger: log.NewLogger("Waarp-Gateway", config.Log),
+		Logger: log.NewLogger("Waarp-Gateway"),
 		Conf:   config,
 	}
 }
@@ -63,7 +63,7 @@ func (wg *WG) startServices() error {
 	for _, server := range servers {
 		switch server.Protocol {
 		case "sftp":
-			l := log.NewLogger(server.Name, wg.Conf.Log)
+			l := log.NewLogger(server.Name)
 			wg.Services[server.Name] = sftp.NewService(wg.dbService, server, l)
 		default:
 			wg.Logger.Warningf("Unknown server protocol '%s'", server.Protocol)

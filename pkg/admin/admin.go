@@ -107,7 +107,7 @@ func initServer(s *Server) error {
 // Start launches the administration service. If the service cannot be launched,
 // the function returns an error.
 func (s *Server) Start() error {
-	s.logger = log.NewLogger(ServiceName, s.Conf.Log)
+	s.logger = log.NewLogger(ServiceName)
 
 	s.logger.Info("Startup command received...")
 	if state, _ := s.state.Get(); state != service.Offline && state != service.Error {

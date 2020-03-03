@@ -18,7 +18,7 @@ import (
 const remoteAgentsURI = "http://remotehost:8080" + APIPath + RemoteAgentsPath + "/"
 
 func TestListRemoteAgents(t *testing.T) {
-	logger := log.NewLogger("rest_remote agent_list_test", logConf)
+	logger := log.NewLogger("rest_remote agent_list_test")
 
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutAgent) {
 		Convey("Then it should reply 'OK'", func() {
@@ -144,7 +144,7 @@ func TestListRemoteAgents(t *testing.T) {
 }
 
 func TestGetRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_remote agent_get_test", logConf)
+	logger := log.NewLogger("rest_remote agent_get_test")
 
 	Convey("Given the remote agent get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -208,7 +208,7 @@ func TestGetRemoteAgent(t *testing.T) {
 }
 
 func TestCreateRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_remote agent_create_logger", logConf)
+	logger := log.NewLogger("rest_remote agent_create_logger")
 
 	Convey("Given the remote agent creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -278,7 +278,7 @@ func TestCreateRemoteAgent(t *testing.T) {
 }
 
 func TestDeleteRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_remote agent_delete_test", logConf)
+	logger := log.NewLogger("rest_remote agent_delete_test")
 
 	Convey("Given the remote agent deletion handler", t, func() {
 		db := database.GetTestDatabase()
@@ -337,7 +337,7 @@ func TestDeleteRemoteAgent(t *testing.T) {
 }
 
 func TestUpdateRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_agent_update_logger", logConf)
+	logger := log.NewLogger("rest_agent_update_logger")
 
 	Convey("Given the agent updating handler", t, func() {
 		db := database.GetTestDatabase()

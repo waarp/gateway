@@ -8,20 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var logConf = conf.LogConfig{
-	Level: "DEBUG",
-	LogTo: "stdout",
-}
-
 func TestNewTransferStream(t *testing.T) {
-	logger := log.NewLogger("test_new_transfer_stream", logConf)
+	logger := log.NewLogger("test_new_transfer_stream")
 
 	Convey("Given a new transfer", t, func() {
 		TransferInCount = &Count{}
@@ -79,7 +73,7 @@ func TestNewTransferStream(t *testing.T) {
 }
 
 func TestStreamRead(t *testing.T) {
-	logger := log.NewLogger("test_stream_read", logConf)
+	logger := log.NewLogger("test_stream_read")
 
 	filename := "test_stream_read.src"
 	content := "Transfer stream read test content"
@@ -188,7 +182,7 @@ func TestStreamRead(t *testing.T) {
 }
 
 func TestStreamWrite(t *testing.T) {
-	logger := log.NewLogger("test_stream_read", logConf)
+	logger := log.NewLogger("test_stream_read")
 
 	filename := "test_stream_write.dst"
 	file := filepath.Join("tmp", filename)

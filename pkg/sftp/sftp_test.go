@@ -18,7 +18,7 @@ import (
 )
 
 func TestSFTPPackage(t *testing.T) {
-	logger := log.NewLogger("test_sftp_package", testLogConf)
+	logger := log.NewLogger("test_sftp_package")
 
 	Convey("Given an SFTP server", t, func() {
 		root, err := ioutil.TempDir("", "gateway-test")

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 )
@@ -17,11 +18,6 @@ var (
 	clientTestPort uint16
 	testPK         = []byte(pk)
 	testPBK        = []byte(pbk)
-
-	testLogConf = conf.LogConfig{
-		Level: "DEBUG",
-		LogTo: "stdout",
-	}
 )
 
 func init() {
@@ -31,6 +27,12 @@ func init() {
 	model.ValidTasks["TESTCHECK"] = &testTaskSuccess{}
 	model.ValidTasks["TESTSUCCESS"] = &testTaskSuccess{}
 	model.ValidTasks["TESTFAIL"] = &testTaskFail{}
+
+	logConf := conf.LogConfig{
+		Level: "DEBUG",
+		LogTo: "stdout",
+	}
+	_ = log.InitBackend(logConf)
 }
 
 var checkChannel = make(chan string)

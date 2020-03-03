@@ -2,52 +2,61 @@
 package log
 
 import (
+	"time"
+
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 )
+
+var backend logging.Backend
 
 // Logger is an internal abstraction of the underlying logging library
 type Logger struct {
 	*logging.Logger
 }
 
+// InitBackend initializes the logging backend according to the given configuration.
+// If the backend cannot be accessed, an error is returned.
+func InitBackend(conf conf.LogConfig) (err error) {
+	switch conf.LogTo {
+	case "stdout":
+		backend = logging.NewStdoutBackend()
+	case "syslog":
+		backend, err = logging.NewSyslogBackend(conf.SyslogFacility, "waarp-manager-ng")
+	default:
+		backend, err = logging.NewFileBackend(conf.LogTo)
+	}
+	if err != nil {
+		return
+	}
+
+	if err := setLevel(conf.Level, backend); err != nil {
+		record := &logging.Record{
+			Logger:    "log",
+			Timestamp: time.Now(),
+			Level:     logging.ERROR,
+			Message:   err.Error(),
+		}
+		if err := backend.Write(record); err != nil {
+			return err
+		}
+	}
+	return
+}
+
 // NewLogger initiates a new logger
-func NewLogger(name string, conf conf.LogConfig) *Logger {
-	l := &Logger{Logger: logging.GetLogger(name)}
-	_ = l.SetOutput(conf.LogTo, conf.SyslogFacility)
-	_ = l.SetLevel(conf.Level)
+func NewLogger(name string) *Logger {
+	l := &Logger{Logger: logging.NewLogger(name)}
+	l.Logger.SetBackend(backend)
 	return l
 }
 
-// SetLevel sets the level of the logger
-func (l *Logger) SetLevel(level string) error {
+// setLevel sets the level of the logger
+func setLevel(level string, b logging.Backend) error {
 	logLevel, err := logging.LevelByName(level)
 	if err != nil {
 		return err
 	}
-	l.Logger.SetLevel(logLevel)
+	b.SetLevel(logLevel)
 	return nil
-}
-
-// SetOutput sets the outpur of the underlying backend.
-// It expects out to be a file path. It can also be 'stdout' to log to the
-// standard output or 'syslog' to log to a syslog daemon .
-func (l *Logger) SetOutput(out string, syslogfacility string) error {
-	var (
-		b   logging.Backend
-		err error
-	)
-
-	switch out {
-	case "stdout":
-		b = logging.NewStdoutBackend()
-	case "syslog":
-		b, err = logging.NewSyslogBackend(syslogfacility, "waarp-manager-ng")
-	default:
-		b, err = logging.NewFileBackend(out)
-	}
-
-	l.Logger.SetBackend(b)
-
-	return err
 }

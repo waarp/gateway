@@ -18,7 +18,7 @@ import (
 const ruleURI = "http://remotehost:8080" + APIPath + RulesPath + "/"
 
 func TestCreateRule(t *testing.T) {
-	logger := log.NewLogger("rest_rule_create_logger", logConf)
+	logger := log.NewLogger("rest_rule_create_logger")
 
 	Convey("Given the rule creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -90,7 +90,7 @@ func TestCreateRule(t *testing.T) {
 }
 
 func TestGetRule(t *testing.T) {
-	logger := log.NewLogger("rest_rule_get_test", logConf)
+	logger := log.NewLogger("rest_rule_get_test")
 
 	Convey("Given the rule get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -155,7 +155,7 @@ func TestGetRule(t *testing.T) {
 }
 
 func TestListRules(t *testing.T) {
-	logger := log.NewLogger("rest_rules_list_test", logConf)
+	logger := log.NewLogger("rest_rules_list_test")
 
 	Convey("Testing the transfer list handler", t, func() {
 		db := database.GetTestDatabase()
@@ -210,7 +210,7 @@ func TestListRules(t *testing.T) {
 }
 
 func TestDeleteRule(t *testing.T) {
-	logger := log.NewLogger("rest_rule_delete_test", logConf)
+	logger := log.NewLogger("rest_rule_delete_test")
 
 	Convey("Given the rules deletion handler", t, func() {
 		db := database.GetTestDatabase()

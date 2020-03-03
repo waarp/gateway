@@ -18,7 +18,7 @@ import (
 const localAgentsURI = "http://localhost:8080" + APIPath + LocalAgentsPath + "/"
 
 func TestListLocalAgents(t *testing.T) {
-	logger := log.NewLogger("rest_local agent_list_test", logConf)
+	logger := log.NewLogger("rest_local agent_list_test")
 
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutAgent) {
 		Convey("Then it should reply 'OK'", func() {
@@ -144,7 +144,7 @@ func TestListLocalAgents(t *testing.T) {
 }
 
 func TestGetLocalAgent(t *testing.T) {
-	logger := log.NewLogger("rest_local agent_get_test", logConf)
+	logger := log.NewLogger("rest_local agent_get_test")
 
 	Convey("Given the local agent get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -208,7 +208,7 @@ func TestGetLocalAgent(t *testing.T) {
 }
 
 func TestCreateLocalAgent(t *testing.T) {
-	logger := log.NewLogger("rest_local agent_create_logger", logConf)
+	logger := log.NewLogger("rest_local agent_create_logger")
 
 	Convey("Given the local agent creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -278,7 +278,7 @@ func TestCreateLocalAgent(t *testing.T) {
 }
 
 func TestDeleteLocalAgent(t *testing.T) {
-	logger := log.NewLogger("rest_local agent_delete_test", logConf)
+	logger := log.NewLogger("rest_local agent_delete_test")
 
 	Convey("Given the local agent deletion handler", t, func() {
 		db := database.GetTestDatabase()
@@ -337,7 +337,7 @@ func TestDeleteLocalAgent(t *testing.T) {
 }
 
 func TestUpdateLocalAgent(t *testing.T) {
-	logger := log.NewLogger("rest_agent_update_logger", logConf)
+	logger := log.NewLogger("rest_agent_update_logger")
 
 	Convey("Given the agent updating handler", t, func() {
 		db := database.GetTestDatabase()

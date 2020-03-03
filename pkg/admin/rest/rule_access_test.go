@@ -25,7 +25,7 @@ func fromAccess(a *model.RuleAccess) *OutRuleAccess {
 const accessURI = ruleURI + RulePermissionPath
 
 func TestCreateAccess(t *testing.T) {
-	logger := log.NewLogger("rest_access_create_logger", logConf)
+	logger := log.NewLogger("rest_access_create_logger")
 
 	Convey("Given the rule creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -167,7 +167,7 @@ func TestCreateAccess(t *testing.T) {
 }
 
 func TestListAccess(t *testing.T) {
-	logger := log.NewLogger("rest_access_list_logger", logConf)
+	logger := log.NewLogger("rest_access_list_logger")
 
 	Convey("Given the rule creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -268,7 +268,7 @@ func TestListAccess(t *testing.T) {
 }
 
 func TestDeleteAccess(t *testing.T) {
-	logger := log.NewLogger("rest_access_list_logger", logConf)
+	logger := log.NewLogger("rest_access_list_logger")
 
 	Convey("Given the rule creation handler", t, func() {
 		db := database.GetTestDatabase()
