@@ -7,6 +7,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -87,9 +88,15 @@ func (wg *WG) stopServices() {
 
 	delete(wg.Services, database.ServiceName)
 
+	w := sync.WaitGroup{}
 	for _, wgService := range wg.Services {
-		go func(s service.Service) { _ = s.Stop(ctx) }(wgService)
+		w.Add(1)
+		go func(s service.Service) {
+			_ = s.Stop(ctx)
+			w.Done()
+		}(wgService)
 	}
+	w.Wait()
 
 	_ = wg.dbService.Stop(ctx)
 }
