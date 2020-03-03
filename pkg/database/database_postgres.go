@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	_ "github.com/lib/pq" // register the postgres driver
@@ -24,14 +25,26 @@ func postgresinfo(config conf.DatabaseConfig) (string, string) {
 }
 
 func postgresDSN(config conf.DatabaseConfig) string {
-	user := fmt.Sprintf("user='%s'", config.User)
-	pass := fmt.Sprintf("password='%s'", config.Password)
-	host := fmt.Sprintf("host='%s'", config.Address)
-	db := fmt.Sprintf("dbname='%s'", config.Name)
-	var port string
-	if config.Port != 0 {
-		port = fmt.Sprintf(" port=%v", config.Port)
+	dns := []string{}
+	if config.User != "" {
+		dns = append(dns, fmt.Sprintf("user='%s'", config.User))
+	}
+	if config.Password != "" {
+		dns = append(dns, fmt.Sprintf("password='%s'", config.Password))
+	}
+	if config.Address != "" {
+		dns = append(dns, fmt.Sprintf("host='%s'", config.Address))
+	}
+	if config.Name != "" {
+		dns = append(dns, fmt.Sprintf("dbname='%s'", config.Name))
+	}
+	if config.TLSCert != "" && config.TLSKey != "" {
+		dns = append(dns, "sslmode=verify-full")
+		dns = append(dns, fmt.Sprintf("sslcert='%s'", config.TLSCert))
+		dns = append(dns, fmt.Sprintf("sslkey='%s'", config.TLSKey))
+	} else {
+		dns = append(dns, "sslmode=disable")
 	}
 
-	return fmt.Sprintf("%s %s %s%s %s", user, pass, host, port, db)
+	return strings.Join(dns, " ")
 }

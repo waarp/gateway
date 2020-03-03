@@ -1,10 +1,10 @@
 package database
 
 import (
-	"fmt"
+	"crypto/tls"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	_ "github.com/go-sql-driver/mysql" // register the mysql driver
+	msql "github.com/go-sql-driver/mysql" // register the mysql driver
 )
 
 const (
@@ -24,13 +24,21 @@ func mysqlinfo(config conf.DatabaseConfig) (string, string) {
 }
 
 func mysqlDSN(config conf.DatabaseConfig) string {
-	var pass, port string
-	if config.Password != "" {
-		pass = fmt.Sprintf(":%s", config.Password)
-	}
-	if config.Port != 0 {
-		port = fmt.Sprintf(":%v", config.Port)
+	dsn := msql.NewConfig()
+	dsn.Addr = config.Address
+	dsn.DBName = config.Name
+	dsn.User = config.User
+	dsn.Passwd = config.Password
+
+	if config.TLSCert != "" && config.TLSKey != "" {
+		cert, _ := tls.LoadX509KeyPair(config.TLSCert, config.TLSKey)
+		tlsConf := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}
+		_ = msql.RegisterTLSConfig("db", tlsConf)
+
+		dsn.TLSConfig = "db"
 	}
 
-	return fmt.Sprintf("%s%s@(%s%s)/%s", config.User, pass, config.Address, port, config.Name)
+	return dsn.FormatDSN()
 }
