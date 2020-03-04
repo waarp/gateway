@@ -32,22 +32,23 @@ func (*CopyTask) Validate(t *model.Task) error {
 
 // Run copy the current file to the destination
 func (*CopyTask) Run(args map[string]interface{}, runner *Processor) (string, error) {
-	newPath := args["path"].(string)
+	var (
+		newDir  = args["path"].(string)
+		oldPath string
+	)
+
 	if runner.Rule.IsSend {
-		basename := filepath.Base(runner.Transfer.SourcePath)
-		dest := fmt.Sprintf("%s/%s", newPath, basename)
-
-		if err := doCopy(dest, runner.Transfer.SourcePath); err != nil {
-			return err.Error(), err
-		}
+		oldPath = runner.Transfer.SourcePath
 	} else {
-		basename := filepath.Base(runner.Transfer.DestPath)
-		dest := fmt.Sprintf("%s/%s", newPath, basename)
-
-		if err := doCopy(dest, runner.Transfer.DestPath); err != nil {
-			return err.Error(), err
-		}
+		oldPath = runner.Transfer.DestPath
 	}
+
+	newPath := filepath.Join(newDir, filepath.Base(oldPath))
+
+	if err := doCopy(newPath, oldPath); err != nil {
+		return err.Error(), err
+	}
+
 	return "", nil
 }
 
