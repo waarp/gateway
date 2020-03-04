@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -88,17 +89,29 @@ func (c *Client) Authenticate() *model.PipelineError {
 func (c *Client) Request() *model.PipelineError {
 	var err error
 	if c.Info.Rule.IsSend {
-		c.remoteFile, err = c.client.Create(c.Info.Rule.Path + "/" + c.Info.Transfer.DestPath)
+		path := filepath.Clean("./" + c.Info.Rule.Path + "/" + c.Info.Transfer.DestPath)
+		c.remoteFile, err = c.client.Create(path)
 		if err != nil {
-			return model.NewPipelineError(model.TeExternalOperation, "Remote pre-tasks failed")
+			if msg, ok := isRemoteTaskError(err); ok {
+				fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
+				return model.NewPipelineError(model.TeExternalOperation, fullMsg)
+			}
+			if err == os.ErrNotExist {
+				return model.NewPipelineError(model.TeFileNotFound, "Target directory does not exist")
+			}
+			return model.NewPipelineError(model.TeConnection, err.Error())
 		}
 	} else {
 		c.remoteFile, err = c.client.Open(c.Info.Transfer.SourcePath)
 		if err != nil {
+			if msg, ok := isRemoteTaskError(err); ok {
+				fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
+				return model.NewPipelineError(model.TeExternalOperation, fullMsg)
+			}
 			if err == os.ErrNotExist {
 				return model.NewPipelineError(model.TeFileNotFound, "Target file does not exist")
 			}
-			return model.NewPipelineError(model.TeExternalOperation, "Remote pre-tasks failed")
+			return model.NewPipelineError(model.TeConnection, err.Error())
 		}
 	}
 	return nil
@@ -138,7 +151,11 @@ func (c *Client) Close(pErr *model.PipelineError) *model.PipelineError {
 
 	if pErr == nil {
 		if err := c.remoteFile.Close(); err != nil {
-			return model.NewPipelineError(model.TeExternalOperation, "Remote post-tasks failed")
+			if msg, ok := isRemoteTaskError(err); ok {
+				fullMsg := fmt.Sprintf("Remote post-tasks failed: %s", msg)
+				return model.NewPipelineError(model.TeExternalOperation, fullMsg)
+			}
+			return model.NewPipelineError(model.TeConnection, err.Error())
 		}
 	}
 	return nil

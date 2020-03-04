@@ -353,8 +353,9 @@ func TestSFTPPackage(t *testing.T) {
 								Stop:           results[1].Stop,
 								Status:         model.StatusError,
 								Error: model.TransferError{
-									Code:    model.TeExternalOperation,
-									Details: "Remote pre-tasks failed",
+									Code: model.TeExternalOperation,
+									Details: "Remote pre-tasks failed: Task " +
+										"TESTFAIL @ receive PRE[1]: task failed",
 								},
 								Step:       model.StepPreTasks,
 								Progress:   0,
@@ -535,8 +536,9 @@ func TestSFTPPackage(t *testing.T) {
 								Stop:           results[1].Stop,
 								Status:         model.StatusError,
 								Error: model.TransferError{
-									Code:    model.TeExternalOperation,
-									Details: "Remote post-tasks failed",
+									Code: model.TeExternalOperation,
+									Details: "Remote post-tasks failed: Task " +
+										"TESTFAIL @ receive POST[1]: task failed",
 								},
 								Step:       model.StepPostTasks,
 								Progress:   0,
