@@ -29,15 +29,20 @@ func (*CopyRenameTask) Validate(t *model.Task) error {
 
 // Run copy the current file to the destination
 func (*CopyRenameTask) Run(args map[string]interface{}, processor *Processor) (string, error) {
-	newPath := args["path"].(string)
+	var (
+		newPath = args["path"].(string)
+		srcPath string
+	)
+
 	if processor.Rule.IsSend {
-		if err := doCopy(newPath, processor.Transfer.SourcePath); err != nil {
-			return err.Error(), err
-		}
+		srcPath = processor.Transfer.SourcePath
 	} else {
-		if err := doCopy(newPath, processor.Transfer.DestPath); err != nil {
-			return err.Error(), err
-		}
+		srcPath = processor.Transfer.DestPath
 	}
+
+	if err := doCopy(newPath, srcPath); err != nil {
+		return err.Error(), err
+	}
+
 	return "", nil
 }
