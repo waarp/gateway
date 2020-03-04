@@ -38,7 +38,7 @@ func TestTaskValidateInsert(t *testing.T) {
 				Chain:  "PRE",
 				Rank:   0,
 				Type:   "DUMMY",
-				Args:   "{}",
+				Args:   []byte("{}"),
 			}
 			So(db.Create(t), ShouldBeNil)
 
@@ -48,7 +48,7 @@ func TestTaskValidateInsert(t *testing.T) {
 					Chain:  "PRE",
 					Rank:   0,
 					Type:   "DUMMY",
-					Args:   "{}",
+					Args:   []byte("{}"),
 				}
 
 				Convey("When calling the `ValidateInsert` method", func() {
@@ -71,7 +71,7 @@ func TestTaskValidateInsert(t *testing.T) {
 					Chain:  "XXX",
 					Rank:   0,
 					Type:   "DUMMY",
-					Args:   "{}",
+					Args:   []byte("{}"),
 				}
 
 				Convey("When calling the `ValidateInsert` method", func() {
@@ -94,7 +94,7 @@ func TestTaskValidateInsert(t *testing.T) {
 					Chain:  t.Chain,
 					Rank:   t.Rank,
 					Type:   "DUMMY",
-					Args:   "{}",
+					Args:   []byte("{}"),
 				}
 
 				Convey("When calling the `ValidateInsert` method", func() {

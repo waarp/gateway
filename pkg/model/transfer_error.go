@@ -60,6 +60,10 @@ const (
 	// execution of the pre-/post-/error-tasks.
 	TeExternalOperation
 
+	// TeWarning should be used when a pre-/post-/error-task ended with a
+	// warning code. This type of error does not stop the transfer.
+	TeWarning
+
 	// TeStopped should be used when the transfer has been stopped
 	TeStopped
 
@@ -161,6 +165,53 @@ func (tec *TransferErrorCode) FromDB(v []byte) error {
 func (tec TransferErrorCode) ToDB() ([]byte, error) {
 	v, err := tec.Value()
 	return []byte(v.(string)), err
+}
+
+// R66Code returns the error code as a single character usable by R66.
+//nolint:funlen
+func (tec TransferErrorCode) R66Code() byte {
+	switch tec {
+	case TeOk:
+		return 'O'
+	case TeInternal:
+		return 'I'
+	case TeUnimplemented:
+		return 'U'
+	case TeConnection:
+		return 'C'
+	case TeConnectionReset:
+		return 'D'
+	case TeUnknownRemote:
+		return 'N'
+	case TeExceededLimit:
+		return 'l'
+	case TeBadAuthentication:
+		return 'A'
+	case TeDataTransfer:
+		return 'T'
+	case TeIntegrity:
+		return 'M'
+	case TeFinalization:
+		return 'F'
+	case TeExternalOperation:
+		return 'E'
+	case TeWarning:
+		return 'w'
+	case TeStopped:
+		return 'H'
+	case TeCanceled:
+		return 'K'
+	case TeFileNotFound:
+		return 'f'
+	case TeForbidden:
+		return 'a'
+	case TeBadSize:
+		return 'd'
+	case TeShuttingDown:
+		return 'S'
+	default:
+		return '.'
+	}
 }
 
 // TransferError represents any error that occurs during the transfer.

@@ -65,3 +65,30 @@ func (r *RuleAccess) ValidateInsert(acc database.Accessor) error {
 func (*RuleAccess) ValidateUpdate(acc database.Accessor) error {
 	return database.InvalidError("Unallowed operation")
 }
+
+// IsRuleAuthorized verify if the rule requested by the transfer is authorized for
+// the requesting transfer
+func IsRuleAuthorized(acc database.Accessor, t *Transfer) (bool, error) {
+	res, err := acc.Query("SELECT rule_id FROM rule_access WHERE rule_id=?", t.RuleID)
+	if err != nil {
+		return false, err
+	} else if len(res) == 0 {
+		return true, nil
+	}
+
+	agent := "remote_agent"
+	account := "remote_account"
+	if t.IsServer {
+		agent = "local_agent"
+		account = "local_account"
+	}
+	res, err = acc.Query(
+		"SELECT rule_id FROM rule_access WHERE rule_id=? AND ((object_type=? AND object_id=?) OR (object_type=? and object_id=?))",
+		t.RuleID, agent, t.AgentID, account, t.AccountID)
+	if err != nil {
+		return false, err
+	} else if len(res) < 1 {
+		return false, nil
+	}
+	return true, nil
+}

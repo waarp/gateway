@@ -59,12 +59,6 @@ func (t *TransferHistory) ValidateInsert(database.Accessor) error {
 	if t.Remote == "" {
 		return database.InvalidError("The transfer's remote cannot be empty")
 	}
-	if t.Error.Code != TeOk {
-		return database.InvalidError("The transfer's error code must be empty")
-	}
-	if t.Error.Details != "" {
-		return database.InvalidError("The transfer's error message must be empty")
-	}
 	if t.IsServer {
 		if t.IsSend && t.DestFilename == "" {
 			return database.InvalidError("The transfer's destination filename cannot be empty")

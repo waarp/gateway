@@ -3,7 +3,6 @@ package sftp
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -60,43 +59,6 @@ func parseServerAddr(server *model.LocalAgent) (string, uint16, error) {
 	return conf.Address, conf.Port, nil
 }
 
-func (s *sshServer) toHistory(prog progress) {
-	trans := &model.Transfer{ID: prog.ID}
-	if err := s.db.Get(trans); err != nil {
-		s.logger.Errorf("Error retrieving transfer entry: %s", err)
-		return
-	}
-
-	ses, err := s.db.BeginTransaction()
-	if err != nil {
-		s.logger.Errorf("Error starting transaction: %s", err)
-		return
-	}
-	if err := ses.Delete(trans); err != nil {
-		s.logger.Errorf("Error deleting the old transfer: %s", err)
-		ses.Rollback()
-		return
-	}
-
-	trans.Status = model.TransferStatus(prog.Status)
-	hist, err := trans.ToHistory(s.db, time.Now().UTC())
-	if err != nil {
-		s.logger.Errorf("Error converting transfer to history: %s", err)
-		return
-	}
-
-	if err := ses.Create(hist); err != nil {
-		s.logger.Errorf("Error inserting new history entry: %s", err)
-		ses.Rollback()
-		return
-	}
-
-	if err := ses.Commit(); err != nil {
-		s.logger.Errorf("Error committing the transaction: %s", err)
-		return
-	}
-}
-
 func acceptRequests(in <-chan *ssh.Request) {
 	for req := range in {
 		ok := false
@@ -108,30 +70,6 @@ func acceptRequests(in <-chan *ssh.Request) {
 		}
 		_ = req.Reply(ok, nil)
 	}
-}
-
-func (s *sshServer) logProgress(server *sftp.RequestServer, report <-chan progress,
-	done chan bool) {
-
-	go func() {
-		select {
-		case <-s.shutdown:
-			_ = server.Close()
-		case <-done:
-		}
-	}()
-
-	for prog := range report {
-		if prog.Status == string(model.StatusTransfer) {
-			//trans := &model.Transfer{Progress: prog.Bytes}
-			//if err := s.db.Update(trans, prog.ID, false); err != nil {
-			//s.logger.Errorf("Error updating transfer: %s", err)
-		} else {
-			s.toHistory(prog)
-		}
-	}
-
-	close(done)
 }
 
 func (s *sshServer) handleSession(user string, newChannel ssh.NewChannel) {
@@ -158,15 +96,19 @@ func (s *sshServer) handleSession(user string, newChannel ssh.NewChannel) {
 		return
 	}
 
-	report := make(chan progress)
-	server := sftp.NewRequestServer(channel, makeHandlers(s.db, s.agent,
-		acc, report))
+	server := sftp.NewRequestServer(channel, makeHandlers(s.db, s.logger, s.agent,
+		acc, s.shutdown))
 
 	done := make(chan bool)
-	go s.logProgress(server, report, done)
-	_ = server.Serve()
+	go func() {
+		select {
+		case <-s.shutdown:
+			_ = server.Close()
+		case <-done:
+		}
+	}()
 
-	close(report)
-	<-done
+	_ = server.Serve()
+	close(done)
 	_ = channel.Close()
 }

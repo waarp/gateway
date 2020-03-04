@@ -38,7 +38,7 @@ func TestListTasks(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "COPY",
-				Args:   "{}",
+				Args:   []byte("{}"),
 			}
 			So(db.Create(pre), ShouldBeNil)
 
@@ -47,7 +47,7 @@ func TestListTasks(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   1,
 				Type:   "MOVE",
-				Args:   "{}",
+				Args:   []byte("{}"),
 			}
 			So(db.Create(post), ShouldBeNil)
 
@@ -56,7 +56,7 @@ func TestListTasks(t *testing.T) {
 				Chain:  model.ChainError,
 				Rank:   1,
 				Type:   "DELETE",
-				Args:   "{}",
+				Args:   []byte("{}"),
 			}
 			So(db.Create(er), ShouldBeNil)
 
@@ -135,17 +135,17 @@ func TestUpdateTasks(t *testing.T) {
 			Convey("Given all valid new tasks", func() {
 				pre := []model.Task{{
 					Type: "COPY",
-					Args: "{}",
+					Args: []byte("{}"),
 				}}
 
 				post := []model.Task{{
 					Type: "MOVE",
-					Args: "{}",
+					Args: []byte("{}"),
 				}}
 
 				er := []model.Task{{
 					Type: "DELETE",
-					Args: "{}",
+					Args: []byte("{}"),
 				}}
 
 				obj := map[string][]model.Task{
@@ -221,7 +221,7 @@ func TestUpdateTasks(t *testing.T) {
 			Convey("Given partial valid new tasks", func() {
 				pre := []model.Task{{
 					Type: "COPY",
-					Args: "{}",
+					Args: []byte("{}"),
 				}}
 
 				obj := map[string][]model.Task{

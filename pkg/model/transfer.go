@@ -55,8 +55,8 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 	if t.Start.IsZero() {
 		return database.InvalidError("The transfer's starting date cannot be empty")
 	}
-	if t.Status != StatusPlanned && t.Status != StatusTransfer {
-		return database.InvalidError("The transfer's status must be 'planned' or 'transfer'")
+	if t.Status != StatusPlanned && t.Status != StatusPreTasks {
+		return database.InvalidError("The transfer's status must be 'planned' or 'pre-tasks'")
 	}
 	if t.Owner == "" {
 		return database.InvalidError("The transfer's owner cannot be empty")
@@ -97,6 +97,13 @@ func (t *Transfer) validateClientTransfer(acc database.Accessor) error {
 	} else if len(res) == 0 {
 		return database.InvalidError("The agent %d does not have an account %d",
 			t.AgentID, t.AccountID)
+	}
+
+	// Check for rule access
+	if auth, err := IsRuleAuthorized(acc, t); err != nil {
+		return err
+	} else if !auth {
+		return database.InvalidError("Rule %d is not authorized for this transfer", t.RuleID)
 	}
 
 	if remote.Protocol == "sftp" {
@@ -172,8 +179,10 @@ func (t *Transfer) ValidateUpdate(database.Accessor, uint64) error {
 		return database.InvalidError("The transfer's destination cannot be changed")
 	}
 
-	if !validateStatusForTransfer(t.Status) {
-		return database.InvalidError("'%s' is not a valid transfer status", t.Status)
+	if t.Status != "" {
+		if !validateStatusForTransfer(t.Status) {
+			return database.InvalidError("'%s' is not a valid transfer status", t.Status)
+		}
 	}
 
 	return nil

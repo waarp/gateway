@@ -7,12 +7,15 @@ import (
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestFileReader(t *testing.T) {
+	logger := log.NewLogger("test_file_reader", testLogConf)
+
 	Convey("Given a database with a rule, a localAgent and a localAccount", t, func() {
 		root := "test_file_reader"
 		Reset(func() { _ = os.RemoveAll(root) })
@@ -45,8 +48,7 @@ func TestFileReader(t *testing.T) {
 		So(db.Create(account), ShouldBeNil)
 
 		Convey("Given the Filereader", func() {
-			report := make(chan progress, 1)
-			handler := makeHandlers(db, agent, account, report).FileGet
+			handler := makeHandlers(db, logger, agent, account, make(chan bool)).FileGet
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
@@ -110,6 +112,8 @@ func TestFileReader(t *testing.T) {
 }
 
 func TestFileWriter(t *testing.T) {
+	logger := log.NewLogger("test_file_writer", testLogConf)
+
 	Convey("Given a database with a rule and a localAgent", t, func() {
 		root := "test_file_writer"
 		Reset(func() { _ = os.RemoveAll(root) })
@@ -138,8 +142,7 @@ func TestFileWriter(t *testing.T) {
 		So(db.Create(account), ShouldBeNil)
 
 		Convey("Given the Filewriter", func() {
-			report := make(chan progress, 1)
-			handler := makeHandlers(db, agent, account, report).FilePut
+			handler := makeHandlers(db, logger, agent, account, make(chan bool)).FilePut
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{

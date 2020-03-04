@@ -28,7 +28,7 @@ type Task struct {
 	Chain  Chain  `xorm:"notnull 'chain'" json:"-"`
 	Rank   uint32 `xorm:"notnull 'rank'" json:"-"`
 	Type   string `xorm:"notnull 'type'" json:"type"`
-	Args   string `xorm:"notnull 'args'" json:"args"`
+	Args   []byte `xorm:"notnull 'args'" json:"args"`
 }
 
 // TableName returns the name of the tasks table.

@@ -10,7 +10,10 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
+	"github.com/go-xorm/builder"
 	"github.com/pkg/sftp"
 )
 
@@ -38,8 +41,8 @@ func (la listerAtFunc) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 	return la(ls, offset)
 }
 
-func makeHandlers(db *database.Db, agent *model.LocalAgent, account *model.LocalAccount,
-	report chan<- progress) sftp.Handlers {
+func makeHandlers(db *database.Db, logger *log.Logger, agent *model.LocalAgent,
+	account *model.LocalAccount, shutdown <-chan bool) sftp.Handlers {
 
 	root, _ := os.Getwd()
 	var conf map[string]interface{}
@@ -47,15 +50,40 @@ func makeHandlers(db *database.Db, agent *model.LocalAgent, account *model.Local
 		root, _ = conf["root"].(string)
 	}
 	return sftp.Handlers{
-		FileGet:  makeFileReader(db, agent.ID, account.ID, root, report),
-		FilePut:  makeFileWriter(db, agent.ID, account.ID, root, report),
+		FileGet:  makeFileReader(db, logger, agent.ID, account.ID, root, shutdown),
+		FilePut:  makeFileWriter(db, logger, agent.ID, account.ID, root, shutdown),
 		FileCmd:  nil,
 		FileList: makeFileLister(root),
 	}
 }
 
-func makeFileReader(db *database.Db, agentID, accountID uint64, root string,
-	report chan<- progress) fileReaderFunc {
+func runTasks(db *database.Db, logger *log.Logger, chain model.Chain,
+	rule *model.Rule, trans *model.Transfer) error {
+
+	var taskChain []*model.Task
+	filters := &database.Filters{
+		Order:      "rank ASC",
+		Conditions: builder.Eq{"rule_id": rule.ID, "chain": chain},
+	}
+	if err := db.Select(&taskChain, filters); err != nil {
+		return err
+	}
+
+	taskRunner := tasks.Processor{
+		Db:       db,
+		Logger:   logger,
+		Rule:     rule,
+		Transfer: trans,
+	}
+	if err := taskRunner.RunTasks(taskChain); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func makeFileReader(db *database.Db, logger *log.Logger, agentID, accountID uint64,
+	root string, shutdown <-chan bool) fileReaderFunc {
 
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		// Get rule according to request filepath
@@ -63,8 +91,8 @@ func makeFileReader(db *database.Db, agentID, accountID uint64, root string,
 		if path == "." || path == "/" {
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
-		rule := model.Rule{Path: path, IsSend: true}
-		if err := db.Get(&rule); err != nil {
+		rule := &model.Rule{Path: path, IsSend: true}
+		if err := db.Get(rule); err != nil {
 			return nil, err
 		}
 
@@ -77,7 +105,7 @@ func makeFileReader(db *database.Db, agentID, accountID uint64, root string,
 			SourcePath: r.Filepath,
 			DestPath:   filepath.Base(r.Filepath),
 			Start:      time.Now(),
-			Status:     model.StatusTransfer,
+			Status:     model.StatusPreTasks,
 		}
 		if err := db.Create(trans); err != nil {
 			return nil, err
@@ -89,18 +117,55 @@ func makeFileReader(db *database.Db, agentID, accountID uint64, root string,
 			return nil, err
 		}
 
-		stream := uploadStream{
-			File:   file,
-			ID:     trans.ID,
-			Report: report,
+		stream := &uploadStream{
+			transferStream: &transferStream{
+				db:       db,
+				logger:   logger,
+				file:     file,
+				trans:    trans,
+				rule:     rule,
+				shutdown: shutdown,
+			},
 		}
 
-		return &stream, nil
+		if err := runTasks(db, logger, model.ChainPre, rule, trans); err != nil {
+			stream.fail = err
+			if err := stream.Close(); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+
+		if err := db.Update(&model.Transfer{Status: model.StatusTransfer},
+			trans.ID, false); err != nil {
+			return stream, err
+		}
+
+		return stream, nil
 	}
 }
 
-func makeFileWriter(db *database.Db, agentID, accountID uint64, root string,
-	report chan<- progress) fileWriterFunc {
+func makeDir(root, path string) error {
+	// Create dir if it doesn't exist
+	dir := filepath.FromSlash(fmt.Sprintf("%s/%s", root, path))
+	if info, err := os.Lstat(dir); err != nil {
+		if os.IsNotExist(err) {
+			if err := os.MkdirAll(dir, 0740); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	} else if !info.IsDir() {
+		if err := os.MkdirAll(dir, 0740); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func makeFileWriter(db *database.Db, logger *log.Logger, agentID, accountID uint64,
+	root string, shutdown <-chan bool) fileWriterFunc {
 
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		// Get rule according to request filepath
@@ -108,25 +173,12 @@ func makeFileWriter(db *database.Db, agentID, accountID uint64, root string,
 		if path == "." || path == "/" {
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
-		rule := model.Rule{Path: path, IsSend: false}
-		if err := db.Get(&rule); err != nil {
+		rule := &model.Rule{Path: path, IsSend: false}
+		if err := db.Get(rule); err != nil {
 			return nil, err
 		}
-
-		// Create dir if it doesn't exist
-		dir := filepath.FromSlash(fmt.Sprintf("%s/%s", root, rule.Path))
-		if info, err := os.Lstat(dir); err != nil {
-			if os.IsNotExist(err) {
-				if err := os.MkdirAll(dir, 0740); err != nil {
-					return nil, err
-				}
-			} else {
-				return nil, err
-			}
-		} else if !info.IsDir() {
-			if err := os.MkdirAll(dir, 0740); err != nil {
-				return nil, err
-			}
+		if err := makeDir(root, rule.Path); err != nil {
+			return nil, err
 		}
 
 		// Create Transfer
@@ -138,7 +190,7 @@ func makeFileWriter(db *database.Db, agentID, accountID uint64, root string,
 			SourcePath: filepath.Base(r.Filepath),
 			DestPath:   r.Filepath,
 			Start:      time.Now(),
-			Status:     model.StatusTransfer,
+			Status:     model.StatusPreTasks,
 		}
 		if err := db.Create(trans); err != nil {
 			return nil, err
@@ -150,13 +202,27 @@ func makeFileWriter(db *database.Db, agentID, accountID uint64, root string,
 			return nil, err
 		}
 
-		stream := downloadStream{
-			File:   file,
-			ID:     trans.ID,
-			Report: report,
+		stream := &downloadStream{transferStream: &transferStream{
+			db:       db,
+			logger:   logger,
+			file:     file,
+			trans:    trans,
+			rule:     rule,
+			shutdown: shutdown,
+		}}
+		if err := runTasks(db, logger, model.ChainPre, rule, trans); err != nil {
+			stream.fail = err
+			if err := stream.Close(); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+		if err := db.Update(&model.Transfer{Status: model.StatusTransfer},
+			trans.ID, false); err != nil {
+			return nil, err
 		}
 
-		return &stream, nil
+		return stream, nil
 	}
 }
 
