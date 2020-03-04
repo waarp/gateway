@@ -32,16 +32,17 @@ func (*MoveRenameTask) Validate(t *model.Task) error {
 // modify the transfer model to reflect the file change.
 func (*MoveRenameTask) Run(args map[string]interface{}, processor *Processor) (string, error) {
 	newPath := args["path"].(string)
+	var oldPath *string
+
 	if processor.Rule.IsSend {
-		if err := os.Rename(processor.Transfer.SourcePath, newPath); err != nil {
-			return err.Error(), err
-		}
-		processor.Transfer.SourcePath = newPath
-		return "", nil
+		oldPath = &(processor.Transfer.SourcePath)
+	} else {
+		oldPath = &(processor.Transfer.DestPath)
 	}
-	if err := os.Rename(processor.Transfer.DestPath, newPath); err != nil {
+
+	if err := os.Rename(*oldPath, newPath); err != nil {
 		return err.Error(), err
 	}
-	processor.Transfer.DestPath = newPath
+	*oldPath = newPath
 	return "", nil
 }
