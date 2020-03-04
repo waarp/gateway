@@ -30,24 +30,23 @@ func (*MoveTask) Validate(t *model.Task) error {
 }
 
 // Run exects the task by moving the file in the requested directory.
+// TODO Create directory if not exist
 func (*MoveTask) Run(args map[string]interface{}, processor *Processor) (string, error) {
-	newPath := args["path"].(string)
+	var oldPath *string
+	newDir := args["path"].(string)
+
 	if processor.Rule.IsSend {
-		name := filepath.Base(processor.Transfer.SourcePath)
-		dest := fmt.Sprintf("%s/%s", newPath, name)
-
-		if err := os.Rename(processor.Transfer.SourcePath, dest); err != nil {
-			return err.Error(), err
-		}
-		processor.Transfer.SourcePath = dest
-		return "", nil
+		oldPath = &(processor.Transfer.SourcePath)
+	} else {
+		oldPath = &(processor.Transfer.DestPath)
 	}
-	name := filepath.Base(processor.Transfer.DestPath)
-	dest := fmt.Sprintf("%s/%s", newPath, name)
 
-	if err := os.Rename(processor.Transfer.DestPath, dest); err != nil {
+	newPath := filepath.Join(newDir, filepath.Base(*oldPath))
+
+	if err := os.Rename(*oldPath, newPath); err != nil {
 		return err.Error(), err
 	}
-	processor.Transfer.DestPath = dest
+
+	*oldPath = newPath
 	return "", nil
 }
