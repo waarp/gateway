@@ -32,7 +32,6 @@ type Executor struct {
 }
 
 func newTransferInfo(db *database.Db, trans *model.Transfer) (*transferInfo, error) {
-
 	remote := model.RemoteAgent{ID: trans.AgentID}
 	if err := db.Get(&remote); err != nil {
 		if err == database.ErrNotFound {
@@ -129,7 +128,7 @@ func (e *Executor) sftpTransfer(info *transferInfo) error {
 		select {
 		case <-e.Shutdown:
 			updt := &model.Transfer{
-				Error: model.NewTransferError('S', errShutdown.Error()),
+				Error: model.NewTransferError(model.TeShuttingDown, errShutdown.Error()),
 			}
 			if err := e.Db.Update(updt, info.Transfer.ID, false); err != nil {
 				e.Logger.Criticalf("Database error: %s", err)
