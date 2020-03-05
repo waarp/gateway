@@ -32,7 +32,7 @@ type accessAddCommand struct {
 	Password     string `required:"true" short:"p" long:"password" description:"The account's password"`
 }
 
-func (a *accessAddCommand) Execute(_ []string) error {
+func (a *accessAddCommand) Execute([]string) error {
 	newAccount := rest.InAccount{
 		Login:    a.Login,
 		Password: []byte(a.Password),
@@ -152,7 +152,7 @@ type accessListCommand struct {
 	LocalAgentID []uint64 `long:"server_id" description:"Filter the accounts based on the ID of the local agent they are attached to. Can be repeated multiple times to filter multiple agents."`
 }
 
-func (s *accessListCommand) Execute(_ []string) error {
+func (s *accessListCommand) Execute([]string) error {
 	conn, err := accountListURL(rest.LocalAccountsPath, &s.listOptions, s.SortBy,
 		s.LocalAgentID)
 	if err != nil {

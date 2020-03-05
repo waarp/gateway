@@ -65,7 +65,7 @@ type certAddCommand struct {
 	Certificate string `long:"certificate" description:"The path to the certificate file"`
 }
 
-func (c *certAddCommand) Execute(_ []string) error {
+func (c *certAddCommand) Execute([]string) error {
 	var prK, puK, crt []byte
 	var err error
 
@@ -152,7 +152,7 @@ type certListCommand struct {
 	Server  []uint64 `long:"server" description:"Filter the certificates based on the ID of the local server they are attached to. Can be repeated multiple times to filter multiple servers."`
 }
 
-func (c *certListCommand) Execute(_ []string) error {
+func (c *certListCommand) Execute([]string) error {
 	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err

@@ -5,6 +5,7 @@ Commandes
 .. toctree::
    :maxdepth: 2
 
+   user
    server
    partner
    access

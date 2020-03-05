@@ -47,7 +47,7 @@ type transferAddCommand struct {
 	RuleID    uint64 `required:"true" short:"r" long:"rule" description:"The rule to use for the transfer"`
 }
 
-func (t *transferAddCommand) Execute(_ []string) error {
+func (t *transferAddCommand) Execute([]string) error {
 	newTransfer := rest.InTransfer{
 		AgentID:    t.ServerID,
 		AccountID:  t.AccountID,
@@ -147,7 +147,7 @@ func (t *transferListCommand) listURL() (*url.URL, error) {
 	return conn, nil
 }
 
-func (t *transferListCommand) Execute(_ []string) error {
+func (t *transferListCommand) Execute([]string) error {
 	conn, err := t.listURL()
 	if err != nil {
 		return err

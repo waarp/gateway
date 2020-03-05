@@ -65,7 +65,7 @@ type ruleAddCommand struct {
 	Path      string `required:"true" short:"p" long:"path" description:"The path to the destination of the file"`
 }
 
-func (r *ruleAddCommand) Execute(_ []string) error {
+func (r *ruleAddCommand) Execute([]string) error {
 	rule := rest.InRule{
 		Name:    r.Name,
 		Comment: r.Comment,
@@ -124,22 +124,11 @@ type ruleListCommand struct {
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name" default:"name"`
 }
 
-func (r *ruleListCommand) Execute(_ []string) error {
-	conn, err := url.Parse(auth.DSN)
+func (r *ruleListCommand) Execute([]string) error {
+	conn, err := listURL(rest.RulesPath, &r.listOptions, r.SortBy)
 	if err != nil {
 		return err
 	}
-
-	conn.Path = admin.APIPath + rest.RulesPath
-	query := url.Values{}
-	query.Set("limit", fmt.Sprint(r.Limit))
-	query.Set("offset", fmt.Sprint(r.Offset))
-	if r.DescOrder {
-		query.Set("sort", r.SortBy+"-")
-	} else {
-		query.Set("sort", r.SortBy+"+")
-	}
-	conn.RawQuery = query.Encode()
 
 	res := map[string][]rest.OutRule{}
 	if err := getCommand(&res, conn); err != nil {

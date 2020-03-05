@@ -180,7 +180,7 @@ func TestAuthentication(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	SkipConvey("Given an authentication handler", t, func() {
+	Convey("Given an authentication handler", t, func() {
 		db := database.GetTestDatabase()
 		auth := Authentication(authLogger, db).Middleware(handler)
 

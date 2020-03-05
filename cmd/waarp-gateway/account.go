@@ -57,7 +57,7 @@ type accountAddCommand struct {
 	Password  string `required:"true" short:"p" long:"password" description:"The account's password"`
 }
 
-func (a *accountAddCommand) Execute(_ []string) error {
+func (a *accountAddCommand) Execute([]string) error {
 	newAccount := rest.InAccount{
 		Login:    a.Login,
 		Password: []byte(a.Password),
@@ -152,7 +152,7 @@ type accountListCommand struct {
 	RemoteAgentID []uint64 `long:"partner_id" description:"Filter accounts based on the ID of the remote agent they are attached to. Can be repeated multiple times to filter multiple agents."`
 }
 
-func (s *accountListCommand) Execute(_ []string) error {
+func (s *accountListCommand) Execute([]string) error {
 	conn, err := accountListURL(rest.RemoteAccountsPath, &s.listOptions, s.SortBy,
 		s.RemoteAgentID)
 	if err != nil {
