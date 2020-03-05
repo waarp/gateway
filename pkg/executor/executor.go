@@ -3,6 +3,7 @@
 package executor
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 	"github.com/go-xorm/builder"
 )
 
-var errShutdown = fmt.Errorf("server shutdown signal received")
+var errShutdown = errors.New("server shutdown signal received")
 
 type transferInfo struct {
 	*model.Transfer

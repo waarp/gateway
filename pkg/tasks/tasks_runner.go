@@ -4,6 +4,7 @@ package tasks
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -17,9 +18,9 @@ import (
 var (
 	// ErrShutdown is the error returned when a shutdown signal is received
 	// during the execution of tasks.
-	ErrShutdown = fmt.Errorf("server shutdown signal received")
+	ErrShutdown = errors.New("server shutdown signal received")
 
-	errWarning = fmt.Errorf("warning")
+	errWarning = errors.New("warning")
 )
 
 // GetTasks returns the list of all tasks of the given rule & chain.
