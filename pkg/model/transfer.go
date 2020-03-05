@@ -24,6 +24,7 @@ type Transfer struct {
 	Status     TransferStatus `xorm:"notnull 'status'" json:"status"`
 	Owner      string         `xorm:"notnull 'owner'" json:"-"`
 	Error      TransferError  `xorm:"extends" json:"error,omitempty"`
+	ExtInfo    []byte         `xorm:"'ext_info'" json:"extInfo"`
 }
 
 // TableName returns the name of the transfers table.
@@ -247,6 +248,7 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		Stop:           stop,
 		Status:         t.Status,
 		Error:          t.Error,
+		ExtInfo:        t.ExtInfo,
 	}
 
 	return &hist, nil

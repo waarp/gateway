@@ -22,6 +22,9 @@ func GetProtoConfig(proto string, config []byte) (ProtoConfig, error) {
 		conf := &SftpProtoConfig{}
 		err := json.Unmarshal(config, conf)
 		return conf, err
+	case "r66":
+		conf := &R66ProtoConfig{}
+		return conf, nil
 	default:
 		return nil, fmt.Errorf("unknown protocol")
 	}

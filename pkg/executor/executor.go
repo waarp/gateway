@@ -3,8 +3,11 @@
 package executor
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os/exec"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -29,6 +32,7 @@ type transferInfo struct {
 type Executor struct {
 	Db       *database.Db
 	Logger   *log.Logger
+	R66Home  string
 	Shutdown <-chan bool
 }
 
@@ -138,8 +142,64 @@ func (e *Executor) sftpTransfer(info *transferInfo) error {
 		case <-done:
 		}
 	}()
-	return sftp.DoTransfer(context.SftpClient, info.Transfer, info.rule)
+	if err := sftp.DoTransfer(context.SftpClient, info.Transfer, info.rule); err != nil {
+		return err
+	}
 
+	return nil
+}
+
+func (e *Executor) r66Transfer(info *transferInfo) error {
+
+	script := fmt.Sprintf("%s/bin/waarp-r66client.sh", e.R66Home)
+	args := []string{
+		info.remoteAccount.Login,
+		"send",
+		"-to", info.remoteAgent.Name,
+		"-file", info.Transfer.SourcePath,
+		"-rule", info.rule.Name,
+	}
+	cmd := exec.Command(script, args...) //nolint:gosec
+	out, err := cmd.Output()
+	if err != nil {
+		info.Transfer.Error = model.TransferError{
+			Code:    model.TeExternalOperation,
+			Details: err.Error(),
+		}
+	}
+	if len(out) > 0 {
+		// Get the second line of the output
+		arrays := bytes.Split(out, []byte("\n"))
+		if len(arrays) < 2 {
+			return fmt.Errorf("bad output")
+		}
+		// Parse into a r66Result
+		result := &r66Result{}
+		if err := json.Unmarshal(arrays[1], result); err != nil {
+			return err
+		}
+		// Add R66 result info to the transfer
+		if err = info.Transfer.Error.Code.Scan(result.StatusCode); err != nil {
+			return err
+		}
+		info.Transfer.Error.Details = result.StatusTxt
+		info.Transfer.DestPath = result.FinalPath
+		buf, err := json.Marshal(result)
+		if err != nil {
+			return err
+		}
+		info.Transfer.ExtInfo = buf
+	}
+	return err
+}
+
+type r66Result struct {
+	SpecialID       int
+	StatusCode      string
+	StatusTxt       string
+	FinalPath       string
+	FileInformation string
+	OriginalSize    uint
 }
 
 func updateStatus(db *database.Db, trans *model.Transfer, status model.TransferStatus) error {
@@ -185,6 +245,7 @@ func (e *Executor) runTasks(chain model.Chain, info *transferInfo) error {
 	if err != nil {
 		return err
 	}
+
 	processor := tasks.Processor{
 		Db:       e.Db,
 		Logger:   e.Logger,
@@ -202,49 +263,70 @@ func (e *Executor) runTasks(chain model.Chain, info *transferInfo) error {
 	return err
 }
 
-func (e *Executor) runTransfer(trans *model.Transfer, runTransfer runner) {
-	info, err := transferPrologue(e.Db, trans)
-	if err != nil {
-		e.logTransfer(trans, err)
-		return
-	}
+func (e *Executor) runTransfer(info *transferInfo, run runner) {
+	err := func() error {
+		if info.remoteAgent.Protocol != "r66" {
+			if err := updateStatus(e.Db, info.Transfer, model.StatusPreTasks); err != nil {
+				return err
+			}
 
-	transErr := func() error {
-		if err := e.runTasks(model.ChainPre, info); err != nil {
-			return err
-		}
-		if err := updateStatus(e.Db, info.Transfer, model.StatusTransfer); err != nil {
-			return err
+			if err := e.runTasks(model.ChainPre, info); err != nil {
+				return err
+			}
 		}
 
-		if err := runTransfer(info); err != nil {
+		if err := run(info); err != nil {
 			return err
 		}
 
-		if err := updateStatus(e.Db, info.Transfer, model.StatusPostTasks); err != nil {
-			return err
-		}
+		if info.remoteAgent.Protocol != "r66" {
+			if err := updateStatus(e.Db, info.Transfer, model.StatusPostTasks); err != nil {
+				return err
+			}
 
-		if err := e.runTasks(model.ChainPost, info); err != nil {
-			return err
+			return e.runTasks(model.ChainPost, info)
 		}
 
 		return nil
 	}()
-	if transErr != nil {
-		if err := updateStatus(e.Db, info.Transfer, model.StatusErrorTasks); err != nil {
-			e.logTransfer(trans, err)
-			return
-		}
-		if err := e.runTasks(model.ChainError, info); err != nil {
-			e.logTransfer(trans, err)
-			return
-		}
+	if err != nil {
+		_ = e.runTasks(model.ChainError, info)
 	}
-	e.logTransfer(trans, transErr)
+	e.logTransfer(info.Transfer, err)
 }
 
 // Run executes the given transfer.
 func (e *Executor) Run(trans model.Transfer) {
-	e.runTransfer(&trans, e.sftpTransfer)
+
+	info, err := transferPrologue(e.Db, &trans)
+	if err != nil {
+		e.logTransfer(&trans, err)
+		return
+	}
+
+	runner := e.getProtocolRunner(info.remoteAgent.Protocol)
+	if runner == nil {
+		e.logTransfer(&trans, fmt.Errorf("unknown protocol"))
+		return
+	}
+
+	if err := updateStatus(e.Db, info.Transfer, model.StatusTransfer); err != nil {
+		if err := updateStatus(e.Db, info.Transfer, model.StatusErrorTasks); err != nil {
+			e.logTransfer(&trans, err)
+			return
+		}
+	}
+
+	e.runTransfer(info, runner)
+}
+
+func (e *Executor) getProtocolRunner(protocol string) runner {
+
+	switch protocol {
+	case "sftp":
+		return e.sftpTransfer
+	case "r66":
+		return e.r66Transfer
+	}
+	return nil
 }

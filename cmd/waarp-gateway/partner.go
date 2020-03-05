@@ -58,7 +58,7 @@ func (p *partnerGetCommand) Execute(args []string) error {
 
 type partnerAddCommand struct {
 	Name        string `required:"true" short:"n" long:"name" description:"The partner's name"`
-	Protocol    string `required:"true" short:"p" long:"protocol" description:"The partner's protocol" choice:"sftp"`
+	Protocol    string `required:"true" short:"p" long:"protocol" description:"The partner's protocol" choice:"sftp" choice:"r66"`
 	ProtoConfig string `long:"config" description:"The partner's configuration in JSON"`
 }
 

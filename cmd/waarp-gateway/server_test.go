@@ -153,7 +153,7 @@ func TestAddServer(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "400 - Invalid request: "+
-							"The agent's protocol must be one of: [sftp]")
+							"The agent's protocol must be one of: [sftp r66]")
 					})
 				})
 			})
@@ -517,7 +517,7 @@ func TestUpdateServer(t *testing.T) {
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
 							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
-								"The agent's protocol must be one of: [sftp]")
+								"The agent's protocol must be one of: [sftp r66]")
 						})
 					})
 				})
