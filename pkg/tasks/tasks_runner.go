@@ -4,6 +4,7 @@ package tasks
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -14,7 +15,13 @@ import (
 	"github.com/go-xorm/builder"
 )
 
-var errWarning = fmt.Errorf("warning")
+var (
+	// ErrShutdown is the error returned when a shutdown signal is received
+	// during the execution of tasks.
+	ErrShutdown = errors.New("server shutdown signal received")
+
+	errWarning = errors.New("warning")
+)
 
 // GetTasks returns the list of all tasks of the given rule & chain.
 func GetTasks(db *database.Db, ruleID uint64, chain model.Chain) ([]*model.Task, error) {
@@ -37,6 +44,7 @@ type Processor struct {
 	Logger   *log.Logger
 	Rule     *model.Rule
 	Transfer *model.Transfer
+	Shutdown <-chan bool
 }
 
 // RunTasks execute sequentially the list of tasks given
@@ -45,6 +53,11 @@ func (p *Processor) RunTasks(tasks []*model.Task) error {
 	for _, task := range tasks {
 		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, p.Rule.Name,
 			task.Chain, task.Rank)
+		select {
+		case <-p.Shutdown:
+			return ErrShutdown
+		default:
+		}
 
 		taskErr := func() error {
 			runnable, ok := RunnableTasks[task.Type]

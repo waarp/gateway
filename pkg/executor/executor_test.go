@@ -395,9 +395,11 @@ func TestExecutorTasks(t *testing.T) {
 			So(db.Create(trans), ShouldBeNil)
 
 			Convey("Given an executor", func() {
+				shutdown := make(chan bool)
 				exe := &Executor{
-					Db:     db,
-					Logger: log.NewLogger("test_executor", logConf),
+					Db:       db,
+					Logger:   log.NewLogger("test_executor", logConf),
+					Shutdown: shutdown,
 				}
 
 				Convey("Given that the SFTP transfer is successful", func() {
@@ -638,6 +640,49 @@ func TestExecutorTasks(t *testing.T) {
 
 								expected.Stop = hist.Stop
 								So(hist, ShouldResemble, expected)
+							})
+						})
+					})
+
+					Convey("Given that the server shuts down", func() {
+						task := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainPre,
+							Rank:   0,
+							Type:   "TESTINFINITE",
+							Args:   []byte("{}"),
+						}
+						So(db.Create(task), ShouldBeNil)
+
+						Convey("When calling the `runTransfer` method", func() {
+							done := make(chan bool)
+							go func() {
+								exe.runTransfer(trans, run)
+								close(done)
+							}()
+							close(shutdown)
+							<-done
+
+							Convey("Then the transfer should have failed", func() {
+
+								hist := &model.TransferHistory{
+									ID:             trans.ID,
+									Owner:          trans.Owner,
+									IsServer:       false,
+									IsSend:         true,
+									Account:        account.Login,
+									Remote:         remote.Name,
+									Protocol:       remote.Protocol,
+									SourceFilename: trans.SourcePath,
+									DestFilename:   trans.DestPath,
+									Rule:           rule.Name,
+									Start:          trans.Start,
+									Status:         model.StatusError,
+								}
+
+								So(db.Get(hist), ShouldBeNil)
+								So(hist.Error, ShouldResemble, model.NewTransferError(
+									model.TeShuttingDown, "server shutdown signal received"))
 							})
 						})
 					})

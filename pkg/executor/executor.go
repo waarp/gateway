@@ -3,6 +3,7 @@
 package executor
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 	"github.com/go-xorm/builder"
 )
 
+var errShutdown = errors.New("server shutdown signal received")
+
 type transferInfo struct {
 	*model.Transfer
 	remoteAgent   *model.RemoteAgent
@@ -24,12 +27,12 @@ type transferInfo struct {
 
 // Executor is the process responsible for executing outgoing transfers.
 type Executor struct {
-	Db     *database.Db
-	Logger *log.Logger
+	Db       *database.Db
+	Logger   *log.Logger
+	Shutdown <-chan bool
 }
 
 func newTransferInfo(db *database.Db, trans *model.Transfer) (*transferInfo, error) {
-
 	remote := model.RemoteAgent{ID: trans.AgentID}
 	if err := db.Get(&remote); err != nil {
 		if err == database.ErrNotFound {
@@ -113,7 +116,7 @@ func (e *Executor) logTransfer(trans *model.Transfer, errTrans error) {
 
 type runner func(*transferInfo) error
 
-func sftpTransfer(info *transferInfo) error {
+func (e *Executor) sftpTransfer(info *transferInfo) error {
 
 	context, err := sftp.Connect(info.remoteAgent, info.remoteCert, info.remoteAccount)
 	if err != nil {
@@ -121,11 +124,22 @@ func sftpTransfer(info *transferInfo) error {
 	}
 	defer context.Close()
 
-	if err := sftp.DoTransfer(context.SftpClient, info.Transfer, info.rule); err != nil {
-		return err
-	}
+	done := make(chan bool)
+	go func() {
+		select {
+		case <-e.Shutdown:
+			updt := &model.Transfer{
+				Error: model.NewTransferError(model.TeShuttingDown, errShutdown.Error()),
+			}
+			if err := e.Db.Update(updt, info.Transfer.ID, false); err != nil {
+				e.Logger.Criticalf("Database error: %s", err)
+			}
+			context.Close()
+		case <-done:
+		}
+	}()
+	return sftp.DoTransfer(context.SftpClient, info.Transfer, info.rule)
 
-	return nil
 }
 
 func updateStatus(db *database.Db, trans *model.Transfer, status model.TransferStatus) error {
@@ -171,17 +185,21 @@ func (e *Executor) runTasks(chain model.Chain, info *transferInfo) error {
 	if err != nil {
 		return err
 	}
-	taskRunner := tasks.Processor{
+	processor := tasks.Processor{
 		Db:       e.Db,
 		Logger:   e.Logger,
 		Rule:     info.rule,
 		Transfer: info.Transfer,
-	}
-	if err := taskRunner.RunTasks(taskChain); err != nil {
-		return err
+		Shutdown: e.Shutdown,
 	}
 
-	return nil
+	err = processor.RunTasks(taskChain)
+	if err == tasks.ErrShutdown {
+		info.Transfer.Error = model.NewTransferError(model.TeShuttingDown,
+			errShutdown.Error())
+		return errShutdown
+	}
+	return err
 }
 
 func (e *Executor) runTransfer(trans *model.Transfer, runTransfer runner) {
@@ -228,5 +246,5 @@ func (e *Executor) runTransfer(trans *model.Transfer, runTransfer runner) {
 
 // Run executes the given transfer.
 func (e *Executor) Run(trans model.Transfer) {
-	e.runTransfer(&trans, sftpTransfer)
+	e.runTransfer(&trans, e.sftpTransfer)
 }

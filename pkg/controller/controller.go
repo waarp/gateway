@@ -24,9 +24,10 @@ type Controller struct {
 	Conf *conf.ServerConfig
 	Db   *database.Db
 
-	ticker time.Ticker
-	logger *log.Logger
-	state  service.State
+	ticker   time.Ticker
+	logger   *log.Logger
+	state    service.State
+	shutdown chan bool
 }
 
 func (c *Controller) listen(run func(model.Transfer)) {
@@ -67,14 +68,19 @@ func (c *Controller) Start() error {
 
 	c.state.Set(service.Running, "")
 
-	exe := executor.Executor{Db: c.Db, Logger: log.NewLogger("executor", c.Conf.Log)}
+	exe := executor.Executor{
+		Db:       c.Db,
+		Logger:   log.NewLogger("executor", c.Conf.Log),
+		Shutdown: c.shutdown,
+	}
 	c.listen(exe.Run)
 
 	return nil
 }
 
 // Stop stops the transfer controller service.
-func (c *Controller) Stop(ctx context.Context) error {
+func (c *Controller) Stop(_ context.Context) error {
+	close(c.shutdown)
 	c.state.Set(service.Offline, "")
 	c.ticker.Stop()
 	return nil
