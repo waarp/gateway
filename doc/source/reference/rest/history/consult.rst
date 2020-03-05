@@ -24,15 +24,18 @@ Consulter une entrée de l'historique
    :statuscode 404: Le transfert demandé n'existe pas
 
    :resjson number id: L'identifiant unique du transfert
-   :resjson string rule: Le nom de la règle de transfert
-   :resjson string source: Le nom de l'émetteur du transfert
-   :resjson string dest: Le nom du destinataire du transfert
+   :resjson bool isServer: Précise si la gateway était à l'origine du transfert
+   :resjson bool isSend: Précise si le transfert était entrant ou sortant
+   :resjson string account: Le nom du compte ayant demandé le transfert
+   :resjson string remote: Le nom du partenaire avec lequel le transfert a été effectué
    :resjson string protocol: Le protocole utilisé pour le transfert
-   :resjson string filename: Le nom du fichier transféré
+   :resjson string sourceFilename: Le nom du fichier avant le transfert
+   :resjson string destFilename: Le nom du fichier après le transfert
+   :resjson string rule: Le nom de la règle de transfert
    :resjson date start: La date de début du transfert
    :resjson date stop: La date de fin du transfert
    :resjson string status: Le statut final du transfert (*DONE* ou *ERROR*)
-   :resjson number errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
+   :resjson string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjson string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
    **Exemple de réponse**
@@ -41,15 +44,18 @@ Consulter une entrée de l'historique
 
           HTTP/1.1 200 OK
           Content-Type: application/json
-          Content-Length: 148
+          Content-Length: 176
 
           {
             "id": 1,
+            "isServer": true,
+            "isSend": false,
             "rule": "regle_sftp",
-            "source": "compte_sftp",
-            "dest": "serveur_sftp",
+            "account": "compte_sftp",
+            "remote": "serveur_sftp",
             "protocol": "sftp",
-            "filename": "nom/de/fichier",
+            "sourceFilename": "source/du/fichier",
+            "destFilename": "destination/du/fichier",
             "start": "2019-01-01T01:00:00+02:00",
             "stop": "2019-01-01T02:00:00+02:00",
             "status": "DONE"

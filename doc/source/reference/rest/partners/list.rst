@@ -14,10 +14,8 @@ Lister les partenaires
    :type limit: int
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
-   :param sortby: Le paramètre selon lequel les partenaires seront triés *(défaut: name)*
-   :type sortby: [name|protocol]
-   :param order: L'ordre dans lequel les partenaires sont triés *(défaut: asc)*
-   :type order: [asc|desc]
+   :param sort: Le paramètre selon lequel les partenaires seront triés *(défaut: name+)*
+   :type sort: [name+|name-|protocol+|protocol-]
    :param protocol: Filtre uniquement les partenaires utilisant ce protocole.
       Peut être renseigné plusieurs fois pour filtrer plusieurs protocoles.
    :type protocol: [sftp]
@@ -40,8 +38,8 @@ Lister les partenaires
    :resjsonarr number id: L'identifiant unique du partenaire
    :resjsonarr string name: Le nom du partenaire
    :resjsonarr [sftp] protocol: Le protocole utilisé par le partenaire
-   :resjsonarr string protoConfig: La configuration du partenaire encodé dans une
-      chaîne de caractères au format JSON.
+   :resjsonarr object protoConfig: La configuration du partenaire encodé sous
+      forme d'un objet JSON.
 
    **Exemple de réponse**
 
@@ -49,18 +47,26 @@ Lister les partenaires
 
           HTTP/1.1 200 OK
           Content-Type: application/json
-          Content-Length: 228
+          Content-Length: 267
 
           {
             "localAgents": [{
               "id": 2,
               "name": "waarp_sftp_2",
               "protocol": "sftp",
-              "protoConfig": "{\"address\":\"waarp.fr\",\"port\":22}
+              "protoConfig": {
+                "address": "waarp.fr",
+                "port": 22,
+                "root": "/sftp_2/root"
+              }
             },{
               "id": 1,
-              "name": "waarp_sftp_1",
+              "name": "waarp_sftp",
               "protocol": "sftp",
-              "protoConfig": "{\"address\":\"waarp.org\",\"port\":21}
+              "protoConfig": {
+                "address": "waarp.org",
+                "port": 21,
+                "root": "/sftp/root"
+              }
             }]
           }

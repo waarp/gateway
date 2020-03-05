@@ -7,7 +7,7 @@ import (
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 )
 
 type serverCommand struct {
@@ -18,7 +18,7 @@ type serverCommand struct {
 	Update serverUpdateCommand `command:"update" description:"Modify a local agent's information"`
 }
 
-func displayServer(agent model.LocalAgent) {
+func displayServer(agent rest.OutAgent) {
 	w := getColorable()
 
 	var config bytes.Buffer
@@ -38,12 +38,12 @@ func (s *serverGetCommand) Execute(args []string) error {
 		return fmt.Errorf("missing server ID")
 	}
 
-	res := model.LocalAgent{}
+	res := rest.OutAgent{}
 	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + args[0]
 
 	if err := getCommand(&res, conn); err != nil {
 		return err
@@ -66,7 +66,7 @@ func (s *serverAddCommand) Execute(_ []string) error {
 	if s.ProtoConfig == "" {
 		s.ProtoConfig = "{}"
 	}
-	newAgent := model.LocalAgent{
+	newAgent := rest.InAgent{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
 		ProtoConfig: []byte(s.ProtoConfig),
@@ -76,7 +76,7 @@ func (s *serverAddCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAgentsPath
+	conn.Path = admin.APIPath + rest.LocalAgentsPath
 
 	loc, err := addCommand(newAgent, conn)
 	if err != nil {
@@ -103,7 +103,7 @@ func (s *serverDeleteCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + args[0]
 
 	if err := deleteCommand(conn); err != nil {
 		return err
@@ -125,12 +125,12 @@ type serverListCommand struct {
 }
 
 func (s *serverListCommand) Execute(_ []string) error {
-	conn, err := agentListURL(admin.LocalAgentsPath, &s.listOptions, s.SortBy, s.Protocols)
+	conn, err := agentListURL(rest.LocalAgentsPath, &s.listOptions, s.SortBy, s.Protocols)
 	if err != nil {
 		return err
 	}
 
-	res := map[string][]model.LocalAgent{}
+	res := map[string][]rest.OutAgent{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}
@@ -162,25 +162,17 @@ func (s *serverUpdateCommand) Execute(args []string) error {
 		return fmt.Errorf("missing server ID")
 	}
 
-	if s.ProtoConfig == "" {
-		s.ProtoConfig = "{}"
-	}
-	newAgent := map[string]interface{}{}
-	if s.Name != "" {
-		newAgent["name"] = s.Name
-	}
-	if s.Protocol != "" {
-		newAgent["protocol"] = s.Protocol
-	}
-	if s.ProtoConfig != "" {
-		newAgent["protoConfig"] = []byte(s.ProtoConfig)
+	newAgent := rest.InAgent{
+		Name:        s.Name,
+		Protocol:    s.Protocol,
+		ProtoConfig: []byte(s.ProtoConfig),
 	}
 
 	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.LocalAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + args[0]
 
 	_, err = updateCommand(newAgent, conn)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
@@ -14,7 +15,7 @@ type historyCommand struct {
 	List historyListCommand `command:"list" description:"List the finished transfers"`
 }
 
-func displayHistory(hist model.TransferHistory) {
+func displayHistory(hist rest.OutHistory) {
 	w := getColorable()
 
 	fmt.Fprintf(w, "\033[37;1;4mTransfer %v=>\033[0m\n", hist.ID)
@@ -31,13 +32,13 @@ func displayHistory(hist model.TransferHistory) {
 	fmt.Fprintf(w, "          \033[37mEnd date:\033[0m \033[33m%s\033[0m\n",
 		hist.Stop.Format(time.RFC3339))
 	fmt.Fprintf(w, "            \033[37mStatus:\033[0m \033[37;1m%s\033[0m\n", hist.Status)
-	if hist.Error.Code != model.TeOk {
+	if hist.ErrorCode != model.TeOk {
 		fmt.Fprintf(w, "       \033[37mError code:\033[0m \033[33m%v\033[0m\n",
-			hist.Error.Code)
+			hist.ErrorCode)
 	}
-	if hist.Error.Details != "" {
+	if hist.ErrorMsg != "" {
 		fmt.Fprintf(w, "    \033[37mError message:\033[0m \033[33m%s\033[0m\n",
-			hist.Error.Details)
+			hist.ErrorMsg)
 	}
 }
 
@@ -54,9 +55,9 @@ func (h *historyGetCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.HistoryPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.HistoryPath + "/" + args[0]
 
-	res := model.TransferHistory{}
+	res := rest.OutHistory{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}
@@ -86,13 +87,14 @@ func (h *historyListCommand) listURL() (*url.URL, error) {
 		return nil, err
 	}
 
-	conn.Path = admin.APIPath + admin.HistoryPath
+	conn.Path = admin.APIPath + rest.HistoryPath
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(h.Limit))
 	query.Set("offset", fmt.Sprint(h.Offset))
-	query.Set("sortby", h.SortBy)
 	if h.DescOrder {
-		query.Set("order", "desc")
+		query.Set("sort", h.SortBy+"-")
+	} else {
+		query.Set("sort", h.SortBy+"+")
 	}
 	for _, acc := range h.Account {
 		query.Add("account", acc)
@@ -136,7 +138,7 @@ func (h *historyListCommand) Execute(_ []string) error {
 		return err
 	}
 
-	res := map[string][]model.TransferHistory{}
+	res := map[string][]rest.OutHistory{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}

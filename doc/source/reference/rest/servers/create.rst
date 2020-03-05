@@ -12,8 +12,8 @@ Créer un serveur
 
    :reqjson string name: Le nom du serveur
    :reqjson string protocol: Le protocole utilisé par le serveur
-   :reqjson string protoConfig: La configuration du serveur encodé dans une
-      chaîne de caractères au format JSON.
+   :reqjson object protoConfig: La configuration du partenaire encodé sous forme
+      d'un objet JSON.
 
    **Exemple de requête**
 
@@ -22,12 +22,16 @@ Créer un serveur
           POST https://my_waarp_gateway.net/api/servers HTTP/1.1
           Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
           Content-Type: application/json
-          Content-Length: 88
+          Content-Length: 111
 
           {
-            "name": "sftp_server",
+            "name": "sftp server",
             "protocol": "sftp",
-            "protoConfig": "{\"address\":\"localhost\",\"port\":21}
+            "protoConfig": {
+              "address": "localhost",
+              "port": 21,
+              "root": "/sftp/root"
+            }
           }
 
 

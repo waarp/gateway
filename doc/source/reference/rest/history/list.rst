@@ -16,10 +16,8 @@ Filtrer l'historique
    :type limit: int
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
-   :param sortby: Le paramètre selon lequel les transferts seront triés *(défaut: start)*
-   :type sortby: [start|id|status|rule_id]
-   :param order: L'ordre dans lequel les serveurs sont triés *(défaut: asc)*
-   :type order: [asc|desc]
+   :param sort: Le paramètre selon lequel les transferts seront triés *(défaut: start+)*
+   :type sort: [id+|id-|start+|start-|status+|status-|rule+|rule-]
    :param source: Filtre uniquement les transferts provenant de l'agent renseigné.
       Peut être renseigné plusieurs fois pour filtrer plusieurs sources.
    :type source: string
@@ -60,15 +58,18 @@ Filtrer l'historique
 
    :resjson array history: La liste des transferts demandés
    :resjsonarr number id: L'identifiant unique du transfert
-   :resjsonarr string rule: Le nom de la règle de transfert
-   :resjsonarr string source: Le nom de l'émetteur du transfert
-   :resjsonarr string dest: Le nom du destinataire du transfert
+   :resjsonarr bool isServer: Précise si la gateway était à l'origine du transfert
+   :resjsonarr bool isSend: Précise si le transfert était entrant ou sortant
+   :resjsonarr string account: Le nom du compte ayant demandé le transfert
+   :resjsonarr string remote: Le nom du partenaire avec lequel le transfert a été effectué
    :resjsonarr string protocol: Le protocole utilisé pour le transfert
-   :resjsonarr string filename: Le nom du fichier transféré
+   :resjsonarr string sourceFilename: Le nom du fichier avant le transfert
+   :resjsonarr string destFilename: Le nom du fichier après le transfert
+   :resjsonarr string rule: Le nom de la règle de transfert
    :resjsonarr date start: La date de début du transfert
    :resjsonarr date stop: La date de fin du transfert
    :resjsonarr string status: Le statut final du transfert (*DONE* ou *ERROR*)
-   :resjsonarr number errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
+   :resjsonarr string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjsonarr string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
    **Exemple de réponse**

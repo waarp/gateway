@@ -10,9 +10,9 @@ func init() {
 
 // RuleAccess represents a authorised access to a rule.
 type RuleAccess struct {
-	RuleID     uint64 `xorm:"notnull unique(perm) 'rule_id'" json:"-"`
-	ObjectID   uint64 `xorm:"notnull unique(perm) 'object_id'" json:"objectID"`
-	ObjectType string `xorm:"notnull unique(perm) 'object_type'" json:"objectType"`
+	RuleID     uint64 `xorm:"notnull unique(perm) 'rule_id'"`
+	ObjectID   uint64 `xorm:"notnull unique(perm) 'object_id'"`
+	ObjectType string `xorm:"notnull unique(perm) 'object_type'"`
 }
 
 // TableName returns the rule access table name.
@@ -62,8 +62,8 @@ func (r *RuleAccess) ValidateInsert(acc database.Accessor) error {
 
 // ValidateUpdate is called before updating and existing `RuleAccess` entry from
 // the database. It rejects all update.
-func (*RuleAccess) ValidateUpdate(acc database.Accessor) error {
-	return database.InvalidError("Unallowed operation")
+func (*RuleAccess) ValidateUpdate(database.Accessor) error {
+	return database.InvalidError("Operation not allowed")
 }
 
 // IsRuleAuthorized verify if the rule requested by the transfer is authorized for

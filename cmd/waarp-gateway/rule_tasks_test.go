@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
@@ -36,61 +37,46 @@ func TestChangeRuleTasks(t *testing.T) {
 			Convey("When adding a new rule access", func() {
 
 				Convey("Given valid parameters", func() {
-					pre1 := &model.Task{
-						RuleID: rule.ID,
-						Chain:  model.ChainPre,
-						Rank:   0,
-						Type:   "COPY",
-						Args:   []byte("{}"),
-					}
-					pre2 := &model.Task{
-						RuleID: rule.ID,
-						Chain:  model.ChainPre,
-						Rank:   1,
-						Type:   "EXEC",
-						Args:   []byte("{}"),
-					}
-					post1 := &model.Task{
-						RuleID: rule.ID,
-						Chain:  model.ChainPost,
-						Rank:   0,
-						Type:   "DELETE",
-						Args:   []byte("{}"),
-					}
-					post2 := &model.Task{
-						RuleID: rule.ID,
-						Chain:  model.ChainPost,
-						Rank:   1,
-						Type:   "TRANSFER",
-						Args:   []byte("{}"),
-					}
-					err1 := &model.Task{
-						RuleID: rule.ID,
-						Chain:  model.ChainError,
-						Rank:   0,
-						Type:   "MOVE",
-						Args:   []byte("{}"),
-					}
-					err2 := &model.Task{
-						RuleID: rule.ID,
-						Chain:  model.ChainError,
-						Rank:   1,
-						Type:   "RENAME",
-						Args:   []byte("{}"),
+					preTasks := []rest.InRuleTask{
+						{
+							Type: "COPY",
+							Args: json.RawMessage("{}"),
+						}, {
+							Type: "EXEC",
+							Args: json.RawMessage("{}"),
+						},
 					}
 
-					preTasks, err := json.Marshal([]*model.Task{pre1, pre2})
+					postTasks := []rest.InRuleTask{
+						{
+							Type: "DELETE",
+							Args: json.RawMessage("{}"),
+						}, {
+							Type: "TRANSFER",
+							Args: json.RawMessage("{}"),
+						},
+					}
+
+					errorTasks := []rest.InRuleTask{
+						{
+							Type: "MOVE",
+							Args: json.RawMessage("{}"),
+						}, {
+							Type: "RENAME",
+							Args: json.RawMessage("{}"),
+						},
+					}
+
+					pre, err := json.Marshal(preTasks)
 					So(err, ShouldBeNil)
-					postTasks, err := json.Marshal([]*model.Task{post1, post2})
+					post, err := json.Marshal(postTasks)
 					So(err, ShouldBeNil)
-					errTasks, err := json.Marshal([]*model.Task{err1, err2})
+					erro, err := json.Marshal(errorTasks)
 					So(err, ShouldBeNil)
 
-					command.PreTasks = string(preTasks)
-					command.PostTasks = string(postTasks)
-					command.ErrorTasks = string(errTasks)
-
-					tasks := []*model.Task{pre1, pre2, post1, post2, err1, err2}
+					command.PreTasks = string(pre)
+					command.PostTasks = string(post)
+					command.ErrorTasks = string(erro)
 
 					Convey("Given a valid rule ID parameter", func() {
 						args := []string{ruleID}
@@ -111,13 +97,23 @@ func TestChangeRuleTasks(t *testing.T) {
 								So(getOutput(), ShouldEqual, "The task chains of "+
 									"rule n°1 were successfully changed. The rule's "+
 									"chains can be consulted at the address: "+
-									gw.URL+admin.APIPath+admin.RulesPath+"/"+ruleID+
-									admin.RuleTasksPath)
+									gw.URL+admin.APIPath+rest.RulesPath+"/"+ruleID+
+									rest.RuleTasksPath)
 							})
 
 							Convey("Then the new tasks should have been added", func() {
-								for _, task := range tasks {
-									exists, err := db.Exists(task)
+								for _, task := range preTasks {
+									exists, err := db.Exists(task.ToModel())
+									So(err, ShouldBeNil)
+									So(exists, ShouldBeTrue)
+								}
+								for _, task := range postTasks {
+									exists, err := db.Exists(task.ToModel())
+									So(err, ShouldBeNil)
+									So(exists, ShouldBeTrue)
+								}
+								for _, task := range errorTasks {
+									exists, err := db.Exists(task.ToModel())
 									So(err, ShouldBeNil)
 									So(exists, ShouldBeTrue)
 								}
@@ -138,13 +134,23 @@ func TestChangeRuleTasks(t *testing.T) {
 							Convey("Then it should return an error", func() {
 								So(err, ShouldBeError)
 								So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-									addr+admin.APIPath+admin.RulesPath+"/1000"+
-									admin.RuleTasksPath+"' does not exist")
+									addr+admin.APIPath+rest.RulesPath+"/1000"+
+									rest.RuleTasksPath+"' does not exist")
 							})
 
 							Convey("Then the new tasks should NOT have been added", func() {
-								for _, task := range tasks {
-									exists, err := db.Exists(task)
+								for _, task := range preTasks {
+									exists, err := db.Exists(task.ToModel())
+									So(err, ShouldBeNil)
+									So(exists, ShouldBeFalse)
+								}
+								for _, task := range postTasks {
+									exists, err := db.Exists(task.ToModel())
+									So(err, ShouldBeNil)
+									So(exists, ShouldBeFalse)
+								}
+								for _, task := range errorTasks {
+									exists, err := db.Exists(task.ToModel())
 									So(err, ShouldBeNil)
 									So(exists, ShouldBeFalse)
 								}
@@ -280,8 +286,8 @@ func TestListRuleTasks(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+admin.RulesPath+"/1000"+
-							admin.RuleTasksPath+"' does not exist")
+							addr+admin.APIPath+rest.RulesPath+"/1000"+
+							rest.RuleTasksPath+"' does not exist")
 					})
 				})
 			})

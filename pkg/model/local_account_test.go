@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -17,32 +16,6 @@ func TestLocalAccountTableName(t *testing.T) {
 
 			Convey("Then it should return the name of the local account table", func() {
 				So(name, ShouldEqual, "local_accounts")
-			})
-		})
-	})
-}
-
-func TestLocalAccountMarshalJSON(t *testing.T) {
-	Convey("Given a local account entry", t, func() {
-		acc := &LocalAccount{
-			ID:           1,
-			LocalAgentID: 1,
-			Login:        "login",
-			Password:     []byte("password"),
-		}
-
-		Convey("When calling the `MarshalJSON` method", func() {
-			res, err := acc.MarshalJSON()
-
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
-			})
-
-			Convey("Then it should return the account in JSON", func() {
-				expected := fmt.Sprintf(`{"id":%v,"localAgentID":%v,"login":"%s"}`,
-					acc.ID, acc.LocalAgentID, acc.Login)
-
-				So(string(res), ShouldEqual, expected)
 			})
 		})
 	})

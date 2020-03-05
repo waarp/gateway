@@ -14,10 +14,8 @@ Lister les règles
    :type limit: int
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
-   :param sortby: Le paramètre selon lequel les règles seront triées *(défaut: name)*
-   :type sortby: [name]
-   :param order: L'ordre dans lequel les règles sont triées *(défaut: asc)*
-   :type order: [asc|desc]
+   :param sortby: Le paramètre selon lequel les règles seront triées *(défaut: name+)*
+   :type sortby: [name+|name-]
 
    **Exemple de requête**
 

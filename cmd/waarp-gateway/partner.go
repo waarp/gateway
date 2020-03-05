@@ -7,7 +7,7 @@ import (
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 )
 
 type partnerCommand struct {
@@ -18,7 +18,7 @@ type partnerCommand struct {
 	Update partnerUpdateCommand `command:"update" description:"Update an existing remote agent"`
 }
 
-func displayPartner(agent model.RemoteAgent) {
+func displayPartner(agent rest.OutAgent) {
 	w := getColorable()
 
 	var config bytes.Buffer
@@ -27,31 +27,6 @@ func displayPartner(agent model.RemoteAgent) {
 	fmt.Fprintf(w, "          \033[37mName:\033[0m \033[37;1m%s\033[0m\n", agent.Name)
 	fmt.Fprintf(w, "      \033[37mProtocol:\033[0m \033[37;1m%s\033[0m\n", agent.Protocol)
 	fmt.Fprintf(w, " \033[37mConfiguration:\033[0m \033[37m%s\033[0m\n", config.String())
-}
-
-// ######################## GET ##########################
-
-type partnerGetCommand struct{}
-
-func (p *partnerGetCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing partner ID")
-	}
-
-	res := model.RemoteAgent{}
-	conn, err := url.Parse(auth.DSN)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + admin.RemoteAgentsPath + "/" + args[0]
-
-	if err := getCommand(&res, conn); err != nil {
-		return err
-	}
-
-	displayPartner(res)
-
-	return nil
 }
 
 // ######################## ADD ##########################
@@ -66,7 +41,7 @@ func (p *partnerAddCommand) Execute(_ []string) error {
 	if p.ProtoConfig == "" {
 		p.ProtoConfig = "{}"
 	}
-	newAgent := model.RemoteAgent{
+	newAgent := rest.InAgent{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
 		ProtoConfig: []byte(p.ProtoConfig),
@@ -76,7 +51,7 @@ func (p *partnerAddCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RemoteAgentsPath
+	conn.Path = admin.APIPath + rest.RemoteAgentsPath
 
 	loc, err := addCommand(newAgent, conn)
 	if err != nil {
@@ -90,32 +65,6 @@ func (p *partnerAddCommand) Execute(_ []string) error {
 	return nil
 }
 
-// ######################## DELETE ##########################
-
-type partnerDeleteCommand struct{}
-
-func (p *partnerDeleteCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing partner ID")
-	}
-
-	conn, err := url.Parse(auth.DSN)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + admin.RemoteAgentsPath + "/" + args[0]
-
-	if err := deleteCommand(conn); err != nil {
-		return err
-	}
-
-	w := getColorable()
-	fmt.Fprintf(w, "The partner n°\033[33m%s\033[0m was successfully deleted from "+
-		"the database\n", args[0])
-
-	return nil
-}
-
 // ######################## LIST ##########################
 
 type partnerListCommand struct {
@@ -125,12 +74,12 @@ type partnerListCommand struct {
 }
 
 func (p *partnerListCommand) Execute(_ []string) error {
-	conn, err := agentListURL(admin.RemoteAgentsPath, &p.listOptions, p.SortBy, p.Protocols)
+	conn, err := agentListURL(rest.RemoteAgentsPath, &p.listOptions, p.SortBy, p.Protocols)
 	if err != nil {
 		return err
 	}
 
-	res := map[string][]model.RemoteAgent{}
+	res := map[string][]rest.OutAgent{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}
@@ -149,6 +98,57 @@ func (p *partnerListCommand) Execute(_ []string) error {
 	return nil
 }
 
+// ######################## GET ##########################
+
+type partnerGetCommand struct{}
+
+func (p *partnerGetCommand) Execute(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("missing partner ID")
+	}
+
+	res := rest.OutAgent{}
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + args[0]
+
+	if err := getCommand(&res, conn); err != nil {
+		return err
+	}
+
+	displayPartner(res)
+
+	return nil
+}
+
+// ######################## DELETE ##########################
+
+type partnerDeleteCommand struct{}
+
+func (p *partnerDeleteCommand) Execute(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("missing partner ID")
+	}
+
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + args[0]
+
+	if err := deleteCommand(conn); err != nil {
+		return err
+	}
+
+	w := getColorable()
+	fmt.Fprintf(w, "The partner n°\033[33m%s\033[0m was successfully deleted from "+
+		"the database\n", args[0])
+
+	return nil
+}
+
 // ######################## UPDATE ##########################
 
 type partnerUpdateCommand struct {
@@ -162,22 +162,17 @@ func (p *partnerUpdateCommand) Execute(args []string) error {
 		return fmt.Errorf("missing partner ID")
 	}
 
-	newAgent := map[string]interface{}{}
-	if p.Name != "" {
-		newAgent["name"] = p.Name
-	}
-	if p.Protocol != "" {
-		newAgent["protocol"] = p.Protocol
-	}
-	if p.ProtoConfig != "" {
-		newAgent["protoConfig"] = []byte(p.ProtoConfig)
+	newAgent := rest.InAgent{
+		Name:        p.Name,
+		Protocol:    p.Protocol,
+		ProtoConfig: []byte(p.ProtoConfig),
 	}
 
 	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RemoteAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + args[0]
 
 	_, err = updateCommand(newAgent, conn)
 	if err != nil {

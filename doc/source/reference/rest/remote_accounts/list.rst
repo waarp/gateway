@@ -14,8 +14,8 @@ Lister les comptes partenaires
    :type limit: int
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
-   :param sortby: Le paramètre selon lequel les comptes seront triés *(défaut: login)*
-   :type sortby: [login]
+   :param sort: Le paramètre selon lequel les comptes seront triés *(défaut: login+)*
+   :type sort: [login+|login-]
    :param order: L'ordre dans lequel les comptes sont triés *(défaut: asc)*
    :type order: [asc|desc]
    :param agent: Filtre uniquement les comptes rattaché au partenaire portant ce numéro.

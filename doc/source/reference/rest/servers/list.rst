@@ -14,10 +14,8 @@ Lister les serveurs
    :type limit: int
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
-   :param sortby: Le paramètre selon lequel les serveurs seront triés *(défaut: name)*
-   :type sortby: [name|protocol]
-   :param order: L'ordre dans lequel les serveurs sont triés *(défaut: asc)*
-   :type order: [asc|desc]
+   :param sort: Le paramètre selon lequel les serveurs seront triés *(défaut: name+)*
+   :type sort: [name+|name-|protocol+|protocol-]
    :param protocol: Filtre uniquement les serveurs utilisant ce protocole.
       Peut être renseigné plusieurs fois pour filtrer plusieurs protocoles.
    :type protocol: [sftp]
@@ -40,8 +38,8 @@ Lister les serveurs
    :resjsonarr number id: L'identifiant unique du serveur
    :resjsonarr string name: Le nom du serveur
    :resjsonarr [sftp] protocol: Le protocole utilisé par le serveur
-   :resjsonarr string protoConfig: La configuration du serveur encodé dans une
-      chaîne de caractères au format JSON.
+   :resjsonarr object protoConfig: La configuration du partenaire encodé sous
+      forme d'un objet JSON.
 
    **Exemple de réponse**
 
@@ -56,11 +54,19 @@ Lister les serveurs
               "id": 2,
               "name": "sftp_server_2",
               "protocol": "sftp",
-              "protoConfig": "{\"address\":\"localhost\",\"port\":22}
+              "protoConfig": {
+                "address": "localhost",
+                "port": 22,
+                "root": "/sftp2/root"
+              }
             },{
               "id": 1,
               "name": "sftp_server_1",
               "protocol": "sftp",
-              "protoConfig": "{\"address\":\"localhost\",\"port\":21}
+              "protoConfig": {
+                "address": "localhost",
+                "port": 21,
+                "root": "/sftp/root"
+              }
             }]
           }

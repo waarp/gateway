@@ -1,4 +1,4 @@
-package admin
+package rest
 
 import (
 	"bytes"
@@ -18,45 +18,45 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const transferURI = APIPath + TransfersPath + "/"
+const transferURI = "http://localhost:8080" + APIPath + TransfersPath + "/"
 
 func TestAddTransfer(t *testing.T) {
 	logger := log.NewLogger("rest_transfer_add_test", logConf)
 
 	Convey("Testing the transfer add handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := addTransfer(logger, db)
+		handler := createTransfer(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 partner, 1 certificate & 1 account", func() {
-			partner := model.RemoteAgent{
+			partner := &model.RemoteAgent{
 				Name:        "sftp_test",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			So(db.Create(&partner), ShouldBeNil)
+			So(db.Create(partner), ShouldBeNil)
 
-			cert := model.Cert{
-				OwnerType:   (&partner).TableName(),
+			cert := &model.Cert{
+				OwnerType:   partner.TableName(),
 				OwnerID:     partner.ID,
 				Name:        "sftp_cert",
 				PrivateKey:  nil,
 				PublicKey:   []byte("public key"),
 				Certificate: []byte("certificate"),
 			}
-			So(db.Create(&cert), ShouldBeNil)
+			So(db.Create(cert), ShouldBeNil)
 
-			account := model.RemoteAccount{
+			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
 				Password:      []byte("titi"),
 			}
-			So(db.Create(&account), ShouldBeNil)
+			So(db.Create(account), ShouldBeNil)
 
 			push := model.Rule{Name: "test_push", IsSend: false}
 			So(db.Create(&push), ShouldBeNil)
 
-			trans := model.Transfer{
+			trans := &InTransfer{
 				RuleID:     push.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
@@ -67,10 +67,10 @@ func TestAddTransfer(t *testing.T) {
 			Convey("Given a valid new transfer", func() {
 
 				Convey("When calling the handler", func() {
-					content, err := json.Marshal(&trans)
+					content, err := json.Marshal(trans)
 					So(err, ShouldBeNil)
 					body := bytes.NewReader(content)
-					r, err := http.NewRequest(http.MethodPost, "", body)
+					r, err := http.NewRequest(http.MethodPost, transferURI, body)
 					So(err, ShouldBeNil)
 
 					handler.ServeHTTP(w, r)
@@ -81,6 +81,21 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the response body should be empty", func() {
 						So(w.Body.String(), ShouldBeBlank)
+					})
+
+					Convey("Then the 'Location' header should contain the URI "+
+						"of the new transfer", func() {
+
+						location := w.Header().Get("Location")
+						So(location, ShouldStartWith, transferURI)
+					})
+
+					Convey("Then the new transfer should be inserted in "+
+						"the database", func() {
+						exist, err := db.Exists(trans.ToModel())
+
+						So(err, ShouldBeNil)
+						So(exist, ShouldBeTrue)
 					})
 				})
 			})
@@ -135,7 +150,7 @@ func TestAddTransfer(t *testing.T) {
 				trans.AccountID = 1000
 
 				Convey("When calling the handler", func() {
-					content, err := json.Marshal(&trans)
+					content, err := json.Marshal(trans)
 					So(err, ShouldBeNil)
 					body := bytes.NewReader(content)
 					r, err := http.NewRequest(http.MethodPost, "", body)
@@ -156,10 +171,10 @@ func TestAddTransfer(t *testing.T) {
 			})
 
 			Convey("Given the partner does not have a certificate", func() {
-				So(db.Delete(&cert), ShouldBeNil)
+				So(db.Delete(cert), ShouldBeNil)
 
 				Convey("When calling the handler", func() {
-					content, err := json.Marshal(&trans)
+					content, err := json.Marshal(trans)
 					So(err, ShouldBeNil)
 					body := bytes.NewReader(content)
 					r, err := http.NewRequest(http.MethodPost, "", body)
@@ -190,41 +205,41 @@ func TestGetTransfer(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 transfer", func() {
-			partner := model.RemoteAgent{
+			partner := &model.RemoteAgent{
 				Name:        "sftp_test",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			So(db.Create(&partner), ShouldBeNil)
+			So(db.Create(partner), ShouldBeNil)
 
-			cert := model.Cert{
-				OwnerType:   (&partner).TableName(),
+			cert := &model.Cert{
+				OwnerType:   partner.TableName(),
 				OwnerID:     partner.ID,
 				Name:        "sftp_cert",
 				PrivateKey:  nil,
 				PublicKey:   []byte("public key"),
 				Certificate: []byte("certificate"),
 			}
-			So(db.Create(&cert), ShouldBeNil)
+			So(db.Create(cert), ShouldBeNil)
 
-			account := model.RemoteAccount{
+			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
 				Password:      []byte("titi"),
 			}
-			So(db.Create(&account), ShouldBeNil)
+			So(db.Create(account), ShouldBeNil)
 
-			push := model.Rule{Name: "test_push", IsSend: false}
-			So(db.Create(&push), ShouldBeNil)
+			push := &model.Rule{Name: "test_push", IsSend: false}
+			So(db.Create(push), ShouldBeNil)
 
-			trans := model.Transfer{
+			trans := &model.Transfer{
 				RuleID:     push.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
 				SourcePath: "src/test/path",
 				DestPath:   "dst/test/path",
 			}
-			So(db.Create(&trans), ShouldBeNil)
+			So(db.Create(trans), ShouldBeNil)
 
 			Convey("Given a request with the valid history ID parameter", func() {
 				id := strconv.FormatUint(trans.ID, 10)
@@ -247,7 +262,7 @@ func TestGetTransfer(t *testing.T) {
 
 					Convey("Then the body should contain the requested transfer "+
 						"in JSON format", func() {
-						exp, err := json.Marshal(&trans)
+						exp, err := json.Marshal(FromTransfer(trans))
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
@@ -280,82 +295,82 @@ func TestListTransfer(t *testing.T) {
 		handler := listTransfers(logger, db)
 		w := httptest.NewRecorder()
 
-		expected := map[string][]interface{}{}
+		expected := map[string][]OutTransfer{}
 
 		Convey("Given a database with 2 transfer", func() {
-			p1 := model.RemoteAgent{
+			p1 := &model.RemoteAgent{
 				Name:        "sftp_test",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			So(db.Create(&p1), ShouldBeNil)
+			So(db.Create(p1), ShouldBeNil)
 
-			p2 := model.RemoteAgent{
+			p2 := &model.RemoteAgent{
 				Name:        "sftp2",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			So(db.Create(&p2), ShouldBeNil)
+			So(db.Create(p2), ShouldBeNil)
 
-			c1 := model.Cert{
-				OwnerType:   (&p1).TableName(),
+			c1 := &model.Cert{
+				OwnerType:   p1.TableName(),
 				OwnerID:     p1.ID,
 				Name:        "sftp_cert",
 				PrivateKey:  nil,
 				PublicKey:   []byte("public key"),
 				Certificate: []byte("certificate"),
 			}
-			So(db.Create(&c1), ShouldBeNil)
+			So(db.Create(c1), ShouldBeNil)
 
-			c2 := model.Cert{
-				OwnerType:   (&p2).TableName(),
+			c2 := &model.Cert{
+				OwnerType:   p2.TableName(),
 				OwnerID:     p2.ID,
 				Name:        "sftp_cert",
 				PrivateKey:  nil,
 				PublicKey:   []byte("public key"),
 				Certificate: []byte("certificate"),
 			}
-			So(db.Create(&c2), ShouldBeNil)
+			So(db.Create(c2), ShouldBeNil)
 
-			a1 := model.RemoteAccount{
+			a1 := &model.RemoteAccount{
 				RemoteAgentID: p1.ID,
 				Login:         "toto",
 				Password:      []byte("titi"),
 			}
-			So(db.Create(&a1), ShouldBeNil)
+			So(db.Create(a1), ShouldBeNil)
 
-			a2 := model.RemoteAccount{
+			a2 := &model.RemoteAccount{
 				RemoteAgentID: p2.ID,
 				Login:         "toto",
 				Password:      []byte("titi"),
 			}
-			So(db.Create(&a2), ShouldBeNil)
+			So(db.Create(a2), ShouldBeNil)
 
-			r1 := model.Rule{Name: "test_push", IsSend: false}
-			So(db.Create(&r1), ShouldBeNil)
+			r1 := &model.Rule{Name: "test_push", IsSend: false}
+			So(db.Create(r1), ShouldBeNil)
 
-			r2 := model.Rule{Name: "rule2", IsSend: false}
-			So(db.Create(&r2), ShouldBeNil)
+			r2 := &model.Rule{Name: "rule2", IsSend: false}
+			So(db.Create(r2), ShouldBeNil)
 
-			t1 := model.Transfer{
+			t1 := &model.Transfer{
 				RuleID:     r1.ID,
 				AgentID:    p1.ID,
 				AccountID:  a1.ID,
 				SourcePath: "src/test/path",
 				DestPath:   "dst/test/path",
 			}
-			So(db.Create(&t1), ShouldBeNil)
+			So(db.Create(t1), ShouldBeNil)
 
-			t2 := model.Transfer{
+			t2 := &model.Transfer{
 				RuleID:     r2.ID,
 				AgentID:    p2.ID,
 				AccountID:  a2.ID,
 				SourcePath: "src/test/path",
 				DestPath:   "dst/test/path",
 			}
-			So(db.Create(&t2), ShouldBeNil)
+			So(db.Create(t2), ShouldBeNil)
 
-			t3 := model.Transfer{
+			t3 := &model.Transfer{
 				RuleID:     r2.ID,
 				AgentID:    p1.ID,
 				AccountID:  a1.ID,
@@ -363,7 +378,11 @@ func TestListTransfer(t *testing.T) {
 				DestPath:   "dst/test/path",
 				Start:      t2.Start.Add(2 * time.Hour),
 			}
-			So(db.Create(&t3), ShouldBeNil)
+			So(db.Create(t3), ShouldBeNil)
+
+			trans1 := *FromTransfer(t1)
+			trans2 := *FromTransfer(t2)
+			trans3 := *FromTransfer(t3)
 
 			Convey("Given a request with a valid 'remoteID' parameter", func() {
 				req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("?agent=%d", p1.ID), nil)
@@ -382,7 +401,7 @@ func TestListTransfer(t *testing.T) {
 					})
 
 					Convey("Then it should return 2 transfer", func() {
-						expected["transfers"] = []interface{}{t1, t3}
+						expected["transfers"] = []OutTransfer{trans1, trans3}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -391,7 +410,7 @@ func TestListTransfer(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a valid 'accountID' parameter", func() {
+			Convey("Given a request with a valid 'account' parameter", func() {
 				req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("?account=%d", p2.ID), nil)
 				So(err, ShouldBeNil)
 
@@ -408,7 +427,7 @@ func TestListTransfer(t *testing.T) {
 					})
 
 					Convey("Then it should return 1 transfer", func() {
-						expected["transfers"] = []interface{}{t2}
+						expected["transfers"] = []OutTransfer{trans2}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -434,7 +453,7 @@ func TestListTransfer(t *testing.T) {
 					})
 
 					Convey("Then it should return 2 transfer", func() {
-						expected["transfers"] = []interface{}{t2, t3}
+						expected["transfers"] = []OutTransfer{trans2, trans3}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -444,7 +463,7 @@ func TestListTransfer(t *testing.T) {
 			})
 
 			Convey("Given a request with a valid 'status' parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("?status=%s", "PLANNED"), nil)
+				req, err := http.NewRequest(http.MethodGet, "?status=PLANNED", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -460,7 +479,7 @@ func TestListTransfer(t *testing.T) {
 					})
 
 					Convey("Then it should return all transfer", func() {
-						expected["transfers"] = []interface{}{t1, t2, t3}
+						expected["transfers"] = []OutTransfer{trans1, trans2, trans3}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -488,7 +507,7 @@ func TestListTransfer(t *testing.T) {
 					})
 
 					Convey("Then it should return all transfer", func() {
-						expected["transfers"] = []interface{}{t3}
+						expected["transfers"] = []OutTransfer{trans3}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)

@@ -1,10 +1,11 @@
 package admin
 
 import (
-	"bytes"
 	"context"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -12,22 +13,24 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
-
-var logConf = conf.LogConfig{
-	Level: "DEBUG",
-	LogTo: "stdout",
-}
 
 func TestStart(t *testing.T) {
 
 	Convey("Given a correct configuration", t, func() {
+		So(ioutil.WriteFile("cert.pem", []byte(cert), 0700), ShouldBeNil)
+		So(ioutil.WriteFile("key.pem", []byte(key), 0700), ShouldBeNil)
+
+		Reset(func() {
+			_ = os.Remove("cert.pem")
+			_ = os.Remove("key.pem")
+		})
+
 		config := &conf.ServerConfig{}
 		config.Admin.Address = "localhost:0"
-		config.Admin.TLSCert = "test-cert/cert.pem"
-		config.Admin.TLSKey = "test-cert/key.pem"
+		config.Admin.TLSCert = "cert.pem"
+		config.Admin.TLSKey = "key.pem"
 		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
 
 		Convey("When starting the service", func() {
@@ -222,75 +225,6 @@ func TestAuthentication(t *testing.T) {
 					})
 				})
 			})
-		})
-	})
-}
-
-func checkValidUpdate(db *database.Db, w *httptest.ResponseRecorder, method,
-	path, id, parameter string, body []byte, handler http.Handler, old, expected interface{}) {
-
-	Convey("When sending the request to the handler", func() {
-		r, err := http.NewRequest(method, "", bytes.NewReader(body))
-		So(err, ShouldBeNil)
-		r = mux.SetURLVars(r, map[string]string{parameter: id})
-
-		handler.ServeHTTP(w, r)
-
-		Convey("Then it should reply 'Created'", func() {
-			So(w.Code, ShouldEqual, http.StatusCreated)
-		})
-
-		Convey("Then the 'Location' header should contain "+
-			"the URI of the updated "+parameter, func() {
-
-			location := w.Header().Get("Location")
-			So(location, ShouldEqual, path+id)
-		})
-
-		Convey("Then the response body should be empty", func() {
-			So(w.Body.String(), ShouldBeEmpty)
-		})
-
-		Convey("Then the updated "+parameter+" should exist in the database", func() {
-			exist, err := db.Exists(expected)
-
-			So(err, ShouldBeNil)
-			So(exist, ShouldBeTrue)
-		})
-
-		Convey("Then the old "+parameter+" should no longer exist", func() {
-			exist, err := db.Exists(old)
-
-			So(err, ShouldBeNil)
-			So(exist, ShouldBeFalse)
-		})
-	})
-}
-
-func checkInvalidUpdate(db *database.Db, handler http.Handler, w *httptest.ResponseRecorder,
-	body []byte, path, id, parameter string, old interface{}, errorMsg string) {
-
-	Convey("When sending the request to the handler", func() {
-		r, err := http.NewRequest(http.MethodPatch, path+id, bytes.NewReader(body))
-		So(err, ShouldBeNil)
-		r = mux.SetURLVars(r, map[string]string{parameter: id})
-
-		handler.ServeHTTP(w, r)
-
-		Convey("Then it should reply with a 'Bad Request' error", func() {
-			So(w.Code, ShouldEqual, http.StatusBadRequest)
-		})
-
-		Convey("Then the response body should contain a message stating "+
-			"the error", func() {
-
-			So(w.Body.String(), ShouldEqual, errorMsg)
-		})
-
-		Convey("Then the old "+parameter+" should stay unchanged", func() {
-			exist, err := db.Exists(old)
-			So(err, ShouldBeNil)
-			So(exist, ShouldBeTrue)
 		})
 	})
 }

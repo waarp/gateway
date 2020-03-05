@@ -6,7 +6,7 @@ import (
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 )
 
 type certificateCommand struct {
@@ -17,7 +17,7 @@ type certificateCommand struct {
 	Update certUpdateCommand `command:"update" description:"Update an existing certificate"`
 }
 
-func displayCertificate(cert model.Cert) {
+func displayCertificate(cert rest.OutCert) {
 	w := getColorable()
 
 	fmt.Fprintf(w, "\033[37;1;4mCertificate n°%v:\033[0m\n", cert.ID)
@@ -38,12 +38,12 @@ func (c *certGetCommand) Execute(args []string) error {
 		return fmt.Errorf("missing certificate ID")
 	}
 
-	res := model.Cert{}
+	res := rest.OutCert{}
 	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.CertificatesPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.CertificatesPath + "/" + args[0]
 
 	if err := getCommand(&res, conn); err != nil {
 		return err
@@ -88,7 +88,7 @@ func (c *certAddCommand) Execute(_ []string) error {
 		}
 	}
 
-	newCert := model.Cert{
+	newCert := rest.InCert{
 		OwnerType:   c.Type,
 		OwnerID:     c.Owner,
 		Name:        c.Name,
@@ -101,7 +101,7 @@ func (c *certAddCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.CertificatesPath
+	conn.Path = admin.APIPath + rest.CertificatesPath
 
 	loc, err := addCommand(newCert, conn)
 	if err != nil {
@@ -128,7 +128,7 @@ func (c *certDeleteCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.CertificatesPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.CertificatesPath + "/" + args[0]
 
 	if err := deleteCommand(conn); err != nil {
 		return err
@@ -158,29 +158,31 @@ func (c *certListCommand) Execute(_ []string) error {
 		return err
 	}
 
-	conn.Path = admin.APIPath + admin.CertificatesPath
+	conn.Path = admin.APIPath + rest.CertificatesPath
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(c.Limit))
 	query.Set("offset", fmt.Sprint(c.Offset))
-	query.Set("sortby", c.SortBy)
 	if c.DescOrder {
-		query.Set("order", "desc")
+		query.Set("sort", c.SortBy+"-")
+	} else {
+		query.Set("sort", c.SortBy+"+")
 	}
+
 	for _, acc := range c.Access {
-		query.Add("local_accounts", fmt.Sprint(acc))
+		query.Add("local_account", fmt.Sprint(acc))
 	}
-	for _, acc := range c.Access {
-		query.Add("remote_accounts", fmt.Sprint(acc))
+	for _, acc := range c.Account {
+		query.Add("remote_account", fmt.Sprint(acc))
 	}
 	for _, par := range c.Partner {
-		query.Add("remote_agents", fmt.Sprint(par))
+		query.Add("partner", fmt.Sprint(par))
 	}
 	for _, ser := range c.Server {
-		query.Add("local_agents", fmt.Sprint(ser))
+		query.Add("server", fmt.Sprint(ser))
 	}
 	conn.RawQuery = query.Encode()
 
-	res := map[string][]model.Cert{}
+	res := map[string][]rest.OutCert{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}
@@ -215,43 +217,42 @@ func (c *certUpdateCommand) Execute(args []string) error {
 		return fmt.Errorf("missing certificate ID")
 	}
 
-	newCert := map[string]interface{}{}
-	if c.Name != "" {
-		newCert["name"] = c.Name
-	}
-	if c.Type != "" {
-		newCert["ownerType"] = c.Type
-	}
-	if c.Owner != 0 {
-		newCert["ownerID"] = c.Owner
-	}
+	var prK, puK, crt []byte
+	var err error
+
 	if c.PrivateKey != "" {
-		prK, err := ioutil.ReadFile(c.PrivateKey)
+		prK, err = ioutil.ReadFile(c.PrivateKey)
 		if err != nil {
 			return err
 		}
-		newCert["privateKey"] = prK
 	}
 	if c.PublicKey != "" {
-		puK, err := ioutil.ReadFile(c.PublicKey)
+		puK, err = ioutil.ReadFile(c.PublicKey)
 		if err != nil {
 			return err
 		}
-		newCert["publicKey"] = puK
 	}
-	if c.PrivateKey != "" {
-		crt, err := ioutil.ReadFile(c.Certificate)
+	if c.Certificate != "" {
+		crt, err = ioutil.ReadFile(c.Certificate)
 		if err != nil {
 			return err
 		}
-		newCert["cert"] = crt
+	}
+
+	newCert := rest.InCert{
+		OwnerType:   c.Type,
+		OwnerID:     c.Owner,
+		Name:        c.Name,
+		PrivateKey:  prK,
+		PublicKey:   puK,
+		Certificate: crt,
 	}
 
 	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.CertificatesPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.CertificatesPath + "/" + args[0]
 
 	_, err = updateCommand(newCert, conn)
 	if err != nil {

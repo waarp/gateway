@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
@@ -15,7 +16,7 @@ type transferCommand struct {
 	List transferListCommand `command:"list" description:"List the planned transfers"`
 }
 
-func displayTransfer(trans model.Transfer) {
+func displayTransfer(trans rest.OutTransfer) {
 	w := getColorable()
 
 	fmt.Fprintf(w, "\033[37;1;4mTransfer n°%v:\033[0m\n", trans.ID)
@@ -27,13 +28,13 @@ func displayTransfer(trans model.Transfer) {
 	fmt.Fprintf(w, "       \033[37mStart time:\033[0m \033[33m%s\033[0m\n",
 		trans.Start.Format(time.RFC3339))
 	fmt.Fprintf(w, "           \033[37mStatus:\033[0m \033[37;1m%s\033[0m\n", trans.Status)
-	if trans.Error.Code != model.TeOk {
+	if trans.ErrorCode != model.TeOk {
 		fmt.Fprintf(w, "       \033[37mError code:\033[0m \033[33m%s\033[0m\n",
-			trans.Error.Code)
+			trans.ErrorCode)
 	}
-	if trans.Error.Details != "" {
+	if trans.ErrorMsg != "" {
 		fmt.Fprintf(w, "    \033[37mError message:\033[0m \033[33m%s\033[0m\n",
-			trans.Error.Details)
+			trans.ErrorMsg)
 	}
 }
 
@@ -47,7 +48,7 @@ type transferAddCommand struct {
 }
 
 func (t *transferAddCommand) Execute(_ []string) error {
-	newTransfer := model.Transfer{
+	newTransfer := rest.InTransfer{
 		AgentID:    t.ServerID,
 		AccountID:  t.AccountID,
 		SourcePath: t.File,
@@ -59,7 +60,7 @@ func (t *transferAddCommand) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.TransfersPath
+	conn.Path = admin.APIPath + rest.TransfersPath
 
 	_, err = addCommand(newTransfer, conn)
 	if err != nil {
@@ -82,9 +83,9 @@ func (t *transferGetCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.TransfersPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.TransfersPath + "/" + args[0]
 
-	res := model.Transfer{}
+	res := rest.OutTransfer{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}
@@ -112,13 +113,14 @@ func (t *transferListCommand) listURL() (*url.URL, error) {
 		return nil, err
 	}
 
-	conn.Path = admin.APIPath + admin.TransfersPath
+	conn.Path = admin.APIPath + rest.TransfersPath
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(t.Limit))
 	query.Set("offset", fmt.Sprint(t.Offset))
-	query.Set("sortby", t.SortBy)
 	if t.DescOrder {
-		query.Set("order", "desc")
+		query.Set("sort", t.SortBy+"-")
+	} else {
+		query.Set("sort", t.SortBy+"+")
 	}
 	for _, rem := range t.Remotes {
 		query.Add("agent", fmt.Sprint(rem))
@@ -151,7 +153,7 @@ func (t *transferListCommand) Execute(_ []string) error {
 		return err
 	}
 
-	res := map[string][]model.Transfer{}
+	res := map[string][]rest.OutTransfer{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}

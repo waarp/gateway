@@ -1,9 +1,8 @@
-package admin
+package rest
 
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -16,7 +15,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const ruleURI = APIPath + RulesPath + "/"
+const ruleURI = "http://remotehost:8080" + APIPath + RulesPath + "/"
 
 func TestCreateRule(t *testing.T) {
 	logger := log.NewLogger("rest_rule_create_logger", logConf)
@@ -36,7 +35,7 @@ func TestCreateRule(t *testing.T) {
 			So(db.Create(existing), ShouldBeNil)
 
 			Convey("Given a new rule to insert in the database", func() {
-				newRule := &model.Rule{
+				newRule := &InRule{
 					Name:    "new rule",
 					Comment: "",
 					IsSend:  false,
@@ -46,7 +45,7 @@ func TestCreateRule(t *testing.T) {
 				Convey("Given that the new account is valid for insertion", func() {
 					body, err := json.Marshal(newRule)
 					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPost, ruleURI, bytes.NewReader(body))
 
 					So(err, ShouldBeNil)
 
@@ -70,7 +69,7 @@ func TestCreateRule(t *testing.T) {
 
 						Convey("Then the new rule should be inserted "+
 							"in the database", func() {
-							exist, err := db.Exists(newRule)
+							exist, err := db.Exists(newRule.ToModel())
 
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
@@ -82,73 +81,6 @@ func TestCreateRule(t *testing.T) {
 
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
-						})
-					})
-				})
-
-				Convey("Given that the new rule has an ID", func() {
-					newRule.ID = existing.ID
-
-					body, err := json.Marshal(newRule)
-					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
-
-					So(err, ShouldBeNil)
-
-					Convey("When sending the request to the handler", func() {
-						handler.ServeHTTP(w, r)
-
-						Convey("Then it should reply with a 'Bad Request' error", func() {
-							So(w.Code, ShouldEqual, http.StatusBadRequest)
-						})
-
-						Convey("Then the response body should contain "+
-							"a message stating that the ID already exist", func() {
-
-							So(w.Body.String(), ShouldEqual, "The rule's "+
-								"ID cannot be entered manually\n")
-						})
-
-						Convey("Then the new rule should NOT be "+
-							"inserted in the database", func() {
-							exist, err := db.Exists(newRule)
-
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeFalse)
-						})
-					})
-				})
-
-				Convey("Given that the new rule's name already exist", func() {
-					newRule.Name = existing.Name
-
-					body, err := json.Marshal(newRule)
-					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
-
-					So(err, ShouldBeNil)
-
-					Convey("When sending the request to the handler", func() {
-						handler.ServeHTTP(w, r)
-
-						Convey("Then it should reply with a 'Bad Request' error", func() {
-							So(w.Code, ShouldEqual, http.StatusBadRequest)
-						})
-
-						Convey("Then the response body should contain a message stating "+
-							"that the name already exist", func() {
-
-							So(w.Body.String(), ShouldEqual, fmt.Sprintf(
-								"A rule named '%s' with send = %t already exist\n",
-								newRule.Name, newRule.IsSend))
-						})
-
-						Convey("Then the new rule should NOT be "+
-							"inserted in the database", func() {
-							exist, err := db.Exists(newRule)
-
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeFalse)
 						})
 					})
 				})
@@ -197,7 +129,7 @@ func TestGetRule(t *testing.T) {
 					Convey("Then the body should contain the requested rule "+
 						"in JSON format", func() {
 
-						exp, err := json.Marshal(rule)
+						exp, err := json.Marshal(FromRule(rule))
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
@@ -230,7 +162,7 @@ func TestListRules(t *testing.T) {
 		handler := listRules(logger, db)
 		w := httptest.NewRecorder()
 
-		expected := map[string][]*model.Rule{}
+		expected := map[string][]OutRule{}
 
 		Convey("Given a database with 2 rules", func() {
 			r1 := &model.Rule{
@@ -244,6 +176,9 @@ func TestListRules(t *testing.T) {
 				IsSend: true,
 			}
 			So(db.Create(r2), ShouldBeNil)
+
+			rule1 := *FromRule(r1)
+			rule2 := *FromRule(r2)
 
 			Convey("Given a valid request", func() {
 				req, err := http.NewRequest(http.MethodGet, "", nil)
@@ -262,7 +197,7 @@ func TestListRules(t *testing.T) {
 					})
 
 					Convey("Then it should return the 2 rules", func() {
-						expected["rules"] = []*model.Rule{r1, r2}
+						expected["rules"] = []OutRule{rule1, rule2}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)

@@ -15,7 +15,7 @@ Ajouter un certificat
    :reqjson number ownerID: L'identifiant de l'entité à laquelle appartient le certificat
    :reqjson string privateKey: La clé privée de l'entité
    :reqjson string publicKey: La clé publique de l'entité
-   :reqjson string cert: Le certificat de l'entité
+   :reqjson string certificate: Le certificat de l'entité
 
    **Exemple de requête**
 

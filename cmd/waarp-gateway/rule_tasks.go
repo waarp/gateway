@@ -7,7 +7,7 @@ import (
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 )
 
 type ruleTasksCommand struct {
@@ -15,7 +15,7 @@ type ruleTasksCommand struct {
 	Change ruleTasksChangeCommand `command:"change" description:"Change the tasks assigned to a rule"`
 }
 
-func displayRuleTask(task model.Task) {
+func displayRuleTask(task rest.OutRuleTask) {
 	w := getColorable()
 
 	fmt.Fprintf(w, "  \033[37;1mCommand:\033[0m %s\n", task.Type)
@@ -35,7 +35,7 @@ func (r *ruleTasksChangeCommand) Execute(args []string) error {
 		return fmt.Errorf("missing rule ID")
 	}
 
-	var preTasks, postTasks, errTasks []model.Task
+	var preTasks, postTasks, errTasks []rest.InRuleTask
 	if err := json.Unmarshal([]byte(r.PreTasks), &preTasks); err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (r *ruleTasksChangeCommand) Execute(args []string) error {
 		return err
 	}
 
-	tasks := map[string]interface{}{}
+	tasks := map[string][]rest.InRuleTask{}
 	tasks["preTasks"] = preTasks
 	tasks["postTasks"] = postTasks
 	tasks["errorTasks"] = errTasks
@@ -55,7 +55,7 @@ func (r *ruleTasksChangeCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RulesPath + "/" + args[0] + admin.RuleTasksPath
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + args[0] + rest.RuleTasksPath
 
 	loc, err := sendBean(tasks, conn, http.MethodPut)
 	if err != nil {
@@ -82,9 +82,9 @@ func (r *ruleTasksListCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + admin.RulesPath + "/" + args[0] + admin.RuleTasksPath
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + args[0] + rest.RuleTasksPath
 
-	res := map[string][]model.Task{}
+	res := map[string][]rest.OutRuleTask{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}

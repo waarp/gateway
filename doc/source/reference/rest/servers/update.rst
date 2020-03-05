@@ -1,7 +1,7 @@
 Modifier un serveur
 ===================
 
-.. http:patch:: /api/servers/(int:server_id)
+.. http:put:: /api/servers/(int:server_id)
 
    Met à jour le serveur portant le numéro ``server_id`` avec les informations
    renseignées en format JSON dans le corps de la requête. Les champs non-spécifiés
@@ -13,8 +13,8 @@ Modifier un serveur
 
    :reqjson string name: Le nom du serveur
    :reqjson string protocol: Le protocole utilisé par le serveur
-   :reqjson string protoConfig: La configuration du serveur encodé dans une
-      chaîne de caractères au format JSON.
+   :reqjson object protoConfig: La configuration du partenaire encodé sous forme
+      d'un objet JSON.
 
    **Exemple de requête**
 
@@ -28,7 +28,11 @@ Modifier un serveur
           {
             "name": "sftp_server_new",
             "protocol": "sftp",
-            "protoConfig": "{\"address\":\"localhost\",\"port\":22}
+            "protoConfig": {
+              "address": "localhost",
+              "port": 23,
+              "root": "/new/sftp/root"
+            }
           }
 
 

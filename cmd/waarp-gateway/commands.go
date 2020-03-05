@@ -161,9 +161,10 @@ func agentListURL(path string, s *listOptions, sort string, protos []string) (*u
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(s.Limit))
 	query.Set("offset", fmt.Sprint(s.Offset))
-	query.Set("sortby", sort)
 	if s.DescOrder {
-		query.Set("order", "desc")
+		query.Set("sort", sort+"-")
+	} else {
+		query.Set("sort", sort+"+")
 	}
 	for _, proto := range protos {
 		query.Add("protocol", proto)

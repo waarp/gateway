@@ -24,14 +24,15 @@ Consulter un transfert
    :statuscode 404: Le transfert demandé n'existe pas
 
    :resjson number id: L'identifiant unique du transfert
+   :resjson bool isServer: Précise si la gateway était à l'origine du transfert
    :resjson number ruleID: L'identifiant de la règle de transfert
-   :resjson number remoteID: L'identifiant du partenaire de transfert
+   :resjson number agentID: L'identifiant du serveur de transfert
    :resjson number accountID: L'identifiant du compte de transfert
-   :resjson string source: Le chemin d'origine du fichier
-   :resjson string destination: Le chemin de destination du fichier
+   :resjson string sourcePath: Le chemin d'origine du fichier
+   :resjson string destPath: Le chemin de destination du fichier
    :resjson date start: La date de début du transfert
    :resjson string status: Le statut actuel du transfert (*PLANNED* ou *TRANSFER*)
-   :resjson number errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
+   :resjson string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjson string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
    **Exemple de réponse**
@@ -40,15 +41,16 @@ Consulter un transfert
 
           HTTP/1.1 200 OK
           Content-Type: application/json
-          Content-Length: 97
+          Content-Length: 107
 
           {
             "id": 1,
+            "isServer": true,
             "ruleID": 1,
-            "remoteID": 1,
+            "agentID": 1,
             "accountID": 1,
-            "source": "chemin/source/fichier1",
-            "destination": "chemin/dest/fichier1",
+            "sourcePath": "chemin/source/fichier1",
+            "destPath": "chemin/dest/fichier1",
             "start": "2019-01-01T02:00:00+02:00",
             "status": "TRANSFER"
           }

@@ -14,26 +14,26 @@ var validOwnerTypes = []string{(&LocalAgent{}).TableName(), (&RemoteAgent{}).Tab
 type Cert struct {
 
 	// The certificate's database ID
-	ID uint64 `xorm:"pk autoincr <- 'id'" json:"id"`
+	ID uint64 `xorm:"pk autoincr <- 'id'"`
 
 	// The type of object the certificate is linked to (local_agent, remote_agent,
 	// local_account or remote_account)
-	OwnerType string `xorm:"unique(cert) notnull 'owner_type'" json:"ownerType"`
+	OwnerType string `xorm:"unique(cert) notnull 'owner_type'"`
 
 	// The id of the object this certificate is linked to.
-	OwnerID uint64 `xorm:"unique(cert) notnull 'owner_id'" json:"ownerID"`
+	OwnerID uint64 `xorm:"unique(cert) notnull 'owner_id'"`
 
 	// The certificate's name
-	Name string `xorm:"unique(cert) notnull 'name'" json:"name"`
+	Name string `xorm:"unique(cert) notnull 'name'"`
 
 	// The certificate's private key
-	PrivateKey []byte `xorm:"'private_key'" json:"privateKey"`
+	PrivateKey []byte `xorm:"'private_key'"`
 
 	// The certificate's public key
-	PublicKey []byte `xorm:"notnull 'public_key'" json:"publicKey"`
+	PublicKey []byte `xorm:"notnull 'public_key'"`
 
 	// The content of the certificate
-	Certificate []byte `xorm:"notnull 'cert'" json:"cert"`
+	Certificate []byte `xorm:"notnull 'cert'"`
 }
 
 // TableName returns the name of the certificates table.

@@ -263,7 +263,7 @@ func TestHistoryValidateInsert(t *testing.T) {
 				{"toto", false},
 			}
 			for _, tc := range statusTestCases {
-				testHistoryStatus(tc, "ValidateInsert", hist, db)
+				testTransferStatus(tc, "ValidateInsert", hist, db)
 			}
 		})
 	})
@@ -415,7 +415,7 @@ func TestHistoryValidateUpdate(t *testing.T) {
 			{"toto", false},
 		}
 		for _, tc := range statusTestCases {
-			testHistoryStatus(tc, "ValidateUpdate", hist, nil)
+			testTransferStatus(tc, "ValidateUpdate", hist, nil)
 		}
 	})
 }
@@ -435,7 +435,7 @@ type testUpdateValidator interface {
 	ValidateUpdate(database.Accessor, uint64) error
 }
 
-func testHistoryStatus(tc statusTestCase, method string, target interface{}, db *database.Db) {
+func testTransferStatus(tc statusTestCase, method string, target interface{}, db *database.Db) {
 	Convey(fmt.Sprintf("Given the status is set to '%s'", tc.status), func() {
 		var typeName string
 		if t, ok := target.(*TransferHistory); ok {

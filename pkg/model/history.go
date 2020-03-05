@@ -12,20 +12,20 @@ func init() {
 
 // TransferHistory represents one record of the 'transfers_history' table.
 type TransferHistory struct {
-	ID             uint64         `xorm:"pk 'id'" json:"id"`
-	Owner          string         `xorm:"notnull 'owner'" json:"-"`
-	IsServer       bool           `xorm:"notnull 'is_server'" json:"isServer"`
-	IsSend         bool           `xorm:"notnull 'is_send'" json:"isSend"`
-	Account        string         `xorm:"notnull 'account'" json:"account"`
-	Remote         string         `xorm:"notnull 'remote'" json:"remote"`
-	Protocol       string         `xorm:"notnull 'protocol'" json:"protocol"`
-	SourceFilename string         `xorm:"notnull 'source_filename'" json:"sourceFilename"`
-	DestFilename   string         `xorm:"notnull 'dest_filename'" json:"destFilename"`
-	Rule           string         `xorm:"notnull 'rule'" json:"rule"`
-	Start          time.Time      `xorm:"notnull 'start'" json:"start"`
-	Stop           time.Time      `xorm:"notnull 'stop'" json:"stop"`
-	Status         TransferStatus `xorm:"notnull 'status'" json:"status"`
-	Error          TransferError  `xorm:"extends" json:"error,omitempty"`
+	ID             uint64         `xorm:"pk autoincr <- 'id'"`
+	Owner          string         `xorm:"notnull 'owner'"`
+	IsServer       bool           `xorm:"notnull 'is_server'"`
+	IsSend         bool           `xorm:"notnull 'is_send'"`
+	Account        string         `xorm:"notnull 'account'"`
+	Remote         string         `xorm:"notnull 'remote'"`
+	Protocol       string         `xorm:"notnull 'protocol'"`
+	SourceFilename string         `xorm:"notnull 'source_filename'"`
+	DestFilename   string         `xorm:"notnull 'dest_filename'"`
+	Rule           string         `xorm:"notnull 'rule'"`
+	Start          time.Time      `xorm:"notnull 'start'"`
+	Stop           time.Time      `xorm:"notnull 'stop'"`
+	Status         TransferStatus `xorm:"notnull 'status'"`
+	Error          TransferError  `xorm:"extends"`
 	ExtInfo        []byte         `xorm:"ext_info" json:"extInfo"`
 }
 
