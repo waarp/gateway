@@ -9,11 +9,12 @@ import (
 // OutTransferInfo regroups all the information necessary for an outgoing
 // transfer.
 type OutTransferInfo struct {
-	Transfer *Transfer
-	Rule     *Rule
-	Agent    *RemoteAgent
-	Account  *RemoteAccount
-	Certs    []Cert
+	Transfer    *Transfer
+	Rule        *Rule
+	Agent       *RemoteAgent
+	Account     *RemoteAccount
+	ServerCerts []Cert
+	ClientCerts []Cert
 }
 
 // NewOutTransferInfo retrieves all the information regarding the given transfer
@@ -28,11 +29,8 @@ func NewOutTransferInfo(db *database.Db, trans *Transfer) (*OutTransferInfo, err
 		}
 		return nil, err
 	}
-	certs, err := remote.GetCerts(db)
-	if err != nil || len(certs) == 0 {
-		if len(certs) == 0 {
-			return nil, fmt.Errorf("no certificates found for agent n°%v", remote.ID)
-		}
+	serverCerts, err := remote.GetCerts(db)
+	if err != nil {
 		return nil, err
 	}
 	account := &RemoteAccount{ID: trans.AccountID}
@@ -54,12 +52,17 @@ func NewOutTransferInfo(db *database.Db, trans *Transfer) (*OutTransferInfo, err
 		}
 		return nil, err
 	}
+	clientCerts, err := account.GetCerts(db)
+	if err != nil {
+		return nil, err
+	}
 
 	return &OutTransferInfo{
-		Transfer: trans,
-		Agent:    remote,
-		Account:  account,
-		Certs:    certs,
-		Rule:     rule,
+		Transfer:    trans,
+		Agent:       remote,
+		Account:     account,
+		Rule:        rule,
+		ServerCerts: serverCerts,
+		ClientCerts: clientCerts,
 	}, nil
 }
