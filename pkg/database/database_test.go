@@ -25,7 +25,7 @@ func init() {
 
 	sqliteConfig = &conf.ServerConfig{}
 	sqliteConfig.Database.Type = sqlite
-	sqliteConfig.Database.Name = "test.sqlite"
+	sqliteConfig.Database.Address = "test.sqlite"
 	sqliteConfig.Database.AESPassphrase = fmt.Sprintf("%s%ssqlite_test_passphrase.aes",
 		os.TempDir(), string(os.PathSeparator))
 
@@ -709,7 +709,7 @@ func testDatabase(db *Db) {
 func TestSqlite(t *testing.T) {
 	defer func() {
 		_ = os.Remove(sqliteConfig.Database.AESPassphrase)
-		_ = os.Remove(sqliteConfig.Database.Name)
+		_ = os.Remove(sqliteConfig.Database.Address)
 	}()
 	db := sqliteTestDatabase
 	if err := db.Start(); err != nil {

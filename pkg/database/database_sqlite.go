@@ -31,5 +31,5 @@ func sqliteDSN(config conf.DatabaseConfig) string {
 	if config.Password != "" {
 		pass = fmt.Sprintf("&_auth_pass=%s", config.Password)
 	}
-	return fmt.Sprintf("file:%s?cache=shared&mode=rwc%s%s", config.Name, user, pass)
+	return fmt.Sprintf("file:%s?cache=shared&mode=rwc%s%s", config.Address, user, pass)
 }

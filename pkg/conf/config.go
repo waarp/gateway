@@ -29,19 +29,20 @@ type LogConfig struct {
 type AdminConfig struct {
 	Host    string `ini-name:"Host" default:"localhost" description:"The address used by the admin interface."`
 	Port    uint16 `ini-name:"Port" default:"8080" description:"The port used by the admin interface. If the port is 0, a free port will automatically be chosen."`
-	TLSCert string `ini-name:"TLSCert" default:"" description:"Path of the TLS certificate for the admin interface."`
-	TLSKey  string `ini-name:"TLSKey" default:"" description:"Path of the key of the TLS certificate."`
+	TLSCert string `ini-name:"TLSCert" description:"Path of the TLS certificate for the admin interface."`
+	TLSKey  string `ini-name:"TLSKey" description:"Path of the key of the TLS certificate."`
 }
 
 // DatabaseConfig holds the server database options
 type DatabaseConfig struct {
 	Type          string `ini-name:"Type" default:"sqlite" description:"Name of the RDBMS used for the gateway database. Possible values: sqlite, mysql, postgresql"`
 	Address       string `ini-name:"Address" default:"waarp-gateway.db" description:"Address of the database"`
-	Name          string `ini-name:"Name" default:"waarp_gatewayd" description:"The name of the database"`
-	User          string `ini-name:"User" default:"" description:"The name of the gateway database user"`
-	Password      string `ini-name:"Password" default:"" description:"The password of the gateway database user"`
-	TLSCert       string `ini-name:"TLSCert" default:"" description:"Path of the database TLS certificate file."`
-	TLSKey        string `ini-name:"TLSKey" default:"" description:"Path of the key of the TLS certificate file."`
+	Port          uint16 `ini-name:"Port" description:"Port of the database"`
+	Name          string `ini-name:"Name" description:"The name of the database"`
+	User          string `ini-name:"User" description:"The name of the gateway database user"`
+	Password      string `ini-name:"Password" description:"The password of the gateway database user"`
+	TLSCert       string `ini-name:"TLSCert" description:"Path of the database TLS certificate file."`
+	TLSKey        string `ini-name:"TLSKey" description:"Path of the key of the TLS certificate file."`
 	AESPassphrase string `ini-name:"AESPassphrase" default:"passphrase.aes" description:"The path to the file containing the passphrase used to encrypt account passwords using AES"`
 }
 
@@ -49,8 +50,8 @@ type DatabaseConfig struct {
 type ControllerConfig struct {
 	Delay           time.Duration `ini-name:"Delay" default:"5s" description:"The frequency at which the database will be probed for new transfers"`
 	R66Home         string        `ini-name:"R66Home" description:"The installation directory of Waarp-R66"`
-	MaxTransfersIn  uint64        `ini-name:"MaxTransferIn" default:"0" description:"The maximum number of concurrent incoming transfers allowed on the gateway (0 = unlimited)."`
-	MaxTransfersOut uint64        `ini-name:"MaxTransferOut" default:"0" description:"The maximum number of concurrent outgoing transfers allowed on the gateway (0 = unlimited)."`
+	MaxTransfersIn  uint64        `ini-name:"MaxTransferIn" description:"The maximum number of concurrent incoming transfers allowed on the gateway (0 = unlimited)."`
+	MaxTransfersOut uint64        `ini-name:"MaxTransferOut" description:"The maximum number of concurrent outgoing transfers allowed on the gateway (0 = unlimited)."`
 }
 
 // LoadServerConfig creates a configuration object.
