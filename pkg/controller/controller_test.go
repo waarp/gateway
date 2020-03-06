@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -57,7 +58,8 @@ func TestControllerListen(t *testing.T) {
 
 		rule := &model.Rule{
 			Name:   "test rule",
-			IsSend: false,
+			Path:   "test_rule",
+			IsSend: true,
 		}
 		So(db.Create(rule), ShouldBeNil)
 
@@ -77,8 +79,8 @@ func TestControllerListen(t *testing.T) {
 					IsServer:   false,
 					AgentID:    remote.ID,
 					AccountID:  account.ID,
-					SourcePath: "test/source/path1",
-					DestPath:   "test/dest/path1",
+					SourcePath: "source_file_1",
+					DestPath:   "dest_file_1",
 					Start:      start,
 					Status:     model.StatusPlanned,
 					Owner:      database.Owner,
@@ -87,9 +89,13 @@ func TestControllerListen(t *testing.T) {
 
 				Convey("When calling the `listen` method", func() {
 					cont.listen()
+					Reset(func() {
+						_ = os.RemoveAll("tmp")
+						_ = os.RemoveAll(rule.Path)
+					})
 
 					Convey("After waiting enough time", func() {
-						time.Sleep(10 * time.Millisecond)
+						time.Sleep(100 * time.Millisecond)
 
 						Convey("Then it should have retrieved the planned "+
 							"transfer entry", func() {
@@ -106,8 +112,8 @@ func TestControllerListen(t *testing.T) {
 					IsServer:   false,
 					AgentID:    remote.ID,
 					AccountID:  account.ID,
-					SourcePath: "test/source/path2",
-					DestPath:   "test/dest/path2",
+					SourcePath: "source_file_2",
+					DestPath:   "dest_file_2",
 					Start:      start,
 					Status:     model.StatusRunning,
 					Owner:      database.Owner,
@@ -121,11 +127,11 @@ func TestControllerListen(t *testing.T) {
 						cont.listen()
 
 						Convey("When the database comes back online", func() {
-							time.Sleep(10 * time.Millisecond)
+							time.Sleep(100 * time.Millisecond)
 							db.State().Set(service.Running, "")
 
 							Convey("After waiting enough time", func() {
-								time.Sleep(10 * time.Millisecond)
+								time.Sleep(100 * time.Millisecond)
 
 								Convey("Then the running entry should now be "+
 									"interrupted", func() {
