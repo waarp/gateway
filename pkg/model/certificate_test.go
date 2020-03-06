@@ -70,7 +70,7 @@ func TestCertValidateInsert(t *testing.T) {
 						err = (&newCert).ValidateInsert(ses)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						Convey("Then the error should say that IDs are not allowed", func() {
@@ -90,7 +90,7 @@ func TestCertValidateInsert(t *testing.T) {
 						err = (&newCert).ValidateInsert(ses)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						Convey("Then the error should say that the owner type is missing", func() {
@@ -110,7 +110,7 @@ func TestCertValidateInsert(t *testing.T) {
 						err = (&newCert).ValidateInsert(ses)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						Convey("Then the error should say that the owner ID is missing", func() {
@@ -130,7 +130,7 @@ func TestCertValidateInsert(t *testing.T) {
 						err = (&newCert).ValidateInsert(ses)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						Convey("Then the error should say that the name is missing", func() {
@@ -150,7 +150,7 @@ func TestCertValidateInsert(t *testing.T) {
 						err = (&newCert).ValidateInsert(ses)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						Convey("Then the error should say that the public key is missing", func() {
@@ -161,6 +161,7 @@ func TestCertValidateInsert(t *testing.T) {
 				})
 
 				Convey("Given that the new certificate is missing a public key", func() {
+					newCert.OwnerType = "remote_agents"
 					newCert.PublicKey = nil
 
 					Convey("When calling the 'ValidateInsert' function", func() {
@@ -170,32 +171,7 @@ func TestCertValidateInsert(t *testing.T) {
 						err = (&newCert).ValidateInsert(ses)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
-
-						Convey("Then the error should say that the public key is missing", func() {
-							So(err.Error(), ShouldEqual, "The certificate's public "+
-								"key is missing")
-						})
-					})
-				})
-
-				Convey("Given that the new certificate is missing its' content", func() {
-					newCert.Certificate = nil
-
-					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&newCert).ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
-
-						Convey("Then the error should say that the certificate content is missing", func() {
-							So(err.Error(), ShouldEqual, "The certificate's content "+
-								"is missing")
+							So(err, ShouldNotBeNil)
 						})
 					})
 				})
@@ -210,7 +186,7 @@ func TestCertValidateInsert(t *testing.T) {
 						err = (&newCert).ValidateInsert(ses)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						Convey("Then the error should say that the owner type is invalid", func() {
@@ -230,7 +206,7 @@ func TestCertValidateInsert(t *testing.T) {
 						err = (&newCert).ValidateInsert(ses)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						Convey("Then the error should say that the owner ID is invalid", func() {
@@ -261,7 +237,7 @@ func TestCertValidateInsert(t *testing.T) {
 						err = (&newCert).ValidateInsert(ses)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						Convey("Then the error should say that the name is taken", func() {
@@ -371,7 +347,7 @@ func TestCertValidateUpdate(t *testing.T) {
 						err = (&updatedCert).ValidateUpdate(ses, oldCert.ID)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						Convey("Then the error should say that the owner type is invalid", func() {
@@ -391,7 +367,7 @@ func TestCertValidateUpdate(t *testing.T) {
 						err = (&updatedCert).ValidateUpdate(ses, oldCert.ID)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						Convey("Then the error should say that the owner ID is invalid", func() {
@@ -422,7 +398,7 @@ func TestCertValidateUpdate(t *testing.T) {
 						err = (&updatedCert).ValidateUpdate(ses, oldCert.ID)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						Convey("Then the error should say that the name is taken", func() {

@@ -128,3 +128,17 @@ func (r *RemoteAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 
 	return nil
 }
+
+// GetCerts fetch in the database then return the associated Certificates if they exist
+func (r *RemoteAccount) GetCerts(ses database.Accessor) ([]Cert, error) {
+	filters := &database.Filters{
+		Conditions: builder.And(builder.Eq{"owner_type": r.TableName()},
+			builder.Eq{"owner_id": r.ID}),
+	}
+
+	results := []Cert{}
+	if err := ses.Select(&results, filters); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
