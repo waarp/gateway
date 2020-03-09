@@ -265,7 +265,7 @@ func TestSSHServer(t *testing.T) {
 						So(sshList.close(ctx), ShouldBeNil)
 
 						_, err = src.Read(make([]byte, 1))
-						So(err, ShouldBeError, "failed to send packet: EOF")
+						So(err, ShouldNotBeNil)
 
 						Convey("Then the transfer should appear interrupted", func() {
 							var t []model.Transfer
