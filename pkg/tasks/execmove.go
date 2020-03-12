@@ -22,7 +22,7 @@ func init() {
 
 // Validate checks if the EXECMOVE task has all the required arguments.
 func (e *ExecMoveTask) Validate(task *model.Task) error {
-	var params map[string]interface{}
+	var params map[string]string
 	if err := json.Unmarshal(task.Args, &params); err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func (e *ExecMoveTask) Validate(task *model.Task) error {
 }
 
 // Run executes the task by executing an external program with the given parameters.
-func (e *ExecMoveTask) Run(params map[string]interface{}, processor *Processor) (string, error) {
+func (e *ExecMoveTask) Run(params map[string]string, processor *Processor) (string, error) {
 	path, args, delay, err := parseExecArgs(params)
 	if err != nil {
 		return err.Error(), fmt.Errorf("failed to parse task arguments: %s", err.Error())

@@ -17,7 +17,7 @@ func init() {
 
 // Validate checks if the RENAME tasks has all the required arguments.
 func (*RenameTask) Validate(t *model.Task) error {
-	args := map[string]interface{}{}
+	args := map[string]string{}
 	if err := json.Unmarshal(t.Args, &args); err != nil {
 		return err
 	}
@@ -28,8 +28,8 @@ func (*RenameTask) Validate(t *model.Task) error {
 }
 
 // Run executes the task by renaming the transfer file
-func (*RenameTask) Run(args map[string]interface{}, processor *Processor) (string, error) {
-	newPath := args["path"].(string)
+func (*RenameTask) Run(args map[string]string, processor *Processor) (string, error) {
+	newPath := args["path"]
 	if processor.Rule.IsSend {
 		processor.Transfer.SourcePath = newPath
 		return "", nil

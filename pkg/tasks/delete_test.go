@@ -40,7 +40,7 @@ func TestDeleteTaskRun(t *testing.T) {
 		}
 
 		Convey("Given a model.Task and a file to transfer", func() {
-			args := map[string]interface{}{}
+			args := map[string]string{}
 
 			Convey("Given a file to transfer", func() {
 				err := ioutil.WriteFile(processor.Transfer.SourcePath, []byte("Hello World"), 0700)
@@ -78,7 +78,8 @@ func TestDeleteTaskRun(t *testing.T) {
 
 					Convey("Then error should say `no such file`", func() {
 						So(err.Error(), ShouldEqual,
-							fmt.Sprintf("remove %s: no such file or directory", processor.Transfer.SourcePath))
+							fmt.Sprintf("remove %s: no such file or directory",
+								processor.Transfer.SourcePath))
 					})
 				})
 			})
@@ -97,7 +98,7 @@ func TestDeleteTaskRun(t *testing.T) {
 		}
 
 		Convey("Given a model.Task and a file to transfer", func() {
-			args := map[string]interface{}{}
+			args := map[string]string{}
 
 			Convey("Given a file to transfer", func() {
 				err := ioutil.WriteFile(processor.Transfer.DestPath, []byte("Hello World"), 0700)

@@ -19,10 +19,10 @@ func TestExecOutputValidate(t *testing.T) {
 
 	Convey("Given an 'EXECOUTPUT' task", t, func() {
 		exec := &ExecOutputTask{}
-		args := map[string]interface{}{
+		args := map[string]string{
 			"path":  "cp",
 			"args":  "file1 file2",
-			"delay": 1000,
+			"delay": "1000",
 		}
 
 		Convey("Given that the arguments are valid", func() {
@@ -43,7 +43,7 @@ func TestExecOutputValidate(t *testing.T) {
 		})
 
 		Convey("Given that a parameter is NOT the valid type", func() {
-			args["path"] = true
+			args["delay"] = "value"
 			b, err := json.Marshal(args)
 			So(err, ShouldBeNil)
 
@@ -79,7 +79,7 @@ func TestExecOutputValidate(t *testing.T) {
 		})
 
 		Convey("Given that a parameter is incorrect", func() {
-			args["delay"] = -1
+			args["delay"] = "-1"
 			b, err := json.Marshal(args)
 			So(err, ShouldBeNil)
 
@@ -104,10 +104,10 @@ func TestExecOutputRun(t *testing.T) {
 
 	Convey("Given an 'EXECOUTPUT' task", t, func() {
 		exec := &ExecOutputTask{}
-		args := map[string]interface{}{
+		args := map[string]string{
 			"path":  "./" + script,
 			"args":  "execmove.go",
-			"delay": float64(1000),
+			"delay": "1000",
 		}
 		proc := &Processor{
 			Transfer: &model.Transfer{},
@@ -172,7 +172,7 @@ func TestExecOutputRun(t *testing.T) {
 				err := ioutil.WriteFile(script, []byte(scriptExecInfinite), 0700)
 				So(err, ShouldBeNil)
 
-				args["delay"] = float64(100)
+				args["delay"] = "100"
 
 				Convey("When running the task", func() {
 					msg, err := exec.Run(args, proc)

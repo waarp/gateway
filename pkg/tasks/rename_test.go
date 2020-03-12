@@ -58,7 +58,7 @@ func TestRebaneTaskRun(t *testing.T) {
 		}
 
 		Convey("Given a model.Task", func() {
-			args := map[string]interface{}{
+			args := map[string]string{
 				"path": "test",
 			}
 
@@ -89,7 +89,7 @@ func TestRebaneTaskRun(t *testing.T) {
 		}
 
 		Convey("Given a model.Task", func() {
-			args := map[string]interface{}{
+			args := map[string]string{
 				"path": "test",
 			}
 

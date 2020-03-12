@@ -35,7 +35,7 @@ func (t *testTaskSuccess) Validate(*model.Task) error {
 	return nil
 }
 
-func (t *testTaskSuccess) Run(map[string]interface{}, *tasks.Processor) (string, error) {
+func (t *testTaskSuccess) Run(map[string]string, *tasks.Processor) (string, error) {
 	return "", nil
 }
 
@@ -45,7 +45,7 @@ func (t *testTaskFail) Validate(*model.Task) error {
 	return nil
 }
 
-func (t *testTaskFail) Run(map[string]interface{}, *tasks.Processor) (string, error) {
+func (t *testTaskFail) Run(map[string]string, *tasks.Processor) (string, error) {
 	return "task failed", fmt.Errorf("task failed")
 }
 

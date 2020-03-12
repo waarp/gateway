@@ -20,7 +20,7 @@ func init() {
 
 // Validate check if the task has a destination for the copy
 func (*CopyTask) Validate(t *model.Task) error {
-	args := map[string]interface{}{}
+	args := map[string]string{}
 	if err := json.Unmarshal(t.Args, &args); err != nil {
 		return err
 	}
@@ -31,9 +31,9 @@ func (*CopyTask) Validate(t *model.Task) error {
 }
 
 // Run copy the current file to the destination
-func (*CopyTask) Run(args map[string]interface{}, runner *Processor) (string, error) {
+func (*CopyTask) Run(args map[string]string, runner *Processor) (string, error) {
 	var (
-		newDir  = args["path"].(string)
+		newDir  = args["path"]
 		oldPath string
 	)
 

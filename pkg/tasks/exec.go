@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -17,28 +18,37 @@ func init() {
 	RunnableTasks["EXEC"] = &ExecTask{}
 }
 
-func parseExecArgs(params map[string]interface{}) (path, args string,
+func parseExecArgs(params map[string]string) (path, args string,
 	delay float64, err error) {
 
 	var ok bool
-	if path, ok = params["path"].(string); !ok || path == "" {
+	if path, ok = params["path"]; !ok || path == "" {
 		err = fmt.Errorf("missing program path")
 		return
 	}
-	if args, ok = params["args"].(string); !ok {
+	if args, ok = params["args"]; !ok {
 		err = fmt.Errorf("missing program arguments")
 		return
 	}
-	if delay, ok = params["delay"].(float64); !ok || delay < 0 {
+	d, ok := params["delay"]
+	if !ok {
 		err = fmt.Errorf("missing program delay")
 		return
 	}
+	delay, err = strconv.ParseFloat(d, 64)
+	if err != nil {
+		err = fmt.Errorf("invalid program delay")
+	}
+	if delay < 0 {
+		err = fmt.Errorf("invalid program delay value (must be positive or 0)")
+	}
+
 	return
 }
 
 // Validate checks if the EXEC task has all the required arguments.
 func (e *ExecTask) Validate(task *model.Task) error {
-	var params map[string]interface{}
+	var params map[string]string
 	if err := json.Unmarshal(task.Args, &params); err != nil {
 		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
@@ -51,7 +61,7 @@ func (e *ExecTask) Validate(task *model.Task) error {
 }
 
 // Run executes the task by executing the external program with the given parameters.
-func (e *ExecTask) Run(params map[string]interface{}, processor *Processor) (string, error) {
+func (e *ExecTask) Run(params map[string]string, processor *Processor) (string, error) {
 
 	path, args, delay, err := parseExecArgs(params)
 	if err != nil {

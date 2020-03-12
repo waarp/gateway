@@ -13,7 +13,7 @@ func TestTransferValidate(t *testing.T) {
 
 	Convey("Given a 'TRANSFER' task", t, func() {
 		trans := &TransferTask{}
-		args := map[string]interface{}{
+		args := map[string]string{
 			"file": "/test/file",
 			"to":   "partner",
 			"as":   "account",
@@ -33,24 +33,6 @@ func TestTransferValidate(t *testing.T) {
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
-				})
-			})
-		})
-
-		Convey("Given that a parameter is NOT the valid type", func() {
-			args["file"] = true
-			b, err := json.Marshal(args)
-			So(err, ShouldBeNil)
-
-			task := &model.Task{
-				Args: b,
-			}
-
-			Convey("When validating the task", func() {
-				err := trans.Validate(task)
-
-				Convey("Then it should return an error", func() {
-					So(err, ShouldNotBeNil)
 				})
 			})
 		})
@@ -129,7 +111,7 @@ func TestTransferRun(t *testing.T) {
 
 		Convey("Given a 'TRANSFER' task", func() {
 			trans := &TransferTask{}
-			args := map[string]interface{}{
+			args := map[string]string{
 				"file": "/test/file",
 				"to":   partner.Name,
 				"as":   account.Login,

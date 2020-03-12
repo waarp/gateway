@@ -19,7 +19,7 @@ func init() {
 
 // Validate checks if the MOVE task has all the required arguments.
 func (*MoveTask) Validate(t *model.Task) error {
-	args := map[string]interface{}{}
+	args := map[string]string{}
 	if err := json.Unmarshal(t.Args, &args); err != nil {
 		return err
 	}
@@ -31,9 +31,9 @@ func (*MoveTask) Validate(t *model.Task) error {
 
 // Run exects the task by moving the file in the requested directory.
 // TODO Create directory if not exist
-func (*MoveTask) Run(args map[string]interface{}, processor *Processor) (string, error) {
+func (*MoveTask) Run(args map[string]string, processor *Processor) (string, error) {
 	var oldPath *string
-	newDir := args["path"].(string)
+	newDir := args["path"]
 
 	if processor.Rule.IsSend {
 		oldPath = &(processor.Transfer.SourcePath)

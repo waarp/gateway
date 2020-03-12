@@ -60,7 +60,7 @@ func TestMoveTaskRun(t *testing.T) {
 		}
 
 		Convey("Given a model.Task", func() {
-			args := map[string]interface{}{
+			args := map[string]string{
 				"path": "test",
 			}
 			So(os.Mkdir("test", 0o744), ShouldBeNil)
@@ -143,7 +143,7 @@ func TestMoveTaskRun(t *testing.T) {
 		}
 
 		Convey("Given a model.Task", func() {
-			args := map[string]interface{}{
+			args := map[string]string{
 				"path": "test",
 			}
 			So(os.Mkdir("test", 0o744), ShouldBeNil)

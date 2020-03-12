@@ -17,7 +17,7 @@ func init() {
 
 // Validate check if the task has a destination for the copy
 func (*CopyRenameTask) Validate(t *model.Task) error {
-	args := map[string]interface{}{}
+	args := map[string]string{}
 	if err := json.Unmarshal(t.Args, &args); err != nil {
 		return err
 	}
@@ -28,9 +28,9 @@ func (*CopyRenameTask) Validate(t *model.Task) error {
 }
 
 // Run copy the current file to the destination
-func (*CopyRenameTask) Run(args map[string]interface{}, processor *Processor) (string, error) {
+func (*CopyRenameTask) Run(args map[string]string, processor *Processor) (string, error) {
 	var (
-		newPath = args["path"].(string)
+		newPath = args["path"]
 		srcPath string
 	)
 
