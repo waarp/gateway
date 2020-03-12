@@ -78,8 +78,8 @@ func TestExecOutputValidate(t *testing.T) {
 			})
 		})
 
-		Convey("Given that a parameter is empty", func() {
-			args["delay"] = 0
+		Convey("Given that a parameter is incorrect", func() {
+			args["delay"] = -1
 			b, err := json.Marshal(args)
 			So(err, ShouldBeNil)
 
