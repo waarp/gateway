@@ -238,10 +238,6 @@ func TestSSHServer(t *testing.T) {
 						err := client.Close()
 						So(err, ShouldBeNil)
 
-						var h []model.TransferHistory
-						So(db.Select(&h, nil), ShouldBeNil)
-						Printf("\nHISTORY => %+v\n", h)
-
 						ok, err := db.Exists(hist)
 						So(err, ShouldBeNil)
 						So(ok, ShouldBeTrue)
@@ -471,8 +467,8 @@ func TestSSHServerTasks(t *testing.T) {
 
 	Convey("Given an SFTP server", t, func() {
 		root := "test_tasks_root"
-		So(os.Mkdir(root, 0700), ShouldBeNil)
 		Reset(func() { _ = os.RemoveAll(root) })
+		So(os.Mkdir(root, 0700), ShouldBeNil)
 
 		db := database.GetTestDatabase()
 		agent := &model.LocalAgent{
