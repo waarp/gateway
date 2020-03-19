@@ -24,7 +24,7 @@ const (
 // Server is the administration service
 type Server struct {
 	Conf     *conf.ServerConfig
-	Db       *database.Db
+	DB       *database.DB
 	Services map[string]service.Service
 
 	logger *log.Logger
@@ -92,7 +92,7 @@ func initServer(s *Server) error {
 		s.logger.Info("No TLS certificate configured, using plain HTTP.")
 	}
 
-	handler := MakeHandler(s.logger, s.Db, s.Services)
+	handler := MakeHandler(s.logger, s.DB, s.Services)
 
 	// Create http.Server instance
 	s.server = http.Server{

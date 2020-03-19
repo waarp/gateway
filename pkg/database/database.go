@@ -62,9 +62,9 @@ type Accessor interface {
 	Query(sqlorArgs ...interface{}) ([]map[string]interface{}, error)
 }
 
-// Db is the database service. It encapsulates a data connection and implements
+// DB is the database service. It encapsulates a data connection and implements
 // Accessor
-type Db struct {
+type DB struct {
 	// The gateway configuration
 	Conf *conf.ServerConfig
 	// The service logger
@@ -76,7 +76,7 @@ type Db struct {
 	// The name of the SQL database driver used by the engine
 	driverName string
 	// The mutex used for the test database
-	testDbLock *sync.Mutex
+	testDBLock *sync.Mutex
 }
 
 func loadAESKey(filename string) error {
@@ -113,7 +113,7 @@ func loadAESKey(filename string) error {
 // createDSN creates and returns the dataSourceName string necessary to open
 // a connection to the database. The DSN varies depending on the options given
 // in the database configuration.
-func (db *Db) createConnectionInfo() (driver string, dsn string, err error) {
+func (db *DB) createConnectionInfo() (driver string, dsn string, err error) {
 	rdbms := db.Conf.Database.Type
 
 	info, ok := supportedRBMS[rdbms]
@@ -133,7 +133,7 @@ var supportedRBMS = map[string]dbinfo{}
 // Environment field. If the configuration in invalid, or if the database
 // cannot be reached, an error is returned.
 // If the service is already running, this function does nothing.
-func (db *Db) Start() error {
+func (db *DB) Start() error {
 	db.logger = log.NewLogger(ServiceName)
 
 	db.logger.Info("Starting database service...")
@@ -191,7 +191,7 @@ func (db *Db) Start() error {
 // Stop shuts down the database service. If an error occurred during the shutdown,
 // an error is returned.
 // If the service is not running, this function does nothing.
-func (db *Db) Stop(_ context.Context) error {
+func (db *DB) Stop(_ context.Context) error {
 	db.logger.Info("Shutting down...")
 	if code, _ := db.state.Get(); code != service.Running {
 		db.logger.Info("Service is already offline")
@@ -224,14 +224,14 @@ func ping(state *service.State, db xorm.Interface, logger *log.Logger) error {
 }
 
 // State returns the state of the database service.
-func (db *Db) State() *service.State {
+func (db *DB) State() *service.State {
 	_ = ping(&db.state, db.engine, db.logger)
 	return &db.state
 }
 
 // Get retrieves one record from the database and fills the bean with it. Non-empty
 // fields are used as conditions.
-func (db *Db) Get(bean interface{}) error {
+func (db *DB) Get(bean interface{}) error {
 	db.logger.Debugf("Get requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
@@ -252,7 +252,7 @@ func (db *Db) Get(bean interface{}) error {
 // Select retrieves multiple records from the database using the given filters
 // and fills the bean with it. The bean should be of type []Struct or []*Struct,
 // and it should be empty.
-func (db *Db) Select(bean interface{}, filters *Filters) error {
+func (db *DB) Select(bean interface{}, filters *Filters) error {
 	db.logger.Debugf("Select requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
@@ -272,7 +272,7 @@ func (db *Db) Select(bean interface{}, filters *Filters) error {
 
 // Create inserts the given bean in the database. If the struct cannot be inserted,
 // the function returns an error.
-func (db *Db) Create(bean interface{}) error {
+func (db *DB) Create(bean interface{}) error {
 	db.logger.Debugf("Create requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
@@ -292,7 +292,7 @@ func (db *Db) Create(bean interface{}) error {
 
 // Update updates the given bean in the database. If the struct cannot be updated,
 // the function returns an error.
-func (db *Db) Update(bean interface{}, id uint64, isReplace bool) error {
+func (db *DB) Update(bean interface{}, id uint64, isReplace bool) error {
 	db.logger.Debugf("Update requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
@@ -312,7 +312,7 @@ func (db *Db) Update(bean interface{}, id uint64, isReplace bool) error {
 
 // Delete deletes the given bean from the database. If the record cannot be deleted,
 // an error is returned.
-func (db *Db) Delete(bean interface{}) error {
+func (db *DB) Delete(bean interface{}) error {
 	db.logger.Debugf("Delete requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
@@ -332,7 +332,7 @@ func (db *Db) Delete(bean interface{}) error {
 
 // Exists checks if the given record exists in the database. If the database
 // cannot be queried, an error is returned.
-func (db *Db) Exists(bean interface{}) (bool, error) {
+func (db *DB) Exists(bean interface{}) (bool, error) {
 	db.logger.Debugf("Exists requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
@@ -353,7 +353,7 @@ func (db *Db) Exists(bean interface{}) (bool, error) {
 
 // Execute executes the given SQL command. The command can be a raw string with
 // arguments, or an xorm.Builder struct.
-func (db *Db) Execute(sqlOrArgs ...interface{}) error {
+func (db *DB) Execute(sqlOrArgs ...interface{}) error {
 	db.logger.Debugf("Execute requested with %#v", sqlOrArgs)
 
 	ses, err := db.BeginTransaction()
@@ -373,7 +373,7 @@ func (db *Db) Execute(sqlOrArgs ...interface{}) error {
 
 // Query executes the given SQL query and returns the result. The query can be
 // a raw string with arguments, or an xorm.Builder struct.
-func (db *Db) Query(sqlOrArgs ...interface{}) ([]map[string]interface{}, error) {
+func (db *DB) Query(sqlOrArgs ...interface{}) ([]map[string]interface{}, error) {
 	db.logger.Debugf("Query requested with %#v", sqlOrArgs)
 
 	ses, err := db.BeginTransaction()
@@ -394,16 +394,16 @@ func (db *Db) Query(sqlOrArgs ...interface{}) ([]map[string]interface{}, error) 
 
 // BeginTransaction returns a new session on which a database transaction can
 // be performed.
-func (db *Db) BeginTransaction() (ses *Session, err error) {
+func (db *DB) BeginTransaction() (ses *Session, err error) {
 	if s, _ := db.state.Get(); s != service.Running {
 		return nil, ErrServiceUnavailable
 	}
 
-	if db.testDbLock != nil {
-		db.testDbLock.Lock()
+	if db.testDBLock != nil {
+		db.testDBLock.Lock()
 		defer func() {
 			if err != nil {
-				db.testDbLock.Unlock()
+				db.testDBLock.Unlock()
 			}
 		}()
 	}
@@ -420,7 +420,7 @@ func (db *Db) BeginTransaction() (ses *Session, err error) {
 		session:    s,
 		logger:     db.logger,
 		state:      &db.state,
-		testDbLock: db.testDbLock,
+		testDBLock: db.testDBLock,
 	}
 	db.logger.Debug("Transaction started")
 
@@ -435,7 +435,7 @@ type Session struct {
 	session    *xorm.Session
 	logger     *log.Logger
 	state      *service.State
-	testDbLock *sync.Mutex
+	testDBLock *sync.Mutex
 }
 
 // Get adds a 'get' query to the transaction. If the query cannot be executed,
@@ -681,8 +681,8 @@ func (s *Session) Query(sqlorArgs ...interface{}) ([]map[string]interface{}, err
 // it cannot be used to perform any more transactions.
 func (s *Session) Rollback() {
 	defer func() {
-		if s.testDbLock != nil {
-			s.testDbLock.Unlock()
+		if s.testDBLock != nil {
+			s.testDBLock.Unlock()
 		}
 	}()
 
@@ -697,8 +697,8 @@ func (s *Session) Rollback() {
 func (s *Session) Commit() error {
 	s.logger.Debug("Committing transaction")
 	defer func() {
-		if s.testDbLock != nil {
-			s.testDbLock.Unlock()
+		if s.testDBLock != nil {
+			s.testDBLock.Unlock()
 		}
 		s.session.Close()
 	}()

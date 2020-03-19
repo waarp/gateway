@@ -108,7 +108,7 @@ func parseOwnerParam(r *http.Request, filters *database.Filters) error {
 	return nil
 }
 
-func getCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "certificate")
@@ -129,7 +129,7 @@ func getCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func createCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			jsonCert := &InCert{}
@@ -152,7 +152,7 @@ func createCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func listCertificates(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listCertificates(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "name ASC",
 		"name+":   "name ASC",
@@ -183,7 +183,7 @@ func listCertificates(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func deleteCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "certificate")
@@ -209,7 +209,7 @@ func deleteCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 }
 
 //nolint:dupl
-func updateCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "certificate")

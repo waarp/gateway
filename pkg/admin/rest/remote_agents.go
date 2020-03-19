@@ -8,7 +8,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func createRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			jsonAgent := &InAgent{}
@@ -31,7 +31,7 @@ func createRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func listRemoteAgents(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "name ASC",
 		"proto+":  "protocol ASC",
@@ -64,7 +64,7 @@ func listRemoteAgents(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func getRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "remote_agent")
@@ -85,7 +85,7 @@ func getRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func deleteRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "remote_agent")
@@ -111,7 +111,7 @@ func deleteRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 }
 
 //nolint:dupl
-func updateRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "remote_agent")

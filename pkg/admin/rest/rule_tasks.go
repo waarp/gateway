@@ -47,7 +47,7 @@ func FromRuleTasks(ts []model.Task) []OutRuleTask {
 	return tasks
 }
 
-func listTasks(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listTasks(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := func() error {
 			ruleID, err := parseID(r, "rule")
@@ -145,7 +145,7 @@ func doTaskUpdate(ses *database.Session, req map[string][]InRuleTask, ruleID uin
 	return nil
 }
 
-func updateTasks(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateTasks(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := func() error {
 			ruleID, err := strconv.ParseUint(mux.Vars(r)["rule"], 10, 64)

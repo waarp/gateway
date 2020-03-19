@@ -45,7 +45,7 @@ func FromRuleAccess(as []model.RuleAccess) []OutRuleAccess {
 	return accesses
 }
 
-func createAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createAccess(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ruleID, err := parseID(r, "rule")
@@ -89,7 +89,7 @@ func createAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func listAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listAccess(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := func() error {
 			ruleID, err := parseID(r, "rule")
@@ -124,7 +124,7 @@ func listAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func deleteAccess(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteAccess(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := func() error {
 			ruleID, err := parseID(r, "rule")

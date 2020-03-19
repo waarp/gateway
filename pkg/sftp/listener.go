@@ -18,7 +18,7 @@ import (
 )
 
 type sshListener struct {
-	Db           *database.Db
+	DB           *database.DB
 	Logger       *log.Logger
 	Agent        *model.LocalAgent
 	ServerConfig *ssh.ServerConfig
@@ -65,7 +65,7 @@ func (l *sshListener) handleConnection(parent context.Context, nConn net.Conn) {
 
 		sesWg := &sync.WaitGroup{}
 		for newChannel := range channels {
-			accountID, err := getAccountID(l.Db, l.Agent.ID, servConn.User())
+			accountID, err := getAccountID(l.DB, l.Agent.ID, servConn.User())
 			if err != nil {
 				l.Logger.Errorf("Failed to retrieve user: %s", err)
 				continue
@@ -121,7 +121,7 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64) file
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
 		rule := model.Rule{Path: path, IsSend: true}
-		if err := l.Db.Get(&rule); err != nil {
+		if err := l.DB.Get(&rule); err != nil {
 			l.Logger.Errorf("No rule found for directory '%s'", path)
 			return nil, fmt.Errorf("cannot retrieve transfer rule: %s", err)
 		}
@@ -139,7 +139,7 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64) file
 			Step:       model.StepSetup,
 		}
 
-		stream, err := newSftpStream(ctx, l.Logger, l.Db, l.ProtoConfig.Root, trans)
+		stream, err := newSftpStream(ctx, l.Logger, l.DB, l.ProtoConfig.Root, trans)
 		if err != nil {
 			return nil, err
 		}
@@ -156,7 +156,7 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64) file
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
 		rule := model.Rule{Path: path, IsSend: false}
-		if err := l.Db.Get(&rule); err != nil {
+		if err := l.DB.Get(&rule); err != nil {
 			l.Logger.Errorf("No rule found for directory '%s'", path)
 			return nil, fmt.Errorf("cannot retrieve transfer rule: %s", err)
 		}
@@ -174,7 +174,7 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64) file
 			Step:       model.StepSetup,
 		}
 
-		stream, err := newSftpStream(ctx, l.Logger, l.Db, l.ProtoConfig.Root, trans)
+		stream, err := newSftpStream(ctx, l.Logger, l.DB, l.ProtoConfig.Root, trans)
 		if err != nil {
 			return nil, err
 		}

@@ -107,7 +107,7 @@ func TestTransferRun(t *testing.T) {
 				"as":   account.Login,
 				"rule": rule.Name,
 			}
-			processor := &Processor{Db: db}
+			processor := &Processor{DB: db}
 
 			Convey("Given that the parameters are valid", func() {
 

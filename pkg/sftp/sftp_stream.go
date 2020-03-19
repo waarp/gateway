@@ -43,7 +43,7 @@ func modelToSFTP(err error) error {
 // newSftpStream initialises a special kind of TransferStream tailored for
 // the SFTP server. This constructor initialises a TransferStream, opens the
 // local file and executes the pre-tasks.
-func newSftpStream(ctx context.Context, logger *log.Logger, db *database.Db,
+func newSftpStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	root string, trans model.Transfer) (*sftpStream, error) {
 
 	s, err := pipeline.NewTransferStream(ctx, logger, db, root, trans)
@@ -65,7 +65,7 @@ func newSftpStream(ctx context.Context, logger *log.Logger, db *database.Db,
 	return stream, nil
 }
 
-func (s *sftpStream) TransferError(err error) {
+func (s *sftpStream) TransferError(_ error) {
 	select {
 	case <-s.Ctx.Done():
 		s.transErr = &model.PipelineError{Kind: model.KindInterrupt}
@@ -95,7 +95,7 @@ func (s *sftpStream) ReadAt(p []byte, off int64) (int, error) {
 	if err == io.EOF {
 		s.Transfer.Progress = 0
 		s.Transfer.Step = model.StepPostTasks
-		if dbErr := s.Transfer.Update(s.Db); dbErr != nil {
+		if dbErr := s.Transfer.Update(s.DB); dbErr != nil {
 			return 0, dbErr
 		}
 		return n, err
@@ -118,7 +118,7 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 	if len(p) == 0 {
 		s.Transfer.Progress = 0
 		s.Transfer.Step = model.StepPostTasks
-		if err := s.Transfer.Update(s.Db); err != nil {
+		if err := s.Transfer.Update(s.DB); err != nil {
 			return 0, err
 		}
 	}

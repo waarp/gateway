@@ -15,7 +15,7 @@ type initer interface {
 
 // initTables creates the database tables if they don't exist and fills them
 // with the default entries.
-func initTables(db *Db) error {
+func initTables(db *DB) error {
 
 	trans, err := db.BeginTransaction()
 	if err != nil {

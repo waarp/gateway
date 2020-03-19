@@ -27,7 +27,7 @@ type WG struct {
 	*log.Logger
 	Conf      *conf.ServerConfig
 	Services  map[string]service.Service
-	dbService *database.Db
+	dbService *database.DB
 }
 
 // NewWG creates a new application
@@ -42,9 +42,9 @@ func NewWG(config *conf.ServerConfig) *WG {
 func (wg *WG) initServices() {
 	wg.Services = make(map[string]service.Service)
 
-	wg.dbService = &database.Db{Conf: wg.Conf}
-	adminService := &admin.Server{Conf: wg.Conf, Db: wg.dbService, Services: wg.Services}
-	controllerService := &controller.Controller{Conf: wg.Conf, Db: wg.dbService}
+	wg.dbService = &database.DB{Conf: wg.Conf}
+	adminService := &admin.Server{Conf: wg.Conf, DB: wg.dbService, Services: wg.Services}
+	controllerService := &controller.Controller{Conf: wg.Conf, DB: wg.dbService}
 
 	wg.Services[admin.ServiceName] = adminService
 	wg.Services[controller.ServiceName] = controllerService

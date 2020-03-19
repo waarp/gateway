@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func loadCert(db *database.Db, server *model.LocalAgent) (*model.Cert, error) {
+func loadCert(db *database.DB, server *model.LocalAgent) (*model.Cert, error) {
 	cert := &model.Cert{OwnerType: server.TableName(), OwnerID: server.ID}
 	if err := db.Get(cert); err != nil {
 		if err == database.ErrNotFound {
@@ -25,7 +25,7 @@ func loadCert(db *database.Db, server *model.LocalAgent) (*model.Cert, error) {
 	return cert, nil
 }
 
-func gertSSHServerConfig(db *database.Db, cert *model.Cert, protoConfig *config.SftpProtoConfig) (*ssh.ServerConfig, error) {
+func gertSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.SftpProtoConfig) (*ssh.ServerConfig, error) {
 	conf := &ssh.ServerConfig{
 		Config: ssh.Config{
 			KeyExchanges: protoConfig.KeyExchanges,
@@ -85,7 +85,7 @@ func parseServerAddr(server *model.LocalAgent) (string, uint16, error) {
 	return conf.Address, conf.Port, nil
 }
 
-func getAccountID(db *database.Db, agentID uint64, login string) (uint64, error) {
+func getAccountID(db *database.DB, agentID uint64, login string) (uint64, error) {
 	account := model.LocalAccount{
 		LocalAgentID: agentID,
 		Login:        login,

@@ -34,7 +34,7 @@ func (t *TransferTask) Validate(args map[string]string) error {
 	return nil
 }
 
-func getTransferInfo(db *database.Db, args map[string]string) (file string,
+func getTransferInfo(db *database.DB, args map[string]string) (file string,
 	ruleID, agentID, accountID uint64, infoErr error) {
 
 	fileName, fileOK := args["file"]
@@ -84,7 +84,7 @@ func getTransferInfo(db *database.Db, args map[string]string) (file string,
 
 // Run executes the task by scheduling a new transfer with the given parameters.
 func (t *TransferTask) Run(args map[string]string, processor *Processor) (string, error) {
-	file, ruleID, agentID, accID, err := getTransferInfo(processor.Db, args)
+	file, ruleID, agentID, accID, err := getTransferInfo(processor.DB, args)
 	if err != nil {
 		return err.Error(), err
 	}
@@ -97,7 +97,7 @@ func (t *TransferTask) Run(args map[string]string, processor *Processor) (string
 		SourcePath: file,
 		DestPath:   filepath.Base(file),
 	}
-	if err := processor.Db.Create(trans); err != nil {
+	if err := processor.DB.Create(trans); err != nil {
 		return err.Error(), err
 	}
 	return "", nil

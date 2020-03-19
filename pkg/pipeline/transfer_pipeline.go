@@ -12,7 +12,7 @@ import (
 // Pipeline is the structure regrouping all elements of the transfer pipeline
 // which are not protocol-dependent, such as task execution.
 type Pipeline struct {
-	Db       *database.Db
+	DB       *database.DB
 	Logger   *log.Logger
 	Root     string
 	Transfer *model.Transfer
@@ -36,7 +36,7 @@ func (p *Pipeline) PreTasks() *model.PipelineError {
 // execution fails.
 func (p *Pipeline) PostTasks() *model.PipelineError {
 	p.Transfer.Progress = 0
-	if err := p.Transfer.Update(p.Db); err != nil {
+	if err := p.Transfer.Update(p.DB); err != nil {
 		p.Logger.Errorf("Failed to update transfer progress: %s", err.Error())
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
@@ -63,7 +63,7 @@ func (p *Pipeline) ErrorTasks() {
 
 // Archive deletes the transfer entry and saves it in the history.
 func (p *Pipeline) Archive() {
-	_ = ToHistory(p.Db, p.Logger, p.Transfer)
+	_ = ToHistory(p.DB, p.Logger, p.Transfer)
 }
 
 // Exit deletes the transfer's signal channel.

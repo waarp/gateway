@@ -51,7 +51,7 @@ const (
 	RuleTasksPath = "/tasks"
 )
 
-func makeUsersHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+func makeUsersHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
 	usersHandler := apiHandler.PathPrefix(UsersPath).Subrouter()
 	usersHandler.HandleFunc("", listUsers(logger, db)).
 		Methods(http.MethodGet)
@@ -67,7 +67,7 @@ func makeUsersHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Route
 		Methods(http.MethodPatch, http.MethodPut)
 }
 
-func makeLocalAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+func makeLocalAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
 	localAgentsHandler := apiHandler.PathPrefix(LocalAgentsPath).Subrouter()
 	localAgentsHandler.HandleFunc("", listLocalAgents(logger, db)).
 		Methods(http.MethodGet)
@@ -83,7 +83,7 @@ func makeLocalAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mux
 		Methods(http.MethodPatch, http.MethodPut)
 }
 
-func makeRemoteAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
 	remoteAgentsHandler := apiHandler.PathPrefix(RemoteAgentsPath).Subrouter()
 	remoteAgentsHandler.HandleFunc("", listRemoteAgents(logger, db)).
 		Methods(http.MethodGet)
@@ -99,7 +99,7 @@ func makeRemoteAgentsHandler(logger *log.Logger, db *database.Db, apiHandler *mu
 		Methods(http.MethodPatch, http.MethodPut)
 }
 
-func makeLocalAccountsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
 	localAccountsHandler := apiHandler.PathPrefix(LocalAccountsPath).Subrouter()
 	localAccountsHandler.HandleFunc("", listLocalAccounts(logger, db)).
 		Methods(http.MethodGet)
@@ -115,7 +115,7 @@ func makeLocalAccountsHandler(logger *log.Logger, db *database.Db, apiHandler *m
 		Methods(http.MethodPatch, http.MethodPut)
 }
 
-func makeRemoteAccountsHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
 	remoteAccountsHandler := apiHandler.PathPrefix(RemoteAccountsPath).Subrouter()
 	remoteAccountsHandler.HandleFunc("", listRemoteAccounts(logger, db)).
 		Methods(http.MethodGet)
@@ -131,7 +131,7 @@ func makeRemoteAccountsHandler(logger *log.Logger, db *database.Db, apiHandler *
 		Methods(http.MethodPatch, http.MethodPut)
 }
 
-func makeCertificatesHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+func makeCertificatesHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
 	certificatesHandler := apiHandler.PathPrefix(CertificatesPath).Subrouter()
 	certificatesHandler.HandleFunc("", listCertificates(logger, db)).
 		Methods(http.MethodGet)
@@ -147,7 +147,7 @@ func makeCertificatesHandler(logger *log.Logger, db *database.Db, apiHandler *mu
 		Methods(http.MethodPatch, http.MethodPut)
 }
 
-func makeTransfersHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+func makeTransfersHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
 	transfersHandler := apiHandler.PathPrefix(TransfersPath).Subrouter()
 	transfersHandler.HandleFunc("", listTransfers(logger, db)).
 		Methods(http.MethodGet)
@@ -164,7 +164,7 @@ func makeTransfersHandler(logger *log.Logger, db *database.Db, apiHandler *mux.R
 		Methods(http.MethodPut)
 }
 
-func makeHistoryHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+func makeHistoryHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
 	historyHandler := apiHandler.PathPrefix(HistoryPath).Subrouter()
 	historyHandler.HandleFunc("", listHistory(logger, db)).
 		Methods(http.MethodGet)
@@ -175,7 +175,7 @@ func makeHistoryHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Rou
 		Methods(http.MethodPut)
 }
 
-func makeRulesHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Router) {
+func makeRulesHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
 	rulesHandler := apiHandler.PathPrefix(RulesPath).Subrouter()
 	rulesHandler.HandleFunc("", listRules(logger, db)).Methods(http.MethodGet)
 	rulesHandler.HandleFunc("", createRule(logger, db)).Methods(http.MethodPost)
@@ -196,7 +196,7 @@ func makeRulesHandler(logger *log.Logger, db *database.Db, apiHandler *mux.Route
 }
 
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
-func MakeRESTHandler(logger *log.Logger, db *database.Db, adminHandler *mux.Router,
+func MakeRESTHandler(logger *log.Logger, db *database.DB, adminHandler *mux.Router,
 	services map[string]service.Service) {
 
 	apiHandler := adminHandler.PathPrefix(APIPath).Subrouter()

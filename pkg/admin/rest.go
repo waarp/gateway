@@ -12,7 +12,7 @@ import (
 
 // Authentication checks if the request is authenticated using Basic HTTP
 // authentication.
-func Authentication(logger *log.Logger, db *database.Db) mux.MiddlewareFunc {
+func Authentication(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_ = func() {

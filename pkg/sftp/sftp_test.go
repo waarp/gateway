@@ -175,7 +175,7 @@ func TestSFTPPackage(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		sshList := &sshListener{
-			Db:           db,
+			DB:           db,
 			Logger:       logger,
 			Agent:        localAgent,
 			ServerConfig: serverConfig,

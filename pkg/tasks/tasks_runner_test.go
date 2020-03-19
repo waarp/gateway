@@ -54,7 +54,7 @@ func TestSetup(t *testing.T) {
 			So(db.Create(account), ShouldBeNil)
 
 			r := &Processor{
-				Db: db,
+				DB: db,
 				Rule: &model.Rule{
 					Name:   "Test",
 					IsSend: true,
@@ -300,7 +300,7 @@ func TestGetTasks(t *testing.T) {
 
 				Convey("Given a processor", func() {
 					p := Processor{
-						Db: db,
+						DB: db,
 						//Logger:   e.Logger,
 						Rule: rule,
 						//Transfer: info.Transfer,
@@ -374,7 +374,7 @@ func TestRunTasks(t *testing.T) {
 		So(db.Create(trans), ShouldBeNil)
 
 		proc := &Processor{
-			Db:       db,
+			DB:       db,
 			Logger:   logger,
 			Rule:     rule,
 			Transfer: trans,

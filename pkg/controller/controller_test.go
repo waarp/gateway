@@ -52,7 +52,7 @@ func TestControllerListen(t *testing.T) {
 		Convey("Given a controller", func() {
 			tick := time.Nanosecond
 			cont := &Controller{
-				Db:     db,
+				DB:     db,
 				ticker: time.NewTicker(tick),
 				logger: log.NewLogger("test_controller"),
 			}

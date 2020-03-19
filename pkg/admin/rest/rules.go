@@ -64,7 +64,7 @@ func FromRules(rs []model.Rule) []OutRule {
 	return rules
 }
 
-func createRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			jsonRule := &InRule{}
@@ -87,7 +87,7 @@ func createRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func getRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "rule")
@@ -108,7 +108,7 @@ func getRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func listRules(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "name ASC",
 		"name+":   "name ASC",
@@ -137,7 +137,7 @@ func listRules(logger *log.Logger, db *database.Db) http.HandlerFunc {
 }
 
 //nolint:dupl
-func updateRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "rule")
@@ -168,7 +168,7 @@ func updateRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func deleteRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "rule")

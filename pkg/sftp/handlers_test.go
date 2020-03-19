@@ -56,7 +56,7 @@ func TestFileReader(t *testing.T) {
 
 		Convey("Given the Filereader", func() {
 			handler := (&sshListener{
-				Db:          db,
+				DB:          db,
 				Logger:      logger,
 				Agent:       agent,
 				ProtoConfig: &conf,
@@ -158,7 +158,7 @@ func TestFileWriter(t *testing.T) {
 
 		Convey("Given the Filewriter", func() {
 			handler := (&sshListener{
-				Db:          db,
+				DB:          db,
 				Logger:      logger,
 				Agent:       agent,
 				ProtoConfig: &conf,

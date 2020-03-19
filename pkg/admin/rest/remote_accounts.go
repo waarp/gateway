@@ -8,7 +8,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func listRemoteAccounts(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "login ASC",
 		"agent+":  "remote_agent_id ASC",
@@ -41,7 +41,7 @@ func listRemoteAccounts(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func getRemoteAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "remote_account")
@@ -63,7 +63,7 @@ func getRemoteAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 }
 
 //nolint:dupl
-func updateRemoteAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "remote_account")
@@ -94,7 +94,7 @@ func updateRemoteAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func createRemoteAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			jsonAccount := &InAccount{}
@@ -117,7 +117,7 @@ func createRemoteAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func deleteRemoteAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "remote_account")

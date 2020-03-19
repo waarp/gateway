@@ -32,7 +32,7 @@ func checkSignal(ctx context.Context, ch <-chan model.Signal) *model.PipelineErr
 	}
 }
 
-func createTransfer(logger *log.Logger, db *database.Db, trans *model.Transfer) *model.PipelineError {
+func createTransfer(logger *log.Logger, db *database.DB, trans *model.Transfer) *model.PipelineError {
 	err := db.Create(trans)
 	if err != nil {
 		if _, ok := err.(*database.ErrInvalid); ok {
@@ -48,7 +48,7 @@ func createTransfer(logger *log.Logger, db *database.Db, trans *model.Transfer) 
 // ToHistory removes the given transfer from the database, converts it into a
 // history entry, and inserts the new history entry in the database.
 // If any of these steps fails, the changes are reverted and an error is returned.
-func ToHistory(db *database.Db, logger *log.Logger, trans *model.Transfer) error {
+func ToHistory(db *database.DB, logger *log.Logger, trans *model.Transfer) error {
 	ses, err := db.BeginTransaction()
 	if err != nil {
 		logger.Criticalf("Failed to start archival transaction: %s", err)
@@ -90,7 +90,7 @@ func execTasks(proc *tasks.Processor, chain model.Chain,
 	step model.TransferStep) *model.PipelineError {
 
 	proc.Transfer.Step = step
-	if err := proc.Transfer.Update(proc.Db); err != nil {
+	if err := proc.Transfer.Update(proc.DB); err != nil {
 		proc.Logger.Criticalf("Failed to update transfer step: %s", err)
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
@@ -174,25 +174,25 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 	case model.KindDatabase:
 	case model.KindInterrupt:
 		stream.Transfer.Status = model.StatusInterrupted
-		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
+		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 			return
 		}
 	case model.KindPause:
 		stream.Transfer.Status = model.StatusPaused
-		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
+		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 			return
 		}
 	case model.KindTransfer:
 		stream.Transfer.Error = err.Cause
-		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
+		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 			return
 		}
 		stream.ErrorTasks()
 		stream.Transfer.Error = err.Cause
-		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
+		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer step: %s", dbErr)
 			return
 		}

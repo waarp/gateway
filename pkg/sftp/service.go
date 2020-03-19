@@ -15,7 +15,7 @@ import (
 
 // Service represents an instance of SFTP server.
 type Service struct {
-	db     *database.Db
+	db     *database.DB
 	agent  *model.LocalAgent
 	logger *log.Logger
 
@@ -24,7 +24,7 @@ type Service struct {
 }
 
 // NewService returns a new SFTP service instance with the given attributes.
-func NewService(db *database.Db, agent *model.LocalAgent, logger *log.Logger) *Service {
+func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *Service {
 	return &Service{
 		db:     db,
 		agent:  agent,
@@ -61,7 +61,7 @@ func (s *Service) Start() error {
 		}
 
 		s.listener = &sshListener{
-			Db:           s.db,
+			DB:           s.db,
 			Logger:       s.logger,
 			Agent:        s.agent,
 			ServerConfig: sshConf,

@@ -34,7 +34,7 @@ func testDSN(config conf.DatabaseConfig) string {
 
 // GetTestDatabase returns a testing Sqlite database stored in memory. If the
 // database cannot be started, the function will panic.
-func GetTestDatabase() *Db {
+func GetTestDatabase() *DB {
 	BcryptRounds = bcrypt.MinCost
 
 	config := &conf.ServerConfig{}
@@ -47,9 +47,9 @@ func GetTestDatabase() *Db {
 	config.Database.Name = name
 	atomic.AddUint64(&num, 1)
 
-	db := &Db{
+	db := &DB{
 		Conf:       config,
-		testDbLock: &sync.Mutex{},
+		testDBLock: &sync.Mutex{},
 	}
 	convey.So(db.Start(), convey.ShouldBeNil)
 	db.logger = &log.Logger{Logger: logging.NewLogger(ServiceName)}

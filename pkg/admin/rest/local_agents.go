@@ -8,7 +8,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func getLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "local_agent")
@@ -29,7 +29,7 @@ func getLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func listLocalAgents(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listLocalAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "name ASC",
 		"proto+":  "protocol ASC",
@@ -62,7 +62,7 @@ func listLocalAgents(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func createLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			jsonAgent := &InAgent{}
@@ -86,7 +86,7 @@ func createLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 }
 
 //nolint:dupl
-func updateLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "local_agent")
@@ -117,7 +117,7 @@ func updateLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func deleteLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "local_agent")

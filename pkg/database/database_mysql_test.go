@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	mysqlTestDatabase *Db
+	mysqlTestDatabase *DB
 	mysqlConfig       *conf.ServerConfig
 )
 
@@ -25,7 +25,7 @@ func init() {
 	mysqlConfig.Database.AESPassphrase = fmt.Sprintf("%s%smysql_test_passphrase.aes",
 		os.TempDir(), string(os.PathSeparator))
 
-	mysqlTestDatabase = &Db{Conf: mysqlConfig}
+	mysqlTestDatabase = &DB{Conf: mysqlConfig}
 }
 
 func TestMySQL(t *testing.T) {

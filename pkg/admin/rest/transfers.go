@@ -103,7 +103,7 @@ func FromTransfers(ts []model.Transfer) []OutTransfer {
 	return transfers
 }
 
-func createTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			jsonTrans := &InTransfer{}
@@ -126,7 +126,7 @@ func createTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func getTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "transfer")
@@ -206,7 +206,7 @@ func parseTransferCond(r *http.Request, filters *database.Filters) error {
 }
 
 //nolint:dupl
-func listTransfers(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default":  "id ASC",
 		"id+":      "id ASC",
@@ -247,7 +247,7 @@ func listTransfers(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func pauseTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
@@ -284,7 +284,7 @@ func pauseTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func cancelTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
@@ -318,7 +318,7 @@ func cancelTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func resumeTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "transfer")

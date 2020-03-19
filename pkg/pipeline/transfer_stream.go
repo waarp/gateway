@@ -22,7 +22,7 @@ type TransferStream struct {
 
 // NewTransferStream initialises a new stream for the given transfer. This stream
 // can then be used to execute a transfer.
-func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.Db,
+func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	root string, trans model.Transfer) (*TransferStream, error) {
 
 	if trans.IsServer {
@@ -43,7 +43,7 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.Db,
 
 	t := &TransferStream{
 		Pipeline: &Pipeline{
-			Db:       db,
+			DB:       db,
 			Logger:   logger,
 			Root:     root,
 			Transfer: &trans,
@@ -52,7 +52,7 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.Db,
 	}
 
 	t.Pipeline.Rule = &model.Rule{ID: trans.RuleID}
-	if err := t.Db.Get(t.Rule); err != nil {
+	if err := t.DB.Get(t.Rule); err != nil {
 		logger.Criticalf("Failed to retrieve transfer rule: %s", err.Error())
 		return nil, &model.PipelineError{Kind: model.KindDatabase}
 	}
@@ -60,7 +60,7 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.Db,
 	t.Signals = Signals.Add(t.Transfer.ID)
 
 	t.proc = &tasks.Processor{
-		Db:       t.Db,
+		DB:       t.DB,
 		Logger:   t.Logger,
 		Rule:     t.Rule,
 		Transfer: t.Transfer,
@@ -81,7 +81,7 @@ func (t *TransferStream) Start() (err *model.PipelineError) {
 		}()
 	}
 	t.Transfer.Step = model.StepSetup
-	if err := t.Transfer.Update(t.Db); err != nil {
+	if err := t.Transfer.Update(t.DB); err != nil {
 		t.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
@@ -104,7 +104,7 @@ func (t *TransferStream) Start() (err *model.PipelineError) {
 func (t *TransferStream) Read(p []byte) (n int, err error) {
 	if t.Transfer.Step == model.StepPreTasks {
 		t.Transfer.Step = model.StepData
-		if dbErr := t.Transfer.Update(t.Db); dbErr != nil {
+		if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
@@ -114,7 +114,7 @@ func (t *TransferStream) Read(p []byte) (n int, err error) {
 
 	n, err = t.File.Read(p)
 	t.Transfer.Progress += uint64(n)
-	if err := t.Transfer.Update(t.Db); err != nil {
+	if err := t.Transfer.Update(t.DB); err != nil {
 		return 0, err
 	}
 	return
@@ -123,7 +123,7 @@ func (t *TransferStream) Read(p []byte) (n int, err error) {
 func (t *TransferStream) Write(p []byte) (n int, err error) {
 	if t.Transfer.Step == model.StepPreTasks {
 		t.Transfer.Step = model.StepData
-		if dbErr := t.Transfer.Update(t.Db); dbErr != nil {
+		if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
@@ -133,7 +133,7 @@ func (t *TransferStream) Write(p []byte) (n int, err error) {
 
 	n, err = t.File.Write(p)
 	t.Transfer.Progress += uint64(n)
-	if err := t.Transfer.Update(t.Db); err != nil {
+	if err := t.Transfer.Update(t.DB); err != nil {
 		return 0, err
 	}
 	return
@@ -143,7 +143,7 @@ func (t *TransferStream) Write(p []byte) (n int, err error) {
 func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 	if t.Transfer.Step == model.StepPreTasks {
 		t.Transfer.Step = model.StepData
-		if dbErr := t.Transfer.Update(t.Db); dbErr != nil {
+		if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
@@ -157,7 +157,7 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 		t.Transfer.Error = model.NewTransferError(model.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
-	if dbErr := t.Transfer.Update(t.Db); dbErr != nil {
+	if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
 		return 0, &model.PipelineError{Kind: model.KindDatabase}
 	}
 	return n, err
@@ -167,7 +167,7 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 	if t.Transfer.Step == model.StepPreTasks {
 		t.Transfer.Step = model.StepData
-		if dbErr := t.Transfer.Update(t.Db); dbErr != nil {
+		if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
@@ -181,7 +181,7 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 		t.Transfer.Error = model.NewTransferError(model.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
-	if dbErr := t.Transfer.Update(t.Db); dbErr != nil {
+	if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
 		return 0, &model.PipelineError{Kind: model.KindDatabase}
 	}
 	return n, err
