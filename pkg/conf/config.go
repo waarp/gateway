@@ -12,6 +12,7 @@ import (
 // ServerConfig holds the server configuration options
 type ServerConfig struct {
 	GatewayName string           `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
+	GatewayHome string           `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the directory ofd of the executable."`
 	Log         LogConfig        `group:"log"`
 	Admin       AdminConfig      `group:"admin"`
 	Database    DatabaseConfig   `group:"database"`
