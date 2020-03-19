@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -79,10 +80,10 @@ func TestServerStart(t *testing.T) {
 		port := getTestPort()
 
 		agent := &model.LocalAgent{
-			Name:     "test_sftp_server",
-			Protocol: "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":` + port +
-				`,"root":"root"}`),
+			Name:        "test_sftp_server",
+			Protocol:    "sftp",
+			Root:        "root",
+			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
 
@@ -127,10 +128,10 @@ func TestSSHServer(t *testing.T) {
 
 		db := database.GetTestDatabase()
 		agent := &model.LocalAgent{
-			Name:     "test_sftp_server",
-			Protocol: "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `,"root":"` +
-				root + `"}`),
+			Name:        "test_sftp_server",
+			Protocol:    "sftp",
+			Root:        root,
+			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
 		var protoConfig config.SftpProtoConfig
@@ -175,15 +176,16 @@ func TestSSHServer(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		sshList := &sshListener{
-			DB:           db,
-			Logger:       logger,
-			Agent:        agent,
-			ServerConfig: serverConfig,
-			ProtoConfig:  &protoConfig,
-			Listener:     listener,
-			connWg:       sync.WaitGroup{},
-			ctx:          ctx,
-			cancel:       cancel,
+			DB:          db,
+			Logger:      logger,
+			Agent:       agent,
+			ProtoConfig: &protoConfig,
+			GWConf:      &conf.ServerConfig{GatewayHome: Dir},
+			SSHConf:     serverConfig,
+			Listener:    listener,
+			connWg:      sync.WaitGroup{},
+			ctx:         ctx,
+			cancel:      cancel,
 		}
 		sshList.listen()
 
@@ -655,10 +657,10 @@ func TestSSHServerTasks(t *testing.T) {
 
 		db := database.GetTestDatabase()
 		agent := &model.LocalAgent{
-			Name:     "test_sftp_server",
-			Protocol: "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `,"root":"` +
-				root + `"}`),
+			Name:        "test_sftp_server",
+			Protocol:    "sftp",
+			Root:        root,
+			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
 		var protoConfig config.SftpProtoConfig
@@ -688,15 +690,16 @@ func TestSSHServerTasks(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		sshList := &sshListener{
-			DB:           db,
-			Logger:       logger,
-			Agent:        agent,
-			ServerConfig: serverConfig,
-			ProtoConfig:  &protoConfig,
-			Listener:     listener,
-			connWg:       sync.WaitGroup{},
-			ctx:          ctx,
-			cancel:       cancel,
+			DB:          db,
+			Logger:      logger,
+			Agent:       agent,
+			ProtoConfig: &protoConfig,
+			GWConf:      &conf.ServerConfig{GatewayHome: Dir},
+			SSHConf:     serverConfig,
+			Listener:    listener,
+			connWg:      sync.WaitGroup{},
+			ctx:         ctx,
+			cancel:      cancel,
 		}
 		sshList.listen()
 

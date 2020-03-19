@@ -32,7 +32,7 @@ func TestGetCert(t *testing.T) {
 			parent := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -129,12 +129,12 @@ func TestListCerts(t *testing.T) {
 			p1 := &model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			p2 := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(p1), ShouldBeNil)
 			So(db.Create(p2), ShouldBeNil)
@@ -322,7 +322,7 @@ func TestCreateCert(t *testing.T) {
 			parent := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -405,7 +405,7 @@ func TestDeleteCert(t *testing.T) {
 			parent := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -476,7 +476,7 @@ func TestUpdateCert(t *testing.T) {
 			parent := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(parent), ShouldBeNil)
 

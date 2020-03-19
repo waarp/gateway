@@ -11,12 +11,12 @@ import (
 func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonAgent := &InAgent{}
+			jsonAgent := &InRemoteAgent{}
 			if err := readJSON(r, jsonAgent); err != nil {
 				return err
 			}
 
-			agent := jsonAgent.ToRemote()
+			agent := jsonAgent.ToModel()
 			if err := db.Create(agent); err != nil {
 				return err
 			}
@@ -55,7 +55,7 @@ func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutAgent{"remoteAgents": FromRemoteAgents(results)}
+			resp := map[string][]OutRemoteAgent{"remoteAgents": FromRemoteAgents(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -123,12 +123,12 @@ func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			agent := &InAgent{}
+			agent := &InRemoteAgent{}
 			if err := readJSON(r, agent); err != nil {
 				return err
 			}
 
-			if err := db.Update(agent.ToRemote(), id, false); err != nil {
+			if err := db.Update(agent.ToModel(), id, false); err != nil {
 				return err
 			}
 

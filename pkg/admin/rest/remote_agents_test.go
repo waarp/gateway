@@ -20,7 +20,7 @@ const remoteAgentsURI = "http://remotehost:8080" + APIPath + RemoteAgentsPath + 
 func TestListRemoteAgents(t *testing.T) {
 	logger := log.NewLogger("rest_remote agent_list_test")
 
-	check := func(w *httptest.ResponseRecorder, expected map[string][]OutAgent) {
+	check := func(w *httptest.ResponseRecorder, expected map[string][]OutRemoteAgent) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
@@ -46,28 +46,28 @@ func TestListRemoteAgents(t *testing.T) {
 		db := database.GetTestDatabase()
 		handler := listRemoteAgents(logger, db)
 		w := httptest.NewRecorder()
-		expected := map[string][]OutAgent{}
+		expected := map[string][]OutRemoteAgent{}
 
 		Convey("Given a database with 4 remote agents", func() {
 			a1 := &model.RemoteAgent{
 				Name:        "remote agent1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
 			}
 			a2 := &model.RemoteAgent{
 				Name:        "remote agent2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
 			}
 			a3 := &model.RemoteAgent{
 				Name:        "remote agent3",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
 			}
 			a4 := &model.RemoteAgent{
 				Name:        "remote agent4",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
 			}
 
 			So(db.Create(a1), ShouldBeNil)
@@ -87,7 +87,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAgents"] = []OutAgent{agent1, agent2, agent3, agent4}
+					expected["remoteAgents"] = []OutRemoteAgent{agent1, agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -99,7 +99,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAgents"] = []OutAgent{agent1}
+					expected["remoteAgents"] = []OutRemoteAgent{agent1}
 					check(w, expected)
 				})
 			})
@@ -111,7 +111,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAgents"] = []OutAgent{agent2, agent3, agent4}
+					expected["remoteAgents"] = []OutRemoteAgent{agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -123,7 +123,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAgents"] = []OutAgent{agent4, agent3, agent2, agent1}
+					expected["remoteAgents"] = []OutRemoteAgent{agent4, agent3, agent2, agent1}
 					check(w, expected)
 				})
 			})
@@ -135,7 +135,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAgents"] = []OutAgent{agent1, agent2, agent3, agent4}
+					expected["remoteAgents"] = []OutRemoteAgent{agent1, agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -155,7 +155,7 @@ func TestGetRemoteAgent(t *testing.T) {
 			existing := &model.RemoteAgent{
 				Name:        "existing",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
 
@@ -219,15 +219,15 @@ func TestCreateRemoteAgent(t *testing.T) {
 			existing := &model.RemoteAgent{
 				Name:        "existing",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
 
 			Convey("Given a new remote agent to insert in the database", func() {
-				newAgent := &InAgent{
+				newAgent := &InRemoteAgent{
 					Name:        "new remote agent",
 					Protocol:    "sftp",
-					ProtoConfig: json.RawMessage(`{"address":"localhost","port":2023,"root":"/root"}`),
+					ProtoConfig: json.RawMessage(`{"address":"localhost","port":2023}`),
 				}
 
 				Convey("Given that the new remote agent is valid for insertion", func() {
@@ -257,7 +257,7 @@ func TestCreateRemoteAgent(t *testing.T) {
 
 						Convey("Then the new remote agent should be inserted in "+
 							"the database", func() {
-							exist, err := db.Exists(newAgent.ToRemote())
+							exist, err := db.Exists(newAgent.ToModel())
 
 							So(err, ShouldBeNil)
 							So(exist, ShouldBeTrue)
@@ -289,7 +289,7 @@ func TestDeleteRemoteAgent(t *testing.T) {
 			existing := &model.RemoteAgent{
 				Name:        "existing1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
 
@@ -348,12 +348,12 @@ func TestUpdateRemoteAgent(t *testing.T) {
 			old := &model.RemoteAgent{
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
 			}
 			other := &model.RemoteAgent{
 				Name:        "other",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2023,"root":"titi"}`),
+				ProtoConfig: []byte(`{"address":"remotehost","port":2023}`),
 			}
 			So(db.Create(old), ShouldBeNil)
 			So(db.Create(other), ShouldBeNil)
@@ -363,10 +363,10 @@ func TestUpdateRemoteAgent(t *testing.T) {
 			Convey("Given new values to update the agent with", func() {
 
 				Convey("Given a new login", func() {
-					update := InAgent{
+					update := InRemoteAgent{
 						Name:        "update",
 						Protocol:    "sftp",
-						ProtoConfig: json.RawMessage(`{"address":"localhost","port":2024,"root":"/root"}`),
+						ProtoConfig: json.RawMessage(`{"address":"localhost","port":2024}`),
 					}
 					body, err := json.Marshal(update)
 					So(err, ShouldBeNil)
@@ -410,10 +410,10 @@ func TestUpdateRemoteAgent(t *testing.T) {
 				})
 
 				Convey("Given an invalid agent ID", func() {
-					update := InAgent{
+					update := InRemoteAgent{
 						Name:        "update",
 						Protocol:    "sftp",
-						ProtoConfig: json.RawMessage(`{"address":"localhost","port":2024,"root":"/root"}`),
+						ProtoConfig: json.RawMessage(`{"address":"localhost","port":2024}`),
 					}
 					body, err := json.Marshal(update)
 					So(err, ShouldBeNil)

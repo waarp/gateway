@@ -1,6 +1,8 @@
 package model
 
 import (
+	"path/filepath"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/go-xorm/builder"
@@ -28,6 +30,9 @@ type LocalAgent struct {
 	// The protocol used by the agent.
 	Protocol string `xorm:"notnull 'protocol'"`
 
+	// The root directory of the agent.
+	Root string `xorm:"notnull 'root'"`
+
 	// The agent's configuration in raw JSON format.
 	ProtoConfig []byte `xorm:"notnull 'proto_config'"`
 }
@@ -36,6 +41,7 @@ type LocalAgent struct {
 // role is to set the agent's owner.
 func (l *LocalAgent) BeforeInsert(database.Accessor) error {
 	l.Owner = database.Owner
+	l.Root = filepath.Clean(l.Root)
 	return nil
 }
 

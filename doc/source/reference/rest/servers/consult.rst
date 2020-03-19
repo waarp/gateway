@@ -26,6 +26,7 @@ Consulter un serveur
    :resjson number id: L'identifiant unique du serveur
    :resjson string name: Le nom du serveur
    :resjson string protocol: Le protocole utilisé par le serveur
+   :resjson string root: Le dossier racine du serveur
    :resjson object protoConfig: La configuration du partenaire encodé sous forme
       d'un objet JSON.
 
@@ -41,9 +42,9 @@ Consulter un serveur
             "id": 1,
             "name": "sftp server",
             "protocol": "sftp",
+            "root": "/sftp/root",
             "protoConfig": {
               "address": "localhost",
-              "port": 21,
-              "root": "/sftp/root"
+              "port": 21
             }
           }

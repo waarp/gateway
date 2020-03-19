@@ -36,7 +36,6 @@ var (
 type SftpProtoConfig struct {
 	Port         uint16   `json:"port"`
 	Address      string   `json:"address"`
-	Root         string   `json:"root"`
 	KeyExchanges []string `json:"keyExchanges"`
 	Ciphers      []string `json:"ciphers"`
 	MACs         []string `json:"macs"`
@@ -72,8 +71,5 @@ func (c *SftpProtoConfig) ValidClient() error {
 
 // ValidServer checks if the configuration is valid for a local SFTP server.
 func (c *SftpProtoConfig) ValidServer() error {
-	if c.Root == "" {
-		return fmt.Errorf("sftp root cannot be empty")
-	}
 	return c.ValidClient()
 }

@@ -53,7 +53,7 @@ func listLocalAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutAgent{"localAgents": fromLocalAgents(results)}
+			resp := map[string][]OutLocalAgent{"localAgents": FromLocalAgents(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -65,12 +65,12 @@ func listLocalAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func createLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonAgent := &InAgent{}
+			jsonAgent := &InLocalAgent{}
 			if err := readJSON(r, jsonAgent); err != nil {
 				return err
 			}
 
-			agent := jsonAgent.ToLocal()
+			agent := jsonAgent.ToModel()
 			if err := db.Create(agent); err != nil {
 				return err
 			}
@@ -98,12 +98,12 @@ func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			agent := &InAgent{}
+			agent := &InLocalAgent{}
 			if err := readJSON(r, agent); err != nil {
 				return err
 			}
 
-			if err := db.Update(agent.ToLocal(), id, false); err != nil {
+			if err := db.Update(agent.ToModel(), id, false); err != nil {
 				return err
 			}
 

@@ -107,7 +107,7 @@ func TestAddTransfer(t *testing.T) {
 				p := model.RemoteAgent{
 					Name:        "test",
 					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"localhost","port":1,"root":"toto"}`),
+					ProtoConfig: []byte(`{"address":"localhost","port":1}`),
 				}
 				err := db.Create(&p)
 				So(err, ShouldBeNil)
@@ -235,7 +235,7 @@ func TestAddTransfer(t *testing.T) {
 								p2 := model.RemoteAgent{
 									Name:        "dummy",
 									Protocol:    "sftp",
-									ProtoConfig: []byte(`{"address":"localhost","port":2,"root":"titi"}`),
+									ProtoConfig: []byte(`{"address":"localhost","port":2}`),
 								}
 								err := db.Create(&p2)
 								So(err, ShouldBeNil)
@@ -291,7 +291,7 @@ func TestGetTransfer(t *testing.T) {
 				p := &model.RemoteAgent{
 					Name:        "test",
 					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+					ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 				}
 				So(db.Create(p), ShouldBeNil)
 
@@ -388,22 +388,22 @@ func TestListTransfer(t *testing.T) {
 			p1 := &model.RemoteAgent{
 				Name:        "remote1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			p2 := &model.RemoteAgent{
 				Name:        "remote2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"titi"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
 			}
 			p3 := &model.RemoteAgent{
 				Name:        "remote3",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2024,"root":"tata"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2024}`),
 			}
 			p4 := &model.RemoteAgent{
 				Name:        "remote4",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2025,"root":"tutu"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2025}`),
 			}
 			So(db.Create(p1), ShouldBeNil)
 			So(db.Create(p2), ShouldBeNil)

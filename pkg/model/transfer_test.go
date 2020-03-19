@@ -53,7 +53,7 @@ func TestTransferValidateInsert(t *testing.T) {
 			remote := &RemoteAgent{
 				Name:        "test remote",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(remote), ShouldBeNil)
 
@@ -347,7 +347,7 @@ func TestTransferValidateInsert(t *testing.T) {
 					remote2 := &RemoteAgent{
 						Name:        "test remote 2",
 						Protocol:    "sftp",
-						ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+						ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 					}
 					So(db.Create(remote2), ShouldBeNil)
 
@@ -614,7 +614,7 @@ func TestTransferToHistory(t *testing.T) {
 		remote := &RemoteAgent{
 			Name:        "test remote",
 			Protocol:    "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 		}
 		So(db.Create(remote), ShouldBeNil)
 

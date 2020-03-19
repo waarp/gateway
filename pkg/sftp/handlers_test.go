@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -15,6 +16,16 @@ import (
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+var Dir string
+
+func init() {
+	var err error
+	Dir, err = os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+}
 
 func TestFileReader(t *testing.T) {
 	logger := log.NewLogger("test_file_reader")
@@ -38,10 +49,10 @@ func TestFileReader(t *testing.T) {
 		So(db.Create(rule), ShouldBeNil)
 
 		agent := &model.LocalAgent{
-			Name:     "test_sftp_server",
-			Protocol: "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":2023, "root":"` +
-				root + `"}`),
+			Name:        "test_sftp_server",
+			Protocol:    "sftp",
+			Root:        root,
+			ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
 
@@ -51,16 +62,17 @@ func TestFileReader(t *testing.T) {
 		}
 		So(db.Create(account), ShouldBeNil)
 
-		var conf config.SftpProtoConfig
-		So(json.Unmarshal(agent.ProtoConfig, &conf), ShouldBeNil)
+		var serverConf config.SftpProtoConfig
+		So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 		Convey("Given the Filereader", func() {
 			handler := (&sshListener{
 				DB:          db,
 				Logger:      logger,
 				Agent:       agent,
-				ProtoConfig: &conf,
-			}).makeFileReader(context.Background(), account.ID)
+				ProtoConfig: &serverConf,
+				GWConf:      &conf.ServerConfig{GatewayHome: Dir},
+			}).makeFileReader(context.Background(), account.ID, agent.Root)
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
@@ -140,10 +152,10 @@ func TestFileWriter(t *testing.T) {
 		So(db.Create(rule), ShouldBeNil)
 
 		agent := &model.LocalAgent{
-			Name:     "test_sftp_server",
-			Protocol: "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":2023, "root":"` +
-				root + `"}`),
+			Name:        "test_sftp_server",
+			Protocol:    "sftp",
+			Root:        root,
+			ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
 
@@ -153,16 +165,17 @@ func TestFileWriter(t *testing.T) {
 		}
 		So(db.Create(account), ShouldBeNil)
 
-		var conf config.SftpProtoConfig
-		So(json.Unmarshal(agent.ProtoConfig, &conf), ShouldBeNil)
+		var serverConf config.SftpProtoConfig
+		So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 		Convey("Given the Filewriter", func() {
 			handler := (&sshListener{
 				DB:          db,
 				Logger:      logger,
 				Agent:       agent,
-				ProtoConfig: &conf,
-			}).makeFileWriter(context.Background(), account.ID)
+				ProtoConfig: &serverConf,
+				GWConf:      &conf.ServerConfig{GatewayHome: Dir},
+			}).makeFileWriter(context.Background(), account.ID, agent.Root)
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{

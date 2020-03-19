@@ -13,6 +13,7 @@ Modifier un serveur
 
    :reqjson string name: Le nom du serveur
    :reqjson string protocol: Le protocole utilisé par le serveur
+   :reqjson string root: Le dossier racine du serveur
    :reqjson object protoConfig: La configuration du partenaire encodé sous forme
       d'un objet JSON.
 
@@ -28,10 +29,10 @@ Modifier un serveur
           {
             "name": "sftp_server_new",
             "protocol": "sftp",
+            "root": "/new/sftp/root",
             "protoConfig": {
               "address": "localhost",
-              "port": 23,
-              "root": "/new/sftp/root"
+              "port": 23
             }
           }
 

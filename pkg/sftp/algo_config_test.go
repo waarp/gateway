@@ -3,9 +3,9 @@ package sftp
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -32,9 +32,8 @@ func TestSFTPAlgoConfig(t *testing.T) {
 
 	Convey("Given an SFTP server", t, func() {
 		db := database.GetTestDatabase()
-		root, err := filepath.Abs("test_algo_root")
+		root, err := ioutil.TempDir("", "gateway-test")
 		So(err, ShouldBeNil)
-		So(os.Mkdir(root, 0700), ShouldBeNil)
 		Reset(func() { _ = os.RemoveAll(root) })
 
 		port := getFreePort()
@@ -42,8 +41,8 @@ func TestSFTPAlgoConfig(t *testing.T) {
 		agent := &model.LocalAgent{
 			Name:     "sftp_server",
 			Protocol: "sftp",
+			Root:     root,
 			ProtoConfig: []byte(`{
-				"root": "` + root + `",
 				"address": "localhost",
 				"port": ` + fmt.Sprint(port) + `,
 				"keyExchanges": ["ecdh-sha2-nistp256"],

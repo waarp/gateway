@@ -12,6 +12,7 @@ Créer un serveur
 
    :reqjson string name: Le nom du serveur
    :reqjson string protocol: Le protocole utilisé par le serveur
+   :reqjson string root: Le dossier racine du serveur
    :reqjson object protoConfig: La configuration du partenaire encodé sous forme
       d'un objet JSON.
 
@@ -27,10 +28,10 @@ Créer un serveur
           {
             "name": "sftp server",
             "protocol": "sftp",
+            "root": "/sftp/root",
             "protoConfig": {
               "address": "localhost",
-              "port": 21,
-              "root": "/sftp/root"
+              "port": 21
             }
           }
 

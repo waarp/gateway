@@ -61,12 +61,12 @@ func (s *Service) Start() error {
 		}
 
 		s.listener = &sshListener{
-			DB:           s.db,
-			Logger:       s.logger,
-			Agent:        s.agent,
-			ServerConfig: sshConf,
-			ProtoConfig:  &protoConfig,
-			Listener:     listener,
+			DB:          s.db,
+			Logger:      s.logger,
+			Agent:       s.agent,
+			ProtoConfig: &protoConfig,
+			SSHConf:     sshConf,
+			Listener:    listener,
 		}
 		s.listener.ctx, s.listener.cancel = context.WithCancel(context.Background())
 		s.listener.listen()

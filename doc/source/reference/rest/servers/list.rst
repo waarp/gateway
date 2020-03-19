@@ -37,7 +37,8 @@ Lister les serveurs
    :resjson array remoteAgents: La liste des serveurs demandés
    :resjsonarr number id: L'identifiant unique du serveur
    :resjsonarr string name: Le nom du serveur
-   :resjsonarr [sftp] protocol: Le protocole utilisé par le serveur
+   :resjsonarr string protocol: Le protocole utilisé par le serveur
+   :resjsonarr string root: Le dossier racine du serveur
    :resjsonarr object protoConfig: La configuration du partenaire encodé sous
       forme d'un objet JSON.
 
@@ -54,19 +55,19 @@ Lister les serveurs
               "id": 2,
               "name": "sftp_server_2",
               "protocol": "sftp",
+              "root": "/sftp2/root",
               "protoConfig": {
                 "address": "localhost",
-                "port": 22,
-                "root": "/sftp2/root"
+                "port": 22
               }
             },{
               "id": 1,
               "name": "sftp_server_1",
               "protocol": "sftp",
+              "root": "/sftp/root",
               "protoConfig": {
                 "address": "localhost",
-                "port": 21,
-                "root": "/sftp/root"
+                "port": 21
               }
             }]
           }

@@ -27,7 +27,7 @@ func TestLocalAgentBeforeInsert(t *testing.T) {
 			ID:          1,
 			Name:        "test agent",
 			Protocol:    "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+			ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 		}
 
 		Convey("When calling the `BeforeInsert` hook", func() {
@@ -52,7 +52,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			ag := &LocalAgent{
 				Name:        "test agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(ag), ShouldBeNil)
 
@@ -123,7 +123,7 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			err := db.Create(&oldAgent)
 			So(err, ShouldBeNil)
@@ -133,7 +133,7 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 					Owner:       "test_gateway",
 					Name:        "new",
 					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+					ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 				}
 
 				Convey("Given that the new agent is valid", func() {
@@ -280,7 +280,7 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			err := db.Create(&oldAgent)
 			So(err, ShouldBeNil)
@@ -289,7 +289,7 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "other",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"titi"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
 			}
 			err = db.Create(&otherAgent)
 			So(err, ShouldBeNil)
@@ -298,7 +298,7 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 				updatedAgent := LocalAgent{
 					Name:        "updated",
 					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"localhost","port":2024,"root":"tata"}`),
+					ProtoConfig: []byte(`{"address":"localhost","port":2024}`),
 				}
 
 				Convey("Given that the updated agent is valid", func() {

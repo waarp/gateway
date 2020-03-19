@@ -206,7 +206,7 @@ func TestCreateUser(t *testing.T) {
 			parent := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -273,7 +273,7 @@ func TestDeleteUser(t *testing.T) {
 			parent := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(parent), ShouldBeNil)
 

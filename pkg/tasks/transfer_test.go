@@ -79,7 +79,7 @@ func TestTransferRun(t *testing.T) {
 		partner := &model.RemoteAgent{
 			Name:        "test partner",
 			Protocol:    "sftp",
-			ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+			ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 		}
 		So(db.Create(partner), ShouldBeNil)
 

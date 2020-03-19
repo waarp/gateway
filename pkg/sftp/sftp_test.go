@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -34,10 +35,10 @@ func TestSFTPPackage(t *testing.T) {
 
 		db := database.GetTestDatabase()
 		localAgent := &model.LocalAgent{
-			Name:     "test_sftp_server",
-			Protocol: "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":` + port +
-				`,"root":"` + root + `"}`),
+			Name:        "test_sftp_server",
+			Protocol:    "sftp",
+			Root:        root,
+			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 		}
 		So(db.Create(localAgent), ShouldBeNil)
 		var protoConfig config.SftpProtoConfig
@@ -71,10 +72,9 @@ func TestSFTPPackage(t *testing.T) {
 		So(db.Create(localUserCert), ShouldBeNil)
 
 		remoteAgent := &model.RemoteAgent{
-			Name:     "test_sftp_partner",
-			Protocol: "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":` + port +
-				`,"root":"` + root + `"}`),
+			Name:        "test_sftp_partner",
+			Protocol:    "sftp",
+			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 		}
 		So(db.Create(remoteAgent), ShouldBeNil)
 
@@ -175,15 +175,16 @@ func TestSFTPPackage(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		sshList := &sshListener{
-			DB:           db,
-			Logger:       logger,
-			Agent:        localAgent,
-			ServerConfig: serverConfig,
-			ProtoConfig:  &protoConfig,
-			Listener:     listener,
-			connWg:       sync.WaitGroup{},
-			ctx:          ctx,
-			cancel:       cancel,
+			DB:          db,
+			Logger:      logger,
+			Agent:       localAgent,
+			ProtoConfig: &protoConfig,
+			GWConf:      &conf.ServerConfig{GatewayHome: Dir},
+			SSHConf:     serverConfig,
+			Listener:    listener,
+			connWg:      sync.WaitGroup{},
+			ctx:         ctx,
+			cancel:      cancel,
 		}
 		sshList.listen()
 		Reset(func() {
