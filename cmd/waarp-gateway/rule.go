@@ -22,6 +22,8 @@ func displayRule(w io.Writer, rule rest.OutRule) {
 	fmt.Fprintf(w, "\033[97;1m● Rule %s\033[0m (ID %v)\n", rule.Name, rule.ID)
 	fmt.Fprintf(w, "  \033[97m-Comment :\033[0m \033[97m%s\033[0m\n", rule.Comment)
 	fmt.Fprintf(w, "  \033[97m-Path    :\033[0m \033[97m%v\033[0m\n", rule.Path)
+	fmt.Fprintf(w, "  \033[97m-InPath  :\033[0m \033[97m%v\033[0m\n", rule.InPath)
+	fmt.Fprintf(w, "  \033[97m-OutPath :\033[0m \033[97m%v\033[0m\n", rule.OutPath)
 	if rule.IsSend {
 		fmt.Fprint(w, "  \033[97m-Direction:\033[0m \033[97mSEND\033[0m\n")
 	} else {
@@ -60,7 +62,9 @@ type ruleAddCommand struct {
 	Name      string `required:"true" short:"n" long:"name" description:"The rule's name"`
 	Comment   string `short:"c" long:"comment" description:"A short comment describing the rule"`
 	Direction string `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"SEND" choice:"RECEIVE"`
-	Path      string `required:"true" short:"p" long:"path" description:"The path to the destination of the file"`
+	Path      string `required:"true" short:"p" long:"path" description:"The path used to identify the rule"`
+	InPath    string `required:"true" short:"i" long:"in_path" description:"The path to the source of the file"`
+	OutPath   string `required:"true" short:"o" long:"out_path" description:"The path to the destination of the file"`
 }
 
 func (r *ruleAddCommand) Execute([]string) error {

@@ -15,6 +15,8 @@ type InRule struct {
 	Comment string `json:"comment"`
 	IsSend  bool   `json:"isSend"`
 	Path    string `json:"path"`
+	InPath  string `json:"inPath"`
+	OutPath string `json:"outPath"`
 }
 
 // ToModel transforms the JSON transfer rule into its database equivalent.
@@ -24,6 +26,8 @@ func (i *InRule) ToModel() *model.Rule {
 		Comment: i.Comment,
 		IsSend:  i.IsSend,
 		Path:    i.Path,
+		InPath:  i.InPath,
+		OutPath: i.OutPath,
 	}
 }
 
@@ -35,6 +39,8 @@ type OutRule struct {
 	Comment string `json:"comment"`
 	IsSend  bool   `json:"isSend"`
 	Path    string `json:"path"`
+	InPath  string `json:"inPath"`
+	OutPath string `json:"outPath"`
 }
 
 // FromRule transforms the given database transfer rule into its JSON equivalent.
@@ -45,6 +51,8 @@ func FromRule(r *model.Rule) *OutRule {
 		Comment: r.Comment,
 		IsSend:  r.IsSend,
 		Path:    r.Path,
+		InPath:  r.InPath,
+		OutPath: r.OutPath,
 	}
 }
 
@@ -59,6 +67,8 @@ func FromRules(rs []model.Rule) []OutRule {
 			Comment: rule.Comment,
 			IsSend:  rule.IsSend,
 			Path:    rule.Path,
+			InPath:  rule.InPath,
+			OutPath: rule.OutPath,
 		}
 	}
 	return rules

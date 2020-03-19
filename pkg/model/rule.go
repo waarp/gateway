@@ -1,7 +1,7 @@
 package model
 
 import (
-	"fmt"
+	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 )
@@ -17,7 +17,7 @@ type Rule struct {
 	ID uint64 `xorm:"pk autoincr 'id'"`
 
 	// The rule's name
-	Name string `xorm:"unique(send) unique(path) notnull 'name'"`
+	Name string `xorm:"unique(send) notnull 'name'"`
 
 	// The rule's comment
 	Comment string `xorm:"notnull 'comment'"`
@@ -25,8 +25,15 @@ type Rule struct {
 	// The rule's direction (pull/push)
 	IsSend bool `xorm:"unique(send) notnull 'send'"`
 
-	// The rule's directory
-	Path string `xorm:"unique(path) notnull 'path'"`
+	// The path used to differentiate the rule when the protocol does not allow it.
+	// This path is always an absolute path.
+	Path string `xorm:"unique notnull 'path'"`
+
+	// The source directory of the files.
+	InPath string `xorm:"unique notnull 'in_path'"`
+
+	// The destination directory of the files.
+	OutPath string `xorm:"unique notnull 'out_path'"`
 }
 
 // TableName returns the remote accounts table name.
@@ -35,16 +42,15 @@ func (*Rule) TableName() string {
 }
 
 // BeforeInsert is called before inserting the rule in the database. Its
-// role is to set the IN and OUT path to the default value if non was
-// entered.
+// role is to set the path to the default value if non was entered.
 func (r *Rule) BeforeInsert(database.Accessor) error {
 	if r.Path == "" {
-		if r.IsSend {
-			r.Path = fmt.Sprintf("/%s/out", r.Name)
-		} else {
-			r.Path = fmt.Sprintf("/%s/in", r.Name)
-		}
+		r.Path = r.Name
 	}
+	r.Path = filepath.Clean(r.Path)
+	r.InPath = filepath.Clean(r.InPath)
+	r.OutPath = filepath.Clean(r.OutPath)
+
 	return nil
 }
 

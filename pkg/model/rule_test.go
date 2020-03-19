@@ -36,10 +36,6 @@ func TestRuleBeforeInsert(t *testing.T) {
 			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
 			})
-
-			Convey("Then the rule's path should be Test/out", func() {
-				So(rule.Path, ShouldEqual, "/Test/out")
-			})
 		})
 	})
 
@@ -57,7 +53,7 @@ func TestRuleBeforeInsert(t *testing.T) {
 			})
 
 			Convey("Then the rule's path should be Test/out", func() {
-				So(rule.Path, ShouldEqual, "/Test/in")
+				So(rule.Path, ShouldEqual, "Test")
 			})
 		})
 	})
@@ -140,7 +136,7 @@ func TestRuleValidateInsert(t *testing.T) {
 			Convey("Given a rule without a path", func() {
 				r2 := &Rule{
 					Name:   "Test2",
-					IsSend: r.IsSend,
+					IsSend: false,
 				}
 
 				Convey("When calling `ValidateUpdate`", func() {
@@ -151,10 +147,10 @@ func TestRuleValidateInsert(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)
-					})
 
-					Convey("Then the error should say that path cannot be empty", func() {
-						So(err.Error(), ShouldEqual, "The rule's path cannot be empty")
+						Convey("Then the error should say that path cannot be empty", func() {
+							So(err.Error(), ShouldEqual, "The rule's path cannot be empty")
+						})
 					})
 				})
 			})

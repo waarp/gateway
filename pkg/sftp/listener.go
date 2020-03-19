@@ -139,6 +139,7 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
 			l.Logger.Errorf("No rule found for directory '%s'", path)
 			return nil, fmt.Errorf("cannot retrieve transfer rule: %s", err)
 		}
+		root = filepath.Join(root, rule.InPath)
 
 		// Create Transfer
 		trans := model.Transfer{
@@ -175,6 +176,7 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64,
 			l.Logger.Errorf("No rule found for directory '%s'", path)
 			return nil, fmt.Errorf("cannot retrieve transfer rule: %s", err)
 		}
+		root = filepath.Join(root, rule.OutPath)
 
 		// Create Transfer
 		trans := model.Transfer{
