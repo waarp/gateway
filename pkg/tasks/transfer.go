@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 
@@ -14,25 +13,21 @@ type TransferTask struct{}
 
 func init() {
 	RunnableTasks["TRANSFER"] = &TransferTask{}
+	model.ValidTasks["TRANSFER"] = &TransferTask{}
 }
 
 // Validate checks if the tasks has all the required arguments.
-func (t *TransferTask) Validate(task *model.Task) error {
-	var args map[string]interface{}
-	if err := json.Unmarshal(task.Args, &args); err != nil {
-		return err
-	}
-
-	if file, ok := args["file"].(string); !ok || file == "" {
+func (t *TransferTask) Validate(args map[string]string) error {
+	if file, ok := args["file"]; !ok || file == "" {
 		return fmt.Errorf("missing transfer source file")
 	}
-	if to, ok := args["to"].(string); !ok || to == "" {
+	if to, ok := args["to"]; !ok || to == "" {
 		return fmt.Errorf("missing transfer remote partner")
 	}
-	if as, ok := args["as"].(string); !ok || as == "" {
+	if as, ok := args["as"]; !ok || as == "" {
 		return fmt.Errorf("missing transfer account")
 	}
-	if rule, ok := args["rule"].(string); !ok || rule == "" {
+	if rule, ok := args["rule"]; !ok || rule == "" {
 		return fmt.Errorf("missing transfer rule")
 	}
 

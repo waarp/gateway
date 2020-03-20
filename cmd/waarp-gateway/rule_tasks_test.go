@@ -11,9 +11,19 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+func init() {
+	model.ValidTasks["COPY"] = &tasks.CopyTask{}
+	model.ValidTasks["EXEC"] = &tasks.ExecTask{}
+	model.ValidTasks["DELETE"] = &tasks.DeleteTask{}
+	model.ValidTasks["TRANSFER"] = &tasks.TransferTask{}
+	model.ValidTasks["MOVE"] = &tasks.MoveTask{}
+	model.ValidTasks["RENAME"] = &tasks.RenameTask{}
+}
 
 func TestChangeRuleTasks(t *testing.T) {
 
@@ -40,10 +50,10 @@ func TestChangeRuleTasks(t *testing.T) {
 					preTasks := []rest.InRuleTask{
 						{
 							Type: "COPY",
-							Args: json.RawMessage("{}"),
+							Args: json.RawMessage(`{"path":"/path/to/file"}`),
 						}, {
 							Type: "EXEC",
-							Args: json.RawMessage("{}"),
+							Args: json.RawMessage(`{"path":"/path/to/script","args":"{}","delay":"0"}`),
 						},
 					}
 
@@ -53,17 +63,17 @@ func TestChangeRuleTasks(t *testing.T) {
 							Args: json.RawMessage("{}"),
 						}, {
 							Type: "TRANSFER",
-							Args: json.RawMessage("{}"),
+							Args: json.RawMessage(`{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}`),
 						},
 					}
 
 					errorTasks := []rest.InRuleTask{
 						{
 							Type: "MOVE",
-							Args: json.RawMessage("{}"),
+							Args: json.RawMessage(`{"path":"/path/to/file"}`),
 						}, {
 							Type: "RENAME",
-							Args: json.RawMessage("{}"),
+							Args: json.RawMessage(`{"path":"/path/to/file"}`),
 						},
 					}
 
@@ -188,14 +198,14 @@ func TestListRuleTasks(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   1,
 				Type:   "COPY",
-				Args:   []byte("{}"),
+				Args:   []byte(`{"path":"/path/to/file"}`),
 			}
 			pre2 := &model.Task{
 				RuleID: rule.ID,
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "EXEC",
-				Args:   []byte("{}"),
+				Args:   []byte(`{"path":"/path/to/script","args":"{}","delay":"0"}`),
 			}
 			So(db.Create(pre1), ShouldBeNil)
 			So(db.Create(pre2), ShouldBeNil)
@@ -212,7 +222,7 @@ func TestListRuleTasks(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   1,
 				Type:   "TRANSFER",
-				Args:   []byte("{}"),
+				Args:   []byte(`{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}`),
 			}
 			So(db.Create(post1), ShouldBeNil)
 			So(db.Create(post2), ShouldBeNil)
@@ -222,14 +232,14 @@ func TestListRuleTasks(t *testing.T) {
 				Chain:  model.ChainError,
 				Rank:   1,
 				Type:   "MOVE",
-				Args:   []byte("{}"),
+				Args:   []byte(`{"path":"/path/to/file"}`),
 			}
 			err2 := &model.Task{
 				RuleID: rule.ID,
 				Chain:  model.ChainError,
 				Rank:   2,
 				Type:   "RENAME",
-				Args:   []byte("{}"),
+				Args:   []byte(`{"path":"/path/to/file"}`),
 			}
 			So(db.Create(err1), ShouldBeNil)
 			So(db.Create(err2), ShouldBeNil)

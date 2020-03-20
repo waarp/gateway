@@ -1,12 +1,10 @@
 package tasks
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -29,22 +27,16 @@ done`
 func TestExecValidate(t *testing.T) {
 	Convey("Given an 'EXEC' task", t, func() {
 		exec := &ExecTask{}
-		args := map[string]interface{}{
-			"path":  "cp",
-			"args":  "exec.go exec_copy.go",
-			"delay": 1000,
-		}
 
-		Convey("Given that the arguments are valid", func() {
-			b, err := json.Marshal(args)
-			So(err, ShouldBeNil)
-
-			task := &model.Task{
-				Args: b,
+		Convey("Given valid arguments", func() {
+			args := map[string]string{
+				"path":  "cp",
+				"args":  "exec.go exec_copy.go",
+				"delay": "1000",
 			}
 
 			Convey("When validating the task", func() {
-				err := exec.Validate(task)
+				err := exec.Validate(args)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
@@ -53,16 +45,14 @@ func TestExecValidate(t *testing.T) {
 		})
 
 		Convey("Given that a parameter is NOT the valid type", func() {
-			args["path"] = true
-			b, err := json.Marshal(args)
-			So(err, ShouldBeNil)
-
-			task := &model.Task{
-				Args: b,
+			args := map[string]string{
+				"path":  "cp",
+				"args":  "file1 file2",
+				"delay": "true",
 			}
 
 			Convey("When validating the task", func() {
-				err := exec.Validate(task)
+				err := exec.Validate(args)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)
@@ -71,16 +61,13 @@ func TestExecValidate(t *testing.T) {
 		})
 
 		Convey("Given that a parameter is missing", func() {
-			delete(args, "args")
-			b, err := json.Marshal(args)
-			So(err, ShouldBeNil)
-
-			task := &model.Task{
-				Args: b,
+			args := map[string]string{
+				"path":  "cp",
+				"delay": "1000",
 			}
 
 			Convey("When validating the task", func() {
-				err := exec.Validate(task)
+				err := exec.Validate(args)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)
@@ -89,16 +76,14 @@ func TestExecValidate(t *testing.T) {
 		})
 
 		Convey("Given that a parameter is empty", func() {
-			args["delay"] = 0
-			b, err := json.Marshal(args)
-			So(err, ShouldBeNil)
-
-			task := &model.Task{
-				Args: b,
+			args := map[string]string{
+				"path":  "",
+				"args":  "exec.go exec_copy.go",
+				"delay": "1000",
 			}
 
 			Convey("When validating the task", func() {
-				err := exec.Validate(task)
+				err := exec.Validate(args)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)

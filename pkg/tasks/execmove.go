@@ -3,10 +3,10 @@ package tasks
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -18,23 +18,23 @@ type ExecMoveTask struct{}
 
 func init() {
 	RunnableTasks["EXECMOVE"] = &ExecMoveTask{}
+	model.ValidTasks["EXECMOVE"] = &ExecMoveTask{}
 }
 
 // Validate checks if the EXECMOVE task has all the required arguments.
-func (e *ExecMoveTask) Validate(task *model.Task) error {
-	var args map[string]interface{}
-	if err := json.Unmarshal(task.Args, &args); err != nil {
-		return err
-	}
-
-	if path, ok := args["path"].(string); !ok || path == "" {
+func (e *ExecMoveTask) Validate(args map[string]string) error {
+	if path, ok := args["path"]; !ok || path == "" {
 		return fmt.Errorf("missing program path")
 	}
-	if _, ok := args["args"].(string); !ok {
+	if _, ok := args["args"]; !ok {
 		return fmt.Errorf("missing program arguments")
 	}
-	if delay, ok := args["delay"].(float64); !ok || delay == 0 {
+	delay, ok := args["delay"]
+	if !ok {
 		return fmt.Errorf("missing program delay")
+	}
+	if _, err := strconv.ParseInt(delay, 10, 32); err != nil {
+		return fmt.Errorf("delay must be an integer")
 	}
 
 	return nil

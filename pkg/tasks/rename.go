@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -13,14 +12,11 @@ type RenameTask struct{}
 
 func init() {
 	RunnableTasks["RENAME"] = &RenameTask{}
+	model.ValidTasks["RENAME"] = &RenameTask{}
 }
 
 // Validate checks if the RENAME tasks has all the required arguments.
-func (*RenameTask) Validate(t *model.Task) error {
-	args := map[string]interface{}{}
-	if err := json.Unmarshal(t.Args, &args); err != nil {
-		return err
-	}
+func (*RenameTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
 		return fmt.Errorf("cannot create a rename task without a `path` argument")
 	}

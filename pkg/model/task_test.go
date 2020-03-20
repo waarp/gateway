@@ -8,6 +8,23 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func init() {
+	ValidTasks["TESTSUCCESS"] = &testTaskSuccess{}
+	ValidTasks["TESTFAIL"] = &testTaskFail{}
+}
+
+type testTaskSuccess struct{}
+
+func (t *testTaskSuccess) Validate(map[string]string) error {
+	return nil
+}
+
+type testTaskFail struct{}
+
+func (t *testTaskFail) Validate(map[string]string) error {
+	return nil
+}
+
 func TestTaskTableName(t *testing.T) {
 	Convey("Given a Task instance", t, func() {
 		task := &Task{}
@@ -37,7 +54,7 @@ func TestTaskValidateInsert(t *testing.T) {
 				RuleID: r.ID,
 				Chain:  "PRE",
 				Rank:   0,
-				Type:   "DUMMY",
+				Type:   "TESTSUCCESS",
 				Args:   []byte("{}"),
 			}
 			So(db.Create(t), ShouldBeNil)
@@ -47,7 +64,7 @@ func TestTaskValidateInsert(t *testing.T) {
 					RuleID: 0,
 					Chain:  "PRE",
 					Rank:   0,
-					Type:   "DUMMY",
+					Type:   "TESTSUCCESS",
 					Args:   []byte("{}"),
 				}
 
@@ -70,7 +87,7 @@ func TestTaskValidateInsert(t *testing.T) {
 					RuleID: r.ID,
 					Chain:  "XXX",
 					Rank:   0,
-					Type:   "DUMMY",
+					Type:   "TESTSUCCESS",
 					Args:   []byte("{}"),
 				}
 
@@ -93,7 +110,7 @@ func TestTaskValidateInsert(t *testing.T) {
 					RuleID: t.RuleID,
 					Chain:  t.Chain,
 					Rank:   t.Rank,
-					Type:   "DUMMY",
+					Type:   "TESTSUCCESS",
 					Args:   []byte("{}"),
 				}
 

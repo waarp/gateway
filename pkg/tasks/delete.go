@@ -12,10 +12,11 @@ type DeleteTask struct{}
 
 func init() {
 	RunnableTasks["DELETE"] = &DeleteTask{}
+	model.ValidTasks["DELETE"] = &DeleteTask{}
 }
 
 // Validate the task
-func (*DeleteTask) Validate(t *model.Task) error {
+func (*DeleteTask) Validate(map[string]string) error {
 	return nil
 }
 

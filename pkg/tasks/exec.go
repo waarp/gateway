@@ -2,9 +2,9 @@ package tasks
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -15,23 +15,23 @@ type ExecTask struct{}
 
 func init() {
 	RunnableTasks["EXEC"] = &ExecTask{}
+	model.ValidTasks["EXEC"] = &ExecTask{}
 }
 
 // Validate checks if the EXEC task has all the required arguments.
-func (e *ExecTask) Validate(task *model.Task) error {
-	var args map[string]interface{}
-	if err := json.Unmarshal(task.Args, &args); err != nil {
-		return err
-	}
-
-	if path, ok := args["path"].(string); !ok || path == "" {
+func (e *ExecTask) Validate(args map[string]string) error {
+	if path, ok := args["path"]; !ok || path == "" {
 		return fmt.Errorf("missing program path")
 	}
-	if _, ok := args["args"].(string); !ok {
+	if _, ok := args["args"]; !ok {
 		return fmt.Errorf("missing program arguments")
 	}
-	if delay, ok := args["delay"].(float64); !ok || delay == 0 {
+	delay, ok := args["delay"]
+	if !ok {
 		return fmt.Errorf("missing program delay")
+	}
+	if _, err := strconv.ParseInt(delay, 10, 32); err != nil {
+		return fmt.Errorf("delay must be an integer")
 	}
 
 	return nil
