@@ -50,6 +50,7 @@ func displayTransfer(w io.Writer, trans rest.OutTransfer) {
 	fmt.Fprintf(w, "  \033[97m-Rule ID         :\033[0m \033[97m%v\033[0m\n", trans.RuleID)
 	fmt.Fprintf(w, "  \033[97m-Partner ID      :\033[0m \033[97m%v\033[0m\n", trans.AgentID)
 	fmt.Fprintf(w, "  \033[97m-Account ID      :\033[0m \033[33m%v\033[0m\n", trans.AccountID)
+	fmt.Fprintf(w, "  \033[97m-True filepath   :\033[0m \033[97m%s\033[0m\n", trans.TrueFilepath)
 	fmt.Fprintf(w, "  \033[97m-Source file     :\033[0m \033[97m%s\033[0m\n", trans.SourcePath)
 	fmt.Fprintf(w, "  \033[97m-Destination file:\033[0m \033[97m%s\033[0m\n", trans.DestPath)
 	fmt.Fprintf(w, "  \033[97m-Start time      :\033[0m \033[33m%s\033[0m\n",

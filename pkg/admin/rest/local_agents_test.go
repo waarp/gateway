@@ -52,25 +52,25 @@ func TestListLocalAgents(t *testing.T) {
 			a1 := &model.LocalAgent{
 				Name:        "local agent1",
 				Protocol:    "sftp",
-				Root:        "root",
+				Root:        "/root",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			a2 := &model.LocalAgent{
 				Name:        "local agent2",
 				Protocol:    "sftp",
-				Root:        "root",
+				Root:        "/root",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			a3 := &model.LocalAgent{
 				Name:        "local agent3",
 				Protocol:    "sftp",
-				Root:        "root",
+				Root:        "/root",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			a4 := &model.LocalAgent{
 				Name:        "local agent4",
 				Protocol:    "sftp",
-				Root:        "root",
+				Root:        "/root",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 
@@ -159,7 +159,7 @@ func TestGetLocalAgent(t *testing.T) {
 			existing := &model.LocalAgent{
 				Name:        "existing",
 				Protocol:    "sftp",
-				Root:        "root",
+				Root:        "/root",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
@@ -224,7 +224,7 @@ func TestCreateLocalAgent(t *testing.T) {
 			existing := &model.LocalAgent{
 				Name:        "existing",
 				Protocol:    "sftp",
-				Root:        "root",
+				Root:        "/root",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
@@ -296,7 +296,7 @@ func TestDeleteLocalAgent(t *testing.T) {
 			existing := &model.LocalAgent{
 				Name:        "existing1",
 				Protocol:    "sftp",
-				Root:        "root",
+				Root:        "/root",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
@@ -356,13 +356,13 @@ func TestUpdateLocalAgent(t *testing.T) {
 			old := &model.LocalAgent{
 				Name:        "old",
 				Protocol:    "sftp",
-				Root:        "root",
+				Root:        "/root",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			other := &model.LocalAgent{
 				Name:        "other",
 				Protocol:    "sftp",
-				Root:        "root",
+				Root:        "/root",
 				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
 			}
 			So(db.Create(old), ShouldBeNil)

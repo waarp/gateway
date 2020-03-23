@@ -53,7 +53,7 @@ func TestRuleBeforeInsert(t *testing.T) {
 			})
 
 			Convey("Then the rule's path should be Test/out", func() {
-				So(rule.Path, ShouldEqual, "Test")
+				So(rule.Path, ShouldEqual, "/Test")
 			})
 		})
 	})

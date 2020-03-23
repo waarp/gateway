@@ -31,9 +31,9 @@ func (*CopyRenameTask) Run(args map[string]string, processor *Processor) (string
 	)
 
 	if processor.Rule.IsSend {
-		srcPath = processor.Transfer.SourcePath
+		srcPath = processor.Transfer.SourceFile
 	} else {
-		srcPath = processor.Transfer.DestPath
+		srcPath = processor.Transfer.DestFile
 	}
 
 	if err := doCopy(newPath, srcPath); err != nil {

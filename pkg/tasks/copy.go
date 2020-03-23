@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 // CopyTask is a task which allow to copy the current file
@@ -34,12 +35,12 @@ func (*CopyTask) Run(args map[string]string, runner *Processor) (string, error) 
 	)
 
 	if runner.Rule.IsSend {
-		oldPath = runner.Transfer.SourcePath
+		oldPath = runner.Transfer.SourceFile
 	} else {
-		oldPath = runner.Transfer.DestPath
+		oldPath = runner.Transfer.DestFile
 	}
 
-	newPath := filepath.Join(newDir, filepath.Base(oldPath))
+	newPath := utils.SlashJoin(newDir, filepath.Base(oldPath))
 
 	if err := doCopy(newPath, oldPath); err != nil {
 		return err.Error(), err

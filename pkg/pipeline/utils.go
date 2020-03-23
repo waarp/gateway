@@ -3,16 +3,25 @@ package pipeline
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 )
+
+// Paths is a struct combining the paths given in the Gateway configuration file
+// and the root of a server.
+type Paths struct {
+	conf.PathsConfig
+	ServerRoot string
+}
 
 func checkSignal(ctx context.Context, ch <-chan model.Signal) *model.PipelineError {
 	select {
@@ -33,8 +42,7 @@ func checkSignal(ctx context.Context, ch <-chan model.Signal) *model.PipelineErr
 }
 
 func createTransfer(logger *log.Logger, db *database.DB, trans *model.Transfer) *model.PipelineError {
-	err := db.Create(trans)
-	if err != nil {
+	if err := db.Create(trans); err != nil {
 		if _, ok := err.(*database.ErrInvalid); ok {
 			logger.Errorf("Failed to create transfer entry: %s", err.Error())
 			return model.NewPipelineError(model.TeForbidden, err.Error())
@@ -104,16 +112,10 @@ func execTasks(proc *tasks.Processor, chain model.Chain,
 	return proc.RunTasks(tasksList)
 }
 
-func getFile(logger *log.Logger, root string, rule *model.Rule,
-	trans *model.Transfer) (*os.File, *model.PipelineError) {
+func getFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.File, *model.PipelineError) {
 
+	path := trans.TrueFilepath
 	if rule.IsSend {
-		var path string
-		if trans.IsServer {
-			path = filepath.Clean(filepath.Join(root, rule.Path, trans.SourcePath))
-		} else {
-			path = filepath.Clean(filepath.Join(root, trans.SourcePath))
-		}
 		file, err := os.OpenFile(path, os.O_RDONLY, 0100)
 		if err != nil {
 			logger.Errorf("Failed to open source file: %s", err)
@@ -128,10 +130,9 @@ func getFile(logger *log.Logger, root string, rule *model.Rule,
 		return file, nil
 	}
 
-	path := filepath.Clean(filepath.Join(root, "tmp", trans.DestPath))
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
-		logger.Errorf("Failed to create destination file: %s", err)
+		logger.Errorf("Failed to create destination file (%s): %s", path, err)
 		return nil, model.NewPipelineError(model.TeForbidden, err.Error())
 	}
 	if trans.Progress != 0 {
@@ -143,8 +144,9 @@ func getFile(logger *log.Logger, root string, rule *model.Rule,
 	return file, nil
 }
 
-func makeDir(root, path string) error {
-	dir := filepath.Clean(filepath.Join(root, path))
+func makeDir(path string) error {
+	dir := filepath.Dir(path)
+	fmt.Printf("MAKE DIR => %s\n", path)
 	if info, err := os.Lstat(dir); err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(dir, 0740); err != nil {
@@ -154,9 +156,7 @@ func makeDir(root, path string) error {
 			return err
 		}
 	} else if !info.IsDir() {
-		if err := os.MkdirAll(dir, 0740); err != nil {
-			return err
-		}
+		return fmt.Errorf("a file named '%s' already exist", filepath.Base(dir))
 	}
 	return nil
 }

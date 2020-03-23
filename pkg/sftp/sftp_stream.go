@@ -2,6 +2,7 @@ package sftp
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -44,9 +45,9 @@ func modelToSFTP(err error) error {
 // the SFTP server. This constructor initialises a TransferStream, opens the
 // local file and executes the pre-tasks.
 func newSftpStream(ctx context.Context, logger *log.Logger, db *database.DB,
-	root string, trans model.Transfer) (*sftpStream, error) {
+	paths pipeline.Paths, trans model.Transfer) (*sftpStream, error) {
 
-	s, err := pipeline.NewTransferStream(ctx, logger, db, root, trans)
+	s, err := pipeline.NewTransferStream(ctx, logger, db, paths, trans)
 	if err != nil {
 		return nil, modelToSFTP(err)
 	}
@@ -54,7 +55,7 @@ func newSftpStream(ctx context.Context, logger *log.Logger, db *database.DB,
 
 	if te := s.Start(); te != nil {
 		pipeline.HandleError(s, te)
-		return nil, modelToSFTP(te)
+		return nil, fmt.Errorf("failed to start transfer stream: %s", te.Error())
 	}
 
 	if pe := s.PreTasks(); pe != nil {

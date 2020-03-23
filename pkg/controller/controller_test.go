@@ -54,22 +54,23 @@ func TestControllerListen(t *testing.T) {
 			tick := time.Nanosecond
 			cont := &Controller{
 				DB:     db,
-				Conf:   &conf.ServerConfig{GatewayHome: "."},
+				Conf:   &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: "."}},
 				ticker: time.NewTicker(tick),
 				logger: log.NewLogger("test_controller"),
 			}
 
 			Convey("Given a planned transfer", func() {
 				trans := &model.Transfer{
-					RuleID:     rule.ID,
-					IsServer:   false,
-					AgentID:    remote.ID,
-					AccountID:  account.ID,
-					SourcePath: "source_file_1",
-					DestPath:   "dest_file_1",
-					Start:      start,
-					Status:     model.StatusPlanned,
-					Owner:      database.Owner,
+					RuleID:       rule.ID,
+					IsServer:     false,
+					AgentID:      remote.ID,
+					AccountID:    account.ID,
+					TrueFilepath: "/source_file_1",
+					SourceFile:   "source_file_1",
+					DestFile:     "dest_file_1",
+					Start:        start,
+					Status:       model.StatusPlanned,
+					Owner:        database.Owner,
 				}
 				So(db.Create(trans), ShouldBeNil)
 
@@ -94,15 +95,16 @@ func TestControllerListen(t *testing.T) {
 
 			Convey("Given a running transfer", func() {
 				trans := &model.Transfer{
-					RuleID:     rule.ID,
-					IsServer:   false,
-					AgentID:    remote.ID,
-					AccountID:  account.ID,
-					SourcePath: "source_file_2",
-					DestPath:   "dest_file_2",
-					Start:      start,
-					Status:     model.StatusRunning,
-					Owner:      database.Owner,
+					RuleID:       rule.ID,
+					IsServer:     false,
+					AgentID:      remote.ID,
+					AccountID:    account.ID,
+					TrueFilepath: "/source_file_2",
+					SourceFile:   "source_file_2",
+					DestFile:     "dest_file_2",
+					Start:        start,
+					Status:       model.StatusRunning,
+					Owner:        database.Owner,
 				}
 				So(db.Create(trans), ShouldBeNil)
 

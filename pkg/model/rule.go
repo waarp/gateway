@@ -29,11 +29,14 @@ type Rule struct {
 	// This path is always an absolute path.
 	Path string `xorm:"unique notnull 'path'"`
 
-	// The source directory of the files.
+	// The directory for all incoming files.
 	InPath string `xorm:"unique notnull 'in_path'"`
 
-	// The destination directory of the files.
+	// The directory for all outgoing files.
 	OutPath string `xorm:"unique notnull 'out_path'"`
+
+	// The temp directory for all running transfer files.
+	WorkPath string `xorm:"unique notnull 'work_path'"`
 }
 
 // TableName returns the remote accounts table name.
@@ -45,11 +48,21 @@ func (*Rule) TableName() string {
 // role is to set the path to the default value if non was entered.
 func (r *Rule) BeforeInsert(database.Accessor) error {
 	if r.Path == "" {
-		r.Path = r.Name
+		r.Path = "/" + r.Name
 	}
-	r.Path = filepath.Clean(r.Path)
-	r.InPath = filepath.Clean(r.InPath)
-	r.OutPath = filepath.Clean(r.OutPath)
+
+	if !filepath.IsAbs(r.Path) {
+		r.Path = "/" + r.Path
+	}
+	if r.InPath != "" && !filepath.IsAbs(r.InPath) {
+		r.InPath = "/" + r.InPath
+	}
+	if r.OutPath != "" && !filepath.IsAbs(r.OutPath) {
+		r.OutPath = "/" + r.OutPath
+	}
+	r.Path = filepath.Clean(filepath.ToSlash(r.Path))
+	r.InPath = filepath.Clean(filepath.ToSlash(r.InPath))
+	r.OutPath = filepath.Clean(filepath.ToSlash(r.OutPath))
 
 	return nil
 }

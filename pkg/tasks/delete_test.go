@@ -32,8 +32,8 @@ func TestDeleteTaskRun(t *testing.T) {
 				IsSend: true,
 			},
 			Transfer: &model.Transfer{
-				SourcePath: "out.file",
-				DestPath:   "in.file",
+				SourceFile: "out.file",
+				DestFile:   "in.file",
 			},
 		}
 
@@ -41,12 +41,12 @@ func TestDeleteTaskRun(t *testing.T) {
 			args := map[string]string{}
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(processor.Transfer.SourcePath, []byte("Hello World"), 0700)
+				err := ioutil.WriteFile(processor.Transfer.SourceFile, []byte("Hello World"), 0700)
 
 				So(err, ShouldBeNil)
 
 				Reset(func() {
-					_ = os.Remove(processor.Transfer.SourcePath)
+					_ = os.Remove(processor.Transfer.SourceFile)
 				})
 
 				Convey("When calling the run method", func() {
@@ -58,7 +58,7 @@ func TestDeleteTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the source file should not be present in the system", func() {
-						_, err := os.Stat(processor.Transfer.SourcePath)
+						_, err := os.Stat(processor.Transfer.SourceFile)
 						So(os.IsNotExist(err), ShouldBeTrue)
 					})
 				})
@@ -77,7 +77,7 @@ func TestDeleteTaskRun(t *testing.T) {
 					Convey("Then error should say `no such file`", func() {
 						So(err.Error(), ShouldEqual,
 							fmt.Sprintf("remove %s: no such file or directory",
-								processor.Transfer.SourcePath))
+								processor.Transfer.SourceFile))
 					})
 				})
 			})
@@ -90,8 +90,8 @@ func TestDeleteTaskRun(t *testing.T) {
 				IsSend: false,
 			},
 			Transfer: &model.Transfer{
-				SourcePath: "out.file",
-				DestPath:   "in.file",
+				SourceFile: "out.file",
+				DestFile:   "in.file",
 			},
 		}
 
@@ -99,12 +99,12 @@ func TestDeleteTaskRun(t *testing.T) {
 			args := map[string]string{}
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(processor.Transfer.DestPath, []byte("Hello World"), 0700)
+				err := ioutil.WriteFile(processor.Transfer.DestFile, []byte("Hello World"), 0700)
 
 				So(err, ShouldBeNil)
 
 				Reset(func() {
-					_ = os.Remove(processor.Transfer.DestPath)
+					_ = os.Remove(processor.Transfer.DestFile)
 				})
 
 				Convey("When calling the run method", func() {
@@ -116,7 +116,7 @@ func TestDeleteTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the source file should not be present in the system", func() {
-						_, err := os.Stat(processor.Transfer.DestPath)
+						_, err := os.Stat(processor.Transfer.DestFile)
 						So(os.IsNotExist(err), ShouldBeTrue)
 					})
 				})
@@ -134,7 +134,7 @@ func TestDeleteTaskRun(t *testing.T) {
 
 					Convey("Then error should say `no such file`", func() {
 						So(err.Error(), ShouldEqual,
-							fmt.Sprintf("remove %s: no such file or directory", processor.Transfer.DestPath))
+							fmt.Sprintf("remove %s: no such file or directory", processor.Transfer.DestFile))
 					})
 				})
 			})

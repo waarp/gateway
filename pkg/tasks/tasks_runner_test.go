@@ -120,7 +120,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[trueFullPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.Transfer.SourcePath)
+							So(val, ShouldEqual, r.Transfer.SourceFile)
 						})
 					})
 
@@ -129,7 +129,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[trueFilename] should contain the resolved variable", func() {
-							So(val, ShouldEqual, filepath.Base(r.Transfer.SourcePath))
+							So(val, ShouldEqual, filepath.Base(r.Transfer.SourceFile))
 						})
 					})
 
@@ -138,7 +138,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[fullPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.Transfer.SourcePath)
+							So(val, ShouldEqual, r.Transfer.SourceFile)
 						})
 					})
 
@@ -147,7 +147,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[filename] should contain the resolved variable", func() {
-							So(val, ShouldEqual, filepath.Base(r.Transfer.SourcePath))
+							So(val, ShouldEqual, filepath.Base(r.Transfer.SourceFile))
 						})
 					})
 
@@ -368,8 +368,8 @@ func TestRunTasks(t *testing.T) {
 			IsServer:   false,
 			AgentID:    agent.ID,
 			AccountID:  account.ID,
-			SourcePath: "source",
-			DestPath:   "tasks_runner_test.go",
+			SourceFile: "source",
+			DestFile:   "tasks_runner_test.go",
 		}
 		So(db.Create(trans), ShouldBeNil)
 

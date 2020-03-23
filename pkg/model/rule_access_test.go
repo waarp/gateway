@@ -29,6 +29,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 		Convey("Given a rule entry", func() {
 			r := &Rule{
 				Name:   "Test",
+				Path:   "/test",
 				IsSend: true,
 			}
 			So(db.Create(r), ShouldBeNil)

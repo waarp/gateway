@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -42,9 +43,10 @@ func TestFileReader(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		rule := &model.Rule{
-			Name:   "test",
-			IsSend: true,
-			Path:   "/test",
+			Name:    "test",
+			IsSend:  true,
+			Path:    "/test",
+			OutPath: "/test",
 		}
 		So(db.Create(rule), ShouldBeNil)
 
@@ -71,8 +73,8 @@ func TestFileReader(t *testing.T) {
 				Logger:      logger,
 				Agent:       agent,
 				ProtoConfig: &serverConf,
-				GWConf:      &conf.ServerConfig{GatewayHome: Dir},
-			}).makeFileReader(context.Background(), account.ID, agent.Root)
+				GWConf:      &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: Dir}},
+			}).makeFileReader(context.Background(), account.ID)
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
@@ -96,8 +98,8 @@ func TestFileReader(t *testing.T) {
 						So(db.Get(trans), ShouldBeNil)
 
 						Convey("With a valid Source, Destination and Status", func() {
-							So(trans.SourcePath, ShouldEqual, filepath.Base(request.Filepath))
-							So(trans.DestPath, ShouldEqual, ".")
+							So(trans.SourceFile, ShouldEqual, filepath.Base(request.Filepath))
+							So(trans.DestFile, ShouldEqual, ".")
 							So(trans.Status, ShouldEqual, model.StatusRunning)
 						})
 					})
@@ -139,7 +141,7 @@ func TestFileWriter(t *testing.T) {
 	logger := log.NewLogger("test_file_writer")
 
 	Convey("Given a database with a rule and a localAgent", t, func() {
-		root := "test_file_writer"
+		root := utils.SlashJoin(Dir, "test_file_writer")
 		Reset(func() { _ = os.RemoveAll(root) })
 
 		db := database.GetTestDatabase()
@@ -174,8 +176,8 @@ func TestFileWriter(t *testing.T) {
 				Logger:      logger,
 				Agent:       agent,
 				ProtoConfig: &serverConf,
-				GWConf:      &conf.ServerConfig{GatewayHome: Dir},
-			}).makeFileWriter(context.Background(), account.ID, agent.Root)
+				GWConf:      &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: Dir}},
+			}).makeFileWriter(context.Background(), account.ID)
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
@@ -199,8 +201,8 @@ func TestFileWriter(t *testing.T) {
 						So(db.Get(trans), ShouldBeNil)
 
 						Convey("With a valid Source, Destination and Status", func() {
-							So(trans.SourcePath, ShouldEqual, ".")
-							So(trans.DestPath, ShouldEqual, filepath.Base(request.Filepath))
+							So(trans.SourceFile, ShouldEqual, ".")
+							So(trans.DestFile, ShouldEqual, filepath.Base(request.Filepath))
 							So(trans.Status, ShouldEqual, model.StatusRunning)
 						})
 					})

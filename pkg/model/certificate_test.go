@@ -27,14 +27,13 @@ func TestCertValidateInsert(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		Convey("Given the database contains 1 local agent", func() {
-			parentAgent := LocalAgent{
+			parentAgent := &LocalAgent{
 				Owner:       "test_gateway",
 				Name:        "parent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost", "port":21, "root":"toto"}`),
 			}
-			err := db.Create(&parentAgent)
-			So(err, ShouldBeNil)
+			So(db.Create(parentAgent), ShouldBeNil)
 
 			Convey("Given a new certificate", func() {
 				newCert := Cert{

@@ -27,9 +27,9 @@ func (*RenameTask) Validate(args map[string]string) error {
 func (*RenameTask) Run(args map[string]string, processor *Processor) (string, error) {
 	newPath := args["path"]
 	if processor.Rule.IsSend {
-		processor.Transfer.SourcePath = newPath
+		processor.Transfer.SourceFile = newPath
 		return "", nil
 	}
-	processor.Transfer.DestPath = newPath
+	processor.Transfer.DestFile = newPath
 	return "", nil
 }

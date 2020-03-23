@@ -20,6 +20,7 @@ func transferInfoString(t *rest.OutTransfer) string {
 		"  -Rule ID         : " + fmt.Sprint(t.RuleID) + "\n" +
 		"  -Partner ID      : " + fmt.Sprint(t.AgentID) + "\n" +
 		"  -Account ID      : " + fmt.Sprint(t.AccountID) + "\n" +
+		"  -True filepath   : " + t.TrueFilepath + "\n" +
 		"  -Source file     : " + t.SourcePath + "\n" +
 		"  -Destination file: " + t.DestPath + "\n" +
 		"  -Start time      : " + t.Start.Local().Format(time.RFC3339) + "\n" +
@@ -321,8 +322,8 @@ func TestGetTransfer(t *testing.T) {
 					RuleID:     r.ID,
 					AgentID:    p.ID,
 					AccountID:  a.ID,
-					SourcePath: "test/source/path",
-					DestPath:   "test/dest/path",
+					SourceFile: "source",
+					DestFile:   "dest",
 					Start:      time.Now(),
 					Status:     model.StatusPlanned,
 				}
@@ -468,32 +469,32 @@ func TestListTransfer(t *testing.T) {
 					RuleID:     r1.ID,
 					AgentID:    p1.ID,
 					AccountID:  a1.ID,
-					SourcePath: "test/source/path",
-					DestPath:   "test/dest/path",
+					SourceFile: "source1",
+					DestFile:   "dest1",
 					Start:      time.Date(2019, 1, 1, 1, 0, 0, 0, time.UTC),
 				}
 				t2 := &model.Transfer{
 					RuleID:     r2.ID,
 					AgentID:    p2.ID,
 					AccountID:  a2.ID,
-					SourcePath: "test/source/path",
-					DestPath:   "test/dest/path",
+					SourceFile: "source2",
+					DestFile:   "dest2",
 					Start:      time.Date(2019, 1, 1, 2, 0, 0, 0, time.UTC),
 				}
 				t3 := &model.Transfer{
 					RuleID:     r3.ID,
 					AgentID:    p3.ID,
 					AccountID:  a3.ID,
-					SourcePath: "test/source/path",
-					DestPath:   "test/dest/path",
+					SourceFile: "source3",
+					DestFile:   "dest3",
 					Start:      time.Date(2019, 1, 1, 3, 0, 0, 0, time.UTC),
 				}
 				t4 := &model.Transfer{
 					RuleID:     r4.ID,
 					AgentID:    p4.ID,
 					AccountID:  a4.ID,
-					SourcePath: "test/source/path",
-					DestPath:   "test/dest/path",
+					SourceFile: "source3",
+					DestFile:   "dest3",
 					Start:      time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
 				}
 				So(db.Create(t1), ShouldBeNil)
@@ -796,8 +797,8 @@ func TestPauseTransfer(t *testing.T) {
 					RuleID:     r.ID,
 					AccountID:  a.ID,
 					AgentID:    p.ID,
-					SourcePath: "source",
-					DestPath:   "destination",
+					SourceFile: "source",
+					DestFile:   "destination",
 					Start:      time.Now().Truncate(time.Second),
 					Status:     model.StatusPlanned,
 					Owner:      database.Owner,
@@ -897,8 +898,8 @@ func TestResumeTransfer(t *testing.T) {
 					RuleID:     r.ID,
 					AccountID:  a.ID,
 					AgentID:    p.ID,
-					SourcePath: "source",
-					DestPath:   "destination",
+					SourceFile: "source",
+					DestFile:   "destination",
 					Start:      time.Now().Truncate(time.Second),
 					Status:     model.StatusPaused,
 					Owner:      database.Owner,
@@ -997,8 +998,8 @@ func TestCancelTransfer(t *testing.T) {
 					RuleID:     r.ID,
 					AccountID:  a.ID,
 					AgentID:    p.ID,
-					SourcePath: "source",
-					DestPath:   "destination",
+					SourceFile: "source",
+					DestFile:   "destination",
 					Start:      time.Now().Truncate(time.Second),
 					Status:     model.StatusPlanned,
 					Owner:      database.Owner,
@@ -1037,8 +1038,8 @@ func TestCancelTransfer(t *testing.T) {
 									Account:        a.Login,
 									Agent:          p.Name,
 									Protocol:       p.Protocol,
-									SourceFilename: trans.SourcePath,
-									DestFilename:   trans.DestPath,
+									SourceFilename: trans.SourceFile,
+									DestFilename:   trans.DestFile,
 									Rule:           r.Name,
 									Start:          trans.Start,
 									Stop:           h[0].Stop,

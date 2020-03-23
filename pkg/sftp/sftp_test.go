@@ -104,10 +104,12 @@ func TestSFTPPackage(t *testing.T) {
 		So(db.Create(remoteUserCert), ShouldBeNil)
 
 		receive := &model.Rule{
-			Name:    "receive",
-			Comment: "",
-			IsSend:  false,
-			Path:    "/path",
+			Name:     "receive",
+			Comment:  "",
+			IsSend:   false,
+			Path:     "/path",
+			InPath:   "/path",
+			WorkPath: "/path/tmp",
 		}
 		So(db.Create(receive), ShouldBeNil)
 		send := &model.Rule{
@@ -179,7 +181,7 @@ func TestSFTPPackage(t *testing.T) {
 			Logger:      logger,
 			Agent:       localAgent,
 			ProtoConfig: &protoConfig,
-			GWConf:      &conf.ServerConfig{GatewayHome: Dir},
+			GWConf:      &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: Dir}},
 			SSHConf:     serverConfig,
 			Listener:    listener,
 			connWg:      sync.WaitGroup{},
@@ -200,8 +202,8 @@ func TestSFTPPackage(t *testing.T) {
 				IsServer:   false,
 				AgentID:    remoteAgent.ID,
 				AccountID:  remoteAccount.ID,
-				SourcePath: "utils.go",
-				DestPath:   "utils.dst",
+				SourceFile: "utils.go",
+				DestFile:   "utils.dst",
 				Start:      start,
 				Status:     model.StatusPlanned,
 			}
@@ -211,7 +213,8 @@ func TestSFTPPackage(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
 
-				stream, err := pipeline.NewTransferStream(ctx, logger, db, "", trans)
+				paths := pipeline.Paths{PathsConfig: conf.PathsConfig{OutDirectory: "."}}
+				stream, err := pipeline.NewTransferStream(ctx, logger, db, paths, trans)
 				So(err, ShouldBeNil)
 
 				exe := executor.Executor{
@@ -258,7 +261,7 @@ func TestSFTPPackage(t *testing.T) {
 							Agent:          localAgent.Name,
 							Protocol:       "sftp",
 							SourceFilename: ".",
-							DestFilename:   trans.DestPath,
+							DestFilename:   trans.DestFile,
 							Rule:           receive.Name,
 							Start:          results[0].Start,
 							Stop:           results[0].Stop,
@@ -285,8 +288,8 @@ func TestSFTPPackage(t *testing.T) {
 							Account:        remoteAccount.Login,
 							Agent:          remoteAgent.Name,
 							Protocol:       "sftp",
-							SourceFilename: trans.SourcePath,
-							DestFilename:   trans.DestPath,
+							SourceFilename: trans.SourceFile,
+							DestFilename:   trans.DestFile,
 							Rule:           send.Name,
 							Start:          start,
 							Stop:           results[1].Stop,
@@ -340,7 +343,7 @@ func TestSFTPPackage(t *testing.T) {
 								Agent:          localAgent.Name,
 								Protocol:       "sftp",
 								SourceFilename: ".",
-								DestFilename:   trans.DestPath,
+								DestFilename:   trans.DestFile,
 								Rule:           receive.Name,
 								Start:          results[0].Start,
 								Stop:           results[0].Stop,
@@ -370,8 +373,8 @@ func TestSFTPPackage(t *testing.T) {
 								Account:        remoteAccount.Login,
 								Agent:          remoteAgent.Name,
 								Protocol:       "sftp",
-								SourceFilename: trans.SourcePath,
-								DestFilename:   trans.DestPath,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
 								Rule:           send.Name,
 								Start:          start,
 								Stop:           results[1].Stop,
@@ -431,7 +434,7 @@ func TestSFTPPackage(t *testing.T) {
 								Agent:          localAgent.Name,
 								Protocol:       "sftp",
 								SourceFilename: ".",
-								DestFilename:   trans.DestPath,
+								DestFilename:   trans.DestFile,
 								Rule:           receive.Name,
 								Start:          results[0].Start,
 								Stop:           results[0].Stop,
@@ -461,8 +464,8 @@ func TestSFTPPackage(t *testing.T) {
 								Account:        remoteAccount.Login,
 								Agent:          remoteAgent.Name,
 								Protocol:       "sftp",
-								SourceFilename: trans.SourcePath,
-								DestFilename:   trans.DestPath,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
 								Rule:           send.Name,
 								Start:          start,
 								Stop:           results[1].Stop,
@@ -523,7 +526,7 @@ func TestSFTPPackage(t *testing.T) {
 								Agent:          localAgent.Name,
 								Protocol:       "sftp",
 								SourceFilename: ".",
-								DestFilename:   trans.DestPath,
+								DestFilename:   trans.DestFile,
 								Rule:           receive.Name,
 								Start:          results[0].Start,
 								Stop:           results[0].Stop,
@@ -553,8 +556,8 @@ func TestSFTPPackage(t *testing.T) {
 								Account:        remoteAccount.Login,
 								Agent:          remoteAgent.Name,
 								Protocol:       "sftp",
-								SourceFilename: trans.SourcePath,
-								DestFilename:   trans.DestPath,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
 								Rule:           send.Name,
 								Start:          start,
 								Stop:           results[1].Stop,
@@ -615,7 +618,7 @@ func TestSFTPPackage(t *testing.T) {
 								Agent:          localAgent.Name,
 								Protocol:       "sftp",
 								SourceFilename: ".",
-								DestFilename:   trans.DestPath,
+								DestFilename:   trans.DestFile,
 								Rule:           receive.Name,
 								Start:          results[0].Start,
 								Stop:           results[0].Stop,
@@ -645,8 +648,8 @@ func TestSFTPPackage(t *testing.T) {
 								Account:        remoteAccount.Login,
 								Agent:          remoteAgent.Name,
 								Protocol:       "sftp",
-								SourceFilename: trans.SourcePath,
-								DestFilename:   trans.DestPath,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
 								Rule:           send.Name,
 								Start:          start,
 								Stop:           results[1].Stop,

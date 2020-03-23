@@ -51,10 +51,9 @@ func GetTestDatabase() *DB {
 		Conf:       config,
 		testDBLock: &sync.Mutex{},
 	}
-	convey.So(db.Start(), convey.ShouldBeNil)
-	db.logger = &log.Logger{Logger: logging.NewLogger(ServiceName)}
-	db.logger.Logger.SetBackend(logging.NewStdoutBackend())
+	db.logger = log.NewLogger(ServiceName)
 	db.logger.Logger.SetLevel(logging.CRITICAL)
+	convey.So(db.Start(), convey.ShouldBeNil)
 
 	return db
 }

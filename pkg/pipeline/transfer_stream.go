@@ -4,12 +4,12 @@ import (
 	"context"
 	"io"
 	"os"
-	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 // TransferStream represents the Pipeline of an incoming transfer made to the
@@ -18,19 +18,22 @@ import (
 type TransferStream struct {
 	*os.File
 	*Pipeline
+	Paths
 }
 
 // NewTransferStream initialises a new stream for the given transfer. This stream
 // can then be used to execute a transfer.
 func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
-	root string, trans model.Transfer) (*TransferStream, error) {
+	paths Paths, trans model.Transfer) (*TransferStream, error) {
 
 	if trans.IsServer {
 		if err := TransferInCount.add(); err != nil {
+			logger.Error("Incoming transfer limit reached")
 			return nil, err
 		}
 	} else {
 		if err := TransferOutCount.add(); err != nil {
+			logger.Error("Outgoing transfer limit reached")
 			return nil, err
 		}
 	}
@@ -45,10 +48,10 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 		Pipeline: &Pipeline{
 			DB:       db,
 			Logger:   logger,
-			Root:     root,
 			Transfer: &trans,
 			Ctx:      ctx,
 		},
+		Paths: paths,
 	}
 
 	t.Pipeline.Rule = &model.Rule{ID: trans.RuleID}
@@ -67,7 +70,40 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 		Signals:  t.Signals,
 		Ctx:      ctx,
 	}
+	if err := t.setTrueFilepath(); err != nil {
+		return nil, err
+	}
+
 	return t, nil
+}
+
+func (t *TransferStream) setTrueFilepath() *model.PipelineError {
+	if t.Rule.IsSend {
+		path := t.Paths.OutDirectory
+		if t.Paths.ServerRoot != "" {
+			path = t.Paths.ServerRoot
+		}
+		if t.Rule.OutPath != "" {
+			path = utils.SlashJoin(path, t.Rule.OutPath, t.Transfer.SourceFile)
+		}
+		t.Transfer.TrueFilepath = path
+	} else {
+		path := t.Paths.WorkDirectory
+		if t.Paths.ServerRoot != "" {
+			path = t.Paths.ServerRoot
+		}
+		if t.Rule.InPath != "" {
+			path = utils.SlashJoin(path, t.Rule.WorkPath, t.Transfer.DestFile)
+		}
+		t.Transfer.TrueFilepath = path
+		t.Logger.Criticalf("RULE INPATH => %s", t.Rule.InPath)
+		t.Logger.Criticalf("TRUEFILEPATH => %s", t.Transfer.TrueFilepath)
+	}
+	if err := t.Transfer.Update(t.DB); err != nil {
+		t.Logger.Criticalf("Failed to update transfer filepath: %s", err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
+	}
+	return nil
 }
 
 // Start opens/creates the stream's local file. If necessary, the method also
@@ -86,18 +122,15 @@ func (t *TransferStream) Start() (err *model.PipelineError) {
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 
+	t.Logger.Criticalf("FILEPATH => %s", t.Transfer.TrueFilepath)
 	if !t.Rule.IsSend {
-		if err := makeDir(t.Root, t.Rule.Path); err != nil {
-			t.Logger.Errorf("Failed to create dest directory: %s", err)
-			return model.NewPipelineError(model.TeForbidden, err.Error())
-		}
-		if err := makeDir(t.Root, "tmp"); err != nil {
+		if err := makeDir(t.Transfer.TrueFilepath); err != nil {
 			t.Logger.Errorf("Failed to create temp directory: %s", err)
 			return model.NewPipelineError(model.TeForbidden, err.Error())
 		}
 	}
 
-	t.File, err = getFile(t.Logger, t.Root, t.Rule, t.Transfer)
+	t.File, err = getFile(t.Logger, t.Rule, t.Transfer)
 	return
 }
 
@@ -191,12 +224,45 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 // moves the file from the temporary directory to its final destination.
 // The method returns an error if the file cannot be move.
 func (t *TransferStream) Finalize() *model.PipelineError {
-	_ = t.File.Close()
+	if !t.Rule.IsSend && t.Rule.InPath != t.Rule.WorkPath {
+		path := t.Paths.InDirectory
+		if t.Paths.ServerRoot != "" {
+			path = t.Paths.ServerRoot
+		}
+		if t.Rule.InPath != "" {
+			path = utils.SlashJoin(path, t.Rule.InPath)
+		}
+		path = utils.SlashJoin(path, t.Transfer.DestFile)
 
-	if !t.Rule.IsSend {
-		path := filepath.Clean(filepath.Join(t.Root, t.Rule.Path, t.Transfer.DestPath))
-		if err := os.Rename(t.File.Name(), path); err != nil {
+		if err := makeDir(path); err != nil {
+			t.Logger.Errorf("Failed to create destination directory: %s", err.Error())
 			return model.NewPipelineError(model.TeFinalization, err.Error())
+		}
+		dest, err := os.Create(path)
+		if err != nil {
+			t.Logger.Errorf("Failed to create destination file: %s", err.Error())
+			return model.NewPipelineError(model.TeFinalization, err.Error())
+		}
+
+		if _, err := io.Copy(dest, t.File); err != nil {
+			t.Logger.Errorf("Failed to copy temp file: %s", err.Error())
+			return model.NewPipelineError(model.TeFinalization, err.Error())
+		}
+
+		t.Transfer.TrueFilepath = path
+		if err := t.Transfer.Update(t.DB); err != nil {
+			t.Logger.Errorf("Failed to update transfer filepath: %s", err.Error())
+			return &model.PipelineError{Kind: model.KindDatabase}
+		}
+
+		if err := dest.Close(); err != nil {
+			t.Logger.Warningf("Failed to close destination file: %s", err.Error())
+		}
+		if err := t.File.Close(); err != nil {
+			t.Logger.Warningf("Failed to close work file: %s", err.Error())
+		}
+		if err := os.Remove(t.File.Name()); err != nil {
+			t.Logger.Warningf("Failed to delete work file: %s", err.Error())
 		}
 	}
 	return nil

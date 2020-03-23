@@ -8,14 +8,26 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestNewTransferStream(t *testing.T) {
 	logger := log.NewLogger("test_new_transfer_stream")
+	cd, err := os.Getwd()
+	if err != nil {
+		t.FailNow()
+	}
+	paths := Paths{PathsConfig: conf.PathsConfig{
+		GatewayHome:   cd,
+		InDirectory:   utils.SlashJoin(cd, "in"),
+		OutDirectory:  utils.SlashJoin(cd, "out"),
+		WorkDirectory: utils.SlashJoin(cd, "work"),
+	}}
 
 	Convey("Given a new transfer", t, func() {
 		TransferInCount = &Count{}
@@ -26,18 +38,32 @@ func TestNewTransferStream(t *testing.T) {
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: false,
-			Path:   ".",
+			Path:   cd,
 		}
 		So(db.Create(rule), ShouldBeNil)
 
+		agent := &model.RemoteAgent{
+			Name:        "agent",
+			Protocol:    "test",
+			ProtoConfig: []byte(`{}`),
+		}
+		So(db.Create(agent), ShouldBeNil)
+
+		account := &model.RemoteAccount{
+			RemoteAgentID: agent.ID,
+			Login:         "login",
+			Password:      []byte("password"),
+		}
+		So(db.Create(account), ShouldBeNil)
+
 		trans := model.Transfer{
-			ID:         1,
-			RuleID:     1,
-			IsServer:   true,
-			AgentID:    1,
-			AccountID:  1,
-			SourcePath: ".",
-			DestPath:   ".",
+			RuleID:       rule.ID,
+			IsServer:     false,
+			AgentID:      agent.ID,
+			AccountID:    account.ID,
+			TrueFilepath: "/path",
+			SourceFile:   "source",
+			DestFile:     "dest",
 		}
 
 		Convey("Given no transfer limit", func() {
@@ -46,7 +72,7 @@ func TestNewTransferStream(t *testing.T) {
 
 			Convey("When creating a new transfer stream", func() {
 				stream, err := NewTransferStream(context.Background(), logger,
-					db, ".", trans)
+					db, paths, trans)
 				So(err, ShouldBeNil)
 
 				Convey("Then it should  return a new transfer stream", func() {
@@ -56,13 +82,13 @@ func TestNewTransferStream(t *testing.T) {
 		})
 
 		Convey("Given a transfer limit", func() {
-			TransferInCount.SetLimit(1)
-			So(TransferInCount.add(), ShouldBeNil)
-			Reset(func() { TransferInCount = &Count{} })
+			TransferOutCount.SetLimit(1)
+			So(TransferOutCount.add(), ShouldBeNil)
+			Reset(func() { TransferOutCount = &Count{} })
 
 			Convey("When creating a new transfer stream", func() {
 				_, err := NewTransferStream(context.Background(), logger, db,
-					".", trans)
+					paths, trans)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError, ErrLimitReached)
@@ -75,20 +101,31 @@ func TestNewTransferStream(t *testing.T) {
 func TestStreamRead(t *testing.T) {
 	logger := log.NewLogger("test_stream_read")
 
-	filename := "test_stream_read.src"
-	content := "Transfer stream read test content"
+	filename := "transfer_stream.go"
+	destFilename := filename + ".dst"
+
+	cd, err := os.Getwd()
+	if err != nil {
+		t.FailNow()
+	}
+	paths := Paths{PathsConfig: conf.PathsConfig{
+		GatewayHome:   cd,
+		InDirectory:   utils.SlashJoin(cd, "in"),
+		OutDirectory:  utils.SlashJoin(cd, ""),
+		WorkDirectory: utils.SlashJoin(cd, "work"),
+	}}
 
 	Convey("Given a transfer stream", t, func() {
-		err := ioutil.WriteFile(filename, []byte(content), 0600)
-		So(err, ShouldBeNil)
-		Reset(func() { _ = os.Remove(filename) })
+		Reset(func() { _ = os.Remove(destFilename) })
 
 		db := database.GetTestDatabase()
 		rule := &model.Rule{
 			Name:    "rule",
 			Comment: "",
 			IsSend:  true,
-			Path:    ".",
+			Path:    "path",
+			InPath:  ".",
+			OutPath: ".",
 		}
 		So(db.Create(rule), ShouldBeNil)
 
@@ -107,23 +144,26 @@ func TestStreamRead(t *testing.T) {
 		}
 		So(db.Create(account), ShouldBeNil)
 
+		path, err := filepath.Abs(filename)
+		So(err, ShouldBeNil)
 		trans := &model.Transfer{
-			RuleID:     rule.ID,
-			IsServer:   true,
-			AgentID:    agent.ID,
-			AccountID:  account.ID,
-			SourcePath: filename,
-			DestPath:   ".",
-			Start:      time.Now(),
-			Status:     model.StatusRunning,
-			Owner:      database.Owner,
-			Progress:   0,
-			TaskNumber: 0,
-			Error:      model.TransferError{},
+			RuleID:       rule.ID,
+			IsServer:     true,
+			AgentID:      agent.ID,
+			AccountID:    account.ID,
+			TrueFilepath: path,
+			SourceFile:   filename,
+			DestFile:     destFilename,
+			Start:        time.Now(),
+			Status:       model.StatusRunning,
+			Owner:        database.Owner,
+			Progress:     0,
+			TaskNumber:   0,
+			Error:        model.TransferError{},
 		}
 		So(db.Create(trans), ShouldBeNil)
 
-		stream, tErr := NewTransferStream(context.Background(), logger, db, ".", *trans)
+		stream, tErr := NewTransferStream(context.Background(), logger, db, paths, *trans)
 		So(tErr, ShouldBeNil)
 
 		So(stream.Start(), ShouldBeNil)
@@ -148,7 +188,10 @@ func TestStreamRead(t *testing.T) {
 				})
 
 				Convey("Then the array should contain the file content", func() {
-					So(string(b), ShouldEqual, content[:len(b)])
+					content, err := ioutil.ReadFile(filename)
+					So(err, ShouldBeNil)
+
+					So(string(b), ShouldEqual, string(content[:len(b)]))
 				})
 			})
 		})
@@ -174,7 +217,10 @@ func TestStreamRead(t *testing.T) {
 				})
 
 				Convey("Then the array should contain the file content", func() {
-					So(string(b), ShouldEqual, content[off:off+len(b)])
+					content, err := ioutil.ReadFile(filename)
+					So(err, ShouldBeNil)
+
+					So(string(b), ShouldEqual, string(content[off:off+len(b)]))
 				})
 			})
 		})
@@ -185,8 +231,18 @@ func TestStreamWrite(t *testing.T) {
 	logger := log.NewLogger("test_stream_read")
 
 	filename := "test_stream_write.dst"
-	file := filepath.Join("tmp", filename)
 	content := "Transfer stream write test content"
+
+	cd, err := os.Getwd()
+	if err != nil {
+		t.FailNow()
+	}
+	paths := Paths{PathsConfig: conf.PathsConfig{
+		GatewayHome:   cd,
+		InDirectory:   utils.SlashJoin(cd, "in"),
+		OutDirectory:  utils.SlashJoin(cd, "out"),
+		WorkDirectory: utils.SlashJoin(cd, "work"),
+	}}
 
 	Convey("Given a transfer stream", t, func() {
 		db := database.GetTestDatabase()
@@ -218,8 +274,8 @@ func TestStreamWrite(t *testing.T) {
 			IsServer:   true,
 			AgentID:    agent.ID,
 			AccountID:  account.ID,
-			SourcePath: ".",
-			DestPath:   filename,
+			SourceFile: ".",
+			DestFile:   filename,
 			Start:      time.Now(),
 			Status:     model.StatusRunning,
 			Owner:      database.Owner,
@@ -229,11 +285,11 @@ func TestStreamWrite(t *testing.T) {
 		}
 		So(db.Create(trans), ShouldBeNil)
 
-		stream, tErr := NewTransferStream(context.Background(), logger, db, ".", *trans)
+		stream, tErr := NewTransferStream(context.Background(), logger, db, paths, *trans)
 		So(tErr, ShouldBeNil)
 
 		So(stream.Start(), ShouldBeNil)
-		Reset(func() { _ = os.RemoveAll("tmp") })
+		Reset(func() { _ = os.RemoveAll(paths.WorkDirectory) })
 
 		Convey("When writing to the stream", func() {
 			b := []byte(content[:15])
@@ -255,7 +311,7 @@ func TestStreamWrite(t *testing.T) {
 				})
 
 				Convey("Then the file should contain the array content", func() {
-					s, err := ioutil.ReadFile(file)
+					s, err := ioutil.ReadFile(stream.Transfer.TrueFilepath)
 					So(err, ShouldBeNil)
 
 					So(string(s), ShouldEqual, string(b))
@@ -284,7 +340,7 @@ func TestStreamWrite(t *testing.T) {
 				})
 
 				Convey("Then the file should contain the array content", func() {
-					s, err := ioutil.ReadFile(file)
+					s, err := ioutil.ReadFile(stream.Transfer.TrueFilepath)
 					So(err, ShouldBeNil)
 
 					So(string(s[off:]), ShouldEqual, string(b))

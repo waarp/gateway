@@ -82,15 +82,16 @@ func TestTransferValidateInsert(t *testing.T) {
 
 			Convey("Given a new transfer", func() {
 				trans := &Transfer{
-					RuleID:     rule.ID,
-					IsServer:   false,
-					AgentID:    remote.ID,
-					AccountID:  account.ID,
-					SourcePath: "test/source/path",
-					DestPath:   "test/dest/path",
-					Start:      time.Now(),
-					Status:     "PLANNED",
-					Owner:      database.Owner,
+					RuleID:       rule.ID,
+					IsServer:     false,
+					AgentID:      remote.ID,
+					AccountID:    account.ID,
+					TrueFilepath: "/filepath",
+					SourceFile:   "source",
+					DestFile:     "dest",
+					Start:        time.Now(),
+					Status:       "PLANNED",
+					Owner:        database.Owner,
 				}
 
 				Convey("Given that the new transfer is valid", func() {
@@ -208,7 +209,7 @@ func TestTransferValidateInsert(t *testing.T) {
 				})
 
 				Convey("Given that the source is missing", func() {
-					trans.SourcePath = ""
+					trans.SourceFile = ""
 
 					Convey("When calling the 'ValidateInsert' function", func() {
 						ses, err := db.BeginTransaction()
@@ -228,7 +229,7 @@ func TestTransferValidateInsert(t *testing.T) {
 				})
 
 				Convey("Given that the destination is missing", func() {
-					trans.DestPath = ""
+					trans.DestFile = ""
 
 					Convey("When calling the 'ValidateInsert' function", func() {
 						ses, err := db.BeginTransaction()
@@ -560,7 +561,7 @@ func TestTransferValidateUpdate(t *testing.T) {
 		})
 
 		Convey("Given that the entry changes the source", func() {
-			trans.SourcePath = "source"
+			trans.SourceFile = "source"
 
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := trans.ValidateUpdate(nil, 0)
@@ -577,7 +578,7 @@ func TestTransferValidateUpdate(t *testing.T) {
 		})
 
 		Convey("Given that the entry changes the destination", func() {
-			trans.DestPath = "dest"
+			trans.DestFile = "dest"
 
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := trans.ValidateUpdate(nil, 0)
@@ -638,8 +639,8 @@ func TestTransferToHistory(t *testing.T) {
 				IsServer:   false,
 				AgentID:    remote.ID,
 				AccountID:  account.ID,
-				SourcePath: "test/source/path",
-				DestPath:   "test/dest/path",
+				SourceFile: "test/source/path",
+				DestFile:   "test/dest/path",
 				Start:      time.Now(),
 				Status:     StatusDone,
 				Owner:      database.Owner,
@@ -662,8 +663,8 @@ func TestTransferToHistory(t *testing.T) {
 						Account:        account.Login,
 						Agent:          remote.Name,
 						Protocol:       remote.Protocol,
-						SourceFilename: trans.SourcePath,
-						DestFilename:   trans.DestPath,
+						SourceFilename: trans.SourceFile,
+						DestFilename:   trans.DestFile,
 						Rule:           rule.Name,
 						Start:          trans.Start,
 						Stop:           stop,

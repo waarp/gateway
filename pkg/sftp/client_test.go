@@ -153,7 +153,7 @@ func TestRequest(t *testing.T) {
 
 		Convey("Given a valid out file transfer", func() {
 			client.Info.Transfer = &model.Transfer{
-				DestPath: "client_test.dst",
+				DestFile: "client_test.dst",
 			}
 			client.Info.Rule = &model.Rule{
 				IsSend: true,
@@ -161,7 +161,7 @@ func TestRequest(t *testing.T) {
 			}
 
 			err := client.Request()
-			Reset(func() { _ = os.Remove(client.Info.Transfer.DestPath) })
+			Reset(func() { _ = os.Remove(client.Info.Transfer.DestFile) })
 
 			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
@@ -175,7 +175,7 @@ func TestRequest(t *testing.T) {
 
 		Convey("Given a valid in file transfer", func() {
 			client.Info.Transfer = &model.Transfer{
-				SourcePath: "client.go",
+				SourceFile: "client.go",
 			}
 			client.Info.Rule = &model.Rule{
 				IsSend: false,
@@ -195,7 +195,7 @@ func TestRequest(t *testing.T) {
 
 		Convey("Given an invalid in file transfer", func() {
 			client.Info.Transfer = &model.Transfer{
-				SourcePath: "unknown.file",
+				SourceFile: "unknown.file",
 			}
 			client.Info.Rule = &model.Rule{
 				IsSend: false,
@@ -241,8 +241,8 @@ func TestData(t *testing.T) {
 
 		Convey("Given a valid out file transfer", func() {
 			client.Info.Transfer = &model.Transfer{
-				DestPath:   "client_test_in.dst",
-				SourcePath: "client.go",
+				DestFile:   "client_test_in.dst",
+				SourceFile: "client.go",
 			}
 			client.Info.Rule = &model.Rule{
 				IsSend: true,
@@ -250,9 +250,9 @@ func TestData(t *testing.T) {
 			}
 
 			So(client.Request(), ShouldBeNil)
-			Reset(func() { _ = os.Remove(client.Info.Transfer.DestPath) })
+			Reset(func() { _ = os.Remove(client.Info.Transfer.DestFile) })
 
-			file, err := os.Open(client.Info.Transfer.SourcePath)
+			file, err := os.Open(client.Info.Transfer.SourceFile)
 			So(err, ShouldBeNil)
 
 			err = client.Data(file)
@@ -261,9 +261,9 @@ func TestData(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Then the file should have been copied", func() {
-					src, err := ioutil.ReadFile(client.Info.Transfer.SourcePath)
+					src, err := ioutil.ReadFile(client.Info.Transfer.SourceFile)
 					So(err, ShouldBeNil)
-					dst, err := ioutil.ReadFile(client.Info.Transfer.DestPath)
+					dst, err := ioutil.ReadFile(client.Info.Transfer.DestFile)
 					So(err, ShouldBeNil)
 
 					So(src, ShouldResemble, dst)
@@ -273,8 +273,8 @@ func TestData(t *testing.T) {
 
 		Convey("Given a valid in file transfer", func() {
 			client.Info.Transfer = &model.Transfer{
-				DestPath:   "client_test_out.dst",
-				SourcePath: "client.go",
+				DestFile:   "client_test_out.dst",
+				SourceFile: "client.go",
 			}
 			client.Info.Rule = &model.Rule{
 				IsSend: false,
@@ -282,9 +282,9 @@ func TestData(t *testing.T) {
 
 			So(client.Request(), ShouldBeNil)
 
-			file, err := os.Create(client.Info.Transfer.DestPath)
+			file, err := os.Create(client.Info.Transfer.DestFile)
 			So(err, ShouldBeNil)
-			Reset(func() { _ = os.Remove(client.Info.Transfer.DestPath) })
+			Reset(func() { _ = os.Remove(client.Info.Transfer.DestFile) })
 
 			err = client.Data(file)
 
@@ -292,9 +292,9 @@ func TestData(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Then the file should have been copied", func() {
-					src, err := ioutil.ReadFile(client.Info.Transfer.SourcePath)
+					src, err := ioutil.ReadFile(client.Info.Transfer.SourceFile)
 					So(err, ShouldBeNil)
-					dst, err := ioutil.ReadFile(client.Info.Transfer.DestPath)
+					dst, err := ioutil.ReadFile(client.Info.Transfer.DestFile)
 					So(err, ShouldBeNil)
 
 					So(src, ShouldResemble, dst)

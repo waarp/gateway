@@ -115,7 +115,8 @@ func (c *Controller) listen() {
 }
 
 func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, error) {
-	stream, err := pipeline.NewTransferStream(c.ctx, c.logger, c.DB, c.Conf.GatewayHome, trans)
+	paths := pipeline.Paths{PathsConfig: c.Conf.Paths}
+	stream, err := pipeline.NewTransferStream(c.ctx, c.logger, c.DB, paths, trans)
 	if err != nil {
 		c.logger.Errorf("Failed to create transfer stream: %s", err.Error())
 		return nil, err

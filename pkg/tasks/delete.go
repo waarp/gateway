@@ -23,11 +23,11 @@ func (*DeleteTask) Validate(map[string]string) error {
 // Run delete the current file from the system
 func (*DeleteTask) Run(_ map[string]string, runner *Processor) (string, error) {
 	if runner.Rule.IsSend {
-		if err := os.Remove(filepath.FromSlash(runner.Transfer.SourcePath)); err != nil {
+		if err := os.Remove(filepath.FromSlash(runner.Transfer.SourceFile)); err != nil {
 			return err.Error(), err
 		}
 	} else {
-		if err := os.Remove(runner.Transfer.DestPath); err != nil {
+		if err := os.Remove(runner.Transfer.DestFile); err != nil {
 			return err.Error(), err
 		}
 	}

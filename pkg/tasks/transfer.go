@@ -90,12 +90,13 @@ func (t *TransferTask) Run(args map[string]string, processor *Processor) (string
 	}
 
 	trans := &model.Transfer{
-		RuleID:     ruleID,
-		IsServer:   false,
-		AgentID:    agentID,
-		AccountID:  accID,
-		SourcePath: file,
-		DestPath:   filepath.Base(file),
+		RuleID:       ruleID,
+		IsServer:     false,
+		AgentID:      agentID,
+		AccountID:    accID,
+		TrueFilepath: file,
+		SourceFile:   filepath.Base(file),
+		DestFile:     filepath.Base(file),
 	}
 	if err := processor.DB.Create(trans); err != nil {
 		return err.Error(), err

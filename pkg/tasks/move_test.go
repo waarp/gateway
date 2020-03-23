@@ -50,8 +50,8 @@ func TestMoveTaskRun(t *testing.T) {
 				IsSend: true,
 			},
 			Transfer: &model.Transfer{
-				SourcePath: "test.src",
-				DestPath:   "test.dst",
+				SourceFile: "test.src",
+				DestFile:   "test.dst",
 			},
 		}
 
@@ -65,11 +65,11 @@ func TestMoveTaskRun(t *testing.T) {
 			})
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(runner.Transfer.SourcePath, []byte("Hello World"), 0o700)
+				err := ioutil.WriteFile(runner.Transfer.SourceFile, []byte("Hello World"), 0o700)
 				So(err, ShouldBeNil)
 
 				Reset(func() {
-					_ = os.Remove(runner.Transfer.SourcePath)
+					_ = os.Remove(runner.Transfer.SourceFile)
 				})
 
 				Convey("When calling the `run` method", func() {
@@ -86,7 +86,7 @@ func TestMoveTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the transfer source path should be modified", func() {
-						So(runner.Transfer.SourcePath, ShouldEqual, "test/test.src")
+						So(runner.Transfer.SourceFile, ShouldEqual, "test/test.src")
 					})
 
 					Reset(func() {
@@ -116,7 +116,7 @@ func TestMoveTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the transfer source path should NOT be modified", func() {
-						So(runner.Transfer.SourcePath, ShouldEqual, "test.src")
+						So(runner.Transfer.SourceFile, ShouldEqual, "test.src")
 					})
 
 					Reset(func() {
@@ -133,8 +133,8 @@ func TestMoveTaskRun(t *testing.T) {
 				IsSend: false,
 			},
 			Transfer: &model.Transfer{
-				SourcePath: "test.src",
-				DestPath:   "test.dst",
+				SourceFile: "test.src",
+				DestFile:   "test.dst",
 			},
 		}
 
@@ -148,11 +148,11 @@ func TestMoveTaskRun(t *testing.T) {
 			})
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(runner.Transfer.DestPath, []byte("Hello World"), 0o700)
+				err := ioutil.WriteFile(runner.Transfer.DestFile, []byte("Hello World"), 0o700)
 				So(err, ShouldBeNil)
 
 				Reset(func() {
-					_ = os.Remove(runner.Transfer.DestPath)
+					_ = os.Remove(runner.Transfer.DestFile)
 				})
 
 				Convey("When calling the `run` method", func() {
@@ -169,7 +169,7 @@ func TestMoveTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the transfer dest path should be modified", func() {
-						So(runner.Transfer.DestPath, ShouldEqual, "test/test.dst")
+						So(runner.Transfer.DestFile, ShouldEqual, "test/test.dst")
 					})
 
 					Reset(func() {
@@ -199,7 +199,7 @@ func TestMoveTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the transfer dest path should NOT be modified", func() {
-						So(runner.Transfer.DestPath, ShouldEqual, "test.dst")
+						So(runner.Transfer.DestFile, ShouldEqual, "test.dst")
 					})
 
 					Reset(func() {

@@ -111,7 +111,7 @@ func TestExecMoveRun(t *testing.T) {
 
 						Convey("Then the transfer destination should have "+
 							"changed", func() {
-							So(proc.Transfer.DestPath, ShouldEqual, "execmove.go")
+							So(proc.Transfer.DestFile, ShouldEqual, "execmove.go")
 						})
 					})
 				})

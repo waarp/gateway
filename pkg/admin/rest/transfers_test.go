@@ -60,8 +60,8 @@ func TestAddTransfer(t *testing.T) {
 				RuleID:     push.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
-				SourcePath: "src/test/path",
-				DestPath:   "dst/test/path",
+				SourcePath: "src",
+				DestPath:   "dst",
 			}
 
 			Convey("Given a valid new transfer", func() {
@@ -236,8 +236,8 @@ func TestGetTransfer(t *testing.T) {
 				RuleID:     push.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
-				SourcePath: "src/test/path",
-				DestPath:   "dst/test/path",
+				SourceFile: "src",
+				DestFile:   "dst",
 			}
 			So(db.Create(trans), ShouldBeNil)
 
@@ -356,8 +356,8 @@ func TestListTransfer(t *testing.T) {
 				RuleID:     r1.ID,
 				AgentID:    p1.ID,
 				AccountID:  a1.ID,
-				SourcePath: "src/test/path",
-				DestPath:   "dst/test/path",
+				SourceFile: "src1",
+				DestFile:   "dst2",
 			}
 			So(db.Create(t1), ShouldBeNil)
 
@@ -365,8 +365,8 @@ func TestListTransfer(t *testing.T) {
 				RuleID:     r2.ID,
 				AgentID:    p2.ID,
 				AccountID:  a2.ID,
-				SourcePath: "src/test/path",
-				DestPath:   "dst/test/path",
+				SourceFile: "src2",
+				DestFile:   "dst2",
 			}
 			So(db.Create(t2), ShouldBeNil)
 
@@ -374,8 +374,8 @@ func TestListTransfer(t *testing.T) {
 				RuleID:     r2.ID,
 				AgentID:    p1.ID,
 				AccountID:  a1.ID,
-				SourcePath: "src/test/path",
-				DestPath:   "dst/test/path",
+				SourceFile: "src3",
+				DestFile:   "dst3",
 				Start:      t2.Start.Add(2 * time.Hour),
 			}
 			So(db.Create(t3), ShouldBeNil)

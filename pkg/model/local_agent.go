@@ -41,7 +41,11 @@ type LocalAgent struct {
 // role is to set the agent's owner.
 func (l *LocalAgent) BeforeInsert(database.Accessor) error {
 	l.Owner = database.Owner
-	l.Root = filepath.Clean(l.Root)
+
+	if l.Root != "" {
+		l.Root = filepath.Clean(filepath.ToSlash(l.Root))
+	}
+
 	return nil
 }
 
@@ -101,6 +105,13 @@ func (l *LocalAgent) ValidateInsert(acc database.Accessor) error {
 			"already exist", l.Name)
 	}
 
+	if l.Root != "" {
+		l.Root = filepath.Clean(l.Root)
+		if !filepath.IsAbs(l.Root) {
+			return database.InvalidError("The server's root directory must be an absolute path")
+		}
+	}
+
 	return nil
 }
 
@@ -129,6 +140,13 @@ func (l *LocalAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 		} else if len(res) > 0 {
 			return database.InvalidError("A local agent with the same name "+
 				"'%s' already exist", l.Name)
+		}
+	}
+
+	if l.Root != "" {
+		l.Root = filepath.Clean(l.Root)
+		if !filepath.IsAbs(l.Root) {
+			return database.InvalidError("The server's root directory must be an absolute path")
 		}
 	}
 

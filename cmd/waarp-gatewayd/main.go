@@ -63,12 +63,6 @@ func main() {
 		fmt.Printf("ERROR: %s", err.Error())
 		return
 	}
-	if config.GatewayHome == "" {
-		if config.GatewayHome, err = os.Getwd(); err != nil {
-			fmt.Printf("ERROR: %s", err.Error())
-			return
-		}
-	}
 
 	if err := log.InitBackend(config.Log); err != nil {
 		fmt.Printf("ERROR: %s", err.Error())

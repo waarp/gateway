@@ -14,7 +14,6 @@ import (
 type Pipeline struct {
 	DB       *database.DB
 	Logger   *log.Logger
-	Root     string
 	Transfer *model.Transfer
 
 	Rule    *model.Rule

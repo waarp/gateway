@@ -33,8 +33,8 @@ func (i *InTransfer) ToModel() *model.Transfer {
 		IsServer:   i.IsServer,
 		AgentID:    i.AgentID,
 		AccountID:  i.AccountID,
-		SourcePath: i.SourcePath,
-		DestPath:   i.DestPath,
+		SourceFile: i.SourcePath,
+		DestFile:   i.DestPath,
 		Start:      i.Start,
 	}
 }
@@ -42,39 +42,41 @@ func (i *InTransfer) ToModel() *model.Transfer {
 // OutTransfer is the JSON representation of a transfer in responses sent by
 // the REST interface.
 type OutTransfer struct {
-	ID         uint64                  `json:"id"`
-	RuleID     uint64                  `json:"ruleID"`
-	IsServer   bool                    `json:"isServer"`
-	AgentID    uint64                  `json:"agentID"`
-	AccountID  uint64                  `json:"accountID"`
-	SourcePath string                  `json:"sourcePath"`
-	DestPath   string                  `json:"destPath"`
-	Start      time.Time               `json:"startDate"`
-	Status     model.TransferStatus    `json:"status"`
-	Step       model.TransferStep      `json:"step,omitempty"`
-	Progress   uint64                  `json:"progress,omitempty"`
-	TaskNumber uint64                  `json:"taskNumber,omitempty"`
-	ErrorCode  model.TransferErrorCode `json:"errorCode,omitempty"`
-	ErrorMsg   string                  `json:"errorMsg,omitempty"`
+	ID           uint64                  `json:"id"`
+	RuleID       uint64                  `json:"ruleID"`
+	IsServer     bool                    `json:"isServer"`
+	AgentID      uint64                  `json:"agentID"`
+	AccountID    uint64                  `json:"accountID"`
+	TrueFilepath string                  `json:"trueFilepath"`
+	SourcePath   string                  `json:"sourcePath"`
+	DestPath     string                  `json:"destPath"`
+	Start        time.Time               `json:"startDate"`
+	Status       model.TransferStatus    `json:"status"`
+	Step         model.TransferStep      `json:"step,omitempty"`
+	Progress     uint64                  `json:"progress,omitempty"`
+	TaskNumber   uint64                  `json:"taskNumber,omitempty"`
+	ErrorCode    model.TransferErrorCode `json:"errorCode,omitempty"`
+	ErrorMsg     string                  `json:"errorMsg,omitempty"`
 }
 
 // FromTransfer transforms the given database transfer into its JSON equivalent.
 func FromTransfer(t *model.Transfer) *OutTransfer {
 	return &OutTransfer{
-		ID:         t.ID,
-		RuleID:     t.RuleID,
-		IsServer:   t.IsServer,
-		AgentID:    t.AgentID,
-		AccountID:  t.AccountID,
-		SourcePath: t.SourcePath,
-		DestPath:   t.DestPath,
-		Start:      t.Start,
-		Status:     t.Status,
-		Step:       t.Step,
-		Progress:   t.Progress,
-		TaskNumber: t.TaskNumber,
-		ErrorCode:  t.Error.Code,
-		ErrorMsg:   t.Error.Details,
+		ID:           t.ID,
+		RuleID:       t.RuleID,
+		IsServer:     t.IsServer,
+		AgentID:      t.AgentID,
+		AccountID:    t.AccountID,
+		TrueFilepath: t.TrueFilepath,
+		SourcePath:   t.SourceFile,
+		DestPath:     t.DestFile,
+		Start:        t.Start,
+		Status:       t.Status,
+		Step:         t.Step,
+		Progress:     t.Progress,
+		TaskNumber:   t.TaskNumber,
+		ErrorCode:    t.Error.Code,
+		ErrorMsg:     t.Error.Details,
 	}
 }
 
@@ -84,20 +86,21 @@ func FromTransfers(ts []model.Transfer) []OutTransfer {
 	transfers := make([]OutTransfer, len(ts))
 	for i, trans := range ts {
 		transfers[i] = OutTransfer{
-			ID:         trans.ID,
-			RuleID:     trans.RuleID,
-			IsServer:   trans.IsServer,
-			AgentID:    trans.AgentID,
-			AccountID:  trans.AccountID,
-			SourcePath: trans.SourcePath,
-			DestPath:   trans.DestPath,
-			Start:      trans.Start,
-			Status:     trans.Status,
-			Step:       trans.Step,
-			Progress:   trans.Progress,
-			TaskNumber: trans.TaskNumber,
-			ErrorCode:  trans.Error.Code,
-			ErrorMsg:   trans.Error.Details,
+			ID:           trans.ID,
+			RuleID:       trans.RuleID,
+			IsServer:     trans.IsServer,
+			AgentID:      trans.AgentID,
+			AccountID:    trans.AccountID,
+			TrueFilepath: trans.TrueFilepath,
+			SourcePath:   trans.SourceFile,
+			DestPath:     trans.DestFile,
+			Start:        trans.Start,
+			Status:       trans.Status,
+			Step:         trans.Step,
+			Progress:     trans.Progress,
+			TaskNumber:   trans.TaskNumber,
+			ErrorCode:    trans.Error.Code,
+			ErrorMsg:     trans.Error.Details,
 		}
 	}
 	return transfers
