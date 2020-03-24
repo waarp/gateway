@@ -28,7 +28,7 @@ func Authentication(logger *log.Logger, db *database.Db) mux.MiddlewareFunc {
 				return
 			}
 
-			user := &model.User{Username: login}
+			user := &model.User{Username: login, Owner: database.Owner}
 			if err := db.Get(user); err != nil {
 				if err == database.ErrNotFound {
 					logger.Warningf("Invalid authentication for user '%s'", login)

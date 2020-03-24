@@ -14,8 +14,12 @@ type User struct {
 	// The user's database ID
 	ID uint64 `xorm:"pk autoincr <- 'id'"`
 
+	// The user's owner (i.e. the name of the gateway instance to which the
+	// agent belongs to.
+	Owner string `xorm:"unique(name) notnull 'owner'"`
+
 	// The user's login
-	Username string `xorm:"unique notnull 'username'"`
+	Username string `xorm:"unique(name) notnull 'username'"`
 
 	// The account's password
 	Password []byte `xorm:"notnull 'password'"`
@@ -28,25 +32,33 @@ func (u *User) TableName() string {
 
 // Init inserts the default user in the database when the table is created.
 func (u *User) Init(acc database.Accessor) error {
-	return acc.Create(&User{Username: "admin", Password: []byte("admin_password")})
+	user := &User{
+		Username: "admin",
+		Owner:    database.Owner,
+		Password: []byte("admin_password"),
+	}
+	return acc.Create(user)
 }
 
 // BeforeInsert is called before inserting the user in the database. Its
 // role is to hash the password.
 func (u *User) BeforeInsert(database.Accessor) error {
+	u.Owner = database.Owner
+	var err error
 	if u.Password != nil {
-		var err error
-		if u.Password, err = hashPassword(u.Password); err != nil {
-			return err
-		}
+		u.Password, err = hashPassword(u.Password)
 	}
-	return nil
+	return err
 }
 
 // BeforeUpdate is called before updating the user from the database. Its
 // role is to hash the password.
 func (u *User) BeforeUpdate(database.Accessor) error {
-	return u.BeforeInsert(nil)
+	var err error
+	if u.Password != nil {
+		u.Password, err = hashPassword(u.Password)
+	}
+	return err
 }
 
 // ValidateInsert checks if the new `User` entry is valid and can be
@@ -62,9 +74,10 @@ func (u *User) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError("The user password cannot be empty")
 	}
 
-	if ok, err := acc.Exists(&User{Username: u.Username}); err != nil {
+	if res, err := acc.Query("SELECT id FROM users WHERE owner=? AND username=?",
+		database.Owner, u.Username); err != nil {
 		return err
-	} else if ok {
+	} else if len(res) != 0 {
 		return database.InvalidError("A user named '%s' already exist", u.Username)
 	}
 	return nil
@@ -76,10 +89,13 @@ func (u *User) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if u.ID != 0 {
 		return database.InvalidError("The user's ID cannot be entered manually")
 	}
+	if u.Owner != "" {
+		return database.InvalidError("The user's owner cannot be changed")
+	}
 
 	if u.Username != "" {
-		if res, err := acc.Query("SELECT id FROM users WHERE username=? AND id<>?",
-			u.Username, id); err != nil {
+		if res, err := acc.Query("SELECT id FROM users WHERE owner=? AND username=? AND id<>?",
+			database.Owner, u.Username, id); err != nil {
 			return err
 		} else if len(res) != 0 {
 			return database.InvalidError("A user named '%s' already exist", u.Username)
