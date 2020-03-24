@@ -78,26 +78,41 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 }
 
 func (t *TransferStream) setTrueFilepath() *model.PipelineError {
+
 	if t.Rule.IsSend {
-		path := t.Paths.OutDirectory
-		if t.Paths.ServerRoot != "" {
-			path = t.Paths.ServerRoot
-		}
+		path := t.Transfer.SourceFile
 		if t.Rule.OutPath != "" {
-			path = utils.SlashJoin(path, t.Rule.OutPath, t.Transfer.SourceFile)
+			path = utils.SlashJoin(t.Rule.OutPath, path)
+			if t.Paths.ServerRoot != "" {
+				path = utils.SlashJoin(t.Paths.ServerRoot, path)
+			} else {
+				path = utils.SlashJoin(t.Paths.GatewayHome, path)
+			}
+		} else {
+			if t.Paths.ServerRoot != "" {
+				path = utils.SlashJoin(t.Paths.ServerRoot, path)
+			} else {
+				path = utils.SlashJoin(t.Paths.OutDirectory, path)
+			}
 		}
 		t.Transfer.TrueFilepath = path
 	} else {
-		path := t.Paths.WorkDirectory
-		if t.Paths.ServerRoot != "" {
-			path = t.Paths.ServerRoot
-		}
-		if t.Rule.InPath != "" {
-			path = utils.SlashJoin(path, t.Rule.WorkPath, t.Transfer.DestFile)
+		path := t.Transfer.DestFile
+		if t.Rule.WorkPath != "" {
+			path = utils.SlashJoin(t.Rule.WorkPath, path)
+			if t.Paths.ServerRoot != "" {
+				path = utils.SlashJoin(t.Paths.ServerRoot, path)
+			} else {
+				path = utils.SlashJoin(t.Paths.GatewayHome, path)
+			}
+		} else {
+			if t.Paths.ServerWork != "" {
+				path = utils.SlashJoin(t.Paths.ServerWork, path)
+			} else {
+				path = utils.SlashJoin(t.Paths.WorkDirectory, path)
+			}
 		}
 		t.Transfer.TrueFilepath = path
-		t.Logger.Criticalf("RULE INPATH => %s", t.Rule.InPath)
-		t.Logger.Criticalf("TRUEFILEPATH => %s", t.Transfer.TrueFilepath)
 	}
 	if err := t.Transfer.Update(t.DB); err != nil {
 		t.Logger.Criticalf("Failed to update transfer filepath: %s", err.Error())
@@ -122,7 +137,6 @@ func (t *TransferStream) Start() (err *model.PipelineError) {
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 
-	t.Logger.Criticalf("FILEPATH => %s", t.Transfer.TrueFilepath)
 	if !t.Rule.IsSend {
 		if err := makeDir(t.Transfer.TrueFilepath); err != nil {
 			t.Logger.Errorf("Failed to create temp directory: %s", err)
@@ -224,15 +238,26 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 // moves the file from the temporary directory to its final destination.
 // The method returns an error if the file cannot be move.
 func (t *TransferStream) Finalize() *model.PipelineError {
-	if !t.Rule.IsSend && t.Rule.InPath != t.Rule.WorkPath {
-		path := t.Paths.InDirectory
-		if t.Paths.ServerRoot != "" {
-			path = t.Paths.ServerRoot
-		}
+	if !t.Rule.IsSend {
+		path := t.Transfer.DestFile
 		if t.Rule.InPath != "" {
-			path = utils.SlashJoin(path, t.Rule.InPath)
+			path = utils.SlashJoin(t.Rule.InPath, path)
+			if t.Paths.ServerRoot != "" {
+				path = utils.SlashJoin(t.Paths.ServerRoot, path)
+			} else {
+				path = utils.SlashJoin(t.Paths.GatewayHome, path)
+			}
+		} else {
+			if t.Paths.ServerRoot != "" {
+				path = utils.SlashJoin(t.Paths.ServerRoot, path)
+			} else {
+				path = utils.SlashJoin(t.Paths.InDirectory, path)
+			}
 		}
-		path = utils.SlashJoin(path, t.Transfer.DestFile)
+
+		if t.Transfer.TrueFilepath == path {
+			return nil
+		}
 
 		if err := makeDir(path); err != nil {
 			t.Logger.Errorf("Failed to create destination directory: %s", err.Error())

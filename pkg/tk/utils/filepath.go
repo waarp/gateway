@@ -7,3 +7,9 @@ import "path/filepath"
 func SlashJoin(elem ...string) string {
 	return filepath.ToSlash(filepath.Join(elem...))
 }
+
+// CleanSlash replaces all separators of the path with slashes '/', then cleans the
+// resulting path.
+func CleanSlash(path string) string {
+	return filepath.Clean(filepath.ToSlash(path))
+}

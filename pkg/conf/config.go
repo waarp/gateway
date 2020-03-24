@@ -24,7 +24,7 @@ type PathsConfig struct {
 	GatewayHome   string `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the directory ofd of the executable."`
 	InDirectory   string `ini-name:"InDirectory" description:"The directory for all incoming files."`
 	OutDirectory  string `ini-name:"OutDirectory" description:"The directory for all outgoing files."`
-	WorkDirectory string `ini-name:"WorkDirectory" description:"The directory for all running transfer files."`
+	WorkDirectory string `ini-name:"WorkDirectory" default:"tmp" description:"The directory for all running transfer files."`
 }
 
 // LogConfig holds the server logging options

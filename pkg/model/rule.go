@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 func init() {
@@ -54,15 +55,24 @@ func (r *Rule) BeforeInsert(database.Accessor) error {
 	if !filepath.IsAbs(r.Path) {
 		r.Path = "/" + r.Path
 	}
-	if r.InPath != "" && !filepath.IsAbs(r.InPath) {
-		r.InPath = "/" + r.InPath
+	if r.InPath != "" {
+		r.InPath = utils.CleanSlash(r.InPath)
+		if !filepath.IsAbs(r.InPath) {
+			r.InPath = "/" + r.InPath
+		}
 	}
-	if r.OutPath != "" && !filepath.IsAbs(r.OutPath) {
-		r.OutPath = "/" + r.OutPath
+	if r.OutPath != "" {
+		r.OutPath = utils.CleanSlash(r.OutPath)
+		if !filepath.IsAbs(r.OutPath) {
+			r.OutPath = "/" + r.OutPath
+		}
 	}
-	r.Path = filepath.Clean(filepath.ToSlash(r.Path))
-	r.InPath = filepath.Clean(filepath.ToSlash(r.InPath))
-	r.OutPath = filepath.Clean(filepath.ToSlash(r.OutPath))
+	if r.WorkPath != "" {
+		r.WorkPath = utils.CleanSlash(r.WorkPath)
+		if !filepath.IsAbs(r.WorkPath) {
+			r.WorkPath = "/" + r.WorkPath
+		}
+	}
 
 	return nil
 }

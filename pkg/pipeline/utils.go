@@ -20,7 +20,7 @@ import (
 // and the root of a server.
 type Paths struct {
 	conf.PathsConfig
-	ServerRoot string
+	ServerRoot, ServerWork string
 }
 
 func checkSignal(ctx context.Context, ch <-chan model.Signal) *model.PipelineError {
@@ -146,7 +146,6 @@ func getFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.F
 
 func makeDir(path string) error {
 	dir := filepath.Dir(path)
-	fmt.Printf("MAKE DIR => %s\n", path)
 	if info, err := os.Lstat(dir); err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(dir, 0740); err != nil {

@@ -5,6 +5,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/go-xorm/builder"
 )
 
@@ -33,6 +34,9 @@ type LocalAgent struct {
 	// The root directory of the agent.
 	Root string `xorm:"notnull 'root'"`
 
+	// The working directory of the agent.
+	WorkDir string `xorm:"notnull 'work_dir'"`
+
 	// The agent's configuration in raw JSON format.
 	ProtoConfig []byte `xorm:"notnull 'proto_config'"`
 }
@@ -43,7 +47,17 @@ func (l *LocalAgent) BeforeInsert(database.Accessor) error {
 	l.Owner = database.Owner
 
 	if l.Root != "" {
-		l.Root = filepath.Clean(filepath.ToSlash(l.Root))
+		l.Root = utils.CleanSlash(l.Root)
+	}
+
+	if l.WorkDir != "" {
+		if !filepath.IsAbs(l.WorkDir) {
+			l.WorkDir = utils.SlashJoin(l.Root, l.WorkDir)
+		} else {
+			l.WorkDir = utils.CleanSlash(l.WorkDir)
+		}
+	} else {
+		l.WorkDir = l.Root
 	}
 
 	return nil
@@ -105,11 +119,11 @@ func (l *LocalAgent) ValidateInsert(acc database.Accessor) error {
 			"already exist", l.Name)
 	}
 
-	if l.Root != "" {
-		l.Root = filepath.Clean(l.Root)
-		if !filepath.IsAbs(l.Root) {
-			return database.InvalidError("The server's root directory must be an absolute path")
-		}
+	if l.Root != "" && !filepath.IsAbs(l.Root) {
+		return database.InvalidError("The server's root directory must be an absolute path")
+	}
+	if l.WorkDir != "" && !filepath.IsAbs(l.WorkDir) {
+		return database.InvalidError("The server's work directory must be an absolute path")
 	}
 
 	return nil

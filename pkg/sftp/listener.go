@@ -131,6 +131,7 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64) file
 		paths := pipeline.Paths{
 			PathsConfig: l.GWConf.Paths,
 			ServerRoot:  l.Agent.Root,
+			ServerWork:  l.Agent.WorkDir,
 		}
 
 		// Create Transfer
@@ -170,6 +171,7 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64) file
 		paths := pipeline.Paths{
 			PathsConfig: l.GWConf.Paths,
 			ServerRoot:  l.Agent.Root,
+			ServerWork:  l.Agent.WorkDir,
 		}
 
 		// Create Transfer
