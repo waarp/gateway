@@ -34,12 +34,12 @@ var (
 
 // SftpProtoConfig represents the configuration of an SFTP agent.
 type SftpProtoConfig struct {
-	Port         uint16
-	Address      string
-	Root         string
-	KeyExchanges []string
-	Ciphers      []string
-	MACs         []string
+	Port         uint16   `json:"port"`
+	Address      string   `json:"address"`
+	Root         string   `json:"root"`
+	KeyExchanges []string `json:"keyExchanges"`
+	Ciphers      []string `json:"ciphers"`
+	MACs         []string `json:"macs"`
 }
 
 // ValidClient checks if the configuration is valid for an SFTP partner.
