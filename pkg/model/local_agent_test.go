@@ -296,6 +296,7 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 
 			Convey("Given a new local agent", func() {
 				updatedAgent := LocalAgent{
+					Owner:       "test_gateway",
 					Name:        "updated",
 					Protocol:    "sftp",
 					ProtoConfig: []byte(`{"address":"localhost","port":2024}`),

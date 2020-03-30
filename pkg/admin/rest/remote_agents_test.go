@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -15,7 +14,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const remoteAgentsURI = "http://remotehost:8080" + APIPath + RemoteAgentsPath + "/"
+const remoteAgentsURI = "http://localhost:8080/api/partners/"
 
 func TestListRemoteAgents(t *testing.T) {
 	logger := log.NewLogger("rest_remote agent_list_test")
@@ -51,23 +50,23 @@ func TestListRemoteAgents(t *testing.T) {
 		Convey("Given a database with 4 remote agents", func() {
 			a1 := &model.RemoteAgent{
 				Name:        "remote agent1",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			a2 := &model.RemoteAgent{
 				Name:        "remote agent2",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			a3 := &model.RemoteAgent{
 				Name:        "remote agent3",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			a4 := &model.RemoteAgent{
 				Name:        "remote agent4",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				Protocol:    "test2",
+				ProtoConfig: []byte(`{}`),
 			}
 
 			So(db.Create(a1), ShouldBeNil)
@@ -129,13 +128,13 @@ func TestListRemoteAgents(t *testing.T) {
 			})
 
 			Convey("Given a request with protocol parameters", func() {
-				r, err := http.NewRequest(http.MethodGet, "?type=http&protocol=sftp", nil)
+				r, err := http.NewRequest(http.MethodGet, "?type=http&protocol=test", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAgents"] = []OutRemoteAgent{agent1, agent2, agent3, agent4}
+					expected["remoteAgents"] = []OutRemoteAgent{agent1, agent2, agent3}
 					check(w, expected)
 				})
 			})
@@ -154,17 +153,15 @@ func TestGetRemoteAgent(t *testing.T) {
 		Convey("Given a database with 1 remote agent", func() {
 			existing := &model.RemoteAgent{
 				Name:        "existing",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
 
-			id := strconv.FormatUint(existing.ID, 10)
-
-			Convey("Given a request with the valid remote agent ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, remoteAgentsURI+id, nil)
+			Convey("Given a request with a valid agent name parameter", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": id})
+				r = mux.SetURLVars(r, map[string]string{"remote_agent": existing.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -190,10 +187,10 @@ func TestGetRemoteAgent(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a non-existing remote agent ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, remoteAgentsURI+"1000", nil)
+			Convey("Given a request with a non-existing remote agent name parameter", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": "1000"})
+				r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -218,23 +215,23 @@ func TestCreateRemoteAgent(t *testing.T) {
 		Convey("Given a database with 1 remote agent", func() {
 			existing := &model.RemoteAgent{
 				Name:        "existing",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
 
 			Convey("Given a new remote agent to insert in the database", func() {
 				newAgent := &InRemoteAgent{
 					Name:        "new remote agent",
-					Protocol:    "sftp",
-					ProtoConfig: json.RawMessage(`{"address":"localhost","port":2023}`),
+					Protocol:    "test",
+					ProtoConfig: json.RawMessage(`{}`),
 				}
 
 				Convey("Given that the new remote agent is valid for insertion", func() {
 					body, err := json.Marshal(newAgent)
 					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, remoteAgentsURI, bytes.NewReader(body))
-
+					r, err := http.NewRequest(http.MethodPost, remoteAgentsURI,
+						bytes.NewReader(body))
 					So(err, ShouldBeNil)
 
 					Convey("When sending the request to the handler", func() {
@@ -252,7 +249,7 @@ func TestCreateRemoteAgent(t *testing.T) {
 							"of the new remote agent", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldStartWith, remoteAgentsURI)
+							So(location, ShouldEqual, remoteAgentsURI+newAgent.Name)
 						})
 
 						Convey("Then the new remote agent should be inserted in "+
@@ -287,18 +284,16 @@ func TestDeleteRemoteAgent(t *testing.T) {
 
 		Convey("Given a database with 1 remote agent", func() {
 			existing := &model.RemoteAgent{
-				Name:        "existing1",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				Name:        "existing",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
 
-			id := strconv.FormatUint(existing.ID, 10)
-
-			Convey("Given a request with the valid agent ID parameter", func() {
-				r, err := http.NewRequest(http.MethodDelete, remoteAgentsURI+id, nil)
+			Convey("Given a request with a valid agent name parameter", func() {
+				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": id})
+				r = mux.SetURLVars(r, map[string]string{"remote_agent": existing.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -319,10 +314,10 @@ func TestDeleteRemoteAgent(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a non-existing agent ID parameter", func() {
+			Convey("Given a request with a non-existing agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": "1000"})
+				r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -347,36 +342,33 @@ func TestUpdateRemoteAgent(t *testing.T) {
 		Convey("Given a database with 2 agents", func() {
 			old := &model.RemoteAgent{
 				Name:        "old",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			other := &model.RemoteAgent{
 				Name:        "other",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2023}`),
+				Protocol:    "test2",
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(old), ShouldBeNil)
 			So(db.Create(other), ShouldBeNil)
 
-			id := strconv.FormatUint(old.ID, 10)
-
 			Convey("Given new values to update the agent with", func() {
+				update := InRemoteAgent{
+					Name:        "update",
+					Protocol:    "test",
+					ProtoConfig: json.RawMessage(`{"key":"val"}`),
+				}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
 
-				Convey("Given a new login", func() {
-					update := InRemoteAgent{
-						Name:        "update",
-						Protocol:    "sftp",
-						ProtoConfig: json.RawMessage(`{"address":"localhost","port":2024}`),
-					}
-					body, err := json.Marshal(update)
+				Convey("Given a valid agent name parameter", func() {
+					r, err := http.NewRequest(http.MethodPatch, remoteAgentsURI+
+						old.Name, bytes.NewReader(body))
 					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"remote_agent": old.Name})
 
 					Convey("When sending the request to the handler", func() {
-						r, err := http.NewRequest(http.MethodPatch, remoteAgentsURI+id,
-							bytes.NewReader(body))
-						So(err, ShouldBeNil)
-						r = mux.SetURLVars(r, map[string]string{"remote_agent": id})
-
 						handler.ServeHTTP(w, r)
 
 						Convey("Then it should reply 'Created'", func() {
@@ -387,7 +379,7 @@ func TestUpdateRemoteAgent(t *testing.T) {
 							"the URI of the updated agent", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, remoteAgentsURI+id)
+							So(location, ShouldEqual, remoteAgentsURI+update.Name)
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -396,9 +388,8 @@ func TestUpdateRemoteAgent(t *testing.T) {
 
 						Convey("Then the agent should have been updated", func() {
 							result := &model.RemoteAgent{ID: old.ID}
-							err := db.Get(result)
+							So(db.Get(result), ShouldBeNil)
 
-							So(err, ShouldBeNil)
 							So(result.Name, ShouldEqual, update.Name)
 							So(result.Protocol, ShouldEqual, update.Protocol)
 
@@ -409,21 +400,13 @@ func TestUpdateRemoteAgent(t *testing.T) {
 					})
 				})
 
-				Convey("Given an invalid agent ID", func() {
-					update := InRemoteAgent{
-						Name:        "update",
-						Protocol:    "sftp",
-						ProtoConfig: json.RawMessage(`{"address":"localhost","port":2024}`),
-					}
-					body, err := json.Marshal(update)
+				Convey("Given an invalid agent name parameter", func() {
+					r, err := http.NewRequest(http.MethodPatch, remoteAgentsURI+"toto",
+						bytes.NewReader(body))
 					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto"})
 
 					Convey("When sending the request to the handler", func() {
-						r, err := http.NewRequest(http.MethodPatch, remoteAgentsURI+id,
-							bytes.NewReader(body))
-						So(err, ShouldBeNil)
-						r = mux.SetURLVars(r, map[string]string{"remote_agent": "1000"})
-
 						handler.ServeHTTP(w, r)
 
 						Convey("Then it should reply 'NotFound'", func() {

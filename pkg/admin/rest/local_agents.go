@@ -6,18 +6,27 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"github.com/go-xorm/builder"
+	"github.com/gorilla/mux"
 )
+
+func getLocAg(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
+	agentName, ok := mux.Vars(r)["local_agent"]
+	if !ok {
+		return nil, &notFound{}
+	}
+	agent := &model.LocalAgent{Name: agentName, Owner: database.Owner}
+	if err := get(db, agent); err != nil {
+		return nil, err
+	}
+	return agent, nil
+}
 
 func getLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "local_agent")
+			result, err := getLocAg(r, db)
 			if err != nil {
-				return err
-			}
-			result := &model.LocalAgent{ID: id}
-
-			if err := get(db, result); err != nil {
 				return err
 			}
 
@@ -44,6 +53,7 @@ func listLocalAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
+			filters.Conditions = builder.Eq{"owner": database.Owner}
 			if err := parseProtoParam(r, filters); err != nil {
 				return err
 			}
@@ -75,7 +85,7 @@ func createLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, agent.ID))
+			w.Header().Set("Location", location2(r, agent.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -89,12 +99,8 @@ func createLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "local_agent")
+			check, err := getLocAg(r, db)
 			if err != nil {
-				return &notFound{}
-			}
-
-			if err := exist(db, &model.LocalAgent{ID: id}); err != nil {
 				return err
 			}
 
@@ -103,11 +109,11 @@ func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(agent.ToModel(), id, false); err != nil {
+			if err := db.Update(agent.ToModel(), check.ID, false); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r))
+			w.Header().Set("Location", locationUpdate(r, agent.Name, check.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -120,13 +126,8 @@ func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func deleteLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "local_agent")
+			ag, err := getLocAg(r, db)
 			if err != nil {
-				return &notFound{}
-			}
-
-			ag := &model.LocalAgent{ID: id}
-			if err := get(db, ag); err != nil {
 				return err
 			}
 

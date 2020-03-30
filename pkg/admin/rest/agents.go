@@ -23,6 +23,7 @@ type InLocalAgent struct {
 // ToModel transforms the JSON local agent into its database equivalent.
 func (i *InLocalAgent) ToModel() *model.LocalAgent {
 	return &model.LocalAgent{
+		Owner:       database.Owner,
 		Name:        i.Name,
 		Protocol:    i.Protocol,
 		ProtoConfig: i.ProtoConfig,
@@ -49,7 +50,6 @@ func (i *InRemoteAgent) ToModel() *model.RemoteAgent {
 // OutLocalAgent is the JSON representation of a local agent in responses
 // sent by the REST interface.
 type OutLocalAgent struct {
-	ID          uint64          `json:"id"`
 	Name        string          `json:"name"`
 	Protocol    string          `json:"protocol"`
 	Root        string          `json:"root"`
@@ -60,7 +60,6 @@ type OutLocalAgent struct {
 // equivalent.
 func FromLocalAgent(ag *model.LocalAgent) *OutLocalAgent {
 	return &OutLocalAgent{
-		ID:          ag.ID,
 		Name:        ag.Name,
 		Protocol:    ag.Protocol,
 		Root:        ag.Root,
@@ -74,7 +73,6 @@ func FromLocalAgents(ags []model.LocalAgent) []OutLocalAgent {
 	agents := make([]OutLocalAgent, len(ags))
 	for i, ag := range ags {
 		agents[i] = OutLocalAgent{
-			ID:          ag.ID,
 			Name:        ag.Name,
 			Protocol:    ag.Protocol,
 			Root:        ag.Root,
@@ -87,7 +85,6 @@ func FromLocalAgents(ags []model.LocalAgent) []OutLocalAgent {
 // OutRemoteAgent is the JSON representation of a remote agent in responses
 // sent by the REST interface.
 type OutRemoteAgent struct {
-	ID          uint64          `json:"id"`
 	Name        string          `json:"name"`
 	Protocol    string          `json:"protocol"`
 	ProtoConfig json.RawMessage `json:"protoConfig"`
@@ -97,7 +94,6 @@ type OutRemoteAgent struct {
 // equivalent.
 func FromRemoteAgent(ag *model.RemoteAgent) *OutRemoteAgent {
 	return &OutRemoteAgent{
-		ID:          ag.ID,
 		Name:        ag.Name,
 		Protocol:    ag.Protocol,
 		ProtoConfig: ag.ProtoConfig,
@@ -110,7 +106,6 @@ func FromRemoteAgents(ags []model.RemoteAgent) []OutRemoteAgent {
 	agents := make([]OutRemoteAgent, len(ags))
 	for i, ag := range ags {
 		agents[i] = OutRemoteAgent{
-			ID:          ag.ID,
 			Name:        ag.Name,
 			Protocol:    ag.Protocol,
 			ProtoConfig: ag.ProtoConfig,
@@ -128,7 +123,7 @@ func parseProtoParam(r *http.Request, filters *database.Filters) error {
 			}
 			protos[i] = p
 		}
-		filters.Conditions = builder.In("protocol", protos)
+		filters.Conditions = builder.And(builder.In("protocol", protos), filters.Conditions)
 	}
 	return nil
 }

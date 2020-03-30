@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -18,7 +17,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const localAccountsURI = "http://localhost:8080" + APIPath + LocalAccountsPath + "/"
+func localAccountsURI(agent, login string) string {
+	return fmt.Sprintf("http://localhost:8080/api/servers/%s/accounts/%s", agent, login)
+}
 
 func TestGetLocalAccount(t *testing.T) {
 	logger := log.NewLogger("rest_account_get_test")
@@ -31,26 +32,23 @@ func TestGetLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
-			err := db.Create(parent)
-			So(err, ShouldBeNil)
+			So(db.Create(parent), ShouldBeNil)
 
 			expected := &model.LocalAccount{
 				Login:        "existing",
 				LocalAgentID: parent.ID,
 				Password:     []byte("existing"),
 			}
-			err = db.Create(expected)
-			So(err, ShouldBeNil)
+			So(db.Create(expected), ShouldBeNil)
 
-			id := strconv.FormatUint(expected.ID, 10)
-
-			Convey("Given a request with the valid account ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, localAccountsURI+id, nil)
+			Convey("Given a request with a valid account login parameter", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_account": id})
+				r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+					"local_account": expected.Login})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -77,10 +75,26 @@ func TestGetLocalAccount(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a non-existing account ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, localAccountsURI+"1000", nil)
+			Convey("Given a request with a non-existing account login parameter", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_account": "1000"})
+				r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+					"local_account": "toto"})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply with a 'Not Found' error", func() {
+						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
+				})
+			})
+
+			Convey("Given a request with a non-existing agent name parameter", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
+				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"local_agent": "toto",
+					"local_account": expected.Login})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -127,13 +141,13 @@ func TestListLocalAccounts(t *testing.T) {
 		Convey("Given a database with 4 local accounts", func() {
 			p1 := &model.LocalAgent{
 				Name:        "parent1",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			p2 := &model.LocalAgent{
 				Name:        "parent2",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(p1), ShouldBeNil)
 			So(db.Create(p2), ShouldBeNil)
@@ -146,17 +160,17 @@ func TestListLocalAccounts(t *testing.T) {
 			a2 := &model.LocalAccount{
 				Login:        "account2",
 				Password:     []byte("account2"),
-				LocalAgentID: p2.ID,
+				LocalAgentID: p1.ID,
 			}
 			a3 := &model.LocalAccount{
 				Login:        "account3",
 				Password:     []byte("account3"),
-				LocalAgentID: p1.ID,
+				LocalAgentID: p2.ID,
 			}
 			a4 := &model.LocalAccount{
 				Login:        "account4",
 				Password:     []byte("account4"),
-				LocalAgentID: p2.ID,
+				LocalAgentID: p1.ID,
 			}
 
 			So(db.Create(a1), ShouldBeNil)
@@ -169,23 +183,51 @@ func TestListLocalAccounts(t *testing.T) {
 			account3 := *FromLocalAccount(a3)
 			account4 := *FromLocalAccount(a4)
 
-			Convey("Given a request with with no parameters", func() {
-				r, err := http.NewRequest(http.MethodGet, localAccountsURI, nil)
+			Convey("Given a request with no parameters", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"local_agent": p1.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 					expected["localAccounts"] = []OutAccount{account1, account2,
-						account3, account4}
+						account4}
 
 					check(w, expected)
 				})
 			})
 
-			Convey("Given a request with a limit parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, localAccountsURI+
-					"?limit=1", nil)
+			Convey("Given a request with a different agent", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"local_agent": p2.Name})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, r)
+					expected["localAccounts"] = []OutAccount{account3}
+
+					check(w, expected)
+				})
+			})
+
+			Convey("Given a request with an invalid agent", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
+				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"local_agent": "toto"})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply with a 'Not Found' error", func() {
+						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
+				})
+			})
+
+			Convey("Given a request with a limit parameter", func() {
+				r, err := http.NewRequest(http.MethodGet, "?limit=1", nil)
+				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"local_agent": p1.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -196,40 +238,27 @@ func TestListLocalAccounts(t *testing.T) {
 			})
 
 			Convey("Given a request with a offset parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, localAccountsURI+
-					"?offset=1", nil)
+				r, err := http.NewRequest(http.MethodGet, "?offset=1", nil)
 				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"local_agent": p1.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["localAccounts"] = []OutAccount{account2, account3, account4}
+					expected["localAccounts"] = []OutAccount{account2, account4}
 
 					check(w, expected)
 				})
 			})
 
 			Convey("Given a request with a sort parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, localAccountsURI+
-					"?sort=login-", nil)
+				r, err := http.NewRequest(http.MethodGet, "?sort=login-", nil)
 				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"local_agent": p1.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["localAccounts"] = []OutAccount{account4, account3,
-						account2, account1}
-
-					check(w, expected)
-				})
-			})
-
-			Convey("Given a request with an agent parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, localAccountsURI+
-					"?agent="+fmt.Sprint(p1.ID), nil)
-				So(err, ShouldBeNil)
-
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
-					expected["localAccounts"] = []OutAccount{account1, account3}
+					expected["localAccounts"] = []OutAccount{account4, account2,
+						account1}
 
 					check(w, expected)
 				})
@@ -249,8 +278,8 @@ func TestCreateLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 agent", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -258,17 +287,15 @@ func TestCreateLocalAccount(t *testing.T) {
 				newAccount := &InAccount{
 					Login:    "new_account",
 					Password: []byte("new_account"),
-					AgentID:  parent.ID,
 				}
-				So(newAccount.AgentID, ShouldNotBeZeroValue)
+				body, err := json.Marshal(newAccount)
+				So(err, ShouldBeNil)
 
-				Convey("Given that the new account is valid for insertion", func() {
-					body, err := json.Marshal(newAccount)
+				Convey("Given a valid agent name parameter", func() {
+					r, err := http.NewRequest(http.MethodPost, localAccountsURI(
+						parent.Name, ""), bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, localAccountsURI,
-						bytes.NewReader(body))
-
-					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -281,7 +308,8 @@ func TestCreateLocalAccount(t *testing.T) {
 							"URI of the new account", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldStartWith, localAccountsURI)
+							So(location, ShouldEqual, localAccountsURI(
+								parent.Name, newAccount.Login))
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -293,12 +321,36 @@ func TestCreateLocalAccount(t *testing.T) {
 							clearPwd := newAccount.Password
 							newAccount.Password = nil
 
-							test := newAccount.ToLocal()
-							err := db.Get(test)
-							So(err, ShouldBeNil)
+							test := newAccount.ToLocal(parent)
+							So(db.Get(test), ShouldBeNil)
 
-							err = bcrypt.CompareHashAndPassword(test.Password, clearPwd)
-							So(err, ShouldBeNil)
+							So(bcrypt.CompareHashAndPassword(test.Password, clearPwd),
+								ShouldBeNil)
+						})
+					})
+				})
+
+				Convey("Given an invalid agent name parameter", func() {
+					r, err := http.NewRequest(http.MethodPatch, localAccountsURI(
+						"toto", ""), bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"local_agent": "toto"})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply 'NotFound'", func() {
+							So(w.Code, ShouldEqual, http.StatusNotFound)
+						})
+
+						Convey("Then the response body should state that "+
+							"the account was not found", func() {
+							So(w.Body.String(), ShouldEqual, "Record not found\n")
+						})
+
+						Convey("Then the new account should NOT exist", func() {
+							check := newAccount.ToLocal(parent)
+							So(db.Get(check), ShouldNotBeNil)
 						})
 					})
 				})
@@ -318,8 +370,8 @@ func TestDeleteLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -330,12 +382,11 @@ func TestDeleteLocalAccount(t *testing.T) {
 			}
 			So(db.Create(existing), ShouldBeNil)
 
-			id := strconv.FormatUint(existing.ID, 10)
-
-			Convey("Given a request with the valid account ID parameter", func() {
-				r, err := http.NewRequest(http.MethodDelete, localAccountsURI+id, nil)
+			Convey("Given a request with the valid account login parameter", func() {
+				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_account": id})
+				r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+					"local_account": existing.Login})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -360,11 +411,31 @@ func TestDeleteLocalAccount(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a non-existing account ID parameter", func() {
-				r, err := http.NewRequest(http.MethodDelete, localAccountsURI+
-					"1000", nil)
+			Convey("Given a request with a non-existing account login parameter", func() {
+				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_account": "1000"})
+				r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+					"local_account": "toto"})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply with a 'Not Found' error", func() {
+						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
+
+					Convey("Then the response body should state that the account "+
+						"was not found", func() {
+						So(w.Body.String(), ShouldEqual, "Record not found\n")
+					})
+				})
+			})
+
+			Convey("Given a request with a non-existing agent name parameter", func() {
+				r, err := http.NewRequest(http.MethodDelete, "", nil)
+				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"local_agent": "toto",
+					"local_account": existing.Login})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -394,8 +465,8 @@ func TestUpdateLocalAccount(t *testing.T) {
 		Convey("Given a database with 2 accounts", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -412,86 +483,99 @@ func TestUpdateLocalAccount(t *testing.T) {
 			So(db.Create(old), ShouldBeNil)
 			So(db.Create(other), ShouldBeNil)
 
-			id := strconv.FormatUint(old.ID, 10)
-
 			Convey("Given new values to update the account with", func() {
+				update := InAccount{
+					Login:    "update",
+					Password: []byte("update"),
+				}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
 
-				Convey("Given a new login", func() {
-					update := InAccount{
-						Login:    "update",
-						AgentID:  parent.ID,
-						Password: []byte("update"),
-					}
-					body, err := json.Marshal(update)
+				Convey("Given a valid account login", func() {
+					r, err := http.NewRequest(http.MethodPatch, localAgentsURI+
+						parent.Name+"/accounts/"+old.Login, bytes.NewReader(body))
 					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+						"local_account": old.Login})
 
-					Convey("When sending the request to the handler", func() {
-						r, err := http.NewRequest(http.MethodPatch, localAccountsURI+id,
-							bytes.NewReader(body))
-						So(err, ShouldBeNil)
-						r = mux.SetURLVars(r, map[string]string{"local_account": id})
+					handler.ServeHTTP(w, r)
 
-						handler.ServeHTTP(w, r)
+					Convey("Then it should reply 'Created'", func() {
+						So(w.Code, ShouldEqual, http.StatusCreated)
+					})
 
-						Convey("Then it should reply 'Created'", func() {
-							So(w.Code, ShouldEqual, http.StatusCreated)
-						})
+					Convey("Then the 'Location' header should contain "+
+						"the URI of the updated account", func() {
 
-						Convey("Then the 'Location' header should contain "+
-							"the URI of the updated account", func() {
+						location := w.Header().Get("Location")
+						So(location, ShouldEqual, localAgentsURI+parent.Name+
+							"/accounts/"+update.Login)
+					})
 
-							location := w.Header().Get("Location")
-							So(location, ShouldEqual, localAccountsURI+id)
-						})
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldBeEmpty)
+					})
 
-						Convey("Then the response body should be empty", func() {
-							So(w.Body.String(), ShouldBeEmpty)
-						})
+					Convey("Then the account should have been updated", func() {
+						result := &model.LocalAccount{ID: old.ID}
+						So(db.Get(result), ShouldBeNil)
 
-						Convey("Then the account should have been updated", func() {
-							result := &model.LocalAccount{ID: old.ID}
-							err := db.Get(result)
-
-							So(err, ShouldBeNil)
-							So(result.Login, ShouldEqual, update.Login)
-							So(result.LocalAgentID, ShouldEqual, update.AgentID)
-							So(bcrypt.CompareHashAndPassword(result.Password, update.Password), ShouldBeNil)
-						})
+						So(result.Login, ShouldEqual, update.Login)
+						So(result.LocalAgentID, ShouldEqual, parent.ID)
+						So(bcrypt.CompareHashAndPassword(result.Password,
+							update.Password), ShouldBeNil)
 					})
 				})
 
-				Convey("Given an invalid account ID", func() {
-					update := InAccount{
-						Login:    "update",
-						AgentID:  parent.ID,
-						Password: []byte("update"),
-					}
-					body, err := json.Marshal(update)
+				Convey("Given an invalid account login", func() {
+					r, err := http.NewRequest(http.MethodPatch, localAccountsURI(
+						parent.Name, "toto"), bytes.NewReader(body))
 					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+						"local_account": "toto"})
 
-					Convey("When sending the request to the handler", func() {
-						r, err := http.NewRequest(http.MethodPatch, localAccountsURI+id,
-							bytes.NewReader(body))
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply 'NotFound'", func() {
+						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
+
+					Convey("Then the response body should state that "+
+						"the account was not found", func() {
+						So(w.Body.String(), ShouldEqual, "Record not found\n")
+					})
+
+					Convey("Then the old account should still exist", func() {
+						exist, err := db.Exists(old)
+
 						So(err, ShouldBeNil)
-						r = mux.SetURLVars(r, map[string]string{"local_account": "1000"})
+						So(exist, ShouldBeTrue)
+					})
+				})
 
-						handler.ServeHTTP(w, r)
+				Convey("Given an invalid agent name", func() {
+					r, err := http.NewRequest(http.MethodPatch, localAgentsURI+
+						"toto/accounts/"+update.Login, bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"local_agent": "toto",
+						"local_account": update.Login})
 
-						Convey("Then it should reply 'NotFound'", func() {
-							So(w.Code, ShouldEqual, http.StatusNotFound)
-						})
+					handler.ServeHTTP(w, r)
 
-						Convey("Then the response body should state that "+
-							"the account was not found", func() {
-							So(w.Body.String(), ShouldEqual, "Record not found\n")
-						})
+					Convey("Then it should reply 'NotFound'", func() {
+						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
 
-						Convey("Then the old account should still exist", func() {
-							exist, err := db.Exists(old)
+					Convey("Then the response body should state that "+
+						"the account was not found", func() {
+						So(w.Body.String(), ShouldEqual, "Record not found\n")
+					})
 
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
-						})
+					Convey("Then the old account should still exist", func() {
+						exist, err := db.Exists(old)
+
+						So(err, ShouldBeNil)
+						So(exist, ShouldBeTrue)
 					})
 				})
 			})

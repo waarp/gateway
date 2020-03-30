@@ -63,6 +63,12 @@ func (l *LocalAgent) BeforeInsert(database.Accessor) error {
 	return nil
 }
 
+// BeforeUpdate is called before inserting the agent in the database. Its
+// role is to set the agent's owner.
+func (l *LocalAgent) BeforeUpdate(database.Accessor) error {
+	return l.BeforeInsert(nil)
+}
+
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
 func (l *LocalAgent) BeforeDelete(acc database.Accessor) error {
@@ -143,7 +149,7 @@ func (l *LocalAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if l.ID != 0 {
 		return database.InvalidError("The agent's ID cannot be entered manually")
 	}
-	if l.Owner != "" {
+	if l.Owner != database.Owner {
 		return database.InvalidError("The agent's owner cannot be changed")
 	}
 

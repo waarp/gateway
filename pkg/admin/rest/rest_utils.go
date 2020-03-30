@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -73,6 +74,7 @@ func handleErrors(w http.ResponseWriter, logger *log.Logger, err error) {
 	}
 }
 
+// Deprecated: IDs are replaced with names
 func parseID(r *http.Request, param string) (uint64, error) {
 	id, err := strconv.ParseUint(mux.Vars(r)[param], 10, 64)
 	if err != nil {
@@ -118,6 +120,7 @@ func get(acc database.Accessor, bean interface{}) error {
 	return nil
 }
 
+// Deprecated: IDs are replaced with names
 func location(r *http.Request, id ...uint64) string {
 	r.URL.RawQuery = ""
 	r.URL.Fragment = ""
@@ -128,4 +131,24 @@ func location(r *http.Request, id ...uint64) string {
 		return fmt.Sprintf("%s/%v", r.URL.String(), id[0])
 	}
 	return r.URL.String()
+}
+
+func location2(r *http.Request, names ...string) string {
+	r.URL.RawQuery = ""
+	r.URL.Fragment = ""
+	for _, name := range names {
+		if name == "" {
+			continue
+		}
+		if strings.HasSuffix(r.URL.String(), "/") {
+			return fmt.Sprintf("%s%s", r.URL.String(), name)
+		}
+		return fmt.Sprintf("%s/%s", r.URL.String(), name)
+	}
+	return r.URL.String()
+}
+
+func locationUpdate(r *http.Request, names ...string) string {
+	r.URL.Path = filepath.Dir(r.URL.Path)
+	return location2(r, names...)
 }

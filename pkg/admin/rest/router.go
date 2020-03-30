@@ -74,13 +74,15 @@ func makeLocalAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux
 	localAgentsHandler.HandleFunc("", createLocalAgent(logger, db)).
 		Methods(http.MethodPost)
 
-	locAgHandler := localAgentsHandler.PathPrefix("/{local_agent:[0-9]+}").Subrouter()
+	locAgHandler := localAgentsHandler.PathPrefix("/{local_agent:.+}").Subrouter()
 	locAgHandler.HandleFunc("", getLocalAgent(logger, db)).
 		Methods(http.MethodGet)
 	locAgHandler.HandleFunc("", deleteLocalAgent(logger, db)).
 		Methods(http.MethodDelete)
 	locAgHandler.HandleFunc("", updateLocalAgent(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
+
+	makeLocalAccountsHandler(logger, db, locAgHandler)
 }
 
 func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
@@ -90,23 +92,25 @@ func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mu
 	remoteAgentsHandler.HandleFunc("", createRemoteAgent(logger, db)).
 		Methods(http.MethodPost)
 
-	remAgHandler := remoteAgentsHandler.PathPrefix("/{remote_agent:[0-9]+}").Subrouter()
+	remAgHandler := remoteAgentsHandler.PathPrefix("/{remote_agent:.+}").Subrouter()
 	remAgHandler.HandleFunc("", getRemoteAgent(logger, db)).
 		Methods(http.MethodGet)
 	remAgHandler.HandleFunc("", deleteRemoteAgent(logger, db)).
 		Methods(http.MethodDelete)
 	remAgHandler.HandleFunc("", updateRemoteAgent(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
+
+	makeRemoteAccountsHandler(logger, db, remAgHandler)
 }
 
-func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
-	localAccountsHandler := apiHandler.PathPrefix(LocalAccountsPath).Subrouter()
+func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, agentHandler *mux.Router) {
+	localAccountsHandler := agentHandler.PathPrefix(LocalAccountsPath).Subrouter()
 	localAccountsHandler.HandleFunc("", listLocalAccounts(logger, db)).
 		Methods(http.MethodGet)
 	localAccountsHandler.HandleFunc("", createLocalAccount(logger, db)).
 		Methods(http.MethodPost)
 
-	locAcHandler := localAccountsHandler.PathPrefix("/{local_account:[0-9]+}").Subrouter()
+	locAcHandler := localAccountsHandler.PathPrefix("/{local_account:.+}").Subrouter()
 	locAcHandler.HandleFunc("", getLocalAccount(logger, db)).
 		Methods(http.MethodGet)
 	locAcHandler.HandleFunc("", deleteLocalAccount(logger, db)).
@@ -115,14 +119,14 @@ func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, apiHandler *m
 		Methods(http.MethodPatch, http.MethodPut)
 }
 
-func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
-	remoteAccountsHandler := apiHandler.PathPrefix(RemoteAccountsPath).Subrouter()
+func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, agentHandler *mux.Router) {
+	remoteAccountsHandler := agentHandler.PathPrefix(RemoteAccountsPath).Subrouter()
 	remoteAccountsHandler.HandleFunc("", listRemoteAccounts(logger, db)).
 		Methods(http.MethodGet)
 	remoteAccountsHandler.HandleFunc("", createRemoteAccount(logger, db)).
 		Methods(http.MethodPost)
 
-	remAcHandler := remoteAccountsHandler.PathPrefix("/{remote_account:[0-9]+}").Subrouter()
+	remAcHandler := remoteAccountsHandler.PathPrefix("/{remote_account:.+}").Subrouter()
 	remAcHandler.HandleFunc("", getRemoteAccount(logger, db)).
 		Methods(http.MethodGet)
 	remAcHandler.HandleFunc("", deleteRemoteAccount(logger, db)).
@@ -207,8 +211,6 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, adminHandler *mux.Rout
 	makeUsersHandler(logger, db, apiHandler)
 	makeLocalAgentsHandler(logger, db, apiHandler)
 	makeRemoteAgentsHandler(logger, db, apiHandler)
-	makeLocalAccountsHandler(logger, db, apiHandler)
-	makeRemoteAccountsHandler(logger, db, apiHandler)
 	makeCertificatesHandler(logger, db, apiHandler)
 	makeTransfersHandler(logger, db, apiHandler)
 	makeHistoryHandler(logger, db, apiHandler)

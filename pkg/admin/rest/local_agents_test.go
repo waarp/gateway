@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -15,7 +14,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const localAgentsURI = "http://localhost:8080" + APIPath + LocalAgentsPath + "/"
+const localAgentsURI = "http://localhost:8080/api/servers/"
 
 func TestListLocalAgents(t *testing.T) {
 	logger := log.NewLogger("rest_local agent_list_test")
@@ -51,27 +50,27 @@ func TestListLocalAgents(t *testing.T) {
 		Convey("Given a database with 4 local agents", func() {
 			a1 := &model.LocalAgent{
 				Name:        "local agent1",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				Root:        "/root",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: []byte(`{}`),
 			}
 			a2 := &model.LocalAgent{
 				Name:        "local agent2",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				Root:        "/root",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: []byte(`{}`),
 			}
 			a3 := &model.LocalAgent{
 				Name:        "local agent3",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				Root:        "/root",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: []byte(`{}`),
 			}
 			a4 := &model.LocalAgent{
 				Name:        "local agent4",
-				Protocol:    "sftp",
+				Protocol:    "test2",
 				Root:        "/root",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: []byte(`{}`),
 			}
 
 			So(db.Create(a1), ShouldBeNil)
@@ -133,13 +132,13 @@ func TestListLocalAgents(t *testing.T) {
 			})
 
 			Convey("Given a request with protocol parameters", func() {
-				r, err := http.NewRequest(http.MethodGet, "?type=http&protocol=sftp", nil)
+				r, err := http.NewRequest(http.MethodGet, "?type=http&protocol=test", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["localAgents"] = []OutLocalAgent{agent1, agent2, agent3, agent4}
+					expected["localAgents"] = []OutLocalAgent{agent1, agent2, agent3}
 					check(w, expected)
 				})
 			})
@@ -158,18 +157,16 @@ func TestGetLocalAgent(t *testing.T) {
 		Convey("Given a database with 1 local agent", func() {
 			existing := &model.LocalAgent{
 				Name:        "existing",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				Root:        "/root",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
 
-			id := strconv.FormatUint(existing.ID, 10)
-
-			Convey("Given a request with the valid local agent ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, localAgentsURI+id, nil)
+			Convey("Given a request with the valid local agent name parameter", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": id})
+				r = mux.SetURLVars(r, map[string]string{"local_agent": existing.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -195,10 +192,10 @@ func TestGetLocalAgent(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a non-existing local agent ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, localAgentsURI+"1000", nil)
+			Convey("Given a request with a non-existing local agent name parameter", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": "1000"})
+				r = mux.SetURLVars(r, map[string]string{"local_agent": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -223,18 +220,18 @@ func TestCreateLocalAgent(t *testing.T) {
 		Convey("Given a database with 1 local agent", func() {
 			existing := &model.LocalAgent{
 				Name:        "existing",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				Root:        "/root",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
 
 			Convey("Given a new local agent to insert in the database", func() {
 				newAgent := &InLocalAgent{
 					Name:        "new local agent",
-					Protocol:    "sftp",
-					Root:        "new_root",
-					ProtoConfig: json.RawMessage(`{"address":"localhost","port":2023}`),
+					Protocol:    "test",
+					Root:        "/new_root",
+					ProtoConfig: json.RawMessage(`{}`),
 				}
 
 				Convey("Given that the new local agent is valid for insertion", func() {
@@ -259,7 +256,7 @@ func TestCreateLocalAgent(t *testing.T) {
 							"of the new local agent", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldStartWith, localAgentsURI)
+							So(location, ShouldEqual, localAgentsURI+newAgent.Name)
 						})
 
 						Convey("Then the new local agent should be inserted in "+
@@ -295,18 +292,16 @@ func TestDeleteLocalAgent(t *testing.T) {
 		Convey("Given a database with 1 local agent", func() {
 			existing := &model.LocalAgent{
 				Name:        "existing1",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				Root:        "/root",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
 
-			id := strconv.FormatUint(existing.ID, 10)
-
-			Convey("Given a request with the valid agent ID parameter", func() {
-				r, err := http.NewRequest(http.MethodDelete, localAgentsURI+id, nil)
+			Convey("Given a request with the valid agent name parameter", func() {
+				r, err := http.NewRequest(http.MethodDelete, localAgentsURI+existing.Name, nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": id})
+				r = mux.SetURLVars(r, map[string]string{"local_agent": existing.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -327,10 +322,10 @@ func TestDeleteLocalAgent(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a non-existing agent ID parameter", func() {
+			Convey("Given a request with a non-existing agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": "1000"})
+				r = mux.SetURLVars(r, map[string]string{"local_agent": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -355,104 +350,87 @@ func TestUpdateLocalAgent(t *testing.T) {
 		Convey("Given a database with 2 agents", func() {
 			old := &model.LocalAgent{
 				Name:        "old",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				Root:        "/root",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: []byte(`{}`),
 			}
 			other := &model.LocalAgent{
 				Name:        "other",
-				Protocol:    "sftp",
+				Protocol:    "test2",
 				Root:        "/root",
-				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(old), ShouldBeNil)
 			So(db.Create(other), ShouldBeNil)
 
-			id := strconv.FormatUint(old.ID, 10)
-
 			Convey("Given new values to update the agent with", func() {
+				update := InLocalAgent{
+					Name:        "update",
+					Protocol:    "test",
+					Root:        "/new_root",
+					ProtoConfig: json.RawMessage(`{"key":"val"}`),
+				}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
 
-				Convey("Given a new login", func() {
-					update := InLocalAgent{
-						Name:        "update",
-						Protocol:    "sftp",
-						Root:        "updated_root",
-						ProtoConfig: json.RawMessage(`{"address":"localhost","port":2024}`),
-					}
-					body, err := json.Marshal(update)
+				Convey("Given a valid name parameter", func() {
+					r, err := http.NewRequest(http.MethodPatch, localAgentsURI+old.Name,
+						bytes.NewReader(body))
 					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"local_agent": old.Name})
 
-					Convey("When sending the request to the handler", func() {
-						r, err := http.NewRequest(http.MethodPatch, localAgentsURI+id,
-							bytes.NewReader(body))
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply 'Created'", func() {
+						So(w.Code, ShouldEqual, http.StatusCreated)
+					})
+
+					Convey("Then the 'Location' header should contain "+
+						"the URI of the updated agent", func() {
+
+						location := w.Header().Get("Location")
+						So(location, ShouldEqual, localAgentsURI+update.Name)
+					})
+
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldBeEmpty)
+					})
+
+					Convey("Then the agent should have been updated", func() {
+						result := &model.LocalAgent{ID: old.ID}
+
+						So(db.Get(result), ShouldBeNil)
+						So(result.Name, ShouldEqual, update.Name)
+						So(result.Protocol, ShouldEqual, update.Protocol)
+
+						protoConfig, err := json.Marshal(&update.ProtoConfig)
 						So(err, ShouldBeNil)
-						r = mux.SetURLVars(r, map[string]string{"local_agent": id})
-
-						handler.ServeHTTP(w, r)
-
-						Convey("Then it should reply 'Created'", func() {
-							So(w.Code, ShouldEqual, http.StatusCreated)
-						})
-
-						Convey("Then the 'Location' header should contain "+
-							"the URI of the updated agent", func() {
-
-							location := w.Header().Get("Location")
-							So(location, ShouldEqual, localAgentsURI+id)
-						})
-
-						Convey("Then the response body should be empty", func() {
-							So(w.Body.String(), ShouldBeEmpty)
-						})
-
-						Convey("Then the agent should have been updated", func() {
-							result := &model.LocalAgent{ID: old.ID}
-							err := db.Get(result)
-
-							So(err, ShouldBeNil)
-							So(result.Name, ShouldEqual, update.Name)
-							So(result.Protocol, ShouldEqual, update.Protocol)
-
-							protoConfig, err := json.Marshal(&update.ProtoConfig)
-							So(err, ShouldBeNil)
-							So(string(result.ProtoConfig), ShouldEqual, string(protoConfig))
-						})
+						So(string(result.ProtoConfig), ShouldEqual, string(protoConfig))
 					})
 				})
 
-				Convey("Given an invalid agent ID", func() {
-					update := InLocalAgent{
-						Name:        "update",
-						Protocol:    "sftp",
-						Root:        "updated_root",
-						ProtoConfig: json.RawMessage(`{"address":"localhost","port":2024}`),
-					}
-					body, err := json.Marshal(update)
+				Convey("Given an invalid agent name", func() {
+					r, err := http.NewRequest(http.MethodPatch, localAgentsURI+"toto",
+						bytes.NewReader(body))
 					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"local_agent": "toto"})
 
-					Convey("When sending the request to the handler", func() {
-						r, err := http.NewRequest(http.MethodPatch, localAgentsURI+id,
-							bytes.NewReader(body))
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply 'NotFound'", func() {
+						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
+
+					Convey("Then the response body should state that "+
+						"the agent was not found", func() {
+						So(w.Body.String(), ShouldEqual, "Record not found\n")
+					})
+
+					Convey("Then the old agent should still exist", func() {
+						exist, err := db.Exists(old)
+
 						So(err, ShouldBeNil)
-						r = mux.SetURLVars(r, map[string]string{"local_agent": "1000"})
-
-						handler.ServeHTTP(w, r)
-
-						Convey("Then it should reply 'NotFound'", func() {
-							So(w.Code, ShouldEqual, http.StatusNotFound)
-						})
-
-						Convey("Then the response body should state that "+
-							"the agent was not found", func() {
-							So(w.Body.String(), ShouldEqual, "Record not found\n")
-						})
-
-						Convey("Then the old agent should still exist", func() {
-							exist, err := db.Exists(old)
-
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
-						})
+						So(exist, ShouldBeTrue)
 					})
 				})
 			})

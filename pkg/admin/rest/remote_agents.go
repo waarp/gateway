@@ -6,7 +6,20 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"github.com/gorilla/mux"
 )
+
+func getRemAg(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
+	agentName, ok := mux.Vars(r)["remote_agent"]
+	if !ok {
+		return nil, &notFound{}
+	}
+	agent := &model.RemoteAgent{Name: agentName}
+	if err := get(db, agent); err != nil {
+		return nil, err
+	}
+	return agent, nil
+}
 
 func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -21,7 +34,7 @@ func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, agent.ID))
+			w.Header().Set("Location", location2(r, agent.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -67,13 +80,8 @@ func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func getRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "remote_agent")
+			result, err := getRemAg(r, db)
 			if err != nil {
-				return err
-			}
-			result := &model.RemoteAgent{ID: id}
-
-			if err := get(db, result); err != nil {
 				return err
 			}
 
@@ -88,13 +96,8 @@ func getRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func deleteRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "remote_agent")
+			ag, err := getRemAg(r, db)
 			if err != nil {
-				return &notFound{}
-			}
-
-			ag := &model.RemoteAgent{ID: id}
-			if err := get(db, ag); err != nil {
 				return err
 			}
 
@@ -114,12 +117,8 @@ func deleteRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "remote_agent")
+			check, err := getRemAg(r, db)
 			if err != nil {
-				return &notFound{}
-			}
-
-			if err := exist(db, &model.RemoteAgent{ID: id}); err != nil {
 				return err
 			}
 
@@ -128,11 +127,11 @@ func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(agent.ToModel(), id, false); err != nil {
+			if err := db.Update(agent.ToModel(), check.ID, false); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r))
+			w.Header().Set("Location", locationUpdate(r, agent.Name, check.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
