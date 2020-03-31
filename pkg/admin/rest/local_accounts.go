@@ -11,17 +11,22 @@ import (
 )
 
 func getLocAcc(r *http.Request, db *database.DB) (*model.LocalAgent, *model.LocalAccount, error) {
-	result := &model.LocalAccount{}
 	parent, err := getLocAg(r, db)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	login, ok := mux.Vars(r)["local_account"]
+	if !ok {
+		return parent, nil, &notFound{}
+	}
+
+	result := &model.LocalAccount{}
 	result.LocalAgentID = parent.ID
-	result.Login = mux.Vars(r)["local_account"]
+	result.Login = login
 
 	if err := get(db, result); err != nil {
-		return nil, nil, err
+		return parent, nil, err
 	}
 	return parent, result, nil
 }

@@ -1,11 +1,10 @@
 package rest
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/go-xorm/builder"
+	"github.com/gorilla/mux"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -15,8 +14,6 @@ import (
 // InCert is the JSON representation of a certificate in requests made to
 // the REST interface.
 type InCert struct {
-	OwnerType   string `json:"ownerType"`
-	OwnerID     uint64 `json:"ownerID"`
 	Name        string `json:"name"`
 	PrivateKey  []byte `json:"privateKey"`
 	PublicKey   []byte `json:"publicKey"`
@@ -24,10 +21,10 @@ type InCert struct {
 }
 
 // ToModel transforms the JSON certificate into its database equivalent.
-func (i *InCert) toModel() *model.Cert {
+func (i *InCert) toModel(ownerType string, ownerID uint64) *model.Cert {
 	return &model.Cert{
-		OwnerType:   i.OwnerType,
-		OwnerID:     i.OwnerID,
+		OwnerType:   ownerType,
+		OwnerID:     ownerID,
 		Name:        i.Name,
 		PrivateKey:  i.PrivateKey,
 		PublicKey:   i.PublicKey,
@@ -38,9 +35,6 @@ func (i *InCert) toModel() *model.Cert {
 // OutCert is the JSON representation of a certificate in responses sent by
 // the REST interface.
 type OutCert struct {
-	ID          uint64 `json:"id"`
-	OwnerType   string `json:"ownerType"`
-	OwnerID     uint64 `json:"ownerID"`
 	Name        string `json:"name"`
 	PrivateKey  []byte `json:"privateKey"`
 	PublicKey   []byte `json:"publicKey"`
@@ -50,9 +44,6 @@ type OutCert struct {
 // FromCert transforms the given database certificate into its JSON equivalent.
 func FromCert(c *model.Cert) *OutCert {
 	return &OutCert{
-		ID:          c.ID,
-		OwnerType:   c.OwnerType,
-		OwnerID:     c.OwnerID,
 		Name:        c.Name,
 		PrivateKey:  c.PrivateKey,
 		PublicKey:   c.PublicKey,
@@ -66,9 +57,6 @@ func FromCerts(cs []model.Cert) []OutCert {
 	certs := make([]OutCert, len(cs))
 	for i, cert := range cs {
 		certs[i] = OutCert{
-			ID:          cert.ID,
-			OwnerType:   cert.OwnerType,
-			OwnerID:     cert.OwnerID,
 			Name:        cert.Name,
 			PrivateKey:  cert.PrivateKey,
 			PublicKey:   cert.PublicKey,
@@ -78,46 +66,49 @@ func FromCerts(cs []model.Cert) []OutCert {
 	return certs
 }
 
-func parseOwnerParam(r *http.Request, filters *database.Filters) error {
-	ownerTypes := map[string]string{
-		"server":         "local_agents",
-		"partner":        "remote_agents",
-		"local_account":  "local_accounts",
-		"remote_account": "remote_accounts",
+func getCertInfo(r *http.Request, db *database.DB) (string, uint64, error) {
+	var ownerType string
+	var ownerID uint64
+	if server, account, err := getLocAcc(r, db); err == nil {
+		ownerType = account.TableName()
+		ownerID = account.ID
+	} else if server != nil {
+		ownerType = server.TableName()
+		ownerID = server.ID
+	} else if partner, account, err := getRemAcc(r, db); err == nil {
+		ownerType = account.TableName()
+		ownerID = account.ID
+	} else if partner != nil {
+		ownerType = partner.TableName()
+		ownerID = partner.ID
+	} else {
+		return "", 0, err
 	}
-	conditions := []builder.Cond{}
-	for param, ownerType := range ownerTypes {
-		owners := r.Form[param]
+	return ownerType, ownerID, nil
+}
 
-		if len(owners) > 0 {
-			ownerIDs := make([]uint64, len(owners))
-			for i, owner := range owners {
-				id, err := strconv.ParseUint(owner, 10, 64)
-				if err != nil {
-					return &badRequest{msg: fmt.Sprintf("'%s' is not a valid %s ID",
-						owner, param)}
-				}
-				ownerIDs[i] = id
-			}
-			condition := builder.And(builder.Eq{"owner_type": ownerType},
-				builder.In("owner_id", ownerIDs))
-			conditions = append(conditions, condition)
-		}
+func getCert(r *http.Request, db *database.DB) (*model.Cert, error) {
+	ownerType, ownerID, err := getCertInfo(r, db)
+	if err != nil {
+		return nil, err
 	}
-	filters.Conditions = builder.Or(conditions...)
-	return nil
+
+	certName, ok := mux.Vars(r)["certificate"]
+	if !ok {
+		return nil, &notFound{}
+	}
+	cert := &model.Cert{Name: certName, OwnerType: ownerType, OwnerID: ownerID}
+	if err := get(db, cert); err != nil {
+		return nil, err
+	}
+	return cert, nil
 }
 
 func getCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "certificate")
+			result, err := getCert(r, db)
 			if err != nil {
-				return err
-			}
-			result := &model.Cert{ID: id}
-
-			if err := get(db, result); err != nil {
 				return err
 			}
 
@@ -132,17 +123,22 @@ func getCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func createCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
+			ownerType, ownerID, err := getCertInfo(r, db)
+			if err != nil {
+				return err
+			}
+
 			jsonCert := &InCert{}
 			if err := readJSON(r, jsonCert); err != nil {
 				return err
 			}
 
-			cert := jsonCert.toModel()
+			cert := jsonCert.toModel(ownerType, ownerID)
 			if err := db.Create(cert); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, cert.ID))
+			w.Header().Set("Location", location2(r, cert.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -161,13 +157,16 @@ func listCertificates(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
+			ownerType, ownerID, err := getCertInfo(r, db)
+			if err != nil {
+				return err
+			}
+
 			filters, err := parseListFilters(r, validSorting)
 			if err != nil {
 				return err
 			}
-			if err := parseOwnerParam(r, filters); err != nil {
-				return err
-			}
+			filters.Conditions = builder.Eq{"owner_type": ownerType, "owner_id": ownerID}
 
 			var results []model.Cert
 			if err := db.Select(&results, filters); err != nil {
@@ -186,13 +185,8 @@ func listCertificates(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func deleteCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "certificate")
+			cert, err := getCert(r, db)
 			if err != nil {
-				return &notFound{}
-			}
-
-			cert := &model.Cert{ID: id}
-			if err := get(db, cert); err != nil {
 				return err
 			}
 
@@ -212,12 +206,8 @@ func deleteCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func updateCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "certificate")
+			check, err := getCert(r, db)
 			if err != nil {
-				return &notFound{}
-			}
-
-			if err := exist(db, &model.Cert{ID: id}); err != nil {
 				return err
 			}
 
@@ -226,11 +216,12 @@ func updateCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(cert.toModel(), id, false); err != nil {
+			if err := db.Update(cert.toModel(check.OwnerType, check.OwnerID),
+				check.ID, false); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r))
+			w.Header().Set("Location", locationUpdate(r, cert.Name, check.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

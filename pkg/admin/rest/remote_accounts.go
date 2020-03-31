@@ -11,17 +11,22 @@ import (
 )
 
 func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent, *model.RemoteAccount, error) {
-	result := &model.RemoteAccount{}
 	parent, err := getRemAg(r, db)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	login, ok := mux.Vars(r)["remote_account"]
+	if !ok {
+		return parent, nil, &notFound{}
+	}
+
+	result := &model.RemoteAccount{}
 	result.RemoteAgentID = parent.ID
-	result.Login = mux.Vars(r)["remote_account"]
+	result.Login = login
 
 	if err := get(db, result); err != nil {
-		return nil, nil, err
+		return parent, nil, err
 	}
 	return parent, result, nil
 }
@@ -29,8 +34,6 @@ func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent, *model.Rem
 func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "login ASC",
-		"agent+":  "remote_agent_id ASC",
-		"agent-":  "remote_agent_id DESC",
 		"login+":  "login ASC",
 		"login-":  "login DESC",
 	}

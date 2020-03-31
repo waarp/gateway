@@ -83,6 +83,7 @@ func makeLocalAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux
 		Methods(http.MethodPatch, http.MethodPut)
 
 	makeLocalAccountsHandler(logger, db, locAgHandler)
+	makeCertificatesHandler(logger, db, locAgHandler)
 }
 
 func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
@@ -101,6 +102,7 @@ func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mu
 		Methods(http.MethodPatch, http.MethodPut)
 
 	makeRemoteAccountsHandler(logger, db, remAgHandler)
+	makeCertificatesHandler(logger, db, remAgHandler)
 }
 
 func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, agentHandler *mux.Router) {
@@ -117,6 +119,8 @@ func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, agentHandler 
 		Methods(http.MethodDelete)
 	locAcHandler.HandleFunc("", updateLocalAccount(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
+
+	makeCertificatesHandler(logger, db, locAcHandler)
 }
 
 func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, agentHandler *mux.Router) {
@@ -133,16 +137,18 @@ func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, agentHandler
 		Methods(http.MethodDelete)
 	remAcHandler.HandleFunc("", updateRemoteAccount(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
+
+	makeCertificatesHandler(logger, db, remAcHandler)
 }
 
-func makeCertificatesHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
-	certificatesHandler := apiHandler.PathPrefix(CertificatesPath).Subrouter()
+func makeCertificatesHandler(logger *log.Logger, db *database.DB, handler *mux.Router) {
+	certificatesHandler := handler.PathPrefix(CertificatesPath).Subrouter()
 	certificatesHandler.HandleFunc("", listCertificates(logger, db)).
 		Methods(http.MethodGet)
 	certificatesHandler.HandleFunc("", createCertificate(logger, db)).
 		Methods(http.MethodPost)
 
-	certHandler := certificatesHandler.PathPrefix("/{certificate:[0-9]+}").Subrouter()
+	certHandler := certificatesHandler.PathPrefix("/{certificate:.+}").Subrouter()
 	certHandler.HandleFunc("", getCertificate(logger, db)).
 		Methods(http.MethodGet)
 	certHandler.HandleFunc("", deleteCertificate(logger, db)).
@@ -211,7 +217,6 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, adminHandler *mux.Rout
 	makeUsersHandler(logger, db, apiHandler)
 	makeLocalAgentsHandler(logger, db, apiHandler)
 	makeRemoteAgentsHandler(logger, db, apiHandler)
-	makeCertificatesHandler(logger, db, apiHandler)
 	makeTransfersHandler(logger, db, apiHandler)
 	makeHistoryHandler(logger, db, apiHandler)
 	makeRulesHandler(logger, db, apiHandler)
