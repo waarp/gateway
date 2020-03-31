@@ -54,11 +54,7 @@ func (u *User) BeforeInsert(database.Accessor) error {
 // BeforeUpdate is called before updating the user from the database. Its
 // role is to hash the password.
 func (u *User) BeforeUpdate(database.Accessor) error {
-	var err error
-	if u.Password != nil {
-		u.Password, err = hashPassword(u.Password)
-	}
-	return err
+	return u.BeforeInsert(nil)
 }
 
 // ValidateInsert checks if the new `User` entry is valid and can be
@@ -89,7 +85,7 @@ func (u *User) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if u.ID != 0 {
 		return database.InvalidError("The user's ID cannot be entered manually")
 	}
-	if u.Owner != "" {
+	if u.Owner != database.Owner {
 		return database.InvalidError("The user's owner cannot be changed")
 	}
 

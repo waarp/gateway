@@ -179,6 +179,7 @@ func TestUsersValidateUpdate(t *testing.T) {
 
 			Convey("Given a user account", func() {
 				user := &User{
+					Owner:    database.Owner,
 					Username: "new",
 					Password: []byte("password_new"),
 				}

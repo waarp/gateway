@@ -58,7 +58,7 @@ func makeUsersHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Route
 	usersHandler.HandleFunc("", createUser(logger, db)).
 		Methods(http.MethodPost)
 
-	userHandler := usersHandler.PathPrefix("/{user:[0-9]+}").Subrouter()
+	userHandler := usersHandler.PathPrefix("/{user:.+}").Subrouter()
 	userHandler.HandleFunc("", getUser(logger, db)).
 		Methods(http.MethodGet)
 	userHandler.HandleFunc("", deleteUser(logger, db)).
