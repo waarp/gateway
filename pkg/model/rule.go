@@ -115,10 +115,34 @@ func (r *Rule) ValidateInsert(acc database.Accessor) error {
 // ValidateUpdate is called before updating an existing `Rule` entry from
 // the database. It checks whether the updated entry is valid or not.
 func (r *Rule) ValidateUpdate(acc database.Accessor, id uint64) error {
-	if res, err := acc.Query("SELECT id FROM rules WHERE name=? and send=? and id<>?", r.Name, r.IsSend, id); err != nil {
+	if r.ID != 0 {
+		return database.InvalidError("The rule's ID cannot be entered manually")
+	}
+
+	old := &Rule{ID: id}
+	if err := acc.Get(old); err != nil {
 		return err
-	} else if len(res) > 0 {
-		return database.InvalidError("A rule Send: %t named '%s' already exist", r.IsSend, r.Name)
+	}
+	name := old.Name
+	r.IsSend = old.IsSend
+
+	if r.Name != "" && r.Name != old.Name {
+		name = r.Name
+		if res, err := acc.Query("SELECT id FROM rules WHERE name=? and send=?",
+			r.Name, old.IsSend); err != nil {
+			return err
+		} else if len(res) > 0 {
+			return database.InvalidError("A rule named '%s' with send = %t already exist",
+				r.Name, old.IsSend)
+		}
+	}
+
+	if r.Path != "" {
+		if res, err := acc.Query("SELECT id FROM rules WHERE name=? and path=?", name, r.Path); err != nil {
+			return err
+		} else if len(res) > 0 {
+			return database.InvalidError("A rule named '%s' with path: %s already exist", name, r.Path)
+		}
 	}
 	return nil
 }

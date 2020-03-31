@@ -190,7 +190,7 @@ func makeRulesHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Route
 	rulesHandler.HandleFunc("", listRules(logger, db)).Methods(http.MethodGet)
 	rulesHandler.HandleFunc("", createRule(logger, db)).Methods(http.MethodPost)
 
-	ruleHandler := rulesHandler.PathPrefix("/{rule:[0-9]+}").Subrouter()
+	ruleHandler := rulesHandler.PathPrefix("/{rule:.+}").Subrouter()
 	ruleHandler.HandleFunc("", getRule(logger, db)).Methods(http.MethodGet)
 	ruleHandler.HandleFunc("", updateRule(logger, db)).Methods(http.MethodPatch, http.MethodPut)
 	ruleHandler.HandleFunc("", deleteRule(logger, db)).Methods(http.MethodDelete)

@@ -176,36 +176,35 @@ func TestRuleValidateUpdate(t *testing.T) {
 			So(db.Create(r2), ShouldBeNil)
 
 			Convey("When updating with invalid data", func() {
-				r.Name = r2.Name
-				r.IsSend = r2.IsSend
+				update := &Rule{Name: r2.Name}
 
 				Convey("When calling the `ValidateUpdate` function", func() {
 					ses, err := db.BeginTransaction()
 					So(err, ShouldBeNil)
 
-					err = r.ValidateUpdate(ses, r.ID)
+					err = update.ValidateUpdate(ses, r.ID)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)
 					})
 
-					Convey("Then the error should say aaaa", func() {
-						So(err.Error(), ShouldEqual,
-							fmt.Sprintf("A rule Send: %t named '%s' already exist", r.IsSend, r.Name))
+					Convey("Then the error should say that the name is already used", func() {
+						So(err.Error(), ShouldEqual, fmt.Sprintf(
+							"A rule named '%s' with send = %t already exist", update.Name,
+							r.IsSend))
 					})
 
 				})
 			})
 
 			Convey("When updating with valid data", func() {
-				r.Name = r2.Name
-				r.IsSend = !r2.IsSend
+				update := &Rule{Name: "Titi"}
 
 				Convey("When calling the `ValidateUpdate` function", func() {
 					ses, err := db.BeginTransaction()
 					So(err, ShouldBeNil)
 
-					err = r.ValidateUpdate(ses, r.ID)
+					err = update.ValidateUpdate(ses, r.ID)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)

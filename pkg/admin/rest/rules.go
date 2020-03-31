@@ -6,6 +6,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"github.com/gorilla/mux"
 )
 
 // InRule is the JSON representation of a transfer rule in requests made to
@@ -34,7 +35,6 @@ func (i *InRule) ToModel() *model.Rule {
 // OutRule is the JSON representation of a transfer rule in responses sent by
 // the REST interface.
 type OutRule struct {
-	ID      uint64 `json:"id"`
 	Name    string `json:"name"`
 	Comment string `json:"comment"`
 	IsSend  bool   `json:"isSend"`
@@ -46,7 +46,6 @@ type OutRule struct {
 // FromRule transforms the given database transfer rule into its JSON equivalent.
 func FromRule(r *model.Rule) *OutRule {
 	return &OutRule{
-		ID:      r.ID,
 		Name:    r.Name,
 		Comment: r.Comment,
 		IsSend:  r.IsSend,
@@ -62,7 +61,6 @@ func FromRules(rs []model.Rule) []OutRule {
 	rules := make([]OutRule, len(rs))
 	for i, rule := range rs {
 		rules[i] = OutRule{
-			ID:      rule.ID,
 			Name:    rule.Name,
 			Comment: rule.Comment,
 			IsSend:  rule.IsSend,
@@ -72,6 +70,18 @@ func FromRules(rs []model.Rule) []OutRule {
 		}
 	}
 	return rules
+}
+
+func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {
+	ruleName, ok := mux.Vars(r)["rule"]
+	if !ok {
+		return nil, &notFound{}
+	}
+	rule := &model.Rule{Name: ruleName}
+	if err := get(db, rule); err != nil {
+		return nil, err
+	}
+	return rule, nil
 }
 
 func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -87,7 +97,7 @@ func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, rule.ID))
+			w.Header().Set("Location", location2(r, rule.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -100,13 +110,8 @@ func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func getRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "rule")
+			result, err := getRl(r, db)
 			if err != nil {
-				return err
-			}
-			result := &model.Rule{ID: id}
-
-			if err := get(db, result); err != nil {
 				return err
 			}
 
@@ -150,12 +155,8 @@ func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "rule")
+			check, err := getRl(r, db)
 			if err != nil {
-				return &notFound{}
-			}
-
-			if err := exist(db, &model.Rule{ID: id}); err != nil {
 				return err
 			}
 
@@ -164,11 +165,11 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(rule.ToModel(), id, false); err != nil {
+			if err := db.Update(rule.ToModel(), check.ID, false); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r))
+			w.Header().Set("Location", locationUpdate(r, rule.Name, check.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -181,13 +182,8 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func deleteRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "rule")
+			rule, err := getRl(r, db)
 			if err != nil {
-				return &notFound{}
-			}
-
-			rule := &model.Rule{ID: id}
-			if err := get(db, rule); err != nil {
 				return err
 			}
 
