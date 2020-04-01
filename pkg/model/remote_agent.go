@@ -113,7 +113,7 @@ func (r *RemoteAgent) validateProtoConfig() error {
 	if err != nil {
 		return err
 	}
-	return conf.ValidServer()
+	return conf.ValidClient()
 }
 
 // ValidateUpdate is called before updating an existing `RemoteAgent` entry from

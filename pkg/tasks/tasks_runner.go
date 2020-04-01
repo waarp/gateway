@@ -62,11 +62,11 @@ func (p *Processor) RunTasks(tasks []*model.Task) error {
 		taskErr := func() error {
 			runnable, ok := RunnableTasks[task.Type]
 			if !ok {
-				return fmt.Errorf("unknown task")
+				return fmt.Errorf("%s: unknown task", taskInfo)
 			}
 			args, err := p.setup(task)
 			if err != nil {
-				return err
+				return fmt.Errorf("%s: %s", taskInfo, err.Error())
 			}
 
 			msg, err := runnable.Run(args, p)
@@ -79,7 +79,7 @@ func (p *Processor) RunTasks(tasks []*model.Task) error {
 					Error: model.NewTransferError(model.TeWarning, logMsg),
 				}
 				if err := p.Db.Update(trans, p.Transfer.ID, false); err != nil {
-					return err
+					return fmt.Errorf("%s: %s", taskInfo, err.Error())
 				}
 				p.Transfer.Error = trans.Error
 				p.Logger.Warning(logMsg)
@@ -94,11 +94,11 @@ func (p *Processor) RunTasks(tasks []*model.Task) error {
 				Error: model.NewTransferError(model.TeExternalOperation, logMsg),
 			}
 			if err := p.Db.Update(trans, p.Transfer.ID, false); err != nil {
-				return err
+				return fmt.Errorf("%s: %s", taskInfo, err.Error())
 			}
 			p.Transfer.Error = trans.Error
 			p.Logger.Error(logMsg)
-			return taskErr
+			return fmt.Errorf("%s: %s", taskInfo, taskErr.Error())
 		}
 	}
 	return nil
