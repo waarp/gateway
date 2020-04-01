@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 
@@ -14,15 +13,11 @@ type TransferTask struct{}
 
 func init() {
 	RunnableTasks["TRANSFER"] = &TransferTask{}
+	model.ValidTasks["TRANSFER"] = &TransferTask{}
 }
 
 // Validate checks if the tasks has all the required arguments.
-func (t *TransferTask) Validate(task *model.Task) error {
-	var args map[string]string
-	if err := json.Unmarshal(task.Args, &args); err != nil {
-		return err
-	}
-
+func (t *TransferTask) Validate(args map[string]string) error {
 	if file, ok := args["file"]; !ok || file == "" {
 		return fmt.Errorf("missing transfer source file")
 	}

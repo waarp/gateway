@@ -3,7 +3,6 @@ package tasks
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -18,15 +17,11 @@ type ExecMoveTask struct{}
 
 func init() {
 	RunnableTasks["EXECMOVE"] = &ExecMoveTask{}
+	model.ValidTasks["EXECMOVE"] = &ExecMoveTask{}
 }
 
 // Validate checks if the EXECMOVE task has all the required arguments.
-func (e *ExecMoveTask) Validate(task *model.Task) error {
-	var params map[string]string
-	if err := json.Unmarshal(task.Args, &params); err != nil {
-		return err
-	}
-
+func (e *ExecMoveTask) Validate(params map[string]string) error {
 	if _, _, _, err := parseExecArgs(params); err != nil {
 		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}

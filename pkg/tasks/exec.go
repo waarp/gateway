@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strconv"
@@ -16,6 +15,7 @@ type ExecTask struct{}
 
 func init() {
 	RunnableTasks["EXEC"] = &ExecTask{}
+	model.ValidTasks["EXEC"] = &ExecTask{}
 }
 
 func parseExecArgs(params map[string]string) (path, args string,
@@ -42,18 +42,12 @@ func parseExecArgs(params map[string]string) (path, args string,
 	if delay < 0 {
 		err = fmt.Errorf("invalid program delay value (must be positive or 0)")
 	}
-
 	return
 }
 
 // Validate checks if the EXEC task has all the required arguments.
-func (e *ExecTask) Validate(task *model.Task) error {
-	var params map[string]string
-	if err := json.Unmarshal(task.Args, &params); err != nil {
-		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
-	}
-
-	if _, _, _, err := parseExecArgs(params); err != nil {
+func (e *ExecTask) Validate(args map[string]string) error {
+	if _, _, _, err := parseExecArgs(args); err != nil {
 		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
 

@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -19,14 +18,11 @@ type ExecOutputTask struct{}
 
 func init() {
 	RunnableTasks["EXECOUTPUT"] = &ExecOutputTask{}
+	model.ValidTasks["EXECOUTPUT"] = &ExecOutputTask{}
 }
 
 // Validate checks if the EXECMOVE task has all the required arguments.
-func (e *ExecOutputTask) Validate(task *model.Task) error {
-	var params map[string]string
-	if err := json.Unmarshal(task.Args, &params); err != nil {
-		return err
-	}
+func (e *ExecOutputTask) Validate(params map[string]string) error {
 
 	if _, _, _, err := parseExecArgs(params); err != nil {
 		return fmt.Errorf("failed to parse task arguments: %s", err.Error())

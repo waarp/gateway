@@ -12,13 +12,11 @@ import (
 
 func TestDeleteTaskValidate(t *testing.T) {
 	Convey("Given a model.Task", t, func() {
-		t := &model.Task{
-			Type: "DELETE",
-		}
+		args := map[string]string{}
 
 		Convey("When calling the validate method", func() {
 			task := &DeleteTask{}
-			err := task.Validate(t)
+			err := task.Validate(args)
 
 			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)

@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,14 +14,11 @@ type MoveTask struct{}
 
 func init() {
 	RunnableTasks["MOVE"] = &MoveTask{}
+	model.ValidTasks["MOVE"] = &MoveTask{}
 }
 
 // Validate checks if the MOVE task has all the required arguments.
-func (*MoveTask) Validate(t *model.Task) error {
-	args := map[string]string{}
-	if err := json.Unmarshal(t.Args, &args); err != nil {
-		return err
-	}
+func (*MoveTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
 		return fmt.Errorf("cannot create a move task without a `path` argument")
 	}

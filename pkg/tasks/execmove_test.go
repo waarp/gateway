@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -14,22 +13,16 @@ func TestExecMoveValidate(t *testing.T) {
 
 	Convey("Given an 'EXECMOVE' task", t, func() {
 		exec := &ExecMoveTask{}
-		args := map[string]string{
-			"path":  "cp",
-			"args":  "file1 file2",
-			"delay": "1000",
-		}
 
-		Convey("Given that the arguments are valid", func() {
-			b, err := json.Marshal(args)
-			So(err, ShouldBeNil)
-
-			task := &model.Task{
-				Args: b,
+		Convey("Given valid argument", func() {
+			args := map[string]string{
+				"path":  "cp",
+				"args":  "file1 file2",
+				"delay": "1000",
 			}
 
 			Convey("When validating the task", func() {
-				err := exec.Validate(task)
+				err := exec.Validate(args)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
@@ -38,16 +31,14 @@ func TestExecMoveValidate(t *testing.T) {
 		})
 
 		Convey("Given that a parameter is NOT the valid type", func() {
-			args["delay"] = "value"
-			b, err := json.Marshal(args)
-			So(err, ShouldBeNil)
-
-			task := &model.Task{
-				Args: b,
+			args := map[string]string{
+				"path":  "cp",
+				"args":  "file1 file2",
+				"delay": "true",
 			}
 
 			Convey("When validating the task", func() {
-				err := exec.Validate(task)
+				err := exec.Validate(args)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)
@@ -56,16 +47,13 @@ func TestExecMoveValidate(t *testing.T) {
 		})
 
 		Convey("Given that a parameter is missing", func() {
-			delete(args, "args")
-			b, err := json.Marshal(args)
-			So(err, ShouldBeNil)
-
-			task := &model.Task{
-				Args: b,
+			args := map[string]string{
+				"path":  "cp",
+				"delay": "1000",
 			}
 
 			Convey("When validating the task", func() {
-				err := exec.Validate(task)
+				err := exec.Validate(args)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)
@@ -73,17 +61,15 @@ func TestExecMoveValidate(t *testing.T) {
 			})
 		})
 
-		Convey("Given that a parameter is incorrect", func() {
-			args["delay"] = "-1"
-			b, err := json.Marshal(args)
-			So(err, ShouldBeNil)
-
-			task := &model.Task{
-				Args: b,
+		Convey("Given that a parameter is empty", func() {
+			args := map[string]string{
+				"path":  "",
+				"args":  "file1 file2",
+				"delay": "1000",
 			}
 
 			Convey("When validating the task", func() {
-				err := exec.Validate(task)
+				err := exec.Validate(args)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)
@@ -99,11 +85,6 @@ func TestExecMoveRun(t *testing.T) {
 
 	Convey("Given an 'EXECMOVE' task", t, func() {
 		exec := &ExecMoveTask{}
-		args := map[string]string{
-			"path":  "./" + script,
-			"args":  "execmove.go",
-			"delay": "1000",
-		}
 		proc := &Processor{
 			Transfer: &model.Transfer{},
 			Rule:     &model.Rule{},
@@ -111,7 +92,12 @@ func TestExecMoveRun(t *testing.T) {
 
 		Reset(func() { _ = os.Remove(script) })
 
-		Convey("Given that the task is valid", func() {
+		Convey("Given valid arguments", func() {
+			args := map[string]string{
+				"path":  "./" + script,
+				"args":  "execmove.go",
+				"delay": "1000",
+			}
 
 			Convey("Given that the command succeeds", func() {
 				err := ioutil.WriteFile(script, []byte(scriptExecOK), 0700)

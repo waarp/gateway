@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -14,14 +13,11 @@ type MoveRenameTask struct{}
 
 func init() {
 	RunnableTasks["MOVERENAME"] = &MoveRenameTask{}
+	model.ValidTasks["MOVERENAME"] = &MoveRenameTask{}
 }
 
 // Validate check if the task has a destination for the move.
-func (*MoveRenameTask) Validate(t *model.Task) error {
-	args := map[string]string{}
-	if err := json.Unmarshal(t.Args, &args); err != nil {
-		return err
-	}
+func (*MoveRenameTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
 		return fmt.Errorf("cannot create a move_rename task without a `path` argument")
 	}

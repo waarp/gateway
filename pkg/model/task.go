@@ -1,8 +1,18 @@
 package model
 
 import (
+	"encoding/json"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 )
+
+// ValidTasks is a list of all the tasks known by the gateway
+var ValidTasks = map[string]Validator{}
+
+// Validator permits to validate the arguments for a given task
+type Validator interface {
+	Validate(map[string]string) error
+}
 
 func init() {
 	database.Tables = append(database.Tables, &Task{})
@@ -45,8 +55,8 @@ func (t *Task) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError("No rule found with ID %d", t.RuleID)
 	}
 
-	if !validateChain(t.Chain) {
-		return database.InvalidError("%s is not a valid task chain", t.Chain)
+	if err := validateTasks(t); err != nil {
+		return err
 	}
 
 	if res, err := acc.Query("SELECT rule_id FROM tasks WHERE rule_id=? AND chain=? AND rank=?",
@@ -69,4 +79,22 @@ func validateChain(c Chain) bool {
 	return c == ChainPre ||
 		c == ChainPost ||
 		c == ChainError
+}
+
+func validateTasks(t *Task) error {
+
+	if !validateChain(t.Chain) {
+		return database.InvalidError("%s is not a valid task chain", t.Chain)
+	}
+
+	args := map[string]string{}
+	if err := json.Unmarshal(t.Args, &args); err != nil {
+		return err
+	}
+
+	v, ok := ValidTasks[t.Type]
+	if !ok {
+		return database.InvalidError("%s is not a valid task Type", t.Type)
+	}
+	return v.Validate(args)
 }

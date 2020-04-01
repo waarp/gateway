@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"encoding/json"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -13,23 +12,17 @@ func TestTransferValidate(t *testing.T) {
 
 	Convey("Given a 'TRANSFER' task", t, func() {
 		trans := &TransferTask{}
-		args := map[string]string{
-			"file": "/test/file",
-			"to":   "partner",
-			"as":   "account",
-			"rule": "transfer rule",
-		}
 
 		Convey("Given that the arguments are valid", func() {
-			b, err := json.Marshal(args)
-			So(err, ShouldBeNil)
-
-			task := &model.Task{
-				Args: b,
+			args := map[string]string{
+				"file": "/test/file",
+				"to":   "partner",
+				"as":   "account",
+				"rule": "transfer rule",
 			}
 
 			Convey("When validating the task", func() {
-				err := trans.Validate(task)
+				err := trans.Validate(args)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
@@ -38,16 +31,14 @@ func TestTransferValidate(t *testing.T) {
 		})
 
 		Convey("Given that a parameter is missing", func() {
-			delete(args, "to")
-			b, err := json.Marshal(args)
-			So(err, ShouldBeNil)
-
-			task := &model.Task{
-				Args: b,
+			args := map[string]string{
+				"file": "/test/file",
+				"as":   "account",
+				"rule": "transfer rule",
 			}
 
 			Convey("When validating the task", func() {
-				err := trans.Validate(task)
+				err := trans.Validate(args)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)
@@ -56,16 +47,15 @@ func TestTransferValidate(t *testing.T) {
 		})
 
 		Convey("Given that a parameter is empty", func() {
-			args["rule"] = ""
-			b, err := json.Marshal(args)
-			So(err, ShouldBeNil)
-
-			task := &model.Task{
-				Args: b,
+			args := map[string]string{
+				"file": "/test/file",
+				"to":   "partner",
+				"as":   "account",
+				"rule": "",
 			}
 
 			Convey("When validating the task", func() {
-				err := trans.Validate(task)
+				err := trans.Validate(args)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)

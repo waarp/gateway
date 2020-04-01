@@ -14,6 +14,10 @@ func init() {
 	RunnableTasks[taskWarning] = &testTaskWarning{}
 	RunnableTasks[taskFail] = &testTaskFail{}
 	RunnableTasks[taskLong] = &testTaskLong{}
+	model.ValidTasks[taskSuccess] = &testTaskSuccess{}
+	model.ValidTasks[taskWarning] = &testTaskWarning{}
+	model.ValidTasks[taskFail] = &testTaskFail{}
+	model.ValidTasks[taskLong] = &testTaskLong{}
 }
 
 var dummyTaskCheck = make(chan string)
@@ -27,7 +31,7 @@ const (
 
 type testTaskSuccess struct{}
 
-func (t *testTaskSuccess) Validate(*model.Task) error {
+func (t *testTaskSuccess) Validate(map[string]string) error {
 	return nil
 }
 
@@ -38,7 +42,7 @@ func (t *testTaskSuccess) Run(map[string]string, *Processor) (string, error) {
 
 type testTaskWarning struct{}
 
-func (t *testTaskWarning) Validate(*model.Task) error {
+func (t *testTaskWarning) Validate(map[string]string) error {
 	return nil
 }
 
@@ -49,7 +53,7 @@ func (t *testTaskWarning) Run(map[string]string, *Processor) (string, error) {
 
 type testTaskFail struct{}
 
-func (t *testTaskFail) Validate(*model.Task) error {
+func (t *testTaskFail) Validate(map[string]string) error {
 	return nil
 }
 
@@ -60,7 +64,7 @@ func (t *testTaskFail) Run(map[string]string, *Processor) (string, error) {
 
 type testTaskLong struct{}
 
-func (t *testTaskLong) Validate(*model.Task) error {
+func (t *testTaskLong) Validate(map[string]string) error {
 	return nil
 }
 

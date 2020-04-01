@@ -11,9 +11,14 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+func init() {
+	model.ValidTasks["COPY"] = &tasks.CopyTask{}
+}
 
 const tasksURI = ruleURI + RuleTasksPath
 
@@ -47,7 +52,7 @@ func TestListTasks(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "COPY",
-				Args:   []byte("{}"),
+				Args:   []byte(`{"path":"/path/to/file"}`),
 			}
 			So(db.Create(pre), ShouldBeNil)
 
@@ -56,7 +61,7 @@ func TestListTasks(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   1,
 				Type:   "MOVE",
-				Args:   []byte("{}"),
+				Args:   []byte(`{"path":"/path/to/file"}`),
 			}
 			So(db.Create(post), ShouldBeNil)
 
@@ -144,12 +149,12 @@ func TestUpdateTasks(t *testing.T) {
 			Convey("Given all valid new tasks", func() {
 				pre := []InRuleTask{{
 					Type: "COPY",
-					Args: json.RawMessage("{}"),
+					Args: json.RawMessage(`{"path":"/path/to/file"}`),
 				}}
 
 				post := []InRuleTask{{
 					Type: "MOVE",
-					Args: json.RawMessage("{}"),
+					Args: json.RawMessage(`{"path":"/path/to/file"}`),
 				}}
 
 				er := []InRuleTask{{
@@ -228,7 +233,7 @@ func TestUpdateTasks(t *testing.T) {
 			Convey("Given partial valid new tasks", func() {
 				pre := []InRuleTask{{
 					Type: "COPY",
-					Args: json.RawMessage("{}"),
+					Args: json.RawMessage(`{"path":"/path/to/file"}`),
 				}}
 
 				obj := map[string][]InRuleTask{

@@ -12,11 +12,14 @@ func init() {
 	tasks.RunnableTasks["TESTSUCCESS"] = &testTaskSuccess{}
 	tasks.RunnableTasks["TESTFAIL"] = &testTaskFail{}
 	tasks.RunnableTasks["TESTINFINITE"] = &testTaskInfinite{}
+	model.ValidTasks["TESTSUCCESS"] = &testTaskSuccess{}
+	model.ValidTasks["TESTFAIL"] = &testTaskFail{}
+	model.ValidTasks["TESTINFINITE"] = &testTaskInfinite{}
 }
 
 type testTaskSuccess struct{}
 
-func (t *testTaskSuccess) Validate(*model.Task) error {
+func (t *testTaskSuccess) Validate(map[string]string) error {
 	return nil
 }
 
@@ -26,7 +29,7 @@ func (t *testTaskSuccess) Run(map[string]string, *tasks.Processor) (string, erro
 
 type testTaskFail struct{}
 
-func (t *testTaskFail) Validate(*model.Task) error {
+func (t *testTaskFail) Validate(map[string]string) error {
 	return nil
 }
 
@@ -36,7 +39,7 @@ func (t *testTaskFail) Run(map[string]string, *tasks.Processor) (string, error) 
 
 type testTaskInfinite struct{}
 
-func (t *testTaskInfinite) Validate(*model.Task) error {
+func (t *testTaskInfinite) Validate(map[string]string) error {
 	return nil
 }
 

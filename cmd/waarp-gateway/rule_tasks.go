@@ -36,14 +36,21 @@ func (r *ruleTasksChangeCommand) Execute(args []string) error {
 	}
 
 	var preTasks, postTasks, errTasks []rest.InRuleTask
-	if err := json.Unmarshal([]byte(r.PreTasks), &preTasks); err != nil {
-		return err
+	if r.PreTasks != "" {
+		if err := json.Unmarshal([]byte(r.PreTasks), &preTasks); err != nil {
+			fmt.Printf("a")
+			return err
+		}
 	}
-	if err := json.Unmarshal([]byte(r.PostTasks), &postTasks); err != nil {
-		return err
+	if r.PostTasks != "" {
+		if err := json.Unmarshal([]byte(r.PostTasks), &postTasks); err != nil {
+			return err
+		}
 	}
-	if err := json.Unmarshal([]byte(r.ErrorTasks), &errTasks); err != nil {
-		return err
+	if r.ErrorTasks != "" {
+		if err := json.Unmarshal([]byte(r.ErrorTasks), &errTasks); err != nil {
+			return err
+		}
 	}
 
 	tasks := map[string][]rest.InRuleTask{}

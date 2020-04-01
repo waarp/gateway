@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -13,14 +12,11 @@ type CopyRenameTask struct{}
 
 func init() {
 	RunnableTasks["COPYRENAME"] = &CopyRenameTask{}
+	model.ValidTasks["COPYRENAME"] = &CopyRenameTask{}
 }
 
 // Validate check if the task has a destination for the copy
-func (*CopyRenameTask) Validate(t *model.Task) error {
-	args := map[string]string{}
-	if err := json.Unmarshal(t.Args, &args); err != nil {
-		return err
-	}
+func (*CopyRenameTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
 		return fmt.Errorf("cannot create a copy_rename task without a `path` argument")
 	}

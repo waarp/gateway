@@ -11,14 +11,13 @@ import (
 
 func TestCopyTaskValidate(t *testing.T) {
 	Convey("Given a valid model.Task", t, func() {
-		task := &model.Task{
-			Type: "COPY",
-			Args: []byte("{\"path\": \"path/to/dest\"}"),
+		args := map[string]string{
+			"path": "path/to/dest",
 		}
 
 		Convey("When calling the `Validate` method", func() {
 			runner := &CopyTask{}
-			err := runner.Validate(task)
+			err := runner.Validate(args)
 
 			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
@@ -27,14 +26,11 @@ func TestCopyTaskValidate(t *testing.T) {
 	})
 
 	Convey("Given a invalid model.Task", t, func() {
-		task := &model.Task{
-			Type: "COPY",
-			Args: []byte("{}"),
-		}
+		args := map[string]string{}
 
 		Convey("When calling the `Validate` method", func() {
 			runner := &CopyTask{}
-			err := runner.Validate(task)
+			err := runner.Validate(args)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldNotBeNil)

@@ -1,7 +1,7 @@
 package tasks
 
 import (
-	"encoding/json"
+
 	"fmt"
 	"io"
 	"os"
@@ -16,14 +16,11 @@ type CopyTask struct{}
 
 func init() {
 	RunnableTasks["COPY"] = &CopyTask{}
+	model.ValidTasks["COPY"] = &CopyTask{}
 }
 
 // Validate check if the task has a destination for the copy
-func (*CopyTask) Validate(t *model.Task) error {
-	args := map[string]string{}
-	if err := json.Unmarshal(t.Args, &args); err != nil {
-		return err
-	}
+func (*CopyTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
 		return fmt.Errorf("cannot create a copy task without a `path` argument")
 	}
