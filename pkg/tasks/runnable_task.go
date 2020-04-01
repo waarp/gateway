@@ -14,5 +14,5 @@ type Validator interface {
 
 // Runner permits to execute a given task
 type Runner interface {
-	Run(map[string]interface{}, *Processor) (string, error)
+	Run(map[string]string, *Processor) (string, error)
 }

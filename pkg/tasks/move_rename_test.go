@@ -60,7 +60,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 		}
 
 		Convey("Given a model.Task", func() {
-			args := map[string]interface{}{
+			args := map[string]string{
 				"path": "test/dest",
 			}
 
@@ -70,7 +70,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 			})
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(runner.Transfer.SourcePath, []byte("Hello World"), 0o700)
+				err := ioutil.WriteFile(runner.Transfer.SourcePath, []byte("Hello World"), 0700)
 				So(err, ShouldBeNil)
 
 				Reset(func() {
@@ -136,7 +136,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 		}
 
 		Convey("Given a model.Task", func() {
-			args := map[string]interface{}{
+			args := map[string]string{
 				"path": "test/dest",
 			}
 
@@ -146,7 +146,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 			})
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(runner.Transfer.DestPath, []byte("Hello World"), 0o700)
+				err := ioutil.WriteFile(runner.Transfer.DestPath, []byte("Hello World"), 0700)
 				So(err, ShouldBeNil)
 
 				Reset(func() {

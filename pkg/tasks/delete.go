@@ -20,7 +20,7 @@ func (*DeleteTask) Validate(t *model.Task) error {
 }
 
 // Run delete the current file from the system
-func (*DeleteTask) Run(args map[string]interface{}, runner *Processor) (string, error) {
+func (*DeleteTask) Run(_ map[string]string, runner *Processor) (string, error) {
 	if runner.Rule.IsSend {
 		if err := os.Remove(filepath.FromSlash(runner.Transfer.SourcePath)); err != nil {
 			return err.Error(), err

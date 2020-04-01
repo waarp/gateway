@@ -23,7 +23,7 @@ func init() {
 
 // Validate checks if the EXECMOVE task has all the required arguments.
 func (e *ExecOutputTask) Validate(task *model.Task) error {
-	var params map[string]interface{}
+	var params map[string]string
 	if err := json.Unmarshal(task.Args, &params); err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func getNewFileName(output string) string {
 }
 
 // Run executes the task by executing an external program with the given parameters.
-func (e *ExecOutputTask) Run(params map[string]interface{}, processor *Processor) (string, error) {
+func (e *ExecOutputTask) Run(params map[string]string, processor *Processor) (string, error) {
 
 	path, args, delay, err := parseExecArgs(params)
 	if err != nil {

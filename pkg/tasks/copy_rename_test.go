@@ -60,7 +60,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 		}
 
 		Convey("Given a model.Task", func() {
-			args := map[string]interface{}{
+			args := map[string]string{
 				"path": "test/dummy.test",
 			}
 			So(os.Mkdir("test", 0744), ShouldBeNil)
@@ -131,16 +131,16 @@ func TestCopyRenameTaskRun(t *testing.T) {
 		}
 
 		Convey("Given a model.Task", func() {
-			args := map[string]interface{}{
+			args := map[string]string{
 				"path": "test/dummy.test",
 			}
-			So(os.Mkdir("test", 0o700), ShouldBeNil)
+			So(os.Mkdir("test", 0700), ShouldBeNil)
 			Reset(func() {
 				_ = os.RemoveAll("test")
 			})
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(runner.Transfer.DestPath, []byte("Hello World"), 0o700)
+				err := ioutil.WriteFile(runner.Transfer.DestPath, []byte("Hello World"), 0700)
 				So(err, ShouldBeNil)
 
 				Reset(func() {

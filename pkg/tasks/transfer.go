@@ -18,38 +18,38 @@ func init() {
 
 // Validate checks if the tasks has all the required arguments.
 func (t *TransferTask) Validate(task *model.Task) error {
-	var args map[string]interface{}
+	var args map[string]string
 	if err := json.Unmarshal(task.Args, &args); err != nil {
 		return err
 	}
 
-	if file, ok := args["file"].(string); !ok || file == "" {
+	if file, ok := args["file"]; !ok || file == "" {
 		return fmt.Errorf("missing transfer source file")
 	}
-	if to, ok := args["to"].(string); !ok || to == "" {
+	if to, ok := args["to"]; !ok || to == "" {
 		return fmt.Errorf("missing transfer remote partner")
 	}
-	if as, ok := args["as"].(string); !ok || as == "" {
+	if as, ok := args["as"]; !ok || as == "" {
 		return fmt.Errorf("missing transfer account")
 	}
-	if rule, ok := args["rule"].(string); !ok || rule == "" {
+	if rule, ok := args["rule"]; !ok || rule == "" {
 		return fmt.Errorf("missing transfer rule")
 	}
 
 	return nil
 }
 
-func getTransferInfo(db *database.Db, args map[string]interface{}) (file string,
+func getTransferInfo(db *database.Db, args map[string]string) (file string,
 	ruleID, agentID, accountID uint64, infoErr error) {
 
-	fileName, fileOK := args["file"].(string)
+	fileName, fileOK := args["file"]
 	if !fileOK || fileName == "" {
 		infoErr = fmt.Errorf("missing transfer file")
 		return
 	}
 	file = fileName
 
-	ruleName, ruleOK := args["rule"].(string)
+	ruleName, ruleOK := args["rule"]
 	if !ruleOK || ruleName == "" {
 		infoErr = fmt.Errorf("missing transfer rule")
 		return
@@ -61,7 +61,7 @@ func getTransferInfo(db *database.Db, args map[string]interface{}) (file string,
 	}
 	ruleID = rule.ID
 
-	agentName, agentOK := args["to"].(string)
+	agentName, agentOK := args["to"]
 	if !agentOK || agentName == "" {
 		infoErr = fmt.Errorf("missing transfer remote partner")
 		return
@@ -73,7 +73,7 @@ func getTransferInfo(db *database.Db, args map[string]interface{}) (file string,
 	}
 	agentID = agent.ID
 
-	accName, accOK := args["as"].(string)
+	accName, accOK := args["as"]
 	if !accOK || accName == "" {
 		infoErr = fmt.Errorf("missing transfer account")
 		return
@@ -88,7 +88,7 @@ func getTransferInfo(db *database.Db, args map[string]interface{}) (file string,
 }
 
 // Run executes the task by scheduling a new transfer with the given parameters.
-func (t *TransferTask) Run(args map[string]interface{}, processor *Processor) (string, error) {
+func (t *TransferTask) Run(args map[string]string, processor *Processor) (string, error) {
 	file, ruleID, agentID, accID, err := getTransferInfo(processor.Db, args)
 	if err != nil {
 		return err.Error(), err

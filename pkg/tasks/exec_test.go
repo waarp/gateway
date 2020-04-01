@@ -29,10 +29,10 @@ done`
 func TestExecValidate(t *testing.T) {
 	Convey("Given an 'EXEC' task", t, func() {
 		exec := &ExecTask{}
-		args := map[string]interface{}{
+		args := map[string]string{
 			"path":  "cp",
 			"args":  "exec.go exec_copy.go",
-			"delay": 1000,
+			"delay": "1000",
 		}
 
 		Convey("Given that the arguments are valid", func() {
@@ -53,7 +53,7 @@ func TestExecValidate(t *testing.T) {
 		})
 
 		Convey("Given that a parameter is NOT the valid type", func() {
-			args["path"] = true
+			args["delay"] = "value"
 			b, err := json.Marshal(args)
 			So(err, ShouldBeNil)
 
@@ -89,7 +89,7 @@ func TestExecValidate(t *testing.T) {
 		})
 
 		Convey("Given that a parameter is incorrect", func() {
-			args["delay"] = -1
+			args["delay"] = "-1"
 			b, err := json.Marshal(args)
 			So(err, ShouldBeNil)
 
@@ -114,10 +114,10 @@ func TestExecRun(t *testing.T) {
 
 	Convey("Given an 'EXEC' task", t, func() {
 		exec := &ExecTask{}
-		args := map[string]interface{}{
+		args := map[string]string{
 			"path":  "./" + script,
 			"args":  "'exec run test message'",
-			"delay": float64(1000),
+			"delay": "1000",
 		}
 		Reset(func() { _ = os.Remove(script) })
 
@@ -178,7 +178,7 @@ func TestExecRun(t *testing.T) {
 				err := ioutil.WriteFile(script, []byte(scriptExecInfinite), 0700)
 				So(err, ShouldBeNil)
 
-				args["delay"] = float64(100)
+				args["delay"] = "100"
 
 				Convey("When running the task", func() {
 					msg, err := exec.Run(args, nil)
