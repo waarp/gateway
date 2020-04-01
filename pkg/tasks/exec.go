@@ -17,21 +17,34 @@ func init() {
 	RunnableTasks["EXEC"] = &ExecTask{}
 }
 
+func parseExecArgs(params map[string]interface{}) (path, args string,
+	delay float64, err error) {
+
+	var ok bool
+	if path, ok = params["path"].(string); !ok || path == "" {
+		err = fmt.Errorf("missing program path")
+		return
+	}
+	if args, ok = params["args"].(string); !ok {
+		err = fmt.Errorf("missing program arguments")
+		return
+	}
+	if delay, ok = params["delay"].(float64); !ok || delay < 0 {
+		err = fmt.Errorf("missing program delay")
+		return
+	}
+	return
+}
+
 // Validate checks if the EXEC task has all the required arguments.
 func (e *ExecTask) Validate(task *model.Task) error {
-	var args map[string]interface{}
-	if err := json.Unmarshal(task.Args, &args); err != nil {
-		return err
+	var params map[string]interface{}
+	if err := json.Unmarshal(task.Args, &params); err != nil {
+		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
 
-	if path, ok := args["path"].(string); !ok || path == "" {
-		return fmt.Errorf("missing program path")
-	}
-	if _, ok := args["args"].(string); !ok {
-		return fmt.Errorf("missing program arguments")
-	}
-	if delay, ok := args["delay"].(float64); !ok || delay == 0 {
-		return fmt.Errorf("missing program delay")
+	if _, _, _, err := parseExecArgs(params); err != nil {
+		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
 
 	return nil
@@ -39,27 +52,26 @@ func (e *ExecTask) Validate(task *model.Task) error {
 
 // Run executes the task by executing the external program with the given parameters.
 func (e *ExecTask) Run(params map[string]interface{}, processor *Processor) (string, error) {
-	var path, args string
-	var delay float64
-	var ok bool
-	if path, ok = params["path"].(string); !ok || path == "" {
-		return "missing program path", fmt.Errorf("missing program path")
-	}
-	if args, ok = params["args"].(string); !ok {
-		return "missing program arguments", fmt.Errorf("missing program arguments")
-	}
-	if delay, ok = params["delay"].(float64); !ok || delay == 0 {
-		return "missing program delay", fmt.Errorf("missing program delay")
+
+	path, args, delay, err := parseExecArgs(params)
+	if err != nil {
+		return err.Error(), fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(delay)*
-		time.Millisecond)
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if delay != 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(delay)*
+			time.Millisecond)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background())
+	}
 	defer cancel()
 
 	cmd := getCommand(ctx, path, args)
 
-	err := cmd.Run()
-	if err == nil {
+	execErr := cmd.Run()
+	if execErr == nil {
 		return "", nil
 	}
 
@@ -67,9 +79,9 @@ func (e *ExecTask) Run(params map[string]interface{}, processor *Processor) (str
 	case <-ctx.Done():
 		return "max exec delay expired", fmt.Errorf("max exec delay expired")
 	default:
-		if ex, ok := err.(*exec.ExitError); ok && ex.ExitCode() == 1 {
-			return err.Error(), errWarning
+		if ex, ok := execErr.(*exec.ExitError); ok && ex.ExitCode() == 1 {
+			return execErr.Error(), errWarning
 		}
-		return err.Error(), err
+		return execErr.Error(), execErr
 	}
 }

@@ -23,19 +23,13 @@ func init() {
 
 // Validate checks if the EXECMOVE task has all the required arguments.
 func (e *ExecOutputTask) Validate(task *model.Task) error {
-	var args map[string]interface{}
-	if err := json.Unmarshal(task.Args, &args); err != nil {
+	var params map[string]interface{}
+	if err := json.Unmarshal(task.Args, &params); err != nil {
 		return err
 	}
 
-	if path, ok := args["path"].(string); !ok || path == "" {
-		return fmt.Errorf("missing program path")
-	}
-	if _, ok := args["args"].(string); !ok {
-		return fmt.Errorf("missing program arguments")
-	}
-	if delay, ok := args["delay"].(float64); !ok || delay == 0 {
-		return fmt.Errorf("missing program delay")
+	if _, _, _, err := parseExecArgs(params); err != nil {
+		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
 
 	return nil
@@ -53,21 +47,20 @@ func getNewFileName(output string) string {
 
 // Run executes the task by executing an external program with the given parameters.
 func (e *ExecOutputTask) Run(params map[string]interface{}, processor *Processor) (string, error) {
-	var path, args string
-	var delay float64
-	var ok bool
-	if path, ok = params["path"].(string); !ok || path == "" {
-		return "missing program path", fmt.Errorf("missing program path")
-	}
-	if args, ok = params["args"].(string); !ok {
-		return "missing program arguments", fmt.Errorf("missing program arguments")
-	}
-	if delay, ok = params["delay"].(float64); !ok || delay == 0 {
-		return "missing program delay", fmt.Errorf("missing program delay")
+
+	path, args, delay, err := parseExecArgs(params)
+	if err != nil {
+		return err.Error(), fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(delay)*
-		time.Millisecond)
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if delay != 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(delay)*
+			time.Millisecond)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background())
+	}
 	defer cancel()
 
 	cmd := getCommand(ctx, path, args)
