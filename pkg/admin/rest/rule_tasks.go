@@ -3,13 +3,11 @@ package rest
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
-	"github.com/gorilla/mux"
 )
 
 // InRuleTask is the JSON representation of a rule task in requests made to
@@ -41,7 +39,7 @@ func FromRuleTasks(ts []model.Task) []OutRuleTask {
 	for i, task := range ts {
 		tasks[i] = OutRuleTask{
 			Type: task.Type,
-			Args: json.RawMessage(task.Args),
+			Args: task.Args,
 		}
 	}
 	return tasks
@@ -50,21 +48,15 @@ func FromRuleTasks(ts []model.Task) []OutRuleTask {
 func listTasks(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := func() error {
-			ruleID, err := parseID(r, "rule")
+			rule, err := getRl(r, db)
 			if err != nil {
 				return err
-			}
-
-			if ok, err := db.Exists(&model.Rule{ID: ruleID}); err != nil {
-				return err
-			} else if !ok {
-				return &notFound{}
 			}
 
 			preTasks := []model.Task{}
 			preFilters := &database.Filters{
 				Order:      "rank ASC",
-				Conditions: builder.Eq{"rule_id": ruleID, "chain": model.ChainPre},
+				Conditions: builder.Eq{"rule_id": rule.ID, "chain": model.ChainPre},
 			}
 			if err := db.Select(&preTasks, preFilters); err != nil {
 				return err
@@ -73,7 +65,7 @@ func listTasks(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			postTasks := []model.Task{}
 			postFilters := &database.Filters{
 				Order:      "rank ASC",
-				Conditions: builder.Eq{"rule_id": ruleID, "chain": model.ChainPost},
+				Conditions: builder.Eq{"rule_id": rule.ID, "chain": model.ChainPost},
 			}
 			if err := db.Select(&postTasks, postFilters); err != nil {
 				return err
@@ -82,7 +74,7 @@ func listTasks(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			errorTasks := []model.Task{}
 			errorFilters := &database.Filters{
 				Order:      "rank ASC",
-				Conditions: builder.Eq{"rule_id": ruleID, "chain": model.ChainError},
+				Conditions: builder.Eq{"rule_id": rule.ID, "chain": model.ChainError},
 			}
 			if err := db.Select(&errorTasks, errorFilters); err != nil {
 				return err
@@ -148,15 +140,9 @@ func doTaskUpdate(ses *database.Session, req map[string][]InRuleTask, ruleID uin
 func updateTasks(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := func() error {
-			ruleID, err := strconv.ParseUint(mux.Vars(r)["rule"], 10, 64)
+			rule, err := getRl(r, db)
 			if err != nil {
-				return &notFound{}
-			}
-
-			if ok, err := db.Exists(&model.Rule{ID: ruleID}); err != nil {
 				return err
-			} else if !ok {
-				return &notFound{}
 			}
 
 			req := map[string][]InRuleTask{}
@@ -168,12 +154,12 @@ func updateTasks(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			if err := doTaskUpdate(ses, req, ruleID); err != nil {
+			if err := doTaskUpdate(ses, req, rule.ID); err != nil {
 				ses.Rollback()
 				return err
 			}
 
-			w.Header().Set("Location", location(r))
+			w.Header().Set("Location", location2(r))
 			w.WriteHeader(http.StatusCreated)
 
 			return nil

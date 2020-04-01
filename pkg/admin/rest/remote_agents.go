@@ -52,6 +52,7 @@ func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		"name+":   "name ASC",
 		"name-":   "name DESC",
 	}
+	typ := (&model.RemoteAgent{}).TableName()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
@@ -68,7 +69,16 @@ func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutRemoteAgent{"remoteAgents": FromRemoteAgents(results)}
+			ids := make([]uint64, len(results))
+			for i, res := range results {
+				ids[i] = res.ID
+			}
+			rules, err := getAuthorizedRuleList(db, typ, ids)
+			if err != nil {
+				return err
+			}
+
+			resp := map[string][]OutRemoteAgent{"remoteAgents": FromRemoteAgents(results, rules)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -85,7 +95,12 @@ func getRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			return writeJSON(w, FromRemoteAgent(result))
+			rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
+			if err != nil {
+				return err
+			}
+
+			return writeJSON(w, FromRemoteAgent(result, rules))
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

@@ -39,7 +39,12 @@ func getLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			return writeJSON(w, FromLocalAccount(result))
+			rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
+			if err != nil {
+				return err
+			}
+
+			return writeJSON(w, FromLocalAccount(result, rules))
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)
@@ -53,6 +58,7 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		"login+":  "login ASC",
 		"login-":  "login DESC",
 	}
+	typ := (&model.LocalAccount{}).TableName()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
@@ -71,7 +77,17 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutAccount{"localAccounts": FromLocalAccounts(results)}
+			ids := make([]uint64, len(results))
+			for i, res := range results {
+				ids[i] = res.ID
+			}
+
+			rules, err := getAuthorizedRuleList(db, typ, ids)
+			if err != nil {
+				return err
+			}
+
+			resp := map[string][]OutAccount{"localAccounts": FromLocalAccounts(results, rules)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {

@@ -32,24 +32,27 @@ func (i *InAccount) ToRemote(agent *model.RemoteAgent) *model.RemoteAccount {
 // OutAccount is the JSON representation of a local/remote account in responses
 // sent by the REST interface.
 type OutAccount struct {
-	Login string `json:"login"`
+	Login           string           `json:"login"`
+	AuthorizedRules *AuthorizedRules `json:"authorizedRules"`
 }
 
 // FromLocalAccount transforms the given database local account into its JSON
 // equivalent.
-func FromLocalAccount(acc *model.LocalAccount) *OutAccount {
+func FromLocalAccount(acc *model.LocalAccount, rules *AuthorizedRules) *OutAccount {
 	return &OutAccount{
-		Login: acc.Login,
+		Login:           acc.Login,
+		AuthorizedRules: rules,
 	}
 }
 
 // FromLocalAccounts transforms the given list of database local accounts into
 // its JSON equivalent.
-func FromLocalAccounts(accs []model.LocalAccount) []OutAccount {
+func FromLocalAccounts(accs []model.LocalAccount, rules []AuthorizedRules) []OutAccount {
 	accounts := make([]OutAccount, len(accs))
 	for i, acc := range accs {
 		accounts[i] = OutAccount{
-			Login: acc.Login,
+			Login:           acc.Login,
+			AuthorizedRules: &rules[i],
 		}
 	}
 	return accounts
@@ -57,19 +60,21 @@ func FromLocalAccounts(accs []model.LocalAccount) []OutAccount {
 
 // FromRemoteAccount transforms the given database remote account into its JSON
 // equivalent.
-func FromRemoteAccount(acc *model.RemoteAccount) *OutAccount {
+func FromRemoteAccount(acc *model.RemoteAccount, rules *AuthorizedRules) *OutAccount {
 	return &OutAccount{
-		Login: acc.Login,
+		Login:           acc.Login,
+		AuthorizedRules: rules,
 	}
 }
 
 // FromRemoteAccounts transforms the given list of database remote accounts into
 // its JSON equivalent.
-func FromRemoteAccounts(accs []model.RemoteAccount) []OutAccount {
+func FromRemoteAccounts(accs []model.RemoteAccount, rules []AuthorizedRules) []OutAccount {
 	accounts := make([]OutAccount, len(accs))
 	for i, acc := range accs {
 		accounts[i] = OutAccount{
-			Login: acc.Login,
+			Login:           acc.Login,
+			AuthorizedRules: &rules[i],
 		}
 	}
 	return accounts

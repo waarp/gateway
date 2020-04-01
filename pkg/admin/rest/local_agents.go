@@ -30,7 +30,12 @@ func getLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			return writeJSON(w, FromLocalAgent(result))
+			rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
+			if err != nil {
+				return err
+			}
+
+			return writeJSON(w, FromLocalAgent(result, rules))
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)
@@ -46,6 +51,7 @@ func listLocalAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		"name+":   "name ASC",
 		"name-":   "name DESC",
 	}
+	typ := (&model.LocalAgent{}).TableName()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
@@ -63,7 +69,16 @@ func listLocalAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutLocalAgent{"localAgents": FromLocalAgents(results)}
+			ids := make([]uint64, len(results))
+			for i, res := range results {
+				ids[i] = res.ID
+			}
+			rules, err := getAuthorizedRuleList(db, typ, ids)
+			if err != nil {
+				return err
+			}
+
+			resp := map[string][]OutLocalAgent{"localAgents": FromLocalAgents(results, rules)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {

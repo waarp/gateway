@@ -126,7 +126,7 @@ func TestGetRule(t *testing.T) {
 					Convey("Then the body should contain the requested rule "+
 						"in JSON format", func() {
 
-						exp, err := json.Marshal(FromRule(rule))
+						exp, err := json.Marshal(FromRule(rule, &RuleAccess{}))
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
@@ -174,8 +174,8 @@ func TestListRules(t *testing.T) {
 			}
 			So(db.Create(r2), ShouldBeNil)
 
-			rule1 := *FromRule(r1)
-			rule2 := *FromRule(r2)
+			rule1 := *FromRule(r1, &RuleAccess{})
+			rule2 := *FromRule(r2, &RuleAccess{})
 
 			Convey("Given a valid request", func() {
 				req, err := http.NewRequest(http.MethodGet, "", nil)

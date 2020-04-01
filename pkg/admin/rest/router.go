@@ -84,6 +84,7 @@ func makeLocalAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux
 
 	makeLocalAccountsHandler(logger, db, locAgHandler)
 	makeCertificatesHandler(logger, db, locAgHandler)
+	makeRuleAuthorizationHandler(logger, db, locAgHandler)
 }
 
 func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
@@ -103,6 +104,7 @@ func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mu
 
 	makeRemoteAccountsHandler(logger, db, remAgHandler)
 	makeCertificatesHandler(logger, db, remAgHandler)
+	makeRuleAuthorizationHandler(logger, db, remAgHandler)
 }
 
 func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, agentHandler *mux.Router) {
@@ -121,6 +123,7 @@ func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, agentHandler 
 		Methods(http.MethodPatch, http.MethodPut)
 
 	makeCertificatesHandler(logger, db, locAcHandler)
+	makeRuleAuthorizationHandler(logger, db, locAcHandler)
 }
 
 func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, agentHandler *mux.Router) {
@@ -139,6 +142,7 @@ func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, agentHandler
 		Methods(http.MethodPatch, http.MethodPut)
 
 	makeCertificatesHandler(logger, db, remAcHandler)
+	makeRuleAuthorizationHandler(logger, db, remAcHandler)
 }
 
 func makeCertificatesHandler(logger *log.Logger, db *database.DB, handler *mux.Router) {
@@ -194,15 +198,16 @@ func makeRulesHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Route
 	ruleHandler.HandleFunc("", getRule(logger, db)).Methods(http.MethodGet)
 	ruleHandler.HandleFunc("", updateRule(logger, db)).Methods(http.MethodPatch, http.MethodPut)
 	ruleHandler.HandleFunc("", deleteRule(logger, db)).Methods(http.MethodDelete)
-
-	permHandler := ruleHandler.PathPrefix(RulePermissionPath).Subrouter()
-	permHandler.HandleFunc("", createAccess(logger, db)).Methods(http.MethodPost)
-	permHandler.HandleFunc("", listAccess(logger, db)).Methods(http.MethodGet)
-	permHandler.HandleFunc("", deleteAccess(logger, db)).Methods(http.MethodDelete)
+	ruleHandler.HandleFunc("/restrict", restrictRule(logger, db)).Methods(http.MethodPut)
 
 	taskHandler := ruleHandler.PathPrefix(RuleTasksPath).Subrouter()
 	taskHandler.HandleFunc("", listTasks(logger, db)).Methods(http.MethodGet)
 	taskHandler.HandleFunc("", updateTasks(logger, db)).Methods(http.MethodPut)
+}
+
+func makeRuleAuthorizationHandler(logger *log.Logger, db *database.DB, handler *mux.Router) {
+	handler.HandleFunc("/authorize", authorizeRule(logger, db)).Methods(http.MethodPut)
+	handler.HandleFunc("/revoke", revokeRule(logger, db)).Methods(http.MethodPut)
 }
 
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.

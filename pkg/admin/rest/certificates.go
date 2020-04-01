@@ -66,7 +66,7 @@ func FromCerts(cs []model.Cert) []OutCert {
 	return certs
 }
 
-func getCertInfo(r *http.Request, db *database.DB) (string, uint64, error) {
+func getAgentInfo(r *http.Request, db *database.DB) (string, uint64, error) {
 	var ownerType string
 	var ownerID uint64
 	if server, account, err := getLocAcc(r, db); err == nil {
@@ -88,7 +88,7 @@ func getCertInfo(r *http.Request, db *database.DB) (string, uint64, error) {
 }
 
 func getCert(r *http.Request, db *database.DB) (*model.Cert, error) {
-	ownerType, ownerID, err := getCertInfo(r, db)
+	ownerType, ownerID, err := getAgentInfo(r, db)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func getCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func createCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			ownerType, ownerID, err := getCertInfo(r, db)
+			ownerType, ownerID, err := getAgentInfo(r, db)
 			if err != nil {
 				return err
 			}
@@ -157,7 +157,7 @@ func listCertificates(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			ownerType, ownerID, err := getCertInfo(r, db)
+			ownerType, ownerID, err := getAgentInfo(r, db)
 			if err != nil {
 				return err
 			}

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -45,7 +44,6 @@ func TestListTasks(t *testing.T) {
 				Path:    "/test/existing/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
-			ruleID := strconv.FormatUint(rule.ID, 10)
 
 			pre := &model.Task{
 				RuleID: rule.ID,
@@ -77,7 +75,7 @@ func TestListTasks(t *testing.T) {
 			Convey("Given a request with the valid rule ID parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
+				r = mux.SetURLVars(r, map[string]string{"rule": rule.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -144,7 +142,6 @@ func TestUpdateTasks(t *testing.T) {
 				Path:    "/test/existing/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
-			ruleID := strconv.FormatUint(rule.ID, 10)
 
 			Convey("Given all valid new tasks", func() {
 				pre := []InRuleTask{{
@@ -174,7 +171,7 @@ func TestUpdateTasks(t *testing.T) {
 
 					r, err := http.NewRequest(http.MethodGet, tasksURI, bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
+					r = mux.SetURLVars(r, map[string]string{"rule": rule.Name})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -246,7 +243,7 @@ func TestUpdateTasks(t *testing.T) {
 
 					r, err := http.NewRequest(http.MethodGet, tasksURI, bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
+					r = mux.SetURLVars(r, map[string]string{"rule": rule.Name})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -290,7 +287,7 @@ func TestUpdateTasks(t *testing.T) {
 				Convey("Given a request with the valid rule ID parameter", func() {
 					r, err := http.NewRequest(http.MethodGet, tasksURI, bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
+					r = mux.SetURLVars(r, map[string]string{"rule": rule.Name})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
