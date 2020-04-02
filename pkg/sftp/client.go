@@ -53,18 +53,18 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 }
 
 // Connect opens a TCP connection to the remote.
-func (c *Client) Connect() model.TransferError {
+func (c *Client) Connect() *model.PipelineError {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", c.conf.Address, c.conf.Port))
 	if err != nil {
-		return model.NewTransferError(model.TeConnection, err.Error())
+		return model.NewPipelineError(model.TeConnection, err.Error())
 	}
 	c.conn = conn
 
-	return model.TransferError{}
+	return nil
 }
 
 // Authenticate opens the SSH tunnel to the remote.
-func (c *Client) Authenticate() model.TransferError {
+func (c *Client) Authenticate() *model.PipelineError {
 	for _, cert := range c.Info.Certs {
 		conf, err := getSSHConfig(cert, c.Info.Account)
 		if err != nil {
@@ -81,30 +81,30 @@ func (c *Client) Authenticate() model.TransferError {
 		if err != nil {
 			continue
 		}
-		return model.TransferError{}
+		return nil
 	}
-	return model.NewTransferError(model.TeBadAuthentication, "no valid credentials found")
+	return model.NewPipelineError(model.TeBadAuthentication, "no valid credentials found")
 }
 
 // Request opens/creates the remote file.
-func (c *Client) Request() model.TransferError {
+func (c *Client) Request() *model.PipelineError {
 	var err error
 	if c.Info.Rule.IsSend {
 		c.remoteFile, err = c.client.Create(c.Info.Transfer.DestPath)
 		if err != nil {
-			return model.NewTransferError(model.TeForbidden, err.Error())
+			return model.NewPipelineError(model.TeForbidden, err.Error())
 		}
 	} else {
 		c.remoteFile, err = c.client.Open(c.Info.Transfer.SourcePath)
 		if err != nil {
-			return model.NewTransferError(model.TeFileNotFound, err.Error())
+			return model.NewPipelineError(model.TeFileNotFound, err.Error())
 		}
 	}
-	return model.TransferError{}
+	return nil
 }
 
 // Data copies the content of the source file into the destination file.
-func (c *Client) Data(file io.ReadWriteCloser) model.TransferError {
+func (c *Client) Data(file io.ReadWriteCloser) *model.PipelineError {
 	defer func() {
 		_ = c.remoteFile.Close()
 		_ = c.client.Close()
@@ -119,7 +119,7 @@ func (c *Client) Data(file io.ReadWriteCloser) model.TransferError {
 		_, err = c.remoteFile.WriteTo(file)
 	}
 	if err != nil {
-		return model.NewTransferError(model.TeDataTransfer, err.Error())
+		return model.NewPipelineError(model.TeDataTransfer, err.Error())
 	}
-	return model.TransferError{}
+	return nil
 }

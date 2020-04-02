@@ -6,84 +6,122 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
 )
 
 type sftpStream struct {
 	*pipeline.TransferStream
 
-	transErr model.TransferError
+	transErr *model.PipelineError
+	servConn *ssh.ServerConn
 }
 
-// modelToSFTP converts the given TransferError into its closest equivalent
+// modelToSFTP converts the given PipelineError into its closest equivalent
 // SFTP error code. Since SFTP v3 only supports 8 error codes (9 with code Ok),
-// most TransferErrors will be converted to the generic code SSH_FX_FAILURE.
-func modelToSFTP(err model.TransferError) error {
-	switch err.Code {
-	case model.TeOk:
-		return sftp.ErrSSHFxOk
-	case model.TeUnimplemented:
-		return sftp.ErrSSHFxOpUnsupported
-	case model.TeIntegrity:
-		return sftp.ErrSSHFxBadMessage
-	case model.TeFileNotFound:
-		return sftp.ErrSSHFxNoSuchFile
-	case model.TeForbidden:
-		return sftp.ErrSSHFxPermissionDenied
-	default:
-		return sftp.ErrSSHFxFailure
+// most errors will be converted to the generic code SSH_FX_FAILURE.
+func modelToSFTP(err *model.PipelineError) error {
+	if err.Kind == model.KindTransfer {
+		switch err.Cause.Code {
+		case model.TeOk:
+			return sftp.ErrSSHFxOk
+		case model.TeUnimplemented:
+			return sftp.ErrSSHFxOpUnsupported
+		case model.TeIntegrity:
+			return sftp.ErrSSHFxBadMessage
+		case model.TeFileNotFound:
+			return sftp.ErrSSHFxNoSuchFile
+		case model.TeForbidden:
+			return sftp.ErrSSHFxPermissionDenied
+		}
 	}
+	return sftp.ErrSSHFxFailure
 }
 
 // newSftpStream initialises a special kind of TransferStream tailored for
 // the SFTP server. This constructor initialises a TransferStream, opens the
 // local file and executes the pre-tasks.
 func newSftpStream(logger *log.Logger, db *database.Db, root string,
-	trans model.Transfer) (*sftpStream, error) {
+	trans model.Transfer, servConn *ssh.ServerConn) (*sftpStream, error) {
 
 	s, err := pipeline.NewTransferStream(logger, db, root, trans)
-	if err.Code != model.TeOk {
-		return nil, modelToSFTP(err)
+	if err != nil {
+		return nil, sftp.ErrSSHFxFailure
 	}
-	stream := &sftpStream{TransferStream: s}
+	stream := &sftpStream{TransferStream: s, servConn: servConn}
 
-	if te := s.Start(); te.Code != model.TeOk {
-		s.ErrorTasks(te)
-		s.Exit()
+	if te := s.Start(); te != nil {
+		pipeline.HandleError(s, te)
 		return nil, modelToSFTP(te)
 	}
 
-	if pe := s.PreTasks(); pe.Code != model.TeOk {
-		s.ErrorTasks(pe)
-		s.Exit()
+	if pe := s.PreTasks(); pe != nil {
+		pipeline.HandleError(s, pe)
 		return nil, modelToSFTP(pe)
+	}
+
+	s.Transfer.Step = model.StepData
+	if de := s.Transfer.Update(s.Db); de != nil {
+		dbErr := &model.PipelineError{Kind: model.KindDatabase}
+		pipeline.HandleError(s, dbErr)
+		return nil, modelToSFTP(dbErr)
 	}
 
 	return stream, nil
 }
 
 func (s *sftpStream) TransferError(err error) {
-	if te, ok := err.(model.TransferError); ok {
-		s.transErr = te
-		return
+	s.Logger.Criticalf("ERROR CAUGHT: %#v", err)
+	if s.transErr == nil {
+		if te, ok := err.(*model.PipelineError); ok {
+			s.transErr = te
+			return
+		}
+		//if err == io.EOF && !s.Rule.IsSend {
+		s.transErr = model.NewPipelineError(model.TeConnectionReset,
+			"SFTP connection closed unexpectedly")
+		//	return
+		//}
+		//s.transErr = model.NewPipelineError(model.TeDataTransfer, err.Error())
 	}
-	s.transErr = model.NewTransferError(model.TeConnectionReset,
-		"SFTP connection closed unexpectedly")
+}
+
+func (s *sftpStream) ReadAt(p []byte, off int64) (int, error) {
+	s.Logger.Criticalf("READING STREAM")
+	n, err := s.TransferStream.ReadAt(p, off)
+	if pe, ok := err.(*model.PipelineError); ok {
+		return n, modelToSFTP(pe)
+	}
+	return n, err
+}
+
+func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
+	s.Logger.Criticalf("WRITING STREAM")
+	n, err := s.TransferStream.WriteAt(p, off)
+	if err != nil {
+		s.TransferError(err)
+		_ = s.Close()
+		return n, modelToSFTP(s.transErr)
+	}
+	return n, nil
 }
 
 func (s *sftpStream) Close() error {
-	defer s.Exit()
-
-	if err := s.TransferStream.Close(); err != nil {
-		s.Logger.Warningf("Failed to close local file: %s", err.Error())
-	}
-
-	if s.transErr.Code == model.TeOk {
+	if s.transErr == nil {
 		s.transErr = s.PostTasks()
-		if s.transErr.Code == model.TeOk {
-			return nil
+		if s.transErr == nil {
+			s.transErr = s.Finalize()
+			if s.transErr == nil {
+				s.Transfer.Status = model.StatusDone
+				s.Archive()
+				s.Exit()
+				return nil
+			}
 		}
 	}
 
-	s.ErrorTasks(s.transErr)
+	pipeline.HandleError(s.TransferStream, s.transErr)
+	if s.transErr.Kind == model.KindInterrupt {
+		_ = s.servConn.Close()
+	}
 	return modelToSFTP(s.transErr)
 }

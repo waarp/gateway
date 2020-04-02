@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"os"
+	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -20,10 +21,10 @@ type TransferStream struct {
 // NewTransferStream initialises a new stream for the given transfer. This stream
 // can then be used to execute a transfer.
 func NewTransferStream(logger *log.Logger, db *database.Db, root string,
-	trans model.Transfer) (*TransferStream, model.TransferError) {
+	trans model.Transfer) (*TransferStream, error) {
 
 	if trans.ID == 0 {
-		if err := createTransfer(logger, db, &trans); err.Code != model.TeOk {
+		if err := createTransfer(logger, db, &trans); err != nil {
 			return nil, err
 		}
 	}
@@ -37,33 +38,110 @@ func NewTransferStream(logger *log.Logger, db *database.Db, root string,
 		},
 	}
 
-	t.Pipeline.rule = &model.Rule{ID: trans.RuleID}
-	if err := t.Db.Get(t.rule); err != nil {
-		return nil, model.NewTransferError(model.TeInternal, err.Error())
+	t.Pipeline.Rule = &model.Rule{ID: trans.RuleID}
+	if err := t.Db.Get(t.Rule); err != nil {
+		return nil, err
 	}
 
-	t.Signals = make(chan model.Signal)
-	Signals.Store(t.Transfer.ID, t.Signals)
+	t.Signals = Signals.Add(t.Transfer.ID)
 
 	t.proc = &tasks.Processor{
 		Db:       t.Db,
 		Logger:   t.Logger,
-		Rule:     t.rule,
+		Rule:     t.Rule,
 		Transfer: t.Transfer,
 		Signals:  t.Signals,
 	}
-	return t, model.TransferError{}
+	return t, nil
 }
 
 // Start opens/creates the stream's local file. If necessary, the method also
 // creates the file's parent directories.
-func (t *TransferStream) Start() (err model.TransferError) {
-	if !t.rule.IsSend {
-		if err := makeDir(t.Root, t.rule.Path); err != nil {
-			return model.NewTransferError(model.TeForbidden, err.Error())
+func (t *TransferStream) Start() (err *model.PipelineError) {
+	if !t.Rule.IsSend {
+		if err := makeDir(t.Root, t.Rule.Path); err != nil {
+			t.Logger.Errorf("Failed to create dest directory: %s", err)
+			return model.NewPipelineError(model.TeForbidden, err.Error())
+		}
+		if err := makeDir(t.Root, "tmp"); err != nil {
+			t.Logger.Errorf("Failed to create temp directory: %s", err)
+			return model.NewPipelineError(model.TeForbidden, err.Error())
 		}
 	}
 
-	t.File, err = getFile(t.Logger, t.Root, t.rule, t.Transfer)
+	t.File, err = getFile(t.Logger, t.Root, t.Rule, t.Transfer)
 	return
+}
+
+func (t *TransferStream) Read(p []byte) (n int, err error) {
+	if e := checkSignal(t.Signals); e != nil {
+		return 0, e
+	}
+
+	n, err = t.File.Read(p)
+	t.Transfer.Progress += uint64(n)
+	if err := t.Transfer.Update(t.Db); err != nil {
+		return 0, err
+	}
+	return
+}
+
+func (t *TransferStream) Write(p []byte) (n int, err error) {
+	if e := checkSignal(t.Signals); e != nil {
+		return 0, e
+	}
+
+	n, err = t.File.Write(p)
+	t.Transfer.Progress += uint64(n)
+	if err := t.Transfer.Update(t.Db); err != nil {
+		return 0, err
+	}
+	return
+}
+
+// ReadAt reads the stream, starting at the given offset.
+func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
+	if e := checkSignal(t.Signals); e != nil {
+		t.Logger.Criticalf("SIGNAL RECEIVED ON READ")
+		return 0, e
+	}
+
+	n, err = t.File.ReadAt(p, off)
+	t.Transfer.Progress += uint64(n)
+	if err := t.Transfer.Update(t.Db); err != nil {
+		return 0, err
+	}
+	return
+}
+
+// WriteAt writes the given bytes to the stream, starting at the given offset.
+func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
+	if e := checkSignal(t.Signals); e != nil {
+		t.Logger.Criticalf("SIGNAL RECEIVED ON WRITE")
+		return 0, e
+	}
+
+	n, err = t.File.WriteAt(p, off)
+	t.Transfer.Progress += uint64(n)
+	if err := t.Transfer.Update(t.Db); err != nil {
+		return 0, err
+	}
+	return
+}
+
+// Finalize closes the file, and then (if the file is the transfer's destination)
+// moves the file from the temporary directory to its final destination.
+// The method returns an error if the file cannot be move.
+func (t *TransferStream) Finalize() *model.PipelineError {
+	if e := t.File.Close(); e != nil {
+		t.Logger.Warningf("Failed to close the local file: %s", e.Error())
+	}
+
+	if !t.Rule.IsSend {
+		path := filepath.Clean(filepath.Join(t.Root, t.Rule.Path, t.Transfer.DestPath))
+		if err := os.Rename(t.File.Name(), path); err != nil {
+			return model.NewPipelineError(model.TeFinalization, err.Error())
+		}
+	}
+	return nil
 }

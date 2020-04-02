@@ -3,6 +3,7 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -34,7 +35,7 @@ func TestGetHistory(t *testing.T) {
 				IsSend:         false,
 				Rule:           "rule",
 				Account:        "acc",
-				Remote:         "server",
+				Agent:          "server",
 				Protocol:       "sftp",
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
@@ -111,7 +112,7 @@ func TestListHistory(t *testing.T) {
 				IsServer:       true,
 				IsSend:         false,
 				Account:        "from1",
-				Remote:         "to3",
+				Agent:          "to3",
 				Protocol:       "sftp",
 				Rule:           "rule1",
 				Start:          time.Date(2019, 01, 01, 02, 00, 00, 00, time.UTC),
@@ -129,7 +130,7 @@ func TestListHistory(t *testing.T) {
 				IsServer:       false,
 				IsSend:         false,
 				Account:        "from2",
-				Remote:         "to1",
+				Agent:          "to1",
 				Protocol:       "sftp",
 				Rule:           "rule2",
 				Start:          time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
@@ -147,7 +148,7 @@ func TestListHistory(t *testing.T) {
 				IsServer:       false,
 				IsSend:         true,
 				Account:        "from3",
-				Remote:         "to2",
+				Agent:          "to2",
 				Protocol:       "sftp",
 				Rule:           "rule1",
 				Start:          time.Date(2019, 01, 01, 03, 00, 00, 00, time.UTC),
@@ -165,7 +166,7 @@ func TestListHistory(t *testing.T) {
 				IsServer:       false,
 				IsSend:         true,
 				Account:        "from4",
-				Remote:         "to3",
+				Agent:          "to3",
 				Protocol:       "sftp",
 				Rule:           "rule2",
 				Start:          time.Date(2019, 01, 01, 04, 00, 00, 00, time.UTC),
@@ -209,8 +210,8 @@ func TestListHistory(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with 2 valid 'remote' parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, "?remote=to1&remote=to2", nil)
+			Convey("Given a request with 2 valid 'agent' parameter", func() {
+				req, err := http.NewRequest(http.MethodGet, "?agent=to1&agent=to2", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -378,6 +379,132 @@ func TestListHistory(t *testing.T) {
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestRestartTransfer(t *testing.T) {
+	logger := log.NewLogger("rest_history_restart_test", logConf)
+
+	Convey("Testing the transfer restart handler", t, func() {
+		db := database.GetTestDatabase()
+		handler := restartTransfer(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 transfer history", func() {
+			partner := &model.RemoteAgent{
+				Name:        "partner",
+				Protocol:    "sftp",
+				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+			}
+			So(db.Create(partner), ShouldBeNil)
+
+			cert := &model.Cert{
+				OwnerType:   partner.TableName(),
+				OwnerID:     partner.ID,
+				Name:        "sftp_cert",
+				PrivateKey:  nil,
+				PublicKey:   []byte("public key"),
+				Certificate: []byte("certificate"),
+			}
+			So(db.Create(cert), ShouldBeNil)
+
+			account := &model.RemoteAccount{
+				RemoteAgentID: partner.ID,
+				Login:         "toto",
+				Password:      []byte("titi"),
+			}
+			So(db.Create(account), ShouldBeNil)
+
+			rule := model.Rule{Name: "rule", IsSend: true}
+			So(db.Create(&rule), ShouldBeNil)
+
+			h := &model.TransferHistory{
+				ID:             1,
+				IsServer:       false,
+				IsSend:         rule.IsSend,
+				Rule:           rule.Name,
+				Account:        account.Login,
+				Agent:          partner.Name,
+				Protocol:       "test",
+				SourceFilename: "file.test",
+				DestFilename:   "file.test",
+				Start:          time.Date(2019, 01, 01, 00, 00, 00, 00, time.UTC),
+				Stop:           time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
+				Status:         model.StatusError,
+			}
+			So(db.Create(h), ShouldBeNil)
+
+			id := strconv.FormatUint(h.ID, 10)
+			h.Start = h.Start.Local()
+			h.Stop = h.Stop.Local()
+
+			Convey("Given a request with the valid transfer history ID parameter", func() {
+				date := time.Now().Add(time.Hour + time.Minute).Truncate(time.Second)
+				dateStr := url.QueryEscape(date.Format(time.RFC3339))
+
+				req, err := http.NewRequest(http.MethodPut, historyURI+id+
+					"/restart?date="+dateStr, nil)
+				So(err, ShouldBeNil)
+				req = mux.SetURLVars(req, map[string]string{"history": id})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+					res := w.Result()
+
+					Convey("Then it should reply 'CREATED'", func() {
+						So(res.StatusCode, ShouldEqual, http.StatusCreated)
+					})
+
+					Convey("Then the response body should be empty", func() {
+						body, err := ioutil.ReadAll(res.Body)
+						So(err, ShouldBeNil)
+						So(string(body), ShouldBeBlank)
+					})
+
+					Convey("Then the 'Location' header should contain the URI "+
+						"of the new transfer", func() {
+
+						loc, err := res.Location()
+						So(err, ShouldBeNil)
+						So(loc.String(), ShouldStartWith, transferURI)
+					})
+
+					Convey("Then the transfer should have been reprogrammed", func() {
+						expected := model.Transfer{
+							ID:         1,
+							RuleID:     rule.ID,
+							IsServer:   false,
+							AgentID:    partner.ID,
+							AccountID:  account.ID,
+							SourcePath: h.SourceFilename,
+							DestPath:   h.DestFilename,
+							Start:      date,
+							Status:     model.StatusPlanned,
+							Owner:      h.Owner,
+						}
+
+						var t []model.Transfer
+						So(db.Select(&t, nil), ShouldBeNil)
+						So(t, ShouldNotBeEmpty)
+						So(t[0], ShouldResemble, expected)
+					})
+				})
+			})
+
+			Convey("Given a request with a non-existing transfer history ID parameter", func() {
+				r, err := http.NewRequest(http.MethodGet, historyURI+"1000", nil)
+				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"history": "1000"})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply with a 'Not Found' error", func() {
+						So(w.Code, ShouldEqual, http.StatusNotFound)
 					})
 				})
 			})

@@ -51,7 +51,7 @@ func init() {
 
 	sqliteConfig = &conf.ServerConfig{}
 	sqliteConfig.Database.Type = sqlite
-	sqliteConfig.Database.Name = "file::memory:?mode=memory&cache=shared"
+	sqliteConfig.Database.Name = "test.sqlite"
 	sqliteConfig.Database.AESPassphrase = fmt.Sprintf("%s%ssqlite_test_passphrase.aes",
 		os.TempDir(), string(os.PathSeparator))
 
@@ -733,7 +733,10 @@ func testDatabase(db *Db) {
 }
 
 func TestSqlite(t *testing.T) {
-	defer func() { _ = os.Remove(sqliteConfig.Database.AESPassphrase) }()
+	defer func() {
+		_ = os.Remove(sqliteConfig.Database.AESPassphrase)
+		_ = os.Remove(sqliteConfig.Database.Name)
+	}()
 	db := sqliteTestDatabase
 	if err := db.Start(); err != nil {
 		t.Fatal(err)
@@ -750,8 +753,8 @@ func TestSqlite(t *testing.T) {
 func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 	Convey("Given a test database", t, func() {
 		db := GetTestDatabase()
-		db.Stop(context.Background())
-		os.Remove(db.Conf.Database.AESPassphrase)
+		_ = db.Stop(context.Background())
+		_ = os.Remove(db.Conf.Database.AESPassphrase)
 
 		Convey("Given there is no passphrase file", func() {
 			_, err := os.Stat(db.Conf.Database.AESPassphrase)

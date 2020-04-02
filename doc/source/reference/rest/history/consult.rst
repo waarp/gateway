@@ -34,7 +34,10 @@ Consulter une entrée de l'historique
    :resjson string rule: Le nom de la règle de transfert
    :resjson date start: La date de début du transfert
    :resjson date stop: La date de fin du transfert
-   :resjson string status: Le statut final du transfert (*DONE* ou *ERROR*)
+   :resjson string status: Le statut final du transfert (*ERROR*, *DONE* ou *CANCELLED*)
+   :resjson string step: La dernière étape du transfert (*PRE TASKS*, *DATA*, *POST TASKS* ou *ERROR TASKS*)
+   :resjson number progress: La progression (en octets) du transfert de données
+   :resjson number taskNumber: Le numéro du dernier traitement exécuté
    :resjson string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjson string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
@@ -58,5 +61,5 @@ Consulter une entrée de l'historique
             "destFilename": "destination/du/fichier",
             "start": "2019-01-01T01:00:00+02:00",
             "stop": "2019-01-01T02:00:00+02:00",
-            "status": "DONE"
+            "status": "DONE",
           }

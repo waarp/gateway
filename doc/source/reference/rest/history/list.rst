@@ -68,7 +68,10 @@ Filtrer l'historique
    :resjsonarr string rule: Le nom de la règle de transfert
    :resjsonarr date start: La date de début du transfert
    :resjsonarr date stop: La date de fin du transfert
-   :resjsonarr string status: Le statut final du transfert (*DONE* ou *ERROR*)
+   :resjsonarr string status: Le statut final du transfert (*ERROR*, *DONE* ou *CANCELLED*)
+   :resjsonarr string step: La dernière étape du transfert (*PRE TASKS*, *DATA*, *POST TASKS* ou *ERROR TASKS*)
+   :resjsonarr number progress: La progression (en octets) du transfert de données
+   :resjsonarr number taskNumber: Le numéro du dernier traitement exécuté
    :resjsonarr string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjsonarr string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
@@ -78,7 +81,7 @@ Filtrer l'historique
 
           HTTP/1.1 200 OK
           Content-Type: application/json
-          Content-Length: 267
+          Content-Length: 293
 
           {
             "history": [{
@@ -100,6 +103,9 @@ Filtrer l'historique
               "filename": "nom/de/fichier/2",
               "start": "2019-01-01T02:00:00+02:00",
               "stop": "2019-01-01T03:00:00+02:00",
-              "status": "ERROR"
+              "status": "ERROR",
+              "status": "RUNNING",
+              "step": "DATA",
+              "progress": 123456
             }]
           }

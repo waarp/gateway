@@ -13,18 +13,21 @@ func init() {
 
 // Transfer represents one record of the 'transfers' table.
 type Transfer struct {
-	ID         uint64         `xorm:"pk autoincr <- 'id'" json:"id"`
-	RuleID     uint64         `xorm:"notnull 'rule_id'" json:"ruleID"`
-	IsServer   bool           `xorm:"notnull 'is_server'" json:"isServer'"`
-	AgentID    uint64         `xorm:"notnull 'agent_id'" json:"agentID"`
-	AccountID  uint64         `xorm:"notnull 'account_id'" json:"accountID"`
-	SourcePath string         `xorm:"notnull 'source_path'" json:"sourcePath"`
-	DestPath   string         `xorm:"notnull 'dest_path'" json:"destPath"`
-	Start      time.Time      `xorm:"notnull 'start'" json:"start"`
-	Status     TransferStatus `xorm:"notnull 'status'" json:"status"`
-	Owner      string         `xorm:"notnull 'owner'" json:"-"`
-	Error      TransferError  `xorm:"extends" json:"error,omitempty"`
-	ExtInfo    []byte         `xorm:"'ext_info'" json:"extInfo"`
+	ID         uint64         `xorm:"pk autoincr <- 'id'"`
+	RuleID     uint64         `xorm:"notnull 'rule_id'"`
+	IsServer   bool           `xorm:"notnull 'is_server'"`
+	AgentID    uint64         `xorm:"notnull 'agent_id'"`
+	AccountID  uint64         `xorm:"notnull 'account_id'"`
+	SourcePath string         `xorm:"notnull 'source_path'"`
+	DestPath   string         `xorm:"notnull 'dest_path'"`
+	Start      time.Time      `xorm:"notnull 'start'"`
+	Step       TransferStep   `xorm:"notnull 'step'"`
+	Status     TransferStatus `xorm:"notnull 'status'"`
+	Owner      string         `xorm:"notnull 'owner'"`
+	Progress   uint64         `xorm:"notnull 'progression'"`
+	TaskNumber uint64         `xorm:"notnull 'task_number'"`
+	Error      TransferError  `xorm:"extends"`
+	ExtInfo    []byte         `xorm:"'ext_info'"`
 }
 
 // TableName returns the name of the transfers table.
@@ -139,10 +142,13 @@ func (t *Transfer) validateServerTransfer(acc database.Accessor) error {
 		return database.InvalidError("The agent %d does not have an account %d",
 			t.AgentID, t.AccountID)
 	}
-	/*
-		if remote.Protocol == "sftp" {
-		}
-	*/
+
+	// Check for rule access
+	if auth, err := IsRuleAuthorized(acc, t); err != nil {
+		return err
+	} else if !auth {
+		return database.InvalidError("Rule %d is not authorized for this transfer", t.RuleID)
+	}
 	return nil
 }
 
@@ -197,7 +203,6 @@ func (t *Transfer) ValidateUpdate(database.Accessor, uint64) error {
 // ToHistory converts the `Transfer` entry into an equivalent `TransferHistory`
 // entry with the given time as the end date.
 func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHistory, error) {
-
 	rule := &Rule{ID: t.RuleID}
 	if err := acc.Get(rule); err != nil {
 		return nil, fmt.Errorf("rule: %s", err)
@@ -231,7 +236,6 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		accountLogin = account.Login
 		protocol = agent.Protocol
 	}
-
 	if !validateStatusForHistory(t.Status) {
 		return nil, fmt.Errorf(
 			"a transfer cannot be recorded in history with status '%s'", t.Status,
@@ -244,7 +248,7 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		IsServer:       t.IsServer,
 		IsSend:         rule.IsSend,
 		Account:        accountLogin,
-		Remote:         agentName,
+		Agent:          agentName,
 		Protocol:       protocol,
 		SourceFilename: t.SourcePath,
 		DestFilename:   t.DestPath,
@@ -253,18 +257,23 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		Stop:           stop,
 		Status:         t.Status,
 		Error:          t.Error,
+		Step:           t.Step,
+		Progress:       t.Progress,
+		TaskNumber:     t.TaskNumber,
 		ExtInfo:        t.ExtInfo,
 	}
-
 	return &hist, nil
 }
 
 // Update updates the transfer start, status & error in the database.
 func (t *Transfer) Update(acc database.Accessor) error {
 	trans := &Transfer{
-		Start:  t.Start,
-		Status: t.Status,
-		Error:  t.Error,
+		Start:      t.Start,
+		Status:     t.Status,
+		Step:       t.Step,
+		Error:      t.Error,
+		Progress:   t.Progress,
+		TaskNumber: t.TaskNumber,
 	}
 
 	return acc.Update(trans, t.ID, false)

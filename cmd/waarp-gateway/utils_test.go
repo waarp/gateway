@@ -7,6 +7,7 @@ import (
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -19,7 +20,14 @@ func init() {
 	}
 	discard = log.NewLogger("test_client", logConf)
 	discard.SetBackend(&logging.NoopBackend{})
+
+	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
 }
+
+type TestProtoConfig struct{}
+
+func (*TestProtoConfig) ValidServer() error { return nil }
+func (*TestProtoConfig) ValidClient() error { return nil }
 
 func testFile() *os.File {
 	tmp, err := ioutil.TempFile("", "*")

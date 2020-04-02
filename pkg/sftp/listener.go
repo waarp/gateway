@@ -15,6 +15,8 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"github.com/go-xorm/builder"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
@@ -46,6 +48,7 @@ func (l *sshListener) listen() {
 func (l *sshListener) handleConnection(nConn net.Conn) {
 	l.connWg.Add(1)
 	go func() {
+		done := make(chan bool)
 		servConn, channels, reqs, err := ssh.NewServerConn(nConn, l.Conf)
 		if err != nil {
 			l.Logger.Errorf("Failed to perform handshake: %s", err)
@@ -61,15 +64,18 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 				l.Logger.Errorf("Failed to retrieve user: %s", err)
 
 			}
-			l.handleSession(sesWg, accountID, newChannel)
+			l.handleSession(sesWg, accountID, newChannel, servConn)
 		}
 		sesWg.Wait()
 		_ = servConn.Close()
 		l.connWg.Done()
+		close(done)
 	}()
 }
 
-func (l *sshListener) handleSession(wg *sync.WaitGroup, accountID uint64, newChannel ssh.NewChannel) {
+func (l *sshListener) handleSession(wg *sync.WaitGroup, accountID uint64,
+	newChannel ssh.NewChannel, servConn *ssh.ServerConn) {
+
 	wg.Add(1)
 	go func() {
 		if newChannel.ChannelType() != "session" {
@@ -85,7 +91,7 @@ func (l *sshListener) handleSession(wg *sync.WaitGroup, accountID uint64, newCha
 		}
 		go acceptRequests(requests)
 
-		server := sftp.NewRequestServer(channel, l.makeHandlers(accountID))
+		server := sftp.NewRequestServer(channel, l.makeHandlers(accountID, servConn))
 		_ = server.Serve()
 		_ = server.Close()
 
@@ -93,21 +99,23 @@ func (l *sshListener) handleSession(wg *sync.WaitGroup, accountID uint64, newCha
 	}()
 }
 
-func (l *sshListener) makeHandlers(accountID uint64) sftp.Handlers {
+func (l *sshListener) makeHandlers(accountID uint64, servConn *ssh.ServerConn) sftp.Handlers {
 	root, _ := os.Getwd()
 	var conf config.SftpProtoConfig
 	if err := json.Unmarshal(l.Agent.ProtoConfig, &conf); err == nil {
 		root = conf.Root
 	}
 	return sftp.Handlers{
-		FileGet:  l.makeFileReader(accountID, conf),
-		FilePut:  l.makeFileWriter(accountID, conf),
+		FileGet:  l.makeFileReader(accountID, conf, servConn),
+		FilePut:  l.makeFileWriter(accountID, conf, servConn),
 		FileCmd:  makeFileCmder(),
 		FileList: makeFileLister(root),
 	}
 }
 
-func (l *sshListener) makeFileReader(accountID uint64, conf config.SftpProtoConfig) fileReaderFunc {
+func (l *sshListener) makeFileReader(accountID uint64, conf config.SftpProtoConfig,
+	servConn *ssh.ServerConn) fileReaderFunc {
+
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		// Get rule according to request filepath
 		path := filepath.Dir(r.Filepath)
@@ -129,10 +137,11 @@ func (l *sshListener) makeFileReader(accountID uint64, conf config.SftpProtoConf
 			SourcePath: filepath.Base(r.Filepath),
 			DestPath:   ".",
 			Start:      time.Now(),
-			Status:     model.StatusPlanned,
+			Status:     model.StatusRunning,
+			Step:       model.StepSetup,
 		}
 
-		stream, err := newSftpStream(l.Logger, l.Db, conf.Root, trans)
+		stream, err := newSftpStream(l.Logger, l.Db, conf.Root, trans, servConn)
 		if err != nil {
 			return nil, err
 		}
@@ -140,7 +149,9 @@ func (l *sshListener) makeFileReader(accountID uint64, conf config.SftpProtoConf
 	}
 }
 
-func (l *sshListener) makeFileWriter(accountID uint64, conf config.SftpProtoConfig) fileWriterFunc {
+func (l *sshListener) makeFileWriter(accountID uint64, conf config.SftpProtoConfig,
+	servConn *ssh.ServerConn) fileWriterFunc {
+
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		// Get rule according to request filepath
 		path := filepath.Dir(r.Filepath)
@@ -162,10 +173,11 @@ func (l *sshListener) makeFileWriter(accountID uint64, conf config.SftpProtoConf
 			SourcePath: ".",
 			DestPath:   filepath.Base(r.Filepath),
 			Start:      time.Now(),
-			Status:     model.StatusPlanned,
+			Status:     model.StatusRunning,
+			Step:       model.StepSetup,
 		}
 
-		stream, err := newSftpStream(l.Logger, l.Db, conf.Root, trans)
+		stream, err := newSftpStream(l.Logger, l.Db, conf.Root, trans, servConn)
 		if err != nil {
 			return nil, err
 		}
@@ -177,6 +189,21 @@ func (l *sshListener) close(ctx context.Context) error {
 	if err := l.Listener.Close(); err != nil {
 		return err
 	}
+
+	var transfers []model.Transfer
+	filters := &database.Filters{
+		Conditions: builder.And(builder.Eq{"is_server": true}, builder.Eq{"agent_id": l.Agent.ID},
+			builder.NotIn("status", model.StatusInterrupted, model.StatusPaused)),
+	}
+	if err := l.Db.Select(&transfers, filters); err != nil {
+		l.Logger.Criticalf("Failed to retrieve ongoing transfers: %s", err)
+		return err
+	}
+	for _, trans := range transfers {
+		pipeline.Signals.SendSignal(trans.ID, model.SignalShutdown)
+	}
+	l.Logger.Criticalf("SHUTDOWN SENT")
+
 	finished := make(chan bool)
 	go func() {
 		l.connWg.Wait()

@@ -31,7 +31,10 @@ Consulter un transfert
    :resjson string sourcePath: Le chemin d'origine du fichier
    :resjson string destPath: Le chemin de destination du fichier
    :resjson date start: La date de début du transfert
-   :resjson string status: Le statut actuel du transfert (*PLANNED* ou *TRANSFER*)
+   :resjson string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED* ou *INTERRUPTED*)
+   :resjson string step: L'étape actuelle du transfert (*PRE TASKS*, *DATA*, *POST TASKS* ou *ERROR TASKS*)
+   :resjson number progress: La progression (en octets) du transfert de données
+   :resjson number taskNumber: Le numéro du traitement en cours d'exécution
    :resjson string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjson string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
@@ -41,7 +44,7 @@ Consulter un transfert
 
           HTTP/1.1 200 OK
           Content-Type: application/json
-          Content-Length: 107
+          Content-Length: 136
 
           {
             "id": 1,
@@ -52,5 +55,7 @@ Consulter un transfert
             "sourcePath": "chemin/source/fichier1",
             "destPath": "chemin/dest/fichier1",
             "start": "2019-01-01T02:00:00+02:00",
-            "status": "TRANSFER"
+            "status": "RUNNING",
+            "step": "DATA",
+            "progress": 123456,
           }

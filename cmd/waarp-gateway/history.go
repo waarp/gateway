@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -11,8 +12,9 @@ import (
 )
 
 type historyCommand struct {
-	Get  historyGetCommand  `command:"get" description:"Consult a finished transfer"`
-	List historyListCommand `command:"list" description:"List the finished transfers"`
+	Get     historyGetCommand     `command:"get" description:"Consult a finished transfer"`
+	List    historyListCommand    `command:"list" description:"List the finished transfers"`
+	Restart historyRestartCommand `command:"restart" description:"Restart a failed transfer"`
 }
 
 func displayHistory(hist rest.OutHistory) {
@@ -24,7 +26,7 @@ func displayHistory(hist rest.OutHistory) {
 	fmt.Fprintf(w, "          \033[37mProtocol:\033[0m \033[37;1m%s\033[0m\n", hist.Protocol)
 	fmt.Fprintf(w, "              \033[37mRule:\033[0m \033[37m%v\033[0m\n", hist.Rule)
 	fmt.Fprintf(w, "           \033[37mAccount:\033[0m \033[37m%v\033[0m\n", hist.Account)
-	fmt.Fprintf(w, "            \033[37mRemote:\033[0m \033[37m%v\033[0m\n", hist.Remote)
+	fmt.Fprintf(w, "             \033[37mAgent:\033[0m \033[37m%v\033[0m\n", hist.Agent)
 	fmt.Fprintf(w, "           \033[37mSrcFile:\033[0m \033[37m%s\033[0m\n", hist.SourceFilename)
 	fmt.Fprintf(w, "          \033[37mDestFile:\033[0m \033[37m%s\033[0m\n", hist.DestFilename)
 	fmt.Fprintf(w, "        \033[37mStart date:\033[0m \033[33m%s\033[0m\n",
@@ -39,6 +41,15 @@ func displayHistory(hist rest.OutHistory) {
 	if hist.ErrorMsg != "" {
 		fmt.Fprintf(w, "    \033[37mError message:\033[0m \033[33m%s\033[0m\n",
 			hist.ErrorMsg)
+	}
+	if hist.Step != "" {
+		fmt.Fprintf(w, "       \033[37mFailed step:\033[0m \033[37;1m%s\033[0m\n", hist.Step)
+	}
+	if hist.Progress != 0 {
+		fmt.Fprintf(w, "          \033[37mProgress:\033[0m \033[33m%v\033[0m\n", hist.Progress)
+	}
+	if hist.TaskNumber != 0 {
+		fmt.Fprintf(w, "       \033[37mTask number:\033[0m \033[33m%v\033[0m\n", hist.TaskNumber)
 	}
 }
 
@@ -72,8 +83,8 @@ func (h *historyGetCommand) Execute(args []string) error {
 type historyListCommand struct {
 	listOptions
 	SortBy   string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start" choice:"id" choice:"source" choice:"destination" choice:"rule" default:"start"`
-	Account  []string `long:"source" description:"Filter the transfers based on the transfer's source. Can be repeated multiple times to filter multiple sources."`
-	Remote   []string `long:"destination" description:"Filter the transfers based on the transfer's destination. Can be repeated multiple times to filter multiple destinations."`
+	Account  []string `long:"account" description:"Filter the transfers based on the transfer's account. Can be repeated multiple times to filter multiple sources."`
+	Agent    []string `long:"agent" description:"Filter the transfers based on the transfer's agent. Can be repeated multiple times to filter multiple destinations."`
 	Rules    []string `long:"rule" description:"Filter the transfers based on the transfer rule used. Can be repeated multiple times to filter multiple rules."`
 	Statuses []string `long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"DONE" choice:"ERROR"`
 	Protocol []string `long:"protocol" description:"Filter the transfers based on the protocol used. Can be repeated multiple times to filter multiple protocols." choice:"sftp"`
@@ -99,8 +110,8 @@ func (h *historyListCommand) listURL() (*url.URL, error) {
 	for _, acc := range h.Account {
 		query.Add("account", acc)
 	}
-	for _, remote := range h.Remote {
-		query.Add("remote", remote)
+	for _, agent := range h.Agent {
+		query.Add("agent", agent)
 	}
 	for _, rul := range h.Rules {
 		query.Add("rule", rul)
@@ -153,6 +164,61 @@ func (h *historyListCommand) Execute([]string) error {
 	} else {
 		fmt.Fprintln(w, "\033[31mNo transfers found\033[0m")
 	}
+
+	return nil
+}
+
+// ######################## RESTART ##########################
+
+type historyRestartCommand struct {
+	Date string `short:"d" long:"date" description:"Set the date at which the transfer should restart. Date must be in RFC3339 format."`
+}
+
+func (h *historyRestartCommand) Execute(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("missing transfer history ID")
+	}
+
+	conn, err := url.Parse(auth.DSN)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + rest.HistoryPath + "/" + args[0] + "/restart"
+
+	query := url.Values{}
+	if h.Date != "" {
+		start, err := time.Parse(time.RFC3339, h.Date)
+		if err != nil {
+			return fmt.Errorf("'%s' is not a start valid date (accepted format: '%s')",
+				h.Date, time.RFC3339)
+		}
+		query.Set("date", start.Format(time.RFC3339))
+	}
+	conn.RawQuery = query.Encode()
+
+	req, err := http.NewRequest(http.MethodPut, conn.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := executeRequest(req, conn)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusCreated {
+		return handleErrors(res, conn)
+	}
+
+	loc, err := res.Location()
+	if err != nil {
+		return err
+	}
+	loc.User = nil
+
+	w := getColorable()
+	fmt.Fprintf(w, "The transfer n°\033[33m%s\033[0m was successfully restarted. "+
+		"It can be consulted at the address: \033[37m%s\033[0m\n", args[0], loc.String())
 
 	return nil
 }

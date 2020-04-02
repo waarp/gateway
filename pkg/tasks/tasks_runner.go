@@ -28,7 +28,7 @@ type Processor struct {
 }
 
 // GetTasks returns the list of all tasks of the given rule & chain.
-func (p *Processor) GetTasks(chain model.Chain) ([]model.Task, error) {
+func (p *Processor) GetTasks(chain model.Chain) ([]model.Task, *model.PipelineError) {
 	list := []model.Task{}
 	filters := &database.Filters{
 		Order:      "rank ASC",
@@ -36,22 +36,22 @@ func (p *Processor) GetTasks(chain model.Chain) ([]model.Task, error) {
 	}
 
 	if err := p.Db.Select(&list, filters); err != nil {
-		return nil, err
+		return nil, &model.PipelineError{Kind: model.KindDatabase}
 	}
 	return list, nil
 }
 
-func (p *Processor) runTask(task model.Task, taskInfo string) error {
+func (p *Processor) runTask(task model.Task, taskInfo string) *model.PipelineError {
 	runnable, ok := RunnableTasks[task.Type]
 	if !ok {
 		logMsg := fmt.Sprintf("%s: %s", taskInfo, "unknown task")
-		return fmt.Errorf(logMsg)
+		return model.NewPipelineError(model.TeExternalOperation, logMsg)
 	}
 	args, err := p.setup(&task)
 	if err != nil {
 		logMsg := fmt.Sprintf("%s: %s", taskInfo, err.Error())
 		p.Logger.Error(logMsg)
-		return fmt.Errorf(logMsg)
+		return model.NewPipelineError(model.TeExternalOperation, logMsg)
 	}
 
 	msg, err := runnable.Run(args, p)
@@ -59,13 +59,19 @@ func (p *Processor) runTask(task model.Task, taskInfo string) error {
 	if err != nil {
 		if err != errWarning {
 			p.Logger.Error(logMsg)
-			return fmt.Errorf(logMsg)
+			return model.NewPipelineError(model.TeExternalOperation, logMsg)
 		}
 		p.Logger.Warning(logMsg)
 		p.Transfer.Error = model.NewTransferError(model.TeWarning, logMsg)
 		if err := p.Transfer.Update(p.Db); err != nil {
 			p.Logger.Warningf("failed to update task status: %s", err.Error())
+			return &model.PipelineError{Kind: model.KindDatabase}
 		}
+	}
+	p.Transfer.TaskNumber++
+	if err := p.Transfer.Update(p.Db); err != nil {
+		p.Logger.Warningf("failed to update task number: %s", err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 	p.Logger.Info(logMsg)
 	return nil
@@ -73,23 +79,34 @@ func (p *Processor) runTask(task model.Task, taskInfo string) error {
 
 // RunTasks execute sequentially the list of tasks given
 // according to the Processor context
-func (p *Processor) RunTasks(tasks []model.Task) model.TransferError {
-	for _, task := range tasks {
+func (p *Processor) RunTasks(tasks []model.Task) *model.PipelineError {
+	for i := p.Transfer.TaskNumber; i < uint64(len(tasks)); i++ {
+		task := tasks[i]
 		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, p.Rule.Name,
 			task.Chain, task.Rank)
 		select {
 		case signal := <-p.Signals:
-			if signal == model.SignalShutdown {
-				return model.NewTransferError(model.TeShuttingDown, "server shutting down")
+			switch signal {
+			case model.SignalShutdown:
+				return &model.PipelineError{Kind: model.KindInterrupt}
+			case model.SignalCancel:
+				return &model.PipelineError{Kind: model.KindCancel}
+			case model.SignalPause:
+				return &model.PipelineError{Kind: model.KindPause}
 			}
 		default:
 		}
 
 		if err := p.runTask(task, taskInfo); err != nil {
-			return model.NewTransferError(model.TeExternalOperation, err.Error())
+			return err
 		}
 	}
-	return model.TransferError{}
+	p.Transfer.TaskNumber = 0
+	if err := p.Transfer.Update(p.Db); err != nil {
+		p.Logger.Warningf("failed to update task number: %s", err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
+	}
+	return nil
 }
 
 // setup contextualise and unmarshal the tasks arguments

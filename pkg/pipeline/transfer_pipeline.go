@@ -15,39 +15,46 @@ type Pipeline struct {
 	Root     string
 	Transfer *model.Transfer
 
-	rule    *model.Rule
+	Rule    *model.Rule
 	Signals chan model.Signal
 	proc    *tasks.Processor
 }
 
 // PreTasks executes the transfer's pre-tasks. It returns an error if the
 // execution fails.
-func (p *Pipeline) PreTasks() model.TransferError {
-	return execTasks(p.proc, model.ChainPre, model.StatusPreTasks)
+func (p *Pipeline) PreTasks() *model.PipelineError {
+	if p.Transfer.Step == model.StepSetup || p.Transfer.Step == model.StepPreTasks {
+		return execTasks(p.proc, model.ChainPre, model.StepPreTasks)
+	}
+	return nil
 }
 
 // PostTasks executes the transfer's post-tasks. It returns an error if the
 // execution fails.
-func (p *Pipeline) PostTasks() model.TransferError {
-	return execTasks(p.proc, model.ChainPost, model.StatusPostTasks)
+func (p *Pipeline) PostTasks() *model.PipelineError {
+	if p.Transfer.Step == model.StepData || p.Transfer.Step == model.StepPostTasks {
+		return execTasks(p.proc, model.ChainPost, model.StepPostTasks)
+	}
+	return nil
 }
 
 // ErrorTasks updates the transfer's error in the database with the given one,
 // and then executes the transfer's error-tasks.
-func (p *Pipeline) ErrorTasks(te model.TransferError) {
-	p.Transfer.Error = te
-	if err := p.Transfer.Update(p.Db); err != nil {
-		p.Logger.Criticalf("Failed to update transfer error: %s", err.Error())
+func (p *Pipeline) ErrorTasks() {
+	if p.Transfer.Step == model.StepFinalization {
 		return
 	}
-
-	_ = execTasks(p.proc, model.ChainError, model.StatusErrorTasks)
+	failedStep := p.Transfer.Step
+	_ = execTasks(p.proc, model.ChainError, model.StepErrorTasks)
+	p.Transfer.Step = failedStep
 }
 
-// Exit deletes the transfer entry and saves it in the history. It also deletes
-// the transfer's signal channel.
+// Archive deletes the transfer entry and saves it in the history.
+func (p *Pipeline) Archive() {
+	_ = ToHistory(p.Db, p.Logger, p.Transfer)
+}
+
+// Exit deletes the transfer's signal channel.
 func (p *Pipeline) Exit() {
-	toHistory(p.Db, p.Logger, p.Transfer)
-	close(p.Signals)
 	Signals.Delete(p.Transfer.ID)
 }

@@ -4,26 +4,49 @@ package model
 type TransferStatus string
 
 const (
-	// StatusPlanned is the state of a transfer before it begins
+	// StatusPlanned is the state of a transfer before it begins.
 	StatusPlanned TransferStatus = "PLANNED"
 
-	// StatusPreTasks is the state of a transfer while it's running the pre tasks.
-	StatusPreTasks TransferStatus = "PRE TASKS"
+	// StatusRunning is the state of a transfer when it is running.
+	StatusRunning TransferStatus = "RUNNING"
 
-	// StatusTransfer is the state of a transfer while running
-	StatusTransfer TransferStatus = "TRANSFER"
+	// StatusInterrupted is the state of a transfer when interrupted unexpectedly.
+	StatusInterrupted TransferStatus = "INTERRUPTED"
 
-	// StatusPostTasks is the state of a transfer while it's running the post tasks.
-	StatusPostTasks TransferStatus = "POST TASKS"
+	// StatusPaused is the state of a transfer when paused by a user.
+	StatusPaused TransferStatus = "PAUSED"
 
-	// StatusErrorTasks is the state of a transfer while it's running the error tasks.
-	StatusErrorTasks TransferStatus = "ERROR TASKS"
+	// StatusCancelled is the state of a transfer when canceled by a user.
+	StatusCancelled TransferStatus = "CANCELLED"
 
 	// StatusDone is the state of a transfer when finished without error
 	StatusDone TransferStatus = "DONE"
 
 	// StatusError is the state of a transfer when interrupted by an error
 	StatusError TransferStatus = "ERROR"
+)
+
+// TransferStep represents the different steps of a transfer.
+type TransferStep string
+
+const (
+	// StepSetup is the state of a transfer while connecting and making the request.
+	StepSetup TransferStep = "SETUP"
+
+	// StepPreTasks is the state of a transfer while it's running the pre tasks.
+	StepPreTasks TransferStep = "PRE TASKS"
+
+	// StepData is the state of a transfer while transferring the file data.
+	StepData TransferStep = "DATA"
+
+	// StepPostTasks is the state of a transfer while it's running the post tasks.
+	StepPostTasks TransferStep = "POST TASKS"
+
+	// StepErrorTasks is the state of a transfer while it's running the error tasks.
+	StepErrorTasks TransferStep = "ERROR TASKS"
+
+	// StepFinalization is the state of a transfer while finalizing.
+	StepFinalization TransferStep = "FINALIZATION"
 )
 
 // this function has been commented out because it was unused. might be useful
@@ -36,10 +59,10 @@ const (
 // }
 
 func validateStatusForTransfer(t TransferStatus) bool {
-	return t == StatusPlanned || t == StatusTransfer || t == StatusPreTasks ||
-		t == StatusPostTasks || t == StatusErrorTasks
+	return t == StatusPlanned || t == StatusRunning || t == StatusPaused ||
+		t == StatusInterrupted
 }
 
 func validateStatusForHistory(t TransferStatus) bool {
-	return t == StatusDone || t == StatusError
+	return t == StatusDone || t == StatusError || t == StatusCancelled
 }

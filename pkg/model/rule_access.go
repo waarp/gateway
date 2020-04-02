@@ -76,14 +76,14 @@ func IsRuleAuthorized(acc database.Accessor, t *Transfer) (bool, error) {
 		return true, nil
 	}
 
-	agent := "remote_agent"
-	account := "remote_account"
+	agent := "remote_agents"
+	account := "remote_accounts"
 	if t.IsServer {
-		agent = "local_agent"
-		account = "local_account"
+		agent = "local_agents"
+		account = "local_accounts"
 	}
-	res, err = acc.Query(
-		"SELECT rule_id FROM rule_access WHERE rule_id=? AND ((object_type=? AND object_id=?) OR (object_type=? and object_id=?))",
+	res, err = acc.Query("SELECT rule_id FROM rule_access WHERE rule_id=? AND "+
+		"((object_type=? AND object_id=?) OR (object_type=? and object_id=?))",
 		t.RuleID, agent, t.AgentID, account, t.AccountID)
 	if err != nil {
 		return false, err

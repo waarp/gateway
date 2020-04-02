@@ -92,3 +92,22 @@ Gestion de l'historique
 
          waarp-gateway -a http://user:password@localhost:8080 history list -l 10 -o 5 -s id -d --source=compte_sftp --destination=serveur_sftp --rule=règle_sftp --protocol=sftp --status=DONE --start=2019-01-01T12:00:00+02:00 --stop=2019-01-02T12:00:00+02:00
 
+
+   .. option:: restart
+
+      Commande de redémarrage de transfert échoué. L'ID du transfert doit être
+      fournit en argument de programme après la commande. Seuls les transferts
+      ayant échoué peuvent être redémarrés.
+
+      .. option:: -d <DATE>, --date=<DATE>
+
+         La date à laquelle le transfert redémarrera. Par défaut, le transfert
+         redémarre immédiatement. La date doit être renseignée en suivant le
+         format standard ISO 8601 tel qu'il est décrit dans la
+         `RFC3339 <https://www.ietf.org/rfc/rfc3339.txt>`_.
+
+      **Exemple**
+
+      .. code-block:: bash
+
+         waarp-gateway -a http://user:password@localhost:8080 history restart 1

@@ -57,7 +57,7 @@ func TestFileReader(t *testing.T) {
 				Db:     db,
 				Logger: logger,
 				Agent:  agent,
-			}).makeFileReader(account.ID, conf)
+			}).makeFileReader(account.ID, conf, nil)
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
@@ -83,7 +83,7 @@ func TestFileReader(t *testing.T) {
 						Convey("With a valid Source, Destination and Status", func() {
 							So(trans.SourcePath, ShouldEqual, filepath.Base(request.Filepath))
 							So(trans.DestPath, ShouldEqual, ".")
-							So(trans.Status, ShouldEqual, model.StatusPreTasks)
+							So(trans.Status, ShouldEqual, model.StatusRunning)
 						})
 					})
 				})
@@ -158,7 +158,7 @@ func TestFileWriter(t *testing.T) {
 				Db:     db,
 				Logger: logger,
 				Agent:  agent,
-			}).makeFileWriter(account.ID, conf)
+			}).makeFileWriter(account.ID, conf, nil)
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
@@ -184,7 +184,7 @@ func TestFileWriter(t *testing.T) {
 						Convey("With a valid Source, Destination and Status", func() {
 							So(trans.SourcePath, ShouldEqual, ".")
 							So(trans.DestPath, ShouldEqual, filepath.Base(request.Filepath))
-							So(trans.Status, ShouldEqual, model.StatusPreTasks)
+							So(trans.Status, ShouldEqual, model.StatusRunning)
 						})
 					})
 				})

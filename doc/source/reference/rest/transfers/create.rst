@@ -43,8 +43,11 @@ Programmer un transfert
    :statuscode 400: Un ou plusieurs des paramètres du transfert sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
 
+   :resheader Location: Le chemin d'accès au nouveau transfert créé
+
    **Exemple de réponse**
 
        .. code-block:: http
 
           HTTP/1.1 202 ACCEPTED
+          Location: https://my_waarp_gateway.net/api/transfers/1

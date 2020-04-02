@@ -19,7 +19,7 @@ type OutHistory struct {
 	IsServer       bool                    `json:"isServer"`
 	IsSend         bool                    `json:"isSend"`
 	Account        string                  `json:"account"`
-	Remote         string                  `json:"remote"`
+	Agent          string                  `json:"agent"`
 	Protocol       string                  `json:"protocol"`
 	SourceFilename string                  `json:"sourceFilename"`
 	DestFilename   string                  `json:"destFilename"`
@@ -29,6 +29,9 @@ type OutHistory struct {
 	Status         model.TransferStatus    `json:"status"`
 	ErrorCode      model.TransferErrorCode `json:"errorCode,omitempty"`
 	ErrorMsg       string                  `json:"errorMsg,omitempty"`
+	Step           model.TransferStep      `json:"step,omitempty"`
+	Progress       uint64                  `json:"progress,omitempty"`
+	TaskNumber     uint64                  `json:"taskNumber,omitempty"`
 }
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
@@ -38,7 +41,7 @@ func FromHistory(h *model.TransferHistory) *OutHistory {
 		IsServer:       h.IsServer,
 		IsSend:         h.IsSend,
 		Account:        h.Account,
-		Remote:         h.Remote,
+		Agent:          h.Agent,
 		Protocol:       h.Protocol,
 		SourceFilename: h.SourceFilename,
 		DestFilename:   h.DestFilename,
@@ -48,6 +51,9 @@ func FromHistory(h *model.TransferHistory) *OutHistory {
 		Status:         h.Status,
 		ErrorCode:      h.Error.Code,
 		ErrorMsg:       h.Error.Details,
+		Step:           h.Step,
+		Progress:       h.Progress,
+		TaskNumber:     h.TaskNumber,
 	}
 }
 
@@ -61,7 +67,7 @@ func FromHistories(hs []model.TransferHistory) []OutHistory {
 			IsServer:       h.IsServer,
 			IsSend:         h.IsSend,
 			Account:        h.Account,
-			Remote:         h.Remote,
+			Agent:          h.Agent,
 			Protocol:       h.Protocol,
 			SourceFilename: h.SourceFilename,
 			DestFilename:   h.DestFilename,
@@ -71,6 +77,9 @@ func FromHistories(hs []model.TransferHistory) []OutHistory {
 			Status:         h.Status,
 			ErrorCode:      h.Error.Code,
 			ErrorMsg:       h.Error.Details,
+			Step:           h.Step,
+			Progress:       h.Progress,
+			TaskNumber:     h.TaskNumber,
 		}
 	}
 	return hist
@@ -85,9 +94,9 @@ func parseHistoryCond(r *http.Request, filters *database.Filters) error {
 	if len(accounts) > 0 {
 		conditions = append(conditions, builder.In("account", accounts))
 	}
-	remotes := r.Form["remote"]
-	if len(remotes) > 0 {
-		conditions = append(conditions, builder.In("remote", remotes))
+	agents := r.Form["agent"]
+	if len(agents) > 0 {
+		conditions = append(conditions, builder.In("agent", agents))
 	}
 	rules := r.Form["rule"]
 	if len(rules) > 0 {
@@ -156,8 +165,8 @@ func listHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
 		"default":  "start ASC",
 		"id+":      "id ASC",
 		"id-":      "id DESC",
-		"remote+":  "remote ASC",
-		"remote-":  "remote DESC",
+		"agent+":   "agent ASC",
+		"agent-":   "agent DESC",
 		"account+": "account ASC",
 		"account-": "account DESC",
 		"rule+":    "rule ASC",
@@ -185,6 +194,59 @@ func listHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
 
 			resp := map[string][]OutHistory{"history": FromHistories(results)}
 			return writeJSON(w, resp)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func restartTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			id, err := parseID(r, "history")
+			if err != nil {
+				return err
+			}
+			result := &model.TransferHistory{ID: id}
+
+			if err := get(db, result); err != nil {
+				return err
+			}
+
+			date := time.Now().UTC()
+			if dateStr := r.FormValue("date"); dateStr != "" {
+				date, err = time.Parse(time.RFC3339, dateStr)
+				if err != nil {
+					return err
+				}
+			}
+
+			if result.IsServer {
+				return &badRequest{msg: "only the client can restart a transfer"}
+			}
+
+			if result.Status == model.StatusDone {
+				return &badRequest{msg: "cannot restart a finished transfer"}
+			}
+
+			if result.Protocol == "sftp" {
+				return &badRequest{msg: "cannot restart an SFTP transfer"}
+			}
+
+			trans, err := result.Restart(db, date)
+			if err != nil {
+				return err
+			}
+
+			if err := db.Create(trans); err != nil {
+				return err
+			}
+
+			r.URL.Path = APIPath + TransfersPath
+			w.Header().Set("Location", location(r, id))
+			w.WriteHeader(http.StatusCreated)
+			return nil
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)
