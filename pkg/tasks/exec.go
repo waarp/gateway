@@ -46,8 +46,8 @@ func parseExecArgs(params map[string]string) (path, args string,
 }
 
 // Validate checks if the EXEC task has all the required arguments.
-func (e *ExecTask) Validate(args map[string]string) error {
-	if _, _, _, err := parseExecArgs(args); err != nil {
+func (e *ExecTask) Validate(params map[string]string) error {
+	if _, _, _, err := parseExecArgs(params); err != nil {
 		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
 
