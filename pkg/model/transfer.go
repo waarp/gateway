@@ -209,11 +209,11 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	if t.IsServer {
 		agent := &LocalAgent{ID: t.AgentID}
 		if err := acc.Get(agent); err != nil {
-			return nil, fmt.Errorf("agent: %s", err)
+			return nil, fmt.Errorf("local agent: %s", err)
 		}
 		account := &LocalAccount{ID: t.AccountID}
 		if err := acc.Get(account); err != nil {
-			return nil, fmt.Errorf("account: %s", err)
+			return nil, fmt.Errorf("local account: %s", err)
 		}
 		agentName = agent.Name
 		accountLogin = account.Login
@@ -221,11 +221,11 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	} else {
 		agent := &RemoteAgent{ID: t.AgentID}
 		if err := acc.Get(agent); err != nil {
-			return nil, fmt.Errorf("agent: %s", err)
+			return nil, fmt.Errorf("remote agent: %s", err)
 		}
 		account := &RemoteAccount{ID: t.AccountID}
 		if err := acc.Get(account); err != nil {
-			return nil, fmt.Errorf("account: %s", err)
+			return nil, fmt.Errorf("remote account: %s", err)
 		}
 		agentName = agent.Name
 		accountLogin = account.Login
@@ -257,4 +257,15 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	}
 
 	return &hist, nil
+}
+
+// Update updates the transfer start, status & error in the database.
+func (t *Transfer) Update(acc database.Accessor) error {
+	trans := &Transfer{
+		Start:  t.Start,
+		Status: t.Status,
+		Error:  t.Error,
+	}
+
+	return acc.Update(trans, t.ID, false)
 }

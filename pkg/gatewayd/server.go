@@ -64,7 +64,7 @@ func (wg *WG) startServices() error {
 		switch server.Protocol {
 		case "sftp":
 			l := log.NewLogger(server.Name, wg.Conf.Log)
-			wg.Services[server.Name] = sftp.NewServer(wg.dbService, server, l)
+			wg.Services[server.Name] = sftp.NewService(wg.dbService, server, l)
 		default:
 			wg.Logger.Warningf("Unknown server protocol '%s'", server.Protocol)
 		}
@@ -115,6 +115,6 @@ mainloop:
 		}
 	}
 
-	wg.Info("Server is exiting...")
+	wg.Info("Service is exiting...")
 	return nil
 }

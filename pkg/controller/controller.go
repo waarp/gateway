@@ -4,6 +4,8 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -11,6 +13,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"github.com/go-xorm/builder"
 )
@@ -24,13 +27,16 @@ type Controller struct {
 	Conf *conf.ServerConfig
 	Db   *database.Db
 
-	ticker   time.Ticker
-	logger   *log.Logger
-	state    service.State
-	shutdown chan bool
+	ticker time.Ticker
+	logger *log.Logger
+	state  service.State
+
+	wg        *sync.WaitGroup
+	pool      chan model.Transfer
+	executors []executor.Executor
 }
 
-func (c *Controller) listen(run func(model.Transfer)) {
+func (c *Controller) listen() {
 	owner := builder.Eq{"owner": database.Owner}
 	start := builder.Lte{"start": time.Now()}
 	planned := builder.Eq{"status": model.StatusPlanned}
@@ -52,7 +58,7 @@ func (c *Controller) listen(run func(model.Transfer)) {
 				continue
 			}
 			for _, trans := range newTrans {
-				go run(trans)
+				c.pool <- trans
 			}
 		}
 	}()
@@ -65,26 +71,48 @@ func (c *Controller) Start() error {
 	}
 
 	c.ticker = *time.NewTicker(c.Conf.Controller.Delay)
-
 	c.state.Set(service.Running, "")
 
-	exe := executor.Executor{
-		Db:       c.Db,
-		Logger:   log.NewLogger("executor", c.Conf.Log),
-		R66Home:  c.Conf.Controller.R66Home,
-		Shutdown: c.shutdown,
+	c.wg = new(sync.WaitGroup)
+	c.executors = make([]executor.Executor, 10)
+	for i := range c.executors {
+		c.executors[i] = executor.Executor{
+			Db:        c.Db,
+			Logger:    log.NewLogger(fmt.Sprintf("executor%d", i), c.Conf.Log),
+			R66Home:   c.Conf.Controller.R66Home,
+			Transfers: c.pool,
+		}
+		c.executors[i].Run(c.wg)
 	}
-	c.listen(exe.Run)
+	c.listen()
 
 	return nil
 }
 
 // Stop stops the transfer controller service.
-func (c *Controller) Stop(_ context.Context) error {
-	close(c.shutdown)
+func (c *Controller) Stop(ctx context.Context) error {
+	close(c.pool)
 	c.state.Set(service.Offline, "")
 	c.ticker.Stop()
-	return nil
+
+	shutdown := func(k, v interface{}) bool {
+		s := v.(chan model.Signal)
+		s <- model.SignalShutdown
+		return true
+	}
+	pipeline.Signals.Range(shutdown)
+
+	select {
+	case <-func() chan bool {
+		c.wg.Wait()
+		b := make(chan bool)
+		close(b)
+		return b
+	}():
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // State returns the state of the transfer controller service.

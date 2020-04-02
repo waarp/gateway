@@ -15,27 +15,7 @@ import (
 	"github.com/go-xorm/builder"
 )
 
-var (
-	// ErrShutdown is the error returned when a shutdown signal is received
-	// during the execution of tasks.
-	ErrShutdown = errors.New("server shutdown signal received")
-
-	errWarning = errors.New("warning")
-)
-
-// GetTasks returns the list of all tasks of the given rule & chain.
-func GetTasks(db *database.Db, ruleID uint64, chain model.Chain) ([]*model.Task, error) {
-	list := []*model.Task{}
-	filters := &database.Filters{
-		Order:      "rank ASC",
-		Conditions: builder.Eq{"rule_id": ruleID, "chain": chain},
-	}
-
-	if err := db.Select(&list, filters); err != nil {
-		return nil, err
-	}
-	return list, nil
-}
+var errWarning = errors.New("warning")
 
 // Processor provides a way to execute tasks
 // given a transfer context (rule, transfer)
@@ -44,64 +24,72 @@ type Processor struct {
 	Logger   *log.Logger
 	Rule     *model.Rule
 	Transfer *model.Transfer
-	Shutdown <-chan bool
+	Signals  <-chan model.Signal
+}
+
+// GetTasks returns the list of all tasks of the given rule & chain.
+func (p *Processor) GetTasks(chain model.Chain) ([]model.Task, error) {
+	list := []model.Task{}
+	filters := &database.Filters{
+		Order:      "rank ASC",
+		Conditions: builder.And(builder.Eq{"rule_id": p.Rule.ID}, builder.Eq{"chain": chain}),
+	}
+
+	if err := p.Db.Select(&list, filters); err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (p *Processor) runTask(task model.Task, taskInfo string) error {
+	runnable, ok := RunnableTasks[task.Type]
+	if !ok {
+		logMsg := fmt.Sprintf("%s: %s", taskInfo, "unknown task")
+		return fmt.Errorf(logMsg)
+	}
+	args, err := p.setup(&task)
+	if err != nil {
+		logMsg := fmt.Sprintf("%s: %s", taskInfo, err.Error())
+		p.Logger.Error(logMsg)
+		return fmt.Errorf(logMsg)
+	}
+
+	msg, err := runnable.Run(args, p)
+	logMsg := fmt.Sprintf("%s: %s", taskInfo, msg)
+	if err != nil {
+		if err != errWarning {
+			p.Logger.Error(logMsg)
+			return fmt.Errorf(logMsg)
+		}
+		p.Logger.Warning(logMsg)
+		p.Transfer.Error = model.NewTransferError(model.TeWarning, logMsg)
+		if err := p.Transfer.Update(p.Db); err != nil {
+			p.Logger.Warningf("failed to update task status: %s", err.Error())
+		}
+	}
+	p.Logger.Info(logMsg)
+	return nil
 }
 
 // RunTasks execute sequentially the list of tasks given
 // according to the Processor context
-func (p *Processor) RunTasks(tasks []*model.Task) error {
+func (p *Processor) RunTasks(tasks []model.Task) model.TransferError {
 	for _, task := range tasks {
 		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, p.Rule.Name,
 			task.Chain, task.Rank)
 		select {
-		case <-p.Shutdown:
-			return ErrShutdown
+		case signal := <-p.Signals:
+			if signal == model.SignalShutdown {
+				return model.NewTransferError(model.TeShuttingDown, "server shutting down")
+			}
 		default:
 		}
 
-		taskErr := func() error {
-			runnable, ok := RunnableTasks[task.Type]
-			if !ok {
-				return fmt.Errorf("%s: unknown task", taskInfo)
-			}
-			args, err := p.setup(task)
-			if err != nil {
-				return fmt.Errorf("%s: %s", taskInfo, err.Error())
-			}
-
-			msg, err := runnable.Run(args, p)
-			logMsg := fmt.Sprintf("%s: %s", taskInfo, msg)
-			if err != nil {
-				if err != errWarning {
-					return err
-				}
-				trans := &model.Transfer{
-					Error: model.NewTransferError(model.TeWarning, logMsg),
-				}
-				if err := p.Db.Update(trans, p.Transfer.ID, false); err != nil {
-					return fmt.Errorf("%s: %s", taskInfo, err.Error())
-				}
-				p.Transfer.Error = trans.Error
-				p.Logger.Warning(logMsg)
-			} else {
-				p.Logger.Info(logMsg)
-			}
-			return nil
-		}()
-		if taskErr != nil {
-			logMsg := fmt.Sprintf("%s: %s", taskInfo, taskErr.Error())
-			trans := &model.Transfer{
-				Error: model.NewTransferError(model.TeExternalOperation, logMsg),
-			}
-			if err := p.Db.Update(trans, p.Transfer.ID, false); err != nil {
-				return fmt.Errorf("%s: %s", taskInfo, err.Error())
-			}
-			p.Transfer.Error = trans.Error
-			p.Logger.Error(logMsg)
-			return fmt.Errorf("%s: %s", taskInfo, taskErr.Error())
+		if err := p.runTask(task, taskInfo); err != nil {
+			return model.NewTransferError(model.TeExternalOperation, err.Error())
 		}
 	}
-	return nil
+	return model.TransferError{}
 }
 
 // setup contextualise and unmarshal the tasks arguments

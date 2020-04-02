@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/go-xorm/builder"
 )
 
@@ -99,7 +100,7 @@ func parseHistoryCond(r *http.Request, filters *database.Filters) error {
 	protocols := r.Form["protocol"]
 	// Validate requested protocols
 	for _, p := range protocols {
-		if !model.IsValidProtocol(p) {
+		if _, ok := config.ProtoConfigs[p]; !ok {
 			return &badRequest{msg: fmt.Sprintf("'%s' is not a valid protocol", p)}
 		}
 	}

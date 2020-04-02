@@ -38,7 +38,7 @@ func TestSetup(t *testing.T) {
 			agent := &model.RemoteAgent{
 				Name:        "agent",
 				Protocol:    "r66",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: []byte(`{"port":6622,"address":"127.0.0.1"}`),
 			}
 			So(db.Create(agent), ShouldBeNil)
 
@@ -243,83 +243,94 @@ func TestGetTasks(t *testing.T) {
 			So(db.Create(rule), ShouldBeNil)
 
 			Convey("Given pre, post & error tasks for this rule", func() {
-				pre1 := &model.Task{
+				pre1 := model.Task{
 					RuleID: rule.ID,
 					Chain:  model.ChainPre,
 					Rank:   0,
 					Type:   taskSuccess,
 					Args:   []byte(`{}`),
 				}
-				So(db.Create(pre1), ShouldBeNil)
-				pre2 := &model.Task{
+				So(db.Create(&pre1), ShouldBeNil)
+				pre2 := model.Task{
 					RuleID: rule.ID,
 					Chain:  model.ChainPre,
 					Rank:   1,
 					Type:   taskSuccess,
 					Args:   []byte(`{}`),
 				}
-				So(db.Create(pre2), ShouldBeNil)
+				So(db.Create(&pre2), ShouldBeNil)
 
-				post1 := &model.Task{
+				post1 := model.Task{
 					RuleID: rule.ID,
 					Chain:  model.ChainPost,
 					Rank:   0,
 					Type:   taskSuccess,
 					Args:   []byte(`{}`),
 				}
-				So(db.Create(post1), ShouldBeNil)
-				post2 := &model.Task{
+				So(db.Create(&post1), ShouldBeNil)
+				post2 := model.Task{
 					RuleID: rule.ID,
 					Chain:  model.ChainPost,
 					Rank:   1,
 					Type:   taskSuccess,
 					Args:   []byte(`{}`),
 				}
-				So(db.Create(post2), ShouldBeNil)
+				So(db.Create(&post2), ShouldBeNil)
 
-				err1 := &model.Task{
+				err1 := model.Task{
 					RuleID: rule.ID,
 					Chain:  model.ChainError,
 					Rank:   0,
 					Type:   taskSuccess,
 					Args:   []byte(`{}`),
 				}
-				So(db.Create(err1), ShouldBeNil)
-				err2 := &model.Task{
+				So(db.Create(&err1), ShouldBeNil)
+				err2 := model.Task{
 					RuleID: rule.ID,
 					Chain:  model.ChainError,
 					Rank:   1,
 					Type:   taskSuccess,
 					Args:   []byte(`{}`),
 				}
-				So(db.Create(err2), ShouldBeNil)
+				So(db.Create(&err2), ShouldBeNil)
 
-				Convey("When retrieving the rule's pre-tasks", func() {
-					tasks, err := GetTasks(db, rule.ID, model.ChainPre)
-					So(err, ShouldBeNil)
+				Convey("Given a processor", func() {
+					p := Processor{
+						Db: db,
+						//Logger:   e.Logger,
+						Rule: rule,
+						//Transfer: info.Transfer,
+						//Shutdown: e.Shutdown,
+					}
 
-					Convey("Then it should return the rule's pre-tasks", func() {
-						So(tasks, ShouldResemble, []*model.Task{pre1, pre2})
+					Convey("When retrieving the rule's pre-tasks", func() {
+						tasks, err := p.GetTasks(model.ChainPre)
+						So(err, ShouldBeNil)
+
+						Convey("Then it should return the rule's pre-tasks", func() {
+							So(tasks, ShouldResemble, []model.Task{pre1, pre2})
+						})
+					})
+
+					Convey("When retrieving the rule's post-tasks", func() {
+						tasks, err := p.GetTasks(model.ChainPost)
+						So(err, ShouldBeNil)
+
+						Convey("Then it should return the rule's post-tasks", func() {
+							So(tasks, ShouldResemble, []model.Task{post1, post2})
+						})
+					})
+
+					Convey("When retrieving the rule's error-tasks", func() {
+						tasks, err := p.GetTasks(model.ChainError)
+						So(err, ShouldBeNil)
+
+						Convey("Then it should return the rule's error-tasks", func() {
+							So(tasks, ShouldResemble, []model.Task{err1, err2})
+						})
 					})
 				})
 
-				Convey("When retrieving the rule's post-tasks", func() {
-					tasks, err := GetTasks(db, rule.ID, model.ChainPost)
-					So(err, ShouldBeNil)
-
-					Convey("Then it should return the rule's post-tasks", func() {
-						So(tasks, ShouldResemble, []*model.Task{post1, post2})
-					})
-				})
-
-				Convey("When retrieving the rule's error-tasks", func() {
-					tasks, err := GetTasks(db, rule.ID, model.ChainError)
-					So(err, ShouldBeNil)
-
-					Convey("Then it should return the rule's error-tasks", func() {
-						So(tasks, ShouldResemble, []*model.Task{err1, err2})
-					})
-				})
 			})
 		})
 	})
@@ -330,7 +341,6 @@ func TestRunTasks(t *testing.T) {
 
 	Convey("Given a processor", t, func() {
 		db := database.GetTestDatabase()
-		shutdown := make(chan bool)
 
 		rule := &model.Rule{Name: "rule"}
 		So(db.Create(rule), ShouldBeNil)
@@ -338,7 +348,7 @@ func TestRunTasks(t *testing.T) {
 		agent := &model.RemoteAgent{
 			Name:        "agent",
 			Protocol:    "r66",
-			ProtoConfig: []byte(`{}`),
+			ProtoConfig: []byte(`{"port": 6622, "address": "127.0.0.1"}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
 
@@ -364,14 +374,46 @@ func TestRunTasks(t *testing.T) {
 			Logger:   logger,
 			Rule:     rule,
 			Transfer: trans,
-			Shutdown: shutdown,
+			Signals:  make(chan model.Signal),
 		}
 
 		Convey("Given a list of tasks", func() {
 
 			Convey("Given that all the tasks succeed", func() {
 				dummyTaskCheck = make(chan string, 3)
-				tasks := []*model.Task{
+				tasks := []model.Task{
+					{
+						RuleID: rule.ID,
+						Chain:  model.ChainPre,
+						Rank:   0,
+						Type:   taskSuccess,
+						Args:   []byte(`{}`),
+					}, {
+						RuleID: rule.ID,
+						Chain:  model.ChainPre,
+						Rank:   1,
+						Type:   taskSuccess,
+						Args:   []byte(`{}`),
+					},
+				}
+
+				Convey("Then it should run the tasks without error", func() {
+					rv := proc.RunTasks(tasks)
+					So(rv.Code, ShouldEqual, model.TeOk)
+
+					dummyTaskCheck <- "DONE"
+
+					Convey("Then it should have executed all tasks", func() {
+						So(<-dummyTaskCheck, ShouldEqual, "SUCCESS")
+						So(<-dummyTaskCheck, ShouldEqual, "SUCCESS")
+						So(<-dummyTaskCheck, ShouldEqual, "DONE")
+					})
+				})
+			})
+
+			Convey("Given that one task is in warning", func() {
+				dummyTaskCheck = make(chan string, 3)
+				tasks := []model.Task{
 					{
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
@@ -388,7 +430,9 @@ func TestRunTasks(t *testing.T) {
 				}
 
 				Convey("Then it should run the tasks without error", func() {
-					So(proc.RunTasks(tasks), ShouldBeNil)
+					rv := proc.RunTasks(tasks)
+					So(rv.Code, ShouldEqual, model.TeOk)
+
 					dummyTaskCheck <- "DONE"
 
 					Convey("Then it should have executed all tasks", func() {
@@ -407,7 +451,7 @@ func TestRunTasks(t *testing.T) {
 			Convey("Given that one of the tasks fails", func() {
 				dummyTaskCheck = make(chan string, 3)
 
-				tasks := []*model.Task{
+				tasks := []model.Task{
 					{
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
@@ -430,18 +474,14 @@ func TestRunTasks(t *testing.T) {
 				}
 
 				Convey("Then running the tasks should return an error", func() {
-					So(proc.RunTasks(tasks), ShouldNotBeNil)
+					rv := proc.RunTasks(tasks)
+					So(rv.Code, ShouldEqual, model.TeExternalOperation)
 					dummyTaskCheck <- "DONE"
 
 					Convey("Then it should have executed all tasks up to the failed one", func() {
 						So(<-dummyTaskCheck, ShouldEqual, "SUCCESS")
 						So(<-dummyTaskCheck, ShouldEqual, "FAILURE")
 						So(<-dummyTaskCheck, ShouldEqual, "DONE")
-
-						Convey("Then the transfer should have an error", func() {
-							So(trans.Error.Code, ShouldEqual, model.TeExternalOperation)
-							So(trans.Error.Details, ShouldEqual, "Task TESTFAIL @ rule PRE[1]: task failed")
-						})
 					})
 				})
 			})
@@ -449,7 +489,7 @@ func TestRunTasks(t *testing.T) {
 			Convey("Given that one of the tasks is invalid", func() {
 				dummyTaskCheck = make(chan string, 1)
 
-				tasks := []*model.Task{{
+				tasks := []model.Task{{
 					RuleID: rule.ID,
 					Chain:  model.ChainPre,
 					Rank:   0,
@@ -465,7 +505,7 @@ func TestRunTasks(t *testing.T) {
 			Convey("Given an unknown type of task", func() {
 				dummyTaskCheck = make(chan string, 1)
 
-				tasks := []*model.Task{{
+				tasks := []model.Task{{
 					RuleID: rule.ID,
 					Chain:  model.ChainPre,
 					Rank:   0,

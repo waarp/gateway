@@ -2,7 +2,6 @@ package executor
 
 import (
 	"fmt"
-	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
@@ -44,7 +43,10 @@ func (t *testTaskInfinite) Validate(map[string]string) error {
 }
 
 func (t *testTaskInfinite) Run(map[string]string, *tasks.Processor) (string, error) {
-	for time.Now().Before(time.Now().Add(time.Minute)) {
+	for {
+		if false {
+			break
+		}
 	}
 	return "task failed", fmt.Errorf("task failed")
 }

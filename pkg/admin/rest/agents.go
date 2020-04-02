@@ -7,6 +7,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/go-xorm/builder"
 )
 
@@ -101,7 +102,7 @@ func parseProtoParam(r *http.Request, filters *database.Filters) error {
 	if len(r.Form["protocol"]) > 0 {
 		protos := make([]string, len(r.Form["protocol"]))
 		for i, p := range r.Form["protocol"] {
-			if !model.IsValidProtocol(p) {
+			if _, ok := config.ProtoConfigs[p]; !ok {
 				return &badRequest{msg: fmt.Sprintf("'%s' is not a valid protocol", p)}
 			}
 			protos[i] = p

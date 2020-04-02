@@ -11,27 +11,27 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
 
-// Server represents an instance of SFTP server.
-type Server struct {
+// Service represents an instance of SFTP server.
+type Service struct {
 	db     *database.Db
 	agent  *model.LocalAgent
 	logger *log.Logger
 
 	state    service.State
-	listener *sshServer
+	listener *sshListener
 }
 
-// NewServer returns a new SFTP server instance with the given attributes.
-func NewServer(db *database.Db, agent *model.LocalAgent, logger *log.Logger) *Server {
-	return &Server{
+// NewService returns a new SFTP service instance with the given attributes.
+func NewService(db *database.Db, agent *model.LocalAgent, logger *log.Logger) *Service {
+	return &Service{
 		db:     db,
 		agent:  agent,
 		logger: logger,
 	}
 }
 
-// Start starts the SFTP server.
-func (s *Server) Start() error {
+// Start starts the SFTP service.
+func (s *Service) Start() error {
 	start := func() error {
 		cert, err := loadCert(s.db, s.agent)
 		if err != nil {
@@ -53,7 +53,13 @@ func (s *Server) Start() error {
 			return err
 		}
 
-		s.listener = newListener(s.db, s.logger, listener, s.agent, sshConf)
+		s.listener = &sshListener{
+			Db:       s.db,
+			Logger:   s.logger,
+			Agent:    s.agent,
+			Conf:     sshConf,
+			Listener: listener,
+		}
 		s.listener.listen()
 		return nil
 	}
@@ -63,17 +69,17 @@ func (s *Server) Start() error {
 
 	if err := start(); err != nil {
 		s.state.Set(service.Error, err.Error())
-		s.logger.Infof("Failed to start SFTP server: %s", err)
+		s.logger.Infof("Failed to start SFTP service: %s", err)
 		return err
 	}
 
-	s.logger.Info("SFTP server started successfully")
+	s.logger.Info("SFTP service started successfully")
 	s.state.Set(service.Running, "")
 	return nil
 }
 
-// Stop stops the SFTP server.
-func (s *Server) Stop(ctx context.Context) error {
+// Stop stops the SFTP service.
+func (s *Service) Stop(ctx context.Context) error {
 	s.logger.Infof("Shutting down SFTP service '%s'", s.agent.Name)
 	if s.listener.close(ctx) != nil {
 		s.logger.Errorf("Failed to shut SFTP server down, forcing exit")
@@ -84,7 +90,7 @@ func (s *Server) Stop(ctx context.Context) error {
 	return nil
 }
 
-// State returns the state of the SFTP server.
-func (s *Server) State() *service.State {
+// State returns the state of the SFTP service.
+func (s *Service) State() *service.State {
 	return &s.state
 }

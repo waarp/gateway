@@ -8,9 +8,19 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+func init() {
+	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
+}
+
+type TestProtoConfig struct{}
+
+func (*TestProtoConfig) ValidServer() error { return nil }
+func (*TestProtoConfig) ValidClient() error { return nil }
 
 func TestControllerListen(t *testing.T) {
 	logConf := conf.LogConfig{
@@ -23,8 +33,8 @@ func TestControllerListen(t *testing.T) {
 
 		remote := &model.RemoteAgent{
 			Name:        "test remote",
-			Protocol:    "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+			Protocol:    "test",
+			ProtoConfig: []byte(`{}`),
 		}
 		So(db.Create(remote), ShouldBeNil)
 
@@ -74,17 +84,16 @@ func TestControllerListen(t *testing.T) {
 					Db:     db,
 					logger: log.NewLogger("test_controller", logConf),
 					state:  service.State{},
+					pool:   make(chan model.Transfer),
 				}
 				cont.state.Set(service.Running, "")
 
 				Convey("When calling the `listen` method", func() {
-					ch := make(chan model.Transfer)
-					run := func(t model.Transfer) { ch <- t }
-
-					cont.listen(run)
+					cont.listen()
 
 					Convey("After waiting enough time", func() {
-						test := <-ch
+						test := <-cont.pool
+						cont.state.Set(service.Offline, "")
 
 						Convey("Then it should have retrieved the transfer entry", func() {
 							So(test, ShouldResemble, *trans)
