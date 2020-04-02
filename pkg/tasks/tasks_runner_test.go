@@ -399,7 +399,7 @@ func TestRunTasks(t *testing.T) {
 
 				Convey("Then it should run the tasks without error", func() {
 					rv := proc.RunTasks(tasks)
-					So(rv.Code, ShouldEqual, model.TeOk)
+					So(rv, ShouldBeNil)
 
 					dummyTaskCheck <- "DONE"
 
@@ -431,7 +431,7 @@ func TestRunTasks(t *testing.T) {
 
 				Convey("Then it should run the tasks without error", func() {
 					rv := proc.RunTasks(tasks)
-					So(rv.Code, ShouldEqual, model.TeOk)
+					So(rv, ShouldBeNil)
 
 					dummyTaskCheck <- "DONE"
 
@@ -475,7 +475,7 @@ func TestRunTasks(t *testing.T) {
 
 				Convey("Then running the tasks should return an error", func() {
 					rv := proc.RunTasks(tasks)
-					So(rv.Code, ShouldEqual, model.TeExternalOperation)
+					So(rv, ShouldBeError)
 					dummyTaskCheck <- "DONE"
 
 					Convey("Then it should have executed all tasks up to the failed one", func() {
