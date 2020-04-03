@@ -18,8 +18,7 @@ type accountCommand struct {
 }
 
 func displayRemoteAccount(w io.Writer, account rest.OutAccount) {
-	fmt.Fprintf(w, "\033[97;1m● %s\033[0m (ID %v)\n", account.Login, account.ID)
-	fmt.Fprintf(w, "  \033[97m-Partner ID:\033[0m \033[33m%v\033[0m\n", account.AgentID)
+	fmt.Fprintf(w, "\033[97;1m● %s\033[0m\n", account.Login)
 }
 
 // ######################## GET ##########################
@@ -59,7 +58,6 @@ func (a *accountAddCommand) Execute([]string) error {
 	newAccount := rest.InAccount{
 		Login:    a.Login,
 		Password: []byte(a.Password),
-		AgentID:  a.PartnerID,
 	}
 
 	conn, err := url.Parse(auth.DSN)
@@ -122,7 +120,6 @@ func (a *accountUpdateCommand) Execute(args []string) error {
 	newAccount := rest.InAccount{
 		Login:    a.Login,
 		Password: []byte(a.Password),
-		AgentID:  a.PartnerID,
 	}
 
 	conn, err := url.Parse(auth.DSN)

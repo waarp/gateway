@@ -14,12 +14,12 @@ type ruleCommand struct {
 	Add    ruleAddCommand    `command:"add" description:"Add a new rule"`
 	Delete ruleDeleteCommand `command:"delete" description:"Delete a rule"`
 	List   ruleListCommand   `command:"list" description:"List the known rules"`
-	Access ruleAccessCommand `command:"access" description:"Manage the permissions for a rule"`
-	Tasks  ruleTasksCommand  `command:"tasks" description:"Manage the rule's task chain"`
+	//Access ruleAccessCommand `command:"access" description:"Manage the permissions for a rule"`
+	Tasks ruleTasksCommand `command:"tasks" description:"Manage the rule's task chain"`
 }
 
 func displayRule(w io.Writer, rule rest.OutRule) {
-	fmt.Fprintf(w, "\033[97;1m● Rule %s\033[0m (ID %v)\n", rule.Name, rule.ID)
+	fmt.Fprintf(w, "\033[97;1m● Rule %s\033[0m\n", rule.Name)
 	fmt.Fprintf(w, "  \033[97m-Comment :\033[0m \033[97m%s\033[0m\n", rule.Comment)
 	fmt.Fprintf(w, "  \033[97m-Path    :\033[0m \033[97m%v\033[0m\n", rule.Path)
 	fmt.Fprintf(w, "  \033[97m-InPath  :\033[0m \033[97m%v\033[0m\n", rule.InPath)

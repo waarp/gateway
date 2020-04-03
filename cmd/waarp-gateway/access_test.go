@@ -16,8 +16,7 @@ import (
 )
 
 func accessInfoString(a *rest.OutAccount) string {
-	return "● " + a.Login + " (ID " + fmt.Sprint(a.ID) + ")\n" +
-		"  -Server ID: " + fmt.Sprint(a.AgentID) + "\n"
+	return "● " + a.Login + "\n"
 }
 
 func TestGetAccess(t *testing.T) {
@@ -64,7 +63,7 @@ func TestGetAccess(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 
-						a := rest.FromLocalAccount(localAccount)
+						a := rest.FromLocalAccount(localAccount, &rest.AuthorizedRules{})
 						So(string(cont), ShouldEqual, accessInfoString(a))
 					})
 				})
@@ -438,8 +437,8 @@ func TestListAccess(t *testing.T) {
 			}
 			So(db.Create(account2), ShouldBeNil)
 
-			a1 := rest.FromLocalAccount(account1)
-			a2 := rest.FromLocalAccount(account2)
+			a1 := rest.FromLocalAccount(account1, &rest.AuthorizedRules{})
+			a2 := rest.FromLocalAccount(account2, &rest.AuthorizedRules{})
 
 			Convey("Given no parameters", func() {
 

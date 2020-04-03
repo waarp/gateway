@@ -23,9 +23,7 @@ func writeFile(content string) *os.File {
 }
 
 func certInfoString(c *rest.OutCert) string {
-	return "● " + c.Name + " (ID " + fmt.Sprint(c.ID) + ")\n" +
-		"  -Type       : " + c.OwnerType + "\n" +
-		"  -Owner      : " + fmt.Sprint(c.OwnerID) + "\n" +
+	return "● " + c.Name + "\n" +
 		"  -Private key: " + string(c.PrivateKey) + "\n" +
 		"  -Public key : " + string(c.PublicKey) + "\n" +
 		"  -Content    : " + fmt.Sprint(c.Certificate) + "\n"
@@ -133,7 +131,6 @@ func TestAddCertificate(t *testing.T) {
 				crt := writeFile("certificate")
 
 				command.Name = "new_cert"
-				command.Type = fromTableName(owner.TableName())
 				command.Owner = owner.ID
 				command.PrivateKey = prK.Name()
 				command.PublicKey = puK.Name()
@@ -165,7 +162,6 @@ func TestAddCertificate(t *testing.T) {
 
 						Convey("Then the new certificate should have been added", func() {
 							cert := &model.Cert{
-								OwnerType:   toTableName(command.Type),
 								OwnerID:     command.Owner,
 								Name:        command.Name,
 								PrivateKey:  []byte("private_key"),

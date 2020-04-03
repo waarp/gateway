@@ -18,8 +18,7 @@ type accessCommand struct {
 }
 
 func displayLocalAccount(w io.Writer, account rest.OutAccount) {
-	fmt.Fprintf(w, "\033[97;1m● %s\033[0m (ID %v)\n", account.Login, account.ID)
-	fmt.Fprintf(w, "  \033[97m-Server ID:\033[0m \033[97m%v\033[0m\n", account.AgentID)
+	fmt.Fprintf(w, "\033[97;1m● %s\033[0m\n", account.Login)
 }
 
 // ######################## ADD ##########################
@@ -34,7 +33,6 @@ func (a *accessAddCommand) Execute([]string) error {
 	newAccount := rest.InAccount{
 		Login:    a.Login,
 		Password: []byte(a.Password),
-		AgentID:  a.LocalAgentID,
 	}
 
 	conn, err := url.Parse(auth.DSN)
@@ -96,7 +94,6 @@ func (a *accessUpdateCommand) Execute(args []string) error {
 	newAccount := rest.InAccount{
 		Login:    a.Login,
 		Password: []byte(a.Password),
-		AgentID:  a.LocalAgentID,
 	}
 
 	conn, err := url.Parse(auth.DSN)

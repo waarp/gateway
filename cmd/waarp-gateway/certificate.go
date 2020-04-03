@@ -19,9 +19,7 @@ type certificateCommand struct {
 }
 
 func displayCertificate(w io.Writer, cert rest.OutCert) {
-	fmt.Fprintf(w, "\033[97;1m● %s\033[0m (ID %v)\n", cert.Name, cert.ID)
-	fmt.Fprintf(w, "  \033[97m-Type       :\033[0m \033[33m%s\033[0m\n", cert.OwnerType)
-	fmt.Fprintf(w, "  \033[97m-Owner      :\033[0m \033[97m%v\033[0m\n", cert.OwnerID)
+	fmt.Fprintf(w, "\033[97;1m● %s\033[0m\n", cert.Name)
 	fmt.Fprintf(w, "  \033[97m-Private key:\033[0m \033[90m%s\033[0m\n", string(cert.PrivateKey))
 	fmt.Fprintf(w, "  \033[97m-Public key :\033[0m \033[90m%s\033[0m\n", string(cert.PublicKey))
 	fmt.Fprintf(w, "  \033[97m-Content    :\033[0m \033[90m%v\033[0m\n", cert.Certificate)
@@ -87,8 +85,6 @@ func (c *certAddCommand) Execute([]string) error {
 	}
 
 	newCert := rest.InCert{
-		OwnerType:   toTableName(c.Type),
-		OwnerID:     c.Owner,
 		Name:        c.Name,
 		PrivateKey:  prK,
 		PublicKey:   puK,
@@ -238,8 +234,6 @@ func (c *certUpdateCommand) Execute(args []string) error {
 	}
 
 	newCert := rest.InCert{
-		OwnerType:   c.Type,
-		OwnerID:     c.Owner,
 		Name:        c.Name,
 		PrivateKey:  prK,
 		PublicKey:   puK,

@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -16,13 +13,14 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func localAgentInfoString(s *rest.OutLocalAgent) string {
-	var config bytes.Buffer
-	_ = json.Indent(&config, s.ProtoConfig, "    ", "  ")
-	return "● " + s.Name + " (ID " + fmt.Sprint(s.ID) + ")\n" +
-		"  -Protocol     : " + s.Protocol + "\n" +
-		"  -Root         : " + s.Root + "\n" +
-		"  -Configuration: " + config.String() + "\n"
+func serverInfoString(s *rest.OutLocalAgent) string {
+	return "● Server " + s.Name + "\n" +
+		"  -Protocol:         " + s.Protocol + "\n" +
+		"  -Root:             " + s.Root + "\n" +
+		"  -Configuration:    " + string(s.ProtoConfig) + "\n" +
+		"  -Authorized rules\n" +
+		"   ├─Sending:   " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
+		"   └─Reception: " + strings.Join(s.AuthorizedRules.Reception, ", ") + "\n"
 }
 
 func TestGetServer(t *testing.T) {
@@ -34,59 +32,59 @@ func TestGetServer(t *testing.T) {
 		Convey("Given a gateway with 1 local server", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server := &model.LocalAgent{
 				Name:        "local_agent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Protocol:    "test",
+				Root:        "/server/root",
+				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server), ShouldBeNil)
 
-			Convey("Given a valid server ID", func() {
-				id := fmt.Sprint(server.ID)
+			send := &model.Rule{Name: "send", IsSend: true, Path: "send_path"}
+			So(db.Create(send), ShouldBeNil)
+			receive := &model.Rule{Name: "receive", IsSend: false, Path: "rcv_path"}
+			So(db.Create(receive), ShouldBeNil)
+			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
+			So(db.Create(sendAll), ShouldBeNil)
+
+			sAccess := &model.RuleAccess{RuleID: send.ID,
+				ObjectType: server.TableName(), ObjectID: server.ID}
+			So(db.Create(sAccess), ShouldBeNil)
+			rAccess := &model.RuleAccess{RuleID: receive.ID,
+				ObjectType: server.TableName(), ObjectID: server.ID}
+			So(db.Create(rAccess), ShouldBeNil)
+
+			Convey("Given a valid server name", func() {
+				args := []string{server.Name}
 
 				Convey("When executing the command", func() {
-					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the server's info", func() {
-						var config bytes.Buffer
-						err := json.Indent(&config, server.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
-
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-
-						s := rest.FromLocalAgent(server)
-						So(string(cont), ShouldEqual, localAgentInfoString(s))
+						rules := &rest.AuthorizedRules{
+							Sending:   []string{send.Name, sendAll.Name},
+							Reception: []string{receive.Name},
+						}
+						s := rest.FromLocalAgent(server, rules)
+						So(getOutput(), ShouldEqual, serverInfoString(s))
 					})
 				})
 			})
 
 			Convey("Given an invalid server ID", func() {
-				id := "1000"
+				args := []string{"toto"}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+rest.LocalAgentsPath+
-							"/1000' does not exist")
-
+						So(err, ShouldBeError, "no server named 'toto' found")
 					})
 				})
 			})
@@ -103,38 +101,27 @@ func TestAddServer(t *testing.T) {
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given valid flags", func() {
-				command.Name = "local_agent"
-				command.Protocol = "sftp"
-				command.ProtoConfig = `{"address":"localhost","port":2022}`
+				args := []string{"-n", "server_name", "-p", "test",
+					"r", "/server/root", "-c", `{"key":"val"}`}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the server was added", func() {
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "The server '"+command.Name+
-							"' was successfully added. It can be consulted at "+
-							"the address: "+gw.URL+admin.APIPath+
-							rest.LocalAgentsPath+"/1\n")
+						So(getOutput(), ShouldEqual, "The server 'server_name' "+
+							"was successfully added.\n")
 					})
 
 					Convey("Then the new server should have been added", func() {
 						server := &model.LocalAgent{
 							Name:        command.Name,
 							Protocol:    command.Protocol,
+							Root:        command.Root,
 							ProtoConfig: []byte(command.ProtoConfig),
 						}
 						exists, err := db.Exists(server)
@@ -145,42 +132,29 @@ func TestAddServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid protocol", func() {
-				command.Name = "server"
-				command.Protocol = "not a protocol"
-				command.ProtoConfig = "{}"
+				args := []string{"-n", "server_name", "-p", "invalid",
+					"r", "/server/root", "-c", `{"key":"val"}`}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "400 - Invalid request: "+
-							"Invalid agent configuration: unknown protocol")
+						So(command.Execute(params), ShouldNotBeNil)
 					})
 				})
 			})
 
 			Convey("Given an invalid configuration", func() {
-				command.Name = "server"
-				command.Protocol = "sftp"
-				command.ProtoConfig = "{"
+				args := []string{"-n", "server_name", "-p", "test",
+					"r", "/server/root", "-c", `{"key":val"}`}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "json: error calling "+
-							"MarshalJSON for type json.RawMessage: unexpected "+
-							"end of JSON input")
+						So(command.Execute(params), ShouldNotBeNil)
 					})
 				})
 			})
@@ -193,145 +167,102 @@ func TestListServers(t *testing.T) {
 	Convey("Testing the server 'list' command", t, func() {
 		out = testFile()
 		command := &serverListCommand{}
-		_, err := flags.ParseArgs(command, []string{"waarp_gateway"})
-		So(err, ShouldBeNil)
 
 		Convey("Given a gateway with 2 local servers", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server1 := &model.LocalAgent{
 				Name:        "local_agent1",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Protocol:    "test",
+				Root:        "/test/root1",
+				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server1), ShouldBeNil)
 
 			server2 := &model.LocalAgent{
 				Name:        "local_agent2",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
+				Protocol:    "test2",
+				Root:        "/test/root2",
+				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server2), ShouldBeNil)
 
-			s1 := rest.FromLocalAgent(server1)
-			s2 := rest.FromLocalAgent(server2)
+			s1 := rest.FromLocalAgent(server1, &rest.AuthorizedRules{})
+			s2 := rest.FromLocalAgent(server2, &rest.AuthorizedRules{})
 
 			Convey("Given no parameters", func() {
+				args := []string{}
 
 				Convey("When executing the command", func() {
-					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the servers' info", func() {
-						var config1 bytes.Buffer
-						err := json.Indent(&config1, server1.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
-
-						var config2 bytes.Buffer
-						err = json.Indent(&config2, server2.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
-
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Local agents:\n"+
-							localAgentInfoString(s1)+localAgentInfoString(s2))
+						So(getOutput(), ShouldEqual, "Servers:\n"+
+							serverInfoString(s1)+serverInfoString(s2))
 					})
 				})
 			})
 
 			Convey("Given a 'limit' parameter of 1", func() {
-				command.Limit = 1
+				args := []string{"-l", "1"}
 
 				Convey("When executing the command", func() {
-					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should only display 1 server's info", func() {
-						var config1 bytes.Buffer
-						err := json.Indent(&config1, server1.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
-
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Local agents:\n"+
-							localAgentInfoString(s1))
+						So(getOutput(), ShouldEqual, "Servers:\n"+
+							serverInfoString(s1))
 					})
 				})
 			})
 
 			Convey("Given an 'offset' parameter of 1", func() {
-				command.Offset = 1
+				args := []string{"-o", "1"}
 
 				Convey("When executing the command", func() {
-					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-					auth.DSN = dsn
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
-					err := command.Execute(nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
-
-					Convey("Then it should NOT display the 1st server's info", func() {
-						var config2 bytes.Buffer
-						err := json.Indent(&config2, server2.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
-
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Local agents:\n"+
-							localAgentInfoString(s2))
+					Convey("Then it should display all but the 1st server's info", func() {
+						So(getOutput(), ShouldEqual, "Servers:\n"+
+							serverInfoString(s2))
 					})
 				})
 			})
 
 			Convey("Given that the 'desc' flag is set", func() {
-				command.DescOrder = true
+				args := []string{"-d"}
 
 				Convey("When executing the command", func() {
-					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the servers' info in reverse", func() {
-						var config1 bytes.Buffer
-						err := json.Indent(&config1, server1.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
+						So(getOutput(), ShouldEqual, "Servers:\n"+
+							serverInfoString(s2)+serverInfoString(s1))
+					})
+				})
+			})
 
-						var config2 bytes.Buffer
-						err = json.Indent(&config2, server2.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
+			Convey("Given the 'protocol' parameter is set to 'test'", func() {
+				args := []string{"-p", "test"}
 
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Local agents:\n"+
-							localAgentInfoString(s2)+localAgentInfoString(s1))
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then it should display all servers using that protocol", func() {
+						So(getOutput(), ShouldEqual, "Servers:\n"+
+							serverInfoString(s1))
 					})
 				})
 			})
@@ -346,38 +277,28 @@ func TestDeleteServer(t *testing.T) {
 		command := &serverDeleteCommand{}
 
 		Convey("Given a gateway with 1 local server", func() {
-
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server := &model.LocalAgent{
-				Name:        "local_agent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Name:        "server_name",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(server), ShouldBeNil)
 
-			Convey("Given a valid server ID", func() {
-				id := fmt.Sprint(server.ID)
+			Convey("Given a valid server name", func() {
+				args := []string{server.Name}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the server was deleted", func() {
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "The server n°"+id+
-							" was successfully deleted from the database\n")
+						So(getOutput(), ShouldEqual, "The server '"+server.Name+
+							"' was successfully deleted from the database.\n")
 					})
 
 					Convey("Then the server should have been removed", func() {
@@ -388,21 +309,16 @@ func TestDeleteServer(t *testing.T) {
 				})
 			})
 
-			Convey("Given an invalid ID", func() {
-				id := "1000"
+			Convey("Given an invalid name", func() {
+				args := []string{"toto"}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+rest.LocalAgentsPath+
-							"/1000' does not exist")
+						So(err, ShouldBeError, "no server named 'toto' found")
 					})
 
 					Convey("Then the server should still exist", func() {
@@ -423,120 +339,105 @@ func TestUpdateServer(t *testing.T) {
 		command := &serverUpdateCommand{}
 
 		Convey("Given a gateway with 1 local server", func() {
-
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server := &model.LocalAgent{
-				Name:        "local_agent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Name:        "server",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server), ShouldBeNil)
 
-			command.Name = "new_local_agent"
-			command.Protocol = "sftp"
-			command.ProtoConfig = `{"address":"localhost","port":2023}`
+			Convey("Given all valid flags", func() {
+				args := []string{"-n", "new_server", "-p", "test2",
+					"-c", `{"updated_key":"updated_val"}`, server.Name}
 
-			Convey("Given a valid server ID", func() {
-				id := fmt.Sprint(server.ID)
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
-				Convey("Given all valid flags", func() {
-
-					Convey("When executing the command", func() {
-						addr := gw.Listener.Addr().String()
-						dsn := "http://admin:admin_password@" + addr
-						auth.DSN = dsn
-
-						err := command.Execute([]string{id})
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-						})
-
-						Convey("Then is should display a message saying the server was updated", func() {
-							_, err = out.Seek(0, 0)
-							So(err, ShouldBeNil)
-							cont, err := ioutil.ReadAll(out)
-							So(err, ShouldBeNil)
-							So(string(cont), ShouldEqual, "The server n°"+id+
-								" was successfully updated\n")
-						})
-
-						Convey("Then the old server should have been removed", func() {
-							exists, err := db.Exists(server)
-							So(err, ShouldBeNil)
-							So(exists, ShouldBeFalse)
-						})
-
-						Convey("Then the new server should exist", func() {
-							newServer := model.LocalAgent{
-								ID:          server.ID,
-								Owner:       server.Owner,
-								Name:        command.Name,
-								Protocol:    command.Protocol,
-								ProtoConfig: []byte(command.ProtoConfig),
-							}
-							exists, err := db.Exists(&newServer)
-							So(err, ShouldBeNil)
-							So(exists, ShouldBeTrue)
-						})
+					Convey("Then is should display a message saying the server was updated", func() {
+						So(getOutput(), ShouldEqual, "The server 'new_server' "+
+							"was successfully updated.\n")
 					})
-				})
 
-				Convey("Given an invalid protocol", func() {
-					command.Protocol = "not a protocol"
-
-					Convey("When executing the command", func() {
-						addr := gw.Listener.Addr().String()
-						dsn := "http://admin:admin_password@" + addr
-						auth.DSN = dsn
-
-						err := command.Execute([]string{id})
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
-								"Invalid agent configuration: unknown protocol")
-						})
+					Convey("Then the old server should have been removed", func() {
+						exists, err := db.Exists(server)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeFalse)
 					})
-				})
 
-				Convey("Given an invalid configuration", func() {
-					command.ProtoConfig = "{"
-
-					Convey("When executing the command", func() {
-						addr := gw.Listener.Addr().String()
-						dsn := "http://admin:admin_password@" + addr
-						auth.DSN = dsn
-
-						err := command.Execute([]string{id})
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "json: error calling "+
-								"MarshalJSON for type json.RawMessage: unexpected "+
-								"end of JSON input")
-						})
+					Convey("Then the new server should exist", func() {
+						newServer := model.LocalAgent{
+							ID:          server.ID,
+							Owner:       server.Owner,
+							Name:        command.Name,
+							Protocol:    command.Protocol,
+							ProtoConfig: []byte(command.ProtoConfig),
+						}
+						exists, err := db.Exists(&newServer)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
 					})
 				})
 			})
 
-			Convey("Given an invalid ID", func() {
-				id := "1000"
+			Convey("Given an invalid protocol", func() {
+				args := []string{"-n", "new_server", "-p", "invalid",
+					"-c", `{"updated_key":"updated_val"}`, server.Name}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+rest.LocalAgentsPath+
-							"/1000' does not exist")
+						So(err, ShouldBeError, "unknown protocol")
+					})
+
+					Convey("Then the server should stay unchanged", func() {
+						exists, err := db.Exists(server)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
+					})
+				})
+			})
+
+			Convey("Given an invalid configuration", func() {
+				args := []string{"-n", "new_server", "-p", "fail",
+					"-c", `{"updated_key":"updated_val"}`, server.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "invalid server configuration: test fail")
+					})
+
+					Convey("Then the server should stay unchanged", func() {
+						exists, err := db.Exists(server)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
+					})
+				})
+			})
+
+			Convey("Given a non-existing name", func() {
+				args := []string{"-n", "new_server", "-p", "test2",
+					"-c", `{"updated_key":"updated_val"}`, "toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "no server named 'toto' found")
 					})
 
 					Convey("Then the server should stay unchanged", func() {

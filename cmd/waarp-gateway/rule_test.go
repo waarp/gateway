@@ -15,7 +15,7 @@ import (
 )
 
 func ruleInfoString(r *rest.OutRule) string {
-	rv := "● Rule " + r.Name + " (ID " + fmt.Sprint(r.ID) + ")\n" +
+	rv := "● Rule " + r.Name + "\n" +
 		"  -Comment : " + r.Comment + "\n" +
 		"  -Path    : " + r.Path + "\n" +
 		"  -InPath  : " + r.InPath + "\n" +
@@ -65,7 +65,7 @@ func TestGetRule(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 
-						r := rest.FromRule(rule)
+						r := rest.FromRule(rule, &rest.RuleAccess{})
 						So(string(cont), ShouldEqual, ruleInfoString(r))
 					})
 				})
@@ -299,8 +299,8 @@ func TestListRules(t *testing.T) {
 			}
 			So(db.Create(rule2), ShouldBeNil)
 
-			r1 := rest.FromRule(rule1)
-			r2 := rest.FromRule(rule2)
+			r1 := rest.FromRule(rule1, &rest.RuleAccess{})
+			r2 := rest.FromRule(rule2, &rest.RuleAccess{})
 
 			Convey("Given no parameters", func() {
 

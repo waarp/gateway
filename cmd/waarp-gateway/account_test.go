@@ -15,8 +15,7 @@ import (
 )
 
 func accountInfoString(a *rest.OutAccount) string {
-	return "● " + a.Login + " (ID " + fmt.Sprint(a.ID) + ")\n" +
-		"  -Partner ID: " + fmt.Sprint(a.AgentID) + "\n"
+	return "● " + a.Login + "\n"
 }
 
 func TestGetAccount(t *testing.T) {
@@ -63,7 +62,7 @@ func TestGetAccount(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 
-						a := rest.FromRemoteAccount(remoteAccount)
+						a := rest.FromRemoteAccount(remoteAccount, &rest.AuthorizedRules{})
 						So(string(cont), ShouldEqual, accountInfoString(a))
 					})
 				})
@@ -437,8 +436,8 @@ func TestListAccount(t *testing.T) {
 			}
 			So(db.Create(account2), ShouldBeNil)
 
-			a1 := rest.FromRemoteAccount(account1)
-			a2 := rest.FromRemoteAccount(account2)
+			a1 := rest.FromRemoteAccount(account1, &rest.AuthorizedRules{})
+			a2 := rest.FromRemoteAccount(account2, &rest.AuthorizedRules{})
 
 			Convey("Given no parameters", func() {
 

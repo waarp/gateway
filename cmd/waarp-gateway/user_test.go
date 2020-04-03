@@ -16,7 +16,7 @@ import (
 )
 
 func userInfoString(u *rest.OutUser) string {
-	return "● User " + u.Username + " (ID " + fmt.Sprint(u.ID) + ")\n"
+	return "● User " + u.Username + "\n"
 }
 
 func TestGetUser(t *testing.T) {
@@ -362,7 +362,7 @@ func TestListUser(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 
-						a := &rest.OutUser{ID: 1, Username: "admin"}
+						a := &rest.OutUser{Username: "admin"}
 						So(string(cont), ShouldEqual, "Users:\n"+userInfoString(a)+
 							userInfoString(u1)+userInfoString(u2))
 					})

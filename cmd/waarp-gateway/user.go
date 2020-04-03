@@ -18,7 +18,7 @@ type userCommand struct {
 }
 
 func displayUser(w io.Writer, user rest.OutUser) {
-	fmt.Fprintf(w, "\033[97;1m● User %s\033[0m (ID %v)\n", user.Username, user.ID)
+	fmt.Fprintf(w, "\033[97;1m● User %s\033[0m\n", user.Username)
 }
 
 // ######################## ADD ##########################

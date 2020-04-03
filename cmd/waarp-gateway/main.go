@@ -2,12 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/mattn/go-colorable"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -49,42 +46,5 @@ func main() {
 
 	if err != nil && !flags.WroteHelp(err) {
 		os.Exit(3)
-	}
-}
-
-func getColorable() io.Writer {
-	if terminal.IsTerminal(int(out.Fd())) {
-		return colorable.NewColorable(out)
-	}
-	return colorable.NewNonColorable(out)
-}
-
-func toTableName(entity string) string {
-	switch entity {
-	case "local agent":
-		return "local_agents"
-	case "remote agent":
-		return "remote_agents"
-	case "local account":
-		return "local_accounts"
-	case "remote account":
-		return "remote_accounts"
-	default:
-		panic(fmt.Sprintf("invalid entity name '%s'", entity))
-	}
-}
-
-func fromTableName(tableName string) string {
-	switch tableName {
-	case "local_agents":
-		return "local agent"
-	case "remote_agents":
-		return "remote agent"
-	case "local_accounts":
-		return "local account"
-	case "remote_accounts":
-		return "remote account"
-	default:
-		panic(fmt.Sprintf("invalid table name '%s'", tableName))
 	}
 }
