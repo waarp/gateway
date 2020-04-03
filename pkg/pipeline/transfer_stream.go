@@ -22,7 +22,17 @@ type TransferStream struct {
 // NewTransferStream initialises a new stream for the given transfer. This stream
 // can then be used to execute a transfer.
 func NewTransferStream(logger *log.Logger, db *database.Db, root string,
-	trans model.Transfer) (*TransferStream, *model.PipelineError) {
+	trans model.Transfer) (*TransferStream, error) {
+
+	if trans.IsServer {
+		if err := TransferInCount.add(); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := TransferOutCount.add(); err != nil {
+			return nil, err
+		}
+	}
 
 	if trans.ID == 0 {
 		if err := createTransfer(logger, db, &trans); err != nil {

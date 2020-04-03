@@ -4,7 +4,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -27,13 +26,11 @@ type Controller struct {
 	Conf *conf.ServerConfig
 	Db   *database.Db
 
-	ticker time.Ticker
+	ticker *time.Ticker
 	logger *log.Logger
 	state  service.State
 
-	wg        *sync.WaitGroup
-	pool      chan model.Transfer
-	executors []executor.Executor
+	shutdown chan bool
 }
 
 func (c *Controller) checkIsDbDown() bool {
@@ -65,22 +62,27 @@ func (c *Controller) listen() {
 	owner := builder.Eq{"owner": database.Owner}
 	status := builder.Eq{"status": model.StatusPlanned}
 	client := builder.Eq{"is_server": false}
+	wg := sync.WaitGroup{}
+	c.shutdown = make(chan bool)
 
 	go func() {
 		isDbDown := false
 		for {
-			start := builder.Lte{"start": time.Now()}
-			filters := database.Filters{
-				Conditions: builder.And(owner, start, status, client),
-			}
-
-			if s, _ := c.state.Get(); s != service.Running {
+			select {
+			case <-c.shutdown:
+				wg.Wait()
+				close(c.shutdown)
 				return
+			case <-c.ticker.C:
 			}
-			<-c.ticker.C
 
 			if isDbDown {
 				isDbDown = c.checkIsDbDown()
+			}
+
+			start := builder.Lte{"start": time.Now()}
+			filters := database.Filters{
+				Conditions: builder.And(owner, start, status, client),
 			}
 
 			plannedTrans := []model.Transfer{}
@@ -93,10 +95,33 @@ func (c *Controller) listen() {
 			}
 
 			for _, trans := range plannedTrans {
-				c.pool <- trans
+				exe, err := c.getExecutor(trans)
+				if err == pipeline.ErrLimitReached {
+					break
+				}
+				if err != nil {
+					continue
+				}
+
+				wg.Add(1)
+				go func() {
+					exe.Run()
+					wg.Done()
+				}()
 			}
 		}
 	}()
+}
+
+func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, error) {
+	stream, err := pipeline.NewTransferStream(c.logger, c.Db, "", trans)
+	if err != nil {
+		c.logger.Errorf("Failed to create transfer stream: %s", err.Error())
+		return nil, err
+	}
+
+	exe := &executor.Executor{TransferStream: stream}
+	return exe, nil
 }
 
 // Start starts the transfer controller service.
@@ -105,20 +130,11 @@ func (c *Controller) Start() error {
 		c.logger = log.NewLogger(ServiceName, c.Conf.Log)
 	}
 
-	c.ticker = *time.NewTicker(c.Conf.Controller.Delay)
+	pipeline.TransferInCount.SetLimit(c.Conf.Controller.MaxTransfersIn)
+	pipeline.TransferOutCount.SetLimit(c.Conf.Controller.MaxTransfersOut)
+	c.ticker = time.NewTicker(c.Conf.Controller.Delay)
 	c.state.Set(service.Running, "")
 
-	c.wg = new(sync.WaitGroup)
-	c.executors = make([]executor.Executor, 10)
-	for i := range c.executors {
-		c.executors[i] = executor.Executor{
-			Db:        c.Db,
-			Logger:    log.NewLogger(fmt.Sprintf("executor%d", i), c.Conf.Log),
-			R66Home:   c.Conf.Controller.R66Home,
-			Transfers: c.pool,
-		}
-		c.executors[i].Run(c.wg)
-	}
 	c.listen()
 
 	return nil
@@ -126,9 +142,9 @@ func (c *Controller) Start() error {
 
 // Stop stops the transfer controller service.
 func (c *Controller) Stop(ctx context.Context) error {
-	close(c.pool)
+	defer c.ticker.Stop()
 	c.state.Set(service.Offline, "")
-	c.ticker.Stop()
+	c.shutdown <- true
 
 	var transfers []model.Transfer
 	filters := &database.Filters{
@@ -144,12 +160,7 @@ func (c *Controller) Stop(ctx context.Context) error {
 	}
 
 	select {
-	case <-func() chan bool {
-		c.wg.Wait()
-		b := make(chan bool)
-		close(b)
-		return b
-	}():
+	case <-c.shutdown:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
