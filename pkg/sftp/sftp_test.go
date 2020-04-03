@@ -21,10 +21,9 @@ func TestSFTPPackage(t *testing.T) {
 	logger := log.NewLogger("test_sftp_package", testLogConf)
 
 	Convey("Given an SFTP server", t, func() {
-		root := "sftp_test_dir"
-		err := os.Mkdir(root, 0700)
+		root, err := ioutil.TempDir("", "gateway-test")
 		So(err, ShouldBeNil)
-		Reset(func() { _ = os.RemoveAll(root) })
+		defer func() { _ = os.RemoveAll(root) }()
 
 		db := database.GetTestDatabase()
 		localAgent := &model.LocalAgent{
@@ -97,7 +96,7 @@ func TestSFTPPackage(t *testing.T) {
 			Chain:  model.ChainPre,
 			Rank:   0,
 			Type:   "TESTCHECK",
-			Args:   []byte("{}"),
+			Args:   []byte(`{"msg":"TESTCHECK | Rule 1 | PRE-TASK[0]"}`),
 		}
 		So(db.Create(receivePreTask), ShouldBeNil)
 		sendPreTask := &model.Task{
@@ -105,7 +104,7 @@ func TestSFTPPackage(t *testing.T) {
 			Chain:  model.ChainPre,
 			Rank:   0,
 			Type:   "TESTCHECK",
-			Args:   []byte("{}"),
+			Args:   []byte(`{"msg":"TESTCHECK | Rule 2 | PRE-TASK[0]"}`),
 		}
 		So(db.Create(sendPreTask), ShouldBeNil)
 
@@ -114,14 +113,14 @@ func TestSFTPPackage(t *testing.T) {
 			Chain:  model.ChainPost,
 			Rank:   0,
 			Type:   "TESTCHECK",
-			Args:   []byte("{}"),
+			Args:   []byte(`{"msg":"TESTCHECK | Rule 2 | POST-TASK[0]"}`),
 		}
 		receivePostTask := &model.Task{
 			RuleID: receive.ID,
 			Chain:  model.ChainPost,
 			Rank:   0,
 			Type:   "TESTCHECK",
-			Args:   []byte("{}"),
+			Args:   []byte(`{"msg":"TESTCHECK | Rule 1 | POST-TASK[0]"}`),
 		}
 		So(db.Create(sendPostTask), ShouldBeNil)
 		So(db.Create(receivePostTask), ShouldBeNil)
@@ -131,14 +130,14 @@ func TestSFTPPackage(t *testing.T) {
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   "TESTCHECK",
-			Args:   []byte("{}"),
+			Args:   []byte(`{"msg":"TESTCHECK | Rule 2 | ERROR-TASK[0]"}`),
 		}
 		receiveErrorTask := &model.Task{
 			RuleID: receive.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
 			Type:   "TESTCHECK",
-			Args:   []byte("{}"),
+			Args:   []byte(`{"msg":"TESTCHECK | Rule 1 | ERROR-TASK[0]"}`),
 		}
 		So(db.Create(sendErrorTask), ShouldBeNil)
 		So(db.Create(receiveErrorTask), ShouldBeNil)

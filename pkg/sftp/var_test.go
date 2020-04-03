@@ -39,7 +39,8 @@ type testTaskCheck struct {
 	msg string
 }
 
-func (t *testTaskCheck) Validate(map[string]string) error {
+func (t *testTaskCheck) Validate(args map[string]string) error {
+	t.msg = args["msg"]
 	return nil
 }
 func (t *testTaskCheck) Run(map[string]string, *tasks.Processor) (string, error) {
