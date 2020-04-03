@@ -25,10 +25,27 @@ var (
 )
 
 func init() {
+	tasks.RunnableTasks["TESTCHECK"] = &testTaskCheck{}
 	tasks.RunnableTasks["TESTSUCCESS"] = &testTaskSuccess{}
 	tasks.RunnableTasks["TESTFAIL"] = &testTaskFail{}
+	model.ValidTasks["TESTCHECK"] = &testTaskSuccess{}
 	model.ValidTasks["TESTSUCCESS"] = &testTaskSuccess{}
 	model.ValidTasks["TESTFAIL"] = &testTaskFail{}
+}
+
+var checkChannel = make(chan string)
+
+type testTaskCheck struct {
+	msg string
+}
+
+func (t *testTaskCheck) Validate(args map[string]string) error {
+	t.msg = args["msg"]
+	return nil
+}
+func (t *testTaskCheck) Run(map[string]string, *tasks.Processor) (string, error) {
+	checkChannel <- t.msg
+	return "", nil
 }
 
 type testTaskSuccess struct{}

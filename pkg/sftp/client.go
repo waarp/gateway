@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -83,21 +84,24 @@ func (c *Client) Authenticate() *model.PipelineError {
 		}
 		return nil
 	}
-	return model.NewPipelineError(model.TeBadAuthentication, "no valid credentials found")
+	return model.NewPipelineError(model.TeBadAuthentication, "No valid credentials found")
 }
 
 // Request opens/creates the remote file.
 func (c *Client) Request() *model.PipelineError {
 	var err error
 	if c.Info.Rule.IsSend {
-		c.remoteFile, err = c.client.Create(c.Info.Transfer.DestPath)
+		c.remoteFile, err = c.client.Create(c.Info.Rule.Path + "/" + c.Info.Transfer.DestPath)
 		if err != nil {
-			return model.NewPipelineError(model.TeForbidden, err.Error())
+			return model.NewPipelineError(model.TeExternalOperation, "Remote pre-tasks failed")
 		}
 	} else {
 		c.remoteFile, err = c.client.Open(c.Info.Transfer.SourcePath)
 		if err != nil {
-			return model.NewPipelineError(model.TeFileNotFound, err.Error())
+			if err == os.ErrNotExist {
+				return model.NewPipelineError(model.TeFileNotFound, "Target file does not exist")
+			}
+			return model.NewPipelineError(model.TeExternalOperation, "Remote pre-tasks failed")
 		}
 	}
 	return nil
@@ -106,9 +110,6 @@ func (c *Client) Request() *model.PipelineError {
 // Data copies the content of the source file into the destination file.
 func (c *Client) Data(file io.ReadWriteCloser) *model.PipelineError {
 	defer func() {
-		_ = c.remoteFile.Close()
-		_ = c.client.Close()
-		_ = c.conn.Close()
 		_ = file.Close()
 	}()
 
@@ -117,9 +118,27 @@ func (c *Client) Data(file io.ReadWriteCloser) *model.PipelineError {
 		_, err = c.remoteFile.ReadFrom(file)
 	} else {
 		_, err = c.remoteFile.WriteTo(file)
+		if err == nil {
+			_, err = c.remoteFile.Write([]byte{})
+		}
 	}
 	if err != nil {
 		return model.NewPipelineError(model.TeDataTransfer, err.Error())
+	}
+	return nil
+}
+
+// Close ends the SFTP session and closes the connection.
+func (c *Client) Close(pErr *model.PipelineError) *model.PipelineError {
+	defer func() {
+		_ = c.client.Close()
+		_ = c.conn.Close()
+	}()
+
+	if pErr == nil {
+		if err := c.remoteFile.Close(); err != nil {
+			return model.NewPipelineError(model.TeExternalOperation, "Remote post-tasks failed")
+		}
 	}
 	return nil
 }

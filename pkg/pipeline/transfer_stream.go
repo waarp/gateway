@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 
@@ -21,7 +22,7 @@ type TransferStream struct {
 // NewTransferStream initialises a new stream for the given transfer. This stream
 // can then be used to execute a transfer.
 func NewTransferStream(logger *log.Logger, db *database.Db, root string,
-	trans model.Transfer) (*TransferStream, error) {
+	trans model.Transfer) (*TransferStream, *model.PipelineError) {
 
 	if trans.ID == 0 {
 		if err := createTransfer(logger, db, &trans); err != nil {
@@ -40,7 +41,8 @@ func NewTransferStream(logger *log.Logger, db *database.Db, root string,
 
 	t.Pipeline.Rule = &model.Rule{ID: trans.RuleID}
 	if err := t.Db.Get(t.Rule); err != nil {
-		return nil, err
+		logger.Criticalf("Failed to retrieve transfer rule: %s", err.Error())
+		return nil, &model.PipelineError{Kind: model.KindDatabase}
 	}
 
 	t.Signals = Signals.Add(t.Transfer.ID)
@@ -74,6 +76,12 @@ func (t *TransferStream) Start() (err *model.PipelineError) {
 }
 
 func (t *TransferStream) Read(p []byte) (n int, err error) {
+	if t.Transfer.Step == model.StepPreTasks {
+		t.Transfer.Step = model.StepData
+		if dbErr := t.Transfer.Update(t.Db); dbErr != nil {
+			return 0, &model.PipelineError{Kind: model.KindDatabase}
+		}
+	}
 	if e := checkSignal(t.Signals); e != nil {
 		return 0, e
 	}
@@ -87,6 +95,12 @@ func (t *TransferStream) Read(p []byte) (n int, err error) {
 }
 
 func (t *TransferStream) Write(p []byte) (n int, err error) {
+	if t.Transfer.Step == model.StepPreTasks {
+		t.Transfer.Step = model.StepData
+		if dbErr := t.Transfer.Update(t.Db); dbErr != nil {
+			return 0, &model.PipelineError{Kind: model.KindDatabase}
+		}
+	}
 	if e := checkSignal(t.Signals); e != nil {
 		return 0, e
 	}
@@ -101,41 +115,57 @@ func (t *TransferStream) Write(p []byte) (n int, err error) {
 
 // ReadAt reads the stream, starting at the given offset.
 func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
+	if t.Transfer.Step == model.StepPreTasks {
+		t.Transfer.Step = model.StepData
+		if dbErr := t.Transfer.Update(t.Db); dbErr != nil {
+			return 0, &model.PipelineError{Kind: model.KindDatabase}
+		}
+	}
 	if e := checkSignal(t.Signals); e != nil {
-		t.Logger.Criticalf("SIGNAL RECEIVED ON READ")
 		return 0, e
 	}
 
 	n, err = t.File.ReadAt(p, off)
 	t.Transfer.Progress += uint64(n)
-	if err := t.Transfer.Update(t.Db); err != nil {
-		return 0, err
+	if err != nil && err != io.EOF {
+		t.Transfer.Error = model.NewTransferError(model.TeDataTransfer, err.Error())
+		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
-	return
+	if dbErr := t.Transfer.Update(t.Db); dbErr != nil {
+		return 0, &model.PipelineError{Kind: model.KindDatabase}
+	}
+	return n, err
 }
 
 // WriteAt writes the given bytes to the stream, starting at the given offset.
 func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
+	if t.Transfer.Step == model.StepPreTasks {
+		t.Transfer.Step = model.StepData
+		if dbErr := t.Transfer.Update(t.Db); dbErr != nil {
+			return 0, &model.PipelineError{Kind: model.KindDatabase}
+		}
+	}
 	if e := checkSignal(t.Signals); e != nil {
-		t.Logger.Criticalf("SIGNAL RECEIVED ON WRITE")
 		return 0, e
 	}
 
 	n, err = t.File.WriteAt(p, off)
 	t.Transfer.Progress += uint64(n)
-	if err := t.Transfer.Update(t.Db); err != nil {
-		return 0, err
+	if err != nil {
+		t.Transfer.Error = model.NewTransferError(model.TeDataTransfer, err.Error())
+		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
-	return
+	if dbErr := t.Transfer.Update(t.Db); dbErr != nil {
+		return 0, &model.PipelineError{Kind: model.KindDatabase}
+	}
+	return n, err
 }
 
 // Finalize closes the file, and then (if the file is the transfer's destination)
 // moves the file from the temporary directory to its final destination.
 // The method returns an error if the file cannot be move.
 func (t *TransferStream) Finalize() *model.PipelineError {
-	if e := t.File.Close(); e != nil {
-		t.Logger.Warningf("Failed to close the local file: %s", e.Error())
-	}
+	_ = t.File.Close()
 
 	if !t.Rule.IsSend {
 		path := filepath.Clean(filepath.Join(t.Root, t.Rule.Path, t.Transfer.DestPath))

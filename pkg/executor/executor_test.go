@@ -50,6 +50,7 @@ func TestExecutorRunTransfer(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "test_rule",
 				IsSend: true,
+				Path:   ".",
 			}
 			So(db.Create(rule), ShouldBeNil)
 
@@ -86,7 +87,11 @@ func TestExecutorRunTransfer(t *testing.T) {
 						})
 
 						Convey("Then the corresponding `TransferHistory` entry should exist", func() {
-							hist := &model.TransferHistory{
+							var results []model.TransferHistory
+							So(db.Select(&results, nil), ShouldBeNil)
+							So(results, ShouldNotBeEmpty)
+
+							expected := model.TransferHistory{
 								ID:             trans.ID,
 								Owner:          trans.Owner,
 								IsServer:       false,
@@ -98,12 +103,11 @@ func TestExecutorRunTransfer(t *testing.T) {
 								DestFilename:   trans.DestPath,
 								Rule:           rule.Name,
 								Start:          trans.Start,
+								Stop:           results[0].Stop,
 								Status:         model.StatusDone,
 							}
 
-							exist, err := db.Exists(hist)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(results[0], ShouldResemble, expected)
 						})
 					})
 				})
@@ -353,6 +357,43 @@ func TestExecutorRunTransfer(t *testing.T) {
 						})
 					})
 				})
+
+				Convey("Given that the remote post-tasks fail", func() {
+					ClientsConstructors["test"] = NewCloseFail
+
+					Convey("When calling the `runTransfer` method", func() {
+						exe.runTransfer(stream)
+
+						Convey("Then the `Transfer` entry should no longer exist", func() {
+							exist, err := db.Exists(trans)
+							So(err, ShouldBeNil)
+							So(exist, ShouldBeFalse)
+						})
+
+						Convey("Then the corresponding `TransferHistory` entry "+
+							"should exist with an ERROR status", func() {
+							hist := &model.TransferHistory{
+								ID:             trans.ID,
+								Owner:          trans.Owner,
+								IsServer:       false,
+								IsSend:         true,
+								Account:        account.Login,
+								Agent:          remote.Name,
+								Protocol:       remote.Protocol,
+								SourceFilename: trans.SourcePath,
+								DestFilename:   trans.DestPath,
+								Rule:           rule.Name,
+								Start:          trans.Start,
+								Status:         model.StatusError,
+							}
+
+							So(db.Get(hist), ShouldBeNil)
+							expErr := model.NewTransferError(model.TeExternalOperation,
+								"remote post-tasks failed")
+							So(hist.Error, ShouldResemble, expErr)
+						})
+					})
+				})
 			})
 		})
 	})
@@ -390,7 +431,7 @@ func TestTransferResume(t *testing.T) {
 		rule := &model.Rule{
 			Name:   "resume",
 			IsSend: true,
-			Path:   "resume",
+			Path:   ".",
 		}
 		So(db.Create(rule), ShouldBeNil)
 
@@ -419,8 +460,8 @@ func TestTransferResume(t *testing.T) {
 				IsServer:   false,
 				AgentID:    remote.ID,
 				AccountID:  account.ID,
-				SourcePath: "file.src",
-				DestPath:   "file.dst",
+				SourcePath: "executor.go",
+				DestPath:   "executor.dst",
 				Start:      time.Now().Truncate(time.Second),
 				Step:       model.StepPreTasks,
 				Status:     model.StatusPlanned,
@@ -489,8 +530,8 @@ func TestTransferResume(t *testing.T) {
 				IsServer:   false,
 				AgentID:    remote.ID,
 				AccountID:  account.ID,
-				SourcePath: "file.src",
-				DestPath:   "file.dst",
+				SourcePath: "executor.go",
+				DestPath:   "executor.dst",
 				Start:      time.Now().Truncate(time.Second),
 				Step:       model.StepData,
 				Status:     model.StatusPlanned,
@@ -575,8 +616,8 @@ func TestTransferResume(t *testing.T) {
 				IsServer:   false,
 				AgentID:    remote.ID,
 				AccountID:  account.ID,
-				SourcePath: "file.src",
-				DestPath:   "file.dst",
+				SourcePath: "executor.go",
+				DestPath:   "executor.dst",
 				Start:      time.Now().Truncate(time.Second),
 				Step:       model.StepPostTasks,
 				Status:     model.StatusPlanned,

@@ -19,11 +19,12 @@ func TestFileReader(t *testing.T) {
 	logger := log.NewLogger("test_file_reader", testLogConf)
 
 	Convey("Given a database with a rule, a localAgent and a localAccount", t, func() {
-		root := "test_file_reader"
+		root, err := ioutil.TempDir("", "gateway-test")
+		So(err, ShouldBeNil)
+		So(os.Mkdir(root+"/test", 0700), ShouldBeNil)
 		Reset(func() { _ = os.RemoveAll(root) })
-		So(os.MkdirAll(root+"/test", 0700), ShouldBeNil)
 
-		err := ioutil.WriteFile(root+"/test/file.test", []byte("Test file"), 0600)
+		err = ioutil.WriteFile(root+"/test/file.test", []byte("Test file"), 0600)
 		So(err, ShouldBeNil)
 
 		db := database.GetTestDatabase()

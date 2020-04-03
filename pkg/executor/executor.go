@@ -73,7 +73,7 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) (client pipeline.C
 	return client, te
 }
 
-func (e *Executor) prologue(client pipeline.Client) *model.PipelineError {
+func (e *Executor) prologue(client pipeline.Client, trans *model.Transfer) *model.PipelineError {
 	if err := client.Connect(); err != nil {
 		msg := fmt.Sprintf("Failed to connect to remote agent: %s", err)
 		e.Logger.Error(msg)
@@ -89,6 +89,9 @@ func (e *Executor) prologue(client pipeline.Client) *model.PipelineError {
 	if err := client.Request(); err != nil {
 		msg := fmt.Sprintf("Failed to make transfer request: %s", err)
 		e.Logger.Error(msg)
+		if err.Cause.Code == model.TeExternalOperation {
+			trans.Step = model.StepPreTasks
+		}
 		return err
 	}
 
@@ -106,32 +109,44 @@ func (e *Executor) data(stream *pipeline.TransferStream, client pipeline.Client)
 		return model.NewPipelineError(model.TeInternal, err.Error())
 	}
 
-	err := client.Data(stream)
-	if err != nil {
+	if err := client.Data(stream); err != nil {
 		e.Logger.Errorf("Error while transmitting data: %s", err)
+		return err
 	}
-	return err
+	return nil
 }
 
 func (e *Executor) runTransfer(stream *pipeline.TransferStream) {
 	tErr := func() *model.PipelineError {
+		if sErr := stream.Start(); sErr != nil {
+			return sErr
+		}
+
 		client, gErr := e.getClient(stream)
 		if gErr != nil {
 			return gErr
 		}
 
-		if pErr := e.prologue(client); pErr != nil {
+		if pErr := e.prologue(client, stream.Transfer); pErr != nil {
+			_ = client.Close(pErr)
 			return pErr
 		}
 
 		if pErr := stream.PreTasks(); pErr != nil {
+			_ = client.Close(pErr)
 			return pErr
 		}
 		if dErr := e.data(stream, client); dErr != nil {
+			_ = client.Close(dErr)
 			return dErr
 		}
 		if pErr := stream.PostTasks(); pErr != nil {
+			_ = client.Close(pErr)
 			return pErr
+		}
+		if cErr := client.Close(nil); cErr != nil {
+			e.Logger.Errorf("Remote post-task failed")
+			return cErr
 		}
 		if fErr := stream.Finalize(); fErr != nil {
 			return fErr
