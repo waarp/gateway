@@ -6,6 +6,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"github.com/go-xorm/builder"
 )
 
 // InUser is the JSON representation of a user account in requests made to the
@@ -57,7 +58,7 @@ func getUser(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			if err != nil {
 				return &notFound{}
 			}
-			result := &model.User{ID: id}
+			result := &model.User{ID: id, Owner: database.Owner}
 
 			if err := get(db, result); err != nil {
 				return err
@@ -84,6 +85,7 @@ func listUsers(logger *log.Logger, db *database.Db) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
+			filters.Conditions = builder.Eq{"owner": database.Owner}
 
 			var results []model.User
 			if err := db.Select(&results, filters); err != nil {
@@ -131,7 +133,7 @@ func updateUser(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return &notFound{}
 			}
 
-			if err := exist(db, &model.User{ID: id}); err != nil {
+			if err := exist(db, &model.User{ID: id, Owner: database.Owner}); err != nil {
 				return err
 			}
 
@@ -162,7 +164,7 @@ func deleteUser(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return &notFound{}
 			}
 
-			user := &model.User{ID: id}
+			user := &model.User{ID: id, Owner: database.Owner}
 			if err := get(db, user); err != nil {
 				return err
 			}
