@@ -47,7 +47,7 @@ func TestSFTPPackage(t *testing.T) {
 		}
 		So(db.Create(localAccount), ShouldBeNil)
 
-		localCert := &model.Cert{
+		localServerCert := &model.Cert{
 			OwnerType:   localAgent.TableName(),
 			OwnerID:     localAgent.ID,
 			Name:        "test_sftp_server_cert",
@@ -55,7 +55,16 @@ func TestSFTPPackage(t *testing.T) {
 			PublicKey:   testPBK,
 			Certificate: []byte("cert"),
 		}
-		So(db.Create(localCert), ShouldBeNil)
+		So(db.Create(localServerCert), ShouldBeNil)
+
+		localUserCert := &model.Cert{
+			OwnerType:   localAccount.TableName(),
+			OwnerID:     localAccount.ID,
+			Name:        "test_sftp_user_cert",
+			PublicKey:   []byte(rsaPBK),
+			Certificate: []byte{'.'},
+		}
+		So(db.Create(localUserCert), ShouldBeNil)
 
 		remoteAgent := &model.RemoteAgent{
 			Name:     "test_sftp_partner",
@@ -68,18 +77,27 @@ func TestSFTPPackage(t *testing.T) {
 		remoteAccount := &model.RemoteAccount{
 			RemoteAgentID: remoteAgent.ID,
 			Login:         "toto",
-			Password:      []byte(pwd),
+			Password:      []byte("pwd"),
 		}
 		So(db.Create(remoteAccount), ShouldBeNil)
 
-		remoteCert := &model.Cert{
+		remoteServerCert := &model.Cert{
 			OwnerType:   remoteAgent.TableName(),
 			OwnerID:     remoteAgent.ID,
 			Name:        "test_sftp_partner_cert",
 			PublicKey:   testPBK,
 			Certificate: []byte("cert"),
 		}
-		So(db.Create(remoteCert), ShouldBeNil)
+		So(db.Create(remoteServerCert), ShouldBeNil)
+
+		remoteUserCert := &model.Cert{
+			OwnerType:   remoteAccount.TableName(),
+			OwnerID:     remoteAccount.ID,
+			Name:        "test_sftp_account_cert",
+			PrivateKey:  []byte(rsaPK),
+			Certificate: []byte{'.'},
+		}
+		So(db.Create(remoteUserCert), ShouldBeNil)
 
 		receive := &model.Rule{
 			Name:    "receive",
@@ -147,7 +165,7 @@ func TestSFTPPackage(t *testing.T) {
 		So(db.Create(sendErrorTask), ShouldBeNil)
 		So(db.Create(receiveErrorTask), ShouldBeNil)
 
-		config, err := loadSSHConfig(db, localCert)
+		config, err := loadSSHConfig(db, localServerCert)
 		So(err, ShouldBeNil)
 
 		ctx, cancel := context.WithCancel(context.Background())

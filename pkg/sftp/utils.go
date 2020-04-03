@@ -40,36 +40,58 @@ func makeFixedHostKeys(keys []ssh.PublicKey) ssh.HostKeyCallback {
 	return hk.check
 }
 
-func getSSHConfig(certs []model.Cert, a *model.RemoteAccount) (*ssh.ClientConfig, error) {
-	pwd, err := model.DecryptPassword(a.Password)
+func exist(slice []string, elem string) bool {
+	for _, e := range slice {
+		if e == elem {
+			return true
+		}
+	}
+	return false
+}
+
+func getSSHConfig(info *model.OutTransferInfo) (*ssh.ClientConfig, error) {
+	pwd, err := model.DecryptPassword(info.Account.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	keys := []ssh.PublicKey{}
-	types := map[string]struct{}{}
-	for _, c := range certs {
+	hostKeys := []ssh.PublicKey{}
+	algos := []string{}
+	for _, c := range info.ServerCerts {
 		key, _, _, _, err := ssh.ParseAuthorizedKey(c.PublicKey) //nolint:dogsled
 		if err != nil {
 			return nil, err
 		}
 
-		keys = append(keys, key)
-		types[key.Type()] = struct{}{}
-	}
-	algos := make([]string, len(types))
-	i := 0
-	for k := range types {
-		algos[i] = k
-		i++
+		hostKeys = append(hostKeys, key)
+		if !exist(algos, key.Type()) {
+			algos = append(algos, key.Type())
+		}
 	}
 
-	return &ssh.ClientConfig{
-		User: a.Login,
+	config := &ssh.ClientConfig{
+		User: info.Account.Login,
 		Auth: []ssh.AuthMethod{
 			ssh.Password(string(pwd)),
 		},
-		HostKeyCallback:   makeFixedHostKeys(keys),
+		HostKeyCallback:   makeFixedHostKeys(hostKeys),
 		HostKeyAlgorithms: algos,
-	}, nil
+	}
+
+	signers := []ssh.Signer{}
+	for _, c := range info.ClientCerts {
+		signer, err := ssh.ParsePrivateKey(c.PrivateKey)
+		if err != nil {
+			continue
+		}
+		signers = append(signers, signer)
+	}
+	if len(signers) > 0 {
+		config.Auth = []ssh.AuthMethod{
+			ssh.PublicKeys(signers...),
+			ssh.Password(string(pwd)),
+		}
+	}
+
+	return config, nil
 }

@@ -125,3 +125,17 @@ func (l *LocalAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 
 	return nil
 }
+
+// GetCerts fetch in the database then return the associated Certificates if they exist
+func (l *LocalAccount) GetCerts(ses database.Accessor) ([]Cert, error) {
+	filters := &database.Filters{
+		Conditions: builder.And(builder.Eq{"owner_type": l.TableName()},
+			builder.Eq{"owner_id": l.ID}),
+	}
+
+	results := []Cert{}
+	if err := ses.Select(&results, filters); err != nil {
+		return nil, err
+	}
+	return results, nil
+}

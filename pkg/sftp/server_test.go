@@ -114,8 +114,8 @@ func TestSSHServer(t *testing.T) {
 	logger := log.NewLogger("test_sftp_server")
 
 	Convey("Given an SFTP server", t, func() {
-		root, err := ioutil.TempDir("", "gateway-test")
-		So(err, ShouldBeNil)
+		root := "test_ssh_server"
+		So(os.Mkdir(root, 0700), ShouldBeNil)
 		Reset(func() { _ = os.RemoveAll(root) })
 
 		listener, err := net.Listen("tcp", "localhost:0")

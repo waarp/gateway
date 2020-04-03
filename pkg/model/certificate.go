@@ -30,10 +30,10 @@ type Cert struct {
 	PrivateKey []byte `xorm:"'private_key'"`
 
 	// The certificate's public key
-	PublicKey []byte `xorm:"notnull 'public_key'"`
+	PublicKey []byte `xorm:"'public_key'"`
 
 	// The content of the certificate
-	Certificate []byte `xorm:"notnull 'cert'"`
+	Certificate []byte `xorm:"'cert'"`
 }
 
 // TableName returns the name of the certificates table.
@@ -56,14 +56,13 @@ func (c *Cert) ValidateInsert(acc database.Accessor) error {
 	if c.Name == "" {
 		return database.InvalidError("The certificate's name cannot be empty")
 	}
-	if c.OwnerType == (&LocalAgent{}).TableName() && len(c.PrivateKey) == 0 {
+	if (c.OwnerType == "remote_accounts" || c.OwnerType == "local_agents") &&
+		len(c.PrivateKey) == 0 {
 		return database.InvalidError("The certificate's private key is missing")
 	}
-	if len(c.PublicKey) == 0 {
+	if (c.OwnerType == "remote_agents" || c.OwnerType == "local_accounts") &&
+		len(c.PublicKey) == 0 {
 		return database.InvalidError("The certificate's public key is missing")
-	}
-	if len(c.Certificate) == 0 {
-		return database.InvalidError("The certificate's content is missing")
 	}
 
 	var res []map[string]interface{}

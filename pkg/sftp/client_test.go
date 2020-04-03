@@ -1,6 +1,7 @@
 package sftp
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,12 +18,23 @@ import (
 )
 
 func init() {
+	publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rsaPBK))
+	if err != nil {
+		log.Fatalf("Failed to parse user public key: %s", err)
+	}
+
 	conf := &ssh.ServerConfig{
-		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			if c.User() == testLogin && string(pass) == testPassword {
-				return nil, nil
+		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+			if conn.User() == testLogin && bytes.Equal(key.Marshal(), publicKey.Marshal()) {
+				return &ssh.Permissions{}, nil
 			}
-			return nil, fmt.Errorf("password '%s' rejected for user '%s'", pass, c.User())
+			return nil, fmt.Errorf("public key '%s' rejected for user '%s'", key.Type(), conn.User())
+		},
+		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
+			if conn.User() == testLogin && string(pass) == testPassword {
+				return &ssh.Permissions{}, nil
+			}
+			return nil, fmt.Errorf("password '%s' rejected for user '%s'", pass, conn.User())
 		},
 	}
 
@@ -159,10 +171,13 @@ func TestAuthenticate(t *testing.T) {
 			client.Info = model.OutTransferInfo{
 				Account: &model.RemoteAccount{
 					Login:    testLogin,
-					Password: []byte(testPassword),
+					Password: []byte("testPassword"),
 				},
-				Certs: []model.Cert{{
+				ServerCerts: []model.Cert{{
 					PublicKey: testPBK,
+				}},
+				ClientCerts: []model.Cert{{
+					PrivateKey: []byte(rsaPK),
 				}},
 			}
 
@@ -184,7 +199,7 @@ func TestAuthenticate(t *testing.T) {
 					Login:    testLogin,
 					Password: []byte("tutu"),
 				},
-				Certs: []model.Cert{{
+				ServerCerts: []model.Cert{{
 					PublicKey: testPBK,
 				}},
 			}
@@ -218,7 +233,7 @@ func TestRequest(t *testing.T) {
 				Login:    testLogin,
 				Password: []byte(testPassword),
 			},
-			Certs: []model.Cert{{
+			ServerCerts: []model.Cert{{
 				PublicKey: testPBK,
 			}},
 		}
@@ -306,7 +321,7 @@ func TestData(t *testing.T) {
 				Login:    testLogin,
 				Password: []byte(testPassword),
 			},
-			Certs: []model.Cert{{
+			ServerCerts: []model.Cert{{
 				PublicKey: testPBK,
 			}},
 		}

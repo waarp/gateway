@@ -1,6 +1,7 @@
 package sftp
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -26,13 +27,34 @@ func loadCert(db *database.Db, server *model.LocalAgent) (*model.Cert, error) {
 
 func loadSSHConfig(db *database.Db, cert *model.Cert) (*ssh.ServerConfig, error) {
 	conf := &ssh.ServerConfig{
-		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			user := &model.LocalAccount{Login: c.User()}
+		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+			user := &model.LocalAccount{Login: conn.User()}
 			if err := db.Get(user); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("authentication failed")
+			}
+			certs, err := user.GetCerts(db)
+			if err != nil {
+				return nil, fmt.Errorf("authentication failed")
+			}
+
+			for _, c := range certs {
+				publicKey, _, _, _, err := ssh.ParseAuthorizedKey(c.PublicKey)
+				if err != nil {
+					return nil, err
+				}
+				if bytes.Equal(publicKey.Marshal(), key.Marshal()) {
+					return &ssh.Permissions{}, nil
+				}
+			}
+			return nil, fmt.Errorf("authentication failed")
+		},
+		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
+			user := &model.LocalAccount{Login: conn.User()}
+			if err := db.Get(user); err != nil {
+				return nil, fmt.Errorf("authentication failed")
 			}
 			if err := bcrypt.CompareHashAndPassword(user.Password, pass); err != nil {
-				return nil, fmt.Errorf("authentication failed (%s)", err)
+				return nil, fmt.Errorf("authentication failed")
 			}
 
 			return &ssh.Permissions{}, nil

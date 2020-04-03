@@ -67,7 +67,7 @@ func (c *Client) Connect() *model.PipelineError {
 
 // Authenticate opens the SSH tunnel to the remote.
 func (c *Client) Authenticate() *model.PipelineError {
-	conf, err := getSSHConfig(c.Info.Certs, c.Info.Account)
+	conf, err := getSSHConfig(&c.Info)
 	if err != nil {
 		return model.NewPipelineError(model.TeInternal, err.Error())
 	}

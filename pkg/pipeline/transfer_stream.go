@@ -73,6 +73,19 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.Db,
 // Start opens/creates the stream's local file. If necessary, the method also
 // creates the file's parent directories.
 func (t *TransferStream) Start() (err *model.PipelineError) {
+	if oldStep := t.Transfer.Step; oldStep != "" {
+		defer func() {
+			if err == nil {
+				t.Transfer.Step = oldStep
+			}
+		}()
+	}
+	t.Transfer.Step = model.StepSetup
+	if err := t.Transfer.Update(t.Db); err != nil {
+		t.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
+		return &model.PipelineError{Kind: model.KindDatabase}
+	}
+
 	if !t.Rule.IsSend {
 		if err := makeDir(t.Root, t.Rule.Path); err != nil {
 			t.Logger.Errorf("Failed to create dest directory: %s", err)
