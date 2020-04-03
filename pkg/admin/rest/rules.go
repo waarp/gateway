@@ -64,9 +64,9 @@ func FromRule(r *model.Rule, access *RuleAccess) *OutRule {
 func FromRules(rs []model.Rule, accesses map[uint64]RuleAccess) []OutRule {
 	rules := make([]OutRule, len(rs))
 	for i, r := range rs {
-		rule := &r
+		rule := r
 		access := accesses[rule.ID]
-		rules[i] = *FromRule(rule, &access)
+		rules[i] = *FromRule(&rule, &access)
 	}
 	return rules
 }
@@ -96,7 +96,7 @@ func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location2(r, rule.Name))
+			w.Header().Set("Location", location(r, rule.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

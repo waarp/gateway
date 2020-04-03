@@ -159,7 +159,7 @@ func updateTasks(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location2(r))
+			w.Header().Set("Location", location(r))
 			w.WriteHeader(http.StatusCreated)
 
 			return nil

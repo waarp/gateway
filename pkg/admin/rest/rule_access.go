@@ -10,37 +10,28 @@ import (
 	"github.com/go-xorm/builder"
 )
 
+// AuthorizedRules represents a list of all the rules which an agent/account
+// is allowed to use
 type AuthorizedRules struct {
 	Sending   []string `json:"sending"`
 	Reception []string `json:"reception"`
 }
 
 func getAuthorizedRules(db *database.DB, objType string, objID uint64) (*AuthorizedRules, error) {
-	access := []model.RuleAccess{}
-	accessFilters := &database.Filters{Conditions: builder.Eq{"object_type": objType,
-		"object_id": objID}}
-
-	if err := db.Select(&access, accessFilters); err != nil {
-		return nil, err
-	}
-
-	ruleIDs := make([]uint64, len(access))
-	for i := range access {
-		ruleIDs[i] = access[i].RuleID
-	}
-
-	rules := []model.Rule{}
-	ruleFilters := &database.Filters{Conditions: builder.In("id", ruleIDs)}
-	if err := db.Select(&rules, ruleFilters); err != nil {
+	query := "SELECT name, send FROM rules WHERE (id IN (SELECT DISTINCT " +
+		"rule_id FROM rule_access WHERE object_id = ? AND object_type = ?)) OR " +
+		"(SELECT COUNT(*) FROM rule_access WHERE rule_id = id) = 0"
+	rules, err := db.Query(query, objID, objType)
+	if err != nil {
 		return nil, err
 	}
 
 	authorized := &AuthorizedRules{}
-	for _, r := range rules {
-		if r.IsSend {
-			authorized.Sending = append(authorized.Sending, r.Name)
+	for _, rule := range rules {
+		if rule["send"].(int64) != 0 { // if send == true
+			authorized.Sending = append(authorized.Sending, rule["name"].(string))
 		} else {
-			authorized.Reception = append(authorized.Reception, r.Name)
+			authorized.Reception = append(authorized.Reception, rule["name"].(string))
 		}
 	}
 	return authorized, nil
@@ -142,6 +133,8 @@ func revokeRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// RuleAccess is the struct containing all the agents/accounts which are allowed
+// to use a given rule.
 type RuleAccess struct {
 	LocalServers   []string            `json:"servers,omitempty"`
 	RemotePartners []string            `json:"partners,omitempty"`
@@ -267,8 +260,8 @@ func makeRuleAccess(db *database.DB, rule *model.Rule) (*RuleAccess, error) {
 func makeRulesAccesses(db *database.DB, rules []model.Rule) (map[uint64]RuleAccess, error) {
 	accesses := map[uint64]RuleAccess{}
 	for _, r := range rules {
-		rule := &r
-		access, err := makeRuleAccess(db, rule)
+		rule := r
+		access, err := makeRuleAccess(db, &rule)
 		if err != nil {
 			return nil, err
 		}

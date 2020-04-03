@@ -31,6 +31,7 @@ func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent, *model.Rem
 	return parent, result, nil
 }
 
+//nolint:dupl
 func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "login ASC",
@@ -141,7 +142,7 @@ func createRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location2(r, account.Login))
+			w.Header().Set("Location", location(r, account.Login))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

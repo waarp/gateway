@@ -244,7 +244,7 @@ func restartTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			r.URL.Path = APIPath + TransfersPath
-			w.Header().Set("Location", location(r, id))
+			w.Header().Set("Location", location(r, fmt.Sprint(id)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

@@ -52,6 +52,7 @@ func getLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+//nolint:dupl
 func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "login ASC",
@@ -114,7 +115,7 @@ func createLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location2(r, account.Login))
+			w.Header().Set("Location", location(r, account.Login))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

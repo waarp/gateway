@@ -138,7 +138,7 @@ func createCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location2(r, cert.Name))
+			w.Header().Set("Location", location(r, cert.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

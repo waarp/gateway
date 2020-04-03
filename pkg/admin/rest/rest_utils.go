@@ -74,7 +74,6 @@ func handleErrors(w http.ResponseWriter, logger *log.Logger, err error) {
 	}
 }
 
-// Deprecated: IDs are replaced with names
 func parseID(r *http.Request, param string) (uint64, error) {
 	id, err := strconv.ParseUint(mux.Vars(r)[param], 10, 64)
 	if err != nil {
@@ -101,15 +100,6 @@ func readJSON(r *http.Request, dest interface{}) error {
 	return nil
 }
 
-func exist(acc database.Accessor, bean interface{}) error {
-	if ok, err := acc.Exists(bean); err != nil {
-		return err
-	} else if !ok {
-		return &notFound{}
-	}
-	return nil
-}
-
 func get(acc database.Accessor, bean interface{}) error {
 	if err := acc.Get(bean); err != nil {
 		if err == database.ErrNotFound {
@@ -120,20 +110,7 @@ func get(acc database.Accessor, bean interface{}) error {
 	return nil
 }
 
-// Deprecated: IDs are replaced with names
-func location(r *http.Request, id ...uint64) string {
-	r.URL.RawQuery = ""
-	r.URL.Fragment = ""
-	if len(id) > 0 {
-		if strings.HasSuffix(r.URL.String(), "/") {
-			return fmt.Sprintf("%s%v", r.URL.String(), id[0])
-		}
-		return fmt.Sprintf("%s/%v", r.URL.String(), id[0])
-	}
-	return r.URL.String()
-}
-
-func location2(r *http.Request, names ...string) string {
+func location(r *http.Request, names ...string) string {
 	r.URL.RawQuery = ""
 	r.URL.Fragment = ""
 	for _, name := range names {
@@ -150,5 +127,5 @@ func location2(r *http.Request, names ...string) string {
 
 func locationUpdate(r *http.Request, names ...string) string {
 	r.URL.Path = filepath.Dir(r.URL.Path)
-	return location2(r, names...)
+	return location(r, names...)
 }

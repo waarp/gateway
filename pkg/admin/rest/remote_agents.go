@@ -34,7 +34,7 @@ func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location2(r, agent.Name))
+			w.Header().Set("Location", location(r, agent.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
