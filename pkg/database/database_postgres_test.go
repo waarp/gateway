@@ -20,7 +20,7 @@ func init() {
 	psqlConfig = &conf.ServerConfig{}
 	psqlConfig.Database.Type = postgres
 	psqlConfig.Database.User = "waarp"
-	psqlConfig.Database.Name = "waarp_gatewayd_test" + "' sslmode='disable"
+	psqlConfig.Database.Name = "waarp_gatewayd_test"
 	psqlConfig.Database.Address = "localhost"
 	psqlConfig.Database.AESPassphrase = fmt.Sprintf("%s%spsql_test_passphrase.aes",
 		os.TempDir(), string(os.PathSeparator))

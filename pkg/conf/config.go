@@ -37,10 +37,11 @@ type AdminConfig struct {
 type DatabaseConfig struct {
 	Type          string `ini-name:"Type" default:"sqlite" description:"Name of the RDBMS used for the gateway database. Possible values: sqlite, mysql, postgresql"`
 	Address       string `ini-name:"Address" default:"waarp-gateway.db" description:"Address of the database"`
-	Port          uint16 `ini-name:"Port" default:"" description:"Port of the database"`
 	Name          string `ini-name:"Name" default:"waarp_gatewayd" description:"The name of the database"`
 	User          string `ini-name:"User" default:"" description:"The name of the gateway database user"`
 	Password      string `ini-name:"Password" default:"" description:"The password of the gateway database user"`
+	TLSCert       string `ini-name:"TLSCert" default:"" description:"Path of the database TLS certificate file."`
+	TLSKey        string `ini-name:"TLSKey" default:"" description:"Path of the key of the TLS certificate file."`
 	AESPassphrase string `ini-name:"AESPassphrase" default:"passphrase.aes" description:"The path to the file containing the passphrase used to encrypt account passwords using AES"`
 }
 
