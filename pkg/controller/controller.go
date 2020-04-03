@@ -18,7 +18,7 @@ import (
 )
 
 // ServiceName is the name of the controller service
-const ServiceName = "executor"
+const ServiceName = "Controller"
 
 // Controller is the service responsible for checking the database for new
 // transfers at regular intervals, and starting those new transfers.
@@ -30,9 +30,7 @@ type Controller struct {
 	logger *log.Logger
 	state  service.State
 
-	wg   *sync.WaitGroup
-	pool chan model.Transfer
-
+	wg     *sync.WaitGroup
 	ctx    context.Context
 	cancel context.CancelFunc
 }
@@ -75,7 +73,6 @@ func (c *Controller) listen() {
 		for {
 			select {
 			case <-c.ctx.Done():
-				close(c.pool)
 				return
 			case <-c.ticker.C:
 			}
@@ -130,9 +127,7 @@ func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, erro
 
 // Start starts the transfer controller service.
 func (c *Controller) Start() error {
-	if c.logger == nil {
-		c.logger = log.NewLogger(ServiceName)
-	}
+	c.logger = log.NewLogger(ServiceName)
 
 	pipeline.TransferInCount.SetLimit(c.Conf.Controller.MaxTransfersIn)
 	pipeline.TransferOutCount.SetLimit(c.Conf.Controller.MaxTransfersOut)
@@ -140,6 +135,7 @@ func (c *Controller) Start() error {
 	c.state.Set(service.Running, "")
 
 	c.listen()
+	c.logger.Info("Controller started")
 
 	return nil
 }
@@ -150,6 +146,7 @@ func (c *Controller) Stop(ctx context.Context) error {
 		c.state.Set(service.Offline, "")
 		c.ticker.Stop()
 	}()
+	c.logger.Info("Shutting down controller...")
 
 	c.cancel()
 	finished := make(chan struct{})
@@ -160,8 +157,10 @@ func (c *Controller) Stop(ctx context.Context) error {
 
 	select {
 	case <-finished:
+		c.logger.Info("Shutdown complete")
 		return nil
 	case <-ctx.Done():
+		c.logger.Info("Shutdown failed, forcing exit")
 		return ctx.Err()
 	}
 }

@@ -65,10 +65,10 @@ type Accessor interface {
 // Db is the database service. It encapsulates a data connection and implements
 // Accessor
 type Db struct {
-	// The service logger
-	Logger *log.Logger
 	// The gateway configuration
 	Conf *conf.ServerConfig
+	// The service logger
+	logger *log.Logger
 	// The state of the database service
 	state service.State
 	// The Xorm engine handling the database requests
@@ -134,11 +134,11 @@ var supportedRBMS = map[string]dbinfo{}
 // cannot be reached, an error is returned.
 // If the service is already running, this function does nothing.
 func (db *Db) Start() error {
-	db.Logger = log.NewLogger(ServiceName)
+	db.logger = log.NewLogger(ServiceName)
 
-	db.Logger.Info("Starting database service...")
+	db.logger.Info("Starting database service...")
 	if code, _ := db.state.Get(); code != service.Offline && code != service.Error {
-		db.Logger.Info("Service is already running")
+		db.logger.Info("Service is already running")
 		return nil
 	}
 	db.state.Set(service.Starting, "")
@@ -147,14 +147,14 @@ func (db *Db) Start() error {
 
 	if err := loadAESKey(db.Conf.Database.AESPassphrase); err != nil {
 		db.state.Set(service.Error, err.Error())
-		db.Logger.Criticalf("Failed to load AES key: %s", err)
+		db.logger.Criticalf("Failed to load AES key: %s", err)
 		return err
 	}
 
 	driver, dsn, err := db.createConnectionInfo()
 	if err != nil {
 		db.state.Set(service.Error, err.Error())
-		db.Logger.Criticalf("Database configuration invalid: %s", err)
+		db.logger.Criticalf("Database configuration invalid: %s", err)
 		return err
 	}
 
@@ -162,7 +162,7 @@ func (db *Db) Start() error {
 	engine, err := xorm.NewEngine(db.driverName, dsn)
 	if err != nil {
 		db.state.Set(service.Error, err.Error())
-		db.Logger.Criticalf("Failed to open database: %s", err)
+		db.logger.Criticalf("Failed to open database: %s", err)
 		return err
 	}
 	db.engine = engine
@@ -171,7 +171,7 @@ func (db *Db) Start() error {
 
 	if err := db.engine.Ping(); err != nil {
 		db.state.Set(service.Error, err.Error())
-		db.Logger.Errorf("Failed to access database: %s", err)
+		db.logger.Errorf("Failed to access database: %s", err)
 		return err
 	}
 
@@ -179,11 +179,11 @@ func (db *Db) Start() error {
 
 	if err := initTables(db); err != nil {
 		db.state.Set(service.Error, err.Error())
-		db.Logger.Errorf("Failed to create tables: %s", err)
+		db.logger.Errorf("Failed to create tables: %s", err)
 		return err
 	}
 
-	db.Logger.Info("Startup successful")
+	db.logger.Info("Startup successful")
 
 	return nil
 }
@@ -191,10 +191,10 @@ func (db *Db) Start() error {
 // Stop shuts down the database service. If an error occurred during the shutdown,
 // an error is returned.
 // If the service is not running, this function does nothing.
-func (db *Db) Stop(ctx context.Context) error {
-	db.Logger.Info("Shutting down...")
+func (db *Db) Stop(_ context.Context) error {
+	db.logger.Info("Shutting down...")
 	if code, _ := db.state.Get(); code != service.Running {
-		db.Logger.Info("Service is already offline")
+		db.logger.Info("Service is already offline")
 		return nil
 	}
 	db.state.Set(service.ShuttingDown, "")
@@ -202,11 +202,11 @@ func (db *Db) Stop(ctx context.Context) error {
 	err := db.engine.Close()
 	if err != nil {
 		db.state.Set(service.Error, err.Error())
-		db.Logger.Infof("Error while closing the database: %s", err)
+		db.logger.Infof("Error while closing the database: %s", err)
 		return err
 	}
 	db.state.Set(service.Offline, "")
-	db.Logger.Info("Shutdown complete")
+	db.logger.Info("Shutdown complete")
 	db.engine = nil
 	return nil
 }
@@ -225,14 +225,14 @@ func ping(state *service.State, db xorm.Interface, logger *log.Logger) error {
 
 // State returns the state of the database service.
 func (db *Db) State() *service.State {
-	_ = ping(&db.state, db.engine, db.Logger)
+	_ = ping(&db.state, db.engine, db.logger)
 	return &db.state
 }
 
 // Get retrieves one record from the database and fills the bean with it. Non-empty
 // fields are used as conditions.
 func (db *Db) Get(bean interface{}) error {
-	db.Logger.Debugf("Get requested with %#v", bean)
+	db.logger.Debugf("Get requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
 	if err != nil {
@@ -253,7 +253,7 @@ func (db *Db) Get(bean interface{}) error {
 // and fills the bean with it. The bean should be of type []Struct or []*Struct,
 // and it should be empty.
 func (db *Db) Select(bean interface{}, filters *Filters) error {
-	db.Logger.Debugf("Select requested with %#v", bean)
+	db.logger.Debugf("Select requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
 	if err != nil {
@@ -273,7 +273,7 @@ func (db *Db) Select(bean interface{}, filters *Filters) error {
 // Create inserts the given bean in the database. If the struct cannot be inserted,
 // the function returns an error.
 func (db *Db) Create(bean interface{}) error {
-	db.Logger.Debugf("Create requested with %#v", bean)
+	db.logger.Debugf("Create requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
 	if err != nil {
@@ -293,7 +293,7 @@ func (db *Db) Create(bean interface{}) error {
 // Update updates the given bean in the database. If the struct cannot be updated,
 // the function returns an error.
 func (db *Db) Update(bean interface{}, id uint64, isReplace bool) error {
-	db.Logger.Debugf("Update requested with %#v", bean)
+	db.logger.Debugf("Update requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
 	if err != nil {
@@ -313,7 +313,7 @@ func (db *Db) Update(bean interface{}, id uint64, isReplace bool) error {
 // Delete deletes the given bean from the database. If the record cannot be deleted,
 // an error is returned.
 func (db *Db) Delete(bean interface{}) error {
-	db.Logger.Debugf("Delete requested with %#v", bean)
+	db.logger.Debugf("Delete requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
 	if err != nil {
@@ -333,7 +333,7 @@ func (db *Db) Delete(bean interface{}) error {
 // Exists checks if the given record exists in the database. If the database
 // cannot be queried, an error is returned.
 func (db *Db) Exists(bean interface{}) (bool, error) {
-	db.Logger.Debugf("Exists requested with %#v", bean)
+	db.logger.Debugf("Exists requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
 	if err != nil {
@@ -354,7 +354,7 @@ func (db *Db) Exists(bean interface{}) (bool, error) {
 // Execute executes the given SQL command. The command can be a raw string with
 // arguments, or an xorm.Builder struct.
 func (db *Db) Execute(sqlOrArgs ...interface{}) error {
-	db.Logger.Debugf("Execute requested with %#v", sqlOrArgs)
+	db.logger.Debugf("Execute requested with %#v", sqlOrArgs)
 
 	ses, err := db.BeginTransaction()
 	if err != nil {
@@ -374,7 +374,7 @@ func (db *Db) Execute(sqlOrArgs ...interface{}) error {
 // Query executes the given SQL query and returns the result. The query can be
 // a raw string with arguments, or an xorm.Builder struct.
 func (db *Db) Query(sqlOrArgs ...interface{}) ([]map[string]interface{}, error) {
-	db.Logger.Debugf("Query requested with %#v", sqlOrArgs)
+	db.logger.Debugf("Query requested with %#v", sqlOrArgs)
 
 	ses, err := db.BeginTransaction()
 	if err != nil {
@@ -410,7 +410,7 @@ func (db *Db) BeginTransaction() (ses *Session, err error) {
 
 	s := db.engine.NewSession()
 	if err = s.Begin(); err != nil {
-		if pErr := ping(&db.state, db.engine, db.Logger); pErr != nil {
+		if pErr := ping(&db.state, db.engine, db.logger); pErr != nil {
 			err = pErr
 			return
 		}
@@ -418,11 +418,11 @@ func (db *Db) BeginTransaction() (ses *Session, err error) {
 	}
 	ses = &Session{
 		session:    s,
-		logger:     db.Logger,
+		logger:     db.logger,
 		state:      &db.state,
 		testDbLock: db.testDbLock,
 	}
-	db.Logger.Debug("Transaction started")
+	db.logger.Debug("Transaction started")
 
 	return ses, err
 }
