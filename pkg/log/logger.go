@@ -14,8 +14,8 @@ type Logger struct {
 // NewLogger initiates a new logger
 func NewLogger(name string, conf conf.LogConfig) *Logger {
 	l := &Logger{Logger: logging.GetLogger(name)}
-	_ = l.SetLevel(conf.Level)
 	_ = l.SetOutput(conf.LogTo, conf.SyslogFacility)
+	_ = l.SetLevel(conf.Level)
 	return l
 }
 

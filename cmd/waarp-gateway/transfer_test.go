@@ -16,22 +16,21 @@ import (
 )
 
 func transferInfoString(t *rest.OutTransfer) string {
-	rv := "Transfer n°" + fmt.Sprint(t.ID) + ":\n" +
-		"          Rule ID: " + fmt.Sprint(t.RuleID) + "\n" +
-		"       Partner ID: " + fmt.Sprint(t.AgentID) + "\n" +
-		"       Account ID: " + fmt.Sprint(t.AccountID) + "\n" +
-		"      Source file: " + t.SourcePath + "\n" +
-		" Destination file: " + t.DestPath + "\n" +
-		"       Start time: " + t.Start.Local().Format(time.RFC3339) + "\n" +
-		"           Status: " + string(t.Status) + "\n" +
-		"             Step: " + string(t.Step) + "\n" +
-		"         Progress: " + fmt.Sprint(t.Progress) + "\n" +
-		"      Task number: " + fmt.Sprint(t.TaskNumber) + "\n"
+	rv := "● Transfer n°" + fmt.Sprint(t.ID) + " (" + string(t.Status) + ")\n" +
+		"  -Rule ID         : " + fmt.Sprint(t.RuleID) + "\n" +
+		"  -Partner ID      : " + fmt.Sprint(t.AgentID) + "\n" +
+		"  -Account ID      : " + fmt.Sprint(t.AccountID) + "\n" +
+		"  -Source file     : " + t.SourcePath + "\n" +
+		"  -Destination file: " + t.DestPath + "\n" +
+		"  -Start time      : " + t.Start.Local().Format(time.RFC3339) + "\n" +
+		"  -Step            : " + string(t.Step) + "\n" +
+		"  -Progress        : " + fmt.Sprint(t.Progress) + "\n" +
+		"  -Task number     : " + fmt.Sprint(t.TaskNumber) + "\n"
 	if t.ErrorCode != model.TeOk {
-		rv += "       Error code: " + t.ErrorCode.String() + "\n"
+		rv += "  -Error code      : " + t.ErrorCode.String() + "\n"
 	}
 	if t.ErrorMsg != "" {
-		rv += "    Error message: " + t.ErrorMsg + "\n"
+		rv += "  -Error message   : " + t.ErrorMsg + "\n"
 	}
 	return rv
 }
@@ -52,7 +51,8 @@ func TestDisplayTransfer(t *testing.T) {
 			Status:     model.StatusPlanned,
 		}
 		Convey("When calling the `displayTransfer` function", func() {
-			displayTransfer(*trans)
+			w := getColorable()
+			displayTransfer(w, *trans)
 
 			Convey("Then it should display the transfer's info correctly", func() {
 				_, err := out.Seek(0, 0)
@@ -80,7 +80,8 @@ func TestDisplayTransfer(t *testing.T) {
 			ErrorMsg:   "custom error message",
 		}
 		Convey("When calling the `displayTransfer` function", func() {
-			displayTransfer(*trans)
+			w := getColorable()
+			displayTransfer(w, *trans)
 
 			Convey("Then it should display the transfer's info correctly", func() {
 				_, err := out.Seek(0, 0)

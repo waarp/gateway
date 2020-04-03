@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -23,6 +24,13 @@ func init() {
 	model.ValidTasks["TRANSFER"] = &tasks.TransferTask{}
 	model.ValidTasks["MOVE"] = &tasks.MoveTask{}
 	model.ValidTasks["RENAME"] = &tasks.RenameTask{}
+}
+
+func taskInfoString(t *model.Task) string {
+	args := &bytes.Buffer{}
+	_ = json.Indent(args, t.Args, "  ", "  ")
+
+	return "● " + t.Type + " with args " + args.String() + "\n"
 }
 
 func TestChangeRuleTasks(t *testing.T) {
@@ -264,21 +272,11 @@ func TestListRuleTasks(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Pre tasks:\n"+
-							"  Command: "+pre2.Type+"\n"+
-							"    Arguments: "+string(pre2.Args)+"\n"+
-							"  Command: "+pre1.Type+"\n"+
-							"    Arguments: "+string(pre1.Args)+"\n"+
+							taskInfoString(pre2)+taskInfoString(pre1)+
 							"Post tasks:\n"+
-							"  Command: "+post1.Type+"\n"+
-							"    Arguments: "+string(post1.Args)+"\n"+
-							"  Command: "+post2.Type+"\n"+
-							"    Arguments: "+string(post2.Args)+"\n"+
+							taskInfoString(post1)+taskInfoString(post2)+
 							"Error tasks:\n"+
-							"  Command: "+err1.Type+"\n"+
-							"    Arguments: "+string(err1.Args)+"\n"+
-							"  Command: "+err2.Type+"\n"+
-							"    Arguments: "+string(err2.Args)+"\n",
-						)
+							taskInfoString(err1)+taskInfoString(err2))
 					})
 				})
 			})

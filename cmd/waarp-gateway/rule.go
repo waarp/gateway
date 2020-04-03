@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -17,18 +18,15 @@ type ruleCommand struct {
 	Tasks  ruleTasksCommand  `command:"tasks" description:"Manage the rule's task chain"`
 }
 
-func displayRule(rule rest.OutRule) {
-	w := getColorable()
-
-	fmt.Fprintf(w, "\033[37;1;4mRule n°%v:\033[0m\n", rule.ID)
-	fmt.Fprintf(w, "      \033[37mName:\033[0m \033[37;1m%s\033[0m\n", rule.Name)
-	fmt.Fprintf(w, "   \033[37mComment:\033[0m \033[33m%s\033[0m\n", rule.Comment)
+func displayRule(w io.Writer, rule rest.OutRule) {
+	fmt.Fprintf(w, "\033[97;1m● Rule %s\033[0m (ID %v)\n", rule.Name, rule.ID)
+	fmt.Fprintf(w, "  \033[97m-Comment :\033[0m \033[97m%s\033[0m\n", rule.Comment)
+	fmt.Fprintf(w, "  \033[97m-Path    :\033[0m \033[97m%v\033[0m\n", rule.Path)
 	if rule.IsSend {
-		fmt.Fprint(w, " \033[37mDirection:\033[0m \033[90mSEND\033[0m\n")
+		fmt.Fprint(w, "  \033[97m-Direction:\033[0m \033[97mSEND\033[0m\n")
 	} else {
-		fmt.Fprint(w, " \033[37mDirection:\033[0m \033[90mRECEIVE\033[0m\n")
+		fmt.Fprint(w, "  \033[97m-Direction:\033[0m \033[97mRECEIVE\033[0m\n")
 	}
-	fmt.Fprintf(w, "      \033[37mPath:\033[0m \033[90m%v\033[0m\n", rule.Path)
 }
 
 // ######################## GET ##########################
@@ -51,7 +49,7 @@ func (r *ruleGetCommand) Execute(args []string) error {
 		return err
 	}
 
-	displayRule(res)
+	displayRule(getColorable(), res)
 
 	return nil
 }
@@ -138,9 +136,9 @@ func (r *ruleListCommand) Execute([]string) error {
 	w := getColorable()
 	rules := res["rules"]
 	if len(rules) > 0 {
-		fmt.Fprintf(w, "\033[33mRules:\033[0m\n")
+		fmt.Fprintf(w, "\033[33;1mRules:\033[0m\n")
 		for _, rule := range rules {
-			displayRule(rule)
+			displayRule(w, rule)
 		}
 	} else {
 		fmt.Fprintln(w, "\033[31mNo rules found\033[0m")

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -20,27 +21,48 @@ type transferCommand struct {
 	Cancel transferCancelCommand `command:"cancel" description:"Cancel a transfer"`
 }
 
-func displayTransfer(trans rest.OutTransfer) {
-	w := getColorable()
+func coloredStatus(status model.TransferStatus) string {
+	code := func() string {
+		switch status {
+		case model.StatusPlanned:
+			return "36"
+		case model.StatusRunning:
+			return "34"
+		case model.StatusPaused:
+			return "33"
+		case model.StatusInterrupted:
+			return "33"
+		case model.StatusCancelled:
+			return "31"
+		case model.StatusError:
+			return "31"
+		case model.StatusDone:
+			return "32"
+		default:
+			return "97"
+		}
+	}()
+	return fmt.Sprintf("\033[%sm%s\033[0m", code, status)
+}
 
-	fmt.Fprintf(w, "\033[37;1;4mTransfer n°%v:\033[0m\n", trans.ID)
-	fmt.Fprintf(w, "          \033[37mRule ID:\033[0m \033[33m%v\033[0m\n", trans.RuleID)
-	fmt.Fprintf(w, "       \033[37mPartner ID:\033[0m \033[33m%v\033[0m\n", trans.AgentID)
-	fmt.Fprintf(w, "       \033[37mAccount ID:\033[0m \033[33m%v\033[0m\n", trans.AccountID)
-	fmt.Fprintf(w, "      \033[37mSource file:\033[0m \033[37m%s\033[0m\n", trans.SourcePath)
-	fmt.Fprintf(w, " \033[37mDestination file:\033[0m \033[37m%s\033[0m\n", trans.DestPath)
-	fmt.Fprintf(w, "       \033[37mStart time:\033[0m \033[33m%s\033[0m\n",
+func displayTransfer(w io.Writer, trans rest.OutTransfer) {
+	fmt.Fprintf(w, "\033[97;1m● Transfer n°%v\033[0m (%s)\n", trans.ID, coloredStatus(trans.Status))
+	fmt.Fprintf(w, "  \033[97m-Rule ID         :\033[0m \033[97m%v\033[0m\n", trans.RuleID)
+	fmt.Fprintf(w, "  \033[97m-Partner ID      :\033[0m \033[97m%v\033[0m\n", trans.AgentID)
+	fmt.Fprintf(w, "  \033[97m-Account ID      :\033[0m \033[33m%v\033[0m\n", trans.AccountID)
+	fmt.Fprintf(w, "  \033[97m-Source file     :\033[0m \033[97m%s\033[0m\n", trans.SourcePath)
+	fmt.Fprintf(w, "  \033[97m-Destination file:\033[0m \033[97m%s\033[0m\n", trans.DestPath)
+	fmt.Fprintf(w, "  \033[97m-Start time      :\033[0m \033[33m%s\033[0m\n",
 		trans.Start.Format(time.RFC3339))
-	fmt.Fprintf(w, "           \033[37mStatus:\033[0m \033[37;1m%s\033[0m\n", trans.Status)
-	fmt.Fprintf(w, "             \033[37mStep:\033[0m \033[37;1m%s\033[0m\n", trans.Step)
-	fmt.Fprintf(w, "         \033[37mProgress:\033[0m \033[33m%v\033[0m\n", trans.Progress)
-	fmt.Fprintf(w, "      \033[37mTask number:\033[0m \033[33m%v\033[0m\n", trans.TaskNumber)
+	fmt.Fprintf(w, "  \033[97m-Step            :\033[0m \033[97m%s\033[0m\n", trans.Step)
+	fmt.Fprintf(w, "  \033[97m-Progress        :\033[0m \033[97m%v\033[0m\n", trans.Progress)
+	fmt.Fprintf(w, "  \033[97m-Task number     :\033[0m \033[97m%v\033[0m\n", trans.TaskNumber)
 	if trans.ErrorCode != model.TeOk {
-		fmt.Fprintf(w, "       \033[37mError code:\033[0m \033[33m%s\033[0m\n",
+		fmt.Fprintf(w, "  \033[97m-Error code      :\033[0m \033[31m%s\033[0m\n",
 			trans.ErrorCode)
 	}
 	if trans.ErrorMsg != "" {
-		fmt.Fprintf(w, "    \033[37mError message:\033[0m \033[33m%s\033[0m\n",
+		fmt.Fprintf(w, "  \033[97m-Error message   :\033[0m \033[97m%s\033[0m\n",
 			trans.ErrorMsg)
 	}
 }
@@ -97,7 +119,8 @@ func (t *transferGetCommand) Execute(args []string) error {
 		return err
 	}
 
-	displayTransfer(res)
+	w := getColorable()
+	displayTransfer(w, res)
 
 	return nil
 }
@@ -170,7 +193,7 @@ func (t *transferListCommand) Execute([]string) error {
 	if len(transfers) > 0 {
 		fmt.Fprintf(w, "\033[33mTransfers:\033[0m\n")
 		for _, trans := range transfers {
-			displayTransfer(trans)
+			displayTransfer(w, trans)
 		}
 	} else {
 		fmt.Fprintln(w, "\033[31mNo transfers found\033[0m")
@@ -299,7 +322,7 @@ func (t *transferCancelCommand) Execute(args []string) error {
 
 	w := getColorable()
 	fmt.Fprintf(w, "The transfer n°\033[33m%s\033[0m was successfully cancelled. "+
-		"It can be consulted at the address: \033[37m%s\033[0m\n", args[0], loc.String())
+		"It can be consulted at the address: \033[97m%s\033[0m\n", args[0], loc.String())
 
 	return nil
 }

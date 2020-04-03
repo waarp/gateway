@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -17,39 +18,36 @@ type historyCommand struct {
 	Restart historyRestartCommand `command:"restart" description:"Restart a failed transfer"`
 }
 
-func displayHistory(hist rest.OutHistory) {
-	w := getColorable()
-
-	fmt.Fprintf(w, "\033[37;1;4mTransfer %v=>\033[0m\n", hist.ID)
-	fmt.Fprintf(w, "          \033[37mIsServer:\033[0m \033[37;1m%t\033[0m\n", hist.IsServer)
-	fmt.Fprintf(w, "              \033[37mSend:\033[0m \033[37;1m%t\033[0m\n", hist.IsSend)
-	fmt.Fprintf(w, "          \033[37mProtocol:\033[0m \033[37;1m%s\033[0m\n", hist.Protocol)
-	fmt.Fprintf(w, "              \033[37mRule:\033[0m \033[37m%v\033[0m\n", hist.Rule)
-	fmt.Fprintf(w, "           \033[37mAccount:\033[0m \033[37m%v\033[0m\n", hist.Account)
-	fmt.Fprintf(w, "             \033[37mAgent:\033[0m \033[37m%v\033[0m\n", hist.Agent)
-	fmt.Fprintf(w, "           \033[37mSrcFile:\033[0m \033[37m%s\033[0m\n", hist.SourceFilename)
-	fmt.Fprintf(w, "          \033[37mDestFile:\033[0m \033[37m%s\033[0m\n", hist.DestFilename)
-	fmt.Fprintf(w, "        \033[37mStart date:\033[0m \033[33m%s\033[0m\n",
+func displayHistory(w io.Writer, hist rest.OutHistory) {
+	fmt.Fprintf(w, "\033[97;1m● Transfer n°%v\033[0m (%s)\n", hist.ID, coloredStatus(hist.Status))
+	fmt.Fprintf(w, "  \033[97m-IsServer     :\033[0m \033[36m%t\033[0m\n", hist.IsServer)
+	fmt.Fprintf(w, "  \033[97m-Send         :\033[0m \033[36m%t\033[0m\n", hist.IsSend)
+	fmt.Fprintf(w, "  \033[97m-Protocol     :\033[0m \033[33m%s\033[0m\n", hist.Protocol)
+	fmt.Fprintf(w, "  \033[97m-Rule         :\033[0m \033[97m%v\033[0m\n", hist.Rule)
+	fmt.Fprintf(w, "  \033[97m-Account      :\033[0m \033[97m%v\033[0m\n", hist.Account)
+	fmt.Fprintf(w, "  \033[97m-Agent        :\033[0m \033[97m%v\033[0m\n", hist.Agent)
+	fmt.Fprintf(w, "  \033[97m-SrcFile      :\033[0m \033[97m%s\033[0m\n", hist.SourceFilename)
+	fmt.Fprintf(w, "  \033[97m-DestFile     :\033[0m \033[97m%s\033[0m\n", hist.DestFilename)
+	fmt.Fprintf(w, "  \033[97m-Start date   :\033[0m \033[97m%s\033[0m\n",
 		hist.Start.Format(time.RFC3339))
-	fmt.Fprintf(w, "          \033[37mEnd date:\033[0m \033[33m%s\033[0m\n",
+	fmt.Fprintf(w, "  \033[97m-End date     :\033[0m \033[97m%s\033[0m\n",
 		hist.Stop.Format(time.RFC3339))
-	fmt.Fprintf(w, "            \033[37mStatus:\033[0m \033[37;1m%s\033[0m\n", hist.Status)
 	if hist.ErrorCode != model.TeOk {
-		fmt.Fprintf(w, "       \033[37mError code:\033[0m \033[33m%v\033[0m\n",
+		fmt.Fprintf(w, "  \033[97m-Error code   :\033[0m \033[31m%v\033[0m\n",
 			hist.ErrorCode)
 	}
 	if hist.ErrorMsg != "" {
-		fmt.Fprintf(w, "    \033[37mError message:\033[0m \033[33m%s\033[0m\n",
+		fmt.Fprintf(w, "  \033[97m-Error message:\033[0m \033[97m%s\033[0m\n",
 			hist.ErrorMsg)
 	}
 	if hist.Step != "" {
-		fmt.Fprintf(w, "       \033[37mFailed step:\033[0m \033[37;1m%s\033[0m\n", hist.Step)
+		fmt.Fprintf(w, "  \033[97m-Failed step  :\033[0m \033[97;1m%s\033[0m\n", hist.Step)
 	}
 	if hist.Progress != 0 {
-		fmt.Fprintf(w, "          \033[37mProgress:\033[0m \033[33m%v\033[0m\n", hist.Progress)
+		fmt.Fprintf(w, "  \033[97m-Progress     :\033[0m \033[97m%v\033[0m\n", hist.Progress)
 	}
 	if hist.TaskNumber != 0 {
-		fmt.Fprintf(w, "       \033[37mTask number:\033[0m \033[33m%v\033[0m\n", hist.TaskNumber)
+		fmt.Fprintf(w, "  \033[97m-Task number  :\033[0m \033[97m%v\033[0m\n", hist.TaskNumber)
 	}
 }
 
@@ -73,7 +71,7 @@ func (h *historyGetCommand) Execute(args []string) error {
 		return err
 	}
 
-	displayHistory(res)
+	displayHistory(getColorable(), res)
 
 	return nil
 }
@@ -159,7 +157,7 @@ func (h *historyListCommand) Execute([]string) error {
 	if len(history) > 0 {
 		fmt.Fprintf(w, "\033[33mHistory:\033[0m\n")
 		for _, hist := range history {
-			displayHistory(hist)
+			displayHistory(w, hist)
 		}
 	} else {
 		fmt.Fprintln(w, "\033[31mNo transfers found\033[0m")

@@ -74,7 +74,7 @@ func fromLocalAgents(ags []model.LocalAgent) []OutAgent {
 
 // FromRemoteAgent transforms the given database remote agent into its JSON
 // equivalent.
-func fromRemoteAgent(ag *model.RemoteAgent) *OutAgent {
+func FromRemoteAgent(ag *model.RemoteAgent) *OutAgent {
 	return &OutAgent{
 		ID:          ag.ID,
 		Name:        ag.Name,
@@ -85,7 +85,7 @@ func fromRemoteAgent(ag *model.RemoteAgent) *OutAgent {
 
 // FromRemoteAgents transforms the given list of database remote agents into
 // its JSON equivalent.
-func fromRemoteAgents(ags []model.RemoteAgent) []OutAgent {
+func FromRemoteAgents(ags []model.RemoteAgent) []OutAgent {
 	agents := make([]OutAgent, len(ags))
 	for i, ag := range ags {
 		agents[i] = OutAgent{

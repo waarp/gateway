@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/url"
 
@@ -17,16 +18,13 @@ type certificateCommand struct {
 	Update certUpdateCommand `command:"update" description:"Update an existing certificate"`
 }
 
-func displayCertificate(cert rest.OutCert) {
-	w := getColorable()
-
-	fmt.Fprintf(w, "\033[37;1;4mCertificate n°%v:\033[0m\n", cert.ID)
-	fmt.Fprintf(w, "        \033[37mName:\033[0m \033[37;1m%s\033[0m\n", cert.Name)
-	fmt.Fprintf(w, "        \033[37mType:\033[0m \033[33m%s\033[0m\n", cert.OwnerType)
-	fmt.Fprintf(w, "       \033[37mOwner:\033[0m \033[33m%v\033[0m\n", cert.OwnerID)
-	fmt.Fprintf(w, " \033[37mPrivate key:\033[0m \033[90m%s\033[0m\n", string(cert.PrivateKey))
-	fmt.Fprintf(w, "  \033[37mPublic key:\033[0m \033[90m%s\033[0m\n", string(cert.PublicKey))
-	fmt.Fprintf(w, "     \033[37mContent:\033[0m \033[90m%v\033[0m\n", cert.Certificate)
+func displayCertificate(w io.Writer, cert rest.OutCert) {
+	fmt.Fprintf(w, "\033[97;1m● %s\033[0m (ID %v)\n", cert.Name, cert.ID)
+	fmt.Fprintf(w, "  \033[97m-Type       :\033[0m \033[33m%s\033[0m\n", cert.OwnerType)
+	fmt.Fprintf(w, "  \033[97m-Owner      :\033[0m \033[97m%v\033[0m\n", cert.OwnerID)
+	fmt.Fprintf(w, "  \033[97m-Private key:\033[0m \033[90m%s\033[0m\n", string(cert.PrivateKey))
+	fmt.Fprintf(w, "  \033[97m-Public key :\033[0m \033[90m%s\033[0m\n", string(cert.PublicKey))
+	fmt.Fprintf(w, "  \033[97m-Content    :\033[0m \033[90m%v\033[0m\n", cert.Certificate)
 }
 
 // ######################## GET ##########################
@@ -49,7 +47,7 @@ func (c *certGetCommand) Execute(args []string) error {
 		return err
 	}
 
-	displayCertificate(res)
+	displayCertificate(getColorable(), res)
 
 	return nil
 }
@@ -58,7 +56,7 @@ func (c *certGetCommand) Execute(args []string) error {
 
 type certAddCommand struct {
 	Name        string `required:"true" short:"n" long:"name" description:"The certificate's name"`
-	Type        string `required:"true" short:"t" long:"type" description:"The type of the certificates's owner" choice:"local_agents" choice:"remote_agents" choice:"local_accounts" choice:"remote_accounts"`
+	Type        string `required:"true" short:"t" long:"type" description:"The type of the certificates's owner" choice:"local agent" choice:"remote agent" choice:"local account" choice:"remote account"`
 	Owner       uint64 `required:"true" short:"o" long:"owner" description:"The ID of the certificate's owner"`
 	PrivateKey  string `long:"private_key" description:"The path to the certificate's private key file"`
 	PublicKey   string `long:"public_key" description:"The path to the certificate's public key file"`
@@ -89,7 +87,7 @@ func (c *certAddCommand) Execute([]string) error {
 	}
 
 	newCert := rest.InCert{
-		OwnerType:   c.Type,
+		OwnerType:   toTableName(c.Type),
 		OwnerID:     c.Owner,
 		Name:        c.Name,
 		PrivateKey:  prK,
@@ -192,7 +190,7 @@ func (c *certListCommand) Execute([]string) error {
 	if len(certs) > 0 {
 		fmt.Fprintf(w, "\033[33mCertificates:\033[0m\n")
 		for _, cert := range certs {
-			displayCertificate(cert)
+			displayCertificate(w, cert)
 		}
 	} else {
 		fmt.Fprintln(w, "\033[31mNo certificates found\033[0m")

@@ -14,6 +14,10 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func ruleAccessInfoString(r *rest.OutRuleAccess) string {
+	return "● " + fromTableName(r.ObjectType) + ", ID " + fmt.Sprint(r.ObjectID) + "\n"
+}
+
 func TestAddRuleAccess(t *testing.T) {
 
 	Convey("Testing the rule access 'grant' command", t, func() {
@@ -271,6 +275,9 @@ func TestListRuleAccesses(t *testing.T) {
 			}
 			So(db.Create(acc2), ShouldBeNil)
 
+			a1 := &rest.FromRuleAccess([]model.RuleAccess{*acc1})[0]
+			a2 := &rest.FromRuleAccess([]model.RuleAccess{*acc2})[0]
+
 			Convey("Given a valid rule ID parameter", func() {
 				ruleID := fmt.Sprint(rule.ID)
 
@@ -290,10 +297,8 @@ func TestListRuleAccesses(t *testing.T) {
 						So(err, ShouldBeNil)
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Permissions:\n"+
-							"Access to local agent n°1\n"+
-							"Access to remote agent n°1\n",
-						)
+						So(string(cont), ShouldEqual, "Agents allowed to use rule "+
+							ruleID+":\n"+ruleAccessInfoString(a1)+ruleAccessInfoString(a2))
 					})
 				})
 			})

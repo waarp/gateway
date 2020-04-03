@@ -15,6 +15,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+func accessInfoString(a *rest.OutAccount) string {
+	return "● " + a.Login + " (ID " + fmt.Sprint(a.ID) + ")\n" +
+		"  -Server ID: " + fmt.Sprint(a.AgentID) + "\n"
+}
+
 func TestGetAccess(t *testing.T) {
 
 	Convey("Testing the access 'get' command", t, func() {
@@ -25,23 +30,19 @@ func TestGetAccess(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			parentAgent := model.LocalAgent{
+			parentAgent := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
+			So(db.Create(parentAgent), ShouldBeNil)
 
-			err := db.Create(&parentAgent)
-			So(err, ShouldBeNil)
-
-			localAccount := model.LocalAccount{
+			localAccount := &model.LocalAccount{
 				Login:        "local_account",
 				Password:     []byte("password"),
 				LocalAgentID: parentAgent.ID,
 			}
-
-			err = db.Create(&localAccount)
-			So(err, ShouldBeNil)
+			So(db.Create(localAccount), ShouldBeNil)
 
 			Convey("Given a valid account ID", func() {
 				id := fmt.Sprint(localAccount.ID)
@@ -63,11 +64,8 @@ func TestGetAccess(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 
-						agentID := fmt.Sprint(localAccount.LocalAgentID)
-						So(string(cont), ShouldEqual, "Local account n°1:\n"+
-							"     Login: "+localAccount.Login+"\n"+
-							" Server ID: "+agentID+"\n",
-						)
+						a := rest.FromLocalAccount(localAccount)
+						So(string(cont), ShouldEqual, accessInfoString(a))
 					})
 				})
 			})
@@ -121,14 +119,12 @@ func TestAddAccess(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			parentAgent := model.LocalAgent{
+			parentAgent := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-
-			err := db.Create(&parentAgent)
-			So(err, ShouldBeNil)
+			So(db.Create(parentAgent), ShouldBeNil)
 
 			Convey("Given valid flags", func() {
 				command.Login = "local_account"
@@ -158,15 +154,15 @@ func TestAddAccess(t *testing.T) {
 					})
 
 					Convey("Then the new partner should have been added", func() {
-						account := model.LocalAccount{
+						account := &model.LocalAccount{
 							ID:           1,
 							Login:        command.Login,
 							LocalAgentID: command.LocalAgentID,
 						}
-						err := db.Get(&account)
-						So(err, ShouldBeNil)
+						So(db.Get(account), ShouldBeNil)
 
-						err = bcrypt.CompareHashAndPassword(account.Password, []byte(command.Password))
+						err = bcrypt.CompareHashAndPassword(account.Password,
+							[]byte(command.Password))
 						So(err, ShouldBeNil)
 					})
 				})
@@ -205,23 +201,19 @@ func TestDeleteAccess(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			parentAgent := model.LocalAgent{
+			parentAgent := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
+			So(db.Create(parentAgent), ShouldBeNil)
 
-			err := db.Create(&parentAgent)
-			So(err, ShouldBeNil)
-
-			account := model.LocalAccount{
+			account := &model.LocalAccount{
 				LocalAgentID: parentAgent.ID,
 				Login:        "local_account",
 				Password:     []byte("password"),
 			}
-
-			err = db.Create(&account)
-			So(err, ShouldBeNil)
+			So(db.Create(account), ShouldBeNil)
 
 			Convey("Given a valid account ID", func() {
 				id := fmt.Sprint(account.ID)
@@ -293,23 +285,19 @@ func TestUpdateAccess(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			parentAgent := model.LocalAgent{
+			parentAgent := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
+			So(db.Create(parentAgent), ShouldBeNil)
 
-			err := db.Create(&parentAgent)
-			So(err, ShouldBeNil)
-
-			account := model.LocalAccount{
+			account := &model.LocalAccount{
 				LocalAgentID: parentAgent.ID,
 				Login:        "local_account",
 				Password:     []byte("password"),
 			}
-
-			err = db.Create(&account)
-			So(err, ShouldBeNil)
+			So(db.Create(account), ShouldBeNil)
 
 			Convey("Given a valid account ID", func() {
 				id := fmt.Sprint(account.ID)
@@ -330,7 +318,8 @@ func TestUpdateAccess(t *testing.T) {
 							So(err, ShouldBeNil)
 						})
 
-						Convey("Then is should display a message saying the account was updated", func() {
+						Convey("Then is should display a message saying the "+
+							"account was updated", func() {
 							_, err = out.Seek(0, 0)
 							So(err, ShouldBeNil)
 							cont, err := ioutil.ReadAll(out)
@@ -340,21 +329,21 @@ func TestUpdateAccess(t *testing.T) {
 						})
 
 						Convey("Then the old account should have been removed", func() {
-							exists, err := db.Exists(&account)
+							exists, err := db.Exists(account)
 							So(err, ShouldBeNil)
 							So(exists, ShouldBeFalse)
 						})
 
 						Convey("Then the new account should exist", func() {
-							newAccount := model.LocalAccount{
+							newAccount := &model.LocalAccount{
 								ID:           account.ID,
 								Login:        command.Login,
 								LocalAgentID: command.LocalAgentID,
 							}
-							err := db.Get(&newAccount)
-							So(err, ShouldBeNil)
+							So(db.Get(newAccount), ShouldBeNil)
 
-							err = bcrypt.CompareHashAndPassword(newAccount.Password, []byte(command.Password))
+							err = bcrypt.CompareHashAndPassword(newAccount.Password,
+								[]byte(command.Password))
 							So(err, ShouldBeNil)
 						})
 					})
@@ -399,7 +388,7 @@ func TestUpdateAccess(t *testing.T) {
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
-						exists, err := db.Exists(&account)
+						exists, err := db.Exists(account)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeTrue)
 					})
@@ -421,37 +410,36 @@ func TestListAccess(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			parent1 := model.LocalAgent{
+			parent1 := &model.LocalAgent{
 				Name:        "parent_agent_1",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			err := db.Create(&parent1)
-			So(err, ShouldBeNil)
+			So(db.Create(parent1), ShouldBeNil)
 
-			parent2 := model.LocalAgent{
+			parent2 := &model.LocalAgent{
 				Name:        "remote_agent2",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			err = db.Create(&parent2)
-			So(err, ShouldBeNil)
+			So(db.Create(parent2), ShouldBeNil)
 
-			account1 := model.LocalAccount{
+			account1 := &model.LocalAccount{
 				LocalAgentID: parent1.ID,
 				Login:        "account1",
 				Password:     []byte("password"),
 			}
-			err = db.Create(&account1)
-			So(err, ShouldBeNil)
+			So(db.Create(account1), ShouldBeNil)
 
-			account2 := model.LocalAccount{
+			account2 := &model.LocalAccount{
 				LocalAgentID: parent2.ID,
 				Login:        "account2",
 				Password:     []byte("password"),
 			}
-			err = db.Create(&account2)
-			So(err, ShouldBeNil)
+			So(db.Create(account2), ShouldBeNil)
+
+			a1 := rest.FromLocalAccount(account1)
+			a2 := rest.FromLocalAccount(account2)
 
 			Convey("Given no parameters", func() {
 
@@ -470,14 +458,9 @@ func TestListAccess(t *testing.T) {
 						So(err, ShouldBeNil)
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
+
 						So(string(cont), ShouldEqual, "Local accounts:\n"+
-							"Local account n°1:\n"+
-							"     Login: "+account1.Login+"\n"+
-							" Server ID: "+fmt.Sprint(account1.LocalAgentID)+"\n"+
-							"Local account n°2:\n"+
-							"     Login: "+account2.Login+"\n"+
-							" Server ID: "+fmt.Sprint(account2.LocalAgentID)+"\n",
-						)
+							accessInfoString(a1)+accessInfoString(a2))
 					})
 				})
 			})
@@ -501,10 +484,7 @@ func TestListAccess(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local accounts:\n"+
-							"Local account n°1:\n"+
-							"     Login: "+account1.Login+"\n"+
-							" Server ID: "+fmt.Sprint(account1.LocalAgentID)+"\n",
-						)
+							accessInfoString(a1))
 					})
 				})
 			})

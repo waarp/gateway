@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -16,17 +15,6 @@ type partnerCommand struct {
 	List   partnerListCommand   `command:"list" description:"List the known remote agents"`
 	Delete partnerDeleteCommand `command:"delete" description:"Delete a remote agent"`
 	Update partnerUpdateCommand `command:"update" description:"Update an existing remote agent"`
-}
-
-func displayPartner(agent rest.OutAgent) {
-	w := getColorable()
-
-	var config bytes.Buffer
-	_ = json.Indent(&config, agent.ProtoConfig, "  ", "  ")
-	fmt.Fprintf(w, "\033[37;1;4mRemote agent n°%v:\033[0m\n", agent.ID)
-	fmt.Fprintf(w, "          \033[37mName:\033[0m \033[37;1m%s\033[0m\n", agent.Name)
-	fmt.Fprintf(w, "      \033[37mProtocol:\033[0m \033[37;1m%s\033[0m\n", agent.Protocol)
-	fmt.Fprintf(w, " \033[37mConfiguration:\033[0m \033[37m%s\033[0m\n", config.String())
 }
 
 // ######################## ADD ##########################
@@ -89,7 +77,7 @@ func (p *partnerListCommand) Execute([]string) error {
 	if len(agents) > 0 {
 		fmt.Fprintf(w, "\033[33mRemote agents:\033[0m\n")
 		for _, partner := range agents {
-			displayPartner(partner)
+			displayAgent(w, partner)
 		}
 	} else {
 		fmt.Fprintln(w, "\033[31mNo remote agents found\033[0m")
@@ -118,7 +106,7 @@ func (p *partnerGetCommand) Execute(args []string) error {
 		return err
 	}
 
-	displayPartner(res)
+	displayAgent(getColorable(), res)
 
 	return nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -16,12 +17,9 @@ type accessCommand struct {
 	List   accessListCommand   `command:"list" description:"List the known local accounts"`
 }
 
-func displayLocalAccount(account rest.OutAccount) {
-	w := getColorable()
-
-	fmt.Fprintf(w, "\033[37;1;4mLocal account n°%v:\033[0m\n", account.ID)
-	fmt.Fprintf(w, "     \033[37mLogin:\033[0m \033[37;1m%s\033[0m\n", account.Login)
-	fmt.Fprintf(w, " \033[37mServer ID:\033[0m \033[33m%v\033[0m\n", account.AgentID)
+func displayLocalAccount(w io.Writer, account rest.OutAccount) {
+	fmt.Fprintf(w, "\033[97;1m● %s\033[0m (ID %v)\n", account.Login, account.ID)
+	fmt.Fprintf(w, "  \033[97m-Server ID:\033[0m \033[97m%v\033[0m\n", account.AgentID)
 }
 
 // ######################## ADD ##########################
@@ -77,7 +75,7 @@ func (a *accessGetCommand) Execute(args []string) error {
 		return err
 	}
 
-	displayLocalAccount(res)
+	displayLocalAccount(getColorable(), res)
 
 	return nil
 }
@@ -167,9 +165,9 @@ func (s *accessListCommand) Execute([]string) error {
 	w := getColorable()
 	accounts := res["localAccounts"]
 	if len(accounts) > 0 {
-		fmt.Fprintf(w, "\033[33mLocal accounts:\033[0m\n")
+		fmt.Fprintf(w, "\033[33;1mLocal accounts:\033[0m\n")
 		for _, account := range accounts {
-			displayLocalAccount(account)
+			displayLocalAccount(w, account)
 		}
 	} else {
 		fmt.Fprintln(w, "\033[31mNo local accounts found\033[0m")

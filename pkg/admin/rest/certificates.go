@@ -48,7 +48,7 @@ type OutCert struct {
 }
 
 // FromCert transforms the given database certificate into its JSON equivalent.
-func fromCert(c *model.Cert) *OutCert {
+func FromCert(c *model.Cert) *OutCert {
 	return &OutCert{
 		ID:          c.ID,
 		OwnerType:   c.OwnerType,
@@ -121,7 +121,7 @@ func getCertificate(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			return writeJSON(w, fromCert(result))
+			return writeJSON(w, FromCert(result))
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

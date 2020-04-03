@@ -14,33 +14,34 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func accountInfoString(a *rest.OutAccount) string {
+	return "● " + a.Login + " (ID " + fmt.Sprint(a.ID) + ")\n" +
+		"  -Partner ID: " + fmt.Sprint(a.AgentID) + "\n"
+}
+
 func TestGetAccount(t *testing.T) {
 
 	Convey("Testing the account 'get' command", t, func() {
 		out = testFile()
-		command := &accountGetCommand{}
+		command := accountGetCommand{}
 
 		Convey("Given a gateway with 1 remote account", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			parentAgent := model.RemoteAgent{
+			parentAgent := &model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
+			So(db.Create(parentAgent), ShouldBeNil)
 
-			err := db.Create(&parentAgent)
-			So(err, ShouldBeNil)
-
-			remoteAccount := model.RemoteAccount{
+			remoteAccount := &model.RemoteAccount{
 				Login:         "remote_account",
 				Password:      []byte("password"),
 				RemoteAgentID: parentAgent.ID,
 			}
-
-			err = db.Create(&remoteAccount)
-			So(err, ShouldBeNil)
+			So(db.Create(remoteAccount), ShouldBeNil)
 
 			Convey("Given a valid account ID", func() {
 				id := fmt.Sprint(remoteAccount.ID)
@@ -62,11 +63,8 @@ func TestGetAccount(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 
-						agentID := fmt.Sprint(remoteAccount.RemoteAgentID)
-						So(string(cont), ShouldEqual, "Remote account n°1:\n"+
-							"      Login: "+remoteAccount.Login+"\n"+
-							" Partner ID: "+agentID+"\n",
-						)
+						a := rest.FromRemoteAccount(remoteAccount)
+						So(string(cont), ShouldEqual, accountInfoString(a))
 					})
 				})
 			})
@@ -114,20 +112,18 @@ func TestAddAccount(t *testing.T) {
 
 	Convey("Testing the account 'add' command", t, func() {
 		out = testFile()
-		command := &accountAddCommand{}
+		command := accountAddCommand{}
 
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			parentAgent := model.RemoteAgent{
+			parentAgent := &model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-
-			err := db.Create(&parentAgent)
-			So(err, ShouldBeNil)
+			So(db.Create(parentAgent), ShouldBeNil)
 
 			Convey("Given valid flags", func() {
 				command.Login = "remote_account"
@@ -157,13 +153,12 @@ func TestAddAccount(t *testing.T) {
 					})
 
 					Convey("Then the new partner should have been added", func() {
-						account := model.RemoteAccount{
+						account := &model.RemoteAccount{
 							ID:            1,
 							Login:         command.Login,
 							RemoteAgentID: command.PartnerID,
 						}
-						err := db.Get(&account)
-						So(err, ShouldBeNil)
+						So(db.Get(account), ShouldBeNil)
 
 						clearPwd, err := model.DecryptPassword(account.Password)
 						So(err, ShouldBeNil)
@@ -199,29 +194,25 @@ func TestDeleteAccount(t *testing.T) {
 
 	Convey("Testing the account 'delete' command", t, func() {
 		out = testFile()
-		command := &accountDeleteCommand{}
+		command := accountDeleteCommand{}
 
 		Convey("Given a gateway with 1 remote account", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			parentAgent := model.RemoteAgent{
+			parentAgent := &model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
+			So(db.Create(parentAgent), ShouldBeNil)
 
-			err := db.Create(&parentAgent)
-			So(err, ShouldBeNil)
-
-			account := model.RemoteAccount{
+			account := &model.RemoteAccount{
 				RemoteAgentID: parentAgent.ID,
 				Login:         "remote_account",
 				Password:      []byte("password"),
 			}
-
-			err = db.Create(&account)
-			So(err, ShouldBeNil)
+			So(db.Create(account), ShouldBeNil)
 
 			Convey("Given a valid account ID", func() {
 				id := fmt.Sprint(account.ID)
@@ -286,30 +277,26 @@ func TestUpdateAccount(t *testing.T) {
 
 	Convey("Testing the account 'delete' command", t, func() {
 		out = testFile()
-		command := &accountUpdateCommand{}
+		command := accountUpdateCommand{}
 
 		Convey("Given a gateway with 1 remote account", func() {
 
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			parentAgent := model.RemoteAgent{
+			parentAgent := &model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
+			So(db.Create(parentAgent), ShouldBeNil)
 
-			err := db.Create(&parentAgent)
-			So(err, ShouldBeNil)
-
-			account := model.RemoteAccount{
+			account := &model.RemoteAccount{
 				RemoteAgentID: parentAgent.ID,
 				Login:         "remote_account",
 				Password:      []byte("password"),
 			}
-
-			err = db.Create(&account)
-			So(err, ShouldBeNil)
+			So(db.Create(account), ShouldBeNil)
 
 			Convey("Given a valid account ID", func() {
 				id := fmt.Sprint(account.ID)
@@ -330,7 +317,8 @@ func TestUpdateAccount(t *testing.T) {
 							So(err, ShouldBeNil)
 						})
 
-						Convey("Then is should display a message saying the account was updated", func() {
+						Convey("Then is should display a message saying the "+
+							"account was updated", func() {
 							_, err = out.Seek(0, 0)
 							So(err, ShouldBeNil)
 							cont, err := ioutil.ReadAll(out)
@@ -340,19 +328,18 @@ func TestUpdateAccount(t *testing.T) {
 						})
 
 						Convey("Then the old account should have been removed", func() {
-							exists, err := db.Exists(&account)
+							exists, err := db.Exists(account)
 							So(err, ShouldBeNil)
 							So(exists, ShouldBeFalse)
 						})
 
 						Convey("Then the new account should exist", func() {
-							newAccount := model.RemoteAccount{
+							newAccount := &model.RemoteAccount{
 								ID:            account.ID,
 								Login:         command.Login,
 								RemoteAgentID: command.PartnerID,
 							}
-							err := db.Get(&newAccount)
-							So(err, ShouldBeNil)
+							So(db.Get(newAccount), ShouldBeNil)
 
 							clearPwd, err := model.DecryptPassword(newAccount.Password)
 							So(err, ShouldBeNil)
@@ -400,7 +387,7 @@ func TestUpdateAccount(t *testing.T) {
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
-						exists, err := db.Exists(&account)
+						exists, err := db.Exists(account)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeTrue)
 					})
@@ -422,37 +409,36 @@ func TestListAccount(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			parent1 := model.RemoteAgent{
+			parent1 := &model.RemoteAgent{
 				Name:        "parent_agent_1",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			err := db.Create(&parent1)
-			So(err, ShouldBeNil)
+			So(db.Create(parent1), ShouldBeNil)
 
-			parent2 := model.RemoteAgent{
+			parent2 := &model.RemoteAgent{
 				Name:        "remote_agent2",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			err = db.Create(&parent2)
-			So(err, ShouldBeNil)
+			So(db.Create(parent2), ShouldBeNil)
 
-			account1 := model.RemoteAccount{
+			account1 := &model.RemoteAccount{
 				RemoteAgentID: parent1.ID,
 				Login:         "account1",
 				Password:      []byte("password"),
 			}
-			err = db.Create(&account1)
-			So(err, ShouldBeNil)
+			So(db.Create(account1), ShouldBeNil)
 
-			account2 := model.RemoteAccount{
+			account2 := &model.RemoteAccount{
 				RemoteAgentID: parent2.ID,
 				Login:         "account2",
 				Password:      []byte("password"),
 			}
-			err = db.Create(&account2)
-			So(err, ShouldBeNil)
+			So(db.Create(account2), ShouldBeNil)
+
+			a1 := rest.FromRemoteAccount(account1)
+			a2 := rest.FromRemoteAccount(account2)
 
 			Convey("Given no parameters", func() {
 
@@ -472,13 +458,7 @@ func TestListAccount(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote accounts:\n"+
-							"Remote account n°1:\n"+
-							"      Login: "+account1.Login+"\n"+
-							" Partner ID: "+fmt.Sprint(account1.RemoteAgentID)+"\n"+
-							"Remote account n°2:\n"+
-							"      Login: "+account2.Login+"\n"+
-							" Partner ID: "+fmt.Sprint(account2.RemoteAgentID)+"\n",
-						)
+							accountInfoString(a1)+accountInfoString(a2))
 					})
 				})
 			})
@@ -502,10 +482,7 @@ func TestListAccount(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Remote accounts:\n"+
-							"Remote account n°1:\n"+
-							"      Login: "+account1.Login+"\n"+
-							" Partner ID: "+fmt.Sprint(account1.RemoteAgentID)+"\n",
-						)
+							accountInfoString(a1))
 					})
 				})
 			})

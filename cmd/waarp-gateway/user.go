@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -16,11 +17,8 @@ type userCommand struct {
 	List   userListCommand   `command:"list" description:"List the known users"`
 }
 
-func displayUser(user rest.OutUser) {
-	w := getColorable()
-
-	fmt.Fprintf(w, "\033[37;1;4mUser n°%v:\033[0m\n", user.ID)
-	fmt.Fprintf(w, " \033[37mUsername:\033[0m \033[37;1m%s\033[0m\n", user.Username)
+func displayUser(w io.Writer, user rest.OutUser) {
+	fmt.Fprintf(w, "\033[97;1m● User %s\033[0m (ID %v)\n", user.Username, user.ID)
 }
 
 // ######################## ADD ##########################
@@ -74,7 +72,8 @@ func (u *userGetCommand) Execute(args []string) error {
 		return err
 	}
 
-	displayUser(res)
+	w := getColorable()
+	displayUser(w, res)
 
 	return nil
 }
@@ -160,12 +159,12 @@ func (u *userListCommand) Execute([]string) error {
 	w := getColorable()
 	users := res["users"]
 	if len(users) > 0 {
-		fmt.Fprintf(w, "\033[33mUsers:\033[0m\n")
+		fmt.Fprintf(w, "\033[33;1mUsers:\033[0m\n")
 		for _, user := range users {
-			displayUser(user)
+			displayUser(w, user)
 		}
 	} else {
-		fmt.Fprintln(w, "\033[31mNo users found\033[0m")
+		fmt.Fprintln(w, "\033[31;1mNo users found\033[0m")
 	}
 
 	return nil

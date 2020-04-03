@@ -21,26 +21,27 @@ type ServerConfig struct {
 // LogConfig holds the server logging options
 type LogConfig struct {
 	Level          string `ini-name:"Level" default:"INFO" description:"All messages with a severity above this level will be logged. Possible values are DEBUG, INFO, WARNING, ERROR and CRITICAL."`
-	LogTo          string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout' and 'syslog' log respectively to the standard outpout and to the syslog daemon"`
+	LogTo          string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout' and 'syslog' log respectively to the standard output and to the syslog daemon"`
 	SyslogFacility string `ini-name:"SyslogFacility" default:"local0" description:"If LogTo is set on 'syslog', the logs will be written to this facility."`
 }
 
 // AdminConfig holds the server administration options
 type AdminConfig struct {
-	Address string `ini-name:"Address" default:":8080" description:"The IP address + TCP port used by the admin interface."`
+	Host    string `ini-name:"Host" default:"localhost" description:"The address used by the admin interface."`
+	Port    uint16 `ini-name:"Port" default:"8080" description:"The port used by the admin interface. If the port is 0, a free port will automatically be chosen."`
 	TLSCert string `ini-name:"TLSCert" default:"" description:"Path of the TLS certificate for the admin interface."`
 	TLSKey  string `ini-name:"TLSKey" default:"" description:"Path of the key of the TLS certificate."`
 }
 
 // DatabaseConfig holds the server database options
 type DatabaseConfig struct {
-	Type          string `ini-name:"Type" default:"" description:"Name of the RDBMS used for the gateway database"`
-	Address       string `ini-name:"Address" default:"localhost" description:"Address of the database"`
+	Type          string `ini-name:"Type" default:"sqlite" description:"Name of the RDBMS used for the gateway database. Possible values: sqlite, mysql, postgresql"`
+	Address       string `ini-name:"Address" default:"waarp-gateway.db" description:"Address of the database"`
 	Port          uint16 `ini-name:"Port" default:"" description:"Port of the database"`
 	Name          string `ini-name:"Name" default:"waarp_gatewayd" description:"The name of the database"`
-	User          string `ini-name:"User" default:"waarp_gatewayd" description:"The name of the gateway database user"`
+	User          string `ini-name:"User" default:"" description:"The name of the gateway database user"`
 	Password      string `ini-name:"Password" default:"" description:"The password of the gateway database user"`
-	AESPassphrase string `ini-name:"AESPassphrase" default:"aes_passphrase" description:"The path to the file containing the passphrase used to encrypt account passwords using AES"`
+	AESPassphrase string `ini-name:"AESPassphrase" default:"passphrase.aes" description:"The path to the file containing the passphrase used to encrypt account passwords using AES"`
 }
 
 // ControllerConfig holds the transfer controller options

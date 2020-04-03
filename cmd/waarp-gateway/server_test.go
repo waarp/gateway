@@ -16,6 +16,14 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func agentInfoString(s *rest.OutAgent) string {
+	var config bytes.Buffer
+	_ = json.Indent(&config, s.ProtoConfig, "    ", "  ")
+	return "● " + s.Name + " (ID " + fmt.Sprint(s.ID) + ")\n" +
+		"  -Protocol     : " + s.Protocol + "\n" +
+		"  -Configuration: " + config.String() + "\n"
+}
+
 func TestGetServer(t *testing.T) {
 
 	Convey("Testing the server 'get' command", t, func() {
@@ -26,14 +34,12 @@ func TestGetServer(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			server := model.LocalAgent{
+			server := &model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-
-			err := db.Create(&server)
-			So(err, ShouldBeNil)
+			So(db.Create(server), ShouldBeNil)
 
 			Convey("Given a valid server ID", func() {
 				id := fmt.Sprint(server.ID)
@@ -57,11 +63,9 @@ func TestGetServer(t *testing.T) {
 						So(err, ShouldBeNil)
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Local agent n°1:\n"+
-							"          Name: "+server.Name+"\n"+
-							"      Protocol: "+server.Protocol+"\n"+
-							" Configuration: "+config.String()+"\n",
-						)
+
+						s := rest.FromLocalAgent(server)
+						So(string(cont), ShouldEqual, agentInfoString(s))
 					})
 				})
 			})
@@ -127,12 +131,12 @@ func TestAddServer(t *testing.T) {
 					})
 
 					Convey("Then the new server should have been added", func() {
-						server := model.LocalAgent{
+						server := &model.LocalAgent{
 							Name:        command.Name,
 							Protocol:    command.Protocol,
 							ProtoConfig: []byte(command.ProtoConfig),
 						}
-						exists, err := db.Exists(&server)
+						exists, err := db.Exists(server)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeTrue)
 					})
@@ -195,21 +199,22 @@ func TestListServers(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			server1 := model.LocalAgent{
+			server1 := &model.LocalAgent{
 				Name:        "local_agent1",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-			err := db.Create(&server1)
-			So(err, ShouldBeNil)
+			So(db.Create(server1), ShouldBeNil)
 
-			server2 := model.LocalAgent{
+			server2 := &model.LocalAgent{
 				Name:        "local_agent2",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"titi"}`),
 			}
-			err = db.Create(&server2)
-			So(err, ShouldBeNil)
+			So(db.Create(server2), ShouldBeNil)
+
+			s1 := rest.FromLocalAgent(server1)
+			s2 := rest.FromLocalAgent(server2)
 
 			Convey("Given no parameters", func() {
 
@@ -237,15 +242,7 @@ func TestListServers(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agents:\n"+
-							"Local agent n°1:\n"+
-							"          Name: "+server1.Name+"\n"+
-							"      Protocol: "+server1.Protocol+"\n"+
-							" Configuration: "+config1.String()+"\n"+
-							"Local agent n°2:\n"+
-							"          Name: "+server2.Name+"\n"+
-							"      Protocol: "+server2.Protocol+"\n"+
-							" Configuration: "+config2.String()+"\n",
-						)
+							agentInfoString(s1)+agentInfoString(s2))
 					})
 				})
 			})
@@ -273,11 +270,7 @@ func TestListServers(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agents:\n"+
-							"Local agent n°1:\n"+
-							"          Name: "+server1.Name+"\n"+
-							"      Protocol: "+server1.Protocol+"\n"+
-							" Configuration: "+config1.String()+"\n",
-						)
+							agentInfoString(s1))
 					})
 				})
 			})
@@ -305,11 +298,7 @@ func TestListServers(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agents:\n"+
-							"Local agent n°2:\n"+
-							"          Name: "+server2.Name+"\n"+
-							"      Protocol: "+server2.Protocol+"\n"+
-							" Configuration: "+config2.String()+"\n",
-						)
+							agentInfoString(s2))
 					})
 				})
 			})
@@ -341,15 +330,7 @@ func TestListServers(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agents:\n"+
-							"Local agent n°2:\n"+
-							"          Name: "+server2.Name+"\n"+
-							"      Protocol: "+server2.Protocol+"\n"+
-							" Configuration: "+config2.String()+"\n"+
-							"Local agent n°1:\n"+
-							"          Name: "+server1.Name+"\n"+
-							"      Protocol: "+server1.Protocol+"\n"+
-							" Configuration: "+config1.String()+"\n",
-						)
+							agentInfoString(s2)+agentInfoString(s1))
 					})
 				})
 			})
@@ -368,14 +349,12 @@ func TestDeleteServer(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			server := model.LocalAgent{
+			server := &model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-
-			err := db.Create(&server)
-			So(err, ShouldBeNil)
+			So(db.Create(server), ShouldBeNil)
 
 			Convey("Given a valid server ID", func() {
 				id := fmt.Sprint(server.ID)
@@ -401,7 +380,7 @@ func TestDeleteServer(t *testing.T) {
 					})
 
 					Convey("Then the server should have been removed", func() {
-						exists, err := db.Exists(&server)
+						exists, err := db.Exists(server)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeFalse)
 					})
@@ -426,7 +405,7 @@ func TestDeleteServer(t *testing.T) {
 					})
 
 					Convey("Then the server should still exist", func() {
-						exists, err := db.Exists(&server)
+						exists, err := db.Exists(server)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeTrue)
 					})
@@ -447,14 +426,12 @@ func TestUpdateServer(t *testing.T) {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 
-			server := model.LocalAgent{
+			server := &model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
 			}
-
-			err := db.Create(&server)
-			So(err, ShouldBeNil)
+			So(db.Create(server), ShouldBeNil)
 
 			command.Name = "new_local_agent"
 			command.Protocol = "sftp"
@@ -486,7 +463,7 @@ func TestUpdateServer(t *testing.T) {
 						})
 
 						Convey("Then the old server should have been removed", func() {
-							exists, err := db.Exists(&server)
+							exists, err := db.Exists(server)
 							So(err, ShouldBeNil)
 							So(exists, ShouldBeFalse)
 						})
@@ -562,7 +539,7 @@ func TestUpdateServer(t *testing.T) {
 					})
 
 					Convey("Then the server should stay unchanged", func() {
-						exists, err := db.Exists(&server)
+						exists, err := db.Exists(server)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeTrue)
 					})
