@@ -1,6 +1,7 @@
 package sftp
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -58,7 +59,7 @@ func TestFileReader(t *testing.T) {
 				Db:     db,
 				Logger: logger,
 				Agent:  agent,
-			}).makeFileReader(account.ID, conf, nil)
+			}).makeFileReader(context.Background(), account.ID, conf)
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
@@ -159,7 +160,7 @@ func TestFileWriter(t *testing.T) {
 				Db:     db,
 				Logger: logger,
 				Agent:  agent,
-			}).makeFileWriter(account.ID, conf, nil)
+			}).makeFileWriter(context.Background(), account.ID, conf)
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{

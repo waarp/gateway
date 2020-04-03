@@ -3,6 +3,7 @@ package tasks
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +26,7 @@ type Processor struct {
 	Rule     *model.Rule
 	Transfer *model.Transfer
 	Signals  <-chan model.Signal
+	Ctx      context.Context
 }
 
 // GetTasks returns the list of all tasks of the given rule & chain.
@@ -93,10 +95,10 @@ func (p *Processor) RunTasks(tasks []model.Task) *model.PipelineError {
 		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, p.Rule.Name,
 			task.Chain, task.Rank)
 		select {
+		case <-p.Ctx.Done():
+			return &model.PipelineError{Kind: model.KindInterrupt}
 		case signal := <-p.Signals:
 			switch signal {
-			case model.SignalShutdown:
-				return &model.PipelineError{Kind: model.KindInterrupt}
 			case model.SignalCancel:
 				return &model.PipelineError{Kind: model.KindCancel}
 			case model.SignalPause:

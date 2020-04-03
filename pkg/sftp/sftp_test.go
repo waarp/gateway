@@ -18,13 +18,17 @@ import (
 )
 
 func TestSFTPPackage(t *testing.T) {
-	port := "2222"
 	logger := log.NewLogger("test_sftp_package", testLogConf)
 
 	Convey("Given an SFTP server", t, func() {
 		root, err := ioutil.TempDir("", "gateway-test")
 		So(err, ShouldBeNil)
 		defer func() { _ = os.RemoveAll(root) }()
+
+		listener, err := net.Listen("tcp", "localhost:0")
+		So(err, ShouldBeNil)
+		_, port, err := net.SplitHostPort(listener.Addr().String())
+		So(err, ShouldBeNil)
 
 		db := database.GetTestDatabase()
 		localAgent := &model.LocalAgent{
@@ -146,8 +150,7 @@ func TestSFTPPackage(t *testing.T) {
 		config, err := loadSSHConfig(db, localCert)
 		So(err, ShouldBeNil)
 
-		listener, err := net.Listen("tcp", "localhost:"+port)
-		So(err, ShouldBeNil)
+		ctx, cancel := context.WithCancel(context.Background())
 
 		sshList := &sshListener{
 			Db:       db,
@@ -156,6 +159,8 @@ func TestSFTPPackage(t *testing.T) {
 			Conf:     config,
 			Listener: listener,
 			connWg:   sync.WaitGroup{},
+			ctx:      ctx,
+			cancel:   cancel,
 		}
 		sshList.listen()
 		Reset(func() {
@@ -179,10 +184,16 @@ func TestSFTPPackage(t *testing.T) {
 			So(db.Create(&trans), ShouldBeNil)
 
 			Convey("Given an executor", func() {
-				stream, err := pipeline.NewTransferStream(logger, db, "", trans)
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				stream, err := pipeline.NewTransferStream(ctx, logger, db, "", trans)
 				So(err, ShouldBeNil)
 
-				exe := executor.Executor{TransferStream: stream}
+				exe := executor.Executor{
+					TransferStream: stream,
+					Ctx:            ctx,
+				}
 				finished := make(chan bool)
 				go func() {
 					exe.Run()

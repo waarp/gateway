@@ -88,7 +88,7 @@ func (wg *WG) stopServices() {
 	delete(wg.Services, database.ServiceName)
 
 	for _, wgService := range wg.Services {
-		_ = wgService.Stop(ctx)
+		go func(s service.Service) { _ = s.Stop(ctx) }(wgService)
 	}
 
 	_ = wg.dbService.Stop(ctx)

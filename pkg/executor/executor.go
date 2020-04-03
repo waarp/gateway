@@ -3,6 +3,7 @@
 package executor
 
 import (
+	"context"
 	"fmt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -23,6 +24,7 @@ var (
 type Executor struct {
 	*pipeline.TransferStream
 	client  pipeline.Client
+	Ctx     context.Context
 	R66Home string
 }
 

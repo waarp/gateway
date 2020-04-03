@@ -3,7 +3,6 @@ package sftp
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"io"
 	"io/ioutil"
 	"net"
@@ -20,11 +19,22 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+func getTestPort() string {
+	listener, err := net.Listen("tcp", "localhost:0")
+	So(err, ShouldBeNil)
+	_, port, err := net.SplitHostPort(listener.Addr().String())
+	So(err, ShouldBeNil)
+	So(listener.Close(), ShouldBeNil)
+
+	return port
+}
+
 func TestServerStop(t *testing.T) {
-	port := "2021"
 
 	Convey("Given a running SFTP server service", t, func() {
 		db := database.GetTestDatabase()
+		port := getTestPort()
+
 		agent := &model.LocalAgent{
 			Name:     "test_sftp_server",
 			Protocol: "sftp",
@@ -62,10 +72,9 @@ func TestServerStop(t *testing.T) {
 }
 
 func TestServerStart(t *testing.T) {
-	port := "2022"
-
 	Convey("Given an SFTP server service", t, func() {
 		db := database.GetTestDatabase()
+		port := getTestPort()
 
 		agent := &model.LocalAgent{
 			Name:     "test_sftp_server",
@@ -102,13 +111,17 @@ func TestServerStart(t *testing.T) {
 }
 
 func TestSSHServer(t *testing.T) {
-	port := "2023"
 	logger := log.NewLogger("test_sftp_server", testLogConf)
 
 	Convey("Given an SFTP server", t, func() {
 		root, err := ioutil.TempDir("", "gateway-test")
 		So(err, ShouldBeNil)
 		Reset(func() { _ = os.RemoveAll(root) })
+
+		listener, err := net.Listen("tcp", "localhost:0")
+		So(err, ShouldBeNil)
+		_, port, err := net.SplitHostPort(listener.Addr().String())
+		So(err, ShouldBeNil)
 
 		db := database.GetTestDatabase()
 		agent := &model.LocalAgent{
@@ -155,8 +168,7 @@ func TestSSHServer(t *testing.T) {
 		config, err := loadSSHConfig(db, cert)
 		So(err, ShouldBeNil)
 
-		listener, err := net.Listen("tcp", "localhost:"+port)
-		So(err, ShouldBeNil)
+		ctx, cancel := context.WithCancel(context.Background())
 
 		sshList := &sshListener{
 			Db:       db,
@@ -165,6 +177,8 @@ func TestSSHServer(t *testing.T) {
 			Conf:     config,
 			Listener: listener,
 			connWg:   sync.WaitGroup{},
+			ctx:      ctx,
+			cancel:   cancel,
 		}
 		sshList.listen()
 
@@ -189,20 +203,19 @@ func TestSSHServer(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Given an incoming transfer", func() {
-					src := rand.Reader
-
 					dst, err := client.Create(receive.Path + "/test_in_shutdown.dst")
 					So(err, ShouldBeNil)
 
 					Convey("When the server shuts down", func() {
-
-						go func() {
-							_, _ = dst.ReadFrom(src)
-						}()
+						_, err := dst.Write([]byte{'a'})
+						So(err, ShouldBeNil)
 
 						ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 						defer cancel()
-						_ = sshList.close(ctx)
+						So(sshList.close(ctx), ShouldBeNil)
+
+						_, err = dst.Write([]byte{'b'})
+						So(err, ShouldNotBeNil)
 
 						Convey("Then the transfer should appear interrupted", func() {
 							var t []model.Transfer
@@ -221,6 +234,7 @@ func TestSSHServer(t *testing.T) {
 								Status:     model.StatusInterrupted,
 								Step:       model.StepData,
 								Owner:      database.Owner,
+								Progress:   1,
 							}
 							So(t[0], ShouldResemble, trans)
 						})
@@ -228,7 +242,7 @@ func TestSSHServer(t *testing.T) {
 				})
 
 				Convey("Given an outgoing transfer", func() {
-					content := "Test outgoing file"
+					content := "Test outgoing file "
 
 					err := os.MkdirAll(root+send.Path, 0700)
 					So(err, ShouldBeNil)
@@ -239,21 +253,19 @@ func TestSSHServer(t *testing.T) {
 
 					Reset(func() { _ = os.RemoveAll(root + send.Path) })
 
-					src, err := client.Create(send.Path + "/test_out_shutdown.src")
+					src, err := client.Open(send.Path + "/test_out_shutdown.src")
 					So(err, ShouldBeNil)
 
 					Convey("When the server shuts down", func() {
 						_, err := src.Read(make([]byte, 1))
 						So(err, ShouldBeNil)
 
-						go func() {
-							ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-							defer cancel()
-							_ = sshList.close(ctx)
-						}()
+						ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+						defer cancel()
+						So(sshList.close(ctx), ShouldBeNil)
 
 						_, err = src.Read(make([]byte, 1))
-						So(err, ShouldBeError, io.EOF)
+						So(err, ShouldBeError, "failed to send packet: EOF")
 
 						Convey("Then the transfer should appear interrupted", func() {
 							var t []model.Transfer
@@ -266,12 +278,13 @@ func TestSSHServer(t *testing.T) {
 								IsServer:   true,
 								AccountID:  user.ID,
 								AgentID:    agent.ID,
-								SourcePath: ".",
-								DestPath:   "test_out_shutdown.src",
+								SourcePath: "test_out_shutdown.src",
+								DestPath:   ".",
 								RuleID:     send.ID,
 								Status:     model.StatusInterrupted,
-								Step:       model.StepPostTasks,
+								Step:       model.StepData,
 								Owner:      database.Owner,
+								Progress:   1,
 							}
 							So(t[0], ShouldResemble, trans)
 						})
@@ -624,13 +637,17 @@ func TestSSHServer(t *testing.T) {
 }
 
 func TestSSHServerTasks(t *testing.T) {
-	port := "2024"
 	logger := log.NewLogger("test_sftp_server", testLogConf)
 
 	Convey("Given an SFTP server", t, func() {
 		root, err := ioutil.TempDir("", "gateway-test")
 		So(err, ShouldBeNil)
 		Reset(func() { _ = os.RemoveAll(root) })
+
+		listener, err := net.Listen("tcp", "localhost:0")
+		So(err, ShouldBeNil)
+		_, port, err := net.SplitHostPort(listener.Addr().String())
+		So(err, ShouldBeNil)
 
 		db := database.GetTestDatabase()
 		agent := &model.LocalAgent{
@@ -662,8 +679,7 @@ func TestSSHServerTasks(t *testing.T) {
 		config, err := loadSSHConfig(db, cert)
 		So(err, ShouldBeNil)
 
-		listener, err := net.Listen("tcp", "localhost:"+port)
-		So(err, ShouldBeNil)
+		ctx, cancel := context.WithCancel(context.Background())
 
 		sshList := &sshListener{
 			Db:       db,
@@ -672,6 +688,8 @@ func TestSSHServerTasks(t *testing.T) {
 			Conf:     config,
 			Listener: listener,
 			connWg:   sync.WaitGroup{},
+			ctx:      ctx,
+			cancel:   cancel,
 		}
 		sshList.listen()
 

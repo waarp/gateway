@@ -6,14 +6,10 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func init() {
-	Signals = &SignalMap{mp: map[uint64]chan model.Signal{}}
-}
-
 // Signals is a map regrouping the signal channels of all ongoing transfers.
 // The signal channel of a specific transfer can be retrieved from this map
 // using the transfer's ID.
-var Signals *SignalMap
+var Signals = &SignalMap{mp: map[uint64]chan model.Signal{}}
 
 // SignalMap is the type of the Signals map. It consists of a map associating
 // transfer IDs to their signal channel. The structure contains a mutex so that

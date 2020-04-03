@@ -2,6 +2,7 @@
 package pipeline
 
 import (
+	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -13,16 +14,16 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 )
 
-func checkSignal(ch <-chan model.Signal) *model.PipelineError {
+func checkSignal(ctx context.Context, ch <-chan model.Signal) *model.PipelineError {
 	select {
+	case <-ctx.Done():
+		return &model.PipelineError{Kind: model.KindInterrupt}
 	case signal := <-ch:
 		switch signal {
 		case model.SignalCancel:
 			return &model.PipelineError{Kind: model.KindCancel}
 		case model.SignalPause:
 			return &model.PipelineError{Kind: model.KindPause}
-		case model.SignalShutdown:
-			return &model.PipelineError{Kind: model.KindInterrupt}
 		default:
 			return nil
 		}

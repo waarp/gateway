@@ -5,13 +5,9 @@ package model
 type Signal byte
 
 const (
-	// SignalShutdown is the signal sent to all transfer executors when the gateway is
-	// shut down.
-	SignalShutdown Signal = iota
-
 	// SignalPause is the signal sent to a transfer executor when the current transfer
 	// has been paused.
-	SignalPause
+	SignalPause Signal = iota
 
 	// SignalCancel is the signal sent to a transfer executor when the current transfer
 	// has been cancelled.

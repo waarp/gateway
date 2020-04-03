@@ -90,8 +90,6 @@ func TestControllerListen(t *testing.T) {
 
 					Convey("After waiting enough time", func() {
 						time.Sleep(10 * time.Millisecond)
-						cont.shutdown <- true
-						<-cont.shutdown
 
 						Convey("Then it should have retrieved the planned "+
 							"transfer entry", func() {
@@ -128,8 +126,6 @@ func TestControllerListen(t *testing.T) {
 
 							Convey("After waiting enough time", func() {
 								time.Sleep(10 * time.Millisecond)
-								cont.shutdown <- true
-								<-cont.shutdown
 
 								Convey("Then the running entry should now be "+
 									"interrupted", func() {

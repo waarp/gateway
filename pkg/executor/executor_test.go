@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -68,7 +69,8 @@ func TestExecutorRun(t *testing.T) {
 			So(db.Create(trans), ShouldBeNil)
 
 			Convey("Given an executor", func() {
-				stream, err := pipeline.NewTransferStream(logger, db, "", *trans)
+				stream, err := pipeline.NewTransferStream(context.Background(),
+					logger, db, "", *trans)
 				So(err, ShouldBeNil)
 				exe := &Executor{TransferStream: stream}
 
@@ -471,9 +473,12 @@ func TestTransferResume(t *testing.T) {
 			So(db.Create(trans), ShouldBeNil)
 
 			Convey("When starting the transfer", func() {
-				stream, err := pipeline.NewTransferStream(logger, db, "", *trans)
+				stream, err := pipeline.NewTransferStream(context.Background(),
+					logger, db, "", *trans)
 				So(err, ShouldBeNil)
-				exe := &Executor{TransferStream: stream}
+				exe := &Executor{
+					TransferStream: stream,
+				}
 
 				exe.Run()
 
@@ -538,7 +543,8 @@ func TestTransferResume(t *testing.T) {
 			So(db.Create(trans), ShouldBeNil)
 
 			Convey("When starting the transfer", func() {
-				stream, err := pipeline.NewTransferStream(logger, db, "", *trans)
+				stream, err := pipeline.NewTransferStream(context.Background(),
+					logger, db, "", *trans)
 				So(err, ShouldBeNil)
 				exe := &Executor{TransferStream: stream}
 
@@ -621,7 +627,8 @@ func TestTransferResume(t *testing.T) {
 			So(db.Create(trans), ShouldBeNil)
 
 			Convey("When starting the transfer", func() {
-				stream, err := pipeline.NewTransferStream(logger, db, "", *trans)
+				stream, err := pipeline.NewTransferStream(context.Background(),
+					logger, db, "", *trans)
 				So(err, ShouldBeNil)
 				exe := &Executor{TransferStream: stream}
 
