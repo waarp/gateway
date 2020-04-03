@@ -66,25 +66,22 @@ func (c *Client) Connect() *model.PipelineError {
 
 // Authenticate opens the SSH tunnel to the remote.
 func (c *Client) Authenticate() *model.PipelineError {
-	for _, cert := range c.Info.Certs {
-		conf, err := getSSHConfig(cert, c.Info.Account)
-		if err != nil {
-			continue
-		}
-
-		conn, chans, reqs, err := ssh.NewClientConn(c.conn, c.conf.Address, conf)
-		if err != nil {
-			continue
-		}
-
-		sshClient := ssh.NewClient(conn, chans, reqs)
-		c.client, err = sftp.NewClient(sshClient)
-		if err != nil {
-			continue
-		}
-		return nil
+	conf, err := getSSHConfig(c.Info.Certs, c.Info.Account)
+	if err != nil {
+		return model.NewPipelineError(model.TeInternal, err.Error())
 	}
-	return model.NewPipelineError(model.TeBadAuthentication, "No valid credentials found")
+
+	conn, chans, reqs, err := ssh.NewClientConn(c.conn, c.conf.Address, conf)
+	if err != nil {
+		return model.NewPipelineError(model.TeBadAuthentication, err.Error())
+	}
+
+	sshClient := ssh.NewClient(conn, chans, reqs)
+	c.client, err = sftp.NewClient(sshClient)
+	if err != nil {
+		return model.NewPipelineError(model.TeConnection, err.Error())
+	}
+	return nil
 }
 
 // Request opens/creates the remote file.
@@ -131,8 +128,12 @@ func (c *Client) Data(file io.ReadWriteCloser) *model.PipelineError {
 // Close ends the SFTP session and closes the connection.
 func (c *Client) Close(pErr *model.PipelineError) *model.PipelineError {
 	defer func() {
-		_ = c.client.Close()
-		_ = c.conn.Close()
+		if c.client != nil {
+			_ = c.client.Close()
+		}
+		if c.conn != nil {
+			_ = c.conn.Close()
+		}
 	}()
 
 	if pErr == nil {
