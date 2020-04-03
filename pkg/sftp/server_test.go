@@ -64,7 +64,7 @@ func TestServerStop(t *testing.T) {
 
 				Convey("Then the SFTP server should no longer respond", func() {
 					_, err := ssh.Dial("tcp", "localhost:"+port, &ssh.ClientConfig{})
-					So(err, ShouldBeError)
+					So(err, ShouldNotBeNil)
 				})
 			})
 		})
@@ -459,19 +459,18 @@ func TestSSHServer(t *testing.T) {
 					})
 
 					Convey("Given that the transfer fails", func() {
-						src := bytes.NewBufferString("est fail content")
+						src := bytes.NewBufferString("test fail content")
 
 						dst, err := client.Create(receive.Path + "/test_in_fail.dst")
 						So(err, ShouldBeNil)
 
-						_, err = dst.Write([]byte("t"))
+						_, err = dst.Write(src.Next(1))
 						So(err, ShouldBeNil)
 						So(conn.Close(), ShouldBeNil)
 						_, err = dst.ReadFrom(src)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-							So(err.Error(), ShouldStartWith, "failed to send packet")
+							So(err, ShouldNotBeNil)
 
 							Convey("Then the transfer should appear in the history", func() {
 								time.Sleep(100 * time.Millisecond)
@@ -594,10 +593,10 @@ func TestSSHServer(t *testing.T) {
 						_, err = src.WriteTo(dst)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 
 							Convey("Then the transfer should appear in the history", func() {
-								time.Sleep(10 * time.Millisecond)
+								time.Sleep(100 * time.Millisecond)
 
 								var t []model.Transfer
 								So(db.Select(&t, nil), ShouldBeNil)
@@ -878,7 +877,7 @@ func TestSSHServerTasks(t *testing.T) {
 						err = dst.Close()
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						So(client.Close(), ShouldBeNil)
@@ -982,7 +981,7 @@ func TestSSHServerTasks(t *testing.T) {
 
 					Convey("Given that the transfer finishes normally", func() {
 						_, err := client.Open(send.Path + "/test_out.src")
-						So(err, ShouldBeError)
+						So(err, ShouldNotBeNil)
 
 						So(client.Close(), ShouldBeNil)
 						So(conn.Close(), ShouldBeNil)
@@ -1077,7 +1076,7 @@ func TestSSHServerTasks(t *testing.T) {
 						err = src.Close()
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldNotBeNil)
 						})
 
 						So(client.Close(), ShouldBeNil)

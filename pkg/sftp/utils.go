@@ -4,10 +4,20 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"golang.org/x/crypto/ssh"
 )
+
+func isRemoteTaskError(err error) (string, bool) {
+	if !strings.Contains(err.Error(), "TransferError(TeExternalOperation)") {
+		return "", false
+	}
+	msg := strings.TrimPrefix(err.Error(), "sftp: \"TransferError(TeExternalOperation): ")
+	msg = strings.TrimSuffix(msg, "\" (SSH_FX_FAILURE)")
+	return msg, true
+}
 
 type fixedHostKeys []ssh.PublicKey
 
