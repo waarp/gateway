@@ -21,7 +21,7 @@ func (*testService) Stop(context.Context) error { return nil }
 func (t *testService) State() *service.State    { return &t.state }
 
 func TestStatus(t *testing.T) {
-	statusLogger := log.NewLogger("rest_status_test", logConf)
+	statusLogger := log.NewLogger("rest_status_test")
 
 	var services = make(map[string]service.Service)
 	services["Test Running Service"] = &testService{state: service.State{}}

@@ -21,7 +21,7 @@ import (
 const localAccountsURI = "http://localhost:8080" + APIPath + LocalAccountsPath + "/"
 
 func TestGetLocalAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_get_test", logConf)
+	logger := log.NewLogger("rest_account_get_test")
 
 	Convey("Given the account get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -95,7 +95,7 @@ func TestGetLocalAccount(t *testing.T) {
 }
 
 func TestListLocalAccounts(t *testing.T) {
-	logger := log.NewLogger("rest_account_list_test", logConf)
+	logger := log.NewLogger("rest_account_list_test")
 
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutAccount) {
 		Convey("Then it should reply 'OK'", func() {
@@ -239,7 +239,7 @@ func TestListLocalAccounts(t *testing.T) {
 }
 
 func TestCreateLocalAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_create_logger", logConf)
+	logger := log.NewLogger("rest_account_create_logger")
 
 	Convey("Given the account creation handler", t, func() {
 		db := database.GetTestDatabase()
@@ -308,7 +308,7 @@ func TestCreateLocalAccount(t *testing.T) {
 }
 
 func TestDeleteLocalAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_delete_test", logConf)
+	logger := log.NewLogger("rest_account_delete_test")
 
 	Convey("Given the account deletion handler", t, func() {
 		db := database.GetTestDatabase()
@@ -384,7 +384,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 }
 
 func TestUpdateLocalAccount(t *testing.T) {
-	logger := log.NewLogger("rest_account_update_logger", logConf)
+	logger := log.NewLogger("rest_account_update_logger")
 
 	Convey("Given the account updating handler", t, func() {
 		db := database.GetTestDatabase()

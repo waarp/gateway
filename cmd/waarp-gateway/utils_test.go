@@ -15,10 +15,11 @@ var discard *log.Logger
 
 func init() {
 	logConf := conf.LogConfig{
-		Level: "DEBUG",
+		Level: "CRITICAL",
 		LogTo: "stdout",
 	}
-	discard = log.NewLogger("test_client", logConf)
+	_ = log.InitBackend(logConf)
+	discard = log.NewLogger("test_client")
 	discard.SetBackend(&logging.NoopBackend{})
 
 	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }

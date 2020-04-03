@@ -3,9 +3,19 @@ package model
 import (
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+func init() {
+	logConf := conf.LogConfig{
+		Level: "CRITICAL",
+		LogTo: "stdout",
+	}
+	_ = log.InitBackend(logConf)
+}
 
 func TestUsersTableName(t *testing.T) {
 	Convey("Given a `User` instance", t, func() {

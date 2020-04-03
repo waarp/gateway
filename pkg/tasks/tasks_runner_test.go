@@ -14,9 +14,12 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var logConf = conf.LogConfig{
-	Level: "DEBUG",
-	LogTo: "stdout",
+func init() {
+	logConf := conf.LogConfig{
+		Level: "DEBUG",
+		LogTo: "stdout",
+	}
+	_ = log.InitBackend(logConf)
 }
 
 func TestSetup(t *testing.T) {
@@ -338,7 +341,7 @@ func TestGetTasks(t *testing.T) {
 }
 
 func TestRunTasks(t *testing.T) {
-	logger := log.NewLogger("test_run_tasks", logConf)
+	logger := log.NewLogger("test_run_tasks")
 
 	Convey("Given a processor", t, func() {
 		db := database.GetTestDatabase()

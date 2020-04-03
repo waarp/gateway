@@ -66,7 +66,7 @@ func (c *Controller) listen() {
 	owner := builder.Eq{"owner": database.Owner}
 	status := builder.Eq{"status": model.StatusPlanned}
 	client := builder.Eq{"is_server": false}
-	wg := sync.WaitGroup{}
+	c.wg = &sync.WaitGroup{}
 
 	c.ctx, c.cancel = context.WithCancel(context.Background())
 
@@ -107,10 +107,10 @@ func (c *Controller) listen() {
 					continue
 				}
 
-				wg.Add(1)
+				c.wg.Add(1)
 				go func() {
 					exe.Run()
-					wg.Done()
+					c.wg.Done()
 				}()
 			}
 		}
@@ -131,7 +131,7 @@ func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, erro
 // Start starts the transfer controller service.
 func (c *Controller) Start() error {
 	if c.logger == nil {
-		c.logger = log.NewLogger(ServiceName, c.Conf.Log)
+		c.logger = log.NewLogger(ServiceName)
 	}
 
 	pipeline.TransferInCount.SetLimit(c.Conf.Controller.MaxTransfersIn)

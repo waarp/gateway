@@ -1,10 +1,16 @@
 package admin
 
-import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+import (
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+)
 
-var logConf = conf.LogConfig{
-	Level: "DEBUG",
-	LogTo: "stdout",
+func init() {
+	logConf := conf.LogConfig{
+		Level: "DEBUG",
+		LogTo: "stdout",
+	}
+	_ = log.InitBackend(logConf)
 }
 
 const cert = `-----BEGIN CERTIFICATE-----

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	flags "github.com/jessevdk/go-flags"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -63,6 +64,10 @@ func main() {
 		return
 	}
 
+	if err := log.InitBackend(config.Log); err != nil {
+		fmt.Printf("ERROR: %s", err.Error())
+		return
+	}
 	s := gatewayd.NewWG(config)
 	if err := s.Start(); err != nil {
 		fmt.Printf("ERROR: %v\n", err.Error())

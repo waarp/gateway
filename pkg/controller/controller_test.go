@@ -5,30 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func init() {
-	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
-}
-
-type TestProtoConfig struct{}
-
-func (*TestProtoConfig) ValidServer() error { return nil }
-func (*TestProtoConfig) ValidClient() error { return nil }
-
 func TestControllerListen(t *testing.T) {
-	logConf := conf.LogConfig{
-		Level: "DEBUG",
-		LogTo: "stdout",
-	}
-
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -70,7 +54,7 @@ func TestControllerListen(t *testing.T) {
 			cont := &Controller{
 				Db:     db,
 				ticker: time.NewTicker(tick),
-				logger: log.NewLogger("test_controller", logConf),
+				logger: log.NewLogger("test_controller"),
 			}
 
 			Convey("Given a planned transfer", func() {

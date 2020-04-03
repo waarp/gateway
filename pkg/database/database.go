@@ -134,9 +134,7 @@ var supportedRBMS = map[string]dbinfo{}
 // cannot be reached, an error is returned.
 // If the service is already running, this function does nothing.
 func (db *Db) Start() error {
-	if db.Logger == nil {
-		db.Logger = log.NewLogger(ServiceName, db.Conf.Log)
-	}
+	db.Logger = log.NewLogger(ServiceName)
 
 	db.Logger.Info("Starting database service...")
 	if code, _ := db.state.Get(); code != service.Offline && code != service.Error {

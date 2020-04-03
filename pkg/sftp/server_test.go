@@ -53,7 +53,7 @@ func TestServerStop(t *testing.T) {
 		}
 		So(db.Create(cert), ShouldBeNil)
 
-		server := NewService(db, agent, log.NewLogger("test_sftp_server", testLogConf))
+		server := NewService(db, agent, log.NewLogger("test_sftp_server"))
 		So(server.Start(), ShouldBeNil)
 
 		Convey("When stopping the service", func() {
@@ -94,7 +94,7 @@ func TestServerStart(t *testing.T) {
 		}
 		So(db.Create(cert), ShouldBeNil)
 
-		sftpServer := NewService(db, agent, log.NewLogger("test_sftp_server", testLogConf))
+		sftpServer := NewService(db, agent, log.NewLogger("test_sftp_server"))
 
 		Convey("When starting the server", func() {
 			err := sftpServer.Start()
@@ -111,7 +111,7 @@ func TestServerStart(t *testing.T) {
 }
 
 func TestSSHServer(t *testing.T) {
-	logger := log.NewLogger("test_sftp_server", testLogConf)
+	logger := log.NewLogger("test_sftp_server")
 
 	Convey("Given an SFTP server", t, func() {
 		root, err := ioutil.TempDir("", "gateway-test")
@@ -597,7 +597,7 @@ func TestSSHServer(t *testing.T) {
 							So(err, ShouldBeError)
 
 							Convey("Then the transfer should appear in the history", func() {
-								time.Sleep(time.Millisecond)
+								time.Sleep(10 * time.Millisecond)
 
 								var t []model.Transfer
 								So(db.Select(&t, nil), ShouldBeNil)
@@ -637,7 +637,7 @@ func TestSSHServer(t *testing.T) {
 }
 
 func TestSSHServerTasks(t *testing.T) {
-	logger := log.NewLogger("test_sftp_server", testLogConf)
+	logger := log.NewLogger("test_sftp_server")
 
 	Convey("Given an SFTP server", t, func() {
 		root, err := ioutil.TempDir("", "gateway-test")

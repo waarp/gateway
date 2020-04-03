@@ -21,7 +21,7 @@ import (
 const transferURI = "http://localhost:8080" + APIPath + TransfersPath + "/"
 
 func TestAddTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_add_test", logConf)
+	logger := log.NewLogger("rest_transfer_add_test")
 
 	Convey("Testing the transfer add handler", t, func() {
 		db := database.GetTestDatabase()
@@ -197,7 +197,7 @@ func TestAddTransfer(t *testing.T) {
 }
 
 func TestGetTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_get_test", logConf)
+	logger := log.NewLogger("rest_transfer_get_test")
 
 	Convey("Testing the transfer get handler", t, func() {
 		db := database.GetTestDatabase()
@@ -288,7 +288,7 @@ func TestGetTransfer(t *testing.T) {
 }
 
 func TestListTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_list_test", logConf)
+	logger := log.NewLogger("rest_transfer_list_test")
 
 	Convey("Testing the transfer list handler", t, func() {
 		db := database.GetTestDatabase()

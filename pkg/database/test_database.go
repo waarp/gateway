@@ -47,17 +47,14 @@ func GetTestDatabase() *Db {
 	config.Database.Name = name
 	atomic.AddUint64(&num, 1)
 
-	logger := log.NewLogger("test_database", conf.LogConfig{})
-	discard, err := logging.NewNoopBackend()
-	convey.So(err, convey.ShouldBeNil)
-
-	logger.SetBackend(discard)
 	db := &Db{
 		Conf:       config,
-		Logger:     logger,
 		testDbLock: &sync.Mutex{},
 	}
 	convey.So(db.Start(), convey.ShouldBeNil)
+	db.Logger = &log.Logger{Logger: logging.NewLogger(ServiceName)}
+	db.Logger.Logger.SetBackend(logging.NewStdoutBackend())
+	db.Logger.Logger.SetLevel(logging.CRITICAL)
 
 	return db
 }

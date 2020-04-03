@@ -17,7 +17,7 @@ import (
 )
 
 func TestFileReader(t *testing.T) {
-	logger := log.NewLogger("test_file_reader", testLogConf)
+	logger := log.NewLogger("test_file_reader")
 
 	Convey("Given a database with a rule, a localAgent and a localAccount", t, func() {
 		root, err := ioutil.TempDir("", "gateway-test")
@@ -123,7 +123,7 @@ func TestFileReader(t *testing.T) {
 }
 
 func TestFileWriter(t *testing.T) {
-	logger := log.NewLogger("test_file_writer", testLogConf)
+	logger := log.NewLogger("test_file_writer")
 
 	Convey("Given a database with a rule and a localAgent", t, func() {
 		root := "test_file_writer"
