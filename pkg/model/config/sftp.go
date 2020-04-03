@@ -41,8 +41,8 @@ type SftpProtoConfig struct {
 	MACs         []string `json:"macs"`
 }
 
-// ValidClient checks if the configuration is valid for an SFTP partner.
-func (c *SftpProtoConfig) ValidClient() error {
+// ValidPartner checks if the configuration is valid for an SFTP partner.
+func (c *SftpProtoConfig) ValidPartner() error {
 	if c.Port == 0 {
 		return fmt.Errorf("sftp port must be specified")
 	}
@@ -71,5 +71,5 @@ func (c *SftpProtoConfig) ValidClient() error {
 
 // ValidServer checks if the configuration is valid for a local SFTP server.
 func (c *SftpProtoConfig) ValidServer() error {
-	return c.ValidClient()
+	return c.ValidPartner()
 }

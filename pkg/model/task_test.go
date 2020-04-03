@@ -71,13 +71,9 @@ func TestTaskValidateInsert(t *testing.T) {
 				Convey("When calling the `ValidateInsert` method", func() {
 					err := t2.ValidateInsert(db)
 
-					Convey("Then it should return an error", func() {
-						So(err, ShouldNotBeNil)
-					})
-
-					Convey("Then the error should say 'No rule found'", func() {
-						So(err.Error(), ShouldEqual,
-							fmt.Sprintf("No rule found with ID %d", t2.RuleID))
+					Convey("Then the error should say the rule was not found'", func() {
+						So(err, ShouldBeError, fmt.Sprintf(
+							"no rule found with ID %d", t2.RuleID))
 					})
 				})
 			})
@@ -94,13 +90,9 @@ func TestTaskValidateInsert(t *testing.T) {
 				Convey("When calling the `ValidateInsert` method", func() {
 					err := t2.ValidateInsert(db)
 
-					Convey("Then it should return an error", func() {
-						So(err, ShouldNotBeNil)
-					})
-
-					Convey("Then the error should say 'No rule found'", func() {
-						So(err.Error(), ShouldEqual,
-							fmt.Sprintf("%s is not a valid task chain", t2.Chain))
+					Convey("Then the error should say the task chain is invalid", func() {
+						So(err, ShouldBeError, fmt.Sprintf(
+							"%s is not a valid task chain", t2.Chain))
 					})
 				})
 			})
@@ -117,14 +109,9 @@ func TestTaskValidateInsert(t *testing.T) {
 				Convey("When calling the `ValidateInsert` method", func() {
 					err := t2.ValidateInsert(db)
 
-					Convey("Then it should return an error", func() {
-						So(err, ShouldNotBeNil)
-					})
-
-					Convey("Then the error should say 'No rule found'", func() {
-						So(err.Error(), ShouldEqual,
-							fmt.Sprintf("Rule %d already has a task in %s at %d",
-								t2.RuleID, t2.Chain, t2.Rank))
+					Convey("Then the error should say the task already exist", func() {
+						So(err, ShouldBeError, fmt.Sprintf("rule %d already has "+
+							"a task in %s at %d", t2.RuleID, t2.Chain, t2.Rank))
 					})
 				})
 			})
@@ -144,7 +131,7 @@ func TestTaskValidateUpdate(t *testing.T) {
 			})
 
 			Convey("Then the error should say that operation is not allowed", func() {
-				So(err.Error(), ShouldEqual, "Operation not allowed")
+				So(err, ShouldBeError, "operation not allowed")
 			})
 		})
 	})

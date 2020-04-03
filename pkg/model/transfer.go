@@ -41,51 +41,51 @@ func (*Transfer) TableName() string {
 // inserted in the database.
 func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 	if t.ID != 0 {
-		return database.InvalidError("The transfer's ID cannot be entered manually")
+		return database.InvalidError("the transfer's ID cannot be entered manually")
 	}
 	if t.RuleID == 0 {
-		return database.InvalidError("The transfer's rule ID cannot be empty")
+		return database.InvalidError("the transfer's rule ID cannot be empty")
 	}
 	if t.AgentID == 0 {
-		return database.InvalidError("The transfer's remote ID cannot be empty")
+		return database.InvalidError("the transfer's remote ID cannot be empty")
 	}
 	if t.AccountID == 0 {
-		return database.InvalidError("The transfer's account ID cannot be empty")
+		return database.InvalidError("the transfer's account ID cannot be empty")
 	}
 	if t.SourceFile == "" {
-		return database.InvalidError("The transfer's source cannot be empty")
+		return database.InvalidError("the transfer's source cannot be empty")
 	}
 	if t.DestFile == "" {
-		return database.InvalidError("The transfer's destination cannot be empty")
+		return database.InvalidError("the transfer's destination cannot be empty")
 	}
 	if t.Start.IsZero() {
-		return database.InvalidError("The transfer's starting date cannot be empty")
+		return database.InvalidError("the transfer's starting date cannot be empty")
 	}
 	if !validateStatusForTransfer(t.Status) {
 		return database.InvalidError("'%s' is not a valid transfer status", t.Status)
 	}
 	if t.Error.Code != TeOk {
-		return database.InvalidError("The transfer's error code must be empty")
+		return database.InvalidError("the transfer's error code must be empty")
 	}
 	if t.Error.Details != "" {
-		return database.InvalidError("The transfer's error message must be empty")
+		return database.InvalidError("the transfer's error message must be empty")
 	}
 	if t.Owner == "" {
-		return database.InvalidError("The transfer's owner cannot be empty")
+		return database.InvalidError("the transfer's owner cannot be empty")
 	}
 	if t.SourceFile != filepath.Base(t.SourceFile) {
-		return database.InvalidError("The source file cannot contain subdirectories")
+		return database.InvalidError("the source file cannot contain subdirectories")
 	}
 	if t.DestFile != filepath.Base(t.DestFile) {
-		return database.InvalidError("The destination file cannot contain subdirectories")
+		return database.InvalidError("the destination file cannot contain subdirectories")
 	}
 	if t.TrueFilepath != "" && !filepath.IsAbs(t.TrueFilepath) {
-		return database.InvalidError("The filepath must be an absolute path")
+		return database.InvalidError("the filepath must be an absolute path")
 	}
 	rule := Rule{ID: t.RuleID}
 	if err := acc.Get(&rule); err != nil {
 		if err == database.ErrNotFound {
-			return database.InvalidError("The rule %d does not exist", t.RuleID)
+			return database.InvalidError("the rule %d does not exist", t.RuleID)
 		}
 		return err
 	}
@@ -106,7 +106,7 @@ func (t *Transfer) validateClientTransfer(acc database.Accessor) error {
 	remote := RemoteAgent{ID: t.AgentID}
 	if err := acc.Get(&remote); err != nil {
 		if err == database.ErrNotFound {
-			return database.InvalidError("The partner %d does not exist", t.AgentID)
+			return database.InvalidError("the partner %d does not exist", t.AgentID)
 		}
 		return err
 	}
@@ -114,7 +114,7 @@ func (t *Transfer) validateClientTransfer(acc database.Accessor) error {
 		t.AccountID, t.AgentID); err != nil {
 		return err
 	} else if len(res) == 0 {
-		return database.InvalidError("The agent %d does not have an account %d",
+		return database.InvalidError("the agent %d does not have an account %d",
 			t.AgentID, t.AccountID)
 	}
 
@@ -130,7 +130,7 @@ func (t *Transfer) validateClientTransfer(acc database.Accessor) error {
 			(&RemoteAgent{}).TableName(), t.AgentID); err != nil {
 			return err
 		} else if len(res) == 0 {
-			return database.InvalidError("No certificate found for agent %d", t.AgentID)
+			return database.InvalidError("no certificate found for agent %d", t.AgentID)
 		}
 	}
 	return nil
@@ -140,7 +140,7 @@ func (t *Transfer) validateServerTransfer(acc database.Accessor) error {
 	remote := LocalAgent{ID: t.AgentID}
 	if err := acc.Get(&remote); err != nil {
 		if err == database.ErrNotFound {
-			return database.InvalidError("The partner %d does not exist", t.AgentID)
+			return database.InvalidError("the partner %d does not exist", t.AgentID)
 		}
 		return err
 	}
@@ -148,7 +148,7 @@ func (t *Transfer) validateServerTransfer(acc database.Accessor) error {
 		t.AccountID, t.AgentID); err != nil {
 		return err
 	} else if len(res) == 0 {
-		return database.InvalidError("The agent %d does not have an account %d",
+		return database.InvalidError("the agent %d does not have an account %d",
 			t.AgentID, t.AccountID)
 	}
 
@@ -179,28 +179,28 @@ func (t *Transfer) BeforeInsert(database.Accessor) error {
 // the database. It checks whether the updated entry is valid or not.
 func (t *Transfer) ValidateUpdate(database.Accessor, uint64) error {
 	if t.ID != 0 {
-		return database.InvalidError("The transfer's ID cannot be entered manually")
+		return database.InvalidError("the transfer's ID cannot be entered manually")
 	}
 	if t.Owner != "" {
-		return database.InvalidError("The transfer's owner cannot be changed")
+		return database.InvalidError("the transfer's owner cannot be changed")
 	}
 	if t.RuleID != 0 {
-		return database.InvalidError("The transfer's rule cannot be changed")
+		return database.InvalidError("the transfer's rule cannot be changed")
 	}
 	if t.AgentID != 0 {
-		return database.InvalidError("The transfer's partner cannot be changed")
+		return database.InvalidError("the transfer's partner cannot be changed")
 	}
 	if t.AccountID != 0 {
-		return database.InvalidError("The transfer's account cannot be changed")
+		return database.InvalidError("the transfer's account cannot be changed")
 	}
 	if t.SourceFile != "" {
-		return database.InvalidError("The transfer's source cannot be changed")
+		return database.InvalidError("the transfer's source cannot be changed")
 	}
 	if t.DestFile != "" {
-		return database.InvalidError("The transfer's destination cannot be changed")
+		return database.InvalidError("the transfer's destination cannot be changed")
 	}
 	if t.TrueFilepath != "" && !filepath.IsAbs(t.TrueFilepath) {
-		return database.InvalidError("The filepath must be an absolute path")
+		return database.InvalidError("the filepath must be an absolute path")
 	}
 
 	if t.Status != "" {

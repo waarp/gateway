@@ -64,26 +64,26 @@ func (l *LocalAccount) TableName() string {
 // inserted in the database.
 func (l *LocalAccount) ValidateInsert(acc database.Accessor) error {
 	if l.ID != 0 {
-		return database.InvalidError("The account's ID cannot be entered manually")
+		return database.InvalidError("the account's ID cannot be entered manually")
 	}
 	if l.LocalAgentID == 0 {
-		return database.InvalidError("The account's agentID cannot be empty")
+		return database.InvalidError("the account's agentID cannot be empty")
 	}
 	if l.Login == "" {
-		return database.InvalidError("The account's login cannot be empty")
+		return database.InvalidError("the account's login cannot be empty")
 	}
 
 	if res, err := acc.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
 		return err
 	} else if len(res) == 0 {
-		return database.InvalidError("No local agent found with the ID '%v'", l.LocalAgentID)
+		return database.InvalidError("no local agent found with the ID '%v'", l.LocalAgentID)
 	}
 
 	if res, err := acc.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
 		"AND login=?", l.LocalAgentID, l.Login); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("A local account with the same login '%s' "+
+		return database.InvalidError("a local account with the same login '%s' "+
 			"already exist", l.Login)
 	}
 
@@ -94,14 +94,14 @@ func (l *LocalAccount) ValidateInsert(acc database.Accessor) error {
 // updated in the database.
 func (l *LocalAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if l.ID != 0 {
-		return database.InvalidError("The account's ID cannot be entered manually")
+		return database.InvalidError("the account's ID cannot be entered manually")
 	}
 
 	if l.LocalAgentID != 0 {
 		if res, err := acc.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
 			return err
 		} else if len(res) == 0 {
-			return database.InvalidError("No local agent found with the ID '%v'", l.LocalAgentID)
+			return database.InvalidError("no local agent found with the ID '%v'", l.LocalAgentID)
 		}
 	}
 
@@ -118,7 +118,7 @@ func (l *LocalAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 			"AND login=?", old.LocalAgentID, l.Login); err != nil {
 			return err
 		} else if len(res) > 0 {
-			return database.InvalidError("A local account with the same login '%s' "+
+			return database.InvalidError("a local account with the same login '%s' "+
 				"already exist", l.Login)
 		}
 	}

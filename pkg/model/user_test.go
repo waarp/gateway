@@ -116,7 +116,7 @@ func TestUsersValidateInsert(t *testing.T) {
 						})
 
 						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err.Error(), ShouldEqual, "The user's ID cannot "+
+							So(err, ShouldBeError, "the user's ID cannot "+
 								"be entered manually")
 						})
 					})
@@ -128,12 +128,8 @@ func TestUsersValidateInsert(t *testing.T) {
 					Convey("When calling the 'ValidateInsert' function", func() {
 						err := user.ValidateInsert(db)
 
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
-
 						Convey("Then the error should say that the username is missing", func() {
-							So(err.Error(), ShouldEqual, "The username "+
+							So(err, ShouldBeError, "the username "+
 								"cannot be empty")
 						})
 					})
@@ -145,12 +141,8 @@ func TestUsersValidateInsert(t *testing.T) {
 					Convey("When calling the 'ValidateInsert' function", func() {
 						err := user.ValidateInsert(db)
 
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
-
 						Convey("Then the error should say that the login is already taken", func() {
-							So(err.Error(), ShouldEqual, "A user named '"+user.Username+
+							So(err, ShouldBeError, "a user named '"+user.Username+
 								"' already exist")
 						})
 					})
@@ -201,12 +193,8 @@ func TestUsersValidateUpdate(t *testing.T) {
 					Convey("When calling the 'ValidateUpdate' function", func() {
 						err := user.ValidateUpdate(db, old.ID)
 
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
-
 						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err.Error(), ShouldEqual, "The user's ID cannot "+
+							So(err, ShouldBeError, "the user's ID cannot "+
 								"be entered manually")
 						})
 					})
@@ -218,12 +206,8 @@ func TestUsersValidateUpdate(t *testing.T) {
 					Convey("When calling the 'ValidateUpdate' function", func() {
 						err := user.ValidateUpdate(db, old.ID)
 
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
-
 						Convey("Then the error should say that the login is already taken", func() {
-							So(err.Error(), ShouldEqual, "A user named '"+user.Username+
+							So(err, ShouldBeError, "a user named '"+user.Username+
 								"' already exist")
 						})
 					})

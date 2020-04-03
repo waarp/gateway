@@ -23,12 +23,13 @@ func init() {
 	discard.SetBackend(&logging.NoopBackend{})
 
 	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs["test2"] = func() config.ProtoConfig { return new(TestProtoConfig) }
 }
 
 type TestProtoConfig struct{}
 
-func (*TestProtoConfig) ValidServer() error { return nil }
-func (*TestProtoConfig) ValidClient() error { return nil }
+func (*TestProtoConfig) ValidServer() error  { return nil }
+func (*TestProtoConfig) ValidPartner() error { return nil }
 
 func testFile() *os.File {
 	tmp, err := ioutil.TempFile("", "*")

@@ -51,43 +51,43 @@ func (h *TransferHistory) BeforeInsert(database.Accessor) error {
 // inserted in the database.
 func (h *TransferHistory) ValidateInsert(database.Accessor) error {
 	if h.Owner == "" {
-		return database.InvalidError("The transfer's owner cannot be empty")
+		return database.InvalidError("the transfer's owner cannot be empty")
 	}
 	if h.ID == 0 {
-		return database.InvalidError("The transfer's ID cannot be empty")
+		return database.InvalidError("the transfer's ID cannot be empty")
 	}
 	if h.Rule == "" {
-		return database.InvalidError("The transfer's rule cannot be empty")
+		return database.InvalidError("the transfer's rule cannot be empty")
 	}
 	if h.Account == "" {
-		return database.InvalidError("The transfer's account cannot be empty")
+		return database.InvalidError("the transfer's account cannot be empty")
 	}
 	if h.Agent == "" {
-		return database.InvalidError("The transfer's agent cannot be empty")
+		return database.InvalidError("the transfer's agent cannot be empty")
 	}
 	if h.IsServer {
 		if h.IsSend && h.DestFilename == "" {
-			return database.InvalidError("The transfer's destination filename cannot be empty")
+			return database.InvalidError("the transfer's destination filename cannot be empty")
 		} else if !h.IsSend && h.SourceFilename == "" {
-			return database.InvalidError("The transfer's destination filename cannot be empty")
+			return database.InvalidError("the transfer's destination filename cannot be empty")
 		}
 	} else {
 		if h.SourceFilename == "" {
-			return database.InvalidError("The transfer's source filename cannot be empty")
+			return database.InvalidError("the transfer's source filename cannot be empty")
 		}
 		if h.DestFilename == "" {
-			return database.InvalidError("The transfer's destination filename cannot be empty")
+			return database.InvalidError("the transfer's destination filename cannot be empty")
 		}
 	}
 	if h.Start.IsZero() {
-		return database.InvalidError("The transfer's start date cannot be empty")
+		return database.InvalidError("the transfer's start date cannot be empty")
 	}
 	if h.Stop.IsZero() {
-		return database.InvalidError("The transfer's end date cannot be empty")
+		return database.InvalidError("the transfer's end date cannot be empty")
 	}
 
 	if h.Stop.Before(h.Start) {
-		return database.InvalidError("The transfer's end date cannot be anterior " +
+		return database.InvalidError("the transfer's end date cannot be anterior " +
 			"to the start date")
 	}
 
@@ -106,39 +106,39 @@ func (h *TransferHistory) ValidateInsert(database.Accessor) error {
 // from the database. It checks whether the updated entry is valid or not.
 func (h *TransferHistory) ValidateUpdate(database.Accessor, uint64) error {
 	if h.ID != 0 {
-		return database.InvalidError("The transfer's ID cannot be changed")
+		return database.InvalidError("the transfer's ID cannot be changed")
 	}
 	if h.Owner != "" {
-		return database.InvalidError("The transfer's owner cannot be changed")
+		return database.InvalidError("the transfer's owner cannot be changed")
 	}
 	if h.Rule != "" {
-		return database.InvalidError("The transfer's rule cannot be changed")
+		return database.InvalidError("the transfer's rule cannot be changed")
 	}
 	if h.Account != "" {
-		return database.InvalidError("The transfer's account cannot be changed")
+		return database.InvalidError("the transfer's account cannot be changed")
 	}
 	if h.Agent != "" {
-		return database.InvalidError("The transfer's agent cannot be changed")
+		return database.InvalidError("the transfer's agent cannot be changed")
 	}
 	if h.SourceFilename != "" {
-		return database.InvalidError("The transfer's source filename cannot be changed")
+		return database.InvalidError("the transfer's source filename cannot be changed")
 	}
 	if h.DestFilename != "" {
-		return database.InvalidError("The transfer's destination filename cannot be changed")
+		return database.InvalidError("the transfer's destination filename cannot be changed")
 	}
 	if h.Protocol != "" {
-		return database.InvalidError("The transfer's protocol cannot be changed")
+		return database.InvalidError("the transfer's protocol cannot be changed")
 	}
 
 	if h.Start.IsZero() {
-		return database.InvalidError("The transfer's start cannot be empty")
+		return database.InvalidError("the transfer's start cannot be empty")
 	}
 	if h.Stop.IsZero() {
-		return database.InvalidError("The transfer's stop cannot be empty")
+		return database.InvalidError("the transfer's stop cannot be empty")
 	}
 
 	if h.Stop.Before(h.Start) {
-		return database.InvalidError("The transfer's end date cannot be anterior " +
+		return database.InvalidError("the transfer's end date cannot be anterior " +
 			"to the start date")
 	}
 

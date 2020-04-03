@@ -15,7 +15,7 @@ var ProtoConfigs = map[string]func() ProtoConfig{}
 // It exposes 2 methods needed for validating the configuration.
 type ProtoConfig interface {
 	ValidServer() error
-	ValidClient() error
+	ValidPartner() error
 }
 
 // GetProtoConfig parse and returns the given configuration according to the
@@ -26,6 +26,8 @@ func GetProtoConfig(proto string, config []byte) (ProtoConfig, error) {
 		return nil, fmt.Errorf("unknown protocol")
 	}
 	conf := cons()
-	err := json.Unmarshal(config, conf)
-	return conf, err
+	if err := json.Unmarshal(config, conf); err != nil {
+		return nil, fmt.Errorf("failed to parse protocol configuration: %s", err.Error())
+	}
+	return conf, nil
 }

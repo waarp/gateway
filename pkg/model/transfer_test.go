@@ -97,10 +97,7 @@ func TestTransferValidateInsert(t *testing.T) {
 				Convey("Given that the new transfer is valid", func() {
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
+						err := trans.ValidateInsert(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -112,17 +109,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.ID = 1
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the id cannot be entered", func() {
-							So(err.Error(), ShouldEqual, "The transfer's ID cannot "+
+							So(err, ShouldBeError, "the transfer's ID cannot "+
 								"be entered manually")
 						})
 					})
@@ -132,17 +122,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.Owner = ""
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the owner is missing", func() {
-							So(err.Error(), ShouldEqual, "The transfer's owner cannot "+
+							So(err, ShouldBeError, "the transfer's owner cannot "+
 								"be empty")
 						})
 					})
@@ -152,17 +135,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.RuleID = 0
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the rule ID is missing", func() {
-							So(err.Error(), ShouldEqual, "The transfer's rule ID "+
+							So(err, ShouldBeError, "the transfer's rule ID "+
 								"cannot be empty")
 						})
 					})
@@ -172,17 +148,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.AgentID = 0
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the remote ID is missing", func() {
-							So(err.Error(), ShouldEqual, "The transfer's remote ID "+
+							So(err, ShouldBeError, "the transfer's remote ID "+
 								"cannot be empty")
 						})
 					})
@@ -192,17 +161,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.AccountID = 0
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the account ID is missing", func() {
-							So(err.Error(), ShouldEqual, "The transfer's account ID "+
+							So(err, ShouldBeError, "the transfer's account ID "+
 								"cannot be empty")
 						})
 					})
@@ -212,17 +174,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.SourceFile = ""
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the source is missing", func() {
-							So(err.Error(), ShouldEqual, "The transfer's source "+
+							So(err, ShouldBeError, "the transfer's source "+
 								"cannot be empty")
 						})
 					})
@@ -232,17 +187,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.DestFile = ""
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the destination is missing", func() {
-							So(err.Error(), ShouldEqual, "The transfer's destination "+
+							So(err, ShouldBeError, "the transfer's destination "+
 								"cannot be empty")
 						})
 					})
@@ -252,17 +200,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.Start = time.Time{}
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the date is missing", func() {
-							So(err.Error(), ShouldEqual, "The transfer's starting "+
+							So(err, ShouldBeError, "the transfer's starting "+
 								"date cannot be empty")
 						})
 					})
@@ -272,17 +213,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.Status = StatusDone
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
+						err := trans.ValidateInsert(db)
 
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
-
-						Convey("Then the error should say the status must be planned", func() {
-							So(err.Error(), ShouldEqual, "'DONE' is not a valid transfer status")
+						Convey("Then the error should say the status is not valid", func() {
+							So(err, ShouldBeError, "'DONE' is not a valid transfer status")
 						})
 					})
 				})
@@ -291,17 +225,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.RuleID = 1000
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the rule does not exist", func() {
-							So(err.Error(), ShouldEqual, "The rule 1000 does not exist")
+							So(err, ShouldBeError, "the rule 1000 does not exist")
 						})
 					})
 				})
@@ -310,17 +237,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.AgentID = 1000
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the partner does not exist", func() {
-							So(err.Error(), ShouldEqual, "The partner 1000 does not exist")
+							So(err, ShouldBeError, "the partner 1000 does not exist")
 						})
 					})
 				})
@@ -329,17 +249,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.AccountID = 1000
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the account does not exist", func() {
-							So(err.Error(), ShouldEqual, "The agent 1 does not have an account 1000")
+							So(err, ShouldBeError, "the agent 1 does not have an account 1000")
 						})
 					})
 				})
@@ -363,17 +276,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.AccountID = account2.ID
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the account does not exist", func() {
-							So(err.Error(), ShouldEqual, "The agent 1 does not have an account 2")
+							So(err, ShouldBeError, "the agent 1 does not have an account 2")
 						})
 					})
 				})
@@ -382,17 +288,10 @@ func TestTransferValidateInsert(t *testing.T) {
 					So(db.Delete(cert), ShouldBeNil)
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the remote does not have a certificate", func() {
-							So(err.Error(), ShouldEqual, "No certificate found for agent 1")
+							So(err, ShouldBeError, "no certificate found for agent 1")
 						})
 					})
 				})
@@ -401,42 +300,26 @@ func TestTransferValidateInsert(t *testing.T) {
 					trans.Error = NewTransferError(TeDataTransfer, "error message")
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
+						err := trans.ValidateInsert(db)
 
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-
-							Convey("Then the error should say there must be no error code", func() {
-								So(err.Error(), ShouldEqual,
-									"The transfer's error code must be empty")
-							})
+						Convey("Then the error should say there cannot be an error code", func() {
+							So(err, ShouldBeError, "the transfer's error code must be empty")
 						})
 					})
 				})
 
 				Convey("Given that there is an error message", func() {
-					// This must not happen in real life: NewErrorTransfer shuold
+					// This must not happen in real life: NewErrorTransfer should
 					// be used instead of the literal. However, as there is no way
 					// to force anyone to use NewTransferError, the case should be
 					// considered
 					trans.Error = TransferError{TeOk, "error message"}
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
+						err := trans.ValidateInsert(db)
 
-						err = trans.ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-
-							Convey("Then the error should say there must be no error message", func() {
-								So(err.Error(), ShouldEqual,
-									"The transfer's error message must be empty")
-							})
+						Convey("Then the error should say there must be no error message", func() {
+							So(err, ShouldBeError, "the transfer's error message must be empty")
 						})
 					})
 				})
@@ -481,12 +364,8 @@ func TestTransferValidateUpdate(t *testing.T) {
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := trans.ValidateUpdate(nil, 0)
 
-				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError)
-				})
-
 				Convey("Then the error should say that the ID cannot be entered", func() {
-					So(err.Error(), ShouldEqual, "The transfer's ID cannot be "+
+					So(err, ShouldBeError, "the transfer's ID cannot be "+
 						"entered manually")
 				})
 			})
@@ -498,12 +377,8 @@ func TestTransferValidateUpdate(t *testing.T) {
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := trans.ValidateUpdate(nil, 0)
 
-				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError)
-				})
-
 				Convey("Then the error should say that the rule cannot be changed", func() {
-					So(err.Error(), ShouldEqual, "The transfer's rule cannot be "+
+					So(err, ShouldBeError, "the transfer's rule cannot be "+
 						"changed")
 				})
 			})
@@ -515,12 +390,8 @@ func TestTransferValidateUpdate(t *testing.T) {
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := trans.ValidateUpdate(nil, 0)
 
-				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError)
-				})
-
 				Convey("Then the error should say that the partner cannot be changed", func() {
-					So(err.Error(), ShouldEqual, "The transfer's partner cannot be "+
+					So(err, ShouldBeError, "the transfer's partner cannot be "+
 						"changed")
 				})
 			})
@@ -532,12 +403,8 @@ func TestTransferValidateUpdate(t *testing.T) {
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := trans.ValidateUpdate(nil, 0)
 
-				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError)
-				})
-
 				Convey("Then the error should say that the account cannot be changed", func() {
-					So(err.Error(), ShouldEqual, "The transfer's account cannot be "+
+					So(err, ShouldBeError, "the transfer's account cannot be "+
 						"changed")
 				})
 			})
@@ -549,12 +416,8 @@ func TestTransferValidateUpdate(t *testing.T) {
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := trans.ValidateUpdate(nil, 0)
 
-				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError)
-				})
-
 				Convey("Then the error should say that the owner cannot be changed", func() {
-					So(err.Error(), ShouldEqual, "The transfer's owner cannot be "+
+					So(err, ShouldBeError, "the transfer's owner cannot be "+
 						"changed")
 				})
 			})
@@ -566,12 +429,8 @@ func TestTransferValidateUpdate(t *testing.T) {
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := trans.ValidateUpdate(nil, 0)
 
-				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError)
-				})
-
 				Convey("Then the error should say that the source cannot be changed", func() {
-					So(err.Error(), ShouldEqual, "The transfer's source cannot be "+
+					So(err, ShouldBeError, "the transfer's source cannot be "+
 						"changed")
 				})
 			})
@@ -583,12 +442,8 @@ func TestTransferValidateUpdate(t *testing.T) {
 			Convey("When calling the `ValidateUpdate` method", func() {
 				err := trans.ValidateUpdate(nil, 0)
 
-				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError)
-				})
-
 				Convey("Then the error should say that the destination cannot be changed", func() {
-					So(err.Error(), ShouldEqual, "The transfer's destination cannot be "+
+					So(err, ShouldBeError, "the transfer's destination cannot be "+
 						"changed")
 				})
 			})

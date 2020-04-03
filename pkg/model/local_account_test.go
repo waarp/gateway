@@ -124,22 +124,20 @@ func TestLocalAccountValidateInsert(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		Convey("Given the database contains 1 local agent with 1 local account", func() {
-			parentAgent := LocalAgent{
+			parentAgent := &LocalAgent{
 				Owner:       "test_gateway",
 				Name:        "parent_agent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
-			err := db.Create(&parentAgent)
-			So(err, ShouldBeNil)
+			So(db.Create(parentAgent), ShouldBeNil)
 
-			oldAccount := LocalAccount{
+			oldAccount := &LocalAccount{
 				LocalAgentID: parentAgent.ID,
 				Login:        "old",
 				Password:     []byte("password"),
 			}
-			err = db.Create(&oldAccount)
-			So(err, ShouldBeNil)
+			So(db.Create(oldAccount), ShouldBeNil)
 
 			Convey("Given a new local account", func() {
 				newAccount := LocalAccount{
@@ -151,10 +149,7 @@ func TestLocalAccountValidateInsert(t *testing.T) {
 				Convey("Given that the new account is valid", func() {
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&newAccount).ValidateInsert(ses)
+						err := newAccount.ValidateInsert(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -166,17 +161,10 @@ func TestLocalAccountValidateInsert(t *testing.T) {
 					newAccount.ID = 1000
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&newAccount).ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := newAccount.ValidateInsert(db)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err.Error(), ShouldEqual, "The account's ID cannot "+
+							So(err, ShouldBeError, "the account's ID cannot "+
 								"be entered manually")
 						})
 					})
@@ -186,17 +174,10 @@ func TestLocalAccountValidateInsert(t *testing.T) {
 					newAccount.LocalAgentID = 0
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&newAccount).ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := newAccount.ValidateInsert(db)
 
 						Convey("Then the error should say that the agent ID is missing", func() {
-							So(err.Error(), ShouldEqual, "The account's agentID "+
+							So(err, ShouldBeError, "the account's agentID "+
 								"cannot be empty")
 						})
 					})
@@ -206,17 +187,10 @@ func TestLocalAccountValidateInsert(t *testing.T) {
 					newAccount.Login = ""
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&newAccount).ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := newAccount.ValidateInsert(db)
 
 						Convey("Then the error should say that the login is missing", func() {
-							So(err.Error(), ShouldEqual, "The account's login "+
+							So(err, ShouldBeError, "the account's login "+
 								"cannot be empty")
 						})
 					})
@@ -226,17 +200,14 @@ func TestLocalAccountValidateInsert(t *testing.T) {
 					newAccount.LocalAgentID = 1000
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&newAccount).ValidateInsert(ses)
+						err := newAccount.ValidateInsert(db)
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
 						})
 
 						Convey("Then the error should say that the agent ID is invalid", func() {
-							So(err.Error(), ShouldEqual, "No local agent found "+
+							So(err, ShouldBeError, "no local agent found "+
 								"with the ID '1000'")
 						})
 					})
@@ -246,17 +217,10 @@ func TestLocalAccountValidateInsert(t *testing.T) {
 					newAccount.Login = oldAccount.Login
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&newAccount).ValidateInsert(ses)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := newAccount.ValidateInsert(db)
 
 						Convey("Then the error should say that the login is already taken", func() {
-							So(err.Error(), ShouldEqual, "A local account with "+
+							So(err, ShouldBeError, "a local account with "+
 								"the same login '"+newAccount.Login+"' already exist")
 						})
 					})
@@ -277,10 +241,7 @@ func TestLocalAccountValidateInsert(t *testing.T) {
 					newAccount.Login = oldAccount.Login
 
 					Convey("When calling the 'ValidateInsert' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&newAccount).ValidateInsert(ses)
+						err := newAccount.ValidateInsert(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -297,33 +258,30 @@ func TestLocalAccountValidateUpdate(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		Convey("Given the database contains 1 local agent with 2 local accounts", func() {
-			parentAgent := LocalAgent{
+			parentAgent := &LocalAgent{
 				Owner:       "test_gateway",
 				Name:        "parent_agent",
 				Protocol:    "sftp",
 				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
-			err := db.Create(&parentAgent)
-			So(err, ShouldBeNil)
+			So(db.Create(parentAgent), ShouldBeNil)
 
-			oldAccount := LocalAccount{
+			oldAccount := &LocalAccount{
 				LocalAgentID: parentAgent.ID,
 				Login:        "old",
 				Password:     []byte("password"),
 			}
-			err = db.Create(&oldAccount)
-			So(err, ShouldBeNil)
+			So(db.Create(oldAccount), ShouldBeNil)
 
-			otherAccount := LocalAccount{
+			otherAccount := &LocalAccount{
 				LocalAgentID: parentAgent.ID,
 				Login:        "other",
 				Password:     []byte("password"),
 			}
-			err = db.Create(&otherAccount)
-			So(err, ShouldBeNil)
+			So(db.Create(otherAccount), ShouldBeNil)
 
 			Convey("Given an updated local account", func() {
-				updatedAccount := LocalAccount{
+				updatedAccount := &LocalAccount{
 					LocalAgentID: parentAgent.ID,
 					Login:        "updated",
 					Password:     []byte("new_password"),
@@ -332,10 +290,7 @@ func TestLocalAccountValidateUpdate(t *testing.T) {
 				Convey("Given that the updated account is valid", func() {
 
 					Convey("When calling the 'ValidateUpdate' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&updatedAccount).ValidateUpdate(ses, oldAccount.ID)
+						err := updatedAccount.ValidateUpdate(db, oldAccount.ID)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -347,17 +302,10 @@ func TestLocalAccountValidateUpdate(t *testing.T) {
 					updatedAccount.ID = 1000
 
 					Convey("When calling the 'ValidateUpdate' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&updatedAccount).ValidateUpdate(ses, oldAccount.ID)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := updatedAccount.ValidateUpdate(db, oldAccount.ID)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err.Error(), ShouldEqual, "The account's ID cannot "+
+							So(err, ShouldBeError, "the account's ID cannot "+
 								"be entered manually")
 						})
 					})
@@ -367,17 +315,10 @@ func TestLocalAccountValidateUpdate(t *testing.T) {
 					updatedAccount.LocalAgentID = 1000
 
 					Convey("When calling the 'ValidateUpdate' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&updatedAccount).ValidateUpdate(ses, oldAccount.ID)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := updatedAccount.ValidateUpdate(db, oldAccount.ID)
 
 						Convey("Then the error should say that the agent ID is invalid", func() {
-							So(err.Error(), ShouldEqual, "No local agent found "+
+							So(err, ShouldBeError, "no local agent found "+
 								"with the ID '1000'")
 						})
 					})
@@ -387,41 +328,31 @@ func TestLocalAccountValidateUpdate(t *testing.T) {
 					updatedAccount.Login = oldAccount.Login
 
 					Convey("When calling the 'ValidateUpdate' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&updatedAccount).ValidateUpdate(ses, oldAccount.ID)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+						err := updatedAccount.ValidateUpdate(db, oldAccount.ID)
 
 						Convey("Then the error should say that the login is already taken", func() {
-							So(err.Error(), ShouldEqual, "A local account with "+
-								"the same login '"+updatedAccount.Login+"' already exist")
+							So(err, ShouldBeError, "a local account with "+
+								"the same login '"+updatedAccount.Login+
+								"' already exist")
 						})
 					})
 				})
 
 				Convey("Given that the updated account's name is already taken but the"+
 					"parent agent is different", func() {
-					otherAgent := LocalAgent{
+					otherAgent := &LocalAgent{
 						Owner:       "test_gateway",
 						Name:        "other",
 						Protocol:    "sftp",
 						ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 					}
-					err := db.Create(&otherAgent)
-					So(err, ShouldBeNil)
+					So(db.Create(otherAgent), ShouldBeNil)
 
 					updatedAccount.LocalAgentID = otherAgent.ID
 					updatedAccount.Login = oldAccount.Login
 
 					Convey("When calling the 'ValidateUpdate' function", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						err = (&updatedAccount).ValidateUpdate(ses, oldAccount.ID)
+						err := updatedAccount.ValidateUpdate(db, oldAccount.ID)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)

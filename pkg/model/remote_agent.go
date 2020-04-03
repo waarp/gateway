@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/go-xorm/builder"
@@ -82,22 +84,22 @@ func (r *RemoteAgent) GetCerts(ses database.Accessor) ([]Cert, error) {
 // database. It checks whether the new entry is valid or not.
 func (r *RemoteAgent) ValidateInsert(acc database.Accessor) error {
 	if r.ID != 0 {
-		return database.InvalidError("The agent's ID cannot be entered manually")
+		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
 	if r.Name == "" {
-		return database.InvalidError("The agent's name cannot be empty")
+		return database.InvalidError("the agent's name cannot be empty")
 	}
 	if r.ProtoConfig == nil {
-		return database.InvalidError("The agent's configuration cannot be empty")
+		return database.InvalidError("the agent's configuration cannot be empty")
 	}
 	if err := r.validateProtoConfig(); err != nil {
-		return database.InvalidError("Invalid agent configuration: %s", err.Error())
+		return database.InvalidError(err.Error())
 	}
 
 	if res, err := acc.Query("SELECT id FROM remote_agents WHERE name=?", r.Name); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("A remote agent with the same name '%s' "+
+		return database.InvalidError("a remote agent with the same name '%s' "+
 			"already exist", r.Name)
 	}
 
@@ -109,19 +111,22 @@ func (r *RemoteAgent) validateProtoConfig() error {
 	if err != nil {
 		return err
 	}
-	return conf.ValidClient()
+	if err := conf.ValidPartner(); err != nil {
+		return fmt.Errorf("invalid partner configuration: %s", err.Error())
+	}
+	return err
 }
 
 // ValidateUpdate is called before updating an existing `RemoteAgent` entry from
 // the database. It checks whether the updated entry is valid or not.
 func (r *RemoteAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if r.ID != 0 {
-		return database.InvalidError("The agent's ID cannot be entered manually")
+		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
 
 	if r.Protocol != "" || r.ProtoConfig != nil {
 		if err := r.validateProtoConfig(); err != nil {
-			return database.InvalidError("Invalid agent configuration: %s", err.Error())
+			return database.InvalidError(err.Error())
 		}
 	}
 
@@ -130,7 +135,7 @@ func (r *RemoteAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 			"id<>?", r.Name, id); err != nil {
 			return err
 		} else if len(res) > 0 {
-			return database.InvalidError("A remote agent with the same name "+
+			return database.InvalidError("a remote agent with the same name "+
 				"'%s' already exist", r.Name)
 		}
 	}

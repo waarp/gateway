@@ -19,5 +19,5 @@ func init() {
 
 type TestProtoConfig struct{}
 
-func (*TestProtoConfig) ValidServer() error { return nil }
-func (*TestProtoConfig) ValidClient() error { return nil }
+func (*TestProtoConfig) ValidServer() error  { return nil }
+func (*TestProtoConfig) ValidPartner() error { return nil }

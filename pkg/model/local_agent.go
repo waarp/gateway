@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -105,31 +106,31 @@ func (l *LocalAgent) TableName() string {
 // database. It checks whether the new entry is valid or not.
 func (l *LocalAgent) ValidateInsert(acc database.Accessor) error {
 	if l.ID != 0 {
-		return database.InvalidError("The agent's ID cannot be entered manually")
+		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
 	if l.Name == "" {
-		return database.InvalidError("The agent's name cannot be empty")
+		return database.InvalidError("the agent's name cannot be empty")
 	}
 	if l.ProtoConfig == nil {
-		return database.InvalidError("The agent's configuration cannot be empty")
+		return database.InvalidError("the agent's configuration cannot be empty")
 	}
 	if err := l.validateProtoConfig(); err != nil {
-		return database.InvalidError("Invalid agent configuration: %s", err.Error())
+		return database.InvalidError(err.Error())
 	}
 
 	if res, err := acc.Query("SELECT id FROM local_agents WHERE owner=? AND name=?",
 		l.Owner, l.Name); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("A local agent with the same name '%s' "+
+		return database.InvalidError("a local agent with the same name '%s' "+
 			"already exist", l.Name)
 	}
 
 	if l.Root != "" && !filepath.IsAbs(l.Root) {
-		return database.InvalidError("The server's root directory must be an absolute path")
+		return database.InvalidError("the server's root directory must be an absolute path")
 	}
 	if l.WorkDir != "" && !filepath.IsAbs(l.WorkDir) {
-		return database.InvalidError("The server's work directory must be an absolute path")
+		return database.InvalidError("the server's work directory must be an absolute path")
 	}
 
 	return nil
@@ -140,17 +141,20 @@ func (l *LocalAgent) validateProtoConfig() error {
 	if err != nil {
 		return err
 	}
-	return conf.ValidServer()
+	if err := conf.ValidServer(); err != nil {
+		return fmt.Errorf("invalid server configuration: %s", err.Error())
+	}
+	return err
 }
 
 // ValidateUpdate is called before updating an existing `LocalAgent` entry from
 // the database. It checks whether the updated entry is valid or not.
 func (l *LocalAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if l.ID != 0 {
-		return database.InvalidError("The agent's ID cannot be entered manually")
+		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
 	if l.Owner != database.Owner {
-		return database.InvalidError("The agent's owner cannot be changed")
+		return database.InvalidError("the agent's owner cannot be changed")
 	}
 
 	if l.Name != "" {
@@ -158,7 +162,7 @@ func (l *LocalAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 			"AND name=? AND id<>?", database.Owner, l.Name, id); err != nil {
 			return err
 		} else if len(res) > 0 {
-			return database.InvalidError("A local agent with the same name "+
+			return database.InvalidError("a local agent with the same name "+
 				"'%s' already exist", l.Name)
 		}
 	}
@@ -166,13 +170,13 @@ func (l *LocalAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if l.Root != "" {
 		l.Root = filepath.Clean(l.Root)
 		if !filepath.IsAbs(l.Root) {
-			return database.InvalidError("The server's root directory must be an absolute path")
+			return database.InvalidError("the server's root directory must be an absolute path")
 		}
 	}
 
 	if l.Protocol != "" || l.ProtoConfig != nil {
 		if err := l.validateProtoConfig(); err != nil {
-			return database.InvalidError("Invalid agent configuration: %s", err.Error())
+			return database.InvalidError(err.Error())
 		}
 	}
 

@@ -117,7 +117,7 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, fmt.Sprintf("The rule "+
+						So(w.Body.String(), ShouldEqual, fmt.Sprintf("the rule "+
 							"%v does not exist\n", trans.RuleID))
 					})
 				})
@@ -140,7 +140,7 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, fmt.Sprintf("The partner "+
+						So(w.Body.String(), ShouldEqual, fmt.Sprintf("the partner "+
 							"%v does not exist\n", trans.AgentID))
 					})
 				})
@@ -163,7 +163,7 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, fmt.Sprintf("The agent "+
+						So(w.Body.String(), ShouldEqual, fmt.Sprintf("the agent "+
 							"%v does not have an account %v\n", trans.AgentID,
 							trans.AccountID))
 					})
@@ -187,7 +187,7 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say no certificates were found", func() {
-						So(w.Body.String(), ShouldEqual, fmt.Sprintf("No "+
+						So(w.Body.String(), ShouldEqual, fmt.Sprintf("no "+
 							"certificate found for agent %v\n", trans.AgentID))
 					})
 				})
