@@ -56,10 +56,11 @@ func TestFileReader(t *testing.T) {
 
 		Convey("Given the Filereader", func() {
 			handler := (&sshListener{
-				Db:     db,
-				Logger: logger,
-				Agent:  agent,
-			}).makeFileReader(context.Background(), account.ID, conf)
+				Db:          db,
+				Logger:      logger,
+				Agent:       agent,
+				ProtoConfig: &conf,
+			}).makeFileReader(context.Background(), account.ID)
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{
@@ -157,10 +158,11 @@ func TestFileWriter(t *testing.T) {
 
 		Convey("Given the Filewriter", func() {
 			handler := (&sshListener{
-				Db:     db,
-				Logger: logger,
-				Agent:  agent,
-			}).makeFileWriter(context.Background(), account.ID, conf)
+				Db:          db,
+				Logger:      logger,
+				Agent:       agent,
+				ProtoConfig: &conf,
+			}).makeFileWriter(context.Background(), account.ID)
 
 			Convey("Given a request for an existing file in the rule path", func() {
 				request := &sftp.Request{

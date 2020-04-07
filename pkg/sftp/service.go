@@ -2,12 +2,14 @@ package sftp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
 
@@ -33,12 +35,17 @@ func NewService(db *database.Db, agent *model.LocalAgent, logger *log.Logger) *S
 // Start starts the SFTP service.
 func (s *Service) Start() error {
 	start := func() error {
+		var protoConfig config.SftpProtoConfig
+		if err := json.Unmarshal(s.agent.ProtoConfig, &protoConfig); err != nil {
+			return err
+		}
+
 		cert, err := loadCert(s.db, s.agent)
 		if err != nil {
 			return err
 		}
 
-		sshConf, err := loadSSHConfig(s.db, cert)
+		sshConf, err := gertSSHServerConfig(s.db, cert, &protoConfig)
 		if err != nil {
 			return err
 		}
@@ -54,11 +61,12 @@ func (s *Service) Start() error {
 		}
 
 		s.listener = &sshListener{
-			Db:       s.db,
-			Logger:   s.logger,
-			Agent:    s.agent,
-			Conf:     sshConf,
-			Listener: listener,
+			Db:           s.db,
+			Logger:       s.logger,
+			Agent:        s.agent,
+			ServerConfig: sshConf,
+			ProtoConfig:  &protoConfig,
+			Listener:     listener,
 		}
 		s.listener.ctx, s.listener.cancel = context.WithCancel(context.Background())
 		s.listener.listen()

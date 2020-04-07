@@ -3,6 +3,7 @@ package sftp
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net"
@@ -14,6 +15,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
@@ -131,6 +133,8 @@ func TestSSHServer(t *testing.T) {
 				root + `"}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
+		var protoConfig config.SftpProtoConfig
+		So(json.Unmarshal(agent.ProtoConfig, &protoConfig), ShouldBeNil)
 
 		pwd := "tata"
 		user := &model.LocalAccount{
@@ -165,20 +169,21 @@ func TestSSHServer(t *testing.T) {
 		So(db.Create(receive), ShouldBeNil)
 		So(db.Create(send), ShouldBeNil)
 
-		config, err := loadSSHConfig(db, cert)
+		serverConfig, err := gertSSHServerConfig(db, cert, &protoConfig)
 		So(err, ShouldBeNil)
 
 		ctx, cancel := context.WithCancel(context.Background())
 
 		sshList := &sshListener{
-			Db:       db,
-			Logger:   logger,
-			Agent:    agent,
-			Conf:     config,
-			Listener: listener,
-			connWg:   sync.WaitGroup{},
-			ctx:      ctx,
-			cancel:   cancel,
+			Db:           db,
+			Logger:       logger,
+			Agent:        agent,
+			ServerConfig: serverConfig,
+			ProtoConfig:  &protoConfig,
+			Listener:     listener,
+			connWg:       sync.WaitGroup{},
+			ctx:          ctx,
+			cancel:       cancel,
 		}
 		sshList.listen()
 
@@ -656,6 +661,8 @@ func TestSSHServerTasks(t *testing.T) {
 				root + `"}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
+		var protoConfig config.SftpProtoConfig
+		So(json.Unmarshal(agent.ProtoConfig, &protoConfig), ShouldBeNil)
 
 		pwd := "tata"
 		user := &model.LocalAccount{
@@ -675,20 +682,21 @@ func TestSSHServerTasks(t *testing.T) {
 		}
 		So(db.Create(cert), ShouldBeNil)
 
-		config, err := loadSSHConfig(db, cert)
+		serverConfig, err := gertSSHServerConfig(db, cert, &protoConfig)
 		So(err, ShouldBeNil)
 
 		ctx, cancel := context.WithCancel(context.Background())
 
 		sshList := &sshListener{
-			Db:       db,
-			Logger:   logger,
-			Agent:    agent,
-			Conf:     config,
-			Listener: listener,
-			connWg:   sync.WaitGroup{},
-			ctx:      ctx,
-			cancel:   cancel,
+			Db:           db,
+			Logger:       logger,
+			Agent:        agent,
+			ServerConfig: serverConfig,
+			ProtoConfig:  &protoConfig,
+			Listener:     listener,
+			connWg:       sync.WaitGroup{},
+			ctx:          ctx,
+			cancel:       cancel,
 		}
 		sshList.listen()
 

@@ -25,8 +25,13 @@ func loadCert(db *database.Db, server *model.LocalAgent) (*model.Cert, error) {
 	return cert, nil
 }
 
-func loadSSHConfig(db *database.Db, cert *model.Cert) (*ssh.ServerConfig, error) {
+func gertSSHServerConfig(db *database.Db, cert *model.Cert, protoConfig *config.SftpProtoConfig) (*ssh.ServerConfig, error) {
 	conf := &ssh.ServerConfig{
+		Config: ssh.Config{
+			KeyExchanges: protoConfig.KeyExchanges,
+			Ciphers:      protoConfig.Ciphers,
+			MACs:         protoConfig.MACs,
+		},
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
 			user := &model.LocalAccount{Login: conn.User()}
 			if err := db.Get(user); err != nil {

@@ -2,6 +2,7 @@ package sftp
 
 import (
 	"context"
+	"encoding/json"
 	"io/ioutil"
 	"net"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -38,6 +40,8 @@ func TestSFTPPackage(t *testing.T) {
 				`,"root":"` + root + `"}`),
 		}
 		So(db.Create(localAgent), ShouldBeNil)
+		var protoConfig config.SftpProtoConfig
+		So(json.Unmarshal(localAgent.ProtoConfig, &protoConfig), ShouldBeNil)
 
 		pwd := "tata"
 		localAccount := &model.LocalAccount{
@@ -165,20 +169,21 @@ func TestSFTPPackage(t *testing.T) {
 		So(db.Create(sendErrorTask), ShouldBeNil)
 		So(db.Create(receiveErrorTask), ShouldBeNil)
 
-		config, err := loadSSHConfig(db, localServerCert)
+		serverConfig, err := gertSSHServerConfig(db, localServerCert, &protoConfig)
 		So(err, ShouldBeNil)
 
 		ctx, cancel := context.WithCancel(context.Background())
 
 		sshList := &sshListener{
-			Db:       db,
-			Logger:   logger,
-			Agent:    localAgent,
-			Conf:     config,
-			Listener: listener,
-			connWg:   sync.WaitGroup{},
-			ctx:      ctx,
-			cancel:   cancel,
+			Db:           db,
+			Logger:       logger,
+			Agent:        localAgent,
+			ServerConfig: serverConfig,
+			ProtoConfig:  &protoConfig,
+			Listener:     listener,
+			connWg:       sync.WaitGroup{},
+			ctx:          ctx,
+			cancel:       cancel,
 		}
 		sshList.listen()
 		Reset(func() {

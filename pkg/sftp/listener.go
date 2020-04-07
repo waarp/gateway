@@ -2,11 +2,9 @@ package sftp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -20,11 +18,12 @@ import (
 )
 
 type sshListener struct {
-	Db       *database.Db
-	Logger   *log.Logger
-	Agent    *model.LocalAgent
-	Conf     *ssh.ServerConfig
-	Listener net.Listener
+	Db           *database.Db
+	Logger       *log.Logger
+	Agent        *model.LocalAgent
+	ServerConfig *ssh.ServerConfig
+	ProtoConfig  *config.SftpProtoConfig
+	Listener     net.Listener
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -52,7 +51,7 @@ func (l *sshListener) handleConnection(parent context.Context, nConn net.Conn) {
 		defer cancel()
 		defer l.connWg.Done()
 
-		servConn, channels, reqs, err := ssh.NewServerConn(nConn, l.Conf)
+		servConn, channels, reqs, err := ssh.NewServerConn(nConn, l.ServerConfig)
 		if err != nil {
 			l.Logger.Errorf("Failed to perform handshake: %s", err)
 			return
@@ -105,21 +104,15 @@ func (l *sshListener) handleSession(ctx context.Context, wg *sync.WaitGroup,
 
 func (l *sshListener) makeHandlers(ctx context.Context, accountID uint64) sftp.Handlers {
 
-	root, _ := os.Getwd()
-	var conf config.SftpProtoConfig
-	if err := json.Unmarshal(l.Agent.ProtoConfig, &conf); err == nil {
-		root = conf.Root
-	}
 	return sftp.Handlers{
-		FileGet:  l.makeFileReader(ctx, accountID, conf),
-		FilePut:  l.makeFileWriter(ctx, accountID, conf),
+		FileGet:  l.makeFileReader(ctx, accountID),
+		FilePut:  l.makeFileWriter(ctx, accountID),
 		FileCmd:  makeFileCmder(),
-		FileList: makeFileLister(root),
+		FileList: makeFileLister(l.ProtoConfig.Root),
 	}
 }
 
-func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
-	conf config.SftpProtoConfig) fileReaderFunc {
+func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64) fileReaderFunc {
 
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		// Get rule according to request filepath
@@ -146,7 +139,7 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
 			Step:       model.StepSetup,
 		}
 
-		stream, err := newSftpStream(ctx, l.Logger, l.Db, conf.Root, trans)
+		stream, err := newSftpStream(ctx, l.Logger, l.Db, l.ProtoConfig.Root, trans)
 		if err != nil {
 			return nil, err
 		}
@@ -154,8 +147,7 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
 	}
 }
 
-func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64,
-	conf config.SftpProtoConfig) fileWriterFunc {
+func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64) fileWriterFunc {
 
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		// Get rule according to request filepath
@@ -182,7 +174,7 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64,
 			Step:       model.StepSetup,
 		}
 
-		stream, err := newSftpStream(ctx, l.Logger, l.Db, conf.Root, trans)
+		stream, err := newSftpStream(ctx, l.Logger, l.Db, l.ProtoConfig.Root, trans)
 		if err != nil {
 			return nil, err
 		}
