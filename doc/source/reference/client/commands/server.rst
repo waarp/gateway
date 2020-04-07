@@ -23,6 +23,10 @@ Gestion des serveurs locaux
 
          Le protocole utilisé par le serveur.
 
+      .. option:: -r <ROOT>, --root=<ROOT>
+
+         Le dossier racine du serveur.
+
       .. option:: --config=<CONF>
 
          La configuration du serveur en format JSON. Contient les informations

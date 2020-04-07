@@ -16,11 +16,12 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func agentInfoString(s *rest.OutAgent) string {
+func localAgentInfoString(s *rest.OutLocalAgent) string {
 	var config bytes.Buffer
 	_ = json.Indent(&config, s.ProtoConfig, "    ", "  ")
 	return "● " + s.Name + " (ID " + fmt.Sprint(s.ID) + ")\n" +
 		"  -Protocol     : " + s.Protocol + "\n" +
+		"  -Root         : " + s.Root + "\n" +
 		"  -Configuration: " + config.String() + "\n"
 }
 
@@ -37,7 +38,7 @@ func TestGetServer(t *testing.T) {
 			server := &model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(server), ShouldBeNil)
 
@@ -65,7 +66,7 @@ func TestGetServer(t *testing.T) {
 						So(err, ShouldBeNil)
 
 						s := rest.FromLocalAgent(server)
-						So(string(cont), ShouldEqual, agentInfoString(s))
+						So(string(cont), ShouldEqual, localAgentInfoString(s))
 					})
 				})
 			})
@@ -106,7 +107,7 @@ func TestAddServer(t *testing.T) {
 			Convey("Given valid flags", func() {
 				command.Name = "local_agent"
 				command.Protocol = "sftp"
-				command.ProtoConfig = `{"address":"localhost","port":2022,"root":"toto"}`
+				command.ProtoConfig = `{"address":"localhost","port":2022}`
 
 				Convey("When executing the command", func() {
 					addr := gw.Listener.Addr().String()
@@ -202,14 +203,14 @@ func TestListServers(t *testing.T) {
 			server1 := &model.LocalAgent{
 				Name:        "local_agent1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(server1), ShouldBeNil)
 
 			server2 := &model.LocalAgent{
 				Name:        "local_agent2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"titi"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
 			}
 			So(db.Create(server2), ShouldBeNil)
 
@@ -242,7 +243,7 @@ func TestListServers(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agents:\n"+
-							agentInfoString(s1)+agentInfoString(s2))
+							localAgentInfoString(s1)+localAgentInfoString(s2))
 					})
 				})
 			})
@@ -270,7 +271,7 @@ func TestListServers(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agents:\n"+
-							agentInfoString(s1))
+							localAgentInfoString(s1))
 					})
 				})
 			})
@@ -298,7 +299,7 @@ func TestListServers(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agents:\n"+
-							agentInfoString(s2))
+							localAgentInfoString(s2))
 					})
 				})
 			})
@@ -330,7 +331,7 @@ func TestListServers(t *testing.T) {
 						cont, err := ioutil.ReadAll(out)
 						So(err, ShouldBeNil)
 						So(string(cont), ShouldEqual, "Local agents:\n"+
-							agentInfoString(s2)+agentInfoString(s1))
+							localAgentInfoString(s2)+localAgentInfoString(s1))
 					})
 				})
 			})
@@ -352,7 +353,7 @@ func TestDeleteServer(t *testing.T) {
 			server := &model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(server), ShouldBeNil)
 
@@ -429,13 +430,13 @@ func TestUpdateServer(t *testing.T) {
 			server := &model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(server), ShouldBeNil)
 
 			command.Name = "new_local_agent"
 			command.Protocol = "sftp"
-			command.ProtoConfig = `{"address":"localhost","port":2023,"root":"titi"}`
+			command.ProtoConfig = `{"address":"localhost","port":2023}`
 
 			Convey("Given a valid server ID", func() {
 				id := fmt.Sprint(server.ID)

@@ -21,7 +21,7 @@ var errWarning = errors.New("warning")
 // Processor provides a way to execute tasks
 // given a transfer context (rule, transfer)
 type Processor struct {
-	Db       *database.Db
+	DB       *database.DB
 	Logger   *log.Logger
 	Rule     *model.Rule
 	Transfer *model.Transfer
@@ -37,7 +37,7 @@ func (p *Processor) GetTasks(chain model.Chain) ([]model.Task, *model.PipelineEr
 		Conditions: builder.And(builder.Eq{"rule_id": p.Rule.ID}, builder.Eq{"chain": chain}),
 	}
 
-	if err := p.Db.Select(&list, filters); err != nil {
+	if err := p.DB.Select(&list, filters); err != nil {
 		return nil, &model.PipelineError{Kind: model.KindDatabase}
 	}
 	return list, nil
@@ -73,13 +73,13 @@ func (p *Processor) runTask(task model.Task, taskInfo string) *model.PipelineErr
 		}
 		p.Logger.Warning(logMsg)
 		p.Transfer.Error = model.NewTransferError(model.TeWarning, logMsg)
-		if err := p.Transfer.Update(p.Db); err != nil {
+		if err := p.Transfer.Update(p.DB); err != nil {
 			p.Logger.Warningf("failed to update task status: %s", err.Error())
 			return &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
 	p.Transfer.TaskNumber++
-	if err := p.Transfer.Update(p.Db); err != nil {
+	if err := p.Transfer.Update(p.DB); err != nil {
 		p.Logger.Warningf("failed to update task number: %s", err.Error())
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
@@ -112,7 +112,7 @@ func (p *Processor) RunTasks(tasks []model.Task) *model.PipelineError {
 		}
 	}
 	p.Transfer.TaskNumber = 0
-	if err := p.Transfer.Update(p.Db); err != nil {
+	if err := p.Transfer.Update(p.DB); err != nil {
 		p.Logger.Warningf("failed to update task number: %s", err.Error())
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
@@ -161,27 +161,27 @@ type replacer func(*Processor) (string, error)
 var replacers = map[string]replacer{
 	"#TRUEFULLPATH#": func(p *Processor) (string, error) {
 		if p.Rule.IsSend {
-			return p.Transfer.SourcePath, nil
+			return p.Transfer.SourceFile, nil
 		}
-		return p.Transfer.DestPath, nil
+		return p.Transfer.DestFile, nil
 	},
 	"#TRUEFILENAME#": func(p *Processor) (string, error) {
 		if p.Rule.IsSend {
-			return filepath.Base(p.Transfer.SourcePath), nil
+			return filepath.Base(p.Transfer.SourceFile), nil
 		}
-		return filepath.Base(p.Transfer.DestPath), nil
+		return filepath.Base(p.Transfer.DestFile), nil
 	},
 	"#ORIGINALFULLPATH#": func(p *Processor) (string, error) {
 		if p.Rule.IsSend {
-			return p.Transfer.SourcePath, nil
+			return p.Transfer.SourceFile, nil
 		}
-		return p.Transfer.DestPath, nil
+		return p.Transfer.DestFile, nil
 	},
 	"#ORIGINALFILENAME#": func(p *Processor) (string, error) {
 		if p.Rule.IsSend {
-			return filepath.Base(p.Transfer.SourcePath), nil
+			return filepath.Base(p.Transfer.SourceFile), nil
 		}
-		return filepath.Base(p.Transfer.DestPath), nil
+		return filepath.Base(p.Transfer.DestFile), nil
 	},
 	"#FILESIZE#": func(p *Processor) (string, error) {
 		return "0", nil
@@ -226,7 +226,7 @@ var replacers = map[string]replacer{
 			account := &model.LocalAccount{
 				ID: p.Transfer.AccountID,
 			}
-			if err := p.Db.Get(account); err != nil {
+			if err := p.DB.Get(account); err != nil {
 				return "", err
 			}
 			return account.Login, nil
@@ -234,7 +234,7 @@ var replacers = map[string]replacer{
 		agent := &model.RemoteAgent{
 			ID: p.Transfer.AgentID,
 		}
-		if err := p.Db.Get(agent); err != nil {
+		if err := p.DB.Get(agent); err != nil {
 			return "", err
 		}
 		return agent.Name, nil
@@ -248,7 +248,7 @@ var replacers = map[string]replacer{
 			agent := &model.LocalAgent{
 				ID: p.Transfer.AgentID,
 			}
-			if err := p.Db.Get(agent); err != nil {
+			if err := p.DB.Get(agent); err != nil {
 				return "", err
 			}
 			return agent.Name, nil
@@ -256,7 +256,7 @@ var replacers = map[string]replacer{
 		account := &model.RemoteAccount{
 			ID: p.Transfer.AccountID,
 		}
-		if err := p.Db.Get(account); err != nil {
+		if err := p.DB.Get(account); err != nil {
 			return "", err
 		}
 		return account.Login, nil
@@ -316,7 +316,7 @@ func getClient(p *Processor) (string, error) {
 		account := &model.LocalAccount{
 			ID: p.Transfer.AccountID,
 		}
-		if err := p.Db.Get(account); err != nil {
+		if err := p.DB.Get(account); err != nil {
 			return "", err
 		}
 		return account.Login, nil
@@ -324,7 +324,7 @@ func getClient(p *Processor) (string, error) {
 	account := &model.RemoteAccount{
 		ID: p.Transfer.AccountID,
 	}
-	if err := p.Db.Get(account); err != nil {
+	if err := p.DB.Get(account); err != nil {
 		return "", err
 	}
 	return account.Login, nil
@@ -335,7 +335,7 @@ func getServer(p *Processor) (string, error) {
 		agent := &model.LocalAgent{
 			ID: p.Transfer.AgentID,
 		}
-		if err := p.Db.Get(agent); err != nil {
+		if err := p.DB.Get(agent); err != nil {
 			return "", err
 		}
 		return agent.Name, nil
@@ -343,7 +343,7 @@ func getServer(p *Processor) (string, error) {
 	agent := &model.RemoteAgent{
 		ID: p.Transfer.AgentID,
 	}
-	if err := p.Db.Get(agent); err != nil {
+	if err := p.DB.Get(agent); err != nil {
 		return "", err
 	}
 	return agent.Name, nil

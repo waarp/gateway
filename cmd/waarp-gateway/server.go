@@ -19,11 +19,12 @@ type serverCommand struct {
 	Update serverUpdateCommand `command:"update" description:"Modify a local agent's information"`
 }
 
-func displayAgent(w io.Writer, agent rest.OutAgent) {
+func displayLocalAgent(w io.Writer, agent rest.OutLocalAgent) {
 	var config bytes.Buffer
 	_ = json.Indent(&config, agent.ProtoConfig, "    ", "  ")
 	fmt.Fprintf(w, "\033[97;1m● %s\033[0m (ID %v)\n", agent.Name, agent.ID)
 	fmt.Fprintf(w, "  \033[97m-Protocol     :\033[0m \033[33m%s\033[0m\n", agent.Protocol)
+	fmt.Fprintf(w, "  \033[97m-Root         :\033[0m \033[33m%s\033[0m\n", agent.Root)
 	fmt.Fprintf(w, "  \033[97m-Configuration:\033[0m \033[37m%s\033[0m\n", config.String())
 }
 
@@ -36,7 +37,7 @@ func (s *serverGetCommand) Execute(args []string) error {
 		return fmt.Errorf("missing server ID")
 	}
 
-	res := rest.OutAgent{}
+	res := rest.OutLocalAgent{}
 	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
@@ -47,7 +48,7 @@ func (s *serverGetCommand) Execute(args []string) error {
 		return err
 	}
 
-	displayAgent(getColorable(), res)
+	displayLocalAgent(getColorable(), res)
 
 	return nil
 }
@@ -57,6 +58,7 @@ func (s *serverGetCommand) Execute(args []string) error {
 type serverAddCommand struct {
 	Name        string `required:"true" short:"n" long:"name" description:"The server's name"`
 	Protocol    string `required:"true" short:"p" long:"protocol" description:"The server's protocol" choice:"sftp"`
+	Root        string `required:"true" short:"r" long:"root" description:"The server's root directory"`
 	ProtoConfig string `long:"config" description:"The server's configuration in JSON"`
 }
 
@@ -64,9 +66,10 @@ func (s *serverAddCommand) Execute([]string) error {
 	if s.ProtoConfig == "" {
 		s.ProtoConfig = "{}"
 	}
-	newAgent := rest.InAgent{
+	newAgent := rest.InLocalAgent{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
+		Root:        s.Root,
 		ProtoConfig: []byte(s.ProtoConfig),
 	}
 
@@ -128,7 +131,7 @@ func (s *serverListCommand) Execute([]string) error {
 		return err
 	}
 
-	res := map[string][]rest.OutAgent{}
+	res := map[string][]rest.OutLocalAgent{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}
@@ -138,7 +141,7 @@ func (s *serverListCommand) Execute([]string) error {
 	if len(agents) > 0 {
 		fmt.Fprintf(w, "\033[33;1mLocal agents:\033[0m\n")
 		for _, server := range agents {
-			displayAgent(w, server)
+			displayLocalAgent(w, server)
 		}
 	} else {
 		fmt.Fprintln(w, "\033[31mNo local agents found\033[0m")
@@ -152,6 +155,7 @@ func (s *serverListCommand) Execute([]string) error {
 type serverUpdateCommand struct {
 	Name        string `short:"n" long:"name" description:"The server's name"`
 	Protocol    string `short:"p" long:"protocol" description:"The server's protocol" choice:"sftp"`
+	Root        string `short:"r" long:"root" description:"The server's root directory"`
 	ProtoConfig string `long:"config" description:"The server's configuration in JSON"`
 }
 
@@ -160,9 +164,10 @@ func (s *serverUpdateCommand) Execute(args []string) error {
 		return fmt.Errorf("missing server ID")
 	}
 
-	newAgent := rest.InAgent{
+	newAgent := rest.InLocalAgent{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
+		Root:        s.Root,
 		ProtoConfig: []byte(s.ProtoConfig),
 	}
 

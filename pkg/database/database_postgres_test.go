@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	psqlTestDatabase *Db
+	psqlTestDatabase *DB
 	psqlConfig       *conf.ServerConfig
 )
 
@@ -25,7 +25,7 @@ func init() {
 	psqlConfig.Database.AESPassphrase = fmt.Sprintf("%s%spsql_test_passphrase.aes",
 		os.TempDir(), string(os.PathSeparator))
 
-	psqlTestDatabase = &Db{Conf: psqlConfig}
+	psqlTestDatabase = &DB{Conf: psqlConfig}
 }
 
 func TestPostgreSQL(t *testing.T) {

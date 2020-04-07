@@ -79,7 +79,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			ag := &RemoteAgent{
 				Name:        "test agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(ag), ShouldBeNil)
 
@@ -127,7 +127,7 @@ func TestRemoteAccountValidateInsert(t *testing.T) {
 			parentAgent := RemoteAgent{
 				Name:        "parent_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			err := db.Create(&parentAgent)
 			So(err, ShouldBeNil)
@@ -266,7 +266,7 @@ func TestRemoteAccountValidateInsert(t *testing.T) {
 					otherAgent := RemoteAgent{
 						Name:        "other",
 						Protocol:    "sftp",
-						ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+						ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 					}
 					err := db.Create(&otherAgent)
 					So(err, ShouldBeNil)
@@ -298,7 +298,7 @@ func TestRemoteAccountValidateUpdate(t *testing.T) {
 			parentAgent := RemoteAgent{
 				Name:        "parent_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			err := db.Create(&parentAgent)
 			So(err, ShouldBeNil)
@@ -405,7 +405,7 @@ func TestRemoteAccountValidateUpdate(t *testing.T) {
 					otherAgent := RemoteAgent{
 						Name:        "other",
 						Protocol:    "sftp",
-						ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+						ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 					}
 					err := db.Create(&otherAgent)
 					So(err, ShouldBeNil)

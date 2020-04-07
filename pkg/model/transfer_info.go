@@ -20,7 +20,7 @@ type OutTransferInfo struct {
 // NewOutTransferInfo retrieves all the information regarding the given transfer
 // from the database, and returns it wrapped in a `OutTransferInfo` instance.
 // An error is returned a problem occurs while accessing the database.
-func NewOutTransferInfo(db *database.Db, trans *Transfer) (*OutTransferInfo, error) {
+func NewOutTransferInfo(db *database.DB, trans *Transfer) (*OutTransferInfo, error) {
 
 	remote := &RemoteAgent{ID: trans.AgentID}
 	if err := db.Get(remote); err != nil {

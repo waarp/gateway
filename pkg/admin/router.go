@@ -16,7 +16,7 @@ const (
 )
 
 // MakeHandler returns the router for the REST & Admin http interface
-func MakeHandler(logger *log.Logger, db *database.Db, services map[string]service.Service) http.Handler {
+func MakeHandler(logger *log.Logger, db *database.DB, services map[string]service.Service) http.Handler {
 
 	// REST handler
 	adminHandler := mux.NewRouter()

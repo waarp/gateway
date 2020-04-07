@@ -92,9 +92,9 @@ func (e *ExecOutputTask) Run(params map[string]string, processor *Processor) (st
 
 	if newPath := getNewFileName(string(msg)); newPath != "" {
 		if processor.Rule.IsSend {
-			processor.Transfer.SourcePath = newPath
+			processor.Transfer.SourceFile = newPath
 		} else {
-			processor.Transfer.DestPath = newPath
+			processor.Transfer.DestFile = newPath
 		}
 	}
 	return string(msg), cmdErr

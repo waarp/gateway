@@ -435,7 +435,7 @@ type testUpdateValidator interface {
 	ValidateUpdate(database.Accessor, uint64) error
 }
 
-func testTransferStatus(tc statusTestCase, method string, target interface{}, db *database.Db) {
+func testTransferStatus(tc statusTestCase, method string, target interface{}, db *database.DB) {
 	Convey(fmt.Sprintf("Given the status is set to '%s'", tc.status), func() {
 		var typeName string
 		if t, ok := target.(*TransferHistory); ok {

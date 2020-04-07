@@ -29,6 +29,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 		Convey("Given a rule entry", func() {
 			r := &Rule{
 				Name:   "Test",
+				Path:   "/test",
 				IsSend: true,
 			}
 			So(db.Create(r), ShouldBeNil)
@@ -36,7 +37,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 			rAgent := &RemoteAgent{
 				Name:        "Test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(rAgent), ShouldBeNil)
 
@@ -50,7 +51,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 			lAgent := &LocalAgent{
 				Name:        "Test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(lAgent), ShouldBeNil)
 
@@ -109,7 +110,7 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 			rAgent := &RemoteAgent{
 				Name:        "Test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/sftp/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(rAgent), ShouldBeNil)
 
@@ -123,7 +124,7 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 			lAgent := &LocalAgent{
 				Name:        "Test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/sftp/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(lAgent), ShouldBeNil)
 

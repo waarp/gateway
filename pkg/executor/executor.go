@@ -29,7 +29,7 @@ type Executor struct {
 }
 
 func (e *Executor) getClient(stream *pipeline.TransferStream) (te *model.PipelineError) {
-	info, err := model.NewOutTransferInfo(e.Db, stream.Transfer)
+	info, err := model.NewOutTransferInfo(e.DB, stream.Transfer)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to retrieve transfer info: %s", err)
 		e.Logger.Critical(msg)
@@ -39,7 +39,7 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) (te *model.Pipelin
 
 	constr, ok := ClientsConstructors[info.Agent.Protocol]
 	if !ok {
-		msg := fmt.Sprintf("Unknown transfer protocol")
+		msg := "Unknown transfer protocol"
 		e.Logger.Critical(msg)
 		te = model.NewPipelineError(model.TeConnection, msg)
 		return
@@ -87,7 +87,7 @@ func (e *Executor) data() *model.PipelineError {
 	}
 
 	e.TransferStream.Transfer.Step = model.StepData
-	if err := e.TransferStream.Transfer.Update(e.Db); err != nil {
+	if err := e.TransferStream.Transfer.Update(e.DB); err != nil {
 		e.Logger.Criticalf("Failed to update transfer status: %s", err)
 		return model.NewPipelineError(model.TeInternal, err.Error())
 	}

@@ -36,7 +36,7 @@ func TestCreateAccess(t *testing.T) {
 			object := &model.LocalAgent{
 				Name:        "object1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(object), ShouldBeNil)
 
@@ -178,14 +178,14 @@ func TestListAccess(t *testing.T) {
 			o1 := &model.LocalAgent{
 				Name:        "object1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(o1), ShouldBeNil)
 
 			o2 := &model.LocalAgent{
 				Name:        "object2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(o2), ShouldBeNil)
 
@@ -279,7 +279,7 @@ func TestDeleteAccess(t *testing.T) {
 			object := &model.LocalAgent{
 				Name:        "object1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(object), ShouldBeNil)
 

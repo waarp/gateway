@@ -81,9 +81,9 @@ func (e *ExecMoveTask) Run(params map[string]string, processor *Processor) (stri
 	}
 
 	if processor.Rule.IsSend {
-		processor.Transfer.SourcePath = newPath
+		processor.Transfer.SourceFile = newPath
 	} else {
-		processor.Transfer.DestPath = newPath
+		processor.Transfer.DestFile = newPath
 	}
 	return "", nil
 }

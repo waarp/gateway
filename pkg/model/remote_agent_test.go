@@ -29,7 +29,7 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			ag := &RemoteAgent{
 				Name:        "test agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(ag), ShouldBeNil)
 
@@ -99,7 +99,7 @@ func TestRemoteAgentValidateInsert(t *testing.T) {
 			oldAgent := RemoteAgent{
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			err := db.Create(&oldAgent)
 			So(err, ShouldBeNil)
@@ -108,7 +108,7 @@ func TestRemoteAgentValidateInsert(t *testing.T) {
 				newAgent := RemoteAgent{
 					Name:        "new",
 					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+					ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 				}
 
 				Convey("Given that the new agent is valid", func() {
@@ -237,7 +237,7 @@ func TestRemoteAgentValidateUpdate(t *testing.T) {
 			oldAgent := RemoteAgent{
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			err := db.Create(&oldAgent)
 			So(err, ShouldBeNil)
@@ -245,7 +245,7 @@ func TestRemoteAgentValidateUpdate(t *testing.T) {
 			otherAgent := RemoteAgent{
 				Name:        "other",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2023,"root":"titi"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
 			}
 			err = db.Create(&otherAgent)
 			So(err, ShouldBeNil)
@@ -254,7 +254,7 @@ func TestRemoteAgentValidateUpdate(t *testing.T) {
 				updatedAgent := RemoteAgent{
 					Name:        "updated",
 					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"localhost","port":2024,"root":"tata"}`),
+					ProtoConfig: []byte(`{"address":"localhost","port":2024}`),
 				}
 
 				Convey("Given that the updated agent is valid", func() {

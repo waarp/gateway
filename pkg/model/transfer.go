@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -13,21 +14,22 @@ func init() {
 
 // Transfer represents one record of the 'transfers' table.
 type Transfer struct {
-	ID         uint64         `xorm:"pk autoincr <- 'id'"`
-	RuleID     uint64         `xorm:"notnull 'rule_id'"`
-	IsServer   bool           `xorm:"notnull 'is_server'"`
-	AgentID    uint64         `xorm:"notnull 'agent_id'"`
-	AccountID  uint64         `xorm:"notnull 'account_id'"`
-	SourcePath string         `xorm:"notnull 'source_path'"`
-	DestPath   string         `xorm:"notnull 'dest_path'"`
-	Start      time.Time      `xorm:"notnull 'start'"`
-	Step       TransferStep   `xorm:"notnull 'step'"`
-	Status     TransferStatus `xorm:"notnull 'status'"`
-	Owner      string         `xorm:"notnull 'owner'"`
-	Progress   uint64         `xorm:"notnull 'progression'"`
-	TaskNumber uint64         `xorm:"notnull 'task_number'"`
-	Error      TransferError  `xorm:"extends"`
-	ExtInfo    []byte         `xorm:"'ext_info'"`
+	ID           uint64         `xorm:"pk autoincr <- 'id'"`
+	RuleID       uint64         `xorm:"notnull 'rule_id'"`
+	IsServer     bool           `xorm:"notnull 'is_server'"`
+	AgentID      uint64         `xorm:"notnull 'agent_id'"`
+	AccountID    uint64         `xorm:"notnull 'account_id'"`
+	TrueFilepath string         `xorm:"notnull 'true_filepath'"`
+	SourceFile   string         `xorm:"notnull 'source_file'"`
+	DestFile     string         `xorm:"notnull 'dest_file'"`
+	Start        time.Time      `xorm:"notnull 'start'"`
+	Step         TransferStep   `xorm:"notnull 'step'"`
+	Status       TransferStatus `xorm:"notnull 'status'"`
+	Owner        string         `xorm:"notnull 'owner'"`
+	Progress     uint64         `xorm:"notnull 'progression'"`
+	TaskNumber   uint64         `xorm:"notnull 'task_number'"`
+	Error        TransferError  `xorm:"extends"`
+	ExtInfo      []byte         `xorm:"'ext_info'"`
 }
 
 // TableName returns the name of the transfers table.
@@ -50,10 +52,10 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 	if t.AccountID == 0 {
 		return database.InvalidError("The transfer's account ID cannot be empty")
 	}
-	if t.SourcePath == "" {
+	if t.SourceFile == "" {
 		return database.InvalidError("The transfer's source cannot be empty")
 	}
-	if t.DestPath == "" {
+	if t.DestFile == "" {
 		return database.InvalidError("The transfer's destination cannot be empty")
 	}
 	if t.Start.IsZero() {
@@ -71,7 +73,15 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 	if t.Owner == "" {
 		return database.InvalidError("The transfer's owner cannot be empty")
 	}
-
+	if t.SourceFile != filepath.Base(t.SourceFile) {
+		return database.InvalidError("The source file cannot contain subdirectories")
+	}
+	if t.DestFile != filepath.Base(t.DestFile) {
+		return database.InvalidError("The destination file cannot contain subdirectories")
+	}
+	if t.TrueFilepath != "" && !filepath.IsAbs(t.TrueFilepath) {
+		return database.InvalidError("The filepath must be an absolute path")
+	}
 	rule := Rule{ID: t.RuleID}
 	if err := acc.Get(&rule); err != nil {
 		if err == database.ErrNotFound {
@@ -79,7 +89,6 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 		}
 		return err
 	}
-
 	if t.IsServer {
 		if err := t.validateServerTransfer(acc); err != nil {
 			return err
@@ -184,11 +193,14 @@ func (t *Transfer) ValidateUpdate(database.Accessor, uint64) error {
 	if t.AccountID != 0 {
 		return database.InvalidError("The transfer's account cannot be changed")
 	}
-	if t.SourcePath != "" {
+	if t.SourceFile != "" {
 		return database.InvalidError("The transfer's source cannot be changed")
 	}
-	if t.DestPath != "" {
+	if t.DestFile != "" {
 		return database.InvalidError("The transfer's destination cannot be changed")
+	}
+	if t.TrueFilepath != "" && !filepath.IsAbs(t.TrueFilepath) {
+		return database.InvalidError("The filepath must be an absolute path")
 	}
 
 	if t.Status != "" {
@@ -250,8 +262,8 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		Account:        accountLogin,
 		Agent:          agentName,
 		Protocol:       protocol,
-		SourceFilename: t.SourcePath,
-		DestFilename:   t.DestPath,
+		SourceFilename: t.SourceFile,
+		DestFilename:   t.DestFile,
 		Rule:           rule.Name,
 		Start:          t.Start,
 		Stop:           stop,

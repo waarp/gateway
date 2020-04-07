@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	oracleTestDatabase *Db
+	oracleTestDatabase *DB
 	oracleConfig       *conf.ServerConfig
 )
 
@@ -26,7 +26,7 @@ func init() {
 	oracleConfig.Database.AESPassphrase = fmt.Sprintf("%s%soracle_test_passphrase.aes",
 		os.TempDir(), string(os.PathSeparator))
 
-	oracleTestDatabase = &Db{Conf: oracleConfig}
+	oracleTestDatabase = &DB{Conf: oracleConfig}
 }
 
 func TestOracleDB(t *testing.T) {

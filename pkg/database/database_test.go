@@ -16,7 +16,7 @@ import (
 const tblName = "test"
 
 var (
-	sqliteTestDatabase *Db
+	sqliteTestDatabase *DB
 	sqliteConfig       *conf.ServerConfig
 )
 
@@ -29,10 +29,10 @@ func init() {
 	sqliteConfig.Database.AESPassphrase = fmt.Sprintf("%s%ssqlite_test_passphrase.aes",
 		os.TempDir(), string(os.PathSeparator))
 
-	sqliteTestDatabase = &Db{Conf: sqliteConfig}
+	sqliteTestDatabase = &DB{Conf: sqliteConfig}
 }
 
-func testGet(db *Db) {
+func testGet(db *DB) {
 	getBean := &testBean{
 		ID:     1,
 		String: "get",
@@ -86,7 +86,7 @@ func testGet(db *Db) {
 	})
 }
 
-func testSelect(db *Db) {
+func testSelect(db *DB) {
 	selectBean1 := testBean{
 		ID:     1,
 		String: "select",
@@ -225,7 +225,7 @@ func testSelect(db *Db) {
 
 }
 
-func testCreate(db *Db) {
+func testCreate(db *DB) {
 	existingBean := testBean{
 		ID:     1,
 		String: "existing",
@@ -299,7 +299,7 @@ func testCreate(db *Db) {
 	})
 }
 
-func testUpdate(db *Db) {
+func testUpdate(db *DB) {
 
 	updateBeanBefore := testBean{
 		ID:     1,
@@ -379,7 +379,7 @@ func testUpdate(db *Db) {
 	})
 }
 
-func testDelete(db *Db) {
+func testDelete(db *DB) {
 
 	deleteBean := testBean{
 		ID:     1,
@@ -450,7 +450,7 @@ func testDelete(db *Db) {
 	})
 }
 
-func testExist(db *Db) {
+func testExist(db *DB) {
 	existBean := testBean{
 		ID:     1,
 		String: "exists",
@@ -517,7 +517,7 @@ func testExist(db *Db) {
 	})
 }
 
-func testExecute(db *Db) {
+func testExecute(db *DB) {
 
 	execBean := testBean{
 		ID:     1,
@@ -587,7 +587,7 @@ func testExecute(db *Db) {
 	})
 }
 
-func testQuery(db *Db) {
+func testQuery(db *DB) {
 
 	runTests := func(acc Accessor, count func(...interface{}) (int64, error)) {
 		Convey("With a valid custom SQL `SELECT` query", func() {
@@ -648,7 +648,7 @@ func testQuery(db *Db) {
 	})
 }
 
-func testTrans(db *Db) {
+func testTrans(db *DB) {
 	bean := testBean{
 		ID:     1,
 		String: "test trans",
@@ -689,7 +689,7 @@ func testTrans(db *Db) {
 	})
 }
 
-func testDatabase(db *Db) {
+func testDatabase(db *DB) {
 	Reset(func() {
 		_, err := db.engine.Exec("DELETE FROM " + tblName)
 		So(err, ShouldBeNil)

@@ -148,7 +148,7 @@ func TestExecOutputRun(t *testing.T) {
 						})
 
 						Convey("Then the transfer file should have changed", func() {
-							So(proc.Transfer.DestPath, ShouldEqual, "new_name.file")
+							So(proc.Transfer.DestFile, ShouldEqual, "new_name.file")
 						})
 					})
 				})

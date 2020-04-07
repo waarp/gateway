@@ -48,8 +48,8 @@ func TestRebaneTaskRun(t *testing.T) {
 				IsSend: true,
 			},
 			Transfer: &model.Transfer{
-				SourcePath: "test/dummy",
-				DestPath:   "test/dest",
+				SourceFile: "test/dummy",
+				DestFile:   "test/dest",
 			},
 		}
 
@@ -67,7 +67,7 @@ func TestRebaneTaskRun(t *testing.T) {
 				})
 
 				Convey("Then transfer source path should be modified", func() {
-					So(runner.Transfer.SourcePath, ShouldEqual, "test")
+					So(runner.Transfer.SourceFile, ShouldEqual, "test")
 				})
 			})
 		})
@@ -79,8 +79,8 @@ func TestRebaneTaskRun(t *testing.T) {
 				IsSend: false,
 			},
 			Transfer: &model.Transfer{
-				SourcePath: "test/dummy",
-				DestPath:   "test/dest",
+				SourceFile: "test/dummy",
+				DestFile:   "test/dest",
 			},
 		}
 
@@ -98,7 +98,7 @@ func TestRebaneTaskRun(t *testing.T) {
 				})
 
 				Convey("Then transfer DestPath should be modified", func() {
-					So(runner.Transfer.DestPath, ShouldEqual, "test")
+					So(runner.Transfer.DestFile, ShouldEqual, "test")
 				})
 			})
 		})

@@ -31,9 +31,9 @@ func (*MoveRenameTask) Run(args map[string]string, processor *Processor) (string
 	var oldPath *string
 
 	if processor.Rule.IsSend {
-		oldPath = &(processor.Transfer.SourcePath)
+		oldPath = &(processor.Transfer.SourceFile)
 	} else {
-		oldPath = &(processor.Transfer.DestPath)
+		oldPath = &(processor.Transfer.DestFile)
 	}
 
 	if err := os.Rename(*oldPath, newPath); err != nil {

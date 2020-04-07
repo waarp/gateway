@@ -138,7 +138,7 @@ func parseHistoryCond(r *http.Request, filters *database.Filters) error {
 	return nil
 }
 
-func getHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "history")
@@ -160,7 +160,7 @@ func getHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
 }
 
 //nolint:dupl
-func listHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default":  "start ASC",
 		"id+":      "id ASC",
@@ -201,7 +201,7 @@ func listHistory(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func restartTransfer(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func restartTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "history")

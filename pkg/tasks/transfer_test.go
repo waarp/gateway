@@ -79,7 +79,7 @@ func TestTransferRun(t *testing.T) {
 		partner := &model.RemoteAgent{
 			Name:        "test partner",
 			Protocol:    "sftp",
-			ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+			ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 		}
 		So(db.Create(partner), ShouldBeNil)
 
@@ -107,7 +107,7 @@ func TestTransferRun(t *testing.T) {
 				"as":   account.Login,
 				"rule": rule.Name,
 			}
-			processor := &Processor{Db: db}
+			processor := &Processor{DB: db}
 
 			Convey("Given that the parameters are valid", func() {
 

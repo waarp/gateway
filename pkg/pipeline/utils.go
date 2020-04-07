@@ -3,16 +3,25 @@ package pipeline
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 )
+
+// Paths is a struct combining the paths given in the Gateway configuration file
+// and the root of a server.
+type Paths struct {
+	conf.PathsConfig
+	ServerRoot, ServerWork string
+}
 
 func checkSignal(ctx context.Context, ch <-chan model.Signal) *model.PipelineError {
 	select {
@@ -32,9 +41,8 @@ func checkSignal(ctx context.Context, ch <-chan model.Signal) *model.PipelineErr
 	}
 }
 
-func createTransfer(logger *log.Logger, db *database.Db, trans *model.Transfer) *model.PipelineError {
-	err := db.Create(trans)
-	if err != nil {
+func createTransfer(logger *log.Logger, db *database.DB, trans *model.Transfer) *model.PipelineError {
+	if err := db.Create(trans); err != nil {
 		if _, ok := err.(*database.ErrInvalid); ok {
 			logger.Errorf("Failed to create transfer entry: %s", err.Error())
 			return model.NewPipelineError(model.TeForbidden, err.Error())
@@ -48,7 +56,7 @@ func createTransfer(logger *log.Logger, db *database.Db, trans *model.Transfer) 
 // ToHistory removes the given transfer from the database, converts it into a
 // history entry, and inserts the new history entry in the database.
 // If any of these steps fails, the changes are reverted and an error is returned.
-func ToHistory(db *database.Db, logger *log.Logger, trans *model.Transfer) error {
+func ToHistory(db *database.DB, logger *log.Logger, trans *model.Transfer) error {
 	ses, err := db.BeginTransaction()
 	if err != nil {
 		logger.Criticalf("Failed to start archival transaction: %s", err)
@@ -90,7 +98,7 @@ func execTasks(proc *tasks.Processor, chain model.Chain,
 	step model.TransferStep) *model.PipelineError {
 
 	proc.Transfer.Step = step
-	if err := proc.Transfer.Update(proc.Db); err != nil {
+	if err := proc.Transfer.Update(proc.DB); err != nil {
 		proc.Logger.Criticalf("Failed to update transfer step: %s", err)
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
@@ -104,16 +112,10 @@ func execTasks(proc *tasks.Processor, chain model.Chain,
 	return proc.RunTasks(tasksList)
 }
 
-func getFile(logger *log.Logger, root string, rule *model.Rule,
-	trans *model.Transfer) (*os.File, *model.PipelineError) {
+func getFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.File, *model.PipelineError) {
 
+	path := trans.TrueFilepath
 	if rule.IsSend {
-		var path string
-		if trans.IsServer {
-			path = filepath.Clean(filepath.Join(root, rule.Path, trans.SourcePath))
-		} else {
-			path = filepath.Clean(filepath.Join(root, trans.SourcePath))
-		}
 		file, err := os.OpenFile(path, os.O_RDONLY, 0100)
 		if err != nil {
 			logger.Errorf("Failed to open source file: %s", err)
@@ -128,10 +130,9 @@ func getFile(logger *log.Logger, root string, rule *model.Rule,
 		return file, nil
 	}
 
-	path := filepath.Clean(filepath.Join(root, "tmp", trans.DestPath))
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
-		logger.Errorf("Failed to create destination file: %s", err)
+		logger.Errorf("Failed to create destination file (%s): %s", path, err)
 		return nil, model.NewPipelineError(model.TeForbidden, err.Error())
 	}
 	if trans.Progress != 0 {
@@ -143,8 +144,8 @@ func getFile(logger *log.Logger, root string, rule *model.Rule,
 	return file, nil
 }
 
-func makeDir(root, path string) error {
-	dir := filepath.Clean(filepath.Join(root, path))
+func makeDir(path string) error {
+	dir := filepath.Dir(path)
 	if info, err := os.Lstat(dir); err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(dir, 0740); err != nil {
@@ -154,9 +155,7 @@ func makeDir(root, path string) error {
 			return err
 		}
 	} else if !info.IsDir() {
-		if err := os.MkdirAll(dir, 0740); err != nil {
-			return err
-		}
+		return fmt.Errorf("a file named '%s' already exist", filepath.Base(dir))
 	}
 	return nil
 }
@@ -174,25 +173,25 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 	case model.KindDatabase:
 	case model.KindInterrupt:
 		stream.Transfer.Status = model.StatusInterrupted
-		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
+		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 			return
 		}
 	case model.KindPause:
 		stream.Transfer.Status = model.StatusPaused
-		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
+		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 			return
 		}
 	case model.KindTransfer:
 		stream.Transfer.Error = err.Cause
-		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
+		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 			return
 		}
 		stream.ErrorTasks()
 		stream.Transfer.Error = err.Cause
-		if dbErr := stream.Transfer.Update(stream.Db); dbErr != nil {
+		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer step: %s", dbErr)
 			return
 		}

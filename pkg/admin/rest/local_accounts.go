@@ -8,7 +8,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func getLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "local_account")
@@ -29,7 +29,7 @@ func getLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func listLocalAccounts(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "login ASC",
 		"agent+":  "local_agent_id ASC",
@@ -62,7 +62,7 @@ func listLocalAccounts(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func createLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			jsonAccount := &InAccount{}
@@ -86,7 +86,7 @@ func createLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 }
 
 //nolint:dupl
-func updateLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "local_account")
@@ -117,7 +117,7 @@ func updateLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func deleteLocalAccount(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "local_account")

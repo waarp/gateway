@@ -5,8 +5,10 @@ package gatewayd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -19,6 +21,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/go-xorm/builder"
 )
 
@@ -27,11 +30,34 @@ type WG struct {
 	*log.Logger
 	Conf      *conf.ServerConfig
 	Services  map[string]service.Service
-	dbService *database.Db
+	dbService *database.DB
+}
+
+func normalizePaths(config *conf.ServerConfig) {
+	var err error
+	if config.Paths.GatewayHome == "" {
+		if config.Paths.GatewayHome, err = os.Getwd(); err != nil {
+			fmt.Printf("ERROR: %s", err.Error())
+			os.Exit(1)
+		}
+	}
+	if config.Paths.InDirectory != "" && !filepath.IsAbs(config.Paths.InDirectory) {
+		config.Paths.InDirectory = utils.SlashJoin(config.Paths.GatewayHome,
+			config.Paths.InDirectory)
+	}
+	if config.Paths.OutDirectory != "" && !filepath.IsAbs(config.Paths.OutDirectory) {
+		config.Paths.OutDirectory = utils.SlashJoin(config.Paths.GatewayHome,
+			config.Paths.OutDirectory)
+	}
+	if config.Paths.WorkDirectory != "" && !filepath.IsAbs(config.Paths.WorkDirectory) {
+		config.Paths.WorkDirectory = utils.SlashJoin(config.Paths.GatewayHome,
+			config.Paths.WorkDirectory)
+	}
 }
 
 // NewWG creates a new application
 func NewWG(config *conf.ServerConfig) *WG {
+	normalizePaths(config)
 	return &WG{
 		Logger: log.NewLogger("Waarp-Gateway"),
 		Conf:   config,
@@ -42,9 +68,9 @@ func NewWG(config *conf.ServerConfig) *WG {
 func (wg *WG) initServices() {
 	wg.Services = make(map[string]service.Service)
 
-	wg.dbService = &database.Db{Conf: wg.Conf}
-	adminService := &admin.Server{Conf: wg.Conf, Db: wg.dbService, Services: wg.Services}
-	controllerService := &controller.Controller{Conf: wg.Conf, Db: wg.dbService}
+	wg.dbService = &database.DB{Conf: wg.Conf}
+	adminService := &admin.Server{Conf: wg.Conf, DB: wg.dbService, Services: wg.Services}
+	controllerService := &controller.Controller{Conf: wg.Conf, DB: wg.dbService}
 
 	wg.Services[admin.ServiceName] = adminService
 	wg.Services[controller.ServiceName] = controllerService

@@ -79,7 +79,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 			ag := &LocalAgent{
 				Name:        "test agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(ag), ShouldBeNil)
 
@@ -128,7 +128,7 @@ func TestLocalAccountValidateInsert(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "parent_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			err := db.Create(&parentAgent)
 			So(err, ShouldBeNil)
@@ -268,7 +268,7 @@ func TestLocalAccountValidateInsert(t *testing.T) {
 						Owner:       "test_gateway",
 						Name:        "other",
 						Protocol:    "sftp",
-						ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+						ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 					}
 					err := db.Create(&otherAgent)
 					So(err, ShouldBeNil)
@@ -301,7 +301,7 @@ func TestLocalAccountValidateUpdate(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "parent_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			err := db.Create(&parentAgent)
 			So(err, ShouldBeNil)
@@ -409,7 +409,7 @@ func TestLocalAccountValidateUpdate(t *testing.T) {
 						Owner:       "test_gateway",
 						Name:        "other",
 						Protocol:    "sftp",
-						ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+						ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 					}
 					err := db.Create(&otherAgent)
 					So(err, ShouldBeNil)

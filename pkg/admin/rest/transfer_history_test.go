@@ -398,7 +398,7 @@ func TestRestartTransfer(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(partner), ShouldBeNil)
 
@@ -480,8 +480,8 @@ func TestRestartTransfer(t *testing.T) {
 							IsServer:   false,
 							AgentID:    partner.ID,
 							AccountID:  account.ID,
-							SourcePath: h.SourceFilename,
-							DestPath:   h.DestFilename,
+							SourceFile: h.SourceFilename,
+							DestFile:   h.DestFilename,
 							Start:      date,
 							Status:     model.StatusPlanned,
 							Owner:      h.Owner,

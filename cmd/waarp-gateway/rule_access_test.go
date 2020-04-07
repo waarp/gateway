@@ -31,14 +31,14 @@ func TestAddRuleAccess(t *testing.T) {
 			obj1 := &model.LocalAgent{
 				Name:        "object 1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(obj1), ShouldBeNil)
 
 			obj2 := &model.RemoteAgent{
 				Name:        "object 2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(obj2), ShouldBeNil)
 
@@ -154,7 +154,7 @@ func TestRevokeRuleAccess(t *testing.T) {
 			obj := &model.LocalAgent{
 				Name:        "object",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(obj), ShouldBeNil)
 
@@ -242,14 +242,14 @@ func TestListRuleAccesses(t *testing.T) {
 			obj1 := &model.LocalAgent{
 				Name:        "object 1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(obj1), ShouldBeNil)
 
 			obj2 := &model.RemoteAgent{
 				Name:        "object 2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost","root":"/root"}`),
+				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
 			}
 			So(db.Create(obj2), ShouldBeNil)
 

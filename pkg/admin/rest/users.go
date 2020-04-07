@@ -51,7 +51,7 @@ func FromUsers(usr []model.User) []OutUser {
 	return users
 }
 
-func getUser(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "user")
@@ -72,7 +72,7 @@ func getUser(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func listUsers(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default":   "username ASC",
 		"username+": "username ASC",
@@ -101,7 +101,7 @@ func listUsers(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func createUser(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			jsonUser := &InUser{}
@@ -125,7 +125,7 @@ func createUser(logger *log.Logger, db *database.Db) http.HandlerFunc {
 }
 
 //nolint:dupl
-func updateUser(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "user")
@@ -156,7 +156,7 @@ func updateUser(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func deleteUser(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "user")

@@ -24,7 +24,7 @@ const ServiceName = "Controller"
 // transfers at regular intervals, and starting those new transfers.
 type Controller struct {
 	Conf *conf.ServerConfig
-	Db   *database.Db
+	DB   *database.DB
 
 	ticker *time.Ticker
 	logger *log.Logger
@@ -35,24 +35,24 @@ type Controller struct {
 	cancel context.CancelFunc
 }
 
-func (c *Controller) checkIsDbDown() bool {
+func (c *Controller) checkIsDBDown() bool {
 	owner := builder.Eq{"owner": database.Owner}
 	statusDown := builder.Eq{"status": model.StatusRunning}
 	filtersDown := database.Filters{
 		Conditions: builder.And(owner, statusDown),
 	}
 
-	if st, _ := c.Db.State().Get(); st != service.Running {
+	if st, _ := c.DB.State().Get(); st != service.Running {
 		return true
 	}
 	runningTrans := []model.Transfer{}
-	if err := c.Db.Select(&runningTrans, &filtersDown); err != nil {
+	if err := c.DB.Select(&runningTrans, &filtersDown); err != nil {
 		c.logger.Errorf("Failed to access database: %s", err.Error())
 		return true
 	}
 	for _, trans := range runningTrans {
 		trans.Status = model.StatusInterrupted
-		if err := trans.Update(c.Db); err != nil {
+		if err := trans.Update(c.DB); err != nil {
 			c.logger.Errorf("Failed to access database: %s", err.Error())
 			return false
 		}
@@ -69,7 +69,7 @@ func (c *Controller) listen() {
 	c.ctx, c.cancel = context.WithCancel(context.Background())
 
 	go func() {
-		isDbDown := false
+		isDBDown := false
 		for {
 			select {
 			case <-c.ctx.Done():
@@ -82,15 +82,15 @@ func (c *Controller) listen() {
 				Conditions: builder.And(owner, start, status, client),
 			}
 
-			if isDbDown {
-				isDbDown = c.checkIsDbDown()
+			if isDBDown {
+				isDBDown = c.checkIsDBDown()
 			}
 
 			plannedTrans := []model.Transfer{}
-			if err := c.Db.Select(&plannedTrans, &filters); err != nil {
+			if err := c.DB.Select(&plannedTrans, &filters); err != nil {
 				c.logger.Errorf("Failed to access database: %s", err.Error())
 				if err == database.ErrServiceUnavailable {
-					isDbDown = true
+					isDBDown = true
 				}
 				continue
 			}
@@ -115,7 +115,8 @@ func (c *Controller) listen() {
 }
 
 func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, error) {
-	stream, err := pipeline.NewTransferStream(c.ctx, c.logger, c.Db, ".", trans)
+	paths := pipeline.Paths{PathsConfig: c.Conf.Paths}
+	stream, err := pipeline.NewTransferStream(c.ctx, c.logger, c.DB, paths, trans)
 	if err != nil {
 		c.logger.Errorf("Failed to create transfer stream: %s", err.Error())
 		return nil, err

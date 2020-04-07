@@ -8,7 +8,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func getLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "local_agent")
@@ -29,7 +29,7 @@ func getLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func listLocalAgents(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listLocalAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "name ASC",
 		"proto+":  "protocol ASC",
@@ -53,7 +53,7 @@ func listLocalAgents(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutAgent{"localAgents": fromLocalAgents(results)}
+			resp := map[string][]OutLocalAgent{"localAgents": FromLocalAgents(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -62,15 +62,15 @@ func listLocalAgents(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func createLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonAgent := &InAgent{}
+			jsonAgent := &InLocalAgent{}
 			if err := readJSON(r, jsonAgent); err != nil {
 				return err
 			}
 
-			agent := jsonAgent.ToLocal()
+			agent := jsonAgent.ToModel()
 			if err := db.Create(agent); err != nil {
 				return err
 			}
@@ -86,7 +86,7 @@ func createLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 }
 
 //nolint:dupl
-func updateLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "local_agent")
@@ -98,12 +98,12 @@ func updateLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			agent := &InAgent{}
+			agent := &InLocalAgent{}
 			if err := readJSON(r, agent); err != nil {
 				return err
 			}
 
-			if err := db.Update(agent.ToLocal(), id, false); err != nil {
+			if err := db.Update(agent.ToModel(), id, false); err != nil {
 				return err
 			}
 
@@ -117,7 +117,7 @@ func updateLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func deleteLocalAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "local_agent")

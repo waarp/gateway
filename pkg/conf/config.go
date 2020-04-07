@@ -12,10 +12,19 @@ import (
 // ServerConfig holds the server configuration options
 type ServerConfig struct {
 	GatewayName string           `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
+	Paths       PathsConfig      `group:"paths"`
 	Log         LogConfig        `group:"log"`
 	Admin       AdminConfig      `group:"admin"`
 	Database    DatabaseConfig   `group:"database"`
 	Controller  ControllerConfig `group:"controller"`
+}
+
+// PathsConfig holds the server paths
+type PathsConfig struct {
+	GatewayHome   string `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the working directory of the process."`
+	InDirectory   string `ini-name:"InDirectory" description:"The directory for all incoming files."`
+	OutDirectory  string `ini-name:"OutDirectory" description:"The directory for all outgoing files."`
+	WorkDirectory string `ini-name:"WorkDirectory" default:"tmp" description:"The directory for all running transfer files."`
 }
 
 // LogConfig holds the server logging options

@@ -15,6 +15,8 @@ type InRule struct {
 	Comment string `json:"comment"`
 	IsSend  bool   `json:"isSend"`
 	Path    string `json:"path"`
+	InPath  string `json:"inPath"`
+	OutPath string `json:"outPath"`
 }
 
 // ToModel transforms the JSON transfer rule into its database equivalent.
@@ -24,6 +26,8 @@ func (i *InRule) ToModel() *model.Rule {
 		Comment: i.Comment,
 		IsSend:  i.IsSend,
 		Path:    i.Path,
+		InPath:  i.InPath,
+		OutPath: i.OutPath,
 	}
 }
 
@@ -35,6 +39,8 @@ type OutRule struct {
 	Comment string `json:"comment"`
 	IsSend  bool   `json:"isSend"`
 	Path    string `json:"path"`
+	InPath  string `json:"inPath"`
+	OutPath string `json:"outPath"`
 }
 
 // FromRule transforms the given database transfer rule into its JSON equivalent.
@@ -45,6 +51,8 @@ func FromRule(r *model.Rule) *OutRule {
 		Comment: r.Comment,
 		IsSend:  r.IsSend,
 		Path:    r.Path,
+		InPath:  r.InPath,
+		OutPath: r.OutPath,
 	}
 }
 
@@ -59,12 +67,14 @@ func FromRules(rs []model.Rule) []OutRule {
 			Comment: rule.Comment,
 			IsSend:  rule.IsSend,
 			Path:    rule.Path,
+			InPath:  rule.InPath,
+			OutPath: rule.OutPath,
 		}
 	}
 	return rules
 }
 
-func createRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			jsonRule := &InRule{}
@@ -87,7 +97,7 @@ func createRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func getRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "rule")
@@ -108,7 +118,7 @@ func getRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func listRules(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "name ASC",
 		"name+":   "name ASC",
@@ -137,7 +147,7 @@ func listRules(logger *log.Logger, db *database.Db) http.HandlerFunc {
 }
 
 //nolint:dupl
-func updateRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "rule")
@@ -168,7 +178,7 @@ func updateRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func deleteRule(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "rule")

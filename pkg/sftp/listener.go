@@ -9,21 +9,24 @@ import (
 	"sync"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
 type sshListener struct {
-	Db           *database.Db
-	Logger       *log.Logger
-	Agent        *model.LocalAgent
-	ServerConfig *ssh.ServerConfig
-	ProtoConfig  *config.SftpProtoConfig
-	Listener     net.Listener
+	DB          *database.DB
+	Logger      *log.Logger
+	Agent       *model.LocalAgent
+	ProtoConfig *config.SftpProtoConfig
+	GWConf      *conf.ServerConfig
+	SSHConf     *ssh.ServerConfig
+	Listener    net.Listener
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -51,7 +54,7 @@ func (l *sshListener) handleConnection(parent context.Context, nConn net.Conn) {
 		defer cancel()
 		defer l.connWg.Done()
 
-		servConn, channels, reqs, err := ssh.NewServerConn(nConn, l.ServerConfig)
+		servConn, channels, reqs, err := ssh.NewServerConn(nConn, l.SSHConf)
 		if err != nil {
 			l.Logger.Errorf("Failed to perform handshake: %s", err)
 			return
@@ -65,7 +68,7 @@ func (l *sshListener) handleConnection(parent context.Context, nConn net.Conn) {
 
 		sesWg := &sync.WaitGroup{}
 		for newChannel := range channels {
-			accountID, err := getAccountID(l.Db, l.Agent.ID, servConn.User())
+			accountID, err := getAccountID(l.DB, l.Agent.ID, servConn.User())
 			if err != nil {
 				l.Logger.Errorf("Failed to retrieve user: %s", err)
 				continue
@@ -108,7 +111,7 @@ func (l *sshListener) makeHandlers(ctx context.Context, accountID uint64) sftp.H
 		FileGet:  l.makeFileReader(ctx, accountID),
 		FilePut:  l.makeFileWriter(ctx, accountID),
 		FileCmd:  makeFileCmder(),
-		FileList: makeFileLister(l.ProtoConfig.Root),
+		FileList: makeFileLister(l.Agent.Root),
 	}
 }
 
@@ -121,9 +124,14 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64) file
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
 		rule := model.Rule{Path: path, IsSend: true}
-		if err := l.Db.Get(&rule); err != nil {
+		if err := l.DB.Get(&rule); err != nil {
 			l.Logger.Errorf("No rule found for directory '%s'", path)
 			return nil, fmt.Errorf("cannot retrieve transfer rule: %s", err)
+		}
+		paths := pipeline.Paths{
+			PathsConfig: l.GWConf.Paths,
+			ServerRoot:  l.Agent.Root,
+			ServerWork:  l.Agent.WorkDir,
 		}
 
 		// Create Transfer
@@ -132,14 +140,14 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64) file
 			IsServer:   true,
 			AgentID:    l.Agent.ID,
 			AccountID:  accountID,
-			SourcePath: filepath.Base(r.Filepath),
-			DestPath:   ".",
+			SourceFile: filepath.Base(r.Filepath),
+			DestFile:   ".",
 			Start:      time.Now(),
 			Status:     model.StatusRunning,
 			Step:       model.StepSetup,
 		}
 
-		stream, err := newSftpStream(ctx, l.Logger, l.Db, l.ProtoConfig.Root, trans)
+		stream, err := newSftpStream(ctx, l.Logger, l.DB, paths, trans)
 		if err != nil {
 			return nil, err
 		}
@@ -156,9 +164,14 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64) file
 			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
 		}
 		rule := model.Rule{Path: path, IsSend: false}
-		if err := l.Db.Get(&rule); err != nil {
+		if err := l.DB.Get(&rule); err != nil {
 			l.Logger.Errorf("No rule found for directory '%s'", path)
 			return nil, fmt.Errorf("cannot retrieve transfer rule: %s", err)
+		}
+		paths := pipeline.Paths{
+			PathsConfig: l.GWConf.Paths,
+			ServerRoot:  l.Agent.Root,
+			ServerWork:  l.Agent.WorkDir,
 		}
 
 		// Create Transfer
@@ -167,14 +180,14 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64) file
 			IsServer:   true,
 			AgentID:    l.Agent.ID,
 			AccountID:  accountID,
-			SourcePath: ".",
-			DestPath:   filepath.Base(r.Filepath),
+			SourceFile: ".",
+			DestFile:   filepath.Base(r.Filepath),
 			Start:      time.Now(),
 			Status:     model.StatusRunning,
 			Step:       model.StepSetup,
 		}
 
-		stream, err := newSftpStream(ctx, l.Logger, l.Db, l.ProtoConfig.Root, trans)
+		stream, err := newSftpStream(ctx, l.Logger, l.DB, paths, trans)
 		if err != nil {
 			return nil, err
 		}

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 // MoveTask is a task which moves the file whithout renaming it
@@ -32,12 +33,12 @@ func (*MoveTask) Run(args map[string]string, processor *Processor) (string, erro
 	newDir := args["path"]
 
 	if processor.Rule.IsSend {
-		oldPath = &(processor.Transfer.SourcePath)
+		oldPath = &(processor.Transfer.SourceFile)
 	} else {
-		oldPath = &(processor.Transfer.DestPath)
+		oldPath = &(processor.Transfer.DestFile)
 	}
 
-	newPath := filepath.Join(newDir, filepath.Base(*oldPath))
+	newPath := utils.SlashJoin(newDir, filepath.Base(*oldPath))
 
 	if err := os.Rename(*oldPath, newPath); err != nil {
 		return err.Error(), err

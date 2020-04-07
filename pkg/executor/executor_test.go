@@ -2,6 +2,8 @@ package executor
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -23,6 +26,17 @@ func init() {
 
 func TestExecutorRun(t *testing.T) {
 	logger := log.NewLogger("test_executor_run")
+
+	cd, err := os.Getwd()
+	if err != nil {
+		t.FailNow()
+	}
+	paths := pipeline.Paths{PathsConfig: conf.PathsConfig{
+		GatewayHome:   cd,
+		InDirectory:   utils.SlashJoin(cd, "in"),
+		OutDirectory:  utils.SlashJoin(cd, ""),
+		WorkDirectory: utils.SlashJoin(cd, "work"),
+	}}
 
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
@@ -59,21 +73,24 @@ func TestExecutorRun(t *testing.T) {
 			}
 			So(db.Create(rule), ShouldBeNil)
 
+			path, err := filepath.Abs("executor.go")
+			So(err, ShouldBeNil)
 			trans := &model.Transfer{
-				RuleID:     rule.ID,
-				AgentID:    remote.ID,
-				AccountID:  account.ID,
-				SourcePath: "executor.go",
-				DestPath:   "test/dest/path",
-				Start:      time.Now().Truncate(time.Second),
-				Status:     model.StatusPlanned,
-				Owner:      database.Owner,
+				RuleID:       rule.ID,
+				AgentID:      remote.ID,
+				AccountID:    account.ID,
+				TrueFilepath: path,
+				SourceFile:   "executor.go",
+				DestFile:     "dest",
+				Start:        time.Now().Truncate(time.Second),
+				Status:       model.StatusPlanned,
+				Owner:        database.Owner,
 			}
 			So(db.Create(trans), ShouldBeNil)
 
 			Convey("Given an executor", func() {
 				stream, err := pipeline.NewTransferStream(context.Background(),
-					logger, db, "", *trans)
+					logger, db, paths, *trans)
 				So(err, ShouldBeNil)
 				exe := &Executor{TransferStream: stream}
 
@@ -102,8 +119,8 @@ func TestExecutorRun(t *testing.T) {
 								Account:        account.Login,
 								Agent:          remote.Name,
 								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourcePath,
-								DestFilename:   trans.DestPath,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
 								Rule:           rule.Name,
 								Start:          trans.Start,
 								Stop:           results[0].Stop,
@@ -137,8 +154,8 @@ func TestExecutorRun(t *testing.T) {
 								Account:        account.Login,
 								Agent:          remote.Name,
 								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourcePath,
-								DestFilename:   trans.DestPath,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
 								Rule:           rule.Name,
 								Start:          trans.Start,
 								Status:         model.StatusError,
@@ -174,8 +191,8 @@ func TestExecutorRun(t *testing.T) {
 								Account:        account.Login,
 								Agent:          remote.Name,
 								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourcePath,
-								DestFilename:   trans.DestPath,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
 								Rule:           rule.Name,
 								Start:          trans.Start,
 								Status:         model.StatusError,
@@ -211,8 +228,8 @@ func TestExecutorRun(t *testing.T) {
 								Account:        account.Login,
 								Agent:          remote.Name,
 								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourcePath,
-								DestFilename:   trans.DestPath,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
 								Rule:           rule.Name,
 								Start:          trans.Start,
 								Status:         model.StatusError,
@@ -262,8 +279,8 @@ func TestExecutorRun(t *testing.T) {
 								Account:        account.Login,
 								Agent:          remote.Name,
 								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourcePath,
-								DestFilename:   trans.DestPath,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
 								Rule:           rule.Name,
 								Start:          trans.Start,
 								Stop:           h[0].Stop,
@@ -300,8 +317,8 @@ func TestExecutorRun(t *testing.T) {
 								Account:        account.Login,
 								Agent:          remote.Name,
 								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourcePath,
-								DestFilename:   trans.DestPath,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
 								Rule:           rule.Name,
 								Start:          trans.Start,
 								Status:         model.StatusError,
@@ -346,8 +363,8 @@ func TestExecutorRun(t *testing.T) {
 								Account:        account.Login,
 								Agent:          remote.Name,
 								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourcePath,
-								DestFilename:   trans.DestPath,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
 								Rule:           rule.Name,
 								Start:          trans.Start,
 								Status:         model.StatusError,
@@ -383,8 +400,8 @@ func TestExecutorRun(t *testing.T) {
 								Account:        account.Login,
 								Agent:          remote.Name,
 								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourcePath,
-								DestFilename:   trans.DestPath,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
 								Rule:           rule.Name,
 								Start:          trans.Start,
 								Status:         model.StatusError,
@@ -404,6 +421,17 @@ func TestExecutorRun(t *testing.T) {
 
 func TestTransferResume(t *testing.T) {
 	logger := log.NewLogger("test_transfer_resume")
+
+	cd, err := os.Getwd()
+	if err != nil {
+		t.FailNow()
+	}
+	paths := pipeline.Paths{PathsConfig: conf.PathsConfig{
+		GatewayHome:   cd,
+		InDirectory:   utils.SlashJoin(cd, "in"),
+		OutDirectory:  utils.SlashJoin(cd, ""),
+		WorkDirectory: utils.SlashJoin(cd, "work"),
+	}}
 
 	Convey("Given a test database", t, func() {
 		db := database.GetTestDatabase()
@@ -459,25 +487,28 @@ func TestTransferResume(t *testing.T) {
 			So(db.Create(pre1), ShouldBeNil)
 			So(db.Create(pre2), ShouldBeNil)
 
+			path, err := filepath.Abs("executor.go")
+			So(err, ShouldBeNil)
 			trans := &model.Transfer{
-				RuleID:     rule.ID,
-				IsServer:   false,
-				AgentID:    remote.ID,
-				AccountID:  account.ID,
-				SourcePath: "executor.go",
-				DestPath:   "executor.dst",
-				Start:      time.Now().Truncate(time.Second),
-				Step:       model.StepPreTasks,
-				Status:     model.StatusPlanned,
-				Owner:      database.Owner,
-				Progress:   0,
-				TaskNumber: 1,
+				RuleID:       rule.ID,
+				IsServer:     false,
+				AgentID:      remote.ID,
+				AccountID:    account.ID,
+				TrueFilepath: path,
+				SourceFile:   "executor.go",
+				DestFile:     "executor.dst",
+				Start:        time.Now().Truncate(time.Second),
+				Step:         model.StepPreTasks,
+				Status:       model.StatusPlanned,
+				Owner:        database.Owner,
+				Progress:     0,
+				TaskNumber:   1,
 			}
 			So(db.Create(trans), ShouldBeNil)
 
 			Convey("When starting the transfer", func() {
 				stream, err := pipeline.NewTransferStream(context.Background(),
-					logger, db, "", *trans)
+					logger, db, paths, *trans)
 				So(err, ShouldBeNil)
 				exe := &Executor{
 					TransferStream: stream,
@@ -504,8 +535,8 @@ func TestTransferResume(t *testing.T) {
 						Account:        account.Login,
 						Agent:          remote.Name,
 						Protocol:       remote.Protocol,
-						SourceFilename: trans.SourcePath,
-						DestFilename:   trans.DestPath,
+						SourceFilename: trans.SourceFile,
+						DestFilename:   trans.DestFile,
 						Rule:           rule.Name,
 						Start:          trans.Start,
 						Stop:           h[0].Stop,
@@ -534,8 +565,8 @@ func TestTransferResume(t *testing.T) {
 				IsServer:   false,
 				AgentID:    remote.ID,
 				AccountID:  account.ID,
-				SourcePath: "executor.go",
-				DestPath:   "executor.dst",
+				SourceFile: "executor.go",
+				DestFile:   "executor.dst",
 				Start:      time.Now().Truncate(time.Second),
 				Step:       model.StepData,
 				Status:     model.StatusPlanned,
@@ -547,7 +578,7 @@ func TestTransferResume(t *testing.T) {
 
 			Convey("When starting the transfer", func() {
 				stream, err := pipeline.NewTransferStream(context.Background(),
-					logger, db, "", *trans)
+					logger, db, paths, *trans)
 				So(err, ShouldBeNil)
 				exe := &Executor{TransferStream: stream}
 
@@ -572,8 +603,8 @@ func TestTransferResume(t *testing.T) {
 						Account:        account.Login,
 						Agent:          remote.Name,
 						Protocol:       remote.Protocol,
-						SourceFilename: trans.SourcePath,
-						DestFilename:   trans.DestPath,
+						SourceFilename: trans.SourceFile,
+						DestFilename:   trans.DestFile,
 						Rule:           rule.Name,
 						Start:          trans.Start,
 						Stop:           h[0].Stop,
@@ -618,8 +649,8 @@ func TestTransferResume(t *testing.T) {
 				IsServer:   false,
 				AgentID:    remote.ID,
 				AccountID:  account.ID,
-				SourcePath: "executor.go",
-				DestPath:   "executor.dst",
+				SourceFile: "executor.go",
+				DestFile:   "executor.dst",
 				Start:      time.Now().Truncate(time.Second),
 				Step:       model.StepPostTasks,
 				Status:     model.StatusPlanned,
@@ -631,7 +662,7 @@ func TestTransferResume(t *testing.T) {
 
 			Convey("When starting the transfer", func() {
 				stream, err := pipeline.NewTransferStream(context.Background(),
-					logger, db, "", *trans)
+					logger, db, paths, *trans)
 				So(err, ShouldBeNil)
 				exe := &Executor{TransferStream: stream}
 
@@ -656,8 +687,8 @@ func TestTransferResume(t *testing.T) {
 						Account:        account.Login,
 						Agent:          remote.Name,
 						Protocol:       remote.Protocol,
-						SourceFilename: trans.SourcePath,
-						DestFilename:   trans.DestPath,
+						SourceFilename: trans.SourceFile,
+						DestFilename:   trans.DestFile,
 						Rule:           rule.Name,
 						Start:          trans.Start,
 						Stop:           h[0].Stop,

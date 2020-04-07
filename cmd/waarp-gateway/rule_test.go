@@ -17,7 +17,9 @@ import (
 func ruleInfoString(r *rest.OutRule) string {
 	rv := "● Rule " + r.Name + " (ID " + fmt.Sprint(r.ID) + ")\n" +
 		"  -Comment : " + r.Comment + "\n" +
-		"  -Path    : " + r.Path + "\n"
+		"  -Path    : " + r.Path + "\n" +
+		"  -InPath  : " + r.InPath + "\n" +
+		"  -OutPath : " + r.OutPath + "\n"
 	if r.IsSend {
 		rv += "  -Direction: SEND\n"
 	} else {

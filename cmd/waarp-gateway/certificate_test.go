@@ -44,7 +44,7 @@ func TestGetCertificate(t *testing.T) {
 			owner := model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 
 			err := db.Create(&owner)
@@ -121,7 +121,7 @@ func TestAddCertificate(t *testing.T) {
 			owner := model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 
 			err := db.Create(&owner)
@@ -215,7 +215,7 @@ func TestDeleteCertificate(t *testing.T) {
 			owner := model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			err := db.Create(&owner)
 			So(err, ShouldBeNil)
@@ -304,14 +304,14 @@ func TestListCertificate(t *testing.T) {
 			owner1 := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(owner1), ShouldBeNil)
 
 			owner2 := &model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(owner2), ShouldBeNil)
 
@@ -498,7 +498,7 @@ func TestUpdateCertificate(t *testing.T) {
 			owner := model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022,"root":"toto"}`),
+				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
 			}
 			err := db.Create(&owner)
 			So(err, ShouldBeNil)

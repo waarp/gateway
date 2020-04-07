@@ -8,15 +8,15 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func createRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonAgent := &InAgent{}
+			jsonAgent := &InRemoteAgent{}
 			if err := readJSON(r, jsonAgent); err != nil {
 				return err
 			}
 
-			agent := jsonAgent.ToRemote()
+			agent := jsonAgent.ToModel()
 			if err := db.Create(agent); err != nil {
 				return err
 			}
@@ -31,7 +31,7 @@ func createRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func listRemoteAgents(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "name ASC",
 		"proto+":  "protocol ASC",
@@ -55,7 +55,7 @@ func listRemoteAgents(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutAgent{"remoteAgents": FromRemoteAgents(results)}
+			resp := map[string][]OutRemoteAgent{"remoteAgents": FromRemoteAgents(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -64,7 +64,7 @@ func listRemoteAgents(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func getRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func getRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "remote_agent")
@@ -85,7 +85,7 @@ func getRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 	}
 }
 
-func deleteRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func deleteRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "remote_agent")
@@ -111,7 +111,7 @@ func deleteRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 }
 
 //nolint:dupl
-func updateRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
+func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			id, err := parseID(r, "remote_agent")
@@ -123,12 +123,12 @@ func updateRemoteAgent(logger *log.Logger, db *database.Db) http.HandlerFunc {
 				return err
 			}
 
-			agent := &InAgent{}
+			agent := &InRemoteAgent{}
 			if err := readJSON(r, agent); err != nil {
 				return err
 			}
 
-			if err := db.Update(agent.ToRemote(), id, false); err != nil {
+			if err := db.Update(agent.ToModel(), id, false); err != nil {
 				return err
 			}
 

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -17,6 +19,14 @@ type partnerCommand struct {
 	Update partnerUpdateCommand `command:"update" description:"Update an existing remote agent"`
 }
 
+func displayRemoteAgent(w io.Writer, agent rest.OutRemoteAgent) {
+	var config bytes.Buffer
+	_ = json.Indent(&config, agent.ProtoConfig, "    ", "  ")
+	fmt.Fprintf(w, "\033[97;1m● %s\033[0m (ID %v)\n", agent.Name, agent.ID)
+	fmt.Fprintf(w, "  \033[97m-Protocol     :\033[0m \033[33m%s\033[0m\n", agent.Protocol)
+	fmt.Fprintf(w, "  \033[97m-Configuration:\033[0m \033[37m%s\033[0m\n", config.String())
+}
+
 // ######################## ADD ##########################
 
 type partnerAddCommand struct {
@@ -29,7 +39,7 @@ func (p *partnerAddCommand) Execute([]string) error {
 	if p.ProtoConfig == "" {
 		p.ProtoConfig = "{}"
 	}
-	newAgent := rest.InAgent{
+	newAgent := rest.InRemoteAgent{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),
@@ -67,7 +77,7 @@ func (p *partnerListCommand) Execute([]string) error {
 		return err
 	}
 
-	res := map[string][]rest.OutAgent{}
+	res := map[string][]rest.OutRemoteAgent{}
 	if err := getCommand(&res, conn); err != nil {
 		return err
 	}
@@ -77,7 +87,7 @@ func (p *partnerListCommand) Execute([]string) error {
 	if len(agents) > 0 {
 		fmt.Fprintf(w, "\033[33mRemote agents:\033[0m\n")
 		for _, partner := range agents {
-			displayAgent(w, partner)
+			displayRemoteAgent(w, partner)
 		}
 	} else {
 		fmt.Fprintln(w, "\033[31mNo remote agents found\033[0m")
@@ -95,7 +105,7 @@ func (p *partnerGetCommand) Execute(args []string) error {
 		return fmt.Errorf("missing partner ID")
 	}
 
-	res := rest.OutAgent{}
+	res := rest.OutRemoteAgent{}
 	conn, err := url.Parse(auth.DSN)
 	if err != nil {
 		return err
@@ -106,7 +116,7 @@ func (p *partnerGetCommand) Execute(args []string) error {
 		return err
 	}
 
-	displayAgent(getColorable(), res)
+	displayRemoteAgent(getColorable(), res)
 
 	return nil
 }
@@ -150,7 +160,7 @@ func (p *partnerUpdateCommand) Execute(args []string) error {
 		return fmt.Errorf("missing partner ID")
 	}
 
-	newAgent := rest.InAgent{
+	newAgent := rest.InRemoteAgent{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),

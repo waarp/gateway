@@ -8,14 +8,17 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
@@ -77,12 +80,13 @@ func TestServerStart(t *testing.T) {
 	Convey("Given an SFTP server service", t, func() {
 		db := database.GetTestDatabase()
 		port := getTestPort()
+		root := utils.SlashJoin(Dir, "root")
 
 		agent := &model.LocalAgent{
-			Name:     "test_sftp_server",
-			Protocol: "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":` + port +
-				`,"root":"root"}`),
+			Name:        "test_sftp_server",
+			Protocol:    "sftp",
+			Root:        root,
+			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
 
@@ -114,9 +118,13 @@ func TestServerStart(t *testing.T) {
 
 func TestSSHServer(t *testing.T) {
 	logger := log.NewLogger("test_sftp_server")
+	dir := "test_ssh_server"
+	root, err := filepath.Abs(dir)
+	if err != nil {
+		t.FailNow()
+	}
 
 	Convey("Given an SFTP server", t, func() {
-		root := "test_ssh_server"
 		So(os.Mkdir(root, 0700), ShouldBeNil)
 		Reset(func() { _ = os.RemoveAll(root) })
 
@@ -127,10 +135,10 @@ func TestSSHServer(t *testing.T) {
 
 		db := database.GetTestDatabase()
 		agent := &model.LocalAgent{
-			Name:     "test_sftp_server",
-			Protocol: "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `,"root":"` +
-				root + `"}`),
+			Name:        "test_sftp_server",
+			Protocol:    "sftp",
+			Root:        root,
+			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
 		var protoConfig config.SftpProtoConfig
@@ -155,35 +163,40 @@ func TestSSHServer(t *testing.T) {
 		So(db.Create(cert), ShouldBeNil)
 
 		receive := &model.Rule{
-			Name:    "receive",
-			Comment: "",
-			IsSend:  false,
-			Path:    "/receive",
+			Name:     "receive",
+			Comment:  "",
+			IsSend:   false,
+			Path:     "receive",
+			InPath:   "receive",
+			WorkPath: "receive/tmp",
 		}
 		send := &model.Rule{
-			Name:    "send",
-			Comment: "",
-			IsSend:  true,
-			Path:    "/send",
+			Name:     "send",
+			Comment:  "",
+			IsSend:   true,
+			Path:     "send",
+			OutPath:  "send",
+			WorkPath: "send/tmp",
 		}
 		So(db.Create(receive), ShouldBeNil)
 		So(db.Create(send), ShouldBeNil)
 
-		serverConfig, err := gertSSHServerConfig(db, cert, &protoConfig)
+		serverConfig, err := getSSHServerConfig(db, cert, &protoConfig)
 		So(err, ShouldBeNil)
 
 		ctx, cancel := context.WithCancel(context.Background())
 
 		sshList := &sshListener{
-			Db:           db,
-			Logger:       logger,
-			Agent:        agent,
-			ServerConfig: serverConfig,
-			ProtoConfig:  &protoConfig,
-			Listener:     listener,
-			connWg:       sync.WaitGroup{},
-			ctx:          ctx,
-			cancel:       cancel,
+			DB:          db,
+			Logger:      logger,
+			Agent:       agent,
+			ProtoConfig: &protoConfig,
+			GWConf:      &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: Dir}},
+			SSHConf:     serverConfig,
+			Listener:    listener,
+			connWg:      sync.WaitGroup{},
+			ctx:         ctx,
+			cancel:      cancel,
 		}
 		sshList.listen()
 
@@ -233,8 +246,8 @@ func TestSSHServer(t *testing.T) {
 								IsServer:   true,
 								AccountID:  user.ID,
 								AgentID:    agent.ID,
-								SourcePath: ".",
-								DestPath:   "test_in_shutdown.dst",
+								SourceFile: ".",
+								DestFile:   "test_in_shutdown.dst",
 								RuleID:     receive.ID,
 								Status:     model.StatusInterrupted,
 								Step:       model.StepData,
@@ -283,8 +296,8 @@ func TestSSHServer(t *testing.T) {
 								IsServer:   true,
 								AccountID:  user.ID,
 								AgentID:    agent.ID,
-								SourcePath: "test_out_shutdown.src",
-								DestPath:   ".",
+								SourceFile: "test_out_shutdown.src",
+								DestFile:   ".",
 								RuleID:     send.ID,
 								Status:     model.StatusInterrupted,
 								Step:       model.StepData,
@@ -328,15 +341,17 @@ func TestSSHServer(t *testing.T) {
 				Convey("Given an incoming transfer", func() {
 					content := "Test incoming file"
 
-					err := os.MkdirAll(root+receive.Path, 0700)
+					dir := utils.SlashJoin(root, receive.Path)
+					err := os.MkdirAll(dir, 0700)
 					So(err, ShouldBeNil)
 
-					Reset(func() { _ = os.RemoveAll(root + receive.Path) })
+					Reset(func() { _ = os.RemoveAll(dir) })
 
 					Convey("Given that the transfer finishes normally", func() {
 						src := bytes.NewBuffer([]byte(content))
+						file := "test_in.dst"
 
-						dst, err := client.Create(receive.Path + "/test_in.dst")
+						dst, err := client.Create(utils.SlashJoin(receive.Path, file))
 						So(err, ShouldBeNil)
 
 						_, err = io.Copy(dst, src)
@@ -347,7 +362,7 @@ func TestSSHServer(t *testing.T) {
 						So(conn.Close(), ShouldBeNil)
 
 						Convey("Then the destination file should exist", func() {
-							path := root + receive.Path + "/test_in.dst"
+							path := utils.SlashJoin(dir, file)
 							_, err := os.Stat(path)
 							So(err, ShouldBeNil)
 
@@ -368,7 +383,7 @@ func TestSSHServer(t *testing.T) {
 								Agent:          agent.Name,
 								Protocol:       "sftp",
 								SourceFilename: ".",
-								DestFilename:   "test_in.dst",
+								DestFilename:   file,
 								Rule:           receive.Name,
 								Status:         model.StatusDone,
 							}
@@ -655,10 +670,10 @@ func TestSSHServerTasks(t *testing.T) {
 
 		db := database.GetTestDatabase()
 		agent := &model.LocalAgent{
-			Name:     "test_sftp_server",
-			Protocol: "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `,"root":"` +
-				root + `"}`),
+			Name:        "test_sftp_server",
+			Protocol:    "sftp",
+			Root:        root,
+			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
 		var protoConfig config.SftpProtoConfig
@@ -682,21 +697,22 @@ func TestSSHServerTasks(t *testing.T) {
 		}
 		So(db.Create(cert), ShouldBeNil)
 
-		serverConfig, err := gertSSHServerConfig(db, cert, &protoConfig)
+		serverConfig, err := getSSHServerConfig(db, cert, &protoConfig)
 		So(err, ShouldBeNil)
 
 		ctx, cancel := context.WithCancel(context.Background())
 
 		sshList := &sshListener{
-			Db:           db,
-			Logger:       logger,
-			Agent:        agent,
-			ServerConfig: serverConfig,
-			ProtoConfig:  &protoConfig,
-			Listener:     listener,
-			connWg:       sync.WaitGroup{},
-			ctx:          ctx,
-			cancel:       cancel,
+			DB:          db,
+			Logger:      logger,
+			Agent:       agent,
+			ProtoConfig: &protoConfig,
+			GWConf:      &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: Dir}},
+			SSHConf:     serverConfig,
+			Listener:    listener,
+			connWg:      sync.WaitGroup{},
+			ctx:         ctx,
+			cancel:      cancel,
 		}
 		sshList.listen()
 
@@ -914,19 +930,21 @@ func TestSSHServerTasks(t *testing.T) {
 
 			Convey("Given an outgoing transfer", func() {
 				send := &model.Rule{
-					Name:   "send",
-					IsSend: true,
-					Path:   "/send",
+					Name:    "send",
+					IsSend:  true,
+					Path:    "/send",
+					OutPath: "/send",
 				}
 				So(db.Create(send), ShouldBeNil)
 
 				content := "Test outgoing file"
 
-				err := os.MkdirAll(root+send.Path, 0700)
-				So(err, ShouldBeNil)
+				path := utils.SlashJoin(root, send.Path)
+				So(os.MkdirAll(path, 0700), ShouldBeNil)
 
-				err = ioutil.WriteFile(root+send.Path+"/test_out.src", []byte(content), 0600)
-				So(err, ShouldBeNil)
+				srcFile := "test_out.src"
+				srcFilepath := utils.SlashJoin(path, srcFile)
+				So(ioutil.WriteFile(srcFilepath, []byte(content), 0600), ShouldBeNil)
 
 				Reset(func() { _ = os.RemoveAll(root + send.Path) })
 
@@ -941,7 +959,8 @@ func TestSSHServerTasks(t *testing.T) {
 					So(db.Create(task), ShouldBeNil)
 
 					Convey("Given that the transfer finishes normally", func() {
-						src, err := client.Open(send.Path + "/test_out.src")
+						reqPath := utils.SlashJoin(send.Path, srcFile)
+						src, err := client.Open(reqPath)
 						So(err, ShouldBeNil)
 
 						dst := &bytes.Buffer{}
@@ -964,7 +983,7 @@ func TestSSHServerTasks(t *testing.T) {
 								Account:        user.Login,
 								Agent:          agent.Name,
 								Protocol:       "sftp",
-								SourceFilename: "test_out.src",
+								SourceFilename: srcFile,
 								DestFilename:   ".",
 								Rule:           send.Name,
 								Status:         model.StatusDone,
