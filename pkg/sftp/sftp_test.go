@@ -171,7 +171,7 @@ func TestSFTPPackage(t *testing.T) {
 		So(db.Create(sendErrorTask), ShouldBeNil)
 		So(db.Create(receiveErrorTask), ShouldBeNil)
 
-		serverConfig, err := gertSSHServerConfig(db, localServerCert, &protoConfig)
+		serverConfig, err := getSSHServerConfig(db, localServerCert, &protoConfig)
 		So(err, ShouldBeNil)
 
 		ctx, cancel := context.WithCancel(context.Background())

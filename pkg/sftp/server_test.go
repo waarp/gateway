@@ -181,7 +181,7 @@ func TestSSHServer(t *testing.T) {
 		So(db.Create(receive), ShouldBeNil)
 		So(db.Create(send), ShouldBeNil)
 
-		serverConfig, err := gertSSHServerConfig(db, cert, &protoConfig)
+		serverConfig, err := getSSHServerConfig(db, cert, &protoConfig)
 		So(err, ShouldBeNil)
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -697,7 +697,7 @@ func TestSSHServerTasks(t *testing.T) {
 		}
 		So(db.Create(cert), ShouldBeNil)
 
-		serverConfig, err := gertSSHServerConfig(db, cert, &protoConfig)
+		serverConfig, err := getSSHServerConfig(db, cert, &protoConfig)
 		So(err, ShouldBeNil)
 
 		ctx, cancel := context.WithCancel(context.Background())

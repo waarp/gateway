@@ -45,7 +45,7 @@ func (s *Service) Start() error {
 			return err
 		}
 
-		sshConf, err := gertSSHServerConfig(s.db, cert, &protoConfig)
+		sshConf, err := getSSHServerConfig(s.db, cert, &protoConfig)
 		if err != nil {
 			return err
 		}

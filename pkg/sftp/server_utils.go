@@ -25,7 +25,7 @@ func loadCert(db *database.DB, server *model.LocalAgent) (*model.Cert, error) {
 	return cert, nil
 }
 
-func gertSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.SftpProtoConfig) (*ssh.ServerConfig, error) {
+func getSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.SftpProtoConfig) (*ssh.ServerConfig, error) {
 	conf := &ssh.ServerConfig{
 		Config: ssh.Config{
 			KeyExchanges: protoConfig.KeyExchanges,

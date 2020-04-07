@@ -21,7 +21,7 @@ type ServerConfig struct {
 
 // PathsConfig holds the server paths
 type PathsConfig struct {
-	GatewayHome   string `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the directory ofd of the executable."`
+	GatewayHome   string `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the working directory of the process."`
 	InDirectory   string `ini-name:"InDirectory" description:"The directory for all incoming files."`
 	OutDirectory  string `ini-name:"OutDirectory" description:"The directory for all outgoing files."`
 	WorkDirectory string `ini-name:"WorkDirectory" default:"tmp" description:"The directory for all running transfer files."`
