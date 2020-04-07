@@ -91,7 +91,7 @@ func (l *LocalAccount) BeforeUpdate(db database.Accessor, id uint64) error {
 		}
 	}
 
-	if l.ID != 0 {
+	if l.ID != 0 && l.ID != id {
 		return database.InvalidError("the account's ID cannot be entered manually")
 	}
 
@@ -113,7 +113,7 @@ func (l *LocalAccount) BeforeUpdate(db database.Accessor, id uint64) error {
 		}
 
 		if res, err := db.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
-			"AND login=?", old.LocalAgentID, l.Login); err != nil {
+			"AND login=? AND id!=?", old.LocalAgentID, l.Login, id); err != nil {
 			return err
 		} else if len(res) > 0 {
 			return database.InvalidError("a local account with the same login '%s' "+

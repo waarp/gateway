@@ -118,9 +118,14 @@ func (l *LocalAgent) BeforeUpdate(db database.Accessor, id uint64) error {
 		return err
 	}
 
-	if l.ID != 0 {
+	if l.ID != 0 && l.ID != id {
 		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
+	/*
+		if l.Owner != "" {
+			return database.InvalidError("The agent's owner cannot be changed")
+		}
+	*/
 
 	if l.Name != "" {
 		if res, err := db.Query("SELECT id FROM local_agents WHERE owner=? "+

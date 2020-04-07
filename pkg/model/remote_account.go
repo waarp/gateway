@@ -82,7 +82,7 @@ func (r *RemoteAccount) BeforeInsert(db database.Accessor) (err error) {
 // BeforeUpdate checks if the updated `RemoteAccount` entry is valid and can be
 // updated in the database.
 func (r *RemoteAccount) BeforeUpdate(db database.Accessor, id uint64) (err error) {
-	if r.ID != 0 {
+	if r.ID != 0 && r.ID != id {
 		return database.InvalidError("the account's ID cannot be entered manually")
 	}
 
@@ -96,7 +96,7 @@ func (r *RemoteAccount) BeforeUpdate(db database.Accessor, id uint64) (err error
 		}
 
 		if res, err := db.Query("SELECT id FROM remote_accounts WHERE "+
-			"remote_agent_id=? AND login=?", old.RemoteAgentID, r.Login); err != nil {
+			"remote_agent_id=? AND login=? AND id!=?", old.RemoteAgentID, r.Login, id); err != nil {
 			return err
 		} else if len(res) > 0 {
 			return database.InvalidError("a remote account with the same login '%s' "+
