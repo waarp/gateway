@@ -156,11 +156,7 @@ func (c *certListCommand) Execute([]string) error {
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(c.Limit))
 	query.Set("offset", fmt.Sprint(c.Offset))
-	if c.DescOrder {
-		query.Set("sort", c.SortBy+"-")
-	} else {
-		query.Set("sort", c.SortBy+"+")
-	}
+	query.Set("sort", c.SortBy)
 
 	for _, acc := range c.Access {
 		query.Add("local_account", fmt.Sprint(acc))

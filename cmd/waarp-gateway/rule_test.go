@@ -374,7 +374,7 @@ func TestListRules(t *testing.T) {
 			})
 
 			Convey("Given the 'desc' flag is set", func() {
-				command.DescOrder = true
+				//command.DescOrder = true
 
 				Convey("When executing the command", func() {
 					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()

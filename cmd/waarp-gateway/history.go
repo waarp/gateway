@@ -100,11 +100,8 @@ func (h *historyListCommand) listURL() (*url.URL, error) {
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(h.Limit))
 	query.Set("offset", fmt.Sprint(h.Offset))
-	if h.DescOrder {
-		query.Set("sort", h.SortBy+"-")
-	} else {
-		query.Set("sort", h.SortBy+"+")
-	}
+	query.Set("sort", h.SortBy)
+
 	for _, acc := range h.Account {
 		query.Add("account", acc)
 	}

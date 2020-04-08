@@ -20,7 +20,7 @@ func (emptyService) Start() error {
 	return nil
 }
 
-func (emptyService) Stop(_ context.Context) error {
+func (emptyService) Stop(context.Context) error {
 	return nil
 }
 
@@ -43,12 +43,12 @@ func TestRequestStatus(t *testing.T) {
 		Convey("Given a running gateway", func() {
 			db := database.GetTestDatabase()
 			services := map[string]service.Service{
-				"Offline Service 1": &emptyService{state: &offlineState},
-				"Running Service 1": &emptyService{state: &runningState},
-				"Offline Service 2": &emptyService{state: &offlineState},
-				"Error Service 1":   &emptyService{state: &errorState},
-				"Error Service 2":   &emptyService{state: &errorState},
-				"Running Service 2": &emptyService{state: &runningState},
+				"Service 1": &emptyService{state: &offlineState},
+				"Service 2": &emptyService{state: &runningState},
+				"Service 3": &emptyService{state: &offlineState},
+				"Service 4": &emptyService{state: &errorState},
+				"Service 5": &emptyService{state: &errorState},
+				"Service 6": &emptyService{state: &runningState},
 			}
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, services))
 
@@ -69,12 +69,12 @@ func TestRequestStatus(t *testing.T) {
 					cont, err := ioutil.ReadAll(out)
 					So(err, ShouldBeNil)
 					So(string(cont), ShouldEqual, "Waarp-Gateway services:\n"+
-						"[Error]   Error Service 1 (Error message)\n"+
-						"[Error]   Error Service 2 (Error message)\n"+
-						"[Active]  Running Service 1\n"+
-						"[Active]  Running Service 2\n"+
-						"[Offline] Offline Service 1\n"+
-						"[Offline] Offline Service 2\n",
+						"[Error]   Service 4 (Error message)\n"+
+						"[Error]   Service 5 (Error message)\n"+
+						"[Active]  Service 2\n"+
+						"[Active]  Service 6\n"+
+						"[Offline] Service 1\n"+
+						"[Offline] Service 3\n",
 					)
 				})
 			})

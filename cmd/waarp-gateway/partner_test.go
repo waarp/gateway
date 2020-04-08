@@ -234,8 +234,8 @@ func TestListPartners(t *testing.T) {
 				})
 			})
 
-			Convey("Given that the 'desc' flag is set", func() {
-				args := []string{"-d"}
+			Convey("Given a 'sort' parameter of 'name-'", func() {
+				args := []string{"-s", "name-"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)

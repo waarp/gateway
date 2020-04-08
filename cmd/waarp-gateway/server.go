@@ -137,7 +137,7 @@ func (s *serverDelete) Execute([]string) error {
 	switch resp.StatusCode {
 	case http.StatusNoContent:
 		fmt.Fprintln(w, whiteBold("The server '")+whiteBoldUL(s.Args.Name)+
-			whiteBold("' was successfully deleted from the database."))
+			whiteBold("' was successfully deleted."))
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
@@ -150,7 +150,7 @@ func (s *serverDelete) Execute([]string) error {
 
 type serverList struct {
 	listOptions
-	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name" choice:"protocol" default:"name"`
+	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" choice:"protocol+" choice:"protocol-" default:"name+" `
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 

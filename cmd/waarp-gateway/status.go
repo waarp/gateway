@@ -40,7 +40,7 @@ func showStatus(statuses rest.Statuses, w io.Writer) {
 
 	for _, name := range errors {
 		fmt.Fprintln(w, redBold("[Error]   ")+whiteBold(name)+white(" (",
-			statuses[name].Reason), ")")
+			statuses[name].Reason, ")"))
 	}
 	for _, name := range actives {
 		fmt.Fprintln(w, greenBold("[Active]  ")+whiteBold(name))

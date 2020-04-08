@@ -17,9 +17,8 @@ import (
 )
 
 type listOptions struct {
-	Limit     int  `short:"l" long:"limit" description:"Max number of returned entries" default:"20"`
-	Offset    int  `short:"o" long:"offset" description:"Index of the first returned entry" default:"0"`
-	DescOrder bool `short:"d" long:"desc" description:"If set, entries will be sorted in descending order instead of ascending"`
+	Limit  int `short:"l" long:"limit" description:"Max number of returned entries" default:"20"`
+	Offset int `short:"o" long:"offset" description:"Index of the first returned entry" default:"0"`
 }
 
 // Deprecated
@@ -221,11 +220,8 @@ func agentListURL(path string, s *listOptions, sort string, protos []string) (*u
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(s.Limit))
 	query.Set("offset", fmt.Sprint(s.Offset))
-	if s.DescOrder {
-		query.Set("sort", sort+"-")
-	} else {
-		query.Set("sort", sort+"+")
-	}
+	query.Set("sort", sort)
+
 	for _, proto := range protos {
 		query.Add("protocol", proto)
 	}
@@ -234,7 +230,7 @@ func agentListURL(path string, s *listOptions, sort string, protos []string) (*u
 	return conn, nil
 }
 
-func accountListURL(path string, s *listOptions, sort string, agents []uint64) (*url.URL, error) {
+func accountListURL(path string, s *listOptions, sort string) (*url.URL, error) {
 	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return nil, err
@@ -243,14 +239,7 @@ func accountListURL(path string, s *listOptions, sort string, agents []uint64) (
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(s.Limit))
 	query.Set("offset", fmt.Sprint(s.Offset))
-	if s.DescOrder {
-		query.Set("sort", sort+"-")
-	} else {
-		query.Set("sort", sort+"+")
-	}
-	for _, agent := range agents {
-		query.Add("agent", fmt.Sprint(agent))
-	}
+	query.Set("sort", sort)
 	conn.RawQuery = query.Encode()
 
 	return conn, nil
@@ -265,11 +254,8 @@ func listURL(path string, s *listOptions, sort string) (*url.URL, error) {
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(s.Limit))
 	query.Set("offset", fmt.Sprint(s.Offset))
-	if s.DescOrder {
-		query.Set("sort", sort+"-")
-	} else {
-		query.Set("sort", sort+"+")
-	}
+	query.Set("sort", sort)
+
 	conn.RawQuery = query.Encode()
 
 	return conn, nil

@@ -22,20 +22,24 @@ type options struct {
 	Status  statusCommand  `command:"status" description:"Show the status of the gateway services"`
 	Server  serverCommand  `command:"server" description:"Manage the local servers"`
 	Partner partnerCommand `command:"partner" description:"Manage the remote partners"`
+	Account struct {
+		Local  localAccountCommand  `command:"local" description:"Manage a server's accounts"`
+		Remote remoteAccountCommand `command:"remote" description:"Manage a partner's accounts"`
+	} `command:"account"`
 }
 
 // Deprecated
 type commands struct {
-	Status      statusCommand      `command:"status" description:"Show the status of the gateway services"`
-	User        userCommand        `command:"user" description:"Manage the gateway's users"`
-	Server      serverCommand      `command:"server" description:"Manage the gateway's local servers"`
-	Partner     partnerCommand     `command:"partner" description:"Manage the gateway's remote partners"`
-	Access      accessCommand      `command:"access" description:"Manage the gateway's local accounts"`
-	Account     accountCommand     `command:"account" description:"Manage the gateway's remote accounts"`
-	Certificate certificateCommand `command:"certificate" description:"Manage the gateway's certificates"`
-	Transfer    transferCommand    `command:"transfer" description:"Manage the gateway's planned transfers"`
-	History     historyCommand     `command:"history" description:"Manage the gateway's transfer history"`
-	Rule        ruleCommand        `command:"rule" description:"Manage the gateway's transfer rules"`
+	Status      statusCommand        `command:"status" description:"Show the status of the gateway services"`
+	User        userCommand          `command:"user" description:"Manage the gateway's users"`
+	Server      serverCommand        `command:"server" description:"Manage the gateway's local servers"`
+	Partner     partnerCommand       `command:"partner" description:"Manage the gateway's remote partners"`
+	Access      localAccountCommand  `command:"access" description:"Manage the gateway's local accounts"`
+	Account     remoteAccountCommand `command:"account" description:"Manage the gateway's remote accounts"`
+	Certificate certificateCommand   `command:"certificate" description:"Manage the gateway's certificates"`
+	Transfer    transferCommand      `command:"transfer" description:"Manage the gateway's planned transfers"`
+	History     historyCommand       `command:"history" description:"Manage the gateway's transfer history"`
+	Rule        ruleCommand          `command:"rule" description:"Manage the gateway's transfer rules"`
 }
 
 // Deprecated

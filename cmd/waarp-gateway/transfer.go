@@ -148,11 +148,8 @@ func (t *transferListCommand) listURL() (*url.URL, error) {
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(t.Limit))
 	query.Set("offset", fmt.Sprint(t.Offset))
-	if t.DescOrder {
-		query.Set("sort", t.SortBy+"-")
-	} else {
-		query.Set("sort", t.SortBy+"+")
-	}
+	query.Set("sort", t.SortBy)
+
 	for _, rem := range t.Remotes {
 		query.Add("agent", fmt.Sprint(rem))
 	}

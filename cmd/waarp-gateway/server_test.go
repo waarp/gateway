@@ -237,8 +237,8 @@ func TestListServers(t *testing.T) {
 				})
 			})
 
-			Convey("Given that the 'desc' flag is set", func() {
-				args := []string{"-d"}
+			Convey("Given a 'sort' parameter of 'name-'", func() {
+				args := []string{"-s", "name-"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -298,7 +298,7 @@ func TestDeleteServer(t *testing.T) {
 
 					Convey("Then is should display a message saying the server was deleted", func() {
 						So(getOutput(), ShouldEqual, "The server '"+server.Name+
-							"' was successfully deleted from the database.\n")
+							"' was successfully deleted.\n")
 					})
 
 					Convey("Then the server should have been removed", func() {

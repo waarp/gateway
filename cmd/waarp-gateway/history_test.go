@@ -337,7 +337,7 @@ func TestHistoryListCommand(t *testing.T) {
 
 				Convey("Given a different sorting parameter", func() {
 					command.SortBy = "id"
-					command.DescOrder = true
+					//command.DescOrder = true
 
 					Convey("When executing the command", func() {
 						err := command.Execute(nil)
