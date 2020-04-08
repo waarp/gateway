@@ -212,7 +212,7 @@ func deleteCommand(conn *url.URL) error {
 }
 
 func agentListURL(path string, s *listOptions, sort string, protos []string) (*url.URL, error) {
-	conn, err := url.Parse(auth.DSN)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +235,7 @@ func agentListURL(path string, s *listOptions, sort string, protos []string) (*u
 }
 
 func accountListURL(path string, s *listOptions, sort string, agents []uint64) (*url.URL, error) {
-	conn, err := url.Parse(auth.DSN)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +257,7 @@ func accountListURL(path string, s *listOptions, sort string, agents []uint64) (
 }
 
 func listURL(path string, s *listOptions, sort string) (*url.URL, error) {
-	conn, err := url.Parse(auth.DSN)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return nil, err
 	}

@@ -13,11 +13,11 @@ import (
 )
 
 type partnerCommand struct {
-	Get    partnerGetCommand    `command:"get" description:"Retrieve a remote agent's information"`
-	Add    partnerAddCommand    `command:"add" description:"Add a new remote agent"`
-	List   partnerListCommand   `command:"list" description:"List the known remote agents"`
-	Delete partnerDeleteCommand `command:"delete" description:"Delete a remote agent"`
-	Update partnerUpdateCommand `command:"update" description:"Update an existing remote agent"`
+	Get    partnerGet    `command:"get" description:"Retrieve a partner's information"`
+	Add    partnerAdd    `command:"add" description:"Add a new partner"`
+	List   partnerList   `command:"list" description:"List the known partners"`
+	Delete partnerDelete `command:"delete" description:"Delete a partner"`
+	Update partnerUpdate `command:"update" description:"Update an existing partner"`
 }
 
 func displayRemoteAgent(w io.Writer, agent *rest.OutRemoteAgent) {
@@ -34,20 +34,20 @@ func displayRemoteAgent(w io.Writer, agent *rest.OutRemoteAgent) {
 
 // ######################## ADD ##########################
 
-type partnerAddCommand struct {
-	Name        string `required:"true" short:"n" long:"name" description:"The partner's name"`
-	Protocol    string `required:"true" short:"p" long:"protocol" description:"The partner's protocol"`
-	ProtoConfig string `short:"c" long:"config" description:"The partner's configuration in JSON" default:"{}"`
+type partnerAdd struct {
+	Name        string `required:"yes" short:"n" long:"name" description:"The partner's name"`
+	Protocol    string `required:"yes" short:"p" long:"protocol" description:"The partner's protocol"`
+	ProtoConfig string `short:"c" long:"config" description:"The partner's configuration in JSON" default:"{}" default-mask:"-"`
 }
 
-func (p *partnerAddCommand) Execute([]string) error {
+func (p *partnerAdd) Execute([]string) error {
 	newAgent := rest.InRemoteAgent{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),
 	}
 
-	conn, err := url.Parse(auth.DSN)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
@@ -74,14 +74,14 @@ func (p *partnerAddCommand) Execute([]string) error {
 
 // ######################## LIST ##########################
 
-type partnerListCommand struct {
+type partnerList struct {
 	listOptions
 	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name" choice:"protocol" default:"name"`
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
 //nolint:dupl
-func (p *partnerListCommand) Execute([]string) error {
+func (p *partnerList) Execute([]string) error {
 	conn, err := agentListURL(rest.RemoteAgentsPath, &p.listOptions, p.SortBy, p.Protocols)
 	if err != nil {
 		return err
@@ -100,7 +100,7 @@ func (p *partnerListCommand) Execute([]string) error {
 		if err := unmarshalBody(resp.Body, &body); err != nil {
 			return err
 		}
-		partners := body["remoteAgents"]
+		partners := body["partners"]
 		if len(partners) > 0 {
 			fmt.Fprintln(w, yellowBold("Partners:"))
 			for _, p := range partners {
@@ -120,19 +120,19 @@ func (p *partnerListCommand) Execute([]string) error {
 
 // ######################## GET ##########################
 
-type partnerGetCommand struct{}
+type partnerGet struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
+	} `positional-args:"yes"`
+}
 
 //nolint:dupl
-func (p *partnerGetCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing partner name")
-	}
-
-	conn, err := url.Parse(auth.DSN)
+func (p *partnerGet) Execute([]string) error {
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return fmt.Errorf("failed to parse server URL: %s", err.Error())
 	}
-	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + p.Args.Name
 
 	resp, err := sendRequest(conn, nil, http.MethodGet)
 	if err != nil {
@@ -150,7 +150,7 @@ func (p *partnerGetCommand) Execute(args []string) error {
 		displayRemoteAgent(w, partner)
 		return nil
 	case http.StatusNotFound:
-		return fmt.Errorf("no partner named '%s' found", args[0])
+		return getResponseMessage(resp)
 	default:
 		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
 	}
@@ -158,18 +158,18 @@ func (p *partnerGetCommand) Execute(args []string) error {
 
 // ######################## DELETE ##########################
 
-type partnerDeleteCommand struct{}
+type partnerDelete struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
+	} `positional-args:"yes"`
+}
 
-func (p *partnerDeleteCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing partner ID")
-	}
-
-	conn, err := url.Parse(auth.DSN)
+func (p *partnerDelete) Execute([]string) error {
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + p.Args.Name
 
 	resp, err := sendRequest(conn, nil, http.MethodDelete)
 	if err != nil {
@@ -180,11 +180,11 @@ func (p *partnerDeleteCommand) Execute(args []string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusNoContent:
-		fmt.Fprintln(w, whiteBold("The partner '")+whiteBoldUL(args[0])+
+		fmt.Fprintln(w, whiteBold("The partner '")+whiteBoldUL(p.Args.Name)+
 			whiteBold("' was successfully deleted from the database."))
 		return nil
 	case http.StatusNotFound:
-		return fmt.Errorf("no partner named '%s' found", args[0])
+		return getResponseMessage(resp)
 	default:
 		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
 	}
@@ -192,28 +192,27 @@ func (p *partnerDeleteCommand) Execute(args []string) error {
 
 // ######################## UPDATE ##########################
 
-type partnerUpdateCommand struct {
+type partnerUpdate struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
+	} `positional-args:"yes"`
 	Name        string `short:"n" long:"name" description:"The partner's name"`
 	Protocol    string `short:"p" long:"protocol" description:"The partner's protocol'"`
 	ProtoConfig string `short:"c" long:"config" description:"The partner's configuration in JSON"`
 }
 
-func (p *partnerUpdateCommand) Execute(args []string) error {
-	if len(args) != 1 {
-		return fmt.Errorf("missing partner ID")
-	}
-
+func (p *partnerUpdate) Execute([]string) error {
 	update := rest.InRemoteAgent{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),
 	}
 
-	conn, err := url.Parse(auth.DSN)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + p.Args.Name
 
 	resp, err := sendRequest(conn, update, http.MethodPut)
 	if err != nil {
@@ -230,7 +229,7 @@ func (p *partnerUpdateCommand) Execute(args []string) error {
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
 	case http.StatusNotFound:
-		return fmt.Errorf("no partner named '%s' found", args[0])
+		return getResponseMessage(resp)
 	default:
 		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
 			getResponseMessage(resp).Error())

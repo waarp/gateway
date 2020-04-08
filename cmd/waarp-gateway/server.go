@@ -12,11 +12,11 @@ import (
 )
 
 type serverCommand struct {
-	Get    serverGetCommand    `command:"get" description:"Retrieve a local agent's information"`
-	Add    serverAddCommand    `command:"add" description:"Add a new local agent"`
-	Delete serverDeleteCommand `command:"delete" description:"Delete a local agent"`
-	List   serverListCommand   `command:"list" description:"List the known local agents"`
-	Update serverUpdateCommand `command:"update" description:"Modify a local agent's information"`
+	Get    serverGet    `command:"get" description:"Retrieve a server's information"`
+	Add    serverAdd    `command:"add" description:"Add a new server"`
+	Delete serverDelete `command:"delete" description:"Delete a server"`
+	List   serverList   `command:"list" description:"List the known servers"`
+	Update serverUpdate `command:"update" description:"Modify a server's information"`
 }
 
 func displayLocalAgent(w io.Writer, agent *rest.OutLocalAgent) {
@@ -34,19 +34,19 @@ func displayLocalAgent(w io.Writer, agent *rest.OutLocalAgent) {
 
 // ######################## GET ##########################
 
-type serverGetCommand struct{}
+type serverGet struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
+	} `positional-args:"yes"`
+}
 
 //nolint:dupl
-func (s *serverGetCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing server name")
-	}
-
-	conn, err := url.Parse(auth.DSN)
+func (s *serverGet) Execute([]string) error {
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return fmt.Errorf("failed to parse server URL: %s", err.Error())
 	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Name
 
 	resp, err := sendRequest(conn, nil, http.MethodGet)
 	if err != nil {
@@ -64,7 +64,7 @@ func (s *serverGetCommand) Execute(args []string) error {
 		displayLocalAgent(w, server)
 		return nil
 	case http.StatusNotFound:
-		return fmt.Errorf("no server named '%s' found", args[0])
+		return getResponseMessage(resp)
 	default:
 		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
 	}
@@ -72,14 +72,14 @@ func (s *serverGetCommand) Execute(args []string) error {
 
 // ######################## ADD ##########################
 
-type serverAddCommand struct {
-	Name        string `required:"true" short:"n" long:"name" description:"The server's name"`
-	Protocol    string `required:"true" short:"p" long:"protocol" description:"The server's protocol"`
+type serverAdd struct {
+	Name        string `required:"yes" short:"n" long:"name" description:"The server's name"`
+	Protocol    string `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
 	Root        string `short:"r" long:"root" description:"The server's root directory"`
-	ProtoConfig string `short:"c" long:"config" description:"The server's configuration in JSON" default:"{}"`
+	ProtoConfig string `short:"c" long:"config" description:"The server's configuration in JSON" default:"{}" default-mask:"-"`
 }
 
-func (s *serverAddCommand) Execute([]string) error {
+func (s *serverAdd) Execute([]string) error {
 	newAgent := &rest.InLocalAgent{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
@@ -87,7 +87,7 @@ func (s *serverAddCommand) Execute([]string) error {
 		ProtoConfig: []byte(s.ProtoConfig),
 	}
 
-	conn, err := url.Parse(auth.DSN)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
@@ -114,18 +114,18 @@ func (s *serverAddCommand) Execute([]string) error {
 
 // ######################## DELETE ##########################
 
-type serverDeleteCommand struct{}
+type serverDelete struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
+	} `positional-args:"yes"`
+}
 
-func (s *serverDeleteCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing server name")
-	}
-
-	conn, err := url.Parse(auth.DSN)
+func (s *serverDelete) Execute([]string) error {
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Name
 
 	resp, err := sendRequest(conn, nil, http.MethodDelete)
 	if err != nil {
@@ -136,11 +136,11 @@ func (s *serverDeleteCommand) Execute(args []string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusNoContent:
-		fmt.Fprintln(w, whiteBold("The server '")+whiteBoldUL(args[0])+
+		fmt.Fprintln(w, whiteBold("The server '")+whiteBoldUL(s.Args.Name)+
 			whiteBold("' was successfully deleted from the database."))
 		return nil
 	case http.StatusNotFound:
-		return fmt.Errorf("no server named '%s' found", args[0])
+		return getResponseMessage(resp)
 	default:
 		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
 	}
@@ -148,14 +148,14 @@ func (s *serverDeleteCommand) Execute(args []string) error {
 
 // ######################## LIST ##########################
 
-type serverListCommand struct {
+type serverList struct {
 	listOptions
 	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name" choice:"protocol" default:"name"`
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
 //nolint:dupl
-func (s *serverListCommand) Execute([]string) error {
+func (s *serverList) Execute([]string) error {
 	conn, err := agentListURL(rest.LocalAgentsPath, &s.listOptions, s.SortBy, s.Protocols)
 	if err != nil {
 		return err
@@ -194,18 +194,17 @@ func (s *serverListCommand) Execute([]string) error {
 
 // ######################## UPDATE ##########################
 
-type serverUpdateCommand struct {
+type serverUpdate struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
+	} `positional-args:"yes"`
 	Name        string `short:"n" long:"name" description:"The server's name"`
 	Protocol    string `short:"p" long:"protocol" description:"The server's protocol"`
 	Root        string `short:"r" long:"root" description:"The server's root directory"`
 	ProtoConfig string `short:"c" long:"config" description:"The server's configuration in JSON"`
 }
 
-func (s *serverUpdateCommand) Execute(args []string) error {
-	if len(args) != 1 {
-		return fmt.Errorf("missing server name")
-	}
-
+func (s *serverUpdate) Execute([]string) error {
 	update := rest.InLocalAgent{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
@@ -213,11 +212,11 @@ func (s *serverUpdateCommand) Execute(args []string) error {
 		ProtoConfig: []byte(s.ProtoConfig),
 	}
 
-	conn, err := url.Parse(auth.DSN)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Name
 
 	resp, err := sendRequest(conn, update, http.MethodPut)
 	if err != nil {
@@ -234,7 +233,7 @@ func (s *serverUpdateCommand) Execute(args []string) error {
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
 	case http.StatusNotFound:
-		return fmt.Errorf("no server named '%s' found", args[0])
+		return getResponseMessage(resp)
 	default:
 		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
 			getResponseMessage(resp).Error())

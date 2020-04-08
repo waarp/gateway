@@ -26,12 +26,12 @@ func TestGetPartner(t *testing.T) {
 
 	Convey("Testing the partner 'get' command", t, func() {
 		out = testFile()
-		command := &partnerGetCommand{}
+		command := &partnerGet{}
 
 		Convey("Given a gateway with 1 distant partner", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "remote_agent",
@@ -82,7 +82,7 @@ func TestGetPartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no partner named 'toto' found")
+						So(err, ShouldBeError, "partner 'toto' not found")
 					})
 				})
 			})
@@ -94,12 +94,12 @@ func TestAddPartner(t *testing.T) {
 
 	Convey("Testing the partner 'add' command", t, func() {
 		out = testFile()
-		command := &partnerAddCommand{}
+		command := &partnerAdd{}
 
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given valid flags", func() {
 				args := []string{"-n", "server_name", "-p", "test",
@@ -165,14 +165,12 @@ func TestListPartners(t *testing.T) {
 
 	Convey("Testing the partner 'list' command", t, func() {
 		out = testFile()
-		command := &partnerListCommand{}
-		_, err := flags.ParseArgs(command, nil)
-		So(err, ShouldBeNil)
+		command := &partnerList{}
 
 		Convey("Given a gateway with 2 distant partners", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner1 := &model.RemoteAgent{
 				Name:        "remote_agent1",
@@ -273,12 +271,12 @@ func TestDeletePartner(t *testing.T) {
 
 	Convey("Testing the partner 'delete' command", t, func() {
 		out = testFile()
-		command := &partnerDeleteCommand{}
+		command := &partnerDelete{}
 
 		Convey("Given a gateway with 1 distant partner", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "remote_agent",
@@ -317,7 +315,7 @@ func TestDeletePartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no partner named 'toto' found")
+						So(err, ShouldBeError, "partner 'toto' not found")
 					})
 
 					Convey("Then the partner should still exist", func() {
@@ -335,17 +333,17 @@ func TestUpdatePartner(t *testing.T) {
 
 	Convey("Testing the partner 'delete' command", t, func() {
 		out = testFile()
-		command := &partnerUpdateCommand{}
+		command := &partnerUpdate{}
 
 		Convey("Given a gateway with 1 distant partner", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(partner), ShouldBeNil)
 
@@ -436,7 +434,7 @@ func TestUpdatePartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no partner named 'toto' found")
+						So(err, ShouldBeError, "partner 'toto' not found")
 					})
 
 					Convey("Then the partner should stay unchanged", func() {

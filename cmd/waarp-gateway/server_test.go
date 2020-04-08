@@ -27,12 +27,12 @@ func TestGetServer(t *testing.T) {
 
 	Convey("Testing the server 'get' command", t, func() {
 		out = testFile()
-		command := &serverGetCommand{}
+		command := &serverGet{}
 
 		Convey("Given a gateway with 1 local server", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server := &model.LocalAgent{
 				Name:        "local_agent",
@@ -84,7 +84,7 @@ func TestGetServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no server named 'toto' found")
+						So(err, ShouldBeError, "server 'toto' not found")
 					})
 				})
 			})
@@ -96,12 +96,12 @@ func TestAddServer(t *testing.T) {
 
 	Convey("Testing the server 'add' command", t, func() {
 		out = testFile()
-		command := &serverAddCommand{}
+		command := &serverAdd{}
 
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given valid flags", func() {
 				args := []string{"-n", "server_name", "-p", "test",
@@ -166,12 +166,12 @@ func TestListServers(t *testing.T) {
 
 	Convey("Testing the server 'list' command", t, func() {
 		out = testFile()
-		command := &serverListCommand{}
+		command := &serverList{}
 
 		Convey("Given a gateway with 2 local servers", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server1 := &model.LocalAgent{
 				Name:        "local_agent1",
@@ -274,12 +274,12 @@ func TestDeleteServer(t *testing.T) {
 
 	Convey("Testing the server 'delete' command", t, func() {
 		out = testFile()
-		command := &serverDeleteCommand{}
+		command := &serverDelete{}
 
 		Convey("Given a gateway with 1 local server", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server := &model.LocalAgent{
 				Name:        "server_name",
@@ -318,7 +318,7 @@ func TestDeleteServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no server named 'toto' found")
+						So(err, ShouldBeError, "server 'toto' not found")
 					})
 
 					Convey("Then the server should still exist", func() {
@@ -336,12 +336,12 @@ func TestUpdateServer(t *testing.T) {
 
 	Convey("Testing the server 'delete' command", t, func() {
 		out = testFile()
-		command := &serverUpdateCommand{}
+		command := &serverUpdate{}
 
 		Convey("Given a gateway with 1 local server", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server := &model.LocalAgent{
 				Name:        "server",
@@ -437,7 +437,7 @@ func TestUpdateServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no server named 'toto' found")
+						So(err, ShouldBeError, "server 'toto' not found")
 					})
 
 					Convey("Then the server should stay unchanged", func() {

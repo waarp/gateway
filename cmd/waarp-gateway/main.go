@@ -8,11 +8,23 @@ import (
 )
 
 var (
-	in   = os.Stdin
-	out  = os.Stdout
-	auth connectionOptions
+	in  = os.Stdin
+	out = os.Stdout
+	// Deprecated
+	auth        connectionOptions
+	commandLine options
 )
 
+type options struct {
+	Args struct {
+		Address string `required:"yes" positional-arg-name:"address" description:"The address of the gateway"`
+	} `positional-args:"yes"`
+	Status  statusCommand  `command:"status" description:"Show the status of the gateway services"`
+	Server  serverCommand  `command:"server" description:"Manage the local servers"`
+	Partner partnerCommand `command:"partner" description:"Manage the remote partners"`
+}
+
+// Deprecated
 type commands struct {
 	Status      statusCommand      `command:"status" description:"Show the status of the gateway services"`
 	User        userCommand        `command:"user" description:"Manage the gateway's users"`
@@ -26,6 +38,7 @@ type commands struct {
 	Rule        ruleCommand        `command:"rule" description:"Manage the gateway's transfer rules"`
 }
 
+// Deprecated
 type connectionOptions struct {
 	DSN string `short:"a" long:"address" required:"true" description:"The connection parameters of the gateway interface. Must have the following form: user@address:port"`
 }
