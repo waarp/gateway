@@ -13,10 +13,13 @@ import (
 func getLocAg(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 	agentName, ok := mux.Vars(r)["local_agent"]
 	if !ok {
-		return nil, &notFound{}
+		return nil, notFound("missing server name")
 	}
 	agent := &model.LocalAgent{Name: agentName, Owner: database.Owner}
-	if err := get(db, agent); err != nil {
+	if err := db.Get(agent); err != nil {
+		if err == database.ErrNotFound {
+			return nil, notFound("server '%s' not found", agentName)
+		}
 		return nil, err
 	}
 	return agent, nil

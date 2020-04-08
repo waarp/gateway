@@ -18,14 +18,18 @@ func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent, *model.Rem
 
 	login, ok := mux.Vars(r)["remote_account"]
 	if !ok {
-		return parent, nil, &notFound{}
+		return parent, nil, notFound("missing partner name")
 	}
 
 	result := &model.RemoteAccount{}
 	result.RemoteAgentID = parent.ID
 	result.Login = login
 
-	if err := get(db, result); err != nil {
+	if err := db.Get(result); err != nil {
+		if err == database.ErrNotFound {
+			return parent, nil, notFound("no account '%s' found for partner %s",
+				login, parent.Name)
+		}
 		return parent, nil, err
 	}
 	return parent, result, nil

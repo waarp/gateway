@@ -95,10 +95,13 @@ func getCert(r *http.Request, db *database.DB) (*model.Cert, error) {
 
 	certName, ok := mux.Vars(r)["certificate"]
 	if !ok {
-		return nil, &notFound{}
+		return nil, notFound("missing certificate name")
 	}
 	cert := &model.Cert{Name: certName, OwnerType: ownerType, OwnerID: ownerID}
-	if err := get(db, cert); err != nil {
+	if err := db.Get(cert); err != nil {
+		if err == database.ErrNotFound {
+			return nil, notFound("certificate '%s' not found", certName)
+		}
 		return nil, err
 	}
 	return cert, nil

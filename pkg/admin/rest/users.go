@@ -53,11 +53,11 @@ func FromUsers(usr []model.User) []OutUser {
 func getUsr(r *http.Request, db *database.DB) (*model.User, error) {
 	username, ok := mux.Vars(r)["user"]
 	if !ok {
-		return nil, &notFound{}
+		return nil, notFound("missing username")
 	}
 	user := &model.User{Username: username, Owner: database.Owner}
-	if err := get(db, user); err != nil {
-		return nil, err
+	if err := db.Get(user); err != nil {
+		return nil, notFound("user '%s' not found", username)
 	}
 	return user, nil
 }
@@ -67,7 +67,7 @@ func getUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		err := func() error {
 			result, err := getUsr(r, db)
 			if err != nil {
-				return &notFound{}
+				return err
 			}
 
 			return writeJSON(w, FromUser(result))

@@ -3,6 +3,7 @@ package rest
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -10,6 +11,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/go-xorm/builder"
+	"github.com/gorilla/mux"
 )
 
 // OutHistory is the JSON representation of a history entry in responses sent by
@@ -85,6 +87,22 @@ func FromHistories(hs []model.TransferHistory) []OutHistory {
 	return hist
 }
 
+func getHist(r *http.Request, db *database.DB) (*model.TransferHistory, error) {
+	val := mux.Vars(r)["history"]
+	id, err := strconv.ParseUint(val, 10, 64)
+	if err != nil || id == 0 {
+		return nil, notFound("'%s' is not a valid transfer ID", val)
+	}
+	history := &model.TransferHistory{ID: id}
+	if err := db.Get(history); err != nil {
+		if err == database.ErrNotFound {
+			return nil, notFound("transfer %v not found", id)
+		}
+		return nil, err
+	}
+	return history, nil
+}
+
 func parseHistoryCond(r *http.Request, filters *database.Filters) error {
 	conditions := make([]builder.Cond, 0)
 
@@ -110,7 +128,7 @@ func parseHistoryCond(r *http.Request, filters *database.Filters) error {
 	// Validate requested protocols
 	for _, p := range protocols {
 		if _, ok := config.ProtoConfigs[p]; !ok {
-			return &badRequest{msg: fmt.Sprintf("'%s' is not a valid protocol", p)}
+			return badRequest("'%s' is not a valid protocol", p)
 		}
 	}
 
@@ -121,7 +139,7 @@ func parseHistoryCond(r *http.Request, filters *database.Filters) error {
 	if len(starts) > 0 {
 		start, err := time.Parse(time.RFC3339, starts[0])
 		if err != nil {
-			return &badRequest{msg: fmt.Sprintf("'%s' is not a valid date", starts[0])}
+			return badRequest("'%s' is not a valid date", starts[0])
 		}
 		conditions = append(conditions, builder.Gte{"start": start.UTC()})
 	}
@@ -129,7 +147,7 @@ func parseHistoryCond(r *http.Request, filters *database.Filters) error {
 	if len(stops) > 0 {
 		stop, err := time.Parse(time.RFC3339, stops[0])
 		if err != nil {
-			return &badRequest{msg: fmt.Sprintf("'%s' is not a valid date", stops[0])}
+			return badRequest("'%s' is not a valid date", stops[0])
 		}
 		conditions = append(conditions, builder.Lte{"stop": stop.UTC()})
 	}
@@ -141,13 +159,8 @@ func parseHistoryCond(r *http.Request, filters *database.Filters) error {
 func getHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "history")
+			result, err := getHist(r, db)
 			if err != nil {
-				return err
-			}
-			result := &model.TransferHistory{ID: id}
-
-			if err := get(db, result); err != nil {
 				return err
 			}
 
@@ -204,13 +217,12 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func restartTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "history")
+			check, err := getHist(r, db)
 			if err != nil {
 				return err
 			}
-			result := &model.TransferHistory{ID: id}
 
-			if err := get(db, result); err != nil {
+			if err := db.Get(check); err != nil {
 				return err
 			}
 
@@ -222,19 +234,19 @@ func restartTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				}
 			}
 
-			if result.IsServer {
-				return &badRequest{msg: "only the client can restart a transfer"}
+			if check.IsServer {
+				return badRequest("only the client can restart a transfer")
 			}
 
-			if result.Status == model.StatusDone {
-				return &badRequest{msg: "cannot restart a finished transfer"}
+			if check.Status == model.StatusDone {
+				return badRequest("cannot restart a finished transfer")
 			}
 
-			if result.Protocol == "sftp" {
-				return &badRequest{msg: "cannot restart an SFTP transfer"}
+			if check.Protocol == "sftp" {
+				return badRequest("cannot restart an SFTP transfer")
 			}
 
-			trans, err := result.Restart(db, date)
+			trans, err := check.Restart(db, date)
 			if err != nil {
 				return err
 			}
@@ -244,7 +256,7 @@ func restartTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			r.URL.Path = APIPath + TransfersPath
-			w.Header().Set("Location", location(r, fmt.Sprint(id)))
+			w.Header().Set("Location", location(r, fmt.Sprint(check.ID)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

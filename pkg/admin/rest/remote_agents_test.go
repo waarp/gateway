@@ -86,7 +86,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAgents"] = []OutRemoteAgent{agent1, agent2, agent3, agent4}
+					expected["partners"] = []OutRemoteAgent{agent1, agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -98,7 +98,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAgents"] = []OutRemoteAgent{agent1}
+					expected["partners"] = []OutRemoteAgent{agent1}
 					check(w, expected)
 				})
 			})
@@ -110,7 +110,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAgents"] = []OutRemoteAgent{agent2, agent3, agent4}
+					expected["partners"] = []OutRemoteAgent{agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -122,7 +122,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAgents"] = []OutRemoteAgent{agent4, agent3, agent2, agent1}
+					expected["partners"] = []OutRemoteAgent{agent4, agent3, agent2, agent1}
 					check(w, expected)
 				})
 			})
@@ -134,7 +134,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["remoteAgents"] = []OutRemoteAgent{agent1, agent2, agent3}
+					expected["partners"] = []OutRemoteAgent{agent1, agent2, agent3}
 					check(w, expected)
 				})
 			})
@@ -415,7 +415,7 @@ func TestUpdateRemoteAgent(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the agent was not found", func() {
-							So(w.Body.String(), ShouldEqual, "Record not found\n")
+							So(w.Body.String(), ShouldEqual, "partner 'toto' not found\n")
 						})
 
 						Convey("Then the old agent should still exist", func() {

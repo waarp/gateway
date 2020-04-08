@@ -344,7 +344,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the account was not found", func() {
-							So(w.Body.String(), ShouldEqual, "Record not found\n")
+							So(w.Body.String(), ShouldEqual, "partner 'toto' not found\n")
 						})
 
 						Convey("Then the new account should NOT exist", func() {
@@ -536,7 +536,8 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the account was not found", func() {
-							So(w.Body.String(), ShouldEqual, "Record not found\n")
+							So(w.Body.String(), ShouldEqual, "no account 'toto' "+
+								"found for partner parent\n")
 						})
 
 						Convey("Then the old account should still exist", func() {
@@ -564,7 +565,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the account was not found", func() {
-							So(w.Body.String(), ShouldEqual, "Record not found\n")
+							So(w.Body.String(), ShouldEqual, "partner 'toto' not found\n")
 						})
 
 						Convey("Then the old account should still exist", func() {

@@ -423,7 +423,7 @@ func TestUpdateLocalAgent(t *testing.T) {
 
 					Convey("Then the response body should state that "+
 						"the agent was not found", func() {
-						So(w.Body.String(), ShouldEqual, "Record not found\n")
+						So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
 					})
 
 					Convey("Then the old agent should still exist", func() {

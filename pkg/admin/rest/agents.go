@@ -125,7 +125,7 @@ func parseProtoParam(r *http.Request, filters *database.Filters) error {
 		protos := make([]string, len(r.Form["protocol"]))
 		for i, p := range r.Form["protocol"] {
 			if _, ok := config.ProtoConfigs[p]; !ok {
-				return &badRequest{msg: fmt.Sprintf("'%s' is not a valid protocol", p)}
+				return badRequest(fmt.Sprintf("'%s' is not a valid protocol", p))
 			}
 			protos[i] = p
 		}

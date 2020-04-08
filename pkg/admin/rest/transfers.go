@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/go-xorm/builder"
+	"github.com/gorilla/mux"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -106,6 +107,22 @@ func FromTransfers(ts []model.Transfer) []OutTransfer {
 	return transfers
 }
 
+func getTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
+	val := mux.Vars(r)["transfer"]
+	id, err := strconv.ParseUint(val, 10, 64)
+	if err != nil || id == 0 {
+		return nil, notFound("'%s' is not a valid transfer ID", val)
+	}
+	transfer := &model.Transfer{ID: id}
+	if err := db.Get(transfer); err != nil {
+		if err == database.ErrNotFound {
+			return nil, notFound("transfer %v not found", id)
+		}
+		return nil, err
+	}
+	return transfer, nil
+}
+
 func createTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
@@ -132,13 +149,8 @@ func createTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func getTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "transfer")
+			result, err := getTrans(r, db)
 			if err != nil {
-				return err
-			}
-			result := &model.Transfer{ID: id}
-
-			if err := get(db, result); err != nil {
 				return err
 			}
 
@@ -150,12 +162,12 @@ func getTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func getIDs(src []string) ([]uint64, error) {
+func parseIDs(src []string) ([]uint64, error) {
 	res := make([]uint64, len(src))
 	for i, item := range src {
 		id, err := strconv.ParseUint(item, 10, 64)
 		if err != nil {
-			return nil, &badRequest{msg: fmt.Sprintf("'%s' is not a valid ID", item)}
+			return nil, badRequest("'%s' is not a valid ID", item)
 		}
 		res[i] = id
 	}
@@ -169,7 +181,7 @@ func parseTransferCond(r *http.Request, filters *database.Filters) error {
 
 	agents := r.Form["agent"]
 	if len(agents) > 0 {
-		agentIDs, err := getIDs(agents)
+		agentIDs, err := parseIDs(agents)
 		if err != nil {
 			return err
 		}
@@ -177,7 +189,7 @@ func parseTransferCond(r *http.Request, filters *database.Filters) error {
 	}
 	accounts := r.Form["account"]
 	if len(accounts) > 0 {
-		accountIDs, err := getIDs(accounts)
+		accountIDs, err := parseIDs(accounts)
 		if err != nil {
 			return err
 		}
@@ -185,7 +197,7 @@ func parseTransferCond(r *http.Request, filters *database.Filters) error {
 	}
 	rules := r.Form["rule"]
 	if len(rules) > 0 {
-		ruleIDs, err := getIDs(rules)
+		ruleIDs, err := parseIDs(rules)
 		if err != nil {
 			return err
 		}
@@ -254,30 +266,29 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "transfer")
+			check, err := getTrans(r, db)
 			if err != nil {
 				return err
 			}
-			result := &model.Transfer{ID: id}
 
-			if err := get(db, result); err != nil {
+			if err := db.Get(check); err != nil {
 				return err
 			}
 
-			if result.Status == model.StatusPaused || result.Status == model.StatusInterrupted {
-				return &badRequest{msg: "cannot pause an already interrupted transfer"}
+			if check.Status == model.StatusPaused || check.Status == model.StatusInterrupted {
+				return badRequest("cannot pause an already interrupted transfer")
 			}
 
-			if result.Status == model.StatusPlanned {
-				result.Status = model.StatusPaused
-				if err := result.Update(db); err != nil {
+			if check.Status == model.StatusPlanned {
+				check.Status = model.StatusPaused
+				if err := check.Update(db); err != nil {
 					return err
 				}
 			} else {
-				pipeline.Signals.SendSignal(result.ID, model.SignalPause)
+				pipeline.Signals.SendSignal(check.ID, model.SignalPause)
 			}
 
-			w.Header().Set("Location", location(r, fmt.Sprint(result.ID)))
+			w.Header().Set("Location", location(r, fmt.Sprint(check.ID)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -291,27 +302,26 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "transfer")
+			check, err := getTrans(r, db)
 			if err != nil {
 				return err
 			}
-			result := &model.Transfer{ID: id}
 
-			if err := get(db, result); err != nil {
+			if err := db.Get(check); err != nil {
 				return err
 			}
 
-			if result.Status != model.StatusRunning {
-				result.Status = model.StatusCancelled
-				if err := pipeline.ToHistory(db, logger, result); err != nil {
+			if check.Status != model.StatusRunning {
+				check.Status = model.StatusCancelled
+				if err := pipeline.ToHistory(db, logger, check); err != nil {
 					return err
 				}
 			} else {
-				pipeline.Signals.SendSignal(result.ID, model.SignalPause)
+				pipeline.Signals.SendSignal(check.ID, model.SignalPause)
 			}
 
 			r.URL.Path = APIPath + HistoryPath
-			w.Header().Set("Location", location(r, fmt.Sprint(result.ID)))
+			w.Header().Set("Location", location(r, fmt.Sprint(check.ID)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -324,38 +334,37 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "transfer")
+			check, err := getTrans(r, db)
 			if err != nil {
 				return err
 			}
-			result := &model.Transfer{ID: id}
 
-			if err := get(db, result); err != nil {
+			if err := db.Get(check); err != nil {
 				return err
 			}
 
-			if result.IsServer {
-				return &badRequest{msg: "only the client can restart a transfer"}
+			if check.IsServer {
+				return badRequest("only the client can restart a transfer")
 			}
 
-			if result.Status != model.StatusPaused && result.Status != model.StatusInterrupted {
-				return &badRequest{msg: "cannot resume an already running transfer"}
+			if check.Status != model.StatusPaused && check.Status != model.StatusInterrupted {
+				return badRequest("cannot resume an already running transfer")
 			}
 
-			agent := &model.RemoteAgent{ID: result.AgentID}
-			if err := get(db, agent); err != nil {
-				return err
+			agent := &model.RemoteAgent{ID: check.AgentID}
+			if err := db.Get(agent); err != nil {
+				return fmt.Errorf("failed to retreive partner: %s", err.Error())
 			}
 			if agent.Protocol == "sftp" {
-				return &badRequest{msg: "cannot restart an SFTP transfer"}
+				return badRequest("cannot restart an SFTP transfer")
 			}
 
-			result.Status = model.StatusPlanned
-			if err := result.Update(db); err != nil {
+			check.Status = model.StatusPlanned
+			if err := check.Update(db); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, fmt.Sprint(result.ID)))
+			w.Header().Set("Location", location(r, fmt.Sprint(check.ID)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

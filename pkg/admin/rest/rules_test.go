@@ -303,7 +303,7 @@ func TestUpdateRule(t *testing.T) {
 						})
 
 						Convey("Then the 'Location' header should contain "+
-							"the URI of the updated user", func() {
+							"the URI of the updated rule", func() {
 
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, ruleURI+update.Name)
@@ -320,11 +320,11 @@ func TestUpdateRule(t *testing.T) {
 					})
 				})
 
-				Convey("Given an invalid username parameter", func() {
-					r, err := http.NewRequest(http.MethodPatch, usersURI+"toto",
+				Convey("Given a non-existing rule name parameter", func() {
+					r, err := http.NewRequest(http.MethodPatch, ruleURI+"toto",
 						bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"user": "toto"})
+					r = mux.SetURLVars(r, map[string]string{"rule": "toto"})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -334,11 +334,11 @@ func TestUpdateRule(t *testing.T) {
 						})
 
 						Convey("Then the response body should state that "+
-							"the user was not found", func() {
-							So(w.Body.String(), ShouldEqual, "Record not found\n")
+							"the rule was not found", func() {
+							So(w.Body.String(), ShouldEqual, "rule 'toto' not found\n")
 						})
 
-						Convey("Then the old user should still exist", func() {
+						Convey("Then the old rule should still exist", func() {
 							exist, err := db.Exists(old)
 
 							So(err, ShouldBeNil)

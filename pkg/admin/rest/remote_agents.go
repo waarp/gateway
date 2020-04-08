@@ -12,10 +12,13 @@ import (
 func getRemAg(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
 	agentName, ok := mux.Vars(r)["remote_agent"]
 	if !ok {
-		return nil, &notFound{}
+		return nil, notFound("missing partner name")
 	}
 	agent := &model.RemoteAgent{Name: agentName}
-	if err := get(db, agent); err != nil {
+	if err := db.Get(agent); err != nil {
+		if err == database.ErrNotFound {
+			return nil, notFound("partner '%s' not found", agentName)
+		}
 		return nil, err
 	}
 	return agent, nil
@@ -78,7 +81,7 @@ func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutRemoteAgent{"remoteAgents": FromRemoteAgents(results, rules)}
+			resp := map[string][]OutRemoteAgent{"partners": FromRemoteAgents(results, rules)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {

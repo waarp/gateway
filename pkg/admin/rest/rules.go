@@ -74,10 +74,13 @@ func FromRules(rs []model.Rule, accesses map[uint64]RuleAccess) []OutRule {
 func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {
 	ruleName, ok := mux.Vars(r)["rule"]
 	if !ok {
-		return nil, &notFound{}
+		return nil, notFound("missing rule name")
 	}
 	rule := &model.Rule{Name: ruleName}
-	if err := get(db, rule); err != nil {
+	if err := db.Get(rule); err != nil {
+		if err == database.ErrNotFound {
+			return nil, notFound("rule '%s' not found", ruleName)
+		}
 		return nil, err
 	}
 	return rule, nil

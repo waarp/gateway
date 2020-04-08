@@ -26,10 +26,10 @@ const (
 	RemoteAgentsPath = "/partners"
 
 	// LocalAccountsPath is the access path to the local gateway accounts entry point.
-	LocalAccountsPath = "/local_accounts"
+	LocalAccountsPath = "/accounts"
 
 	// RemoteAccountsPath is the access path to the distant partners accounts entry point.
-	RemoteAccountsPath = "/remote_accounts"
+	RemoteAccountsPath = "/accounts"
 
 	// CertificatesPath is the access path to the account certificates entry point.
 	CertificatesPath = "/certificates"

@@ -543,7 +543,7 @@ func TestUpdateCert(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the certificate was not found", func() {
-							So(w.Body.String(), ShouldEqual, "Record not found\n")
+							So(w.Body.String(), ShouldEqual, "certificate 'toto' not found\n")
 						})
 
 						Convey("Then the old certificate should still exist", func() {

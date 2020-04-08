@@ -72,7 +72,7 @@ func TestListTasks(t *testing.T) {
 			}
 			So(db.Create(er), ShouldBeNil)
 
-			Convey("Given a request with the valid rule ID parameter", func() {
+			Convey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"rule": rule.Name})
@@ -105,10 +105,10 @@ func TestListTasks(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a non-existing rule ID parameter", func() {
+			Convey("Given a request with a non-existing rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": "1000"})
+				r = mux.SetURLVars(r, map[string]string{"rule": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -118,7 +118,7 @@ func TestListTasks(t *testing.T) {
 					})
 
 					Convey("Then the body should contain the error message", func() {
-						So(w.Body.String(), ShouldEqual, "Record not found\n")
+						So(w.Body.String(), ShouldEqual, "rule 'toto' not found\n")
 					})
 				})
 			})
@@ -165,7 +165,7 @@ func TestUpdateTasks(t *testing.T) {
 					"errorTasks": er,
 				}
 
-				Convey("Given a request with the valid rule ID parameter", func() {
+				Convey("Given a request with the valid rule name parameter", func() {
 					body, err := json.Marshal(obj)
 					So(err, ShouldBeNil)
 
@@ -208,10 +208,10 @@ func TestUpdateTasks(t *testing.T) {
 					})
 				})
 
-				Convey("Given a request with a non-existing rule ID parameter", func() {
+				Convey("Given a request with a non-existing rule name parameter", func() {
 					r, err := http.NewRequest(http.MethodGet, tasksURI, nil)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": "1000"})
+					r = mux.SetURLVars(r, map[string]string{"rule": "toto"})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -221,7 +221,7 @@ func TestUpdateTasks(t *testing.T) {
 						})
 
 						Convey("Then the body should contain the error message", func() {
-							So(w.Body.String(), ShouldEqual, "Record not found\n")
+							So(w.Body.String(), ShouldEqual, "rule 'toto' not found\n")
 						})
 					})
 				})
@@ -237,7 +237,7 @@ func TestUpdateTasks(t *testing.T) {
 					"preTasks": pre,
 				}
 
-				Convey("Given a request with the valid rule ID parameter", func() {
+				Convey("Given a request with the valid rule name parameter", func() {
 					body, err := json.Marshal(obj)
 					So(err, ShouldBeNil)
 
@@ -284,7 +284,7 @@ func TestUpdateTasks(t *testing.T) {
 			Convey("Given invalid new tasks", func() {
 				body := []byte("invalid JSON body")
 
-				Convey("Given a request with the valid rule ID parameter", func() {
+				Convey("Given a request with the valid rule name parameter", func() {
 					r, err := http.NewRequest(http.MethodGet, tasksURI, bytes.NewReader(body))
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"rule": rule.Name})
