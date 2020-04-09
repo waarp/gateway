@@ -194,7 +194,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 			}
 			So(db.Create(account), ShouldBeNil)
 
-			Convey("Given a valid account ID", func() {
+			Convey("Given a valid account name", func() {
 				args := []string{account.Login}
 
 				Convey("When executing the command", func() {

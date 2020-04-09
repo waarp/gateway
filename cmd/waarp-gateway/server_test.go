@@ -75,7 +75,7 @@ func TestGetServer(t *testing.T) {
 				})
 			})
 
-			Convey("Given an invalid server ID", func() {
+			Convey("Given an invalid server name", func() {
 				args := []string{"toto"}
 
 				Convey("When executing the command", func() {

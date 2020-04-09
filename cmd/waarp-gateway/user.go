@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -10,162 +11,209 @@ import (
 )
 
 type userCommand struct {
-	Get    userGetCommand    `command:"get" description:"Retrieve a user's information"`
-	Add    userAddCommand    `command:"add" description:"Add a new user"`
-	Delete userDeleteCommand `command:"delete" description:"Delete a user"`
-	Update userUpdateCommand `command:"update" description:"Update an existing user"`
-	List   userListCommand   `command:"list" description:"List the known users"`
+	Get    userGet    `command:"get" description:"Retrieve a user's information"`
+	Add    userAdd    `command:"add" description:"Add a new user"`
+	Delete userDelete `command:"delete" description:"Delete a user"`
+	Update userUpdate `command:"update" description:"Update an existing user"`
+	List   userList   `command:"list" description:"List the known users"`
 }
 
-func displayUser(w io.Writer, user rest.OutUser) {
-	fmt.Fprintf(w, "\033[97;1m● User %s\033[0m\n", user.Username)
+func displayUser(w io.Writer, user *rest.OutUser) {
+	fmt.Fprintln(w, whiteBold("● User ")+whiteBoldUL(user.Username))
 }
 
 // ######################## ADD ##########################
 
-type userAddCommand struct {
+type userAdd struct {
 	Username string `required:"true" short:"u" long:"username" description:"The user's name"`
 	Password string `required:"true" short:"p" long:"password" description:"The user's password"`
 }
 
-func (u *userAddCommand) Execute([]string) error {
+func (u *userAdd) Execute([]string) error {
 	newUser := rest.InUser{
 		Username: u.Username,
 		Password: []byte(u.Password),
 	}
 
-	conn, err := url.Parse(auth.DSN)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
 	conn.Path = admin.APIPath + rest.UsersPath
 
-	loc, err := addCommand(newUser, conn)
+	resp, err := sendRequest(conn, newUser, http.MethodPost)
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	w := getColorable()
-	fmt.Fprintf(w, "The user \033[33m'%s'\033[0m was successfully added. "+
-		"It can be consulted at the address: \033[37m%s\033[0m\n", newUser.Username, loc)
-
-	return nil
+	switch resp.StatusCode {
+	case http.StatusCreated:
+		fmt.Fprintln(w, whiteBold("The user '")+whiteBoldUL(newUser.Username)+
+			whiteBold("' was successfully added."))
+		return nil
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+	}
 }
 
 // ######################## GET ##########################
 
-type userGetCommand struct{}
+type userGet struct {
+	Args struct {
+		Username string `required:"yes" positional-arg-name:"username" description:"The user's name"`
+	} `positional-args:"yes"`
+}
 
-func (u *userGetCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing user ID")
-	}
-
-	res := rest.OutUser{}
-	conn, err := url.Parse(auth.DSN)
+func (u *userGet) Execute([]string) error {
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.UsersPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
 
-	if err := getCommand(&res, conn); err != nil {
+	resp, err := sendRequest(conn, nil, http.MethodGet)
+	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	w := getColorable()
-	displayUser(w, res)
-
-	return nil
+	switch resp.StatusCode {
+	case http.StatusOK:
+		user := &rest.OutUser{}
+		if err := unmarshalBody(resp.Body, user); err != nil {
+			return err
+		}
+		displayUser(w, user)
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
+	}
 }
 
 // ######################## UPDATE ##########################
 
-type userUpdateCommand struct {
-	Username string `short:"u" long:"username" description:"The user's name"`
-	Password string `short:"p" long:"password" description:"The user's password"`
+type userUpdate struct {
+	Args struct {
+		Username string `required:"yes" positional-arg-name:"username" description:"The old username"`
+	} `positional-args:"yes"`
+	Username string `short:"u" long:"username" description:"The new username"`
+	Password string `short:"p" long:"password" description:"The new password"`
 }
 
-func (u *userUpdateCommand) Execute(args []string) error {
-	if len(args) != 1 {
-		return fmt.Errorf("missing user ID")
+func (u *userUpdate) Execute([]string) error {
+	conn, err := url.Parse(commandLine.Args.Address)
+	if err != nil {
+		return err
 	}
+	conn.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
 
-	newUser := rest.InUser{
+	update := rest.InUser{
 		Username: u.Username,
 		Password: []byte(u.Password),
 	}
-
-	conn, err := url.Parse(auth.DSN)
+	resp, err := sendRequest(conn, update, http.MethodPut)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.UsersPath + "/" + args[0]
-
-	_, err = updateCommand(newUser, conn)
-	if err != nil {
-		return err
-	}
+	defer resp.Body.Close()
 
 	w := getColorable()
-	fmt.Fprintf(w, "The user n°\033[33m%s\033[0m was successfully updated\n", args[0])
-
-	return nil
+	switch resp.StatusCode {
+	case http.StatusCreated:
+		fmt.Fprintln(w, whiteBold("The user '")+whiteBoldUL(update.Username)+
+			whiteBold("' was successfully updated."))
+		return nil
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
+			getResponseMessage(resp).Error())
+	}
 }
 
 // ######################## DELETE ##########################
 
-type userDeleteCommand struct{}
+type userDelete struct {
+	Args struct {
+		Username string `required:"yes" positional-arg-name:"username" description:"The old username"`
+	} `positional-args:"yes"`
+}
 
-func (u *userDeleteCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing user ID")
-	}
-
-	conn, err := url.Parse(auth.DSN)
+func (u *userDelete) Execute([]string) error {
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.UsersPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
 
-	if err := deleteCommand(conn); err != nil {
+	resp, err := sendRequest(conn, nil, http.MethodDelete)
+	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	w := getColorable()
-	fmt.Fprintf(w, "The user n°\033[33m%s\033[0m was successfully deleted from "+
-		"the database\n", args[0])
-
-	return nil
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		fmt.Fprintln(w, whiteBold("The user '")+whiteBoldUL(u.Args.Username)+
+			whiteBold("' was successfully deleted."))
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
+	}
 }
 
 // ######################## LIST ##########################
 
-type userListCommand struct {
+type userList struct {
 	listOptions
-	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"username" default:"username"`
+	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"username+" choice:"username-" default:"username+"`
 }
 
-func (u *userListCommand) Execute([]string) error {
+func (u *userList) Execute([]string) error {
 	conn, err := listURL(rest.UsersPath, &u.listOptions, u.SortBy)
 	if err != nil {
 		return err
 	}
 
-	res := map[string][]rest.OutUser{}
-	if err := getCommand(&res, conn); err != nil {
+	resp, err := sendRequest(conn, nil, http.MethodGet)
+	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	w := getColorable()
-	users := res["users"]
-	if len(users) > 0 {
-		fmt.Fprintf(w, "\033[33;1mUsers:\033[0m\n")
-		for _, user := range users {
-			displayUser(w, user)
+	switch resp.StatusCode {
+	case http.StatusOK:
+		body := map[string][]rest.OutUser{}
+		if err := unmarshalBody(resp.Body, &body); err != nil {
+			return err
 		}
-	} else {
-		fmt.Fprintln(w, "\033[31;1mNo users found\033[0m")
+		users := body["users"]
+		if len(users) > 0 {
+			fmt.Fprintln(w, yellowBold("Users:"))
+			for _, u := range users {
+				user := u
+				displayUser(w, &user)
+			}
+		} else {
+			fmt.Fprintln(w, yellow("No users found."))
+		}
+		return nil
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
 	}
-
-	return nil
 }

@@ -73,7 +73,7 @@ func TestGetPartner(t *testing.T) {
 				})
 			})
 
-			Convey("Given an invalid partner ID", func() {
+			Convey("Given an invalid partner name", func() {
 				args := []string{"toto"}
 
 				Convey("When executing the command", func() {
@@ -285,7 +285,7 @@ func TestDeletePartner(t *testing.T) {
 			}
 			So(db.Create(partner), ShouldBeNil)
 
-			Convey("Given a valid partner ID", func() {
+			Convey("Given a valid partner name", func() {
 				args := []string{partner.Name}
 
 				Convey("When executing the command", func() {
@@ -306,7 +306,7 @@ func TestDeletePartner(t *testing.T) {
 				})
 			})
 
-			Convey("Given an invalid ID", func() {
+			Convey("Given an invalid partner name", func() {
 				args := []string{"toto"}
 
 				Convey("When executing the command", func() {
