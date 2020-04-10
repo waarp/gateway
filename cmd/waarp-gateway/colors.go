@@ -40,10 +40,18 @@ func yellowBoldUL(text ...string) string {
 	return fmt.Sprintf("\033[33;1;4m%s\033[0m", strings.Join(text, ""))
 }
 
+func red(text ...string) string {
+	return fmt.Sprintf("\033[31m%s\033[0m", strings.Join(text, ""))
+}
+
 func redBold(text ...string) string {
 	return fmt.Sprintf("\033[31;1m%s\033[0m", strings.Join(text, ""))
 }
 
 func greenBold(text ...string) string {
 	return fmt.Sprintf("\033[32;1m%s\033[0m", strings.Join(text, ""))
+}
+
+func cyanBold(text ...string) string {
+	return fmt.Sprintf("\033[36;1m%s\033[0m", strings.Join(text, ""))
 }

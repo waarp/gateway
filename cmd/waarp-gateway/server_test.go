@@ -138,23 +138,25 @@ func TestAddServer(t *testing.T) {
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
 					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(command.Execute(params), ShouldNotBeNil)
+						So(err, ShouldBeError, "unknown protocol")
 					})
 				})
 			})
 
 			Convey("Given an invalid configuration", func() {
-				args := []string{"-n", "server_name", "-p", "test",
-					"r", "/server/root", "-c", `{"key":val"}`}
+				args := []string{"-n", "server_name", "-p", "fail",
+					"r", "/server/root", "-c", `{"key":"val"}`}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
 					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(command.Execute(params), ShouldNotBeNil)
+						So(err, ShouldBeError, "invalid server configuration: test fail")
 					})
 				})
 			})

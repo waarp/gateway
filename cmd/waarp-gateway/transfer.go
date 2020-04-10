@@ -13,133 +13,156 @@ import (
 )
 
 type transferCommand struct {
-	Add    transferAddCommand    `command:"add" description:"Add a new transfer to be executed"`
-	Get    transferGetCommand    `command:"get" description:"Consult a transfer"`
-	List   transferListCommand   `command:"list" description:"List the transfers"`
-	Pause  transferPauseCommand  `command:"pause" description:"Pause a running transfer"`
-	Resume transferResumeCommand `command:"resume" description:"Resume a paused transfer"`
-	Cancel transferCancelCommand `command:"cancel" description:"Cancel a transfer"`
+	Add    transferAdd    `command:"add" description:"Add a new transfer to be executed"`
+	Get    transferGet    `command:"get" description:"Consult a transfer"`
+	List   transferList   `command:"list" description:"List the transfers"`
+	Pause  transferPause  `command:"pause" description:"Pause a running transfer"`
+	Resume transferResume `command:"resume" description:"Resume a paused transfer"`
+	Cancel transferCancel `command:"cancel" description:"Cancel a transfer"`
 }
 
 func coloredStatus(status model.TransferStatus) string {
-	code := func() string {
+	text := func() string {
 		switch status {
 		case model.StatusPlanned:
-			return "36"
+			return cyanBold(string(status))
 		case model.StatusRunning:
-			return "34"
+			return cyanBold(string(status))
 		case model.StatusPaused:
-			return "33"
+			return yellowBold(string(status))
 		case model.StatusInterrupted:
-			return "33"
+			return yellowBold(string(status))
 		case model.StatusCancelled:
-			return "31"
+			return redBold(string(status))
 		case model.StatusError:
-			return "31"
+			return redBold(string(status))
 		case model.StatusDone:
-			return "32"
+			return greenBold(string(status))
 		default:
-			return "97"
+			return whiteBold(string(status))
 		}
 	}()
-	return fmt.Sprintf("\033[%sm%s\033[0m", code, status)
+	return whiteBold("(") + text + whiteBold(")")
 }
 
-func displayTransfer(w io.Writer, trans rest.OutTransfer) {
-	fmt.Fprintf(w, "\033[97;1m● Transfer n°%v\033[0m (%s)\n", trans.ID, coloredStatus(trans.Status))
-	fmt.Fprintf(w, "  \033[97m-Rule ID         :\033[0m \033[97m%v\033[0m\n", trans.RuleID)
-	fmt.Fprintf(w, "  \033[97m-Partner ID      :\033[0m \033[97m%v\033[0m\n", trans.AgentID)
-	fmt.Fprintf(w, "  \033[97m-Account ID      :\033[0m \033[33m%v\033[0m\n", trans.AccountID)
-	fmt.Fprintf(w, "  \033[97m-True filepath   :\033[0m \033[97m%s\033[0m\n", trans.TrueFilepath)
-	fmt.Fprintf(w, "  \033[97m-Source file     :\033[0m \033[97m%s\033[0m\n", trans.SourcePath)
-	fmt.Fprintf(w, "  \033[97m-Destination file:\033[0m \033[97m%s\033[0m\n", trans.DestPath)
-	fmt.Fprintf(w, "  \033[97m-Start time      :\033[0m \033[33m%s\033[0m\n",
-		trans.Start.Format(time.RFC3339))
-	fmt.Fprintf(w, "  \033[97m-Step            :\033[0m \033[97m%s\033[0m\n", trans.Step)
-	fmt.Fprintf(w, "  \033[97m-Progress        :\033[0m \033[97m%v\033[0m\n", trans.Progress)
-	fmt.Fprintf(w, "  \033[97m-Task number     :\033[0m \033[97m%v\033[0m\n", trans.TaskNumber)
+func displayTransfer(w io.Writer, trans *rest.OutTransfer) {
+	fmt.Fprintln(w, whiteBold("● Transfer ")+whiteBoldUL(fmt.Sprint(trans.ID)), coloredStatus(trans.Status))
+	fmt.Fprintln(w, whiteBold("  -Rule:             ")+white(trans.Rule))
+	fmt.Fprintln(w, whiteBold("  -Requester:        ")+white(trans.Requester))
+	fmt.Fprintln(w, whiteBold("  -Requested:        ")+white(trans.Requested))
+	fmt.Fprintln(w, whiteBold("  -True filepath:    ")+white(trans.TrueFilepath))
+	fmt.Fprintln(w, whiteBold("  -Source file:      ")+white(trans.SourcePath))
+	fmt.Fprintln(w, whiteBold("  -Destination file: ")+white(trans.DestPath))
+	fmt.Fprintln(w, whiteBold("  -Start time:       ")+white(trans.Start.Format(time.RFC3339)))
+	fmt.Fprintln(w, whiteBold("  -Step:             ")+white(string(trans.Step)))
+	fmt.Fprintln(w, whiteBold("  -Progress:         ")+white(fmt.Sprint(trans.Progress)))
+	fmt.Fprintln(w, whiteBold("  -Task number:      ")+white(fmt.Sprint(trans.TaskNumber)))
 	if trans.ErrorCode != model.TeOk {
-		fmt.Fprintf(w, "  \033[97m-Error code      :\033[0m \033[31m%s\033[0m\n",
-			trans.ErrorCode)
+		fmt.Fprintln(w, whiteBold("  -Error code:       ")+red(fmt.Sprint(trans.ErrorCode)))
 	}
 	if trans.ErrorMsg != "" {
-		fmt.Fprintf(w, "  \033[97m-Error message   :\033[0m \033[97m%s\033[0m\n",
-			trans.ErrorMsg)
+		fmt.Fprintln(w, whiteBold("  -Error message:    ")+red(trans.ErrorMsg))
 	}
 }
 
 // ######################## ADD ##########################
 
-type transferAddCommand struct {
-	File      string `required:"true" short:"f" long:"file" description:"The file to transfer"`
-	ServerID  uint64 `required:"true" short:"s" long:"server_id" description:"The remote server with which perform the transfer"`
-	AccountID uint64 `required:"true" short:"c" long:"account_id" description:"The account used to connect on the server"`
-	RuleID    uint64 `required:"true" short:"r" long:"rule" description:"The rule to use for the transfer"`
+type transferAdd struct {
+	File    string `required:"true" short:"f" long:"file" description:"The file to transfer"`
+	Way     string `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"pull" choice:"push"`
+	Dest    string `short:"d" long:"dest" description:"The name of the file after the transfer"`
+	Partner string `required:"true" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
+	Account string `required:"true" short:"a" long:"account" description:"The account used to connect on the partner"`
+	Rule    string `required:"true" short:"r" long:"rule" description:"The rule to use for the transfer"`
 }
 
-func (t *transferAddCommand) Execute([]string) error {
-	newTransfer := rest.InTransfer{
-		AgentID:    t.ServerID,
-		AccountID:  t.AccountID,
+func (t *transferAdd) Execute([]string) error {
+	if t.Dest == "" {
+		t.Dest = t.File
+	}
+	trans := rest.InTransfer{
+		Partner:    t.Partner,
+		Account:    t.Account,
+		IsSend:     t.Way == "push",
 		SourcePath: t.File,
-		RuleID:     t.RuleID,
-		DestPath:   t.File,
+		Rule:       t.Rule,
+		DestPath:   t.Dest,
 	}
 
-	conn, err := url.Parse(auth.DSN)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
 	conn.Path = admin.APIPath + rest.TransfersPath
 
-	_, err = addCommand(newTransfer, conn)
+	resp, err := sendRequest(conn, trans, http.MethodPost)
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
-	return nil
+	w := getColorable()
+	switch resp.StatusCode {
+	case http.StatusCreated:
+		fmt.Fprintln(w, whiteBold("The transfer of file '")+whiteBoldUL(t.File)+
+			whiteBold("' was successfully added."))
+		return nil
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+	}
 }
 
 // ######################## GET ##########################
 
-type transferGetCommand struct{}
+type transferGet struct {
+	Args struct {
+		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
+	} `positional-args:"yes"`
+}
 
-func (t *transferGetCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing transfer ID")
-	}
-
-	conn, err := url.Parse(auth.DSN)
+func (t *transferGet) Execute([]string) error {
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.TransfersPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.TransfersPath + "/" + fmt.Sprint(t.Args.ID)
 
-	res := rest.OutTransfer{}
-	if err := getCommand(&res, conn); err != nil {
+	resp, err := sendRequest(conn, nil, http.MethodGet)
+	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	w := getColorable()
-	displayTransfer(w, res)
-
-	return nil
+	switch resp.StatusCode {
+	case http.StatusOK:
+		trans := &rest.OutTransfer{}
+		if err := unmarshalBody(resp.Body, trans); err != nil {
+			return err
+		}
+		displayTransfer(w, trans)
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
+	}
 }
 
 // ######################## LIST ##########################
 
-type transferListCommand struct {
+type transferList struct {
 	listOptions
-	SortBy   string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start" choice:"id" choice:"agent_id" choice:"rule_id" default:"start"`
-	Remotes  []uint64 `long:"server_id" description:"Filter the transfers based on the ID of the transfer partner. Can be repeated multiple times to filter multiple partners."`
-	Accounts []uint64 `long:"account_id" description:"Filter the transfers based on the ID the account used. Can be repeated multiple times to filter multiple accounts."`
-	Rules    []uint64 `long:"rule_id" description:"Filter the transfers based on the ID of the transfer rule used. Can be repeated multiple times to filter multiple rules."`
-	Statuses []string `long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"PLANNED" choice:"TRANSFER"`
-	Start    string   `long:"start" on:"Filter the transfers which started after a given date. Date must be in RFC3339 format."`
+	SortBy   string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start+" choice:"start-" choice:"id+" choice:"id-" choice:"rule+" choice:"rule-" default:"start+"`
+	Rules    []string `short:"r" long:"rule" description:"Filter the transfers based on the ID of the transfer rule used. Can be repeated multiple times to filter multiple rules."`
+	Statuses []string `short:"t" long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"PLANNED" choice:"RUNNING" choice:"INTERRUPTED" choice:"PAUSED"`
+	Start    string   `short:"d" long:"date" description:"Filter the transfers which started after a given date. Date must be in RFC3339 format."`
 }
 
-func (t *transferListCommand) listURL() (*url.URL, error) {
-	conn, err := url.Parse(auth.DSN)
+func (t *transferList) listURL() (*url.URL, error) {
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -150,177 +173,169 @@ func (t *transferListCommand) listURL() (*url.URL, error) {
 	query.Set("offset", fmt.Sprint(t.Offset))
 	query.Set("sort", t.SortBy)
 
-	for _, rem := range t.Remotes {
-		query.Add("agent", fmt.Sprint(rem))
+	for _, rule := range t.Rules {
+		query.Add("rule", rule)
 	}
-	for _, acc := range t.Accounts {
-		query.Add("account", fmt.Sprint(acc))
-	}
-	for _, rul := range t.Rules {
-		query.Add("rule", fmt.Sprint(rul))
-	}
-	for _, sta := range t.Statuses {
-		query.Add("status", sta)
+	for _, status := range t.Statuses {
+		query.Add("status", status)
 	}
 	if t.Start != "" {
-		date, err := time.Parse(time.RFC3339, t.Start)
+		_, err := time.Parse(time.RFC3339, t.Start)
 		if err != nil {
 			return nil, fmt.Errorf("'%s' is not a valid date (accepted format: '%s')",
 				t.Start, time.RFC3339)
 		}
-		query.Set("start", date.Format(time.RFC3339))
+		query.Set("start", t.Start)
 	}
 	conn.RawQuery = query.Encode()
 
 	return conn, nil
 }
 
-func (t *transferListCommand) Execute([]string) error {
+func (t *transferList) Execute([]string) error {
 	conn, err := t.listURL()
 	if err != nil {
 		return err
 	}
 
-	res := map[string][]rest.OutTransfer{}
-	if err := getCommand(&res, conn); err != nil {
+	resp, err := sendRequest(conn, nil, http.MethodGet)
+	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	w := getColorable()
-	transfers := res["transfers"]
-	if len(transfers) > 0 {
-		fmt.Fprintf(w, "\033[33mTransfers:\033[0m\n")
-		for _, trans := range transfers {
-			displayTransfer(w, trans)
+	switch resp.StatusCode {
+	case http.StatusOK:
+		body := map[string][]rest.OutTransfer{}
+		if err := unmarshalBody(resp.Body, &body); err != nil {
+			return err
 		}
-	} else {
-		fmt.Fprintln(w, "\033[31mNo transfers found\033[0m")
+		transfers := body["transfers"]
+		if len(transfers) > 0 {
+			fmt.Fprintln(w, yellowBold("Transfers:"))
+			for _, t := range transfers {
+				transfer := t
+				displayTransfer(w, &transfer)
+			}
+		} else {
+			fmt.Fprintln(w, yellow("No transfers found."))
+		}
+		return nil
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
 	}
-
-	return nil
 }
 
 // ######################## PAUSE ##########################
 
-type transferPauseCommand struct{}
+type transferPause struct {
+	Args struct {
+		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
+	} `positional-args:"yes"`
+}
 
-func (t *transferPauseCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing transfer history ID")
-	}
-
-	conn, err := url.Parse(auth.DSN)
+func (t *transferPause) Execute([]string) error {
+	id := fmt.Sprint(t.Args.ID)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.TransfersPath + "/" + args[0] + "/pause"
+	conn.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/pause"
 
-	req, err := http.NewRequest(http.MethodPut, conn.String(), nil)
+	resp, err := sendRequest(conn, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}
-
-	res, err := executeRequest(req, conn)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode != http.StatusCreated {
-		return handleErrors(res, conn)
-	}
-
-	loc, err := res.Location()
-	if err != nil {
-		return err
-	}
-	loc.User = nil
+	defer resp.Body.Close()
 
 	w := getColorable()
-	fmt.Fprintf(w, "The transfer n°\033[33m%s\033[0m was successfully paused."+
-		" It can be resumed using the 'resume' command.\n", args[0])
-
-	return nil
+	switch resp.StatusCode {
+	case http.StatusAccepted:
+		fmt.Fprintln(w, whiteBold("The transfer ")+whiteBoldUL(id)+whiteBold(
+			" was successfully paused. It can be resumed using the 'resume' command."))
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+	}
 }
 
 // ######################## RESUME ##########################
 
-type transferResumeCommand struct{}
+type transferResume struct {
+	Args struct {
+		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
+	} `positional-args:"yes"`
+}
 
-func (t *transferResumeCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing transfer history ID")
-	}
-
-	conn, err := url.Parse(auth.DSN)
+func (t *transferResume) Execute([]string) error {
+	id := fmt.Sprint(t.Args.ID)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.TransfersPath + "/" + args[0] + "/resume"
+	conn.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/resume"
 
-	req, err := http.NewRequest(http.MethodPut, conn.String(), nil)
+	resp, err := sendRequest(conn, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}
-
-	res, err := executeRequest(req, conn)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode != http.StatusCreated {
-		return handleErrors(res, conn)
-	}
-
-	loc, err := res.Location()
-	if err != nil {
-		return err
-	}
-	loc.User = nil
+	defer resp.Body.Close()
 
 	w := getColorable()
-	fmt.Fprintf(w, "The transfer n°\033[33m%s\033[0m was successfully resumed.\n", args[0])
-
-	return nil
+	switch resp.StatusCode {
+	case http.StatusAccepted:
+		fmt.Fprintln(w, whiteBold("The transfer ")+whiteBoldUL(id)+
+			whiteBold(" was successfully resumed."))
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+	}
 }
 
 // ######################## CANCEL ##########################
 
-type transferCancelCommand struct{}
+type transferCancel struct {
+	Args struct {
+		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
+	} `positional-args:"yes"`
+}
 
-func (t *transferCancelCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing transfer history ID")
-	}
-
-	conn, err := url.Parse(auth.DSN)
+func (t *transferCancel) Execute([]string) error {
+	id := fmt.Sprint(t.Args.ID)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.TransfersPath + "/" + args[0] + "/cancel"
+	conn.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/cancel"
 
-	req, err := http.NewRequest(http.MethodPut, conn.String(), nil)
+	resp, err := sendRequest(conn, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}
-
-	res, err := executeRequest(req, conn)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode != http.StatusCreated {
-		return handleErrors(res, conn)
-	}
-
-	loc, err := res.Location()
-	if err != nil {
-		return err
-	}
-	loc.User = nil
+	defer resp.Body.Close()
 
 	w := getColorable()
-	fmt.Fprintf(w, "The transfer n°\033[33m%s\033[0m was successfully cancelled. "+
-		"It can be consulted at the address: \033[97m%s\033[0m\n", args[0], loc.String())
-
-	return nil
+	switch resp.StatusCode {
+	case http.StatusAccepted:
+		fmt.Fprintln(w, whiteBold("The transfer ")+whiteBoldUL(id)+whiteBold(
+			" was successfully cancelled. It was moved to the transfer history."))
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+	}
 }

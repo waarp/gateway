@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -16,22 +15,22 @@ import (
 )
 
 func transferInfoString(t *rest.OutTransfer) string {
-	rv := "● Transfer n°" + fmt.Sprint(t.ID) + " (" + string(t.Status) + ")\n" +
-		"  -Rule ID         : " + fmt.Sprint(t.RuleID) + "\n" +
-		"  -Partner ID      : " + fmt.Sprint(t.AgentID) + "\n" +
-		"  -Account ID      : " + fmt.Sprint(t.AccountID) + "\n" +
-		"  -True filepath   : " + t.TrueFilepath + "\n" +
-		"  -Source file     : " + t.SourcePath + "\n" +
+	rv := "● Transfer " + fmt.Sprint(t.ID) + " (" + string(t.Status) + ")\n" +
+		"  -Rule:             " + fmt.Sprint(t.Rule) + "\n" +
+		"  -Requester:        " + fmt.Sprint(t.Requester) + "\n" +
+		"  -Requested:        " + fmt.Sprint(t.Requested) + "\n" +
+		"  -True filepath:    " + t.TrueFilepath + "\n" +
+		"  -Source file:      " + t.SourcePath + "\n" +
 		"  -Destination file: " + t.DestPath + "\n" +
-		"  -Start time      : " + t.Start.Local().Format(time.RFC3339) + "\n" +
-		"  -Step            : " + string(t.Step) + "\n" +
-		"  -Progress        : " + fmt.Sprint(t.Progress) + "\n" +
-		"  -Task number     : " + fmt.Sprint(t.TaskNumber) + "\n"
+		"  -Start time:       " + t.Start.Local().Format(time.RFC3339) + "\n" +
+		"  -Step:             " + string(t.Step) + "\n" +
+		"  -Progress:         " + fmt.Sprint(t.Progress) + "\n" +
+		"  -Task number:      " + fmt.Sprint(t.TaskNumber) + "\n"
 	if t.ErrorCode != model.TeOk {
-		rv += "  -Error code      : " + t.ErrorCode.String() + "\n"
+		rv += "  -Error code:       " + t.ErrorCode.String() + "\n"
 	}
 	if t.ErrorMsg != "" {
-		rv += "  -Error message   : " + t.ErrorMsg + "\n"
+		rv += "  -Error message:    " + t.ErrorMsg + "\n"
 	}
 	return rv
 }
@@ -42,54 +41,27 @@ func TestDisplayTransfer(t *testing.T) {
 		out = testFile()
 
 		trans := &rest.OutTransfer{
-			ID:         1,
-			RuleID:     2,
-			AgentID:    3,
-			AccountID:  4,
-			SourcePath: "source/path",
-			DestPath:   "dest/path",
-			Start:      time.Now(),
-			Status:     model.StatusPlanned,
+			ID:           1,
+			Rule:         "rule",
+			Requester:    "requester",
+			Requested:    "requested",
+			SourcePath:   "source/path",
+			DestPath:     "dest/path",
+			TrueFilepath: "/true/filepath",
+			Start:        time.Now(),
+			Status:       model.StatusPlanned,
+			Step:         model.StepData,
+			Progress:     1,
+			TaskNumber:   2,
+			ErrorCode:    model.TeForbidden,
+			ErrorMsg:     "custom error message",
 		}
 		Convey("When calling the `displayTransfer` function", func() {
 			w := getColorable()
-			displayTransfer(w, *trans)
+			displayTransfer(w, trans)
 
 			Convey("Then it should display the transfer's info correctly", func() {
-				_, err := out.Seek(0, 0)
-				So(err, ShouldBeNil)
-				cont, err := ioutil.ReadAll(out)
-				So(err, ShouldBeNil)
-				So(string(cont), ShouldEqual, transferInfoString(trans))
-			})
-		})
-	})
-
-	Convey("Given a transfer entry with an error", t, func() {
-		out = testFile()
-
-		trans := &rest.OutTransfer{
-			ID:         1,
-			RuleID:     2,
-			AgentID:    3,
-			AccountID:  4,
-			SourcePath: "source/path",
-			DestPath:   "dest/path",
-			Start:      time.Now(),
-			Status:     model.StatusPlanned,
-			ErrorCode:  model.TeForbidden,
-			ErrorMsg:   "custom error message",
-		}
-		Convey("When calling the `displayTransfer` function", func() {
-			w := getColorable()
-			displayTransfer(w, *trans)
-
-			Convey("Then it should display the transfer's info correctly", func() {
-				_, err := out.Seek(0, 0)
-				So(err, ShouldBeNil)
-				cont, err := ioutil.ReadAll(out)
-				So(err, ShouldBeNil)
-				So(string(cont), ShouldEqual, transferInfoString(trans))
+				So(getOutput(), ShouldEqual, transferInfoString(trans))
 			})
 		})
 	})
@@ -98,179 +70,106 @@ func TestDisplayTransfer(t *testing.T) {
 func TestAddTransfer(t *testing.T) {
 
 	Convey("Testing the partner 'add' command", t, func() {
-		command := &transferAddCommand{}
+		out = testFile()
+		command := &transferAdd{}
 
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
-			Convey("Given a valid remote agents", func() {
-				p := model.RemoteAgent{
-					Name:        "test",
-					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"localhost","port":1}`),
-				}
-				err := db.Create(&p)
-				So(err, ShouldBeNil)
+			rule := &model.Rule{
+				Name:   "rule",
+				IsSend: true,
+			}
+			So(db.Create(rule), ShouldBeNil)
 
-				Convey("Given a valid certificate", func() {
-					c := model.Cert{
-						Name:        "test",
-						PublicKey:   []byte("test"),
-						Certificate: []byte("test"),
-						OwnerType:   "remote_agents",
-						OwnerID:     p.ID,
-					}
-					err := db.Create(&c)
+			partner := &model.RemoteAgent{
+				Name:        "partner",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(partner), ShouldBeNil)
+
+			account := &model.RemoteAccount{
+				Login:         "login",
+				Password:      []byte("password"),
+				RemoteAgentID: partner.ID,
+			}
+			So(db.Create(account), ShouldBeNil)
+
+			Convey("Given all valid flags", func() {
+				args := []string{"-p", partner.Name, "-a", account.Login, "-w",
+					"push", "-r", rule.Name, "-f", "file.src", "-d", "file.dst"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
 					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
-					Convey("Given a valid account", func() {
-						a := model.RemoteAccount{
-							Login:         "login",
-							Password:      []byte("password"),
-							RemoteAgentID: p.ID,
+					Convey("Then is should display a message saying the transfer was added", func() {
+						So(getOutput(), ShouldEqual, "The transfer of file 'file.src'"+
+							" was successfully added.\n")
+					})
+
+					Convey("Then the new transfer should have been added", func() {
+						trans := &model.Transfer{
+							RuleID:     rule.ID,
+							IsServer:   false,
+							AgentID:    partner.ID,
+							AccountID:  account.ID,
+							SourceFile: "file.src",
+							DestFile:   "file.dst",
+							Status:     model.StatusPlanned,
+							Owner:      database.Owner,
 						}
-						err := db.Create(&a)
-						So(err, ShouldBeNil)
+						So(db.Get(trans), ShouldBeNil)
+					})
+				})
+			})
 
-						Convey("Given a valid rule", func() {
-							r := model.Rule{
-								Name:   "rule",
-								IsSend: false,
-							}
-							err := db.Create(&r)
-							So(err, ShouldBeNil)
+			Convey("Given an invalid rule name", func() {
+				args := []string{"-p", partner.Name, "-a", account.Login, "-w",
+					"pull", "-r", "toto", "-f", "file.src", "-d", "file.dst"}
 
-							Convey("Given valid flags", func() {
-								command.ServerID = p.ID
-								command.AccountID = a.ID
-								command.RuleID = r.ID
-								command.File = "test"
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
-								Convey("When executing the command", func() {
-									addr := gw.Listener.Addr().String()
-									dsn := "http://admin:admin_password@" + addr
-									auth.DSN = dsn
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "no rule 'toto' found")
+					})
+				})
+			})
 
-									err := command.Execute(nil)
+			Convey("Given an invalid account name", func() {
+				args := []string{"-p", partner.Name, "-a", "toto", "-w",
+					"pull", "-r", rule.Name, "-f", "file.src", "-d", "file.dst"}
 
-									Convey("Then it should NOT return an error", func() {
-										So(err, ShouldBeNil)
-									})
-								})
-							})
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
-							Convey("Given no rule", func() {
-								command.ServerID = p.ID
-								command.AccountID = a.ID
-								command.File = "test"
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "no account 'toto' found for partner "+
+							partner.Name)
+					})
+				})
+			})
 
-								Convey("When executing the command", func() {
-									addr := gw.Listener.Addr().String()
-									dsn := "http://admin:admin_password@" + addr
-									auth.DSN = dsn
+			Convey("Given an invalid partner name", func() {
+				args := []string{"-p", "toto", "-a", account.Login, "-w",
+					"pull", "-r", rule.Name, "-f", "file.src", "-d", "file.dst"}
 
-									err := command.Execute(nil)
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
-									Convey("Then it should return an error", func() {
-										So(err, ShouldNotBeNil)
-									})
-								})
-							})
-
-							Convey("Given no account", func() {
-								command.ServerID = p.ID
-								command.RuleID = r.ID
-								command.File = "test"
-
-								Convey("When executing the command", func() {
-									addr := gw.Listener.Addr().String()
-									dsn := "http://admin:admin_password@" + addr
-									auth.DSN = dsn
-
-									err := command.Execute(nil)
-
-									Convey("Then it should return an error", func() {
-										So(err, ShouldNotBeNil)
-									})
-								})
-							})
-
-							Convey("Given no remote", func() {
-								command.AccountID = a.ID
-								command.RuleID = r.ID
-								command.File = "test"
-
-								Convey("When executing the command", func() {
-									addr := gw.Listener.Addr().String()
-									dsn := "http://admin:admin_password@" + addr
-									auth.DSN = dsn
-
-									err := command.Execute(nil)
-
-									Convey("Then it should return an error", func() {
-										So(err, ShouldNotBeNil)
-									})
-								})
-							})
-
-							Convey("Given no File", func() {
-								command.ServerID = p.ID
-								command.AccountID = a.ID
-								command.RuleID = r.ID
-
-								Convey("When executing the command", func() {
-									addr := gw.Listener.Addr().String()
-									dsn := "http://admin:admin_password@" + addr
-									auth.DSN = dsn
-
-									err := command.Execute(nil)
-
-									Convey("Then it should return an error", func() {
-										So(err, ShouldNotBeNil)
-									})
-								})
-							})
-
-							Convey("Given another remote agent", func() {
-								p2 := model.RemoteAgent{
-									Name:        "dummy",
-									Protocol:    "sftp",
-									ProtoConfig: []byte(`{"address":"localhost","port":2}`),
-								}
-								err := db.Create(&p2)
-								So(err, ShouldBeNil)
-
-								Convey("Given an account link to another remote agent", func() {
-									a2 := model.RemoteAccount{
-										Login:         "login",
-										Password:      []byte("password"),
-										RemoteAgentID: p2.ID,
-									}
-									err := db.Create(&a2)
-									So(err, ShouldBeNil)
-
-									Convey("Given an incorrect account", func() {
-										command.ServerID = p.ID
-										command.AccountID = a2.ID
-										command.RuleID = r.ID
-										command.File = "test"
-
-										Convey("When executing the command", func() {
-											addr := gw.Listener.Addr().String()
-											dsn := "http://admin:admin_password@" + addr
-											auth.DSN = dsn
-
-											err := command.Execute(nil)
-
-											Convey("Then it should return an error", func() {
-												So(err, ShouldNotBeNil)
-											})
-										})
-									})
-								})
-							})
-						})
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "no partner 'toto' found")
 					})
 				})
 			})
@@ -282,11 +181,12 @@ func TestGetTransfer(t *testing.T) {
 
 	Convey("Testing the partner 'get' command", t, func() {
 		out = testFile()
-		command := &transferGetCommand{}
+		command := &transferGet{}
 
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given a valid transfer", func() {
 				p := &model.RemoteAgent{
@@ -328,43 +228,34 @@ func TestGetTransfer(t *testing.T) {
 					Status:     model.StatusPlanned,
 				}
 				So(db.Create(trans), ShouldBeNil)
+				id := fmt.Sprint(trans.ID)
 
 				Convey("Given a valid transfer ID", func() {
-					id := fmt.Sprint(trans.ID)
+					args := []string{id}
 
 					Convey("When executing the command", func() {
-						addr := gw.Listener.Addr().String()
-						dsn := "http://admin:admin_password@" + addr
-						auth.DSN = dsn
-
-						err := command.Execute([]string{id})
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-						})
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
 						Convey("Then it should display the transfer's info", func() {
-							_, err = out.Seek(0, 0)
+							jsonObj, err := rest.FromTransfer(db, trans)
 							So(err, ShouldBeNil)
-							cont, err := ioutil.ReadAll(out)
-							So(err, ShouldBeNil)
-							So(string(cont), ShouldEqual, transferInfoString(rest.FromTransfer(trans)))
+							So(getOutput(), ShouldEqual, transferInfoString(jsonObj))
 						})
 					})
 				})
 
 				Convey("Given an invalid transfer ID", func() {
-					id := "1000"
+					args := []string{"1000"}
 
 					Convey("When executing the command", func() {
-						addr := gw.Listener.Addr().String()
-						dsn := "http://admin:admin_password@" + addr
-						auth.DSN = dsn
-
-						err := command.Execute([]string{id})
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						err = command.Execute(params)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldBeError, "transfer 1000 not found")
 						})
 					})
 				})
@@ -377,14 +268,12 @@ func TestListTransfer(t *testing.T) {
 
 	Convey("Testing the transfer 'list' command", t, func() {
 		out = testFile()
-		command := &transferListCommand{}
-		_, err := flags.ParseArgs(command, nil)
-		So(err, ShouldBeNil)
+		command := &transferList{}
 
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			p1 := &model.RemoteAgent{
 				Name:        "remote1",
@@ -465,7 +354,7 @@ func TestListTransfer(t *testing.T) {
 
 			Convey("Given 4 valid transfers", func() {
 
-				t1 := &model.Transfer{
+				trans1 := &model.Transfer{
 					RuleID:     r1.ID,
 					AgentID:    p1.ID,
 					AccountID:  a1.ID,
@@ -473,7 +362,7 @@ func TestListTransfer(t *testing.T) {
 					DestFile:   "dest1",
 					Start:      time.Date(2019, 1, 1, 1, 0, 0, 0, time.UTC),
 				}
-				t2 := &model.Transfer{
+				trans2 := &model.Transfer{
 					RuleID:     r2.ID,
 					AgentID:    p2.ID,
 					AccountID:  a2.ID,
@@ -481,7 +370,7 @@ func TestListTransfer(t *testing.T) {
 					DestFile:   "dest2",
 					Start:      time.Date(2019, 1, 1, 2, 0, 0, 0, time.UTC),
 				}
-				t3 := &model.Transfer{
+				trans3 := &model.Transfer{
 					RuleID:     r3.ID,
 					AgentID:    p3.ID,
 					AccountID:  a3.ID,
@@ -489,7 +378,7 @@ func TestListTransfer(t *testing.T) {
 					DestFile:   "dest3",
 					Start:      time.Date(2019, 1, 1, 3, 0, 0, 0, time.UTC),
 				}
-				t4 := &model.Transfer{
+				trans4 := &model.Transfer{
 					RuleID:     r4.ID,
 					AgentID:    p4.ID,
 					AccountID:  a4.ID,
@@ -497,252 +386,152 @@ func TestListTransfer(t *testing.T) {
 					DestFile:   "dest3",
 					Start:      time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
 				}
-				So(db.Create(t1), ShouldBeNil)
-				So(db.Create(t2), ShouldBeNil)
-				So(db.Create(t3), ShouldBeNil)
-				So(db.Create(t4), ShouldBeNil)
+				So(db.Create(trans1), ShouldBeNil)
+				So(db.Create(trans2), ShouldBeNil)
+				So(db.Create(trans3), ShouldBeNil)
+				So(db.Create(trans4), ShouldBeNil)
 
-				t2.Status = model.StatusRunning
-				t3.Status = model.StatusRunning
-				So(db.Update(&model.Transfer{Status: model.StatusRunning}, t2.ID, false), ShouldBeNil)
-				So(db.Update(&model.Transfer{Status: model.StatusRunning}, t3.ID, false), ShouldBeNil)
+				trans2.Status = model.StatusRunning
+				trans3.Status = model.StatusRunning
+				So(db.Update(&model.Transfer{Status: model.StatusRunning}, trans2.ID, false), ShouldBeNil)
+				So(db.Update(&model.Transfer{Status: model.StatusRunning}, trans3.ID, false), ShouldBeNil)
+
+				t1, err := rest.FromTransfer(db, trans1)
+				So(err, ShouldBeNil)
+				t2, err := rest.FromTransfer(db, trans2)
+				So(err, ShouldBeNil)
+				t3, err := rest.FromTransfer(db, trans3)
+				So(err, ShouldBeNil)
+				t4, err := rest.FromTransfer(db, trans4)
+				So(err, ShouldBeNil)
 
 				Convey("Given a no filters", func() {
+					args := []string{}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all the transfer's "+
-								"info", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(rest.FromTransfer(t1))+
-									transferInfoString(rest.FromTransfer(t2))+
-									transferInfoString(rest.FromTransfer(t3))+
-									transferInfoString(rest.FromTransfer(t4)))
-							})
+						Convey("Then it should display all the transfer's info", func() {
+							So(getOutput(), ShouldEqual, "Transfers:\n"+
+								transferInfoString(t1)+transferInfoString(t2)+
+								transferInfoString(t3)+transferInfoString(t4))
 						})
 					})
 				})
 
 				Convey("Given a limit parameter of '2'", func() {
-					command.Limit = 2
+					args := []string{"-l", "2"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display the first 2 transfers",
-								func() {
-									_, err = out.Seek(0, 0)
-									So(err, ShouldBeNil)
-									cont, err := ioutil.ReadAll(out)
-									So(err, ShouldBeNil)
-									So(string(cont), ShouldEqual, "Transfers:\n"+
-										transferInfoString(rest.FromTransfer(t1))+
-										transferInfoString(rest.FromTransfer(t2)))
-								})
+						Convey("Then it should display the first 2 transfers", func() {
+							So(getOutput(), ShouldEqual, "Transfers:\n"+
+								transferInfoString(t1)+transferInfoString(t2))
 						})
 					})
 				})
 
 				Convey("Given an offset parameter of '2'", func() {
-					command.Limit = 20
-					command.Offset = 2
+					args := []string{"-o", "2"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all but the 2 first "+
-								"transfers", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(rest.FromTransfer(t3))+
-									transferInfoString(rest.FromTransfer(t4)))
-							})
+						Convey("Then it should display all but the 2 first transfers", func() {
+							So(getOutput(), ShouldEqual, "Transfers:\n"+
+								transferInfoString(t3)+transferInfoString(t4))
 						})
 					})
 				})
 
 				Convey("Given a different sorting parameter", func() {
-					command.SortBy = "id"
-					//command.DescOrder = true
+					args := []string{"-s", "id-"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all the transfer's "+
-								"info sorted & in reverse", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(rest.FromTransfer(t4))+
-									transferInfoString(rest.FromTransfer(t3))+
-									transferInfoString(rest.FromTransfer(t2))+
-									transferInfoString(rest.FromTransfer(t1)))
-							})
+						Convey("Then it should display all the transfer's "+
+							"info sorted & in reverse", func() {
+							So(getOutput(), ShouldEqual, "Transfers:\n"+
+								transferInfoString(t4)+transferInfoString(t3)+
+								transferInfoString(t2)+transferInfoString(t1))
 						})
 					})
 				})
 
 				Convey("Given a start parameter", func() {
-					command.Start = time.Date(2019, 1, 1, 2, 30, 0, 0, time.UTC).
-						Format(time.RFC3339)
+					args := []string{"-d", time.Date(2019, 1, 1, 2, 30, 0, 0, time.UTC).
+						Format(time.RFC3339)}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all transfers "+
-								"starting after that date", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(rest.FromTransfer(t3))+
-									transferInfoString(rest.FromTransfer(t4)))
-							})
-						})
-					})
-				})
-
-				Convey("Given a remote parameter", func() {
-					command.Remotes = []uint64{t1.AgentID, t3.AgentID}
-
-					Convey("When executing the command", func() {
-						err := command.Execute(nil)
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all transfers with one "+
-								"of these partners", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(rest.FromTransfer(t1))+
-									transferInfoString(rest.FromTransfer(t3)))
-							})
-						})
-					})
-				})
-
-				Convey("Given an account parameter", func() {
-					command.Accounts = []uint64{t2.AccountID, t3.AccountID}
-
-					Convey("When executing the command", func() {
-						err := command.Execute(nil)
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all transfers using one "+
-								"of these accounts", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(rest.FromTransfer(t2))+
-									transferInfoString(rest.FromTransfer(t3)))
-							})
+						Convey("Then it should display all transfers "+
+							"starting after that date", func() {
+							So(getOutput(), ShouldEqual, "Transfers:\n"+
+								transferInfoString(t3)+transferInfoString(t4))
 						})
 					})
 				})
 
 				Convey("Given a rule parameter", func() {
-					command.Rules = []uint64{t1.RuleID, t4.RuleID}
+					args := []string{"-r", r1.Name, "-r", r4.Name}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all transfers using one "+
-								"of these rules", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(rest.FromTransfer(t1))+
-									transferInfoString(rest.FromTransfer(t4)))
-							})
+						Convey("Then it should display all transfers using one "+
+							"of these rules", func() {
+							So(getOutput(), ShouldEqual, "Transfers:\n"+
+								transferInfoString(t1)+transferInfoString(t4))
 						})
 					})
 				})
 
 				Convey("Given a status parameter", func() {
-					command.Statuses = []string{"PLANNED"}
+					args := []string{"-t", "PLANNED"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all transfers "+
-								"currently in one of these statuses", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(rest.FromTransfer(t1))+
-									transferInfoString(rest.FromTransfer(t4)))
-							})
+						Convey("Then it should display all transfers "+
+							"currently in one of these statuses", func() {
+							So(getOutput(), ShouldEqual, "Transfers:\n"+
+								transferInfoString(t1)+transferInfoString(t4))
 						})
 					})
 				})
 
 				Convey("Given multiple parameters", func() {
-					command.Start = time.Date(2019, 1, 1, 1, 30, 0, 0, time.UTC).
-						Format(time.RFC3339)
-					command.Remotes = []uint64{t1.AgentID, t2.AgentID}
-					command.Accounts = []uint64{t2.AccountID, t4.AccountID}
-					command.Rules = []uint64{t1.RuleID, t2.RuleID, t3.RuleID}
-					command.Statuses = []string{"RUNNING", "PLANNED"}
+					args := []string{"-d", t2.Start.Add(-time.Minute).Format(time.RFC3339),
+						"-r", r1.Name, "-r", r2.Name, "-r", r4.Name,
+						"-t", "RUNNING",
+					}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all transfers that "+
-								"fill all these parameters", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "Transfers:\n"+
-									transferInfoString(rest.FromTransfer(t2)))
-							})
+						Convey("Then it should display all transfers that "+
+							"fill all these parameters", func() {
+							So(getOutput(), ShouldEqual, "Transfers:\n"+
+								transferInfoString(t2))
 						})
 					})
 				})
@@ -755,12 +544,12 @@ func TestPauseTransfer(t *testing.T) {
 
 	Convey("Testing the transfer 'pause' command", t, func() {
 		out = testFile()
-		command := &transferPauseCommand{}
+		command := &transferPause{}
 
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given a paused transfer entry", func() {
 				p := &model.RemoteAgent{
@@ -804,46 +593,44 @@ func TestPauseTransfer(t *testing.T) {
 					Owner:      database.Owner,
 				}
 				So(db.Create(trans), ShouldBeNil)
+				id := fmt.Sprint(trans.ID)
 
-				Convey("Given a valid transfer ID", func() {
-					id := fmt.Sprint(trans.ID)
+				Convey("Givens a valid transfer ID", func() {
+					args := []string{id}
 
 					Convey("When executing the command", func() {
-						err := command.Execute([]string{id})
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then is should display a message saying the transfer was restarted", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "The transfer n°"+id+
-									" was successfully paused. It can be resumed"+
-									" using the 'resume' command.\n")
-							})
-
-							Convey("Then the transfer should have been updated", func() {
-								trans.Status = model.StatusPaused
-
-								var t []model.Transfer
-								So(db.Select(&t, nil), ShouldBeNil)
-								So(t, ShouldNotBeEmpty)
-								So(t[0], ShouldResemble, *trans)
-							})
+						Convey("Then is should display a message saying the transfer was restarted", func() {
+							So(getOutput(), ShouldEqual, "The transfer "+id+
+								" was successfully paused. It can be resumed"+
+								" using the 'resume' command.\n")
 						})
+
+						Convey("Then the transfer should have been updated", func() {
+							trans.Status = model.StatusPaused
+
+							var t []model.Transfer
+							So(db.Select(&t, nil), ShouldBeNil)
+							So(t, ShouldNotBeEmpty)
+							So(t[0], ShouldResemble, *trans)
+						})
+
 					})
 				})
 
 				Convey("Given an invalid entry ID", func() {
-					id := "1000"
+					args := []string{"1000"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute([]string{id})
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						err = command.Execute(params)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldBeError, "transfer 1000 not found")
 						})
 					})
 				})
@@ -856,12 +643,12 @@ func TestResumeTransfer(t *testing.T) {
 
 	Convey("Testing the transfer 'resume' command", t, func() {
 		out = testFile()
-		command := &transferResumeCommand{}
+		command := &transferResume{}
 
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given a paused transfer entry", func() {
 				p := &model.RemoteAgent{
@@ -905,45 +692,42 @@ func TestResumeTransfer(t *testing.T) {
 					Owner:      database.Owner,
 				}
 				So(db.Create(trans), ShouldBeNil)
+				id := fmt.Sprint(trans.ID)
 
 				Convey("Given a valid transfer ID", func() {
-					id := fmt.Sprint(trans.ID)
+					args := []string{id}
 
 					Convey("When executing the command", func() {
-						err := command.Execute([]string{id})
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
+						Convey("Then is should display a message saying the transfer was restarted", func() {
+							So(getOutput(), ShouldEqual, "The transfer "+id+
+								" was successfully resumed.\n")
+						})
 
-							Convey("Then is should display a message saying the transfer was restarted", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "The transfer n°"+id+
-									" was successfully resumed.\n")
-							})
+						Convey("Then the transfer should have been updated", func() {
+							trans.Status = model.StatusPlanned
 
-							Convey("Then the transfer should have been updated", func() {
-								trans.Status = model.StatusPlanned
-
-								var t []model.Transfer
-								So(db.Select(&t, nil), ShouldBeNil)
-								So(t, ShouldNotBeEmpty)
-								So(t[0], ShouldResemble, *trans)
-							})
+							var t []model.Transfer
+							So(db.Select(&t, nil), ShouldBeNil)
+							So(t, ShouldNotBeEmpty)
+							So(t[0], ShouldResemble, *trans)
 						})
 					})
 				})
 
 				Convey("Given an invalid entry ID", func() {
-					id := "1000"
+					args := []string{"1000"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute([]string{id})
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						err = command.Execute(params)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldBeError, "transfer 1000 not found")
 						})
 					})
 				})
@@ -956,12 +740,12 @@ func TestCancelTransfer(t *testing.T) {
 
 	Convey("Testing the transfer 'cancel' command", t, func() {
 		out = testFile()
-		command := &transferCancelCommand{}
+		command := &transferCancel{}
 
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given a paused transfer entry", func() {
 				p := &model.RemoteAgent{
@@ -1005,53 +789,47 @@ func TestCancelTransfer(t *testing.T) {
 					Owner:      database.Owner,
 				}
 				So(db.Create(trans), ShouldBeNil)
+				id := fmt.Sprint(trans.ID)
 
 				Convey("Given a valid transfer ID", func() {
-					id := fmt.Sprint(trans.ID)
+					args := []string{id}
 
 					Convey("When executing the command", func() {
-						err := command.Execute([]string{id})
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
+						Convey("Then is should display a message saying the transfer was restarted", func() {
+							So(getOutput(), ShouldEqual, "The transfer "+id+
+								" was successfully cancelled. It was moved to"+
+								" the transfer history.\n")
+						})
 
-							Convey("Then is should display a message saying the transfer was restarted", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "The transfer n°"+id+
-									" was successfully cancelled. It can be consulted"+
-									" at the address: "+gw.URL+admin.APIPath+rest.HistoryPath+"/1\n")
-							})
+						Convey("Then the transfer should have been updated", func() {
+							var h []model.TransferHistory
+							So(db.Select(&h, nil), ShouldBeNil)
+							So(h, ShouldNotBeEmpty)
 
-							Convey("Then the transfer should have been updated", func() {
-								var h []model.TransferHistory
-								So(db.Select(&h, nil), ShouldBeNil)
-								So(h, ShouldNotBeEmpty)
-
-								hist := model.TransferHistory{
-									ID:             trans.ID,
-									Owner:          trans.Owner,
-									IsServer:       trans.IsServer,
-									IsSend:         r.IsSend,
-									Account:        a.Login,
-									Agent:          p.Name,
-									Protocol:       p.Protocol,
-									SourceFilename: trans.SourceFile,
-									DestFilename:   trans.DestFile,
-									Rule:           r.Name,
-									Start:          trans.Start,
-									Stop:           h[0].Stop,
-									Status:         model.StatusCancelled,
-									Error:          model.TransferError{},
-									Step:           "",
-									Progress:       0,
-									TaskNumber:     0,
-								}
-
-								So(h[0], ShouldResemble, hist)
-							})
+							hist := model.TransferHistory{
+								ID:             trans.ID,
+								Owner:          trans.Owner,
+								IsServer:       trans.IsServer,
+								IsSend:         r.IsSend,
+								Account:        a.Login,
+								Agent:          p.Name,
+								Protocol:       p.Protocol,
+								SourceFilename: trans.SourceFile,
+								DestFilename:   trans.DestFile,
+								Rule:           r.Name,
+								Start:          trans.Start,
+								Stop:           h[0].Stop,
+								Status:         model.StatusCancelled,
+								Error:          model.TransferError{},
+								Step:           "",
+								Progress:       0,
+								TaskNumber:     0,
+							}
+							So(h[0], ShouldResemble, hist)
 						})
 					})
 				})
