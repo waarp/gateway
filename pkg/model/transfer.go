@@ -103,8 +103,8 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 }
 
 func (t *Transfer) validateClientTransfer(acc database.Accessor) error {
-	remote := RemoteAgent{ID: t.AgentID}
-	if err := acc.Get(&remote); err != nil {
+	remote := &RemoteAgent{ID: t.AgentID}
+	if err := acc.Get(remote); err != nil {
 		if err == database.ErrNotFound {
 			return database.InvalidError("the partner %d does not exist", t.AgentID)
 		}
@@ -127,10 +127,10 @@ func (t *Transfer) validateClientTransfer(acc database.Accessor) error {
 
 	if remote.Protocol == "sftp" {
 		if res, err := acc.Query("SELECT id FROM certificates WHERE owner_type=? AND owner_id=?",
-			(&RemoteAgent{}).TableName(), t.AgentID); err != nil {
+			remote.TableName(), t.AgentID); err != nil {
 			return err
 		} else if len(res) == 0 {
-			return database.InvalidError("no certificate found for agent %d", t.AgentID)
+			return database.InvalidError("the partner is missing an SFTP host key")
 		}
 	}
 	return nil

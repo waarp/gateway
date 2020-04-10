@@ -291,7 +291,7 @@ func TestTransferValidateInsert(t *testing.T) {
 						err := trans.ValidateInsert(db)
 
 						Convey("Then the error should say the remote does not have a certificate", func() {
-							So(err, ShouldBeError, "no certificate found for agent 1")
+							So(err, ShouldBeError, "the partner is missing an SFTP host key")
 						})
 					})
 				})

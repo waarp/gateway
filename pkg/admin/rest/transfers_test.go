@@ -48,8 +48,8 @@ func TestAddTransfer(t *testing.T) {
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
-				Login:         "toto",
-				Password:      []byte("titi"),
+				Login:         "login",
+				Password:      []byte("password"),
 			}
 			So(db.Create(account), ShouldBeNil)
 
@@ -57,9 +57,10 @@ func TestAddTransfer(t *testing.T) {
 			So(db.Create(&push), ShouldBeNil)
 
 			trans := &InTransfer{
-				RuleID:     push.ID,
-				AgentID:    partner.ID,
-				AccountID:  account.ID,
+				Rule:       push.Name,
+				Partner:    partner.Name,
+				Account:    account.Login,
+				IsSend:     true,
 				SourcePath: "src",
 				DestPath:   "dst",
 			}
@@ -92,16 +93,37 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the new transfer should be inserted in "+
 						"the database", func() {
-						exist, err := db.Exists(trans.ToModel())
-
+						t, err := trans.ToModel(db)
 						So(err, ShouldBeNil)
-						So(exist, ShouldBeTrue)
+						So(db.Get(t), ShouldBeNil)
 					})
 				})
 			})
 
-			Convey("Given a new transfer with an invalid ruleID", func() {
-				trans.RuleID = 1000
+			Convey("Given a new transfer with an invalid rule name", func() {
+				trans.Rule = "toto"
+
+				Convey("When calling the handler", func() {
+					content, err := json.Marshal(&trans)
+					So(err, ShouldBeNil)
+					body := bytes.NewReader(content)
+					r, err := http.NewRequest(http.MethodPost, transferURI, body)
+					So(err, ShouldBeNil)
+
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should return a code 400", func() {
+						So(w.Code, ShouldEqual, http.StatusBadRequest)
+					})
+
+					Convey("Then the response body should say the partner is invalid", func() {
+						So(w.Body.String(), ShouldEqual, "no rule 'toto' found\n")
+					})
+				})
+			})
+
+			Convey("Given a new transfer with an invalid partner name", func() {
+				trans.Partner = "toto"
 
 				Convey("When calling the handler", func() {
 					content, err := json.Marshal(&trans)
@@ -117,37 +139,13 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, fmt.Sprintf("the rule "+
-							"%v does not exist\n", trans.RuleID))
+						So(w.Body.String(), ShouldEqual, "no partner 'toto' found\n")
 					})
 				})
 			})
 
-			Convey("Given a new transfer with an invalid partnerID", func() {
-				trans.AgentID = 1000
-
-				Convey("When calling the handler", func() {
-					content, err := json.Marshal(&trans)
-					So(err, ShouldBeNil)
-					body := bytes.NewReader(content)
-					r, err := http.NewRequest(http.MethodPost, "", body)
-					So(err, ShouldBeNil)
-
-					handler.ServeHTTP(w, r)
-
-					Convey("Then it should return a code 400", func() {
-						So(w.Code, ShouldEqual, http.StatusBadRequest)
-					})
-
-					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, fmt.Sprintf("the partner "+
-							"%v does not exist\n", trans.AgentID))
-					})
-				})
-			})
-
-			Convey("Given a new transfer with an invalid account", func() {
-				trans.AccountID = 1000
+			Convey("Given a new transfer with an invalid account name", func() {
+				trans.Account = "toto"
 
 				Convey("When calling the handler", func() {
 					content, err := json.Marshal(trans)
@@ -163,9 +161,8 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, fmt.Sprintf("the agent "+
-							"%v does not have an account %v\n", trans.AgentID,
-							trans.AccountID))
+						So(w.Body.String(), ShouldEqual, "no account 'toto' found "+
+							"for partner "+partner.Name+"\n")
 					})
 				})
 			})
@@ -186,9 +183,9 @@ func TestAddTransfer(t *testing.T) {
 						So(w.Code, ShouldEqual, http.StatusBadRequest)
 					})
 
-					Convey("Then the response body should say no certificates were found", func() {
-						So(w.Body.String(), ShouldEqual, fmt.Sprintf("no "+
-							"certificate found for agent %v\n", trans.AgentID))
+					Convey("Then the response body should say a host key is missing", func() {
+						So(w.Body.String(), ShouldEqual, "the partner is missing "+
+							"an SFTP host key\n")
 					})
 				})
 			})
@@ -241,7 +238,7 @@ func TestGetTransfer(t *testing.T) {
 			}
 			So(db.Create(trans), ShouldBeNil)
 
-			Convey("Given a request with the valid history ID parameter", func() {
+			Convey("Given a request with the valid transfer ID parameter", func() {
 				id := strconv.FormatUint(trans.ID, 10)
 				req, err := http.NewRequest(http.MethodGet, transferURI+id, nil)
 				So(err, ShouldBeNil)
@@ -262,18 +259,20 @@ func TestGetTransfer(t *testing.T) {
 
 					Convey("Then the body should contain the requested transfer "+
 						"in JSON format", func() {
-						exp, err := json.Marshal(FromTransfer(trans))
-
+						jsonObj, err := FromTransfer(db, trans)
 						So(err, ShouldBeNil)
+						exp, err := json.Marshal(jsonObj)
+						So(err, ShouldBeNil)
+
 						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
 					})
 				})
 			})
 
-			Convey("Given a request with an invalid history ID parameter", func() {
+			Convey("Given a request with an invalid transfer ID parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, transferURI+"1000", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"history": "1000"})
+				r = mux.SetURLVars(r, map[string]string{"transfer": "1000"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -299,16 +298,16 @@ func TestListTransfer(t *testing.T) {
 
 		Convey("Given a database with 2 transfer", func() {
 			p1 := &model.RemoteAgent{
-				Name:        "sftp_test",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Name:        "sftp1",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(p1), ShouldBeNil)
 
 			p2 := &model.RemoteAgent{
 				Name:        "sftp2",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Protocol:    "test2",
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(p2), ShouldBeNil)
 
@@ -346,7 +345,7 @@ func TestListTransfer(t *testing.T) {
 			}
 			So(db.Create(a2), ShouldBeNil)
 
-			r1 := &model.Rule{Name: "test_push", IsSend: false}
+			r1 := &model.Rule{Name: "rule1", IsSend: false}
 			So(db.Create(r1), ShouldBeNil)
 
 			r2 := &model.Rule{Name: "rule2", IsSend: false}
@@ -358,6 +357,8 @@ func TestListTransfer(t *testing.T) {
 				AccountID:  a1.ID,
 				SourceFile: "src1",
 				DestFile:   "dst2",
+				Progress:   1,
+				TaskNumber: 2,
 			}
 			So(db.Create(t1), ShouldBeNil)
 
@@ -380,12 +381,15 @@ func TestListTransfer(t *testing.T) {
 			}
 			So(db.Create(t3), ShouldBeNil)
 
-			trans1 := *FromTransfer(t1)
-			trans2 := *FromTransfer(t2)
-			trans3 := *FromTransfer(t3)
+			trans1, err := FromTransfer(db, t1)
+			So(err, ShouldBeNil)
+			trans2, err := FromTransfer(db, t2)
+			So(err, ShouldBeNil)
+			trans3, err := FromTransfer(db, t3)
+			So(err, ShouldBeNil)
 
-			Convey("Given a request with a valid 'remoteID' parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("?agent=%d", p1.ID), nil)
+			Convey("Given a request with no parameters", func() {
+				req, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -401,7 +405,7 @@ func TestListTransfer(t *testing.T) {
 					})
 
 					Convey("Then it should return 2 transfer", func() {
-						expected["transfers"] = []OutTransfer{trans1, trans3}
+						expected["transfers"] = []OutTransfer{*trans1, *trans2, *trans3}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -410,34 +414,8 @@ func TestListTransfer(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a valid 'account' parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("?account=%d", p2.ID), nil)
-				So(err, ShouldBeNil)
-
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, req)
-
-					Convey("Then it should reply 'OK'", func() {
-						So(w.Code, ShouldEqual, http.StatusOK)
-					})
-					Convey("Then the 'Content-Type' header should contain 'application/json'", func() {
-						contentType := w.Header().Get("Content-Type")
-
-						So(contentType, ShouldEqual, "application/json")
-					})
-
-					Convey("Then it should return 1 transfer", func() {
-						expected["transfers"] = []OutTransfer{trans2}
-						exp, err := json.Marshal(expected)
-
-						So(err, ShouldBeNil)
-						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
-					})
-				})
-			})
-
-			Convey("Given a request with a valid 'ruleID' parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("?rule=%d", r2.ID), nil)
+			Convey("Given a request with a valid 'rule' parameter", func() {
+				req, err := http.NewRequest(http.MethodGet, "?rule="+r2.Name, nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -453,7 +431,7 @@ func TestListTransfer(t *testing.T) {
 					})
 
 					Convey("Then it should return 2 transfer", func() {
-						expected["transfers"] = []OutTransfer{trans2, trans3}
+						expected["transfers"] = []OutTransfer{*trans2, *trans3}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -479,7 +457,7 @@ func TestListTransfer(t *testing.T) {
 					})
 
 					Convey("Then it should return all transfer", func() {
-						expected["transfers"] = []OutTransfer{trans1, trans2, trans3}
+						expected["transfers"] = []OutTransfer{*trans1, *trans2, *trans3}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -507,7 +485,7 @@ func TestListTransfer(t *testing.T) {
 					})
 
 					Convey("Then it should return all transfer", func() {
-						expected["transfers"] = []OutTransfer{trans3}
+						expected["transfers"] = []OutTransfer{*trans3}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
