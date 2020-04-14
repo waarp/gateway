@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"net/http/httptest"
 	"testing"
 
@@ -53,22 +52,12 @@ func TestRequestStatus(t *testing.T) {
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, services))
 
 			Convey("When executing the command", func() {
-				dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-				auth.DSN = dsn
+				commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
-				err := s.Execute(nil)
-
-				Convey("Then it should return no error", func() {
-					So(err, ShouldBeNil)
-				})
+				So(s.Execute(nil), ShouldBeNil)
 
 				Convey("Then it should display the services' status", func() {
-
-					_, err = out.Seek(0, 0)
-					So(err, ShouldBeNil)
-					cont, err := ioutil.ReadAll(out)
-					So(err, ShouldBeNil)
-					So(string(cont), ShouldEqual, "Waarp-Gateway services:\n"+
+					So(getOutput(), ShouldEqual, "Waarp-Gateway services:\n"+
 						"[Error]   Service 4 (Error message)\n"+
 						"[Error]   Service 5 (Error message)\n"+
 						"[Active]  Service 2\n"+

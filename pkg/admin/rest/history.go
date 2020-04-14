@@ -20,8 +20,8 @@ type OutHistory struct {
 	ID             uint64                  `json:"id"`
 	IsServer       bool                    `json:"isServer"`
 	IsSend         bool                    `json:"isSend"`
-	Account        string                  `json:"account"`
-	Agent          string                  `json:"agent"`
+	Requester      string                  `json:"requester"`
+	Requested      string                  `json:"requested"`
 	Protocol       string                  `json:"protocol"`
 	SourceFilename string                  `json:"sourceFilename"`
 	DestFilename   string                  `json:"destFilename"`
@@ -42,8 +42,8 @@ func FromHistory(h *model.TransferHistory) *OutHistory {
 		ID:             h.ID,
 		IsServer:       h.IsServer,
 		IsSend:         h.IsSend,
-		Account:        h.Account,
-		Agent:          h.Agent,
+		Requester:      h.Account,
+		Requested:      h.Agent,
 		Protocol:       h.Protocol,
 		SourceFilename: h.SourceFilename,
 		DestFilename:   h.DestFilename,
@@ -68,8 +68,8 @@ func FromHistories(hs []model.TransferHistory) []OutHistory {
 			ID:             h.ID,
 			IsServer:       h.IsServer,
 			IsSend:         h.IsSend,
-			Account:        h.Account,
-			Agent:          h.Agent,
+			Requester:      h.Account,
+			Requested:      h.Agent,
 			Protocol:       h.Protocol,
 			SourceFilename: h.SourceFilename,
 			DestFilename:   h.DestFilename,
@@ -108,11 +108,11 @@ func parseHistoryCond(r *http.Request, filters *database.Filters) error {
 
 	conditions = append(conditions, builder.Eq{"owner": database.Owner})
 
-	accounts := r.Form["account"]
+	accounts := r.Form["requester"]
 	if len(accounts) > 0 {
 		conditions = append(conditions, builder.In("account", accounts))
 	}
-	agents := r.Form["agent"]
+	agents := r.Form["requested"]
 	if len(agents) > 0 {
 		conditions = append(conditions, builder.In("agent", agents))
 	}
@@ -175,19 +175,19 @@ func getHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 //nolint:dupl
 func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
-		"default":  "start ASC",
-		"id+":      "id ASC",
-		"id-":      "id DESC",
-		"agent+":   "agent ASC",
-		"agent-":   "agent DESC",
-		"account+": "account ASC",
-		"account-": "account DESC",
-		"rule+":    "rule ASC",
-		"rule-":    "rule DESC",
-		"status+":  "status ASC",
-		"status-":  "status DESC",
-		"start+":   "start ASC",
-		"start-":   "start DESC",
+		"default":    "start ASC",
+		"id+":        "id ASC",
+		"id-":        "id DESC",
+		"requested+": "agent ASC",
+		"requested-": "agent DESC",
+		"requester+": "account ASC",
+		"requester-": "account DESC",
+		"rule+":      "rule ASC",
+		"rule-":      "rule DESC",
+		"status+":    "status ASC",
+		"status-":    "status DESC",
+		"start+":     "start ASC",
+		"start-":     "start DESC",
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -214,7 +214,7 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func restartTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			check, err := getHist(r, db)
@@ -235,15 +235,15 @@ func restartTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			if check.IsServer {
-				return badRequest("only the client can restart a transfer")
+				return badRequest("only the client can retry a transfer")
 			}
 
 			if check.Status == model.StatusDone {
-				return badRequest("cannot restart a finished transfer")
+				return badRequest("cannot retry a finished transfer")
 			}
 
 			if check.Protocol == "sftp" {
-				return badRequest("cannot restart an SFTP transfer")
+				return badRequest("cannot retry an SFTP transfer")
 			}
 
 			trans, err := check.Restart(db, date)

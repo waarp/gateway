@@ -69,7 +69,7 @@ func (l *locAccAdd) Execute([]string) error {
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
 }
 
@@ -241,6 +241,6 @@ func (l *locAccList) Execute([]string) error {
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
 }

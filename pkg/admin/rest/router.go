@@ -185,7 +185,7 @@ func makeHistoryHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Rou
 	histHandler := historyHandler.PathPrefix("/{history:[0-9]+}").Subrouter()
 	histHandler.HandleFunc("", getHistory(logger, db)).
 		Methods(http.MethodGet)
-	histHandler.HandleFunc("/restart", restartTransfer(logger, db)).
+	histHandler.HandleFunc("/retry", retryTransfer(logger, db)).
 		Methods(http.MethodPut)
 }
 

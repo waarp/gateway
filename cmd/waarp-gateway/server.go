@@ -108,7 +108,7 @@ func (s *serverAdd) Execute([]string) error {
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
 }
 
@@ -188,7 +188,7 @@ func (s *serverList) Execute([]string) error {
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
 }
 

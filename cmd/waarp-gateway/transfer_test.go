@@ -15,10 +15,15 @@ import (
 )
 
 func transferInfoString(t *rest.OutTransfer) string {
-	rv := "● Transfer " + fmt.Sprint(t.ID) + " (" + string(t.Status) + ")\n" +
-		"  -Rule:             " + fmt.Sprint(t.Rule) + "\n" +
-		"  -Requester:        " + fmt.Sprint(t.Requester) + "\n" +
-		"  -Requested:        " + fmt.Sprint(t.Requested) + "\n" +
+	role := "client"
+	if t.IsServer {
+		role = "server"
+	}
+
+	rv := "● Transfer " + fmt.Sprint(t.ID) + " (as " + role + ") [" + string(t.Status) + "]\n" +
+		"  -Rule:             " + t.Rule + "\n" +
+		"  -Requester:        " + t.Requester + "\n" +
+		"  -Requested:        " + t.Requested + "\n" +
 		"  -True filepath:    " + t.TrueFilepath + "\n" +
 		"  -Source file:      " + t.SourcePath + "\n" +
 		"  -Destination file: " + t.DestPath + "\n" +

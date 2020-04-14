@@ -97,7 +97,7 @@ func (r *remAccAdd) Execute([]string) error {
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
 }
 
@@ -229,6 +229,6 @@ func (r *remAccList) Execute([]string) error {
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
 }

@@ -15,32 +15,39 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func historyInfoString(t *rest.OutHistory) string {
-	rv := "● Transfer n°" + fmt.Sprint(t.ID) + " (" + string(t.Status) + ")\n" +
-		"  -IsServer     : " + fmt.Sprint(t.IsServer) + "\n" +
-		"  -Send         : " + fmt.Sprint(t.IsSend) + "\n" +
-		"  -Protocol     : " + fmt.Sprint(t.Protocol) + "\n" +
-		"  -Rule         : " + fmt.Sprint(t.Rule) + "\n" +
-		"  -Account      : " + fmt.Sprint(t.Account) + "\n" +
-		"  -Agent        : " + fmt.Sprint(t.Agent) + "\n" +
-		"  -SrcFile      : " + t.SourceFilename + "\n" +
-		"  -DestFile     : " + t.DestFilename + "\n" +
-		"  -Start date   : " + t.Start.Local().Format(time.RFC3339) + "\n" +
-		"  -End date     : " + t.Stop.Local().Format(time.RFC3339) + "\n"
-	if t.ErrorCode != model.TeOk {
-		rv += "  -Error code   : " + t.ErrorCode.String() + "\n"
+func historyInfoString(h *rest.OutHistory) string {
+	role := "client"
+	if h.IsServer {
+		role = "server"
 	}
-	if t.ErrorMsg != "" {
-		rv += "  -Error message: " + t.ErrorMsg + "\n"
+	way := "RECEIVE"
+	if h.IsSend {
+		way = "SEND"
 	}
-	if t.Step != "" {
-		rv += "  -Failed step  : " + string(t.Step) + "\n"
+	rv := "● Transfer " + fmt.Sprint(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n" +
+		"  -Way:           " + way + "\n" +
+		"  -Protocol:      " + h.Protocol + "\n" +
+		"  -Rule:          " + h.Rule + "\n" +
+		"  -Requester:     " + h.Requester + "\n" +
+		"  -Requested:     " + h.Requested + "\n" +
+		"  -SrcFile:       " + h.SourceFilename + "\n" +
+		"  -DestFile:      " + h.DestFilename + "\n" +
+		"  -Start date:    " + h.Start.Local().Format(time.RFC3339) + "\n" +
+		"  -End date:      " + h.Stop.Local().Format(time.RFC3339) + "\n"
+	if h.ErrorCode != model.TeOk {
+		rv += "  -Error code:    " + h.ErrorCode.String() + "\n"
 	}
-	if t.Progress != 0 {
-		rv += "  -Progress     : " + fmt.Sprint(t.Progress) + "\n"
+	if h.ErrorMsg != "" {
+		rv += "  -Error message: " + h.ErrorMsg + "\n"
 	}
-	if t.TaskNumber != 0 {
-		rv += "  -Task number  : " + fmt.Sprint(t.TaskNumber) + "\n"
+	if h.Step != "" {
+		rv += "  -Failed step:   " + string(h.Step) + "\n"
+	}
+	if h.Progress != 0 {
+		rv += "  -Progress:      " + fmt.Sprint(h.Progress) + "\n"
+	}
+	if h.TaskNumber != 0 {
+		rv += "  -Task number:   " + fmt.Sprint(h.TaskNumber) + "\n"
 	}
 
 	return rv
@@ -51,13 +58,13 @@ func TestDisplayHistory(t *testing.T) {
 	Convey("Given a history entry", t, func() {
 		out = testFile()
 
-		hist := rest.OutHistory{
+		hist := &rest.OutHistory{
 			ID:             1,
 			IsServer:       true,
 			IsSend:         false,
 			Rule:           "Rule",
-			Account:        "Account",
-			Agent:          "Server",
+			Requester:      "Account",
+			Requested:      "Server",
 			Protocol:       "sftp",
 			SourceFilename: "source/path",
 			DestFilename:   "dest/path",
@@ -79,7 +86,7 @@ func TestDisplayHistory(t *testing.T) {
 				So(err, ShouldBeNil)
 				cont, err := ioutil.ReadAll(out)
 				So(err, ShouldBeNil)
-				So(string(cont), ShouldEqual, historyInfoString(&hist))
+				So(string(cont), ShouldEqual, historyInfoString(hist))
 			})
 		})
 	})
@@ -92,8 +99,8 @@ func TestDisplayHistory(t *testing.T) {
 			IsServer:       true,
 			IsSend:         false,
 			Rule:           "rule",
-			Account:        "source",
-			Agent:          "destination",
+			Requester:      "source",
+			Requested:      "destination",
 			Protocol:       "sftp",
 			SourceFilename: "file/path",
 			DestFilename:   "file/path",
@@ -105,7 +112,7 @@ func TestDisplayHistory(t *testing.T) {
 		}
 		Convey("When calling the `displayHistory` function", func() {
 			w := getColorable()
-			displayHistory(w, hist)
+			displayHistory(w, &hist)
 
 			Convey("Then it should display the entry's info correctly", func() {
 				_, err := out.Seek(0, 0)
@@ -118,16 +125,16 @@ func TestDisplayHistory(t *testing.T) {
 	})
 }
 
-func TestHistoryGetCommand(t *testing.T) {
+func TestGetHistory(t *testing.T) {
 
 	Convey("Testing the partner 'get' command", t, func() {
 		out = testFile()
-		command := &historyGetCommand{}
+		command := &historyGet{}
 
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given a valid history entry", func() {
 				h := &model.TransferHistory{
@@ -146,38 +153,33 @@ func TestHistoryGetCommand(t *testing.T) {
 					Owner:          database.Owner,
 				}
 				So(db.Create(h), ShouldBeNil)
-
-				hist := rest.FromHistory(h)
+				id := fmt.Sprint(h.ID)
 
 				Convey("Given a valid history entry ID", func() {
-					id := fmt.Sprint(hist.ID)
+					args := []string{id}
 
 					Convey("When executing the command", func() {
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						err := command.Execute([]string{id})
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display the entry's info", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, historyInfoString(hist))
-							})
+						Convey("Then it should display the entry's info", func() {
+							hist := rest.FromHistory(h)
+							So(getOutput(), ShouldEqual, historyInfoString(hist))
 						})
 					})
 				})
 
 				Convey("Given an invalid entry ID", func() {
-					id := "1000"
+					args := []string{"1000"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute([]string{id})
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						err = command.Execute(params)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldBeError, "transfer 1000 not found")
 						})
 					})
 				})
@@ -186,18 +188,16 @@ func TestHistoryGetCommand(t *testing.T) {
 	})
 }
 
-func TestHistoryListCommand(t *testing.T) {
+func TestListHistory(t *testing.T) {
 
 	Convey("Testing the history 'list' command", t, func() {
 		out = testFile()
-		command := &historyListCommand{}
-		_, err := flags.ParseArgs(command, nil)
-		So(err, ShouldBeNil)
+		command := &historyList{}
 
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given 4 valid history entries", func() {
 				h1 := &model.TransferHistory{
@@ -267,289 +267,203 @@ func TestHistoryListCommand(t *testing.T) {
 				hist4 := rest.FromHistory(h4)
 
 				Convey("Given a no filters", func() {
+					args := []string{}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all the entries", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(hist1)+
-									historyInfoString(hist2)+
-									historyInfoString(hist3)+
-									historyInfoString(hist4))
-							})
+						Convey("Then it should display all the entries", func() {
+							So(getOutput(), ShouldEqual, "History:\n"+
+								historyInfoString(hist1)+historyInfoString(hist2)+
+								historyInfoString(hist3)+historyInfoString(hist4))
 						})
 					})
 				})
 
 				Convey("Given a limit parameter of '2'", func() {
-					command.Limit = 2
+					args := []string{"-l", "2"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display the first 2 entries", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(hist1)+
-									historyInfoString(hist2))
-							})
+						Convey("Then it should display the first 2 entries", func() {
+							So(getOutput(), ShouldEqual, "History:\n"+
+								historyInfoString(hist1)+historyInfoString(hist2))
 						})
 					})
 				})
 
 				Convey("Given an offset parameter of '2'", func() {
-					command.Limit = 20
-					command.Offset = 2
+					args := []string{"-o", "2"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all but the first 2 "+
-								"entries", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(hist3)+
-									historyInfoString(hist4))
-							})
+						Convey("Then it should display all but the first 2 entries", func() {
+							So(getOutput(), ShouldEqual, "History:\n"+
+								historyInfoString(hist3)+historyInfoString(hist4))
 						})
 					})
 				})
 
 				Convey("Given a different sorting parameter", func() {
-					command.SortBy = "id"
-					//command.DescOrder = true
+					args := []string{"-s", "id-"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all the entries "+
-								"sorted & in reverse order", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(hist4)+
-									historyInfoString(hist3)+
-									historyInfoString(hist2)+
-									historyInfoString(hist1))
-							})
+						Convey("Then it should display all the entries "+
+							"sorted & in reverse order", func() {
+							So(getOutput(), ShouldEqual, "History:\n"+
+								historyInfoString(hist4)+historyInfoString(hist3)+
+								historyInfoString(hist2)+historyInfoString(hist1))
 						})
 					})
 				})
 
 				Convey("Given a start parameter", func() {
-					command.Start = time.Date(2019, 1, 1, 2, 30, 0, 0, time.UTC).
-						Format(time.RFC3339)
+					args := []string{"--start=" + time.Date(2019, 1, 1, 2, 30, 0, 0, time.UTC).
+						Format(time.RFC3339)}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all the entries that "+
-								"started after that date", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(hist3)+
-									historyInfoString(hist4))
-							})
+						Convey("Then it should display all the entries that "+
+							"started after that date", func() {
+							So(getOutput(), ShouldEqual, "History:\n"+
+								historyInfoString(hist3)+historyInfoString(hist4))
 						})
 					})
 				})
 
 				Convey("Given a stop parameter", func() {
-					command.Stop = time.Date(2019, 1, 1, 2, 30, 0, 0, time.UTC).
-						Format(time.RFC3339)
+					args := []string{"--stop=" + time.Date(2019, 1, 1, 2, 30, 0, 0, time.UTC).
+						Format(time.RFC3339)}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all the entries that "+
-								"ended before that date", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(hist1)+
-									historyInfoString(hist2))
-							})
+						Convey("Then it should display all the entries that "+
+							"ended before that date", func() {
+							So(getOutput(), ShouldEqual, "History:\n"+
+								historyInfoString(hist1)+historyInfoString(hist2))
 						})
 					})
 				})
 
-				Convey("Given a source parameter", func() {
-					command.Account = []string{h1.Account, h2.Account}
+				Convey("Given a requester parameter", func() {
+					args := []string{"--requester=" + h1.Account, "--requester=" + h2.Account}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all the entries from "+
-								"one of these sources", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(hist1)+
-									historyInfoString(hist2))
-							})
+						Convey("Then it should display all the entries from "+
+							"one of these sources", func() {
+							So(getOutput(), ShouldEqual, "History:\n"+
+								historyInfoString(hist1)+historyInfoString(hist2))
 						})
 					})
 				})
 
-				Convey("Given a destination parameter", func() {
-					command.Agent = []string{h2.Agent, h3.Agent}
+				Convey("Given a requested parameter", func() {
+					args := []string{"--requested=" + h2.Agent, "--requested=" + h3.Agent}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all the entries to "+
-								"one of these destinations", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(hist2)+
-									historyInfoString(hist3))
-							})
+						Convey("Then it should display all the entries to "+
+							"one of these destinations", func() {
+							So(getOutput(), ShouldEqual, "History:\n"+
+								historyInfoString(hist2)+historyInfoString(hist3))
 						})
 					})
 				})
 
 				Convey("Given a rule parameter", func() {
-					command.Rules = []string{h3.Rule, h4.Rule}
+					args := []string{"--rule=" + h3.Rule, "--rule=" + h4.Rule}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all the entries using "+
-								"one of these rules", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(hist3)+
-									historyInfoString(hist4))
-							})
+						Convey("Then it should display all the entries using "+
+							"one of these rules", func() {
+							So(getOutput(), ShouldEqual, "History:\n"+
+								historyInfoString(hist3)+historyInfoString(hist4))
 						})
 					})
 				})
 
 				Convey("Given a status parameter", func() {
-					command.Statuses = []string{"DONE"}
+					args := []string{"--status=DONE"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all the entries in "+
-								"one of these statuses", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(hist1)+
-									historyInfoString(hist3))
-							})
+						Convey("Then it should display all the entries in "+
+							"one of these statuses", func() {
+							So(getOutput(), ShouldEqual, "History:\n"+
+								historyInfoString(hist1)+historyInfoString(hist3))
 						})
 					})
 				})
 
 				Convey("Given a protocol parameter", func() {
-					command.Protocol = []string{"sftp"}
+					args := []string{"--protocol=sftp"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all the entries using "+
-								"one of these protocoles", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(hist1)+
-									historyInfoString(hist2)+
-									historyInfoString(hist3)+
-									historyInfoString(hist4))
-							})
+						Convey("Then it should display all the entries using "+
+							"one of these protocoles", func() {
+							So(getOutput(), ShouldEqual, "History:\n"+
+								historyInfoString(hist1)+historyInfoString(hist2)+
+								historyInfoString(hist3)+historyInfoString(hist4))
 						})
 					})
 				})
 
 				Convey("Given a combination of multiple parameters", func() {
-					command.Start = time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
-					command.Stop = time.Date(2019, 1, 3, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
-					command.Account = []string{h1.Account, h2.Account}
-					command.Agent = []string{h4.Agent, h1.Agent}
-					command.Rules = []string{h3.Rule, h1.Rule, h2.Rule}
-					command.Statuses = []string{"DONE", "TRANSFER"}
-					command.Protocol = []string{"sftp"}
+					args := []string{
+						"--start=" + time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
+						"--stop=" + time.Date(2019, 1, 3, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
+						"--requester=" + h1.Account, "--requester=" + h2.Account,
+						"--requested=" + h4.Agent, "--requested=" + h1.Agent,
+						"--rule=" + h3.Rule, "--rule=" + h1.Rule, "--rule=" + h2.Rule,
+						"--status=DONE", "--status=CANCELLED",
+						"--protocol=sftp",
+					}
 
 					Convey("When executing the command", func() {
-						err := command.Execute(nil)
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-
-							Convey("Then it should display all the entries that "+
-								"fill all of these parameters", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "History:\n"+
-									historyInfoString(hist1))
-							})
+						Convey("Then it should display all the entries that "+
+							"fill all of these parameters", func() {
+							So(getOutput(), ShouldEqual, "History:\n"+
+								historyInfoString(hist1))
 						})
 					})
 				})
@@ -558,16 +472,16 @@ func TestHistoryListCommand(t *testing.T) {
 	})
 }
 
-func TestHistoryRestartCommand(t *testing.T) {
+func TestRetryHistory(t *testing.T) {
 
-	Convey("Testing the history 'restart' command", t, func() {
+	Convey("Testing the history 'retry' command", t, func() {
 		out = testFile()
-		command := &historyRestartCommand{}
+		command := &historyRetry{}
 
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			auth.DSN = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given a failed history entry", func() {
 				p := &model.RemoteAgent{
@@ -615,58 +529,53 @@ func TestHistoryRestartCommand(t *testing.T) {
 					Owner:          database.Owner,
 				}
 				So(db.Create(h), ShouldBeNil)
+				id := fmt.Sprint(h.ID)
 
 				Convey("Given a valid history entry ID and date", func() {
-					id := fmt.Sprint(h.ID)
-					date := time.Now().Truncate(time.Second)
-					command.Date = date.Format(time.RFC3339)
+					args := []string{id,
+						"-d", time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local).Format(time.RFC3339)}
 
 					Convey("When executing the command", func() {
-						err := command.Execute([]string{id})
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
+						Convey("Then is should display a message saying the transfer was restarted", func() {
+							So(getOutput(), ShouldEqual, "The transfer was "+
+								"successfully reprogrammed. It was given the ID: 1\n")
+						})
 
-							Convey("Then is should display a message saying the transfer was restarted", func() {
-								_, err = out.Seek(0, 0)
-								So(err, ShouldBeNil)
-								cont, err := ioutil.ReadAll(out)
-								So(err, ShouldBeNil)
-								So(string(cont), ShouldEqual, "The transfer n°"+id+
-									" was successfully restarted. It can be consulted at "+
-									"the address: "+gw.URL+admin.APIPath+rest.TransfersPath+"/1\n")
-							})
+						Convey("Then the transfer should have been added", func() {
+							expected := model.Transfer{
+								ID:         1,
+								RuleID:     r.ID,
+								IsServer:   false,
+								AgentID:    p.ID,
+								AccountID:  a.ID,
+								SourceFile: h.SourceFilename,
+								DestFile:   h.DestFilename,
+								Start:      time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+								Status:     model.StatusPlanned,
+								Owner:      h.Owner,
+							}
 
-							Convey("Then the transfer should have been added", func() {
-								expected := model.Transfer{
-									ID:         1,
-									RuleID:     r.ID,
-									IsServer:   false,
-									AgentID:    p.ID,
-									AccountID:  a.ID,
-									SourceFile: h.SourceFilename,
-									DestFile:   h.DestFilename,
-									Start:      date,
-									Status:     model.StatusPlanned,
-									Owner:      h.Owner,
-								}
-
-								var t []model.Transfer
-								So(db.Select(&t, nil), ShouldBeNil)
-								So(t[0], ShouldResemble, expected)
-							})
+							var t []model.Transfer
+							So(db.Select(&t, nil), ShouldBeNil)
+							So(t[0], ShouldResemble, expected)
 						})
 					})
 				})
 
 				Convey("Given an invalid entry ID", func() {
-					id := "1000"
+					args := []string{"1000"}
 
 					Convey("When executing the command", func() {
-						err := command.Execute([]string{id})
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						err = command.Execute(params)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
+							So(err, ShouldBeError, "transfer 1000 not found")
 						})
 					})
 				})

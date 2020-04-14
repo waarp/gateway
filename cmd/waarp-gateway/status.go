@@ -54,7 +54,7 @@ func showStatus(statuses rest.Statuses, w io.Writer) {
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
 func (s *statusCommand) Execute([]string) error {
-	conn, err := url.Parse(auth.DSN)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
@@ -76,6 +76,6 @@ func (s *statusCommand) Execute([]string) error {
 		showStatus(statuses, w)
 		return nil
 	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
 }

@@ -42,26 +42,32 @@ func coloredStatus(status model.TransferStatus) string {
 			return whiteBold(string(status))
 		}
 	}()
-	return whiteBold("(") + text + whiteBold(")")
+	return whiteBold("[") + text + whiteBold("]")
 }
 
 func displayTransfer(w io.Writer, trans *rest.OutTransfer) {
-	fmt.Fprintln(w, whiteBold("● Transfer ")+whiteBoldUL(fmt.Sprint(trans.ID)), coloredStatus(trans.Status))
-	fmt.Fprintln(w, whiteBold("  -Rule:             ")+white(trans.Rule))
-	fmt.Fprintln(w, whiteBold("  -Requester:        ")+white(trans.Requester))
-	fmt.Fprintln(w, whiteBold("  -Requested:        ")+white(trans.Requested))
-	fmt.Fprintln(w, whiteBold("  -True filepath:    ")+white(trans.TrueFilepath))
-	fmt.Fprintln(w, whiteBold("  -Source file:      ")+white(trans.SourcePath))
-	fmt.Fprintln(w, whiteBold("  -Destination file: ")+white(trans.DestPath))
-	fmt.Fprintln(w, whiteBold("  -Start time:       ")+white(trans.Start.Format(time.RFC3339)))
-	fmt.Fprintln(w, whiteBold("  -Step:             ")+white(string(trans.Step)))
-	fmt.Fprintln(w, whiteBold("  -Progress:         ")+white(fmt.Sprint(trans.Progress)))
-	fmt.Fprintln(w, whiteBold("  -Task number:      ")+white(fmt.Sprint(trans.TaskNumber)))
+	role := "client"
+	if trans.IsServer {
+		role = "server"
+	}
+
+	fmt.Fprintln(w, whiteBold("● Transfer"), whiteBoldUL(fmt.Sprint(trans.ID)),
+		whiteBold("(as ", role, ")"), coloredStatus(trans.Status))
+	fmt.Fprintln(w, whiteBold("  -Rule:            "), white(trans.Rule))
+	fmt.Fprintln(w, whiteBold("  -Requester:       "), white(trans.Requester))
+	fmt.Fprintln(w, whiteBold("  -Requested:       "), white(trans.Requested))
+	fmt.Fprintln(w, whiteBold("  -True filepath:   "), white(trans.TrueFilepath))
+	fmt.Fprintln(w, whiteBold("  -Source file:     "), white(trans.SourcePath))
+	fmt.Fprintln(w, whiteBold("  -Destination file:"), white(trans.DestPath))
+	fmt.Fprintln(w, whiteBold("  -Start time:      "), white(trans.Start.Format(time.RFC3339)))
+	fmt.Fprintln(w, whiteBold("  -Step:            "), white(string(trans.Step)))
+	fmt.Fprintln(w, whiteBold("  -Progress:        "), white(fmt.Sprint(trans.Progress)))
+	fmt.Fprintln(w, whiteBold("  -Task number:     "), white(fmt.Sprint(trans.TaskNumber)))
 	if trans.ErrorCode != model.TeOk {
-		fmt.Fprintln(w, whiteBold("  -Error code:       ")+red(fmt.Sprint(trans.ErrorCode)))
+		fmt.Fprintln(w, whiteBold("  -Error code:      "), red(fmt.Sprint(trans.ErrorCode)))
 	}
 	if trans.ErrorMsg != "" {
-		fmt.Fprintln(w, whiteBold("  -Error message:    ")+red(trans.ErrorMsg))
+		fmt.Fprintln(w, whiteBold("  -Error message:   "), red(trans.ErrorMsg))
 	}
 }
 
@@ -110,7 +116,7 @@ func (t *transferAdd) Execute([]string) error {
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
 }
 
@@ -225,7 +231,7 @@ func (t *transferList) Execute([]string) error {
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
 }
 
@@ -262,7 +268,7 @@ func (t *transferPause) Execute([]string) error {
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
 }
 
@@ -299,7 +305,7 @@ func (t *transferResume) Execute([]string) error {
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
 }
 
@@ -336,6 +342,6 @@ func (t *transferCancel) Execute([]string) error {
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
 	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
 }

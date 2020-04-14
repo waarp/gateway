@@ -184,8 +184,8 @@ func TestListHistory(t *testing.T) {
 			hist3 := *FromHistory(h3)
 			hist4 := *FromHistory(h4)
 
-			Convey("Given a request with 2 valid 'account' parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, "?account=from1&account=from2", nil)
+			Convey("Given a request with 2 valid 'requester' parameter", func() {
+				req, err := http.NewRequest(http.MethodGet, "?requester=from1&requester=from2", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -210,8 +210,8 @@ func TestListHistory(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with 2 valid 'agent' parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, "?agent=to1&agent=to2", nil)
+			Convey("Given a request with 2 valid 'requested' parameter", func() {
+				req, err := http.NewRequest(http.MethodGet, "?requested=to1&requested=to2", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -391,7 +391,7 @@ func TestRestartTransfer(t *testing.T) {
 
 	Convey("Testing the transfer restart handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := restartTransfer(logger, db)
+		handler := retryTransfer(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 transfer history", func() {
