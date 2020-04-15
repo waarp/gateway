@@ -132,7 +132,7 @@ func TestAddRemoteAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the account was added", func() {
-						So(getOutput(), ShouldEqual, "The account 'login' "+
+						So(getOutput(), ShouldEqual, "The account login "+
 							"was successfully added.\n")
 					})
 
@@ -203,8 +203,8 @@ func TestDeleteRemoteAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the account was deleted", func() {
-						So(getOutput(), ShouldEqual, "The account '"+account.Login+
-							"' was successfully deleted.\n")
+						So(getOutput(), ShouldEqual, "The account "+account.Login+
+							" was successfully deleted.\n")
 					})
 
 					Convey("Then the account should have been removed", func() {
@@ -297,7 +297,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 					Convey("Then is should display a message saying the "+
 						"account was updated", func() {
-						So(getOutput(), ShouldEqual, "The account 'new_login'"+
+						So(getOutput(), ShouldEqual, "The account new_login"+
 							" was successfully updated.\n")
 					})
 
@@ -441,7 +441,7 @@ func TestListRemoteAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the partner accounts' info", func() {
-						So(getOutput(), ShouldEqual, "Accounts of partner "+partner1.Name+":\n"+
+						So(getOutput(), ShouldEqual, "Accounts of partner '"+partner1.Name+"':\n"+
 							accInfoString(a1)+accInfoString(a3))
 					})
 				})
@@ -457,7 +457,7 @@ func TestListRemoteAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the partner accounts' info", func() {
-						So(getOutput(), ShouldEqual, "Accounts of partner "+partner2.Name+":\n"+
+						So(getOutput(), ShouldEqual, "Accounts of partner '"+partner2.Name+"':\n"+
 							accInfoString(a2))
 					})
 				})
@@ -487,7 +487,7 @@ func TestListRemoteAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should only display 1 account's info", func() {
-						So(getOutput(), ShouldEqual, "Accounts of partner "+partner1.Name+":\n"+
+						So(getOutput(), ShouldEqual, "Accounts of partner '"+partner1.Name+"':\n"+
 							accInfoString(a1))
 					})
 				})
@@ -502,7 +502,7 @@ func TestListRemoteAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display all but the 1st account's info", func() {
-						So(getOutput(), ShouldEqual, "Accounts of partner "+partner1.Name+":\n"+
+						So(getOutput(), ShouldEqual, "Accounts of partner '"+partner1.Name+"':\n"+
 							accInfoString(a3))
 					})
 				})
@@ -517,7 +517,7 @@ func TestListRemoteAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the accounts' info in reverse", func() {
-						So(getOutput(), ShouldEqual, "Accounts of partner "+partner1.Name+":\n"+
+						So(getOutput(), ShouldEqual, "Accounts of partner '"+partner1.Name+"':\n"+
 							accInfoString(a3)+accInfoString(a1))
 					})
 				})

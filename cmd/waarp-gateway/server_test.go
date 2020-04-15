@@ -13,13 +13,13 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func serverInfoString(s *rest.OutLocalAgent) string {
+func serverInfoString(s *rest.OutServer) string {
 	return "● Server " + s.Name + "\n" +
-		"  -Protocol:         " + s.Protocol + "\n" +
-		"  -Root:             " + s.Root + "\n" +
-		"  -Configuration:    " + string(s.ProtoConfig) + "\n" +
-		"  -Authorized rules\n" +
-		"   ├─Sending:   " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
+		"        Protocol: " + s.Protocol + "\n" +
+		"            Root: " + s.Root + "\n" +
+		"   Configuration: " + string(s.ProtoConfig) + "\n" +
+		"   Authorized rules\n" +
+		"   ├─  Sending: " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
 		"   └─Reception: " + strings.Join(s.AuthorizedRules.Reception, ", ") + "\n"
 }
 
@@ -113,7 +113,7 @@ func TestAddServer(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the server was added", func() {
-						So(getOutput(), ShouldEqual, "The server 'server_name' "+
+						So(getOutput(), ShouldEqual, "The server server_name "+
 							"was successfully added.\n")
 					})
 
@@ -299,8 +299,8 @@ func TestDeleteServer(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the server was deleted", func() {
-						So(getOutput(), ShouldEqual, "The server '"+server.Name+
-							"' was successfully deleted.\n")
+						So(getOutput(), ShouldEqual, "The server "+server.Name+
+							" was successfully deleted.\n")
 					})
 
 					Convey("Then the server should have been removed", func() {
@@ -362,7 +362,7 @@ func TestUpdateServer(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the server was updated", func() {
-						So(getOutput(), ShouldEqual, "The server 'new_server' "+
+						So(getOutput(), ShouldEqual, "The server new_server "+
 							"was successfully updated.\n")
 					})
 

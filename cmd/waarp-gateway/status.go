@@ -22,7 +22,7 @@ func showStatus(statuses rest.Statuses, w io.Writer) {
 	var actives = make([]string, 0)
 	var offlines = make([]string, 0)
 
-	fmt.Fprintln(w, whiteBoldUL("Waarp-Gateway services:"))
+	fmt.Fprintln(w, bold("Waarp-Gateway services:"))
 	for name, status := range statuses {
 		switch status.State {
 		case service.Running.Name():
@@ -39,14 +39,14 @@ func showStatus(statuses rest.Statuses, w io.Writer) {
 	sort.Strings(offlines)
 
 	for _, name := range errors {
-		fmt.Fprintln(w, redBold("[Error]   ")+whiteBold(name)+white(" (",
-			statuses[name].Reason, ")"))
+		fmt.Fprintln(w, red("[Error]  "), bold(name), "("+
+			statuses[name].Reason+")")
 	}
 	for _, name := range actives {
-		fmt.Fprintln(w, greenBold("[Active]  ")+whiteBold(name))
+		fmt.Fprintln(w, green("[Active] "), bold(name))
 	}
 	for _, name := range offlines {
-		fmt.Fprintln(w, yellowBold("[Offline] ")+whiteBold(name))
+		fmt.Fprintln(w, yellow("[Offline]"), bold(name))
 	}
 }
 

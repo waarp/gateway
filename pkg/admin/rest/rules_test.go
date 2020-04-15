@@ -282,7 +282,7 @@ func TestUpdateRule(t *testing.T) {
 			So(db.Create(other), ShouldBeNil)
 
 			Convey("Given new values to update the rule with", func() {
-				update := InRule{
+				update := UptRule{
 					Name: "update",
 					Path: "new_path",
 				}

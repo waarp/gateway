@@ -89,8 +89,7 @@ func (r *remAccAdd) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		fmt.Fprintln(w, whiteBold("The account '")+whiteBoldUL(newAccount.Login)+
-			whiteBold("' was successfully added."))
+		fmt.Fprintln(w, "The account", bold(newAccount.Login), "was successfully added.")
 		return nil
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
@@ -127,8 +126,7 @@ func (r *remAccDelete) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusNoContent:
-		fmt.Fprintln(w, whiteBold("The account '")+whiteBoldUL(r.Args.Login)+
-			whiteBold("' was successfully deleted."))
+		fmt.Fprintln(w, "The account", bold(r.Args.Login), "was successfully deleted.")
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
@@ -170,8 +168,7 @@ func (r *remAccUpdate) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		fmt.Fprintln(w, whiteBold("The account '")+whiteBoldUL(update.Login)+
-			whiteBold("' was successfully updated."))
+		fmt.Fprintln(w, "The account", bold(update.Login), "was successfully updated.")
 		return nil
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
@@ -213,15 +210,13 @@ func (r *remAccList) Execute([]string) error {
 		}
 		accounts := body["remoteAccounts"]
 		if len(accounts) > 0 {
-			fmt.Fprintln(w, yellowBold("Accounts of partner ")+yellowBoldUL(partner)+
-				yellow(":"))
+			fmt.Fprintln(w, bold("Accounts of partner '"+partner+"':"))
 			for _, a := range accounts {
 				account := a
 				displayAccount(w, &account)
 			}
 		} else {
-			fmt.Fprintln(w, yellow("No accounts found on partner ")+yellowBoldUL(
-				partner)+yellowBoldUL("."))
+			fmt.Fprintln(w, "Partner", bold(partner), "has no accounts.")
 		}
 		return nil
 	case http.StatusBadRequest:

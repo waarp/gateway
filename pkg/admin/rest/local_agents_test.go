@@ -19,7 +19,7 @@ const localAgentsURI = "http://localhost:8080/api/servers/"
 func TestListLocalAgents(t *testing.T) {
 	logger := log.NewLogger("rest_local agent_list_test")
 
-	check := func(w *httptest.ResponseRecorder, expected map[string][]OutLocalAgent) {
+	check := func(w *httptest.ResponseRecorder, expected map[string][]OutServer) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
@@ -45,7 +45,7 @@ func TestListLocalAgents(t *testing.T) {
 		db := database.GetTestDatabase()
 		handler := listLocalAgents(logger, db)
 		w := httptest.NewRecorder()
-		expected := map[string][]OutLocalAgent{}
+		expected := map[string][]OutServer{}
 
 		Convey("Given a database with 4 local agents", func() {
 			a1 := &model.LocalAgent{
@@ -90,7 +90,7 @@ func TestListLocalAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["localAgents"] = []OutLocalAgent{agent1, agent2, agent3, agent4}
+					expected["localAgents"] = []OutServer{agent1, agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -102,7 +102,7 @@ func TestListLocalAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["localAgents"] = []OutLocalAgent{agent1}
+					expected["localAgents"] = []OutServer{agent1}
 					check(w, expected)
 				})
 			})
@@ -114,7 +114,7 @@ func TestListLocalAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["localAgents"] = []OutLocalAgent{agent2, agent3, agent4}
+					expected["localAgents"] = []OutServer{agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -126,7 +126,7 @@ func TestListLocalAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["localAgents"] = []OutLocalAgent{agent4, agent3, agent2, agent1}
+					expected["localAgents"] = []OutServer{agent4, agent3, agent2, agent1}
 					check(w, expected)
 				})
 			})
@@ -138,7 +138,7 @@ func TestListLocalAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["localAgents"] = []OutLocalAgent{agent1, agent2, agent3}
+					expected["localAgents"] = []OutServer{agent1, agent2, agent3}
 					check(w, expected)
 				})
 			})

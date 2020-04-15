@@ -27,10 +27,10 @@ func displayAccount(w io.Writer, account *rest.OutAccount) {
 	send := strings.Join(account.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(account.AuthorizedRules.Reception, ", ")
 
-	fmt.Fprintln(w, whiteBold("● Account ")+whiteBoldUL(account.Login))
-	fmt.Fprintln(w, whiteBold("  -Authorized rules"))
-	fmt.Fprintln(w, whiteBold("   ├─Sending:   ")+white(send))
-	fmt.Fprintln(w, whiteBold("   └─Reception: ")+white(recv))
+	fmt.Fprintln(w, bold("● Account", account.Login))
+	fmt.Fprintln(w, orange("   Authorized rules"))
+	fmt.Fprintln(w, orange("   ├─  Sending:"), send)
+	fmt.Fprintln(w, orange("   └─Reception:"), recv)
 }
 
 // ######################## ADD ##########################
@@ -61,8 +61,7 @@ func (l *locAccAdd) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		fmt.Fprintln(w, whiteBold("The account '")+whiteBoldUL(newAccount.Login)+
-			whiteBold("' was successfully added."))
+		fmt.Fprintln(w, "The account", bold(newAccount.Login), "was successfully added.")
 		return nil
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
@@ -146,8 +145,7 @@ func (l *locAccUpdate) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		fmt.Fprintln(w, whiteBold("The account '")+whiteBoldUL(update.Login)+
-			whiteBold("' was successfully updated."))
+		fmt.Fprintln(w, "The account", bold(update.Login), "was successfully updated.")
 		return nil
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
@@ -185,8 +183,7 @@ func (l *locAccDelete) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusNoContent:
-		fmt.Fprintln(w, whiteBold("The account '")+whiteBoldUL(l.Args.Login)+
-			whiteBold("' was successfully deleted."))
+		fmt.Fprintln(w, "The account", bold(l.Args.Login), "was successfully deleted.")
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
@@ -225,15 +222,13 @@ func (l *locAccList) Execute([]string) error {
 		}
 		accounts := body["localAccounts"]
 		if len(accounts) > 0 {
-			fmt.Fprintln(w, yellowBold("Accounts of server ")+yellowBoldUL(server)+
-				yellow(":"))
+			fmt.Fprintln(w, bold("Accounts of server '"+server+"':"))
 			for _, a := range accounts {
 				account := a
 				displayAccount(w, &account)
 			}
 		} else {
-			fmt.Fprintln(w, yellow("No accounts found on server ")+yellowBoldUL(
-				server)+yellowBoldUL("."))
+			fmt.Fprintln(w, "Server", bold(server), "has no accounts.")
 		}
 		return nil
 	case http.StatusBadRequest:

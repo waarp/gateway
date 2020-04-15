@@ -47,9 +47,9 @@ func (i *InRemoteAgent) ToModel() *model.RemoteAgent {
 	}
 }
 
-// OutLocalAgent is the JSON representation of a local agent in responses
-// sent by the REST interface.
-type OutLocalAgent struct {
+// OutServer is the JSON representation of a local server in responses sent by
+// the REST interface.
+type OutServer struct {
 	Name            string          `json:"name"`
 	Protocol        string          `json:"protocol"`
 	Root            string          `json:"root"`
@@ -59,8 +59,8 @@ type OutLocalAgent struct {
 
 // FromLocalAgent transforms the given database local agent into its JSON
 // equivalent.
-func FromLocalAgent(ag *model.LocalAgent, rules *AuthorizedRules) *OutLocalAgent {
-	return &OutLocalAgent{
+func FromLocalAgent(ag *model.LocalAgent, rules *AuthorizedRules) *OutServer {
+	return &OutServer{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
 		Root:            ag.Root,
@@ -71,10 +71,10 @@ func FromLocalAgent(ag *model.LocalAgent, rules *AuthorizedRules) *OutLocalAgent
 
 // FromLocalAgents transforms the given list of database local agents into
 // its JSON equivalent.
-func FromLocalAgents(ags []model.LocalAgent, rules []AuthorizedRules) []OutLocalAgent {
-	agents := make([]OutLocalAgent, len(ags))
+func FromLocalAgents(ags []model.LocalAgent, rules []AuthorizedRules) []OutServer {
+	agents := make([]OutServer, len(ags))
 	for i, ag := range ags {
-		agents[i] = OutLocalAgent{
+		agents[i] = OutServer{
 			Name:            ag.Name,
 			Protocol:        ag.Protocol,
 			Root:            ag.Root,
@@ -85,9 +85,9 @@ func FromLocalAgents(ags []model.LocalAgent, rules []AuthorizedRules) []OutLocal
 	return agents
 }
 
-// OutRemoteAgent is the JSON representation of a remote agent in responses
-// sent by the REST interface.
-type OutRemoteAgent struct {
+// OutPartner is the JSON representation of a remote partner in responses sent
+// by the REST interface.
+type OutPartner struct {
 	Name            string          `json:"name"`
 	Protocol        string          `json:"protocol"`
 	ProtoConfig     json.RawMessage `json:"protoConfig"`
@@ -96,8 +96,8 @@ type OutRemoteAgent struct {
 
 // FromRemoteAgent transforms the given database remote agent into its JSON
 // equivalent.
-func FromRemoteAgent(ag *model.RemoteAgent, rules *AuthorizedRules) *OutRemoteAgent {
-	return &OutRemoteAgent{
+func FromRemoteAgent(ag *model.RemoteAgent, rules *AuthorizedRules) *OutPartner {
+	return &OutPartner{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
 		ProtoConfig:     ag.ProtoConfig,
@@ -107,10 +107,10 @@ func FromRemoteAgent(ag *model.RemoteAgent, rules *AuthorizedRules) *OutRemoteAg
 
 // FromRemoteAgents transforms the given list of database remote agents into
 // its JSON equivalent.
-func FromRemoteAgents(ags []model.RemoteAgent, rules []AuthorizedRules) []OutRemoteAgent {
-	agents := make([]OutRemoteAgent, len(ags))
+func FromRemoteAgents(ags []model.RemoteAgent, rules []AuthorizedRules) []OutPartner {
+	agents := make([]OutPartner, len(ags))
 	for i, ag := range ags {
-		agents[i] = OutRemoteAgent{
+		agents[i] = OutPartner{
 			Name:            ag.Name,
 			Protocol:        ag.Protocol,
 			ProtoConfig:     ag.ProtoConfig,

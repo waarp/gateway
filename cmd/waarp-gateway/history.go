@@ -29,31 +29,30 @@ func displayHistory(w io.Writer, hist *rest.OutHistory) {
 		way = "SEND"
 	}
 
-	fmt.Fprintln(w, whiteBold("● Transfer"), whiteBoldUL(fmt.Sprint(hist.ID)),
-		whiteBold("(as ", role, ")"), coloredStatus(hist.Status))
-	fmt.Fprintln(w, whiteBold("  -Way:          "), white(way))
-	fmt.Fprintln(w, whiteBold("  -Protocol:     "), white(hist.Protocol))
-	fmt.Fprintln(w, whiteBold("  -Rule:         "), white(hist.Rule))
-	fmt.Fprintln(w, whiteBold("  -Requester:    "), white(hist.Requester))
-	fmt.Fprintln(w, whiteBold("  -Requested:    "), white(hist.Requested))
-	fmt.Fprintln(w, whiteBold("  -SrcFile:      "), white(hist.SourceFilename))
-	fmt.Fprintln(w, whiteBold("  -DestFile:     "), white(hist.DestFilename))
-	fmt.Fprintln(w, whiteBold("  -Start date:   "), white(hist.Start.Format(time.RFC3339)))
-	fmt.Fprintln(w, whiteBold("  -End date:     "), white(hist.Stop.Format(time.RFC3339)))
+	fmt.Fprintln(w, bold("● Transfer", hist.ID, "(as", role+")"), coloredStatus(hist.Status))
+	fmt.Fprintln(w, orange("                Way:"), way)
+	fmt.Fprintln(w, orange("           Protocol:"), hist.Protocol)
+	fmt.Fprintln(w, orange("               Rule:"), hist.Rule)
+	fmt.Fprintln(w, orange("          Requester:"), hist.Requester)
+	fmt.Fprintln(w, orange("          Requested:"), hist.Requested)
+	fmt.Fprintln(w, orange("        Source file:"), hist.SourceFilename)
+	fmt.Fprintln(w, orange("   Destination file:"), hist.DestFilename)
+	fmt.Fprintln(w, orange("         Start date:"), hist.Start.Format(time.RFC3339))
+	fmt.Fprintln(w, orange("           End date:"), hist.Stop.Format(time.RFC3339))
 	if hist.ErrorCode != model.TeOk {
-		fmt.Fprintln(w, whiteBold("  -Error code:   "), white(fmt.Sprint(hist.ErrorCode)))
+		fmt.Fprintln(w, orange("         Error code:"), hist.ErrorCode)
 	}
 	if hist.ErrorMsg != "" {
-		fmt.Fprintln(w, whiteBold("  -Error message:"), white(hist.ErrorMsg))
+		fmt.Fprintln(w, orange("      Error message:"), hist.ErrorMsg)
 	}
 	if hist.Step != "" {
-		fmt.Fprintln(w, whiteBold("  -Failed step:  "), white(fmt.Sprint(hist.Step)))
+		fmt.Fprintln(w, orange("        Failed step:"), hist.Step)
 	}
 	if hist.Progress != 0 {
-		fmt.Fprintln(w, whiteBold("  -Progress:     "), white(fmt.Sprint(hist.Progress)))
+		fmt.Fprintln(w, orange("           Progress:"), hist.Progress)
 	}
 	if hist.TaskNumber != 0 {
-		fmt.Fprintln(w, whiteBold("  -Task number:  "), white(fmt.Sprint(hist.TaskNumber)))
+		fmt.Fprintln(w, orange("        Task number:"), hist.TaskNumber)
 	}
 }
 
@@ -177,13 +176,13 @@ func (h *historyList) Execute([]string) error {
 		}
 		history := body["history"]
 		if len(history) > 0 {
-			fmt.Fprintln(w, yellowBold("History:"))
+			fmt.Fprintln(w, bold("History:"))
 			for _, h := range history {
 				history := h
 				displayHistory(w, &history)
 			}
 		} else {
-			fmt.Fprintln(w, yellow("No transfers found."))
+			fmt.Fprintln(w, "No transfers found.")
 		}
 		return nil
 	case http.StatusBadRequest:
@@ -234,8 +233,7 @@ func (h *historyRetry) Execute([]string) error {
 			return err
 		}
 		id := filepath.Base(loc.Path)
-		fmt.Fprintln(w, white("The transfer was successfully reprogrammed."), white(
-			"It was given the ID:"), whiteBold(id))
+		fmt.Fprintln(w, "The transfer will be retried under the ID:", bold(id))
 		return nil
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)

@@ -25,24 +25,24 @@ func coloredStatus(status model.TransferStatus) string {
 	text := func() string {
 		switch status {
 		case model.StatusPlanned:
-			return cyanBold(string(status))
+			return cyan(string(status))
 		case model.StatusRunning:
-			return cyanBold(string(status))
+			return cyan(string(status))
 		case model.StatusPaused:
-			return yellowBold(string(status))
+			return yellow(string(status))
 		case model.StatusInterrupted:
-			return yellowBold(string(status))
+			return yellow(string(status))
 		case model.StatusCancelled:
-			return redBold(string(status))
+			return red(string(status))
 		case model.StatusError:
-			return redBold(string(status))
+			return red(string(status))
 		case model.StatusDone:
-			return greenBold(string(status))
+			return green(string(status))
 		default:
-			return whiteBold(string(status))
+			return bold(string(status))
 		}
 	}()
-	return whiteBold("[") + text + whiteBold("]")
+	return bold("[") + text + bold("]")
 }
 
 func displayTransfer(w io.Writer, trans *rest.OutTransfer) {
@@ -51,23 +51,22 @@ func displayTransfer(w io.Writer, trans *rest.OutTransfer) {
 		role = "server"
 	}
 
-	fmt.Fprintln(w, whiteBold("● Transfer"), whiteBoldUL(fmt.Sprint(trans.ID)),
-		whiteBold("(as ", role, ")"), coloredStatus(trans.Status))
-	fmt.Fprintln(w, whiteBold("  -Rule:            "), white(trans.Rule))
-	fmt.Fprintln(w, whiteBold("  -Requester:       "), white(trans.Requester))
-	fmt.Fprintln(w, whiteBold("  -Requested:       "), white(trans.Requested))
-	fmt.Fprintln(w, whiteBold("  -True filepath:   "), white(trans.TrueFilepath))
-	fmt.Fprintln(w, whiteBold("  -Source file:     "), white(trans.SourcePath))
-	fmt.Fprintln(w, whiteBold("  -Destination file:"), white(trans.DestPath))
-	fmt.Fprintln(w, whiteBold("  -Start time:      "), white(trans.Start.Format(time.RFC3339)))
-	fmt.Fprintln(w, whiteBold("  -Step:            "), white(string(trans.Step)))
-	fmt.Fprintln(w, whiteBold("  -Progress:        "), white(fmt.Sprint(trans.Progress)))
-	fmt.Fprintln(w, whiteBold("  -Task number:     "), white(fmt.Sprint(trans.TaskNumber)))
+	fmt.Fprintln(w, bold("● Transfer", trans.ID, "(as "+role+")"), coloredStatus(trans.Status))
+	fmt.Fprintln(w, orange("               Rule:"), trans.Rule)
+	fmt.Fprintln(w, orange("          Requester:"), trans.Requester)
+	fmt.Fprintln(w, orange("          Requested:"), trans.Requested)
+	fmt.Fprintln(w, orange("      True filepath:"), trans.TrueFilepath)
+	fmt.Fprintln(w, orange("        Source file:"), trans.SourcePath)
+	fmt.Fprintln(w, orange("   Destination file:"), trans.DestPath)
+	fmt.Fprintln(w, orange("         Start time:"), trans.Start.Format(time.RFC3339))
+	fmt.Fprintln(w, orange("               Step:"), string(trans.Step))
+	fmt.Fprintln(w, orange("           Progress:"), trans.Progress)
+	fmt.Fprintln(w, orange("        Task number:"), trans.TaskNumber)
 	if trans.ErrorCode != model.TeOk {
-		fmt.Fprintln(w, whiteBold("  -Error code:      "), red(fmt.Sprint(trans.ErrorCode)))
+		fmt.Fprintln(w, orange("         Error code:"), fmt.Sprint(trans.ErrorCode))
 	}
 	if trans.ErrorMsg != "" {
-		fmt.Fprintln(w, whiteBold("  -Error message:   "), red(trans.ErrorMsg))
+		fmt.Fprintln(w, orange("      Error message:"), trans.ErrorMsg)
 	}
 }
 
@@ -110,8 +109,7 @@ func (t *transferAdd) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		fmt.Fprintln(w, whiteBold("The transfer of file '")+whiteBoldUL(t.File)+
-			whiteBold("' was successfully added."))
+		fmt.Fprintln(w, "The transfer of file", t.File, "was successfully added.")
 		return nil
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
@@ -219,13 +217,13 @@ func (t *transferList) Execute([]string) error {
 		}
 		transfers := body["transfers"]
 		if len(transfers) > 0 {
-			fmt.Fprintln(w, yellowBold("Transfers:"))
+			fmt.Fprintln(w, bold("Transfers:"))
 			for _, t := range transfers {
 				transfer := t
 				displayTransfer(w, &transfer)
 			}
 		} else {
-			fmt.Fprintln(w, yellow("No transfers found."))
+			fmt.Fprintln(w, "No transfers found.")
 		}
 		return nil
 	case http.StatusBadRequest:
@@ -260,8 +258,8 @@ func (t *transferPause) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusAccepted:
-		fmt.Fprintln(w, whiteBold("The transfer ")+whiteBoldUL(id)+whiteBold(
-			" was successfully paused. It can be resumed using the 'resume' command."))
+		fmt.Fprintln(w, "The transfer", bold(id), "was successfully paused.",
+			"It can be resumed using the 'resume' command.")
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
@@ -297,8 +295,7 @@ func (t *transferResume) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusAccepted:
-		fmt.Fprintln(w, whiteBold("The transfer ")+whiteBoldUL(id)+
-			whiteBold(" was successfully resumed."))
+		fmt.Fprintln(w, "The transfer", bold(id), "was successfully resumed.")
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
@@ -334,8 +331,7 @@ func (t *transferCancel) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusAccepted:
-		fmt.Fprintln(w, whiteBold("The transfer ")+whiteBoldUL(id)+whiteBold(
-			" was successfully cancelled. It was moved to the transfer history."))
+		fmt.Fprintln(w, "The transfer", bold(id), "was successfully cancelled.")
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)

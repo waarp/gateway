@@ -19,17 +19,17 @@ type serverCommand struct {
 	Update serverUpdate `command:"update" description:"Modify a server's information"`
 }
 
-func displayLocalAgent(w io.Writer, agent *rest.OutLocalAgent) {
-	send := strings.Join(agent.AuthorizedRules.Sending, ", ")
-	recv := strings.Join(agent.AuthorizedRules.Reception, ", ")
+func displayServer(w io.Writer, server *rest.OutServer) {
+	send := strings.Join(server.AuthorizedRules.Sending, ", ")
+	recv := strings.Join(server.AuthorizedRules.Reception, ", ")
 
-	fmt.Fprintln(w, whiteBold("● Server ")+whiteBoldUL(agent.Name))
-	fmt.Fprintln(w, whiteBold("  -Protocol:         ")+yellow(agent.Protocol))
-	fmt.Fprintln(w, whiteBold("  -Root:             ")+white(agent.Root))
-	fmt.Fprintln(w, whiteBold("  -Configuration:    ")+white(string(agent.ProtoConfig)))
-	fmt.Fprintln(w, whiteBold("  -Authorized rules"))
-	fmt.Fprintln(w, whiteBold("   ├─Sending:   ")+white(send))
-	fmt.Fprintln(w, whiteBold("   └─Reception: ")+white(recv))
+	fmt.Fprintln(w, bold("● Server", server.Name))
+	fmt.Fprintln(w, bold("        Protocol:"), server.Protocol)
+	fmt.Fprintln(w, bold("            Root:"), server.Root)
+	fmt.Fprintln(w, bold("   Configuration:"), string(server.ProtoConfig))
+	fmt.Fprintln(w, bold("   Authorized rules"))
+	fmt.Fprintln(w, bold("   ├─  Sending:"), send)
+	fmt.Fprintln(w, bold("   └─Reception:"), recv)
 }
 
 // ######################## GET ##########################
@@ -57,11 +57,11 @@ func (s *serverGet) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusOK:
-		server := &rest.OutLocalAgent{}
+		server := &rest.OutServer{}
 		if err := unmarshalBody(resp.Body, server); err != nil {
 			return err
 		}
-		displayLocalAgent(w, server)
+		displayServer(w, server)
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
@@ -80,7 +80,7 @@ type serverAdd struct {
 }
 
 func (s *serverAdd) Execute([]string) error {
-	newAgent := &rest.InLocalAgent{
+	server := &rest.InLocalAgent{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
 		Root:        s.Root,
@@ -93,7 +93,7 @@ func (s *serverAdd) Execute([]string) error {
 	}
 	conn.Path = admin.APIPath + rest.LocalAgentsPath
 
-	resp, err := sendRequest(conn, newAgent, http.MethodPost)
+	resp, err := sendRequest(conn, server, http.MethodPost)
 	if err != nil {
 		return err
 	}
@@ -102,8 +102,7 @@ func (s *serverAdd) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		fmt.Fprintln(w, whiteBold("The server '")+whiteBoldUL(newAgent.Name)+
-			whiteBold("' was successfully added."))
+		fmt.Fprintln(w, "The server", bold(server.Name), "was successfully added.")
 		return nil
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
@@ -136,8 +135,7 @@ func (s *serverDelete) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusNoContent:
-		fmt.Fprintln(w, whiteBold("The server '")+whiteBoldUL(s.Args.Name)+
-			whiteBold("' was successfully deleted."))
+		fmt.Fprintln(w, "The server", bold(s.Args.Name), "was successfully deleted.")
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
@@ -170,19 +168,19 @@ func (s *serverList) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusOK:
-		body := map[string][]rest.OutLocalAgent{}
+		body := map[string][]rest.OutServer{}
 		if err := unmarshalBody(resp.Body, &body); err != nil {
 			return err
 		}
 		servers := body["localAgents"]
 		if len(servers) > 0 {
-			fmt.Fprintln(w, yellowBold("Servers:"))
+			fmt.Fprintln(w, bold("Servers:"))
 			for _, s := range servers {
 				server := s
-				displayLocalAgent(w, &server)
+				displayServer(w, &server)
 			}
 		} else {
-			fmt.Fprintln(w, yellow("No servers found."))
+			fmt.Fprintln(w, "No servers found.")
 		}
 		return nil
 	case http.StatusBadRequest:
@@ -227,8 +225,7 @@ func (s *serverUpdate) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		fmt.Fprintln(w, whiteBold("The server '")+whiteBoldUL(update.Name)+
-			whiteBold("' was successfully updated."))
+		fmt.Fprintln(w, "The server", bold(update.Name), "was successfully updated.")
 		return nil
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)

@@ -19,7 +19,7 @@ const remoteAgentsURI = "http://localhost:8080/api/partners/"
 func TestListRemoteAgents(t *testing.T) {
 	logger := log.NewLogger("rest_remote agent_list_test")
 
-	check := func(w *httptest.ResponseRecorder, expected map[string][]OutRemoteAgent) {
+	check := func(w *httptest.ResponseRecorder, expected map[string][]OutPartner) {
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
@@ -45,7 +45,7 @@ func TestListRemoteAgents(t *testing.T) {
 		db := database.GetTestDatabase()
 		handler := listRemoteAgents(logger, db)
 		w := httptest.NewRecorder()
-		expected := map[string][]OutRemoteAgent{}
+		expected := map[string][]OutPartner{}
 
 		Convey("Given a database with 4 remote agents", func() {
 			a1 := &model.RemoteAgent{
@@ -86,7 +86,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["partners"] = []OutRemoteAgent{agent1, agent2, agent3, agent4}
+					expected["partners"] = []OutPartner{agent1, agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -98,7 +98,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["partners"] = []OutRemoteAgent{agent1}
+					expected["partners"] = []OutPartner{agent1}
 					check(w, expected)
 				})
 			})
@@ -110,7 +110,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["partners"] = []OutRemoteAgent{agent2, agent3, agent4}
+					expected["partners"] = []OutPartner{agent2, agent3, agent4}
 					check(w, expected)
 				})
 			})
@@ -122,7 +122,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["partners"] = []OutRemoteAgent{agent4, agent3, agent2, agent1}
+					expected["partners"] = []OutPartner{agent4, agent3, agent2, agent1}
 					check(w, expected)
 				})
 			})
@@ -134,7 +134,7 @@ func TestListRemoteAgents(t *testing.T) {
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
-					expected["partners"] = []OutRemoteAgent{agent1, agent2, agent3}
+					expected["partners"] = []OutPartner{agent1, agent2, agent3}
 					check(w, expected)
 				})
 			})

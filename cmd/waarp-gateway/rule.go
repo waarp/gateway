@@ -3,71 +3,108 @@ package main
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
+	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 )
 
 type ruleCommand struct {
-	Get    ruleGetCommand    `command:"get" description:"Retrieve a rule's information"`
-	Add    ruleAddCommand    `command:"add" description:"Add a new rule"`
-	Delete ruleDeleteCommand `command:"delete" description:"Delete a rule"`
-	List   ruleListCommand   `command:"list" description:"List the known rules"`
-	//Access ruleAccessCommand `command:"access" description:"Manage the permissions for a rule"`
+	Get    ruleGet    `command:"get" description:"Retrieve a rule's information"`
+	Add    ruleAdd    `command:"add" description:"Add a new rule"`
+	Delete ruleDelete `command:"delete" description:"Delete a rule"`
+	List   ruleList   `command:"list" description:"List the known rules"`
+	Update ruleUpdate `command:"update" description:"Update an existing rule"`
+	//Access ruleAccess `command:"access" description:"Manage the permissions for a rule"`
 	Tasks ruleTasksCommand `command:"tasks" description:"Manage the rule's task chain"`
 }
 
-func displayRule(w io.Writer, rule rest.OutRule) {
-	fmt.Fprintf(w, "\033[97;1m● Rule %s\033[0m\n", rule.Name)
-	fmt.Fprintf(w, "  \033[97m-Comment :\033[0m \033[97m%s\033[0m\n", rule.Comment)
-	fmt.Fprintf(w, "  \033[97m-Path    :\033[0m \033[97m%v\033[0m\n", rule.Path)
-	fmt.Fprintf(w, "  \033[97m-InPath  :\033[0m \033[97m%v\033[0m\n", rule.InPath)
-	fmt.Fprintf(w, "  \033[97m-OutPath :\033[0m \033[97m%v\033[0m\n", rule.OutPath)
+func displayRule(w io.Writer, rule *rest.OutRule) {
+	way := "RECEIVE"
 	if rule.IsSend {
-		fmt.Fprint(w, "  \033[97m-Direction:\033[0m \033[97mSEND\033[0m\n")
-	} else {
-		fmt.Fprint(w, "  \033[97m-Direction:\033[0m \033[97mRECEIVE\033[0m\n")
+		way = "SEND"
 	}
+
+	servers := strings.Join(rule.Authorized.LocalServers, ", ")
+	partners := strings.Join(rule.Authorized.RemotePartners, ", ")
+	la := []string{}
+	for server, accounts := range rule.Authorized.LocalAccounts {
+		for _, account := range accounts {
+			la = append(la, fmt.Sprint(server, ".", account))
+		}
+	}
+	ra := []string{}
+	for partner, accounts := range rule.Authorized.RemoteAccounts {
+		for _, account := range accounts {
+			ra = append(ra, fmt.Sprint(partner, ".", account))
+		}
+	}
+	locAcc := strings.Join(la, ", ")
+	remAcc := strings.Join(ra, ", ")
+
+	fmt.Fprintln(w, bold("● Rule", rule.Name, "("+way+")"))
+	fmt.Fprintln(w, orange("   Comment:"), rule.Comment)
+	fmt.Fprintln(w, orange("      Path:"), rule.Path)
+	fmt.Fprintln(w, orange("    InPath:"), rule.InPath)
+	fmt.Fprintln(w, orange("   OutPath:"), rule.OutPath)
+	fmt.Fprintln(w, orange("   Authorized agents"))
+	fmt.Fprintln(w, orange("   ├─         Servers:"), servers)
+	fmt.Fprintln(w, orange("   ├─        Partners:"), partners)
+	fmt.Fprintln(w, orange("   ├─ Server accounts:"), locAcc)
+	fmt.Fprintln(w, orange("   └─Partner accounts:"), remAcc)
 }
 
 // ######################## GET ##########################
 
-type ruleGetCommand struct{}
+type ruleGet struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
 
-func (r *ruleGetCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing rule ID")
-	}
-
-	res := rest.OutRule{}
-	conn, err := url.Parse(auth.DSN)
+func (r *ruleGet) Execute([]string) error {
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.RulesPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name
 
-	if err := getCommand(&res, conn); err != nil {
+	resp, err := sendRequest(conn, nil, http.MethodGet)
+	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
-	displayRule(getColorable(), res)
-
-	return nil
+	w := getColorable()
+	switch resp.StatusCode {
+	case http.StatusOK:
+		rule := &rest.OutRule{}
+		if err := unmarshalBody(resp.Body, rule); err != nil {
+			return err
+		}
+		displayRule(w, rule)
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
+	}
 }
 
 // ######################## ADD ##########################
 
-type ruleAddCommand struct {
+type ruleAdd struct {
 	Name      string `required:"true" short:"n" long:"name" description:"The rule's name"`
 	Comment   string `short:"c" long:"comment" description:"A short comment describing the rule"`
 	Direction string `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"SEND" choice:"RECEIVE"`
 	Path      string `required:"true" short:"p" long:"path" description:"The path used to identify the rule"`
-	InPath    string `required:"true" short:"i" long:"in_path" description:"The path to the source of the file"`
-	OutPath   string `required:"true" short:"o" long:"out_path" description:"The path to the destination of the file"`
+	InPath    string `short:"i" long:"in_path" description:"The path to the source of the file"`
+	OutPath   string `short:"o" long:"out_path" description:"The path to the destination of the file"`
 }
 
-func (r *ruleAddCommand) Execute([]string) error {
+func (r *ruleAdd) Execute([]string) error {
 	rule := rest.InRule{
 		Name:    r.Name,
 		Comment: r.Comment,
@@ -75,78 +112,152 @@ func (r *ruleAddCommand) Execute([]string) error {
 		Path:    r.Path,
 	}
 
-	conn, err := url.Parse(auth.DSN)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
 	conn.Path = admin.APIPath + rest.RulesPath
 
-	loc, err := addCommand(rule, conn)
+	resp, err := sendRequest(conn, rule, http.MethodPost)
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	w := getColorable()
-	fmt.Fprintf(w, "The rule \033[33m'%s'\033[0m was successfully added. "+
-		"It can be consulted at the address: \033[37m%s\033[0m\n", rule.Name, loc)
-
-	return nil
+	switch resp.StatusCode {
+	case http.StatusCreated:
+		fmt.Fprintln(w, "The rule", bold(rule.Name), "was successfully added.")
+		return nil
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	}
 }
 
 // ######################## DELETE ##########################
 
-type ruleDeleteCommand struct{}
+type ruleDelete struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
 
-func (r *ruleDeleteCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing rule ID")
-	}
-
-	conn, err := url.Parse(auth.DSN)
+func (r *ruleDelete) Execute([]string) error {
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.RulesPath + "/" + args[0]
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name
 
-	if err := deleteCommand(conn); err != nil {
+	resp, err := sendRequest(conn, nil, http.MethodDelete)
+	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	w := getColorable()
-	fmt.Fprintf(w, "The rule n°\033[33m%s\033[0m was successfully deleted from "+
-		"the database\n", args[0])
-
-	return nil
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		fmt.Fprintln(w, "The rule", bold(r.Args.Name), "was successfully deleted.")
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
+	}
 }
 
 // ######################## LIST ##########################
 
-type ruleListCommand struct {
+type ruleList struct {
 	listOptions
-	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name" default:"name"`
+	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" default:"name+"`
 }
 
-func (r *ruleListCommand) Execute([]string) error {
+func (r *ruleList) Execute([]string) error {
 	conn, err := listURL(rest.RulesPath, &r.listOptions, r.SortBy)
 	if err != nil {
 		return err
 	}
 
-	res := map[string][]rest.OutRule{}
-	if err := getCommand(&res, conn); err != nil {
+	resp, err := sendRequest(conn, nil, http.MethodGet)
+	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	w := getColorable()
-	rules := res["rules"]
-	if len(rules) > 0 {
-		fmt.Fprintf(w, "\033[33;1mRules:\033[0m\n")
-		for _, rule := range rules {
-			displayRule(w, rule)
+	switch resp.StatusCode {
+	case http.StatusOK:
+		body := map[string][]rest.OutRule{}
+		if err := unmarshalBody(resp.Body, &body); err != nil {
+			return err
 		}
-	} else {
-		fmt.Fprintln(w, "\033[31mNo rules found\033[0m")
+		rules := body["rules"]
+		if len(rules) > 0 {
+			fmt.Fprintln(w, bold("Rules:"))
+			for _, r := range rules {
+				rule := r
+				displayRule(w, &rule)
+			}
+		} else {
+			fmt.Fprintln(w, "No rules found.")
+		}
+		return nil
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	}
+}
+
+// ######################## UPDATE ##########################
+
+type ruleUpdate struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
+	} `positional-args:"yes"`
+	Name    string `short:"n" long:"name" description:"The rule's name"`
+	Comment string `short:"c" long:"comment" description:"A short comment describing the rule"`
+	Path    string `short:"p" long:"path" description:"The path used to identify the rule"`
+	InPath  string `short:"i" long:"in_path" description:"The path to the source of the file"`
+	OutPath string `short:"o" long:"out_path" description:"The path to the destination of the file"`
+}
+
+func (r *ruleUpdate) Execute([]string) error {
+	update := rest.UptRule{
+		Name:    r.Name,
+		Comment: r.Comment,
+		Path:    r.Path,
+		InPath:  r.InPath,
+		OutPath: r.OutPath,
 	}
 
-	return nil
+	conn, err := url.Parse(commandLine.Args.Address)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name
+
+	resp, err := sendRequest(conn, update, http.MethodPut)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	w := getColorable()
+	switch resp.StatusCode {
+	case http.StatusCreated:
+		fmt.Fprintln(w, "The rule", bold(update.Name), "was successfully updated.")
+		return nil
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
+			getResponseMessage(resp).Error())
+	}
 }

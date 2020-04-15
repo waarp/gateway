@@ -81,7 +81,7 @@ func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutRemoteAgent{"partners": FromRemoteAgents(results, rules)}
+			resp := map[string][]OutPartner{"partners": FromRemoteAgents(results, rules)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {

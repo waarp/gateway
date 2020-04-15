@@ -16,42 +16,26 @@ func getColorable() io.Writer {
 	return colorable.NewNonColorable(out)
 }
 
-func whiteBold(text ...string) string {
-	return fmt.Sprintf("\033[37;1m%s\033[0m", strings.Join(text, ""))
+func bold(a ...interface{}) string {
+	return fmt.Sprintf("\033[1m%s\033[0m", strings.TrimSuffix(fmt.Sprintln(a...), "\n"))
 }
 
-func whiteBoldUL(text ...string) string {
-	return fmt.Sprintf("\033[37;1;4m%s\033[0m", strings.Join(text, ""))
+func orange(a ...interface{}) string {
+	return fmt.Sprintf("\033[33m%s\033[0m", strings.TrimSuffix(fmt.Sprintln(a...), "\n"))
 }
 
-func white(text ...string) string {
-	return fmt.Sprintf("\033[37m%s\033[0m", strings.Join(text, ""))
+func yellow(a ...interface{}) string {
+	return fmt.Sprintf("\033[93m%s\033[0m", strings.TrimSuffix(fmt.Sprintln(a...), "\n"))
 }
 
-func yellow(text ...string) string {
-	return fmt.Sprintf("\033[33m%s\033[0m", strings.Join(text, ""))
+func red(a ...interface{}) string {
+	return fmt.Sprintf("\033[31m%s\033[0m", strings.TrimSuffix(fmt.Sprintln(a...), "\n"))
 }
 
-func yellowBold(text ...string) string {
-	return fmt.Sprintf("\033[33;1m%s\033[0m", strings.Join(text, ""))
+func green(a ...interface{}) string {
+	return fmt.Sprintf("\033[32m%s\033[0m", strings.TrimSuffix(fmt.Sprintln(a...), "\n"))
 }
 
-func yellowBoldUL(text ...string) string {
-	return fmt.Sprintf("\033[33;1;4m%s\033[0m", strings.Join(text, ""))
-}
-
-func red(text ...string) string {
-	return fmt.Sprintf("\033[31m%s\033[0m", strings.Join(text, ""))
-}
-
-func redBold(text ...string) string {
-	return fmt.Sprintf("\033[31;1m%s\033[0m", strings.Join(text, ""))
-}
-
-func greenBold(text ...string) string {
-	return fmt.Sprintf("\033[32;1m%s\033[0m", strings.Join(text, ""))
-}
-
-func cyanBold(text ...string) string {
-	return fmt.Sprintf("\033[36;1m%s\033[0m", strings.Join(text, ""))
+func cyan(a ...interface{}) string {
+	return fmt.Sprintf("\033[36m%s\033[0m", strings.TrimSuffix(fmt.Sprintln(a...), "\n"))
 }

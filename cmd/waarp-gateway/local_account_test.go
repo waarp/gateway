@@ -16,8 +16,8 @@ import (
 
 func accInfoString(a *rest.OutAccount) string {
 	return "● Account " + a.Login + "\n" +
-		"  -Authorized rules\n" +
-		"   ├─Sending:   " + strings.Join(a.AuthorizedRules.Sending, ", ") + "\n" +
+		"   Authorized rules\n" +
+		"   ├─  Sending: " + strings.Join(a.AuthorizedRules.Sending, ", ") + "\n" +
 		"   └─Reception: " + strings.Join(a.AuthorizedRules.Reception, ", ") + "\n"
 }
 
@@ -141,7 +141,7 @@ func TestAddLocalAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the server was added", func() {
-						So(getOutput(), ShouldEqual, "The account 'login' "+
+						So(getOutput(), ShouldEqual, "The account login "+
 							"was successfully added.\n")
 					})
 
@@ -210,8 +210,8 @@ func TestDeleteLocalAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the account was deleted", func() {
-						So(getOutput(), ShouldEqual, "The account '"+account.Login+
-							"' was successfully deleted.\n")
+						So(getOutput(), ShouldEqual, "The account "+account.Login+
+							" was successfully deleted.\n")
 					})
 
 					Convey("Then the account should have been removed", func() {
@@ -304,7 +304,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 					Convey("Then is should display a message saying the "+
 						"account was updated", func() {
-						So(getOutput(), ShouldEqual, "The account 'new_login'"+
+						So(getOutput(), ShouldEqual, "The account new_login"+
 							" was successfully updated.\n")
 					})
 
@@ -442,7 +442,7 @@ func TestListLocalAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the server accounts' info", func() {
-						So(getOutput(), ShouldEqual, "Accounts of server "+server1.Name+":\n"+
+						So(getOutput(), ShouldEqual, "Accounts of server '"+server1.Name+"':\n"+
 							accInfoString(a1)+accInfoString(a3))
 					})
 				})
@@ -458,7 +458,7 @@ func TestListLocalAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the server accounts' info", func() {
-						So(getOutput(), ShouldEqual, "Accounts of server "+server2.Name+":\n"+
+						So(getOutput(), ShouldEqual, "Accounts of server '"+server2.Name+"':\n"+
 							accInfoString(a2))
 					})
 				})
@@ -488,7 +488,7 @@ func TestListLocalAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should only display 1 account's info", func() {
-						So(getOutput(), ShouldEqual, "Accounts of server "+server1.Name+":\n"+
+						So(getOutput(), ShouldEqual, "Accounts of server '"+server1.Name+"':\n"+
 							accInfoString(a1))
 					})
 				})
@@ -503,7 +503,7 @@ func TestListLocalAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display all but the 1st account's info", func() {
-						So(getOutput(), ShouldEqual, "Accounts of server "+server1.Name+":\n"+
+						So(getOutput(), ShouldEqual, "Accounts of server '"+server1.Name+"':\n"+
 							accInfoString(a3))
 					})
 				})
@@ -518,7 +518,7 @@ func TestListLocalAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the accounts' info in reverse", func() {
-						So(getOutput(), ShouldEqual, "Accounts of server "+server1.Name+":\n"+
+						So(getOutput(), ShouldEqual, "Accounts of server '"+server1.Name+"':\n"+
 							accInfoString(a3)+accInfoString(a1))
 					})
 				})

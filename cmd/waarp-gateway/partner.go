@@ -20,16 +20,16 @@ type partnerCommand struct {
 	Update partnerUpdate `command:"update" description:"Update an existing partner"`
 }
 
-func displayRemoteAgent(w io.Writer, agent *rest.OutRemoteAgent) {
-	send := strings.Join(agent.AuthorizedRules.Sending, ", ")
-	recv := strings.Join(agent.AuthorizedRules.Reception, ", ")
+func displayPartner(w io.Writer, partner *rest.OutPartner) {
+	send := strings.Join(partner.AuthorizedRules.Sending, ", ")
+	recv := strings.Join(partner.AuthorizedRules.Reception, ", ")
 
-	fmt.Fprintln(w, whiteBold("● Partner ")+whiteBoldUL(agent.Name))
-	fmt.Fprintln(w, whiteBold("  -Protocol:         ")+yellow(agent.Protocol))
-	fmt.Fprintln(w, whiteBold("  -Configuration:    ")+white(string(agent.ProtoConfig)))
-	fmt.Fprintln(w, whiteBold("  -Authorized rules"))
-	fmt.Fprintln(w, whiteBold("   ├─Sending:   ")+white(send))
-	fmt.Fprintln(w, whiteBold("   └─Reception: ")+white(recv))
+	fmt.Fprintln(w, bold("● Partner", partner.Name))
+	fmt.Fprintln(w, orange("        Protocol:"), partner.Protocol)
+	fmt.Fprintln(w, orange("   Configuration:"), string(partner.ProtoConfig))
+	fmt.Fprintln(w, orange("   Authorized rules"))
+	fmt.Fprintln(w, orange("   ├─Sending:  "), send)
+	fmt.Fprintln(w, orange("   └─Reception:"), recv)
 }
 
 // ######################## ADD ##########################
@@ -62,8 +62,7 @@ func (p *partnerAdd) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		fmt.Fprintln(w, whiteBold("The partner '")+whiteBoldUL(newAgent.Name)+
-			whiteBold("' was successfully added."))
+		fmt.Fprintln(w, "The partner", bold(newAgent.Name), "was successfully added.")
 		return nil
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
@@ -96,19 +95,19 @@ func (p *partnerList) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusOK:
-		body := map[string][]rest.OutRemoteAgent{}
+		body := map[string][]rest.OutPartner{}
 		if err := unmarshalBody(resp.Body, &body); err != nil {
 			return err
 		}
 		partners := body["partners"]
 		if len(partners) > 0 {
-			fmt.Fprintln(w, yellowBold("Partners:"))
+			fmt.Fprintln(w, bold("Partners:"))
 			for _, p := range partners {
 				partner := p
-				displayRemoteAgent(w, &partner)
+				displayPartner(w, &partner)
 			}
 		} else {
-			fmt.Fprintln(w, yellow("No partners found."))
+			fmt.Fprintln(w, "No partners found.")
 		}
 		return nil
 	case http.StatusBadRequest:
@@ -143,11 +142,11 @@ func (p *partnerGet) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusOK:
-		partner := &rest.OutRemoteAgent{}
+		partner := &rest.OutPartner{}
 		if err := unmarshalBody(resp.Body, partner); err != nil {
 			return err
 		}
-		displayRemoteAgent(w, partner)
+		displayPartner(w, partner)
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
@@ -180,8 +179,7 @@ func (p *partnerDelete) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusNoContent:
-		fmt.Fprintln(w, whiteBold("The partner '")+whiteBoldUL(p.Args.Name)+
-			whiteBold("' was successfully deleted from the database."))
+		fmt.Fprintln(w, "The partner", bold(p.Args.Name), "was successfully deleted.")
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
@@ -223,8 +221,7 @@ func (p *partnerUpdate) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		fmt.Fprintln(w, whiteBold("The partner '")+whiteBoldUL(update.Name)+
-			whiteBold("' was successfully updated."))
+		fmt.Fprintln(w, "The partner", bold(update.Name), "was successfully updated.")
 		return nil
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)

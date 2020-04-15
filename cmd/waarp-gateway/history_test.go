@@ -25,29 +25,29 @@ func historyInfoString(h *rest.OutHistory) string {
 		way = "SEND"
 	}
 	rv := "● Transfer " + fmt.Sprint(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n" +
-		"  -Way:           " + way + "\n" +
-		"  -Protocol:      " + h.Protocol + "\n" +
-		"  -Rule:          " + h.Rule + "\n" +
-		"  -Requester:     " + h.Requester + "\n" +
-		"  -Requested:     " + h.Requested + "\n" +
-		"  -SrcFile:       " + h.SourceFilename + "\n" +
-		"  -DestFile:      " + h.DestFilename + "\n" +
-		"  -Start date:    " + h.Start.Local().Format(time.RFC3339) + "\n" +
-		"  -End date:      " + h.Stop.Local().Format(time.RFC3339) + "\n"
+		"                Way: " + way + "\n" +
+		"           Protocol: " + h.Protocol + "\n" +
+		"               Rule: " + h.Rule + "\n" +
+		"          Requester: " + h.Requester + "\n" +
+		"          Requested: " + h.Requested + "\n" +
+		"        Source file: " + h.SourceFilename + "\n" +
+		"   Destination file: " + h.DestFilename + "\n" +
+		"         Start date: " + h.Start.Local().Format(time.RFC3339) + "\n" +
+		"           End date: " + h.Stop.Local().Format(time.RFC3339) + "\n"
 	if h.ErrorCode != model.TeOk {
-		rv += "  -Error code:    " + h.ErrorCode.String() + "\n"
+		rv += "         Error code: " + h.ErrorCode.String() + "\n"
 	}
 	if h.ErrorMsg != "" {
-		rv += "  -Error message: " + h.ErrorMsg + "\n"
+		rv += "      Error message: " + h.ErrorMsg + "\n"
 	}
 	if h.Step != "" {
-		rv += "  -Failed step:   " + string(h.Step) + "\n"
+		rv += "        Failed step: " + string(h.Step) + "\n"
 	}
 	if h.Progress != 0 {
-		rv += "  -Progress:      " + fmt.Sprint(h.Progress) + "\n"
+		rv += "           Progress: " + fmt.Sprint(h.Progress) + "\n"
 	}
 	if h.TaskNumber != 0 {
-		rv += "  -Task number:   " + fmt.Sprint(h.TaskNumber) + "\n"
+		rv += "        Task number: " + fmt.Sprint(h.TaskNumber) + "\n"
 	}
 
 	return rv
@@ -541,8 +541,8 @@ func TestRetryHistory(t *testing.T) {
 						So(command.Execute(params), ShouldBeNil)
 
 						Convey("Then is should display a message saying the transfer was restarted", func() {
-							So(getOutput(), ShouldEqual, "The transfer was "+
-								"successfully reprogrammed. It was given the ID: 1\n")
+							So(getOutput(), ShouldEqual, "The transfer will be "+
+								"retried under the ID: 1\n")
 						})
 
 						Convey("Then the transfer should have been added", func() {

@@ -13,11 +13,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func partnerInfoString(p *rest.OutRemoteAgent) string {
+func partnerInfoString(p *rest.OutPartner) string {
 	return "● Partner " + p.Name + "\n" +
-		"  -Protocol:         " + p.Protocol + "\n" +
-		"  -Configuration:    " + string(p.ProtoConfig) + "\n" +
-		"  -Authorized rules\n" +
+		"        Protocol: " + p.Protocol + "\n" +
+		"   Configuration: " + string(p.ProtoConfig) + "\n" +
+		"   Authorized rules\n" +
 		"   ├─Sending:   " + strings.Join(p.AuthorizedRules.Sending, ", ") + "\n" +
 		"   └─Reception: " + strings.Join(p.AuthorizedRules.Reception, ", ") + "\n"
 }
@@ -111,8 +111,8 @@ func TestAddPartner(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the partner was added", func() {
-						So(getOutput(), ShouldEqual, "The partner '"+command.Name+
-							"' was successfully added.\n")
+						So(getOutput(), ShouldEqual, "The partner "+command.Name+
+							" was successfully added.\n")
 					})
 
 					Convey("Then the new partner should have been added", func() {
@@ -294,8 +294,8 @@ func TestDeletePartner(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the partner was deleted", func() {
-						So(getOutput(), ShouldEqual, "The partner '"+partner.Name+
-							"' was successfully deleted from the database.\n")
+						So(getOutput(), ShouldEqual, "The partner "+partner.Name+
+							" was successfully deleted.\n")
 					})
 
 					Convey("Then the partner should have been removed", func() {
@@ -358,7 +358,7 @@ func TestUpdatePartner(t *testing.T) {
 
 					Convey("Then is should display a message saying the "+
 						"partner was updated", func() {
-						So(getOutput(), ShouldEqual, "The partner 'new_partner' "+
+						So(getOutput(), ShouldEqual, "The partner new_partner "+
 							"was successfully updated.\n")
 					})
 

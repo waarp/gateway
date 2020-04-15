@@ -19,7 +19,7 @@ type userCommand struct {
 }
 
 func displayUser(w io.Writer, user *rest.OutUser) {
-	fmt.Fprintln(w, whiteBold("● User ")+whiteBoldUL(user.Username))
+	fmt.Fprintln(w, bold("● User", user.Username))
 }
 
 // ######################## ADD ##########################
@@ -50,8 +50,7 @@ func (u *userAdd) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		fmt.Fprintln(w, whiteBold("The user '")+whiteBoldUL(newUser.Username)+
-			whiteBold("' was successfully added."))
+		fmt.Fprintln(w, "The user", bold(newUser.Username), "was successfully added.")
 		return nil
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
@@ -127,8 +126,7 @@ func (u *userUpdate) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		fmt.Fprintln(w, whiteBold("The user '")+whiteBoldUL(update.Username)+
-			whiteBold("' was successfully updated."))
+		fmt.Fprintln(w, "The user", bold(update.Username), "was successfully updated.")
 		return nil
 	case http.StatusBadRequest:
 		return getResponseMessage(resp)
@@ -164,8 +162,7 @@ func (u *userDelete) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusNoContent:
-		fmt.Fprintln(w, whiteBold("The user '")+whiteBoldUL(u.Args.Username)+
-			whiteBold("' was successfully deleted."))
+		fmt.Fprintln(w, "The user", bold(u.Args.Username), "was successfully deleted.")
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
@@ -202,13 +199,13 @@ func (u *userList) Execute([]string) error {
 		}
 		users := body["users"]
 		if len(users) > 0 {
-			fmt.Fprintln(w, yellowBold("Users:"))
+			fmt.Fprintln(w, bold("Users:"))
 			for _, u := range users {
 				user := u
 				displayUser(w, &user)
 			}
 		} else {
-			fmt.Fprintln(w, yellow("No users found."))
+			fmt.Fprintln(w, "No users found.")
 		}
 		return nil
 	case http.StatusBadRequest:

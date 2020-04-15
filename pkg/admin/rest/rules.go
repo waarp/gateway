@@ -7,7 +7,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"github.com/go-xorm/builder"
 	"github.com/gorilla/mux"
 )
 
@@ -28,6 +27,27 @@ func (i *InRule) ToModel() *model.Rule {
 		Name:    i.Name,
 		Comment: i.Comment,
 		IsSend:  i.IsSend,
+		Path:    i.Path,
+		InPath:  i.InPath,
+		OutPath: i.OutPath,
+	}
+}
+
+// UptRule is the JSON representation of a transfer rule in updated requests made to
+// the REST interface.
+type UptRule struct {
+	Name    string `json:"name"`
+	Comment string `json:"comment"`
+	Path    string `json:"path"`
+	InPath  string `json:"inPath"`
+	OutPath string `json:"outPath"`
+}
+
+// ToModel transforms the JSON transfer rule into its database equivalent.
+func (i *UptRule) ToModel() *model.Rule {
+	return &model.Rule{
+		Name:    i.Name,
+		Comment: i.Comment,
 		Path:    i.Path,
 		InPath:  i.InPath,
 		OutPath: i.OutPath,
@@ -172,7 +192,7 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			rule := &InRule{}
+			rule := &UptRule{}
 			if err := readJSON(r, rule); err != nil {
 				return err
 			}
@@ -220,8 +240,7 @@ func restrictRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Execute(builder.Delete(builder.Eq{"rule_id": rule.ID}).
-				From("rule_access")); err != nil {
+			if err := db.Execute("DELETE FROM rule_access WHERE rule_id=?", rule.ID); err != nil {
 				return err
 			}
 

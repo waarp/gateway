@@ -81,7 +81,7 @@ func listLocalAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutLocalAgent{"localAgents": FromLocalAgents(results, rules)}
+			resp := map[string][]OutServer{"localAgents": FromLocalAgents(results, rules)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {

@@ -86,8 +86,8 @@ func TestAddUser(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the user was added", func() {
-						So(getOutput(), ShouldEqual, "The user '"+command.Username+
-							"' was successfully added.\n")
+						So(getOutput(), ShouldEqual, "The user "+command.Username+
+							" was successfully added.\n")
 					})
 
 					Convey("Then the new partner should have been added", func() {
@@ -130,8 +130,8 @@ func TestDeleteUser(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the user was deleted", func() {
-						So(getOutput(), ShouldEqual, "The user '"+user.Username+
-							"' was successfully deleted.\n")
+						So(getOutput(), ShouldEqual, "The user "+user.Username+
+							" was successfully deleted.\n")
 					})
 
 					Convey("Then the user should have been removed", func() {
@@ -189,7 +189,7 @@ func TestUpdateUser(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the user was updated", func() {
-						So(getOutput(), ShouldEqual, "The user 'new_user' "+
+						So(getOutput(), ShouldEqual, "The user new_user "+
 							"was successfully updated.\n")
 					})
 
