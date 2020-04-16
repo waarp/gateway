@@ -447,3 +447,190 @@ func TestUpdatePartner(t *testing.T) {
 		})
 	})
 }
+
+func TestAuthorizePartner(t *testing.T) {
+
+	Convey("Testing the partner 'authorize' command", t, func() {
+		out = testFile()
+		command := &partnerAuthorize{}
+
+		Convey("Given a gateway with 1 distant partner and 1 rule", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			partner := &model.RemoteAgent{
+				Name:        "partner",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(partner), ShouldBeNil)
+
+			rule := &model.Rule{
+				Name:   "rule_name",
+				IsSend: true,
+				Path:   "/rule/path",
+			}
+			So(db.Create(rule), ShouldBeNil)
+
+			Convey("Given a valid partner & rule names", func() {
+				args := []string{partner.Name, rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the partner can use the rule", func() {
+						So(getOutput(), ShouldEqual, "Usage of the rule '"+rule.Name+
+							"' is now restricted.\nThe partner "+partner.Name+
+							" is now allowed to use the rule "+rule.Name+" for transfers.\n")
+					})
+
+					Convey("Then the permission should have been added", func() {
+						access := &model.RuleAccess{
+							RuleID:     rule.ID,
+							ObjectID:   partner.ID,
+							ObjectType: partner.TableName(),
+						}
+						So(db.Get(access), ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given an invalid rule name", func() {
+				args := []string{partner.Name, "toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "rule 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(&a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+
+			Convey("Given an invalid partner name", func() {
+				args := []string{"toto", rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "partner 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestRevokePartner(t *testing.T) {
+
+	Convey("Testing the partner 'revoke' command", t, func() {
+		out = testFile()
+		command := &partnerRevoke{}
+
+		Convey("Given a gateway with 1 distant partner and 1 rule", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			partner := &model.RemoteAgent{
+				Name:        "partner",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(partner), ShouldBeNil)
+
+			rule := &model.Rule{
+				Name:   "rule_name",
+				IsSend: true,
+				Path:   "/rule/path",
+			}
+			So(db.Create(rule), ShouldBeNil)
+
+			access := &model.RuleAccess{
+				RuleID:     rule.ID,
+				ObjectID:   partner.ID,
+				ObjectType: partner.TableName(),
+			}
+			So(db.Create(access), ShouldBeNil)
+
+			Convey("Given a valid partner & rule names", func() {
+				args := []string{partner.Name, rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the partner cannot use the rule", func() {
+						So(getOutput(), ShouldEqual, "The partner "+partner.Name+
+							" is no longer allowed to use the rule "+rule.Name+
+							" for transfers.\nUsage of the rule '"+rule.Name+
+							"' is now unrestricted.\n")
+					})
+
+					Convey("Then the permission should have been removed", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(&a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+
+			Convey("Given an invalid rule name", func() {
+				args := []string{partner.Name, "toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "rule 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been removed", func() {
+						So(db.Get(access), ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given an invalid partner name", func() {
+				args := []string{"toto", rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "partner 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						So(db.Get(access), ShouldBeNil)
+					})
+				})
+			})
+		})
+	})
+}

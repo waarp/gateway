@@ -526,3 +526,250 @@ func TestListLocalAccount(t *testing.T) {
 		})
 	})
 }
+
+func TestAuthorizeLocalAccount(t *testing.T) {
+
+	Convey("Testing the local account 'authorize' command", t, func() {
+		out = testFile()
+		command := &locAccAuthorize{}
+
+		Convey("Given a gateway with 1 local account and 1 rule", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			server := &model.LocalAgent{
+				Name:        "server",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(server), ShouldBeNil)
+
+			account := &model.LocalAccount{
+				LocalAgentID: server.ID,
+				Login:        "login",
+				Password:     []byte("password"),
+			}
+			So(db.Create(account), ShouldBeNil)
+
+			rule := &model.Rule{
+				Name:   "rule_name",
+				IsSend: true,
+				Path:   "/rule/path",
+			}
+			So(db.Create(rule), ShouldBeNil)
+
+			Convey("Given a valid partner, account & rule names", func() {
+				commandLine.Account.Local.Args.Server = server.Name
+				args := []string{account.Login, rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the account can use the rule", func() {
+						So(getOutput(), ShouldEqual, "Usage of the rule '"+rule.Name+
+							"' is now restricted.\nThe local account "+account.Login+
+							" is now allowed to use the rule "+rule.Name+" for transfers.\n")
+					})
+
+					Convey("Then the permission should have been added", func() {
+						access := &model.RuleAccess{
+							RuleID:     rule.ID,
+							ObjectID:   account.ID,
+							ObjectType: account.TableName(),
+						}
+						So(db.Get(access), ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given an invalid server name", func() {
+				commandLine.Account.Local.Args.Server = "toto"
+				args := []string{account.Login, rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "server 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(&a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+
+			Convey("Given an invalid rule name", func() {
+				commandLine.Account.Local.Args.Server = server.Name
+				args := []string{account.Login, "toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "rule 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(&a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+
+			Convey("Given an invalid account name", func() {
+				commandLine.Account.Local.Args.Server = server.Name
+				args := []string{"toto", rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "no account 'toto' found for server "+server.Name)
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(&a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestRevokeLocalAccount(t *testing.T) {
+
+	Convey("Testing the local account 'revoke' command", t, func() {
+		out = testFile()
+		command := &locAccRevoke{}
+
+		Convey("Given a gateway with 1 local account and 1 rule", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			server := &model.LocalAgent{
+				Name:        "server",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(server), ShouldBeNil)
+
+			account := &model.LocalAccount{
+				LocalAgentID: server.ID,
+				Login:        "login",
+				Password:     []byte("password"),
+			}
+			So(db.Create(account), ShouldBeNil)
+
+			rule := &model.Rule{
+				Name:   "rule_name",
+				IsSend: true,
+				Path:   "/rule/path",
+			}
+			So(db.Create(rule), ShouldBeNil)
+
+			access := &model.RuleAccess{
+				RuleID:     rule.ID,
+				ObjectID:   account.ID,
+				ObjectType: account.TableName(),
+			}
+			So(db.Create(access), ShouldBeNil)
+
+			Convey("Given a valid partner & rule names", func() {
+				commandLine.Account.Local.Args.Server = server.Name
+				args := []string{account.Login, rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the partner cannot use the rule", func() {
+						So(getOutput(), ShouldEqual, "The local account "+account.Login+
+							" is no longer allowed to use the rule "+rule.Name+
+							" for transfers.\nUsage of the rule '"+rule.Name+
+							"' is now unrestricted.\n")
+					})
+
+					Convey("Then the permission should have been removed", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(&a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+
+			Convey("Given an invalid server name", func() {
+				commandLine.Account.Local.Args.Server = "toto"
+				args := []string{account.Login, rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "server 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been removed", func() {
+						So(db.Get(access), ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given an invalid rule name", func() {
+				commandLine.Account.Local.Args.Server = server.Name
+				args := []string{account.Login, "toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "rule 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been removed", func() {
+						So(db.Get(access), ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given an invalid account name", func() {
+				commandLine.Account.Local.Args.Server = server.Name
+				args := []string{"toto", rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "no account 'toto' found for server "+server.Name)
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						So(db.Get(access), ShouldBeNil)
+					})
+				})
+			})
+		})
+	})
+}

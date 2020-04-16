@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http/httptest"
 	"strings"
@@ -37,16 +38,31 @@ func ruleInfoString(r *rest.OutRule) string {
 	locAcc := strings.Join(la, ", ")
 	remAcc := strings.Join(ra, ", ")
 
+	taskStr := func(tasks []rest.RuleTask) string {
+		str := ""
+		for i, t := range r.PreTasks {
+			prefix := "    ├─Command "
+			if i == len(r.PreTasks)-1 {
+				prefix = "    └─Command "
+			}
+			str += prefix + t.Type + " with args: " + string(t.Args) + "\n"
+		}
+		return str
+	}
+
 	rv := "● Rule " + r.Name + " (" + way + ")\n" +
-		"   Comment: " + r.Comment + "\n" +
-		"      Path: " + r.Path + "\n" +
-		"    InPath: " + r.InPath + "\n" +
-		"   OutPath: " + r.OutPath + "\n" +
-		"   Authorized agents\n" +
-		"   ├─         Servers: " + servers + "\n" +
-		"   ├─        Partners: " + partners + "\n" +
-		"   ├─ Server accounts: " + locAcc + "\n" +
-		"   └─Partner accounts: " + remAcc + "\n"
+		"    Comment: " + r.Comment + "\n" +
+		"    Path:    " + r.Path + "\n" +
+		"    InPath:  " + r.InPath + "\n" +
+		"    OutPath: " + r.OutPath + "\n" +
+		"    Pre tasks:\n" + taskStr(r.PreTasks) +
+		"    Post tasks:\n" + taskStr(r.PostTasks) +
+		"    Error tasks:\n" + taskStr(r.ErrorTasks) +
+		"    Authorized agents:\n" +
+		"    ├─Servers:          " + servers + "\n" +
+		"    ├─Partners:         " + partners + "\n" +
+		"    ├─Server accounts:  " + locAcc + "\n" +
+		"    └─Partner accounts: " + remAcc + "\n"
 
 	return rv
 }
@@ -63,12 +79,33 @@ func TestDisplayRule(t *testing.T) {
 			Path:    "rule/path",
 			InPath:  "/rule/in_path",
 			OutPath: "/rule/out_path",
-			Authorized: rest.RuleAccess{
+			Authorized: &rest.RuleAccess{
 				LocalServers:   []string{"server1", "server2"},
 				RemotePartners: []string{"partner1", "partner2"},
 				LocalAccounts:  map[string][]string{"server3": {"account1", "account2"}},
 				RemoteAccounts: map[string][]string{"partner3": {"account3", "account4"}},
 			},
+			PreTasks: []rest.RuleTask{{
+				Type: "COPY",
+				Args: json.RawMessage(`{"path":"/path/to/copy"}`),
+			}, {
+				Type: "EXEC",
+				Args: json.RawMessage(`{"path":"/path/to/script","args":"{}","delay":"0"}`),
+			}},
+			PostTasks: []rest.RuleTask{{
+				Type: "DELETE",
+				Args: json.RawMessage("{}"),
+			}, {
+				Type: "TRANSFER",
+				Args: json.RawMessage(`{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}`),
+			}},
+			ErrorTasks: []rest.RuleTask{{
+				Type: "MOVE",
+				Args: json.RawMessage(`{"path":"/path/to/move"}`),
+			}, {
+				Type: "RENAME",
+				Args: json.RawMessage(`{"path":"/path/to/rename"}`),
+			}},
 		}
 		Convey("When calling the `displayRule` function", func() {
 			w := getColorable()
@@ -109,7 +146,8 @@ func TestGetRule(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the rule's info", func() {
-						r := rest.FromRule(rule, &rest.RuleAccess{})
+						r, err := rest.FromRule(db, rule)
+						So(err, ShouldBeNil)
 						So(getOutput(), ShouldEqual, ruleInfoString(r))
 					})
 				})
@@ -153,7 +191,14 @@ func TestAddRule(t *testing.T) {
 
 			Convey("Given valid parameters", func() {
 				args := []string{"-n", "new_rule", "-c", "new_rule comment",
-					"-d", "RECEIVE", "-p", "/new/rule/path"}
+					"-d", "RECEIVE", "-p", "/new/rule/path",
+					`--pre={"type":"COPY","args":{"path":"/path/to/copy"}}`,
+					`--pre={"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
+					`--post={"type":"DELETE","args":{}}`,
+					`--post={"type":"TRANSFER","args":{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}}`,
+					`--err={"type":"MOVE","args":{"path":"/path/to/move"}}`,
+					`--err={"type":"RENAME","args":{"path":"/path/to/rename"}}`,
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -173,6 +218,57 @@ func TestAddRule(t *testing.T) {
 							Path:    command.Path,
 						}
 						So(db.Get(rule), ShouldBeNil)
+
+						pre0 := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainPre,
+							Rank:   0,
+							Type:   "COPY",
+							Args:   json.RawMessage(`{"path":"/path/to/copy"}`),
+						}
+						So(db.Get(pre0), ShouldBeNil)
+						pre1 := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainPre,
+							Rank:   1,
+							Type:   "EXEC",
+							Args:   json.RawMessage(`{"path":"/path/to/script","args":"{}","delay":"0"}`),
+						}
+						So(db.Get(pre1), ShouldBeNil)
+
+						post0 := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainPost,
+							Rank:   0,
+							Type:   "DELETE",
+							Args:   json.RawMessage(`{}`),
+						}
+						So(db.Get(post0), ShouldBeNil)
+						post1 := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainPost,
+							Rank:   1,
+							Type:   "TRANSFER",
+							Args:   json.RawMessage(`{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}`),
+						}
+						So(db.Get(post1), ShouldBeNil)
+
+						err0 := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainError,
+							Rank:   0,
+							Type:   "MOVE",
+							Args:   json.RawMessage(`{"path":"/path/to/move"}`),
+						}
+						So(db.Get(err0), ShouldBeNil)
+						err1 := &model.Task{
+							RuleID: rule.ID,
+							Chain:  model.ChainError,
+							Rank:   1,
+							Type:   "RENAME",
+							Args:   json.RawMessage(`{"path":"/path/to/rename"}`),
+						}
+						So(db.Get(err1), ShouldBeNil)
 					})
 				})
 			})
@@ -303,8 +399,10 @@ func TestListRules(t *testing.T) {
 			}
 			So(db.Create(send), ShouldBeNil)
 
-			rcv := rest.FromRule(receive, &rest.RuleAccess{})
-			snd := rest.FromRule(send, &rest.RuleAccess{})
+			rcv, err := rest.FromRule(db, receive)
+			So(err, ShouldBeNil)
+			snd, err := rest.FromRule(db, send)
+			So(err, ShouldBeNil)
 
 			Convey("Given no parameters", func() {
 				args := []string{}

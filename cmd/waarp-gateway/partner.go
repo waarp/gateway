@@ -13,11 +13,13 @@ import (
 )
 
 type partnerCommand struct {
-	Get    partnerGet    `command:"get" description:"Retrieve a partner's information"`
-	Add    partnerAdd    `command:"add" description:"Add a new partner"`
-	List   partnerList   `command:"list" description:"List the known partners"`
-	Delete partnerDelete `command:"delete" description:"Delete a partner"`
-	Update partnerUpdate `command:"update" description:"Update an existing partner"`
+	Get       partnerGet       `command:"get" description:"Retrieve a partner's information"`
+	Add       partnerAdd       `command:"add" description:"Add a new partner"`
+	List      partnerList      `command:"list" description:"List the known partners"`
+	Delete    partnerDelete    `command:"delete" description:"Delete a partner"`
+	Update    partnerUpdate    `command:"update" description:"Update an existing partner"`
+	Authorize partnerAuthorize `command:"authorize" description:"Give a partner permission to use a rule"`
+	Revoke    partnerRevoke    `command:"revoke" description:"Revoke a partner's permission to use a rule"`
 }
 
 func displayPartner(w io.Writer, partner *rest.OutPartner) {
@@ -231,4 +233,36 @@ func (p *partnerUpdate) Execute([]string) error {
 		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
 			getResponseMessage(resp).Error())
 	}
+}
+
+// ######################## AUTHORIZE ##########################
+
+type partnerAuthorize struct {
+	Args struct {
+		Partner string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
+		Rule    string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
+
+func (p *partnerAuthorize) Execute([]string) error {
+	path := admin.APIPath + rest.RemoteAgentsPath + "/" + p.Args.Partner +
+		"/authorize/" + p.Args.Rule
+
+	return authorize(path, "partner", p.Args.Partner, p.Args.Rule)
+}
+
+// ######################## REVOKE ##########################
+
+type partnerRevoke struct {
+	Args struct {
+		Partner string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
+		Rule    string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
+
+func (p *partnerRevoke) Execute([]string) error {
+	path := admin.APIPath + rest.RemoteAgentsPath + "/" + p.Args.Partner +
+		"/revoke/" + p.Args.Rule
+
+	return revoke(path, "partner", p.Args.Partner, p.Args.Rule)
 }

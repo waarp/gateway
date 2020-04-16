@@ -34,11 +34,11 @@ const (
 
 // Task represents one record of the 'tasks' table.
 type Task struct {
-	RuleID uint64 `xorm:"notnull 'rule_id'"`
-	Chain  Chain  `xorm:"notnull 'chain'"`
-	Rank   uint32 `xorm:"notnull 'rank'"`
-	Type   string `xorm:"notnull 'type'"`
-	Args   []byte `xorm:"notnull 'args'"`
+	RuleID uint64          `xorm:"notnull 'rule_id'"`
+	Chain  Chain           `xorm:"notnull 'chain'"`
+	Rank   uint32          `xorm:"notnull 'rank'"`
+	Type   string          `xorm:"notnull 'type'"`
+	Args   json.RawMessage `xorm:"notnull 'args'"`
 }
 
 // TableName returns the name of the tasks table.

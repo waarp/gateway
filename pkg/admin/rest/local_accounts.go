@@ -176,3 +176,35 @@ func deleteLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 	}
 }
+
+func authorizeLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getLocAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return authorizeRule(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func revokeLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getLocAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return revokeRule(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}

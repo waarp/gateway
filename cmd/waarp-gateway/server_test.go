@@ -452,3 +452,190 @@ func TestUpdateServer(t *testing.T) {
 		})
 	})
 }
+
+func TestAuthorizeServer(t *testing.T) {
+
+	Convey("Testing the server 'authorize' command", t, func() {
+		out = testFile()
+		command := &serverAuthorize{}
+
+		Convey("Given a gateway with 1 local server and 1 rule", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			server := &model.LocalAgent{
+				Name:        "server",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(server), ShouldBeNil)
+
+			rule := &model.Rule{
+				Name:   "rule_name",
+				IsSend: true,
+				Path:   "/rule/path",
+			}
+			So(db.Create(rule), ShouldBeNil)
+
+			Convey("Given a valid server & rule names", func() {
+				args := []string{server.Name, rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the server can use the rule", func() {
+						So(getOutput(), ShouldEqual, "Usage of the rule '"+rule.Name+
+							"' is now restricted.\nThe server "+server.Name+
+							" is now allowed to use the rule "+rule.Name+" for transfers.\n")
+					})
+
+					Convey("Then the permission should have been added", func() {
+						access := &model.RuleAccess{
+							RuleID:     rule.ID,
+							ObjectID:   server.ID,
+							ObjectType: server.TableName(),
+						}
+						So(db.Get(access), ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given an invalid rule name", func() {
+				args := []string{server.Name, "toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "rule 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(&a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+
+			Convey("Given an invalid server name", func() {
+				args := []string{"toto", rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "server 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(&a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestRevokeServer(t *testing.T) {
+
+	Convey("Testing the server 'revoke' command", t, func() {
+		out = testFile()
+		command := &serverRevoke{}
+
+		Convey("Given a gateway with 1 distant server and 1 rule", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			server := &model.LocalAgent{
+				Name:        "server",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(server), ShouldBeNil)
+
+			rule := &model.Rule{
+				Name:   "rule_name",
+				IsSend: true,
+				Path:   "/rule/path",
+			}
+			So(db.Create(rule), ShouldBeNil)
+
+			access := &model.RuleAccess{
+				RuleID:     rule.ID,
+				ObjectID:   server.ID,
+				ObjectType: server.TableName(),
+			}
+			So(db.Create(access), ShouldBeNil)
+
+			Convey("Given a valid server & rule names", func() {
+				args := []string{server.Name, rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the server cannot use the rule", func() {
+						So(getOutput(), ShouldEqual, "The server "+server.Name+
+							" is no longer allowed to use the rule "+rule.Name+
+							" for transfers.\nUsage of the rule '"+rule.Name+
+							"' is now unrestricted.\n")
+					})
+
+					Convey("Then the permission should have been removed", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(&a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+
+			Convey("Given an invalid rule name", func() {
+				args := []string{server.Name, "toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "rule 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been removed", func() {
+						So(db.Get(access), ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given an invalid server name", func() {
+				args := []string{"toto", rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "server 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						So(db.Get(access), ShouldBeNil)
+					})
+				})
+			})
+		})
+	})
+}

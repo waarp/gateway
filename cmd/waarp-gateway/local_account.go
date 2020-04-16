@@ -16,11 +16,13 @@ type localAccountCommand struct {
 	Args struct {
 		Server string `required:"yes" positional-arg-name:"server" description:"The server's name"`
 	} `positional-args:"yes"`
-	Get    locAccGet    `command:"get" description:"Retrieve a local account's information"`
-	Add    locAccAdd    `command:"add" description:"Add a new local account"`
-	Delete locAccDelete `command:"delete" description:"Delete a local account"`
-	Update locAccUpdate `command:"update" description:"Update an existing account"`
-	List   locAccList   `command:"list" description:"List the known local accounts"`
+	Get       locAccGet       `command:"get" description:"Retrieve a local account's information"`
+	Add       locAccAdd       `command:"add" description:"Add a new local account"`
+	Delete    locAccDelete    `command:"delete" description:"Delete a local account"`
+	Update    locAccUpdate    `command:"update" description:"Update an existing account"`
+	List      locAccList      `command:"list" description:"List the known local accounts"`
+	Authorize locAccAuthorize `command:"authorize" description:"Give an account permission to use a rule"`
+	Revoke    locAccRevoke    `command:"revoke" description:"Revoke an account's permission to use a rule"`
 }
 
 func displayAccount(w io.Writer, account *rest.OutAccount) {
@@ -238,4 +240,38 @@ func (l *locAccList) Execute([]string) error {
 	default:
 		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
+}
+
+// ######################## AUTHORIZE ##########################
+
+type locAccAuthorize struct {
+	Args struct {
+		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
+		Rule  string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
+
+func (l *locAccAuthorize) Execute([]string) error {
+	server := commandLine.Account.Local.Args.Server
+	path := admin.APIPath + rest.LocalAgentsPath + "/" + server +
+		rest.LocalAccountsPath + "/" + l.Args.Login + "/authorize/" + l.Args.Rule
+
+	return authorize(path, "local account", l.Args.Login, l.Args.Rule)
+}
+
+// ######################## REVOKE ##########################
+
+type locAccRevoke struct {
+	Args struct {
+		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
+		Rule  string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
+
+func (l *locAccRevoke) Execute([]string) error {
+	server := commandLine.Account.Local.Args.Server
+	path := admin.APIPath + rest.LocalAgentsPath + "/" + server +
+		rest.LocalAccountsPath + "/" + l.Args.Login + "/revoke/" + l.Args.Rule
+
+	return revoke(path, "local account", l.Args.Login, l.Args.Rule)
 }

@@ -13,12 +13,8 @@ import (
 // InRule is the JSON representation of a transfer rule in requests made to
 // the REST interface.
 type InRule struct {
-	Name    string `json:"name"`
-	Comment string `json:"comment"`
-	IsSend  bool   `json:"isSend"`
-	Path    string `json:"path"`
-	InPath  string `json:"inPath"`
-	OutPath string `json:"outPath"`
+	*UptRule
+	IsSend bool `json:"isSend"`
 }
 
 // ToModel transforms the JSON transfer rule into its database equivalent.
@@ -36,11 +32,14 @@ func (i *InRule) ToModel() *model.Rule {
 // UptRule is the JSON representation of a transfer rule in updated requests made to
 // the REST interface.
 type UptRule struct {
-	Name    string `json:"name"`
-	Comment string `json:"comment"`
-	Path    string `json:"path"`
-	InPath  string `json:"inPath"`
-	OutPath string `json:"outPath"`
+	Name       string     `json:"name"`
+	Comment    string     `json:"comment"`
+	Path       string     `json:"path"`
+	InPath     string     `json:"inPath"`
+	OutPath    string     `json:"outPath"`
+	PreTasks   []RuleTask `json:"preTasks"`
+	PostTasks  []RuleTask `json:"postTasks"`
+	ErrorTasks []RuleTask `json:"errorTasks"`
 }
 
 // ToModel transforms the JSON transfer rule into its database equivalent.
@@ -57,38 +56,53 @@ func (i *UptRule) ToModel() *model.Rule {
 // OutRule is the JSON representation of a transfer rule in responses sent by
 // the REST interface.
 type OutRule struct {
-	Name       string     `json:"name"`
-	Comment    string     `json:"comment"`
-	IsSend     bool       `json:"isSend"`
-	Path       string     `json:"path"`
-	InPath     string     `json:"inPath"`
-	OutPath    string     `json:"outPath"`
-	Authorized RuleAccess `json:"authorized"`
+	Name       string      `json:"name"`
+	Comment    string      `json:"comment"`
+	IsSend     bool        `json:"isSend"`
+	Path       string      `json:"path"`
+	InPath     string      `json:"inPath"`
+	OutPath    string      `json:"outPath"`
+	Authorized *RuleAccess `json:"authorized"`
+	PreTasks   []RuleTask  `json:"preTasks"`
+	PostTasks  []RuleTask  `json:"postTasks"`
+	ErrorTasks []RuleTask  `json:"errorTasks"`
 }
 
 // FromRule transforms the given database transfer rule into its JSON equivalent.
-func FromRule(r *model.Rule, access *RuleAccess) *OutRule {
-	return &OutRule{
+func FromRule(db *database.DB, r *model.Rule) (*OutRule, error) {
+	access, err := makeRuleAccess(db, r)
+	if err != nil {
+		return nil, err
+	}
+
+	rule := &OutRule{
 		Name:       r.Name,
 		Comment:    r.Comment,
 		IsSend:     r.IsSend,
 		Path:       r.Path,
 		InPath:     r.InPath,
 		OutPath:    r.OutPath,
-		Authorized: *access,
+		Authorized: access,
 	}
+	if err := doListTasks(db, rule, r.ID); err != nil {
+		return nil, err
+	}
+	return rule, nil
 }
 
 // FromRules transforms the given list of database transfer rules into its JSON
 // equivalent.
-func FromRules(rs []model.Rule, accesses map[uint64]RuleAccess) []OutRule {
+func FromRules(db *database.DB, rs []model.Rule) ([]OutRule, error) {
 	rules := make([]OutRule, len(rs))
 	for i, r := range rs {
 		rule := r
-		access := accesses[rule.ID]
-		rules[i] = *FromRule(&rule, &access)
+		res, err := FromRule(db, &rule)
+		if err != nil {
+			return nil, err
+		}
+		rules[i] = *res
 	}
-	return rules
+	return rules, nil
 }
 
 func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {
@@ -115,7 +129,19 @@ func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			rule := jsonRule.ToModel()
-			if err := db.Create(rule); err != nil {
+			ses, err := db.BeginTransaction()
+			if err != nil {
+				return err
+			}
+			if err := ses.Create(rule); err != nil {
+				ses.Rollback()
+				return err
+			}
+			if err := doTaskUpdate(ses, jsonRule.UptRule, rule.ID); err != nil {
+				ses.Rollback()
+				return err
+			}
+			if err := ses.Commit(); err != nil {
 				return err
 			}
 
@@ -137,12 +163,12 @@ func getRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			access, err := makeRuleAccess(db, result)
+			rule, err := FromRule(db, result)
 			if err != nil {
 				return err
 			}
 
-			return writeJSON(w, FromRule(result, access))
+			return writeJSON(w, rule)
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)
@@ -169,12 +195,12 @@ func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			accesses, err := makeRulesAccesses(db, results)
+			rules, err := FromRules(db, results)
 			if err != nil {
 				return err
 			}
 
-			resp := map[string][]OutRule{"rules": FromRules(results, accesses)}
+			resp := map[string][]OutRule{"rules": rules}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -197,7 +223,19 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(rule.ToModel(), check.ID, false); err != nil {
+			ses, err := db.BeginTransaction()
+			if err != nil {
+				return err
+			}
+			if err := ses.Update(rule.ToModel(), check.ID, false); err != nil {
+				ses.Rollback()
+				return err
+			}
+			if err := doTaskUpdate(ses, rule, check.ID); err != nil {
+				ses.Rollback()
+				return err
+			}
+			if err := ses.Commit(); err != nil {
 				return err
 			}
 
@@ -232,7 +270,7 @@ func deleteRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func restrictRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func allowAllRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			rule, err := getRl(r, db)
@@ -244,7 +282,7 @@ func restrictRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			http.Error(w, fmt.Sprintf("Access to rule '%s' is now restricted.",
+			http.Error(w, fmt.Sprintf("Access to rule '%s' is now unrestricted.",
 				rule.Name), http.StatusOK)
 			return nil
 		}()

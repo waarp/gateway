@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,13 +13,39 @@ import (
 )
 
 type ruleCommand struct {
-	Get    ruleGet    `command:"get" description:"Retrieve a rule's information"`
-	Add    ruleAdd    `command:"add" description:"Add a new rule"`
-	Delete ruleDelete `command:"delete" description:"Delete a rule"`
-	List   ruleList   `command:"list" description:"List the known rules"`
-	Update ruleUpdate `command:"update" description:"Update an existing rule"`
-	//Access ruleAccess `command:"access" description:"Manage the permissions for a rule"`
-	Tasks ruleTasksCommand `command:"tasks" description:"Manage the rule's task chain"`
+	Get    ruleGet      `command:"get" description:"Retrieve a rule's information"`
+	Add    ruleAdd      `command:"add" description:"Add a new rule"`
+	Delete ruleDelete   `command:"delete" description:"Delete a rule"`
+	List   ruleList     `command:"list" description:"List the known rules"`
+	Update ruleUpdate   `command:"update" description:"Update an existing rule"`
+	Allow  ruleAllowAll `command:"allow" description:"Remove all usage restriction on a rule"`
+}
+
+func displayTasks(w io.Writer, rule *rest.OutRule) {
+	fmt.Fprintln(w, orange("    Pre tasks:"))
+	for i, t := range rule.PreTasks {
+		prefix := "    ├─Command"
+		if i == len(rule.PreTasks)-1 {
+			prefix = "    └─Command"
+		}
+		fmt.Fprintln(w, bold(prefix), t.Type, bold("with args:"), string(t.Args))
+	}
+	fmt.Fprintln(w, orange("    Post tasks:"))
+	for i, t := range rule.PreTasks {
+		prefix := "    ├─Command"
+		if i == len(rule.PreTasks)-1 {
+			prefix = "    └─Command"
+		}
+		fmt.Fprintln(w, bold(prefix), t.Type, bold("with args:"), string(t.Args))
+	}
+	fmt.Fprintln(w, orange("    Error tasks:"))
+	for i, t := range rule.PreTasks {
+		prefix := "    ├─Command"
+		if i == len(rule.PreTasks)-1 {
+			prefix = "    └─Command"
+		}
+		fmt.Fprintln(w, bold(prefix), t.Type, bold("with args:"), string(t.Args))
+	}
 }
 
 func displayRule(w io.Writer, rule *rest.OutRule) {
@@ -44,16 +71,17 @@ func displayRule(w io.Writer, rule *rest.OutRule) {
 	locAcc := strings.Join(la, ", ")
 	remAcc := strings.Join(ra, ", ")
 
-	fmt.Fprintln(w, bold("● Rule", rule.Name, "("+way+")"))
-	fmt.Fprintln(w, orange("   Comment:"), rule.Comment)
-	fmt.Fprintln(w, orange("      Path:"), rule.Path)
-	fmt.Fprintln(w, orange("    InPath:"), rule.InPath)
-	fmt.Fprintln(w, orange("   OutPath:"), rule.OutPath)
-	fmt.Fprintln(w, orange("   Authorized agents"))
-	fmt.Fprintln(w, orange("   ├─         Servers:"), servers)
-	fmt.Fprintln(w, orange("   ├─        Partners:"), partners)
-	fmt.Fprintln(w, orange("   ├─ Server accounts:"), locAcc)
-	fmt.Fprintln(w, orange("   └─Partner accounts:"), remAcc)
+	fmt.Fprintln(w, orange(bold("● Rule", rule.Name, "("+way+")")))
+	fmt.Fprintln(w, orange("    Comment:"), rule.Comment)
+	fmt.Fprintln(w, orange("    Path:   "), rule.Path)
+	fmt.Fprintln(w, orange("    InPath: "), rule.InPath)
+	fmt.Fprintln(w, orange("    OutPath:"), rule.OutPath)
+	displayTasks(w, rule)
+	fmt.Fprintln(w, orange("    Authorized agents:"))
+	fmt.Fprintln(w, bold("    ├─Servers:         "), servers)
+	fmt.Fprintln(w, bold("    ├─Partners:        "), partners)
+	fmt.Fprintln(w, bold("    ├─Server accounts: "), locAcc)
+	fmt.Fprintln(w, bold("    └─Partner accounts:"), remAcc)
 }
 
 // ######################## GET ##########################
@@ -96,20 +124,47 @@ func (r *ruleGet) Execute([]string) error {
 // ######################## ADD ##########################
 
 type ruleAdd struct {
-	Name      string `required:"true" short:"n" long:"name" description:"The rule's name"`
-	Comment   string `short:"c" long:"comment" description:"A short comment describing the rule"`
-	Direction string `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"SEND" choice:"RECEIVE"`
-	Path      string `required:"true" short:"p" long:"path" description:"The path used to identify the rule"`
-	InPath    string `short:"i" long:"in_path" description:"The path to the source of the file"`
-	OutPath   string `short:"o" long:"out_path" description:"The path to the destination of the file"`
+	Name       string   `required:"true" short:"n" long:"name" description:"The rule's name"`
+	Comment    string   `short:"c" long:"comment" description:"A short comment describing the rule"`
+	Direction  string   `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"SEND" choice:"RECEIVE"`
+	Path       string   `required:"true" short:"p" long:"path" description:"The path used to identify the rule"`
+	InPath     string   `short:"i" long:"in_path" description:"The path to the source of the file"`
+	OutPath    string   `short:"o" long:"out_path" description:"The path to the destination of the file"`
+	PreTasks   []string `long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
+	PostTasks  []string `long:"post" description:"A post-transfer task in JSON format, can be repeated"`
+	ErrorTasks []string `long:"err" description:"A transfer error task in JSON format, can be repeated"`
+}
+
+func (r *ruleAdd) parseTasks(rule *rest.InRule) error {
+	preDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(r.PreTasks, ",") + "]"))
+	preDecoder.DisallowUnknownFields()
+	if err := preDecoder.Decode(&rule.PreTasks); err != nil && err != io.EOF {
+		return fmt.Errorf("invalid pre task: %s", err)
+	}
+	postDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(r.PostTasks, ",") + "]"))
+	postDecoder.DisallowUnknownFields()
+	if err := postDecoder.Decode(&rule.PostTasks); err != nil && err != io.EOF {
+		return fmt.Errorf("invalid post task: %s", err)
+	}
+	errDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(r.ErrorTasks, ",") + "]"))
+	errDecoder.DisallowUnknownFields()
+	if err := errDecoder.Decode(&rule.ErrorTasks); err != nil && err != io.EOF {
+		return fmt.Errorf("invalid error task: %s", err)
+	}
+	return nil
 }
 
 func (r *ruleAdd) Execute([]string) error {
-	rule := rest.InRule{
-		Name:    r.Name,
-		Comment: r.Comment,
-		IsSend:  r.Direction == "SEND",
-		Path:    r.Path,
+	rule := &rest.InRule{
+		UptRule: &rest.UptRule{
+			Name:    r.Name,
+			Comment: r.Comment,
+			Path:    r.Path,
+		},
+		IsSend: r.Direction == "SEND",
+	}
+	if err := r.parseTasks(rule); err != nil {
+		return err
 	}
 
 	conn, err := url.Parse(commandLine.Args.Address)
@@ -259,5 +314,38 @@ func (r *ruleUpdate) Execute([]string) error {
 	default:
 		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
 			getResponseMessage(resp).Error())
+	}
+}
+
+// ######################## RESTRICT ##########################
+
+type ruleAllowAll struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
+
+func (r *ruleAllowAll) Execute([]string) error {
+	conn, err := url.Parse(commandLine.Args.Address)
+	if err != nil {
+		return err
+	}
+	conn.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/allow_all"
+
+	resp, err := sendRequest(conn, nil, http.MethodPut)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	w := getColorable()
+	switch resp.StatusCode {
+	case http.StatusOK:
+		fmt.Fprintln(w, "The use of rule", bold(r.Args.Name), "is now unrestricted.")
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
 	}
 }

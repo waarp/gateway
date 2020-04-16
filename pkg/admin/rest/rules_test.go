@@ -35,10 +35,12 @@ func TestCreateRule(t *testing.T) {
 
 			Convey("Given a new rule to insert in the database", func() {
 				newRule := &InRule{
-					Name:    "new rule",
-					Comment: "",
-					IsSend:  false,
-					Path:    "/test/rule/path",
+					UptRule: &UptRule{
+						Name:    "new rule",
+						Comment: "",
+						Path:    "/test/rule/path",
+					},
+					IsSend: false,
 				}
 
 				Convey("Given that the new account is valid for insertion", func() {
@@ -125,10 +127,11 @@ func TestGetRule(t *testing.T) {
 
 					Convey("Then the body should contain the requested rule "+
 						"in JSON format", func() {
-
-						exp, err := json.Marshal(FromRule(rule, &RuleAccess{}))
-
+						r, err := FromRule(db, rule)
 						So(err, ShouldBeNil)
+						exp, err := json.Marshal(r)
+						So(err, ShouldBeNil)
+
 						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
 					})
 				})
@@ -174,8 +177,10 @@ func TestListRules(t *testing.T) {
 			}
 			So(db.Create(r2), ShouldBeNil)
 
-			rule1 := *FromRule(r1, &RuleAccess{})
-			rule2 := *FromRule(r2, &RuleAccess{})
+			rule1, err := FromRule(db, r1)
+			So(err, ShouldBeNil)
+			rule2, err := FromRule(db, r2)
+			So(err, ShouldBeNil)
 
 			Convey("Given a valid request", func() {
 				req, err := http.NewRequest(http.MethodGet, "", nil)
@@ -194,7 +199,7 @@ func TestListRules(t *testing.T) {
 					})
 
 					Convey("Then it should return the 2 rules", func() {
-						expected["rules"] = []OutRule{rule1, rule2}
+						expected["rules"] = []OutRule{*rule1, *rule2}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)

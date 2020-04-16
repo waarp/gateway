@@ -158,3 +158,35 @@ func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 	}
 }
+
+func authorizeRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getRemAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return authorizeRule(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func revokeRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getRemAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return revokeRule(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}

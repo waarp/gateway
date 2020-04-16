@@ -12,11 +12,13 @@ import (
 )
 
 type serverCommand struct {
-	Get    serverGet    `command:"get" description:"Retrieve a server's information"`
-	Add    serverAdd    `command:"add" description:"Add a new server"`
-	Delete serverDelete `command:"delete" description:"Delete a server"`
-	List   serverList   `command:"list" description:"List the known servers"`
-	Update serverUpdate `command:"update" description:"Modify a server's information"`
+	Get       serverGet       `command:"get" description:"Retrieve a server's information"`
+	Add       serverAdd       `command:"add" description:"Add a new server"`
+	Delete    serverDelete    `command:"delete" description:"Delete a server"`
+	List      serverList      `command:"list" description:"List the known servers"`
+	Update    serverUpdate    `command:"update" description:"Modify a server's information"`
+	Authorize serverAuthorize `command:"authorize" description:"Give a server permission to use a rule"`
+	Revoke    serverRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
 }
 
 func displayServer(w io.Writer, server *rest.OutServer) {
@@ -235,4 +237,36 @@ func (s *serverUpdate) Execute([]string) error {
 		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
 			getResponseMessage(resp).Error())
 	}
+}
+
+// ######################## AUTHORIZE ##########################
+
+type serverAuthorize struct {
+	Args struct {
+		Server string `required:"yes" positional-arg-name:"server" description:"The server's name"`
+		Rule   string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
+
+func (s *serverAuthorize) Execute([]string) error {
+	path := admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Server +
+		"/authorize/" + s.Args.Rule
+
+	return authorize(path, "server", s.Args.Server, s.Args.Rule)
+}
+
+// ######################## REVOKE ##########################
+
+type serverRevoke struct {
+	Args struct {
+		Server string `required:"yes" positional-arg-name:"server" description:"The server's name"`
+		Rule   string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
+
+func (s *serverRevoke) Execute([]string) error {
+	path := admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Server +
+		"/revoke/" + s.Args.Rule
+
+	return revoke(path, "server", s.Args.Server, s.Args.Rule)
 }

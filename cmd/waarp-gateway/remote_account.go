@@ -14,11 +14,13 @@ type remoteAccountCommand struct {
 	Args struct {
 		Partner string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
 	} `positional-args:"yes"`
-	Get    remAccGet    `command:"get" description:"Retrieve a remote account's information"`
-	Add    remAccAdd    `command:"add" description:"Add a new remote account"`
-	Delete remAccDelete `command:"delete" description:"Delete a remote account"`
-	Update remAccUpdate `command:"update" description:"Update an existing remote account"`
-	List   remAccList   `command:"list" description:"List the known remote accounts"`
+	Get       remAccGet       `command:"get" description:"Retrieve a remote account's information"`
+	Add       remAccAdd       `command:"add" description:"Add a new remote account"`
+	Delete    remAccDelete    `command:"delete" description:"Delete a remote account"`
+	Update    remAccUpdate    `command:"update" description:"Update an existing remote account"`
+	List      remAccList      `command:"list" description:"List the known remote accounts"`
+	Authorize remAccAuthorize `command:"authorize" description:"Give an account permission to use a rule"`
+	Revoke    remAccRevoke    `command:"revoke" description:"Revoke an account's permission to use a rule"`
 }
 
 // ######################## GET ##########################
@@ -226,4 +228,38 @@ func (r *remAccList) Execute([]string) error {
 	default:
 		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
+}
+
+// ######################## AUTHORIZE ##########################
+
+type remAccAuthorize struct {
+	Args struct {
+		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
+		Rule  string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
+
+func (r *remAccAuthorize) Execute([]string) error {
+	partner := commandLine.Account.Remote.Args.Partner
+	path := admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
+		rest.RemoteAccountsPath + "/" + r.Args.Login + "/authorize/" + r.Args.Rule
+
+	return authorize(path, "remote account", r.Args.Login, r.Args.Rule)
+}
+
+// ######################## REVOKE ##########################
+
+type remAccRevoke struct {
+	Args struct {
+		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
+		Rule  string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
+
+func (r *remAccRevoke) Execute([]string) error {
+	partner := commandLine.Account.Remote.Args.Partner
+	path := admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
+		rest.RemoteAccountsPath + "/" + r.Args.Login + "/revoke/" + r.Args.Rule
+
+	return revoke(path, "remote account", r.Args.Login, r.Args.Rule)
 }

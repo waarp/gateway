@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
@@ -49,88 +48,65 @@ func getAuthorizedRuleList(db *database.DB, objType string, ids []uint64) ([]Aut
 	return rules, nil
 }
 
-func authorizeRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			target, id, err := getAgentInfo(r, db)
-			if err != nil {
-				return err
-			}
+func authorizeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
+	target string, id uint64) error {
 
-			rule, err := getRl(r, db)
-			if err != nil {
-				return err
-			}
-
-			a, err := db.Query("SELECT rule_id FROM rule_access WHERE rule_id = ?", rule.ID)
-			if err != nil {
-				return err
-			}
-
-			access := &model.RuleAccess{
-				RuleID:     rule.ID,
-				ObjectID:   id,
-				ObjectType: target,
-			}
-			if err := db.Create(access); err != nil {
-				return err
-			}
-			if len(a) == 0 {
-				http.Error(w, fmt.Sprintf("Access to rule '%s' is now restricted.",
-					rule.Name), http.StatusOK)
-			} else {
-				w.WriteHeader(http.StatusOK)
-			}
-
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
-		}
-
+	rule, err := getRl(r, db)
+	if err != nil {
+		return err
 	}
+
+	a, err := db.Query("SELECT rule_id FROM rule_access WHERE rule_id = ?", rule.ID)
+	if err != nil {
+		return err
+	}
+
+	access := &model.RuleAccess{
+		RuleID:     rule.ID,
+		ObjectID:   id,
+		ObjectType: target,
+	}
+	if err := db.Create(access); err != nil {
+		return err
+	}
+	if len(a) == 0 {
+		http.Error(w, fmt.Sprintf("Usage of the rule '%s' is now restricted.",
+			rule.Name), http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+	return nil
 }
 
-func revokeRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			target, id, err := getAgentInfo(r, db)
-			if err != nil {
-				return err
-			}
+func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
+	target string, id uint64) error {
 
-			rule, err := getRl(r, db)
-			if err != nil {
-				return err
-			}
-
-			access := &model.RuleAccess{
-				RuleID:     rule.ID,
-				ObjectID:   id,
-				ObjectType: target,
-			}
-			if err := db.Delete(access); err != nil {
-				return err
-			}
-
-			a, err := db.Query("SELECT rule_id FROM rule_access WHERE rule_id = ?", rule.ID)
-			if err != nil {
-				return err
-			}
-			if len(a) == 0 {
-				http.Error(w, fmt.Sprintf("Access to rule '%s' is now unrestricted.",
-					rule.Name), http.StatusOK)
-			} else {
-				w.WriteHeader(http.StatusOK)
-			}
-
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
-		}
-
+	rule, err := getRl(r, db)
+	if err != nil {
+		return err
 	}
+
+	access := &model.RuleAccess{
+		RuleID:     rule.ID,
+		ObjectID:   id,
+		ObjectType: target,
+	}
+	if err := db.Delete(access); err != nil {
+		return err
+	}
+
+	a, err := db.Query("SELECT rule_id FROM rule_access WHERE rule_id = ?", rule.ID)
+	if err != nil {
+		return err
+	}
+	if len(a) == 0 {
+		http.Error(w, fmt.Sprintf("Usage of the rule '%s' is now unrestricted.",
+			rule.Name), http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+
+	return nil
 }
 
 // RuleAccess is the struct containing all the agents/accounts which are allowed
@@ -255,17 +231,4 @@ func makeRuleAccess(db *database.DB, rule *model.Rule) (*RuleAccess, error) {
 		LocalAccounts:  locAccounts,
 		RemoteAccounts: remAccounts,
 	}, nil
-}
-
-func makeRulesAccesses(db *database.DB, rules []model.Rule) (map[uint64]RuleAccess, error) {
-	accesses := map[uint64]RuleAccess{}
-	for _, r := range rules {
-		rule := r
-		access, err := makeRuleAccess(db, &rule)
-		if err != nil {
-			return nil, err
-		}
-		accesses[rule.ID] = *access
-	}
-	return accesses, nil
 }
