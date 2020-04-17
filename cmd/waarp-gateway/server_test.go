@@ -15,12 +15,12 @@ import (
 
 func serverInfoString(s *rest.OutServer) string {
 	return "● Server " + s.Name + "\n" +
-		"        Protocol: " + s.Protocol + "\n" +
-		"            Root: " + s.Root + "\n" +
-		"   Configuration: " + string(s.ProtoConfig) + "\n" +
-		"   Authorized rules\n" +
-		"   ├─  Sending: " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
-		"   └─Reception: " + strings.Join(s.AuthorizedRules.Reception, ", ") + "\n"
+		"    Protocol:      " + s.Protocol + "\n" +
+		"    Root:          " + s.Root + "\n" +
+		"    Configuration: " + string(s.ProtoConfig) + "\n" +
+		"    Authorized rules\n" +
+		"    ├─  Sending: " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
+		"    └─Reception: " + strings.Join(s.AuthorizedRules.Reception, ", ") + "\n"
 }
 
 func TestGetServer(t *testing.T) {

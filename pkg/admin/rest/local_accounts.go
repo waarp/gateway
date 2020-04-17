@@ -129,7 +129,6 @@ func createLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl
 func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
@@ -202,6 +201,86 @@ func revokeLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			return revokeRule(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func getLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getLocAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return getCertificate(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func createLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getLocAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return createCertificate(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func listLocAccountCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getLocAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return listCertificates(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func deleteLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getLocAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return deleteCertificate(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func updateLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getLocAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return updateCertificate(w, r, db, acc.TableName(), acc.ID)
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

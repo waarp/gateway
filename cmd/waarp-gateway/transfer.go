@@ -52,21 +52,21 @@ func displayTransfer(w io.Writer, trans *rest.OutTransfer) {
 	}
 
 	fmt.Fprintln(w, bold("● Transfer", trans.ID, "(as "+role+")"), coloredStatus(trans.Status))
-	fmt.Fprintln(w, orange("               Rule:"), trans.Rule)
-	fmt.Fprintln(w, orange("          Requester:"), trans.Requester)
-	fmt.Fprintln(w, orange("          Requested:"), trans.Requested)
-	fmt.Fprintln(w, orange("      True filepath:"), trans.TrueFilepath)
-	fmt.Fprintln(w, orange("        Source file:"), trans.SourcePath)
-	fmt.Fprintln(w, orange("   Destination file:"), trans.DestPath)
-	fmt.Fprintln(w, orange("         Start time:"), trans.Start.Format(time.RFC3339))
-	fmt.Fprintln(w, orange("               Step:"), string(trans.Step))
-	fmt.Fprintln(w, orange("           Progress:"), trans.Progress)
-	fmt.Fprintln(w, orange("        Task number:"), trans.TaskNumber)
+	fmt.Fprintln(w, orange("    Rule:            "), trans.Rule)
+	fmt.Fprintln(w, orange("    Requester:       "), trans.Requester)
+	fmt.Fprintln(w, orange("    Requested:       "), trans.Requested)
+	fmt.Fprintln(w, orange("    True filepath:   "), trans.TrueFilepath)
+	fmt.Fprintln(w, orange("    Source file:     "), trans.SourcePath)
+	fmt.Fprintln(w, orange("    Destination file:"), trans.DestPath)
+	fmt.Fprintln(w, orange("    Start time:      "), trans.Start.Format(time.RFC3339))
+	fmt.Fprintln(w, orange("    Step:            "), string(trans.Step))
+	fmt.Fprintln(w, orange("    Progress:        "), trans.Progress)
+	fmt.Fprintln(w, orange("    Task number:     "), trans.TaskNumber)
 	if trans.ErrorCode != model.TeOk {
-		fmt.Fprintln(w, orange("         Error code:"), fmt.Sprint(trans.ErrorCode))
+		fmt.Fprintln(w, orange("    Error code:      "), fmt.Sprint(trans.ErrorCode))
 	}
 	if trans.ErrorMsg != "" {
-		fmt.Fprintln(w, orange("      Error message:"), trans.ErrorMsg)
+		fmt.Fprintln(w, orange("    Error message:   "), trans.ErrorMsg)
 	}
 }
 
@@ -93,29 +93,13 @@ func (t *transferAdd) Execute([]string) error {
 		Rule:       t.Rule,
 		DestPath:   t.Dest,
 	}
+	path := admin.APIPath + rest.TransfersPath
 
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	if err := add(path, trans); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.TransfersPath
-
-	resp, err := sendRequest(conn, trans, http.MethodPost)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The transfer of file", t.File, "was successfully added.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
-	}
+	fmt.Fprintln(getColorable(), "The transfer of file", t.File, "was successfully added.")
+	return nil
 }
 
 // ######################## GET ##########################
@@ -127,32 +111,14 @@ type transferGet struct {
 }
 
 func (t *transferGet) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	path := admin.APIPath + rest.TransfersPath + "/" + fmt.Sprint(t.Args.ID)
+
+	trans := &rest.OutTransfer{}
+	if err := get(path, trans); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.TransfersPath + "/" + fmt.Sprint(t.Args.ID)
-
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		trans := &rest.OutTransfer{}
-		if err := unmarshalBody(resp.Body, trans); err != nil {
-			return err
-		}
-		displayTransfer(w, trans)
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	displayTransfer(getColorable(), trans)
+	return nil
 }
 
 // ######################## LIST ##########################
@@ -197,40 +163,28 @@ func (t *transferList) listURL() (*url.URL, error) {
 }
 
 func (t *transferList) Execute([]string) error {
-	conn, err := t.listURL()
+	addr, err := t.listURL()
 	if err != nil {
 		return err
 	}
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
+	body := map[string][]rest.OutTransfer{}
+	if err := list(addr, &body); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
+	transfers := body["transfers"]
 	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		body := map[string][]rest.OutTransfer{}
-		if err := unmarshalBody(resp.Body, &body); err != nil {
-			return err
+	if len(transfers) > 0 {
+		fmt.Fprintln(w, bold("Transfers:"))
+		for _, t := range transfers {
+			transfer := t
+			displayTransfer(w, &transfer)
 		}
-		transfers := body["transfers"]
-		if len(transfers) > 0 {
-			fmt.Fprintln(w, bold("Transfers:"))
-			for _, t := range transfers {
-				transfer := t
-				displayTransfer(w, &transfer)
-			}
-		} else {
-			fmt.Fprintln(w, "No transfers found.")
-		}
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	} else {
+		fmt.Fprintln(w, "No transfers found.")
 	}
+	return nil
 }
 
 // ######################## PAUSE ##########################

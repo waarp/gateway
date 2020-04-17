@@ -15,11 +15,11 @@ import (
 
 func partnerInfoString(p *rest.OutPartner) string {
 	return "● Partner " + p.Name + "\n" +
-		"        Protocol: " + p.Protocol + "\n" +
-		"   Configuration: " + string(p.ProtoConfig) + "\n" +
-		"   Authorized rules\n" +
-		"   ├─Sending:   " + strings.Join(p.AuthorizedRules.Sending, ", ") + "\n" +
-		"   └─Reception: " + strings.Join(p.AuthorizedRules.Reception, ", ") + "\n"
+		"    Protocol:      " + p.Protocol + "\n" +
+		"    Configuration: " + string(p.ProtoConfig) + "\n" +
+		"    Authorized rules\n" +
+		"    ├─Sending:   " + strings.Join(p.AuthorizedRules.Sending, ", ") + "\n" +
+		"    └─Reception: " + strings.Join(p.AuthorizedRules.Reception, ", ") + "\n"
 }
 
 func TestGetPartner(t *testing.T) {

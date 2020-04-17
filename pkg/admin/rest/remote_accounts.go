@@ -100,7 +100,6 @@ func getRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl
 func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
@@ -201,6 +200,86 @@ func revokeRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			return revokeRule(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func getRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getRemAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return getCertificate(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func createRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getRemAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return createCertificate(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func listRemAccountCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getRemAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return listCertificates(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func deleteRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getRemAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return deleteCertificate(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func updateRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getRemAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return updateCertificate(w, r, db, acc.TableName(), acc.ID)
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

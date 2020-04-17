@@ -29,30 +29,30 @@ func displayHistory(w io.Writer, hist *rest.OutHistory) {
 		way = "SEND"
 	}
 
-	fmt.Fprintln(w, bold("● Transfer", hist.ID, "(as", role+")"), coloredStatus(hist.Status))
-	fmt.Fprintln(w, orange("                Way:"), way)
-	fmt.Fprintln(w, orange("           Protocol:"), hist.Protocol)
-	fmt.Fprintln(w, orange("               Rule:"), hist.Rule)
-	fmt.Fprintln(w, orange("          Requester:"), hist.Requester)
-	fmt.Fprintln(w, orange("          Requested:"), hist.Requested)
-	fmt.Fprintln(w, orange("        Source file:"), hist.SourceFilename)
-	fmt.Fprintln(w, orange("   Destination file:"), hist.DestFilename)
-	fmt.Fprintln(w, orange("         Start date:"), hist.Start.Format(time.RFC3339))
-	fmt.Fprintln(w, orange("           End date:"), hist.Stop.Format(time.RFC3339))
+	fmt.Fprintln(w, orange(bold("● Transfer", hist.ID, "(as", role+")")), coloredStatus(hist.Status))
+	fmt.Fprintln(w, orange("    Way:             "), way)
+	fmt.Fprintln(w, orange("    Protocol:        "), hist.Protocol)
+	fmt.Fprintln(w, orange("    Rule:            "), hist.Rule)
+	fmt.Fprintln(w, orange("    Requester:       "), hist.Requester)
+	fmt.Fprintln(w, orange("    Requested:       "), hist.Requested)
+	fmt.Fprintln(w, orange("    Source file:     "), hist.SourceFilename)
+	fmt.Fprintln(w, orange("    Destination file:"), hist.DestFilename)
+	fmt.Fprintln(w, orange("    Start date:      "), hist.Start.Format(time.RFC3339))
+	fmt.Fprintln(w, orange("    End date:        "), hist.Stop.Format(time.RFC3339))
 	if hist.ErrorCode != model.TeOk {
-		fmt.Fprintln(w, orange("         Error code:"), hist.ErrorCode)
+		fmt.Fprintln(w, orange("    Error code:      "), hist.ErrorCode)
 	}
 	if hist.ErrorMsg != "" {
-		fmt.Fprintln(w, orange("      Error message:"), hist.ErrorMsg)
+		fmt.Fprintln(w, orange("    Error message:   "), hist.ErrorMsg)
 	}
 	if hist.Step != "" {
-		fmt.Fprintln(w, orange("        Failed step:"), hist.Step)
+		fmt.Fprintln(w, orange("    Failed step:     "), hist.Step)
 	}
 	if hist.Progress != 0 {
-		fmt.Fprintln(w, orange("           Progress:"), hist.Progress)
+		fmt.Fprintln(w, orange("    Progress:        "), hist.Progress)
 	}
 	if hist.TaskNumber != 0 {
-		fmt.Fprintln(w, orange("        Task number:"), hist.TaskNumber)
+		fmt.Fprintln(w, orange("    Task number:     "), hist.TaskNumber)
 	}
 }
 
@@ -65,32 +65,14 @@ type historyGet struct {
 }
 
 func (h *historyGet) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	path := admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID)
+
+	trans := &rest.OutHistory{}
+	if err := get(path, trans); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID)
-
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		trans := &rest.OutHistory{}
-		if err := unmarshalBody(resp.Body, trans); err != nil {
-			return err
-		}
-		displayHistory(w, trans)
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	displayHistory(getColorable(), trans)
+	return nil
 }
 
 // ######################## LIST ##########################
@@ -156,40 +138,28 @@ func (h *historyList) listURL() (*url.URL, error) {
 }
 
 func (h *historyList) Execute([]string) error {
-	conn, err := h.listURL()
+	addr, err := h.listURL()
 	if err != nil {
 		return err
 	}
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
+	body := map[string][]rest.OutHistory{}
+	if err := list(addr, &body); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
+	history := body["history"]
 	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		body := map[string][]rest.OutHistory{}
-		if err := unmarshalBody(resp.Body, &body); err != nil {
-			return err
+	if len(history) > 0 {
+		fmt.Fprintln(w, bold("History:"))
+		for _, h := range history {
+			history := h
+			displayHistory(w, &history)
 		}
-		history := body["history"]
-		if len(history) > 0 {
-			fmt.Fprintln(w, bold("History:"))
-			for _, h := range history {
-				history := h
-				displayHistory(w, &history)
-			}
-		} else {
-			fmt.Fprintln(w, "No transfers found.")
-		}
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	} else {
+		fmt.Fprintln(w, "No transfers found.")
 	}
+	return nil
 }
 
 // ######################## RESTART ##########################
@@ -202,11 +172,11 @@ type historyRetry struct {
 }
 
 func (h *historyRetry) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID) + "/retry"
+	addr.Path = admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID) + "/retry"
 
 	query := url.Values{}
 	if h.Date != "" {
@@ -217,9 +187,9 @@ func (h *historyRetry) Execute([]string) error {
 		}
 		query.Set("date", start.Format(time.RFC3339))
 	}
-	conn.RawQuery = query.Encode()
+	addr.RawQuery = query.Encode()
 
-	resp, err := sendRequest(conn, nil, http.MethodPut)
+	resp, err := sendRequest(addr, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}

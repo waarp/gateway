@@ -16,9 +16,9 @@ import (
 
 func accInfoString(a *rest.OutAccount) string {
 	return "● Account " + a.Login + "\n" +
-		"   Authorized rules\n" +
-		"   ├─  Sending: " + strings.Join(a.AuthorizedRules.Sending, ", ") + "\n" +
-		"   └─Reception: " + strings.Join(a.AuthorizedRules.Reception, ", ") + "\n"
+		"    Authorized rules\n" +
+		"    ├─  Sending: " + strings.Join(a.AuthorizedRules.Sending, ", ") + "\n" +
+		"    └─Reception: " + strings.Join(a.AuthorizedRules.Reception, ", ") + "\n"
 }
 
 func TestGetLocalAccount(t *testing.T) {

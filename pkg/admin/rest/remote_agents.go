@@ -131,7 +131,6 @@ func deleteRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl
 func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
@@ -184,6 +183,86 @@ func revokeRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			return revokeRule(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func getRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getRemAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return getCertificate(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func createRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getRemAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return createCertificate(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func listRemAgentCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getRemAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return listCertificates(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func deleteRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getRemAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return deleteCertificate(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func updateRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getRemAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return updateCertificate(w, r, db, ag.TableName(), ag.ID)
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

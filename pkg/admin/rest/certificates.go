@@ -7,7 +7,6 @@ import (
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
@@ -66,33 +65,7 @@ func FromCerts(cs []model.Cert) []OutCert {
 	return certs
 }
 
-func getAgentInfo(r *http.Request, db *database.DB) (string, uint64, error) {
-	var ownerType string
-	var ownerID uint64
-	if server, account, err := getLocAcc(r, db); err == nil {
-		ownerType = account.TableName()
-		ownerID = account.ID
-	} else if server != nil {
-		ownerType = server.TableName()
-		ownerID = server.ID
-	} else if partner, account, err := getRemAcc(r, db); err == nil {
-		ownerType = account.TableName()
-		ownerID = account.ID
-	} else if partner != nil {
-		ownerType = partner.TableName()
-		ownerID = partner.ID
-	} else {
-		return "", 0, err
-	}
-	return ownerType, ownerID, nil
-}
-
-func getCert(r *http.Request, db *database.DB) (*model.Cert, error) {
-	ownerType, ownerID, err := getAgentInfo(r, db)
-	if err != nil {
-		return nil, err
-	}
-
+func getCert(r *http.Request, db *database.DB, ownerType string, ownerID uint64) (*model.Cert, error) {
 	certName, ok := mux.Vars(r)["certificate"]
 	if !ok {
 		return nil, notFound("missing certificate name")
@@ -107,129 +80,92 @@ func getCert(r *http.Request, db *database.DB) (*model.Cert, error) {
 	return cert, nil
 }
 
-func getCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			result, err := getCert(r, db)
-			if err != nil {
-				return err
-			}
+func getCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
+	ownerType string, ownerID uint64) error {
 
-			return writeJSON(w, FromCert(result))
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
-		}
+	result, err := getCert(r, db, ownerType, ownerID)
+	if err != nil {
+		return err
 	}
+
+	return writeJSON(w, FromCert(result))
 }
 
-func createCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ownerType, ownerID, err := getAgentInfo(r, db)
-			if err != nil {
-				return err
-			}
+func createCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
+	ownerType string, ownerID uint64) error {
 
-			jsonCert := &InCert{}
-			if err := readJSON(r, jsonCert); err != nil {
-				return err
-			}
-
-			cert := jsonCert.toModel(ownerType, ownerID)
-			if err := db.Create(cert); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", location(r, cert.Name))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
-		}
+	jsonCert := &InCert{}
+	if err := readJSON(r, jsonCert); err != nil {
+		return err
 	}
+
+	cert := jsonCert.toModel(ownerType, ownerID)
+	if err := db.Create(cert); err != nil {
+		return err
+	}
+
+	w.Header().Set("Location", location(r, cert.Name))
+	w.WriteHeader(http.StatusCreated)
+	return nil
 }
 
-func listCertificates(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func listCertificates(w http.ResponseWriter, r *http.Request, db *database.DB,
+	ownerType string, ownerID uint64) error {
 	validSorting := map[string]string{
 		"default": "name ASC",
 		"name+":   "name ASC",
 		"name-":   "name DESC",
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ownerType, ownerID, err := getAgentInfo(r, db)
-			if err != nil {
-				return err
-			}
-
-			filters, err := parseListFilters(r, validSorting)
-			if err != nil {
-				return err
-			}
-			filters.Conditions = builder.Eq{"owner_type": ownerType, "owner_id": ownerID}
-
-			var results []model.Cert
-			if err := db.Select(&results, filters); err != nil {
-				return err
-			}
-
-			resp := map[string][]OutCert{"certificates": FromCerts(results)}
-			return writeJSON(w, resp)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
-		}
+	filters, err := parseListFilters(r, validSorting)
+	if err != nil {
+		return err
 	}
+	filters.Conditions = builder.Eq{"owner_type": ownerType, "owner_id": ownerID}
+
+	var results []model.Cert
+	if err := db.Select(&results, filters); err != nil {
+		return err
+	}
+
+	resp := map[string][]OutCert{"certificates": FromCerts(results)}
+	return writeJSON(w, resp)
 }
 
-func deleteCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			cert, err := getCert(r, db)
-			if err != nil {
-				return err
-			}
+func deleteCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
+	ownerType string, ownerID uint64) error {
 
-			if err := db.Delete(cert); err != nil {
-				return err
-			}
-			w.WriteHeader(http.StatusNoContent)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
-		}
+	cert, err := getCert(r, db, ownerType, ownerID)
+	if err != nil {
+		return err
 	}
+
+	if err := db.Delete(cert); err != nil {
+		return err
+	}
+	w.WriteHeader(http.StatusNoContent)
+	return nil
 }
 
-//nolint:dupl
-func updateCertificate(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			check, err := getCert(r, db)
-			if err != nil {
-				return err
-			}
+func updateCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
+	ownerType string, ownerID uint64) error {
 
-			cert := &InCert{}
-			if err := readJSON(r, cert); err != nil {
-				return err
-			}
-
-			if err := db.Update(cert.toModel(check.OwnerType, check.OwnerID),
-				check.ID, false); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", locationUpdate(r, cert.Name, check.Name))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
-		}
+	check, err := getCert(r, db, ownerType, ownerID)
+	if err != nil {
+		return err
 	}
+
+	cert := &InCert{}
+	if err := readJSON(r, cert); err != nil {
+		return err
+	}
+
+	if err := db.Update(cert.toModel(check.OwnerType, check.OwnerID),
+		check.ID, false); err != nil {
+		return err
+	}
+
+	w.Header().Set("Location", locationUpdate(r, cert.Name, check.Name))
+	w.WriteHeader(http.StatusCreated)
+	return nil
 }

@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -26,12 +24,12 @@ func displayPartner(w io.Writer, partner *rest.OutPartner) {
 	send := strings.Join(partner.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(partner.AuthorizedRules.Reception, ", ")
 
-	fmt.Fprintln(w, bold("● Partner", partner.Name))
-	fmt.Fprintln(w, orange("        Protocol:"), partner.Protocol)
-	fmt.Fprintln(w, orange("   Configuration:"), string(partner.ProtoConfig))
-	fmt.Fprintln(w, orange("   Authorized rules"))
-	fmt.Fprintln(w, orange("   ├─Sending:  "), send)
-	fmt.Fprintln(w, orange("   └─Reception:"), recv)
+	fmt.Fprintln(w, orange(bold("● Partner", partner.Name)))
+	fmt.Fprintln(w, orange("    Protocol:     "), partner.Protocol)
+	fmt.Fprintln(w, orange("    Configuration:"), string(partner.ProtoConfig))
+	fmt.Fprintln(w, orange("    Authorized rules"))
+	fmt.Fprintln(w, bold("    ├─Sending:  "), send)
+	fmt.Fprintln(w, bold("    └─Reception:"), recv)
 }
 
 // ######################## ADD ##########################
@@ -43,34 +41,18 @@ type partnerAdd struct {
 }
 
 func (p *partnerAdd) Execute([]string) error {
-	newAgent := rest.InRemoteAgent{
+	partner := rest.InRemoteAgent{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),
 	}
+	path := admin.APIPath + rest.RemoteAgentsPath
 
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	if err := add(path, partner); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.RemoteAgentsPath
-
-	resp, err := sendRequest(conn, newAgent, http.MethodPost)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The partner", bold(newAgent.Name), "was successfully added.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
-	}
+	fmt.Fprintln(getColorable(), "The partner", bold(partner.Name), "was successfully added.")
+	return nil
 }
 
 // ######################## LIST ##########################
@@ -81,42 +63,29 @@ type partnerList struct {
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
-//nolint:dupl
 func (p *partnerList) Execute([]string) error {
-	conn, err := agentListURL(rest.RemoteAgentsPath, &p.listOptions, p.SortBy, p.Protocols)
+	addr, err := agentListURL(rest.RemoteAgentsPath, &p.listOptions, p.SortBy, p.Protocols)
 	if err != nil {
 		return err
 	}
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
+	body := map[string][]rest.OutPartner{}
+	if err := list(addr, &body); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
+	partners := body["partners"]
 	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		body := map[string][]rest.OutPartner{}
-		if err := unmarshalBody(resp.Body, &body); err != nil {
-			return err
+	if len(partners) > 0 {
+		fmt.Fprintln(w, bold("Partners:"))
+		for _, p := range partners {
+			partner := p
+			displayPartner(w, &partner)
 		}
-		partners := body["partners"]
-		if len(partners) > 0 {
-			fmt.Fprintln(w, bold("Partners:"))
-			for _, p := range partners {
-				partner := p
-				displayPartner(w, &partner)
-			}
-		} else {
-			fmt.Fprintln(w, "No partners found.")
-		}
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	} else {
+		fmt.Fprintln(w, "No partners found.")
 	}
+	return nil
 }
 
 // ######################## GET ##########################
@@ -127,34 +96,15 @@ type partnerGet struct {
 	} `positional-args:"yes"`
 }
 
-//nolint:dupl
 func (p *partnerGet) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return fmt.Errorf("failed to parse server URL: %s", err.Error())
-	}
-	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + p.Args.Name
+	path := admin.APIPath + rest.RemoteAgentsPath + "/" + p.Args.Name
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
+	partner := &rest.OutPartner{}
+	if err := get(path, partner); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		partner := &rest.OutPartner{}
-		if err := unmarshalBody(resp.Body, partner); err != nil {
-			return err
-		}
-		displayPartner(w, partner)
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	displayPartner(getColorable(), partner)
+	return nil
 }
 
 // ######################## DELETE ##########################
@@ -166,28 +116,13 @@ type partnerDelete struct {
 }
 
 func (p *partnerDelete) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	path := admin.APIPath + rest.RemoteAgentsPath + "/" + p.Args.Name
+
+	if err := remove(path); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + p.Args.Name
-
-	resp, err := sendRequest(conn, nil, http.MethodDelete)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusNoContent:
-		fmt.Fprintln(w, "The partner", bold(p.Args.Name), "was successfully deleted.")
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	fmt.Fprintln(getColorable(), "The partner", bold(p.Args.Name), "was successfully deleted.")
+	return nil
 }
 
 // ######################## UPDATE ##########################
@@ -202,37 +137,18 @@ type partnerUpdate struct {
 }
 
 func (p *partnerUpdate) Execute([]string) error {
-	update := rest.InRemoteAgent{
+	partner := rest.InRemoteAgent{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),
 	}
+	path := admin.APIPath + rest.RemoteAgentsPath + "/" + p.Args.Name
 
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	if err := update(path, partner); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + p.Args.Name
-
-	resp, err := sendRequest(conn, update, http.MethodPut)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The partner", bold(update.Name), "was successfully updated.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
-			getResponseMessage(resp).Error())
-	}
+	fmt.Fprintln(getColorable(), "The partner", bold(partner.Name), "was successfully updated.")
+	return nil
 }
 
 // ######################## AUTHORIZE ##########################

@@ -21,21 +21,21 @@ func transferInfoString(t *rest.OutTransfer) string {
 	}
 
 	rv := "● Transfer " + fmt.Sprint(t.ID) + " (as " + role + ") [" + string(t.Status) + "]\n" +
-		"               Rule: " + t.Rule + "\n" +
-		"          Requester: " + t.Requester + "\n" +
-		"          Requested: " + t.Requested + "\n" +
-		"      True filepath: " + t.TrueFilepath + "\n" +
-		"        Source file: " + t.SourcePath + "\n" +
-		"   Destination file: " + t.DestPath + "\n" +
-		"         Start time: " + t.Start.Local().Format(time.RFC3339) + "\n" +
-		"               Step: " + string(t.Step) + "\n" +
-		"           Progress: " + fmt.Sprint(t.Progress) + "\n" +
-		"        Task number: " + fmt.Sprint(t.TaskNumber) + "\n"
+		"    Rule:             " + t.Rule + "\n" +
+		"    Requester:        " + t.Requester + "\n" +
+		"    Requested:        " + t.Requested + "\n" +
+		"    True filepath:    " + t.TrueFilepath + "\n" +
+		"    Source file:      " + t.SourcePath + "\n" +
+		"    Destination file: " + t.DestPath + "\n" +
+		"    Start time:       " + t.Start.Local().Format(time.RFC3339) + "\n" +
+		"    Step:             " + string(t.Step) + "\n" +
+		"    Progress:         " + fmt.Sprint(t.Progress) + "\n" +
+		"    Task number:      " + fmt.Sprint(t.TaskNumber) + "\n"
 	if t.ErrorCode != model.TeOk {
-		rv += "         Error code: " + t.ErrorCode.String() + "\n"
+		rv += "    Error code:       " + t.ErrorCode.String() + "\n"
 	}
 	if t.ErrorMsg != "" {
-		rv += "      Error message: " + t.ErrorMsg + "\n"
+		rv += "    Error message:    " + t.ErrorMsg + "\n"
 	}
 	return rv
 }

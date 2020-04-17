@@ -113,7 +113,6 @@ func createLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl
 func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
@@ -186,6 +185,86 @@ func revokeLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			return revokeRule(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func getLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getLocAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return getCertificate(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func createLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getLocAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return createCertificate(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func listLocAgentCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getLocAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return listCertificates(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func deleteLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getLocAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return deleteCertificate(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func updateLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getLocAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return updateCertificate(w, r, db, ag.TableName(), ag.ID)
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

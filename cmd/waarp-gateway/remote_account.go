@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
-	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
@@ -33,34 +30,15 @@ type remAccGet struct {
 
 func (r *remAccGet) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
+	path := admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
 		rest.RemoteAccountsPath + "/" + r.Args.Login
-	log.Println(conn.String())
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
+	account := &rest.OutAccount{}
+	if err := get(path, account); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		account := &rest.OutAccount{}
-		if err := unmarshalBody(resp.Body, account); err != nil {
-			return err
-		}
-		displayAccount(w, account)
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	displayAccount(getColorable(), account)
+	return nil
 }
 
 // ######################## ADD ##########################
@@ -71,35 +49,18 @@ type remAccAdd struct {
 }
 
 func (r *remAccAdd) Execute([]string) error {
-	partner := commandLine.Account.Remote.Args.Partner
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + partner + rest.RemoteAccountsPath
-
-	newAccount := rest.InAccount{
+	account := rest.InAccount{
 		Login:    r.Login,
 		Password: []byte(r.Password),
 	}
-	resp, err := sendRequest(conn, newAccount, http.MethodPost)
-	if err != nil {
+	partner := commandLine.Account.Remote.Args.Partner
+	path := admin.APIPath + rest.RemoteAgentsPath + "/" + partner + rest.RemoteAccountsPath
+
+	if err := add(path, account); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The account", bold(newAccount.Login), "was successfully added.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
-	}
+	fmt.Fprintln(getColorable(), "The account", bold(account.Login), "was successfully added.")
+	return nil
 }
 
 // ######################## DELETE ##########################
@@ -112,29 +73,14 @@ type remAccDelete struct {
 
 func (r *remAccDelete) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
+	path := admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
 		rest.RemoteAccountsPath + "/" + r.Args.Login
 
-	resp, err := sendRequest(conn, nil, http.MethodDelete)
-	if err != nil {
+	if err := remove(path); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusNoContent:
-		fmt.Fprintln(w, "The account", bold(r.Args.Login), "was successfully deleted.")
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	fmt.Fprintln(getColorable(), "The account", bold(r.Args.Login), "was successfully deleted.")
+	return nil
 }
 
 // ######################## UPDATE ##########################
@@ -148,38 +94,19 @@ type remAccUpdate struct {
 }
 
 func (r *remAccUpdate) Execute([]string) error {
-	partner := commandLine.Account.Remote.Args.Partner
-	update := rest.InAccount{
+	account := rest.InAccount{
 		Login:    r.Login,
 		Password: []byte(r.Password),
 	}
-
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
+	partner := commandLine.Account.Remote.Args.Partner
+	path := admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
 		rest.RemoteAccountsPath + "/" + r.Args.Login
 
-	resp, err := sendRequest(conn, update, http.MethodPut)
-	if err != nil {
+	if err := update(path, account); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The account", bold(update.Login), "was successfully updated.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
-			getResponseMessage(resp).Error())
-	}
+	fmt.Fprintln(getColorable(), "The account", bold(account.Login), "was successfully updated.")
+	return nil
 }
 
 // ######################## LIST ##########################
@@ -192,42 +119,28 @@ type remAccList struct {
 func (r *remAccList) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
 	path := rest.RemoteAgentsPath + "/" + partner + rest.RemoteAccountsPath
-	conn, err := accountListURL(path, &r.listOptions, r.SortBy)
+	addr, err := accountListURL(path, &r.listOptions, r.SortBy)
 	if err != nil {
 		return err
 	}
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
+	body := map[string][]rest.OutAccount{}
+	if err := list(addr, &body); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
+	accounts := body["remoteAccounts"]
 	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		body := map[string][]rest.OutAccount{}
-		if err := unmarshalBody(resp.Body, &body); err != nil {
-			return err
+	if len(accounts) > 0 {
+		fmt.Fprintln(w, bold("Accounts of partner '"+partner+"':"))
+		for _, a := range accounts {
+			account := a
+			displayAccount(w, &account)
 		}
-		accounts := body["remoteAccounts"]
-		if len(accounts) > 0 {
-			fmt.Fprintln(w, bold("Accounts of partner '"+partner+"':"))
-			for _, a := range accounts {
-				account := a
-				displayAccount(w, &account)
-			}
-		} else {
-			fmt.Fprintln(w, "Partner", bold(partner), "has no accounts.")
-		}
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	} else {
+		fmt.Fprintln(w, "Partner", bold(partner), "has no accounts.")
 	}
+	return nil
 }
 
 // ######################## AUTHORIZE ##########################

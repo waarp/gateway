@@ -93,32 +93,14 @@ type ruleGet struct {
 }
 
 func (r *ruleGet) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name
+
+	rule := &rest.OutRule{}
+	if err := get(path, rule); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name
-
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		rule := &rest.OutRule{}
-		if err := unmarshalBody(resp.Body, rule); err != nil {
-			return err
-		}
-		displayRule(w, rule)
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	displayRule(getColorable(), rule)
+	return nil
 }
 
 // ######################## ADD ##########################
@@ -166,29 +148,13 @@ func (r *ruleAdd) Execute([]string) error {
 	if err := r.parseTasks(rule); err != nil {
 		return err
 	}
+	path := admin.APIPath + rest.RulesPath
 
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	if err := add(path, rule); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.RulesPath
-
-	resp, err := sendRequest(conn, rule, http.MethodPost)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The rule", bold(rule.Name), "was successfully added.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
-	}
+	fmt.Fprintln(getColorable(), "The rule", bold(rule.Name), "was successfully added.")
+	return nil
 }
 
 // ######################## DELETE ##########################
@@ -200,28 +166,13 @@ type ruleDelete struct {
 }
 
 func (r *ruleDelete) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name
+
+	if err := remove(path); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name
-
-	resp, err := sendRequest(conn, nil, http.MethodDelete)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusNoContent:
-		fmt.Fprintln(w, "The rule", bold(r.Args.Name), "was successfully deleted.")
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	fmt.Fprintln(getColorable(), "The rule", bold(r.Args.Name), "was successfully deleted.")
+	return nil
 }
 
 // ######################## LIST ##########################
@@ -232,40 +183,28 @@ type ruleList struct {
 }
 
 func (r *ruleList) Execute([]string) error {
-	conn, err := listURL(rest.RulesPath, &r.listOptions, r.SortBy)
+	addr, err := listURL(rest.RulesPath, &r.listOptions, r.SortBy)
 	if err != nil {
 		return err
 	}
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
+	body := map[string][]rest.OutRule{}
+	if err := list(addr, &body); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
+	rules := body["rules"]
 	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		body := map[string][]rest.OutRule{}
-		if err := unmarshalBody(resp.Body, &body); err != nil {
-			return err
+	if len(rules) > 0 {
+		fmt.Fprintln(w, bold("Rules:"))
+		for _, r := range rules {
+			rule := r
+			displayRule(w, &rule)
 		}
-		rules := body["rules"]
-		if len(rules) > 0 {
-			fmt.Fprintln(w, bold("Rules:"))
-			for _, r := range rules {
-				rule := r
-				displayRule(w, &rule)
-			}
-		} else {
-			fmt.Fprintln(w, "No rules found.")
-		}
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	} else {
+		fmt.Fprintln(w, "No rules found.")
 	}
+	return nil
 }
 
 // ######################## UPDATE ##########################
@@ -282,39 +221,20 @@ type ruleUpdate struct {
 }
 
 func (r *ruleUpdate) Execute([]string) error {
-	update := rest.UptRule{
+	rule := &rest.UptRule{
 		Name:    r.Name,
 		Comment: r.Comment,
 		Path:    r.Path,
 		InPath:  r.InPath,
 		OutPath: r.OutPath,
 	}
+	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name
 
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	if err := update(path, rule); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name
-
-	resp, err := sendRequest(conn, update, http.MethodPut)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The rule", bold(update.Name), "was successfully updated.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
-			getResponseMessage(resp).Error())
-	}
+	fmt.Fprintln(getColorable(), "The rule", bold(rule.Name), "was successfully updated.")
+	return nil
 }
 
 // ######################## RESTRICT ##########################
@@ -326,13 +246,13 @@ type ruleAllowAll struct {
 }
 
 func (r *ruleAllowAll) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/allow_all"
+	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/allow_all"
 
-	resp, err := sendRequest(conn, nil, http.MethodPut)
+	resp, err := sendRequest(addr, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}

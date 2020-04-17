@@ -8,7 +8,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	. "github.com/go-xorm/builder"
+	"github.com/go-xorm/builder"
 )
 
 func getTransIDs(db *database.DB, trans *InTransfer) (uint64, uint64, uint64, error) {
@@ -68,24 +68,26 @@ func getTransNames(db *database.DB, trans *model.Transfer) (string, string, stri
 	return rule.Name, requester.Login, requested.Name, nil
 }
 
-func parseTransferListQuery(db *database.DB, r *http.Request) (*Builder, error) {
-	sorting := map[string]func(*Builder){
-		"default": func(query *Builder) { query = query.OrderBy("id ASC") },
-		"id+":     func(query *Builder) { query = query.OrderBy("id ASC") },
-		"id-":     func(query *Builder) { query = query.OrderBy("id DESC") },
-		"rule+": func(query *Builder) {
+//nolint:funlen
+func parseTransferListQuery(db *database.DB, r *http.Request) (*builder.Builder, error) {
+	//nolint:staticcheck
+	sorting := map[string]func(*builder.Builder){
+		"default": func(query *builder.Builder) { query = query.OrderBy("id ASC") },
+		"id+":     func(query *builder.Builder) { query = query.OrderBy("id ASC") },
+		"id-":     func(query *builder.Builder) { query = query.OrderBy("id DESC") },
+		"rule+": func(query *builder.Builder) {
 			query = query.InnerJoin("rules", "transfers.rule_id = rules.id").OrderBy("rules.id ASC")
 		},
-		"rule-": func(query *Builder) {
+		"rule-": func(query *builder.Builder) {
 			query = query.InnerJoin("rules", "transfers.rule_id = rules.id").OrderBy("rules.id DESC")
 		},
-		"status+": func(query *Builder) { query = query.OrderBy("status ASC") },
-		"status-": func(query *Builder) { query = query.OrderBy("status DESC") },
-		"start+":  func(query *Builder) { query = query.OrderBy("start ASC") },
-		"start-":  func(query *Builder) { query = query.OrderBy("start DESC") },
+		"status+": func(query *builder.Builder) { query = query.OrderBy("status ASC") },
+		"status-": func(query *builder.Builder) { query = query.OrderBy("status DESC") },
+		"start+":  func(query *builder.Builder) { query = query.OrderBy("start ASC") },
+		"start-":  func(query *builder.Builder) { query = query.OrderBy("start DESC") },
 	}
 	query := db.NewQuery().Select("transfers.*").From("transfers")
-	where := NewCond()
+	where := builder.NewCond()
 
 	if err := r.ParseForm(); err != nil {
 		return nil, err
@@ -109,17 +111,18 @@ func parseTransferListQuery(db *database.DB, r *http.Request) (*Builder, error) 
 	query.Limit(limit, offset)
 
 	if rules, ok := r.Form["rule"]; ok {
-		where = where.And(In("rule_id", Select("id").From("rules").Where(In("name", rules))))
+		where = where.And(builder.In("rule_id", builder.Select("id").From("rules").
+			Where(builder.In("name", rules))))
 	}
 	if statuses, ok := r.Form["status"]; ok {
-		where = where.And(In("status", statuses))
+		where = where.And(builder.In("status", statuses))
 	}
 	if startStr := r.FormValue("start"); startStr != "" {
 		start, err := time.Parse(time.RFC3339, startStr)
 		if err != nil {
 			return nil, badRequest("'%s' is not a valid date", startStr)
 		}
-		where = where.And(Gte{"start": start.UTC()})
+		where = where.And(builder.Gte{"start": start.UTC()})
 	}
 	query = query.Where(where)
 
@@ -137,7 +140,7 @@ func parseTransferListQuery(db *database.DB, r *http.Request) (*Builder, error) 
 	return query, nil
 }
 
-func execTransferListQuery(db *database.DB, query *Builder) ([]model.Transfer, error) {
+func execTransferListQuery(db *database.DB, query *builder.Builder) ([]model.Transfer, error) {
 	results, err := db.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %s", err.Error())

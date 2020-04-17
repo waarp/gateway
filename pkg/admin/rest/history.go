@@ -172,7 +172,6 @@ func getHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl
 func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default":    "start ASC",

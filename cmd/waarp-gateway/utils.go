@@ -211,12 +211,12 @@ func deleteCommand(conn *url.URL) error {
 }
 
 func agentListURL(path string, s *listOptions, sort string, protos []string) (*url.URL, error) {
-	conn, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return nil, err
 	}
 
-	conn.Path = admin.APIPath + path
+	addr.Path = admin.APIPath + path
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(s.Limit))
 	query.Set("offset", fmt.Sprint(s.Offset))
@@ -225,24 +225,24 @@ func agentListURL(path string, s *listOptions, sort string, protos []string) (*u
 	for _, proto := range protos {
 		query.Add("protocol", proto)
 	}
-	conn.RawQuery = query.Encode()
+	addr.RawQuery = query.Encode()
 
-	return conn, nil
+	return addr, nil
 }
 
 func accountListURL(path string, s *listOptions, sort string) (*url.URL, error) {
-	conn, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return nil, err
 	}
-	conn.Path = admin.APIPath + path
+	addr.Path = admin.APIPath + path
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(s.Limit))
 	query.Set("offset", fmt.Sprint(s.Offset))
 	query.Set("sort", sort)
-	conn.RawQuery = query.Encode()
+	addr.RawQuery = query.Encode()
 
-	return conn, nil
+	return addr, nil
 }
 
 func listURL(path string, s *listOptions, sort string) (*url.URL, error) {
@@ -259,4 +259,126 @@ func listURL(path string, s *listOptions, sort string) (*url.URL, error) {
 	conn.RawQuery = query.Encode()
 
 	return conn, nil
+}
+
+func add(path string, object interface{}) error {
+	addr, err := url.Parse(commandLine.Args.Address)
+	if err != nil {
+		return err
+	}
+	addr.Path = path
+
+	resp, err := sendRequest(addr, object, http.MethodPost)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusCreated:
+		return nil
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	}
+}
+
+func list(addr *url.URL, target interface{}) error {
+	resp, err := sendRequest(addr, nil, http.MethodGet)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		if err := unmarshalBody(resp.Body, target); err != nil {
+			return err
+		}
+		return nil
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	}
+}
+
+func get(path string, target interface{}) error {
+	addr, err := url.Parse(commandLine.Args.Address)
+	if err != nil {
+		return fmt.Errorf("failed to parse server URL: %s", err)
+	}
+	addr.Path = path
+
+	resp, err := sendRequest(addr, nil, http.MethodGet)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		if err := unmarshalBody(resp.Body, target); err != nil {
+			return err
+		}
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
+	}
+}
+
+func update(path string, object interface{}) error {
+	conn, err := url.Parse(commandLine.Args.Address)
+	if err != nil {
+		return err
+	}
+	conn.Path = path
+
+	resp, err := sendRequest(conn, object, http.MethodPut)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusCreated:
+		return nil
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
+			getResponseMessage(resp).Error())
+	}
+}
+
+func remove(path string) error {
+	addr, err := url.Parse(commandLine.Args.Address)
+	if err != nil {
+		return fmt.Errorf("failed to parse server URL: %s", err)
+	}
+	addr.Path = path
+
+	resp, err := sendRequest(addr, nil, http.MethodDelete)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
+	}
 }

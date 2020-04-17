@@ -3,9 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
-	"net/http"
-	"net/url"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -29,10 +26,10 @@ func displayAccount(w io.Writer, account *rest.OutAccount) {
 	send := strings.Join(account.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(account.AuthorizedRules.Reception, ", ")
 
-	fmt.Fprintln(w, bold("● Account", account.Login))
-	fmt.Fprintln(w, orange("   Authorized rules"))
-	fmt.Fprintln(w, orange("   ├─  Sending:"), send)
-	fmt.Fprintln(w, orange("   └─Reception:"), recv)
+	fmt.Fprintln(w, orange(bold("● Account", account.Login)))
+	fmt.Fprintln(w, orange("    Authorized rules"))
+	fmt.Fprintln(w, bold("    ├─  Sending:"), send)
+	fmt.Fprintln(w, bold("    └─Reception:"), recv)
 }
 
 // ######################## ADD ##########################
@@ -43,35 +40,18 @@ type locAccAdd struct {
 }
 
 func (l *locAccAdd) Execute([]string) error {
-	server := commandLine.Account.Local.Args.Server
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + server + rest.LocalAccountsPath
-
-	newAccount := rest.InAccount{
+	account := &rest.InAccount{
 		Login:    l.Login,
 		Password: []byte(l.Password),
 	}
-	resp, err := sendRequest(conn, newAccount, http.MethodPost)
-	if err != nil {
+	server := commandLine.Account.Local.Args.Server
+	path := admin.APIPath + rest.LocalAgentsPath + "/" + server + rest.LocalAccountsPath
+
+	if err := add(path, account); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The account", bold(newAccount.Login), "was successfully added.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
-	}
+	fmt.Fprintln(getColorable(), "The account", bold(account.Login), "was successfully added.")
+	return nil
 }
 
 // ######################## GET ##########################
@@ -84,34 +64,15 @@ type locAccGet struct {
 
 func (l *locAccGet) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + server +
+	path := admin.APIPath + rest.LocalAgentsPath + "/" + server +
 		rest.LocalAccountsPath + "/" + l.Args.Login
-	log.Println(conn.String())
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
+	account := &rest.OutAccount{}
+	if err := get(path, account); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		account := &rest.OutAccount{}
-		if err := unmarshalBody(resp.Body, account); err != nil {
-			return err
-		}
-		displayAccount(w, account)
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	displayAccount(getColorable(), account)
+	return nil
 }
 
 // ######################## UPDATE ##########################
@@ -125,38 +86,19 @@ type locAccUpdate struct {
 }
 
 func (l *locAccUpdate) Execute([]string) error {
-	server := commandLine.Account.Local.Args.Server
-	update := rest.InAccount{
+	account := &rest.InAccount{
 		Login:    l.Login,
 		Password: []byte(l.Password),
 	}
-
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + server +
+	server := commandLine.Account.Local.Args.Server
+	path := admin.APIPath + rest.LocalAgentsPath + "/" + server +
 		rest.LocalAccountsPath + "/" + l.Args.Login
 
-	resp, err := sendRequest(conn, update, http.MethodPut)
-	if err != nil {
+	if err := update(path, account); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The account", bold(update.Login), "was successfully updated.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
-			getResponseMessage(resp).Error())
-	}
+	fmt.Fprintln(getColorable(), "The account", bold(account.Login), "was successfully updated.")
+	return nil
 }
 
 // ######################## DELETE ##########################
@@ -169,29 +111,14 @@ type locAccDelete struct {
 
 func (l *locAccDelete) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + server +
+	path := admin.APIPath + rest.LocalAgentsPath + "/" + server +
 		rest.LocalAccountsPath + "/" + l.Args.Login
 
-	resp, err := sendRequest(conn, nil, http.MethodDelete)
-	if err != nil {
+	if err := remove(path); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusNoContent:
-		fmt.Fprintln(w, "The account", bold(l.Args.Login), "was successfully deleted.")
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	fmt.Fprintln(getColorable(), "The account", bold(l.Args.Login), "was successfully deleted.")
+	return nil
 }
 
 // ######################## LIST ##########################
@@ -204,42 +131,28 @@ type locAccList struct {
 func (l *locAccList) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
 	path := rest.LocalAgentsPath + "/" + server + rest.LocalAccountsPath
-	conn, err := accountListURL(path, &l.listOptions, l.SortBy)
+	addr, err := accountListURL(path, &l.listOptions, l.SortBy)
 	if err != nil {
 		return err
 	}
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
+	body := map[string][]rest.OutAccount{}
+	if err := list(addr, &body); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
+	accounts := body["localAccounts"]
 	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		body := map[string][]rest.OutAccount{}
-		if err := unmarshalBody(resp.Body, &body); err != nil {
-			return err
+	if len(accounts) > 0 {
+		fmt.Fprintln(w, bold("Accounts of server '"+server+"':"))
+		for _, a := range accounts {
+			account := a
+			displayAccount(w, &account)
 		}
-		accounts := body["localAccounts"]
-		if len(accounts) > 0 {
-			fmt.Fprintln(w, bold("Accounts of server '"+server+"':"))
-			for _, a := range accounts {
-				account := a
-				displayAccount(w, &account)
-			}
-		} else {
-			fmt.Fprintln(w, "Server", bold(server), "has no accounts.")
-		}
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	} else {
+		fmt.Fprintln(w, "Server", bold(server), "has no accounts.")
 	}
+	return nil
 }
 
 // ######################## AUTHORIZE ##########################

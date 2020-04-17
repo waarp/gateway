@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -25,13 +23,13 @@ func displayServer(w io.Writer, server *rest.OutServer) {
 	send := strings.Join(server.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(server.AuthorizedRules.Reception, ", ")
 
-	fmt.Fprintln(w, bold("● Server", server.Name))
-	fmt.Fprintln(w, bold("        Protocol:"), server.Protocol)
-	fmt.Fprintln(w, bold("            Root:"), server.Root)
-	fmt.Fprintln(w, bold("   Configuration:"), string(server.ProtoConfig))
-	fmt.Fprintln(w, bold("   Authorized rules"))
-	fmt.Fprintln(w, bold("   ├─  Sending:"), send)
-	fmt.Fprintln(w, bold("   └─Reception:"), recv)
+	fmt.Fprintln(w, orange(bold("● Server", server.Name)))
+	fmt.Fprintln(w, orange("    Protocol:     "), server.Protocol)
+	fmt.Fprintln(w, orange("    Root:         "), server.Root)
+	fmt.Fprintln(w, orange("    Configuration:"), string(server.ProtoConfig))
+	fmt.Fprintln(w, orange("    Authorized rules"))
+	fmt.Fprintln(w, bold("    ├─  Sending:"), send)
+	fmt.Fprintln(w, bold("    └─Reception:"), recv)
 }
 
 // ######################## GET ##########################
@@ -42,34 +40,15 @@ type serverGet struct {
 	} `positional-args:"yes"`
 }
 
-//nolint:dupl
 func (s *serverGet) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return fmt.Errorf("failed to parse server URL: %s", err.Error())
-	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Name
+	path := admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Name
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
+	server := &rest.OutServer{}
+	if err := get(path, server); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		server := &rest.OutServer{}
-		if err := unmarshalBody(resp.Body, server); err != nil {
-			return err
-		}
-		displayServer(w, server)
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	displayServer(getColorable(), server)
+	return nil
 }
 
 // ######################## ADD ##########################
@@ -88,29 +67,13 @@ func (s *serverAdd) Execute([]string) error {
 		Root:        s.Root,
 		ProtoConfig: []byte(s.ProtoConfig),
 	}
+	path := admin.APIPath + rest.LocalAgentsPath
 
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	if err := add(path, server); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath
-
-	resp, err := sendRequest(conn, server, http.MethodPost)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The server", bold(server.Name), "was successfully added.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
-	}
+	fmt.Fprintln(getColorable(), "The server", bold(server.Name), "was successfully added.")
+	return nil
 }
 
 // ######################## DELETE ##########################
@@ -122,28 +85,13 @@ type serverDelete struct {
 }
 
 func (s *serverDelete) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	path := admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Name
+
+	if err := remove(path); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Name
-
-	resp, err := sendRequest(conn, nil, http.MethodDelete)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusNoContent:
-		fmt.Fprintln(w, "The server", bold(s.Args.Name), "was successfully deleted.")
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	fmt.Fprintln(getColorable(), "The server", bold(s.Args.Name), "was successfully deleted.")
+	return nil
 }
 
 // ######################## LIST ##########################
@@ -154,42 +102,29 @@ type serverList struct {
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
-//nolint:dupl
 func (s *serverList) Execute([]string) error {
-	conn, err := agentListURL(rest.LocalAgentsPath, &s.listOptions, s.SortBy, s.Protocols)
+	addr, err := agentListURL(rest.LocalAgentsPath, &s.listOptions, s.SortBy, s.Protocols)
 	if err != nil {
 		return err
 	}
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
+	body := map[string][]rest.OutServer{}
+	if err := list(addr, &body); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
+	servers := body["localAgents"]
 	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		body := map[string][]rest.OutServer{}
-		if err := unmarshalBody(resp.Body, &body); err != nil {
-			return err
+	if len(servers) > 0 {
+		fmt.Fprintln(w, bold("Servers:"))
+		for _, s := range servers {
+			server := s
+			displayServer(w, &server)
 		}
-		servers := body["localAgents"]
-		if len(servers) > 0 {
-			fmt.Fprintln(w, bold("Servers:"))
-			for _, s := range servers {
-				server := s
-				displayServer(w, &server)
-			}
-		} else {
-			fmt.Fprintln(w, "No servers found.")
-		}
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	} else {
+		fmt.Fprintln(w, "No servers found.")
 	}
+	return nil
 }
 
 // ######################## UPDATE ##########################
@@ -205,38 +140,19 @@ type serverUpdate struct {
 }
 
 func (s *serverUpdate) Execute([]string) error {
-	update := rest.InLocalAgent{
+	server := rest.InLocalAgent{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
 		Root:        s.Root,
 		ProtoConfig: []byte(s.ProtoConfig),
 	}
+	path := admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Name
 
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	if err := update(path, server); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Name
-
-	resp, err := sendRequest(conn, update, http.MethodPut)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The server", bold(update.Name), "was successfully updated.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
-			getResponseMessage(resp).Error())
-	}
+	fmt.Fprintln(getColorable(), "The server", bold(server.Name), "was successfully updated.")
+	return nil
 }
 
 // ######################## AUTHORIZE ##########################

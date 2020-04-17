@@ -166,7 +166,6 @@ func getTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl
 func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -285,7 +284,7 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 			agent := &model.RemoteAgent{ID: check.AgentID}
 			if err := db.Get(agent); err != nil {
-				return fmt.Errorf("failed to retreive partner: %s", err.Error())
+				return fmt.Errorf("failed to retrieve partner: %s", err.Error())
 			}
 			if agent.Protocol == "sftp" {
 				return badRequest("cannot restart an SFTP transfer")
