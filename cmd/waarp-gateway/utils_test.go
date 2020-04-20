@@ -28,6 +28,13 @@ func init() {
 	config.ProtoConfigs["fail"] = func() config.ProtoConfig { return new(TestProtoConfigFail) }
 }
 
+func writeFile(content string) *os.File {
+	file := testFile()
+	_, err := file.WriteString(content)
+	So(err, ShouldBeNil)
+	return file
+}
+
 type TestProtoConfig struct{}
 
 func (*TestProtoConfig) ValidServer() error  { return nil }

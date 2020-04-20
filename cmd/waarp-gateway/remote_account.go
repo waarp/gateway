@@ -18,6 +18,12 @@ type remoteAccountCommand struct {
 	List      remAccList      `command:"list" description:"List the known remote accounts"`
 	Authorize remAccAuthorize `command:"authorize" description:"Give an account permission to use a rule"`
 	Revoke    remAccRevoke    `command:"revoke" description:"Revoke an account's permission to use a rule"`
+	Cert      struct {
+		Args struct {
+			Account string `required:"yes" positional-arg-name:"account" description:"The account's name"`
+		} `positional-args:"yes"`
+		certificateCommand
+	} `command:"cert" description:"Manage an account's certificates"`
 }
 
 // ######################## GET ##########################
@@ -30,8 +36,8 @@ type remAccGet struct {
 
 func (r *remAccGet) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	path := admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
-		rest.RemoteAccountsPath + "/" + r.Args.Login
+	path := admin.APIPath + rest.PartnersPath + "/" + partner +
+		rest.AccountsPath + "/" + r.Args.Login
 
 	account := &rest.OutAccount{}
 	if err := get(path, account); err != nil {
@@ -54,7 +60,7 @@ func (r *remAccAdd) Execute([]string) error {
 		Password: []byte(r.Password),
 	}
 	partner := commandLine.Account.Remote.Args.Partner
-	path := admin.APIPath + rest.RemoteAgentsPath + "/" + partner + rest.RemoteAccountsPath
+	path := admin.APIPath + rest.PartnersPath + "/" + partner + rest.AccountsPath
 
 	if err := add(path, account); err != nil {
 		return err
@@ -73,8 +79,8 @@ type remAccDelete struct {
 
 func (r *remAccDelete) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	path := admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
-		rest.RemoteAccountsPath + "/" + r.Args.Login
+	path := admin.APIPath + rest.PartnersPath + "/" + partner +
+		rest.AccountsPath + "/" + r.Args.Login
 
 	if err := remove(path); err != nil {
 		return err
@@ -99,13 +105,17 @@ func (r *remAccUpdate) Execute([]string) error {
 		Password: []byte(r.Password),
 	}
 	partner := commandLine.Account.Remote.Args.Partner
-	path := admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
-		rest.RemoteAccountsPath + "/" + r.Args.Login
+	path := admin.APIPath + rest.PartnersPath + "/" + partner +
+		rest.AccountsPath + "/" + r.Args.Login
 
 	if err := update(path, account); err != nil {
 		return err
 	}
-	fmt.Fprintln(getColorable(), "The account", bold(account.Login), "was successfully updated.")
+	login := r.Args.Login
+	if account.Login != "" {
+		login = account.Login
+	}
+	fmt.Fprintln(getColorable(), "The account", bold(login), "was successfully updated.")
 	return nil
 }
 
@@ -118,7 +128,7 @@ type remAccList struct {
 
 func (r *remAccList) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	path := rest.RemoteAgentsPath + "/" + partner + rest.RemoteAccountsPath
+	path := rest.PartnersPath + "/" + partner + rest.AccountsPath
 	addr, err := accountListURL(path, &r.listOptions, r.SortBy)
 	if err != nil {
 		return err
@@ -154,8 +164,8 @@ type remAccAuthorize struct {
 
 func (r *remAccAuthorize) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	path := admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
-		rest.RemoteAccountsPath + "/" + r.Args.Login + "/authorize/" + r.Args.Rule
+	path := admin.APIPath + rest.PartnersPath + "/" + partner +
+		rest.AccountsPath + "/" + r.Args.Login + "/authorize/" + r.Args.Rule
 
 	return authorize(path, "remote account", r.Args.Login, r.Args.Rule)
 }
@@ -171,8 +181,8 @@ type remAccRevoke struct {
 
 func (r *remAccRevoke) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	path := admin.APIPath + rest.RemoteAgentsPath + "/" + partner +
-		rest.RemoteAccountsPath + "/" + r.Args.Login + "/revoke/" + r.Args.Rule
+	path := admin.APIPath + rest.PartnersPath + "/" + partner +
+		rest.AccountsPath + "/" + r.Args.Login + "/revoke/" + r.Args.Rule
 
 	return revoke(path, "remote account", r.Args.Login, r.Args.Rule)
 }

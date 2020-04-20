@@ -19,17 +19,14 @@ const (
 	// UsersPath is the access path to the status entry point.
 	UsersPath = "/users"
 
-	// LocalAgentsPath is the access path to the local servers entry point.
-	LocalAgentsPath = "/servers"
+	// ServersPath is the access path to the local servers entry point.
+	ServersPath = "/servers"
 
-	// RemoteAgentsPath is the access path to the partners entry point.
-	RemoteAgentsPath = "/partners"
+	// PartnersPath is the access path to the partners entry point.
+	PartnersPath = "/partners"
 
-	// LocalAccountsPath is the access path to the local gateway accounts entry point.
-	LocalAccountsPath = "/accounts"
-
-	// RemoteAccountsPath is the access path to the distant partners accounts entry point.
-	RemoteAccountsPath = "/accounts"
+	// AccountsPath is the access path to the accounts entry point.
+	AccountsPath = "/accounts"
 
 	// CertificatesPath is the access path to the account certificates entry point.
 	CertificatesPath = "/certificates"
@@ -66,7 +63,7 @@ func makeUsersHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Route
 
 //nolint:dupl
 func makeLocalAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
-	localAgentsHandler := apiHandler.PathPrefix(LocalAgentsPath).Subrouter()
+	localAgentsHandler := apiHandler.PathPrefix(ServersPath).Subrouter()
 	localAgentsHandler.HandleFunc("", listLocalAgents(logger, db)).
 		Methods(http.MethodGet)
 	localAgentsHandler.HandleFunc("", createLocalAgent(logger, db)).
@@ -104,7 +101,7 @@ func makeLocalAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux
 
 //nolint:dupl
 func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
-	remoteAgentsHandler := apiHandler.PathPrefix(RemoteAgentsPath).Subrouter()
+	remoteAgentsHandler := apiHandler.PathPrefix(PartnersPath).Subrouter()
 	remoteAgentsHandler.HandleFunc("", listRemoteAgents(logger, db)).
 		Methods(http.MethodGet)
 	remoteAgentsHandler.HandleFunc("", createRemoteAgent(logger, db)).
@@ -142,7 +139,7 @@ func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mu
 
 //nolint:dupl
 func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, agentHandler *mux.Router) {
-	localAccountsHandler := agentHandler.PathPrefix(LocalAccountsPath).Subrouter()
+	localAccountsHandler := agentHandler.PathPrefix(AccountsPath).Subrouter()
 	localAccountsHandler.HandleFunc("", listLocalAccounts(logger, db)).
 		Methods(http.MethodGet)
 	localAccountsHandler.HandleFunc("", createLocalAccount(logger, db)).
@@ -178,7 +175,7 @@ func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, agentHandler 
 
 //nolint:dupl
 func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, agentHandler *mux.Router) {
-	remoteAccountsHandler := agentHandler.PathPrefix(RemoteAccountsPath).Subrouter()
+	remoteAccountsHandler := agentHandler.PathPrefix(AccountsPath).Subrouter()
 	remoteAccountsHandler.HandleFunc("", listRemoteAccounts(logger, db)).
 		Methods(http.MethodGet)
 	remoteAccountsHandler.HandleFunc("", createRemoteAccount(logger, db)).

@@ -17,6 +17,12 @@ type serverCommand struct {
 	Update    serverUpdate    `command:"update" description:"Modify a server's information"`
 	Authorize serverAuthorize `command:"authorize" description:"Give a server permission to use a rule"`
 	Revoke    serverRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
+	Cert      struct {
+		Args struct {
+			Server string `required:"yes" positional-arg-name:"server" description:"The server's name"`
+		} `positional-args:"yes"`
+		certificateCommand
+	} `command:"cert" description:"Manage a server's certificates"`
 }
 
 func displayServer(w io.Writer, server *rest.OutServer) {
@@ -41,7 +47,7 @@ type serverGet struct {
 }
 
 func (s *serverGet) Execute([]string) error {
-	path := admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Name
+	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Name
 
 	server := &rest.OutServer{}
 	if err := get(path, server); err != nil {
@@ -67,7 +73,7 @@ func (s *serverAdd) Execute([]string) error {
 		Root:        s.Root,
 		ProtoConfig: []byte(s.ProtoConfig),
 	}
-	path := admin.APIPath + rest.LocalAgentsPath
+	path := admin.APIPath + rest.ServersPath
 
 	if err := add(path, server); err != nil {
 		return err
@@ -85,7 +91,7 @@ type serverDelete struct {
 }
 
 func (s *serverDelete) Execute([]string) error {
-	path := admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Name
+	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Name
 
 	if err := remove(path); err != nil {
 		return err
@@ -103,7 +109,7 @@ type serverList struct {
 }
 
 func (s *serverList) Execute([]string) error {
-	addr, err := agentListURL(rest.LocalAgentsPath, &s.listOptions, s.SortBy, s.Protocols)
+	addr, err := agentListURL(rest.ServersPath, &s.listOptions, s.SortBy, s.Protocols)
 	if err != nil {
 		return err
 	}
@@ -146,12 +152,16 @@ func (s *serverUpdate) Execute([]string) error {
 		Root:        s.Root,
 		ProtoConfig: []byte(s.ProtoConfig),
 	}
-	path := admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Name
+	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Name
 
 	if err := update(path, server); err != nil {
 		return err
 	}
-	fmt.Fprintln(getColorable(), "The server", bold(server.Name), "was successfully updated.")
+	name := s.Args.Name
+	if server.Name != "" {
+		name = server.Name
+	}
+	fmt.Fprintln(getColorable(), "The server", bold(name), "was successfully updated.")
 	return nil
 }
 
@@ -165,7 +175,7 @@ type serverAuthorize struct {
 }
 
 func (s *serverAuthorize) Execute([]string) error {
-	path := admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Server +
+	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
 		"/authorize/" + s.Args.Rule
 
 	return authorize(path, "server", s.Args.Server, s.Args.Rule)
@@ -181,7 +191,7 @@ type serverRevoke struct {
 }
 
 func (s *serverRevoke) Execute([]string) error {
-	path := admin.APIPath + rest.LocalAgentsPath + "/" + s.Args.Server +
+	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
 		"/revoke/" + s.Args.Rule
 
 	return revoke(path, "server", s.Args.Server, s.Args.Rule)

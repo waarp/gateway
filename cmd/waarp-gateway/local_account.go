@@ -20,6 +20,12 @@ type localAccountCommand struct {
 	List      locAccList      `command:"list" description:"List the known local accounts"`
 	Authorize locAccAuthorize `command:"authorize" description:"Give an account permission to use a rule"`
 	Revoke    locAccRevoke    `command:"revoke" description:"Revoke an account's permission to use a rule"`
+	Cert      struct {
+		Args struct {
+			Account string `required:"yes" positional-arg-name:"account" description:"The account's name"`
+		} `positional-args:"yes"`
+		certificateCommand
+	} `command:"cert" description:"Manage an account's certificates"`
 }
 
 func displayAccount(w io.Writer, account *rest.OutAccount) {
@@ -45,7 +51,7 @@ func (l *locAccAdd) Execute([]string) error {
 		Password: []byte(l.Password),
 	}
 	server := commandLine.Account.Local.Args.Server
-	path := admin.APIPath + rest.LocalAgentsPath + "/" + server + rest.LocalAccountsPath
+	path := admin.APIPath + rest.ServersPath + "/" + server + rest.AccountsPath
 
 	if err := add(path, account); err != nil {
 		return err
@@ -64,8 +70,8 @@ type locAccGet struct {
 
 func (l *locAccGet) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	path := admin.APIPath + rest.LocalAgentsPath + "/" + server +
-		rest.LocalAccountsPath + "/" + l.Args.Login
+	path := admin.APIPath + rest.ServersPath + "/" + server +
+		rest.AccountsPath + "/" + l.Args.Login
 
 	account := &rest.OutAccount{}
 	if err := get(path, account); err != nil {
@@ -91,8 +97,8 @@ func (l *locAccUpdate) Execute([]string) error {
 		Password: []byte(l.Password),
 	}
 	server := commandLine.Account.Local.Args.Server
-	path := admin.APIPath + rest.LocalAgentsPath + "/" + server +
-		rest.LocalAccountsPath + "/" + l.Args.Login
+	path := admin.APIPath + rest.ServersPath + "/" + server +
+		rest.AccountsPath + "/" + l.Args.Login
 
 	if err := update(path, account); err != nil {
 		return err
@@ -111,8 +117,8 @@ type locAccDelete struct {
 
 func (l *locAccDelete) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	path := admin.APIPath + rest.LocalAgentsPath + "/" + server +
-		rest.LocalAccountsPath + "/" + l.Args.Login
+	path := admin.APIPath + rest.ServersPath + "/" + server +
+		rest.AccountsPath + "/" + l.Args.Login
 
 	if err := remove(path); err != nil {
 		return err
@@ -130,7 +136,7 @@ type locAccList struct {
 
 func (l *locAccList) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	path := rest.LocalAgentsPath + "/" + server + rest.LocalAccountsPath
+	path := rest.ServersPath + "/" + server + rest.AccountsPath
 	addr, err := accountListURL(path, &l.listOptions, l.SortBy)
 	if err != nil {
 		return err
@@ -166,8 +172,8 @@ type locAccAuthorize struct {
 
 func (l *locAccAuthorize) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	path := admin.APIPath + rest.LocalAgentsPath + "/" + server +
-		rest.LocalAccountsPath + "/" + l.Args.Login + "/authorize/" + l.Args.Rule
+	path := admin.APIPath + rest.ServersPath + "/" + server +
+		rest.AccountsPath + "/" + l.Args.Login + "/authorize/" + l.Args.Rule
 
 	return authorize(path, "local account", l.Args.Login, l.Args.Rule)
 }
@@ -183,8 +189,8 @@ type locAccRevoke struct {
 
 func (l *locAccRevoke) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	path := admin.APIPath + rest.LocalAgentsPath + "/" + server +
-		rest.LocalAccountsPath + "/" + l.Args.Login + "/revoke/" + l.Args.Rule
+	path := admin.APIPath + rest.ServersPath + "/" + server +
+		rest.AccountsPath + "/" + l.Args.Login + "/revoke/" + l.Args.Rule
 
 	return revoke(path, "local account", l.Args.Login, l.Args.Rule)
 }

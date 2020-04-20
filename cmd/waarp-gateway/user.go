@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
@@ -30,33 +28,17 @@ type userAdd struct {
 }
 
 func (u *userAdd) Execute([]string) error {
-	newUser := rest.InUser{
+	newUser := &rest.InUser{
 		Username: u.Username,
 		Password: []byte(u.Password),
 	}
+	path := admin.APIPath + rest.UsersPath
 
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	if err := add(path, newUser); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.UsersPath
-
-	resp, err := sendRequest(conn, newUser, http.MethodPost)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The user", bold(newUser.Username), "was successfully added.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
-	}
+	fmt.Fprintln(getColorable(), "The user", bold(newUser.Username), "was successfully added.")
+	return nil
 }
 
 // ######################## GET ##########################
@@ -68,32 +50,14 @@ type userGet struct {
 }
 
 func (u *userGet) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	path := admin.APIPath + rest.UsersPath + "/" + u.Args.Username
+
+	user := &rest.OutUser{}
+	if err := get(path, user); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
-
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		user := &rest.OutUser{}
-		if err := unmarshalBody(resp.Body, user); err != nil {
-			return err
-		}
-		displayUser(w, user)
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	displayUser(getColorable(), user)
+	return nil
 }
 
 // ######################## UPDATE ##########################
@@ -107,35 +71,21 @@ type userUpdate struct {
 }
 
 func (u *userUpdate) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
-
-	update := rest.InUser{
+	user := &rest.InUser{
 		Username: u.Username,
 		Password: []byte(u.Password),
 	}
-	resp, err := sendRequest(conn, update, http.MethodPut)
-	if err != nil {
+	path := admin.APIPath + rest.UsersPath + "/" + u.Args.Username
+
+	if err := update(path, user); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		fmt.Fprintln(w, "The user", bold(update.Username), "was successfully updated.")
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %v - %s", resp.StatusCode,
-			getResponseMessage(resp).Error())
+	username := u.Args.Username
+	if user.Username != "" {
+		username = user.Username
 	}
+	fmt.Fprintln(getColorable(), "The user", bold(username), "was successfully updated.")
+	return nil
 }
 
 // ######################## DELETE ##########################
@@ -147,28 +97,13 @@ type userDelete struct {
 }
 
 func (u *userDelete) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
+	path := admin.APIPath + rest.UsersPath + "/" + u.Args.Username
+
+	if err := remove(path); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
-
-	resp, err := sendRequest(conn, nil, http.MethodDelete)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusNoContent:
-		fmt.Fprintln(w, "The user", bold(u.Args.Username), "was successfully deleted.")
-		return nil
-	case http.StatusNotFound:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
-	}
+	fmt.Fprintln(getColorable(), "The user", bold(u.Args.Username), "was successfully deleted.")
+	return nil
 }
 
 // ######################## LIST ##########################
@@ -179,38 +114,26 @@ type userList struct {
 }
 
 func (u *userList) Execute([]string) error {
-	conn, err := listURL(rest.UsersPath, &u.listOptions, u.SortBy)
+	addr, err := listURL(rest.APIPath+rest.UsersPath, &u.listOptions, u.SortBy)
 	if err != nil {
 		return err
 	}
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
-	if err != nil {
+	body := map[string][]rest.OutUser{}
+	if err := list(addr, &body); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
+	users := body["users"]
 	w := getColorable()
-	switch resp.StatusCode {
-	case http.StatusOK:
-		body := map[string][]rest.OutUser{}
-		if err := unmarshalBody(resp.Body, &body); err != nil {
-			return err
+	if len(users) > 0 {
+		fmt.Fprintln(w, bold("Users:"))
+		for _, u := range users {
+			user := u
+			displayUser(w, &user)
 		}
-		users := body["users"]
-		if len(users) > 0 {
-			fmt.Fprintln(w, bold("Users:"))
-			for _, u := range users {
-				user := u
-				displayUser(w, &user)
-			}
-		} else {
-			fmt.Fprintln(w, "No users found.")
-		}
-		return nil
-	case http.StatusBadRequest:
-		return getResponseMessage(resp)
-	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	} else {
+		fmt.Fprintln(w, "No users found.")
 	}
+	return nil
 }

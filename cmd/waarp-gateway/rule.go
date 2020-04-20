@@ -183,7 +183,7 @@ type ruleList struct {
 }
 
 func (r *ruleList) Execute([]string) error {
-	addr, err := listURL(rest.RulesPath, &r.listOptions, r.SortBy)
+	addr, err := listURL(rest.APIPath+rest.RulesPath, &r.listOptions, r.SortBy)
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,11 @@ func (r *ruleUpdate) Execute([]string) error {
 	if err := update(path, rule); err != nil {
 		return err
 	}
-	fmt.Fprintln(getColorable(), "The rule", bold(rule.Name), "was successfully updated.")
+	name := r.Args.Name
+	if rule.Name != "" {
+		name = rule.Name
+	}
+	fmt.Fprintln(getColorable(), "The rule", bold(name), "was successfully updated.")
 	return nil
 }
 
