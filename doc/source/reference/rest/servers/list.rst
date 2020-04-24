@@ -6,8 +6,6 @@ Lister les serveurs
    Renvoie une liste des serveurs remplissant les critères donnés en paramètres
    de requête.
 
-   **Requête**
-
    :reqheader Authorization: Les identifiants de l'utilisateur
 
    :param limit: Le nombre maximum de résultats souhaités *(défaut: 20)*
@@ -18,56 +16,64 @@ Lister les serveurs
    :type sort: [name+|name-|protocol+|protocol-]
    :param protocol: Filtre uniquement les serveurs utilisant ce protocole.
       Peut être renseigné plusieurs fois pour filtrer plusieurs protocoles.
-   :type protocol: [sftp]
-
-   **Exemple de requête**
-
-       .. code-block:: http
-
-          GET https://my_waarp_gateway.net/api/servers?limit=10&order=desc&protocol=sftp HTTP/1.1
-          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-
-
-   **Réponse**
+   :type protocol: string
 
    :statuscode 200: La liste a été renvoyée avec succès
    :statuscode 400: Un ou plusieurs des paramètres de requêtes sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
 
-   :resjson array remoteAgents: La liste des serveurs demandés
-   :resjsonarr number id: L'identifiant unique du serveur
+   :resjson array servers: La liste des serveurs demandés
    :resjsonarr string name: Le nom du serveur
    :resjsonarr string protocol: Le protocole utilisé par le serveur
    :resjsonarr string root: Le dossier racine du serveur
-   :resjsonarr object protoConfig: La configuration du partenaire encodé sous
-      forme d'un objet JSON.
+   :resjsonarr object protoConfig: La configuration du serveur encodé sous forme
+      d'un objet JSON. Cet objet dépend du protocole.
+   :resjsonarr object authorizedRules: Les règles que le serveur est autorisé à
+      utiliser pour les transferts.
 
-   **Exemple de réponse**
+      * **sending** (*array* of *string*) - Les règles d'envoi.
+      * **reception** (*array* of *string*) - Les règles de réception.
 
-       .. code-block:: http
 
-          HTTP/1.1 200 OK
-          Content-Type: application/json
-          Content-Length: 228
+   .. admonition:: Exemple de requête
 
-          {
-            "localAgents": [{
-              "id": 2,
-              "name": "sftp_server_2",
-              "protocol": "sftp",
-              "root": "/sftp2/root",
-              "protoConfig": {
-                "address": "localhost",
-                "port": 22
-              }
-            },{
-              "id": 1,
-              "name": "sftp_server_1",
-              "protocol": "sftp",
-              "root": "/sftp/root",
-              "protoConfig": {
-                "address": "localhost",
-                "port": 21
-              }
-            }]
-          }
+      .. code-block:: http
+
+         GET https://my_waarp_gateway.net/api/servers?limit=10&sort=name-&protocol=sftp HTTP/1.1
+         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+
+   .. admonition:: Exemple de réponse
+
+      .. code-block:: http
+
+         HTTP/1.1 200 OK
+         Content-Type: application/json
+         Content-Length: 619
+
+         {
+           "servers": [{
+             "name": "sftp_server_2",
+             "protocol": "sftp",
+             "root": "/sftp2/root",
+             "protoConfig": {
+               "address": "localhost",
+               "port": 22
+             },
+             "authorizedRules": {
+               "sending": ["règle_envoi_1", "règle_envoi_2"],
+               "reception": ["règle_récep_1", "règle_récep_2"]
+             }
+           },{
+             "name": "sftp_server_1",
+             "protocol": "sftp",
+             "root": "/sftp/root",
+             "protoConfig": {
+               "address": "localhost",
+               "port": 21
+             },
+             "authorizedRules": {
+               "sending": ["règle_envoi_1", "règle_envoi_2"],
+               "reception": ["règle_récep_1", "règle_récep_2"]
+             }
+           }]
+         }

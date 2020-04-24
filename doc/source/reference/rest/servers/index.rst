@@ -5,11 +5,14 @@ Le point d'accès pour gérer les différents serveurs locaux de la gateway est
 ``/api/servers``.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    create
    list
    consult
    update
-   replace
    delete
+   authorize
+   revoke
+   certificates/index
+   accounts/index

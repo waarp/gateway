@@ -12,5 +12,4 @@ gateway.
    list
    consult
    update
-   replace
    delete

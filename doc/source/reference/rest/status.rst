@@ -1,49 +1,64 @@
 Statut du service
-#################
-
-Afficher le statut du service
-=============================
+=================
 
 .. http:get:: /api/status
 
-   **Requête**
-
    :reqheader Authorization: Les identifiants de l'utilisateur
-
-   :Example:
-       .. code-block:: http
-
-          GET https://my_waarp_gateway.net/api/status HTTP/1.1
-          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-
-
-
-   **Réponse**
 
    :statuscode 200: Le service est actif
    :statuscode 401: Authentification d'utilisateur invalide
 
-   :Response JSON Object:
-       * **Admin** (*object*) - Le statut du service d'administration
+   :resjson object Admin: Le service d'administration de la gateway
 
-           * **State** (*string*) - L'état du service
-           * **Reason** (*string*) - En cas d'erreur, donne la cause de l'erreur
+      * **state** (*string*) - L'état du service
+      * **reason** (*string*) - En cas d'erreur, donne la cause de l'erreur
 
-       * **Database** (*object*) - Le statut du service de base de données
+   :resjson object Database: Le service de base de données
 
-           * **State** (*string*) - L'état du service
-           * **Reason** (*string*) - En cas d'erreur, donne la cause de l'erreur
+      * **state** (*string*) - L'état du service
+      * **reason** (*string*) - En cas d'erreur, donne la cause de l'erreur
 
-   :Example:
-       .. code-block:: http
+   :resjson object Controller: Le contrôleur des transferts sortants
 
-          HTTP/1.1 200 OK
-          Content-Type: application/json
-          Content-Length: 41
+      * **state** (*string*) - L'état du service
+      * **reason** (*string*) - En cas d'erreur, donne la cause de l'erreur
 
-          {
-            "Admin": {
-              "State": "Running",
-              "Reason": ""
-            }
-          }
+   :resjson object {serveur}: Un des serveur de la gateway. Un nouveau champ est
+      ajouté pour chaque serveur.
+
+      * **state** (*string*) - L'état du service
+      * **reason** (*string*) - En cas d'erreur, donne la cause de l'erreur
+
+   .. admonition:: Exemple de requête
+
+      .. code-block:: http
+
+         GET https://my_waarp_gateway.net/api/status HTTP/1.1
+         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+
+   .. admonition:: Exemple de réponse
+
+      .. code-block:: http
+
+         HTTP/1.1 200 OK
+         Content-Type: application/json
+         Content-Length: 212
+
+         {
+           "Admin": {
+             "state": "Running",
+             "reason": ""
+           },
+           "Database": {
+             "state": "Error",
+             "reason": "Exemple de message d'erreur"
+           },
+           "Controller": {
+             "state": "Offline",
+             "reason": ""
+           },
+           "serveur_sftp": {
+             "state": "Running",
+             "reason": ""
+           }
+         }

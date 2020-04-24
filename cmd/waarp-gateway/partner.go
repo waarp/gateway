@@ -47,7 +47,7 @@ type partnerAdd struct {
 }
 
 func (p *partnerAdd) Execute([]string) error {
-	partner := rest.InRemoteAgent{
+	partner := rest.InPartner{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),
@@ -143,7 +143,7 @@ type partnerUpdate struct {
 }
 
 func (p *partnerUpdate) Execute([]string) error {
-	partner := rest.InRemoteAgent{
+	partner := rest.InPartner{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),

@@ -67,7 +67,7 @@ type serverAdd struct {
 }
 
 func (s *serverAdd) Execute([]string) error {
-	server := &rest.InLocalAgent{
+	server := &rest.InServer{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
 		Root:        s.Root,
@@ -119,7 +119,7 @@ func (s *serverList) Execute([]string) error {
 		return err
 	}
 
-	servers := body["localAgents"]
+	servers := body["servers"]
 	w := getColorable()
 	if len(servers) > 0 {
 		fmt.Fprintln(w, bold("Servers:"))
@@ -146,7 +146,7 @@ type serverUpdate struct {
 }
 
 func (s *serverUpdate) Execute([]string) error {
-	server := rest.InLocalAgent{
+	server := rest.InServer{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
 		Root:        s.Root,

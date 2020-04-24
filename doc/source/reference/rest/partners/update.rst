@@ -1,42 +1,17 @@
 Modifier un partenaire
-======================
+===================
 
-.. http:put:: /api/partners/(int:partner_id)
+.. http:put:: /api/partners/(string:partner_name)
 
-   Met à jour le partenaire portant le numéro ``partner_id`` avec les informations
-   renseignées en format JSON dans le corps de la requête. Les champs non-spécifiés
-   resteront inchangés.
-
-   **Requête**
+   Met à jour le partenaire demandé avec les informations renseignées en JSON.
+   Les champs non-spécifiés resteront inchangés.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
    :reqjson string name: Le nom du partenaire
    :reqjson string protocol: Le protocole utilisé par le partenaire
    :reqjson object protoConfig: La configuration du partenaire encodé sous forme
-      d'un objet JSON.
-
-   **Exemple de requête**
-
-       .. code-block:: http
-
-          PATCH https://my_waarp_gateway.net/api/partners/1 HTTP/1.1
-          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-          Content-Type: application/json
-          Content-Length: 105
-
-          {
-            "name": "waarp_sftp_new",
-            "protocol": "sftp",
-            "protoConfig": {
-              "address": "waarp.fr",
-              "port": 22,
-              "root": "/new/sftp/root"
-            }
-          }
-
-
-   **Réponse**
+      d'un objet JSON. Cet objet dépend du protocole.
 
    :statuscode 201: Le partenaire a été modifié avec succès
    :statuscode 400: Un ou plusieurs des paramètres du partenaire sont invalides
@@ -45,8 +20,28 @@ Modifier un partenaire
 
    :resheader Location: Le chemin d'accès au partenaire modifié
 
-   :Example:
-       .. code-block:: http
 
-          HTTP/1.1 201 CREATED
-          Location: https://my_waarp_gateway.net/api/partners/1
+   .. admonition:: Exemple de requête
+
+      .. code-block:: http
+
+         PATCH https://my_waarp_gateway.net/api/partners/waarp_sftp HTTP/1.1
+         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+         Content-Type: application/json
+         Content-Length: 148
+
+         {
+           "name": "waarp_sftp_new",
+           "protocol": "sftp",
+           "protoConfig": {
+             "address": "waarp.org",
+             "port": 23
+           }
+         }
+
+   .. admonition:: Exemple de réponse
+
+      .. code-block:: http
+
+         HTTP/1.1 201 CREATED
+         Location: https://my_waarp_gateway.net/api/partners/waarp_sftp_new

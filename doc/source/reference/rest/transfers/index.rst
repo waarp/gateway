@@ -14,3 +14,6 @@ Pour les transferts terminés, voir :ref:`REST_history`.
    create
    list
    consult
+   pause
+   resume
+   cancel

@@ -11,9 +11,9 @@ import (
 	"github.com/go-xorm/builder"
 )
 
-// InLocalAgent is the JSON representation of a local agent in requests
+// InServer is the JSON representation of a local agent in requests
 // made to the REST interface.
-type InLocalAgent struct {
+type InServer struct {
 	Name        string          `json:"name"`
 	Protocol    string          `json:"protocol"`
 	Root        string          `json:"root"`
@@ -21,7 +21,7 @@ type InLocalAgent struct {
 }
 
 // ToModel transforms the JSON local agent into its database equivalent.
-func (i *InLocalAgent) ToModel() *model.LocalAgent {
+func (i *InServer) ToModel() *model.LocalAgent {
 	return &model.LocalAgent{
 		Owner:       database.Owner,
 		Name:        i.Name,
@@ -30,16 +30,16 @@ func (i *InLocalAgent) ToModel() *model.LocalAgent {
 	}
 }
 
-// InRemoteAgent is the JSON representation of a remote agent in requests
+// InPartner is the JSON representation of a remote agent in requests
 // made to the REST interface.
-type InRemoteAgent struct {
+type InPartner struct {
 	Name        string          `json:"name"`
 	Protocol    string          `json:"protocol"`
 	ProtoConfig json.RawMessage `json:"protoConfig"`
 }
 
 // ToModel transforms the JSON remote agent into its database equivalent.
-func (i *InRemoteAgent) ToModel() *model.RemoteAgent {
+func (i *InPartner) ToModel() *model.RemoteAgent {
 	return &model.RemoteAgent{
 		Name:        i.Name,
 		Protocol:    i.Protocol,
