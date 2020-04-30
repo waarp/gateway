@@ -105,7 +105,8 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given all valid flags", func() {
 				args := []string{"-p", partner.Name, "-a", account.Login, "-w",
-					"push", "-r", rule.Name, "-f", "file.src", "-d", "file.dst"}
+					"push", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
+					"-d", "2020-01-01T01:00:00+01:00"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -135,7 +136,8 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid rule name", func() {
 				args := []string{"-p", partner.Name, "-a", account.Login, "-w",
-					"pull", "-r", "toto", "-f", "file.src", "-d", "file.dst"}
+					"pull", "-r", "toto", "-f", "file.src", "-n", "file.dst",
+					"-d", "2020-01-01T01:00:00+01:00"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -150,7 +152,8 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				args := []string{"-p", partner.Name, "-a", "toto", "-w",
-					"pull", "-r", rule.Name, "-f", "file.src", "-d", "file.dst"}
+					"pull", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
+					"-d", "2020-01-01T01:00:00+01:00"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -166,7 +169,8 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid partner name", func() {
 				args := []string{"-p", "toto", "-a", account.Login, "-w",
-					"pull", "-r", rule.Name, "-f", "file.src", "-d", "file.dst"}
+					"pull", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
+					"-d", "2020-01-01T01:00:00+01:00"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -175,6 +179,22 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, "no partner 'toto' found")
+					})
+				})
+			})
+
+			Convey("Given an invalid start date", func() {
+				args := []string{"-p", partner.Name, "-a", account.Login, "-w",
+					"pull", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
+					"-d", "toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "'toto' is not a valid date")
 					})
 				})
 			})

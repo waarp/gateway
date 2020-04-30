@@ -82,13 +82,9 @@ type transferAdd struct {
 	Date    string `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
 }
 
-func (t *transferAdd) Execute([]string) error {
+func (t *transferAdd) Execute([]string) (err error) {
 	if t.Name == "" {
 		t.Name = t.File
-	}
-	date, err := time.Parse(time.RFC3339, t.Date)
-	if err != nil {
-		return fmt.Errorf("'%s' is not a valid date", t.Date)
 	}
 
 	trans := rest.InTransfer{
@@ -98,7 +94,12 @@ func (t *transferAdd) Execute([]string) error {
 		SourcePath: t.File,
 		Rule:       t.Rule,
 		DestPath:   t.Name,
-		Start:      date,
+	}
+	if t.Date != "" {
+		trans.Start, err = time.Parse(time.RFC3339, t.Date)
+		if err != nil {
+			return fmt.Errorf("'%s' is not a valid date", t.Date)
+		}
 	}
 	path := admin.APIPath + rest.TransfersPath
 
