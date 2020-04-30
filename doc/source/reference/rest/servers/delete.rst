@@ -12,14 +12,16 @@ Supprimer un serveur
    :statuscode 404: Le serveur demandé n'existe pas
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
          DELETE https://my_waarp_gateway.net/api/servers/sftp_server HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

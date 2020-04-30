@@ -22,7 +22,9 @@ Modifier un serveur
    :resheader Location: Le chemin d'accès au serveur modifié
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
@@ -41,7 +43,9 @@ Modifier un serveur
            }
          }
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 

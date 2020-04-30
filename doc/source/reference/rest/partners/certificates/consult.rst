@@ -17,7 +17,9 @@ Consulter un certificat
    :resjson string certificate: Le certificat de l'entité
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
@@ -25,7 +27,7 @@ Consulter un certificat
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

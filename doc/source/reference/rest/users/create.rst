@@ -17,8 +17,9 @@ Ajouter un utilisateur
 
    :resheader Location: Le chemin d'accès au nouvel utilisateur créé
 
+   |
 
-   .. admonition:: Exemple de requête
+   **Exemple de requête**
 
       .. code-block:: http
 
@@ -32,7 +33,7 @@ Ajouter un utilisateur
            "password": "titi"
          }
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

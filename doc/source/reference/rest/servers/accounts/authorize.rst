@@ -12,14 +12,16 @@ Autoriser un compte à utiliser une règle
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: Le serveur, le compte ou la règle demandés n'existent pas
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
          DELETE https://my_waarp_gateway.net/api/servers/sftp_server/accounts/toto/authorize/rule_1 HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

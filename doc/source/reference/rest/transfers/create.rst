@@ -14,7 +14,7 @@ Programmer un transfert
    :reqjson string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
    :reqjson string sourcePath: Le chemin du fichier source
    :reqjson string destPath: Le chemin de destination du fichier
-   :reqjson date start: La date de début du transfert
+   :reqjson date start: La date de début du transfert (en format ISO 8601)
 
    :statuscode 202: Le transfert a été lancé avec succès
    :statuscode 400: Un ou plusieurs des paramètres du transfert sont invalides
@@ -23,7 +23,9 @@ Programmer un transfert
    :resheader Location: Le chemin d'accès au nouveau transfert créé
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
@@ -42,7 +44,7 @@ Programmer un transfert
            "start": "2019-01-01T02:00:00+02:00"
          }
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

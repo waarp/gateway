@@ -84,6 +84,25 @@ func displayRule(w io.Writer, rule *rest.OutRule) {
 	fmt.Fprintln(w, bold("    └─Partner accounts:"), remAcc)
 }
 
+func parseTasks(rule *rest.UptRule, pre, post, errs []string) error {
+	preDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(pre, ",") + "]"))
+	preDecoder.DisallowUnknownFields()
+	if err := preDecoder.Decode(&rule.PreTasks); err != nil && err != io.EOF {
+		return fmt.Errorf("invalid pre task: %s", err)
+	}
+	postDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(post, ",") + "]"))
+	postDecoder.DisallowUnknownFields()
+	if err := postDecoder.Decode(&rule.PostTasks); err != nil && err != io.EOF {
+		return fmt.Errorf("invalid post task: %s", err)
+	}
+	errDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(errs, ",") + "]"))
+	errDecoder.DisallowUnknownFields()
+	if err := errDecoder.Decode(&rule.ErrorTasks); err != nil && err != io.EOF {
+		return fmt.Errorf("invalid error task: %s", err)
+	}
+	return nil
+}
+
 // ######################## GET ##########################
 
 type ruleGet struct {
@@ -110,30 +129,11 @@ type ruleAdd struct {
 	Comment    string   `short:"c" long:"comment" description:"A short comment describing the rule"`
 	Direction  string   `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"SEND" choice:"RECEIVE"`
 	Path       string   `required:"true" short:"p" long:"path" description:"The path used to identify the rule"`
-	InPath     string   `short:"i" long:"in_path" description:"The path to the source of the file"`
-	OutPath    string   `short:"o" long:"out_path" description:"The path to the destination of the file"`
-	PreTasks   []string `long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
-	PostTasks  []string `long:"post" description:"A post-transfer task in JSON format, can be repeated"`
-	ErrorTasks []string `long:"err" description:"A transfer error task in JSON format, can be repeated"`
-}
-
-func (r *ruleAdd) parseTasks(rule *rest.InRule) error {
-	preDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(r.PreTasks, ",") + "]"))
-	preDecoder.DisallowUnknownFields()
-	if err := preDecoder.Decode(&rule.PreTasks); err != nil && err != io.EOF {
-		return fmt.Errorf("invalid pre task: %s", err)
-	}
-	postDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(r.PostTasks, ",") + "]"))
-	postDecoder.DisallowUnknownFields()
-	if err := postDecoder.Decode(&rule.PostTasks); err != nil && err != io.EOF {
-		return fmt.Errorf("invalid post task: %s", err)
-	}
-	errDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(r.ErrorTasks, ",") + "]"))
-	errDecoder.DisallowUnknownFields()
-	if err := errDecoder.Decode(&rule.ErrorTasks); err != nil && err != io.EOF {
-		return fmt.Errorf("invalid error task: %s", err)
-	}
-	return nil
+	InPath     string   `short:"i" long:"in_path" description:"The path to the destination of the file"`
+	OutPath    string   `short:"o" long:"out_path" description:"The path to the source of the file"`
+	PreTasks   []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
+	PostTasks  []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`
+	ErrorTasks []string `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated"`
 }
 
 func (r *ruleAdd) Execute([]string) error {
@@ -145,7 +145,7 @@ func (r *ruleAdd) Execute([]string) error {
 		},
 		IsSend: r.Direction == "SEND",
 	}
-	if err := r.parseTasks(rule); err != nil {
+	if err := parseTasks(rule.UptRule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {
 		return err
 	}
 	path := admin.APIPath + rest.RulesPath
@@ -213,11 +213,14 @@ type ruleUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
 	} `positional-args:"yes"`
-	Name    string `short:"n" long:"name" description:"The rule's name"`
-	Comment string `short:"c" long:"comment" description:"A short comment describing the rule"`
-	Path    string `short:"p" long:"path" description:"The path used to identify the rule"`
-	InPath  string `short:"i" long:"in_path" description:"The path to the source of the file"`
-	OutPath string `short:"o" long:"out_path" description:"The path to the destination of the file"`
+	Name       string   `short:"n" long:"name" description:"The rule's name"`
+	Comment    string   `short:"c" long:"comment" description:"A short comment describing the rule"`
+	Path       string   `short:"p" long:"path" description:"The path used to identify the rule"`
+	InPath     string   `short:"i" long:"in_path" description:"The path to the destination of the file"`
+	OutPath    string   `short:"o" long:"out_path" description:"The path to the source of the file"`
+	PreTasks   []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
+	PostTasks  []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`
+	ErrorTasks []string `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated"`
 }
 
 func (r *ruleUpdate) Execute([]string) error {
@@ -227,6 +230,9 @@ func (r *ruleUpdate) Execute([]string) error {
 		Path:    r.Path,
 		InPath:  r.InPath,
 		OutPath: r.OutPath,
+	}
+	if err := parseTasks(rule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {
+		return err
 	}
 	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name
 

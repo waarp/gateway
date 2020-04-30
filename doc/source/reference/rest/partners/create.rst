@@ -19,7 +19,9 @@ Créer un partenaire
    :resheader Location: Le chemin d'accès au nouveau partenaire créé
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
@@ -37,7 +39,7 @@ Créer un partenaire
            }
          }
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

@@ -19,7 +19,9 @@ Modifier un utilisateur
    :resheader Location: Le chemin d'accès à l'utilisateur modifié
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
@@ -33,7 +35,7 @@ Modifier un utilisateur
            "password": "titi_new"
          }
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

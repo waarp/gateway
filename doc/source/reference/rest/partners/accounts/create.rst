@@ -1,5 +1,5 @@
 Ajouter un compte distant
-=======================
+=========================
 
 .. http:post:: /api/partners/(string:partner_name)/accounts/(string:login)
 
@@ -18,7 +18,9 @@ Ajouter un compte distant
    :resheader Location: Le chemin d'accès au nouveau compte créé
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
@@ -32,7 +34,7 @@ Ajouter un compte distant
            "password": "titi"
          }
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

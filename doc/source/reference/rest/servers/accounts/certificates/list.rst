@@ -27,14 +27,16 @@ Lister les certificats
    :resjsonarr string certificate: Le certificat de l'entité
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
          GET https://my_waarp_gateway.net/api/servers/serveur_sftp/accounts/toto/certificates?limit=5 HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

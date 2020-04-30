@@ -64,14 +64,16 @@ Filtrer l'historique
    :resjsonarr string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
          GET https://my_waarp_gateway.net/api/history?limit=10&order=desc&rule=regle_sftp&start=2019-01-01T00:00:00+02:00&stop=2019-01-01T04:00:00+02:00 HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

@@ -15,14 +15,16 @@ Annuler un transfert
    :resheader Location: Le chemin d'accès au transfert redémarré
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
          PUT https://my_waarp_gateway.net/api/transfers/1/cancel HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

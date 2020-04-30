@@ -12,14 +12,16 @@ Supprimer un certificat
    :statuscode 404: Le partenaire ou le certificat demandés n'existent pas
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
          DELETE https://my_waarp_gateway.net/api/partners/waarp_sftp/certificates/certificat_waarp HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

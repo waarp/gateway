@@ -1,5 +1,5 @@
 Créer un serveur
-===================
+================
 
 .. http:post:: /api/servers
 
@@ -20,7 +20,9 @@ Créer un serveur
    :resheader Location: Le chemin d'accès au nouveau serveur créé
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
@@ -39,7 +41,7 @@ Créer un serveur
            }
          }
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

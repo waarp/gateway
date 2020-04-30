@@ -75,23 +75,30 @@ func displayTransfer(w io.Writer, trans *rest.OutTransfer) {
 type transferAdd struct {
 	File    string `required:"true" short:"f" long:"file" description:"The file to transfer"`
 	Way     string `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"pull" choice:"push"`
-	Dest    string `short:"d" long:"dest" description:"The name of the file after the transfer"`
+	Name    string `short:"n" long:"name" description:"The name of the file after the transfer"`
 	Partner string `required:"true" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
 	Account string `required:"true" short:"a" long:"account" description:"The account used to connect on the partner"`
 	Rule    string `required:"true" short:"r" long:"rule" description:"The rule to use for the transfer"`
+	Date    string `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
 }
 
 func (t *transferAdd) Execute([]string) error {
-	if t.Dest == "" {
-		t.Dest = t.File
+	if t.Name == "" {
+		t.Name = t.File
 	}
+	date, err := time.Parse(time.RFC3339, t.Date)
+	if err != nil {
+		return fmt.Errorf("'%s' is not a valid date", t.Date)
+	}
+
 	trans := rest.InTransfer{
 		Partner:    t.Partner,
 		Account:    t.Account,
 		IsSend:     t.Way == "push",
 		SourcePath: t.File,
 		Rule:       t.Rule,
-		DestPath:   t.Dest,
+		DestPath:   t.Name,
+		Start:      date,
 	}
 	path := admin.APIPath + rest.TransfersPath
 

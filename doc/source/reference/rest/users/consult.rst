@@ -15,14 +15,16 @@ Consulter un utilisateur
    :resjson string username: Le nom de l'utilisateur
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
          GET https://my_waarp_gateway.net/api/users/toto HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

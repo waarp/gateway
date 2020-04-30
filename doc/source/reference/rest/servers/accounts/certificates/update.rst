@@ -22,7 +22,9 @@ Modifier un certificat
    :resheader Location: Le chemin d'accès au certificat modifié
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
@@ -38,7 +40,7 @@ Modifier un certificat
            "cert": "<certificat>"
          }
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

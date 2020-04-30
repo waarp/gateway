@@ -30,14 +30,16 @@ Consulter une entrée de l'historique
    :resjson string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
          GET https://my_waarp_gateway.net/api/history/1 HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

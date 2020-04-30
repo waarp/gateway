@@ -29,14 +29,16 @@ Statut du service
       * **state** (*string*) - L'état du service
       * **reason** (*string*) - En cas d'erreur, donne la cause de l'erreur
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
          GET https://my_waarp_gateway.net/api/status HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

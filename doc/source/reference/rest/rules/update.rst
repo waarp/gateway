@@ -49,7 +49,9 @@ Ajouter une règle
    :resheader Location: Le chemin d'accès de la nouvelle règle créée
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
@@ -88,7 +90,7 @@ Ajouter une règle
            }]
          }
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 

@@ -21,14 +21,16 @@ Retenter un transfert échoué
    :resheader Location: Le chemin d'accès au transfert redémarré
 
 
-   .. admonition:: Exemple de requête
+   |
+
+   **Exemple de requête**
 
       .. code-block:: http
 
          PUT https://my_waarp_gateway.net/api/history/1/restart?date=2019-01-01T00:00:00+01:00 HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
-   .. admonition:: Exemple de réponse
+   **Exemple de réponse**
 
       .. code-block:: http
 
