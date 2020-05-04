@@ -401,12 +401,9 @@ func TestDeleteLocalAccount(t *testing.T) {
 
 					Convey("Then the account should no longer be present "+
 						"in the database", func() {
-						err := existing.BeforeInsert(nil)
-						So(err, ShouldBeNil)
-
-						exist, err := db.Exists(existing)
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeFalse)
+						a := []model.LocalAccount{}
+						So(db.Select(&a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
 					})
 				})
 			})

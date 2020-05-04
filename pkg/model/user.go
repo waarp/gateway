@@ -40,26 +40,11 @@ func (u *User) Init(acc database.Accessor) error {
 	return acc.Create(user)
 }
 
-// BeforeInsert is called before inserting the user in the database. Its
-// role is to hash the password.
-func (u *User) BeforeInsert(database.Accessor) error {
-	u.Owner = database.Owner
-	var err error
-	if u.Password != nil {
-		u.Password, err = hashPassword(u.Password)
-	}
-	return err
-}
-
-// BeforeUpdate is called before updating the user from the database. Its
-// role is to hash the password.
-func (u *User) BeforeUpdate(database.Accessor) error {
-	return u.BeforeInsert(nil)
-}
-
-// ValidateInsert checks if the new `User` entry is valid and can be
+// BeforeInsert checks if the new `User` entry is valid and can be
 // inserted in the database.
-func (u *User) ValidateInsert(acc database.Accessor) error {
+func (u *User) BeforeInsert(db database.Accessor) (err error) {
+	u.Owner = database.Owner
+
 	if u.ID != 0 {
 		return database.InvalidError("the user's ID cannot be entered manually")
 	}
@@ -70,32 +55,37 @@ func (u *User) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError("the user password cannot be empty")
 	}
 
-	if res, err := acc.Query("SELECT id FROM users WHERE owner=? AND username=?",
+	if res, err := db.Query("SELECT id FROM users WHERE owner=? AND username=?",
 		database.Owner, u.Username); err != nil {
 		return err
 	} else if len(res) != 0 {
 		return database.InvalidError("a user named '%s' already exist", u.Username)
 	}
-	return nil
+
+	u.Password, err = hashPassword(u.Password)
+	return err
 }
 
-// ValidateUpdate checks if the updated `User` entry is valid and can be
+// BeforeUpdate checks if the updated `User` entry is valid and can be
 // updated in the database.
-func (u *User) ValidateUpdate(acc database.Accessor, id uint64) error {
+func (u *User) BeforeUpdate(db database.Accessor, id uint64) (err error) {
+	u.Owner = database.Owner
+
 	if u.ID != 0 {
 		return database.InvalidError("the user's ID cannot be entered manually")
 	}
-	if u.Owner != database.Owner {
-		return database.InvalidError("the user's owner cannot be changed")
-	}
 
 	if u.Username != "" {
-		if res, err := acc.Query("SELECT id FROM users WHERE owner=? AND username=? AND id<>?",
+		if res, err := db.Query("SELECT id FROM users WHERE owner=? AND username=? AND id<>?",
 			database.Owner, u.Username, id); err != nil {
 			return err
 		} else if len(res) != 0 {
 			return database.InvalidError("a user named '%s' already exist", u.Username)
 		}
 	}
-	return nil
+
+	if u.Password != nil {
+		u.Password, err = hashPassword(u.Password)
+	}
+	return err
 }

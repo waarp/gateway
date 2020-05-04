@@ -39,20 +39,21 @@ func TestTaskTableName(t *testing.T) {
 	})
 }
 
-func TestTaskValidateInsert(t *testing.T) {
+func TestTaskBeforeInsert(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
 		Convey("Given a rule entry", func() {
 			r := &Rule{
-				Name:   "Test",
+				Name:   "rule1",
 				IsSend: true,
+				Path:   "/path",
 			}
 			So(db.Create(r), ShouldBeNil)
 
 			t := &Task{
 				RuleID: r.ID,
-				Chain:  "PRE",
+				Chain:  ChainPre,
 				Rank:   0,
 				Type:   "TESTSUCCESS",
 				Args:   []byte("{}"),
@@ -62,18 +63,18 @@ func TestTaskValidateInsert(t *testing.T) {
 			Convey("Given a task with an invalid RuleID", func() {
 				t2 := &Task{
 					RuleID: 0,
-					Chain:  "PRE",
+					Chain:  ChainPre,
 					Rank:   0,
 					Type:   "TESTSUCCESS",
 					Args:   []byte("{}"),
 				}
 
-				Convey("When calling the `ValidateInsert` method", func() {
-					err := t2.ValidateInsert(db)
+				Convey("When calling the `BeforeInsert` method", func() {
+					err := t2.BeforeInsert(db)
 
-					Convey("Then the error should say the rule was not found'", func() {
-						So(err, ShouldBeError, fmt.Sprintf(
-							"no rule found with ID %d", t2.RuleID))
+					Convey("Then the error should say the rule was not found", func() {
+						So(err, ShouldBeError, "no rule found with ID "+
+							fmt.Sprint(t2.RuleID))
 					})
 				})
 			})
@@ -87,10 +88,10 @@ func TestTaskValidateInsert(t *testing.T) {
 					Args:   []byte("{}"),
 				}
 
-				Convey("When calling the `ValidateInsert` method", func() {
-					err := t2.ValidateInsert(db)
+				Convey("When calling the `BeforeInsert` method", func() {
+					err := t2.BeforeInsert(db)
 
-					Convey("Then the error should say the task chain is invalid", func() {
+					Convey("Then the error should say that the chain is invalid", func() {
 						So(err, ShouldBeError, fmt.Sprintf(
 							"%s is not a valid task chain", t2.Chain))
 					})
@@ -106,12 +107,12 @@ func TestTaskValidateInsert(t *testing.T) {
 					Args:   []byte("{}"),
 				}
 
-				Convey("When calling the `ValidateInsert` method", func() {
-					err := t2.ValidateInsert(db)
+				Convey("When calling the `BeforeInsert` method", func() {
+					err := t2.BeforeInsert(db)
 
-					Convey("Then the error should say the task already exist", func() {
-						So(err, ShouldBeError, fmt.Sprintf("rule %d already has "+
-							"a task in %s at %d", t2.RuleID, t2.Chain, t2.Rank))
+					Convey("Then the error should say that the task already exist", func() {
+						So(err, ShouldBeError, fmt.Sprintf("rule %d already has a task in %s at %d",
+							t2.RuleID, t2.Chain, t2.Rank))
 					})
 				})
 			})
@@ -119,16 +120,12 @@ func TestTaskValidateInsert(t *testing.T) {
 	})
 }
 
-func TestTaskValidateUpdate(t *testing.T) {
+func TestTaskBeforeUpdate(t *testing.T) {
 	Convey("Given a Task instance", t, func() {
 		task := &Task{}
 
-		Convey("When calling the `ValidateUpdate` method", func() {
-			err := task.ValidateUpdate(nil)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldNotBeNil)
-			})
+		Convey("When calling the `BeforeUpdate` method", func() {
+			err := task.BeforeUpdate(nil, 0)
 
 			Convey("Then the error should say that operation is not allowed", func() {
 				So(err, ShouldBeError, "operation not allowed")

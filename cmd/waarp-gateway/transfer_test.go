@@ -86,6 +86,7 @@ func TestAddTransfer(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule",
 				IsSend: true,
+				Path:   "/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 
@@ -240,6 +241,7 @@ func TestGetTransfer(t *testing.T) {
 				r := &model.Rule{
 					Name:   "rule",
 					IsSend: false,
+					Path:   "/path",
 				}
 				So(db.Create(r), ShouldBeNil)
 
@@ -350,10 +352,10 @@ func TestListTransfer(t *testing.T) {
 			So(db.Create(a3), ShouldBeNil)
 			So(db.Create(a4), ShouldBeNil)
 
-			r1 := &model.Rule{Name: "rule1", IsSend: false}
-			r2 := &model.Rule{Name: "rule2", IsSend: false}
-			r3 := &model.Rule{Name: "rule3", IsSend: false}
-			r4 := &model.Rule{Name: "rule4", IsSend: false}
+			r1 := &model.Rule{Name: "rule1", IsSend: false, Path: "/path1"}
+			r2 := &model.Rule{Name: "rule2", IsSend: false, Path: "/path2"}
+			r3 := &model.Rule{Name: "rule3", IsSend: false, Path: "/path3"}
+			r4 := &model.Rule{Name: "rule4", IsSend: false, Path: "/path4"}
 			So(db.Create(r1), ShouldBeNil)
 			So(db.Create(r2), ShouldBeNil)
 			So(db.Create(r3), ShouldBeNil)
@@ -603,6 +605,7 @@ func TestPauseTransfer(t *testing.T) {
 				r := &model.Rule{
 					Name:   "rule",
 					IsSend: true,
+					Path:   "/path",
 				}
 				So(db.Create(r), ShouldBeNil)
 
@@ -702,6 +705,7 @@ func TestResumeTransfer(t *testing.T) {
 				r := &model.Rule{
 					Name:   "rule",
 					IsSend: true,
+					Path:   "/path",
 				}
 				So(db.Create(r), ShouldBeNil)
 
@@ -799,6 +803,7 @@ func TestCancelTransfer(t *testing.T) {
 				r := &model.Rule{
 					Name:   "rule",
 					IsSend: true,
+					Path:   "/path",
 				}
 				So(db.Create(r), ShouldBeNil)
 

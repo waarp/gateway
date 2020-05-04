@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -42,9 +41,20 @@ type LocalAgent struct {
 	ProtoConfig []byte `xorm:"notnull 'proto_config'"`
 }
 
-// BeforeInsert is called before inserting the agent in the database. Its
-// role is to set the agent's owner.
-func (l *LocalAgent) BeforeInsert(database.Accessor) error {
+// TableName returns the local_agent table name.
+func (l *LocalAgent) TableName() string {
+	return "local_agents"
+}
+
+func (l *LocalAgent) validateProtoConfig() error {
+	conf, err := config.GetProtoConfig(l.Protocol, l.ProtoConfig)
+	if err != nil {
+		return err
+	}
+	return conf.ValidServer()
+}
+
+func (l *LocalAgent) normalizePaths() error {
 	l.Owner = database.Owner
 
 	if l.Root != "" {
@@ -64,47 +74,13 @@ func (l *LocalAgent) BeforeInsert(database.Accessor) error {
 	return nil
 }
 
-// BeforeUpdate is called before inserting the agent in the database. Its
-// role is to set the agent's owner.
-func (l *LocalAgent) BeforeUpdate(database.Accessor) error {
-	return l.BeforeInsert(nil)
-}
-
-// BeforeDelete is called before deleting the account from the database. Its
-// role is to delete all the certificates tied to the account.
-func (l *LocalAgent) BeforeDelete(acc database.Accessor) error {
-	accounts := []*LocalAccount{}
-	filterAcc := builder.Eq{"local_agent_id": l.ID}
-	if err := acc.Select(&accounts, &database.Filters{Conditions: filterAcc}); err != nil {
-		return err
-	}
-	for _, account := range accounts {
-		if err := account.BeforeDelete(acc); err != nil {
-			return err
-		}
-	}
-	if err := acc.Execute(builder.Delete().From((&LocalAccount{}).TableName()).
-		Where(filterAcc)); err != nil {
-		return err
-	}
-
-	filterCert := builder.Eq{"owner_type": l.TableName(), "owner_id": l.ID}
-	if err := acc.Execute(builder.Delete().From((&Cert{}).TableName()).
-		Where(filterCert)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// TableName returns the local_agent table name.
-func (l *LocalAgent) TableName() string {
-	return "local_agents"
-}
-
-// ValidateInsert is called before inserting a new `LocalAgent` entry in the
+// BeforeInsert is called before inserting a new `LocalAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (l *LocalAgent) ValidateInsert(acc database.Accessor) error {
+func (l *LocalAgent) BeforeInsert(db database.Accessor) error {
+	if err := l.normalizePaths(); err != nil {
+		return err
+	}
+
 	if l.ID != 0 {
 		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
@@ -118,7 +94,7 @@ func (l *LocalAgent) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError(err.Error())
 	}
 
-	if res, err := acc.Query("SELECT id FROM local_agents WHERE owner=? AND name=?",
+	if res, err := db.Query("SELECT id FROM local_agents WHERE owner=? AND name=?",
 		l.Owner, l.Name); err != nil {
 		return err
 	} else if len(res) > 0 {
@@ -136,29 +112,19 @@ func (l *LocalAgent) ValidateInsert(acc database.Accessor) error {
 	return nil
 }
 
-func (l *LocalAgent) validateProtoConfig() error {
-	conf, err := config.GetProtoConfig(l.Protocol, l.ProtoConfig)
-	if err != nil {
+// BeforeUpdate is called before updating an existing `LocalAgent` entry from
+// the database. It checks whether the updated entry is valid or not.
+func (l *LocalAgent) BeforeUpdate(db database.Accessor, id uint64) error {
+	if err := l.normalizePaths(); err != nil {
 		return err
 	}
-	if err := conf.ValidServer(); err != nil {
-		return fmt.Errorf("invalid server configuration: %s", err.Error())
-	}
-	return err
-}
 
-// ValidateUpdate is called before updating an existing `LocalAgent` entry from
-// the database. It checks whether the updated entry is valid or not.
-func (l *LocalAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if l.ID != 0 {
 		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
-	if l.Owner != database.Owner {
-		return database.InvalidError("the agent's owner cannot be changed")
-	}
 
 	if l.Name != "" {
-		if res, err := acc.Query("SELECT id FROM local_agents WHERE owner=? "+
+		if res, err := db.Query("SELECT id FROM local_agents WHERE owner=? "+
 			"AND name=? AND id<>?", database.Owner, l.Name, id); err != nil {
 			return err
 		} else if len(res) > 0 {
@@ -178,6 +144,33 @@ func (l *LocalAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 		if err := l.validateProtoConfig(); err != nil {
 			return database.InvalidError(err.Error())
 		}
+	}
+
+	return nil
+}
+
+// BeforeDelete is called before deleting the account from the database. Its
+// role is to delete all the certificates tied to the account.
+func (l *LocalAgent) BeforeDelete(db database.Accessor) error {
+	accounts := []*LocalAccount{}
+	filterAcc := builder.Eq{"local_agent_id": l.ID}
+	if err := db.Select(&accounts, &database.Filters{Conditions: filterAcc}); err != nil {
+		return err
+	}
+	for _, account := range accounts {
+		if err := account.BeforeDelete(db); err != nil {
+			return err
+		}
+	}
+	if err := db.Execute(builder.Delete().From((&LocalAccount{}).TableName()).
+		Where(filterAcc)); err != nil {
+		return err
+	}
+
+	filterCert := builder.Eq{"owner_type": l.TableName(), "owner_id": l.ID}
+	if err := db.Execute(builder.Delete().From((&Cert{}).TableName()).
+		Where(filterCert)); err != nil {
+		return err
 	}
 
 	return nil

@@ -243,7 +243,7 @@ func TestGetTasks(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		Convey("Given a rule", func() {
-			rule := &model.Rule{Name: "rule"}
+			rule := &model.Rule{Name: "rule", IsSend: false, Path: "/path"}
 			So(db.Create(rule), ShouldBeNil)
 
 			Convey("Given pre, post & error tasks for this rule", func() {
@@ -346,7 +346,7 @@ func TestRunTasks(t *testing.T) {
 	Convey("Given a processor", t, func() {
 		db := database.GetTestDatabase()
 
-		rule := &model.Rule{Name: "rule"}
+		rule := &model.Rule{Name: "rule", IsSend: false, Path: "/path"}
 		So(db.Create(rule), ShouldBeNil)
 
 		agent := &model.RemoteAgent{

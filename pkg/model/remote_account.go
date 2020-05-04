@@ -31,39 +31,23 @@ func (r *RemoteAccount) TableName() string {
 	return "remote_accounts"
 }
 
-// BeforeInsert is called before inserting the account in the database. Its
-// role is to encrypt the password, if one was entered.
-func (r *RemoteAccount) BeforeInsert(database.Accessor) error {
-	if r.Password != nil {
-		var err error
-		if r.Password, err = encryptPassword(r.Password); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// BeforeUpdate is called before updating the account from the database. Its
-// role is to encrypt the password, if a new one was entered.
-func (r *RemoteAccount) BeforeUpdate(database.Accessor) error {
-	return r.BeforeInsert(nil)
-}
-
-// BeforeDelete is called before deleting the account from the database. Its
-// role is to delete all the certificates tied to the account.
-func (r *RemoteAccount) BeforeDelete(acc database.Accessor) error {
-	filter := builder.Eq{"owner_type": r.TableName(), "owner_id": r.ID}
-	if err := acc.Execute(builder.Delete().From((&Cert{}).TableName()).
-		Where(filter)); err != nil {
-		return err
+// GetCerts fetch in the database then return the associated Certificates if they exist
+func (r *RemoteAccount) GetCerts(db database.Accessor) ([]Cert, error) {
+	filters := &database.Filters{
+		Conditions: builder.And(builder.Eq{"owner_type": r.TableName()},
+			builder.Eq{"owner_id": r.ID}),
 	}
 
-	return nil
+	results := []Cert{}
+	if err := db.Select(&results, filters); err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
-// ValidateInsert checks if the new `RemoteAccount` entry is valid and can be
+// BeforeInsert checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
-func (r *RemoteAccount) ValidateInsert(acc database.Accessor) error {
+func (r *RemoteAccount) BeforeInsert(db database.Accessor) (err error) {
 	if r.ID != 0 {
 		return database.InvalidError("the account's ID cannot be entered manually")
 	}
@@ -73,14 +57,17 @@ func (r *RemoteAccount) ValidateInsert(acc database.Accessor) error {
 	if r.Login == "" {
 		return database.InvalidError("the account's login cannot be empty")
 	}
+	if len(r.Password) == 0 {
+		return database.InvalidError("The account's password cannot be empty")
+	}
 
-	if res, err := acc.Query("SELECT id FROM remote_agents WHERE id=?", r.RemoteAgentID); err != nil {
+	if res, err := db.Query("SELECT id FROM remote_agents WHERE id=?", r.RemoteAgentID); err != nil {
 		return err
 	} else if len(res) == 0 {
 		return database.InvalidError("no remote agent found with the ID '%v'", r.RemoteAgentID)
 	}
 
-	if res, err := acc.Query("SELECT id FROM remote_accounts WHERE remote_agent_id=? "+
+	if res, err := db.Query("SELECT id FROM remote_accounts WHERE remote_agent_id=? "+
 		"AND login=?", r.RemoteAgentID, r.Login); err != nil {
 		return err
 	} else if len(res) > 0 {
@@ -88,26 +75,27 @@ func (r *RemoteAccount) ValidateInsert(acc database.Accessor) error {
 			"already exist", r.Login)
 	}
 
-	return nil
+	r.Password, err = encryptPassword(r.Password)
+	return err
 }
 
-// ValidateUpdate checks if the updated `RemoteAccount` entry is valid and can be
+// BeforeUpdate checks if the updated `RemoteAccount` entry is valid and can be
 // updated in the database.
-func (r *RemoteAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
+func (r *RemoteAccount) BeforeUpdate(db database.Accessor, id uint64) (err error) {
 	if r.ID != 0 {
 		return database.InvalidError("the account's ID cannot be entered manually")
 	}
 
 	if r.Login != "" {
 		old := RemoteAccount{ID: id}
-		if err := acc.Get(&old); err != nil {
+		if err := db.Get(&old); err != nil {
 			return err
 		}
 		if r.RemoteAgentID != 0 {
 			old.RemoteAgentID = r.RemoteAgentID
 		}
 
-		if res, err := acc.Query("SELECT id FROM remote_accounts WHERE "+
+		if res, err := db.Query("SELECT id FROM remote_accounts WHERE "+
 			"remote_agent_id=? AND login=?", old.RemoteAgentID, r.Login); err != nil {
 			return err
 		} else if len(res) > 0 {
@@ -117,7 +105,7 @@ func (r *RemoteAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 	}
 
 	if r.RemoteAgentID != 0 {
-		if res, err := acc.Query("SELECT id FROM remote_agents WHERE id=?",
+		if res, err := db.Query("SELECT id FROM remote_agents WHERE id=?",
 			r.RemoteAgentID); err != nil {
 			return err
 		} else if len(res) == 0 {
@@ -126,19 +114,21 @@ func (r *RemoteAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 		}
 	}
 
+	if len(r.Password) > 0 {
+		r.Password, err = encryptPassword(r.Password)
+		return err
+	}
 	return nil
 }
 
-// GetCerts fetch in the database then return the associated Certificates if they exist
-func (r *RemoteAccount) GetCerts(ses database.Accessor) ([]Cert, error) {
-	filters := &database.Filters{
-		Conditions: builder.And(builder.Eq{"owner_type": r.TableName()},
-			builder.Eq{"owner_id": r.ID}),
+// BeforeDelete is called before deleting the account from the database. Its
+// role is to delete all the certificates tied to the account.
+func (r *RemoteAccount) BeforeDelete(db database.Accessor) error {
+	filter := builder.Eq{"owner_type": r.TableName(), "owner_id": r.ID}
+	if err := db.Execute(builder.Delete().From((&Cert{}).TableName()).
+		Where(filter)); err != nil {
+		return err
 	}
 
-	results := []Cert{}
-	if err := ses.Select(&results, filters); err != nil {
-		return nil, err
-	}
-	return results, nil
+	return nil
 }

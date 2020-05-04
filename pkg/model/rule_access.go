@@ -20,10 +20,10 @@ func (*RuleAccess) TableName() string {
 	return "rule_access"
 }
 
-// ValidateInsert is called before inserting a new `RuleAccess` entry in the
+// BeforeInsert is called before inserting a new `RuleAccess` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RuleAccess) ValidateInsert(acc database.Accessor) error {
-	if res, err := acc.Query("SELECT id FROM rules WHERE id=?", r.RuleID); err != nil {
+func (r *RuleAccess) BeforeInsert(db database.Accessor) error {
+	if res, err := db.Query("SELECT id FROM rules WHERE id=?", r.RuleID); err != nil {
 		return err
 	} else if len(res) < 1 {
 		return database.InvalidError("no rule found with ID %d", r.RuleID)
@@ -33,13 +33,13 @@ func (r *RuleAccess) ValidateInsert(acc database.Accessor) error {
 	var err error
 	switch r.ObjectType {
 	case "local_agents":
-		res, err = acc.Query("SELECT id FROM local_agents WHERE id=?", r.ObjectID)
+		res, err = db.Query("SELECT id FROM local_agents WHERE id=?", r.ObjectID)
 	case "remote_agents":
-		res, err = acc.Query("SELECT id FROM remote_agents WHERE id=?", r.ObjectID)
+		res, err = db.Query("SELECT id FROM remote_agents WHERE id=?", r.ObjectID)
 	case "local_accounts":
-		res, err = acc.Query("SELECT id FROM local_accounts WHERE id=?", r.ObjectID)
+		res, err = db.Query("SELECT id FROM local_accounts WHERE id=?", r.ObjectID)
 	case "remote_accounts":
-		res, err = acc.Query("SELECT id FROM remote_accounts WHERE id=?", r.ObjectID)
+		res, err = db.Query("SELECT id FROM remote_accounts WHERE id=?", r.ObjectID)
 	default:
 		return database.InvalidError("the rule_access's object type must be one of %s",
 			validOwnerTypes)
@@ -50,7 +50,7 @@ func (r *RuleAccess) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError("no %s found with ID %v", r.ObjectType, r.ObjectID)
 	}
 
-	if ok, err := acc.Exists(r); err != nil {
+	if ok, err := db.Exists(r); err != nil {
 		return err
 	} else if ok {
 		return database.InvalidError("the agent has already been granted access " +
@@ -60,16 +60,16 @@ func (r *RuleAccess) ValidateInsert(acc database.Accessor) error {
 	return nil
 }
 
-// ValidateUpdate is called before updating and existing `RuleAccess` entry from
+// BeforeUpdate is called before updating and existing `RuleAccess` entry from
 // the database. It rejects all update.
-func (*RuleAccess) ValidateUpdate(database.Accessor) error {
+func (*RuleAccess) BeforeUpdate(database.Accessor, uint64) error {
 	return database.InvalidError("operation not allowed")
 }
 
 // IsRuleAuthorized verify if the rule requested by the transfer is authorized for
 // the requesting transfer
-func IsRuleAuthorized(acc database.Accessor, t *Transfer) (bool, error) {
-	res, err := acc.Query("SELECT rule_id FROM rule_access WHERE rule_id=?", t.RuleID)
+func IsRuleAuthorized(db database.Accessor, t *Transfer) (bool, error) {
+	res, err := db.Query("SELECT rule_id FROM rule_access WHERE rule_id=?", t.RuleID)
 	if err != nil {
 		return false, err
 	} else if len(res) == 0 {
@@ -82,7 +82,7 @@ func IsRuleAuthorized(acc database.Accessor, t *Transfer) (bool, error) {
 		agent = "local_agents"
 		account = "local_accounts"
 	}
-	res, err = acc.Query("SELECT rule_id FROM rule_access WHERE rule_id=? AND "+
+	res, err = db.Query("SELECT rule_id FROM rule_access WHERE rule_id=? AND "+
 		"((object_type=? AND object_id=?) OR (object_type=? and object_id=?))",
 		t.RuleID, agent, t.AgentID, account, t.AccountID)
 	if err != nil {

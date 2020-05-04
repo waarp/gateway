@@ -419,7 +419,7 @@ func TestRestartTransfer(t *testing.T) {
 			}
 			So(db.Create(account), ShouldBeNil)
 
-			rule := model.Rule{Name: "rule", IsSend: true}
+			rule := model.Rule{Name: "rule", IsSend: true, Path: "/path"}
 			So(db.Create(&rule), ShouldBeNil)
 
 			h := &model.TransferHistory{

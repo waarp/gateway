@@ -25,44 +25,35 @@ type LocalAccount struct {
 	Password []byte `xorm:"'password'"`
 }
 
-// BeforeInsert is called before inserting the account in the database. Its
-// role is to hash the password, if one was entered.
-func (l *LocalAccount) BeforeInsert(database.Accessor) error {
+// TableName returns the local accounts table name.
+func (l *LocalAccount) TableName() string {
+	return "local_accounts"
+}
+
+// GetCerts fetch in the database then return the associated Certificates if they exist
+func (l *LocalAccount) GetCerts(db database.Accessor) ([]Cert, error) {
+	filters := &database.Filters{
+		Conditions: builder.And(builder.Eq{"owner_type": l.TableName()},
+			builder.Eq{"owner_id": l.ID}),
+	}
+
+	results := []Cert{}
+	if err := db.Select(&results, filters); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+// BeforeInsert checks if the new `LocalAccount` entry is valid and can be
+// inserted in the database.
+func (l *LocalAccount) BeforeInsert(db database.Accessor) error {
 	if l.Password != nil {
 		var err error
 		if l.Password, err = hashPassword(l.Password); err != nil {
 			return err
 		}
 	}
-	return nil
-}
 
-// BeforeUpdate is called before updating the account from the database. Its
-// role is to hash the password, if a new one was entered.
-func (l *LocalAccount) BeforeUpdate(database.Accessor) error {
-	return l.BeforeInsert(nil)
-}
-
-// BeforeDelete is called before deleting the account from the database. Its
-// role is to delete all the certificates tied to the account.
-func (l *LocalAccount) BeforeDelete(acc database.Accessor) error {
-	filter := builder.Eq{"owner_type": l.TableName(), "owner_id": l.ID}
-	if err := acc.Execute(builder.Delete().From((&Cert{}).TableName()).
-		Where(filter)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// TableName returns the local accounts table name.
-func (l *LocalAccount) TableName() string {
-	return "local_accounts"
-}
-
-// ValidateInsert checks if the new `LocalAccount` entry is valid and can be
-// inserted in the database.
-func (l *LocalAccount) ValidateInsert(acc database.Accessor) error {
 	if l.ID != 0 {
 		return database.InvalidError("the account's ID cannot be entered manually")
 	}
@@ -73,13 +64,13 @@ func (l *LocalAccount) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError("the account's login cannot be empty")
 	}
 
-	if res, err := acc.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
+	if res, err := db.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
 		return err
 	} else if len(res) == 0 {
 		return database.InvalidError("no local agent found with the ID '%v'", l.LocalAgentID)
 	}
 
-	if res, err := acc.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
+	if res, err := db.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
 		"AND login=?", l.LocalAgentID, l.Login); err != nil {
 		return err
 	} else if len(res) > 0 {
@@ -90,15 +81,22 @@ func (l *LocalAccount) ValidateInsert(acc database.Accessor) error {
 	return nil
 }
 
-// ValidateUpdate checks if the updated `LocalAccount` entry is valid and can be
+// BeforeUpdate checks if the updated `LocalAccount` entry is valid and can be
 // updated in the database.
-func (l *LocalAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
+func (l *LocalAccount) BeforeUpdate(db database.Accessor, id uint64) error {
+	if l.Password != nil {
+		var err error
+		if l.Password, err = hashPassword(l.Password); err != nil {
+			return err
+		}
+	}
+
 	if l.ID != 0 {
 		return database.InvalidError("the account's ID cannot be entered manually")
 	}
 
 	if l.LocalAgentID != 0 {
-		if res, err := acc.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
+		if res, err := db.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
 			return err
 		} else if len(res) == 0 {
 			return database.InvalidError("no local agent found with the ID '%v'", l.LocalAgentID)
@@ -107,14 +105,14 @@ func (l *LocalAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 
 	if l.Login != "" {
 		old := LocalAccount{ID: id}
-		if err := acc.Get(&old); err != nil {
+		if err := db.Get(&old); err != nil {
 			return err
 		}
 		if l.LocalAgentID != 0 {
 			old.LocalAgentID = l.LocalAgentID
 		}
 
-		if res, err := acc.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
+		if res, err := db.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
 			"AND login=?", old.LocalAgentID, l.Login); err != nil {
 			return err
 		} else if len(res) > 0 {
@@ -126,16 +124,14 @@ func (l *LocalAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 	return nil
 }
 
-// GetCerts fetch in the database then return the associated Certificates if they exist
-func (l *LocalAccount) GetCerts(ses database.Accessor) ([]Cert, error) {
-	filters := &database.Filters{
-		Conditions: builder.And(builder.Eq{"owner_type": l.TableName()},
-			builder.Eq{"owner_id": l.ID}),
+// BeforeDelete is called before deleting the account from the database. Its
+// role is to delete all the certificates tied to the account.
+func (l *LocalAccount) BeforeDelete(db database.Accessor) error {
+	filter := builder.Eq{"owner_type": l.TableName(), "owner_id": l.ID}
+	if err := db.Execute(builder.Delete().From((&Cert{}).TableName()).
+		Where(filter)); err != nil {
+		return err
 	}
 
-	results := []Cert{}
-	if err := ses.Select(&results, filters); err != nil {
-		return nil, err
-	}
-	return results, nil
+	return nil
 }

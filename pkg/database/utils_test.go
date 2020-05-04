@@ -29,7 +29,7 @@ func (t *testBean) BeforeInsert(Accessor) error {
 	return nil
 }
 
-func (t *testBean) BeforeUpdate(Accessor) error {
+func (t *testBean) BeforeUpdate(Accessor, uint64) error {
 	t.signals = "update hook"
 	return nil
 }

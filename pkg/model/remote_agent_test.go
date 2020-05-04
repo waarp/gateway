@@ -91,7 +91,7 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 	})
 }
 
-func TestRemoteAgentValidateInsert(t *testing.T) {
+func TestRemoteAgentBeforeInsert(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -112,8 +112,8 @@ func TestRemoteAgentValidateInsert(t *testing.T) {
 
 				Convey("Given that the new agent is valid", func() {
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -124,8 +124,8 @@ func TestRemoteAgentValidateInsert(t *testing.T) {
 				Convey("Given that the new agent has an ID", func() {
 					newAgent.ID = 10
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
 							So(err, ShouldBeError, "the agent's ID cannot "+
@@ -137,8 +137,8 @@ func TestRemoteAgentValidateInsert(t *testing.T) {
 				Convey("Given that the new agent is missing a name", func() {
 					newAgent.Name = ""
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then the error should say that the name is missing", func() {
 							So(err, ShouldBeError, "the agent's name cannot "+
@@ -150,8 +150,8 @@ func TestRemoteAgentValidateInsert(t *testing.T) {
 				Convey("Given that the new agent's name is already taken", func() {
 					newAgent.Name = oldAgent.Name
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then the error should say that the name is already taken", func() {
 							So(err, ShouldBeError, "a remote agent with "+
@@ -163,8 +163,8 @@ func TestRemoteAgentValidateInsert(t *testing.T) {
 				Convey("Given that the new agent's protocol is not valid", func() {
 					newAgent.Protocol = "not a protocol"
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then the error should say that the protocol is invalid", func() {
 							So(err, ShouldBeError, "unknown protocol")
@@ -175,8 +175,8 @@ func TestRemoteAgentValidateInsert(t *testing.T) {
 				Convey("Given that the new agent's protocol configuration is not valid", func() {
 					newAgent.ProtoConfig = []byte("invalid")
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then the error should say that the configuration is invalid", func() {
 							So(err, ShouldBeError, "failed to parse protocol "+
@@ -190,7 +190,7 @@ func TestRemoteAgentValidateInsert(t *testing.T) {
 	})
 }
 
-func TestRemoteAgentValidateUpdate(t *testing.T) {
+func TestRemoteAgentBeforeUpdate(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -218,8 +218,8 @@ func TestRemoteAgentValidateUpdate(t *testing.T) {
 
 				Convey("Given that the updated agent is valid", func() {
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := updatedAgent.ValidateUpdate(db, oldAgent.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -230,8 +230,8 @@ func TestRemoteAgentValidateUpdate(t *testing.T) {
 				Convey("Given that the updated agent has an ID", func() {
 					updatedAgent.ID = 10
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := updatedAgent.ValidateUpdate(db, oldAgent.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
 							So(err, ShouldBeError, "the agent's ID cannot "+
@@ -243,8 +243,8 @@ func TestRemoteAgentValidateUpdate(t *testing.T) {
 				Convey("Given that the updated agent's name is already taken", func() {
 					updatedAgent.Name = otherAgent.Name
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := updatedAgent.ValidateUpdate(db, oldAgent.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
 
 						Convey("Then the error should say that the name is already taken", func() {
 							So(err, ShouldBeError, "a remote agent with "+
@@ -256,8 +256,8 @@ func TestRemoteAgentValidateUpdate(t *testing.T) {
 				Convey("Given that the updated agent's protocol is not valid", func() {
 					updatedAgent.Protocol = "not a protocol"
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := updatedAgent.ValidateUpdate(db, oldAgent.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
 
 						Convey("Then the error should say that the protocol is invalid", func() {
 							So(err, ShouldBeError, "unknown protocol")
@@ -268,8 +268,8 @@ func TestRemoteAgentValidateUpdate(t *testing.T) {
 				Convey("Given that the updated agent's protocol configuration is not valid", func() {
 					updatedAgent.ProtoConfig = []byte("invalid")
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := updatedAgent.ValidateUpdate(db, oldAgent.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
 
 						Convey("Then the error should say that the configuration is invalid", func() {
 							So(err, ShouldBeError, "failed to parse protocol "+

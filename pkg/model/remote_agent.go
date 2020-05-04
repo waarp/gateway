@@ -1,8 +1,6 @@
 package model
 
 import (
-	"fmt"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/go-xorm/builder"
@@ -35,35 +33,16 @@ func (r *RemoteAgent) TableName() string {
 	return "remote_agents"
 }
 
-// BeforeDelete is called before deleting the account from the database. Its
-// role is to delete all the certificates tied to the account.
-func (r *RemoteAgent) BeforeDelete(acc database.Accessor) error {
-	filterCert := builder.Eq{"owner_type": r.TableName(), "owner_id": r.ID}
-	if err := acc.Execute(builder.Delete().From((&Cert{}).TableName()).
-		Where(filterCert)); err != nil {
+func (r *RemoteAgent) validateProtoConfig() error {
+	conf, err := config.GetProtoConfig(r.Protocol, r.ProtoConfig)
+	if err != nil {
 		return err
 	}
-
-	accounts := []*RemoteAccount{}
-	filterAcc := builder.Eq{"remote_agent_id": r.ID}
-	if err := acc.Select(&accounts, &database.Filters{Conditions: filterAcc}); err != nil {
-		return err
-	}
-	for _, account := range accounts {
-		if err := account.BeforeDelete(acc); err != nil {
-			return err
-		}
-	}
-	if err := acc.Execute(builder.Delete().From((&RemoteAccount{}).TableName()).
-		Where(filterAcc)); err != nil {
-		return err
-	}
-
-	return nil
+	return conf.ValidPartner()
 }
 
 // GetCerts fetch in the database then return the associated Certificates if they exist
-func (r *RemoteAgent) GetCerts(ses database.Accessor) ([]Cert, error) {
+func (r *RemoteAgent) GetCerts(db database.Accessor) ([]Cert, error) {
 	conditions := make([]builder.Cond, 0)
 	conditions = append(conditions, builder.Eq{"owner_type": "remote_agents"})
 	conditions = append(conditions, builder.Eq{"owner_id": r.ID})
@@ -74,15 +53,15 @@ func (r *RemoteAgent) GetCerts(ses database.Accessor) ([]Cert, error) {
 
 	// TODO get only validate certificates
 	results := []Cert{}
-	if err := ses.Select(&results, filters); err != nil {
+	if err := db.Select(&results, filters); err != nil {
 		return nil, err
 	}
 	return results, nil
 }
 
-// ValidateInsert is called before inserting a new `RemoteAgent` entry in the
+// BeforeInsert is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RemoteAgent) ValidateInsert(acc database.Accessor) error {
+func (r *RemoteAgent) BeforeInsert(db database.Accessor) error {
 	if r.ID != 0 {
 		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
@@ -96,7 +75,7 @@ func (r *RemoteAgent) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError(err.Error())
 	}
 
-	if res, err := acc.Query("SELECT id FROM remote_agents WHERE name=?", r.Name); err != nil {
+	if res, err := db.Query("SELECT id FROM remote_agents WHERE name=?", r.Name); err != nil {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("a remote agent with the same name '%s' "+
@@ -106,20 +85,9 @@ func (r *RemoteAgent) ValidateInsert(acc database.Accessor) error {
 	return nil
 }
 
-func (r *RemoteAgent) validateProtoConfig() error {
-	conf, err := config.GetProtoConfig(r.Protocol, r.ProtoConfig)
-	if err != nil {
-		return err
-	}
-	if err := conf.ValidPartner(); err != nil {
-		return fmt.Errorf("invalid partner configuration: %s", err.Error())
-	}
-	return err
-}
-
-// ValidateUpdate is called before updating an existing `RemoteAgent` entry from
+// BeforeUpdate is called before updating an existing `RemoteAgent` entry from
 // the database. It checks whether the updated entry is valid or not.
-func (r *RemoteAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
+func (r *RemoteAgent) BeforeUpdate(db database.Accessor, id uint64) error {
 	if r.ID != 0 {
 		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
@@ -131,13 +99,40 @@ func (r *RemoteAgent) ValidateUpdate(acc database.Accessor, id uint64) error {
 	}
 
 	if r.Name != "" {
-		if res, err := acc.Query("SELECT id FROM remote_agents WHERE name=? AND "+
+		if res, err := db.Query("SELECT id FROM remote_agents WHERE name=? AND "+
 			"id<>?", r.Name, id); err != nil {
 			return err
 		} else if len(res) > 0 {
 			return database.InvalidError("a remote agent with the same name "+
 				"'%s' already exist", r.Name)
 		}
+	}
+
+	return nil
+}
+
+// BeforeDelete is called before deleting the account from the database. Its
+// role is to delete all the certificates tied to the account.
+func (r *RemoteAgent) BeforeDelete(db database.Accessor) error {
+	filterCert := builder.Eq{"owner_type": r.TableName(), "owner_id": r.ID}
+	if err := db.Execute(builder.Delete().From((&Cert{}).TableName()).
+		Where(filterCert)); err != nil {
+		return err
+	}
+
+	accounts := []*RemoteAccount{}
+	filterAcc := builder.Eq{"remote_agent_id": r.ID}
+	if err := db.Select(&accounts, &database.Filters{Conditions: filterAcc}); err != nil {
+		return err
+	}
+	for _, account := range accounts {
+		if err := account.BeforeDelete(db); err != nil {
+			return err
+		}
+	}
+	if err := db.Execute(builder.Delete().From((&RemoteAccount{}).TableName()).
+		Where(filterAcc)); err != nil {
+		return err
 	}
 
 	return nil

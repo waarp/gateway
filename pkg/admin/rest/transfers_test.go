@@ -53,7 +53,7 @@ func TestAddTransfer(t *testing.T) {
 			}
 			So(db.Create(account), ShouldBeNil)
 
-			push := model.Rule{Name: "test_push", IsSend: false}
+			push := model.Rule{Name: "test_push", IsSend: false, Path: "/path"}
 			So(db.Create(&push), ShouldBeNil)
 
 			trans := &InTransfer{
@@ -226,7 +226,7 @@ func TestGetTransfer(t *testing.T) {
 			}
 			So(db.Create(account), ShouldBeNil)
 
-			push := &model.Rule{Name: "test_push", IsSend: false}
+			push := &model.Rule{Name: "test_push", IsSend: false, Path: "/path"}
 			So(db.Create(push), ShouldBeNil)
 
 			trans := &model.Transfer{
@@ -345,10 +345,10 @@ func TestListTransfer(t *testing.T) {
 			}
 			So(db.Create(a2), ShouldBeNil)
 
-			r1 := &model.Rule{Name: "rule1", IsSend: false}
+			r1 := &model.Rule{Name: "rule1", IsSend: false, Path: "/path1"}
 			So(db.Create(r1), ShouldBeNil)
 
-			r2 := &model.Rule{Name: "rule2", IsSend: false}
+			r2 := &model.Rule{Name: "rule2", IsSend: false, Path: "/path2"}
 			So(db.Create(r2), ShouldBeNil)
 
 			t1 := &model.Transfer{

@@ -168,12 +168,14 @@ func TestListRules(t *testing.T) {
 			r1 := &model.Rule{
 				Name:   "rule1",
 				IsSend: false,
+				Path:   "/path1",
 			}
 			So(db.Create(r1), ShouldBeNil)
 
 			r2 := &model.Rule{
 				Name:   "rule2",
 				IsSend: true,
+				Path:   "/path2",
 			}
 			So(db.Create(r2), ShouldBeNil)
 
@@ -222,6 +224,7 @@ func TestDeleteRule(t *testing.T) {
 		Convey("Given a database with 1 rule", func() {
 			rule := &model.Rule{
 				Name: "rule",
+				Path: "/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 
@@ -279,9 +282,11 @@ func TestUpdateRule(t *testing.T) {
 		Convey("Given a database with 2 rules", func() {
 			old := &model.Rule{
 				Name: "old",
+				Path: "/path/old",
 			}
 			other := &model.Rule{
 				Name: "other",
+				Path: "/path/other",
 			}
 			So(db.Create(old), ShouldBeNil)
 			So(db.Create(other), ShouldBeNil)
@@ -289,7 +294,7 @@ func TestUpdateRule(t *testing.T) {
 			Convey("Given new values to update the rule with", func() {
 				update := UptRule{
 					Name: "update",
-					Path: "new_path",
+					Path: "/new_path",
 				}
 				body, err := json.Marshal(update)
 				So(err, ShouldBeNil)
@@ -319,8 +324,12 @@ func TestUpdateRule(t *testing.T) {
 						})
 
 						Convey("Then the rule should have been updated", func() {
-							result := &model.Rule{Name: update.Name, Path: update.Path}
-							So(db.Get(result), ShouldBeNil)
+							results := []model.Rule{}
+							So(db.Select(&results, nil), ShouldBeNil)
+							So(len(results), ShouldEqual, 2)
+
+							expected := model.Rule{ID: old.ID, Name: update.Name, Path: update.Path}
+							So(results[0], ShouldResemble, expected)
 						})
 					})
 				})

@@ -44,7 +44,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 			rAccount := &RemoteAccount{
 				RemoteAgentID: rAgent.ID,
 				Login:         "Test",
-				Password:      []byte(""),
+				Password:      []byte("password"),
 			}
 			So(db.Create(rAccount), ShouldBeNil)
 
@@ -96,7 +96,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 	})
 }
 
-func TestRuleAccessValidateInsert(t *testing.T) {
+func TestRuleAccessBeforeInsert(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -104,6 +104,7 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 			r := &Rule{
 				Name:   "Test",
 				IsSend: true,
+				Path:   "/path",
 			}
 			So(db.Create(r), ShouldBeNil)
 
@@ -140,8 +141,8 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 					RuleID: 0,
 				}
 
-				Convey("When calling the `ValidateInsert` method", func() {
-					err := ra.ValidateInsert(db)
+				Convey("When calling the `BeforeInsert` method", func() {
+					err := ra.BeforeInsert(db)
 
 					Convey("Then the error should say 'No rule found'", func() {
 						So(err, ShouldBeError, "no rule found with ID 0")
@@ -155,8 +156,8 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 					ObjectType: "dummy",
 				}
 
-				Convey("When calling the `ValidateInsert` method", func() {
-					err := ra.ValidateInsert(db)
+				Convey("When calling the `BeforeInsert` method", func() {
+					err := ra.BeforeInsert(db)
 
 					Convey("Then the error should say 'No rule found'", func() {
 						So(err, ShouldBeError, "the rule_access's object type "+
@@ -168,7 +169,6 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 
 			for _, objType := range []string{"local_agents", "local_accounts",
 				"remote_agents", "remote_accounts"} {
-
 				Convey(fmt.Sprintf("Given a RuleAccess with an invalid %s ID", objType), func() {
 					ra := &RuleAccess{
 						RuleID:     r.ID,
@@ -176,8 +176,8 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 						ObjectID:   0,
 					}
 
-					Convey("When calling the `ValidateInsert` method", func() {
-						err := ra.ValidateInsert(db)
+					Convey("When calling the `BeforeInsert` method", func() {
+						err := ra.BeforeInsert(db)
 
 						Convey("Then the error should say 'No rule found'", func() {
 							So(err, ShouldBeError, fmt.Sprintf(
@@ -205,8 +205,8 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 						ObjectID:   id,
 					}
 
-					Convey("When calling the `ValidateInsert` method", func() {
-						err := ra.ValidateInsert(db)
+					Convey("When calling the `BeforeInsert` method", func() {
+						err := ra.BeforeInsert(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -218,16 +218,14 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 	})
 }
 
-func TestRuleAccessValidateUpdate(t *testing.T) {
+func TestRuleAccessBeforeUpdate(t *testing.T) {
 	Convey("Given a RuleAccess instance", t, func() {
 		ruleAccess := &RuleAccess{}
 
-		Convey("When calling the `ValidateUpdate` method", func() {
-			err := ruleAccess.ValidateUpdate(nil)
+		Convey("When calling the `BeforeUpdate` method", func() {
+			err := ruleAccess.BeforeUpdate(nil, 0)
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldNotBeNil)
-			})
+			So(err, ShouldNotBeNil)
 
 			Convey("Then the error should say that operation is not allowed", func() {
 				So(err, ShouldBeError, "operation not allowed")
