@@ -303,6 +303,28 @@ func TestDeleteUser(t *testing.T) {
 						So(exist, ShouldBeFalse)
 					})
 				})
+
+				Convey("Given the request using the deleted user as authentification", func() {
+					r.SetBasicAuth(existing.Username, "")
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply 'No Content'", func() {
+							So(w.Code, ShouldEqual, http.StatusForbidden)
+						})
+
+						Convey("Then the body should be empty", func() {
+							So(w.Body.String(), ShouldResemble, "user cannot delete self\n")
+						})
+
+						Convey("Then the user should still exist in the database", func() {
+							exist, err := db.Exists(existing)
+							So(err, ShouldBeNil)
+							So(exist, ShouldBeTrue)
+						})
+					})
+				})
 			})
 
 			Convey("Given a request with a non-existing username parameter", func() {
