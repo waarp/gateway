@@ -46,7 +46,6 @@ type AdminConfig struct {
 type DatabaseConfig struct {
 	Type          string `ini-name:"Type" default:"sqlite" description:"Name of the RDBMS used for the gateway database. Possible values: sqlite, mysql, postgresql"`
 	Address       string `ini-name:"Address" default:"waarp-gateway.db" description:"Address of the database"`
-	Port          uint16 `ini-name:"Port" description:"Port of the database"`
 	Name          string `ini-name:"Name" description:"The name of the database"`
 	User          string `ini-name:"User" description:"The name of the gateway database user"`
 	Password      string `ini-name:"Password" description:"The password of the gateway database user"`

@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -33,7 +34,13 @@ func postgresDSN(config conf.DatabaseConfig) string {
 		dns = append(dns, fmt.Sprintf("password='%s'", config.Password))
 	}
 	if config.Address != "" {
-		dns = append(dns, fmt.Sprintf("host='%s'", config.Address))
+		host, port, err := net.SplitHostPort(config.Address)
+		if err != nil {
+			dns = append(dns, fmt.Sprintf("host='%s'", config.Address))
+		} else {
+			dns = append(dns, fmt.Sprintf("host='%s'", host))
+			dns = append(dns, fmt.Sprintf("port='%s'", port))
+		}
 	}
 	if config.Name != "" {
 		dns = append(dns, fmt.Sprintf("dbname='%s'", config.Name))
