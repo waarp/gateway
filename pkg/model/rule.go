@@ -149,5 +149,18 @@ func (r *Rule) BeforeUpdate(db database.Accessor, id uint64) error {
 // BeforeDelete is called before deleting the rule from the database. Its
 // role is to delete all the RuleAccess entries attached to this rule.
 func (r *Rule) BeforeDelete(db database.Accessor) error {
-	return db.Execute("DELETE FROM rule_access WHERE rule_id=?", r.ID)
+	trans, err := db.Query("SELECT id FROM transfers WHERE rule_id=?", r.ID)
+	if err != nil {
+		return err
+	}
+	if len(trans) > 0 {
+		return database.InvalidError("this rule is currently being used in a " +
+			"running transfer and cannot be deleted, cancel the transfer or wait " +
+			"for it to finish")
+	}
+
+	if err := db.Execute("DELETE FROM rule_access WHERE rule_id=?", r.ID); err != nil {
+		return err
+	}
+	return db.Execute("DELETE FROM tasks WHERE rule_id=?", r.ID)
 }

@@ -5,8 +5,18 @@ import (
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+type dummyProtocol struct{}
+
+func (d *dummyProtocol) ValidServer() error  { return nil }
+func (d *dummyProtocol) ValidPartner() error { return nil }
+
+func init() {
+	config.ProtoConfigs["dummy"] = func() config.ProtoConfig { return &dummyProtocol{} }
+}
 
 func TestRuleTableName(t *testing.T) {
 	Convey("Given a `rule` instance", t, func() {
@@ -28,22 +38,22 @@ func TestRuleBeforeInsert(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		Convey("Given a rule entry", func() {
-			r := &Rule{
-				Name:   "Test",
+			old := &Rule{
+				Name:   "old",
 				IsSend: true,
-				Path:   "/path",
+				Path:   "/old_path",
 			}
-			So(db.Create(r), ShouldBeNil)
+			So(db.Create(old), ShouldBeNil)
 
 			Convey("Given a rule with a different a name", func() {
-				r2 := &Rule{
-					Name:   "Test2",
+				rule := &Rule{
+					Name:   "rule",
 					IsSend: true,
-					Path:   "/path2",
+					Path:   "/path",
 				}
 
 				Convey("When calling `BeforeUpdate`", func() {
-					err := r2.BeforeInsert(db)
+					err := rule.BeforeInsert(db)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -52,14 +62,14 @@ func TestRuleBeforeInsert(t *testing.T) {
 			})
 
 			Convey("Given a rule with the same name but with different send", func() {
-				r2 := &Rule{
-					Name:   r.Name,
-					IsSend: !r.IsSend,
-					Path:   "/path2",
+				rule := &Rule{
+					Name:   old.Name,
+					IsSend: !old.IsSend,
+					Path:   "/path",
 				}
 
 				Convey("When calling `BeforeUpdate`", func() {
-					err := r2.BeforeInsert(db)
+					err := rule.BeforeInsert(db)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -68,30 +78,30 @@ func TestRuleBeforeInsert(t *testing.T) {
 			})
 
 			Convey("Given a rule with the same name and same send", func() {
-				r2 := &Rule{
-					Name:   r.Name,
-					IsSend: r.IsSend,
-					Path:   "/path2",
+				rule := &Rule{
+					Name:   old.Name,
+					IsSend: old.IsSend,
+					Path:   "/path",
 				}
 
 				Convey("When calling `BeforeUpdate`", func() {
-					err := r2.BeforeInsert(db)
+					err := rule.BeforeInsert(db)
 
 					Convey("Then the error should say that rule already exist", func() {
 						So(err, ShouldBeError, fmt.Sprintf("a rule named '%s' "+
-							"with send = %t already exist", r.Name, r.IsSend))
+							"with send = %t already exist", old.Name, old.IsSend))
 					})
 				})
 			})
 
 			Convey("Given a rule without a path", func() {
-				r2 := &Rule{
-					Name:   "Test2",
+				rule := &Rule{
+					Name:   "rule",
 					IsSend: false,
 				}
 
 				Convey("When calling `BeforeUpdate`", func() {
-					err := r2.BeforeInsert(db)
+					err := rule.BeforeInsert(db)
 
 					Convey("Then it should return an error saying that the path cannot be empty", func() {
 						So(err, ShouldBeError, "the rule's path cannot be empty")
@@ -107,29 +117,29 @@ func TestRuleBeforeUpdate(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		Convey("Given two rule entry", func() {
-			r := &Rule{
+			rule1 := &Rule{
 				Name:   "rule1",
 				IsSend: true,
 				Path:   "/path",
 			}
-			So(db.Create(r), ShouldBeNil)
+			So(db.Create(rule1), ShouldBeNil)
 
-			r2 := &Rule{
+			rule2 := &Rule{
 				Name:   "rule2",
 				IsSend: true,
 				Path:   "/path2",
 			}
-			So(db.Create(r2), ShouldBeNil)
+			So(db.Create(rule2), ShouldBeNil)
 
 			Convey("When updating with invalid data", func() {
-				update := &Rule{Name: r2.Name, IsSend: r2.IsSend}
+				update := &Rule{Name: rule2.Name, IsSend: rule2.IsSend}
 
 				Convey("When calling the `BeforeUpdate` function", func() {
-					err := update.BeforeUpdate(db, r.ID)
+					err := update.BeforeUpdate(db, rule1.ID)
 
-					Convey("Then the error should say that the name is already used", func() {
+					Convey("Then it should return an error say the name is taken", func() {
 						So(err, ShouldBeError, fmt.Sprintf("a rule named '%s' "+
-							"with send = %t already exist", update.Name, r.IsSend))
+							"with send = %t already exist", update.Name, update.IsSend))
 					})
 
 				})
@@ -139,7 +149,7 @@ func TestRuleBeforeUpdate(t *testing.T) {
 				update := &Rule{Name: "toto", IsSend: true}
 
 				Convey("When calling the `BeforeUpdate` function", func() {
-					err := update.BeforeUpdate(db, r.ID)
+					err := update.BeforeUpdate(db, rule1.ID)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -148,5 +158,67 @@ func TestRuleBeforeUpdate(t *testing.T) {
 			})
 		})
 	})
+}
 
+func TestRuleBeforeDelete(t *testing.T) {
+	Convey("Given a database", t, func() {
+		db := database.GetTestDatabase()
+
+		Convey("Given a rule with some tasks and permissions", func() {
+			rule := &Rule{
+				Name:   "rule",
+				IsSend: true,
+				Path:   "/path",
+			}
+			So(db.Create(rule), ShouldBeNil)
+
+			t1 := &Task{RuleID: rule.ID, Chain: ChainPre, Rank: 0, Type: "TESTSUCCESS", Args: []byte(`{}`)}
+			So(db.Create(t1), ShouldBeNil)
+			t2 := &Task{RuleID: rule.ID, Chain: ChainPost, Rank: 0, Type: "TESTSUCCESS", Args: []byte(`{}`)}
+			So(db.Create(t2), ShouldBeNil)
+
+			server := &LocalAgent{Name: "server", Protocol: "dummy", ProtoConfig: []byte(`{}`)}
+			So(db.Create(server), ShouldBeNil)
+			account := &LocalAccount{LocalAgentID: server.ID, Login: "toto", Password: []byte("password")}
+			So(db.Create(account), ShouldBeNil)
+
+			a1 := &RuleAccess{RuleID: rule.ID, ObjectID: server.ID, ObjectType: server.TableName()}
+			So(db.Create(a1), ShouldBeNil)
+			a2 := &RuleAccess{RuleID: rule.ID, ObjectID: account.ID, ObjectType: account.TableName()}
+			So(db.Create(a2), ShouldBeNil)
+
+			Convey("Given that the rule is unused", func() {
+
+				Convey("When calling the `BeforeDelete` function", func() {
+					err := rule.BeforeDelete(db)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given that the rule is used by a transfer", func() {
+				trans := &Transfer{
+					RuleID:     rule.ID,
+					IsServer:   true,
+					AgentID:    server.ID,
+					AccountID:  account.ID,
+					SourceFile: "file.src",
+					DestFile:   "file.dst",
+				}
+				So(db.Create(trans), ShouldBeNil)
+
+				Convey("When calling the `BeforeDelete` function", func() {
+					err := rule.BeforeDelete(db)
+
+					Convey("Then the error should say that the rule cannot be deleted", func() {
+						So(err, ShouldBeError, "this rule is currently being "+
+							"used in a running transfer and cannot be deleted, "+
+							"cancel the transfer or wait for it to finish")
+					})
+				})
+			})
+		})
+	})
 }
