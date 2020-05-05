@@ -6,7 +6,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	"github.com/go-xorm/builder"
 )
 
 func init() {
@@ -152,24 +151,36 @@ func (l *LocalAgent) BeforeUpdate(db database.Accessor, id uint64) error {
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
 func (l *LocalAgent) BeforeDelete(db database.Accessor) error {
-	accounts := []*LocalAccount{}
-	filterAcc := builder.Eq{"local_agent_id": l.ID}
-	if err := db.Select(&accounts, &database.Filters{Conditions: filterAcc}); err != nil {
+	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND agent_id=?", true, l.ID)
+	if err != nil {
 		return err
 	}
-	for _, account := range accounts {
-		if err := account.BeforeDelete(db); err != nil {
-			return err
-		}
+	if len(trans) > 0 {
+		return database.InvalidError("this server is currently being used in a " +
+			"running transfer and cannot be deleted, cancel the transfer or wait " +
+			"for it to finish")
 	}
-	if err := db.Execute(builder.Delete().From((&LocalAccount{}).TableName()).
-		Where(filterAcc)); err != nil {
+
+	certQuery := "DELETE FROM certificates WHERE " +
+		" (owner_type='local_agents' AND owner_id=?) " +
+		"OR" +
+		" (owner_type='local_accounts' AND owner_id IN " +
+		"  (SELECT id FROM local_accounts WHERE local_agent_id=?))"
+	if err := db.Execute(certQuery, l.ID, l.ID); err != nil {
 		return err
 	}
 
-	filterCert := builder.Eq{"owner_type": l.TableName(), "owner_id": l.ID}
-	if err := db.Execute(builder.Delete().From((&Cert{}).TableName()).
-		Where(filterCert)); err != nil {
+	accessQuery := "DELETE FROM rule_access WHERE " +
+		" (object_type='local_agents' AND object_id=?) " +
+		"OR" +
+		" (object_type='local_accounts' AND object_id IN " +
+		"  (SELECT id FROM local_accounts WHERE local_agent_id=?))"
+	if err := db.Execute(accessQuery, l.ID, l.ID); err != nil {
+		return err
+	}
+
+	accountQuery := "DELETE FROM local_accounts WHERE local_agent_id=?"
+	if err := db.Execute(accountQuery, l.ID); err != nil {
 		return err
 	}
 

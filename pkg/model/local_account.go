@@ -127,11 +127,21 @@ func (l *LocalAccount) BeforeUpdate(db database.Accessor, id uint64) error {
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
 func (l *LocalAccount) BeforeDelete(db database.Accessor) error {
-	filter := builder.Eq{"owner_type": l.TableName(), "owner_id": l.ID}
-	if err := db.Execute(builder.Delete().From((&Cert{}).TableName()).
-		Where(filter)); err != nil {
+	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND account_id=?", true, l.ID)
+	if err != nil {
+		return err
+	}
+	if len(trans) > 0 {
+		return database.InvalidError("this account is currently being used in a " +
+			"running transfer and cannot be deleted, cancel the transfer or wait " +
+			"for it to finish")
+	}
+
+	certQuery := "DELETE FROM certificates WHERE owner_type='local_accounts' AND owner_id=?"
+	if err := db.Execute(certQuery, l.ID); err != nil {
 		return err
 	}
 
-	return nil
+	accessQuery := "DELETE FROM rule_access WHERE object_type='local_accounts' AND object_id=?"
+	return db.Execute(accessQuery, l.ID)
 }
