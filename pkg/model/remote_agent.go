@@ -28,7 +28,7 @@ type RemoteAgent struct {
 	ProtoConfig []byte `xorm:"notnull 'proto_config'"`
 }
 
-// TableName returns the local_agent table name.
+// TableName returns the remote_agent table name.
 func (r *RemoteAgent) TableName() string {
 	return "remote_agents"
 }
@@ -114,24 +114,36 @@ func (r *RemoteAgent) BeforeUpdate(db database.Accessor, id uint64) error {
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
 func (r *RemoteAgent) BeforeDelete(db database.Accessor) error {
-	filterCert := builder.Eq{"owner_type": r.TableName(), "owner_id": r.ID}
-	if err := db.Execute(builder.Delete().From((&Cert{}).TableName()).
-		Where(filterCert)); err != nil {
+	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND agent_id=?", false, r.ID)
+	if err != nil {
+		return err
+	}
+	if len(trans) > 0 {
+		return database.InvalidError("this partner is currently being used in a " +
+			"running transfer and cannot be deleted, cancel the transfer or wait " +
+			"for it to finish")
+	}
+
+	certQuery := "DELETE FROM certificates WHERE " +
+		" (owner_type='remote_agents' AND owner_id=?) " +
+		"OR" +
+		" (owner_type='remote_accounts' AND owner_id IN " +
+		"  (SELECT id FROM remote_accounts WHERE remote_agent_id=?))"
+	if err := db.Execute(certQuery, r.ID, r.ID); err != nil {
 		return err
 	}
 
-	accounts := []*RemoteAccount{}
-	filterAcc := builder.Eq{"remote_agent_id": r.ID}
-	if err := db.Select(&accounts, &database.Filters{Conditions: filterAcc}); err != nil {
+	accessQuery := "DELETE FROM rule_access WHERE " +
+		" (object_type='remote_agents' AND object_id=?) " +
+		"OR" +
+		" (object_type='remote_accounts' AND object_id IN " +
+		"  (SELECT id FROM remote_accounts WHERE remote_agent_id=?))"
+	if err := db.Execute(accessQuery, r.ID, r.ID); err != nil {
 		return err
 	}
-	for _, account := range accounts {
-		if err := account.BeforeDelete(db); err != nil {
-			return err
-		}
-	}
-	if err := db.Execute(builder.Delete().From((&RemoteAccount{}).TableName()).
-		Where(filterAcc)); err != nil {
+
+	accountQuery := "DELETE FROM remote_accounts WHERE remote_agent_id=?"
+	if err := db.Execute(accountQuery, r.ID); err != nil {
 		return err
 	}
 
