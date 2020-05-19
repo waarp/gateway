@@ -110,8 +110,6 @@ func TestListUsers(t *testing.T) {
 		expected := map[string][]OutUser{}
 
 		Convey("Given a database with 4 users", func() {
-			So(db.Delete(&model.User{Username: "admin"}), ShouldBeNil)
-
 			u1 := &model.User{
 				Username: "user1",
 				Password: []byte("user1"),
@@ -133,6 +131,7 @@ func TestListUsers(t *testing.T) {
 			So(db.Create(u2), ShouldBeNil)
 			So(db.Create(u3), ShouldBeNil)
 			So(db.Create(u4), ShouldBeNil)
+			So(db.Delete(&model.User{Username: "admin"}), ShouldBeNil)
 
 			user1 := *FromUser(u1)
 			user2 := *FromUser(u2)

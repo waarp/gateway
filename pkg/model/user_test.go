@@ -181,3 +181,61 @@ func TestUsersBeforeUpdate(t *testing.T) {
 		})
 	})
 }
+
+func testUsersBeforeDelete(t *testing.T) {
+	Convey("Given a database", t, func() {
+		db := database.GetTestDatabase()
+		owner := database.Owner
+		Convey("Given the database contains 1 user for this gateway", func() {
+			mine := &User{
+				Username: "existing",
+				Password: []byte("password_existing"),
+			}
+			So(db.Create(mine), ShouldBeNil)
+
+			// Change database ownership
+			database.Owner = "tata"
+			other := &User{
+				Username: "old",
+				Password: []byte("password_old"),
+			}
+			So(db.Create(other), ShouldBeNil)
+			// Revert database ownership
+			database.Owner = owner
+
+			Convey("When calling BeforeDelete", func() {
+				err := mine.BeforeDelete(db)
+
+				Convey("Then it should return an eror", func() {
+					So(err, ShouldNotBeNil)
+
+					Convey("Then the error should say ''", func() {
+						So(err.Error(), ShouldEqual, "cannot delete gateway last admin")
+					})
+				})
+			})
+		})
+
+		Convey("Given the database contains 1 user for this gateway", func() {
+			mine := &User{
+				Username: "existing",
+				Password: []byte("password_existing"),
+			}
+			So(db.Create(mine), ShouldBeNil)
+
+			other := &User{
+				Username: "old",
+				Password: []byte("password_old"),
+			}
+			So(db.Create(other), ShouldBeNil)
+
+			Convey("When calling BeforeDelete", func() {
+				err := mine.BeforeDelete(db)
+
+				Convey("Then it should return No eror", func() {
+					So(err, ShouldBeNil)
+				})
+			})
+		})
+	})
+}
