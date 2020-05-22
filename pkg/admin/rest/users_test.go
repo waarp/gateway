@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -16,7 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const usersURI = "http://localhost:8080" + APIPath + UsersPath + "/"
+const usersURI = "http://localhost:8080/api/users/"
 
 func TestGetUser(t *testing.T) {
 	logger := log.NewLogger("rest_user_get_test")
@@ -33,12 +32,10 @@ func TestGetUser(t *testing.T) {
 			}
 			So(db.Create(expected), ShouldBeNil)
 
-			id := strconv.FormatUint(expected.ID, 10)
-
-			Convey("Given a request with the valid user ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, usersURI+id, nil)
+			Convey("Given a request with the valid username parameter", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"user": id})
+				r = mux.SetURLVars(r, map[string]string{"user": expected.Username})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -65,10 +62,10 @@ func TestGetUser(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a non-existing user ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, usersURI+"1000", nil)
+			Convey("Given a request with a non-existing username parameter", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"user": "1000"})
+				r = mux.SetURLVars(r, map[string]string{"user": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -143,7 +140,7 @@ func TestListUsers(t *testing.T) {
 			user4 := *FromUser(u4)
 
 			Convey("Given a request with with no parameters", func() {
-				r, err := http.NewRequest(http.MethodGet, usersURI, nil)
+				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -155,7 +152,7 @@ func TestListUsers(t *testing.T) {
 			})
 
 			Convey("Given a request with a limit parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, usersURI+"?limit=1", nil)
+				r, err := http.NewRequest(http.MethodGet, "?limit=1", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -167,7 +164,7 @@ func TestListUsers(t *testing.T) {
 			})
 
 			Convey("Given a request with a offset parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, usersURI+"?offset=1", nil)
+				r, err := http.NewRequest(http.MethodGet, "?offset=1", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -179,13 +176,12 @@ func TestListUsers(t *testing.T) {
 			})
 
 			Convey("Given a request with a sort parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, usersURI+"?sort=username-", nil)
+				r, err := http.NewRequest(http.MethodGet, "?sort=username-", nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
-					expected["users"] = []OutUser{user4, user3,
-						user2, user1}
+					expected["users"] = []OutUser{user4, user3, user2, user1}
 
 					check(w, expected)
 				})
@@ -202,18 +198,18 @@ func TestCreateUser(t *testing.T) {
 		handler := createUser(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 agent", func() {
-			parent := &model.LocalAgent{
-				Name:        "parent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+		Convey("Given a database with 1 user", func() {
+			clearPwd := []byte("password")
+			existing := &model.User{
+				Username: "existing",
+				Password: clearPwd,
 			}
-			So(db.Create(parent), ShouldBeNil)
+			So(db.Create(existing), ShouldBeNil)
 
 			Convey("Given a new user to insert in the database", func() {
 				newUser := &InUser{
 					Username: "new_user",
-					Password: []byte("new_user"),
+					Password: []byte("new_password"),
 				}
 
 				Convey("Given that the new user is valid for insertion", func() {
@@ -235,7 +231,7 @@ func TestCreateUser(t *testing.T) {
 							"URI of the new user", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldStartWith, usersURI)
+							So(location, ShouldEqual, usersURI+newUser.Username)
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -254,6 +250,14 @@ func TestCreateUser(t *testing.T) {
 							err = bcrypt.CompareHashAndPassword(test.Password, clearPwd)
 							So(err, ShouldBeNil)
 						})
+
+						Convey("Then the existing user should still exist", func() {
+							existing.Password = nil
+							So(db.Get(existing), ShouldBeNil)
+
+							So(bcrypt.CompareHashAndPassword(existing.Password,
+								clearPwd), ShouldBeNil)
+						})
 					})
 				})
 			})
@@ -270,25 +274,16 @@ func TestDeleteUser(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 user", func() {
-			parent := &model.LocalAgent{
-				Name:        "parent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
-			}
-			So(db.Create(parent), ShouldBeNil)
-
 			existing := &model.User{
 				Username: "existing",
 				Password: []byte("existing"),
 			}
 			So(db.Create(existing), ShouldBeNil)
 
-			id := strconv.FormatUint(existing.ID, 10)
-
-			Convey("Given a request with the valid user ID parameter", func() {
-				r, err := http.NewRequest(http.MethodDelete, usersURI+id, nil)
+			Convey("Given a request with the valid username parameter", func() {
+				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"user": id})
+				r = mux.SetURLVars(r, map[string]string{"user": existing.Username})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -303,9 +298,6 @@ func TestDeleteUser(t *testing.T) {
 
 					Convey("Then the user should no longer be present "+
 						"in the database", func() {
-						err := existing.BeforeInsert(nil)
-						So(err, ShouldBeNil)
-
 						exist, err := db.Exists(existing)
 						So(err, ShouldBeNil)
 						So(exist, ShouldBeFalse)
@@ -313,11 +305,10 @@ func TestDeleteUser(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a non-existing user ID parameter", func() {
-				r, err := http.NewRequest(http.MethodDelete, usersURI+
-					"1000", nil)
+			Convey("Given a request with a non-existing username parameter", func() {
+				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"user": "1000"})
+				r = mux.SetURLVars(r, map[string]string{"user": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -328,7 +319,12 @@ func TestDeleteUser(t *testing.T) {
 
 					Convey("Then the response body should state that the user "+
 						"was not found", func() {
-						So(w.Body.String(), ShouldEqual, "Record not found\n")
+						So(w.Body.String(), ShouldEqual, "user 'toto' not found\n")
+					})
+
+					Convey("Then the user should still be present in the "+
+						"database", func() {
+						So(db.Get(existing), ShouldBeNil)
 					})
 				})
 			})
@@ -356,24 +352,21 @@ func TestUpdateUser(t *testing.T) {
 			So(db.Create(old), ShouldBeNil)
 			So(db.Create(other), ShouldBeNil)
 
-			id := strconv.FormatUint(old.ID, 10)
-
 			Convey("Given new values to update the user with", func() {
+				update := InUser{
+					Username: "update",
+					Password: []byte("update"),
+				}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
 
-				Convey("Given a new login", func() {
-					update := InUser{
-						Username: "update",
-						Password: []byte("update"),
-					}
-					body, err := json.Marshal(update)
+				Convey("Given an existing username parameter", func() {
+					r, err := http.NewRequest(http.MethodPatch, usersURI+old.Username,
+						bytes.NewReader(body))
 					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"user": old.Username})
 
 					Convey("When sending the request to the handler", func() {
-						r, err := http.NewRequest(http.MethodPatch, usersURI+id,
-							bytes.NewReader(body))
-						So(err, ShouldBeNil)
-						r = mux.SetURLVars(r, map[string]string{"user": id})
-
 						handler.ServeHTTP(w, r)
 
 						Convey("Then it should reply 'Created'", func() {
@@ -384,7 +377,7 @@ func TestUpdateUser(t *testing.T) {
 							"the URI of the updated user", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, usersURI+id)
+							So(location, ShouldEqual, usersURI+update.Username)
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -392,30 +385,22 @@ func TestUpdateUser(t *testing.T) {
 						})
 
 						Convey("Then the user should have been updated", func() {
-							result := &model.User{ID: old.ID}
-							err := db.Get(result)
+							result := &model.User{ID: old.ID, Username: update.Username}
+							So(db.Get(result), ShouldBeNil)
 
-							So(err, ShouldBeNil)
-							So(result.Username, ShouldEqual, update.Username)
-							So(bcrypt.CompareHashAndPassword(result.Password, update.Password), ShouldBeNil)
+							So(bcrypt.CompareHashAndPassword(result.Password,
+								update.Password), ShouldBeNil)
 						})
 					})
 				})
 
-				Convey("Given an invalid user ID", func() {
-					update := InUser{
-						Username: "update",
-						Password: []byte("update"),
-					}
-					body, err := json.Marshal(update)
+				Convey("Given an invalid username parameter", func() {
+					r, err := http.NewRequest(http.MethodPatch, usersURI+"toto",
+						bytes.NewReader(body))
 					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"user": "toto"})
 
 					Convey("When sending the request to the handler", func() {
-						r, err := http.NewRequest(http.MethodPatch, usersURI+id,
-							bytes.NewReader(body))
-						So(err, ShouldBeNil)
-						r = mux.SetURLVars(r, map[string]string{"user": "1000"})
-
 						handler.ServeHTTP(w, r)
 
 						Convey("Then it should reply 'NotFound'", func() {
@@ -424,7 +409,7 @@ func TestUpdateUser(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the user was not found", func() {
-							So(w.Body.String(), ShouldEqual, "Record not found\n")
+							So(w.Body.String(), ShouldEqual, "user 'toto' not found\n")
 						})
 
 						Convey("Then the old user should still exist", func() {

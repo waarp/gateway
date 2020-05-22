@@ -67,7 +67,7 @@ func (p Parser) WriteFile(filename string) error {
 	p.Write(&buf)
 	content := buf.Bytes()
 
-	return ioutil.WriteFile(filename, content, 0644)
+	return ioutil.WriteFile(filename, content, 0600)
 }
 
 // UpdateFile updates the configuration file filename by adding new instructions

@@ -78,10 +78,7 @@ func TestRuleValidateInsert(t *testing.T) {
 				}
 
 				Convey("When calling `ValidateUpdate`", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
-
-					err = r2.ValidateInsert(ses)
+					err := r2.ValidateInsert(db)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -97,10 +94,7 @@ func TestRuleValidateInsert(t *testing.T) {
 				}
 
 				Convey("When calling `ValidateUpdate`", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
-
-					err = r2.ValidateInsert(ses)
+					err := r2.ValidateInsert(db)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -116,19 +110,11 @@ func TestRuleValidateInsert(t *testing.T) {
 				}
 
 				Convey("When calling `ValidateUpdate`", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
-
-					err = r2.ValidateInsert(ses)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldNotBeNil)
-					})
+					err := r2.ValidateInsert(db)
 
 					Convey("Then the error should say that rule already exist", func() {
-						So(err.Error(), ShouldEqual, fmt.Sprintf(
-							"A rule named '%s' with send "+
-								"= %t already exist", r.Name, r.IsSend))
+						So(err, ShouldBeError, fmt.Sprintf("a rule named '%s' "+
+							"with send = %t already exist", r.Name, r.IsSend))
 					})
 				})
 			})
@@ -140,17 +126,10 @@ func TestRuleValidateInsert(t *testing.T) {
 				}
 
 				Convey("When calling `ValidateUpdate`", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
+					err := r2.ValidateInsert(db)
 
-					err = r2.ValidateInsert(ses)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldNotBeNil)
-
-						Convey("Then the error should say that path cannot be empty", func() {
-							So(err.Error(), ShouldEqual, "The rule's path cannot be empty")
-						})
+					Convey("Then the error should say that path cannot be empty", func() {
+						So(err, ShouldBeError, "the rule's path cannot be empty")
 					})
 				})
 			})
@@ -164,48 +143,36 @@ func TestRuleValidateUpdate(t *testing.T) {
 
 		Convey("Given two rule entry", func() {
 			r := &Rule{
-				Name:   "Test",
+				Name:   "rule1",
 				IsSend: true,
 			}
 			So(db.Create(r), ShouldBeNil)
 
 			r2 := &Rule{
-				Name:   "Toto",
+				Name:   "rule2",
 				IsSend: true,
 			}
 			So(db.Create(r2), ShouldBeNil)
 
 			Convey("When updating with invalid data", func() {
-				r.Name = r2.Name
-				r.IsSend = r2.IsSend
+				update := &Rule{Name: r2.Name}
 
 				Convey("When calling the `ValidateUpdate` function", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
+					err := update.ValidateUpdate(db, r.ID)
 
-					err = r.ValidateUpdate(ses, r.ID)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldNotBeNil)
-					})
-
-					Convey("Then the error should say aaaa", func() {
-						So(err.Error(), ShouldEqual,
-							fmt.Sprintf("A rule Send: %t named '%s' already exist", r.IsSend, r.Name))
+					Convey("Then the error should say that the name is already used", func() {
+						So(err, ShouldBeError, fmt.Sprintf("a rule named '%s' "+
+							"with send = %t already exist", update.Name, r.IsSend))
 					})
 
 				})
 			})
 
 			Convey("When updating with valid data", func() {
-				r.Name = r2.Name
-				r.IsSend = !r2.IsSend
+				update := &Rule{Name: "toto"}
 
 				Convey("When calling the `ValidateUpdate` function", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
-
-					err = r.ValidateUpdate(ses, r.ID)
+					err := update.ValidateUpdate(db, r.ID)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)

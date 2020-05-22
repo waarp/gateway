@@ -5,19 +5,7 @@ Consulter une entrée de l'historique
 
    Renvoie les informations du transfert portant l'identifiant ``history_id``.
 
-   **Requête**
-
    :reqheader Authorization: Les identifiants de l'utilisateur
-
-   **Exemple de requête**
-
-       .. code-block:: http
-
-          GET https://my_waarp_gateway.net/api/history/1 HTTP/1.1
-          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-
-
-   **Réponse**
 
    :statuscode 200: Les informations du transfert ont été renvoyées avec succès
    :statuscode 401: Authentification d'utilisateur invalide
@@ -41,25 +29,35 @@ Consulter une entrée de l'historique
    :resjson string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjson string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
+
+   |
+
+   **Exemple de requête**
+
+      .. code-block:: http
+
+         GET https://my_waarp_gateway.net/api/history/1 HTTP/1.1
+         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+
    **Exemple de réponse**
 
-       .. code-block:: http
+      .. code-block:: http
 
-          HTTP/1.1 200 OK
-          Content-Type: application/json
-          Content-Length: 176
+         HTTP/1.1 200 OK
+         Content-Type: application/json
+         Content-Length: 176
 
-          {
-            "id": 1,
-            "isServer": true,
-            "isSend": false,
-            "rule": "regle_sftp",
-            "account": "compte_sftp",
-            "remote": "serveur_sftp",
-            "protocol": "sftp",
-            "sourceFilename": "source/du/fichier",
-            "destFilename": "destination/du/fichier",
-            "start": "2019-01-01T01:00:00+02:00",
-            "stop": "2019-01-01T02:00:00+02:00",
-            "status": "DONE",
-          }
+         {
+           "id": 1,
+           "isServer": true,
+           "isSend": false,
+           "rule": "règle_sftp",
+           "account": "compte_sftp",
+           "remote": "serveur_sftp",
+           "protocol": "sftp",
+           "sourceFilename": "source/du/fichier",
+           "destFilename": "destination/du/fichier",
+           "start": "2019-01-01T01:00:00+02:00",
+           "stop": "2019-01-01T02:00:00+02:00",
+           "status": "DONE",
+         }

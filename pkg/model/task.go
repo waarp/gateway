@@ -34,11 +34,11 @@ const (
 
 // Task represents one record of the 'tasks' table.
 type Task struct {
-	RuleID uint64 `xorm:"notnull 'rule_id'"`
-	Chain  Chain  `xorm:"notnull 'chain'"`
-	Rank   uint32 `xorm:"notnull 'rank'"`
-	Type   string `xorm:"notnull 'type'"`
-	Args   []byte `xorm:"notnull 'args'"`
+	RuleID uint64          `xorm:"notnull 'rule_id'"`
+	Chain  Chain           `xorm:"notnull 'chain'"`
+	Rank   uint32          `xorm:"notnull 'rank'"`
+	Type   string          `xorm:"notnull 'type'"`
+	Args   json.RawMessage `xorm:"notnull 'args'"`
 }
 
 // TableName returns the name of the tasks table.
@@ -52,7 +52,7 @@ func (t *Task) ValidateInsert(acc database.Accessor) error {
 	if res, err := acc.Query("SELECT id FROM rules WHERE id=?", t.RuleID); err != nil {
 		return err
 	} else if len(res) < 1 {
-		return database.InvalidError("No rule found with ID %d", t.RuleID)
+		return database.InvalidError("no rule found with ID %d", t.RuleID)
 	}
 
 	if err := validateTasks(t); err != nil {
@@ -63,7 +63,7 @@ func (t *Task) ValidateInsert(acc database.Accessor) error {
 		t.RuleID, t.Chain, t.Rank); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("Rule %d already has a task in %s at %d", t.RuleID, t.Chain, t.Rank)
+		return database.InvalidError("rule %d already has a task in %s at %d", t.RuleID, t.Chain, t.Rank)
 	}
 
 	return nil
@@ -72,7 +72,7 @@ func (t *Task) ValidateInsert(acc database.Accessor) error {
 // ValidateUpdate is called before updating and existing `Task` entry from
 // the database. It rejects all update.
 func (t *Task) ValidateUpdate(database.Accessor) error {
-	return database.InvalidError("Operation not allowed")
+	return database.InvalidError("operation not allowed")
 }
 
 func validateChain(c Chain) bool {

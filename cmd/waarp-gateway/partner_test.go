@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -16,23 +13,25 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func remoteAgentInfoString(s *rest.OutRemoteAgent) string {
-	var config bytes.Buffer
-	_ = json.Indent(&config, s.ProtoConfig, "    ", "  ")
-	return "● " + s.Name + " (ID " + fmt.Sprint(s.ID) + ")\n" +
-		"  -Protocol     : " + s.Protocol + "\n" +
-		"  -Configuration: " + config.String() + "\n"
+func partnerInfoString(p *rest.OutPartner) string {
+	return "● Partner " + p.Name + "\n" +
+		"    Protocol:      " + p.Protocol + "\n" +
+		"    Configuration: " + string(p.ProtoConfig) + "\n" +
+		"    Authorized rules\n" +
+		"    ├─Sending:   " + strings.Join(p.AuthorizedRules.Sending, ", ") + "\n" +
+		"    └─Reception: " + strings.Join(p.AuthorizedRules.Reception, ", ") + "\n"
 }
 
 func TestGetPartner(t *testing.T) {
 
 	Convey("Testing the partner 'get' command", t, func() {
 		out = testFile()
-		command := &partnerGetCommand{}
+		command := &partnerGet{}
 
 		Convey("Given a gateway with 1 distant partner", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "remote_agent",
@@ -41,51 +40,49 @@ func TestGetPartner(t *testing.T) {
 			}
 			So(db.Create(partner), ShouldBeNil)
 
-			Convey("Given a valid partner ID", func() {
-				id := fmt.Sprint(partner.ID)
+			send := &model.Rule{Name: "send", IsSend: true, Path: "send_path"}
+			So(db.Create(send), ShouldBeNil)
+			receive := &model.Rule{Name: "receive", IsSend: false, Path: "rcv_path"}
+			So(db.Create(receive), ShouldBeNil)
+			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
+			So(db.Create(sendAll), ShouldBeNil)
+
+			sAccess := &model.RuleAccess{RuleID: send.ID,
+				ObjectType: partner.TableName(), ObjectID: partner.ID}
+			So(db.Create(sAccess), ShouldBeNil)
+			rAccess := &model.RuleAccess{RuleID: receive.ID,
+				ObjectType: partner.TableName(), ObjectID: partner.ID}
+			So(db.Create(rAccess), ShouldBeNil)
+
+			Convey("Given a valid partner name", func() {
+				args := []string{partner.Name}
 
 				Convey("When executing the command", func() {
-					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the partner's info", func() {
-						var config bytes.Buffer
-						err := json.Indent(&config, partner.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
-
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-
-						p := rest.FromRemoteAgent(partner)
-						So(string(cont), ShouldEqual, remoteAgentInfoString(p))
+						rules := &rest.AuthorizedRules{
+							Sending:   []string{send.Name, sendAll.Name},
+							Reception: []string{receive.Name},
+						}
+						p := rest.FromRemoteAgent(partner, rules)
+						So(getOutput(), ShouldEqual, partnerInfoString(p))
 					})
 				})
 			})
 
-			Convey("Given an invalid partner ID", func() {
-				id := "1000"
+			Convey("Given an invalid partner name", func() {
+				args := []string{"toto"}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+rest.RemoteAgentsPath+
-							"/1000' does not exist")
-
+						So(err, ShouldBeError, "partner 'toto' not found")
 					})
 				})
 			})
@@ -97,37 +94,25 @@ func TestAddPartner(t *testing.T) {
 
 	Convey("Testing the partner 'add' command", t, func() {
 		out = testFile()
-		command := &partnerAddCommand{}
+		command := &partnerAdd{}
 
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given valid flags", func() {
-				command.Name = "remote_agent"
-				command.Protocol = "sftp"
-				command.ProtoConfig = `{"address":"localhost","port":2022}`
+				args := []string{"-n", "server_name", "-p", "test",
+					"-c", `{"key":"val"}`}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the partner was added", func() {
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "The partner '"+command.Name+
-							"' was successfully added. It can be consulted at "+
-							"the address: "+gw.URL+admin.APIPath+
-							rest.RemoteAgentsPath+"/1\n")
+						So(getOutput(), ShouldEqual, "The partner "+command.Name+
+							" was successfully added.\n")
 					})
 
 					Convey("Then the new partner should have been added", func() {
@@ -144,42 +129,31 @@ func TestAddPartner(t *testing.T) {
 			})
 
 			Convey("Given an invalid protocol", func() {
-				command.Name = "partner"
-				command.Protocol = "not a protocol"
-				command.ProtoConfig = "{}"
+				args := []string{"-n", "server_name", "-p", "invalid",
+					"-c", `{"key":"val"}`}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "400 - Invalid request: "+
-							"Invalid agent configuration: unknown protocol")
+						So(err, ShouldBeError, "unknown protocol")
 					})
 				})
 			})
 
 			Convey("Given an invalid configuration", func() {
-				command.Name = "partner"
-				command.Protocol = "sftp"
-				command.ProtoConfig = "{"
+				args := []string{"-n", "server_name", "-p", "fail",
+					"-c", `{"key":"val"}`}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "json: error calling "+
-							"MarshalJSON for type json.RawMessage: unexpected "+
-							"end of JSON input")
+						So(err, ShouldBeError, "invalid partner configuration: test fail")
 					})
 				})
 			})
@@ -191,146 +165,101 @@ func TestListPartners(t *testing.T) {
 
 	Convey("Testing the partner 'list' command", t, func() {
 		out = testFile()
-		command := &partnerListCommand{}
-		_, err := flags.ParseArgs(command, nil)
-		So(err, ShouldBeNil)
+		command := &partnerList{}
 
 		Convey("Given a gateway with 2 distant partners", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner1 := &model.RemoteAgent{
 				Name:        "remote_agent1",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(partner1), ShouldBeNil)
 
 			partner2 := &model.RemoteAgent{
 				Name:        "remote_agent2",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
+				Protocol:    "test2",
+				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(partner2), ShouldBeNil)
 
-			p1 := rest.FromRemoteAgent(partner1)
-			p2 := rest.FromRemoteAgent(partner2)
+			p1 := rest.FromRemoteAgent(partner1, &rest.AuthorizedRules{})
+			p2 := rest.FromRemoteAgent(partner2, &rest.AuthorizedRules{})
 
 			Convey("Given no parameters", func() {
+				args := []string{}
 
 				Convey("When executing the command", func() {
-					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the partners' info", func() {
-						var config1 bytes.Buffer
-						err := json.Indent(&config1, partner1.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
-
-						var config2 bytes.Buffer
-						err = json.Indent(&config2, partner2.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
-
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Remote agents:\n"+
-							remoteAgentInfoString(p1)+remoteAgentInfoString(p2))
+						So(getOutput(), ShouldEqual, "Partners:\n"+
+							partnerInfoString(p1)+partnerInfoString(p2))
 					})
 				})
 			})
 
 			Convey("Given a 'limit' parameter of 1", func() {
-				command.Limit = 1
+				args := []string{"-l", "1"}
 
 				Convey("When executing the command", func() {
-					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should only display 1 partner's info", func() {
-						var config1 bytes.Buffer
-						err := json.Indent(&config1, partner1.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
-
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Remote agents:\n"+
-							remoteAgentInfoString(p1))
+						So(getOutput(), ShouldEqual, "Partners:\n"+
+							partnerInfoString(p1))
 					})
 				})
 			})
 
 			Convey("Given an 'offset' parameter of 1", func() {
-				command.Offset = 1
+				args := []string{"-o", "1"}
 
 				Convey("When executing the command", func() {
-					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should NOT display the 1st partner's info", func() {
-						var config2 bytes.Buffer
-						err := json.Indent(&config2, partner2.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
-
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Remote agents:\n"+
-							remoteAgentInfoString(p2))
+						So(getOutput(), ShouldEqual, "Partners:\n"+
+							partnerInfoString(p2))
 					})
 				})
 			})
 
-			Convey("Given that the 'desc' flag is set", func() {
-				command.DescOrder = true
+			Convey("Given a 'sort' parameter of 'name-'", func() {
+				args := []string{"-s", "name-"}
 
 				Convey("When executing the command", func() {
-					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the partners' info in reverse", func() {
-						var config1 bytes.Buffer
-						err := json.Indent(&config1, partner1.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
+						So(getOutput(), ShouldEqual, "Partners:\n"+
+							partnerInfoString(p2)+partnerInfoString(p1))
+					})
+				})
+			})
 
-						var config2 bytes.Buffer
-						err = json.Indent(&config2, partner2.ProtoConfig, "  ", "  ")
-						So(err, ShouldBeNil)
+			Convey("Given the 'protocol' parameter is set to 'test'", func() {
+				args := []string{"-p", "test"}
 
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "Remote agents:\n"+
-							remoteAgentInfoString(p2)+remoteAgentInfoString(p1))
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then it should display all partners using that protocol", func() {
+						So(getOutput(), ShouldEqual, "Partners:\n"+
+							partnerInfoString(p1))
 					})
 				})
 			})
@@ -342,41 +271,31 @@ func TestDeletePartner(t *testing.T) {
 
 	Convey("Testing the partner 'delete' command", t, func() {
 		out = testFile()
-		command := &partnerDeleteCommand{}
+		command := &partnerDelete{}
 
 		Convey("Given a gateway with 1 distant partner", func() {
-
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "remote_agent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(partner), ShouldBeNil)
 
-			Convey("Given a valid partner ID", func() {
-				id := fmt.Sprint(partner.ID)
+			Convey("Given a valid partner name", func() {
+				args := []string{partner.Name}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the partner was deleted", func() {
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "The partner n°"+id+
-							" was successfully deleted from the database\n")
+						So(getOutput(), ShouldEqual, "The partner "+partner.Name+
+							" was successfully deleted.\n")
 					})
 
 					Convey("Then the partner should have been removed", func() {
@@ -387,21 +306,16 @@ func TestDeletePartner(t *testing.T) {
 				})
 			})
 
-			Convey("Given an invalid ID", func() {
-				id := "1000"
+			Convey("Given an invalid partner name", func() {
+				args := []string{"toto"}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+rest.RemoteAgentsPath+
-							"/1000' does not exist")
+						So(err, ShouldBeError, "partner 'toto' not found")
 					})
 
 					Convey("Then the partner should still exist", func() {
@@ -419,129 +333,301 @@ func TestUpdatePartner(t *testing.T) {
 
 	Convey("Testing the partner 'delete' command", t, func() {
 		out = testFile()
-		command := &partnerUpdateCommand{}
+		command := &partnerUpdate{}
 
 		Convey("Given a gateway with 1 distant partner", func() {
-
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
-				Name:        "remote_agent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Name:        "partner",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(partner), ShouldBeNil)
 
-			command.Name = "new_remote_agent"
-			command.Protocol = "sftp"
-			command.ProtoConfig = `{"address":"localhost","port":2023}`
+			Convey("Given all valid flags", func() {
+				args := []string{"-n", "new_partner", "-p", "test2",
+					"-c", `{"updated_key":"updated_val"}`, partner.Name}
 
-			Convey("Given a valid partner ID", func() {
-				id := fmt.Sprint(partner.ID)
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
-				Convey("Given all valid flags", func() {
-
-					Convey("When executing the command", func() {
-						addr := gw.Listener.Addr().String()
-						dsn := "http://admin:admin_password@" + addr
-						auth.DSN = dsn
-
-						err := command.Execute([]string{id})
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-						})
-
-						Convey("Then is should display a message saying the "+
-							"partner was updated", func() {
-							_, err = out.Seek(0, 0)
-							So(err, ShouldBeNil)
-							cont, err := ioutil.ReadAll(out)
-							So(err, ShouldBeNil)
-							So(string(cont), ShouldEqual, "The partner n°"+id+
-								" was successfully updated\n")
-						})
-
-						Convey("Then the old partner should have been removed", func() {
-							exists, err := db.Exists(partner)
-							So(err, ShouldBeNil)
-							So(exists, ShouldBeFalse)
-						})
-
-						Convey("Then the new partner should exist", func() {
-							newPartner := &model.RemoteAgent{
-								ID:          partner.ID,
-								Name:        command.Name,
-								Protocol:    command.Protocol,
-								ProtoConfig: []byte(command.ProtoConfig),
-							}
-							exists, err := db.Exists(newPartner)
-							So(err, ShouldBeNil)
-							So(exists, ShouldBeTrue)
-						})
+					Convey("Then is should display a message saying the "+
+						"partner was updated", func() {
+						So(getOutput(), ShouldEqual, "The partner new_partner "+
+							"was successfully updated.\n")
 					})
-				})
 
-				Convey("Given an invalid protocol", func() {
-					command.Protocol = "not a protocol"
-
-					Convey("When executing the command", func() {
-						addr := gw.Listener.Addr().String()
-						dsn := "http://admin:admin_password@" + addr
-						auth.DSN = dsn
-
-						err := command.Execute([]string{id})
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "400 - Invalid request: "+
-								"Invalid agent configuration: unknown protocol")
-						})
+					Convey("Then the old partner should have been removed", func() {
+						exists, err := db.Exists(partner)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeFalse)
 					})
-				})
 
-				Convey("Given an invalid configuration", func() {
-					command.ProtoConfig = "{"
-
-					Convey("When executing the command", func() {
-						addr := gw.Listener.Addr().String()
-						dsn := "http://admin:admin_password@" + addr
-						auth.DSN = dsn
-
-						err := command.Execute([]string{id})
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-							So(err.Error(), ShouldEqual, "json: error calling "+
-								"MarshalJSON for type json.RawMessage: "+
-								"unexpected end of JSON input")
-						})
+					Convey("Then the new partner should exist", func() {
+						newPartner := &model.RemoteAgent{
+							ID:          partner.ID,
+							Name:        command.Name,
+							Protocol:    command.Protocol,
+							ProtoConfig: []byte(command.ProtoConfig),
+						}
+						exists, err := db.Exists(newPartner)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
 					})
 				})
 			})
 
-			Convey("Given an invalid ID", func() {
-				id := "1000"
+			Convey("Given an invalid protocol", func() {
+				args := []string{"-n", "new_partner", "-p", "invalid",
+					"-c", `{"updated_key":"updated_val"}`, partner.Name}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+rest.RemoteAgentsPath+
-							"/1000' does not exist")
+						So(err, ShouldBeError, "unknown protocol")
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
 						exists, err := db.Exists(partner)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeTrue)
+					})
+				})
+			})
+
+			Convey("Given an invalid configuration", func() {
+				args := []string{"-n", "new_partner", "-p", "fail",
+					"-c", `{"updated_key":"updated_val"}`, partner.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "invalid partner configuration: test fail")
+					})
+
+					Convey("Then the partner should stay unchanged", func() {
+						exists, err := db.Exists(partner)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
+					})
+				})
+			})
+
+			Convey("Given an non-existing name", func() {
+				args := []string{"-n", "new_partner", "-p", "test2",
+					"-c", `{"updated_key":"updated_val"}`, "toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "partner 'toto' not found")
+					})
+
+					Convey("Then the partner should stay unchanged", func() {
+						exists, err := db.Exists(partner)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeTrue)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestAuthorizePartner(t *testing.T) {
+
+	Convey("Testing the partner 'authorize' command", t, func() {
+		out = testFile()
+		command := &partnerAuthorize{}
+
+		Convey("Given a gateway with 1 distant partner and 1 rule", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			partner := &model.RemoteAgent{
+				Name:        "partner",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(partner), ShouldBeNil)
+
+			rule := &model.Rule{
+				Name:   "rule_name",
+				IsSend: true,
+				Path:   "/rule/path",
+			}
+			So(db.Create(rule), ShouldBeNil)
+
+			Convey("Given a valid partner & rule names", func() {
+				args := []string{partner.Name, rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the partner can use the rule", func() {
+						So(getOutput(), ShouldEqual, "Usage of the rule '"+rule.Name+
+							"' is now restricted.\nThe partner "+partner.Name+
+							" is now allowed to use the rule "+rule.Name+" for transfers.\n")
+					})
+
+					Convey("Then the permission should have been added", func() {
+						access := &model.RuleAccess{
+							RuleID:     rule.ID,
+							ObjectID:   partner.ID,
+							ObjectType: partner.TableName(),
+						}
+						So(db.Get(access), ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given an invalid rule name", func() {
+				args := []string{partner.Name, "toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "rule 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(&a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+
+			Convey("Given an invalid partner name", func() {
+				args := []string{"toto", rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "partner 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestRevokePartner(t *testing.T) {
+
+	Convey("Testing the partner 'revoke' command", t, func() {
+		out = testFile()
+		command := &partnerRevoke{}
+
+		Convey("Given a gateway with 1 distant partner and 1 rule", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			partner := &model.RemoteAgent{
+				Name:        "partner",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(partner), ShouldBeNil)
+
+			rule := &model.Rule{
+				Name:   "rule_name",
+				IsSend: true,
+				Path:   "/rule/path",
+			}
+			So(db.Create(rule), ShouldBeNil)
+
+			access := &model.RuleAccess{
+				RuleID:     rule.ID,
+				ObjectID:   partner.ID,
+				ObjectType: partner.TableName(),
+			}
+			So(db.Create(access), ShouldBeNil)
+
+			Convey("Given a valid partner & rule names", func() {
+				args := []string{partner.Name, rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the partner cannot use the rule", func() {
+						So(getOutput(), ShouldEqual, "The partner "+partner.Name+
+							" is no longer allowed to use the rule "+rule.Name+
+							" for transfers.\nUsage of the rule '"+rule.Name+
+							"' is now unrestricted.\n")
+					})
+
+					Convey("Then the permission should have been removed", func() {
+						a := []model.RuleAccess{}
+						So(db.Select(&a, nil), ShouldBeNil)
+						So(a, ShouldBeEmpty)
+					})
+				})
+			})
+
+			Convey("Given an invalid rule name", func() {
+				args := []string{partner.Name, "toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "rule 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been removed", func() {
+						So(db.Get(access), ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given an invalid partner name", func() {
+				args := []string{"toto", rule.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then is should return an error", func() {
+						So(err, ShouldBeError, "partner 'toto' not found")
+					})
+
+					Convey("Then the permission should NOT have been added", func() {
+						So(db.Get(access), ShouldBeNil)
 					})
 				})
 			})

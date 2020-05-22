@@ -7,6 +7,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
+	"github.com/gorilla/mux"
 )
 
 // InUser is the JSON representation of a user account in requests made to the
@@ -19,6 +20,7 @@ type InUser struct {
 // ToModel transforms the JSON user into its database equivalent.
 func (i *InUser) ToModel() *model.User {
 	return &model.User{
+		Owner:    database.Owner,
 		Username: i.Username,
 		Password: i.Password,
 	}
@@ -27,14 +29,12 @@ func (i *InUser) ToModel() *model.User {
 // OutUser is the JSON representation of a user account in responses sent by
 // the REST interface.
 type OutUser struct {
-	ID       uint64 `json:"id"`
 	Username string `json:"username"`
 }
 
 // FromUser transforms the given database user into its JSON equivalent.
 func FromUser(user *model.User) *OutUser {
 	return &OutUser{
-		ID:       user.ID,
 		Username: user.Username,
 	}
 }
@@ -44,23 +44,29 @@ func FromUsers(usr []model.User) []OutUser {
 	users := make([]OutUser, len(usr))
 	for i, user := range usr {
 		users[i] = OutUser{
-			ID:       user.ID,
 			Username: user.Username,
 		}
 	}
 	return users
 }
 
+func getUsr(r *http.Request, db *database.DB) (*model.User, error) {
+	username, ok := mux.Vars(r)["user"]
+	if !ok {
+		return nil, notFound("missing username")
+	}
+	user := &model.User{Username: username, Owner: database.Owner}
+	if err := db.Get(user); err != nil {
+		return nil, notFound("user '%s' not found", username)
+	}
+	return user, nil
+}
+
 func getUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "user")
+			result, err := getUsr(r, db)
 			if err != nil {
-				return &notFound{}
-			}
-			result := &model.User{ID: id, Owner: database.Owner}
-
-			if err := get(db, result); err != nil {
 				return err
 			}
 
@@ -114,7 +120,7 @@ func createUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, user.ID))
+			w.Header().Set("Location", location(r, user.Username))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -124,16 +130,11 @@ func createUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl
 func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "user")
+			check, err := getUsr(r, db)
 			if err != nil {
-				return &notFound{}
-			}
-
-			if err := exist(db, &model.User{ID: id, Owner: database.Owner}); err != nil {
 				return err
 			}
 
@@ -142,11 +143,11 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(user.ToModel(), id, false); err != nil {
+			if err := db.Update(user.ToModel(), check.ID, false); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r))
+			w.Header().Set("Location", locationUpdate(r, user.Username, check.Username))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -159,13 +160,8 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func deleteUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			id, err := parseID(r, "user")
+			user, err := getUsr(r, db)
 			if err != nil {
-				return &notFound{}
-			}
-
-			user := &model.User{ID: id, Owner: database.Owner}
-			if err := get(db, user); err != nil {
 				return err
 			}
 

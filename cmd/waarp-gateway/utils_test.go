@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -23,12 +24,26 @@ func init() {
 	discard.SetBackend(&logging.NoopBackend{})
 
 	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs["test2"] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs["fail"] = func() config.ProtoConfig { return new(TestProtoConfigFail) }
+}
+
+func writeFile(content string) *os.File {
+	file := testFile()
+	_, err := file.WriteString(content)
+	So(err, ShouldBeNil)
+	return file
 }
 
 type TestProtoConfig struct{}
 
-func (*TestProtoConfig) ValidServer() error { return nil }
-func (*TestProtoConfig) ValidClient() error { return nil }
+func (*TestProtoConfig) ValidServer() error  { return nil }
+func (*TestProtoConfig) ValidPartner() error { return nil }
+
+type TestProtoConfigFail struct{}
+
+func (*TestProtoConfigFail) ValidServer() error  { return fmt.Errorf("test fail") }
+func (*TestProtoConfigFail) ValidPartner() error { return fmt.Errorf("test fail") }
 
 func testFile() *os.File {
 	tmp, err := ioutil.TempFile("", "*")

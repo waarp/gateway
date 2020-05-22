@@ -1,9 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"sort"
@@ -18,14 +17,12 @@ type statusCommand struct{}
 
 // showStatus writes the status of the gateway services in the given
 // writer with colors, using ANSI coloration codes.
-func showStatus(statuses rest.Statuses) {
+func showStatus(statuses rest.Statuses, w io.Writer) {
 	var errors = make([]string, 0)
 	var actives = make([]string, 0)
 	var offlines = make([]string, 0)
 
-	w := getColorable()
-
-	fmt.Fprintln(w, "\033[97;1;4mWaarp-Gateway services:\033[0m")
+	fmt.Fprintln(w, bold("Waarp-Gateway services:"))
 	for name, status := range statuses {
 		switch status.State {
 		case service.Running.Name():
@@ -42,13 +39,14 @@ func showStatus(statuses rest.Statuses) {
 	sort.Strings(offlines)
 
 	for _, name := range errors {
-		fmt.Fprintf(w, "[\033[31;1mError\033[0m]   \033[1m%s\033[0m (%s)\n", name, statuses[name].Reason)
+		fmt.Fprintln(w, red("[Error]  "), bold(name), "("+
+			statuses[name].Reason+")")
 	}
 	for _, name := range actives {
-		fmt.Fprintf(w, "[\033[32;1mActive\033[0m]  \033[1m%s\033[0m\n", name)
+		fmt.Fprintln(w, green("[Active] "), bold(name))
 	}
 	for _, name := range offlines {
-		fmt.Fprintf(w, "[\033[37;1mOffline\033[0m] \033[1m%s\033[0m\n", name)
+		fmt.Fprintln(w, yellow("[Offline]"), bold(name))
 	}
 }
 
@@ -56,34 +54,28 @@ func showStatus(statuses rest.Statuses) {
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
 func (s *statusCommand) Execute([]string) error {
-	conn, err := url.Parse(auth.DSN)
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
 	conn.Path = admin.APIPath + rest.StatusPath
 
-	req, err := http.NewRequest(http.MethodGet, conn.String(), nil)
+	resp, err := sendRequest(conn, nil, http.MethodGet)
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
-	res, err := executeRequest(req, conn)
-	if err != nil {
-		return err
+	w := getColorable()
+	switch resp.StatusCode {
+	case http.StatusOK:
+		statuses := rest.Statuses{}
+		if err := unmarshalBody(resp.Body, &statuses); err != nil {
+			return err
+		}
+		showStatus(statuses, w)
+		return nil
+	default:
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
 	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-
-	var statuses = make(rest.Statuses)
-	if err = json.Unmarshal(body, &statuses); err != nil {
-		return err
-	}
-
-	showStatus(statuses)
-
-	return nil
 }

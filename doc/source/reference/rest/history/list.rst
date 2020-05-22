@@ -8,8 +8,6 @@ Filtrer l'historique
    Renvoie une liste des entrées de l'historique de transfert remplissant les
    critères donnés en paramètres de requête.
 
-   **Requête**
-
    :reqheader Authorization: Les identifiants de l'utilisateur
 
    :param limit: Le nombre maximum de résultats souhaités *(défaut: 20)*
@@ -42,16 +40,6 @@ Filtrer l'historique
       est spécifié dans la `RFC 3339`_.
    :type stop: date
 
-   **Exemple de requête**
-
-       .. code-block:: http
-
-          GET https://my_waarp_gateway.net/api/history?limit=10&order=desc&rule=regle_sftp&start=2019-01-01T00:00:00+02:00&stop=2019-01-01T04:00:00+02:00 HTTP/1.1
-          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-
-
-   **Réponse**
-
    :statuscode 200: La liste a été renvoyée avec succès
    :statuscode 400: Un ou plusieurs des paramètres de requêtes sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
@@ -75,37 +63,47 @@ Filtrer l'historique
    :resjsonarr string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjsonarr string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
+
+   |
+
+   **Exemple de requête**
+
+      .. code-block:: http
+
+         GET https://my_waarp_gateway.net/api/history?limit=10&order=desc&rule=regle_sftp&start=2019-01-01T00:00:00+02:00&stop=2019-01-01T04:00:00+02:00 HTTP/1.1
+         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+
    **Exemple de réponse**
 
-       .. code-block:: http
+      .. code-block:: http
 
-          HTTP/1.1 200 OK
-          Content-Type: application/json
-          Content-Length: 293
+         HTTP/1.1 200 OK
+         Content-Type: application/json
+         Content-Length: 293
 
-          {
-            "history": [{
-              "id": 1,
-              "rule": "regle_sftp",
-              "source": "compte_sftp_1",
-              "dest": "serveur_sftp_1",
-              "protocol": "sftp",
-              "filename": "nom/de/fichier/1",
-              "start": "2019-01-01T01:00:00+02:00",
-              "stop": "2019-01-01T02:00:00+02:00",
-              "status": "DONE"
-            },{
-              "id": 2,
-              "rule": "regle_sftp",
-              "source": "compte_sftp_2",
-              "dest": "serveur_sftp_1",
-              "protocol": "sftp",
-              "filename": "nom/de/fichier/2",
-              "start": "2019-01-01T02:00:00+02:00",
-              "stop": "2019-01-01T03:00:00+02:00",
-              "status": "ERROR",
-              "status": "RUNNING",
-              "step": "DATA",
-              "progress": 123456
-            }]
-          }
+         {
+           "history": [{
+             "id": 1,
+             "rule": "règle_sftp",
+             "source": "compte_sftp_1",
+             "dest": "serveur_sftp_1",
+             "protocol": "sftp",
+             "filename": "nom/de/fichier/1",
+             "start": "2019-01-01T01:00:00+02:00",
+             "stop": "2019-01-01T02:00:00+02:00",
+             "status": "DONE"
+           },{
+             "id": 2,
+             "rule": "règle_sftp",
+             "source": "compte_sftp_2",
+             "dest": "serveur_sftp_1",
+             "protocol": "sftp",
+             "filename": "nom/de/fichier/2",
+             "start": "2019-01-01T02:00:00+02:00",
+             "stop": "2019-01-01T03:00:00+02:00",
+             "status": "ERROR",
+             "status": "RUNNING",
+             "step": "DATA",
+             "progress": 123456
+           }]
+         }

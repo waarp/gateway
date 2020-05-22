@@ -143,12 +143,8 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 				Convey("When calling the `ValidateInsert` method", func() {
 					err := ra.ValidateInsert(db)
 
-					Convey("Then it should return an error", func() {
-						So(err, ShouldNotBeNil)
-					})
-
 					Convey("Then the error should say 'No rule found'", func() {
-						So(err.Error(), ShouldEqual, fmt.Sprintf("No rule found with ID %d", 0))
+						So(err, ShouldBeError, "no rule found with ID 0")
 					})
 				})
 			})
@@ -162,43 +158,37 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 				Convey("When calling the `ValidateInsert` method", func() {
 					err := ra.ValidateInsert(db)
 
-					Convey("Then it should return an error", func() {
-						So(err, ShouldNotBeNil)
-					})
-
 					Convey("Then the error should say 'No rule found'", func() {
-						So(err.Error(), ShouldEqual,
-							fmt.Sprintf("The rule_access's object type must be one of %s",
-								"[local_agents remote_agents local_accounts remote_accounts]"))
+						So(err, ShouldBeError, "the rule_access's object type "+
+							"must be one of [local_agents remote_agents "+
+							"local_accounts remote_accounts]")
 					})
 				})
 			})
 
-			for _, obj_type := range []string{"local_agents", "local_accounts", "remote_agents", "remote_accounts"} {
-				Convey(fmt.Sprintf("Given a RuleAccess with an invalid %s ID", obj_type), func() {
+			for _, objType := range []string{"local_agents", "local_accounts",
+				"remote_agents", "remote_accounts"} {
+
+				Convey(fmt.Sprintf("Given a RuleAccess with an invalid %s ID", objType), func() {
 					ra := &RuleAccess{
 						RuleID:     r.ID,
-						ObjectType: obj_type,
+						ObjectType: objType,
 						ObjectID:   0,
 					}
 
 					Convey("When calling the `ValidateInsert` method", func() {
 						err := ra.ValidateInsert(db)
 
-						Convey("Then it should return an error", func() {
-							So(err, ShouldNotBeNil)
-						})
-
 						Convey("Then the error should say 'No rule found'", func() {
-							So(err.Error(), ShouldEqual,
-								fmt.Sprintf("No %s found with ID '%d'", ra.ObjectType, ra.ObjectID))
+							So(err, ShouldBeError, fmt.Sprintf(
+								"no %s found with ID 0", ra.ObjectType))
 						})
 					})
 				})
 
-				Convey(fmt.Sprintf("Given a RuleAccess with an valid %s ID", obj_type), func() {
+				Convey(fmt.Sprintf("Given a RuleAccess with an valid %s ID", objType), func() {
 					id := uint64(0)
-					switch obj_type {
+					switch objType {
 					case "local_agents":
 						id = lAgent.ID
 					case "local_accounts":
@@ -211,7 +201,7 @@ func TestRuleAccessValidateInsert(t *testing.T) {
 
 					ra := &RuleAccess{
 						RuleID:     r.ID,
-						ObjectType: obj_type,
+						ObjectType: objType,
 						ObjectID:   id,
 					}
 
@@ -240,7 +230,7 @@ func TestRuleAccessValidateUpdate(t *testing.T) {
 			})
 
 			Convey("Then the error should say that operation is not allowed", func() {
-				So(err.Error(), ShouldEqual, "Operation not allowed")
+				So(err, ShouldBeError, "operation not allowed")
 			})
 		})
 	})

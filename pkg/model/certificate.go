@@ -45,24 +45,24 @@ func (c *Cert) TableName() string {
 // in the database.
 func (c *Cert) ValidateInsert(acc database.Accessor) error {
 	if c.ID != 0 {
-		return database.InvalidError("The certificate's ID cannot be entered manually")
+		return database.InvalidError("the certificate's ID cannot be entered manually")
 	}
 	if c.OwnerType == "" {
-		return database.InvalidError("The certificate's owner type is missing")
+		return database.InvalidError("the certificate's owner type is missing")
 	}
 	if c.OwnerID == 0 {
-		return database.InvalidError("The certificate's owner ID is missing")
+		return database.InvalidError("the certificate's owner ID is missing")
 	}
 	if c.Name == "" {
-		return database.InvalidError("The certificate's name cannot be empty")
+		return database.InvalidError("the certificate's name cannot be empty")
 	}
 	if (c.OwnerType == "remote_accounts" || c.OwnerType == "local_agents") &&
 		len(c.PrivateKey) == 0 {
-		return database.InvalidError("The certificate's private key is missing")
+		return database.InvalidError("the certificate's private key is missing")
 	}
 	if (c.OwnerType == "remote_agents" || c.OwnerType == "local_accounts") &&
 		len(c.PublicKey) == 0 {
-		return database.InvalidError("The certificate's public key is missing")
+		return database.InvalidError("the certificate's public key is missing")
 	}
 
 	var res []map[string]interface{}
@@ -77,20 +77,20 @@ func (c *Cert) ValidateInsert(acc database.Accessor) error {
 	case "remote_accounts":
 		res, err = acc.Query("SELECT id FROM remote_accounts WHERE id=?", c.OwnerID)
 	default:
-		return database.InvalidError("The certificate's owner type must be one of %s",
+		return database.InvalidError("the certificate's owner type must be one of %s",
 			validOwnerTypes)
 	}
 	if err != nil {
 		return err
 	} else if len(res) == 0 {
-		return database.InvalidError("No "+c.OwnerType+" found with ID '%v'", c.OwnerID)
+		return database.InvalidError("no "+c.OwnerType+" found with ID '%v'", c.OwnerID)
 	}
 
 	if res, err := acc.Query("SELECT id FROM certificates WHERE owner_type=? AND owner_id=? "+
 		"AND name=?", c.OwnerType, c.OwnerID, c.Name); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("A certificate with the same name '%s' "+
+		return database.InvalidError("a certificate with the same name '%s' "+
 			"already exist", c.Name)
 	}
 
@@ -128,13 +128,13 @@ func (c *Cert) ValidateUpdate(acc database.Accessor, id uint64) error {
 		case "remote_accounts":
 			res, err = acc.Query("SELECT id FROM remote_accounts WHERE id=?", old.OwnerID)
 		default:
-			return database.InvalidError("The certificate's owner type must be one of %s",
+			return database.InvalidError("the certificate's owner type must be one of %s",
 				validOwnerTypes)
 		}
 		if err != nil {
 			return err
 		} else if len(res) == 0 {
-			return database.InvalidError("No "+old.OwnerType+" found with ID '%v'", old.OwnerID)
+			return database.InvalidError("no "+old.OwnerType+" found with ID '%v'", old.OwnerID)
 		}
 	}
 
@@ -143,7 +143,7 @@ func (c *Cert) ValidateUpdate(acc database.Accessor, id uint64) error {
 			"AND name=?", old.OwnerType, old.OwnerID, old.Name); err != nil {
 			return err
 		} else if len(res) > 0 {
-			return database.InvalidError("A certificate with the same name '%s' "+
+			return database.InvalidError("a certificate with the same name '%s' "+
 				"already exist", c.Name)
 		}
 	}

@@ -1,3 +1,5 @@
+//+build old
+
 package rest
 
 import (
@@ -15,8 +17,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func fromAccess(a *model.RuleAccess) *OutRuleAccess {
-	return &OutRuleAccess{
+func fromAccess(a *model.RuleAccess) *RuleAccess {
+	return &RuleAccess{
 		ObjectID:   a.ObjectID,
 		ObjectType: a.ObjectType,
 	}
@@ -236,8 +238,8 @@ func TestListAccess(t *testing.T) {
 					Convey("Then the body should contain the requested accesses "+
 						"in JSON format", func() {
 
-						expected := map[string][]OutRuleAccess{}
-						expected["permissions"] = []OutRuleAccess{acc1, acc2}
+						expected := map[string][]RuleAccess{}
+						expected["permissions"] = []RuleAccess{acc1, acc2}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -352,7 +354,7 @@ func TestDeleteAccess(t *testing.T) {
 			})
 
 			Convey("Given that the access does not exist", func() {
-				other := &OutRuleAccess{
+				other := &RuleAccess{
 					ObjectID:   1000,
 					ObjectType: object.TableName(),
 				}

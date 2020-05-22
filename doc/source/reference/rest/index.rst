@@ -10,13 +10,12 @@ est spécifié dans la `RFC 3339`_.
 .. toctree::
    :maxdepth: 1
 
+   authentication
+   status
    users/index
    transfers/index
    history/index
    servers/index
    partners/index
-   local_accounts/index
-   remote_accounts/index
-   certificates/index
    rules/index
 

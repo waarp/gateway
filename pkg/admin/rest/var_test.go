@@ -8,6 +8,7 @@ import (
 
 func init() {
 	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs["test2"] = func() config.ProtoConfig { return new(TestProtoConfig) }
 
 	logConf := conf.LogConfig{
 		Level: "DEBUG",
@@ -18,5 +19,5 @@ func init() {
 
 type TestProtoConfig struct{}
 
-func (*TestProtoConfig) ValidServer() error { return nil }
-func (*TestProtoConfig) ValidClient() error { return nil }
+func (*TestProtoConfig) ValidServer() error  { return nil }
+func (*TestProtoConfig) ValidPartner() error { return nil }

@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -13,85 +14,83 @@ import (
 )
 
 type historyCommand struct {
-	Get     historyGetCommand     `command:"get" description:"Consult a finished transfer"`
-	List    historyListCommand    `command:"list" description:"List the finished transfers"`
-	Restart historyRestartCommand `command:"restart" description:"Restart a failed transfer"`
+	Get     historyGet   `command:"get" description:"Consult a finished transfer"`
+	List    historyList  `command:"list" description:"List the finished transfers"`
+	Restart historyRetry `command:"retry" description:"Retry a failed transfer"`
 }
 
-func displayHistory(w io.Writer, hist rest.OutHistory) {
-	fmt.Fprintf(w, "\033[97;1m● Transfer n°%v\033[0m (%s)\n", hist.ID, coloredStatus(hist.Status))
-	fmt.Fprintf(w, "  \033[97m-IsServer     :\033[0m \033[36m%t\033[0m\n", hist.IsServer)
-	fmt.Fprintf(w, "  \033[97m-Send         :\033[0m \033[36m%t\033[0m\n", hist.IsSend)
-	fmt.Fprintf(w, "  \033[97m-Protocol     :\033[0m \033[33m%s\033[0m\n", hist.Protocol)
-	fmt.Fprintf(w, "  \033[97m-Rule         :\033[0m \033[97m%v\033[0m\n", hist.Rule)
-	fmt.Fprintf(w, "  \033[97m-Account      :\033[0m \033[97m%v\033[0m\n", hist.Account)
-	fmt.Fprintf(w, "  \033[97m-Agent        :\033[0m \033[97m%v\033[0m\n", hist.Agent)
-	fmt.Fprintf(w, "  \033[97m-SrcFile      :\033[0m \033[97m%s\033[0m\n", hist.SourceFilename)
-	fmt.Fprintf(w, "  \033[97m-DestFile     :\033[0m \033[97m%s\033[0m\n", hist.DestFilename)
-	fmt.Fprintf(w, "  \033[97m-Start date   :\033[0m \033[97m%s\033[0m\n",
-		hist.Start.Format(time.RFC3339))
-	fmt.Fprintf(w, "  \033[97m-End date     :\033[0m \033[97m%s\033[0m\n",
-		hist.Stop.Format(time.RFC3339))
+func displayHistory(w io.Writer, hist *rest.OutHistory) {
+	role := "client"
+	if hist.IsServer {
+		role = "server"
+	}
+	way := "RECEIVE"
+	if hist.IsSend {
+		way = "SEND"
+	}
+
+	fmt.Fprintln(w, orange(bold("● Transfer", hist.ID, "(as", role+")")), coloredStatus(hist.Status))
+	fmt.Fprintln(w, orange("    Way:             "), way)
+	fmt.Fprintln(w, orange("    Protocol:        "), hist.Protocol)
+	fmt.Fprintln(w, orange("    Rule:            "), hist.Rule)
+	fmt.Fprintln(w, orange("    Requester:       "), hist.Requester)
+	fmt.Fprintln(w, orange("    Requested:       "), hist.Requested)
+	fmt.Fprintln(w, orange("    Source file:     "), hist.SourceFilename)
+	fmt.Fprintln(w, orange("    Destination file:"), hist.DestFilename)
+	fmt.Fprintln(w, orange("    Start date:      "), hist.Start.Format(time.RFC3339))
+	fmt.Fprintln(w, orange("    End date:        "), hist.Stop.Format(time.RFC3339))
 	if hist.ErrorCode != model.TeOk {
-		fmt.Fprintf(w, "  \033[97m-Error code   :\033[0m \033[31m%v\033[0m\n",
-			hist.ErrorCode)
+		fmt.Fprintln(w, orange("    Error code:      "), hist.ErrorCode)
 	}
 	if hist.ErrorMsg != "" {
-		fmt.Fprintf(w, "  \033[97m-Error message:\033[0m \033[97m%s\033[0m\n",
-			hist.ErrorMsg)
+		fmt.Fprintln(w, orange("    Error message:   "), hist.ErrorMsg)
 	}
 	if hist.Step != "" {
-		fmt.Fprintf(w, "  \033[97m-Failed step  :\033[0m \033[97;1m%s\033[0m\n", hist.Step)
+		fmt.Fprintln(w, orange("    Failed step:     "), hist.Step)
 	}
 	if hist.Progress != 0 {
-		fmt.Fprintf(w, "  \033[97m-Progress     :\033[0m \033[97m%v\033[0m\n", hist.Progress)
+		fmt.Fprintln(w, orange("    Progress:        "), hist.Progress)
 	}
 	if hist.TaskNumber != 0 {
-		fmt.Fprintf(w, "  \033[97m-Task number  :\033[0m \033[97m%v\033[0m\n", hist.TaskNumber)
+		fmt.Fprintln(w, orange("    Task number:     "), hist.TaskNumber)
 	}
 }
 
 // ######################## GET ##########################
 
-type historyGetCommand struct{}
+type historyGet struct {
+	Args struct {
+		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
+	} `positional-args:"yes"`
+}
 
-func (h *historyGetCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing transfer history ID")
-	}
+func (h *historyGet) Execute([]string) error {
+	path := admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID)
 
-	conn, err := url.Parse(auth.DSN)
-	if err != nil {
+	trans := &rest.OutHistory{}
+	if err := get(path, trans); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.HistoryPath + "/" + args[0]
-
-	res := rest.OutHistory{}
-	if err := getCommand(&res, conn); err != nil {
-		return err
-	}
-
-	displayHistory(getColorable(), res)
-
+	displayHistory(getColorable(), trans)
 	return nil
 }
 
 // ######################## LIST ##########################
 
-type historyListCommand struct {
+type historyList struct {
 	listOptions
-	SortBy   string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start" choice:"id" choice:"source" choice:"destination" choice:"rule" default:"start"`
-	Account  []string `long:"account" description:"Filter the transfers based on the transfer's account. Can be repeated multiple times to filter multiple sources."`
-	Agent    []string `long:"agent" description:"Filter the transfers based on the transfer's agent. Can be repeated multiple times to filter multiple destinations."`
-	Rules    []string `long:"rule" description:"Filter the transfers based on the transfer rule used. Can be repeated multiple times to filter multiple rules."`
-	Statuses []string `long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"DONE" choice:"ERROR"`
-	Protocol []string `long:"protocol" description:"Filter the transfers based on the protocol used. Can be repeated multiple times to filter multiple protocols." choice:"sftp"`
-	Start    string   `long:"start" description:"Filter the transfers which started after a given date. Date must be in RFC3339 format."`
-	Stop     string   `long:"stop" description:"Filter the transfers which ended before a given date. Date must be in RFC3339 format."`
+	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"start+" choice:"start-" choice:"id+" choice:"id-" choice:"start+" choice:"start-" choice:"rule+" choice:"rule-" choice:"requester+" choice:"requester-" choice:"requested+" choice:"requested-" default:"start+"`
+	Requester []string `short:"q" long:"requester" description:"Filter the transfers based on the transfer's requester. Can be repeated multiple times to filter multiple sources."`
+	Requested []string `short:"d" long:"requested" description:"Filter the transfers based on the transfer's requested. Can be repeated multiple times to filter multiple destinations."`
+	Rules     []string `short:"r" long:"rule" description:"Filter the transfers based on the transfer rule used. Can be repeated multiple times to filter multiple rules."`
+	Statuses  []string `short:"t" long:"status" description:"Filter the transfers based on the transfer's status. Can be repeated multiple times to filter multiple statuses." choice:"DONE" choice:"ERROR" choice:"CANCELLED"`
+	Protocol  []string `short:"p" long:"protocol" description:"Filter the transfers based on the protocol used. Can be repeated multiple times to filter multiple protocols."`
+	Start     string   `short:"b" long:"start" description:"Filter the transfers which started after a given date. Date must be in RFC3339 format."`
+	Stop      string   `short:"e" long:"stop" description:"Filter the transfers which ended before a given date. Date must be in RFC3339 format."`
 }
 
-func (h *historyListCommand) listURL() (*url.URL, error) {
-	conn, err := url.Parse(auth.DSN)
+func (h *historyList) listURL() (*url.URL, error) {
+	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -100,16 +99,13 @@ func (h *historyListCommand) listURL() (*url.URL, error) {
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(h.Limit))
 	query.Set("offset", fmt.Sprint(h.Offset))
-	if h.DescOrder {
-		query.Set("sort", h.SortBy+"-")
-	} else {
-		query.Set("sort", h.SortBy+"+")
+	query.Set("sort", h.SortBy)
+
+	for _, acc := range h.Requester {
+		query.Add("requester", acc)
 	}
-	for _, acc := range h.Account {
-		query.Add("account", acc)
-	}
-	for _, agent := range h.Agent {
-		query.Add("agent", agent)
+	for _, agent := range h.Requested {
+		query.Add("requested", agent)
 	}
 	for _, rul := range h.Rules {
 		query.Add("rule", rul)
@@ -141,47 +137,46 @@ func (h *historyListCommand) listURL() (*url.URL, error) {
 	return conn, nil
 }
 
-func (h *historyListCommand) Execute([]string) error {
-	conn, err := h.listURL()
+func (h *historyList) Execute([]string) error {
+	addr, err := h.listURL()
 	if err != nil {
 		return err
 	}
 
-	res := map[string][]rest.OutHistory{}
-	if err := getCommand(&res, conn); err != nil {
+	body := map[string][]rest.OutHistory{}
+	if err := list(addr, &body); err != nil {
 		return err
 	}
 
+	history := body["history"]
 	w := getColorable()
-	history := res["history"]
 	if len(history) > 0 {
-		fmt.Fprintf(w, "\033[33mHistory:\033[0m\n")
-		for _, hist := range history {
-			displayHistory(w, hist)
+		fmt.Fprintln(w, bold("History:"))
+		for _, h := range history {
+			history := h
+			displayHistory(w, &history)
 		}
 	} else {
-		fmt.Fprintln(w, "\033[31mNo transfers found\033[0m")
+		fmt.Fprintln(w, "No transfers found.")
 	}
-
 	return nil
 }
 
 // ######################## RESTART ##########################
 
-type historyRestartCommand struct {
+type historyRetry struct {
+	Args struct {
+		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
+	} `positional-args:"yes"`
 	Date string `short:"d" long:"date" description:"Set the date at which the transfer should restart. Date must be in RFC3339 format."`
 }
 
-func (h *historyRestartCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing transfer history ID")
-	}
-
-	conn, err := url.Parse(auth.DSN)
+func (h *historyRetry) Execute([]string) error {
+	addr, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.HistoryPath + "/" + args[0] + "/restart"
+	addr.Path = admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID) + "/retry"
 
 	query := url.Values{}
 	if h.Date != "" {
@@ -192,31 +187,29 @@ func (h *historyRestartCommand) Execute(args []string) error {
 		}
 		query.Set("date", start.Format(time.RFC3339))
 	}
-	conn.RawQuery = query.Encode()
+	addr.RawQuery = query.Encode()
 
-	req, err := http.NewRequest(http.MethodPut, conn.String(), nil)
+	resp, err := sendRequest(addr, nil, http.MethodPut)
 	if err != nil {
 		return err
 	}
-
-	res, err := executeRequest(req, conn)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode != http.StatusCreated {
-		return handleErrors(res, conn)
-	}
-
-	loc, err := res.Location()
-	if err != nil {
-		return err
-	}
-	loc.User = nil
+	defer resp.Body.Close()
 
 	w := getColorable()
-	fmt.Fprintf(w, "The transfer n°\033[33m%s\033[0m was successfully restarted. "+
-		"It can be consulted at the address: \033[37m%s\033[0m\n", args[0], loc.String())
-
-	return nil
+	switch resp.StatusCode {
+	case http.StatusCreated:
+		loc, err := resp.Location()
+		if err != nil {
+			return err
+		}
+		id := filepath.Base(loc.Path)
+		fmt.Fprintln(w, "The transfer will be retried under the ID:", bold(id))
+		return nil
+	case http.StatusBadRequest:
+		return getResponseMessage(resp)
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+	}
 }

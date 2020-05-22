@@ -26,7 +26,7 @@ func (r *RuleAccess) ValidateInsert(acc database.Accessor) error {
 	if res, err := acc.Query("SELECT id FROM rules WHERE id=?", r.RuleID); err != nil {
 		return err
 	} else if len(res) < 1 {
-		return database.InvalidError("No rule found with ID %d", r.RuleID)
+		return database.InvalidError("no rule found with ID %d", r.RuleID)
 	}
 
 	var res []map[string]interface{}
@@ -41,19 +41,19 @@ func (r *RuleAccess) ValidateInsert(acc database.Accessor) error {
 	case "remote_accounts":
 		res, err = acc.Query("SELECT id FROM remote_accounts WHERE id=?", r.ObjectID)
 	default:
-		return database.InvalidError("The rule_access's object type must be one of %s",
+		return database.InvalidError("the rule_access's object type must be one of %s",
 			validOwnerTypes)
 	}
 	if err != nil {
 		return err
 	} else if len(res) == 0 {
-		return database.InvalidError("No %s found with ID '%v'", r.ObjectType, r.ObjectID)
+		return database.InvalidError("no %s found with ID %v", r.ObjectType, r.ObjectID)
 	}
 
 	if ok, err := acc.Exists(r); err != nil {
 		return err
 	} else if ok {
-		return database.InvalidError("The agent has already been granted access " +
+		return database.InvalidError("the agent has already been granted access " +
 			"to this rule")
 	}
 
@@ -63,7 +63,7 @@ func (r *RuleAccess) ValidateInsert(acc database.Accessor) error {
 // ValidateUpdate is called before updating and existing `RuleAccess` entry from
 // the database. It rejects all update.
 func (*RuleAccess) ValidateUpdate(database.Accessor) error {
-	return database.InvalidError("Operation not allowed")
+	return database.InvalidError("operation not allowed")
 }
 
 // IsRuleAuthorized verify if the rule requested by the transfer is authorized for

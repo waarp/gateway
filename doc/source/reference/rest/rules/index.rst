@@ -4,11 +4,17 @@ Gestion des règles
 
 Le point d'accès pour gérer les règles de transfert est ``/api/rules``.
 
-L'utilisation d'une règle peut être restreinte via le point d'accès REST
-``/api/rules/<rule_id>/access``.
+Par défaut, les règles sont utilisables par tous les agents (serveurs, partenaires,
+comptes) connus. Pour restreindre l'utilisation d'une règle, il suffit d'ajouter
+au moins un agent à la liste blanche de la règle. Pour ajouter un agent à la liste
+blanche, se référer aux chapitres :
 
-Les traitements rattachés à une règle peuvent être consultés et modifiés à
-l'aide du point d'accès ``/api/rules/<rule_id>/tasks``.
+- :doc:`../servers/authorize`
+- :doc:`../servers/accounts/authorize`
+- :doc:`../partners/authorize`
+- :doc:`../partners/accounts/authorize`
+
+**Sommaire**
 
 .. toctree::
    :maxdepth: 2
@@ -16,6 +22,6 @@ l'aide du point d'accès ``/api/rules/<rule_id>/tasks``.
    create
    list
    consult
+   update
    delete
-   access/index
-   tasks/index
+   allow_all

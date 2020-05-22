@@ -54,31 +54,27 @@ func (u *User) BeforeInsert(database.Accessor) error {
 // BeforeUpdate is called before updating the user from the database. Its
 // role is to hash the password.
 func (u *User) BeforeUpdate(database.Accessor) error {
-	var err error
-	if u.Password != nil {
-		u.Password, err = hashPassword(u.Password)
-	}
-	return err
+	return u.BeforeInsert(nil)
 }
 
 // ValidateInsert checks if the new `User` entry is valid and can be
 // inserted in the database.
 func (u *User) ValidateInsert(acc database.Accessor) error {
 	if u.ID != 0 {
-		return database.InvalidError("The user's ID cannot be entered manually")
+		return database.InvalidError("the user's ID cannot be entered manually")
 	}
 	if u.Username == "" {
-		return database.InvalidError("The username cannot be empty")
+		return database.InvalidError("the username cannot be empty")
 	}
 	if len(u.Password) == 0 {
-		return database.InvalidError("The user password cannot be empty")
+		return database.InvalidError("the user password cannot be empty")
 	}
 
 	if res, err := acc.Query("SELECT id FROM users WHERE owner=? AND username=?",
 		database.Owner, u.Username); err != nil {
 		return err
 	} else if len(res) != 0 {
-		return database.InvalidError("A user named '%s' already exist", u.Username)
+		return database.InvalidError("a user named '%s' already exist", u.Username)
 	}
 	return nil
 }
@@ -87,10 +83,10 @@ func (u *User) ValidateInsert(acc database.Accessor) error {
 // updated in the database.
 func (u *User) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if u.ID != 0 {
-		return database.InvalidError("The user's ID cannot be entered manually")
+		return database.InvalidError("the user's ID cannot be entered manually")
 	}
-	if u.Owner != "" {
-		return database.InvalidError("The user's owner cannot be changed")
+	if u.Owner != database.Owner {
+		return database.InvalidError("the user's owner cannot be changed")
 	}
 
 	if u.Username != "" {
@@ -98,7 +94,7 @@ func (u *User) ValidateUpdate(acc database.Accessor, id uint64) error {
 			database.Owner, u.Username, id); err != nil {
 			return err
 		} else if len(res) != 0 {
-			return database.InvalidError("A user named '%s' already exist", u.Username)
+			return database.InvalidError("a user named '%s' already exist", u.Username)
 		}
 	}
 	return nil

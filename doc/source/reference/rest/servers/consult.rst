@@ -1,50 +1,55 @@
 Consulter un serveur
 ====================
 
-.. http:get:: /api/servers/(int:server_id)
+.. http:get:: /api/servers/(string:server_name)
 
-   Renvoie les informations du serveur portant l'identifiant ``server_id``.
-
-   **Requête**
+   Renvoie les informations du serveur portant le nom ``server_name``.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
-
-   **Exemple de requête**
-
-       .. code-block:: http
-
-          GET https://my_waarp_gateway.net/api/servers/1 HTTP/1.1
-          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-
-
-   **Réponse**
 
    :statuscode 200: Les informations du serveur ont été renvoyées avec succès
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: Le serveur demandé n'existe pas
 
-   :resjson number id: L'identifiant unique du serveur
    :resjson string name: Le nom du serveur
    :resjson string protocol: Le protocole utilisé par le serveur
    :resjson string root: Le dossier racine du serveur
-   :resjson object protoConfig: La configuration du partenaire encodé sous forme
-      d'un objet JSON.
+   :resjson object protoConfig: La configuration du serveur encodé sous forme
+      d'un objet JSON. Cet objet dépend du protocole.
+   :resjson object authorizedRules: Les règles que le serveur est autorisé à
+      utiliser pour les transferts.
+
+      * **sending** (*array* of *string*) - Les règles d'envoi.
+      * **reception** (*array* of *string*) - Les règles de réception.
+
+
+   |
+
+   **Exemple de requête**
+
+      .. code-block:: http
+
+         GET https://my_waarp_gateway.net/api/servers/sftp_server HTTP/1.1
+         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-       .. code-block:: http
+      .. code-block:: http
 
-          HTTP/1.1 200 OK
-          Content-Type: application/json
-          Content-Length: 118
+         HTTP/1.1 200 OK
+         Content-Type: application/json
+         Content-Length: 271
 
-          {
-            "id": 1,
-            "name": "sftp server",
-            "protocol": "sftp",
-            "root": "/sftp/root",
-            "protoConfig": {
-              "address": "localhost",
-              "port": 21
-            }
-          }
+         {
+           "name": "sftp_server",
+           "protocol": "sftp",
+           "root": "/sftp/root",
+           "protoConfig": {
+             "address": "localhost",
+             "port": 21
+           },
+           "authorizedRules": {
+             "sending": ["règle_envoi_1", "règle_envoi_2"],
+             "reception": ["règle_récep_1", "règle_récep_2"]
+           }
+         }

@@ -1,14 +1,18 @@
-Gestion des partenaires distants
-################################
+Gestion des partenaires locaux
+###########################
 
-Le point d'accès pour gérer les partenaires de transferts est ``/api/partners``.
+Le point d'accès pour gérer les différents partenaires locaux de la gateway est
+``/api/partners``.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    create
    list
    consult
    update
-   replace
    delete
+   authorize
+   revoke
+   certificates/index
+   accounts/index

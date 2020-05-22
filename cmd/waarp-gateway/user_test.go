@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
 	"net/http/httptest"
 	"testing"
 
@@ -16,18 +14,19 @@ import (
 )
 
 func userInfoString(u *rest.OutUser) string {
-	return "● User " + u.Username + " (ID " + fmt.Sprint(u.ID) + ")\n"
+	return "● User " + u.Username + "\n"
 }
 
 func TestGetUser(t *testing.T) {
 
 	Convey("Testing the user 'get' command", t, func() {
 		out = testFile()
-		command := &userGetCommand{}
+		command := &userGet{}
 
 		Convey("Given a gateway with 1 user", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			user := &model.User{
 				Username: "user",
@@ -35,64 +34,31 @@ func TestGetUser(t *testing.T) {
 			}
 			So(db.Create(user), ShouldBeNil)
 
-			u := rest.FromUser(user)
-
-			Convey("Given a valid user ID", func() {
-				id := fmt.Sprint(user.ID)
+			Convey("Given a valid username", func() {
+				args := []string{user.Username}
 
 				Convey("When executing the command", func() {
-					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the user's info", func() {
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-
-						So(string(cont), ShouldEqual, userInfoString(u))
+						u := rest.FromUser(user)
+						So(getOutput(), ShouldEqual, userInfoString(u))
 					})
 				})
 			})
 
-			Convey("Given an invalid user ID", func() {
-				id := "1000"
+			Convey("Given an invalid username", func() {
+				args := []string{"toto"}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+rest.UsersPath+
-							"/1000' does not exist")
-
-					})
-				})
-			})
-
-			Convey("Given no user ID", func() {
-
-				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
-
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "missing user ID")
+						So(err, ShouldBeError, "user 'toto' not found")
 					})
 				})
 			})
@@ -104,36 +70,24 @@ func TestAddUser(t *testing.T) {
 
 	Convey("Testing the user 'add' command", t, func() {
 		out = testFile()
-		command := &userAddCommand{}
+		command := &userAdd{}
 
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given valid flags", func() {
-				command.Username = "user"
-				command.Password = "password"
+				args := []string{"-u", "user", "-p", "password"}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the user was added", func() {
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldStartWith, "The user '"+command.Username+
-							"' was successfully added. It can be consulted at "+
-							"the address: "+gw.URL+admin.APIPath+
-							rest.UsersPath+"/")
+						So(getOutput(), ShouldEqual, "The user "+command.Username+
+							" was successfully added.\n")
 					})
 
 					Convey("Then the new partner should have been added", func() {
@@ -141,9 +95,8 @@ func TestAddUser(t *testing.T) {
 							Username: command.Username,
 						}
 						So(db.Get(user), ShouldBeNil)
-
-						err = bcrypt.CompareHashAndPassword(user.Password, []byte(command.Password))
-						So(err, ShouldBeNil)
+						So(bcrypt.CompareHashAndPassword(user.Password,
+							[]byte(command.Password)), ShouldBeNil)
 					})
 				})
 			})
@@ -155,11 +108,12 @@ func TestDeleteUser(t *testing.T) {
 
 	Convey("Testing the user 'delete' command", t, func() {
 		out = testFile()
-		command := &userDeleteCommand{}
+		command := &userDelete{}
 
 		Convey("Given a gateway with 1 user", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			user := &model.User{
 				Username: "user",
@@ -167,58 +121,41 @@ func TestDeleteUser(t *testing.T) {
 			}
 			So(db.Create(user), ShouldBeNil)
 
-			Convey("Given a valid user ID", func() {
-				id := fmt.Sprint(user.ID)
+			Convey("Given a valid username", func() {
+				args := []string{user.Username}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the user was deleted", func() {
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-						So(string(cont), ShouldEqual, "The user n°"+id+
-							" was successfully deleted from the database\n")
+						So(getOutput(), ShouldEqual, "The user "+user.Username+
+							" was successfully deleted.\n")
 					})
 
 					Convey("Then the user should have been removed", func() {
-						exists, err := db.Exists(&model.User{ID: user.ID})
+						exists, err := db.Exists(user)
 						So(err, ShouldBeNil)
 						So(exists, ShouldBeFalse)
 					})
 				})
 			})
 
-			Convey("Given an invalid ID", func() {
-				id := "1000"
+			Convey("Given an invalid username", func() {
+				args := []string{"toto"}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+rest.UsersPath+
-							"/1000' does not exist")
+						So(err, ShouldBeError, "user 'toto' not found")
 					})
 
 					Convey("Then the partner should still exist", func() {
-						exists, err := db.Exists(&model.User{ID: user.ID})
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(user), ShouldBeNil)
 					})
 				})
 			})
@@ -230,11 +167,12 @@ func TestUpdateUser(t *testing.T) {
 
 	Convey("Testing the user 'delete' command", t, func() {
 		out = testFile()
-		command := &userUpdateCommand{}
+		command := &userUpdate{}
 
 		Convey("Given a gateway with 1 user", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			user := &model.User{
 				Username: "user",
@@ -242,74 +180,51 @@ func TestUpdateUser(t *testing.T) {
 			}
 			So(db.Create(user), ShouldBeNil)
 
-			Convey("Given a valid user ID", func() {
-				id := fmt.Sprint(user.ID)
+			Convey("Given all valid flags", func() {
+				args := []string{"-u", "new_user", "-p", "new_password", user.Username}
 
-				Convey("Given all valid flags", func() {
-					command.Username = "new_user"
-					command.Password = "new_password"
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
-					Convey("When executing the command", func() {
-						addr := gw.Listener.Addr().String()
-						dsn := "http://admin:admin_password@" + addr
-						auth.DSN = dsn
+					Convey("Then is should display a message saying the user was updated", func() {
+						So(getOutput(), ShouldEqual, "The user new_user "+
+							"was successfully updated.\n")
+					})
 
-						err := command.Execute([]string{id})
+					Convey("Then the old user should have been removed", func() {
+						exists, err := db.Exists(user)
+						So(err, ShouldBeNil)
+						So(exists, ShouldBeFalse)
+					})
 
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-						})
-
-						Convey("Then is should display a message saying the user was updated", func() {
-							_, err = out.Seek(0, 0)
-							So(err, ShouldBeNil)
-							cont, err := ioutil.ReadAll(out)
-							So(err, ShouldBeNil)
-							So(string(cont), ShouldEqual, "The user n°"+id+
-								" was successfully updated\n")
-						})
-
-						Convey("Then the old user should have been removed", func() {
-							exists, err := db.Exists(user)
-							So(err, ShouldBeNil)
-							So(exists, ShouldBeFalse)
-						})
-
-						Convey("Then the new user should exist", func() {
-							newAccount := &model.User{
-								ID:       user.ID,
-								Username: command.Username,
-							}
-							So(db.Get(newAccount), ShouldBeNil)
-
-							err = bcrypt.CompareHashAndPassword(newAccount.Password, []byte(command.Password))
-							So(err, ShouldBeNil)
-						})
+					Convey("Then the new user should exist", func() {
+						update := &model.User{
+							ID:       user.ID,
+							Username: command.Username,
+						}
+						So(db.Get(update), ShouldBeNil)
+						So(bcrypt.CompareHashAndPassword(update.Password,
+							[]byte(command.Password)), ShouldBeNil)
 					})
 				})
 			})
 
-			Convey("Given an invalid ID", func() {
-				id := "1000"
+			Convey("Given an invalid username", func() {
+				args := []string{"-u", "new_user", "-p", "new_password", "toto"}
 
 				Convey("When executing the command", func() {
-					addr := gw.Listener.Addr().String()
-					dsn := "http://admin:admin_password@" + addr
-					auth.DSN = dsn
-
-					err := command.Execute([]string{id})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err.Error(), ShouldEqual, "404 - The resource 'http://"+
-							addr+admin.APIPath+rest.UsersPath+
-							"/1000' does not exist")
+						So(err, ShouldBeError, "user 'toto' not found")
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
-						exists, err := db.Exists(user)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(user), ShouldBeNil)
 					})
 				})
 			})
@@ -321,19 +236,19 @@ func TestListUser(t *testing.T) {
 
 	Convey("Testing the user 'list' command", t, func() {
 		out = testFile()
-		command := &userListCommand{}
-		_, err := flags.ParseArgs(command, []string{"waarp_gateway"})
-		So(err, ShouldBeNil)
+		command := &userList{}
 
 		Convey("Given a gateway with 2 users", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			So(db.Delete(&model.User{Username: "admin"}), ShouldBeNil)
 
 			user1 := &model.User{
 				Username: "user1",
 				Password: []byte("password"),
 			}
 			So(db.Create(user1), ShouldBeNil)
+			commandLine.Args.Address = "http://user1:password@" + gw.Listener.Addr().String()
 
 			user2 := &model.User{
 				Username: "user2",
@@ -345,26 +260,61 @@ func TestListUser(t *testing.T) {
 			u2 := rest.FromUser(user2)
 
 			Convey("Given no parameters", func() {
+				args := []string{}
 
 				Convey("When executing the command", func() {
-					dsn := "http://admin:admin_password@" + gw.Listener.Addr().String()
-					auth.DSN = dsn
-
-					err := command.Execute(nil)
-
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the users' info", func() {
-						_, err = out.Seek(0, 0)
-						So(err, ShouldBeNil)
-						cont, err := ioutil.ReadAll(out)
-						So(err, ShouldBeNil)
-
-						a := &rest.OutUser{ID: 1, Username: "admin"}
-						So(string(cont), ShouldEqual, "Users:\n"+userInfoString(a)+
+						So(getOutput(), ShouldEqual, "Users:\n"+
 							userInfoString(u1)+userInfoString(u2))
+					})
+				})
+			})
+
+			Convey("Given a 'limit' parameter of 1", func() {
+				args := []string{"-l", "1"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then it should only display 1 user's info", func() {
+						So(getOutput(), ShouldEqual, "Users:\n"+
+							userInfoString(u1))
+					})
+				})
+			})
+
+			Convey("Given an 'offset' parameter of 1", func() {
+				args := []string{"-o", "1"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then it should NOT display the 1st user's info", func() {
+						So(getOutput(), ShouldEqual, "Users:\n"+
+							userInfoString(u2))
+					})
+				})
+			})
+
+			Convey("Given a 'sort' parameter of 'username-'", func() {
+				args := []string{"-s", "username-"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then it should the users' info in reverse", func() {
+						So(getOutput(), ShouldEqual, "Users:\n"+
+							userInfoString(u2)+userInfoString(u1))
 					})
 				})
 			})

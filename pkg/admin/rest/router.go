@@ -19,17 +19,14 @@ const (
 	// UsersPath is the access path to the status entry point.
 	UsersPath = "/users"
 
-	// LocalAgentsPath is the access path to the local servers entry point.
-	LocalAgentsPath = "/servers"
+	// ServersPath is the access path to the local servers entry point.
+	ServersPath = "/servers"
 
-	// RemoteAgentsPath is the access path to the partners entry point.
-	RemoteAgentsPath = "/partners"
+	// PartnersPath is the access path to the partners entry point.
+	PartnersPath = "/partners"
 
-	// LocalAccountsPath is the access path to the local gateway accounts entry point.
-	LocalAccountsPath = "/local_accounts"
-
-	// RemoteAccountsPath is the access path to the distant partners accounts entry point.
-	RemoteAccountsPath = "/remote_accounts"
+	// AccountsPath is the access path to the accounts entry point.
+	AccountsPath = "/accounts"
 
 	// CertificatesPath is the access path to the account certificates entry point.
 	CertificatesPath = "/certificates"
@@ -46,9 +43,6 @@ const (
 	// RulePermissionPath is the access path to the transfer rule permissions
 	// entry point.
 	RulePermissionPath = "/access"
-
-	// RuleTasksPath is the access path to the transfer rule tasks entry point.
-	RuleTasksPath = "/tasks"
 )
 
 func makeUsersHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
@@ -58,7 +52,7 @@ func makeUsersHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Route
 	usersHandler.HandleFunc("", createUser(logger, db)).
 		Methods(http.MethodPost)
 
-	userHandler := usersHandler.PathPrefix("/{user:[0-9]+}").Subrouter()
+	userHandler := usersHandler.PathPrefix("/{user:[^\\/]+}").Subrouter()
 	userHandler.HandleFunc("", getUser(logger, db)).
 		Methods(http.MethodGet)
 	userHandler.HandleFunc("", deleteUser(logger, db)).
@@ -67,83 +61,151 @@ func makeUsersHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Route
 		Methods(http.MethodPatch, http.MethodPut)
 }
 
+//nolint:dupl
 func makeLocalAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
-	localAgentsHandler := apiHandler.PathPrefix(LocalAgentsPath).Subrouter()
+	localAgentsHandler := apiHandler.PathPrefix(ServersPath).Subrouter()
 	localAgentsHandler.HandleFunc("", listLocalAgents(logger, db)).
 		Methods(http.MethodGet)
 	localAgentsHandler.HandleFunc("", createLocalAgent(logger, db)).
 		Methods(http.MethodPost)
 
-	locAgHandler := localAgentsHandler.PathPrefix("/{local_agent:[0-9]+}").Subrouter()
+	locAgHandler := localAgentsHandler.PathPrefix("/{local_agent:[^\\/]+}").Subrouter()
 	locAgHandler.HandleFunc("", getLocalAgent(logger, db)).
 		Methods(http.MethodGet)
 	locAgHandler.HandleFunc("", deleteLocalAgent(logger, db)).
 		Methods(http.MethodDelete)
 	locAgHandler.HandleFunc("", updateLocalAgent(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
+
+	locAgHandler.HandleFunc("/authorize/{rule:[^\\/]+}", authorizeLocalAgent(logger, db)).
+		Methods(http.MethodPut)
+	locAgHandler.HandleFunc("/revoke/{rule:[^\\/]+}", revokeLocalAgent(logger, db)).
+		Methods(http.MethodPut)
+
+	certificatesHandler := locAgHandler.PathPrefix(CertificatesPath).Subrouter()
+	certificatesHandler.HandleFunc("", listLocAgentCerts(logger, db)).
+		Methods(http.MethodGet)
+	certificatesHandler.HandleFunc("", createLocAgentCert(logger, db)).
+		Methods(http.MethodPost)
+
+	certHandler := certificatesHandler.PathPrefix("/{certificate:[^\\/]+}").Subrouter()
+	certHandler.HandleFunc("", getLocAgentCert(logger, db)).
+		Methods(http.MethodGet)
+	certHandler.HandleFunc("", deleteLocAgentCert(logger, db)).
+		Methods(http.MethodDelete)
+	certHandler.HandleFunc("", updateLocAgentCert(logger, db)).
+		Methods(http.MethodPatch, http.MethodPut)
+
+	makeLocalAccountsHandler(logger, db, locAgHandler)
 }
 
+//nolint:dupl
 func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
-	remoteAgentsHandler := apiHandler.PathPrefix(RemoteAgentsPath).Subrouter()
+	remoteAgentsHandler := apiHandler.PathPrefix(PartnersPath).Subrouter()
 	remoteAgentsHandler.HandleFunc("", listRemoteAgents(logger, db)).
 		Methods(http.MethodGet)
 	remoteAgentsHandler.HandleFunc("", createRemoteAgent(logger, db)).
 		Methods(http.MethodPost)
 
-	remAgHandler := remoteAgentsHandler.PathPrefix("/{remote_agent:[0-9]+}").Subrouter()
+	remAgHandler := remoteAgentsHandler.PathPrefix("/{remote_agent:[^\\/]+}").Subrouter()
 	remAgHandler.HandleFunc("", getRemoteAgent(logger, db)).
 		Methods(http.MethodGet)
 	remAgHandler.HandleFunc("", deleteRemoteAgent(logger, db)).
 		Methods(http.MethodDelete)
 	remAgHandler.HandleFunc("", updateRemoteAgent(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
+
+	remAgHandler.HandleFunc("/authorize/{rule:[^\\/]+}", authorizeRemoteAgent(logger, db)).
+		Methods(http.MethodPut)
+	remAgHandler.HandleFunc("/revoke/{rule:[^\\/]+}", revokeRemoteAgent(logger, db)).
+		Methods(http.MethodPut)
+
+	certificatesHandler := remAgHandler.PathPrefix(CertificatesPath).Subrouter()
+	certificatesHandler.HandleFunc("", listRemAgentCerts(logger, db)).
+		Methods(http.MethodGet)
+	certificatesHandler.HandleFunc("", createRemAgentCert(logger, db)).
+		Methods(http.MethodPost)
+
+	certHandler := certificatesHandler.PathPrefix("/{certificate:[^\\/]+}").Subrouter()
+	certHandler.HandleFunc("", getRemAgentCert(logger, db)).
+		Methods(http.MethodGet)
+	certHandler.HandleFunc("", deleteRemAgentCert(logger, db)).
+		Methods(http.MethodDelete)
+	certHandler.HandleFunc("", updateRemAgentCert(logger, db)).
+		Methods(http.MethodPatch, http.MethodPut)
+
+	makeRemoteAccountsHandler(logger, db, remAgHandler)
 }
 
-func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
-	localAccountsHandler := apiHandler.PathPrefix(LocalAccountsPath).Subrouter()
+//nolint:dupl
+func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, agentHandler *mux.Router) {
+	localAccountsHandler := agentHandler.PathPrefix(AccountsPath).Subrouter()
 	localAccountsHandler.HandleFunc("", listLocalAccounts(logger, db)).
 		Methods(http.MethodGet)
 	localAccountsHandler.HandleFunc("", createLocalAccount(logger, db)).
 		Methods(http.MethodPost)
 
-	locAcHandler := localAccountsHandler.PathPrefix("/{local_account:[0-9]+}").Subrouter()
+	locAcHandler := localAccountsHandler.PathPrefix("/{local_account:[^\\/]+}").Subrouter()
 	locAcHandler.HandleFunc("", getLocalAccount(logger, db)).
 		Methods(http.MethodGet)
 	locAcHandler.HandleFunc("", deleteLocalAccount(logger, db)).
 		Methods(http.MethodDelete)
 	locAcHandler.HandleFunc("", updateLocalAccount(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
+
+	locAcHandler.HandleFunc("/authorize/{rule:[^\\/]+}", authorizeLocalAccount(logger, db)).
+		Methods(http.MethodPut)
+	locAcHandler.HandleFunc("/revoke/{rule:[^\\/]+}", revokeLocalAccount(logger, db)).
+		Methods(http.MethodPut)
+
+	certificatesHandler := locAcHandler.PathPrefix(CertificatesPath).Subrouter()
+	certificatesHandler.HandleFunc("", listLocAccountCerts(logger, db)).
+		Methods(http.MethodGet)
+	certificatesHandler.HandleFunc("", createLocAccountCert(logger, db)).
+		Methods(http.MethodPost)
+
+	certHandler := certificatesHandler.PathPrefix("/{certificate:[^\\/]+}").Subrouter()
+	certHandler.HandleFunc("", getLocAccountCert(logger, db)).
+		Methods(http.MethodGet)
+	certHandler.HandleFunc("", deleteLocAccountCert(logger, db)).
+		Methods(http.MethodDelete)
+	certHandler.HandleFunc("", updateLocAccountCert(logger, db)).
+		Methods(http.MethodPatch, http.MethodPut)
 }
 
-func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
-	remoteAccountsHandler := apiHandler.PathPrefix(RemoteAccountsPath).Subrouter()
+//nolint:dupl
+func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, agentHandler *mux.Router) {
+	remoteAccountsHandler := agentHandler.PathPrefix(AccountsPath).Subrouter()
 	remoteAccountsHandler.HandleFunc("", listRemoteAccounts(logger, db)).
 		Methods(http.MethodGet)
 	remoteAccountsHandler.HandleFunc("", createRemoteAccount(logger, db)).
 		Methods(http.MethodPost)
 
-	remAcHandler := remoteAccountsHandler.PathPrefix("/{remote_account:[0-9]+}").Subrouter()
+	remAcHandler := remoteAccountsHandler.PathPrefix("/{remote_account:[^\\/]+}").Subrouter()
 	remAcHandler.HandleFunc("", getRemoteAccount(logger, db)).
 		Methods(http.MethodGet)
 	remAcHandler.HandleFunc("", deleteRemoteAccount(logger, db)).
 		Methods(http.MethodDelete)
 	remAcHandler.HandleFunc("", updateRemoteAccount(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
-}
 
-func makeCertificatesHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
-	certificatesHandler := apiHandler.PathPrefix(CertificatesPath).Subrouter()
-	certificatesHandler.HandleFunc("", listCertificates(logger, db)).
+	remAcHandler.HandleFunc("/authorize/{rule:[^\\/]+}", authorizeRemoteAccount(logger, db)).
+		Methods(http.MethodPut)
+	remAcHandler.HandleFunc("/revoke/{rule:[^\\/]+}", revokeRemoteAccount(logger, db)).
+		Methods(http.MethodPut)
+
+	certificatesHandler := remAcHandler.PathPrefix(CertificatesPath).Subrouter()
+	certificatesHandler.HandleFunc("", listRemAccountCerts(logger, db)).
 		Methods(http.MethodGet)
-	certificatesHandler.HandleFunc("", createCertificate(logger, db)).
+	certificatesHandler.HandleFunc("", createRemAccountCert(logger, db)).
 		Methods(http.MethodPost)
 
-	certHandler := certificatesHandler.PathPrefix("/{certificate:[0-9]+}").Subrouter()
-	certHandler.HandleFunc("", getCertificate(logger, db)).
+	certHandler := certificatesHandler.PathPrefix("/{certificate:[^\\/]+}").Subrouter()
+	certHandler.HandleFunc("", getRemAccountCert(logger, db)).
 		Methods(http.MethodGet)
-	certHandler.HandleFunc("", deleteCertificate(logger, db)).
+	certHandler.HandleFunc("", deleteRemAccountCert(logger, db)).
 		Methods(http.MethodDelete)
-	certHandler.HandleFunc("", updateCertificate(logger, db)).
+	certHandler.HandleFunc("", updateRemAccountCert(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 }
 
@@ -171,7 +233,7 @@ func makeHistoryHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Rou
 	histHandler := historyHandler.PathPrefix("/{history:[0-9]+}").Subrouter()
 	histHandler.HandleFunc("", getHistory(logger, db)).
 		Methods(http.MethodGet)
-	histHandler.HandleFunc("/restart", restartTransfer(logger, db)).
+	histHandler.HandleFunc("/retry", retryTransfer(logger, db)).
 		Methods(http.MethodPut)
 }
 
@@ -180,19 +242,11 @@ func makeRulesHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Route
 	rulesHandler.HandleFunc("", listRules(logger, db)).Methods(http.MethodGet)
 	rulesHandler.HandleFunc("", createRule(logger, db)).Methods(http.MethodPost)
 
-	ruleHandler := rulesHandler.PathPrefix("/{rule:[0-9]+}").Subrouter()
+	ruleHandler := rulesHandler.PathPrefix("/{rule:[^\\/]+}").Subrouter()
 	ruleHandler.HandleFunc("", getRule(logger, db)).Methods(http.MethodGet)
 	ruleHandler.HandleFunc("", updateRule(logger, db)).Methods(http.MethodPatch, http.MethodPut)
 	ruleHandler.HandleFunc("", deleteRule(logger, db)).Methods(http.MethodDelete)
-
-	permHandler := ruleHandler.PathPrefix(RulePermissionPath).Subrouter()
-	permHandler.HandleFunc("", createAccess(logger, db)).Methods(http.MethodPost)
-	permHandler.HandleFunc("", listAccess(logger, db)).Methods(http.MethodGet)
-	permHandler.HandleFunc("", deleteAccess(logger, db)).Methods(http.MethodDelete)
-
-	taskHandler := ruleHandler.PathPrefix(RuleTasksPath).Subrouter()
-	taskHandler.HandleFunc("", listTasks(logger, db)).Methods(http.MethodGet)
-	taskHandler.HandleFunc("", updateTasks(logger, db)).Methods(http.MethodPut)
+	ruleHandler.HandleFunc("/allow_all", allowAllRule(logger, db)).Methods(http.MethodPut)
 }
 
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
@@ -207,9 +261,6 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, adminHandler *mux.Rout
 	makeUsersHandler(logger, db, apiHandler)
 	makeLocalAgentsHandler(logger, db, apiHandler)
 	makeRemoteAgentsHandler(logger, db, apiHandler)
-	makeLocalAccountsHandler(logger, db, apiHandler)
-	makeRemoteAccountsHandler(logger, db, apiHandler)
-	makeCertificatesHandler(logger, db, apiHandler)
 	makeTransfersHandler(logger, db, apiHandler)
 	makeHistoryHandler(logger, db, apiHandler)
 	makeRulesHandler(logger, db, apiHandler)

@@ -6,7 +6,15 @@ Client en ligne de commande
 à une instance waarp-gatewayd.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    connection
-   commands/index
+   status
+   user/index
+   server/index
+   account_local/index
+   partner/index
+   account_remote/index
+   rule/index
+   transfer/index
+   history/index

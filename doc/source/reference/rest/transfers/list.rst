@@ -8,8 +8,6 @@ Lister les transferts
    Renvoie une liste des transferts remplissant les critères donnés en
    paramètre de requête.
 
-   **Requête**
-
    :reqheader Authorization: Les identifiants de l'utilisateur
 
    :param limit: Le nombre maximum de résultats souhaités *(défaut: 20)*
@@ -34,16 +32,6 @@ Lister les transferts
       celle renseignée.
    :type start: date
 
-   **Exemple de requête**
-
-       .. code-block:: http
-
-          GET https://my_waarp_gateway.net/api/transfers?limit=10&order=desc&rule=1&start=2019-01-01T01:00:00+02:00 HTTP/1.1
-          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-
-
-   **Réponse**
-
    :statuscode 200: La liste a été renvoyée avec succès
    :statuscode 400: Un ou plusieurs des paramètres de requêtes sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
@@ -51,9 +39,9 @@ Lister les transferts
    :resjson array transfers: La liste des transferts demandés
    :resjsonarr number id: L'identifiant unique du transfert
    :resjsonarr bool isServer: Précise si la gateway était à l'origine du transfert
-   :resjsonarr number ruleID: L'identifiant de la règle de transfert
-   :resjsonarr number agentID: L'identifiant du serveur de transfert
-   :resjsonarr number accountID: L'identifiant du compte de transfert
+   :resjsonarr string rule: L'identifiant de la règle de transfert
+   :resjsonarr string requester: Le nom du compte ayant demandé le transfert
+   :resjsonarr string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
    :resjsonarr string sourcePath: Le chemin d'origine du fichier
    :resjsonarr string destPath: Le chemin de destination du fichier
    :resjsonarr date start: La date de début du transfert
@@ -64,36 +52,46 @@ Lister les transferts
    :resjsonarr string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjsonarr string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
+
+   |
+
+   **Exemple de requête**
+
+      .. code-block:: http
+
+         GET https://my_waarp_gateway.net/api/transfers?limit=10&order=desc&rule=1&start=2019-01-01T01:00:00+02:00 HTTP/1.1
+         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+
    **Exemple de réponse**
 
-       .. code-block:: http
+      .. code-block:: http
 
-          HTTP/1.1 200 OK
-          Content-Type: application/json
-          Content-Length: 249
+         HTTP/1.1 200 OK
+         Content-Type: application/json
+         Content-Length: 249
 
-          {
-            "transfers": [{
-              "id": 1,
-              "isServer": false,
-              "ruleID": 1,
-              "remoteID": 1,
-              "accountID": 1,
-              "source": "chemin/source/fichier1",
-              "destination": "chemin/dest/fichier1",
-              "start": "2019-01-01T02:00:00+02:00",
-              "status": "RUNNING",
-              "step": "DATA",
-              "progress": 123456,
-            },{
-              "id": 2,
-              "isServer": true,
-              "ruleID": 1,
-              "remoteID": 2,
-              "accountID": 2,
-              "source": "chemin/source/fichier2",
-              "destination": "chemin/dest/fichier2",
-              "start": "2019-01-01T03:00:00+02:00",
-              "status": "PLANNED"
-            }]
-          }
+         {
+           "transfers": [{
+             "id": 1,
+             "isServer": false,
+             "rule": "règle_1",
+             "requester": "toto",
+             "requested": "waarp_sftp",
+             "source": "chemin/source/fichier1",
+             "destination": "chemin/dest/fichier1",
+             "start": "2019-01-01T02:00:00+02:00",
+             "status": "RUNNING",
+             "step": "DATA",
+             "progress": 123456,
+           },{
+             "id": 2,
+             "isServer": true,
+             "rule": "règle_2",
+             "requester": "tata",
+             "requested": "sftp_serveur",
+             "source": "chemin/source/fichier2",
+             "destination": "chemin/dest/fichier2",
+             "start": "2019-01-01T03:00:00+02:00",
+             "status": "PLANNED"
+           }]
+         }

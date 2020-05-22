@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -15,7 +14,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const ruleURI = "http://remotehost:8080" + APIPath + RulesPath + "/"
+const ruleURI = "http://remotehost:8080/api/rules/"
 
 func TestCreateRule(t *testing.T) {
 	logger := log.NewLogger("rest_rule_create_logger")
@@ -36,10 +35,12 @@ func TestCreateRule(t *testing.T) {
 
 			Convey("Given a new rule to insert in the database", func() {
 				newRule := &InRule{
-					Name:    "new rule",
-					Comment: "",
-					IsSend:  false,
-					Path:    "/test/rule/path",
+					UptRule: &UptRule{
+						Name:    "new rule",
+						Comment: "",
+						Path:    "/test/rule/path",
+					},
+					IsSend: false,
 				}
 
 				Convey("Given that the new account is valid for insertion", func() {
@@ -60,7 +61,7 @@ func TestCreateRule(t *testing.T) {
 							"of the new rule", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldStartWith, ruleURI)
+							So(location, ShouldEqual, ruleURI+newRule.Name)
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -106,12 +107,10 @@ func TestGetRule(t *testing.T) {
 			}
 			So(db.Create(rule), ShouldBeNil)
 
-			id := strconv.FormatUint(rule.ID, 10)
-
-			Convey("Given a request with the valid rule ID parameter", func() {
+			Convey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": id})
+				r = mux.SetURLVars(r, map[string]string{"rule": rule.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -128,19 +127,20 @@ func TestGetRule(t *testing.T) {
 
 					Convey("Then the body should contain the requested rule "+
 						"in JSON format", func() {
-
-						exp, err := json.Marshal(FromRule(rule))
-
+						r, err := FromRule(db, rule)
 						So(err, ShouldBeNil)
+						exp, err := json.Marshal(r)
+						So(err, ShouldBeNil)
+
 						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
 					})
 				})
 			})
 
-			Convey("Given a request with a non-existing rule ID parameter", func() {
+			Convey("Given a request with a non-existing rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": "1000"})
+				r = mux.SetURLVars(r, map[string]string{"rule": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -177,8 +177,10 @@ func TestListRules(t *testing.T) {
 			}
 			So(db.Create(r2), ShouldBeNil)
 
-			rule1 := *FromRule(r1)
-			rule2 := *FromRule(r2)
+			rule1, err := FromRule(db, r1)
+			So(err, ShouldBeNil)
+			rule2, err := FromRule(db, r2)
+			So(err, ShouldBeNil)
 
 			Convey("Given a valid request", func() {
 				req, err := http.NewRequest(http.MethodGet, "", nil)
@@ -197,7 +199,7 @@ func TestListRules(t *testing.T) {
 					})
 
 					Convey("Then it should return the 2 rules", func() {
-						expected["rules"] = []OutRule{rule1, rule2}
+						expected["rules"] = []OutRule{*rule1, *rule2}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -223,12 +225,10 @@ func TestDeleteRule(t *testing.T) {
 			}
 			So(db.Create(rule), ShouldBeNil)
 
-			id := strconv.FormatUint(rule.ID, 10)
-
-			Convey("Given a request with the valid rule ID parameter", func() {
+			Convey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": id})
+				r = mux.SetURLVars(r, map[string]string{"rule": rule.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -251,16 +251,104 @@ func TestDeleteRule(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a non-existing rule ID parameter", func() {
+			Convey("Given a request with a non-existing rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": "1000"})
+				r = mux.SetURLVars(r, map[string]string{"rule": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
 					Convey("Then it should reply with a 'Not Found' error", func() {
 						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestUpdateRule(t *testing.T) {
+	logger := log.NewLogger("rest_rule_update_logger")
+
+	Convey("Given the rule updating handler", t, func() {
+		db := database.GetTestDatabase()
+		handler := updateRule(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 2 rules", func() {
+			old := &model.Rule{
+				Name: "old",
+			}
+			other := &model.Rule{
+				Name: "other",
+			}
+			So(db.Create(old), ShouldBeNil)
+			So(db.Create(other), ShouldBeNil)
+
+			Convey("Given new values to update the rule with", func() {
+				update := UptRule{
+					Name: "update",
+					Path: "new_path",
+				}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
+
+				Convey("Given an existing rule name parameter", func() {
+					r, err := http.NewRequest(http.MethodPatch, ruleURI+old.Name,
+						bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"rule": old.Name})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply 'Created'", func() {
+							So(w.Code, ShouldEqual, http.StatusCreated)
+						})
+
+						Convey("Then the 'Location' header should contain "+
+							"the URI of the updated rule", func() {
+
+							location := w.Header().Get("Location")
+							So(location, ShouldEqual, ruleURI+update.Name)
+						})
+
+						Convey("Then the response body should be empty", func() {
+							So(w.Body.String(), ShouldBeEmpty)
+						})
+
+						Convey("Then the rule should have been updated", func() {
+							result := &model.Rule{Name: update.Name, Path: update.Path}
+							So(db.Get(result), ShouldBeNil)
+						})
+					})
+				})
+
+				Convey("Given a non-existing rule name parameter", func() {
+					r, err := http.NewRequest(http.MethodPatch, ruleURI+"toto",
+						bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"rule": "toto"})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply 'NotFound'", func() {
+							So(w.Code, ShouldEqual, http.StatusNotFound)
+						})
+
+						Convey("Then the response body should state that "+
+							"the rule was not found", func() {
+							So(w.Body.String(), ShouldEqual, "rule 'toto' not found\n")
+						})
+
+						Convey("Then the old rule should still exist", func() {
+							exist, err := db.Exists(old)
+
+							So(err, ShouldBeNil)
+							So(exist, ShouldBeTrue)
+						})
 					})
 				})
 			})

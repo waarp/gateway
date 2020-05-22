@@ -231,6 +231,11 @@ func (db *DB) State() *service.State {
 	return &db.state
 }
 
+// NewQuery returns new query builder.
+func (db *DB) NewQuery() *builder.Builder {
+	return builder.Dialect(string(db.engine.Dialect().DBType()))
+}
+
 // Get retrieves one record from the database and fills the bean with it. Non-empty
 // fields are used as conditions.
 func (db *DB) Get(bean interface{}) error {

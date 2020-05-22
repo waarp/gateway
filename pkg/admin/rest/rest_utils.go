@@ -5,26 +5,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"github.com/gorilla/mux"
 )
 
-type badRequest struct {
-	msg string
+type errBadRequest string
+
+func (e errBadRequest) Error() string { return string(e) }
+
+func badRequest(format string, args ...interface{}) errBadRequest {
+	return errBadRequest(fmt.Sprintf(format, args...))
 }
 
-func (e *badRequest) Error() string {
-	return e.msg
-}
+type errNotFound string
 
-type notFound struct{}
+func (e errNotFound) Error() string { return string(e) }
 
-func (e *notFound) Error() string {
-	return "Record not found"
+func notFound(format string, args ...interface{}) errNotFound {
+	return errNotFound(fmt.Sprintf(format, args...))
 }
 
 func parseListFilters(r *http.Request, validOrders map[string]string) (*database.Filters, error) {
@@ -37,14 +39,14 @@ func parseListFilters(r *http.Request, validOrders map[string]string) (*database
 	if limStr := r.FormValue("limit"); limStr != "" {
 		lim, err := strconv.Atoi(limStr)
 		if err != nil {
-			return nil, &badRequest{msg: "'limit' must be an int"}
+			return nil, badRequest("'limit' must be an int")
 		}
 		filters.Limit = lim
 	}
 	if offStr := r.FormValue("offset"); offStr != "" {
 		off, err := strconv.Atoi(offStr)
 		if err != nil {
-			return nil, &badRequest{msg: "'offset' must be an int"}
+			return nil, badRequest("'offset' must be an int")
 		}
 		filters.Offset = off
 	}
@@ -52,7 +54,7 @@ func parseListFilters(r *http.Request, validOrders map[string]string) (*database
 	if sortStr := r.FormValue("sort"); sortStr != "" {
 		sort, ok := validOrders[sortStr]
 		if !ok {
-			return nil, &badRequest{msg: fmt.Sprintf("'%s' is not a valid sort parameter", sortStr)}
+			return nil, badRequest(fmt.Sprintf("'%s' is not a valid sort parameter", sortStr))
 		}
 		filters.Order = sort
 	}
@@ -61,9 +63,9 @@ func parseListFilters(r *http.Request, validOrders map[string]string) (*database
 
 func handleErrors(w http.ResponseWriter, logger *log.Logger, err error) {
 	switch err.(type) {
-	case *notFound:
+	case errNotFound:
 		http.Error(w, err.Error(), http.StatusNotFound)
-	case *badRequest:
+	case errBadRequest:
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	case *database.ErrInvalid:
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -71,17 +73,6 @@ func handleErrors(w http.ResponseWriter, logger *log.Logger, err error) {
 		logger.Warning(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-}
-
-func parseID(r *http.Request, param string) (uint64, error) {
-	id, err := strconv.ParseUint(mux.Vars(r)[param], 10, 64)
-	if err != nil {
-		return 0, &notFound{}
-	}
-	if id == 0 {
-		return 0, &notFound{}
-	}
-	return id, nil
 }
 
 func writeJSON(w http.ResponseWriter, bean interface{}) error {
@@ -94,38 +85,27 @@ func readJSON(r *http.Request, dest interface{}) error {
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(dest); err != nil {
-		return &badRequest{msg: err.Error()}
+		return badRequest(err.Error())
 	}
 	return nil
 }
 
-func exist(acc database.Accessor, bean interface{}) error {
-	if ok, err := acc.Exists(bean); err != nil {
-		return err
-	} else if !ok {
-		return &notFound{}
-	}
-	return nil
-}
-
-func get(acc database.Accessor, bean interface{}) error {
-	if err := acc.Get(bean); err != nil {
-		if err == database.ErrNotFound {
-			return &notFound{}
-		}
-		return err
-	}
-	return nil
-}
-
-func location(r *http.Request, id ...uint64) string {
+func location(r *http.Request, names ...string) string {
 	r.URL.RawQuery = ""
 	r.URL.Fragment = ""
-	if len(id) > 0 {
-		if strings.HasSuffix(r.URL.String(), "/") {
-			return fmt.Sprintf("%s%v", r.URL.String(), id[0])
+	for _, name := range names {
+		if name == "" {
+			continue
 		}
-		return fmt.Sprintf("%s/%v", r.URL.String(), id[0])
+		if strings.HasSuffix(r.URL.String(), "/") {
+			return fmt.Sprintf("%s%s", r.URL.String(), name)
+		}
+		return fmt.Sprintf("%s/%s", r.URL.String(), name)
 	}
 	return r.URL.String()
+}
+
+func locationUpdate(r *http.Request, names ...string) string {
+	r.URL.Path = filepath.Dir(r.URL.Path)
+	return location(r, names...)
 }

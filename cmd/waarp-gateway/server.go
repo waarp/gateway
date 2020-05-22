@@ -1,189 +1,198 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
-	"net/url"
+	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 )
 
 type serverCommand struct {
-	Get    serverGetCommand    `command:"get" description:"Retrieve a local agent's information"`
-	Add    serverAddCommand    `command:"add" description:"Add a new local agent"`
-	Delete serverDeleteCommand `command:"delete" description:"Delete a local agent"`
-	List   serverListCommand   `command:"list" description:"List the known local agents"`
-	Update serverUpdateCommand `command:"update" description:"Modify a local agent's information"`
+	Get       serverGet       `command:"get" description:"Retrieve a server's information"`
+	Add       serverAdd       `command:"add" description:"Add a new server"`
+	Delete    serverDelete    `command:"delete" description:"Delete a server"`
+	List      serverList      `command:"list" description:"List the known servers"`
+	Update    serverUpdate    `command:"update" description:"Modify a server's information"`
+	Authorize serverAuthorize `command:"authorize" description:"Give a server permission to use a rule"`
+	Revoke    serverRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
+	Cert      struct {
+		Args struct {
+			Server string `required:"yes" positional-arg-name:"server" description:"The server's name"`
+		} `positional-args:"yes"`
+		certificateCommand
+	} `command:"cert" description:"Manage a server's certificates"`
 }
 
-func displayLocalAgent(w io.Writer, agent rest.OutLocalAgent) {
-	var config bytes.Buffer
-	_ = json.Indent(&config, agent.ProtoConfig, "    ", "  ")
-	fmt.Fprintf(w, "\033[97;1m● %s\033[0m (ID %v)\n", agent.Name, agent.ID)
-	fmt.Fprintf(w, "  \033[97m-Protocol     :\033[0m \033[33m%s\033[0m\n", agent.Protocol)
-	fmt.Fprintf(w, "  \033[97m-Root         :\033[0m \033[33m%s\033[0m\n", agent.Root)
-	fmt.Fprintf(w, "  \033[97m-Configuration:\033[0m \033[37m%s\033[0m\n", config.String())
+func displayServer(w io.Writer, server *rest.OutServer) {
+	send := strings.Join(server.AuthorizedRules.Sending, ", ")
+	recv := strings.Join(server.AuthorizedRules.Reception, ", ")
+
+	fmt.Fprintln(w, orange(bold("● Server", server.Name)))
+	fmt.Fprintln(w, orange("    Protocol:     "), server.Protocol)
+	fmt.Fprintln(w, orange("    Root:         "), server.Root)
+	fmt.Fprintln(w, orange("    Configuration:"), string(server.ProtoConfig))
+	fmt.Fprintln(w, orange("    Authorized rules"))
+	fmt.Fprintln(w, bold("    ├─  Sending:"), send)
+	fmt.Fprintln(w, bold("    └─Reception:"), recv)
 }
 
 // ######################## GET ##########################
 
-type serverGetCommand struct{}
+type serverGet struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
+	} `positional-args:"yes"`
+}
 
-func (s *serverGetCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing server ID")
-	}
+func (s *serverGet) Execute([]string) error {
+	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Name
 
-	res := rest.OutLocalAgent{}
-	conn, err := url.Parse(auth.DSN)
-	if err != nil {
+	server := &rest.OutServer{}
+	if err := get(path, server); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + args[0]
-
-	if err := getCommand(&res, conn); err != nil {
-		return err
-	}
-
-	displayLocalAgent(getColorable(), res)
-
+	displayServer(getColorable(), server)
 	return nil
 }
 
 // ######################## ADD ##########################
 
-type serverAddCommand struct {
-	Name        string `required:"true" short:"n" long:"name" description:"The server's name"`
-	Protocol    string `required:"true" short:"p" long:"protocol" description:"The server's protocol" choice:"sftp"`
-	Root        string `required:"true" short:"r" long:"root" description:"The server's root directory"`
-	ProtoConfig string `long:"config" description:"The server's configuration in JSON"`
+type serverAdd struct {
+	Name        string `required:"yes" short:"n" long:"name" description:"The server's name"`
+	Protocol    string `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
+	Root        string `short:"r" long:"root" description:"The server's root directory"`
+	ProtoConfig string `short:"c" long:"config" description:"The server's configuration in JSON" default:"{}" default-mask:"-"`
 }
 
-func (s *serverAddCommand) Execute([]string) error {
-	if s.ProtoConfig == "" {
-		s.ProtoConfig = "{}"
-	}
-	newAgent := rest.InLocalAgent{
+func (s *serverAdd) Execute([]string) error {
+	server := &rest.InServer{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
 		Root:        s.Root,
 		ProtoConfig: []byte(s.ProtoConfig),
 	}
+	path := admin.APIPath + rest.ServersPath
 
-	conn, err := url.Parse(auth.DSN)
-	if err != nil {
+	if err := add(path, server); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath
-
-	loc, err := addCommand(newAgent, conn)
-	if err != nil {
-		return err
-	}
-
-	w := getColorable()
-	fmt.Fprintf(w, "The server \033[33m'%s'\033[0m was successfully added. "+
-		"It can be consulted at the address: \033[37m%s\033[0m\n", newAgent.Name, loc)
-
+	fmt.Fprintln(getColorable(), "The server", bold(server.Name), "was successfully added.")
 	return nil
 }
 
 // ######################## DELETE ##########################
 
-type serverDeleteCommand struct{}
+type serverDelete struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
+	} `positional-args:"yes"`
+}
 
-func (s *serverDeleteCommand) Execute(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing server ID")
-	}
+func (s *serverDelete) Execute([]string) error {
+	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Name
 
-	conn, err := url.Parse(auth.DSN)
-	if err != nil {
+	if err := remove(path); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + args[0]
-
-	if err := deleteCommand(conn); err != nil {
-		return err
-	}
-
-	w := getColorable()
-	fmt.Fprintf(w, "The server n°\033[33m%s\033[0m was successfully deleted from "+
-		"the database\n", args[0])
-
+	fmt.Fprintln(getColorable(), "The server", bold(s.Args.Name), "was successfully deleted.")
 	return nil
 }
 
 // ######################## LIST ##########################
 
-type serverListCommand struct {
+type serverList struct {
 	listOptions
-	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name" choice:"protocol" default:"name"`
+	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" choice:"protocol+" choice:"protocol-" default:"name+" `
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
-func (s *serverListCommand) Execute([]string) error {
-	conn, err := agentListURL(rest.LocalAgentsPath, &s.listOptions, s.SortBy, s.Protocols)
+func (s *serverList) Execute([]string) error {
+	addr, err := agentListURL(rest.ServersPath, &s.listOptions, s.SortBy, s.Protocols)
 	if err != nil {
 		return err
 	}
 
-	res := map[string][]rest.OutLocalAgent{}
-	if err := getCommand(&res, conn); err != nil {
+	body := map[string][]rest.OutServer{}
+	if err := list(addr, &body); err != nil {
 		return err
 	}
 
+	servers := body["servers"]
 	w := getColorable()
-	agents := res["localAgents"]
-	if len(agents) > 0 {
-		fmt.Fprintf(w, "\033[33;1mLocal agents:\033[0m\n")
-		for _, server := range agents {
-			displayLocalAgent(w, server)
+	if len(servers) > 0 {
+		fmt.Fprintln(w, bold("Servers:"))
+		for _, s := range servers {
+			server := s
+			displayServer(w, &server)
 		}
 	} else {
-		fmt.Fprintln(w, "\033[31mNo local agents found\033[0m")
+		fmt.Fprintln(w, "No servers found.")
 	}
-
 	return nil
 }
 
 // ######################## UPDATE ##########################
 
-type serverUpdateCommand struct {
+type serverUpdate struct {
+	Args struct {
+		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
+	} `positional-args:"yes"`
 	Name        string `short:"n" long:"name" description:"The server's name"`
-	Protocol    string `short:"p" long:"protocol" description:"The server's protocol" choice:"sftp"`
+	Protocol    string `short:"p" long:"protocol" description:"The server's protocol"`
 	Root        string `short:"r" long:"root" description:"The server's root directory"`
-	ProtoConfig string `long:"config" description:"The server's configuration in JSON"`
+	ProtoConfig string `short:"c" long:"config" description:"The server's configuration in JSON"`
 }
 
-func (s *serverUpdateCommand) Execute(args []string) error {
-	if len(args) != 1 {
-		return fmt.Errorf("missing server ID")
-	}
-
-	newAgent := rest.InLocalAgent{
+func (s *serverUpdate) Execute([]string) error {
+	server := rest.InServer{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
 		Root:        s.Root,
 		ProtoConfig: []byte(s.ProtoConfig),
 	}
+	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Name
 
-	conn, err := url.Parse(auth.DSN)
-	if err != nil {
+	if err := update(path, server); err != nil {
 		return err
 	}
-	conn.Path = admin.APIPath + rest.LocalAgentsPath + "/" + args[0]
-
-	_, err = updateCommand(newAgent, conn)
-	if err != nil {
-		return err
+	name := s.Args.Name
+	if server.Name != "" {
+		name = server.Name
 	}
-
-	w := getColorable()
-	fmt.Fprintf(w, "The server n°\033[33m%s\033[0m was successfully updated\n", args[0])
-
+	fmt.Fprintln(getColorable(), "The server", bold(name), "was successfully updated.")
 	return nil
+}
+
+// ######################## AUTHORIZE ##########################
+
+type serverAuthorize struct {
+	Args struct {
+		Server string `required:"yes" positional-arg-name:"server" description:"The server's name"`
+		Rule   string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
+
+func (s *serverAuthorize) Execute([]string) error {
+	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
+		"/authorize/" + s.Args.Rule
+
+	return authorize(path, "server", s.Args.Server, s.Args.Rule)
+}
+
+// ######################## REVOKE ##########################
+
+type serverRevoke struct {
+	Args struct {
+		Server string `required:"yes" positional-arg-name:"server" description:"The server's name"`
+		Rule   string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+	} `positional-args:"yes"`
+}
+
+func (s *serverRevoke) Execute([]string) error {
+	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
+		"/revoke/" + s.Args.Rule
+
+	return revoke(path, "server", s.Args.Server, s.Args.Rule)
 }

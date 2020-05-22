@@ -65,26 +65,26 @@ func (r *RemoteAccount) BeforeDelete(acc database.Accessor) error {
 // inserted in the database.
 func (r *RemoteAccount) ValidateInsert(acc database.Accessor) error {
 	if r.ID != 0 {
-		return database.InvalidError("The account's ID cannot be entered manually")
+		return database.InvalidError("the account's ID cannot be entered manually")
 	}
 	if r.RemoteAgentID == 0 {
-		return database.InvalidError("The account's agentID cannot be empty")
+		return database.InvalidError("the account's agentID cannot be empty")
 	}
 	if r.Login == "" {
-		return database.InvalidError("The account's login cannot be empty")
+		return database.InvalidError("the account's login cannot be empty")
 	}
 
 	if res, err := acc.Query("SELECT id FROM remote_agents WHERE id=?", r.RemoteAgentID); err != nil {
 		return err
 	} else if len(res) == 0 {
-		return database.InvalidError("No remote agent found with the ID '%v'", r.RemoteAgentID)
+		return database.InvalidError("no remote agent found with the ID '%v'", r.RemoteAgentID)
 	}
 
 	if res, err := acc.Query("SELECT id FROM remote_accounts WHERE remote_agent_id=? "+
 		"AND login=?", r.RemoteAgentID, r.Login); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("A remote account with the same login '%s' "+
+		return database.InvalidError("a remote account with the same login '%s' "+
 			"already exist", r.Login)
 	}
 
@@ -95,7 +95,7 @@ func (r *RemoteAccount) ValidateInsert(acc database.Accessor) error {
 // updated in the database.
 func (r *RemoteAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 	if r.ID != 0 {
-		return database.InvalidError("The account's ID cannot be entered manually")
+		return database.InvalidError("the account's ID cannot be entered manually")
 	}
 
 	if r.Login != "" {
@@ -111,7 +111,7 @@ func (r *RemoteAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 			"remote_agent_id=? AND login=?", old.RemoteAgentID, r.Login); err != nil {
 			return err
 		} else if len(res) > 0 {
-			return database.InvalidError("A remote account with the same login '%s' "+
+			return database.InvalidError("a remote account with the same login '%s' "+
 				"already exist", r.Login)
 		}
 	}
@@ -121,7 +121,7 @@ func (r *RemoteAccount) ValidateUpdate(acc database.Accessor, id uint64) error {
 			r.RemoteAgentID); err != nil {
 			return err
 		} else if len(res) == 0 {
-			return database.InvalidError("No remote agent found with the ID '%v'",
+			return database.InvalidError("no remote agent found with the ID '%v'",
 				r.RemoteAgentID)
 		}
 	}

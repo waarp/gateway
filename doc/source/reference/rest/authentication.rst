@@ -28,6 +28,6 @@ un code HTTP ``401 - Unauthorized``.
 Par défaut, la gateway ne possède qu'un seul utilisateur "admin" (mot de passe:
 "admin_password") avec tous les droits,afin de permettre la mise en place la
 configuration initiale de la gateway. Pour des raisons de sécurité, il est
-fortemment recommandé lors de l'installation de la gateway de créer de nouveaux
+fortement recommandé lors de l'installation de la gateway de créer de nouveaux
 utilisateurs avec des droits plus restreints, puis de supprimer cet utilisateur
 "admin".
