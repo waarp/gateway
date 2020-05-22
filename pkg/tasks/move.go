@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -16,6 +17,30 @@ type MoveTask struct{}
 func init() {
 	RunnableTasks["MOVE"] = &MoveTask{}
 	model.ValidTasks["MOVE"] = &MoveTask{}
+}
+
+func fallbackMove(oldPath *string, newPath string) (string, error) {
+	src, err := os.Open(*oldPath)
+	if err != nil {
+		return err.Error(), err
+	}
+	defer func() { _ = src.Close() }()
+
+	dst, err := os.Create(newPath)
+	if err != nil {
+		return err.Error(), err
+	}
+	defer func() { _ = dst.Close() }()
+
+	if _, err = io.Copy(dst, src); err != nil {
+		return err.Error(), err
+	}
+	if err = os.Remove(*oldPath); err != nil {
+		return err.Error(), err
+	}
+	*oldPath = newPath
+
+	return "", nil
 }
 
 // Validate checks if the MOVE task has all the required arguments.
@@ -41,6 +66,10 @@ func (*MoveTask) Run(args map[string]string, processor *Processor) (string, erro
 	newPath := utils.SlashJoin(newDir, filepath.Base(*oldPath))
 
 	if err := os.Rename(*oldPath, newPath); err != nil {
+		linkErr, ok := err.(*os.LinkError)
+		if ok && linkErr.Err.Error() == "invalid cross-device link" {
+			return fallbackMove(oldPath, newPath)
+		}
 		return err.Error(), err
 	}
 

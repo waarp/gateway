@@ -37,6 +37,10 @@ func (*MoveRenameTask) Run(args map[string]string, processor *Processor) (string
 	}
 
 	if err := os.Rename(*oldPath, newPath); err != nil {
+		linkErr, ok := err.(*os.LinkError)
+		if ok && linkErr.Err.Error() == "invalid cross-device link" {
+			return fallbackMove(oldPath, newPath)
+		}
 		return err.Error(), err
 	}
 	*oldPath = newPath
