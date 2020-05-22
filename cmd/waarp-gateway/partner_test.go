@@ -153,7 +153,7 @@ func TestAddPartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "invalid partner configuration: test fail")
+						So(err, ShouldBeError, "partner config validation failed")
 					})
 				})
 			})
@@ -413,7 +413,7 @@ func TestUpdatePartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "invalid partner configuration: test fail")
+						So(err, ShouldBeError, "partner config validation failed")
 					})
 
 					Convey("Then the partner should stay unchanged", func() {

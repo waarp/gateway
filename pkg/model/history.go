@@ -39,17 +39,11 @@ func (*TransferHistory) TableName() string {
 	return "transfer_history"
 }
 
-// BeforeInsert is called before inserting the transfer in the database. Its
-// role is to set the Owner, to force the Status and to set a Start time if none
-// was entered.
+// BeforeInsert checks if the new `TransferHistory` entry is valid and can be
+// inserted in the database.
 func (h *TransferHistory) BeforeInsert(database.Accessor) error {
 	h.Owner = database.Owner
-	return nil
-}
 
-// ValidateInsert checks if the new `TransferHistory` entry is valid and can be
-// inserted in the database.
-func (h *TransferHistory) ValidateInsert(database.Accessor) error {
 	if h.Owner == "" {
 		return database.InvalidError("the transfer's owner cannot be empty")
 	}
@@ -102,9 +96,9 @@ func (h *TransferHistory) ValidateInsert(database.Accessor) error {
 	return nil
 }
 
-// ValidateUpdate is called before updating an existing `TransferHistory` entry
+// BeforeUpdate is called before updating an existing `TransferHistory` entry
 // from the database. It checks whether the updated entry is valid or not.
-func (h *TransferHistory) ValidateUpdate(database.Accessor, uint64) error {
+func (h *TransferHistory) BeforeUpdate(database.Accessor, uint64) error {
 	if h.ID != 0 {
 		return database.InvalidError("the transfer's ID cannot be changed")
 	}

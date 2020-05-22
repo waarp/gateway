@@ -32,52 +32,6 @@ func TestUsersTableName(t *testing.T) {
 }
 
 func TestUsersBeforeInsert(t *testing.T) {
-	Convey("Given a user entry", t, func() {
-		user := &User{
-			Username: "name",
-			Password: []byte("password"),
-		}
-
-		Convey("When calling the `BeforeInsert` hook", func() {
-			err := user.BeforeInsert(nil)
-
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
-			})
-
-			Convey("Then the user's password should be hashed", func() {
-				hash, err := hashPassword(user.Password)
-				So(err, ShouldBeNil)
-				So(string(user.Password), ShouldEqual, string(hash))
-			})
-		})
-	})
-}
-
-func TestUsersBeforeUpdate(t *testing.T) {
-	Convey("Given a user entry", t, func() {
-		user := &User{
-			Username: "name",
-			Password: []byte("password"),
-		}
-
-		Convey("When calling the `BeforeUpdate` hook", func() {
-			err := user.BeforeUpdate(nil)
-
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
-			})
-
-			Convey("Then the user's password should be hashed", func() {
-				hash, err := hashPassword(user.Password)
-				So(err, ShouldBeNil)
-				So(string(user.Password), ShouldEqual, string(hash))
-			})
-		})
-	})
-}
-
-func TestUsersValidateInsert(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -96,11 +50,13 @@ func TestUsersValidateInsert(t *testing.T) {
 
 				Convey("Given that the new account is valid", func() {
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := user.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						So(user.BeforeInsert(db), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
+						Convey("Then the user's password should be hashed", func() {
+							hash, err := hashPassword(user.Password)
 							So(err, ShouldBeNil)
+							So(string(user.Password), ShouldEqual, string(hash))
 						})
 					})
 				})
@@ -108,12 +64,8 @@ func TestUsersValidateInsert(t *testing.T) {
 				Convey("Given that the new user has an ID", func() {
 					user.ID = 1000
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := user.ValidateInsert(db)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := user.BeforeInsert(db)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
 							So(err, ShouldBeError, "the user's ID cannot "+
@@ -125,8 +77,8 @@ func TestUsersValidateInsert(t *testing.T) {
 				Convey("Given that the new user is missing a username", func() {
 					user.Username = ""
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := user.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := user.BeforeInsert(db)
 
 						Convey("Then the error should say that the username is missing", func() {
 							So(err, ShouldBeError, "the username "+
@@ -138,8 +90,8 @@ func TestUsersValidateInsert(t *testing.T) {
 				Convey("Given that the new username is already taken", func() {
 					user.Username = existing.Username
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := user.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := user.BeforeInsert(db)
 
 						Convey("Then the error should say that the login is already taken", func() {
 							So(err, ShouldBeError, "a user named '"+user.Username+
@@ -152,7 +104,7 @@ func TestUsersValidateInsert(t *testing.T) {
 	})
 }
 
-func TestUsersValidateUpdate(t *testing.T) {
+func TestUsersBeforeUpdate(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -171,18 +123,19 @@ func TestUsersValidateUpdate(t *testing.T) {
 
 			Convey("Given a user account", func() {
 				user := &User{
-					Owner:    database.Owner,
 					Username: "new",
 					Password: []byte("password_new"),
 				}
 
 				Convey("Given that the new account is valid", func() {
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := user.ValidateUpdate(db, old.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						So(user.BeforeUpdate(db, old.ID), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
+						Convey("Then the user's password should be hashed", func() {
+							hash, err := hashPassword(user.Password)
 							So(err, ShouldBeNil)
+							So(string(user.Password), ShouldEqual, string(hash))
 						})
 					})
 				})
@@ -190,8 +143,8 @@ func TestUsersValidateUpdate(t *testing.T) {
 				Convey("Given that the new user has an ID", func() {
 					user.ID = 1000
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := user.ValidateUpdate(db, old.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := user.BeforeUpdate(db, old.ID)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
 							So(err, ShouldBeError, "the user's ID cannot "+
@@ -203,8 +156,8 @@ func TestUsersValidateUpdate(t *testing.T) {
 				Convey("Given that the new username is already taken", func() {
 					user.Username = existing.Username
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := user.ValidateUpdate(db, old.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := user.BeforeUpdate(db, old.ID)
 
 						Convey("Then the error should say that the login is already taken", func() {
 							So(err, ShouldBeError, "a user named '"+user.Username+
@@ -216,8 +169,8 @@ func TestUsersValidateUpdate(t *testing.T) {
 				Convey("Given that the new username is identical to the old one", func() {
 					user.Username = old.Username
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := user.ValidateUpdate(db, old.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := user.BeforeUpdate(db, old.ID)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)

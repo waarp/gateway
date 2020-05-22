@@ -46,44 +46,8 @@ func (*Task) TableName() string {
 	return "tasks"
 }
 
-// ValidateInsert checks if the new `Task` entry is valid and cand be
-// inserted in the database.
-func (t *Task) ValidateInsert(acc database.Accessor) error {
-	if res, err := acc.Query("SELECT id FROM rules WHERE id=?", t.RuleID); err != nil {
-		return err
-	} else if len(res) < 1 {
-		return database.InvalidError("no rule found with ID %d", t.RuleID)
-	}
-
-	if err := validateTasks(t); err != nil {
-		return err
-	}
-
-	if res, err := acc.Query("SELECT rule_id FROM tasks WHERE rule_id=? AND chain=? AND rank=?",
-		t.RuleID, t.Chain, t.Rank); err != nil {
-		return err
-	} else if len(res) > 0 {
-		return database.InvalidError("rule %d already has a task in %s at %d", t.RuleID, t.Chain, t.Rank)
-	}
-
-	return nil
-}
-
-// ValidateUpdate is called before updating and existing `Task` entry from
-// the database. It rejects all update.
-func (t *Task) ValidateUpdate(database.Accessor) error {
-	return database.InvalidError("operation not allowed")
-}
-
-func validateChain(c Chain) bool {
-	return c == ChainPre ||
-		c == ChainPost ||
-		c == ChainError
-}
-
-func validateTasks(t *Task) error {
-
-	if !validateChain(t.Chain) {
+func (t *Task) validateTasks() error {
+	if t.Chain != ChainPre && t.Chain != ChainPost && t.Chain != ChainError {
 		return database.InvalidError("%s is not a valid task chain", t.Chain)
 	}
 
@@ -97,4 +61,33 @@ func validateTasks(t *Task) error {
 		return database.InvalidError("%s is not a valid task Type", t.Type)
 	}
 	return v.Validate(args)
+}
+
+// BeforeInsert checks if the new `Task` entry is valid and cand be
+// inserted in the database.
+func (t *Task) BeforeInsert(db database.Accessor) error {
+	if res, err := db.Query("SELECT id FROM rules WHERE id=?", t.RuleID); err != nil {
+		return err
+	} else if len(res) < 1 {
+		return database.InvalidError("no rule found with ID %d", t.RuleID)
+	}
+
+	if err := t.validateTasks(); err != nil {
+		return err
+	}
+
+	if res, err := db.Query("SELECT rule_id FROM tasks WHERE rule_id=? AND chain=? AND rank=?",
+		t.RuleID, t.Chain, t.Rank); err != nil {
+		return err
+	} else if len(res) > 0 {
+		return database.InvalidError("rule %d already has a task in %s at %d", t.RuleID, t.Chain, t.Rank)
+	}
+
+	return nil
+}
+
+// BeforeUpdate is called before updating and existing `Task` entry from
+// the database. It rejects all update.
+func (t *Task) BeforeUpdate(database.Accessor, uint64) error {
+	return database.InvalidError("operation not allowed")
 }

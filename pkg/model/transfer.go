@@ -37,9 +37,71 @@ func (*Transfer) TableName() string {
 	return "transfers"
 }
 
-// ValidateInsert checks if the new `Transfer` entry is valid and can be
+func (t *Transfer) validateClientTransfer(db database.Accessor) error {
+	remote := RemoteAgent{ID: t.AgentID}
+	if err := db.Get(&remote); err != nil {
+		if err == database.ErrNotFound {
+			return database.InvalidError("the partner %d does not exist", t.AgentID)
+		}
+		return err
+	}
+	if res, err := db.Query("SELECT id FROM remote_accounts WHERE id=? AND remote_agent_id=?",
+		t.AccountID, t.AgentID); err != nil {
+		return err
+	} else if len(res) == 0 {
+		return database.InvalidError("the agent %d does not have an account %d",
+			t.AgentID, t.AccountID)
+	}
+
+	// Check for rule access
+	if auth, err := IsRuleAuthorized(db, t); err != nil {
+		return err
+	} else if !auth {
+		return database.InvalidError("Rule %d is not authorized for this transfer", t.RuleID)
+	}
+
+	if remote.Protocol == "sftp" {
+		if res, err := db.Query("SELECT id FROM certificates WHERE owner_type=? AND owner_id=?",
+			(&RemoteAgent{}).TableName(), t.AgentID); err != nil {
+			return err
+		} else if len(res) == 0 {
+			return database.InvalidError("the partner is missing an SFTP host key")
+		}
+	}
+	return nil
+}
+
+func (t *Transfer) validateServerTransfer(db database.Accessor) error {
+	remote := LocalAgent{ID: t.AgentID}
+	if err := db.Get(&remote); err != nil {
+		if err == database.ErrNotFound {
+			return database.InvalidError("the partner %d does not exist", t.AgentID)
+		}
+		return err
+	}
+	if res, err := db.Query("SELECT id FROM local_accounts WHERE id=? AND local_agent_id=?",
+		t.AccountID, t.AgentID); err != nil {
+		return err
+	} else if len(res) == 0 {
+		return database.InvalidError("the agent %d does not have an account %d",
+			t.AgentID, t.AccountID)
+	}
+
+	// Check for rule access
+	if auth, err := IsRuleAuthorized(db, t); err != nil {
+		return err
+	} else if !auth {
+		return database.InvalidError("Rule %d is not authorized for this transfer", t.RuleID)
+	}
+	return nil
+}
+
+// BeforeInsert checks if the new `Transfer` entry is valid and can be
 // inserted in the database.
-func (t *Transfer) ValidateInsert(acc database.Accessor) error {
+//nolint:funlen
+func (t *Transfer) BeforeInsert(db database.Accessor) error {
+	t.Owner = database.Owner
+
 	if t.ID != 0 {
 		return database.InvalidError("the transfer's ID cannot be entered manually")
 	}
@@ -59,7 +121,10 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError("the transfer's destination cannot be empty")
 	}
 	if t.Start.IsZero() {
-		return database.InvalidError("the transfer's starting date cannot be empty")
+		t.Start = time.Now().Truncate(time.Second)
+	}
+	if t.Status == "" {
+		t.Status = StatusPlanned
 	}
 	if !validateStatusForTransfer(t.Status) {
 		return database.InvalidError("'%s' is not a valid transfer status", t.Status)
@@ -83,18 +148,18 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError("the filepath must be an absolute path")
 	}
 	rule := Rule{ID: t.RuleID}
-	if err := acc.Get(&rule); err != nil {
+	if err := db.Get(&rule); err != nil {
 		if err == database.ErrNotFound {
 			return database.InvalidError("the rule %d does not exist", t.RuleID)
 		}
 		return err
 	}
 	if t.IsServer {
-		if err := t.validateServerTransfer(acc); err != nil {
+		if err := t.validateServerTransfer(db); err != nil {
 			return err
 		}
 	} else {
-		if err := t.validateClientTransfer(acc); err != nil {
+		if err := t.validateClientTransfer(db); err != nil {
 			return err
 		}
 	}
@@ -102,82 +167,9 @@ func (t *Transfer) ValidateInsert(acc database.Accessor) error {
 	return nil
 }
 
-func (t *Transfer) validateClientTransfer(acc database.Accessor) error {
-	remote := &RemoteAgent{ID: t.AgentID}
-	if err := acc.Get(remote); err != nil {
-		if err == database.ErrNotFound {
-			return database.InvalidError("the partner %d does not exist", t.AgentID)
-		}
-		return err
-	}
-	if res, err := acc.Query("SELECT id FROM remote_accounts WHERE id=? AND remote_agent_id=?",
-		t.AccountID, t.AgentID); err != nil {
-		return err
-	} else if len(res) == 0 {
-		return database.InvalidError("the agent %d does not have an account %d",
-			t.AgentID, t.AccountID)
-	}
-
-	// Check for rule access
-	if auth, err := IsRuleAuthorized(acc, t); err != nil {
-		return err
-	} else if !auth {
-		return database.InvalidError("Rule %d is not authorized for this transfer", t.RuleID)
-	}
-
-	if remote.Protocol == "sftp" {
-		if res, err := acc.Query("SELECT id FROM certificates WHERE owner_type=? AND owner_id=?",
-			remote.TableName(), t.AgentID); err != nil {
-			return err
-		} else if len(res) == 0 {
-			return database.InvalidError("the partner is missing an SFTP host key")
-		}
-	}
-	return nil
-}
-
-func (t *Transfer) validateServerTransfer(acc database.Accessor) error {
-	remote := LocalAgent{ID: t.AgentID}
-	if err := acc.Get(&remote); err != nil {
-		if err == database.ErrNotFound {
-			return database.InvalidError("the partner %d does not exist", t.AgentID)
-		}
-		return err
-	}
-	if res, err := acc.Query("SELECT id FROM local_accounts WHERE id=? AND local_agent_id=?",
-		t.AccountID, t.AgentID); err != nil {
-		return err
-	} else if len(res) == 0 {
-		return database.InvalidError("the agent %d does not have an account %d",
-			t.AgentID, t.AccountID)
-	}
-
-	// Check for rule access
-	if auth, err := IsRuleAuthorized(acc, t); err != nil {
-		return err
-	} else if !auth {
-		return database.InvalidError("Rule %d is not authorized for this transfer", t.RuleID)
-	}
-	return nil
-}
-
-// BeforeInsert is called before inserting the transfer in the database. Its
-// role is to set the Owner, to force the Status and to set a Start time if none
-// was entered.
-func (t *Transfer) BeforeInsert(database.Accessor) error {
-	t.Owner = database.Owner
-	if t.Start.IsZero() {
-		t.Start = time.Now().Truncate(time.Second)
-	}
-	if t.Status == "" {
-		t.Status = StatusPlanned
-	}
-	return nil
-}
-
-// ValidateUpdate is called before updating an existing `Transfer` entry from
+// BeforeUpdate is called before updating an existing `Transfer` entry from
 // the database. It checks whether the updated entry is valid or not.
-func (t *Transfer) ValidateUpdate(database.Accessor, uint64) error {
+func (t *Transfer) BeforeUpdate(database.Accessor, uint64) error {
 	if t.ID != 0 {
 		return database.InvalidError("the transfer's ID cannot be entered manually")
 	}

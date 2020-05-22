@@ -24,24 +24,6 @@ func TestHistoryTableName(t *testing.T) {
 }
 
 func TestHistoryBeforeInsert(t *testing.T) {
-	Convey("Given a `Transfer` instance", t, func() {
-		trans := &TransferHistory{}
-
-		Convey("When calling the `BeforeInsert` method", func() {
-			err := trans.BeforeInsert(nil)
-
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
-			})
-
-			Convey("Then the transfer owner should be 'test_gateway'", func() {
-				So(trans.Owner, ShouldEqual, "test_gateway")
-			})
-		})
-	})
-}
-
-func TestHistoryValidateInsert(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -64,8 +46,8 @@ func TestHistoryValidateInsert(t *testing.T) {
 
 			Convey("Given that the new transfer is valid", func() {
 
-				Convey("When calling the 'ValidateInsert' function", func() {
-					err := hist.ValidateInsert(db)
+				Convey("When calling the 'BeforeInsert' function", func() {
+					err := hist.BeforeInsert(db)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -73,24 +55,11 @@ func TestHistoryValidateInsert(t *testing.T) {
 				})
 			})
 
-			Convey("Given that the owner is missing", func() {
-				hist.Owner = ""
-
-				Convey("When calling the 'ValidateInsert' function", func() {
-					err := hist.ValidateInsert(db)
-
-					Convey("Then the error should say the owner is missing", func() {
-						So(err, ShouldBeError, "the transfer's owner cannot "+
-							"be empty")
-					})
-				})
-			})
-
 			Convey("Given that the rule name is missing", func() {
 				hist.Rule = ""
 
-				Convey("When calling the 'ValidateInsert' function", func() {
-					err := hist.ValidateInsert(db)
+				Convey("When calling the 'BeforeInsert' function", func() {
+					err := hist.BeforeInsert(db)
 
 					Convey("Then the error should say the rule is missing", func() {
 						So(err, ShouldBeError, "the transfer's rule "+
@@ -102,8 +71,8 @@ func TestHistoryValidateInsert(t *testing.T) {
 			Convey("Given that the account is missing", func() {
 				hist.Account = ""
 
-				Convey("When calling the 'ValidateInsert' function", func() {
-					err := hist.ValidateInsert(db)
+				Convey("When calling the 'BeforeInsert' function", func() {
+					err := hist.BeforeInsert(db)
 
 					Convey("Then the error should say the source is missing", func() {
 						So(err, ShouldBeError, "the transfer's account "+
@@ -115,8 +84,8 @@ func TestHistoryValidateInsert(t *testing.T) {
 			Convey("Given that the agent is missing", func() {
 				hist.Agent = ""
 
-				Convey("When calling the 'ValidateInsert' function", func() {
-					err := hist.ValidateInsert(db)
+				Convey("When calling the 'BeforeInsert' function", func() {
+					err := hist.BeforeInsert(db)
 
 					Convey("Then the error should say the destination is missing", func() {
 						So(err, ShouldBeError, "the transfer's agent "+
@@ -128,8 +97,8 @@ func TestHistoryValidateInsert(t *testing.T) {
 			Convey("Given that the filename is missing", func() {
 				hist.DestFilename = ""
 
-				Convey("When calling the 'ValidateInsert' function", func() {
-					err := hist.ValidateInsert(db)
+				Convey("When calling the 'BeforeInsert' function", func() {
+					err := hist.BeforeInsert(db)
 
 					Convey("Then the error should say the filename is missing", func() {
 						So(err, ShouldBeError, "the transfer's destination filename "+
@@ -141,8 +110,8 @@ func TestHistoryValidateInsert(t *testing.T) {
 			Convey("Given that the protocol is invalid", func() {
 				hist.Protocol = "invalid"
 
-				Convey("When calling the 'ValidateInsert' function", func() {
-					err := hist.ValidateInsert(db)
+				Convey("When calling the 'BeforeInsert' function", func() {
+					err := hist.BeforeInsert(db)
 
 					Convey("Then the error should say the protocol is missing", func() {
 						So(err, ShouldBeError, "'invalid' is not a valid protocol")
@@ -153,8 +122,8 @@ func TestHistoryValidateInsert(t *testing.T) {
 			Convey("Given that the starting date is missing", func() {
 				hist.Start = time.Time{}
 
-				Convey("When calling the 'ValidateInsert' function", func() {
-					err := hist.ValidateInsert(db)
+				Convey("When calling the 'BeforeInsert' function", func() {
+					err := hist.BeforeInsert(db)
 
 					Convey("Then the error should say the start date is missing", func() {
 						So(err, ShouldBeError, "the transfer's start "+
@@ -166,8 +135,8 @@ func TestHistoryValidateInsert(t *testing.T) {
 			Convey("Given that the end date is missing", func() {
 				hist.Stop = time.Time{}
 
-				Convey("When calling the 'ValidateInsert' function", func() {
-					err := hist.ValidateInsert(db)
+				Convey("When calling the 'BeforeInsert' function", func() {
+					err := hist.BeforeInsert(db)
 
 					Convey("Then the error should say the end date is missing", func() {
 						So(err, ShouldBeError, "the transfer's end "+
@@ -179,8 +148,8 @@ func TestHistoryValidateInsert(t *testing.T) {
 			Convey("Given that the end date is before the ", func() {
 				hist.Stop = hist.Start.AddDate(0, 0, -1)
 
-				Convey("When calling the 'ValidateInsert' function", func() {
-					err := hist.ValidateInsert(db)
+				Convey("When calling the 'BeforeInsert' function", func() {
+					err := hist.BeforeInsert(db)
 
 					Convey("Then the error should say the end date is anterior", func() {
 						So(err, ShouldBeError, "the transfer's end "+
@@ -197,13 +166,13 @@ func TestHistoryValidateInsert(t *testing.T) {
 				{"toto", false},
 			}
 			for _, tc := range statusTestCases {
-				testTransferStatus(tc, "ValidateInsert", hist, db)
+				testTransferStatus(tc, "BeforeInsert", hist, db)
 			}
 		})
 	})
 }
 
-func TestHistoryValidateUpdate(t *testing.T) {
+func TestHistoryBeforeUpdate(t *testing.T) {
 	Convey("Given a `Transfer` instance", t, func() {
 		hist := &TransferHistory{
 			Status: StatusDone,
@@ -213,8 +182,8 @@ func TestHistoryValidateUpdate(t *testing.T) {
 
 		Convey("Given that the entry is valid", func() {
 
-			Convey("When calling the `ValidateUpdate` method", func() {
-				err := hist.ValidateUpdate(nil, 0)
+			Convey("When calling the `BeforeUpdate` method", func() {
+				err := hist.BeforeUpdate(nil, 0)
 
 				Convey("Then it should not return an error", func() {
 					So(err, ShouldBeNil)
@@ -225,8 +194,8 @@ func TestHistoryValidateUpdate(t *testing.T) {
 		Convey("Given that the entry changes the ID", func() {
 			hist.ID = 1
 
-			Convey("When calling the `ValidateUpdate` method", func() {
-				err := hist.ValidateUpdate(nil, 0)
+			Convey("When calling the `BeforeUpdate` method", func() {
+				err := hist.BeforeUpdate(nil, 0)
 
 				Convey("Then the error should say that the ID cannot be changed", func() {
 					So(err, ShouldBeError, "the transfer's ID cannot be "+
@@ -238,8 +207,8 @@ func TestHistoryValidateUpdate(t *testing.T) {
 		Convey("Given that the entry changes the rule", func() {
 			hist.Rule = "rule"
 
-			Convey("When calling the `ValidateUpdate` method", func() {
-				err := hist.ValidateUpdate(nil, 0)
+			Convey("When calling the `BeforeUpdate` method", func() {
+				err := hist.BeforeUpdate(nil, 0)
 
 				Convey("Then the error should say that the rule cannot be changed", func() {
 					So(err, ShouldBeError, "the transfer's rule cannot be "+
@@ -251,8 +220,8 @@ func TestHistoryValidateUpdate(t *testing.T) {
 		Convey("Given that the entry changes the account", func() {
 			hist.Account = "source"
 
-			Convey("When calling the `ValidateUpdate` method", func() {
-				err := hist.ValidateUpdate(nil, 0)
+			Convey("When calling the `BeforeUpdate` method", func() {
+				err := hist.BeforeUpdate(nil, 0)
 
 				Convey("Then the error should say that the source cannot be changed", func() {
 					So(err, ShouldBeError, "the transfer's account cannot be "+
@@ -264,8 +233,8 @@ func TestHistoryValidateUpdate(t *testing.T) {
 		Convey("Given that the entry changes the agent", func() {
 			hist.Agent = "dest"
 
-			Convey("When calling the `ValidateUpdate` method", func() {
-				err := hist.ValidateUpdate(nil, 0)
+			Convey("When calling the `BeforeUpdate` method", func() {
+				err := hist.BeforeUpdate(nil, 0)
 
 				Convey("Then the error should say that the destination cannot be changed", func() {
 					So(err, ShouldBeError, "the transfer's agent "+
@@ -277,8 +246,8 @@ func TestHistoryValidateUpdate(t *testing.T) {
 		Convey("Given that the entry changes the owner", func() {
 			hist.Owner = "owner"
 
-			Convey("When calling the `ValidateUpdate` method", func() {
-				err := hist.ValidateUpdate(nil, 0)
+			Convey("When calling the `BeforeUpdate` method", func() {
+				err := hist.BeforeUpdate(nil, 0)
 
 				Convey("Then the error should say that the owner cannot be changed", func() {
 					So(err, ShouldBeError, "the transfer's owner cannot be "+
@@ -290,8 +259,8 @@ func TestHistoryValidateUpdate(t *testing.T) {
 		Convey("Given that the entry changes the filename", func() {
 			hist.SourceFilename = "file"
 
-			Convey("When calling the `ValidateUpdate` method", func() {
-				err := hist.ValidateUpdate(nil, 0)
+			Convey("When calling the `BeforeUpdate` method", func() {
+				err := hist.BeforeUpdate(nil, 0)
 
 				Convey("Then the error should say that the filename cannot be changed", func() {
 					So(err, ShouldBeError, "the transfer's source filename cannot be "+
@@ -303,8 +272,8 @@ func TestHistoryValidateUpdate(t *testing.T) {
 		Convey("Given that the entry changes the protocol", func() {
 			hist.Protocol = "sftp"
 
-			Convey("When calling the `ValidateUpdate` method", func() {
-				err := hist.ValidateUpdate(nil, 0)
+			Convey("When calling the `BeforeUpdate` method", func() {
+				err := hist.BeforeUpdate(nil, 0)
 
 				Convey("Then the error should say that the protocol cannot be changed", func() {
 					So(err, ShouldBeError, "the transfer's protocol "+
@@ -321,7 +290,7 @@ func TestHistoryValidateUpdate(t *testing.T) {
 			{"toto", false},
 		}
 		for _, tc := range statusTestCases {
-			testTransferStatus(tc, "ValidateUpdate", hist, nil)
+			testTransferStatus(tc, "BeforeUpdate", hist, nil)
 		}
 	})
 }
@@ -335,10 +304,10 @@ type statusTestCase struct {
 	expectedSuccess bool
 }
 type testInsertValidator interface {
-	ValidateInsert(database.Accessor) error
+	BeforeInsert(database.Accessor) error
 }
 type testUpdateValidator interface {
-	ValidateUpdate(database.Accessor, uint64) error
+	BeforeUpdate(database.Accessor, uint64) error
 }
 
 func testTransferStatus(tc statusTestCase, method string, target interface{}, db *database.DB) {
@@ -354,14 +323,12 @@ func testTransferStatus(tc statusTestCase, method string, target interface{}, db
 		}
 
 		Convey(fmt.Sprintf("When the method `%s` is called", method), func() {
-			var (
-				err error
-			)
+			var err error
 
-			if t, ok := target.(testInsertValidator); ok && method == "ValidateInsert" {
-				err = t.ValidateInsert(db)
-			} else if t, ok := target.(testUpdateValidator); ok && method == "ValidateUpdate" {
-				err = t.ValidateUpdate(db, 0)
+			if t, ok := target.(testInsertValidator); ok && method == "BeforeInsert" {
+				err = t.BeforeInsert(db)
+			} else if t, ok := target.(testUpdateValidator); ok && method == "BeforeUpdate" {
+				err = t.BeforeUpdate(db, 0)
 			}
 
 			if tc.expectedSuccess {

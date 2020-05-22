@@ -512,12 +512,6 @@ func (s *Session) Create(bean interface{}) error {
 			}
 		}
 
-		if val, ok := bean.(insertValidator); ok {
-			if err := val.ValidateInsert(s); err != nil {
-				return err
-			}
-		}
-
 		if _, err := s.session.InsertOne(bean); err != nil {
 			return err
 		}
@@ -555,13 +549,7 @@ func (s *Session) Update(bean interface{}, id uint64, isReplace bool) error {
 
 	exec := func() error {
 		if hook, ok := bean.(updateHook); ok {
-			if err := hook.BeforeUpdate(s); err != nil {
-				return err
-			}
-		}
-
-		if val, ok := bean.(updateValidator); ok {
-			if err := val.ValidateUpdate(s, id); err != nil {
+			if err := hook.BeforeUpdate(s, id); err != nil {
 				return err
 			}
 		}

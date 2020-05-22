@@ -510,6 +510,7 @@ func TestRetryHistory(t *testing.T) {
 				r := &model.Rule{
 					Name:   "rule",
 					IsSend: true,
+					Path:   "/path",
 				}
 				So(db.Create(r), ShouldBeNil)
 

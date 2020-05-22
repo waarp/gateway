@@ -45,9 +45,7 @@ func (*Rule) TableName() string {
 	return "rules"
 }
 
-// BeforeInsert is called before inserting the rule in the database. Its
-// role is to set the path to the default value if non was entered.
-func (r *Rule) BeforeInsert(database.Accessor) error {
+func (r *Rule) normalizePaths() error {
 	if r.Path == "" {
 		r.Path = "/" + r.Name
 	}
@@ -77,15 +75,12 @@ func (r *Rule) BeforeInsert(database.Accessor) error {
 	return nil
 }
 
-// BeforeDelete is called before deleting the rule from the database. Its
-// role is to delete all the RuleAccess entries attached to this rule.
-func (r *Rule) BeforeDelete(acc database.Accessor) error {
-	return acc.Execute("DELETE FROM rule_access WHERE rule_id=?", r.ID)
-}
-
-// ValidateInsert is called before inserting a new `Rule` entry in the
+// BeforeInsert is called before inserting a new `Rule` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *Rule) ValidateInsert(acc database.Accessor) error {
+func (r *Rule) BeforeInsert(db database.Accessor) error {
+	if r.Path == "" {
+		return database.InvalidError("the rule's path cannot be empty")
+	}
 	if r.ID != 0 {
 		return database.InvalidError("the rule's ID cannot be entered manually")
 	}
@@ -93,56 +88,79 @@ func (r *Rule) ValidateInsert(acc database.Accessor) error {
 		return database.InvalidError("the rule's name cannot be empty")
 	}
 
-	if res, err := acc.Query("SELECT id FROM rules WHERE name=? and send=?", r.Name, r.IsSend); err != nil {
+	if err := r.normalizePaths(); err != nil {
+		return err
+	}
+
+	if res, err := db.Query("SELECT id FROM rules WHERE name=? AND send=?", r.Name, r.IsSend); err != nil {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("a rule named '%s' with send = %t already exist", r.Name, r.IsSend)
 	}
 
-	if res, err := acc.Query("SELECT id FROM rules WHERE name=? and path=?", r.Name, r.Path); err != nil {
+	if res, err := db.Query("SELECT id FROM rules WHERE name=? AND path=?", r.Name, r.Path); err != nil {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("a rule named '%s' with path: %s already exist", r.Name, r.Path)
 	}
 
-	if r.Path == "" {
-		return database.InvalidError("the rule's path cannot be empty")
-	}
-
 	return nil
 }
 
-// ValidateUpdate is called before updating an existing `Rule` entry from
+// BeforeUpdate is called before updating an existing `Rule` entry from
 // the database. It checks whether the updated entry is valid or not.
-func (r *Rule) ValidateUpdate(acc database.Accessor, id uint64) error {
-	if r.ID != 0 {
+func (r *Rule) BeforeUpdate(db database.Accessor, id uint64) error {
+	if err := r.normalizePaths(); err != nil {
+		return err
+	}
+
+	if r.ID != 0 && r.ID != id {
 		return database.InvalidError("the rule's ID cannot be entered manually")
 	}
 
-	old := &Rule{ID: id}
-	if err := acc.Get(old); err != nil {
-		return err
-	}
-	name := old.Name
-	r.IsSend = old.IsSend
-
-	if r.Name != "" && r.Name != old.Name {
-		name = r.Name
-		if res, err := acc.Query("SELECT id FROM rules WHERE name=? and send=?",
-			r.Name, old.IsSend); err != nil {
+	if r.Name != "" {
+		if res, err := db.Query("SELECT id FROM rules WHERE name=? AND send=? AND id<>?", r.Name, r.IsSend, id); err != nil {
 			return err
 		} else if len(res) > 0 {
-			return database.InvalidError("a rule named '%s' with send = %t already exist",
-				r.Name, old.IsSend)
+			return database.InvalidError("a rule named '%s' with send = %t already exist", r.Name, r.IsSend)
 		}
 	}
 
 	if r.Path != "" {
-		if res, err := acc.Query("SELECT id FROM rules WHERE name=? and path=?", name, r.Path); err != nil {
+		name := r.Path
+		if name == "" {
+			old := &Rule{ID: id}
+			if err := db.Get(old); err != nil {
+				return err
+			}
+			name = old.Name
+		}
+
+		if res, err := db.Query("SELECT id FROM rules WHERE name=? AND path=? AND id<>?", name, r.Path, id); err != nil {
 			return err
 		} else if len(res) > 0 {
 			return database.InvalidError("a rule named '%s' with path: %s already exist", name, r.Path)
 		}
 	}
+
 	return nil
+}
+
+// BeforeDelete is called before deleting the rule from the database. Its
+// role is to delete all the RuleAccess entries attached to this rule.
+func (r *Rule) BeforeDelete(db database.Accessor) error {
+	trans, err := db.Query("SELECT id FROM transfers WHERE rule_id=?", r.ID)
+	if err != nil {
+		return err
+	}
+	if len(trans) > 0 {
+		return database.InvalidError("this rule is currently being used in a " +
+			"running transfer and cannot be deleted, cancel the transfer or wait " +
+			"for it to finish")
+	}
+
+	if err := db.Execute("DELETE FROM rule_access WHERE rule_id=?", r.ID); err != nil {
+		return err
+	}
+	return db.Execute("DELETE FROM tasks WHERE rule_id=?", r.ID)
 }

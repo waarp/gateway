@@ -156,7 +156,7 @@ func TestAddServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "invalid server configuration: test fail")
+						So(err, ShouldBeError, "server config validation failed")
 					})
 				})
 			})
@@ -418,7 +418,7 @@ func TestUpdateServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "invalid server configuration: test fail")
+						So(err, ShouldBeError, "server config validation failed")
 					})
 
 					Convey("Then the server should stay unchanged", func() {

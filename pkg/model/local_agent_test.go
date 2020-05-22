@@ -21,92 +21,88 @@ func TestLocalAgentTableName(t *testing.T) {
 	})
 }
 
-func TestLocalAgentBeforeInsert(t *testing.T) {
-	Convey("Given a local agent entry", t, func() {
-		ag := &LocalAgent{
-			ID:          1,
-			Name:        "test agent",
-			Protocol:    "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
-		}
-
-		Convey("When calling the `BeforeInsert` hook", func() {
-			err := ag.BeforeInsert(nil)
-
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
-			})
-
-			Convey("Then the agent's owner should be set", func() {
-				So(ag.Owner, ShouldEqual, database.Owner)
-			})
-		})
-	})
-}
-
 func TestLocalAgentBeforeDelete(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
 		Convey("Given a local agent entry", func() {
-			ag := &LocalAgent{
-				Name:        "test agent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
-			}
+			ag := &LocalAgent{Name: "test agent", Protocol: "dummy", ProtoConfig: []byte(`{}`)}
 			So(db.Create(ag), ShouldBeNil)
 
-			Convey("Given the agent has a certificate, and an account with a certificate", func() {
-				certAg := &Cert{
-					OwnerType:   ag.TableName(),
-					OwnerID:     ag.ID,
-					Name:        "test agent cert",
-					PrivateKey:  []byte("private key"),
-					PublicKey:   []byte("public key"),
-					Certificate: []byte("certificate"),
-				}
-				So(db.Create(certAg), ShouldBeNil)
+			acc := &LocalAccount{LocalAgentID: ag.ID, Login: "login", Password: []byte("password")}
+			So(db.Create(acc), ShouldBeNil)
 
-				acc := &LocalAccount{
-					LocalAgentID: ag.ID,
-					Login:        "login",
-					Password:     []byte("password"),
-				}
-				So(db.Create(acc), ShouldBeNil)
+			rule := &Rule{Name: "rule", IsSend: false, Path: "/path"}
+			So(db.Create(rule), ShouldBeNil)
 
-				certAcc := &Cert{
-					OwnerType:   acc.TableName(),
-					OwnerID:     acc.ID,
-					Name:        "test account cert",
-					PrivateKey:  []byte("private key"),
-					PublicKey:   []byte("public key"),
-					Certificate: []byte("certificate"),
+			agAccess := RuleAccess{RuleID: rule.ID, ObjectID: ag.ID, ObjectType: ag.TableName()}
+			So(db.Create(agAccess), ShouldBeNil)
+			accAccess := RuleAccess{RuleID: rule.ID, ObjectID: acc.ID, ObjectType: acc.TableName()}
+			So(db.Create(accAccess), ShouldBeNil)
+
+			certAg := &Cert{
+				OwnerType:   ag.TableName(),
+				OwnerID:     ag.ID,
+				Name:        "test agent cert",
+				PrivateKey:  []byte("private key"),
+				PublicKey:   []byte("public key"),
+				Certificate: []byte("certificate"),
+			}
+			So(db.Create(certAg), ShouldBeNil)
+
+			certAcc := &Cert{
+				OwnerType:   acc.TableName(),
+				OwnerID:     acc.ID,
+				Name:        "test account cert",
+				PrivateKey:  []byte("private key"),
+				PublicKey:   []byte("public key"),
+				Certificate: []byte("certificate"),
+			}
+			So(db.Create(certAcc), ShouldBeNil)
+
+			Convey("Given that the agent is unused", func() {
+
+				Convey("When calling the `BeforeDelete` hook", func() {
+					So(ag.BeforeDelete(db), ShouldBeNil)
+
+					Convey("Then the agent's accounts should have been deleted", func() {
+						accounts, err := db.Query("SELECT * FROM local_accounts")
+						So(err, ShouldBeNil)
+						So(accounts, ShouldBeEmpty)
+					})
+
+					Convey("Then both certificates should have been deleted", func() {
+						certs, err := db.Query("SELECT * FROM certificates")
+						So(err, ShouldBeNil)
+						So(certs, ShouldBeEmpty)
+					})
+
+					Convey("Then the rule accesses should have been deleted", func() {
+						access, err := db.Query("SELECT * FROM rule_access")
+						So(err, ShouldBeNil)
+						So(access, ShouldBeEmpty)
+					})
+				})
+			})
+
+			Convey("Given that the agent is used in a transfer", func() {
+				trans := &Transfer{
+					RuleID:     rule.ID,
+					IsServer:   true,
+					AgentID:    ag.ID,
+					AccountID:  acc.ID,
+					SourceFile: "file.src",
+					DestFile:   "file.dst",
 				}
-				So(db.Create(certAcc), ShouldBeNil)
+				So(db.Create(trans), ShouldBeNil)
 
 				Convey("When calling the `BeforeDelete` hook", func() {
 					err := ag.BeforeDelete(db)
 
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-					})
-
-					Convey("Then the agent's certificate should have been deleted", func() {
-						exist, err := db.Exists(certAg)
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeFalse)
-					})
-
-					Convey("Then the agent's account should have been deleted", func() {
-						exist, err := db.Exists(acc)
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeFalse)
-					})
-
-					Convey("Then the account's certificate should have been deleted", func() {
-						exist, err := db.Exists(certAcc)
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeFalse)
+					Convey("Then it should say that the agent is being used", func() {
+						So(err, ShouldBeError, "this server is currently being "+
+							"used in a running transfer and cannot be deleted, "+
+							"cancel the transfer or wait for it to finish")
 					})
 				})
 			})
@@ -114,7 +110,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 	})
 }
 
-func TestLocalAgentValidateInsert(t *testing.T) {
+func TestLocalAgentBeforeInsert(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -137,8 +133,8 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 
 				Convey("Given that the new agent is valid", func() {
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -149,8 +145,8 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 				Convey("Given that the new agent has an ID", func() {
 					newAgent.ID = 10
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
 							So(err, ShouldBeError, "the agent's ID cannot "+
@@ -162,8 +158,8 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 				Convey("Given that the new agent is missing a name", func() {
 					newAgent.Name = ""
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then the error should say that the name is missing", func() {
 							So(err, ShouldBeError, "the agent's name cannot "+
@@ -175,8 +171,8 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 				Convey("Given that the new agent's name is already taken", func() {
 					newAgent.Name = oldAgent.Name
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then the error should say that the name is already taken", func() {
 							So(err, ShouldBeError, "a local agent with "+
@@ -187,11 +183,12 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 
 				Convey("Given that the new agent's name is already taken but the"+
 					"owner is different", func() {
-					newAgent.Owner = "new_owner"
+					So(db.Execute("UPDATE local_agents SET owner='other' WHERE id=?",
+						oldAgent.ID), ShouldBeNil)
 					newAgent.Name = oldAgent.Name
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -202,8 +199,8 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 				Convey("Given that the new agent's protocol is not valid", func() {
 					newAgent.Protocol = "not a protocol"
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then the error should say that the protocol is invalid", func() {
 							So(err, ShouldBeError, "unknown protocol")
@@ -214,8 +211,8 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 				Convey("Given that the new agent's protocol configuration is not valid", func() {
 					newAgent.ProtoConfig = []byte("invalid")
 
-					Convey("When calling the 'ValidateInsert' function", func() {
-						err := newAgent.ValidateInsert(db)
+					Convey("When calling the 'BeforeInsert' function", func() {
+						err := newAgent.BeforeInsert(db)
 
 						Convey("Then the error should say that the configuration is invalid", func() {
 							So(err, ShouldBeError, "failed to parse protocol "+
@@ -229,7 +226,7 @@ func TestLocalAgentValidateInsert(t *testing.T) {
 	})
 }
 
-func TestLocalAgentValidateUpdate(t *testing.T) {
+func TestLocalAgentBeforeUpdate(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -252,7 +249,6 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 
 			Convey("Given a new local agent", func() {
 				updatedAgent := &LocalAgent{
-					Owner:       "test_gateway",
 					Name:        "updated",
 					Protocol:    "sftp",
 					ProtoConfig: []byte(`{"address":"localhost","port":2024}`),
@@ -260,8 +256,8 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 
 				Convey("Given that the updated agent is valid", func() {
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := updatedAgent.ValidateUpdate(db, oldAgent.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -272,8 +268,8 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 				Convey("Given that the updated agent has an ID", func() {
 					updatedAgent.ID = 10
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := updatedAgent.ValidateUpdate(db, oldAgent.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
 							So(err, ShouldBeError, "the agent's ID cannot "+
@@ -282,24 +278,11 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 					})
 				})
 
-				Convey("Given that the updated agent has an owner", func() {
-					updatedAgent.Owner = "owner"
-
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := updatedAgent.ValidateUpdate(db, oldAgent.ID)
-
-						Convey("Then the error should say that owners cannot be changed", func() {
-							So(err, ShouldBeError, "the agent's owner "+
-								"cannot be changed")
-						})
-					})
-				})
-
 				Convey("Given that the updated agent's name is already taken", func() {
 					updatedAgent.Name = otherAgent.Name
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := updatedAgent.ValidateUpdate(db, oldAgent.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
 
 						Convey("Then the error should say that the name is already taken", func() {
 							So(err, ShouldBeError, "a local agent with "+
@@ -312,8 +295,8 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 				Convey("Given that the updated agent's protocol is not valid", func() {
 					updatedAgent.Protocol = "not a protocol"
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := updatedAgent.ValidateUpdate(db, oldAgent.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
 
 						Convey("Then the error should say that the protocol is invalid", func() {
 							So(err, ShouldBeError, "unknown protocol")
@@ -324,8 +307,8 @@ func TestLocalAgentValidateUpdate(t *testing.T) {
 				Convey("Given that the updated agent's protocol configuration is not valid", func() {
 					updatedAgent.ProtoConfig = []byte("invalid")
 
-					Convey("When calling the 'ValidateUpdate' function", func() {
-						err := updatedAgent.ValidateUpdate(db, oldAgent.ID)
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
 
 						Convey("Then the error should say that the configuration is invalid", func() {
 							So(err, ShouldBeError, "failed to parse protocol "+

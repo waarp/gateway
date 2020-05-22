@@ -2,7 +2,7 @@
 image: golang:latest
 
 variables:
-  GOLANGCI_LINT_VERSION: 1.25.1
+  GOLANGCI_LINT_VERSION: 1.26.0
 
 before_script:
   - git config --global url."https://code.bcarlin.xyz".insteadOf "ssh://git@code.bcarlin.xyz:2222"
