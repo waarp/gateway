@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	ProtoConfigs["r66"] = func() ProtoConfig { return new(SftpProtoConfig) }
+	ProtoConfigs["r66"] = func() ProtoConfig { return new(R66ProtoConfig) }
 }
 
 // R66ProtoConfig represents the configuration of a R66 agent.

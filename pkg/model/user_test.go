@@ -182,7 +182,7 @@ func TestUsersBeforeUpdate(t *testing.T) {
 	})
 }
 
-func testUsersBeforeDelete(t *testing.T) {
+func TestUsersBeforeDelete(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 		owner := database.Owner
@@ -203,6 +203,9 @@ func testUsersBeforeDelete(t *testing.T) {
 			// Revert database ownership
 			database.Owner = owner
 
+			// Delete base admin
+			So(db.Delete(&User{Username: "admin"}), ShouldBeNil)
+
 			Convey("When calling BeforeDelete", func() {
 				err := mine.BeforeDelete(db)
 
@@ -216,7 +219,7 @@ func testUsersBeforeDelete(t *testing.T) {
 			})
 		})
 
-		Convey("Given the database contains 1 user for this gateway", func() {
+		Convey("Given the database contains 2 users for this gateway", func() {
 			mine := &User{
 				Username: "existing",
 				Password: []byte("password_existing"),
@@ -228,6 +231,9 @@ func testUsersBeforeDelete(t *testing.T) {
 				Password: []byte("password_old"),
 			}
 			So(db.Create(other), ShouldBeNil)
+
+			// Delete base admin
+			So(db.Delete(&User{Username: "admin"}), ShouldBeNil)
 
 			Convey("When calling BeforeDelete", func() {
 				err := mine.BeforeDelete(db)

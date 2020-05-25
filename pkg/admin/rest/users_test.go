@@ -309,11 +309,11 @@ func TestDeleteUser(t *testing.T) {
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
 
-						Convey("Then it should reply 'No Content'", func() {
+						Convey("Then it should reply with a 'Forbidden error' error", func() {
 							So(w.Code, ShouldEqual, http.StatusForbidden)
 						})
 
-						Convey("Then the body should be empty", func() {
+						Convey("Then the body should contain the error message", func() {
 							So(w.Body.String(), ShouldResemble, "user cannot delete self\n")
 						})
 
