@@ -241,7 +241,7 @@ func TestListUser(t *testing.T) {
 		Convey("Given a gateway with 2 users", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			So(db.Delete(&model.User{Username: "admin"}), ShouldBeNil)
+			So(db.Execute("DELETE FROM users WHERE username='admin'"), ShouldBeNil)
 
 			user1 := &model.User{
 				Username: "user1",
