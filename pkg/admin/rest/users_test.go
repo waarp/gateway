@@ -110,8 +110,6 @@ func TestListUsers(t *testing.T) {
 		expected := map[string][]OutUser{}
 
 		Convey("Given a database with 4 users", func() {
-			So(db.Delete(&model.User{Username: "admin"}), ShouldBeNil)
-
 			u1 := &model.User{
 				Username: "user1",
 				Password: []byte("user1"),
@@ -133,6 +131,7 @@ func TestListUsers(t *testing.T) {
 			So(db.Create(u2), ShouldBeNil)
 			So(db.Create(u3), ShouldBeNil)
 			So(db.Create(u4), ShouldBeNil)
+			So(db.Delete(&model.User{Username: "admin"}), ShouldBeNil)
 
 			user1 := *FromUser(u1)
 			user2 := *FromUser(u2)
@@ -301,6 +300,28 @@ func TestDeleteUser(t *testing.T) {
 						exist, err := db.Exists(existing)
 						So(err, ShouldBeNil)
 						So(exist, ShouldBeFalse)
+					})
+				})
+
+				Convey("Given the request using the deleted user as authentification", func() {
+					r.SetBasicAuth(existing.Username, "")
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply with a 'Forbidden error' error", func() {
+							So(w.Code, ShouldEqual, http.StatusForbidden)
+						})
+
+						Convey("Then the body should contain the error message", func() {
+							So(w.Body.String(), ShouldResemble, "user cannot delete self\n")
+						})
+
+						Convey("Then the user should still exist in the database", func() {
+							exist, err := db.Exists(existing)
+							So(err, ShouldBeNil)
+							So(exist, ShouldBeTrue)
+						})
 					})
 				})
 			})

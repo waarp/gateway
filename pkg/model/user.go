@@ -2,7 +2,12 @@
 // model instance represents an entry in one of the database's tables.
 package model
 
-import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+import (
+	"fmt"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"github.com/go-xorm/builder"
+)
 
 func init() {
 	database.Tables = append(database.Tables, &User{})
@@ -40,11 +45,27 @@ func (u *User) Init(acc database.Accessor) error {
 	return acc.Create(user)
 }
 
+// BeforeDelete is called before removing the user from the database. Its
+// role is to check that at least one admin user remains
+func (u *User) BeforeDelete(db database.Accessor) error {
+	users := []User{}
+	err := db.Select(&users, &database.Filters{
+		// TODO update for admin user
+		Conditions: builder.Eq{"owner": database.Owner},
+	})
+	if err != nil {
+		return err
+	}
+	if len(users) < 2 {
+		return fmt.Errorf("cannot delete gateway last admin")
+	}
+	return nil
+}
+
 // BeforeInsert checks if the new `User` entry is valid and can be
 // inserted in the database.
 func (u *User) BeforeInsert(db database.Accessor) (err error) {
 	u.Owner = database.Owner
-
 	if u.ID != 0 {
 		return database.InvalidError("the user's ID cannot be entered manually")
 	}

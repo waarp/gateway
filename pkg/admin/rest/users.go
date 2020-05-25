@@ -165,6 +165,11 @@ func deleteUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
+			login, _, _ := r.BasicAuth()
+			if user.Username == login {
+				return &forbidden{msg: "user cannot delete self"}
+			}
+
 			if err := db.Delete(user); err != nil {
 				return err
 			}

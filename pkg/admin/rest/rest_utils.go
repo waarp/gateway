@@ -21,6 +21,14 @@ func badRequest(format string, args ...interface{}) errBadRequest {
 	return errBadRequest(fmt.Sprintf(format, args...))
 }
 
+type forbidden struct {
+	msg string
+}
+
+func (e *forbidden) Error() string {
+	return e.msg
+}
+
 type errNotFound string
 
 func (e errNotFound) Error() string { return string(e) }
@@ -67,6 +75,8 @@ func handleErrors(w http.ResponseWriter, logger *log.Logger, err error) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 	case errBadRequest:
 		http.Error(w, err.Error(), http.StatusBadRequest)
+	case *forbidden:
+		http.Error(w, err.Error(), http.StatusForbidden)
 	case *database.ErrInvalid:
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	default:
