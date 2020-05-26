@@ -31,17 +31,17 @@ func displayTasks(w io.Writer, rule *rest.OutRule) {
 		fmt.Fprintln(w, bold(prefix), t.Type, bold("with args:"), string(t.Args))
 	}
 	fmt.Fprintln(w, orange("    Post tasks:"))
-	for i, t := range rule.PreTasks {
+	for i, t := range rule.PostTasks {
 		prefix := "    ├─Command"
-		if i == len(rule.PreTasks)-1 {
+		if i == len(rule.PostTasks)-1 {
 			prefix = "    └─Command"
 		}
 		fmt.Fprintln(w, bold(prefix), t.Type, bold("with args:"), string(t.Args))
 	}
 	fmt.Fprintln(w, orange("    Error tasks:"))
-	for i, t := range rule.PreTasks {
+	for i, t := range rule.ErrorTasks {
 		prefix := "    ├─Command"
-		if i == len(rule.PreTasks)-1 {
+		if i == len(rule.ErrorTasks)-1 {
 			prefix = "    └─Command"
 		}
 		fmt.Fprintln(w, bold(prefix), t.Type, bold("with args:"), string(t.Args))
