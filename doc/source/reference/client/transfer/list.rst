@@ -23,7 +23,7 @@ Affiche une liste des transferts remplissant les critères ci-dessous.
 
    - tri par date (``start+`` & ``start-``)
    - tri par identifiant (``id+`` & ``id-``)
-   - tri par règle (``rule+`` & ``rule-``)
+   - tri par statut (``status+`` & ``status-``)
 
 .. option:: -r <RULE>, --rule_=<RULE>
 

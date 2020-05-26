@@ -170,14 +170,14 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			query, err := parseTransferListQuery(db, r)
+			filters, err := parseTransferListQuery(r)
 			if err != nil {
 				return err
 			}
 
-			transfers, err := execTransferListQuery(db, query)
-			if err != nil {
-				return err
+			transfers := []model.Transfer{}
+			if err := db.Select(&transfers, filters); err != nil {
+				return fmt.Errorf("query failed: %s", err.Error())
 			}
 
 			json, err := FromTransfers(db, transfers)
