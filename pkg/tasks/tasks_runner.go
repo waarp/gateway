@@ -27,6 +27,8 @@ type Processor struct {
 	Transfer *model.Transfer
 	Signals  <-chan model.Signal
 	Ctx      context.Context
+	InPath   string
+	OutPath  string
 }
 
 // GetTasks returns the list of all tasks of the given rule & chain.
@@ -187,16 +189,10 @@ var replacers = map[string]replacer{
 		return "0", nil
 	},
 	"#INPATH#": func(p *Processor) (string, error) {
-		if !p.Rule.IsSend {
-			return p.Rule.Path, nil
-		}
-		return "", fmt.Errorf("send rule cannot use #INPATH#")
+		return p.InPath, nil
 	},
 	"#OUTPATH#": func(p *Processor) (string, error) {
-		if p.Rule.IsSend {
-			return p.Rule.Path, nil
-		}
-		return "", fmt.Errorf("receive rule cannot use #OUTPATH#")
+		return p.OutPath, nil
 	},
 	"#WORKPATH#": func(p *Processor) (string, error) {
 		// DEPRECATED

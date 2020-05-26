@@ -56,9 +56,10 @@ func TestSetup(t *testing.T) {
 			r := &Processor{
 				DB: db,
 				Rule: &model.Rule{
-					Name:   "Test",
-					IsSend: true,
-					Path:   "path/to/test",
+					Name:    "Test",
+					IsSend:  true,
+					Path:    "path/to/test",
+					OutPath: "out/path",
 				},
 				Transfer: &model.Transfer{
 					ID:        1234,
@@ -69,6 +70,7 @@ func TestSetup(t *testing.T) {
 						Details: `", "bad":1`,
 					},
 				},
+				OutPath: "out/path",
 			}
 
 			Convey("When calling the `setup` function", func() {
@@ -111,7 +113,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[path] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.Rule.Path)
+							So(val, ShouldEqual, r.OutPath)
 						})
 					})
 
