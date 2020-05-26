@@ -67,6 +67,7 @@ func (s *Service) Start() error {
 			ProtoConfig: &protoConfig,
 			SSHConf:     sshConf,
 			Listener:    listener,
+			GWConf:      s.db.Conf,
 		}
 		s.listener.ctx, s.listener.cancel = context.WithCancel(context.Background())
 		s.listener.listen()
