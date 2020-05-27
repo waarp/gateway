@@ -2,7 +2,6 @@ package sftp
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -25,7 +24,8 @@ func loadCert(db *database.DB, server *model.LocalAgent) (*model.Cert, error) {
 	return cert, nil
 }
 
-func getSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.SftpProtoConfig) (*ssh.ServerConfig, error) {
+func getSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.SftpProtoConfig,
+	agent *model.LocalAgent) (*ssh.ServerConfig, error) {
 	conf := &ssh.ServerConfig{
 		Config: ssh.Config{
 			KeyExchanges: protoConfig.KeyExchanges,
@@ -33,7 +33,7 @@ func getSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.S
 			MACs:         protoConfig.MACs,
 		},
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			user := &model.LocalAccount{Login: conn.User()}
+			user := &model.LocalAccount{LocalAgentID: agent.ID, Login: conn.User()}
 			if err := db.Get(user); err != nil {
 				return nil, fmt.Errorf("authentication failed")
 			}
@@ -54,7 +54,7 @@ func getSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.S
 			return nil, fmt.Errorf("authentication failed")
 		},
 		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			user := &model.LocalAccount{Login: conn.User()}
+			user := &model.LocalAccount{LocalAgentID: agent.ID, Login: conn.User()}
 			if err := db.Get(user); err != nil {
 				return nil, fmt.Errorf("authentication failed")
 			}
@@ -75,21 +75,8 @@ func getSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.S
 	return conf, nil
 }
 
-func parseServerAddr(server *model.LocalAgent) (string, uint16, error) {
-	conf := &config.SftpProtoConfig{}
-
-	if err := json.Unmarshal(server.ProtoConfig, conf); err != nil {
-		return "", 0, err
-	}
-
-	return conf.Address, conf.Port, nil
-}
-
 func getAccountID(db *database.DB, agentID uint64, login string) (uint64, error) {
-	account := model.LocalAccount{
-		LocalAgentID: agentID,
-		Login:        login,
-	}
+	account := model.LocalAccount{LocalAgentID: agentID, Login: login}
 	if err := db.Get(&account); err != nil {
 		return 0, err
 	}

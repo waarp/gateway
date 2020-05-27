@@ -134,6 +134,13 @@ func TestSSHServer(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		db := database.GetTestDatabase()
+		otherAgent := &model.LocalAgent{
+			Name:        "other_agent",
+			Protocol:    "sftp",
+			ProtoConfig: []byte(`{"address":"localhost","port":9999}`),
+		}
+		So(db.Create(otherAgent), ShouldBeNil)
+
 		agent := &model.LocalAgent{
 			Name:        "test_sftp_server",
 			Protocol:    "sftp",
@@ -151,6 +158,13 @@ func TestSSHServer(t *testing.T) {
 			Password:     []byte(pwd),
 		}
 		So(db.Create(user), ShouldBeNil)
+
+		otherUser := &model.LocalAccount{
+			LocalAgentID: otherAgent.ID,
+			Login:        user.Login,
+			Password:     []byte("passwd"),
+		}
+		So(db.Create(otherUser), ShouldBeNil)
 
 		cert := &model.Cert{
 			OwnerType:   agent.TableName(),
@@ -181,7 +195,7 @@ func TestSSHServer(t *testing.T) {
 		So(db.Create(receive), ShouldBeNil)
 		So(db.Create(send), ShouldBeNil)
 
-		serverConfig, err := getSSHServerConfig(db, cert, &protoConfig)
+		serverConfig, err := getSSHServerConfig(db, cert, &protoConfig, agent)
 		So(err, ShouldBeNil)
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -697,7 +711,7 @@ func TestSSHServerTasks(t *testing.T) {
 		}
 		So(db.Create(cert), ShouldBeNil)
 
-		serverConfig, err := getSSHServerConfig(db, cert, &protoConfig)
+		serverConfig, err := getSSHServerConfig(db, cert, &protoConfig, agent)
 		So(err, ShouldBeNil)
 
 		ctx, cancel := context.WithCancel(context.Background())
