@@ -29,6 +29,6 @@ Attache un nouveau certificat au compte donné à partir des informations rensei
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 account local serveur_sftp cert tata add -n cert_tata -p /tata.pub -b /tata.key -c /tata.pem

@@ -12,6 +12,6 @@ Supprime l'utilisateur donné en paramètre.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 user delete toto

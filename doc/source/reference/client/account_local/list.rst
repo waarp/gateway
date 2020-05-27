@@ -27,6 +27,6 @@ Affiche une liste des comptes remplissant les critères donnés ci-dessous.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway -a http://user:password@localhost:8080 account local serveur_sftp list -l 10 -o 5 -s login-

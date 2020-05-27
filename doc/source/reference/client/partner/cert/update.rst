@@ -30,6 +30,6 @@ attributs omis resteront inchangés.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 partner cert waarp_sftp update cert_waarp -n cert_waarp2 -p /waarp2.pub -b waarp2.key -c waarp2.pem

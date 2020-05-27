@@ -70,6 +70,6 @@ Les attributs omis resteront inchangés.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 rule add -n "règle_1_new" -c "nouvelle règle de réception des fichiers avec SFTP" -p "/règle_1_new" -i "/règle_1_new/in" -o "/règle_1_new/out" --pre='{"type":"COPY","args":{"path":"chemin/copie"}}' --post='{"type":"DELETE","args":{}}' --err='{"type":"MOVE","args":{"path":"chemin/déplacement"}}'

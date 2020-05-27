@@ -13,6 +13,6 @@ Pause le transfert donné. Seuls les transferts en cours ou en attente peuvent
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 transfer pause 1234

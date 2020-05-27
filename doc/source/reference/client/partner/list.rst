@@ -32,6 +32,6 @@ Affiche une liste des partenaires remplissant les critères renseignés ci-desso
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 partner list -l 10 -o 5 -s protocol+ -d -p sftp -p http

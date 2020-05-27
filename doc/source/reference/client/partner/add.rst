@@ -26,6 +26,6 @@ Ajoute un nouveau partenaire avec les attributs renseignés.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 partner add -n waarp_sftp -p sftp -c '{"address":"waarp.org","port":21}'

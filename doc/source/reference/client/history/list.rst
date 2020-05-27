@@ -73,6 +73,6 @@ Affiche une liste des entrées d'historique remplissant les critères ci-dessous
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 history list -l 10 -o 5 -s id- --requester=toto --requested=serveur_sftp --rule=règle_1 --protocol=sftp --status=DONE --start=2019-01-01T12:00:00+02:00 --stop=2019-01-02T12:00:00+02:00

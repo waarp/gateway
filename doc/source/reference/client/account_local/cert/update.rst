@@ -29,6 +29,6 @@ Remplace les attributs du certificats par ceux renseignés ci-dessous.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 account local serveur_sftp cert tata update cert_tata -n cert_tata2 -p /tata2.pub -b tata2.key -c tata2.pem

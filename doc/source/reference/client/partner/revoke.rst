@@ -12,6 +12,6 @@ Retire au partenaire fourni en argument la permission d'utiliser la règle donn�
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 partner revoke waarp_sftp règle_1

@@ -13,6 +13,6 @@ Supprime le certificat demandé. Les noms du serveur et du certificat doivent
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 server cert serveur_sftp delete cert_sftp

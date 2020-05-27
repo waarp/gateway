@@ -27,6 +27,6 @@ Affiche une liste de tous les utilisateurs remplissant les critères ci-dessous.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 user list -l 10 -o 5 -s username -d

@@ -31,6 +31,6 @@ resteront inchangés.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 account remote waarp_sftp cert titi update cert_titi -n cert_titi2 -p /titi2.pub -b titi2.key -c titi2.pem

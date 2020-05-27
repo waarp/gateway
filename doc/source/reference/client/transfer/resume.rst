@@ -13,6 +13,6 @@ Reprend le transfert donné. Seuls les transferts interrompus ou en pause peuven
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 transfer resume 1234

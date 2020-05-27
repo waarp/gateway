@@ -21,6 +21,6 @@ Remplace les attributs du compte par ceux renseignés.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway -a http://user:password@localhost:8080 account local serveur_sftp update tata -l tata -p password_new

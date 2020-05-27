@@ -8,6 +8,33 @@ Fichier de configuration ``waarp-gatewayd.ini``
 Le fichier de configuration ``waarp-gatewayd.ini`` permet de contrôler et modifier
 le comportement du démon ``waarp-gatewayd``.
 
+Section ``[path]``
+==================
+
+La section ``[path]`` contient les différents chemins de la gateway.
+
+.. confval:: GatewayHome
+
+   Définit la racine de la *gateway*. Par défaut, il s'agit du *working directory*
+   depuis lequel la *gateway* a été lancée. Pour cette raison il est impératif de
+   changer cette valeur si la *gateway* n'est pas lancée depuis son dossier racine.
+
+.. confval:: InDirectory
+
+   Le dossier dans lequel sont déposés les fichiers reçus. Par défaut, la racine
+   de la *gateway* est utilisée à la place.
+
+.. confval:: OutDirectory
+
+   Le dossier dans lequel les fichiers à envoyer sont cherchés. Par défaut,
+   la racine de la *gateway* est utilisée à la place.
+
+.. confval:: WorkDirectory
+
+   Le dossier dans lequel les fichiers en cours de réception sont déposés avant
+   d'être déplacés dans le ``InDirectory``. Par défaut, la racine de la *gateway*
+   est utilisée à la place.
+
 Section ``[log]``
 =================
 
@@ -46,23 +73,27 @@ et l'API REST.
 
 .. confval:: Address
 
-   L'adresse complète (IP + port) à laquelle le serveur HTTP va écouter les
-   requêtes faites à l'interface d'administration. Si le port est mis à 0,
-   le programme choisira un port libre au hasard.
+   L'adresse de l'interface sur laquelle le serveur HTTP va écouter les
+   requêtes faites à l'interface d'administration.
 
-   Valeur par défaut : ``127.0.0.1:8080``
+   Valeur par défaut : ``localhost``
+
+.. confval:: Port
+
+   Le port sur lequel le serveur HTTP doit écouter. La valeur '0' est entrée,
+   un port libre sera arbitrairement choisit.
+
+   Valeur par défaut : ``8080``
 
 .. confval:: TLSCert
 
-   Le chemin du certificat TLS pour le serveur HTTP.
-   Si ce paramètre n'est pas défini, le serveur utilisera HTTP à la place de
-   HTTPS.
+   Le chemin du certificat TLS pour le serveur HTTP. Si ce paramètre n'est pas
+   défini, le serveur utilisera du HTTP en clair à la place de HTTPS.
 
 .. confval:: TLSKey
 
-   Le chemin de la clé du certificat TLS.
-   Si ce paramètre n'est pas défini, le serveur utilisera HTTP à la place de
-   HTTPS.
+   Le chemin de la clé du certificat TLS. Si ce paramètre n'est pas défini,
+   le serveur utilisera du HTTP en clair à la place de HTTPS.
 
 
 Section ``[database]``
@@ -78,16 +109,11 @@ base de données de la gateway.
 
 .. confval:: Address
 
-   L'adresse de la base de données.
+   L'adresse complète (URL + Port) de la base de données. Le port par défaut
+   dépend du type de base de données utilisé (``5432`` pour PostgreSQL, ``3306``
+   pour MySQL, aucun pour SQLite).
 
    Valeur par défaut : ``localhost``
-
-.. confval:: Port
-
-   Le port sur lequel écoute le serveur de base de donnée.
-
-   Valeur par défaut : dépend du type de base de donnée (``5432`` pour PostgreSQL,
-   ``3306`` pour MySQL, aucun pour SQLite).
 
 .. confval:: Name
 
@@ -101,6 +127,15 @@ base de données de la gateway.
 
    Le mot de passe de l'utilisateur du SGBD.
 
+.. confval:: TLSCert
+
+   Le certificat TLS de la base de données. Par défaut, les requêtes n'utilisent
+   pas TLS.
+
+.. confval:: TLSKey
+
+   La clé du certificat TLS de la base de données.
+
 .. confval:: AESPassphrase
 
    Le chemin vers le fichier qui contient la clef AES utilisée pour chiffrer les
@@ -108,3 +143,33 @@ base de données de la gateway.
 
    Si le fichier renseigné n'existe pas, une nouvelle clef est automatiquement
    générée et écrite à cet emplacement.
+
+   Valeur par défaut : ``passphrase.aes``
+
+
+Section ``[controller]``
+========================
+
+La section ``[controller]`` regroupe toutes les options de configuration du
+:term:`contrôleur` de la *gateway*.
+
+.. confval:: Delay
+
+   La durée de l'intervalle entre chaque requête du contrôleur à la base de
+   données. Les unités de temps acceptées sont : "ns", "us" (ou "µs"), "ms",
+   "s", "m", "h".
+
+   Valeur par défaut : ``5s``
+
+.. confval:: R66Home
+
+   Le dossier racine du serveur *Waarp-R66* associé à cette *gateway* (s'il y en
+   a un).
+
+.. confval:: MaxTransfersIn
+
+   Le nombre maximum autorisé de transferts entrants simultanés. Illimité par défaut.
+
+.. confval:: MaxTransfersOut
+
+   Le nombre maximum autorisé de transferts sortants simultanés. Illimité par défaut.

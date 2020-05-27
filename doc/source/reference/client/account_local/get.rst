@@ -12,6 +12,6 @@ Affiche les informations du compte donné en paramètre de commande.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 account local serveur_sftp get tata

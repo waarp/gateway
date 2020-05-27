@@ -12,6 +12,6 @@ Affiche les informations du compte donné en paramètre de commande.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@remotehost:8080 account remote waarp_sftp get titi

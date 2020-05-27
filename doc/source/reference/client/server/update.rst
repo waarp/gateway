@@ -51,6 +51,6 @@ Les attributs omis resteront inchangés.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 server update serveur_sftp -n server_sftp_new -r /sftp/root_new -i in -o out -w work -p sftp -c '{"address": "localhost", "port": 80}'

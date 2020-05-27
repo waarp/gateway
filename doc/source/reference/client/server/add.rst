@@ -48,6 +48,6 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 server add -n server_sftp -r /sftp/root  -p sftp -c '{"address":"localhost","port":21}'

@@ -20,6 +20,6 @@ Ajoute un nouvel utilisateur avec les identifiants donnés.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 user add -u toto -p sésame

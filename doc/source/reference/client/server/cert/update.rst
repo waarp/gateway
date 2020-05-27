@@ -31,6 +31,6 @@ inchangés.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 server cert serveur_sftp update cert_sftp -n cert_sftp2 -p /sftp2.pub -b sftp2.key -c sftp2.pem

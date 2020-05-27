@@ -13,6 +13,6 @@ doivent être spécifiés en arguments de programme.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 account local serveur_sftp cert tata delete cert_tata

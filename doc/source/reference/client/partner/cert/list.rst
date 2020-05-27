@@ -25,6 +25,6 @@ Affiche les informations des certificats du partenaire suivant les critères don
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 partner cert waarp_sftp list -l 10 -o 5 -s name-

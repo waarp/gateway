@@ -27,6 +27,6 @@ Affiche les informations des certificats du compte suivant les critères donnés
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 account remote waarp_sftp cert titi list -l 10 -o 5 -s name-

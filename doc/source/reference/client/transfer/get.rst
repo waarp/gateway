@@ -12,6 +12,6 @@ Affiche les informations du transfert demandé.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 transfer get 1234
