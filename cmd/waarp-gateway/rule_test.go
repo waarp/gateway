@@ -51,10 +51,11 @@ func ruleInfoString(r *rest.OutRule) string {
 	}
 
 	rv := "● Rule " + r.Name + " (" + way + ")\n" +
-		"    Comment: " + r.Comment + "\n" +
-		"    Path:    " + r.Path + "\n" +
-		"    InPath:  " + r.InPath + "\n" +
-		"    OutPath: " + r.OutPath + "\n" +
+		"    Comment:        " + r.Comment + "\n" +
+		"    Path:           " + r.Path + "\n" +
+		"    In directory:   " + r.InPath + "\n" +
+		"    Out directory:  " + r.OutPath + "\n" +
+		"    Work directory: " + r.OutPath + "\n" +
 		"    Pre tasks:\n" + taskStr(r.PreTasks) +
 		"    Post tasks:\n" + taskStr(r.PostTasks) +
 		"    Error tasks:\n" + taskStr(r.ErrorTasks) +
@@ -130,10 +131,13 @@ func TestGetRule(t *testing.T) {
 			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			rule := &model.Rule{
-				Name:    "rule_name",
-				Comment: "this is a test rule",
-				IsSend:  false,
-				Path:    "/test/rule/path",
+				Name:     "rule_name",
+				Comment:  "this is a test rule",
+				IsSend:   false,
+				Path:     "/test/rule/path",
+				InPath:   "/test/rule/in",
+				OutPath:  "/test/rule/out",
+				WorkPath: "/test/rule/work",
 			}
 			So(db.Create(rule), ShouldBeNil)
 
@@ -380,22 +384,24 @@ func TestListRules(t *testing.T) {
 			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			receive := &model.Rule{
-				Name:    "receive",
-				Comment: "receive comment",
-				IsSend:  false,
-				Path:    "/receive/path",
-				InPath:  "/receive/in_path",
-				OutPath: "/receive/out_path",
+				Name:     "receive",
+				Comment:  "receive comment",
+				IsSend:   false,
+				Path:     "/receive/path",
+				InPath:   "/receive/in_path",
+				OutPath:  "/receive/out_path",
+				WorkPath: "/receive/work_path",
 			}
 			So(db.Create(receive), ShouldBeNil)
 
 			send := &model.Rule{
-				Name:    "send",
-				Comment: "send comment",
-				IsSend:  true,
-				Path:    "/send/path",
-				InPath:  "/send/in_path",
-				OutPath: "/send/out_path",
+				Name:     "send",
+				Comment:  "send comment",
+				IsSend:   true,
+				Path:     "/send/path",
+				InPath:   "/send/in_path",
+				OutPath:  "/send/out_path",
+				WorkPath: "/send/work_path",
 			}
 			So(db.Create(send), ShouldBeNil)
 

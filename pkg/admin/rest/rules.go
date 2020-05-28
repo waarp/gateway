@@ -37,6 +37,7 @@ type UptRule struct {
 	Path       string     `json:"path"`
 	InPath     string     `json:"inPath"`
 	OutPath    string     `json:"outPath"`
+	WorkPath   string     `json:"workPath"`
 	PreTasks   []RuleTask `json:"preTasks"`
 	PostTasks  []RuleTask `json:"postTasks"`
 	ErrorTasks []RuleTask `json:"errorTasks"`
@@ -45,11 +46,12 @@ type UptRule struct {
 // ToModel transforms the JSON transfer rule into its database equivalent.
 func (i *UptRule) ToModel() *model.Rule {
 	return &model.Rule{
-		Name:    i.Name,
-		Comment: i.Comment,
-		Path:    i.Path,
-		InPath:  i.InPath,
-		OutPath: i.OutPath,
+		Name:     i.Name,
+		Comment:  i.Comment,
+		Path:     i.Path,
+		InPath:   i.InPath,
+		OutPath:  i.OutPath,
+		WorkPath: i.WorkPath,
 	}
 }
 
@@ -62,6 +64,7 @@ type OutRule struct {
 	Path       string      `json:"path"`
 	InPath     string      `json:"inPath"`
 	OutPath    string      `json:"outPath"`
+	WorkPath   string      `json:"workPath"`
 	Authorized *RuleAccess `json:"authorized"`
 	PreTasks   []RuleTask  `json:"preTasks"`
 	PostTasks  []RuleTask  `json:"postTasks"`
@@ -82,6 +85,7 @@ func FromRule(db *database.DB, r *model.Rule) (*OutRule, error) {
 		Path:       r.Path,
 		InPath:     r.InPath,
 		OutPath:    r.OutPath,
+		WorkPath:   r.WorkPath,
 		Authorized: access,
 	}
 	if err := doListTasks(db, rule, r.ID); err != nil {
