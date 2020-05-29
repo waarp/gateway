@@ -31,5 +31,6 @@ func (*DeleteTask) Run(_ map[string]string, runner *Processor) (string, error) {
 			return err.Error(), err
 		}
 	}
+	runner.Transfer.TrueFilepath = ""
 	return "", nil
 }

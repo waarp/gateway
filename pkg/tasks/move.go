@@ -19,28 +19,39 @@ func init() {
 	model.ValidTasks["MOVE"] = &MoveTask{}
 }
 
-func fallbackMove(oldPath *string, newPath string) (string, error) {
-	src, err := os.Open(*oldPath)
+func fallbackMove(oldPath, newPath string) error {
+	src, err := os.Open(oldPath)
 	if err != nil {
-		return err.Error(), err
+		return err
 	}
 	defer func() { _ = src.Close() }()
 
 	dst, err := os.Create(newPath)
 	if err != nil {
-		return err.Error(), err
+		return err
 	}
 	defer func() { _ = dst.Close() }()
 
 	if _, err = io.Copy(dst, src); err != nil {
-		return err.Error(), err
+		return err
 	}
-	if err = os.Remove(*oldPath); err != nil {
-		return err.Error(), err
+	if err = os.Remove(oldPath); err != nil {
+		return err
 	}
-	*oldPath = newPath
 
-	return "", nil
+	return nil
+}
+
+// MoveFile moves the given file to the given location. Works across partitions.
+func MoveFile(oldPath, newPath string) error {
+	if err := os.Rename(oldPath, newPath); err != nil {
+		linkErr, ok := err.(*os.LinkError)
+		if ok && linkErr.Err.Error() == "invalid cross-device link" {
+			return fallbackMove(oldPath, newPath)
+		}
+		return err
+	}
+	return nil
 }
 
 // Validate checks if the MOVE task has all the required arguments.
@@ -65,14 +76,9 @@ func (*MoveTask) Run(args map[string]string, processor *Processor) (string, erro
 
 	newPath := utils.SlashJoin(newDir, filepath.Base(*oldPath))
 
-	if err := os.Rename(*oldPath, newPath); err != nil {
-		linkErr, ok := err.(*os.LinkError)
-		if ok && linkErr.Err.Error() == "invalid cross-device link" {
-			return fallbackMove(oldPath, newPath)
-		}
+	if err := MoveFile(*oldPath, newPath); err != nil {
 		return err.Error(), err
 	}
-
 	*oldPath = newPath
 	return "", nil
 }

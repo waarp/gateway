@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"fmt"
-	"os"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
@@ -36,11 +35,7 @@ func (*MoveRenameTask) Run(args map[string]string, processor *Processor) (string
 		oldPath = &(processor.Transfer.DestFile)
 	}
 
-	if err := os.Rename(*oldPath, newPath); err != nil {
-		linkErr, ok := err.(*os.LinkError)
-		if ok && linkErr.Err.Error() == "invalid cross-device link" {
-			return fallbackMove(oldPath, newPath)
-		}
+	if err := MoveFile(*oldPath, newPath); err != nil {
 		return err.Error(), err
 	}
 	*oldPath = newPath

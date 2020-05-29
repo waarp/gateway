@@ -238,6 +238,8 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 // moves the file from the temporary directory to its final destination.
 // The method returns an error if the file cannot be move.
 func (t *TransferStream) Finalize() *model.PipelineError {
+	_ = t.File.Close()
+
 	if !t.Rule.IsSend {
 		path := t.Transfer.DestFile
 		if t.Rule.InPath != "" {
@@ -255,7 +257,7 @@ func (t *TransferStream) Finalize() *model.PipelineError {
 			}
 		}
 
-		if t.Transfer.TrueFilepath == path {
+		if t.Transfer.TrueFilepath == path || t.Transfer.TrueFilepath == "" {
 			return nil
 		}
 
@@ -263,14 +265,9 @@ func (t *TransferStream) Finalize() *model.PipelineError {
 			t.Logger.Errorf("Failed to create destination directory: %s", err.Error())
 			return model.NewPipelineError(model.TeFinalization, err.Error())
 		}
-		dest, err := os.Create(path)
-		if err != nil {
-			t.Logger.Errorf("Failed to create destination file: %s", err.Error())
-			return model.NewPipelineError(model.TeFinalization, err.Error())
-		}
 
-		if _, err := io.Copy(dest, t.File); err != nil {
-			t.Logger.Errorf("Failed to copy temp file: %s", err.Error())
+		if err := tasks.MoveFile(t.Transfer.TrueFilepath, path); err != nil {
+			t.Logger.Errorf("Failed to move temp file: %s", err.Error())
 			return model.NewPipelineError(model.TeFinalization, err.Error())
 		}
 
@@ -278,16 +275,6 @@ func (t *TransferStream) Finalize() *model.PipelineError {
 		if err := t.Transfer.Update(t.DB); err != nil {
 			t.Logger.Errorf("Failed to update transfer filepath: %s", err.Error())
 			return &model.PipelineError{Kind: model.KindDatabase}
-		}
-
-		if err := dest.Close(); err != nil {
-			t.Logger.Warningf("Failed to close destination file: %s", err.Error())
-		}
-		if err := t.File.Close(); err != nil {
-			t.Logger.Warningf("Failed to close work file: %s", err.Error())
-		}
-		if err := os.Remove(t.File.Name()); err != nil {
-			t.Logger.Warningf("Failed to delete work file: %s", err.Error())
 		}
 	}
 	return nil
