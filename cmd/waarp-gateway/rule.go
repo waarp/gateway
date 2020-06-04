@@ -54,22 +54,29 @@ func displayRule(w io.Writer, rule *rest.OutRule) {
 		way = "SEND"
 	}
 
-	servers := strings.Join(rule.Authorized.LocalServers, ", ")
-	partners := strings.Join(rule.Authorized.RemotePartners, ", ")
-	la := []string{}
-	for server, accounts := range rule.Authorized.LocalAccounts {
-		for _, account := range accounts {
-			la = append(la, fmt.Sprint(server, ".", account))
+	servers := ""
+	partners := ""
+	locAcc := ""
+	remAcc := ""
+	if rule.Authorized != nil {
+		servers = strings.Join(rule.Authorized.LocalServers, ", ")
+		partners = strings.Join(rule.Authorized.RemotePartners, ", ")
+
+		la := []string{}
+		for server, accounts := range rule.Authorized.LocalAccounts {
+			for _, account := range accounts {
+				la = append(la, fmt.Sprint(server, ".", account))
+			}
 		}
-	}
-	ra := []string{}
-	for partner, accounts := range rule.Authorized.RemoteAccounts {
-		for _, account := range accounts {
-			ra = append(ra, fmt.Sprint(partner, ".", account))
+		ra := []string{}
+		for partner, accounts := range rule.Authorized.RemoteAccounts {
+			for _, account := range accounts {
+				ra = append(ra, fmt.Sprint(partner, ".", account))
+			}
 		}
+		locAcc = strings.Join(la, ", ")
+		remAcc = strings.Join(ra, ", ")
 	}
-	locAcc := strings.Join(la, ", ")
-	remAcc := strings.Join(ra, ", ")
 
 	fmt.Fprintln(w, orange(bold("● Rule", rule.Name, "("+way+")")))
 	fmt.Fprintln(w, orange("    Comment:"), rule.Comment)
