@@ -59,16 +59,6 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 		logger.Criticalf("Failed to retrieve transfer rule: %s", err.Error())
 		return nil, &model.PipelineError{Kind: model.KindDatabase}
 	}
-	// Compute rulepath
-	outpath := paths.OutDirectory
-	if t.Pipeline.Rule.OutPath != "" {
-		outpath = t.Pipeline.Rule.OutPath
-	}
-	inpath := paths.InDirectory
-	if t.Pipeline.Rule.InPath != "" {
-		inpath = t.Pipeline.Rule.InPath
-	}
-
 	t.Signals = Signals.Add(t.Transfer.ID)
 
 	t.proc = &tasks.Processor{
@@ -78,8 +68,8 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 		Transfer: t.Transfer,
 		Signals:  t.Signals,
 		Ctx:      ctx,
-		InPath:   inpath,
-		OutPath:  outpath,
+		InPath:   utils.GetPath(t.Pipeline.Rule.InPath, paths.ServerRoot, paths.InDirectory, paths.GatewayHome),
+		OutPath:  utils.GetPath(t.Pipeline.Rule.OutPath, paths.ServerRoot, paths.OutDirectory, paths.GatewayHome),
 	}
 	if err := t.setTrueFilepath(); err != nil {
 		return nil, err
