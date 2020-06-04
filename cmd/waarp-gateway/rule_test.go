@@ -40,9 +40,9 @@ func ruleInfoString(r *rest.OutRule) string {
 
 	taskStr := func(tasks []rest.RuleTask) string {
 		str := ""
-		for i, t := range r.PreTasks {
+		for i, t := range tasks {
 			prefix := "    ├─Command "
-			if i == len(r.PreTasks)-1 {
+			if i == len(tasks)-1 {
 				prefix = "    └─Command "
 			}
 			str += prefix + t.Type + " with args: " + string(t.Args) + "\n"
