@@ -17,20 +17,23 @@ type AuthorizedRules struct {
 }
 
 func getAuthorizedRules(db *database.DB, objType string, objID uint64) (*AuthorizedRules, error) {
-	query := "SELECT name, send FROM rules WHERE (id IN (SELECT DISTINCT " +
-		"rule_id FROM rule_access WHERE object_id = ? AND object_type = ?)) OR " +
-		"(SELECT COUNT(*) FROM rule_access WHERE rule_id = id) = 0"
-	rules, err := db.Query(query, objID, objType)
-	if err != nil {
+	query := "(id IN (SELECT DISTINCT rule_id FROM rule_access WHERE " +
+		"object_id = ? AND object_type = ?)) OR (SELECT COUNT(*) FROM " +
+		"rule_access WHERE rule_id = id) = 0"
+	cond := builder.Expr(query, objID, objType)
+	filters := &database.Filters{Conditions: cond}
+	rules := []model.Rule{}
+
+	if err := db.Select(&rules, filters); err != nil {
 		return nil, err
 	}
 
 	authorized := &AuthorizedRules{}
 	for _, rule := range rules {
-		if rule["send"].(int64) != 0 { // if send == true
-			authorized.Sending = append(authorized.Sending, rule["name"].(string))
+		if rule.IsSend { // if send == true
+			authorized.Sending = append(authorized.Sending, rule.Name)
 		} else {
-			authorized.Reception = append(authorized.Reception, rule["name"].(string))
+			authorized.Reception = append(authorized.Reception, rule.Name)
 		}
 	}
 	return authorized, nil
@@ -118,7 +121,12 @@ type RuleAccess struct {
 	RemoteAccounts map[string][]string `json:"remoteAccounts,omitempty"`
 }
 
-func makeAccessIDs(db *database.DB, rule *model.Rule, typ string) ([]uint64, error) {
+func makeAccessIDs(db *database.DB, rule *model.Rule, isLocal bool) ([]uint64, error) {
+	typ := "remote_agents"
+	if isLocal {
+		typ = "local_agents"
+	}
+
 	accesses := []model.RuleAccess{}
 	filters := &database.Filters{Conditions: builder.Eq{"rule_id": rule.ID,
 		"object_type": typ}}
@@ -133,20 +141,37 @@ func makeAccessIDs(db *database.DB, rule *model.Rule, typ string) ([]uint64, err
 	return ids, nil
 }
 
-func makeNames(db *database.DB, typ string, ids []uint64) ([]string, error) {
-	agents, err := db.Query(builder.Select().From(typ).Where(builder.In("id", ids)))
-	if err != nil {
+func makeLocalNames(db *database.DB, ids []uint64) ([]string, error) {
+	agents := []model.LocalAgent{}
+	filters := &database.Filters{Conditions: builder.In("id", ids)}
+
+	if err := db.Select(&agents, filters); err != nil {
 		return nil, err
 	}
 
 	names := make([]string, len(agents))
 	for i, agent := range agents {
-		names[i] = agent["name"].(string)
+		names[i] = agent.Name
 	}
 	return names, nil
 }
 
-func convertAgentIDs(db *database.DB, typ string, access map[uint64][]string) (map[string][]string, error) {
+func makeRemoteNames(db *database.DB, ids []uint64) ([]string, error) {
+	agents := []model.RemoteAgent{}
+	filters := &database.Filters{Conditions: builder.In("id", ids)}
+
+	if err := db.Select(&agents, filters); err != nil {
+		return nil, err
+	}
+
+	names := make([]string, len(agents))
+	for i, agent := range agents {
+		names[i] = agent.Name
+	}
+	return names, nil
+}
+
+func convertAgentIDs(db *database.DB, isLocal bool, access map[uint64][]string) (map[string][]string, error) {
 	ids := make([]uint64, len(access))
 	i := 0
 	for id := range access {
@@ -154,73 +179,104 @@ func convertAgentIDs(db *database.DB, typ string, access map[uint64][]string) (m
 		i++
 	}
 
-	agents, err := db.Query(builder.Select().From(typ).Where(builder.In("id", ids)))
-	if err != nil {
-		return nil, err
-	}
-
 	names := map[string][]string{}
-	for _, agent := range agents {
-		id := agent["id"].(uint64)
-		name := agent["name"].(string)
-		names[name] = access[id]
+	if isLocal {
+		agents := []model.LocalAgent{}
+		filters := &database.Filters{Conditions: builder.In("id", ids)}
+		if err := db.Select(&agents, filters); err != nil {
+			return nil, err
+		}
+		for _, agent := range agents {
+			names[agent.Name] = access[agent.ID]
+		}
+	} else {
+		agents := []model.RemoteAgent{}
+		filters := &database.Filters{Conditions: builder.In("id", ids)}
+		if err := db.Select(&agents, filters); err != nil {
+			return nil, err
+		}
+		for _, agent := range agents {
+			names[agent.Name] = access[agent.ID]
+		}
 	}
 	return names, nil
 }
 
-func makeServerAccess(db *database.DB, rule *model.Rule, typ string) ([]string, error) {
-	ids, err := makeAccessIDs(db, rule, typ)
+func makeServerAccess(db *database.DB, rule *model.Rule, isLocal bool) ([]string, error) {
+	ids, err := makeAccessIDs(db, rule, isLocal)
 	if err != nil {
 		return nil, err
 	}
 
-	return makeNames(db, typ, ids)
+	if isLocal {
+		return makeLocalNames(db, ids)
+	}
+	return makeRemoteNames(db, ids)
 }
 
-func makeAccountAccess(db *database.DB, rule *model.Rule, tblName, agentTblName,
-	colName string) (map[string][]string, error) {
-
-	ids, err := makeAccessIDs(db, rule, tblName)
+func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]string, error) {
+	ids, err := makeAccessIDs(db, rule, true)
 	if err != nil {
 		return nil, err
 	}
 
-	accounts, err := db.Query(builder.Select().From(tblName).Where(builder.In("id", ids)))
-	if err != nil {
+	accounts := []model.LocalAccount{}
+	filters := &database.Filters{Conditions: builder.In("id", ids)}
+	if err := db.Select(&accounts, filters); err != nil {
 		return nil, err
 	}
 
 	accessIDs := map[uint64][]string{}
 	for _, account := range accounts {
-		login := account["login"].(string)
-		agentID := account[colName].(uint64)
-		if _, ok := accessIDs[agentID]; !ok {
-			accessIDs[agentID] = []string{login}
+		if _, ok := accessIDs[account.LocalAgentID]; !ok {
+			accessIDs[account.LocalAgentID] = []string{account.Login}
 		} else {
-			accessIDs[agentID] = append(accessIDs[agentID], login)
+			accessIDs[account.LocalAgentID] = append(accessIDs[account.LocalAgentID], account.Login)
 		}
 	}
 
-	return convertAgentIDs(db, agentTblName, accessIDs)
+	return convertAgentIDs(db, true, accessIDs)
+}
+
+func makeRemoteAccountAccess(db *database.DB, rule *model.Rule) (map[string][]string, error) {
+	ids, err := makeAccessIDs(db, rule, false)
+	if err != nil {
+		return nil, err
+	}
+
+	accounts := []model.RemoteAccount{}
+	filters := &database.Filters{Conditions: builder.In("id", ids)}
+	if err := db.Select(&accounts, filters); err != nil {
+		return nil, err
+	}
+
+	accessIDs := map[uint64][]string{}
+	for _, account := range accounts {
+		if _, ok := accessIDs[account.RemoteAgentID]; !ok {
+			accessIDs[account.RemoteAgentID] = []string{account.Login}
+		} else {
+			accessIDs[account.RemoteAgentID] = append(accessIDs[account.RemoteAgentID], account.Login)
+		}
+	}
+
+	return convertAgentIDs(db, true, accessIDs)
 }
 
 func makeRuleAccess(db *database.DB, rule *model.Rule) (*RuleAccess, error) {
-	servers, err := makeServerAccess(db, rule, "local_agents")
+	servers, err := makeServerAccess(db, rule, true)
 	if err != nil {
 		return nil, err
 	}
-	partners, err := makeServerAccess(db, rule, "remote_agents")
+	partners, err := makeServerAccess(db, rule, false)
 	if err != nil {
 		return nil, err
 	}
 
-	locAccounts, err := makeAccountAccess(db, rule, "local_accounts",
-		"local_agents", "local_agent_id")
+	locAccounts, err := makeLocalAccountAccess(db, rule)
 	if err != nil {
 		return nil, err
 	}
-	remAccounts, err := makeAccountAccess(db, rule, "remote_accounts",
-		"remote_agents", "remote_agent_id")
+	remAccounts, err := makeRemoteAccountAccess(db, rule)
 	if err != nil {
 		return nil, err
 	}

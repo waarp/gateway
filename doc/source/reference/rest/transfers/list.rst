@@ -15,7 +15,7 @@ Lister les transferts
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
    :param sort: Le paramètre selon lequel les transferts seront triés *(défaut: start+)*
-   :type sort: [start+|start-|id+|id-|status+|status-|rule_id+|rule_id-]
+   :type sort: [start+|start-|id+|id-|status+|status-]
    :param remote: Filtre uniquement les transferts avec le partenaire renseigné.
       Peut être renseigné plusieurs fois pour filtrer plusieurs partenaires.
    :type remote: int
