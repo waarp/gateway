@@ -13,3 +13,21 @@ func SlashJoin(elem ...string) string {
 func CleanSlash(path string) string {
 	return filepath.Clean(filepath.ToSlash(path))
 }
+
+// GetPath return the path given in the first non empty root provided
+func GetPath(path string, root ...string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return SlashJoin(firstNonEmpty(root...), path)
+}
+
+func firstNonEmpty(xs ...string) string {
+	for _, x := range xs {
+		if x != "" {
+			return x
+		}
+	}
+
+	return ""
+}
