@@ -45,17 +45,15 @@ func (s *Service) Start() error {
 			return err
 		}
 
-		sshConf, err := getSSHServerConfig(s.db, cert, &protoConfig)
+		sshConf, err := getSSHServerConfig(s.db, cert, &protoConfig, s.agent)
 		if err != nil {
 			return err
 		}
 
-		addr, port, err := parseServerAddr(s.agent)
-		if err != nil {
-			return err
-		}
+		addr := protoConfig.Address
+		port := fmt.Sprint(protoConfig.Port)
 
-		listener, err := net.Listen("tcp", net.JoinHostPort(addr, fmt.Sprint(port)))
+		listener, err := net.Listen("tcp", net.JoinHostPort(addr, port))
 		if err != nil {
 			return err
 		}
