@@ -8,4 +8,5 @@ Ce guide regroupe plusieurs rubriques expliquant comment utiliser la *gateway*.
 
    requirements
    usage
+   backup
    administration/index

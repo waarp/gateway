@@ -4,25 +4,19 @@ Pré-requis
 Système
 -------
 
-   La gateway étant écrite en langage *Go*, le système sur lequel elle sera installée
-   doit faire parti des `systèmes supportés par le compilateur
-   <https://golang.org/doc/install#requirements>`_. Ces systèmes sont les suivants :
+   La gateway étant écrite en langage *Go*, le système sur lequel elle sera
+   installée doit faire parti des `systèmes supportés par le compilateur
+   <https://golang.org/doc/install#requirements>`_.
+
+   Cependant, seuls les systèmes suivants sont officiellement supportés :
 
    +-----------------------------+-----------------------------------------+
    | Système d'exploitation      | Architectures                           |
    +=============================+=========================================+
-   | FreeBSD 10.3                | amd64, i386                             |
-   +-----------------------------+-----------------------------------------+
    | Linux 2.6.23 (glibc requis) | amd64, i386, arm, arm64, s390x, ppc64le |
-   +-----------------------------+-----------------------------------------+
-   | macOS 10.11                 | amd64                                   |
    +-----------------------------+-----------------------------------------+
    | Windows 7 ou Server 2008R2  | amd64, i386                             |
    +-----------------------------+-----------------------------------------+
-
-   .. warning::
-      La *gateway* n'a (pour l'heure) pas été testée sur Windows. Des erreurs
-      imprévues peuvent donc se produire sur ce système.
 
 
 Exécutables
@@ -85,9 +79,9 @@ Fichier de configuration
 
    .. code-block:: shell
 
-      waarp-gatewayd -n -c chemin/de/la/configuration.ini
+      waarp-gatewayd server -n -c chemin/de/la/configuration.ini
 
    .. note::
       Bien qu'il soit possible d'utiliser la *gateway* avec la configuration par
-      défaut, ll est fortement recommandé de consulter le détail du :doc:`../configuration`
+      défaut, il est fortement recommandé de consulter le détail du :doc:`../configuration`
       pour ensuite le modifier avec des valeurs plus adaptées à votre utilisation.
