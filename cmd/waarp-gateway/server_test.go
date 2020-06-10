@@ -15,11 +15,12 @@ import (
 
 func serverInfoString(s *rest.OutServer) string {
 	return "● Server " + s.Name + "\n" +
-		"    Protocol:      " + s.Protocol + "\n" +
-		"    Root:          " + s.Root + "\n" +
-		"    Configuration: " + string(s.ProtoConfig) + "\n" +
+		"    Protocol:       " + s.Protocol + "\n" +
+		"    Root:           " + s.Root + "\n" +
+		"    Work directory: " + s.Root + "\n" +
+		"    Configuration:  " + string(s.ProtoConfig) + "\n" +
 		"    Authorized rules\n" +
-		"    ├─  Sending: " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
+		"    ├─Sending:   " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
 		"    └─Reception: " + strings.Join(s.AuthorizedRules.Reception, ", ") + "\n"
 }
 
@@ -38,6 +39,7 @@ func TestGetServer(t *testing.T) {
 				Name:        "local_agent",
 				Protocol:    "test",
 				Root:        "/server/root",
+				WorkDir:     "/server/work",
 				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server), ShouldBeNil)
@@ -179,6 +181,7 @@ func TestListServers(t *testing.T) {
 				Name:        "local_agent1",
 				Protocol:    "test",
 				Root:        "/test/root1",
+				WorkDir:     "/test/work1",
 				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server1), ShouldBeNil)
@@ -187,6 +190,7 @@ func TestListServers(t *testing.T) {
 				Name:        "local_agent2",
 				Protocol:    "test2",
 				Root:        "/test/root2",
+				WorkDir:     "/test/work2",
 				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server2), ShouldBeNil)

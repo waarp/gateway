@@ -17,6 +17,7 @@ type InServer struct {
 	Name        string          `json:"name"`
 	Protocol    string          `json:"protocol"`
 	Root        string          `json:"root"`
+	WorkDir     string          `json:"workDir"`
 	ProtoConfig json.RawMessage `json:"protoConfig"`
 }
 
@@ -25,6 +26,8 @@ func (i *InServer) ToModel() *model.LocalAgent {
 	return &model.LocalAgent{
 		Owner:       database.Owner,
 		Name:        i.Name,
+		Root:        i.Root,
+		WorkDir:     i.WorkDir,
 		Protocol:    i.Protocol,
 		ProtoConfig: i.ProtoConfig,
 	}
@@ -53,6 +56,7 @@ type OutServer struct {
 	Name            string          `json:"name"`
 	Protocol        string          `json:"protocol"`
 	Root            string          `json:"root"`
+	WorkDir         string          `json:"workDir"`
 	ProtoConfig     json.RawMessage `json:"protoConfig"`
 	AuthorizedRules AuthorizedRules `json:"authorizedRules"`
 }
@@ -64,6 +68,7 @@ func FromLocalAgent(ag *model.LocalAgent, rules *AuthorizedRules) *OutServer {
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
 		Root:            ag.Root,
+		WorkDir:         ag.WorkDir,
 		ProtoConfig:     ag.ProtoConfig,
 		AuthorizedRules: *rules,
 	}
@@ -74,13 +79,8 @@ func FromLocalAgent(ag *model.LocalAgent, rules *AuthorizedRules) *OutServer {
 func FromLocalAgents(ags []model.LocalAgent, rules []AuthorizedRules) []OutServer {
 	agents := make([]OutServer, len(ags))
 	for i, ag := range ags {
-		agents[i] = OutServer{
-			Name:            ag.Name,
-			Protocol:        ag.Protocol,
-			Root:            ag.Root,
-			ProtoConfig:     ag.ProtoConfig,
-			AuthorizedRules: rules[i],
-		}
+		agent := ag
+		agents[i] = *FromLocalAgent(&agent, &rules[i])
 	}
 	return agents
 }
@@ -110,12 +110,8 @@ func FromRemoteAgent(ag *model.RemoteAgent, rules *AuthorizedRules) *OutPartner 
 func FromRemoteAgents(ags []model.RemoteAgent, rules []AuthorizedRules) []OutPartner {
 	agents := make([]OutPartner, len(ags))
 	for i, ag := range ags {
-		agents[i] = OutPartner{
-			Name:            ag.Name,
-			Protocol:        ag.Protocol,
-			ProtoConfig:     ag.ProtoConfig,
-			AuthorizedRules: rules[i],
-		}
+		agent := ag
+		agents[i] = *FromRemoteAgent(&agent, &rules[i])
 	}
 	return agents
 }
