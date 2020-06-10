@@ -140,7 +140,7 @@ func (c *Cert) BeforeUpdate(db database.Accessor, id uint64) error {
 
 	if c.Name != "" {
 		if res, err := db.Query("SELECT id FROM certificates WHERE owner_type=? AND owner_id=? "+
-			"AND name=?", old.OwnerType, old.OwnerID, old.Name); err != nil {
+			"AND name=? AND id!=?", old.OwnerType, old.OwnerID, old.Name, id); err != nil {
 			return err
 		} else if len(res) > 0 {
 			return database.InvalidError("a certificate with the same name '%s' "+

@@ -88,7 +88,7 @@ func (r *RemoteAgent) BeforeInsert(db database.Accessor) error {
 // BeforeUpdate is called before updating an existing `RemoteAgent` entry from
 // the database. It checks whether the updated entry is valid or not.
 func (r *RemoteAgent) BeforeUpdate(db database.Accessor, id uint64) error {
-	if r.ID != 0 {
+	if r.ID != 0 && r.ID != id {
 		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
 

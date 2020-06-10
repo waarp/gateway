@@ -297,7 +297,7 @@ func TestLocalAccountBeforeUpdate(t *testing.T) {
 				})
 
 				Convey("Given that the updated account's login is already taken", func() {
-					updatedAccount.Login = oldAccount.Login
+					updatedAccount.Login = otherAccount.Login
 
 					Convey("When calling the 'BeforeUpdate' function", func() {
 						err := updatedAccount.BeforeUpdate(db, oldAccount.ID)

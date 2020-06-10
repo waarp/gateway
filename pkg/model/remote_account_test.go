@@ -303,9 +303,8 @@ func TestRemoteAccountBeforeUpdate(t *testing.T) {
 					Convey("When calling the 'BeforeUpdate' function", func() {
 						err := updatedAccount.BeforeUpdate(db, oldAccount.ID)
 
-						Convey("Then the error should say that the login is already taken", func() {
-							So(err, ShouldBeError, "a remote account with "+
-								"the same login '"+updatedAccount.Login+"' already exist")
+						Convey("Then it should return NO error", func() {
+							So(err, ShouldBeNil)
 						})
 					})
 				})

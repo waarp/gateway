@@ -24,7 +24,6 @@ type Chain string
 const (
 	// ChainPre is the chain for pre transfer tasks
 	ChainPre Chain = "PRE"
-
 	// ChainPost is the chain for post transfer tasks
 	ChainPost Chain = "POST"
 
