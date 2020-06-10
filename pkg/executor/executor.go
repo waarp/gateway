@@ -3,8 +3,11 @@
 package executor
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"os/exec"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
@@ -101,7 +104,20 @@ func (e *Executor) data() *model.PipelineError {
 
 // Run executes the transfer stream given in the executor.
 func (e *Executor) Run() {
-	tErr := func() *model.PipelineError {
+	var tErr *model.PipelineError
+	info, err := model.NewOutTransferInfo(e.DB, e.Transfer)
+	if err != nil {
+		msg := fmt.Sprintf("Failed to retrieve transfer info: %s", err)
+		e.Logger.Critical(msg)
+		tErr = &model.PipelineError{Kind: model.KindDatabase}
+		pipeline.HandleError(e.TransferStream, tErr)
+		return
+	}
+	if info.Agent.Protocol == "r66" {
+		e.runR66(info)
+	}
+
+	tErr = func() *model.PipelineError {
 		if sErr := e.TransferStream.Start(); sErr != nil {
 			return sErr
 		}
@@ -145,4 +161,70 @@ func (e *Executor) Run() {
 	if tErr != nil {
 		pipeline.HandleError(e.TransferStream, tErr)
 	}
+}
+
+func (e *Executor) runR66(info *model.OutTransferInfo) {
+	if err := e.r66Transfer(info); err != nil {
+		msg := fmt.Sprintf("Transfer failed: %s", err)
+		e.Logger.Error(msg)
+		e.Transfer.Status = model.StatusError
+	} else {
+		e.Transfer.Status = model.StatusDone
+	}
+	e.Pipeline.Archive()
+	e.Pipeline.Exit()
+}
+
+func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {
+
+	script := e.R66Home
+	args := []string{
+		info.Account.Login,
+		"send",
+		"-to", info.Agent.Name,
+		"-file", info.Transfer.SourceFile,
+		"-rule", info.Rule.Name,
+	}
+	e.Logger.Infof("%s %#v", script, args)
+	cmd := exec.Command(script, args...) //nolint:gosec
+	out, err := cmd.Output()
+	if err != nil {
+		info.Transfer.Error = model.TransferError{
+			Code:    model.TeExternalOperation,
+			Details: err.Error(),
+		}
+	}
+	if len(out) > 0 {
+		// Get the second line of the output
+		arrays := bytes.Split(out, []byte("\n"))
+		if len(arrays) < 2 {
+			return fmt.Errorf("bad output")
+		}
+		// Parse into a r66Result
+		result := &r66Result{}
+		if err := json.Unmarshal(arrays[1], result); err != nil {
+			return err
+		}
+		// Add R66 result info to the transfer
+		if err = info.Transfer.Error.Code.Scan(result.StatusCode); err != nil {
+			return err
+		}
+		info.Transfer.Error.Details = result.StatusTxt
+		info.Transfer.DestFile = result.FinalPath
+		buf, err := json.Marshal(result)
+		if err != nil {
+			return err
+		}
+		info.Transfer.ExtInfo = buf
+	}
+	return err
+}
+
+type r66Result struct {
+	SpecialID       int
+	StatusCode      string
+	StatusTxt       string
+	FinalPath       string
+	FileInformation string
+	OriginalSize    uint
 }
