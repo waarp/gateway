@@ -1,25 +1,22 @@
 package utils
 
-import "path/filepath"
+import (
+	"path"
+	"path/filepath"
+)
 
-// SlashJoin joins all the given elements into a path using the slash '/'
+// Deprecated: SlashJoin joins all the given elements into a path using the slash '/'
 // character as separator.
 func SlashJoin(elem ...string) string {
 	return filepath.ToSlash(filepath.Join(elem...))
 }
 
-// CleanSlash replaces all separators of the path with slashes '/', then cleans the
-// resulting path.
-func CleanSlash(path string) string {
-	return filepath.Clean(filepath.ToSlash(path))
-}
-
 // GetPath return the path given in the first non empty root provided
-func GetPath(path string, root ...string) string {
-	if filepath.IsAbs(path) {
-		return path
+func GetPath(tail string, root ...string) string {
+	if path.IsAbs(tail) {
+		return tail
 	}
-	return SlashJoin(firstNonEmpty(root...), path)
+	return path.Join(firstNonEmpty(root...), tail)
 }
 
 func firstNonEmpty(xs ...string) string {

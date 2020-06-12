@@ -99,7 +99,9 @@ func (p *Processor) RunTasks(tasks []model.Task) *model.PipelineError {
 		select {
 		case <-p.Ctx.Done():
 			return &model.PipelineError{Kind: model.KindInterrupt}
-		case signal := <-p.Signals:
+		case signal, ok := <-p.Signals:
+			if ok {
+			}
 			switch signal {
 			case model.SignalCancel:
 				return &model.PipelineError{Kind: model.KindCancel}

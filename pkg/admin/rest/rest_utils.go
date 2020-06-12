@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"path/filepath"
+	"path"
 	"strconv"
 	"strings"
 
@@ -116,6 +116,6 @@ func location(r *http.Request, names ...string) string {
 }
 
 func locationUpdate(r *http.Request, names ...string) string {
-	r.URL.Path = filepath.Dir(r.URL.Path)
+	r.URL.Path = path.Dir(r.URL.Path)
 	return location(r, names...)
 }

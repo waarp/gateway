@@ -29,7 +29,7 @@ func TestCreateRule(t *testing.T) {
 				Name:    "existing",
 				Comment: "",
 				IsSend:  false,
-				Path:    "/test/existing/path",
+				Path:    "test/existing/path",
 			}
 			So(db.Create(existing), ShouldBeNil)
 
@@ -38,7 +38,7 @@ func TestCreateRule(t *testing.T) {
 					UptRule: &UptRule{
 						Name:    "new rule",
 						Comment: "",
-						Path:    "/test/rule/path",
+						Path:    "test/rule/path",
 					},
 					IsSend: false,
 				}
@@ -103,7 +103,7 @@ func TestGetRule(t *testing.T) {
 				Name:    "existing",
 				Comment: "",
 				IsSend:  false,
-				Path:    "/test/existing/path",
+				Path:    "test/existing/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 
@@ -168,14 +168,14 @@ func TestListRules(t *testing.T) {
 			r1 := &model.Rule{
 				Name:   "rule1",
 				IsSend: false,
-				Path:   "/path1",
+				Path:   "path1",
 			}
 			So(db.Create(r1), ShouldBeNil)
 
 			r2 := &model.Rule{
 				Name:   "rule2",
 				IsSend: true,
-				Path:   "/path2",
+				Path:   "path2",
 			}
 			So(db.Create(r2), ShouldBeNil)
 
@@ -224,7 +224,7 @@ func TestDeleteRule(t *testing.T) {
 		Convey("Given a database with 1 rule", func() {
 			rule := &model.Rule{
 				Name: "rule",
-				Path: "/path",
+				Path: "path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 
@@ -282,11 +282,11 @@ func TestUpdateRule(t *testing.T) {
 		Convey("Given a database with 2 rules", func() {
 			old := &model.Rule{
 				Name: "old",
-				Path: "/path/old",
+				Path: "path/old",
 			}
 			other := &model.Rule{
 				Name: "other",
-				Path: "/path/other",
+				Path: "path/other",
 			}
 			So(db.Create(old), ShouldBeNil)
 			So(db.Create(other), ShouldBeNil)
@@ -294,7 +294,7 @@ func TestUpdateRule(t *testing.T) {
 			Convey("Given new values to update the rule with", func() {
 				update := UptRule{
 					Name: "update",
-					Path: "/new_path",
+					Path: "new_path",
 				}
 				body, err := json.Marshal(update)
 				So(err, ShouldBeNil)

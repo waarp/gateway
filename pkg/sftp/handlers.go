@@ -4,7 +4,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/pkg/sftp"
 )
 
@@ -44,10 +46,22 @@ func makeFileCmder() fileCmdFunc {
 	}
 }
 
-func makeFileLister(root string) fileListerFunc {
+func (l *sshListener) makeFileLister(root string) fileListerFunc {
 	return func(r *sftp.Request) (sftp.ListerAt, error) {
+		rule, err := getRuleFromPath(l.DB, r, true)
+		if err != nil {
+			if rule, err = getRuleFromPath(l.DB, r, false); err != nil {
+				l.Logger.Errorf("Failed to retrieve rule from request filepath '%s'", r.Filepath)
+				return nil, err
+			}
+		}
+		rulePath := rule.OutPath
+		if !rule.IsSend {
+			rulePath = rule.InPath
+		}
+
 		listerAt := func(ls []os.FileInfo, offset int64) (int, error) {
-			dir := root + r.Filepath
+			dir := utils.DenormalizePath(path.Join(root, rulePath))
 			infos, err := ioutil.ReadDir(dir)
 			if err != nil {
 				return 0, err
@@ -65,8 +79,8 @@ func makeFileLister(root string) fileListerFunc {
 		}
 
 		statAt := func(ls []os.FileInfo, offset int64) (int, error) {
-			path := root + r.Filepath
-			fi, err := os.Stat(path)
+			filepath := utils.DenormalizePath(path.Join(root, rulePath, path.Base(r.Filepath)))
+			fi, err := os.Stat(filepath)
 			if err != nil {
 				return 0, err
 			}

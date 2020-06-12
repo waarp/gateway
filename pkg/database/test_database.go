@@ -53,6 +53,7 @@ func GetTestDatabase() *DB {
 	}
 	db.logger = log.NewLogger(ServiceName)
 	db.logger.Logger.SetLevel(logging.CRITICAL)
+	convey.Reset(func() { _ = db.engine.Close() })
 	convey.So(db.Start(), convey.ShouldBeNil)
 
 	return db

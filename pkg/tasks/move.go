@@ -19,6 +19,7 @@ func init() {
 	model.ValidTasks["MOVE"] = &MoveTask{}
 }
 
+// Warning: both 'oldPath' and 'newPath' must be in denormalized format.
 func fallbackMove(oldPath, newPath string) error {
 	src, err := os.Open(oldPath)
 	if err != nil {
@@ -44,10 +45,13 @@ func fallbackMove(oldPath, newPath string) error {
 
 // MoveFile moves the given file to the given location. Works across partitions.
 func MoveFile(oldPath, newPath string) error {
-	if err := os.Rename(oldPath, newPath); err != nil {
+	trueOldPath := utils.DenormalizePath(oldPath)
+	trueNewPath := utils.DenormalizePath(newPath)
+
+	if err := os.Rename(trueOldPath, trueNewPath); err != nil {
 		linkErr, ok := err.(*os.LinkError)
 		if ok && linkErr.Err.Error() == "invalid cross-device link" {
-			return fallbackMove(oldPath, newPath)
+			return fallbackMove(trueOldPath, trueNewPath)
 		}
 		return err
 	}

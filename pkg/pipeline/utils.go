@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 // Paths is a struct combining the paths given in the Gateway configuration file
@@ -99,7 +100,7 @@ func execTasks(proc *tasks.Processor, chain model.Chain,
 
 	proc.Transfer.Step = step
 	if err := proc.Transfer.Update(proc.DB); err != nil {
-		proc.Logger.Criticalf("Failed to update transfer step: %s", err)
+		proc.Logger.Criticalf("Failed to update transfer step to '%s': %s", step, err)
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 
@@ -114,9 +115,9 @@ func execTasks(proc *tasks.Processor, chain model.Chain,
 
 func getFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.File, *model.PipelineError) {
 
-	path := trans.TrueFilepath
+	path := utils.DenormalizePath(trans.TrueFilepath)
 	if rule.IsSend {
-		file, err := os.OpenFile(path, os.O_RDONLY, 0100)
+		file, err := os.OpenFile(path, os.O_RDONLY, 0600)
 		if err != nil {
 			logger.Errorf("Failed to open source file: %s", err)
 			return nil, model.NewPipelineError(model.TeForbidden, err.Error())
@@ -144,11 +145,12 @@ func getFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.F
 	return file, nil
 }
 
-func makeDir(path string) error {
+func makeDir(uri string) error {
+	path := utils.DenormalizePath(uri)
 	dir := filepath.Dir(path)
 	if info, err := os.Lstat(dir); err != nil {
 		if os.IsNotExist(err) {
-			if err := os.MkdirAll(dir, 0740); err != nil {
+			if err := os.MkdirAll(dir, 0700); err != nil {
 				return err
 			}
 		} else {
@@ -192,7 +194,8 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 		stream.ErrorTasks()
 		stream.Transfer.Error = err.Cause
 		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
-			stream.Logger.Criticalf("Failed to update transfer step: %s", dbErr)
+			stream.Logger.Criticalf("Failed to update transfer step to '%s': %s",
+				stream.Transfer.Step, dbErr)
 			return
 		}
 		stream.Transfer.Status = model.StatusError

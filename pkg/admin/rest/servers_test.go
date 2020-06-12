@@ -261,10 +261,19 @@ func TestCreateLocalAgent(t *testing.T) {
 
 						Convey("Then the new local agent should be inserted in "+
 							"the database", func() {
-							exist, err := db.Exists(newAgent.ToModel())
-
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							exp := model.LocalAgent{
+								ID:          2,
+								Owner:       database.Owner,
+								Name:        newAgent.Name,
+								Protocol:    newAgent.Protocol,
+								Root:        newAgent.Root,
+								WorkDir:     newAgent.Root,
+								ProtoConfig: newAgent.ProtoConfig,
+							}
+							var res []model.LocalAgent
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(len(res), ShouldEqual, 2)
+							So(res[1], ShouldResemble, exp)
 						})
 
 						Convey("Then the existing local agent should still be "+

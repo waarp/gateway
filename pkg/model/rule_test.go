@@ -41,7 +41,7 @@ func TestRuleBeforeInsert(t *testing.T) {
 			old := &Rule{
 				Name:   "old",
 				IsSend: true,
-				Path:   "/old_path",
+				Path:   "old_path",
 			}
 			So(db.Create(old), ShouldBeNil)
 
@@ -49,7 +49,7 @@ func TestRuleBeforeInsert(t *testing.T) {
 				rule := &Rule{
 					Name:   "rule",
 					IsSend: true,
-					Path:   "/path",
+					Path:   "path",
 				}
 
 				Convey("When calling `BeforeUpdate`", func() {
@@ -65,7 +65,7 @@ func TestRuleBeforeInsert(t *testing.T) {
 				rule := &Rule{
 					Name:   old.Name,
 					IsSend: !old.IsSend,
-					Path:   "/path",
+					Path:   "path",
 				}
 
 				Convey("When calling `BeforeUpdate`", func() {
@@ -81,7 +81,7 @@ func TestRuleBeforeInsert(t *testing.T) {
 				rule := &Rule{
 					Name:   old.Name,
 					IsSend: old.IsSend,
-					Path:   "/path",
+					Path:   "path",
 				}
 
 				Convey("When calling `BeforeUpdate`", func() {
@@ -120,14 +120,14 @@ func TestRuleBeforeUpdate(t *testing.T) {
 			rule1 := &Rule{
 				Name:   "rule1",
 				IsSend: true,
-				Path:   "/path",
+				Path:   "path",
 			}
 			So(db.Create(rule1), ShouldBeNil)
 
 			rule2 := &Rule{
 				Name:   "rule2",
 				IsSend: true,
-				Path:   "/path2",
+				Path:   "path2",
 			}
 			So(db.Create(rule2), ShouldBeNil)
 
@@ -168,7 +168,7 @@ func TestRuleBeforeDelete(t *testing.T) {
 			rule := &Rule{
 				Name:   "rule",
 				IsSend: true,
-				Path:   "/path",
+				Path:   "path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 

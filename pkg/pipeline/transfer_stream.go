@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"path"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -80,39 +81,39 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 func (t *TransferStream) setTrueFilepath() *model.PipelineError {
 
 	if t.Rule.IsSend {
-		path := t.Transfer.SourceFile
+		fullpath := t.Transfer.SourceFile
 		if t.Rule.OutPath != "" {
-			path = utils.SlashJoin(t.Rule.OutPath, path)
+			fullpath = path.Join(t.Rule.OutPath, fullpath)
 			if t.Paths.ServerRoot != "" {
-				path = utils.SlashJoin(t.Paths.ServerRoot, path)
+				fullpath = path.Join(t.Paths.ServerRoot, fullpath)
 			} else {
-				path = utils.SlashJoin(t.Paths.GatewayHome, path)
+				fullpath = path.Join(t.Paths.GatewayHome, fullpath)
 			}
 		} else {
 			if t.Paths.ServerRoot != "" {
-				path = utils.SlashJoin(t.Paths.ServerRoot, path)
+				fullpath = path.Join(t.Paths.ServerRoot, fullpath)
 			} else {
-				path = utils.SlashJoin(t.Paths.OutDirectory, path)
+				fullpath = path.Join(t.Paths.OutDirectory, fullpath)
 			}
 		}
-		t.Transfer.TrueFilepath = path
+		t.Transfer.TrueFilepath = fullpath
 	} else {
-		path := t.Transfer.DestFile
+		filepath := t.Transfer.DestFile
 		if t.Rule.WorkPath != "" {
-			path = utils.SlashJoin(t.Rule.WorkPath, path)
+			filepath = path.Join(t.Rule.WorkPath, filepath)
 			if t.Paths.ServerRoot != "" {
-				path = utils.SlashJoin(t.Paths.ServerRoot, path)
+				filepath = path.Join(t.Paths.ServerRoot, filepath)
 			} else {
-				path = utils.SlashJoin(t.Paths.GatewayHome, path)
+				filepath = path.Join(t.Paths.GatewayHome, filepath)
 			}
 		} else {
 			if t.Paths.ServerWork != "" {
-				path = utils.SlashJoin(t.Paths.ServerWork, path)
+				filepath = path.Join(t.Paths.ServerWork, filepath)
 			} else {
-				path = utils.SlashJoin(t.Paths.WorkDirectory, path)
+				filepath = path.Join(t.Paths.WorkDirectory, filepath)
 			}
 		}
-		t.Transfer.TrueFilepath = path
+		t.Transfer.TrueFilepath = filepath + ".tmp"
 	}
 	if err := t.Transfer.Update(t.DB); err != nil {
 		t.Logger.Criticalf("Failed to update transfer filepath: %s", err.Error())
@@ -149,41 +150,19 @@ func (t *TransferStream) Start() (err *model.PipelineError) {
 }
 
 func (t *TransferStream) Read(p []byte) (n int, err error) {
-	if t.Transfer.Step == model.StepPreTasks {
-		t.Transfer.Step = model.StepData
-		if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
-			return 0, &model.PipelineError{Kind: model.KindDatabase}
-		}
-	}
-	if e := checkSignal(t.Ctx, t.Signals); e != nil {
-		return 0, e
-	}
-
-	n, err = t.File.Read(p)
-	t.Transfer.Progress += uint64(n)
-	if err := t.Transfer.Update(t.DB); err != nil {
+	off, err := t.Seek(0, io.SeekCurrent)
+	if err != nil {
 		return 0, err
 	}
-	return
+	return t.ReadAt(p, off)
 }
 
 func (t *TransferStream) Write(p []byte) (n int, err error) {
-	if t.Transfer.Step == model.StepPreTasks {
-		t.Transfer.Step = model.StepData
-		if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
-			return 0, &model.PipelineError{Kind: model.KindDatabase}
-		}
-	}
-	if e := checkSignal(t.Ctx, t.Signals); e != nil {
-		return 0, e
-	}
-
-	n, err = t.File.Write(p)
-	t.Transfer.Progress += uint64(n)
-	if err := t.Transfer.Update(t.DB); err != nil {
+	off, err := t.Seek(0, io.SeekCurrent)
+	if err != nil {
 		return 0, err
 	}
-	return
+	return t.WriteAt(p, off)
 }
 
 // ReadAt reads the stream, starting at the given offset.
@@ -235,47 +214,50 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 }
 
 // Finalize closes the file, and then (if the file is the transfer's destination)
-// moves the file from the temporary directory to its final destination.
-// The method returns an error if the file cannot be move.
+// moves the file from the temporary work directory to its final destination.
+// The method returns an error if the file cannot be moved.
 func (t *TransferStream) Finalize() *model.PipelineError {
-	_ = t.File.Close()
+	if err := t.File.Close(); err != nil {
+		t.Logger.Warningf("Failed to close source file: %s", err.Error())
+	}
+	if t.Rule.IsSend {
+		return nil
+	}
 
-	if !t.Rule.IsSend {
-		path := t.Transfer.DestFile
-		if t.Rule.InPath != "" {
-			path = utils.SlashJoin(t.Rule.InPath, path)
-			if t.Paths.ServerRoot != "" {
-				path = utils.SlashJoin(t.Paths.ServerRoot, path)
-			} else {
-				path = utils.SlashJoin(t.Paths.GatewayHome, path)
-			}
+	filepath := t.Transfer.DestFile
+	if t.Rule.InPath != "" {
+		filepath = path.Join(t.Rule.InPath, filepath)
+		if t.Paths.ServerRoot != "" {
+			filepath = path.Join(t.Paths.ServerRoot, filepath)
 		} else {
-			if t.Paths.ServerRoot != "" {
-				path = utils.SlashJoin(t.Paths.ServerRoot, path)
-			} else {
-				path = utils.SlashJoin(t.Paths.InDirectory, path)
-			}
+			filepath = path.Join(t.Paths.GatewayHome, filepath)
 		}
+	} else {
+		if t.Paths.ServerRoot != "" {
+			filepath = path.Join(t.Paths.ServerRoot, filepath)
+		} else {
+			filepath = path.Join(t.Paths.InDirectory, filepath)
+		}
+	}
 
-		if t.Transfer.TrueFilepath == path || t.Transfer.TrueFilepath == "" {
-			return nil
-		}
+	if t.Transfer.TrueFilepath == filepath || t.Transfer.TrueFilepath == "" {
+		return nil
+	}
 
-		if err := makeDir(path); err != nil {
-			t.Logger.Errorf("Failed to create destination directory: %s", err.Error())
-			return model.NewPipelineError(model.TeFinalization, err.Error())
-		}
+	if err := makeDir(filepath); err != nil {
+		t.Logger.Errorf("Failed to create destination directory: %s", err.Error())
+		return model.NewPipelineError(model.TeFinalization, err.Error())
+	}
 
-		if err := tasks.MoveFile(t.Transfer.TrueFilepath, path); err != nil {
-			t.Logger.Errorf("Failed to move temp file: %s", err.Error())
-			return model.NewPipelineError(model.TeFinalization, err.Error())
-		}
+	if err := tasks.MoveFile(t.Transfer.TrueFilepath, filepath); err != nil {
+		t.Logger.Errorf("Failed to move temp file: %s", err.Error())
+		return model.NewPipelineError(model.TeFinalization, err.Error())
+	}
 
-		t.Transfer.TrueFilepath = path
-		if err := t.Transfer.Update(t.DB); err != nil {
-			t.Logger.Errorf("Failed to update transfer filepath: %s", err.Error())
-			return &model.PipelineError{Kind: model.KindDatabase}
-		}
+	t.Transfer.TrueFilepath = filepath
+	if err := t.Transfer.Update(t.DB); err != nil {
+		t.Logger.Errorf("Failed to update transfer filepath: %s", err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 	return nil
 }

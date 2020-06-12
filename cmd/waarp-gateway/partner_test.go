@@ -469,7 +469,7 @@ func TestAuthorizePartner(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "/rule/path",
+				Path:   "rule/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 
@@ -562,7 +562,7 @@ func TestRevokePartner(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "/rule/path",
+				Path:   "rule/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 

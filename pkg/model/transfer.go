@@ -2,8 +2,11 @@ package model
 
 import (
 	"fmt"
+	"path"
 	"path/filepath"
 	"time"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 )
@@ -144,8 +147,11 @@ func (t *Transfer) BeforeInsert(db database.Accessor) error {
 	if t.DestFile != filepath.Base(t.DestFile) {
 		return database.InvalidError("the destination file cannot contain subdirectories")
 	}
-	if t.TrueFilepath != "" && !filepath.IsAbs(t.TrueFilepath) {
-		return database.InvalidError("the filepath must be an absolute path")
+	if t.TrueFilepath != "" {
+		t.TrueFilepath = utils.NormalizePath(t.TrueFilepath)
+		if !path.IsAbs(t.TrueFilepath) {
+			return database.InvalidError("the filepath must be an absolute path")
+		}
 	}
 	rule := Rule{ID: t.RuleID}
 	if err := db.Get(&rule); err != nil {
@@ -191,8 +197,11 @@ func (t *Transfer) BeforeUpdate(database.Accessor, uint64) error {
 	if t.DestFile != "" {
 		return database.InvalidError("the transfer's destination cannot be changed")
 	}
-	if t.TrueFilepath != "" && !filepath.IsAbs(t.TrueFilepath) {
-		return database.InvalidError("the filepath must be an absolute path")
+	if t.TrueFilepath != "" {
+		t.TrueFilepath = utils.NormalizePath(t.TrueFilepath)
+		if !path.IsAbs(t.TrueFilepath) {
+			return database.InvalidError("the filepath must be an absolute path")
+		}
 	}
 
 	if t.Status != "" {

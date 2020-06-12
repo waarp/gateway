@@ -1,7 +1,7 @@
 package model
 
 import (
-	"path/filepath"
+	"path"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
@@ -47,28 +47,29 @@ func (*Rule) TableName() string {
 
 func (r *Rule) normalizePaths() error {
 	if r.Path == "" {
-		r.Path = "/" + r.Name
-	}
-
-	if !filepath.IsAbs(r.Path) {
-		r.Path = "/" + r.Path
+		r.Path = r.Name
+	} else {
+		r.Path = utils.NormalizePath(r.Path)
+		if path.IsAbs(r.Path) {
+			return database.InvalidError("the rule's path must be a relative path")
+		}
 	}
 	if r.InPath != "" {
-		r.InPath = utils.CleanSlash(r.InPath)
-		if !filepath.IsAbs(r.InPath) {
-			r.InPath = "/" + r.InPath
+		r.InPath = utils.NormalizePath(r.Path)
+		if path.IsAbs(r.InPath) {
+			return database.InvalidError("the rule's in path must be a relative path")
 		}
 	}
 	if r.OutPath != "" {
-		r.OutPath = utils.CleanSlash(r.OutPath)
-		if !filepath.IsAbs(r.OutPath) {
-			r.OutPath = "/" + r.OutPath
+		r.OutPath = utils.NormalizePath(r.OutPath)
+		if path.IsAbs(r.OutPath) {
+			return database.InvalidError("the rule's out path must be a relative path")
 		}
 	}
 	if r.WorkPath != "" {
-		r.WorkPath = utils.CleanSlash(r.WorkPath)
-		if !filepath.IsAbs(r.WorkPath) {
-			r.WorkPath = "/" + r.WorkPath
+		r.WorkPath = utils.NormalizePath(r.WorkPath)
+		if path.IsAbs(r.WorkPath) {
+			return database.InvalidError("the rule's work path must be a relative path")
 		}
 	}
 

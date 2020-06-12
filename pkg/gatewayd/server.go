@@ -5,13 +5,13 @@ package gatewayd
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/go-xorm/builder"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -21,8 +21,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	"github.com/go-xorm/builder"
 )
 
 // WG is the top level service handler. It manages all other components.
@@ -33,31 +31,8 @@ type WG struct {
 	dbService *database.DB
 }
 
-func normalizePaths(config *conf.ServerConfig) {
-	var err error
-	if config.Paths.GatewayHome == "" {
-		if config.Paths.GatewayHome, err = os.Getwd(); err != nil {
-			fmt.Printf("ERROR: %s", err.Error())
-			os.Exit(1)
-		}
-	}
-	if config.Paths.InDirectory != "" && !filepath.IsAbs(config.Paths.InDirectory) {
-		config.Paths.InDirectory = utils.SlashJoin(config.Paths.GatewayHome,
-			config.Paths.InDirectory)
-	}
-	if config.Paths.OutDirectory != "" && !filepath.IsAbs(config.Paths.OutDirectory) {
-		config.Paths.OutDirectory = utils.SlashJoin(config.Paths.GatewayHome,
-			config.Paths.OutDirectory)
-	}
-	if config.Paths.WorkDirectory != "" && !filepath.IsAbs(config.Paths.WorkDirectory) {
-		config.Paths.WorkDirectory = utils.SlashJoin(config.Paths.GatewayHome,
-			config.Paths.WorkDirectory)
-	}
-}
-
 // NewWG creates a new application
 func NewWG(config *conf.ServerConfig) *WG {
-	normalizePaths(config)
 	return &WG{
 		Logger: log.NewLogger("Waarp-Gateway"),
 		Conf:   config,

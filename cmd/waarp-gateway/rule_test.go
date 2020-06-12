@@ -78,8 +78,8 @@ func TestDisplayRule(t *testing.T) {
 			Comment: "this is a comment",
 			IsSend:  true,
 			Path:    "rule/path",
-			InPath:  "/rule/in_path",
-			OutPath: "/rule/out_path",
+			InPath:  "rule/in_path",
+			OutPath: "rule/out_path",
 			Authorized: &rest.RuleAccess{
 				LocalServers:   []string{"server1", "server2"},
 				RemotePartners: []string{"partner1", "partner2"},
@@ -134,10 +134,10 @@ func TestGetRule(t *testing.T) {
 				Name:     "rule_name",
 				Comment:  "this is a test rule",
 				IsSend:   false,
-				Path:     "/test/rule/path",
-				InPath:   "/test/rule/in",
-				OutPath:  "/test/rule/out",
-				WorkPath: "/test/rule/work",
+				Path:     "test/rule/path",
+				InPath:   "test/rule/in",
+				OutPath:  "test/rule/out",
+				WorkPath: "test/rule/work",
 			}
 			So(db.Create(rule), ShouldBeNil)
 
@@ -189,13 +189,13 @@ func TestAddRule(t *testing.T) {
 				Name:    "existing rule",
 				Comment: "comment about existing rule",
 				IsSend:  false,
-				Path:    "/existing/rule/path",
+				Path:    "existing/rule/path",
 			}
 			So(db.Create(existing), ShouldBeNil)
 
 			Convey("Given valid parameters", func() {
 				args := []string{"-n", "new_rule", "-c", "new_rule comment",
-					"-d", "RECEIVE", "-p", "/new/rule/path",
+					"-d", "RECEIVE", "-p", "new/rule/path",
 					`--pre={"type":"COPY","args":{"path":"/path/to/copy"}}`,
 					`--pre={"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
 					`--post={"type":"DELETE","args":{}}`,
@@ -279,7 +279,7 @@ func TestAddRule(t *testing.T) {
 
 			Convey("Given that the rule's name already exist", func() {
 				args := []string{"-n", existing.Name, "-c", "new_rule comment",
-					"-d", "RECEIVE", "-p", "/new/rule/path"}
+					"-d", "RECEIVE", "-p", "new/rule/path"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -326,7 +326,7 @@ func TestDeleteRule(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "/existing/rule/path",
+				Path:   "existing/rule/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 
@@ -387,10 +387,10 @@ func TestListRules(t *testing.T) {
 				Name:     "receive",
 				Comment:  "receive comment",
 				IsSend:   false,
-				Path:     "/receive/path",
-				InPath:   "/receive/in_path",
-				OutPath:  "/receive/out_path",
-				WorkPath: "/receive/work_path",
+				Path:     "receive/path",
+				InPath:   "receive/in_path",
+				OutPath:  "receive/out_path",
+				WorkPath: "receive/work_path",
 			}
 			So(db.Create(receive), ShouldBeNil)
 
@@ -398,10 +398,10 @@ func TestListRules(t *testing.T) {
 				Name:     "send",
 				Comment:  "send comment",
 				IsSend:   true,
-				Path:     "/send/path",
-				InPath:   "/send/in_path",
-				OutPath:  "/send/out_path",
-				WorkPath: "/send/work_path",
+				Path:     "send/path",
+				InPath:   "send/in_path",
+				OutPath:  "send/out_path",
+				WorkPath: "send/work_path",
 			}
 			So(db.Create(send), ShouldBeNil)
 

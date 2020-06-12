@@ -46,7 +46,7 @@ func TestCreateAccess(t *testing.T) {
 				Name:    "existing",
 				Comment: "",
 				IsSend:  false,
-				Path:    "/test/existing/path",
+				Path:    "test/existing/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 			ruleID := strconv.FormatUint(rule.ID, 10)
@@ -195,7 +195,7 @@ func TestListAccess(t *testing.T) {
 				Name:    "existing",
 				Comment: "",
 				IsSend:  false,
-				Path:    "/test/existing/path",
+				Path:    "test/existing/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 			ruleID := strconv.FormatUint(rule.ID, 10)
@@ -289,7 +289,7 @@ func TestDeleteAccess(t *testing.T) {
 				Name:    "existing",
 				Comment: "",
 				IsSend:  false,
-				Path:    "/test/existing/path",
+				Path:    "test/existing/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 			ruleID := strconv.FormatUint(rule.ID, 10)

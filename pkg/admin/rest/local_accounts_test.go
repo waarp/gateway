@@ -6,15 +6,18 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+
+	"github.com/gorilla/mux"
+	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"github.com/gorilla/mux"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func localAccountsURI(agent, login string) string {
@@ -506,8 +509,9 @@ func TestUpdateLocalAccount(t *testing.T) {
 						"the URI of the updated account", func() {
 
 						location := w.Header().Get("Location")
-						So(location, ShouldEqual, localAgentsURI+parent.Name+
-							"/accounts/"+update.Login)
+						u, _ := url.QueryUnescape(localAgentsURI + parent.Name +
+							"/accounts/" + update.Login)
+						So(location, ShouldEqual, u)
 					})
 
 					Convey("Then the response body should be empty", func() {

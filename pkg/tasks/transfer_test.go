@@ -72,7 +72,7 @@ func TestTransferRun(t *testing.T) {
 
 		rule := &model.Rule{
 			Name: "transfer rule",
-			Path: "/rule/path",
+			Path: "rule/path",
 		}
 		So(db.Create(rule), ShouldBeNil)
 

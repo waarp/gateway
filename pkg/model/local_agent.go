@@ -1,6 +1,7 @@
 package model
 
 import (
+	"path"
 	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -57,14 +58,19 @@ func (l *LocalAgent) normalizePaths() error {
 	l.Owner = database.Owner
 
 	if l.Root != "" {
-		l.Root = utils.CleanSlash(l.Root)
+		l.Root = utils.NormalizePath(l.Root)
+		if !path.IsAbs(l.Root) {
+			return database.InvalidError("the server root must be an absolute path")
+		}
 	}
 
 	if l.WorkDir != "" {
 		if !filepath.IsAbs(l.WorkDir) {
-			l.WorkDir = utils.SlashJoin(l.Root, l.WorkDir)
-		} else {
-			l.WorkDir = utils.CleanSlash(l.WorkDir)
+			l.WorkDir = path.Join(l.Root, l.WorkDir)
+		}
+		l.WorkDir = utils.NormalizePath(l.WorkDir)
+		if !path.IsAbs(l.WorkDir) {
+			return database.InvalidError("the server work path must be an absolute path")
 		}
 	} else {
 		l.WorkDir = l.Root
@@ -101,13 +107,6 @@ func (l *LocalAgent) BeforeInsert(db database.Accessor) error {
 			"already exist", l.Name)
 	}
 
-	if l.Root != "" && !filepath.IsAbs(l.Root) {
-		return database.InvalidError("the server's root directory must be an absolute path")
-	}
-	if l.WorkDir != "" && !filepath.IsAbs(l.WorkDir) {
-		return database.InvalidError("the server's work directory must be an absolute path")
-	}
-
 	return nil
 }
 
@@ -134,13 +133,6 @@ func (l *LocalAgent) BeforeUpdate(db database.Accessor, id uint64) error {
 		} else if len(res) > 0 {
 			return database.InvalidError("a local agent with the same name "+
 				"'%s' already exist", l.Name)
-		}
-	}
-
-	if l.Root != "" {
-		l.Root = filepath.Clean(l.Root)
-		if !filepath.IsAbs(l.Root) {
-			return database.InvalidError("the server's root directory must be an absolute path")
 		}
 	}
 

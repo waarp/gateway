@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -107,7 +108,7 @@ func TestAddServer(t *testing.T) {
 
 			Convey("Given valid flags", func() {
 				args := []string{"-n", "server_name", "-p", "test",
-					"r", "/server/root", "-c", `{"key":"val"}`}
+					"--root=/server/root", "-c", `{"key":"val"}`}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -120,22 +121,26 @@ func TestAddServer(t *testing.T) {
 					})
 
 					Convey("Then the new server should have been added", func() {
-						server := &model.LocalAgent{
+						exp := model.LocalAgent{
+							ID:          1,
+							Owner:       database.Owner,
 							Name:        command.Name,
 							Protocol:    command.Protocol,
 							Root:        command.Root,
-							ProtoConfig: []byte(command.ProtoConfig),
+							WorkDir:     command.Root,
+							ProtoConfig: json.RawMessage(command.ProtoConfig),
 						}
-						exists, err := db.Exists(server)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						var res []model.LocalAgent
+						So(db.Select(&res, nil), ShouldBeNil)
+						So(len(res), ShouldEqual, 1)
+						So(res[0], ShouldResemble, exp)
 					})
 				})
 			})
 
 			Convey("Given an invalid protocol", func() {
 				args := []string{"-n", "server_name", "-p", "invalid",
-					"r", "/server/root", "-c", `{"key":"val"}`}
+					"--root=/server/root", "-c", `{"key":"val"}`}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -150,7 +155,7 @@ func TestAddServer(t *testing.T) {
 
 			Convey("Given an invalid configuration", func() {
 				args := []string{"-n", "server_name", "-p", "fail",
-					"r", "/server/root", "-c", `{"key":"val"}`}
+					"--root=/server/root", "-c", `{"key":"val"}`}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -478,7 +483,7 @@ func TestAuthorizeServer(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "/rule/path",
+				Path:   "rule/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 
@@ -571,7 +576,7 @@ func TestRevokeServer(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "/rule/path",
+				Path:   "rule/path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 
