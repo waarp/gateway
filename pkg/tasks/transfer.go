@@ -22,7 +22,11 @@ func (t *TransferTask) Validate(args map[string]string) error {
 		return fmt.Errorf("missing transfer source file")
 	}
 	if to, ok := args["to"]; !ok || to == "" {
-		return fmt.Errorf("missing transfer remote partner")
+		if from, ok := args["from"]; !ok || from == "" {
+			return fmt.Errorf("b missing transfer remote partner")
+		}
+	} else if from, ok := args["from"]; ok && from != "" {
+		return fmt.Errorf("cannot have both 'to' and 'from'")
 	}
 	if as, ok := args["as"]; !ok || as == "" {
 		return fmt.Errorf("missing transfer account")
@@ -44,23 +48,32 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 	}
 	file = fileName
 
+	isSend := true
+	agentName, agentOK := args["to"]
+	if !agentOK || agentName == "" {
+		isSend = false
+		agentName, agentOK = args["from"]
+		if !agentOK || agentName == "" {
+			infoErr = fmt.Errorf("a missing transfer remote partner")
+			return
+		}
+	} else if from, ok := args["from"]; ok && from != "" {
+		infoErr = fmt.Errorf("cannot have both 'to' and 'from'")
+		return
+	}
+
 	ruleName, ruleOK := args["rule"]
 	if !ruleOK || ruleName == "" {
 		infoErr = fmt.Errorf("missing transfer rule")
 		return
 	}
-	rule := &model.Rule{Name: ruleName}
+	rule := &model.Rule{Name: ruleName, IsSend: isSend}
 	if err := db.Get(rule); err != nil {
 		infoErr = fmt.Errorf("error getting rule: %s", err)
 		return
 	}
 	ruleID = rule.ID
 
-	agentName, agentOK := args["to"]
-	if !agentOK || agentName == "" {
-		infoErr = fmt.Errorf("missing transfer remote partner")
-		return
-	}
 	agent := &model.RemoteAgent{Name: agentName}
 	if err := db.Get(agent); err != nil {
 		infoErr = fmt.Errorf("error getting partner: %s", err)

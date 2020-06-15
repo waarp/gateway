@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"fmt"
+	"path"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
@@ -26,10 +27,11 @@ func (*RenameTask) Validate(args map[string]string) error {
 // Run executes the task by renaming the transfer file
 func (*RenameTask) Run(args map[string]string, processor *Processor) (string, error) {
 	newPath := args["path"]
+	processor.Transfer.TrueFilepath = newPath
 	if processor.Rule.IsSend {
-		processor.Transfer.SourceFile = newPath
+		processor.Transfer.SourceFile = path.Base(newPath)
 		return "", nil
 	}
-	processor.Transfer.DestFile = newPath
+	processor.Transfer.DestFile = path.Base(newPath)
 	return "", nil
 }
