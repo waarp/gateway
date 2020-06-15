@@ -50,8 +50,9 @@ func TestCopyTaskRun(t *testing.T) {
 				IsSend: true,
 			},
 			Transfer: &model.Transfer{
-				SourceFile: "test.src",
-				DestFile:   "test.dst",
+				TrueFilepath: "test.src",
+				SourceFile:   "test.src",
+				DestFile:     "test.dst",
 			},
 		}
 
@@ -65,11 +66,11 @@ func TestCopyTaskRun(t *testing.T) {
 			})
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(runner.Transfer.SourceFile, []byte("Hello World"), 0700)
+				err := ioutil.WriteFile(runner.Transfer.TrueFilepath, []byte("Hello World"), 0700)
 				So(err, ShouldBeNil)
 
 				Reset(func() {
-					_ = os.Remove(runner.Transfer.SourceFile)
+					_ = os.Remove(runner.Transfer.TrueFilepath)
 				})
 
 				Convey("When calling the `run` method", func() {
@@ -87,6 +88,14 @@ func TestCopyTaskRun(t *testing.T) {
 						Reset(func() {
 							_ = os.Remove("test/test.src")
 						})
+					})
+
+					Convey("Then the transfer true file path should  NOT be modifier", func() {
+						So(runner.Transfer.TrueFilepath, ShouldEqual, "test.src")
+					})
+
+					Convey("Then the transfer source path should NOT be modifier", func() {
+						So(runner.Transfer.SourceFile, ShouldEqual, "test.src")
 					})
 				})
 			})
@@ -110,6 +119,14 @@ func TestCopyTaskRun(t *testing.T) {
 						So(err, ShouldNotBeNil)
 						So(os.IsNotExist(err), ShouldBeTrue)
 					})
+
+					Convey("Then the transfer true file path should  NOT be modifier", func() {
+						So(runner.Transfer.TrueFilepath, ShouldEqual, "test.src")
+					})
+
+					Convey("Then the transfer source path should NOT be modifier", func() {
+						So(runner.Transfer.SourceFile, ShouldEqual, "test.src")
+					})
 				})
 			})
 		})
@@ -121,8 +138,9 @@ func TestCopyTaskRun(t *testing.T) {
 				IsSend: false,
 			},
 			Transfer: &model.Transfer{
-				SourceFile: "test.src",
-				DestFile:   "test.dst",
+				TrueFilepath: "test.dst",
+				SourceFile:   "test.src",
+				DestFile:     "test.dst",
 			},
 		}
 
@@ -136,11 +154,11 @@ func TestCopyTaskRun(t *testing.T) {
 			})
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(runner.Transfer.DestFile, []byte("Hello World"), 0o700)
+				err := ioutil.WriteFile(runner.Transfer.TrueFilepath, []byte("Hello World"), 0o700)
 				So(err, ShouldBeNil)
 
 				Reset(func() {
-					_ = os.Remove(runner.Transfer.DestFile)
+					_ = os.Remove(runner.Transfer.TrueFilepath)
 				})
 
 				Convey("When calling the `run` method", func() {
@@ -158,6 +176,14 @@ func TestCopyTaskRun(t *testing.T) {
 						Reset(func() {
 							_ = os.Remove("test/test.dst")
 						})
+					})
+
+					Convey("Then the transfer true file path should NOT be modifier", func() {
+						So(runner.Transfer.TrueFilepath, ShouldEqual, "test.dst")
+					})
+
+					Convey("Then the transfer destination path should NOT be modifier", func() {
+						So(runner.Transfer.DestFile, ShouldEqual, "test.dst")
 					})
 				})
 			})
@@ -180,6 +206,14 @@ func TestCopyTaskRun(t *testing.T) {
 						_, err := os.Stat("test/test.dst")
 						So(err, ShouldNotBeNil)
 						So(os.IsNotExist(err), ShouldBeTrue)
+					})
+
+					Convey("Then the transfer true file path should NOT be modifier", func() {
+						So(runner.Transfer.TrueFilepath, ShouldEqual, "test.dst")
+					})
+
+					Convey("Then the transfer destination path should NOT be modifier", func() {
+						So(runner.Transfer.DestFile, ShouldEqual, "test.dst")
 					})
 				})
 			})

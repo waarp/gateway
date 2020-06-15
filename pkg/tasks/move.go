@@ -68,11 +68,7 @@ func (*MoveTask) Run(args map[string]string, processor *Processor) (string, erro
 	var oldPath *string
 	newDir := args["path"]
 
-	if processor.Rule.IsSend {
-		oldPath = &(processor.Transfer.SourceFile)
-	} else {
-		oldPath = &(processor.Transfer.DestFile)
-	}
+	oldPath = &(processor.Transfer.TrueFilepath)
 
 	newPath := utils.SlashJoin(newDir, filepath.Base(*oldPath))
 

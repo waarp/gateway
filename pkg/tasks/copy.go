@@ -34,11 +34,7 @@ func (*CopyTask) Run(args map[string]string, runner *Processor) (string, error) 
 		oldPath string
 	)
 
-	if runner.Rule.IsSend {
-		oldPath = runner.Transfer.SourceFile
-	} else {
-		oldPath = runner.Transfer.DestFile
-	}
+	oldPath = runner.Transfer.TrueFilepath
 
 	newPath := utils.SlashJoin(newDir, filepath.Base(oldPath))
 
@@ -61,7 +57,6 @@ func doCopy(dest, source string) error {
 		return err
 	}
 	defer func() { _ = destFile.Close() }()
-
 	_, err = io.Copy(destFile, srcFile)
 	return err
 }
