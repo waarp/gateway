@@ -8,22 +8,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const scriptExecOK = `#!/bin/sh
-echo $1`
-
-const scriptExecWarn = `#!/bin/sh
-echo $1
-exit 1`
-
-const scriptExecFail = `#!/bin/sh
-echo $1
-exit 2`
-
-const scriptExecInfinite = `#!/bin/sh
-while [ true ]; do
-  echo $1
-done`
-
 func TestExecValidate(t *testing.T) {
 	Convey("Given an 'EXEC' task", t, func() {
 		exec := &ExecTask{}
@@ -94,22 +78,20 @@ func TestExecValidate(t *testing.T) {
 }
 
 func TestExecRun(t *testing.T) {
-	script := "exec_test_script.sh"
-	_ = os.Remove(script)
 
 	Convey("Given an 'EXEC' task", t, func() {
 		exec := &ExecTask{}
 		args := map[string]string{
-			"path":  "./" + script,
+			"path":  scriptFile,
 			"args":  "'exec run test message'",
-			"delay": "1000",
+			"delay": "0",
 		}
-		Reset(func() { _ = os.Remove(script) })
 
 		Convey("Given that the task is valid", func() {
+			Reset(func() { _ = os.Remove(scriptFile) })
 
 			Convey("Given that the command succeeds", func() {
-				err := ioutil.WriteFile(script, []byte(scriptExecOK), 0700)
+				err := ioutil.WriteFile(scriptFile, []byte(scriptExecOK), 0700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -126,7 +108,7 @@ func TestExecRun(t *testing.T) {
 			})
 
 			Convey("Given that the command sends a warning", func() {
-				err := ioutil.WriteFile(script, []byte(scriptExecWarn), 0700)
+				err := ioutil.WriteFile(scriptFile, []byte(scriptExecWarn), 0700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -143,7 +125,7 @@ func TestExecRun(t *testing.T) {
 			})
 
 			Convey("Given that the command fails", func() {
-				err := ioutil.WriteFile(script, []byte(scriptExecFail), 0700)
+				err := ioutil.WriteFile(scriptFile, []byte(scriptExecFail), 0700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -160,7 +142,7 @@ func TestExecRun(t *testing.T) {
 			})
 
 			Convey("Given that the command delay expires", func() {
-				err := ioutil.WriteFile(script, []byte(scriptExecInfinite), 0700)
+				err := ioutil.WriteFile(scriptFile, []byte(scriptExecInfinite), 0700)
 				So(err, ShouldBeNil)
 
 				args["delay"] = "100"

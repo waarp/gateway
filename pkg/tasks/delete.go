@@ -1,11 +1,10 @@
 package tasks
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 // DeleteTask is a task which delete the current file from the system
@@ -23,8 +22,9 @@ func (*DeleteTask) Validate(map[string]string) error {
 
 // Run delete the current file from the system
 func (*DeleteTask) Run(_ map[string]string, runner *Processor) (string, error) {
-	fmt.Printf("\n%s\n", runner.Transfer.TrueFilepath)
-	if err := os.Remove(filepath.FromSlash(runner.Transfer.TrueFilepath)); err != nil {
+	truePath := utils.DenormalizePath(runner.Transfer.TrueFilepath)
+	if err := os.Remove(truePath); err != nil {
+		err := normalizeFileError(err)
 		return err.Error(), err
 	}
 	runner.Transfer.TrueFilepath = ""

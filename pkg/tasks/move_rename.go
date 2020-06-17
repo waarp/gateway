@@ -28,12 +28,12 @@ func (*MoveRenameTask) Validate(args map[string]string) error {
 // modify the transfer model to reflect the file change.
 func (*MoveRenameTask) Run(args map[string]string, processor *Processor) (string, error) {
 	newPath := args["path"]
-	oldPath := &(processor.Transfer.TrueFilepath)
+	oldPath := processor.Transfer.TrueFilepath
 
-	if err := MoveFile(*oldPath, newPath); err != nil {
+	if err := MoveFile(oldPath, newPath); err != nil {
 		return err.Error(), err
 	}
-	*oldPath = newPath
+	processor.Transfer.TrueFilepath = newPath
 	if processor.Rule.IsSend {
 		processor.Transfer.SourceFile = path.Base(newPath)
 	} else {

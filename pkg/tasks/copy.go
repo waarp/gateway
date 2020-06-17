@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 // CopyTask is a task which allow to copy the current file
@@ -29,16 +29,12 @@ func (*CopyTask) Validate(args map[string]string) error {
 
 // Run copy the current file to the destination
 func (*CopyTask) Run(args map[string]string, runner *Processor) (string, error) {
-	var (
-		newDir  = args["path"]
-		oldPath string
-	)
+	newDir := args["path"]
 
-	oldPath = runner.Transfer.TrueFilepath
+	source := runner.Transfer.TrueFilepath
+	dest := path.Join(newDir, filepath.Base(source))
 
-	newPath := utils.SlashJoin(newDir, filepath.Base(oldPath))
-
-	if err := doCopy(newPath, oldPath); err != nil {
+	if err := doCopy(dest, source); err != nil {
 		return err.Error(), err
 	}
 
@@ -48,13 +44,13 @@ func (*CopyTask) Run(args map[string]string, runner *Processor) (string, error) 
 func doCopy(dest, source string) error {
 	srcFile, err := os.Open(source)
 	if err != nil {
-		return err
+		return normalizeFileError(err)
 	}
 	defer func() { _ = srcFile.Close() }()
 
 	destFile, err := os.Create(dest)
 	if err != nil {
-		return err
+		return normalizeFileError(err)
 	}
 	defer func() { _ = destFile.Close() }()
 	_, err = io.Copy(destFile, srcFile)

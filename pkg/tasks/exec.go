@@ -55,7 +55,7 @@ func (e *ExecTask) Validate(params map[string]string) error {
 }
 
 // Run executes the task by executing the external program with the given parameters.
-func (e *ExecTask) Run(params map[string]string, processor *Processor) (string, error) {
+func (e *ExecTask) Run(params map[string]string, _ *Processor) (string, error) {
 
 	path, args, delay, err := parseExecArgs(params)
 	if err != nil {
