@@ -4,7 +4,7 @@ package tasks
 
 var lineSeparator = "\r\n"
 
-var scriptFile = "exec_test_script.bat"
+var execScriptFile = "exec_test_script.bat"
 var execMoveScriptFile = "execmove_test_script.bat"
 var execOutputScriptFile = "execoutput_test_script.bat"
 

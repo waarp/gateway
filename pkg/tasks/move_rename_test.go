@@ -102,7 +102,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 					})
 
 					Convey("Then it error should say `no such file`", func() {
-						So(err, ShouldBeError, FileNotFound("move_rename_out.src"))
+						So(err, ShouldBeError, fileNotFound("move_rename_out.src"))
 					})
 
 					Convey("Then the destination file NOT should exist", func() {
@@ -181,7 +181,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 					})
 
 					Convey("Then it error should say `no such file or directory`", func() {
-						So(err, ShouldBeError, FileNotFound("move_rename_in.dst"))
+						So(err, ShouldBeError, fileNotFound("move_rename_in.dst"))
 					})
 
 					Convey("Then the destination file NOT should exist", func() {

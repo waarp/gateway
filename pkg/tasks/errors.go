@@ -11,34 +11,27 @@ var errWarning = fmt.Errorf("warning")
 func normalizeFileError(err error) error {
 	if os.IsNotExist(err) {
 		e := err.(*os.PathError)
-		return &ErrFileNotFound{e.Op, e.Path}
+		return &errFileNotFound{e.Op, e.Path}
 	}
 	if os.IsPermission(err) {
 		e := err.(*os.PathError)
-		return &ErrFileNotFound{e.Op, e.Path}
+		return &errPermissionDenied{e.Op, e.Path}
 	}
 	return err
 }
 
-type ErrFileNotFound struct {
+type errFileNotFound struct {
 	action, path string
 }
 
-func FileNotFound(path string, op ...string) *ErrFileNotFound {
-	if len(op) > 0 {
-		return &ErrFileNotFound{op[0], path}
-	}
-	return &ErrFileNotFound{"open", path}
+func (e *errFileNotFound) Error() string {
+	return fmt.Sprintf("cannot %s file '%s' - file does not exist", e.action, e.path)
 }
 
-func (e *ErrFileNotFound) Error() string {
-	return fmt.Sprintf("cannot open file '%s' - file does not exist", e.path)
+type errPermissionDenied struct {
+	action, path string
 }
 
-type ErrPermissionDenied struct {
-	path string
-}
-
-func (e *ErrPermissionDenied) Error() string {
-	return fmt.Sprintf("cannot open file '%s' - permission denied", e.path)
+func (e *errPermissionDenied) Error() string {
+	return fmt.Sprintf("cannot %s file '%s' - permission denied", e.action, e.path)
 }

@@ -104,7 +104,7 @@ func TestMoveTaskRun(t *testing.T) {
 					})
 
 					Convey("Then error should say `no such file`", func() {
-						So(err, ShouldBeError, FileNotFound("move_out.src"))
+						So(err, ShouldBeError, fileNotFound("move_out.src"))
 					})
 
 					Convey("Then the destination file should NOT exist", func() {
@@ -183,7 +183,7 @@ func TestMoveTaskRun(t *testing.T) {
 					})
 
 					Convey("Then error should say `no such file`", func() {
-						So(err, ShouldBeError, FileNotFound("move_in.dst"))
+						So(err, ShouldBeError, fileNotFound("move_in.dst"))
 					})
 
 					Convey("Then the destination file should NOT exist", func() {

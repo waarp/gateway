@@ -4,6 +4,6 @@ package log
 
 import "code.bcarlin.xyz/go/logging"
 
-func NewSyslogBackend() (logging.Backend, error) {
-	return logging.NewSyslogBackend(conf.SyslogFacility, "waarp-manager-ng")
+func newSyslogBackend(facility string) (logging.Backend, error) {
+	return logging.NewSyslogBackend(facility, "waarp-manager-ng")
 }

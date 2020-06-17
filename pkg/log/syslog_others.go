@@ -8,6 +8,6 @@ import (
 	"code.bcarlin.xyz/go/logging"
 )
 
-func NewSyslogBackend() (logging.Backend, error) {
+func newSyslogBackend(string) (logging.Backend, error) {
 	return nil, fmt.Errorf("syslog logging is not available on this system")
 }

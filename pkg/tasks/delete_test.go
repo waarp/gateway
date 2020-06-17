@@ -75,7 +75,8 @@ func TestDeleteTaskRun(t *testing.T) {
 					})
 
 					Convey("Then error should say `no such file`", func() {
-						So(err, ShouldBeError, FileNotFound(processor.Transfer.TrueFilepath))
+						So(err, ShouldBeError, fileNotFound(processor.Transfer.TrueFilepath,
+							"remove"))
 					})
 				})
 			})
@@ -132,7 +133,8 @@ func TestDeleteTaskRun(t *testing.T) {
 					})
 
 					Convey("Then error should say `no such file`", func() {
-						So(err, ShouldBeError, FileNotFound(processor.Transfer.TrueFilepath))
+						So(err, ShouldBeError, fileNotFound(processor.Transfer.TrueFilepath,
+							"remove"))
 					})
 				})
 			})

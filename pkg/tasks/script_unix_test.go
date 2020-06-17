@@ -4,9 +4,9 @@ package tasks
 
 var lineSeparator = "\n"
 
-var execScriptFile = "exec_test_script.sh"
-var execMoveScriptFile = "execmove_test_script.sh"
-var execOutputScriptFile = "execoutput_test_script.sh"
+var execScriptFile = "./exec_test_script.sh"
+var execMoveScriptFile = "./execmove_test_script.sh"
+var execOutputScriptFile = "./execoutput_test_script.sh"
 
 const scriptExecOK = `#!/bin/sh
 echo $1
