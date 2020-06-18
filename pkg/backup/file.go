@@ -15,6 +15,8 @@ type data struct {
 type localAgent struct {
 	Name          string          `json:"name"`
 	Protocol      string          `json:"protocol"`
+	Root          string          `json:"root"`
+	WorkDir       string          `json:"workDir"`
 	Configuration json.RawMessage `json:"configuration"`
 	Accounts      []localAccount  `json:"accounts"`
 	Certs         []certificate   `json:"certificates"`
@@ -51,6 +53,9 @@ type rule struct {
 	Name     string     `json:"name"`
 	IsSend   bool       `json:"isSend"`
 	Path     string     `json:"path"`
+	InPath   string     `json:"inPath"`
+	OutPath  string     `json:"outPath"`
+	WorkPath string     `json:"workPath"`
 	Accesses []string   `json:"auth"`
 	Pre      []ruleTask `json:"pre"`
 	Post     []ruleTask `json:"post"`

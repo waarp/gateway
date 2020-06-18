@@ -29,7 +29,7 @@ func exportRules(db *database.Session) ([]rule, error) {
 		if err != nil {
 			return nil, err
 		}
-		error, err := exportRuleTasks(db, src.ID, "ERROR")
+		errors, err := exportRuleTasks(db, src.ID, "ERROR")
 		if err != nil {
 			return nil, err
 		}
@@ -38,10 +38,13 @@ func exportRules(db *database.Session) ([]rule, error) {
 			Name:     src.Name,
 			IsSend:   src.IsSend,
 			Path:     src.Path,
+			InPath:   src.InPath,
+			OutPath:  src.OutPath,
+			WorkPath: src.WorkPath,
 			Accesses: accs,
 			Pre:      pre,
 			Post:     post,
-			Error:    error,
+			Error:    errors,
 		}
 		res[i] = rule
 	}
