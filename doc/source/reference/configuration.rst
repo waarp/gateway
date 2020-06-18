@@ -1,5 +1,5 @@
 Fichier de configuration ``waarp-gatewayd.ini``
-#############################################
+###############################################
 
 
 .. module:: waarp-gatewayd.ini

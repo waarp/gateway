@@ -9,8 +9,9 @@ Retenter un transfert échoué
    :reqheader Authorization: Les identifiants de l'utilisateur
 
    :param date: Fixe la date de démarrage du transfert. La date doit être
-      renseignée en format ISO 8601 tel qu'il est spécifié dans la `RFC 3339`_.
-      Par défaut, le transfert redémarre immédiatement.
+      renseignée en format ISO 8601 tel qu'il est spécifié dans la `RFC 3339
+      <https://tools.ietf.org/html/rfc3339>`_. Par défaut, le transfert
+      redémarre immédiatement.
    :type date: date
 
    :statuscode 201: Le transfert a été redémarré avec succès

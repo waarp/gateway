@@ -8,6 +8,7 @@ Référence
    guide/index
    configuration
    gatewayd
+   backup
    client/index
    rest/index
    proto_config/index

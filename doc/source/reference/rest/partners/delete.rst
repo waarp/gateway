@@ -1,5 +1,5 @@
 Supprimer un partenaire
-====================
+=======================
 
 .. http:delete:: /api/partners/(string:partner_name)
 

@@ -1,5 +1,5 @@
 Supprimer un compte distant
-=========================
+===========================
 
 .. http:delete:: /api/partners/(string:partner_name)/accounts/(string:login)
 

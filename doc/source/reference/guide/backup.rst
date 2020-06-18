@@ -31,6 +31,7 @@ Par exemple, la commande suivante exporte les serveurs et les partenaires de la
 *gateway* vers le fichier 'gateway_backup.json' :
 
 .. code-block:: shell
+
    waarp gatewayd export -c 'waarp-gateway.ini' -f 'gateway_backup.json' -t 'servers,partners'
 
 
@@ -53,6 +54,7 @@ Par exemple, la commande suivante importe les serveurs et les partenaires depuis
 le fichier 'gateway_backup.json' et les insère dans la base de données :
 
 .. code-block:: shell
+
    waarp-gatewayd import -c 'waarp-gateway.ini' -s 'gateway_backup.json' -t 'servers,partners'
 
 

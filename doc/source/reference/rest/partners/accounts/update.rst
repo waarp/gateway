@@ -1,5 +1,5 @@
 Modifier un compte distant
-========================
+==========================
 
 .. http:put:: /api/partners/(string:partner_name)/accounts/(string:login)
 
