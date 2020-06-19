@@ -10,6 +10,8 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
 
   * **name** (*string*) - Le nom du serveur.
   * **protocol** (*string*) - Le protocole du serveur.
+  * **root** (*string*) - Le dossier racine du serveur.
+  * **workDir** (*string*) - Le dossier temporaire du serveur.
   * **configuration** (*object*) - La :doc:`configuration protocolaire
     <proto_config/index>` du serveur.
   * **certificates** (*array*) - La liste des :term:`certificats
@@ -70,6 +72,9 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
     pour la réception.
   * **path** (*string*) - Le chemin de la règle. Permet d'identifier la règle
     lorsque le protocole seul ne le permet pas.
+  * **inPath** (*string*) - Le dossier de réception de la règle.
+  * **outPath** (*string*) - Le dossier d'envoi de la règle.
+  * **workPath** (*string*) - Le dossier de réception temporaire de la règle.
   * **auth** (*array*) - La liste des agents autorisés à utiliser la règles.
     Chaque élément de la liste doit être précédé de sa nature (``remote`` ou
     ``local``) suivi du nom de l'agent, le tout séparé par ``::`` (ex:
@@ -111,6 +116,8 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
      "locals": [{
        "name": "serveur_sftp",
        "protocol": "sftp",
+       "root": "/sftp",
+       "workDir": "/sftp/tmp",
        "configuration": {
          "address": "localhost",
          "port": 8022
@@ -160,6 +167,9 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
        "name": "send",
        "isSend": true,
        "path": "send",
+       "inPath": "send/in",
+       "outPath": "send/out",
+       "workPath": "send/tmp",
        "access": [
          "local::serveur_sftp",
          "remote::openssh"
