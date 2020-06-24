@@ -47,7 +47,7 @@ func TestGetServer(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "local_agent",
+				Name:        "server_name",
 				Protocol:    "test",
 				Root:        "/server/root",
 				InDir:       "/server/in",
@@ -272,7 +272,7 @@ func TestListServers(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server1 := &model.LocalAgent{
-				Name:        "local_agent1",
+				Name:        "server1",
 				Protocol:    "test",
 				Root:        "/test/root1",
 				InDir:       "/test/in1",
@@ -284,7 +284,7 @@ func TestListServers(t *testing.T) {
 			So(db.Create(server1), ShouldBeNil)
 
 			server2 := &model.LocalAgent{
-				Name:        "local_agent2",
+				Name:        "server2",
 				Protocol:    "test2",
 				Root:        "/test/root2",
 				InDir:       "/test/in2",

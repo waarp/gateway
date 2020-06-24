@@ -48,7 +48,7 @@ func TestGetRemoteAccount(t *testing.T) {
 			Convey("Given a request with the valid account login parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": parent.Name,
+				r = mux.SetURLVars(r, map[string]string{"partner": parent.Name,
 					"remote_account": expected.Login})
 
 				Convey("When sending the request to the handler", func() {
@@ -79,7 +79,7 @@ func TestGetRemoteAccount(t *testing.T) {
 			Convey("Given a request with a non-existing account login parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": parent.Name,
+				r = mux.SetURLVars(r, map[string]string{"partner": parent.Name,
 					"remote_account": "toto"})
 
 				Convey("When sending the request to the handler", func() {
@@ -94,7 +94,7 @@ func TestGetRemoteAccount(t *testing.T) {
 			Convey("Given a request with a non-existing agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto",
+				r = mux.SetURLVars(r, map[string]string{"partner": "toto",
 					"remote_account": expected.Login})
 
 				Convey("When sending the request to the handler", func() {
@@ -189,7 +189,7 @@ func TestListRemoteAccounts(t *testing.T) {
 			Convey("Given a request with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": p1.Name})
+				r = mux.SetURLVars(r, map[string]string{"partner": p1.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -203,7 +203,7 @@ func TestListRemoteAccounts(t *testing.T) {
 			Convey("Given a request with a different agent", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": p2.Name})
+				r = mux.SetURLVars(r, map[string]string{"partner": p2.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -216,7 +216,7 @@ func TestListRemoteAccounts(t *testing.T) {
 			Convey("Given a request with an invalid agent", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto"})
+				r = mux.SetURLVars(r, map[string]string{"partner": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -230,7 +230,7 @@ func TestListRemoteAccounts(t *testing.T) {
 			Convey("Given a request with a limit parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "?limit=1", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": p1.Name})
+				r = mux.SetURLVars(r, map[string]string{"partner": p1.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -243,7 +243,7 @@ func TestListRemoteAccounts(t *testing.T) {
 			Convey("Given a request with a offset parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "?offset=1", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": p1.Name})
+				r = mux.SetURLVars(r, map[string]string{"partner": p1.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -256,7 +256,7 @@ func TestListRemoteAccounts(t *testing.T) {
 			Convey("Given a request with a sort parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "?sort=login-", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": p1.Name})
+				r = mux.SetURLVars(r, map[string]string{"partner": p1.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -275,7 +275,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 
 	Convey("Given the account creation handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := createRemoteAccount(logger, db)
+		handler := addRemoteAccount(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 agent", func() {
@@ -297,7 +297,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPost, remoteAccountsURI(
 						parent.Name, ""), bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"remote_agent": parent.Name})
+					r = mux.SetURLVars(r, map[string]string{"partner": parent.Name})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -342,7 +342,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
 						"toto", ""), bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto"})
+					r = mux.SetURLVars(r, map[string]string{"partner": "toto"})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -395,7 +395,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 			Convey("Given a request with the valid account login parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": parent.Name,
+				r = mux.SetURLVars(r, map[string]string{"partner": parent.Name,
 					"remote_account": existing.Login})
 
 				Convey("When sending the request to the handler", func() {
@@ -421,7 +421,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 			Convey("Given a request with a non-existing account login parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": parent.Name,
+				r = mux.SetURLVars(r, map[string]string{"partner": parent.Name,
 					"remote_account": "toto"})
 
 				Convey("When sending the request to the handler", func() {
@@ -436,7 +436,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 			Convey("Given a request with a non-existing agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto",
+				r = mux.SetURLVars(r, map[string]string{"partner": "toto",
 					"remote_account": existing.Login})
 
 				Convey("When sending the request to the handler", func() {
@@ -484,7 +484,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
 						parent.Name, old.Login), bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"remote_agent": parent.Name,
+					r = mux.SetURLVars(r, map[string]string{"partner": parent.Name,
 						"remote_account": old.Login})
 
 					Convey("When sending the request to the handler", func() {
@@ -530,7 +530,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
 						parent.Name, "toto"), bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"remote_agent": parent.Name,
+					r = mux.SetURLVars(r, map[string]string{"partner": parent.Name,
 						"remote_account": "toto"})
 
 					Convey("When sending the request to the handler", func() {
@@ -556,7 +556,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
 						"toto", old.Login), bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto",
+					r = mux.SetURLVars(r, map[string]string{"partner": "toto",
 						"remote_account": old.Login})
 
 					Convey("When sending the request to the handler", func() {
@@ -615,7 +615,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
 						parent.Name, old.Login), bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"remote_agent": parent.Name,
+					r = mux.SetURLVars(r, map[string]string{"partner": parent.Name,
 						"remote_account": old.Login})
 
 					Convey("When sending the request to the handler", func() {
@@ -660,7 +660,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPut, remoteAccountsURI(
 						parent.Name, "toto"), bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"remote_agent": parent.Name,
+					r = mux.SetURLVars(r, map[string]string{"partner": parent.Name,
 						"remote_account": "toto"})
 
 					Convey("When sending the request to the handler", func() {
@@ -686,7 +686,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPut, remoteAccountsURI(
 						"toto", old.Login), bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto",
+					r = mux.SetURLVars(r, map[string]string{"partner": "toto",
 						"remote_account": old.Login})
 
 					Convey("When sending the request to the handler", func() {

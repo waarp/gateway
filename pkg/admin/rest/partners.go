@@ -11,7 +11,7 @@ import (
 )
 
 func getRemAg(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
-	agentName, ok := mux.Vars(r)["remote_agent"]
+	agentName, ok := mux.Vars(r)["partner"]
 	if !ok {
 		return nil, notFound("missing partner name")
 	}
@@ -25,7 +25,7 @@ func getRemAg(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
 	return agent, nil
 }
 
-func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			part := &api.InPartner{}
@@ -48,7 +48,7 @@ func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func listPartners(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "name ASC",
 		"proto+":  "protocol ASC",
@@ -91,7 +91,7 @@ func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func getRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func getPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			result, err := getRemAg(r, db)
@@ -112,7 +112,7 @@ func getRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func deleteRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func deletePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -132,7 +132,7 @@ func deleteRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			old, err := getRemAg(r, db)
@@ -159,7 +159,7 @@ func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func replaceRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func replacePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			old, err := getRemAg(r, db)
@@ -186,7 +186,7 @@ func replaceRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func authorizeRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func authorizePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -202,7 +202,7 @@ func authorizeRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc 
 	}
 }
 
-func revokeRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func revokePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -218,7 +218,7 @@ func revokeRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func getRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func getPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -234,7 +234,7 @@ func getRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func createRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -250,7 +250,7 @@ func createRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func listRemAgentCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func listPartnerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -266,7 +266,7 @@ func listRemAgentCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func deleteRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func deletePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -282,7 +282,7 @@ func deleteRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func updateRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func updatePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -298,7 +298,7 @@ func updateRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func replaceRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func replacePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)

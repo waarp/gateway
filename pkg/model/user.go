@@ -23,7 +23,7 @@ type PermsMask uint32
 const (
 	PermTransfersRead PermsMask = 1 << (32 - 1 - iota)
 	PermTransfersWrite
-	permTransferDelete // placeholder, transfers CANNOT be deleted
+	permTransferDelete // placeholder, transfers CANNOT be deleted by users
 	PermServersRead
 	PermServersWrite
 	PermServersDelete

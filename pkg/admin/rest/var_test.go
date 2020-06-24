@@ -17,7 +17,9 @@ func init() {
 	_ = log.InitBackend(logConf)
 }
 
-type TestProtoConfig struct{}
+type TestProtoConfig struct {
+	Key string `json:"key,omitempty"`
+}
 
 func (*TestProtoConfig) ValidServer() error  { return nil }
 func (*TestProtoConfig) ValidPartner() error { return nil }

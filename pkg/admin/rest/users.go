@@ -19,29 +19,34 @@ func newInUser(old *model.User) *api.InUser {
 }
 
 // userToDB transforms the JSON user into its database equivalent.
-func userToDB(user *api.InUser, id uint64) *model.User {
-	return &model.User{
-		ID:       id,
-		Owner:    database.Owner,
-		Username: str(user.Username),
-		Password: []byte(str(user.Password)),
+func userToDB(user *api.InUser, old *model.User) (*model.User, error) {
+	mask, err := permsToMask(old.Permissions, user.Perms)
+	if err != nil {
+		return nil, err
 	}
+
+	return &model.User{
+		ID:          old.ID,
+		Owner:       database.Owner,
+		Username:    str(user.Username),
+		Password:    []byte(str(user.Password)),
+		Permissions: mask,
+	}, nil
 }
 
 // FromUser transforms the given database user into its JSON equivalent.
 func FromUser(user *model.User) *api.OutUser {
 	return &api.OutUser{
 		Username: user.Username,
+		Perms:    *maskToPerms(user.Permissions),
 	}
 }
 
 // FromUsers transforms the given list of user into its JSON equivalent.
 func FromUsers(usr []model.User) []api.OutUser {
 	users := make([]api.OutUser, len(usr))
-	for i, user := range usr {
-		users[i] = api.OutUser{
-			Username: user.Username,
-		}
+	for i := range usr {
+		users[i] = *FromUser(&usr[i])
 	}
 	return users
 }
@@ -103,7 +108,7 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func createUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			jsonUser := &api.InUser{}
@@ -111,7 +116,10 @@ func createUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			user := userToDB(jsonUser, 0)
+			user, err := userToDB(jsonUser, &model.User{})
+			if err != nil {
+				return err
+			}
 			if err := db.Create(user); err != nil {
 				return err
 			}
@@ -134,16 +142,20 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			user := newInUser(old)
-			if err := readJSON(r, user); err != nil {
+			jUser := newInUser(old)
+			if err := readJSON(r, jUser); err != nil {
 				return err
 			}
 
-			if err := db.Update(userToDB(user, old.ID)); err != nil {
+			user, err := userToDB(jUser, old)
+			if err != nil {
+				return err
+			}
+			if err := db.Update(user); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(user.Username)))
+			w.Header().Set("Location", locationUpdate(r.URL, user.Username))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -161,16 +173,21 @@ func replaceUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			user := &api.InUser{}
-			if err := readJSON(r, user); err != nil {
+			jUser := &api.InUser{}
+			if err := readJSON(r, jUser); err != nil {
 				return err
 			}
 
-			if err := db.Update(userToDB(user, old.ID)); err != nil {
+			user, err := userToDB(jUser, old)
+			if err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(user.Username)))
+			if err := db.Update(user); err != nil {
+				return err
+			}
+
+			w.Header().Set("Location", locationUpdate(r.URL, user.Username))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

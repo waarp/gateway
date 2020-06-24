@@ -40,7 +40,7 @@ func TestGetPartner(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "remote_agent",
+				Name:        "partner_name",
 				Protocol:    "sftp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
@@ -204,7 +204,7 @@ func TestListPartners(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner1 := &model.RemoteAgent{
-				Name:        "remote_agent1",
+				Name:        "partner1",
 				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
@@ -212,7 +212,7 @@ func TestListPartners(t *testing.T) {
 			So(db.Create(partner1), ShouldBeNil)
 
 			partner2 := &model.RemoteAgent{
-				Name:        "remote_agent2",
+				Name:        "partner2",
 				Protocol:    "test2",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
@@ -314,7 +314,7 @@ func TestDeletePartner(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "remote_agent",
+				Name:        "existing",
 				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
