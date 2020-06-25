@@ -31,6 +31,9 @@ func importRules(db *database.Session, list []rule) error {
 
 		// Populate
 		rule.Path = src.Path
+		rule.InPath = src.InPath
+		rule.OutPath = src.OutPath
+		rule.WorkPath = src.WorkPath
 
 		// Create/Update
 		if exists {
