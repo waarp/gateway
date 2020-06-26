@@ -3,13 +3,32 @@ package sftp
 import (
 	"bytes"
 	"fmt"
+	"path"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"github.com/pkg/sftp"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ssh"
 )
+
+func getRuleFromPath(db *database.DB, r *sftp.Request, isSend bool) (*model.Rule, error) {
+	filepath := path.Dir(r.Filepath)
+	if path.IsAbs(filepath) {
+		filepath = filepath[1:]
+	}
+	if filepath == "." || filepath == "/" || filepath == "" {
+		return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
+	}
+	rule := &model.Rule{Path: filepath, IsSend: isSend}
+
+	if err := db.Get(rule); err != nil {
+		return nil, fmt.Errorf("cannot retrieve transfer rule: the "+
+			"directory '%s' is not associated to any known sending rule", filepath)
+	}
+	return rule, nil
+}
 
 func loadCert(db *database.DB, server *model.LocalAgent) (*model.Cert, error) {
 	cert := &model.Cert{OwnerType: server.TableName(), OwnerID: server.ID}

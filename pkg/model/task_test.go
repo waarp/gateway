@@ -47,7 +47,7 @@ func TestTaskBeforeInsert(t *testing.T) {
 			r := &Rule{
 				Name:   "rule1",
 				IsSend: true,
-				Path:   "/path",
+				Path:   "path",
 			}
 			So(db.Create(r), ShouldBeNil)
 

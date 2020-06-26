@@ -3,7 +3,9 @@
 package conf
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/config"
@@ -62,6 +64,62 @@ type ControllerConfig struct {
 	MaxTransfersOut uint64        `ini-name:"MaxTransferOut" description:"The maximum number of concurrent outgoing transfers allowed on the gateway (0 = unlimited)."`
 }
 
+func makeDirs(config *PathsConfig) error {
+	if err := os.MkdirAll(config.GatewayHome, 0744); err != nil {
+		return fmt.Errorf("failed to create gateway home directory: %s", err)
+	}
+	if err := os.MkdirAll(config.InDirectory, 0744); err != nil {
+		return fmt.Errorf("failed to create gateway in directory: %s", err)
+	}
+	if err := os.MkdirAll(config.GatewayHome, 0744); err != nil {
+		return fmt.Errorf("failed to create gateway out directory: %s", err)
+	}
+	if err := os.MkdirAll(config.GatewayHome, 0744); err != nil {
+		return fmt.Errorf("failed to create gateway work directory: %s", err)
+	}
+	return nil
+}
+
+func normalizePaths(config *ServerConfig) error {
+	var err error
+	if config.Paths.GatewayHome == "" {
+		if config.Paths.GatewayHome, err = os.Getwd(); err != nil {
+			return fmt.Errorf("failed to retrieve current working directory: %s", err)
+		}
+	} else {
+		config.Paths.GatewayHome = filepath.Clean(config.Paths.GatewayHome)
+	}
+	if config.Paths.InDirectory != "" {
+		if filepath.IsAbs(config.Paths.InDirectory) {
+			config.Paths.InDirectory = filepath.Clean(config.Paths.InDirectory)
+		} else {
+			config.Paths.InDirectory = filepath.Join(config.Paths.GatewayHome, config.Paths.InDirectory)
+		}
+	} else {
+		config.Paths.InDirectory = config.Paths.GatewayHome
+	}
+	if config.Paths.OutDirectory != "" {
+		if filepath.IsAbs(config.Paths.OutDirectory) {
+			config.Paths.OutDirectory = filepath.Clean(config.Paths.OutDirectory)
+		} else {
+			config.Paths.OutDirectory = filepath.Join(config.Paths.GatewayHome, config.Paths.OutDirectory)
+		}
+	} else {
+		config.Paths.OutDirectory = config.Paths.GatewayHome
+	}
+	if config.Paths.WorkDirectory != "" {
+		if filepath.IsAbs(config.Paths.WorkDirectory) {
+			config.Paths.WorkDirectory = filepath.Clean(config.Paths.WorkDirectory)
+		} else {
+			config.Paths.WorkDirectory = filepath.Join(config.Paths.GatewayHome, config.Paths.WorkDirectory)
+		}
+	} else {
+		config.Paths.WorkDirectory = config.Paths.GatewayHome
+	}
+
+	return makeDirs(&config.Paths)
+}
+
 // LoadServerConfig creates a configuration object.
 // It tries to read configuration files from common places to populate the
 // configuration object (paths are relative to cwd):
@@ -92,6 +150,10 @@ func LoadServerConfig(userConfig string) (*ServerConfig, error) {
 			}
 			break
 		}
+	}
+
+	if err := normalizePaths(c); err != nil {
+		return nil, err
 	}
 
 	return c, nil

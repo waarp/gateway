@@ -111,7 +111,7 @@ func TestCopyTaskRun(t *testing.T) {
 					})
 
 					Convey("Then error should say `no such file`", func() {
-						So(err.Error(), ShouldEqual, "open test.src: no such file or directory")
+						So(err, ShouldBeError, fileNotFound("test.src"))
 					})
 
 					Convey("Then the destination file should NOT exist", func() {
@@ -138,7 +138,7 @@ func TestCopyTaskRun(t *testing.T) {
 				IsSend: false,
 			},
 			Transfer: &model.Transfer{
-				TrueFilepath: "test.dst",
+				TrueFilepath: "test.src",
 				SourceFile:   "test.src",
 				DestFile:     "test.dst",
 			},
@@ -148,13 +148,13 @@ func TestCopyTaskRun(t *testing.T) {
 			args := map[string]string{
 				"path": "test",
 			}
-			So(os.Mkdir("test", 0o700), ShouldBeNil)
+			So(os.Mkdir("test", 0700), ShouldBeNil)
 			Reset(func() {
 				_ = os.RemoveAll("test")
 			})
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(runner.Transfer.TrueFilepath, []byte("Hello World"), 0o700)
+				err := ioutil.WriteFile(runner.Transfer.TrueFilepath, []byte("Hello World"), 0700)
 				So(err, ShouldBeNil)
 
 				Reset(func() {
@@ -170,16 +170,16 @@ func TestCopyTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the destination file should exist", func() {
-						_, err := os.Stat("test/test.dst")
+						_, err := os.Stat("test/test.src")
 						So(err, ShouldBeNil)
 
 						Reset(func() {
-							_ = os.Remove("test/test.dst")
+							_ = os.Remove("test/test.src")
 						})
 					})
 
 					Convey("Then the transfer true file path should NOT be modifier", func() {
-						So(runner.Transfer.TrueFilepath, ShouldEqual, "test.dst")
+						So(runner.Transfer.TrueFilepath, ShouldEqual, "test.src")
 					})
 
 					Convey("Then the transfer destination path should NOT be modifier", func() {
@@ -199,7 +199,7 @@ func TestCopyTaskRun(t *testing.T) {
 					})
 
 					Convey("Then error should say `no such file`", func() {
-						So(err.Error(), ShouldEqual, "open test.dst: no such file or directory")
+						So(err, ShouldBeError, fileNotFound("test.src"))
 					})
 
 					Convey("Then the destination file should NOT exist", func() {
@@ -208,11 +208,11 @@ func TestCopyTaskRun(t *testing.T) {
 						So(os.IsNotExist(err), ShouldBeTrue)
 					})
 
-					Convey("Then the transfer true file path should NOT be modifier", func() {
-						So(runner.Transfer.TrueFilepath, ShouldEqual, "test.dst")
+					Convey("Then the transfer true file path should NOT be modified", func() {
+						So(runner.Transfer.TrueFilepath, ShouldEqual, "test.src")
 					})
 
-					Convey("Then the transfer destination path should NOT be modifier", func() {
+					Convey("Then the transfer destination path should NOT be modified", func() {
 						So(runner.Transfer.DestFile, ShouldEqual, "test.dst")
 					})
 				})

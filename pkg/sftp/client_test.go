@@ -103,7 +103,7 @@ func TestAuthenticate(t *testing.T) {
 			})
 		})
 
-		SkipConvey("Given an incorrect SFTP configuration", func() {
+		Convey("Given an incorrect SFTP configuration", func() {
 			client.Info = model.OutTransferInfo{
 				Account: &model.RemoteAccount{
 					Login:    testLogin,
@@ -117,7 +117,7 @@ func TestAuthenticate(t *testing.T) {
 			err := client.Authenticate()
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeNil)
+				So(err, ShouldNotBeNil)
 
 				Convey("Then the SSH tunnel NOT should be opened", func() {
 					So(client.client, ShouldBeNil)
@@ -236,68 +236,81 @@ func TestData(t *testing.T) {
 			}},
 		}
 
+		srcFile := "client_test.src"
+		content := []byte("Client test transfer file content")
+		So(ioutil.WriteFile(srcFile, content, 0600), ShouldBeNil)
+		Reset(func() { _ = os.Remove(client.Info.Transfer.SourceFile) })
+
 		So(client.Authenticate(), ShouldBeNil)
 		Reset(func() { _ = client.client.Close() })
 
 		Convey("Given a valid out file transfer", func() {
 			client.Info.Transfer = &model.Transfer{
-				DestFile:   "client_test_in.dst",
-				SourceFile: "client.go",
+				SourceFile: srcFile,
+				DestFile:   "client_test_out.dst",
 			}
+
 			client.Info.Rule = &model.Rule{
 				IsSend: true,
 				Path:   ".",
 			}
-
 			So(client.Request(), ShouldBeNil)
-			Reset(func() { _ = os.Remove(client.Info.Transfer.DestFile) })
+			Reset(func() {
+				_ = client.Close(nil)
+				_ = os.Remove(client.Info.Transfer.DestFile)
+			})
 
-			file, err := os.Open(client.Info.Transfer.SourceFile)
-			So(err, ShouldBeNil)
-
-			err = client.Data(file)
-
-			Convey("Then it should NOT return an error", func() {
+			Convey("Given that the requests succeeded", func() {
+				file, err := os.Open(client.Info.Transfer.SourceFile)
 				So(err, ShouldBeNil)
+				Reset(func() { _ = file.Close() })
 
-				Convey("Then the file should have been copied", func() {
-					src, err := ioutil.ReadFile(client.Info.Transfer.SourceFile)
-					So(err, ShouldBeNil)
-					dst, err := ioutil.ReadFile(client.Info.Transfer.DestFile)
+				err = client.Data(file)
+
+				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
 
-					So(src, ShouldResemble, dst)
+					Convey("Then the file should have been copied", func() {
+						dst, err := ioutil.ReadFile(client.Info.Transfer.DestFile)
+						So(err, ShouldBeNil)
+
+						So(dst, ShouldResemble, content)
+					})
 				})
 			})
 		})
 
 		Convey("Given a valid in file transfer", func() {
 			client.Info.Transfer = &model.Transfer{
-				DestFile:   "client_test_out.dst",
-				SourceFile: "client.go",
+				DestFile:   "client_test_in.dst",
+				SourceFile: srcFile,
 			}
 			client.Info.Rule = &model.Rule{
 				IsSend: false,
 			}
 
 			So(client.Request(), ShouldBeNil)
+			Reset(func() {
+				_ = client.Close(nil)
+				_ = os.Remove(client.Info.Transfer.DestFile)
+			})
 
-			file, err := os.Create(client.Info.Transfer.DestFile)
-			So(err, ShouldBeNil)
-			Reset(func() { _ = os.Remove(client.Info.Transfer.DestFile) })
-
-			err = client.Data(file)
-
-			Convey("Then it should NOT return an error", func() {
+			Convey("Given that the request succeeded", func() {
+				file, err := os.Create(client.Info.Transfer.DestFile)
 				So(err, ShouldBeNil)
+				Reset(func() { _ = file.Close() })
 
-				Convey("Then the file should have been copied", func() {
-					src, err := ioutil.ReadFile(client.Info.Transfer.SourceFile)
-					So(err, ShouldBeNil)
-					dst, err := ioutil.ReadFile(client.Info.Transfer.DestFile)
+				err = client.Data(file)
+
+				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
 
-					So(src, ShouldResemble, dst)
+					Convey("Then the file should have been copied", func() {
+						dst, err := ioutil.ReadFile(client.Info.Transfer.DestFile)
+						So(err, ShouldBeNil)
+
+						So(dst, ShouldResemble, content)
+					})
 				})
 			})
 		})

@@ -111,7 +111,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 					})
 
 					Convey("Then error should say `no such file`", func() {
-						So(err.Error(), ShouldEqual, "open test.src: no such file or directory")
+						So(err, ShouldBeError, fileNotFound("test.src"))
 					})
 
 					Convey("Then the destination file should NOT exist", func() {
@@ -199,7 +199,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 					})
 
 					Convey("Then error should say `no such file`", func() {
-						So(err.Error(), ShouldEqual, "open test.dst: no such file or directory")
+						So(err, ShouldBeError, fileNotFound("test.dst"))
 					})
 
 					Convey("Then the destination file should NOT exist", func() {

@@ -32,7 +32,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			acc := &LocalAccount{LocalAgentID: ag.ID, Login: "login", Password: []byte("password")}
 			So(db.Create(acc), ShouldBeNil)
 
-			rule := &Rule{Name: "rule", IsSend: false, Path: "/path"}
+			rule := &Rule{Name: "rule", IsSend: false, Path: "path"}
 			So(db.Create(rule), ShouldBeNil)
 
 			agAccess := RuleAccess{RuleID: rule.ID, ObjectID: ag.ID, ObjectType: ag.TableName()}
@@ -127,6 +127,8 @@ func TestLocalAgentBeforeInsert(t *testing.T) {
 				newAgent := &LocalAgent{
 					Owner:       "test_gateway",
 					Name:        "new",
+					Root:        "/root",
+					WorkDir:     "/root/work",
 					Protocol:    "sftp",
 					ProtoConfig: []byte(`{"address":"address2","port":2023}`),
 				}

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -15,8 +14,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
-
-var errWarning = errors.New("warning")
 
 // Processor provides a way to execute tasks
 // given a transfer context (rule, transfer)
@@ -33,7 +30,7 @@ type Processor struct {
 
 // GetTasks returns the list of all tasks of the given rule & chain.
 func (p *Processor) GetTasks(chain model.Chain) ([]model.Task, *model.PipelineError) {
-	list := []model.Task{}
+	var list []model.Task
 	filters := &database.Filters{
 		Order:      "rank ASC",
 		Conditions: builder.And(builder.Eq{"rule_id": p.Rule.ID}, builder.Eq{"chain": chain}),

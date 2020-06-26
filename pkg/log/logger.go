@@ -22,7 +22,7 @@ func InitBackend(conf conf.LogConfig) (err error) {
 	case "stdout":
 		backend = logging.NewStdoutBackend()
 	case "syslog":
-		backend, err = logging.NewSyslogBackend(conf.SyslogFacility, "waarp-manager-ng")
+		backend, err = newSyslogBackend(conf.SyslogFacility)
 	default:
 		backend, err = logging.NewFileBackend(conf.LogTo)
 	}

@@ -9,7 +9,7 @@ import (
 	"io"
 	"net"
 	"os"
-	"path/filepath"
+	"path"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -89,8 +89,8 @@ func (c *Client) Authenticate() *model.PipelineError {
 func (c *Client) Request() *model.PipelineError {
 	var err error
 	if c.Info.Rule.IsSend {
-		path := filepath.Clean(c.Info.Rule.Path + "/" + c.Info.Transfer.DestFile)
-		c.remoteFile, err = c.client.Create(path)
+		filepath := path.Join(c.Info.Rule.Path, c.Info.Transfer.DestFile)
+		c.remoteFile, err = c.client.Create(filepath)
 		if err != nil {
 			if msg, ok := isRemoteTaskError(err); ok {
 				fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
@@ -123,15 +123,30 @@ func (c *Client) Data(file io.ReadWriteCloser) *model.PipelineError {
 		_ = file.Close()
 	}()
 
-	var err error
-	if c.Info.Rule.IsSend {
-		_, err = c.remoteFile.ReadFrom(file)
-	} else {
-		_, err = c.remoteFile.WriteTo(file)
-		if err == nil {
-			_, err = c.remoteFile.Write([]byte{})
+	err := func() error {
+		if !c.Info.Rule.IsSend {
+			_, err := c.remoteFile.WriteTo(file)
+			return err
 		}
-	}
+		if _, err := c.remoteFile.ReadFrom(file); err != nil {
+			return err
+		}
+
+		// When pushing a file to a server, the client will write the file's 1st
+		// byte again to signal the server (if said server is another gateway)
+		// that the data is over, and that the server should proceed to the
+		// post-tasks. If the server is not a gateway, it will simply write the
+		// byte again.
+		b := make([]byte, 1)
+		if _, err := file.(io.ReaderAt).ReadAt(b, 0); err != nil {
+			return err
+		}
+		_, _ = c.remoteFile.Seek(0, io.SeekStart)
+		if _, err := c.remoteFile.Write(b); err != nil {
+			return err
+		}
+		return nil
+	}()
 	if err != nil {
 		return model.NewPipelineError(model.TeDataTransfer, err.Error())
 	}

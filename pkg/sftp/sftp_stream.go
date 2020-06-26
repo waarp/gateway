@@ -2,14 +2,14 @@ package sftp
 
 import (
 	"context"
-	"fmt"
 	"io"
+
+	"github.com/pkg/sftp"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"github.com/pkg/sftp"
 )
 
 type sftpStream struct {
@@ -55,7 +55,7 @@ func newSftpStream(ctx context.Context, logger *log.Logger, db *database.DB,
 
 	if te := s.Start(); te != nil {
 		pipeline.HandleError(s, te)
-		return nil, fmt.Errorf("failed to start transfer stream: %s", te.Error())
+		return nil, modelToSFTP(te)
 	}
 
 	if pe := s.PreTasks(); pe != nil {
@@ -66,7 +66,7 @@ func newSftpStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	return stream, nil
 }
 
-func (s *sftpStream) TransferError(_ error) {
+func (s *sftpStream) TransferError(error) {
 	select {
 	case <-s.Ctx.Done():
 		s.transErr = &model.PipelineError{Kind: model.KindInterrupt}
@@ -92,8 +92,12 @@ func (s *sftpStream) ReadAt(p []byte, off int64) (int, error) {
 	if s.transErr != nil {
 		return 0, modelToSFTP(s.transErr)
 	}
+
 	n, err := s.TransferStream.ReadAt(p, off)
 	if err == io.EOF {
+		if n != 0 {
+			return n, nil
+		}
 		s.Transfer.Progress = 0
 		s.Transfer.Step = model.StepPostTasks
 		if dbErr := s.Transfer.Update(s.DB); dbErr != nil {
@@ -116,12 +120,13 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 	if s.transErr != nil {
 		return 0, modelToSFTP(s.transErr)
 	}
-	if len(p) == 0 {
+	if uint64(off) != s.Transfer.Progress && off == 0 && len(p) == 1 {
 		s.Transfer.Progress = 0
 		s.Transfer.Step = model.StepPostTasks
 		if err := s.Transfer.Update(s.DB); err != nil {
 			return 0, err
 		}
+		return 0, nil
 	}
 
 	n, err := s.TransferStream.WriteAt(p, off)

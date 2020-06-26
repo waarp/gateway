@@ -2,15 +2,15 @@ package tasks
 
 import (
 	"fmt"
-	"io"
 	"os"
+	"path"
 	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
-// MoveTask is a task which moves the file whithout renaming it
+// MoveTask is a task which moves the file without renaming it
 // the transfer model is modified to reflect this change.
 type MoveTask struct{}
 
@@ -19,37 +19,28 @@ func init() {
 	model.ValidTasks["MOVE"] = &MoveTask{}
 }
 
-func fallbackMove(oldPath, newPath string) error {
-	src, err := os.Open(oldPath)
-	if err != nil {
+// Warning: both 'oldPath' and 'newPath' must be in denormalized format.
+func fallbackMove(dest, source string) error {
+	if err := doCopy(dest, source); err != nil {
 		return err
 	}
-	defer func() { _ = src.Close() }()
-
-	dst, err := os.Create(newPath)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = dst.Close() }()
-
-	if _, err = io.Copy(dst, src); err != nil {
-		return err
-	}
-	if err = os.Remove(oldPath); err != nil {
-		return err
+	if err := os.Remove(source); err != nil {
+		return normalizeFileError(err)
 	}
 
 	return nil
 }
 
 // MoveFile moves the given file to the given location. Works across partitions.
-func MoveFile(oldPath, newPath string) error {
-	if err := os.Rename(oldPath, newPath); err != nil {
-		linkErr, ok := err.(*os.LinkError)
-		if ok && linkErr.Err.Error() == "invalid cross-device link" {
-			return fallbackMove(oldPath, newPath)
+func MoveFile(source, dest string) error {
+	trueSource := utils.DenormalizePath(source)
+	trueDest := utils.DenormalizePath(dest)
+
+	if err := os.Rename(trueSource, trueDest); err != nil {
+		if _, ok := err.(*os.LinkError); ok {
+			return fallbackMove(trueDest, trueSource)
 		}
-		return err
+		return normalizeFileError(err)
 	}
 	return nil
 }
@@ -62,19 +53,17 @@ func (*MoveTask) Validate(args map[string]string) error {
 	return nil
 }
 
-// Run exects the task by moving the file in the requested directory.
+// Run executes the task by moving the file in the requested directory.
 // TODO Create directory if not exist
 func (*MoveTask) Run(args map[string]string, processor *Processor) (string, error) {
-	var oldPath *string
 	newDir := args["path"]
 
-	oldPath = &(processor.Transfer.TrueFilepath)
+	source := processor.Transfer.TrueFilepath
+	dest := path.Join(newDir, filepath.Base(source))
 
-	newPath := utils.SlashJoin(newDir, filepath.Base(*oldPath))
-
-	if err := MoveFile(*oldPath, newPath); err != nil {
+	if err := MoveFile(source, dest); err != nil {
 		return err.Error(), err
 	}
-	*oldPath = newPath
+	processor.Transfer.TrueFilepath = dest
 	return "", nil
 }

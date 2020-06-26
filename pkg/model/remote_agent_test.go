@@ -32,7 +32,7 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			acc := &RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: []byte("password")}
 			So(db.Create(acc), ShouldBeNil)
 
-			rule := &Rule{Name: "rule", IsSend: false, Path: "/path"}
+			rule := &Rule{Name: "rule", IsSend: false, Path: "path"}
 			So(db.Create(rule), ShouldBeNil)
 
 			agAccess := RuleAccess{RuleID: rule.ID, ObjectID: ag.ID, ObjectType: ag.TableName()}

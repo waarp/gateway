@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 	"time"
@@ -12,7 +13,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -33,9 +33,9 @@ func TestExecutorRun(t *testing.T) {
 	}
 	paths := pipeline.Paths{PathsConfig: conf.PathsConfig{
 		GatewayHome:   cd,
-		InDirectory:   utils.SlashJoin(cd, "in"),
-		OutDirectory:  utils.SlashJoin(cd, ""),
-		WorkDirectory: utils.SlashJoin(cd, "work"),
+		InDirectory:   path.Join(cd, "in"),
+		OutDirectory:  path.Join(cd, ""),
+		WorkDirectory: path.Join(cd, "work"),
 	}}
 
 	Convey("Given a database", t, func() {
@@ -73,13 +73,13 @@ func TestExecutorRun(t *testing.T) {
 			}
 			So(db.Create(rule), ShouldBeNil)
 
-			path, err := filepath.Abs("executor.go")
+			truePath, err := filepath.Abs("executor.go")
 			So(err, ShouldBeNil)
 			trans := &model.Transfer{
 				RuleID:       rule.ID,
 				AgentID:      remote.ID,
 				AccountID:    account.ID,
-				TrueFilepath: path,
+				TrueFilepath: truePath,
 				SourceFile:   "executor.go",
 				DestFile:     "dest",
 				Start:        time.Now().Truncate(time.Second),
@@ -428,9 +428,9 @@ func TestTransferResume(t *testing.T) {
 	}
 	paths := pipeline.Paths{PathsConfig: conf.PathsConfig{
 		GatewayHome:   cd,
-		InDirectory:   utils.SlashJoin(cd, "in"),
-		OutDirectory:  utils.SlashJoin(cd, ""),
-		WorkDirectory: utils.SlashJoin(cd, "work"),
+		InDirectory:   path.Join(cd, "in"),
+		OutDirectory:  path.Join(cd, ""),
+		WorkDirectory: path.Join(cd, "work"),
 	}}
 
 	Convey("Given a test database", t, func() {
@@ -487,14 +487,14 @@ func TestTransferResume(t *testing.T) {
 			So(db.Create(pre1), ShouldBeNil)
 			So(db.Create(pre2), ShouldBeNil)
 
-			path, err := filepath.Abs("executor.go")
+			truePath, err := filepath.Abs("executor.go")
 			So(err, ShouldBeNil)
 			trans := &model.Transfer{
 				RuleID:       rule.ID,
 				IsServer:     false,
 				AgentID:      remote.ID,
 				AccountID:    account.ID,
-				TrueFilepath: path,
+				TrueFilepath: truePath,
 				SourceFile:   "executor.go",
 				DestFile:     "executor.dst",
 				Start:        time.Now().Truncate(time.Second),

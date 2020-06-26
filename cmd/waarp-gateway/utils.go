@@ -41,8 +41,8 @@ func sendRequest(addr *url.URL, object interface{}, method string) (*http.Respon
 	if pwd, hasPwd := addr.User.Password(); hasPwd {
 		req.SetBasicAuth(addr.User.Username(), pwd)
 	} else if terminal.IsTerminal(int(in.Fd())) && terminal.IsTerminal(int(out.Fd())) {
-		fmt.Fprint(out, "Enter password:")
-		password, err := terminal.ReadPassword(int(in.Fd()))
+		fmt.Fprintf(out, "Enter %s's password:", addr.User.Username())
+		password, err := terminal.ReadPassword(int(out.Fd()))
 		fmt.Fprintln(out)
 		if err != nil {
 			return nil, err

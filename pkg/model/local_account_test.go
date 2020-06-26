@@ -42,7 +42,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 			}
 			So(db.Create(cert), ShouldBeNil)
 
-			rule := &Rule{Name: "rule", IsSend: true, Path: "/path"}
+			rule := &Rule{Name: "rule", IsSend: true, Path: "path"}
 			So(db.Create(rule), ShouldBeNil)
 
 			access := &RuleAccess{RuleID: rule.ID, ObjectType: acc.TableName(), ObjectID: acc.ID}

@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -32,9 +31,9 @@ func TestDeleteTaskRun(t *testing.T) {
 				IsSend: true,
 			},
 			Transfer: &model.Transfer{
-				TrueFilepath: "out.file",
-				SourceFile:   "out.file",
-				DestFile:     "in.file",
+				TrueFilepath: "delete.src",
+				SourceFile:   "delete.src",
+				DestFile:     "delete.dst",
 			},
 		}
 
@@ -76,9 +75,8 @@ func TestDeleteTaskRun(t *testing.T) {
 					})
 
 					Convey("Then error should say `no such file`", func() {
-						So(err.Error(), ShouldEqual,
-							fmt.Sprintf("remove %s: no such file or directory",
-								processor.Transfer.TrueFilepath))
+						So(err, ShouldBeError, fileNotFound(processor.Transfer.TrueFilepath,
+							"remove"))
 					})
 				})
 			})
@@ -91,9 +89,9 @@ func TestDeleteTaskRun(t *testing.T) {
 				IsSend: false,
 			},
 			Transfer: &model.Transfer{
-				TrueFilepath: "in.file",
-				SourceFile:   "out.file",
-				DestFile:     "in.file",
+				TrueFilepath: "delete.src",
+				SourceFile:   "delete.src",
+				DestFile:     "delete.dst",
 			},
 		}
 
@@ -135,8 +133,8 @@ func TestDeleteTaskRun(t *testing.T) {
 					})
 
 					Convey("Then error should say `no such file`", func() {
-						So(err.Error(), ShouldEqual,
-							fmt.Sprintf("remove %s: no such file or directory", processor.Transfer.TrueFilepath))
+						So(err, ShouldBeError, fileNotFound(processor.Transfer.TrueFilepath,
+							"remove"))
 					})
 				})
 			})

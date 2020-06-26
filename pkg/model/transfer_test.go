@@ -55,7 +55,7 @@ func TestTransferBeforeInsert(t *testing.T) {
 			rule := &Rule{
 				Name:   "rule1",
 				IsSend: true,
-				Path:   "/path",
+				Path:   "path",
 			}
 			So(db.Create(rule), ShouldBeNil)
 
@@ -435,7 +435,7 @@ func TestTransferToHistory(t *testing.T) {
 		rule := &Rule{
 			Name:   "rule1",
 			IsSend: true,
-			Path:   "/path",
+			Path:   "path",
 		}
 		So(db.Create(rule), ShouldBeNil)
 

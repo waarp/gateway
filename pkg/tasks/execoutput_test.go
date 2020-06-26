@@ -9,11 +9,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const scriptExecOutputFail = `#!/bin/sh
-echo "This is a message"
-echo "NEWFILENAME:new_name.file"
-exit 2`
-
 func TestExecOutputValidate(t *testing.T) {
 
 	Convey("Given an 'EXECOUTPUT' task", t, func() {
@@ -85,8 +80,6 @@ func TestExecOutputValidate(t *testing.T) {
 }
 
 func TestExecOutputRun(t *testing.T) {
-	script := "execmove_test_script.sh"
-	_ = os.Remove(script)
 
 	Convey("Given an 'EXECOUTPUT' task", t, func() {
 		exec := &ExecOutputTask{}
@@ -95,17 +88,17 @@ func TestExecOutputRun(t *testing.T) {
 			Rule:     &model.Rule{},
 		}
 
-		Reset(func() { _ = os.Remove(script) })
+		Reset(func() { _ = os.Remove(execOutputScriptFile) })
 
 		Convey("Given that the task is valid", func() {
 			args := map[string]string{
-				"path":  "./" + script,
+				"path":  execOutputScriptFile,
 				"args":  "execmove.go",
 				"delay": "1000",
 			}
 
 			Convey("Given that the command succeeds", func() {
-				err := ioutil.WriteFile(script, []byte(scriptExecOK), 0700)
+				err := ioutil.WriteFile(execOutputScriptFile, []byte(scriptExecOK), 0700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -118,7 +111,7 @@ func TestExecOutputRun(t *testing.T) {
 			})
 
 			Convey("Given that the command sends a warning", func() {
-				err := ioutil.WriteFile(script, []byte(scriptExecWarn), 0700)
+				err := ioutil.WriteFile(execOutputScriptFile, []byte(scriptExecWarn), 0700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -131,7 +124,7 @@ func TestExecOutputRun(t *testing.T) {
 			})
 
 			Convey("Given that the command fails", func() {
-				err := ioutil.WriteFile(script, []byte(scriptExecOutputFail), 0700)
+				err := ioutil.WriteFile(execOutputScriptFile, []byte(scriptExecOutputFail), 0700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -143,8 +136,8 @@ func TestExecOutputRun(t *testing.T) {
 
 						Convey("Then the message should contain the script "+
 							"output", func() {
-							So(msg, ShouldEqual, "This is a message\n"+
-								"NEWFILENAME:new_name.file\n")
+							So(msg, ShouldEqual, "This is a message"+lineSeparator+
+								"NEWFILENAME:new_name.file"+lineSeparator)
 						})
 
 						Convey("Then the transfer file should have changed", func() {
@@ -155,7 +148,7 @@ func TestExecOutputRun(t *testing.T) {
 			})
 
 			Convey("Given that the command delay expires", func() {
-				err := ioutil.WriteFile(script, []byte(scriptExecInfinite), 0700)
+				err := ioutil.WriteFile(execOutputScriptFile, []byte(scriptExecInfinite), 0700)
 				So(err, ShouldBeNil)
 
 				args["delay"] = "100"

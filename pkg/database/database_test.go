@@ -6,11 +6,12 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 )
 
 const tblName = "test"
@@ -707,11 +708,12 @@ func testDatabase(db *DB) {
 }
 
 func TestSqlite(t *testing.T) {
+	db := sqliteTestDatabase
 	defer func() {
+		_ = db.Stop(context.Background())
 		_ = os.Remove(sqliteConfig.Database.AESPassphrase)
 		_ = os.Remove(sqliteConfig.Database.Address)
 	}()
-	db := sqliteTestDatabase
 	if err := db.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -727,25 +729,18 @@ func TestSqlite(t *testing.T) {
 func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 	Convey("Given a test database", t, func() {
 		db := GetTestDatabase()
-		_ = db.Stop(context.Background())
-		_ = os.Remove(db.Conf.Database.AESPassphrase)
 
-		Convey("Given there is no passphrase file", func() {
-			_, err := os.Stat(db.Conf.Database.AESPassphrase)
-			So(os.IsNotExist(err), ShouldBeTrue)
+		Convey("When the database service is started", func() {
+			err := db.Start()
+			So(err, ShouldBeNil)
 
-			Convey("When the database service is started", func() {
-				err := db.Start()
+			Convey("Then there is a new passphrase file", func() {
+				stats, err := os.Stat(db.Conf.Database.AESPassphrase)
 				So(err, ShouldBeNil)
+				So(stats, ShouldNotBeNil)
 
-				Convey("Then there is a new passphrase file", func() {
-					stats, err := os.Stat(db.Conf.Database.AESPassphrase)
-					So(err, ShouldBeNil)
-					So(stats, ShouldNotBeNil)
-
-					Convey("Then the permissions of the files are secure", func() {
-						So(int(stats.Mode().Perm()), ShouldEqual, 0600)
-					})
+				Convey("Then the permissions of the files are secure", func() {
+					So(stats.Mode().Perm(), ShouldEqual, aesFilePerm)
 				})
 			})
 		})

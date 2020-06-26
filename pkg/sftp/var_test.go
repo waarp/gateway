@@ -2,6 +2,7 @@ package sftp
 
 import (
 	"fmt"
+	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -21,11 +22,9 @@ var (
 )
 
 func init() {
-	tasks.RunnableTasks["TESTCHECK"] = &testTaskCheck{}
-	tasks.RunnableTasks["TESTSUCCESS"] = &testTaskSuccess{}
+	tasks.RunnableTasks["TESTCHECK"] = &testTaskSuccess{}
 	tasks.RunnableTasks["TESTFAIL"] = &testTaskFail{}
 	model.ValidTasks["TESTCHECK"] = &testTaskSuccess{}
-	model.ValidTasks["TESTSUCCESS"] = &testTaskSuccess{}
 	model.ValidTasks["TESTFAIL"] = &testTaskFail{}
 
 	logConf := conf.LogConfig{
@@ -37,17 +36,24 @@ func init() {
 
 var checkChannel = make(chan string)
 
-type testTaskCheck struct {
-	msg string
+func getNextTask() string {
+	timer := time.NewTimer(time.Second)
+	select {
+	case msg := <-checkChannel:
+		return msg
+	case <-timer.C:
+		return "new task timeout expired"
+	}
 }
 
-func (t *testTaskCheck) Validate(args map[string]string) error {
-	t.msg = args["msg"]
-	return nil
-}
-func (t *testTaskCheck) Run(map[string]string, *tasks.Processor) (string, error) {
-	checkChannel <- t.msg
-	return "", nil
+func waitChannel(ch chan struct{}) error {
+	timer := time.NewTimer(time.Second)
+	select {
+	case <-ch:
+		return nil
+	case <-timer.C:
+		return fmt.Errorf("channel close timeout expired")
+	}
 }
 
 type testTaskSuccess struct{}
@@ -55,18 +61,21 @@ type testTaskSuccess struct{}
 func (t *testTaskSuccess) Validate(map[string]string) error {
 	return nil
 }
-
-func (t *testTaskSuccess) Run(map[string]string, *tasks.Processor) (string, error) {
+func (t *testTaskSuccess) Run(args map[string]string, _ *tasks.Processor) (string, error) {
+	checkChannel <- args["msg"]
 	return "", nil
 }
 
-type testTaskFail struct{}
+type testTaskFail struct {
+	msg string
+}
 
 func (t *testTaskFail) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskFail) Run(map[string]string, *tasks.Processor) (string, error) {
+func (t *testTaskFail) Run(args map[string]string, _ *tasks.Processor) (string, error) {
+	checkChannel <- args["msg"]
 	return "task failed", fmt.Errorf("task failed")
 }
 

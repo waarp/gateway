@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -22,11 +21,12 @@ func TestNewTransferStream(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
+	root := filepath.Join(cd, "new_stream_root")
 	paths := Paths{PathsConfig: conf.PathsConfig{
-		GatewayHome:   cd,
-		InDirectory:   utils.SlashJoin(cd, "in"),
-		OutDirectory:  utils.SlashJoin(cd, "out"),
-		WorkDirectory: utils.SlashJoin(cd, "work"),
+		GatewayHome:   root,
+		InDirectory:   filepath.Join(root, "in"),
+		OutDirectory:  filepath.Join(root, "out"),
+		WorkDirectory: filepath.Join(root, "work"),
 	}}
 
 	Convey("Given a new transfer", t, func() {
@@ -38,7 +38,7 @@ func TestNewTransferStream(t *testing.T) {
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: false,
-			Path:   cd,
+			Path:   "rule/path",
 		}
 		So(db.Create(rule), ShouldBeNil)
 
@@ -57,13 +57,12 @@ func TestNewTransferStream(t *testing.T) {
 		So(db.Create(account), ShouldBeNil)
 
 		trans := model.Transfer{
-			RuleID:       rule.ID,
-			IsServer:     false,
-			AgentID:      agent.ID,
-			AccountID:    account.ID,
-			TrueFilepath: "/path",
-			SourceFile:   "source",
-			DestFile:     "dest",
+			RuleID:     rule.ID,
+			IsServer:   false,
+			AgentID:    agent.ID,
+			AccountID:  account.ID,
+			SourceFile: "source",
+			DestFile:   "dest",
 		}
 
 		Convey("Given no transfer limit", func() {
@@ -101,126 +100,132 @@ func TestNewTransferStream(t *testing.T) {
 func TestStreamRead(t *testing.T) {
 	logger := log.NewLogger("test_stream_read")
 
-	filename := "transfer_stream.go"
-	destFilename := filename + ".dst"
-
 	cd, err := os.Getwd()
 	if err != nil {
 		t.FailNow()
 	}
+	root := filepath.Join(cd, "stream_read_root")
 	paths := Paths{PathsConfig: conf.PathsConfig{
-		GatewayHome:   cd,
-		InDirectory:   utils.SlashJoin(cd, "in"),
-		OutDirectory:  utils.SlashJoin(cd, ""),
-		WorkDirectory: utils.SlashJoin(cd, "work"),
+		GatewayHome:   root,
+		InDirectory:   filepath.Join(root, "in"),
+		OutDirectory:  filepath.Join(root, ""),
+		WorkDirectory: filepath.Join(root, "work"),
 	}}
 
-	Convey("Given a transfer stream", t, func() {
-		Reset(func() { _ = os.Remove(destFilename) })
+	Convey("Given a file", t, func() {
+		srcFile := "read_test.src"
+		dstFile := "read_test.dst"
+		So(os.Mkdir(root, 0700), ShouldBeNil)
+		path := filepath.Join(root, srcFile)
+		content := []byte("Transfer stream read test content")
+		So(ioutil.WriteFile(path, content, 0600), ShouldBeNil)
 
-		db := database.GetTestDatabase()
-		rule := &model.Rule{
-			Name:    "rule",
-			Comment: "",
-			IsSend:  true,
-			Path:    "path",
-			InPath:  ".",
-			OutPath: ".",
-		}
-		So(db.Create(rule), ShouldBeNil)
+		Reset(func() { _ = os.RemoveAll(root) })
 
-		agent := &model.LocalAgent{
-			Owner:       database.Owner,
-			Name:        "agent",
-			Protocol:    "test",
-			ProtoConfig: []byte(`{}`),
-		}
-		So(db.Create(agent), ShouldBeNil)
+		Convey("Given a transfer stream to this file", func() {
+			db := database.GetTestDatabase()
+			rule := &model.Rule{
+				Name:    "rule",
+				Comment: "",
+				IsSend:  true,
+				Path:    "path",
+				InPath:  ".",
+				OutPath: ".",
+			}
+			So(db.Create(rule), ShouldBeNil)
 
-		account := &model.LocalAccount{
-			LocalAgentID: agent.ID,
-			Login:        "login",
-			Password:     []byte("password"),
-		}
-		So(db.Create(account), ShouldBeNil)
+			agent := &model.LocalAgent{
+				Owner:       database.Owner,
+				Name:        "agent",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(agent), ShouldBeNil)
 
-		path, err := filepath.Abs(filename)
-		So(err, ShouldBeNil)
-		trans := &model.Transfer{
-			RuleID:       rule.ID,
-			IsServer:     true,
-			AgentID:      agent.ID,
-			AccountID:    account.ID,
-			TrueFilepath: path,
-			SourceFile:   filename,
-			DestFile:     destFilename,
-			Start:        time.Now(),
-			Status:       model.StatusRunning,
-			Owner:        database.Owner,
-			Progress:     0,
-			TaskNumber:   0,
-			Error:        model.TransferError{},
-		}
-		So(db.Create(trans), ShouldBeNil)
+			account := &model.LocalAccount{
+				LocalAgentID: agent.ID,
+				Login:        "login",
+				Password:     []byte("password"),
+			}
+			So(db.Create(account), ShouldBeNil)
 
-		stream, tErr := NewTransferStream(context.Background(), logger, db, paths, *trans)
-		So(tErr, ShouldBeNil)
+			So(err, ShouldBeNil)
+			trans := &model.Transfer{
+				RuleID:     rule.ID,
+				IsServer:   true,
+				AgentID:    agent.ID,
+				AccountID:  account.ID,
+				SourceFile: srcFile,
+				DestFile:   dstFile,
+				Start:      time.Now(),
+				Status:     model.StatusRunning,
+				Owner:      database.Owner,
+				Progress:   0,
+				TaskNumber: 0,
+				Error:      model.TransferError{},
+			}
+			So(db.Create(trans), ShouldBeNil)
 
-		So(stream.Start(), ShouldBeNil)
+			stream, tErr := NewTransferStream(context.Background(), logger, db, paths, *trans)
+			So(tErr, ShouldBeNil)
+			Reset(func() { _ = stream.Close() })
 
-		Convey("When reading the stream", func() {
-			b := make([]byte, 15)
+			So(stream.Start(), ShouldBeNil)
 
-			n, err := stream.Read(b)
+			Convey("When reading the stream", func() {
+				b := make([]byte, 4)
 
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
+				n, err := stream.Read(b)
 
-				Convey("Then it should return the correct number of bytes", func() {
-					So(n, ShouldEqual, len(b))
-				})
-
-				Convey("Then the transfer progression should have been updated", func() {
-					t := &model.Transfer{ID: trans.ID}
-					So(db.Get(t), ShouldBeNil)
-
-					So(t.Progress, ShouldEqual, len(b))
-				})
-
-				Convey("Then the array should contain the file content", func() {
-					content, err := ioutil.ReadFile(filename)
+				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
 
-					So(string(b), ShouldEqual, string(content[:len(b)]))
+					Convey("Then it should return the correct number of bytes", func() {
+						So(n, ShouldEqual, len(b))
+					})
+
+					Convey("Then the transfer progression should have been updated", func() {
+						t := &model.Transfer{ID: trans.ID}
+						So(db.Get(t), ShouldBeNil)
+
+						So(t.Progress, ShouldEqual, len(b))
+					})
+
+					Convey("Then the array should contain the file content", func() {
+						content, err := ioutil.ReadFile(path)
+						So(err, ShouldBeNil)
+
+						So(string(b), ShouldEqual, string(content[:len(b)]))
+					})
 				})
 			})
-		})
 
-		Convey("When reading the stream with an offset", func() {
-			b := make([]byte, 15)
+			Convey("When reading the stream with an offset", func() {
+				b := make([]byte, 4)
 
-			off := 5
-			n, err := stream.ReadAt(b, int64(off))
+				off := 2
+				n, err := stream.ReadAt(b, int64(off))
 
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
-
-				Convey("Then it should return the correct number of bytes", func() {
-					So(n, ShouldEqual, len(b))
-				})
-
-				Convey("Then the transfer progression should have been updated", func() {
-					t := &model.Transfer{ID: trans.ID}
-					So(db.Get(t), ShouldBeNil)
-
-					So(t.Progress, ShouldEqual, len(b))
-				})
-
-				Convey("Then the array should contain the file content", func() {
-					content, err := ioutil.ReadFile(filename)
+				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
 
-					So(string(b), ShouldEqual, string(content[off:off+len(b)]))
+					Convey("Then it should return the correct number of bytes", func() {
+						So(n, ShouldEqual, len(b))
+					})
+
+					Convey("Then the transfer progression should have been updated", func() {
+						t := &model.Transfer{ID: trans.ID}
+						So(db.Get(t), ShouldBeNil)
+
+						So(t.Progress, ShouldEqual, len(b))
+					})
+
+					Convey("Then the array should contain the file content", func() {
+						content, err := ioutil.ReadFile(path)
+						So(err, ShouldBeNil)
+
+						So(string(b), ShouldEqual, string(content[off:off+len(b)]))
+					})
 				})
 			})
 		})
@@ -230,120 +235,123 @@ func TestStreamRead(t *testing.T) {
 func TestStreamWrite(t *testing.T) {
 	logger := log.NewLogger("test_stream_read")
 
-	filename := "test_stream_write.dst"
-	content := "Transfer stream write test content"
-
 	cd, err := os.Getwd()
 	if err != nil {
 		t.FailNow()
 	}
+	root := filepath.Join(cd, "stream_write_root")
 	paths := Paths{PathsConfig: conf.PathsConfig{
-		GatewayHome:   cd,
-		InDirectory:   utils.SlashJoin(cd, "in"),
-		OutDirectory:  utils.SlashJoin(cd, "out"),
-		WorkDirectory: utils.SlashJoin(cd, "work"),
+		GatewayHome:   root,
+		InDirectory:   filepath.Join(root, "in"),
+		OutDirectory:  filepath.Join(root, "out"),
+		WorkDirectory: filepath.Join(root, "work"),
 	}}
 
-	Convey("Given a transfer stream", t, func() {
-		db := database.GetTestDatabase()
-		rule := &model.Rule{
-			Name:    "rule",
-			Comment: "",
-			IsSend:  false,
-			Path:    ".",
-		}
-		So(db.Create(rule), ShouldBeNil)
+	Convey("Given a file", t, func() {
+		dstFile := "write_test.dst"
+		content := []byte("Transfer stream write test content")
+		So(os.Mkdir(root, 0700), ShouldBeNil)
+		Reset(func() { So(os.RemoveAll(root), ShouldBeNil) })
 
-		agent := &model.LocalAgent{
-			Owner:       database.Owner,
-			Name:        "agent",
-			Protocol:    "test",
-			ProtoConfig: []byte(`{}`),
-		}
-		So(db.Create(agent), ShouldBeNil)
+		Convey("Given a transfer stream", func() {
+			db := database.GetTestDatabase()
+			rule := &model.Rule{
+				Name:   "rule",
+				IsSend: false,
+				Path:   ".",
+			}
+			So(db.Create(rule), ShouldBeNil)
 
-		account := &model.LocalAccount{
-			LocalAgentID: agent.ID,
-			Login:        "login",
-			Password:     []byte("password"),
-		}
-		So(db.Create(account), ShouldBeNil)
+			agent := &model.LocalAgent{
+				Owner:       database.Owner,
+				Name:        "agent",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(agent), ShouldBeNil)
 
-		trans := &model.Transfer{
-			RuleID:     rule.ID,
-			IsServer:   true,
-			AgentID:    agent.ID,
-			AccountID:  account.ID,
-			SourceFile: ".",
-			DestFile:   filename,
-			Start:      time.Now(),
-			Status:     model.StatusRunning,
-			Owner:      database.Owner,
-			Progress:   0,
-			TaskNumber: 0,
-			Error:      model.TransferError{},
-		}
-		So(db.Create(trans), ShouldBeNil)
+			account := &model.LocalAccount{
+				LocalAgentID: agent.ID,
+				Login:        "login",
+				Password:     []byte("password"),
+			}
+			So(db.Create(account), ShouldBeNil)
 
-		stream, tErr := NewTransferStream(context.Background(), logger, db, paths, *trans)
-		So(tErr, ShouldBeNil)
+			trans := &model.Transfer{
+				RuleID:     rule.ID,
+				IsServer:   true,
+				AgentID:    agent.ID,
+				AccountID:  account.ID,
+				SourceFile: "write_test.src",
+				DestFile:   dstFile,
+				Start:      time.Now(),
+				Status:     model.StatusRunning,
+				Owner:      database.Owner,
+				Progress:   0,
+				TaskNumber: 0,
+				Error:      model.TransferError{},
+			}
+			So(db.Create(trans), ShouldBeNil)
 
-		So(stream.Start(), ShouldBeNil)
-		Reset(func() { _ = os.RemoveAll(paths.WorkDirectory) })
+			stream, tErr := NewTransferStream(context.Background(), logger, db, paths, *trans)
+			So(tErr, ShouldBeNil)
+			Reset(func() { _ = stream.Close() })
 
-		Convey("When writing to the stream", func() {
-			b := []byte(content[:15])
+			So(stream.Start(), ShouldBeNil)
 
-			n, err := stream.Write(b)
+			Convey("When writing to the stream", func() {
+				w := content[:15]
+				n, err := stream.Write(w)
 
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
-
-				Convey("Then it should return the correct number of bytes", func() {
-					So(n, ShouldEqual, len(b))
-				})
-
-				Convey("Then the transfer progression should have been updated", func() {
-					t := &model.Transfer{ID: trans.ID}
-					So(db.Get(t), ShouldBeNil)
-
-					So(t.Progress, ShouldEqual, len(b))
-				})
-
-				Convey("Then the file should contain the array content", func() {
-					s, err := ioutil.ReadFile(stream.Transfer.TrueFilepath)
+				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
 
-					So(string(s), ShouldEqual, string(b))
+					Convey("Then it should return the correct number of bytes", func() {
+						So(n, ShouldEqual, len(w))
+					})
+
+					Convey("Then the transfer progression should have been updated", func() {
+						t := &model.Transfer{ID: trans.ID}
+						So(db.Get(t), ShouldBeNil)
+
+						So(t.Progress, ShouldEqual, len(w))
+					})
+
+					Convey("Then the file should contain the array content", func() {
+						s, err := ioutil.ReadFile(stream.Transfer.TrueFilepath)
+						So(err, ShouldBeNil)
+
+						So(string(s), ShouldEqual, string(w))
+					})
 				})
 			})
-		})
 
-		Convey("When writing to the stream with an offset", func() {
-			b := []byte(content[:15])
+			Convey("When writing to the stream with an offset", func() {
+				w := content[:15]
 
-			off := 5
-			n, err := stream.WriteAt(b, int64(off))
+				off := 5
+				n, err := stream.WriteAt(w, int64(off))
 
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
-
-				Convey("Then it should return the correct number of bytes", func() {
-					So(n, ShouldEqual, len(b))
-				})
-
-				Convey("Then the transfer progression should have been updated", func() {
-					t := &model.Transfer{ID: trans.ID}
-					So(db.Get(t), ShouldBeNil)
-
-					So(t.Progress, ShouldEqual, len(b))
-				})
-
-				Convey("Then the file should contain the array content", func() {
-					s, err := ioutil.ReadFile(stream.Transfer.TrueFilepath)
+				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
 
-					So(string(s[off:]), ShouldEqual, string(b))
+					Convey("Then it should return the correct number of bytes", func() {
+						So(n, ShouldEqual, len(w))
+					})
+
+					Convey("Then the transfer progression should have been updated", func() {
+						t := &model.Transfer{ID: trans.ID}
+						So(db.Get(t), ShouldBeNil)
+
+						So(t.Progress, ShouldEqual, len(w))
+					})
+
+					Convey("Then the file should contain the array content", func() {
+						s, err := ioutil.ReadFile(stream.Transfer.TrueFilepath)
+						So(err, ShouldBeNil)
+
+						So(string(s[off:]), ShouldEqual, string(w))
+					})
 				})
 			})
 		})

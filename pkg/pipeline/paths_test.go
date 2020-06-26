@@ -4,14 +4,15 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestPathIn(t *testing.T) {
@@ -24,7 +25,7 @@ func TestPathIn(t *testing.T) {
 		t.FailNow()
 	}
 
-	gwRoot := utils.SlashJoin(cd, gwHome)
+	gwRoot := filepath.Join(cd, gwHome)
 
 	Convey("Given a Gateway configuration", t, func() {
 		paths := Paths{
@@ -77,11 +78,12 @@ func TestPathIn(t *testing.T) {
 					stream, err := NewTransferStream(context.Background(),
 						logger, db, paths, trans)
 					So(err, ShouldBeNil)
+					Reset(func() { _ = stream.Finalize() })
 
 					So(stream.Start(), ShouldBeNil)
 
 					Convey("Then it should have created the correct work file", func() {
-						_, err := os.Stat(utils.SlashJoin(workPath, trans.DestFile))
+						_, err := os.Stat(filepath.Join(workPath, trans.DestFile+".tmp"))
 						So(err, ShouldBeNil)
 					})
 
@@ -89,7 +91,7 @@ func TestPathIn(t *testing.T) {
 						So(stream.Finalize(), ShouldBeNil)
 
 						Convey("Then it should have moved the file to its destination", func() {
-							_, err := os.Stat(utils.SlashJoin(destPath, trans.DestFile))
+							_, err := os.Stat(filepath.Join(destPath, trans.DestFile))
 							So(err, ShouldBeNil)
 						})
 					})
@@ -99,14 +101,14 @@ func TestPathIn(t *testing.T) {
 			Convey("Given that it has both a 'in' and 'work' directory", func() {
 				inDir := "in"
 				workDir := "tmp"
-				paths.InDirectory = utils.SlashJoin(gwRoot, inDir)
-				paths.WorkDirectory = utils.SlashJoin(gwRoot, workDir)
+				paths.InDirectory = filepath.Join(gwRoot, inDir)
+				paths.WorkDirectory = filepath.Join(gwRoot, workDir)
 
 				Convey("Given a server with a root & work directory", func() {
 					serverDir := "server_root"
 					serverWork := serverDir + "/server_work"
-					paths.ServerRoot = utils.SlashJoin(gwRoot, serverDir)
-					paths.ServerWork = utils.SlashJoin(gwRoot, serverWork)
+					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
+					paths.ServerWork = filepath.Join(gwRoot, serverWork)
 
 					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
 						receive := &model.Rule{
@@ -118,8 +120,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -132,8 +134,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -146,8 +148,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -159,8 +161,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
@@ -168,8 +170,8 @@ func TestPathIn(t *testing.T) {
 				Convey("Given a server with only a root directory", func() {
 					serverDir := "server_root"
 					serverWork := serverDir
-					paths.ServerRoot = utils.SlashJoin(gwRoot, serverDir)
-					paths.ServerWork = utils.SlashJoin(gwRoot, serverWork)
+					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
+					paths.ServerWork = filepath.Join(gwRoot, serverWork)
 
 					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
 						receive := &model.Rule{
@@ -181,8 +183,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -195,8 +197,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -209,8 +211,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -222,15 +224,15 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
 
 				Convey("Given a server with only a work directory", func() {
 					serverWork := "server_root/server_work"
-					paths.ServerWork = utils.SlashJoin(gwRoot, serverWork)
+					paths.ServerWork = filepath.Join(gwRoot, serverWork)
 
 					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
 						receive := &model.Rule{
@@ -242,8 +244,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -256,8 +258,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -270,8 +272,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, inDir)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, inDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -283,8 +285,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, inDir)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, inDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
@@ -301,8 +303,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -315,8 +317,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, workDir)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, workDir)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -329,8 +331,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, inDir)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, inDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -342,8 +344,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, workDir)
-						destPath := utils.SlashJoin(cd, gwHome, inDir)
+						workPath := filepath.Join(cd, gwHome, workDir)
+						destPath := filepath.Join(cd, gwHome, inDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
@@ -351,14 +353,14 @@ func TestPathIn(t *testing.T) {
 
 			Convey("Given that it has only an 'in' directory", func() {
 				inDir := "in"
-				paths.InDirectory = utils.SlashJoin(gwRoot, inDir)
+				paths.InDirectory = filepath.Join(gwRoot, inDir)
 				paths.WorkDirectory = gwRoot
 
 				Convey("Given a server with a root & work directory", func() {
 					serverDir := "server_root"
 					serverWork := serverDir + "/server_work"
-					paths.ServerRoot = utils.SlashJoin(gwRoot, serverDir)
-					paths.ServerWork = utils.SlashJoin(gwRoot, serverWork)
+					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
+					paths.ServerWork = filepath.Join(gwRoot, serverWork)
 
 					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
 						receive := &model.Rule{
@@ -370,8 +372,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -384,8 +386,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -398,8 +400,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -411,8 +413,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
@@ -420,8 +422,8 @@ func TestPathIn(t *testing.T) {
 				Convey("Given a server with only a root directory", func() {
 					serverDir := "server_root"
 					serverWork := serverDir
-					paths.ServerRoot = utils.SlashJoin(gwRoot, serverDir)
-					paths.ServerWork = utils.SlashJoin(gwRoot, serverWork)
+					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
+					paths.ServerWork = filepath.Join(gwRoot, serverWork)
 
 					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
 						receive := &model.Rule{
@@ -433,8 +435,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -447,8 +449,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -461,8 +463,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -474,15 +476,15 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
 
 				Convey("Given a server with only a work directory", func() {
 					serverWork := "server_root/server_work"
-					paths.ServerWork = utils.SlashJoin(gwRoot, serverWork)
+					paths.ServerWork = filepath.Join(gwRoot, serverWork)
 
 					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
 						receive := &model.Rule{
@@ -494,8 +496,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -508,8 +510,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -522,8 +524,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, inDir)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, inDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -535,8 +537,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, inDir)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, inDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
@@ -553,8 +555,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -567,8 +569,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -581,8 +583,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, inDir)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, inDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -594,8 +596,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome)
-						destPath := utils.SlashJoin(cd, gwHome, inDir)
+						workPath := filepath.Join(cd, gwHome)
+						destPath := filepath.Join(cd, gwHome, inDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
@@ -604,13 +606,13 @@ func TestPathIn(t *testing.T) {
 			Convey("Given that it has only a 'work' directory", func() {
 				workDir := "tmp"
 				paths.InDirectory = gwRoot
-				paths.WorkDirectory = utils.SlashJoin(gwRoot, workDir)
+				paths.WorkDirectory = filepath.Join(gwRoot, workDir)
 
 				Convey("Given a server with a root & work directory", func() {
 					serverDir := "server_root"
 					serverWork := serverDir + "/server_work"
-					paths.ServerRoot = utils.SlashJoin(gwRoot, serverDir)
-					paths.ServerWork = utils.SlashJoin(gwRoot, serverWork)
+					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
+					paths.ServerWork = filepath.Join(gwRoot, serverWork)
 
 					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
 						receive := &model.Rule{
@@ -622,8 +624,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -636,8 +638,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -650,8 +652,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -663,8 +665,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
@@ -672,8 +674,8 @@ func TestPathIn(t *testing.T) {
 				Convey("Given a server with only a root directory", func() {
 					serverDir := "server_root"
 					serverWork := serverDir
-					paths.ServerRoot = utils.SlashJoin(gwRoot, serverDir)
-					paths.ServerWork = utils.SlashJoin(gwRoot, serverWork)
+					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
+					paths.ServerWork = filepath.Join(gwRoot, serverWork)
 
 					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
 						receive := &model.Rule{
@@ -685,8 +687,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -699,8 +701,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -713,8 +715,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -726,15 +728,15 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
 
 				Convey("Given a server with only a work directory", func() {
 					serverWork := "server_root/server_work"
-					paths.ServerWork = utils.SlashJoin(gwRoot, serverWork)
+					paths.ServerWork = filepath.Join(gwRoot, serverWork)
 
 					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
 						receive := &model.Rule{
@@ -746,8 +748,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -760,8 +762,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -774,8 +776,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -787,8 +789,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
@@ -805,8 +807,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -819,8 +821,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, workDir)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, workDir)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -833,8 +835,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -846,8 +848,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, workDir)
-						destPath := utils.SlashJoin(cd, gwHome)
+						workPath := filepath.Join(cd, gwHome, workDir)
+						destPath := filepath.Join(cd, gwHome)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
@@ -860,8 +862,8 @@ func TestPathIn(t *testing.T) {
 				Convey("Given a server with a root & work directory", func() {
 					serverDir := "server_root"
 					serverWork := serverDir + "/server_work"
-					paths.ServerRoot = utils.SlashJoin(gwRoot, serverDir)
-					paths.ServerWork = utils.SlashJoin(gwRoot, serverWork)
+					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
+					paths.ServerWork = filepath.Join(gwRoot, serverWork)
 
 					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
 						receive := &model.Rule{
@@ -873,8 +875,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -887,8 +889,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -901,8 +903,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -914,8 +916,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
@@ -923,8 +925,8 @@ func TestPathIn(t *testing.T) {
 				Convey("Given a server with only a root directory", func() {
 					serverDir := "server_root"
 					serverWork := serverDir
-					paths.ServerRoot = utils.SlashJoin(gwRoot, serverDir)
-					paths.ServerWork = utils.SlashJoin(gwRoot, serverWork)
+					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
+					paths.ServerWork = filepath.Join(gwRoot, serverWork)
 
 					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
 						receive := &model.Rule{
@@ -936,8 +938,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -950,8 +952,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -964,8 +966,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -977,15 +979,15 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, serverDir)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
 
 				Convey("Given a server with only a work directory", func() {
 					serverWork := "server_root/server_work"
-					paths.ServerWork = utils.SlashJoin(gwRoot, serverWork)
+					paths.ServerWork = filepath.Join(gwRoot, serverWork)
 
 					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
 						receive := &model.Rule{
@@ -997,8 +999,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -1011,8 +1013,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -1025,8 +1027,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -1038,8 +1040,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, serverWork)
-						destPath := utils.SlashJoin(cd, gwHome)
+						workPath := filepath.Join(cd, gwHome, serverWork)
+						destPath := filepath.Join(cd, gwHome)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
@@ -1056,8 +1058,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -1070,8 +1072,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome)
-						destPath := utils.SlashJoin(cd, gwHome, receive.InPath)
+						workPath := filepath.Join(cd, gwHome)
+						destPath := filepath.Join(cd, gwHome, receive.InPath)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -1084,8 +1086,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome, receive.WorkPath)
-						destPath := utils.SlashJoin(cd, gwHome)
+						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
+						destPath := filepath.Join(cd, gwHome)
 						testFunc(receive.ID, workPath, destPath)
 					})
 
@@ -1097,8 +1099,8 @@ func TestPathIn(t *testing.T) {
 						}
 						So(db.Create(receive), ShouldBeNil)
 
-						workPath := utils.SlashJoin(cd, gwHome)
-						destPath := utils.SlashJoin(cd, gwHome)
+						workPath := filepath.Join(cd, gwHome)
+						destPath := filepath.Join(cd, gwHome)
 						testFunc(receive.ID, workPath, destPath)
 					})
 				})
@@ -1117,7 +1119,7 @@ func TestPathOut(t *testing.T) {
 		t.FailNow()
 	}
 
-	gwRoot := utils.SlashJoin(cd, gwHome)
+	gwRoot := filepath.Join(cd, gwHome)
 
 	Convey("Given a Gateway configuration", t, func() {
 		paths := Paths{
@@ -1166,13 +1168,14 @@ func TestPathOut(t *testing.T) {
 						SourceFile: "file.src",
 						DestFile:   "file.dst",
 					}
-					path := utils.SlashJoin(srcPath, trans.SourceFile)
+					path := filepath.Join(srcPath, trans.SourceFile)
 					So(os.MkdirAll(srcPath, 0700), ShouldBeNil)
 					So(ioutil.WriteFile(path, nil, 0700), ShouldBeNil)
 
 					stream, err := NewTransferStream(context.Background(),
 						logger, db, paths, trans)
 					So(err, ShouldBeNil)
+					Reset(func() { _ = stream.Finalize() })
 
 					err = stream.Start()
 					So(err, ShouldBeNil)
@@ -1185,11 +1188,11 @@ func TestPathOut(t *testing.T) {
 
 			Convey("Given that it has an 'out' directory", func() {
 				outDir := "out"
-				paths.OutDirectory = utils.SlashJoin(gwRoot, outDir)
+				paths.OutDirectory = filepath.Join(gwRoot, outDir)
 
 				Convey("Given a server with a root directory", func() {
 					serverDir := "server_root"
-					paths.ServerRoot = utils.SlashJoin(gwRoot, serverDir)
+					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
 
 					Convey("Given that the rule has an 'out' directory", func() {
 						send := &model.Rule{
@@ -1200,7 +1203,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := utils.SlashJoin(cd, gwHome, serverDir, send.OutPath)
+						outPath := filepath.Join(cd, gwHome, serverDir, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -1212,7 +1215,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := utils.SlashJoin(cd, gwHome, serverDir)
+						outPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(send.ID, outPath)
 					})
 				})
@@ -1228,7 +1231,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := utils.SlashJoin(cd, gwHome, send.OutPath)
+						outPath := filepath.Join(cd, gwHome, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -1240,7 +1243,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := utils.SlashJoin(cd, gwHome, outDir)
+						outPath := filepath.Join(cd, gwHome, outDir)
 						testFunc(send.ID, outPath)
 					})
 				})
@@ -1251,7 +1254,7 @@ func TestPathOut(t *testing.T) {
 
 				Convey("Given a server with a root directory", func() {
 					serverDir := "server_root"
-					paths.ServerRoot = utils.SlashJoin(gwRoot, serverDir)
+					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
 
 					Convey("Given that the rule has an 'out' directory", func() {
 						send := &model.Rule{
@@ -1262,7 +1265,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := utils.SlashJoin(cd, gwHome, serverDir, send.OutPath)
+						outPath := filepath.Join(cd, gwHome, serverDir, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -1274,7 +1277,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := utils.SlashJoin(cd, gwHome, serverDir)
+						outPath := filepath.Join(cd, gwHome, serverDir)
 						testFunc(send.ID, outPath)
 					})
 				})
@@ -1290,7 +1293,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := utils.SlashJoin(cd, gwHome, send.OutPath)
+						outPath := filepath.Join(cd, gwHome, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -1302,7 +1305,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := utils.SlashJoin(cd, gwHome)
+						outPath := filepath.Join(cd, gwHome)
 						testFunc(send.ID, outPath)
 					})
 				})

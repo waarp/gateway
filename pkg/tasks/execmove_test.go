@@ -80,8 +80,6 @@ func TestExecMoveValidate(t *testing.T) {
 }
 
 func TestExecMoveRun(t *testing.T) {
-	script := "execmove_test_script.sh"
-	_ = os.Remove(script)
 
 	Convey("Given an 'EXECMOVE' task", t, func() {
 		exec := &ExecMoveTask{}
@@ -90,17 +88,17 @@ func TestExecMoveRun(t *testing.T) {
 			Rule:     &model.Rule{},
 		}
 
-		Reset(func() { _ = os.Remove(script) })
+		Reset(func() { _ = os.Remove(execMoveScriptFile) })
 
 		Convey("Given valid arguments", func() {
 			args := map[string]string{
-				"path":  "./" + script,
+				"path":  execMoveScriptFile,
 				"args":  "execmove.go",
 				"delay": "1000",
 			}
 
 			Convey("Given that the command succeeds", func() {
-				err := ioutil.WriteFile(script, []byte(scriptExecOK), 0700)
+				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecOK), 0700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -118,7 +116,7 @@ func TestExecMoveRun(t *testing.T) {
 			})
 
 			Convey("Given that the command sends a warning", func() {
-				err := ioutil.WriteFile(script, []byte(scriptExecWarn), 0700)
+				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecWarn), 0700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -131,7 +129,7 @@ func TestExecMoveRun(t *testing.T) {
 			})
 
 			Convey("Given that the command fails", func() {
-				err := ioutil.WriteFile(script, []byte(scriptExecFail), 0700)
+				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecFail), 0700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -145,7 +143,7 @@ func TestExecMoveRun(t *testing.T) {
 			})
 
 			Convey("Given that the command delay expires", func() {
-				err := ioutil.WriteFile(script, []byte(scriptExecInfinite), 0700)
+				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecInfinite), 0700)
 				So(err, ShouldBeNil)
 
 				args["delay"] = "100"

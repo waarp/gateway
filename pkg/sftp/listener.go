@@ -2,12 +2,14 @@ package sftp
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net"
-	"path/filepath"
+	"path"
 	"sync"
 	"time"
+
+	"github.com/pkg/sftp"
+	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -15,8 +17,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
 )
 
 type sshListener struct {
@@ -111,7 +111,7 @@ func (l *sshListener) makeHandlers(ctx context.Context, accountID uint64) sftp.H
 		FileGet:  l.makeFileReader(ctx, accountID),
 		FilePut:  l.makeFileWriter(ctx, accountID),
 		FileCmd:  makeFileCmder(),
-		FileList: makeFileLister(l.Agent.Root),
+		FileList: l.makeFileLister(l.Agent.Root),
 	}
 }
 
@@ -119,15 +119,12 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64) file
 
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		// Get rule according to request filepath
-		path := filepath.Dir(r.Filepath)
-		if path == "." || path == "/" {
-			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
+		rule, err := getRuleFromPath(l.DB, r, true)
+		if err != nil {
+			l.Logger.Errorf("Failed to retrieve rule from request filepath '%s'", r.Filepath)
+			return nil, err
 		}
-		rule := model.Rule{Path: path, IsSend: true}
-		if err := l.DB.Get(&rule); err != nil {
-			l.Logger.Errorf("No rule found for directory '%s'", path)
-			return nil, fmt.Errorf("cannot retrieve transfer rule: %s", err)
-		}
+
 		paths := pipeline.Paths{
 			PathsConfig: l.GWConf.Paths,
 			ServerRoot:  l.Agent.Root,
@@ -140,7 +137,7 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64) file
 			IsServer:   true,
 			AgentID:    l.Agent.ID,
 			AccountID:  accountID,
-			SourceFile: filepath.Base(r.Filepath),
+			SourceFile: path.Base(r.Filepath),
 			DestFile:   ".",
 			Start:      time.Now(),
 			Status:     model.StatusRunning,
@@ -159,15 +156,12 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64) file
 
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		// Get rule according to request filepath
-		path := filepath.Dir(r.Filepath)
-		if path == "." || path == "/" {
-			return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
+		rule, err := getRuleFromPath(l.DB, r, false)
+		if err != nil {
+			l.Logger.Errorf("Failed to retrieve rule from request filepath '%s'", r.Filepath)
+			return nil, err
 		}
-		rule := model.Rule{Path: path, IsSend: false}
-		if err := l.DB.Get(&rule); err != nil {
-			l.Logger.Errorf("No rule found for directory '%s'", path)
-			return nil, fmt.Errorf("cannot retrieve transfer rule: %s", err)
-		}
+
 		paths := pipeline.Paths{
 			PathsConfig: l.GWConf.Paths,
 			ServerRoot:  l.Agent.Root,
@@ -181,7 +175,7 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64) file
 			AgentID:    l.Agent.ID,
 			AccountID:  accountID,
 			SourceFile: ".",
-			DestFile:   filepath.Base(r.Filepath),
+			DestFile:   path.Base(r.Filepath),
 			Start:      time.Now(),
 			Status:     model.StatusRunning,
 			Step:       model.StepSetup,
