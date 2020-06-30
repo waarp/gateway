@@ -296,8 +296,8 @@ func allowAllRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			http.Error(w, fmt.Sprintf("Access to rule '%s' is now unrestricted.",
-				rule.Name), http.StatusOK)
+			http.Error(w, fmt.Sprintf("Usage of the %s rule '%s' is now unrestricted.",
+				ruleDirection(rule), rule.Name), http.StatusOK)
 			return nil
 		}()
 		if err != nil {
