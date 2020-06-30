@@ -561,7 +561,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 
 			Convey("Given a valid partner, account & rule names", func() {
 				commandLine.Account.Local.Args.Server = server.Name
-				args := []string{account.Login, rule.Name}
+				args := []string{account.Login, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -569,9 +569,10 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the account can use the rule", func() {
-						So(getOutput(), ShouldEqual, "Usage of the rule '"+rule.Name+
-							"' is now restricted.\nThe local account "+account.Login+
-							" is now allowed to use the rule "+rule.Name+" for transfers.\n")
+						So(getOutput(), ShouldEqual, "Usage of the "+direction(rule)+
+							" rule '"+rule.Name+"' is now restricted.\nThe local account "+
+							account.Login+" is now allowed to use the "+direction(rule)+
+							" rule "+rule.Name+" for transfers.\n")
 					})
 
 					Convey("Then the permission should have been added", func() {
@@ -587,7 +588,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 
 			Convey("Given an invalid server name", func() {
 				commandLine.Account.Local.Args.Server = "toto"
-				args := []string{account.Login, rule.Name}
+				args := []string{account.Login, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -608,7 +609,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 
 			Convey("Given an invalid rule name", func() {
 				commandLine.Account.Local.Args.Server = server.Name
-				args := []string{account.Login, "toto"}
+				args := []string{account.Login, "toto", direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -620,7 +621,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
-						a := []model.RuleAccess{}
+						var a []model.RuleAccess
 						So(db.Select(&a, nil), ShouldBeNil)
 						So(a, ShouldBeEmpty)
 					})
@@ -629,7 +630,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				commandLine.Account.Local.Args.Server = server.Name
-				args := []string{"toto", rule.Name}
+				args := []string{"toto", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -641,7 +642,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
-						a := []model.RuleAccess{}
+						var a []model.RuleAccess
 						So(db.Select(&a, nil), ShouldBeNil)
 						So(a, ShouldBeEmpty)
 					})
@@ -692,7 +693,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 
 			Convey("Given a valid partner & rule names", func() {
 				commandLine.Account.Local.Args.Server = server.Name
-				args := []string{account.Login, rule.Name}
+				args := []string{account.Login, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -701,13 +702,13 @@ func TestRevokeLocalAccount(t *testing.T) {
 
 					Convey("Then is should display a message saying the partner cannot use the rule", func() {
 						So(getOutput(), ShouldEqual, "The local account "+account.Login+
-							" is no longer allowed to use the rule "+rule.Name+
-							" for transfers.\nUsage of the rule '"+rule.Name+
-							"' is now unrestricted.\n")
+							" is no longer allowed to use the "+direction(rule)+" rule "+
+							rule.Name+" for transfers.\nUsage of the "+direction(rule)+
+							" rule '"+rule.Name+"' is now unrestricted.\n")
 					})
 
 					Convey("Then the permission should have been removed", func() {
-						a := []model.RuleAccess{}
+						var a []model.RuleAccess
 						So(db.Select(&a, nil), ShouldBeNil)
 						So(a, ShouldBeEmpty)
 					})
@@ -716,7 +717,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 
 			Convey("Given an invalid server name", func() {
 				commandLine.Account.Local.Args.Server = "toto"
-				args := []string{account.Login, rule.Name}
+				args := []string{account.Login, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -735,7 +736,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 
 			Convey("Given an invalid rule name", func() {
 				commandLine.Account.Local.Args.Server = server.Name
-				args := []string{account.Login, "toto"}
+				args := []string{account.Login, "toto", direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -754,7 +755,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				commandLine.Account.Local.Args.Server = server.Name
-				args := []string{"toto", rule.Name}
+				args := []string{"toto", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)

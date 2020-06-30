@@ -6,7 +6,11 @@ import (
 	"net/url"
 )
 
-func authorize(path, targetType, target, rule string) error {
+func authorize(path, targetType, target, rule, direction string) error {
+	if err := checkRuleDir(direction); err != nil {
+		return err
+	}
+
 	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
@@ -26,7 +30,8 @@ func authorize(path, targetType, target, rule string) error {
 			fmt.Fprintln(w, msg)
 		}
 		fmt.Fprintln(w, "The", targetType, bold(target),
-			"is now allowed to use the rule", bold(rule), "for transfers.")
+			"is now allowed to use the", direction, "rule", bold(rule),
+			"for transfers.")
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
@@ -35,7 +40,11 @@ func authorize(path, targetType, target, rule string) error {
 	}
 }
 
-func revoke(path, targetType, target, rule string) error {
+func revoke(path, targetType, target, rule, direction string) error {
+	if err := checkRuleDir(direction); err != nil {
+		return err
+	}
+
 	conn, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
@@ -52,7 +61,8 @@ func revoke(path, targetType, target, rule string) error {
 	switch resp.StatusCode {
 	case http.StatusOK:
 		fmt.Fprintln(w, "The", targetType, bold(target),
-			"is no longer allowed to use the rule", bold(rule), "for transfers.")
+			"is no longer allowed to use the", direction, "rule", bold(rule),
+			"for transfers.")
 		if msg := getResponseMessage(resp).Error(); msg != "" {
 			fmt.Fprintln(w, msg)
 		}

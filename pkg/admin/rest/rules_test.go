@@ -110,7 +110,8 @@ func TestGetRule(t *testing.T) {
 			Convey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": rule.Name})
+				r = mux.SetURLVars(r, map[string]string{"rule": rule.Name,
+					"direction": ruleDirection(rule)})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -140,7 +141,8 @@ func TestGetRule(t *testing.T) {
 			Convey("Given a request with a non-existing rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": "toto"})
+				r = mux.SetURLVars(r, map[string]string{"rule": "toto",
+					"direction": ruleDirection(rule)})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -231,7 +233,8 @@ func TestDeleteRule(t *testing.T) {
 			Convey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": rule.Name})
+				r = mux.SetURLVars(r, map[string]string{"rule": rule.Name,
+					"direction": ruleDirection(rule)})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -257,7 +260,8 @@ func TestDeleteRule(t *testing.T) {
 			Convey("Given a request with a non-existing rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": "toto"})
+				r = mux.SetURLVars(r, map[string]string{"rule": "toto",
+					"direction": ruleDirection(rule)})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -303,7 +307,8 @@ func TestUpdateRule(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPatch, ruleURI+old.Name,
 						bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": old.Name})
+					r = mux.SetURLVars(r, map[string]string{"rule": old.Name,
+						"direction": ruleDirection(old)})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -338,7 +343,8 @@ func TestUpdateRule(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPatch, ruleURI+"toto",
 						bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": "toto"})
+					r = mux.SetURLVars(r, map[string]string{"rule": "toto",
+						"direction": ruleDirection(old)})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)

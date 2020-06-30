@@ -22,7 +22,7 @@ func getAuthorizedRules(db *database.DB, objType string, objID uint64) (*Authori
 		"rule_access WHERE rule_id = id) = 0"
 	cond := builder.Expr(query, objID, objType)
 	filters := &database.Filters{Conditions: cond}
-	rules := []model.Rule{}
+	var rules []model.Rule
 
 	if err := db.Select(&rules, filters); err != nil {
 		return nil, err
@@ -73,8 +73,8 @@ func authorizeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 	if len(a) == 0 {
-		http.Error(w, fmt.Sprintf("Usage of the rule '%s' is now restricted.",
-			rule.Name), http.StatusOK)
+		http.Error(w, fmt.Sprintf("Usage of the %s rule '%s' is now restricted.",
+			ruleDirection(rule), rule.Name), http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
@@ -103,8 +103,8 @@ func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 	if len(a) == 0 {
-		http.Error(w, fmt.Sprintf("Usage of the rule '%s' is now unrestricted.",
-			rule.Name), http.StatusOK)
+		http.Error(w, fmt.Sprintf("Usage of the %s rule '%s' is now unrestricted.",
+			ruleDirection(rule), rule.Name), http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
@@ -127,7 +127,7 @@ func makeAccessIDs(db *database.DB, rule *model.Rule, isLocal bool) ([]uint64, e
 		typ = "local_agents"
 	}
 
-	accesses := []model.RuleAccess{}
+	var accesses []model.RuleAccess
 	filters := &database.Filters{Conditions: builder.Eq{"rule_id": rule.ID,
 		"object_type": typ}}
 	if err := db.Select(&accesses, filters); err != nil {
@@ -142,7 +142,7 @@ func makeAccessIDs(db *database.DB, rule *model.Rule, isLocal bool) ([]uint64, e
 }
 
 func makeLocalNames(db *database.DB, ids []uint64) ([]string, error) {
-	agents := []model.LocalAgent{}
+	var agents []model.LocalAgent
 	filters := &database.Filters{Conditions: builder.In("id", ids)}
 
 	if err := db.Select(&agents, filters); err != nil {
@@ -157,7 +157,7 @@ func makeLocalNames(db *database.DB, ids []uint64) ([]string, error) {
 }
 
 func makeRemoteNames(db *database.DB, ids []uint64) ([]string, error) {
-	agents := []model.RemoteAgent{}
+	var agents []model.RemoteAgent
 	filters := &database.Filters{Conditions: builder.In("id", ids)}
 
 	if err := db.Select(&agents, filters); err != nil {
@@ -181,7 +181,7 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[uint64][]string) 
 
 	names := map[string][]string{}
 	if isLocal {
-		agents := []model.LocalAgent{}
+		var agents []model.LocalAgent
 		filters := &database.Filters{Conditions: builder.In("id", ids)}
 		if err := db.Select(&agents, filters); err != nil {
 			return nil, err
@@ -190,7 +190,7 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[uint64][]string) 
 			names[agent.Name] = access[agent.ID]
 		}
 	} else {
-		agents := []model.RemoteAgent{}
+		var agents []model.RemoteAgent
 		filters := &database.Filters{Conditions: builder.In("id", ids)}
 		if err := db.Select(&agents, filters); err != nil {
 			return nil, err
@@ -220,7 +220,7 @@ func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]str
 		return nil, err
 	}
 
-	accounts := []model.LocalAccount{}
+	var accounts []model.LocalAccount
 	filters := &database.Filters{Conditions: builder.In("id", ids)}
 	if err := db.Select(&accounts, filters); err != nil {
 		return nil, err
@@ -244,7 +244,7 @@ func makeRemoteAccountAccess(db *database.DB, rule *model.Rule) (map[string][]st
 		return nil, err
 	}
 
-	accounts := []model.RemoteAccount{}
+	var accounts []model.RemoteAccount
 	filters := &database.Filters{Conditions: builder.In("id", ids)}
 	if err := db.Select(&accounts, filters); err != nil {
 		return nil, err

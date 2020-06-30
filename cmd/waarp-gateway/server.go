@@ -175,30 +175,32 @@ func (s *serverUpdate) Execute([]string) error {
 
 type serverAuthorize struct {
 	Args struct {
-		Server string `required:"yes" positional-arg-name:"server" description:"The server's name"`
-		Rule   string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Server    string `required:"yes" positional-arg-name:"server" description:"The server's name"`
+		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
 	} `positional-args:"yes"`
 }
 
 func (s *serverAuthorize) Execute([]string) error {
 	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
-		"/authorize/" + s.Args.Rule
+		"/authorize/" + s.Args.Rule + "/" + s.Args.Direction
 
-	return authorize(path, "server", s.Args.Server, s.Args.Rule)
+	return authorize(path, "server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
 
 type serverRevoke struct {
 	Args struct {
-		Server string `required:"yes" positional-arg-name:"server" description:"The server's name"`
-		Rule   string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Server    string `required:"yes" positional-arg-name:"server" description:"The server's name"`
+		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
 	} `positional-args:"yes"`
 }
 
 func (s *serverRevoke) Execute([]string) error {
 	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
-		"/revoke/" + s.Args.Rule
+		"/revoke/" + s.Args.Rule + "/" + s.Args.Direction
 
-	return revoke(path, "server", s.Args.Server, s.Args.Rule)
+	return revoke(path, "server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }

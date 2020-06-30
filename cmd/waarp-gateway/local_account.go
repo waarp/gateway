@@ -165,32 +165,36 @@ func (l *locAccList) Execute([]string) error {
 
 type locAccAuthorize struct {
 	Args struct {
-		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
-		Rule  string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Login     string `required:"yes" positional-arg-name:"login" description:"The account's login"`
+		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
 	} `positional-args:"yes"`
 }
 
 func (l *locAccAuthorize) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
 	path := admin.APIPath + rest.ServersPath + "/" + server +
-		rest.AccountsPath + "/" + l.Args.Login + "/authorize/" + l.Args.Rule
+		rest.AccountsPath + "/" + l.Args.Login + "/authorize/" + l.Args.Rule +
+		"/" + l.Args.Direction
 
-	return authorize(path, "local account", l.Args.Login, l.Args.Rule)
+	return authorize(path, "local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
 
 type locAccRevoke struct {
 	Args struct {
-		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
-		Rule  string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Login     string `required:"yes" positional-arg-name:"login" description:"The account's login"`
+		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
 	} `positional-args:"yes"`
 }
 
 func (l *locAccRevoke) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
 	path := admin.APIPath + rest.ServersPath + "/" + server +
-		rest.AccountsPath + "/" + l.Args.Login + "/revoke/" + l.Args.Rule
+		rest.AccountsPath + "/" + l.Args.Login + "/revoke/" + l.Args.Rule +
+		"/" + l.Args.Direction
 
-	return revoke(path, "local account", l.Args.Login, l.Args.Rule)
+	return revoke(path, "local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }

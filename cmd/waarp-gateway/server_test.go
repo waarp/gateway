@@ -488,7 +488,7 @@ func TestAuthorizeServer(t *testing.T) {
 			So(db.Create(rule), ShouldBeNil)
 
 			Convey("Given a valid server & rule names", func() {
-				args := []string{server.Name, rule.Name}
+				args := []string{server.Name, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -496,9 +496,10 @@ func TestAuthorizeServer(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the server can use the rule", func() {
-						So(getOutput(), ShouldEqual, "Usage of the rule '"+rule.Name+
-							"' is now restricted.\nThe server "+server.Name+
-							" is now allowed to use the rule "+rule.Name+" for transfers.\n")
+						So(getOutput(), ShouldEqual, "Usage of the "+direction(rule)+
+							" rule '"+rule.Name+"' is now restricted.\nThe server "+
+							server.Name+" is now allowed to use the "+direction(rule)+
+							" rule "+rule.Name+" for transfers.\n")
 					})
 
 					Convey("Then the permission should have been added", func() {
@@ -513,7 +514,7 @@ func TestAuthorizeServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{server.Name, "toto"}
+				args := []string{server.Name, "toto", direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -525,7 +526,7 @@ func TestAuthorizeServer(t *testing.T) {
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
-						a := []model.RuleAccess{}
+						var a []model.RuleAccess
 						So(db.Select(&a, nil), ShouldBeNil)
 						So(a, ShouldBeEmpty)
 					})
@@ -533,7 +534,7 @@ func TestAuthorizeServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid server name", func() {
-				args := []string{"toto", rule.Name}
+				args := []string{"toto", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -545,7 +546,7 @@ func TestAuthorizeServer(t *testing.T) {
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
-						a := []model.RuleAccess{}
+						var a []model.RuleAccess
 						So(db.Select(&a, nil), ShouldBeNil)
 						So(a, ShouldBeEmpty)
 					})
@@ -588,7 +589,7 @@ func TestRevokeServer(t *testing.T) {
 			So(db.Create(access), ShouldBeNil)
 
 			Convey("Given a valid server & rule names", func() {
-				args := []string{server.Name, rule.Name}
+				args := []string{server.Name, rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -597,13 +598,13 @@ func TestRevokeServer(t *testing.T) {
 
 					Convey("Then is should display a message saying the server cannot use the rule", func() {
 						So(getOutput(), ShouldEqual, "The server "+server.Name+
-							" is no longer allowed to use the rule "+rule.Name+
-							" for transfers.\nUsage of the rule '"+rule.Name+
-							"' is now unrestricted.\n")
+							" is no longer allowed to use the "+direction(rule)+" rule "+
+							rule.Name+" for transfers.\nUsage of the "+direction(rule)+
+							" rule '"+rule.Name+"' is now unrestricted.\n")
 					})
 
 					Convey("Then the permission should have been removed", func() {
-						a := []model.RuleAccess{}
+						var a []model.RuleAccess
 						So(db.Select(&a, nil), ShouldBeNil)
 						So(a, ShouldBeEmpty)
 					})
@@ -611,7 +612,7 @@ func TestRevokeServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{server.Name, "toto"}
+				args := []string{server.Name, "toto", direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -629,7 +630,7 @@ func TestRevokeServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid server name", func() {
-				args := []string{"toto", rule.Name}
+				args := []string{"toto", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)

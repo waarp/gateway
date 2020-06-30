@@ -157,32 +157,36 @@ func (r *remAccList) Execute([]string) error {
 
 type remAccAuthorize struct {
 	Args struct {
-		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
-		Rule  string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Login     string `required:"yes" positional-arg-name:"login" description:"The account's login"`
+		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
 	} `positional-args:"yes"`
 }
 
 func (r *remAccAuthorize) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
 	path := admin.APIPath + rest.PartnersPath + "/" + partner +
-		rest.AccountsPath + "/" + r.Args.Login + "/authorize/" + r.Args.Rule
+		rest.AccountsPath + "/" + r.Args.Login + "/authorize/" + r.Args.Rule +
+		"/" + r.Args.Direction
 
-	return authorize(path, "remote account", r.Args.Login, r.Args.Rule)
+	return authorize(path, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
 
 type remAccRevoke struct {
 	Args struct {
-		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
-		Rule  string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Login     string `required:"yes" positional-arg-name:"login" description:"The account's login"`
+		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
 	} `positional-args:"yes"`
 }
 
 func (r *remAccRevoke) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
 	path := admin.APIPath + rest.PartnersPath + "/" + partner +
-		rest.AccountsPath + "/" + r.Args.Login + "/revoke/" + r.Args.Rule
+		rest.AccountsPath + "/" + r.Args.Login + "/revoke/" + r.Args.Rule +
+		"/" + r.Args.Direction
 
-	return revoke(path, "remote account", r.Args.Login, r.Args.Rule)
+	return revoke(path, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }

@@ -15,6 +15,13 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func direction(r *model.Rule) string {
+	if r.IsSend {
+		return "send"
+	}
+	return "receive"
+}
+
 func ruleInfoString(r *rest.OutRule) string {
 	way := "RECEIVE"
 	if r.IsSend {
@@ -142,7 +149,7 @@ func TestGetRule(t *testing.T) {
 			So(db.Create(rule), ShouldBeNil)
 
 			Convey("Given a valid rule name", func() {
-				args := []string{rule.Name}
+				args := []string{rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -158,7 +165,7 @@ func TestGetRule(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{"toto"}
+				args := []string{"toto", direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -331,7 +338,7 @@ func TestDeleteRule(t *testing.T) {
 			So(db.Create(rule), ShouldBeNil)
 
 			Convey("Given a valid rule name", func() {
-				args := []string{rule.Name}
+				args := []string{rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -352,7 +359,7 @@ func TestDeleteRule(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{"toto"}
+				args := []string{"toto", direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
