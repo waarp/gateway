@@ -195,7 +195,7 @@ func TestAddRule(t *testing.T) {
 
 			Convey("Given valid parameters", func() {
 				args := []string{"-n", "new_rule", "-c", "new_rule comment",
-					"-d", "RECEIVE", "-p", "new/rule/path",
+					"-d", "RECEIVE", "--path=/new/rule/path",
 					`--pre={"type":"COPY","args":{"path":"/path/to/copy"}}`,
 					`--pre={"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
 					`--post={"type":"DELETE","args":{}}`,

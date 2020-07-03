@@ -179,7 +179,7 @@ func TestSSHServer(t *testing.T) {
 				Name:     "receive",
 				Comment:  "",
 				IsSend:   false,
-				Path:     "receive",
+				Path:     "/receive",
 				InPath:   "rcv_in",
 				WorkPath: "rcv_tmp",
 			}
@@ -187,7 +187,7 @@ func TestSSHServer(t *testing.T) {
 				Name:     "send",
 				Comment:  "",
 				IsSend:   true,
-				Path:     "send",
+				Path:     "/send",
 				OutPath:  "snd_out",
 				WorkPath: "snd_tmp",
 			}
