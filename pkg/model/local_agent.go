@@ -1,9 +1,6 @@
 package model
 
 import (
-	"path"
-	"path/filepath"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
@@ -59,21 +56,9 @@ func (l *LocalAgent) normalizePaths() error {
 
 	if l.Root != "" {
 		l.Root = utils.NormalizePath(l.Root)
-		if !path.IsAbs(l.Root) {
-			return database.InvalidError("the server root must be an absolute path")
-		}
 	}
-
 	if l.WorkDir != "" {
-		if !filepath.IsAbs(l.WorkDir) {
-			l.WorkDir = path.Join(l.Root, l.WorkDir)
-		}
 		l.WorkDir = utils.NormalizePath(l.WorkDir)
-		if !path.IsAbs(l.WorkDir) {
-			return database.InvalidError("the server work path must be an absolute path")
-		}
-	} else {
-		l.WorkDir = l.Root
 	}
 
 	return nil
@@ -120,11 +105,6 @@ func (l *LocalAgent) BeforeUpdate(db database.Accessor, id uint64) error {
 	if l.ID != 0 && l.ID != id {
 		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
-	/*
-		if l.Owner != "" {
-			return database.InvalidError("The agent's owner cannot be changed")
-		}
-	*/
 
 	if l.Name != "" {
 		if res, err := db.Query("SELECT id FROM local_agents WHERE owner=? "+

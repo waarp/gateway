@@ -127,7 +127,7 @@ func TestAddServer(t *testing.T) {
 							Name:        command.Name,
 							Protocol:    command.Protocol,
 							Root:        command.Root,
-							WorkDir:     command.Root,
+							WorkDir:     "",
 							ProtoConfig: json.RawMessage(command.ProtoConfig),
 						}
 						var res []model.LocalAgent

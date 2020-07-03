@@ -267,7 +267,7 @@ func TestCreateLocalAgent(t *testing.T) {
 								Name:        newAgent.Name,
 								Protocol:    newAgent.Protocol,
 								Root:        newAgent.Root,
-								WorkDir:     newAgent.Root,
+								WorkDir:     "",
 								ProtoConfig: newAgent.ProtoConfig,
 							}
 							var res []model.LocalAgent
