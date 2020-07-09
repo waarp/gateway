@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
 type serverCommand struct {
@@ -15,7 +16,7 @@ type serverCommand struct {
 	Add       serverAdd       `command:"add" description:"Add a new server"`
 	Delete    serverDelete    `command:"delete" description:"Delete a server"`
 	List      serverList      `command:"list" description:"List the known servers"`
-	Update    serverUpdate    `command:"update" description:"Modify a server's information"`
+	Update    serverUpdate    `command:"update" description:"Modify a server's information" long-description:"Warning: the server's root & in/out/work paths cannot be changed individually, they must be updated all at once or the old values will be lost"`
 	Authorize serverAuthorize `command:"authorize" description:"Give a server permission to use a rule"`
 	Revoke    serverRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
 	Cert      struct {
@@ -32,8 +33,10 @@ func displayServer(w io.Writer, server *rest.OutServer) {
 
 	fmt.Fprintln(w, orange(bold("● Server", server.Name)))
 	fmt.Fprintln(w, orange("    Protocol:      "), server.Protocol)
-	fmt.Fprintln(w, orange("    Root:          "), server.Root)
-	fmt.Fprintln(w, orange("    Work directory:"), server.Root)
+	fmt.Fprintln(w, orange("    Root:          "), server.Paths.Root)
+	fmt.Fprintln(w, orange("    In directory:  "), server.Paths.InDir)
+	fmt.Fprintln(w, orange("    Out directory: "), server.Paths.OutDir)
+	fmt.Fprintln(w, orange("    Work directory:"), server.Paths.WorkDir)
 	fmt.Fprintln(w, orange("    Configuration: "), string(server.ProtoConfig))
 	fmt.Fprintln(w, orange("    Authorized rules"))
 	fmt.Fprintln(w, bold("    ├─Sending:  "), send)
@@ -65,16 +68,22 @@ type serverAdd struct {
 	Name        string `required:"yes" short:"n" long:"name" description:"The server's name"`
 	Protocol    string `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
 	Root        string `short:"r" long:"root" description:"The server's root directory"`
-	WorkDir     string `short:"w" long:"work_dir" description:"The server's work directory"`
+	InDir       string `short:"i" long:"in" description:"The server's in directory"`
+	OutDir      string `short:"o" long:"out" description:"The server's out directory"`
+	WorkDir     string `short:"w" long:"work" description:"The server's work directory"`
 	ProtoConfig string `short:"c" long:"config" description:"The server's configuration in JSON" default:"{}" default-mask:"-"`
 }
 
 func (s *serverAdd) Execute([]string) error {
 	server := &rest.InServer{
-		Name:        s.Name,
-		Protocol:    s.Protocol,
-		Root:        s.Root,
-		WorkDir:     s.WorkDir,
+		Name:     s.Name,
+		Protocol: s.Protocol,
+		Paths: &model.ServerPaths{
+			Root:    s.Root,
+			InDir:   s.InDir,
+			OutDir:  s.OutDir,
+			WorkDir: s.WorkDir,
+		},
 		ProtoConfig: json.RawMessage(s.ProtoConfig),
 	}
 	path := admin.APIPath + rest.ServersPath
@@ -146,16 +155,22 @@ type serverUpdate struct {
 	Name        string `short:"n" long:"name" description:"The server's name"`
 	Protocol    string `short:"p" long:"protocol" description:"The server's protocol"`
 	Root        string `short:"r" long:"root" description:"The server's root directory"`
-	WorkDir     string `short:"w" long:"work_dir" description:"The server's work directory"`
+	InDir       string `short:"i" long:"in" description:"The server's in directory"`
+	OutDir      string `short:"o" long:"out" description:"The server's out directory"`
+	WorkDir     string `short:"w" long:"work" description:"The server's work directory"`
 	ProtoConfig string `short:"c" long:"config" description:"The server's configuration in JSON"`
 }
 
 func (s *serverUpdate) Execute([]string) error {
 	server := rest.InServer{
-		Name:        s.Name,
-		Protocol:    s.Protocol,
-		Root:        s.Root,
-		WorkDir:     s.WorkDir,
+		Name:     s.Name,
+		Protocol: s.Protocol,
+		Paths: &model.ServerPaths{
+			Root:    s.Root,
+			InDir:   s.InDir,
+			OutDir:  s.OutDir,
+			WorkDir: s.WorkDir,
+		},
 		ProtoConfig: json.RawMessage(s.ProtoConfig),
 	}
 	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Name

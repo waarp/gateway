@@ -51,25 +51,25 @@ func TestListLocalAgents(t *testing.T) {
 			a1 := &model.LocalAgent{
 				Name:        "local agent1",
 				Protocol:    "test",
-				Root:        "/root",
+				Paths:       &model.ServerPaths{Root: "/root1"},
 				ProtoConfig: []byte(`{}`),
 			}
 			a2 := &model.LocalAgent{
 				Name:        "local agent2",
 				Protocol:    "test",
-				Root:        "/root",
+				Paths:       &model.ServerPaths{Root: "/root2"},
 				ProtoConfig: []byte(`{}`),
 			}
 			a3 := &model.LocalAgent{
 				Name:        "local agent3",
 				Protocol:    "test",
-				Root:        "/root",
+				Paths:       &model.ServerPaths{Root: "/root3"},
 				ProtoConfig: []byte(`{}`),
 			}
 			a4 := &model.LocalAgent{
 				Name:        "local agent4",
 				Protocol:    "test2",
-				Root:        "/root",
+				Paths:       &model.ServerPaths{Root: "/root4"},
 				ProtoConfig: []byte(`{}`),
 			}
 
@@ -158,7 +158,7 @@ func TestGetLocalAgent(t *testing.T) {
 			existing := &model.LocalAgent{
 				Name:        "existing",
 				Protocol:    "test",
-				Root:        "/root",
+				Paths:       &model.ServerPaths{Root: "/root"},
 				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
@@ -221,7 +221,7 @@ func TestCreateLocalAgent(t *testing.T) {
 			existing := &model.LocalAgent{
 				Name:        "existing",
 				Protocol:    "test",
-				Root:        "/root",
+				Paths:       &model.ServerPaths{Root: "/root"},
 				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
@@ -230,7 +230,7 @@ func TestCreateLocalAgent(t *testing.T) {
 				newAgent := &InServer{
 					Name:        "new local agent",
 					Protocol:    "test",
-					Root:        "/new_root",
+					Paths:       &model.ServerPaths{Root: "/root"},
 					ProtoConfig: json.RawMessage(`{}`),
 				}
 
@@ -262,12 +262,16 @@ func TestCreateLocalAgent(t *testing.T) {
 						Convey("Then the new local agent should be inserted in "+
 							"the database", func() {
 							exp := model.LocalAgent{
-								ID:          2,
-								Owner:       database.Owner,
-								Name:        newAgent.Name,
-								Protocol:    newAgent.Protocol,
-								Root:        newAgent.Root,
-								WorkDir:     "",
+								ID:       2,
+								Owner:    database.Owner,
+								Name:     newAgent.Name,
+								Protocol: newAgent.Protocol,
+								Paths: &model.ServerPaths{
+									Root:    "/root",
+									InDir:   "in",
+									OutDir:  "out",
+									WorkDir: "work",
+								},
 								ProtoConfig: newAgent.ProtoConfig,
 							}
 							var res []model.LocalAgent
@@ -302,7 +306,7 @@ func TestDeleteLocalAgent(t *testing.T) {
 			existing := &model.LocalAgent{
 				Name:        "existing1",
 				Protocol:    "test",
-				Root:        "/root",
+				Paths:       &model.ServerPaths{Root: "/root"},
 				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
@@ -360,13 +364,13 @@ func TestUpdateLocalAgent(t *testing.T) {
 			old := &model.LocalAgent{
 				Name:        "old",
 				Protocol:    "test",
-				Root:        "/root",
+				Paths:       &model.ServerPaths{Root: "/root"},
 				ProtoConfig: []byte(`{}`),
 			}
 			other := &model.LocalAgent{
 				Name:        "other",
 				Protocol:    "test2",
-				Root:        "/root",
+				Paths:       &model.ServerPaths{Root: "/root"},
 				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(old), ShouldBeNil)
@@ -376,7 +380,7 @@ func TestUpdateLocalAgent(t *testing.T) {
 				update := InServer{
 					Name:        "update",
 					Protocol:    "test",
-					Root:        "/new_root",
+					Paths:       &model.ServerPaths{Root: "/new_root"},
 					ProtoConfig: json.RawMessage(`{"key":"val"}`),
 				}
 				body, err := json.Marshal(update)
