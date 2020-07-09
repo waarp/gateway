@@ -55,7 +55,7 @@ func (r *Rule) normalizePaths() error {
 		}
 	}
 	if r.InPath != "" {
-		r.InPath = utils.NormalizePath(r.Path)
+		r.InPath = utils.NormalizePath(r.InPath)
 	}
 	if r.OutPath != "" {
 		r.OutPath = utils.NormalizePath(r.OutPath)
