@@ -24,9 +24,9 @@ type ServerConfig struct {
 // PathsConfig holds the server paths
 type PathsConfig struct {
 	GatewayHome   string `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the working directory of the process."`
-	InDirectory   string `ini-name:"InDirectory" description:"The directory for all incoming files."`
-	OutDirectory  string `ini-name:"OutDirectory" description:"The directory for all outgoing files."`
-	WorkDirectory string `ini-name:"WorkDirectory" default:"tmp" description:"The directory for all running transfer files."`
+	InDirectory   string `ini-name:"InDirectory" default:"in" description:"The directory for all incoming files."`
+	OutDirectory  string `ini-name:"OutDirectory" default:"out" description:"The directory for all outgoing files."`
+	WorkDirectory string `ini-name:"WorkDirectory" default:"work" description:"The directory for all running transfer files."`
 }
 
 // LogConfig holds the server logging options
@@ -62,22 +62,6 @@ type ControllerConfig struct {
 	R66Home         string        `ini-name:"R66Home" description:"The installation directory of Waarp-R66"`
 	MaxTransfersIn  uint64        `ini-name:"MaxTransferIn" description:"The maximum number of concurrent incoming transfers allowed on the gateway (0 = unlimited)."`
 	MaxTransfersOut uint64        `ini-name:"MaxTransferOut" description:"The maximum number of concurrent outgoing transfers allowed on the gateway (0 = unlimited)."`
-}
-
-func makeDirs(config *PathsConfig) error {
-	if err := os.MkdirAll(config.GatewayHome, 0744); err != nil {
-		return fmt.Errorf("failed to create gateway home directory: %s", err)
-	}
-	if err := os.MkdirAll(config.InDirectory, 0744); err != nil {
-		return fmt.Errorf("failed to create gateway in directory: %s", err)
-	}
-	if err := os.MkdirAll(config.GatewayHome, 0744); err != nil {
-		return fmt.Errorf("failed to create gateway out directory: %s", err)
-	}
-	if err := os.MkdirAll(config.GatewayHome, 0744); err != nil {
-		return fmt.Errorf("failed to create gateway work directory: %s", err)
-	}
-	return nil
 }
 
 func normalizePaths(config *ServerConfig) error {
@@ -117,7 +101,7 @@ func normalizePaths(config *ServerConfig) error {
 		config.Paths.WorkDirectory = config.Paths.GatewayHome
 	}
 
-	return makeDirs(&config.Paths)
+	return nil
 }
 
 // LoadServerConfig creates a configuration object.

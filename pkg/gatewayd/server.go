@@ -5,6 +5,7 @@ package gatewayd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -39,7 +40,22 @@ func NewWG(config *conf.ServerConfig) *WG {
 	}
 }
 
-//
+func (wg *WG) makeDirs() error {
+	if err := os.MkdirAll(wg.Conf.Paths.GatewayHome, 0744); err != nil {
+		return fmt.Errorf("failed to create gateway home directory: %s", err)
+	}
+	if err := os.MkdirAll(wg.Conf.Paths.InDirectory, 0744); err != nil {
+		return fmt.Errorf("failed to create gateway in directory: %s", err)
+	}
+	if err := os.MkdirAll(wg.Conf.Paths.OutDirectory, 0744); err != nil {
+		return fmt.Errorf("failed to create gateway out directory: %s", err)
+	}
+	if err := os.MkdirAll(wg.Conf.Paths.WorkDirectory, 0744); err != nil {
+		return fmt.Errorf("failed to create gateway work directory: %s", err)
+	}
+	return nil
+}
+
 func (wg *WG) initServices() {
 	wg.Services = make(map[string]service.Service)
 
@@ -105,6 +121,9 @@ func (wg *WG) stopServices() {
 // Start starts the main service of the Gateway
 func (wg *WG) Start() error {
 	wg.Infof("Waarp Gateway '%s' is starting", wg.Conf.GatewayName)
+	if err := wg.makeDirs(); err != nil {
+		return err
+	}
 	wg.initServices()
 	if err := wg.startServices(); err != nil {
 		return err
