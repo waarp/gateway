@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/pkg/sftp"
 )
@@ -46,19 +47,21 @@ func makeFileCmder() fileCmdFunc {
 	}
 }
 
-func (l *sshListener) makeFileLister(root string) fileListerFunc {
+func (l *sshListener) makeFileLister(paths *pipeline.Paths) fileListerFunc {
 	return func(r *sftp.Request) (sftp.ListerAt, error) {
 		rule, err := getRuleFromPath(l.DB, r, true)
 		if err != nil {
 			if rule, err = getRuleFromPath(l.DB, r, false); err != nil {
 				l.Logger.Errorf("Failed to retrieve rule from request filepath '%s'", r.Filepath)
-				return nil, err
+				return nil, sftp.ErrSSHFxPermissionDenied
 			}
 		}
 		rulePath := rule.OutPath
 		if !rule.IsSend {
 			rulePath = rule.InPath
 		}
+		root := utils.GetPath("", utils.Elems{{paths.ServerRoot, false},
+			{paths.GatewayHome, false}})
 
 		listerAt := func(ls []os.FileInfo, offset int64) (int, error) {
 			dir := utils.DenormalizePath(path.Join(root, rulePath))

@@ -106,16 +106,24 @@ func (l *sshListener) handleSession(ctx context.Context, wg *sync.WaitGroup,
 }
 
 func (l *sshListener) makeHandlers(ctx context.Context, accountID uint64) sftp.Handlers {
+	paths := &pipeline.Paths{
+		PathsConfig: l.GWConf.Paths,
+		ServerRoot:  l.Agent.Paths.Root,
+		ServerIn:    l.Agent.Paths.InDir,
+		ServerOut:   l.Agent.Paths.OutDir,
+		ServerWork:  l.Agent.Paths.WorkDir,
+	}
 
 	return sftp.Handlers{
-		FileGet:  l.makeFileReader(ctx, accountID),
-		FilePut:  l.makeFileWriter(ctx, accountID),
+		FileGet:  l.makeFileReader(ctx, accountID, paths),
+		FilePut:  l.makeFileWriter(ctx, accountID, paths),
 		FileCmd:  makeFileCmder(),
-		FileList: l.makeFileLister(l.Agent.Root),
+		FileList: l.makeFileLister(paths),
 	}
 }
 
-func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64) fileReaderFunc {
+func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
+	paths *pipeline.Paths) fileReaderFunc {
 
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		// Get rule according to request filepath
@@ -123,12 +131,6 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64) file
 		if err != nil {
 			l.Logger.Errorf("Failed to retrieve rule from request filepath '%s'", r.Filepath)
 			return nil, err
-		}
-
-		paths := pipeline.Paths{
-			PathsConfig: l.GWConf.Paths,
-			ServerRoot:  l.Agent.Root,
-			ServerWork:  l.Agent.WorkDir,
 		}
 
 		// Create Transfer
@@ -144,7 +146,7 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64) file
 			Step:       model.StepSetup,
 		}
 
-		stream, err := newSftpStream(ctx, l.Logger, l.DB, paths, trans)
+		stream, err := newSftpStream(ctx, l.Logger, l.DB, *paths, trans)
 		if err != nil {
 			return nil, err
 		}
@@ -152,7 +154,8 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64) file
 	}
 }
 
-func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64) fileWriterFunc {
+func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64,
+	paths *pipeline.Paths) fileWriterFunc {
 
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		// Get rule according to request filepath
@@ -160,12 +163,6 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64) file
 		if err != nil {
 			l.Logger.Errorf("Failed to retrieve rule from request filepath '%s'", r.Filepath)
 			return nil, err
-		}
-
-		paths := pipeline.Paths{
-			PathsConfig: l.GWConf.Paths,
-			ServerRoot:  l.Agent.Root,
-			ServerWork:  l.Agent.WorkDir,
 		}
 
 		// Create Transfer
@@ -181,7 +178,7 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64) file
 			Step:       model.StepSetup,
 		}
 
-		stream, err := newSftpStream(ctx, l.Logger, l.DB, paths, trans)
+		stream, err := newSftpStream(ctx, l.Logger, l.DB, *paths, trans)
 		if err != nil {
 			return nil, err
 		}

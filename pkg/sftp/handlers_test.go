@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 )
 
 func TestFileReader(t *testing.T) {
@@ -47,7 +48,7 @@ func TestFileReader(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
-				Root:        root,
+				Paths:       &model.ServerPaths{Root: root},
 				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
 			}
 			So(db.Create(agent), ShouldBeNil)
@@ -61,14 +62,17 @@ func TestFileReader(t *testing.T) {
 			var serverConf config.SftpProtoConfig
 			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
-			Convey("Given the Filereader", func() {
+			Convey("Given the FileReader", func() {
+				pathsConfig := conf.PathsConfig{GatewayHome: root}
+				paths := &pipeline.Paths{PathsConfig: pathsConfig}
+
 				handler := (&sshListener{
 					DB:          db,
 					Logger:      logger,
 					Agent:       agent,
 					ProtoConfig: &serverConf,
-					GWConf:      &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: root}},
-				}).makeFileReader(context.Background(), account.ID)
+					GWConf:      &conf.ServerConfig{Paths: pathsConfig},
+				}).makeFileReader(context.Background(), account.ID, paths)
 
 				Convey("Given a request for an existing file in the rule path", func() {
 					request := &sftp.Request{
@@ -155,7 +159,7 @@ func TestFileWriter(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
-				Root:        root,
+				Paths:       &model.ServerPaths{Root: root},
 				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
 			}
 			So(db.Create(agent), ShouldBeNil)
@@ -170,13 +174,16 @@ func TestFileWriter(t *testing.T) {
 			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 			Convey("Given the Filewriter", func() {
+				pathsConfig := conf.PathsConfig{GatewayHome: root}
+				paths := &pipeline.Paths{PathsConfig: pathsConfig}
+
 				handler := (&sshListener{
 					DB:          db,
 					Logger:      logger,
 					Agent:       agent,
 					ProtoConfig: &serverConf,
-					GWConf:      &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: root}},
-				}).makeFileWriter(context.Background(), account.ID)
+					GWConf:      &conf.ServerConfig{Paths: pathsConfig},
+				}).makeFileWriter(context.Background(), account.ID, paths)
 
 				Convey("Given a request for an existing file in the rule path", func() {
 					request := &sftp.Request{

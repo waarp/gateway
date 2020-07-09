@@ -86,7 +86,7 @@ func TestServerStart(t *testing.T) {
 		agent := &model.LocalAgent{
 			Name:        "test_sftp_server",
 			Protocol:    "sftp",
-			Root:        root,
+			Paths:       &model.ServerPaths{Root: root},
 			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
@@ -143,7 +143,7 @@ func TestSSHServer(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
-				Root:        root,
+				Paths:       &model.ServerPaths{Root: root},
 				ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 			}
 			So(db.Create(agent), ShouldBeNil)
