@@ -26,8 +26,12 @@ func importLocalAgents(db *database.Session, list []localAgent) error {
 		}
 
 		// Populate
-		agent.Root = src.Root
-		agent.WorkDir = src.WorkDir
+		agent.Paths = &model.ServerPaths{
+			Root:    src.Root,
+			InDir:   src.InDir,
+			OutDir:  src.OutDir,
+			WorkDir: src.WorkDir,
+		}
 		agent.Protocol = src.Protocol
 		agent.ProtoConfig = src.Configuration
 		agent.Owner = ""
