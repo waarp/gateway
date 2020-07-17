@@ -19,7 +19,7 @@ func (i *exportCommand) Execute([]string) error {
 		return fmt.Errorf("error at init: %s", err.Error())
 	}
 
-	f, err := os.OpenFile(i.File, os.O_CREATE, 0o600)
+	f, err := os.OpenFile(i.File, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
