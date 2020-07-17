@@ -12,6 +12,7 @@ import (
 )
 
 func TestImportRules(t *testing.T) {
+
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -122,20 +123,22 @@ func TestImportRules(t *testing.T) {
 					defer ses.Rollback()
 
 					Convey("When calling importRules with the new rules", func() {
-						err := importRules(ses, rules)
+						err := importRules(discard, ses, rules)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
 
-						Convey("Then the database should contains the rule imported", func() {
+						Convey("Then the database should contains the rule "+
+							"imported", func() {
 							dbRule := &model.Rule{
 								Name:   rule1.Name,
 								IsSend: rule1.IsSend,
 							}
 							So(ses.Get(dbRule), ShouldBeNil)
 
-							Convey("Then the record should correspond to the data imported", func() {
+							Convey("Then the record should correspond to "+
+								"the data imported", func() {
 								So(dbRule.Path, ShouldEqual, rule1.Path)
 
 								auths := []model.RuleAccess{}
@@ -209,7 +212,7 @@ func TestImportRules(t *testing.T) {
 					defer ses.Rollback()
 
 					Convey("When calling importRules with the new rules", func() {
-						err := importRules(ses, rules)
+						err := importRules(discard, ses, rules)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
@@ -222,7 +225,8 @@ func TestImportRules(t *testing.T) {
 							}
 							So(ses.Get(dbRule), ShouldBeNil)
 
-							Convey("Then the record should correspond to the data imported", func() {
+							Convey("Then the record should correspond to "+
+								"the data imported", func() {
 								So(dbRule.Path, ShouldEqual, rule1.Path)
 
 								auths := []model.RuleAccess{}
@@ -274,20 +278,22 @@ func TestImportRules(t *testing.T) {
 					defer ses.Rollback()
 
 					Convey("When calling importRules with the new rules", func() {
-						err := importRules(ses, rules)
+						err := importRules(discard, ses, rules)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
 
-						Convey("Then the database should contains the rule imported", func() {
+						Convey("Then the database should contains the "+
+							"rule imported", func() {
 							dbRule := &model.Rule{
 								Name:   insert.Name,
 								IsSend: insert.IsSend,
 							}
 							So(ses.Get(dbRule), ShouldBeNil)
 
-							Convey("Then the record should correspond to the data imported", func() {
+							Convey("Then the record should correspond to "+
+								"the data imported", func() {
 								So(dbRule.Path, ShouldEqual, rule1.Path)
 
 								auths := []model.RuleAccess{}
@@ -325,6 +331,7 @@ func TestImportRules(t *testing.T) {
 }
 
 func TestImportRuleAccess(t *testing.T) {
+
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -384,20 +391,25 @@ func TestImportRuleAccess(t *testing.T) {
 							}), ShouldBeNil)
 							So(len(dbAccesses), ShouldEqual, 3)
 
-							Convey("Then the data should correspond to the ones imported", func() {
+							Convey("Then the data should correspond to "+
+								"the ones imported", func() {
 								for i := 0; i < len(dbAccesses); i++ {
 									acc := dbAccesses[i]
-									if acc.ObjectType == "local_agents" && acc.ObjectID == agent.ID {
+									if acc.ObjectType == "local_agents" &&
+										acc.ObjectID == agent.ID {
 										Convey("Then access for agent is found", func() {
 										})
-									} else if acc.ObjectType == "local_accounts" && acc.ObjectID == account1.ID {
+									} else if acc.ObjectType == "local_accounts" &&
+										acc.ObjectID == account1.ID {
 										Convey("Then access for accunt1 is found", func() {
 										})
-									} else if acc.ObjectType == "local_accounts" && acc.ObjectID == account2.ID {
+									} else if acc.ObjectType == "local_accounts" &&
+										acc.ObjectID == account2.ID {
 										Convey("Then access for accunt2 is found", func() {
 										})
 									} else {
-										Convey("Then they should be no other records", func() {
+										Convey("Then they should be no "+
+											"other records", func() {
 											So(1, ShouldBeNil)
 										})
 									}
@@ -442,17 +454,21 @@ func TestImportRuleAccess(t *testing.T) {
 								}), ShouldBeNil)
 								So(len(dbAccesses), ShouldEqual, 3)
 
-								Convey("Then the data should correspond to the ones imported", func() {
+								Convey("Then the data should correspond to "+
+									"the ones imported", func() {
 									for i := 0; i < len(dbAccesses); i++ {
 										acc := dbAccesses[i]
-										if acc.ObjectType == "local_agents" && acc.ObjectID == agent.ID {
+										if acc.ObjectType == "local_agents" &&
+											acc.ObjectID == agent.ID {
 											Convey("Then access for agent is found", func() {
 											})
-										} else if acc.ObjectType == "local_accounts" && acc.ObjectID == account1.ID {
-											Convey("Then access for accunt1 is found", func() {
+										} else if acc.ObjectType == "local_accounts" &&
+											acc.ObjectID == account1.ID {
+											Convey("Then access for account1 is found", func() {
 											})
-										} else if acc.ObjectType == "local_accounts" && acc.ObjectID == account2.ID {
-											Convey("Then access for accunt2 is found", func() {
+										} else if acc.ObjectType == "local_accounts" &&
+											acc.ObjectID == account2.ID {
+											Convey("Then access for account2 is found", func() {
 											})
 										} else {
 											Convey("Then they should be no other records", func() {
@@ -547,7 +563,7 @@ func TestImportTasks(t *testing.T) {
 					defer ses.Rollback()
 
 					Convey("When calling importTasks on pre tasks", func() {
-						err := importRuleTasks(ses, tasks, insert.ID, model.ChainPre)
+						err := importRuleTasks(discard, ses, tasks, insert.ID, model.ChainPre)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
@@ -570,7 +586,7 @@ func TestImportTasks(t *testing.T) {
 					})
 
 					Convey("When calling importTasks on post tasks", func() {
-						err := importRuleTasks(ses, tasks, insert.ID, model.ChainPost)
+						err := importRuleTasks(discard, ses, tasks, insert.ID, model.ChainPost)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
@@ -593,7 +609,7 @@ func TestImportTasks(t *testing.T) {
 					})
 
 					Convey("When calling importTasks on error tasks", func() {
-						err := importRuleTasks(ses, tasks, insert.ID, model.ChainError)
+						err := importRuleTasks(discard, ses, tasks, insert.ID, model.ChainError)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)

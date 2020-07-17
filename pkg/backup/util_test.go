@@ -9,9 +9,7 @@ import (
 var discard *log.Logger
 
 func init() {
-	logConf := conf.LogConfig{
-		Level: "CRITICAL",
-		LogTo: "stdout",
-	}
+	logConf := conf.LogConfig{LogTo: "/dev/null"}
 	_ = log.InitBackend(logConf)
+	discard = log.NewLogger("discard")
 }

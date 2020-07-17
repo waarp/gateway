@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func importRules(db *database.Session, list []rule) error {
+func importRules(logger *log.Logger, db *database.Session, list []rule) error {
 
 	for _, src := range list {
 
@@ -37,10 +38,10 @@ func importRules(db *database.Session, list []rule) error {
 
 		// Create/Update
 		if exists {
-			fmt.Printf("Update rule %s\n", rule.Name)
+			logger.Infof("Update rule %s\n", rule.Name)
 			err = db.Update(rule, rule.ID, false)
 		} else {
-			fmt.Printf("Create rule %s\n", rule.Name)
+			logger.Infof("Create rule %s\n", rule.Name)
 			err = db.Create(rule)
 		}
 		if err != nil {
@@ -49,13 +50,13 @@ func importRules(db *database.Session, list []rule) error {
 		if err = importRuleAccesses(db, src.Accesses, rule.ID); err != nil {
 			return err
 		}
-		if err = importRuleTasks(db, src.Pre, rule.ID, model.ChainPre); err != nil {
+		if err = importRuleTasks(logger, db, src.Pre, rule.ID, model.ChainPre); err != nil {
 			return err
 		}
-		if err = importRuleTasks(db, src.Post, rule.ID, model.ChainPost); err != nil {
+		if err = importRuleTasks(logger, db, src.Post, rule.ID, model.ChainPost); err != nil {
 			return err
 		}
-		if err = importRuleTasks(db, src.Error, rule.ID, model.ChainError); err != nil {
+		if err = importRuleTasks(logger, db, src.Error, rule.ID, model.ChainError); err != nil {
 			return err
 		}
 	}
@@ -98,7 +99,9 @@ func importRuleAccesses(db *database.Session, list []string, ruleID uint64) erro
 	return nil
 }
 
-func createRemoteAccess(db *database.Session, arr []string, ruleID uint64) (*model.RuleAccess, error) {
+func createRemoteAccess(db *database.Session, arr []string,
+	ruleID uint64) (*model.RuleAccess, error) {
+
 	agent := &model.RemoteAgent{
 		Name: arr[1],
 	}
@@ -128,7 +131,9 @@ func createRemoteAccess(db *database.Session, arr []string, ruleID uint64) (*mod
 	}, nil
 }
 
-func createLocalAccess(db *database.Session, arr []string, ruleID uint64) (*model.RuleAccess, error) {
+func createLocalAccess(db *database.Session, arr []string,
+	ruleID uint64) (*model.RuleAccess, error) {
+
 	agent := &model.LocalAgent{
 		Name: arr[1],
 	}
@@ -158,7 +163,8 @@ func createLocalAccess(db *database.Session, arr []string, ruleID uint64) (*mode
 	}, nil
 }
 
-func importRuleTasks(db *database.Session, list []ruleTask, ruleID uint64, chain model.Chain) error {
+func importRuleTasks(logger *log.Logger, db *database.Session, list []ruleTask,
+	ruleID uint64, chain model.Chain) error {
 
 	if len(list) == 0 {
 		return nil
@@ -182,7 +188,7 @@ func importRuleTasks(db *database.Session, list []ruleTask, ruleID uint64, chain
 		task.Args = src.Args
 
 		// Create/Update
-		fmt.Printf("Create task type %s at chain %s rank %d\n", task.Type, chain, i)
+		logger.Infof("Create task type %s at chain %s rank %d\n", task.Type, chain, i)
 		if err := db.Create(task); err != nil {
 			return err
 		}

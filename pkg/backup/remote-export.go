@@ -2,11 +2,12 @@ package backup
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
 
-func exportRemotes(db *database.Session) ([]remoteAgent, error) {
+func exportRemotes(logger *log.Logger, db *database.Session) ([]remoteAgent, error) {
 	dbRemotes := []model.RemoteAgent{}
 
 	if err := db.Select(&dbRemotes, nil); err != nil {
@@ -16,15 +17,16 @@ func exportRemotes(db *database.Session) ([]remoteAgent, error) {
 
 	for i, src := range dbRemotes {
 
-		accounts, err := exportRemoteAccounts(db, src.ID)
+		accounts, err := exportRemoteAccounts(logger, db, src.ID)
 		if err != nil {
 			return nil, err
 		}
-		certificates, err := exportCertificates(db, "remote_agents", src.ID)
+		certificates, err := exportCertificates(logger, db, "remote_agents", src.ID)
 		if err != nil {
 			return nil, err
 		}
 
+		logger.Infof("Export remote partner %s\n", src.Name)
 		agent := remoteAgent{
 			Name:          src.Name,
 			Protocol:      src.Protocol,
@@ -37,7 +39,8 @@ func exportRemotes(db *database.Session) ([]remoteAgent, error) {
 	return res, nil
 }
 
-func exportRemoteAccounts(db *database.Session, agentID uint64) ([]remoteAccount, error) {
+func exportRemoteAccounts(logger *log.Logger, db *database.Session,
+	agentID uint64) ([]remoteAccount, error) {
 	dbAccounts := []model.RemoteAccount{}
 	filters := &database.Filters{
 		Conditions: builder.Eq{"remote_agent_id": agentID},
@@ -49,7 +52,7 @@ func exportRemoteAccounts(db *database.Session, agentID uint64) ([]remoteAccount
 
 	for i, src := range dbAccounts {
 
-		certificates, err := exportCertificates(db, "remote_accounts", src.ID)
+		certificates, err := exportCertificates(logger, db, "remote_accounts", src.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -57,6 +60,8 @@ func exportRemoteAccounts(db *database.Session, agentID uint64) ([]remoteAccount
 		if err != nil {
 			return nil, err
 		}
+
+		logger.Infof("Export remote account %s\n", src.Login)
 		account := remoteAccount{
 			Login:    src.Login,
 			Password: string(pwd),

@@ -3,18 +3,21 @@ package backup
 import (
 	"encoding/json"
 	"io"
-	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 // ExportData extracts from the database the subsets specified in targets,
 // serializes it in JSON, and writes the result in the writer w.
 //
-// Possible values for target are 'rules' for the transfer rules, 'servers' for
+// Possible values for targets are 'rules' for the transfer rules, 'servers' for
 // local servers and accounts, 'partners' for remote partners and accounts, or
-// 'all' for all data. Several groups can be given separated by ','.
-func ExportData(db *database.DB, w io.Writer, target string) error {
+// 'all' for all data.
+func ExportData(db *database.DB, w io.Writer, targets []string) error {
+	logger := log.NewLogger("export")
+
 	ses, err := db.BeginTransaction()
 	if err != nil {
 		return err
@@ -23,29 +26,27 @@ func ExportData(db *database.DB, w io.Writer, target string) error {
 
 	data := &data{}
 
-	if strings.Contains(target, "servers") || strings.Contains(target, "all") {
-		data.Locals, err = exportLocals(ses)
+	if utils.ContainsStrings(targets, "servers", "all") {
+		data.Locals, err = exportLocals(logger, ses)
 		if err != nil {
 			return err
 		}
 	}
-	if strings.Contains(target, "partners") || strings.Contains(target, "all") {
-		data.Remotes, err = exportRemotes(ses)
+	if utils.ContainsStrings(targets, "partners", "all") {
+		data.Remotes, err = exportRemotes(logger, ses)
 		if err != nil {
 			return err
 		}
 	}
-	if strings.Contains(target, "rules") || strings.Contains(target, "all") {
-		data.Rules, err = exportRules(ses)
+	if utils.ContainsStrings(targets, "rules", "all") {
+		data.Rules, err = exportRules(logger, ses)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = json.NewEncoder(w).Encode(data)
-	if err != nil {
-		return err
-	}
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
 
-	return nil
+	return encoder.Encode(data)
 }

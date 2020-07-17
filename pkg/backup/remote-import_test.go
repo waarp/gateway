@@ -10,6 +10,7 @@ import (
 )
 
 func TestImportRemoteAgents(t *testing.T) {
+
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -45,7 +46,7 @@ func TestImportRemoteAgents(t *testing.T) {
 					defer ses.Rollback()
 
 					Convey("When calling the importRemotes method", func() {
-						err := importRemoteAgents(ses, agents)
+						err := importRemoteAgents(discard, ses, agents)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
@@ -56,10 +57,12 @@ func TestImportRemoteAgents(t *testing.T) {
 							}
 							So(ses.Get(dbAgent), ShouldBeNil)
 
-							Convey("Then the data shuld correspond to the one imported", func() {
+							Convey("Then the data should correspond to the "+
+								"one imported", func() {
 								So(dbAgent.Name, ShouldEqual, agent1.Name)
 								So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
-								So(dbAgent.ProtoConfig, ShouldResemble, []byte(agent1.Configuration))
+								So(dbAgent.ProtoConfig, ShouldResemble,
+									[]byte(agent1.Configuration))
 
 								accounts := []model.RemoteAccount{}
 								So(ses.Select(&accounts, &database.Filters{
@@ -102,7 +105,7 @@ func TestImportRemoteAgents(t *testing.T) {
 					defer ses.Rollback()
 
 					Convey("When calling the importRemotes method", func() {
-						err := importRemoteAgents(ses, agents)
+						err := importRemoteAgents(discard, ses, agents)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
@@ -113,10 +116,12 @@ func TestImportRemoteAgents(t *testing.T) {
 							}
 							So(ses.Get(dbAgent), ShouldBeNil)
 
-							Convey("Then the data shuld correspond to the one imported", func() {
+							Convey("Then the data shuld correspond to the "+
+								"one imported", func() {
 								So(dbAgent.Name, ShouldEqual, agent1.Name)
 								So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
-								So(dbAgent.ProtoConfig, ShouldResemble, []byte(agent1.Configuration))
+								So(dbAgent.ProtoConfig, ShouldResemble,
+									[]byte(agent1.Configuration))
 
 								accounts := []model.RemoteAccount{}
 								So(ses.Select(&accounts, &database.Filters{
@@ -127,7 +132,8 @@ func TestImportRemoteAgents(t *testing.T) {
 
 								certs := []model.Cert{}
 								So(ses.Select(&certs, &database.Filters{
-									Conditions: builder.Eq{"owner_id": dbAgent.ID, "owner_type": "remote_agents"},
+									Conditions: builder.Eq{"owner_id": dbAgent.ID,
+										"owner_type": "remote_agents"},
 								}), ShouldBeNil)
 
 								So(len(accounts), ShouldEqual, 1)
@@ -164,18 +170,20 @@ func TestImportRemoteAgents(t *testing.T) {
 					defer ses.Rollback()
 
 					Convey("When calling the importRemotes method", func() {
-						err := importRemoteAgents(ses, agents)
+						err := importRemoteAgents(discard, ses, agents)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
-						Convey("Then the database should contains the remote agents", func() {
+						Convey("Then the database should contains the "+
+							"remote agents", func() {
 							dbAgent := &model.RemoteAgent{
 								Name: agent1.Name,
 							}
 							So(ses.Get(dbAgent), ShouldBeNil)
 
-							Convey("Then the data shuld correspond to the one imported", func() {
+							Convey("Then the data should correspond to the "+
+								"one imported", func() {
 								So(dbAgent.Name, ShouldEqual, agent1.Name)
 								So(dbAgent.Protocol, ShouldEqual, agent.Protocol)
 								So(dbAgent.ProtoConfig, ShouldResemble, agent.ProtoConfig)
@@ -189,7 +197,8 @@ func TestImportRemoteAgents(t *testing.T) {
 
 								certs := []model.Cert{}
 								So(ses.Select(&certs, &database.Filters{
-									Conditions: builder.Eq{"owner_id": dbAgent.ID, "owner_type": "remote_agents"},
+									Conditions: builder.Eq{"owner_id": dbAgent.ID,
+										"owner_type": "remote_agents"},
 								}), ShouldBeNil)
 
 								So(len(accounts), ShouldEqual, 1)
@@ -241,12 +250,13 @@ func TestImportRemoteAccounts(t *testing.T) {
 					defer ses.Rollback()
 
 					Convey("When calling the importRemoteAccounts method", func() {
-						err := importRemoteAccounts(ses, accounts, agent.ID)
+						err := importRemoteAccounts(discard, ses, accounts, agent.ID)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
-						Convey("Then the database should contains the remote accounts", func() {
+						Convey("Then the database should contains the "+
+							"remote accounts", func() {
 							accounts := []model.RemoteAccount{}
 							So(ses.Select(&accounts, &database.Filters{
 								Conditions: builder.Eq{"remote_agent_id": agent.ID},
@@ -254,7 +264,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 
 							So(len(accounts), ShouldEqual, 3)
 
-							Convey("Then the data shuld correspond to the one imported", func() {
+							Convey("Then the data should correspond to "+
+								"the one imported", func() {
 								for i := 0; i < len(accounts); i++ {
 									if accounts[i].Login == account1.Login {
 
@@ -275,7 +286,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 										Convey("Then dbAccount is found", func() {
 										})
 									} else {
-										Convey("Then they should be no other records", func() {
+										Convey("Then they should be no "+
+											"other records", func() {
 											So(1, ShouldBeNil)
 										})
 									}
@@ -308,12 +320,13 @@ func TestImportRemoteAccounts(t *testing.T) {
 					defer ses.Rollback()
 
 					Convey("When calling the importRemoteAccounts method", func() {
-						err := importRemoteAccounts(ses, accounts, agent.ID)
+						err := importRemoteAccounts(discard, ses, accounts, agent.ID)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
-						Convey("Then the database should contains the remote accounts", func() {
+						Convey("Then the database should contains the "+
+							"remote accounts", func() {
 							accounts := []model.RemoteAccount{}
 							So(ses.Select(&accounts, &database.Filters{
 								Conditions: builder.Eq{"remote_agent_id": agent.ID},
@@ -321,21 +334,25 @@ func TestImportRemoteAccounts(t *testing.T) {
 
 							So(len(accounts), ShouldEqual, 1)
 
-							Convey("Then the data shuld correspond to the one imported", func() {
+							Convey("Then the data should correspond to "+
+								"the one imported", func() {
 								for i := 0; i < len(accounts); i++ {
 									if accounts[i].Login == dbAccount.Login {
 
 										Convey("When dbAccount is found", func() {
-											So(accounts[i].Password, ShouldNotResemble, dbAccount.Password)
+											So(accounts[i].Password, ShouldNotResemble,
+												dbAccount.Password)
 											certs := []model.Cert{}
 											So(ses.Select(&certs, &database.Filters{
-												Conditions: builder.Eq{"owner_id": dbAccount.ID, "owner_type": "remote_accounts"},
+												Conditions: builder.Eq{"owner_id": dbAccount.ID,
+													"owner_type": "remote_accounts"},
 											}), ShouldBeNil)
 
 											So(len(accounts), ShouldEqual, 1)
 										})
 									} else {
-										Convey("Then they should be no other records", func() {
+										Convey("Then they should be no "+
+											"other records", func() {
 											So(1, ShouldBeNil)
 										})
 									}
@@ -367,12 +384,13 @@ func TestImportRemoteAccounts(t *testing.T) {
 					defer ses.Rollback()
 
 					Convey("When calling the importRemoteAccounts method", func() {
-						err := importRemoteAccounts(ses, accounts, agent.ID)
+						err := importRemoteAccounts(discard, ses, accounts, agent.ID)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
-						Convey("Then the database should contains the remote accounts", func() {
+						Convey("Then the database should contains the "+
+							"remote accounts", func() {
 							accounts := []model.RemoteAccount{}
 							So(ses.Select(&accounts, &database.Filters{
 								Conditions: builder.Eq{"remote_agent_id": agent.ID},
@@ -380,21 +398,25 @@ func TestImportRemoteAccounts(t *testing.T) {
 
 							So(len(accounts), ShouldEqual, 1)
 
-							Convey("Then the data shuld correspond to the one imported", func() {
+							Convey("Then the data should correspond to "+
+								"the one imported", func() {
 								for i := 0; i < len(accounts); i++ {
 									if accounts[i].Login == dbAccount.Login {
 
 										Convey("When dbAccount is found", func() {
-											So(accounts[i].Password, ShouldResemble, dbAccount.Password)
+											So(accounts[i].Password, ShouldResemble,
+												dbAccount.Password)
 											certs := []model.Cert{}
 											So(ses.Select(&certs, &database.Filters{
-												Conditions: builder.Eq{"owner_id": dbAccount.ID, "owner_type": "remote_accounts"},
+												Conditions: builder.Eq{"owner_id": dbAccount.ID,
+													"owner_type": "remote_accounts"},
 											}), ShouldBeNil)
 
 											So(len(accounts), ShouldEqual, 1)
 										})
 									} else {
-										Convey("Then they should be no other records", func() {
+										Convey("Then they should be no "+
+											"other records", func() {
 											So(1, ShouldBeNil)
 										})
 									}
