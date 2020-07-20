@@ -115,6 +115,7 @@ func (e *Executor) Run() {
 	}
 	if info.Agent.Protocol == "r66" {
 		e.runR66(info)
+		return
 	}
 
 	tErr = func() *model.PipelineError {
@@ -193,6 +194,7 @@ func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {
 			Code:    model.TeExternalOperation,
 			Details: err.Error(),
 		}
+		return err
 	}
 	if len(out) > 0 {
 		// Get the second line of the output
