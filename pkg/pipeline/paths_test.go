@@ -123,7 +123,7 @@ func TestPathIn(t *testing.T) {
 						stream, err := NewTransferStream(context.Background(),
 							logger, db, paths, trans)
 						So(err, ShouldBeNil)
-						Reset(func() { _ = stream.Finalize() })
+						Reset(func() { _ = stream.Close() })
 
 						So(stream.Start(), ShouldBeNil)
 
@@ -133,7 +133,7 @@ func TestPathIn(t *testing.T) {
 						})
 
 						Convey("When finalizing the transfer", func() {
-							So(stream.Finalize(), ShouldBeNil)
+							So(stream.Close(), ShouldBeNil)
 
 							Convey("Then it should have moved the file to its destination", func() {
 								_, err := os.Stat(tc.expFinal)
@@ -207,13 +207,13 @@ func TestPathOut(t *testing.T) {
 						DestFile:   "file.dst",
 					}
 					path := Join(srcPath, trans.SourceFile)
-					So(os.MkdirAll(srcPath, 0700), ShouldBeNil)
-					So(ioutil.WriteFile(path, nil, 0700), ShouldBeNil)
+					So(os.MkdirAll(srcPath, 0o700), ShouldBeNil)
+					So(ioutil.WriteFile(path, nil, 0o700), ShouldBeNil)
 
 					stream, err := NewTransferStream(context.Background(),
 						logger, db, paths, trans)
 					So(err, ShouldBeNil)
-					Reset(func() { _ = stream.Finalize() })
+					Reset(func() { _ = stream.Close() })
 
 					err = stream.Start()
 					So(err, ShouldBeNil)
@@ -259,7 +259,6 @@ func TestPathOut(t *testing.T) {
 				})
 
 				Convey("Given a server without a root directory", func() {
-
 					Convey("Given that the rule has an 'out' directory", func() {
 						send := &model.Rule{
 							Name:    "send",
@@ -321,7 +320,6 @@ func TestPathOut(t *testing.T) {
 				})
 
 				Convey("Given a server without a root directory", func() {
-
 					Convey("Given that the rule has an 'out' directory", func() {
 						send := &model.Rule{
 							Name:    "send",

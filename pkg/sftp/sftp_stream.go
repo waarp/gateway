@@ -143,9 +143,11 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 
 func (s *sftpStream) Close() error {
 	if s.transErr == nil {
-		s.transErr = s.PostTasks()
+		if err := s.TransferStream.Close(); err != nil {
+			s.transErr = err.(*model.PipelineError)
+		}
 		if s.transErr == nil {
-			s.transErr = s.Finalize()
+			s.transErr = s.PostTasks()
 			if s.transErr == nil {
 				s.Transfer.Status = model.StatusDone
 				s.Archive()

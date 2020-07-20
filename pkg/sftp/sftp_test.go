@@ -349,10 +349,11 @@ func TestSFTPPackage(t *testing.T) {
 								So(getNextTask(), ShouldEqual, "SEND | ERROR-TASK[0] | OK")
 								So(waitChannel(finished), ShouldBeNil)
 
-								Convey("Then the work file should exist", func() {
-									file := filepath.Join(root, receive.WorkPath, trans.DestFile+".tmp")
+								Convey("Then the work file should NOT exist", func() {
+									file := filepath.Join(root, receive.WorkPath,
+										trans.DestFile+".tmp")
 									_, err := os.Stat(file)
-									So(err, ShouldBeNil)
+									So(os.IsNotExist(err), ShouldBeTrue)
 								})
 
 								Convey("Then the transfers should be over", func() {
@@ -360,7 +361,9 @@ func TestSFTPPackage(t *testing.T) {
 									So(db.Select(&transfers, nil), ShouldBeNil)
 									So(transfers, ShouldBeEmpty)
 
-									Convey("Then there should be a server-side history entry in error", func() {
+									Convey("Then there should be a server-side "+
+										"history entry in error", func() {
+
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -380,8 +383,9 @@ func TestSFTPPackage(t *testing.T) {
 											Stop:           results[0].Stop,
 											Status:         model.StatusError,
 											Error: model.TransferError{
-												Code:    model.TeExternalOperation,
-												Details: "Task TESTFAIL @ receive PRE[1]: task failed",
+												Code: model.TeExternalOperation,
+												Details: "Task TESTFAIL @ receive " +
+													"PRE[1]: task failed",
 											},
 											Step:       model.StepPreTasks,
 											Progress:   0,
@@ -391,7 +395,8 @@ func TestSFTPPackage(t *testing.T) {
 										So(results[0], ShouldResemble, expected)
 									})
 
-									Convey("Then there should be a client-side history entry in error", func() {
+									Convey("Then there should be a client-side "+
+										"history entry in error", func() {
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -449,10 +454,11 @@ func TestSFTPPackage(t *testing.T) {
 								So(getNextTask(), ShouldEqual, "SEND | ERROR-TASK[0] | OK")
 								So(waitChannel(finished), ShouldBeNil)
 
-								Convey("Then the work file should exist", func() {
-									file := filepath.Join(root, receive.WorkPath, trans.DestFile+".tmp")
+								Convey("Then the work file should NOT exist", func() {
+									file := filepath.Join(root, receive.WorkPath,
+										trans.DestFile+".tmp")
 									_, err := os.Stat(file)
-									So(err, ShouldBeNil)
+									So(os.IsNotExist(err), ShouldBeTrue)
 								})
 
 								Convey("Then the transfers should be over", func() {
@@ -460,7 +466,9 @@ func TestSFTPPackage(t *testing.T) {
 									So(db.Select(&transfers, nil), ShouldBeNil)
 									So(transfers, ShouldBeEmpty)
 
-									Convey("Then there should be a server-side history entry in error", func() {
+									Convey("Then there should be a server-side "+
+										"history entry in error", func() {
+
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -491,7 +499,9 @@ func TestSFTPPackage(t *testing.T) {
 										So(results[0], ShouldResemble, expected)
 									})
 
-									Convey("Then there should be a client-side history entry in error", func() {
+									Convey("Then there should be a client-side"+
+										"history entry in error", func() {
+
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -511,8 +521,9 @@ func TestSFTPPackage(t *testing.T) {
 											Stop:           results[1].Stop,
 											Status:         model.StatusError,
 											Error: model.TransferError{
-												Code:    model.TeExternalOperation,
-												Details: "Task TESTFAIL @ send PRE[1]: task failed",
+												Code: model.TeExternalOperation,
+												Details: "Task TESTFAIL @ send " +
+													"PRE[1]: task failed",
 											},
 											Step:       model.StepPreTasks,
 											Progress:   0,
@@ -550,8 +561,9 @@ func TestSFTPPackage(t *testing.T) {
 								So(getNextTask(), ShouldEqual, "SEND | ERROR-TASK[0] | OK")
 								So(waitChannel(finished), ShouldBeNil)
 
-								Convey("Then the work file should exist", func() {
-									file := filepath.Join(root, receive.WorkPath, trans.DestFile+".tmp")
+								Convey("Then the file should exist", func() {
+									file := filepath.Join(root, receive.InPath,
+										trans.DestFile)
 									cont, err := ioutil.ReadFile(file)
 									So(err, ShouldBeNil)
 
@@ -563,7 +575,9 @@ func TestSFTPPackage(t *testing.T) {
 									So(db.Select(&transfers, nil), ShouldBeNil)
 									So(transfers, ShouldBeEmpty)
 
-									Convey("Then there should be a server-side history entry in error", func() {
+									Convey("Then there should be a server-side "+
+										"history entry in error", func() {
+
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -583,8 +597,9 @@ func TestSFTPPackage(t *testing.T) {
 											Stop:           results[0].Stop,
 											Status:         model.StatusError,
 											Error: model.TransferError{
-												Code:    model.TeExternalOperation,
-												Details: "Task TESTFAIL @ receive POST[1]: task failed",
+												Code: model.TeExternalOperation,
+												Details: "Task TESTFAIL @ receive " +
+													"POST[1]: task failed",
 											},
 											Step:       model.StepPostTasks,
 											Progress:   0,
@@ -594,7 +609,8 @@ func TestSFTPPackage(t *testing.T) {
 										So(results[0], ShouldResemble, expected)
 									})
 
-									Convey("Then there should be a client-side history entry in error", func() {
+									Convey("Then there should be a client-side "+
+										"history entry in error", func() {
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -653,8 +669,9 @@ func TestSFTPPackage(t *testing.T) {
 								So(getNextTask(), ShouldEqual, "SEND | ERROR-TASK[0] | OK")
 								So(waitChannel(finished), ShouldBeNil)
 
-								Convey("Then the work file should exist", func() {
-									file := filepath.Join(root, receive.WorkPath, trans.DestFile+".tmp")
+								Convey("Then the file should exist", func() {
+									file := filepath.Join(root, receive.InPath,
+										trans.DestFile)
 									cont, err := ioutil.ReadFile(file)
 									So(err, ShouldBeNil)
 
@@ -666,7 +683,9 @@ func TestSFTPPackage(t *testing.T) {
 									So(db.Select(&transfers, nil), ShouldBeNil)
 									So(transfers, ShouldBeEmpty)
 
-									Convey("Then there should be a server-side history entry in error", func() {
+									Convey("Then there should be a server-side "+
+										"history entry in error", func() {
+
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -697,7 +716,9 @@ func TestSFTPPackage(t *testing.T) {
 										So(results[0], ShouldResemble, expected)
 									})
 
-									Convey("Then there should be a client-side history entry in error", func() {
+									Convey("Then there should be a client-side "+
+										"history entry in error", func() {
+
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
