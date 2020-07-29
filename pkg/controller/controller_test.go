@@ -1,7 +1,10 @@
 package controller
 
 import (
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -41,25 +44,35 @@ func TestControllerListen(t *testing.T) {
 		}
 		So(db.Create(cert), ShouldBeNil)
 
+		tmpDir, err := ioutil.TempDir("", "gateway-test-*")
+		So(err, ShouldBeNil)
+		defer func() { So(os.RemoveAll(tmpDir), ShouldBeNil) }()
+
 		rule := &model.Rule{
-			Name:   "test rule",
-			Path:   "test_rule",
-			IsSend: true,
+			Name:    "test rule",
+			Path:    "test_rule",
+			IsSend:  true,
+			OutPath: tmpDir,
 		}
 		So(db.Create(rule), ShouldBeNil)
 
 		start := time.Now().Truncate(time.Second)
 
 		Convey("Given a controller", func() {
-			tick := time.Nanosecond
+			tick := 10 * time.Millisecond
 			cont := &Controller{
 				DB:     db,
 				Conf:   &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: "."}},
 				ticker: time.NewTicker(tick),
 				logger: log.NewLogger("test_controller"),
+				wg:     new(sync.WaitGroup),
 			}
 
 			Convey("Given a planned transfer", func() {
+				err := ioutil.WriteFile(filepath.Join(tmpDir, "source_file_1"),
+					[]byte("hello world"), 0o644)
+				So(err, ShouldBeNil)
+
 				trans := &model.Transfer{
 					RuleID:       rule.ID,
 					IsServer:     false,
@@ -74,8 +87,8 @@ func TestControllerListen(t *testing.T) {
 				}
 				So(db.Create(trans), ShouldBeNil)
 
-				Convey("When calling the `listen` method", func() {
-					cont.listen()
+				Convey("When the controller starts new transfers", func() {
+					cont.startNewTransfers()
 					Reset(func() {
 						_ = os.RemoveAll("tmp")
 						_ = os.RemoveAll(rule.Path)
@@ -94,6 +107,10 @@ func TestControllerListen(t *testing.T) {
 			})
 
 			Convey("Given a running transfer", func() {
+				err := ioutil.WriteFile(filepath.Join(tmpDir, "source_file_2"),
+					[]byte("hello world"), 0o644)
+				So(err, ShouldBeNil)
+
 				trans := &model.Transfer{
 					RuleID:       rule.ID,
 					IsServer:     false,
@@ -111,7 +128,7 @@ func TestControllerListen(t *testing.T) {
 				Convey("Given that the database stops responding", func() {
 					db.State().Set(service.Error, "test error")
 
-					Convey("When calling the `listen` method", func() {
+					Convey("When the controller starts listening", func() {
 						cont.listen()
 
 						Convey("When the database comes back online", func() {
@@ -123,7 +140,6 @@ func TestControllerListen(t *testing.T) {
 
 								Convey("Then the running entry should now be "+
 									"interrupted", func() {
-
 									result := &model.Transfer{ID: trans.ID}
 									So(db.Get(result), ShouldBeNil)
 									So(result.Status, ShouldEqual, model.StatusInterrupted)

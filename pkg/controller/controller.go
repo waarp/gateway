@@ -4,6 +4,8 @@ package controller
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -17,7 +19,7 @@ import (
 	"github.com/go-xorm/builder"
 )
 
-// ServiceName is the name of the controller service
+// ServiceName is the name of the controller service.
 const ServiceName = "Controller"
 
 // Controller is the service responsible for checking the database for new
@@ -45,31 +47,29 @@ func (c *Controller) checkIsDBDown() bool {
 	if st, _ := c.DB.State().Get(); st != service.Running {
 		return true
 	}
+
 	runningTrans := []model.Transfer{}
 	if err := c.DB.Select(&runningTrans, &filtersDown); err != nil {
 		c.logger.Errorf("Failed to access database: %s", err.Error())
 		return true
 	}
+
 	for _, trans := range runningTrans {
 		trans.Status = model.StatusInterrupted
 		if err := trans.Update(c.DB); err != nil {
 			c.logger.Errorf("Failed to access database: %s", err.Error())
-			return false
+			return true
 		}
 	}
-	return true
+
+	return false
 }
 
 func (c *Controller) listen() {
-	owner := builder.Eq{"owner": database.Owner}
-	status := builder.Eq{"status": model.StatusPlanned}
-	client := builder.Eq{"is_server": false}
 	c.wg = &sync.WaitGroup{}
-
 	c.ctx, c.cancel = context.WithCancel(context.Background())
 
 	go func() {
-		isDBDown := false
 		for {
 			select {
 			case <-c.ctx.Done():
@@ -77,52 +77,63 @@ func (c *Controller) listen() {
 			case <-c.ticker.C:
 			}
 
-			start := builder.Lte{"start": time.Now()}
-			filters := database.Filters{
-				Conditions: builder.And(owner, start, status, client),
-			}
-
-			if isDBDown {
-				isDBDown = c.checkIsDBDown()
-			}
-
-			plannedTrans := []model.Transfer{}
-			if err := c.DB.Select(&plannedTrans, &filters); err != nil {
-				c.logger.Errorf("Failed to access database: %s", err.Error())
-				if err == database.ErrServiceUnavailable {
-					isDBDown = true
-				}
-				continue
-			}
-
-			for _, trans := range plannedTrans {
-				exe, err := c.getExecutor(trans)
-				if err == pipeline.ErrLimitReached {
-					break
-				}
-				if err != nil {
-					continue
-				}
-
-				c.wg.Add(1)
-				go func() {
-					exe.Run()
-					c.wg.Done()
-				}()
-			}
+			c.startNewTransfers()
 		}
 	}()
 }
 
+// startNewTransfers checks the database for new planned transfers and starts
+// them, as long as there are available transfer slots.
+func (c *Controller) startNewTransfers() {
+	if c.checkIsDBDown() {
+		return
+	}
+
+	owner := builder.Eq{"owner": database.Owner}
+	status := builder.Eq{"status": model.StatusPlanned}
+	client := builder.Eq{"is_server": false}
+	start := builder.Lte{"start": time.Now()}
+	filters := database.Filters{
+		Conditions: builder.And(owner, start, status, client),
+	}
+
+	plannedTrans := []model.Transfer{}
+	if err := c.DB.Select(&plannedTrans, &filters); err != nil {
+		c.logger.Errorf("Failed to access database: %s", err.Error())
+		return
+	}
+
+	for _, trans := range plannedTrans {
+		exe, err := c.getExecutor(trans)
+		if errors.Is(err, pipeline.ErrLimitReached) {
+			break
+		}
+
+		if err != nil {
+			continue
+		}
+
+		c.wg.Add(1)
+
+		go func() {
+			defer c.wg.Done()
+			exe.Run()
+		}()
+	}
+}
+
 func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, error) {
 	paths := pipeline.Paths{PathsConfig: c.Conf.Paths}
-	stream, err := pipeline.NewTransferStream(c.ctx, c.logger, c.DB, paths, trans)
+	logger := log.NewLogger(fmt.Sprintf("transfer %d", trans.ID))
+
+	stream, err := pipeline.NewTransferStream(c.ctx, logger, c.DB, paths, trans)
 	if err != nil {
 		c.logger.Errorf("Failed to create transfer stream: %s", err.Error())
 		return nil, err
 	}
 
 	exe := &executor.Executor{TransferStream: stream, R66Home: c.Conf.Controller.R66Home}
+
 	return exe, nil
 }
 
@@ -150,7 +161,9 @@ func (c *Controller) Stop(ctx context.Context) error {
 	c.logger.Info("Shutting down controller...")
 
 	c.cancel()
+
 	finished := make(chan struct{})
+
 	go func() {
 		c.wg.Wait()
 		close(finished)

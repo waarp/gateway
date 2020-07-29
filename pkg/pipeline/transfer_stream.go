@@ -25,7 +25,6 @@ type TransferStream struct {
 // can then be used to execute a transfer.
 func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	paths Paths, trans model.Transfer) (*TransferStream, error) {
-
 	if trans.IsServer {
 		if err := TransferInCount.add(); err != nil {
 			logger.Error("Incoming transfer limit reached")
@@ -69,11 +68,15 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 		Signals:  t.Signals,
 		Ctx:      ctx,
 		InPath: utils.GetPath(t.Pipeline.Rule.InPath, utils.Elems{
-			{paths.ServerRoot, false}, {paths.InDirectory, true},
-			{paths.GatewayHome, false}}),
+			{paths.ServerRoot, false},
+			{paths.InDirectory, true},
+			{paths.GatewayHome, false},
+		}),
 		OutPath: utils.GetPath(t.Pipeline.Rule.OutPath, utils.Elems{
-			{paths.ServerRoot, false}, {paths.OutDirectory, true},
-			{paths.GatewayHome, false}}),
+			{paths.ServerRoot, false},
+			{paths.OutDirectory, true},
+			{paths.GatewayHome, false},
+		}),
 	}
 	if err := t.setTrueFilepath(); err != nil {
 		return nil, err
@@ -82,18 +85,23 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 }
 
 func (t *TransferStream) setTrueFilepath() *model.PipelineError {
-
 	if t.Rule.IsSend {
 		fullPath := utils.GetPath(t.Transfer.SourceFile, utils.Elems{
-			{t.Rule.OutPath, true}, {t.Paths.ServerOut, true},
-			{t.Paths.ServerRoot, false}, {t.Paths.OutDirectory, true},
-			{t.Paths.GatewayHome, false}})
+			{t.Rule.OutPath, true},
+			{t.Paths.ServerOut, true},
+			{t.Paths.ServerRoot, false},
+			{t.Paths.OutDirectory, true},
+			{t.Paths.GatewayHome, false},
+		})
 		t.Transfer.TrueFilepath = fullPath
 	} else {
 		fullPath := utils.GetPath(t.Transfer.DestFile, utils.Elems{
-			{t.Rule.WorkPath, true}, {t.Paths.ServerWork, true},
-			{t.Paths.ServerRoot, false}, {t.Paths.WorkDirectory, true},
-			{t.Paths.GatewayHome, false}})
+			{t.Rule.WorkPath, true},
+			{t.Paths.ServerWork, true},
+			{t.Paths.ServerRoot, false},
+			{t.Paths.WorkDirectory, true},
+			{t.Paths.GatewayHome, false},
+		})
 		t.Transfer.TrueFilepath = fullPath + ".tmp"
 	}
 	if err := t.Transfer.Update(t.DB); err != nil {
@@ -151,6 +159,7 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 	if t.Transfer.Step == model.StepPreTasks {
 		t.Transfer.Step = model.StepData
 		if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
+			t.Logger.Criticalf("Failed to update upload transfer step to 'DATA': %s", dbErr)
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
@@ -165,6 +174,7 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
 	if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
+		t.Logger.Criticalf("Failed to update upload transfer progress: %s", dbErr)
 		return 0, &model.PipelineError{Kind: model.KindDatabase}
 	}
 	return n, err
@@ -175,6 +185,7 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 	if t.Transfer.Step == model.StepPreTasks {
 		t.Transfer.Step = model.StepData
 		if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
+			t.Logger.Criticalf("Failed to update download transfer step to 'DATA': %s", dbErr)
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
@@ -189,6 +200,7 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
 	if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
+		t.Logger.Criticalf("Failed to update download transfer progress: %s", dbErr)
 		return 0, &model.PipelineError{Kind: model.KindDatabase}
 	}
 	return n, err
@@ -199,15 +211,20 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 // The method returns an error if the file cannot be moved.
 func (t *TransferStream) Close() error {
 	if err := t.File.Close(); err != nil {
-		t.Logger.Warningf("Failed to close source file: %s", err.Error())
+		t.Logger.Warningf("Failed to close file '%s': %s", t.File.Name(),
+			err.(*os.PathError).Err.Error())
 	}
 	if t.Rule.IsSend {
 		return nil
 	}
 
 	filepath := utils.GetPath(t.Transfer.DestFile, utils.Elems{
-		{t.Rule.InPath, true}, {t.Paths.ServerIn, true}, {t.Paths.ServerRoot, false},
-		{t.Paths.InDirectory, true}, {t.Paths.GatewayHome, false}})
+		{t.Rule.InPath, true},
+		{t.Paths.ServerIn, true},
+		{t.Paths.ServerRoot, false},
+		{t.Paths.InDirectory, true},
+		{t.Paths.GatewayHome, false},
+	})
 
 	if t.Transfer.TrueFilepath == filepath || t.Transfer.TrueFilepath == "" {
 		return nil
