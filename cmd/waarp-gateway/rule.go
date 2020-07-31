@@ -292,8 +292,8 @@ func (r *ruleAllowAll) Execute([]string) error {
 	if err != nil {
 		return err
 	}
-	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/allow_all" +
-		"/" + r.Args.Direction
+	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" +
+		r.Args.Direction + "/allow_all"
 
 	resp, err := sendRequest(addr, nil, http.MethodPut)
 	if err != nil {
@@ -304,7 +304,8 @@ func (r *ruleAllowAll) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusOK:
-		fmt.Fprintln(w, "The use of rule", bold(r.Args.Name), "is now unrestricted.")
+		fmt.Fprintln(w, "The use of the", r.Args.Direction, "rule", bold(r.Args.Name),
+			"is now unrestricted.")
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)
