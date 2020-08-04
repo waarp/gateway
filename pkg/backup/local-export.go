@@ -2,11 +2,12 @@ package backup
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
 
-func exportLocals(db *database.Session) ([]localAgent, error) {
+func exportLocals(logger *log.Logger, db *database.Session) ([]localAgent, error) {
 	dbLocals := []model.LocalAgent{}
 	filter := database.Filters{
 		Conditions: builder.Eq{"owner": database.Owner},
@@ -19,16 +20,17 @@ func exportLocals(db *database.Session) ([]localAgent, error) {
 	res := make([]localAgent, len(dbLocals))
 
 	for i, src := range dbLocals {
-		accounts, err := exportLocalAccounts(db, src.ID)
+		accounts, err := exportLocalAccounts(logger, db, src.ID)
 		if err != nil {
 			return nil, err
 		}
 
-		certificates, err := exportCertificates(db, "local_agents", src.ID)
+		certificates, err := exportCertificates(logger, db, "local_agents", src.ID)
 		if err != nil {
 			return nil, err
 		}
 
+		logger.Infof("Export local server %s\n", src.Name)
 		res[i] = localAgent{
 			Name:          src.Name,
 			Protocol:      src.Protocol,
@@ -45,7 +47,9 @@ func exportLocals(db *database.Session) ([]localAgent, error) {
 	return res, nil
 }
 
-func exportLocalAccounts(db *database.Session, agentID uint64) ([]localAccount, error) {
+func exportLocalAccounts(logger *log.Logger, db *database.Session,
+	agentID uint64) ([]localAccount, error) {
+
 	dbAccounts := []model.LocalAccount{}
 	filters := &database.Filters{
 		Conditions: builder.Eq{"local_agent_id": agentID},
@@ -59,11 +63,12 @@ func exportLocalAccounts(db *database.Session, agentID uint64) ([]localAccount, 
 
 	for i, src := range dbAccounts {
 
-		certificates, err := exportCertificates(db, "local_accounts", src.ID)
+		certificates, err := exportCertificates(logger, db, "local_accounts", src.ID)
 		if err != nil {
 			return nil, err
 		}
 
+		logger.Infof("Export local account %s\n", src.Login)
 		res[i] = localAccount{
 			Login:    src.Login,
 			Password: string(src.Password),

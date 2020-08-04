@@ -1,13 +1,12 @@
 package backup
 
 import (
-	"fmt"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func importLocalAgents(db *database.Session, list []localAgent) error {
+func importLocalAgents(logger *log.Logger, db *database.Session, list []localAgent) error {
 	for _, src := range list {
 		// Create model with basic info to check existence
 		agent := &model.LocalAgent{
@@ -38,28 +37,30 @@ func importLocalAgents(db *database.Session, list []localAgent) error {
 
 		//Create/Update
 		if exists {
-			fmt.Printf("Update local agent %s\n", agent.Name)
+			logger.Infof("Update local server %s\n", agent.Name)
 			err = db.Update(agent, agent.ID, false)
 		} else {
-			fmt.Printf("Create local agent %s\n", agent.Name)
+			logger.Infof("Create local server %s\n", agent.Name)
 			err = db.Create(agent)
 		}
 		if err != nil {
 			return err
 		}
 
-		if err := importCerts(db, src.Certs, "local_agents", agent.ID); err != nil {
+		if err := importCerts(logger, db, src.Certs, "local_agents",
+			agent.ID); err != nil {
 			return err
 		}
 
-		if err := importLocalAccounts(db, src.Accounts, agent.ID); err != nil {
+		if err := importLocalAccounts(logger, db, src.Accounts, agent.ID); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func importLocalAccounts(db *database.Session, list []localAccount, ownerID uint64) error {
+func importLocalAccounts(logger *log.Logger, db *database.Session,
+	list []localAccount, ownerID uint64) error {
 
 	for _, src := range list {
 
@@ -82,17 +83,18 @@ func importLocalAccounts(db *database.Session, list []localAccount, ownerID uint
 
 		// Create/Update
 		if exist {
-			fmt.Printf("Update local account %s\n", account.Login)
+			logger.Infof("Update local account %s\n", account.Login)
 			err = db.Update(account, account.ID, false)
 		} else {
-			fmt.Printf("Create local account %s\n", account.Login)
+			logger.Infof("Create local account %s\n", account.Login)
 			err = db.Create(account)
 		}
 		if err != nil {
 			return err
 		}
 
-		if err := importCerts(db, src.Certs, "local_accounts", account.ID); err != nil {
+		if err := importCerts(logger, db, src.Certs, "local_accounts",
+			account.ID); err != nil {
 			return err
 		}
 	}

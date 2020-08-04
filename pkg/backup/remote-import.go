@@ -1,13 +1,12 @@
 package backup
 
 import (
-	"fmt"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func importRemoteAgents(db *database.Session, list []remoteAgent) error {
+func importRemoteAgents(logger *log.Logger, db *database.Session, list []remoteAgent) error {
 	for _, src := range list {
 		// Create model with basic info to check existence
 		agent := &model.RemoteAgent{
@@ -31,28 +30,30 @@ func importRemoteAgents(db *database.Session, list []remoteAgent) error {
 
 		//Create/Update
 		if exists {
-			fmt.Printf("Update remote agent %s\n", agent.Name)
+			logger.Infof("Update remote partner %s\n", agent.Name)
 			err = db.Update(agent, agent.ID, false)
 		} else {
-			fmt.Printf("Create remote agent %s\n", agent.Name)
+			logger.Infof("Create remote partner %s\n", agent.Name)
 			err = db.Create(agent)
 		}
 		if err != nil {
 			return err
 		}
 
-		if err := importCerts(db, src.Certs, "remote_agents", agent.ID); err != nil {
+		if err := importCerts(logger, db, src.Certs, "remote_agents",
+			agent.ID); err != nil {
 			return err
 		}
 
-		if err := importRemoteAccounts(db, src.Accounts, agent.ID); err != nil {
+		if err := importRemoteAccounts(logger, db, src.Accounts, agent.ID); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func importRemoteAccounts(db *database.Session, list []remoteAccount, ownerID uint64) error {
+func importRemoteAccounts(logger *log.Logger, db *database.Session,
+	list []remoteAccount, ownerID uint64) error {
 
 	for _, src := range list {
 
@@ -75,17 +76,18 @@ func importRemoteAccounts(db *database.Session, list []remoteAccount, ownerID ui
 
 		// Create/Update
 		if exist {
-			fmt.Printf("Update remote account %s\n", account.Login)
+			logger.Infof("Update remote account %s\n", account.Login)
 			err = db.Update(account, account.ID, false)
 		} else {
-			fmt.Printf("Create remote account %s\n", account.Login)
+			logger.Infof("Create remote account %s\n", account.Login)
 			err = db.Create(account)
 		}
 		if err != nil {
 			return err
 		}
 
-		if err := importCerts(db, src.Certs, "remote_accounts", account.ID); err != nil {
+		if err := importCerts(logger, db, src.Certs, "remote_accounts",
+			account.ID); err != nil {
 			return err
 		}
 	}
