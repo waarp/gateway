@@ -44,7 +44,7 @@ func TestExportRules(t *testing.T) {
 				defer ses.Rollback()
 
 				Convey("When calling the exportRule function", func() {
-					res, err := exportRules(ses)
+					res, err := exportRules(discard, ses)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)

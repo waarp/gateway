@@ -10,6 +10,7 @@ import (
 )
 
 func TestImportCerts(t *testing.T) {
+
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -53,8 +54,10 @@ func TestImportCerts(t *testing.T) {
 
 					defer ses.Rollback()
 
-					Convey("When calling the importCerts with the new Certificates on the existing agent", func() {
-						err := importCerts(ses, certificates, "local_agents", agent.ID)
+					Convey("When calling the importCerts with the new "+
+						"Certificates on the existing agent", func() {
+						err := importCerts(discard, ses, certificates,
+							"local_agents", agent.ID)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
@@ -70,11 +73,13 @@ func TestImportCerts(t *testing.T) {
 							}), ShouldBeNil)
 							So(len(dbCerts), ShouldEqual, 1)
 
-							Convey("Then the certificate should correspond to the one imported", func() {
+							Convey("Then the certificate should correspond "+
+								"to the one imported", func() {
 								So(dbCerts[0].Name, ShouldResemble, insert.Name)
 								So(dbCerts[0].PublicKey, ShouldResemble, []byte(insert.PublicKey))
 								So(dbCerts[0].PrivateKey, ShouldResemble, []byte(insert.PrivateKey))
-								So(dbCerts[0].Certificate, ShouldResemble, []byte(insert.Certificate))
+								So(dbCerts[0].Certificate, ShouldResemble,
+									[]byte(insert.Certificate))
 							})
 						})
 					})
@@ -98,8 +103,10 @@ func TestImportCerts(t *testing.T) {
 
 					defer ses.Rollback()
 
-					Convey("When calling the importCerts with the new Certificates on the existing agent", func() {
-						err := importCerts(ses, certificates, "local_agents", agent2.ID)
+					Convey("When calling the importCerts with the new "+
+						"Certificates on the existing agent", func() {
+						err := importCerts(discard, ses, certificates,
+							"local_agents", agent2.ID)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
@@ -115,11 +122,13 @@ func TestImportCerts(t *testing.T) {
 							}), ShouldBeNil)
 							So(len(dbCerts), ShouldEqual, 1)
 
-							Convey("Then the certificate should correspond to the one imported", func() {
+							Convey("Then the certificate should correspond "+
+								"to the one imported", func() {
 								So(dbCerts[0].Name, ShouldResemble, insert.Name)
 								So(dbCerts[0].PublicKey, ShouldResemble, []byte(insert.PublicKey))
 								So(dbCerts[0].PrivateKey, ShouldResemble, []byte(insert.PrivateKey))
-								So(dbCerts[0].Certificate, ShouldResemble, []byte(insert.Certificate))
+								So(dbCerts[0].Certificate, ShouldResemble,
+									[]byte(insert.Certificate))
 							})
 						})
 					})
@@ -142,8 +151,10 @@ func TestImportCerts(t *testing.T) {
 
 					defer ses.Rollback()
 
-					Convey("When calling the importCerts with the new Certificates on the existing agent", func() {
-						err := importCerts(ses, certificates, "local_agents", agent2.ID)
+					Convey("When calling the importCerts with the new "+
+						"Certificates on the existing agent", func() {
+						err := importCerts(discard, ses, certificates,
+							"local_agents", agent2.ID)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
@@ -158,10 +169,13 @@ func TestImportCerts(t *testing.T) {
 								}), ShouldBeNil)
 								So(len(dbCerts), ShouldEqual, 1)
 
-								Convey("Then the certificate should correspond to the one imported", func() {
+								Convey("Then the certificate should correspond "+
+									"to the one imported", func() {
 									So(dbCerts[0].Name, ShouldResemble, insert.Name)
-									So(dbCerts[0].PublicKey, ShouldResemble, []byte(insert.PublicKey))
-									So(dbCerts[0].PrivateKey, ShouldResemble, []byte(insert.PrivateKey))
+									So(dbCerts[0].PublicKey, ShouldResemble,
+										[]byte(insert.PublicKey))
+									So(dbCerts[0].PrivateKey, ShouldResemble,
+										[]byte(insert.PrivateKey))
 									So(dbCerts[0].Certificate, ShouldResemble, cert2.Certificate)
 								})
 							})

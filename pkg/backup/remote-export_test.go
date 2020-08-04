@@ -65,7 +65,7 @@ func TestExportRemoteAgents(t *testing.T) {
 				defer ses.Rollback()
 
 				Convey("When calling the exportRemote function", func() {
-					res, err := exportRemotes(ses)
+					res, err := exportRemotes(discard, ses)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -83,7 +83,8 @@ func TestExportRemoteAgents(t *testing.T) {
 
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent1.Protocol)
-										So([]byte(res[i].Configuration), ShouldResemble, agent1.ProtoConfig)
+										So([]byte(res[i].Configuration), ShouldResemble,
+											agent1.ProtoConfig)
 										Convey("Then it should have 1 remote Account", func() {
 											So(len(res[i].Accounts), ShouldEqual, 1)
 										})
@@ -99,7 +100,8 @@ func TestExportRemoteAgents(t *testing.T) {
 
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent2.Protocol)
-										So([]byte(res[i].Configuration), ShouldResemble, agent2.ProtoConfig)
+										So([]byte(res[i].Configuration), ShouldResemble,
+											agent2.ProtoConfig)
 										Convey("Then it should have 2 remote Account", func() {
 											So(len(res[i].Accounts), ShouldEqual, 2)
 										})
@@ -168,7 +170,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 				defer ses.Rollback()
 
 				Convey("When calling the exportRemoteAccounts function", func() {
-					res, err := exportRemoteAccounts(ses, agent.ID)
+					res, err := exportRemoteAccounts(discard, ses, agent.ID)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -214,7 +216,6 @@ func TestExportRemoteAccounts(t *testing.T) {
 					})
 				})
 			})
-
 		})
 	})
 }

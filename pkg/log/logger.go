@@ -21,6 +21,8 @@ func InitBackend(conf conf.LogConfig) (err error) {
 	switch conf.LogTo {
 	case "stdout":
 		backend = logging.NewStdoutBackend()
+	case "/dev/null", "nul", "NUL":
+		backend, _ = logging.NewNoopBackend()
 	case "syslog":
 		backend, err = newSyslogBackend(conf.SyslogFacility)
 	default:

@@ -37,7 +37,7 @@ func TestExportCertificates(t *testing.T) {
 				defer ses.Rollback()
 
 				Convey("When calling exportCertificates with the correct argument", func() {
-					res, err := exportCertificates(ses, "local_agents", agent.ID)
+					res, err := exportCertificates(discard, ses, "local_agents", agent.ID)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -46,7 +46,8 @@ func TestExportCertificates(t *testing.T) {
 					Convey("Then it should return 1 certificate", func() {
 						So(len(res), ShouldEqual, 1)
 
-						Convey("Then the certificate retrieved should be the same than in the database", func() {
+						Convey("Then the certificate retrieved should be the same "+
+							"than in the database", func() {
 							c := res[0]
 							So(c.Name, ShouldEqual, cert.Name)
 							So([]byte(c.Certificate), ShouldResemble, cert.Certificate)
@@ -57,7 +58,7 @@ func TestExportCertificates(t *testing.T) {
 				})
 
 				Convey("When calling exportCertificates with incorrect argument", func() {
-					res, err := exportCertificates(ses, "local_agents", agent.ID+1)
+					res, err := exportCertificates(discard, ses, "local_agents", agent.ID+1)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -104,7 +105,7 @@ func TestExportCertificates(t *testing.T) {
 					defer ses.Rollback()
 
 					Convey("When calling exportCertificates with the correct argument", func() {
-						res, err := exportCertificates(ses, "local_accounts", account.ID)
+						res, err := exportCertificates(discard, ses, "local_accounts", account.ID)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)

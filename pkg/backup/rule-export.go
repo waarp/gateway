@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
 
-func exportRules(db *database.Session) ([]rule, error) {
+func exportRules(logger *log.Logger, db *database.Session) ([]rule, error) {
 	dbRules := []model.Rule{}
 	if err := db.Select(&dbRules, nil); err != nil {
 		return nil, err
@@ -34,6 +35,7 @@ func exportRules(db *database.Session) ([]rule, error) {
 			return nil, err
 		}
 
+		logger.Infof("Export rule %s\n", src.Name)
 		rule := rule{
 			Name:     src.Name,
 			IsSend:   src.IsSend,
