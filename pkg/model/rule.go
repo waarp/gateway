@@ -50,27 +50,18 @@ func (r *Rule) normalizePaths() error {
 		r.Path = r.Name
 	} else {
 		r.Path = utils.NormalizePath(r.Path)
-		if path.IsAbs(r.Path) {
-			return database.InvalidError("the rule's path must be a relative path")
+		if !path.IsAbs(r.Path) {
+			r.Path = "/" + r.Path
 		}
 	}
 	if r.InPath != "" {
-		r.InPath = utils.NormalizePath(r.Path)
-		if path.IsAbs(r.InPath) {
-			return database.InvalidError("the rule's in path must be a relative path")
-		}
+		r.InPath = utils.NormalizePath(r.InPath)
 	}
 	if r.OutPath != "" {
 		r.OutPath = utils.NormalizePath(r.OutPath)
-		if path.IsAbs(r.OutPath) {
-			return database.InvalidError("the rule's out path must be a relative path")
-		}
 	}
 	if r.WorkPath != "" {
 		r.WorkPath = utils.NormalizePath(r.WorkPath)
-		if path.IsAbs(r.WorkPath) {
-			return database.InvalidError("the rule's work path must be a relative path")
-		}
 	}
 
 	return nil

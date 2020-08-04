@@ -17,8 +17,10 @@ import (
 func serverInfoString(s *rest.OutServer) string {
 	return "● Server " + s.Name + "\n" +
 		"    Protocol:       " + s.Protocol + "\n" +
-		"    Root:           " + s.Root + "\n" +
-		"    Work directory: " + s.Root + "\n" +
+		"    Root:           " + s.Paths.Root + "\n" +
+		"    In directory:   " + s.Paths.InDir + "\n" +
+		"    Out directory:  " + s.Paths.OutDir + "\n" +
+		"    Work directory: " + s.Paths.WorkDir + "\n" +
 		"    Configuration:  " + string(s.ProtoConfig) + "\n" +
 		"    Authorized rules\n" +
 		"    ├─Sending:   " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
@@ -37,10 +39,14 @@ func TestGetServer(t *testing.T) {
 			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server := &model.LocalAgent{
-				Name:        "local_agent",
-				Protocol:    "test",
-				Root:        "/server/root",
-				WorkDir:     "/server/work",
+				Name:     "local_agent",
+				Protocol: "test",
+				Paths: &model.ServerPaths{
+					Root:    "/server/root",
+					InDir:   "/server/in",
+					OutDir:  "/server/out",
+					WorkDir: "/server/work",
+				},
 				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server), ShouldBeNil)
@@ -108,7 +114,8 @@ func TestAddServer(t *testing.T) {
 
 			Convey("Given valid flags", func() {
 				args := []string{"-n", "server_name", "-p", "test",
-					"--root=/server/root", "-c", `{"key":"val"}`}
+					"--root=root", "--in=in_dir", "--out=out_dir",
+					"--work=work_dir", "-c", `{"key":"val"}`}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -122,12 +129,16 @@ func TestAddServer(t *testing.T) {
 
 					Convey("Then the new server should have been added", func() {
 						exp := model.LocalAgent{
-							ID:          1,
-							Owner:       database.Owner,
-							Name:        command.Name,
-							Protocol:    command.Protocol,
-							Root:        command.Root,
-							WorkDir:     command.Root,
+							ID:       1,
+							Owner:    database.Owner,
+							Name:     command.Name,
+							Protocol: command.Protocol,
+							Paths: &model.ServerPaths{
+								Root:    command.Root,
+								InDir:   command.InDir,
+								OutDir:  command.OutDir,
+								WorkDir: command.WorkDir,
+							},
 							ProtoConfig: json.RawMessage(command.ProtoConfig),
 						}
 						var res []model.LocalAgent
@@ -183,19 +194,27 @@ func TestListServers(t *testing.T) {
 			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server1 := &model.LocalAgent{
-				Name:        "local_agent1",
-				Protocol:    "test",
-				Root:        "/test/root1",
-				WorkDir:     "/test/work1",
+				Name:     "local_agent1",
+				Protocol: "test",
+				Paths: &model.ServerPaths{
+					Root:    "/test/root1",
+					InDir:   "/test/in1",
+					OutDir:  "/test/out1",
+					WorkDir: "/test/work1",
+				},
 				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server1), ShouldBeNil)
 
 			server2 := &model.LocalAgent{
-				Name:        "local_agent2",
-				Protocol:    "test2",
-				Root:        "/test/root2",
-				WorkDir:     "/test/work2",
+				Name:     "local_agent2",
+				Protocol: "test2",
+				Paths: &model.ServerPaths{
+					Root:    "/test/root2",
+					InDir:   "/test/in2",
+					OutDir:  "/test/out2",
+					WorkDir: "/test/work2",
+				},
 				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server2), ShouldBeNil)

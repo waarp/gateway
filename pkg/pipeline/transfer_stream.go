@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"os"
-	"path"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -69,8 +68,12 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 		Transfer: t.Transfer,
 		Signals:  t.Signals,
 		Ctx:      ctx,
-		InPath:   utils.GetPath(t.Pipeline.Rule.InPath, paths.ServerRoot, paths.InDirectory, paths.GatewayHome),
-		OutPath:  utils.GetPath(t.Pipeline.Rule.OutPath, paths.ServerRoot, paths.OutDirectory, paths.GatewayHome),
+		InPath: utils.GetPath(t.Pipeline.Rule.InPath, utils.Elems{
+			{paths.ServerRoot, false}, {paths.InDirectory, true},
+			{paths.GatewayHome, false}}),
+		OutPath: utils.GetPath(t.Pipeline.Rule.OutPath, utils.Elems{
+			{paths.ServerRoot, false}, {paths.OutDirectory, true},
+			{paths.GatewayHome, false}}),
 	}
 	if err := t.setTrueFilepath(); err != nil {
 		return nil, err
@@ -81,39 +84,17 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 func (t *TransferStream) setTrueFilepath() *model.PipelineError {
 
 	if t.Rule.IsSend {
-		fullpath := t.Transfer.SourceFile
-		if t.Rule.OutPath != "" {
-			fullpath = path.Join(t.Rule.OutPath, fullpath)
-			if t.Paths.ServerRoot != "" {
-				fullpath = path.Join(t.Paths.ServerRoot, fullpath)
-			} else {
-				fullpath = path.Join(t.Paths.GatewayHome, fullpath)
-			}
-		} else {
-			if t.Paths.ServerRoot != "" {
-				fullpath = path.Join(t.Paths.ServerRoot, fullpath)
-			} else {
-				fullpath = path.Join(t.Paths.OutDirectory, fullpath)
-			}
-		}
-		t.Transfer.TrueFilepath = fullpath
+		fullPath := utils.GetPath(t.Transfer.SourceFile, utils.Elems{
+			{t.Rule.OutPath, true}, {t.Paths.ServerOut, true},
+			{t.Paths.ServerRoot, false}, {t.Paths.OutDirectory, true},
+			{t.Paths.GatewayHome, false}})
+		t.Transfer.TrueFilepath = fullPath
 	} else {
-		filepath := t.Transfer.DestFile
-		if t.Rule.WorkPath != "" {
-			filepath = path.Join(t.Rule.WorkPath, filepath)
-			if t.Paths.ServerRoot != "" {
-				filepath = path.Join(t.Paths.ServerRoot, filepath)
-			} else {
-				filepath = path.Join(t.Paths.GatewayHome, filepath)
-			}
-		} else {
-			if t.Paths.ServerWork != "" {
-				filepath = path.Join(t.Paths.ServerWork, filepath)
-			} else {
-				filepath = path.Join(t.Paths.WorkDirectory, filepath)
-			}
-		}
-		t.Transfer.TrueFilepath = filepath + ".tmp"
+		fullPath := utils.GetPath(t.Transfer.DestFile, utils.Elems{
+			{t.Rule.WorkPath, true}, {t.Paths.ServerWork, true},
+			{t.Paths.ServerRoot, false}, {t.Paths.WorkDirectory, true},
+			{t.Paths.GatewayHome, false}})
+		t.Transfer.TrueFilepath = fullPath + ".tmp"
 	}
 	if err := t.Transfer.Update(t.DB); err != nil {
 		t.Logger.Criticalf("Failed to update transfer filepath: %s", err.Error())
@@ -224,21 +205,9 @@ func (t *TransferStream) Finalize() *model.PipelineError {
 		return nil
 	}
 
-	filepath := t.Transfer.DestFile
-	if t.Rule.InPath != "" {
-		filepath = path.Join(t.Rule.InPath, filepath)
-		if t.Paths.ServerRoot != "" {
-			filepath = path.Join(t.Paths.ServerRoot, filepath)
-		} else {
-			filepath = path.Join(t.Paths.GatewayHome, filepath)
-		}
-	} else {
-		if t.Paths.ServerRoot != "" {
-			filepath = path.Join(t.Paths.ServerRoot, filepath)
-		} else {
-			filepath = path.Join(t.Paths.InDirectory, filepath)
-		}
-	}
+	filepath := utils.GetPath(t.Transfer.DestFile, utils.Elems{
+		{t.Rule.InPath, true}, {t.Paths.ServerIn, true}, {t.Paths.ServerRoot, false},
+		{t.Paths.InDirectory, true}, {t.Paths.GatewayHome, false}})
 
 	if t.Transfer.TrueFilepath == filepath || t.Transfer.TrueFilepath == "" {
 		return nil

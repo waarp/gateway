@@ -15,17 +15,17 @@ import (
 
 func getRuleFromPath(db *database.DB, r *sftp.Request, isSend bool) (*model.Rule, error) {
 	filepath := path.Dir(r.Filepath)
-	if path.IsAbs(filepath) {
-		filepath = filepath[1:]
-	}
-	if filepath == "." || filepath == "/" || filepath == "" {
-		return nil, fmt.Errorf("%s cannot be used to find a rule", r.Filepath)
-	}
+	filepath = path.Clean("/" + filepath)
+
 	rule := &model.Rule{Path: filepath, IsSend: isSend}
 
 	if err := db.Get(rule); err != nil {
-		return nil, fmt.Errorf("cannot retrieve transfer rule: the "+
-			"directory '%s' is not associated to any known sending rule", filepath)
+		dir := "receiving"
+		if isSend {
+			dir = "sending"
+		}
+		return nil, fmt.Errorf("cannot retrieve transfer rule: the directory "+
+			"'%s' is not associated to any known %s rule", filepath, dir)
 	}
 	return rule, nil
 }

@@ -5,7 +5,7 @@ L'interface REST de la gateway peut être accédée à partir de la racine ``/ap
 en interrogeant l'adresse d'administration donnée dans la configuration.
 
 **Note:** Toutes les dates doivent être renseignées en format ISO 8601 tel qu'il
-est spécifié dans la `RFC 3339`_.
+est spécifié dans la :rfc:`3339`.
 
 .. toctree::
    :maxdepth: 1

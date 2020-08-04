@@ -125,10 +125,14 @@ func TestLocalAgentBeforeInsert(t *testing.T) {
 
 			Convey("Given a new local agent", func() {
 				newAgent := &LocalAgent{
-					Owner:       "test_gateway",
-					Name:        "new",
-					Root:        "/root",
-					WorkDir:     "/root/work",
+					Owner: "test_gateway",
+					Name:  "new",
+					Paths: &ServerPaths{
+						Root:    "root",
+						InDir:   "rcv",
+						OutDir:  "send",
+						WorkDir: "tmp",
+					},
 					Protocol:    "sftp",
 					ProtoConfig: []byte(`{"address":"address2","port":2023}`),
 				}

@@ -9,7 +9,17 @@ Créer un serveur
 
    :reqjson string name: Le nom du serveur
    :reqjson string protocol: Le protocole utilisé par le serveur
-   :reqjson string root: Le dossier racine du serveur
+   :reqjson object paths: Les différents dossiers du serveur.
+
+      * **root** (*string*) - La racine du serveur. Peut être relatif (à la racine
+        de la *gateway*) ou absolu.
+      * **inDir** (*string*) - Le dossier de réception du serveur. Peut être
+        relatif (à la racine du serveur) ou absolu.
+      * **outDir** (*string*) - Le dossier d'envoi du serveur. Peut être
+        relatif (à la racine du serveur) ou absolu.
+      * **workDir** (*string*) - Le dossier temporaire du serveur. Peut être
+        relatif (à la racine du serveur) ou absolu.
+
    :reqjson object protoConfig: La configuration du serveur encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
 

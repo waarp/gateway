@@ -13,7 +13,17 @@ Consulter un serveur
 
    :resjson string name: Le nom du serveur
    :resjson string protocol: Le protocole utilisé par le serveur
-   :resjson string root: Le dossier racine du serveur
+   :resjson object paths: Les différents dossiers du serveur.
+
+      * **root** (*string*) - La racine du serveur. Peut être relatif (à la racine
+        de la *gateway*) ou absolu.
+      * **inDir** (*string*) - Le dossier de réception du serveur. Peut être
+        relatif (à la racine du serveur) ou absolu.
+      * **outDir** (*string*) - Le dossier d'envoi du serveur. Peut être
+        relatif (à la racine du serveur) ou absolu.
+      * **workDir** (*string*) - Le dossier temporaire du serveur. Peut être
+        relatif (à la racine du serveur) ou absolu.
+
    :resjson object protoConfig: La configuration du serveur encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
    :resjson object authorizedRules: Les règles que le serveur est autorisé à

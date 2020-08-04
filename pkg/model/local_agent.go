@@ -1,16 +1,24 @@
 package model
 
 import (
-	"path"
-	"path/filepath"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 func init() {
 	database.Tables = append(database.Tables, &LocalAgent{})
+}
+
+// ServerPaths regroups the different directories of a local server.
+type ServerPaths struct {
+	// The root directory of the agent.
+	Root string `json:"root"`
+	// The agent's directory for received files.
+	InDir string `json:"inDir"`
+	// The agent's directory for files to be sent.
+	OutDir string `json:"outDir"`
+	// The working directory of the agent.
+	WorkDir string `json:"workDir"`
 }
 
 // LocalAgent represents a local server instance operated by the gateway itself.
@@ -22,7 +30,7 @@ type LocalAgent struct {
 	ID uint64 `xorm:"pk autoincr <- 'id'"`
 
 	// The agent's owner (i.e. the name of the gateway instance to which the
-	// agent belongs to.
+	// agent belongs to).
 	Owner string `xorm:"unique(loc_ag) notnull 'owner'"`
 
 	// The agent's display name.
@@ -31,11 +39,8 @@ type LocalAgent struct {
 	// The protocol used by the agent.
 	Protocol string `xorm:"notnull 'protocol'"`
 
-	// The root directory of the agent.
-	Root string `xorm:"notnull 'root'"`
-
-	// The working directory of the agent.
-	WorkDir string `xorm:"notnull 'work_dir'"`
+	// The agent's various directories
+	Paths *ServerPaths `xorm:"extends 'paths'"`
 
 	// The agent's configuration in raw JSON format.
 	ProtoConfig []byte `xorm:"notnull 'proto_config'"`
@@ -54,37 +59,36 @@ func (l *LocalAgent) validateProtoConfig() error {
 	return conf.ValidServer()
 }
 
-func (l *LocalAgent) normalizePaths() error {
-	l.Owner = database.Owner
-
-	if l.Root != "" {
-		l.Root = utils.NormalizePath(l.Root)
-		if !path.IsAbs(l.Root) {
-			return database.InvalidError("the server root must be an absolute path")
-		}
+func (l *LocalAgent) makePaths(isInsert bool) {
+	isEmpty := func(path string) bool {
+		return path == "." || path == ""
 	}
 
-	if l.WorkDir != "" {
-		if !filepath.IsAbs(l.WorkDir) {
-			l.WorkDir = path.Join(l.Root, l.WorkDir)
+	if l.Paths == nil {
+		if !isInsert {
+			return
 		}
-		l.WorkDir = utils.NormalizePath(l.WorkDir)
-		if !path.IsAbs(l.WorkDir) {
-			return database.InvalidError("the server work path must be an absolute path")
-		}
-	} else {
-		l.WorkDir = l.Root
+		l.Paths = &ServerPaths{}
 	}
 
-	return nil
+	if !isEmpty(l.Paths.Root) {
+		if isEmpty(l.Paths.InDir) {
+			l.Paths.InDir = "in"
+		}
+		if isEmpty(l.Paths.OutDir) {
+			l.Paths.OutDir = "out"
+		}
+		if isEmpty(l.Paths.WorkDir) {
+			l.Paths.WorkDir = "work"
+		}
+	}
 }
 
 // BeforeInsert is called before inserting a new `LocalAgent` entry in the
 // database. It checks whether the new entry is valid or not.
 func (l *LocalAgent) BeforeInsert(db database.Accessor) error {
-	if err := l.normalizePaths(); err != nil {
-		return err
-	}
+	l.Owner = database.Owner
+	l.makePaths(true)
 
 	if l.ID != 0 {
 		return database.InvalidError("the agent's ID cannot be entered manually")
@@ -113,18 +117,12 @@ func (l *LocalAgent) BeforeInsert(db database.Accessor) error {
 // BeforeUpdate is called before updating an existing `LocalAgent` entry from
 // the database. It checks whether the updated entry is valid or not.
 func (l *LocalAgent) BeforeUpdate(db database.Accessor, id uint64) error {
-	if err := l.normalizePaths(); err != nil {
-		return err
-	}
+	l.Owner = database.Owner
+	l.makePaths(false)
 
 	if l.ID != 0 && l.ID != id {
 		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
-	/*
-		if l.Owner != "" {
-			return database.InvalidError("The agent's owner cannot be changed")
-		}
-	*/
 
 	if l.Name != "" {
 		if res, err := db.Query("SELECT id FROM local_agents WHERE owner=? "+

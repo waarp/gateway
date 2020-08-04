@@ -14,11 +14,10 @@ import (
 // InServer is the JSON representation of a local agent in requests
 // made to the REST interface.
 type InServer struct {
-	Name        string          `json:"name"`
-	Protocol    string          `json:"protocol"`
-	Root        string          `json:"root"`
-	WorkDir     string          `json:"workDir"`
-	ProtoConfig json.RawMessage `json:"protoConfig"`
+	Name        string             `json:"name"`
+	Protocol    string             `json:"protocol"`
+	Paths       *model.ServerPaths `json:"paths"`
+	ProtoConfig json.RawMessage    `json:"protoConfig"`
 }
 
 // ToModel transforms the JSON local agent into its database equivalent.
@@ -26,8 +25,7 @@ func (i *InServer) ToModel() *model.LocalAgent {
 	return &model.LocalAgent{
 		Owner:       database.Owner,
 		Name:        i.Name,
-		Root:        i.Root,
-		WorkDir:     i.WorkDir,
+		Paths:       i.Paths,
 		Protocol:    i.Protocol,
 		ProtoConfig: i.ProtoConfig,
 	}
@@ -53,12 +51,11 @@ func (i *InPartner) ToModel() *model.RemoteAgent {
 // OutServer is the JSON representation of a local server in responses sent by
 // the REST interface.
 type OutServer struct {
-	Name            string          `json:"name"`
-	Protocol        string          `json:"protocol"`
-	Root            string          `json:"root"`
-	WorkDir         string          `json:"workDir"`
-	ProtoConfig     json.RawMessage `json:"protoConfig"`
-	AuthorizedRules AuthorizedRules `json:"authorizedRules"`
+	Name            string            `json:"name"`
+	Protocol        string            `json:"protocol"`
+	Paths           model.ServerPaths `json:"paths"`
+	ProtoConfig     json.RawMessage   `json:"protoConfig"`
+	AuthorizedRules AuthorizedRules   `json:"authorizedRules"`
 }
 
 // FromLocalAgent transforms the given database local agent into its JSON
@@ -67,8 +64,7 @@ func FromLocalAgent(ag *model.LocalAgent, rules *AuthorizedRules) *OutServer {
 	return &OutServer{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
-		Root:            ag.Root,
-		WorkDir:         ag.WorkDir,
+		Paths:           *ag.Paths,
 		ProtoConfig:     ag.ProtoConfig,
 		AuthorizedRules: *rules,
 	}

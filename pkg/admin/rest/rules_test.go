@@ -38,7 +38,7 @@ func TestCreateRule(t *testing.T) {
 					UptRule: &UptRule{
 						Name:    "new rule",
 						Comment: "",
-						Path:    "test/rule/path",
+						Path:    "/test/rule/path",
 					},
 					IsSend: false,
 				}
@@ -282,11 +282,11 @@ func TestUpdateRule(t *testing.T) {
 		Convey("Given a database with 2 rules", func() {
 			old := &model.Rule{
 				Name: "old",
-				Path: "path/old",
+				Path: "/path/old",
 			}
 			other := &model.Rule{
 				Name: "other",
-				Path: "path/other",
+				Path: "/path/other",
 			}
 			So(db.Create(old), ShouldBeNil)
 			So(db.Create(other), ShouldBeNil)
@@ -294,7 +294,7 @@ func TestUpdateRule(t *testing.T) {
 			Convey("Given new values to update the rule with", func() {
 				update := UptRule{
 					Name: "update",
-					Path: "new_path",
+					Path: "/new_path",
 				}
 				body, err := json.Marshal(update)
 				So(err, ShouldBeNil)

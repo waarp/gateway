@@ -21,7 +21,7 @@ import (
 // and the root of a server.
 type Paths struct {
 	conf.PathsConfig
-	ServerRoot, ServerWork string
+	ServerRoot, ServerIn, ServerOut, ServerWork string
 }
 
 func checkSignal(ctx context.Context, ch <-chan model.Signal) *model.PipelineError {

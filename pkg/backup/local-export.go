@@ -33,8 +33,10 @@ func exportLocals(db *database.Session) ([]localAgent, error) {
 			Name:          src.Name,
 			Protocol:      src.Protocol,
 			Configuration: src.ProtoConfig,
-			Root:          src.Root,
-			WorkDir:       src.WorkDir,
+			Root:          src.Paths.Root,
+			InDir:         src.Paths.InDir,
+			OutDir:        src.Paths.OutDir,
+			WorkDir:       src.Paths.WorkDir,
 			Accounts:      accounts,
 			Certs:         certificates,
 		}

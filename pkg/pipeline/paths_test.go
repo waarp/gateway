@@ -2,9 +2,10 @@ package pipeline
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
+	. "path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -25,11 +26,16 @@ func TestPathIn(t *testing.T) {
 		t.FailNow()
 	}
 
-	gwRoot := filepath.Join(cd, gwHome)
+	gwRoot := Join(cd, gwHome)
 
 	Convey("Given a Gateway configuration", t, func() {
 		paths := Paths{
-			PathsConfig: conf.PathsConfig{GatewayHome: gwRoot},
+			PathsConfig: conf.PathsConfig{
+				GatewayHome:   gwRoot,
+				InDirectory:   "gwIn",
+				OutDirectory:  "gwOut",
+				WorkDirectory: "gwWork",
+			},
 		}
 		Reset(func() { _ = os.RemoveAll(gwRoot) })
 
@@ -64,1047 +70,79 @@ func TestPathIn(t *testing.T) {
 			}
 			So(db.Create(remoteAccount), ShouldBeNil)
 
-			testFunc := func(ruleID uint64, workPath, destPath string) {
-				Convey("When creating & starting a transfer stream", func() {
-					trans := model.Transfer{
-						RuleID:     ruleID,
-						IsServer:   true,
-						AgentID:    localAgent.ID,
-						AccountID:  localAccount.ID,
-						SourceFile: "file.src",
-						DestFile:   "file.dst",
+			receive := &model.Rule{
+				Name:   "receive",
+				IsSend: false,
+				Path:   "receive_path",
+			}
+			So(db.Create(receive), ShouldBeNil)
+
+			trans := model.Transfer{
+				RuleID:     receive.ID,
+				IsServer:   true,
+				AgentID:    localAgent.ID,
+				AccountID:  localAccount.ID,
+				SourceFile: "file.src",
+				DestFile:   "file.dst",
+			}
+
+			file := trans.DestFile
+			tmp := trans.DestFile + ".tmp"
+
+			testCases := []struct {
+				serRoot, ruleIn, ruleWork string
+				expTmp, expFinal          string
+			}{
+				{"", "", "", Join(gwRoot, "gwWork", tmp), Join(gwRoot, "gwIn", file)},
+				{"serRoot", "", "", Join(gwRoot, "serRoot", "serWork", tmp), Join(gwRoot, "serRoot", "serIn", file)},
+				{"", "ruleIn", "", Join(gwRoot, "gwWork", tmp), Join(gwRoot, "ruleIn", file)},
+				{"", "", "ruleWork", Join(gwRoot, "ruleWork", tmp), Join(gwRoot, "gwIn", file)},
+				{"serRoot", "ruleIn", "", Join(gwRoot, "serRoot", "serWork", tmp), Join(gwRoot, "serRoot", "ruleIn", file)},
+				{"serRoot", "", "ruleWork", Join(gwRoot, "serRoot", "ruleWork", tmp), Join(gwRoot, "serRoot", "serIn", file)},
+				{"", "ruleIn", "ruleWork", Join(gwRoot, "ruleWork", tmp), Join(gwRoot, "ruleIn", file)},
+				{"serRoot", "ruleIn", "ruleWork", Join(gwRoot, "serRoot", "ruleWork", tmp), Join(gwRoot, "serRoot", "ruleIn", file)},
+			}
+
+			for _, tc := range testCases {
+				Convey(fmt.Sprintf("Given the following path parameters: %v", tc), func() {
+					paths.ServerRoot = tc.serRoot
+					if paths.ServerRoot != "" {
+						paths.ServerIn = "serIn"
+						paths.ServerOut = "serOut"
+						paths.ServerWork = "serWork"
+					} else {
+						paths.ServerIn = ""
+						paths.ServerOut = ""
+						paths.ServerWork = ""
 					}
 
-					stream, err := NewTransferStream(context.Background(),
-						logger, db, paths, trans)
-					So(err, ShouldBeNil)
-					Reset(func() { _ = stream.Finalize() })
+					rule := "UPDATE rules SET in_path=?, work_path=? WHERE id=?"
+					So(db.Execute(rule, tc.ruleIn, tc.ruleWork, receive.ID), ShouldBeNil)
 
-					So(stream.Start(), ShouldBeNil)
-
-					Convey("Then it should have created the correct work file", func() {
-						_, err := os.Stat(filepath.Join(workPath, trans.DestFile+".tmp"))
+					Convey("When launching a transfer stream", func() {
+						stream, err := NewTransferStream(context.Background(),
+							logger, db, paths, trans)
 						So(err, ShouldBeNil)
-					})
+						Reset(func() { _ = stream.Finalize() })
 
-					Convey("When finalizing the transfer", func() {
-						So(stream.Finalize(), ShouldBeNil)
+						So(stream.Start(), ShouldBeNil)
 
-						Convey("Then it should have moved the file to its destination", func() {
-							_, err := os.Stat(filepath.Join(destPath, trans.DestFile))
+						Convey("Then it should have created the correct work file", func() {
+							_, err := os.Stat(tc.expTmp)
 							So(err, ShouldBeNil)
+						})
+
+						Convey("When finalizing the transfer", func() {
+							So(stream.Finalize(), ShouldBeNil)
+
+							Convey("Then it should have moved the file to its destination", func() {
+								_, err := os.Stat(tc.expFinal)
+								So(err, ShouldBeNil)
+							})
 						})
 					})
 				})
 			}
-
-			Convey("Given that it has both a 'in' and 'work' directory", func() {
-				inDir := "in"
-				workDir := "tmp"
-				paths.InDirectory = filepath.Join(gwRoot, inDir)
-				paths.WorkDirectory = filepath.Join(gwRoot, workDir)
-
-				Convey("Given a server with a root & work directory", func() {
-					serverDir := "server_root"
-					serverWork := serverDir + "/server_work"
-					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
-					paths.ServerWork = filepath.Join(gwRoot, serverWork)
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-
-				Convey("Given a server with only a root directory", func() {
-					serverDir := "server_root"
-					serverWork := serverDir
-					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
-					paths.ServerWork = filepath.Join(gwRoot, serverWork)
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-
-				Convey("Given a server with only a work directory", func() {
-					serverWork := "server_root/server_work"
-					paths.ServerWork = filepath.Join(gwRoot, serverWork)
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, inDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, inDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-
-				Convey("Given a server with neither a root or work directory", func() {
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, workDir)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, inDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, workDir)
-						destPath := filepath.Join(cd, gwHome, inDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-			})
-
-			Convey("Given that it has only an 'in' directory", func() {
-				inDir := "in"
-				paths.InDirectory = filepath.Join(gwRoot, inDir)
-				paths.WorkDirectory = gwRoot
-
-				Convey("Given a server with a root & work directory", func() {
-					serverDir := "server_root"
-					serverWork := serverDir + "/server_work"
-					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
-					paths.ServerWork = filepath.Join(gwRoot, serverWork)
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-
-				Convey("Given a server with only a root directory", func() {
-					serverDir := "server_root"
-					serverWork := serverDir
-					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
-					paths.ServerWork = filepath.Join(gwRoot, serverWork)
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-
-				Convey("Given a server with only a work directory", func() {
-					serverWork := "server_root/server_work"
-					paths.ServerWork = filepath.Join(gwRoot, serverWork)
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, inDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, inDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-
-				Convey("Given a server with neither a root or work directory", func() {
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, inDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome)
-						destPath := filepath.Join(cd, gwHome, inDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-			})
-
-			Convey("Given that it has only a 'work' directory", func() {
-				workDir := "tmp"
-				paths.InDirectory = gwRoot
-				paths.WorkDirectory = filepath.Join(gwRoot, workDir)
-
-				Convey("Given a server with a root & work directory", func() {
-					serverDir := "server_root"
-					serverWork := serverDir + "/server_work"
-					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
-					paths.ServerWork = filepath.Join(gwRoot, serverWork)
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-
-				Convey("Given a server with only a root directory", func() {
-					serverDir := "server_root"
-					serverWork := serverDir
-					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
-					paths.ServerWork = filepath.Join(gwRoot, serverWork)
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-
-				Convey("Given a server with only a work directory", func() {
-					serverWork := "server_root/server_work"
-					paths.ServerWork = filepath.Join(gwRoot, serverWork)
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-
-				Convey("Given a server with neither a root or work directory", func() {
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, workDir)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, workDir)
-						destPath := filepath.Join(cd, gwHome)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-			})
-
-			Convey("Given that it has neither a 'in' or 'work' directory", func() {
-				paths.InDirectory = gwRoot
-				paths.WorkDirectory = gwRoot
-
-				Convey("Given a server with a root & work directory", func() {
-					serverDir := "server_root"
-					serverWork := serverDir + "/server_work"
-					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
-					paths.ServerWork = filepath.Join(gwRoot, serverWork)
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-
-				Convey("Given a server with only a root directory", func() {
-					serverDir := "server_root"
-					serverWork := serverDir
-					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
-					paths.ServerWork = filepath.Join(gwRoot, serverWork)
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverDir, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, serverDir)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-
-				Convey("Given a server with only a work directory", func() {
-					serverWork := "server_root/server_work"
-					paths.ServerWork = filepath.Join(gwRoot, serverWork)
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, serverWork)
-						destPath := filepath.Join(cd, gwHome)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-
-				Convey("Given a server with neither a root or work directory", func() {
-
-					Convey("Given that the rule has both an 'in' and 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							InPath:   "rule_in",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has an 'in' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-							InPath: "rule_in",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome)
-						destPath := filepath.Join(cd, gwHome, receive.InPath)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule only has a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:     "receive",
-							IsSend:   false,
-							Path:     "path",
-							WorkPath: "rule_work",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome, receive.WorkPath)
-						destPath := filepath.Join(cd, gwHome)
-						testFunc(receive.ID, workPath, destPath)
-					})
-
-					Convey("Given that the rule has neither an 'in' or a 'work' directory", func() {
-						receive := &model.Rule{
-							Name:   "receive",
-							IsSend: false,
-							Path:   "path",
-						}
-						So(db.Create(receive), ShouldBeNil)
-
-						workPath := filepath.Join(cd, gwHome)
-						destPath := filepath.Join(cd, gwHome)
-						testFunc(receive.ID, workPath, destPath)
-					})
-				})
-			})
 		})
 	})
 }
@@ -1119,7 +157,7 @@ func TestPathOut(t *testing.T) {
 		t.FailNow()
 	}
 
-	gwRoot := filepath.Join(cd, gwHome)
+	gwRoot := Join(cd, gwHome)
 
 	Convey("Given a Gateway configuration", t, func() {
 		paths := Paths{
@@ -1168,7 +206,7 @@ func TestPathOut(t *testing.T) {
 						SourceFile: "file.src",
 						DestFile:   "file.dst",
 					}
-					path := filepath.Join(srcPath, trans.SourceFile)
+					path := Join(srcPath, trans.SourceFile)
 					So(os.MkdirAll(srcPath, 0700), ShouldBeNil)
 					So(ioutil.WriteFile(path, nil, 0700), ShouldBeNil)
 
@@ -1188,11 +226,11 @@ func TestPathOut(t *testing.T) {
 
 			Convey("Given that it has an 'out' directory", func() {
 				outDir := "out"
-				paths.OutDirectory = filepath.Join(gwRoot, outDir)
+				paths.OutDirectory = Join(gwRoot, outDir)
 
 				Convey("Given a server with a root directory", func() {
 					serverDir := "server_root"
-					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
+					paths.ServerRoot = Join(gwRoot, serverDir)
 
 					Convey("Given that the rule has an 'out' directory", func() {
 						send := &model.Rule{
@@ -1203,7 +241,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := filepath.Join(cd, gwHome, serverDir, send.OutPath)
+						outPath := Join(cd, gwHome, serverDir, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -1215,7 +253,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := filepath.Join(cd, gwHome, serverDir)
+						outPath := Join(cd, gwHome, serverDir)
 						testFunc(send.ID, outPath)
 					})
 				})
@@ -1231,7 +269,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := filepath.Join(cd, gwHome, send.OutPath)
+						outPath := Join(cd, gwHome, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -1243,7 +281,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := filepath.Join(cd, gwHome, outDir)
+						outPath := Join(cd, gwHome, outDir)
 						testFunc(send.ID, outPath)
 					})
 				})
@@ -1254,7 +292,7 @@ func TestPathOut(t *testing.T) {
 
 				Convey("Given a server with a root directory", func() {
 					serverDir := "server_root"
-					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
+					paths.ServerRoot = Join(gwRoot, serverDir)
 
 					Convey("Given that the rule has an 'out' directory", func() {
 						send := &model.Rule{
@@ -1265,7 +303,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := filepath.Join(cd, gwHome, serverDir, send.OutPath)
+						outPath := Join(cd, gwHome, serverDir, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -1277,7 +315,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := filepath.Join(cd, gwHome, serverDir)
+						outPath := Join(cd, gwHome, serverDir)
 						testFunc(send.ID, outPath)
 					})
 				})
@@ -1293,7 +331,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := filepath.Join(cd, gwHome, send.OutPath)
+						outPath := Join(cd, gwHome, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -1305,7 +343,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := filepath.Join(cd, gwHome)
+						outPath := Join(cd, gwHome)
 						testFunc(send.ID, outPath)
 					})
 				})

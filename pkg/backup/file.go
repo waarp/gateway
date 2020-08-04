@@ -16,6 +16,8 @@ type localAgent struct {
 	Name          string          `json:"name"`
 	Protocol      string          `json:"protocol"`
 	Root          string          `json:"root"`
+	InDir         string          `json:"inDir"`
+	OutDir        string          `json:"outDir"`
 	WorkDir       string          `json:"workDir"`
 	Configuration json.RawMessage `json:"configuration"`
 	Accounts      []localAccount  `json:"accounts"`
