@@ -159,16 +159,13 @@ type replacer func(*Processor) (string, error)
 
 var replacers = map[string]replacer{
 	"#TRUEFULLPATH#": func(p *Processor) (string, error) {
-		if p.Rule.IsSend {
-			return p.Transfer.SourceFile, nil
-		}
-		return p.Transfer.DestFile, nil
+		return p.Transfer.TrueFilepath, nil
 	},
 	"#TRUEFILENAME#": func(p *Processor) (string, error) {
 		if p.Rule.IsSend {
-			return filepath.Base(p.Transfer.SourceFile), nil
+			return filepath.Clean(p.Transfer.SourceFile), nil
 		}
-		return filepath.Base(p.Transfer.DestFile), nil
+		return filepath.Clean(p.Transfer.DestFile), nil
 	},
 	"#ORIGINALFULLPATH#": func(p *Processor) (string, error) {
 		if p.Rule.IsSend {
@@ -178,9 +175,9 @@ var replacers = map[string]replacer{
 	},
 	"#ORIGINALFILENAME#": func(p *Processor) (string, error) {
 		if p.Rule.IsSend {
-			return filepath.Base(p.Transfer.SourceFile), nil
+			return filepath.Clean(p.Transfer.SourceFile), nil
 		}
-		return filepath.Base(p.Transfer.DestFile), nil
+		return filepath.Clean(p.Transfer.DestFile), nil
 	},
 	"#FILESIZE#": func(p *Processor) (string, error) {
 		return "0", nil
