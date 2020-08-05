@@ -148,9 +148,6 @@ func (e *Executor) Run() {
 			e.Logger.Errorf("Remote post-task failed")
 			return cErr
 		}
-		if fErr := e.TransferStream.Finalize(); fErr != nil {
-			return fErr
-		}
 
 		e.TransferStream.Transfer.Status = model.StatusDone
 		e.TransferStream.Archive()

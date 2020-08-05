@@ -194,10 +194,10 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 	return n, err
 }
 
-// Finalize closes the file, and then (if the file is the transfer's destination)
+// Close closes the file, and then (if the file is the transfer's destination)
 // moves the file from the temporary work directory to its final destination.
 // The method returns an error if the file cannot be moved.
-func (t *TransferStream) Finalize() *model.PipelineError {
+func (t *TransferStream) Close() error {
 	if err := t.File.Close(); err != nil {
 		t.Logger.Warningf("Failed to close source file: %s", err.Error())
 	}
