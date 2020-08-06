@@ -1,5 +1,5 @@
 Modifier un partenaire
-===================
+======================
 
 .. http:put:: /api/partners/(string:partner_name)
 

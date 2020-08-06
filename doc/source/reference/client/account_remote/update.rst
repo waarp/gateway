@@ -20,6 +20,6 @@ Remplace les informations du compte donné par celles fournies ci-dessous.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway -a http://user:password@remotehost:8080 account remote waarp_sftp update titi -l titi2 -p password2

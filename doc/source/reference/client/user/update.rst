@@ -21,6 +21,6 @@ omis restent inchangés.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 user update toto -u toto2 -p sésame2

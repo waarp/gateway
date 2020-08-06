@@ -12,6 +12,6 @@ Affiche les informations de la règle donnée en paramètre de commande.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 rule get règle_1

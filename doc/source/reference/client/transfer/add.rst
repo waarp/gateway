@@ -38,6 +38,6 @@ Programme un nouveau transfert avec les attributs ci-dessous.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 transfer add -f path/to/file -w push -p waarp_sftp a toto -r règle_1

@@ -14,7 +14,8 @@ Filtrer l'historique
    :type limit: int
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
-   :param sort: Le paramètre selon lequel les transferts seront triés *(défaut: start+)*
+   :param sort: Le paramètre selon lequel les transferts seront triés
+      *(défaut: start+)*
    :type sort: [id+|id-|start+|start-|status+|status-|rule+|rule-]
    :param source: Filtre uniquement les transferts provenant de l'agent renseigné.
       Peut être renseigné plusieurs fois pour filtrer plusieurs sources.

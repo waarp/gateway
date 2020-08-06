@@ -1,5 +1,5 @@
 Consulter un partenaire
-====================
+=======================
 
 .. http:get:: /api/partners/(string:partner_name)
 

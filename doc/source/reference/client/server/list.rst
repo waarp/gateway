@@ -32,6 +32,6 @@ Affiche les informations des serveurs remplissant les critères ci-dessous.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 server list -l 10 -o 5 -s protocol+ -d -p sftp -p http

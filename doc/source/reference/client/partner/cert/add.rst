@@ -29,6 +29,6 @@ Attache un nouveau certificat au partenaire donné à partir des informations re
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 partner cert waarp_sftp add -n cert_waarp -p /waarp.pub -b /waarp.key -c /waarp.pem

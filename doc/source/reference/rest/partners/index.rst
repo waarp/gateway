@@ -1,5 +1,5 @@
 Gestion des partenaires locaux
-###########################
+##############################
 
 Le point d'accès pour gérer les différents partenaires locaux de la gateway est
 ``/api/partners``.

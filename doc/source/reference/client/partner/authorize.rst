@@ -13,6 +13,6 @@ et de la règle doivent être fournis en argument de programme après la command
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 partner authorize waarp_sftp règle_1

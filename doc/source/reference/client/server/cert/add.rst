@@ -29,6 +29,6 @@ Attache un nouveau certificat au serveur donné à partir des informations rense
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 server cert serveur_sftp add -n cert_sftp -p /sftp.pub -b /sftp.key -c /sftp.pem

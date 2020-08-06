@@ -29,6 +29,6 @@ Attache un nouveau certificat au compte donné à partir des informations rensei
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 account remote waarp_sftp cert titi add -n cert_titi -p /titi.pub -b /titi.key -c /titi.pem

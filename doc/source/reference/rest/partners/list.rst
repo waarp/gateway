@@ -12,7 +12,8 @@ Lister les partenaires
    :type limit: int
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
-   :param sort: Le paramètre selon lequel les partenaires seront triés *(défaut: name+)*
+   :param sort: Le paramètre selon lequel les partenaires seront triés
+      *(défaut: name+)*
    :type sort: [name+|name-|protocol+|protocol-]
    :param protocol: Filtre uniquement les partenaires utilisant ce protocole.
       Peut être renseigné plusieurs fois pour filtrer plusieurs protocoles.

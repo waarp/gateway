@@ -62,6 +62,7 @@ Lister les règles
    **Exemple de requête**
 
       .. code-block:: http
+
          GET https://my_waarp_gateway.net/api/rules?limit=5 HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 

@@ -13,6 +13,6 @@ certificat doivent être spécifiés en arguments de programme.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 serveur cert serveur_sftp get cert_sftp

@@ -25,6 +25,6 @@ Affiche les informations des certificats du serveur suivant les critères donné
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 server cert serveur_sftp list -l 10 -o 5 -s name-

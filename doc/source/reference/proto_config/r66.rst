@@ -1,0 +1,9 @@
+Configuration R66
+#################
+
+À l'heure actuelle, le protocole R66 n'est pas supporté nativement par la
+*gateway*. Les transferts R66 sont géré indépendamment par une instance
+Waarp-R66 qui s'exécute en parallèle de la *gateway*.
+
+Par conséquent, les partenaires R66 ne requièrent aucune configuration particulière,
+à leur création. La création de serveur locaux R66 n'est pas supportée.

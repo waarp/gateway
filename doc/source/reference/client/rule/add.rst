@@ -75,6 +75,6 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 rule add -n "règle_1" -c "règle de réception des fichiers avec SFTP" -d RECEIVE -p "/règle_1" -i "/règle_1/in" -o "/règle_1/out"  -r '{"type":"COPY","args":{"path":"chemin/copie"}}' -s '{"type":"DELETE","args":{}}' -e '{"type":"MOVE","args":{"path":"chemin/déplacement"}}'

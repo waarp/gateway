@@ -1,5 +1,5 @@
 Consulter un compte distant
-=========================
+===========================
 
 .. http:get:: /api/partners/(string:partner_name)/accounts/(string:login)
 

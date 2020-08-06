@@ -27,6 +27,6 @@ attributs omis resteront inchangés.
 
 **Exemple**
 
-.. code-block:: bash
+.. code-block:: shell
 
    waarp-gateway http://user:password@localhost:8080 partner update partenaire_sftp -n partner_sftp_new -p sftp -c '{"address":"waarp.fr","port":80}'
