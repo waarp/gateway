@@ -53,7 +53,6 @@ func getAuthorizedRuleList(db *database.DB, objType string, ids []uint64) ([]Aut
 
 func authorizeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 	target string, id uint64) error {
-
 	rule, err := getRl(r, db)
 	if err != nil {
 		return err
@@ -73,8 +72,8 @@ func authorizeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 	if len(a) == 0 {
-		http.Error(w, fmt.Sprintf("Usage of the %s rule '%s' is now restricted.",
-			ruleDirection(rule), rule.Name), http.StatusOK)
+		fmt.Fprintf(w, "Usage of the %s rule '%s' is now restricted.",
+			ruleDirection(rule), rule.Name)
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
@@ -83,7 +82,6 @@ func authorizeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 
 func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 	target string, id uint64) error {
-
 	rule, err := getRl(r, db)
 	if err != nil {
 		return err
@@ -103,8 +101,8 @@ func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 	if len(a) == 0 {
-		http.Error(w, fmt.Sprintf("Usage of the %s rule '%s' is now unrestricted.",
-			ruleDirection(rule), rule.Name), http.StatusOK)
+		fmt.Fprintf(w, "Usage of the %s rule '%s' is now unrestricted.",
+			ruleDirection(rule), rule.Name)
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
@@ -128,8 +126,10 @@ func makeAccessIDs(db *database.DB, rule *model.Rule, isLocal bool) ([]uint64, e
 	}
 
 	var accesses []model.RuleAccess
-	filters := &database.Filters{Conditions: builder.Eq{"rule_id": rule.ID,
-		"object_type": typ}}
+	filters := &database.Filters{Conditions: builder.Eq{
+		"rule_id":     rule.ID,
+		"object_type": typ,
+	}}
 	if err := db.Select(&accesses, filters); err != nil {
 		return nil, err
 	}

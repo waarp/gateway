@@ -28,8 +28,10 @@ func TestAuthorizeRule(t *testing.T) {
 		r, err := http.NewRequest(http.MethodPut, "", nil)
 		So(err, ShouldBeNil)
 
-		vals := map[string]string{"rule": rule.Name,
-			"direction": ruleDirection(rule)}
+		vals := map[string]string{
+			"rule":      rule.Name,
+			"direction": ruleDirection(rule),
+		}
 
 		test := func(handler http.Handler, expectedResult model.RuleAccess) {
 			Convey("When sending the request to the handler", func() {
@@ -43,12 +45,11 @@ func TestAuthorizeRule(t *testing.T) {
 				Convey("Then the response body should state that access "+
 					"to the rule is now restricted", func() {
 					So(w.Body.String(), ShouldEqual, "Usage of the "+
-						ruleDirection(rule)+" rule '"+rule.Name+"' is now restricted.\n")
+						ruleDirection(rule)+" rule '"+rule.Name+"' is now restricted.")
 				})
 
 				Convey("Then the new access should be inserted "+
 					"in the database", func() {
-
 					var res []model.RuleAccess
 					So(db.Select(&res, nil), ShouldBeNil)
 					So(len(res), ShouldEqual, 1)
@@ -155,8 +156,10 @@ func TestRevokeRule(t *testing.T) {
 		r, err := http.NewRequest(http.MethodPut, "", nil)
 		So(err, ShouldBeNil)
 
-		vals := map[string]string{"rule": rule.Name,
-			"direction": ruleDirection(rule)}
+		vals := map[string]string{
+			"rule":      rule.Name,
+			"direction": ruleDirection(rule),
+		}
 
 		test := func(handler http.Handler) {
 			Convey("When sending the request to the handler", func() {
@@ -170,7 +173,7 @@ func TestRevokeRule(t *testing.T) {
 				Convey("Then the response body should state that access to the rule "+
 					"is now unrestricted", func() {
 					So(w.Body.String(), ShouldEqual, "Usage of the "+ruleDirection(rule)+
-						" rule '"+rule.Name+"' is now unrestricted.\n")
+						" rule '"+rule.Name+"' is now unrestricted.")
 				})
 
 				Convey("Then the access should have been removed from the database", func() {
@@ -341,8 +344,10 @@ func TestRuleAllowAll(t *testing.T) {
 					w := httptest.NewRecorder()
 					r, err := http.NewRequest(http.MethodPut, "", nil)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": rule.Name,
-						"direction": ruleDirection(rule)})
+					r = mux.SetURLVars(r, map[string]string{
+						"rule":      rule.Name,
+						"direction": ruleDirection(rule),
+					})
 
 					handler.ServeHTTP(w, r)
 
@@ -353,7 +358,7 @@ func TestRuleAllowAll(t *testing.T) {
 					Convey("Then the response body should state that access to the rule "+
 						"is now unrestricted", func() {
 						So(w.Body.String(), ShouldEqual, "Usage of the "+ruleDirection(rule)+
-							" rule '"+rule.Name+"' is now unrestricted.\n")
+							" rule '"+rule.Name+"' is now unrestricted.")
 					})
 
 					Convey("Then all accesses should have been removed from the database", func() {
