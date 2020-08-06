@@ -109,12 +109,23 @@ func FromRules(db *database.DB, rs []model.Rule) ([]OutRule, error) {
 	return rules, nil
 }
 
+func ruleDirection(rule *model.Rule) string {
+	if rule.IsSend {
+		return "send"
+	}
+	return "receive"
+}
+
 func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {
 	ruleName, ok := mux.Vars(r)["rule"]
 	if !ok {
 		return nil, notFound("missing rule name")
 	}
-	rule := &model.Rule{Name: ruleName}
+	ruleDirection, ok := mux.Vars(r)["direction"]
+	if !ok {
+		return nil, notFound("missing rule direction")
+	}
+	rule := &model.Rule{Name: ruleName, IsSend: ruleDirection == "send"}
 	if err := db.Get(rule); err != nil {
 		if err == database.ErrNotFound {
 			return nil, notFound("rule '%s' not found", ruleName)
@@ -285,8 +296,8 @@ func allowAllRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			http.Error(w, fmt.Sprintf("Access to rule '%s' is now unrestricted.",
-				rule.Name), http.StatusOK)
+			fmt.Fprintf(w, "Usage of the %s rule '%s' is now unrestricted.",
+				ruleDirection(rule), rule.Name)
 			return nil
 		}()
 		if err != nil {

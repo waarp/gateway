@@ -39,10 +39,6 @@ const (
 
 	// RulesPath is the access path to the transfers rules entry point.
 	RulesPath = "/rules"
-
-	// RulePermissionPath is the access path to the transfer rule permissions
-	// entry point.
-	RulePermissionPath = "/access"
 )
 
 func makeUsersHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
@@ -77,10 +73,10 @@ func makeLocalAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux
 	locAgHandler.HandleFunc("", updateLocalAgent(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 
-	locAgHandler.HandleFunc("/authorize/{rule:[^\\/]+}", authorizeLocalAgent(logger, db)).
-		Methods(http.MethodPut)
-	locAgHandler.HandleFunc("/revoke/{rule:[^\\/]+}", revokeLocalAgent(logger, db)).
-		Methods(http.MethodPut)
+	locAgHandler.HandleFunc("/authorize/{rule:[^\\/]+}/{direction:send|receive}",
+		authorizeLocalAgent(logger, db)).Methods(http.MethodPut)
+	locAgHandler.HandleFunc("/revoke/{rule:[^\\/]+}/{direction:send|receive}",
+		revokeLocalAgent(logger, db)).Methods(http.MethodPut)
 
 	certificatesHandler := locAgHandler.PathPrefix(CertificatesPath).Subrouter()
 	certificatesHandler.HandleFunc("", listLocAgentCerts(logger, db)).
@@ -115,10 +111,10 @@ func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mu
 	remAgHandler.HandleFunc("", updateRemoteAgent(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 
-	remAgHandler.HandleFunc("/authorize/{rule:[^\\/]+}", authorizeRemoteAgent(logger, db)).
-		Methods(http.MethodPut)
-	remAgHandler.HandleFunc("/revoke/{rule:[^\\/]+}", revokeRemoteAgent(logger, db)).
-		Methods(http.MethodPut)
+	remAgHandler.HandleFunc("/authorize/{rule:[^\\/]+}/{direction:send|receive}",
+		authorizeRemoteAgent(logger, db)).Methods(http.MethodPut)
+	remAgHandler.HandleFunc("/revoke/{rule:[^\\/]+}/{direction:send|receive}",
+		revokeRemoteAgent(logger, db)).Methods(http.MethodPut)
 
 	certificatesHandler := remAgHandler.PathPrefix(CertificatesPath).Subrouter()
 	certificatesHandler.HandleFunc("", listRemAgentCerts(logger, db)).
@@ -153,10 +149,10 @@ func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, agentHandler 
 	locAcHandler.HandleFunc("", updateLocalAccount(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 
-	locAcHandler.HandleFunc("/authorize/{rule:[^\\/]+}", authorizeLocalAccount(logger, db)).
-		Methods(http.MethodPut)
-	locAcHandler.HandleFunc("/revoke/{rule:[^\\/]+}", revokeLocalAccount(logger, db)).
-		Methods(http.MethodPut)
+	locAcHandler.HandleFunc("/authorize/{rule:[^\\/]+}/{direction:send|receive}",
+		authorizeLocalAccount(logger, db)).Methods(http.MethodPut)
+	locAcHandler.HandleFunc("/revoke/{rule:[^\\/]+}/{direction:send|receive}",
+		revokeLocalAccount(logger, db)).Methods(http.MethodPut)
 
 	certificatesHandler := locAcHandler.PathPrefix(CertificatesPath).Subrouter()
 	certificatesHandler.HandleFunc("", listLocAccountCerts(logger, db)).
@@ -189,10 +185,10 @@ func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, agentHandler
 	remAcHandler.HandleFunc("", updateRemoteAccount(logger, db)).
 		Methods(http.MethodPatch, http.MethodPut)
 
-	remAcHandler.HandleFunc("/authorize/{rule:[^\\/]+}", authorizeRemoteAccount(logger, db)).
-		Methods(http.MethodPut)
-	remAcHandler.HandleFunc("/revoke/{rule:[^\\/]+}", revokeRemoteAccount(logger, db)).
-		Methods(http.MethodPut)
+	remAcHandler.HandleFunc("/authorize/{rule:[^\\/]+}/{direction:send|receive}",
+		authorizeRemoteAccount(logger, db)).Methods(http.MethodPut)
+	remAcHandler.HandleFunc("/revoke/{rule:[^\\/]+}/{direction:send|receive}",
+		revokeRemoteAccount(logger, db)).Methods(http.MethodPut)
 
 	certificatesHandler := remAcHandler.PathPrefix(CertificatesPath).Subrouter()
 	certificatesHandler.HandleFunc("", listRemAccountCerts(logger, db)).
@@ -242,7 +238,7 @@ func makeRulesHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Route
 	rulesHandler.HandleFunc("", listRules(logger, db)).Methods(http.MethodGet)
 	rulesHandler.HandleFunc("", createRule(logger, db)).Methods(http.MethodPost)
 
-	ruleHandler := rulesHandler.PathPrefix("/{rule:[^\\/]+}").Subrouter()
+	ruleHandler := rulesHandler.PathPrefix("/{rule:[^\\/]+}/{direction:send|receive}").Subrouter()
 	ruleHandler.HandleFunc("", getRule(logger, db)).Methods(http.MethodGet)
 	ruleHandler.HandleFunc("", updateRule(logger, db)).Methods(http.MethodPatch, http.MethodPut)
 	ruleHandler.HandleFunc("", deleteRule(logger, db)).Methods(http.MethodDelete)

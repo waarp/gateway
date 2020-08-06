@@ -1,13 +1,8 @@
-//+build old
-
 package rest
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -17,363 +12,359 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func fromAccess(a *model.RuleAccess) *RuleAccess {
-	return &RuleAccess{
-		ObjectID:   a.ObjectID,
-		ObjectType: a.ObjectType,
-	}
-}
+func TestAuthorizeRule(t *testing.T) {
+	logger := log.NewLogger("rest_auth_rule_logger")
 
-const accessURI = ruleURI + RulePermissionPath
-
-func TestCreateAccess(t *testing.T) {
-	logger := log.NewLogger("rest_access_create_logger")
-
-	Convey("Given the rule creation handler", t, func() {
+	Convey("Given a database with 1 rule", t, func() {
 		db := database.GetTestDatabase()
-		handler := createAccess(logger, db)
+		rule := &model.Rule{
+			Name:   "rule",
+			IsSend: true,
+			Path:   "rule/path",
+		}
+		So(db.Create(rule), ShouldBeNil)
+
 		w := httptest.NewRecorder()
+		r, err := http.NewRequest(http.MethodPut, "", nil)
+		So(err, ShouldBeNil)
 
-		Convey("Given a database with 1 rule access", func() {
-			object := &model.LocalAgent{
-				Name:        "object1",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
-			}
-			So(db.Create(object), ShouldBeNil)
+		vals := map[string]string{
+			"rule":      rule.Name,
+			"direction": ruleDirection(rule),
+		}
 
-			rule := &model.Rule{
-				Name:    "existing",
-				Comment: "",
-				IsSend:  false,
-				Path:    "test/existing/path",
-			}
-			So(db.Create(rule), ShouldBeNil)
-			ruleID := strconv.FormatUint(rule.ID, 10)
+		test := func(handler http.Handler, expectedResult model.RuleAccess) {
+			Convey("When sending the request to the handler", func() {
+				r = mux.SetURLVars(r, vals)
+				handler.ServeHTTP(w, r)
 
-			Convey("Given a new access to insert in the database", func() {
-				acc := &InRuleAccess{
-					ObjectID:   object.ID,
-					ObjectType: object.TableName(),
-				}
-
-				Convey("Given that the new access is valid for insertion", func() {
-					body, err := json.Marshal(acc)
-					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, accessURI, bytes.NewReader(body))
-					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
-
-					Convey("When sending the request to the handler", func() {
-						handler.ServeHTTP(w, r)
-
-						Convey("Then it should reply 'Created'", func() {
-							So(w.Code, ShouldEqual, http.StatusCreated)
-						})
-
-						Convey("Then the 'Location' header should contain the URI "+
-							"of the new access", func() {
-
-							location := w.Header().Get("Location")
-							So(location, ShouldEqual, accessURI)
-						})
-
-						Convey("Then the response body should state that access "+
-							"to the rule is now restricted", func() {
-							So(w.Body.String(), ShouldEqual, "Access to rule 1 "+
-								"is now restricted.\n")
-						})
-
-						Convey("Then the new access should be inserted "+
-							"in the database", func() {
-							exist, err := db.Exists(acc.ToModel())
-
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
-						})
-					})
+				Convey("Then it should reply 'OK'", func() {
+					So(w.Code, ShouldEqual, http.StatusOK)
 				})
 
-				Convey("Given that the new access already exist", func() {
-					ex := &model.RuleAccess{
-						RuleID:     rule.ID,
-						ObjectID:   acc.ObjectID,
-						ObjectType: acc.ObjectType,
-					}
-					So(db.Create(ex), ShouldBeNil)
-
-					body, err := json.Marshal(acc)
-					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, accessURI, bytes.NewReader(body))
-					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
-
-					Convey("When sending the request to the handler", func() {
-						handler.ServeHTTP(w, r)
-
-						Convey("Then it should reply 'Created'", func() {
-							So(w.Code, ShouldEqual, http.StatusBadRequest)
-						})
-
-						Convey("Then the response body should state that access "+
-							"to the rule is now restricted", func() {
-							So(w.Body.String(), ShouldEqual, "The agent has "+
-								"already been granted access to this rule\n")
-						})
-					})
+				Convey("Then the response body should state that access "+
+					"to the rule is now restricted", func() {
+					So(w.Body.String(), ShouldEqual, "Usage of the "+
+						ruleDirection(rule)+" rule '"+rule.Name+"' is now restricted.")
 				})
 
-				Convey("Given a request with a non-existing rule ID parameter", func() {
-					body, err := json.Marshal(acc)
-					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, accessURI, bytes.NewReader(body))
-					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": "1000"})
-
-					Convey("When sending the request to the handler", func() {
-						handler.ServeHTTP(w, r)
-
-						Convey("Then it should reply with a 'Not Found' error", func() {
-							So(w.Code, ShouldEqual, http.StatusNotFound)
-						})
-
-						Convey("Then the body should contain the error message", func() {
-							So(w.Body.String(), ShouldEqual, "Record not found\n")
-						})
-					})
+				Convey("Then the new access should be inserted "+
+					"in the database", func() {
+					var res []model.RuleAccess
+					So(db.Select(&res, nil), ShouldBeNil)
+					So(len(res), ShouldEqual, 1)
+					So(res[0], ShouldResemble, expectedResult)
 				})
 			})
+		}
 
-			Convey("Given that the JSON body in invalid", func() {
-				body := []byte("invalid JSON body")
-				r, err := http.NewRequest(http.MethodPost, accessURI, bytes.NewReader(body))
-				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
+		Convey("Given a server", func() {
+			server := &model.LocalAgent{
+				Name:        "server",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(server), ShouldBeNil)
 
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
+			exp := model.RuleAccess{
+				RuleID:     rule.ID,
+				ObjectID:   server.ID,
+				ObjectType: server.TableName(),
+			}
 
-					Convey("Then it should reply 'Created'", func() {
-						So(w.Code, ShouldEqual, http.StatusBadRequest)
-					})
+			handler := authorizeLocalAgent(logger, db)
+			vals["local_agent"] = server.Name
 
-					Convey("Then the response body should state that access "+
-						"to the rule is now restricted", func() {
-						So(w.Body.String(), ShouldEqual, "invalid character 'i' "+
-							"looking for beginning of value\n")
-					})
-				})
+			test(handler, exp)
+
+			Convey("Given a local account", func() {
+				account := &model.LocalAccount{
+					LocalAgentID: server.ID,
+					Login:        "toto",
+					Password:     []byte("password"),
+				}
+				So(db.Create(account), ShouldBeNil)
+
+				exp := model.RuleAccess{
+					RuleID:     rule.ID,
+					ObjectID:   account.ID,
+					ObjectType: account.TableName(),
+				}
+
+				handler := authorizeLocalAccount(logger, db)
+				vals["local_account"] = account.Login
+
+				test(handler, exp)
+			})
+		})
+
+		Convey("Given a partner", func() {
+			partner := &model.RemoteAgent{
+				Name:        "partner",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(partner), ShouldBeNil)
+
+			exp := model.RuleAccess{
+				RuleID:     rule.ID,
+				ObjectID:   partner.ID,
+				ObjectType: partner.TableName(),
+			}
+
+			handler := authorizeRemoteAgent(logger, db)
+			vals["remote_agent"] = partner.Name
+
+			test(handler, exp)
+
+			Convey("Given a remote account", func() {
+				account := &model.RemoteAccount{
+					RemoteAgentID: partner.ID,
+					Login:         "toto",
+					Password:      []byte("password"),
+				}
+				So(db.Create(account), ShouldBeNil)
+
+				exp := model.RuleAccess{
+					RuleID:     rule.ID,
+					ObjectID:   account.ID,
+					ObjectType: account.TableName(),
+				}
+
+				handler := authorizeRemoteAccount(logger, db)
+				vals["remote_account"] = account.Login
+
+				test(handler, exp)
 			})
 		})
 	})
 }
 
-func TestListAccess(t *testing.T) {
-	logger := log.NewLogger("rest_access_list_logger")
+func TestRevokeRule(t *testing.T) {
+	logger := log.NewLogger("rest_revoke_rule_logger")
 
-	Convey("Given the rule creation handler", t, func() {
+	Convey("Given a database with 1 rule", t, func() {
 		db := database.GetTestDatabase()
-		handler := listAccess(logger, db)
+		rule := &model.Rule{
+			Name:   "rule",
+			IsSend: true,
+			Path:   "rule/path",
+		}
+		So(db.Create(rule), ShouldBeNil)
+
 		w := httptest.NewRecorder()
+		r, err := http.NewRequest(http.MethodPut, "", nil)
+		So(err, ShouldBeNil)
 
-		Convey("Given a database with 1 rule access", func() {
-			o1 := &model.LocalAgent{
-				Name:        "object1",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
+		vals := map[string]string{
+			"rule":      rule.Name,
+			"direction": ruleDirection(rule),
+		}
+
+		test := func(handler http.Handler) {
+			Convey("When sending the request to the handler", func() {
+				r = mux.SetURLVars(r, vals)
+				handler.ServeHTTP(w, r)
+
+				Convey("Then it should reply 'OK'", func() {
+					So(w.Code, ShouldEqual, http.StatusOK)
+				})
+
+				Convey("Then the response body should state that access to the rule "+
+					"is now unrestricted", func() {
+					So(w.Body.String(), ShouldEqual, "Usage of the "+ruleDirection(rule)+
+						" rule '"+rule.Name+"' is now unrestricted.")
+				})
+
+				Convey("Then the access should have been removed from the database", func() {
+					var res []model.RuleAccess
+					So(db.Select(&res, nil), ShouldBeNil)
+					So(len(res), ShouldEqual, 0)
+				})
+			})
+		}
+
+		Convey("Given a server", func() {
+			server := &model.LocalAgent{
+				Name:        "server",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
-			So(db.Create(o1), ShouldBeNil)
+			So(db.Create(server), ShouldBeNil)
+			vals["local_agent"] = server.Name
 
-			o2 := &model.LocalAgent{
-				Name:        "object2",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
+			Convey("Given a server access", func() {
+				access := model.RuleAccess{
+					RuleID:     rule.ID,
+					ObjectID:   server.ID,
+					ObjectType: server.TableName(),
+				}
+				So(db.Create(access), ShouldBeNil)
+
+				handler := revokeLocalAgent(logger, db)
+				test(handler)
+			})
+
+			Convey("Given a local account", func() {
+				account := &model.LocalAccount{
+					LocalAgentID: server.ID,
+					Login:        "toto",
+					Password:     []byte("password"),
+				}
+				So(db.Create(account), ShouldBeNil)
+
+				access := model.RuleAccess{
+					RuleID:     rule.ID,
+					ObjectID:   account.ID,
+					ObjectType: account.TableName(),
+				}
+				So(db.Create(access), ShouldBeNil)
+
+				handler := revokeLocalAccount(logger, db)
+				vals["local_account"] = account.Login
+
+				test(handler)
+			})
+		})
+
+		Convey("Given a partner", func() {
+			partner := &model.RemoteAgent{
+				Name:        "partner",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
 			}
-			So(db.Create(o2), ShouldBeNil)
+			So(db.Create(partner), ShouldBeNil)
+			vals["remote_agent"] = partner.Name
 
-			rule := &model.Rule{
-				Name:    "existing",
-				Comment: "",
-				IsSend:  false,
-				Path:    "test/existing/path",
+			Convey("Given a partner access", func() {
+				access := model.RuleAccess{
+					RuleID:     rule.ID,
+					ObjectID:   partner.ID,
+					ObjectType: partner.TableName(),
+				}
+				So(db.Create(access), ShouldBeNil)
+
+				handler := revokeRemoteAgent(logger, db)
+
+				test(handler)
+			})
+
+			Convey("Given a remote account", func() {
+				account := &model.RemoteAccount{
+					RemoteAgentID: partner.ID,
+					Login:         "toto",
+					Password:      []byte("password"),
+				}
+				So(db.Create(account), ShouldBeNil)
+
+				access := model.RuleAccess{
+					RuleID:     rule.ID,
+					ObjectID:   account.ID,
+					ObjectType: account.TableName(),
+				}
+				So(db.Create(access), ShouldBeNil)
+
+				handler := revokeRemoteAccount(logger, db)
+				vals["remote_account"] = account.Login
+
+				test(handler)
+			})
+		})
+	})
+}
+
+func TestRuleAllowAll(t *testing.T) {
+	logger := log.NewLogger("rest_revoke_rule_logger")
+
+	Convey("Given a database with a rule", t, func() {
+		db := database.GetTestDatabase()
+		rule := &model.Rule{
+			Name:   "rule",
+			IsSend: true,
+			Path:   "rule/path",
+		}
+		So(db.Create(rule), ShouldBeNil)
+
+		Convey("Given multiple accesses to that rule", func() {
+			s := &model.LocalAgent{
+				Name:        "server",
+				Protocol:    "test",
+				ProtoConfig: []byte("{}"),
 			}
-			So(db.Create(rule), ShouldBeNil)
-			ruleID := strconv.FormatUint(rule.ID, 10)
+			p := &model.RemoteAgent{
+				Name:        "partner",
+				Protocol:    "test",
+				ProtoConfig: []byte("{}"),
+			}
+			So(db.Create(p), ShouldBeNil)
+			So(db.Create(s), ShouldBeNil)
 
-			a1 := &model.RuleAccess{
+			la := &model.LocalAccount{
+				LocalAgentID: s.ID,
+				Login:        "toto",
+				Password:     []byte("password"),
+			}
+			ra := &model.RemoteAccount{
+				RemoteAgentID: p.ID,
+				Login:         "tata",
+				Password:      []byte("password"),
+			}
+			So(db.Create(la), ShouldBeNil)
+			So(db.Create(ra), ShouldBeNil)
+
+			sAcc := &model.RuleAccess{
 				RuleID:     rule.ID,
-				ObjectID:   o1.ID,
-				ObjectType: o1.TableName(),
+				ObjectID:   s.ID,
+				ObjectType: s.TableName(),
 			}
-			So(db.Create(a1), ShouldBeNil)
-
-			a2 := &model.RuleAccess{
+			pAcc := &model.RuleAccess{
 				RuleID:     rule.ID,
-				ObjectID:   o2.ID,
-				ObjectType: o2.TableName(),
+				ObjectID:   p.ID,
+				ObjectType: p.TableName(),
 			}
-			So(db.Create(a2), ShouldBeNil)
+			laAcc := &model.RuleAccess{
+				RuleID:     rule.ID,
+				ObjectID:   la.ID,
+				ObjectType: la.TableName(),
+			}
+			raAcc := &model.RuleAccess{
+				RuleID:     rule.ID,
+				ObjectID:   ra.ID,
+				ObjectType: ra.TableName(),
+			}
+			So(db.Create(sAcc), ShouldBeNil)
+			So(db.Create(pAcc), ShouldBeNil)
+			So(db.Create(laAcc), ShouldBeNil)
+			So(db.Create(raAcc), ShouldBeNil)
 
-			acc1 := *fromAccess(a1)
-			acc2 := *fromAccess(a2)
+			Convey("Given the 'allow_all' rule handler", func() {
+				handler := allowAllRule(logger, db)
 
-			Convey("Given a request with the valid rule ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, "", nil)
-				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
+				Convey("When sending a request to the handler", func() {
+					w := httptest.NewRecorder()
+					r, err := http.NewRequest(http.MethodPut, "", nil)
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{
+						"rule":      rule.Name,
+						"direction": ruleDirection(rule),
+					})
 
-				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
 
 					Convey("Then it should reply 'OK'", func() {
 						So(w.Code, ShouldEqual, http.StatusOK)
 					})
 
-					Convey("Then the 'Content-Type' header should contain 'application/json'", func() {
-						contentType := w.Header().Get("Content-Type")
-
-						So(contentType, ShouldEqual, "application/json")
+					Convey("Then the response body should state that access to the rule "+
+						"is now unrestricted", func() {
+						So(w.Body.String(), ShouldEqual, "Usage of the "+ruleDirection(rule)+
+							" rule '"+rule.Name+"' is now unrestricted.")
 					})
 
-					Convey("Then the body should contain the requested accesses "+
-						"in JSON format", func() {
-
-						expected := map[string][]RuleAccess{}
-						expected["permissions"] = []RuleAccess{acc1, acc2}
-						exp, err := json.Marshal(expected)
-
-						So(err, ShouldBeNil)
-						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
-					})
-				})
-			})
-
-			Convey("Given a request with a non-existing rule ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, "", nil)
-				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": "1000"})
-
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
-
-					Convey("Then it should reply with a 'Not Found' error", func() {
-						So(w.Code, ShouldEqual, http.StatusNotFound)
-					})
-
-					Convey("Then the body should contain the error message", func() {
-						So(w.Body.String(), ShouldEqual, "Record not found\n")
-					})
-				})
-			})
-		})
-	})
-}
-
-func TestDeleteAccess(t *testing.T) {
-	logger := log.NewLogger("rest_access_list_logger")
-
-	Convey("Given the rule creation handler", t, func() {
-		db := database.GetTestDatabase()
-		handler := deleteAccess(logger, db)
-		w := httptest.NewRecorder()
-
-		Convey("Given a database with 1 rule access", func() {
-			object := &model.LocalAgent{
-				Name:        "object1",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
-			}
-			So(db.Create(object), ShouldBeNil)
-
-			rule := &model.Rule{
-				Name:    "existing",
-				Comment: "",
-				IsSend:  false,
-				Path:    "test/existing/path",
-			}
-			So(db.Create(rule), ShouldBeNil)
-			ruleID := strconv.FormatUint(rule.ID, 10)
-
-			acc := &model.RuleAccess{
-				RuleID:     rule.ID,
-				ObjectID:   object.ID,
-				ObjectType: object.TableName(),
-			}
-			So(db.Create(acc), ShouldBeNil)
-
-			access := fromAccess(acc)
-
-			Convey("Given that the access can be deleted", func() {
-				body, err := json.Marshal(access)
-				So(err, ShouldBeNil)
-				r, err := http.NewRequest(http.MethodDelete, "", bytes.NewReader(body))
-				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
-
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
-
-					Convey("Then it should reply 'No Content'", func() {
-						So(w.Code, ShouldEqual, http.StatusOK)
-					})
-
-					Convey("Then the response body should state that access "+
-						"to the rule is now unrestricted", func() {
-						So(w.Body.String(), ShouldEqual, "Access to rule 1 is "+
-							"now unrestricted.\n")
-					})
-
-					Convey("Then the access should have been deleted from the "+
-						"database", func() {
-						exist, err := db.Exists(acc)
-
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeFalse)
-					})
-				})
-			})
-
-			Convey("Given a request with a non-existing rule ID parameter", func() {
-				body, err := json.Marshal(access)
-				So(err, ShouldBeNil)
-				r, err := http.NewRequest(http.MethodDelete, "", bytes.NewReader(body))
-				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": "1000"})
-
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
-
-					Convey("Then it should reply with a 'Not Found' error", func() {
-						So(w.Code, ShouldEqual, http.StatusNotFound)
-					})
-
-					Convey("Then the body should contain the error message", func() {
-						So(w.Body.String(), ShouldEqual, "Record not found\n")
-					})
-				})
-			})
-
-			Convey("Given that the access does not exist", func() {
-				other := &RuleAccess{
-					ObjectID:   1000,
-					ObjectType: object.TableName(),
-				}
-
-				body, err := json.Marshal(other)
-				So(err, ShouldBeNil)
-				r, err := http.NewRequest(http.MethodDelete, "", bytes.NewReader(body))
-				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": ruleID})
-
-				Convey("When sending the request to the handler", func() {
-					handler.ServeHTTP(w, r)
-
-					Convey("Then it should reply with a 'Not Found' error", func() {
-						So(w.Code, ShouldEqual, http.StatusNotFound)
-					})
-
-					Convey("Then the body should contain the error message", func() {
-						So(w.Body.String(), ShouldEqual, "Record not found\n")
+					Convey("Then all accesses should have been removed from the database", func() {
+						var res []model.RuleAccess
+						So(db.Select(&res, nil), ShouldBeNil)
+						So(len(res), ShouldEqual, 0)
 					})
 				})
 			})

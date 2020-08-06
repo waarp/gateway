@@ -15,6 +15,13 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func direction(r *model.Rule) string {
+	if r.IsSend {
+		return "send"
+	}
+	return "receive"
+}
+
 func ruleInfoString(r *rest.OutRule) string {
 	way := "RECEIVE"
 	if r.IsSend {
@@ -142,7 +149,7 @@ func TestGetRule(t *testing.T) {
 			So(db.Create(rule), ShouldBeNil)
 
 			Convey("Given a valid rule name", func() {
-				args := []string{rule.Name}
+				args := []string{rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -158,7 +165,7 @@ func TestGetRule(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{"toto"}
+				args := []string{"toto", direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -331,7 +338,7 @@ func TestDeleteRule(t *testing.T) {
 			So(db.Create(rule), ShouldBeNil)
 
 			Convey("Given a valid rule name", func() {
-				args := []string{rule.Name}
+				args := []string{rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -352,7 +359,7 @@ func TestDeleteRule(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{"toto"}
+				args := []string{"toto", direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -466,6 +473,141 @@ func TestListRules(t *testing.T) {
 					Convey("Then it should display the rules' info in reverse", func() {
 						So(getOutput(), ShouldEqual, "Rules:\n"+
 							ruleInfoString(snd)+ruleInfoString(rcv))
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestRuleAllowAll(t *testing.T) {
+
+	Convey("Testing the rule 'list' command", t, func() {
+		out = testFile()
+		command := &ruleAllowAll{}
+
+		Convey("Given a database with a rule", func() {
+			db := database.GetTestDatabase()
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+
+			rule := &model.Rule{
+				Name:   "rule",
+				IsSend: true,
+				Path:   "rule/path",
+			}
+			So(db.Create(rule), ShouldBeNil)
+
+			Convey("Given multiple accesses to that rule", func() {
+				s := &model.LocalAgent{
+					Name:        "server",
+					Protocol:    "test",
+					ProtoConfig: []byte("{}"),
+				}
+				p := &model.RemoteAgent{
+					Name:        "partner",
+					Protocol:    "test",
+					ProtoConfig: []byte("{}"),
+				}
+				So(db.Create(p), ShouldBeNil)
+				So(db.Create(s), ShouldBeNil)
+
+				la := &model.LocalAccount{
+					LocalAgentID: s.ID,
+					Login:        "toto",
+					Password:     []byte("password"),
+				}
+				ra := &model.RemoteAccount{
+					RemoteAgentID: p.ID,
+					Login:         "tata",
+					Password:      []byte("password"),
+				}
+				So(db.Create(la), ShouldBeNil)
+				So(db.Create(ra), ShouldBeNil)
+
+				sAcc := &model.RuleAccess{
+					RuleID:     rule.ID,
+					ObjectID:   s.ID,
+					ObjectType: s.TableName(),
+				}
+				pAcc := &model.RuleAccess{
+					RuleID:     rule.ID,
+					ObjectID:   p.ID,
+					ObjectType: p.TableName(),
+				}
+				laAcc := &model.RuleAccess{
+					RuleID:     rule.ID,
+					ObjectID:   la.ID,
+					ObjectType: la.TableName(),
+				}
+				raAcc := &model.RuleAccess{
+					RuleID:     rule.ID,
+					ObjectID:   ra.ID,
+					ObjectType: ra.TableName(),
+				}
+				So(db.Create(sAcc), ShouldBeNil)
+				So(db.Create(pAcc), ShouldBeNil)
+				So(db.Create(laAcc), ShouldBeNil)
+				So(db.Create(raAcc), ShouldBeNil)
+
+				Convey("Given correct command parameters", func() {
+					args := []string{rule.Name, direction(rule)}
+
+					Convey("When executing the command", func() {
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						So(command.Execute(params), ShouldBeNil)
+
+						Convey("Then it should say that the rule is now unrestricted", func() {
+							So(getOutput(), ShouldEqual, "The use of the "+direction(rule)+
+								" rule "+rule.Name+" is now unrestricted.\n")
+						})
+
+						Convey("Then all accesses should have been removed from the database", func() {
+							var res []model.RuleAccess
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(len(res), ShouldEqual, 0)
+						})
+					})
+				})
+
+				Convey("Given an incorrect rule name", func() {
+					args := []string{"toto", direction(rule)}
+
+					Convey("When executing the command", func() {
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						err = command.Execute(params)
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError, "rule 'toto' not found")
+						})
+
+						Convey("Then the accesses should still exist", func() {
+							var res []model.RuleAccess
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(len(res), ShouldEqual, 4)
+						})
+					})
+				})
+
+				Convey("Given an incorrect rule direction", func() {
+					args := []string{rule.Name, "toto"}
+
+					Convey("When executing the command", func() {
+						params, err := flags.ParseArgs(command, args)
+						So(err, ShouldBeNil)
+						err = command.Execute(params)
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError, "invalid rule direction 'toto'")
+						})
+
+						Convey("Then the accesses should still exist", func() {
+							var res []model.RuleAccess
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(len(res), ShouldEqual, 4)
+						})
 					})
 				})
 			})

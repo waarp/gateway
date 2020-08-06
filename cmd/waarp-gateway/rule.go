@@ -21,6 +21,13 @@ type ruleCommand struct {
 	Allow  ruleAllowAll `command:"allow" description:"Remove all usage restriction on a rule"`
 }
 
+func checkRuleDir(direction string) error {
+	if direction != "send" && direction != "receive" {
+		return fmt.Errorf("invalid rule direction '%s'", direction)
+	}
+	return nil
+}
+
 func displayTasks(w io.Writer, rule *rest.OutRule) {
 	fmt.Fprintln(w, orange("    Pre tasks:"))
 	for i, t := range rule.PreTasks {
@@ -115,12 +122,16 @@ func parseTasks(rule *rest.UptRule, pre, post, errs []string) error {
 
 type ruleGet struct {
 	Args struct {
-		Name string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
+		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
 	} `positional-args:"yes"`
 }
 
 func (r *ruleGet) Execute([]string) error {
-	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name
+	if err := checkRuleDir(r.Args.Direction); err != nil {
+		return err
+	}
+	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + r.Args.Direction
 
 	rule := &rest.OutRule{}
 	if err := get(path, rule); err != nil {
@@ -169,12 +180,16 @@ func (r *ruleAdd) Execute([]string) error {
 
 type ruleDelete struct {
 	Args struct {
-		Name string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
+		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
 	} `positional-args:"yes"`
 }
 
 func (r *ruleDelete) Execute([]string) error {
-	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name
+	if err := checkRuleDir(r.Args.Direction); err != nil {
+		return err
+	}
+	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + r.Args.Direction
 
 	if err := remove(path); err != nil {
 		return err
@@ -219,7 +234,8 @@ func (r *ruleList) Execute([]string) error {
 
 type ruleUpdate struct {
 	Args struct {
-		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
+		Name      string `required:"yes" positional-arg-name:"name" description:"The server's name"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
 	} `positional-args:"yes"`
 	Name       string   `short:"n" long:"name" description:"The rule's name"`
 	Comment    string   `short:"c" long:"comment" description:"A short comment describing the rule"`
@@ -232,6 +248,11 @@ type ruleUpdate struct {
 }
 
 func (r *ruleUpdate) Execute([]string) error {
+	if err := checkRuleDir(r.Args.Direction); err != nil {
+		return err
+	}
+	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + r.Args.Direction
+
 	rule := &rest.UptRule{
 		Name:    r.Name,
 		Comment: r.Comment,
@@ -242,7 +263,6 @@ func (r *ruleUpdate) Execute([]string) error {
 	if err := parseTasks(rule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {
 		return err
 	}
-	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name
 
 	if err := update(path, rule); err != nil {
 		return err
@@ -259,16 +279,21 @@ func (r *ruleUpdate) Execute([]string) error {
 
 type ruleAllowAll struct {
 	Args struct {
-		Name string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
+		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
 	} `positional-args:"yes"`
 }
 
 func (r *ruleAllowAll) Execute([]string) error {
+	if err := checkRuleDir(r.Args.Direction); err != nil {
+		return err
+	}
 	addr, err := url.Parse(commandLine.Args.Address)
 	if err != nil {
 		return err
 	}
-	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/allow_all"
+	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" +
+		r.Args.Direction + "/allow_all"
 
 	resp, err := sendRequest(addr, nil, http.MethodPut)
 	if err != nil {
@@ -279,7 +304,8 @@ func (r *ruleAllowAll) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusOK:
-		fmt.Fprintln(w, "The use of rule", bold(r.Args.Name), "is now unrestricted.")
+		fmt.Fprintln(w, "The use of the", r.Args.Direction, "rule", bold(r.Args.Name),
+			"is now unrestricted.")
 		return nil
 	case http.StatusNotFound:
 		return getResponseMessage(resp)

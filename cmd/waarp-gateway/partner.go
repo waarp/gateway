@@ -165,30 +165,32 @@ func (p *partnerUpdate) Execute([]string) error {
 
 type partnerAuthorize struct {
 	Args struct {
-		Partner string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
-		Rule    string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Partner   string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
+		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
 	} `positional-args:"yes"`
 }
 
 func (p *partnerAuthorize) Execute([]string) error {
 	path := admin.APIPath + rest.PartnersPath + "/" + p.Args.Partner +
-		"/authorize/" + p.Args.Rule
+		"/authorize/" + p.Args.Rule + "/" + p.Args.Direction
 
-	return authorize(path, "partner", p.Args.Partner, p.Args.Rule)
+	return authorize(path, "partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
 
 type partnerRevoke struct {
 	Args struct {
-		Partner string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
-		Rule    string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Partner   string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
+		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
 	} `positional-args:"yes"`
 }
 
 func (p *partnerRevoke) Execute([]string) error {
 	path := admin.APIPath + rest.PartnersPath + "/" + p.Args.Partner +
-		"/revoke/" + p.Args.Rule
+		"/revoke/" + p.Args.Rule + "/" + p.Args.Direction
 
-	return revoke(path, "partner", p.Args.Partner, p.Args.Rule)
+	return revoke(path, "partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }
