@@ -681,7 +681,7 @@ func (s *Session) Rollback() {
 		}
 	}()
 
-	s.logger.Debugf("Rolling back changes %v", s)
+	s.logger.Debug("Rolling back transaction changes")
 	s.session.Close()
 }
 

@@ -27,9 +27,13 @@ func init() {
 	model.ValidTasks["TESTCHECK"] = &testTaskSuccess{}
 	model.ValidTasks["TESTFAIL"] = &testTaskFail{}
 
+	//logConf := conf.LogConfig{
+	//	Level: "DEBUG",
+	//	LogTo: "stdout",
+	//}
 	logConf := conf.LogConfig{
 		Level: "DEBUG",
-		LogTo: "stdout",
+		LogTo: "/home/paolo/gw.log",
 	}
 	_ = log.InitBackend(logConf)
 }

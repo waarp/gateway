@@ -53,6 +53,7 @@ func newSftpStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	}
 	stream := &sftpStream{TransferStream: s}
 
+	s.Logger.Infof("Beginning transfer n°%d", trans.ID)
 	if te := s.Start(); te != nil {
 		pipeline.HandleError(s, te)
 		return nil, modelToSFTP(te)

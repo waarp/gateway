@@ -69,14 +69,14 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 	}
 	rule := &model.Rule{Name: ruleName, IsSend: isSend}
 	if err := db.Get(rule); err != nil {
-		infoErr = fmt.Errorf("error getting rule: %s", err)
+		infoErr = fmt.Errorf("failed to retrieve rule '%s': %s", ruleName, err)
 		return
 	}
 	ruleID = rule.ID
 
 	agent := &model.RemoteAgent{Name: agentName}
 	if err := db.Get(agent); err != nil {
-		infoErr = fmt.Errorf("error getting partner: %s", err)
+		infoErr = fmt.Errorf("failed to retrieve partner '%s': %s", agentName, err)
 		return
 	}
 	agentID = agent.ID
@@ -88,7 +88,7 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 	}
 	acc := &model.RemoteAccount{RemoteAgentID: agent.ID, Login: accName}
 	if err := db.Get(acc); err != nil {
-		infoErr = fmt.Errorf("error getting account: %s", err)
+		infoErr = fmt.Errorf("failed to retrieve account '%s': %s", accName, err)
 		return
 	}
 	accountID = acc.ID
@@ -112,7 +112,7 @@ func (t *TransferTask) Run(args map[string]string, processor *Processor) (string
 		DestFile:     filepath.Base(file),
 	}
 	if err := processor.DB.Create(trans); err != nil {
-		return err.Error(), err
+		return fmt.Sprintf("cannot create transfer of file '%s': %s", file, err), err
 	}
 	return "", nil
 }

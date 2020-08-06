@@ -27,7 +27,7 @@ func TestSFTPPackage(t *testing.T) {
 	Convey("Given a gateway root", t, func() {
 		home, err := filepath.Abs("package_test_root")
 		So(err, ShouldBeNil)
-		So(os.Mkdir(home, 0700), ShouldBeNil)
+		So(os.Mkdir(home, 0o700), ShouldBeNil)
 		Reset(func() { _ = os.RemoveAll(home) })
 
 		pathConf := conf.PathsConfig{
@@ -44,7 +44,7 @@ func TestSFTPPackage(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			root := filepath.Join(home, "sftp_root")
-			So(os.Mkdir(root, 0700), ShouldBeNil)
+			So(os.Mkdir(root, 0o700), ShouldBeNil)
 
 			db := database.GetTestDatabase()
 			localAgent := &model.LocalAgent{
@@ -216,8 +216,8 @@ func TestSFTPPackage(t *testing.T) {
 					srcFile := "sftp_test_file.src"
 					content := []byte("SFTP package test file content")
 					srcFilepath := filepath.Join(home, send.OutPath, srcFile)
-					So(os.MkdirAll(filepath.Dir(srcFilepath), 0700), ShouldBeNil)
-					So(ioutil.WriteFile(srcFilepath, content, 0600), ShouldBeNil)
+					So(os.MkdirAll(filepath.Dir(srcFilepath), 0o700), ShouldBeNil)
+					So(ioutil.WriteFile(srcFilepath, content, 0o600), ShouldBeNil)
 
 					trans := model.Transfer{
 						RuleID:     send.ID,
@@ -272,7 +272,8 @@ func TestSFTPPackage(t *testing.T) {
 									So(db.Select(&transfers, nil), ShouldBeNil)
 									So(transfers, ShouldBeEmpty)
 
-									Convey("Then there should be a server-side history entry", func() {
+									Convey("Then there should be a server-side "+
+										"history entry", func() {
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -285,7 +286,7 @@ func TestSFTPPackage(t *testing.T) {
 											Account:        localAccount.Login,
 											Agent:          localAgent.Name,
 											Protocol:       "sftp",
-											SourceFilename: ".",
+											SourceFilename: trans.DestFile,
 											DestFilename:   trans.DestFile,
 											Rule:           receive.Name,
 											Start:          results[0].Start,
@@ -298,7 +299,8 @@ func TestSFTPPackage(t *testing.T) {
 										So(results[0], ShouldResemble, expected)
 									})
 
-									Convey("Then there should be a client-side history entry", func() {
+									Convey("Then there should be a client-side "+
+										"history entry", func() {
 										var hist []model.TransferHistory
 										So(db.Select(&hist, nil), ShouldBeNil)
 										So(len(hist), ShouldEqual, 2)
@@ -363,7 +365,6 @@ func TestSFTPPackage(t *testing.T) {
 
 									Convey("Then there should be a server-side "+
 										"history entry in error", func() {
-
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -376,7 +377,7 @@ func TestSFTPPackage(t *testing.T) {
 											Account:        localAccount.Login,
 											Agent:          localAgent.Name,
 											Protocol:       "sftp",
-											SourceFilename: ".",
+											SourceFilename: trans.DestFile,
 											DestFilename:   trans.DestFile,
 											Rule:           receive.Name,
 											Start:          results[0].Start,
@@ -468,7 +469,6 @@ func TestSFTPPackage(t *testing.T) {
 
 									Convey("Then there should be a server-side "+
 										"history entry in error", func() {
-
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -481,7 +481,7 @@ func TestSFTPPackage(t *testing.T) {
 											Account:        localAccount.Login,
 											Agent:          localAgent.Name,
 											Protocol:       "sftp",
-											SourceFilename: ".",
+											SourceFilename: trans.DestFile,
 											DestFilename:   trans.DestFile,
 											Rule:           receive.Name,
 											Start:          results[0].Start,
@@ -501,7 +501,6 @@ func TestSFTPPackage(t *testing.T) {
 
 									Convey("Then there should be a client-side"+
 										"history entry in error", func() {
-
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -577,7 +576,6 @@ func TestSFTPPackage(t *testing.T) {
 
 									Convey("Then there should be a server-side "+
 										"history entry in error", func() {
-
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -590,7 +588,7 @@ func TestSFTPPackage(t *testing.T) {
 											Account:        localAccount.Login,
 											Agent:          localAgent.Name,
 											Protocol:       "sftp",
-											SourceFilename: ".",
+											SourceFilename: trans.DestFile,
 											DestFilename:   trans.DestFile,
 											Rule:           receive.Name,
 											Start:          results[0].Start,
@@ -685,7 +683,6 @@ func TestSFTPPackage(t *testing.T) {
 
 									Convey("Then there should be a server-side "+
 										"history entry in error", func() {
-
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)
@@ -698,7 +695,7 @@ func TestSFTPPackage(t *testing.T) {
 											Account:        localAccount.Login,
 											Agent:          localAgent.Name,
 											Protocol:       "sftp",
-											SourceFilename: ".",
+											SourceFilename: trans.DestFile,
 											DestFilename:   trans.DestFile,
 											Rule:           receive.Name,
 											Start:          results[0].Start,
@@ -718,7 +715,6 @@ func TestSFTPPackage(t *testing.T) {
 
 									Convey("Then there should be a client-side "+
 										"history entry in error", func() {
-
 										var results []model.TransferHistory
 										So(db.Select(&results, nil), ShouldBeNil)
 										So(len(results), ShouldEqual, 2)

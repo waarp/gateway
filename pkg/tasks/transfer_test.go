@@ -135,8 +135,8 @@ func TestTransferRun(t *testing.T) {
 
 						Convey("Then the log message should say that the 'to' "+
 							"parameter is invalid", func() {
-							So(msg, ShouldEqual, "error getting partner: the "+
-								"record does not exist")
+							So(msg, ShouldEqual, "failed to retrieve partner '"+
+								args["to"]+"': the record does not exist")
 						})
 					})
 				})
@@ -153,8 +153,8 @@ func TestTransferRun(t *testing.T) {
 
 						Convey("Then the log message should say that the 'as' "+
 							"parameter is invalid", func() {
-							So(msg, ShouldEqual, "error getting account: the "+
-								"record does not exist")
+							So(msg, ShouldEqual, "failed to retrieve account '"+
+								args["as"]+"': the record does not exist")
 						})
 					})
 				})
@@ -171,8 +171,8 @@ func TestTransferRun(t *testing.T) {
 
 						Convey("Then the log message should say that the 'rule' "+
 							"parameter is invalid", func() {
-							So(msg, ShouldEqual, "error getting rule: the "+
-								"record does not exist")
+							So(msg, ShouldEqual, "failed to retrieve rule '"+
+								args["rule"]+"': the record does not exist")
 						})
 					})
 				})

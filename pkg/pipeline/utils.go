@@ -42,7 +42,9 @@ func checkSignal(ctx context.Context, ch <-chan model.Signal) *model.PipelineErr
 	}
 }
 
-func createTransfer(logger *log.Logger, db *database.DB, trans *model.Transfer) *model.PipelineError {
+func createTransfer(logger *log.Logger, db *database.DB,
+	trans *model.Transfer) *model.PipelineError {
+
 	if err := db.Create(trans); err != nil {
 		if _, ok := err.(*database.ErrInvalid); ok {
 			logger.Errorf("Failed to create transfer entry: %s", err.Error())
@@ -51,6 +53,8 @@ func createTransfer(logger *log.Logger, db *database.DB, trans *model.Transfer) 
 		logger.Criticalf("Failed to create transfer entry: %s", err.Error())
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
+	logger.Infof("Transfer was given the ID %d", trans.ID)
+	*logger = *log.NewLogger(fmt.Sprintf("transfer %d", trans.ID))
 	return nil
 }
 

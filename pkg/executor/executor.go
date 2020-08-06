@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os/exec"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 )
@@ -18,10 +19,8 @@ import (
 // function in order to be called by the transfer executor.
 type ClientConstructor func(model.OutTransferInfo, <-chan model.Signal) (pipeline.Client, error)
 
-var (
-	// ClientsConstructors is a map associating a protocol to its client constructor.
-	ClientsConstructors = map[string]ClientConstructor{}
-)
+// ClientsConstructors is a map associating a protocol to its client constructor.
+var ClientsConstructors = map[string]ClientConstructor{}
 
 // Executor is the process responsible for executing outgoing transfers.
 type Executor struct {
@@ -34,15 +33,14 @@ type Executor struct {
 func (e *Executor) getClient(stream *pipeline.TransferStream) (te *model.PipelineError) {
 	info, err := model.NewOutTransferInfo(e.DB, stream.Transfer)
 	if err != nil {
-		msg := fmt.Sprintf("Failed to retrieve transfer info: %s", err)
-		e.Logger.Critical(msg)
+		e.Logger.Criticalf("Failed to retrieve transfer info: %s", err)
 		te = &model.PipelineError{Kind: model.KindDatabase}
 		return
 	}
 
 	constr, ok := ClientsConstructors[info.Agent.Protocol]
 	if !ok {
-		msg := "Unknown transfer protocol"
+		msg := fmt.Sprintf("Unknown transfer protocol '%s'", info.Agent.Protocol)
 		e.Logger.Critical(msg)
 		te = model.NewPipelineError(model.TeConnection, msg)
 		return
@@ -59,21 +57,19 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) (te *model.Pipelin
 }
 
 func (e *Executor) prologue() *model.PipelineError {
+	e.Logger.Info("Sending transfer request to remote server '%s'")
 	if err := e.client.Connect(); err != nil {
-		msg := fmt.Sprintf("Failed to connect to remote agent: %s", err)
-		e.Logger.Error(msg)
+		e.Logger.Errorf("Failed to connect to remote server: %s", err)
 		return err
 	}
 
 	if err := e.client.Authenticate(); err != nil {
-		msg := fmt.Sprintf("Failed to authenticate on remote agent: %s", err)
-		e.Logger.Error(msg)
+		e.Logger.Errorf("Failed to authenticate on remote server: %s", err)
 		return err
 	}
 
 	if err := e.client.Request(); err != nil {
-		msg := fmt.Sprintf("Failed to make transfer request: %s", err)
-		e.Logger.Error(msg)
+		e.Logger.Errorf("Failed to make transfer request: %s", err)
 		if err.Cause.Code == model.TeExternalOperation {
 			e.TransferStream.Transfer.Step = model.StepPreTasks
 		}
@@ -84,6 +80,7 @@ func (e *Executor) prologue() *model.PipelineError {
 }
 
 func (e *Executor) data() *model.PipelineError {
+	e.Logger.Info("Starting data transfer")
 	if e.TransferStream.Transfer.Step != model.StepPreTasks &&
 		e.TransferStream.Transfer.Step != model.StepData {
 		return nil
@@ -102,17 +99,31 @@ func (e *Executor) data() *model.PipelineError {
 	return nil
 }
 
+func logTrans(logger *log.Logger, info *model.OutTransferInfo) {
+	if info.Rule.IsSend {
+		logger.Infof("Starting %s upload of file '%s' to partner '%s' as '%s' using rule '%s'",
+			info.Agent.Protocol, info.Transfer.SourceFile, info.Agent.Name,
+			info.Account.Login, info.Rule.Name)
+	} else {
+		logger.Infof("Starting %s download of file '%s' from partner '%s' as '%s' using rule '%s'",
+			info.Agent.Protocol, info.Transfer.SourceFile, info.Agent.Name,
+			info.Account.Login, info.Rule.Name)
+	}
+}
+
 // Run executes the transfer stream given in the executor.
 func (e *Executor) Run() {
+	e.Logger.Infof("Processing transfer n°%d", e.Transfer.ID)
+
 	var tErr *model.PipelineError
 	info, err := model.NewOutTransferInfo(e.DB, e.Transfer)
 	if err != nil {
-		msg := fmt.Sprintf("Failed to retrieve transfer info: %s", err)
-		e.Logger.Critical(msg)
+		e.Logger.Criticalf("Failed to retrieve transfer info: %s", err)
 		tErr = &model.PipelineError{Kind: model.KindDatabase}
 		pipeline.HandleError(e.TransferStream, tErr)
 		return
 	}
+	logTrans(e.Logger, info)
 	if info.Agent.Protocol == "r66" {
 		e.runR66(info)
 		return
@@ -159,6 +170,7 @@ func (e *Executor) Run() {
 	if tErr != nil {
 		pipeline.HandleError(e.TransferStream, tErr)
 	}
+	e.Logger.Infof("Transfer n°%d finished without errors", e.Transfer.ID)
 }
 
 func (e *Executor) runR66(info *model.OutTransferInfo) {
@@ -174,7 +186,7 @@ func (e *Executor) runR66(info *model.OutTransferInfo) {
 }
 
 func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {
-
+	e.Logger.Infof("Delegating R66 transfer n°%d to external server", e.Transfer.ID)
 	script := e.R66Home
 	args := []string{
 		info.Account.Login,
@@ -183,7 +195,7 @@ func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {
 		"-file", info.Transfer.SourceFile,
 		"-rule", info.Rule.Name,
 	}
-	e.Logger.Infof("%s %#v", script, args)
+	e.Logger.Debugf("%s %#v", script, args)
 	cmd := exec.Command(script, args...) //nolint:gosec
 	out, err := cmd.Output()
 	if err != nil {

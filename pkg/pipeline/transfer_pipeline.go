@@ -25,6 +25,7 @@ type Pipeline struct {
 // PreTasks executes the transfer's pre-tasks. It returns an error if the
 // execution fails.
 func (p *Pipeline) PreTasks() *model.PipelineError {
+	p.Logger.Info("Executing pre-tasks")
 	if p.Transfer.Step == model.StepSetup || p.Transfer.Step == model.StepPreTasks {
 		return execTasks(p.proc, model.ChainPre, model.StepPreTasks)
 	}
@@ -34,6 +35,7 @@ func (p *Pipeline) PreTasks() *model.PipelineError {
 // PostTasks executes the transfer's post-tasks. It returns an error if the
 // execution fails.
 func (p *Pipeline) PostTasks() *model.PipelineError {
+	p.Logger.Info("Executing post-tasks")
 	p.Transfer.Progress = 0
 	if err := p.Transfer.Update(p.DB); err != nil {
 		p.Logger.Errorf("Failed to update transfer progress: %s", err.Error())
@@ -49,6 +51,7 @@ func (p *Pipeline) PostTasks() *model.PipelineError {
 // ErrorTasks updates the transfer's error in the database with the given one,
 // and then executes the transfer's error-tasks.
 func (p *Pipeline) ErrorTasks() {
+	p.Logger.Info("Executing error tasks")
 	if p.Transfer.Step == model.StepFinalization {
 		return
 	}
@@ -62,6 +65,7 @@ func (p *Pipeline) ErrorTasks() {
 
 // Archive deletes the transfer entry and saves it in the history.
 func (p *Pipeline) Archive() {
+	p.Logger.Info("Archiving transfer")
 	_ = ToHistory(p.DB, p.Logger, p.Transfer)
 }
 
