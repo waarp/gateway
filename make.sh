@@ -83,6 +83,8 @@ and Windows (32 and 64 bits).
 Warning:
   It needs a gcc compiler for linux 32bits (in archlinux, the package
   "lib32-gcc") and for Windows ()
+
+
 EOW
   
   mkdir -p build
@@ -90,6 +92,13 @@ EOW
   GOOS=linux GOARCH=386 build_static_binaries
 }
 
+t_package() {
+  rm -rf build
+  t_build_dist
+  ./build/waarp-gatewayd_linux_amd64 server -c build/waarp-gatewayd.ini -n
+  nfpm pkg -p rpm
+  nfpm pkg -p deb
+}
 
 t_usage() {
     echo "Usage $0 [ACTION]"
@@ -98,6 +107,7 @@ t_usage() {
     echo ""
     echo "  build       Builds binaries"
     echo "  build dist  Builds binaries for distribution"
+    echo "  package     Generates packages"
     echo "  check       Run static analysis"
     echo "  test        Run tests"
     echo "  test watch  Starts convey to watch code and run tests when"
@@ -125,6 +135,10 @@ case $ACTION in
             t_build
             ;;
         esac
+      ;;
+
+    package)
+      t_package
       ;;
 
     check)
