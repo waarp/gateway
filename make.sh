@@ -56,11 +56,48 @@ t_doc_watch() {
     .venv/bin/sphinx-autobuild -p 8082 source/ build/html/
 }
 
+t_build() {
+  mkdir -p build
+  go build -o build/waarp-gateway ./cmd/waarp-gateway
+  go build -o build/waarp-gatewayd ./cmd/waarp-gatewayd
+}
+
+build_static_binaries() {
+  echo "==> building for $GOOS/$GOARCH"
+
+  CGO_ENABLED=1 go build -ldflags '-s -w -extldflags "-fno-PIC -static"' \
+    -buildmode pie \
+    -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
+    -o "build/waarp-gateway_${GOOS}_${GOARCH}" ./cmd/waarp-gateway
+  CGO_ENABLED=1 go build -ldflags '-s -w -extldflags "-fno-PIC -static"' \
+    -buildmode pie \
+    -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
+    -o "build/waarp-gatewayd_${GOOS}_${GOARCH}" ./cmd/waarp-gatewayd
+}
+
+t_build_dist() {
+  cat <<EOW
+This procedure will build static stripped binaries for Linux (32 and 64 bits)
+and Windows (32 and 64 bits).
+
+Warning:
+  It needs a gcc compiler for linux 32bits (in archlinux, the package
+  "lib32-gcc") and for Windows ()
+EOW
+  
+  mkdir -p build
+  GOOS=linux GOARCH=amd64 build_static_binaries
+  GOOS=linux GOARCH=386 build_static_binaries
+}
+
+
 t_usage() {
     echo "Usage $0 [ACTION]"
     echo ""
     echo "Available actions"
     echo ""
+    echo "  build       Builds binaries"
+    echo "  build dist  Builds binaries for distribution"
     echo "  check       Run static analysis"
     echo "  test        Run tests"
     echo "  test watch  Starts convey to watch code and run tests when"
@@ -76,6 +113,20 @@ t_usage() {
 #####################################################################
 
 case $ACTION in
+    build)
+        SUB=$1
+        case $SUB in
+          dist)
+            shift
+            t_build_dist
+            ;;
+
+          *)
+            t_build
+            ;;
+        esac
+      ;;
+
     check)
         t_check
         ;;
