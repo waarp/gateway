@@ -90,7 +90,7 @@ func TestExecutorRun(t *testing.T) {
 
 			Convey("Given an executor", func() {
 				stream, err := pipeline.NewTransferStream(context.Background(),
-					logger, db, paths, *trans)
+					logger, db, paths, trans)
 				So(err, ShouldBeNil)
 				exe := &Executor{TransferStream: stream}
 
@@ -508,7 +508,7 @@ func TestTransferResume(t *testing.T) {
 
 			Convey("When starting the transfer", func() {
 				stream, err := pipeline.NewTransferStream(context.Background(),
-					logger, db, paths, *trans)
+					logger, db, paths, trans)
 				So(err, ShouldBeNil)
 				exe := &Executor{
 					TransferStream: stream,
@@ -578,7 +578,7 @@ func TestTransferResume(t *testing.T) {
 
 			Convey("When starting the transfer", func() {
 				stream, err := pipeline.NewTransferStream(context.Background(),
-					logger, db, paths, *trans)
+					logger, db, paths, trans)
 				So(err, ShouldBeNil)
 				exe := &Executor{TransferStream: stream}
 
@@ -662,7 +662,7 @@ func TestTransferResume(t *testing.T) {
 
 			Convey("When starting the transfer", func() {
 				stream, err := pipeline.NewTransferStream(context.Background(),
-					logger, db, paths, *trans)
+					logger, db, paths, trans)
 				So(err, ShouldBeNil)
 				exe := &Executor{TransferStream: stream}
 

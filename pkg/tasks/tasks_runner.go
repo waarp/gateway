@@ -82,7 +82,7 @@ func (p *Processor) runTask(task model.Task, taskInfo string) *model.PipelineErr
 		p.Logger.Warningf("Failed to update task number: %s", err.Error())
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
-	p.Logger.Info(logMsg)
+	p.Logger.Debug(logMsg)
 	return nil
 }
 

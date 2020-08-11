@@ -237,7 +237,7 @@ func TestSFTPPackage(t *testing.T) {
 
 						paths := pipeline.Paths{PathsConfig: pathConf}
 						stream, err := pipeline.NewTransferStream(ctx, logger,
-							db, paths, trans)
+							db, paths, &trans)
 						So(err, ShouldBeNil)
 
 						exe := executor.Executor{

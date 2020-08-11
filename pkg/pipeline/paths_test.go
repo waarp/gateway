@@ -121,7 +121,7 @@ func TestPathIn(t *testing.T) {
 
 					Convey("When launching a transfer stream", func() {
 						stream, err := NewTransferStream(context.Background(),
-							logger, db, paths, trans)
+							logger, db, paths, &trans)
 						So(err, ShouldBeNil)
 						Reset(func() { _ = stream.Close() })
 
@@ -211,7 +211,7 @@ func TestPathOut(t *testing.T) {
 					So(ioutil.WriteFile(path, nil, 0o700), ShouldBeNil)
 
 					stream, err := NewTransferStream(context.Background(),
-						logger, db, paths, trans)
+						logger, db, paths, &trans)
 					So(err, ShouldBeNil)
 					Reset(func() { _ = stream.Close() })
 

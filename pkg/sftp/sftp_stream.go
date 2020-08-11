@@ -47,7 +47,7 @@ func modelToSFTP(err error) error {
 func newSftpStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	paths pipeline.Paths, trans model.Transfer) (*sftpStream, error) {
 
-	s, err := pipeline.NewTransferStream(ctx, logger, db, paths, trans)
+	s, err := pipeline.NewTransferStream(ctx, logger, db, paths, &trans)
 	if err != nil {
 		return nil, modelToSFTP(err)
 	}
