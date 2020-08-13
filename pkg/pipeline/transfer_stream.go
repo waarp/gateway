@@ -53,6 +53,7 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 			return nil, err
 		}
 	}
+	t.Logger = log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 
 	t.Pipeline.Rule = &model.Rule{ID: trans.RuleID}
 	if err := t.DB.Get(t.Rule); err != nil {
@@ -96,7 +97,6 @@ func (t *TransferStream) createTransfer(trans *model.Transfer) *model.PipelineEr
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 	t.Logger.Infof("Transfer was given ID n°%d", trans.ID)
-	t.Logger = log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 	return nil
 }
 
