@@ -35,10 +35,23 @@ files:
   ./build/waarp-gatewayd_linux_amd64: "/usr/bin/waarp-gatewayd"
 config_files:
   ./build/waarp-gatewayd.ini: "/etc/waarp-gateway/waarp-gatewayd.ini"
+empty_folders:
+- /var/lib/waarp-gateway/in
+- /var/lib/waarp-gateway/out
+- /var/lib/waarp-gateway/work
+- /var/lib/waarp-gateway/db
+scripts:
+  preinstall: dist/preinst.sh
+  postinstall: dist/postinst.sh
 #symlinks:
 #  /sbin/foo: "/usr/local/bin/foo"
-#overrides:
-#  rpm:
+overrides:
+  rpm:
+    files:
+      dist/waarp-gatewayd.service: /usr/lib/systemd/system/waarp-gatewayd.service
+  deb:
+    files:
+      dist/waarp-gatewayd.service: /lib/systemd/system/waarp-gatewayd.service
 #    scripts:
 #      preinstall: ./scripts/preinstall.sh
 #      postremove: ./scripts/postremove.sh
