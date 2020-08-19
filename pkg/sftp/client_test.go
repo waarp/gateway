@@ -252,7 +252,6 @@ func TestData(t *testing.T) {
 
 			client.Info.Rule = &model.Rule{
 				IsSend: true,
-				Path:   ".",
 			}
 			So(client.Request(), ShouldBeNil)
 			Reset(func() {

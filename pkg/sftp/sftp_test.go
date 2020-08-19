@@ -88,7 +88,7 @@ func TestSFTPPackage(t *testing.T) {
 				Name:     "receive",
 				Comment:  "",
 				IsSend:   false,
-				Path:     "rule_path",
+				Path:     "receive_path",
 				InPath:   "receive/in",
 				OutPath:  "receive/out",
 				WorkPath: "receive/work",
@@ -181,8 +181,8 @@ func TestSFTPPackage(t *testing.T) {
 					Name:    "send",
 					Comment: "",
 					IsSend:  true,
-					Path:    "rule_path",
-					InPath:  "send/in",
+					Path:    "send_path",
+					InPath:  receive.Path,
 					OutPath: "send/out",
 				}
 				So(db.Create(send), ShouldBeNil)
