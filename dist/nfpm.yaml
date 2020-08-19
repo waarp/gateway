@@ -1,0 +1,61 @@
+# nfpm example config file
+#
+# check https://nfpm.goreleaser.com/configuration for detailed usage
+#
+name: "waarp-gateway"
+arch: "amd64"
+platform: "linux"
+version: "v0.1.0-1"
+section: "default"
+priority: "extra"
+#replaces:
+#- foobar
+#provides:
+#- bar
+#depends:
+#- foo
+#- bar
+#recommends:
+#- whatever
+#suggests:
+#- something-else
+#conflicts:
+#- not-foo
+#- not-bar
+maintainer: "Waarp <dev@waarp.org>"
+description: |
+  Waarp Gateway is a gateway that provides protocol break and protocol
+  interoperability
+vendor: "Waarp"
+homepage: "http://www.waarp.fr"
+#license: "MIT"
+#changelog: "changelog.yaml"
+files:
+  ./build/waarp-gateway_linux_amd64: "/usr/bin/waarp-gateway"
+  ./build/waarp-gatewayd_linux_amd64: "/usr/bin/waarp-gatewayd"
+config_files:
+  ./build/waarp-gatewayd.ini: "/etc/waarp-gateway/waarp-gatewayd.ini"
+empty_folders:
+- /var/lib/waarp-gateway/in
+- /var/lib/waarp-gateway/out
+- /var/lib/waarp-gateway/work
+- /var/lib/waarp-gateway/db
+scripts:
+  preinstall: dist/preinst.sh
+  postinstall: dist/postinst.sh
+#symlinks:
+#  /sbin/foo: "/usr/local/bin/foo"
+overrides:
+  rpm:
+    files:
+      dist/waarp-gatewayd.service: /usr/lib/systemd/system/waarp-gatewayd.service
+  deb:
+    files:
+      dist/waarp-gatewayd.service: /lib/systemd/system/waarp-gatewayd.service
+#    scripts:
+#      preinstall: ./scripts/preinstall.sh
+#      postremove: ./scripts/postremove.sh
+#  deb:
+#    scripts:
+#      postinstall: ./scripts/postinstall.sh
+#      preremove: ./scripts/preremove.sh

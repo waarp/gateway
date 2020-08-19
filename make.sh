@@ -8,16 +8,18 @@ shift
 #####################################################################
 
 t_test() {
-    go test $@ ./cmd/... ./pkg/...
+    go test "$@" ./cmd/... ./pkg/...
 }
 
 t_check() {
-    local CI_VERSION=$(grep GOLANGCI_LINT_VERSION .gitlab-ci.yml | head -n 1 | cut -d' ' -f4)
+    local CI_VERSION
+    CI_VERSION=$(grep GOLANGCI_LINT_VERSION .gitlab-ci.yml | head -n 1 | cut -d' ' -f4)
+
     if ! $(which golangci-lint >/dev/null 2>&1); then
         echo "golangci-lint cannot be found. Please, install it and re-run checks"
         return 1
     fi
-    if ! $(golangci-lint --version | grep $CI_VERSION >/dev/null 2>&1); then
+    if ! $(golangci-lint --version | grep "$CI_VERSION" >/dev/null 2>&1); then
         echo "***********************************************"
         echo "WARNING"
         echo "***********************************************"
@@ -42,16 +44,16 @@ t_check() {
 }
 
 t_test_watch() {
-    goconvey -launchBrowser=false -port=8081 -excludedDirs=doc $@
+    goconvey -launchBrowser=false -port=8081 -excludedDirs=doc "$@"
 }
 
 t_doc() {
-    cd doc
+    cd doc || return 2
     .venv/bin/sphinx-build source/ build/html/
 }
 
 t_doc_watch() {
-    cd doc
+    cd doc || return 2
     . .venv/bin/activate
     .venv/bin/sphinx-autobuild -p 8082 source/ build/html/
 }
@@ -83,6 +85,8 @@ and Windows (32 and 64 bits).
 Warning:
   It needs a gcc compiler for linux 32bits (in archlinux, the package
   "lib32-gcc") and for Windows ()
+
+
 EOW
   
   mkdir -p build
@@ -90,6 +94,22 @@ EOW
   GOOS=linux GOARCH=386 build_static_binaries
 }
 
+t_package() {
+  rm -rf build
+  t_build_dist
+  ./build/waarp-gatewayd_linux_amd64 server -c build/waarp-gatewayd.ini -n
+
+  # pre-configure the service
+  sed -i \
+    -e "s|; \(GatewayHome =\)|\1 /var/lib/waarp-gateway|" \
+    -e "s|; \(Address =\) |\1 /var/lib/waarp-gateway/db/|" \
+    -e "s|; \(AESPassphrase =\) |\1 /etc/waarp-gateway/|" \
+    build/waarp-gatewayd.ini
+
+  # build the packages
+  nfpm pkg -p rpm -f dist/nfpm.yaml --target build/
+  nfpm pkg -p deb -f dist/nfpm.yaml --target build/
+}
 
 t_usage() {
     echo "Usage $0 [ACTION]"
@@ -98,6 +118,7 @@ t_usage() {
     echo ""
     echo "  build       Builds binaries"
     echo "  build dist  Builds binaries for distribution"
+    echo "  package     Generates packages"
     echo "  check       Run static analysis"
     echo "  test        Run tests"
     echo "  test watch  Starts convey to watch code and run tests when"
@@ -127,6 +148,10 @@ case $ACTION in
         esac
       ;;
 
+    package)
+      t_package
+      ;;
+
     check)
         t_check
         ;;
@@ -136,10 +161,10 @@ case $ACTION in
         case $SUB in
             watch)
                 shift
-                t_test_watch $@
+                t_test_watch "$@"
                 ;;
             *)
-                t_test $@
+                t_test "$@"
                 ;;
         esac
         ;;
@@ -149,10 +174,10 @@ case $ACTION in
         case $SUB in
             watch)
                 shift
-                t_doc_watch $@
+                t_doc_watch "$@"
                 ;;
             *)
-                t_doc $@
+                t_doc "$@"
                 ;;
         esac
         ;;

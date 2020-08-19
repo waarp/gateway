@@ -1,0 +1,14 @@
+[Unit]
+Description=Waarp Gateway server
+
+[Service]
+Type=simple
+User=waarp
+Group=waarp
+ExecStart=/usr/bin/waarp-gatewayd server -c /etc/waarp-gateway/waarp-gatewayd.ini
+Restart=on-failure
+User=waarp
+
+[Install]
+WantedBy=multi-user.target
+
