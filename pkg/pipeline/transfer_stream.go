@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 
@@ -24,7 +25,7 @@ type TransferStream struct {
 // NewTransferStream initialises a new stream for the given transfer. This stream
 // can then be used to execute a transfer.
 func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
-	paths Paths, trans model.Transfer) (*TransferStream, error) {
+	paths Paths, trans *model.Transfer) (*TransferStream, error) {
 	if trans.IsServer {
 		if err := TransferInCount.add(); err != nil {
 			logger.Error("Incoming transfer limit reached")
@@ -37,21 +38,22 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 		}
 	}
 
-	if trans.ID == 0 {
-		if err := createTransfer(logger, db, &trans); err != nil {
-			return nil, err
-		}
-	}
-
 	t := &TransferStream{
 		Pipeline: &Pipeline{
 			DB:       db,
 			Logger:   logger,
-			Transfer: &trans,
+			Transfer: trans,
 			Ctx:      ctx,
 		},
 		Paths: paths,
 	}
+
+	if trans.ID == 0 {
+		if err := t.createTransfer(trans); err != nil {
+			return nil, err
+		}
+	}
+	t.Logger = log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 
 	t.Pipeline.Rule = &model.Rule{ID: trans.RuleID}
 	if err := t.DB.Get(t.Rule); err != nil {
@@ -82,6 +84,20 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 		return nil, err
 	}
 	return t, nil
+}
+
+func (t *TransferStream) createTransfer(trans *model.Transfer) *model.PipelineError {
+
+	if err := t.DB.Create(trans); err != nil {
+		if _, ok := err.(*database.ErrInvalid); ok {
+			t.Logger.Errorf("Failed to create transfer entry: %s", err.Error())
+			return model.NewPipelineError(model.TeForbidden, err.Error())
+		}
+		t.Logger.Criticalf("Failed to create transfer entry: %s", err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
+	}
+	t.Logger.Infof("Transfer was given ID n°%d", trans.ID)
+	return nil
 }
 
 func (t *TransferStream) setTrueFilepath() *model.PipelineError {

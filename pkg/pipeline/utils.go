@@ -42,22 +42,6 @@ func checkSignal(ctx context.Context, ch <-chan model.Signal) *model.PipelineErr
 	}
 }
 
-func createTransfer(logger *log.Logger, db *database.DB,
-	trans *model.Transfer) *model.PipelineError {
-
-	if err := db.Create(trans); err != nil {
-		if _, ok := err.(*database.ErrInvalid); ok {
-			logger.Errorf("Failed to create transfer entry: %s", err.Error())
-			return model.NewPipelineError(model.TeForbidden, err.Error())
-		}
-		logger.Criticalf("Failed to create transfer entry: %s", err.Error())
-		return &model.PipelineError{Kind: model.KindDatabase}
-	}
-	logger.Infof("Transfer was given the ID %d", trans.ID)
-	*logger = *log.NewLogger(fmt.Sprintf("transfer %d", trans.ID))
-	return nil
-}
-
 // ToHistory removes the given transfer from the database, converts it into a
 // history entry, and inserts the new history entry in the database.
 // If any of these steps fails, the changes are reverted and an error is returned.

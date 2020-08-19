@@ -57,7 +57,7 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) (te *model.Pipelin
 }
 
 func (e *Executor) prologue() *model.PipelineError {
-	e.Logger.Info("Sending transfer request to remote server '%s'")
+	e.Logger.Info("Sending transfer request to remote server")
 	if err := e.client.Connect(); err != nil {
 		e.Logger.Errorf("Failed to connect to remote server: %s", err)
 		return err
@@ -169,8 +169,10 @@ func (e *Executor) Run() {
 
 	if tErr != nil {
 		pipeline.HandleError(e.TransferStream, tErr)
+		e.Logger.Errorf("Execution finished with error code '%s'", tErr.Cause.Code)
+	} else {
+		e.Logger.Info("Execution finished without errors")
 	}
-	e.Logger.Infof("Transfer n°%d finished without errors", e.Transfer.ID)
 }
 
 func (e *Executor) runR66(info *model.OutTransferInfo) {

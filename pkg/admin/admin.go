@@ -86,6 +86,7 @@ func initServer(s *Server) error {
 			return fmt.Errorf("could not load REST certificate (%s)", err)
 		}
 		tlsConfig = &tls.Config{
+			MinVersion:   tls.VersionTLS12,
 			Certificates: []tls.Certificate{cert},
 		}
 	} else {

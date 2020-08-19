@@ -71,7 +71,7 @@ func TestNewTransferStream(t *testing.T) {
 
 			Convey("When creating a new transfer stream", func() {
 				stream, err := NewTransferStream(context.Background(), logger,
-					db, paths, trans)
+					db, paths, &trans)
 				So(err, ShouldBeNil)
 
 				Convey("Then it should  return a new transfer stream", func() {
@@ -87,7 +87,7 @@ func TestNewTransferStream(t *testing.T) {
 
 			Convey("When creating a new transfer stream", func() {
 				_, err := NewTransferStream(context.Background(), logger, db,
-					paths, trans)
+					paths, &trans)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError, ErrLimitReached)
@@ -166,7 +166,7 @@ func TestStreamRead(t *testing.T) {
 			}
 			So(db.Create(trans), ShouldBeNil)
 
-			stream, tErr := NewTransferStream(context.Background(), logger, db, paths, *trans)
+			stream, tErr := NewTransferStream(context.Background(), logger, db, paths, trans)
 			So(tErr, ShouldBeNil)
 			Reset(func() { _ = stream.Close() })
 
@@ -293,7 +293,7 @@ func TestStreamWrite(t *testing.T) {
 			}
 			So(db.Create(trans), ShouldBeNil)
 
-			stream, tErr := NewTransferStream(context.Background(), logger, db, paths, *trans)
+			stream, tErr := NewTransferStream(context.Background(), logger, db, paths, trans)
 			So(tErr, ShouldBeNil)
 			Reset(func() { _ = stream.Close() })
 

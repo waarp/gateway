@@ -5,7 +5,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -124,9 +123,8 @@ func (c *Controller) startNewTransfers() {
 
 func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, error) {
 	paths := pipeline.Paths{PathsConfig: c.Conf.Paths}
-	logger := log.NewLogger(fmt.Sprintf("transfer %d", trans.ID))
 
-	stream, err := pipeline.NewTransferStream(c.ctx, logger, c.DB, paths, trans)
+	stream, err := pipeline.NewTransferStream(c.ctx, c.logger, c.DB, paths, &trans)
 	if err != nil {
 		c.logger.Errorf("Failed to create transfer stream: %s", err.Error())
 		return nil, err

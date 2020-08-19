@@ -33,6 +33,7 @@ func mysqlDSN(config conf.DatabaseConfig) string {
 	if config.TLSCert != "" && config.TLSKey != "" {
 		cert, _ := tls.LoadX509KeyPair(config.TLSCert, config.TLSKey)
 		tlsConf := &tls.Config{
+			MinVersion:   tls.VersionTLS12,
 			Certificates: []tls.Certificate{cert},
 		}
 		_ = msql.RegisterTLSConfig("db", tlsConf)

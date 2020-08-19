@@ -65,7 +65,7 @@ func (p *Pipeline) ErrorTasks() {
 
 // Archive deletes the transfer entry and saves it in the history.
 func (p *Pipeline) Archive() {
-	p.Logger.Info("Archiving transfer")
+	p.Logger.Info("Transfer finished, saving into transfer history")
 	_ = ToHistory(p.DB, p.Logger, p.Transfer)
 }
 
