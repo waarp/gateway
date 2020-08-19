@@ -89,8 +89,8 @@ func (c *Client) Authenticate() *model.PipelineError {
 func (c *Client) Request() *model.PipelineError {
 	var err error
 	if c.Info.Rule.IsSend {
-		filepath := path.Join(c.Info.Rule.Path, c.Info.Transfer.DestFile)
-		c.remoteFile, err = c.client.Create(filepath)
+		remotePath := path.Join(c.Info.Rule.InPath, c.Info.Transfer.DestFile)
+		c.remoteFile, err = c.client.Create(remotePath)
 		if err != nil {
 			if msg, ok := isRemoteTaskError(err); ok {
 				fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
@@ -102,7 +102,8 @@ func (c *Client) Request() *model.PipelineError {
 			return model.NewPipelineError(model.TeConnection, err.Error())
 		}
 	} else {
-		c.remoteFile, err = c.client.Open(c.Info.Transfer.SourceFile)
+		remotePath := path.Join(c.Info.Rule.OutPath, c.Info.Transfer.SourceFile)
+		c.remoteFile, err = c.client.Open(remotePath)
 		if err != nil {
 			if msg, ok := isRemoteTaskError(err); ok {
 				fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
