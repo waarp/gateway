@@ -40,8 +40,8 @@ Base de données
 
    Pour fonctionner, la *gateway* Waarp nécessite une base de donnée. Par défaut,
    la *gateway* utilise une base embarquée SQLite stockée dans un fichier.
-   Dans ce cas de figure, aucune action n'est requise, au lancement de la *gateway*,
-   le fichier base de données sera automatiquement créé.
+   Dans ce cas de figure, le seul pré-requis est la librairie SQLite. Au lancement
+   de la *gateway*, le fichier base de données sera automatiquement créé.
 
    La *gateway* Waarp supporte également les serveurs de base de données MySQL et
    PostgreSQL. Pour utiliser ces serveurs comme base de données, les étapes
@@ -85,3 +85,18 @@ Fichier de configuration
       Bien qu'il soit possible d'utiliser la *gateway* avec la configuration par
       défaut, il est fortement recommandé de consulter le détail du :doc:`../configuration`
       pour ensuite le modifier avec des valeurs plus adaptées à votre utilisation.
+
+
+Support R66
+-----------
+
+   Pour le moment, la *gateway* ne supporte pas directement le protocole R66.
+   Afin d'effectuer des transferts R66, la *gateway* utilise un client et un
+   serveur WaarpR66 externes. Pour que la *gateway* puisse lancer des transferts
+   R66, le chemin de l'exécutable du client R66 doit être fournit via l'option
+   *R66Home* du :doc:`../configuration`.
+
+   .. warning::
+      Pour que la *gateway* puisse correctement récupérer le statut des transferts
+      lancés via le client R66, celui-ci doit IMPÉRATIVEMENT être configuré pour
+      écrire les *logs* dans un fichier, et non sur la sortie standard.

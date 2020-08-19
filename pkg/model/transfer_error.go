@@ -214,6 +214,53 @@ func (tec TransferErrorCode) R66Code() byte {
 	}
 }
 
+// FromR66Code returns the TransferError equivalent to the given R66 error code.
+//nolint:funlen
+func FromR66Code(c byte) TransferErrorCode {
+	switch c {
+	case 'O':
+		return TeOk
+	case 'I':
+		return TeInternal
+	case 'U':
+		return TeUnimplemented
+	case 'C':
+		return TeConnection
+	case 'D':
+		return TeConnectionReset
+	case 'N':
+		return TeUnknownRemote
+	case 'l':
+		return TeExceededLimit
+	case 'A':
+		return TeBadAuthentication
+	case 'T':
+		return TeDataTransfer
+	case 'M':
+		return TeIntegrity
+	case 'F':
+		return TeFinalization
+	case 'E':
+		return TeExternalOperation
+	case 'w':
+		return TeWarning
+	case 'H':
+		return TeStopped
+	case 'K':
+		return TeCanceled
+	case 'f':
+		return TeFileNotFound
+	case 'a':
+		return TeForbidden
+	case 'd':
+		return TeBadSize
+	case 'S':
+		return TeShuttingDown
+	default:
+		return TeUnknown
+	}
+}
+
 // TransferError represents any error that occurs during the transfer.
 // It contains an error code and a message giving more info about the error.
 //

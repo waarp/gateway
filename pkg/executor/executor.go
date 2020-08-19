@@ -189,8 +189,8 @@ func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {
 	e.Logger.Infof("Delegating R66 transfer n°%d to external server", e.Transfer.ID)
 	script := e.R66Home
 	args := []string{
-		info.Account.Login,
 		"send",
+		info.Account.Login,
 		"-to", info.Agent.Name,
 		"-file", info.Transfer.SourceFile,
 		"-rule", info.Rule.Name,
@@ -198,6 +198,12 @@ func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {
 	e.Logger.Debugf("%s %#v", script, args)
 	cmd := exec.Command(script, args...) //nolint:gosec
 	out, err := cmd.Output()
+	defer func() {
+		e.Logger.Debug("R66 server output:")
+		for _, l := range bytes.Split(out, []byte{'\n'}) {
+			e.Logger.Debugf("    %s", string(l))
+		}
+	}()
 	if err != nil {
 		info.Transfer.Error = model.TransferError{
 			Code:    model.TeExternalOperation,
@@ -216,11 +222,17 @@ func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {
 		if err := json.Unmarshal(arrays[1], result); err != nil {
 			return err
 		}
-		// Add R66 result info to the transfer
-		if err = info.Transfer.Error.Code.Scan(result.StatusCode); err != nil {
-			return err
+		if len(result.StatusCode) == 0 {
+			return fmt.Errorf("bad output")
 		}
-		info.Transfer.Error.Details = result.StatusTxt
+
+		e.Logger.Infof("R66 transfer finished with status code %s",
+			result.StatusCode)
+		// Add R66 result info to the transfer
+		info.Transfer.Error.Code = model.FromR66Code(result.StatusCode[0])
+		if info.Transfer.Error.Code != model.TeOk {
+			info.Transfer.Error.Details = result.StatusTxt
+		}
 		info.Transfer.DestFile = result.FinalPath
 		buf, err := json.Marshal(result)
 		if err != nil {
