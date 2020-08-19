@@ -4,13 +4,12 @@ Référence
 .. toctree::
    :maxdepth: 1
 
-   glossary
-   guide/index
-   configuration
    gatewayd
-   backup
    client/index
+   configuration
    rest/index
    proto_config/index
    tasks/index
    errorcodes
+   backup
+

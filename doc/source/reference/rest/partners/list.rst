@@ -13,8 +13,9 @@ Lister les partenaires
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
    :param sort: Le paramètre selon lequel les partenaires seront triés
+      Valeurs possibles : ``name+``, ``name-``, ``protocol+``, ``protocol-``.
       *(défaut: name+)*
-   :type sort: [name+|name-|protocol+|protocol-]
+   :type sort: string
    :param protocol: Filtre uniquement les partenaires utilisant ce protocole.
       Peut être renseigné plusieurs fois pour filtrer plusieurs protocoles.
    :type protocol: string

@@ -15,8 +15,10 @@ Filtrer l'historique
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
    :param sort: Le paramètre selon lequel les transferts seront triés
+      Les valeurs possibles sont : ``id+``, ``id-``, ``start+``, ``start-``,
+      ``status+``, ``status-``, ``rule+`` et ``rule-``.
       *(défaut: start+)*
-   :type sort: [id+|id-|start+|start-|status+|status-|rule+|rule-]
+   :type sort: string
    :param source: Filtre uniquement les transferts provenant de l'agent renseigné.
       Peut être renseigné plusieurs fois pour filtrer plusieurs sources.
    :type source: string
@@ -30,8 +32,9 @@ Filtrer l'historique
       Peut être renseigné plusieurs fois pour filtrer plusieurs protocoles.
    :type protocol: [sftp]
    :param status: Filtre uniquement les transferts ayant le statut renseigné.
+      Valeurs possibles: ``PLANNED``, ``TRANSFER``.
       Peut être renseigné plusieurs fois pour filtrer plusieurs status.
-   :type status: [PLANNED|TRANSFER]
+   :type status: string
    :param start: Filtre uniquement les transferts ayant commencé après la date
       renseignée. La date doit être renseignée en format ISO 8601 tel qu'il
       est spécifié dans la `RFC 3339`_.

@@ -20,13 +20,13 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Waarp Gateway'
-copyright = '2018, Waarp'
+copyright = '2020, Waarp'
 author = 'Waarp'
 
 # The short X.Y version
-version = '0.0.1'
+version = '0.1.0'
 # The full version, including alpha/beta/rc tags
-release = '0.0.1-dev'
+release = '0.1.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -43,6 +43,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.ifconfig',
     'sphinxcontrib.httpdomain',
+    'releases',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -188,6 +189,12 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+# -- Options for releases ----------------------------------------------
+releases_document_name = ["changelog"]
+releases_issue_uri = "https://code.waarp.fr/waarp-gateway/waarp-gateway/issues/%s"
+releases_unstable_prehistory = True
+
 
 
 def setup(app):

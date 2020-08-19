@@ -1,12 +1,11 @@
-Guide d'utilisation
-===================
+Guides
+======
 
 Ce guide regroupe plusieurs rubriques expliquant comment utiliser la *gateway*.
 
 .. toctree::
    :maxdepth: 3
 
-   requirements
    usage
    backup
    administration/index

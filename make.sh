@@ -48,8 +48,9 @@ t_test_watch() {
 }
 
 t_doc() {
-    cd doc || return 2
+    pushd doc || return 2
     .venv/bin/sphinx-build source/ build/html/
+    popd
 }
 
 t_doc_watch() {
@@ -109,6 +110,12 @@ t_package() {
   # build the packages
   nfpm pkg -p rpm -f dist/nfpm.yaml --target build/
   nfpm pkg -p deb -f dist/nfpm.yaml --target build/
+
+  t_doc
+  cp -r doc/build/html build/waarp-gateway-doc
+  pushd build/
+  zip -r9m waarp-gateway-doc.zip waarp-gateway-doc
+  popd
 }
 
 t_usage() {
