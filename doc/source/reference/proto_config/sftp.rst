@@ -17,7 +17,7 @@ et les partenaires. Sa structure est la suivante :
   - ``curve25519-sha256@libssh.org``
 
   Par défaut, tous les algorithmes sont autorisés.
-|
+
 
 * **ciphers** (*array* of *string*) - Liste des algorithmes de cryptage
   symétrique de données autorisés sur le serveur. Les algorithmes supportés
@@ -30,7 +30,7 @@ et les partenaires. Sa structure est la suivante :
   - ``chacha20-poly1305@openssh.com``
 
   Par défaut, tous les algorithmes sont autorisés.
-|
+
 
 * **macs** (*array* of *string*) - Liste des algorithmes d'authentification de
   message (MAC) autorisés sur le serveur. Les algorithmes supportés sont :

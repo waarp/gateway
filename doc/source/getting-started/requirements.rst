@@ -34,7 +34,7 @@ La *gateway* est composée de 2 exécutables:
   la *gateway*. Ce client utilise l'interface REST de la *gateway* pour communiquer.
   Pour simplifier les commandes, il est recommander d'ajouter cet exécutable au
   ``$PATH`` du système. Un guide sur l'administration de la *gateway* est
-  disponible :doc:`ici<administration/index>`.
+  disponible :doc:`ici<../guide/administration/index>`.
 
 
 Base de données
@@ -58,8 +58,8 @@ pour s'authentifier auprès du serveur.
 
 
 Les informations de connections à la base de données doivent ensuite être
-renseignées dans le fichier de configuration de la *gateway* (cf. Section
-`Fichier de configuration`). Une fois la base de données créée, elle sera ensuite
+renseignées dans le fichier de configuration de la *gateway* (cf.
+:any:`gatewayd.ini`). Une fois la base de données créée, elle sera ensuite
 remplie automatiquement par la *gateway* elle-même.
 
 
@@ -85,7 +85,7 @@ Pour fonctionner, la *gateway* nécessite un fichier de configuration en format
 
 .. note::
    Bien qu'il soit possible d'utiliser la *gateway* avec la configuration par
-   défaut, il est fortement recommandé de consulter le détail du :doc:`../configuration`
+   défaut, il est fortement recommandé de consulter le détail du :any:`gatewayd.ini`
    pour ensuite le modifier avec des valeurs plus adaptées à votre utilisation.
 
 
@@ -94,9 +94,9 @@ Support R66
 
 Pour le moment, la *gateway* ne supporte pas directement le protocole R66.
 Afin d'effectuer des transferts R66, la *gateway* utilise un client et un
-serveur WaarpR66 externes. Pour que la *gateway* puisse lancer des transferts
+serveur Waarp R66 externe. Pour que la *gateway* puisse lancer des transferts
 R66, le chemin de l'exécutable du client R66 doit être fournit via l'option
-*R66Home* du :doc:`../configuration`.
+:confval:`R66Home` du :any:`gatewayd.ini`.
 
 .. warning::
    Pour que la *gateway* puisse correctement récupérer le statut des transferts

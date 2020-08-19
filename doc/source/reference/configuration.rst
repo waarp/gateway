@@ -1,3 +1,5 @@
+.. _gatewayd.ini:
+
 Fichier de configuration ``waarp-gatewayd.ini``
 ###############################################
 
@@ -71,7 +73,7 @@ La section ``[admin]`` regroupe toutes les options de configuration des
 interfaces d'administration de la gateway. Cela comprend l'interface d'admin
 et l'API REST.
 
-.. confval:: Address
+.. confval:: Host
 
    L'adresse de l'interface sur laquelle le serveur HTTP va écouter les
    requêtes faites à l'interface d'administration.

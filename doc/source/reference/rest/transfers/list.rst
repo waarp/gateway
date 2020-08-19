@@ -14,8 +14,11 @@ Lister les transferts
    :type limit: int
    :param offset: Le numéro du premier résultat souhaité *(défaut: 0)*
    :type offset: int
-   :param sort: Le paramètre selon lequel les transferts seront triés *(défaut: start+)*
-   :type sort: [start+|start-|id+|id-|status+|status-]
+   :param sort: Le paramètre selon lequel les transferts seront triés.
+      Valeurs possibles : ``start+``, ``start-``, ``id+``, ``id-``, ``status+``,
+      ``status-``.
+      *(défaut: start+)*
+   :type sort: string
    :param remote: Filtre uniquement les transferts avec le partenaire renseigné.
       Peut être renseigné plusieurs fois pour filtrer plusieurs partenaires.
    :type remote: int
@@ -26,8 +29,10 @@ Lister les transferts
       Peut être renseigné plusieurs fois pour filtrer plusieurs règles.
    :type rule: int
    :param status: Filtre uniquement les transferts ayant le statut renseigné.
+      Valeurs possibles : ``PLANNED``, ``PRETASKS``, ``TRANSFER``,
+      ``POSTTASKS``, ``ERRORTASKS``.
       Peut être renseigné plusieurs fois pour filtrer plusieurs status.
-   :type status: [PLANNED|PRETASKS|TRANSFER|POSTTASKS|ERRORTASKS]
+   :type status: string
    :param start: Filtre uniquement les transferts dont la date est ultérieure à
       celle renseignée.
    :type start: date

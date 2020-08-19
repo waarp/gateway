@@ -1,8 +1,3 @@
-.. Waarp Gateway documentation master file, created by
-   sphinx-quickstart on Thu Oct 25 17:53:17 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Documentation de Waarp Gateway
 ==============================
 
@@ -16,7 +11,11 @@ multi-protocolaire.
 .. toctree::
    :maxdepth: 2
 
+   getting-started/index
+   guide/index
    reference/index
+   glossary
+   changelog
 
 
 
@@ -24,5 +23,6 @@ Tables et indexes
 =================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
+
+.. * :ref:`modindex`

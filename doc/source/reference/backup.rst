@@ -35,7 +35,7 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
       * **publicKey** (*string*) - La clé publique du certificat.
       * **privateKey** (*string*) - La clé privée du certificat.
       * **certificat** (*string*) - Le certificat utilisateur.
-|
+
 
 * **remotes** (*array*) - La liste des :term:`partenaires<partenaire>` de
   transfert de la gateway.
@@ -63,7 +63,7 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
       * **publicKey** (*string*) - La clé publique du certificat.
       * **privateKey** (*string*) - La clé privée du certificat.
       * **certificat** (*string*) - Le certificat utilisateur.
-|
+
 
 * **rules** (*array*) - La liste des règles de transfert de la gateway.
 
