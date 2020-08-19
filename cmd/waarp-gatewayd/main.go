@@ -16,12 +16,13 @@ type options struct {
 func main() {
 	opts := options{}
 	parser := flags.NewParser(&opts, flags.Default)
+
 	if _, err := parser.Parse(); err != nil {
 		if _, ok := err.(*flags.Error); ok && !flags.WroteHelp(err) {
 			fmt.Fprintln(os.Stderr)
 			parser.WriteHelp(os.Stderr)
 		}
-		return
-		// TODO must handle exit codes
+
+		os.Exit(1)
 	}
 }
