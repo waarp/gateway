@@ -62,7 +62,7 @@ func ruleInfoString(r *rest.OutRule) string {
 		"    Path:           " + r.Path + "\n" +
 		"    In directory:   " + r.InPath + "\n" +
 		"    Out directory:  " + r.OutPath + "\n" +
-		"    Work directory: " + r.OutPath + "\n" +
+		"    Work directory: " + r.WorkPath + "\n" +
 		"    Pre tasks:\n" + taskStr(r.PreTasks) +
 		"    Post tasks:\n" + taskStr(r.PostTasks) +
 		"    Error tasks:\n" + taskStr(r.ErrorTasks) +
