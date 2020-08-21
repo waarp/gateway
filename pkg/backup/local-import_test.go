@@ -144,7 +144,7 @@ func TestImportLocalAgents(t *testing.T) {
 				})
 			})
 
-			Convey("Given a list of fully partially agents", func() {
+			Convey("Given a list of partially updated agents", func() {
 				agent1 := localAgent{
 					Name: "test",
 					Accounts: []localAccount{
