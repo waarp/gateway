@@ -297,6 +297,30 @@ func TestRemoteAgentBeforeUpdate(t *testing.T) {
 						})
 					})
 				})
+
+				Convey("Given that the updated agent's protocol is empty and protocol configuration is valid", func() {
+					updatedAgent.Protocol = ""
+
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
+
+						Convey("Then it should NOT return an error", func() {
+							So(err, ShouldBeNil)
+						})
+					})
+				})
+
+				Convey("Given that the updated agent's protocol is not empty and protocol is", func() {
+					updatedAgent.ProtoConfig = nil
+
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
+
+						Convey("Then the error should say that the configuration is invalid", func() {
+							So(err, ShouldBeError, "cannot change protocol without providing protoconfig")
+						})
+					})
+				})
 			})
 		})
 	})

@@ -31,26 +31,30 @@ func sendRequest(addr *url.URL, object interface{}, method string) (*http.Respon
 		body = bytes.NewReader(content)
 	}
 
+	var user, passwd string
+	user = addr.User.Username()
+
+	if pwd, hasPwd := addr.User.Password(); hasPwd {
+		passwd = pwd
+	} else if terminal.IsTerminal(int(in.Fd())) && terminal.IsTerminal(int(out.Fd())) {
+		fmt.Fprintf(out, "Enter %s's password:", addr.User.Username())
+		pwd, err := terminal.ReadPassword(int(out.Fd()))
+		fmt.Fprintln(out)
+		if err != nil {
+			return nil, err
+		}
+		passwd = string(pwd)
+	} else {
+		return nil, fmt.Errorf("missing user password")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, method, addr.String(), body)
 	if err != nil {
 		return nil, err
 	}
-
-	if pwd, hasPwd := addr.User.Password(); hasPwd {
-		req.SetBasicAuth(addr.User.Username(), pwd)
-	} else if terminal.IsTerminal(int(in.Fd())) && terminal.IsTerminal(int(out.Fd())) {
-		fmt.Fprintf(out, "Enter %s's password:", addr.User.Username())
-		password, err := terminal.ReadPassword(int(out.Fd()))
-		fmt.Fprintln(out)
-		if err != nil {
-			return nil, err
-		}
-		req.SetBasicAuth(addr.User.Username(), string(password))
-	} else {
-		return nil, fmt.Errorf("missing user password")
-	}
+	req.SetBasicAuth(user, passwd)
 
 	return http.DefaultClient.Do(req)
 }

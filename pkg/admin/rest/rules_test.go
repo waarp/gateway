@@ -36,9 +36,12 @@ func TestCreateRule(t *testing.T) {
 			Convey("Given a new rule to insert in the database", func() {
 				newRule := &InRule{
 					UptRule: &UptRule{
-						Name:    "new rule",
-						Comment: "",
-						Path:    "/test/rule/path",
+						Name:     "new rule",
+						Comment:  "",
+						Path:     "/test/rule/path",
+						InPath:   "/test/rule/in",
+						OutPath:  "/test/rule/out",
+						WorkPath: "/test/rule/work",
 					},
 					IsSend: false,
 				}
@@ -297,8 +300,11 @@ func TestUpdateRule(t *testing.T) {
 
 			Convey("Given new values to update the rule with", func() {
 				update := UptRule{
-					Name: "update",
-					Path: "/new_path",
+					Name:     "update",
+					Path:     "/new_path",
+					InPath:   "test/in",
+					OutPath:  "test/out",
+					WorkPath: "test/work",
 				}
 				body, err := json.Marshal(update)
 				So(err, ShouldBeNil)
@@ -333,7 +339,8 @@ func TestUpdateRule(t *testing.T) {
 							So(db.Select(&results, nil), ShouldBeNil)
 							So(len(results), ShouldEqual, 2)
 
-							expected := model.Rule{ID: old.ID, Name: update.Name, Path: update.Path}
+							expected := model.Rule{ID: old.ID, Name: update.Name, Path: update.Path,
+								InPath: update.InPath, OutPath: update.OutPath, WorkPath: update.WorkPath}
 							So(results[0], ShouldResemble, expected)
 						})
 					})
