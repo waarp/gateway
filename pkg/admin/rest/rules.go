@@ -20,12 +20,13 @@ type InRule struct {
 // ToModel transforms the JSON transfer rule into its database equivalent.
 func (i *InRule) ToModel() *model.Rule {
 	return &model.Rule{
-		Name:    i.Name,
-		Comment: i.Comment,
-		IsSend:  i.IsSend,
-		Path:    i.Path,
-		InPath:  i.InPath,
-		OutPath: i.OutPath,
+		Name:     i.Name,
+		Comment:  i.Comment,
+		IsSend:   i.IsSend,
+		Path:     i.Path,
+		InPath:   i.InPath,
+		OutPath:  i.OutPath,
+		WorkPath: i.WorkPath,
 	}
 }
 

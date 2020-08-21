@@ -90,7 +90,7 @@ func displayRule(w io.Writer, rule *rest.OutRule) {
 	fmt.Fprintln(w, orange("    Path:          "), rule.Path)
 	fmt.Fprintln(w, orange("    In directory:  "), rule.InPath)
 	fmt.Fprintln(w, orange("    Out directory: "), rule.OutPath)
-	fmt.Fprintln(w, orange("    Work directory:"), rule.OutPath)
+	fmt.Fprintln(w, orange("    Work directory:"), rule.WorkPath)
 	displayTasks(w, rule)
 	fmt.Fprintln(w, orange("    Authorized agents:"))
 	fmt.Fprintln(w, bold("    ├─Servers:         "), servers)
@@ -150,6 +150,7 @@ type ruleAdd struct {
 	Path       string   `required:"true" short:"p" long:"path" description:"The path used to identify the rule"`
 	InPath     string   `short:"i" long:"in_path" description:"The path to the destination of the file"`
 	OutPath    string   `short:"o" long:"out_path" description:"The path to the source of the file"`
+	WorkPath   string   `short:"w" long:"work_path" description:"The path to write the received file"`
 	PreTasks   []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
 	PostTasks  []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`
 	ErrorTasks []string `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated"`
@@ -158,9 +159,12 @@ type ruleAdd struct {
 func (r *ruleAdd) Execute([]string) error {
 	rule := &rest.InRule{
 		UptRule: &rest.UptRule{
-			Name:    r.Name,
-			Comment: r.Comment,
-			Path:    r.Path,
+			Name:     r.Name,
+			Comment:  r.Comment,
+			Path:     r.Path,
+			InPath:   r.InPath,
+			OutPath:  r.OutPath,
+			WorkPath: r.WorkPath,
 		},
 		IsSend: r.Direction == "SEND",
 	}
@@ -242,6 +246,7 @@ type ruleUpdate struct {
 	Path       string   `short:"p" long:"path" description:"The path used to identify the rule"`
 	InPath     string   `short:"i" long:"in_path" description:"The path to the destination of the file"`
 	OutPath    string   `short:"o" long:"out_path" description:"The path to the source of the file"`
+	WorkPath   string   `short:"w" long:"work_path" description:"The path to write the received file"`
 	PreTasks   []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
 	PostTasks  []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`
 	ErrorTasks []string `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated"`
@@ -254,11 +259,12 @@ func (r *ruleUpdate) Execute([]string) error {
 	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + strings.ToLower(r.Args.Direction)
 
 	rule := &rest.UptRule{
-		Name:    r.Name,
-		Comment: r.Comment,
-		Path:    r.Path,
-		InPath:  r.InPath,
-		OutPath: r.OutPath,
+		Name:     r.Name,
+		Comment:  r.Comment,
+		Path:     r.Path,
+		InPath:   r.InPath,
+		OutPath:  r.OutPath,
+		WorkPath: r.WorkPath,
 	}
 	if err := parseTasks(rule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {
 		return err

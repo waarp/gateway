@@ -62,7 +62,7 @@ func ruleInfoString(r *rest.OutRule) string {
 		"    Path:           " + r.Path + "\n" +
 		"    In directory:   " + r.InPath + "\n" +
 		"    Out directory:  " + r.OutPath + "\n" +
-		"    Work directory: " + r.OutPath + "\n" +
+		"    Work directory: " + r.WorkPath + "\n" +
 		"    Pre tasks:\n" + taskStr(r.PreTasks) +
 		"    Post tasks:\n" + taskStr(r.PostTasks) +
 		"    Error tasks:\n" + taskStr(r.ErrorTasks) +
@@ -202,7 +202,7 @@ func TestAddRule(t *testing.T) {
 
 			Convey("Given valid parameters", func() {
 				args := []string{"-n", "new_rule", "-c", "new_rule comment",
-					"-d", "RECEIVE", "--path=/new/rule/path",
+					"-d", "RECEIVE", "--path=/new/rule/path", "--out_path=/out/path", "--in_path=/in/path", "--work_path=/work/path",
 					`--pre={"type":"COPY","args":{"path":"/path/to/copy"}}`,
 					`--pre={"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
 					`--post={"type":"DELETE","args":{}}`,
@@ -223,10 +223,13 @@ func TestAddRule(t *testing.T) {
 
 					Convey("Then the new rule should have been added", func() {
 						rule := &model.Rule{
-							Name:    command.Name,
-							Comment: command.Comment,
-							IsSend:  command.Direction == "SEND",
-							Path:    command.Path,
+							Name:     command.Name,
+							Comment:  command.Comment,
+							IsSend:   command.Direction == "SEND",
+							Path:     command.Path,
+							InPath:   command.InPath,
+							OutPath:  command.OutPath,
+							WorkPath: command.WorkPath,
 						}
 						So(db.Get(rule), ShouldBeNil)
 
