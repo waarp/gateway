@@ -221,10 +221,6 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Get(check); err != nil {
-				return err
-			}
-
 			date := time.Now().UTC()
 			if dateStr := r.FormValue("date"); dateStr != "" {
 				date, err = time.Parse(time.RFC3339, dateStr)
