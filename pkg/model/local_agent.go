@@ -134,7 +134,21 @@ func (l *LocalAgent) BeforeUpdate(db database.Accessor, id uint64) error {
 		}
 	}
 
-	if l.Protocol != "" || l.ProtoConfig != nil {
+	// Get Old protocol if no protocol is provided
+	if l.Protocol == "" {
+		old := &LocalAgent{
+			ID: id,
+		}
+		if err := db.Get(old); err != nil {
+			return err
+		}
+		l.Protocol = old.Protocol
+	} else if l.ProtoConfig == nil {
+		// If Protocol and no Protoconfig error
+		return database.InvalidError("cannot change protocol without providing protoconfig")
+	}
+
+	if l.ProtoConfig != nil {
 		if err := l.validateProtoConfig(); err != nil {
 			return database.InvalidError(err.Error())
 		}
