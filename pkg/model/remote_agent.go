@@ -92,7 +92,21 @@ func (r *RemoteAgent) BeforeUpdate(db database.Accessor, id uint64) error {
 		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
 
-	if r.Protocol != "" || r.ProtoConfig != nil {
+	// Get Old protocol if no protocol is provided
+	if r.Protocol == "" {
+		old := &RemoteAgent{
+			ID: id,
+		}
+		if err := db.Get(old); err != nil {
+			return err
+		}
+		r.Protocol = old.Protocol
+	} else if r.ProtoConfig == nil {
+		// If Protocol and no Protoconfig error
+		return database.InvalidError("cannot change protocol without providing protoconfig")
+	}
+
+	if r.ProtoConfig != nil {
 		if err := r.validateProtoConfig(); err != nil {
 			return database.InvalidError(err.Error())
 		}
