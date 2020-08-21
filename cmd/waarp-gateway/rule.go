@@ -90,7 +90,7 @@ func displayRule(w io.Writer, rule *rest.OutRule) {
 	fmt.Fprintln(w, orange("    Path:          "), rule.Path)
 	fmt.Fprintln(w, orange("    In directory:  "), rule.InPath)
 	fmt.Fprintln(w, orange("    Out directory: "), rule.OutPath)
-	fmt.Fprintln(w, orange("    Work directory:"), rule.OutPath)
+	fmt.Fprintln(w, orange("    Work directory:"), rule.WorkPath)
 	displayTasks(w, rule)
 	fmt.Fprintln(w, orange("    Authorized agents:"))
 	fmt.Fprintln(w, bold("    ├─Servers:         "), servers)
