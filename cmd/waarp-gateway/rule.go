@@ -22,7 +22,7 @@ type ruleCommand struct {
 }
 
 func checkRuleDir(direction string) error {
-	if direction != "send" && direction != "receive" {
+	if direction != "SEND" && direction != "RECEIVE" {
 		return fmt.Errorf("invalid rule direction '%s'", direction)
 	}
 	return nil
@@ -123,7 +123,7 @@ func parseTasks(rule *rest.UptRule, pre, post, errs []string) error {
 type ruleGet struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"SEND" choice:"RECEIVE"`
 	} `positional-args:"yes"`
 }
 
@@ -131,7 +131,7 @@ func (r *ruleGet) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
-	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + r.Args.Direction
+	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + strings.ToLower(r.Args.Direction)
 
 	rule := &rest.OutRule{}
 	if err := get(path, rule); err != nil {
@@ -185,7 +185,7 @@ func (r *ruleAdd) Execute([]string) error {
 type ruleDelete struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"  choice:"SEND" choice:"RECEIVE"`
 	} `positional-args:"yes"`
 }
 
@@ -193,7 +193,7 @@ func (r *ruleDelete) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
-	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + r.Args.Direction
+	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + strings.ToLower(r.Args.Direction)
 
 	if err := remove(path); err != nil {
 		return err
@@ -239,7 +239,7 @@ func (r *ruleList) Execute([]string) error {
 type ruleUpdate struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The server's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"SEND" choice:"RECEIVE"`
 	} `positional-args:"yes"`
 	Name       string   `short:"n" long:"name" description:"The rule's name"`
 	Comment    string   `short:"c" long:"comment" description:"A short comment describing the rule"`
@@ -256,7 +256,7 @@ func (r *ruleUpdate) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
-	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + r.Args.Direction
+	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + strings.ToLower(r.Args.Direction)
 
 	rule := &rest.UptRule{
 		Name:     r.Name,
@@ -286,7 +286,7 @@ func (r *ruleUpdate) Execute([]string) error {
 type ruleAllowAll struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"SEND" choice:"RECEIVE"`
 	} `positional-args:"yes"`
 }
 
@@ -299,7 +299,7 @@ func (r *ruleAllowAll) Execute([]string) error {
 		return err
 	}
 	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" +
-		r.Args.Direction + "/allow_all"
+		strings.ToLower(r.Args.Direction) + "/allow_all"
 
 	resp, err := sendRequest(addr, nil, http.MethodPut)
 	if err != nil {
