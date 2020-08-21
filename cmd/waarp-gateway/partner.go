@@ -173,7 +173,7 @@ type partnerAuthorize struct {
 
 func (p *partnerAuthorize) Execute([]string) error {
 	path := admin.APIPath + rest.PartnersPath + "/" + p.Args.Partner +
-		"/authorize/" + p.Args.Rule + "/" + p.Args.Direction
+		"/authorize/" + p.Args.Rule + "/" + strings.ToLower(p.Args.Direction)
 
 	return authorize(path, "partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }
@@ -190,7 +190,7 @@ type partnerRevoke struct {
 
 func (p *partnerRevoke) Execute([]string) error {
 	path := admin.APIPath + rest.PartnersPath + "/" + p.Args.Partner +
-		"/revoke/" + p.Args.Rule + "/" + p.Args.Direction
+		"/revoke/" + p.Args.Rule + "/" + strings.ToLower(p.Args.Direction)
 
 	return revoke(path, "partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }

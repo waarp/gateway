@@ -175,7 +175,7 @@ func (l *locAccAuthorize) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
 	path := admin.APIPath + rest.ServersPath + "/" + server +
 		rest.AccountsPath + "/" + l.Args.Login + "/authorize/" + l.Args.Rule +
-		"/" + l.Args.Direction
+		"/" + strings.ToLower(l.Args.Direction)
 
 	return authorize(path, "local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }
@@ -194,7 +194,7 @@ func (l *locAccRevoke) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
 	path := admin.APIPath + rest.ServersPath + "/" + server +
 		rest.AccountsPath + "/" + l.Args.Login + "/revoke/" + l.Args.Rule +
-		"/" + l.Args.Direction
+		"/" + strings.ToLower(l.Args.Direction)
 
 	return revoke(path, "local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }

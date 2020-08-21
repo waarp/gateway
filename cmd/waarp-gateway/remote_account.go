@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
@@ -167,7 +168,7 @@ func (r *remAccAuthorize) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
 	path := admin.APIPath + rest.PartnersPath + "/" + partner +
 		rest.AccountsPath + "/" + r.Args.Login + "/authorize/" + r.Args.Rule +
-		"/" + r.Args.Direction
+		"/" + strings.ToLower(r.Args.Direction)
 
 	return authorize(path, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }
@@ -186,7 +187,7 @@ func (r *remAccRevoke) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
 	path := admin.APIPath + rest.PartnersPath + "/" + partner +
 		rest.AccountsPath + "/" + r.Args.Login + "/revoke/" + r.Args.Rule +
-		"/" + r.Args.Direction
+		"/" + strings.ToLower(r.Args.Direction)
 
 	return revoke(path, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }

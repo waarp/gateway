@@ -17,9 +17,9 @@ import (
 
 func direction(r *model.Rule) string {
 	if r.IsSend {
-		return "send"
+		return "SEND"
 	}
-	return "receive"
+	return "RECEIVE"
 }
 
 func ruleInfoString(r *rest.OutRule) string {
