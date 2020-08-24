@@ -68,11 +68,17 @@ t_build() {
 build_static_binaries() {
   echo "==> building for $GOOS/$GOARCH"
 
-  CGO_ENABLED=1 go build -ldflags '-s -w -extldflags "-fno-PIC -static"' \
+  CGO_ENABLED=1 go build -ldflags "-s -w -extldflags '-fno-PIC -static' \
+    -X main.versionDate=$(date -u --iso-8601=seconds) \
+    -X main.versionNum=$(cat VERSION) \
+    -X main.versionCommit=$(git rev-parse HEAD)" \
     -buildmode pie \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/waarp-gateway_${GOOS}_${GOARCH}" ./cmd/waarp-gateway
-  CGO_ENABLED=1 go build -ldflags '-s -w -extldflags "-fno-PIC -static"' \
+  CGO_ENABLED=1 go build -ldflags "-s -w -extldflags '-fno-PIC -static' \
+    -X main.versionDate=$(date -u --iso-8601=seconds) \
+    -X main.versionNum=$(cat VERSION) \
+    -X main.versionCommit=$(git rev-parse HEAD)" \
     -buildmode pie \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/waarp-gatewayd_${GOOS}_${GOARCH}" ./cmd/waarp-gatewayd
@@ -108,6 +114,7 @@ t_package() {
     build/waarp-gatewayd.ini
 
   # build the packages
+  sed -e "s|version:.*|version: v$(cat VERSION)-1|" dist/nfpm.yaml
   nfpm pkg -p rpm -f dist/nfpm.yaml --target build/
   nfpm pkg -p deb -f dist/nfpm.yaml --target build/
 

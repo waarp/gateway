@@ -8,9 +8,10 @@ import (
 )
 
 type options struct {
-	Server serverCommand `command:"server" description:"Start/Create the gateway"`
-	Import importCommand `command:"import" description:"Imports the data of source file into the gateway database"`
-	Export exportCommand `command:"export" description:"Exports the data of the gateway database to the destination file"`
+	Server serverCommand  `command:"server" description:"Start/Create the gateway"`
+	Import importCommand  `command:"import" description:"Imports the data of source file into the gateway database"`
+	Export exportCommand  `command:"export" description:"Exports the data of the gateway database to the destination file"`
+	Verion versionCommand `command:"version" description:"Print version and exit"`
 }
 
 func main() {

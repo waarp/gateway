@@ -37,6 +37,13 @@ func main() {
 		fmt.Fprint(os.Stderr, err.Error())
 		os.Exit(1)
 	}
+
+	_, err = parser.AddCommand("version", "Print version and exit",
+		"Print version and exit", &versionCommand{})
+	if err != nil {
+		panic(err.Error())
+	}
+
 	_, err = parser.Parse()
 
 	if err != nil && !flags.WroteHelp(err) {
