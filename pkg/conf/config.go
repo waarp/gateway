@@ -111,11 +111,6 @@ func normalizePaths(config *ServerConfig) error {
 // - etc/gatewayd.ini
 // - /etc/waarp/gatewayd.ini
 func LoadServerConfig(userConfig string) (*ServerConfig, error) {
-	fileList := []string{
-		"gatewayd.ini",
-		"etc/gatewayd.ini",
-		"/etc/waarp/gatewayd.ini",
-	}
 	c := &ServerConfig{}
 	p := config.NewParser(c)
 

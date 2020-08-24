@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+<<<<<<< doc/source/changelog.rst
+* :bug:`159` Sous Unix, par défaut, le programme cherche désormais le fichier de configuration `gatewayd.ini` dans le dossier `/etc/waarp-gateway/` au lieu de `/etc/waarp/`
+* :feature:`158` Sous Windows, le programme cherchera le fichier de configuration `gatewayd.ini` dans le dossier `%ProgramData%\waarp-gateway` si aucun chemin n'est renseigné dans la commande le lancement (en plus des autres chemins par défaut)
 * :bug:`161` Correction de la forme longue de l'option `--password` de la commande `remote account update`
 * :feature:`157` L'option `-c` est désormais optionnelle pour les commandes d'import/export (similaire à la commande `server`)
 * :bug:`162` L'API REST et le CLI renvoient désormais la liste correcte des partenaires/serveurs/comptes autorisés à utiliser une règle
