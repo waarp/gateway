@@ -8,3 +8,6 @@ Premiers pas
    requirements
    install
 
+   xx-re-transfer
+   xx-r66
+

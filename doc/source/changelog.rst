@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.2.0 <2020-08-24>`
 * :feature:`178` Redémarre le automatiquement le service si celui-ci était
   démarré après l'installation d'une mise à jour via les packages DEB/RPM
 * :bug:`171` Correction d'une erreur de pointeur nul lors de l'arrêt d'un serveur SFTP déjà arrêté
