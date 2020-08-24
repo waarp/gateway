@@ -97,7 +97,7 @@ type remAccUpdate struct {
 		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 	} `positional-args:"yes"`
 	Login    string `short:"l" long:"name" description:"The account's login"`
-	Password string `short:"p" long:"protocol" description:"The account's password"`
+	Password string `short:"p" long:"password" description:"The account's password"`
 }
 
 func (r *remAccUpdate) Execute([]string) error {
