@@ -107,10 +107,14 @@ func (wg *WG) stopServices() {
 
 	w := sync.WaitGroup{}
 	for _, wgService := range wg.Services {
+		if code, _ := wgService.State().Get(); code != service.Running && code != service.Starting {
+			continue
+		}
+
 		w.Add(1)
 		go func(s service.Service) {
+			defer w.Done()
 			_ = s.Stop(ctx)
-			w.Done()
 		}(wgService)
 	}
 	w.Wait()
