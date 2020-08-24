@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :bug:`159` Sous Unix, par défaut, le programme cherche désormais le fichier de configuration `gatewayd.ini` dans le dossier `/etc/waarp-gateway/` au lieu de `/etc/waarp/`
 * :feature:`158` Sous Windows, le programme cherchera le fichier de configuration `gatewayd.ini` dans le dossier `%ProgramData%\waarp-gateway` si aucun chemin n'est renseigné dans la commande le lancement (en plus des autres chemins par défaut)
 * :bug:`165` Correction des incohérences de capitalisation dans le sens des règles
 * :bug:`160` Correction de l'erreur 'record not found' lors de l'appel de la commande `history retry`
