@@ -6,3 +6,4 @@ waarp_gatewayd_test.db
 *.goconvey
 *.iml
 build/
+.vagrant
