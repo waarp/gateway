@@ -4,6 +4,7 @@ Historique des versions
 =======================
 
 * :bug:`161` Correction de la forme longue de l'option `--password` de la commande `remote account update`
+* :bug:`162` L'API REST et le CLI renvoient désormais la liste correcte des partenaires/serveurs/comptes autorisés à utiliser une règle
 * :bug:`165` Correction des incohérences de capitalisation dans le sens des règles
 * :bug:`160` Correction de l'erreur 'record not found' lors de l'appel de la commande `history retry`
 * :bug:`156` Correction des paramètres d'ajout et d'update des rules pour tenir compte des in, out et work path
