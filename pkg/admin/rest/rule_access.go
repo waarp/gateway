@@ -119,12 +119,7 @@ type RuleAccess struct {
 	RemoteAccounts map[string][]string `json:"remoteAccounts,omitempty"`
 }
 
-func makeAccessIDs(db *database.DB, rule *model.Rule, isLocal bool) ([]uint64, error) {
-	typ := "remote_agents"
-	if isLocal {
-		typ = "local_agents"
-	}
-
+func makeAccessIDs(db *database.DB, rule *model.Rule, typ string) ([]uint64, error) {
 	var accesses []model.RuleAccess
 	filters := &database.Filters{Conditions: builder.Eq{
 		"rule_id":     rule.ID,
@@ -202,20 +197,26 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[uint64][]string) 
 	return names, nil
 }
 
-func makeServerAccess(db *database.DB, rule *model.Rule, isLocal bool) ([]string, error) {
-	ids, err := makeAccessIDs(db, rule, isLocal)
+func makeServerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
+	ids, err := makeAccessIDs(db, rule, "local_agents")
 	if err != nil {
 		return nil, err
 	}
 
-	if isLocal {
-		return makeLocalNames(db, ids)
+	return makeLocalNames(db, ids)
+}
+
+func makePartnerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
+	ids, err := makeAccessIDs(db, rule, "remote_agents")
+	if err != nil {
+		return nil, err
 	}
+
 	return makeRemoteNames(db, ids)
 }
 
 func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]string, error) {
-	ids, err := makeAccessIDs(db, rule, true)
+	ids, err := makeAccessIDs(db, rule, "local_accounts")
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +240,7 @@ func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]str
 }
 
 func makeRemoteAccountAccess(db *database.DB, rule *model.Rule) (map[string][]string, error) {
-	ids, err := makeAccessIDs(db, rule, false)
+	ids, err := makeAccessIDs(db, rule, "remote_accounts")
 	if err != nil {
 		return nil, err
 	}
@@ -259,15 +260,15 @@ func makeRemoteAccountAccess(db *database.DB, rule *model.Rule) (map[string][]st
 		}
 	}
 
-	return convertAgentIDs(db, true, accessIDs)
+	return convertAgentIDs(db, false, accessIDs)
 }
 
 func makeRuleAccess(db *database.DB, rule *model.Rule) (*RuleAccess, error) {
-	servers, err := makeServerAccess(db, rule, true)
+	servers, err := makeServerAccess(db, rule)
 	if err != nil {
 		return nil, err
 	}
-	partners, err := makeServerAccess(db, rule, false)
+	partners, err := makePartnerAccess(db, rule)
 	if err != nil {
 		return nil, err
 	}
