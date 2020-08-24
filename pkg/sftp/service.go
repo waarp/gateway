@@ -88,14 +88,14 @@ func (s *Service) Start() error {
 
 // Stop stops the SFTP service.
 func (s *Service) Stop(ctx context.Context) error {
-	s.logger.Infof("Shutting down SFTP server", s.agent.Name)
+	s.logger.Info("Shutting down SFTP server")
 	if code, _ := s.State().Get(); code == service.Error || code == service.Offline {
-		s.logger.Infof("Server is already down, nothing to do", s.agent.Name)
+		s.logger.Info("Server is already offline, nothing to do")
 		return nil
 	}
 
 	if s.listener.close(ctx) != nil {
-		s.logger.Errorf("Failed to shut down SFTP server, forcing exit")
+		s.logger.Error("Failed to shut down SFTP server, forcing exit")
 	} else {
 		s.logger.Info("SFTP server shutdown successful")
 	}
