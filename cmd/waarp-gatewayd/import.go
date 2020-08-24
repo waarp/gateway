@@ -42,7 +42,7 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, error) {
 }
 
 type importCommand struct {
-	ConfigFile string   `short:"c" long:"config" required:"true" description:"The configuration file to use"`
+	ConfigFile string   `short:"c" long:"config" description:"The configuration file to use"`
 	File       string   `short:"s" long:"source" description:"The data file to import"`
 	Target     []string `short:"t" long:"target" default:"all" choice:"rules" choice:"servers" choice:"partners" choice:"all" description:"Limit the import to a subset of data. Can be repeated to import multiple subsets."`
 	Dry        bool     `short:"d" long:"dry-run" description:"Do not make any changes, but simulate the import of the file"`
