@@ -29,6 +29,7 @@ func GetPath(tail string, elems Elems) string {
 			continue
 		}
 
+		p = NormalizePath(p)
 		filepath = append([]string{p}, filepath...)
 		if path.IsAbs(p) {
 			return path.Join(filepath...)
