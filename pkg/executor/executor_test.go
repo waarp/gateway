@@ -2,8 +2,8 @@ package executor
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 	"time"
@@ -27,18 +27,21 @@ func init() {
 func TestExecutorRun(t *testing.T) {
 	logger := log.NewLogger("test_executor_run")
 
-	cd, err := os.Getwd()
+	root, err := filepath.Abs("test_run_root")
 	if err != nil {
 		t.FailNow()
 	}
 	paths := pipeline.Paths{PathsConfig: conf.PathsConfig{
-		GatewayHome:   cd,
-		InDirectory:   path.Join(cd, "in"),
-		OutDirectory:  path.Join(cd, ""),
-		WorkDirectory: path.Join(cd, "work"),
+		GatewayHome:   root,
+		InDirectory:   root,
+		OutDirectory:  root,
+		WorkDirectory: filepath.Join(root, "work"),
 	}}
 
 	Convey("Given a database", t, func() {
+		So(os.Mkdir(root, 0700), ShouldBeNil)
+		Reset(func() { So(os.RemoveAll(root), ShouldBeNil) })
+
 		db := database.GetTestDatabase()
 
 		remote := &model.RemoteAgent{
@@ -73,15 +76,17 @@ func TestExecutorRun(t *testing.T) {
 			}
 			So(db.Create(rule), ShouldBeNil)
 
-			truePath, err := filepath.Abs("executor.go")
-			So(err, ShouldBeNil)
+			content := []byte("executor test run file content")
+			truePath := filepath.Join(paths.OutDirectory, "test_run_src")
+			So(ioutil.WriteFile(truePath, content, 0700), ShouldBeNil)
+
 			trans := &model.Transfer{
 				RuleID:       rule.ID,
 				AgentID:      remote.ID,
 				AccountID:    account.ID,
 				TrueFilepath: truePath,
-				SourceFile:   "executor.go",
-				DestFile:     "dest",
+				SourceFile:   filepath.Base(truePath),
+				DestFile:     "test_run_dst",
 				Start:        time.Now().Truncate(time.Second),
 				Status:       model.StatusPlanned,
 				Owner:        database.Owner,
@@ -125,6 +130,8 @@ func TestExecutorRun(t *testing.T) {
 								Start:          trans.Start,
 								Stop:           results[0].Stop,
 								Status:         model.StatusDone,
+								Step:           model.StepNone,
+								Progress:       uint64(len(content)),
 							}
 
 							So(results[0], ShouldResemble, expected)
@@ -422,18 +429,21 @@ func TestExecutorRun(t *testing.T) {
 func TestTransferResume(t *testing.T) {
 	logger := log.NewLogger("test_transfer_resume")
 
-	cd, err := os.Getwd()
+	root, err := filepath.Abs("test_transfer_resume_root")
 	if err != nil {
 		t.FailNow()
 	}
 	paths := pipeline.Paths{PathsConfig: conf.PathsConfig{
-		GatewayHome:   cd,
-		InDirectory:   path.Join(cd, "in"),
-		OutDirectory:  path.Join(cd, ""),
-		WorkDirectory: path.Join(cd, "work"),
+		GatewayHome:   root,
+		InDirectory:   root,
+		OutDirectory:  root,
+		WorkDirectory: filepath.Join(root, "work"),
 	}}
 
 	Convey("Given a test database", t, func() {
+		So(os.Mkdir(root, 0700), ShouldBeNil)
+		Reset(func() { So(os.RemoveAll(root), ShouldBeNil) })
+
 		db := database.GetTestDatabase()
 
 		remote := &model.RemoteAgent{
@@ -470,33 +480,27 @@ func TestTransferResume(t *testing.T) {
 		Convey("Given a transfer interrupted during pre-tasks", func() {
 			ClientsConstructors["test"] = NewAllSuccess
 
-			pre1 := &model.Task{
+			pre := &model.Task{
 				RuleID: rule.ID,
 				Chain:  model.ChainPre,
 				Rank:   0,
-				Type:   "TESTFAIL",
-				Args:   []byte("{}"),
-			}
-			pre2 := &model.Task{
-				RuleID: rule.ID,
-				Chain:  model.ChainPre,
-				Rank:   1,
 				Type:   "TESTSUCCESS",
 				Args:   []byte("{}"),
 			}
-			So(db.Create(pre1), ShouldBeNil)
-			So(db.Create(pre2), ShouldBeNil)
+			So(db.Create(pre), ShouldBeNil)
 
-			truePath, err := filepath.Abs("executor.go")
-			So(err, ShouldBeNil)
+			content := []byte("test pre-tasks file content")
+			truePath := filepath.Join(paths.OutDirectory, "test_pre_tasks_src")
+			So(ioutil.WriteFile(truePath, content, 0700), ShouldBeNil)
+
 			trans := &model.Transfer{
 				RuleID:       rule.ID,
 				IsServer:     false,
 				AgentID:      remote.ID,
 				AccountID:    account.ID,
 				TrueFilepath: truePath,
-				SourceFile:   "executor.go",
-				DestFile:     "executor.dst",
+				SourceFile:   "test_pre_tasks_src",
+				DestFile:     "test_pre_tasks_dst",
 				Start:        time.Now().Truncate(time.Second),
 				Step:         model.StepPreTasks,
 				Status:       model.StatusPlanned,
@@ -540,7 +544,9 @@ func TestTransferResume(t *testing.T) {
 						Rule:           rule.Name,
 						Start:          trans.Start,
 						Stop:           h[0].Stop,
+						Step:           model.StepNone,
 						Status:         model.StatusDone,
+						Progress:       uint64(len(content)),
 					}
 
 					So(h[0], ShouldResemble, hist)
@@ -551,28 +557,33 @@ func TestTransferResume(t *testing.T) {
 		Convey("Given a transfer interrupted during data transfer", func() {
 			ClientsConstructors["test"] = NewAllSuccess
 
-			pre1 := &model.Task{
+			pre := &model.Task{
 				RuleID: rule.ID,
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "TESTFAIL",
 				Args:   []byte("{}"),
 			}
-			So(db.Create(pre1), ShouldBeNil)
+			So(db.Create(pre), ShouldBeNil)
+
+			content := []byte("test data file content")
+			truePath := filepath.Join(paths.OutDirectory, "test_data_src")
+			So(ioutil.WriteFile(truePath, content, 0700), ShouldBeNil)
 
 			trans := &model.Transfer{
-				RuleID:     rule.ID,
-				IsServer:   false,
-				AgentID:    remote.ID,
-				AccountID:  account.ID,
-				SourceFile: "executor.go",
-				DestFile:   "executor.dst",
-				Start:      time.Now().Truncate(time.Second),
-				Step:       model.StepData,
-				Status:     model.StatusPlanned,
-				Owner:      database.Owner,
-				Progress:   10,
-				TaskNumber: 0,
+				RuleID:       rule.ID,
+				IsServer:     false,
+				AgentID:      remote.ID,
+				AccountID:    account.ID,
+				TrueFilepath: truePath,
+				SourceFile:   "test_data_src",
+				DestFile:     "test_data_dst",
+				Start:        time.Now().Truncate(time.Second),
+				Step:         model.StepData,
+				Status:       model.StatusPlanned,
+				Owner:        database.Owner,
+				Progress:     10,
+				TaskNumber:   0,
 			}
 			So(db.Create(trans), ShouldBeNil)
 
@@ -608,7 +619,9 @@ func TestTransferResume(t *testing.T) {
 						Rule:           rule.Name,
 						Start:          trans.Start,
 						Stop:           h[0].Stop,
+						Step:           model.StepNone,
 						Status:         model.StatusDone,
+						Progress:       uint64(len(content)),
 					}
 
 					So(h[0], ShouldResemble, hist)
@@ -619,44 +632,41 @@ func TestTransferResume(t *testing.T) {
 		Convey("Given a transfer interrupted during post tasks", func() {
 			ClientsConstructors["test"] = NewDataFail
 
-			pre1 := &model.Task{
+			pre := &model.Task{
 				RuleID: rule.ID,
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "TESTFAIL",
 				Args:   []byte("{}"),
 			}
-			post1 := &model.Task{
+			post := &model.Task{
 				RuleID: rule.ID,
 				Chain:  model.ChainPost,
 				Rank:   0,
-				Type:   "TESTFAIL",
-				Args:   []byte("{}"),
-			}
-			post2 := &model.Task{
-				RuleID: rule.ID,
-				Chain:  model.ChainPost,
-				Rank:   1,
 				Type:   "TESTSUCCESS",
 				Args:   []byte("{}"),
 			}
-			So(db.Create(pre1), ShouldBeNil)
-			So(db.Create(post1), ShouldBeNil)
-			So(db.Create(post2), ShouldBeNil)
+			So(db.Create(pre), ShouldBeNil)
+			So(db.Create(post), ShouldBeNil)
+
+			content := []byte("test post-tasks file content")
+			truePath := filepath.Join(paths.OutDirectory, "test_post_tasks_src")
+			So(ioutil.WriteFile(truePath, content, 0700), ShouldBeNil)
 
 			trans := &model.Transfer{
-				RuleID:     rule.ID,
-				IsServer:   false,
-				AgentID:    remote.ID,
-				AccountID:  account.ID,
-				SourceFile: "executor.go",
-				DestFile:   "executor.dst",
-				Start:      time.Now().Truncate(time.Second),
-				Step:       model.StepPostTasks,
-				Status:     model.StatusPlanned,
-				Owner:      database.Owner,
-				Progress:   0,
-				TaskNumber: 1,
+				RuleID:       rule.ID,
+				IsServer:     false,
+				AgentID:      remote.ID,
+				AccountID:    account.ID,
+				TrueFilepath: truePath,
+				SourceFile:   filepath.Base(truePath),
+				DestFile:     "test_post_tasks_dst",
+				Start:        time.Now().Truncate(time.Second),
+				Step:         model.StepPostTasks,
+				Status:       model.StatusPlanned,
+				Owner:        database.Owner,
+				Progress:     uint64(len(content)),
+				TaskNumber:   1,
 			}
 			So(db.Create(trans), ShouldBeNil)
 
@@ -693,6 +703,8 @@ func TestTransferResume(t *testing.T) {
 						Start:          trans.Start,
 						Stop:           h[0].Stop,
 						Status:         model.StatusDone,
+						Step:           model.StepNone,
+						Progress:       uint64(len(content)),
 					}
 
 					So(h[0], ShouldResemble, hist)

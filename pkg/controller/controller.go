@@ -47,7 +47,7 @@ func (c *Controller) checkIsDBDown() bool {
 		return true
 	}
 
-	runningTrans := []model.Transfer{}
+	var runningTrans []model.Transfer
 	if err := c.DB.Select(&runningTrans, &filtersDown); err != nil {
 		c.logger.Errorf("Failed to access database: %s", err.Error())
 		return true
@@ -113,7 +113,6 @@ func (c *Controller) startNewTransfers() {
 		}
 
 		c.wg.Add(1)
-
 		go func() {
 			defer c.wg.Done()
 			exe.Run()
