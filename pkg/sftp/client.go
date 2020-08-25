@@ -142,6 +142,9 @@ func (c *Client) Data(file io.ReadWriteCloser) *model.PipelineError {
 		if _, err := file.(io.ReaderAt).ReadAt(b, 0); err != nil {
 			return err
 		}
+		if stream, ok := file.(*pipeline.TransferStream); ok {
+			stream.Transfer.Progress--
+		}
 		_, _ = c.remoteFile.Seek(0, io.SeekStart)
 		if _, err := c.remoteFile.Write(b); err != nil {
 			return err
