@@ -26,29 +26,6 @@ const (
 	StatusError TransferStatus = "ERROR"
 )
 
-// TransferStep represents the different steps of a transfer.
-type TransferStep string
-
-const (
-	// StepSetup is the state of a transfer while connecting and making the request.
-	StepSetup TransferStep = "SETUP"
-
-	// StepPreTasks is the state of a transfer while it's running the pre tasks.
-	StepPreTasks TransferStep = "PRE TASKS"
-
-	// StepData is the state of a transfer while transferring the file data.
-	StepData TransferStep = "DATA"
-
-	// StepPostTasks is the state of a transfer while it's running the post tasks.
-	StepPostTasks TransferStep = "POST TASKS"
-
-	// StepErrorTasks is the state of a transfer while it's running the error tasks.
-	StepErrorTasks TransferStep = "ERROR TASKS"
-
-	// StepFinalization is the state of a transfer while finalizing.
-	StepFinalization TransferStep = "FINALIZATION"
-)
-
 // this function has been commented out because it was unused. might be useful
 // later
 // func (t TransferStatus) isValid() bool {
