@@ -32,7 +32,7 @@ Filtrer l'historique
       Peut être renseigné plusieurs fois pour filtrer plusieurs protocoles.
    :type protocol: [sftp]
    :param status: Filtre uniquement les transferts ayant le statut renseigné.
-      Valeurs possibles: ``PLANNED``, ``TRANSFER``.
+      Valeurs possibles: ``CANCELLED``, ``DONE``, ``ERROR``.
       Peut être renseigné plusieurs fois pour filtrer plusieurs status.
    :type status: string
    :param start: Filtre uniquement les transferts ayant commencé après la date
@@ -60,8 +60,8 @@ Filtrer l'historique
    :resjsonarr string rule: Le nom de la règle de transfert
    :resjsonarr date start: La date de début du transfert
    :resjsonarr date stop: La date de fin du transfert
-   :resjsonarr string status: Le statut final du transfert (*ERROR*, *DONE* ou *CANCELLED*)
-   :resjsonarr string step: La dernière étape du transfert (*PRE TASKS*, *DATA*, *POST TASKS* ou *ERROR TASKS*)
+   :resjsonarr string status: Le statut final du transfert (**CANCELLED*, *DONE* ou *ERROR*)
+   :resjsonarr string step: La dernière étape du transfert (*NONE*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)
    :resjsonarr number progress: La progression (en octets) du transfert de données
    :resjsonarr number taskNumber: Le numéro du dernier traitement exécuté
    :resjsonarr string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)

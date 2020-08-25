@@ -29,8 +29,7 @@ Lister les transferts
       Peut être renseigné plusieurs fois pour filtrer plusieurs règles.
    :type rule: int
    :param status: Filtre uniquement les transferts ayant le statut renseigné.
-      Valeurs possibles : ``PLANNED``, ``PRETASKS``, ``TRANSFER``,
-      ``POSTTASKS``, ``ERRORTASKS``.
+      Valeurs possibles : ``PLANNED``, ``RUNNING``, ``PAUSED``.
       Peut être renseigné plusieurs fois pour filtrer plusieurs status.
    :type status: string
    :param start: Filtre uniquement les transferts dont la date est ultérieure à
@@ -51,7 +50,7 @@ Lister les transferts
    :resjsonarr string destPath: Le chemin de destination du fichier
    :resjsonarr date start: La date de début du transfert
    :resjsonarr string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED* ou *INTERRUPTED*)
-   :resjsonarr string step: L'étape actuelle du transfert (*PRE TASKS*, *DATA*, *POST TASKS* ou *ERROR TASKS*)
+   :resjsonarr string step: L'étape actuelle du transfert (*NONE*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)
    :resjsonarr number progress: La progression (en octets) du transfert de données
    :resjsonarr number taskNumber: Le numéro du traitement en cours d'exécution
    :resjsonarr string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
