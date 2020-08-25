@@ -130,19 +130,6 @@ func (t *TransferStream) setTrueFilepath() *model.PipelineError {
 // Start opens/creates the stream's local file. If necessary, the method also
 // creates the file's parent directories.
 func (t *TransferStream) Start() (err *model.PipelineError) {
-	if oldStep := t.Transfer.Step; oldStep != "" {
-		defer func() {
-			if err == nil {
-				t.Transfer.Step = oldStep
-			}
-		}()
-	}
-	t.Transfer.Step = model.StepSetup
-	if err := t.Transfer.Update(t.DB); err != nil {
-		t.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
-		return &model.PipelineError{Kind: model.KindDatabase}
-	}
-
 	if !t.Rule.IsSend {
 		if err := makeDir(t.Transfer.TrueFilepath); err != nil {
 			t.Logger.Errorf("Failed to create temp directory: %s", err)
@@ -226,6 +213,10 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 // moves the file from the temporary work directory to its final destination.
 // The method returns an error if the file cannot be moved.
 func (t *TransferStream) Close() error {
+	if t.File == nil {
+		return nil
+	}
+
 	if err := t.File.Close(); err != nil {
 		t.Logger.Warningf("Failed to close file '%s': %s", t.File.Name(),
 			err.(*os.PathError).Err.Error())

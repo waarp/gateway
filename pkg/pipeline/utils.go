@@ -58,11 +58,6 @@ func ToHistory(db *database.DB, logger *log.Logger, trans *model.Transfer) error
 		return err
 	}
 
-	if trans.Error.Code == model.TeOk || trans.Error.Code == model.TeWarning {
-		trans.Progress = 0
-		trans.Step = ""
-	}
-
 	hist, err := trans.ToHistory(ses, time.Now())
 	if err != nil {
 		logger.Criticalf("Failed to convert transfer to history: %s", err)
@@ -156,30 +151,34 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 	_ = stream.Close()
 
 	switch err.Kind {
-	case model.KindCancel:
-		stream.Transfer.Status = model.StatusCancelled
-		stream.Archive()
-		_ = os.Remove(stream.File.Name())
 	case model.KindDatabase:
+		stream.exit()
 	case model.KindInterrupt:
 		stream.Transfer.Status = model.StatusInterrupted
 		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
-			return
 		}
+		stream.exit()
+		stream.Logger.Info("Transfer paused")
 	case model.KindPause:
 		stream.Transfer.Status = model.StatusPaused
 		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
-			return
 		}
+		stream.exit()
+	case model.KindCancel:
+		stream.Transfer.Status = model.StatusCancelled
+		_ = os.Remove(stream.File.Name())
+		_ = stream.Archive()
+		stream.Logger.Info("Transfer cancelled by user")
 	case model.KindTransfer:
 		stream.Transfer.Error = err.Cause
 		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
-			return
 		}
-		stream.ErrorTasks()
+		if stream.Transfer.Step != model.StepSetup {
+			stream.ErrorTasks()
+		}
 		stream.Transfer.Error = err.Cause
 		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer step to '%s': %s",
@@ -187,7 +186,7 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 			return
 		}
 		stream.Transfer.Status = model.StatusError
-		stream.Archive()
+		_ = stream.Archive()
+		stream.Logger.Errorf("Execution finished with error code '%s'", err.Cause.Code)
 	}
-	stream.Exit()
 }

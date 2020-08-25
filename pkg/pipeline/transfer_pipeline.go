@@ -25,52 +25,56 @@ type Pipeline struct {
 // PreTasks executes the transfer's pre-tasks. It returns an error if the
 // execution fails.
 func (p *Pipeline) PreTasks() *model.PipelineError {
-	p.Logger.Info("Executing pre-tasks")
-	if p.Transfer.Step == model.StepSetup || p.Transfer.Step == model.StepPreTasks {
-		return execTasks(p.proc, model.ChainPre, model.StepPreTasks)
+	if p.Transfer.Step > model.StepPreTasks {
+		return nil
 	}
-	return nil
+
+	p.Logger.Info("Executing pre-tasks")
+	return execTasks(p.proc, model.ChainPre, model.StepPreTasks)
 }
 
 // PostTasks executes the transfer's post-tasks. It returns an error if the
 // execution fails.
 func (p *Pipeline) PostTasks() *model.PipelineError {
-	p.Logger.Info("Executing post-tasks")
-	p.Transfer.Progress = 0
-	if err := p.Transfer.Update(p.DB); err != nil {
-		p.Logger.Errorf("Failed to update transfer progress: %s", err.Error())
-		return &model.PipelineError{Kind: model.KindDatabase}
+	if p.Transfer.Step > model.StepPostTasks {
+		return nil
 	}
 
-	if p.Transfer.Step == model.StepData || p.Transfer.Step == model.StepPostTasks {
-		return execTasks(p.proc, model.ChainPost, model.StepPostTasks)
-	}
-	return nil
+	p.Logger.Info("Executing post-tasks")
+	return execTasks(p.proc, model.ChainPost, model.StepPostTasks)
 }
 
 // ErrorTasks updates the transfer's error in the database with the given one,
 // and then executes the transfer's error-tasks.
 func (p *Pipeline) ErrorTasks() {
-	p.Logger.Info("Executing error tasks")
-	if p.Transfer.Step == model.StepFinalization {
+	if p.Transfer.Step > model.StepErrorTasks {
 		return
 	}
+
+	// Save the failed step and task number, and restore then after the error
+	// tasks have finished
 	failedStep := p.Transfer.Step
 	failedTask := p.Transfer.TaskNumber
+	defer func() {
+		p.Transfer.Step = failedStep
+		p.Transfer.TaskNumber = failedTask
+	}()
 	p.Transfer.TaskNumber = 0
+
+	p.Logger.Info("Executing error tasks")
 	_ = execTasks(p.proc, model.ChainError, model.StepErrorTasks)
-	p.Transfer.Step = failedStep
-	p.Transfer.TaskNumber = failedTask
 }
 
 // Archive deletes the transfer entry and saves it in the history.
-func (p *Pipeline) Archive() {
+func (p *Pipeline) Archive() error {
 	p.Logger.Info("Transfer finished, saving into transfer history")
-	_ = ToHistory(p.DB, p.Logger, p.Transfer)
+	err := ToHistory(p.DB, p.Logger, p.Transfer)
+	p.exit()
+	return err
 }
 
-// Exit deletes the transfer's signal channel.
-func (p *Pipeline) Exit() {
+// exit deletes the transfer's signal channel.
+func (p *Pipeline) exit() {
 	Signals.Delete(p.Transfer.ID)
 	if p.Transfer.IsServer {
 		TransferInCount.sub()
