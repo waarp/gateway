@@ -41,18 +41,18 @@ func displayHistory(w io.Writer, hist *rest.OutHistory) {
 	fmt.Fprintln(w, orange("    End date:        "), hist.Stop.Format(time.RFC3339))
 	if hist.ErrorCode != model.TeOk {
 		fmt.Fprintln(w, orange("    Error code:      "), hist.ErrorCode)
+		if hist.ErrorMsg != "" {
+			fmt.Fprintln(w, orange("    Error message:   "), hist.ErrorMsg)
+		}
 	}
-	if hist.ErrorMsg != "" {
-		fmt.Fprintln(w, orange("    Error message:   "), hist.ErrorMsg)
-	}
-	if hist.Step != "" {
-		fmt.Fprintln(w, orange("    Failed step:     "), hist.Step)
-	}
-	if hist.Progress != 0 {
-		fmt.Fprintln(w, orange("    Progress:        "), hist.Progress)
-	}
-	if hist.TaskNumber != 0 {
-		fmt.Fprintln(w, orange("    Task number:     "), hist.TaskNumber)
+	if hist.Step != model.StepNone {
+		fmt.Fprintln(w, orange("    Failed step:     "), hist.Step.String())
+		switch hist.Step {
+		case model.StepData:
+			fmt.Fprintln(w, orange("    Progress:        "), hist.Progress)
+		case model.StepPreTasks, model.StepPostTasks:
+			fmt.Fprintln(w, orange("    Failed task:     "), hist.TaskNumber)
+		}
 	}
 }
 
