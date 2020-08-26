@@ -52,7 +52,7 @@ func TestRequestStatus(t *testing.T) {
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, services))
 
 			Convey("When executing the command", func() {
-				commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+				commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 				So(s.Execute(nil), ShouldBeNil)
 

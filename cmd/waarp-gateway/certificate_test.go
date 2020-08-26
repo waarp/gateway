@@ -29,7 +29,7 @@ func TestGetCertificate(t *testing.T) {
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
@@ -344,7 +344,7 @@ func TestAddCertificate(t *testing.T) {
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			pk := writeFile("private_key")
 			pbk := writeFile("public_key")
@@ -695,7 +695,7 @@ func TestDeleteCertificate(t *testing.T) {
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
@@ -1074,7 +1074,7 @@ func TestListCertificate(t *testing.T) {
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
@@ -1573,7 +1573,7 @@ func TestUpdateCertificate(t *testing.T) {
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			pk := writeFile("new_private_key")
 			pbk := writeFile("new_public_key")

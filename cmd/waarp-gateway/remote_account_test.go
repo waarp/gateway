@@ -21,7 +21,7 @@ func TestGetRemoteAccount(t *testing.T) {
 		Convey("Given a gateway with 1 remote account", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
@@ -113,7 +113,7 @@ func TestAddRemoteAccount(t *testing.T) {
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "parent",
@@ -177,7 +177,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 		Convey("Given a gateway with 1 remote account", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
@@ -269,7 +269,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 		Convey("Given a gateway with 1 remote account", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "parent",
@@ -390,7 +390,7 @@ func TestListRemoteAccount(t *testing.T) {
 		Convey("Given a gateway with 2 remote accounts", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner1 := &model.RemoteAgent{
 				Name:        "partner1",
@@ -535,7 +535,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 		Convey("Given a gateway with 1 remote account and 1 rule", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
@@ -660,7 +660,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 		Convey("Given a gateway with 1 remote account and 1 rule", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",

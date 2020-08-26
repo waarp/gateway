@@ -14,9 +14,7 @@ var (
 )
 
 type options struct {
-	Args struct {
-		Address string `required:"yes" positional-arg-name:"address" description:"The address of the gateway"`
-	} `positional-args:"yes"`
+	Address string         `short:"a" long:"address" description:"The address of the gateway" env:"WAARP_GATEWAY_ADDRESS"`
 	Status  statusCommand  `command:"status" description:"Show the status of the gateway services"`
 	Server  serverCommand  `command:"server" description:"Manage the local servers"`
 	Partner partnerCommand `command:"partner" description:"Manage the remote partners"`

@@ -294,7 +294,7 @@ func (r *ruleAllowAll) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
-	addr, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return err
 	}

@@ -135,7 +135,7 @@ func TestGetRule(t *testing.T) {
 		Convey("Given a gateway with 1 rule", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			rule := &model.Rule{
 				Name:     "rule_name",
@@ -190,7 +190,7 @@ func TestAddRule(t *testing.T) {
 		Convey("Given a gateway with 1 rule", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			existing := &model.Rule{
 				Name:    "existing rule",
@@ -331,7 +331,7 @@ func TestDeleteRule(t *testing.T) {
 		Convey("Given a gateway with 1 rule", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			rule := &model.Rule{
 				Name:   "rule_name",
@@ -391,7 +391,7 @@ func TestListRules(t *testing.T) {
 		Convey("Given a gateway with 2 rules", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			receive := &model.Rule{
 				Name:     "receive",
@@ -492,7 +492,7 @@ func TestRuleAllowAll(t *testing.T) {
 		Convey("Given a database with a rule", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			rule := &model.Rule{
 				Name:   "rule",

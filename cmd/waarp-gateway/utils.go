@@ -77,7 +77,7 @@ func getResponseMessage(resp *http.Response) error {
 }
 
 func agentListURL(path string, s *listOptions, sort string, protos []string) (*url.URL, error) {
-	addr, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func agentListURL(path string, s *listOptions, sort string, protos []string) (*u
 }
 
 func accountListURL(path string, s *listOptions, sort string) (*url.URL, error) {
-	addr, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func accountListURL(path string, s *listOptions, sort string) (*url.URL, error) 
 }
 
 func listURL(path string, s *listOptions, sort string) (*url.URL, error) {
-	addr, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func listURL(path string, s *listOptions, sort string) (*url.URL, error) {
 }
 
 func add(path string, object interface{}) error {
-	addr, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func list(addr *url.URL, target interface{}) error {
 }
 
 func get(path string, target interface{}) error {
-	addr, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return fmt.Errorf("failed to parse server URL: %s", err)
 	}
@@ -195,7 +195,7 @@ func get(path string, target interface{}) error {
 }
 
 func update(path string, object interface{}) error {
-	addr, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func update(path string, object interface{}) error {
 }
 
 func remove(path string) error {
-	addr, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return fmt.Errorf("failed to parse server URL: %s", err)
 	}

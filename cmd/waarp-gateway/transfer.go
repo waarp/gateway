@@ -77,7 +77,7 @@ type transferAdd struct {
 	Way     string `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"pull" choice:"push"`
 	Name    string `short:"n" long:"name" description:"The name of the file after the transfer"`
 	Partner string `required:"true" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
-	Account string `required:"true" short:"a" long:"account" description:"The account used to connect on the partner"`
+	Account string `required:"true" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
 	Rule    string `required:"true" short:"r" long:"rule" description:"The rule to use for the transfer"`
 	Date    string `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
 }
@@ -140,7 +140,7 @@ type transferList struct {
 }
 
 func (t *transferList) listURL() (*url.URL, error) {
-	conn, err := url.Parse(commandLine.Args.Address)
+	conn, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +205,7 @@ type transferPause struct {
 
 func (t *transferPause) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	conn, err := url.Parse(commandLine.Args.Address)
+	conn, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return err
 	}
@@ -242,7 +242,7 @@ type transferResume struct {
 
 func (t *transferResume) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	conn, err := url.Parse(commandLine.Args.Address)
+	conn, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return err
 	}
@@ -278,7 +278,7 @@ type transferCancel struct {
 
 func (t *transferCancel) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	conn, err := url.Parse(commandLine.Args.Address)
+	conn, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return err
 	}

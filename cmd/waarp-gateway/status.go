@@ -54,7 +54,7 @@ func showStatus(statuses rest.Statuses, w io.Writer) {
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
 func (s *statusCommand) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Args.Address)
+	conn, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return err
 	}

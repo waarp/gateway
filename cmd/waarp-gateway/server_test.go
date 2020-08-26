@@ -36,7 +36,7 @@ func TestGetServer(t *testing.T) {
 		Convey("Given a gateway with 1 local server", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server := &model.LocalAgent{
 				Name:     "local_agent",
@@ -110,7 +110,7 @@ func TestAddServer(t *testing.T) {
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given valid flags", func() {
 				args := []string{"-n", "server_name", "-p", "test",
@@ -191,7 +191,7 @@ func TestListServers(t *testing.T) {
 		Convey("Given a gateway with 2 local servers", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server1 := &model.LocalAgent{
 				Name:     "local_agent1",
@@ -309,7 +309,7 @@ func TestDeleteServer(t *testing.T) {
 		Convey("Given a gateway with 1 local server", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server := &model.LocalAgent{
 				Name:        "server_name",
@@ -371,7 +371,7 @@ func TestUpdateServer(t *testing.T) {
 		Convey("Given a gateway with 1 local server", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server := &model.LocalAgent{
 				Name:        "server",
@@ -490,7 +490,7 @@ func TestAuthorizeServer(t *testing.T) {
 		Convey("Given a gateway with 1 local server and 1 rule", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server := &model.LocalAgent{
 				Name:        "server",
@@ -584,7 +584,7 @@ func TestRevokeServer(t *testing.T) {
 		Convey("Given a gateway with 1 distant server and 1 rule", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			server := &model.LocalAgent{
 				Name:        "server",

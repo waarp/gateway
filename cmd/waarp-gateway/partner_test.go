@@ -31,7 +31,7 @@ func TestGetPartner(t *testing.T) {
 		Convey("Given a gateway with 1 distant partner", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "remote_agent",
@@ -99,7 +99,7 @@ func TestAddPartner(t *testing.T) {
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given valid flags", func() {
 				args := []string{"-n", "server_name", "-p", "test",
@@ -170,7 +170,7 @@ func TestListPartners(t *testing.T) {
 		Convey("Given a gateway with 2 distant partners", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner1 := &model.RemoteAgent{
 				Name:        "remote_agent1",
@@ -276,7 +276,7 @@ func TestDeletePartner(t *testing.T) {
 		Convey("Given a gateway with 1 distant partner", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "remote_agent",
@@ -338,7 +338,7 @@ func TestUpdatePartner(t *testing.T) {
 		Convey("Given a gateway with 1 distant partner", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
@@ -457,7 +457,7 @@ func TestAuthorizePartner(t *testing.T) {
 		Convey("Given a gateway with 1 distant partner and 1 rule", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
@@ -551,7 +551,7 @@ func TestRevokePartner(t *testing.T) {
 		Convey("Given a gateway with 1 distant partner and 1 rule", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",

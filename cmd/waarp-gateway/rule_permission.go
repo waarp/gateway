@@ -11,7 +11,7 @@ func authorize(path, targetType, target, rule, direction string) error {
 		return err
 	}
 
-	conn, err := url.Parse(commandLine.Args.Address)
+	conn, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func revoke(path, targetType, target, rule, direction string) error {
 		return err
 	}
 
-	conn, err := url.Parse(commandLine.Args.Address)
+	conn, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return err
 	}

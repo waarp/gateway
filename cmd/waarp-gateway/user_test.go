@@ -26,7 +26,7 @@ func TestGetUser(t *testing.T) {
 		Convey("Given a gateway with 1 user", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			user := &model.User{
 				Username: "user",
@@ -75,7 +75,7 @@ func TestAddUser(t *testing.T) {
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			Convey("Given valid flags", func() {
 				args := []string{"-u", "user", "-p", "password"}
@@ -113,7 +113,7 @@ func TestDeleteUser(t *testing.T) {
 		Convey("Given a gateway with 1 user", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			user := &model.User{
 				Username: "user",
@@ -172,7 +172,7 @@ func TestUpdateUser(t *testing.T) {
 		Convey("Given a gateway with 1 user", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
 
 			user := &model.User{
 				Username: "user",
@@ -248,7 +248,7 @@ func TestListUser(t *testing.T) {
 				Password: []byte("password"),
 			}
 			So(db.Create(user1), ShouldBeNil)
-			commandLine.Args.Address = "http://user1:password@" + gw.Listener.Addr().String()
+			commandLine.Address = "http://user1:password@" + gw.Listener.Addr().String()
 
 			user2 := &model.User{
 				Username: "user2",

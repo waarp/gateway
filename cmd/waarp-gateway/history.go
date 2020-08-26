@@ -90,7 +90,7 @@ type historyList struct {
 }
 
 func (h *historyList) listURL() (*url.URL, error) {
-	conn, err := url.Parse(commandLine.Args.Address)
+	conn, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ type historyRetry struct {
 }
 
 func (h *historyRetry) Execute([]string) error {
-	addr, err := url.Parse(commandLine.Args.Address)
+	addr, err := url.Parse(commandLine.Address)
 	if err != nil {
 		return err
 	}
