@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`169` Le paramètre de l'adresse de la gateway dans les commandes du client terminal peut désormais être
+  récupérée via la variable d'environnement `WAARP_GATEWAY_ADDRESS`. En conséquence de ce changement, le paramètre a
+  été changé en option (`-a`) et est maintenant optionnel. Pour éviter les confusions entre ce nouveau flag et l'option
+  `--account` déjà existante sur la commande `transfer add`, cette dernière a été changée en `-l` (ou ``--login`
+  en version longue).
+
 * :release:`0.2.0 <2020-08-24>`
 * :feature:`178` Redémarre le automatiquement le service si celui-ci était
   démarré après l'installation d'une mise à jour via les packages DEB/RPM
