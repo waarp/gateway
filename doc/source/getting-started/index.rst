@@ -1,3 +1,4 @@
+############
 Premiers pas
 ############
 
@@ -5,9 +6,9 @@ Premiers pas
 .. toctree::
    :maxdepth: 3
 
-   requirements
-   install
-
+   intro
+   start
+   sftp-transfers
    xx-re-transfer
    xx-r66
 

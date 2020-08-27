@@ -11,6 +11,7 @@ multi-protocolaire.
 .. toctree::
    :maxdepth: 2
 
+   installation/index
    getting-started/index
    guide/index
    reference/index

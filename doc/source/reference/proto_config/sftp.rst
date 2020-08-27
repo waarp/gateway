@@ -1,45 +1,62 @@
+.. _proto-config-sftp:
+
 Configuration SFTP
 ##################
 
 L'objet JSON de configuration du protocole SFTP est identique pour les serveurs
-et les partenaires. Sa structure est la suivante :
+et les partenaires. Les options disponibles sont les suivantes :
 
-* **keyExchanges** (*array* of *string*) - Liste des algorithmes d'échange de
-  clé autorisés sur le serveur. Les algorithmes supportés sont :
+address
+   :type: string
 
-  - ``diffie-hellman-group1-sha1``
-  - ``diffie-hellman-group14-sha1``
-  - ``ecdh-sha2-nistp256``
-  - ``ecdh-sha2-nistp384``
-  - ``ecdh-sha2-nistp521``
-  - ``curve25519-sha256@libssh.org``
+   L'adresse du serveur SFTP (local ou distant).
 
-  Par défaut, tous les algorithmes sont autorisés.
+port
+   :type: integer
 
+   Le port utilisé par le serveur SFTP.
 
-* **ciphers** (*array* of *string*) - Liste des algorithmes de cryptage
-  symétrique de données autorisés sur le serveur. Les algorithmes supportés
-  sont :
+keyExchanges
+   :type: array of string
 
-  - ``aes128-gcm@openssh.com``
-  - ``aes128-ctr``
-  - ``aes192-ctr``
-  - ``aes256-ctr``
-  - ``chacha20-poly1305@openssh.com``
+   Liste des algorithmes d'échange de clé autorisés sur le serveur. Les
+   algorithmes supportés sont :
 
-  Par défaut, tous les algorithmes sont autorisés.
+   - ``diffie-hellman-group1-sha1``
+   - ``diffie-hellman-group14-sha1``
+   - ``ecdh-sha2-nistp256``
+   - ``ecdh-sha2-nistp384``
+   - ``ecdh-sha2-nistp521``
+   - ``curve25519-sha256@libssh.org``
 
+   Par défaut, tous les algorithmes sont autorisés.
 
-* **macs** (*array* of *string*) - Liste des algorithmes d'authentification de
-  message (MAC) autorisés sur le serveur. Les algorithmes supportés sont :
+ciphers
+   :type: array of string
 
-  - ``hmac-sha2-256-etm@openssh.com``
-  - ``hmac-sha2-256``
-  - ``hmac-sha1``
-  - ``hmac-sha1-96``
+   Liste des algorithmes de cryptage symétrique de données autorisés sur le
+   serveur. Les algorithmes supportés sont :
 
-  Par défaut, tous les algorithmes sont autorisés.
+   - ``aes128-gcm@openssh.com``
+   - ``aes128-ctr``
+   - ``aes192-ctr``
+   - ``aes256-ctr``
+   - ``chacha20-poly1305@openssh.com``
 
+   Par défaut, tous les algorithmes sont autorisés.
+
+macs
+   :type: array of string
+
+   Liste des algorithmes d'authentification de message (MAC) autorisés sur le
+   serveur. Les algorithmes supportés sont :
+
+   - ``hmac-sha2-256-etm@openssh.com``
+   - ``hmac-sha2-256``
+   - ``hmac-sha1``
+   - ``hmac-sha1-96``
+
+   Par défaut, tous les algorithmes sont autorisés.
 
 **Exemple**
 
