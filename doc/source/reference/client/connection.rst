@@ -19,8 +19,8 @@ Paramètres de connection
    l'interface REST de la gateway.
 
    Le login et le mot de passe requis sont les identifiants d'un
-   :doc:`utilisateur <user/index>`. Le mot de passe peut être omis, au quel cas,
-   il sera demandé via un *prompt* du terminal.
+   :doc:`utilisateur <user/index>`. L'utilisateur et le mot de passe peuvent
+   être omis, au quel cas, il seront demandés via un *prompt* du terminal.
 
 .. envvar:: WAARP_GATEWAY_ADDRESS
 

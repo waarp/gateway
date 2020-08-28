@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :bug:`188` Correction de l'erreur 'bad file descriptor' du CLI lors de l'affichage du prompt de mot de passe sous Windows
 * :feature:`169` En cas d'absence du nom d'utilisateur, celui-ci sera demandé via un prompt du terminal
 * :feature:`169` Le paramètre de l'adresse de la gateway dans les commandes du client terminal peut désormais être
   récupérée via la variable d'environnement `WAARP_GATEWAY_ADDRESS`. En conséquence de ce changement, le paramètre a
