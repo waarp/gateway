@@ -57,7 +57,6 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) (te *model.Pipelin
 }
 
 func (e *Executor) setup() *model.PipelineError {
-
 	e.Logger.Info("Sending transfer request to remote server '%s'")
 	if err := e.client.Connect(); err != nil {
 		e.Logger.Errorf("Failed to connect to remote server: %s", err)
@@ -208,13 +207,8 @@ func (e *Executor) runR66(info *model.OutTransferInfo) {
 func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {
 	e.Logger.Infof("Delegating R66 transfer n°%d to external server", e.Transfer.ID)
 	script := e.R66Home
-	args := []string{
-		"send",
-		info.Account.Login,
-		"-to", info.Agent.Name,
-		"-file", info.Transfer.SourceFile,
-		"-rule", info.Rule.Name,
-	}
+	args := buildR66CommandArgs(info)
+
 	e.Logger.Debugf("%s %#v", script, args)
 	cmd := exec.Command(script, args...) //nolint:gosec
 	out, err := cmd.Output()
@@ -261,6 +255,16 @@ func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {
 		info.Transfer.ExtInfo = buf
 	}
 	return err
+}
+
+func buildR66CommandArgs(info *model.OutTransferInfo) []string {
+	return []string{
+		info.Account.Login,
+		"send",
+		"-to", info.Agent.Name,
+		"-file", info.Transfer.SourceFile,
+		"-rule", info.Rule.Name,
+	}
 }
 
 type r66Result struct {
