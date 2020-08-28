@@ -3,7 +3,6 @@ package executor
 import (
 	"context"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -27,20 +27,14 @@ func init() {
 func TestExecutorRun(t *testing.T) {
 	logger := log.NewLogger("test_executor_run")
 
-	root, err := filepath.Abs("test_run_root")
-	if err != nil {
-		t.FailNow()
-	}
-	paths := pipeline.Paths{PathsConfig: conf.PathsConfig{
-		GatewayHome:   root,
-		InDirectory:   root,
-		OutDirectory:  root,
-		WorkDirectory: filepath.Join(root, "work"),
-	}}
-
-	Convey("Given a database", t, func() {
-		So(os.Mkdir(root, 0700), ShouldBeNil)
-		Reset(func() { So(os.RemoveAll(root), ShouldBeNil) })
+	Convey("Given a database", t, func(c C) {
+		root := testhelpers.TempDir(c, "test_executor_run")
+		paths := pipeline.Paths{PathsConfig: conf.PathsConfig{
+			GatewayHome:   root,
+			InDirectory:   root,
+			OutDirectory:  root,
+			WorkDirectory: filepath.Join(root, "work"),
+		}}
 
 		db := database.GetTestDatabase()
 
@@ -78,7 +72,7 @@ func TestExecutorRun(t *testing.T) {
 
 			content := []byte("executor test run file content")
 			truePath := filepath.Join(paths.OutDirectory, "test_run_src")
-			So(ioutil.WriteFile(truePath, content, 0700), ShouldBeNil)
+			So(ioutil.WriteFile(truePath, content, 0o700), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:       rule.ID,
@@ -273,7 +267,6 @@ func TestExecutorRun(t *testing.T) {
 
 						Convey("Then the corresponding `TransferHistory` entry "+
 							"should exist with an ERROR status", func() {
-
 							var h []model.TransferHistory
 							So(db.Select(&h, nil), ShouldBeNil)
 							So(h, ShouldNotBeEmpty)
@@ -429,20 +422,14 @@ func TestExecutorRun(t *testing.T) {
 func TestTransferResume(t *testing.T) {
 	logger := log.NewLogger("test_transfer_resume")
 
-	root, err := filepath.Abs("test_transfer_resume_root")
-	if err != nil {
-		t.FailNow()
-	}
-	paths := pipeline.Paths{PathsConfig: conf.PathsConfig{
-		GatewayHome:   root,
-		InDirectory:   root,
-		OutDirectory:  root,
-		WorkDirectory: filepath.Join(root, "work"),
-	}}
-
-	Convey("Given a test database", t, func() {
-		So(os.Mkdir(root, 0700), ShouldBeNil)
-		Reset(func() { So(os.RemoveAll(root), ShouldBeNil) })
+	Convey("Given a test database", t, func(c C) {
+		root := testhelpers.TempDir(c, "test_transfer_resume_root")
+		paths := pipeline.Paths{PathsConfig: conf.PathsConfig{
+			GatewayHome:   root,
+			InDirectory:   root,
+			OutDirectory:  root,
+			WorkDirectory: filepath.Join(root, "work"),
+		}}
 
 		db := database.GetTestDatabase()
 
@@ -491,7 +478,7 @@ func TestTransferResume(t *testing.T) {
 
 			content := []byte("test pre-tasks file content")
 			truePath := filepath.Join(paths.OutDirectory, "test_pre_tasks_src")
-			So(ioutil.WriteFile(truePath, content, 0700), ShouldBeNil)
+			So(ioutil.WriteFile(truePath, content, 0o700), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:       rule.ID,
@@ -568,7 +555,7 @@ func TestTransferResume(t *testing.T) {
 
 			content := []byte("test data file content")
 			truePath := filepath.Join(paths.OutDirectory, "test_data_src")
-			So(ioutil.WriteFile(truePath, content, 0700), ShouldBeNil)
+			So(ioutil.WriteFile(truePath, content, 0o700), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:       rule.ID,
@@ -651,7 +638,7 @@ func TestTransferResume(t *testing.T) {
 
 			content := []byte("test post-tasks file content")
 			truePath := filepath.Join(paths.OutDirectory, "test_post_tasks_src")
-			So(ioutil.WriteFile(truePath, content, 0700), ShouldBeNil)
+			So(ioutil.WriteFile(truePath, content, 0o700), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:       rule.ID,

@@ -22,6 +22,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 )
 
 func getTestPort() string {
@@ -35,7 +36,6 @@ func getTestPort() string {
 }
 
 func TestServerStop(t *testing.T) {
-
 	Convey("Given a running SFTP server service", t, func() {
 		db := database.GetTestDatabase()
 		port := getTestPort()
@@ -120,11 +120,8 @@ func TestServerStart(t *testing.T) {
 func TestSSHServer(t *testing.T) {
 	logger := log.NewLogger("test_sftp_server")
 
-	Convey("Given a server root", t, func() {
-		root, err := filepath.Abs("test_server_root")
-		So(err, ShouldBeNil)
-		So(os.Mkdir(root, 0700), ShouldBeNil)
-		Reset(func() { _ = os.RemoveAll(root) })
+	Convey("Given a server root", t, func(c C) {
+		root := testhelpers.TempDir(c, "test_server_root")
 
 		Convey("Given an SFTP server", func() {
 			listener, err := net.Listen("tcp", "localhost:0")
@@ -219,7 +216,6 @@ func TestSSHServer(t *testing.T) {
 			})
 
 			Convey("Given that the server shuts down", func() {
-
 				Convey("Given an SSH client", func() {
 					key, _, _, _, err := ssh.ParseAuthorizedKey(testPBK) //nolint:dogsled
 					So(err, ShouldBeNil)
@@ -281,8 +277,8 @@ func TestSSHServer(t *testing.T) {
 						content := []byte("Test outgoing file content")
 						file := filepath.Join(root, send.OutPath, "test_out_shutdown.src")
 
-						So(os.MkdirAll(filepath.Join(root, send.OutPath), 0700), ShouldBeNil)
-						So(ioutil.WriteFile(file, content, 0600), ShouldBeNil)
+						So(os.MkdirAll(filepath.Join(root, send.OutPath), 0o700), ShouldBeNil)
+						So(ioutil.WriteFile(file, content, 0o600), ShouldBeNil)
 
 						src, err := client.Open(path.Join(send.Path, "test_out_shutdown.src"))
 						So(err, ShouldBeNil)
@@ -325,7 +321,6 @@ func TestSSHServer(t *testing.T) {
 			})
 
 			Convey("Given a working server", func() {
-
 				Reset(func() {
 					ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 					defer cancel()
@@ -355,7 +350,7 @@ func TestSSHServer(t *testing.T) {
 						content := "Test incoming file"
 
 						dir := filepath.Join(root, receive.InPath)
-						err := os.MkdirAll(dir, 0700)
+						err := os.MkdirAll(dir, 0o700)
 						So(err, ShouldBeNil)
 
 						Convey("Given that the transfer finishes normally", func() {
@@ -568,8 +563,8 @@ func TestSSHServer(t *testing.T) {
 						file := filepath.Join(root, send.OutPath, "test_out.src")
 						content := []byte("Test outgoing file")
 
-						So(os.MkdirAll(filepath.Join(root, send.OutPath), 0700), ShouldBeNil)
-						So(ioutil.WriteFile(file, content, 0600), ShouldBeNil)
+						So(os.MkdirAll(filepath.Join(root, send.OutPath), 0o700), ShouldBeNil)
+						So(ioutil.WriteFile(file, content, 0o600), ShouldBeNil)
 
 						Convey("Given that the transfer finishes normally", func() {
 							src, err := client.Open(path.Join(send.Path, "test_out.src"))

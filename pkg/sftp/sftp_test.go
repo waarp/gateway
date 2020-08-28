@@ -18,17 +18,15 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestSFTPPackage(t *testing.T) {
 	logger := log.NewLogger("test_sftp_package")
 
-	Convey("Given a gateway root", t, func() {
-		home, err := filepath.Abs("package_test_root")
-		So(err, ShouldBeNil)
-		So(os.Mkdir(home, 0700), ShouldBeNil)
-		Reset(func() { So(os.RemoveAll(home), ShouldBeNil) })
+	Convey("Given a gateway root", t, func(c C) {
+		home := testhelpers.TempDir(c, "package_test_root")
 
 		pathConf := conf.PathsConfig{
 			GatewayHome:   home,
@@ -44,7 +42,7 @@ func TestSFTPPackage(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			root := filepath.Join(home, "sftp_root")
-			So(os.Mkdir(root, 0700), ShouldBeNil)
+			So(os.Mkdir(root, 0o700), ShouldBeNil)
 
 			db := database.GetTestDatabase()
 			localAgent := &model.LocalAgent{
@@ -216,8 +214,8 @@ func TestSFTPPackage(t *testing.T) {
 					srcFile := "sftp_test_file.src"
 					content := []byte("SFTP package test file content")
 					srcFilepath := filepath.Join(home, send.OutPath, srcFile)
-					So(os.MkdirAll(filepath.Dir(srcFilepath), 0700), ShouldBeNil)
-					So(ioutil.WriteFile(srcFilepath, content, 0600), ShouldBeNil)
+					So(os.MkdirAll(filepath.Dir(srcFilepath), 0o700), ShouldBeNil)
+					So(ioutil.WriteFile(srcFilepath, content, 0o600), ShouldBeNil)
 
 					trans := model.Transfer{
 						RuleID:     send.ID,

@@ -18,21 +18,21 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestFileReader(t *testing.T) {
 	logger := log.NewLogger("test_file_reader")
 
-	Convey("Given a file", t, func() {
-		root, err := filepath.Abs("file_reader_test_root")
-		So(err, ShouldBeNil)
+	Convey("Given a file", t, func(c C) {
+		root := testhelpers.TempDir(c, "file_reader_test_root")
+
 		rulePath := filepath.Join(root, "test", "out")
-		So(os.MkdirAll(rulePath, 0700), ShouldBeNil)
-		Reset(func() { _ = os.RemoveAll(root) })
+		So(os.MkdirAll(rulePath, 0o700), ShouldBeNil)
 
 		file := filepath.Join(rulePath, "file_read.src")
 		content := []byte("File reader test file content")
-		So(ioutil.WriteFile(file, content, 0600), ShouldBeNil)
+		So(ioutil.WriteFile(file, content, 0o600), ShouldBeNil)
 
 		Convey("Given a database with a rule, a localAgent and a localAccount", func() {
 			db := database.GetTestDatabase()
@@ -140,11 +140,8 @@ func TestFileReader(t *testing.T) {
 func TestFileWriter(t *testing.T) {
 	logger := log.NewLogger("test_file_writer")
 
-	Convey("Given a file", t, func() {
-		root, err := filepath.Abs("file_writer_test_root")
-		So(err, ShouldBeNil)
-		So(os.Mkdir(root, 0700), ShouldBeNil)
-		Reset(func() { _ = os.RemoveAll(root) })
+	Convey("Given a file", t, func(c C) {
+		root := testhelpers.TempDir(c, "file_writer_test_root")
 
 		Convey("Given a database with a rule and a localAgent", func() {
 			db := database.GetTestDatabase()
