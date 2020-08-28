@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :feature:`169` En cas d'absence du nom d'utilisateur, celui-ci sera demandé via un prompt du terminal
 * :feature:`169` Le paramètre de l'adresse de la gateway dans les commandes du client terminal peut désormais être
   récupérée via la variable d'environnement `WAARP_GATEWAY_ADDRESS`. En conséquence de ce changement, le paramètre a
   été changé en option (`-a`) et est maintenant optionnel. Pour éviter les confusions entre ce nouveau flag et l'option
