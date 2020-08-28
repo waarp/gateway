@@ -220,7 +220,7 @@ func (*gwAddr) UnmarshalFlag(value string) error {
 		return fmt.Errorf("the address flags '-a' is missing")
 	}
 
-	if !strings.HasPrefix("http://", value) && !strings.HasPrefix("https://", value) {
+	if !strings.HasPrefix(value, "http://") && !strings.HasPrefix(value, "https://") {
 		value = "http://" + value
 	}
 
