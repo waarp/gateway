@@ -11,7 +11,7 @@ require (
 	github.com/lib/pq v1.3.0
 	github.com/mattn/go-colorable v0.1.4
 	github.com/mattn/go-oci8 v0.0.2
-	github.com/mattn/go-sqlite3 v2.0.2+incompatible
+	github.com/mattn/go-sqlite3 v1.14.1
 	github.com/pkg/sftp v1.11.0
 	github.com/smartystreets/goconvey v1.6.4
 	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
