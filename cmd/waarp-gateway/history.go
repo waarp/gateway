@@ -65,10 +65,10 @@ type historyGet struct {
 }
 
 func (h *historyGet) Execute([]string) error {
-	path := admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID)
+	addr.Path = admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID)
 
 	trans := &rest.OutHistory{}
-	if err := get(path, trans); err != nil {
+	if err := get(trans); err != nil {
 		return err
 	}
 	displayHistory(getColorable(), trans)
@@ -89,13 +89,8 @@ type historyList struct {
 	Stop      string   `short:"e" long:"stop" description:"Filter the transfers which ended before a given date. Date must be in RFC3339 format."`
 }
 
-func (h *historyList) listURL() (*url.URL, error) {
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return nil, err
-	}
-
-	conn.Path = admin.APIPath + rest.HistoryPath
+func (h *historyList) listURL() error {
+	addr.Path = admin.APIPath + rest.HistoryPath
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(h.Limit))
 	query.Set("offset", fmt.Sprint(h.Offset))
@@ -119,7 +114,7 @@ func (h *historyList) listURL() (*url.URL, error) {
 	if h.Start != "" {
 		start, err := time.Parse(time.RFC3339, h.Start)
 		if err != nil {
-			return nil, fmt.Errorf("'%s' is not a start valid date (accepted format: '%s')",
+			return fmt.Errorf("'%s' is not a start valid date (accepted format: '%s')",
 				h.Start, time.RFC3339)
 		}
 		query.Set("start", start.Format(time.RFC3339))
@@ -127,24 +122,23 @@ func (h *historyList) listURL() (*url.URL, error) {
 	if h.Stop != "" {
 		stop, err := time.Parse(time.RFC3339, h.Stop)
 		if err != nil {
-			return nil, fmt.Errorf("'%s' is not a end valid date (accepted format: '%s')",
+			return fmt.Errorf("'%s' is not a end valid date (accepted format: '%s')",
 				h.Start, time.RFC3339)
 		}
 		query.Set("stop", stop.Format(time.RFC3339))
 	}
-	conn.RawQuery = query.Encode()
+	addr.RawQuery = query.Encode()
 
-	return conn, nil
+	return nil
 }
 
 func (h *historyList) Execute([]string) error {
-	addr, err := h.listURL()
-	if err != nil {
+	if err := h.listURL(); err != nil {
 		return err
 	}
 
 	body := map[string][]rest.OutHistory{}
-	if err := list(addr, &body); err != nil {
+	if err := list(&body); err != nil {
 		return err
 	}
 
@@ -172,10 +166,6 @@ type historyRetry struct {
 }
 
 func (h *historyRetry) Execute([]string) error {
-	addr, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
 	addr.Path = admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID) + "/retry"
 
 	query := url.Values{}
@@ -189,7 +179,7 @@ func (h *historyRetry) Execute([]string) error {
 	}
 	addr.RawQuery = query.Encode()
 
-	resp, err := sendRequest(addr, nil, http.MethodPut)
+	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
 		return err
 	}

@@ -21,7 +21,39 @@ type listOptions struct {
 	Offset int `short:"o" long:"offset" description:"Index of the first returned entry" default:"0"`
 }
 
-func sendRequest(addr *url.URL, object interface{}, method string) (*http.Response, error) {
+func isTerminal() bool {
+	return terminal.IsTerminal(int(in.Fd())) && terminal.IsTerminal(int(out.Fd()))
+}
+
+func promptUser() (string, error) {
+	if !isTerminal() {
+		return "", fmt.Errorf("the username is missing from the URL")
+	}
+
+	var user string
+	fmt.Fprintf(out, "Username:")
+	if _, err := fmt.Fscanln(in, &user); err != nil {
+		return "", err
+	}
+	return user, nil
+}
+
+func promptPassword() (string, error) {
+	if !isTerminal() {
+		return "", fmt.Errorf("the user password is missing from the URL")
+	}
+
+	fmt.Fprint(out, "Password:")
+	pwd, err := terminal.ReadPassword(int(in.Fd()))
+	if err != nil {
+		return "", err
+	}
+	fmt.Fprintln(out)
+
+	return string(pwd), nil
+}
+
+func sendRequest(object interface{}, method string) (*http.Response, error) {
 	var body io.Reader
 	if object != nil {
 		content, err := json.Marshal(object)
@@ -31,22 +63,8 @@ func sendRequest(addr *url.URL, object interface{}, method string) (*http.Respon
 		body = bytes.NewReader(content)
 	}
 
-	var user, passwd string
-	user = addr.User.Username()
-
-	if pwd, hasPwd := addr.User.Password(); hasPwd {
-		passwd = pwd
-	} else if terminal.IsTerminal(int(in.Fd())) && terminal.IsTerminal(int(out.Fd())) {
-		fmt.Fprintf(out, "Enter %s's password:", addr.User.Username())
-		pwd, err := terminal.ReadPassword(int(out.Fd()))
-		fmt.Fprintln(out)
-		if err != nil {
-			return nil, err
-		}
-		passwd = string(pwd)
-	} else {
-		return nil, fmt.Errorf("missing user password")
-	}
+	user := addr.User.Username()
+	passwd, _ := addr.User.Password()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -76,12 +94,7 @@ func getResponseMessage(resp *http.Response) error {
 	return fmt.Errorf(strings.TrimSpace(string(body)))
 }
 
-func agentListURL(path string, s *listOptions, sort string, protos []string) (*url.URL, error) {
-	addr, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return nil, err
-	}
-
+func agentListURL(path string, s *listOptions, sort string, protos []string) {
 	addr.Path = admin.APIPath + path
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(s.Limit))
@@ -92,49 +105,18 @@ func agentListURL(path string, s *listOptions, sort string, protos []string) (*u
 		query.Add("protocol", proto)
 	}
 	addr.RawQuery = query.Encode()
-
-	return addr, nil
 }
 
-func accountListURL(path string, s *listOptions, sort string) (*url.URL, error) {
-	addr, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return nil, err
-	}
-	addr.Path = admin.APIPath + path
+func listURL(s *listOptions, sort string) {
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(s.Limit))
 	query.Set("offset", fmt.Sprint(s.Offset))
 	query.Set("sort", sort)
 	addr.RawQuery = query.Encode()
-
-	return addr, nil
 }
 
-func listURL(path string, s *listOptions, sort string) (*url.URL, error) {
-	addr, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return nil, err
-	}
-	addr.Path = path
-	query := url.Values{}
-	query.Set("limit", fmt.Sprint(s.Limit))
-	query.Set("offset", fmt.Sprint(s.Offset))
-	query.Set("sort", sort)
-
-	addr.RawQuery = query.Encode()
-
-	return addr, nil
-}
-
-func add(path string, object interface{}) error {
-	addr, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	addr.Path = path
-
-	resp, err := sendRequest(addr, object, http.MethodPost)
+func add(object interface{}) error {
+	resp, err := sendRequest(object, http.MethodPost)
 	if err != nil {
 		return err
 	}
@@ -152,8 +134,8 @@ func add(path string, object interface{}) error {
 	}
 }
 
-func list(addr *url.URL, target interface{}) error {
-	resp, err := sendRequest(addr, nil, http.MethodGet)
+func list(target interface{}) error {
+	resp, err := sendRequest(nil, http.MethodGet)
 	if err != nil {
 		return err
 	}
@@ -171,14 +153,8 @@ func list(addr *url.URL, target interface{}) error {
 	}
 }
 
-func get(path string, target interface{}) error {
-	addr, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return fmt.Errorf("failed to parse server URL: %s", err)
-	}
-	addr.Path = path
-
-	resp, err := sendRequest(addr, nil, http.MethodGet)
+func get(target interface{}) error {
+	resp, err := sendRequest(nil, http.MethodGet)
 	if err != nil {
 		return err
 	}
@@ -194,14 +170,8 @@ func get(path string, target interface{}) error {
 	}
 }
 
-func update(path string, object interface{}) error {
-	addr, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	addr.Path = path
-
-	resp, err := sendRequest(addr, object, http.MethodPut)
+func update(object interface{}) error {
+	resp, err := sendRequest(object, http.MethodPut)
 	if err != nil {
 		return err
 	}
@@ -221,13 +191,9 @@ func update(path string, object interface{}) error {
 }
 
 func remove(path string) error {
-	addr, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return fmt.Errorf("failed to parse server URL: %s", err)
-	}
 	addr.Path = path
 
-	resp, err := sendRequest(addr, nil, http.MethodDelete)
+	resp, err := sendRequest(nil, http.MethodDelete)
 	if err != nil {
 		return err
 	}
@@ -241,4 +207,44 @@ func remove(path string) error {
 	default:
 		return fmt.Errorf("unexpected error: %s", getResponseMessage(resp))
 	}
+}
+
+type addrOpt struct {
+	Address gwAddr `short:"a" long:"address" description:"The address of the gateway" env:"WAARP_GATEWAY_ADDRESS"`
+}
+
+type gwAddr struct{}
+
+func (*gwAddr) UnmarshalFlag(value string) error {
+	if value == "" {
+		return fmt.Errorf("the address flags '-a' is missing")
+	}
+
+	if !strings.HasPrefix(value, "http://") && !strings.HasPrefix(value, "https://") {
+		value = "http://" + value
+	}
+
+	parsedURL, err := url.ParseRequestURI(value)
+	if err != nil {
+		return err.(*url.Error).Err
+	}
+
+	if _, hasPwd := parsedURL.User.Password(); !hasPwd {
+		user := parsedURL.User.Username()
+		if user == "" {
+			var err error
+			if user, err = promptUser(); err != nil {
+				return err
+			}
+		}
+
+		pwd, err := promptPassword()
+		if err != nil {
+			return err
+		}
+		parsedURL.User = url.UserPassword(user, pwd)
+	}
+
+	addr = parsedURL
+	return nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -52,7 +53,9 @@ func TestRequestStatus(t *testing.T) {
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, services))
 
 			Convey("When executing the command", func() {
-				commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+				var err error
+				addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+				So(err, ShouldBeNil)
 
 				So(s.Execute(nil), ShouldBeNil)
 

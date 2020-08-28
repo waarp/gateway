@@ -25,7 +25,7 @@ Programme un nouveau transfert avec les attributs ci-dessous.
 
    Le nom du partenaire distant avec lequel le transfert va être effectué.
 
-.. option:: -a <LOGIN>, --account=<LOGIN>
+.. option:: -l <LOGIN>, --login=<LOGIN>
 
    Le nom du compte distant utilisé par la gateway pour d'identifier
    auprès du partenaire de transfert.

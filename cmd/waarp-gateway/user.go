@@ -32,9 +32,9 @@ func (u *userAdd) Execute([]string) error {
 		Username: u.Username,
 		Password: []byte(u.Password),
 	}
-	path := admin.APIPath + rest.UsersPath
+	addr.Path = admin.APIPath + rest.UsersPath
 
-	if err := add(path, newUser); err != nil {
+	if err := add(newUser); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The user", bold(newUser.Username), "was successfully added.")
@@ -50,10 +50,10 @@ type userGet struct {
 }
 
 func (u *userGet) Execute([]string) error {
-	path := admin.APIPath + rest.UsersPath + "/" + u.Args.Username
+	addr.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
 
 	user := &rest.OutUser{}
-	if err := get(path, user); err != nil {
+	if err := get(user); err != nil {
 		return err
 	}
 	displayUser(getColorable(), user)
@@ -75,9 +75,9 @@ func (u *userUpdate) Execute([]string) error {
 		Username: u.Username,
 		Password: []byte(u.Password),
 	}
-	path := admin.APIPath + rest.UsersPath + "/" + u.Args.Username
+	addr.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
 
-	if err := update(path, user); err != nil {
+	if err := update(user); err != nil {
 		return err
 	}
 	username := u.Args.Username
@@ -114,13 +114,11 @@ type userList struct {
 }
 
 func (u *userList) Execute([]string) error {
-	addr, err := listURL(rest.APIPath+rest.UsersPath, &u.listOptions, u.SortBy)
-	if err != nil {
-		return err
-	}
+	addr.Path = rest.APIPath + rest.UsersPath
+	listURL(&u.listOptions, u.SortBy)
 
 	body := map[string][]rest.OutUser{}
-	if err := list(addr, &body); err != nil {
+	if err := list(&body); err != nil {
 		return err
 	}
 

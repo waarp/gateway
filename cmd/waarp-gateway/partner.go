@@ -52,9 +52,9 @@ func (p *partnerAdd) Execute([]string) error {
 		Protocol:    p.Protocol,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),
 	}
-	path := admin.APIPath + rest.PartnersPath
+	addr.Path = admin.APIPath + rest.PartnersPath
 
-	if err := add(path, partner); err != nil {
+	if err := add(partner); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The partner", bold(partner.Name), "was successfully added.")
@@ -70,13 +70,10 @@ type partnerList struct {
 }
 
 func (p *partnerList) Execute([]string) error {
-	addr, err := agentListURL(rest.PartnersPath, &p.listOptions, p.SortBy, p.Protocols)
-	if err != nil {
-		return err
-	}
+	agentListURL(rest.PartnersPath, &p.listOptions, p.SortBy, p.Protocols)
 
 	body := map[string][]rest.OutPartner{}
-	if err := list(addr, &body); err != nil {
+	if err := list(&body); err != nil {
 		return err
 	}
 
@@ -103,10 +100,10 @@ type partnerGet struct {
 }
 
 func (p *partnerGet) Execute([]string) error {
-	path := admin.APIPath + rest.PartnersPath + "/" + p.Args.Name
+	addr.Path = admin.APIPath + rest.PartnersPath + "/" + p.Args.Name
 
 	partner := &rest.OutPartner{}
-	if err := get(path, partner); err != nil {
+	if err := get(partner); err != nil {
 		return err
 	}
 	displayPartner(getColorable(), partner)
@@ -148,9 +145,9 @@ func (p *partnerUpdate) Execute([]string) error {
 		Protocol:    p.Protocol,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),
 	}
-	path := admin.APIPath + rest.PartnersPath + "/" + p.Args.Name
+	addr.Path = admin.APIPath + rest.PartnersPath + "/" + p.Args.Name
 
-	if err := update(path, partner); err != nil {
+	if err := update(partner); err != nil {
 		return err
 	}
 	name := p.Args.Name
@@ -172,10 +169,10 @@ type partnerAuthorize struct {
 }
 
 func (p *partnerAuthorize) Execute([]string) error {
-	path := admin.APIPath + rest.PartnersPath + "/" + p.Args.Partner +
+	addr.Path = admin.APIPath + rest.PartnersPath + "/" + p.Args.Partner +
 		"/authorize/" + p.Args.Rule + "/" + strings.ToLower(p.Args.Direction)
 
-	return authorize(path, "partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
+	return authorize("partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
@@ -189,8 +186,8 @@ type partnerRevoke struct {
 }
 
 func (p *partnerRevoke) Execute([]string) error {
-	path := admin.APIPath + rest.PartnersPath + "/" + p.Args.Partner +
+	addr.Path = admin.APIPath + rest.PartnersPath + "/" + p.Args.Partner +
 		"/revoke/" + p.Args.Rule + "/" + strings.ToLower(p.Args.Direction)
 
-	return revoke(path, "partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
+	return revoke("partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }

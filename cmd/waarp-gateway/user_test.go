@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -26,7 +27,9 @@ func TestGetUser(t *testing.T) {
 		Convey("Given a gateway with 1 user", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			user := &model.User{
 				Username: "user",
@@ -75,7 +78,9 @@ func TestAddUser(t *testing.T) {
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			Convey("Given valid flags", func() {
 				args := []string{"-u", "user", "-p", "password"}
@@ -113,7 +118,9 @@ func TestDeleteUser(t *testing.T) {
 		Convey("Given a gateway with 1 user", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			user := &model.User{
 				Username: "user",
@@ -172,7 +179,9 @@ func TestUpdateUser(t *testing.T) {
 		Convey("Given a gateway with 1 user", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Args.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			user := &model.User{
 				Username: "user",
@@ -248,7 +257,9 @@ func TestListUser(t *testing.T) {
 				Password: []byte("password"),
 			}
 			So(db.Create(user1), ShouldBeNil)
-			commandLine.Args.Address = "http://user1:password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://user1:password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			user2 := &model.User{
 				Username: "user2",

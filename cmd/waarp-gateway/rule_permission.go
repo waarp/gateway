@@ -3,21 +3,14 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 )
 
-func authorize(path, targetType, target, rule, direction string) error {
+func authorize(targetType, target, rule, direction string) error {
 	if err := checkRuleDir(direction); err != nil {
 		return err
 	}
 
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = path
-
-	resp, err := sendRequest(conn, nil, http.MethodPut)
+	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
 		return err
 	}
@@ -40,18 +33,12 @@ func authorize(path, targetType, target, rule, direction string) error {
 	}
 }
 
-func revoke(path, targetType, target, rule, direction string) error {
+func revoke(targetType, target, rule, direction string) error {
 	if err := checkRuleDir(direction); err != nil {
 		return err
 	}
 
-	conn, err := url.Parse(commandLine.Args.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = path
-
-	resp, err := sendRequest(conn, nil, http.MethodPut)
+	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
 		return err
 	}
