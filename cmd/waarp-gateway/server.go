@@ -52,10 +52,10 @@ type serverGet struct {
 }
 
 func (s *serverGet) Execute([]string) error {
-	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Name
+	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Name
 
 	server := &rest.OutServer{}
-	if err := get(path, server); err != nil {
+	if err := get(server); err != nil {
 		return err
 	}
 	displayServer(getColorable(), server)
@@ -86,9 +86,9 @@ func (s *serverAdd) Execute([]string) error {
 		},
 		ProtoConfig: json.RawMessage(s.ProtoConfig),
 	}
-	path := admin.APIPath + rest.ServersPath
+	addr.Path = admin.APIPath + rest.ServersPath
 
-	if err := add(path, server); err != nil {
+	if err := add(server); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The server", bold(server.Name), "was successfully added.")
@@ -122,13 +122,10 @@ type serverList struct {
 }
 
 func (s *serverList) Execute([]string) error {
-	addr, err := agentListURL(rest.ServersPath, &s.listOptions, s.SortBy, s.Protocols)
-	if err != nil {
-		return err
-	}
+	agentListURL(rest.ServersPath, &s.listOptions, s.SortBy, s.Protocols)
 
 	body := map[string][]rest.OutServer{}
-	if err := list(addr, &body); err != nil {
+	if err := list(&body); err != nil {
 		return err
 	}
 
@@ -173,9 +170,9 @@ func (s *serverUpdate) Execute([]string) error {
 		},
 		ProtoConfig: json.RawMessage(s.ProtoConfig),
 	}
-	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Name
+	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Name
 
-	if err := update(path, server); err != nil {
+	if err := update(server); err != nil {
 		return err
 	}
 	name := s.Args.Name
@@ -197,10 +194,10 @@ type serverAuthorize struct {
 }
 
 func (s *serverAuthorize) Execute([]string) error {
-	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
+	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
 		"/authorize/" + s.Args.Rule + "/" + strings.ToLower(s.Args.Direction)
 
-	return authorize(path, "server", s.Args.Server, s.Args.Rule, s.Args.Direction)
+	return authorize("server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
@@ -214,8 +211,8 @@ type serverRevoke struct {
 }
 
 func (s *serverRevoke) Execute([]string) error {
-	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
+	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
 		"/revoke/" + s.Args.Rule + "/" + strings.ToLower(s.Args.Direction)
 
-	return revoke(path, "server", s.Args.Server, s.Args.Rule, s.Args.Direction)
+	return revoke("server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }

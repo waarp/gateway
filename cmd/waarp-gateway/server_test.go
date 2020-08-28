@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -36,7 +37,9 @@ func TestGetServer(t *testing.T) {
 		Convey("Given a gateway with 1 local server", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:     "local_agent",
@@ -110,7 +113,9 @@ func TestAddServer(t *testing.T) {
 		Convey("Given a gateway", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			Convey("Given valid flags", func() {
 				args := []string{"-n", "server_name", "-p", "test",
@@ -191,7 +196,9 @@ func TestListServers(t *testing.T) {
 		Convey("Given a gateway with 2 local servers", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			server1 := &model.LocalAgent{
 				Name:     "local_agent1",
@@ -309,7 +316,9 @@ func TestDeleteServer(t *testing.T) {
 		Convey("Given a gateway with 1 local server", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "server_name",
@@ -371,7 +380,9 @@ func TestUpdateServer(t *testing.T) {
 		Convey("Given a gateway with 1 local server", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "server",
@@ -490,7 +501,9 @@ func TestAuthorizeServer(t *testing.T) {
 		Convey("Given a gateway with 1 local server and 1 rule", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "server",
@@ -584,7 +597,9 @@ func TestRevokeServer(t *testing.T) {
 		Convey("Given a gateway with 1 distant server and 1 rule", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "server",

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/jessevdk/go-flags"
@@ -11,10 +12,11 @@ var (
 	in          = os.Stdin
 	out         = os.Stdout
 	commandLine options
+	addr        *url.URL
 )
 
 type options struct {
-	Address string         `short:"a" long:"address" description:"The address of the gateway" env:"WAARP_GATEWAY_ADDRESS"`
+	addrOpt
 	Status  statusCommand  `command:"status" description:"Show the status of the gateway services"`
 	Server  serverCommand  `command:"server" description:"Manage the local servers"`
 	Partner partnerCommand `command:"partner" description:"Manage the remote partners"`

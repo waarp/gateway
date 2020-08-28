@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -131,10 +130,11 @@ func (r *ruleGet) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
-	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + strings.ToLower(r.Args.Direction)
+	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" +
+		strings.ToLower(r.Args.Direction)
 
 	rule := &rest.OutRule{}
-	if err := get(path, rule); err != nil {
+	if err := get(rule); err != nil {
 		return err
 	}
 	displayRule(getColorable(), rule)
@@ -171,9 +171,9 @@ func (r *ruleAdd) Execute([]string) error {
 	if err := parseTasks(rule.UptRule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {
 		return err
 	}
-	path := admin.APIPath + rest.RulesPath
+	addr.Path = admin.APIPath + rest.RulesPath
 
-	if err := add(path, rule); err != nil {
+	if err := add(rule); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The rule", bold(rule.Name), "was successfully added.")
@@ -210,13 +210,11 @@ type ruleList struct {
 }
 
 func (r *ruleList) Execute([]string) error {
-	addr, err := listURL(rest.APIPath+rest.RulesPath, &r.listOptions, r.SortBy)
-	if err != nil {
-		return err
-	}
+	addr.Path = rest.APIPath + rest.RulesPath
+	listURL(&r.listOptions, r.SortBy)
 
 	body := map[string][]rest.OutRule{}
-	if err := list(addr, &body); err != nil {
+	if err := list(&body); err != nil {
 		return err
 	}
 
@@ -256,7 +254,8 @@ func (r *ruleUpdate) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
-	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + strings.ToLower(r.Args.Direction)
+	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" +
+		strings.ToLower(r.Args.Direction)
 
 	rule := &rest.UptRule{
 		Name:     r.Name,
@@ -270,7 +269,7 @@ func (r *ruleUpdate) Execute([]string) error {
 		return err
 	}
 
-	if err := update(path, rule); err != nil {
+	if err := update(rule); err != nil {
 		return err
 	}
 	name := r.Args.Name
@@ -294,14 +293,10 @@ func (r *ruleAllowAll) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
-	addr, err := url.Parse(commandLine.Address)
-	if err != nil {
-		return err
-	}
 	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" +
 		strings.ToLower(r.Args.Direction) + "/allow_all"
 
-	resp, err := sendRequest(addr, nil, http.MethodPut)
+	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
 		return err
 	}

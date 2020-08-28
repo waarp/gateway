@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"sort"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
@@ -54,13 +53,9 @@ func showStatus(statuses rest.Statuses, w io.Writer) {
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
 func (s *statusCommand) Execute([]string) error {
-	conn, err := url.Parse(commandLine.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.StatusPath
+	addr.Path = admin.APIPath + rest.StatusPath
 
-	resp, err := sendRequest(conn, nil, http.MethodGet)
+	resp, err := sendRequest(nil, http.MethodGet)
 	if err != nil {
 		return err
 	}

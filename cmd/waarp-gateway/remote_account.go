@@ -37,11 +37,11 @@ type remAccGet struct {
 
 func (r *remAccGet) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	path := admin.APIPath + rest.PartnersPath + "/" + partner +
+	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner +
 		rest.AccountsPath + "/" + r.Args.Login
 
 	account := &rest.OutAccount{}
-	if err := get(path, account); err != nil {
+	if err := get(account); err != nil {
 		return err
 	}
 	displayAccount(getColorable(), account)
@@ -61,9 +61,9 @@ func (r *remAccAdd) Execute([]string) error {
 		Password: []byte(r.Password),
 	}
 	partner := commandLine.Account.Remote.Args.Partner
-	path := admin.APIPath + rest.PartnersPath + "/" + partner + rest.AccountsPath
+	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner + rest.AccountsPath
 
-	if err := add(path, account); err != nil {
+	if err := add(account); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The account", bold(account.Login), "was successfully added.")
@@ -106,10 +106,10 @@ func (r *remAccUpdate) Execute([]string) error {
 		Password: []byte(r.Password),
 	}
 	partner := commandLine.Account.Remote.Args.Partner
-	path := admin.APIPath + rest.PartnersPath + "/" + partner +
+	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner +
 		rest.AccountsPath + "/" + r.Args.Login
 
-	if err := update(path, account); err != nil {
+	if err := update(account); err != nil {
 		return err
 	}
 	login := r.Args.Login
@@ -129,14 +129,11 @@ type remAccList struct {
 
 func (r *remAccList) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	path := rest.PartnersPath + "/" + partner + rest.AccountsPath
-	addr, err := accountListURL(path, &r.listOptions, r.SortBy)
-	if err != nil {
-		return err
-	}
+	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner + rest.AccountsPath
+	listURL(&r.listOptions, r.SortBy)
 
 	body := map[string][]rest.OutAccount{}
-	if err := list(addr, &body); err != nil {
+	if err := list(&body); err != nil {
 		return err
 	}
 
@@ -166,11 +163,11 @@ type remAccAuthorize struct {
 
 func (r *remAccAuthorize) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	path := admin.APIPath + rest.PartnersPath + "/" + partner +
+	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner +
 		rest.AccountsPath + "/" + r.Args.Login + "/authorize/" + r.Args.Rule +
 		"/" + strings.ToLower(r.Args.Direction)
 
-	return authorize(path, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
+	return authorize("remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }
 
 // ######################## REVOKE ##########################
@@ -185,9 +182,9 @@ type remAccRevoke struct {
 
 func (r *remAccRevoke) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	path := admin.APIPath + rest.PartnersPath + "/" + partner +
+	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner +
 		rest.AccountsPath + "/" + r.Args.Login + "/revoke/" + r.Args.Rule +
 		"/" + strings.ToLower(r.Args.Direction)
 
-	return revoke(path, "remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
+	return revoke("remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }

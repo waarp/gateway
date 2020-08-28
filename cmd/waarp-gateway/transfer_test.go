@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -81,7 +82,9 @@ func TestAddTransfer(t *testing.T) {
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:   "rule",
@@ -212,7 +215,9 @@ func TestGetTransfer(t *testing.T) {
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			Convey("Given a valid transfer", func() {
 				p := &model.RemoteAgent{
@@ -300,7 +305,9 @@ func TestListTransfer(t *testing.T) {
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			p1 := &model.RemoteAgent{
 				Name:        "remote1",
@@ -576,7 +583,9 @@ func TestPauseTransfer(t *testing.T) {
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			Convey("Given a paused transfer entry", func() {
 				p := &model.RemoteAgent{
@@ -676,7 +685,9 @@ func TestResumeTransfer(t *testing.T) {
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			Convey("Given a paused transfer entry", func() {
 				p := &model.RemoteAgent{
@@ -774,7 +785,9 @@ func TestCancelTransfer(t *testing.T) {
 		Convey("Given a database", func() {
 			db := database.GetTestDatabase()
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			commandLine.Address = "http://admin:admin_password@" + gw.Listener.Addr().String()
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
 
 			Convey("Given a paused transfer entry", func() {
 				p := &model.RemoteAgent{

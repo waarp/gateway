@@ -101,9 +101,9 @@ func (t *transferAdd) Execute([]string) (err error) {
 			return fmt.Errorf("'%s' is not a valid date", t.Date)
 		}
 	}
-	path := admin.APIPath + rest.TransfersPath
+	addr.Path = admin.APIPath + rest.TransfersPath
 
-	if err := add(path, trans); err != nil {
+	if err := add(trans); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The transfer of file", t.File, "was successfully added.")
@@ -119,10 +119,10 @@ type transferGet struct {
 }
 
 func (t *transferGet) Execute([]string) error {
-	path := admin.APIPath + rest.TransfersPath + "/" + fmt.Sprint(t.Args.ID)
+	addr.Path = admin.APIPath + rest.TransfersPath + "/" + fmt.Sprint(t.Args.ID)
 
 	trans := &rest.OutTransfer{}
-	if err := get(path, trans); err != nil {
+	if err := get(trans); err != nil {
 		return err
 	}
 	displayTransfer(getColorable(), trans)
@@ -139,13 +139,8 @@ type transferList struct {
 	Start    string   `short:"d" long:"date" description:"Filter the transfers which started after a given date. Date must be in RFC3339 format."`
 }
 
-func (t *transferList) listURL() (*url.URL, error) {
-	conn, err := url.Parse(commandLine.Address)
-	if err != nil {
-		return nil, err
-	}
-
-	conn.Path = admin.APIPath + rest.TransfersPath
+func (t *transferList) listURL() error {
+	addr.Path = admin.APIPath + rest.TransfersPath
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(t.Limit))
 	query.Set("offset", fmt.Sprint(t.Offset))
@@ -160,24 +155,23 @@ func (t *transferList) listURL() (*url.URL, error) {
 	if t.Start != "" {
 		_, err := time.Parse(time.RFC3339, t.Start)
 		if err != nil {
-			return nil, fmt.Errorf("'%s' is not a valid date (accepted format: '%s')",
+			return fmt.Errorf("'%s' is not a valid date (accepted format: '%s')",
 				t.Start, time.RFC3339)
 		}
 		query.Set("start", t.Start)
 	}
-	conn.RawQuery = query.Encode()
+	addr.RawQuery = query.Encode()
 
-	return conn, nil
+	return nil
 }
 
 func (t *transferList) Execute([]string) error {
-	addr, err := t.listURL()
-	if err != nil {
+	if err := t.listURL(); err != nil {
 		return err
 	}
 
 	body := map[string][]rest.OutTransfer{}
-	if err := list(addr, &body); err != nil {
+	if err := list(&body); err != nil {
 		return err
 	}
 
@@ -205,13 +199,9 @@ type transferPause struct {
 
 func (t *transferPause) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	conn, err := url.Parse(commandLine.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/pause"
+	addr.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/pause"
 
-	resp, err := sendRequest(conn, nil, http.MethodPut)
+	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
 		return err
 	}
@@ -242,13 +232,9 @@ type transferResume struct {
 
 func (t *transferResume) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	conn, err := url.Parse(commandLine.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/resume"
+	addr.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/resume"
 
-	resp, err := sendRequest(conn, nil, http.MethodPut)
+	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
 		return err
 	}
@@ -278,13 +264,9 @@ type transferCancel struct {
 
 func (t *transferCancel) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	conn, err := url.Parse(commandLine.Address)
-	if err != nil {
-		return err
-	}
-	conn.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/cancel"
+	addr.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/cancel"
 
-	resp, err := sendRequest(conn, nil, http.MethodPut)
+	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
 		return err
 	}

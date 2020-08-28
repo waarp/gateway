@@ -51,10 +51,10 @@ type certGet struct {
 }
 
 func (c *certGet) Execute([]string) error {
-	path := getCertPath() + rest.CertificatesPath + "/" + c.Args.Cert
+	addr.Path = getCertPath() + rest.CertificatesPath + "/" + c.Args.Cert
 
 	cert := &rest.OutCert{}
-	if err := get(path, cert); err != nil {
+	if err := get(cert); err != nil {
 		return err
 	}
 	displayCertificate(getColorable(), cert)
@@ -93,9 +93,9 @@ func (c *certAdd) Execute([]string) (err error) {
 		}
 	}
 
-	path := getCertPath() + rest.CertificatesPath
+	addr.Path = getCertPath() + rest.CertificatesPath
 
-	if err := add(path, cert); err != nil {
+	if err := add(cert); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The certificate", bold(c.Name), "was successfully added.")
@@ -129,13 +129,11 @@ type certList struct {
 }
 
 func (c *certList) Execute([]string) error {
-	addr, err := listURL(getCertPath()+rest.CertificatesPath, &c.listOptions, c.SortBy)
-	if err != nil {
-		return err
-	}
+	addr.Path = getCertPath() + rest.CertificatesPath
+	listURL(&c.listOptions, c.SortBy)
 
 	body := map[string][]rest.OutCert{}
-	if err := list(addr, &body); err != nil {
+	if err := list(&body); err != nil {
 		return err
 	}
 
@@ -189,9 +187,9 @@ func (c *certUpdate) Execute([]string) (err error) {
 		}
 	}
 
-	path := getCertPath() + rest.CertificatesPath + "/" + c.Args.Cert
+	addr.Path = getCertPath() + rest.CertificatesPath + "/" + c.Args.Cert
 
-	if err := update(path, cert); err != nil {
+	if err := update(cert); err != nil {
 		return err
 	}
 	name := c.Args.Cert
