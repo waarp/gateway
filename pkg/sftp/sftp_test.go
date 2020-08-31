@@ -345,7 +345,7 @@ func TestSFTPPackage(t *testing.T) {
 								So(<-checkChannel, ShouldEqual, "RECEIVE | PRE-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "RECEIVE | PRE-TASK[1] | FAIL")
 								So(<-checkChannel, ShouldEqual, "RECEIVE | ERROR-TASK[0] | OK")
-								//So(getNextTask(), ShouldEqual, "SEND | ERROR-TASK[0] | OK")
+								So(<-checkChannel, ShouldEqual, "SEND | ERROR-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "END TRANSFER 2")
 
 								Convey("Then the work file should NOT exist", func() {
