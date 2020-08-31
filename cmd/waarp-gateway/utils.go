@@ -31,7 +31,7 @@ func promptUser() (string, error) {
 	}
 
 	var user string
-	fmt.Fprintf(out, "Username:")
+	fmt.Fprintf(out, "Username: ")
 	if _, err := fmt.Fscanln(in, &user); err != nil {
 		return "", err
 	}
@@ -43,14 +43,21 @@ func promptPassword() (string, error) {
 		return "", fmt.Errorf("the user password is missing from the URL")
 	}
 
-	fmt.Fprint(out, "Password:")
-	pwd, err := terminal.ReadPassword(int(in.Fd()))
+	fmt.Fprint(out, "Password: ")
+	st, err := terminal.MakeRaw(int(in.Fd()))
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = terminal.Restore(int(in.Fd()), st) }()
+
+	term := terminal.NewTerminal(in, "")
+	pwd, err := term.ReadPassword("")
 	if err != nil {
 		return "", err
 	}
 	fmt.Fprintln(out)
 
-	return string(pwd), nil
+	return pwd, nil
 }
 
 func sendRequest(object interface{}, method string) (*http.Response, error) {
