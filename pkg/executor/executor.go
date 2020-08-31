@@ -42,22 +42,23 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) (te *model.Pipelin
 	if !ok {
 		msg := fmt.Sprintf("Unknown transfer protocol '%s'", info.Agent.Protocol)
 		e.Logger.Critical(msg)
-		te = model.NewPipelineError(model.TeConnection, msg)
+		te = model.NewPipelineError(model.TeUnimplemented, msg)
 		return
 	}
 	e.client, err = constr(*info, stream.Signals)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to create transfer client: %s", err)
 		e.Logger.Critical(msg)
-		te = model.NewPipelineError(model.TeConnection, msg)
+		te = model.NewPipelineError(model.TeInternal, msg)
 		return
 	}
 
 	return te
 }
 
-func (e *Executor) prologue() *model.PipelineError {
-	e.Logger.Info("Sending transfer request to remote server")
+func (e *Executor) setup() *model.PipelineError {
+
+	e.Logger.Info("Sending transfer request to remote server '%s'")
 	if err := e.client.Connect(); err != nil {
 		e.Logger.Errorf("Failed to connect to remote server: %s", err)
 		return err
@@ -70,9 +71,6 @@ func (e *Executor) prologue() *model.PipelineError {
 
 	if err := e.client.Request(); err != nil {
 		e.Logger.Errorf("Failed to make transfer request: %s", err)
-		if err.Cause.Code == model.TeExternalOperation {
-			e.TransferStream.Transfer.Step = model.StepPreTasks
-		}
 		return err
 	}
 
@@ -92,9 +90,16 @@ func (e *Executor) data() *model.PipelineError {
 		return model.NewPipelineError(model.TeInternal, err.Error())
 	}
 
+	if err := e.TransferStream.Start(); err != nil {
+		return err
+	}
+
 	if err := e.client.Data(e.TransferStream); err != nil {
 		e.Logger.Errorf("Error while transmitting data: %s", err)
 		return err
+	}
+	if err := e.TransferStream.Close(); err != nil {
+		return err.(*model.PipelineError)
 	}
 	return nil
 }
@@ -111,66 +116,81 @@ func logTrans(logger *log.Logger, info *model.OutTransferInfo) {
 	}
 }
 
+func (e *Executor) prologue() *model.PipelineError {
+	oldStep := model.StepSetup
+	if e.Transfer.Step > model.StepSetup {
+		oldStep = e.Transfer.Step
+	}
+	e.Transfer.Step = model.StepSetup
+	defer func() { e.Transfer.Step = oldStep }()
+
+	if err := e.Transfer.Update(e.DB); err != nil {
+		e.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
+		return &model.PipelineError{Kind: model.KindDatabase}
+	}
+
+	if err := e.getClient(e.TransferStream); err != nil {
+		return err
+	}
+
+	if err := e.setup(); err != nil {
+		_ = e.client.Close(err)
+		return err
+	}
+	return nil
+}
+
+func (e *Executor) run() *model.PipelineError {
+	info, err := model.NewOutTransferInfo(e.DB, e.Transfer)
+	if err != nil {
+		e.Logger.Criticalf("Failed to retrieve transfer info: %s", err)
+		return &model.PipelineError{Kind: model.KindDatabase}
+	}
+	logTrans(e.Logger, info)
+
+	if info.Agent.Protocol == "r66" {
+		e.runR66(info)
+		return nil
+	}
+
+	if err := e.prologue(); err != nil {
+		return err
+	}
+
+	if err := e.TransferStream.PreTasks(); err != nil {
+		_ = e.client.Close(err)
+		return err
+	}
+
+	if err := e.data(); err != nil {
+		_ = e.client.Close(err)
+		return err
+	}
+
+	if err := e.TransferStream.PostTasks(); err != nil {
+		_ = e.client.Close(err)
+		return err
+	}
+
+	if err := e.client.Close(nil); err != nil {
+		e.Logger.Errorf("Remote post-task failed")
+		return err
+	}
+
+	e.TransferStream.Transfer.Step = model.StepNone
+	e.TransferStream.Transfer.Status = model.StatusDone
+	return nil
+}
+
 // Run executes the transfer stream given in the executor.
 func (e *Executor) Run() {
 	e.Logger.Infof("Processing transfer n°%d", e.Transfer.ID)
 
-	var tErr *model.PipelineError
-	info, err := model.NewOutTransferInfo(e.DB, e.Transfer)
-	if err != nil {
-		e.Logger.Criticalf("Failed to retrieve transfer info: %s", err)
-		tErr = &model.PipelineError{Kind: model.KindDatabase}
+	if tErr := e.run(); tErr != nil {
 		pipeline.HandleError(e.TransferStream, tErr)
 		return
 	}
-	logTrans(e.Logger, info)
-	if info.Agent.Protocol == "r66" {
-		e.runR66(info)
-		return
-	}
-
-	tErr = func() *model.PipelineError {
-		if sErr := e.TransferStream.Start(); sErr != nil {
-			return sErr
-		}
-
-		gErr := e.getClient(e.TransferStream)
-		if gErr != nil {
-			return gErr
-		}
-
-		if pErr := e.prologue(); pErr != nil {
-			_ = e.client.Close(pErr)
-			return pErr
-		}
-
-		if pErr := e.TransferStream.PreTasks(); pErr != nil {
-			_ = e.client.Close(pErr)
-			return pErr
-		}
-		if dErr := e.data(); dErr != nil {
-			_ = e.client.Close(dErr)
-			return dErr
-		}
-		if pErr := e.TransferStream.PostTasks(); pErr != nil {
-			_ = e.client.Close(pErr)
-			return pErr
-		}
-		if cErr := e.client.Close(nil); cErr != nil {
-			e.Logger.Errorf("Remote post-task failed")
-			return cErr
-		}
-
-		e.TransferStream.Transfer.Status = model.StatusDone
-		e.TransferStream.Archive()
-		e.TransferStream.Exit()
-		return nil
-	}()
-
-	if tErr != nil {
-		pipeline.HandleError(e.TransferStream, tErr)
-		e.Logger.Errorf("Execution finished with error code '%s'", tErr.Cause.Code)
-	} else {
+	if e.Archive() == nil {
 		e.Logger.Info("Execution finished without errors")
 	}
 }
@@ -183,8 +203,6 @@ func (e *Executor) runR66(info *model.OutTransferInfo) {
 	} else {
 		e.Transfer.Status = model.StatusDone
 	}
-	e.Pipeline.Archive()
-	e.Pipeline.Exit()
 }
 
 func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {

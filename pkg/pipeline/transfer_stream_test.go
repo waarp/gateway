@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -318,7 +319,7 @@ func TestStreamWrite(t *testing.T) {
 					})
 
 					Convey("Then the file should contain the array content", func() {
-						s, err := ioutil.ReadFile(stream.Transfer.TrueFilepath)
+						s, err := ioutil.ReadFile(utils.DenormalizePath(stream.Transfer.TrueFilepath))
 						So(err, ShouldBeNil)
 
 						So(string(s), ShouldEqual, string(w))
@@ -347,7 +348,7 @@ func TestStreamWrite(t *testing.T) {
 					})
 
 					Convey("Then the file should contain the array content", func() {
-						s, err := ioutil.ReadFile(stream.Transfer.TrueFilepath)
+						s, err := ioutil.ReadFile(utils.DenormalizePath(stream.Transfer.TrueFilepath))
 						So(err, ShouldBeNil)
 
 						So(string(s[off:]), ShouldEqual, string(w))

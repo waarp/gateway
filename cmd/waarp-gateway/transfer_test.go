@@ -867,7 +867,7 @@ func TestCancelTransfer(t *testing.T) {
 								Stop:           h[0].Stop,
 								Status:         model.StatusCancelled,
 								Error:          model.TransferError{},
-								Step:           "",
+								Step:           trans.Step,
 								Progress:       0,
 								TaskNumber:     0,
 							}

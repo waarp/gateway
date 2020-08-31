@@ -2,6 +2,7 @@ package executor
 
 import (
 	"io"
+	"io/ioutil"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
@@ -30,63 +31,48 @@ type AllSuccess struct{}
 func NewAllSuccess(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return AllSuccess{}, nil
 }
-func (AllSuccess) Connect() *model.PipelineError                   { return nil }
-func (AllSuccess) Authenticate() *model.PipelineError              { return nil }
-func (AllSuccess) Request() *model.PipelineError                   { return nil }
-func (AllSuccess) Data(io.ReadWriteCloser) *model.PipelineError    { return nil }
+func (AllSuccess) Connect() *model.PipelineError      { return nil }
+func (AllSuccess) Authenticate() *model.PipelineError { return nil }
+func (AllSuccess) Request() *model.PipelineError      { return nil }
+func (a AllSuccess) Data(f io.ReadWriteCloser) *model.PipelineError {
+	if _, err := ioutil.ReadAll(f); err != nil {
+		return model.NewPipelineError(model.TeUnknown, err.Error())
+	}
+	return nil
+}
 func (AllSuccess) Close(*model.PipelineError) *model.PipelineError { return nil }
 
-type ConnectFail struct{}
+type ConnectFail struct{ AllSuccess }
 
 func NewConnectFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return ConnectFail{}, nil
 }
-func (ConnectFail) Connect() *model.PipelineError                   { return errConn }
-func (ConnectFail) Authenticate() *model.PipelineError              { return nil }
-func (ConnectFail) Request() *model.PipelineError                   { return nil }
-func (ConnectFail) Data(io.ReadWriteCloser) *model.PipelineError    { return nil }
-func (ConnectFail) Close(*model.PipelineError) *model.PipelineError { return nil }
+func (ConnectFail) Connect() *model.PipelineError { return errConn }
 
-type AuthFail struct{}
+type AuthFail struct{ AllSuccess }
 
 func NewAuthFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return AuthFail{}, nil
 }
-func (AuthFail) Connect() *model.PipelineError                   { return nil }
-func (AuthFail) Authenticate() *model.PipelineError              { return errAuth }
-func (AuthFail) Request() *model.PipelineError                   { return nil }
-func (AuthFail) Data(io.ReadWriteCloser) *model.PipelineError    { return nil }
-func (AuthFail) Close(*model.PipelineError) *model.PipelineError { return nil }
+func (AuthFail) Authenticate() *model.PipelineError { return errAuth }
 
-type RequestFail struct{}
+type RequestFail struct{ AllSuccess }
 
 func NewRequestFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return RequestFail{}, nil
 }
-func (RequestFail) Connect() *model.PipelineError                   { return nil }
-func (RequestFail) Authenticate() *model.PipelineError              { return nil }
-func (RequestFail) Request() *model.PipelineError                   { return errReq }
-func (RequestFail) Data(io.ReadWriteCloser) *model.PipelineError    { return nil }
-func (RequestFail) Close(*model.PipelineError) *model.PipelineError { return nil }
+func (RequestFail) Request() *model.PipelineError { return errReq }
 
-type DataFail struct{}
+type DataFail struct{ AllSuccess }
 
 func NewDataFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return DataFail{}, nil
 }
-func (DataFail) Connect() *model.PipelineError                   { return nil }
-func (DataFail) Authenticate() *model.PipelineError              { return nil }
-func (DataFail) Request() *model.PipelineError                   { return nil }
-func (DataFail) Data(io.ReadWriteCloser) *model.PipelineError    { return errData }
-func (DataFail) Close(*model.PipelineError) *model.PipelineError { return nil }
+func (DataFail) Data(io.ReadWriteCloser) *model.PipelineError { return errData }
 
-type CloseFail struct{}
+type CloseFail struct{ AllSuccess }
 
 func NewCloseFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return CloseFail{}, nil
 }
-func (CloseFail) Connect() *model.PipelineError                   { return nil }
-func (CloseFail) Authenticate() *model.PipelineError              { return nil }
-func (CloseFail) Request() *model.PipelineError                   { return nil }
-func (CloseFail) Data(io.ReadWriteCloser) *model.PipelineError    { return nil }
 func (CloseFail) Close(*model.PipelineError) *model.PipelineError { return errClose }

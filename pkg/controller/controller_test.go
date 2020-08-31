@@ -95,7 +95,8 @@ func TestControllerListen(t *testing.T) {
 					})
 
 					Convey("After waiting enough time", func() {
-						time.Sleep(100 * time.Millisecond)
+						cont.wg.Wait()
+						//time.Sleep(1000 * time.Millisecond)
 
 						Convey("Then it should have retrieved the planned "+
 							"transfer entry", func() {

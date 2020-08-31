@@ -37,18 +37,17 @@ func historyInfoString(h *rest.OutHistory) string {
 		"    End date:         " + h.Stop.Local().Format(time.RFC3339) + "\n"
 	if h.ErrorCode != model.TeOk {
 		rv += "    Error code:       " + h.ErrorCode.String() + "\n"
+		if h.ErrorMsg != "" {
+			rv += "    Error message:    " + h.ErrorMsg + "\n"
+		}
 	}
-	if h.ErrorMsg != "" {
-		rv += "    Error message:    " + h.ErrorMsg + "\n"
-	}
-	if h.Step != "" {
-		rv += "    Failed step:      " + string(h.Step) + "\n"
-	}
-	if h.Progress != 0 {
-		rv += "    Progress:         " + fmt.Sprint(h.Progress) + "\n"
-	}
-	if h.TaskNumber != 0 {
-		rv += "    Task number:      " + fmt.Sprint(h.TaskNumber) + "\n"
+	if h.Step != model.StepNone {
+		rv += "    Failed step:      " + h.Step.String() + "\n"
+		if h.Step == model.StepData {
+			rv += "    Progress:         " + fmt.Sprint(h.Progress) + "\n"
+		} else if h.Step == model.StepPreTasks || h.Step == model.StepPostTasks {
+			rv += "    Failed task:      " + fmt.Sprint(h.TaskNumber) + "\n"
+		}
 	}
 
 	return rv

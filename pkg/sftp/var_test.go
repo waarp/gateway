@@ -2,7 +2,6 @@ package sftp
 
 import (
 	"fmt"
-	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -27,38 +26,14 @@ func init() {
 	model.ValidTasks["TESTCHECK"] = &testTaskSuccess{}
 	model.ValidTasks["TESTFAIL"] = &testTaskFail{}
 
-	//logConf := conf.LogConfig{
-	//	Level: "DEBUG",
-	//	LogTo: "stdout",
-	//}
 	logConf := conf.LogConfig{
 		Level: "DEBUG",
-		LogTo: "/home/paolo/gw.log",
+		LogTo: "stdout",
 	}
 	_ = log.InitBackend(logConf)
 }
 
-var checkChannel = make(chan string)
-
-func getNextTask() string {
-	timer := time.NewTimer(time.Second)
-	select {
-	case msg := <-checkChannel:
-		return msg
-	case <-timer.C:
-		return "new task timeout expired"
-	}
-}
-
-func waitChannel(ch chan struct{}) error {
-	timer := time.NewTimer(time.Second)
-	select {
-	case <-ch:
-		return nil
-	case <-timer.C:
-		return fmt.Errorf("channel close timeout expired")
-	}
-}
+var checkChannel = make(chan string, 100)
 
 type testTaskSuccess struct{}
 

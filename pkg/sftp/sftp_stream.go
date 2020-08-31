@@ -99,7 +99,6 @@ func (s *sftpStream) ReadAt(p []byte, off int64) (int, error) {
 		if n != 0 {
 			return n, nil
 		}
-		s.Transfer.Progress = 0
 		s.Transfer.Step = model.StepPostTasks
 		if dbErr := s.Transfer.Update(s.DB); dbErr != nil {
 			return 0, dbErr
@@ -122,7 +121,6 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 		return 0, modelToSFTP(s.transErr)
 	}
 	if uint64(off) != s.Transfer.Progress && off == 0 && len(p) == 1 {
-		s.Transfer.Progress = 0
 		s.Transfer.Step = model.StepPostTasks
 		if err := s.Transfer.Update(s.DB); err != nil {
 			return 0, err
@@ -150,9 +148,11 @@ func (s *sftpStream) Close() error {
 		if s.transErr == nil {
 			s.transErr = s.PostTasks()
 			if s.transErr == nil {
+				s.Transfer.Step = model.StepNone
 				s.Transfer.Status = model.StatusDone
-				s.Archive()
-				s.Exit()
+				if s.Archive() == nil {
+					s.Logger.Info("Execution finished without errors")
+				}
 				return nil
 			}
 		}

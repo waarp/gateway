@@ -55,9 +55,6 @@ func GetTestDatabase() *DB {
 	db.logger.Logger.SetLevel(logging.CRITICAL)
 	convey.Reset(func() { _ = db.engine.Close() })
 	convey.So(db.Start(), convey.ShouldBeNil)
-	db.engine.SetMaxIdleConns(1)
-	db.engine.SetMaxOpenConns(2)
-	db.engine.SetConnMaxLifetime(0)
 
 	return db
 }
