@@ -159,13 +159,14 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		stream.exit()
-		stream.Logger.Info("Transfer paused")
+		stream.Logger.Info("Transfer interrupted")
 	case model.KindPause:
 		stream.Transfer.Status = model.StatusPaused
 		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		stream.exit()
+		stream.Logger.Info("Transfer paused")
 	case model.KindCancel:
 		stream.Transfer.Status = model.StatusCancelled
 		_ = os.Remove(stream.File.Name())
@@ -176,7 +177,7 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
-		if stream.Transfer.Step != model.StepSetup {
+		if stream.Transfer.Step != model.StepNone {
 			stream.ErrorTasks()
 		}
 		stream.Transfer.Error = err.Cause
