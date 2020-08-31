@@ -7,6 +7,7 @@ import (
 )
 
 // TransferStep represents the different steps of a transfer.
+//go:generate stringer -type TransferStep
 type TransferStep uint8
 
 const (
