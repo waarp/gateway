@@ -33,6 +33,11 @@ func (r *RemoteAgent) TableName() string {
 	return "remote_agents"
 }
 
+// Id returns the agent's ID.
+func (r *RemoteAgent) Id() uint64 {
+	return r.ID
+}
+
 func (r *RemoteAgent) validateProtoConfig() error {
 	conf, err := config.GetProtoConfig(r.Protocol, r.ProtoConfig)
 	if err != nil {
@@ -59,9 +64,9 @@ func (r *RemoteAgent) GetCerts(db database.Accessor) ([]Cert, error) {
 	return results, nil
 }
 
-// BeforeInsert is called before inserting a new `RemoteAgent` entry in the
+// Validate is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RemoteAgent) BeforeInsert(db database.Accessor) error {
+func (r *RemoteAgent) Validate(db database.Accessor) error {
 	if r.ID != 0 {
 		return database.InvalidError("the agent's ID cannot be entered manually")
 	}
@@ -80,46 +85,6 @@ func (r *RemoteAgent) BeforeInsert(db database.Accessor) error {
 	} else if len(res) > 0 {
 		return database.InvalidError("a remote agent with the same name '%s' "+
 			"already exist", r.Name)
-	}
-
-	return nil
-}
-
-// BeforeUpdate is called before updating an existing `RemoteAgent` entry from
-// the database. It checks whether the updated entry is valid or not.
-func (r *RemoteAgent) BeforeUpdate(db database.Accessor, id uint64) error {
-	if r.ID != 0 && r.ID != id {
-		return database.InvalidError("the agent's ID cannot be entered manually")
-	}
-
-	// Get Old protocol if no protocol is provided
-	if r.Protocol == "" {
-		old := &RemoteAgent{
-			ID: id,
-		}
-		if err := db.Get(old); err != nil {
-			return err
-		}
-		r.Protocol = old.Protocol
-	} else if r.ProtoConfig == nil {
-		// If Protocol and no Protoconfig error
-		return database.InvalidError("cannot change protocol without providing protoconfig")
-	}
-
-	if r.ProtoConfig != nil {
-		if err := r.validateProtoConfig(); err != nil {
-			return database.InvalidError(err.Error())
-		}
-	}
-
-	if r.Name != "" {
-		if res, err := db.Query("SELECT id FROM remote_agents WHERE name=? AND "+
-			"id<>?", r.Name, id); err != nil {
-			return err
-		} else if len(res) > 0 {
-			return database.InvalidError("a remote agent with the same name "+
-				"'%s' already exist", r.Name)
-		}
 	}
 
 	return nil

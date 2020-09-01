@@ -35,9 +35,9 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			rule := &Rule{Name: "rule", IsSend: false, Path: "path"}
 			So(db.Create(rule), ShouldBeNil)
 
-			agAccess := RuleAccess{RuleID: rule.ID, ObjectID: ag.ID, ObjectType: ag.TableName()}
+			agAccess := &RuleAccess{RuleID: rule.ID, ObjectID: ag.ID, ObjectType: ag.TableName()}
 			So(db.Create(agAccess), ShouldBeNil)
-			accAccess := RuleAccess{RuleID: rule.ID, ObjectID: acc.ID, ObjectType: acc.TableName()}
+			accAccess := &RuleAccess{RuleID: rule.ID, ObjectID: acc.ID, ObjectType: acc.TableName()}
 			So(db.Create(accAccess), ShouldBeNil)
 
 			certAg := &Cert{
@@ -110,7 +110,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 	})
 }
 
-func TestLocalAgentBeforeInsert(t *testing.T) {
+func TestLocalAgentValidate(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -139,8 +139,8 @@ func TestLocalAgentBeforeInsert(t *testing.T) {
 
 				Convey("Given that the new agent is valid", func() {
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAgent.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAgent.Validate(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -151,8 +151,8 @@ func TestLocalAgentBeforeInsert(t *testing.T) {
 				Convey("Given that the new agent has an ID", func() {
 					newAgent.ID = 10
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAgent.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAgent.Validate(db)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
 							So(err, ShouldBeError, "the agent's ID cannot "+
@@ -164,8 +164,8 @@ func TestLocalAgentBeforeInsert(t *testing.T) {
 				Convey("Given that the new agent is missing a name", func() {
 					newAgent.Name = ""
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAgent.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAgent.Validate(db)
 
 						Convey("Then the error should say that the name is missing", func() {
 							So(err, ShouldBeError, "the agent's name cannot "+
@@ -177,8 +177,8 @@ func TestLocalAgentBeforeInsert(t *testing.T) {
 				Convey("Given that the new agent's name is already taken", func() {
 					newAgent.Name = oldAgent.Name
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAgent.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAgent.Validate(db)
 
 						Convey("Then the error should say that the name is already taken", func() {
 							So(err, ShouldBeError, "a local agent with "+
@@ -193,8 +193,8 @@ func TestLocalAgentBeforeInsert(t *testing.T) {
 						oldAgent.ID), ShouldBeNil)
 					newAgent.Name = oldAgent.Name
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAgent.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAgent.Validate(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -205,8 +205,8 @@ func TestLocalAgentBeforeInsert(t *testing.T) {
 				Convey("Given that the new agent's protocol is not valid", func() {
 					newAgent.Protocol = "not a protocol"
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAgent.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAgent.Validate(db)
 
 						Convey("Then the error should say that the protocol is invalid", func() {
 							So(err, ShouldBeError, "unknown protocol")
@@ -217,133 +217,13 @@ func TestLocalAgentBeforeInsert(t *testing.T) {
 				Convey("Given that the new agent's protocol configuration is not valid", func() {
 					newAgent.ProtoConfig = []byte("invalid")
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAgent.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAgent.Validate(db)
 
 						Convey("Then the error should say that the configuration is invalid", func() {
 							So(err, ShouldBeError, "failed to parse protocol "+
 								"configuration: invalid character 'i' looking "+
 								"for beginning of value")
-						})
-					})
-				})
-			})
-		})
-	})
-}
-
-func TestLocalAgentBeforeUpdate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
-
-		Convey("Given the database contains 2 local agents", func() {
-			oldAgent := &LocalAgent{
-				Owner:       "test_gateway",
-				Name:        "old",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
-			}
-			So(db.Create(oldAgent), ShouldBeNil)
-
-			otherAgent := &LocalAgent{
-				Owner:       "test_gateway",
-				Name:        "other",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
-			}
-			So(db.Create(otherAgent), ShouldBeNil)
-
-			Convey("Given a new local agent", func() {
-				updatedAgent := &LocalAgent{
-					Name:        "updated",
-					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"localhost","port":2024}`),
-				}
-
-				Convey("Given that the updated agent is valid", func() {
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-						})
-					})
-				})
-
-				Convey("Given that the updated agent has an ID", func() {
-					updatedAgent.ID = 10
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
-
-						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err, ShouldBeError, "the agent's ID cannot "+
-								"be entered manually")
-						})
-					})
-				})
-
-				Convey("Given that the updated agent's name is already taken", func() {
-					updatedAgent.Name = otherAgent.Name
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
-
-						Convey("Then the error should say that the name is already taken", func() {
-							So(err, ShouldBeError, "a local agent with "+
-								"the same name '"+updatedAgent.Name+
-								"' already exist")
-						})
-					})
-				})
-
-				Convey("Given that the updated agent's protocol is not valid", func() {
-					updatedAgent.Protocol = "not a protocol"
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
-
-						Convey("Then the error should say that the protocol is invalid", func() {
-							So(err, ShouldBeError, "unknown protocol")
-						})
-					})
-				})
-
-				Convey("Given that the updated agent's protocol configuration is not valid", func() {
-					updatedAgent.ProtoConfig = []byte("invalid")
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
-
-						Convey("Then the error should say that the configuration is invalid", func() {
-							So(err, ShouldBeError, "failed to parse protocol "+
-								"configuration: invalid character 'i' looking "+
-								"for beginning of value")
-						})
-					})
-				})
-
-				Convey("Given that the updated agent's protocol is empty and protocol configuration is valid", func() {
-					updatedAgent.Protocol = ""
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-						})
-					})
-				})
-
-				Convey("Given that the updated agent's protocol is not empty and protocol is", func() {
-					updatedAgent.ProtoConfig = nil
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAgent.BeforeUpdate(db, oldAgent.ID)
-
-						Convey("Then the error should say that the configuration is invalid", func() {
-							So(err, ShouldBeError, "cannot change protocol without providing protoconfig")
 						})
 					})
 				})

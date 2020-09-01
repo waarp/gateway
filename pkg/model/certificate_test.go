@@ -22,7 +22,7 @@ func TestCertTableName(t *testing.T) {
 	})
 }
 
-func TestCertBeforeInsert(t *testing.T) {
+func TestCertValidate(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -47,8 +47,8 @@ func TestCertBeforeInsert(t *testing.T) {
 
 				Convey("Given that the new agent is valid", func() {
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newCert.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newCert.Validate(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -59,8 +59,8 @@ func TestCertBeforeInsert(t *testing.T) {
 				Convey("Given that the new certificate has an ID", func() {
 					newCert.ID = 10
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newCert.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newCert.Validate(db)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
 							So(err, ShouldBeError, "the certificate's ID "+
@@ -72,8 +72,8 @@ func TestCertBeforeInsert(t *testing.T) {
 				Convey("Given that the new certificate is missing an owner type", func() {
 					newCert.OwnerType = ""
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newCert.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the owner type is missing", func() {
 							So(err, ShouldBeError, "the certificate's owner "+
@@ -85,8 +85,8 @@ func TestCertBeforeInsert(t *testing.T) {
 				Convey("Given that the new certificate is missing an owner ID", func() {
 					newCert.OwnerID = 0
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newCert.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the owner ID is missing", func() {
 							So(err, ShouldBeError, "the certificate's owner "+
@@ -98,8 +98,8 @@ func TestCertBeforeInsert(t *testing.T) {
 				Convey("Given that the new certificate is missing a name", func() {
 					newCert.Name = ""
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newCert.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the name is missing", func() {
 							So(err, ShouldBeError, "the certificate's name "+
@@ -111,8 +111,8 @@ func TestCertBeforeInsert(t *testing.T) {
 				Convey("Given that the new certificate is missing a private key", func() {
 					newCert.PrivateKey = nil
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newCert.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the public key is missing", func() {
 							So(err, ShouldBeError, "the certificate's private "+
@@ -125,8 +125,8 @@ func TestCertBeforeInsert(t *testing.T) {
 					newCert.OwnerType = "remote_agents"
 					newCert.PublicKey = nil
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newCert.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newCert.Validate(db)
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError, "the certificate's public "+
@@ -138,8 +138,8 @@ func TestCertBeforeInsert(t *testing.T) {
 				Convey("Given that the new certificate has an invalid owner type", func() {
 					newCert.OwnerType = "incorrect"
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newCert.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the owner type is invalid", func() {
 							So(err, ShouldBeError, "the certificate's owner "+
@@ -151,8 +151,8 @@ func TestCertBeforeInsert(t *testing.T) {
 				Convey("Given that the new certificate has an invalid owner ID", func() {
 					newCert.OwnerID = 1000
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newCert.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the owner ID is invalid", func() {
 							So(err, ShouldBeError, "no local_agents found "+
@@ -174,8 +174,8 @@ func TestCertBeforeInsert(t *testing.T) {
 
 					newCert.Name = otherCert.Name
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newCert.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the name is taken", func() {
 							So(err, ShouldBeError, "a certificate with the "+
@@ -207,125 +207,8 @@ func TestCertBeforeInsert(t *testing.T) {
 					newCert.Name = otherCert.Name
 					newCert.OwnerID = otherAgent.ID
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newCert.BeforeInsert(db)
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-						})
-					})
-				})
-			})
-		})
-	})
-}
-
-func TestCertBeforeUpdate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
-
-		Convey("Given the database contains 1 local agent & 1 cert", func() {
-			parentAgent := &LocalAgent{
-				Owner:       "test_gateway",
-				Name:        "parent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost", "port":21, "root":"toto"}`),
-			}
-			So(db.Create(parentAgent), ShouldBeNil)
-
-			oldCert := &Cert{
-				OwnerType:   "local_agents",
-				OwnerID:     parentAgent.ID,
-				Name:        "old",
-				PrivateKey:  []byte("private key"),
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("content"),
-			}
-			So(db.Create(oldCert), ShouldBeNil)
-
-			Convey("Given an updated certificate", func() {
-				updatedCert := &Cert{
-					OwnerType:   "local_agents",
-					OwnerID:     parentAgent.ID,
-					Name:        "updated",
-					PrivateKey:  []byte("new private key"),
-					PublicKey:   []byte("new public key"),
-					Certificate: []byte("new content"),
-				}
-
-				Convey("Given that the updated certificate is valid", func() {
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedCert.BeforeUpdate(db, oldCert.ID)
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-						})
-					})
-				})
-
-				Convey("Given that the updated certificate has an invalid owner type", func() {
-					updatedCert.OwnerType = "invalid"
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedCert.BeforeUpdate(db, oldCert.ID)
-
-						Convey("Then the error should say that the owner type is invalid", func() {
-							So(err, ShouldBeError, "the certificate's owner "+
-								"type must be one of "+fmt.Sprint(validOwnerTypes))
-						})
-					})
-				})
-
-				Convey("Given that the updated certificate has an invalid owner ID", func() {
-					updatedCert.OwnerID = 1000
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedCert.BeforeUpdate(db, oldCert.ID)
-
-						Convey("Then the error should say that the owner ID is invalid", func() {
-							So(err, ShouldBeError, "no local_agents found "+
-								"with ID '1000'")
-						})
-					})
-				})
-
-				Convey("Given that the updated certificate's name is already taken", func() {
-					otherCert := &Cert{
-						OwnerType:   "local_agents",
-						OwnerID:     parentAgent.ID,
-						Name:        "other",
-						PrivateKey:  []byte("private key"),
-						PublicKey:   []byte("public key"),
-						Certificate: []byte("content"),
-					}
-					So(db.Create(otherCert), ShouldBeNil)
-
-					updatedCert.Name = otherCert.Name
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedCert.BeforeUpdate(db, oldCert.ID)
-
-						Convey("Then the error should say that the name is taken", func() {
-							So(err, ShouldBeError, "a certificate with the "+
-								"same name '"+updatedCert.Name+"' already exist")
-						})
-					})
-				})
-
-				Convey("Given that the updated certificate's owner changed", func() {
-					otherAgent := &RemoteAgent{
-						Name:        "other",
-						Protocol:    "sftp",
-						ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
-					}
-					So(db.Create(otherAgent), ShouldBeNil)
-
-					updatedCert.OwnerType = "remote_agents"
-					updatedCert.OwnerID = otherAgent.ID
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedCert.BeforeUpdate(db, oldCert.ID)
+					Convey("When calling the 'Validate' function", func() {
+						err := newCert.Validate(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)

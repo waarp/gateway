@@ -92,7 +92,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 	})
 }
 
-func TestLocalAccountBeforeInsert(t *testing.T) {
+func TestLocalAccountValidate(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -121,8 +121,8 @@ func TestLocalAccountBeforeInsert(t *testing.T) {
 
 				Convey("Given that the new account is valid", func() {
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						So(newAccount.BeforeInsert(db), ShouldBeNil)
+					Convey("When calling the 'Validate' function", func() {
+						So(newAccount.Validate(db), ShouldBeNil)
 
 						Convey("Then the account's password should be hashed", func() {
 							hash, err := hashPassword(newAccount.Password)
@@ -135,8 +135,8 @@ func TestLocalAccountBeforeInsert(t *testing.T) {
 				Convey("Given that the new account has an ID", func() {
 					newAccount.ID = 1000
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAccount.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAccount.Validate(db)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
 							So(err, ShouldBeError, "the account's ID cannot "+
@@ -148,8 +148,8 @@ func TestLocalAccountBeforeInsert(t *testing.T) {
 				Convey("Given that the new account is missing an agent ID", func() {
 					newAccount.LocalAgentID = 0
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAccount.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAccount.Validate(db)
 
 						Convey("Then the error should say that the agent ID is missing", func() {
 							So(err, ShouldBeError, "the account's agentID "+
@@ -161,8 +161,8 @@ func TestLocalAccountBeforeInsert(t *testing.T) {
 				Convey("Given that the new account is missing a login", func() {
 					newAccount.Login = ""
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAccount.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAccount.Validate(db)
 
 						Convey("Then the error should say that the login is missing", func() {
 							So(err, ShouldBeError, "the account's login "+
@@ -174,8 +174,8 @@ func TestLocalAccountBeforeInsert(t *testing.T) {
 				Convey("Given that the new account has an invalid agent ID", func() {
 					newAccount.LocalAgentID = 1000
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAccount.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAccount.Validate(db)
 
 						Convey("Then the error should say that the agent ID is invalid", func() {
 							So(err, ShouldBeError, "no local agent found "+
@@ -187,8 +187,8 @@ func TestLocalAccountBeforeInsert(t *testing.T) {
 				Convey("Given that the new account's login is already taken", func() {
 					newAccount.Login = oldAccount.Login
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAccount.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAccount.Validate(db)
 
 						Convey("Then the error should say that the login is already taken", func() {
 							So(err, ShouldBeError, "a local account with "+
@@ -210,121 +210,8 @@ func TestLocalAccountBeforeInsert(t *testing.T) {
 					newAccount.LocalAgentID = otherAgent.ID
 					newAccount.Login = oldAccount.Login
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAccount.BeforeInsert(db)
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-						})
-					})
-				})
-			})
-		})
-	})
-}
-
-func TestLocalAccountBeforeUpdate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
-
-		Convey("Given the database contains 1 local agent with 2 local accounts", func() {
-			parentAgent := &LocalAgent{
-				Owner:       "test_gateway",
-				Name:        "parent_agent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
-			}
-			So(db.Create(parentAgent), ShouldBeNil)
-
-			oldAccount := &LocalAccount{
-				LocalAgentID: parentAgent.ID,
-				Login:        "old",
-				Password:     []byte("password"),
-			}
-			So(db.Create(oldAccount), ShouldBeNil)
-
-			otherAccount := &LocalAccount{
-				LocalAgentID: parentAgent.ID,
-				Login:        "other",
-				Password:     []byte("password"),
-			}
-			So(db.Create(otherAccount), ShouldBeNil)
-
-			Convey("Given an updated local account", func() {
-				updatedAccount := &LocalAccount{
-					LocalAgentID: parentAgent.ID,
-					Login:        "updated",
-					Password:     []byte("new_password"),
-				}
-
-				Convey("Given that the updated account is valid", func() {
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						So(updatedAccount.BeforeUpdate(db, oldAccount.ID), ShouldBeNil)
-
-						Convey("Then the account's password should be hashed", func() {
-							hash, err := hashPassword(updatedAccount.Password)
-							So(err, ShouldBeNil)
-							So(string(updatedAccount.Password), ShouldEqual, string(hash))
-						})
-					})
-				})
-
-				Convey("Given that the updated account has an ID", func() {
-					updatedAccount.ID = 1000
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAccount.BeforeUpdate(db, oldAccount.ID)
-
-						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err, ShouldBeError, "the account's ID cannot "+
-								"be entered manually")
-						})
-					})
-				})
-
-				Convey("Given that the updated account has an invalid agent ID", func() {
-					updatedAccount.LocalAgentID = 1000
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAccount.BeforeUpdate(db, oldAccount.ID)
-
-						Convey("Then the error should say that the agent ID is invalid", func() {
-							So(err, ShouldBeError, "no local agent found "+
-								"with the ID '1000'")
-						})
-					})
-				})
-
-				Convey("Given that the updated account's login is already taken", func() {
-					updatedAccount.Login = otherAccount.Login
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAccount.BeforeUpdate(db, oldAccount.ID)
-
-						Convey("Then the error should say that the login is already taken", func() {
-							So(err, ShouldBeError, "a local account with "+
-								"the same login '"+updatedAccount.Login+
-								"' already exist")
-						})
-					})
-				})
-
-				Convey("Given that the updated account's name is already taken but the"+
-					"parent agent is different", func() {
-					otherAgent := &LocalAgent{
-						Owner:       "test_gateway",
-						Name:        "other",
-						Protocol:    "sftp",
-						ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
-					}
-					So(db.Create(otherAgent), ShouldBeNil)
-
-					updatedAccount.LocalAgentID = otherAgent.ID
-					updatedAccount.Login = oldAccount.Login
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAccount.BeforeUpdate(db, oldAccount.ID)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAccount.Validate(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)

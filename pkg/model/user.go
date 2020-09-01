@@ -35,6 +35,11 @@ func (u *User) TableName() string {
 	return "users"
 }
 
+// Id returns the user's ID.
+func (u *User) Id() uint64 {
+	return u.ID
+}
+
 // Init inserts the default user in the database when the table is created.
 func (u *User) Init(acc database.Accessor) error {
 	user := &User{
@@ -62,9 +67,9 @@ func (u *User) BeforeDelete(db database.Accessor) error {
 	return nil
 }
 
-// BeforeInsert checks if the new `User` entry is valid and can be
+// Validate checks if the new `User` entry is valid and can be
 // inserted in the database.
-func (u *User) BeforeInsert(db database.Accessor) (err error) {
+func (u *User) Validate(db database.Accessor) (err error) {
 	u.Owner = database.Owner
 	if u.ID != 0 {
 		return database.InvalidError("the user's ID cannot be entered manually")
@@ -84,29 +89,5 @@ func (u *User) BeforeInsert(db database.Accessor) (err error) {
 	}
 
 	u.Password, err = hashPassword(u.Password)
-	return err
-}
-
-// BeforeUpdate checks if the updated `User` entry is valid and can be
-// updated in the database.
-func (u *User) BeforeUpdate(db database.Accessor, id uint64) (err error) {
-	u.Owner = database.Owner
-
-	if u.ID != 0 {
-		return database.InvalidError("the user's ID cannot be entered manually")
-	}
-
-	if u.Username != "" {
-		if res, err := db.Query("SELECT id FROM users WHERE owner=? AND username=? AND id<>?",
-			database.Owner, u.Username, id); err != nil {
-			return err
-		} else if len(res) != 0 {
-			return database.InvalidError("a user named '%s' already exist", u.Username)
-		}
-	}
-
-	if u.Password != nil {
-		u.Password, err = hashPassword(u.Password)
-	}
 	return err
 }

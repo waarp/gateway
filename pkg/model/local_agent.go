@@ -51,6 +51,11 @@ func (l *LocalAgent) TableName() string {
 	return "local_agents"
 }
 
+// Id returns the agent's ID.
+func (l *LocalAgent) Id() uint64 {
+	return l.ID
+}
+
 func (l *LocalAgent) validateProtoConfig() error {
 	conf, err := config.GetProtoConfig(l.Protocol, l.ProtoConfig)
 	if err != nil {
@@ -86,7 +91,7 @@ func (l *LocalAgent) makePaths(isInsert bool) {
 
 // BeforeInsert is called before inserting a new `LocalAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (l *LocalAgent) BeforeInsert(db database.Accessor) error {
+func (l *LocalAgent) Validate(db database.Accessor) error {
 	l.Owner = database.Owner
 	l.makePaths(true)
 
@@ -109,49 +114,6 @@ func (l *LocalAgent) BeforeInsert(db database.Accessor) error {
 	} else if len(res) > 0 {
 		return database.InvalidError("a local agent with the same name '%s' "+
 			"already exist", l.Name)
-	}
-
-	return nil
-}
-
-// BeforeUpdate is called before updating an existing `LocalAgent` entry from
-// the database. It checks whether the updated entry is valid or not.
-func (l *LocalAgent) BeforeUpdate(db database.Accessor, id uint64) error {
-	l.Owner = database.Owner
-	l.makePaths(false)
-
-	if l.ID != 0 && l.ID != id {
-		return database.InvalidError("the agent's ID cannot be entered manually")
-	}
-
-	if l.Name != "" {
-		if res, err := db.Query("SELECT id FROM local_agents WHERE owner=? "+
-			"AND name=? AND id<>?", database.Owner, l.Name, id); err != nil {
-			return err
-		} else if len(res) > 0 {
-			return database.InvalidError("a local agent with the same name "+
-				"'%s' already exist", l.Name)
-		}
-	}
-
-	// Get Old protocol if no protocol is provided
-	if l.Protocol == "" {
-		old := &LocalAgent{
-			ID: id,
-		}
-		if err := db.Get(old); err != nil {
-			return err
-		}
-		l.Protocol = old.Protocol
-	} else if l.ProtoConfig == nil {
-		// If Protocol and no Protoconfig error
-		return database.InvalidError("cannot change protocol without providing protoconfig")
-	}
-
-	if l.ProtoConfig != nil {
-		if err := l.validateProtoConfig(); err != nil {
-			return database.InvalidError(err.Error())
-		}
 	}
 
 	return nil

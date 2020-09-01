@@ -45,6 +45,11 @@ func (*Rule) TableName() string {
 	return "rules"
 }
 
+// Id returns the rule's ID.
+func (r *Rule) Id() uint64 {
+	return r.ID
+}
+
 func (r *Rule) normalizePaths() error {
 	if r.Path == "" {
 		r.Path = r.Name
@@ -67,9 +72,9 @@ func (r *Rule) normalizePaths() error {
 	return nil
 }
 
-// BeforeInsert is called before inserting a new `Rule` entry in the
+// Validate is called before inserting a new `Rule` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *Rule) BeforeInsert(db database.Accessor) error {
+func (r *Rule) Validate(db database.Accessor) error {
 	if r.Path == "" {
 		return database.InvalidError("the rule's path cannot be empty")
 	}
@@ -94,45 +99,6 @@ func (r *Rule) BeforeInsert(db database.Accessor) error {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("a rule named '%s' with path: %s already exist", r.Name, r.Path)
-	}
-
-	return nil
-}
-
-// BeforeUpdate is called before updating an existing `Rule` entry from
-// the database. It checks whether the updated entry is valid or not.
-func (r *Rule) BeforeUpdate(db database.Accessor, id uint64) error {
-	if err := r.normalizePaths(); err != nil {
-		return err
-	}
-
-	if r.ID != 0 && r.ID != id {
-		return database.InvalidError("the rule's ID cannot be entered manually")
-	}
-
-	if r.Name != "" {
-		if res, err := db.Query("SELECT id FROM rules WHERE name=? AND send=? AND id<>?", r.Name, r.IsSend, id); err != nil {
-			return err
-		} else if len(res) > 0 {
-			return database.InvalidError("a rule named '%s' with send = %t already exist", r.Name, r.IsSend)
-		}
-	}
-
-	if r.Path != "" {
-		name := r.Path
-		if name == "" {
-			old := &Rule{ID: id}
-			if err := db.Get(old); err != nil {
-				return err
-			}
-			name = old.Name
-		}
-
-		if res, err := db.Query("SELECT id FROM rules WHERE name=? AND path=? AND id<>?", name, r.Path, id); err != nil {
-			return err
-		} else if len(res) > 0 {
-			return database.InvalidError("a rule named '%s' with path: %s already exist", name, r.Path)
-		}
 	}
 
 	return nil

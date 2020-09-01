@@ -40,6 +40,10 @@ func (*Transfer) TableName() string {
 	return "transfers"
 }
 
+func (t *Transfer) Id() uint64 {
+	return t.ID
+}
+
 func (t *Transfer) validateClientTransfer(db database.Accessor) error {
 	remote := RemoteAgent{ID: t.AgentID}
 	if err := db.Get(&remote); err != nil {
@@ -99,10 +103,10 @@ func (t *Transfer) validateServerTransfer(db database.Accessor) error {
 	return nil
 }
 
-// BeforeInsert checks if the new `Transfer` entry is valid and can be
+// Validate checks if the new `Transfer` entry is valid and can be
 // inserted in the database.
 //nolint:funlen
-func (t *Transfer) BeforeInsert(db database.Accessor) error {
+func (t *Transfer) Validate(db database.Accessor) error {
 	t.Owner = database.Owner
 
 	if t.ID != 0 {
@@ -167,46 +171,6 @@ func (t *Transfer) BeforeInsert(db database.Accessor) error {
 	} else {
 		if err := t.validateClientTransfer(db); err != nil {
 			return err
-		}
-	}
-
-	return nil
-}
-
-// BeforeUpdate is called before updating an existing `Transfer` entry from
-// the database. It checks whether the updated entry is valid or not.
-func (t *Transfer) BeforeUpdate(database.Accessor, uint64) error {
-	if t.ID != 0 {
-		return database.InvalidError("the transfer's ID cannot be entered manually")
-	}
-	if t.Owner != "" {
-		return database.InvalidError("the transfer's owner cannot be changed")
-	}
-	if t.RuleID != 0 {
-		return database.InvalidError("the transfer's rule cannot be changed")
-	}
-	if t.AgentID != 0 {
-		return database.InvalidError("the transfer's partner cannot be changed")
-	}
-	if t.AccountID != 0 {
-		return database.InvalidError("the transfer's account cannot be changed")
-	}
-	if t.SourceFile != "" {
-		return database.InvalidError("the transfer's source cannot be changed")
-	}
-	if t.DestFile != "" {
-		return database.InvalidError("the transfer's destination cannot be changed")
-	}
-	if t.TrueFilepath != "" {
-		t.TrueFilepath = utils.NormalizePath(t.TrueFilepath)
-		if !path.IsAbs(t.TrueFilepath) {
-			return database.InvalidError("the filepath must be an absolute path")
-		}
-	}
-
-	if t.Status != "" {
-		if !validateStatusForTransfer(t.Status) {
-			return database.InvalidError("'%s' is not a valid transfer status", t.Status)
 		}
 	}
 
@@ -289,5 +253,5 @@ func (t *Transfer) Update(acc database.Accessor) error {
 		TaskNumber: t.TaskNumber,
 	}
 
-	return acc.Update(trans, t.ID, false)
+	return acc.Update(trans)
 }

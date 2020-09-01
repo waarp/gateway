@@ -31,7 +31,7 @@ func TestUsersTableName(t *testing.T) {
 	})
 }
 
-func TestUsersBeforeInsert(t *testing.T) {
+func TestUsersValidate(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -50,8 +50,8 @@ func TestUsersBeforeInsert(t *testing.T) {
 
 				Convey("Given that the new account is valid", func() {
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						So(user.BeforeInsert(db), ShouldBeNil)
+					Convey("When calling the 'Validate' function", func() {
+						So(user.Validate(db), ShouldBeNil)
 
 						Convey("Then the user's password should be hashed", func() {
 							hash, err := hashPassword(user.Password)
@@ -64,8 +64,8 @@ func TestUsersBeforeInsert(t *testing.T) {
 				Convey("Given that the new user has an ID", func() {
 					user.ID = 1000
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := user.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := user.Validate(db)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
 							So(err, ShouldBeError, "the user's ID cannot "+
@@ -77,8 +77,8 @@ func TestUsersBeforeInsert(t *testing.T) {
 				Convey("Given that the new user is missing a username", func() {
 					user.Username = ""
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := user.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := user.Validate(db)
 
 						Convey("Then the error should say that the username is missing", func() {
 							So(err, ShouldBeError, "the username "+
@@ -90,90 +90,12 @@ func TestUsersBeforeInsert(t *testing.T) {
 				Convey("Given that the new username is already taken", func() {
 					user.Username = existing.Username
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := user.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := user.Validate(db)
 
 						Convey("Then the error should say that the login is already taken", func() {
 							So(err, ShouldBeError, "a user named '"+user.Username+
 								"' already exist")
-						})
-					})
-				})
-			})
-		})
-	})
-}
-
-func TestUsersBeforeUpdate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
-
-		Convey("Given the database contains 2 users", func() {
-			existing := &User{
-				Username: "existing",
-				Password: []byte("password_existing"),
-			}
-			So(db.Create(existing), ShouldBeNil)
-
-			old := &User{
-				Username: "old",
-				Password: []byte("password_old"),
-			}
-			So(db.Create(old), ShouldBeNil)
-
-			Convey("Given a user account", func() {
-				user := &User{
-					Username: "new",
-					Password: []byte("password_new"),
-				}
-
-				Convey("Given that the new account is valid", func() {
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						So(user.BeforeUpdate(db, old.ID), ShouldBeNil)
-
-						Convey("Then the user's password should be hashed", func() {
-							hash, err := hashPassword(user.Password)
-							So(err, ShouldBeNil)
-							So(string(user.Password), ShouldEqual, string(hash))
-						})
-					})
-				})
-
-				Convey("Given that the new user has an ID", func() {
-					user.ID = 1000
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := user.BeforeUpdate(db, old.ID)
-
-						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err, ShouldBeError, "the user's ID cannot "+
-								"be entered manually")
-						})
-					})
-				})
-
-				Convey("Given that the new username is already taken", func() {
-					user.Username = existing.Username
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := user.BeforeUpdate(db, old.ID)
-
-						Convey("Then the error should say that the login is already taken", func() {
-							So(err, ShouldBeError, "a user named '"+user.Username+
-								"' already exist")
-						})
-					})
-				})
-
-				Convey("Given that the new username is identical to the old one", func() {
-					user.Username = old.Username
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := user.BeforeUpdate(db, old.ID)
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
 						})
 					})
 				})

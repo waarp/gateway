@@ -20,9 +20,9 @@ func (*RuleAccess) TableName() string {
 	return "rule_access"
 }
 
-// BeforeInsert is called before inserting a new `RuleAccess` entry in the
+// Validate is called before inserting a new `RuleAccess` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RuleAccess) BeforeInsert(db database.Accessor) error {
+func (r *RuleAccess) Validate(db database.Accessor) error {
 	if res, err := db.Query("SELECT id FROM rules WHERE id=?", r.RuleID); err != nil {
 		return err
 	} else if len(res) < 1 {
@@ -50,20 +50,14 @@ func (r *RuleAccess) BeforeInsert(db database.Accessor) error {
 		return database.InvalidError("no %s found with ID %v", r.ObjectType, r.ObjectID)
 	}
 
-	if ok, err := db.Exists(r); err != nil {
-		return err
-	} else if ok {
+	if err := db.Get(r); err == nil {
 		return database.InvalidError("the agent has already been granted access " +
 			"to this rule")
+	} else if err != database.ErrNotFound {
+		return err
 	}
 
 	return nil
-}
-
-// BeforeUpdate is called before updating and existing `RuleAccess` entry from
-// the database. It rejects all update.
-func (*RuleAccess) BeforeUpdate(database.Accessor, uint64) error {
-	return database.InvalidError("operation not allowed")
 }
 
 // IsRuleAuthorized verify if the rule requested by the transfer is authorized for

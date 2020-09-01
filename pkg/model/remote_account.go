@@ -31,6 +31,11 @@ func (r *RemoteAccount) TableName() string {
 	return "remote_accounts"
 }
 
+// Id returns the account's ID.
+func (r *RemoteAccount) Id() uint64 {
+	return r.ID
+}
+
 // GetCerts fetch in the database then return the associated Certificates if they exist
 func (r *RemoteAccount) GetCerts(db database.Accessor) ([]Cert, error) {
 	filters := &database.Filters{
@@ -45,9 +50,9 @@ func (r *RemoteAccount) GetCerts(db database.Accessor) ([]Cert, error) {
 	return results, nil
 }
 
-// BeforeInsert checks if the new `RemoteAccount` entry is valid and can be
+// Validate checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
-func (r *RemoteAccount) BeforeInsert(db database.Accessor) (err error) {
+func (r *RemoteAccount) Validate(db database.Accessor) (err error) {
 	if r.ID != 0 {
 		return database.InvalidError("the account's ID cannot be entered manually")
 	}
@@ -77,48 +82,6 @@ func (r *RemoteAccount) BeforeInsert(db database.Accessor) (err error) {
 
 	r.Password, err = encryptPassword(r.Password)
 	return err
-}
-
-// BeforeUpdate checks if the updated `RemoteAccount` entry is valid and can be
-// updated in the database.
-func (r *RemoteAccount) BeforeUpdate(db database.Accessor, id uint64) (err error) {
-	if r.ID != 0 && r.ID != id {
-		return database.InvalidError("the account's ID cannot be entered manually")
-	}
-
-	if r.Login != "" {
-		old := RemoteAccount{ID: id}
-		if err := db.Get(&old); err != nil {
-			return err
-		}
-		if r.RemoteAgentID != 0 {
-			old.RemoteAgentID = r.RemoteAgentID
-		}
-
-		if res, err := db.Query("SELECT id FROM remote_accounts WHERE "+
-			"remote_agent_id=? AND login=? AND id!=?", old.RemoteAgentID, r.Login, id); err != nil {
-			return err
-		} else if len(res) > 0 {
-			return database.InvalidError("a remote account with the same login '%s' "+
-				"already exist", r.Login)
-		}
-	}
-
-	if r.RemoteAgentID != 0 {
-		if res, err := db.Query("SELECT id FROM remote_agents WHERE id=?",
-			r.RemoteAgentID); err != nil {
-			return err
-		} else if len(res) == 0 {
-			return database.InvalidError("no remote agent found with the ID '%v'",
-				r.RemoteAgentID)
-		}
-	}
-
-	if len(r.Password) > 0 {
-		r.Password, err = encryptPassword(r.Password)
-		return err
-	}
-	return nil
 }
 
 // BeforeDelete is called before deleting the account from the database. Its

@@ -92,7 +92,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 	})
 }
 
-func TestRemoteAccountBeforeInsert(t *testing.T) {
+func TestRemoteAccountValidate(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -120,8 +120,8 @@ func TestRemoteAccountBeforeInsert(t *testing.T) {
 
 				Convey("Given that the new account is valid", func() {
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						So(newAccount.BeforeInsert(db), ShouldBeNil)
+					Convey("When calling the 'Validate' function", func() {
+						So(newAccount.Validate(db), ShouldBeNil)
 
 						Convey("Then the account's password should be encrypted", func() {
 							cipher, err := encryptPassword(newAccount.Password)
@@ -134,8 +134,8 @@ func TestRemoteAccountBeforeInsert(t *testing.T) {
 				Convey("Given that the new account has an ID", func() {
 					newAccount.ID = 1000
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAccount.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAccount.Validate(db)
 
 						Convey("Then the error should say that IDs are not allowed", func() {
 							So(err, ShouldBeError, "the account's ID cannot "+
@@ -147,8 +147,8 @@ func TestRemoteAccountBeforeInsert(t *testing.T) {
 				Convey("Given that the new account is missing an agent ID", func() {
 					newAccount.RemoteAgentID = 0
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAccount.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAccount.Validate(db)
 
 						Convey("Then the error should say that the agent ID is missing", func() {
 							So(err, ShouldBeError, "the account's agentID "+
@@ -160,8 +160,8 @@ func TestRemoteAccountBeforeInsert(t *testing.T) {
 				Convey("Given that the new account is missing a login", func() {
 					newAccount.Login = ""
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAccount.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAccount.Validate(db)
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError)
@@ -177,8 +177,8 @@ func TestRemoteAccountBeforeInsert(t *testing.T) {
 				Convey("Given that the new account has an invalid agent ID", func() {
 					newAccount.RemoteAgentID = 1000
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAccount.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAccount.Validate(db)
 
 						Convey("Then the error should say that the agent ID is invalid", func() {
 							So(err, ShouldBeError, "no remote agent found "+
@@ -190,8 +190,8 @@ func TestRemoteAccountBeforeInsert(t *testing.T) {
 				Convey("Given that the new account's login is already taken", func() {
 					newAccount.Login = oldAccount.Login
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAccount.BeforeInsert(db)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAccount.Validate(db)
 
 						Convey("Then the error should say that the login is already taken", func() {
 							So(err, ShouldBeError, "a remote account with "+
@@ -212,117 +212,8 @@ func TestRemoteAccountBeforeInsert(t *testing.T) {
 					newAccount.RemoteAgentID = otherAgent.ID
 					newAccount.Login = oldAccount.Login
 
-					Convey("When calling the 'BeforeInsert' function", func() {
-						err := newAccount.BeforeInsert(db)
-
-						Convey("Then it should NOT return an error", func() {
-							So(err, ShouldBeNil)
-						})
-					})
-				})
-			})
-		})
-	})
-}
-
-func TestRemoteAccountBeforeUpdate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
-
-		Convey("Given the database contains 1 remote agent with 2 remote accounts", func() {
-			parentAgent := &RemoteAgent{
-				Name:        "parent_agent",
-				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
-			}
-			So(db.Create(parentAgent), ShouldBeNil)
-
-			oldAccount := &RemoteAccount{
-				RemoteAgentID: parentAgent.ID,
-				Login:         "old",
-				Password:      []byte("password"),
-			}
-			So(db.Create(oldAccount), ShouldBeNil)
-
-			otherAccount := &RemoteAccount{
-				RemoteAgentID: parentAgent.ID,
-				Login:         "other",
-				Password:      []byte("password"),
-			}
-			So(db.Create(otherAccount), ShouldBeNil)
-
-			Convey("Given an updated remote account", func() {
-				updatedAccount := &RemoteAccount{
-					RemoteAgentID: parentAgent.ID,
-					Login:         "updated",
-					Password:      []byte("new_password"),
-				}
-
-				Convey("Given that the updated account is valid", func() {
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						So(updatedAccount.BeforeUpdate(db, oldAccount.ID), ShouldBeNil)
-
-						Convey("Then the account's password should be encrypted", func() {
-							cipher, err := encryptPassword(updatedAccount.Password)
-							So(err, ShouldBeNil)
-							So(string(updatedAccount.Password), ShouldEqual, string(cipher))
-						})
-					})
-				})
-
-				Convey("Given that the updated account has an ID", func() {
-					updatedAccount.ID = 1000
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAccount.BeforeUpdate(db, oldAccount.ID)
-
-						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err, ShouldBeError, "the account's ID cannot "+
-								"be entered manually")
-						})
-					})
-				})
-
-				Convey("Given that the updated account has an invalid agent ID", func() {
-					updatedAccount.RemoteAgentID = 1000
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAccount.BeforeUpdate(db, oldAccount.ID)
-
-						Convey("Then the error should say that the agent ID is invalid", func() {
-							So(err, ShouldBeError, "no remote agent found "+
-								"with the ID '1000'")
-						})
-					})
-				})
-
-				Convey("Given that the updated account's login is already taken", func() {
-					updatedAccount.Login = oldAccount.Login
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAccount.BeforeUpdate(db, oldAccount.ID)
-
-						Convey("Then it should return NO error", func() {
-							So(err, ShouldBeNil)
-						})
-					})
-				})
-
-				Convey("Given that the updated account's name is already taken but the"+
-					"parent agent is different", func() {
-					otherAgent := &RemoteAgent{
-						Name:        "other",
-						Protocol:    "sftp",
-						ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
-					}
-					So(db.Create(otherAgent), ShouldBeNil)
-
-					updatedAccount.RemoteAgentID = otherAgent.ID
-					updatedAccount.Login = oldAccount.Login
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := updatedAccount.BeforeUpdate(db, oldAccount.ID)
+					Convey("When calling the 'Validate' function", func() {
+						err := newAccount.Validate(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)

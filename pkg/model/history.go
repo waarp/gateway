@@ -39,9 +39,14 @@ func (*TransferHistory) TableName() string {
 	return "transfer_history"
 }
 
-// BeforeInsert checks if the new `TransferHistory` entry is valid and can be
+// Id returns the transfer's ID.
+func (h *TransferHistory) Id() uint64 {
+	return h.ID
+}
+
+// Validate checks if the new `TransferHistory` entry is valid and can be
 // inserted in the database.
-func (h *TransferHistory) BeforeInsert(database.Accessor) error {
+func (h *TransferHistory) Validate(database.Accessor) error {
 	h.Owner = database.Owner
 
 	if h.Owner == "" {
@@ -87,53 +92,6 @@ func (h *TransferHistory) BeforeInsert(database.Accessor) error {
 
 	if _, ok := config.ProtoConfigs[h.Protocol]; !ok {
 		return database.InvalidError("'%s' is not a valid protocol", h.Protocol)
-	}
-
-	if !validateStatusForHistory(h.Status) {
-		return database.InvalidError("'%s' is not a valid transfer history status", h.Status)
-	}
-
-	return nil
-}
-
-// BeforeUpdate is called before updating an existing `TransferHistory` entry
-// from the database. It checks whether the updated entry is valid or not.
-func (h *TransferHistory) BeforeUpdate(database.Accessor, uint64) error {
-	if h.ID != 0 {
-		return database.InvalidError("the transfer's ID cannot be changed")
-	}
-	if h.Owner != "" {
-		return database.InvalidError("the transfer's owner cannot be changed")
-	}
-	if h.Rule != "" {
-		return database.InvalidError("the transfer's rule cannot be changed")
-	}
-	if h.Account != "" {
-		return database.InvalidError("the transfer's account cannot be changed")
-	}
-	if h.Agent != "" {
-		return database.InvalidError("the transfer's agent cannot be changed")
-	}
-	if h.SourceFilename != "" {
-		return database.InvalidError("the transfer's source filename cannot be changed")
-	}
-	if h.DestFilename != "" {
-		return database.InvalidError("the transfer's destination filename cannot be changed")
-	}
-	if h.Protocol != "" {
-		return database.InvalidError("the transfer's protocol cannot be changed")
-	}
-
-	if h.Start.IsZero() {
-		return database.InvalidError("the transfer's start cannot be empty")
-	}
-	if h.Stop.IsZero() {
-		return database.InvalidError("the transfer's stop cannot be empty")
-	}
-
-	if h.Stop.Before(h.Start) {
-		return database.InvalidError("the transfer's end date cannot be anterior " +
-			"to the start date")
 	}
 
 	if !validateStatusForHistory(h.Status) {
