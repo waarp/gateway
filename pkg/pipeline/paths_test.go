@@ -148,20 +148,11 @@ func TestPathIn(t *testing.T) {
 func TestPathOut(t *testing.T) {
 	logger := log.NewLogger("test_path_out")
 
-	gwHome := "out_path_test_root"
-
-	cd, err := os.Getwd()
-	if err != nil {
-		t.FailNow()
-	}
-
-	gwRoot := Join(cd, gwHome)
-
-	Convey("Given a Gateway configuration", t, func() {
+	Convey("Given a Gateway configuration", t, func(c C) {
+		gwRoot := testhelpers.TempDir(c, "out_path_root")
 		paths := Paths{
 			PathsConfig: conf.PathsConfig{GatewayHome: gwRoot},
 		}
-		Reset(func() { _ = os.RemoveAll(gwRoot) })
 
 		Convey("Given some transfer agents", func() {
 			db := database.GetTestDatabase()
@@ -205,6 +196,7 @@ func TestPathOut(t *testing.T) {
 						DestFile:   "file.dst",
 					}
 					path := Join(srcPath, trans.SourceFile)
+					Printf("srcPath: %q\n", srcPath)
 					So(os.MkdirAll(srcPath, 0o700), ShouldBeNil)
 					So(ioutil.WriteFile(path, nil, 0o700), ShouldBeNil)
 
@@ -239,7 +231,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := Join(cd, gwHome, serverDir, send.OutPath)
+						outPath := Join(gwRoot, serverDir, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -251,7 +243,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := Join(cd, gwHome, serverDir)
+						outPath := Join(gwRoot, serverDir)
 						testFunc(send.ID, outPath)
 					})
 				})
@@ -266,7 +258,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := Join(cd, gwHome, send.OutPath)
+						outPath := Join(gwRoot, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -278,7 +270,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := Join(cd, gwHome, outDir)
+						outPath := Join(gwRoot, outDir)
 						testFunc(send.ID, outPath)
 					})
 				})
@@ -300,7 +292,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := Join(cd, gwHome, serverDir, send.OutPath)
+						outPath := Join(gwRoot, serverDir, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -312,7 +304,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := Join(cd, gwHome, serverDir)
+						outPath := Join(gwRoot, serverDir)
 						testFunc(send.ID, outPath)
 					})
 				})
@@ -327,7 +319,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := Join(cd, gwHome, send.OutPath)
+						outPath := Join(gwRoot, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -339,7 +331,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Create(send), ShouldBeNil)
 
-						outPath := Join(cd, gwHome)
+						outPath := gwRoot
 						testFunc(send.ID, outPath)
 					})
 				})
