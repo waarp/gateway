@@ -251,7 +251,7 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			r.URL.Path = APIPath + TransfersPath
-			w.Header().Set("Location", location(r, fmt.Sprint(check.ID)))
+			w.Header().Set("Location", location(r.URL, fmt.Sprint(check.ID)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

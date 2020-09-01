@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
-	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -100,22 +100,20 @@ func readJSON(r *http.Request, dest interface{}) error {
 	return nil
 }
 
-func location(r *http.Request, names ...string) string {
-	r.URL.RawQuery = ""
-	r.URL.Fragment = ""
-	for _, name := range names {
-		if name == "" {
-			continue
-		}
-		if strings.HasSuffix(r.URL.String(), "/") {
-			return fmt.Sprintf("%s%s", r.URL.String(), name)
-		}
-		return fmt.Sprintf("%s/%s", r.URL.String(), name)
+func location(u *url.URL, name string) string {
+	loc := url.URL{
+		Scheme: u.Scheme,
+		Host:   u.Host,
+		Path:   path.Join(u.Path, name),
 	}
-	return r.URL.String()
+	return loc.String()
 }
 
-func locationUpdate(r *http.Request, names ...string) string {
-	r.URL.Path = path.Dir(r.URL.Path)
-	return location(r, names...)
+func locationUpdate(u *url.URL, name string) string {
+	loc := url.URL{
+		Scheme: u.Scheme,
+		Host:   u.Host,
+		Path:   path.Join(path.Dir(u.Path), name),
+	}
+	return loc.String()
 }

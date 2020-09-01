@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -64,7 +65,8 @@ func TestCreateRule(t *testing.T) {
 							"of the new rule", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, ruleURI+newRule.Name)
+							So(location, ShouldEqual, ruleURI+
+								url.PathEscape(newRule.Name))
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -73,18 +75,20 @@ func TestCreateRule(t *testing.T) {
 
 						Convey("Then the new rule should be inserted "+
 							"in the database", func() {
-							exist, err := db.Exists(newRule.ToModel())
+							var rules []model.Rule
+							So(db.Select(&rules, nil), ShouldBeNil)
+							So(len(rules), ShouldEqual, 2)
 
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(rules[1], ShouldResemble, *newRule.ToModel(2))
 						})
 
 						Convey("Then the existing rule should still be "+
 							"present as well", func() {
-							exist, err := db.Exists(existing)
+							var rules []model.Rule
+							So(db.Select(&rules, nil), ShouldBeNil)
+							So(len(rules), ShouldEqual, 2)
 
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(rules[0], ShouldResemble, *existing)
 						})
 					})
 				})
@@ -253,9 +257,9 @@ func TestDeleteRule(t *testing.T) {
 					Convey("Then the rule should no longer be present "+
 						"in the database", func() {
 
-						exist, err := db.Exists(rule)
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeFalse)
+						var rules []model.Rule
+						So(db.Select(&rules, nil), ShouldBeNil)
+						So(rules, ShouldBeEmpty)
 					})
 				})
 			})
@@ -339,8 +343,9 @@ func TestUpdateRule(t *testing.T) {
 							So(db.Select(&results, nil), ShouldBeNil)
 							So(len(results), ShouldEqual, 2)
 
-							expected := model.Rule{ID: old.ID, Name: update.Name, Path: update.Path,
-								InPath: update.InPath, OutPath: update.OutPath, WorkPath: update.WorkPath}
+							expected := model.Rule{ID: old.ID, Name: update.Name,
+								Path: update.Path, InPath: update.InPath,
+								OutPath: update.OutPath, WorkPath: update.WorkPath}
 							So(results[0], ShouldResemble, expected)
 						})
 					})
@@ -366,10 +371,7 @@ func TestUpdateRule(t *testing.T) {
 						})
 
 						Convey("Then the old rule should still exist", func() {
-							exist, err := db.Exists(old)
-
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(db.Get(old), ShouldBeNil)
 						})
 					})
 				})

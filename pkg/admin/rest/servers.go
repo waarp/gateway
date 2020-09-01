@@ -98,12 +98,12 @@ func createLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			agent := jsonAgent.ToModel()
+			agent := jsonAgent.ToModel(0)
 			if err := db.Create(agent); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, agent.Name))
+			w.Header().Set("Location", location(r.URL, agent.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -116,21 +116,48 @@ func createLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			check, err := getLocAg(r, db)
+			old, err := getLocAg(r, db)
 			if err != nil {
 				return err
 			}
 
-			agent := &InServer{}
-			if err := readJSON(r, agent); err != nil {
+			serv := &InServer{}
+			if err := readJSON(r, serv); err != nil {
 				return err
 			}
 
-			if err := db.Update(agent.ToModel(), check.ID, false); err != nil {
+			if err := db.Update(serv.ToModel(old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r, agent.Name, check.Name))
+			w.Header().Set("Location", locationUpdate(r.URL, serv.Name))
+			w.WriteHeader(http.StatusCreated)
+			return nil
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func replaceLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			old, err := getLocAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			serv := newInServer(old)
+			if err := readJSON(r, serv); err != nil {
+				return err
+			}
+
+			if err := db.Update(serv.ToModel(old.ID)); err != nil {
+				return err
+			}
+
+			w.Header().Set("Location", locationUpdate(r.URL, serv.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -265,6 +292,22 @@ func updateLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			return updateCertificate(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func replaceLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getLocAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return replaceCertificate(w, r, db, ag.TableName(), ag.ID)
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

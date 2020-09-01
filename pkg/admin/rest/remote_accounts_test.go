@@ -316,15 +316,15 @@ func TestCreateRemoteAccount(t *testing.T) {
 
 						Convey("Then the new account should be inserted in the "+
 							"database", func() {
-							clearPwd := newAccount.Password
-							newAccount.Password = nil
 
-							test := newAccount.ToRemote(parent)
-							So(db.Get(test), ShouldBeNil)
+							var accs []model.RemoteAccount
+							So(db.Select(&accs, nil), ShouldBeNil)
+							So(len(accs), ShouldEqual, 1)
 
-							pwd, err := model.DecryptPassword(test.Password)
+							clear, err := model.DecryptPassword(accs[0].Password)
 							So(err, ShouldBeNil)
-							So(string(pwd), ShouldEqual, string(clearPwd))
+							accs[0].Password = clear
+							So(accs[0], ShouldResemble, *newAccount.ToRemote(parent, 1))
 						})
 					})
 				})
@@ -348,8 +348,9 @@ func TestCreateRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the new account should NOT exist", func() {
-							check := newAccount.ToRemote(parent)
-							So(db.Get(check), ShouldNotBeNil)
+							var accs []model.RemoteAccount
+							So(db.Select(&accs, nil), ShouldBeNil)
+							So(accs, ShouldBeEmpty)
 						})
 					})
 				})
@@ -538,10 +539,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the old account should still exist", func() {
-							exist, err := db.Exists(old)
-
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(db.Get(old), ShouldBeNil)
 						})
 					})
 				})
@@ -566,10 +564,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the old account should still exist", func() {
-							exist, err := db.Exists(old)
-
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(db.Get(old), ShouldBeNil)
 						})
 					})
 				})

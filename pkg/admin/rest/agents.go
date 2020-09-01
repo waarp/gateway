@@ -20,9 +20,19 @@ type InServer struct {
 	ProtoConfig json.RawMessage    `json:"protoConfig"`
 }
 
+func newInServer(old *model.LocalAgent) *InServer {
+	return &InServer{
+		Name:        old.Name,
+		Protocol:    old.Protocol,
+		Paths:       old.Paths,
+		ProtoConfig: old.ProtoConfig,
+	}
+}
+
 // ToModel transforms the JSON local agent into its database equivalent.
-func (i *InServer) ToModel() *model.LocalAgent {
+func (i *InServer) ToModel(id uint64) *model.LocalAgent {
 	return &model.LocalAgent{
+		ID:          id,
 		Owner:       database.Owner,
 		Name:        i.Name,
 		Paths:       i.Paths,
@@ -39,9 +49,18 @@ type InPartner struct {
 	ProtoConfig json.RawMessage `json:"protoConfig"`
 }
 
+func newInPartner(old *model.RemoteAgent) *InPartner {
+	return &InPartner{
+		Name:        old.Name,
+		Protocol:    old.Protocol,
+		ProtoConfig: old.ProtoConfig,
+	}
+}
+
 // ToModel transforms the JSON remote agent into its database equivalent.
-func (i *InPartner) ToModel() *model.RemoteAgent {
+func (i *InPartner) ToModel(id uint64) *model.RemoteAgent {
 	return &model.RemoteAgent{
+		ID:          id,
 		Name:        i.Name,
 		Protocol:    i.Protocol,
 		ProtoConfig: i.ProtoConfig,

@@ -32,12 +32,12 @@ func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			agent := jsonAgent.ToModel()
+			agent := jsonAgent.ToModel(0)
 			if err := db.Create(agent); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, agent.Name))
+			w.Header().Set("Location", location(r.URL, agent.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -134,7 +134,7 @@ func deleteRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			check, err := getRemAg(r, db)
+			old, err := getRemAg(r, db)
 			if err != nil {
 				return err
 			}
@@ -144,11 +144,38 @@ func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(agent.ToModel(), check.ID, false); err != nil {
+			if err := db.Update(agent.ToModel(old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r, agent.Name, check.Name))
+			w.Header().Set("Location", locationUpdate(r.URL, agent.Name))
+			w.WriteHeader(http.StatusCreated)
+			return nil
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func replaceRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			old, err := getRemAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			agent := newInPartner(old)
+			if err := readJSON(r, agent); err != nil {
+				return err
+			}
+
+			if err := db.Update(agent.ToModel(old.ID)); err != nil {
+				return err
+			}
+
+			w.Header().Set("Location", locationUpdate(r.URL, agent.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -263,6 +290,22 @@ func updateRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			return updateCertificate(w, r, db, ag.TableName(), ag.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func replaceRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			ag, err := getRemAg(r, db)
+			if err != nil {
+				return err
+			}
+
+			return replaceCertificate(w, r, db, ag.TableName(), ag.ID)
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

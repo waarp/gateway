@@ -239,15 +239,14 @@ func TestCreateUser(t *testing.T) {
 
 						Convey("Then the new user should be inserted in the "+
 							"database", func() {
-							clearPwd := newUser.Password
-							newUser.Password = nil
+							var users []model.User
+							So(db.Select(&users, nil), ShouldBeNil)
+							So(len(users), ShouldEqual, 3)
 
-							test := newUser.ToModel()
-							err := db.Get(test)
-							So(err, ShouldBeNil)
-
-							err = bcrypt.CompareHashAndPassword(test.Password, clearPwd)
-							So(err, ShouldBeNil)
+							So(bcrypt.CompareHashAndPassword(users[2].Password,
+								newUser.Password), ShouldBeNil)
+							users[2].Password = newUser.Password
+							So(users[2], ShouldResemble, *newUser.ToModel(3))
 						})
 
 						Convey("Then the existing user should still exist", func() {
@@ -297,9 +296,9 @@ func TestDeleteUser(t *testing.T) {
 
 					Convey("Then the user should no longer be present "+
 						"in the database", func() {
-						exist, err := db.Exists(existing)
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeFalse)
+						var users []model.User
+						So(db.Select(&users, nil), ShouldBeNil)
+						So(len(users), ShouldEqual, 1)
 					})
 				})
 
@@ -318,9 +317,7 @@ func TestDeleteUser(t *testing.T) {
 						})
 
 						Convey("Then the user should still exist in the database", func() {
-							exist, err := db.Exists(existing)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(db.Get(existing), ShouldBeNil)
 						})
 					})
 				})
@@ -390,6 +387,10 @@ func TestUpdateUser(t *testing.T) {
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
 
+						Convey("Then the response body should be empty", func() {
+							So(w.Body.String(), ShouldBeEmpty)
+						})
+
 						Convey("Then it should reply 'Created'", func() {
 							So(w.Code, ShouldEqual, http.StatusCreated)
 						})
@@ -399,10 +400,6 @@ func TestUpdateUser(t *testing.T) {
 
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, usersURI+update.Username)
-						})
-
-						Convey("Then the response body should be empty", func() {
-							So(w.Body.String(), ShouldBeEmpty)
 						})
 
 						Convey("Then the user should have been updated", func() {
@@ -434,10 +431,7 @@ func TestUpdateUser(t *testing.T) {
 						})
 
 						Convey("Then the old user should still exist", func() {
-							exist, err := db.Exists(old)
-
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(db.Get(old), ShouldBeNil)
 						})
 					})
 				})

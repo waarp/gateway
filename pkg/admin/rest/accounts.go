@@ -11,9 +11,24 @@ type InAccount struct {
 	Password []byte `json:"password"`
 }
 
+func newInLocAccount(old *model.LocalAccount) *InAccount {
+	return &InAccount{
+		Login:    old.Login,
+		Password: old.Password,
+	}
+}
+
+func newInRemAccount(old *model.RemoteAccount) *InAccount {
+	return &InAccount{
+		Login:    old.Login,
+		Password: old.Password,
+	}
+}
+
 // ToLocal transforms the JSON local account into its database equivalent.
-func (i *InAccount) ToLocal(agent *model.LocalAgent) *model.LocalAccount {
+func (i *InAccount) ToLocal(agent *model.LocalAgent, id uint64) *model.LocalAccount {
 	return &model.LocalAccount{
+		ID:           id,
 		LocalAgentID: agent.ID,
 		Login:        i.Login,
 		Password:     i.Password,
@@ -21,8 +36,9 @@ func (i *InAccount) ToLocal(agent *model.LocalAgent) *model.LocalAccount {
 }
 
 // ToRemote transforms the JSON remote account into its database equivalent.
-func (i *InAccount) ToRemote(agent *model.RemoteAgent) *model.RemoteAccount {
+func (i *InAccount) ToRemote(agent *model.RemoteAgent, id uint64) *model.RemoteAccount {
 	return &model.RemoteAccount{
+		ID:            id,
 		RemoteAgentID: agent.ID,
 		Login:         i.Login,
 		Password:      i.Password,

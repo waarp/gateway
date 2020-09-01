@@ -17,9 +17,17 @@ type InUser struct {
 	Password []byte `json:"password"`
 }
 
+func newInUser(old *model.User) *InUser {
+	return &InUser{
+		Username: old.Username,
+		Password: old.Password,
+	}
+}
+
 // ToModel transforms the JSON user into its database equivalent.
-func (i *InUser) ToModel() *model.User {
+func (i *InUser) ToModel(id uint64) *model.User {
 	return &model.User{
+		ID:       id,
 		Owner:    database.Owner,
 		Username: i.Username,
 		Password: i.Password,
@@ -115,12 +123,12 @@ func createUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			user := jsonUser.ToModel()
+			user := jsonUser.ToModel(0)
 			if err := db.Create(user); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, user.Username))
+			w.Header().Set("Location", location(r.URL, user.Username))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -133,7 +141,34 @@ func createUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			check, err := getUsr(r, db)
+			old, err := getUsr(r, db)
+			if err != nil {
+				return err
+			}
+
+			user := newInUser(old)
+			if err := readJSON(r, user); err != nil {
+				return err
+			}
+
+			if err := db.Update(user.ToModel(old.ID)); err != nil {
+				return err
+			}
+
+			w.Header().Set("Location", locationUpdate(r.URL, user.Username))
+			w.WriteHeader(http.StatusCreated)
+			return nil
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func replaceUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			old, err := getUsr(r, db)
 			if err != nil {
 				return err
 			}
@@ -143,11 +178,11 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(user.ToModel(), check.ID, false); err != nil {
+			if err := db.Update(user.ToModel(old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r, user.Username, check.Username))
+			w.Header().Set("Location", locationUpdate(r.URL, user.Username))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

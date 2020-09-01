@@ -70,9 +70,12 @@ func doListTasks(db *database.DB, rule *OutRule, ruleID uint64) error {
 	return nil
 }
 
-func doTaskUpdate(ses *database.Session, rule *UptRule, ruleID uint64) error {
-	if err := ses.Execute("DELETE FROM tasks WHERE rule_id=?", ruleID); err != nil {
-		return err
+func doTaskUpdate(ses *database.Session, rule *UptRule, ruleID uint64, isReplace bool) error {
+	if isReplace {
+		err := ses.Execute("DELETE FROM tasks WHERE rule_id=?", ruleID)
+		if err != nil {
+			return err
+		}
 	}
 	for rank, t := range rule.PreTasks {
 		task := t.ToModel()

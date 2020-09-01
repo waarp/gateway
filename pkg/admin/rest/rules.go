@@ -18,8 +18,9 @@ type InRule struct {
 }
 
 // ToModel transforms the JSON transfer rule into its database equivalent.
-func (i *InRule) ToModel() *model.Rule {
+func (i *InRule) ToModel(id uint64) *model.Rule {
 	return &model.Rule{
+		ID:       id,
 		Name:     i.Name,
 		Comment:  i.Comment,
 		IsSend:   i.IsSend,
@@ -44,9 +45,21 @@ type UptRule struct {
 	ErrorTasks []RuleTask `json:"errorTasks"`
 }
 
+func newUptRule(old *model.Rule) *UptRule {
+	return &UptRule{
+		Name:     old.Name,
+		Comment:  old.Comment,
+		Path:     old.Path,
+		InPath:   old.InPath,
+		OutPath:  old.OutPath,
+		WorkPath: old.WorkPath,
+	}
+}
+
 // ToModel transforms the JSON transfer rule into its database equivalent.
-func (i *UptRule) ToModel() *model.Rule {
+func (i *UptRule) ToModel(id uint64) *model.Rule {
 	return &model.Rule{
+		ID:       id,
 		Name:     i.Name,
 		Comment:  i.Comment,
 		Path:     i.Path,
@@ -144,7 +157,7 @@ func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			rule := jsonRule.ToModel()
+			rule := jsonRule.ToModel(0)
 			ses, err := db.BeginTransaction()
 			if err != nil {
 				return err
@@ -153,7 +166,7 @@ func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				ses.Rollback()
 				return err
 			}
-			if err := doTaskUpdate(ses, jsonRule.UptRule, rule.ID); err != nil {
+			if err := doTaskUpdate(ses, jsonRule.UptRule, rule.ID, true); err != nil {
 				ses.Rollback()
 				return err
 			}
@@ -161,7 +174,7 @@ func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, rule.Name))
+			w.Header().Set("Location", location(r.URL, rule.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -228,7 +241,7 @@ func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			check, err := getRl(r, db)
+			old, err := getRl(r, db)
 			if err != nil {
 				return err
 			}
@@ -242,11 +255,11 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			if err := ses.Update(rule.ToModel(), check.ID, false); err != nil {
+			if err := ses.Update(rule.ToModel(old.ID)); err != nil {
 				ses.Rollback()
 				return err
 			}
-			if err := doTaskUpdate(ses, rule, check.ID); err != nil {
+			if err := doTaskUpdate(ses, rule, old.ID, false); err != nil {
 				ses.Rollback()
 				return err
 			}
@@ -254,7 +267,46 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r, rule.Name, check.Name))
+			w.Header().Set("Location", locationUpdate(r.URL, rule.Name))
+			w.WriteHeader(http.StatusCreated)
+			return nil
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			old, err := getRl(r, db)
+			if err != nil {
+				return err
+			}
+
+			rule := newUptRule(old)
+			if err := readJSON(r, rule); err != nil {
+				return err
+			}
+
+			ses, err := db.BeginTransaction()
+			if err != nil {
+				return err
+			}
+			if err := ses.Update(rule.ToModel(old.ID)); err != nil {
+				ses.Rollback()
+				return err
+			}
+			if err := doTaskUpdate(ses, rule, old.ID, true); err != nil {
+				ses.Rollback()
+				return err
+			}
+			if err := ses.Commit(); err != nil {
+				return err
+			}
+
+			w.Header().Set("Location", locationUpdate(r.URL, rule.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

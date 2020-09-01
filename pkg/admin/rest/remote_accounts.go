@@ -103,7 +103,7 @@ func getRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			agent, check, err := getRemAcc(r, db)
+			parent, old, err := getRemAcc(r, db)
 			if err != nil {
 				return err
 			}
@@ -113,11 +113,38 @@ func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(account.ToRemote(agent), check.ID, false); err != nil {
+			if err := db.Update(account.ToRemote(parent, old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r, account.Login, check.Login))
+			w.Header().Set("Location", locationUpdate(r.URL, account.Login))
+			w.WriteHeader(http.StatusCreated)
+			return nil
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			parent, old, err := getRemAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			account := newInRemAccount(old)
+			if err := readJSON(r, account); err != nil {
+				return err
+			}
+
+			if err := db.Update(account.ToRemote(parent, old.ID)); err != nil {
+				return err
+			}
+
+			w.Header().Set("Location", locationUpdate(r.URL, account.Login))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -140,12 +167,12 @@ func createRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			account := jsonAccount.ToRemote(parent)
+			account := jsonAccount.ToRemote(parent, 0)
 			if err := db.Create(account); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, account.Login))
+			w.Header().Set("Location", location(r.URL, account.Login))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -280,6 +307,22 @@ func updateRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			}
 
 			return updateCertificate(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func replaceRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getRemAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return replaceCertificate(w, r, db, acc.TableName(), acc.ID)
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -249,23 +250,28 @@ func TestCreateRemoteAgent(t *testing.T) {
 							"of the new remote agent", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, remoteAgentsURI+newAgent.Name)
+							So(location, ShouldEqual, remoteAgentsURI+
+								url.PathEscape(newAgent.Name))
 						})
 
 						Convey("Then the new remote agent should be inserted in "+
 							"the database", func() {
-							exist, err := db.Exists(newAgent.ToModel())
 
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							var ags []model.RemoteAgent
+							So(db.Select(&ags, nil), ShouldBeNil)
+							So(len(ags), ShouldEqual, 2)
+
+							So(ags[1], ShouldResemble, *newAgent.ToModel(2))
 						})
 
 						Convey("Then the existing remote agent should still be "+
 							"present as well", func() {
-							exist, err := db.Exists(existing)
 
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							var ags []model.RemoteAgent
+							So(db.Select(&ags, nil), ShouldBeNil)
+							So(len(ags), ShouldEqual, 2)
+
+							So(ags[0], ShouldResemble, *existing)
 						})
 					})
 				})
@@ -307,9 +313,9 @@ func TestDeleteRemoteAgent(t *testing.T) {
 					})
 
 					Convey("Then the agent should no longer be present in the database", func() {
-						exist, err := db.Exists(existing)
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeFalse)
+						var ags []model.RemoteAgent
+						So(db.Select(&ags, nil), ShouldBeNil)
+						So(ags, ShouldBeEmpty)
 					})
 				})
 			})
@@ -419,10 +425,11 @@ func TestUpdateRemoteAgent(t *testing.T) {
 						})
 
 						Convey("Then the old agent should still exist", func() {
-							exist, err := db.Exists(old)
+							var ags []model.RemoteAgent
+							So(db.Select(&ags, nil), ShouldBeNil)
+							So(len(ags), ShouldEqual, 2)
 
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(ags[0], ShouldResemble, *old)
 						})
 					})
 				})

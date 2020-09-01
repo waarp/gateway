@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -237,7 +238,8 @@ func TestCreateLocalAgent(t *testing.T) {
 				Convey("Given that the new local agent is valid for insertion", func() {
 					body, err := json.Marshal(newAgent)
 					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, localAgentsURI, bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPost, localAgentsURI,
+						bytes.NewReader(body))
 
 					So(err, ShouldBeNil)
 
@@ -256,7 +258,8 @@ func TestCreateLocalAgent(t *testing.T) {
 							"of the new local agent", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, localAgentsURI+newAgent.Name)
+							So(location, ShouldEqual, localAgentsURI+
+								url.PathEscape(newAgent.Name))
 						})
 
 						Convey("Then the new local agent should be inserted in "+
@@ -282,10 +285,11 @@ func TestCreateLocalAgent(t *testing.T) {
 
 						Convey("Then the existing local agent should still be "+
 							"present as well", func() {
-							exist, err := db.Exists(existing)
+							var rules []model.LocalAgent
+							So(db.Select(&rules, nil), ShouldBeNil)
+							So(len(rules), ShouldEqual, 2)
 
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(rules[0], ShouldResemble, *existing)
 						})
 					})
 				})
@@ -328,9 +332,9 @@ func TestDeleteLocalAgent(t *testing.T) {
 					})
 
 					Convey("Then the agent should no longer be present in the database", func() {
-						exist, err := db.Exists(existing)
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeFalse)
+						var rules []model.LocalAgent
+						So(db.Select(&rules, nil), ShouldBeNil)
+						So(rules, ShouldBeEmpty)
 					})
 				})
 			})
@@ -440,10 +444,7 @@ func TestUpdateLocalAgent(t *testing.T) {
 					})
 
 					Convey("Then the old agent should still exist", func() {
-						exist, err := db.Exists(old)
-
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeTrue)
+						So(db.Get(old), ShouldBeNil)
 					})
 				})
 			})

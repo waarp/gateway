@@ -109,17 +109,17 @@ func createLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			jsonAccount := &InAccount{}
-			if err := readJSON(r, jsonAccount); err != nil {
+			acc := &InAccount{}
+			if err := readJSON(r, acc); err != nil {
 				return err
 			}
 
-			account := jsonAccount.ToLocal(parent)
+			account := acc.ToLocal(parent, 0)
 			if err := db.Create(account); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, account.Login))
+			w.Header().Set("Location", location(r.URL, account.Login))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -132,7 +132,7 @@ func createLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			agent, check, err := getLocAcc(r, db)
+			parent, old, err := getLocAcc(r, db)
 			if err != nil {
 				return err
 			}
@@ -142,11 +142,38 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(account.ToLocal(agent), check.ID, false); err != nil {
+			if err := db.Update(account.ToLocal(parent, old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r, account.Login, check.Login))
+			w.Header().Set("Location", locationUpdate(r.URL, account.Login))
+			w.WriteHeader(http.StatusCreated)
+			return nil
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			parent, old, err := getLocAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			account := newInLocAccount(old)
+			if err := readJSON(r, account); err != nil {
+				return err
+			}
+
+			if err := db.Update(account.ToLocal(parent, old.ID)); err != nil {
+				return err
+			}
+
+			w.Header().Set("Location", locationUpdate(r.URL, account.Login))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -281,6 +308,22 @@ func updateLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			}
 
 			return updateCertificate(w, r, db, acc.TableName(), acc.ID)
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func replaceLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			_, acc, err := getLocAcc(r, db)
+			if err != nil {
+				return err
+			}
+
+			return replaceCertificate(w, r, db, acc.TableName(), acc.ID)
 		}()
 		if err != nil {
 			handleErrors(w, logger, err)
