@@ -13,11 +13,12 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestControllerListen(t *testing.T) {
-	Convey("Given a database", t, func() {
+	Convey("Given a database", t, func(c C) {
 		db := database.GetTestDatabase()
 
 		remote := &model.RemoteAgent{
@@ -44,9 +45,7 @@ func TestControllerListen(t *testing.T) {
 		}
 		So(db.Create(cert), ShouldBeNil)
 
-		tmpDir, err := ioutil.TempDir("", "gateway-test-*")
-		So(err, ShouldBeNil)
-		defer func() { So(os.RemoveAll(tmpDir), ShouldBeNil) }()
+		tmpDir := testhelpers.TempDir(c, "controller-listen")
 
 		rule := &model.Rule{
 			Name:    "test rule",
@@ -96,7 +95,7 @@ func TestControllerListen(t *testing.T) {
 
 					Convey("After waiting enough time", func() {
 						cont.wg.Wait()
-						//time.Sleep(1000 * time.Millisecond)
+						// time.Sleep(1000 * time.Millisecond)
 
 						Convey("Then it should have retrieved the planned "+
 							"transfer entry", func() {

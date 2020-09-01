@@ -14,21 +14,14 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestPathIn(t *testing.T) {
 	logger := log.NewLogger("test_path_in")
 
-	gwHome := "in_path_test_root"
-
-	cd, err := os.Getwd()
-	if err != nil {
-		t.FailNow()
-	}
-
-	gwRoot := Join(cd, gwHome)
-
-	Convey("Given a Gateway configuration", t, func() {
+	Convey("Given a Gateway configuration", t, func(c C) {
+		gwRoot := testhelpers.TempDir(c, "foo")
 		paths := Paths{
 			PathsConfig: conf.PathsConfig{
 				GatewayHome:   gwRoot,
@@ -37,7 +30,7 @@ func TestPathIn(t *testing.T) {
 				WorkDirectory: "gwWork",
 			},
 		}
-		Reset(func() { _ = os.RemoveAll(gwRoot) })
+		// Reset(func() { _ = os.RemoveAll(gwRoot) })
 
 		Convey("Given some transfer agents", func() {
 			db := database.GetTestDatabase()
@@ -89,10 +82,11 @@ func TestPathIn(t *testing.T) {
 			file := trans.DestFile
 			tmp := trans.DestFile + ".tmp"
 
-			testCases := []struct {
+			type testCase struct {
 				serRoot, ruleIn, ruleWork string
 				expTmp, expFinal          string
-			}{
+			}
+			testCases := []testCase{
 				{"", "", "", Join(gwRoot, "gwWork", tmp), Join(gwRoot, "gwIn", file)},
 				{"serRoot", "", "", Join(gwRoot, "serRoot", "serWork", tmp), Join(gwRoot, "serRoot", "serIn", file)},
 				{"", "ruleIn", "", Join(gwRoot, "gwWork", tmp), Join(gwRoot, "ruleIn", file)},
@@ -104,7 +98,11 @@ func TestPathIn(t *testing.T) {
 			}
 
 			for _, tc := range testCases {
-				Convey(fmt.Sprintf("Given the following path parameters: %v", tc), func() {
+				testCaseName := fmt.Sprintf(
+					"Given the following path parameters: %q %q %q",
+					tc.serRoot, tc.ruleIn, tc.ruleWork,
+				)
+				Convey(testCaseName, func() {
 					paths.ServerRoot = tc.serRoot
 					if paths.ServerRoot != "" {
 						paths.ServerIn = "serIn"

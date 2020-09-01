@@ -3,14 +3,13 @@ package sftp
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
-	"os"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -30,12 +29,9 @@ func TestSFTPAlgoConfig(t *testing.T) {
 	login := "login"
 	password := []byte("password")
 
-	Convey("Given an SFTP server", t, func() {
+	Convey("Given an SFTP server", t, func(c C) {
 		db := database.GetTestDatabase()
-		root, err := ioutil.TempDir("", "gateway-test")
-		So(err, ShouldBeNil)
-		Reset(func() { _ = os.RemoveAll(root) })
-
+		root := testhelpers.TempDir(c, "algo-config")
 		port := getFreePort()
 
 		agent := &model.LocalAgent{
@@ -98,7 +94,6 @@ func TestSFTPAlgoConfig(t *testing.T) {
 			client := c.(*Client)
 
 			Convey("Given the SFTP client has the same configured algos", func() {
-
 				Convey("Then it should authenticate without errors", func() {
 					So(client.Connect(), ShouldBeNil)
 					So(client.Authenticate(), ShouldBeNil)

@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -101,27 +102,21 @@ func TestNewTransferStream(t *testing.T) {
 func TestStreamRead(t *testing.T) {
 	logger := log.NewLogger("test_stream_read")
 
-	cd, err := os.Getwd()
-	if err != nil {
-		t.FailNow()
-	}
-	root := filepath.Join(cd, "stream_read_root")
-	paths := Paths{PathsConfig: conf.PathsConfig{
-		GatewayHome:   root,
-		InDirectory:   filepath.Join(root, "in"),
-		OutDirectory:  filepath.Join(root, ""),
-		WorkDirectory: filepath.Join(root, "work"),
-	}}
+	Convey("Given a file", t, func(c C) {
+		root := testhelpers.TempDir(c, "stream_read_root")
 
-	Convey("Given a file", t, func() {
+		paths := Paths{PathsConfig: conf.PathsConfig{
+			GatewayHome:   root,
+			InDirectory:   filepath.Join(root, "in"),
+			OutDirectory:  filepath.Join(root, ""),
+			WorkDirectory: filepath.Join(root, "work"),
+		}}
+
 		srcFile := "read_test.src"
 		dstFile := "read_test.dst"
-		So(os.Mkdir(root, 0700), ShouldBeNil)
 		path := filepath.Join(root, srcFile)
 		content := []byte("Transfer stream read test content")
-		So(ioutil.WriteFile(path, content, 0600), ShouldBeNil)
-
-		Reset(func() { _ = os.RemoveAll(root) })
+		So(ioutil.WriteFile(path, content, 0o600), ShouldBeNil)
 
 		Convey("Given a transfer stream to this file", func() {
 			db := database.GetTestDatabase()
@@ -150,7 +145,6 @@ func TestStreamRead(t *testing.T) {
 			}
 			So(db.Create(account), ShouldBeNil)
 
-			So(err, ShouldBeNil)
 			trans := &model.Transfer{
 				RuleID:     rule.ID,
 				IsServer:   true,
@@ -236,23 +230,18 @@ func TestStreamRead(t *testing.T) {
 func TestStreamWrite(t *testing.T) {
 	logger := log.NewLogger("test_stream_read")
 
-	cd, err := os.Getwd()
-	if err != nil {
-		t.FailNow()
-	}
-	root := filepath.Join(cd, "stream_write_root")
-	paths := Paths{PathsConfig: conf.PathsConfig{
-		GatewayHome:   root,
-		InDirectory:   filepath.Join(root, "in"),
-		OutDirectory:  filepath.Join(root, "out"),
-		WorkDirectory: filepath.Join(root, "work"),
-	}}
-
-	Convey("Given a file", t, func() {
+	Convey("Given a file", t, func(c C) {
 		dstFile := "write_test.dst"
 		content := []byte("Transfer stream write test content")
-		So(os.Mkdir(root, 0700), ShouldBeNil)
-		Reset(func() { So(os.RemoveAll(root), ShouldBeNil) })
+
+		root := testhelpers.TempDir(c, "stream_write_root")
+
+		paths := Paths{PathsConfig: conf.PathsConfig{
+			GatewayHome:   root,
+			InDirectory:   filepath.Join(root, "in"),
+			OutDirectory:  filepath.Join(root, "out"),
+			WorkDirectory: filepath.Join(root, "work"),
+		}}
 
 		Convey("Given a transfer stream", func() {
 			db := database.GetTestDatabase()
