@@ -61,19 +61,6 @@ func TestUsersValidate(t *testing.T) {
 					})
 				})
 
-				Convey("Given that the new user has an ID", func() {
-					user.ID = 1000
-
-					Convey("When calling the 'Validate' function", func() {
-						err := user.Validate(db)
-
-						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err, ShouldBeError, "the user's ID cannot "+
-								"be entered manually")
-						})
-					})
-				})
-
 				Convey("Given that the new user is missing a username", func() {
 					user.Username = ""
 

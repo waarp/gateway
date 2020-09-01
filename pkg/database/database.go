@@ -56,7 +56,7 @@ type Accessor interface {
 	Select(interface{}, *Filters) error
 	Create(tableName) error
 	Update(entry) error
-	Delete(entry) error
+	Delete(tableName) error
 	Execute(...interface{}) error
 	Query(...interface{}) ([]map[string]interface{}, error)
 }
@@ -318,7 +318,7 @@ func (db *DB) Update(bean entry) error {
 
 // Delete deletes the given bean from the database. If the record cannot be deleted,
 // an error is returned.
-func (db *DB) Delete(bean entry) error {
+func (db *DB) Delete(bean tableName) error {
 	db.logger.Debugf("Delete requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
@@ -552,7 +552,7 @@ func (s *Session) Update(bean entry) error {
 
 // Delete adds an 'delete' query to the transaction. If the query cannot be executed,
 // an error is returned.
-func (s *Session) Delete(bean entry) error {
+func (s *Session) Delete(bean tableName) error {
 	s.logger.Debugf("Transaction 'Delete' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
 		return ErrServiceUnavailable
@@ -560,7 +560,7 @@ func (s *Session) Delete(bean entry) error {
 	if bean == nil {
 		return ErrNilRecord
 	}
-	if exist, err := s.session.Table(bean.TableName()).ID(bean.Id()).Exist(); err != nil {
+	if exist, err := s.session.Exist(bean); err != nil {
 		return err
 	} else if !exist {
 		return ErrNotFound

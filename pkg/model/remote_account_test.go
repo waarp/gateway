@@ -131,19 +131,6 @@ func TestRemoteAccountValidate(t *testing.T) {
 					})
 				})
 
-				Convey("Given that the new account has an ID", func() {
-					newAccount.ID = 1000
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAccount.Validate(db)
-
-						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err, ShouldBeError, "the account's ID cannot "+
-								"be entered manually")
-						})
-					})
-				})
-
 				Convey("Given that the new account is missing an agent ID", func() {
 					newAccount.RemoteAgentID = 0
 

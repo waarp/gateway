@@ -59,9 +59,6 @@ func (l *LocalAccount) Validate(db database.Accessor) error {
 		}
 	}
 
-	if l.ID != 0 {
-		return database.InvalidError("the account's ID cannot be entered manually")
-	}
 	if l.LocalAgentID == 0 {
 		return database.InvalidError("the account's agentID cannot be empty")
 	}
@@ -69,14 +66,15 @@ func (l *LocalAccount) Validate(db database.Accessor) error {
 		return database.InvalidError("the account's login cannot be empty")
 	}
 
-	if res, err := db.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
+	if res, err := db.Query("SELECT id FROM local_agents WHERE id=?",
+		l.LocalAgentID); err != nil {
 		return err
 	} else if len(res) == 0 {
 		return database.InvalidError("no local agent found with the ID '%v'", l.LocalAgentID)
 	}
 
-	if res, err := db.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
-		"AND login=?", l.LocalAgentID, l.Login); err != nil {
+	if res, err := db.Query("SELECT id FROM local_accounts WHERE id<>? AND "+
+		"local_agent_id=? AND login=?", l.ID, l.LocalAgentID, l.Login); err != nil {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("a local account with the same login '%s' "+

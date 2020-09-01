@@ -16,7 +16,7 @@ func init() {
 type RemoteAgent struct {
 
 	// The agent's database ID.
-	ID uint64 `xorm:"pk autoincr 'id'"`
+	ID uint64 `xorm:"pk autoincr <- 'id'"`
 
 	// The agent's display name.
 	Name string `xorm:"unique notnull 'name'"`
@@ -67,9 +67,6 @@ func (r *RemoteAgent) GetCerts(db database.Accessor) ([]Cert, error) {
 // Validate is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
 func (r *RemoteAgent) Validate(db database.Accessor) error {
-	if r.ID != 0 {
-		return database.InvalidError("the agent's ID cannot be entered manually")
-	}
 	if r.Name == "" {
 		return database.InvalidError("the agent's name cannot be empty")
 	}
@@ -80,7 +77,8 @@ func (r *RemoteAgent) Validate(db database.Accessor) error {
 		return database.InvalidError(err.Error())
 	}
 
-	if res, err := db.Query("SELECT id FROM remote_agents WHERE name=?", r.Name); err != nil {
+	if res, err := db.Query("SELECT id FROM remote_agents WHERE id<>? AND name=?",
+		r.ID, r.Name); err != nil {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("a remote agent with the same name '%s' "+

@@ -15,7 +15,7 @@ func init() {
 type Rule struct {
 
 	// The Rule's ID
-	ID uint64 `xorm:"pk autoincr 'id'"`
+	ID uint64 `xorm:"pk autoincr <- 'id'"`
 
 	// The rule's name
 	Name string `xorm:"unique(send) notnull 'name'"`
@@ -78,9 +78,6 @@ func (r *Rule) Validate(db database.Accessor) error {
 	if r.Path == "" {
 		return database.InvalidError("the rule's path cannot be empty")
 	}
-	if r.ID != 0 {
-		return database.InvalidError("the rule's ID cannot be entered manually")
-	}
 	if r.Name == "" {
 		return database.InvalidError("the rule's name cannot be empty")
 	}
@@ -89,16 +86,20 @@ func (r *Rule) Validate(db database.Accessor) error {
 		return err
 	}
 
-	if res, err := db.Query("SELECT id FROM rules WHERE name=? AND send=?", r.Name, r.IsSend); err != nil {
+	if res, err := db.Query("SELECT id FROM rules WHERE id<>? AND name=? AND send=?",
+		r.ID, r.Name, r.IsSend); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("a rule named '%s' with send = %t already exist", r.Name, r.IsSend)
+		return database.InvalidError("a rule named '%s' with send = %t already exist",
+			r.Name, r.IsSend)
 	}
 
-	if res, err := db.Query("SELECT id FROM rules WHERE name=? AND path=?", r.Name, r.Path); err != nil {
+	if res, err := db.Query("SELECT id FROM rules WHERE id<>? AND name=? AND path=?",
+		r.ID, r.Name, r.Path); err != nil {
 		return err
 	} else if len(res) > 0 {
-		return database.InvalidError("a rule named '%s' with path: %s already exist", r.Name, r.Path)
+		return database.InvalidError("a rule named '%s' with path: %s already exist",
+			r.Name, r.Path)
 	}
 
 	return nil

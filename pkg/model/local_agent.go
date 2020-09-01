@@ -95,9 +95,6 @@ func (l *LocalAgent) Validate(db database.Accessor) error {
 	l.Owner = database.Owner
 	l.makePaths(true)
 
-	if l.ID != 0 {
-		return database.InvalidError("the agent's ID cannot be entered manually")
-	}
 	if l.Name == "" {
 		return database.InvalidError("the agent's name cannot be empty")
 	}
@@ -108,8 +105,8 @@ func (l *LocalAgent) Validate(db database.Accessor) error {
 		return database.InvalidError(err.Error())
 	}
 
-	if res, err := db.Query("SELECT id FROM local_agents WHERE owner=? AND name=?",
-		l.Owner, l.Name); err != nil {
+	if res, err := db.Query("SELECT id FROM local_agents WHERE id<>? AND owner=? AND name=?",
+		l.ID, l.Owner, l.Name); err != nil {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("a local agent with the same name '%s' "+

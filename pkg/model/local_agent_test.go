@@ -148,19 +148,6 @@ func TestLocalAgentValidate(t *testing.T) {
 					})
 				})
 
-				Convey("Given that the new agent has an ID", func() {
-					newAgent.ID = 10
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAgent.Validate(db)
-
-						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err, ShouldBeError, "the agent's ID cannot "+
-								"be entered manually")
-						})
-					})
-				})
-
 				Convey("Given that the new agent is missing a name", func() {
 					newAgent.Name = ""
 

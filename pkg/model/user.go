@@ -71,9 +71,6 @@ func (u *User) BeforeDelete(db database.Accessor) error {
 // inserted in the database.
 func (u *User) Validate(db database.Accessor) (err error) {
 	u.Owner = database.Owner
-	if u.ID != 0 {
-		return database.InvalidError("the user's ID cannot be entered manually")
-	}
 	if u.Username == "" {
 		return database.InvalidError("the username cannot be empty")
 	}
@@ -81,8 +78,8 @@ func (u *User) Validate(db database.Accessor) (err error) {
 		return database.InvalidError("the user password cannot be empty")
 	}
 
-	if res, err := db.Query("SELECT id FROM users WHERE owner=? AND username=?",
-		database.Owner, u.Username); err != nil {
+	if res, err := db.Query("SELECT id FROM users WHERE id<>? AND owner=? AND username=?",
+		u.ID, u.Owner, u.Username); err != nil {
 		return err
 	} else if len(res) != 0 {
 		return database.InvalidError("a user named '%s' already exist", u.Username)

@@ -26,18 +26,22 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		Convey("Given a remote agent entry", func() {
-			ag := &RemoteAgent{Name: "partner", Protocol: "dummy", ProtoConfig: []byte(`{}`)}
+			ag := &RemoteAgent{Name: "partner", Protocol: "dummy",
+				ProtoConfig: []byte(`{}`)}
 			So(db.Create(ag), ShouldBeNil)
 
-			acc := &RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: []byte("password")}
+			acc := &RemoteAccount{RemoteAgentID: ag.ID, Login: "login",
+				Password: []byte("password")}
 			So(db.Create(acc), ShouldBeNil)
 
 			rule := &Rule{Name: "rule", IsSend: false, Path: "path"}
 			So(db.Create(rule), ShouldBeNil)
 
-			agAccess := &RuleAccess{RuleID: rule.ID, ObjectID: ag.ID, ObjectType: ag.TableName()}
+			agAccess := &RuleAccess{RuleID: rule.ID, ObjectID: ag.ID,
+				ObjectType: ag.TableName()}
 			So(db.Create(agAccess), ShouldBeNil)
-			accAccess := &RuleAccess{RuleID: rule.ID, ObjectID: acc.ID, ObjectType: acc.TableName()}
+			accAccess := &RuleAccess{RuleID: rule.ID, ObjectID: acc.ID,
+				ObjectType: acc.TableName()}
 			So(db.Create(accAccess), ShouldBeNil)
 
 			certAg := &Cert{
@@ -136,19 +140,6 @@ func TestRemoteAgentValidate(t *testing.T) {
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
-						})
-					})
-				})
-
-				Convey("Given that the new agent has an ID", func() {
-					newAgent.ID = 10
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAgent.Validate(db)
-
-						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err, ShouldBeError, "the agent's ID cannot "+
-								"be entered manually")
 						})
 					})
 				})

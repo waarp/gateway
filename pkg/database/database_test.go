@@ -244,8 +244,8 @@ func testCreate(db *DB) {
 				So(err, ShouldBeNil)
 
 				Convey("Then the record should have been inserted", func() {
-					check := &testBean{ID: createBean.ID}
-					So(acc.Get(check), ShouldBeNil)
+					check := testBean{ID: createBean.ID, signals: "validation hook"}
+					So(acc.Get(&check), ShouldBeNil)
 					So(check, ShouldResemble, createBean)
 				})
 
@@ -267,7 +267,7 @@ func testCreate(db *DB) {
 			err := acc.Create(&invalidBean{})
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, xorm.ErrTableNotFound)
+				So(err, ShouldBeError)
 			})
 		})
 
@@ -323,7 +323,7 @@ func testUpdate(db *DB) {
 				So(err, ShouldBeNil)
 
 				Convey("Then the new record should be present in the database", func() {
-					check := testBean{ID: updateBeanAfter.ID}
+					check := testBean{ID: updateBeanAfter.ID, signals: "validation hook"}
 					So(acc.Get(&check), ShouldBeNil)
 					So(check, ShouldResemble, updateBeanAfter)
 				})
@@ -352,7 +352,7 @@ func testUpdate(db *DB) {
 			err := acc.Update(&invalidBean{})
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, xorm.ErrTableNotFound)
+				So(err, ShouldBeError)
 			})
 		})
 

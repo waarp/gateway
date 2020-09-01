@@ -53,9 +53,6 @@ func (r *RemoteAccount) GetCerts(db database.Accessor) ([]Cert, error) {
 // Validate checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
 func (r *RemoteAccount) Validate(db database.Accessor) (err error) {
-	if r.ID != 0 {
-		return database.InvalidError("the account's ID cannot be entered manually")
-	}
 	if r.RemoteAgentID == 0 {
 		return database.InvalidError("the account's agentID cannot be empty")
 	}
@@ -72,8 +69,8 @@ func (r *RemoteAccount) Validate(db database.Accessor) (err error) {
 		return database.InvalidError("no remote agent found with the ID '%v'", r.RemoteAgentID)
 	}
 
-	if res, err := db.Query("SELECT id FROM remote_accounts WHERE remote_agent_id=? "+
-		"AND login=?", r.RemoteAgentID, r.Login); err != nil {
+	if res, err := db.Query("SELECT id FROM remote_accounts WHERE id<>? AND "+
+		"remote_agent_id=? AND login=?", r.ID, r.RemoteAgentID, r.Login); err != nil {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("a remote account with the same login '%s' "+
