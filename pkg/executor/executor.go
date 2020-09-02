@@ -30,35 +30,35 @@ type Executor struct {
 	R66Home string
 }
 
-func (e *Executor) getClient(stream *pipeline.TransferStream) (te *model.PipelineError) {
+func (e *Executor) getClient(stream *pipeline.TransferStream) *model.PipelineError {
 	info, err := model.NewOutTransferInfo(e.DB, stream.Transfer)
 	if err != nil {
 		e.Logger.Criticalf("Failed to retrieve transfer info: %s", err)
-		te = &model.PipelineError{Kind: model.KindDatabase}
-		return
+		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 
 	constr, ok := ClientsConstructors[info.Agent.Protocol]
 	if !ok {
 		msg := fmt.Sprintf("Unknown transfer protocol '%s'", info.Agent.Protocol)
 		e.Logger.Critical(msg)
-		te = model.NewPipelineError(model.TeUnimplemented, msg)
-		return
+
+		return model.NewPipelineError(model.TeUnimplemented, msg)
 	}
+
 	e.client, err = constr(*info, stream.Signals)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to create transfer client: %s", err)
 		e.Logger.Critical(msg)
-		te = model.NewPipelineError(model.TeInternal, msg)
-		return
+
+		return model.NewPipelineError(model.TeInternal, msg)
 	}
 
-	return te
+	return nil
 }
 
 func (e *Executor) setup() *model.PipelineError {
-
 	e.Logger.Info("Sending transfer request to remote server '%s'")
+
 	if err := e.client.Connect(); err != nil {
 		e.Logger.Errorf("Failed to connect to remote server: %s", err)
 		return err
@@ -79,6 +79,7 @@ func (e *Executor) setup() *model.PipelineError {
 
 func (e *Executor) data() *model.PipelineError {
 	e.Logger.Info("Starting data transfer")
+
 	if e.TransferStream.Transfer.Step != model.StepPreTasks &&
 		e.TransferStream.Transfer.Step != model.StepData {
 		return nil
@@ -98,9 +99,11 @@ func (e *Executor) data() *model.PipelineError {
 		e.Logger.Errorf("Error while transmitting data: %s", err)
 		return err
 	}
+
 	if err := e.TransferStream.Close(); err != nil {
 		return err.(*model.PipelineError)
 	}
+
 	return nil
 }
 
@@ -121,7 +124,9 @@ func (e *Executor) prologue() *model.PipelineError {
 	if e.Transfer.Step > model.StepSetup {
 		oldStep = e.Transfer.Step
 	}
+
 	e.Transfer.Step = model.StepSetup
+
 	defer func() { e.Transfer.Step = oldStep }()
 
 	if err := e.Transfer.Update(e.DB); err != nil {
@@ -135,8 +140,10 @@ func (e *Executor) prologue() *model.PipelineError {
 
 	if err := e.setup(); err != nil {
 		_ = e.client.Close(err)
+
 		return err
 	}
+
 	return nil
 }
 
@@ -146,6 +153,7 @@ func (e *Executor) run() *model.PipelineError {
 		e.Logger.Criticalf("Failed to retrieve transfer info: %s", err)
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
+
 	logTrans(e.Logger, info)
 
 	if info.Agent.Protocol == "r66" {
@@ -179,6 +187,7 @@ func (e *Executor) run() *model.PipelineError {
 
 	e.TransferStream.Transfer.Step = model.StepNone
 	e.TransferStream.Transfer.Status = model.StatusDone
+
 	return nil
 }
 
@@ -190,6 +199,7 @@ func (e *Executor) Run() {
 		pipeline.HandleError(e.TransferStream, tErr)
 		return
 	}
+
 	if e.Archive() == nil {
 		e.Logger.Info("Execution finished without errors")
 	}
@@ -205,43 +215,47 @@ func (e *Executor) runR66(info *model.OutTransferInfo) {
 	}
 }
 
+//nolint:funlen,nestif,gomnd,goerr113 // temporary function that will eventually be removed
 func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {
 	e.Logger.Infof("Delegating R66 transfer n°%d to external server", e.Transfer.ID)
 	script := e.R66Home
-	args := []string{
-		"send",
-		info.Account.Login,
-		"-to", info.Agent.Name,
-		"-file", info.Transfer.SourceFile,
-		"-rule", info.Rule.Name,
-	}
+	args := buildR66CommandArgs(info)
+
 	e.Logger.Debugf("%s %#v", script, args)
-	cmd := exec.Command(script, args...) //nolint:gosec
+	cmd := exec.Command(script, args...) //nolint:gosec //args has already been sanitized
+
 	out, err := cmd.Output()
+
 	defer func() {
 		e.Logger.Debug("R66 server output:")
+
 		for _, l := range bytes.Split(out, []byte{'\n'}) {
 			e.Logger.Debugf("    %s", string(l))
 		}
 	}()
+
 	if err != nil {
 		info.Transfer.Error = model.TransferError{
 			Code:    model.TeExternalOperation,
 			Details: err.Error(),
 		}
+
 		return err
 	}
+
 	if len(out) > 0 {
 		// Get the second line of the output
 		arrays := bytes.Split(out, []byte("\n"))
 		if len(arrays) < 2 {
 			return fmt.Errorf("bad output")
 		}
+
 		// Parse into a r66Result
 		result := &r66Result{}
-		if err := json.Unmarshal(arrays[1], result); err != nil {
-			return err
+		if err2 := json.Unmarshal(arrays[1], result); err2 != nil {
+			return err2
 		}
+
 		if len(result.StatusCode) == 0 {
 			return fmt.Errorf("bad output")
 		}
@@ -253,14 +267,28 @@ func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {
 		if info.Transfer.Error.Code != model.TeOk {
 			info.Transfer.Error.Details = result.StatusTxt
 		}
+
 		info.Transfer.DestFile = result.FinalPath
-		buf, err := json.Marshal(result)
-		if err != nil {
-			return err
+
+		buf, err3 := json.Marshal(result)
+		if err3 != nil {
+			return err3
 		}
+
 		info.Transfer.ExtInfo = buf
 	}
+
 	return err
+}
+
+func buildR66CommandArgs(info *model.OutTransferInfo) []string {
+	return []string{
+		info.Account.Login,
+		"send",
+		"-to", info.Agent.Name,
+		"-file", info.Transfer.SourceFile,
+		"-rule", info.Rule.Name,
+	}
 }
 
 type r66Result struct {

@@ -700,3 +700,27 @@ func TestTransferResume(t *testing.T) {
 		})
 	})
 }
+
+func TestBuildR66CommandArgs(t *testing.T) {
+	Convey("Testing BuildR66Command", t, func() {
+		Convey("Given a transfer", func() {
+			oti := &model.OutTransferInfo{
+				Account:  &model.RemoteAccount{Login: "foo"},
+				Agent:    &model.RemoteAgent{Name: "bar"},
+				Transfer: &model.Transfer{SourceFile: "path/to/my/file.txt"},
+				Rule:     &model.Rule{Name: "my-super-duper-rule"},
+			}
+
+			Convey("Then it builds the correct arguments", func() {
+				expected := []string{
+					"foo",
+					"send",
+					"-to", "bar",
+					"-file", "path/to/my/file.txt",
+					"-rule", "my-super-duper-rule",
+				}
+				So(buildR66CommandArgs(oti), ShouldResemble, expected)
+			})
+		})
+	})
+}

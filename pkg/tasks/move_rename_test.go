@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -56,15 +57,14 @@ func TestMoveRenameTaskRun(t *testing.T) {
 			},
 		}
 
-		Convey("Given a model.Task", func() {
+		Convey("Given a model.Task", func(c C) {
+			renameRoot := testhelpers.TempDir(c, "move_test_out")
 			args := map[string]string{
-				"path": "move_rename_out/move_rename_out_new.src",
+				"path": renameRoot + "/move_rename_out_new.src",
 			}
-			So(os.Mkdir("move_rename_out", 0700), ShouldBeNil)
-			Reset(func() { _ = os.RemoveAll("move_rename_out") })
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile("move_rename_out.src", []byte("Hello World"), 0600)
+				err := ioutil.WriteFile("move_rename_out.src", []byte("Hello World"), 0o600)
 				So(err, ShouldBeNil)
 				Reset(func() { _ = os.Remove(runner.Transfer.TrueFilepath) })
 
@@ -77,12 +77,12 @@ func TestMoveRenameTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the destination file should exist", func() {
-						_, err := os.Stat("move_rename_out/move_rename_out_new.src")
+						_, err := os.Stat(renameRoot + "/move_rename_out_new.src")
 						So(err, ShouldBeNil)
 					})
 
 					Convey("Then the transfer true file path should be modified", func() {
-						So(runner.Transfer.TrueFilepath, ShouldEqual, "move_rename_out/move_rename_out_new.src")
+						So(runner.Transfer.TrueFilepath, ShouldEqual, renameRoot+"/move_rename_out_new.src")
 					})
 
 					Convey("Then the transfer source path should be modified", func() {
@@ -92,7 +92,6 @@ func TestMoveRenameTaskRun(t *testing.T) {
 			})
 
 			Convey("Given NO file to transfer", func() {
-
 				Convey("When calling the `run` method", func() {
 					task := &MoveRenameTask{}
 					_, err := task.Run(args, runner)
@@ -106,7 +105,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the destination file NOT should exist", func() {
-						fi, err := ioutil.ReadDir("move_rename_out")
+						fi, err := ioutil.ReadDir(renameRoot)
 						So(err, ShouldBeNil)
 						So(fi, ShouldBeEmpty)
 					})
@@ -135,15 +134,14 @@ func TestMoveRenameTaskRun(t *testing.T) {
 			},
 		}
 
-		Convey("Given a model.Task", func() {
+		Convey("Given a model.Task", func(c C) {
+			renameRoot := testhelpers.TempDir(c, "move_rename_in")
 			args := map[string]string{
-				"path": "move_rename_in/move_rename_in_new.dst",
+				"path": renameRoot + "/move_rename_in_new.dst",
 			}
-			So(os.Mkdir("move_rename_in", 0700), ShouldBeNil)
-			Reset(func() { _ = os.RemoveAll("move_rename_in") })
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile("move_rename_in.dst", []byte("Hello World"), 0600)
+				err := ioutil.WriteFile("move_rename_in.dst", []byte("Hello World"), 0o600)
 				So(err, ShouldBeNil)
 				Reset(func() { _ = os.Remove("move_rename_in.dst") })
 
@@ -156,12 +154,12 @@ func TestMoveRenameTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the destination file should exist", func() {
-						_, err := os.Stat("move_rename_in/move_rename_in_new.dst")
+						_, err := os.Stat(renameRoot + "/move_rename_in_new.dst")
 						So(err, ShouldBeNil)
 					})
 
 					Convey("Then the transfer true file path should be modifier", func() {
-						So(runner.Transfer.TrueFilepath, ShouldEqual, "move_rename_in/move_rename_in_new.dst")
+						So(runner.Transfer.TrueFilepath, ShouldEqual, renameRoot+"/move_rename_in_new.dst")
 					})
 
 					Convey("Then the transfer destination path should be modifier", func() {
@@ -171,7 +169,6 @@ func TestMoveRenameTaskRun(t *testing.T) {
 			})
 
 			Convey("Given NO file to transfer", func() {
-
 				Convey("When calling the `run` method", func() {
 					task := &MoveRenameTask{}
 					_, err := task.Run(args, runner)
