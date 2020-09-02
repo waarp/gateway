@@ -15,11 +15,11 @@ t_check() {
     local CI_VERSION
     CI_VERSION=$(grep GOLANGCI_LINT_VERSION .gitlab-ci.yml | head -n 1 | cut -d' ' -f4)
 
-    if ! $(which golangci-lint >/dev/null 2>&1); then
+    if ! which golangci-lint >/dev/null 2>&1; then
         echo "golangci-lint cannot be found. Please, install it and re-run checks"
         return 1
     fi
-    if ! $(golangci-lint --version | grep "$CI_VERSION" >/dev/null 2>&1); then
+    if ! golangci-lint --version | grep "$CI_VERSION" >/dev/null 2>&1; then
         echo "***********************************************"
         echo "WARNING"
         echo "***********************************************"
@@ -50,13 +50,14 @@ t_test_watch() {
 t_doc() {
     pushd doc || return 2
     .venv/bin/sphinx-build source/ build/html/
-    popd
+    popd || return 2
 }
 
 t_doc_watch() {
-    cd doc || return 2
+    pushd doc || return 2
     . .venv/bin/activate
     .venv/bin/sphinx-autobuild -p 8082 source/ build/html/
+    popd || return 2
 }
 
 t_build() {
@@ -120,9 +121,9 @@ t_package() {
 
   t_doc
   cp -r doc/build/html build/waarp-gateway-doc
-  pushd build/
+  pushd build/ || return 2
   zip -r9m waarp-gateway-doc.zip waarp-gateway-doc
-  popd
+  popd || return 2
 }
 
 t_usage() {
