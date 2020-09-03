@@ -1,6 +1,6 @@
-###########################
-Client en ligne de commande
-###########################
+########################
+Client ``waarp-gateway``
+########################
 
 ``waarp-gateway`` est l'application terminal permettant d'envoyer des commandes
 à une instance waarp-gatewayd.
@@ -18,3 +18,4 @@ Client en ligne de commande
    rule/index
    transfer/index
    history/index
+   version
