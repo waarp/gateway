@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -27,11 +28,11 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 
 		Convey("Given a remote agent entry", func() {
 			ag := &RemoteAgent{Name: "partner", Protocol: "dummy",
-				ProtoConfig: []byte(`{}`)}
+				ProtoConfig: json.RawMessage(`{}`)}
 			So(db.Create(ag), ShouldBeNil)
 
 			acc := &RemoteAccount{RemoteAgentID: ag.ID, Login: "login",
-				Password: []byte("password")}
+				Password: json.RawMessage("password")}
 			So(db.Create(acc), ShouldBeNil)
 
 			rule := &Rule{Name: "rule", IsSend: false, Path: "path"}
@@ -48,9 +49,9 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 				OwnerType:   ag.TableName(),
 				OwnerID:     ag.ID,
 				Name:        "test agent cert",
-				PrivateKey:  []byte("private key"),
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
+				PrivateKey:  json.RawMessage("private key"),
+				PublicKey:   json.RawMessage("public key"),
+				Certificate: json.RawMessage("certificate"),
 			}
 			So(db.Create(certAg), ShouldBeNil)
 
@@ -58,9 +59,9 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 				OwnerType:   acc.TableName(),
 				OwnerID:     acc.ID,
 				Name:        "test account cert",
-				PrivateKey:  []byte("private key"),
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
+				PrivateKey:  json.RawMessage("private key"),
+				PublicKey:   json.RawMessage("public key"),
+				Certificate: json.RawMessage("certificate"),
 			}
 			So(db.Create(certAcc), ShouldBeNil)
 
@@ -122,7 +123,7 @@ func TestRemoteAgentValidate(t *testing.T) {
 			oldAgent := &RemoteAgent{
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(oldAgent), ShouldBeNil)
 
@@ -130,7 +131,7 @@ func TestRemoteAgentValidate(t *testing.T) {
 				newAgent := &RemoteAgent{
 					Name:        "new",
 					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+					ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
 				}
 
 				Convey("Given that the new agent is valid", func() {
@@ -183,7 +184,7 @@ func TestRemoteAgentValidate(t *testing.T) {
 				})
 
 				Convey("Given that the new agent's protocol configuration is not valid", func() {
-					newAgent.ProtoConfig = []byte("invalid")
+					newAgent.ProtoConfig = json.RawMessage("invalid")
 
 					Convey("When calling the 'Validate' function", func() {
 						err := newAgent.Validate(db)

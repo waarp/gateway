@@ -1,24 +1,14 @@
 package model
 
 import (
+	"encoding/json"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 )
 
 func init() {
 	database.Tables = append(database.Tables, &LocalAgent{})
-}
-
-// ServerPaths regroups the different directories of a local server.
-type ServerPaths struct {
-	// The root directory of the agent.
-	Root string `json:"root"`
-	// The agent's directory for received files.
-	InDir string `json:"inDir"`
-	// The agent's directory for files to be sent.
-	OutDir string `json:"outDir"`
-	// The working directory of the agent.
-	WorkDir string `json:"workDir"`
 }
 
 // LocalAgent represents a local server instance operated by the gateway itself.
@@ -39,11 +29,20 @@ type LocalAgent struct {
 	// The protocol used by the agent.
 	Protocol string `xorm:"notnull 'protocol'"`
 
-	// The agent's various directories
-	Paths *ServerPaths `xorm:"extends 'paths'"`
+	// The root directory of the agent.
+	Root string `xorm:"notnull 'root''"`
+
+	// The agent's directory for received files.
+	InDir string `xorm:"notnull 'in_dir''"`
+
+	// The agent's directory for files to be sent.
+	OutDir string `xorm:"notnull 'out_dir''"`
+
+	// The working directory of the agent.
+	WorkDir string `xorm:"notnull 'work_dir''"`
 
 	// The agent's configuration in raw JSON format.
-	ProtoConfig []byte `xorm:"notnull 'proto_config'"`
+	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
 }
 
 // TableName returns the local_agent table name.
@@ -64,27 +63,20 @@ func (l *LocalAgent) validateProtoConfig() error {
 	return conf.ValidServer()
 }
 
-func (l *LocalAgent) makePaths(isInsert bool) {
+func (l *LocalAgent) makePaths() {
 	isEmpty := func(path string) bool {
 		return path == "." || path == ""
 	}
 
-	if l.Paths == nil {
-		if !isInsert {
-			return
+	if !isEmpty(l.Root) {
+		if isEmpty(l.InDir) {
+			l.InDir = "in"
 		}
-		l.Paths = &ServerPaths{}
-	}
-
-	if !isEmpty(l.Paths.Root) {
-		if isEmpty(l.Paths.InDir) {
-			l.Paths.InDir = "in"
+		if isEmpty(l.OutDir) {
+			l.OutDir = "out"
 		}
-		if isEmpty(l.Paths.OutDir) {
-			l.Paths.OutDir = "out"
-		}
-		if isEmpty(l.Paths.WorkDir) {
-			l.Paths.WorkDir = "work"
+		if isEmpty(l.WorkDir) {
+			l.WorkDir = "work"
 		}
 	}
 }
@@ -93,14 +85,12 @@ func (l *LocalAgent) makePaths(isInsert bool) {
 // database. It checks whether the new entry is valid or not.
 func (l *LocalAgent) Validate(db database.Accessor) error {
 	l.Owner = database.Owner
-	l.makePaths(true)
+	l.makePaths()
 
 	if l.Name == "" {
 		return database.InvalidError("the agent's name cannot be empty")
 	}
-	if l.ProtoConfig == nil {
-		return database.InvalidError("the agent's configuration cannot be empty")
-	}
+
 	if err := l.validateProtoConfig(); err != nil {
 		return database.InvalidError(err.Error())
 	}

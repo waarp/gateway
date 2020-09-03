@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -26,10 +27,10 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		Convey("Given a local agent entry", func() {
-			ag := &LocalAgent{Name: "test agent", Protocol: "dummy", ProtoConfig: []byte(`{}`)}
+			ag := &LocalAgent{Name: "test agent", Protocol: "dummy", ProtoConfig: json.RawMessage(`{}`)}
 			So(db.Create(ag), ShouldBeNil)
 
-			acc := &LocalAccount{LocalAgentID: ag.ID, Login: "login", Password: []byte("password")}
+			acc := &LocalAccount{LocalAgentID: ag.ID, Login: "login", Password: json.RawMessage("password")}
 			So(db.Create(acc), ShouldBeNil)
 
 			rule := &Rule{Name: "rule", IsSend: false, Path: "path"}
@@ -44,9 +45,9 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 				OwnerType:   ag.TableName(),
 				OwnerID:     ag.ID,
 				Name:        "test agent cert",
-				PrivateKey:  []byte("private key"),
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
+				PrivateKey:  json.RawMessage("private key"),
+				PublicKey:   json.RawMessage("public key"),
+				Certificate: json.RawMessage("certificate"),
 			}
 			So(db.Create(certAg), ShouldBeNil)
 
@@ -54,9 +55,9 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 				OwnerType:   acc.TableName(),
 				OwnerID:     acc.ID,
 				Name:        "test account cert",
-				PrivateKey:  []byte("private key"),
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
+				PrivateKey:  json.RawMessage("private key"),
+				PublicKey:   json.RawMessage("public key"),
+				Certificate: json.RawMessage("certificate"),
 			}
 			So(db.Create(certAcc), ShouldBeNil)
 
@@ -119,22 +120,20 @@ func TestLocalAgentValidate(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"address","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"address","port":2022}`),
 			}
 			So(db.Create(oldAgent), ShouldBeNil)
 
 			Convey("Given a new local agent", func() {
 				newAgent := &LocalAgent{
-					Owner: "test_gateway",
-					Name:  "new",
-					Paths: &ServerPaths{
-						Root:    "root",
-						InDir:   "rcv",
-						OutDir:  "send",
-						WorkDir: "tmp",
-					},
+					Owner:       "test_gateway",
+					Name:        "new",
+					Root:        "root",
+					InDir:       "rcv",
+					OutDir:      "send",
+					WorkDir:     "tmp",
 					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"address2","port":2023}`),
+					ProtoConfig: json.RawMessage(`{"address":"address2","port":2023}`),
 				}
 
 				Convey("Given that the new agent is valid", func() {
@@ -202,7 +201,7 @@ func TestLocalAgentValidate(t *testing.T) {
 				})
 
 				Convey("Given that the new agent's protocol configuration is not valid", func() {
-					newAgent.ProtoConfig = []byte("invalid")
+					newAgent.ProtoConfig = json.RawMessage("invalid")
 
 					Convey("When calling the 'Validate' function", func() {
 						err := newAgent.Validate(db)

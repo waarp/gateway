@@ -1,6 +1,8 @@
 package model
 
 import (
+	"encoding/json"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/go-xorm/builder"
@@ -25,7 +27,7 @@ type RemoteAgent struct {
 	Protocol string `xorm:"notnull 'protocol'"`
 
 	// The agent's configuration in raw JSON format.
-	ProtoConfig []byte `xorm:"notnull 'proto_config'"`
+	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
 }
 
 // TableName returns the remote_agent table name.

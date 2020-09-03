@@ -53,7 +53,7 @@ func (u *User) Init(acc database.Accessor) error {
 // BeforeDelete is called before removing the user from the database. Its
 // role is to check that at least one admin user remains
 func (u *User) BeforeDelete(db database.Accessor) error {
-	users := []User{}
+	var users []User
 	err := db.Select(&users, &database.Filters{
 		// TODO update for admin user
 		Conditions: builder.Eq{"owner": database.Owner},
@@ -69,7 +69,7 @@ func (u *User) BeforeDelete(db database.Accessor) error {
 
 // Validate checks if the new `User` entry is valid and can be
 // inserted in the database.
-func (u *User) Validate(db database.Accessor) (err error) {
+func (u *User) Validate(db database.Accessor) error {
 	u.Owner = database.Owner
 	if u.Username == "" {
 		return database.InvalidError("the username cannot be empty")
@@ -85,6 +85,7 @@ func (u *User) Validate(db database.Accessor) (err error) {
 		return database.InvalidError("a user named '%s' already exist", u.Username)
 	}
 
+	var err error
 	u.Password, err = hashPassword(u.Password)
 	return err
 }
