@@ -207,7 +207,7 @@ func TestCreateUser(t *testing.T) {
 
 			Convey("Given a new user to insert in the database", func() {
 				newUser := &InUser{
-					Username: "new_user",
+					Username: strPtr("new_user"),
 					Password: []byte("new_password"),
 				}
 
@@ -230,7 +230,7 @@ func TestCreateUser(t *testing.T) {
 							"URI of the new user", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, usersURI+newUser.Username)
+							So(location, ShouldEqual, usersURI+str(newUser.Username))
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -372,7 +372,7 @@ func TestUpdateUser(t *testing.T) {
 
 			Convey("Given new values to update the user with", func() {
 				update := InUser{
-					Username: "update",
+					Username: strPtr("update"),
 					Password: []byte("update"),
 				}
 				body, err := json.Marshal(update)
@@ -399,11 +399,11 @@ func TestUpdateUser(t *testing.T) {
 							"the URI of the updated user", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, usersURI+update.Username)
+							So(location, ShouldEqual, usersURI+str(update.Username))
 						})
 
 						Convey("Then the user should have been updated", func() {
-							result := &model.User{ID: old.ID, Username: update.Username}
+							result := &model.User{ID: old.ID, Username: str(update.Username)}
 							So(db.Get(result), ShouldBeNil)
 
 							So(bcrypt.CompareHashAndPassword(result.Password,
@@ -428,6 +428,204 @@ func TestUpdateUser(t *testing.T) {
 						Convey("Then the response body should state that "+
 							"the user was not found", func() {
 							So(w.Body.String(), ShouldEqual, "user 'toto' not found\n")
+						})
+
+						Convey("Then the old user should still exist", func() {
+							So(db.Get(old), ShouldBeNil)
+						})
+					})
+				})
+			})
+
+			Convey("Given that a password is not given", func() {
+				update := InUser{Username: strPtr("updated")}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
+
+				Convey("Given an existing username parameter", func() {
+					r, err := http.NewRequest(http.MethodPut, usersURI+old.Username,
+						bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"user": old.Username})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then the response body should be empty", func() {
+							So(w.Body.String(), ShouldBeEmpty)
+						})
+
+						Convey("Then it should reply 'Created'", func() {
+							So(w.Code, ShouldEqual, http.StatusCreated)
+						})
+
+						Convey("Then the 'Location' header should contain "+
+							"the URI of the updated user", func() {
+
+							location := w.Header().Get("Location")
+							So(location, ShouldEqual, usersURI+str(update.Username))
+						})
+
+						Convey("Then the user should have been updated but the "+
+							"password should stay the same", func() {
+							result := &model.User{ID: old.ID, Username: str(update.Username),
+								Password: old.Password}
+							So(db.Get(result), ShouldBeNil)
+						})
+					})
+				})
+			})
+
+			Convey("Given that a username is not given", func() {
+				update := InUser{Password: []byte("password")}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
+
+				Convey("Given an existing username parameter", func() {
+					r, err := http.NewRequest(http.MethodPut, usersURI+old.Username,
+						bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"user": old.Username})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then the response body should be empty", func() {
+							So(w.Body.String(), ShouldBeEmpty)
+						})
+
+						Convey("Then it should reply 'Created'", func() {
+							So(w.Code, ShouldEqual, http.StatusCreated)
+						})
+
+						Convey("Then the 'Location' header should contain "+
+							"the URI of the updated user", func() {
+
+							location := w.Header().Get("Location")
+							So(location, ShouldEqual, usersURI+old.Username)
+						})
+
+						Convey("Then the user should have been updated but the "+
+							"username should stay the same", func() {
+							result := &model.User{ID: old.ID, Username: old.Username}
+							So(db.Get(result), ShouldBeNil)
+
+							So(bcrypt.CompareHashAndPassword(result.Password,
+								update.Password), ShouldBeNil)
+						})
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestReplaceUser(t *testing.T) {
+	logger := log.NewLogger("rest_user_replace")
+
+	Convey("Given the user replacing handler", t, func() {
+		db := database.GetTestDatabase()
+		handler := replaceUser(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 user", func() {
+			old := &model.User{
+				Username: "old",
+				Password: []byte("old"),
+			}
+			So(db.Create(old), ShouldBeNil)
+
+			Convey("Given new values to update the user with", func() {
+				update := InUser{
+					Username: strPtr("updated"),
+					Password: []byte("updated"),
+				}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
+
+				Convey("Given an existing username parameter", func() {
+					r, err := http.NewRequest(http.MethodPut, usersURI+old.Username,
+						bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"user": old.Username})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then the response body should be empty", func() {
+							So(w.Body.String(), ShouldBeEmpty)
+						})
+
+						Convey("Then it should reply 'Created'", func() {
+							So(w.Code, ShouldEqual, http.StatusCreated)
+						})
+
+						Convey("Then the 'Location' header should contain "+
+							"the URI of the updated user", func() {
+
+							location := w.Header().Get("Location")
+							So(location, ShouldEqual, usersURI+str(update.Username))
+						})
+
+						Convey("Then the user should have been updated", func() {
+							result := &model.User{ID: old.ID, Username: str(update.Username)}
+							So(db.Get(result), ShouldBeNil)
+
+							So(bcrypt.CompareHashAndPassword(result.Password,
+								update.Password), ShouldBeNil)
+						})
+					})
+				})
+
+				Convey("Given an invalid username parameter", func() {
+					r, err := http.NewRequest(http.MethodPut, usersURI+"toto",
+						bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"user": "toto"})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply 'NotFound'", func() {
+							So(w.Code, ShouldEqual, http.StatusNotFound)
+						})
+
+						Convey("Then the response body should state that "+
+							"the user was not found", func() {
+							So(w.Body.String(), ShouldEqual, "user 'toto' not found\n")
+						})
+
+						Convey("Then the old user should still exist", func() {
+							So(db.Get(old), ShouldBeNil)
+						})
+					})
+				})
+			})
+
+			Convey("Given that a password is not given", func() {
+				update := InUser{
+					Username: strPtr("updated"),
+				}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
+
+				Convey("Given an existing username parameter", func() {
+					r, err := http.NewRequest(http.MethodPut, usersURI+old.Username,
+						bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"user": old.Username})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply 'BadRequest'", func() {
+							So(w.Code, ShouldEqual, http.StatusBadRequest)
+						})
+
+						Convey("Then the response body should state that "+
+							"a password is required", func() {
+							So(w.Body.String(), ShouldEqual,
+								"the user password cannot be empty\n")
 						})
 
 						Convey("Then the old user should still exist", func() {

@@ -139,7 +139,7 @@ func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			agent := &InPartner{}
+			agent := newInPartner(old)
 			if err := readJSON(r, agent); err != nil {
 				return err
 			}
@@ -148,7 +148,7 @@ func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, agent.Name))
+			w.Header().Set("Location", locationUpdate(r.URL, str(agent.Name)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -166,7 +166,7 @@ func replaceRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			agent := newInPartner(old)
+			agent := &InPartner{}
 			if err := readJSON(r, agent); err != nil {
 				return err
 			}
@@ -175,7 +175,7 @@ func replaceRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, agent.Name))
+			w.Header().Set("Location", locationUpdate(r.URL, str(agent.Name)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

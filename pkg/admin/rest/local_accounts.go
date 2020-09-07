@@ -137,7 +137,7 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			account := &InAccount{}
+			account := newInLocAccount(old)
 			if err := readJSON(r, account); err != nil {
 				return err
 			}
@@ -146,7 +146,7 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, account.Login))
+			w.Header().Set("Location", locationUpdate(r.URL, str(account.Login)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -164,7 +164,7 @@ func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			account := newInLocAccount(old)
+			account := &InAccount{}
 			if err := readJSON(r, account); err != nil {
 				return err
 			}
@@ -173,7 +173,7 @@ func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, account.Login))
+			w.Header().Set("Location", locationUpdate(r.URL, str(account.Login)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

@@ -23,7 +23,7 @@ type ProtoConfig interface {
 func GetProtoConfig(proto string, config json.RawMessage) (ProtoConfig, error) {
 	cons, ok := ProtoConfigs[proto]
 	if !ok {
-		return nil, fmt.Errorf("unknown protocol")
+		return nil, fmt.Errorf("unknown protocol '%s'", proto)
 	}
 	conf := cons()
 	if err := json.Unmarshal(config, conf); err != nil {

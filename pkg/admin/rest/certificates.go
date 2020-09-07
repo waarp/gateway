@@ -13,10 +13,10 @@ import (
 // InCert is the JSON representation of a certificate in requests made to
 // the REST interface.
 type InCert struct {
-	Name        string `json:"name"`
-	PrivateKey  []byte `json:"privateKey"`
-	PublicKey   []byte `json:"publicKey"`
-	Certificate []byte `json:"certificate"`
+	Name        *string `json:"name,omitempty"`
+	PrivateKey  []byte  `json:"privateKey,omitempty"`
+	PublicKey   []byte  `json:"publicKey,omitempty"`
+	Certificate []byte  `json:"certificate,omitempty"`
 }
 
 // ToModel transforms the JSON certificate into its database equivalent.
@@ -25,7 +25,7 @@ func (i *InCert) toModel(id uint64, ownerType string, ownerID uint64) *model.Cer
 		ID:          id,
 		OwnerType:   ownerType,
 		OwnerID:     ownerID,
-		Name:        i.Name,
+		Name:        str(i.Name),
 		PrivateKey:  i.PrivateKey,
 		PublicKey:   i.PublicKey,
 		Certificate: i.Certificate,
@@ -34,7 +34,7 @@ func (i *InCert) toModel(id uint64, ownerType string, ownerID uint64) *model.Cer
 
 func inCertFromModel(c *model.Cert) *InCert {
 	return &InCert{
-		Name:        c.Name,
+		Name:        &c.Name,
 		PrivateKey:  c.PrivateKey,
 		PublicKey:   c.Certificate,
 		Certificate: c.Certificate,
@@ -174,7 +174,7 @@ func replaceCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	w.Header().Set("Location", locationUpdate(r.URL, cert.Name))
+	w.Header().Set("Location", locationUpdate(r.URL, str(cert.Name)))
 	w.WriteHeader(http.StatusCreated)
 	return nil
 }
@@ -196,7 +196,7 @@ func updateCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	w.Header().Set("Location", locationUpdate(r.URL, cert.Name))
+	w.Header().Set("Location", locationUpdate(r.URL, str(cert.Name)))
 	w.WriteHeader(http.StatusCreated)
 	return nil
 }

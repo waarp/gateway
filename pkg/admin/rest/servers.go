@@ -121,7 +121,7 @@ func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			serv := &InServer{}
+			serv := newInServer(old)
 			if err := readJSON(r, serv); err != nil {
 				return err
 			}
@@ -130,7 +130,7 @@ func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, serv.Name))
+			w.Header().Set("Location", locationUpdate(r.URL, str(serv.Name)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -148,7 +148,7 @@ func replaceLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			serv := newInServer(old)
+			serv := &InServer{}
 			if err := readJSON(r, serv); err != nil {
 				return err
 			}
@@ -157,7 +157,7 @@ func replaceLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, serv.Name))
+			w.Header().Set("Location", locationUpdate(r.URL, str(serv.Name)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

@@ -7,20 +7,20 @@ import (
 // InAccount is the JSON representation of a local/remote account in requests
 // made to the REST interface.
 type InAccount struct {
-	Login    string `json:"login"`
-	Password []byte `json:"password"`
+	Login    *string `json:"login,omitempty"`
+	Password []byte  `json:"password,omitempty"`
 }
 
 func newInLocAccount(old *model.LocalAccount) *InAccount {
 	return &InAccount{
-		Login:    old.Login,
+		Login:    &old.Login,
 		Password: old.Password,
 	}
 }
 
 func newInRemAccount(old *model.RemoteAccount) *InAccount {
 	return &InAccount{
-		Login:    old.Login,
+		Login:    &old.Login,
 		Password: old.Password,
 	}
 }
@@ -30,7 +30,7 @@ func (i *InAccount) ToLocal(agent *model.LocalAgent, id uint64) *model.LocalAcco
 	return &model.LocalAccount{
 		ID:           id,
 		LocalAgentID: agent.ID,
-		Login:        i.Login,
+		Login:        str(i.Login),
 		Password:     i.Password,
 	}
 }
@@ -40,7 +40,7 @@ func (i *InAccount) ToRemote(agent *model.RemoteAgent, id uint64) *model.RemoteA
 	return &model.RemoteAccount{
 		ID:            id,
 		RemoteAgentID: agent.ID,
-		Login:         i.Login,
+		Login:         str(i.Login),
 		Password:      i.Password,
 	}
 }

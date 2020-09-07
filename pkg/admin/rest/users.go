@@ -13,13 +13,13 @@ import (
 // InUser is the JSON representation of a user account in requests made to the
 // REST interface.
 type InUser struct {
-	Username string `json:"username"`
-	Password []byte `json:"password"`
+	Username *string `json:"username,omitempty"`
+	Password []byte  `json:"password,omitempty"`
 }
 
 func newInUser(old *model.User) *InUser {
 	return &InUser{
-		Username: old.Username,
+		Username: &old.Username,
 		Password: old.Password,
 	}
 }
@@ -29,7 +29,7 @@ func (i *InUser) ToModel(id uint64) *model.User {
 	return &model.User{
 		ID:       id,
 		Owner:    database.Owner,
-		Username: i.Username,
+		Username: str(i.Username),
 		Password: i.Password,
 	}
 }
@@ -155,7 +155,7 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, user.Username))
+			w.Header().Set("Location", locationUpdate(r.URL, str(user.Username)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -182,7 +182,7 @@ func replaceUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, user.Username))
+			w.Header().Set("Location", locationUpdate(r.URL, str(user.Username)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

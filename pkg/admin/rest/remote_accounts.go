@@ -108,7 +108,7 @@ func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			account := &InAccount{}
+			account := newInRemAccount(old)
 			if err := readJSON(r, account); err != nil {
 				return err
 			}
@@ -117,7 +117,7 @@ func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, account.Login))
+			w.Header().Set("Location", locationUpdate(r.URL, str(account.Login)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -135,7 +135,7 @@ func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc 
 				return err
 			}
 
-			account := newInRemAccount(old)
+			account := &InAccount{}
 			if err := readJSON(r, account); err != nil {
 				return err
 			}
@@ -144,7 +144,7 @@ func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc 
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, account.Login))
+			w.Header().Set("Location", locationUpdate(r.URL, str(account.Login)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

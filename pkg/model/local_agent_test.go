@@ -195,7 +195,7 @@ func TestLocalAgentValidate(t *testing.T) {
 						err := newAgent.Validate(db)
 
 						Convey("Then the error should say that the protocol is invalid", func() {
-							So(err, ShouldBeError, "unknown protocol")
+							So(err, ShouldBeError, "unknown protocol 'not a protocol'")
 						})
 					})
 				})
