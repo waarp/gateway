@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"encoding/json"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -12,11 +13,11 @@ func TestExportRemoteAgents(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
-		Convey("Given the dabase contains remotes agents with accounts", func() {
+		Convey("Given the database contains remotes agents with accounts", func() {
 			agent1 := &model.RemoteAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"remotehost","port":2022}`),
 			}
 			So(db.Create(agent1), ShouldBeNil)
 
@@ -40,7 +41,7 @@ func TestExportRemoteAgents(t *testing.T) {
 			agent2 := &model.RemoteAgent{
 				Name:        "test2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"remotehost","port":2022}`),
 			}
 			So(db.Create(agent2), ShouldBeNil)
 
@@ -83,7 +84,7 @@ func TestExportRemoteAgents(t *testing.T) {
 
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent1.Protocol)
-										So([]byte(res[i].Configuration), ShouldResemble,
+										So(res[i].Configuration, ShouldResemble,
 											agent1.ProtoConfig)
 										Convey("Then it should have 1 remote Account", func() {
 											So(len(res[i].Accounts), ShouldEqual, 1)
@@ -100,7 +101,7 @@ func TestExportRemoteAgents(t *testing.T) {
 
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent2.Protocol)
-										So([]byte(res[i].Configuration), ShouldResemble,
+										So(res[i].Configuration, ShouldResemble,
 											agent2.ProtoConfig)
 										Convey("Then it should have 2 remote Account", func() {
 											So(len(res[i].Accounts), ShouldEqual, 2)
@@ -135,7 +136,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 			agent := &model.RemoteAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"remotehost","port":2022}`),
 			}
 			So(db.Create(agent), ShouldBeNil)
 

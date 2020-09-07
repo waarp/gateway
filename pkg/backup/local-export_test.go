@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"encoding/json"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -13,11 +14,11 @@ func TestExportLocalAgents(t *testing.T) {
 		db := database.GetTestDatabase()
 		owner := database.Owner
 
-		Convey("Given the dabase contains locals agents with accounts", func() {
+		Convey("Given the database contains locals agents with accounts", func() {
 			agent1 := &model.LocalAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(agent1), ShouldBeNil)
 
@@ -26,7 +27,7 @@ func TestExportLocalAgents(t *testing.T) {
 			So(db.Create(&model.LocalAgent{
 				Name:        "foo",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
 			}), ShouldBeNil)
 			// Revert database owner
 			database.Owner = owner
@@ -51,7 +52,7 @@ func TestExportLocalAgents(t *testing.T) {
 			agent2 := &model.LocalAgent{
 				Name:        "test2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(agent2), ShouldBeNil)
 
@@ -94,7 +95,7 @@ func TestExportLocalAgents(t *testing.T) {
 
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent1.Protocol)
-										So([]byte(res[i].Configuration), ShouldResemble,
+										So(res[i].Configuration, ShouldResemble,
 											agent1.ProtoConfig)
 										Convey("Then it should have 1 local Account", func() {
 											So(len(res[i].Accounts), ShouldEqual, 1)
@@ -111,7 +112,7 @@ func TestExportLocalAgents(t *testing.T) {
 
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent2.Protocol)
-										So([]byte(res[i].Configuration), ShouldResemble,
+										So(res[i].Configuration, ShouldResemble,
 											agent2.ProtoConfig)
 										Convey("Then it should have 2 local Account", func() {
 											So(len(res[i].Accounts), ShouldEqual, 2)
@@ -144,7 +145,7 @@ func TestExportLocalAccounts(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(agent), ShouldBeNil)
 

@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"encoding/json"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -18,7 +19,7 @@ func TestImportRemoteAgents(t *testing.T) {
 			agent := &model.RemoteAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"remotehost","port":2022}`),
 			}
 			So(db.Create(agent), ShouldBeNil)
 
@@ -62,7 +63,7 @@ func TestImportRemoteAgents(t *testing.T) {
 								So(dbAgent.Name, ShouldEqual, agent1.Name)
 								So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
 								So(dbAgent.ProtoConfig, ShouldResemble,
-									[]byte(agent1.Configuration))
+									agent1.Configuration)
 
 								accounts := []model.RemoteAccount{}
 								So(ses.Select(&accounts, &database.Filters{
@@ -116,77 +117,12 @@ func TestImportRemoteAgents(t *testing.T) {
 							}
 							So(ses.Get(dbAgent), ShouldBeNil)
 
-							Convey("Then the data shuld correspond to the "+
+							Convey("Then the data should correspond to the "+
 								"one imported", func() {
 								So(dbAgent.Name, ShouldEqual, agent1.Name)
 								So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
 								So(dbAgent.ProtoConfig, ShouldResemble,
-									[]byte(agent1.Configuration))
-
-								accounts := []model.RemoteAccount{}
-								So(ses.Select(&accounts, &database.Filters{
-									Conditions: builder.Eq{"remote_agent_id": dbAgent.ID},
-								}), ShouldBeNil)
-
-								So(len(accounts), ShouldEqual, 1)
-
-								certs := []model.Cert{}
-								So(ses.Select(&certs, &database.Filters{
-									Conditions: builder.Eq{"owner_id": dbAgent.ID,
-										"owner_type": "remote_agents"},
-								}), ShouldBeNil)
-
-								So(len(accounts), ShouldEqual, 1)
-							})
-						})
-					})
-				})
-			})
-
-			Convey("Given a list of partially updated agents", func() {
-				agent1 := remoteAgent{
-					Name: "test",
-					Accounts: []remoteAccount{
-						{
-							Login:    "test",
-							Password: "pwd",
-						},
-					},
-					Certs: []certificate{
-						{
-							Name:        "cert",
-							PublicKey:   "public",
-							PrivateKey:  "private",
-							Certificate: "key",
-						},
-					},
-				}
-				agents := []remoteAgent{agent1}
-
-				Convey("Given a new Transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
-
-					defer ses.Rollback()
-
-					Convey("When calling the importRemotes method", func() {
-						err := importRemoteAgents(discard, ses, agents)
-
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
-						})
-						Convey("Then the database should contains the "+
-							"remote agents", func() {
-							dbAgent := &model.RemoteAgent{
-								Name: agent1.Name,
-							}
-							So(ses.Get(dbAgent), ShouldBeNil)
-
-							Convey("Then the data should correspond to the "+
-								"one imported", func() {
-								So(dbAgent.Name, ShouldEqual, agent1.Name)
-								So(dbAgent.Protocol, ShouldEqual, agent.Protocol)
-								So(dbAgent.ProtoConfig, ShouldResemble, agent.ProtoConfig)
+									agent1.Configuration)
 
 								accounts := []model.RemoteAccount{}
 								So(ses.Select(&accounts, &database.Filters{
@@ -219,7 +155,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 			agent := &model.RemoteAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"remotehost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"remotehost","port":2022}`),
 			}
 			So(db.Create(agent), ShouldBeNil)
 

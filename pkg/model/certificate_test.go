@@ -56,19 +56,6 @@ func TestCertValidate(t *testing.T) {
 					})
 				})
 
-				Convey("Given that the new certificate has an ID", func() {
-					newCert.ID = 10
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newCert.Validate(db)
-
-						Convey("Then the error should say that IDs are not allowed", func() {
-							So(err, ShouldBeError, "the certificate's ID "+
-								"cannot be entered manually")
-						})
-					})
-				})
-
 				Convey("Given that the new certificate is missing an owner type", func() {
 					newCert.OwnerType = ""
 

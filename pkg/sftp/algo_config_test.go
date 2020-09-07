@@ -37,9 +37,7 @@ func TestSFTPAlgoConfig(t *testing.T) {
 		agent := &model.LocalAgent{
 			Name:     "sftp_server",
 			Protocol: "sftp",
-			Paths: &model.ServerPaths{
-				Root: root,
-			},
+			Root:     root,
 			ProtoConfig: []byte(`{
 				"address": "localhost",
 				"port": ` + fmt.Sprint(port) + `,

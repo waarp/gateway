@@ -55,7 +55,7 @@ func (c *Controller) checkIsDBDown() bool {
 
 	for _, trans := range runningTrans {
 		trans.Status = model.StatusInterrupted
-		if err := trans.Update(c.DB); err != nil {
+		if err := c.DB.Update(&trans); err != nil {
 			c.logger.Errorf("Failed to access database: %s", err.Error())
 			return true
 		}
@@ -74,9 +74,8 @@ func (c *Controller) listen() {
 			case <-c.ctx.Done():
 				return
 			case <-c.ticker.C:
+				c.startNewTransfers()
 			}
-
-			c.startNewTransfers()
 		}
 	}()
 }

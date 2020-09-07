@@ -213,7 +213,7 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 			if check.Status == model.StatusPlanned {
 				check.Status = model.StatusPaused
-				if err := check.Update(db); err != nil {
+				if err := db.Update(check); err != nil {
 					return err
 				}
 			} else {
@@ -291,7 +291,7 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			check.Status = model.StatusPlanned
-			if err := check.Update(db); err != nil {
+			if err := db.Update(check); err != nil {
 				return err
 			}
 

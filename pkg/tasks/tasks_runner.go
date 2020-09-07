@@ -72,13 +72,13 @@ func (p *Processor) runTask(task model.Task, taskInfo string) *model.PipelineErr
 		}
 		p.Logger.Warning(logMsg)
 		p.Transfer.Error = model.NewTransferError(model.TeWarning, logMsg)
-		if err := p.Transfer.Update(p.DB); err != nil {
+		if err := p.DB.Update(p.Transfer); err != nil {
 			p.Logger.Warningf("Failed to update task status: %s", err.Error())
 			return &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
 	p.Transfer.TaskNumber++
-	if err := p.Transfer.Update(p.DB); err != nil {
+	if err := p.DB.Update(p.Transfer); err != nil {
 		p.Logger.Warningf("Failed to update task number: %s", err.Error())
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
@@ -111,7 +111,7 @@ func (p *Processor) RunTasks(tasks []model.Task) *model.PipelineError {
 		}
 	}
 	p.Transfer.TaskNumber = 0
-	if err := p.Transfer.Update(p.DB); err != nil {
+	if err := p.DB.Update(p.Transfer); err != nil {
 		p.Logger.Warningf("failed to update task number: %s", err.Error())
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}

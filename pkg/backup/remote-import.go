@@ -31,7 +31,7 @@ func importRemoteAgents(logger *log.Logger, db *database.Session, list []remoteA
 		//Create/Update
 		if exists {
 			logger.Infof("Update remote partner %s\n", agent.Name)
-			err = db.Update(agent, agent.ID, false)
+			err = db.Update(agent)
 		} else {
 			logger.Infof("Create remote partner %s\n", agent.Name)
 			err = db.Create(agent)
@@ -77,7 +77,7 @@ func importRemoteAccounts(logger *log.Logger, db *database.Session,
 		// Create/Update
 		if exist {
 			logger.Infof("Update remote account %s\n", account.Login)
-			err = db.Update(account, account.ID, false)
+			err = db.Update(account)
 		} else {
 			logger.Infof("Create remote account %s\n", account.Login)
 			err = db.Create(account)

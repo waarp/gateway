@@ -49,9 +49,6 @@ func (c *Cert) Id() uint64 {
 // Validate checks if the new `Cert` entry is valid and can be inserted
 // in the database.
 func (c *Cert) Validate(db database.Accessor) error {
-	if c.ID != 0 {
-		return database.InvalidError("the certificate's ID cannot be entered manually")
-	}
 	if c.OwnerType == "" {
 		return database.InvalidError("the certificate's owner type is missing")
 	}
@@ -91,8 +88,9 @@ func (c *Cert) Validate(db database.Accessor) error {
 		return database.InvalidError("no "+c.OwnerType+" found with ID '%v'", c.OwnerID)
 	}
 
-	if res, err := db.Query("SELECT id FROM certificates WHERE owner_type=? AND owner_id=? "+
-		"AND name=?", c.OwnerType, c.OwnerID, c.Name); err != nil {
+	if res, err := db.Query("SELECT id FROM certificates WHERE id<>? AND "+
+		"owner_type=? AND owner_id=? AND name=?", c.ID, c.OwnerType, c.OwnerID,
+		c.Name); err != nil {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("a certificate with the same name '%s' "+

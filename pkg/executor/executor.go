@@ -85,13 +85,13 @@ func (e *Executor) data() *model.PipelineError {
 		return nil
 	}
 
-	e.TransferStream.Transfer.Step = model.StepData
-	if err := e.TransferStream.Transfer.Update(e.DB); err != nil {
+	e.Transfer.Step = model.StepData
+	if err := e.DB.Update(e.Transfer); err != nil {
 		e.Logger.Criticalf("Failed to update transfer status: %s", err)
 		return model.NewPipelineError(model.TeInternal, err.Error())
 	}
 
-	if err := e.TransferStream.Start(); err != nil {
+	if err := e.Start(); err != nil {
 		return err
 	}
 
@@ -100,7 +100,7 @@ func (e *Executor) data() *model.PipelineError {
 		return err
 	}
 
-	if err := e.TransferStream.Close(); err != nil {
+	if err := e.Close(); err != nil {
 		return err.(*model.PipelineError)
 	}
 
@@ -129,7 +129,7 @@ func (e *Executor) prologue() *model.PipelineError {
 
 	defer func() { e.Transfer.Step = oldStep }()
 
-	if err := e.Transfer.Update(e.DB); err != nil {
+	if err := e.DB.Update(e.Transfer); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}

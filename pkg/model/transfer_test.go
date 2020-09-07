@@ -88,19 +88,6 @@ func TestTransferValidate(t *testing.T) {
 					})
 				})
 
-				Convey("Given that the id was entered", func() {
-					trans.ID = 1
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say the id cannot be entered", func() {
-							So(err, ShouldBeError, "the transfer's ID cannot "+
-								"be entered manually")
-						})
-					})
-				})
-
 				Convey("Given that the rule ID is missing", func() {
 					trans.RuleID = 0
 
@@ -162,18 +149,6 @@ func TestTransferValidate(t *testing.T) {
 						Convey("Then the error should say the destination is missing", func() {
 							So(err, ShouldBeError, "the transfer's destination "+
 								"cannot be empty")
-						})
-					})
-				})
-
-				Convey("Given that the status is NOT 'planned'", func() {
-					trans.Status = StatusDone
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say the status must be planned", func() {
-							So(err, ShouldBeError, "'DONE' is not a valid transfer status")
 						})
 					})
 				})
@@ -249,34 +224,6 @@ func TestTransferValidate(t *testing.T) {
 
 						Convey("Then the error should say the remote does not have a certificate", func() {
 							So(err, ShouldBeError, "the partner is missing an SFTP host key")
-						})
-					})
-				})
-
-				Convey("Given that there is an error", func() {
-					trans.Error = NewTransferError(TeDataTransfer, "error message")
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say there must be no error code", func() {
-							So(err, ShouldBeError, "the transfer's error code must be empty")
-						})
-					})
-				})
-
-				Convey("Given that there is an error message", func() {
-					// This must not happen in real life: NewErrorTransfer should
-					// be used instead of the literal. However, as there is no way
-					// to force anyone to use NewTransferError, the case should be
-					// considered
-					trans.Error = TransferError{TeOk, "error message"}
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say there must be no error message", func() {
-							So(err, ShouldBeError, "the transfer's error message must be empty")
 						})
 					})
 				})

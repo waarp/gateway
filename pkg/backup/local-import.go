@@ -25,12 +25,10 @@ func importLocalAgents(logger *log.Logger, db *database.Session, list []localAge
 		}
 
 		// Populate
-		agent.Paths = &model.ServerPaths{
-			Root:    src.Root,
-			InDir:   src.InDir,
-			OutDir:  src.OutDir,
-			WorkDir: src.WorkDir,
-		}
+		agent.Root = src.Root
+		agent.InDir = src.InDir
+		agent.OutDir = src.OutDir
+		agent.WorkDir = src.WorkDir
 		agent.Protocol = src.Protocol
 		agent.ProtoConfig = src.Configuration
 		agent.Owner = ""
@@ -38,7 +36,7 @@ func importLocalAgents(logger *log.Logger, db *database.Session, list []localAge
 		//Create/Update
 		if exists {
 			logger.Infof("Update local server %s\n", agent.Name)
-			err = db.Update(agent, agent.ID, false)
+			err = db.Update(agent)
 		} else {
 			logger.Infof("Create local server %s\n", agent.Name)
 			err = db.Create(agent)
@@ -84,7 +82,7 @@ func importLocalAccounts(logger *log.Logger, db *database.Session,
 		// Create/Update
 		if exist {
 			logger.Infof("Update local account %s\n", account.Login)
-			err = db.Update(account, account.ID, false)
+			err = db.Update(account)
 		} else {
 			logger.Infof("Create local account %s\n", account.Login)
 			err = db.Create(account)

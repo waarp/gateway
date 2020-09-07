@@ -107,10 +107,10 @@ func (l *sshListener) handleSession(ctx context.Context, wg *sync.WaitGroup,
 func (l *sshListener) makeHandlers(ctx context.Context, accountID uint64) sftp.Handlers {
 	paths := &pipeline.Paths{
 		PathsConfig: l.GWConf.Paths,
-		ServerRoot:  l.Agent.Paths.Root,
-		ServerIn:    l.Agent.Paths.InDir,
-		ServerOut:   l.Agent.Paths.OutDir,
-		ServerWork:  l.Agent.Paths.WorkDir,
+		ServerRoot:  l.Agent.Root,
+		ServerIn:    l.Agent.InDir,
+		ServerOut:   l.Agent.OutDir,
+		ServerWork:  l.Agent.WorkDir,
 	}
 
 	return sftp.Handlers{

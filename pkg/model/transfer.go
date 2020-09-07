@@ -109,9 +109,6 @@ func (t *Transfer) validateServerTransfer(db database.Accessor) error {
 func (t *Transfer) Validate(db database.Accessor) error {
 	t.Owner = database.Owner
 
-	if t.ID != 0 {
-		return database.InvalidError("the transfer's ID cannot be entered manually")
-	}
 	if t.RuleID == 0 {
 		return database.InvalidError("the transfer's rule ID cannot be empty")
 	}
@@ -136,14 +133,11 @@ func (t *Transfer) Validate(db database.Accessor) error {
 	if !validateStatusForTransfer(t.Status) {
 		return database.InvalidError("'%s' is not a valid transfer status", t.Status)
 	}
-	if t.Error.Code != TeOk {
-		return database.InvalidError("the transfer's error code must be empty")
+	if !t.Step.IsValid() {
+		return database.InvalidError("'%s' is not a valid transfer step", t.Step)
 	}
-	if t.Error.Details != "" {
-		return database.InvalidError("the transfer's error message must be empty")
-	}
-	if t.Owner == "" {
-		return database.InvalidError("the transfer's owner cannot be empty")
+	if !t.Error.Code.IsValid() {
+		return database.InvalidError("'%s' is not a valid transfer error code", t.Error.Code)
 	}
 	if t.SourceFile != filepath.Base(t.SourceFile) {
 		return database.InvalidError("the source file cannot contain subdirectories")
@@ -240,18 +234,4 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		ExtInfo:        t.ExtInfo,
 	}
 	return &hist, nil
-}
-
-// Update updates the transfer start, status & error in the database.
-func (t *Transfer) Update(acc database.Accessor) error {
-	trans := &Transfer{
-		Start:      t.Start,
-		Status:     t.Status,
-		Step:       t.Step,
-		Error:      t.Error,
-		Progress:   t.Progress,
-		TaskNumber: t.TaskNumber,
-	}
-
-	return acc.Update(trans)
 }
