@@ -31,8 +31,8 @@ func (r *RemoteAccount) TableName() string {
 	return "remote_accounts"
 }
 
-// Id returns the account's ID.
-func (r *RemoteAccount) Id() uint64 {
+// GetID returns the account's ID.
+func (r *RemoteAccount) GetID() uint64 {
 	return r.ID
 }
 

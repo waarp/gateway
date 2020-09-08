@@ -39,8 +39,8 @@ func (*TransferHistory) TableName() string {
 	return "transfer_history"
 }
 
-// Id returns the transfer's ID.
-func (h *TransferHistory) Id() uint64 {
+// GetID returns the transfer's ID.
+func (h *TransferHistory) GetID() uint64 {
 	return h.ID
 }
 

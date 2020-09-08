@@ -30,8 +30,8 @@ func (l *LocalAccount) TableName() string {
 	return "local_accounts"
 }
 
-// Id returns the account's ID.
-func (l *LocalAccount) Id() uint64 {
+// GetID returns the account's ID.
+func (l *LocalAccount) GetID() uint64 {
 	return l.ID
 }
 

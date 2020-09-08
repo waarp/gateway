@@ -50,8 +50,8 @@ func (l *LocalAgent) TableName() string {
 	return "local_agents"
 }
 
-// Id returns the agent's ID.
-func (l *LocalAgent) Id() uint64 {
+// GetID returns the agent's ID.
+func (l *LocalAgent) GetID() uint64 {
 	return l.ID
 }
 
@@ -81,7 +81,7 @@ func (l *LocalAgent) makePaths() {
 	}
 }
 
-// BeforeInsert is called before inserting a new `LocalAgent` entry in the
+// Validate is called before inserting a new `LocalAgent` entry in the
 // database. It checks whether the new entry is valid or not.
 func (l *LocalAgent) Validate(db database.Accessor) error {
 	l.Owner = database.Owner

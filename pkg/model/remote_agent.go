@@ -35,8 +35,8 @@ func (r *RemoteAgent) TableName() string {
 	return "remote_agents"
 }
 
-// Id returns the agent's ID.
-func (r *RemoteAgent) Id() uint64 {
+// GetID returns the agent's ID.
+func (r *RemoteAgent) GetID() uint64 {
 	return r.ID
 }
 

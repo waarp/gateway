@@ -517,7 +517,7 @@ func (s *Session) Update(bean entry) error {
 		return ErrNilRecord
 	}
 	if t, ok := bean.(xorm.TableName); ok {
-		query := builder.Select("id").From(t.TableName()).Where(builder.Eq{"id": bean.Id()})
+		query := builder.Select("id").From(t.TableName()).Where(builder.Eq{"id": bean.GetID()})
 		if res, err := s.session.Query(query); err != nil {
 			return err
 		} else if len(res) == 0 {
@@ -534,7 +534,7 @@ func (s *Session) Update(bean entry) error {
 			}
 		}
 
-		if _, err := s.session.AllCols().ID(bean.Id()).Update(bean); err != nil {
+		if _, err := s.session.AllCols().ID(bean.GetID()).Update(bean); err != nil {
 			return err
 		}
 

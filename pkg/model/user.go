@@ -35,8 +35,8 @@ func (u *User) TableName() string {
 	return "users"
 }
 
-// Id returns the user's ID.
-func (u *User) Id() uint64 {
+// GetID returns the user's ID.
+func (u *User) GetID() uint64 {
 	return u.ID
 }
 

@@ -45,8 +45,8 @@ func (*Rule) TableName() string {
 	return "rules"
 }
 
-// Id returns the rule's ID.
-func (r *Rule) Id() uint64 {
+// GetID returns the rule's ID.
+func (r *Rule) GetID() uint64 {
 	return r.ID
 }
 

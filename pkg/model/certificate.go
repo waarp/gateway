@@ -41,8 +41,8 @@ func (*Cert) TableName() string {
 	return "certificates"
 }
 
-// Id returns the certificate's ID.
-func (c *Cert) Id() uint64 {
+// GetID returns the certificate's ID.
+func (c *Cert) GetID() uint64 {
 	return c.ID
 }
 

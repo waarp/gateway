@@ -24,7 +24,7 @@ func (*testBean) TableName() string {
 	return tblName
 }
 
-func (t *testBean) Id() uint64 {
+func (t *testBean) GetID() uint64 {
 	return t.ID
 }
 
@@ -40,7 +40,7 @@ func (t *testBean) BeforeDelete(Accessor) error {
 
 type invalidBean struct{}
 
-func (*invalidBean) Id() uint64 {
+func (*invalidBean) GetID() uint64 {
 	return 0
 }
 

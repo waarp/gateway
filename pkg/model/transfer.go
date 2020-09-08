@@ -40,7 +40,8 @@ func (*Transfer) TableName() string {
 	return "transfers"
 }
 
-func (t *Transfer) Id() uint64 {
+// GetID returns the transfer's ID
+func (t *Transfer) GetID() uint64 {
 	return t.ID
 }
 

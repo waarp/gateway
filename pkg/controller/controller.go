@@ -53,7 +53,8 @@ func (c *Controller) checkIsDBDown() bool {
 		return true
 	}
 
-	for _, trans := range runningTrans {
+	for _, t := range runningTrans {
+		trans := t
 		trans.Status = model.StatusInterrupted
 		if err := c.DB.Update(&trans); err != nil {
 			c.logger.Errorf("Failed to access database: %s", err.Error())

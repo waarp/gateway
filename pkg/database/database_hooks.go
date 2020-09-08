@@ -38,7 +38,7 @@ type tableName interface {
 // identifier is an interface which adds a function which returns the entry's
 // ID number. Models must implement this interface in order to be updated.
 type identifier interface {
-	Id() uint64
+	GetID() uint64
 }
 
 type entry interface {
