@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`193` Les transferts SFTP peuvent désormais être redémarrés via la commande
+  ``retry``. (Attention: lorsque la gateway agit en tant que serveur, redémarrer
+  un transfert créera une nouvelle entrée au lieu de reprendre l'ancienne, il est
+  donc déconseillé de redémarrer le transfert dans ce cas.)
 * :bug:`179` Corrige la commande de lancement des transferts avec Waarp R66
 * :bug:`188` Correction de l'erreur 'bad file descriptor' du CLI lors de l'affichage du prompt de mot de passe sous Windows
 * :feature:`169` En cas d'absence du nom d'utilisateur, celui-ci sera demandé via un prompt du terminal
