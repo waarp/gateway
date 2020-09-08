@@ -1,7 +1,7 @@
 Modifier un compte distant
 ==========================
 
-.. http:put:: /api/partners/(string:partner_name)/accounts/(string:login)
+.. http:patch:: /api/partners/(string:partner_name)/accounts/(string:login)
 
    Met à jour le compte donné avec les informations renseignées en JSON.
    Les champs non-spécifiés resteront inchangés.

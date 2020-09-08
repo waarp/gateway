@@ -1,10 +1,9 @@
-Modifier un certificat
-======================
+Remplacer un certificat
+=======================
 
-.. http:patch:: /api/partners/(string:partner)/accounts/(string:login)/certificates/(string:cert_name)
+.. http:put:: /api/servers/(string:server)/certificates/(string:cert_name)
 
-   Met à jour le certificat demandé à partir des informations renseignées en JSON.
-   Les champs non-spécifiés resteront inchangés.
+   Remplace le certificat demandé par celui renseigné en JSON.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
@@ -16,7 +15,7 @@ Modifier un certificat
    :statuscode 201: Le certificat a été modifié avec succès
    :statuscode 400: Un ou plusieurs des paramètres du compte sont invalides
    :statuscode 401: Authentification d'utilisateur invalide
-   :statuscode 404: Le partenaire, le compte ou le certificat demandés n'existent pas
+   :statuscode 404: Le serveur ou le certificat demandés n'existent pas
 
    :resheader Location: Le chemin d'accès au certificat modifié
 
@@ -27,13 +26,13 @@ Modifier un certificat
 
       .. code-block:: http
 
-         PATCH https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi/certificates/certificat_titi HTTP/1.1
+         PUT https://my_waarp_gateway.net/api/servers/serveur_sftp/certificates/certificat_sftp HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
          Content-Type: application/json
          Content-Length: 69
 
          {
-           "name": "certificat_titi_new",
+           "name": "certificat_sftp_new",
            "privateKey": "<clé privée>",
            "publicKey": "<clé publique>",
            "cert": "<certificat>"
@@ -44,4 +43,4 @@ Modifier un certificat
       .. code-block:: http
 
          HTTP/1.1 201 CREATED
-         Location: https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi/certificates/certtificat_sftp
+         Location: https://my_waarp_gateway.net/api/servers/serveur_sftp/certificates/certtificat_sftp

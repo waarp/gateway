@@ -1,10 +1,9 @@
-Modifier un certificat
-======================
+Remplacer un certificat
+=======================
 
-.. http:patch:: /api/partners/(string:partner)/accounts/(string:login)/certificates/(string:cert_name)
+.. http:put:: /api/partners/(string:partner)/accounts/(string:login)/certificates/(string:cert_name)
 
-   Met à jour le certificat demandé à partir des informations renseignées en JSON.
-   Les champs non-spécifiés resteront inchangés.
+   Remplace le certificat demandé par celui renseigné en JSON.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
@@ -27,7 +26,7 @@ Modifier un certificat
 
       .. code-block:: http
 
-         PATCH https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi/certificates/certificat_titi HTTP/1.1
+         PUT https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi/certificates/certificat_titi HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
          Content-Type: application/json
          Content-Length: 69

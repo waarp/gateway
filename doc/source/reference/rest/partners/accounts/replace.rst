@@ -1,10 +1,9 @@
-Modifier un compte local
-========================
+Remplacer un compte distant
+===========================
 
-.. http:patch:: /api/servers/(string:server_name)/accounts/(string:login)
+.. http:put:: /api/partners/(string:partner_name)/accounts/(string:login)
 
-   Met à jour le compte donné avec les informations renseignées en JSON.
-   Les champs non-spécifiés resteront inchangés.
+   Remplace le compte donné par celui renseigné en JSON.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
@@ -25,13 +24,13 @@ Modifier un compte local
 
       .. code-block:: http
 
-         PATCH https://my_waarp_gateway.net/api/servers/sftp_server/accounts/toto HTTP/1.1
+         PUT https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
          Content-Type: application/json
          Content-Length: 96
 
          {
-           "login": "toto_new",
+           "login": "titi_new",
            "password": "titi_new"
          }
 
@@ -40,4 +39,4 @@ Modifier un compte local
       .. code-block:: http
 
          HTTP/1.1 201 CREATED
-         Location: https://my_waarp_gateway.net/api/servers/sftp_server/accounts/toto_new
+         Location: https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi_new

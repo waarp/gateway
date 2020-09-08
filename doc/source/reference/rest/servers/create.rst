@@ -5,21 +5,22 @@ Créer un serveur
 
    Ajoute un nouveau serveur avec les informations renseignées en JSON.
 
+   .. warning:: Les dossiers d'envoi, de réception et de travail devant rester
+      distincts, une valeur par défaut leur sera attribuée si l'utilisateur
+      renseigne une racine (``root``) sans donner de valeur aux sous-dossiers.
+
    :reqheader Authorization: Les identifiants de l'utilisateur
 
    :reqjson string name: Le nom du serveur
    :reqjson string protocol: Le protocole utilisé par le serveur
-   :reqjson object paths: Les différents dossiers du serveur.
-
-      * **root** (*string*) - La racine du serveur. Peut être relatif (à la racine
-        de la *gateway*) ou absolu.
-      * **inDir** (*string*) - Le dossier de réception du serveur. Peut être
-        relatif (à la racine du serveur) ou absolu.
-      * **outDir** (*string*) - Le dossier d'envoi du serveur. Peut être
-        relatif (à la racine du serveur) ou absolu.
-      * **workDir** (*string*) - Le dossier temporaire du serveur. Peut être
-        relatif (à la racine du serveur) ou absolu.
-
+   :reqjson string root: La racine du serveur. Peut être relatif (à la racine
+      de la *gateway*) ou absolu.
+   :reqjson string inDir: Le dossier de réception du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu.
+   :reqjson string outDir: Le dossier d'envoi du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu.
+   :reqjson string workDir: Le dossier temporaire du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu.
    :reqjson object protoConfig: La configuration du serveur encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
 

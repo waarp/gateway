@@ -1,10 +1,9 @@
-Modifier un compte local
-========================
+Remplacer un compte local
+=========================
 
-.. http:patch:: /api/servers/(string:server_name)/accounts/(string:login)
+.. http:put:: /api/servers/(string:server_name)/accounts/(string:login)
 
-   Met à jour le compte donné avec les informations renseignées en JSON.
-   Les champs non-spécifiés resteront inchangés.
+   Remplace le compte demandé par celui renseigné en JSON.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
@@ -25,7 +24,7 @@ Modifier un compte local
 
       .. code-block:: http
 
-         PATCH https://my_waarp_gateway.net/api/servers/sftp_server/accounts/toto HTTP/1.1
+         PUT https://my_waarp_gateway.net/api/servers/sftp_server/accounts/toto HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
          Content-Type: application/json
          Content-Length: 96

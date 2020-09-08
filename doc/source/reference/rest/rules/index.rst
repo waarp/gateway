@@ -23,5 +23,6 @@ blanche, se référer aux chapitres :
    list
    consult
    update
+   replace
    delete
    allow_all

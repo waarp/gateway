@@ -12,4 +12,5 @@ Le point d'accès pour gérer les certificats d'un serveur local est
    list
    consult
    update
+   replace
    delete

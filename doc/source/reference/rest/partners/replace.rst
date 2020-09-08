@@ -1,10 +1,9 @@
-Modifier un partenaire
-======================
+Remplacer un partenaire
+=======================
 
-.. http:patch:: /api/partners/(string:partner_name)
+.. http:put:: /api/partners/(string:partner_name)
 
-   Met à jour le partenaire demandé avec les informations renseignées en JSON.
-   Les champs non-spécifiés resteront inchangés.
+   Remplace le partenaire demandé par celui renseigné en JSON.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
@@ -27,7 +26,7 @@ Modifier un partenaire
 
       .. code-block:: http
 
-         PATCH https://my_waarp_gateway.net/api/partners/waarp_sftp HTTP/1.1
+         PUT https://my_waarp_gateway.net/api/partners/waarp_sftp HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
          Content-Type: application/json
          Content-Length: 148

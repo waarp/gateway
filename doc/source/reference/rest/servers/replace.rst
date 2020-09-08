@@ -1,14 +1,13 @@
-Modifier un serveur
-===================
+Remplacer un serveur
+====================
 
-.. http:patch:: /api/servers/(string:server_name)
+.. http:put:: /api/servers/(string:server_name)
 
-   Met à jour le serveur demandé avec les informations renseignées en JSON.
-   Les champs non-spécifiés resteront inchangés.
+   Remplace le serveur demandé par celui renseigné en JSON.
 
    .. warning:: Les dossiers d'envoi, de réception et de travail devant rester
-      distincts, une valeur par défaut leur sera attribuée si l'utilisateur
-      renseigne une racine (``root``) sans donner de valeur aux sous-dossiers.
+      distincts, une valeur par défaut leur sera attribuée si l'utilisateur renseigne
+      une racine (``root``) sans donner de valeur aux sous-dossiers.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
@@ -39,7 +38,7 @@ Modifier un serveur
 
       .. code-block:: http
 
-         PATCH https://my_waarp_gateway.net/api/servers/sftp_server HTTP/1.1
+         PUT https://my_waarp_gateway.net/api/servers/sftp_server HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
          Content-Type: application/json
          Content-Length: 148
