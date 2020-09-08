@@ -18,10 +18,10 @@ import (
 func serverInfoString(s *rest.OutServer) string {
 	return "● Server " + s.Name + "\n" +
 		"    Protocol:       " + s.Protocol + "\n" +
-		"    Root:           " + s.Paths.Root + "\n" +
-		"    In directory:   " + s.Paths.InDir + "\n" +
-		"    Out directory:  " + s.Paths.OutDir + "\n" +
-		"    Work directory: " + s.Paths.WorkDir + "\n" +
+		"    Root:           " + s.Root + "\n" +
+		"    In directory:   " + s.InDir + "\n" +
+		"    Out directory:  " + s.OutDir + "\n" +
+		"    Work directory: " + s.WorkDir + "\n" +
 		"    Configuration:  " + string(s.ProtoConfig) + "\n" +
 		"    Authorized rules\n" +
 		"    ├─Sending:   " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
@@ -42,14 +42,12 @@ func TestGetServer(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:     "local_agent",
-				Protocol: "test",
-				Paths: &model.ServerPaths{
-					Root:    "/server/root",
-					InDir:   "/server/in",
-					OutDir:  "/server/out",
-					WorkDir: "/server/work",
-				},
+				Name:        "local_agent",
+				Protocol:    "test",
+				Root:        "/server/root",
+				InDir:       "/server/in",
+				OutDir:      "/server/out",
+				WorkDir:     "/server/work",
 				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server), ShouldBeNil)
@@ -134,16 +132,14 @@ func TestAddServer(t *testing.T) {
 
 					Convey("Then the new server should have been added", func() {
 						exp := model.LocalAgent{
-							ID:       1,
-							Owner:    database.Owner,
-							Name:     command.Name,
-							Protocol: command.Protocol,
-							Paths: &model.ServerPaths{
-								Root:    command.Root,
-								InDir:   command.InDir,
-								OutDir:  command.OutDir,
-								WorkDir: command.WorkDir,
-							},
+							ID:          1,
+							Owner:       database.Owner,
+							Name:        command.Name,
+							Protocol:    command.Protocol,
+							Root:        *command.Root,
+							InDir:       *command.InDir,
+							OutDir:      *command.OutDir,
+							WorkDir:     *command.WorkDir,
 							ProtoConfig: json.RawMessage(command.ProtoConfig),
 						}
 						var res []model.LocalAgent
@@ -164,7 +160,7 @@ func TestAddServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "unknown protocol")
+						So(err, ShouldBeError, "unknown protocol 'invalid'")
 					})
 				})
 			})
@@ -201,27 +197,23 @@ func TestListServers(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server1 := &model.LocalAgent{
-				Name:     "local_agent1",
-				Protocol: "test",
-				Paths: &model.ServerPaths{
-					Root:    "/test/root1",
-					InDir:   "/test/in1",
-					OutDir:  "/test/out1",
-					WorkDir: "/test/work1",
-				},
+				Name:        "local_agent1",
+				Protocol:    "test",
+				Root:        "/test/root1",
+				InDir:       "/test/in1",
+				OutDir:      "/test/out1",
+				WorkDir:     "/test/work1",
 				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server1), ShouldBeNil)
 
 			server2 := &model.LocalAgent{
-				Name:     "local_agent2",
-				Protocol: "test2",
-				Paths: &model.ServerPaths{
-					Root:    "/test/root2",
-					InDir:   "/test/in2",
-					OutDir:  "/test/out2",
-					WorkDir: "/test/work2",
-				},
+				Name:        "local_agent2",
+				Protocol:    "test2",
+				Root:        "/test/root2",
+				InDir:       "/test/in2",
+				OutDir:      "/test/out2",
+				WorkDir:     "/test/work2",
 				ProtoConfig: []byte(`{"key":"val"}`),
 			}
 			So(db.Create(server2), ShouldBeNil)
@@ -341,9 +333,9 @@ func TestDeleteServer(t *testing.T) {
 					})
 
 					Convey("Then the server should have been removed", func() {
-						exists, err := db.Exists(server)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeFalse)
+						var serv []model.LocalAgent
+						So(db.Select(&serv, nil), ShouldBeNil)
+						So(serv, ShouldBeEmpty)
 					})
 				})
 			})
@@ -361,9 +353,7 @@ func TestDeleteServer(t *testing.T) {
 					})
 
 					Convey("Then the server should still exist", func() {
-						exists, err := db.Exists(server)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(server), ShouldBeNil)
 					})
 				})
 			})
@@ -405,23 +395,19 @@ func TestUpdateServer(t *testing.T) {
 							"was successfully updated.\n")
 					})
 
-					Convey("Then the old server should have been removed", func() {
-						exists, err := db.Exists(server)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeFalse)
-					})
+					Convey("Then the server should have been updated", func() {
+						var serv []model.LocalAgent
+						So(db.Select(&serv, nil), ShouldBeNil)
+						So(len(serv), ShouldEqual, 1)
 
-					Convey("Then the new server should exist", func() {
-						newServer := model.LocalAgent{
+						exp := model.LocalAgent{
 							ID:          server.ID,
 							Owner:       server.Owner,
-							Name:        command.Name,
-							Protocol:    command.Protocol,
-							ProtoConfig: []byte(command.ProtoConfig),
+							Name:        *command.Name,
+							Protocol:    *command.Protocol,
+							ProtoConfig: json.RawMessage(*command.ProtoConfig),
 						}
-						exists, err := db.Exists(&newServer)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(serv[0], ShouldResemble, exp)
 					})
 				})
 			})
@@ -436,13 +422,11 @@ func TestUpdateServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "unknown protocol")
+						So(err, ShouldBeError, "unknown protocol 'invalid'")
 					})
 
 					Convey("Then the server should stay unchanged", func() {
-						exists, err := db.Exists(server)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(server), ShouldBeNil)
 					})
 				})
 			})
@@ -461,9 +445,7 @@ func TestUpdateServer(t *testing.T) {
 					})
 
 					Convey("Then the server should stay unchanged", func() {
-						exists, err := db.Exists(server)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(server), ShouldBeNil)
 					})
 				})
 			})
@@ -482,9 +464,7 @@ func TestUpdateServer(t *testing.T) {
 					})
 
 					Convey("Then the server should stay unchanged", func() {
-						exists, err := db.Exists(server)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(server), ShouldBeNil)
 					})
 				})
 			})

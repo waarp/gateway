@@ -216,15 +216,16 @@ func TestDeleteLocalAccount(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(command.Execute(params), ShouldBeNil)
 
-					Convey("Then is should display a message saying the account was deleted", func() {
+					Convey("Then is should display a message saying the account "+
+						"was deleted", func() {
 						So(getOutput(), ShouldEqual, "The account "+account.Login+
 							" was successfully deleted.\n")
 					})
 
 					Convey("Then the account should have been removed", func() {
-						exists, err := db.Exists(&model.LocalAccount{ID: account.ID})
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeFalse)
+						var accs []model.RemoteAccount
+						So(db.Select(&accs, nil), ShouldBeNil)
+						So(accs, ShouldBeEmpty)
 					})
 				})
 			})
@@ -243,9 +244,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should still exist", func() {
-						exists, err := db.Exists(&model.LocalAccount{ID: account.ID})
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(account), ShouldBeNil)
 					})
 				})
 			})
@@ -264,9 +263,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should still exist", func() {
-						exists, err := db.Exists(&model.LocalAccount{ID: account.ID})
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(account), ShouldBeNil)
 					})
 				})
 			})
@@ -317,21 +314,21 @@ func TestUpdateLocalAccount(t *testing.T) {
 							" was successfully updated.\n")
 					})
 
-					Convey("Then the old values should have been removed", func() {
-						exists, err := db.Exists(account)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeFalse)
-					})
+					Convey("Then the account should have been updated", func() {
+						var accs []model.LocalAccount
+						So(db.Select(&accs, nil), ShouldBeNil)
+						So(len(accs), ShouldEqual, 1)
 
-					Convey("Then the new values should have been added", func() {
-						newAccount := &model.LocalAccount{
+						So(bcrypt.CompareHashAndPassword(accs[0].Password,
+							[]byte("new_password")), ShouldBeNil)
+						exp := model.LocalAccount{
 							ID:           account.ID,
-							Login:        command.Login,
 							LocalAgentID: account.LocalAgentID,
+							Login:        "new_login",
+							Password:     accs[0].Password,
 						}
-						So(db.Get(newAccount), ShouldBeNil)
-						So(bcrypt.CompareHashAndPassword(newAccount.Password,
-							[]byte(command.Password)), ShouldBeNil)
+						So(accs[0], ShouldResemble, exp)
+
 					})
 				})
 			})

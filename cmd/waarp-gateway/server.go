@@ -8,7 +8,6 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
 type serverCommand struct {
@@ -33,10 +32,10 @@ func displayServer(w io.Writer, server *rest.OutServer) {
 
 	fmt.Fprintln(w, orange(bold("● Server", server.Name)))
 	fmt.Fprintln(w, orange("    Protocol:      "), server.Protocol)
-	fmt.Fprintln(w, orange("    Root:          "), server.Paths.Root)
-	fmt.Fprintln(w, orange("    In directory:  "), server.Paths.InDir)
-	fmt.Fprintln(w, orange("    Out directory: "), server.Paths.OutDir)
-	fmt.Fprintln(w, orange("    Work directory:"), server.Paths.WorkDir)
+	fmt.Fprintln(w, orange("    Root:          "), server.Root)
+	fmt.Fprintln(w, orange("    In directory:  "), server.InDir)
+	fmt.Fprintln(w, orange("    Out directory: "), server.OutDir)
+	fmt.Fprintln(w, orange("    Work directory:"), server.WorkDir)
 	fmt.Fprintln(w, orange("    Configuration: "), string(server.ProtoConfig))
 	fmt.Fprintln(w, orange("    Authorized rules"))
 	fmt.Fprintln(w, bold("    ├─Sending:  "), send)
@@ -65,25 +64,23 @@ func (s *serverGet) Execute([]string) error {
 // ######################## ADD ##########################
 
 type serverAdd struct {
-	Name        string `required:"yes" short:"n" long:"name" description:"The server's name"`
-	Protocol    string `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
-	Root        string `short:"r" long:"root" description:"The server's root directory"`
-	InDir       string `short:"i" long:"in" description:"The server's in directory"`
-	OutDir      string `short:"o" long:"out" description:"The server's out directory"`
-	WorkDir     string `short:"w" long:"work" description:"The server's work directory"`
-	ProtoConfig string `short:"c" long:"config" description:"The server's configuration in JSON" default:"{}" default-mask:"-"`
+	Name        string  `required:"yes" short:"n" long:"name" description:"The server's name"`
+	Protocol    string  `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
+	Root        *string `short:"r" long:"root" description:"The server's root directory"`
+	InDir       *string `short:"i" long:"in" description:"The server's in directory"`
+	OutDir      *string `short:"o" long:"out" description:"The server's out directory"`
+	WorkDir     *string `short:"w" long:"work" description:"The server's work directory"`
+	ProtoConfig string  `required:"yes" short:"c" long:"config" description:"The server's configuration in JSON"`
 }
 
 func (s *serverAdd) Execute([]string) error {
 	server := &rest.InServer{
-		Name:     s.Name,
-		Protocol: s.Protocol,
-		Paths: &model.ServerPaths{
-			Root:    s.Root,
-			InDir:   s.InDir,
-			OutDir:  s.OutDir,
-			WorkDir: s.WorkDir,
-		},
+		Name:        &s.Name,
+		Protocol:    &s.Protocol,
+		Root:        s.Root,
+		InDir:       s.InDir,
+		OutDir:      s.OutDir,
+		WorkDir:     s.WorkDir,
 		ProtoConfig: json.RawMessage(s.ProtoConfig),
 	}
 	addr.Path = admin.APIPath + rest.ServersPath
@@ -91,7 +88,7 @@ func (s *serverAdd) Execute([]string) error {
 	if err := add(server); err != nil {
 		return err
 	}
-	fmt.Fprintln(getColorable(), "The server", bold(server.Name), "was successfully added.")
+	fmt.Fprintln(getColorable(), "The server", bold(s.Name), "was successfully added.")
 	return nil
 }
 
@@ -149,26 +146,24 @@ type serverUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
 	} `positional-args:"yes"`
-	Name        string `short:"n" long:"name" description:"The server's name"`
-	Protocol    string `short:"p" long:"protocol" description:"The server's protocol"`
-	Root        string `short:"r" long:"root" description:"The server's root directory"`
-	InDir       string `short:"i" long:"in" description:"The server's in directory"`
-	OutDir      string `short:"o" long:"out" description:"The server's out directory"`
-	WorkDir     string `short:"w" long:"work" description:"The server's work directory"`
-	ProtoConfig string `short:"c" long:"config" description:"The server's configuration in JSON"`
+	Name        *string `short:"n" long:"name" description:"The server's name"`
+	Protocol    *string `short:"p" long:"protocol" description:"The server's protocol"`
+	Root        *string `short:"r" long:"root" description:"The server's root directory"`
+	InDir       *string `short:"i" long:"in" description:"The server's in directory"`
+	OutDir      *string `short:"o" long:"out" description:"The server's out directory"`
+	WorkDir     *string `short:"w" long:"work" description:"The server's work directory"`
+	ProtoConfig *string `short:"c" long:"config" description:"The server's configuration in JSON"`
 }
 
 func (s *serverUpdate) Execute([]string) error {
-	server := rest.InServer{
-		Name:     s.Name,
-		Protocol: s.Protocol,
-		Paths: &model.ServerPaths{
-			Root:    s.Root,
-			InDir:   s.InDir,
-			OutDir:  s.OutDir,
-			WorkDir: s.WorkDir,
-		},
-		ProtoConfig: json.RawMessage(s.ProtoConfig),
+	server := &rest.InServer{
+		Name:        s.Name,
+		Protocol:    s.Protocol,
+		Root:        s.Root,
+		InDir:       s.InDir,
+		OutDir:      s.OutDir,
+		WorkDir:     s.WorkDir,
+		ProtoConfig: parseOptBytes(s.ProtoConfig),
 	}
 	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Name
 
@@ -176,8 +171,8 @@ func (s *serverUpdate) Execute([]string) error {
 		return err
 	}
 	name := s.Args.Name
-	if server.Name != "" {
-		name = server.Name
+	if server.Name != nil && *server.Name != "" {
+		name = *server.Name
 	}
 	fmt.Fprintln(getColorable(), "The server", bold(name), "was successfully updated.")
 	return nil

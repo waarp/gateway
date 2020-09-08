@@ -43,13 +43,13 @@ func displayPartner(w io.Writer, partner *rest.OutPartner) {
 type partnerAdd struct {
 	Name        string `required:"yes" short:"n" long:"name" description:"The partner's name"`
 	Protocol    string `required:"yes" short:"p" long:"protocol" description:"The partner's protocol"`
-	ProtoConfig string `short:"c" long:"config" description:"The partner's configuration in JSON" default:"{}" default-mask:"-"`
+	ProtoConfig string `required:"yes" short:"c" long:"config" description:"The partner's configuration in JSON"`
 }
 
 func (p *partnerAdd) Execute([]string) error {
 	partner := rest.InPartner{
-		Name:        p.Name,
-		Protocol:    p.Protocol,
+		Name:        &p.Name,
+		Protocol:    &p.Protocol,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),
 	}
 	addr.Path = admin.APIPath + rest.PartnersPath
@@ -57,7 +57,7 @@ func (p *partnerAdd) Execute([]string) error {
 	if err := add(partner); err != nil {
 		return err
 	}
-	fmt.Fprintln(getColorable(), "The partner", bold(partner.Name), "was successfully added.")
+	fmt.Fprintln(getColorable(), "The partner", bold(p.Name), "was successfully added.")
 	return nil
 }
 
@@ -134,25 +134,26 @@ type partnerUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
 	} `positional-args:"yes"`
-	Name        string `short:"n" long:"name" description:"The partner's name"`
-	Protocol    string `short:"p" long:"protocol" description:"The partner's protocol'"`
-	ProtoConfig string `short:"c" long:"config" description:"The partner's configuration in JSON"`
+	Name        *string `short:"n" long:"name" description:"The partner's name"`
+	Protocol    *string `short:"p" long:"protocol" description:"The partner's protocol'"`
+	ProtoConfig *string `short:"c" long:"config" description:"The partner's configuration in JSON"`
 }
 
 func (p *partnerUpdate) Execute([]string) error {
-	partner := rest.InPartner{
+	partner := &rest.InPartner{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
-		ProtoConfig: json.RawMessage(p.ProtoConfig),
+		ProtoConfig: parseOptBytes(p.ProtoConfig),
 	}
+
 	addr.Path = admin.APIPath + rest.PartnersPath + "/" + p.Args.Name
 
 	if err := update(partner); err != nil {
 		return err
 	}
 	name := p.Args.Name
-	if partner.Name != "" {
-		name = partner.Name
+	if partner.Name != nil && *partner.Name != "" {
+		name = *partner.Name
 	}
 	fmt.Fprintln(getColorable(), "The partner", bold(name), "was successfully updated.")
 	return nil

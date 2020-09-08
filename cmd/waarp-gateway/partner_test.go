@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -121,14 +122,17 @@ func TestAddPartner(t *testing.T) {
 					})
 
 					Convey("Then the new partner should have been added", func() {
-						partner := &model.RemoteAgent{
-							Name:        command.Name,
-							Protocol:    command.Protocol,
-							ProtoConfig: []byte(command.ProtoConfig),
+						var parts []model.RemoteAgent
+						So(db.Select(&parts, nil), ShouldBeNil)
+						So(len(parts), ShouldEqual, 1)
+
+						exp := model.RemoteAgent{
+							ID:          1,
+							Name:        "server_name",
+							Protocol:    "test",
+							ProtoConfig: json.RawMessage(`{"key":"val"}`),
 						}
-						exists, err := db.Exists(partner)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(parts[0], ShouldResemble, exp)
 					})
 				})
 			})
@@ -143,7 +147,7 @@ func TestAddPartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "unknown protocol")
+						So(err, ShouldBeError, "unknown protocol 'invalid'")
 					})
 				})
 			})
@@ -308,9 +312,9 @@ func TestDeletePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should have been removed", func() {
-						exists, err := db.Exists(partner)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeFalse)
+						var parts []model.RemoteAgent
+						So(db.Select(&parts, nil), ShouldBeNil)
+						So(parts, ShouldBeEmpty)
 					})
 				})
 			})
@@ -328,9 +332,11 @@ func TestDeletePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should still exist", func() {
-						exists, err := db.Exists(partner)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						var parts []model.RemoteAgent
+						So(db.Select(&parts, nil), ShouldBeNil)
+						So(len(parts), ShouldEqual, 1)
+
+						So(parts[0], ShouldResemble, *partner)
 					})
 				})
 			})
@@ -340,7 +346,7 @@ func TestDeletePartner(t *testing.T) {
 
 func TestUpdatePartner(t *testing.T) {
 
-	Convey("Testing the partner 'delete' command", t, func() {
+	Convey("Testing the partner 'update' command", t, func() {
 		out = testFile()
 		command := &partnerUpdate{}
 
@@ -373,22 +379,18 @@ func TestUpdatePartner(t *testing.T) {
 							"was successfully updated.\n")
 					})
 
-					Convey("Then the old partner should have been removed", func() {
-						exists, err := db.Exists(partner)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeFalse)
-					})
+					Convey("Then the partner should have been updated", func() {
+						var parts []model.RemoteAgent
+						So(db.Select(&parts, nil), ShouldBeNil)
+						So(len(parts), ShouldEqual, 1)
 
-					Convey("Then the new partner should exist", func() {
-						newPartner := &model.RemoteAgent{
+						exp := model.RemoteAgent{
 							ID:          partner.ID,
-							Name:        command.Name,
-							Protocol:    command.Protocol,
-							ProtoConfig: []byte(command.ProtoConfig),
+							Name:        "new_partner",
+							Protocol:    "test2",
+							ProtoConfig: json.RawMessage(`{"updated_key":"updated_val"}`),
 						}
-						exists, err := db.Exists(newPartner)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(parts[0], ShouldResemble, exp)
 					})
 				})
 			})
@@ -403,13 +405,11 @@ func TestUpdatePartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "unknown protocol")
+						So(err, ShouldBeError, "unknown protocol 'invalid'")
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
-						exists, err := db.Exists(partner)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(partner), ShouldBeNil)
 					})
 				})
 			})
@@ -428,9 +428,7 @@ func TestUpdatePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
-						exists, err := db.Exists(partner)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(partner), ShouldBeNil)
 					})
 				})
 			})
@@ -449,9 +447,7 @@ func TestUpdatePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
-						exists, err := db.Exists(partner)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(partner), ShouldBeNil)
 					})
 				})
 			})
