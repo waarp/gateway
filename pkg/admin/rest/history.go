@@ -237,10 +237,6 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return badRequest("cannot retry a finished transfer")
 			}
 
-			if check.Protocol == "sftp" {
-				return badRequest("cannot retry an SFTP transfer")
-			}
-
 			trans, err := check.Restart(db, date)
 			if err != nil {
 				return err
