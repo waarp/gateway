@@ -25,16 +25,16 @@ type Paths struct {
 	ServerRoot, ServerIn, ServerOut, ServerWork string
 }
 
-func checkSignal(ctx context.Context, ch <-chan model.Signal) *model.PipelineError {
+func checkSignal(ctx context.Context, ch <-chan model.Signal) error {
 	select {
 	case <-ctx.Done():
-		return &model.PipelineError{Kind: model.KindInterrupt}
+		return &model.ShutdownError{}
 	case signal := <-ch:
 		switch signal {
 		case model.SignalCancel:
-			return &model.PipelineError{Kind: model.KindCancel}
+			return &model.CancelError{}
 		case model.SignalPause:
-			return &model.PipelineError{Kind: model.KindPause}
+			return &model.PauseError{}
 		default:
 			return nil
 		}
@@ -50,42 +50,42 @@ func ToHistory(db *database.DB, logger *log.Logger, trans *model.Transfer) error
 	ses, err := db.BeginTransaction()
 	if err != nil {
 		logger.Criticalf("Failed to start archival transaction: %s", err)
-		return fmt.Errorf("err begin")
+		return err
 	}
 
 	if err := ses.Delete(&model.Transfer{ID: trans.ID}); err != nil {
 		logger.Criticalf("Failed to delete transfer for archival: %s", err)
 		ses.Rollback()
-		return fmt.Errorf("err del")
+		return err
 	}
 
 	hist, err := trans.ToHistory(ses, time.Now())
 	if err != nil {
 		logger.Criticalf("Failed to convert transfer to history: %s", err)
 		ses.Rollback()
-		return fmt.Errorf("err tohist (%s)", err)
+		return err
 	}
 
 	if err := ses.Create(hist); err != nil {
 		logger.Criticalf("Failed to create new history entry: %s", err)
 		ses.Rollback()
-		return fmt.Errorf("err create")
+		return err
 	}
 
 	if err := ses.Commit(); err != nil {
 		logger.Criticalf("Failed to commit archival transaction: %s", err)
-		return fmt.Errorf("err commit")
+		return err
 	}
 	return nil
 }
 
 func execTasks(proc *tasks.Processor, chain model.Chain,
-	step types.TransferStep) *model.PipelineError {
+	step types.TransferStep) error {
 
 	proc.Transfer.Step = step
 	if err := proc.DB.Update(proc.Transfer); err != nil {
 		proc.Logger.Criticalf("Failed to update transfer step to '%s': %s", step, err)
-		return &model.PipelineError{Kind: model.KindDatabase}
+		return err
 	}
 
 	tasksList, err := proc.GetTasks(chain)
@@ -97,19 +97,19 @@ func execTasks(proc *tasks.Processor, chain model.Chain,
 	return proc.RunTasks(tasksList)
 }
 
-func getFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.File, *model.PipelineError) {
+func getFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.File, error) {
 
 	path := utils.DenormalizePath(trans.TrueFilepath)
 	if rule.IsSend {
 		file, err := os.OpenFile(path, os.O_RDONLY, 0600)
 		if err != nil {
 			logger.Errorf("Failed to open source file: %s", err)
-			return nil, model.NewPipelineError(types.TeForbidden, err.Error())
+			return nil, types.NewTransferError(types.TeForbidden, err.Error())
 		}
 		if trans.Progress != 0 {
 			if _, err := file.Seek(int64(trans.Progress), io.SeekStart); err != nil {
 				logger.Errorf("Failed to seek inside file: %s", err)
-				return nil, model.NewPipelineError(types.TeForbidden, err.Error())
+				return nil, types.NewTransferError(types.TeForbidden, err.Error())
 			}
 		}
 		return file, nil
@@ -118,12 +118,12 @@ func getFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.F
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		logger.Errorf("Failed to create destination file (%s): %s", path, err)
-		return nil, model.NewPipelineError(types.TeForbidden, err.Error())
+		return nil, types.NewTransferError(types.TeForbidden, err.Error())
 	}
 	if trans.Progress != 0 {
 		if _, err := file.Seek(int64(trans.Progress), io.SeekStart); err != nil {
 			logger.Errorf("Failed to seek inside file: %s", err)
-			return nil, model.NewPipelineError(types.TeForbidden, err.Error())
+			return nil, types.NewTransferError(types.TeForbidden, err.Error())
 		}
 	}
 	return file, nil
@@ -148,31 +148,35 @@ func makeDir(uri string) error {
 
 // HandleError analyses the given error, and executes the necessary steps
 // corresponding to the error kind.
-func HandleError(stream *TransferStream, err *model.PipelineError) {
-	switch err.Kind {
-	case model.KindDatabase:
+func HandleError(stream *TransferStream, err error) {
+	switch err.(type) {
+	case *database.ValidationError, *database.InternalError, *database.InputError:
 		stream.exit()
-	case model.KindInterrupt:
+	case *model.ShutdownError:
 		stream.Transfer.Status = types.StatusInterrupted
 		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		stream.exit()
 		stream.Logger.Info("Transfer interrupted")
-	case model.KindPause:
+	case *model.PauseError:
 		stream.Transfer.Status = types.StatusPaused
 		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		stream.exit()
 		stream.Logger.Info("Transfer paused")
-	case model.KindCancel:
+	case *model.CancelError:
 		stream.Transfer.Status = types.StatusCancelled
 		_ = os.Remove(stream.File.Name())
 		_ = stream.Archive()
 		stream.Logger.Info("Transfer cancelled by user")
-	case model.KindTransfer:
-		stream.Transfer.Error = err.Cause
+	default:
+		tErr, ok := err.(types.TransferError)
+		if !ok {
+			tErr = types.NewTransferError(types.TeUnknown, err.Error())
+		}
+		stream.Transfer.Error = tErr
 		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
@@ -180,12 +184,11 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 			stream.ErrorTasks()
 		}
 		stream.Transfer.Status = types.StatusError
-		stream.Transfer.Error = err.Cause
 		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer status to '%s': %s",
 				stream.Transfer.Status, dbErr)
 			return
 		}
-		stream.Logger.Errorf("Execution finished with error code '%s'", err.Cause.Code)
+		stream.Logger.Errorf("Execution finished with error code '%s'", tErr.Code)
 	}
 }

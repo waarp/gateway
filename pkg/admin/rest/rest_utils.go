@@ -3,6 +3,7 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,30 +17,6 @@ import (
 
 var str = utils.String
 var strPtr = utils.StringPtr
-
-type errBadRequest string
-
-func (e errBadRequest) Error() string { return string(e) }
-
-func badRequest(format string, args ...interface{}) errBadRequest {
-	return errBadRequest(fmt.Sprintf(format, args...))
-}
-
-type forbidden struct {
-	msg string
-}
-
-func (e *forbidden) Error() string {
-	return e.msg
-}
-
-type errNotFound string
-
-func (e errNotFound) Error() string { return string(e) }
-
-func notFound(format string, args ...interface{}) errNotFound {
-	return errNotFound(fmt.Sprintf(format, args...))
-}
 
 func parseListFilters(r *http.Request, validOrders map[string]string) (*database.Filters, error) {
 	filters := &database.Filters{
@@ -73,25 +50,50 @@ func parseListFilters(r *http.Request, validOrders map[string]string) (*database
 	return filters, nil
 }
 
-func handleErrors(w http.ResponseWriter, logger *log.Logger, err error) {
-	switch err.(type) {
-	case errNotFound:
-		http.Error(w, err.Error(), http.StatusNotFound)
-	case errBadRequest:
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	case *forbidden:
-		http.Error(w, err.Error(), http.StatusForbidden)
-	case *database.ErrInvalid:
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	default:
-		logger.Warning(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+// handleError returns `true` if an error has been caught. It returns `false`
+// if there is no error, and execution can continue.
+func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
+	if err == nil {
+		return false
 	}
+
+	var nf *errNotFound
+	if errors.As(err, &nf) {
+		http.Error(w, nf.Error(), http.StatusNotFound)
+		return true
+	}
+	var br *errBadRequest
+	if errors.As(err, &br) {
+		http.Error(w, br.Error(), http.StatusBadRequest)
+		return true
+	}
+	var f *forbidden
+	if errors.As(err, &f) {
+		http.Error(w, f.Error(), http.StatusForbidden)
+		return true
+	}
+	var inv *database.ValidationError
+	if errors.As(err, &inv) {
+		http.Error(w, inv.Error(), http.StatusBadRequest)
+		return true
+	}
+	var inp *database.InputError
+	if errors.As(err, &inp) {
+		http.Error(w, inp.Error(), http.StatusBadRequest)
+		return true
+	}
+
+	logger.Errorf("Unexpected error: %s", err)
+	http.Error(w, err.Error(), http.StatusInternalServerError)
+	return true
 }
 
 func writeJSON(w http.ResponseWriter, bean interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
-	return json.NewEncoder(w).Encode(bean)
+	if err := json.NewEncoder(w).Encode(bean); err != nil {
+		return fmt.Errorf("failed to write response JSON object: %s", err)
+	}
+	return nil
 }
 
 func readJSON(r *http.Request, dest interface{}) error {
@@ -99,7 +101,7 @@ func readJSON(r *http.Request, dest interface{}) error {
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(dest); err != nil {
-		return badRequest(err.Error())
+		return badRequest("malformed JSON object: %s", err)
 	}
 	return nil
 }

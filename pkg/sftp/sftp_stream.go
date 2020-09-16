@@ -16,27 +16,25 @@ import (
 type sftpStream struct {
 	*pipeline.TransferStream
 
-	transErr *model.PipelineError
+	transErr error
 }
 
 // modelToSFTP converts the given error into its closest equivalent
 // SFTP error code. Since SFTP v3 only supports 8 error codes (9 with code Ok),
 // most errors will be converted to the generic code SSH_FX_FAILURE.
 func modelToSFTP(err error) error {
-	if pErr, ok := err.(*model.PipelineError); ok {
-		if pErr.Kind == model.KindTransfer {
-			switch pErr.Cause.Code {
-			case types.TeOk:
-				return sftp.ErrSSHFxOk
-			case types.TeUnimplemented:
-				return sftp.ErrSSHFxOpUnsupported
-			case types.TeIntegrity:
-				return sftp.ErrSSHFxBadMessage
-			case types.TeFileNotFound:
-				return sftp.ErrSSHFxNoSuchFile
-			case types.TeForbidden:
-				return sftp.ErrSSHFxPermissionDenied
-			}
+	if tErr, ok := err.(types.TransferError); ok {
+		switch tErr.Code {
+		case types.TeOk:
+			return sftp.ErrSSHFxOk
+		case types.TeUnimplemented:
+			return sftp.ErrSSHFxOpUnsupported
+		case types.TeIntegrity:
+			return sftp.ErrSSHFxBadMessage
+		case types.TeFileNotFound:
+			return sftp.ErrSSHFxNoSuchFile
+		case types.TeForbidden:
+			return sftp.ErrSSHFxPermissionDenied
 		}
 	}
 	return err
@@ -66,20 +64,20 @@ func newSftpStream(ctx context.Context, logger *log.Logger, db *database.DB,
 func (s *sftpStream) TransferError(error) {
 	select {
 	case <-s.Ctx.Done():
-		s.transErr = &model.PipelineError{Kind: model.KindInterrupt}
+		s.transErr = &model.ShutdownError{}
 		return
 	default:
 	}
 	if s.transErr == nil {
 		switch s.Transfer.Step {
 		case types.StepPreTasks:
-			s.transErr = model.NewPipelineError(types.TeExternalOperation,
+			s.transErr = types.NewTransferError(types.TeExternalOperation,
 				"Remote pre-tasks failed")
 		case types.StepData:
-			s.transErr = model.NewPipelineError(types.TeConnectionReset,
+			s.transErr = types.NewTransferError(types.TeConnectionReset,
 				"SFTP connection closed unexpectedly")
 		case types.StepPostTasks:
-			s.transErr = model.NewPipelineError(types.TeExternalOperation,
+			s.transErr = types.NewTransferError(types.TeExternalOperation,
 				"Remote post-tasks failed")
 		}
 	}
@@ -98,11 +96,7 @@ func (s *sftpStream) ReadAt(p []byte, off int64) (int, error) {
 
 	n, err := s.TransferStream.ReadAt(p, off)
 	if err != nil && err != io.EOF {
-		pErr := err.(*model.PipelineError)
-		s.transErr = pErr
-		if pErr.Kind != model.KindTransfer {
-			_ = s.Close()
-		}
+		_ = s.Close()
 		return n, modelToSFTP(s.transErr)
 	}
 	return n, err
@@ -121,11 +115,7 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 
 	n, err := s.TransferStream.WriteAt(p, off)
 	if err != nil {
-		pErr := err.(*model.PipelineError)
-		s.transErr = pErr
-		if pErr.Kind != model.KindTransfer {
-			_ = s.Close()
-		}
+		_ = s.Close()
 		return n, modelToSFTP(s.transErr)
 	}
 	return n, nil
@@ -134,13 +124,13 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 func (s *sftpStream) Close() error {
 	if s.TransferStream.File != nil {
 		if err := s.TransferStream.Close(); err != nil {
-			s.transErr = err.(*model.PipelineError)
+			s.transErr = err
 		}
 	}
 
 	if s.Transfer.Step >= types.StepData {
 		if err := s.TransferStream.Move(); err != nil {
-			s.transErr = err.(*model.PipelineError)
+			s.transErr = err
 		}
 	}
 	if s.transErr == nil {

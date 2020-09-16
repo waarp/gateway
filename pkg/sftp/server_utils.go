@@ -33,7 +33,7 @@ func getRuleFromPath(db *database.DB, r *sftp.Request, isSend bool) (*model.Rule
 func loadCert(db *database.DB, server *model.LocalAgent) (*model.Cert, error) {
 	cert := &model.Cert{OwnerType: server.TableName(), OwnerID: server.ID}
 	if err := db.Get(cert); err != nil {
-		if err == database.ErrNotFound {
+		if _, ok := err.(*database.NotFoundError); ok {
 			return nil, fmt.Errorf("no certificate found for SFTP server '%s'",
 				server.Name)
 		}

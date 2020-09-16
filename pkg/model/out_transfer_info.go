@@ -24,7 +24,7 @@ func NewOutTransferInfo(db *database.DB, trans *Transfer) (*OutTransferInfo, err
 
 	remote := &RemoteAgent{ID: trans.AgentID}
 	if err := db.Get(remote); err != nil {
-		if err == database.ErrNotFound {
+		if database.IsNotFound(err) {
 			return nil, fmt.Errorf("the partner n°%v does not exist", trans.AgentID)
 		}
 		return nil, err
@@ -35,7 +35,7 @@ func NewOutTransferInfo(db *database.DB, trans *Transfer) (*OutTransferInfo, err
 	}
 	account := &RemoteAccount{ID: trans.AccountID}
 	if err := db.Get(account); err != nil {
-		if err == database.ErrNotFound {
+		if database.IsNotFound(err) {
 			return nil, fmt.Errorf("the account n°%v does not exist", account.ID)
 		}
 		return nil, err
@@ -47,7 +47,7 @@ func NewOutTransferInfo(db *database.DB, trans *Transfer) (*OutTransferInfo, err
 
 	rule := &Rule{ID: trans.RuleID}
 	if err := db.Get(rule); err != nil {
-		if err == database.ErrNotFound {
+		if database.IsNotFound(err) {
 			return nil, fmt.Errorf("the rule n°%v does not exist", rule.ID)
 		}
 		return nil, err

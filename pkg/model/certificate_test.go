@@ -2,7 +2,6 @@ package model
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -65,8 +64,8 @@ func TestCertValidate(t *testing.T) {
 						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the owner type is missing", func() {
-							So(err, ShouldBeError, "the certificate's owner "+
-								"type is missing")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the certificate's owner type is missing"))
 						})
 					})
 				})
@@ -78,8 +77,8 @@ func TestCertValidate(t *testing.T) {
 						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the owner ID is missing", func() {
-							So(err, ShouldBeError, "the certificate's owner "+
-								"ID is missing")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the certificate's owner ID is missing"))
 						})
 					})
 				})
@@ -91,8 +90,8 @@ func TestCertValidate(t *testing.T) {
 						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the name is missing", func() {
-							So(err, ShouldBeError, "the certificate's name "+
-								"cannot be empty")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the certificate's name cannot be empty"))
 						})
 					})
 				})
@@ -104,8 +103,8 @@ func TestCertValidate(t *testing.T) {
 						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the public key is missing", func() {
-							So(err, ShouldBeError, "the certificate's private "+
-								"key is missing")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the certificate's private key is missing"))
 						})
 					})
 				})
@@ -131,8 +130,9 @@ func TestCertValidate(t *testing.T) {
 						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the owner type is invalid", func() {
-							So(err, ShouldBeError, "the certificate's owner "+
-								"type must be one of "+fmt.Sprint(validOwnerTypes))
+							So(err, ShouldBeError, database.NewValidationError(
+								"the certificate's owner type must be one of %s",
+								validOwnerTypes))
 						})
 					})
 				})
@@ -144,8 +144,8 @@ func TestCertValidate(t *testing.T) {
 						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the owner ID is invalid", func() {
-							So(err, ShouldBeError, "no local_agents found "+
-								"with ID '1000'")
+							So(err, ShouldBeError, database.NewValidationError(
+								"no local_agents found with ID '1000'"))
 						})
 					})
 				})
@@ -167,8 +167,9 @@ func TestCertValidate(t *testing.T) {
 						err := newCert.Validate(db)
 
 						Convey("Then the error should say that the name is taken", func() {
-							So(err, ShouldBeError, "a certificate with the "+
-								"same name '"+newCert.Name+"' already exist")
+							So(err, ShouldBeError, database.NewValidationError(
+								"a certificate with the same name '%s' already exist",
+								newCert.Name))
 						})
 					})
 				})

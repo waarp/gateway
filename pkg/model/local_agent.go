@@ -50,9 +50,14 @@ type LocalAgent struct {
 	Address string `xorm:"notnull 'address'"`
 }
 
-// TableName returns the local_agent table name.
-func (l *LocalAgent) TableName() string {
+// TableName returns the local agents table name.
+func (*LocalAgent) TableName() string {
 	return "local_agents"
+}
+
+// ElemName returns the name of 1 element of the local agents table.
+func (*LocalAgent) ElemName() string {
+	return "server"
 }
 
 // GetID returns the agent's ID.
@@ -97,28 +102,29 @@ func (l *LocalAgent) Validate(db database.Accessor) error {
 	l.makePaths()
 
 	if l.Name == "" {
-		return database.InvalidError("the agent's name cannot be empty")
+		return database.NewValidationError("the agent's name cannot be empty")
 	}
 
 	if l.Address == "" {
-		return database.InvalidError("the server's address cannot be empty")
+		return database.NewValidationError("the server's address cannot be empty")
 	}
 	if _, _, err := net.SplitHostPort(l.Address); err != nil {
-		return database.InvalidError("'%s' is not a valid server address", l.Address)
+		return database.NewValidationError("'%s' is not a valid server address", l.Address)
 	}
 
 	if l.ProtoConfig == nil {
-		return database.InvalidError("the agent's configuration cannot be empty")
+		return database.NewValidationError("the agent's configuration cannot be empty")
 	}
 	if err := l.validateProtoConfig(); err != nil {
-		return database.InvalidError(err.Error())
+		return database.NewValidationError(err.Error())
 	}
 
 	if res, err := db.Query("SELECT id FROM local_agents WHERE id<>? AND owner=? AND name=?",
 		l.ID, l.Owner, l.Name); err != nil {
-		return err
+		return database.NewInternalError(err,
+			"failed to retrieve the list of existing local agents")
 	} else if len(res) > 0 {
-		return database.InvalidError("a local agent with the same name '%s' "+
+		return database.NewValidationError("a local agent with the same name '%s' "+
 			"already exist", l.Name)
 	}
 
@@ -128,12 +134,13 @@ func (l *LocalAgent) Validate(db database.Accessor) error {
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
 func (l *LocalAgent) BeforeDelete(db database.Accessor) error {
-	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND agent_id=?", true, l.ID)
+	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND agent_id=?",
+		true, l.ID)
 	if err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of transfers")
 	}
 	if len(trans) > 0 {
-		return database.InvalidError("this server is currently being used in a " +
+		return database.NewValidationError("this server is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
 			"for it to finish")
 	}
@@ -144,7 +151,7 @@ func (l *LocalAgent) BeforeDelete(db database.Accessor) error {
 		" (owner_type='local_accounts' AND owner_id IN " +
 		"  (SELECT id FROM local_accounts WHERE local_agent_id=?))"
 	if err := db.Execute(certQuery, l.ID, l.ID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to delete the server's certificates")
 	}
 
 	accessQuery := "DELETE FROM rule_access WHERE " +
@@ -153,12 +160,12 @@ func (l *LocalAgent) BeforeDelete(db database.Accessor) error {
 		" (object_type='local_accounts' AND object_id IN " +
 		"  (SELECT id FROM local_accounts WHERE local_agent_id=?))"
 	if err := db.Execute(accessQuery, l.ID, l.ID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to delete the server's rule permissions")
 	}
 
 	accountQuery := "DELETE FROM local_accounts WHERE local_agent_id=?"
 	if err := db.Execute(accountQuery, l.ID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to delete the server's accounts")
 	}
 
 	return nil

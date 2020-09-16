@@ -17,12 +17,10 @@ func importRemoteAgents(logger *log.Logger, db *database.Session, list []file.Re
 		//Check if agent exists
 		exists := true
 		err := db.Get(agent)
-		if err != nil {
-			if err == database.ErrNotFound {
-				exists = false
-			} else {
-				return err
-			}
+		if _, ok := err.(*database.NotFoundError); ok {
+			exists = false
+		} else if err != nil {
+			return err
 		}
 
 		// Populate

@@ -52,9 +52,9 @@ func authorizeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	a, err := db.Query("SELECT rule_id FROM rule_access WHERE rule_id = ?", rule.ID)
-	if err != nil {
-		return err
+	a, err1 := db.Query("SELECT rule_id FROM rule_access WHERE rule_id = ?", rule.ID)
+	if err1 != nil {
+		return err1
 	}
 
 	access := &model.RuleAccess{
@@ -90,9 +90,9 @@ func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	a, err := db.Query("SELECT rule_id FROM rule_access WHERE rule_id = ?", rule.ID)
-	if err != nil {
-		return err
+	a, err1 := db.Query("SELECT rule_id FROM rule_access WHERE rule_id = ?", rule.ID)
+	if err1 != nil {
+		return err1
 	}
 	if len(a) == 0 {
 		fmt.Fprintf(w, "Usage of the %s rule '%s' is now unrestricted.",

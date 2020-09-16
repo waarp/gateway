@@ -40,6 +40,11 @@ func (*TransferHistory) TableName() string {
 	return "transfer_history"
 }
 
+// ElemName returns the name of 1 element of the transfer history table.
+func (*TransferHistory) ElemName() string {
+	return "history entry"
+}
+
 // GetID returns the transfer's ID.
 func (h *TransferHistory) GetID() uint64 {
 	return h.ID
@@ -51,52 +56,52 @@ func (h *TransferHistory) Validate(database.Accessor) error {
 	h.Owner = database.Owner
 
 	if h.Owner == "" {
-		return database.InvalidError("the transfer's owner cannot be empty")
+		return database.NewValidationError("the transfer's owner cannot be empty")
 	}
 	if h.ID == 0 {
-		return database.InvalidError("the transfer's ID cannot be empty")
+		return database.NewValidationError("the transfer's ID cannot be empty")
 	}
 	if h.Rule == "" {
-		return database.InvalidError("the transfer's rule cannot be empty")
+		return database.NewValidationError("the transfer's rule cannot be empty")
 	}
 	if h.Account == "" {
-		return database.InvalidError("the transfer's account cannot be empty")
+		return database.NewValidationError("the transfer's account cannot be empty")
 	}
 	if h.Agent == "" {
-		return database.InvalidError("the transfer's agent cannot be empty")
+		return database.NewValidationError("the transfer's agent cannot be empty")
 	}
 	if h.IsServer {
 		if h.IsSend && h.DestFilename == "" {
-			return database.InvalidError("the transfer's destination filename cannot be empty")
+			return database.NewValidationError("the transfer's destination filename cannot be empty")
 		} else if !h.IsSend && h.SourceFilename == "" {
-			return database.InvalidError("the transfer's destination filename cannot be empty")
+			return database.NewValidationError("the transfer's destination filename cannot be empty")
 		}
 	} else {
 		if h.SourceFilename == "" {
-			return database.InvalidError("the transfer's source filename cannot be empty")
+			return database.NewValidationError("the transfer's source filename cannot be empty")
 		}
 		if h.DestFilename == "" {
-			return database.InvalidError("the transfer's destination filename cannot be empty")
+			return database.NewValidationError("the transfer's destination filename cannot be empty")
 		}
 	}
 	if h.Start.IsZero() {
-		return database.InvalidError("the transfer's start date cannot be empty")
+		return database.NewValidationError("the transfer's start date cannot be empty")
 	}
 	if h.Stop.IsZero() {
-		return database.InvalidError("the transfer's end date cannot be empty")
+		return database.NewValidationError("the transfer's end date cannot be empty")
 	}
 
 	if h.Stop.Before(h.Start) {
-		return database.InvalidError("the transfer's end date cannot be anterior " +
+		return database.NewValidationError("the transfer's end date cannot be anterior " +
 			"to the start date")
 	}
 
 	if _, ok := config.ProtoConfigs[h.Protocol]; !ok {
-		return database.InvalidError("'%s' is not a valid protocol", h.Protocol)
+		return database.NewValidationError("'%s' is not a valid protocol", h.Protocol)
 	}
 
 	if !types.ValidateStatusForHistory(h.Status) {
-		return database.InvalidError("'%s' is not a valid transfer history status", h.Status)
+		return database.NewValidationError("'%s' is not a valid transfer history status", h.Status)
 	}
 
 	return nil

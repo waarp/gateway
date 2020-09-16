@@ -110,12 +110,12 @@ func (l *sshListener) listAt(r *sftp.Request, paths *pipeline.Paths, accountID u
 
 func (l *sshListener) getListRule(rulePath string, accountID uint64) (*model.Rule, error) {
 	sndRule, err := l.getRule(accountID, rulePath, true)
-	if err != nil && err != database.ErrNotFound {
+	if err != nil {
 		return nil, err
 	}
 
 	rcvRule, err := l.getRule(accountID, rulePath, false)
-	if err != nil && err != database.ErrNotFound {
+	if err != nil {
 		return nil, err
 	}
 
@@ -131,7 +131,7 @@ func (l *sshListener) statAt(r *sftp.Request, paths *pipeline.Paths, accountID u
 		l.Logger.Debugf("Received 'Stat' request on %s", r.Filepath)
 
 		rule, err := l.getRule(accountID, path.Dir(r.Filepath), true)
-		if err != nil {
+		if err != nil || rule == nil {
 			return 0, fmt.Errorf("failed to retrieve rule for path '%s'", r.Filepath)
 		}
 
@@ -176,7 +176,7 @@ func (l *sshListener) getRule(accountID uint64, rulePath string, isSend bool) (*
 		return nil, fmt.Errorf("failed to retrieve rule: %s", err)
 	}
 	if len(rules) == 0 {
-		return nil, database.ErrNotFound
+		return nil, nil
 	}
 
 	return &rules[0], nil

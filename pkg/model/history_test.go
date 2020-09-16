@@ -63,8 +63,8 @@ func TestHistoryValidate(t *testing.T) {
 					err := hist.Validate(db)
 
 					Convey("Then the error should say the rule is missing", func() {
-						So(err, ShouldBeError, "the transfer's rule "+
-							"cannot be empty")
+						So(err, ShouldBeError, database.NewValidationError(
+							"the transfer's rule cannot be empty"))
 					})
 				})
 			})
@@ -76,8 +76,8 @@ func TestHistoryValidate(t *testing.T) {
 					err := hist.Validate(db)
 
 					Convey("Then the error should say the source is missing", func() {
-						So(err, ShouldBeError, "the transfer's account "+
-							"cannot be empty")
+						So(err, ShouldBeError, database.NewValidationError(
+							"the transfer's account cannot be empty"))
 					})
 				})
 			})
@@ -89,8 +89,8 @@ func TestHistoryValidate(t *testing.T) {
 					err := hist.Validate(db)
 
 					Convey("Then the error should say the destination is missing", func() {
-						So(err, ShouldBeError, "the transfer's agent "+
-							"cannot be empty")
+						So(err, ShouldBeError, database.NewValidationError(
+							"the transfer's agent cannot be empty"))
 					})
 				})
 			})
@@ -102,8 +102,8 @@ func TestHistoryValidate(t *testing.T) {
 					err := hist.Validate(db)
 
 					Convey("Then the error should say the filename is missing", func() {
-						So(err, ShouldBeError, "the transfer's destination filename "+
-							"cannot be empty")
+						So(err, ShouldBeError, database.NewValidationError(
+							"the transfer's destination filename cannot be empty"))
 					})
 				})
 			})
@@ -115,7 +115,8 @@ func TestHistoryValidate(t *testing.T) {
 					err := hist.Validate(db)
 
 					Convey("Then the error should say the protocol is missing", func() {
-						So(err, ShouldBeError, "'invalid' is not a valid protocol")
+						So(err, ShouldBeError, database.NewValidationError(
+							"'invalid' is not a valid protocol"))
 					})
 				})
 			})
@@ -127,8 +128,8 @@ func TestHistoryValidate(t *testing.T) {
 					err := hist.Validate(db)
 
 					Convey("Then the error should say the start date is missing", func() {
-						So(err, ShouldBeError, "the transfer's start "+
-							"date cannot be empty")
+						So(err, ShouldBeError, database.NewValidationError(
+							"the transfer's start date cannot be empty"))
 					})
 				})
 			})
@@ -140,8 +141,8 @@ func TestHistoryValidate(t *testing.T) {
 					err := hist.Validate(db)
 
 					Convey("Then the error should say the end date is missing", func() {
-						So(err, ShouldBeError, "the transfer's end "+
-							"date cannot be empty")
+						So(err, ShouldBeError, database.NewValidationError(
+							"the transfer's end date cannot be empty"))
 					})
 				})
 			})
@@ -153,8 +154,8 @@ func TestHistoryValidate(t *testing.T) {
 					err := hist.Validate(db)
 
 					Convey("Then the error should say the end date is anterior", func() {
-						So(err, ShouldBeError, "the transfer's end "+
-							"date cannot be anterior to the start date")
+						So(err, ShouldBeError, database.NewValidationError(
+							"the transfer's end date cannot be anterior to the start date"))
 					})
 				})
 			})
@@ -215,11 +216,8 @@ func testTransferStatus(tc statusTestCase, method string, target interface{}, db
 				})
 
 				Convey("Then the error should say that the status is invalid", func() {
-					expectedError := fmt.Sprintf(
-						"'%s' is not a valid %s status",
-						tc.status, typeName,
-					)
-					So(err, ShouldBeError, expectedError)
+					So(err, ShouldBeError, database.NewValidationError(
+						"'%s' is not a valid %s status", tc.status, typeName))
 				})
 			}
 		})

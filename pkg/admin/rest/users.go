@@ -65,17 +65,13 @@ func getUsr(r *http.Request, db *database.DB) (*model.User, error) {
 
 func getUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			result, err := getUsr(r, db)
-			if err != nil {
-				return err
-			}
-
-			return writeJSON(w, FromUser(result))
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		result, err := getUsr(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = writeJSON(w, FromUser(result))
+		handleError(w, logger, err)
 	}
 }
 
@@ -87,137 +83,113 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			filters, err := parseListFilters(r, validSorting)
-			if err != nil {
-				return err
-			}
-			filters.Conditions = builder.Eq{"owner": database.Owner}
-
-			var results []model.User
-			if err := db.Select(&results, filters); err != nil {
-				return err
-			}
-
-			resp := map[string][]api.OutUser{"users": FromUsers(results)}
-			return writeJSON(w, resp)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		filters, err := parseListFilters(r, validSorting)
+		if handleError(w, logger, err) {
+			return
 		}
+		filters.Conditions = builder.Eq{"owner": database.Owner}
+
+		var results []model.User
+		if err := db.Select(&results, filters); handleError(w, logger, err) {
+			return
+		}
+
+		resp := map[string][]api.OutUser{"users": FromUsers(results)}
+		err = writeJSON(w, resp)
+		handleError(w, logger, err)
 	}
 }
 
 func addUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			jsonUser := &api.InUser{}
-			if err := readJSON(r, jsonUser); err != nil {
-				return err
-			}
-
-			user, err := userToDB(jsonUser, &model.User{})
-			if err != nil {
-				return err
-			}
-			if err := db.Create(user); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", location(r.URL, user.Username))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		var jsonUser api.InUser
+		if err := readJSON(r, &jsonUser); handleError(w, logger, err) {
+			return
 		}
+
+		user, err := userToDB(&jsonUser, &model.User{})
+		if handleError(w, logger, err) {
+			return
+		}
+
+		if err := db.Create(user); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", location(r.URL, user.Username))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			old, err := getUsr(r, db)
-			if err != nil {
-				return err
-			}
-
-			jUser := newInUser(old)
-			if err := readJSON(r, jUser); err != nil {
-				return err
-			}
-
-			user, err := userToDB(jUser, old)
-			if err != nil {
-				return err
-			}
-			if err := db.Update(user); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", locationUpdate(r.URL, user.Username))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		old, err := getUsr(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		jUser := newInUser(old)
+		if err := readJSON(r, jUser); handleError(w, logger, err) {
+			return
+		}
+
+		user, err := userToDB(jUser, old)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		if err := db.Update(user); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", locationUpdate(r.URL, str(jUser.Username)))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func replaceUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			old, err := getUsr(r, db)
-			if err != nil {
-				return err
-			}
-
-			jUser := &api.InUser{}
-			if err := readJSON(r, jUser); err != nil {
-				return err
-			}
-
-			user, err := userToDB(jUser, old)
-			if err != nil {
-				return err
-			}
-
-			if err := db.Update(user); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", locationUpdate(r.URL, user.Username))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		old, err := getUsr(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		var jUser api.InUser
+		if err := readJSON(r, &jUser); handleError(w, logger, err) {
+			return
+		}
+
+		user, err := userToDB(&jUser, old)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		if err := db.Update(user); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", locationUpdate(r.URL, str(jUser.Username)))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func deleteUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			user, err := getUsr(r, db)
-			if err != nil {
-				return err
-			}
-
-			login, _, _ := r.BasicAuth()
-			if user.Username == login {
-				return &forbidden{msg: "user cannot delete self"}
-			}
-
-			if err := db.Delete(user); err != nil {
-				return err
-			}
-			w.WriteHeader(http.StatusNoContent)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		user, err := getUsr(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		login, _, _ := r.BasicAuth()
+		if user.Username == login {
+			handleError(w, logger, &forbidden{"user cannot delete self"})
+			return
+		}
+
+		if err := db.Delete(user); handleError(w, logger, err) {
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

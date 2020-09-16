@@ -34,9 +34,14 @@ type RemoteAgent struct {
 	Address string `xorm:"notnull 'address'"`
 }
 
-// TableName returns the remote_agent table name.
-func (r *RemoteAgent) TableName() string {
+// TableName returns the remote agents table name.
+func (*RemoteAgent) TableName() string {
 	return "remote_agents"
+}
+
+// ElemName returns the name of 1 element of the remote agents table.
+func (*RemoteAgent) ElemName() string {
+	return "partner"
 }
 
 // GetID returns the agent's ID.
@@ -47,7 +52,7 @@ func (r *RemoteAgent) GetID() uint64 {
 func (r *RemoteAgent) validateProtoConfig() error {
 	conf, err := config.GetProtoConfig(r.Protocol, r.ProtoConfig)
 	if err != nil {
-		return err
+		return database.NewValidationError(err.Error())
 	}
 	if err := conf.ValidPartner(); err != nil {
 		return err
@@ -79,27 +84,27 @@ func (r *RemoteAgent) GetCerts(db database.Accessor) ([]Cert, error) {
 // database. It checks whether the new entry is valid or not.
 func (r *RemoteAgent) Validate(db database.Accessor) error {
 	if r.Name == "" {
-		return database.InvalidError("the agent's name cannot be empty")
+		return database.NewValidationError("the agent's name cannot be empty")
 	}
 	if r.Address == "" {
-		return database.InvalidError("the partner's address cannot be empty")
+		return database.NewValidationError("the partner's address cannot be empty")
 	}
 	if _, _, err := net.SplitHostPort(r.Address); err != nil {
-		return database.InvalidError("'%s' is not a valid partner address", r.Address)
+		return database.NewValidationError("'%s' is not a valid partner address", r.Address)
 	}
 
 	if r.ProtoConfig == nil {
-		return database.InvalidError("the agent's configuration cannot be empty")
+		return database.NewValidationError("the agent's configuration cannot be empty")
 	}
 	if err := r.validateProtoConfig(); err != nil {
-		return database.InvalidError(err.Error())
+		return database.NewValidationError(err.Error())
 	}
 
 	if res, err := db.Query("SELECT id FROM remote_agents WHERE id<>? AND name=?",
 		r.ID, r.Name); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of existing partners")
 	} else if len(res) > 0 {
-		return database.InvalidError("a remote agent with the same name '%s' "+
+		return database.NewValidationError("a remote agent with the same name '%s' "+
 			"already exist", r.Name)
 	}
 
@@ -109,12 +114,13 @@ func (r *RemoteAgent) Validate(db database.Accessor) error {
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
 func (r *RemoteAgent) BeforeDelete(db database.Accessor) error {
-	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND agent_id=?", false, r.ID)
+	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND agent_id=?",
+		false, r.ID)
 	if err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of transfers")
 	}
 	if len(trans) > 0 {
-		return database.InvalidError("this partner is currently being used in a " +
+		return database.NewValidationError("this partner is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
 			"for it to finish")
 	}
@@ -125,7 +131,7 @@ func (r *RemoteAgent) BeforeDelete(db database.Accessor) error {
 		" (owner_type='remote_accounts' AND owner_id IN " +
 		"  (SELECT id FROM remote_accounts WHERE remote_agent_id=?))"
 	if err := db.Execute(certQuery, r.ID, r.ID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to delete the partner's certificates")
 	}
 
 	accessQuery := "DELETE FROM rule_access WHERE " +
@@ -134,12 +140,12 @@ func (r *RemoteAgent) BeforeDelete(db database.Accessor) error {
 		" (object_type='remote_accounts' AND object_id IN " +
 		"  (SELECT id FROM remote_accounts WHERE remote_agent_id=?))"
 	if err := db.Execute(accessQuery, r.ID, r.ID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to delete the partner's rule permissions")
 	}
 
 	accountQuery := "DELETE FROM remote_accounts WHERE remote_agent_id=?"
 	if err := db.Execute(accountQuery, r.ID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to delete the partner's accounts")
 	}
 
 	return nil

@@ -21,12 +21,10 @@ func importCerts(logger *log.Logger, db *database.Session, list []file.Certifica
 		//Check if cert exists
 		exist := true
 		err := db.Get(cert)
-		if err != nil {
-			if err == database.ErrNotFound {
-				exist = false
-			} else {
-				return err
-			}
+		if _, ok := err.(*database.NotFoundError); ok {
+			exist = false
+		} else if err != nil {
+			return err
 		}
 
 		// Populate

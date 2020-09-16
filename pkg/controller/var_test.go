@@ -30,8 +30,8 @@ type AllSuccess struct{}
 func NewAllSuccess(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return AllSuccess{}, nil
 }
-func (AllSuccess) Connect() *model.PipelineError                   { return nil }
-func (AllSuccess) Authenticate() *model.PipelineError              { return nil }
-func (AllSuccess) Request() *model.PipelineError                   { return nil }
-func (AllSuccess) Data(pipeline.DataStream) *model.PipelineError   { return nil }
-func (AllSuccess) Close(*model.PipelineError) *model.PipelineError { return nil }
+func (AllSuccess) Connect() error                 { return nil }
+func (AllSuccess) Authenticate() error            { return nil }
+func (AllSuccess) Request() error                 { return nil }
+func (AllSuccess) Data(pipeline.DataStream) error { return nil }
+func (AllSuccess) Close(error) error              { return nil }

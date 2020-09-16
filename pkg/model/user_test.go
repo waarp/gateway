@@ -70,8 +70,8 @@ func TestUsersValidate(t *testing.T) {
 						err := user.Validate(db)
 
 						Convey("Then the error should say that the username is missing", func() {
-							So(err, ShouldBeError, "the username "+
-								"cannot be empty")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the username cannot be empty"))
 						})
 					})
 				})
@@ -83,8 +83,8 @@ func TestUsersValidate(t *testing.T) {
 						err := user.Validate(db)
 
 						Convey("Then the error should say that the login is already taken", func() {
-							So(err, ShouldBeError, "a user named '"+user.Username+
-								"' already exist")
+							So(err, ShouldBeError, database.NewValidationError(
+								"a user named '%s' already exist", user.Username))
 						})
 					})
 				})
@@ -176,11 +176,12 @@ func TestUsersBeforeDelete(t *testing.T) {
 			Convey("When calling BeforeDelete", func() {
 				err := mine.BeforeDelete(db)
 
-				Convey("Then it should return an eror", func() {
+				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)
 
-					Convey("Then the error should say ''", func() {
-						So(err.Error(), ShouldEqual, "cannot delete gateway last admin")
+					Convey("Then the error should say the last admin cannot be deleted", func() {
+						So(err, ShouldBeError, database.NewValidationError(
+							"cannot delete gateway last admin"))
 					})
 				})
 			})
@@ -205,7 +206,7 @@ func TestUsersBeforeDelete(t *testing.T) {
 			Convey("When calling BeforeDelete", func() {
 				err := mine.BeforeDelete(db)
 
-				Convey("Then it should return No eror", func() {
+				Convey("Then it should return No error", func() {
 					So(err, ShouldBeNil)
 				})
 			})

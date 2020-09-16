@@ -27,14 +27,19 @@ type LocalAccount struct {
 	Password []byte `xorm:"'password'"`
 }
 
+// TableName returns the local accounts table name.
+func (*LocalAccount) TableName() string {
+	return "local_accounts"
+}
+
+// ElemName returns the name of 1 element of the local accounts table.
+func (*LocalAccount) ElemName() string {
+	return "local account"
+}
+
 // GetID returns the account's ID.
 func (l *LocalAccount) GetID() uint64 {
 	return l.ID
-}
-
-// TableName returns the local accounts table name.
-func (l *LocalAccount) TableName() string {
-	return "local_accounts"
 }
 
 // GetCerts fetch in the database then return the associated Certificates if they exist
@@ -56,32 +61,32 @@ func (l *LocalAccount) GetCerts(db database.Accessor) ([]Cert, error) {
 //nolint:dupl
 func (l *LocalAccount) Validate(db database.Accessor) (err error) {
 	if l.LocalAgentID == 0 {
-		return database.InvalidError("the account's agentID cannot be empty")
+		return database.NewValidationError("the account's agentID cannot be empty")
 	}
 	if l.Login == "" {
-		return database.InvalidError("the account's login cannot be empty")
+		return database.NewValidationError("the account's login cannot be empty")
 	}
 	if len(l.Password) == 0 {
-		return database.InvalidError("the account's password cannot be empty")
+		return database.NewValidationError("the account's password cannot be empty")
 	}
 
-	agent := &LocalAgent{ID: l.LocalAgentID}
-	if err := db.Get(agent); err != nil {
-		if err != database.ErrNotFound {
-			return err
-		}
-		return database.InvalidError("no local agent found with the ID '%v'", l.LocalAgentID)
+	parents, err := db.Query("SELECT id,protocol FROM local_agents WHERE id=?", l.LocalAgentID)
+	if err != nil {
+		return database.NewInternalError(err, "failed to retrieve the list of servers")
+	} else if len(parents) == 0 {
+		return database.NewValidationError("no local agent found with the ID '%v'",
+			l.LocalAgentID)
 	}
 
 	if res, err := db.Query("SELECT id FROM local_accounts WHERE id<>? AND "+
 		"local_agent_id=? AND login=?", l.ID, l.LocalAgentID, l.Login); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of existing accounts")
 	} else if len(res) > 0 {
-		return database.InvalidError("a local account with the same login '%s' "+
+		return database.NewValidationError("a local account with the same login '%s' "+
 			"already exist", l.Login)
 	}
 
-	if agent.Protocol == "r66" {
+	if parents[0]["protocol"] == "r66" {
 		l.Password = r66.CryptPass(l.Password)
 	}
 	l.Password, err = utils.HashPassword(l.Password)
@@ -91,21 +96,26 @@ func (l *LocalAccount) Validate(db database.Accessor) (err error) {
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
 func (l *LocalAccount) BeforeDelete(db database.Accessor) error {
-	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND account_id=?", true, l.ID)
+	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND account_id=?",
+		true, l.ID)
 	if err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of transfers")
 	}
 	if len(trans) > 0 {
-		return database.InvalidError("this account is currently being used in a " +
+		return database.NewValidationError("this account is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
 			"for it to finish")
 	}
 
 	certQuery := "DELETE FROM certificates WHERE owner_type='local_accounts' AND owner_id=?"
 	if err := db.Execute(certQuery, l.ID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to delete the account's certificates")
 	}
 
 	accessQuery := "DELETE FROM rule_access WHERE object_type='local_accounts' AND object_id=?"
-	return db.Execute(accessQuery, l.ID)
+	if err := db.Execute(accessQuery, l.ID); err != nil {
+		return database.NewInternalError(err, "failed to delete the account's rule permissions")
+	}
+
+	return nil
 }

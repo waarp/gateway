@@ -41,6 +41,11 @@ func (*Transfer) TableName() string {
 	return "transfers"
 }
 
+// ElemName returns the name of 1 element of the transfers table.
+func (*Transfer) ElemName() string {
+	return "transfer"
+}
+
 // GetID returns the transfer's ID
 func (t *Transfer) GetID() uint64 {
 	return t.ID
@@ -64,32 +69,34 @@ func (t *Transfer) SetTransferInfo(db database.Accessor, info map[string]interfa
 func (t *Transfer) validateClientTransfer(db database.Accessor) error {
 	remote := RemoteAgent{ID: t.AgentID}
 	if err := db.Get(&remote); err != nil {
-		if err == database.ErrNotFound {
-			return database.InvalidError("the partner %d does not exist", t.AgentID)
+		if _, ok := err.(*database.NotFoundError); ok {
+			return database.NewValidationError("the partner %d does not exist", t.AgentID)
 		}
-		return err
+		return database.NewInternalError(err, "failed to retrieve the transfer partner")
 	}
 	if res, err := db.Query("SELECT id FROM remote_accounts WHERE id=? AND remote_agent_id=?",
 		t.AccountID, t.AgentID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the transfer account")
 	} else if len(res) == 0 {
-		return database.InvalidError("the agent %d does not have an account %d",
+		return database.NewValidationError("the agent %d does not have an account %d",
 			t.AgentID, t.AccountID)
 	}
 
 	// Check for rule access
 	if auth, err := IsRuleAuthorized(db, t); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to transfer rule permissions")
 	} else if !auth {
-		return database.InvalidError("Rule %d is not authorized for this transfer", t.RuleID)
+		return database.NewValidationError("Rule %d is not authorized for this transfer",
+			t.RuleID)
 	}
 
 	if remote.Protocol == "sftp" {
 		if res, err := db.Query("SELECT id FROM certificates WHERE owner_type=? AND owner_id=?",
 			(&RemoteAgent{}).TableName(), t.AgentID); err != nil {
-			return err
+			return database.NewInternalError(err,
+				"failed to retrieve the partner's certificates")
 		} else if len(res) == 0 {
-			return database.InvalidError("the partner is missing an SFTP host key")
+			return database.NewValidationError("the partner is missing an SFTP host key")
 		}
 	}
 	return nil
@@ -98,24 +105,24 @@ func (t *Transfer) validateClientTransfer(db database.Accessor) error {
 func (t *Transfer) validateServerTransfer(db database.Accessor) error {
 	remote := LocalAgent{ID: t.AgentID}
 	if err := db.Get(&remote); err != nil {
-		if err == database.ErrNotFound {
-			return database.InvalidError("the partner %d does not exist", t.AgentID)
+		if _, ok := err.(*database.NotFoundError); ok {
+			return database.NewValidationError("the partner %d does not exist", t.AgentID)
 		}
-		return err
+		return database.NewInternalError(err, "failed to retrieve the transfer server")
 	}
 	if res, err := db.Query("SELECT id FROM local_accounts WHERE id=? AND local_agent_id=?",
 		t.AccountID, t.AgentID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the transfer account")
 	} else if len(res) == 0 {
-		return database.InvalidError("the agent %d does not have an account %d",
+		return database.NewValidationError("the agent %d does not have an account %d",
 			t.AgentID, t.AccountID)
 	}
 
 	// Check for rule access
 	if auth, err := IsRuleAuthorized(db, t); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to check transfer rule permissions")
 	} else if !auth {
-		return database.InvalidError("Rule %d is not authorized for this transfer", t.RuleID)
+		return database.NewValidationError("Rule %d is not authorized for this transfer", t.RuleID)
 	}
 	return nil
 }
@@ -127,19 +134,19 @@ func (t *Transfer) Validate(db database.Accessor) error {
 	t.Owner = database.Owner
 
 	if t.RuleID == 0 {
-		return database.InvalidError("the transfer's rule ID cannot be empty")
+		return database.NewValidationError("the transfer's rule ID cannot be empty")
 	}
 	if t.AgentID == 0 {
-		return database.InvalidError("the transfer's remote ID cannot be empty")
+		return database.NewValidationError("the transfer's remote ID cannot be empty")
 	}
 	if t.AccountID == 0 {
-		return database.InvalidError("the transfer's account ID cannot be empty")
+		return database.NewValidationError("the transfer's account ID cannot be empty")
 	}
 	if t.SourceFile == "" {
-		return database.InvalidError("the transfer's source cannot be empty")
+		return database.NewValidationError("the transfer's source cannot be empty")
 	}
 	if t.DestFile == "" {
-		return database.InvalidError("the transfer's destination cannot be empty")
+		return database.NewValidationError("the transfer's destination cannot be empty")
 	}
 	if t.Start.IsZero() {
 		t.Start = time.Now().Truncate(time.Second)
@@ -148,32 +155,32 @@ func (t *Transfer) Validate(db database.Accessor) error {
 		t.Status = types.StatusPlanned
 	}
 	if !types.ValidateStatusForTransfer(t.Status) {
-		return database.InvalidError("'%s' is not a valid transfer status", t.Status)
+		return database.NewValidationError("'%s' is not a valid transfer status", t.Status)
 	}
 	if !t.Step.IsValid() {
-		return database.InvalidError("'%s' is not a valid transfer step", t.Step)
+		return database.NewValidationError("'%s' is not a valid transfer step", t.Step)
 	}
 	if !t.Error.Code.IsValid() {
-		return database.InvalidError("'%s' is not a valid transfer error code", t.Error.Code)
+		return database.NewValidationError("'%s' is not a valid transfer error code", t.Error.Code)
 	}
 	if t.SourceFile != filepath.Base(t.SourceFile) {
-		return database.InvalidError("the source file cannot contain subdirectories")
+		return database.NewValidationError("the source file cannot contain subdirectories")
 	}
 	if t.DestFile != filepath.Base(t.DestFile) {
-		return database.InvalidError("the destination file cannot contain subdirectories")
+		return database.NewValidationError("the destination file cannot contain subdirectories")
 	}
 	if t.TrueFilepath != "" {
 		t.TrueFilepath = utils.NormalizePath(t.TrueFilepath)
 		if !path.IsAbs(t.TrueFilepath) {
-			return database.InvalidError("the filepath must be an absolute path")
+			return database.NewValidationError("the filepath must be an absolute path")
 		}
 	}
 	rule := Rule{ID: t.RuleID}
 	if err := db.Get(&rule); err != nil {
-		if err == database.ErrNotFound {
-			return database.InvalidError("the rule %d does not exist", t.RuleID)
+		if _, ok := err.(*database.NotFoundError); ok {
+			return database.NewValidationError("the rule %d does not exist", t.RuleID)
 		}
-		return err
+		return database.NewInternalError(err, "failed to retrieve the transfer rule")
 	}
 	if t.IsServer {
 		if err := t.validateServerTransfer(db); err != nil {

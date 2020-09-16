@@ -18,7 +18,7 @@ func getLocAg(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 	}
 	agent := &model.LocalAgent{Name: agentName, Owner: database.Owner}
 	if err := db.Get(agent); err != nil {
-		if err == database.ErrNotFound {
+		if database.IsNotFound(err) {
 			return nil, notFound("server '%s' not found", agentName)
 		}
 		return nil, err
@@ -28,22 +28,18 @@ func getLocAg(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 
 func getServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			result, err := getLocAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
-			if err != nil {
-				return err
-			}
-
-			return writeJSON(w, FromLocalAgent(result, rules))
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		result, err := getLocAg(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		err = writeJSON(w, FromLocalAgent(result, rules))
+		handleError(w, logger, err)
 	}
 }
 
@@ -58,260 +54,200 @@ func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	typ := (&model.LocalAgent{}).TableName()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			filters, err := parseListFilters(r, validSorting)
-			if err != nil {
-				return err
-			}
-			filters.Conditions = builder.Eq{"owner": database.Owner}
-			if err := parseProtoParam(r, filters); err != nil {
-				return err
-			}
-
-			var results []model.LocalAgent
-			if err := db.Select(&results, filters); err != nil {
-				return err
-			}
-
-			ids := make([]uint64, len(results))
-			for i, res := range results {
-				ids[i] = res.ID
-			}
-			rules, err := getAuthorizedRuleList(db, typ, ids)
-			if err != nil {
-				return err
-			}
-
-			resp := map[string][]api.OutServer{"servers": FromLocalAgents(results, rules)}
-			return writeJSON(w, resp)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		filters, err := parseListFilters(r, validSorting)
+		if handleError(w, logger, err) {
+			return
 		}
+		filters.Conditions = builder.Eq{"owner": database.Owner}
+		if err := parseProtoParam(r, filters); handleError(w, logger, err) {
+			return
+		}
+
+		var results []model.LocalAgent
+		if err := db.Select(&results, filters); handleError(w, logger, err) {
+			return
+		}
+
+		ids := make([]uint64, len(results))
+		for i, res := range results {
+			ids[i] = res.ID
+		}
+		rules, err := getAuthorizedRuleList(db, typ, ids)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		resp := map[string][]api.OutServer{"servers": FromLocalAgents(results, rules)}
+		err = writeJSON(w, resp)
+		handleError(w, logger, err)
 	}
 }
 
 func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			serv := &api.InServer{}
-			if err := readJSON(r, serv); err != nil {
-				return err
-			}
-
-			agent := servToDB(serv, 0)
-			if err := db.Create(agent); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", location(r.URL, agent.Name))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		var serv api.InServer
+		if err := readJSON(r, &serv); handleError(w, logger, err) {
+			return
 		}
+
+		agent := servToDB(&serv, 0)
+		if err := db.Create(agent); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", location(r.URL, agent.Name))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			old, err := getLocAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			serv := newInServer(old)
-			if err := readJSON(r, serv); err != nil {
-				return err
-			}
-
-			if err := db.Update(servToDB(serv, old.ID)); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", locationUpdate(r.URL, str(serv.Name)))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		old, err := getLocAg(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		serv := newInServer(old)
+		if err := readJSON(r, serv); handleError(w, logger, err) {
+			return
+		}
+
+		if err := db.Update(servToDB(serv, old.ID)); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", locationUpdate(r.URL, str(serv.Name)))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			old, err := getLocAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			serv := &api.InServer{}
-			if err := readJSON(r, serv); err != nil {
-				return err
-			}
-
-			if err := db.Update(servToDB(serv, old.ID)); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", locationUpdate(r.URL, str(serv.Name)))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		old, err := getLocAg(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		var serv api.InServer
+		if err := readJSON(r, &serv); handleError(w, logger, err) {
+			return
+		}
+
+		if err := db.Update(servToDB(&serv, old.ID)); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", locationUpdate(r.URL, str(serv.Name)))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func deleteServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getLocAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			if err := db.Delete(ag); err != nil {
-				return err
-			}
-			w.WriteHeader(http.StatusNoContent)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getLocAg(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		if err := db.Delete(ag); handleError(w, logger, err) {
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
 func authorizeServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getLocAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return authorizeRule(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getLocAg(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = authorizeRule(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func revokeServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getLocAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return revokeRule(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getLocAg(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = revokeRule(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func getServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getLocAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return getCertificate(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getLocAg(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = getCertificate(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func addServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getLocAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return createCertificate(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getLocAg(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = createCertificate(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func listServerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getLocAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return listCertificates(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getLocAg(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = listCertificates(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func deleteServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getLocAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return deleteCertificate(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getLocAg(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = deleteCertificate(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func updateServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getLocAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return updateCertificate(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getLocAg(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = updateCertificate(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func replaceServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getLocAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return replaceCertificate(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getLocAg(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = replaceCertificate(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }

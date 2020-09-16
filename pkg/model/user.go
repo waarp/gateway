@@ -3,7 +3,6 @@
 package model
 
 import (
-	"fmt"
 	"math"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -65,6 +64,11 @@ func (u *User) TableName() string {
 	return "users"
 }
 
+// ElemName returns the name of 1 element of the users table.
+func (*User) ElemName() string {
+	return "user"
+}
+
 // GetID returns the user's ID.
 func (u *User) GetID() uint64 {
 	return u.ID
@@ -90,10 +94,10 @@ func (u *User) BeforeDelete(db database.Accessor) error {
 		Conditions: builder.Eq{"owner": database.Owner},
 	})
 	if err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of users")
 	}
 	if len(users) < 2 {
-		return fmt.Errorf("cannot delete gateway last admin")
+		return database.NewValidationError("cannot delete gateway last admin")
 	}
 	return nil
 }
@@ -103,20 +107,22 @@ func (u *User) BeforeDelete(db database.Accessor) error {
 func (u *User) Validate(db database.Accessor) error {
 	u.Owner = database.Owner
 	if u.Username == "" {
-		return database.InvalidError("the username cannot be empty")
+		return database.NewValidationError("the username cannot be empty")
 	}
 	if len(u.Password) == 0 {
-		return database.InvalidError("the user password cannot be empty")
+		return database.NewValidationError("the user password cannot be empty")
 	}
 
 	if res, err := db.Query("SELECT id FROM users WHERE id<>? AND owner=? AND username=?",
 		u.ID, u.Owner, u.Username); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list os existing users")
 	} else if len(res) != 0 {
-		return database.InvalidError("a user named '%s' already exist", u.Username)
+		return database.NewValidationError("a user named '%s' already exist", u.Username)
 	}
 
 	var err error
-	u.Password, err = utils.HashPassword(u.Password)
-	return err
+	if u.Password, err = utils.HashPassword(u.Password); err != nil {
+		return database.NewInternalError(err, "failed to hash the user password")
+	}
+	return nil
 }

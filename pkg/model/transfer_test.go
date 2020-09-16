@@ -98,8 +98,8 @@ func TestTransferValidate(t *testing.T) {
 						err := trans.Validate(db)
 
 						Convey("Then the error should say the rule ID is missing", func() {
-							So(err, ShouldBeError, "the transfer's rule ID "+
-								"cannot be empty")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the transfer's rule ID cannot be empty"))
 						})
 					})
 				})
@@ -111,8 +111,8 @@ func TestTransferValidate(t *testing.T) {
 						err := trans.Validate(db)
 
 						Convey("Then the error should say the remote ID is missing", func() {
-							So(err, ShouldBeError, "the transfer's remote ID "+
-								"cannot be empty")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the transfer's remote ID cannot be empty"))
 						})
 					})
 				})
@@ -124,8 +124,8 @@ func TestTransferValidate(t *testing.T) {
 						err := trans.Validate(db)
 
 						Convey("Then the error should say the account ID is missing", func() {
-							So(err, ShouldBeError, "the transfer's account ID "+
-								"cannot be empty")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the transfer's account ID cannot be empty"))
 						})
 					})
 				})
@@ -137,8 +137,8 @@ func TestTransferValidate(t *testing.T) {
 						err := trans.Validate(db)
 
 						Convey("Then the error should say the source is missing", func() {
-							So(err, ShouldBeError, "the transfer's source "+
-								"cannot be empty")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the transfer's source cannot be empty"))
 						})
 					})
 				})
@@ -150,8 +150,8 @@ func TestTransferValidate(t *testing.T) {
 						err := trans.Validate(db)
 
 						Convey("Then the error should say the destination is missing", func() {
-							So(err, ShouldBeError, "the transfer's destination "+
-								"cannot be empty")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the transfer's destination cannot be empty"))
 						})
 					})
 				})
@@ -163,7 +163,8 @@ func TestTransferValidate(t *testing.T) {
 						err := trans.Validate(db)
 
 						Convey("Then the error should say the rule does not exist", func() {
-							So(err, ShouldBeError, "the rule 1000 does not exist")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the rule %d does not exist", trans.RuleID))
 						})
 					})
 				})
@@ -175,7 +176,8 @@ func TestTransferValidate(t *testing.T) {
 						err := trans.Validate(db)
 
 						Convey("Then the error should say the partner does not exist", func() {
-							So(err, ShouldBeError, "the partner 1000 does not exist")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the partner %d does not exist", trans.AgentID))
 						})
 					})
 				})
@@ -187,7 +189,9 @@ func TestTransferValidate(t *testing.T) {
 						err := trans.Validate(db)
 
 						Convey("Then the error should say the account does not exist", func() {
-							So(err, ShouldBeError, "the agent 1 does not have an account 1000")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the agent %d does not have an account %d",
+								trans.AgentID, trans.AccountID))
 						})
 					})
 				})
@@ -215,7 +219,9 @@ func TestTransferValidate(t *testing.T) {
 						err := trans.Validate(db)
 
 						Convey("Then the error should say the account does not exist", func() {
-							So(err, ShouldBeError, "the agent 1 does not have an account 2")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the agent %d does not have an account %d",
+								trans.AgentID, trans.AccountID))
 						})
 					})
 				})
@@ -227,7 +233,8 @@ func TestTransferValidate(t *testing.T) {
 						err := trans.Validate(db)
 
 						Convey("Then the error should say the remote does not have a certificate", func() {
-							So(err, ShouldBeError, "the partner is missing an SFTP host key")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the partner is missing an SFTP host key"))
 						})
 					})
 				})

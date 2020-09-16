@@ -15,7 +15,7 @@ import (
 func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64, error) {
 	rule := &model.Rule{Name: trans.Rule, IsSend: trans.IsSend}
 	if err := db.Get(rule); err != nil {
-		if err == database.ErrNotFound {
+		if _, ok := err.(*database.NotFoundError); ok {
 			return 0, 0, 0, badRequest("no rule '%s' found", rule.Name)
 		}
 		return 0, 0, 0, err
@@ -23,14 +23,14 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64
 
 	partner := &model.RemoteAgent{Name: trans.Partner}
 	if err := db.Get(partner); err != nil {
-		if err == database.ErrNotFound {
+		if _, ok := err.(*database.NotFoundError); ok {
 			return 0, 0, 0, badRequest("no partner '%s' found", partner.Name)
 		}
 		return 0, 0, 0, err
 	}
 	account := &model.RemoteAccount{RemoteAgentID: partner.ID, Login: trans.Account}
 	if err := db.Get(account); err != nil {
-		if err == database.ErrNotFound {
+		if _, ok := err.(*database.NotFoundError); ok {
 			return 0, 0, 0, badRequest("no account '%s' found for partner %s",
 				account.Login, partner.Name)
 		}

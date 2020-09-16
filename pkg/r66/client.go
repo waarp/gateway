@@ -52,7 +52,7 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 		var err error
 		tlsConf, err = makeClientTLSConfig(&info)
 		if err != nil {
-			return nil, model.NewPipelineError(types.TeInternal, "invalid R66 TLS config")
+			return nil, types.NewTransferError(types.TeInternal, "invalid R66 TLS config")
 		}
 	}
 
@@ -102,7 +102,7 @@ func makeClientTLSConfig(info *model.OutTransferInfo) (*tls.Config, error) {
 	}, nil
 }
 
-func (c *client) Connect() *model.PipelineError {
+func (c *client) Connect() error {
 	var remote *r66.Remote
 	var err error
 	if c.tlsConf != nil {
@@ -113,27 +113,27 @@ func (c *client) Connect() *model.PipelineError {
 
 	if err != nil {
 		if r66Err, ok := err.(*r66.Error); ok {
-			return model.NewPipelineError(types.FromR66Code(r66Err.Code), r66Err.Detail)
+			return types.NewTransferError(types.FromR66Code(r66Err.Code), r66Err.Detail)
 		}
-		return model.NewPipelineError(types.TeConnection, err.Error())
+		return types.NewTransferError(types.TeConnection, err.Error())
 	}
 	c.remote = remote
 	return nil
 }
 
-func (c *client) Authenticate() *model.PipelineError {
+func (c *client) Authenticate() error {
 	ses, err := c.remote.Authent()
 	if err != nil {
 		if r66Err, ok := err.(*r66.Error); ok {
-			return model.NewPipelineError(types.FromR66Code(r66Err.Code), r66Err.Detail)
+			return types.NewTransferError(types.FromR66Code(r66Err.Code), r66Err.Detail)
 		}
-		return model.NewPipelineError(types.TeBadAuthentication, err.Error())
+		return types.NewTransferError(types.TeBadAuthentication, err.Error())
 	}
 	c.session = ses
 	return nil
 }
 
-func (c *client) Request() *model.PipelineError {
+func (c *client) Request() error {
 	file := c.info.Transfer.SourceFile
 	var size uint64
 	if c.info.Rule.IsSend {
@@ -141,7 +141,7 @@ func (c *client) Request() *model.PipelineError {
 
 		stats, err := os.Stat(utils.DenormalizePath(c.info.Transfer.TrueFilepath))
 		if err != nil {
-			return model.NewPipelineError(types.TeInternal, err.Error())
+			return types.NewTransferError(types.TeInternal, err.Error())
 		}
 		size = uint64(stats.Size())
 
@@ -165,34 +165,34 @@ func (c *client) Request() *model.PipelineError {
 
 	if err := c.session.Request(trans); err != nil {
 		if r66Err, ok := err.(*r66.Error); ok {
-			return model.NewPipelineError(types.FromR66Code(r66Err.Code), r66Err.Detail)
+			return types.NewTransferError(types.FromR66Code(r66Err.Code), r66Err.Detail)
 		}
-		return model.NewPipelineError(types.TeConnection, err.Error())
+		return types.NewTransferError(types.TeConnection, err.Error())
 	}
 
 	return nil
 }
 
-func (c *client) Data(file pipeline.DataStream) *model.PipelineError {
+func (c *client) Data(file pipeline.DataStream) error {
 	c.hasData = true
 	c.stream = file
 
 	if err := c.session.Data(); err != nil {
 		if e, ok := err.(*r66.Error); ok {
-			return model.NewPipelineError(types.FromR66Code(e.Code), e.Detail)
+			return types.NewTransferError(types.FromR66Code(e.Code), e.Detail)
 		}
-		return model.NewPipelineError(types.TeDataTransfer, err.Error())
+		return types.NewTransferError(types.TeDataTransfer, err.Error())
 	}
 	if err := c.session.EndTransfer(); err != nil {
 		if e, ok := err.(*r66.Error); ok {
-			return model.NewPipelineError(types.FromR66Code(e.Code), e.Detail)
+			return types.NewTransferError(types.FromR66Code(e.Code), e.Detail)
 		}
-		return model.NewPipelineError(types.TeDataTransfer, err.Error())
+		return types.NewTransferError(types.TeDataTransfer, err.Error())
 	}
 	return nil
 }
 
-func (c *client) Close(err *model.PipelineError) *model.PipelineError {
+func (c *client) Close(err error) error {
 	if c.remote == nil {
 		return nil
 	}
@@ -206,9 +206,9 @@ func (c *client) Close(err *model.PipelineError) *model.PipelineError {
 	if !c.hasData && err == nil {
 		if err1 := c.session.EndTransfer(); err1 != nil {
 			if e, ok := err1.(*r66.Error); ok {
-				return model.NewPipelineError(types.FromR66Code(e.Code), e.Detail)
+				return types.NewTransferError(types.FromR66Code(e.Code), e.Detail)
 			}
-			return model.NewPipelineError(types.TeDataTransfer, err1.Error())
+			return types.NewTransferError(types.TeDataTransfer, err1.Error())
 		}
 	}
 
@@ -218,12 +218,11 @@ func (c *client) Close(err *model.PipelineError) *model.PipelineError {
 			return nil
 		}
 		if e, ok := err1.(*r66.Error); ok {
-			return model.NewPipelineError(types.FromR66Code(e.Code), e.Detail)
+			return types.NewTransferError(types.FromR66Code(e.Code), e.Detail)
 		}
-		return model.NewPipelineError(types.TeUnknownRemote, err1.Error())
+		return types.NewTransferError(types.TeUnknownRemote, err1.Error())
 	}
 
-	r66Err := &r66.Error{Code: err.Cause.Code.R66Code(), Detail: err.Cause.Details}
-	c.session.SendError(r66Err)
+	c.session.SendError(toR66Error(err))
 	return nil
 }

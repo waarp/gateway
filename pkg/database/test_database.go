@@ -1,10 +1,9 @@
 package database
 
 import (
-	"fmt"
-	"os"
-	"sync"
-	"sync/atomic"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -13,48 +12,52 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var num uint64 = 0
-
 const (
 	test       = "test"
 	testDriver = "sqlite3"
 )
 
-func init() {
-	supportedRBMS[test] = testinfo
+func testinfo(conf.DatabaseConfig) (string, string) {
+	return testDriver, testDSN()
 }
 
-func testinfo(config conf.DatabaseConfig) (string, string) {
-	return testDriver, testDSN(config)
+func testDSN() string {
+	return "file::memory:?cache=shared&mode=rwc"
 }
 
-func testDSN(config conf.DatabaseConfig) string {
-	return fmt.Sprintf("file:%s?mode=memory&cache=shared", config.Name)
+func testGCM() {
+	if GCM != nil {
+		return
+	}
+
+	key := make([]byte, 32)
+	_, err := rand.Read(key)
+	convey.So(err, convey.ShouldBeNil)
+	c, err := aes.NewCipher(key)
+	convey.So(err, convey.ShouldBeNil)
+
+	GCM, err = cipher.NewGCM(c)
+	convey.So(err, convey.ShouldBeNil)
 }
 
 // GetTestDatabase returns a testing Sqlite database stored in memory. If the
 // database cannot be started, the function will panic.
 func GetTestDatabase() *DB {
+	supportedRBMS[test] = testinfo
 	BcryptRounds = bcrypt.MinCost
 
 	config := &conf.ServerConfig{}
 	config.GatewayName = "test_gateway"
 	config.Database.Type = test
 
-	name := fmt.Sprint(atomic.LoadUint64(&num))
-	defer func() { _ = os.Remove(name) }()
-	config.Database.AESPassphrase = name
-	config.Database.Name = name
-	atomic.AddUint64(&num, 1)
-
 	logger := &logging.Logger{}
 	logger.SetBackend(logging.NewStdoutBackend())
 	logger.SetLevel(logging.WARNING)
 
+	testGCM()
 	db := &DB{
-		Conf:       config,
-		testDBLock: &sync.Mutex{},
-		logger:     &log.Logger{Logger: logger},
+		Conf:   config,
+		logger: &log.Logger{Logger: logger},
 	}
 
 	convey.So(db.Start(), convey.ShouldBeNil)

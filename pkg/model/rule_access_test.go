@@ -143,14 +143,15 @@ func TestRuleAccessValidate(t *testing.T) {
 
 			Convey("Given a RuleAccess with an invalid RuleID", func() {
 				ra := &RuleAccess{
-					RuleID: 0,
+					RuleID: 1000,
 				}
 
 				Convey("When calling the `Validate` method", func() {
 					err := ra.Validate(db)
 
 					Convey("Then the error should say 'No rule found'", func() {
-						So(err, ShouldBeError, "no rule found with ID 0")
+						So(err, ShouldBeError, database.NewValidationError(
+							"no rule found with ID %d", ra.RuleID))
 					})
 				})
 			})
@@ -165,9 +166,9 @@ func TestRuleAccessValidate(t *testing.T) {
 					err := ra.Validate(db)
 
 					Convey("Then the error should say 'No rule found'", func() {
-						So(err, ShouldBeError, "the rule_access's object type "+
-							"must be one of [local_agents remote_agents "+
-							"local_accounts remote_accounts]")
+						So(err, ShouldBeError, database.NewValidationError(
+							"the rule_access's object type must be one of %s",
+							validOwnerTypes))
 					})
 				})
 			})
@@ -178,15 +179,15 @@ func TestRuleAccessValidate(t *testing.T) {
 					ra := &RuleAccess{
 						RuleID:     r.ID,
 						ObjectType: objType,
-						ObjectID:   0,
+						ObjectID:   1000,
 					}
 
 					Convey("When calling the `Validate` method", func() {
 						err := ra.Validate(db)
 
 						Convey("Then the error should say 'No rule found'", func() {
-							So(err, ShouldBeError, fmt.Sprintf(
-								"no %s found with ID 0", ra.ObjectType))
+							So(err, ShouldBeError, database.NewValidationError(
+								"no %s found with ID %d", ra.ObjectType, ra.ObjectID))
 						})
 					})
 				})

@@ -26,7 +26,7 @@ func authentication(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 
 			user := &model.User{Username: login, Owner: database.Owner}
 			if err := db.Get(user); err != nil {
-				if err == database.ErrNotFound {
+				if _, ok := err.(*database.NotFoundError); ok {
 					logger.Warningf("Invalid authentication for user '%s'", login)
 					w.Header().Set("WWW-Authenticate", "Basic")
 					http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)

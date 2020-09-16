@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/go-xorm/builder"
@@ -54,7 +55,7 @@ func testGet(db *DB) {
 			err := acc.Get(&testBean{ID: 1000})
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, ErrNotFound)
+				So(err, ShouldBeError, newNotFoundError(tblName))
 			})
 		})
 
@@ -344,7 +345,7 @@ func testUpdate(db *DB) {
 			err := acc.Update(&updateBeanFail)
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, ErrNotFound)
+				So(err, ShouldBeError, newNotFoundError(tblName))
 			})
 		})
 
@@ -400,7 +401,7 @@ func testDelete(db *DB) {
 
 				Convey("Then the record should no longer be present in the database", func() {
 					check := testBean{ID: deleteBean.ID}
-					So(acc.Get(&check), ShouldBeError, ErrNotFound)
+					So(acc.Get(&check), ShouldBeError, newNotFoundError(tblName))
 				})
 
 				Convey("Then the `BeforeDelete` hook should have been called", func() {
@@ -413,7 +414,7 @@ func testDelete(db *DB) {
 			err := acc.Delete(&testBean{ID: 1000})
 
 			Convey("Then it should not change anything", func() {
-				So(err, ShouldBeError, ErrNotFound)
+				So(err, ShouldBeError, newNotFoundError(tblName))
 			})
 		})
 
@@ -502,7 +503,8 @@ func testExecute(db *DB) {
 			err := acc.Execute(nil)
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, xorm.ErrUnSupportedType)
+				So(err, ShouldBeError, NewInternalError(xorm.ErrUnSupportedType,
+					"failed to execute SQL command"))
 			})
 		})
 	}
@@ -563,7 +565,8 @@ func testQuery(db *DB) {
 			_, err := acc.Query(nil)
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, xorm.ErrUnSupportedType)
+				So(err, ShouldBeError, NewInternalError(xorm.ErrUnSupportedType,
+					"failed to execute SQL query"))
 			})
 		})
 	}
@@ -662,17 +665,23 @@ func TestSqlite(t *testing.T) {
 }
 
 func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
+	gcm := GCM
+	GCM = nil
+	defer func() { GCM = gcm }()
+
 	Convey("Given a test database", t, func() {
-		config := &conf.ServerConfig{}
-		config.GatewayName = "test_gateway"
-		config.Database.Type = test
-		config.Database.AESPassphrase = "db_test_no_passphrase.aes"
-		config.Database.Name = "db_test_no_passphrase.db"
-		db := &DB{Conf: config}
+		db := &DB{
+			Conf: &conf.ServerConfig{
+				Database: conf.DatabaseConfig{
+					Type:          "sqlite",
+					AESPassphrase: filepath.Join(os.TempDir(), "test_no_passphrase.aes"),
+				},
+			},
+		}
 
 		Convey("When the database service is started", func() {
 			So(db.Start(), ShouldBeNil)
-			Reset(func() { _ = os.Remove(config.Database.AESPassphrase) })
+			Reset(func() { _ = os.Remove(db.Conf.Database.AESPassphrase) })
 
 			Convey("Then there is a new passphrase file", func() {
 				stats, err := os.Stat(db.Conf.Database.AESPassphrase)

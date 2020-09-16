@@ -31,7 +31,7 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 
 	acc := model.LocalAccount{Login: authent.Login, LocalAgentID: a.agent.ID}
 	if err := a.db.Get(&acc); err != nil {
-		if err == database.ErrNotFound {
+		if database.IsNotFound(err) {
 			a.logger.Warningf("Unknown account '%s'", authent.Login)
 			return nil, &r66.Error{Code: r66.BadAuthent, Detail: "incorrect credentials"}
 		}
@@ -61,20 +61,20 @@ type sessionHandler struct {
 	hasFileSize, hasHash bool
 }
 
-func (s *sessionHandler) GetTransferInfo(ID int64, isClient bool) (*r66.TransferInfo, error) {
-	panic("implement me")
+func (s *sessionHandler) GetTransferInfo(int64, bool) (*r66.TransferInfo, error) {
+	return nil, &r66.Error{Code: r66.Unimplemented, Detail: "command not implemented"}
 }
 
-func (s *sessionHandler) GetFileInfo(rule string, filename string) ([]r66.FileInfo, error) {
-	panic("implement me")
+func (s *sessionHandler) GetFileInfo(string, string) ([]r66.FileInfo, error) {
+	return nil, &r66.Error{Code: r66.Unimplemented, Detail: "command not implemented"}
 }
 
 func (s *sessionHandler) GetBandwidth() (*r66.Bandwidth, error) {
-	panic("implement me")
+	return nil, &r66.Error{Code: r66.Unimplemented, Detail: "command not implemented"}
 }
 
 func (s *sessionHandler) SetBandwidth(*r66.Bandwidth) (*r66.Bandwidth, error) {
-	panic("implement me")
+	return nil, &r66.Error{Code: r66.Unimplemented, Detail: "command not implemented"}
 }
 
 func (s *sessionHandler) parseRuleMode(r *r66.Request) (bool, *model.Rule, error) {
@@ -97,7 +97,7 @@ func (s *sessionHandler) parseRuleMode(r *r66.Request) (bool, *model.Rule, error
 
 func (s *sessionHandler) getRule(rule *model.Rule) error {
 	if err := s.db.Get(rule); err != nil {
-		if err == database.ErrNotFound {
+		if database.IsNotFound(err) {
 			s.logger.Warningf("Requested transfer rule '%s' does not exist", rule.Name)
 			return &r66.Error{Code: r66.IncorrectCommand, Detail: "rule does not exist"}
 		}
@@ -154,11 +154,12 @@ func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler
 	}
 	setProgress(tStream.Transfer, request)
 
-	file := &stream{tStream}
+	//TODO: add transfer info to DB
+	stream := &stream{tStream}
 
 	handler := transferHandler{
 		sessionHandler: s,
-		file:           file,
+		file:           stream,
 		isMD5:          isMD5,
 		fileSize:       request.FileSize,
 	}
@@ -237,10 +238,7 @@ func (t *transferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
 
 func (t *transferHandler) RunPreTask() error {
 	if err := t.file.PreTasks(); err != nil {
-		if err.Kind == model.KindTransfer {
-			return &r66.Error{Code: r66.ExternalOperation, Detail: err.Cause.Details}
-		}
-		return &r66.Error{Code: r66.Internal, Detail: "pre-tasks failed"}
+		return toR66Error(err)
 	}
 	return nil
 }
@@ -298,10 +296,7 @@ func (t *transferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 
 func (t *transferHandler) RunPostTask() error {
 	if err := t.file.PostTasks(); err != nil {
-		if err.Kind == model.KindTransfer {
-			return &r66.Error{Code: r66.ExternalOperation, Detail: err.Cause.Details}
-		}
-		return &r66.Error{Code: r66.Internal, Detail: "pre-tasks failed"}
+		return toR66Error(err)
 	}
 	return nil
 }

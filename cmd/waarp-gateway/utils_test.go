@@ -42,7 +42,9 @@ func (*TestProtoConfig) ValidPartner() error { return nil }
 
 type TestProtoConfigFail struct{}
 
-func (*TestProtoConfigFail) ValidServer() error { return fmt.Errorf("server config validation failed") }
+func (*TestProtoConfigFail) ValidServer() error {
+	return fmt.Errorf("server config validation failed")
+}
 func (*TestProtoConfigFail) ValidPartner() error {
 	return fmt.Errorf("partner config validation failed")
 }

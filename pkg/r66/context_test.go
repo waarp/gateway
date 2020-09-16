@@ -82,7 +82,7 @@ func initForSelfTransfer(c C) *testContext {
 		Name:        "r66_server",
 		Protocol:    "r66",
 		Root:        utils.NormalizePath(root),
-		ProtoConfig: json.RawMessage(`{"blockSize":50,"serverPassword":"c2VzYW1l"}`),
+		ProtoConfig: json.RawMessage(`{"blockSize":50,"serverPassword":"sesame"}`),
 		Address:     fmt.Sprintf("localhost:%d", port),
 	}
 	c.So(db.Create(server), ShouldBeNil)
@@ -98,7 +98,7 @@ func initForSelfTransfer(c C) *testContext {
 		Name:     "r66_partner",
 		Protocol: "r66",
 		ProtoConfig: json.RawMessage(`{"blockSize":50, "serverLogin":"r66_server",
-			"serverPassword":"c2VzYW1l"}`),
+			"serverPassword":"sesame"}`),
 		Address: fmt.Sprintf("localhost:%d", port),
 	}
 	c.So(db.Create(partner), ShouldBeNil)

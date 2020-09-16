@@ -106,9 +106,10 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 					err := ag.BeforeDelete(db)
 
 					Convey("Then it should say that the agent is being used", func() {
-						So(err, ShouldBeError, "this server is currently being "+
-							"used in a running transfer and cannot be deleted, "+
-							"cancel the transfer or wait for it to finish")
+						So(err, ShouldBeError, database.NewValidationError(
+							"this server is currently being "+
+								"used in a running transfer and cannot be deleted, "+
+								"cancel the transfer or wait for it to finish"))
 					})
 				})
 			})
@@ -161,8 +162,8 @@ func TestLocalAgentValidate(t *testing.T) {
 						err := newAgent.Validate(db)
 
 						Convey("Then the error should say that the name is missing", func() {
-							So(err, ShouldBeError, "the agent's name cannot "+
-								"be empty")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the agent's name cannot be empty"))
 						})
 					})
 				})
@@ -174,8 +175,9 @@ func TestLocalAgentValidate(t *testing.T) {
 						err := newAgent.Validate(db)
 
 						Convey("Then the error should say that the name is already taken", func() {
-							So(err, ShouldBeError, "a local agent with "+
-								"the same name '"+newAgent.Name+"' already exist")
+							So(err, ShouldBeError, database.NewValidationError(
+								"a local agent with the same name '%s' already exist",
+								newAgent.Name))
 						})
 					})
 				})
@@ -226,7 +228,8 @@ func TestLocalAgentValidate(t *testing.T) {
 						err := newAgent.Validate(db)
 
 						Convey("Then the error should say that the protocol is invalid", func() {
-							So(err, ShouldBeError, "unknown protocol 'not a protocol'")
+							So(err, ShouldBeError, database.NewValidationError(
+								"unknown protocol 'not a protocol'"))
 						})
 					})
 				})
@@ -237,10 +240,11 @@ func TestLocalAgentValidate(t *testing.T) {
 					Convey("When calling the 'Validate' function", func() {
 						err := newAgent.Validate(db)
 
-						Convey("Then the error should say that the configuration is invalid", func() {
-							So(err, ShouldBeError, "failed to parse protocol "+
-								"configuration: invalid character 'i' looking "+
-								"for beginning of value")
+						Convey("Then the error should say that the configuration "+
+							"is invalid", func() {
+							So(err, ShouldBeError, database.NewValidationError(
+								"failed to parse protocol configuration: invalid "+
+									"character 'i' looking for beginning of value"))
 						})
 					})
 				})

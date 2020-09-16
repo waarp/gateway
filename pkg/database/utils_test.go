@@ -20,9 +20,8 @@ type testBean struct {
 	signals string `xorm:"-"`
 }
 
-func (*testBean) TableName() string {
-	return tblName
-}
+func (*testBean) TableName() string { return tblName }
+func (*testBean) ElemName() string  { return tblName }
 
 func (t *testBean) GetID() uint64 {
 	return t.ID
@@ -40,10 +39,6 @@ func (t *testBean) BeforeDelete(Accessor) error {
 
 type invalidBean struct{}
 
-func (*invalidBean) GetID() uint64 {
-	return 0
-}
-
-func (*invalidBean) TableName() string {
-	return "invalid"
-}
+func (*invalidBean) GetID() uint64     { return 0 }
+func (*invalidBean) TableName() string { return "invalid" }
+func (*invalidBean) ElemName() string  { return "invalid" }

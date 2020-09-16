@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -73,8 +72,8 @@ func TestTaskBeforeInsert(t *testing.T) {
 					err := t2.Validate(db)
 
 					Convey("Then the error should say the rule was not found", func() {
-						So(err, ShouldBeError, "no rule found with ID "+
-							fmt.Sprint(t2.RuleID))
+						So(err, ShouldBeError, database.NewValidationError(
+							"no rule found with ID %d", t2.RuleID))
 					})
 				})
 			})
@@ -92,7 +91,7 @@ func TestTaskBeforeInsert(t *testing.T) {
 					err := t2.Validate(db)
 
 					Convey("Then the error should say that the chain is invalid", func() {
-						So(err, ShouldBeError, fmt.Sprintf(
+						So(err, ShouldBeError, database.NewValidationError(
 							"%s is not a valid task chain", t2.Chain))
 					})
 				})
@@ -111,7 +110,8 @@ func TestTaskBeforeInsert(t *testing.T) {
 					err := t2.Validate(db)
 
 					Convey("Then the error should say that the task already exist", func() {
-						So(err, ShouldBeError, fmt.Sprintf("rule %d already has a task in %s at %d",
+						So(err, ShouldBeError, database.NewValidationError(
+							"rule %d already has a task in %s at %d",
 							t2.RuleID, t2.Chain, t2.Rank))
 					})
 				})

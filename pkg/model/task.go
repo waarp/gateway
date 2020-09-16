@@ -45,9 +45,14 @@ func (*Task) TableName() string {
 	return "tasks"
 }
 
+// ElemName returns the name of 1 element of the tasks table.
+func (*Task) ElemName() string {
+	return "task"
+}
+
 func (t *Task) validateTasks() error {
 	if t.Chain != ChainPre && t.Chain != ChainPost && t.Chain != ChainError {
-		return database.InvalidError("%s is not a valid task chain", t.Chain)
+		return database.NewValidationError("%s is not a valid task chain", t.Chain)
 	}
 
 	if len(t.Args) == 0 {
@@ -55,16 +60,18 @@ func (t *Task) validateTasks() error {
 	}
 	args := map[string]string{}
 	if err := json.Unmarshal(t.Args, &args); err != nil {
-		return err
+		return database.NewValidationError("incorrect task format: %s", err)
 	}
 
 	v, ok := ValidTasks[t.Type]
 	if !ok {
-		return database.InvalidError("%s is not a valid task Type", t.Type)
+		return database.NewValidationError("%s is not a valid task Type", t.Type)
 	}
+
 	if err := v.Validate(args); err != nil {
-		return database.InvalidError("invalid %s task arguments: %s", t.Type, err)
+		return database.NewValidationError("invalid task: %s", err)
 	}
+
 	return nil
 }
 
@@ -72,9 +79,9 @@ func (t *Task) validateTasks() error {
 // inserted in the database.
 func (t *Task) Validate(db database.Accessor) error {
 	if res, err := db.Query("SELECT id FROM rules WHERE id=?", t.RuleID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of rules")
 	} else if len(res) < 1 {
-		return database.InvalidError("no rule found with ID %d", t.RuleID)
+		return database.NewValidationError("no rule found with ID %d", t.RuleID)
 	}
 
 	if err := t.validateTasks(); err != nil {
@@ -83,9 +90,10 @@ func (t *Task) Validate(db database.Accessor) error {
 
 	if res, err := db.Query("SELECT rule_id FROM tasks WHERE rule_id=? AND chain=? AND rank=?",
 		t.RuleID, t.Chain, t.Rank); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of rules")
 	} else if len(res) > 0 {
-		return database.InvalidError("rule %d already has a task in %s at %d", t.RuleID, t.Chain, t.Rank)
+		return database.NewValidationError("rule %d already has a task in %s at %d",
+			t.RuleID, t.Chain, t.Rank)
 	}
 
 	return nil

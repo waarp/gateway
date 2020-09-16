@@ -80,12 +80,12 @@ func TestAddTransfer(t *testing.T) {
 
 					handler.ServeHTTP(w, r)
 
-					Convey("Then it should return a code 201", func() {
-						So(w.Code, ShouldEqual, http.StatusCreated)
-					})
-
 					Convey("Then the response body should be empty", func() {
 						So(w.Body.String(), ShouldBeBlank)
+					})
+
+					Convey("Then it should return a code 201", func() {
+						So(w.Code, ShouldEqual, http.StatusCreated)
 					})
 
 					Convey("Then the 'Location' header should contain the URI "+

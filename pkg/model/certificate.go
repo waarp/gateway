@@ -1,6 +1,8 @@
 package model
 
-import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+import (
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+)
 
 func init() {
 	database.Tables = append(database.Tables, &Cert{})
@@ -41,6 +43,11 @@ func (*Cert) TableName() string {
 	return "certificates"
 }
 
+// ElemName returns the name of 1 element of the certificates table.
+func (*Cert) ElemName() string {
+	return "certificate"
+}
+
 // GetID returns the certificate's ID.
 func (c *Cert) GetID() uint64 {
 	return c.ID
@@ -50,21 +57,21 @@ func (c *Cert) GetID() uint64 {
 // in the database.
 func (c *Cert) Validate(db database.Accessor) error {
 	if c.OwnerType == "" {
-		return database.InvalidError("the certificate's owner type is missing")
+		return database.NewValidationError("the certificate's owner type is missing")
 	}
 	if c.OwnerID == 0 {
-		return database.InvalidError("the certificate's owner ID is missing")
+		return database.NewValidationError("the certificate's owner ID is missing")
 	}
 	if c.Name == "" {
-		return database.InvalidError("the certificate's name cannot be empty")
+		return database.NewValidationError("the certificate's name cannot be empty")
 	}
 	if (c.OwnerType == "remote_accounts" || c.OwnerType == "local_agents") &&
 		len(c.PrivateKey) == 0 {
-		return database.InvalidError("the certificate's private key is missing")
+		return database.NewValidationError("the certificate's private key is missing")
 	}
 	if (c.OwnerType == "remote_agents" || c.OwnerType == "local_accounts") &&
 		len(c.PublicKey) == 0 {
-		return database.InvalidError("the certificate's public key is missing")
+		return database.NewValidationError("the certificate's public key is missing")
 	}
 
 	var res []map[string]interface{}
@@ -79,22 +86,24 @@ func (c *Cert) Validate(db database.Accessor) error {
 	case "remote_accounts":
 		res, err = db.Query("SELECT id FROM remote_accounts WHERE id=?", c.OwnerID)
 	default:
-		return database.InvalidError("the certificate's owner type must be one of %s",
+		return database.NewValidationError("the certificate's owner type must be one of %s",
 			validOwnerTypes)
 	}
 	if err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of %s",
+			c.OwnerType)
 	} else if len(res) == 0 {
-		return database.InvalidError("no "+c.OwnerType+" found with ID '%v'", c.OwnerID)
+		return database.NewValidationError("no %s found with ID '%v'", c.OwnerType,
+			c.OwnerID)
 	}
 
 	if res, err := db.Query("SELECT id FROM certificates WHERE id<>? AND "+
 		"owner_type=? AND owner_id=? AND name=?", c.ID, c.OwnerType, c.OwnerID,
 		c.Name); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of certificates")
 	} else if len(res) > 0 {
-		return database.InvalidError("a certificate with the same name '%s' "+
-			"already exist", c.Name)
+		return database.NewValidationError(
+			"a certificate with the same name '%s' already exist", c.Name)
 	}
 
 	return nil

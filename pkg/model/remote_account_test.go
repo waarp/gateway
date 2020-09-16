@@ -89,9 +89,10 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 					err := acc.BeforeDelete(db)
 
 					Convey("Then it should say that the account is being used", func() {
-						So(err, ShouldBeError, "this account is currently being "+
-							"used in a running transfer and cannot be deleted, "+
-							"cancel the transfer or wait for it to finish")
+						So(err, ShouldBeError, database.NewValidationError(
+							"this account is currently being used in a running "+
+								"transfer and cannot be deleted, cancel "+
+								"the transfer or wait for it to finish"))
 					})
 				})
 			})
@@ -146,8 +147,8 @@ func TestRemoteAccountValidate(t *testing.T) {
 						err := newAccount.Validate(db)
 
 						Convey("Then the error should say that the agent ID is missing", func() {
-							So(err, ShouldBeError, "the account's agentID "+
-								"cannot be empty")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the account's agentID cannot be empty"))
 						})
 					})
 				})
@@ -163,8 +164,8 @@ func TestRemoteAccountValidate(t *testing.T) {
 						})
 
 						Convey("Then the error should say that the login is missing", func() {
-							So(err, ShouldBeError, "the account's login "+
-								"cannot be empty")
+							So(err, ShouldBeError, database.NewValidationError(
+								"the account's login cannot be empty"))
 						})
 					})
 				})
@@ -176,8 +177,9 @@ func TestRemoteAccountValidate(t *testing.T) {
 						err := newAccount.Validate(db)
 
 						Convey("Then the error should say that the agent ID is invalid", func() {
-							So(err, ShouldBeError, "no remote agent found "+
-								"with the ID '1000'")
+							So(err, ShouldBeError, database.NewValidationError(
+								"no remote agent found with the ID '%d'",
+								newAccount.RemoteAgentID))
 						})
 					})
 				})
@@ -189,8 +191,9 @@ func TestRemoteAccountValidate(t *testing.T) {
 						err := newAccount.Validate(db)
 
 						Convey("Then the error should say that the login is already taken", func() {
-							So(err, ShouldBeError, "a remote account with "+
-								"the same login '"+newAccount.Login+"' already exist")
+							So(err, ShouldBeError, database.NewValidationError(
+								"a remote account with the same login '%s' already exist",
+								newAccount.Login))
 						})
 					})
 				})

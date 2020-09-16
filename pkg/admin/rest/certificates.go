@@ -82,7 +82,7 @@ func getCert(r *http.Request, db *database.DB, ownerType string, ownerID uint64)
 	}
 	cert := &model.Cert{Name: certName, OwnerType: ownerType, OwnerID: ownerID}
 	if err := db.Get(cert); err != nil {
-		if err == database.ErrNotFound {
+		if _, ok := err.(*database.NotFoundError); ok {
 			return nil, notFound("certificate '%s' not found", certName)
 		}
 		return nil, err
@@ -104,8 +104,8 @@ func getCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 func createCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 	ownerType string, ownerID uint64) error {
 
-	jsonCert := &InCert{}
-	if err := readJSON(r, jsonCert); err != nil {
+	var jsonCert InCert
+	if err := readJSON(r, &jsonCert); err != nil {
 		return err
 	}
 
@@ -165,8 +165,8 @@ func replaceCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	cert := &InCert{}
-	if err := readJSON(r, cert); err != nil {
+	var cert InCert
+	if err := readJSON(r, &cert); err != nil {
 		return err
 	}
 

@@ -28,8 +28,13 @@ type RemoteAccount struct {
 }
 
 // TableName returns the remote accounts table name.
-func (r *RemoteAccount) TableName() string {
+func (*RemoteAccount) TableName() string {
 	return "remote_accounts"
+}
+
+// ElemName returns the name of 1 element of the remote accounts table.
+func (*RemoteAccount) ElemName() string {
+	return "remote account"
 }
 
 // GetID returns the account's ID.
@@ -54,55 +59,63 @@ func (r *RemoteAccount) GetCerts(db database.Accessor) ([]Cert, error) {
 // Validate checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
 //nolint:dupl
-func (r *RemoteAccount) Validate(db database.Accessor) (err error) {
+func (r *RemoteAccount) Validate(db database.Accessor) error {
 	if r.RemoteAgentID == 0 {
-		return database.InvalidError("the account's agentID cannot be empty")
+		return database.NewValidationError("the account's agentID cannot be empty")
 	}
 	if r.Login == "" {
-		return database.InvalidError("the account's login cannot be empty")
+		return database.NewValidationError("the account's login cannot be empty")
 	}
 	if len(r.Password) == 0 {
-		return database.InvalidError("the account's password cannot be empty")
+		return database.NewValidationError("The account's password cannot be empty")
 	}
 
-	agent := &RemoteAgent{ID: r.RemoteAgentID}
-	if err := db.Get(agent); err != nil {
-		if err != database.ErrNotFound {
-			return err
-		}
-		return database.InvalidError("no remote agent found with the ID '%v'", r.RemoteAgentID)
+	if res, err := db.Query("SELECT id FROM remote_agents WHERE id=?",
+		r.RemoteAgentID); err != nil {
+		return database.NewInternalError(err, "failed to retrieve the list of partners")
+	} else if len(res) == 0 {
+		return database.NewValidationError("no remote agent found with the ID '%v'",
+			r.RemoteAgentID)
 	}
 
 	if res, err := db.Query("SELECT id FROM remote_accounts WHERE id<>? AND "+
 		"remote_agent_id=? AND login=?", r.ID, r.RemoteAgentID, r.Login); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of existing accounts")
 	} else if len(res) > 0 {
-		return database.InvalidError("a remote account with the same login '%s' "+
-			"already exist", r.Login)
+		return database.NewValidationError(
+			"a remote account with the same login '%s' already exist", r.Login)
 	}
 
-	r.Password, err = utils.CryptPassword(r.Password)
-	return err
+	var pErr error
+	if r.Password, pErr = utils.CryptPassword(r.Password); pErr != nil {
+		return database.NewInternalError(pErr, "failed to encrypt the account password")
+	}
+	return nil
 }
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
 func (r *RemoteAccount) BeforeDelete(db database.Accessor) error {
-	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND account_id=?", false, r.ID)
+	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND account_id=?",
+		false, r.ID)
 	if err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of transfers")
 	}
 	if len(trans) > 0 {
-		return database.InvalidError("this account is currently being used in a " +
+		return database.NewValidationError("this account is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
 			"for it to finish")
 	}
 
 	certQuery := "DELETE FROM certificates WHERE owner_type='remote_accounts' AND owner_id=?"
 	if err := db.Execute(certQuery, r.ID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to delete the account's certificates")
 	}
 
 	accessQuery := "DELETE FROM rule_access WHERE object_type='remote_accounts' AND object_id=?"
-	return db.Execute(accessQuery, r.ID)
+	if err := db.Execute(accessQuery, r.ID); err != nil {
+		return database.NewInternalError(err, "failed to delete the account's rule permissions")
+	}
+
+	return nil
 }

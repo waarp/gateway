@@ -20,13 +20,18 @@ func (*RuleAccess) TableName() string {
 	return "rule_access"
 }
 
+// ElemName returns the name of 1 element of the rule access table.
+func (*RuleAccess) ElemName() string {
+	return "rule permission"
+}
+
 // Validate is called before inserting a new `RuleAccess` entry in the
 // database. It checks whether the new entry is valid or not.
 func (r *RuleAccess) Validate(db database.Accessor) error {
 	if res, err := db.Query("SELECT id FROM rules WHERE id=?", r.RuleID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of rules")
 	} else if len(res) < 1 {
-		return database.InvalidError("no rule found with ID %d", r.RuleID)
+		return database.NewValidationError("no rule found with ID %d", r.RuleID)
 	}
 
 	var res []map[string]interface{}
@@ -41,20 +46,21 @@ func (r *RuleAccess) Validate(db database.Accessor) error {
 	case "remote_accounts":
 		res, err = db.Query("SELECT id FROM remote_accounts WHERE id=?", r.ObjectID)
 	default:
-		return database.InvalidError("the rule_access's object type must be one of %s",
+		return database.NewValidationError("the rule_access's object type must be one of %s",
 			validOwnerTypes)
 	}
 	if err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of %s",
+			r.ObjectType)
 	} else if len(res) == 0 {
-		return database.InvalidError("no %s found with ID %v", r.ObjectType, r.ObjectID)
+		return database.NewValidationError("no %s found with ID %v", r.ObjectType, r.ObjectID)
 	}
 
 	if err := db.Get(r); err == nil {
-		return database.InvalidError("the agent has already been granted access " +
+		return database.NewValidationError("the agent has already been granted access " +
 			"to this rule")
-	} else if err != database.ErrNotFound {
-		return err
+	} else if _, ok := err.(*database.NotFoundError); !ok {
+		return database.NewInternalError(err, "failed to check the existing rule permissions")
 	}
 
 	return nil

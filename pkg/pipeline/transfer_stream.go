@@ -29,7 +29,7 @@ type TransferStream struct {
 // getOldTransfer searches if the given transfer has a corresponding entry in
 // the database. If it does, the given transfer will be replaced by the one from
 // the database. If no corresponding entry can be found, a new one will be created.
-func (t *TransferStream) getOldTransfer() *model.PipelineError {
+func (t *TransferStream) getOldTransfer() error {
 	// If an ID is present, this is a client transfer, and all info are already
 	// present, no need to query the database.
 	if t.Transfer.ID != 0 {
@@ -47,9 +47,9 @@ func (t *TransferStream) getOldTransfer() *model.PipelineError {
 		RemoteTransferID: t.Transfer.RemoteTransferID,
 		AccountID:        t.Transfer.AccountID,
 	}
-	if err := t.DB.Get(getTrans); err != nil && err != database.ErrNotFound {
+	if err := t.DB.Get(getTrans); err != nil && !database.IsNotFound(err) {
 		t.Logger.Criticalf("Failed to retrieve transfer: %s", err.Error())
-		return &model.PipelineError{Kind: model.KindDatabase}
+		return types.NewTransferError(types.TeInternal, "internal database error")
 	} else if err == nil {
 		t.Transfer = getTrans
 		return nil
@@ -100,7 +100,7 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	t.Pipeline.Rule = &model.Rule{ID: trans.RuleID}
 	if err := t.DB.Get(t.Rule); err != nil {
 		logger.Criticalf("Failed to retrieve transfer rule: %s", err.Error())
-		return nil, &model.PipelineError{Kind: model.KindDatabase}
+		return nil, err
 	}
 	t.Signals = Signals.Add(t.Transfer.ID)
 
@@ -131,7 +131,7 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	return t, nil
 }
 
-func (t *TransferStream) initStatus() *model.PipelineError {
+func (t *TransferStream) initStatus() error {
 	t.Transfer.Status = types.StatusRunning
 	if t.Transfer.Error.Code != types.TeOk {
 		t.Transfer.Error = types.TransferError{}
@@ -139,26 +139,26 @@ func (t *TransferStream) initStatus() *model.PipelineError {
 	}
 	if err := t.DB.Update(t.Transfer); err != nil {
 		t.Logger.Criticalf("Failed to set transfer status to %s: %s", types.StatusRunning, err.Error())
-		return &model.PipelineError{Kind: model.KindDatabase}
+		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
 	return nil
 }
 
-func (t *TransferStream) createTransfer(trans *model.Transfer) *model.PipelineError {
+func (t *TransferStream) createTransfer(trans *model.Transfer) error {
 	trans.Status = types.StatusRunning
 	if err := t.DB.Create(trans); err != nil {
-		if _, ok := err.(*database.ErrInvalid); ok {
+		if _, ok := err.(*database.ValidationError); ok {
 			t.Logger.Errorf("Failed to create transfer entry: %s", err.Error())
-			return model.NewPipelineError(types.TeForbidden, err.Error())
+			return types.NewTransferError(types.TeForbidden, err.Error())
 		}
 		t.Logger.Criticalf("Failed to create transfer entry: %s", err.Error())
-		return &model.PipelineError{Kind: model.KindDatabase}
+		return err
 	}
 	t.Logger.Infof("Transfer was given ID n°%d", trans.ID)
 	return nil
 }
 
-func (t *TransferStream) setTrueFilepath() *model.PipelineError {
+func (t *TransferStream) setTrueFilepath() error {
 	if t.Rule.IsSend {
 		fullPath := utils.GetPath(t.Transfer.SourceFile, utils.Elems{
 			{t.Rule.OutPath, true},
@@ -191,14 +191,14 @@ func (t *TransferStream) setTrueFilepath() *model.PipelineError {
 	}
 	if err := t.DB.Update(t.Transfer); err != nil {
 		t.Logger.Criticalf("Failed to update transfer filepath: %s", err.Error())
-		return &model.PipelineError{Kind: model.KindDatabase}
+		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
 	return nil
 }
 
 // Start opens/creates the stream's local file. If necessary, the method also
 // creates the file's parent directories.
-func (t *TransferStream) Start() *model.PipelineError {
+func (t *TransferStream) Start() error {
 	if t.File != nil {
 		return nil
 	}
@@ -206,17 +206,16 @@ func (t *TransferStream) Start() *model.PipelineError {
 	if !t.Rule.IsSend {
 		if err := makeDir(t.Transfer.TrueFilepath); err != nil {
 			t.Logger.Errorf("Failed to create temp directory: %s", err)
-			return model.NewPipelineError(types.TeForbidden, err.Error())
+			return types.NewTransferError(types.TeForbidden, err.Error())
 		}
 	}
 
-	var err *model.PipelineError
+	var err error
 	if t.File, err = getFile(t.Logger, t.Rule, t.Transfer); err != nil {
 		return err
 	}
 
 	t.ticker = time.NewTicker(time.Second)
-
 	return nil
 }
 
@@ -233,7 +232,7 @@ func (t *TransferStream) InitData() error {
 	t.Transfer.Step = types.StepData
 	if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
 		t.Logger.Criticalf("Failed to update upload transfer step to 'DATA': %s", dbErr)
-		return &model.PipelineError{Kind: model.KindDatabase}
+		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
 
 	return nil
@@ -248,7 +247,7 @@ func (t *TransferStream) updateProgress() error {
 		}
 		if dbErr := t.DB.Update(updt); dbErr != nil {
 			t.Logger.Criticalf("Failed to update upload transfer progress: %s", dbErr)
-			return &model.PipelineError{Kind: model.KindDatabase}
+			return types.NewTransferError(types.TeInternal, "internal database ")
 		}
 	default:
 	}
@@ -264,7 +263,7 @@ func (t *TransferStream) Read(p []byte) (int, error) {
 	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
 	if err != nil && err != io.EOF {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
-		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
+		err = t.Transfer.Error
 	}
 	if err := t.updateProgress(); err != nil {
 		return n, err
@@ -282,7 +281,7 @@ func (t *TransferStream) Write(p []byte) (int, error) {
 	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
 	if err != nil {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
-		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
+		err = t.Transfer.Error
 	}
 	if err := t.updateProgress(); err != nil {
 		return n, err
@@ -301,7 +300,7 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (int, error) {
 	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
 	if err != nil && err != io.EOF {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
-		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
+		err = t.Transfer.Error
 	}
 	if err := t.updateProgress(); err != nil {
 		return n, err
@@ -320,7 +319,7 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (int, error) {
 	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
 	if err != nil {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
-		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
+		err = t.Transfer.Error
 	}
 	if err := t.updateProgress(); err != nil {
 		return n, err
@@ -339,7 +338,7 @@ func (t *TransferStream) Close() error {
 	t.ticker.Stop()
 	if err := t.DB.Update(t.Transfer); err != nil {
 		t.Logger.Criticalf("Failed to update transfer progress: %s", err.Error())
-		return &model.PipelineError{Kind: model.KindDatabase}
+		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
 
 	return nil
@@ -367,18 +366,18 @@ func (t *TransferStream) Move() error {
 
 	if err := makeDir(filepath); err != nil {
 		t.Logger.Errorf("Failed to create destination directory: %s", err.Error())
-		return model.NewPipelineError(types.TeFinalization, err.Error())
+		return types.NewTransferError(types.TeFinalization, err.Error())
 	}
 
 	if err := tasks.MoveFile(t.Transfer.TrueFilepath, filepath); err != nil {
 		t.Logger.Errorf("Failed to move temp file: %s", err.Error())
-		return model.NewPipelineError(types.TeFinalization, err.Error())
+		return types.NewTransferError(types.TeFinalization, err.Error())
 	}
 
 	t.Transfer.TrueFilepath = filepath
 	if err := t.DB.Update(t.Transfer); err != nil {
 		t.Logger.Errorf("Failed to update transfer filepath: %s", err.Error())
-		return &model.PipelineError{Kind: model.KindDatabase}
+		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
 	return nil
 }

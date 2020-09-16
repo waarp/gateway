@@ -45,12 +45,17 @@ func (*Rule) TableName() string {
 	return "rules"
 }
 
+// ElemName returns the name of 1 element of the rules table.
+func (*Rule) ElemName() string {
+	return "rule"
+}
+
 // GetID returns the rule's ID.
 func (r *Rule) GetID() uint64 {
 	return r.ID
 }
 
-func (r *Rule) normalizePaths() error {
+func (r *Rule) normalizePaths() {
 	if r.Path == "" {
 		r.Path = "/" + r.Name
 	} else {
@@ -68,34 +73,30 @@ func (r *Rule) normalizePaths() error {
 	if r.WorkPath != "" {
 		r.WorkPath = utils.NormalizePath(r.WorkPath)
 	}
-
-	return nil
 }
 
 // Validate is called before inserting a new `Rule` entry in the
 // database. It checks whether the new entry is valid or not.
 func (r *Rule) Validate(db database.Accessor) error {
 	if r.Name == "" {
-		return database.InvalidError("the rule's name cannot be empty")
+		return database.NewValidationError("the rule's name cannot be empty")
 	}
 
-	if err := r.normalizePaths(); err != nil {
-		return err
-	}
+	r.normalizePaths()
 
 	if res, err := db.Query("SELECT id FROM rules WHERE id<>? AND name=? AND send=?",
 		r.ID, r.Name, r.IsSend); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of ")
 	} else if len(res) > 0 {
-		return database.InvalidError("a %s rule named '%s' already exist",
+		return database.NewValidationError("a %s rule named '%s' already exist",
 			r.Direction(), r.Name)
 	}
 
-	if res, err := db.Query("SELECT id FROM rules WHERE id<>? AND send=? AND path=?",
-		r.ID, r.IsSend, r.Path); err != nil {
-		return err
+	if res, err := db.Query("SELECT id FROM rules WHERE id<>? AND path=? AND send=?",
+		r.ID, r.Name, r.Path, r.IsSend); err != nil {
+		return database.NewInternalError(err, "failed to retrieve the list of existing rules")
 	} else if len(res) > 0 {
-		return database.InvalidError("a %s rule with path '%s' already exist",
+		return database.NewValidationError("a %s rule with path '%s' already exist",
 			r.Direction(), r.Path)
 	}
 
@@ -115,16 +116,16 @@ func (r *Rule) Direction() string {
 func (r *Rule) BeforeDelete(db database.Accessor) error {
 	trans, err := db.Query("SELECT id FROM transfers WHERE rule_id=?", r.ID)
 	if err != nil {
-		return err
+		return database.NewInternalError(err, "failed to retrieve the list of transfers")
 	}
 	if len(trans) > 0 {
-		return database.InvalidError("this rule is currently being used in a " +
+		return database.NewValidationError("this rule is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
 			"for it to finish")
 	}
 
 	if err := db.Execute("DELETE FROM rule_access WHERE rule_id=?", r.ID); err != nil {
-		return err
+		return database.NewInternalError(err, "failed to delete the rule's permissions")
 	}
 	return db.Execute("DELETE FROM tasks WHERE rule_id=?", r.ID)
 }

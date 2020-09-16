@@ -25,7 +25,7 @@ type Pipeline struct {
 
 // PreTasks executes the transfer's pre-tasks. It returns an error if the
 // execution fails.
-func (p *Pipeline) PreTasks() *model.PipelineError {
+func (p *Pipeline) PreTasks() error {
 	if p.Transfer.Step > types.StepPreTasks {
 		return nil
 	}
@@ -36,7 +36,7 @@ func (p *Pipeline) PreTasks() *model.PipelineError {
 
 // PostTasks executes the transfer's post-tasks. It returns an error if the
 // execution fails.
-func (p *Pipeline) PostTasks() *model.PipelineError {
+func (p *Pipeline) PostTasks() error {
 	if p.Transfer.Step > types.StepPostTasks {
 		return nil
 	}

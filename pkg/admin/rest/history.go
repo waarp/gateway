@@ -75,7 +75,7 @@ func getHist(r *http.Request, db *database.DB) (*model.TransferHistory, error) {
 	}
 	history := &model.TransferHistory{ID: id}
 	if err := db.Get(history); err != nil {
-		if err == database.ErrNotFound {
+		if database.IsNotFound(err) {
 			return nil, notFound("transfer %v not found", id)
 		}
 		return nil, err
@@ -138,17 +138,13 @@ func parseHistoryCond(r *http.Request, filters *database.Filters) error {
 
 func getHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			result, err := getHist(r, db)
-			if err != nil {
-				return err
-			}
-
-			return writeJSON(w, FromHistory(result))
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		result, err := getHist(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = writeJSON(w, FromHistory(result))
+		handleError(w, logger, err)
 	}
 }
 
@@ -170,65 +166,56 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			filters, err := parseListFilters(r, validSorting)
-			if err != nil {
-				return err
-			}
-			if err := parseHistoryCond(r, filters); err != nil {
-				return err
-			}
-
-			var results []model.TransferHistory
-			if err := db.Select(&results, filters); err != nil {
-				return err
-			}
-
-			resp := map[string][]api.OutHistory{"history": FromHistories(results)}
-			return writeJSON(w, resp)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		filters, err := parseListFilters(r, validSorting)
+		if handleError(w, logger, err) {
+			return
 		}
+		if err := parseHistoryCond(r, filters); handleError(w, logger, err) {
+			return
+		}
+
+		var results []model.TransferHistory
+		if err := db.Select(&results, filters); handleError(w, logger, err) {
+			return
+		}
+
+		resp := map[string][]api.OutHistory{"history": FromHistories(results)}
+		err = writeJSON(w, resp)
+		handleError(w, logger, err)
 	}
 }
 
 func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			check, err := getHist(r, db)
-			if err != nil {
-				return err
-			}
-
-			date := time.Now().UTC()
-			if dateStr := r.FormValue("date"); dateStr != "" {
-				date, err = time.Parse(time.RFC3339, dateStr)
-				if err != nil {
-					return err
-				}
-			}
-
-			if check.IsServer {
-				return badRequest("only the client can retry a transfer")
-			}
-
-			trans, err := check.Restart(db, date)
-			if err != nil {
-				return err
-			}
-
-			if err := db.Create(trans); err != nil {
-				return err
-			}
-
-			r.URL.Path = "/api/transfers"
-			w.Header().Set("Location", location(r.URL, fmt.Sprint(check.ID)))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		check, err := getHist(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		date := time.Now().UTC()
+		if dateStr := r.FormValue("date"); dateStr != "" {
+			date, err = time.Parse(time.RFC3339, dateStr)
+			if handleError(w, logger, err) {
+				return
+			}
+		}
+
+		if check.IsServer {
+			handleError(w, logger, badRequest("only the client can retry a transfer"))
+			return
+		}
+
+		trans, err := check.Restart(db, date)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		if err := db.Create(trans); handleError(w, logger, err) {
+			return
+		}
+
+		r.URL.Path = "/api/transfers"
+		w.Header().Set("Location", location(r.URL, fmt.Sprint(check.ID)))
+		w.WriteHeader(http.StatusCreated)
 	}
 }

@@ -23,12 +23,10 @@ func importRules(logger *log.Logger, db *database.Session, list []file.Rule) err
 		// Check if rule exists
 		exists := true
 		err := db.Get(rule)
-		if err != nil {
-			if err == database.ErrNotFound {
-				exists = false
-			} else {
-				return err
-			}
+		if _, ok := err.(*database.NotFoundError); ok {
+			exists = false
+		} else if err != nil {
+			return err
 		}
 
 		// Populate
@@ -86,7 +84,8 @@ func importRuleAccesses(db *database.Session, list []string, ruleID uint64) erro
 			return err
 		}
 		// If ruleAccess does not exist create
-		if err := db.Get(access); err == database.ErrNotFound {
+		err = db.Get(access)
+		if _, ok := err.(*database.NotFoundError); ok {
 			if err := db.Create(access); err != nil {
 				return err
 			}
@@ -173,7 +172,7 @@ func importRuleTasks(logger *log.Logger, db *database.Session, list []file.Task,
 		Chain:  chain,
 	}
 	if err := db.Delete(task); err != nil {
-		if err != database.ErrNotFound {
+		if _, ok := err.(*database.NotFoundError); !ok {
 			return err
 		}
 	}

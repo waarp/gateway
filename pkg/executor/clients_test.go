@@ -14,11 +14,11 @@ func init() {
 }
 
 var (
-	errConn  = model.NewPipelineError(types.TeConnection, "connection failed")
-	errAuth  = model.NewPipelineError(types.TeBadAuthentication, "authentication failed")
-	errReq   = model.NewPipelineError(types.TeForbidden, "request failed")
-	errData  = model.NewPipelineError(types.TeDataTransfer, "data failed")
-	errClose = model.NewPipelineError(types.TeExternalOperation, "remote post-tasks failed")
+	errConn  = types.NewTransferError(types.TeConnection, "connection failed")
+	errAuth  = types.NewTransferError(types.TeBadAuthentication, "authentication failed")
+	errReq   = types.NewTransferError(types.TeForbidden, "request failed")
+	errData  = types.NewTransferError(types.TeDataTransfer, "data failed")
+	errClose = types.NewTransferError(types.TeExternalOperation, "remote post-tasks failed")
 )
 
 type TestProtoConfig struct{}
@@ -31,48 +31,48 @@ type AllSuccess struct{}
 func NewAllSuccess(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return AllSuccess{}, nil
 }
-func (AllSuccess) Connect() *model.PipelineError      { return nil }
-func (AllSuccess) Authenticate() *model.PipelineError { return nil }
-func (AllSuccess) Request() *model.PipelineError      { return nil }
-func (a AllSuccess) Data(f pipeline.DataStream) *model.PipelineError {
+func (AllSuccess) Connect() error      { return nil }
+func (AllSuccess) Authenticate() error { return nil }
+func (AllSuccess) Request() error      { return nil }
+func (a AllSuccess) Data(f pipeline.DataStream) error {
 	if _, err := ioutil.ReadAll(f); err != nil {
-		return model.NewPipelineError(types.TeUnknown, err.Error())
+		return types.NewTransferError(types.TeUnknown, err.Error())
 	}
 	return nil
 }
-func (AllSuccess) Close(*model.PipelineError) *model.PipelineError { return nil }
+func (AllSuccess) Close(error) error { return nil }
 
 type ConnectFail struct{ AllSuccess }
 
 func NewConnectFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return ConnectFail{}, nil
 }
-func (ConnectFail) Connect() *model.PipelineError { return errConn }
+func (ConnectFail) Connect() error { return errConn }
 
 type AuthFail struct{ AllSuccess }
 
 func NewAuthFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return AuthFail{}, nil
 }
-func (AuthFail) Authenticate() *model.PipelineError { return errAuth }
+func (AuthFail) Authenticate() error { return errAuth }
 
 type RequestFail struct{ AllSuccess }
 
 func NewRequestFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return RequestFail{}, nil
 }
-func (RequestFail) Request() *model.PipelineError { return errReq }
+func (RequestFail) Request() error { return errReq }
 
 type DataFail struct{ AllSuccess }
 
 func NewDataFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return DataFail{}, nil
 }
-func (DataFail) Data(pipeline.DataStream) *model.PipelineError { return errData }
+func (DataFail) Data(pipeline.DataStream) error { return errData }
 
 type CloseFail struct{ AllSuccess }
 
 func NewCloseFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return CloseFail{}, nil
 }
-func (CloseFail) Close(*model.PipelineError) *model.PipelineError { return errClose }
+func (CloseFail) Close(error) error { return errClose }
