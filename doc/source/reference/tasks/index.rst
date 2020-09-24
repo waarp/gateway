@@ -1,5 +1,12 @@
+.. _tasks:
+
+###########
 Traitements
 ###########
+
+.. todo:: 
+   
+   documenter les substitutions
 
 Lors de l'ajout d'une règle, les traitements de la règle doivent être fournis
 avec leurs arguments sous forme d'un objet JSON. Cet objet JSON contient 2

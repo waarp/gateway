@@ -1,19 +1,16 @@
-###############
-Transferts SFTP
-###############
+##############################
+Réception d'un fichier en SFTP
+##############################
 
 Nous allons maintenant mettre en place des transferts SFTP avec la Gateway.
 Pour ce faire, nous allons utiliser le serveur SSH local (OpenSSH) et le client
 ``sftp`` pour envoyer des fichiers vers la Gateway et en recevoir.
 
-Réception de fichiers en SFTP
-=============================
-
 Pour pouvoir recevoir des fichiers, nous allons devoir ajouter un serveur SFTP à
 la Gateway, puis créer un utilisateur, et une règle de transfert.
 
 Création d'un serveur SFTP
---------------------------
+==========================
 
 Pour pouvoir recevoir des fichiers en SFTP avec la Gateway, nous allons
 commencer par ajouter un serveur SFTP :
@@ -59,6 +56,7 @@ ajoutons au serveur SFTP :
    |          .o *   |
    |           .o    |
    +----[SHA256]-----+
+
    # waarp-gateway server cert sftp_server add -n sftp_server -p gateway-sftp -b gateway-sftp.pub 
    The certificate sftp_server was successfully added.
 
@@ -79,7 +77,7 @@ Le serveur SFTP est maintenant créé mais n'est pas actif. Comme la Gateway doi
               └─20584 /usr/bin/waarp-gatewayd server -c /etc/waarp-gateway/waarp-gatewayd.ini
 
 Création d'un utilisateur
--------------------------
+=========================
 
 Pour pouvoir se connecter au serveur, nous devons maintenant créer un
 utilisateur. Cela se fait en créant un "compte local" dans la Gateway.
@@ -97,6 +95,7 @@ de passe quand celui-ci est demandé) :
 .. code-block:: shell-session
 
    # sftp -P 2223 myuser@localhost
+   The authenticity of host '[localhost]:2223 ([127.0.0.1]:2223)' can't be established.
    The authenticity of host '[localhost]:2223 ([127.0.0.1]:2223)' can't be established.
    RSA key fingerprint is SHA256:9G/DHpBTvR7V093tNKPekc8MbmkqIQA16WHLkO8RdmU.
    Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
@@ -119,7 +118,7 @@ L'utilisateur est créé. Pour pouvoir faire un transfert, nous devons maintenan
 créer une :term:`règle` de transfert
 
 Ajout d'un règle
-----------------
+================
 
 Les règles de transfert permettent de définir toutes les modalités liées à un
 transfert : le sens du transfert, les dossiers utilisés comme source et
@@ -146,7 +145,7 @@ Assemblons tout dans une commande pour créer la règle :
    The rule sftp_recv was successfully added.
 
 Premier transfert
------------------
+=================
 
 Maintenant que nous avons un serveur, un utilisateur et une règle, nous pouvons
 effectuer un transfert. Créons d'abord un fichier à transférer et envoyons le à
@@ -156,7 +155,7 @@ la gateway :
 
    # echo "content of the file" > test.txt
 
-   # sftp -P 2223 myuser@localhost
+   $ sftp -P 2223 myuser@localhost
    myuser@localhost's password: 
    Connected to myuser@localhost.
    sftp> put test.txt sftp_recv/test01.txt
@@ -173,7 +172,7 @@ transferts de la Gateway :
 
 .. code-block:: shell-session
 
-   # waarp-gateway history list
+   $ waarp-gateway history list
    History:
    ● Transfer 1 (as server) [DONE]
        Way:              RECEIVE
@@ -194,7 +193,7 @@ dossier par défaut du service qui est utilisé :
 
    # ls -l /var/lib/waarp-gateway/in/
    total 4
-   -rw-------. 1 waarp waarp 20 Aug 27 10:10 test01.txt
+   -rw-------. 1 waarp waarp, 20 Aug 27 10:10 test01.txt
 
 .. seealso::
    

@@ -8,7 +8,9 @@ Premiers pas
 
    intro
    start
-   sftp-transfers
-   xx-re-transfer
-   xx-r66
+   sftp-receive
+   sftp-send
+   rebound
+
+.. xx-re-transfer
 
