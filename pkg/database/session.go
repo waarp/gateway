@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"reflect"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -20,8 +21,65 @@ type Session struct {
 	cancel  func()
 }
 
+func (db *DB) newSession() *Session {
+	return &Session{
+		session: db.engine.NewSession(),
+		logger:  db.logger,
+		state:   &db.state,
+	}
+}
+
+func (s *Session) commit() error {
+	defer s.session.Close()
+	return s.session.Commit()
+}
+
+func (s *Session) rollback() {
+	s.session.Close()
+}
+
+func (s *Session) logSQL() {
+	msg, err := builder.ConvertToBoundSQL(s.session.LastSQL())
+	if err != nil {
+		s.logger.Warningf("Failed to log SQL command: %s", err)
+	} else {
+		s.logger.Debug(msg)
+	}
+}
+
+// Exec executes the given SQL command. The command can be created using the
+// various command builder functions available in this package, such as:
+// - Insert
+// - Update
+// - Delete
+func (s *Session) Exec(cmd command) (sql.Result, error) {
+	defer s.logSQL()
+	return cmd.exec(s)
+}
+
+// Query2 executes the given SQL query and returns the selected database rows
+// as an Iterator. The query can be created using the various query builder
+// functions available in this package, such as:
+// - Select
+func (s *Session) Query2(query query) (Iterator, error) {
+	defer s.logSQL()
+	return query.query(s)
+}
+
+// Count is a wrapper function which counts the number of rows returned by a
+// 'SELECT' query without having to iterate on all the rows.
+func (s *Session) Count(query *selectQuery) (int64, error) {
+	defer s.logSQL()
+	if query.cond != nil {
+		s.session.Where(query.cond.convert())
+	}
+	bean := reflect.New(reflect.TypeOf(query.bean).Elem()).Interface().(selectBean)
+	return s.session.Count(bean)
+}
+
 // Get adds a 'get' query to the transaction. If the query cannot be executed,
 // an error is returned.
+// Deprecated:
 func (s *Session) Get(bean tableName) error {
 	s.logger.Debugf("Transaction 'Get' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
@@ -49,6 +107,7 @@ func (s *Session) Get(bean tableName) error {
 
 // Select adds a 'select' query to the transaction with the conditions given in
 // the `filters` parameter.  If the query cannot be executed, an error is returned.
+// Deprecated:
 func (s *Session) Select(bean interface{}, filters *Filters) error {
 	s.logger.Debugf("Transaction 'Select' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
@@ -90,6 +149,7 @@ func (s *Session) create(bean tableName) error {
 
 // Create adds an 'insert' query to the transaction. If the query cannot be executed,
 // an error is returned.
+// Deprecated:
 func (s *Session) Create(bean tableName) error {
 	s.logger.Debugf("Transaction 'Create' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
@@ -126,6 +186,7 @@ func (s *Session) update(bean entry) error {
 
 // Update adds an 'update' query to the transaction. If the query cannot be executed,
 // an error is returned.
+// Deprecated:
 func (s *Session) Update(bean entry) error {
 	s.logger.Debugf("Transaction 'Update' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
@@ -166,6 +227,7 @@ func (s *Session) delete(bean tableName) error {
 
 // Delete adds an 'delete' query to the transaction. If the query cannot be executed,
 // an error is returned.
+// Deprecated:
 func (s *Session) Delete(bean tableName) error {
 	s.logger.Debugf("Transaction 'Delete' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
@@ -191,6 +253,7 @@ func (s *Session) Delete(bean tableName) error {
 
 // Execute adds a custom raw query to the transaction. If the query cannot be executed,
 // an error is returned. If the command must return a result, use `Query` instead.
+// Deprecated:
 func (s *Session) Execute(sqlorArgs ...interface{}) error {
 	s.logger.Debugf("Transaction 'Execute' with %#v", sqlorArgs)
 	if s, _ := s.state.Get(); s != service.Running {
@@ -209,6 +272,7 @@ func (s *Session) Execute(sqlorArgs ...interface{}) error {
 // Query adds a custom raw query to the transaction. If the query cannot be executed,
 // an error is returned. The function returns a slice of map[string]interface{}
 // which contains the result of the query.
+// Deprecated:
 func (s *Session) Query(sqlorArgs ...interface{}) ([]map[string]interface{}, error) {
 	s.logger.Debugf("Transaction 'Execute' with %#v", sqlorArgs)
 	if s, _ := s.state.Get(); s != service.Running {
@@ -228,6 +292,7 @@ func (s *Session) Query(sqlorArgs ...interface{}) ([]map[string]interface{}, err
 // Rollback cancels the transaction, and rolls back any changes made to the
 // database. When this function is called, the session is closed, which means
 // it cannot be used to perform any more transactions.
+// Deprecated:
 func (s *Session) Rollback() {
 	defer s.cancel()
 	s.logger.Debug("Rolling back transaction changes")
@@ -238,6 +303,7 @@ func (s *Session) Rollback() {
 // the commit fails, the changes are dropped, and an error is returned. After
 // this function is returned, the session is closed and no more transactions can
 // be performed using this instance.
+// Deprecated:
 func (s *Session) Commit() error {
 	s.logger.Debug("Committing transaction")
 	defer func() {

@@ -47,7 +47,7 @@ type InternalError struct {
 }
 
 func (i *InternalError) Error() string {
-	return fmt.Sprintf("%s (%s)", i.msg, i.cause)
+	return i.msg
 }
 
 // Unwrap returns the wrapped error.

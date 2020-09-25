@@ -6,6 +6,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -35,13 +36,21 @@ var (
 
 // Accessor is the interface that lists the method sets needed to query a
 // database.
+// Deprecated:
 type Accessor interface {
+	// Deprecated:
 	Get(tableName) error
+	// Deprecated:
 	Select(interface{}, *Filters) error
+	// Deprecated:
 	Create(tableName) error
+	// Deprecated:
 	Update(entry) error
+	// Deprecated:
 	Delete(tableName) error
+	// Deprecated:
 	Execute(...interface{}) error
+	// Deprecated:
 	Query(...interface{}) ([]map[string]interface{}, error)
 }
 
@@ -221,13 +230,82 @@ func (db *DB) State() *service.State {
 	return &db.state
 }
 
+// Transaction executes all the commands in the given function as a transaction.
+// The transaction will be then be roll-backed or committed, depending whether
+// the function returned an error or not.
+func (db *DB) Transaction(f func(*Session) error) error {
+	db.logger.Debug("Beginning transaction")
+	if err := db.transaction(f); err != nil {
+		db.logger.Debug("Transaction failed, changes have been rolled back")
+		return err
+	}
+	db.logger.Debug("Transaction succeeded, changes have been committed")
+	return nil
+}
+
+func (db *DB) transaction(f func(*Session) error) error {
+	ses := db.newSession()
+	defer ses.rollback()
+
+	if err := ses.session.Begin(); err != nil {
+		return err
+	}
+
+	if err := f(ses); err != nil {
+		return err
+	}
+
+	return ses.commit()
+}
+
+// Exec executes the given SQL command. The command can be created using the
+// various command builder functions available in this package, such as:
+// - Insert
+// - Update
+// - Delete
+func (db *DB) Exec(cmd command) (sql.Result, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	var res sql.Result
+	err := db.transaction(func(ses *Session) error {
+		ses.session.Context(ctx)
+		var err1 error
+		res, err1 = ses.Exec(cmd)
+		return err1
+	})
+	return res, err
+}
+
+// Query2 executes the given SQL query and returns the selected database rows
+// as an Iterator. The query can be created using the various query builder
+// functions available in this package, such as:
+// - Select
+func (db *DB) Query2(query query) (Iterator, error) {
+	s := db.newSession()
+	it, err := s.Query2(query)
+	return &saIterator{it, s.session.Close}, err
+}
+
+// Count is a wrapper function which counts the number of rows returned by a
+// 'SELECT' query without having to iterate on all the rows.
+func (db *DB) Count(query *selectQuery) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	s := db.newSession()
+	s.session.Context(ctx)
+	return s.Count(query)
+}
+
 // NewQuery returns new query builder.
+// Deprecated:
 func (db *DB) NewQuery() *builder.Builder {
 	return builder.Dialect(string(db.engine.Dialect().DBType()))
 }
 
 // Get retrieves one record from the database and fills the bean with it. Non-empty
 // fields are used as conditions.
+// Deprecated:
 func (db *DB) Get(bean tableName) error {
 	db.logger.Debugf("Get requested with %#v", bean)
 
@@ -249,6 +327,7 @@ func (db *DB) Get(bean tableName) error {
 // Select retrieves multiple records from the database using the given filters
 // and fills the bean with it. The bean should be of type []Struct or []*Struct,
 // and it should be empty.
+// Deprecated:
 func (db *DB) Select(bean interface{}, filters *Filters) error {
 	db.logger.Debugf("Select requested with %#v", bean)
 
@@ -269,6 +348,7 @@ func (db *DB) Select(bean interface{}, filters *Filters) error {
 
 // Create inserts the given bean in the database. If the struct cannot be inserted,
 // the function returns an error.
+// Deprecated:
 func (db *DB) Create(bean tableName) error {
 	db.logger.Debugf("Create requested with %#v", bean)
 
@@ -289,6 +369,7 @@ func (db *DB) Create(bean tableName) error {
 
 // Update updates the given bean in the database. If the struct cannot be updated,
 // the function returns an error.
+// Deprecated:
 func (db *DB) Update(bean entry) error {
 	db.logger.Debugf("Update requested with %#v", bean)
 
@@ -309,6 +390,7 @@ func (db *DB) Update(bean entry) error {
 
 // Delete deletes the given bean from the database. If the record cannot be deleted,
 // an error is returned.
+// Deprecated:
 func (db *DB) Delete(bean tableName) error {
 	db.logger.Debugf("Delete requested with %#v", bean)
 
@@ -329,6 +411,7 @@ func (db *DB) Delete(bean tableName) error {
 
 // Execute executes the given SQL command. The command can be a raw string with
 // arguments, or an xorm.Builder struct.
+// Deprecated:
 func (db *DB) Execute(sqlOrArgs ...interface{}) error {
 	db.logger.Debugf("Execute requested with %#v", sqlOrArgs)
 
@@ -349,6 +432,7 @@ func (db *DB) Execute(sqlOrArgs ...interface{}) error {
 
 // Query executes the given SQL query and returns the result. The query can be
 // a raw string with arguments, or an xorm.Builder struct.
+// Deprecated:
 func (db *DB) Query(sqlOrArgs ...interface{}) ([]map[string]interface{}, error) {
 	db.logger.Debugf("Query requested with %#v", sqlOrArgs)
 
@@ -370,6 +454,7 @@ func (db *DB) Query(sqlOrArgs ...interface{}) ([]map[string]interface{}, error) 
 
 // BeginTransaction returns a new session on which a database transaction can
 // be performed.
+// Deprecated:
 func (db *DB) BeginTransaction() (ses *Session, err error) {
 	if s, _ := db.state.Get(); s != service.Running {
 		return nil, ErrServiceUnavailable

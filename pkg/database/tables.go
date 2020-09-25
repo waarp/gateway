@@ -22,16 +22,19 @@ func initTables(db *DB) error {
 	}
 	defer trans.session.Close()
 
-	for _, table := range Tables {
-		if ok, err := trans.session.IsTableExist(table); err != nil {
+	for _, tbl := range Tables {
+		if ok, err := trans.session.IsTableExist(tbl); err != nil {
 			return NewInternalError(err, "cannot retrieve database table list")
 		} else if !ok {
-			if err := trans.session.CreateTable(table); err != nil {
+			if t, ok := tbl.(table); ok {
+				trans.session.Table(t.Table())
+			}
+			if err := trans.session.CreateTable(tbl); err != nil {
 				return NewInternalError(err, "failed to create '%s' database table",
-					table.TableName())
+					tbl.TableName())
 			}
 
-			if init, ok := table.(initer); ok {
+			if init, ok := tbl.(initer); ok {
 				if err := init.Init(trans); err != nil {
 					return err
 				}
