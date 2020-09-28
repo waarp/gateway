@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`197` Un transfert dont le temps d'exécution est supérieur à la durée
+  d'attente du controller pouvait être exécuté plusieurs fois
 * :bug:`179` Corrige la commande de lancement des transferts avec Waarp R66
 * :bug:`188` Correction de l'erreur 'bad file descriptor' du CLI lors de l'affichage du prompt de mot de passe sous Windows
 * :feature:`169` En cas d'absence du nom d'utilisateur, celui-ci sera demandé via un prompt du terminal
