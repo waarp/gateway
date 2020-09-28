@@ -129,6 +129,8 @@ func (e *Executor) prologue() *model.PipelineError {
 
 	defer func() { e.Transfer.Step = oldStep }()
 
+	e.Transfer.Status = model.StatusRunning
+
 	if err := e.Transfer.Update(e.DB); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
 		return &model.PipelineError{Kind: model.KindDatabase}
@@ -206,6 +208,16 @@ func (e *Executor) Run() {
 }
 
 func (e *Executor) runR66(info *model.OutTransferInfo) {
+	e.Transfer.Step = model.StepSetup
+	e.Transfer.Status = model.StatusRunning
+
+	if err := e.Transfer.Update(e.DB); err != nil {
+		e.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
+		e.Transfer.Status = model.StatusError
+
+		return
+	}
+
 	if err := e.r66Transfer(info); err != nil {
 		msg := fmt.Sprintf("Transfer failed: %s", err)
 		e.Logger.Error(msg)
