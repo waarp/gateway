@@ -97,10 +97,9 @@ func (l *LocalAgent) Validate(db database.Accessor) error {
 
 	if l.Address == "" {
 		return database.InvalidError("the server's address cannot be empty")
-	} else {
-		if _, _, err := net.SplitHostPort(l.Address); err != nil {
-			return database.InvalidError("'%s' is not a valid server address", l.Address)
-		}
+	}
+	if _, _, err := net.SplitHostPort(l.Address); err != nil {
+		return database.InvalidError("'%s' is not a valid server address", l.Address)
 	}
 
 	if l.ProtoConfig == nil {

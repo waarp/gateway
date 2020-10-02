@@ -78,11 +78,11 @@ func (r *RemoteAgent) Validate(db database.Accessor) error {
 	}
 	if r.Address == "" {
 		return database.InvalidError("the partner's address cannot be empty")
-	} else {
-		if _, _, err := net.SplitHostPort(r.Address); err != nil {
-			return database.InvalidError("'%s' is not a valid partner address", r.Address)
-		}
 	}
+	if _, _, err := net.SplitHostPort(r.Address); err != nil {
+		return database.InvalidError("'%s' is not a valid partner address", r.Address)
+	}
+
 	if r.ProtoConfig == nil {
 		return database.InvalidError("the agent's configuration cannot be empty")
 	}
