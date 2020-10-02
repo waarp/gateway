@@ -27,8 +27,12 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		Convey("Given a remote agent entry", func() {
-			ag := &RemoteAgent{Name: "partner", Protocol: "dummy",
-				ProtoConfig: json.RawMessage(`{}`)}
+			ag := &RemoteAgent{
+				Name:        "partner",
+				Protocol:    "dummy",
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1111",
+			}
 			So(db.Create(ag), ShouldBeNil)
 
 			acc := &RemoteAccount{RemoteAgentID: ag.ID, Login: "login",
@@ -123,7 +127,8 @@ func TestRemoteAgentValidate(t *testing.T) {
 			oldAgent := &RemoteAgent{
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(oldAgent), ShouldBeNil)
 
@@ -131,7 +136,8 @@ func TestRemoteAgentValidate(t *testing.T) {
 				newAgent := &RemoteAgent{
 					Name:        "new",
 					Protocol:    "sftp",
-					ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:2023",
 				}
 
 				Convey("Given that the new agent is valid", func() {
@@ -167,6 +173,30 @@ func TestRemoteAgentValidate(t *testing.T) {
 						Convey("Then the error should say that the name is already taken", func() {
 							So(err, ShouldBeError, "a remote agent with "+
 								"the same name '"+newAgent.Name+"' already exist")
+						})
+					})
+				})
+
+				Convey("Given that the new agent is missing an address", func() {
+					newAgent.Address = ""
+
+					Convey("When calling the 'Validate' function", func() {
+						err := newAgent.Validate(db)
+
+						Convey("Then the error should say that the address is missing", func() {
+							So(err, ShouldBeError, "the partner's address cannot be empty")
+						})
+					})
+				})
+
+				Convey("Given that the new agent's address is invalid", func() {
+					newAgent.Address = "not_an_address"
+
+					Convey("When calling the 'Validate' function", func() {
+						err := newAgent.Validate(db)
+
+						Convey("Then the error should say that the address is invalid", func() {
+							So(err, ShouldBeError, "'not_an_address' is not a valid partner address")
 						})
 					})
 				})

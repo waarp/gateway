@@ -129,7 +129,12 @@ func TestRuleBeforeDelete(t *testing.T) {
 			t2 := &Task{RuleID: rule.ID, Chain: ChainPost, Rank: 0, Type: "TESTSUCCESS", Args: []byte(`{}`)}
 			So(db.Create(t2), ShouldBeNil)
 
-			server := &LocalAgent{Name: "server", Protocol: "dummy", ProtoConfig: []byte(`{}`)}
+			server := &LocalAgent{
+				Name:        "server",
+				Protocol:    "dummy",
+				ProtoConfig: []byte(`{}`),
+				Address:     "localhost:1111",
+			}
 			So(db.Create(server), ShouldBeNil)
 			account := &LocalAccount{LocalAgentID: server.ID, Login: "toto", Password: []byte("password")}
 			So(db.Create(account), ShouldBeNil)

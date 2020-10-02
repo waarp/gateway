@@ -31,7 +31,8 @@ func TestCertValidate(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost", "port":21, "root":"toto"}`),
+				ProtoConfig: []byte(`{}`),
+				Address:     "localhost:21",
 			}
 			So(db.Create(parentAgent), ShouldBeNil)
 
@@ -177,7 +178,8 @@ func TestCertValidate(t *testing.T) {
 						Owner:       "test_gateway",
 						Name:        "other",
 						Protocol:    "sftp",
-						ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+						ProtoConfig: []byte(`{}`),
+						Address:     "localhost:22",
 					}
 					So(db.Create(otherAgent), ShouldBeNil)
 

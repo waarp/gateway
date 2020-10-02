@@ -27,7 +27,12 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		Convey("Given a local agent entry", func() {
-			ag := &LocalAgent{Name: "test agent", Protocol: "dummy", ProtoConfig: json.RawMessage(`{}`)}
+			ag := &LocalAgent{
+				Name:        "test agent",
+				Protocol:    "dummy",
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1111",
+			}
 			So(db.Create(ag), ShouldBeNil)
 
 			acc := &LocalAccount{LocalAgentID: ag.ID, Login: "login", Password: json.RawMessage("password")}
@@ -120,7 +125,8 @@ func TestLocalAgentValidate(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "old",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"address","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(oldAgent), ShouldBeNil)
 
@@ -133,7 +139,8 @@ func TestLocalAgentValidate(t *testing.T) {
 					OutDir:      "send",
 					WorkDir:     "tmp",
 					Protocol:    "sftp",
-					ProtoConfig: json.RawMessage(`{"address":"address2","port":2023}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:2023",
 				}
 
 				Convey("Given that the new agent is valid", func() {
@@ -184,6 +191,30 @@ func TestLocalAgentValidate(t *testing.T) {
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
+						})
+					})
+				})
+
+				Convey("Given that the new agent is missing an address", func() {
+					newAgent.Address = ""
+
+					Convey("When calling the 'Validate' function", func() {
+						err := newAgent.Validate(db)
+
+						Convey("Then the error should say that the address is missing", func() {
+							So(err, ShouldBeError, "the server's address cannot be empty")
+						})
+					})
+				})
+
+				Convey("Given that the new agent's address is invalid", func() {
+					newAgent.Address = "not_an_address"
+
+					Convey("When calling the 'Validate' function", func() {
+						err := newAgent.Validate(db)
+
+						Convey("Then the error should say that the address is invalid", func() {
+							So(err, ShouldBeError, "'not_an_address' is not a valid server address")
 						})
 					})
 				})

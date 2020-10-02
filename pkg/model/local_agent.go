@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"net"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
@@ -43,6 +44,9 @@ type LocalAgent struct {
 
 	// The agent's configuration in raw JSON format.
 	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
+
+	// The agent's address (including the port)
+	Address string `xorm:"notnull 'address'"`
 }
 
 // TableName returns the local_agent table name.
@@ -91,6 +95,17 @@ func (l *LocalAgent) Validate(db database.Accessor) error {
 		return database.InvalidError("the agent's name cannot be empty")
 	}
 
+	if l.Address == "" {
+		return database.InvalidError("the server's address cannot be empty")
+	} else {
+		if _, _, err := net.SplitHostPort(l.Address); err != nil {
+			return database.InvalidError("'%s' is not a valid server address", l.Address)
+		}
+	}
+
+	if l.ProtoConfig == nil {
+		return database.InvalidError("the agent's configuration cannot be empty")
+	}
 	if err := l.validateProtoConfig(); err != nil {
 		return database.InvalidError(err.Error())
 	}

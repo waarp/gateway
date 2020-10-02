@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"net"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
@@ -28,6 +29,9 @@ type RemoteAgent struct {
 
 	// The agent's configuration in raw JSON format.
 	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
+
+	// The agent's address (including the port)
+	Address string `xorm:"notnull 'address'"`
 }
 
 // TableName returns the remote_agent table name.
@@ -71,6 +75,13 @@ func (r *RemoteAgent) GetCerts(db database.Accessor) ([]Cert, error) {
 func (r *RemoteAgent) Validate(db database.Accessor) error {
 	if r.Name == "" {
 		return database.InvalidError("the agent's name cannot be empty")
+	}
+	if r.Address == "" {
+		return database.InvalidError("the partner's address cannot be empty")
+	} else {
+		if _, _, err := net.SplitHostPort(r.Address); err != nil {
+			return database.InvalidError("'%s' is not a valid partner address", r.Address)
+		}
 	}
 	if r.ProtoConfig == nil {
 		return database.InvalidError("the agent's configuration cannot be empty")

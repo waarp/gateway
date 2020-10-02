@@ -26,7 +26,12 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		Convey("Given a remote account entry", func() {
-			ag := &RemoteAgent{Name: "server", Protocol: "dummy", ProtoConfig: []byte(`{}`)}
+			ag := &RemoteAgent{
+				Name:        "server",
+				Protocol:    "dummy",
+				ProtoConfig: []byte(`{}`),
+				Address:     "localhost:1111",
+			}
 			So(db.Create(ag), ShouldBeNil)
 
 			acc := &RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: []byte("password")}
@@ -100,7 +105,8 @@ func TestRemoteAccountValidate(t *testing.T) {
 			parentAgent := &RemoteAgent{
 				Name:        "parent_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: []byte(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(parentAgent), ShouldBeNil)
 
@@ -192,7 +198,8 @@ func TestRemoteAccountValidate(t *testing.T) {
 					otherAgent := &RemoteAgent{
 						Name:        "other",
 						Protocol:    "sftp",
-						ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+						ProtoConfig: []byte(`{}`),
+						Address:     "localhost:2022",
 					}
 					So(db.Create(otherAgent), ShouldBeNil)
 
