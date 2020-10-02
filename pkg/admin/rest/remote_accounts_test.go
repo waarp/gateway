@@ -31,7 +31,8 @@ func TestGetRemoteAccount(t *testing.T) {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -140,12 +141,14 @@ func TestListRemoteAccounts(t *testing.T) {
 			p1 := &model.RemoteAgent{
 				Name:        "parent1",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			p2 := &model.RemoteAgent{
 				Name:        "parent2",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2",
 			}
 			So(db.Create(p1), ShouldBeNil)
 			So(db.Create(p2), ShouldBeNil)
@@ -277,7 +280,8 @@ func TestCreateRemoteAccount(t *testing.T) {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -371,7 +375,8 @@ func TestDeleteRemoteAccount(t *testing.T) {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -453,7 +458,8 @@ func TestUpdateRemoteAccount(t *testing.T) {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -584,7 +590,8 @@ func TestReplaceRemoteAccount(t *testing.T) {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(parent), ShouldBeNil)
 

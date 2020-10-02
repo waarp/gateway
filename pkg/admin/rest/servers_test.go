@@ -53,25 +53,29 @@ func TestListLocalAgents(t *testing.T) {
 				Name:        "local agent1",
 				Protocol:    "test",
 				Root:        "/root1",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			a2 := &model.LocalAgent{
 				Name:        "local agent2",
 				Protocol:    "test",
 				Root:        "/root2",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2",
 			}
 			a3 := &model.LocalAgent{
 				Name:        "local agent3",
 				Protocol:    "test",
 				Root:        "/root3",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:3",
 			}
 			a4 := &model.LocalAgent{
 				Name:        "local agent4",
 				Protocol:    "test2",
 				Root:        "/root4",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:4",
 			}
 
 			So(db.Create(a1), ShouldBeNil)
@@ -160,7 +164,8 @@ func TestGetLocalAgent(t *testing.T) {
 				Name:        "existing",
 				Protocol:    "test",
 				Root:        "/root",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(existing), ShouldBeNil)
 
@@ -223,7 +228,8 @@ func TestCreateLocalAgent(t *testing.T) {
 				Name:        "existing",
 				Protocol:    "test",
 				Root:        "/root",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(existing), ShouldBeNil)
 
@@ -233,6 +239,7 @@ func TestCreateLocalAgent(t *testing.T) {
 					Protocol:    strPtr("test"),
 					Root:        strPtr("/new_root"),
 					ProtoConfig: json.RawMessage(`{}`),
+					Address:     strPtr("localhost:2"),
 				}
 
 				Convey("Given that the new local agent is valid for insertion", func() {
@@ -269,6 +276,7 @@ func TestCreateLocalAgent(t *testing.T) {
 								Owner:       database.Owner,
 								Name:        "new_local_agent",
 								Protocol:    "test",
+								Address:     "localhost:2",
 								Root:        "/new_root",
 								InDir:       "in",
 								OutDir:      "out",
@@ -310,6 +318,7 @@ func TestDeleteLocalAgent(t *testing.T) {
 				Protocol:    "test",
 				Root:        "/root",
 				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(existing), ShouldBeNil)
 
@@ -366,21 +375,22 @@ func TestUpdateLocalAgent(t *testing.T) {
 			old := &model.LocalAgent{
 				Name:        "old",
 				Protocol:    "test",
+				Address:     "localhost:1",
 				Root:        "/old/root",
 				InDir:       "/old/in",
 				OutDir:      "/old/out",
 				WorkDir:     "/old/work",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
 			}
 			So(db.Create(old), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
 				update := InServer{
-					Name:        strPtr("update"),
-					Root:        strPtr("/upt/root"),
-					InDir:       strPtr("/upt/in"),
-					OutDir:      strPtr(""),
-					ProtoConfig: json.RawMessage(`{"key":"val"}`),
+					Name:    strPtr("update"),
+					Root:    strPtr("/upt/root"),
+					InDir:   strPtr("/upt/in"),
+					OutDir:  strPtr(""),
+					Address: strPtr("localhost:2"),
 				}
 				body, err := json.Marshal(update)
 				So(err, ShouldBeNil)
@@ -414,11 +424,12 @@ func TestUpdateLocalAgent(t *testing.T) {
 							Owner:       database.Owner,
 							Name:        "update",
 							Protocol:    "test",
+							Address:     "localhost:2",
 							Root:        "/upt/root",
 							InDir:       "/upt/in",
 							OutDir:      "out", //sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
 							WorkDir:     "/old/work",
-							ProtoConfig: json.RawMessage(`{"key":"val"}`),
+							ProtoConfig: json.RawMessage(`{}`),
 						}
 
 						var res []model.LocalAgent
@@ -467,11 +478,12 @@ func TestReplaceLocalAgent(t *testing.T) {
 			old := &model.LocalAgent{
 				Name:        "old",
 				Protocol:    "test",
+				Address:     "localhost:1",
 				Root:        "/old/root",
 				InDir:       "/old/in",
 				OutDir:      "/old/out",
 				WorkDir:     "/old/work",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
 			}
 			So(db.Create(old), ShouldBeNil)
 
@@ -479,10 +491,11 @@ func TestReplaceLocalAgent(t *testing.T) {
 				update := InServer{
 					Name:        strPtr("update"),
 					Protocol:    strPtr("test2"),
+					Address:     strPtr("localhost:2"),
 					Root:        strPtr("/upt/root"),
 					InDir:       strPtr("/upt/in"),
 					OutDir:      strPtr(""),
-					ProtoConfig: json.RawMessage(`{"key":"val"}`),
+					ProtoConfig: json.RawMessage(`{}`),
 				}
 				body, err := json.Marshal(update)
 				So(err, ShouldBeNil)
@@ -516,11 +529,12 @@ func TestReplaceLocalAgent(t *testing.T) {
 							Owner:       database.Owner,
 							Name:        "update",
 							Protocol:    "test2",
+							Address:     "localhost:2",
 							Root:        "/upt/root",
 							InDir:       "/upt/in",
 							OutDir:      "out",  //sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
 							WorkDir:     "work", //idem
-							ProtoConfig: json.RawMessage(`{"key":"val"}`),
+							ProtoConfig: json.RawMessage(`{}`),
 						}
 
 						var res []model.LocalAgent

@@ -36,7 +36,8 @@ func TestGetLocalAccount(t *testing.T) {
 			parent := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -145,12 +146,14 @@ func TestListLocalAccounts(t *testing.T) {
 			p1 := &model.LocalAgent{
 				Name:        "parent1",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			p2 := &model.LocalAgent{
 				Name:        "parent2",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2",
 			}
 			So(db.Create(p1), ShouldBeNil)
 			So(db.Create(p2), ShouldBeNil)
@@ -282,7 +285,8 @@ func TestCreateLocalAccount(t *testing.T) {
 			parent := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -376,7 +380,8 @@ func TestDeleteLocalAccount(t *testing.T) {
 			parent := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -406,7 +411,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 
 					Convey("Then the account should no longer be present "+
 						"in the database", func() {
-						a := []model.LocalAccount{}
+						var a []model.LocalAccount
 						So(db.Select(&a, nil), ShouldBeNil)
 						So(a, ShouldBeEmpty)
 					})
@@ -469,7 +474,8 @@ func TestUpdateLocalAccount(t *testing.T) {
 			parent := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(parent), ShouldBeNil)
 
@@ -594,7 +600,8 @@ func TestReplaceLocalAccount(t *testing.T) {
 			parent := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(parent), ShouldBeNil)
 
