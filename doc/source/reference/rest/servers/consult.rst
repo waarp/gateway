@@ -13,6 +13,7 @@ Consulter un serveur
 
    :resjson string name: Le nom du serveur
    :resjson string protocol: Le protocole utilisé par le serveur
+   :resjson string address: L'adresse du serveur (en format [adresse:port])
    :resjson string root: La racine du serveur. Peut être relatif (à la racine
       de la *gateway*) ou absolu.
    :resjson string inDir: Le dossier de réception du serveur. Peut être
@@ -50,14 +51,12 @@ Consulter un serveur
          {
            "name": "sftp_server",
            "protocol": "sftp",
+           "address": "localhost:2022",
            "root": "/sftp/root",
            "inDir: "in",
            "outDir": "out",
            "work": "work",
-           "protoConfig": {
-             "address": "localhost",
-             "port": 21
-           },
+           "protoConfig": {},
            "authorizedRules": {
              "sending": ["règle_envoi_1", "règle_envoi_2"],
              "reception": ["règle_récep_1", "règle_récep_2"]

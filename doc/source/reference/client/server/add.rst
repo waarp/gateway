@@ -16,6 +16,10 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 
    Le protocole utilisé par le serveur.
 
+.. option:: -a <ADDRESS>, --address=<ADDRESS>
+
+   L'adresse du serveur (au format [adresse:port]).
+
 .. option:: -r <ROOT>, --root=<ROOT>
 
    Le dossier racine du serveur. Peut être un chemin relatif ou absolu. Si
@@ -50,4 +54,4 @@ Ajoute un nouveau serveur de transfert à la gateway avec les attributs fournis.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 server add -n server_sftp -r /sftp/root  -p sftp -c '{"address":"localhost","port":21}'
+   waarp-gateway http://user:password@localhost:8080 server add -n server_sftp -r /sftp/root -p sftp -a localhost:21 -c '{}'

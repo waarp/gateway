@@ -16,6 +16,10 @@ Ajoute un nouveau partenaire avec les attributs renseignés.
 
    Le protocole utilisé par le partenaire.
 
+.. option:: -a <ADDRESS>, --address=<ADDRESS>
+
+   L'adresse du partenaire (au format [adresse:port]).
+
 .. option:: -c <CONF>, --config=<CONF>
 
    La configuration protocolaire du partenaire en format JSON. Contient les
@@ -28,4 +32,4 @@ Ajoute un nouveau partenaire avec les attributs renseignés.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 partner add -n waarp_sftp -p sftp -c '{"address":"waarp.org","port":21}'
+   waarp-gateway http://user:password@localhost:8080 partner add -n waarp_sftp -p sftp -a waarp.org:2021 -c '{}'

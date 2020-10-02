@@ -27,6 +27,7 @@ Lister les serveurs
    :resjson array servers: La liste des serveurs demandés
    :resjsonarr string name: Le nom du serveur
    :resjsonarr string protocol: Le protocole utilisé par le serveur
+   :resjsonarr string address: L'adresse du serveur (en format [adresse:port])
    :resjsonarr string root: La racine du serveur. Peut être relatif (à la racine
       de la *gateway*) ou absolu.
    :resjsonarr string inDir: Le dossier de réception du serveur. Peut être
@@ -65,11 +66,9 @@ Lister les serveurs
            "servers": [{
              "name": "sftp_server_2",
              "protocol": "sftp",
+             "address": "localhost:2023",
              "root": "/sftp2/root",
-             "protoConfig": {
-               "address": "localhost",
-               "port": 22
-             },
+             "protoConfig": {},
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],
                "reception": ["règle_récep_1", "règle_récep_2"]
@@ -77,11 +76,9 @@ Lister les serveurs
            },{
              "name": "sftp_server_1",
              "protocol": "sftp",
+             "address": "localhost:2022",
              "root": "/sftp/root",
-             "protoConfig": {
-               "address": "localhost",
-               "port": 21
-             },
+             "protoConfig": {},
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],
                "reception": ["règle_récep_1", "règle_récep_2"]

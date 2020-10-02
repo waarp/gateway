@@ -9,6 +9,7 @@ Créer un partenaire
 
    :reqjson string name: Le nom du partenaire
    :reqjson string protocol: Le protocole utilisé par le partenaire
+   :reqjson string address: L'adresse du partenaire (en format [adresse:port])
    :reqjson object protoConfig: La configuration du partenaire encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
 
@@ -33,10 +34,8 @@ Créer un partenaire
          {
            "name": "waarp_sftp",
            "protocol": "sftp",
-           "protoConfig": {
-             "address": "waarp.org",
-             "port": 21
-           }
+           "address": "localhost:2022",
+           "protoConfig": {}
          }
 
    **Exemple de réponse**
