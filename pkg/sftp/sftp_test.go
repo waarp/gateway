@@ -49,7 +49,8 @@ func TestSFTPPackage(t *testing.T) {
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
 				Root:        root,
-				ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:" + port,
 			}
 			So(db.Create(localAgent), ShouldBeNil)
 			var protoConfig config.SftpProtoConfig
@@ -146,7 +147,8 @@ func TestSFTPPackage(t *testing.T) {
 				remoteAgent := &model.RemoteAgent{
 					Name:        "test_sftp_partner",
 					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:" + port,
 				}
 				So(db.Create(remoteAgent), ShouldBeNil)
 

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -31,7 +32,7 @@ func TestCertValidate(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "parent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:21",
 			}
 			So(db.Create(parentAgent), ShouldBeNil)
@@ -178,7 +179,7 @@ func TestCertValidate(t *testing.T) {
 						Owner:       "test_gateway",
 						Name:        "other",
 						Protocol:    "sftp",
-						ProtoConfig: []byte(`{}`),
+						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:22",
 					}
 					So(db.Create(otherAgent), ShouldBeNil)

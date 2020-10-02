@@ -17,7 +17,8 @@ func TestExportRemoteAgents(t *testing.T) {
 			agent1 := &model.RemoteAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"remotehost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent1), ShouldBeNil)
 
@@ -41,7 +42,8 @@ func TestExportRemoteAgents(t *testing.T) {
 			agent2 := &model.RemoteAgent{
 				Name:        "test2",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"remotehost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2023",
 			}
 			So(db.Create(agent2), ShouldBeNil)
 
@@ -130,13 +132,14 @@ func TestExportRemoteAccounts(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
-		Convey("Given the dabase contains a remote agent with accounts", func() {
+		Convey("Given the database contains a remote agent with accounts", func() {
 			pwd1 := "pwd"
 			pwd2 := "bar"
 			agent := &model.RemoteAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"remotehost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent), ShouldBeNil)
 

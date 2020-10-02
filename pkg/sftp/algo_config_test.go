@@ -2,6 +2,7 @@ package sftp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"testing"
@@ -38,13 +39,12 @@ func TestSFTPAlgoConfig(t *testing.T) {
 			Name:     "sftp_server",
 			Protocol: "sftp",
 			Root:     root,
-			ProtoConfig: []byte(`{
-				"address": "localhost",
-				"port": ` + fmt.Sprint(port) + `,
+			ProtoConfig: json.RawMessage(`{
 				"keyExchanges": ["ecdh-sha2-nistp256"],
 				"ciphers": ["aes128-ctr"],
 				"macs": ["hmac-sha2-256"]
 			}`),
+			Address: fmt.Sprintf("localhost:%d", port),
 		}
 		So(db.Create(agent), ShouldBeNil)
 
@@ -73,6 +73,7 @@ func TestSFTPAlgoConfig(t *testing.T) {
 			info := model.OutTransferInfo{
 				Agent: &model.RemoteAgent{
 					Name:        "remote_sftp",
+					Address:     agent.Address,
 					Protocol:    "sftp",
 					ProtoConfig: agent.ProtoConfig,
 				},

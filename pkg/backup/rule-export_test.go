@@ -68,7 +68,8 @@ func TestExportRuleAccesses(t *testing.T) {
 			agent := &model.RemoteAgent{
 				Name:        "agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent), ShouldBeNil)
 

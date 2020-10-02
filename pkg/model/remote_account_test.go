@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -29,7 +30,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			ag := &RemoteAgent{
 				Name:        "server",
 				Protocol:    "dummy",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
 			So(db.Create(ag), ShouldBeNil)
@@ -105,7 +106,7 @@ func TestRemoteAccountValidate(t *testing.T) {
 			parentAgent := &RemoteAgent{
 				Name:        "parent_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
 			So(db.Create(parentAgent), ShouldBeNil)
@@ -198,7 +199,7 @@ func TestRemoteAccountValidate(t *testing.T) {
 					otherAgent := &RemoteAgent{
 						Name:        "other",
 						Protocol:    "sftp",
-						ProtoConfig: []byte(`{}`),
+						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}
 					So(db.Create(otherAgent), ShouldBeNil)

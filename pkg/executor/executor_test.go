@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
@@ -41,7 +42,8 @@ func TestExecutorRun(t *testing.T) {
 		remote := &model.RemoteAgent{
 			Name:        "test remote",
 			Protocol:    "test",
-			ProtoConfig: []byte(`{}`),
+			ProtoConfig: json.RawMessage(`{}`),
+			Address:     "localhost:1111",
 		}
 		So(db.Create(remote), ShouldBeNil)
 
@@ -437,7 +439,8 @@ func TestTransferResume(t *testing.T) {
 		remote := &model.RemoteAgent{
 			Name:        "test remote",
 			Protocol:    "test",
-			ProtoConfig: []byte(`{}`),
+			ProtoConfig: json.RawMessage(`{}`),
+			Address:     "localhost:1111",
 		}
 		So(db.Create(remote), ShouldBeNil)
 

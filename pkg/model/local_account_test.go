@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -29,7 +30,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 			ag := &LocalAgent{
 				Name:        "server",
 				Protocol:    "dummy",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
 			So(db.Create(ag), ShouldBeNil)
@@ -106,7 +107,7 @@ func TestLocalAccountValidate(t *testing.T) {
 				Owner:       "test_gateway",
 				Name:        "parent_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2222",
 			}
 			So(db.Create(parentAgent), ShouldBeNil)
@@ -196,7 +197,7 @@ func TestLocalAccountValidate(t *testing.T) {
 						Owner:       "test_gateway",
 						Name:        "other",
 						Protocol:    "sftp",
-						ProtoConfig: []byte(`{}`),
+						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}
 					So(db.Create(otherAgent), ShouldBeNil)

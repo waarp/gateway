@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -38,7 +39,8 @@ func TestPathIn(t *testing.T) {
 			localAgent := &model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1111",
 			}
 			So(db.Create(localAgent), ShouldBeNil)
 
@@ -52,7 +54,8 @@ func TestPathIn(t *testing.T) {
 			remoteAgent := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2222",
 			}
 			So(db.Create(remoteAgent), ShouldBeNil)
 
@@ -160,7 +163,8 @@ func TestPathOut(t *testing.T) {
 			localAgent := &model.LocalAgent{
 				Name:        "local_agent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1111",
 			}
 			So(db.Create(localAgent), ShouldBeNil)
 
@@ -174,7 +178,8 @@ func TestPathOut(t *testing.T) {
 			remoteAgent := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2222",
 			}
 			So(db.Create(remoteAgent), ShouldBeNil)
 

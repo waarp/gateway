@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -37,7 +38,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 			rAgent := &RemoteAgent{
 				Name:        "Test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
 			So(db.Create(rAgent), ShouldBeNil)
@@ -52,7 +53,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 			lAgent := &LocalAgent{
 				Name:        "Test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2222",
 			}
 			So(db.Create(lAgent), ShouldBeNil)
@@ -113,7 +114,7 @@ func TestRuleAccessValidate(t *testing.T) {
 			rAgent := &RemoteAgent{
 				Name:        "Test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
 			So(db.Create(rAgent), ShouldBeNil)
@@ -128,7 +129,7 @@ func TestRuleAccessValidate(t *testing.T) {
 			lAgent := &LocalAgent{
 				Name:        "Test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2222",
 			}
 			So(db.Create(lAgent), ShouldBeNil)

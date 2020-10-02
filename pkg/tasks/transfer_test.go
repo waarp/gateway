@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"encoding/json"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -79,7 +80,8 @@ func TestTransferRun(t *testing.T) {
 		partner := &model.RemoteAgent{
 			Name:        "test partner",
 			Protocol:    "sftp",
-			ProtoConfig: []byte(`{"port":1,"address":"localhost"}`),
+			ProtoConfig: json.RawMessage(`{}`),
+			Address:     "localhost:1111",
 		}
 		So(db.Create(partner), ShouldBeNil)
 

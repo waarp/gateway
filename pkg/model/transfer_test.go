@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -31,7 +32,7 @@ func TestTransferValidate(t *testing.T) {
 			remote := &RemoteAgent{
 				Name:        "remote",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
 			So(db.Create(remote), ShouldBeNil)
@@ -194,7 +195,7 @@ func TestTransferValidate(t *testing.T) {
 					remote2 := &RemoteAgent{
 						Name:        "remote2",
 						Protocol:    "sftp",
-						ProtoConfig: []byte(`{}`),
+						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}
 					So(db.Create(remote2), ShouldBeNil)
@@ -252,7 +253,7 @@ func TestTransferToHistory(t *testing.T) {
 		remote := &RemoteAgent{
 			Name:        "remote",
 			Protocol:    "sftp",
-			ProtoConfig: []byte(`{}`),
+			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:2022",
 		}
 		So(db.Create(remote), ShouldBeNil)

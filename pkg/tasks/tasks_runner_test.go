@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"testing"
@@ -42,7 +43,8 @@ func TestSetup(t *testing.T) {
 			agent := &model.RemoteAgent{
 				Name:        "agent",
 				Protocol:    "r66",
-				ProtoConfig: []byte(`{"port":6622,"address":"127.0.0.1"}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:6622",
 			}
 			So(db.Create(agent), ShouldBeNil)
 
@@ -254,7 +256,7 @@ func TestGetTasks(t *testing.T) {
 					Chain:  model.ChainPre,
 					Rank:   0,
 					Type:   taskSuccess,
-					Args:   []byte(`{}`),
+					Args:   json.RawMessage(`{}`),
 				}
 				So(db.Create(&pre1), ShouldBeNil)
 				pre2 := model.Task{
@@ -262,7 +264,7 @@ func TestGetTasks(t *testing.T) {
 					Chain:  model.ChainPre,
 					Rank:   1,
 					Type:   taskSuccess,
-					Args:   []byte(`{}`),
+					Args:   json.RawMessage(`{}`),
 				}
 				So(db.Create(&pre2), ShouldBeNil)
 
@@ -271,7 +273,7 @@ func TestGetTasks(t *testing.T) {
 					Chain:  model.ChainPost,
 					Rank:   0,
 					Type:   taskSuccess,
-					Args:   []byte(`{}`),
+					Args:   json.RawMessage(`{}`),
 				}
 				So(db.Create(&post1), ShouldBeNil)
 				post2 := model.Task{
@@ -279,7 +281,7 @@ func TestGetTasks(t *testing.T) {
 					Chain:  model.ChainPost,
 					Rank:   1,
 					Type:   taskSuccess,
-					Args:   []byte(`{}`),
+					Args:   json.RawMessage(`{}`),
 				}
 				So(db.Create(&post2), ShouldBeNil)
 
@@ -288,7 +290,7 @@ func TestGetTasks(t *testing.T) {
 					Chain:  model.ChainError,
 					Rank:   0,
 					Type:   taskSuccess,
-					Args:   []byte(`{}`),
+					Args:   json.RawMessage(`{}`),
 				}
 				So(db.Create(&err1), ShouldBeNil)
 				err2 := model.Task{
@@ -296,7 +298,7 @@ func TestGetTasks(t *testing.T) {
 					Chain:  model.ChainError,
 					Rank:   1,
 					Type:   taskSuccess,
-					Args:   []byte(`{}`),
+					Args:   json.RawMessage(`{}`),
 				}
 				So(db.Create(&err2), ShouldBeNil)
 
@@ -354,7 +356,8 @@ func TestRunTasks(t *testing.T) {
 		agent := &model.RemoteAgent{
 			Name:        "agent",
 			Protocol:    "r66",
-			ProtoConfig: []byte(`{"port": 6622, "address": "127.0.0.1"}`),
+			ProtoConfig: json.RawMessage(`{}`),
+			Address:     "localhost:6622",
 		}
 		So(db.Create(agent), ShouldBeNil)
 
@@ -394,13 +397,13 @@ func TestRunTasks(t *testing.T) {
 						Chain:  model.ChainPre,
 						Rank:   0,
 						Type:   taskSuccess,
-						Args:   []byte(`{}`),
+						Args:   json.RawMessage(`{}`),
 					}, {
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
 						Rank:   1,
 						Type:   taskSuccess,
-						Args:   []byte(`{}`),
+						Args:   json.RawMessage(`{}`),
 					},
 				}
 
@@ -426,13 +429,13 @@ func TestRunTasks(t *testing.T) {
 						Chain:  model.ChainPre,
 						Rank:   0,
 						Type:   taskSuccess,
-						Args:   []byte(`{}`),
+						Args:   json.RawMessage(`{}`),
 					}, {
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
 						Rank:   1,
 						Type:   taskWarning,
-						Args:   []byte(`{}`),
+						Args:   json.RawMessage(`{}`),
 					},
 				}
 
@@ -464,19 +467,19 @@ func TestRunTasks(t *testing.T) {
 						Chain:  model.ChainPre,
 						Rank:   0,
 						Type:   taskSuccess,
-						Args:   []byte(`{}`),
+						Args:   json.RawMessage(`{}`),
 					}, {
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
 						Rank:   1,
 						Type:   taskFail,
-						Args:   []byte(`{}`),
+						Args:   json.RawMessage(`{}`),
 					}, {
 						RuleID: rule.ID,
 						Chain:  model.ChainPre,
 						Rank:   1,
 						Type:   taskSuccess,
-						Args:   []byte(`{}`),
+						Args:   json.RawMessage(`{}`),
 					},
 				}
 
@@ -517,7 +520,7 @@ func TestRunTasks(t *testing.T) {
 					Chain:  model.ChainPre,
 					Rank:   0,
 					Type:   "unknown",
-					Args:   []byte(`{}`),
+					Args:   json.RawMessage(`{}`),
 				}}
 
 				Convey("Then running the tasks should return an error", func() {
