@@ -18,6 +18,7 @@ import (
 func partnerInfoString(p *rest.OutPartner) string {
 	return "● Partner " + p.Name + "\n" +
 		"    Protocol:      " + p.Protocol + "\n" +
+		"    Address:       " + p.Address + "\n" +
 		"    Configuration: " + string(p.ProtoConfig) + "\n" +
 		"    Authorized rules\n" +
 		"    ├─Sending:   " + strings.Join(p.AuthorizedRules.Sending, ", ") + "\n" +
@@ -40,7 +41,8 @@ func TestGetPartner(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 
@@ -109,7 +111,7 @@ func TestAddPartner(t *testing.T) {
 
 			Convey("Given valid flags", func() {
 				args := []string{"-n", "server_name", "-p", "test",
-					"-c", `{"key":"val"}`}
+					"-c", `{}`, "-a", "localhost:1"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -130,7 +132,8 @@ func TestAddPartner(t *testing.T) {
 							ID:          1,
 							Name:        "server_name",
 							Protocol:    "test",
-							ProtoConfig: json.RawMessage(`{"key":"val"}`),
+							ProtoConfig: json.RawMessage(`{}`),
+							Address:     "localhost:1",
 						}
 						So(parts[0], ShouldResemble, exp)
 					})
@@ -139,7 +142,7 @@ func TestAddPartner(t *testing.T) {
 
 			Convey("Given an invalid protocol", func() {
 				args := []string{"-n", "server_name", "-p", "invalid",
-					"-c", `{"key":"val"}`}
+					"-c", `{}`, "-a", "localhost:1"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -154,7 +157,7 @@ func TestAddPartner(t *testing.T) {
 
 			Convey("Given an invalid configuration", func() {
 				args := []string{"-n", "server_name", "-p", "fail",
-					"-c", `{"key":"val"}`}
+					"-c", `{"unknown":"val"}`, "-a", "localhost:1"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -162,7 +165,23 @@ func TestAddPartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "partner config validation failed")
+						So(err, ShouldBeError, `failed to parse protocol `+
+							`configuration: json: unknown field "unknown"`)
+					})
+				})
+			})
+
+			Convey("Given an invalid address", func() {
+				args := []string{"-n", "server_name", "-p", "fail",
+					"-c", `{"key":"val"}`, "-a", "invalid_address"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "'invalid_address' is not a valid partner address")
 					})
 				})
 			})
@@ -186,14 +205,16 @@ func TestListPartners(t *testing.T) {
 			partner1 := &model.RemoteAgent{
 				Name:        "remote_agent1",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{"key":"val"}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner1), ShouldBeNil)
 
 			partner2 := &model.RemoteAgent{
 				Name:        "remote_agent2",
 				Protocol:    "test2",
-				ProtoConfig: []byte(`{"key":"val"}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2",
 			}
 			So(db.Create(partner2), ShouldBeNil)
 
@@ -294,7 +315,8 @@ func TestDeletePartner(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "remote_agent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 
@@ -360,13 +382,14 @@ func TestUpdatePartner(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{"key":"val"}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
 				args := []string{"-n", "new_partner", "-p", "test2",
-					"-c", `{"updated_key":"updated_val"}`, partner.Name}
+					"-c", `{}`, "-a", "localhost:1", partner.Name}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -388,7 +411,8 @@ func TestUpdatePartner(t *testing.T) {
 							ID:          partner.ID,
 							Name:        "new_partner",
 							Protocol:    "test2",
-							ProtoConfig: json.RawMessage(`{"updated_key":"updated_val"}`),
+							Address:     "localhost:1",
+							ProtoConfig: json.RawMessage(`{}`),
 						}
 						So(parts[0], ShouldResemble, exp)
 					})
@@ -397,7 +421,7 @@ func TestUpdatePartner(t *testing.T) {
 
 			Convey("Given an invalid protocol", func() {
 				args := []string{"-n", "new_partner", "-p", "invalid",
-					"-c", `{"updated_key":"updated_val"}`, partner.Name}
+					"-c", `{}`, "-a", "localhost:1", partner.Name}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -416,7 +440,7 @@ func TestUpdatePartner(t *testing.T) {
 
 			Convey("Given an invalid configuration", func() {
 				args := []string{"-n", "new_partner", "-p", "fail",
-					"-c", `{"updated_key":"updated_val"}`, partner.Name}
+					"-c", `{"unknown":"val"}`, "-a", "localhost:1", partner.Name}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -424,7 +448,28 @@ func TestUpdatePartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "partner config validation failed")
+						So(err, ShouldBeError, `failed to parse protocol `+
+							`configuration: json: unknown field "unknown"`)
+					})
+
+					Convey("Then the partner should stay unchanged", func() {
+						So(db.Get(partner), ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given an invalid address", func() {
+				args := []string{"-n", "new_partner", "-p", "fail",
+					"-c", `{}`, "-a", "invalid_address", partner.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "'invalid_address' is not a valid "+
+							"partner address")
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
@@ -435,7 +480,7 @@ func TestUpdatePartner(t *testing.T) {
 
 			Convey("Given an non-existing name", func() {
 				args := []string{"-n", "new_partner", "-p", "test2",
-					"-c", `{"updated_key":"updated_val"}`, "toto"}
+					"-c", `{}`, "-a", "localhost:1", "toto"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -471,7 +516,8 @@ func TestAuthorizePartner(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 
@@ -567,7 +613,8 @@ func TestRevokePartner(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 

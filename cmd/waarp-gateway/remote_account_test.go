@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -29,7 +30,8 @@ func TestGetRemoteAccount(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 			commandLine.Account.Remote.Args.Partner = partner.Name
@@ -123,7 +125,8 @@ func TestAddRemoteAccount(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 			commandLine.Account.Remote.Args.Partner = partner.Name
@@ -189,7 +192,8 @@ func TestDeleteRemoteAccount(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 			commandLine.Account.Remote.Args.Partner = partner.Name
@@ -279,7 +283,8 @@ func TestUpdateRemoteAccount(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 			commandLine.Account.Remote.Args.Partner = partner.Name
@@ -394,7 +399,8 @@ func TestListRemoteAccount(t *testing.T) {
 			partner1 := &model.RemoteAgent{
 				Name:        "partner1",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner1), ShouldBeNil)
 			commandLine.Account.Remote.Args.Partner = partner1.Name
@@ -402,7 +408,8 @@ func TestListRemoteAccount(t *testing.T) {
 			partner2 := &model.RemoteAgent{
 				Name:        "partner2",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2",
 			}
 			So(db.Create(partner2), ShouldBeNil)
 
@@ -541,7 +548,8 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 
@@ -668,7 +676,8 @@ func TestRevokeRemoteAccount(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 

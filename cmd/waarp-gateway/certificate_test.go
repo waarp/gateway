@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -38,7 +39,8 @@ func TestGetCertificate(t *testing.T) {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:1",
 				}
 				So(db.Create(partner), ShouldBeNil)
 
@@ -188,7 +190,8 @@ func TestGetCertificate(t *testing.T) {
 				server := &model.LocalAgent{
 					Name:        "server",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:2",
 				}
 				So(db.Create(server), ShouldBeNil)
 
@@ -359,7 +362,8 @@ func TestAddCertificate(t *testing.T) {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:1",
 				}
 				So(db.Create(partner), ShouldBeNil)
 
@@ -525,7 +529,8 @@ func TestAddCertificate(t *testing.T) {
 				server := &model.LocalAgent{
 					Name:        "server",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:2",
 				}
 				So(db.Create(server), ShouldBeNil)
 
@@ -708,7 +713,8 @@ func TestDeleteCertificate(t *testing.T) {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:1",
 				}
 				So(db.Create(partner), ShouldBeNil)
 
@@ -890,7 +896,8 @@ func TestDeleteCertificate(t *testing.T) {
 				server := &model.LocalAgent{
 					Name:        "server",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:2",
 				}
 				So(db.Create(server), ShouldBeNil)
 
@@ -1089,7 +1096,8 @@ func TestListCertificate(t *testing.T) {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:1",
 				}
 				So(db.Create(partner), ShouldBeNil)
 
@@ -1331,7 +1339,8 @@ func TestListCertificate(t *testing.T) {
 				server := &model.LocalAgent{
 					Name:        "server",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:2",
 				}
 				So(db.Create(server), ShouldBeNil)
 
@@ -1594,7 +1603,8 @@ func TestUpdateCertificate(t *testing.T) {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:1",
 				}
 				So(db.Create(partner), ShouldBeNil)
 
@@ -1852,7 +1862,8 @@ func TestUpdateCertificate(t *testing.T) {
 				server := &model.LocalAgent{
 					Name:        "server",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:2",
 				}
 				So(db.Create(server), ShouldBeNil)
 

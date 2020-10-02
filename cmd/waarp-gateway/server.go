@@ -32,6 +32,7 @@ func displayServer(w io.Writer, server *rest.OutServer) {
 
 	fmt.Fprintln(w, orange(bold("● Server", server.Name)))
 	fmt.Fprintln(w, orange("    Protocol:      "), server.Protocol)
+	fmt.Fprintln(w, orange("    Address:       "), server.Address)
 	fmt.Fprintln(w, orange("    Root:          "), server.Root)
 	fmt.Fprintln(w, orange("    In directory:  "), server.InDir)
 	fmt.Fprintln(w, orange("    Out directory: "), server.OutDir)
@@ -66,6 +67,7 @@ func (s *serverGet) Execute([]string) error {
 type serverAdd struct {
 	Name        string  `required:"yes" short:"n" long:"name" description:"The server's name"`
 	Protocol    string  `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
+	Address     string  `required:"yes" short:"a" long:"address" description:"The server's [address:port]"`
 	Root        *string `short:"r" long:"root" description:"The server's root directory"`
 	InDir       *string `short:"i" long:"in" description:"The server's in directory"`
 	OutDir      *string `short:"o" long:"out" description:"The server's out directory"`
@@ -77,6 +79,7 @@ func (s *serverAdd) Execute([]string) error {
 	server := &rest.InServer{
 		Name:        &s.Name,
 		Protocol:    &s.Protocol,
+		Address:     &s.Address,
 		Root:        s.Root,
 		InDir:       s.InDir,
 		OutDir:      s.OutDir,
@@ -148,6 +151,7 @@ type serverUpdate struct {
 	} `positional-args:"yes"`
 	Name        *string `short:"n" long:"name" description:"The server's name"`
 	Protocol    *string `short:"p" long:"protocol" description:"The server's protocol"`
+	Address     *string `short:"a" long:"address" description:"The server's [address:port]"`
 	Root        *string `short:"r" long:"root" description:"The server's root directory"`
 	InDir       *string `short:"i" long:"in" description:"The server's in directory"`
 	OutDir      *string `short:"o" long:"out" description:"The server's out directory"`
@@ -159,6 +163,7 @@ func (s *serverUpdate) Execute([]string) error {
 	server := &rest.InServer{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
+		Address:     s.Address,
 		Root:        s.Root,
 		InDir:       s.InDir,
 		OutDir:      s.OutDir,
