@@ -1,6 +1,6 @@
-########################
-Paramètres de connection
-########################
+#######################
+Paramètres de connexion
+#######################
 
 .. program:: waarp-gateway
 

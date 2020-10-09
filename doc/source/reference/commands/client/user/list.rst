@@ -1,10 +1,10 @@
-=======================
+.. _reference-cli-client-user-list:
+
+#######################
 Lister les utilisateurs
-=======================
+#######################
 
 .. program:: waarp-gateway user list
-
-.. describe:: waarp-gateway <ADDR> user list
 
 Affiche une liste de tous les utilisateurs remplissant les critères ci-dessous.
 

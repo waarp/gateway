@@ -13,7 +13,8 @@ multi-protocolaire.
 
    installation/index
    getting-started/index
-   guide/index
+   administration/index
+   user/index
    reference/index
    glossary
    changelog

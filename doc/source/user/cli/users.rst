@@ -1,12 +1,13 @@
+########################
 Gestion des utilisateurs
-========================
+########################
 
 La commande de gestion des :term:`utilisateurs<utilisateur>` est ``user``. Cette
 commande doit ensuite être suivie d'une action. La liste complète des actions est
-disponible :doc:`ici <../../client/user/index>`.
+disponible :any:`ici <reference-cli-client-user>`.
 
 Ajouter un utilisateur
-----------------------
+======================
 
 Pour créer un utilisateur, la commande est ``user add``. Les options de commande
 suivantes doivent être fournies:
@@ -22,7 +23,7 @@ suivantes doivent être fournies:
 
 
 Modifier un utilisateur
------------------------
+=======================
 
 Pour modifier un utilisateur existant, la commande est ``user update``. Cette
 commande doit être suivie du nom de l'utilisateur à modifier. Les options de
@@ -37,11 +38,11 @@ ou plusieurs options pour faire une mise à jour partielle.
 
 
 Consulter les utilisateurs
---------------------------
+==========================
 
 Pour lister les utilisateurs de la *gateway*, la commande est ``user list``. Les
 options de commande permettent de filtrer les résultats selon divers critères,
-pour plus de détails, voir la :doc:`documentation<../../client/user/list>` de
+pour plus de détails, voir la :any:`référence <reference-cli-client-user-list>` de
 la commande ``list``.
 
 **Exemple**

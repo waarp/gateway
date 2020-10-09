@@ -1,3 +1,5 @@
+.. _reference-cli-client-user:
+
 ########################
 Gestion des utilisateurs
 ########################

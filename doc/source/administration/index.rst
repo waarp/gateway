@@ -1,5 +1,6 @@
-Guides
-======
+######################
+Guide d'administration
+######################
 
 Ce guide regroupe plusieurs rubriques expliquant comment utiliser la *gateway*.
 
@@ -8,4 +9,3 @@ Ce guide regroupe plusieurs rubriques expliquant comment utiliser la *gateway*.
 
    usage
    backup
-   administration/index

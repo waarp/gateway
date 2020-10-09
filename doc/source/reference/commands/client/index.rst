@@ -1,9 +1,13 @@
-########################
-Client ``waarp-gateway``
-########################
+.. _reference-cli:
 
-``waarp-gateway`` est l'application terminal permettant d'envoyer des commandes
-à une instance waarp-gatewayd.
+###########################
+Client en ligne de commande
+###########################
+
+:program:`waarp-gateway` est l'application terminal permettant d'envoyer des commandes
+à une instance :program:`waarp-gatewayd`.
+
+.. program:: waarp-gateway
 
 .. toctree::
    :maxdepth: 3
