@@ -1,6 +1,10 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+
+	"code.waarp.fr/waarp-r66/r66"
+)
 
 func init() {
 	ProtoConfigs["r66"] = func() ProtoConfig { return new(R66ProtoConfig) }
@@ -22,5 +26,6 @@ func (c *R66ProtoConfig) ValidServer() error {
 	if len(c.ServerPassword) == 0 {
 		return fmt.Errorf("missing server password")
 	}
+	c.ServerPassword = r66.CryptPass(c.ServerPassword)
 	return nil
 }

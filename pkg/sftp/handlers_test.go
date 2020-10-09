@@ -57,6 +57,7 @@ func TestFileReader(t *testing.T) {
 			account := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
+				Password:     []byte("password"),
 			}
 			So(db.Create(account), ShouldBeNil)
 
@@ -166,6 +167,7 @@ func TestFileWriter(t *testing.T) {
 			account := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
+				Password:     []byte("password"),
 			}
 			So(db.Create(account), ShouldBeNil)
 

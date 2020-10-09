@@ -2,6 +2,7 @@ package model
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-r66/r66"
 	"github.com/go-xorm/builder"
 )
 
@@ -51,25 +52,22 @@ func (l *LocalAccount) GetCerts(db database.Accessor) ([]Cert, error) {
 
 // Validate checks if the new `LocalAccount` entry is valid and can be
 // inserted in the database.
-func (l *LocalAccount) Validate(db database.Accessor) error {
-	if l.Password != nil {
-		var err error
-		if l.Password, err = hashPassword(l.Password); err != nil {
-			return err
-		}
-	}
-
+func (l *LocalAccount) Validate(db database.Accessor) (err error) {
 	if l.LocalAgentID == 0 {
 		return database.InvalidError("the account's agentID cannot be empty")
 	}
 	if l.Login == "" {
 		return database.InvalidError("the account's login cannot be empty")
 	}
+	if len(l.Password) == 0 {
+		return database.InvalidError("the account's password cannot be empty")
+	}
 
-	if res, err := db.Query("SELECT id FROM local_agents WHERE id=?",
-		l.LocalAgentID); err != nil {
-		return err
-	} else if len(res) == 0 {
+	agent := &LocalAgent{ID: l.LocalAgentID}
+	if err := db.Get(agent); err != nil {
+		if err != database.ErrNotFound {
+			return err
+		}
 		return database.InvalidError("no local agent found with the ID '%v'", l.LocalAgentID)
 	}
 
@@ -81,7 +79,11 @@ func (l *LocalAccount) Validate(db database.Accessor) error {
 			"already exist", l.Login)
 	}
 
-	return nil
+	if agent.Protocol == "r66" {
+		l.Password = r66.CryptPass(l.Password)
+	}
+	l.Password, err = hashPassword(l.Password)
+	return err
 }
 
 // BeforeDelete is called before deleting the account from the database. Its
