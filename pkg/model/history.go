@@ -146,6 +146,5 @@ func (h *TransferHistory) Restart(acc database.Accessor, date time.Time) (*Trans
 		Owner:      h.Owner,
 		Progress:   h.Progress,
 		TaskNumber: h.TaskNumber,
-		ExtInfo:    h.ExtInfo,
 	}, nil
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"github.com/go-xorm/builder"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 )
@@ -17,22 +18,22 @@ func init() {
 
 // Transfer represents one record of the 'transfers' table.
 type Transfer struct {
-	ID           uint64         `xorm:"pk autoincr <- 'id'"`
-	RuleID       uint64         `xorm:"notnull 'rule_id'"`
-	IsServer     bool           `xorm:"notnull 'is_server'"`
-	AgentID      uint64         `xorm:"notnull 'agent_id'"`
-	AccountID    uint64         `xorm:"notnull 'account_id'"`
-	TrueFilepath string         `xorm:"notnull 'true_filepath'"`
-	SourceFile   string         `xorm:"notnull 'source_file'"`
-	DestFile     string         `xorm:"notnull 'dest_file'"`
-	Start        time.Time      `xorm:"notnull 'start'"`
-	Step         TransferStep   `xorm:"notnull 'step'"`
-	Status       TransferStatus `xorm:"notnull 'status'"`
-	Owner        string         `xorm:"notnull 'owner'"`
-	Progress     uint64         `xorm:"notnull 'progression'"`
-	TaskNumber   uint64         `xorm:"notnull 'task_number'"`
-	Error        TransferError  `xorm:"extends"`
-	ExtInfo      []byte         `xorm:"'ext_info'"`
+	ID               uint64         `xorm:"pk autoincr <- 'id'"`
+	RemoteTransferID uint64         `xorm:"unique(transRemID) 'remote_transfer_id'"`
+	RuleID           uint64         `xorm:"notnull 'rule_id'"`
+	IsServer         bool           `xorm:"notnull 'is_server'"`
+	AgentID          uint64         `xorm:"notnull 'agent_id'"`
+	AccountID        uint64         `xorm:"notnull unique(transRemID) 'account_id'"`
+	TrueFilepath     string         `xorm:"notnull 'true_filepath'"`
+	SourceFile       string         `xorm:"notnull 'source_file'"`
+	DestFile         string         `xorm:"notnull 'dest_file'"`
+	Start            time.Time      `xorm:"notnull 'start'"`
+	Step             TransferStep   `xorm:"notnull 'step'"`
+	Status           TransferStatus `xorm:"notnull 'status'"`
+	Owner            string         `xorm:"notnull 'owner'"`
+	Progress         uint64         `xorm:"notnull 'progression'"`
+	TaskNumber       uint64         `xorm:"notnull 'task_number'"`
+	Error            TransferError  `xorm:"extends"`
 }
 
 // TableName returns the name of the transfers table.
@@ -43,6 +44,30 @@ func (*Transfer) TableName() string {
 // GetID returns the transfer's ID
 func (t *Transfer) GetID() uint64 {
 	return t.ID
+}
+
+func (t *Transfer) ExtInfo(db database.Accessor) (map[string]string, error) {
+	var res []ExtInfo
+	filters := &database.Filters{Conditions: builder.Eq{"transfer_id": t.ID}}
+	if err := db.Select(&res, filters); err != nil {
+		return nil, err
+	}
+
+	info := make(map[string]string)
+	for _, i := range res {
+		info[i.Name] = i.Value
+	}
+	return info, nil
+}
+
+func (t *Transfer) SetExtInfo(db database.Accessor, info map[string]interface{}) error {
+	for name, val := range info {
+		i := &ExtInfo{TransferID: t.ID, Name: name, Value: fmt.Sprint(val)}
+		if err := db.Create(i); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (t *Transfer) validateClientTransfer(db database.Accessor) error {
@@ -232,7 +257,6 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		Step:           t.Step,
 		Progress:       t.Progress,
 		TaskNumber:     t.TaskNumber,
-		ExtInfo:        t.ExtInfo,
 	}
 	return &hist, nil
 }
