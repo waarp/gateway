@@ -233,10 +233,6 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return badRequest("only the client can retry a transfer")
 			}
 
-			if check.Status == model.StatusDone {
-				return badRequest("cannot retry a finished transfer")
-			}
-
 			trans, err := check.Restart(db, date)
 			if err != nil {
 				return err

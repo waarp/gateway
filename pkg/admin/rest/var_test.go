@@ -8,8 +8,7 @@ import (
 )
 
 var (
-	strPtr  = utils.StringPtr
-	boolPtr = utils.BoolPtr
+	strPtr = utils.StringPtr
 )
 
 func init() {
