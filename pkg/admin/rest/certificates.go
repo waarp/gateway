@@ -13,21 +13,31 @@ import (
 // InCert is the JSON representation of a certificate in requests made to
 // the REST interface.
 type InCert struct {
-	Name        string `json:"name"`
-	PrivateKey  []byte `json:"privateKey"`
-	PublicKey   []byte `json:"publicKey"`
-	Certificate []byte `json:"certificate"`
+	Name        *string `json:"name,omitempty"`
+	PrivateKey  []byte  `json:"privateKey,omitempty"`
+	PublicKey   []byte  `json:"publicKey,omitempty"`
+	Certificate []byte  `json:"certificate,omitempty"`
 }
 
 // ToModel transforms the JSON certificate into its database equivalent.
-func (i *InCert) toModel(ownerType string, ownerID uint64) *model.Cert {
+func (i *InCert) toModel(id uint64, ownerType string, ownerID uint64) *model.Cert {
 	return &model.Cert{
+		ID:          id,
 		OwnerType:   ownerType,
 		OwnerID:     ownerID,
-		Name:        i.Name,
+		Name:        str(i.Name),
 		PrivateKey:  i.PrivateKey,
 		PublicKey:   i.PublicKey,
 		Certificate: i.Certificate,
+	}
+}
+
+func inCertFromModel(c *model.Cert) *InCert {
+	return &InCert{
+		Name:        &c.Name,
+		PrivateKey:  c.PrivateKey,
+		PublicKey:   c.Certificate,
+		Certificate: c.Certificate,
 	}
 }
 
@@ -99,12 +109,12 @@ func createCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	cert := jsonCert.toModel(ownerType, ownerID)
+	cert := jsonCert.toModel(0, ownerType, ownerID)
 	if err := db.Create(cert); err != nil {
 		return err
 	}
 
-	w.Header().Set("Location", location(r, cert.Name))
+	w.Header().Set("Location", location(r.URL, cert.Name))
 	w.WriteHeader(http.StatusCreated)
 	return nil
 }
@@ -147,10 +157,10 @@ func deleteCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 	return nil
 }
 
-func updateCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
+func replaceCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 	ownerType string, ownerID uint64) error {
 
-	check, err := getCert(r, db, ownerType, ownerID)
+	old, err := getCert(r, db, ownerType, ownerID)
 	if err != nil {
 		return err
 	}
@@ -160,12 +170,33 @@ func updateCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	if err := db.Update(cert.toModel(check.OwnerType, check.OwnerID),
-		check.ID, false); err != nil {
+	if err := db.Update(cert.toModel(old.ID, ownerType, ownerID)); err != nil {
 		return err
 	}
 
-	w.Header().Set("Location", locationUpdate(r, cert.Name, check.Name))
+	w.Header().Set("Location", locationUpdate(r.URL, str(cert.Name)))
+	w.WriteHeader(http.StatusCreated)
+	return nil
+}
+
+func updateCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
+	ownerType string, ownerID uint64) error {
+
+	old, err := getCert(r, db, ownerType, ownerID)
+	if err != nil {
+		return err
+	}
+
+	cert := inCertFromModel(old)
+	if err := readJSON(r, cert); err != nil {
+		return err
+	}
+
+	if err := db.Update(cert.toModel(old.ID, ownerType, ownerID)); err != nil {
+		return err
+	}
+
+	w.Header().Set("Location", locationUpdate(r.URL, str(cert.Name)))
 	w.WriteHeader(http.StatusCreated)
 	return nil
 }

@@ -57,7 +57,7 @@ type remAccAdd struct {
 
 func (r *remAccAdd) Execute([]string) error {
 	account := rest.InAccount{
-		Login:    r.Login,
+		Login:    &r.Login,
 		Password: []byte(r.Password),
 	}
 	partner := commandLine.Account.Remote.Args.Partner
@@ -66,7 +66,7 @@ func (r *remAccAdd) Execute([]string) error {
 	if err := add(account); err != nil {
 		return err
 	}
-	fmt.Fprintln(getColorable(), "The account", bold(account.Login), "was successfully added.")
+	fmt.Fprintln(getColorable(), "The account", bold(r.Login), "was successfully added.")
 	return nil
 }
 
@@ -96,15 +96,16 @@ type remAccUpdate struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 	} `positional-args:"yes"`
-	Login    string `short:"l" long:"name" description:"The account's login"`
-	Password string `short:"p" long:"password" description:"The account's password"`
+	Login    *string `short:"l" long:"name" description:"The account's login"`
+	Password *string `short:"p" long:"password" description:"The account's password"`
 }
 
 func (r *remAccUpdate) Execute([]string) error {
-	account := rest.InAccount{
+	account := &rest.InAccount{
 		Login:    r.Login,
-		Password: []byte(r.Password),
+		Password: parseOptBytes(r.Password),
 	}
+
 	partner := commandLine.Account.Remote.Args.Partner
 	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner +
 		rest.AccountsPath + "/" + r.Args.Login
@@ -113,8 +114,8 @@ func (r *remAccUpdate) Execute([]string) error {
 		return err
 	}
 	login := r.Args.Login
-	if account.Login != "" {
-		login = account.Login
+	if account.Login != nil && *account.Login != "" {
+		login = *account.Login
 	}
 	fmt.Fprintln(getColorable(), "The account", bold(login), "was successfully updated.")
 	return nil

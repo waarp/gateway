@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"encoding/json"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -19,7 +20,7 @@ func TestImportLocalAgents(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(agent), ShouldBeNil)
 
@@ -27,7 +28,7 @@ func TestImportLocalAgents(t *testing.T) {
 				agent1 := localAgent{
 					Name:          "foo",
 					Protocol:      "sftp",
-					Configuration: []byte(`{"address":"localhost","port":2022}`),
+					Configuration: json.RawMessage(`{"address":"localhost","port":2022}`),
 					Accounts: []localAccount{
 						{
 							Login:    "test",
@@ -63,7 +64,7 @@ func TestImportLocalAgents(t *testing.T) {
 								So(dbAgent.Name, ShouldEqual, agent1.Name)
 								So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
 								So(dbAgent.ProtoConfig, ShouldResemble,
-									[]byte(agent1.Configuration))
+									agent1.Configuration)
 
 								accounts := []model.LocalAccount{}
 								So(ses.Select(&accounts, &database.Filters{
@@ -81,7 +82,7 @@ func TestImportLocalAgents(t *testing.T) {
 				agent1 := localAgent{
 					Name:          "test",
 					Protocol:      "sftp",
-					Configuration: []byte(`{"address":"127.0.0.1","port":90}`),
+					Configuration: json.RawMessage(`{"address":"127.0.0.1","port":90}`),
 					Accounts: []localAccount{
 						{
 							Login:    "test",
@@ -122,71 +123,7 @@ func TestImportLocalAgents(t *testing.T) {
 								So(dbAgent.Name, ShouldEqual, agent1.Name)
 								So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
 								So(dbAgent.ProtoConfig, ShouldResemble,
-									[]byte(agent1.Configuration))
-
-								accounts := []model.LocalAccount{}
-								So(ses.Select(&accounts, &database.Filters{
-									Conditions: builder.Eq{"local_agent_id": dbAgent.ID},
-								}), ShouldBeNil)
-
-								So(len(accounts), ShouldEqual, 1)
-
-								certs := []model.Cert{}
-								So(ses.Select(&certs, &database.Filters{
-									Conditions: builder.Eq{"owner_id": dbAgent.ID,
-										"owner_type": "local_agents"},
-								}), ShouldBeNil)
-
-								So(len(accounts), ShouldEqual, 1)
-							})
-						})
-					})
-				})
-			})
-
-			Convey("Given a list of partially updated agents", func() {
-				agent1 := localAgent{
-					Name: "test",
-					Accounts: []localAccount{
-						{
-							Login:    "test",
-							Password: "pwd",
-						},
-					},
-					Certs: []certificate{
-						{
-							Name:        "cert",
-							PublicKey:   "public",
-							PrivateKey:  "private",
-							Certificate: "key",
-						},
-					},
-				}
-				agents := []localAgent{agent1}
-
-				Convey("Given a new Transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
-
-					defer ses.Rollback()
-
-					Convey("When calling the importLocals method", func() {
-						err := importLocalAgents(discard, ses, agents)
-
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
-						})
-						Convey("Then the database should contains the local agents", func() {
-							dbAgent := &model.LocalAgent{
-								Name: agent1.Name,
-							}
-							So(ses.Get(dbAgent), ShouldBeNil)
-
-							Convey("Then the data should correspond to the "+
-								"one imported", func() {
-								So(dbAgent.Name, ShouldEqual, agent1.Name)
-								So(dbAgent.Protocol, ShouldEqual, agent.Protocol)
-								So(dbAgent.ProtoConfig, ShouldResemble, agent.ProtoConfig)
+									agent1.Configuration)
 
 								accounts := []model.LocalAccount{}
 								So(ses.Select(&accounts, &database.Filters{
@@ -220,7 +157,7 @@ func TestImportLocalAccounts(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
 			}
 			So(db.Create(agent), ShouldBeNil)
 

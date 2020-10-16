@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -222,8 +223,8 @@ func TestCreateRemoteAgent(t *testing.T) {
 
 			Convey("Given a new remote agent to insert in the database", func() {
 				newAgent := &InPartner{
-					Name:        "new remote agent",
-					Protocol:    "test",
+					Name:        strPtr("new remote agent"),
+					Protocol:    strPtr("test"),
 					ProtoConfig: json.RawMessage(`{}`),
 				}
 
@@ -249,23 +250,28 @@ func TestCreateRemoteAgent(t *testing.T) {
 							"of the new remote agent", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, remoteAgentsURI+newAgent.Name)
+							So(location, ShouldEqual, remoteAgentsURI+url.PathEscape(
+								str(newAgent.Name)))
 						})
 
 						Convey("Then the new remote agent should be inserted in "+
 							"the database", func() {
-							exist, err := db.Exists(newAgent.ToModel())
 
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							var ags []model.RemoteAgent
+							So(db.Select(&ags, nil), ShouldBeNil)
+							So(len(ags), ShouldEqual, 2)
+
+							So(ags[1], ShouldResemble, *newAgent.ToModel(2))
 						})
 
 						Convey("Then the existing remote agent should still be "+
 							"present as well", func() {
-							exist, err := db.Exists(existing)
 
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							var ags []model.RemoteAgent
+							So(db.Select(&ags, nil), ShouldBeNil)
+							So(len(ags), ShouldEqual, 2)
+
+							So(ags[0], ShouldResemble, *existing)
 						})
 					})
 				})
@@ -307,9 +313,9 @@ func TestDeleteRemoteAgent(t *testing.T) {
 					})
 
 					Convey("Then the agent should no longer be present in the database", func() {
-						exist, err := db.Exists(existing)
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeFalse)
+						var ags []model.RemoteAgent
+						So(db.Select(&ags, nil), ShouldBeNil)
+						So(ags, ShouldBeEmpty)
 					})
 				})
 			})
@@ -345,18 +351,11 @@ func TestUpdateRemoteAgent(t *testing.T) {
 				Protocol:    "test",
 				ProtoConfig: []byte(`{}`),
 			}
-			other := &model.RemoteAgent{
-				Name:        "other",
-				Protocol:    "test2",
-				ProtoConfig: []byte(`{}`),
-			}
 			So(db.Create(old), ShouldBeNil)
-			So(db.Create(other), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
 				update := InPartner{
-					Name:        "update",
-					Protocol:    "test",
+					Name:        strPtr("update"),
 					ProtoConfig: json.RawMessage(`{"key":"val"}`),
 				}
 				body, err := json.Marshal(update)
@@ -371,6 +370,10 @@ func TestUpdateRemoteAgent(t *testing.T) {
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
 
+						Convey("Then the response body should be empty", func() {
+							So(w.Body.String(), ShouldBeEmpty)
+						})
+
 						Convey("Then it should reply 'Created'", func() {
 							So(w.Code, ShouldEqual, http.StatusCreated)
 						})
@@ -379,23 +382,22 @@ func TestUpdateRemoteAgent(t *testing.T) {
 							"the URI of the updated agent", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, remoteAgentsURI+update.Name)
-						})
-
-						Convey("Then the response body should be empty", func() {
-							So(w.Body.String(), ShouldBeEmpty)
+							So(location, ShouldEqual, remoteAgentsURI+str(update.Name))
 						})
 
 						Convey("Then the agent should have been updated", func() {
-							result := &model.RemoteAgent{ID: old.ID}
-							So(db.Get(result), ShouldBeNil)
+							exp := model.RemoteAgent{
+								ID:          old.ID,
+								Name:        "update",
+								Protocol:    "test",
+								ProtoConfig: json.RawMessage(`{"key":"val"}`),
+							}
 
-							So(result.Name, ShouldEqual, update.Name)
-							So(result.Protocol, ShouldEqual, update.Protocol)
+							var parts []model.RemoteAgent
+							So(db.Select(&parts, nil), ShouldBeNil)
+							So(len(parts), ShouldEqual, 1)
 
-							protoConfig, err := json.Marshal(&update.ProtoConfig)
-							So(err, ShouldBeNil)
-							So(string(result.ProtoConfig), ShouldEqual, string(protoConfig))
+							So(parts[0], ShouldResemble, exp)
 						})
 					})
 				})
@@ -419,10 +421,109 @@ func TestUpdateRemoteAgent(t *testing.T) {
 						})
 
 						Convey("Then the old agent should still exist", func() {
-							exist, err := db.Exists(old)
+							var ags []model.RemoteAgent
+							So(db.Select(&ags, nil), ShouldBeNil)
+							So(len(ags), ShouldEqual, 1)
 
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(ags[0], ShouldResemble, *old)
+						})
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestReplaceRemoteAgent(t *testing.T) {
+	logger := log.NewLogger("rest_agent_update_logger")
+
+	Convey("Given the agent updating handler", t, func() {
+		db := database.GetTestDatabase()
+		handler := replaceRemoteAgent(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 2 agents", func() {
+			old := &model.RemoteAgent{
+				Name:        "old",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{"key":"val"}`),
+			}
+			So(db.Create(old), ShouldBeNil)
+
+			Convey("Given new values to update the agent with", func() {
+				update := InPartner{
+					Name:        strPtr("update"),
+					Protocol:    strPtr("test2"),
+					ProtoConfig: json.RawMessage(`{}`),
+				}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
+
+				Convey("Given a valid agent name parameter", func() {
+					r, err := http.NewRequest(http.MethodPut, remoteAgentsURI+
+						old.Name, bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"remote_agent": old.Name})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then the response body should be empty", func() {
+							So(w.Body.String(), ShouldBeEmpty)
+						})
+
+						Convey("Then it should reply 'Created'", func() {
+							So(w.Code, ShouldEqual, http.StatusCreated)
+						})
+
+						Convey("Then the 'Location' header should contain "+
+							"the URI of the updated agent", func() {
+
+							location := w.Header().Get("Location")
+							So(location, ShouldEqual, remoteAgentsURI+str(update.Name))
+						})
+
+						Convey("Then the agent should have been updated", func() {
+							exp := model.RemoteAgent{
+								ID:          old.ID,
+								Name:        "update",
+								Protocol:    "test2",
+								ProtoConfig: json.RawMessage(`{}`),
+							}
+
+							var parts []model.RemoteAgent
+							So(db.Select(&parts, nil), ShouldBeNil)
+							So(len(parts), ShouldEqual, 1)
+
+							So(parts[0], ShouldResemble, exp)
+						})
+					})
+				})
+
+				Convey("Given an invalid agent name parameter", func() {
+					r, err := http.NewRequest(http.MethodPut, remoteAgentsURI+"toto",
+						bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto"})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply 'NotFound'", func() {
+							So(w.Code, ShouldEqual, http.StatusNotFound)
+						})
+
+						Convey("Then the response body should state that "+
+							"the agent was not found", func() {
+							So(w.Body.String(), ShouldEqual, "partner 'toto' not found\n")
+						})
+
+						Convey("Then the old agent should still exist", func() {
+							var ags []model.RemoteAgent
+							So(db.Select(&ags, nil), ShouldBeNil)
+							So(len(ags), ShouldEqual, 1)
+
+							So(ags[0], ShouldResemble, *old)
 						})
 					})
 				})

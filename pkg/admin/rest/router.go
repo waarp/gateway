@@ -54,7 +54,9 @@ func makeUsersHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Route
 	userHandler.HandleFunc("", deleteUser(logger, db)).
 		Methods(http.MethodDelete)
 	userHandler.HandleFunc("", updateUser(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
+		Methods(http.MethodPatch)
+	userHandler.HandleFunc("", replaceUser(logger, db)).
+		Methods(http.MethodPut)
 }
 
 //nolint:dupl
@@ -71,7 +73,9 @@ func makeLocalAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux
 	locAgHandler.HandleFunc("", deleteLocalAgent(logger, db)).
 		Methods(http.MethodDelete)
 	locAgHandler.HandleFunc("", updateLocalAgent(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
+		Methods(http.MethodPatch)
+	locAgHandler.HandleFunc("", replaceLocalAgent(logger, db)).
+		Methods(http.MethodPut)
 
 	locAgHandler.HandleFunc("/authorize/{rule:[^\\/]+}/{direction:send|receive}",
 		authorizeLocalAgent(logger, db)).Methods(http.MethodPut)
@@ -90,7 +94,9 @@ func makeLocalAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mux
 	certHandler.HandleFunc("", deleteLocAgentCert(logger, db)).
 		Methods(http.MethodDelete)
 	certHandler.HandleFunc("", updateLocAgentCert(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
+		Methods(http.MethodPatch)
+	certHandler.HandleFunc("", replaceLocAgentCert(logger, db)).
+		Methods(http.MethodPut)
 
 	makeLocalAccountsHandler(logger, db, locAgHandler)
 }
@@ -109,7 +115,9 @@ func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mu
 	remAgHandler.HandleFunc("", deleteRemoteAgent(logger, db)).
 		Methods(http.MethodDelete)
 	remAgHandler.HandleFunc("", updateRemoteAgent(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
+		Methods(http.MethodPatch)
+	remAgHandler.HandleFunc("", replaceRemoteAgent(logger, db)).
+		Methods(http.MethodPut)
 
 	remAgHandler.HandleFunc("/authorize/{rule:[^\\/]+}/{direction:send|receive}",
 		authorizeRemoteAgent(logger, db)).Methods(http.MethodPut)
@@ -128,7 +136,9 @@ func makeRemoteAgentsHandler(logger *log.Logger, db *database.DB, apiHandler *mu
 	certHandler.HandleFunc("", deleteRemAgentCert(logger, db)).
 		Methods(http.MethodDelete)
 	certHandler.HandleFunc("", updateRemAgentCert(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
+		Methods(http.MethodPatch)
+	certHandler.HandleFunc("", replaceRemAgentCert(logger, db)).
+		Methods(http.MethodPut)
 
 	makeRemoteAccountsHandler(logger, db, remAgHandler)
 }
@@ -147,7 +157,9 @@ func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, agentHandler 
 	locAcHandler.HandleFunc("", deleteLocalAccount(logger, db)).
 		Methods(http.MethodDelete)
 	locAcHandler.HandleFunc("", updateLocalAccount(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
+		Methods(http.MethodPatch)
+	locAcHandler.HandleFunc("", replaceLocalAccount(logger, db)).
+		Methods(http.MethodPut)
 
 	locAcHandler.HandleFunc("/authorize/{rule:[^\\/]+}/{direction:send|receive}",
 		authorizeLocalAccount(logger, db)).Methods(http.MethodPut)
@@ -166,7 +178,9 @@ func makeLocalAccountsHandler(logger *log.Logger, db *database.DB, agentHandler 
 	certHandler.HandleFunc("", deleteLocAccountCert(logger, db)).
 		Methods(http.MethodDelete)
 	certHandler.HandleFunc("", updateLocAccountCert(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
+		Methods(http.MethodPatch)
+	certHandler.HandleFunc("", replaceLocAccountCert(logger, db)).
+		Methods(http.MethodPut)
 }
 
 //nolint:dupl
@@ -183,7 +197,9 @@ func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, agentHandler
 	remAcHandler.HandleFunc("", deleteRemoteAccount(logger, db)).
 		Methods(http.MethodDelete)
 	remAcHandler.HandleFunc("", updateRemoteAccount(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
+		Methods(http.MethodPatch)
+	remAcHandler.HandleFunc("", replaceRemoteAccount(logger, db)).
+		Methods(http.MethodPut)
 
 	remAcHandler.HandleFunc("/authorize/{rule:[^\\/]+}/{direction:send|receive}",
 		authorizeRemoteAccount(logger, db)).Methods(http.MethodPut)
@@ -202,7 +218,9 @@ func makeRemoteAccountsHandler(logger *log.Logger, db *database.DB, agentHandler
 	certHandler.HandleFunc("", deleteRemAccountCert(logger, db)).
 		Methods(http.MethodDelete)
 	certHandler.HandleFunc("", updateRemAccountCert(logger, db)).
-		Methods(http.MethodPatch, http.MethodPut)
+		Methods(http.MethodPatch)
+	certHandler.HandleFunc("", replaceRemAccountCert(logger, db)).
+		Methods(http.MethodPut)
 }
 
 func makeTransfersHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Router) {
@@ -240,7 +258,8 @@ func makeRulesHandler(logger *log.Logger, db *database.DB, apiHandler *mux.Route
 
 	ruleHandler := rulesHandler.PathPrefix("/{rule:[^\\/]+}/{direction:send|receive}").Subrouter()
 	ruleHandler.HandleFunc("", getRule(logger, db)).Methods(http.MethodGet)
-	ruleHandler.HandleFunc("", updateRule(logger, db)).Methods(http.MethodPatch, http.MethodPut)
+	ruleHandler.HandleFunc("", updateRule(logger, db)).Methods(http.MethodPatch)
+	ruleHandler.HandleFunc("", replaceRule(logger, db)).Methods(http.MethodPut)
 	ruleHandler.HandleFunc("", deleteRule(logger, db)).Methods(http.MethodDelete)
 	ruleHandler.HandleFunc("/allow_all", allowAllRule(logger, db)).Methods(http.MethodPut)
 }

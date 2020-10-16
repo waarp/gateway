@@ -96,7 +96,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 	})
 }
 
-func TestRuleAccessBeforeInsert(t *testing.T) {
+func TestRuleAccessValidate(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
@@ -141,8 +141,8 @@ func TestRuleAccessBeforeInsert(t *testing.T) {
 					RuleID: 0,
 				}
 
-				Convey("When calling the `BeforeInsert` method", func() {
-					err := ra.BeforeInsert(db)
+				Convey("When calling the `Validate` method", func() {
+					err := ra.Validate(db)
 
 					Convey("Then the error should say 'No rule found'", func() {
 						So(err, ShouldBeError, "no rule found with ID 0")
@@ -156,8 +156,8 @@ func TestRuleAccessBeforeInsert(t *testing.T) {
 					ObjectType: "dummy",
 				}
 
-				Convey("When calling the `BeforeInsert` method", func() {
-					err := ra.BeforeInsert(db)
+				Convey("When calling the `Validate` method", func() {
+					err := ra.Validate(db)
 
 					Convey("Then the error should say 'No rule found'", func() {
 						So(err, ShouldBeError, "the rule_access's object type "+
@@ -176,8 +176,8 @@ func TestRuleAccessBeforeInsert(t *testing.T) {
 						ObjectID:   0,
 					}
 
-					Convey("When calling the `BeforeInsert` method", func() {
-						err := ra.BeforeInsert(db)
+					Convey("When calling the `Validate` method", func() {
+						err := ra.Validate(db)
 
 						Convey("Then the error should say 'No rule found'", func() {
 							So(err, ShouldBeError, fmt.Sprintf(
@@ -205,8 +205,8 @@ func TestRuleAccessBeforeInsert(t *testing.T) {
 						ObjectID:   id,
 					}
 
-					Convey("When calling the `BeforeInsert` method", func() {
-						err := ra.BeforeInsert(db)
+					Convey("When calling the `Validate` method", func() {
+						err := ra.Validate(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -214,22 +214,6 @@ func TestRuleAccessBeforeInsert(t *testing.T) {
 					})
 				})
 			}
-		})
-	})
-}
-
-func TestRuleAccessBeforeUpdate(t *testing.T) {
-	Convey("Given a RuleAccess instance", t, func() {
-		ruleAccess := &RuleAccess{}
-
-		Convey("When calling the `BeforeUpdate` method", func() {
-			err := ruleAccess.BeforeUpdate(nil, 0)
-
-			So(err, ShouldNotBeNil)
-
-			Convey("Then the error should say that operation is not allowed", func() {
-				So(err, ShouldBeError, "operation not allowed")
-			})
 		})
 	})
 }

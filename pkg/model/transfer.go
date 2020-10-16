@@ -40,6 +40,11 @@ func (*Transfer) TableName() string {
 	return "transfers"
 }
 
+// GetID returns the transfer's ID
+func (t *Transfer) GetID() uint64 {
+	return t.ID
+}
+
 func (t *Transfer) validateClientTransfer(db database.Accessor) error {
 	remote := RemoteAgent{ID: t.AgentID}
 	if err := db.Get(&remote); err != nil {
@@ -99,15 +104,12 @@ func (t *Transfer) validateServerTransfer(db database.Accessor) error {
 	return nil
 }
 
-// BeforeInsert checks if the new `Transfer` entry is valid and can be
+// Validate checks if the new `Transfer` entry is valid and can be
 // inserted in the database.
 //nolint:funlen
-func (t *Transfer) BeforeInsert(db database.Accessor) error {
+func (t *Transfer) Validate(db database.Accessor) error {
 	t.Owner = database.Owner
 
-	if t.ID != 0 {
-		return database.InvalidError("the transfer's ID cannot be entered manually")
-	}
 	if t.RuleID == 0 {
 		return database.InvalidError("the transfer's rule ID cannot be empty")
 	}
@@ -132,14 +134,11 @@ func (t *Transfer) BeforeInsert(db database.Accessor) error {
 	if !validateStatusForTransfer(t.Status) {
 		return database.InvalidError("'%s' is not a valid transfer status", t.Status)
 	}
-	if t.Error.Code != TeOk {
-		return database.InvalidError("the transfer's error code must be empty")
+	if !t.Step.IsValid() {
+		return database.InvalidError("'%s' is not a valid transfer step", t.Step)
 	}
-	if t.Error.Details != "" {
-		return database.InvalidError("the transfer's error message must be empty")
-	}
-	if t.Owner == "" {
-		return database.InvalidError("the transfer's owner cannot be empty")
+	if !t.Error.Code.IsValid() {
+		return database.InvalidError("'%s' is not a valid transfer error code", t.Error.Code)
 	}
 	if t.SourceFile != filepath.Base(t.SourceFile) {
 		return database.InvalidError("the source file cannot contain subdirectories")
@@ -167,46 +166,6 @@ func (t *Transfer) BeforeInsert(db database.Accessor) error {
 	} else {
 		if err := t.validateClientTransfer(db); err != nil {
 			return err
-		}
-	}
-
-	return nil
-}
-
-// BeforeUpdate is called before updating an existing `Transfer` entry from
-// the database. It checks whether the updated entry is valid or not.
-func (t *Transfer) BeforeUpdate(database.Accessor, uint64) error {
-	if t.ID != 0 {
-		return database.InvalidError("the transfer's ID cannot be entered manually")
-	}
-	if t.Owner != "" {
-		return database.InvalidError("the transfer's owner cannot be changed")
-	}
-	if t.RuleID != 0 {
-		return database.InvalidError("the transfer's rule cannot be changed")
-	}
-	if t.AgentID != 0 {
-		return database.InvalidError("the transfer's partner cannot be changed")
-	}
-	if t.AccountID != 0 {
-		return database.InvalidError("the transfer's account cannot be changed")
-	}
-	if t.SourceFile != "" {
-		return database.InvalidError("the transfer's source cannot be changed")
-	}
-	if t.DestFile != "" {
-		return database.InvalidError("the transfer's destination cannot be changed")
-	}
-	if t.TrueFilepath != "" {
-		t.TrueFilepath = utils.NormalizePath(t.TrueFilepath)
-		if !path.IsAbs(t.TrueFilepath) {
-			return database.InvalidError("the filepath must be an absolute path")
-		}
-	}
-
-	if t.Status != "" {
-		if !validateStatusForTransfer(t.Status) {
-			return database.InvalidError("'%s' is not a valid transfer status", t.Status)
 		}
 	}
 
@@ -276,18 +235,4 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		ExtInfo:        t.ExtInfo,
 	}
 	return &hist, nil
-}
-
-// Update updates the transfer start, status & error in the database.
-func (t *Transfer) Update(acc database.Accessor) error {
-	trans := &Transfer{
-		Start:      t.Start,
-		Status:     t.Status,
-		Step:       t.Step,
-		Error:      t.Error,
-		Progress:   t.Progress,
-		TaskNumber: t.TaskNumber,
-	}
-
-	return acc.Update(trans, t.ID, false)
 }

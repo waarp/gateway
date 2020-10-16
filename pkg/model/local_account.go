@@ -30,6 +30,11 @@ func (l *LocalAccount) TableName() string {
 	return "local_accounts"
 }
 
+// GetID returns the account's ID.
+func (l *LocalAccount) GetID() uint64 {
+	return l.ID
+}
+
 // GetCerts fetch in the database then return the associated Certificates if they exist
 func (l *LocalAccount) GetCerts(db database.Accessor) ([]Cert, error) {
 	filters := &database.Filters{
@@ -44,9 +49,9 @@ func (l *LocalAccount) GetCerts(db database.Accessor) ([]Cert, error) {
 	return results, nil
 }
 
-// BeforeInsert checks if the new `LocalAccount` entry is valid and can be
+// Validate checks if the new `LocalAccount` entry is valid and can be
 // inserted in the database.
-func (l *LocalAccount) BeforeInsert(db database.Accessor) error {
+func (l *LocalAccount) Validate(db database.Accessor) error {
 	if l.Password != nil {
 		var err error
 		if l.Password, err = hashPassword(l.Password); err != nil {
@@ -54,9 +59,6 @@ func (l *LocalAccount) BeforeInsert(db database.Accessor) error {
 		}
 	}
 
-	if l.ID != 0 {
-		return database.InvalidError("the account's ID cannot be entered manually")
-	}
 	if l.LocalAgentID == 0 {
 		return database.InvalidError("the account's agentID cannot be empty")
 	}
@@ -64,61 +66,19 @@ func (l *LocalAccount) BeforeInsert(db database.Accessor) error {
 		return database.InvalidError("the account's login cannot be empty")
 	}
 
-	if res, err := db.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
+	if res, err := db.Query("SELECT id FROM local_agents WHERE id=?",
+		l.LocalAgentID); err != nil {
 		return err
 	} else if len(res) == 0 {
 		return database.InvalidError("no local agent found with the ID '%v'", l.LocalAgentID)
 	}
 
-	if res, err := db.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
-		"AND login=?", l.LocalAgentID, l.Login); err != nil {
+	if res, err := db.Query("SELECT id FROM local_accounts WHERE id<>? AND "+
+		"local_agent_id=? AND login=?", l.ID, l.LocalAgentID, l.Login); err != nil {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("a local account with the same login '%s' "+
 			"already exist", l.Login)
-	}
-
-	return nil
-}
-
-// BeforeUpdate checks if the updated `LocalAccount` entry is valid and can be
-// updated in the database.
-func (l *LocalAccount) BeforeUpdate(db database.Accessor, id uint64) error {
-	if l.Password != nil {
-		var err error
-		if l.Password, err = hashPassword(l.Password); err != nil {
-			return err
-		}
-	}
-
-	if l.ID != 0 && l.ID != id {
-		return database.InvalidError("the account's ID cannot be entered manually")
-	}
-
-	if l.LocalAgentID != 0 {
-		if res, err := db.Query("SELECT id FROM local_agents WHERE id=?", l.LocalAgentID); err != nil {
-			return err
-		} else if len(res) == 0 {
-			return database.InvalidError("no local agent found with the ID '%v'", l.LocalAgentID)
-		}
-	}
-
-	if l.Login != "" {
-		old := LocalAccount{ID: id}
-		if err := db.Get(&old); err != nil {
-			return err
-		}
-		if l.LocalAgentID != 0 {
-			old.LocalAgentID = l.LocalAgentID
-		}
-
-		if res, err := db.Query("SELECT id FROM local_accounts WHERE local_agent_id=? "+
-			"AND login=? AND id!=?", old.LocalAgentID, l.Login, id); err != nil {
-			return err
-		} else if len(res) > 0 {
-			return database.InvalidError("a local account with the same login '%s' "+
-				"already exist", l.Login)
-		}
 	}
 
 	return nil

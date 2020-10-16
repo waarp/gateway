@@ -1,6 +1,8 @@
 package model
 
 import (
+	"encoding/json"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/go-xorm/builder"
@@ -16,7 +18,7 @@ func init() {
 type RemoteAgent struct {
 
 	// The agent's database ID.
-	ID uint64 `xorm:"pk autoincr 'id'"`
+	ID uint64 `xorm:"pk autoincr <- 'id'"`
 
 	// The agent's display name.
 	Name string `xorm:"unique notnull 'name'"`
@@ -25,12 +27,17 @@ type RemoteAgent struct {
 	Protocol string `xorm:"notnull 'protocol'"`
 
 	// The agent's configuration in raw JSON format.
-	ProtoConfig []byte `xorm:"notnull 'proto_config'"`
+	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
 }
 
 // TableName returns the remote_agent table name.
 func (r *RemoteAgent) TableName() string {
 	return "remote_agents"
+}
+
+// GetID returns the agent's ID.
+func (r *RemoteAgent) GetID() uint64 {
+	return r.ID
 }
 
 func (r *RemoteAgent) validateProtoConfig() error {
@@ -59,12 +66,9 @@ func (r *RemoteAgent) GetCerts(db database.Accessor) ([]Cert, error) {
 	return results, nil
 }
 
-// BeforeInsert is called before inserting a new `RemoteAgent` entry in the
+// Validate is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RemoteAgent) BeforeInsert(db database.Accessor) error {
-	if r.ID != 0 {
-		return database.InvalidError("the agent's ID cannot be entered manually")
-	}
+func (r *RemoteAgent) Validate(db database.Accessor) error {
 	if r.Name == "" {
 		return database.InvalidError("the agent's name cannot be empty")
 	}
@@ -75,51 +79,12 @@ func (r *RemoteAgent) BeforeInsert(db database.Accessor) error {
 		return database.InvalidError(err.Error())
 	}
 
-	if res, err := db.Query("SELECT id FROM remote_agents WHERE name=?", r.Name); err != nil {
+	if res, err := db.Query("SELECT id FROM remote_agents WHERE id<>? AND name=?",
+		r.ID, r.Name); err != nil {
 		return err
 	} else if len(res) > 0 {
 		return database.InvalidError("a remote agent with the same name '%s' "+
 			"already exist", r.Name)
-	}
-
-	return nil
-}
-
-// BeforeUpdate is called before updating an existing `RemoteAgent` entry from
-// the database. It checks whether the updated entry is valid or not.
-func (r *RemoteAgent) BeforeUpdate(db database.Accessor, id uint64) error {
-	if r.ID != 0 && r.ID != id {
-		return database.InvalidError("the agent's ID cannot be entered manually")
-	}
-
-	// Get Old protocol if no protocol is provided
-	if r.Protocol == "" {
-		old := &RemoteAgent{
-			ID: id,
-		}
-		if err := db.Get(old); err != nil {
-			return err
-		}
-		r.Protocol = old.Protocol
-	} else if r.ProtoConfig == nil {
-		// If Protocol and no Protoconfig error
-		return database.InvalidError("cannot change protocol without providing protoconfig")
-	}
-
-	if r.ProtoConfig != nil {
-		if err := r.validateProtoConfig(); err != nil {
-			return database.InvalidError(err.Error())
-		}
-	}
-
-	if r.Name != "" {
-		if res, err := db.Query("SELECT id FROM remote_agents WHERE name=? AND "+
-			"id<>?", r.Name, id); err != nil {
-			return err
-		} else if len(res) > 0 {
-			return database.InvalidError("a remote agent with the same name "+
-				"'%s' already exist", r.Name)
-		}
 	}
 
 	return nil

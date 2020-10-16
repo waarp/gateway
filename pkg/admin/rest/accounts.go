@@ -7,24 +7,40 @@ import (
 // InAccount is the JSON representation of a local/remote account in requests
 // made to the REST interface.
 type InAccount struct {
-	Login    string `json:"login"`
-	Password []byte `json:"password"`
+	Login    *string `json:"login,omitempty"`
+	Password []byte  `json:"password,omitempty"`
+}
+
+func newInLocAccount(old *model.LocalAccount) *InAccount {
+	return &InAccount{
+		Login:    &old.Login,
+		Password: old.Password,
+	}
+}
+
+func newInRemAccount(old *model.RemoteAccount) *InAccount {
+	return &InAccount{
+		Login:    &old.Login,
+		Password: old.Password,
+	}
 }
 
 // ToLocal transforms the JSON local account into its database equivalent.
-func (i *InAccount) ToLocal(agent *model.LocalAgent) *model.LocalAccount {
+func (i *InAccount) ToLocal(agent *model.LocalAgent, id uint64) *model.LocalAccount {
 	return &model.LocalAccount{
+		ID:           id,
 		LocalAgentID: agent.ID,
-		Login:        i.Login,
+		Login:        str(i.Login),
 		Password:     i.Password,
 	}
 }
 
 // ToRemote transforms the JSON remote account into its database equivalent.
-func (i *InAccount) ToRemote(agent *model.RemoteAgent) *model.RemoteAccount {
+func (i *InAccount) ToRemote(agent *model.RemoteAgent, id uint64) *model.RemoteAccount {
 	return &model.RemoteAccount{
+		ID:            id,
 		RemoteAgentID: agent.ID,
-		Login:         i.Login,
+		Login:         str(i.Login),
 		Password:      i.Password,
 	}
 }

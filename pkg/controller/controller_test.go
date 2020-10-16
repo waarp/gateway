@@ -58,7 +58,7 @@ func TestControllerListen(t *testing.T) {
 		start := time.Now().Truncate(time.Second)
 
 		Convey("Given a controller", func() {
-			tick := 10 * time.Millisecond
+			tick := time.Nanosecond
 			cont := &Controller{
 				DB:     db,
 				Conf:   &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: "."}},
@@ -99,8 +99,11 @@ func TestControllerListen(t *testing.T) {
 
 						Convey("Then it should have retrieved the planned "+
 							"transfer entry", func() {
-							err := db.Get(&model.TransferHistory{ID: trans.ID})
-							So(err, ShouldBeNil)
+							//err := db.Get(&model.TransferHistory{ID: trans.ID})
+							//So(err, ShouldBeNil)
+							var h []model.TransferHistory
+							So(db.Select(&h, nil), ShouldBeNil)
+							So(h, ShouldNotBeEmpty)
 						})
 					})
 				})

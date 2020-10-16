@@ -29,7 +29,7 @@ type userAdd struct {
 
 func (u *userAdd) Execute([]string) error {
 	newUser := &rest.InUser{
-		Username: u.Username,
+		Username: &u.Username,
 		Password: []byte(u.Password),
 	}
 	addr.Path = admin.APIPath + rest.UsersPath
@@ -37,7 +37,7 @@ func (u *userAdd) Execute([]string) error {
 	if err := add(newUser); err != nil {
 		return err
 	}
-	fmt.Fprintln(getColorable(), "The user", bold(newUser.Username), "was successfully added.")
+	fmt.Fprintln(getColorable(), "The user", bold(u.Username), "was successfully added.")
 	return nil
 }
 
@@ -66,14 +66,14 @@ type userUpdate struct {
 	Args struct {
 		Username string `required:"yes" positional-arg-name:"username" description:"The old username"`
 	} `positional-args:"yes"`
-	Username string `short:"u" long:"username" description:"The new username"`
-	Password string `short:"p" long:"password" description:"The new password"`
+	Username *string `short:"u" long:"username" description:"The new username"`
+	Password *string `short:"p" long:"password" description:"The new password"`
 }
 
 func (u *userUpdate) Execute([]string) error {
 	user := &rest.InUser{
 		Username: u.Username,
-		Password: []byte(u.Password),
+		Password: parseOptBytes(u.Password),
 	}
 	addr.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
 
@@ -81,8 +81,8 @@ func (u *userUpdate) Execute([]string) error {
 		return err
 	}
 	username := u.Args.Username
-	if user.Username != "" {
-		username = user.Username
+	if user.Username != nil && *user.Username != "" {
+		username = *user.Username
 	}
 	fmt.Fprintln(getColorable(), "The user", bold(username), "was successfully updated.")
 	return nil

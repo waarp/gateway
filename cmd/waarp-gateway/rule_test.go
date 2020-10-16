@@ -207,7 +207,8 @@ func TestAddRule(t *testing.T) {
 
 			Convey("Given valid parameters", func() {
 				args := []string{"-n", "new_rule", "-c", "new_rule comment",
-					"-d", "RECEIVE", "--path=/new/rule/path", "--out_path=/out/path", "--in_path=/in/path", "--work_path=/work/path",
+					"-d", "RECEIVE", "--path=/new/rule/path", "--out_path=/out/path",
+					"--in_path=/in/path", "--work_path=/work/path",
 					`--pre={"type":"COPY","args":{"path":"/path/to/copy"}}`,
 					`--pre={"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
 					`--post={"type":"DELETE","args":{}}`,
@@ -229,12 +230,12 @@ func TestAddRule(t *testing.T) {
 					Convey("Then the new rule should have been added", func() {
 						rule := &model.Rule{
 							Name:     command.Name,
-							Comment:  command.Comment,
+							Comment:  *command.Comment,
 							IsSend:   command.Direction == "SEND",
 							Path:     command.Path,
-							InPath:   command.InPath,
-							OutPath:  command.OutPath,
-							WorkPath: command.WorkPath,
+							InPath:   *command.InPath,
+							OutPath:  *command.OutPath,
+							WorkPath: *command.WorkPath,
 						}
 						So(db.Get(rule), ShouldBeNil)
 
@@ -251,7 +252,8 @@ func TestAddRule(t *testing.T) {
 							Chain:  model.ChainPre,
 							Rank:   1,
 							Type:   "EXEC",
-							Args:   json.RawMessage(`{"path":"/path/to/script","args":"{}","delay":"0"}`),
+							Args: json.RawMessage(
+								`{"path":"/path/to/script","args":"{}","delay":"0"}`),
 						}
 						So(db.Get(pre1), ShouldBeNil)
 
@@ -268,7 +270,8 @@ func TestAddRule(t *testing.T) {
 							Chain:  model.ChainPost,
 							Rank:   1,
 							Type:   "TRANSFER",
-							Args:   json.RawMessage(`{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}`),
+							Args: json.RawMessage(`{"file":"/path/to/file",` +
+								`"to":"server","as":"account","rule":"rule"}`),
 						}
 						So(db.Get(post1), ShouldBeNil)
 
@@ -307,19 +310,11 @@ func TestAddRule(t *testing.T) {
 							" already exist")
 					})
 
-					Convey("Then the new rule should not have been added", func() {
-						rule := &model.Rule{
-							Comment: command.Comment,
-							IsSend:  command.Direction == "SEND",
-							Path:    command.Path,
-						}
-						exists, err := db.Exists(rule)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeFalse)
-					})
-
-					Convey("Then the old rule should still exist", func() {
-						So(db.Get(existing), ShouldBeNil)
+					Convey("Then the rule should have been updated", func() {
+						var rules []model.Rule
+						So(db.Select(&rules, nil), ShouldBeNil)
+						So(len(rules), ShouldEqual, 1)
+						So(rules[0], ShouldResemble, *existing)
 					})
 				})
 			})
@@ -361,9 +356,9 @@ func TestDeleteRule(t *testing.T) {
 					})
 
 					Convey("Then the rule should have been removed", func() {
-						exists, err := db.Exists(rule)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeFalse)
+						var rules []model.Rule
+						So(db.Select(&rules, nil), ShouldBeNil)
+						So(rules, ShouldBeEmpty)
 					})
 				})
 			})

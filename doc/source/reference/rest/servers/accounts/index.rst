@@ -12,6 +12,7 @@ sur ce dernier.
    list
    consult
    update
+   replace
    delete
    authorize
    revoke

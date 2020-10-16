@@ -3,14 +3,35 @@
 Historique des versions
 =======================
 
+* :bug:`153` La mise-à-jour partielle de la base de données via la commande
+  ``import`` n'est plus autorisée. Les objets doivent désormais être renseignés
+  en intégralité dans le fichier importé pour que l'opération puisse se faire.
+* :feature:`153` Le paramètre ``--config`` (ou ``-c``) des commandes ``server add``
+  et ``partner add`` du client est désormais obligatoire.
+* :feature:`153` Dans l'API REST, le champ ``paths`` de l'objet serveur a été
+  supprimé. À la place, les différents chemins contenus dans ``paths`` ont été
+  ramenés directement dans l'objet serveur.
+* :bug:`153` Les champs optionnels peuvent désormais être mis à jour avec une
+  valeur vide. Précédemment, une valeur avait été donné à un champ optionnel
+  (par exemple les divers chemins des règles) au moment de la création, il était
+  impossible de supprimer cette valeur par la suite (à moins de supprimer l'objet
+  puis de le réinsérer).
+* :feature:`153` Dans l'API REST, les méthodes ``PUT`` et ``PATCH`` ont désormais
+  des *handlers* distincts, avec des comportements différents. La méthode ``PATCH``
+  permet de faire une mise-à-jour partielle de l'objet ciblé (les champs omits
+  resteront inchangés). La méthode ``PUT`` permet, elle, de remplacer intégralement
+  toutes les valeurs de l'objet (les champs omits n'auront donc plus de valeur
+  si le modèle le permet).
 * :bug:`193` Les transferts SFTP peuvent désormais être redémarrés via la commande
   ``retry``. (Attention: lorsque la gateway agit en tant que serveur, redémarrer
   un transfert créera une nouvelle entrée au lieu de reprendre l'ancienne, il est
   donc déconseillé de redémarrer le transfert dans ce cas.)
 * :bug:`180` Ajout de commande versions au serveur et au client
 * :bug:`179` Corrige la commande de lancement des transferts avec Waarp R66
-* :bug:`188` Correction de l'erreur 'bad file descriptor' du CLI lors de l'affichage du prompt de mot de passe sous Windows
-* :feature:`169` En cas d'absence du nom d'utilisateur, celui-ci sera demandé via un prompt du terminal
+* :bug:`188` Correction de l'erreur 'bad file descriptor' du CLI lors de
+  l'affichage du prompt de mot de passe sous Windows
+* :feature:`169` En cas d'absence du nom d'utilisateur, celui-ci sera demandé
+  via un prompt du terminal
 * :feature:`169` Le paramètre de l'adresse de la gateway dans les commandes du
   client terminal peut désormais être récupérée via la variable d'environnement
   ``WAARP_GATEWAY_ADDRESS``. En conséquence de ce changement, le paramètre a été

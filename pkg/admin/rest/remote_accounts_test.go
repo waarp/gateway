@@ -283,7 +283,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 
 			Convey("Given a new account to insert in the database", func() {
 				newAccount := &InAccount{
-					Login:    "new_account",
+					Login:    strPtr("new_account"),
 					Password: []byte("new_account"),
 				}
 				body, err := json.Marshal(newAccount)
@@ -307,7 +307,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, remoteAccountsURI(parent.Name,
-								newAccount.Login))
+								str(newAccount.Login)))
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -316,15 +316,15 @@ func TestCreateRemoteAccount(t *testing.T) {
 
 						Convey("Then the new account should be inserted in the "+
 							"database", func() {
-							clearPwd := newAccount.Password
-							newAccount.Password = nil
 
-							test := newAccount.ToRemote(parent)
-							So(db.Get(test), ShouldBeNil)
+							var accs []model.RemoteAccount
+							So(db.Select(&accs, nil), ShouldBeNil)
+							So(len(accs), ShouldEqual, 1)
 
-							pwd, err := model.DecryptPassword(test.Password)
+							clear, err := model.DecryptPassword(accs[0].Password)
 							So(err, ShouldBeNil)
-							So(string(pwd), ShouldEqual, string(clearPwd))
+							accs[0].Password = clear
+							So(accs[0], ShouldResemble, *newAccount.ToRemote(parent, 1))
 						})
 					})
 				})
@@ -348,8 +348,9 @@ func TestCreateRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the new account should NOT exist", func() {
-							check := newAccount.ToRemote(parent)
-							So(db.Get(check), ShouldNotBeNil)
+							var accs []model.RemoteAccount
+							So(db.Select(&accs, nil), ShouldBeNil)
+							So(accs, ShouldBeEmpty)
 						})
 					})
 				})
@@ -448,7 +449,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 		handler := updateRemoteAccount(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 2 accounts", func() {
+		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
 				Protocol:    "test",
@@ -461,17 +462,10 @@ func TestUpdateRemoteAccount(t *testing.T) {
 				Password:      []byte("old"),
 				RemoteAgentID: parent.ID,
 			}
-			other := &model.RemoteAccount{
-				Login:         "other",
-				Password:      []byte("other"),
-				RemoteAgentID: parent.ID,
-			}
 			So(db.Create(old), ShouldBeNil)
-			So(db.Create(other), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
 				update := InAccount{
-					Login:    "update",
 					Password: []byte("update"),
 				}
 				body, err := json.Marshal(update)
@@ -496,7 +490,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, remoteAccountsURI(parent.Name,
-								update.Login))
+								old.Login))
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -504,15 +498,21 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the account should have been updated", func() {
-							result := &model.RemoteAccount{ID: old.ID}
-							err := db.Get(result)
+							var res []model.RemoteAccount
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(len(res), ShouldEqual, 1)
 
+							pswd, err := model.DecryptPassword(res[0].Password)
 							So(err, ShouldBeNil)
-							So(result.Login, ShouldEqual, update.Login)
-							So(result.RemoteAgentID, ShouldEqual, parent.ID)
-							pwd, err := model.DecryptPassword(result.Password)
-							So(err, ShouldBeNil)
-							So(string(pwd), ShouldEqual, string(update.Password))
+							So(pswd, ShouldResemble, update.Password)
+
+							exp := model.RemoteAccount{
+								ID:            old.ID,
+								RemoteAgentID: parent.ID,
+								Login:         "old",
+								Password:      res[0].Password,
+							}
+							So(res[0], ShouldResemble, exp)
 						})
 					})
 				})
@@ -538,10 +538,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the old account should still exist", func() {
-							exist, err := db.Exists(old)
-
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(db.Get(old), ShouldBeNil)
 						})
 					})
 				})
@@ -566,10 +563,138 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the old account should still exist", func() {
-							exist, err := db.Exists(old)
+							So(db.Get(old), ShouldBeNil)
+						})
+					})
+				})
+			})
+		})
+	})
+}
 
+func TestReplaceRemoteAccount(t *testing.T) {
+	logger := log.NewLogger("rest_account_update_logger")
+
+	Convey("Given the account updating handler", t, func() {
+		db := database.GetTestDatabase()
+		handler := replaceRemoteAccount(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 account", func() {
+			parent := &model.RemoteAgent{
+				Name:        "parent",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(parent), ShouldBeNil)
+
+			old := &model.RemoteAccount{
+				Login:         "old",
+				Password:      []byte("old"),
+				RemoteAgentID: parent.ID,
+			}
+			So(db.Create(old), ShouldBeNil)
+
+			Convey("Given new values to update the account with", func() {
+				update := InAccount{
+					Login:    strPtr("update"),
+					Password: []byte("update"),
+				}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
+
+				Convey("Given a valid account login parameter", func() {
+					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
+						parent.Name, old.Login), bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"remote_agent": parent.Name,
+						"remote_account": old.Login})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then the response body should be empty", func() {
+							So(w.Body.String(), ShouldBeEmpty)
+						})
+
+						Convey("Then it should reply 'Created'", func() {
+							So(w.Code, ShouldEqual, http.StatusCreated)
+						})
+
+						Convey("Then the 'Location' header should contain "+
+							"the URI of the updated account", func() {
+
+							location := w.Header().Get("Location")
+							So(location, ShouldEqual, remoteAccountsURI("parent", "update"))
+						})
+
+						Convey("Then the account should have been updated", func() {
+							var res []model.RemoteAccount
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(len(res), ShouldEqual, 1)
+
+							pswd, err := model.DecryptPassword(res[0].Password)
 							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(pswd, ShouldResemble, update.Password)
+
+							exp := model.RemoteAccount{
+								ID:            old.ID,
+								RemoteAgentID: parent.ID,
+								Login:         "update",
+								Password:      res[0].Password,
+							}
+							So(res[0], ShouldResemble, exp)
+						})
+					})
+				})
+
+				Convey("Given an invalid account login parameter", func() {
+					r, err := http.NewRequest(http.MethodPut, remoteAccountsURI(
+						parent.Name, "toto"), bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"remote_agent": parent.Name,
+						"remote_account": "toto"})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply 'NotFound'", func() {
+							So(w.Code, ShouldEqual, http.StatusNotFound)
+						})
+
+						Convey("Then the response body should state that "+
+							"the account was not found", func() {
+							So(w.Body.String(), ShouldEqual, "no account 'toto' "+
+								"found for partner parent\n")
+						})
+
+						Convey("Then the old account should still exist", func() {
+							So(db.Get(old), ShouldBeNil)
+						})
+					})
+				})
+
+				Convey("Given an invalid agent name parameter", func() {
+					r, err := http.NewRequest(http.MethodPut, remoteAccountsURI(
+						"toto", old.Login), bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto",
+						"remote_account": old.Login})
+
+					Convey("When sending the request to the handler", func() {
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should reply 'NotFound'", func() {
+							So(w.Code, ShouldEqual, http.StatusNotFound)
+						})
+
+						Convey("Then the response body should state that "+
+							"the account was not found", func() {
+							So(w.Body.String(), ShouldEqual, "partner 'toto' not found\n")
+						})
+
+						Convey("Then the old account should still exist", func() {
+							So(db.Get(old), ShouldBeNil)
 						})
 					})
 				})

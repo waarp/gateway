@@ -1,9 +1,9 @@
 Modifier un certificat
 ======================
 
-.. http:put:: /api/servers/(string:server)/certificates/(string:cert_name)
+.. http:patch:: /api/servers/(string:server)/certificates/(string:cert_name)
 
-   Met à jour le certificat demandés à partir des informations renseignées en JSON.
+   Met à jour le certificat demandé à partir des informations renseignées en JSON.
    Les champs non-spécifiés resteront inchangés.
 
    :reqheader Authorization: Les identifiants de l'utilisateur

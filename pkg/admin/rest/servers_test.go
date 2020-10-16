@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -51,25 +52,25 @@ func TestListLocalAgents(t *testing.T) {
 			a1 := &model.LocalAgent{
 				Name:        "local agent1",
 				Protocol:    "test",
-				Paths:       &model.ServerPaths{Root: "/root1"},
+				Root:        "/root1",
 				ProtoConfig: []byte(`{}`),
 			}
 			a2 := &model.LocalAgent{
 				Name:        "local agent2",
 				Protocol:    "test",
-				Paths:       &model.ServerPaths{Root: "/root2"},
+				Root:        "/root2",
 				ProtoConfig: []byte(`{}`),
 			}
 			a3 := &model.LocalAgent{
 				Name:        "local agent3",
 				Protocol:    "test",
-				Paths:       &model.ServerPaths{Root: "/root3"},
+				Root:        "/root3",
 				ProtoConfig: []byte(`{}`),
 			}
 			a4 := &model.LocalAgent{
 				Name:        "local agent4",
 				Protocol:    "test2",
-				Paths:       &model.ServerPaths{Root: "/root4"},
+				Root:        "/root4",
 				ProtoConfig: []byte(`{}`),
 			}
 
@@ -158,7 +159,7 @@ func TestGetLocalAgent(t *testing.T) {
 			existing := &model.LocalAgent{
 				Name:        "existing",
 				Protocol:    "test",
-				Paths:       &model.ServerPaths{Root: "/root"},
+				Root:        "/root",
 				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
@@ -221,23 +222,24 @@ func TestCreateLocalAgent(t *testing.T) {
 			existing := &model.LocalAgent{
 				Name:        "existing",
 				Protocol:    "test",
-				Paths:       &model.ServerPaths{Root: "/root"},
+				Root:        "/root",
 				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
 
 			Convey("Given a new local agent to insert in the database", func() {
 				newAgent := &InServer{
-					Name:        "new local agent",
-					Protocol:    "test",
-					Paths:       &model.ServerPaths{Root: "/root"},
+					Name:        strPtr("new_local_agent"),
+					Protocol:    strPtr("test"),
+					Root:        strPtr("/new_root"),
 					ProtoConfig: json.RawMessage(`{}`),
 				}
 
 				Convey("Given that the new local agent is valid for insertion", func() {
 					body, err := json.Marshal(newAgent)
 					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, localAgentsURI, bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPost, localAgentsURI,
+						bytes.NewReader(body))
 
 					So(err, ShouldBeNil)
 
@@ -256,22 +258,21 @@ func TestCreateLocalAgent(t *testing.T) {
 							"of the new local agent", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, localAgentsURI+newAgent.Name)
+							So(location, ShouldEqual, localAgentsURI+
+								url.PathEscape(str(newAgent.Name)))
 						})
 
 						Convey("Then the new local agent should be inserted in "+
 							"the database", func() {
 							exp := model.LocalAgent{
-								ID:       2,
-								Owner:    database.Owner,
-								Name:     newAgent.Name,
-								Protocol: newAgent.Protocol,
-								Paths: &model.ServerPaths{
-									Root:    "/root",
-									InDir:   "in",
-									OutDir:  "out",
-									WorkDir: "work",
-								},
+								ID:          2,
+								Owner:       database.Owner,
+								Name:        "new_local_agent",
+								Protocol:    "test",
+								Root:        "/new_root",
+								InDir:       "in",
+								OutDir:      "out",
+								WorkDir:     "work",
 								ProtoConfig: newAgent.ProtoConfig,
 							}
 							var res []model.LocalAgent
@@ -282,10 +283,11 @@ func TestCreateLocalAgent(t *testing.T) {
 
 						Convey("Then the existing local agent should still be "+
 							"present as well", func() {
-							exist, err := db.Exists(existing)
+							var rules []model.LocalAgent
+							So(db.Select(&rules, nil), ShouldBeNil)
+							So(len(rules), ShouldEqual, 2)
 
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeTrue)
+							So(rules[0], ShouldResemble, *existing)
 						})
 					})
 				})
@@ -306,8 +308,8 @@ func TestDeleteLocalAgent(t *testing.T) {
 			existing := &model.LocalAgent{
 				Name:        "existing1",
 				Protocol:    "test",
-				Paths:       &model.ServerPaths{Root: "/root"},
-				ProtoConfig: []byte(`{}`),
+				Root:        "/root",
+				ProtoConfig: json.RawMessage(`{}`),
 			}
 			So(db.Create(existing), ShouldBeNil)
 
@@ -328,9 +330,9 @@ func TestDeleteLocalAgent(t *testing.T) {
 					})
 
 					Convey("Then the agent should no longer be present in the database", func() {
-						exist, err := db.Exists(existing)
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeFalse)
+						var rules []model.LocalAgent
+						So(db.Select(&rules, nil), ShouldBeNil)
+						So(rules, ShouldBeEmpty)
 					})
 				})
 			})
@@ -360,27 +362,24 @@ func TestUpdateLocalAgent(t *testing.T) {
 		handler := updateLocalAgent(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 2 agents", func() {
+		Convey("Given a database with 1 agent", func() {
 			old := &model.LocalAgent{
 				Name:        "old",
 				Protocol:    "test",
-				Paths:       &model.ServerPaths{Root: "/root"},
-				ProtoConfig: []byte(`{}`),
-			}
-			other := &model.LocalAgent{
-				Name:        "other",
-				Protocol:    "test2",
-				Paths:       &model.ServerPaths{Root: "/root"},
+				Root:        "/old/root",
+				InDir:       "/old/in",
+				OutDir:      "/old/out",
+				WorkDir:     "/old/work",
 				ProtoConfig: []byte(`{}`),
 			}
 			So(db.Create(old), ShouldBeNil)
-			So(db.Create(other), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
 				update := InServer{
-					Name:        "update",
-					Protocol:    "test",
-					Paths:       &model.ServerPaths{Root: "/new_root"},
+					Name:        strPtr("update"),
+					Root:        strPtr("/upt/root"),
+					InDir:       strPtr("/upt/in"),
+					OutDir:      strPtr(""),
 					ProtoConfig: json.RawMessage(`{"key":"val"}`),
 				}
 				body, err := json.Marshal(update)
@@ -394,6 +393,10 @@ func TestUpdateLocalAgent(t *testing.T) {
 
 					handler.ServeHTTP(w, r)
 
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldBeEmpty)
+					})
+
 					Convey("Then it should reply 'Created'", func() {
 						So(w.Code, ShouldEqual, http.StatusCreated)
 					})
@@ -402,23 +405,27 @@ func TestUpdateLocalAgent(t *testing.T) {
 						"the URI of the updated agent", func() {
 
 						location := w.Header().Get("Location")
-						So(location, ShouldEqual, localAgentsURI+update.Name)
-					})
-
-					Convey("Then the response body should be empty", func() {
-						So(w.Body.String(), ShouldBeEmpty)
+						So(location, ShouldEqual, localAgentsURI+str(update.Name))
 					})
 
 					Convey("Then the agent should have been updated", func() {
-						result := &model.LocalAgent{ID: old.ID}
+						exp := model.LocalAgent{
+							ID:          old.ID,
+							Owner:       database.Owner,
+							Name:        "update",
+							Protocol:    "test",
+							Root:        "/upt/root",
+							InDir:       "/upt/in",
+							OutDir:      "out", //sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
+							WorkDir:     "/old/work",
+							ProtoConfig: json.RawMessage(`{"key":"val"}`),
+						}
 
-						So(db.Get(result), ShouldBeNil)
-						So(result.Name, ShouldEqual, update.Name)
-						So(result.Protocol, ShouldEqual, update.Protocol)
+						var res []model.LocalAgent
+						So(db.Select(&res, nil), ShouldBeNil)
+						So(len(res), ShouldEqual, 1)
 
-						protoConfig, err := json.Marshal(&update.ProtoConfig)
-						So(err, ShouldBeNil)
-						So(string(result.ProtoConfig), ShouldEqual, string(protoConfig))
+						So(res[0], ShouldResemble, exp)
 					})
 				})
 
@@ -440,10 +447,109 @@ func TestUpdateLocalAgent(t *testing.T) {
 					})
 
 					Convey("Then the old agent should still exist", func() {
-						exist, err := db.Exists(old)
+						So(db.Get(old), ShouldBeNil)
+					})
+				})
+			})
+		})
+	})
+}
 
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeTrue)
+func TestReplaceLocalAgent(t *testing.T) {
+	logger := log.NewLogger("rest_agent_update_logger")
+
+	Convey("Given the agent updating handler", t, func() {
+		db := database.GetTestDatabase()
+		handler := replaceLocalAgent(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 agent", func() {
+			old := &model.LocalAgent{
+				Name:        "old",
+				Protocol:    "test",
+				Root:        "/old/root",
+				InDir:       "/old/in",
+				OutDir:      "/old/out",
+				WorkDir:     "/old/work",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(old), ShouldBeNil)
+
+			Convey("Given new values to update the agent with", func() {
+				update := InServer{
+					Name:        strPtr("update"),
+					Protocol:    strPtr("test2"),
+					Root:        strPtr("/upt/root"),
+					InDir:       strPtr("/upt/in"),
+					OutDir:      strPtr(""),
+					ProtoConfig: json.RawMessage(`{"key":"val"}`),
+				}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
+
+				Convey("Given a valid name parameter", func() {
+					r, err := http.NewRequest(http.MethodPatch, localAgentsURI+old.Name,
+						bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"local_agent": old.Name})
+
+					handler.ServeHTTP(w, r)
+
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldBeEmpty)
+					})
+
+					Convey("Then it should reply 'Created'", func() {
+						So(w.Code, ShouldEqual, http.StatusCreated)
+					})
+
+					Convey("Then the 'Location' header should contain "+
+						"the URI of the updated agent", func() {
+
+						location := w.Header().Get("Location")
+						So(location, ShouldEqual, localAgentsURI+str(update.Name))
+					})
+
+					Convey("Then the agent should have been updated", func() {
+						exp := model.LocalAgent{
+							ID:          old.ID,
+							Owner:       database.Owner,
+							Name:        "update",
+							Protocol:    "test2",
+							Root:        "/upt/root",
+							InDir:       "/upt/in",
+							OutDir:      "out",  //sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
+							WorkDir:     "work", //idem
+							ProtoConfig: json.RawMessage(`{"key":"val"}`),
+						}
+
+						var res []model.LocalAgent
+						So(db.Select(&res, nil), ShouldBeNil)
+						So(len(res), ShouldEqual, 1)
+
+						So(res[0], ShouldResemble, exp)
+					})
+				})
+
+				Convey("Given an invalid agent name", func() {
+					r, err := http.NewRequest(http.MethodPatch, localAgentsURI+"toto",
+						bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"local_agent": "toto"})
+
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply 'NotFound'", func() {
+						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
+
+					Convey("Then the response body should state that "+
+						"the agent was not found", func() {
+						So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+					})
+
+					Convey("Then the old agent should still exist", func() {
+						So(db.Get(old), ShouldBeNil)
 					})
 				})
 			})

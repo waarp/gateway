@@ -48,7 +48,7 @@ func TestSFTPPackage(t *testing.T) {
 			localAgent := &model.LocalAgent{
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
-				Paths:       &model.ServerPaths{Root: root},
+				Root:        root,
 				ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 			}
 			So(db.Create(localAgent), ShouldBeNil)

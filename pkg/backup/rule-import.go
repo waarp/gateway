@@ -39,7 +39,7 @@ func importRules(logger *log.Logger, db *database.Session, list []rule) error {
 		// Create/Update
 		if exists {
 			logger.Infof("Update rule %s\n", rule.Name)
-			err = db.Update(rule, rule.ID, false)
+			err = db.Update(rule)
 		} else {
 			logger.Infof("Create rule %s\n", rule.Name)
 			err = db.Create(rule)
@@ -84,16 +84,13 @@ func importRuleAccesses(db *database.Session, list []string, ruleID uint64) erro
 		if err != nil {
 			return err
 		}
-		// If ruleAcess does not exist create
-		exists, err := db.Exists(access)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			err := db.Create(access)
-			if err != nil {
+		// If ruleAccess does not exist create
+		if err := db.Get(access); err == database.ErrNotFound {
+			if err := db.Create(access); err != nil {
 				return err
 			}
+		} else if err != nil {
+			return err
 		}
 	}
 	return nil

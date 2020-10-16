@@ -11,6 +11,7 @@ Le point d'accès pour gérer les différents partenaires locaux de la gateway e
    list
    consult
    update
+   replace
    delete
    authorize
    revoke

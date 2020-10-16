@@ -82,7 +82,7 @@ func execTasks(proc *tasks.Processor, chain model.Chain,
 	step model.TransferStep) *model.PipelineError {
 
 	proc.Transfer.Step = step
-	if err := proc.Transfer.Update(proc.DB); err != nil {
+	if err := proc.DB.Update(proc.Transfer); err != nil {
 		proc.Logger.Criticalf("Failed to update transfer step to '%s': %s", step, err)
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
@@ -155,14 +155,14 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 		stream.exit()
 	case model.KindInterrupt:
 		stream.Transfer.Status = model.StatusInterrupted
-		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
+		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		stream.exit()
 		stream.Logger.Info("Transfer interrupted")
 	case model.KindPause:
 		stream.Transfer.Status = model.StatusPaused
-		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
+		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		stream.exit()
@@ -174,14 +174,14 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 		stream.Logger.Info("Transfer cancelled by user")
 	case model.KindTransfer:
 		stream.Transfer.Error = err.Cause
-		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
+		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		if stream.Transfer.Step != model.StepNone {
 			stream.ErrorTasks()
 		}
 		stream.Transfer.Error = err.Cause
-		if dbErr := stream.Transfer.Update(stream.DB); dbErr != nil {
+		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer step to '%s': %s",
 				stream.Transfer.Step, dbErr)
 			return

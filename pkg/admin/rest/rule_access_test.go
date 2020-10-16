@@ -194,7 +194,7 @@ func TestRevokeRule(t *testing.T) {
 			vals["local_agent"] = server.Name
 
 			Convey("Given a server access", func() {
-				access := model.RuleAccess{
+				access := &model.RuleAccess{
 					RuleID:     rule.ID,
 					ObjectID:   server.ID,
 					ObjectType: server.TableName(),
@@ -213,7 +213,7 @@ func TestRevokeRule(t *testing.T) {
 				}
 				So(db.Create(account), ShouldBeNil)
 
-				access := model.RuleAccess{
+				access := &model.RuleAccess{
 					RuleID:     rule.ID,
 					ObjectID:   account.ID,
 					ObjectType: account.TableName(),
@@ -237,7 +237,7 @@ func TestRevokeRule(t *testing.T) {
 			vals["remote_agent"] = partner.Name
 
 			Convey("Given a partner access", func() {
-				access := model.RuleAccess{
+				access := &model.RuleAccess{
 					RuleID:     rule.ID,
 					ObjectID:   partner.ID,
 					ObjectType: partner.TableName(),
@@ -257,7 +257,7 @@ func TestRevokeRule(t *testing.T) {
 				}
 				So(db.Create(account), ShouldBeNil)
 
-				access := model.RuleAccess{
+				access := &model.RuleAccess{
 					RuleID:     rule.ID,
 					ObjectID:   account.ID,
 					ObjectType: account.TableName(),

@@ -7,6 +7,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"github.com/jessevdk/go-flags"
 )
 
 type certificateCommand struct {
@@ -64,30 +65,30 @@ func (c *certGet) Execute([]string) error {
 // ######################## ADD ##########################
 
 type certAdd struct {
-	Name        string `required:"true" short:"n" long:"name" description:"The certificate's name"`
-	PrivateKey  string `short:"p" long:"private_key" description:"The path to the certificate's private key file"`
-	PublicKey   string `short:"b" long:"public_key" description:"The path to the certificate's public key file"`
-	Certificate string `short:"c" long:"certificate" description:"The path to the certificate file"`
+	Name        string         `required:"true" short:"n" long:"name" description:"The certificate's name"`
+	PrivateKey  flags.Filename `short:"p" long:"private_key" description:"The path to the certificate's private key file"`
+	PublicKey   flags.Filename `short:"b" long:"public_key" description:"The path to the certificate's public key file"`
+	Certificate flags.Filename `short:"c" long:"certificate" description:"The path to the certificate file"`
 }
 
 func (c *certAdd) Execute([]string) (err error) {
 	cert := &rest.InCert{
-		Name: c.Name,
+		Name: &c.Name,
 	}
 	if c.PrivateKey != "" {
-		cert.PrivateKey, err = ioutil.ReadFile(c.PrivateKey)
+		cert.PrivateKey, err = ioutil.ReadFile(string(c.PrivateKey))
 		if err != nil {
 			return err
 		}
 	}
 	if c.PublicKey != "" {
-		cert.PublicKey, err = ioutil.ReadFile(c.PublicKey)
+		cert.PublicKey, err = ioutil.ReadFile(string(c.PublicKey))
 		if err != nil {
 			return err
 		}
 	}
 	if c.Certificate != "" {
-		cert.Certificate, err = ioutil.ReadFile(c.Certificate)
+		cert.Certificate, err = ioutil.ReadFile(string(c.Certificate))
 		if err != nil {
 			return err
 		}
@@ -158,10 +159,10 @@ type certUpdate struct {
 	Args struct {
 		Cert string `required:"yes" positional-arg-name:"cert" description:"The certificate's name"`
 	} `positional-args:"yes"`
-	Name        string `short:"n" long:"name" description:"The certificate's name"`
-	PrivateKey  string `short:"p" long:"private_key" description:"The path to the certificate's private key file"`
-	PublicKey   string `short:"b" long:"public_key" description:"The path to the certificate's public key file"`
-	Certificate string `short:"c" long:"certificate" description:"The path to the certificate file"`
+	Name        *string        `short:"n" long:"name" description:"The certificate's name"`
+	PrivateKey  flags.Filename `short:"p" long:"private_key" description:"The path to the certificate's private key file"`
+	PublicKey   flags.Filename `short:"b" long:"public_key" description:"The path to the certificate's public key file"`
+	Certificate flags.Filename `short:"c" long:"certificate" description:"The path to the certificate file"`
 }
 
 func (c *certUpdate) Execute([]string) (err error) {
@@ -169,19 +170,19 @@ func (c *certUpdate) Execute([]string) (err error) {
 		Name: c.Name,
 	}
 	if c.PrivateKey != "" {
-		cert.PrivateKey, err = ioutil.ReadFile(c.PrivateKey)
+		cert.PrivateKey, err = ioutil.ReadFile(string(c.PrivateKey))
 		if err != nil {
 			return err
 		}
 	}
 	if c.PublicKey != "" {
-		cert.PublicKey, err = ioutil.ReadFile(c.PublicKey)
+		cert.PublicKey, err = ioutil.ReadFile(string(c.PublicKey))
 		if err != nil {
 			return err
 		}
 	}
 	if c.Certificate != "" {
-		cert.Certificate, err = ioutil.ReadFile(c.Certificate)
+		cert.Certificate, err = ioutil.ReadFile(string(c.Certificate))
 		if err != nil {
 			return err
 		}
@@ -193,8 +194,8 @@ func (c *certUpdate) Execute([]string) (err error) {
 		return err
 	}
 	name := c.Args.Cert
-	if cert.Name != "" {
-		name = cert.Name
+	if cert.Name != nil && *cert.Name != "" {
+		name = *cert.Name
 	}
 	fmt.Fprintln(getColorable(), "The certificate", bold(name), "was successfully updated.")
 

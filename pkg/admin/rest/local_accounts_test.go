@@ -288,7 +288,7 @@ func TestCreateLocalAccount(t *testing.T) {
 
 			Convey("Given a new account to insert in the database", func() {
 				newAccount := &InAccount{
-					Login:    "new_account",
+					Login:    strPtr("new_account"),
 					Password: []byte("new_account"),
 				}
 				body, err := json.Marshal(newAccount)
@@ -311,8 +311,8 @@ func TestCreateLocalAccount(t *testing.T) {
 							"URI of the new account", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, localAccountsURI(
-								parent.Name, newAccount.Login))
+							So(location, ShouldEqual, localAccountsURI(parent.Name,
+								str(newAccount.Login)))
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -321,14 +321,15 @@ func TestCreateLocalAccount(t *testing.T) {
 
 						Convey("Then the new account should be inserted in the "+
 							"database", func() {
-							clearPwd := newAccount.Password
-							newAccount.Password = nil
 
-							test := newAccount.ToLocal(parent)
-							So(db.Get(test), ShouldBeNil)
+							var accs []model.LocalAccount
+							So(db.Select(&accs, nil), ShouldBeNil)
+							So(len(accs), ShouldEqual, 1)
 
-							So(bcrypt.CompareHashAndPassword(test.Password, clearPwd),
-								ShouldBeNil)
+							So(bcrypt.CompareHashAndPassword(accs[0].Password,
+								newAccount.Password), ShouldBeNil)
+							accs[0].Password = newAccount.Password
+							So(accs[0], ShouldResemble, *newAccount.ToLocal(parent, 1))
 						})
 					})
 				})
@@ -352,8 +353,9 @@ func TestCreateLocalAccount(t *testing.T) {
 						})
 
 						Convey("Then the new account should NOT exist", func() {
-							check := newAccount.ToLocal(parent)
-							So(db.Get(check), ShouldNotBeNil)
+							var accs []model.LocalAccount
+							So(db.Select(&accs, nil), ShouldBeNil)
+							So(accs, ShouldBeEmpty)
 						})
 					})
 				})
@@ -463,7 +465,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 		handler := updateLocalAccount(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 2 accounts", func() {
+		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "test",
@@ -476,17 +478,10 @@ func TestUpdateLocalAccount(t *testing.T) {
 				Password:     []byte("old"),
 				LocalAgentID: parent.ID,
 			}
-			other := &model.LocalAccount{
-				Login:        "other",
-				Password:     []byte("other"),
-				LocalAgentID: parent.ID,
-			}
 			So(db.Create(old), ShouldBeNil)
-			So(db.Create(other), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
 				update := InAccount{
-					Login:    "update",
 					Password: []byte("update"),
 				}
 				body, err := json.Marshal(update)
@@ -509,8 +504,8 @@ func TestUpdateLocalAccount(t *testing.T) {
 						"the URI of the updated account", func() {
 
 						location := w.Header().Get("Location")
-						u, _ := url.QueryUnescape(localAgentsURI + parent.Name +
-							"/accounts/" + update.Login)
+						u, _ := url.QueryUnescape(localAccountsURI(parent.Name,
+							old.Login))
 						So(location, ShouldEqual, u)
 					})
 
@@ -519,13 +514,20 @@ func TestUpdateLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should have been updated", func() {
-						result := &model.LocalAccount{ID: old.ID}
-						So(db.Get(result), ShouldBeNil)
+						var res []model.LocalAccount
+						So(db.Select(&res, nil), ShouldBeNil)
+						So(len(res), ShouldEqual, 1)
 
-						So(result.Login, ShouldEqual, update.Login)
-						So(result.LocalAgentID, ShouldEqual, parent.ID)
-						So(bcrypt.CompareHashAndPassword(result.Password,
+						So(bcrypt.CompareHashAndPassword(res[0].Password,
 							update.Password), ShouldBeNil)
+
+						exp := model.LocalAccount{
+							ID:           old.ID,
+							LocalAgentID: parent.ID,
+							Login:        "old",
+							Password:     res[0].Password,
+						}
+						So(res[0], ShouldResemble, exp)
 					})
 				})
 
@@ -549,19 +551,16 @@ func TestUpdateLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the old account should still exist", func() {
-						exist, err := db.Exists(old)
-
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeTrue)
+						So(db.Get(old), ShouldBeNil)
 					})
 				})
 
 				Convey("Given an invalid agent name", func() {
 					r, err := http.NewRequest(http.MethodPatch, localAgentsURI+
-						"toto/accounts/"+update.Login, bytes.NewReader(body))
+						"toto/accounts/"+str(update.Login), bytes.NewReader(body))
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"local_agent": "toto",
-						"local_account": update.Login})
+						"local_account": str(update.Login)})
 
 					handler.ServeHTTP(w, r)
 
@@ -575,10 +574,131 @@ func TestUpdateLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the old account should still exist", func() {
-						exist, err := db.Exists(old)
+						So(db.Get(old), ShouldBeNil)
+					})
+				})
+			})
+		})
+	})
+}
 
-						So(err, ShouldBeNil)
-						So(exist, ShouldBeTrue)
+func TestReplaceLocalAccount(t *testing.T) {
+	logger := log.NewLogger("rest_account_update_logger")
+
+	Convey("Given the account updating handler", t, func() {
+		db := database.GetTestDatabase()
+		handler := replaceLocalAccount(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 account", func() {
+			parent := &model.LocalAgent{
+				Name:        "parent",
+				Protocol:    "test",
+				ProtoConfig: []byte(`{}`),
+			}
+			So(db.Create(parent), ShouldBeNil)
+
+			old := &model.LocalAccount{
+				Login:        "old",
+				Password:     []byte("old"),
+				LocalAgentID: parent.ID,
+			}
+			So(db.Create(old), ShouldBeNil)
+
+			Convey("Given new values to update the account with", func() {
+				update := InAccount{
+					Login:    strPtr("update"),
+					Password: []byte("update"),
+				}
+				body, err := json.Marshal(update)
+				So(err, ShouldBeNil)
+
+				Convey("Given a valid account login", func() {
+					r, err := http.NewRequest(http.MethodPut, localAccountsURI(
+						parent.Name, old.Login), bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+						"local_account": old.Login})
+
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply 'Created'", func() {
+						So(w.Code, ShouldEqual, http.StatusCreated)
+					})
+
+					Convey("Then the 'Location' header should contain "+
+						"the URI of the updated account", func() {
+
+						location := w.Header().Get("Location")
+						So(location, ShouldEqual, localAccountsURI("parent", "update"))
+					})
+
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldBeEmpty)
+					})
+
+					Convey("Then the account should have been updated", func() {
+						var res []model.LocalAccount
+						So(db.Select(&res, nil), ShouldBeNil)
+						So(len(res), ShouldEqual, 1)
+
+						So(bcrypt.CompareHashAndPassword(res[0].Password,
+							update.Password), ShouldBeNil)
+
+						exp := model.LocalAccount{
+							ID:           old.ID,
+							LocalAgentID: parent.ID,
+							Login:        "update",
+							Password:     res[0].Password,
+						}
+						So(res[0], ShouldResemble, exp)
+					})
+				})
+
+				Convey("Given an invalid account login", func() {
+					r, err := http.NewRequest(http.MethodPut, localAccountsURI(
+						parent.Name, "toto"), bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+						"local_account": "toto"})
+
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply 'NotFound'", func() {
+						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
+
+					Convey("Then the response body should state that "+
+						"the account was not found", func() {
+						So(w.Body.String(), ShouldEqual, "no account 'toto' found "+
+							"for server parent\n")
+					})
+
+					Convey("Then the old account should still exist", func() {
+						So(db.Get(old), ShouldBeNil)
+					})
+				})
+
+				Convey("Given an invalid agent name", func() {
+					r, err := http.NewRequest(http.MethodPut, localAgentsURI+
+						"toto/accounts/"+str(update.Login), bytes.NewReader(body))
+					So(err, ShouldBeNil)
+					r = mux.SetURLVars(r, map[string]string{"local_agent": "toto",
+						"local_account": str(update.Login)})
+
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply 'NotFound'", func() {
+						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
+
+					Convey("Then the response body should state that "+
+						"the account was not found", func() {
+						So(w.Body.String(), ShouldEqual, "server 'toto' not found\n")
+					})
+
+					Convey("Then the old account should still exist", func() {
+						So(db.Get(old), ShouldBeNil)
 					})
 				})
 			})

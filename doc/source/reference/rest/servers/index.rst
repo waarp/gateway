@@ -11,6 +11,7 @@ Le point d'accès pour gérer les différents serveurs locaux de la gateway est
    list
    consult
    update
+   replace
    delete
    authorize
    revoke

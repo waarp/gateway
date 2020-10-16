@@ -1,7 +1,7 @@
 Modifier un utilisateur
 =======================
 
-.. http:put:: /api/users/(string:username)
+.. http:patch:: /api/users/(string:username)
 
    Met à jour l'utilisateur demandé avec les informations renseignées en JSON.
    Les champs non-spécifiés resteront inchangés.

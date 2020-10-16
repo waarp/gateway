@@ -96,12 +96,19 @@ func TestAddUser(t *testing.T) {
 					})
 
 					Convey("Then the new partner should have been added", func() {
-						user := &model.User{
-							Username: command.Username,
+						var users []model.User
+						So(db.Select(&users, nil), ShouldBeNil)
+						So(len(users), ShouldEqual, 2)
+
+						So(bcrypt.CompareHashAndPassword(users[1].Password,
+							[]byte("password")), ShouldBeNil)
+						exp := model.User{
+							Owner:    database.Owner,
+							ID:       2,
+							Username: "user",
+							Password: users[1].Password,
 						}
-						So(db.Get(user), ShouldBeNil)
-						So(bcrypt.CompareHashAndPassword(user.Password,
-							[]byte(command.Password)), ShouldBeNil)
+						So(users[1], ShouldResemble, exp)
 					})
 				})
 			})
@@ -142,9 +149,10 @@ func TestDeleteUser(t *testing.T) {
 					})
 
 					Convey("Then the user should have been removed", func() {
-						exists, err := db.Exists(user)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeFalse)
+						var users []model.User
+						So(db.Select(&users, nil), ShouldBeNil)
+						So(len(users), ShouldEqual, 1)
+						So(users[0].Username, ShouldEqual, "admin")
 					})
 				})
 			})
@@ -202,20 +210,20 @@ func TestUpdateUser(t *testing.T) {
 							"was successfully updated.\n")
 					})
 
-					Convey("Then the old user should have been removed", func() {
-						exists, err := db.Exists(user)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeFalse)
-					})
-
 					Convey("Then the new user should exist", func() {
-						update := &model.User{
+						var users []model.User
+						So(db.Select(&users, nil), ShouldBeNil)
+						So(len(users), ShouldEqual, 2)
+
+						So(bcrypt.CompareHashAndPassword(users[1].Password,
+							[]byte("new_password")), ShouldBeNil)
+						exp := model.User{
+							Owner:    database.Owner,
 							ID:       user.ID,
-							Username: command.Username,
+							Username: "new_user",
+							Password: users[1].Password,
 						}
-						So(db.Get(update), ShouldBeNil)
-						So(bcrypt.CompareHashAndPassword(update.Password,
-							[]byte(command.Password)), ShouldBeNil)
+						So(users[1], ShouldResemble, exp)
 					})
 				})
 			})

@@ -47,7 +47,7 @@ type locAccAdd struct {
 
 func (l *locAccAdd) Execute([]string) error {
 	account := &rest.InAccount{
-		Login:    l.Login,
+		Login:    &l.Login,
 		Password: []byte(l.Password),
 	}
 	server := commandLine.Account.Local.Args.Server
@@ -56,7 +56,7 @@ func (l *locAccAdd) Execute([]string) error {
 	if err := add(account); err != nil {
 		return err
 	}
-	fmt.Fprintln(getColorable(), "The account", bold(account.Login), "was successfully added.")
+	fmt.Fprintln(getColorable(), "The account", bold(l.Login), "was successfully added.")
 	return nil
 }
 
@@ -87,15 +87,16 @@ type locAccUpdate struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"login" description:"The account's login"`
 	} `positional-args:"yes"`
-	Login    string `short:"l" long:"name" description:"The account's login"`
-	Password string `short:"p" long:"password" description:"The account's password"`
+	Login    *string `short:"l" long:"name" description:"The account's login"`
+	Password *string `short:"p" long:"password" description:"The account's password"`
 }
 
 func (l *locAccUpdate) Execute([]string) error {
 	account := &rest.InAccount{
 		Login:    l.Login,
-		Password: []byte(l.Password),
+		Password: parseOptBytes(l.Password),
 	}
+
 	server := commandLine.Account.Local.Args.Server
 	addr.Path = admin.APIPath + rest.ServersPath + "/" + server +
 		rest.AccountsPath + "/" + l.Args.Login
@@ -103,7 +104,12 @@ func (l *locAccUpdate) Execute([]string) error {
 	if err := update(account); err != nil {
 		return err
 	}
-	fmt.Fprintln(getColorable(), "The account", bold(account.Login), "was successfully updated.")
+
+	login := l.Args.Login
+	if l.Login != nil && *l.Login != "" {
+		login = *l.Login
+	}
+	fmt.Fprintln(getColorable(), "The account", bold(login), "was successfully updated.")
 	return nil
 }
 

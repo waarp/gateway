@@ -244,13 +244,13 @@ func testCreate(db *DB) {
 				So(err, ShouldBeNil)
 
 				Convey("Then the record should have been inserted", func() {
-					exists, err := acc.Exists(&createBean)
-					So(err, ShouldBeNil)
-					So(exists, ShouldBeTrue)
+					check := testBean{ID: createBean.ID, signals: "validation hook"}
+					So(acc.Get(&check), ShouldBeNil)
+					So(check, ShouldResemble, createBean)
 				})
 
-				Convey("Then the `BeforeInsert` hook should have been called", func() {
-					So(createBean.signals, ShouldEqual, "insert hook")
+				Convey("Then the `Validate` hook should have been called", func() {
+					So(createBean.signals, ShouldEqual, "validation hook")
 				})
 			})
 		})
@@ -264,10 +264,10 @@ func testCreate(db *DB) {
 		})
 
 		Convey("With an unknown record type", func() {
-			err := acc.Create(&struct{}{})
+			err := acc.Create(&invalidBean{})
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, xorm.ErrTableNotFound)
+				So(err, ShouldBeError)
 			})
 		})
 
@@ -307,37 +307,41 @@ func testUpdate(db *DB) {
 		String: "update",
 	}
 	updateBeanAfter := testBean{
-		ID:     2,
+		ID:     updateBeanBefore.ID,
 		String: "updated",
+	}
+	updateBeanFail := testBean{
+		ID:     2,
+		String: "fail",
 	}
 
 	runTests := func(acc Accessor) {
 		Convey("With an existing record", func() {
-			err := db.Update(&updateBeanAfter, updateBeanBefore.ID, false)
+			err := db.Update(&updateBeanAfter)
 
 			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
 
 				Convey("Then the new record should be present in the database", func() {
-					existsAfter, err := acc.Exists(&updateBeanAfter)
-					So(err, ShouldBeNil)
-					So(existsAfter, ShouldBeTrue)
+					check := testBean{ID: updateBeanAfter.ID, signals: "validation hook"}
+					So(acc.Get(&check), ShouldBeNil)
+					So(check, ShouldResemble, updateBeanAfter)
 				})
 
 				Convey("Then the old record should no longer be present in the database", func() {
-					existsBefore, err := acc.Exists(&updateBeanBefore)
-					So(err, ShouldBeNil)
-					So(existsBefore, ShouldBeFalse)
+					check := testBean{ID: updateBeanBefore.ID}
+					So(acc.Get(&check), ShouldBeNil)
+					So(check, ShouldNotResemble, updateBeanBefore)
 				})
 
-				Convey("Then the `BeforeUpdate` hook should have been called", func() {
-					So(updateBeanAfter.signals, ShouldEqual, "update hook")
+				Convey("Then the `Validate` hook should have been called", func() {
+					So(updateBeanAfter.signals, ShouldEqual, "validation hook")
 				})
 			})
 		})
 
 		Convey("With an unknown record", func() {
-			err := acc.Update(&updateBeanAfter, 1000, false)
+			err := acc.Update(&updateBeanFail)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError, ErrNotFound)
@@ -345,15 +349,15 @@ func testUpdate(db *DB) {
 		})
 
 		Convey("With an invalid record type", func() {
-			err := acc.Update(&struct{}{}, updateBeanBefore.ID, false)
+			err := acc.Update(&invalidBean{})
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, xorm.ErrTableNotFound)
+				So(err, ShouldBeError)
 			})
 		})
 
 		Convey("With an nil record", func() {
-			err := acc.Update(nil, updateBeanBefore.ID, false)
+			err := acc.Update(nil)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError, ErrNilRecord)
@@ -395,9 +399,8 @@ func testDelete(db *DB) {
 				So(err, ShouldBeNil)
 
 				Convey("Then the record should no longer be present in the database", func() {
-					exists, err := acc.Exists(&deleteBean)
-					So(err, ShouldBeNil)
-					So(exists, ShouldBeFalse)
+					check := testBean{ID: deleteBean.ID}
+					So(acc.Get(&check), ShouldBeError, ErrNotFound)
 				})
 
 				Convey("Then the `BeforeDelete` hook should have been called", func() {
@@ -415,7 +418,7 @@ func testDelete(db *DB) {
 		})
 
 		Convey("With an invalid record type", func() {
-			err := acc.Delete(&struct{ Test string }{Test: "test"})
+			err := acc.Delete(&invalidBean{})
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
@@ -451,73 +454,6 @@ func testDelete(db *DB) {
 	})
 }
 
-func testExist(db *DB) {
-	existBean := testBean{
-		ID:     1,
-		String: "exists",
-	}
-
-	runTests := func(acc Accessor) {
-		Convey("With an existing record", func() {
-			exists, err := acc.Exists(&existBean)
-
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
-
-				Convey("Then it should return true", func() {
-					So(exists, ShouldBeTrue)
-				})
-			})
-		})
-
-		Convey("With a non-existing record", func() {
-			exists, err := acc.Exists(&testBean{ID: 1000})
-
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
-
-				Convey("Then it should return false", func() {
-					So(exists, ShouldBeFalse)
-				})
-			})
-		})
-
-		Convey("With an invalid record type", func() {
-			_, err := acc.Exists(&struct{}{})
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, xorm.ErrTableNotFound)
-			})
-		})
-
-		Convey("With an nil record", func() {
-			_, err := acc.Exists(nil)
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, ErrNilRecord)
-			})
-		})
-	}
-
-	Convey("When calling the 'Exists' method", func() {
-		_, err := db.engine.InsertOne(&existBean)
-		So(err, ShouldBeNil)
-
-		Convey("Using the standalone accessor", func() {
-			runTests(db)
-		})
-
-		Convey("Using the transaction accessor", func() {
-			ses, err := db.BeginTransaction()
-			So(err, ShouldBeNil)
-
-			Reset(ses.session.Close)
-
-			runTests(ses)
-		})
-	})
-}
-
 func testExecute(db *DB) {
 
 	execBean := testBean{
@@ -537,9 +473,9 @@ func testExecute(db *DB) {
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have inserted the entry", func() {
-					exists, err := acc.Exists(&execBean)
-					So(err, ShouldBeNil)
-					So(exists, ShouldBeTrue)
+					check := testBean{ID: execBean.ID}
+					So(acc.Get(&check), ShouldBeNil)
+					So(check, ShouldResemble, execBean)
 				})
 			})
 		})
@@ -701,7 +637,6 @@ func testDatabase(db *DB) {
 	testCreate(db)
 	testUpdate(db)
 	testDelete(db)
-	testExist(db)
 	testExecute(db)
 	testQuery(db)
 	testTrans(db)

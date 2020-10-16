@@ -36,7 +36,7 @@ func importCerts(logger *log.Logger, db *database.Session, list []certificate,
 		// Create/Update
 		if exist {
 			logger.Infof("Update certificate %s\n", cert.Name)
-			err = db.Update(cert, cert.ID, false)
+			err = db.Update(cert)
 		} else {
 			logger.Infof("Create certificate %s\n", cert.Name)
 			err = db.Create(cert)

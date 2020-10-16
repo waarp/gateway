@@ -24,17 +24,26 @@ func (*testBean) TableName() string {
 	return tblName
 }
 
-func (t *testBean) BeforeInsert(Accessor) error {
-	t.signals = "insert hook"
-	return nil
+func (t *testBean) GetID() uint64 {
+	return t.ID
 }
 
-func (t *testBean) BeforeUpdate(Accessor, uint64) error {
-	t.signals = "update hook"
+func (t *testBean) Validate(Accessor) error {
+	t.signals = "validation hook"
 	return nil
 }
 
 func (t *testBean) BeforeDelete(Accessor) error {
 	t.signals = "delete hook"
 	return nil
+}
+
+type invalidBean struct{}
+
+func (*invalidBean) GetID() uint64 {
+	return 0
+}
+
+func (*invalidBean) TableName() string {
+	return "invalid"
 }

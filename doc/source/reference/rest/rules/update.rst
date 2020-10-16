@@ -1,9 +1,9 @@
-Ajouter une règle
-=================
+Modifier une règle
+==================
 
-.. http:post:: /api/rules/(string:rule_name)
+.. http:patch:: /api/rules/(string:rule_name)
 
-   Modifie la nouvelle demandée avec les informations renseignées en JSON.
+   Modifie la règle demandée avec les informations renseignées en JSON.
    Les champs non-renseignés restent inchangés.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
@@ -55,7 +55,7 @@ Ajouter une règle
 
       .. code-block:: http
 
-         POST https://my_waarp_gateway.net/api/rules HTTP/1.1
+         PATCH https://my_waarp_gateway.net/api/rules HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
          Content-Type: application/json
          Content-Length: 736

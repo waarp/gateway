@@ -1,7 +1,7 @@
 Modifier un compte local
 ========================
 
-.. http:put:: /api/servers/(string:server_name)/accounts/(string:login)
+.. http:patch:: /api/servers/(string:server_name)/accounts/(string:login)
 
    Met à jour le compte donné avec les informations renseignées en JSON.
    Les champs non-spécifiés resteront inchangés.

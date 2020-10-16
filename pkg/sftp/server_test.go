@@ -86,7 +86,7 @@ func TestServerStart(t *testing.T) {
 		agent := &model.LocalAgent{
 			Name:        "test_sftp_server",
 			Protocol:    "sftp",
-			Paths:       &model.ServerPaths{Root: root},
+			Root:        root,
 			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 		}
 		So(db.Create(agent), ShouldBeNil)
@@ -140,7 +140,7 @@ func TestSSHServer(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
-				Paths:       &model.ServerPaths{Root: root},
+				Root:        root,
 				ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
 			}
 			So(db.Create(agent), ShouldBeNil)
@@ -255,11 +255,13 @@ func TestSSHServer(t *testing.T) {
 								So(t, ShouldNotBeEmpty)
 
 								trans := model.Transfer{
-									ID:         t[0].ID,
-									Start:      t[0].Start,
-									IsServer:   true,
-									AccountID:  user.ID,
-									AgentID:    agent.ID,
+									ID:        t[0].ID,
+									Start:     t[0].Start,
+									IsServer:  true,
+									AccountID: user.ID,
+									AgentID:   agent.ID,
+									TrueFilepath: filepath.Join(root, receive.InPath,
+										"test_in_shutdown.dst"),
 									SourceFile: "test_in_shutdown.dst",
 									DestFile:   "test_in_shutdown.dst",
 									RuleID:     receive.ID,
@@ -300,11 +302,13 @@ func TestSSHServer(t *testing.T) {
 								So(t, ShouldNotBeEmpty)
 
 								trans := model.Transfer{
-									ID:         t[0].ID,
-									Start:      t[0].Start,
-									IsServer:   true,
-									AccountID:  user.ID,
-									AgentID:    agent.ID,
+									ID:        t[0].ID,
+									Start:     t[0].Start,
+									IsServer:  true,
+									AccountID: user.ID,
+									AgentID:   agent.ID,
+									TrueFilepath: filepath.Join(root, send.OutPath,
+										"test_out_shutdown.src"),
 									SourceFile: "test_out_shutdown.src",
 									DestFile:   "test_out_shutdown.src",
 									RuleID:     send.ID,
@@ -394,9 +398,7 @@ func TestSSHServer(t *testing.T) {
 									Status:         model.StatusDone,
 								}
 
-								ok, err := db.Exists(hist)
-								So(err, ShouldBeNil)
-								So(ok, ShouldBeTrue)
+								So(db.Get(hist), ShouldBeNil)
 							})
 						})
 
@@ -471,16 +473,10 @@ func TestSSHServer(t *testing.T) {
 									Status:         model.StatusDone,
 								}
 
-								err := client.Close()
-								So(err, ShouldBeNil)
+								So(client.Close(), ShouldBeNil)
 
-								ok, err := db.Exists(hist1)
-								So(err, ShouldBeNil)
-								So(ok, ShouldBeTrue)
-
-								ok, err = db.Exists(hist2)
-								So(err, ShouldBeNil)
-								So(ok, ShouldBeTrue)
+								So(db.Get(hist1), ShouldBeNil)
+								So(db.Get(hist2), ShouldBeNil)
 							})
 						})
 
@@ -597,9 +593,7 @@ func TestSSHServer(t *testing.T) {
 									Status:         model.StatusDone,
 								}
 
-								ok, err := db.Exists(hist)
-								So(err, ShouldBeNil)
-								So(ok, ShouldBeTrue)
+								So(db.Get(hist), ShouldBeNil)
 							})
 						})
 

@@ -62,9 +62,9 @@ func (t *Task) validateTasks() error {
 	return v.Validate(args)
 }
 
-// BeforeInsert checks if the new `Task` entry is valid and cand be
+// Validate checks if the new `Task` entry is valid and can be
 // inserted in the database.
-func (t *Task) BeforeInsert(db database.Accessor) error {
+func (t *Task) Validate(db database.Accessor) error {
 	if res, err := db.Query("SELECT id FROM rules WHERE id=?", t.RuleID); err != nil {
 		return err
 	} else if len(res) < 1 {
@@ -83,10 +83,4 @@ func (t *Task) BeforeInsert(db database.Accessor) error {
 	}
 
 	return nil
-}
-
-// BeforeUpdate is called before updating and existing `Task` entry from
-// the database. It rejects all update.
-func (t *Task) BeforeUpdate(database.Accessor, uint64) error {
-	return database.InvalidError("operation not allowed")
 }

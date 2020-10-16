@@ -100,12 +100,13 @@ func TestExecutorRun(t *testing.T) {
 						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
-							exist, err := db.Exists(trans)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeFalse)
+							var res []model.Transfer
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(res, ShouldBeEmpty)
 						})
 
-						Convey("Then the corresponding `TransferHistory` entry should exist", func() {
+						Convey("Then the corresponding `TransferHistory` entry "+
+							"should exist", func() {
 							var results []model.TransferHistory
 							So(db.Select(&results, nil), ShouldBeNil)
 							So(results, ShouldNotBeEmpty)
@@ -140,9 +141,9 @@ func TestExecutorRun(t *testing.T) {
 						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
-							exist, err := db.Exists(trans)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeFalse)
+							var res []model.Transfer
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(res, ShouldBeEmpty)
 						})
 
 						Convey("Then the corresponding `TransferHistory` entry "+
@@ -177,9 +178,9 @@ func TestExecutorRun(t *testing.T) {
 						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
-							exist, err := db.Exists(trans)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeFalse)
+							var res []model.Transfer
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(res, ShouldBeEmpty)
 						})
 
 						Convey("Then the corresponding `TransferHistory` entry "+
@@ -214,9 +215,9 @@ func TestExecutorRun(t *testing.T) {
 						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
-							exist, err := db.Exists(trans)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeFalse)
+							var res []model.Transfer
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(res, ShouldBeEmpty)
 						})
 
 						Convey("Then the corresponding `TransferHistory` entry "+
@@ -260,9 +261,9 @@ func TestExecutorRun(t *testing.T) {
 						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
-							exist, err := db.Exists(trans)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeFalse)
+							var res []model.Transfer
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(res, ShouldBeEmpty)
 						})
 
 						Convey("Then the corresponding `TransferHistory` entry "+
@@ -302,9 +303,9 @@ func TestExecutorRun(t *testing.T) {
 						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
-							exist, err := db.Exists(trans)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeFalse)
+							var res []model.Transfer
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(res, ShouldBeEmpty)
 						})
 
 						Convey("Then the corresponding `TransferHistory` entry "+
@@ -348,9 +349,9 @@ func TestExecutorRun(t *testing.T) {
 						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
-							exist, err := db.Exists(trans)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeFalse)
+							var res []model.Transfer
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(res, ShouldBeEmpty)
 						})
 
 						Convey("Then the corresponding `TransferHistory` entry "+
@@ -385,9 +386,9 @@ func TestExecutorRun(t *testing.T) {
 						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
-							exist, err := db.Exists(trans)
-							So(err, ShouldBeNil)
-							So(exist, ShouldBeFalse)
+							var res []model.Transfer
+							So(db.Select(&res, nil), ShouldBeNil)
+							So(res, ShouldBeEmpty)
 						})
 
 						Convey("Then the corresponding `TransferHistory` entry "+
@@ -508,9 +509,9 @@ func TestTransferResume(t *testing.T) {
 				exe.Run()
 
 				Convey("Then the `Transfer` entry should no longer exist", func() {
-					exist, err := db.Exists(trans)
-					So(err, ShouldBeNil)
-					So(exist, ShouldBeFalse)
+					var res []model.Transfer
+					So(db.Select(&res, nil), ShouldBeNil)
+					So(res, ShouldBeEmpty)
 				})
 
 				Convey("Then the corresponding `TransferHistory` entry should exist", func() {
@@ -583,9 +584,9 @@ func TestTransferResume(t *testing.T) {
 				exe.Run()
 
 				Convey("Then the `Transfer` entry should no longer exist", func() {
-					exist, err := db.Exists(trans)
-					So(err, ShouldBeNil)
-					So(exist, ShouldBeFalse)
+					var res []model.Transfer
+					So(db.Select(&res, nil), ShouldBeNil)
+					So(res, ShouldBeEmpty)
 				})
 
 				Convey("Then the corresponding `TransferHistory` entry should exist", func() {
@@ -666,9 +667,9 @@ func TestTransferResume(t *testing.T) {
 				exe.Run()
 
 				Convey("Then the `Transfer` entry should no longer exist", func() {
-					exist, err := db.Exists(trans)
-					So(err, ShouldBeNil)
-					So(exist, ShouldBeFalse)
+					var res []model.Transfer
+					So(db.Select(&res, nil), ShouldBeNil)
+					So(res, ShouldBeEmpty)
 				})
 
 				Convey("Then the corresponding `TransferHistory` entry should exist", func() {

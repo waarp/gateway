@@ -70,10 +70,43 @@ func doListTasks(db *database.DB, rule *OutRule, ruleID uint64) error {
 	return nil
 }
 
-func doTaskUpdate(ses *database.Session, rule *UptRule, ruleID uint64) error {
-	if err := ses.Execute("DELETE FROM tasks WHERE rule_id=?", ruleID); err != nil {
+func taskUpdateDelete(ses *database.Session, rule *UptRule, ruleID uint64,
+	isReplace bool) error {
+
+	if isReplace {
+		if err := ses.Execute("DELETE FROM tasks WHERE rule_id=?", ruleID); err != nil {
+			return err
+		}
+	} else {
+		if len(rule.PreTasks) == 0 && rule.PreTasks != nil {
+			if err := ses.Execute("DELETE FROM tasks WHERE rule_id=? AND chain=?",
+				ruleID, model.ChainPre); err != nil {
+				return err
+			}
+		}
+		if len(rule.PostTasks) == 0 && rule.PostTasks == nil {
+			if err := ses.Execute("DELETE FROM tasks WHERE rule_id=? AND chain=?",
+				ruleID, model.ChainPost); err != nil {
+				return err
+			}
+		}
+		if len(rule.ErrorTasks) == 0 && rule.ErrorTasks == nil {
+			if err := ses.Execute("DELETE FROM tasks WHERE rule_id=? AND chain=?",
+				ruleID, model.ChainError); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func doTaskUpdate(ses *database.Session, rule *UptRule, ruleID uint64,
+	isReplace bool) error {
+
+	if err := taskUpdateDelete(ses, rule, ruleID, isReplace); err != nil {
 		return err
 	}
+
 	for rank, t := range rule.PreTasks {
 		task := t.ToModel()
 		task.RuleID = ruleID

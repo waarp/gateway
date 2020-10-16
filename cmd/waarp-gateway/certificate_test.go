@@ -1611,7 +1611,7 @@ func TestUpdateCertificate(t *testing.T) {
 
 					Convey("Given valid partner, certificate & flags", func() {
 						commandLine.Partner.Cert.Args.Partner = partner.Name
-						args := []string{"-n", "new_partner_cert",
+						args := []string{
 							"-p", pk.Name(),
 							"-b", pbk.Name(),
 							"-c", crt.Name(),
@@ -1623,9 +1623,10 @@ func TestUpdateCertificate(t *testing.T) {
 							So(err, ShouldBeNil)
 							So(command.Execute(params), ShouldBeNil)
 
-							Convey("Then is should display a message saying the cert was added", func() {
+							Convey("Then is should display a message saying the "+
+								"cert was added", func() {
 								So(getOutput(), ShouldEqual, "The certificate "+
-									"new_partner_cert was successfully updated.\n")
+									cert.Name+" was successfully updated.\n")
 							})
 
 							Convey("Then the cert should have been updated", func() {
@@ -1633,7 +1634,7 @@ func TestUpdateCertificate(t *testing.T) {
 									ID:          cert.ID,
 									OwnerType:   partner.TableName(),
 									OwnerID:     partner.ID,
-									Name:        "new_partner_cert",
+									Name:        "partner_cert",
 									PrivateKey:  []byte("new_private_key"),
 									PublicKey:   []byte("new_public_key"),
 									Certificate: []byte("new_certificate"),
@@ -1723,7 +1724,7 @@ func TestUpdateCertificate(t *testing.T) {
 						Convey("Given valid account, partner & flags", func() {
 							commandLine.Account.Remote.Args.Partner = partner.Name
 							commandLine.Account.Remote.Cert.Args.Account = account.Login
-							args := []string{"-n", "new_account_cert",
+							args := []string{
 								"-p", pk.Name(),
 								"-b", pbk.Name(),
 								"-c", crt.Name(),
@@ -1735,9 +1736,10 @@ func TestUpdateCertificate(t *testing.T) {
 								So(err, ShouldBeNil)
 								So(command.Execute(params), ShouldBeNil)
 
-								Convey("Then is should display a message saying the cert was added", func() {
-									So(getOutput(), ShouldEqual, "The certificate "+command.Name+
-										" was successfully updated.\n")
+								Convey("Then is should display a message saying "+
+									"the cert was added", func() {
+									So(getOutput(), ShouldEqual, "The certificate "+
+										cert.Name+" was successfully updated.\n")
 								})
 
 								Convey("Then the cert should have been updated", func() {
@@ -1745,7 +1747,7 @@ func TestUpdateCertificate(t *testing.T) {
 										ID:          cert.ID,
 										OwnerType:   account.TableName(),
 										OwnerID:     account.ID,
-										Name:        "new_account_cert",
+										Name:        "account_cert",
 										PrivateKey:  []byte("new_private_key"),
 										PublicKey:   []byte("new_public_key"),
 										Certificate: []byte("new_certificate"),
@@ -1761,7 +1763,7 @@ func TestUpdateCertificate(t *testing.T) {
 						Convey("Given an invalid partner name", func() {
 							commandLine.Account.Remote.Args.Partner = "toto"
 							commandLine.Account.Remote.Cert.Args.Account = account.Login
-							args := []string{"-n", "account_cert",
+							args := []string{
 								"-p", pk.Name(),
 								"-b", pbk.Name(),
 								"-c", crt.Name(),
@@ -1789,7 +1791,7 @@ func TestUpdateCertificate(t *testing.T) {
 						Convey("Given an invalid account name", func() {
 							commandLine.Account.Remote.Args.Partner = partner.Name
 							commandLine.Account.Remote.Cert.Args.Account = "toto"
-							args := []string{"-n", "account_cert",
+							args := []string{
 								"-p", pk.Name(),
 								"-b", pbk.Name(),
 								"-c", crt.Name(),
@@ -1802,7 +1804,8 @@ func TestUpdateCertificate(t *testing.T) {
 								err = command.Execute(params)
 
 								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "no account 'toto' found for partner "+partner.Name)
+									So(err, ShouldBeError, "no account 'toto' "+
+										"found for partner "+partner.Name)
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
@@ -1817,7 +1820,7 @@ func TestUpdateCertificate(t *testing.T) {
 						Convey("Given an invalid certificate name", func() {
 							commandLine.Account.Remote.Args.Partner = partner.Name
 							commandLine.Account.Remote.Cert.Args.Account = account.Login
-							args := []string{"-n", "account_cert",
+							args := []string{
 								"-p", pk.Name(),
 								"-b", pbk.Name(),
 								"-c", crt.Name(),
@@ -1866,7 +1869,7 @@ func TestUpdateCertificate(t *testing.T) {
 
 					Convey("Given valid server, certificate & flags", func() {
 						commandLine.Server.Cert.Args.Server = server.Name
-						args := []string{"-n", "new_server_cert",
+						args := []string{
 							"-p", pk.Name(),
 							"-b", pbk.Name(),
 							"-c", crt.Name(),
@@ -1878,9 +1881,10 @@ func TestUpdateCertificate(t *testing.T) {
 							So(err, ShouldBeNil)
 							So(command.Execute(params), ShouldBeNil)
 
-							Convey("Then is should display a message saying the cert was added", func() {
+							Convey("Then is should display a message saying "+
+								"the cert was added", func() {
 								So(getOutput(), ShouldEqual, "The certificate "+
-									"new_server_cert was successfully updated.\n")
+									cert.Name+" was successfully updated.\n")
 							})
 
 							Convey("Then the cert should have been updated", func() {
@@ -1888,7 +1892,7 @@ func TestUpdateCertificate(t *testing.T) {
 									ID:          cert.ID,
 									OwnerType:   server.TableName(),
 									OwnerID:     server.ID,
-									Name:        "new_server_cert",
+									Name:        "server_cert",
 									PrivateKey:  []byte("new_private_key"),
 									PublicKey:   []byte("new_public_key"),
 									Certificate: []byte("new_certificate"),
@@ -1903,7 +1907,7 @@ func TestUpdateCertificate(t *testing.T) {
 
 					Convey("Given an invalid server name", func() {
 						commandLine.Server.Cert.Args.Server = "toto"
-						args := []string{"-n", "server_cert",
+						args := []string{
 							"-p", pk.Name(),
 							"-b", pbk.Name(),
 							"-c", crt.Name(),
@@ -1930,7 +1934,7 @@ func TestUpdateCertificate(t *testing.T) {
 
 					Convey("Given an invalid certificate name", func() {
 						commandLine.Server.Cert.Args.Server = server.Name
-						args := []string{"-n", "server_cert",
+						args := []string{
 							"-p", pk.Name(),
 							"-b", pbk.Name(),
 							"-c", crt.Name(),
@@ -1978,7 +1982,7 @@ func TestUpdateCertificate(t *testing.T) {
 						Convey("Given valid account, server & flags", func() {
 							commandLine.Account.Local.Args.Server = server.Name
 							commandLine.Account.Local.Cert.Args.Account = account.Login
-							args := []string{"-n", "new_account_cert",
+							args := []string{
 								"-p", pk.Name(),
 								"-b", pbk.Name(),
 								"-c", crt.Name(),
@@ -1990,9 +1994,10 @@ func TestUpdateCertificate(t *testing.T) {
 								So(err, ShouldBeNil)
 								So(command.Execute(params), ShouldBeNil)
 
-								Convey("Then is should display a message saying the cert was added", func() {
-									So(getOutput(), ShouldEqual, "The certificate "+command.Name+
-										" was successfully updated.\n")
+								Convey("Then is should display a message saying "+
+									"the cert was added", func() {
+									So(getOutput(), ShouldEqual, "The certificate "+
+										cert.Name+" was successfully updated.\n")
 								})
 
 								Convey("Then the cert should have been updated", func() {
@@ -2000,7 +2005,7 @@ func TestUpdateCertificate(t *testing.T) {
 										ID:          cert.ID,
 										OwnerType:   account.TableName(),
 										OwnerID:     account.ID,
-										Name:        "new_account_cert",
+										Name:        "account_cert",
 										PrivateKey:  []byte("new_private_key"),
 										PublicKey:   []byte("new_public_key"),
 										Certificate: []byte("new_certificate"),
@@ -2016,7 +2021,7 @@ func TestUpdateCertificate(t *testing.T) {
 						Convey("Given an invalid server name", func() {
 							commandLine.Account.Local.Args.Server = "toto"
 							commandLine.Account.Local.Cert.Args.Account = account.Login
-							args := []string{"-n", "account_cert",
+							args := []string{
 								"-p", pk.Name(),
 								"-b", pbk.Name(),
 								"-c", crt.Name(),
@@ -2044,7 +2049,7 @@ func TestUpdateCertificate(t *testing.T) {
 						Convey("Given an invalid account name", func() {
 							commandLine.Account.Local.Args.Server = server.Name
 							commandLine.Account.Local.Cert.Args.Account = "toto"
-							args := []string{"-n", "account_cert",
+							args := []string{
 								"-p", pk.Name(),
 								"-b", pbk.Name(),
 								"-c", crt.Name(),
@@ -2057,7 +2062,8 @@ func TestUpdateCertificate(t *testing.T) {
 								err = command.Execute(params)
 
 								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "no account 'toto' found for server "+server.Name)
+									So(err, ShouldBeError, "no account 'toto' "+
+										"found for server "+server.Name)
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
@@ -2072,7 +2078,7 @@ func TestUpdateCertificate(t *testing.T) {
 						Convey("Given an invalid certificate name", func() {
 							commandLine.Account.Local.Args.Server = server.Name
 							commandLine.Account.Local.Cert.Args.Account = account.Login
-							args := []string{"-n", "account_cert",
+							args := []string{
 								"-p", pk.Name(),
 								"-b", pbk.Name(),
 								"-c", crt.Name(),

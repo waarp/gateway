@@ -14,45 +14,61 @@ import (
 // the REST interface.
 type InRule struct {
 	*UptRule
-	IsSend bool `json:"isSend"`
+	IsSend *bool `json:"isSend,omitempty"`
 }
 
 // ToModel transforms the JSON transfer rule into its database equivalent.
-func (i *InRule) ToModel() *model.Rule {
-	return &model.Rule{
-		Name:     i.Name,
-		Comment:  i.Comment,
-		IsSend:   i.IsSend,
-		Path:     i.Path,
-		InPath:   i.InPath,
-		OutPath:  i.OutPath,
-		WorkPath: i.WorkPath,
+func (i *InRule) ToModel(id uint64) (*model.Rule, error) {
+	if i.IsSend == nil {
+		return nil, badRequest("missing rule direction")
 	}
+	return &model.Rule{
+		ID:       id,
+		Name:     str(i.Name),
+		Comment:  str(i.Comment),
+		IsSend:   *i.IsSend,
+		Path:     str(i.Path),
+		InPath:   str(i.InPath),
+		OutPath:  str(i.OutPath),
+		WorkPath: str(i.WorkPath),
+	}, nil
 }
 
 // UptRule is the JSON representation of a transfer rule in updated requests made to
 // the REST interface.
 type UptRule struct {
-	Name       string     `json:"name"`
-	Comment    string     `json:"comment"`
-	Path       string     `json:"path"`
-	InPath     string     `json:"inPath"`
-	OutPath    string     `json:"outPath"`
-	WorkPath   string     `json:"workPath"`
-	PreTasks   []RuleTask `json:"preTasks"`
-	PostTasks  []RuleTask `json:"postTasks"`
-	ErrorTasks []RuleTask `json:"errorTasks"`
+	Name       *string    `json:"name,omitempty"`
+	Comment    *string    `json:"comment,omitempty"`
+	Path       *string    `json:"path,omitempty"`
+	InPath     *string    `json:"inPath,omitempty"`
+	OutPath    *string    `json:"outPath,omitempty"`
+	WorkPath   *string    `json:"workPath,omitempty"`
+	PreTasks   []RuleTask `json:"preTasks,omitempty"`
+	PostTasks  []RuleTask `json:"postTasks,omitempty"`
+	ErrorTasks []RuleTask `json:"errorTasks,omitempty"`
+}
+
+func newUptRule(old *model.Rule) *UptRule {
+	return &UptRule{
+		Name:     &old.Name,
+		Comment:  &old.Comment,
+		Path:     &old.Path,
+		InPath:   &old.InPath,
+		OutPath:  &old.OutPath,
+		WorkPath: &old.WorkPath,
+	}
 }
 
 // ToModel transforms the JSON transfer rule into its database equivalent.
-func (i *UptRule) ToModel() *model.Rule {
+func (i *UptRule) ToModel(id uint64) *model.Rule {
 	return &model.Rule{
-		Name:     i.Name,
-		Comment:  i.Comment,
-		Path:     i.Path,
-		InPath:   i.InPath,
-		OutPath:  i.OutPath,
-		WorkPath: i.WorkPath,
+		ID:       id,
+		Name:     str(i.Name),
+		Comment:  str(i.Comment),
+		Path:     str(i.Path),
+		InPath:   str(i.InPath),
+		OutPath:  str(i.OutPath),
+		WorkPath: str(i.WorkPath),
 	}
 }
 
@@ -60,16 +76,16 @@ func (i *UptRule) ToModel() *model.Rule {
 // the REST interface.
 type OutRule struct {
 	Name       string      `json:"name"`
-	Comment    string      `json:"comment"`
+	Comment    string      `json:"comment,omitempty"`
 	IsSend     bool        `json:"isSend"`
 	Path       string      `json:"path"`
-	InPath     string      `json:"inPath"`
-	OutPath    string      `json:"outPath"`
-	WorkPath   string      `json:"workPath"`
-	Authorized *RuleAccess `json:"authorized"`
-	PreTasks   []RuleTask  `json:"preTasks"`
-	PostTasks  []RuleTask  `json:"postTasks"`
-	ErrorTasks []RuleTask  `json:"errorTasks"`
+	InPath     string      `json:"inPath,omitempty"`
+	OutPath    string      `json:"outPath,omitempty"`
+	WorkPath   string      `json:"workPath,omitempty"`
+	Authorized *RuleAccess `json:"authorized,omitempty"`
+	PreTasks   []RuleTask  `json:"preTasks,omitempty"`
+	PostTasks  []RuleTask  `json:"postTasks,omitempty"`
+	ErrorTasks []RuleTask  `json:"errorTasks,omitempty"`
 }
 
 // FromRule transforms the given database transfer rule into its JSON equivalent.
@@ -144,7 +160,10 @@ func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			rule := jsonRule.ToModel()
+			rule, err := jsonRule.ToModel(0)
+			if err != nil {
+				return err
+			}
 			ses, err := db.BeginTransaction()
 			if err != nil {
 				return err
@@ -153,7 +172,7 @@ func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				ses.Rollback()
 				return err
 			}
-			if err := doTaskUpdate(ses, jsonRule.UptRule, rule.ID); err != nil {
+			if err := doTaskUpdate(ses, jsonRule.UptRule, rule.ID, true); err != nil {
 				ses.Rollback()
 				return err
 			}
@@ -161,7 +180,7 @@ func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, rule.Name))
+			w.Header().Set("Location", location(r.URL, rule.Name))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -228,7 +247,46 @@ func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			check, err := getRl(r, db)
+			old, err := getRl(r, db)
+			if err != nil {
+				return err
+			}
+
+			rule := newUptRule(old)
+			if err := readJSON(r, rule); err != nil {
+				return err
+			}
+
+			ses, err := db.BeginTransaction()
+			if err != nil {
+				return err
+			}
+			if err := ses.Update(rule.ToModel(old.ID)); err != nil {
+				ses.Rollback()
+				return err
+			}
+			if err := doTaskUpdate(ses, rule, old.ID, false); err != nil {
+				ses.Rollback()
+				return err
+			}
+			if err := ses.Commit(); err != nil {
+				return err
+			}
+
+			w.Header().Set("Location", locationUpdate(r.URL, str(rule.Name)))
+			w.WriteHeader(http.StatusCreated)
+			return nil
+		}()
+		if err != nil {
+			handleErrors(w, logger, err)
+		}
+	}
+}
+
+func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := func() error {
+			old, err := getRl(r, db)
 			if err != nil {
 				return err
 			}
@@ -242,11 +300,11 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			if err := ses.Update(rule.ToModel(), check.ID, false); err != nil {
+			if err := ses.Update(rule.ToModel(old.ID)); err != nil {
 				ses.Rollback()
 				return err
 			}
-			if err := doTaskUpdate(ses, rule, check.ID); err != nil {
+			if err := doTaskUpdate(ses, rule, old.ID, true); err != nil {
 				ses.Rollback()
 				return err
 			}
@@ -254,7 +312,7 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r, rule.Name, check.Name))
+			w.Header().Set("Location", locationUpdate(r.URL, str(rule.Name)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

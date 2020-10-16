@@ -1,7 +1,7 @@
 Modifier un partenaire
 ======================
 
-.. http:put:: /api/partners/(string:partner_name)
+.. http:patch:: /api/partners/(string:partner_name)
 
    Met à jour le partenaire demandé avec les informations renseignées en JSON.
    Les champs non-spécifiés resteront inchangés.

@@ -120,7 +120,7 @@ func (t *TransferStream) setTrueFilepath() *model.PipelineError {
 		})
 		t.Transfer.TrueFilepath = fullPath + ".tmp"
 	}
-	if err := t.Transfer.Update(t.DB); err != nil {
+	if err := t.DB.Update(t.Transfer); err != nil {
 		t.Logger.Criticalf("Failed to update transfer filepath: %s", err.Error())
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
@@ -161,7 +161,7 @@ func (t *TransferStream) Write(p []byte) (n int, err error) {
 func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 	if t.Transfer.Step == model.StepPreTasks {
 		t.Transfer.Step = model.StepData
-		if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
+		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
 			t.Logger.Criticalf("Failed to update upload transfer step to 'DATA': %s", dbErr)
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
@@ -176,7 +176,7 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 		t.Transfer.Error = model.NewTransferError(model.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
-	if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
+	if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
 		t.Logger.Criticalf("Failed to update upload transfer progress: %s", dbErr)
 		return 0, &model.PipelineError{Kind: model.KindDatabase}
 	}
@@ -187,7 +187,7 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 	if t.Transfer.Step == model.StepPreTasks {
 		t.Transfer.Step = model.StepData
-		if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
+		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
 			t.Logger.Criticalf("Failed to update download transfer step to 'DATA': %s", dbErr)
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
@@ -202,7 +202,7 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 		t.Transfer.Error = model.NewTransferError(model.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
-	if dbErr := t.Transfer.Update(t.DB); dbErr != nil {
+	if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
 		t.Logger.Criticalf("Failed to update download transfer progress: %s", dbErr)
 		return 0, &model.PipelineError{Kind: model.KindDatabase}
 	}
@@ -248,7 +248,7 @@ func (t *TransferStream) Close() error {
 	}
 
 	t.Transfer.TrueFilepath = filepath
-	if err := t.Transfer.Update(t.DB); err != nil {
+	if err := t.DB.Update(t.Transfer); err != nil {
 		t.Logger.Errorf("Failed to update transfer filepath: %s", err.Error())
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}

@@ -427,8 +427,8 @@ func TestListTransfer(t *testing.T) {
 
 				trans2.Status = model.StatusRunning
 				trans3.Status = model.StatusRunning
-				So(db.Update(&model.Transfer{Status: model.StatusRunning}, trans2.ID, false), ShouldBeNil)
-				So(db.Update(&model.Transfer{Status: model.StatusRunning}, trans3.ID, false), ShouldBeNil)
+				So(db.Update(trans2), ShouldBeNil)
+				So(db.Update(trans3), ShouldBeNil)
 
 				t1, err := rest.FromTransfer(db, trans1)
 				So(err, ShouldBeNil)

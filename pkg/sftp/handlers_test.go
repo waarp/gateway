@@ -48,7 +48,7 @@ func TestFileReader(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
-				Paths:       &model.ServerPaths{Root: root},
+				Root:        root,
 				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
 			}
 			So(db.Create(agent), ShouldBeNil)
@@ -156,7 +156,7 @@ func TestFileWriter(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
-				Paths:       &model.ServerPaths{Root: root},
+				Root:        root,
 				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
 			}
 			So(db.Create(agent), ShouldBeNil)

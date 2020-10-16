@@ -136,7 +136,7 @@ func createTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", location(r, fmt.Sprint(trans.ID)))
+			w.Header().Set("Location", location(r.URL, fmt.Sprint(trans.ID)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -213,7 +213,7 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 			if check.Status == model.StatusPlanned {
 				check.Status = model.StatusPaused
-				if err := check.Update(db); err != nil {
+				if err := db.Update(check); err != nil {
 					return err
 				}
 			} else {
@@ -252,7 +252,7 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			r.URL.Path = APIPath + HistoryPath
-			w.Header().Set("Location", location(r, fmt.Sprint(check.ID)))
+			w.Header().Set("Location", location(r.URL, fmt.Sprint(check.ID)))
 			w.WriteHeader(http.StatusAccepted)
 			return nil
 		}()
@@ -291,7 +291,7 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			check.Status = model.StatusPlanned
-			if err := check.Update(db); err != nil {
+			if err := db.Update(check); err != nil {
 				return err
 			}
 

@@ -52,14 +52,13 @@ var (
 // Accessor is the interface that lists the method sets needed to query a
 // database.
 type Accessor interface {
-	Get(bean interface{}) error
-	Select(bean interface{}, filters *Filters) error
-	Create(bean interface{}) error
-	Update(bean interface{}, id uint64, isReplace bool) error
-	Delete(bean interface{}) error
-	Exists(bean interface{}) (bool, error)
-	Execute(sqlorArgs ...interface{}) error
-	Query(sqlorArgs ...interface{}) ([]map[string]interface{}, error)
+	Get(tableName) error
+	Select(interface{}, *Filters) error
+	Create(tableName) error
+	Update(entry) error
+	Delete(tableName) error
+	Execute(...interface{}) error
+	Query(...interface{}) ([]map[string]interface{}, error)
 }
 
 // DB is the database service. It encapsulates a data connection and implements
@@ -238,7 +237,7 @@ func (db *DB) NewQuery() *builder.Builder {
 
 // Get retrieves one record from the database and fills the bean with it. Non-empty
 // fields are used as conditions.
-func (db *DB) Get(bean interface{}) error {
+func (db *DB) Get(bean tableName) error {
 	db.logger.Debugf("Get requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
@@ -279,7 +278,7 @@ func (db *DB) Select(bean interface{}, filters *Filters) error {
 
 // Create inserts the given bean in the database. If the struct cannot be inserted,
 // the function returns an error.
-func (db *DB) Create(bean interface{}) error {
+func (db *DB) Create(bean tableName) error {
 	db.logger.Debugf("Create requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
@@ -299,7 +298,7 @@ func (db *DB) Create(bean interface{}) error {
 
 // Update updates the given bean in the database. If the struct cannot be updated,
 // the function returns an error.
-func (db *DB) Update(bean interface{}, id uint64, isReplace bool) error {
+func (db *DB) Update(bean entry) error {
 	db.logger.Debugf("Update requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
@@ -307,7 +306,7 @@ func (db *DB) Update(bean interface{}, id uint64, isReplace bool) error {
 		return err
 	}
 
-	if err := ses.Update(bean, id, isReplace); err != nil {
+	if err := ses.Update(bean); err != nil {
 		ses.Rollback()
 		return err
 	}
@@ -319,7 +318,7 @@ func (db *DB) Update(bean interface{}, id uint64, isReplace bool) error {
 
 // Delete deletes the given bean from the database. If the record cannot be deleted,
 // an error is returned.
-func (db *DB) Delete(bean interface{}) error {
+func (db *DB) Delete(bean tableName) error {
 	db.logger.Debugf("Delete requested with %#v", bean)
 
 	ses, err := db.BeginTransaction()
@@ -335,27 +334,6 @@ func (db *DB) Delete(bean interface{}) error {
 		return err
 	}
 	return nil
-}
-
-// Exists checks if the given record exists in the database. If the database
-// cannot be queried, an error is returned.
-func (db *DB) Exists(bean interface{}) (bool, error) {
-	db.logger.Debugf("Exists requested with %#v", bean)
-
-	ses, err := db.BeginTransaction()
-	if err != nil {
-		return false, err
-	}
-
-	exist, err := ses.Exists(bean)
-	if err != nil {
-		ses.Rollback()
-		return false, err
-	}
-	if err := ses.Commit(); err != nil {
-		return false, err
-	}
-	return exist, nil
 }
 
 // Execute executes the given SQL command. The command can be a raw string with
@@ -447,7 +425,7 @@ type Session struct {
 
 // Get adds a 'get' query to the transaction. If the query cannot be executed,
 // an error is returned.
-func (s *Session) Get(bean interface{}) error {
+func (s *Session) Get(bean tableName) error {
 	s.logger.Debugf("Transaction 'Get' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
 		return ErrServiceUnavailable
@@ -496,7 +474,7 @@ func (s *Session) Select(bean interface{}, filters *Filters) error {
 
 // Create adds an 'insert' query to the transaction. If the query cannot be executed,
 // an error is returned.
-func (s *Session) Create(bean interface{}) error {
+func (s *Session) Create(bean tableName) error {
 	s.logger.Debugf("Transaction 'Create' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
 		return ErrServiceUnavailable
@@ -506,8 +484,8 @@ func (s *Session) Create(bean interface{}) error {
 	}
 
 	exec := func() error {
-		if hook, ok := bean.(insertHook); ok {
-			if err := hook.BeforeInsert(s); err != nil {
+		if hook, ok := bean.(validator); ok {
+			if err := hook.Validate(s); err != nil {
 				return err
 			}
 		}
@@ -530,7 +508,7 @@ func (s *Session) Create(bean interface{}) error {
 
 // Update adds an 'update' query to the transaction. If the query cannot be executed,
 // an error is returned.
-func (s *Session) Update(bean interface{}, id uint64, isReplace bool) error {
+func (s *Session) Update(bean entry) error {
 	s.logger.Debugf("Transaction 'Update' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
 		return ErrServiceUnavailable
@@ -539,27 +517,24 @@ func (s *Session) Update(bean interface{}, id uint64, isReplace bool) error {
 		return ErrNilRecord
 	}
 	if t, ok := bean.(xorm.TableName); ok {
-		query := builder.Select("id").From(t.TableName()).Where(builder.Eq{"id": id})
+		query := builder.Select("id").From(t.TableName()).Where(builder.Eq{"id": bean.GetID()})
 		if res, err := s.session.Query(query); err != nil {
 			return err
 		} else if len(res) == 0 {
 			return ErrNotFound
 		}
+	} else {
+		return xorm.ErrTableNotFound
 	}
 
 	exec := func() error {
-		if hook, ok := bean.(updateHook); ok {
-			if err := hook.BeforeUpdate(s, id); err != nil {
+		if hook, ok := bean.(validator); ok {
+			if err := hook.Validate(s); err != nil {
 				return err
 			}
 		}
 
-		if isReplace {
-			if _, err := s.session.AllCols().ID(id).Update(bean); err != nil {
-				return err
-			}
-		}
-		if _, err := s.session.ID(id).Update(bean); err != nil {
+		if _, err := s.session.AllCols().ID(bean.GetID()).Update(bean); err != nil {
 			return err
 		}
 
@@ -577,7 +552,7 @@ func (s *Session) Update(bean interface{}, id uint64, isReplace bool) error {
 
 // Delete adds an 'delete' query to the transaction. If the query cannot be executed,
 // an error is returned.
-func (s *Session) Delete(bean interface{}) error {
+func (s *Session) Delete(bean tableName) error {
 	s.logger.Debugf("Transaction 'Delete' with %#v", bean)
 	if s, _ := s.state.Get(); s != service.Running {
 		return ErrServiceUnavailable
@@ -585,7 +560,7 @@ func (s *Session) Delete(bean interface{}) error {
 	if bean == nil {
 		return ErrNilRecord
 	}
-	if exist, err := s.Exists(bean); err != nil {
+	if exist, err := s.session.Exist(bean); err != nil {
 		return err
 	} else if !exist {
 		return ErrNotFound
@@ -612,27 +587,6 @@ func (s *Session) Delete(bean interface{}) error {
 		return err
 	}
 	return nil
-}
-
-// Exists adds an 'exist' query to the transaction. If the query cannot be executed,
-// an error is returned.
-func (s *Session) Exists(bean interface{}) (bool, error) {
-	s.logger.Debugf("Transaction 'Exists' with %#v", bean)
-	if s, _ := s.state.Get(); s != service.Running {
-		return false, ErrServiceUnavailable
-	}
-	if bean == nil {
-		return false, ErrNilRecord
-	}
-
-	has, err := s.session.Exist(bean)
-	if err != nil {
-		if err := ping(s.state, s.session, s.logger); err != nil {
-			return false, err
-		}
-		return false, err
-	}
-	return has, nil
 }
 
 // Execute adds a custom raw query to the transaction. If the query cannot be executed,

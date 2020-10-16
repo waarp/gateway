@@ -215,9 +215,9 @@ func TestDeleteRemoteAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should have been removed", func() {
-						exists, err := db.Exists(&model.RemoteAccount{ID: account.ID})
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeFalse)
+						var accs []model.RemoteAccount
+						So(db.Select(&accs, nil), ShouldBeNil)
+						So(accs, ShouldBeEmpty)
 					})
 				})
 			})
@@ -236,9 +236,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should still exist", func() {
-						exists, err := db.Exists(&model.RemoteAccount{ID: account.ID})
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(account), ShouldBeNil)
 					})
 				})
 			})
@@ -257,9 +255,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should still exist", func() {
-						exists, err := db.Exists(&model.RemoteAccount{ID: account.ID})
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
+						So(db.Get(account), ShouldBeNil)
 					})
 				})
 			})
@@ -310,23 +306,15 @@ func TestUpdateRemoteAccount(t *testing.T) {
 							" was successfully updated.\n")
 					})
 
-					Convey("Then the old values should have been removed", func() {
-						exists, err := db.Exists(account)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeFalse)
-					})
+					Convey("Then the account should have been updated", func() {
+						var accs []model.RemoteAccount
+						So(db.Select(&accs, nil), ShouldBeNil)
+						So(len(accs), ShouldEqual, 1)
 
-					Convey("Then the new account should exist", func() {
-						newAccount := &model.RemoteAccount{
-							ID:            account.ID,
-							Login:         command.Login,
-							RemoteAgentID: account.RemoteAgentID,
-						}
-						So(db.Get(newAccount), ShouldBeNil)
-
-						clearPwd, err := model.DecryptPassword(newAccount.Password)
+						clearPwd, err := model.DecryptPassword(accs[0].Password)
 						So(err, ShouldBeNil)
-						So(string(clearPwd), ShouldEqual, command.Password)
+						So(string(clearPwd), ShouldEqual, "new_password")
+
 					})
 				})
 			})
