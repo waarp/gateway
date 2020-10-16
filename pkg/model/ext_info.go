@@ -2,6 +2,8 @@ package model
 
 import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 
+// ExtInfo represents the transfer_info database table, which contains all the
+// protocol-specific information attached to a transfer.
 type ExtInfo struct {
 	TransferID uint64 `xorm:"notnull unique(infoName)'transfer_id'"`
 	Name       string `xorm:"notnull unique(infoName) 'name'"`
@@ -13,6 +15,7 @@ func (*ExtInfo) TableName() string {
 	return "transfer_info"
 }
 
+// Validate checks if the ExtInfo entry is valid for insertion in the database.
 func (e *ExtInfo) Validate(db database.Accessor) error {
 	res, err := db.Query("SELECT id FROM transfers WHERE id=?", e.TransferID)
 	if err != nil {
