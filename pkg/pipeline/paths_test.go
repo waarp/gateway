@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	. "path/filepath"
 	"testing"
 
@@ -26,9 +27,9 @@ func TestPathIn(t *testing.T) {
 		paths := Paths{
 			PathsConfig: conf.PathsConfig{
 				GatewayHome:   gwRoot,
-				InDirectory:   "gwIn",
-				OutDirectory:  "gwOut",
-				WorkDirectory: "gwWork",
+				InDirectory:   filepath.Join(gwRoot, "gwIn"),
+				OutDirectory:  filepath.Join(gwRoot, "gwOut"),
+				WorkDirectory: filepath.Join(gwRoot, "gwWork"),
 			},
 		}
 		// Reset(func() { _ = os.RemoveAll(gwRoot) })

@@ -83,6 +83,7 @@ func (e *Executor) data() *model.PipelineError {
 	}
 
 	e.Transfer.Step = model.StepData
+	e.Transfer.TaskNumber = 0
 	if err := e.DB.Update(e.Transfer); err != nil {
 		e.Logger.Criticalf("Failed to update transfer status: %s", err)
 		return model.NewPipelineError(model.TeInternal, err.Error())
@@ -174,13 +175,21 @@ func (e *Executor) run() *model.PipelineError {
 		return err
 	}
 
+	e.Transfer.Step = model.StepFinalization
+	e.Transfer.TaskNumber = 0
+	if err := e.DB.Update(e.Transfer); err != nil {
+		e.Logger.Criticalf("Failed to update transfer step to '%s': %s",
+			model.StepFinalization, err)
+		return &model.PipelineError{Kind: model.KindDatabase}
+	}
+
 	if err := e.client.Close(nil); err != nil {
 		e.Logger.Errorf("Remote post-task failed")
 		return err
 	}
 
-	e.TransferStream.Transfer.Step = model.StepNone
-	e.TransferStream.Transfer.Status = model.StatusDone
+	e.Transfer.Step = model.StepNone
+	e.Transfer.Status = model.StatusDone
 
 	return nil
 }

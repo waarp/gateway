@@ -22,6 +22,39 @@ type TransferStream struct {
 	Paths
 }
 
+// getOldTransfer searches if the given transfer has a corresponding entry in
+// the database. If it does, the given transfer will be replaced by the one from
+// the database. If no corresponding entry can be found, a new one will be created.
+func (t *TransferStream) getOldTransfer() *model.PipelineError {
+	// If an ID is present, this is a client transfer, and all info are already
+	// present, no need to query the database.
+	if t.Transfer.ID != 0 {
+		return nil
+	}
+
+	// If no RemoteTransferID was given, then there is no old entry to retrieve,
+	// creates a new entry instead.
+	if t.Transfer.RemoteTransferID == "" {
+		return t.createTransfer(t.Transfer)
+	}
+
+	// Search a transfer with the given RemoteTransferID.
+	getTrans := &model.Transfer{
+		RemoteTransferID: t.Transfer.RemoteTransferID,
+		AccountID:        t.Transfer.AccountID,
+	}
+	if err := t.DB.Get(getTrans); err != nil && err != database.ErrNotFound {
+		t.Logger.Criticalf("Failed to retrieve transfer: %s", err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
+	} else if err == nil {
+		t.Transfer = getTrans
+		return nil
+	}
+
+	// If no transfer entry is found, then create a new one instead.
+	return t.createTransfer(t.Transfer)
+}
+
 // NewTransferStream initialises a new stream for the given transfer. This stream
 // can then be used to execute a transfer.
 func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
@@ -48,10 +81,8 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 		Paths: paths,
 	}
 
-	if trans.ID == 0 {
-		if err := t.createTransfer(trans); err != nil {
-			return nil, err
-		}
+	if err := t.getOldTransfer(); err != nil {
+		return nil, err
 	}
 	t.Logger = log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 
@@ -130,6 +161,10 @@ func (t *TransferStream) setTrueFilepath() *model.PipelineError {
 // Start opens/creates the stream's local file. If necessary, the method also
 // creates the file's parent directories.
 func (t *TransferStream) Start() (err *model.PipelineError) {
+	if t.File != nil {
+		return nil
+	}
+
 	if !t.Rule.IsSend {
 		if err := makeDir(t.Transfer.TrueFilepath); err != nil {
 			t.Logger.Errorf("Failed to create temp directory: %s", err)
@@ -160,6 +195,7 @@ func (t *TransferStream) Write(p []byte) (n int, err error) {
 // ReadAt reads the stream, starting at the given offset.
 func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 	if t.Transfer.Step == model.StepPreTasks {
+		t.Transfer.TaskNumber = 0
 		t.Transfer.Step = model.StepData
 		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
 			t.Logger.Criticalf("Failed to update upload transfer step to 'DATA': %s", dbErr)
@@ -186,6 +222,7 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 // WriteAt writes the given bytes to the stream, starting at the given offset.
 func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 	if t.Transfer.Step == model.StepPreTasks {
+		t.Transfer.TaskNumber = 0
 		t.Transfer.Step = model.StepData
 		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
 			t.Logger.Criticalf("Failed to update download transfer step to 'DATA': %s", dbErr)

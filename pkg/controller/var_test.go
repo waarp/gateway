@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"io"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -35,5 +33,5 @@ func NewAllSuccess(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Cli
 func (AllSuccess) Connect() *model.PipelineError                   { return nil }
 func (AllSuccess) Authenticate() *model.PipelineError              { return nil }
 func (AllSuccess) Request() *model.PipelineError                   { return nil }
-func (AllSuccess) Data(io.ReadWriteCloser) *model.PipelineError    { return nil }
+func (AllSuccess) Data(pipeline.DataStream) *model.PipelineError   { return nil }
 func (AllSuccess) Close(*model.PipelineError) *model.PipelineError { return nil }

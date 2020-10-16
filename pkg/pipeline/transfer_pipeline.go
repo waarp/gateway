@@ -47,10 +47,6 @@ func (p *Pipeline) PostTasks() *model.PipelineError {
 // ErrorTasks updates the transfer's error in the database with the given one,
 // and then executes the transfer's error-tasks.
 func (p *Pipeline) ErrorTasks() {
-	if p.Transfer.Step > model.StepErrorTasks {
-		return
-	}
-
 	// Save the failed step and task number, and restore then after the error
 	// tasks have finished
 	failedStep := p.Transfer.Step

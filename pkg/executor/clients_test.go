@@ -1,7 +1,6 @@
 package executor
 
 import (
-	"io"
 	"io/ioutil"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -34,7 +33,7 @@ func NewAllSuccess(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Cli
 func (AllSuccess) Connect() *model.PipelineError      { return nil }
 func (AllSuccess) Authenticate() *model.PipelineError { return nil }
 func (AllSuccess) Request() *model.PipelineError      { return nil }
-func (a AllSuccess) Data(f io.ReadWriteCloser) *model.PipelineError {
+func (a AllSuccess) Data(f pipeline.DataStream) *model.PipelineError {
 	if _, err := ioutil.ReadAll(f); err != nil {
 		return model.NewPipelineError(model.TeUnknown, err.Error())
 	}
@@ -68,7 +67,7 @@ type DataFail struct{ AllSuccess }
 func NewDataFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return DataFail{}, nil
 }
-func (DataFail) Data(io.ReadWriteCloser) *model.PipelineError { return errData }
+func (DataFail) Data(pipeline.DataStream) *model.PipelineError { return errData }
 
 type CloseFail struct{ AllSuccess }
 

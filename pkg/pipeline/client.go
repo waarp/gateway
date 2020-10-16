@@ -6,6 +6,16 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
+// DataStream is the interface representing the local source/destination of a
+// transfer, typically, a TransferStream.
+type DataStream interface {
+	io.Reader
+	io.Writer
+	io.ReaderAt
+	io.WriterAt
+	io.Closer
+}
+
 // Client is the interface defining a protocol client. All protocol clients
 // (SFTP, R66, HTTP...) must implement this interface in order to be usable by
 // the transfer executor.
@@ -34,7 +44,7 @@ type Client interface {
 	// the data has been transmitted, this method should close both the connection
 	// and the local file. If an error occurs while transmitting the data, an
 	// error is returned.
-	Data(io.ReadWriteCloser) *model.PipelineError
+	Data(DataStream) *model.PipelineError
 
 	// Close is the method which informs the remote that the data transfer is
 	// finished, and that the post-tasks should now be executed. If the error
