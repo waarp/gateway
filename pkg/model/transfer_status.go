@@ -37,9 +37,9 @@ const (
 
 func validateStatusForTransfer(t TransferStatus) bool {
 	return t == StatusPlanned || t == StatusRunning || t == StatusPaused ||
-		t == StatusInterrupted
+		t == StatusInterrupted || t == StatusError
 }
 
 func validateStatusForHistory(t TransferStatus) bool {
-	return t == StatusDone || t == StatusError || t == StatusCancelled
+	return t == StatusDone || t == StatusCancelled
 }

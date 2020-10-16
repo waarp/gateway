@@ -235,7 +235,8 @@ func TestTransferValidate(t *testing.T) {
 					{StatusPlanned, true},
 					{StatusRunning, true},
 					{StatusDone, false},
-					{StatusError, false},
+					{StatusError, true},
+					{StatusCancelled, false},
 					{"toto", false},
 				}
 				for _, tc := range statusTestCases {
@@ -322,7 +323,8 @@ func TestTransferToHistory(t *testing.T) {
 					{StatusPlanned, false},
 					{StatusRunning, false},
 					{StatusDone, true},
-					{StatusError, true},
+					{StatusError, false},
+					{StatusCancelled, true},
 					{"toto", false},
 				}
 
