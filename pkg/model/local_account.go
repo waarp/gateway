@@ -26,14 +26,14 @@ type LocalAccount struct {
 	Password []byte `xorm:"'password'"`
 }
 
-// TableName returns the local accounts table name.
-func (l *LocalAccount) TableName() string {
-	return "local_accounts"
-}
-
 // GetID returns the account's ID.
 func (l *LocalAccount) GetID() uint64 {
 	return l.ID
+}
+
+// TableName returns the local accounts table name.
+func (l *LocalAccount) TableName() string {
+	return "local_accounts"
 }
 
 // GetCerts fetch in the database then return the associated Certificates if they exist
@@ -52,6 +52,7 @@ func (l *LocalAccount) GetCerts(db database.Accessor) ([]Cert, error) {
 
 // Validate checks if the new `LocalAccount` entry is valid and can be
 // inserted in the database.
+//nolint:dupl
 func (l *LocalAccount) Validate(db database.Accessor) (err error) {
 	if l.LocalAgentID == 0 {
 		return database.InvalidError("the account's agentID cannot be empty")

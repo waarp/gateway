@@ -46,6 +46,7 @@ func (t *Transfer) GetID() uint64 {
 	return t.ID
 }
 
+// ExtInfo returns the list of the transfer's ExtInfo as a map[string]string
 func (t *Transfer) ExtInfo(db database.Accessor) (map[string]string, error) {
 	var res []ExtInfo
 	filters := &database.Filters{Conditions: builder.Eq{"transfer_id": t.ID}}
@@ -60,7 +61,12 @@ func (t *Transfer) ExtInfo(db database.Accessor) (map[string]string, error) {
 	return info, nil
 }
 
+// SetExtInfo replaces all the ExtInfo in the database of the the given transfer
+// by those given in the map parameter.
 func (t *Transfer) SetExtInfo(db database.Accessor, info map[string]interface{}) error {
+	if err := db.Delete(&ExtInfo{TransferID: t.ID}); err != nil {
+		return err
+	}
 	for name, val := range info {
 		i := &ExtInfo{TransferID: t.ID, Name: name, Value: fmt.Sprint(val)}
 		if err := db.Create(i); err != nil {

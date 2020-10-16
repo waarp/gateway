@@ -53,6 +53,7 @@ func (r *RemoteAccount) GetCerts(db database.Accessor) ([]Cert, error) {
 
 // Validate checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
+//nolint:dupl
 func (r *RemoteAccount) Validate(db database.Accessor) (err error) {
 	if r.RemoteAgentID == 0 {
 		return database.InvalidError("the account's agentID cannot be empty")
