@@ -72,8 +72,9 @@ func TestTransferRun(t *testing.T) {
 		db := database.GetTestDatabase()
 
 		rule := &model.Rule{
-			Name: "transfer rule",
-			Path: "rule/path",
+			Name:   "transfer rule",
+			IsSend: true,
+			Path:   "rule/path",
 		}
 		So(db.Create(rule), ShouldBeNil)
 
