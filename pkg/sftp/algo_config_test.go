@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -13,16 +12,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
-
-func getFreePort() uint16 {
-	l, err := net.Listen("tcp", "localhost:0")
-	So(err, ShouldBeNil)
-
-	port := uint16(l.Addr().(*net.TCPAddr).Port)
-	So(l.Close(), ShouldBeNil)
-
-	return port
-}
 
 func TestSFTPAlgoConfig(t *testing.T) {
 	logger := log.NewLogger("test_sftp_algo")
@@ -33,7 +22,7 @@ func TestSFTPAlgoConfig(t *testing.T) {
 	Convey("Given an SFTP server", t, func(c C) {
 		db := database.GetTestDatabase()
 		root := testhelpers.TempDir(c, "algo-config")
-		port := getFreePort()
+		port := testhelpers.GetFreePort(c)
 
 		agent := &model.LocalAgent{
 			Name:     "sftp_server",

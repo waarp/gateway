@@ -120,7 +120,7 @@ func (c *Client) Request() *model.PipelineError {
 }
 
 // Data copies the content of the source file into the destination file.
-func (c *Client) Data(file io.ReadWriteCloser) *model.PipelineError {
+func (c *Client) Data(file pipeline.DataStream) *model.PipelineError {
 	defer func() {
 		_ = file.Close()
 	}()

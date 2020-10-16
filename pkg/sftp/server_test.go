@@ -505,32 +505,28 @@ func TestSSHServer(t *testing.T) {
 
 									var t []model.Transfer
 									So(db.Select(&t, nil), ShouldBeNil)
-									So(t, ShouldBeEmpty)
+									So(t, ShouldHaveLength, 1)
 
-									var h []model.TransferHistory
-									So(db.Select(&h, nil), ShouldBeNil)
-									So(h, ShouldNotBeEmpty)
-
-									hist := model.TransferHistory{
-										ID:             h[0].ID,
-										Owner:          database.Owner,
-										IsServer:       true,
-										IsSend:         receive.IsSend,
-										Account:        user.Login,
-										Agent:          agent.Name,
-										Protocol:       "sftp",
-										SourceFilename: "test_in_fail.dst",
-										DestFilename:   "test_in_fail.dst",
-										Rule:           receive.Name,
-										Start:          h[0].Start,
-										Stop:           h[0].Stop,
-										Status:         model.StatusError,
-										Step:           model.StepData,
+									trans := model.Transfer{
+										ID:               t[0].ID,
+										RemoteTransferID: "",
+										Owner:            database.Owner,
+										IsServer:         true,
+										AccountID:        user.ID,
+										AgentID:          agent.ID,
+										TrueFilepath: utils.NormalizePath(filepath.Join(
+											root, receive.InPath, "test_in_fail.dst")),
+										SourceFile: "test_in_fail.dst",
+										DestFile:   "test_in_fail.dst",
+										RuleID:     receive.ID,
+										Start:      t[0].Start,
+										Status:     model.StatusError,
+										Step:       model.StepData,
 										Error: model.NewTransferError(model.TeConnectionReset,
 											"SFTP connection closed unexpectedly"),
 										Progress: 1,
 									}
-									So(h[0], ShouldResemble, hist)
+									So(t[0], ShouldResemble, trans)
 								})
 							})
 						})
@@ -622,32 +618,28 @@ func TestSSHServer(t *testing.T) {
 
 									var t []model.Transfer
 									So(db.Select(&t, nil), ShouldBeNil)
-									So(t, ShouldBeEmpty)
+									So(t, ShouldHaveLength, 1)
 
-									var h []model.TransferHistory
-									So(db.Select(&h, nil), ShouldBeNil)
-									So(h, ShouldNotBeEmpty)
-
-									hist := model.TransferHistory{
-										ID:             h[0].ID,
-										Owner:          database.Owner,
-										IsServer:       true,
-										IsSend:         send.IsSend,
-										Account:        user.Login,
-										Agent:          agent.Name,
-										Protocol:       "sftp",
-										SourceFilename: "test_out.src",
-										DestFilename:   "test_out.src",
-										Rule:           send.Name,
-										Start:          h[0].Start,
-										Stop:           h[0].Stop,
-										Status:         model.StatusError,
-										Step:           model.StepData,
+									trans := model.Transfer{
+										ID:               t[0].ID,
+										RemoteTransferID: "",
+										Owner:            database.Owner,
+										IsServer:         true,
+										AccountID:        user.ID,
+										AgentID:          agent.ID,
+										TrueFilepath: utils.NormalizePath(filepath.Join(
+											root, send.OutPath, "test_out.src")),
+										SourceFile: "test_out.src",
+										DestFile:   "test_out.src",
+										RuleID:     send.ID,
+										Start:      t[0].Start,
+										Status:     model.StatusError,
+										Step:       model.StepData,
 										Error: model.NewTransferError(model.TeConnectionReset,
 											"SFTP connection closed unexpectedly"),
 										Progress: 1,
 									}
-									So(h[0], ShouldResemble, hist)
+									So(t[0], ShouldResemble, trans)
 								})
 							})
 						})
