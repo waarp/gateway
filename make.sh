@@ -15,11 +15,11 @@ t_check() {
     local CI_VERSION
     CI_VERSION=$(grep GOLANGCI_LINT_VERSION .gitlab-ci.yml | head -n 1 | cut -d' ' -f4)
 
-    if ! $(which golangci-lint >/dev/null 2>&1); then
+    if ! which golangci-lint >/dev/null 2>&1; then
         echo "golangci-lint cannot be found. Please, install it and re-run checks"
         return 1
     fi
-    if ! $(golangci-lint --version | grep "$CI_VERSION" >/dev/null 2>&1); then
+    if ! golangci-lint --version | grep "$CI_VERSION" >/dev/null 2>&1; then
         echo "***********************************************"
         echo "WARNING"
         echo "***********************************************"
@@ -50,35 +50,45 @@ t_test_watch() {
 t_doc() {
     pushd doc || return 2
     .venv/bin/sphinx-build source/ build/html/
-    popd
+    popd || return 2
 }
 
 t_doc_watch() {
-    cd doc || return 2
+    pushd doc || return 2
     . .venv/bin/activate
     .venv/bin/sphinx-autobuild -p 8082 source/ build/html/
+    popd || return 2
 }
 
 t_build() {
   mkdir -p build
-  go build -o build/waarp-gateway ./cmd/waarp-gateway
-  go build -o build/waarp-gatewayd ./cmd/waarp-gatewayd
+
+  CGO_ENABLED=1 go build -ldflags " \
+    -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Date=$(date -u --iso-8601=seconds) \
+    -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Num=$(git describe --tags --dirty) \
+    -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Commit=$(git rev-parse --short HEAD)" \
+    -o "build/waarp-gateway" ./cmd/waarp-gateway
+  CGO_ENABLED=1 go build -ldflags " \
+    -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Date=$(date -u --iso-8601=seconds) \
+    -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Num=$(git describe --tags --dirty) \
+    -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Commit=$(git rev-parse --short HEAD)" \
+    -o "build/waarp-gatewayd" ./cmd/waarp-gatewayd
 }
 
 build_static_binaries() {
   echo "==> building for $GOOS/$GOARCH"
 
   CGO_ENABLED=1 go build -ldflags "-s -w -extldflags '-fno-PIC -static' \
-    -X main.versionDate=$(date -u --iso-8601=seconds) \
-    -X main.versionNum=$(cat VERSION) \
-    -X main.versionCommit=$(git rev-parse HEAD)" \
+    -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Date=$(date -u --iso-8601=seconds) \
+    -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Num=$(git describe --tags --dirty) \
+    -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Commit=$(git rev-parse --short HEAD)" \
     -buildmode pie \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/waarp-gateway_${GOOS}_${GOARCH}" ./cmd/waarp-gateway
   CGO_ENABLED=1 go build -ldflags "-s -w -extldflags '-fno-PIC -static' \
-    -X main.versionDate=$(date -u --iso-8601=seconds) \
-    -X main.versionNum=$(cat VERSION) \
-    -X main.versionCommit=$(git rev-parse HEAD)" \
+    -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Date=$(date -u --iso-8601=seconds) \
+    -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Num=$(git describe --tags --dirty) \
+    -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Commit=$(git rev-parse --short HEAD)" \
     -buildmode pie \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/waarp-gatewayd_${GOOS}_${GOARCH}" ./cmd/waarp-gatewayd
@@ -120,9 +130,9 @@ t_package() {
 
   t_doc
   cp -r doc/build/html build/waarp-gateway-doc
-  pushd build/
+  pushd build/ || return 2
   zip -r9m waarp-gateway-doc.zip waarp-gateway-doc
-  popd
+  popd || return 2
 }
 
 t_usage() {
