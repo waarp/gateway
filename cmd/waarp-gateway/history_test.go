@@ -231,7 +231,7 @@ func TestListHistory(t *testing.T) {
 					Rule:           "rule2",
 					Start:          time.Date(2019, 1, 1, 2, 0, 0, 0, time.UTC),
 					Stop:           time.Date(2019, 1, 1, 2, 1, 0, 0, time.UTC),
-					Status:         model.StatusError,
+					Status:         model.StatusCancelled,
 				}
 				h3 := &model.TransferHistory{
 					ID:             3,
@@ -259,7 +259,7 @@ func TestListHistory(t *testing.T) {
 					Rule:           "rule4",
 					Start:          time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
 					Stop:           time.Date(2019, 1, 1, 4, 1, 0, 0, time.UTC),
-					Status:         model.StatusError,
+					Status:         model.StatusCancelled,
 				}
 				So(db.Create(h1), ShouldBeNil)
 				So(db.Create(h2), ShouldBeNil)
@@ -534,7 +534,7 @@ func TestRetryHistory(t *testing.T) {
 					DestFilename:   "destination",
 					Start:          time.Now(),
 					Stop:           time.Now().Add(time.Hour),
-					Status:         model.StatusError,
+					Status:         model.StatusCancelled,
 					Owner:          database.Owner,
 				}
 				So(db.Create(h), ShouldBeNil)
