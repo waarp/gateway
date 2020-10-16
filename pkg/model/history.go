@@ -14,24 +14,24 @@ func init() {
 
 // TransferHistory represents one record of the 'transfers_history' table.
 type TransferHistory struct {
-	ID             uint64         `xorm:"pk autoincr <- 'id'"`
-	Owner          string         `xorm:"notnull 'owner'"`
-	IsServer       bool           `xorm:"notnull 'is_server'"`
-	IsSend         bool           `xorm:"notnull 'is_send'"`
-	Account        string         `xorm:"notnull 'account'"`
-	Agent          string         `xorm:"notnull 'agent'"`
-	Protocol       string         `xorm:"notnull 'protocol'"`
-	SourceFilename string         `xorm:"notnull 'source_filename'"`
-	DestFilename   string         `xorm:"notnull 'dest_filename'"`
-	Rule           string         `xorm:"notnull 'rule'"`
-	Start          time.Time      `xorm:"notnull 'start'"`
-	Stop           time.Time      `xorm:"notnull 'stop'"`
-	Status         TransferStatus `xorm:"notnull 'status'"`
-	Error          TransferError  `xorm:"extends"`
-	Step           TransferStep   `xorm:"notnull 'step'"`
-	Progress       uint64         `xorm:"notnull 'progression'"`
-	TaskNumber     uint64         `xorm:"notnull 'task_number'"`
-	ExtInfo        []byte         `xorm:"ext_info"`
+	ID               uint64         `xorm:"pk 'id'"`
+	Owner            string         `xorm:"notnull 'owner'"`
+	RemoteTransferID string         `xorm:"unique(histRemID) 'remote_transfer_id'"`
+	IsServer         bool           `xorm:"notnull 'is_server'"`
+	IsSend           bool           `xorm:"notnull 'is_send'"`
+	Account          string         `xorm:"notnull unique(histRemID) 'account'"`
+	Agent            string         `xorm:"notnull unique(histRemID) 'agent'"`
+	Protocol         string         `xorm:"notnull 'protocol'"`
+	SourceFilename   string         `xorm:"notnull 'source_filename'"`
+	DestFilename     string         `xorm:"notnull 'dest_filename'"`
+	Rule             string         `xorm:"notnull 'rule'"`
+	Start            time.Time      `xorm:"notnull 'start'"`
+	Stop             time.Time      `xorm:"notnull 'stop'"`
+	Status           TransferStatus `xorm:"notnull 'status'"`
+	Error            TransferError  `xorm:"extends"`
+	Step             TransferStep   `xorm:"notnull 'step'"`
+	Progress         uint64         `xorm:"notnull 'progression'"`
+	TaskNumber       uint64         `xorm:"notnull 'task_number'"`
 }
 
 // TableName returns the name of the transfer history table.
@@ -134,17 +134,16 @@ func (h *TransferHistory) Restart(acc database.Accessor, date time.Time) (*Trans
 	}
 
 	return &Transfer{
-		RuleID:     rule.ID,
-		IsServer:   h.IsServer,
-		AgentID:    agentID,
-		AccountID:  accountID,
-		SourceFile: h.SourceFilename,
-		DestFile:   h.DestFilename,
-		Start:      date.UTC(),
-		Status:     StatusPlanned,
-		Step:       h.Step,
-		Owner:      h.Owner,
-		Progress:   h.Progress,
-		TaskNumber: h.TaskNumber,
+		RuleID:           rule.ID,
+		RemoteTransferID: h.RemoteTransferID,
+		IsServer:         h.IsServer,
+		AgentID:          agentID,
+		AccountID:        accountID,
+		SourceFile:       h.SourceFilename,
+		DestFile:         h.DestFilename,
+		Start:            date.UTC(),
+		Status:           StatusPlanned,
+		Step:             StepNone,
+		Owner:            h.Owner,
 	}, nil
 }

@@ -162,7 +162,8 @@ func TestHistoryValidate(t *testing.T) {
 				{StatusPlanned, false},
 				{StatusRunning, false},
 				{StatusDone, true},
-				{StatusError, true},
+				{StatusError, false},
+				{StatusCancelled, true},
 				{"toto", false},
 			}
 			for _, tc := range statusTestCases {
