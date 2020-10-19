@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"context"
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,6 +14,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
@@ -55,6 +58,22 @@ func TestControllerListen(t *testing.T) {
 		}
 		So(db.Create(rule), ShouldBeNil)
 
+		sleepTask := &testTaskSleep{}
+		tasks.RunnableTasks["TESTSLEEP"] = sleepTask
+		defer delete(tasks.RunnableTasks, "TESTSLEEP")
+
+		model.ValidTasks["TESTSLEEP"] = sleepTask
+		defer delete(tasks.RunnableTasks, "TESTSLEEP")
+
+		ruleTask := &model.Task{
+			RuleID: rule.ID,
+			Chain:  model.ChainPre,
+			Rank:   1,
+			Type:   "TESTSLEEP",
+			Args:   json.RawMessage([]byte("{}")),
+		}
+		So(db.Create(ruleTask), ShouldBeNil)
+
 		start := time.Now().Truncate(time.Second)
 
 		Convey("Given a controller", func() {
@@ -65,6 +84,7 @@ func TestControllerListen(t *testing.T) {
 				ticker: time.NewTicker(tick),
 				logger: log.NewLogger("test_controller"),
 				wg:     new(sync.WaitGroup),
+				ctx:    context.Background(),
 			}
 
 			Convey("Given a planned transfer", func() {
@@ -104,6 +124,24 @@ func TestControllerListen(t *testing.T) {
 							var h []model.TransferHistory
 							So(db.Select(&h, nil), ShouldBeNil)
 							So(h, ShouldNotBeEmpty)
+						})
+					})
+				})
+
+				Convey("When the transfer lasts longer than a controller tick", func() {
+					Convey("When the controller starts new transfers several times", func() {
+						cont.startNewTransfers()
+						time.Sleep(10 * time.Millisecond)
+
+						cont.startNewTransfers()
+						time.Sleep(10 * time.Millisecond)
+
+						cont.startNewTransfers()
+
+						cont.wg.Wait()
+
+						Convey("Then the transfer has only been started once", func() {
+							So(sleepTask.c, ShouldEqual, 1)
 						})
 					})
 				})
@@ -154,4 +192,20 @@ func TestControllerListen(t *testing.T) {
 			})
 		})
 	})
+}
+
+type testTaskSleep struct {
+	c int
+}
+
+func (t *testTaskSleep) Validate(map[string]string) error {
+	return nil
+}
+
+func (t *testTaskSleep) Run(map[string]string, *tasks.Processor) (string, error) {
+	t.c++
+
+	time.Sleep(30 * time.Millisecond)
+
+	return "", nil
 }

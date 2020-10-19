@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`197` Un transfert dont le temps d'exécution est supérieur à la durée
+  d'attente du controller pouvait être exécuté plusieurs fois
 * :bug:`153` La mise-à-jour partielle de la base de données via la commande
   ``import`` n'est plus autorisée. Les objets doivent désormais être renseignés
   en intégralité dans le fichier importé pour que l'opération puisse se faire.
