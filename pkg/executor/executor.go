@@ -211,7 +211,7 @@ func (e *Executor) runR66(info *model.OutTransferInfo) {
 	e.Transfer.Step = model.StepSetup
 	e.Transfer.Status = model.StatusRunning
 
-	if err := e.Transfer.Update(e.DB); err != nil {
+	if err := e.DB.Update(e.Transfer); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
 		e.Transfer.Status = model.StatusError
 
