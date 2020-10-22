@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`197` Un transfert dont le temps d'exécution est supérieur à la durée
+  d'attente du controller pouvait être exécuté plusieurs fois
 * :feature:`173` L'adresse (et le port) des serveurs & partenaires a été extrait
   de la colonne de configuration protocolaire, et 1 nouvelle colonne ``address``
   contenant l'adresse de l'agent a été ajoutée au tables ``local_agents`` &
@@ -34,6 +36,11 @@ Historique des versions
   resteront inchangés). La méthode ``PUT`` permet, elle, de remplacer intégralement
   toutes les valeurs de l'objet (les champs omits n'auront donc plus de valeur
   si le modèle le permet).
+* :bug:`193` Les transferts SFTP peuvent désormais être redémarrés via la commande
+  ``retry``. (Attention: lorsque la gateway agit en tant que serveur, redémarrer
+  un transfert créera une nouvelle entrée au lieu de reprendre l'ancienne, il est
+  donc déconseillé de redémarrer le transfert dans ce cas.)
+* :bug:`180` Ajout de commande versions au serveur et au client
 * :bug:`179` Corrige la commande de lancement des transferts avec Waarp R66
 * :bug:`188` Correction de l'erreur 'bad file descriptor' du CLI lors de
   l'affichage du prompt de mot de passe sous Windows
