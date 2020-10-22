@@ -3,6 +3,29 @@
 Historique des versions
 =======================
 
+* :feature:`129` Ajout d'un client et d'un serveur R66 à la *gateway*. Il est
+  donc désormais possible d'effectuer des transferts R66 sans avoir recours à un
+  serveur externe.
+* :bug:`` Lors d'un transfert, le compteur ``task_number`` est désormais
+  réinitialisé lors du passage à l'étape suivante au lieu de la fin de la chaîne
+  de traitements.
+* :feature:`` Afin de faciliter la reprise de transfert, les transferts en erreur
+  resteront désormais dans la table ``transfers`` au lieu d'être déplacés dans
+  la table ``transfer_history``. Cette dernière ne contiendra donc que les
+  transferts terminés ou annulés. Ce changement a 2 conséquences:
+  - Il est désormais possible de redémarrer n'importe quel transfert de l'historique
+    via la commande ``history retry`` (ou le point d'accès REST ``/api/history/{id}/retry``).
+    En revanche, ceux-ci reprendront dorénavant depuis le début avec un nouvel
+    identifiant.
+  - La reprise des transferts en erreur se fait désormais via la commande
+    ``transfer resume`` (ou le point d'accès REST ``/api/transfer/{id}/resume``).
+* :feature:`` La colonne ``ext_info`` a été supprimée des tables ``transfers`` &
+  ``transfer_history``, et une nouvelle table ``transfer_info`` a été créée à la
+  place. Cette table permet d'associer un ensemble de clés & valeurs arbitraires
+  à un transfert.
+* :bug:`` Retrait de l'auto-incrément sur la colonne ``id`` de la table
+  ``transfer_history`` qui causait l'attribution d'un identifiant erroné au
+  transfert lors de son insertion dans la table d'historique.
 * :bug:`197` Un transfert dont le temps d'exécution est supérieur à la durée
   d'attente du controller pouvait être exécuté plusieurs fois
 * :feature:`173` L'adresse (et le port) des serveurs & partenaires a été extrait
