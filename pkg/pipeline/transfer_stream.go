@@ -55,20 +55,27 @@ func (t *TransferStream) getOldTransfer() *model.PipelineError {
 	return t.createTransfer(t.Transfer)
 }
 
-// NewTransferStream initialises a new stream for the given transfer. This stream
-// can then be used to execute a transfer.
-func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
-	paths Paths, trans *model.Transfer) (*TransferStream, error) {
+func countTransfer(trans *model.Transfer, logger *log.Logger) error {
 	if trans.IsServer {
 		if err := TransferInCount.add(); err != nil {
 			logger.Error("Incoming transfer limit reached")
-			return nil, err
+			return err
 		}
 	} else {
 		if err := TransferOutCount.add(); err != nil {
 			logger.Error("Outgoing transfer limit reached")
-			return nil, err
+			return err
 		}
+	}
+	return nil
+}
+
+// NewTransferStream initialises a new stream for the given transfer. This stream
+// can then be used to execute a transfer.
+func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
+	paths Paths, trans *model.Transfer) (*TransferStream, error) {
+	if err := countTransfer(trans, logger); err != nil {
+		return nil, err
 	}
 
 	t := &TransferStream{
@@ -85,6 +92,14 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 		return nil, err
 	}
 	t.Logger = log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
+
+	if t.Transfer.Error.Code != model.TeOk {
+		t.Transfer.Error = model.TransferError{}
+		if err := db.Update(t.Transfer); err != nil {
+			logger.Criticalf("Failed to reset transfer error: %s", err.Error())
+			return nil, &model.PipelineError{Kind: model.KindDatabase}
+		}
+	}
 
 	t.Pipeline.Rule = &model.Rule{ID: trans.RuleID}
 	if err := t.DB.Get(t.Rule); err != nil {

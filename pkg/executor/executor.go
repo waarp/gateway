@@ -118,14 +118,9 @@ func logTrans(logger *log.Logger, info *model.OutTransferInfo) {
 }
 
 func (e *Executor) prologue() *model.PipelineError {
-	oldStep := model.StepSetup
-	if e.Transfer.Step > model.StepSetup {
-		oldStep = e.Transfer.Step
+	if e.Transfer.Step < model.StepSetup {
+		e.Transfer.Step = model.StepSetup
 	}
-
-	e.Transfer.Step = model.StepSetup
-
-	defer func() { e.Transfer.Step = oldStep }()
 
 	e.Transfer.Status = model.StatusRunning
 
@@ -135,12 +130,13 @@ func (e *Executor) prologue() *model.PipelineError {
 	}
 
 	if err := e.getClient(e.TransferStream); err != nil {
+		e.Transfer.Step = model.StepSetup
 		return err
 	}
 
 	if err := e.setup(); err != nil {
+		e.Transfer.Step = model.StepSetup
 		_ = e.client.Close(err)
-
 		return err
 	}
 
