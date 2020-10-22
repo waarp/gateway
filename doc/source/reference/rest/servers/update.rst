@@ -14,6 +14,7 @@ Modifier un serveur
 
    :reqjson string name: Le nom du serveur
    :reqjson string protocol: Le protocole utilisé par le serveur
+   :reqjson string address: L'adresse du serveur (en format [adresse:port])
    :reqjson string root: La racine du serveur. Peut être relatif (à la racine
       de la *gateway*) ou absolu.
    :reqjson string inDir: Le dossier de réception du serveur. Peut être
@@ -47,11 +48,9 @@ Modifier un serveur
          {
            "name": "sftp_server_new",
            "protocol": "sftp",
+           "address": "localhost:2023",
            "root": "/new/sftp/root",
-           "protoConfig": {
-             "address": "localhost",
-             "port": 23
-           }
+           "protoConfig": {}
          }
 
    |

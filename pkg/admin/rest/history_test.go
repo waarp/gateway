@@ -398,7 +398,8 @@ func TestRestartTransfer(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(partner), ShouldBeNil)
 

@@ -21,6 +21,10 @@ Les attributs omis resteront inchangés.
 
    Le protocole utilisé par le serveur.
 
+.. option:: -a <ADDRESS>, --address=<ADDRESS>
+
+   L'adresse du serveur (au format [adresse:port]).
+
 .. option:: -r <ROOT>, --root=<ROOT>
 
    Le dossier racine du serveur. Peut être un chemin relatif ou absolu. Si
@@ -53,4 +57,4 @@ Les attributs omis resteront inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 server update serveur_sftp -n server_sftp_new -r /sftp/root_new -i in -o out -w work -p sftp -c '{"address": "localhost", "port": 80}'
+   waarp-gateway http://user:password@localhost:8080 server update serveur_sftp -n server_sftp_new -a localhost:22 -r /sftp/root_new -i in -o out -w work -p sftp

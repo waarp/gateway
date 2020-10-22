@@ -49,7 +49,8 @@ func TestFileReader(t *testing.T) {
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
 				Root:        root,
-				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2023",
 			}
 			So(db.Create(agent), ShouldBeNil)
 
@@ -157,7 +158,8 @@ func TestFileWriter(t *testing.T) {
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
 				Root:        root,
-				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2023",
 			}
 			So(db.Create(agent), ShouldBeNil)
 

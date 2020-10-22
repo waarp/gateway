@@ -27,7 +27,8 @@ func TestControllerListen(t *testing.T) {
 		remote := &model.RemoteAgent{
 			Name:        "test remote",
 			Protocol:    "test",
-			ProtoConfig: []byte(`{}`),
+			ProtoConfig: json.RawMessage(`{}`),
+			Address:     "localhost:1111",
 		}
 		So(db.Create(remote), ShouldBeNil)
 

@@ -25,6 +25,7 @@ func importRemoteAgents(logger *log.Logger, db *database.Session, list []remoteA
 		}
 
 		// Populate
+		agent.Address = src.Address
 		agent.Protocol = src.Protocol
 		agent.ProtoConfig = src.Configuration
 

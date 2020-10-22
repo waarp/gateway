@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -62,7 +63,8 @@ func TestAuthorizeRule(t *testing.T) {
 			server := &model.LocalAgent{
 				Name:        "server",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(server), ShouldBeNil)
 
@@ -102,7 +104,8 @@ func TestAuthorizeRule(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 
@@ -188,7 +191,8 @@ func TestRevokeRule(t *testing.T) {
 			server := &model.LocalAgent{
 				Name:        "server",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(server), ShouldBeNil)
 			vals["local_agent"] = server.Name
@@ -231,7 +235,8 @@ func TestRevokeRule(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 			vals["remote_agent"] = partner.Name
@@ -289,12 +294,14 @@ func TestRuleAllowAll(t *testing.T) {
 			s := &model.LocalAgent{
 				Name:        "server",
 				Protocol:    "test",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			p := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "test",
-				ProtoConfig: []byte("{}"),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(p), ShouldBeNil)
 			So(db.Create(s), ShouldBeNil)

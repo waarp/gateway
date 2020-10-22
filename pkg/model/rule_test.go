@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -124,12 +125,17 @@ func TestRuleBeforeDelete(t *testing.T) {
 			}
 			So(db.Create(rule), ShouldBeNil)
 
-			t1 := &Task{RuleID: rule.ID, Chain: ChainPre, Rank: 0, Type: "TESTSUCCESS", Args: []byte(`{}`)}
+			t1 := &Task{RuleID: rule.ID, Chain: ChainPre, Rank: 0, Type: "TESTSUCCESS", Args: json.RawMessage(`{}`)}
 			So(db.Create(t1), ShouldBeNil)
-			t2 := &Task{RuleID: rule.ID, Chain: ChainPost, Rank: 0, Type: "TESTSUCCESS", Args: []byte(`{}`)}
+			t2 := &Task{RuleID: rule.ID, Chain: ChainPost, Rank: 0, Type: "TESTSUCCESS", Args: json.RawMessage(`{}`)}
 			So(db.Create(t2), ShouldBeNil)
 
-			server := &LocalAgent{Name: "server", Protocol: "dummy", ProtoConfig: []byte(`{}`)}
+			server := &LocalAgent{
+				Name:        "server",
+				Protocol:    "dummy",
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1111",
+			}
 			So(db.Create(server), ShouldBeNil)
 			account := &LocalAccount{LocalAgentID: server.ID, Login: "toto", Password: []byte("password")}
 			So(db.Create(account), ShouldBeNil)

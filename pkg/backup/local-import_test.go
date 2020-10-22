@@ -20,7 +20,8 @@ func TestImportLocalAgents(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent), ShouldBeNil)
 
@@ -28,7 +29,8 @@ func TestImportLocalAgents(t *testing.T) {
 				agent1 := localAgent{
 					Name:          "foo",
 					Protocol:      "sftp",
-					Configuration: json.RawMessage(`{"address":"localhost","port":2022}`),
+					Configuration: json.RawMessage(`{}`),
+					Address:       "localhost:2022",
 					Accounts: []localAccount{
 						{
 							Login:    "test",
@@ -82,7 +84,8 @@ func TestImportLocalAgents(t *testing.T) {
 				agent1 := localAgent{
 					Name:          "test",
 					Protocol:      "sftp",
-					Configuration: json.RawMessage(`{"address":"127.0.0.1","port":90}`),
+					Configuration: json.RawMessage(`{}`),
+					Address:       "localhost:90",
 					Accounts: []localAccount{
 						{
 							Login:    "test",
@@ -157,7 +160,8 @@ func TestImportLocalAccounts(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent), ShouldBeNil)
 

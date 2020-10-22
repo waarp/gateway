@@ -5,6 +5,18 @@ Historique des versions
 
 * :bug:`197` Un transfert dont le temps d'exécution est supérieur à la durée
   d'attente du controller pouvait être exécuté plusieurs fois
+* :feature:`173` L'adresse (et le port) des serveurs & partenaires a été extrait
+  de la colonne de configuration protocolaire, et 1 nouvelle colonne ``address``
+  contenant l'adresse de l'agent a été ajoutée au tables ``local_agents`` &
+  ``remote_agents``.
+* :bug:`173` La présence de champs inconnus dans la configuration protocolaire
+  des partenaires & serveurs produit désormais une erreur (au lieu d'être ignorée).
+* :feature:`173` Dans l'API REST, les objets JSON partenaire & serveur ont
+  désormais un champ ``address`` contenant l'adresse de l'agent.
+* :feature:`173` Dans le CLI, les sous-commandes ``add`` & ``update`` des
+  commandes ``server`` & ``partner`` possèdent désormais un paramètre ``-a``
+  indiquant l'adresse du serveur/partenaire. Les sous-commandes ``add`` & ``list``
+  affichent également l'adresse du serveur/partenaire désormais.
 * :bug:`153` La mise-à-jour partielle de la base de données via la commande
   ``import`` n'est plus autorisée. Les objets doivent désormais être renseignés
   en intégralité dans le fichier importé pour que l'opération puisse se faire.

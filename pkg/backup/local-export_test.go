@@ -18,7 +18,8 @@ func TestExportLocalAgents(t *testing.T) {
 			agent1 := &model.LocalAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent1), ShouldBeNil)
 
@@ -27,7 +28,8 @@ func TestExportLocalAgents(t *testing.T) {
 			So(db.Create(&model.LocalAgent{
 				Name:        "foo",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}), ShouldBeNil)
 			// Revert database owner
 			database.Owner = owner
@@ -52,7 +54,8 @@ func TestExportLocalAgents(t *testing.T) {
 			agent2 := &model.LocalAgent{
 				Name:        "test2",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent2), ShouldBeNil)
 
@@ -145,7 +148,8 @@ func TestExportLocalAccounts(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent), ShouldBeNil)
 

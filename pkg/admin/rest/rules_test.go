@@ -312,7 +312,7 @@ func TestUpdateRule(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "DELETE",
-				Args:   json.RawMessage("{}"),
+				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Create(pTask), ShouldBeNil)
 
@@ -428,7 +428,7 @@ func TestReplaceRule(t *testing.T) {
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "DELETE",
-				Args:   json.RawMessage("{}"),
+				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Create(pTask), ShouldBeNil)
 

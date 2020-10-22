@@ -4,8 +4,6 @@ Configuration SFTP
 L'objet JSON de configuration du protocole SFTP est identique pour les serveurs
 et les partenaires. Sa structure est la suivante :
 
-* **address** (*string*) - L'adresse du serveur SFTP (local ou distant).
-* **port** (*integer*) - Le port utilisé par le serveur SFTP.
 * **keyExchanges** (*array* of *string*) - Liste des algorithmes d'échange de
   clé autorisés sur le serveur. Les algorithmes supportés sont :
 
@@ -48,8 +46,6 @@ et les partenaires. Sa structure est la suivante :
 .. code-block:: json
 
    {
-     "address": "localhost",
-     "port": 8022,
      "keyExchanges": [
        "diffie-hellman-group1-sha1",
        "diffie-hellman-group14-sha1",

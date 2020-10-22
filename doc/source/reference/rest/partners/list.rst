@@ -27,6 +27,7 @@ Lister les partenaires
    :resjson array partners: La liste des partenaires demandés
    :resjsonarr string name: Le nom du partenaire
    :resjsonarr string protocol: Le protocole utilisé par le partenaire
+   :resjsonarr string address: L'adresse du partenaire (en format [adresse:port])
    :resjsonarr object protoConfig: La configuration du partenaire encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
    :resjsonarr object authorizedRules: Les règles que le partenaire est autorisé à
@@ -57,10 +58,8 @@ Lister les partenaires
            "partners": [{
              "name": "waarp_sftp_2",
              "protocol": "sftp",
-             "protoConfig": {
-               "address": "waarp.org",
-               "port": 22
-             },
+             "address": "waarp.org:2023",
+             "protoConfig": {},
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],
                "reception": ["règle_récep_1", "règle_récep_2"]
@@ -68,10 +67,8 @@ Lister les partenaires
            },{
              "name": "waarp_sftp_1",
              "protocol": "sftp",
-             "protoConfig": {
-               "address": "waarp.org",
-               "port": 21
-             },
+             "address": "waarp.fr:2022",
+             "protoConfig": {},
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],
                "reception": ["règle_récep_1", "règle_récep_2"]

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -38,7 +39,8 @@ func TestGetLocalAccount(t *testing.T) {
 			server := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(server), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
@@ -132,7 +134,8 @@ func TestAddLocalAccount(t *testing.T) {
 			server := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(server), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
@@ -196,7 +199,8 @@ func TestDeleteLocalAccount(t *testing.T) {
 			server := &model.LocalAgent{
 				Name:        "parent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(server), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
@@ -287,7 +291,8 @@ func TestUpdateLocalAccount(t *testing.T) {
 			server := &model.LocalAgent{
 				Name:        "par²ent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(server), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
@@ -404,7 +409,8 @@ func TestListLocalAccount(t *testing.T) {
 			server1 := &model.LocalAgent{
 				Name:        "server1",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(server1), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server1.Name
@@ -412,7 +418,8 @@ func TestListLocalAccount(t *testing.T) {
 			server2 := &model.LocalAgent{
 				Name:        "server2",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2",
 			}
 			So(db.Create(server2), ShouldBeNil)
 
@@ -551,7 +558,8 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 			server := &model.LocalAgent{
 				Name:        "server",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(server), ShouldBeNil)
 
@@ -678,7 +686,8 @@ func TestRevokeLocalAccount(t *testing.T) {
 			server := &model.LocalAgent{
 				Name:        "server",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(server), ShouldBeNil)
 

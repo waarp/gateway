@@ -3,6 +3,7 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -26,7 +27,9 @@ func GetProtoConfig(proto string, config json.RawMessage) (ProtoConfig, error) {
 		return nil, fmt.Errorf("unknown protocol '%s'", proto)
 	}
 	conf := cons()
-	if err := json.Unmarshal(config, conf); err != nil {
+	dec := json.NewDecoder(bytes.NewReader(config))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(conf); err != nil {
 		return nil, fmt.Errorf("failed to parse protocol configuration: %s", err.Error())
 	}
 	return conf, nil

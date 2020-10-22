@@ -29,6 +29,7 @@ func importLocalAgents(logger *log.Logger, db *database.Session, list []localAge
 		agent.InDir = src.InDir
 		agent.OutDir = src.OutDir
 		agent.WorkDir = src.WorkDir
+		agent.Address = src.Address
 		agent.Protocol = src.Protocol
 		agent.ProtoConfig = src.Configuration
 		agent.Owner = ""

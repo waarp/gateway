@@ -32,7 +32,8 @@ func TestAddTransfer(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "sftp_test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Address:     "localhost:1",
+				ProtoConfig: json.RawMessage(`{}`),
 			}
 			So(db.Create(partner), ShouldBeNil)
 
@@ -205,7 +206,8 @@ func TestGetTransfer(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "sftp_test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				Address:     "localhost:1",
+				ProtoConfig: json.RawMessage(`{}`),
 			}
 			So(db.Create(partner), ShouldBeNil)
 
@@ -300,14 +302,16 @@ func TestListTransfer(t *testing.T) {
 			p1 := &model.RemoteAgent{
 				Name:        "sftp1",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				Address:     "localhost:1",
+				ProtoConfig: json.RawMessage(`{}`),
 			}
 			So(db.Create(p1), ShouldBeNil)
 
 			p2 := &model.RemoteAgent{
 				Name:        "sftp2",
 				Protocol:    "test2",
-				ProtoConfig: []byte(`{}`),
+				Address:     "localhost:2",
+				ProtoConfig: json.RawMessage(`{}`),
 			}
 			So(db.Create(p2), ShouldBeNil)
 

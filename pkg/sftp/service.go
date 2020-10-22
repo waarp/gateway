@@ -3,7 +3,6 @@ package sftp
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -50,10 +49,7 @@ func (s *Service) Start() error {
 			return err
 		}
 
-		addr := protoConfig.Address
-		port := fmt.Sprint(protoConfig.Port)
-
-		listener, err := net.Listen("tcp", net.JoinHostPort(addr, port))
+		listener, err := net.Listen("tcp", s.agent.Address)
 		if err != nil {
 			return err
 		}

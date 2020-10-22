@@ -16,6 +16,7 @@ import (
 type InServer struct {
 	Name        *string         `json:"name,omitempty"`
 	Protocol    *string         `json:"protocol,omitempty"`
+	Address     *string         `json:"address,omitempty"`
 	Root        *string         `json:"root,omitempty"`
 	InDir       *string         `json:"inDir,omitempty"`
 	OutDir      *string         `json:"outDir,omitempty"`
@@ -27,6 +28,7 @@ func newInServer(old *model.LocalAgent) *InServer {
 	return &InServer{
 		Name:        &old.Name,
 		Protocol:    &old.Protocol,
+		Address:     &old.Address,
 		Root:        &old.Root,
 		InDir:       &old.InDir,
 		OutDir:      &old.OutDir,
@@ -41,6 +43,7 @@ func (i *InServer) ToModel(id uint64) *model.LocalAgent {
 		ID:          id,
 		Owner:       database.Owner,
 		Name:        str(i.Name),
+		Address:     str(i.Address),
 		Root:        str(i.Root),
 		InDir:       str(i.InDir),
 		OutDir:      str(i.OutDir),
@@ -55,6 +58,7 @@ func (i *InServer) ToModel(id uint64) *model.LocalAgent {
 type InPartner struct {
 	Name        *string         `json:"name,omitempty"`
 	Protocol    *string         `json:"protocol,omitempty"`
+	Address     *string         `json:"address,omitempty"`
 	ProtoConfig json.RawMessage `json:"protoConfig,omitempty"`
 }
 
@@ -62,6 +66,7 @@ func newInPartner(old *model.RemoteAgent) *InPartner {
 	return &InPartner{
 		Name:        &old.Name,
 		Protocol:    &old.Protocol,
+		Address:     &old.Address,
 		ProtoConfig: old.ProtoConfig,
 	}
 }
@@ -72,6 +77,7 @@ func (i *InPartner) ToModel(id uint64) *model.RemoteAgent {
 		ID:          id,
 		Name:        str(i.Name),
 		Protocol:    str(i.Protocol),
+		Address:     str(i.Address),
 		ProtoConfig: i.ProtoConfig,
 	}
 }
@@ -81,6 +87,7 @@ func (i *InPartner) ToModel(id uint64) *model.RemoteAgent {
 type OutServer struct {
 	Name            string          `json:"name"`
 	Protocol        string          `json:"protocol"`
+	Address         string          `json:"address"`
 	Root            string          `json:"root,omitempty"`
 	InDir           string          `json:"inDir,omitempty"`
 	OutDir          string          `json:"outDir,omitempty"`
@@ -95,6 +102,7 @@ func FromLocalAgent(ag *model.LocalAgent, rules *AuthorizedRules) *OutServer {
 	return &OutServer{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
+		Address:         ag.Address,
 		Root:            ag.Root,
 		InDir:           ag.InDir,
 		OutDir:          ag.OutDir,
@@ -120,6 +128,7 @@ func FromLocalAgents(ags []model.LocalAgent, rules []AuthorizedRules) []OutServe
 type OutPartner struct {
 	Name            string           `json:"name"`
 	Protocol        string           `json:"protocol"`
+	Address         string           `json:"address"`
 	ProtoConfig     json.RawMessage  `json:"protoConfig"`
 	AuthorizedRules *AuthorizedRules `json:"authorizedRules,omitempty"`
 }
@@ -130,6 +139,7 @@ func FromRemoteAgent(ag *model.RemoteAgent, rules *AuthorizedRules) *OutPartner 
 	return &OutPartner{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
+		Address:         ag.Address,
 		ProtoConfig:     ag.ProtoConfig,
 		AuthorizedRules: rules,
 	}

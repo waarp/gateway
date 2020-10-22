@@ -511,12 +511,14 @@ func TestRuleAllowAll(t *testing.T) {
 				s := &model.LocalAgent{
 					Name:        "server",
 					Protocol:    "test",
-					ProtoConfig: []byte("{}"),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:1",
 				}
 				p := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
-					ProtoConfig: []byte("{}"),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:2",
 				}
 				So(db.Create(p), ShouldBeNil)
 				So(db.Create(s), ShouldBeNil)

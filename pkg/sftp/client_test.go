@@ -1,6 +1,7 @@
 package sftp
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -25,9 +26,10 @@ func TestConnect(t *testing.T) {
 		client := &Client{}
 
 		Convey("Given a valid address", func() {
-			client.conf = &config.SftpProtoConfig{
-				Port:    clientTestPort,
-				Address: "localhost",
+			client.Info = model.OutTransferInfo{
+				Agent: &model.RemoteAgent{
+					Address: fmt.Sprintf("localhost:%d", clientTestPort),
+				},
 			}
 
 			Convey("When calling the `Connect` method", func() {
@@ -45,9 +47,10 @@ func TestConnect(t *testing.T) {
 		})
 
 		Convey("Given an incorrect address", func() {
-			client.conf = &config.SftpProtoConfig{
-				Port:    clientTestPort,
-				Address: "255.255.255.255",
+			client.Info = model.OutTransferInfo{
+				Agent: &model.RemoteAgent{
+					Address: fmt.Sprintf("255.255.255.255:%d", clientTestPort),
+				},
 			}
 
 			Convey("When calling the `Connect` method", func() {
@@ -69,27 +72,27 @@ func TestConnect(t *testing.T) {
 func TestAuthenticate(t *testing.T) {
 	Convey("Given a SFTP client", t, func() {
 		client := &Client{
-			conf: &config.SftpProtoConfig{
-				Port:    clientTestPort,
-				Address: "localhost",
+			conf: &config.SftpProtoConfig{},
+			Info: model.OutTransferInfo{
+				Agent: &model.RemoteAgent{
+					Address: fmt.Sprintf("localhost:%d", clientTestPort),
+				},
 			},
 		}
 		So(client.Connect(), ShouldBeNil)
 		Reset(func() { _ = client.conn.Close() })
 
 		Convey("Given a valid SFTP configuration", func() {
-			client.Info = model.OutTransferInfo{
-				Account: &model.RemoteAccount{
-					Login:    testLogin,
-					Password: []byte("testPassword"),
-				},
-				ServerCerts: []model.Cert{{
-					PublicKey: testPBK,
-				}},
-				ClientCerts: []model.Cert{{
-					PrivateKey: []byte(rsaPK),
-				}},
+			client.Info.Account = &model.RemoteAccount{
+				Login:    testLogin,
+				Password: []byte("testPassword"),
 			}
+			client.Info.ServerCerts = []model.Cert{{
+				PublicKey: testPBK,
+			}}
+			client.Info.ClientCerts = []model.Cert{{
+				PrivateKey: []byte(rsaPK),
+			}}
 
 			err := client.Authenticate()
 
@@ -104,15 +107,13 @@ func TestAuthenticate(t *testing.T) {
 		})
 
 		Convey("Given an incorrect SFTP configuration", func() {
-			client.Info = model.OutTransferInfo{
-				Account: &model.RemoteAccount{
-					Login:    testLogin,
-					Password: []byte("tutu"),
-				},
-				ServerCerts: []model.Cert{{
-					PublicKey: testPBK,
-				}},
+			client.Info.Account = &model.RemoteAccount{
+				Login:    testLogin,
+				Password: []byte("tutu"),
 			}
+			client.Info.ServerCerts = []model.Cert{{
+				PublicKey: testPBK,
+			}}
 
 			err := client.Authenticate()
 
@@ -130,23 +131,22 @@ func TestAuthenticate(t *testing.T) {
 func TestRequest(t *testing.T) {
 	Convey("Given a SFTP client", t, func() {
 		client := &Client{
-			conf: &config.SftpProtoConfig{
-				Port:    clientTestPort,
-				Address: "localhost",
+			conf: &config.SftpProtoConfig{},
+			Info: model.OutTransferInfo{
+				Agent: &model.RemoteAgent{
+					Address: fmt.Sprintf("localhost:%d", clientTestPort),
+				},
+				Account: &model.RemoteAccount{
+					Login:    testLogin,
+					Password: []byte(testPassword),
+				},
+				ServerCerts: []model.Cert{{
+					PublicKey: testPBK,
+				}},
 			},
 		}
 		So(client.Connect(), ShouldBeNil)
 		Reset(func() { _ = client.conn.Close() })
-
-		client.Info = model.OutTransferInfo{
-			Account: &model.RemoteAccount{
-				Login:    testLogin,
-				Password: []byte(testPassword),
-			},
-			ServerCerts: []model.Cert{{
-				PublicKey: testPBK,
-			}},
-		}
 
 		So(client.Authenticate(), ShouldBeNil)
 		Reset(func() { _ = client.client.Close() })
@@ -218,23 +218,22 @@ func TestRequest(t *testing.T) {
 func TestData(t *testing.T) {
 	Convey("Given a SFTP client", t, func() {
 		client := &Client{
-			conf: &config.SftpProtoConfig{
-				Port:    clientTestPort,
-				Address: "localhost",
+			conf: &config.SftpProtoConfig{},
+			Info: model.OutTransferInfo{
+				Agent: &model.RemoteAgent{
+					Address: fmt.Sprintf("localhost:%d", clientTestPort),
+				},
+				Account: &model.RemoteAccount{
+					Login:    testLogin,
+					Password: []byte(testPassword),
+				},
+				ServerCerts: []model.Cert{{
+					PublicKey: testPBK,
+				}},
 			},
 		}
 		So(client.Connect(), ShouldBeNil)
 		Reset(func() { _ = client.conn.Close() })
-
-		client.Info = model.OutTransferInfo{
-			Account: &model.RemoteAccount{
-				Login:    testLogin,
-				Password: []byte(testPassword),
-			},
-			ServerCerts: []model.Cert{{
-				PublicKey: testPBK,
-			}},
-		}
 
 		srcFile := "client_test.src"
 		content := []byte("Client test transfer file content")

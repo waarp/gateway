@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http/httptest"
@@ -493,7 +494,8 @@ func TestRetryHistory(t *testing.T) {
 				p := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:1",
 				}
 				So(db.Create(p), ShouldBeNil)
 

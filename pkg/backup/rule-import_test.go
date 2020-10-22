@@ -63,7 +63,8 @@ func TestImportRules(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent), ShouldBeNil)
 
@@ -346,7 +347,8 @@ func TestImportRuleAccess(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent), ShouldBeNil)
 

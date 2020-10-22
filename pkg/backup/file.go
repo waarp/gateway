@@ -19,6 +19,7 @@ type localAgent struct {
 	InDir         string          `json:"inDir"`
 	OutDir        string          `json:"outDir"`
 	WorkDir       string          `json:"workDir"`
+	Address       string          `json:"address"`
 	Configuration json.RawMessage `json:"configuration"`
 	Accounts      []localAccount  `json:"accounts"`
 	Certs         []certificate   `json:"certificates"`
@@ -32,6 +33,7 @@ type localAccount struct {
 
 type remoteAgent struct {
 	Name          string          `json:"name"`
+	Address       string          `json:"address"`
 	Protocol      string          `json:"protocol"`
 	Configuration json.RawMessage `json:"configuration"`
 	Accounts      []remoteAccount `json:"accounts"`

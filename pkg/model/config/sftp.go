@@ -34,8 +34,6 @@ var (
 
 // SftpProtoConfig represents the configuration of an SFTP agent.
 type SftpProtoConfig struct {
-	Port         uint16   `json:"port"`
-	Address      string   `json:"address"`
 	KeyExchanges []string `json:"keyExchanges"`
 	Ciphers      []string `json:"ciphers"`
 	MACs         []string `json:"macs"`
@@ -43,13 +41,6 @@ type SftpProtoConfig struct {
 
 // ValidPartner checks if the configuration is valid for an SFTP partner.
 func (c *SftpProtoConfig) ValidPartner() error {
-	if c.Port == 0 {
-		return fmt.Errorf("sftp port must be specified")
-	}
-	if c.Address == "" {
-		return fmt.Errorf("sftp address cannot be empty")
-	}
-
 	for _, k := range c.KeyExchanges {
 		if _, ok := validKeyExchange[k]; !ok {
 			return fmt.Errorf("unknown key exchange algorithm '%s'", k)

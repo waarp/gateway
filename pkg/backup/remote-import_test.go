@@ -19,7 +19,8 @@ func TestImportRemoteAgents(t *testing.T) {
 			agent := &model.RemoteAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"remotehost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent), ShouldBeNil)
 
@@ -27,7 +28,8 @@ func TestImportRemoteAgents(t *testing.T) {
 				agent1 := remoteAgent{
 					Name:          "foo",
 					Protocol:      "sftp",
-					Configuration: []byte(`{"address":"remotehost","port":2022}`),
+					Configuration: []byte(`{}`),
+					Address:       "localhost:2022",
 					Accounts: []remoteAccount{
 						{
 							Login:    "test",
@@ -81,7 +83,8 @@ func TestImportRemoteAgents(t *testing.T) {
 				agent1 := remoteAgent{
 					Name:          "test",
 					Protocol:      "sftp",
-					Configuration: []byte(`{"address":"127.0.0.1","port":90}`),
+					Configuration: []byte(`{}`),
+					Address:       "localhost:90",
 					Accounts: []remoteAccount{
 						{
 							Login:    "test",
@@ -155,7 +158,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 			agent := &model.RemoteAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{"address":"remotehost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent), ShouldBeNil)
 

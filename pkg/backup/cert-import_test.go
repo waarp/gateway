@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"encoding/json"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -18,14 +19,16 @@ func TestImportCerts(t *testing.T) {
 			agent := &model.LocalAgent{
 				Name:        "test",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2022",
 			}
 			So(db.Create(agent), ShouldBeNil)
 
 			agent2 := &model.LocalAgent{
 				Name:        "test2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2023",
 			}
 			So(db.Create(agent2), ShouldBeNil)
 

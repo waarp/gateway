@@ -32,6 +32,7 @@ func displayPartner(w io.Writer, partner *rest.OutPartner) {
 
 	fmt.Fprintln(w, orange(bold("● Partner", partner.Name)))
 	fmt.Fprintln(w, orange("    Protocol:     "), partner.Protocol)
+	fmt.Fprintln(w, orange("    Address:      "), partner.Address)
 	fmt.Fprintln(w, orange("    Configuration:"), string(partner.ProtoConfig))
 	fmt.Fprintln(w, orange("    Authorized rules"))
 	fmt.Fprintln(w, bold("    ├─Sending:  "), send)
@@ -43,13 +44,15 @@ func displayPartner(w io.Writer, partner *rest.OutPartner) {
 type partnerAdd struct {
 	Name        string `required:"yes" short:"n" long:"name" description:"The partner's name"`
 	Protocol    string `required:"yes" short:"p" long:"protocol" description:"The partner's protocol"`
-	ProtoConfig string `required:"yes" short:"c" long:"config" description:"The partner's configuration in JSON"`
+	Address     string `required:"yes" short:"a" long:"address" description:"The partner's [address:port]"`
+	ProtoConfig string `required:"yes" short:"c" long:"config" description:"The partner's configuration in JSON" default:"{}"`
 }
 
 func (p *partnerAdd) Execute([]string) error {
 	partner := rest.InPartner{
 		Name:        &p.Name,
 		Protocol:    &p.Protocol,
+		Address:     &p.Address,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),
 	}
 	addr.Path = admin.APIPath + rest.PartnersPath
@@ -136,6 +139,7 @@ type partnerUpdate struct {
 	} `positional-args:"yes"`
 	Name        *string `short:"n" long:"name" description:"The partner's name"`
 	Protocol    *string `short:"p" long:"protocol" description:"The partner's protocol'"`
+	Address     *string `short:"a" long:"address" description:"The partner's [address:port]"`
 	ProtoConfig *string `short:"c" long:"config" description:"The partner's configuration in JSON"`
 }
 
@@ -143,6 +147,7 @@ func (p *partnerUpdate) Execute([]string) error {
 	partner := &rest.InPartner{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
+		Address:     p.Address,
 		ProtoConfig: parseOptBytes(p.ProtoConfig),
 	}
 

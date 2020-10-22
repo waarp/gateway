@@ -17,6 +17,10 @@ attributs omis resteront inchangés.
 
    Le protocole utilisé par le partenaire.
 
+.. option:: -a <ADDRESS>, --address=<ADDRESS>
+
+   L'adresse du partenaire (au format [adresse:port]).
+
 .. option:: -c <CONF>, --config=<CONF>
 
    La configuration protocolaire du partenaire en format JSON. Contient les
@@ -29,4 +33,4 @@ attributs omis resteront inchangés.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 partner update partenaire_sftp -n partner_sftp_new -p sftp -c '{"address":"waarp.fr","port":80}'
+   waarp-gateway http://user:password@localhost:8080 partner update partenaire_sftp -n partner_sftp_new -p sftp -a waarp.fr:2022

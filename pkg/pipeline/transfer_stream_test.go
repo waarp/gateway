@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -47,7 +48,8 @@ func TestNewTransferStream(t *testing.T) {
 		agent := &model.RemoteAgent{
 			Name:        "agent",
 			Protocol:    "test",
-			ProtoConfig: []byte(`{}`),
+			ProtoConfig: json.RawMessage(`{}`),
+			Address:     "localhost:1111",
 		}
 		So(db.Create(agent), ShouldBeNil)
 
@@ -134,7 +136,8 @@ func TestStreamRead(t *testing.T) {
 				Owner:       database.Owner,
 				Name:        "agent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1111",
 			}
 			So(db.Create(agent), ShouldBeNil)
 
@@ -256,7 +259,8 @@ func TestStreamWrite(t *testing.T) {
 				Owner:       database.Owner,
 				Name:        "agent",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1111",
 			}
 			So(db.Create(agent), ShouldBeNil)
 

@@ -56,7 +56,7 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 
 // Connect opens a TCP connection to the remote.
 func (c *Client) Connect() *model.PipelineError {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", c.conf.Address, c.conf.Port))
+	conn, err := net.Dial("tcp", c.Info.Agent.Address)
 	if err != nil {
 		return model.NewPipelineError(model.TeConnection, err.Error())
 	}
@@ -72,7 +72,8 @@ func (c *Client) Authenticate() *model.PipelineError {
 		return model.NewPipelineError(model.TeInternal, err.Error())
 	}
 
-	conn, chans, reqs, err := ssh.NewClientConn(c.conn, c.conf.Address, conf)
+	addr, _, _ := net.SplitHostPort(c.Info.Agent.Address)
+	conn, chans, reqs, err := ssh.NewClientConn(c.conn, addr, conf)
 	if err != nil {
 		return model.NewPipelineError(model.TeBadAuthentication, err.Error())
 	}

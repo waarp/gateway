@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http/httptest"
 	"net/url"
@@ -96,7 +97,8 @@ func TestAddTransfer(t *testing.T) {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
 
@@ -223,7 +225,8 @@ func TestGetTransfer(t *testing.T) {
 				p := &model.RemoteAgent{
 					Name:        "test",
 					Protocol:    "sftp",
-					ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:1",
 				}
 				So(db.Create(p), ShouldBeNil)
 
@@ -312,22 +315,26 @@ func TestListTransfer(t *testing.T) {
 			p1 := &model.RemoteAgent{
 				Name:        "remote1",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2022}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			p2 := &model.RemoteAgent{
 				Name:        "remote2",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2023}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2",
 			}
 			p3 := &model.RemoteAgent{
 				Name:        "remote3",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2024}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:3",
 			}
 			p4 := &model.RemoteAgent{
 				Name:        "remote4",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":2025}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:4",
 			}
 			So(db.Create(p1), ShouldBeNil)
 			So(db.Create(p2), ShouldBeNil)
@@ -591,7 +598,8 @@ func TestPauseTransfer(t *testing.T) {
 				p := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:1",
 				}
 				So(db.Create(p), ShouldBeNil)
 
@@ -693,7 +701,8 @@ func TestResumeTransfer(t *testing.T) {
 				p := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:1",
 				}
 				So(db.Create(p), ShouldBeNil)
 
@@ -793,7 +802,8 @@ func TestCancelTransfer(t *testing.T) {
 				p := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
-					ProtoConfig: []byte(`{}`),
+					ProtoConfig: json.RawMessage(`{}`),
+					Address:     "localhost:1",
 				}
 				So(db.Create(p), ShouldBeNil)
 

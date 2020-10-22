@@ -13,6 +13,7 @@ Consulter un partenaire
 
    :resjson string name: Le nom du partenaire
    :resjson string protocol: Le protocole utilisé par le partenaire
+   :resjson string address: L'adresse du partenaire (en format [adresse:port])
    :resjson object protoConfig: La configuration du partenaire encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
    :resjson object authorizedRules: Les règles que le partenaire est autorisé à
@@ -42,10 +43,8 @@ Consulter un partenaire
          {
            "name": "waarp_sftp",
            "protocol": "sftp",
-           "protoConfig": {
-             "address": "waarp.org",
-             "port": 21
-           },
+           "address": "waarp.org:2022",
+           "protoConfig": {},
            "authorizedRules": {
              "sending": ["règle_envoi_1", "règle_envoi_2"],
              "reception": ["règle_récep_1", "règle_récep_2"]

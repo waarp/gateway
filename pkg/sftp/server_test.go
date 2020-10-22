@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
@@ -41,10 +42,10 @@ func TestServerStop(t *testing.T) {
 		port := getTestPort()
 
 		agent := &model.LocalAgent{
-			Name:     "test_sftp_server",
-			Protocol: "sftp",
-			ProtoConfig: []byte(`{"address":"localhost","port":` + port +
-				`, "root":"root"}`),
+			Name:        "test_sftp_server",
+			Protocol:    "sftp",
+			ProtoConfig: json.RawMessage(`{}`),
+			Address:     "localhost:" + port,
 		}
 		So(db.Create(agent), ShouldBeNil)
 
@@ -87,7 +88,8 @@ func TestServerStart(t *testing.T) {
 			Name:        "test_sftp_server",
 			Protocol:    "sftp",
 			Root:        root,
-			ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
+			ProtoConfig: json.RawMessage(`{}`),
+			Address:     "localhost:" + port,
 		}
 		So(db.Create(agent), ShouldBeNil)
 
@@ -133,7 +135,8 @@ func TestSSHServer(t *testing.T) {
 			otherAgent := &model.LocalAgent{
 				Name:        "other_agent",
 				Protocol:    "sftp",
-				ProtoConfig: []byte(`{"address":"localhost","port":9999}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:9999",
 			}
 			So(db.Create(otherAgent), ShouldBeNil)
 
@@ -141,7 +144,8 @@ func TestSSHServer(t *testing.T) {
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
 				Root:        root,
-				ProtoConfig: []byte(`{"address":"localhost","port":` + port + `}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:" + port,
 			}
 			So(db.Create(agent), ShouldBeNil)
 			var protoConfig config.SftpProtoConfig
@@ -260,8 +264,9 @@ func TestSSHServer(t *testing.T) {
 									IsServer:  true,
 									AccountID: user.ID,
 									AgentID:   agent.ID,
-									TrueFilepath: filepath.Join(root, receive.InPath,
-										"test_in_shutdown.dst"),
+									TrueFilepath: utils.NormalizePath(
+										filepath.Join(root, receive.InPath,
+											"test_in_shutdown.dst")),
 									SourceFile: "test_in_shutdown.dst",
 									DestFile:   "test_in_shutdown.dst",
 									RuleID:     receive.ID,
@@ -307,8 +312,9 @@ func TestSSHServer(t *testing.T) {
 									IsServer:  true,
 									AccountID: user.ID,
 									AgentID:   agent.ID,
-									TrueFilepath: filepath.Join(root, send.OutPath,
-										"test_out_shutdown.src"),
+									TrueFilepath: utils.NormalizePath(
+										filepath.Join(root, send.OutPath,
+											"test_out_shutdown.src")),
 									SourceFile: "test_out_shutdown.src",
 									DestFile:   "test_out_shutdown.src",
 									RuleID:     send.ID,

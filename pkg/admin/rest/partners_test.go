@@ -52,22 +52,26 @@ func TestListRemoteAgents(t *testing.T) {
 			a1 := &model.RemoteAgent{
 				Name:        "remote agent1",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			a2 := &model.RemoteAgent{
 				Name:        "remote agent2",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:2",
 			}
 			a3 := &model.RemoteAgent{
 				Name:        "remote agent3",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:3",
 			}
 			a4 := &model.RemoteAgent{
 				Name:        "remote agent4",
 				Protocol:    "test2",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:4",
 			}
 
 			So(db.Create(a1), ShouldBeNil)
@@ -155,7 +159,8 @@ func TestGetRemoteAgent(t *testing.T) {
 			existing := &model.RemoteAgent{
 				Name:        "existing",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(existing), ShouldBeNil)
 
@@ -217,7 +222,8 @@ func TestCreateRemoteAgent(t *testing.T) {
 			existing := &model.RemoteAgent{
 				Name:        "existing",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(existing), ShouldBeNil)
 
@@ -226,6 +232,7 @@ func TestCreateRemoteAgent(t *testing.T) {
 					Name:        strPtr("new remote agent"),
 					Protocol:    strPtr("test"),
 					ProtoConfig: json.RawMessage(`{}`),
+					Address:     strPtr("localhost:2"),
 				}
 
 				Convey("Given that the new remote agent is valid for insertion", func() {
@@ -292,7 +299,8 @@ func TestDeleteRemoteAgent(t *testing.T) {
 			existing := &model.RemoteAgent{
 				Name:        "existing",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(existing), ShouldBeNil)
 
@@ -349,14 +357,15 @@ func TestUpdateRemoteAgent(t *testing.T) {
 			old := &model.RemoteAgent{
 				Name:        "old",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(old), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
 				update := InPartner{
-					Name:        strPtr("update"),
-					ProtoConfig: json.RawMessage(`{"key":"val"}`),
+					Name:    strPtr("update"),
+					Address: strPtr("localhost:2"),
 				}
 				body, err := json.Marshal(update)
 				So(err, ShouldBeNil)
@@ -390,7 +399,8 @@ func TestUpdateRemoteAgent(t *testing.T) {
 								ID:          old.ID,
 								Name:        "update",
 								Protocol:    "test",
-								ProtoConfig: json.RawMessage(`{"key":"val"}`),
+								Address:     "localhost:2",
+								ProtoConfig: json.RawMessage(`{}`),
 							}
 
 							var parts []model.RemoteAgent
@@ -446,7 +456,8 @@ func TestReplaceRemoteAgent(t *testing.T) {
 			old := &model.RemoteAgent{
 				Name:        "old",
 				Protocol:    "test",
-				ProtoConfig: []byte(`{"key":"val"}`),
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
 			}
 			So(db.Create(old), ShouldBeNil)
 
@@ -455,6 +466,7 @@ func TestReplaceRemoteAgent(t *testing.T) {
 					Name:        strPtr("update"),
 					Protocol:    strPtr("test2"),
 					ProtoConfig: json.RawMessage(`{}`),
+					Address:     strPtr("localhost:2"),
 				}
 				body, err := json.Marshal(update)
 				So(err, ShouldBeNil)
@@ -489,6 +501,7 @@ func TestReplaceRemoteAgent(t *testing.T) {
 								Name:        "update",
 								Protocol:    "test2",
 								ProtoConfig: json.RawMessage(`{}`),
+								Address:     "localhost:2",
 							}
 
 							var parts []model.RemoteAgent
