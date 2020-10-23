@@ -83,7 +83,7 @@ func (l *LocalAccount) Validate(db database.Accessor) (err error) {
 	if agent.Protocol == "r66" {
 		l.Password = r66.CryptPass(l.Password)
 	}
-	l.Password, err = hashPassword(l.Password)
+	l.Password, err = HashPassword(l.Password)
 	return err
 }
 

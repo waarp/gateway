@@ -83,10 +83,11 @@ func initForSelfTransfer(c C) *testContext {
 	So(db.Create(locAccount), ShouldBeNil)
 
 	partner := &model.RemoteAgent{
-		Name:        "r66_partner",
-		Protocol:    "r66",
-		ProtoConfig: json.RawMessage(`{"blockSize":50}`),
-		Address:     fmt.Sprintf("localhost:%d", port),
+		Name:     "r66_partner",
+		Protocol: "r66",
+		ProtoConfig: json.RawMessage(`{"blockSize":50, "serverLogin":"r66_server",
+			"serverPassword":"c2VzYW1l"}`),
+		Address: fmt.Sprintf("localhost:%d", port),
 	}
 	So(db.Create(partner), ShouldBeNil)
 
