@@ -1,16 +1,17 @@
+######################
 Gestion des transferts
-======================
+######################
 
 La commande de gestion des transferts en cours est ``transfer``. Cette commande
 doit ensuite être suivie d'une action. La documentation complète de la commande
-est disponible :doc:`ici<../../client/transfer/index>`.
+est disponible :any:`ici <reference-cli-client-transfers>`.
 
 Pour les transferts terminés, la commande est ``history``. La documentation de
-la commande est disponible :doc:`ici<../../client/history/index>`.
+la commande est disponible :any:`ici <reference-cli-client-history>`.
 
 
 Ajouter un transfert
---------------------
+====================
 
 Pour programmer un nouveau transfert, la commande est ``transfer add``. Les
 options de commande suivantes doivent être fournies:
@@ -36,7 +37,7 @@ l'identifiant attribué au transfert sera affiché dans la console.
 
 
 Interrompre/Reprendre un transfert
-----------------------------------
+==================================
 
 Un transfert peut être interrompu avec la commande ``transfer pause``, suivie de
 l'identifiant du transfert.
@@ -58,11 +59,12 @@ de l'identifiant du transfert.
 
 
 Consulter les transferts
-------------------------
+========================
 
 Pour lister les transferts en cours, la commande est ``transfer list``. Les
 options de commande permettent de filtrer les résultats selon divers critères,
-pour plus de détails, voir la :doc:`documentation<../../client/server/list>`.
+pour plus de détails, voir la :any:`reference
+<reference-cli-client-servers-list>`.
 
 **Exemple**
 
@@ -71,7 +73,7 @@ pour plus de détails, voir la :doc:`documentation<../../client/server/list>`.
    waarp-gateway 'https://admin@127.0.0.1:8080' transfers list
 
 Pour les transferts terminés, la commande est ``history list``. La documentation
-de la commande est disponible :doc:`ici<../../client/server/list>`.
+de la commande est disponible :any:`ici <reference-cli-client-servers-list>`.
 
 **Exemple**
 
@@ -81,9 +83,9 @@ de la commande est disponible :doc:`ici<../../client/server/list>`.
 
 
 Annuler un transfert
---------------------
+====================
 
-Pour annuler un transfer, la commande est ``transfer cancel``, suivie ensuite de
+Pour annuler un transfert, la commande est ``transfer cancel``, suivie ensuite de
 l'identifiant du transfert.
 
 **Exemple**
@@ -94,9 +96,9 @@ l'identifiant du transfert.
 
 
 Redémarrer un transfert
------------------------
+=======================
 
-Pour redémarrer un transfer, la commande est ``history retry``, suivie ensuite
+Pour redémarrer un transfert, la commande est ``history retry``, suivie ensuite
 de l'identifiant du transfert.
 
 .. note::

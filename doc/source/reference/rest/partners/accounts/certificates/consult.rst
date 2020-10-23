@@ -18,27 +18,25 @@ Consulter un certificat
    :resjson string certificate: Le certificat de l'entité
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         GET https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi/certificates/certificat_titi HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      GET https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi/certificates/certificat_titi HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
-         Content-Type: application/json
-         Content-Length: 197
-
-         {
-           "name": "certificat_titi",
-           "privateKey": "<clé privée>",
-           "publicKey": "<clé publique>",
-           "cert": "<certificat>"
-         }
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      Content-Length: 197
+      
+      {
+        "name": "certificat_titi",
+        "privateKey": "<clé privée>",
+        "publicKey": "<clé publique>",
+        "cert": "<certificat>"
+      }

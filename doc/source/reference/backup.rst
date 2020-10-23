@@ -1,4 +1,4 @@
-.. _ref-export-file:
+.. _reference-backup-json:
 
 #######################
 Fichier d'import/export
@@ -9,14 +9,14 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
 
 
 * **local** (*array*) - La liste des :term:`serveurs locaux<serveur>` de la
-  gateway.
+  Gateway.
 
   * **name** (*string*) - Le nom du serveur.
   * **protocol** (*string*) - Le protocole du serveur.
   * **root** (*string*) - Le dossier racine du serveur.
   * **workDir** (*string*) - Le dossier temporaire du serveur.
-  * **configuration** (*object*) - La :doc:`configuration protocolaire
-    <proto_config/index>` du serveur.
+  * **configuration** (*object*) - La :any:`configuration protocolaire
+    <reference-proto-config>` du serveur.
   * **certificates** (*array*) - La liste des :term:`certificats
     <certificat>` du serveur.
 
@@ -45,8 +45,8 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
 
   * **name** (*string*) - Le nom du partenaire.
   * **protocol** (*string*) - Le protocole du partenaire.
-  * **configuration** (*object*) - La :doc:`configuration protocolaire
-    <proto_config/index>` du serveur.
+  * **configuration** (*object*) - La :any:`configuration protocolaire
+    <reference-proto-config>` du serveur.
   * **certificates** (*array*) - La liste des :term:`certificats
     <certificat>` du partenaire.
 
@@ -84,31 +84,32 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
     ``local::serveur_sftp``). Si l'agent est un compte, alors le nom de compte
     doit être précédé du nom du serveur/partenaire auquel le compte est
     rattaché (ex: ``local::serveur_sftp::toto``).
-  * **pre** (*array*) - La liste des pré-traitements de la règle. Voir la :doc:`
-    documentation<tasks/index>` des traitements pour la liste des traitements
-    disponibles ainsi que les arguments nécessaires à chacun d'entre eux.
+  * **pre** (*array*) - La liste des pré-traitements de la règle. Voir la
+    :any:`documentation <reference-tasks>` des traitements pour la liste des
+    traitements disponibles ainsi que les arguments nécessaires à chacun d'entre
+    eux.
 
     * **type** (*string*) - Le type de traitement.
     * **args** (*object*) - Les arguments du traitement. Variable suivant le
-      type de traitement (cf. :doc:`traitements<tasks/index>`).
+      type de traitement (cf. :any:`traitements <reference-tasks>`).
 
   * **post** (*array*) - La liste des post-traitements de la règle. Voir la
-    :doc:`documentation<tasks/index>` des traitements pour la liste des
+    :any:`documentation <reference-tasks>` des traitements pour la liste des
     traitements disponibles ainsi que les arguments nécessaires à chacun
     d'entre eux.
 
     * **type** (*string*) - Le type de traitement.
     * **args** (*object*) - Les arguments du traitement. Variable suivant le
-      type de traitement (cf. :doc:`traitements<tasks/index>`).
+      type de traitement (cf. :any:`traitements <reference-tasks>`).
 
   * **error** (*array*) - La liste des traitements d'erreur de la règle. Voir
-    la :doc:`documentation<tasks/index>` des traitements pour la liste des
+    la :any:`documentation<tasks/index>` des traitements pour la liste des
     traitements disponibles ainsi que les arguments nécessaires à chacun
     d'entre eux.
 
     * **type** (*string*) - Le type de traitement.
     * **args** (*object*) - Les arguments du traitement. Variable suivant le
-      type de traitement (cf. :doc:`traitements<tasks/index>`).
+      type de traitement (cf. :any:`traitements <reference-tasks>`).
 
 
 **Exemple**

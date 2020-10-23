@@ -25,16 +25,16 @@ doit avoir deux tâches :
 1. La première déplace le fichier du dossier de réception de la première règle
    (en l'occurrence, le dossier ``in`` de la Gateway) vers le dossier d'envoi de
    la seconde règle (ici, le dossier ``out`` de la seconde règle). C'est une
-   tâche :any:`task-moverename`.
+   tâche :any:`reference-tasks-moverename`.
 2. La deuxième tâche lance un transfert avec la seconde règle. C'est une tâche
-   :any:`task-transfer`.
+   :any:`reference-tasks-transfer`.
 
 Les tâches sont définies au format JSON comme un objet avec deux propriétés :
 ``type``, pour indiquer le type de la tâche, et ``args``, pour fournir les
 arguments nécessaires à l'exécution de la tâche.
 
-Dans notre cas, la tâche :any:`task-moverename` a besoin d'un argument ``path``,
-pour indiquer le nouveau chemin du fichier ; et la tâche :any:`task-transfer` a
+Dans notre cas, la tâche :any:`reference-tasks-moverename` a besoin d'un argument ``path``,
+pour indiquer le nouveau chemin du fichier ; et la tâche :any:`reference-tasks-transfer` a
 besoin *a minima* des mêmes arguments que ceux à renseigner dans la commande de
 création d'un transfert, à savoir ``file``, ``to``, ``as`` et ``rule``.
 
@@ -58,9 +58,9 @@ avec la commande suivante :
 .. seealso::
 
    La liste des tâches disponibles et leurs arguments est documentée
-   :any:`tasks <ici>`.
+   :any:`ici <reference-tasks>`.
 
-   La liste des substitutions est consultable :any:`tasks-subtitutions <ici>`
+   La liste des substitutions est consultable :any:`ici <reference-tasks-substitutions>`
 
 .. todo::
 

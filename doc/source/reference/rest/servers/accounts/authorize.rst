@@ -1,5 +1,8 @@
+.. _reference-rest-servers-accounts-authorize:
+
+#########################################
 Autoriser un compte à utiliser une règle
-=========================================
+#########################################
 
 .. http:put:: /api/servers/(string:server_name)/accounts/(string:login)/authorize/(string:rule)
 

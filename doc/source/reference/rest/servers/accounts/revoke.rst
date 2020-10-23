@@ -1,5 +1,8 @@
+.. _reference-rest-servers-accounts-revoke:
+
+##########################################
 Interdire à un compte d'utiliser une règle
-==========================================
+##########################################
 
 .. http:put:: /api/servers/(string:server_name)/revoke/(string:rule)
 
@@ -13,8 +16,6 @@ Interdire à un compte d'utiliser une règle
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: Le serveur ou la règle demandée n'existe pas
 
-
-   |
 
    **Exemple de requête**
 

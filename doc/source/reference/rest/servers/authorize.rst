@@ -1,5 +1,8 @@
+.. _reference-rest-servers-authorize:
+
+##########################################
 Autoriser un serveur à utiliser une règle
-==========================================
+##########################################
 
 .. http:put:: /api/servers/(string:server_name)/authorize/(string:rule)
 

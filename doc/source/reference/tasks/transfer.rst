@@ -1,5 +1,8 @@
+.. _reference-tasks-transfer:
+
+########
 TRANSFER
-========
+########
 
 Le traitement 'TRANSFER' programme un nouveau transfert sur la gateway avec une
 date de démarrage immédiate. Les arguments sont:

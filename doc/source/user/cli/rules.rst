@@ -1,20 +1,21 @@
+##################
 Gestion des règles
-==================
+##################
 
 La commande de gestion des :term:`règles<règle>` de  transfert est ``rule``.
 Cette commande doit ensuite être suivie d'une action. La liste complète des
-actions est disponible :doc:`ici<../../client/rule/index>`.
+actions est disponible :any:`ici <reference-cli-client-rules>`.
 
 
 Ajouter une règle
------------------
+=================
 
 Pour créer une règle, la commande est ``add``. Les options de commande
 suivantes doivent être fournies:
 
 - ``-n``: le nom de la règle
 - ``-c``: un commentaire sur la règle (optionnel)
-- ``-d``: la direction de transfert des fichiers, SEND ou RECEIVE
+- ``-d``: la direction de transfert des fichiers, ``SEND`` ou ``RECEIVE``
 - ``-p``: le chemin utilisé pour identifier la règle lorsque le protocole ne le
   permet pas
 - ``-i``: le chemin de destination des fichiers (optionnel)
@@ -23,7 +24,7 @@ suivantes doivent être fournies:
 - ``-s``: une post-tâche, peut être répété pour ajouter plusieurs tâches
 - ``-e``: une tâche d'erreur, peut être répété pour ajouter plusieurs tâches
 
-Les tâches doivent être données en format JSON. Voir :doc:`../../tasks/index`
+Les tâches doivent être données en format JSON. Voir :any:`reference-tasks`
 pour plus de détails sur le format des tâches.
 
 .. note::
@@ -34,8 +35,8 @@ pour plus de détails sur le format des tâches.
 **Exemple**
 
 L'exemple suivant ajoute une règle de réception nommée 'rebond archive', identifiée
-par le chemin '/rebond'. Cette règle possède 2 post-traitements. Le 1er crée une
-copie du fichier reçu dans le dossier '/archive', le 2ème programme un transfert
+par le chemin '/rebond'. Cette règle possède 2 post-traitements. Le premier crée une
+copie du fichier reçu dans le dossier '/archive', le deuxième programme un transfert
 du fichier reçu vers le partenaire 'sshd'.
 
 .. code-block:: shell
@@ -44,7 +45,7 @@ du fichier reçu vers le partenaire 'sshd'.
 
 
 Modifier une règle
-------------------
+==================
 
 Pour modifier une règle existante, la commande est ``rule update``. Cette commande
 doit être suivie du nom de la règle à modifier. Les options de commandes sont
@@ -65,12 +66,12 @@ options pour faire une mise à jour partielle.
 
 
 Consulter les règles
---------------------
+====================
 
 Pour lister les règles connues de la *gateway*, la commande est ``rule list``.
 Les options de commande permettent de filtrer les résultats selon divers critères,
-pour plus de détails, voir la :doc:`documentation<../../client/rule/list>` de
-la commande ``list``.
+pour plus de détails, voir la :any:`documentation
+<reference-cli-client-rules-list>` de la commande ``list``.
 
 **Exemple**
 
@@ -89,7 +90,7 @@ de la règle.
 
 
 Supprimer une règle
--------------------
+===================
 
 Pour supprimer une règle, la commande est ``rule delete``, suivie ensuite du nom
 de la règle à supprimer.
@@ -102,7 +103,7 @@ de la règle à supprimer.
 
 
 Restreindre une règle
----------------------
+=====================
 
 Par défaut, après ajout d'une règle, tous les serveurs, partenaires et comptes
 (locaux et distants) peuvent utiliser cette règle. Il est cependant possible de
@@ -113,9 +114,11 @@ autorisés à utiliser la règle en question. Si cette liste est vide, alors la 
 est utilisable par tous.
 
 .. note::
+
    Pour qu'un transfert puisse s'exécuter, il est nécessaire qu'au moins un des
-   2 agents impliqués (serveur + compte local ou partenaire + compte distant suivant
-   le sens de la connection) soit présent sur la liste blanche de la règle.
+   deux agents impliqués (serveur + compte local ou partenaire + compte distant
+   suivant le sens de la connection) soit présent sur la liste blanche de la
+   règle.
 
    Cela signifie donc qu'ajouter un serveur à la liste blanche d'une règle ajoute
    également *de facto* tous les comptes locaux rattachés à ce serveur. Idem pour

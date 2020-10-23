@@ -1,9 +1,10 @@
+####################
 Gestion des serveurs
-====================
+####################
 
 La commande de gestion des :term:`serveurs<serveur>` locaux est ``server``.
 Cette commande doit ensuite être suivie d'une action. La liste complète des
-actions est disponible :doc:`ici<../../client/server/index>`.
+actions est disponible :any:`ici <reference-cli-client-servers>`.
 
 .. note::
    Toutes modification ou ajout d'un serveur local ne prendra effet qu'après
@@ -11,7 +12,7 @@ actions est disponible :doc:`ici<../../client/server/index>`.
 
 
 Ajouter un serveur
-------------------
+==================
 
 Pour créer un serveur, la commande est ``server add``. Les options de commande
 suivantes doivent être fournies:
@@ -19,7 +20,8 @@ suivantes doivent être fournies:
 - ``-n``: le nom du serveur
 - ``-p``: le protocole de transfert
 - ``-r``: la racine du serveur
-- ``-c``: la :doc:`configuration protocolaire <../../proto_config/index>` du serveur
+- ``-c``: la :any:`configuration protocolaire <reference-proto-config>` du
+  serveur
 
 **Exemple**
 
@@ -29,7 +31,7 @@ suivantes doivent être fournies:
 
 
 Modifier un serveur
--------------------
+===================
 
 Pour modifier un serveur existant, la commande est ``server update``. Cette
 commande doit être suivie du nom du serveur à modifier. Les options de commandes
@@ -44,11 +46,11 @@ options pour faire une mise à jour partielle.
 
 
 Consulter les serveurs
-----------------------
+======================
 
 Pour lister les serveurs de la *gateway*, la commande est ``server list``. Les
 options de commande permettent de filtrer les résultats selon divers critères,
-pour plus de détails, voir la :doc:`documentation<../../client/server/list>` de
+pour plus de détails, voir la :any:`référence <reference-cli-client-servers-list>` de
 la commande ``list``.
 
 **Exemple**
@@ -68,7 +70,7 @@ du serveur.
 
 
 Supprimer un serveur
---------------------
+====================
 
 Pour supprimer un serveur, la commande est ``server delete``, suivie ensuite du
 nom du serveur à supprimer.

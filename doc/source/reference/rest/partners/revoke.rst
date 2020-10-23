@@ -1,5 +1,8 @@
+.. _reference-rest-partners-revoke:
+
+##############################################
 Interdire à un partenaire d'utiliser une règle
-==============================================
+##############################################
 
 .. http:put:: /api/partners/(string:partner_name)/revoke/(string:rule)
 

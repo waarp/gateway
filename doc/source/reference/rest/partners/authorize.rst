@@ -1,5 +1,8 @@
+.. _reference-rest-partners-authorize:
+
+############################################
 Autoriser un partenaire à utiliser une règle
-============================================
+############################################
 
 .. http:put:: /api/partners/(string:partner_name)/authorize/(string:rule)
 

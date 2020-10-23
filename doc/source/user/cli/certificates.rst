@@ -1,5 +1,6 @@
+#######################
 Gestion des certificats
-=======================
+#######################
 
 Il est possible t'attacher un :term:`certificat` à un agent de la gateway. Cet 
 agent peut être un :term:`serveur`, un :term:`partenaire`, un :term:`compte local`
@@ -16,7 +17,7 @@ Ces commandes doivent être suivies de l'action souhaitée.
 
 
 Ajouter un certificat
----------------------
+=====================
 
 Pour ajouter un certificat à un agent, l'action est ``add``. Les options de
 commande suivantes doivent être fournies:
@@ -34,7 +35,7 @@ commande suivantes doivent être fournies:
 
 
 Modifier un certificat
-----------------------
+======================
 
 Pour modifier un certificat existant, l'action est ``update``. La commande doit
 être suivie du nom du partenaire à modifier. Les options de commandes sont
@@ -43,31 +44,37 @@ options pour faire une mise à jour partielle.
 
 **Exemple**
 
-waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' update 'Cert SFTP' -b 'new_sftp.pub'
+.. code-block:: shell
+
+   waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' update 'Cert SFTP' -b 'new_sftp.pub'
 
 
 Consulter les certificats
--------------------------
+=========================
 
 Pour lister les certificats d'un agent, l'action est ``list``. Les options de
 commande permettent de filtrer les résultats selon divers critères, pour plus
-de détails, voir la :doc:`documentation<../../client/server/cert/list>` de la
-commande ``list``.
+de détails, voir la :any:`documentation
+<reference-cli-client-servers-certs-list>` de la commande ``list``.
 
 **Exemple**
 
-waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' list
+.. code-block:: shell
+
+   waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' list
 
 Pour consulter un certificat en particulier, la commande est ``get`` suivie du
 nom du certificat.
 
 **Exemple**
 
-waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' get 'Cert SFTP'
+.. code-block:: shell
+
+   waarp-gateway 'https://admin@127.0.0.1:8080' server cert 'WAARP SFTP' get 'Cert SFTP'
 
 
 Supprimer un certificat
------------------------
+=======================
 
 Pour supprimer un certificat, l'action est ``delete``, suivie ensuite du nom du
 certificat à supprimer.

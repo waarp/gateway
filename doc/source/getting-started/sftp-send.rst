@@ -40,7 +40,7 @@ commencer par ajouter un partenaire SFTP :
 
 .. code-block:: shell-session
 
-   $ waarp-gateway partner add -n sftp_localhost -p sftp -c '{"address": "localhost", "port":22}'
+   $ waarp-gateway partner add -n sftp_localhost -p sftp -a localhost:22 -c '{}'
    The partner sftp_localhost was successfully added.
 
 Pour créer un partenaire, nous devons préciser son nom, le protocole de ce

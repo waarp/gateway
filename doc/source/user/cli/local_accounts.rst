@@ -1,5 +1,6 @@
+##########################
 Gestion des comptes locaux
-==========================
+##########################
 
 La commande de gestion des :term:`comptes locaux<compte local>` est ``account
 local``. Cette commande doit ensuite être suivie du nom du serveur local auquel
@@ -12,11 +13,12 @@ La commande doit donc ressembler donc à ceci:
    waarp-gateway 'https://admin@127.0.0.1:8080' account local 'SERVEUR' *action*
 
 
-La liste complète des actions est disponible :doc:`ici<../../client/account_local/index>`.
+La liste complète des actions est disponible :any:`ici
+<reference-cli-client-local-accounts>`.
 
 
 Ajouter un compte local
------------------------
+=======================
 
 Pour ajouter un compte sur un serveur, la commande est ``account local add``.
 Les options de commande suivantes doivent être fournies:
@@ -32,7 +34,7 @@ Les options de commande suivantes doivent être fournies:
 
 
 Modifier un compte local
-------------------------
+========================
 
 Pour modifier un compte existant, la commande est ``account local update``. Cette commande
 doit être suivie du nom du compte à modifier. Les options de commandes sont
@@ -47,12 +49,12 @@ options pour faire une mise à jour partielle.
 
 
 Consulter les comptes locaux
-----------------------------
+============================
 
 Pour lister les comptes d'un serveur, la commande est ``list``. Les options
 de commande permettent de filtrer les résultats selon divers critères, pour plus
-de détails, voir la :doc:`documentation<../../client/account_local/list>` de la
-commande ``list``.
+de détails, voir la :any:`documentation
+<reference-cli-client-local-accounts-list>` de la commande ``list``.
 
 **Exemple**
 
@@ -71,7 +73,7 @@ de compte.
 
 
 Supprimer un compte local
--------------------------
+=========================
 
 Pour supprimer un compte, la commande est ``account local delete``, suivie ensuite du nom du
 compte à supprimer.

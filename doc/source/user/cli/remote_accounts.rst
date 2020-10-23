@@ -12,7 +12,8 @@ La commande doit donc ressembler donc à ceci:
    waarp-gateway 'https://admin@127.0.0.1:8080' account remote 'PARTENAIRE' *action*
 
 
-La liste complète des actions est disponible :doc:`ici<../../client/account_remote/index>`.
+La liste complète des actions est disponible :any:`ici
+<reference-cli-client-remote-accounts>`.
 
 
 Ajouter un compte distant
@@ -51,7 +52,8 @@ Consulter les comptes locaux
 
 Pour lister les comptes d'un partenaire, la commande est ``account remote list``.
 Les options de commande permettent de filtrer les résultats selon divers critères,
-pour plus de détails, voir la :doc:`documentation<../../client/account_remote/list>`
+pour plus de détails, voir la :any:`documentation
+<reference-cli-client-remote-accounts-list>`
 de la commande ``list``.
 
 **Exemple**

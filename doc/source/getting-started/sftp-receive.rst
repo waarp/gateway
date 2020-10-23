@@ -17,7 +17,7 @@ commencer par ajouter un serveur SFTP :
 
 .. code-block:: shell-session
 
-   # waarp-gateway server add -n sftp_server -p sftp -c '{"address": "127.0.0.1", "port":2223}'
+   # waarp-gateway server add -n sftp_server -p sftp -a 127.0.0.1:2223 -c '{}'
    The server sftp_server was successfully added.
 
 Pour créer un serveur, nous devons préciser son nom, le protocole de ce serveur,

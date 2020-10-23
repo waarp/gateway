@@ -2,9 +2,9 @@
 Gestion des utilisateurs
 ########################
 
-La commande de gestion des :term:`utilisateurs<utilisateur>` est ``user``. Cette
+La commande de gestion des :term:`utilisateurs <utilisateur>` est ``user``. Cette
 commande doit ensuite être suivie d'une action. La liste complète des actions est
-disponible :any:`ici <reference-cli-client-user>`.
+disponible :any:`ici <reference-cli-client-users>`.
 
 Ajouter un utilisateur
 ======================

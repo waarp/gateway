@@ -1,3 +1,5 @@
+.. _user-guide-client:
+
 ##########################################
 Gestion de la Gateway en ligne de commande
 ##########################################

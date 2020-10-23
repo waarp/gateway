@@ -1,5 +1,6 @@
+################################
 Import/Export de base de données
-================================
+################################
 
 Il est possible d'importer et exporter directement le contenu de la base de
 données de la *gateway* depuis/vers un fichier. Cela est utile lorsque plusieurs
@@ -8,10 +9,10 @@ d'éviter de devoir renseigner ces éléments plusieurs fois. Cela permet égale
 faire une sauvegarde du contenu de la base.
 
 Les fichiers d'import/export sont en format JSON. Leur documentation complète
-est disponible :doc:`ici<>`.
+est disponible :any:`ici <reference-backup-json>`.
 
 Export
-------
+======
 
 Pour exporter la configuration d'une *gateway* existante, la commande est
 ``waarp-gatewayd export``. Cette commande va récupérer les éléments demandés
@@ -28,7 +29,7 @@ Les options suivantes sont requises pour que la commande puisse s'exécuter :
   ou ``all``.
 
 Par exemple, la commande suivante exporte les serveurs et les partenaires de la
-*gateway* vers le fichier 'gateway_backup.json' :
+*gateway* vers le fichier ``gateway_backup.json`` :
 
 .. code-block:: shell
 
@@ -36,11 +37,11 @@ Par exemple, la commande suivante exporte les serveurs et les partenaires de la
 
 
 Import
-------
+======
 
 Pour importer un fichier de sauvegarde, la commande est ``waarp-gatewayd import``.
 Cette commande va récupérer les éléments demandés dans le fichier donné, puis va
-les insérer dans la base de données de la *gateway*.
+les insérer dans la base de données de la Gateway.
 La commande requiert les options suivantes :
 
 - ``-c``: le fichier de configuration de la *gateway* (contient les informations
@@ -51,7 +52,7 @@ La commande requiert les options suivantes :
   ou ``all``.
 
 Par exemple, la commande suivante importe les serveurs et les partenaires depuis
-le fichier 'gateway_backup.json' et les insère dans la base de données :
+le fichier ``gateway_backup.json`` et les insère dans la base de données :
 
 .. code-block:: shell
 

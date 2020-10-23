@@ -55,7 +55,7 @@ t_doc() {
 
 t_doc_watch() {
   cd doc || return 2
-  PATH=.venv/bin:$PATH sphinx-autobuild -p 8082 "$@" source/ build/html/
+  PATH=.venv/bin:$PATH sphinx-autobuild --port 8082 "$@" source/ build/html/
 }
 
 t_doc_dist() {
