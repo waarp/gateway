@@ -1,4 +1,4 @@
-.. _gatewayd.ini:
+.. _configuration-file:
 
 Fichier de configuration ``waarp-gatewayd.ini``
 ###############################################

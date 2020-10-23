@@ -1,5 +1,6 @@
+####################################
 Enlever les restrictions d'une règle
-====================================
+####################################
 
 .. http:put:: /api/rules/(string:rule_name)/allow_all
 
@@ -7,10 +8,10 @@ Enlever les restrictions d'une règle
    rendant, de fait, utilisable par tous. Pour supprimer une permission en
    particulier, se référer aux chapitres :
 
-   - :doc:`../servers/revoke`
-   - :doc:`../servers/accounts/revoke`
-   - :doc:`../partners/revoke`
-   - :doc:`../partners/accounts/revoke`
+   - :any:`reference-rest-servers-revoke`
+   - :any:`reference-rest-servers-accounts-revoke`
+   - :any:`reference-rest-partners-revoke`
+   - :any:`reference-rest-partners-accounts-revoke`
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 

@@ -1,16 +1,20 @@
+.. _reference-tasks:
+
+###########
 Traitements
 ###########
+
+.. todo:: 
+   
+   documenter les substitutions
 
 Lors de l'ajout d'une règle, les traitements de la règle doivent être fournis
 avec leurs arguments sous forme d'un objet JSON. Cet objet JSON contient 2
 attributs:
 
-* **type** (*string*) - Le type de traitement (voir liste ci-dessous).
-* **args** (*object*) - Les arguments du traitement en format JSON. La structure
+* ``type`` (*string*) - Le type de traitement (voir liste ci-dessous).
+* ``args`` (*object*) - Les arguments du traitement en format JSON. La structure
   de cet objet JSON dépend du type du traitement.
-
-Cette rubrique documente les objets JSON contenant les arguments requis pour
-l'ajout de chaque type de traitement.
 
 **Exemple**
 
@@ -23,7 +27,67 @@ l'ajout de chaque type de traitement.
      }
    }
 
-**Liste des traitements avec leurs arguments**
+
+.. _reference-tasks-substitutions:
+
+Substitutions
+=============
+
+Les valeurs fournies dans l'objet ``args`` peuvent contenir des substitutions.
+
+Les marqueurs de substitutions sont délimités par des signes dièse (``#``), et
+sont valorisés au moment de l'exécution du traitement par les données
+correspondant au transfert.
+
+Les susbstitutions disponibles sont les suivantes :
+
+====================== =============
+Marqueur               Signification
+====================== =============
+``#TRUEFULLPATH#``     Le chemin réel du fichier sur le disque
+``#TRUEFILENAME#``     Le nom réel du fichier sur le disque
+``#ORIGINALFULLPATH#`` Le chemin d'origine du fichier avant le transfert
+``#ORIGINALFILENAME#`` Le nom d'origine du fichier avant le transfert
+``#FILESIZE#``         La taille du fichier
+``#INPATH#``           Le chemin vers le dossier d'envoi pour le transfert en
+                       cours. Ce chemin dépend de la configuration (dossier
+                       d'envoi de la règle, du serveur ou de la Gateway selon
+                       les cas)
+``#OUTPATH#``          Le chemin vers le dossier de réception pour le transfert
+                       en cours. Ce chemin dépend de la configuration (dossier
+                       d'envoi de la règle, du serveur ou de la Gateway selon
+                       les cas)
+``#RULE#``             La règle utilisée par le transfert
+``#DATE#``             La date (au format ``AAAAMMJJ``) au moment de l'éxecution
+                       de la tâche
+``#HOUR#``             L'heure (au format ``HHMMSS``) au moment de l'éxecution
+                       de la tâche
+``#REMOTEHOST#``       L'identifiant du partenaire distant
+``#LOCALHOST#``        L'identifiant du partenaire local
+``#TRANSFERID#``       L'identifiant du transfert
+``#REQUESTERHOST#``    L'identifiant du partenaire qui a demendé le transfert
+``#REQUESTEDHOST#``    L'identifiant du partenaire qui a reçu la demande de
+                       transfert
+``#FULLTRANSFERID#``   Un identifiant "étendu" pour le transfert (de la forme
+                       ``identifiantDeTransfert_idClient_idServeur``)
+``#ERRORMSG#``         Message d'erreur (dans les traitements d'erreur)
+``#ERRORCODE#``        Code d'erreur (dans les traitements d'erreur)
+====================== =============
+
+.. ``#WORKPATH#`` 
+   ``#ARCHPATH#`` 
+   ``#HOMEPATH#`` 
+   ``#REMOTEHOSTIP#``
+   ``#LOCALIP#`` 
+   ``#RANKTRANSFER#`` 
+   ``#BLOCKSIZE#`` 
+   ``#ERRORSTRCODE#`` mauvaise définition
+   ``#NOWAIT#`` 
+   ``#LOCALEXEC#`` 
+   définition de LOCALHOST et de REMOTEHOST ?
+
+Liste des traitements
+=====================
 
 .. toctree::
    :maxdepth: 1

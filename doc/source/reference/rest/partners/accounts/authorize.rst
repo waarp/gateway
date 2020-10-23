@@ -1,5 +1,8 @@
+.. _reference-rest-partners-accounts-authorize:
+
+#########################################
 Autoriser un compte à utiliser une règle
-=========================================
+#########################################
 
 .. http:put:: /api/partners/(string:partner_name)/accounts/(string:login)/authorize/(string:rule)
 

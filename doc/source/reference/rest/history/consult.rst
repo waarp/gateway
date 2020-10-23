@@ -22,15 +22,13 @@ Consulter une entrée de l'historique
    :resjson string rule: Le nom de la règle de transfert
    :resjson date start: La date de début du transfert
    :resjson date stop: La date de fin du transfert
-   :resjson string status: Le statut final du transfert (**CANCELLED*, *DONE* ou *ERROR*)
-   :resjson string step: La dernière étape du transfert (*NONE*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)
+   :resjson string status: Le statut final du transfert (``CANCELLED``, ``DONE`` ou ``ERROR``)
+   :resjson string step: La dernière étape du transfert (``NONE``, ``PRE TASKS``, ``DATA``, ``POST TASKS``, ``ERROR TASKS`` ou ``FINALIZATION``)
    :resjson number progress: La progression (en octets) du transfert de données
    :resjson number taskNumber: Le numéro du dernier traitement exécuté
    :resjson string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
    :resjson string errorMsg: Le message d'erreur du transfert (si une erreur s'est produite)
 
-
-   |
 
    **Exemple de requête**
 

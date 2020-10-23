@@ -23,30 +23,28 @@ Consulter un partenaire
       * **reception** (*array* of *string*) - Les règles de réception.
 
 
-   |
-
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         GET https://my_waarp_gateway.net/api/partners/waarp_sftp HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      GET https://my_waarp_gateway.net/api/partners/waarp_sftp HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
-         Content-Type: application/json
-         Content-Length: 271
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      Content-Length: 271
 
-         {
-           "name": "waarp_sftp",
-           "protocol": "sftp",
-           "address": "waarp.org:2022",
-           "protoConfig": {},
-           "authorizedRules": {
-             "sending": ["règle_envoi_1", "règle_envoi_2"],
-             "reception": ["règle_récep_1", "règle_récep_2"]
-           }
-         }
+      {
+        "name": "waarp_sftp",
+        "protocol": "sftp",
+        "address": "waarp.org:2022",
+        "protoConfig": {},
+        "authorizedRules": {
+          "sending": ["règle_envoi_1", "règle_envoi_2"],
+          "reception": ["règle_récep_1", "règle_récep_2"]
+        }
+      }

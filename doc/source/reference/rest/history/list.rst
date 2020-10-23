@@ -37,11 +37,11 @@ Filtrer l'historique
    :type status: string
    :param start: Filtre uniquement les transferts ayant commencé après la date
       renseignée. La date doit être renseignée en format ISO 8601 tel qu'il
-      est spécifié dans la `RFC 3339`_.
+      est spécifié dans la :rfc:`3339`.
    :type start: date
    :param stop: Filtre uniquement les transferts ayant terminé avant la date
       renseignée. La date doit être renseignée en format ISO 8601 tel qu'il
-      est spécifié dans la `RFC 3339`_.
+      est spécifié dans la :rfc:`3339`.
    :type stop: date
 
    :statuscode 200: La liste a été renvoyée avec succès
@@ -60,8 +60,8 @@ Filtrer l'historique
    :resjsonarr string rule: Le nom de la règle de transfert
    :resjsonarr date start: La date de début du transfert
    :resjsonarr date stop: La date de fin du transfert
-   :resjsonarr string status: Le statut final du transfert (**CANCELLED*, *DONE* ou *ERROR*)
-   :resjsonarr string step: La dernière étape du transfert (*NONE*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)
+   :resjsonarr string status: Le statut final du transfert (``CANCELLED``, ``DONE`` ou ``ERROR``)
+   :resjsonarr string step: La dernière étape du transfert (``NONE``, ``PRE TASKS``, ``DATA``, ``POST TASKS``, ``ERROR TASKS`` ou ``FINALIZATION``)
    :resjsonarr number progress: La progression (en octets) du transfert de données
    :resjsonarr number taskNumber: Le numéro du dernier traitement exécuté
    :resjsonarr string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)

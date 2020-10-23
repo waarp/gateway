@@ -18,8 +18,6 @@ Consulter un certificat
    :resjson string certificate: Le certificat de l'entité
 
 
-   |
-
    **Exemple de requête**
 
       .. code-block:: http
@@ -35,6 +33,7 @@ Consulter un certificat
          HTTP/1.1 200 OK
          Content-Type: application/json
          Content-Length: 197
+
          {
            "name": "certificat_toto",
            "privateKey": "<clé privée>",

@@ -31,34 +31,34 @@ Consulter un serveur
       * **reception** (*array* of *string*) - Les règles de réception.
 
 
-   |
 
    **Exemple de requête**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         GET https://my_waarp_gateway.net/api/servers/sftp_server HTTP/1.1
-         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+      GET https://my_waarp_gateway.net/api/servers/sftp_server HTTP/1.1
+      Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
 
-      .. code-block:: http
+   .. code-block:: http
 
-         HTTP/1.1 200 OK
-         Content-Type: application/json
-         Content-Length: 271
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      Content-Length: 271
 
-         {
-           "name": "sftp_server",
-           "protocol": "sftp",
-           "address": "localhost:2022",
-           "root": "/sftp/root",
-           "inDir: "in",
-           "outDir": "out",
-           "work": "work",
-           "protoConfig": {},
-           "authorizedRules": {
-             "sending": ["règle_envoi_1", "règle_envoi_2"],
-             "reception": ["règle_récep_1", "règle_récep_2"]
-           }
-         }
+      {
+        "name": "sftp_server",
+        "protocol": "sftp",
+        "address": "localhost:2022",
+        "root": "/sftp/root",
+        "inDir: "in",
+        "outDir": "out",
+        "work": "work",
+        "protoConfig": {},
+        "authorizedRules": {
+          "sending": ["règle_envoi_1", "règle_envoi_2"],
+          "reception": ["règle_récep_1", "règle_récep_2"]
+        }
+      }
+

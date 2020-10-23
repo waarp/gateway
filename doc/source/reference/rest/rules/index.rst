@@ -9,10 +9,10 @@ comptes) connus. Pour restreindre l'utilisation d'une règle, il suffit d'ajoute
 au moins un agent à la liste blanche de la règle. Pour ajouter un agent à la liste
 blanche, se référer aux chapitres :
 
-- :doc:`../servers/authorize`
-- :doc:`../servers/accounts/authorize`
-- :doc:`../partners/authorize`
-- :doc:`../partners/accounts/authorize`
+- :any:`reference-rest-servers-authorize`
+- :any:`reference-rest-servers-accounts-authorize`
+- :any:`reference-rest-partners-authorize`
+- :any:`reference-rest-partners-accounts-authorize`
 
 **Sommaire**
 
