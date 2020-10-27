@@ -2,6 +2,7 @@ package r66
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 
@@ -48,6 +49,33 @@ func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *S
 	}
 }
 
+func (s *Service) makeTLSConf() (*tls.Config, error) {
+	certs, err := s.agent.GetCerts(s.db)
+	if err != nil {
+		return nil, err
+	}
+	if len(certs) == 0 {
+		return nil, nil
+	}
+
+	tlsCerts := make([]tls.Certificate, len(certs))
+	for i, cert := range certs {
+		var err error
+		tlsCerts[i], err = tls.X509KeyPair(cert.Certificate, cert.PrivateKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	//ca, _ := x509.SystemCertPool()
+	return &tls.Config{
+		Certificates: tlsCerts,
+		MinVersion:   tls.VersionTLS12,
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		//ClientCAs:    ca,
+	}, nil
+}
+
 // Start launches a r66 service with an integrated r66 server.
 func (s *Service) Start() error {
 	s.logger.Infof("Starting R66 server '%s'...", s.agent.Name)
@@ -74,9 +102,21 @@ func (s *Service) Start() error {
 		},
 	}
 
+	tlsConf, err := s.makeTLSConf()
+	if err != nil {
+		s.logger.Errorf("Failed to parse server TLS config: %s", err)
+		return err
+	}
+
 	s.done = make(chan struct{})
 	go func() {
-		err := s.server.ListenAndServe(s.agent.Address)
+		var err error
+		if tlsConf != nil {
+			err = s.server.ListenAndServeTLS(s.agent.Address, tlsConf)
+		} else {
+			err = s.server.ListenAndServe(s.agent.Address)
+		}
+
 		if err != nil {
 			s.logger.Errorf("Server has stopped unexpectedly: %s", err)
 			s.state.Set(service.Error, err.Error())

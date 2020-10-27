@@ -18,6 +18,8 @@ type R66ProtoConfig struct {
 	ServerLogin string `json:"serverLogin,omitempty"`
 	// The server's password for server authentication.
 	ServerPassword []byte `json:"serverPassword,omitempty"`
+	// Specifies whether the partner uses TLS or not. Useless for servers.
+	IsTLS bool `json:"isTLS,omitempty"`
 }
 
 // ValidPartner checks if the configuration is valid for a R66 partner.
@@ -34,12 +36,8 @@ func (c *R66ProtoConfig) ValidPartner() error {
 
 // ValidServer checks if the configuration is valid for a R66 server.
 func (c *R66ProtoConfig) ValidServer() (err error) {
-	if len(c.ServerLogin) != 0 {
-		return fmt.Errorf("unknown JSON field 'serverLogin'")
-	}
 	if len(c.ServerPassword) == 0 {
 		return fmt.Errorf("missing server password")
 	}
-	c.ServerPassword = r66.CryptPass(c.ServerPassword)
 	return nil
 }

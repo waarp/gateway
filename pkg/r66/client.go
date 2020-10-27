@@ -1,6 +1,8 @@
 package r66
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"os"
 
@@ -21,7 +23,9 @@ type client struct {
 	r66Client *r66.Client
 	info      model.OutTransferInfo
 	signals   <-chan model.Signal
-	conf      config.R66ProtoConfig
+
+	conf    config.R66ProtoConfig
+	tlsConf *tls.Config
 
 	remote  *r66.Remote
 	session *r66.ClientSession
@@ -44,12 +48,22 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 		return nil, err
 	}
 
+	var tlsConf *tls.Config
+	if conf.IsTLS {
+		var err error
+		tlsConf, err = makeClientTLSConfig(&info)
+		if err != nil {
+			return nil, model.NewPipelineError(model.TeInternal, "invalid R66 TLS config")
+		}
+	}
+
 	//TODO: configure r66 client
 	c := &client{
 		r66Client: r66Client,
 		info:      info,
 		signals:   signals,
 		conf:      conf,
+		tlsConf:   tlsConf,
 	}
 	c.r66Client.FinalHash = false //TODO: remove once implemented
 	c.r66Client.AuthentHandler = &clientAuthHandler{
@@ -60,8 +74,40 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 	return c, nil
 }
 
+func makeClientTLSConfig(info *model.OutTransferInfo) (*tls.Config, error) {
+	tlsCerts := make([]tls.Certificate, len(info.ClientCerts))
+	for i, cert := range info.ClientCerts {
+		var err error
+		tlsCerts[i], err = tls.X509KeyPair(cert.Certificate, cert.PrivateKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var caPool *x509.CertPool
+	for _, cert := range info.ServerCerts {
+		if caPool == nil {
+			caPool = x509.NewCertPool()
+		}
+		caPool.AppendCertsFromPEM(cert.Certificate)
+	}
+
+	return &tls.Config{
+		Certificates: tlsCerts,
+		MinVersion:   tls.VersionTLS12,
+		RootCAs:      caPool,
+	}, nil
+}
+
 func (c *client) Connect() *model.PipelineError {
-	remote, err := c.r66Client.Dial(c.info.Agent.Address)
+	var remote *r66.Remote
+	var err error
+	if c.tlsConf != nil {
+		remote, err = c.r66Client.DialTLS(c.info.Agent.Address, c.tlsConf)
+	} else {
+		remote, err = c.r66Client.Dial(c.info.Agent.Address)
+	}
+
 	if err != nil {
 		return model.NewPipelineError(model.TeConnection, err.Error())
 	}
