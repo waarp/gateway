@@ -175,7 +175,7 @@ func (t *TransferStream) setTrueFilepath() *model.PipelineError {
 
 // Start opens/creates the stream's local file. If necessary, the method also
 // creates the file's parent directories.
-func (t *TransferStream) Start() (err *model.PipelineError) {
+func (t *TransferStream) Start() *model.PipelineError {
 	if t.File != nil {
 		return nil
 	}
@@ -187,8 +187,12 @@ func (t *TransferStream) Start() (err *model.PipelineError) {
 		}
 	}
 
-	t.File, err = getFile(t.Logger, t.Rule, t.Transfer)
-	return
+	var err *model.PipelineError
+	if t.File, err = getFile(t.Logger, t.Rule, t.Transfer); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (t *TransferStream) Read(p []byte) (n int, err error) {
@@ -261,18 +265,20 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 	return n, err
 }
 
-// Close closes the file, and then (if the file is the transfer's destination)
-// moves the file from the temporary work directory to its final destination.
-// The method returns an error if the file cannot be moved.
+// Close closes the file and stops the progress tracker.
 func (t *TransferStream) Close() error {
-	if t.File == nil {
-		return nil
-	}
-
 	if err := t.File.Close(); err != nil {
 		t.Logger.Warningf("Failed to close file '%s': %s", t.File.Name(),
 			err.(*os.PathError).Err.Error())
 	}
+
+	return nil
+}
+
+// Move moves the file from the temporary work directory to its final destination
+// (if the file is the transfer's destination). The method returns an error if
+// the file cannot be moved.
+func (t *TransferStream) Move() error {
 	if t.Rule.IsSend {
 		return nil
 	}

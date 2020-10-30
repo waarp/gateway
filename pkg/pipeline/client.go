@@ -13,7 +13,6 @@ type DataStream interface {
 	io.Writer
 	io.ReaderAt
 	io.WriterAt
-	io.Closer
 }
 
 // Client is the interface defining a protocol client. All protocol clients

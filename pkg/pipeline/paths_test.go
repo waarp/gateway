@@ -32,7 +32,6 @@ func TestPathIn(t *testing.T) {
 				WorkDirectory: filepath.Join(gwRoot, "gwWork"),
 			},
 		}
-		// Reset(func() { _ = os.RemoveAll(gwRoot) })
 
 		Convey("Given some transfer agents", func() {
 			db := database.GetTestDatabase()
@@ -125,17 +124,18 @@ func TestPathIn(t *testing.T) {
 						stream, err := NewTransferStream(context.Background(),
 							logger, db, paths, &trans)
 						So(err, ShouldBeNil)
-						Reset(func() { _ = stream.Close() })
 
 						So(stream.Start(), ShouldBeNil)
 
 						Convey("Then it should have created the correct work file", func() {
+							Reset(func() { So(stream.Close(), ShouldBeNil) })
 							_, err := os.Stat(tc.expTmp)
 							So(err, ShouldBeNil)
 						})
 
 						Convey("When finalizing the transfer", func() {
 							So(stream.Close(), ShouldBeNil)
+							So(stream.Move(), ShouldBeNil)
 
 							Convey("Then it should have moved the file to its destination", func() {
 								_, err := os.Stat(tc.expFinal)

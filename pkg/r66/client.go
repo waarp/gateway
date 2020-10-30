@@ -169,7 +169,6 @@ func (c *client) Request() *model.PipelineError {
 
 func (c *client) Data(file pipeline.DataStream) *model.PipelineError {
 	c.hasData = true
-	defer file.Close()
 	c.stream = file
 
 	if err := c.session.Data(); err != nil {
@@ -183,9 +182,6 @@ func (c *client) Data(file pipeline.DataStream) *model.PipelineError {
 			return model.NewPipelineError(model.FromR66Code(e.Code), e.Detail)
 		}
 		return model.NewPipelineError(model.TeDataTransfer, err.Error())
-	}
-	if err := file.Close(); err != nil {
-		return model.NewPipelineError(model.TeInternal, err.Error())
 	}
 	return nil
 }

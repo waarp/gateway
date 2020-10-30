@@ -54,11 +54,6 @@ func newSftpStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	stream := &sftpStream{TransferStream: s}
 
 	s.Logger.Infof("Beginning transfer n°%d", trans.ID)
-	if te := s.Start(); te != nil {
-		pipeline.HandleError(s, te)
-		return nil, modelToSFTP(te)
-	}
-
 	if pe := s.PreTasks(); pe != nil {
 		pipeline.HandleError(s, pe)
 		return nil, modelToSFTP(pe)
@@ -92,6 +87,12 @@ func (s *sftpStream) TransferError(error) {
 func (s *sftpStream) ReadAt(p []byte, off int64) (int, error) {
 	if s.transErr != nil {
 		return 0, modelToSFTP(s.transErr)
+	}
+	if s.File == nil {
+		if te := s.Start(); te != nil {
+			pipeline.HandleError(s.TransferStream, te)
+			return 0, modelToSFTP(te)
+		}
 	}
 
 	n, err := s.TransferStream.ReadAt(p, off)
@@ -127,6 +128,12 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 		}
 		return 0, nil
 	}
+	if s.File == nil {
+		if te := s.Start(); te != nil {
+			pipeline.HandleError(s.TransferStream, te)
+			return 0, modelToSFTP(te)
+		}
+	}
 
 	n, err := s.TransferStream.WriteAt(p, off)
 	if err != nil {
@@ -141,8 +148,14 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 }
 
 func (s *sftpStream) Close() error {
-	if s.transErr == nil {
+	if s.TransferStream.File != nil {
 		if err := s.TransferStream.Close(); err != nil {
+			s.transErr = err.(*model.PipelineError)
+		}
+	}
+
+	if s.transErr == nil {
+		if err := s.TransferStream.Move(); err != nil {
 			s.transErr = err.(*model.PipelineError)
 		}
 		if s.transErr == nil {
