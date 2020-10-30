@@ -3,6 +3,15 @@
 Historique des versions
 =======================
 
+* :bug:`` Correction d'un bug dans le serveur SFTP qui causait le déplacement
+  du fichier temporaire de réception vers son chemin final malgré le fait qu'une
+  erreur ait survenue durant le transfert de données.
+* :bug:`` Lors d'un transfert SFTP entrant, le fichier (temporaire) de destination
+  est désormais créé lors de la réception du 1er packet de données, au lieu du
+  packet de requête.
+* :bug:`199` Correction d'un bug qui causait une double fermeture des fichiers
+  de transfert, ce qui causait l'apparition d'une *warning* dans les logs sur
+  lequel l'utilisateur ne pouvait pas agir.
 * :feature:`129` Ajout d'un client et d'un serveur R66 à la *gateway*. Il est
   donc désormais possible d'effectuer des transferts R66 sans avoir recours à un
   serveur externe.
