@@ -166,7 +166,7 @@ func TestStreamRead(t *testing.T) {
 
 			stream, tErr := NewTransferStream(context.Background(), logger, db, paths, trans)
 			So(tErr, ShouldBeNil)
-			Reset(func() { _ = stream.Close() })
+			Reset(func() { So(stream.Close(), ShouldBeNil) })
 
 			So(stream.Start(), ShouldBeNil)
 
@@ -183,10 +183,7 @@ func TestStreamRead(t *testing.T) {
 					})
 
 					Convey("Then the transfer progression should have been updated", func() {
-						t := &model.Transfer{ID: trans.ID}
-						So(db.Get(t), ShouldBeNil)
-
-						So(t.Progress, ShouldEqual, len(b))
+						So(stream.Transfer.Progress, ShouldEqual, len(b))
 					})
 
 					Convey("Then the array should contain the file content", func() {
@@ -212,10 +209,7 @@ func TestStreamRead(t *testing.T) {
 					})
 
 					Convey("Then the transfer progression should have been updated", func() {
-						t := &model.Transfer{ID: trans.ID}
-						So(db.Get(t), ShouldBeNil)
-
-						So(t.Progress, ShouldEqual, len(b))
+						So(stream.Transfer.Progress, ShouldEqual, len(b))
 					})
 
 					Convey("Then the array should contain the file content", func() {
@@ -235,7 +229,6 @@ func TestStreamWrite(t *testing.T) {
 
 	Convey("Given a file", t, func(c C) {
 		db := database.GetTestDatabase()
-
 		dstFile := "write_test.dst"
 		content := []byte("Transfer stream write test content")
 
@@ -290,7 +283,7 @@ func TestStreamWrite(t *testing.T) {
 
 			stream, tErr := NewTransferStream(context.Background(), logger, db, paths, trans)
 			So(tErr, ShouldBeNil)
-			Reset(func() { _ = stream.Close() })
+			Reset(func() { So(stream.Close(), ShouldBeNil) })
 
 			So(stream.Start(), ShouldBeNil)
 
@@ -306,10 +299,7 @@ func TestStreamWrite(t *testing.T) {
 					})
 
 					Convey("Then the transfer progression should have been updated", func() {
-						t := &model.Transfer{ID: trans.ID}
-						So(db.Get(t), ShouldBeNil)
-
-						So(t.Progress, ShouldEqual, len(w))
+						So(stream.Transfer.Progress, ShouldEqual, len(w))
 					})
 
 					Convey("Then the file should contain the array content", func() {
@@ -335,10 +325,7 @@ func TestStreamWrite(t *testing.T) {
 					})
 
 					Convey("Then the transfer progression should have been updated", func() {
-						t := &model.Transfer{ID: trans.ID}
-						So(db.Get(t), ShouldBeNil)
-
-						So(t.Progress, ShouldEqual, len(w))
+						So(stream.Transfer.Progress, ShouldEqual, len(w))
 					})
 
 					Convey("Then the file should contain the array content", func() {
