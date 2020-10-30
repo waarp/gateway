@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`200` Les écritures de la progression du transfert de données se fait
+  désormais à intervalles réguliers (1 fois par seconde) au lieu de que ce soit
+  à chaque écriture sur disque. Cela devrait grandement réduire le nombre
+  d'écritures en base de données lors d'un transfert, notamment pour les gros fichiers.
 * :bug:`` Correction d'un bug dans le serveur SFTP qui causait le déplacement
   du fichier temporaire de réception vers son chemin final malgré le fait qu'une
   erreur ait survenue durant le transfert de données.
