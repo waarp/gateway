@@ -15,7 +15,7 @@ type clientAuthHandler struct {
 	info    *model.OutTransferInfo
 }
 
-func (h *clientAuthHandler) ValidAuth(auth *r66.Authent) (ses r66.SessionHandler, err error) {
+func (h *clientAuthHandler) ValidAuth(auth *r66.Authent) (req r66.RequestHandler, err error) {
 	var r66Conf config.R66ProtoConfig
 	if jErr := json.Unmarshal(h.info.Agent.ProtoConfig, &r66Conf); jErr != nil {
 		err = &r66.Error{Code: r66.Internal, Detail: "failed to check credentials"}
@@ -29,15 +29,15 @@ func (h *clientAuthHandler) ValidAuth(auth *r66.Authent) (ses r66.SessionHandler
 		err = authErr
 	}
 
-	ses = &clientSessionHandler{h}
+	req = &clientRequestHandler{h}
 	return
 }
 
-type clientSessionHandler struct {
+type clientRequestHandler struct {
 	*clientAuthHandler
 }
 
-func (h *clientSessionHandler) ValidRequest(r *r66.Request) (r66.TransferHandler, error) {
+func (h *clientRequestHandler) ValidRequest(r *r66.Request) (r66.TransferHandler, error) {
 	curBlock := uint32(h.info.Transfer.Progress / uint64(r.Block))
 	if r.Rank < curBlock {
 		curBlock = r.Rank
@@ -51,7 +51,7 @@ func (h *clientSessionHandler) ValidRequest(r *r66.Request) (r66.TransferHandler
 }
 
 type clientTransferHandler struct {
-	*clientSessionHandler
+	*clientRequestHandler
 }
 
 func (h *clientTransferHandler) GetStream() (utils.ReadWriterAt, error) {

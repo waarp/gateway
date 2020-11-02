@@ -109,6 +109,9 @@ func (c *client) Connect() *model.PipelineError {
 	}
 
 	if err != nil {
+		if r66Err, ok := err.(*r66.Error); ok {
+			return model.NewPipelineError(model.FromR66Code(r66Err.Code), r66Err.Detail)
+		}
 		return model.NewPipelineError(model.TeConnection, err.Error())
 	}
 	c.remote = remote
@@ -118,6 +121,9 @@ func (c *client) Connect() *model.PipelineError {
 func (c *client) Authenticate() *model.PipelineError {
 	ses, err := c.remote.Authent()
 	if err != nil {
+		if r66Err, ok := err.(*r66.Error); ok {
+			return model.NewPipelineError(model.FromR66Code(r66Err.Code), r66Err.Detail)
+		}
 		return model.NewPipelineError(model.TeBadAuthentication, err.Error())
 	}
 	c.session = ses

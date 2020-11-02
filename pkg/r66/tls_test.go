@@ -106,8 +106,9 @@ func TestTLS(t *testing.T) {
 			Convey("When connecting to the server", func() {
 				err := client.Connect()
 
-				Convey("Then it should not return an error", func() {
-					So(err, ShouldBeNil)
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, model.TransferError{Code: model.TeConnection,
+						Details: "x509: certificate signed by unknown authority"})
 				})
 			})
 		})
@@ -136,7 +137,7 @@ func TestTLS(t *testing.T) {
 				err := client.Authenticate()
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeNil)
+					So(err, ShouldNotBeNil)
 				})
 			})
 		})
