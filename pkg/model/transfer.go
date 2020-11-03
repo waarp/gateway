@@ -27,7 +27,7 @@ type Transfer struct {
 	SourceFile       string         `xorm:"notnull 'source_file'"`
 	DestFile         string         `xorm:"notnull 'dest_file'"`
 	Start            time.Time      `xorm:"notnull 'start'"`
-	Step             TransferStep   `xorm:"notnull 'step'"`
+	Step             TransferStep   `xorm:"notnull varchar(50) 'step'"`
 	Status           TransferStatus `xorm:"notnull 'status'"`
 	Owner            string         `xorm:"notnull 'owner'"`
 	Progress         uint64         `xorm:"notnull 'progression'"`

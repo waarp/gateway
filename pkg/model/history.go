@@ -29,7 +29,7 @@ type TransferHistory struct {
 	Stop             time.Time      `xorm:"notnull 'stop'"`
 	Status           TransferStatus `xorm:"notnull 'status'"`
 	Error            TransferError  `xorm:"extends"`
-	Step             TransferStep   `xorm:"notnull 'step'"`
+	Step             TransferStep   `xorm:"notnull varchar(50ç 'step'"`
 	Progress         uint64         `xorm:"notnull 'progression'"`
 	TaskNumber       uint64         `xorm:"notnull 'task_number'"`
 }
