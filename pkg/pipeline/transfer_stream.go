@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync/atomic"
+	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -13,6 +15,42 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
+type progressReporter struct {
+	*time.Ticker
+	dbErr chan error
+	done  chan struct{}
+}
+
+func (p *progressReporter) Run(trans *model.Transfer, db *database.DB, logger *log.Logger) {
+	p.Ticker = time.NewTicker(time.Second)
+	p.dbErr = make(chan error)
+	p.done = make(chan struct{})
+	upd := *trans
+
+	go func() {
+		defer close(p.dbErr)
+		for {
+			select {
+			case <-p.done:
+				return
+			case <-p.C:
+			}
+
+			upd.Progress = atomic.LoadUint64(&trans.Progress)
+			if err := db.Update(&upd); err != nil {
+				logger.Criticalf("Failed to update transfer progress: %s", err.Error())
+				p.dbErr <- err
+				return
+			}
+		}
+	}()
+}
+
+func (p *progressReporter) stop() {
+	p.Ticker.Stop()
+	close(p.done)
+}
+
 // TransferStream represents the Pipeline of an incoming transfer made to the
 // gateway. It is a `os.File` wrapper which adds MFT operations at the stream's
 // creation, during reads/writes, and at the streams closure.
@@ -20,6 +58,7 @@ type TransferStream struct {
 	*os.File
 	*Pipeline
 	Paths
+	*progressReporter
 }
 
 // getOldTransfer searches if the given transfer has a corresponding entry in
@@ -192,6 +231,9 @@ func (t *TransferStream) Start() *model.PipelineError {
 		return err
 	}
 
+	t.progressReporter = &progressReporter{}
+	t.progressReporter.Run(t.Transfer, t.DB, t.Logger)
+
 	return nil
 }
 
@@ -221,20 +263,17 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
-	if e := checkSignal(t.Ctx, t.Signals); e != nil {
+	if e := checkSignal(t.Ctx, t.Signals, t.dbErr); e != nil {
 		return 0, e
 	}
 
 	n, err = t.File.ReadAt(p, off)
-	t.Transfer.Progress += uint64(n)
+	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
 	if err != nil && err != io.EOF {
 		t.Transfer.Error = model.NewTransferError(model.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
-	if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
-		t.Logger.Criticalf("Failed to update upload transfer progress: %s", dbErr)
-		return 0, &model.PipelineError{Kind: model.KindDatabase}
-	}
+
 	return n, err
 }
 
@@ -248,20 +287,17 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
-	if e := checkSignal(t.Ctx, t.Signals); e != nil {
+	if e := checkSignal(t.Ctx, t.Signals, t.dbErr); e != nil {
 		return 0, e
 	}
 
 	n, err = t.File.WriteAt(p, off)
-	t.Transfer.Progress += uint64(n)
+	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
 	if err != nil {
 		t.Transfer.Error = model.NewTransferError(model.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
-	if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
-		t.Logger.Criticalf("Failed to update download transfer progress: %s", dbErr)
-		return 0, &model.PipelineError{Kind: model.KindDatabase}
-	}
+
 	return n, err
 }
 
@@ -270,6 +306,12 @@ func (t *TransferStream) Close() error {
 	if err := t.File.Close(); err != nil {
 		t.Logger.Warningf("Failed to close file '%s': %s", t.File.Name(),
 			err.(*os.PathError).Err.Error())
+	}
+
+	t.progressReporter.stop()
+	if err := t.DB.Update(t.Transfer); err != nil {
+		t.Logger.Criticalf("Failed to update transfer progress: %s", err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 
 	return nil
