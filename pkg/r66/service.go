@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -105,19 +106,25 @@ func (s *Service) Start() error {
 	tlsConf, err := s.makeTLSConf()
 	if err != nil {
 		s.logger.Errorf("Failed to parse server TLS config: %s", err)
+		s.state.Set(service.Error, err.Error())
+		return err
+	}
+
+	var list net.Listener
+	if tlsConf != nil {
+		list, err = tls.Listen("tcp", s.agent.Address, tlsConf)
+	} else {
+		list, err = net.Listen("tcp", s.agent.Address)
+	}
+	if err != nil {
+		s.logger.Errorf("Failed to start R66 listener: %s", err)
+		s.state.Set(service.Error, err.Error())
 		return err
 	}
 
 	s.done = make(chan struct{})
 	go func() {
-		var err error
-		if tlsConf != nil {
-			err = s.server.ListenAndServeTLS(s.agent.Address, tlsConf)
-		} else {
-			err = s.server.ListenAndServe(s.agent.Address)
-		}
-
-		if err != nil {
+		if err := s.server.Serve(list); err != nil {
 			s.logger.Errorf("Server has stopped unexpectedly: %s", err)
 			s.state.Set(service.Error, err.Error())
 		}
