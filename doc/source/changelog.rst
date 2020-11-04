@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`201` Correction du typage de la colonne `step` des tables `transfers` &
+  `transfer_history`. La colonne est désormais de type *VARCHAR* (au lieu de *INT*).
 * :bug:`200` Les écritures de la progression du transfert de données se fait
   désormais à intervalles réguliers (1 fois par seconde) au lieu de que ce soit
   à chaque écriture sur disque. Cela devrait grandement réduire le nombre
