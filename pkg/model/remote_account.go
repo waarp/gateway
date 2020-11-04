@@ -2,6 +2,7 @@ package model
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-r66/r66"
 	"github.com/go-xorm/builder"
 )
 
@@ -52,6 +53,7 @@ func (r *RemoteAccount) GetCerts(db database.Accessor) ([]Cert, error) {
 
 // Validate checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
+//nolint:dupl
 func (r *RemoteAccount) Validate(db database.Accessor) (err error) {
 	if r.RemoteAgentID == 0 {
 		return database.InvalidError("the account's agentID cannot be empty")
@@ -60,12 +62,14 @@ func (r *RemoteAccount) Validate(db database.Accessor) (err error) {
 		return database.InvalidError("the account's login cannot be empty")
 	}
 	if len(r.Password) == 0 {
-		return database.InvalidError("The account's password cannot be empty")
+		return database.InvalidError("the account's password cannot be empty")
 	}
 
-	if res, err := db.Query("SELECT id FROM remote_agents WHERE id=?", r.RemoteAgentID); err != nil {
-		return err
-	} else if len(res) == 0 {
+	agent := &RemoteAgent{ID: r.RemoteAgentID}
+	if err := db.Get(agent); err != nil {
+		if err != database.ErrNotFound {
+			return err
+		}
 		return database.InvalidError("no remote agent found with the ID '%v'", r.RemoteAgentID)
 	}
 
@@ -77,6 +81,9 @@ func (r *RemoteAccount) Validate(db database.Accessor) (err error) {
 			"already exist", r.Login)
 	}
 
+	if agent.Protocol == "r66" {
+		r.Password = r66.CryptPass(r.Password)
+	}
 	r.Password, err = encryptPassword(r.Password)
 	return err
 }

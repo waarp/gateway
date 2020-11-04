@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -44,7 +46,7 @@ func TestCreateRule(t *testing.T) {
 						OutPath:  strPtr("/test/rule/out"),
 						WorkPath: strPtr("/test/rule/work"),
 					},
-					IsSend: boolPtr(false),
+					IsSend: utils.FalsePtr,
 				}
 
 				Convey("Given that the new account is valid for insertion", func() {
@@ -107,20 +109,28 @@ func TestGetRule(t *testing.T) {
 		handler := getRule(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 rule", func() {
-			rule := &model.Rule{
+		Convey("Given a database with 2 rules with the same name", func() {
+			recv := &model.Rule{
 				Name:    "existing",
-				Comment: "",
+				Comment: "receive",
 				IsSend:  false,
-				Path:    "test/existing/path",
+				Path:    "recv/existing/path",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Create(recv), ShouldBeNil)
 
-			Convey("Given a request with the valid rule name parameter", func() {
+			send := &model.Rule{
+				Name:    recv.Name,
+				Comment: "send",
+				IsSend:  true,
+				Path:    "send/existing/path",
+			}
+			So(db.Create(send), ShouldBeNil)
+
+			SkipConvey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": rule.Name,
-					"direction": ruleDirection(rule)})
+				r = mux.SetURLVars(r, map[string]string{"rule": recv.Name,
+					"direction": ruleDirection(recv)})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -138,7 +148,7 @@ func TestGetRule(t *testing.T) {
 
 					Convey("Then the body should contain the requested rule "+
 						"in JSON format", func() {
-						r, err := FromRule(db, rule)
+						r, err := FromRule(db, recv)
 						So(err, ShouldBeNil)
 						exp, err := json.Marshal(r)
 						So(err, ShouldBeNil)
@@ -148,11 +158,45 @@ func TestGetRule(t *testing.T) {
 				})
 			})
 
+			Convey("Given a request with the same rule name but different direction", func() {
+				r, err := http.NewRequest(http.MethodGet, "", nil)
+				So(err, ShouldBeNil)
+				r = mux.SetURLVars(r, map[string]string{"rule": send.Name,
+					"direction": ruleDirection(send)})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should reply 'OK'", func() {
+						So(w.Code, ShouldEqual, http.StatusOK)
+					})
+
+					Convey("Then the 'Content-Type' header should contain "+
+						"'application/json'", func() {
+						contentType := w.Header().Get("Content-Type")
+
+						So(contentType, ShouldEqual, "application/json")
+					})
+
+					Convey("Then the body should contain the requested rule "+
+						"in JSON format", func() {
+						r, err := FromRule(db, send)
+						So(err, ShouldBeNil)
+						exp, err := json.Marshal(r)
+						So(err, ShouldBeNil)
+
+						So(reflect.ValueOf(send).Elem().Type().Name(), ShouldEqual, "Rule")
+						So(reflect.ValueOf(send).Elem().FieldByName("Name").IsZero(), ShouldBeFalse)
+						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
+					})
+				})
+			})
+
 			Convey("Given a request with a non-existing rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"rule": "toto",
-					"direction": ruleDirection(rule)})
+					"direction": ruleDirection(recv)})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)

@@ -6,6 +6,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"github.com/go-xorm/builder"
 )
 
 func init() {
@@ -157,4 +158,19 @@ func (l *LocalAgent) BeforeDelete(db database.Accessor) error {
 	}
 
 	return nil
+}
+
+// GetCerts fetch in the database then return the associated Certificates if they exist
+func (l *LocalAgent) GetCerts(db database.Accessor) ([]Cert, error) {
+	filters := &database.Filters{
+		Conditions: builder.And(builder.Eq{"owner_type": "local_agents"},
+			builder.Eq{"owner_id": l.ID}),
+	}
+
+	// TODO filter only valid certificates
+	var results []Cert
+	if err := db.Select(&results, filters); err != nil {
+		return nil, err
+	}
+	return results, nil
 }

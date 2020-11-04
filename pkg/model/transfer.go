@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"github.com/go-xorm/builder"
 )
 
 func init() {
@@ -17,22 +17,22 @@ func init() {
 
 // Transfer represents one record of the 'transfers' table.
 type Transfer struct {
-	ID           uint64         `xorm:"pk autoincr <- 'id'"`
-	RuleID       uint64         `xorm:"notnull 'rule_id'"`
-	IsServer     bool           `xorm:"notnull 'is_server'"`
-	AgentID      uint64         `xorm:"notnull 'agent_id'"`
-	AccountID    uint64         `xorm:"notnull 'account_id'"`
-	TrueFilepath string         `xorm:"notnull 'true_filepath'"`
-	SourceFile   string         `xorm:"notnull 'source_file'"`
-	DestFile     string         `xorm:"notnull 'dest_file'"`
-	Start        time.Time      `xorm:"notnull 'start'"`
-	Step         TransferStep   `xorm:"notnull 'step'"`
-	Status       TransferStatus `xorm:"notnull 'status'"`
-	Owner        string         `xorm:"notnull 'owner'"`
-	Progress     uint64         `xorm:"notnull 'progression'"`
-	TaskNumber   uint64         `xorm:"notnull 'task_number'"`
-	Error        TransferError  `xorm:"extends"`
-	ExtInfo      []byte         `xorm:"'ext_info'"`
+	ID               uint64         `xorm:"pk autoincr <- 'id'"`
+	RemoteTransferID string         `xorm:"unique(transRemID) 'remote_transfer_id'"`
+	RuleID           uint64         `xorm:"notnull 'rule_id'"`
+	IsServer         bool           `xorm:"notnull 'is_server'"`
+	AgentID          uint64         `xorm:"notnull 'agent_id'"`
+	AccountID        uint64         `xorm:"notnull unique(transRemID) 'account_id'"`
+	TrueFilepath     string         `xorm:"notnull 'true_filepath'"`
+	SourceFile       string         `xorm:"notnull 'source_file'"`
+	DestFile         string         `xorm:"notnull 'dest_file'"`
+	Start            time.Time      `xorm:"notnull 'start'"`
+	Step             TransferStep   `xorm:"notnull 'step'"`
+	Status           TransferStatus `xorm:"notnull 'status'"`
+	Owner            string         `xorm:"notnull 'owner'"`
+	Progress         uint64         `xorm:"notnull 'progression'"`
+	TaskNumber       uint64         `xorm:"notnull 'task_number'"`
+	Error            TransferError  `xorm:"extends"`
 }
 
 // TableName returns the name of the transfers table.
@@ -43,6 +43,21 @@ func (*Transfer) TableName() string {
 // GetID returns the transfer's ID
 func (t *Transfer) GetID() uint64 {
 	return t.ID
+}
+
+// SetExtInfo replaces all the ExtInfo in the database of the the given transfer
+// by those given in the map parameter.
+func (t *Transfer) SetExtInfo(db database.Accessor, info map[string]interface{}) error {
+	if err := db.Delete(&ExtInfo{TransferID: t.ID}); err != nil {
+		return err
+	}
+	for name, val := range info {
+		i := &ExtInfo{TransferID: t.ID, Name: name, Value: fmt.Sprint(val)}
+		if err := db.Create(i); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (t *Transfer) validateClientTransfer(db database.Accessor) error {
@@ -215,24 +230,39 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	}
 
 	hist := TransferHistory{
-		ID:             t.ID,
-		Owner:          t.Owner,
-		IsServer:       t.IsServer,
-		IsSend:         rule.IsSend,
-		Account:        accountLogin,
-		Agent:          agentName,
-		Protocol:       protocol,
-		SourceFilename: t.SourceFile,
-		DestFilename:   t.DestFile,
-		Rule:           rule.Name,
-		Start:          t.Start,
-		Stop:           stop,
-		Status:         t.Status,
-		Error:          t.Error,
-		Step:           t.Step,
-		Progress:       t.Progress,
-		TaskNumber:     t.TaskNumber,
-		ExtInfo:        t.ExtInfo,
+		ID:               t.ID,
+		Owner:            t.Owner,
+		RemoteTransferID: t.RemoteTransferID,
+		IsServer:         t.IsServer,
+		IsSend:           rule.IsSend,
+		Account:          accountLogin,
+		Agent:            agentName,
+		Protocol:         protocol,
+		SourceFilename:   t.SourceFile,
+		DestFilename:     t.DestFile,
+		Rule:             rule.Name,
+		Start:            t.Start,
+		Stop:             stop,
+		Status:           t.Status,
+		Error:            t.Error,
+		Step:             t.Step,
+		Progress:         t.Progress,
+		TaskNumber:       t.TaskNumber,
 	}
 	return &hist, nil
+}
+
+// GetExtInfo returns the list of the transfer's ExtInfo as a map[string]string
+func GetExtInfo(db database.Accessor, tID uint64) (map[string]string, error) {
+	var res []ExtInfo
+	filters := &database.Filters{Conditions: builder.Eq{"transfer_id": tID}}
+	if err := db.Select(&res, filters); err != nil {
+		return nil, err
+	}
+
+	info := make(map[string]string)
+	for _, i := range res {
+		info[i.Name] = i.Value
+	}
+	return info, nil
 }

@@ -54,7 +54,7 @@ func TestAddTransfer(t *testing.T) {
 			}
 			So(db.Create(account), ShouldBeNil)
 
-			push := model.Rule{Name: "test_push", IsSend: false, Path: "path"}
+			push := model.Rule{Name: "test_push", IsSend: true, Path: "path"}
 			So(db.Create(&push), ShouldBeNil)
 
 			trans := &InTransfer{
@@ -494,6 +494,183 @@ func TestListTransfer(t *testing.T) {
 
 						So(err, ShouldBeNil)
 						So(w.Body.String(), ShouldEqual, string(exp)+"\n")
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestResumeTransfer(t *testing.T) {
+	logger := log.NewLogger("rest_transfer_list_test")
+
+	Convey("Testing the transfer resume handler", t, func() {
+		db := database.GetTestDatabase()
+		handler := resumeTransfer(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 transfer in error", func() {
+			partner := &model.RemoteAgent{
+				Name:        "test_server",
+				Protocol:    "test",
+				Address:     "localhost:1",
+				ProtoConfig: json.RawMessage(`{}`),
+			}
+			So(db.Create(partner), ShouldBeNil)
+
+			account := &model.RemoteAccount{
+				RemoteAgentID: partner.ID,
+				Login:         "toto",
+				Password:      []byte("titi"),
+			}
+			So(db.Create(account), ShouldBeNil)
+
+			rule := &model.Rule{Name: "test_rule", IsSend: false, Path: "path"}
+			So(db.Create(rule), ShouldBeNil)
+
+			trans := &model.Transfer{
+				RuleID:     rule.ID,
+				AgentID:    partner.ID,
+				AccountID:  account.ID,
+				SourceFile: "src",
+				DestFile:   "dst",
+				Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:     model.StatusError,
+				Step:       model.StepData,
+				Error: model.TransferError{
+					Code:    model.TeDataTransfer,
+					Details: "transfer failed",
+				},
+				Progress:   10,
+				TaskNumber: 0,
+			}
+			So(db.Create(trans), ShouldBeNil)
+
+			Convey("Given a request with the valid transfer ID parameter", func() {
+				id := strconv.FormatUint(trans.ID, 10)
+				req, err := http.NewRequest(http.MethodPut, "", nil)
+				So(err, ShouldBeNil)
+				req = mux.SetURLVars(req, map[string]string{"transfer": id})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldBeBlank)
+					})
+
+					Convey("Then it should reply 'Accepted'", func() {
+						So(w.Code, ShouldEqual, http.StatusAccepted)
+					})
+
+					Convey("Then the transfer should have been reprogrammed", func() {
+						exp := model.Transfer{
+							ID:         trans.ID,
+							Owner:      database.Owner,
+							RuleID:     rule.ID,
+							AgentID:    partner.ID,
+							AccountID:  account.ID,
+							SourceFile: "src",
+							DestFile:   "dst",
+							Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
+							Status:     model.StatusPlanned,
+							Step:       model.StepData,
+							Error:      model.TransferError{},
+							Progress:   10,
+							TaskNumber: 0,
+						}
+
+						var t []model.Transfer
+						So(db.Select(&t, nil), ShouldBeNil)
+						So(t, ShouldNotBeEmpty)
+						So(t[0], ShouldResemble, exp)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestPauseTransfer(t *testing.T) {
+	logger := log.NewLogger("rest_transfer_list_test")
+
+	Convey("Testing the transfer resume handler", t, func() {
+		db := database.GetTestDatabase()
+		handler := pauseTransfer(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 running transfer", func() {
+			partner := &model.RemoteAgent{
+				Name:        "test_server",
+				Protocol:    "test",
+				Address:     "localhost:1",
+				ProtoConfig: json.RawMessage(`{}`),
+			}
+			So(db.Create(partner), ShouldBeNil)
+
+			account := &model.RemoteAccount{
+				RemoteAgentID: partner.ID,
+				Login:         "toto",
+				Password:      []byte("titi"),
+			}
+			So(db.Create(account), ShouldBeNil)
+
+			rule := &model.Rule{Name: "test_rule", IsSend: false, Path: "path"}
+			So(db.Create(rule), ShouldBeNil)
+
+			trans := &model.Transfer{
+				RuleID:     rule.ID,
+				AgentID:    partner.ID,
+				AccountID:  account.ID,
+				SourceFile: "src",
+				DestFile:   "dst",
+				Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:     model.StatusPlanned,
+				Step:       model.StepData,
+				Error:      model.TransferError{},
+				Progress:   10,
+				TaskNumber: 0,
+			}
+			So(db.Create(trans), ShouldBeNil)
+
+			Convey("Given a request with the valid transfer ID parameter", func() {
+				id := strconv.FormatUint(trans.ID, 10)
+				req, err := http.NewRequest(http.MethodPut, "", nil)
+				So(err, ShouldBeNil)
+				req = mux.SetURLVars(req, map[string]string{"transfer": id})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldBeBlank)
+					})
+
+					Convey("Then it should reply 'Accepted'", func() {
+						So(w.Code, ShouldEqual, http.StatusAccepted)
+					})
+
+					Convey("Then the transfer should have been reprogrammed", func() {
+						exp := model.Transfer{
+							ID:         trans.ID,
+							Owner:      database.Owner,
+							RuleID:     rule.ID,
+							AgentID:    partner.ID,
+							AccountID:  account.ID,
+							SourceFile: "src",
+							DestFile:   "dst",
+							Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
+							Status:     model.StatusPaused,
+							Step:       model.StepData,
+							Error:      model.TransferError{},
+							Progress:   10,
+							TaskNumber: 0,
+						}
+
+						var t []model.Transfer
+						So(db.Select(&t, nil), ShouldBeNil)
+						So(t, ShouldNotBeEmpty)
+						So(t[0], ShouldResemble, exp)
 					})
 				})
 			})

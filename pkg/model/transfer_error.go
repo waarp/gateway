@@ -169,7 +169,7 @@ func (tec TransferErrorCode) ToDB() ([]byte, error) {
 
 // R66Code returns the error code as a single character usable by R66.
 //nolint:funlen
-func (tec TransferErrorCode) R66Code() byte {
+func (tec TransferErrorCode) R66Code() rune {
 	switch tec {
 	case TeOk:
 		return 'O'
@@ -216,7 +216,7 @@ func (tec TransferErrorCode) R66Code() byte {
 
 // FromR66Code returns the TransferError equivalent to the given R66 error code.
 //nolint:funlen
-func FromR66Code(c byte) TransferErrorCode {
+func FromR66Code(c rune) TransferErrorCode {
 	switch c {
 	case 'O':
 		return TeOk

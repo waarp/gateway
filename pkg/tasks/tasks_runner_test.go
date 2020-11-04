@@ -42,7 +42,7 @@ func TestSetup(t *testing.T) {
 
 			agent := &model.RemoteAgent{
 				Name:        "agent",
-				Protocol:    "r66",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6622",
 			}
@@ -355,7 +355,7 @@ func TestRunTasks(t *testing.T) {
 
 		agent := &model.RemoteAgent{
 			Name:        "agent",
-			Protocol:    "r66",
+			Protocol:    "test",
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:6622",
 		}

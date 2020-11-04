@@ -203,21 +203,20 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Get(check); err != nil {
-				return err
-			}
-
-			if check.Status == model.StatusPaused || check.Status == model.StatusInterrupted {
+			if check.Status != model.StatusPlanned && check.Status != model.StatusRunning {
 				return badRequest("cannot pause an already interrupted transfer")
 			}
 
-			if check.Status == model.StatusPlanned {
+			switch check.Status {
+			case model.StatusPlanned:
 				check.Status = model.StatusPaused
 				if err := db.Update(check); err != nil {
 					return err
 				}
-			} else {
+			case model.StatusRunning:
 				pipeline.Signals.SendSignal(check.ID, model.SignalPause)
+			default:
+				return badRequest("cannot pause an already interrupted transfer")
 			}
 
 			w.WriteHeader(http.StatusAccepted)
@@ -235,10 +234,6 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		err := func() error {
 			check, err := getTrans(r, db)
 			if err != nil {
-				return err
-			}
-
-			if err := db.Get(check); err != nil {
 				return err
 			}
 
@@ -270,15 +265,12 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Get(check); err != nil {
-				return err
-			}
-
 			if check.IsServer {
 				return badRequest("only the client can restart a transfer")
 			}
 
-			if check.Status != model.StatusPaused && check.Status != model.StatusInterrupted {
+			if check.Status != model.StatusPaused && check.Status != model.StatusInterrupted &&
+				check.Status != model.StatusError {
 				return badRequest("cannot resume an already running transfer")
 			}
 
@@ -291,8 +283,9 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 
 			check.Status = model.StatusPlanned
+			check.Error = model.TransferError{}
 			if err := db.Update(check); err != nil {
-				return err
+				return fmt.Errorf("failed to update the transfer status: %s", err)
 			}
 
 			w.WriteHeader(http.StatusAccepted)

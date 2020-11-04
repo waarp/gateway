@@ -150,6 +150,7 @@ func (s *sftpStream) Close() error {
 			if s.transErr == nil {
 				s.Transfer.Step = model.StepNone
 				s.Transfer.Status = model.StatusDone
+				s.Transfer.TaskNumber = 0
 				if s.Archive() == nil {
 					s.Logger.Info("Execution finished without errors")
 				}

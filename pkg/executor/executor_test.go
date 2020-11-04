@@ -129,6 +129,7 @@ func TestExecutorRun(t *testing.T) {
 								Status:         model.StatusDone,
 								Step:           model.StepNone,
 								Progress:       uint64(len(content)),
+								TaskNumber:     0,
 							}
 
 							So(results[0], ShouldResemble, expected)
@@ -142,33 +143,32 @@ func TestExecutorRun(t *testing.T) {
 					Convey("When calling the `Run` method", func() {
 						exe.Run()
 
-						Convey("Then the `Transfer` entry should no longer exist", func() {
-							var res []model.Transfer
-							So(db.Select(&res, nil), ShouldBeNil)
-							So(res, ShouldBeEmpty)
-						})
-
-						Convey("Then the corresponding `TransferHistory` entry "+
-							"should exist with an ERROR status", func() {
-							hist := &model.TransferHistory{
-								ID:             trans.ID,
-								Owner:          trans.Owner,
-								IsServer:       false,
-								IsSend:         true,
-								Account:        account.Login,
-								Agent:          remote.Name,
-								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourceFile,
-								DestFilename:   trans.DestFile,
-								Rule:           rule.Name,
-								Start:          trans.Start,
-								Status:         model.StatusError,
+						Convey("Then the `Transfer` entry should be in error", func() {
+							exp := model.Transfer{
+								ID:           trans.ID,
+								Owner:        trans.Owner,
+								IsServer:     false,
+								AccountID:    account.ID,
+								AgentID:      remote.ID,
+								TrueFilepath: trans.TrueFilepath,
+								SourceFile:   trans.SourceFile,
+								DestFile:     trans.DestFile,
+								RuleID:       rule.ID,
+								Start:        trans.Start,
+								Status:       model.StatusError,
+								Step:         model.StepSetup,
+								Error: model.TransferError{
+									Code:    model.TeConnection,
+									Details: "connection failed",
+								},
+								Progress:   0,
+								TaskNumber: 0,
 							}
 
-							So(db.Get(hist), ShouldBeNil)
-							expErr := model.NewTransferError(model.TeConnection,
-								"connection failed")
-							So(hist.Error, ShouldResemble, expErr)
+							var t []model.Transfer
+							So(db.Select(&t, nil), ShouldBeNil)
+							So(t, ShouldNotBeEmpty)
+							So(t[0], ShouldResemble, exp)
 						})
 					})
 				})
@@ -179,33 +179,32 @@ func TestExecutorRun(t *testing.T) {
 					Convey("When calling the `Run` method", func() {
 						exe.Run()
 
-						Convey("Then the `Transfer` entry should no longer exist", func() {
-							var res []model.Transfer
-							So(db.Select(&res, nil), ShouldBeNil)
-							So(res, ShouldBeEmpty)
-						})
-
-						Convey("Then the corresponding `TransferHistory` entry "+
-							"should exist with an ERROR status", func() {
-							hist := &model.TransferHistory{
-								ID:             trans.ID,
-								Owner:          trans.Owner,
-								IsServer:       false,
-								IsSend:         true,
-								Account:        account.Login,
-								Agent:          remote.Name,
-								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourceFile,
-								DestFilename:   trans.DestFile,
-								Rule:           rule.Name,
-								Start:          trans.Start,
-								Status:         model.StatusError,
+						Convey("Then the `Transfer` entry should be in error", func() {
+							exp := model.Transfer{
+								ID:           trans.ID,
+								Owner:        trans.Owner,
+								IsServer:     false,
+								AccountID:    account.ID,
+								AgentID:      remote.ID,
+								TrueFilepath: trans.TrueFilepath,
+								SourceFile:   trans.SourceFile,
+								DestFile:     trans.DestFile,
+								RuleID:       rule.ID,
+								Start:        trans.Start,
+								Status:       model.StatusError,
+								Step:         model.StepSetup,
+								Error: model.TransferError{
+									Code:    model.TeBadAuthentication,
+									Details: "authentication failed",
+								},
+								Progress:   0,
+								TaskNumber: 0,
 							}
 
-							So(db.Get(hist), ShouldBeNil)
-							expErr := model.NewTransferError(model.TeBadAuthentication,
-								"authentication failed")
-							So(hist.Error, ShouldResemble, expErr)
+							var t []model.Transfer
+							So(db.Select(&t, nil), ShouldBeNil)
+							So(t, ShouldNotBeEmpty)
+							So(t[0], ShouldResemble, exp)
 						})
 					})
 				})
@@ -216,33 +215,32 @@ func TestExecutorRun(t *testing.T) {
 					Convey("When calling the `Run` method", func() {
 						exe.Run()
 
-						Convey("Then the `Transfer` entry should no longer exist", func() {
-							var res []model.Transfer
-							So(db.Select(&res, nil), ShouldBeNil)
-							So(res, ShouldBeEmpty)
-						})
-
-						Convey("Then the corresponding `TransferHistory` entry "+
-							"should exist with an ERROR status", func() {
-							hist := &model.TransferHistory{
-								ID:             trans.ID,
-								Owner:          trans.Owner,
-								IsServer:       false,
-								IsSend:         true,
-								Account:        account.Login,
-								Agent:          remote.Name,
-								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourceFile,
-								DestFilename:   trans.DestFile,
-								Rule:           rule.Name,
-								Start:          trans.Start,
-								Status:         model.StatusError,
+						Convey("Then the `Transfer` entry should be in error", func() {
+							exp := model.Transfer{
+								ID:           trans.ID,
+								Owner:        trans.Owner,
+								IsServer:     false,
+								AccountID:    account.ID,
+								AgentID:      remote.ID,
+								TrueFilepath: trans.TrueFilepath,
+								SourceFile:   trans.SourceFile,
+								DestFile:     trans.DestFile,
+								RuleID:       rule.ID,
+								Start:        trans.Start,
+								Status:       model.StatusError,
+								Step:         model.StepSetup,
+								Error: model.TransferError{
+									Code:    model.TeForbidden,
+									Details: "request failed",
+								},
+								Progress:   0,
+								TaskNumber: 0,
 							}
 
-							So(db.Get(hist), ShouldBeNil)
-							expErr := model.NewTransferError(model.TeForbidden,
-								"request failed")
-							So(hist.Error, ShouldResemble, expErr)
+							var t []model.Transfer
+							So(db.Select(&t, nil), ShouldBeNil)
+							So(t, ShouldNotBeEmpty)
+							So(t[0], ShouldResemble, exp)
 						})
 					})
 				})
@@ -262,38 +260,32 @@ func TestExecutorRun(t *testing.T) {
 					Convey("When calling the `Run` method", func() {
 						exe.Run()
 
-						Convey("Then the `Transfer` entry should no longer exist", func() {
-							var res []model.Transfer
-							So(db.Select(&res, nil), ShouldBeNil)
-							So(res, ShouldBeEmpty)
-						})
-
-						Convey("Then the corresponding `TransferHistory` entry "+
-							"should exist with an ERROR status", func() {
-							var h []model.TransferHistory
-							So(db.Select(&h, nil), ShouldBeNil)
-							So(h, ShouldNotBeEmpty)
-
-							hist := model.TransferHistory{
-								ID:             trans.ID,
-								Owner:          trans.Owner,
-								IsServer:       false,
-								IsSend:         true,
-								Account:        account.Login,
-								Agent:          remote.Name,
-								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourceFile,
-								DestFilename:   trans.DestFile,
-								Rule:           rule.Name,
-								Start:          trans.Start,
-								Stop:           h[0].Stop,
-								Status:         model.StatusError,
-								Step:           model.StepPreTasks,
-								Error: model.NewTransferError(model.TeExternalOperation,
-									"Task TESTFAIL @ test_rule PRE[0]: task failed"),
+						Convey("Then the `Transfer` entry should be in error", func() {
+							exp := model.Transfer{
+								ID:           trans.ID,
+								Owner:        trans.Owner,
+								IsServer:     false,
+								AccountID:    account.ID,
+								AgentID:      remote.ID,
+								TrueFilepath: trans.TrueFilepath,
+								SourceFile:   trans.SourceFile,
+								DestFile:     trans.DestFile,
+								RuleID:       rule.ID,
+								Start:        trans.Start,
+								Status:       model.StatusError,
+								Step:         model.StepPreTasks,
+								Error: model.TransferError{
+									Code:    model.TeExternalOperation,
+									Details: "Task TESTFAIL @ test_rule PRE[0]: task failed",
+								},
+								Progress:   0,
+								TaskNumber: 0,
 							}
 
-							So(h[0], ShouldResemble, hist)
+							var t []model.Transfer
+							So(db.Select(&t, nil), ShouldBeNil)
+							So(t, ShouldNotBeEmpty)
+							So(t[0], ShouldResemble, exp)
 						})
 					})
 				})
@@ -304,33 +296,32 @@ func TestExecutorRun(t *testing.T) {
 					Convey("When calling the `Run` method", func() {
 						exe.Run()
 
-						Convey("Then the `Transfer` entry should no longer exist", func() {
-							var res []model.Transfer
-							So(db.Select(&res, nil), ShouldBeNil)
-							So(res, ShouldBeEmpty)
-						})
-
-						Convey("Then the corresponding `TransferHistory` entry "+
-							"should exist with an ERROR status", func() {
-							hist := &model.TransferHistory{
-								ID:             trans.ID,
-								Owner:          trans.Owner,
-								IsServer:       false,
-								IsSend:         true,
-								Account:        account.Login,
-								Agent:          remote.Name,
-								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourceFile,
-								DestFilename:   trans.DestFile,
-								Rule:           rule.Name,
-								Start:          trans.Start,
-								Status:         model.StatusError,
+						Convey("Then the `Transfer` entry should be in error", func() {
+							exp := model.Transfer{
+								ID:           trans.ID,
+								Owner:        trans.Owner,
+								IsServer:     false,
+								AccountID:    account.ID,
+								AgentID:      remote.ID,
+								TrueFilepath: trans.TrueFilepath,
+								SourceFile:   trans.SourceFile,
+								DestFile:     trans.DestFile,
+								RuleID:       rule.ID,
+								Start:        trans.Start,
+								Status:       model.StatusError,
+								Step:         model.StepData,
+								Error: model.TransferError{
+									Code:    model.TeDataTransfer,
+									Details: "data failed",
+								},
+								Progress:   0,
+								TaskNumber: 0,
 							}
 
-							So(db.Get(hist), ShouldBeNil)
-							expErr := model.NewTransferError(model.TeDataTransfer,
-								"data failed")
-							So(hist.Error, ShouldResemble, expErr)
+							var t []model.Transfer
+							So(db.Select(&t, nil), ShouldBeNil)
+							So(t, ShouldNotBeEmpty)
+							So(t[0], ShouldResemble, exp)
 						})
 					})
 				})
@@ -350,33 +341,32 @@ func TestExecutorRun(t *testing.T) {
 					Convey("When calling the `Run` method", func() {
 						exe.Run()
 
-						Convey("Then the `Transfer` entry should no longer exist", func() {
-							var res []model.Transfer
-							So(db.Select(&res, nil), ShouldBeNil)
-							So(res, ShouldBeEmpty)
-						})
-
-						Convey("Then the corresponding `TransferHistory` entry "+
-							"should exist with an ERROR status", func() {
-							hist := &model.TransferHistory{
-								ID:             trans.ID,
-								Owner:          trans.Owner,
-								IsServer:       false,
-								IsSend:         true,
-								Account:        account.Login,
-								Agent:          remote.Name,
-								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourceFile,
-								DestFilename:   trans.DestFile,
-								Rule:           rule.Name,
-								Start:          trans.Start,
-								Status:         model.StatusError,
+						Convey("Then the `Transfer` entry should be in error", func() {
+							exp := model.Transfer{
+								ID:           trans.ID,
+								Owner:        trans.Owner,
+								IsServer:     false,
+								AccountID:    account.ID,
+								AgentID:      remote.ID,
+								TrueFilepath: trans.TrueFilepath,
+								SourceFile:   trans.SourceFile,
+								DestFile:     trans.DestFile,
+								RuleID:       rule.ID,
+								Start:        trans.Start,
+								Status:       model.StatusError,
+								Step:         model.StepPostTasks,
+								Error: model.TransferError{
+									Code:    model.TeExternalOperation,
+									Details: "Task TESTFAIL @ test_rule POST[0]: task failed",
+								},
+								Progress:   uint64(len(content)),
+								TaskNumber: 0,
 							}
 
-							So(db.Get(hist), ShouldBeNil)
-							expErr := model.NewTransferError(model.TeExternalOperation,
-								"Task TESTFAIL @ test_rule POST[0]: task failed")
-							So(hist.Error, ShouldResemble, expErr)
+							var t []model.Transfer
+							So(db.Select(&t, nil), ShouldBeNil)
+							So(t, ShouldNotBeEmpty)
+							So(t[0], ShouldResemble, exp)
 						})
 					})
 				})
@@ -387,33 +377,32 @@ func TestExecutorRun(t *testing.T) {
 					Convey("When calling the `Run` method", func() {
 						exe.Run()
 
-						Convey("Then the `Transfer` entry should no longer exist", func() {
-							var res []model.Transfer
-							So(db.Select(&res, nil), ShouldBeNil)
-							So(res, ShouldBeEmpty)
-						})
-
-						Convey("Then the corresponding `TransferHistory` entry "+
-							"should exist with an ERROR status", func() {
-							hist := &model.TransferHistory{
-								ID:             trans.ID,
-								Owner:          trans.Owner,
-								IsServer:       false,
-								IsSend:         true,
-								Account:        account.Login,
-								Agent:          remote.Name,
-								Protocol:       remote.Protocol,
-								SourceFilename: trans.SourceFile,
-								DestFilename:   trans.DestFile,
-								Rule:           rule.Name,
-								Start:          trans.Start,
-								Status:         model.StatusError,
+						Convey("Then the `Transfer` entry should be in error", func() {
+							exp := model.Transfer{
+								ID:           trans.ID,
+								Owner:        trans.Owner,
+								IsServer:     false,
+								AccountID:    account.ID,
+								AgentID:      remote.ID,
+								TrueFilepath: trans.TrueFilepath,
+								SourceFile:   trans.SourceFile,
+								DestFile:     trans.DestFile,
+								RuleID:       rule.ID,
+								Start:        trans.Start,
+								Status:       model.StatusError,
+								Step:         model.StepFinalization,
+								Error: model.TransferError{
+									Code:    model.TeExternalOperation,
+									Details: "remote post-tasks failed",
+								},
+								Progress:   uint64(len(content)),
+								TaskNumber: 0,
 							}
 
-							So(db.Get(hist), ShouldBeNil)
-							expErr := model.NewTransferError(model.TeExternalOperation,
-								"remote post-tasks failed")
-							So(hist.Error, ShouldResemble, expErr)
+							var t []model.Transfer
+							So(db.Select(&t, nil), ShouldBeNil)
+							So(t, ShouldNotBeEmpty)
+							So(t[0], ShouldResemble, exp)
 						})
 					})
 				})
@@ -700,30 +689,6 @@ func TestTransferResume(t *testing.T) {
 
 					So(h[0], ShouldResemble, hist)
 				})
-			})
-		})
-	})
-}
-
-func TestBuildR66CommandArgs(t *testing.T) {
-	Convey("Testing BuildR66Command", t, func() {
-		Convey("Given a transfer", func() {
-			oti := &model.OutTransferInfo{
-				Account:  &model.RemoteAccount{Login: "foo"},
-				Agent:    &model.RemoteAgent{Name: "bar"},
-				Transfer: &model.Transfer{SourceFile: "path/to/my/file.txt"},
-				Rule:     &model.Rule{Name: "my-super-duper-rule"},
-			}
-
-			Convey("Then it builds the correct arguments", func() {
-				expected := []string{
-					"foo",
-					"send",
-					"-to", "bar",
-					"-file", "path/to/my/file.txt",
-					"-rule", "my-super-duper-rule",
-				}
-				So(buildR66CommandArgs(oti), ShouldResemble, expected)
 			})
 		})
 	})

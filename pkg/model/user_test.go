@@ -54,7 +54,7 @@ func TestUsersValidate(t *testing.T) {
 						So(user.Validate(db), ShouldBeNil)
 
 						Convey("Then the user's password should be hashed", func() {
-							hash, err := hashPassword(user.Password)
+							hash, err := HashPassword(user.Password)
 							So(err, ShouldBeNil)
 							So(string(user.Password), ShouldEqual, string(hash))
 						})

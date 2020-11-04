@@ -3,8 +3,8 @@ Reprendre un transfert en pause
 
 .. http:put:: /api/transfers/(int:transfer_id)/resume
 
-   Reprend le transfert portant l'identifiant ``transfer_id``. Le transfert
-   doit être en pause ou interrompu.
+   Reprend le transfert portant l'identifiant ``transfer_id`` si celui-ci est
+   en pause, interrompu ou en erreur.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 

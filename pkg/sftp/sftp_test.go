@@ -18,6 +18,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -269,42 +270,14 @@ func TestSFTPPackage(t *testing.T) {
 									So(db.Select(&transfers, nil), ShouldBeNil)
 									So(transfers, ShouldBeEmpty)
 
-									Convey("Then there should be a server-side "+
-										"history entry", func() {
-										var results []model.TransferHistory
-										So(db.Select(&results, nil), ShouldBeNil)
-										So(len(results), ShouldEqual, 2)
-
-										expected := model.TransferHistory{
-											ID:             1,
-											Owner:          database.Owner,
-											IsServer:       true,
-											IsSend:         false,
-											Account:        localAccount.Login,
-											Agent:          localAgent.Name,
-											Protocol:       "sftp",
-											SourceFilename: trans.DestFile,
-											DestFilename:   trans.DestFile,
-											Rule:           receive.Name,
-											Start:          results[0].Start,
-											Stop:           results[0].Stop,
-											Status:         model.StatusDone,
-											Step:           model.StepNone,
-											Error:          model.TransferError{},
-											Progress:       uint64(len(content)),
-											TaskNumber:     0,
-										}
-										So(results[0], ShouldResemble, expected)
-									})
+									var hist []model.TransferHistory
+									So(db.Select(&hist, nil), ShouldBeNil)
+									So(hist, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side "+
 										"history entry", func() {
-										var hist []model.TransferHistory
-										So(db.Select(&hist, nil), ShouldBeNil)
-										So(len(hist), ShouldEqual, 2)
-
 										expected := model.TransferHistory{
-											ID:             2,
+											ID:             1,
 											Owner:          database.Owner,
 											IsServer:       false,
 											IsSend:         true,
@@ -314,6 +287,30 @@ func TestSFTPPackage(t *testing.T) {
 											SourceFilename: trans.SourceFile,
 											DestFilename:   trans.DestFile,
 											Rule:           send.Name,
+											Start:          hist[0].Start,
+											Stop:           hist[0].Stop,
+											Status:         model.StatusDone,
+											Step:           model.StepNone,
+											Error:          model.TransferError{},
+											Progress:       uint64(len(content)),
+											TaskNumber:     0,
+										}
+										So(hist[0], ShouldResemble, expected)
+									})
+
+									Convey("Then there should be a server-side "+
+										"history entry", func() {
+										expected := model.TransferHistory{
+											ID:             2,
+											Owner:          database.Owner,
+											IsServer:       true,
+											IsSend:         false,
+											Account:        localAccount.Login,
+											Agent:          localAgent.Name,
+											Protocol:       "sftp",
+											SourceFilename: trans.DestFile,
+											DestFilename:   trans.DestFile,
+											Rule:           receive.Name,
 											Start:          hist[1].Start,
 											Stop:           hist[1].Stop,
 											Status:         model.StatusDone,
@@ -358,61 +355,23 @@ func TestSFTPPackage(t *testing.T) {
 								Convey("Then the transfers should be over", func() {
 									var transfers []model.Transfer
 									So(db.Select(&transfers, nil), ShouldBeNil)
-									So(transfers, ShouldBeEmpty)
-
-									Convey("Then there should be a server-side "+
-										"history entry in error", func() {
-										var results []model.TransferHistory
-										So(db.Select(&results, nil), ShouldBeNil)
-										So(len(results), ShouldEqual, 2)
-
-										expected := model.TransferHistory{
-											ID:             1,
-											Owner:          database.Owner,
-											IsServer:       true,
-											IsSend:         false,
-											Account:        localAccount.Login,
-											Agent:          localAgent.Name,
-											Protocol:       "sftp",
-											SourceFilename: trans.DestFile,
-											DestFilename:   trans.DestFile,
-											Rule:           receive.Name,
-											Start:          results[0].Start,
-											Stop:           results[0].Stop,
-											Status:         model.StatusError,
-											Error: model.TransferError{
-												Code: model.TeExternalOperation,
-												Details: "Task TESTFAIL @ receive " +
-													"PRE[1]: task failed",
-											},
-											Step:       model.StepPreTasks,
-											Progress:   0,
-											TaskNumber: 1,
-										}
-
-										So(results[0], ShouldResemble, expected)
-									})
+									So(transfers, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side "+
-										"history entry in error", func() {
-										var results []model.TransferHistory
-										So(db.Select(&results, nil), ShouldBeNil)
-										So(len(results), ShouldEqual, 2)
-
-										expected := model.TransferHistory{
-											ID:             2,
-											Owner:          database.Owner,
-											IsServer:       false,
-											IsSend:         true,
-											Account:        remoteAccount.Login,
-											Agent:          remoteAgent.Name,
-											Protocol:       "sftp",
-											SourceFilename: trans.SourceFile,
-											DestFilename:   trans.DestFile,
-											Rule:           send.Name,
-											Start:          results[1].Start,
-											Stop:           results[1].Stop,
-											Status:         model.StatusError,
+										"transfer entry in error", func() {
+										expected := model.Transfer{
+											ID:        1,
+											Owner:     database.Owner,
+											IsServer:  false,
+											AccountID: remoteAccount.ID,
+											AgentID:   remoteAgent.ID,
+											TrueFilepath: utils.NormalizePath(filepath.Join(
+												home, send.OutPath, trans.SourceFile)),
+											SourceFile: trans.SourceFile,
+											DestFile:   trans.DestFile,
+											RuleID:     send.ID,
+											Start:      transfers[0].Start,
+											Status:     model.StatusError,
 											Error: model.TransferError{
 												Code: model.TeExternalOperation,
 												Details: "Remote pre-tasks failed: Task " +
@@ -422,8 +381,34 @@ func TestSFTPPackage(t *testing.T) {
 											Progress:   0,
 											TaskNumber: 0,
 										}
+										So(transfers[0], ShouldResemble, expected)
+									})
 
-										So(results[1], ShouldResemble, expected)
+									Convey("Then there should be a server-side "+
+										"transfer entry in error", func() {
+										expected := model.Transfer{
+											ID:        2,
+											Owner:     database.Owner,
+											IsServer:  true,
+											AccountID: localAccount.ID,
+											AgentID:   localAgent.ID,
+											TrueFilepath: utils.NormalizePath(filepath.Join(
+												root, receive.InPath, trans.DestFile)),
+											SourceFile: trans.DestFile,
+											DestFile:   trans.DestFile,
+											RuleID:     receive.ID,
+											Start:      transfers[1].Start,
+											Status:     model.StatusError,
+											Error: model.TransferError{
+												Code: model.TeExternalOperation,
+												Details: "Task TESTFAIL @ receive " +
+													"PRE[1]: task failed",
+											},
+											Step:       model.StepPreTasks,
+											Progress:   0,
+											TaskNumber: 1,
+										}
+										So(transfers[1], ShouldResemble, expected)
 									})
 								})
 							})
@@ -460,60 +445,23 @@ func TestSFTPPackage(t *testing.T) {
 								Convey("Then the transfers should be over", func() {
 									var transfers []model.Transfer
 									So(db.Select(&transfers, nil), ShouldBeNil)
-									So(transfers, ShouldBeEmpty)
-
-									Convey("Then there should be a server-side "+
-										"history entry in error", func() {
-										var results []model.TransferHistory
-										So(db.Select(&results, nil), ShouldBeNil)
-										So(len(results), ShouldEqual, 2)
-
-										expected := model.TransferHistory{
-											ID:             1,
-											Owner:          database.Owner,
-											IsServer:       true,
-											IsSend:         false,
-											Account:        localAccount.Login,
-											Agent:          localAgent.Name,
-											Protocol:       "sftp",
-											SourceFilename: trans.DestFile,
-											DestFilename:   trans.DestFile,
-											Rule:           receive.Name,
-											Start:          results[0].Start,
-											Stop:           results[0].Stop,
-											Status:         model.StatusError,
-											Error: model.TransferError{
-												Code:    model.TeExternalOperation,
-												Details: "Remote pre-tasks failed",
-											},
-											Step:       model.StepPreTasks,
-											Progress:   0,
-											TaskNumber: 0,
-										}
-
-										So(results[0], ShouldResemble, expected)
-									})
+									So(transfers, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side"+
-										"history entry in error", func() {
-										var results []model.TransferHistory
-										So(db.Select(&results, nil), ShouldBeNil)
-										So(len(results), ShouldEqual, 2)
-
-										expected := model.TransferHistory{
-											ID:             2,
-											Owner:          database.Owner,
-											IsServer:       trans.IsServer,
-											IsSend:         send.IsSend,
-											Account:        remoteAccount.Login,
-											Agent:          remoteAgent.Name,
-											Protocol:       "sftp",
-											SourceFilename: trans.SourceFile,
-											DestFilename:   trans.DestFile,
-											Rule:           send.Name,
-											Start:          results[1].Start,
-											Stop:           results[1].Stop,
-											Status:         model.StatusError,
+										"transfer entry in error", func() {
+										expected := model.Transfer{
+											ID:        1,
+											Owner:     database.Owner,
+											IsServer:  trans.IsServer,
+											AccountID: remoteAccount.ID,
+											AgentID:   remoteAgent.ID,
+											TrueFilepath: utils.NormalizePath(filepath.Join(
+												home, send.OutPath, trans.SourceFile)),
+											SourceFile: trans.SourceFile,
+											DestFile:   trans.DestFile,
+											RuleID:     send.ID,
+											Start:      transfers[0].Start,
+											Status:     model.StatusError,
 											Error: model.TransferError{
 												Code: model.TeExternalOperation,
 												Details: "Task TESTFAIL @ send " +
@@ -523,8 +471,33 @@ func TestSFTPPackage(t *testing.T) {
 											Progress:   0,
 											TaskNumber: 1,
 										}
+										So(transfers[0], ShouldResemble, expected)
+									})
 
-										So(results[1], ShouldResemble, expected)
+									Convey("Then there should be a server-side "+
+										"transfer entry in error", func() {
+										expected := model.Transfer{
+											ID:        2,
+											Owner:     database.Owner,
+											IsServer:  true,
+											AccountID: localAccount.ID,
+											AgentID:   localAgent.ID,
+											TrueFilepath: utils.NormalizePath(filepath.Join(
+												root, receive.InPath, trans.DestFile)),
+											SourceFile: trans.DestFile,
+											DestFile:   trans.DestFile,
+											RuleID:     receive.ID,
+											Start:      transfers[1].Start,
+											Status:     model.StatusError,
+											Error: model.TransferError{
+												Code:    model.TeExternalOperation,
+												Details: "Remote pre-tasks failed",
+											},
+											Step:       model.StepPreTasks,
+											Progress:   0,
+											TaskNumber: 1,
+										}
+										So(transfers[1], ShouldResemble, expected)
 									})
 								})
 							})
@@ -565,28 +538,50 @@ func TestSFTPPackage(t *testing.T) {
 								Convey("Then the transfers should be over", func() {
 									var transfers []model.Transfer
 									So(db.Select(&transfers, nil), ShouldBeNil)
-									So(transfers, ShouldBeEmpty)
+									So(transfers, ShouldHaveLength, 2)
+
+									Convey("Then there should be a client-side "+
+										"transfer entry in error", func() {
+										expected := model.Transfer{
+											ID:        1,
+											Owner:     database.Owner,
+											IsServer:  false,
+											AccountID: remoteAccount.ID,
+											AgentID:   remoteAgent.ID,
+											TrueFilepath: utils.NormalizePath(filepath.Join(
+												home, send.OutPath, trans.SourceFile)),
+											SourceFile: trans.SourceFile,
+											DestFile:   trans.DestFile,
+											RuleID:     send.ID,
+											Start:      transfers[0].Start,
+											Status:     model.StatusError,
+											Error: model.TransferError{
+												Code: model.TeExternalOperation,
+												Details: "Remote post-tasks failed: Task " +
+													"TESTFAIL @ receive POST[1]: task failed",
+											},
+											Step:       model.StepFinalization,
+											Progress:   uint64(len(content)),
+											TaskNumber: 0,
+										}
+										So(transfers[0], ShouldResemble, expected)
+									})
 
 									Convey("Then there should be a server-side "+
-										"history entry in error", func() {
-										var results []model.TransferHistory
-										So(db.Select(&results, nil), ShouldBeNil)
-										So(len(results), ShouldEqual, 2)
-
-										expected := model.TransferHistory{
-											ID:             1,
-											Owner:          database.Owner,
-											IsServer:       true,
-											IsSend:         false,
-											Account:        localAccount.Login,
-											Agent:          localAgent.Name,
-											Protocol:       "sftp",
-											SourceFilename: trans.DestFile,
-											DestFilename:   trans.DestFile,
-											Rule:           receive.Name,
-											Start:          results[0].Start,
-											Stop:           results[0].Stop,
-											Status:         model.StatusError,
+										"transfer entry in error", func() {
+										expected := model.Transfer{
+											ID:        2,
+											Owner:     database.Owner,
+											IsServer:  true,
+											AccountID: localAccount.ID,
+											AgentID:   localAgent.ID,
+											TrueFilepath: utils.NormalizePath(filepath.Join(
+												root, receive.InPath, trans.DestFile)),
+											SourceFile: trans.DestFile,
+											DestFile:   trans.DestFile,
+											RuleID:     receive.ID,
+											Start:      transfers[1].Start,
+											Status:     model.StatusError,
 											Error: model.TransferError{
 												Code: model.TeExternalOperation,
 												Details: "Task TESTFAIL @ receive " +
@@ -596,41 +591,7 @@ func TestSFTPPackage(t *testing.T) {
 											Progress:   uint64(len(content)),
 											TaskNumber: 1,
 										}
-
-										So(results[0], ShouldResemble, expected)
-									})
-
-									Convey("Then there should be a client-side "+
-										"history entry in error", func() {
-										var results []model.TransferHistory
-										So(db.Select(&results, nil), ShouldBeNil)
-										So(len(results), ShouldEqual, 2)
-
-										expected := model.TransferHistory{
-											ID:             2,
-											Owner:          database.Owner,
-											IsServer:       false,
-											IsSend:         true,
-											Account:        remoteAccount.Login,
-											Agent:          remoteAgent.Name,
-											Protocol:       "sftp",
-											SourceFilename: trans.SourceFile,
-											DestFilename:   trans.DestFile,
-											Rule:           send.Name,
-											Start:          results[1].Start,
-											Stop:           results[1].Stop,
-											Status:         model.StatusError,
-											Error: model.TransferError{
-												Code: model.TeExternalOperation,
-												Details: "Remote post-tasks failed: Task " +
-													"TESTFAIL @ receive POST[1]: task failed",
-											},
-											Step:       model.StepPostTasks,
-											Progress:   uint64(len(content)),
-											TaskNumber: 0,
-										}
-
-										So(results[1], ShouldResemble, expected)
+										So(transfers[1], ShouldResemble, expected)
 									})
 								})
 							})
@@ -670,60 +631,23 @@ func TestSFTPPackage(t *testing.T) {
 								SkipConvey("Then the transfers should be over", func() {
 									var transfers []model.Transfer
 									So(db.Select(&transfers, nil), ShouldBeNil)
-									So(transfers, ShouldBeEmpty)
-
-									Convey("Then there should be a server-side "+
-										"history entry in error", func() {
-										var results []model.TransferHistory
-										So(db.Select(&results, nil), ShouldBeNil)
-										So(len(results), ShouldEqual, 2)
-
-										expected := model.TransferHistory{
-											ID:             1,
-											Owner:          database.Owner,
-											IsServer:       true,
-											IsSend:         false,
-											Account:        localAccount.Login,
-											Agent:          localAgent.Name,
-											Protocol:       "sftp",
-											SourceFilename: trans.DestFile,
-											DestFilename:   trans.DestFile,
-											Rule:           receive.Name,
-											Start:          results[0].Start,
-											Stop:           results[0].Stop,
-											Status:         model.StatusError,
-											Error: model.TransferError{
-												Code:    model.TeExternalOperation,
-												Details: "Remote post-tasks failed",
-											},
-											Step:       model.StepPostTasks,
-											Progress:   0,
-											TaskNumber: 0,
-										}
-
-										So(results[0], ShouldResemble, expected)
-									})
+									So(transfers, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side "+
-										"history entry in error", func() {
-										var results []model.TransferHistory
-										So(db.Select(&results, nil), ShouldBeNil)
-										So(len(results), ShouldEqual, 2)
-
-										expected := model.TransferHistory{
-											ID:             2,
-											Owner:          database.Owner,
-											IsServer:       false,
-											IsSend:         true,
-											Account:        remoteAccount.Login,
-											Agent:          remoteAgent.Name,
-											Protocol:       "sftp",
-											SourceFilename: trans.SourceFile,
-											DestFilename:   trans.DestFile,
-											Rule:           send.Name,
-											Start:          results[1].Start,
-											Stop:           results[1].Stop,
-											Status:         model.StatusError,
+										"transfer entry in error", func() {
+										expected := model.Transfer{
+											ID:        1,
+											Owner:     database.Owner,
+											IsServer:  false,
+											AccountID: remoteAccount.ID,
+											AgentID:   remoteAgent.ID,
+											TrueFilepath: utils.NormalizePath(filepath.Join(
+												home, send.OutPath, trans.SourceFile)),
+											SourceFile: trans.SourceFile,
+											DestFile:   trans.DestFile,
+											RuleID:     send.ID,
+											Start:      transfers[0].Start,
+											Status:     model.StatusError,
 											Error: model.TransferError{
 												Code:    model.TeExternalOperation,
 												Details: "Task TESTFAIL @ send POST[1]: task failed",
@@ -732,8 +656,33 @@ func TestSFTPPackage(t *testing.T) {
 											Progress:   0,
 											TaskNumber: 1,
 										}
+										So(transfers[1], ShouldResemble, expected)
+									})
 
-										So(results[1], ShouldResemble, expected)
+									Convey("Then there should be a server-side "+
+										"transfer entry in error", func() {
+										expected := model.Transfer{
+											ID:        2,
+											Owner:     database.Owner,
+											IsServer:  true,
+											AccountID: localAccount.ID,
+											AgentID:   localAgent.ID,
+											TrueFilepath: utils.NormalizePath(filepath.Join(
+												root, receive.InPath, trans.DestFile)),
+											SourceFile: trans.DestFile,
+											DestFile:   trans.DestFile,
+											RuleID:     receive.ID,
+											Start:      transfers[1].Start,
+											Status:     model.StatusError,
+											Error: model.TransferError{
+												Code:    model.TeExternalOperation,
+												Details: "Remote post-tasks failed",
+											},
+											Step:       model.StepPostTasks,
+											Progress:   0,
+											TaskNumber: 0,
+										}
+										So(transfers[0], ShouldResemble, expected)
 									})
 								})
 							})

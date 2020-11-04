@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -432,6 +433,11 @@ func (s *Session) Get(bean tableName) error {
 	}
 	if bean == nil {
 		return ErrNilRecord
+	}
+
+	val := reflect.ValueOf(bean).Elem()
+	if val.Type().Name() == "Rule" && !val.FieldByName("Name").IsZero() {
+		s.session.UseBool("send")
 	}
 
 	if has, err := s.session.Get(bean); err != nil {

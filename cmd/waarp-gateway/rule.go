@@ -9,7 +9,6 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 type ruleCommand struct {
@@ -22,7 +21,7 @@ type ruleCommand struct {
 }
 
 func checkRuleDir(direction string) error {
-	if direction != "SEND" && direction != "RECEIVE" {
+	if direction != "send" && direction != "receive" {
 		return fmt.Errorf("invalid rule direction '%s'", direction)
 	}
 	return nil
@@ -56,9 +55,9 @@ func displayTasks(w io.Writer, rule *rest.OutRule) {
 }
 
 func displayRule(w io.Writer, rule *rest.OutRule) {
-	way := "RECEIVE"
+	way := "receive"
 	if rule.IsSend {
-		way = "SEND"
+		way = "send"
 	}
 
 	servers := ""
@@ -164,6 +163,7 @@ type ruleAdd struct {
 }
 
 func (r *ruleAdd) Execute([]string) error {
+	isSend := r.Direction == "SEND"
 	rule := &rest.InRule{
 		UptRule: &rest.UptRule{
 			Name:     &r.Name,
@@ -173,7 +173,7 @@ func (r *ruleAdd) Execute([]string) error {
 			OutPath:  r.OutPath,
 			WorkPath: r.WorkPath,
 		},
-		IsSend: utils.BoolPtr(r.Direction == "SEND"),
+		IsSend: &isSend,
 	}
 	if err := parseTasks(rule.UptRule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {
 		return err

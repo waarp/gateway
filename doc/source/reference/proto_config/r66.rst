@@ -1,9 +1,18 @@
 Configuration R66
 #################
 
-À l'heure actuelle, le protocole R66 n'est pas supporté nativement par la
-*gateway*. Les transferts R66 sont géré indépendamment par une instance
-Waarp-R66 qui s'exécute en parallèle de la *gateway*.
+L'objet JSON de configuration du protocole SFTP est identique pour les serveurs
+et les partenaires. Sa structure est la suivante :
 
-Par conséquent, les partenaires R66 ne requièrent aucune configuration particulière,
-à leur création. La création de serveur locaux R66 n'est pas supportée.
+* **BlockSize** (*number*) - *Optionnel* La taille (en octets) d'un bloc de
+  données R66. Par défaut 65536.
+* **ServerPassword** (*string*) - Le mot de passe du serveur/partenaire R66.
+
+**Exemple**
+
+.. code-block:: json
+
+   {
+     "blockSize":
+     "macs":
+   }

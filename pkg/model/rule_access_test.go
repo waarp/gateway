@@ -61,7 +61,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 			lAccount := &LocalAccount{
 				LocalAgentID: lAgent.ID,
 				Login:        "Test",
-				Password:     []byte(""),
+				Password:     []byte("password"),
 			}
 			So(db.Create(lAccount), ShouldBeNil)
 

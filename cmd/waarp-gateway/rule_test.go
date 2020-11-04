@@ -18,15 +18,15 @@ import (
 
 func direction(r *model.Rule) string {
 	if r.IsSend {
-		return "SEND"
+		return "send"
 	}
-	return "RECEIVE"
+	return "receive"
 }
 
 func ruleInfoString(r *rest.OutRule) string {
-	way := "RECEIVE"
+	way := "receive"
 	if r.IsSend {
-		way = "SEND"
+		way = "send"
 	}
 
 	servers := strings.Join(r.Authorized.LocalServers, ", ")

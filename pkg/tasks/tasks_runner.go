@@ -110,7 +110,6 @@ func (p *Processor) RunTasks(tasks []model.Task) *model.PipelineError {
 			return err
 		}
 	}
-	p.Transfer.TaskNumber = 0
 	if err := p.DB.Update(p.Transfer); err != nil {
 		p.Logger.Warningf("failed to update task number: %s", err.Error())
 		return &model.PipelineError{Kind: model.KindDatabase}

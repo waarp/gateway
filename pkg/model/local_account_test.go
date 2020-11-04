@@ -132,7 +132,7 @@ func TestLocalAccountValidate(t *testing.T) {
 						So(newAccount.Validate(db), ShouldBeNil)
 
 						Convey("Then the account's password should be hashed", func() {
-							hash, err := hashPassword(newAccount.Password)
+							hash, err := HashPassword(newAccount.Password)
 							So(err, ShouldBeNil)
 							So(string(newAccount.Password), ShouldEqual, string(hash))
 						})

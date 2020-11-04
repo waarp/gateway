@@ -86,6 +86,6 @@ func (u *User) Validate(db database.Accessor) error {
 	}
 
 	var err error
-	u.Password, err = hashPassword(u.Password)
+	u.Password, err = HashPassword(u.Password)
 	return err
 }

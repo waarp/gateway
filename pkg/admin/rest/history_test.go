@@ -117,7 +117,7 @@ func TestListHistory(t *testing.T) {
 				Rule:           "rule1",
 				Start:          time.Date(2019, 01, 01, 02, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 06, 00, 00, 00, time.UTC),
-				Status:         "DONE",
+				Status:         model.StatusDone,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
@@ -135,7 +135,7 @@ func TestListHistory(t *testing.T) {
 				Rule:           "rule2",
 				Start:          time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 07, 00, 00, 00, time.UTC),
-				Status:         "ERROR",
+				Status:         model.StatusCancelled,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
@@ -153,7 +153,7 @@ func TestListHistory(t *testing.T) {
 				Rule:           "rule1",
 				Start:          time.Date(2019, 01, 01, 03, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 8, 00, 00, 00, time.UTC),
-				Status:         "ERROR",
+				Status:         model.StatusCancelled,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
@@ -171,7 +171,7 @@ func TestListHistory(t *testing.T) {
 				Rule:           "rule2",
 				Start:          time.Date(2019, 01, 01, 04, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 05, 00, 00, 00, time.UTC),
-				Status:         "DONE",
+				Status:         model.StatusDone,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
@@ -424,7 +424,7 @@ func TestRestartTransfer(t *testing.T) {
 			So(db.Create(&rule), ShouldBeNil)
 
 			h := &model.TransferHistory{
-				ID:             1,
+				ID:             2,
 				IsServer:       false,
 				IsSend:         rule.IsSend,
 				Rule:           rule.Name,
@@ -435,7 +435,7 @@ func TestRestartTransfer(t *testing.T) {
 				DestFilename:   "file.test",
 				Start:          time.Date(2019, 01, 01, 00, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
-				Status:         model.StatusError,
+				Status:         model.StatusCancelled,
 			}
 			So(db.Create(h), ShouldBeNil)
 

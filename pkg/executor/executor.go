@@ -3,11 +3,8 @@
 package executor
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"os/exec"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -86,6 +83,7 @@ func (e *Executor) data() *model.PipelineError {
 	}
 
 	e.Transfer.Step = model.StepData
+	e.Transfer.TaskNumber = 0
 	if err := e.DB.Update(e.Transfer); err != nil {
 		e.Logger.Criticalf("Failed to update transfer status: %s", err)
 		return model.NewPipelineError(model.TeInternal, err.Error())
@@ -120,14 +118,9 @@ func logTrans(logger *log.Logger, info *model.OutTransferInfo) {
 }
 
 func (e *Executor) prologue() *model.PipelineError {
-	oldStep := model.StepSetup
-	if e.Transfer.Step > model.StepSetup {
-		oldStep = e.Transfer.Step
+	if e.Transfer.Step < model.StepSetup {
+		e.Transfer.Step = model.StepSetup
 	}
-
-	e.Transfer.Step = model.StepSetup
-
-	defer func() { e.Transfer.Step = oldStep }()
 
 	e.Transfer.Status = model.StatusRunning
 
@@ -137,12 +130,13 @@ func (e *Executor) prologue() *model.PipelineError {
 	}
 
 	if err := e.getClient(e.TransferStream); err != nil {
+		e.Transfer.Step = model.StepSetup
 		return err
 	}
 
 	if err := e.setup(); err != nil {
+		e.Transfer.Step = model.StepSetup
 		_ = e.client.Close(err)
-
 		return err
 	}
 
@@ -157,11 +151,6 @@ func (e *Executor) run() *model.PipelineError {
 	}
 
 	logTrans(e.Logger, info)
-
-	if info.Agent.Protocol == "r66" {
-		e.runR66(info)
-		return nil
-	}
 
 	if err := e.prologue(); err != nil {
 		return err
@@ -182,13 +171,21 @@ func (e *Executor) run() *model.PipelineError {
 		return err
 	}
 
+	e.Transfer.Step = model.StepFinalization
+	e.Transfer.TaskNumber = 0
+	if err := e.DB.Update(e.Transfer); err != nil {
+		e.Logger.Criticalf("Failed to update transfer step to '%s': %s",
+			model.StepFinalization, err)
+		return &model.PipelineError{Kind: model.KindDatabase}
+	}
+
 	if err := e.client.Close(nil); err != nil {
 		e.Logger.Errorf("Remote post-task failed")
 		return err
 	}
 
-	e.TransferStream.Transfer.Step = model.StepNone
-	e.TransferStream.Transfer.Status = model.StatusDone
+	e.Transfer.Step = model.StepNone
+	e.Transfer.Status = model.StatusDone
 
 	return nil
 }
@@ -205,109 +202,4 @@ func (e *Executor) Run() {
 	if e.Archive() == nil {
 		e.Logger.Info("Execution finished without errors")
 	}
-}
-
-func (e *Executor) runR66(info *model.OutTransferInfo) {
-	e.Transfer.Step = model.StepSetup
-	e.Transfer.Status = model.StatusRunning
-
-	if err := e.DB.Update(e.Transfer); err != nil {
-		e.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
-		e.Transfer.Status = model.StatusError
-
-		return
-	}
-
-	if err := e.r66Transfer(info); err != nil {
-		msg := fmt.Sprintf("Transfer failed: %s", err)
-		e.Logger.Error(msg)
-		e.Transfer.Status = model.StatusError
-	} else {
-		e.Transfer.Status = model.StatusDone
-	}
-}
-
-//nolint:funlen,nestif,gomnd,goerr113 // temporary function that will eventually be removed
-func (e *Executor) r66Transfer(info *model.OutTransferInfo) error {
-	e.Logger.Infof("Delegating R66 transfer n°%d to external server", e.Transfer.ID)
-	script := e.R66Home
-	args := buildR66CommandArgs(info)
-
-	e.Logger.Debugf("%s %#v", script, args)
-	cmd := exec.Command(script, args...) //nolint:gosec //args has already been sanitized
-
-	out, err := cmd.Output()
-
-	defer func() {
-		e.Logger.Debug("R66 server output:")
-
-		for _, l := range bytes.Split(out, []byte{'\n'}) {
-			e.Logger.Debugf("    %s", string(l))
-		}
-	}()
-
-	if err != nil {
-		info.Transfer.Error = model.TransferError{
-			Code:    model.TeExternalOperation,
-			Details: err.Error(),
-		}
-
-		return err
-	}
-
-	if len(out) > 0 {
-		// Get the second line of the output
-		arrays := bytes.Split(out, []byte("\n"))
-		if len(arrays) < 2 {
-			return fmt.Errorf("bad output")
-		}
-
-		// Parse into a r66Result
-		result := &r66Result{}
-		if err2 := json.Unmarshal(arrays[1], result); err2 != nil {
-			return err2
-		}
-
-		if len(result.StatusCode) == 0 {
-			return fmt.Errorf("bad output")
-		}
-
-		e.Logger.Infof("R66 transfer finished with status code %s",
-			result.StatusCode)
-		// Add R66 result info to the transfer
-		info.Transfer.Error.Code = model.FromR66Code(result.StatusCode[0])
-		if info.Transfer.Error.Code != model.TeOk {
-			info.Transfer.Error.Details = result.StatusTxt
-		}
-
-		info.Transfer.DestFile = result.FinalPath
-
-		buf, err3 := json.Marshal(result)
-		if err3 != nil {
-			return err3
-		}
-
-		info.Transfer.ExtInfo = buf
-	}
-
-	return err
-}
-
-func buildR66CommandArgs(info *model.OutTransferInfo) []string {
-	return []string{
-		info.Account.Login,
-		"send",
-		"-to", info.Agent.Name,
-		"-file", info.Transfer.SourceFile,
-		"-rule", info.Rule.Name,
-	}
-}
-
-type r66Result struct {
-	SpecialID       int
-	StatusCode      string
-	StatusTxt       string
-	FinalPath       string
-	FileInformation string
-	OriginalSize    uint
 }

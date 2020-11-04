@@ -128,9 +128,9 @@ func FromRules(db *database.DB, rs []model.Rule) ([]OutRule, error) {
 
 func ruleDirection(rule *model.Rule) string {
 	if rule.IsSend {
-		return "SEND"
+		return "send"
 	}
-	return "RECEIVE"
+	return "receive"
 }
 
 func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {

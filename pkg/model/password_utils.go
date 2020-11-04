@@ -57,12 +57,12 @@ func DecryptPassword(cipher []byte) ([]byte, error) {
 	return password, nil
 }
 
-// hashPassword takes a slice of bytes representing a password and returns it
+// HashPassword takes a slice of bytes representing a password and returns it
 // hashed using the bcrypt hashing algorithm.
 //
 // If the password is already hashed, the hash is returned unchanged.
 // If the password cannot be hashed, an error is returned.
-func hashPassword(password []byte) ([]byte, error) {
+func HashPassword(password []byte) ([]byte, error) {
 
 	// If password is already hashed, don't encrypt it again.
 	if _, isHashed := bcrypt.Cost(password); isHashed == nil {

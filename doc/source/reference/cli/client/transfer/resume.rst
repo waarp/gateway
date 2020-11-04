@@ -8,8 +8,7 @@ Reprendre un transfert
 
 .. describe:: waarp-gateway <ADDR> transfer resume <TRANS>
 
-Reprend le transfert donné. Seuls les transferts interrompus ou en pause peuvent
-être repris.
+Reprend le transfert donné si celui-ci est interrompu, en pause ou en erreur.
 
 **Exemple**
 
