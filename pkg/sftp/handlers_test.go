@@ -3,7 +3,6 @@ package sftp
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -82,8 +81,7 @@ func TestFileReader(t *testing.T) {
 					}
 
 					Convey("When calling the handler", func() {
-						r, err := handler.Fileread(request)
-						Reset(func() { _ = r.(io.Closer).Close() })
+						_, err := handler.Fileread(request)
 
 						Convey("Then is should return NO error", func() {
 							So(err, ShouldBeNil)
@@ -192,8 +190,7 @@ func TestFileWriter(t *testing.T) {
 					}
 
 					Convey("When calling the handler", func() {
-						w, err := handler.Filewrite(request)
-						Reset(func() { _ = w.(io.Closer).Close() })
+						_, err := handler.Filewrite(request)
 
 						Convey("Then is should return NO error", func() {
 							So(err, ShouldBeNil)

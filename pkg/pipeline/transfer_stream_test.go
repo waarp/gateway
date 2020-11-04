@@ -105,6 +105,7 @@ func TestStreamRead(t *testing.T) {
 	logger := log.NewLogger("test_stream_read")
 
 	Convey("Given a file", t, func(c C) {
+		db := database.GetTestDatabase()
 		root := testhelpers.TempDir(c, "stream_read_root")
 
 		paths := Paths{PathsConfig: conf.PathsConfig{
@@ -121,7 +122,6 @@ func TestStreamRead(t *testing.T) {
 		So(ioutil.WriteFile(path, content, 0o600), ShouldBeNil)
 
 		Convey("Given a transfer stream to this file", func() {
-			db := database.GetTestDatabase()
 			rule := &model.Rule{
 				Name:    "rule",
 				Comment: "",
@@ -234,6 +234,8 @@ func TestStreamWrite(t *testing.T) {
 	logger := log.NewLogger("test_stream_read")
 
 	Convey("Given a file", t, func(c C) {
+		db := database.GetTestDatabase()
+
 		dstFile := "write_test.dst"
 		content := []byte("Transfer stream write test content")
 
@@ -247,7 +249,6 @@ func TestStreamWrite(t *testing.T) {
 		}}
 
 		Convey("Given a transfer stream", func() {
-			db := database.GetTestDatabase()
 			rule := &model.Rule{
 				Name:   "rule",
 				IsSend: false,

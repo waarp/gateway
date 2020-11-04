@@ -121,10 +121,6 @@ func (c *Client) Request() *model.PipelineError {
 
 // Data copies the content of the source file into the destination file.
 func (c *Client) Data(file pipeline.DataStream) *model.PipelineError {
-	defer func() {
-		_ = file.Close()
-	}()
-
 	err := func() error {
 		if !c.Info.Rule.IsSend {
 			_, err := c.remoteFile.WriteTo(file)
@@ -140,7 +136,7 @@ func (c *Client) Data(file pipeline.DataStream) *model.PipelineError {
 		// post-tasks. If the server is not a gateway, it will simply write the
 		// byte again.
 		b := make([]byte, 1)
-		if _, err := file.(io.ReaderAt).ReadAt(b, 0); err != nil {
+		if _, err := file.ReadAt(b, 0); err != nil {
 			return err
 		}
 		if stream, ok := file.(*pipeline.TransferStream); ok {

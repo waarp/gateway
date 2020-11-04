@@ -124,6 +124,7 @@ func TestSSHServer(t *testing.T) {
 
 	Convey("Given a server root", t, func(c C) {
 		root := testhelpers.TempDir(c, "test_server_root")
+		db := database.GetTestDatabase()
 
 		Convey("Given an SFTP server", func() {
 			listener, err := net.Listen("tcp", "localhost:0")
@@ -131,7 +132,6 @@ func TestSSHServer(t *testing.T) {
 			_, port, err := net.SplitHostPort(listener.Addr().String())
 			So(err, ShouldBeNil)
 
-			db := database.GetTestDatabase()
 			otherAgent := &model.LocalAgent{
 				Name:        "other_agent",
 				Protocol:    "sftp",
@@ -265,8 +265,8 @@ func TestSSHServer(t *testing.T) {
 									AccountID: user.ID,
 									AgentID:   agent.ID,
 									TrueFilepath: utils.NormalizePath(
-										filepath.Join(root, receive.InPath,
-											"test_in_shutdown.dst")),
+										filepath.Join(root, receive.WorkPath,
+											"test_in_shutdown.dst.tmp")),
 									SourceFile: "test_in_shutdown.dst",
 									DestFile:   "test_in_shutdown.dst",
 									RuleID:     receive.ID,
@@ -515,7 +515,7 @@ func TestSSHServer(t *testing.T) {
 										AccountID:        user.ID,
 										AgentID:          agent.ID,
 										TrueFilepath: utils.NormalizePath(filepath.Join(
-											root, receive.InPath, "test_in_fail.dst")),
+											root, receive.WorkPath, "test_in_fail.dst.tmp")),
 										SourceFile: "test_in_fail.dst",
 										DestFile:   "test_in_fail.dst",
 										RuleID:     receive.ID,

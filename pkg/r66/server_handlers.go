@@ -148,6 +148,9 @@ func (t *transferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 	if t.stream.Close() != nil {
 		return &r66.Error{Code: r66.FinalOp, Detail: "failed to finalize transfer"}
 	}
+	if t.stream.Move() != nil {
+		return &r66.Error{Code: r66.FinalOp, Detail: "failed to finalize transfer"}
+	}
 
 	if !t.stream.Rule.IsSend {
 		if t.hasFileSize && t.stream.Transfer.Progress != t.fileSize {

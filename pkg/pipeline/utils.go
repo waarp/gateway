@@ -148,8 +148,6 @@ func makeDir(uri string) error {
 // HandleError analyses the given error, and executes the necessary steps
 // corresponding to the error kind.
 func HandleError(stream *TransferStream, err *model.PipelineError) {
-	_ = stream.Close()
-
 	switch err.Kind {
 	case model.KindDatabase:
 		stream.exit()

@@ -94,11 +94,15 @@ func (e *Executor) data() *model.PipelineError {
 	}
 
 	if err := e.client.Data(e.TransferStream); err != nil {
+		_ = e.Close()
 		e.Logger.Errorf("Error while transmitting data: %s", err)
 		return err
 	}
 
 	if err := e.Close(); err != nil {
+		return err.(*model.PipelineError)
+	}
+	if err := e.Move(); err != nil {
 		return err.(*model.PipelineError)
 	}
 
