@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	api "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/gorilla/mux"
@@ -16,7 +16,7 @@ import (
 )
 
 // transToDB transforms the JSON transfer into its database equivalent.
-func transToDB(trans *InTransfer, db *database.DB) (*model.Transfer, error) {
+func transToDB(trans *api.InTransfer, db *database.DB) (*model.Transfer, error) {
 	ruleID, accountID, agentID, err := getTransIDs(db, trans)
 	if err != nil {
 		return nil, err
@@ -33,13 +33,13 @@ func transToDB(trans *InTransfer, db *database.DB) (*model.Transfer, error) {
 }
 
 // FromTransfer transforms the given database transfer into its JSON equivalent.
-func FromTransfer(db *database.DB, trans *model.Transfer) (*OutTransfer, error) {
+func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, error) {
 	rule, requester, requested, err := getTransNames(db, trans)
 	if err != nil {
 		return nil, err
 	}
 
-	return &OutTransfer{
+	return &api.OutTransfer{
 		ID:           trans.ID,
 		Rule:         rule,
 		IsServer:     trans.IsServer,
@@ -60,8 +60,8 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*OutTransfer, error) 
 
 // FromTransfers transforms the given list of database transfers into its
 // JSON equivalent.
-func FromTransfers(db *database.DB, models []model.Transfer) ([]OutTransfer, error) {
-	jsonArray := make([]OutTransfer, len(models))
+func FromTransfers(db *database.DB, models []model.Transfer) ([]api.OutTransfer, error) {
+	jsonArray := make([]api.OutTransfer, len(models))
 	for i, t := range models {
 		trans := t
 		jsonObj, err := FromTransfer(db, &trans)
@@ -92,7 +92,7 @@ func getTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 func createTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonTrans := &InTransfer{}
+			jsonTrans := &api.InTransfer{}
 			if err := readJSON(r, jsonTrans); err != nil {
 				return err
 			}
@@ -154,7 +154,7 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutTransfer{"transfers": json}
+			resp := map[string][]api.OutTransfer{"transfers": json}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {

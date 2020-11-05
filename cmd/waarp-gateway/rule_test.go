@@ -10,7 +10,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
@@ -24,7 +24,7 @@ func direction(r *model.Rule) string {
 	return "receive"
 }
 
-func ruleInfoString(r *models.OutRule) string {
+func ruleInfoString(r *api.OutRule) string {
 	way := "receive"
 	if r.IsSend {
 		way = "send"
@@ -47,7 +47,7 @@ func ruleInfoString(r *models.OutRule) string {
 	locAcc := strings.Join(la, ", ")
 	remAcc := strings.Join(ra, ", ")
 
-	taskStr := func(tasks []models.Task) string {
+	taskStr := func(tasks []api.Task) string {
 		str := ""
 		for i, t := range tasks {
 			prefix := "    ├─Command "
@@ -82,34 +82,34 @@ func TestDisplayRule(t *testing.T) {
 	Convey("Given a rule entry", t, func() {
 		out = testFile()
 
-		rule := &models.OutRule{
+		rule := &api.OutRule{
 			Name:    "rule_name",
 			Comment: "this is a comment",
 			IsSend:  true,
 			Path:    "rule/path",
 			InPath:  "rule/in_path",
 			OutPath: "rule/out_path",
-			Authorized: &models.RuleAccess{
+			Authorized: &api.RuleAccess{
 				LocalServers:   []string{"server1", "server2"},
 				RemotePartners: []string{"partner1", "partner2"},
 				LocalAccounts:  map[string][]string{"server3": {"account1", "account2"}},
 				RemoteAccounts: map[string][]string{"partner3": {"account3", "account4"}},
 			},
-			PreTasks: []models.Task{{
+			PreTasks: []api.Task{{
 				Type: "COPY",
 				Args: json.RawMessage(`{"path":"/path/to/copy"}`),
 			}, {
 				Type: "EXEC",
 				Args: json.RawMessage(`{"path":"/path/to/script","args":"{}","delay":"0"}`),
 			}},
-			PostTasks: []models.Task{{
+			PostTasks: []api.Task{{
 				Type: "DELETE",
 				Args: json.RawMessage("{}"),
 			}, {
 				Type: "TRANSFER",
 				Args: json.RawMessage(`{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}`),
 			}},
-			ErrorTasks: []models.Task{{
+			ErrorTasks: []api.Task{{
 				Type: "MOVE",
 				Args: json.RawMessage(`{"path":"/path/to/move"}`),
 			}, {

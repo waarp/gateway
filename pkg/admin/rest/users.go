@@ -3,7 +3,7 @@ package rest
 import (
 	"net/http"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -11,15 +11,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func newInUser(old *model.User) *InUser {
-	return &InUser{
+func newInUser(old *model.User) *api.InUser {
+	return &api.InUser{
 		Username: &old.Username,
 		Password: old.Password,
 	}
 }
 
 // userToDB transforms the JSON user into its database equivalent.
-func userToDB(user *InUser, id uint64) *model.User {
+func userToDB(user *api.InUser, id uint64) *model.User {
 	return &model.User{
 		ID:       id,
 		Owner:    database.Owner,
@@ -29,17 +29,17 @@ func userToDB(user *InUser, id uint64) *model.User {
 }
 
 // FromUser transforms the given database user into its JSON equivalent.
-func FromUser(user *model.User) *OutUser {
-	return &OutUser{
+func FromUser(user *model.User) *api.OutUser {
+	return &api.OutUser{
 		Username: user.Username,
 	}
 }
 
 // FromUsers transforms the given list of user into its JSON equivalent.
-func FromUsers(usr []model.User) []OutUser {
-	users := make([]OutUser, len(usr))
+func FromUsers(usr []model.User) []api.OutUser {
+	users := make([]api.OutUser, len(usr))
 	for i, user := range usr {
-		users[i] = OutUser{
+		users[i] = api.OutUser{
 			Username: user.Username,
 		}
 	}
@@ -94,7 +94,7 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutUser{"users": FromUsers(results)}
+			resp := map[string][]api.OutUser{"users": FromUsers(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -106,7 +106,7 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func createUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonUser := &InUser{}
+			jsonUser := &api.InUser{}
 			if err := readJSON(r, jsonUser); err != nil {
 				return err
 			}
@@ -161,7 +161,7 @@ func replaceUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			user := &InUser{}
+			user := &api.InUser{}
 			if err := readJSON(r, user); err != nil {
 				return err
 			}

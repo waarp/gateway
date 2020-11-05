@@ -3,7 +3,7 @@ package rest
 import (
 	"net/http"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -71,7 +71,7 @@ func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutAccount{"remoteAccounts": FromRemoteAccounts(results, rules)}
+			resp := map[string][]api.OutAccount{"remoteAccounts": FromRemoteAccounts(results, rules)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -136,7 +136,7 @@ func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc 
 				return err
 			}
 
-			acc := &InAccount{}
+			acc := &api.InAccount{}
 			if err := readJSON(r, acc); err != nil {
 				return err
 			}
@@ -163,7 +163,7 @@ func createRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			acc := &InAccount{}
+			acc := &api.InAccount{}
 			if err := readJSON(r, acc); err != nil {
 				return err
 			}

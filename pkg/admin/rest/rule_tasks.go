@@ -1,14 +1,14 @@
 package rest
 
 import (
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
 
 // taskToDB transforms the JSON task into its database equivalent.
-func taskToDB(task Task) *model.Task {
+func taskToDB(task api.Task) *model.Task {
 	return &model.Task{
 		Type: task.Type,
 		Args: task.Args,
@@ -17,10 +17,10 @@ func taskToDB(task Task) *model.Task {
 
 // FromRuleTasks transforms the given list of database tasks into its JSON
 // equivalent.
-func FromRuleTasks(ts []model.Task) []Task {
-	tasks := make([]Task, len(ts))
+func FromRuleTasks(ts []model.Task) []api.Task {
+	tasks := make([]api.Task, len(ts))
 	for i, task := range ts {
-		tasks[i] = Task{
+		tasks[i] = api.Task{
 			Type: task.Type,
 			Args: task.Args,
 		}
@@ -28,7 +28,7 @@ func FromRuleTasks(ts []model.Task) []Task {
 	return tasks
 }
 
-func doListTasks(db *database.DB, rule *OutRule, ruleID uint64) error {
+func doListTasks(db *database.DB, rule *api.OutRule, ruleID uint64) error {
 	preTasks := []model.Task{}
 	preFilters := &database.Filters{
 		Order:      "rank ASC",
@@ -62,7 +62,7 @@ func doListTasks(db *database.DB, rule *OutRule, ruleID uint64) error {
 	return nil
 }
 
-func taskUpdateDelete(ses *database.Session, rule *UptRule, ruleID uint64,
+func taskUpdateDelete(ses *database.Session, rule *api.UptRule, ruleID uint64,
 	isReplace bool) error {
 
 	if isReplace {
@@ -92,7 +92,7 @@ func taskUpdateDelete(ses *database.Session, rule *UptRule, ruleID uint64,
 	return nil
 }
 
-func doTaskUpdate(ses *database.Session, rule *UptRule, ruleID uint64,
+func doTaskUpdate(ses *database.Session, rule *api.UptRule, ruleID uint64,
 	isReplace bool) error {
 
 	if err := taskUpdateDelete(ses, rule, ruleID, isReplace); err != nil {

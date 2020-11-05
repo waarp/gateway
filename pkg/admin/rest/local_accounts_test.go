@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"testing"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"

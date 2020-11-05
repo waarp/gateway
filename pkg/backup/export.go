@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
@@ -25,7 +25,7 @@ func ExportData(db *database.DB, w io.Writer, targets []string) error {
 	}
 	defer ses.Rollback()
 
-	data := &Data{}
+	data := &file.Data{}
 
 	if utils.ContainsStrings(targets, "servers", "all") {
 		data.Locals, err = exportLocals(logger, ses)

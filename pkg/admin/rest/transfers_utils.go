@@ -6,13 +6,13 @@ import (
 	"strconv"
 	"time"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
 
-func getTransIDs(db *database.DB, trans *InTransfer) (uint64, uint64, uint64, error) {
+func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64, error) {
 	rule := &model.Rule{Name: trans.Rule, IsSend: trans.IsSend}
 	if err := db.Get(rule); err != nil {
 		if err == database.ErrNotFound {

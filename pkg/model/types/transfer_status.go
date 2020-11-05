@@ -1,3 +1,4 @@
+// Package types contains all the special types used by the database models.
 package types
 
 // TransferStatus represents the valid statuses for a transfer entry.

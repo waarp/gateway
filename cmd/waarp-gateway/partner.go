@@ -8,7 +8,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
 
 type partnerCommand struct {
@@ -27,7 +27,7 @@ type partnerCommand struct {
 	} `command:"cert" description:"Manage an partner's certificates"`
 }
 
-func displayPartner(w io.Writer, partner *models.OutPartner) {
+func displayPartner(w io.Writer, partner *api.OutPartner) {
 	send := strings.Join(partner.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(partner.AuthorizedRules.Reception, ", ")
 
@@ -50,7 +50,7 @@ type partnerAdd struct {
 }
 
 func (p *partnerAdd) Execute([]string) error {
-	partner := models.InPartner{
+	partner := api.InPartner{
 		Name:        &p.Name,
 		Protocol:    &p.Protocol,
 		Address:     &p.Address,
@@ -76,7 +76,7 @@ type partnerList struct {
 func (p *partnerList) Execute([]string) error {
 	agentListURL(rest.PartnersPath, &p.listOptions, p.SortBy, p.Protocols)
 
-	body := map[string][]models.OutPartner{}
+	body := map[string][]api.OutPartner{}
 	if err := list(&body); err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ type partnerGet struct {
 func (p *partnerGet) Execute([]string) error {
 	addr.Path = admin.APIPath + rest.PartnersPath + "/" + p.Args.Name
 
-	partner := &models.OutPartner{}
+	partner := &api.OutPartner{}
 	if err := get(partner); err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ type partnerUpdate struct {
 }
 
 func (p *partnerUpdate) Execute([]string) error {
-	partner := &models.InPartner{
+	partner := &api.InPartner{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
 		Address:     p.Address,

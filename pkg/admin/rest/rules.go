@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -12,7 +12,7 @@ import (
 )
 
 // ruleToDB transforms the JSON transfer rule into its database equivalent.
-func ruleToDB(rule *InRule, id uint64) (*model.Rule, error) {
+func ruleToDB(rule *api.InRule, id uint64) (*model.Rule, error) {
 	if rule.IsSend == nil {
 		return nil, badRequest("missing rule direction")
 	}
@@ -28,8 +28,8 @@ func ruleToDB(rule *InRule, id uint64) (*model.Rule, error) {
 	}, nil
 }
 
-func newUptRule(old *model.Rule) *UptRule {
-	return &UptRule{
+func newUptRule(old *model.Rule) *api.UptRule {
+	return &api.UptRule{
 		Name:     &old.Name,
 		Comment:  &old.Comment,
 		Path:     &old.Path,
@@ -40,7 +40,7 @@ func newUptRule(old *model.Rule) *UptRule {
 }
 
 // ruleUptToDB transforms the JSON transfer rule into its database equivalent.
-func ruleUptToDB(rule *UptRule, id uint64) *model.Rule {
+func ruleUptToDB(rule *api.UptRule, id uint64) *model.Rule {
 	return &model.Rule{
 		ID:       id,
 		Name:     str(rule.Name),
@@ -53,13 +53,13 @@ func ruleUptToDB(rule *UptRule, id uint64) *model.Rule {
 }
 
 // FromRule transforms the given database transfer rule into its JSON equivalent.
-func FromRule(db *database.DB, r *model.Rule) (*OutRule, error) {
+func FromRule(db *database.DB, r *model.Rule) (*api.OutRule, error) {
 	access, err := makeRuleAccess(db, r)
 	if err != nil {
 		return nil, err
 	}
 
-	rule := &OutRule{
+	rule := &api.OutRule{
 		Name:       r.Name,
 		Comment:    r.Comment,
 		IsSend:     r.IsSend,
@@ -77,8 +77,8 @@ func FromRule(db *database.DB, r *model.Rule) (*OutRule, error) {
 
 // FromRules transforms the given list of database transfer rules into its JSON
 // equivalent.
-func FromRules(db *database.DB, rs []model.Rule) ([]OutRule, error) {
-	rules := make([]OutRule, len(rs))
+func FromRules(db *database.DB, rs []model.Rule) ([]api.OutRule, error) {
+	rules := make([]api.OutRule, len(rs))
 	for i, r := range rs {
 		rule := r
 		res, err := FromRule(db, &rule)
@@ -119,7 +119,7 @@ func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {
 func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonRule := &InRule{}
+			jsonRule := &api.InRule{}
 			if err := readJSON(r, jsonRule); err != nil {
 				return err
 			}
@@ -199,7 +199,7 @@ func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutRule{"rules": rules}
+			resp := map[string][]api.OutRule{"rules": rules}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -255,7 +255,7 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			rule := &UptRule{}
+			rule := &api.UptRule{}
 			if err := readJSON(r, rule); err != nil {
 				return err
 			}

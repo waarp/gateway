@@ -1,6 +1,5 @@
-// Package backup provides two methods too generate export of the database for
-// backup or migration purpose, and to import a previous dump in order to
-// restore the database.
+// Package file contains the declaration of the struct describing the JSON
+// object used in backup files.
 package file
 
 import "encoding/json"

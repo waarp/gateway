@@ -6,7 +6,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
 
 type remoteAccountCommand struct {
@@ -41,7 +41,7 @@ func (r *remAccGet) Execute([]string) error {
 	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner +
 		rest.AccountsPath + "/" + r.Args.Login
 
-	account := &models.OutAccount{}
+	account := &api.OutAccount{}
 	if err := get(account); err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ type remAccAdd struct {
 }
 
 func (r *remAccAdd) Execute([]string) error {
-	account := models.InAccount{
+	account := api.InAccount{
 		Login:    &r.Login,
 		Password: []byte(r.Password),
 	}
@@ -102,7 +102,7 @@ type remAccUpdate struct {
 }
 
 func (r *remAccUpdate) Execute([]string) error {
-	account := &models.InAccount{
+	account := &api.InAccount{
 		Login:    r.Login,
 		Password: parseOptBytes(r.Password),
 	}
@@ -134,7 +134,7 @@ func (r *remAccList) Execute([]string) error {
 	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner + rest.AccountsPath
 	listURL(&r.listOptions, r.SortBy)
 
-	body := map[string][]models.OutAccount{}
+	body := map[string][]api.OutAccount{}
 	if err := list(&body); err != nil {
 		return err
 	}

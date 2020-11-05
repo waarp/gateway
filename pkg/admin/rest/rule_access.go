@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"net/http"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
 
-func getAuthorizedRules(db *database.DB, objType string, objID uint64) (*AuthorizedRules, error) {
+func getAuthorizedRules(db *database.DB, objType string, objID uint64) (*api.AuthorizedRules, error) {
 	query := "(id IN (SELECT DISTINCT rule_id FROM rule_access WHERE " +
 		"object_id = ? AND object_type = ?)) OR (SELECT COUNT(*) FROM " +
 		"rule_access WHERE rule_id = id) = 0"
@@ -22,7 +22,7 @@ func getAuthorizedRules(db *database.DB, objType string, objID uint64) (*Authori
 		return nil, err
 	}
 
-	authorized := &AuthorizedRules{}
+	authorized := &api.AuthorizedRules{}
 	for _, rule := range rules {
 		if rule.IsSend { // if send == true
 			authorized.Sending = append(authorized.Sending, rule.Name)
@@ -33,8 +33,8 @@ func getAuthorizedRules(db *database.DB, objType string, objID uint64) (*Authori
 	return authorized, nil
 }
 
-func getAuthorizedRuleList(db *database.DB, objType string, ids []uint64) ([]AuthorizedRules, error) {
-	rules := make([]AuthorizedRules, len(ids))
+func getAuthorizedRuleList(db *database.DB, objType string, ids []uint64) ([]api.AuthorizedRules, error) {
+	rules := make([]api.AuthorizedRules, len(ids))
 	for i, obj := range ids {
 		r, err := getAuthorizedRules(db, objType, obj)
 		if err != nil {
@@ -248,7 +248,7 @@ func makeRemoteAccountAccess(db *database.DB, rule *model.Rule) (map[string][]st
 	return convertAgentIDs(db, false, accessIDs)
 }
 
-func makeRuleAccess(db *database.DB, rule *model.Rule) (*RuleAccess, error) {
+func makeRuleAccess(db *database.DB, rule *model.Rule) (*api.RuleAccess, error) {
 	servers, err := makeServerAccess(db, rule)
 	if err != nil {
 		return nil, err
@@ -267,7 +267,7 @@ func makeRuleAccess(db *database.DB, rule *model.Rule) (*RuleAccess, error) {
 		return nil, err
 	}
 
-	return &RuleAccess{
+	return &api.RuleAccess{
 		LocalServers:   servers,
 		RemotePartners: partners,
 		LocalAccounts:  locAccounts,

@@ -1,4 +1,4 @@
-package models
+package api
 
 // InAccount is the JSON representation of a local/remote account in requests
 // made to the REST interface.

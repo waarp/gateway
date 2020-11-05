@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/go-xorm/builder"
 )
@@ -18,22 +18,22 @@ func init() {
 
 // Transfer represents one record of the 'transfers' table.
 type Transfer struct {
-	ID               uint64         `xorm:"pk autoincr <- 'id'"`
-	RemoteTransferID string         `xorm:"unique(transRemID) 'remote_transfer_id'"`
-	RuleID           uint64         `xorm:"notnull 'rule_id'"`
-	IsServer         bool           `xorm:"notnull 'is_server'"`
-	AgentID          uint64         `xorm:"notnull 'agent_id'"`
-	AccountID        uint64         `xorm:"notnull unique(transRemID) 'account_id'"`
-	TrueFilepath     string         `xorm:"notnull 'true_filepath'"`
-	SourceFile       string         `xorm:"notnull 'source_file'"`
-	DestFile         string         `xorm:"notnull 'dest_file'"`
-	Start            time.Time      `xorm:"notnull 'start'"`
-	Step             TransferStep   `xorm:"notnull varchar(50) 'step'"`
-	Status           TransferStatus `xorm:"notnull 'status'"`
-	Owner            string         `xorm:"notnull 'owner'"`
-	Progress         uint64         `xorm:"notnull 'progression'"`
-	TaskNumber       uint64         `xorm:"notnull 'task_number'"`
-	Error            TransferError  `xorm:"extends"`
+	ID               uint64               `xorm:"pk autoincr <- 'id'"`
+	RemoteTransferID string               `xorm:"unique(transRemID) 'remote_transfer_id'"`
+	RuleID           uint64               `xorm:"notnull 'rule_id'"`
+	IsServer         bool                 `xorm:"notnull 'is_server'"`
+	AgentID          uint64               `xorm:"notnull 'agent_id'"`
+	AccountID        uint64               `xorm:"notnull unique(transRemID) 'account_id'"`
+	TrueFilepath     string               `xorm:"notnull 'true_filepath'"`
+	SourceFile       string               `xorm:"notnull 'source_file'"`
+	DestFile         string               `xorm:"notnull 'dest_file'"`
+	Start            time.Time            `xorm:"notnull 'start'"`
+	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
+	Status           types.TransferStatus `xorm:"notnull 'status'"`
+	Owner            string               `xorm:"notnull 'owner'"`
+	Progress         uint64               `xorm:"notnull 'progression'"`
+	TaskNumber       uint64               `xorm:"notnull 'task_number'"`
+	Error            types.TransferError  `xorm:"extends"`
 }
 
 // TableName returns the name of the transfers table.
@@ -145,9 +145,9 @@ func (t *Transfer) Validate(db database.Accessor) error {
 		t.Start = time.Now().Truncate(time.Second)
 	}
 	if t.Status == "" {
-		t.Status = StatusPlanned
+		t.Status = types.StatusPlanned
 	}
-	if !ValidateStatusForTransfer(t.Status) {
+	if !types.ValidateStatusForTransfer(t.Status) {
 		return database.InvalidError("'%s' is not a valid transfer status", t.Status)
 	}
 	if !t.Step.IsValid() {
@@ -224,7 +224,7 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		accountLogin = account.Login
 		protocol = agent.Protocol
 	}
-	if !ValidateStatusForHistory(t.Status) {
+	if !types.ValidateStatusForHistory(t.Status) {
 		return nil, fmt.Errorf(
 			"a transfer cannot be recorded in history with status '%s'", t.Status,
 		)

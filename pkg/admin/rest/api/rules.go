@@ -1,4 +1,4 @@
-package models
+package api
 
 // AuthorizedRules represents a list of all the rules which an agent/account
 // is allowed to use

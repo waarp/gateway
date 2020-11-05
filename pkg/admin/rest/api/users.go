@@ -1,4 +1,6 @@
-package models
+// Package api contains all the struct models describing the various JSON
+// objects used by the REST API.
+package api
 
 // InUser is the JSON representation of a user account in requests made to the
 // REST interface.

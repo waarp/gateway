@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func importRules(logger *log.Logger, db *database.Session, list []Rule) error {
+func importRules(logger *log.Logger, db *database.Session, list []file.Rule) error {
 
 	for _, src := range list {
 
@@ -161,7 +161,7 @@ func createLocalAccess(db *database.Session, arr []string,
 	}, nil
 }
 
-func importRuleTasks(logger *log.Logger, db *database.Session, list []Task,
+func importRuleTasks(logger *log.Logger, db *database.Session, list []file.Task,
 	ruleID uint64, chain model.Chain) error {
 
 	if len(list) == 0 {

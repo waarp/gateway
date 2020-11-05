@@ -10,7 +10,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
@@ -20,7 +20,7 @@ type historyCommand struct {
 	Restart historyRetry `command:"retry" description:"Retry a failed transfer"`
 }
 
-func displayHistory(w io.Writer, hist *models.OutHistory) {
+func displayHistory(w io.Writer, hist *api.OutHistory) {
 	role := "client"
 	if hist.IsServer {
 		role = "server"
@@ -68,7 +68,7 @@ type historyGet struct {
 func (h *historyGet) Execute([]string) error {
 	addr.Path = admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID)
 
-	trans := &models.OutHistory{}
+	trans := &api.OutHistory{}
 	if err := get(trans); err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (h *historyList) Execute([]string) error {
 		return err
 	}
 
-	body := map[string][]models.OutHistory{}
+	body := map[string][]api.OutHistory{}
 	if err := list(&body); err != nil {
 		return err
 	}

@@ -3,19 +3,19 @@ package backup
 import (
 	"fmt"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
 
-func exportRules(logger *log.Logger, db *database.Session) ([]Rule, error) {
+func exportRules(logger *log.Logger, db *database.Session) ([]file.Rule, error) {
 	var dbRules []model.Rule
 	if err := db.Select(&dbRules, nil); err != nil {
 		return nil, err
 	}
-	res := make([]Rule, len(dbRules))
+	res := make([]file.Rule, len(dbRules))
 
 	for i, src := range dbRules {
 
@@ -37,7 +37,7 @@ func exportRules(logger *log.Logger, db *database.Session) ([]Rule, error) {
 		}
 
 		logger.Infof("Export Rule %s\n", src.Name)
-		Rule := Rule{
+		Rule := file.Rule{
 			Name:     src.Name,
 			IsSend:   src.IsSend,
 			Path:     src.Path,
@@ -114,7 +114,7 @@ func exportRuleAccesses(db *database.Session, RuleID uint64) ([]string, error) {
 	return res, nil
 }
 
-func exportRuleTasks(db *database.Session, RuleID uint64, chain string) ([]Task, error) {
+func exportRuleTasks(db *database.Session, RuleID uint64, chain string) ([]file.Task, error) {
 	var dbTasks []model.Task
 	filters := &database.Filters{
 		Conditions: builder.And(
@@ -126,10 +126,10 @@ func exportRuleTasks(db *database.Session, RuleID uint64, chain string) ([]Task,
 	if err := db.Select(&dbTasks, filters); err != nil {
 		return nil, err
 	}
-	res := make([]Task, len(dbTasks))
+	res := make([]file.Task, len(dbTasks))
 
 	for i, src := range dbTasks {
-		res[i] = Task{
+		res[i] = file.Task{
 			Type: src.Type,
 			Args: src.Args,
 		}

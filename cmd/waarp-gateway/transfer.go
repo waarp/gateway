@@ -9,7 +9,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
@@ -46,7 +46,7 @@ func coloredStatus(status types.TransferStatus) string {
 	return bold("[") + text + bold("]")
 }
 
-func displayTransfer(w io.Writer, trans *models.OutTransfer) {
+func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	role := "client"
 	if trans.IsServer {
 		role = "server"
@@ -88,7 +88,7 @@ func (t *transferAdd) Execute([]string) (err error) {
 		t.Name = t.File
 	}
 
-	trans := models.InTransfer{
+	trans := api.InTransfer{
 		Partner:    t.Partner,
 		Account:    t.Account,
 		IsSend:     t.Way == "push",
@@ -122,7 +122,7 @@ type transferGet struct {
 func (t *transferGet) Execute([]string) error {
 	addr.Path = admin.APIPath + rest.TransfersPath + "/" + fmt.Sprint(t.Args.ID)
 
-	trans := &models.OutTransfer{}
+	trans := &api.OutTransfer{}
 	if err := get(trans); err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (t *transferList) Execute([]string) error {
 		return err
 	}
 
-	body := map[string][]models.OutTransfer{}
+	body := map[string][]api.OutTransfer{}
 	if err := list(&body); err != nil {
 		return err
 	}

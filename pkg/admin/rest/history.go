@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -16,8 +16,8 @@ import (
 )
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
-func FromHistory(h *model.TransferHistory) *OutHistory {
-	return &OutHistory{
+func FromHistory(h *model.TransferHistory) *api.OutHistory {
+	return &api.OutHistory{
 		ID:             h.ID,
 		IsServer:       h.IsServer,
 		IsSend:         h.IsSend,
@@ -40,10 +40,10 @@ func FromHistory(h *model.TransferHistory) *OutHistory {
 
 // FromHistories transforms the given list of database history entries into its
 // JSON equivalent.
-func FromHistories(hs []model.TransferHistory) []OutHistory {
-	hist := make([]OutHistory, len(hs))
+func FromHistories(hs []model.TransferHistory) []api.OutHistory {
+	hist := make([]api.OutHistory, len(hs))
 	for i, h := range hs {
-		hist[i] = OutHistory{
+		hist[i] = api.OutHistory{
 			ID:             h.ID,
 			IsServer:       h.IsServer,
 			IsSend:         h.IsSend,
@@ -183,7 +183,7 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutHistory{"history": FromHistories(results)}
+			resp := map[string][]api.OutHistory{"history": FromHistories(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {

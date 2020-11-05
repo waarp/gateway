@@ -1,13 +1,13 @@
 package backup
 
 import (
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func importRemoteAgents(logger *log.Logger, db *database.Session, list []RemoteAgent) error {
+func importRemoteAgents(logger *log.Logger, db *database.Session, list []file.RemoteAgent) error {
 	for _, src := range list {
 		// Create model with basic info to check existence
 		agent := &model.RemoteAgent{
@@ -55,7 +55,7 @@ func importRemoteAgents(logger *log.Logger, db *database.Session, list []RemoteA
 }
 
 func importRemoteAccounts(logger *log.Logger, db *database.Session,
-	list []RemoteAccount, ownerID uint64) error {
+	list []file.RemoteAccount, ownerID uint64) error {
 
 	for _, src := range list {
 

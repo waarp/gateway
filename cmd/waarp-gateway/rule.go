@@ -9,7 +9,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
 
 type ruleCommand struct {
@@ -28,7 +28,7 @@ func checkRuleDir(direction string) error {
 	return nil
 }
 
-func displayTasks(w io.Writer, rule *models.OutRule) {
+func displayTasks(w io.Writer, rule *api.OutRule) {
 	fmt.Fprintln(w, orange("    Pre tasks:"))
 	for i, t := range rule.PreTasks {
 		prefix := "    ├─Command"
@@ -55,7 +55,7 @@ func displayTasks(w io.Writer, rule *models.OutRule) {
 	}
 }
 
-func displayRule(w io.Writer, rule *models.OutRule) {
+func displayRule(w io.Writer, rule *api.OutRule) {
 	way := "receive"
 	if rule.IsSend {
 		way = "send"
@@ -99,7 +99,7 @@ func displayRule(w io.Writer, rule *models.OutRule) {
 	fmt.Fprintln(w, bold("    └─Partner accounts:"), remAcc)
 }
 
-func parseTasks(rule *models.UptRule, pre, post, errs []string) error {
+func parseTasks(rule *api.UptRule, pre, post, errs []string) error {
 	if len(pre) > 0 {
 		preDecoder := json.NewDecoder(strings.NewReader("[" + strings.Join(pre, ",") + "]"))
 		preDecoder.DisallowUnknownFields()
@@ -140,7 +140,7 @@ func (r *ruleGet) Execute([]string) error {
 	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" +
 		strings.ToLower(r.Args.Direction)
 
-	rule := &models.OutRule{}
+	rule := &api.OutRule{}
 	if err := get(rule); err != nil {
 		return err
 	}
@@ -165,8 +165,8 @@ type ruleAdd struct {
 
 func (r *ruleAdd) Execute([]string) error {
 	isSend := r.Direction == "SEND"
-	rule := &models.InRule{
-		UptRule: &models.UptRule{
+	rule := &api.InRule{
+		UptRule: &api.UptRule{
 			Name:     &r.Name,
 			Comment:  r.Comment,
 			Path:     &r.Path,
@@ -221,7 +221,7 @@ func (r *ruleList) Execute([]string) error {
 	addr.Path = rest.APIPath + rest.RulesPath
 	listURL(&r.listOptions, r.SortBy)
 
-	body := map[string][]models.OutRule{}
+	body := map[string][]api.OutRule{}
 	if err := list(&body); err != nil {
 		return err
 	}
@@ -265,7 +265,7 @@ func (r *ruleUpdate) Execute([]string) error {
 	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" +
 		strings.ToLower(r.Args.Direction)
 
-	rule := &models.UptRule{
+	rule := &api.UptRule{
 		Name:     r.Name,
 		Comment:  r.Comment,
 		Path:     r.Path,

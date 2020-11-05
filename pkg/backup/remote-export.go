@@ -1,20 +1,20 @@
 package backup
 
 import (
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
 
-func exportRemotes(logger *log.Logger, db *database.Session) ([]RemoteAgent, error) {
+func exportRemotes(logger *log.Logger, db *database.Session) ([]file.RemoteAgent, error) {
 	var dbRemotes []model.RemoteAgent
 
 	if err := db.Select(&dbRemotes, nil); err != nil {
 		return nil, err
 	}
-	res := make([]RemoteAgent, len(dbRemotes))
+	res := make([]file.RemoteAgent, len(dbRemotes))
 
 	for i, src := range dbRemotes {
 
@@ -28,7 +28,7 @@ func exportRemotes(logger *log.Logger, db *database.Session) ([]RemoteAgent, err
 		}
 
 		logger.Infof("Export remote partner %s\n", src.Name)
-		agent := RemoteAgent{
+		agent := file.RemoteAgent{
 			Name:          src.Name,
 			Protocol:      src.Protocol,
 			Configuration: src.ProtoConfig,
@@ -41,7 +41,7 @@ func exportRemotes(logger *log.Logger, db *database.Session) ([]RemoteAgent, err
 }
 
 func exportRemoteAccounts(logger *log.Logger, db *database.Session,
-	agentID uint64) ([]RemoteAccount, error) {
+	agentID uint64) ([]file.RemoteAccount, error) {
 	var dbAccounts []model.RemoteAccount
 	filters := &database.Filters{
 		Conditions: builder.Eq{"remote_agent_id": agentID},
@@ -49,7 +49,7 @@ func exportRemoteAccounts(logger *log.Logger, db *database.Session,
 	if err := db.Select(&dbAccounts, filters); err != nil {
 		return nil, err
 	}
-	res := make([]RemoteAccount, len(dbAccounts))
+	res := make([]file.RemoteAccount, len(dbAccounts))
 
 	for i, src := range dbAccounts {
 
@@ -63,7 +63,7 @@ func exportRemoteAccounts(logger *log.Logger, db *database.Session,
 		}
 
 		logger.Infof("Export remote account %s\n", src.Login)
-		account := RemoteAccount{
+		account := file.RemoteAccount{
 			Login:    src.Login,
 			Password: string(pwd),
 			Certs:    certificates,

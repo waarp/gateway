@@ -1,4 +1,4 @@
-package models
+package api
 
 // Status is the status of the service
 type Status struct {

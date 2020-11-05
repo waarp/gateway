@@ -1,10 +1,13 @@
+// Package backup provides two methods too generate export of the database for
+// backup or migration purpose, and to import a previous dump in order to
+// restore the database.
 package backup
 
 import (
 	"encoding/json"
 	"io"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
@@ -21,7 +24,7 @@ import (
 func ImportData(db *database.DB, r io.Reader, targets []string, dry bool) error {
 	logger := log.NewLogger("import")
 
-	data := &Data{}
+	data := &file.Data{}
 	err := json.NewDecoder(r).Decode(data)
 	if err != nil {
 		return err

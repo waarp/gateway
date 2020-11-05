@@ -10,7 +10,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -18,7 +18,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func transferInfoString(t *models.OutTransfer) string {
+func transferInfoString(t *api.OutTransfer) string {
 	role := "client"
 	if t.IsServer {
 		role = "server"
@@ -49,7 +49,7 @@ func TestDisplayTransfer(t *testing.T) {
 	Convey("Given a transfer entry", t, func() {
 		out = testFile()
 
-		trans := &models.OutTransfer{
+		trans := &api.OutTransfer{
 			ID:           1,
 			Rule:         "rule",
 			Requester:    "requester",

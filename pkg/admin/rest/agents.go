@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"net/http"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/go-xorm/builder"
 )
 
-func newInServer(old *model.LocalAgent) *InServer {
-	return &InServer{
+func newInServer(old *model.LocalAgent) *api.InServer {
+	return &api.InServer{
 		Name:        &old.Name,
 		Protocol:    &old.Protocol,
 		Address:     &old.Address,
@@ -25,7 +25,7 @@ func newInServer(old *model.LocalAgent) *InServer {
 }
 
 // servToDB transforms the JSON local agent into its database equivalent.
-func servToDB(serv *InServer, id uint64) *model.LocalAgent {
+func servToDB(serv *api.InServer, id uint64) *model.LocalAgent {
 	return &model.LocalAgent{
 		ID:          id,
 		Owner:       database.Owner,
@@ -40,8 +40,8 @@ func servToDB(serv *InServer, id uint64) *model.LocalAgent {
 	}
 }
 
-func newInPartner(old *model.RemoteAgent) *InPartner {
-	return &InPartner{
+func newInPartner(old *model.RemoteAgent) *api.InPartner {
+	return &api.InPartner{
 		Name:        &old.Name,
 		Protocol:    &old.Protocol,
 		Address:     &old.Address,
@@ -50,7 +50,7 @@ func newInPartner(old *model.RemoteAgent) *InPartner {
 }
 
 // partToDB transforms the JSON remote agent into its database equivalent.
-func partToDB(part *InPartner, id uint64) *model.RemoteAgent {
+func partToDB(part *api.InPartner, id uint64) *model.RemoteAgent {
 	return &model.RemoteAgent{
 		ID:          id,
 		Name:        str(part.Name),
@@ -62,8 +62,8 @@ func partToDB(part *InPartner, id uint64) *model.RemoteAgent {
 
 // FromLocalAgent transforms the given database local agent into its JSON
 // equivalent.
-func FromLocalAgent(ag *model.LocalAgent, rules *AuthorizedRules) *OutServer {
-	return &OutServer{
+func FromLocalAgent(ag *model.LocalAgent, rules *api.AuthorizedRules) *api.OutServer {
+	return &api.OutServer{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
 		Address:         ag.Address,
@@ -78,8 +78,8 @@ func FromLocalAgent(ag *model.LocalAgent, rules *AuthorizedRules) *OutServer {
 
 // FromLocalAgents transforms the given list of database local agents into
 // its JSON equivalent.
-func FromLocalAgents(ags []model.LocalAgent, rules []AuthorizedRules) []OutServer {
-	agents := make([]OutServer, len(ags))
+func FromLocalAgents(ags []model.LocalAgent, rules []api.AuthorizedRules) []api.OutServer {
+	agents := make([]api.OutServer, len(ags))
 	for i, ag := range ags {
 		agent := ag
 		agents[i] = *FromLocalAgent(&agent, &rules[i])
@@ -89,8 +89,8 @@ func FromLocalAgents(ags []model.LocalAgent, rules []AuthorizedRules) []OutServe
 
 // FromRemoteAgent transforms the given database remote agent into its JSON
 // equivalent.
-func FromRemoteAgent(ag *model.RemoteAgent, rules *AuthorizedRules) *OutPartner {
-	return &OutPartner{
+func FromRemoteAgent(ag *model.RemoteAgent, rules *api.AuthorizedRules) *api.OutPartner {
+	return &api.OutPartner{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
 		Address:         ag.Address,
@@ -101,8 +101,8 @@ func FromRemoteAgent(ag *model.RemoteAgent, rules *AuthorizedRules) *OutPartner 
 
 // FromRemoteAgents transforms the given list of database remote agents into
 // its JSON equivalent.
-func FromRemoteAgents(ags []model.RemoteAgent, rules []AuthorizedRules) []OutPartner {
-	agents := make([]OutPartner, len(ags))
+func FromRemoteAgents(ags []model.RemoteAgent, rules []api.AuthorizedRules) []api.OutPartner {
+	agents := make([]api.OutPartner, len(ags))
 	for i, ag := range ags {
 		agent := ag
 		agents[i] = *FromRemoteAgent(&agent, &rules[i])

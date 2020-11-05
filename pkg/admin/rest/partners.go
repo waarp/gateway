@@ -3,7 +3,7 @@ package rest
 import (
 	"net/http"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -28,7 +28,7 @@ func getRemAg(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
 func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			part := &InPartner{}
+			part := &api.InPartner{}
 			if err := readJSON(r, part); err != nil {
 				return err
 			}
@@ -82,7 +82,7 @@ func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutPartner{"partners": FromRemoteAgents(results, rules)}
+			resp := map[string][]api.OutPartner{"partners": FromRemoteAgents(results, rules)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -167,7 +167,7 @@ func replaceRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			part := &InPartner{}
+			part := &api.InPartner{}
 			if err := readJSON(r, part); err != nil {
 				return err
 			}

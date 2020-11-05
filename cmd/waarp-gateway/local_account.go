@@ -7,7 +7,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
 
 type localAccountCommand struct {
@@ -29,7 +29,7 @@ type localAccountCommand struct {
 	} `command:"cert" description:"Manage an account's certificates"`
 }
 
-func displayAccount(w io.Writer, account *models.OutAccount) {
+func displayAccount(w io.Writer, account *api.OutAccount) {
 	send := strings.Join(account.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(account.AuthorizedRules.Reception, ", ")
 
@@ -47,7 +47,7 @@ type locAccAdd struct {
 }
 
 func (l *locAccAdd) Execute([]string) error {
-	account := &models.InAccount{
+	account := &api.InAccount{
 		Login:    &l.Login,
 		Password: []byte(l.Password),
 	}
@@ -74,7 +74,7 @@ func (l *locAccGet) Execute([]string) error {
 	addr.Path = admin.APIPath + rest.ServersPath + "/" + server +
 		rest.AccountsPath + "/" + l.Args.Login
 
-	account := &models.OutAccount{}
+	account := &api.OutAccount{}
 	if err := get(account); err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ type locAccUpdate struct {
 }
 
 func (l *locAccUpdate) Execute([]string) error {
-	account := &models.InAccount{
+	account := &api.InAccount{
 		Login:    l.Login,
 		Password: parseOptBytes(l.Password),
 	}
@@ -146,7 +146,7 @@ func (l *locAccList) Execute([]string) error {
 	addr.Path = rest.APIPath + rest.ServersPath + "/" + server + rest.AccountsPath
 	listURL(&l.listOptions, l.SortBy)
 
-	body := map[string][]models.OutAccount{}
+	body := map[string][]api.OutAccount{}
 	if err := list(&body); err != nil {
 		return err
 	}

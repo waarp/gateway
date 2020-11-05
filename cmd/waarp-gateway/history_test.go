@@ -11,7 +11,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -19,7 +19,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func historyInfoString(h *models.OutHistory) string {
+func historyInfoString(h *api.OutHistory) string {
 	role := "client"
 	if h.IsServer {
 		role = "server"
@@ -61,7 +61,7 @@ func TestDisplayHistory(t *testing.T) {
 	Convey("Given a history entry", t, func() {
 		out = testFile()
 
-		hist := &models.OutHistory{
+		hist := &api.OutHistory{
 			ID:             1,
 			IsServer:       true,
 			IsSend:         false,
@@ -97,7 +97,7 @@ func TestDisplayHistory(t *testing.T) {
 	Convey("Given a history entry with error", t, func() {
 		out = testFile()
 
-		hist := models.OutHistory{
+		hist := api.OutHistory{
 			ID:             1,
 			IsServer:       true,
 			IsSend:         false,

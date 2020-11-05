@@ -9,14 +9,14 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func partnerInfoString(p *models.OutPartner) string {
+func partnerInfoString(p *api.OutPartner) string {
 	return "● Partner " + p.Name + "\n" +
 		"    Protocol:      " + p.Protocol + "\n" +
 		"    Address:       " + p.Address + "\n" +
@@ -70,7 +70,7 @@ func TestGetPartner(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the partner's info", func() {
-						rules := &models.AuthorizedRules{
+						rules := &api.AuthorizedRules{
 							Sending:   []string{send.Name, sendAll.Name},
 							Reception: []string{receive.Name},
 						}
@@ -219,8 +219,8 @@ func TestListPartners(t *testing.T) {
 			}
 			So(db.Create(partner2), ShouldBeNil)
 
-			p1 := rest.FromRemoteAgent(partner1, &models.AuthorizedRules{})
-			p2 := rest.FromRemoteAgent(partner2, &models.AuthorizedRules{})
+			p1 := rest.FromRemoteAgent(partner1, &api.AuthorizedRules{})
+			p2 := rest.FromRemoteAgent(partner2, &api.AuthorizedRules{})
 
 			Convey("Given no parameters", func() {
 				var args []string
