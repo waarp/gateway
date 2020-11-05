@@ -3,18 +3,19 @@ package backup
 import (
 	"fmt"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
 
-func exportRules(logger *log.Logger, db *database.Session) ([]rule, error) {
-	dbRules := []model.Rule{}
+func exportRules(logger *log.Logger, db *database.Session) ([]Rule, error) {
+	var dbRules []model.Rule
 	if err := db.Select(&dbRules, nil); err != nil {
 		return nil, err
 	}
-	res := make([]rule, len(dbRules))
+	res := make([]Rule, len(dbRules))
 
 	for i, src := range dbRules {
 
@@ -35,8 +36,8 @@ func exportRules(logger *log.Logger, db *database.Session) ([]rule, error) {
 			return nil, err
 		}
 
-		logger.Infof("Export rule %s\n", src.Name)
-		rule := rule{
+		logger.Infof("Export Rule %s\n", src.Name)
+		Rule := Rule{
 			Name:     src.Name,
 			IsSend:   src.IsSend,
 			Path:     src.Path,
@@ -48,15 +49,15 @@ func exportRules(logger *log.Logger, db *database.Session) ([]rule, error) {
 			Post:     post,
 			Error:    errors,
 		}
-		res[i] = rule
+		res[i] = Rule
 	}
 	return res, nil
 }
 
-func exportRuleAccesses(db *database.Session, ruleID uint64) ([]string, error) {
-	dbAccs := []model.RuleAccess{}
+func exportRuleAccesses(db *database.Session, RuleID uint64) ([]string, error) {
+	var dbAccs []model.RuleAccess
 	filters := &database.Filters{
-		Conditions: builder.Eq{"rule_id": ruleID},
+		Conditions: builder.Eq{"Rule_id": RuleID},
 	}
 	if err := db.Select(&dbAccs, filters); err != nil {
 		return nil, err
@@ -113,11 +114,11 @@ func exportRuleAccesses(db *database.Session, ruleID uint64) ([]string, error) {
 	return res, nil
 }
 
-func exportRuleTasks(db *database.Session, ruleID uint64, chain string) ([]ruleTask, error) {
-	dbTasks := []model.Task{}
+func exportRuleTasks(db *database.Session, RuleID uint64, chain string) ([]Task, error) {
+	var dbTasks []model.Task
 	filters := &database.Filters{
 		Conditions: builder.And(
-			builder.Eq{"rule_id": ruleID},
+			builder.Eq{"Rule_id": RuleID},
 			builder.Eq{"chain": chain},
 		),
 		Order: "rank ASC",
@@ -125,10 +126,10 @@ func exportRuleTasks(db *database.Session, ruleID uint64, chain string) ([]ruleT
 	if err := db.Select(&dbTasks, filters); err != nil {
 		return nil, err
 	}
-	res := make([]ruleTask, len(dbTasks))
+	res := make([]Task, len(dbTasks))
 
 	for i, src := range dbTasks {
-		res[i] = ruleTask{
+		res[i] = Task{
 			Type: src.Type,
 			Args: src.Args,
 		}

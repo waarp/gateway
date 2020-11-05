@@ -1,12 +1,13 @@
 package backup
 
 import (
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func importCerts(logger *log.Logger, db *database.Session, list []certificate,
+func importCerts(logger *log.Logger, db *database.Session, list []Certificate,
 	ownerType string, ownerID uint64) error {
 
 	for _, src := range list {

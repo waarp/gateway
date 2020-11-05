@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
@@ -25,12 +26,12 @@ func TestImportRemoteAgents(t *testing.T) {
 			So(db.Create(agent), ShouldBeNil)
 
 			Convey("Given a list of new agents", func() {
-				agent1 := remoteAgent{
+				agent1 := RemoteAgent{
 					Name:          "foo",
 					Protocol:      "sftp",
 					Configuration: []byte(`{}`),
 					Address:       "localhost:2022",
-					Accounts: []remoteAccount{
+					Accounts: []RemoteAccount{
 						{
 							Login:    "test",
 							Password: "pwd",
@@ -40,7 +41,7 @@ func TestImportRemoteAgents(t *testing.T) {
 						},
 					},
 				}
-				agents := []remoteAgent{agent1}
+				agents := []RemoteAgent{agent1}
 
 				Convey("Given a new Transaction", func() {
 					ses, err := db.BeginTransaction()
@@ -67,7 +68,7 @@ func TestImportRemoteAgents(t *testing.T) {
 								So(dbAgent.ProtoConfig, ShouldResemble,
 									agent1.Configuration)
 
-								accounts := []model.RemoteAccount{}
+								var accounts []model.RemoteAccount
 								So(ses.Select(&accounts, &database.Filters{
 									Conditions: builder.Eq{"remote_agent_id": dbAgent.ID},
 								}), ShouldBeNil)
@@ -80,18 +81,18 @@ func TestImportRemoteAgents(t *testing.T) {
 			})
 
 			Convey("Given a list of fully updated agents", func() {
-				agent1 := remoteAgent{
+				agent1 := RemoteAgent{
 					Name:          "test",
 					Protocol:      "sftp",
 					Configuration: []byte(`{}`),
 					Address:       "localhost:90",
-					Accounts: []remoteAccount{
+					Accounts: []RemoteAccount{
 						{
 							Login:    "test",
 							Password: "pwd",
 						},
 					},
-					Certs: []certificate{
+					Certs: []Certificate{
 						{
 							Name:        "cert",
 							PublicKey:   "public",
@@ -100,7 +101,7 @@ func TestImportRemoteAgents(t *testing.T) {
 						},
 					},
 				}
-				agents := []remoteAgent{agent1}
+				agents := []RemoteAgent{agent1}
 
 				Convey("Given a new Transaction", func() {
 					ses, err := db.BeginTransaction()
@@ -127,14 +128,14 @@ func TestImportRemoteAgents(t *testing.T) {
 								So(dbAgent.ProtoConfig, ShouldResemble,
 									agent1.Configuration)
 
-								accounts := []model.RemoteAccount{}
+								var accounts []model.RemoteAccount
 								So(ses.Select(&accounts, &database.Filters{
 									Conditions: builder.Eq{"remote_agent_id": dbAgent.ID},
 								}), ShouldBeNil)
 
 								So(len(accounts), ShouldEqual, 1)
 
-								certs := []model.Cert{}
+								var certs []model.Cert
 								So(ses.Select(&certs, &database.Filters{
 									Conditions: builder.Eq{"owner_id": dbAgent.ID,
 										"owner_type": "remote_agents"},
@@ -171,15 +172,15 @@ func TestImportRemoteAccounts(t *testing.T) {
 			So(db.Create(dbAccount), ShouldBeNil)
 
 			Convey("Given a list of new accounts", func() {
-				account1 := remoteAccount{
+				account1 := RemoteAccount{
 					Login:    "test",
 					Password: "pwd",
 				}
-				account2 := remoteAccount{
+				account2 := RemoteAccount{
 					Login:    "test2",
 					Password: "pwd",
 				}
-				accounts := []remoteAccount{
+				accounts := []RemoteAccount{
 					account1, account2,
 				}
 
@@ -197,7 +198,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 						})
 						Convey("Then the database should contains the "+
 							"remote accounts", func() {
-							accounts := []model.RemoteAccount{}
+							var accounts []model.RemoteAccount
 							So(ses.Select(&accounts, &database.Filters{
 								Conditions: builder.Eq{"remote_agent_id": agent.ID},
 							}), ShouldBeNil)
@@ -239,10 +240,10 @@ func TestImportRemoteAccounts(t *testing.T) {
 			})
 
 			Convey("Given a list of fully updated agents", func() {
-				account1 := remoteAccount{
+				account1 := RemoteAccount{
 					Login:    "foo",
 					Password: "notbar",
-					Certs: []certificate{
+					Certs: []Certificate{
 						{
 							Name:        "cert",
 							PublicKey:   "public",
@@ -251,7 +252,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 						},
 					},
 				}
-				accounts := []remoteAccount{account1}
+				accounts := []RemoteAccount{account1}
 
 				Convey("Given a new Transaction", func() {
 					ses, err := db.BeginTransaction()
@@ -267,7 +268,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 						})
 						Convey("Then the database should contains the "+
 							"remote accounts", func() {
-							accounts := []model.RemoteAccount{}
+							var accounts []model.RemoteAccount
 							So(ses.Select(&accounts, &database.Filters{
 								Conditions: builder.Eq{"remote_agent_id": agent.ID},
 							}), ShouldBeNil)
@@ -282,7 +283,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 										Convey("When dbAccount is found", func() {
 											So(accounts[i].Password, ShouldNotResemble,
 												dbAccount.Password)
-											certs := []model.Cert{}
+											var certs []model.Cert
 											So(ses.Select(&certs, &database.Filters{
 												Conditions: builder.Eq{"owner_id": dbAccount.ID,
 													"owner_type": "remote_accounts"},
@@ -304,9 +305,9 @@ func TestImportRemoteAccounts(t *testing.T) {
 			})
 
 			Convey("Given a list of partially updated agents", func() {
-				account1 := remoteAccount{
+				account1 := RemoteAccount{
 					Login: "foo",
-					Certs: []certificate{
+					Certs: []Certificate{
 						{
 							Name:        "cert",
 							PublicKey:   "public",
@@ -315,7 +316,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 						},
 					},
 				}
-				accounts := []remoteAccount{account1}
+				accounts := []RemoteAccount{account1}
 
 				Convey("Given a new Transaction", func() {
 					ses, err := db.BeginTransaction()
@@ -331,7 +332,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 						})
 						Convey("Then the database should contains the "+
 							"remote accounts", func() {
-							accounts := []model.RemoteAccount{}
+							var accounts []model.RemoteAccount
 							So(ses.Select(&accounts, &database.Filters{
 								Conditions: builder.Eq{"remote_agent_id": agent.ID},
 							}), ShouldBeNil)
@@ -346,7 +347,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 										Convey("When dbAccount is found", func() {
 											So(accounts[i].Password, ShouldResemble,
 												dbAccount.Password)
-											certs := []model.Cert{}
+											var certs []model.Cert
 											So(ses.Select(&certs, &database.Filters{
 												Conditions: builder.Eq{"owner_id": dbAccount.ID,
 													"owner_type": "remote_accounts"},

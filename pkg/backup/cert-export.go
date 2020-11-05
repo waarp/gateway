@@ -1,6 +1,7 @@
 package backup
 
 import (
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -8,9 +9,9 @@ import (
 )
 
 func exportCertificates(logger *log.Logger, db *database.Session, ownerType string,
-	ownerID uint64) ([]certificate, error) {
+	ownerID uint64) ([]Certificate, error) {
 
-	dbCerts := []model.Cert{}
+	var dbCerts []model.Cert
 	filters := &database.Filters{
 		Conditions: builder.And(
 			builder.Eq{"owner_type": ownerType},
@@ -20,11 +21,11 @@ func exportCertificates(logger *log.Logger, db *database.Session, ownerType stri
 	if err := db.Select(&dbCerts, filters); err != nil {
 		return nil, err
 	}
-	res := make([]certificate, len(dbCerts))
+	res := make([]Certificate, len(dbCerts))
 
 	for i, src := range dbCerts {
-		logger.Infof("Export certificate %s\n", src.Name)
-		cert := certificate{
+		logger.Infof("Export Certificate %s\n", src.Name)
+		cert := Certificate{
 			Name:        src.Name,
 			PublicKey:   string(src.PublicKey),
 			PrivateKey:  string(src.PrivateKey),

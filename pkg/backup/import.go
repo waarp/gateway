@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
@@ -20,7 +21,7 @@ import (
 func ImportData(db *database.DB, r io.Reader, targets []string, dry bool) error {
 	logger := log.NewLogger("import")
 
-	data := &data{}
+	data := &Data{}
 	err := json.NewDecoder(r).Decode(data)
 	if err != nil {
 		return err
