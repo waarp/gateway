@@ -6,6 +6,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-r66/r66"
 	"code.waarp.fr/waarp-r66/r66/utils"
 )
@@ -43,7 +44,7 @@ func (h *clientRequestHandler) ValidRequest(r *r66.Request) (r66.TransferHandler
 		curBlock = r.Rank
 	}
 	r.Rank = curBlock
-	if h.info.Transfer.Step <= model.StepData {
+	if h.info.Transfer.Step <= types.StepData {
 		h.info.Transfer.Progress = uint64(curBlock) * uint64(r.Block)
 	}
 

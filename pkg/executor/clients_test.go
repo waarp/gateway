@@ -5,6 +5,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 )
 
@@ -13,11 +14,11 @@ func init() {
 }
 
 var (
-	errConn  = model.NewPipelineError(model.TeConnection, "connection failed")
-	errAuth  = model.NewPipelineError(model.TeBadAuthentication, "authentication failed")
-	errReq   = model.NewPipelineError(model.TeForbidden, "request failed")
-	errData  = model.NewPipelineError(model.TeDataTransfer, "data failed")
-	errClose = model.NewPipelineError(model.TeExternalOperation, "remote post-tasks failed")
+	errConn  = model.NewPipelineError(types.TeConnection, "connection failed")
+	errAuth  = model.NewPipelineError(types.TeBadAuthentication, "authentication failed")
+	errReq   = model.NewPipelineError(types.TeForbidden, "request failed")
+	errData  = model.NewPipelineError(types.TeDataTransfer, "data failed")
+	errClose = model.NewPipelineError(types.TeExternalOperation, "remote post-tasks failed")
 )
 
 type TestProtoConfig struct{}
@@ -35,7 +36,7 @@ func (AllSuccess) Authenticate() *model.PipelineError { return nil }
 func (AllSuccess) Request() *model.PipelineError      { return nil }
 func (a AllSuccess) Data(f pipeline.DataStream) *model.PipelineError {
 	if _, err := ioutil.ReadAll(f); err != nil {
-		return model.NewPipelineError(model.TeUnknown, err.Error())
+		return model.NewPipelineError(types.TeUnknown, err.Error())
 	}
 	return nil
 }

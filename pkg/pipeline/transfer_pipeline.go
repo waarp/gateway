@@ -6,6 +6,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 )
 
@@ -25,23 +26,23 @@ type Pipeline struct {
 // PreTasks executes the transfer's pre-tasks. It returns an error if the
 // execution fails.
 func (p *Pipeline) PreTasks() *model.PipelineError {
-	if p.Transfer.Step > model.StepPreTasks {
+	if p.Transfer.Step > types.StepPreTasks {
 		return nil
 	}
 
 	p.Logger.Info("Executing pre-tasks")
-	return execTasks(p.proc, model.ChainPre, model.StepPreTasks)
+	return execTasks(p.proc, model.ChainPre, types.StepPreTasks)
 }
 
 // PostTasks executes the transfer's post-tasks. It returns an error if the
 // execution fails.
 func (p *Pipeline) PostTasks() *model.PipelineError {
-	if p.Transfer.Step > model.StepPostTasks {
+	if p.Transfer.Step > types.StepPostTasks {
 		return nil
 	}
 
 	p.Logger.Info("Executing post-tasks")
-	return execTasks(p.proc, model.ChainPost, model.StepPostTasks)
+	return execTasks(p.proc, model.ChainPost, types.StepPostTasks)
 }
 
 // ErrorTasks updates the transfer's error in the database with the given one,
@@ -58,7 +59,7 @@ func (p *Pipeline) ErrorTasks() {
 	p.Transfer.TaskNumber = 0
 
 	p.Logger.Info("Executing error tasks")
-	_ = execTasks(p.proc, model.ChainError, model.StepErrorTasks)
+	_ = execTasks(p.proc, model.ChainError, types.StepErrorTasks)
 }
 
 // Archive deletes the transfer entry and saves it in the history.

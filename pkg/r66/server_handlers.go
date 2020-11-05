@@ -9,6 +9,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-r66/r66"
 	"code.waarp.fr/waarp-r66/r66/utils"
@@ -103,7 +104,7 @@ func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler
 		SourceFile:       path.Base(request.Filepath),
 		DestFile:         path.Base(request.Filepath),
 		Start:            time.Now(),
-		Status:           model.StatusRunning,
+		Status:           types.StatusRunning,
 	}
 
 	tStream, err := pipeline.NewTransferStream(s.ctx, s.logger, s.db, s.paths, &trans)
@@ -187,9 +188,9 @@ func (t *transferHandler) RunPostTask() error {
 }
 
 func (t *transferHandler) ValidEndRequest() error {
-	t.stream.Transfer.Step = model.StepNone
+	t.stream.Transfer.Step = types.StepNone
 	t.stream.Transfer.TaskNumber = 0
-	t.stream.Transfer.Status = model.StatusDone
+	t.stream.Transfer.Status = types.StatusDone
 	if err := t.stream.Archive(); err != nil {
 		return &r66.Error{Code: r66.Internal, Detail: "failed to archive transfer"}
 	}
@@ -199,21 +200,21 @@ func (t *transferHandler) ValidEndRequest() error {
 func (t *transferHandler) RunErrorTask(protoErr error) error {
 	_ = t.stream.File.Close()
 
-	if t.stream.Transfer.Error.Code == model.TeOk {
+	if t.stream.Transfer.Error.Code == types.TeOk {
 		if r66Err, ok := protoErr.(*r66.Error); ok {
-			t.stream.Transfer.Error.Code = model.FromR66Code(r66Err.Code)
+			t.stream.Transfer.Error.Code = types.FromR66Code(r66Err.Code)
 			t.stream.Transfer.Error.Details = r66Err.Detail
 		} else {
-			t.stream.Transfer.Error.Code = model.TeUnknownRemote
+			t.stream.Transfer.Error.Code = types.TeUnknownRemote
 			t.stream.Transfer.Error.Details = protoErr.Error()
 		}
 	}
 
 	t.stream.ErrorTasks()
-	t.stream.Transfer.Status = model.StatusError
+	t.stream.Transfer.Status = types.StatusError
 	if err := t.db.Update(t.stream.Transfer); err != nil {
 		t.logger.Criticalf("Failed to update transfer status to '%s': %s",
-			model.StatusError, err)
+			types.StatusError, err)
 		return &r66.Error{Code: r66.Internal, Detail: "failed to archive transfer"}
 	}
 	return nil

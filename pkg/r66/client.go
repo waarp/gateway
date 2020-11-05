@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
@@ -53,7 +54,7 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 		var err error
 		tlsConf, err = makeClientTLSConfig(&info)
 		if err != nil {
-			return nil, model.NewPipelineError(model.TeInternal, "invalid R66 TLS config")
+			return nil, model.NewPipelineError(types.TeInternal, "invalid R66 TLS config")
 		}
 	}
 
@@ -110,9 +111,9 @@ func (c *client) Connect() *model.PipelineError {
 
 	if err != nil {
 		if r66Err, ok := err.(*r66.Error); ok {
-			return model.NewPipelineError(model.FromR66Code(r66Err.Code), r66Err.Detail)
+			return model.NewPipelineError(types.FromR66Code(r66Err.Code), r66Err.Detail)
 		}
-		return model.NewPipelineError(model.TeConnection, err.Error())
+		return model.NewPipelineError(types.TeConnection, err.Error())
 	}
 	c.remote = remote
 	return nil
@@ -122,9 +123,9 @@ func (c *client) Authenticate() *model.PipelineError {
 	ses, err := c.remote.Authent()
 	if err != nil {
 		if r66Err, ok := err.(*r66.Error); ok {
-			return model.NewPipelineError(model.FromR66Code(r66Err.Code), r66Err.Detail)
+			return model.NewPipelineError(types.FromR66Code(r66Err.Code), r66Err.Detail)
 		}
-		return model.NewPipelineError(model.TeBadAuthentication, err.Error())
+		return model.NewPipelineError(types.TeBadAuthentication, err.Error())
 	}
 	c.session = ses
 	return nil
@@ -138,7 +139,7 @@ func (c *client) Request() *model.PipelineError {
 
 		stats, err := os.Stat(utils.DenormalizePath(c.info.Transfer.TrueFilepath))
 		if err != nil {
-			return model.NewPipelineError(model.TeInternal, err.Error())
+			return model.NewPipelineError(types.TeInternal, err.Error())
 		}
 		size = uint64(stats.Size())
 	}
@@ -160,9 +161,9 @@ func (c *client) Request() *model.PipelineError {
 
 	if err := c.session.Request(trans); err != nil {
 		if r66Err, ok := err.(*r66.Error); ok {
-			return model.NewPipelineError(model.FromR66Code(r66Err.Code), r66Err.Detail)
+			return model.NewPipelineError(types.FromR66Code(r66Err.Code), r66Err.Detail)
 		}
-		return model.NewPipelineError(model.TeConnection, err.Error())
+		return model.NewPipelineError(types.TeConnection, err.Error())
 	}
 	return nil
 }
@@ -173,15 +174,15 @@ func (c *client) Data(file pipeline.DataStream) *model.PipelineError {
 
 	if err := c.session.Data(); err != nil {
 		if e, ok := err.(*r66.Error); ok {
-			return model.NewPipelineError(model.FromR66Code(e.Code), e.Detail)
+			return model.NewPipelineError(types.FromR66Code(e.Code), e.Detail)
 		}
-		return model.NewPipelineError(model.TeDataTransfer, err.Error())
+		return model.NewPipelineError(types.TeDataTransfer, err.Error())
 	}
 	if err := c.session.EndTransfer(); err != nil {
 		if e, ok := err.(*r66.Error); ok {
-			return model.NewPipelineError(model.FromR66Code(e.Code), e.Detail)
+			return model.NewPipelineError(types.FromR66Code(e.Code), e.Detail)
 		}
-		return model.NewPipelineError(model.TeDataTransfer, err.Error())
+		return model.NewPipelineError(types.TeDataTransfer, err.Error())
 	}
 	return nil
 }
@@ -200,9 +201,9 @@ func (c *client) Close(err *model.PipelineError) *model.PipelineError {
 	if !c.hasData && err == nil {
 		if err1 := c.session.EndTransfer(); err1 != nil {
 			if e, ok := err1.(*r66.Error); ok {
-				return model.NewPipelineError(model.FromR66Code(e.Code), e.Detail)
+				return model.NewPipelineError(types.FromR66Code(e.Code), e.Detail)
 			}
-			return model.NewPipelineError(model.TeDataTransfer, err1.Error())
+			return model.NewPipelineError(types.TeDataTransfer, err1.Error())
 		}
 	}
 
@@ -212,9 +213,9 @@ func (c *client) Close(err *model.PipelineError) *model.PipelineError {
 			return nil
 		}
 		if e, ok := err1.(*r66.Error); ok {
-			return model.NewPipelineError(model.FromR66Code(e.Code), e.Detail)
+			return model.NewPipelineError(types.FromR66Code(e.Code), e.Detail)
 		}
-		return model.NewPipelineError(model.TeUnknownRemote, err1.Error())
+		return model.NewPipelineError(types.TeUnknownRemote, err1.Error())
 	}
 
 	r66Err := &r66.Error{Code: err.Cause.Code.R66Code(), Detail: err.Cause.Details}

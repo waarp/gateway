@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
@@ -156,11 +157,11 @@ func TestStreamRead(t *testing.T) {
 				SourceFile: srcFile,
 				DestFile:   dstFile,
 				Start:      time.Now(),
-				Status:     model.StatusRunning,
+				Status:     types.StatusRunning,
 				Owner:      database.Owner,
 				Progress:   0,
 				TaskNumber: 0,
-				Error:      model.TransferError{},
+				Error:      types.TransferError{},
 			}
 			So(db.Create(trans), ShouldBeNil)
 
@@ -273,11 +274,11 @@ func TestStreamWrite(t *testing.T) {
 				SourceFile: "write_test.src",
 				DestFile:   dstFile,
 				Start:      time.Now(),
-				Status:     model.StatusRunning,
+				Status:     types.StatusRunning,
 				Owner:      database.Owner,
 				Progress:   0,
 				TaskNumber: 0,
-				Error:      model.TransferError{},
+				Error:      types.TransferError{},
 			}
 			So(db.Create(trans), ShouldBeNil)
 

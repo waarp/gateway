@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
@@ -81,7 +82,7 @@ func ToHistory(db *database.DB, logger *log.Logger, trans *model.Transfer) error
 }
 
 func execTasks(proc *tasks.Processor, chain model.Chain,
-	step model.TransferStep) *model.PipelineError {
+	step types.TransferStep) *model.PipelineError {
 
 	proc.Transfer.Step = step
 	if err := proc.DB.Update(proc.Transfer); err != nil {
@@ -105,12 +106,12 @@ func getFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.F
 		file, err := os.OpenFile(path, os.O_RDONLY, 0600)
 		if err != nil {
 			logger.Errorf("Failed to open source file: %s", err)
-			return nil, model.NewPipelineError(model.TeForbidden, err.Error())
+			return nil, model.NewPipelineError(types.TeForbidden, err.Error())
 		}
 		if trans.Progress != 0 {
 			if _, err := file.Seek(int64(trans.Progress), io.SeekStart); err != nil {
 				logger.Errorf("Failed to seek inside file: %s", err)
-				return nil, model.NewPipelineError(model.TeForbidden, err.Error())
+				return nil, model.NewPipelineError(types.TeForbidden, err.Error())
 			}
 		}
 		return file, nil
@@ -119,12 +120,12 @@ func getFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.F
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		logger.Errorf("Failed to create destination file (%s): %s", path, err)
-		return nil, model.NewPipelineError(model.TeForbidden, err.Error())
+		return nil, model.NewPipelineError(types.TeForbidden, err.Error())
 	}
 	if trans.Progress != 0 {
 		if _, err := file.Seek(int64(trans.Progress), io.SeekStart); err != nil {
 			logger.Errorf("Failed to seek inside file: %s", err)
-			return nil, model.NewPipelineError(model.TeForbidden, err.Error())
+			return nil, model.NewPipelineError(types.TeForbidden, err.Error())
 		}
 	}
 	return file, nil
@@ -154,21 +155,21 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 	case model.KindDatabase:
 		stream.exit()
 	case model.KindInterrupt:
-		stream.Transfer.Status = model.StatusInterrupted
+		stream.Transfer.Status = types.StatusInterrupted
 		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		stream.exit()
 		stream.Logger.Info("Transfer interrupted")
 	case model.KindPause:
-		stream.Transfer.Status = model.StatusPaused
+		stream.Transfer.Status = types.StatusPaused
 		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		stream.exit()
 		stream.Logger.Info("Transfer paused")
 	case model.KindCancel:
-		stream.Transfer.Status = model.StatusCancelled
+		stream.Transfer.Status = types.StatusCancelled
 		_ = os.Remove(stream.File.Name())
 		_ = stream.Archive()
 		stream.Logger.Info("Transfer cancelled by user")
@@ -177,10 +178,10 @@ func HandleError(stream *TransferStream, err *model.PipelineError) {
 		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
-		if stream.Transfer.Step != model.StepNone {
+		if stream.Transfer.Step != types.StepNone {
 			stream.ErrorTasks()
 		}
-		stream.Transfer.Status = model.StatusError
+		stream.Transfer.Status = types.StatusError
 		stream.Transfer.Error = err.Cause
 		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer status to '%s': %s",

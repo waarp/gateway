@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/go-xorm/builder"
 )
 
@@ -46,20 +47,20 @@ func (p *Processor) runTask(task model.Task, taskInfo string) *model.PipelineErr
 	runnable, ok := RunnableTasks[task.Type]
 	if !ok {
 		logMsg := fmt.Sprintf("%s: unknown task", taskInfo)
-		return model.NewPipelineError(model.TeExternalOperation, logMsg)
+		return model.NewPipelineError(types.TeExternalOperation, logMsg)
 	}
 	args, err := p.setup(&task)
 	if err != nil {
 		logMsg := fmt.Sprintf("%s: %s", taskInfo, err.Error())
 		p.Logger.Error(logMsg)
-		return model.NewPipelineError(model.TeExternalOperation, logMsg)
+		return model.NewPipelineError(types.TeExternalOperation, logMsg)
 	}
 
 	if val, ok := runnable.(model.Validator); ok {
 		if err := val.Validate(args); err != nil {
 			logMsg := fmt.Sprintf("%s: %s", taskInfo, err.Error())
 			p.Logger.Error(logMsg)
-			return model.NewPipelineError(model.TeExternalOperation, logMsg)
+			return model.NewPipelineError(types.TeExternalOperation, logMsg)
 		}
 	}
 
@@ -68,10 +69,10 @@ func (p *Processor) runTask(task model.Task, taskInfo string) *model.PipelineErr
 	if err != nil {
 		if err != errWarning {
 			p.Logger.Error(logMsg)
-			return model.NewPipelineError(model.TeExternalOperation, logMsg)
+			return model.NewPipelineError(types.TeExternalOperation, logMsg)
 		}
 		p.Logger.Warning(logMsg)
-		p.Transfer.Error = model.NewTransferError(model.TeWarning, logMsg)
+		p.Transfer.Error = types.NewTransferError(types.TeWarning, logMsg)
 		if err := p.DB.Update(p.Transfer); err != nil {
 			p.Logger.Warningf("Failed to update task status: %s", err.Error())
 			return &model.PipelineError{Kind: model.KindDatabase}

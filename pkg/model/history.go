@@ -6,6 +6,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
 func init() {
@@ -94,7 +95,7 @@ func (h *TransferHistory) Validate(database.Accessor) error {
 		return database.InvalidError("'%s' is not a valid protocol", h.Protocol)
 	}
 
-	if !validateStatusForHistory(h.Status) {
+	if !ValidateStatusForHistory(h.Status) {
 		return database.InvalidError("'%s' is not a valid transfer history status", h.Status)
 	}
 

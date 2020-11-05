@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -68,7 +69,7 @@ func TestSetup(t *testing.T) {
 					IsServer:  false,
 					AgentID:   agent.ID,
 					AccountID: account.ID,
-					Error: model.TransferError{
+					Error: types.TransferError{
 						Details: `", "bad":1`,
 					},
 				},
@@ -451,7 +452,7 @@ func TestRunTasks(t *testing.T) {
 						So(<-dummyTaskCheck, ShouldEqual, "DONE")
 
 						Convey("Then the transfer should have a warning", func() {
-							So(trans.Error.Code, ShouldEqual, model.TeWarning)
+							So(trans.Error.Code, ShouldEqual, types.TeWarning)
 							So(trans.Error.Details, ShouldEqual, "Task TESTWARNING @ rule PRE[1]: warning message")
 						})
 					})

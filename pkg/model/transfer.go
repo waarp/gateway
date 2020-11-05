@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/go-xorm/builder"
 )
@@ -146,7 +147,7 @@ func (t *Transfer) Validate(db database.Accessor) error {
 	if t.Status == "" {
 		t.Status = StatusPlanned
 	}
-	if !validateStatusForTransfer(t.Status) {
+	if !ValidateStatusForTransfer(t.Status) {
 		return database.InvalidError("'%s' is not a valid transfer status", t.Status)
 	}
 	if !t.Step.IsValid() {
@@ -223,7 +224,7 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 		accountLogin = account.Login
 		protocol = agent.Protocol
 	}
-	if !validateStatusForHistory(t.Status) {
+	if !ValidateStatusForHistory(t.Status) {
 		return nil, fmt.Errorf(
 			"a transfer cannot be recorded in history with status '%s'", t.Status,
 		)

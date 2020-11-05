@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	"code.waarp.fr/waarp-r66/r66"
 	. "github.com/smartystreets/goconvey/convey"
@@ -107,7 +108,7 @@ func TestTLS(t *testing.T) {
 				err := client.Connect()
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError, model.TransferError{Code: model.TeConnection,
+					So(err, ShouldBeError, types.TransferError{Code: types.TeConnection,
 						Details: "x509: certificate signed by unknown authority"})
 				})
 			})

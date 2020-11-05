@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
@@ -270,8 +271,8 @@ func TestSSHServer(t *testing.T) {
 									SourceFile: "test_in_shutdown.dst",
 									DestFile:   "test_in_shutdown.dst",
 									RuleID:     receive.ID,
-									Status:     model.StatusInterrupted,
-									Step:       model.StepData,
+									Status:     types.StatusInterrupted,
+									Step:       types.StepData,
 									Owner:      database.Owner,
 									Progress:   1,
 								}
@@ -318,8 +319,8 @@ func TestSSHServer(t *testing.T) {
 									SourceFile: "test_out_shutdown.src",
 									DestFile:   "test_out_shutdown.src",
 									RuleID:     send.ID,
-									Status:     model.StatusInterrupted,
-									Step:       model.StepData,
+									Status:     types.StatusInterrupted,
+									Step:       types.StepData,
 									Owner:      database.Owner,
 									Progress:   1,
 								}
@@ -401,7 +402,7 @@ func TestSSHServer(t *testing.T) {
 									SourceFilename: file,
 									DestFilename:   file,
 									Rule:           receive.Name,
-									Status:         model.StatusDone,
+									Status:         types.StatusDone,
 								}
 
 								So(db.Get(hist), ShouldBeNil)
@@ -465,7 +466,7 @@ func TestSSHServer(t *testing.T) {
 									SourceFilename: "test_in_1.dst",
 									DestFilename:   "test_in_1.dst",
 									Rule:           receive.Name,
-									Status:         model.StatusDone,
+									Status:         types.StatusDone,
 								}
 								hist2 := &model.TransferHistory{
 									IsServer:       true,
@@ -476,7 +477,7 @@ func TestSSHServer(t *testing.T) {
 									SourceFilename: "test_in_2.dst",
 									DestFilename:   "test_in_2.dst",
 									Rule:           receive.Name,
-									Status:         model.StatusDone,
+									Status:         types.StatusDone,
 								}
 
 								So(client.Close(), ShouldBeNil)
@@ -520,9 +521,9 @@ func TestSSHServer(t *testing.T) {
 										DestFile:   "test_in_fail.dst",
 										RuleID:     receive.ID,
 										Start:      t[0].Start,
-										Status:     model.StatusError,
-										Step:       model.StepData,
-										Error: model.NewTransferError(model.TeConnectionReset,
+										Status:     types.StatusError,
+										Step:       types.StepData,
+										Error: types.NewTransferError(types.TeConnectionReset,
 											"SFTP connection closed unexpectedly"),
 										Progress: 1,
 									}
@@ -592,7 +593,7 @@ func TestSSHServer(t *testing.T) {
 									SourceFilename: "test_out.src",
 									DestFilename:   "test_out.src",
 									Rule:           send.Name,
-									Status:         model.StatusDone,
+									Status:         types.StatusDone,
 								}
 
 								So(db.Get(hist), ShouldBeNil)
@@ -633,9 +634,9 @@ func TestSSHServer(t *testing.T) {
 										DestFile:   "test_out.src",
 										RuleID:     send.ID,
 										Start:      t[0].Start,
-										Status:     model.StatusError,
-										Step:       model.StepData,
-										Error: model.NewTransferError(model.TeConnectionReset,
+										Status:     types.StatusError,
+										Step:       types.StepData,
+										Error: types.NewTransferError(types.TeConnectionReset,
 											"SFTP connection closed unexpectedly"),
 										Progress: 1,
 									}

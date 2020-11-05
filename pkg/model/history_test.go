@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

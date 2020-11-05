@@ -1,5 +1,7 @@
 package model
 
+import . "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+
 // ErrorKind states the origin of a transfer error. The error  handling varies
 // depending on the kind of the error.
 type ErrorKind byte

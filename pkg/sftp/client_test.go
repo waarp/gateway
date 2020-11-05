@@ -10,6 +10,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -58,7 +59,7 @@ func TestConnect(t *testing.T) {
 
 				Convey("Then it should return an error", func() {
 					So(err.Kind, ShouldEqual, model.KindTransfer)
-					So(err.Cause.Code, ShouldEqual, model.TeConnection)
+					So(err.Cause.Code, ShouldEqual, types.TeConnection)
 
 					Convey("Then the connection should NOT be open", func() {
 						So(client.conn, ShouldBeNil)
@@ -204,7 +205,7 @@ func TestRequest(t *testing.T) {
 			err := client.Request()
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldResemble, model.NewPipelineError(model.TeFileNotFound,
+				So(err, ShouldResemble, model.NewPipelineError(types.TeFileNotFound,
 					"Target file does not exist"))
 
 				Convey("Then the file stream should NOT be open", func() {
