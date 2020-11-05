@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -13,28 +14,6 @@ import (
 	"github.com/go-xorm/builder"
 	"github.com/gorilla/mux"
 )
-
-// OutHistory is the JSON representation of a history entry in responses sent by
-// the REST interface.
-type OutHistory struct {
-	ID             uint64                  `json:"id"`
-	IsServer       bool                    `json:"isServer"`
-	IsSend         bool                    `json:"isSend"`
-	Requester      string                  `json:"requester"`
-	Requested      string                  `json:"requested"`
-	Protocol       string                  `json:"protocol"`
-	SourceFilename string                  `json:"sourceFilename"`
-	DestFilename   string                  `json:"destFilename"`
-	Rule           string                  `json:"rule"`
-	Start          time.Time               `json:"start"`
-	Stop           time.Time               `json:"stop"`
-	Status         model.TransferStatus    `json:"status"`
-	ErrorCode      model.TransferErrorCode `json:"errorCode,omitempty"`
-	ErrorMsg       string                  `json:"errorMsg,omitempty"`
-	Step           model.TransferStep      `json:"step,omitempty"`
-	Progress       uint64                  `json:"progress,omitempty"`
-	TaskNumber     uint64                  `json:"taskNumber,omitempty"`
-}
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
 func FromHistory(h *model.TransferHistory) *OutHistory {

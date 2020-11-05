@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 )
 
 type serverCommand struct {
@@ -26,7 +27,7 @@ type serverCommand struct {
 	} `command:"cert" description:"Manage a server's certificates"`
 }
 
-func displayServer(w io.Writer, server *rest.OutServer) {
+func displayServer(w io.Writer, server *models.OutServer) {
 	send := strings.Join(server.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(server.AuthorizedRules.Reception, ", ")
 
@@ -54,7 +55,7 @@ type serverGet struct {
 func (s *serverGet) Execute([]string) error {
 	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Name
 
-	server := &rest.OutServer{}
+	server := &models.OutServer{}
 	if err := get(server); err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ type serverAdd struct {
 }
 
 func (s *serverAdd) Execute([]string) error {
-	server := &rest.InServer{
+	server := &models.InServer{
 		Name:        &s.Name,
 		Protocol:    &s.Protocol,
 		Address:     &s.Address,
@@ -124,7 +125,7 @@ type serverList struct {
 func (s *serverList) Execute([]string) error {
 	agentListURL(rest.ServersPath, &s.listOptions, s.SortBy, s.Protocols)
 
-	body := map[string][]rest.OutServer{}
+	body := map[string][]models.OutServer{}
 	if err := list(&body); err != nil {
 		return err
 	}
@@ -160,7 +161,7 @@ type serverUpdate struct {
 }
 
 func (s *serverUpdate) Execute([]string) error {
-	server := &rest.InServer{
+	server := &models.InServer{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
 		Address:     s.Address,

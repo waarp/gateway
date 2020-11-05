@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/gorilla/mux"
 
@@ -14,21 +15,9 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-// InTransfer is the JSON representation of a transfer in requests made to
-// the REST interface.
-type InTransfer struct {
-	Rule       string    `json:"rule"`
-	Partner    string    `json:"partner"`
-	Account    string    `json:"account"`
-	IsSend     bool      `json:"isSend"`
-	SourcePath string    `json:"sourcePath"`
-	DestPath   string    `json:"destPath"`
-	Start      time.Time `json:"startDate"`
-}
-
-// ToModel transforms the JSON transfer into its database equivalent.
-func (i *InTransfer) ToModel(db *database.DB) (*model.Transfer, error) {
-	ruleID, accountID, agentID, err := getTransIDs(db, i)
+// transToDB transforms the JSON transfer into its database equivalent.
+func transToDB(trans *InTransfer, db *database.DB) (*model.Transfer, error) {
+	ruleID, accountID, agentID, err := getTransIDs(db, trans)
 	if err != nil {
 		return nil, err
 	}
@@ -37,30 +26,10 @@ func (i *InTransfer) ToModel(db *database.DB) (*model.Transfer, error) {
 		IsServer:   false,
 		AgentID:    agentID,
 		AccountID:  accountID,
-		SourceFile: i.SourcePath,
-		DestFile:   i.DestPath,
-		Start:      i.Start,
+		SourceFile: trans.SourcePath,
+		DestFile:   trans.DestPath,
+		Start:      trans.Start,
 	}, nil
-}
-
-// OutTransfer is the JSON representation of a transfer in responses sent by
-// the REST interface.
-type OutTransfer struct {
-	ID           uint64                  `json:"id"`
-	Rule         string                  `json:"rule"`
-	IsServer     bool                    `json:"isServer"`
-	Requested    string                  `json:"requested"`
-	Requester    string                  `json:"requester"`
-	TrueFilepath string                  `json:"trueFilepath"`
-	SourcePath   string                  `json:"sourcePath"`
-	DestPath     string                  `json:"destPath"`
-	Start        time.Time               `json:"startDate"`
-	Status       model.TransferStatus    `json:"status"`
-	Step         model.TransferStep      `json:"step,omitempty"`
-	Progress     uint64                  `json:"progress,omitempty"`
-	TaskNumber   uint64                  `json:"taskNumber,omitempty"`
-	ErrorCode    model.TransferErrorCode `json:"errorCode,omitempty"`
-	ErrorMsg     string                  `json:"errorMsg,omitempty"`
 }
 
 // FromTransfer transforms the given database transfer into its JSON equivalent.
@@ -128,7 +97,7 @@ func createTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			trans, err := jsonTrans.ToModel(db)
+			trans, err := transToDB(jsonTrans, db)
 			if err != nil {
 				return err
 			}
@@ -175,7 +144,7 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			transfers := []model.Transfer{}
+			var transfers []model.Transfer
 			if err := db.Select(&transfers, filters); err != nil {
 				return fmt.Errorf("query failed: %s", err.Error())
 			}
@@ -203,17 +172,17 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if check.Status != model.StatusPlanned && check.Status != model.StatusRunning {
+			if check.Status != types.StatusPlanned && check.Status != types.StatusRunning {
 				return badRequest("cannot pause an already interrupted transfer")
 			}
 
 			switch check.Status {
-			case model.StatusPlanned:
-				check.Status = model.StatusPaused
+			case types.StatusPlanned:
+				check.Status = types.StatusPaused
 				if err := db.Update(check); err != nil {
 					return err
 				}
-			case model.StatusRunning:
+			case types.StatusRunning:
 				pipeline.Signals.SendSignal(check.ID, model.SignalPause)
 			default:
 				return badRequest("cannot pause an already interrupted transfer")
@@ -237,8 +206,8 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if check.Status != model.StatusRunning {
-				check.Status = model.StatusCancelled
+			if check.Status != types.StatusRunning {
+				check.Status = types.StatusCancelled
 				if err := pipeline.ToHistory(db, logger, check); err != nil {
 					return err
 				}
@@ -269,8 +238,8 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return badRequest("only the client can restart a transfer")
 			}
 
-			if check.Status != model.StatusPaused && check.Status != model.StatusInterrupted &&
-				check.Status != model.StatusError {
+			if check.Status != types.StatusPaused && check.Status != types.StatusInterrupted &&
+				check.Status != types.StatusError {
 				return badRequest("cannot resume an already running transfer")
 			}
 
@@ -282,8 +251,8 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return badRequest("cannot restart an SFTP transfer")
 			}
 
-			check.Status = model.StatusPlanned
-			check.Error = model.TransferError{}
+			check.Status = types.StatusPlanned
+			check.Error = types.TransferError{}
 			if err := db.Update(check); err != nil {
 				return fmt.Errorf("failed to update the transfer status: %s", err)
 			}

@@ -6,6 +6,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 )
 
 type userCommand struct {
@@ -16,7 +17,7 @@ type userCommand struct {
 	List   userList   `command:"list" description:"List the known users"`
 }
 
-func displayUser(w io.Writer, user *rest.OutUser) {
+func displayUser(w io.Writer, user *models.OutUser) {
 	fmt.Fprintln(w, bold("● User", user.Username))
 }
 
@@ -28,7 +29,7 @@ type userAdd struct {
 }
 
 func (u *userAdd) Execute([]string) error {
-	newUser := &rest.InUser{
+	newUser := &models.InUser{
 		Username: &u.Username,
 		Password: []byte(u.Password),
 	}
@@ -52,7 +53,7 @@ type userGet struct {
 func (u *userGet) Execute([]string) error {
 	addr.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
 
-	user := &rest.OutUser{}
+	user := &models.OutUser{}
 	if err := get(user); err != nil {
 		return err
 	}
@@ -71,7 +72,7 @@ type userUpdate struct {
 }
 
 func (u *userUpdate) Execute([]string) error {
-	user := &rest.InUser{
+	user := &models.InUser{
 		Username: u.Username,
 		Password: parseOptBytes(u.Password),
 	}
@@ -117,7 +118,7 @@ func (u *userList) Execute([]string) error {
 	addr.Path = rest.APIPath + rest.UsersPath
 	listURL(&u.listOptions, u.SortBy)
 
-	body := map[string][]rest.OutUser{}
+	body := map[string][]models.OutUser{}
 	if err := list(&body); err != nil {
 		return err
 	}

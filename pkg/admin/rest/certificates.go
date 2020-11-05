@@ -19,7 +19,7 @@ type InCert struct {
 	Certificate []byte  `json:"certificate,omitempty"`
 }
 
-// ToModel transforms the JSON certificate into its database equivalent.
+// ruleUptToDB transforms the JSON certificate into its database equivalent.
 func (i *InCert) toModel(id uint64, ownerType string, ownerID uint64) *model.Cert {
 	return &model.Cert{
 		ID:          id,

@@ -1,15 +1,9 @@
 package rest
 
 import (
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
-
-// InAccount is the JSON representation of a local/remote account in requests
-// made to the REST interface.
-type InAccount struct {
-	Login    *string `json:"login,omitempty"`
-	Password []byte  `json:"password,omitempty"`
-}
 
 func newInLocAccount(old *model.LocalAccount) *InAccount {
 	return &InAccount{
@@ -25,31 +19,24 @@ func newInRemAccount(old *model.RemoteAccount) *InAccount {
 	}
 }
 
-// ToLocal transforms the JSON local account into its database equivalent.
-func (i *InAccount) ToLocal(agent *model.LocalAgent, id uint64) *model.LocalAccount {
+// accToLocal transforms the JSON local account into its database equivalent.
+func accToLocal(acc *InAccount, agent *model.LocalAgent, id uint64) *model.LocalAccount {
 	return &model.LocalAccount{
 		ID:           id,
 		LocalAgentID: agent.ID,
-		Login:        str(i.Login),
-		Password:     i.Password,
+		Login:        str(acc.Login),
+		Password:     acc.Password,
 	}
 }
 
-// ToRemote transforms the JSON remote account into its database equivalent.
-func (i *InAccount) ToRemote(agent *model.RemoteAgent, id uint64) *model.RemoteAccount {
+// accToRemote transforms the JSON remote account into its database equivalent.
+func accToRemote(acc *InAccount, agent *model.RemoteAgent, id uint64) *model.RemoteAccount {
 	return &model.RemoteAccount{
 		ID:            id,
 		RemoteAgentID: agent.ID,
-		Login:         str(i.Login),
-		Password:      i.Password,
+		Login:         str(acc.Login),
+		Password:      acc.Password,
 	}
-}
-
-// OutAccount is the JSON representation of a local/remote account in responses
-// sent by the REST interface.
-type OutAccount struct {
-	Login           string           `json:"login"`
-	AuthorizedRules *AuthorizedRules `json:"authorizedRules"`
 }
 
 // FromLocalAccount transforms the given database local account into its JSON

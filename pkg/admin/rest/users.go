@@ -3,19 +3,13 @@ package rest
 import (
 	"net/http"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 	"github.com/gorilla/mux"
 )
-
-// InUser is the JSON representation of a user account in requests made to the
-// REST interface.
-type InUser struct {
-	Username *string `json:"username,omitempty"`
-	Password []byte  `json:"password,omitempty"`
-}
 
 func newInUser(old *model.User) *InUser {
 	return &InUser{
@@ -24,20 +18,14 @@ func newInUser(old *model.User) *InUser {
 	}
 }
 
-// ToModel transforms the JSON user into its database equivalent.
-func (i *InUser) ToModel(id uint64) *model.User {
+// userToDB transforms the JSON user into its database equivalent.
+func userToDB(user *InUser, id uint64) *model.User {
 	return &model.User{
 		ID:       id,
 		Owner:    database.Owner,
-		Username: str(i.Username),
-		Password: i.Password,
+		Username: str(user.Username),
+		Password: user.Password,
 	}
-}
-
-// OutUser is the JSON representation of a user account in responses sent by
-// the REST interface.
-type OutUser struct {
-	Username string `json:"username"`
 }
 
 // FromUser transforms the given database user into its JSON equivalent.
@@ -123,7 +111,7 @@ func createUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			user := jsonUser.ToModel(0)
+			user := userToDB(jsonUser, 0)
 			if err := db.Create(user); err != nil {
 				return err
 			}
@@ -151,7 +139,7 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(user.ToModel(old.ID)); err != nil {
+			if err := db.Update(userToDB(user, old.ID)); err != nil {
 				return err
 			}
 
@@ -178,7 +166,7 @@ func replaceUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(user.ToModel(old.ID)); err != nil {
+			if err := db.Update(userToDB(user, old.ID)); err != nil {
 				return err
 			}
 

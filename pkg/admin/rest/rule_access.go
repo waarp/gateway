@@ -4,17 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
-
-// AuthorizedRules represents a list of all the rules which an agent/account
-// is allowed to use
-type AuthorizedRules struct {
-	Sending   []string `json:"sending"`
-	Reception []string `json:"reception"`
-}
 
 func getAuthorizedRules(db *database.DB, objType string, objID uint64) (*AuthorizedRules, error) {
 	query := "(id IN (SELECT DISTINCT rule_id FROM rule_access WHERE " +
@@ -108,15 +102,6 @@ func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 	}
 
 	return nil
-}
-
-// RuleAccess is the struct containing all the agents/accounts which are allowed
-// to use a given rule.
-type RuleAccess struct {
-	LocalServers   []string            `json:"servers,omitempty"`
-	RemotePartners []string            `json:"partners,omitempty"`
-	LocalAccounts  map[string][]string `json:"localAccounts,omitempty"`
-	RemoteAccounts map[string][]string `json:"remoteAccounts,omitempty"`
 }
 
 func makeAccessIDs(db *database.DB, rule *model.Rule, typ string) ([]uint64, error) {

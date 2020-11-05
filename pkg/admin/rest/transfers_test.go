@@ -11,9 +11,11 @@ import (
 	"testing"
 	"time"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -94,7 +96,7 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the new transfer should be inserted in "+
 						"the database", func() {
-						t, err := trans.ToModel(db)
+						t, err := transToDB(trans, db)
 						So(err, ShouldBeNil)
 						So(db.Get(t), ShouldBeNil)
 					})
@@ -535,10 +537,10 @@ func TestResumeTransfer(t *testing.T) {
 				SourceFile: "src",
 				DestFile:   "dst",
 				Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
-				Status:     model.StatusError,
-				Step:       model.StepData,
-				Error: model.TransferError{
-					Code:    model.TeDataTransfer,
+				Status:     types.StatusError,
+				Step:       types.StepData,
+				Error: types.TransferError{
+					Code:    types.TeDataTransfer,
 					Details: "transfer failed",
 				},
 				Progress:   10,
@@ -573,9 +575,9 @@ func TestResumeTransfer(t *testing.T) {
 							SourceFile: "src",
 							DestFile:   "dst",
 							Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
-							Status:     model.StatusPlanned,
-							Step:       model.StepData,
-							Error:      model.TransferError{},
+							Status:     types.StatusPlanned,
+							Step:       types.StepData,
+							Error:      types.TransferError{},
 							Progress:   10,
 							TaskNumber: 0,
 						}
@@ -625,9 +627,9 @@ func TestPauseTransfer(t *testing.T) {
 				SourceFile: "src",
 				DestFile:   "dst",
 				Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
-				Status:     model.StatusPlanned,
-				Step:       model.StepData,
-				Error:      model.TransferError{},
+				Status:     types.StatusPlanned,
+				Step:       types.StepData,
+				Error:      types.TransferError{},
 				Progress:   10,
 				TaskNumber: 0,
 			}
@@ -660,9 +662,9 @@ func TestPauseTransfer(t *testing.T) {
 							SourceFile: "src",
 							DestFile:   "dst",
 							Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
-							Status:     model.StatusPaused,
-							Step:       model.StepData,
-							Error:      model.TransferError{},
+							Status:     types.StatusPaused,
+							Step:       types.StepData,
+							Error:      types.TransferError{},
 							Progress:   10,
 							TaskNumber: 0,
 						}

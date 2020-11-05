@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -246,7 +247,7 @@ func TestCreateUser(t *testing.T) {
 							So(bcrypt.CompareHashAndPassword(users[2].Password,
 								newUser.Password), ShouldBeNil)
 							users[2].Password = newUser.Password
-							So(users[2], ShouldResemble, *newUser.ToModel(3))
+							So(users[2], ShouldResemble, *userToDB(newUser, 3))
 						})
 
 						Convey("Then the existing user should still exist", func() {

@@ -9,6 +9,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
@@ -16,7 +17,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func accInfoString(a *rest.OutAccount) string {
+func accInfoString(a *models.OutAccount) string {
 	return "● Account " + a.Login + "\n" +
 		"    Authorized rules\n" +
 		"    ├─  Sending: " + strings.Join(a.AuthorizedRules.Sending, ", ") + "\n" +
@@ -75,7 +76,7 @@ func TestGetLocalAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the account's info", func() {
-						rules := &rest.AuthorizedRules{
+						rules := &models.AuthorizedRules{
 							Sending:   []string{send.Name, sendAll.Name},
 							Reception: []string{receive.Name},
 						}
@@ -444,9 +445,9 @@ func TestListLocalAccount(t *testing.T) {
 			}
 			So(db.Create(account3), ShouldBeNil)
 
-			a1 := rest.FromLocalAccount(account1, &rest.AuthorizedRules{})
-			a2 := rest.FromLocalAccount(account2, &rest.AuthorizedRules{})
-			a3 := rest.FromLocalAccount(account3, &rest.AuthorizedRules{})
+			a1 := rest.FromLocalAccount(account1, &models.AuthorizedRules{})
+			a2 := rest.FromLocalAccount(account2, &models.AuthorizedRules{})
+			a3 := rest.FromLocalAccount(account3, &models.AuthorizedRules{})
 
 			Convey("Given no parameters", func() {
 				args := []string{}

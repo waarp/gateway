@@ -10,7 +10,8 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
 type historyCommand struct {
@@ -19,7 +20,7 @@ type historyCommand struct {
 	Restart historyRetry `command:"retry" description:"Retry a failed transfer"`
 }
 
-func displayHistory(w io.Writer, hist *rest.OutHistory) {
+func displayHistory(w io.Writer, hist *models.OutHistory) {
 	role := "client"
 	if hist.IsServer {
 		role = "server"
@@ -39,18 +40,18 @@ func displayHistory(w io.Writer, hist *rest.OutHistory) {
 	fmt.Fprintln(w, orange("    Destination file:"), hist.DestFilename)
 	fmt.Fprintln(w, orange("    Start date:      "), hist.Start.Format(time.RFC3339))
 	fmt.Fprintln(w, orange("    End date:        "), hist.Stop.Format(time.RFC3339))
-	if hist.ErrorCode != model.TeOk {
+	if hist.ErrorCode != types.TeOk {
 		fmt.Fprintln(w, orange("    Error code:      "), hist.ErrorCode)
 		if hist.ErrorMsg != "" {
 			fmt.Fprintln(w, orange("    Error message:   "), hist.ErrorMsg)
 		}
 	}
-	if hist.Step != model.StepNone {
+	if hist.Step != types.StepNone {
 		fmt.Fprintln(w, orange("    Failed step:     "), hist.Step.String())
 		switch hist.Step {
-		case model.StepData:
+		case types.StepData:
 			fmt.Fprintln(w, orange("    Progress:        "), hist.Progress)
-		case model.StepPreTasks, model.StepPostTasks:
+		case types.StepPreTasks, types.StepPostTasks:
 			fmt.Fprintln(w, orange("    Failed task:     "), hist.TaskNumber)
 		}
 	}
@@ -67,7 +68,7 @@ type historyGet struct {
 func (h *historyGet) Execute([]string) error {
 	addr.Path = admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID)
 
-	trans := &rest.OutHistory{}
+	trans := &models.OutHistory{}
 	if err := get(trans); err != nil {
 		return err
 	}
@@ -137,7 +138,7 @@ func (h *historyList) Execute([]string) error {
 		return err
 	}
 
-	body := map[string][]rest.OutHistory{}
+	body := map[string][]models.OutHistory{}
 	if err := list(&body); err != nil {
 		return err
 	}

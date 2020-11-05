@@ -11,9 +11,11 @@ import (
 	"testing"
 	"time"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -117,7 +119,7 @@ func TestListHistory(t *testing.T) {
 				Rule:           "rule1",
 				Start:          time.Date(2019, 01, 01, 02, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 06, 00, 00, 00, time.UTC),
-				Status:         model.StatusDone,
+				Status:         types.StatusDone,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
@@ -135,7 +137,7 @@ func TestListHistory(t *testing.T) {
 				Rule:           "rule2",
 				Start:          time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 07, 00, 00, 00, time.UTC),
-				Status:         model.StatusCancelled,
+				Status:         types.StatusCancelled,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
@@ -153,7 +155,7 @@ func TestListHistory(t *testing.T) {
 				Rule:           "rule1",
 				Start:          time.Date(2019, 01, 01, 03, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 8, 00, 00, 00, time.UTC),
-				Status:         model.StatusCancelled,
+				Status:         types.StatusCancelled,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
@@ -171,7 +173,7 @@ func TestListHistory(t *testing.T) {
 				Rule:           "rule2",
 				Start:          time.Date(2019, 01, 01, 04, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 05, 00, 00, 00, time.UTC),
-				Status:         model.StatusDone,
+				Status:         types.StatusDone,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
@@ -435,7 +437,7 @@ func TestRestartTransfer(t *testing.T) {
 				DestFilename:   "file.test",
 				Start:          time.Date(2019, 01, 01, 00, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
-				Status:         model.StatusCancelled,
+				Status:         types.StatusCancelled,
 			}
 			So(db.Create(h), ShouldBeNil)
 
@@ -484,7 +486,7 @@ func TestRestartTransfer(t *testing.T) {
 							SourceFile: h.SourceFilename,
 							DestFile:   h.DestFilename,
 							Start:      date,
-							Status:     model.StatusPlanned,
+							Status:     types.StatusPlanned,
 							Owner:      h.Owner,
 						}
 

@@ -3,6 +3,7 @@ package rest
 import (
 	"net/http"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -93,12 +94,12 @@ func listLocalAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func createLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonAgent := &InServer{}
-			if err := readJSON(r, jsonAgent); err != nil {
+			serv := &InServer{}
+			if err := readJSON(r, serv); err != nil {
 				return err
 			}
 
-			agent := jsonAgent.ToModel(0)
+			agent := servToDB(serv, 0)
 			if err := db.Create(agent); err != nil {
 				return err
 			}
@@ -126,7 +127,7 @@ func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(serv.ToModel(old.ID)); err != nil {
+			if err := db.Update(servToDB(serv, old.ID)); err != nil {
 				return err
 			}
 
@@ -153,7 +154,7 @@ func replaceLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := db.Update(serv.ToModel(old.ID)); err != nil {
+			if err := db.Update(servToDB(serv, old.ID)); err != nil {
 				return err
 			}
 

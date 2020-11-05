@@ -9,13 +9,14 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func serverInfoString(s *rest.OutServer) string {
+func serverInfoString(s *models.OutServer) string {
 	return "● Server " + s.Name + "\n" +
 		"    Protocol:       " + s.Protocol + "\n" +
 		"    Address:        " + s.Address + "\n" +
@@ -77,7 +78,7 @@ func TestGetServer(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the server's info", func() {
-						rules := &rest.AuthorizedRules{
+						rules := &models.AuthorizedRules{
 							Sending:   []string{send.Name, sendAll.Name},
 							Reception: []string{receive.Name},
 						}
@@ -241,8 +242,8 @@ func TestListServers(t *testing.T) {
 			}
 			So(db.Create(server2), ShouldBeNil)
 
-			s1 := rest.FromLocalAgent(server1, &rest.AuthorizedRules{})
-			s2 := rest.FromLocalAgent(server2, &rest.AuthorizedRules{})
+			s1 := rest.FromLocalAgent(server1, &models.AuthorizedRules{})
+			s2 := rest.FromLocalAgent(server2, &models.AuthorizedRules{})
 
 			Convey("Given no parameters", func() {
 				args := []string{}

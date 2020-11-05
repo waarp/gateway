@@ -4,48 +4,28 @@ import (
 	"fmt"
 	"net/http"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
 )
 
-// InRule is the JSON representation of a transfer rule in requests made to
-// the REST interface.
-type InRule struct {
-	*UptRule
-	IsSend *bool `json:"isSend,omitempty"`
-}
-
-// ToModel transforms the JSON transfer rule into its database equivalent.
-func (i *InRule) ToModel(id uint64) (*model.Rule, error) {
-	if i.IsSend == nil {
+// ruleToDB transforms the JSON transfer rule into its database equivalent.
+func ruleToDB(rule *InRule, id uint64) (*model.Rule, error) {
+	if rule.IsSend == nil {
 		return nil, badRequest("missing rule direction")
 	}
 	return &model.Rule{
 		ID:       id,
-		Name:     str(i.Name),
-		Comment:  str(i.Comment),
-		IsSend:   *i.IsSend,
-		Path:     str(i.Path),
-		InPath:   str(i.InPath),
-		OutPath:  str(i.OutPath),
-		WorkPath: str(i.WorkPath),
+		Name:     str(rule.Name),
+		Comment:  str(rule.Comment),
+		IsSend:   *rule.IsSend,
+		Path:     str(rule.Path),
+		InPath:   str(rule.InPath),
+		OutPath:  str(rule.OutPath),
+		WorkPath: str(rule.WorkPath),
 	}, nil
-}
-
-// UptRule is the JSON representation of a transfer rule in updated requests made to
-// the REST interface.
-type UptRule struct {
-	Name       *string    `json:"name,omitempty"`
-	Comment    *string    `json:"comment,omitempty"`
-	Path       *string    `json:"path,omitempty"`
-	InPath     *string    `json:"inPath,omitempty"`
-	OutPath    *string    `json:"outPath,omitempty"`
-	WorkPath   *string    `json:"workPath,omitempty"`
-	PreTasks   []RuleTask `json:"preTasks,omitempty"`
-	PostTasks  []RuleTask `json:"postTasks,omitempty"`
-	ErrorTasks []RuleTask `json:"errorTasks,omitempty"`
 }
 
 func newUptRule(old *model.Rule) *UptRule {
@@ -59,33 +39,17 @@ func newUptRule(old *model.Rule) *UptRule {
 	}
 }
 
-// ToModel transforms the JSON transfer rule into its database equivalent.
-func (i *UptRule) ToModel(id uint64) *model.Rule {
+// ruleUptToDB transforms the JSON transfer rule into its database equivalent.
+func ruleUptToDB(rule *UptRule, id uint64) *model.Rule {
 	return &model.Rule{
 		ID:       id,
-		Name:     str(i.Name),
-		Comment:  str(i.Comment),
-		Path:     str(i.Path),
-		InPath:   str(i.InPath),
-		OutPath:  str(i.OutPath),
-		WorkPath: str(i.WorkPath),
+		Name:     str(rule.Name),
+		Comment:  str(rule.Comment),
+		Path:     str(rule.Path),
+		InPath:   str(rule.InPath),
+		OutPath:  str(rule.OutPath),
+		WorkPath: str(rule.WorkPath),
 	}
-}
-
-// OutRule is the JSON representation of a transfer rule in responses sent by
-// the REST interface.
-type OutRule struct {
-	Name       string      `json:"name"`
-	Comment    string      `json:"comment,omitempty"`
-	IsSend     bool        `json:"isSend"`
-	Path       string      `json:"path"`
-	InPath     string      `json:"inPath,omitempty"`
-	OutPath    string      `json:"outPath,omitempty"`
-	WorkPath   string      `json:"workPath,omitempty"`
-	Authorized *RuleAccess `json:"authorized,omitempty"`
-	PreTasks   []RuleTask  `json:"preTasks,omitempty"`
-	PostTasks  []RuleTask  `json:"postTasks,omitempty"`
-	ErrorTasks []RuleTask  `json:"errorTasks,omitempty"`
 }
 
 // FromRule transforms the given database transfer rule into its JSON equivalent.
@@ -160,7 +124,7 @@ func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			rule, err := jsonRule.ToModel(0)
+			rule, err := ruleToDB(jsonRule, 0)
 			if err != nil {
 				return err
 			}
@@ -261,7 +225,7 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			if err := ses.Update(rule.ToModel(old.ID)); err != nil {
+			if err := ses.Update(ruleUptToDB(rule, old.ID)); err != nil {
 				ses.Rollback()
 				return err
 			}
@@ -300,7 +264,7 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			if err := ses.Update(rule.ToModel(old.ID)); err != nil {
+			if err := ses.Update(ruleUptToDB(rule, old.ID)); err != nil {
 				ses.Rollback()
 				return err
 			}

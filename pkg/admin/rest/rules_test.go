@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/models"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -81,7 +82,7 @@ func TestCreateRule(t *testing.T) {
 							So(db.Select(&rules, nil), ShouldBeNil)
 							So(len(rules), ShouldEqual, 2)
 
-							exp, err := newRule.ToModel(2)
+							exp, err := ruleToDB(newRule, 2)
 							So(err, ShouldBeNil)
 							So(rules[1], ShouldResemble, *exp)
 						})
@@ -480,7 +481,7 @@ func TestReplaceRule(t *testing.T) {
 				update := UptRule{
 					Name: strPtr("update"),
 					Path: strPtr("/update/path"),
-					PostTasks: []RuleTask{{
+					PostTasks: []Task{{
 						Type: "MOVE",
 						Args: json.RawMessage(`{"path":"/move/path"}`),
 					}},
