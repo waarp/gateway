@@ -663,11 +663,16 @@ func TestSqlite(t *testing.T) {
 
 func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 	Convey("Given a test database", t, func() {
-		db := GetTestDatabase()
+		config := &conf.ServerConfig{}
+		config.GatewayName = "test_gateway"
+		config.Database.Type = test
+		config.Database.AESPassphrase = "db_test_no_passphrase.aes"
+		config.Database.Name = "db_test_no_passphrase.db"
+		db := &DB{Conf: config}
 
 		Convey("When the database service is started", func() {
-			err := db.Start()
-			So(err, ShouldBeNil)
+			So(db.Start(), ShouldBeNil)
+			Reset(func() { _ = os.Remove(config.Database.AESPassphrase) })
 
 			Convey("Then there is a new passphrase file", func() {
 				stats, err := os.Stat(db.Conf.Database.AESPassphrase)

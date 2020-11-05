@@ -50,7 +50,10 @@ func (*TestProtoConfigFail) ValidPartner() error {
 func testFile() *os.File {
 	tmp, err := ioutil.TempFile("", "*")
 	So(err, ShouldBeNil)
-	Reset(func() { _ = os.Remove(tmp.Name()) })
+	Reset(func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
+	})
 	return tmp
 }
 
