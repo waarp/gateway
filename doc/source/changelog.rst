@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`207` Correction d'une erreur où les mots de passe des partenaires R66
+  distants n'étaient pas correctement hashés.
 * :bug:`205` Correction d'une erreur empêchant le démarrage des serveurs R66 locaux.
 * :bug:`206` Correction d'une erreur causant un double hachage du mot de passe
   du client R66.
