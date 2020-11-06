@@ -18,7 +18,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-	"code.waarp.fr/waarp-r66/r66"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -78,7 +77,7 @@ func initForSelfTransfer(c C) *testContext {
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
 		Login:        "toto",
-		Password:     r66.CryptPass([]byte("sesame")),
+		Password:     []byte("Sesame"),
 	}
 	So(db.Create(locAccount), ShouldBeNil)
 
@@ -94,7 +93,7 @@ func initForSelfTransfer(c C) *testContext {
 	remAccount := &model.RemoteAccount{
 		RemoteAgentID: partner.ID,
 		Login:         "toto",
-		Password:      []byte("sesame"),
+		Password:      []byte("Sesame"),
 	}
 	So(db.Create(remAccount), ShouldBeNil)
 
