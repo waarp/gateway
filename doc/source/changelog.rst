@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :bug:`205` Correction d'une erreur empêchant le démarrage des serveurs R66 locaux.
 * :bug:`206` Correction d'une erreur causant un double hachage du mot de passe
   du client R66.
 * :bug:`201` Correction du typage de la colonne `step` des tables `transfers` &
