@@ -42,7 +42,7 @@ func GetTestDatabase() *DB {
 	config.Database.Type = test
 
 	name := fmt.Sprint(atomic.LoadUint64(&num))
-	convey.Reset(func() { _ = os.Remove(name) })
+	defer func() { _ = os.Remove(name) }()
 	config.Database.AESPassphrase = name
 	config.Database.Name = name
 	atomic.AddUint64(&num, 1)
@@ -53,8 +53,8 @@ func GetTestDatabase() *DB {
 	}
 	db.logger = log.NewLogger(ServiceName)
 	db.logger.Logger.SetLevel(logging.CRITICAL)
-	convey.Reset(func() { _ = db.engine.Close() })
 	convey.So(db.Start(), convey.ShouldBeNil)
+	convey.Reset(func() { _ = db.engine.Close() })
 
 	return db
 }
