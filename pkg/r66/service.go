@@ -111,6 +111,16 @@ func (s *Service) Start() error {
 		},
 	}
 
+	if err := s.listen(); err != nil {
+		return err
+	}
+
+	s.state.Set(service.Running, "")
+	s.logger.Infof("R66 server started at %s", s.agent.Address)
+	return nil
+}
+
+func (s *Service) listen() error {
 	tlsConf, err := s.makeTLSConf()
 	if err != nil {
 		s.logger.Errorf("Failed to parse server TLS config: %s", err)
@@ -139,8 +149,6 @@ func (s *Service) Start() error {
 		close(s.done)
 	}()
 
-	s.state.Set(service.Running, "")
-	s.logger.Infof("R66 server started at %s", s.agent.Address)
 	return nil
 }
 
