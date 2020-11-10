@@ -207,14 +207,12 @@ func TestCreateUser(t *testing.T) {
 			So(db.Create(existing), ShouldBeNil)
 
 			Convey("Given a new user to insert in the database", func() {
-				newUser := &InUser{
-					Username: strPtr("new_user"),
-					Password: []byte("new_password"),
-				}
+				body := []byte(`{
+					"username": "new_user",
+					"password": "new_password"
+				}`)
 
 				Convey("Given that the new user is valid for insertion", func() {
-					body, err := json.Marshal(newUser)
-					So(err, ShouldBeNil)
 					r, err := http.NewRequest(http.MethodPost, usersURI,
 						bytes.NewReader(body))
 
@@ -231,7 +229,7 @@ func TestCreateUser(t *testing.T) {
 							"URI of the new user", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, usersURI+str(newUser.Username))
+							So(location, ShouldEqual, usersURI+"new_user")
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -245,9 +243,13 @@ func TestCreateUser(t *testing.T) {
 							So(len(users), ShouldEqual, 3)
 
 							So(bcrypt.CompareHashAndPassword(users[2].Password,
-								newUser.Password), ShouldBeNil)
-							users[2].Password = newUser.Password
-							So(users[2], ShouldResemble, *userToDB(newUser, 3))
+								[]byte("new_password")), ShouldBeNil)
+							So(users[2], ShouldResemble, model.User{
+								ID:       3,
+								Owner:    database.Owner,
+								Username: "new_user",
+								Password: users[2].Password,
+							})
 						})
 
 						Convey("Then the existing user should still exist", func() {
@@ -372,12 +374,10 @@ func TestUpdateUser(t *testing.T) {
 			So(db.Create(other), ShouldBeNil)
 
 			Convey("Given new values to update the user with", func() {
-				update := InUser{
-					Username: strPtr("update"),
-					Password: []byte("update"),
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := []byte(`{
+					"username": "upd_user",
+					"password": "upd_password"
+				}`)
 
 				Convey("Given an existing username parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, usersURI+old.Username,
@@ -400,15 +400,22 @@ func TestUpdateUser(t *testing.T) {
 							"the URI of the updated user", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, usersURI+str(update.Username))
+							So(location, ShouldEqual, usersURI+"upd_user")
 						})
 
 						Convey("Then the user should have been updated", func() {
-							result := &model.User{ID: old.ID, Username: str(update.Username)}
-							So(db.Get(result), ShouldBeNil)
+							var users []model.User
+							So(db.Select(&users, nil), ShouldBeNil)
+							So(len(users), ShouldEqual, 3)
 
-							So(bcrypt.CompareHashAndPassword(result.Password,
-								update.Password), ShouldBeNil)
+							So(bcrypt.CompareHashAndPassword(users[1].Password,
+								[]byte("upd_password")), ShouldBeNil)
+							So(users[1], ShouldResemble, model.User{
+								ID:       2,
+								Owner:    database.Owner,
+								Username: "upd_user",
+								Password: users[1].Password,
+							})
 						})
 					})
 				})
@@ -439,9 +446,7 @@ func TestUpdateUser(t *testing.T) {
 			})
 
 			Convey("Given that a password is not given", func() {
-				update := InUser{Username: strPtr("updated")}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := []byte(`{"username": "upd_user"}`)
 
 				Convey("Given an existing username parameter", func() {
 					r, err := http.NewRequest(http.MethodPut, usersURI+old.Username,
@@ -464,23 +469,30 @@ func TestUpdateUser(t *testing.T) {
 							"the URI of the updated user", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, usersURI+str(update.Username))
+							So(location, ShouldEqual, usersURI+"upd_user")
 						})
 
 						Convey("Then the user should have been updated but the "+
 							"password should stay the same", func() {
-							result := &model.User{ID: old.ID, Username: str(update.Username),
-								Password: old.Password}
-							So(db.Get(result), ShouldBeNil)
+							var users []model.User
+							So(db.Select(&users, nil), ShouldBeNil)
+							So(len(users), ShouldEqual, 3)
+
+							So(bcrypt.CompareHashAndPassword(users[1].Password,
+								[]byte("old")), ShouldBeNil)
+							So(users[1], ShouldResemble, model.User{
+								ID:       2,
+								Owner:    database.Owner,
+								Username: "upd_user",
+								Password: users[1].Password,
+							})
 						})
 					})
 				})
 			})
 
 			Convey("Given that a username is not given", func() {
-				update := InUser{Password: []byte("password")}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := []byte(`{"password": "upd_password"}`)
 
 				Convey("Given an existing username parameter", func() {
 					r, err := http.NewRequest(http.MethodPut, usersURI+old.Username,
@@ -508,11 +520,18 @@ func TestUpdateUser(t *testing.T) {
 
 						Convey("Then the user should have been updated but the "+
 							"username should stay the same", func() {
-							result := &model.User{ID: old.ID, Username: old.Username}
-							So(db.Get(result), ShouldBeNil)
+							var users []model.User
+							So(db.Select(&users, nil), ShouldBeNil)
+							So(len(users), ShouldEqual, 3)
 
-							So(bcrypt.CompareHashAndPassword(result.Password,
-								update.Password), ShouldBeNil)
+							So(bcrypt.CompareHashAndPassword(users[1].Password,
+								[]byte("upd_password")), ShouldBeNil)
+							So(users[1], ShouldResemble, model.User{
+								ID:       2,
+								Owner:    database.Owner,
+								Username: "old",
+								Password: users[1].Password,
+							})
 						})
 					})
 				})
@@ -537,12 +556,10 @@ func TestReplaceUser(t *testing.T) {
 			So(db.Create(old), ShouldBeNil)
 
 			Convey("Given new values to update the user with", func() {
-				update := InUser{
-					Username: strPtr("updated"),
-					Password: []byte("updated"),
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := []byte(`{
+					"username": "upd_user",
+					"password": "upd_password"
+				}`)
 
 				Convey("Given an existing username parameter", func() {
 					r, err := http.NewRequest(http.MethodPut, usersURI+old.Username,
@@ -565,15 +582,22 @@ func TestReplaceUser(t *testing.T) {
 							"the URI of the updated user", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, usersURI+str(update.Username))
+							So(location, ShouldEqual, usersURI+"upd_user")
 						})
 
 						Convey("Then the user should have been updated", func() {
-							result := &model.User{ID: old.ID, Username: str(update.Username)}
-							So(db.Get(result), ShouldBeNil)
+							var users []model.User
+							So(db.Select(&users, nil), ShouldBeNil)
+							So(len(users), ShouldEqual, 2)
 
-							So(bcrypt.CompareHashAndPassword(result.Password,
-								update.Password), ShouldBeNil)
+							So(bcrypt.CompareHashAndPassword(users[1].Password,
+								[]byte("upd_password")), ShouldBeNil)
+							So(users[1], ShouldResemble, model.User{
+								ID:       2,
+								Owner:    database.Owner,
+								Username: "upd_user",
+								Password: users[1].Password,
+							})
 						})
 					})
 				})
@@ -604,11 +628,9 @@ func TestReplaceUser(t *testing.T) {
 			})
 
 			Convey("Given that a password is not given", func() {
-				update := InUser{
-					Username: strPtr("updated"),
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := []byte(`{
+					"username": "upd_user"
+				}`)
 
 				Convey("Given an existing username parameter", func() {
 					r, err := http.NewRequest(http.MethodPut, usersURI+old.Username,

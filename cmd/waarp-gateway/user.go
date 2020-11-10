@@ -31,7 +31,7 @@ type userAdd struct {
 func (u *userAdd) Execute([]string) error {
 	newUser := &api.InUser{
 		Username: &u.Username,
-		Password: []byte(u.Password),
+		Password: &u.Password,
 	}
 	addr.Path = admin.APIPath + rest.UsersPath
 
@@ -74,7 +74,7 @@ type userUpdate struct {
 func (u *userUpdate) Execute([]string) error {
 	user := &api.InUser{
 		Username: u.Username,
-		Password: parseOptBytes(u.Password),
+		Password: u.Password,
 	}
 	addr.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
 

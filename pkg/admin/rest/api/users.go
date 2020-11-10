@@ -6,7 +6,7 @@ package api
 // REST interface.
 type InUser struct {
 	Username *string `json:"username,omitempty"`
-	Password []byte  `json:"password,omitempty"`
+	Password *string `json:"password,omitempty"`
 }
 
 // OutUser is the JSON representation of a user account in responses sent by
