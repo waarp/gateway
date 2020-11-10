@@ -317,7 +317,7 @@ func checkHistory(ctx *testContext) {
 	})
 }
 
-func checkTransfers(ctx *testContext, cTrans, sTrans *model.Transfer) {
+func checkTransfers(ctx *testContext, cTrans *model.Transfer, sTrans ...*model.Transfer) {
 	Convey("Then the transfers should be over", func() {
 		var results []model.Transfer
 		So(ctx.db.Select(&results, nil), ShouldBeNil)
@@ -338,35 +338,41 @@ func checkTransfers(ctx *testContext, cTrans, sTrans *model.Transfer) {
 		})
 
 		Convey("Then there should be a server-side transfer entry in error", func() {
-			sTrans.Owner = database.Owner
-			sTrans.ID = ctx.trans.ID + 1
-			sTrans.RemoteTransferID = fmt.Sprint(ctx.trans.ID)
-			sTrans.IsServer = true
-			sTrans.AccountID = ctx.locAccount.ID
-			sTrans.AgentID = ctx.server.ID
-			sTrans.Start = results[1].Start
-			if ctx.trans.RuleID == ctx.send.ID {
-				sTrans.RuleID = ctx.recv.ID
-				sTrans.SourceFile = ctx.trans.DestFile
-				sTrans.DestFile = ctx.trans.DestFile
-				if sTrans.Step > model.StepData {
-					sTrans.TrueFilepath = utils.NormalizePath(filepath.Join(
-						ctx.serverPaths.ServerRoot, ctx.serverPaths.ServerIn,
-						ctx.trans.DestFile))
+			for _, sTrans := range sTrans {
+				sTrans.Owner = database.Owner
+				sTrans.ID = ctx.trans.ID + 1
+				sTrans.RemoteTransferID = fmt.Sprint(ctx.trans.ID)
+				sTrans.IsServer = true
+				sTrans.AccountID = ctx.locAccount.ID
+				sTrans.AgentID = ctx.server.ID
+				sTrans.Start = results[1].Start
+				if ctx.trans.RuleID == ctx.send.ID {
+					sTrans.RuleID = ctx.recv.ID
+					sTrans.SourceFile = ctx.trans.DestFile
+					sTrans.DestFile = ctx.trans.DestFile
+					if sTrans.Step > model.StepData {
+						sTrans.TrueFilepath = utils.NormalizePath(filepath.Join(
+							ctx.serverPaths.ServerRoot, ctx.serverPaths.ServerIn,
+							ctx.trans.DestFile))
+					} else {
+						sTrans.TrueFilepath = utils.NormalizePath(filepath.Join(
+							ctx.serverPaths.ServerRoot, ctx.serverPaths.ServerWork,
+							ctx.trans.DestFile+".tmp"))
+					}
 				} else {
+					sTrans.RuleID = ctx.send.ID
+					sTrans.SourceFile = ctx.trans.SourceFile
+					sTrans.DestFile = ctx.trans.SourceFile
 					sTrans.TrueFilepath = utils.NormalizePath(filepath.Join(
-						ctx.serverPaths.ServerRoot, ctx.serverPaths.ServerWork,
-						ctx.trans.DestFile+".tmp"))
+						ctx.serverPaths.ServerRoot, ctx.serverPaths.ServerOut,
+						ctx.trans.SourceFile))
 				}
-			} else {
-				sTrans.RuleID = ctx.send.ID
-				sTrans.SourceFile = ctx.trans.SourceFile
-				sTrans.DestFile = ctx.trans.SourceFile
-				sTrans.TrueFilepath = utils.NormalizePath(filepath.Join(
-					ctx.serverPaths.ServerRoot, ctx.serverPaths.ServerOut,
-					ctx.trans.SourceFile))
 			}
-			So(results[1], ShouldResemble, *sTrans)
+			if len(sTrans) > 1 {
+				So(results[1], ShouldBeIn, *sTrans[0], *sTrans[1])
+			} else {
+				So(results[1], ShouldResemble, *sTrans[0])
+			}
 		})
 	})
 }
@@ -640,7 +646,18 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 							TaskNumber: 1,
 						}
 
-						sTrans := &model.Transfer{
+						sTrans1 := &model.Transfer{
+							Status: model.StatusError,
+							Step:   model.StepPreTasks,
+							Error: model.TransferError{
+								Code:    model.TeExternalOperation,
+								Details: "Task TESTFAIL @ self PRE[1]: task failed",
+							},
+							Progress:   0,
+							TaskNumber: 1,
+						}
+
+						sTrans2 := &model.Transfer{
 							Status: model.StatusError,
 							Step:   model.StepData,
 							Error: model.TransferError{
@@ -651,7 +668,7 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 							TaskNumber: 0,
 						}
 
-						checkTransfers(ctx, cTrans, sTrans)
+						checkTransfers(ctx, cTrans, sTrans1, sTrans2)
 
 						Convey("When retrying the transfer", func() {
 							So(ctx.db.Delete(rPreTask2), ShouldBeNil)
