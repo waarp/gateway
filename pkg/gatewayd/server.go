@@ -20,6 +20,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/r66"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
@@ -79,10 +80,12 @@ func (wg *WG) startServices() error {
 	}
 
 	for _, server := range servers {
+		l := log.NewLogger(server.Name)
 		switch server.Protocol {
 		case "sftp":
-			l := log.NewLogger(server.Name)
 			wg.Services[server.Name] = sftp.NewService(wg.dbService, server, l)
+		case "r66":
+			wg.Services[server.Name] = r66.NewService(wg.dbService, server, l)
 		default:
 			wg.Logger.Warningf("Unknown server protocol '%s'", server.Protocol)
 		}
