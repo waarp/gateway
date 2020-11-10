@@ -2,7 +2,6 @@ package model
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-r66/r66"
 	"github.com/go-xorm/builder"
 )
 
@@ -81,9 +80,6 @@ func (r *RemoteAccount) Validate(db database.Accessor) (err error) {
 			"already exist", r.Login)
 	}
 
-	if agent.Protocol == "r66" {
-		r.Password = r66.CryptPass(r.Password)
-	}
 	r.Password, err = encryptPassword(r.Password)
 	return err
 }

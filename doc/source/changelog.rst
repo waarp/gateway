@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`206` Correction d'une erreur causant un double hachage du mot de passe
+  du client R66.
 * :bug:`201` Correction du typage de la colonne `step` des tables `transfers` &
   `transfer_history`. La colonne est désormais de type *VARCHAR* (au lieu de *INT*).
 * :bug:`200` Les écritures de la progression du transfert de données se fait
