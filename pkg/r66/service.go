@@ -3,6 +3,7 @@ package r66
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -93,9 +94,16 @@ func (s *Service) Start() error {
 	var ctx context.Context
 	ctx, s.cancel = context.WithCancel(context.Background())
 
+	pwd, err := base64.StdEncoding.DecodeString(conf.ServerPassword)
+	if err != nil {
+		s.logger.Errorf("Failed to decode server password: %s", err)
+		err2 := fmt.Errorf("failed to decode server password: %s", err)
+		s.state.Set(service.Error, err2.Error())
+		return err2
+	}
 	s.server = &r66.Server{
 		Login:    s.agent.Name,
-		Password: conf.ServerPassword,
+		Password: pwd,
 		Conf:     r66.Configuration{},
 		AuthentHandler: &authHandler{
 			Service: s,
