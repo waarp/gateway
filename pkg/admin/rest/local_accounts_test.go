@@ -292,12 +292,10 @@ func TestCreateLocalAccount(t *testing.T) {
 			So(db.Create(parent), ShouldBeNil)
 
 			Convey("Given a new account to insert in the database", func() {
-				newAccount := &InAccount{
-					Login:    strPtr("new_account"),
-					Password: []byte("new_account"),
-				}
-				body, err := json.Marshal(newAccount)
-				So(err, ShouldBeNil)
+				body := []byte(`{
+					"login": "new_account",
+					"password": "new_password"
+				}`)
 
 				Convey("Given a valid agent name parameter", func() {
 					r, err := http.NewRequest(http.MethodPost, localAccountsURI(
@@ -317,7 +315,7 @@ func TestCreateLocalAccount(t *testing.T) {
 
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, localAccountsURI(parent.Name,
-								str(newAccount.Login)))
+								"new_account"))
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -332,9 +330,13 @@ func TestCreateLocalAccount(t *testing.T) {
 							So(len(accs), ShouldEqual, 1)
 
 							So(bcrypt.CompareHashAndPassword(accs[0].Password,
-								newAccount.Password), ShouldBeNil)
-							accs[0].Password = newAccount.Password
-							So(accs[0], ShouldResemble, *accToLocal(newAccount, parent, 1))
+								[]byte("new_password")), ShouldBeNil)
+							So(accs[0], ShouldResemble, model.LocalAccount{
+								ID:           1,
+								LocalAgentID: parent.ID,
+								Login:        "new_account",
+								Password:     accs[0].Password,
+							})
 						})
 					})
 				})
@@ -488,11 +490,9 @@ func TestUpdateLocalAccount(t *testing.T) {
 			So(db.Create(old), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
-				update := InAccount{
-					Password: []byte("update"),
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := []byte(`{
+					"password": "upd_password"
+				}`)
 
 				Convey("Given a valid account login", func() {
 					r, err := http.NewRequest(http.MethodPatch, localAgentsURI+
@@ -526,15 +526,13 @@ func TestUpdateLocalAccount(t *testing.T) {
 						So(len(res), ShouldEqual, 1)
 
 						So(bcrypt.CompareHashAndPassword(res[0].Password,
-							update.Password), ShouldBeNil)
-
-						exp := model.LocalAccount{
+							[]byte("upd_password")), ShouldBeNil)
+						So(res[0], ShouldResemble, model.LocalAccount{
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
 							Login:        "old",
 							Password:     res[0].Password,
-						}
-						So(res[0], ShouldResemble, exp)
+						})
 					})
 				})
 
@@ -563,11 +561,11 @@ func TestUpdateLocalAccount(t *testing.T) {
 				})
 
 				Convey("Given an invalid agent name", func() {
-					r, err := http.NewRequest(http.MethodPatch, localAgentsURI+
-						"toto/accounts/"+str(update.Login), bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPatch, localAccountsURI(
+						"toto", old.Login), bytes.NewReader(body))
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"local_agent": "toto",
-						"local_account": str(update.Login)})
+						"local_account": old.Login})
 
 					handler.ServeHTTP(w, r)
 
@@ -614,12 +612,10 @@ func TestReplaceLocalAccount(t *testing.T) {
 			So(db.Create(old), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
-				update := InAccount{
-					Login:    strPtr("update"),
-					Password: []byte("update"),
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := []byte(`{
+					"login": "upd_login",
+					"password": "upd_password"
+				}`)
 
 				Convey("Given a valid account login", func() {
 					r, err := http.NewRequest(http.MethodPut, localAccountsURI(
@@ -638,7 +634,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 						"the URI of the updated account", func() {
 
 						location := w.Header().Get("Location")
-						So(location, ShouldEqual, localAccountsURI("parent", "update"))
+						So(location, ShouldEqual, localAccountsURI("parent", "upd_login"))
 					})
 
 					Convey("Then the response body should be empty", func() {
@@ -651,15 +647,13 @@ func TestReplaceLocalAccount(t *testing.T) {
 						So(len(res), ShouldEqual, 1)
 
 						So(bcrypt.CompareHashAndPassword(res[0].Password,
-							update.Password), ShouldBeNil)
-
-						exp := model.LocalAccount{
+							[]byte("upd_password")), ShouldBeNil)
+						So(res[0], ShouldResemble, model.LocalAccount{
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
-							Login:        "update",
+							Login:        "upd_login",
 							Password:     res[0].Password,
-						}
-						So(res[0], ShouldResemble, exp)
+						})
 					})
 				})
 
@@ -688,11 +682,11 @@ func TestReplaceLocalAccount(t *testing.T) {
 				})
 
 				Convey("Given an invalid agent name", func() {
-					r, err := http.NewRequest(http.MethodPut, localAgentsURI+
-						"toto/accounts/"+str(update.Login), bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPut, localAccountsURI(
+						"toto", old.Login), bytes.NewReader(body))
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"local_agent": "toto",
-						"local_account": str(update.Login)})
+						"local_account": old.Login})
 
 					handler.ServeHTTP(w, r)
 

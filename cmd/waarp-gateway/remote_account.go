@@ -59,7 +59,7 @@ type remAccAdd struct {
 func (r *remAccAdd) Execute([]string) error {
 	account := api.InAccount{
 		Login:    &r.Login,
-		Password: []byte(r.Password),
+		Password: &r.Password,
 	}
 	partner := commandLine.Account.Remote.Args.Partner
 	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner + rest.AccountsPath
@@ -104,7 +104,7 @@ type remAccUpdate struct {
 func (r *remAccUpdate) Execute([]string) error {
 	account := &api.InAccount{
 		Login:    r.Login,
-		Password: parseOptBytes(r.Password),
+		Password: r.Password,
 	}
 
 	partner := commandLine.Account.Remote.Args.Partner
