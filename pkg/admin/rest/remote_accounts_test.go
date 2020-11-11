@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -324,7 +325,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 							So(db.Select(&accs, nil), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
 
-							clear, err := model.DecryptPassword(accs[0].Password)
+							clear, err := utils.DecryptPassword(accs[0].Password)
 							So(err, ShouldBeNil)
 							accs[0].Password = clear
 							So(accs[0], ShouldResemble, model.RemoteAccount{
@@ -510,7 +511,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 							So(db.Select(&res, nil), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
 
-							pswd, err := model.DecryptPassword(res[0].Password)
+							pswd, err := utils.DecryptPassword(res[0].Password)
 							So(err, ShouldBeNil)
 							So(pswd, ShouldResemble, []byte("upd_password"))
 
@@ -640,7 +641,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 							So(db.Select(&res, nil), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
 
-							pswd, err := model.DecryptPassword(res[0].Password)
+							pswd, err := utils.DecryptPassword(res[0].Password)
 							So(err, ShouldBeNil)
 							So(pswd, ShouldResemble, []byte("upd_password"))
 
