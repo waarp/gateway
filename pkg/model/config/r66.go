@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
 )
 
@@ -41,5 +42,10 @@ func (c *R66ProtoConfig) ValidServer() (err error) {
 	if len(c.ServerPassword) == 0 {
 		return fmt.Errorf("missing server password")
 	}
+	pwd, err := utils.CryptPassword([]byte(c.ServerPassword))
+	if err != nil {
+		return fmt.Errorf("failed to crypt server password: %s", err)
+	}
+	c.ServerPassword = base64.StdEncoding.EncodeToString(pwd)
 	return nil
 }
