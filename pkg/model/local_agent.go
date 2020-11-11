@@ -65,7 +65,11 @@ func (l *LocalAgent) validateProtoConfig() error {
 	if err != nil {
 		return err
 	}
-	return conf.ValidServer()
+	if err := conf.ValidServer(); err != nil {
+		return err
+	}
+	l.ProtoConfig, err = json.Marshal(conf)
+	return err
 }
 
 func (l *LocalAgent) makePaths() {

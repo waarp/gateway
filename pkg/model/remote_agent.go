@@ -49,7 +49,12 @@ func (r *RemoteAgent) validateProtoConfig() error {
 	if err != nil {
 		return err
 	}
-	return conf.ValidPartner()
+	if err := conf.ValidPartner(); err != nil {
+		return err
+	}
+	r.ProtoConfig, err = json.Marshal(conf)
+
+	return err
 }
 
 // GetCerts fetch in the database then return the associated Certificates if they exist

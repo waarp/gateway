@@ -34,9 +34,9 @@ var (
 
 // SftpProtoConfig represents the configuration of an SFTP agent.
 type SftpProtoConfig struct {
-	KeyExchanges []string `json:"keyExchanges"`
-	Ciphers      []string `json:"ciphers"`
-	MACs         []string `json:"macs"`
+	KeyExchanges []string `json:"keyExchanges,omitempty"`
+	Ciphers      []string `json:"ciphers,omitempty"`
+	MACs         []string `json:"macs,omitempty"`
 }
 
 // ValidPartner checks if the configuration is valid for an SFTP partner.
