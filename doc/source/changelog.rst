@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :feature:`131` Ajout d'un système de gestion des droits pour les utilisateurs
+  de l'interface d'administration. Les utilisateurs de la *gateway* ont désormais
+  des droits attachés permettant de restreindre les actions qu'ils sont autorisés
+  à effectuer via l'interface REST. Cette gestion des droits peut se faire via
+  la commande de gestion des utilisateurs du client terminal, ou via l'interface
+  REST de gestion des utilisateurs directement.
 * :bug:`210` Les mots de passe des serveurs R66 locaux renseignés dans la
   configuration protocolaire sont désormais cryptés avant d'être stockés en base,
   au lieu d'être stockés en clair. Le stockage (sous forme de hash) des mots de
