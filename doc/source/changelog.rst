@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`176` Les arguments de direction de transfert du client terminal ont été
+  rendu consistants entre les différentes commandes. Le sens d'un transfert
+  s'exprime désormais toujours avec les mots ``send`` et ``receive`` (en minuscules)
+  pour toutes les commandes.
 * :feature:`131` Ajout d'un système de gestion des droits pour les utilisateurs
   de l'interface d'administration. Les utilisateurs de la *gateway* ont désormais
   des droits attachés permettant de restreindre les actions qu'ils sont autorisés
