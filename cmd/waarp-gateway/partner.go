@@ -174,13 +174,13 @@ type partnerAuthorize struct {
 	Args struct {
 		Partner   string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
 func (p *partnerAuthorize) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/partners/%s/authorize/%s/%s", p.Args.Partner,
-		p.Args.Rule, strings.ToLower(p.Args.Direction))
+		p.Args.Rule, p.Args.Direction)
 
 	return authorize("partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }

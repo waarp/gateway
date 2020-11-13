@@ -24,9 +24,9 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 	if hist.IsServer {
 		role = "server"
 	}
-	way := "RECEIVE"
+	way := "receive"
 	if hist.IsSend {
-		way = "SEND"
+		way = "send"
 	}
 
 	fmt.Fprintln(w, orange(bold("● Transfer", hist.ID, "(as", role+")")), coloredStatus(hist.Status))

@@ -128,7 +128,7 @@ func parseTasks(rule *api.UptRule, pre, post, errs []string) error {
 type ruleGet struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
@@ -151,7 +151,7 @@ func (r *ruleGet) Execute([]string) error {
 type ruleAdd struct {
 	Name       string   `required:"true" short:"n" long:"name" description:"The rule's name"`
 	Comment    *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
-	Direction  string   `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"SEND" choice:"RECEIVE"`
+	Direction  string   `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"send" choice:"receive"`
 	Path       string   `required:"true" short:"p" long:"path" description:"The path used to identify the rule"`
 	InPath     *string  `short:"i" long:"in_path" description:"The path to the destination of the file"`
 	OutPath    *string  `short:"o" long:"out_path" description:"The path to the source of the file"`
@@ -162,7 +162,7 @@ type ruleAdd struct {
 }
 
 func (r *ruleAdd) Execute([]string) error {
-	isSend := r.Direction == "SEND"
+	isSend := r.Direction == "send"
 	rule := &api.InRule{
 		UptRule: &api.UptRule{
 			Name:     &r.Name,
@@ -191,7 +191,7 @@ func (r *ruleAdd) Execute([]string) error {
 type ruleDelete struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"  choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"  choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
@@ -243,7 +243,7 @@ func (r *ruleList) Execute([]string) error {
 type ruleUpdate struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The server's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 	Name       *string  `short:"n" long:"name" description:"The rule's name"`
 	Comment    *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
@@ -290,7 +290,7 @@ func (r *ruleUpdate) Execute([]string) error {
 type ruleAllowAll struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 

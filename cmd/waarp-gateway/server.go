@@ -197,13 +197,13 @@ type serverAuthorize struct {
 	Args struct {
 		Server    string `required:"yes" positional-arg-name:"server" description:"The server's name"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"  choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"  choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
 func (s *serverAuthorize) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/authorize/%s/%s", s.Args.Server,
-		s.Args.Rule, strings.ToLower(s.Args.Direction))
+		s.Args.Rule, s.Args.Direction)
 
 	return authorize("server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
@@ -214,13 +214,13 @@ type serverRevoke struct {
 	Args struct {
 		Server    string `required:"yes" positional-arg-name:"server" description:"The server's name"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
 func (s *serverRevoke) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/revoke/%s/%s", s.Args.Server,
-		s.Args.Rule, strings.ToLower(s.Args.Direction))
+		s.Args.Rule, s.Args.Direction)
 
 	return revoke("server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }

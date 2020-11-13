@@ -73,7 +73,7 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 
 type transferAdd struct {
 	File    string `required:"true" short:"f" long:"file" description:"The file to transfer"`
-	Way     string `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"pull" choice:"push"`
+	Way     string `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
 	Name    string `short:"n" long:"name" description:"The name of the file after the transfer"`
 	Partner string `required:"true" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
 	Account string `required:"true" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
@@ -89,7 +89,7 @@ func (t *transferAdd) Execute([]string) (err error) {
 	trans := api.InTransfer{
 		Partner:    t.Partner,
 		Account:    t.Account,
-		IsSend:     t.Way == "push",
+		IsSend:     t.Way == "send",
 		SourcePath: t.File,
 		Rule:       t.Rule,
 		DestPath:   t.Name,
