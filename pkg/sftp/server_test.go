@@ -132,14 +132,6 @@ func TestSSHServer(t *testing.T) {
 			_, port, err := net.SplitHostPort(listener.Addr().String())
 			So(err, ShouldBeNil)
 
-			otherAgent := &model.LocalAgent{
-				Name:        "other_agent",
-				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:9999",
-			}
-			So(db.Create(otherAgent), ShouldBeNil)
-
 			agent := &model.LocalAgent{
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
@@ -158,13 +150,6 @@ func TestSSHServer(t *testing.T) {
 				Password:     []byte(pwd),
 			}
 			So(db.Create(user), ShouldBeNil)
-
-			otherUser := &model.LocalAccount{
-				LocalAgentID: otherAgent.ID,
-				Login:        user.Login,
-				Password:     []byte("passwd"),
-			}
-			So(db.Create(otherUser), ShouldBeNil)
 
 			cert := &model.Cert{
 				OwnerType:   agent.TableName(),
