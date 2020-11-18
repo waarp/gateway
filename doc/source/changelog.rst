@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`212` Correction du comportement des méthodes SFTP ``List`` et ``Stat``.
+  Les substitutions de chemin se font désormais correctement, même lorsque la
+  règle n'a pas de ``in/out_path``. Les fichiers pouvant être téléchargés depuis
+  le serveur SFTP sont donc maintenant visibles via ces 2 méthodes. Les fichiers
+  entrants, en revanche, ne seront pas visibles une fois déposés.
 * :bug:`207` Correction d'une erreur où les mots de passe des partenaires R66
   distants n'étaient pas correctement hashés.
 * :bug:`205` Correction d'une erreur empêchant le démarrage des serveurs R66 locaux.
