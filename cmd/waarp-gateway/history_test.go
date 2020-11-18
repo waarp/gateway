@@ -11,13 +11,15 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func historyInfoString(h *rest.OutHistory) string {
+func historyInfoString(h *api.OutHistory) string {
 	role := "client"
 	if h.IsServer {
 		role = "server"
@@ -36,17 +38,17 @@ func historyInfoString(h *rest.OutHistory) string {
 		"    Destination file: " + h.DestFilename + "\n" +
 		"    Start date:       " + h.Start.Local().Format(time.RFC3339) + "\n" +
 		"    End date:         " + h.Stop.Local().Format(time.RFC3339) + "\n"
-	if h.ErrorCode != model.TeOk {
+	if h.ErrorCode != types.TeOk {
 		rv += "    Error code:       " + h.ErrorCode.String() + "\n"
 		if h.ErrorMsg != "" {
 			rv += "    Error message:    " + h.ErrorMsg + "\n"
 		}
 	}
-	if h.Step != model.StepNone {
+	if h.Step != types.StepNone {
 		rv += "    Failed step:      " + h.Step.String() + "\n"
-		if h.Step == model.StepData {
+		if h.Step == types.StepData {
 			rv += "    Progress:         " + fmt.Sprint(h.Progress) + "\n"
-		} else if h.Step == model.StepPreTasks || h.Step == model.StepPostTasks {
+		} else if h.Step == types.StepPreTasks || h.Step == types.StepPostTasks {
 			rv += "    Failed task:      " + fmt.Sprint(h.TaskNumber) + "\n"
 		}
 	}
@@ -59,7 +61,7 @@ func TestDisplayHistory(t *testing.T) {
 	Convey("Given a history entry", t, func() {
 		out = testFile()
 
-		hist := &rest.OutHistory{
+		hist := &api.OutHistory{
 			ID:             1,
 			IsServer:       true,
 			IsSend:         false,
@@ -71,12 +73,12 @@ func TestDisplayHistory(t *testing.T) {
 			DestFilename:   "dest/path",
 			Start:          time.Now(),
 			Stop:           time.Now().Add(time.Hour),
-			Status:         model.StatusPlanned,
-			Step:           model.StepSetup,
+			Status:         types.StatusPlanned,
+			Step:           types.StepSetup,
 			Progress:       1,
 			TaskNumber:     2,
 			ErrorMsg:       "error message",
-			ErrorCode:      model.TeUnknown,
+			ErrorCode:      types.TeUnknown,
 		}
 		Convey("When calling the `displayHistory` function", func() {
 			w := getColorable()
@@ -95,7 +97,7 @@ func TestDisplayHistory(t *testing.T) {
 	Convey("Given a history entry with error", t, func() {
 		out = testFile()
 
-		hist := rest.OutHistory{
+		hist := api.OutHistory{
 			ID:             1,
 			IsServer:       true,
 			IsSend:         false,
@@ -107,8 +109,8 @@ func TestDisplayHistory(t *testing.T) {
 			DestFilename:   "file/path",
 			Start:          time.Now(),
 			Stop:           time.Now().Add(time.Hour),
-			Status:         model.StatusPlanned,
-			ErrorCode:      model.TeConnectionReset,
+			Status:         types.StatusPlanned,
+			ErrorCode:      types.TeConnectionReset,
 			ErrorMsg:       "connexion reset by peer",
 		}
 		Convey("When calling the `displayHistory` function", func() {
@@ -152,7 +154,7 @@ func TestGetHistory(t *testing.T) {
 					DestFilename:   "file/path",
 					Start:          time.Now(),
 					Stop:           time.Now().Add(time.Hour),
-					Status:         model.StatusDone,
+					Status:         types.StatusDone,
 					Owner:          database.Owner,
 				}
 				So(db.Create(h), ShouldBeNil)
@@ -217,7 +219,7 @@ func TestListHistory(t *testing.T) {
 					Rule:           "rule1",
 					Start:          time.Date(2019, 1, 1, 1, 0, 0, 0, time.UTC),
 					Stop:           time.Date(2019, 1, 1, 1, 1, 0, 0, time.UTC),
-					Status:         model.StatusDone,
+					Status:         types.StatusDone,
 				}
 				h2 := &model.TransferHistory{
 					ID:             2,
@@ -231,7 +233,7 @@ func TestListHistory(t *testing.T) {
 					Rule:           "rule2",
 					Start:          time.Date(2019, 1, 1, 2, 0, 0, 0, time.UTC),
 					Stop:           time.Date(2019, 1, 1, 2, 1, 0, 0, time.UTC),
-					Status:         model.StatusCancelled,
+					Status:         types.StatusCancelled,
 				}
 				h3 := &model.TransferHistory{
 					ID:             3,
@@ -245,7 +247,7 @@ func TestListHistory(t *testing.T) {
 					Rule:           "rule3",
 					Start:          time.Date(2019, 1, 1, 3, 0, 0, 0, time.UTC),
 					Stop:           time.Date(2019, 1, 1, 3, 1, 0, 0, time.UTC),
-					Status:         model.StatusDone,
+					Status:         types.StatusDone,
 				}
 				h4 := &model.TransferHistory{
 					ID:             4,
@@ -259,7 +261,7 @@ func TestListHistory(t *testing.T) {
 					Rule:           "rule4",
 					Start:          time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
 					Stop:           time.Date(2019, 1, 1, 4, 1, 0, 0, time.UTC),
-					Status:         model.StatusCancelled,
+					Status:         types.StatusCancelled,
 				}
 				So(db.Create(h1), ShouldBeNil)
 				So(db.Create(h2), ShouldBeNil)
@@ -534,7 +536,7 @@ func TestRetryHistory(t *testing.T) {
 					DestFilename:   "destination",
 					Start:          time.Now(),
 					Stop:           time.Now().Add(time.Hour),
-					Status:         model.StatusCancelled,
+					Status:         types.StatusCancelled,
 					Owner:          database.Owner,
 				}
 				So(db.Create(h), ShouldBeNil)
@@ -564,7 +566,7 @@ func TestRetryHistory(t *testing.T) {
 								SourceFile: h.SourceFilename,
 								DestFile:   h.DestFilename,
 								Start:      time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
-								Status:     model.StatusPlanned,
+								Status:     types.StatusPlanned,
 								Owner:      h.Owner,
 							}
 

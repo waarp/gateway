@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -328,7 +329,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 							clear, err := model.DecryptPassword(accs[0].Password)
 							So(err, ShouldBeNil)
 							accs[0].Password = clear
-							So(accs[0], ShouldResemble, *newAccount.ToRemote(parent, 1))
+							So(accs[0], ShouldResemble, *accToRemote(newAccount, parent, 1))
 						})
 					})
 				})

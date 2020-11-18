@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"testing"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -333,7 +334,7 @@ func TestCreateLocalAccount(t *testing.T) {
 							So(bcrypt.CompareHashAndPassword(accs[0].Password,
 								newAccount.Password), ShouldBeNil)
 							accs[0].Password = newAccount.Password
-							So(accs[0], ShouldResemble, *newAccount.ToLocal(parent, 1))
+							So(accs[0], ShouldResemble, *accToLocal(newAccount, parent, 1))
 						})
 					})
 				})

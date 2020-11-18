@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	. "github.com/smartystreets/goconvey/convey"
@@ -31,10 +32,10 @@ func TestStatus(t *testing.T) {
 	services["Test Error Service"] = &testService{state: service.State{}}
 	services["Test Error Service"].State().Set(service.Error, "Test Reason")
 
-	statuses := map[string]Status{
-		"Test Error Service":   {service.Error.Name(), "Test Reason"},
-		"Test Offline Service": {service.Offline.Name(), ""},
-		"Test Running Service": {service.Running.Name(), ""},
+	statuses := map[string]api.Status{
+		"Test Error Service":   {State: service.Error.Name(), Reason: "Test Reason"},
+		"Test Offline Service": {State: service.Offline.Name()},
+		"Test Running Service": {State: service.Running.Name()},
 	}
 
 	Convey("Given the REST status handler", t, func() {
@@ -60,7 +61,7 @@ func TestStatus(t *testing.T) {
 				})
 
 				Convey("Then the response body should contain the services in JSON format", func() {
-					response := map[string]Status{}
+					response := map[string]api.Status{}
 					err := json.Unmarshal(w.Body.Bytes(), &response)
 
 					So(err, ShouldBeNil)

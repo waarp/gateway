@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
@@ -132,8 +133,8 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	}
 	t.Logger = log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 
-	if t.Transfer.Error.Code != model.TeOk {
-		t.Transfer.Error = model.TransferError{}
+	if t.Transfer.Error.Code != types.TeOk {
+		t.Transfer.Error = types.TransferError{}
 		if err := db.Update(t.Transfer); err != nil {
 			logger.Criticalf("Failed to reset transfer error: %s", err.Error())
 			return nil, &model.PipelineError{Kind: model.KindDatabase}
@@ -176,7 +177,7 @@ func (t *TransferStream) createTransfer(trans *model.Transfer) *model.PipelineEr
 	if err := t.DB.Create(trans); err != nil {
 		if _, ok := err.(*database.ErrInvalid); ok {
 			t.Logger.Errorf("Failed to create transfer entry: %s", err.Error())
-			return model.NewPipelineError(model.TeForbidden, err.Error())
+			return model.NewPipelineError(types.TeForbidden, err.Error())
 		}
 		t.Logger.Criticalf("Failed to create transfer entry: %s", err.Error())
 		return &model.PipelineError{Kind: model.KindDatabase}
@@ -222,7 +223,7 @@ func (t *TransferStream) Start() *model.PipelineError {
 	if !t.Rule.IsSend {
 		if err := makeDir(t.Transfer.TrueFilepath); err != nil {
 			t.Logger.Errorf("Failed to create temp directory: %s", err)
-			return model.NewPipelineError(model.TeForbidden, err.Error())
+			return model.NewPipelineError(types.TeForbidden, err.Error())
 		}
 	}
 
@@ -255,9 +256,9 @@ func (t *TransferStream) Write(p []byte) (n int, err error) {
 
 // ReadAt reads the stream, starting at the given offset.
 func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
-	if t.Transfer.Step == model.StepPreTasks {
+	if t.Transfer.Step == types.StepPreTasks {
 		t.Transfer.TaskNumber = 0
-		t.Transfer.Step = model.StepData
+		t.Transfer.Step = types.StepData
 		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
 			t.Logger.Criticalf("Failed to update upload transfer step to 'DATA': %s", dbErr)
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
@@ -270,7 +271,7 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 	n, err = t.File.ReadAt(p, off)
 	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
 	if err != nil && err != io.EOF {
-		t.Transfer.Error = model.NewTransferError(model.TeDataTransfer, err.Error())
+		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
 
@@ -279,9 +280,9 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 
 // WriteAt writes the given bytes to the stream, starting at the given offset.
 func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
-	if t.Transfer.Step == model.StepPreTasks {
+	if t.Transfer.Step == types.StepPreTasks {
 		t.Transfer.TaskNumber = 0
-		t.Transfer.Step = model.StepData
+		t.Transfer.Step = types.StepData
 		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
 			t.Logger.Criticalf("Failed to update download transfer step to 'DATA': %s", dbErr)
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
@@ -294,7 +295,7 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 	n, err = t.File.WriteAt(p, off)
 	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
 	if err != nil {
-		t.Transfer.Error = model.NewTransferError(model.TeDataTransfer, err.Error())
+		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
 
@@ -339,12 +340,12 @@ func (t *TransferStream) Move() error {
 
 	if err := makeDir(filepath); err != nil {
 		t.Logger.Errorf("Failed to create destination directory: %s", err.Error())
-		return model.NewPipelineError(model.TeFinalization, err.Error())
+		return model.NewPipelineError(types.TeFinalization, err.Error())
 	}
 
 	if err := tasks.MoveFile(t.Transfer.TrueFilepath, filepath); err != nil {
 		t.Logger.Errorf("Failed to move temp file: %s", err.Error())
-		return model.NewPipelineError(model.TeFinalization, err.Error())
+		return model.NewPipelineError(types.TeFinalization, err.Error())
 	}
 
 	t.Transfer.TrueFilepath = filepath

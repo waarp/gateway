@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
@@ -228,7 +229,7 @@ func TestSFTPPackage(t *testing.T) {
 						SourceFile: srcFile,
 						DestFile:   "sftp_test_file.dst",
 						Start:      time.Now().Truncate(time.Second),
-						Status:     model.StatusPlanned,
+						Status:     types.StatusPlanned,
 					}
 					So(db.Create(&trans), ShouldBeNil)
 
@@ -289,9 +290,9 @@ func TestSFTPPackage(t *testing.T) {
 											Rule:           send.Name,
 											Start:          hist[0].Start,
 											Stop:           hist[0].Stop,
-											Status:         model.StatusDone,
-											Step:           model.StepNone,
-											Error:          model.TransferError{},
+											Status:         types.StatusDone,
+											Step:           types.StepNone,
+											Error:          types.TransferError{},
 											Progress:       uint64(len(content)),
 											TaskNumber:     0,
 										}
@@ -313,9 +314,9 @@ func TestSFTPPackage(t *testing.T) {
 											Rule:           receive.Name,
 											Start:          hist[1].Start,
 											Stop:           hist[1].Stop,
-											Status:         model.StatusDone,
-											Step:           model.StepNone,
-											Error:          model.TransferError{},
+											Status:         types.StatusDone,
+											Step:           types.StepNone,
+											Error:          types.TransferError{},
 											Progress:       uint64(len(content)),
 											TaskNumber:     0,
 										}
@@ -371,13 +372,13 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     send.ID,
 											Start:      transfers[0].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code: model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code: types.TeExternalOperation,
 												Details: "Remote pre-tasks failed: Task " +
 													"TESTFAIL @ receive PRE[1]: task failed",
 											},
-											Step:       model.StepSetup,
+											Step:       types.StepSetup,
 											Progress:   0,
 											TaskNumber: 0,
 										}
@@ -398,13 +399,13 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     receive.ID,
 											Start:      transfers[1].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code: model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code: types.TeExternalOperation,
 												Details: "Task TESTFAIL @ receive " +
 													"PRE[1]: task failed",
 											},
-											Step:       model.StepPreTasks,
+											Step:       types.StepPreTasks,
 											Progress:   0,
 											TaskNumber: 1,
 										}
@@ -461,13 +462,13 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     send.ID,
 											Start:      transfers[0].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code: model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code: types.TeExternalOperation,
 												Details: "Task TESTFAIL @ send " +
 													"PRE[1]: task failed",
 											},
-											Step:       model.StepPreTasks,
+											Step:       types.StepPreTasks,
 											Progress:   0,
 											TaskNumber: 1,
 										}
@@ -488,12 +489,12 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     receive.ID,
 											Start:      transfers[1].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code:    model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code:    types.TeExternalOperation,
 												Details: "Remote pre-tasks failed",
 											},
-											Step:       model.StepPreTasks,
+											Step:       types.StepPreTasks,
 											Progress:   0,
 											TaskNumber: 1,
 										}
@@ -554,13 +555,13 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     send.ID,
 											Start:      transfers[0].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code: model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code: types.TeExternalOperation,
 												Details: "Remote post-tasks failed: Task " +
 													"TESTFAIL @ receive POST[1]: task failed",
 											},
-											Step:       model.StepFinalization,
+											Step:       types.StepFinalization,
 											Progress:   uint64(len(content)),
 											TaskNumber: 0,
 										}
@@ -581,13 +582,13 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     receive.ID,
 											Start:      transfers[1].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code: model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code: types.TeExternalOperation,
 												Details: "Task TESTFAIL @ receive " +
 													"POST[1]: task failed",
 											},
-											Step:       model.StepPostTasks,
+											Step:       types.StepPostTasks,
 											Progress:   uint64(len(content)),
 											TaskNumber: 1,
 										}
@@ -647,12 +648,12 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     send.ID,
 											Start:      transfers[0].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code:    model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code:    types.TeExternalOperation,
 												Details: "Task TESTFAIL @ send POST[1]: task failed",
 											},
-											Step:       model.StepPostTasks,
+											Step:       types.StepPostTasks,
 											Progress:   0,
 											TaskNumber: 1,
 										}
@@ -673,12 +674,12 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     receive.ID,
 											Start:      transfers[1].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code:    model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code:    types.TeExternalOperation,
 												Details: "Remote post-tasks failed",
 											},
-											Step:       model.StepPostTasks,
+											Step:       types.StepPostTasks,
 											Progress:   0,
 											TaskNumber: 0,
 										}

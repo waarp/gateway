@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-r66/r66"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -166,8 +167,8 @@ func TestValidRequest(t *testing.T) {
 						So(trans.stream.Transfer.SourceFile, ShouldEqual, path.Base(packet.Filepath))
 						So(trans.stream.Transfer.DestFile, ShouldEqual, path.Base(packet.Filepath))
 						So(trans.stream.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
-						So(trans.stream.Transfer.Step, ShouldEqual, model.StepNone)
-						So(trans.stream.Transfer.Status, ShouldEqual, model.StatusRunning)
+						So(trans.stream.Transfer.Step, ShouldEqual, types.StepNone)
+						So(trans.stream.Transfer.Status, ShouldEqual, types.StatusRunning)
 					})
 
 					Convey("Then it should return a new session handler", func() {

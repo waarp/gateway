@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"testing"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -268,7 +269,7 @@ func TestCreateRemoteAgent(t *testing.T) {
 							So(db.Select(&ags, nil), ShouldBeNil)
 							So(len(ags), ShouldEqual, 2)
 
-							So(ags[1], ShouldResemble, *newAgent.ToModel(2))
+							So(ags[1], ShouldResemble, *partToDB(newAgent, 2))
 						})
 
 						Convey("Then the existing remote agent should still be "+

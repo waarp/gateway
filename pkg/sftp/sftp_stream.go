@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/pkg/sftp"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -25,15 +26,15 @@ func modelToSFTP(err error) error {
 	if pErr, ok := err.(*model.PipelineError); ok {
 		if pErr.Kind == model.KindTransfer {
 			switch pErr.Cause.Code {
-			case model.TeOk:
+			case types.TeOk:
 				return sftp.ErrSSHFxOk
-			case model.TeUnimplemented:
+			case types.TeUnimplemented:
 				return sftp.ErrSSHFxOpUnsupported
-			case model.TeIntegrity:
+			case types.TeIntegrity:
 				return sftp.ErrSSHFxBadMessage
-			case model.TeFileNotFound:
+			case types.TeFileNotFound:
 				return sftp.ErrSSHFxNoSuchFile
-			case model.TeForbidden:
+			case types.TeForbidden:
 				return sftp.ErrSSHFxPermissionDenied
 			}
 		}
@@ -71,14 +72,14 @@ func (s *sftpStream) TransferError(error) {
 	}
 	if s.transErr == nil {
 		switch s.Transfer.Step {
-		case model.StepPreTasks:
-			s.transErr = model.NewPipelineError(model.TeExternalOperation,
+		case types.StepPreTasks:
+			s.transErr = model.NewPipelineError(types.TeExternalOperation,
 				"Remote pre-tasks failed")
-		case model.StepData:
-			s.transErr = model.NewPipelineError(model.TeConnectionReset,
+		case types.StepData:
+			s.transErr = model.NewPipelineError(types.TeConnectionReset,
 				"SFTP connection closed unexpectedly")
-		case model.StepPostTasks:
-			s.transErr = model.NewPipelineError(model.TeExternalOperation,
+		case types.StepPostTasks:
+			s.transErr = model.NewPipelineError(types.TeExternalOperation,
 				"Remote post-tasks failed")
 		}
 	}
@@ -100,7 +101,7 @@ func (s *sftpStream) ReadAt(p []byte, off int64) (int, error) {
 		if n != 0 {
 			return n, nil
 		}
-		s.Transfer.Step = model.StepPostTasks
+		s.Transfer.Step = types.StepPostTasks
 		if dbErr := s.DB.Update(s.Transfer); dbErr != nil {
 			return 0, dbErr
 		}
@@ -122,7 +123,7 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 		return 0, modelToSFTP(s.transErr)
 	}
 	if uint64(off) != s.Transfer.Progress && off == 0 && len(p) == 1 {
-		s.Transfer.Step = model.StepPostTasks
+		s.Transfer.Step = types.StepPostTasks
 		if err := s.DB.Update(s.Transfer); err != nil {
 			return 0, err
 		}
@@ -161,8 +162,8 @@ func (s *sftpStream) Close() error {
 		if s.transErr == nil {
 			s.transErr = s.PostTasks()
 			if s.transErr == nil {
-				s.Transfer.Step = model.StepNone
-				s.Transfer.Status = model.StatusDone
+				s.Transfer.Step = types.StepNone
+				s.Transfer.Status = types.StatusDone
 				s.Transfer.TaskNumber = 0
 				if s.Archive() == nil {
 					s.Logger.Info("Execution finished without errors")

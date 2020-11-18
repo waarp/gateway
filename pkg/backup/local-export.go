@@ -1,14 +1,15 @@
 package backup
 
 import (
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
 
-func exportLocals(logger *log.Logger, db *database.Session) ([]localAgent, error) {
-	dbLocals := []model.LocalAgent{}
+func exportLocals(logger *log.Logger, db *database.Session) ([]file.LocalAgent, error) {
+	var dbLocals []model.LocalAgent
 	filter := database.Filters{
 		Conditions: builder.Eq{"owner": database.Owner},
 	}
@@ -17,7 +18,7 @@ func exportLocals(logger *log.Logger, db *database.Session) ([]localAgent, error
 		return nil, err
 	}
 
-	res := make([]localAgent, len(dbLocals))
+	res := make([]file.LocalAgent, len(dbLocals))
 
 	for i, src := range dbLocals {
 		accounts, err := exportLocalAccounts(logger, db, src.ID)
@@ -31,7 +32,7 @@ func exportLocals(logger *log.Logger, db *database.Session) ([]localAgent, error
 		}
 
 		logger.Infof("Export local server %s\n", src.Name)
-		res[i] = localAgent{
+		res[i] = file.LocalAgent{
 			Name:          src.Name,
 			Protocol:      src.Protocol,
 			Configuration: src.ProtoConfig,
@@ -48,9 +49,9 @@ func exportLocals(logger *log.Logger, db *database.Session) ([]localAgent, error
 }
 
 func exportLocalAccounts(logger *log.Logger, db *database.Session,
-	agentID uint64) ([]localAccount, error) {
+	agentID uint64) ([]file.LocalAccount, error) {
 
-	dbAccounts := []model.LocalAccount{}
+	var dbAccounts []model.LocalAccount
 	filters := &database.Filters{
 		Conditions: builder.Eq{"local_agent_id": agentID},
 	}
@@ -59,7 +60,7 @@ func exportLocalAccounts(logger *log.Logger, db *database.Session,
 		return nil, err
 	}
 
-	res := make([]localAccount, len(dbAccounts))
+	res := make([]file.LocalAccount, len(dbAccounts))
 
 	for i, src := range dbAccounts {
 
@@ -69,7 +70,7 @@ func exportLocalAccounts(logger *log.Logger, db *database.Session,
 		}
 
 		logger.Infof("Export local account %s\n", src.Login)
-		res[i] = localAccount{
+		res[i] = file.LocalAccount{
 			Login:    src.Login,
 			Password: string(src.Password),
 			Certs:    certificates,

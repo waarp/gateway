@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"github.com/go-xorm/builder"
@@ -38,7 +39,7 @@ type Controller struct {
 
 func (c *Controller) checkIsDBDown() bool {
 	owner := builder.Eq{"owner": database.Owner}
-	statusDown := builder.Eq{"status": model.StatusRunning}
+	statusDown := builder.Eq{"status": types.StatusRunning}
 	filtersDown := database.Filters{
 		Conditions: builder.And(owner, statusDown),
 	}
@@ -55,7 +56,7 @@ func (c *Controller) checkIsDBDown() bool {
 
 	for _, t := range runningTrans {
 		trans := t
-		trans.Status = model.StatusInterrupted
+		trans.Status = types.StatusInterrupted
 		if err := c.DB.Update(&trans); err != nil {
 			c.logger.Errorf("Failed to access database: %s", err.Error())
 			return true
@@ -89,7 +90,7 @@ func (c *Controller) startNewTransfers() {
 	}
 
 	owner := builder.Eq{"owner": database.Owner}
-	status := builder.Eq{"status": model.StatusPlanned}
+	status := builder.Eq{"status": types.StatusPlanned}
 	client := builder.Eq{"is_server": false}
 	start := builder.Lte{"start": time.Now()}
 	filters := database.Filters{

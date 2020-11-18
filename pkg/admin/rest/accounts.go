@@ -1,61 +1,48 @@
 package rest
 
 import (
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-// InAccount is the JSON representation of a local/remote account in requests
-// made to the REST interface.
-type InAccount struct {
-	Login    *string `json:"login,omitempty"`
-	Password []byte  `json:"password,omitempty"`
-}
-
-func newInLocAccount(old *model.LocalAccount) *InAccount {
-	return &InAccount{
+func newInLocAccount(old *model.LocalAccount) *api.InAccount {
+	return &api.InAccount{
 		Login:    &old.Login,
 		Password: old.Password,
 	}
 }
 
-func newInRemAccount(old *model.RemoteAccount) *InAccount {
-	return &InAccount{
+func newInRemAccount(old *model.RemoteAccount) *api.InAccount {
+	return &api.InAccount{
 		Login:    &old.Login,
 		Password: old.Password,
 	}
 }
 
-// ToLocal transforms the JSON local account into its database equivalent.
-func (i *InAccount) ToLocal(agent *model.LocalAgent, id uint64) *model.LocalAccount {
+// accToLocal transforms the JSON local account into its database equivalent.
+func accToLocal(acc *api.InAccount, agent *model.LocalAgent, id uint64) *model.LocalAccount {
 	return &model.LocalAccount{
 		ID:           id,
 		LocalAgentID: agent.ID,
-		Login:        str(i.Login),
-		Password:     i.Password,
+		Login:        str(acc.Login),
+		Password:     acc.Password,
 	}
 }
 
-// ToRemote transforms the JSON remote account into its database equivalent.
-func (i *InAccount) ToRemote(agent *model.RemoteAgent, id uint64) *model.RemoteAccount {
+// accToRemote transforms the JSON remote account into its database equivalent.
+func accToRemote(acc *api.InAccount, agent *model.RemoteAgent, id uint64) *model.RemoteAccount {
 	return &model.RemoteAccount{
 		ID:            id,
 		RemoteAgentID: agent.ID,
-		Login:         str(i.Login),
-		Password:      i.Password,
+		Login:         str(acc.Login),
+		Password:      acc.Password,
 	}
-}
-
-// OutAccount is the JSON representation of a local/remote account in responses
-// sent by the REST interface.
-type OutAccount struct {
-	Login           string           `json:"login"`
-	AuthorizedRules *AuthorizedRules `json:"authorizedRules"`
 }
 
 // FromLocalAccount transforms the given database local account into its JSON
 // equivalent.
-func FromLocalAccount(acc *model.LocalAccount, rules *AuthorizedRules) *OutAccount {
-	return &OutAccount{
+func FromLocalAccount(acc *model.LocalAccount, rules *api.AuthorizedRules) *api.OutAccount {
+	return &api.OutAccount{
 		Login:           acc.Login,
 		AuthorizedRules: rules,
 	}
@@ -63,10 +50,10 @@ func FromLocalAccount(acc *model.LocalAccount, rules *AuthorizedRules) *OutAccou
 
 // FromLocalAccounts transforms the given list of database local accounts into
 // its JSON equivalent.
-func FromLocalAccounts(accs []model.LocalAccount, rules []AuthorizedRules) []OutAccount {
-	accounts := make([]OutAccount, len(accs))
+func FromLocalAccounts(accs []model.LocalAccount, rules []api.AuthorizedRules) []api.OutAccount {
+	accounts := make([]api.OutAccount, len(accs))
 	for i, acc := range accs {
-		accounts[i] = OutAccount{
+		accounts[i] = api.OutAccount{
 			Login:           acc.Login,
 			AuthorizedRules: &rules[i],
 		}
@@ -76,8 +63,8 @@ func FromLocalAccounts(accs []model.LocalAccount, rules []AuthorizedRules) []Out
 
 // FromRemoteAccount transforms the given database remote account into its JSON
 // equivalent.
-func FromRemoteAccount(acc *model.RemoteAccount, rules *AuthorizedRules) *OutAccount {
-	return &OutAccount{
+func FromRemoteAccount(acc *model.RemoteAccount, rules *api.AuthorizedRules) *api.OutAccount {
+	return &api.OutAccount{
 		Login:           acc.Login,
 		AuthorizedRules: rules,
 	}
@@ -85,10 +72,10 @@ func FromRemoteAccount(acc *model.RemoteAccount, rules *AuthorizedRules) *OutAcc
 
 // FromRemoteAccounts transforms the given list of database remote accounts into
 // its JSON equivalent.
-func FromRemoteAccounts(accs []model.RemoteAccount, rules []AuthorizedRules) []OutAccount {
-	accounts := make([]OutAccount, len(accs))
+func FromRemoteAccounts(accs []model.RemoteAccount, rules []api.AuthorizedRules) []api.OutAccount {
+	accounts := make([]api.OutAccount, len(accs))
 	for i, acc := range accs {
-		accounts[i] = OutAccount{
+		accounts[i] = api.OutAccount{
 			Login:           acc.Login,
 			AuthorizedRules: &rules[i],
 		}

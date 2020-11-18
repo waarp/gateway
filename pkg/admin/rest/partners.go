@@ -3,6 +3,7 @@ package rest
 import (
 	"net/http"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -27,12 +28,12 @@ func getRemAg(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
 func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonAgent := &InPartner{}
-			if err := readJSON(r, jsonAgent); err != nil {
+			part := &api.InPartner{}
+			if err := readJSON(r, part); err != nil {
 				return err
 			}
 
-			agent := jsonAgent.ToModel(0)
+			agent := partToDB(part, 0)
 			if err := db.Create(agent); err != nil {
 				return err
 			}
@@ -81,7 +82,7 @@ func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutPartner{"partners": FromRemoteAgents(results, rules)}
+			resp := map[string][]api.OutPartner{"partners": FromRemoteAgents(results, rules)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -139,16 +140,16 @@ func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			agent := newInPartner(old)
-			if err := readJSON(r, agent); err != nil {
+			part := newInPartner(old)
+			if err := readJSON(r, part); err != nil {
 				return err
 			}
 
-			if err := db.Update(agent.ToModel(old.ID)); err != nil {
+			if err := db.Update(partToDB(part, old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(agent.Name)))
+			w.Header().Set("Location", locationUpdate(r.URL, str(part.Name)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -166,16 +167,16 @@ func replaceRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			agent := &InPartner{}
-			if err := readJSON(r, agent); err != nil {
+			part := &api.InPartner{}
+			if err := readJSON(r, part); err != nil {
 				return err
 			}
 
-			if err := db.Update(agent.ToModel(old.ID)); err != nil {
+			if err := db.Update(partToDB(part, old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(agent.Name)))
+			w.Header().Set("Location", locationUpdate(r.URL, str(part.Name)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

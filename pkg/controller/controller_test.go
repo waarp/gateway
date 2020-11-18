@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
@@ -102,7 +103,7 @@ func TestControllerListen(t *testing.T) {
 					SourceFile:   "source_file_1",
 					DestFile:     "dest_file_1",
 					Start:        start,
-					Status:       model.StatusPlanned,
+					Status:       types.StatusPlanned,
 					Owner:        database.Owner,
 				}
 				So(db.Create(trans), ShouldBeNil)
@@ -162,7 +163,7 @@ func TestControllerListen(t *testing.T) {
 					SourceFile:   "source_file_2",
 					DestFile:     "dest_file_2",
 					Start:        start,
-					Status:       model.StatusRunning,
+					Status:       types.StatusRunning,
 					Owner:        database.Owner,
 				}
 				So(db.Create(trans), ShouldBeNil)
@@ -184,7 +185,7 @@ func TestControllerListen(t *testing.T) {
 									"interrupted", func() {
 									result := &model.Transfer{ID: trans.ID}
 									So(db.Get(result), ShouldBeNil)
-									So(result.Status, ShouldEqual, model.StatusInterrupted)
+									So(result.Status, ShouldEqual, types.StatusInterrupted)
 								})
 							})
 						})

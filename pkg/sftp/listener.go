@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
@@ -148,8 +149,8 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
 			SourceFile: path.Base(r.Filepath),
 			DestFile:   path.Base(r.Filepath),
 			Start:      time.Now(),
-			Status:     model.StatusRunning,
-			Step:       model.StepSetup,
+			Status:     types.StatusRunning,
+			Step:       types.StepSetup,
 		}
 
 		l.Logger.Infof("Download of file '%s' requested by '%s' using rule '%s'",
@@ -190,8 +191,8 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64,
 			SourceFile: path.Base(r.Filepath),
 			DestFile:   path.Base(r.Filepath),
 			Start:      time.Now(),
-			Status:     model.StatusRunning,
-			Step:       model.StepSetup,
+			Status:     types.StatusRunning,
+			Step:       types.StepSetup,
 		}
 
 		l.Logger.Infof("Upload of file '%s' requested by '%s' using rule '%s'",

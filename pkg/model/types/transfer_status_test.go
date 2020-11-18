@@ -1,4 +1,4 @@
-package model
+package types
 
 import (
 	"fmt"
@@ -63,11 +63,11 @@ func TestTransferStatusValidateForTransfer(t *testing.T) {
 
 				if tc.expected == true {
 					Convey("Then it is valid for a transfer", func() {
-						So(validateStatusForTransfer(status), ShouldBeTrue)
+						So(ValidateStatusForTransfer(status), ShouldBeTrue)
 					})
 				} else {
 					Convey("Then it is not valid for a transfer", func() {
-						So(validateStatusForTransfer(status), ShouldBeFalse)
+						So(ValidateStatusForTransfer(status), ShouldBeFalse)
 					})
 				}
 			})
@@ -97,11 +97,11 @@ func TestTransferStatusValidateForHistory(t *testing.T) {
 
 				if tc.expected == true {
 					Convey("Then it is valid for a transfer", func() {
-						So(validateStatusForHistory(status), ShouldBeTrue)
+						So(ValidateStatusForHistory(status), ShouldBeTrue)
 					})
 				} else {
 					Convey("Then it is not valid for a transfer", func() {
-						So(validateStatusForHistory(status), ShouldBeFalse)
+						So(ValidateStatusForHistory(status), ShouldBeFalse)
 					})
 				}
 			})

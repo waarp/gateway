@@ -10,13 +10,15 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func transferInfoString(t *rest.OutTransfer) string {
+func transferInfoString(t *api.OutTransfer) string {
 	role := "client"
 	if t.IsServer {
 		role = "server"
@@ -33,7 +35,7 @@ func transferInfoString(t *rest.OutTransfer) string {
 		"    Step:             " + string(t.Step) + "\n" +
 		"    Progress:         " + fmt.Sprint(t.Progress) + "\n" +
 		"    Task number:      " + fmt.Sprint(t.TaskNumber) + "\n"
-	if t.ErrorCode != model.TeOk {
+	if t.ErrorCode != types.TeOk {
 		rv += "    Error code:       " + t.ErrorCode.String() + "\n"
 	}
 	if t.ErrorMsg != "" {
@@ -47,7 +49,7 @@ func TestDisplayTransfer(t *testing.T) {
 	Convey("Given a transfer entry", t, func() {
 		out = testFile()
 
-		trans := &rest.OutTransfer{
+		trans := &api.OutTransfer{
 			ID:           1,
 			Rule:         "rule",
 			Requester:    "requester",
@@ -56,11 +58,11 @@ func TestDisplayTransfer(t *testing.T) {
 			DestPath:     "dest/path",
 			TrueFilepath: "/true/filepath",
 			Start:        time.Now(),
-			Status:       model.StatusPlanned,
-			Step:         model.StepData,
+			Status:       types.StatusPlanned,
+			Step:         types.StepData,
 			Progress:     1,
 			TaskNumber:   2,
-			ErrorCode:    model.TeForbidden,
+			ErrorCode:    types.TeForbidden,
 			ErrorMsg:     "custom error message",
 		}
 		Convey("When calling the `displayTransfer` function", func() {
@@ -132,7 +134,7 @@ func TestAddTransfer(t *testing.T) {
 							AccountID:  account.ID,
 							SourceFile: "file.src",
 							DestFile:   "file.dst",
-							Status:     model.StatusPlanned,
+							Status:     types.StatusPlanned,
 							Owner:      database.Owner,
 						}
 						So(db.Get(trans), ShouldBeNil)
@@ -260,7 +262,7 @@ func TestGetTransfer(t *testing.T) {
 					SourceFile: "source",
 					DestFile:   "dest",
 					Start:      time.Now(),
-					Status:     model.StatusPlanned,
+					Status:     types.StatusPlanned,
 				}
 				So(db.Create(trans), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
@@ -432,8 +434,8 @@ func TestListTransfer(t *testing.T) {
 				So(db.Create(trans3), ShouldBeNil)
 				So(db.Create(trans4), ShouldBeNil)
 
-				trans2.Status = model.StatusRunning
-				trans3.Status = model.StatusRunning
+				trans2.Status = types.StatusRunning
+				trans3.Status = types.StatusRunning
 				So(db.Update(trans2), ShouldBeNil)
 				So(db.Update(trans3), ShouldBeNil)
 
@@ -634,7 +636,7 @@ func TestPauseTransfer(t *testing.T) {
 					SourceFile: "source",
 					DestFile:   "destination",
 					Start:      time.Now().Truncate(time.Second),
-					Status:     model.StatusPlanned,
+					Status:     types.StatusPlanned,
 					Owner:      database.Owner,
 				}
 				So(db.Create(trans), ShouldBeNil)
@@ -655,7 +657,7 @@ func TestPauseTransfer(t *testing.T) {
 						})
 
 						Convey("Then the transfer should have been updated", func() {
-							trans.Status = model.StatusPaused
+							trans.Status = types.StatusPaused
 
 							var t []model.Transfer
 							So(db.Select(&t, nil), ShouldBeNil)
@@ -737,7 +739,7 @@ func TestResumeTransfer(t *testing.T) {
 					SourceFile: "source",
 					DestFile:   "destination",
 					Start:      time.Now().Truncate(time.Second),
-					Status:     model.StatusPaused,
+					Status:     types.StatusPaused,
 					Owner:      database.Owner,
 				}
 				So(db.Create(trans), ShouldBeNil)
@@ -757,7 +759,7 @@ func TestResumeTransfer(t *testing.T) {
 						})
 
 						Convey("Then the transfer should have been updated", func() {
-							trans.Status = model.StatusPlanned
+							trans.Status = types.StatusPlanned
 
 							var t []model.Transfer
 							So(db.Select(&t, nil), ShouldBeNil)
@@ -838,7 +840,7 @@ func TestCancelTransfer(t *testing.T) {
 					SourceFile: "source",
 					DestFile:   "destination",
 					Start:      time.Now().Truncate(time.Second),
-					Status:     model.StatusPlanned,
+					Status:     types.StatusPlanned,
 					Owner:      database.Owner,
 				}
 				So(db.Create(trans), ShouldBeNil)
@@ -875,8 +877,8 @@ func TestCancelTransfer(t *testing.T) {
 								Rule:           r.Name,
 								Start:          trans.Start,
 								Stop:           h[0].Stop,
-								Status:         model.StatusCancelled,
-								Error:          model.TransferError{},
+								Status:         types.StatusCancelled,
+								Error:          types.TransferError{},
 								Step:           trans.Step,
 								Progress:       0,
 								TaskNumber:     0,

@@ -1,4 +1,4 @@
-package model
+package types
 
 import (
 	"encoding/json"
@@ -166,8 +166,8 @@ func TestTransferError(t *testing.T) {
 		})
 
 		Convey("Creating an error with an invalid ErrorCode should panic", func() {
-			So(func() { NewTransferError(TransferErrorCode(212), "") }, ShouldPanic)
-			So(func() { NewTransferError(212, "") }, ShouldPanic)
+			So(func() { _ = NewTransferError(TransferErrorCode(212), "") }, ShouldPanic)
+			So(func() { _ = NewTransferError(212, "") }, ShouldPanic)
 		})
 
 		Convey("A new transfer error with no error has no details", func() {

@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-r66/r66"
 )
 
@@ -42,7 +43,7 @@ func setProgress(trans *model.Transfer, request *r66.Request) {
 		curBlock = request.Rank
 	}
 	request.Rank = curBlock
-	if trans.Step == model.StepData {
+	if trans.Step == types.StepData {
 		trans.Progress = uint64(curBlock) * uint64(request.Block)
 	}
 }

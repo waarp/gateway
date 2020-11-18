@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
@@ -84,7 +85,7 @@ func TestExecutorRun(t *testing.T) {
 				SourceFile:   filepath.Base(truePath),
 				DestFile:     "test_run_dst",
 				Start:        time.Now().Truncate(time.Second),
-				Status:       model.StatusPlanned,
+				Status:       types.StatusPlanned,
 				Owner:        database.Owner,
 			}
 			So(db.Create(trans), ShouldBeNil)
@@ -126,8 +127,8 @@ func TestExecutorRun(t *testing.T) {
 								Rule:           rule.Name,
 								Start:          trans.Start,
 								Stop:           results[0].Stop,
-								Status:         model.StatusDone,
-								Step:           model.StepNone,
+								Status:         types.StatusDone,
+								Step:           types.StepNone,
 								Progress:       uint64(len(content)),
 								TaskNumber:     0,
 							}
@@ -155,10 +156,10 @@ func TestExecutorRun(t *testing.T) {
 								DestFile:     trans.DestFile,
 								RuleID:       rule.ID,
 								Start:        trans.Start,
-								Status:       model.StatusError,
-								Step:         model.StepSetup,
-								Error: model.TransferError{
-									Code:    model.TeConnection,
+								Status:       types.StatusError,
+								Step:         types.StepSetup,
+								Error: types.TransferError{
+									Code:    types.TeConnection,
 									Details: "connection failed",
 								},
 								Progress:   0,
@@ -191,10 +192,10 @@ func TestExecutorRun(t *testing.T) {
 								DestFile:     trans.DestFile,
 								RuleID:       rule.ID,
 								Start:        trans.Start,
-								Status:       model.StatusError,
-								Step:         model.StepSetup,
-								Error: model.TransferError{
-									Code:    model.TeBadAuthentication,
+								Status:       types.StatusError,
+								Step:         types.StepSetup,
+								Error: types.TransferError{
+									Code:    types.TeBadAuthentication,
 									Details: "authentication failed",
 								},
 								Progress:   0,
@@ -227,10 +228,10 @@ func TestExecutorRun(t *testing.T) {
 								DestFile:     trans.DestFile,
 								RuleID:       rule.ID,
 								Start:        trans.Start,
-								Status:       model.StatusError,
-								Step:         model.StepSetup,
-								Error: model.TransferError{
-									Code:    model.TeForbidden,
+								Status:       types.StatusError,
+								Step:         types.StepSetup,
+								Error: types.TransferError{
+									Code:    types.TeForbidden,
 									Details: "request failed",
 								},
 								Progress:   0,
@@ -272,10 +273,10 @@ func TestExecutorRun(t *testing.T) {
 								DestFile:     trans.DestFile,
 								RuleID:       rule.ID,
 								Start:        trans.Start,
-								Status:       model.StatusError,
-								Step:         model.StepPreTasks,
-								Error: model.TransferError{
-									Code:    model.TeExternalOperation,
+								Status:       types.StatusError,
+								Step:         types.StepPreTasks,
+								Error: types.TransferError{
+									Code:    types.TeExternalOperation,
 									Details: "Task TESTFAIL @ test_rule PRE[0]: task failed",
 								},
 								Progress:   0,
@@ -308,10 +309,10 @@ func TestExecutorRun(t *testing.T) {
 								DestFile:     trans.DestFile,
 								RuleID:       rule.ID,
 								Start:        trans.Start,
-								Status:       model.StatusError,
-								Step:         model.StepData,
-								Error: model.TransferError{
-									Code:    model.TeDataTransfer,
+								Status:       types.StatusError,
+								Step:         types.StepData,
+								Error: types.TransferError{
+									Code:    types.TeDataTransfer,
 									Details: "data failed",
 								},
 								Progress:   0,
@@ -353,10 +354,10 @@ func TestExecutorRun(t *testing.T) {
 								DestFile:     trans.DestFile,
 								RuleID:       rule.ID,
 								Start:        trans.Start,
-								Status:       model.StatusError,
-								Step:         model.StepPostTasks,
-								Error: model.TransferError{
-									Code:    model.TeExternalOperation,
+								Status:       types.StatusError,
+								Step:         types.StepPostTasks,
+								Error: types.TransferError{
+									Code:    types.TeExternalOperation,
 									Details: "Task TESTFAIL @ test_rule POST[0]: task failed",
 								},
 								Progress:   uint64(len(content)),
@@ -389,10 +390,10 @@ func TestExecutorRun(t *testing.T) {
 								DestFile:     trans.DestFile,
 								RuleID:       rule.ID,
 								Start:        trans.Start,
-								Status:       model.StatusError,
-								Step:         model.StepFinalization,
-								Error: model.TransferError{
-									Code:    model.TeExternalOperation,
+								Status:       types.StatusError,
+								Step:         types.StepFinalization,
+								Error: types.TransferError{
+									Code:    types.TeExternalOperation,
 									Details: "remote post-tasks failed",
 								},
 								Progress:   uint64(len(content)),
@@ -482,8 +483,8 @@ func TestTransferResume(t *testing.T) {
 				SourceFile:   "test_pre_tasks_src",
 				DestFile:     "test_pre_tasks_dst",
 				Start:        time.Now().Truncate(time.Second),
-				Step:         model.StepPreTasks,
-				Status:       model.StatusPlanned,
+				Step:         types.StepPreTasks,
+				Status:       types.StatusPlanned,
 				Owner:        database.Owner,
 				Progress:     0,
 				TaskNumber:   1,
@@ -524,8 +525,8 @@ func TestTransferResume(t *testing.T) {
 						Rule:           rule.Name,
 						Start:          trans.Start,
 						Stop:           h[0].Stop,
-						Step:           model.StepNone,
-						Status:         model.StatusDone,
+						Step:           types.StepNone,
+						Status:         types.StatusDone,
 						Progress:       uint64(len(content)),
 					}
 
@@ -559,8 +560,8 @@ func TestTransferResume(t *testing.T) {
 				SourceFile:   "test_data_src",
 				DestFile:     "test_data_dst",
 				Start:        time.Now().Truncate(time.Second),
-				Step:         model.StepData,
-				Status:       model.StatusPlanned,
+				Step:         types.StepData,
+				Status:       types.StatusPlanned,
 				Owner:        database.Owner,
 				Progress:     10,
 				TaskNumber:   0,
@@ -599,8 +600,8 @@ func TestTransferResume(t *testing.T) {
 						Rule:           rule.Name,
 						Start:          trans.Start,
 						Stop:           h[0].Stop,
-						Step:           model.StepNone,
-						Status:         model.StatusDone,
+						Step:           types.StepNone,
+						Status:         types.StatusDone,
 						Progress:       uint64(len(content)),
 					}
 
@@ -642,8 +643,8 @@ func TestTransferResume(t *testing.T) {
 				SourceFile:   filepath.Base(truePath),
 				DestFile:     "test_post_tasks_dst",
 				Start:        time.Now().Truncate(time.Second),
-				Step:         model.StepPostTasks,
-				Status:       model.StatusPlanned,
+				Step:         types.StepPostTasks,
+				Status:       types.StatusPlanned,
 				Owner:        database.Owner,
 				Progress:     uint64(len(content)),
 				TaskNumber:   1,
@@ -682,8 +683,8 @@ func TestTransferResume(t *testing.T) {
 						Rule:           rule.Name,
 						Start:          trans.Start,
 						Stop:           h[0].Stop,
-						Status:         model.StatusDone,
-						Step:           model.StepNone,
+						Status:         types.StatusDone,
+						Step:           types.StepNone,
 						Progress:       uint64(len(content)),
 					}
 

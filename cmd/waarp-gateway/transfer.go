@@ -9,7 +9,8 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
 type transferCommand struct {
@@ -21,22 +22,22 @@ type transferCommand struct {
 	Cancel transferCancel `command:"cancel" description:"Cancel a transfer"`
 }
 
-func coloredStatus(status model.TransferStatus) string {
+func coloredStatus(status types.TransferStatus) string {
 	text := func() string {
 		switch status {
-		case model.StatusPlanned:
+		case types.StatusPlanned:
 			return cyan(string(status))
-		case model.StatusRunning:
+		case types.StatusRunning:
 			return cyan(string(status))
-		case model.StatusPaused:
+		case types.StatusPaused:
 			return yellow(string(status))
-		case model.StatusInterrupted:
+		case types.StatusInterrupted:
 			return yellow(string(status))
-		case model.StatusCancelled:
+		case types.StatusCancelled:
 			return red(string(status))
-		case model.StatusError:
+		case types.StatusError:
 			return red(string(status))
-		case model.StatusDone:
+		case types.StatusDone:
 			return green(string(status))
 		default:
 			return bold(string(status))
@@ -45,7 +46,7 @@ func coloredStatus(status model.TransferStatus) string {
 	return bold("[") + text + bold("]")
 }
 
-func displayTransfer(w io.Writer, trans *rest.OutTransfer) {
+func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	role := "client"
 	if trans.IsServer {
 		role = "server"
@@ -62,7 +63,7 @@ func displayTransfer(w io.Writer, trans *rest.OutTransfer) {
 	fmt.Fprintln(w, orange("    Step:            "), string(trans.Step))
 	fmt.Fprintln(w, orange("    Progress:        "), trans.Progress)
 	fmt.Fprintln(w, orange("    Task number:     "), trans.TaskNumber)
-	if trans.ErrorCode != model.TeOk {
+	if trans.ErrorCode != types.TeOk {
 		fmt.Fprintln(w, orange("    Error code:      "), fmt.Sprint(trans.ErrorCode))
 	}
 	if trans.ErrorMsg != "" {
@@ -87,7 +88,7 @@ func (t *transferAdd) Execute([]string) (err error) {
 		t.Name = t.File
 	}
 
-	trans := rest.InTransfer{
+	trans := api.InTransfer{
 		Partner:    t.Partner,
 		Account:    t.Account,
 		IsSend:     t.Way == "push",
@@ -121,7 +122,7 @@ type transferGet struct {
 func (t *transferGet) Execute([]string) error {
 	addr.Path = admin.APIPath + rest.TransfersPath + "/" + fmt.Sprint(t.Args.ID)
 
-	trans := &rest.OutTransfer{}
+	trans := &api.OutTransfer{}
 	if err := get(trans); err != nil {
 		return err
 	}
@@ -170,7 +171,7 @@ func (t *transferList) Execute([]string) error {
 		return err
 	}
 
-	body := map[string][]rest.OutTransfer{}
+	body := map[string][]api.OutTransfer{}
 	if err := list(&body); err != nil {
 		return err
 	}

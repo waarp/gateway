@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -14,31 +15,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// OutHistory is the JSON representation of a history entry in responses sent by
-// the REST interface.
-type OutHistory struct {
-	ID             uint64                  `json:"id"`
-	IsServer       bool                    `json:"isServer"`
-	IsSend         bool                    `json:"isSend"`
-	Requester      string                  `json:"requester"`
-	Requested      string                  `json:"requested"`
-	Protocol       string                  `json:"protocol"`
-	SourceFilename string                  `json:"sourceFilename"`
-	DestFilename   string                  `json:"destFilename"`
-	Rule           string                  `json:"rule"`
-	Start          time.Time               `json:"start"`
-	Stop           time.Time               `json:"stop"`
-	Status         model.TransferStatus    `json:"status"`
-	ErrorCode      model.TransferErrorCode `json:"errorCode,omitempty"`
-	ErrorMsg       string                  `json:"errorMsg,omitempty"`
-	Step           model.TransferStep      `json:"step,omitempty"`
-	Progress       uint64                  `json:"progress,omitempty"`
-	TaskNumber     uint64                  `json:"taskNumber,omitempty"`
-}
-
 // FromHistory transforms the given database history entry into its JSON equivalent.
-func FromHistory(h *model.TransferHistory) *OutHistory {
-	return &OutHistory{
+func FromHistory(h *model.TransferHistory) *api.OutHistory {
+	return &api.OutHistory{
 		ID:             h.ID,
 		IsServer:       h.IsServer,
 		IsSend:         h.IsSend,
@@ -61,10 +40,10 @@ func FromHistory(h *model.TransferHistory) *OutHistory {
 
 // FromHistories transforms the given list of database history entries into its
 // JSON equivalent.
-func FromHistories(hs []model.TransferHistory) []OutHistory {
-	hist := make([]OutHistory, len(hs))
+func FromHistories(hs []model.TransferHistory) []api.OutHistory {
+	hist := make([]api.OutHistory, len(hs))
 	for i, h := range hs {
-		hist[i] = OutHistory{
+		hist[i] = api.OutHistory{
 			ID:             h.ID,
 			IsServer:       h.IsServer,
 			IsSend:         h.IsSend,
@@ -204,7 +183,7 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutHistory{"history": FromHistories(results)}
+			resp := map[string][]api.OutHistory{"history": FromHistories(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
