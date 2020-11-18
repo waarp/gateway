@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`213` Correction d'une erreur causant la suppression des post traitements
+  et des traitements d'erreur lors de la mise à jour d'une règle.
 * :bug:`211` Correction d'une erreur causant le changement de la direction d'une
   règle lors d'un *update* via l'interface REST.
 * :bug:`207` Correction d'une erreur où les mots de passe des partenaires R66
