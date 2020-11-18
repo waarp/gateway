@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`211` Correction d'une erreur causant le changement de la direction d'une
+  règle lors d'un *update* via l'interface REST.
 * :bug:`207` Correction d'une erreur où les mots de passe des partenaires R66
   distants n'étaient pas correctement hashés.
 * :bug:`205` Correction d'une erreur empêchant le démarrage des serveurs R66 locaux.
