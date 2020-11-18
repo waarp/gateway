@@ -50,6 +50,9 @@ func (t *Task) validateTasks() error {
 		return database.InvalidError("%s is not a valid task chain", t.Chain)
 	}
 
+	if len(t.Args) == 0 {
+		t.Args = json.RawMessage(`{}`)
+	}
 	args := map[string]string{}
 	if err := json.Unmarshal(t.Args, &args); err != nil {
 		return err
@@ -59,7 +62,10 @@ func (t *Task) validateTasks() error {
 	if !ok {
 		return database.InvalidError("%s is not a valid task Type", t.Type)
 	}
-	return v.Validate(args)
+	if err := v.Validate(args); err != nil {
+		return database.InvalidError("invalid %s task arguments: %s", t.Type, err)
+	}
+	return nil
 }
 
 // Validate checks if the new `Task` entry is valid and can be
