@@ -344,10 +344,12 @@ func TestUpdateRule(t *testing.T) {
 				Path:    "/old/path",
 				InPath:  "/old/in",
 				OutPath: "/old/out",
+				IsSend:  true,
 			}
 			other := &model.Rule{
-				Name: "other",
-				Path: "/path/other",
+				Name:   "other",
+				Path:   "/path/other",
+				IsSend: false,
 			}
 			So(db.Create(old), ShouldBeNil)
 			So(db.Create(other), ShouldBeNil)
@@ -407,6 +409,7 @@ func TestUpdateRule(t *testing.T) {
 								InPath:   "",
 								OutPath:  "/old/out",
 								WorkPath: "/update/work",
+								IsSend:   true,
 							}
 							So(results[0], ShouldResemble, expected)
 
@@ -465,6 +468,7 @@ func TestReplaceRule(t *testing.T) {
 				InPath:   "/old/in",
 				OutPath:  "/old/out",
 				WorkPath: "/old/work",
+				IsSend:   true,
 			}
 			So(db.Create(old), ShouldBeNil)
 
@@ -520,9 +524,10 @@ func TestReplaceRule(t *testing.T) {
 							So(len(results), ShouldEqual, 1)
 
 							expected := model.Rule{
-								ID:   old.ID,
-								Name: str(update.Name),
-								Path: str(update.Path),
+								ID:     old.ID,
+								Name:   str(update.Name),
+								Path:   str(update.Path),
+								IsSend: old.IsSend,
 							}
 							So(results[0], ShouldResemble, expected)
 
