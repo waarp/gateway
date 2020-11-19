@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`217` Correction d'une erreur causant un *panic* du serveur dans certaines
+  circonstances à la fin d'un transfert.
 * :bug:`207` Correction d'une erreur où les mots de passe des partenaires R66
   distants n'étaient pas correctement hashés.
 * :bug:`205` Correction d'une erreur empêchant le démarrage des serveurs R66 locaux.
