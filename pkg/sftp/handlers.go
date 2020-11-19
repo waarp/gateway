@@ -69,8 +69,9 @@ func (l *sshListener) listAt(r *sftp.Request, paths *pipeline.Paths, accountID u
 	return func(ls []os.FileInfo, offset int64) (int, error) {
 		var infos []os.FileInfo
 
+		l.Logger.Debugf("Received 'List' request on %s", r.Filepath)
 		if r.Filepath == "" || r.Filepath == "/" {
-			paths, err := l.getRulesNames(accountID)
+			paths, err := l.getRulesPaths(accountID)
 			if err != nil {
 				return 0, fmt.Errorf("cannot list rule directories")
 			}
@@ -78,20 +79,20 @@ func (l *sshListener) listAt(r *sftp.Request, paths *pipeline.Paths, accountID u
 				infos = append(infos, dirInfo(paths[i]))
 			}
 		} else {
-			rule := &model.Rule{Path: r.Filepath, IsSend: true}
-			if err := l.DB.Get(rule); err != nil {
-				l.Logger.Errorf("Error while retrieving rule for listing: '%s'", err)
-				return 0, sftp.ErrSSHFxNoSuchFile
-			}
-			dir := utils.GetPath("", utils.Elems{{rule.OutPath, true},
-				{paths.ServerOut, true}, {paths.ServerRoot, false},
-				{paths.OutDirectory, true}, {paths.GatewayHome, false}})
-
-			var err error
-			infos, err = ioutil.ReadDir(utils.DenormalizePath(dir))
+			rule, err := l.getListRule(r.Filepath, accountID)
 			if err != nil {
-				l.Logger.Errorf("Failed to list directory: %s", err)
-				return 0, fmt.Errorf("failed to list directory")
+				return 0, err
+			}
+			if rule != nil {
+				dir := utils.GetPath("", utils.Elems{{rule.OutPath, true},
+					{paths.ServerOut, true}, {paths.ServerRoot, false},
+					{paths.OutDirectory, true}, {paths.GatewayHome, false}})
+
+				infos, err = ioutil.ReadDir(utils.DenormalizePath(dir))
+				if err != nil {
+					l.Logger.Errorf("Failed to list directory: %s", err)
+					return 0, fmt.Errorf("failed to list directory")
+				}
 			}
 		}
 
@@ -107,12 +108,31 @@ func (l *sshListener) listAt(r *sftp.Request, paths *pipeline.Paths, accountID u
 	}
 }
 
+func (l *sshListener) getListRule(rulePath string, accountID uint64) (*model.Rule, error) {
+	sndRule, err := l.getRule(accountID, rulePath, true)
+	if err != nil && err != database.ErrNotFound {
+		return nil, err
+	}
+
+	rcvRule, err := l.getRule(accountID, rulePath, false)
+	if err != nil && err != database.ErrNotFound {
+		return nil, err
+	}
+
+	if sndRule == nil && rcvRule == nil {
+		l.Logger.Infof("No rule found with path '%s'", rulePath)
+		return nil, sftp.ErrSSHFxNoSuchFile
+	}
+	return sndRule, nil
+}
+
 func (l *sshListener) statAt(r *sftp.Request, paths *pipeline.Paths, accountID uint64) listerAtFunc {
 	return func(ls []os.FileInfo, offset int64) (int, error) {
-		rule, err := l.getRule(accountID, r.Filepath)
+		l.Logger.Debugf("Received 'Stat' request on %s", r.Filepath)
+
+		rule, err := l.getRule(accountID, path.Dir(r.Filepath), true)
 		if err != nil {
-			l.Logger.Errorf("Error while retrieving rule for stat: '%s'", err)
-			return 0, fmt.Errorf("failed to retrieve rule")
+			return 0, fmt.Errorf("failed to retrieve rule for path '%s'", r.Filepath)
 		}
 
 		file := utils.GetPath(path.Base(r.Filepath), utils.Elems{{rule.OutPath, true},
@@ -136,8 +156,7 @@ func (l *sshListener) statAt(r *sftp.Request, paths *pipeline.Paths, accountID u
 	}
 }
 
-func (l *sshListener) getRule(accountID uint64, filePath string) (*model.Rule, error) {
-	rulePath := path.Dir(filePath)
+func (l *sshListener) getRule(accountID uint64, rulePath string, isSend bool) (*model.Rule, error) {
 	var rules []model.Rule
 	filters := &database.Filters{
 		Order: "path ASC",
@@ -150,21 +169,20 @@ func (l *sshListener) getRule(accountID uint64, filePath string) (*model.Rule, e
 			)
 			OR 
 			( (SELECT COUNT(*) FROM rule_access WHERE rule_id = id) = 0 )`,
-			accountID, l.Agent.ID).And(builder.Eq{"path": rulePath, "send": true}),
+			accountID, l.Agent.ID).And(builder.Eq{"path": rulePath, "send": isSend}),
 	}
 	if err := l.DB.Select(&rules, filters); err != nil {
 		l.Logger.Errorf("Failed to retrieve rule: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve rule: %s", err)
 	}
 	if len(rules) == 0 {
-		l.Logger.Errorf("No rule found for path %s", filePath)
-		return nil, fmt.Errorf("failed to retrieve rule")
+		return nil, database.ErrNotFound
 	}
 
 	return &rules[0], nil
 }
 
-func (l *sshListener) getRulesNames(accountID uint64) ([]string, error) {
+func (l *sshListener) getRulesPaths(accountID uint64) ([]string, error) {
 	query := `SELECT DISTINCT path FROM rules WHERE (
 		(id IN 
 			(SELECT DISTINCT rule_id FROM rule_access WHERE
