@@ -96,14 +96,6 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	}
 	t.Logger = log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 
-	if t.Transfer.Error.Code != types.TeOk {
-		t.Transfer.Error = types.TransferError{}
-		if err := db.Update(t.Transfer); err != nil {
-			logger.Criticalf("Failed to reset transfer error: %s", err.Error())
-			return nil, &model.PipelineError{Kind: model.KindDatabase}
-		}
-	}
-
 	t.Pipeline.Rule = &model.Rule{ID: trans.RuleID}
 	if err := t.DB.Get(t.Rule); err != nil {
 		logger.Criticalf("Failed to retrieve transfer rule: %s", err.Error())
@@ -132,11 +124,27 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	if err := t.setTrueFilepath(); err != nil {
 		return nil, err
 	}
+	if err := t.initStatus(); err != nil {
+		return nil, err
+	}
 	return t, nil
 }
 
-func (t *TransferStream) createTransfer(trans *model.Transfer) *model.PipelineError {
+func (t *TransferStream) initStatus() *model.PipelineError {
+	t.Transfer.Status = types.StatusRunning
+	if t.Transfer.Error.Code != types.TeOk {
+		t.Transfer.Error = types.TransferError{}
 
+	}
+	if err := t.DB.Update(t.Transfer); err != nil {
+		t.Logger.Criticalf("Failed to set transfer status to %s: %s", types.StatusRunning, err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
+	}
+	return nil
+}
+
+func (t *TransferStream) createTransfer(trans *model.Transfer) *model.PipelineError {
+	trans.Status = types.StatusRunning
 	if err := t.DB.Create(trans); err != nil {
 		if _, ok := err.(*database.ErrInvalid); ok {
 			t.Logger.Errorf("Failed to create transfer entry: %s", err.Error())
