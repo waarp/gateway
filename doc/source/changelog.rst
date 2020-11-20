@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :bug:`216` Ajout de l'adresse manquante lors de l'export d'agents locaux/distants.
 * :bug:`207` Correction d'une erreur où les mots de passe des partenaires R66
   distants n'étaient pas correctement hashés.
 * :bug:`205` Correction d'une erreur empêchant le démarrage des serveurs R66 locaux.
