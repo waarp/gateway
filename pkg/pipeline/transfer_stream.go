@@ -208,84 +208,88 @@ func (t *TransferStream) Start() *model.PipelineError {
 	return nil
 }
 
-func (t *TransferStream) Read(p []byte) (n int, err error) {
-	off, err := t.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return 0, err
+func (t *TransferStream) initData() error {
+	if err := checkSignal(t.Ctx, t.Signals); err != nil {
+		return err
 	}
-	return t.ReadAt(p, off)
+	if t.Transfer.Step == types.StepData {
+		return nil
+	}
+
+	t.Transfer.TaskNumber = 0
+	t.Transfer.Step = types.StepData
+	if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
+		t.Logger.Criticalf("Failed to update upload transfer step to 'DATA': %s", dbErr)
+		return &model.PipelineError{Kind: model.KindDatabase}
+	}
+
+	return nil
 }
 
-func (t *TransferStream) Write(p []byte) (n int, err error) {
-	off, err := t.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return 0, err
-	}
-	return t.WriteAt(p, off)
-}
-
-// ReadAt reads the stream, starting at the given offset.
-func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
-	if t.Transfer.Step == types.StepPreTasks {
-		t.Transfer.TaskNumber = 0
-		t.Transfer.Step = types.StepData
+func (t *TransferStream) updateProgress() error {
+	select {
+	case <-t.ticker.C:
 		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
-			t.Logger.Criticalf("Failed to update upload transfer step to 'DATA': %s", dbErr)
-			return 0, &model.PipelineError{Kind: model.KindDatabase}
+			t.Logger.Criticalf("Failed to update upload transfer progress: %s", dbErr)
+			return &model.PipelineError{Kind: model.KindDatabase}
 		}
+	default:
 	}
-	if e := checkSignal(t.Ctx, t.Signals); e != nil {
-		return 0, e
+	return nil
+}
+
+func (t *TransferStream) Read(p []byte) (int, error) {
+	if err := t.initData(); err != nil {
+		return 0, err
 	}
 
-	n, err = t.File.ReadAt(p, off)
+	n, err := t.File.Read(p)
 	t.Transfer.Progress += uint64(n)
 	if err != nil && err != io.EOF {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
-	select {
-	case <-t.ticker.C:
-		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
-			t.Logger.Criticalf("Failed to update upload transfer progress: %s", dbErr)
-			err = &model.PipelineError{Kind: model.KindDatabase}
-		}
-	default:
+	if err := t.updateProgress(); err != nil {
+		return n, err
 	}
 
 	return n, err
 }
 
-// WriteAt writes the given bytes to the stream, starting at the given offset.
-func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
-	if t.Transfer.Step == types.StepPreTasks {
-		t.Transfer.TaskNumber = 0
-		t.Transfer.Step = types.StepData
-		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
-			t.Logger.Criticalf("Failed to update download transfer step to 'DATA': %s", dbErr)
-			return 0, &model.PipelineError{Kind: model.KindDatabase}
-		}
-	}
-	if e := checkSignal(t.Ctx, t.Signals); e != nil {
-		return 0, e
+func (t *TransferStream) Write(p []byte) (n int, err error) {
+	if err := t.initData(); err != nil {
+		return 0, err
 	}
 
-	n, err = t.File.WriteAt(p, off)
+	n, err = t.File.Write(p)
 	t.Transfer.Progress += uint64(n)
 	if err != nil {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
 	}
-	select {
-	case <-t.ticker.C:
-		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
-			t.Logger.Criticalf("Failed to update download transfer progress: %s", dbErr)
-			err = &model.PipelineError{Kind: model.KindDatabase}
-		}
-	default:
+	if err := t.updateProgress(); err != nil {
+		return n, err
 	}
 
 	return n, err
+}
+
+// ReadAt reads the stream, starting at the given offset.
+func (t *TransferStream) ReadAt(p []byte, off int64) (int, error) {
+	_, err := t.Seek(off, io.SeekStart)
+	if err != nil {
+		return 0, err
+	}
+	return t.Read(p)
+}
+
+// WriteAt writes the given bytes to the stream, starting at the given offset.
+func (t *TransferStream) WriteAt(p []byte, off int64) (int, error) {
+	_, err := t.Seek(off, io.SeekStart)
+	if err != nil {
+		return 0, err
+	}
+	return t.Write(p)
 }
 
 // Close closes the file and stops the progress tracker.

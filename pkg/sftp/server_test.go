@@ -266,8 +266,8 @@ func TestSSHServer(t *testing.T) {
 									AccountID: user.ID,
 									AgentID:   agent.ID,
 									TrueFilepath: utils.NormalizePath(
-										filepath.Join(root, receive.WorkPath,
-											"test_in_shutdown.dst.tmp")),
+										filepath.Join(root, receive.InPath,
+											"test_in_shutdown.dst")),
 									SourceFile: "test_in_shutdown.dst",
 									DestFile:   "test_in_shutdown.dst",
 									RuleID:     receive.ID,
@@ -516,7 +516,7 @@ func TestSSHServer(t *testing.T) {
 										AccountID:        user.ID,
 										AgentID:          agent.ID,
 										TrueFilepath: utils.NormalizePath(filepath.Join(
-											root, receive.WorkPath, "test_in_fail.dst.tmp")),
+											root, receive.InPath, "test_in_fail.dst")),
 										SourceFile: "test_in_fail.dst",
 										DestFile:   "test_in_fail.dst",
 										RuleID:     receive.ID,
