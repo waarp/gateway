@@ -86,8 +86,10 @@ func TestExportRemoteAgents(t *testing.T) {
 
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent1.Protocol)
+										So(res[i].Address, ShouldEqual, agent1.Address)
 										So(res[i].Configuration, ShouldResemble,
 											agent1.ProtoConfig)
+
 										Convey("Then it should have 1 remote Account", func() {
 											So(len(res[i].Accounts), ShouldEqual, 1)
 										})
@@ -103,6 +105,7 @@ func TestExportRemoteAgents(t *testing.T) {
 
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent2.Protocol)
+										So(res[i].Address, ShouldEqual, agent2.Address)
 										So(res[i].Configuration, ShouldResemble,
 											agent2.ProtoConfig)
 										Convey("Then it should have 2 remote Account", func() {

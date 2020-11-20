@@ -31,6 +31,7 @@ func exportRemotes(logger *log.Logger, db *database.Session) ([]file.RemoteAgent
 		agent := file.RemoteAgent{
 			Name:          src.Name,
 			Protocol:      src.Protocol,
+			Address:       src.Address,
 			Configuration: src.ProtoConfig,
 			Accounts:      accounts,
 			Certs:         certificates,
