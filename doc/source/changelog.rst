@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`221` Ajout de l'identifiant de transfert distant aux interfaces REST &
+  terminal. Lorsqu'un agent de transfert se connecte à la *gateway* pour faire
+  un transfert, cet identifiant correspond au numéro que cet agent a donné au
+  transfert, et qui est donc différent de l'identifiant que la *gateway* a donné
+  à ce transfert.
 * :bug:`207` Correction d'une erreur où les mots de passe des partenaires R66
   distants n'étaient pas correctement hashés.
 * :bug:`205` Correction d'une erreur empêchant le démarrage des serveurs R66 locaux.
