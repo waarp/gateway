@@ -306,9 +306,8 @@ func TestAddRule(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "a rule named '"+existing.Name+
-							"' with send = "+fmt.Sprint(command.Direction == "SEND")+
-							" already exist")
+						So(err, ShouldBeError, "a "+existing.Direction()+
+							" rule named '"+existing.Name+"' already exist")
 					})
 
 					Convey("Then the rule should have been updated", func() {
