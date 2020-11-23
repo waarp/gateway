@@ -19,6 +19,7 @@ import (
 func FromHistory(h *model.TransferHistory) *api.OutHistory {
 	return &api.OutHistory{
 		ID:             h.ID,
+		RemoteID:       h.RemoteTransferID,
 		IsServer:       h.IsServer,
 		IsSend:         h.IsSend,
 		Requester:      h.Account,

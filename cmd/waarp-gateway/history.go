@@ -31,6 +31,9 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 	}
 
 	fmt.Fprintln(w, orange(bold("● Transfer", hist.ID, "(as", role+")")), coloredStatus(hist.Status))
+	if hist.RemoteID != "" {
+		fmt.Fprintln(w, orange("    Remote ID:            "), hist.RemoteID)
+	}
 	fmt.Fprintln(w, orange("    Way:             "), way)
 	fmt.Fprintln(w, orange("    Protocol:        "), hist.Protocol)
 	fmt.Fprintln(w, orange("    Rule:            "), hist.Rule)

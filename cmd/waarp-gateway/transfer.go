@@ -53,6 +53,9 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	}
 
 	fmt.Fprintln(w, bold("● Transfer", trans.ID, "(as "+role+")"), coloredStatus(trans.Status))
+	if trans.RemoteID != "" {
+		fmt.Fprintln(w, orange("    Remote ID:       "), trans.RemoteID)
+	}
 	fmt.Fprintln(w, orange("    Rule:            "), trans.Rule)
 	fmt.Fprintln(w, orange("    Requester:       "), trans.Requester)
 	fmt.Fprintln(w, orange("    Requested:       "), trans.Requested)

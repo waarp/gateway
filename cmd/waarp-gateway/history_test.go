@@ -28,8 +28,11 @@ func historyInfoString(h *api.OutHistory) string {
 	if h.IsSend {
 		way = "SEND"
 	}
-	rv := "● Transfer " + fmt.Sprint(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n" +
-		"    Way:              " + way + "\n" +
+	rv := "● Transfer " + fmt.Sprint(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n"
+	if h.RemoteID != "" {
+		rv += "    Remote ID:        " + h.RemoteID + "\n"
+	}
+	rv += "    Way:              " + way + "\n" +
 		"    Protocol:         " + h.Protocol + "\n" +
 		"    Rule:             " + h.Rule + "\n" +
 		"    Requester:        " + h.Requester + "\n" +
