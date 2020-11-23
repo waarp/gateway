@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`219` Le chemin (``path``) n'est plus obligatoire lors de la création
+  d'une règle. Par défaut, le nom de la règle sera utilisé comme chemin (les
+  règles d'unicité sur le chemin s'applique toujours).
+* :bug:`219` Il est désormais possible de créer 2 règles avec des chemins
+  (``path``) identiques si leur directions sont différentes.
 * :bug:`207` Correction d'une erreur où les mots de passe des partenaires R66
   distants n'étaient pas correctement hashés.
 * :bug:`205` Correction d'une erreur empêchant le démarrage des serveurs R66 locaux.
