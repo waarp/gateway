@@ -154,7 +154,7 @@ type ruleAdd struct {
 	Name       string   `required:"true" short:"n" long:"name" description:"The rule's name"`
 	Comment    *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
 	Direction  string   `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"SEND" choice:"RECEIVE"`
-	Path       string   `required:"true" short:"p" long:"path" description:"The path used to identify the rule"`
+	Path       string   `short:"p" long:"path" description:"The path used to identify the rule, by default, the rule's name is used"`
 	InPath     *string  `short:"i" long:"in_path" description:"The path to the destination of the file"`
 	OutPath    *string  `short:"o" long:"out_path" description:"The path to the source of the file"`
 	WorkPath   *string  `short:"w" long:"work_path" description:"The path to write the received file"`
