@@ -36,10 +36,3 @@ func isNotUpdate(obj interface{}) bool {
 	}
 	return true
 }
-
-func parseOptBytes(s *string) []byte {
-	if s != nil {
-		return []byte(*s)
-	}
-	return nil
-}

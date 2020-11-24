@@ -121,7 +121,7 @@ func TestAddServer(t *testing.T) {
 			Convey("Given valid flags", func() {
 				args := []string{"-n", "server_name", "-p", "test",
 					"--root=root", "--in=in_dir", "--out=out_dir",
-					"--work=work_dir", "-c", `{}`, "-a", "localhost:1"}
+					"--work=work_dir", "-a", "localhost:1"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -144,7 +144,7 @@ func TestAddServer(t *testing.T) {
 							InDir:       *command.InDir,
 							OutDir:      *command.OutDir,
 							WorkDir:     *command.WorkDir,
-							ProtoConfig: json.RawMessage(command.ProtoConfig),
+							ProtoConfig: json.RawMessage(`{}`),
 						}
 						var res []model.LocalAgent
 						So(db.Select(&res, nil), ShouldBeNil)
@@ -156,7 +156,7 @@ func TestAddServer(t *testing.T) {
 
 			Convey("Given an invalid protocol", func() {
 				args := []string{"-n", "server_name", "-p", "invalid",
-					"--root=/server/root", "-c", `{}`, "-a", "localhost:1"}
+					"--root=/server/root", "-a", "localhost:1"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -171,7 +171,7 @@ func TestAddServer(t *testing.T) {
 
 			Convey("Given an invalid configuration", func() {
 				args := []string{"-n", "server_name", "-p", "fail",
-					"--root=/server/root", "-c", `{"unknown":"val"}`,
+					"--root=/server/root", "-c", "unknown:val",
 					"-a", "localhost:1"}
 
 				Convey("When executing the command", func() {
@@ -188,7 +188,7 @@ func TestAddServer(t *testing.T) {
 
 			Convey("Given an invalid address", func() {
 				args := []string{"-n", "server_name", "-p", "fail",
-					"--root=/server/root", "-c", `{}`, "-a", "invalid_address"}
+					"--root=/server/root", "-a", "invalid_address"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -198,6 +198,43 @@ func TestAddServer(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, "'invalid_address' is not a valid "+
 							"server address")
+					})
+				})
+			})
+
+			Convey("Given a new R66 server", func() {
+				args := []string{"-n", "r66_server", "-p", "r66",
+					"--root=root", "--in=in_dir", "--out=out_dir",
+					"--work=work_dir", "-a", "localhost:1", "-c", "blockSize:256",
+					"-c", "serverPassword:sesame"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the server was added", func() {
+						So(getOutput(), ShouldEqual, "The server r66_server "+
+							"was successfully added.\n")
+					})
+
+					Convey("Then the new server should have been added", func() {
+						exp := model.LocalAgent{
+							ID:          1,
+							Owner:       database.Owner,
+							Name:        "r66_server",
+							Address:     "localhost:1",
+							Protocol:    "r66",
+							Root:        "root",
+							InDir:       "in_dir",
+							OutDir:      "out_dir",
+							WorkDir:     "work_dir",
+							ProtoConfig: json.RawMessage(`{"blockSize":256,"serverPassword":"sesame"}`),
+						}
+						var res []model.LocalAgent
+						So(db.Select(&res, nil), ShouldBeNil)
+						So(len(res), ShouldEqual, 1)
+						So(res[0], ShouldResemble, exp)
 					})
 				})
 			})
@@ -409,7 +446,7 @@ func TestUpdateServer(t *testing.T) {
 
 			Convey("Given all valid flags", func() {
 				args := []string{"-n", "new_server", "-p", "test2",
-					"-c", `{}`, "-a", "localhost:2", server.Name}
+					"-a", "localhost:2", server.Name}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -432,7 +469,7 @@ func TestUpdateServer(t *testing.T) {
 							Name:        *command.Name,
 							Address:     *command.Address,
 							Protocol:    *command.Protocol,
-							ProtoConfig: json.RawMessage(*command.ProtoConfig),
+							ProtoConfig: json.RawMessage(`{}`),
 						}
 						So(serv[0], ShouldResemble, exp)
 					})
@@ -441,7 +478,7 @@ func TestUpdateServer(t *testing.T) {
 
 			Convey("Given an invalid protocol", func() {
 				args := []string{"-n", "new_server", "-p", "invalid",
-					"-c", `{}`, "-a", "localhost:2", server.Name}
+					"-a", "localhost:2", server.Name}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -460,7 +497,7 @@ func TestUpdateServer(t *testing.T) {
 
 			Convey("Given an invalid configuration", func() {
 				args := []string{"-n", "new_server", "-p", "fail",
-					"-c", `{"unknown":"val"}`, "-a", "localhost:2", server.Name}
+					"-c", "unknown:val", "-a", "localhost:2", server.Name}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -480,7 +517,7 @@ func TestUpdateServer(t *testing.T) {
 
 			Convey("Given an invalid address", func() {
 				args := []string{"-n", "new_server", "-p", "fail",
-					"-c", `{}`, "-a", "invalid_address", server.Name}
+					"-a", "invalid_address", server.Name}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -500,7 +537,7 @@ func TestUpdateServer(t *testing.T) {
 
 			Convey("Given a non-existing name", func() {
 				args := []string{"-n", "new_server", "-p", "test2",
-					"-c", `{"updated_key":"updated_val"}`, "toto"}
+					"-c", "updated_key:updated_val", "toto"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)

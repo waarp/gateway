@@ -3,6 +3,14 @@
 Historique des versions
 =======================
 
+* :feature:`208` L'option du CLI pour entrer la configuration protocolaire d'un
+  serveur ou d'un partenaire (``-c``) a été changée. La configuration doit
+  désormais être entrée sous la forme ``-c clé:valeur``, répétée autant de fois
+  qu'il y a de valeurs dans la configuration.
+* :bug:`208` Le mot de passe des serveurs R66 renseigné dans la configuration
+  protocolaire ne doit plus être encodé en base64 pour être accepté par l'API REST.
+* :bug:`208` Les mots de passe des utilisateurs & des comptes locaux/distants
+  ne doivent plus être encodés en base64 pour être acceptés par l'API REST.
 * :bug:`207` Correction d'une erreur où les mots de passe des partenaires R66
   distants n'étaient pas correctement hashés.
 * :bug:`205` Correction d'une erreur empêchant le démarrage des serveurs R66 locaux.

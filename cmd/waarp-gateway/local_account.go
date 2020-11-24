@@ -49,7 +49,7 @@ type locAccAdd struct {
 func (l *locAccAdd) Execute([]string) error {
 	account := &api.InAccount{
 		Login:    &l.Login,
-		Password: []byte(l.Password),
+		Password: &l.Password,
 	}
 	server := commandLine.Account.Local.Args.Server
 	addr.Path = admin.APIPath + rest.ServersPath + "/" + server + rest.AccountsPath
@@ -95,7 +95,7 @@ type locAccUpdate struct {
 func (l *locAccUpdate) Execute([]string) error {
 	account := &api.InAccount{
 		Login:    l.Login,
-		Password: parseOptBytes(l.Password),
+		Password: l.Password,
 	}
 
 	server := commandLine.Account.Local.Args.Server

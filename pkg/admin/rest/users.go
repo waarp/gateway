@@ -14,7 +14,7 @@ import (
 func newInUser(old *model.User) *api.InUser {
 	return &api.InUser{
 		Username: &old.Username,
-		Password: old.Password,
+		Password: strPtr(string(old.Password)),
 	}
 }
 
@@ -24,7 +24,7 @@ func userToDB(user *api.InUser, id uint64) *model.User {
 		ID:       id,
 		Owner:    database.Owner,
 		Username: str(user.Username),
-		Password: user.Password,
+		Password: []byte(str(user.Password)),
 	}
 }
 

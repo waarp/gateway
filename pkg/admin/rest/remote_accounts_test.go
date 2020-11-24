@@ -287,12 +287,10 @@ func TestCreateRemoteAccount(t *testing.T) {
 			So(db.Create(parent), ShouldBeNil)
 
 			Convey("Given a new account to insert in the database", func() {
-				newAccount := &InAccount{
-					Login:    strPtr("new_account"),
-					Password: []byte("new_account"),
-				}
-				body, err := json.Marshal(newAccount)
-				So(err, ShouldBeNil)
+				body := []byte(`{
+					"login": "new_account",
+					"password": "new_password"
+				}`)
 
 				Convey("Given a valid agent name parameter", func() {
 					r, err := http.NewRequest(http.MethodPost, remoteAccountsURI(
@@ -312,7 +310,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, remoteAccountsURI(parent.Name,
-								str(newAccount.Login)))
+								"new_account"))
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -329,7 +327,12 @@ func TestCreateRemoteAccount(t *testing.T) {
 							clear, err := model.DecryptPassword(accs[0].Password)
 							So(err, ShouldBeNil)
 							accs[0].Password = clear
-							So(accs[0], ShouldResemble, *accToRemote(newAccount, parent, 1))
+							So(accs[0], ShouldResemble, model.RemoteAccount{
+								ID:            1,
+								RemoteAgentID: parent.ID,
+								Login:         "new_account",
+								Password:      []byte("new_password"),
+							})
 						})
 					})
 				})
@@ -407,7 +410,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 
 					Convey("Then the account should no longer be present "+
 						"in the database", func() {
-						a := []model.RemoteAccount{}
+						var a []model.RemoteAccount
 						So(db.Select(&a, nil), ShouldBeNil)
 						So(a, ShouldBeEmpty)
 					})
@@ -472,11 +475,9 @@ func TestUpdateRemoteAccount(t *testing.T) {
 			So(db.Create(old), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
-				update := InAccount{
-					Password: []byte("update"),
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := []byte(`{
+					"password": "upd_password"
+				}`)
 
 				Convey("Given a valid account login parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
@@ -511,7 +512,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 							pswd, err := model.DecryptPassword(res[0].Password)
 							So(err, ShouldBeNil)
-							So(pswd, ShouldResemble, update.Password)
+							So(pswd, ShouldResemble, []byte("upd_password"))
 
 							exp := model.RemoteAccount{
 								ID:            old.ID,
@@ -604,12 +605,10 @@ func TestReplaceRemoteAccount(t *testing.T) {
 			So(db.Create(old), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
-				update := InAccount{
-					Login:    strPtr("update"),
-					Password: []byte("update"),
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := []byte(`{
+					"login": "upd_login",
+					"password": "upd_password"
+				}`)
 
 				Convey("Given a valid account login parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
@@ -633,7 +632,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 							"the URI of the updated account", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, remoteAccountsURI("parent", "update"))
+							So(location, ShouldEqual, remoteAccountsURI("parent", "upd_login"))
 						})
 
 						Convey("Then the account should have been updated", func() {
@@ -643,12 +642,12 @@ func TestReplaceRemoteAccount(t *testing.T) {
 
 							pswd, err := model.DecryptPassword(res[0].Password)
 							So(err, ShouldBeNil)
-							So(pswd, ShouldResemble, update.Password)
+							So(pswd, ShouldResemble, []byte("upd_password"))
 
 							exp := model.RemoteAccount{
 								ID:            old.ID,
 								RemoteAgentID: parent.ID,
-								Login:         "update",
+								Login:         "upd_login",
 								Password:      res[0].Password,
 							}
 							So(res[0], ShouldResemble, exp)

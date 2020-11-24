@@ -138,18 +138,22 @@ type partnerUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
 	} `positional-args:"yes"`
-	Name        *string `short:"n" long:"name" description:"The partner's name"`
-	Protocol    *string `short:"p" long:"protocol" description:"The partner's protocol'"`
-	Address     *string `short:"a" long:"address" description:"The partner's [address:port]"`
-	ProtoConfig *string `short:"c" long:"config" description:"The partner's configuration in JSON"`
+	Name        *string            `short:"n" long:"name" description:"The partner's name"`
+	Protocol    *string            `short:"p" long:"protocol" description:"The partner's protocol'"`
+	Address     *string            `short:"a" long:"address" description:"The partner's [address:port]"`
+	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration in JSON"`
 }
 
 func (p *partnerUpdate) Execute([]string) error {
+	conf, err := json.Marshal(p.ProtoConfig)
+	if err != nil {
+		return fmt.Errorf("invalid config: %s", err)
+	}
 	partner := &api.InPartner{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
 		Address:     p.Address,
-		ProtoConfig: parseOptBytes(p.ProtoConfig),
+		ProtoConfig: conf,
 	}
 
 	addr.Path = admin.APIPath + rest.PartnersPath + "/" + p.Args.Name
