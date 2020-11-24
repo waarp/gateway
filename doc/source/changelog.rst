@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`210` Les mots de passe des serveurs R66 locaux renseignés dans la
+  configuration protocolaire sont désormais cryptés avant d'être stockés en base,
+  au lieu d'être stockés en clair. Le stockage (sous forme de hash) des mots de
+  passe des serveurs R66 distants reste inchangé.
 * :feature:`208` L'option du CLI pour entrer la configuration protocolaire d'un
   serveur ou d'un partenaire (``-c``) a été changée. La configuration doit
   désormais être entrée sous la forme ``-c clé:valeur``, répétée autant de fois

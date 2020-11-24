@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -152,7 +153,7 @@ func TestAddRemoteAccount(t *testing.T) {
 						}
 						So(db.Get(account), ShouldBeNil)
 
-						clearPwd, err := model.DecryptPassword(account.Password)
+						clearPwd, err := utils.DecryptPassword(account.Password)
 						So(err, ShouldBeNil)
 						So(string(clearPwd), ShouldEqual, command.Password)
 					})
@@ -317,7 +318,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						So(db.Select(&accs, nil), ShouldBeNil)
 						So(len(accs), ShouldEqual, 1)
 
-						clearPwd, err := model.DecryptPassword(accs[0].Password)
+						clearPwd, err := utils.DecryptPassword(accs[0].Password)
 						So(err, ShouldBeNil)
 						So(string(clearPwd), ShouldEqual, "new_password")
 
@@ -346,7 +347,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						}
 						So(db.Get(check), ShouldBeNil)
 
-						clearPwd, err := model.DecryptPassword(check.Password)
+						clearPwd, err := utils.DecryptPassword(check.Password)
 						So(err, ShouldBeNil)
 						So(string(clearPwd), ShouldEqual, string(oldPwd))
 					})
@@ -374,7 +375,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						}
 						So(db.Get(check), ShouldBeNil)
 
-						clearPwd, err := model.DecryptPassword(check.Password)
+						clearPwd, err := utils.DecryptPassword(check.Password)
 						So(err, ShouldBeNil)
 						So(string(clearPwd), ShouldEqual, string(oldPwd))
 					})

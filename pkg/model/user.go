@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/go-xorm/builder"
 )
 
@@ -86,6 +87,6 @@ func (u *User) Validate(db database.Accessor) error {
 	}
 
 	var err error
-	u.Password, err = HashPassword(u.Password)
+	u.Password, err = utils.HashPassword(u.Password)
 	return err
 }

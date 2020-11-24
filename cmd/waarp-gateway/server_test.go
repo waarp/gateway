@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http/httptest"
 	"net/url"
@@ -12,6 +13,8 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -219,6 +222,22 @@ func TestAddServer(t *testing.T) {
 					})
 
 					Convey("Then the new server should have been added", func() {
+						var res []model.LocalAgent
+						So(db.Select(&res, nil), ShouldBeNil)
+						So(len(res), ShouldEqual, 1)
+
+						var conf config.R66ProtoConfig
+						So(json.Unmarshal(res[0].ProtoConfig, &conf), ShouldBeNil)
+						bytes, err := base64.StdEncoding.DecodeString(conf.ServerPassword)
+						So(err, ShouldBeNil)
+						pwd, err := utils.DecryptPassword(bytes)
+						So(err, ShouldBeNil)
+
+						So(string(pwd), ShouldEqual, "sesame")
+						conf.ServerPassword = "sesame"
+						res[0].ProtoConfig, err = json.Marshal(conf)
+						So(err, ShouldBeNil)
+
 						exp := model.LocalAgent{
 							ID:          1,
 							Owner:       database.Owner,
@@ -231,9 +250,6 @@ func TestAddServer(t *testing.T) {
 							WorkDir:     "work_dir",
 							ProtoConfig: json.RawMessage(`{"blockSize":256,"serverPassword":"sesame"}`),
 						}
-						var res []model.LocalAgent
-						So(db.Select(&res, nil), ShouldBeNil)
-						So(len(res), ShouldEqual, 1)
 						So(res[0], ShouldResemble, exp)
 					})
 				})

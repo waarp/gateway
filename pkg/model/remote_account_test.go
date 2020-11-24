@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -131,7 +132,7 @@ func TestRemoteAccountValidate(t *testing.T) {
 						So(newAccount.Validate(db), ShouldBeNil)
 
 						Convey("Then the account's password should be encrypted", func() {
-							cipher, err := encryptPassword(newAccount.Password)
+							cipher, err := utils.CryptPassword(newAccount.Password)
 							So(err, ShouldBeNil)
 							So(string(newAccount.Password), ShouldEqual, string(cipher))
 						})

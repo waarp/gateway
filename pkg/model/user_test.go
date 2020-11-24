@@ -6,6 +6,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -54,7 +55,7 @@ func TestUsersValidate(t *testing.T) {
 						So(user.Validate(db), ShouldBeNil)
 
 						Convey("Then the user's password should be hashed", func() {
-							hash, err := HashPassword(user.Password)
+							hash, err := utils.HashPassword(user.Password)
 							So(err, ShouldBeNil)
 							So(string(user.Password), ShouldEqual, string(hash))
 						})
