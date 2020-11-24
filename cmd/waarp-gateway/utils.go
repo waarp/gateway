@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
 
 func unmarshalBody(body io.Reader, object interface{}) error {
@@ -35,4 +37,58 @@ func isNotUpdate(obj interface{}) bool {
 		}
 	}
 	return true
+}
+
+func getPermTarget(c rune, perm *api.Perms) *string {
+	switch c {
+	case 'T':
+		return &perm.Transfers
+	case 'S':
+		return &perm.Servers
+	case 'P':
+		return &perm.Partners
+	case 'R':
+		return &perm.Rules
+	case 'U':
+		return &perm.Users
+	default:
+		return nil
+	}
+}
+
+func isPermOp(c rune) bool {
+	return c == '=' || c == '+' || c == '-'
+}
+
+func isPermMode(c rune) bool {
+	return c == 'r' || c == 'w' || c == 'd'
+}
+
+func parsePerms(str string) (*api.Perms, error) {
+	var perms api.Perms
+
+	groups := strings.Split(str, ",")
+
+	for _, grp := range groups {
+		if len(grp) == 0 {
+			continue
+		}
+		if len(grp) == 1 {
+			return nil, fmt.Errorf("misssing permission operator after '%s'", grp)
+		}
+
+		dest := getPermTarget(rune(grp[0]), &perms)
+		if dest == nil {
+			return nil, fmt.Errorf("invalid permission target '%c'", grp[0])
+		}
+
+		modes := grp[1:]
+		for _, m := range modes {
+			if !isPermOp(m) && !isPermMode(m) {
+				return nil, fmt.Errorf("invalid permission mode '%s'", modes)
+			}
+		}
+		*dest += modes
+	}
+	return &perms, nil
 }

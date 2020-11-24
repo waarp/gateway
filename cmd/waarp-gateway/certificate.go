@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"path"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"github.com/jessevdk/go-flags"
 )
@@ -27,17 +27,15 @@ func displayCertificate(w io.Writer, cert *rest.OutCert) {
 
 func getCertPath() string {
 	if partner := commandLine.Partner.Cert.Args.Partner; partner != "" {
-		return admin.APIPath + rest.PartnersPath + "/" + partner
+		return fmt.Sprintf("/api/partners/%s", partner)
 	} else if server := commandLine.Server.Cert.Args.Server; server != "" {
-		return admin.APIPath + rest.ServersPath + "/" + server
+		return fmt.Sprintf("/api/servers/%s", server)
 	} else if partner := commandLine.Account.Remote.Args.Partner; partner != "" {
 		account := commandLine.Account.Remote.Cert.Args.Account
-		return admin.APIPath + rest.PartnersPath + "/" + partner +
-			rest.AccountsPath + "/" + account
+		return fmt.Sprintf("/api/partners/%s/accounts/%s", partner, account)
 	} else if server := commandLine.Account.Local.Args.Server; server != "" {
 		account := commandLine.Account.Local.Cert.Args.Account
-		return admin.APIPath + rest.ServersPath + "/" + server +
-			rest.AccountsPath + "/" + account
+		return fmt.Sprintf("/api/servers/%s/accounts/%s", server, account)
 	} else {
 		panic("unknown certificate recipient")
 	}
@@ -52,7 +50,7 @@ type certGet struct {
 }
 
 func (c *certGet) Execute([]string) error {
-	addr.Path = getCertPath() + rest.CertificatesPath + "/" + c.Args.Cert
+	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
 	cert := &rest.OutCert{}
 	if err := get(cert); err != nil {
@@ -94,7 +92,7 @@ func (c *certAdd) Execute([]string) (err error) {
 		}
 	}
 
-	addr.Path = getCertPath() + rest.CertificatesPath
+	addr.Path = path.Join(getCertPath(), "certificates")
 
 	if err := add(cert); err != nil {
 		return err
@@ -112,9 +110,9 @@ type certDelete struct {
 }
 
 func (c *certDelete) Execute([]string) error {
-	path := getCertPath() + rest.CertificatesPath + "/" + c.Args.Cert
+	uri := path.Join(getCertPath(), "certificates", c.Args.Cert)
 
-	if err := remove(path); err != nil {
+	if err := remove(uri); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The certificate", c.Args.Cert, "was successfully deleted.")
@@ -130,7 +128,7 @@ type certList struct {
 }
 
 func (c *certList) Execute([]string) error {
-	addr.Path = getCertPath() + rest.CertificatesPath
+	addr.Path = path.Join(getCertPath(), "certificates")
 	listURL(&c.listOptions, c.SortBy)
 
 	body := map[string][]rest.OutCert{}
@@ -188,7 +186,7 @@ func (c *certUpdate) Execute([]string) (err error) {
 		}
 	}
 
-	addr.Path = getCertPath() + rest.CertificatesPath + "/" + c.Args.Cert
+	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
 	if err := update(cert); err != nil {
 		return err

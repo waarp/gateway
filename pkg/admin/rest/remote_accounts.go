@@ -155,7 +155,7 @@ func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc 
 	}
 }
 
-func createRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			parent, err := getRemAg(r, db)
@@ -251,7 +251,7 @@ func getRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func createRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			_, acc, err := getRemAcc(r, db)

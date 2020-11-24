@@ -45,8 +45,9 @@ func TestUsersValidate(t *testing.T) {
 
 			Convey("Given a user account", func() {
 				user := &User{
-					Username: "user",
-					Password: []byte("password_user"),
+					Username:    "user",
+					Password:    []byte("password_user"),
+					Permissions: PermPartnersRead,
 				}
 
 				Convey("Given that the new account is valid", func() {
@@ -79,6 +80,62 @@ func TestUsersValidate(t *testing.T) {
 					user.Username = existing.Username
 
 					Convey("When calling the 'Validate' function", func() {
+						err := user.Validate(db)
+
+						Convey("Then the error should say that the login is already taken", func() {
+							So(err, ShouldBeError, "a user named '"+user.Username+
+								"' already exist")
+						})
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestUsersBeforeUpdate(t *testing.T) {
+	Convey("Given a database", t, func() {
+		db := database.GetTestDatabase()
+
+		Convey("Given the database contains 2 users", func() {
+			existing := &User{
+				Username:    "existing",
+				Password:    []byte("password_existing"),
+				Permissions: PermServersWrite,
+			}
+			So(db.Create(existing), ShouldBeNil)
+
+			old := &User{
+				Username:    "old",
+				Password:    []byte("password_old"),
+				Permissions: PermRulesRead,
+			}
+			So(db.Create(old), ShouldBeNil)
+
+			Convey("Given a user account", func() {
+				user := &User{
+					Username:    "new",
+					Password:    []byte("password_new"),
+					Permissions: PermUsersWrite,
+				}
+
+				Convey("Given that the new account is valid", func() {
+
+					Convey("When calling the 'BeforeUpdate' function", func() {
+						So(user.Validate(db), ShouldBeNil)
+
+						Convey("Then the user's password should be hashed", func() {
+							hash, err := utils.HashPassword(user.Password)
+							So(err, ShouldBeNil)
+							So(string(user.Password), ShouldEqual, string(hash))
+						})
+					})
+				})
+
+				Convey("Given that the new username is already taken", func() {
+					user.Username = existing.Username
+
+					Convey("When calling the 'BeforeUpdate' function", func() {
 						err := user.Validate(db)
 
 						Convey("Then the error should say that the login is already taken", func() {

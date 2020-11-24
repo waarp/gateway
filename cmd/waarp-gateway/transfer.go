@@ -7,8 +7,6 @@ import (
 	"net/url"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
@@ -102,7 +100,7 @@ func (t *transferAdd) Execute([]string) (err error) {
 			return fmt.Errorf("'%s' is not a valid date", t.Date)
 		}
 	}
-	addr.Path = admin.APIPath + rest.TransfersPath
+	addr.Path = "/api/transfers"
 
 	if err := add(trans); err != nil {
 		return err
@@ -120,7 +118,7 @@ type transferGet struct {
 }
 
 func (t *transferGet) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.TransfersPath + "/" + fmt.Sprint(t.Args.ID)
+	addr.Path = fmt.Sprintf("/api/transfers/%d", t.Args.ID)
 
 	trans := &api.OutTransfer{}
 	if err := get(trans); err != nil {
@@ -141,7 +139,7 @@ type transferList struct {
 }
 
 func (t *transferList) listURL() error {
-	addr.Path = admin.APIPath + rest.TransfersPath
+	addr.Path = "/api/transfers"
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(t.Limit))
 	query.Set("offset", fmt.Sprint(t.Offset))
@@ -200,7 +198,7 @@ type transferPause struct {
 
 func (t *transferPause) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	addr.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/pause"
+	addr.Path = fmt.Sprintf("/api/transfers/%d/pause", t.Args.ID)
 
 	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
@@ -233,7 +231,7 @@ type transferResume struct {
 
 func (t *transferResume) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	addr.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/resume"
+	addr.Path = fmt.Sprintf("/api/transfers/%d/resume", t.Args.ID)
 
 	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
@@ -265,7 +263,7 @@ type transferCancel struct {
 
 func (t *transferCancel) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	addr.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/cancel"
+	addr.Path = fmt.Sprintf("/api/transfers/%d/cancel", t.Args.ID)
 
 	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {

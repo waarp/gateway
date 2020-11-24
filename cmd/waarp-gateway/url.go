@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 )
 
 type addrOpt struct {
@@ -54,7 +52,7 @@ type listOptions struct {
 }
 
 func agentListURL(path string, s *listOptions, sort string, protos []string) {
-	addr.Path = admin.APIPath + path
+	addr.Path = path
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(s.Limit))
 	query.Set("offset", fmt.Sprint(s.Offset))

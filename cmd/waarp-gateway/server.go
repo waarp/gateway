@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"path"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
 
@@ -16,7 +15,7 @@ type serverCommand struct {
 	Add       serverAdd       `command:"add" description:"Add a new server"`
 	Delete    serverDelete    `command:"delete" description:"Delete a server"`
 	List      serverList      `command:"list" description:"List the known servers"`
-	Update    serverUpdate    `command:"update" description:"Modify a server's information" long-description:"Warning: the server's root & in/out/work paths cannot be changed individually, they must be updated all at once or the old values will be lost"`
+	Update    serverUpdate    `command:"update" description:"Modify a server's information"`
 	Authorize serverAuthorize `command:"authorize" description:"Give a server permission to use a rule"`
 	Revoke    serverRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
 	Cert      struct {
@@ -53,7 +52,7 @@ type serverGet struct {
 }
 
 func (s *serverGet) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Name
+	addr.Path = path.Join("/api/servers", s.Args.Name)
 
 	server := &api.OutServer{}
 	if err := get(server); err != nil {
@@ -91,7 +90,7 @@ func (s *serverAdd) Execute([]string) error {
 		WorkDir:     s.WorkDir,
 		ProtoConfig: conf,
 	}
-	addr.Path = admin.APIPath + rest.ServersPath
+	addr.Path = "/api/servers"
 
 	if err := add(server); err != nil {
 		return err
@@ -109,9 +108,9 @@ type serverDelete struct {
 }
 
 func (s *serverDelete) Execute([]string) error {
-	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Name
+	uri := path.Join("/api/servers", s.Args.Name)
 
-	if err := remove(path); err != nil {
+	if err := remove(uri); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The server", bold(s.Args.Name), "was successfully deleted.")
@@ -127,7 +126,7 @@ type serverList struct {
 }
 
 func (s *serverList) Execute([]string) error {
-	agentListURL(rest.ServersPath, &s.listOptions, s.SortBy, s.Protocols)
+	agentListURL("/api/servers", &s.listOptions, s.SortBy, s.Protocols)
 
 	body := map[string][]api.OutServer{}
 	if err := list(&body); err != nil {
@@ -179,7 +178,7 @@ func (s *serverUpdate) Execute([]string) error {
 		WorkDir:     s.WorkDir,
 		ProtoConfig: conf,
 	}
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Name
+	addr.Path = path.Join("/api/servers", s.Args.Name)
 
 	if err := update(server); err != nil {
 		return err
@@ -203,8 +202,8 @@ type serverAuthorize struct {
 }
 
 func (s *serverAuthorize) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
-		"/authorize/" + s.Args.Rule + "/" + strings.ToLower(s.Args.Direction)
+	addr.Path = fmt.Sprintf("/api/servers/%s/authorize/%s/%s", s.Args.Server,
+		s.Args.Rule, strings.ToLower(s.Args.Direction))
 
 	return authorize("server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
@@ -220,8 +219,8 @@ type serverRevoke struct {
 }
 
 func (s *serverRevoke) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
-		"/revoke/" + s.Args.Rule + "/" + strings.ToLower(s.Args.Direction)
+	addr.Path = fmt.Sprintf("/api/servers/%s/revoke/%s/%s", s.Args.Server,
+		s.Args.Rule, strings.ToLower(s.Args.Direction))
 
 	return revoke("server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
