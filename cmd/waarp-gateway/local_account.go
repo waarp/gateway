@@ -173,7 +173,7 @@ type locAccAuthorize struct {
 func (l *locAccAuthorize) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/authorize/%s/%s", server,
-		l.Args.Login, l.Args.Rule, strings.ToLower(l.Args.Direction))
+		l.Args.Login, l.Args.Rule, l.Args.Direction)
 
 	return authorize("local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }
@@ -191,7 +191,7 @@ type locAccRevoke struct {
 func (l *locAccRevoke) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/revoke/%s/%s", server,
-		l.Args.Login, l.Args.Rule, strings.ToLower(l.Args.Direction))
+		l.Args.Login, l.Args.Rule, l.Args.Direction)
 
 	return revoke("local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }

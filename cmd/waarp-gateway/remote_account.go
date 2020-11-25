@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
@@ -161,7 +160,7 @@ type remAccAuthorize struct {
 func (r *remAccAuthorize) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/authorize/%s/%s", partner,
-		r.Args.Login, r.Args.Rule, strings.ToLower(r.Args.Direction))
+		r.Args.Login, r.Args.Rule, r.Args.Direction)
 
 	return authorize("remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }
