@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`218` Correction d'une erreur où le client de transfert envoyait le premier
+  packet de données en boucle lorsque la taille du fichier dépassait la taille
+  d'un packet.
 * :bug:`217` Correction d'une erreur causant un *panic* du serveur dans certaines
   circonstances à la fin d'un transfert.
 * :bug:`215` Correction d'une erreur de typage des identifiants de transfert R66.

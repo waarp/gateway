@@ -2,6 +2,7 @@ package sftp
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"io/ioutil"
 	"net"
@@ -139,6 +140,7 @@ func TestSFTPPackage(t *testing.T) {
 				cancel:      cancel,
 			}
 			sshList.listen()
+			sshList.handlerMaker = sshList.makeTestHandlers
 			Reset(func() {
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 				defer cancel()
@@ -216,7 +218,9 @@ func TestSFTPPackage(t *testing.T) {
 
 				Convey("Given a transfer from SFTP client to server", func() {
 					srcFile := "sftp_test_file.src"
-					content := []byte("SFTP package test file content")
+					content := make([]byte, 1048576)
+					_, err := rand.Read(content)
+					So(err, ShouldBeNil)
 					srcFilepath := filepath.Join(home, send.OutPath, srcFile)
 					So(os.MkdirAll(filepath.Dir(srcFilepath), 0o700), ShouldBeNil)
 					So(ioutil.WriteFile(srcFilepath, content, 0o600), ShouldBeNil)
@@ -256,6 +260,7 @@ func TestSFTPPackage(t *testing.T) {
 								So(<-checkChannel, ShouldEqual, "SEND | PRE-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "SEND | POST-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "RECEIVE | POST-TASK[0] | OK")
+								So(<-checkChannel, ShouldEqual, "END SERVER TRANSFER")
 								So(<-checkChannel, ShouldEqual, "END TRANSFER 1")
 
 								Convey("Then the destination file should exist", func() {
@@ -263,7 +268,7 @@ func TestSFTPPackage(t *testing.T) {
 									dst, err := ioutil.ReadFile(file)
 									So(err, ShouldBeNil)
 
-									So(string(dst), ShouldResemble, string(content))
+									So(len(dst), ShouldEqual, len(content))
 								})
 
 								Convey("Then the transfers should be over", func() {
@@ -433,6 +438,7 @@ func TestSFTPPackage(t *testing.T) {
 								So(<-checkChannel, ShouldEqual, "SEND | PRE-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "SEND | PRE-TASK[1] | FAIL")
 								So(<-checkChannel, ShouldEqual, "RECEIVE | ERROR-TASK[0] | OK")
+								So(<-checkChannel, ShouldEqual, "END SERVER TRANSFER")
 								So(<-checkChannel, ShouldEqual, "SEND | ERROR-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "END TRANSFER 3")
 
@@ -524,6 +530,7 @@ func TestSFTPPackage(t *testing.T) {
 								So(<-checkChannel, ShouldEqual, "RECEIVE | POST-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "RECEIVE | POST-TASK[1] | FAIL")
 								So(<-checkChannel, ShouldEqual, "RECEIVE | ERROR-TASK[0] | OK")
+								So(<-checkChannel, ShouldEqual, "END SERVER TRANSFER")
 								So(<-checkChannel, ShouldEqual, "SEND | ERROR-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "END TRANSFER 4")
 
@@ -533,7 +540,7 @@ func TestSFTPPackage(t *testing.T) {
 									cont, err := ioutil.ReadFile(file)
 									So(err, ShouldBeNil)
 
-									So(string(cont), ShouldEqual, string(content))
+									So(len(cont), ShouldEqual, len(content))
 								})
 
 								Convey("Then the transfers should be over", func() {
@@ -617,19 +624,20 @@ func TestSFTPPackage(t *testing.T) {
 								So(<-checkChannel, ShouldEqual, "SEND | POST-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "SEND | POST-TASK[1] | FAIL")
 								So(<-checkChannel, ShouldEqual, "RECEIVE | ERROR-TASK[0] | OK")
+								So(<-checkChannel, ShouldEqual, "END SERVER TRANSFER")
 								So(<-checkChannel, ShouldEqual, "SEND | ERROR-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "END TRANSFER 5")
 
 								Convey("Then the file should exist", func() {
-									file := filepath.Join(root, receive.WorkPath,
-										trans.DestFile+".tmp")
+									file := filepath.Join(root, receive.InPath,
+										trans.DestFile)
 									cont, err := ioutil.ReadFile(file)
 									So(err, ShouldBeNil)
 
-									So(string(cont), ShouldEqual, string(content))
+									So(len(cont), ShouldEqual, len(content))
 								})
 
-								SkipConvey("Then the transfers should be over", func() {
+								Convey("Then the transfers should be over", func() {
 									var transfers []model.Transfer
 									So(db.Select(&transfers, nil), ShouldBeNil)
 									So(transfers, ShouldHaveLength, 2)
@@ -654,10 +662,10 @@ func TestSFTPPackage(t *testing.T) {
 												Details: "Task TESTFAIL @ send POST[1]: task failed",
 											},
 											Step:       types.StepPostTasks,
-											Progress:   0,
+											Progress:   uint64(len(content)),
 											TaskNumber: 1,
 										}
-										So(transfers[1], ShouldResemble, expected)
+										So(transfers[0], ShouldResemble, expected)
 									})
 
 									Convey("Then there should be a server-side "+
@@ -680,10 +688,10 @@ func TestSFTPPackage(t *testing.T) {
 												Details: "Remote post-tasks failed",
 											},
 											Step:       types.StepPostTasks,
-											Progress:   0,
+											Progress:   uint64(len(content)),
 											TaskNumber: 0,
 										}
-										So(transfers[0], ShouldResemble, expected)
+										So(transfers[1], ShouldResemble, expected)
 									})
 								})
 							})
