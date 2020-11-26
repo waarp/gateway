@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"sort"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
@@ -54,7 +52,7 @@ func showStatus(statuses api.Statuses, w io.Writer) {
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
 func (s *statusCommand) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.StatusPath
+	addr.Path = "/api/status"
 
 	resp, err := sendRequest(nil, http.MethodGet)
 	if err != nil {

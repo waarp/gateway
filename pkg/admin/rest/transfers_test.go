@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path"
 	"strconv"
 	"testing"
 	"time"
@@ -20,14 +21,14 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const transferURI = "http://localhost:8080" + APIPath + TransfersPath + "/"
+const transferURI = "http://localhost:8080/api/transfers"
 
 func TestAddTransfer(t *testing.T) {
 	logger := log.NewLogger("rest_transfer_add_test")
 
 	Convey("Testing the transfer add handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := createTransfer(logger, db)
+		handler := addTransfer(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 partner, 1 certificate & 1 account", func() {
@@ -244,7 +245,8 @@ func TestGetTransfer(t *testing.T) {
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
 				id := strconv.FormatUint(trans.ID, 10)
-				req, err := http.NewRequest(http.MethodGet, transferURI+id, nil)
+				uri := path.Join(transferURI, id)
+				req, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
 				req = mux.SetURLVars(req, map[string]string{"transfer": id})
 
@@ -274,7 +276,8 @@ func TestGetTransfer(t *testing.T) {
 			})
 
 			Convey("Given a request with an invalid transfer ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, transferURI+"1000", nil)
+				uri := path.Join(transferURI, "1000")
+				r, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"transfer": "1000"})
 

@@ -25,10 +25,8 @@ type Paths struct {
 	ServerRoot, ServerIn, ServerOut, ServerWork string
 }
 
-func checkSignal(ctx context.Context, ch <-chan model.Signal, dbErr <-chan error) *model.PipelineError {
+func checkSignal(ctx context.Context, ch <-chan model.Signal) *model.PipelineError {
 	select {
-	case <-dbErr:
-		return &model.PipelineError{Kind: model.KindDatabase}
 	case <-ctx.Done():
 		return &model.PipelineError{Kind: model.KindInterrupt}
 	case signal := <-ch:

@@ -19,7 +19,7 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
 .. option:: -d <DIRECTION>, --direction=<DIRECTION>
 
    Le sens de transfert des fichiers utilisant cette règle. Une règle
-   peut être utilisée pour la réception (``RECEIVE``) ou l'envoi (``SEND``) de
+   peut être utilisée pour la réception (``receive``) ou l'envoi (``send``) de
    fichiers.
 
 .. option:: -p <PATH>, --path=<PATH>
@@ -77,4 +77,4 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 rule add -n "règle_1" -c "règle de réception des fichiers avec SFTP" -d RECEIVE -p "/règle_1" -i "/règle_1/in" -o "/règle_1/out"  -r '{"type":"COPY","args":{"path":"chemin/copie"}}' -s '{"type":"DELETE","args":{}}' -e '{"type":"MOVE","args":{"path":"chemin/déplacement"}}'
+   waarp-gateway http://user:password@localhost:8080 rule add -n "règle_1" -c "règle de réception des fichiers avec SFTP" -d "receive" -p "/règle_1" -i "/règle_1/in" -o "/règle_1/out"  -r '{"type":"COPY","args":{"path":"chemin/copie"}}' -s '{"type":"DELETE","args":{}}' -e '{"type":"MOVE","args":{"path":"chemin/déplacement"}}'

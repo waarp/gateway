@@ -35,6 +35,7 @@ func exportLocals(logger *log.Logger, db *database.Session) ([]file.LocalAgent, 
 		res[i] = file.LocalAgent{
 			Name:          src.Name,
 			Protocol:      src.Protocol,
+			Address:       src.Address,
 			Configuration: src.ProtoConfig,
 			Root:          src.Root,
 			InDir:         src.InDir,

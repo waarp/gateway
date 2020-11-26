@@ -117,7 +117,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given all valid flags", func() {
 				args := []string{"-p", partner.Name, "-l", account.Login, "-w",
-					"push", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
+					"send", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
 					"-d", "2020-01-01T01:00:00+01:00"}
 
 				Convey("When executing the command", func() {
@@ -148,7 +148,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid rule name", func() {
 				args := []string{"-p", partner.Name, "-l", account.Login, "-w",
-					"push", "-r", "toto", "-f", "file.src", "-n", "file.dst",
+					"send", "-r", "toto", "-f", "file.src", "-n", "file.dst",
 					"-d", "2020-01-01T01:00:00+01:00"}
 
 				Convey("When executing the command", func() {
@@ -164,7 +164,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				args := []string{"-p", partner.Name, "-l", "toto", "-w",
-					"push", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
+					"send", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
 					"-d", "2020-01-01T01:00:00+01:00"}
 
 				Convey("When executing the command", func() {
@@ -181,7 +181,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid partner name", func() {
 				args := []string{"-p", "toto", "-l", account.Login, "-w",
-					"push", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
+					"send", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
 					"-d", "2020-01-01T01:00:00+01:00"}
 
 				Convey("When executing the command", func() {
@@ -197,7 +197,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid start date", func() {
 				args := []string{"-p", partner.Name, "-l", account.Login, "-w",
-					"push", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
+					"send", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
 					"-d", "toto"}
 
 				Convey("When executing the command", func() {

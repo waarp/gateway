@@ -7,8 +7,6 @@ import (
 	"net/url"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
@@ -78,7 +76,7 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 
 type transferAdd struct {
 	File    string `required:"true" short:"f" long:"file" description:"The file to transfer"`
-	Way     string `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"pull" choice:"push"`
+	Way     string `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
 	Name    string `short:"n" long:"name" description:"The name of the file after the transfer"`
 	Partner string `required:"true" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
 	Account string `required:"true" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
@@ -94,7 +92,7 @@ func (t *transferAdd) Execute([]string) (err error) {
 	trans := api.InTransfer{
 		Partner:    t.Partner,
 		Account:    t.Account,
-		IsSend:     t.Way == "push",
+		IsSend:     t.Way == "send",
 		SourcePath: t.File,
 		Rule:       t.Rule,
 		DestPath:   t.Name,
@@ -105,7 +103,7 @@ func (t *transferAdd) Execute([]string) (err error) {
 			return fmt.Errorf("'%s' is not a valid date", t.Date)
 		}
 	}
-	addr.Path = admin.APIPath + rest.TransfersPath
+	addr.Path = "/api/transfers"
 
 	if err := add(trans); err != nil {
 		return err
@@ -123,7 +121,7 @@ type transferGet struct {
 }
 
 func (t *transferGet) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.TransfersPath + "/" + fmt.Sprint(t.Args.ID)
+	addr.Path = fmt.Sprintf("/api/transfers/%d", t.Args.ID)
 
 	trans := &api.OutTransfer{}
 	if err := get(trans); err != nil {
@@ -144,7 +142,7 @@ type transferList struct {
 }
 
 func (t *transferList) listURL() error {
-	addr.Path = admin.APIPath + rest.TransfersPath
+	addr.Path = "/api/transfers"
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(t.Limit))
 	query.Set("offset", fmt.Sprint(t.Offset))
@@ -203,7 +201,7 @@ type transferPause struct {
 
 func (t *transferPause) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	addr.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/pause"
+	addr.Path = fmt.Sprintf("/api/transfers/%d/pause", t.Args.ID)
 
 	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
@@ -236,7 +234,7 @@ type transferResume struct {
 
 func (t *transferResume) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	addr.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/resume"
+	addr.Path = fmt.Sprintf("/api/transfers/%d/resume", t.Args.ID)
 
 	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
@@ -268,7 +266,7 @@ type transferCancel struct {
 
 func (t *transferCancel) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	addr.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/cancel"
+	addr.Path = fmt.Sprintf("/api/transfers/%d/cancel", t.Args.ID)
 
 	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {

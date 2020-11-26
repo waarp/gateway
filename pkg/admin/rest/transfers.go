@@ -90,7 +90,7 @@ func getTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 	return transfer, nil
 }
 
-func createTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			jsonTrans := &api.InTransfer{}
@@ -216,7 +216,7 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				pipeline.Signals.SendSignal(check.ID, model.SignalCancel)
 			}
 
-			r.URL.Path = APIPath + HistoryPath
+			r.URL.Path = "/api/history"
 			w.Header().Set("Location", location(r.URL, fmt.Sprint(check.ID)))
 			w.WriteHeader(http.StatusAccepted)
 			return nil
