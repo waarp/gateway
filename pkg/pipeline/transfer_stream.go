@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -16,42 +15,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
-type progressReporter struct {
-	*time.Ticker
-	dbErr chan error
-	done  chan struct{}
-}
-
-func (p *progressReporter) Run(trans *model.Transfer, db *database.DB, logger *log.Logger) {
-	p.Ticker = time.NewTicker(time.Second)
-	p.dbErr = make(chan error)
-	p.done = make(chan struct{})
-	upd := *trans
-
-	go func() {
-		defer close(p.dbErr)
-		for {
-			select {
-			case <-p.done:
-				return
-			case <-p.C:
-			}
-
-			upd.Progress = atomic.LoadUint64(&trans.Progress)
-			if err := db.Update(&upd); err != nil {
-				logger.Criticalf("Failed to update transfer progress: %s", err.Error())
-				p.dbErr <- err
-				return
-			}
-		}
-	}()
-}
-
-func (p *progressReporter) stop() {
-	p.Ticker.Stop()
-	close(p.done)
-}
-
 // TransferStream represents the Pipeline of an incoming transfer made to the
 // gateway. It is a `os.File` wrapper which adds MFT operations at the stream's
 // creation, during reads/writes, and at the streams closure.
@@ -59,7 +22,7 @@ type TransferStream struct {
 	*os.File
 	*Pipeline
 	Paths
-	*progressReporter
+	ticker *time.Ticker
 }
 
 // getOldTransfer searches if the given transfer has a corresponding entry in
@@ -133,14 +96,6 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	}
 	t.Logger = log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 
-	if t.Transfer.Error.Code != types.TeOk {
-		t.Transfer.Error = types.TransferError{}
-		if err := db.Update(t.Transfer); err != nil {
-			logger.Criticalf("Failed to reset transfer error: %s", err.Error())
-			return nil, &model.PipelineError{Kind: model.KindDatabase}
-		}
-	}
-
 	t.Pipeline.Rule = &model.Rule{ID: trans.RuleID}
 	if err := t.DB.Get(t.Rule); err != nil {
 		logger.Criticalf("Failed to retrieve transfer rule: %s", err.Error())
@@ -169,11 +124,27 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	if err := t.setTrueFilepath(); err != nil {
 		return nil, err
 	}
+	if err := t.initStatus(); err != nil {
+		return nil, err
+	}
 	return t, nil
 }
 
-func (t *TransferStream) createTransfer(trans *model.Transfer) *model.PipelineError {
+func (t *TransferStream) initStatus() *model.PipelineError {
+	t.Transfer.Status = types.StatusRunning
+	if t.Transfer.Error.Code != types.TeOk {
+		t.Transfer.Error = types.TransferError{}
 
+	}
+	if err := t.DB.Update(t.Transfer); err != nil {
+		t.Logger.Criticalf("Failed to set transfer status to %s: %s", types.StatusRunning, err.Error())
+		return &model.PipelineError{Kind: model.KindDatabase}
+	}
+	return nil
+}
+
+func (t *TransferStream) createTransfer(trans *model.Transfer) *model.PipelineError {
+	trans.Status = types.StatusRunning
 	if err := t.DB.Create(trans); err != nil {
 		if _, ok := err.(*database.ErrInvalid); ok {
 			t.Logger.Errorf("Failed to create transfer entry: %s", err.Error())
@@ -232,8 +203,7 @@ func (t *TransferStream) Start() *model.PipelineError {
 		return err
 	}
 
-	t.progressReporter = &progressReporter{}
-	t.progressReporter.Run(t.Transfer, t.DB, t.Logger)
+	t.ticker = time.NewTicker(time.Second)
 
 	return nil
 }
@@ -264,15 +234,23 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (n int, err error) {
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
-	if e := checkSignal(t.Ctx, t.Signals, t.dbErr); e != nil {
+	if e := checkSignal(t.Ctx, t.Signals); e != nil {
 		return 0, e
 	}
 
 	n, err = t.File.ReadAt(p, off)
-	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
+	t.Transfer.Progress += uint64(n)
 	if err != nil && err != io.EOF {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
+	}
+	select {
+	case <-t.ticker.C:
+		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
+			t.Logger.Criticalf("Failed to update upload transfer progress: %s", dbErr)
+			err = &model.PipelineError{Kind: model.KindDatabase}
+		}
+	default:
 	}
 
 	return n, err
@@ -288,15 +266,23 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (n int, err error) {
 			return 0, &model.PipelineError{Kind: model.KindDatabase}
 		}
 	}
-	if e := checkSignal(t.Ctx, t.Signals, t.dbErr); e != nil {
+	if e := checkSignal(t.Ctx, t.Signals); e != nil {
 		return 0, e
 	}
 
 	n, err = t.File.WriteAt(p, off)
-	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
+	t.Transfer.Progress += uint64(n)
 	if err != nil {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
+	}
+	select {
+	case <-t.ticker.C:
+		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
+			t.Logger.Criticalf("Failed to update download transfer progress: %s", dbErr)
+			err = &model.PipelineError{Kind: model.KindDatabase}
+		}
+	default:
 	}
 
 	return n, err
@@ -309,7 +295,7 @@ func (t *TransferStream) Close() error {
 			err.(*os.PathError).Err.Error())
 	}
 
-	t.progressReporter.stop()
+	t.ticker.Stop()
 	if err := t.DB.Update(t.Transfer); err != nil {
 		t.Logger.Criticalf("Failed to update transfer progress: %s", err.Error())
 		return &model.PipelineError{Kind: model.KindDatabase}

@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`217` Correction d'une erreur causant un *panic* du serveur dans certaines
+  circonstances à la fin d'un transfert.
 * :bug:`215` Correction d'une erreur de typage des identifiants de transfert R66.
 * :bug:`176` Les arguments de direction de transfert du client terminal ont été
   rendu consistants entre les différentes commandes. Le sens d'un transfert
