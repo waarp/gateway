@@ -1,11 +1,10 @@
 package rest
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
+	"strings"
 	"testing"
 
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
@@ -16,10 +15,10 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const remoteAgentsURI = "http://localhost:8080/api/partners/"
+const testPartnersURI = "http://localhost:8080/api/partners/"
 
-func TestListRemoteAgents(t *testing.T) {
-	logger := log.NewLogger("rest_remote agent_list_test")
+func TestListPartners(t *testing.T) {
+	logger := log.NewLogger("rest_partners_list_test")
 
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutPartner) {
 		Convey("Then it should reply 'OK'", func() {
@@ -43,33 +42,33 @@ func TestListRemoteAgents(t *testing.T) {
 		})
 	}
 
-	Convey("Given the remote agents listing handler", t, func() {
+	Convey("Given the partners listing handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := listRemoteAgents(logger, db)
+		handler := listPartners(logger, db)
 		w := httptest.NewRecorder()
 		expected := map[string][]OutPartner{}
 
-		Convey("Given a database with 4 remote agents", func() {
+		Convey("Given a database with 4 partners", func() {
 			a1 := &model.RemoteAgent{
-				Name:        "remote agent1",
+				Name:        "partner1",
 				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			a2 := &model.RemoteAgent{
-				Name:        "remote agent2",
+				Name:        "partner2",
 				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
 			a3 := &model.RemoteAgent{
-				Name:        "remote agent3",
+				Name:        "partner3",
 				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:3",
 			}
 			a4 := &model.RemoteAgent{
-				Name:        "remote agent4",
+				Name:        "partner4",
 				Protocol:    "test2",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:4",
@@ -148,15 +147,15 @@ func TestListRemoteAgents(t *testing.T) {
 	})
 }
 
-func TestGetRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_remote agent_get_test")
+func TestGetPartner(t *testing.T) {
+	logger := log.NewLogger("rest_partner_get_test")
 
-	Convey("Given the remote agent get handler", t, func() {
+	Convey("Given the partner get handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := getRemoteAgent(logger, db)
+		handler := getPartner(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 remote agent", func() {
+		Convey("Given a database with 1 partner", func() {
 			existing := &model.RemoteAgent{
 				Name:        "existing",
 				Protocol:    "test",
@@ -168,7 +167,7 @@ func TestGetRemoteAgent(t *testing.T) {
 			Convey("Given a request with a valid agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": existing.Name})
+				r = mux.SetURLVars(r, map[string]string{"partner": existing.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -183,7 +182,7 @@ func TestGetRemoteAgent(t *testing.T) {
 						So(contentType, ShouldEqual, "application/json")
 					})
 
-					Convey("Then the body should contain the requested remote agent "+
+					Convey("Then the body should contain the requested partner "+
 						"in JSON format", func() {
 
 						exp, err := json.Marshal(FromRemoteAgent(existing, &AuthorizedRules{}))
@@ -194,10 +193,10 @@ func TestGetRemoteAgent(t *testing.T) {
 				})
 			})
 
-			Convey("Given a request with a non-existing remote agent name parameter", func() {
+			Convey("Given a request with a non-existing partner name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto"})
+				r = mux.SetURLVars(r, map[string]string{"partner": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -211,15 +210,15 @@ func TestGetRemoteAgent(t *testing.T) {
 	})
 }
 
-func TestCreateRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_remote agent_create_logger")
+func TestCreatePartner(t *testing.T) {
+	logger := log.NewLogger("rest_partner_create_logger")
 
-	Convey("Given the remote agent creation handler", t, func() {
+	Convey("Given the partner creation handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := createRemoteAgent(logger, db)
+		handler := addPartner(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 remote agent", func() {
+		Convey("Given a database with 1 partner", func() {
 			existing := &model.RemoteAgent{
 				Name:        "existing",
 				Protocol:    "test",
@@ -228,19 +227,16 @@ func TestCreateRemoteAgent(t *testing.T) {
 			}
 			So(db.Create(existing), ShouldBeNil)
 
-			Convey("Given a new remote agent to insert in the database", func() {
-				newAgent := &InPartner{
-					Name:        strPtr("new remote agent"),
-					Protocol:    strPtr("test"),
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     strPtr("localhost:2"),
-				}
+			Convey("Given a new partner to insert in the database", func() {
+				body := strings.NewReader(`{
+					"name": "new_partner",
+					"protocol": "test",
+					"protoConfig": {},
+					"address": "localhost:2"
+				}`)
 
-				Convey("Given that the new remote agent is valid for insertion", func() {
-					body, err := json.Marshal(newAgent)
-					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, remoteAgentsURI,
-						bytes.NewReader(body))
+				Convey("Given that the new partner is valid for insertion", func() {
+					r, err := http.NewRequest(http.MethodPost, testPartnersURI, body)
 					So(err, ShouldBeNil)
 
 					Convey("When sending the request to the handler", func() {
@@ -255,24 +251,29 @@ func TestCreateRemoteAgent(t *testing.T) {
 						})
 
 						Convey("Then the 'Location' header should contain the URI "+
-							"of the new remote agent", func() {
+							"of the new partner", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, remoteAgentsURI+url.PathEscape(
-								str(newAgent.Name)))
+							So(location, ShouldEqual, testPartnersURI+"new_partner")
 						})
 
-						Convey("Then the new remote agent should be inserted in "+
+						Convey("Then the new partner should be inserted in "+
 							"the database", func() {
 
 							var ags []model.RemoteAgent
 							So(db.Select(&ags, nil), ShouldBeNil)
 							So(len(ags), ShouldEqual, 2)
 
-							So(ags[1], ShouldResemble, *partToDB(newAgent, 2))
+							So(ags[1], ShouldResemble, model.RemoteAgent{
+								ID:          2,
+								Name:        "new_partner",
+								Protocol:    "test",
+								ProtoConfig: json.RawMessage(`{}`),
+								Address:     "localhost:2",
+							})
 						})
 
-						Convey("Then the existing remote agent should still be "+
+						Convey("Then the existing partner should still be "+
 							"present as well", func() {
 
 							var ags []model.RemoteAgent
@@ -288,15 +289,15 @@ func TestCreateRemoteAgent(t *testing.T) {
 	})
 }
 
-func TestDeleteRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_remote agent_delete_test")
+func TestDeletePartner(t *testing.T) {
+	logger := log.NewLogger("rest_partner_delete_test")
 
-	Convey("Given the remote agent deletion handler", t, func() {
+	Convey("Given the partner deletion handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := deleteRemoteAgent(logger, db)
+		handler := deletePartner(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 remote agent", func() {
+		Convey("Given a database with 1 partner", func() {
 			existing := &model.RemoteAgent{
 				Name:        "existing",
 				Protocol:    "test",
@@ -308,7 +309,7 @@ func TestDeleteRemoteAgent(t *testing.T) {
 			Convey("Given a request with a valid agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": existing.Name})
+				r = mux.SetURLVars(r, map[string]string{"partner": existing.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -332,7 +333,7 @@ func TestDeleteRemoteAgent(t *testing.T) {
 			Convey("Given a request with a non-existing agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto"})
+				r = mux.SetURLVars(r, map[string]string{"partner": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -346,15 +347,15 @@ func TestDeleteRemoteAgent(t *testing.T) {
 	})
 }
 
-func TestUpdateRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_agent_update_logger")
+func TestUpdatePartner(t *testing.T) {
+	logger := log.NewLogger("rest_partner_update_logger")
 
 	Convey("Given the agent updating handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := updateRemoteAgent(logger, db)
+		handler := updatePartner(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 2 agents", func() {
+		Convey("Given a database with 1 agent", func() {
 			old := &model.RemoteAgent{
 				Name:        "old",
 				Protocol:    "test",
@@ -364,18 +365,18 @@ func TestUpdateRemoteAgent(t *testing.T) {
 			So(db.Create(old), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
-				update := InPartner{
-					Name:    strPtr("update"),
-					Address: strPtr("localhost:2"),
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := strings.NewReader(`{
+					"name": "update",
+					"protocol": "test",
+					"protoConfig": {"key":"val"},
+					"address": "localhost:2"
+				}`)
 
 				Convey("Given a valid agent name parameter", func() {
-					r, err := http.NewRequest(http.MethodPatch, remoteAgentsURI+
-						old.Name, bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPatch, testPartnersURI+
+						old.Name, body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"remote_agent": old.Name})
+					r = mux.SetURLVars(r, map[string]string{"partner": old.Name})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -392,7 +393,7 @@ func TestUpdateRemoteAgent(t *testing.T) {
 							"the URI of the updated agent", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, remoteAgentsURI+str(update.Name))
+							So(location, ShouldEqual, testPartnersURI+"update")
 						})
 
 						Convey("Then the agent should have been updated", func() {
@@ -401,7 +402,7 @@ func TestUpdateRemoteAgent(t *testing.T) {
 								Name:        "update",
 								Protocol:    "test",
 								Address:     "localhost:2",
-								ProtoConfig: json.RawMessage(`{}`),
+								ProtoConfig: json.RawMessage(`{"key":"val"}`),
 							}
 
 							var parts []model.RemoteAgent
@@ -414,10 +415,9 @@ func TestUpdateRemoteAgent(t *testing.T) {
 				})
 
 				Convey("Given an invalid agent name parameter", func() {
-					r, err := http.NewRequest(http.MethodPatch, remoteAgentsURI+"toto",
-						bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPatch, testPartnersURI+"toto", body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto"})
+					r = mux.SetURLVars(r, map[string]string{"partner": "toto"})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -445,12 +445,12 @@ func TestUpdateRemoteAgent(t *testing.T) {
 	})
 }
 
-func TestReplaceRemoteAgent(t *testing.T) {
-	logger := log.NewLogger("rest_agent_update_logger")
+func TestReplacePartner(t *testing.T) {
+	logger := log.NewLogger("rest_partner_update_logger")
 
 	Convey("Given the agent updating handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := replaceRemoteAgent(logger, db)
+		handler := replacePartner(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 2 agents", func() {
@@ -463,20 +463,18 @@ func TestReplaceRemoteAgent(t *testing.T) {
 			So(db.Create(old), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
-				update := InPartner{
-					Name:        strPtr("update"),
-					Protocol:    strPtr("test2"),
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     strPtr("localhost:2"),
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := strings.NewReader(`{
+					"name": "update",
+					"protocol": "test2",
+					"protoConfig": {},
+					"address": "localhost:2"
+				}`)
 
 				Convey("Given a valid agent name parameter", func() {
-					r, err := http.NewRequest(http.MethodPut, remoteAgentsURI+
-						old.Name, bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPut, testServersURI+
+						old.Name, body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"remote_agent": old.Name})
+					r = mux.SetURLVars(r, map[string]string{"partner": old.Name})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -493,7 +491,7 @@ func TestReplaceRemoteAgent(t *testing.T) {
 							"the URI of the updated agent", func() {
 
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, remoteAgentsURI+str(update.Name))
+							So(location, ShouldEqual, testServersURI+"update")
 						})
 
 						Convey("Then the agent should have been updated", func() {
@@ -515,10 +513,9 @@ func TestReplaceRemoteAgent(t *testing.T) {
 				})
 
 				Convey("Given an invalid agent name parameter", func() {
-					r, err := http.NewRequest(http.MethodPut, remoteAgentsURI+"toto",
-						bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPut, testServersURI+"toto", body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"remote_agent": "toto"})
+					r = mux.SetURLVars(r, map[string]string{"partner": "toto"})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)

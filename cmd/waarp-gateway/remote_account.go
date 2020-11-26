@@ -2,10 +2,7 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
 
@@ -38,8 +35,7 @@ type remAccGet struct {
 
 func (r *remAccGet) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner +
-		rest.AccountsPath + "/" + r.Args.Login
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", partner, r.Args.Login)
 
 	account := &api.OutAccount{}
 	if err := get(account); err != nil {
@@ -59,10 +55,10 @@ type remAccAdd struct {
 func (r *remAccAdd) Execute([]string) error {
 	account := api.InAccount{
 		Login:    &r.Login,
-		Password: []byte(r.Password),
+		Password: &r.Password,
 	}
 	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner + rest.AccountsPath
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", partner)
 
 	if err := add(account); err != nil {
 		return err
@@ -81,10 +77,9 @@ type remAccDelete struct {
 
 func (r *remAccDelete) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	path := admin.APIPath + rest.PartnersPath + "/" + partner +
-		rest.AccountsPath + "/" + r.Args.Login
+	uri := fmt.Sprintf("/api/partners/%s/accounts/%s", partner, r.Args.Login)
 
-	if err := remove(path); err != nil {
+	if err := remove(uri); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The account", bold(r.Args.Login), "was successfully deleted.")
@@ -104,12 +99,11 @@ type remAccUpdate struct {
 func (r *remAccUpdate) Execute([]string) error {
 	account := &api.InAccount{
 		Login:    r.Login,
-		Password: parseOptBytes(r.Password),
+		Password: r.Password,
 	}
 
 	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner +
-		rest.AccountsPath + "/" + r.Args.Login
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s", partner, r.Args.Login)
 
 	if err := update(account); err != nil {
 		return err
@@ -131,7 +125,7 @@ type remAccList struct {
 
 func (r *remAccList) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner + rest.AccountsPath
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", partner)
 	listURL(&r.listOptions, r.SortBy)
 
 	body := map[string][]api.OutAccount{}
@@ -165,9 +159,8 @@ type remAccAuthorize struct {
 
 func (r *remAccAuthorize) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner +
-		rest.AccountsPath + "/" + r.Args.Login + "/authorize/" + r.Args.Rule +
-		"/" + strings.ToLower(r.Args.Direction)
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/authorize/%s/%s", partner,
+		r.Args.Login, r.Args.Rule, r.Args.Direction)
 
 	return authorize("remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }
@@ -184,9 +177,8 @@ type remAccRevoke struct {
 
 func (r *remAccRevoke) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
-	addr.Path = admin.APIPath + rest.PartnersPath + "/" + partner +
-		rest.AccountsPath + "/" + r.Args.Login + "/revoke/" + r.Args.Rule +
-		"/" + strings.ToLower(r.Args.Direction)
+	addr.Path = fmt.Sprintf("/api/partners/%s/accounts/%s/revoke/%s/%s", partner,
+		r.Args.Login, r.Args.Rule, r.Args.Direction)
 
 	return revoke("remote account", r.Args.Login, r.Args.Rule, r.Args.Direction)
 }

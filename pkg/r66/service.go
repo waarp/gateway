@@ -3,6 +3,7 @@ package r66
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -13,6 +14,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
 )
 
@@ -93,9 +95,24 @@ func (s *Service) Start() error {
 	var ctx context.Context
 	ctx, s.cancel = context.WithCancel(context.Background())
 
+	pwd, err := base64.StdEncoding.DecodeString(conf.ServerPassword)
+	if err != nil {
+		s.logger.Errorf("Failed to decode server password: %s", err)
+		dErr := fmt.Errorf("failed to decode server password: %s", err)
+		s.state.Set(service.Error, dErr.Error())
+		return dErr
+	}
+	pwd, err = utils.DecryptPassword(pwd)
+	if err != nil {
+		s.logger.Errorf("Failed to decrypt server password: %s", err)
+		dErr := fmt.Errorf("failed to decrypt server password: %s", err)
+		s.state.Set(service.Error, dErr.Error())
+		return dErr
+	}
+
 	s.server = &r66.Server{
 		Login:    s.agent.Name,
-		Password: conf.ServerPassword,
+		Password: pwd,
 		Conf:     r66.Configuration{},
 		AuthentHandler: &authHandler{
 			Service: s,
@@ -103,6 +120,16 @@ func (s *Service) Start() error {
 		},
 	}
 
+	if err := s.listen(); err != nil {
+		return err
+	}
+
+	s.state.Set(service.Running, "")
+	s.logger.Infof("R66 server started at %s", s.agent.Address)
+	return nil
+}
+
+func (s *Service) listen() error {
 	tlsConf, err := s.makeTLSConf()
 	if err != nil {
 		s.logger.Errorf("Failed to parse server TLS config: %s", err)
@@ -131,8 +158,6 @@ func (s *Service) Start() error {
 		close(s.done)
 	}()
 
-	s.state.Set(service.Running, "")
-	s.logger.Infof("R66 server started at %s", s.agent.Address)
 	return nil
 }
 
