@@ -2,6 +2,7 @@ package r66
 
 import (
 	"crypto/subtle"
+	"encoding/base64"
 	"encoding/json"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -26,7 +27,11 @@ func (h *clientAuthHandler) ValidAuth(auth *r66.Authent) (req r66.RequestHandler
 	if subtle.ConstantTimeCompare([]byte(auth.Login), []byte(r66Conf.ServerLogin)) == 0 {
 		err = authErr
 	}
-	if subtle.ConstantTimeCompare(r66Conf.ServerPassword, auth.Password) == 0 {
+	pwd, err := base64.StdEncoding.DecodeString(r66Conf.ServerPassword)
+	if err != nil {
+		err = &r66.Error{Code: r66.Internal, Detail: "failed to check credentials"}
+	}
+	if subtle.ConstantTimeCompare(pwd, auth.Password) == 0 {
 		err = authErr
 	}
 

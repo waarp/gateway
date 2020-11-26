@@ -19,7 +19,7 @@ Programme un nouveau transfert avec les attributs ci-dessous.
 
 .. option:: -w <DIRECTION>, --way=<DIRECTION>
 
-   La direction du transfer. Peut être ``pull`` ou ``push``.
+   La direction du transfer. Peut être ``send`` ou ``receive``.
 
 .. option:: -p <PARTNER>, --partner=<PARTNER>
 
@@ -40,4 +40,4 @@ Programme un nouveau transfert avec les attributs ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 transfer add -f path/to/file -w push -p waarp_sftp a toto -r règle_1
+   waarp-gateway http://user:password@localhost:8080 transfer add -f path/to/file -w "send" -p waarp_sftp a toto -r règle_1

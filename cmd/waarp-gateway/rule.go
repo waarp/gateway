@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
 
@@ -69,13 +68,13 @@ func displayRule(w io.Writer, rule *api.OutRule) {
 		servers = strings.Join(rule.Authorized.LocalServers, ", ")
 		partners = strings.Join(rule.Authorized.RemotePartners, ", ")
 
-		la := []string{}
+		var la []string
 		for server, accounts := range rule.Authorized.LocalAccounts {
 			for _, account := range accounts {
 				la = append(la, fmt.Sprint(server, ".", account))
 			}
 		}
-		ra := []string{}
+		var ra []string
 		for partner, accounts := range rule.Authorized.RemoteAccounts {
 			for _, account := range accounts {
 				ra = append(ra, fmt.Sprint(partner, ".", account))
@@ -129,7 +128,7 @@ func parseTasks(rule *api.UptRule, pre, post, errs []string) error {
 type ruleGet struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
@@ -137,8 +136,7 @@ func (r *ruleGet) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
-	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" +
-		strings.ToLower(r.Args.Direction)
+	addr.Path = path.Join("/api/rules", r.Args.Name, strings.ToLower(r.Args.Direction))
 
 	rule := &api.OutRule{}
 	if err := get(rule); err != nil {
@@ -153,7 +151,7 @@ func (r *ruleGet) Execute([]string) error {
 type ruleAdd struct {
 	Name       string   `required:"true" short:"n" long:"name" description:"The rule's name"`
 	Comment    *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
-	Direction  string   `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"SEND" choice:"RECEIVE"`
+	Direction  string   `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"send" choice:"receive"`
 	Path       string   `short:"p" long:"path" description:"The path used to identify the rule, by default, the rule's name is used"`
 	InPath     *string  `short:"i" long:"in_path" description:"The path to the destination of the file"`
 	OutPath    *string  `short:"o" long:"out_path" description:"The path to the source of the file"`
@@ -164,7 +162,7 @@ type ruleAdd struct {
 }
 
 func (r *ruleAdd) Execute([]string) error {
-	isSend := r.Direction == "SEND"
+	isSend := r.Direction == "send"
 	rule := &api.InRule{
 		UptRule: &api.UptRule{
 			Name:     &r.Name,
@@ -179,7 +177,7 @@ func (r *ruleAdd) Execute([]string) error {
 	if err := parseTasks(rule.UptRule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {
 		return err
 	}
-	addr.Path = admin.APIPath + rest.RulesPath
+	addr.Path = "/api/rules"
 
 	if err := add(rule); err != nil {
 		return err
@@ -193,7 +191,7 @@ func (r *ruleAdd) Execute([]string) error {
 type ruleDelete struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"  choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"  choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
@@ -201,9 +199,9 @@ func (r *ruleDelete) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
-	path := admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" + strings.ToLower(r.Args.Direction)
+	uri := path.Join("/api/rules", r.Args.Name, r.Args.Direction)
 
-	if err := remove(path); err != nil {
+	if err := remove(uri); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The rule", bold(r.Args.Name), "was successfully deleted.")
@@ -218,7 +216,7 @@ type ruleList struct {
 }
 
 func (r *ruleList) Execute([]string) error {
-	addr.Path = rest.APIPath + rest.RulesPath
+	addr.Path = "/api/rules"
 	listURL(&r.listOptions, r.SortBy)
 
 	body := map[string][]api.OutRule{}
@@ -245,7 +243,7 @@ func (r *ruleList) Execute([]string) error {
 type ruleUpdate struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The server's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 	Name       *string  `short:"n" long:"name" description:"The rule's name"`
 	Comment    *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
@@ -262,8 +260,7 @@ func (r *ruleUpdate) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
-	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" +
-		strings.ToLower(r.Args.Direction)
+	addr.Path = path.Join("/api/rules", r.Args.Name, strings.ToLower(r.Args.Direction))
 
 	rule := &api.UptRule{
 		Name:     r.Name,
@@ -293,7 +290,7 @@ func (r *ruleUpdate) Execute([]string) error {
 type ruleAllowAll struct {
 	Args struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
@@ -301,8 +298,8 @@ func (r *ruleAllowAll) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
-	addr.Path = admin.APIPath + rest.RulesPath + "/" + r.Args.Name + "/" +
-		strings.ToLower(r.Args.Direction) + "/allow_all"
+	addr.Path = fmt.Sprintf("/api/rules/%s/%s/allow_all", r.Args.Name,
+		strings.ToLower(r.Args.Direction))
 
 	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {

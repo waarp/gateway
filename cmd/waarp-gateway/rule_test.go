@@ -208,7 +208,7 @@ func TestAddRule(t *testing.T) {
 
 			Convey("Given valid parameters", func() {
 				args := []string{"-n", "new_rule", "-c", "new_rule comment",
-					"-d", "RECEIVE", "--path=/new/rule/path", "--out_path=/out/path",
+					"-d", "receive", "--path=/new/rule/path", "--out_path=/out/path",
 					"--in_path=/in/path", "--work_path=/work/path",
 					`--pre={"type":"COPY","args":{"path":"/path/to/copy"}}`,
 					`--pre={"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
@@ -232,7 +232,7 @@ func TestAddRule(t *testing.T) {
 						rule := &model.Rule{
 							Name:     command.Name,
 							Comment:  *command.Comment,
-							IsSend:   command.Direction == "SEND",
+							IsSend:   command.Direction == "send",
 							Path:     command.Path,
 							InPath:   *command.InPath,
 							OutPath:  *command.OutPath,
@@ -298,7 +298,7 @@ func TestAddRule(t *testing.T) {
 
 			Convey("Given that the rule's name already exist", func() {
 				args := []string{"-n", existing.Name, "-c", "new_rule comment",
-					"-d", "RECEIVE", "-p", "new/rule/path"}
+					"-d", "receive", "-p", "new/rule/path"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)

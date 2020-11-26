@@ -21,11 +21,12 @@ attributs omis resteront inchangés.
 
    L'adresse du partenaire (au format [adresse:port]).
 
-.. option:: -c <CONF>, --config=<CONF>
+.. option:: -c <KEY:VAL>, --config=<KEY:VAL>
 
-   La configuration protocolaire du partenaire en format JSON. Contient les
-   informations nécessaires pour se connecter au partenaire. Le contenu de la
-   configuration varie en fonction du protocole utilisé.
+   La configuration protocolaire du partenaire. Répéter pour chaque paramètre de la
+   configuration. Les options de la configuration varient en fonction du protocole
+   utilisé (voir :ref:`configuration protocolaire <reference-proto-config>` pour
+   plus de détails).
 
 |
 

@@ -8,6 +8,40 @@ Historique des versions
   règles d'unicité sur le chemin s'applique toujours).
 * :bug:`219` Il est désormais possible de créer 2 règles avec des chemins
   (``path``) identiques si leur directions sont différentes.
+* :bug:`221` Ajout de l'identifiant de transfert distant aux interfaces REST &
+  terminal. Lorsqu'un agent de transfert se connecte à la *gateway* pour faire
+  un transfert, cet identifiant correspond au numéro que cet agent a donné au
+  transfert, et qui est donc différent de l'identifiant que la *gateway* a donné
+  à ce transfert.
+* :bug:`216` Ajout de l'adresse manquante lors de l'export d'agents locaux/distants.
+* :bug:`218` Correction d'une erreur où le client de transfert envoyait le premier
+  packet de données en boucle lorsque la taille du fichier dépassait la taille
+  d'un packet.
+* :bug:`217` Correction d'une erreur causant un *panic* du serveur dans certaines
+  circonstances à la fin d'un transfert.
+* :bug:`215` Correction d'une erreur de typage des identifiants de transfert R66.
+* :bug:`176` Les arguments de direction de transfert du client terminal ont été
+  rendu consistants entre les différentes commandes. Le sens d'un transfert
+  s'exprime désormais toujours avec les mots ``send`` et ``receive`` (en minuscules)
+  pour toutes les commandes.
+* :feature:`131` Ajout d'un système de gestion des droits pour les utilisateurs
+  de l'interface d'administration. Les utilisateurs de la *gateway* ont désormais
+  des droits attachés permettant de restreindre les actions qu'ils sont autorisés
+  à effectuer via l'interface REST. Cette gestion des droits peut se faire via
+  la commande de gestion des utilisateurs du client terminal, ou via l'interface
+  REST de gestion des utilisateurs directement.
+* :bug:`210` Les mots de passe des serveurs R66 locaux renseignés dans la
+  configuration protocolaire sont désormais cryptés avant d'être stockés en base,
+  au lieu d'être stockés en clair. Le stockage (sous forme de hash) des mots de
+  passe des serveurs R66 distants reste inchangé.
+* :feature:`208` L'option du CLI pour entrer la configuration protocolaire d'un
+  serveur ou d'un partenaire (``-c``) a été changée. La configuration doit
+  désormais être entrée sous la forme ``-c clé:valeur``, répétée autant de fois
+  qu'il y a de valeurs dans la configuration.
+* :bug:`208` Le mot de passe des serveurs R66 renseigné dans la configuration
+  protocolaire ne doit plus être encodé en base64 pour être accepté par l'API REST.
+* :bug:`208` Les mots de passe des utilisateurs & des comptes locaux/distants
+  ne doivent plus être encodés en base64 pour être acceptés par l'API REST.
 * :bug:`207` Correction d'une erreur où les mots de passe des partenaires R66
   distants n'étaient pas correctement hashés.
 * :bug:`205` Correction d'une erreur empêchant le démarrage des serveurs R66 locaux.

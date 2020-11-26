@@ -12,7 +12,7 @@ import (
 )
 
 func getLocAg(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
-	agentName, ok := mux.Vars(r)["local_agent"]
+	agentName, ok := mux.Vars(r)["server"]
 	if !ok {
 		return nil, notFound("missing server name")
 	}
@@ -26,7 +26,7 @@ func getLocAg(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 	return agent, nil
 }
 
-func getLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func getServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			result, err := getLocAg(r, db)
@@ -47,7 +47,7 @@ func getLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func listLocalAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "name ASC",
 		"proto+":  "protocol ASC",
@@ -91,7 +91,7 @@ func listLocalAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func createLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			serv := &api.InServer{}
@@ -114,7 +114,7 @@ func createLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			old, err := getLocAg(r, db)
@@ -141,7 +141,7 @@ func updateLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func replaceLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			old, err := getLocAg(r, db)
@@ -168,7 +168,7 @@ func replaceLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func deleteLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func deleteServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getLocAg(r, db)
@@ -188,7 +188,7 @@ func deleteLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func authorizeLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func authorizeServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getLocAg(r, db)
@@ -204,7 +204,7 @@ func authorizeLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func revokeLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func revokeServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getLocAg(r, db)
@@ -220,7 +220,7 @@ func revokeLocalAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func getLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func getServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getLocAg(r, db)
@@ -236,7 +236,7 @@ func getLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func createLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getLocAg(r, db)
@@ -252,7 +252,7 @@ func createLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func listLocAgentCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func listServerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getLocAg(r, db)
@@ -268,7 +268,7 @@ func listLocAgentCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func deleteLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func deleteServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getLocAg(r, db)
@@ -284,7 +284,7 @@ func deleteLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func updateLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func updateServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getLocAg(r, db)
@@ -300,7 +300,7 @@ func updateLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func replaceLocAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func replaceServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getLocAg(r, db)
