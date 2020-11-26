@@ -22,6 +22,7 @@ type InTransfer struct {
 // the REST interface.
 type OutTransfer struct {
 	ID           uint64                  `json:"id"`
+	RemoteID     string                  `json:"remoteID,omitempty"`
 	Rule         string                  `json:"rule"`
 	IsServer     bool                    `json:"isServer"`
 	Requested    string                  `json:"requested"`

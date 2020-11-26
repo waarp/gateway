@@ -24,8 +24,11 @@ func transferInfoString(t *api.OutTransfer) string {
 		role = "server"
 	}
 
-	rv := "● Transfer " + fmt.Sprint(t.ID) + " (as " + role + ") [" + string(t.Status) + "]\n" +
-		"    Rule:             " + t.Rule + "\n" +
+	rv := "● Transfer " + fmt.Sprint(t.ID) + " (as " + role + ") [" + string(t.Status) + "]\n"
+	if t.RemoteID != "" {
+		rv += "    Remote ID:        " + t.RemoteID + "\n"
+	}
+	rv += "    Rule:             " + t.Rule + "\n" +
 		"    Requester:        " + t.Requester + "\n" +
 		"    Requested:        " + t.Requested + "\n" +
 		"    True filepath:    " + t.TrueFilepath + "\n" +
@@ -51,6 +54,7 @@ func TestDisplayTransfer(t *testing.T) {
 
 		trans := &api.OutTransfer{
 			ID:           1,
+			RemoteID:     "1234",
 			Rule:         "rule",
 			Requester:    "requester",
 			Requested:    "requested",

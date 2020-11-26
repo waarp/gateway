@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`221` Ajout de l'identifiant de transfert distant aux interfaces REST &
+  terminal. Lorsqu'un agent de transfert se connecte à la *gateway* pour faire
+  un transfert, cet identifiant correspond au numéro que cet agent a donné au
+  transfert, et qui est donc différent de l'identifiant que la *gateway* a donné
+  à ce transfert.
 * :bug:`216` Ajout de l'adresse manquante lors de l'export d'agents locaux/distants.
 * :bug:`218` Correction d'une erreur où le client de transfert envoyait le premier
   packet de données en boucle lorsque la taille du fichier dépassait la taille
