@@ -46,10 +46,12 @@ Les attributs omis resteront inchangés.
    Le dossier temporaire du serveur. Peut être un chemin relatif ou absolu. Si
    le chemin est relatif, il sera relatif à la racine du serveur.
 
+.. option:: -c <KEY:VAL>, --config=<KEY:VAL>
 
-.. option:: -c <CONF>, --config=<CONF>
-
-   La configuration protocolaire du serveur.
+   La configuration protocolaire du serveur. Répéter pour chaque paramètre de la
+   configuration. Les options de la configuration varient en fonction du protocole
+   utilisé (voir :ref:`configuration protocolaire <reference-proto-config>` pour
+   plus de détails).
 
 |
 

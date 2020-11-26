@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
 )
 
@@ -17,7 +19,7 @@ type R66ProtoConfig struct {
 	// The login used by the remote agent for server authentication.
 	ServerLogin string `json:"serverLogin,omitempty"`
 	// The server's password for server authentication.
-	ServerPassword []byte `json:"serverPassword,omitempty"`
+	ServerPassword string `json:"serverPassword,omitempty"`
 	// Specifies whether the partner uses TLS or not. Useless for servers.
 	IsTLS bool `json:"isTLS,omitempty"`
 }
@@ -30,7 +32,8 @@ func (c *R66ProtoConfig) ValidPartner() error {
 	if len(c.ServerPassword) == 0 {
 		return fmt.Errorf("missing partner password")
 	}
-	c.ServerPassword = r66.CryptPass(c.ServerPassword)
+	pwd := r66.CryptPass([]byte(c.ServerPassword))
+	c.ServerPassword = base64.StdEncoding.EncodeToString(pwd)
 	return nil
 }
 
@@ -39,5 +42,10 @@ func (c *R66ProtoConfig) ValidServer() (err error) {
 	if len(c.ServerPassword) == 0 {
 		return fmt.Errorf("missing server password")
 	}
+	pwd, err := utils.CryptPassword([]byte(c.ServerPassword))
+	if err != nil {
+		return fmt.Errorf("failed to crypt server password: %s", err)
+	}
+	c.ServerPassword = base64.StdEncoding.EncodeToString(pwd)
 	return nil
 }

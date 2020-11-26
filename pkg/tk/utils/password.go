@@ -1,4 +1,4 @@
-package model
+package utils
 
 import (
 	"crypto/rand"
@@ -10,13 +10,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// encryptPassword takes a slice of bytes representing a password and returns
+// CryptPassword takes a slice of bytes representing a password and returns
 // it encrypted using the AES algorithm in Galois Counter Mode with the
 // passphrase given in the gateway database configuration.
 //
 // If the password is already encrypted, it is returned unchanged.
 // If the password cannot be encrypted, an error is returned.
-func encryptPassword(password []byte) ([]byte, error) {
+func CryptPassword(password []byte) ([]byte, error) {
 
 	// If password is already encrypted, don't encrypt it again.
 	if strings.HasPrefix(string(password), "$AES$") {
