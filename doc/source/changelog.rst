@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :bug:`216` Ajout de l'adresse manquante lors de l'export d'agents locaux/distants.
 * :bug:`218` Correction d'une erreur où le client de transfert envoyait le premier
   packet de données en boucle lorsque la taille du fichier dépassait la taille
   d'un packet.
