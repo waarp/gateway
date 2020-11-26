@@ -5,6 +5,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/go-xorm/builder"
 )
 
@@ -57,7 +58,7 @@ func exportRemoteAccounts(logger *log.Logger, db *database.Session,
 		if err != nil {
 			return nil, err
 		}
-		pwd, err := model.DecryptPassword(src.Password)
+		pwd, err := utils.DecryptPassword(src.Password)
 		if err != nil {
 			return nil, err
 		}

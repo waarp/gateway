@@ -25,7 +25,7 @@ func TestCreateRule(t *testing.T) {
 
 	Convey("Given the rule creation handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := createRule(logger, db)
+		handler := addRule(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 rule", func() {

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path"
 	"strconv"
 	"testing"
 	"time"
@@ -20,7 +21,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const historyURI = "http://localhost:8080" + APIPath + HistoryPath + "/"
+const historyURI = "http://localhost:8080/api/history"
 
 func TestGetHistory(t *testing.T) {
 	logger := log.NewLogger("rest_history_get_test")
@@ -52,7 +53,8 @@ func TestGetHistory(t *testing.T) {
 			h.Stop = h.Stop.Local()
 
 			Convey("Given a request with the valid transfer history ID parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, historyURI+id, nil)
+				uri := path.Join(historyURI, id)
+				req, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
 				req = mux.SetURLVars(req, map[string]string{"history": id})
 
@@ -82,7 +84,8 @@ func TestGetHistory(t *testing.T) {
 			})
 
 			Convey("Given a request with a non-existing transfer history ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, historyURI+"1000", nil)
+				uri := path.Join(historyURI, "1000")
+				r, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"history": "1000"})
 
@@ -449,8 +452,8 @@ func TestRestartTransfer(t *testing.T) {
 				date := time.Now().Add(time.Hour + time.Minute).Truncate(time.Second)
 				dateStr := url.QueryEscape(date.Format(time.RFC3339))
 
-				req, err := http.NewRequest(http.MethodPut, historyURI+id+
-					"/restart?date="+dateStr, nil)
+				uri := fmt.Sprintf("%s/%s/restart?date=%s", historyURI, id, dateStr)
+				req, err := http.NewRequest(http.MethodPut, uri, nil)
 				So(err, ShouldBeNil)
 				req = mux.SetURLVars(req, map[string]string{"history": id})
 
@@ -499,7 +502,8 @@ func TestRestartTransfer(t *testing.T) {
 			})
 
 			Convey("Given a request with a non-existing transfer history ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, historyURI+"1000", nil)
+				uri := path.Join(historyURI, "1000")
+				r, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"history": "1000"})
 

@@ -32,16 +32,16 @@ type LocalAgent struct {
 	Protocol string `xorm:"notnull 'protocol'"`
 
 	// The root directory of the agent.
-	Root string `xorm:"notnull 'root''"`
+	Root string `xorm:"notnull 'root'"`
 
 	// The agent's directory for received files.
-	InDir string `xorm:"notnull 'in_dir''"`
+	InDir string `xorm:"notnull 'in_dir'"`
 
 	// The agent's directory for files to be sent.
-	OutDir string `xorm:"notnull 'out_dir''"`
+	OutDir string `xorm:"notnull 'out_dir'"`
 
 	// The working directory of the agent.
-	WorkDir string `xorm:"notnull 'work_dir''"`
+	WorkDir string `xorm:"notnull 'work_dir'"`
 
 	// The agent's configuration in raw JSON format.
 	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`

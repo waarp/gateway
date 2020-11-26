@@ -20,8 +20,20 @@ Lister les utilisateurs
    :statuscode 401: Authentification d'utilisateur invalide
 
    :resjson array users: La liste des utilisateur demandés
-   :resjsonarr number id: L'identifiant unique de l'utilisateur
    :resjsonarr string username: Le nom de l'utilisateur
+   :resjsonerr object perms: Les droits de l'utilisateur. Chaque attribut correspond
+      à un élément sur lequel l' utilisateurs peut agir, et leur valeur indique
+      les actions autorisées. Les différentes actions possibles sont lecture (*r*),
+      écriture (*w*) et suppression (*d*). Ces droits sont renseignés avec une
+      syntaxe similaire à `chmod <https://fr.wikipedia.org/wiki/Chmod#Modes>`_ où
+      l'autorisation d'exécution a été remplacée par la suppression.
+
+      * **transfers** (*string*) - Les droits sur les transferts. (*Note*:
+         les transferts ne peuvent pas être supprimés).
+      * **servers** (*string*) - Les droits sur les serveurs locaux.
+      * **partners** (*string*) - Les droits sur les partenaires distants.
+      * **rules** (*string*) - Les droits sur les règles de transfert.
+      * **users** (*string*) - Les droits sur les autres utilisateurs.
 
 
    |
@@ -44,7 +56,21 @@ Lister les utilisateurs
          {
            "users": [{
              "username": "tutu",
+             "perms": {
+               "transfers":"r--",
+               "servers":"rw-",
+               "partners":"rw-",
+               "rules":"---",
+               "users":"---"
+             }
            },{
              "username": "toto",
+             "perms": {
+               "transfers":"rw-",
+               "servers":"r--",
+               "partners":"r--",
+               "rules":"rwd",
+               "users":"---"
+             }
            }]
          }

@@ -2,6 +2,7 @@ package model
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
 	"github.com/go-xorm/builder"
 )
@@ -83,7 +84,7 @@ func (l *LocalAccount) Validate(db database.Accessor) (err error) {
 	if agent.Protocol == "r66" {
 		l.Password = r66.CryptPass(l.Password)
 	}
-	l.Password, err = HashPassword(l.Password)
+	l.Password, err = utils.HashPassword(l.Password)
 	return err
 }
 

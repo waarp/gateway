@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -132,7 +133,7 @@ func TestLocalAccountValidate(t *testing.T) {
 						So(newAccount.Validate(db), ShouldBeNil)
 
 						Convey("Then the account's password should be hashed", func() {
-							hash, err := HashPassword(newAccount.Password)
+							hash, err := utils.HashPassword(newAccount.Password)
 							So(err, ShouldBeNil)
 							So(string(newAccount.Password), ShouldEqual, string(hash))
 						})

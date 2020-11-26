@@ -5,12 +5,34 @@ Historique des versions
 
 * :bug:`211` Correction d'une erreur causant le changement de la direction d'une
   règle lors d'un *update* via l'interface REST.
+* :bug:`176` Les arguments de direction de transfert du client terminal ont été
+  rendu consistants entre les différentes commandes. Le sens d'un transfert
+  s'exprime désormais toujours avec les mots ``send`` et ``receive`` (en minuscules)
+  pour toutes les commandes.
+* :feature:`131` Ajout d'un système de gestion des droits pour les utilisateurs
+  de l'interface d'administration. Les utilisateurs de la *gateway* ont désormais
+  des droits attachés permettant de restreindre les actions qu'ils sont autorisés
+  à effectuer via l'interface REST. Cette gestion des droits peut se faire via
+  la commande de gestion des utilisateurs du client terminal, ou via l'interface
+  REST de gestion des utilisateurs directement.
+* :bug:`210` Les mots de passe des serveurs R66 locaux renseignés dans la
+  configuration protocolaire sont désormais cryptés avant d'être stockés en base,
+  au lieu d'être stockés en clair. Le stockage (sous forme de hash) des mots de
+  passe des serveurs R66 distants reste inchangé.
+* :feature:`208` L'option du CLI pour entrer la configuration protocolaire d'un
+  serveur ou d'un partenaire (``-c``) a été changée. La configuration doit
+  désormais être entrée sous la forme ``-c clé:valeur``, répétée autant de fois
+  qu'il y a de valeurs dans la configuration.
+* :bug:`208` Le mot de passe des serveurs R66 renseigné dans la configuration
+  protocolaire ne doit plus être encodé en base64 pour être accepté par l'API REST.
+* :bug:`208` Les mots de passe des utilisateurs & des comptes locaux/distants
+  ne doivent plus être encodés en base64 pour être acceptés par l'API REST.
 * :bug:`207` Correction d'une erreur où les mots de passe des partenaires R66
   distants n'étaient pas correctement hashés.
 * :bug:`205` Correction d'une erreur empêchant le démarrage des serveurs R66 locaux.
 * :bug:`206` Correction d'une erreur causant un double hachage du mot de passe
   du client R66.
-* :bug:`201` Correction du typage de la colonne `step` des tables `transfers` &
+* :bug:`201` Correction du typage de la colonne `step` des tables `transfers` et
   `transfer_history`. La colonne est désormais de type *VARCHAR* (au lieu de *INT*).
 * :bug:`200` Les écritures de la progression du transfert de données se fait
   désormais à intervalles réguliers (1 fois par seconde) au lieu de que ce soit

@@ -106,7 +106,7 @@ func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {
 	return rule, nil
 }
 
-func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			jsonRule := &api.InRule{}

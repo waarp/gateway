@@ -39,14 +39,14 @@ func TestAuthorizeRule(t *testing.T) {
 				r = mux.SetURLVars(r, vals)
 				handler.ServeHTTP(w, r)
 
-				Convey("Then it should reply 'OK'", func() {
-					So(w.Code, ShouldEqual, http.StatusOK)
-				})
-
 				Convey("Then the response body should state that access "+
 					"to the rule is now restricted", func() {
 					So(w.Body.String(), ShouldEqual, "Usage of the "+
 						ruleDirection(rule)+" rule '"+rule.Name+"' is now restricted.")
+				})
+
+				Convey("Then it should reply 'OK'", func() {
+					So(w.Code, ShouldEqual, http.StatusOK)
 				})
 
 				Convey("Then the new access should be inserted "+
@@ -74,8 +74,8 @@ func TestAuthorizeRule(t *testing.T) {
 				ObjectType: server.TableName(),
 			}
 
-			handler := authorizeLocalAgent(logger, db)
-			vals["local_agent"] = server.Name
+			handler := authorizeServer(logger, db)
+			vals["server"] = server.Name
 
 			test(handler, exp)
 
@@ -115,8 +115,8 @@ func TestAuthorizeRule(t *testing.T) {
 				ObjectType: partner.TableName(),
 			}
 
-			handler := authorizeRemoteAgent(logger, db)
-			vals["remote_agent"] = partner.Name
+			handler := authorizePartner(logger, db)
+			vals["partner"] = partner.Name
 
 			test(handler, exp)
 
@@ -169,14 +169,14 @@ func TestRevokeRule(t *testing.T) {
 				r = mux.SetURLVars(r, vals)
 				handler.ServeHTTP(w, r)
 
-				Convey("Then it should reply 'OK'", func() {
-					So(w.Code, ShouldEqual, http.StatusOK)
-				})
-
 				Convey("Then the response body should state that access to the rule "+
 					"is now unrestricted", func() {
 					So(w.Body.String(), ShouldEqual, "Usage of the "+ruleDirection(rule)+
 						" rule '"+rule.Name+"' is now unrestricted.")
+				})
+
+				Convey("Then it should reply 'OK'", func() {
+					So(w.Code, ShouldEqual, http.StatusOK)
 				})
 
 				Convey("Then the access should have been removed from the database", func() {
@@ -195,7 +195,7 @@ func TestRevokeRule(t *testing.T) {
 				Address:     "localhost:1",
 			}
 			So(db.Create(server), ShouldBeNil)
-			vals["local_agent"] = server.Name
+			vals["server"] = server.Name
 
 			Convey("Given a server access", func() {
 				access := &model.RuleAccess{
@@ -205,7 +205,7 @@ func TestRevokeRule(t *testing.T) {
 				}
 				So(db.Create(access), ShouldBeNil)
 
-				handler := revokeLocalAgent(logger, db)
+				handler := revokeServer(logger, db)
 				test(handler)
 			})
 
@@ -239,7 +239,7 @@ func TestRevokeRule(t *testing.T) {
 				Address:     "localhost:1",
 			}
 			So(db.Create(partner), ShouldBeNil)
-			vals["remote_agent"] = partner.Name
+			vals["partner"] = partner.Name
 
 			Convey("Given a partner access", func() {
 				access := &model.RuleAccess{
@@ -249,7 +249,7 @@ func TestRevokeRule(t *testing.T) {
 				}
 				So(db.Create(access), ShouldBeNil)
 
-				handler := revokeRemoteAgent(logger, db)
+				handler := revokePartner(logger, db)
 
 				test(handler)
 			})

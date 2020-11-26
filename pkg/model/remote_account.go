@@ -2,6 +2,7 @@ package model
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/go-xorm/builder"
 )
 
@@ -80,7 +81,7 @@ func (r *RemoteAccount) Validate(db database.Accessor) (err error) {
 			"already exist", r.Login)
 	}
 
-	r.Password, err = encryptPassword(r.Password)
+	r.Password, err = utils.CryptPassword(r.Password)
 	return err
 }
 
