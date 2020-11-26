@@ -1,12 +1,11 @@
 package rest
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
+	"strings"
 	"testing"
 
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
@@ -52,7 +51,7 @@ func TestGetLocalAccount(t *testing.T) {
 			Convey("Given a request with a valid account login parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+				r = mux.SetURLVars(r, map[string]string{"server": parent.Name,
 					"local_account": expected.Login})
 
 				Convey("When sending the request to the handler", func() {
@@ -69,7 +68,7 @@ func TestGetLocalAccount(t *testing.T) {
 						So(contentType, ShouldEqual, "application/json")
 					})
 
-					Convey("Then the body should contain the requested partner "+
+					Convey("Then the body should contain the requested server "+
 						"in JSON format", func() {
 
 						exp, err := json.Marshal(FromLocalAccount(expected, &AuthorizedRules{}))
@@ -83,7 +82,7 @@ func TestGetLocalAccount(t *testing.T) {
 			Convey("Given a request with a non-existing account login parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+				r = mux.SetURLVars(r, map[string]string{"server": parent.Name,
 					"local_account": "toto"})
 
 				Convey("When sending the request to the handler", func() {
@@ -98,7 +97,7 @@ func TestGetLocalAccount(t *testing.T) {
 			Convey("Given a request with a non-existing agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": "toto",
+				r = mux.SetURLVars(r, map[string]string{"server": "toto",
 					"local_account": expected.Login})
 
 				Convey("When sending the request to the handler", func() {
@@ -193,7 +192,7 @@ func TestListLocalAccounts(t *testing.T) {
 			Convey("Given a request with no parameters", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": p1.Name})
+				r = mux.SetURLVars(r, map[string]string{"server": p1.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -207,7 +206,7 @@ func TestListLocalAccounts(t *testing.T) {
 			Convey("Given a request with a different agent", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": p2.Name})
+				r = mux.SetURLVars(r, map[string]string{"server": p2.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -220,7 +219,7 @@ func TestListLocalAccounts(t *testing.T) {
 			Convey("Given a request with an invalid agent", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": "toto"})
+				r = mux.SetURLVars(r, map[string]string{"server": "toto"})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -234,7 +233,7 @@ func TestListLocalAccounts(t *testing.T) {
 			Convey("Given a request with a limit parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "?limit=1", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": p1.Name})
+				r = mux.SetURLVars(r, map[string]string{"server": p1.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -247,7 +246,7 @@ func TestListLocalAccounts(t *testing.T) {
 			Convey("Given a request with a offset parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "?offset=1", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": p1.Name})
+				r = mux.SetURLVars(r, map[string]string{"server": p1.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -260,7 +259,7 @@ func TestListLocalAccounts(t *testing.T) {
 			Convey("Given a request with a sort parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "?sort=login-", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": p1.Name})
+				r = mux.SetURLVars(r, map[string]string{"server": p1.Name})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -279,7 +278,7 @@ func TestCreateLocalAccount(t *testing.T) {
 
 	Convey("Given the account creation handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := createLocalAccount(logger, db)
+		handler := addLocalAccount(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 agent", func() {
@@ -292,18 +291,16 @@ func TestCreateLocalAccount(t *testing.T) {
 			So(db.Create(parent), ShouldBeNil)
 
 			Convey("Given a new account to insert in the database", func() {
-				newAccount := &InAccount{
-					Login:    strPtr("new_account"),
-					Password: []byte("new_account"),
-				}
-				body, err := json.Marshal(newAccount)
-				So(err, ShouldBeNil)
+				body := strings.NewReader(`{
+					"login": "new_account",
+					"password": "new_password"
+				}`)
 
 				Convey("Given a valid agent name parameter", func() {
 					r, err := http.NewRequest(http.MethodPost, localAccountsURI(
-						parent.Name, ""), bytes.NewReader(body))
+						parent.Name, ""), body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name})
+					r = mux.SetURLVars(r, map[string]string{"server": parent.Name})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -317,7 +314,7 @@ func TestCreateLocalAccount(t *testing.T) {
 
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, localAccountsURI(parent.Name,
-								str(newAccount.Login)))
+								"new_account"))
 						})
 
 						Convey("Then the response body should be empty", func() {
@@ -332,18 +329,22 @@ func TestCreateLocalAccount(t *testing.T) {
 							So(len(accs), ShouldEqual, 1)
 
 							So(bcrypt.CompareHashAndPassword(accs[0].Password,
-								newAccount.Password), ShouldBeNil)
-							accs[0].Password = newAccount.Password
-							So(accs[0], ShouldResemble, *accToLocal(newAccount, parent, 1))
+								[]byte("new_password")), ShouldBeNil)
+							So(accs[0], ShouldResemble, model.LocalAccount{
+								ID:           1,
+								LocalAgentID: parent.ID,
+								Login:        "new_account",
+								Password:     accs[0].Password,
+							})
 						})
 					})
 				})
 
 				Convey("Given an invalid agent name parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, localAccountsURI(
-						"toto", ""), bytes.NewReader(body))
+						"toto", ""), body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"local_agent": "toto"})
+					r = mux.SetURLVars(r, map[string]string{"server": "toto"})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -396,7 +397,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 			Convey("Given a request with the valid account login parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+				r = mux.SetURLVars(r, map[string]string{"server": parent.Name,
 					"local_account": existing.Login})
 
 				Convey("When sending the request to the handler", func() {
@@ -422,7 +423,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 			Convey("Given a request with a non-existing account login parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+				r = mux.SetURLVars(r, map[string]string{"server": parent.Name,
 					"local_account": "toto"})
 
 				Convey("When sending the request to the handler", func() {
@@ -443,7 +444,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 			Convey("Given a request with a non-existing agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"local_agent": "toto",
+				r = mux.SetURLVars(r, map[string]string{"server": "toto",
 					"local_account": existing.Login})
 
 				Convey("When sending the request to the handler", func() {
@@ -488,17 +489,15 @@ func TestUpdateLocalAccount(t *testing.T) {
 			So(db.Create(old), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
-				update := InAccount{
-					Password: []byte("update"),
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := strings.NewReader(`{
+					"password": "upd_password"
+				}`)
 
 				Convey("Given a valid account login", func() {
-					r, err := http.NewRequest(http.MethodPatch, localAgentsURI+
-						parent.Name+"/accounts/"+old.Login, bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPatch, testServersURI+
+						parent.Name+"/accounts/"+old.Login, body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+					r = mux.SetURLVars(r, map[string]string{"server": parent.Name,
 						"local_account": old.Login})
 
 					handler.ServeHTTP(w, r)
@@ -511,9 +510,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 						"the URI of the updated account", func() {
 
 						location := w.Header().Get("Location")
-						u, _ := url.QueryUnescape(localAccountsURI(parent.Name,
-							old.Login))
-						So(location, ShouldEqual, u)
+						So(location, ShouldEqual, localAccountsURI(parent.Name, old.Login))
 					})
 
 					Convey("Then the response body should be empty", func() {
@@ -526,23 +523,21 @@ func TestUpdateLocalAccount(t *testing.T) {
 						So(len(res), ShouldEqual, 1)
 
 						So(bcrypt.CompareHashAndPassword(res[0].Password,
-							update.Password), ShouldBeNil)
-
-						exp := model.LocalAccount{
+							[]byte("upd_password")), ShouldBeNil)
+						So(res[0], ShouldResemble, model.LocalAccount{
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
 							Login:        "old",
 							Password:     res[0].Password,
-						}
-						So(res[0], ShouldResemble, exp)
+						})
 					})
 				})
 
 				Convey("Given an invalid account login", func() {
 					r, err := http.NewRequest(http.MethodPatch, localAccountsURI(
-						parent.Name, "toto"), bytes.NewReader(body))
+						parent.Name, "toto"), body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+					r = mux.SetURLVars(r, map[string]string{"server": parent.Name,
 						"local_account": "toto"})
 
 					handler.ServeHTTP(w, r)
@@ -563,11 +558,11 @@ func TestUpdateLocalAccount(t *testing.T) {
 				})
 
 				Convey("Given an invalid agent name", func() {
-					r, err := http.NewRequest(http.MethodPatch, localAgentsURI+
-						"toto/accounts/"+str(update.Login), bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPatch, localAccountsURI(
+						"toto", old.Login), body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"local_agent": "toto",
-						"local_account": str(update.Login)})
+					r = mux.SetURLVars(r, map[string]string{"server": "toto",
+						"local_account": old.Login})
 
 					handler.ServeHTTP(w, r)
 
@@ -614,18 +609,16 @@ func TestReplaceLocalAccount(t *testing.T) {
 			So(db.Create(old), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
-				update := InAccount{
-					Login:    strPtr("update"),
-					Password: []byte("update"),
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := strings.NewReader(`{
+					"login": "upd_login",
+					"password": "upd_password"
+				}`)
 
 				Convey("Given a valid account login", func() {
 					r, err := http.NewRequest(http.MethodPut, localAccountsURI(
-						parent.Name, old.Login), bytes.NewReader(body))
+						parent.Name, old.Login), body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+					r = mux.SetURLVars(r, map[string]string{"server": parent.Name,
 						"local_account": old.Login})
 
 					handler.ServeHTTP(w, r)
@@ -638,7 +631,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 						"the URI of the updated account", func() {
 
 						location := w.Header().Get("Location")
-						So(location, ShouldEqual, localAccountsURI("parent", "update"))
+						So(location, ShouldEqual, localAccountsURI("parent", "upd_login"))
 					})
 
 					Convey("Then the response body should be empty", func() {
@@ -651,23 +644,21 @@ func TestReplaceLocalAccount(t *testing.T) {
 						So(len(res), ShouldEqual, 1)
 
 						So(bcrypt.CompareHashAndPassword(res[0].Password,
-							update.Password), ShouldBeNil)
-
-						exp := model.LocalAccount{
+							[]byte("upd_password")), ShouldBeNil)
+						So(res[0], ShouldResemble, model.LocalAccount{
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
-							Login:        "update",
+							Login:        "upd_login",
 							Password:     res[0].Password,
-						}
-						So(res[0], ShouldResemble, exp)
+						})
 					})
 				})
 
 				Convey("Given an invalid account login", func() {
 					r, err := http.NewRequest(http.MethodPut, localAccountsURI(
-						parent.Name, "toto"), bytes.NewReader(body))
+						parent.Name, "toto"), body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"local_agent": parent.Name,
+					r = mux.SetURLVars(r, map[string]string{"server": parent.Name,
 						"local_account": "toto"})
 
 					handler.ServeHTTP(w, r)
@@ -688,11 +679,11 @@ func TestReplaceLocalAccount(t *testing.T) {
 				})
 
 				Convey("Given an invalid agent name", func() {
-					r, err := http.NewRequest(http.MethodPut, localAgentsURI+
-						"toto/accounts/"+str(update.Login), bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPut, localAccountsURI(
+						"toto", old.Login), body)
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"local_agent": "toto",
-						"local_account": str(update.Login)})
+					r = mux.SetURLVars(r, map[string]string{"server": "toto",
+						"local_account": old.Login})
 
 					handler.ServeHTTP(w, r)
 

@@ -15,6 +15,7 @@ import (
 )
 
 var str = utils.String
+var strPtr = utils.StringPtr
 
 type errBadRequest string
 

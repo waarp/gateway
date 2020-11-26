@@ -8,10 +8,10 @@ Afficher une règle
 
 Affiche les informations de la règle donnée en paramètre de commande.
 
-``DIRECTION`` peut être ``SEND`` ou ``RECEIVE``.
+``DIRECTION`` peut être ``send`` ou ``receive``.
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 rule get règle_1 SEND
+   waarp-gateway http://user:password@localhost:8080 rule get "règle_1" "send"

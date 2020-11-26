@@ -4,14 +4,41 @@ package model
 
 import (
 	"fmt"
+	"math"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/go-xorm/builder"
 )
 
 func init() {
 	database.Tables = append(database.Tables, &User{})
 }
+
+// PermsMask is a bitmask specifying which actions the user is allowed to
+// perform on the database.
+type PermsMask uint32
+
+// Masks for user permissions.
+const (
+	PermTransfersRead PermsMask = 1 << (32 - 1 - iota)
+	PermTransfersWrite
+	permTransferDelete // placeholder, transfers CANNOT be deleted by users
+	PermServersRead
+	PermServersWrite
+	PermServersDelete
+	PermPartnersRead
+	PermPartnersWrite
+	PermPartnersDelete
+	PermRulesRead
+	PermRulesWrite
+	PermRulesDelete
+	PermUsersRead
+	PermUsersWrite
+	PermUsersDelete
+
+	PermAll PermsMask = math.MaxUint32 &^ permTransferDelete
+)
 
 // User represents a human account on the gateway. These accounts allow users
 // to manage the gateway via its administration interface.
@@ -26,8 +53,11 @@ type User struct {
 	// The user's login
 	Username string `xorm:"unique(name) notnull 'username'"`
 
-	// The account's password
+	// The user's password
 	Password []byte `xorm:"notnull 'password'"`
+
+	// The users permissions for reading and writing the database.
+	Permissions PermsMask `xorm:"notnull 'permissions'"`
 }
 
 // TableName returns the users table name.
@@ -43,9 +73,10 @@ func (u *User) GetID() uint64 {
 // Init inserts the default user in the database when the table is created.
 func (u *User) Init(acc database.Accessor) error {
 	user := &User{
-		Username: "admin",
-		Owner:    database.Owner,
-		Password: []byte("admin_password"),
+		Username:    "admin",
+		Owner:       database.Owner,
+		Password:    []byte("admin_password"),
+		Permissions: PermAll,
 	}
 	return acc.Create(user)
 }
@@ -86,6 +117,6 @@ func (u *User) Validate(db database.Accessor) error {
 	}
 
 	var err error
-	u.Password, err = HashPassword(u.Password)
+	u.Password, err = utils.HashPassword(u.Password)
 	return err
 }

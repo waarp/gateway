@@ -37,7 +37,7 @@ type client struct {
 
 // NewClient creates and returns a new r66 client using the given transfer info.
 func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipeline.Client, error) {
-	pswd, err := model.DecryptPassword(info.Account.Password)
+	pswd, err := utils.DecryptPassword(info.Account.Password)
 	if err != nil {
 		return nil, err
 	}
