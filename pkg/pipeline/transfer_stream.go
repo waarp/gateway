@@ -168,14 +168,25 @@ func (t *TransferStream) setTrueFilepath() *model.PipelineError {
 		})
 		t.Transfer.TrueFilepath = fullPath
 	} else {
-		fullPath := utils.GetPath(t.Transfer.DestFile, utils.Elems{
-			{t.Rule.WorkPath, true},
-			{t.Paths.ServerWork, true},
-			{t.Paths.ServerRoot, false},
-			{t.Paths.WorkDirectory, true},
-			{t.Paths.GatewayHome, false},
-		})
-		t.Transfer.TrueFilepath = fullPath + ".tmp"
+		if t.Transfer.Step > types.StepData {
+			fullPath := utils.GetPath(t.Transfer.DestFile, utils.Elems{
+				{t.Rule.InPath, true},
+				{t.Paths.ServerIn, true},
+				{t.Paths.ServerRoot, false},
+				{t.Paths.InDirectory, true},
+				{t.Paths.GatewayHome, false},
+			})
+			t.Transfer.TrueFilepath = fullPath
+		} else {
+			fullPath := utils.GetPath(t.Transfer.DestFile, utils.Elems{
+				{t.Rule.WorkPath, true},
+				{t.Paths.ServerWork, true},
+				{t.Paths.ServerRoot, false},
+				{t.Paths.WorkDirectory, true},
+				{t.Paths.GatewayHome, false},
+			})
+			t.Transfer.TrueFilepath = fullPath + ".tmp"
+		}
 	}
 	if err := t.DB.Update(t.Transfer); err != nil {
 		t.Logger.Criticalf("Failed to update transfer filepath: %s", err.Error())
@@ -208,7 +219,8 @@ func (t *TransferStream) Start() *model.PipelineError {
 	return nil
 }
 
-func (t *TransferStream) initData() error {
+// InitData updates the transfer status to the beginning of the DATA step.
+func (t *TransferStream) InitData() error {
 	if err := checkSignal(t.Ctx, t.Signals); err != nil {
 		return err
 	}
@@ -239,7 +251,7 @@ func (t *TransferStream) updateProgress() error {
 }
 
 func (t *TransferStream) Read(p []byte) (int, error) {
-	if err := t.initData(); err != nil {
+	if err := t.InitData(); err != nil {
 		return 0, err
 	}
 
@@ -257,7 +269,7 @@ func (t *TransferStream) Read(p []byte) (int, error) {
 }
 
 func (t *TransferStream) Write(p []byte) (n int, err error) {
-	if err := t.initData(); err != nil {
+	if err := t.InitData(); err != nil {
 		return 0, err
 	}
 

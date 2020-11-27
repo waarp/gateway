@@ -2,7 +2,7 @@ module code.waarp.fr/waarp-gateway/waarp-gateway
 
 require (
 	code.bcarlin.xyz/go/logging v0.1.0
-	code.waarp.fr/waarp-r66/r66 v0.0.0-20201116142726-604e771dccf7
+	code.waarp.fr/waarp-r66/r66 v0.0.0-20201124130158-7bcf1c58e260
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/go-xorm/builder v0.3.4
 	github.com/go-xorm/core v0.6.2
@@ -14,6 +14,7 @@ require (
 	github.com/mattn/go-oci8 v0.0.2
 	github.com/mattn/go-sqlite3 v1.14.1
 	github.com/pkg/sftp v1.11.0
+	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
 	github.com/smartystreets/goconvey v1.6.4
 	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
 )
