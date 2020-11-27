@@ -42,8 +42,6 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 		return nil, err
 	}
 
-	r66Client := r66.NewClient(info.Account.Login, pswd)
-
 	var conf config.R66ProtoConfig
 	if err := json.Unmarshal(info.Agent.ProtoConfig, &conf); err != nil {
 		return nil, err
@@ -58,6 +56,10 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 		}
 	}
 
+	r66Client := r66.NewClient(info.Account.Login, pswd)
+	r66Client.FileSize = true
+	r66Client.FinalHash = !conf.NoFinalHash
+
 	//TODO: configure r66 client
 	c := &client{
 		r66Client: r66Client,
@@ -66,10 +68,10 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 		conf:      conf,
 		tlsConf:   tlsConf,
 	}
-	c.r66Client.FinalHash = false //TODO: remove once implemented
 	c.r66Client.AuthentHandler = &clientAuthHandler{
 		getFile: func() r66utils.ReadWriterAt { return c.stream },
 		info:    &info,
+		config:  &conf,
 	}
 
 	return c, nil
@@ -142,6 +144,8 @@ func (c *client) Request() *model.PipelineError {
 			return model.NewPipelineError(types.TeInternal, err.Error())
 		}
 		size = uint64(stats.Size())
+
+		c.r66Client.AuthentHandler.(*clientAuthHandler).size = size
 	}
 
 	var blockSize uint32 = 65536
@@ -156,7 +160,7 @@ func (c *client) Request() *model.PipelineError {
 		Rule:  c.info.Rule.Name,
 		Block: blockSize,
 		Rank:  uint32(c.info.Transfer.Progress / uint64(c.r66Client.Block)),
-		Size:  size,
+		Size:  int64(size),
 	}
 
 	if err := c.session.Request(trans); err != nil {
@@ -165,6 +169,7 @@ func (c *client) Request() *model.PipelineError {
 		}
 		return model.NewPipelineError(types.TeConnection, err.Error())
 	}
+
 	return nil
 }
 
