@@ -1,34 +1,26 @@
 package rest
 
 import (
-	"encoding/json"
-
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
 )
 
-// RuleTask is the JSON representation of a rule task in requests made to
-// the REST interface.
-type RuleTask struct {
-	Type string          `json:"type"`
-	Args json.RawMessage `json:"args"`
-}
-
-// ToModel transforms the JSON task into its database equivalent.
-func (i RuleTask) ToModel() *model.Task {
+// taskToDB transforms the JSON task into its database equivalent.
+func taskToDB(task api.Task) *model.Task {
 	return &model.Task{
-		Type: i.Type,
-		Args: i.Args,
+		Type: task.Type,
+		Args: task.Args,
 	}
 }
 
 // FromRuleTasks transforms the given list of database tasks into its JSON
 // equivalent.
-func FromRuleTasks(ts []model.Task) []RuleTask {
-	tasks := make([]RuleTask, len(ts))
+func FromRuleTasks(ts []model.Task) []api.Task {
+	tasks := make([]api.Task, len(ts))
 	for i, task := range ts {
-		tasks[i] = RuleTask{
+		tasks[i] = api.Task{
 			Type: task.Type,
 			Args: task.Args,
 		}
@@ -36,7 +28,7 @@ func FromRuleTasks(ts []model.Task) []RuleTask {
 	return tasks
 }
 
-func doListTasks(db *database.DB, rule *OutRule, ruleID uint64) error {
+func doListTasks(db *database.DB, rule *api.OutRule, ruleID uint64) error {
 	preTasks := []model.Task{}
 	preFilters := &database.Filters{
 		Order:      "rank ASC",
@@ -70,7 +62,7 @@ func doListTasks(db *database.DB, rule *OutRule, ruleID uint64) error {
 	return nil
 }
 
-func taskUpdateDelete(ses *database.Session, rule *UptRule, ruleID uint64,
+func taskUpdateDelete(ses *database.Session, rule *api.UptRule, ruleID uint64,
 	isReplace bool) error {
 
 	if isReplace {
@@ -100,7 +92,7 @@ func taskUpdateDelete(ses *database.Session, rule *UptRule, ruleID uint64,
 	return nil
 }
 
-func doTaskUpdate(ses *database.Session, rule *UptRule, ruleID uint64,
+func doTaskUpdate(ses *database.Session, rule *api.UptRule, ruleID uint64,
 	isReplace bool) error {
 
 	if err := taskUpdateDelete(ses, rule, ruleID, isReplace); err != nil {
@@ -108,7 +100,7 @@ func doTaskUpdate(ses *database.Session, rule *UptRule, ruleID uint64,
 	}
 
 	for rank, t := range rule.PreTasks {
-		task := t.ToModel()
+		task := taskToDB(t)
 		task.RuleID = ruleID
 		task.Chain = model.ChainPre
 		task.Rank = uint32(rank)
@@ -117,7 +109,7 @@ func doTaskUpdate(ses *database.Session, rule *UptRule, ruleID uint64,
 		}
 	}
 	for rank, t := range rule.PostTasks {
-		task := t.ToModel()
+		task := taskToDB(t)
 		task.RuleID = ruleID
 		task.Chain = model.ChainPost
 		task.Rank = uint32(rank)
@@ -126,7 +118,7 @@ func doTaskUpdate(ses *database.Session, rule *UptRule, ruleID uint64,
 		}
 	}
 	for rank, t := range rule.ErrorTasks {
-		task := t.ToModel()
+		task := taskToDB(t)
 		task.RuleID = ruleID
 		task.Chain = model.ChainError
 		task.Rank = uint32(rank)

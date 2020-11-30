@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -99,7 +100,7 @@ func TestFileReader(t *testing.T) {
 							Convey("With a valid Source, Destination and Status", func() {
 								So(trans.SourceFile, ShouldEqual, filepath.Base(request.Filepath))
 								So(trans.DestFile, ShouldEqual, filepath.Base(request.Filepath))
-								So(trans.Status, ShouldEqual, model.StatusRunning)
+								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
 						})
 					})
@@ -208,7 +209,7 @@ func TestFileWriter(t *testing.T) {
 							Convey("With a valid Source, Destination and Status", func() {
 								So(trans.SourceFile, ShouldEqual, filepath.Base(request.Filepath))
 								So(trans.DestFile, ShouldEqual, filepath.Base(request.Filepath))
-								So(trans.Status, ShouldEqual, model.StatusRunning)
+								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
 						})
 					})

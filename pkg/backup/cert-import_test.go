@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/go-xorm/builder"
@@ -15,7 +16,7 @@ func TestImportCerts(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
-		Convey("Given a database with some certificates", func() {
+		Convey("Given a database with some Certificates", func() {
 			agent := &model.LocalAgent{
 				Name:        "test",
 				Protocol:    "sftp",
@@ -42,14 +43,14 @@ func TestImportCerts(t *testing.T) {
 			}
 			So(db.Create(cert2), ShouldBeNil)
 
-			Convey("Given a list of new certificates to import", func() {
-				insert := certificate{
+			Convey("Given a list of new Certificates to import", func() {
+				insert := Certificate{
 					Name:        "new",
 					PublicKey:   "abc",
 					PrivateKey:  "zyx",
 					Certificate: "cert",
 				}
-				certificates := []certificate{insert}
+				Certificates := []Certificate{insert}
 
 				Convey("Given a new Transaction", func() {
 					ses, err := db.BeginTransaction()
@@ -59,15 +60,15 @@ func TestImportCerts(t *testing.T) {
 
 					Convey("When calling the importCerts with the new "+
 						"Certificates on the existing agent", func() {
-						err := importCerts(discard, ses, certificates,
+						err := importCerts(discard, ses, Certificates,
 							"local_agents", agent.ID)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
 
-						Convey("Then the agent should have 1 certificates", func() {
-							dbCerts := []model.Cert{}
+						Convey("Then the agent should have 1 Certificates", func() {
+							var dbCerts []model.Cert
 							So(ses.Select(&dbCerts, &database.Filters{
 								Conditions: builder.Eq{
 									"owner_type": "local_agents",
@@ -76,7 +77,7 @@ func TestImportCerts(t *testing.T) {
 							}), ShouldBeNil)
 							So(len(dbCerts), ShouldEqual, 1)
 
-							Convey("Then the certificate should correspond "+
+							Convey("Then the Certificate should correspond "+
 								"to the one imported", func() {
 								So(dbCerts[0].Name, ShouldResemble, insert.Name)
 								So(dbCerts[0].PublicKey, ShouldResemble, []byte(insert.PublicKey))
@@ -90,15 +91,15 @@ func TestImportCerts(t *testing.T) {
 				})
 			})
 
-			Convey("Given a updated certificate to import", func() {
+			Convey("Given a updated Certificate to import", func() {
 
-				insert := certificate{
+				insert := Certificate{
 					Name:        "foo",
 					PublicKey:   "abc",
 					PrivateKey:  "zyx",
 					Certificate: "cert",
 				}
-				certificates := []certificate{insert}
+				Certificates := []Certificate{insert}
 
 				Convey("Given a new Transaction", func() {
 					ses, err := db.BeginTransaction()
@@ -108,15 +109,15 @@ func TestImportCerts(t *testing.T) {
 
 					Convey("When calling the importCerts with the new "+
 						"Certificates on the existing agent", func() {
-						err := importCerts(discard, ses, certificates,
+						err := importCerts(discard, ses, Certificates,
 							"local_agents", agent2.ID)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
 
-						Convey("Then the agent should have 1 certificates", func() {
-							dbCerts := []model.Cert{}
+						Convey("Then the agent should have 1 Certificates", func() {
+							var dbCerts []model.Cert
 							So(ses.Select(&dbCerts, &database.Filters{
 								Conditions: builder.Eq{
 									"owner_type": "local_agents",
@@ -125,7 +126,7 @@ func TestImportCerts(t *testing.T) {
 							}), ShouldBeNil)
 							So(len(dbCerts), ShouldEqual, 1)
 
-							Convey("Then the certificate should correspond "+
+							Convey("Then the Certificate should correspond "+
 								"to the one imported", func() {
 								So(dbCerts[0].Name, ShouldResemble, insert.Name)
 								So(dbCerts[0].PublicKey, ShouldResemble, []byte(insert.PublicKey))

@@ -7,6 +7,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
@@ -14,8 +15,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func userInfoString(u *rest.OutUser) string {
-	return "● User " + u.Username + "\n"
+func userInfoString(u *api.OutUser) string {
+	return "● User " + u.Username + "\n" +
+		"    Permissions:\n" +
+		"    ├─Transfers: " + u.Perms.Transfers + "\n" +
+		"    ├─Servers:   " + u.Perms.Servers + "\n" +
+		"    ├─Partners:  " + u.Perms.Partners + "\n" +
+		"    ├─Rules:     " + u.Perms.Rules + "\n" +
+		"    └─Users:     " + u.Perms.Users + "\n"
 }
 
 func TestGetUser(t *testing.T) {
@@ -32,8 +39,13 @@ func TestGetUser(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			user := &model.User{
-				Username: "user",
+				Username: "toto",
 				Password: []byte("password"),
+				Permissions: model.PermTransfersRead |
+					model.PermServersRead |
+					model.PermPartnersRead |
+					model.PermRulesRead |
+					model.PermUsersRead,
 			}
 			So(db.Create(user), ShouldBeNil)
 
@@ -53,7 +65,7 @@ func TestGetUser(t *testing.T) {
 			})
 
 			Convey("Given an invalid username", func() {
-				args := []string{"toto"}
+				args := []string{"tata"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -61,7 +73,7 @@ func TestGetUser(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "user 'toto' not found")
+						So(err, ShouldBeError, "user 'tata' not found")
 					})
 				})
 			})
@@ -83,7 +95,7 @@ func TestAddUser(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Given valid flags", func() {
-				args := []string{"-u", "user", "-p", "password"}
+				args := []string{"-u", "user", "-p", "password", "-r", "T=r,S=r,P=r"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -107,6 +119,8 @@ func TestAddUser(t *testing.T) {
 							ID:       2,
 							Username: "user",
 							Password: users[1].Password,
+							Permissions: model.PermTransfersRead |
+								model.PermServersRead | model.PermPartnersRead,
 						}
 						So(users[1], ShouldResemble, exp)
 					})
@@ -194,11 +208,17 @@ func TestUpdateUser(t *testing.T) {
 			user := &model.User{
 				Username: "user",
 				Password: []byte("password"),
+				Permissions: model.PermTransfersRead |
+					model.PermServersRead |
+					model.PermPartnersRead |
+					model.PermRulesRead |
+					model.PermUsersRead,
 			}
 			So(db.Create(user), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
-				args := []string{"-u", "new_user", "-p", "new_password", user.Username}
+				args := []string{user.Username, "-u", "new_user",
+					"-p", "new_password", "-r", "T+w,S-rw,P=wd,R+w-r,U=w"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -222,6 +242,10 @@ func TestUpdateUser(t *testing.T) {
 							ID:       user.ID,
 							Username: "new_user",
 							Password: users[1].Password,
+							Permissions: model.PermTransfersRead | model.PermTransfersWrite |
+								model.PermPartnersWrite | model.PermPartnersDelete |
+								model.PermRulesWrite |
+								model.PermUsersWrite,
 						}
 						So(users[1], ShouldResemble, exp)
 					})
@@ -229,7 +253,7 @@ func TestUpdateUser(t *testing.T) {
 			})
 
 			Convey("Given an invalid username", func() {
-				args := []string{"-u", "new_user", "-p", "new_password", "toto"}
+				args := []string{"toto", "-u", "new_user", "-p", "new_password"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -261,8 +285,9 @@ func TestListUser(t *testing.T) {
 			So(db.Execute("DELETE FROM users WHERE username='admin'"), ShouldBeNil)
 
 			user1 := &model.User{
-				Username: "user1",
-				Password: []byte("password"),
+				Username:    "user1",
+				Password:    []byte("password"),
+				Permissions: model.PermUsersRead,
 			}
 			So(db.Create(user1), ShouldBeNil)
 			var err error

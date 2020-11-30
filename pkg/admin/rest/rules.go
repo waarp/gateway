@@ -4,52 +4,32 @@ import (
 	"fmt"
 	"net/http"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
 )
 
-// InRule is the JSON representation of a transfer rule in requests made to
-// the REST interface.
-type InRule struct {
-	*UptRule
-	IsSend *bool `json:"isSend,omitempty"`
-}
-
-// ToModel transforms the JSON transfer rule into its database equivalent.
-func (i *InRule) ToModel(id uint64) (*model.Rule, error) {
-	if i.IsSend == nil {
+// ruleToDB transforms the JSON transfer rule into its database equivalent.
+func ruleToDB(rule *api.InRule, id uint64) (*model.Rule, error) {
+	if rule.IsSend == nil {
 		return nil, badRequest("missing rule direction")
 	}
 	return &model.Rule{
 		ID:       id,
-		Name:     str(i.Name),
-		Comment:  str(i.Comment),
-		IsSend:   *i.IsSend,
-		Path:     str(i.Path),
-		InPath:   str(i.InPath),
-		OutPath:  str(i.OutPath),
-		WorkPath: str(i.WorkPath),
+		Name:     str(rule.Name),
+		Comment:  str(rule.Comment),
+		IsSend:   *rule.IsSend,
+		Path:     str(rule.Path),
+		InPath:   str(rule.InPath),
+		OutPath:  str(rule.OutPath),
+		WorkPath: str(rule.WorkPath),
 	}, nil
 }
 
-// UptRule is the JSON representation of a transfer rule in updated requests made to
-// the REST interface.
-type UptRule struct {
-	Name       *string    `json:"name,omitempty"`
-	Comment    *string    `json:"comment,omitempty"`
-	Path       *string    `json:"path,omitempty"`
-	InPath     *string    `json:"inPath,omitempty"`
-	OutPath    *string    `json:"outPath,omitempty"`
-	WorkPath   *string    `json:"workPath,omitempty"`
-	PreTasks   []RuleTask `json:"preTasks,omitempty"`
-	PostTasks  []RuleTask `json:"postTasks,omitempty"`
-	ErrorTasks []RuleTask `json:"errorTasks,omitempty"`
-}
-
-func newUptRule(old *model.Rule) *UptRule {
-	return &UptRule{
+func newUptRule(old *model.Rule) *api.UptRule {
+	return &api.UptRule{
 		Name:     &old.Name,
 		Comment:  &old.Comment,
 		Path:     &old.Path,
@@ -59,43 +39,27 @@ func newUptRule(old *model.Rule) *UptRule {
 	}
 }
 
-// ToModel transforms the JSON transfer rule into its database equivalent.
-func (i *UptRule) ToModel(id uint64) *model.Rule {
+// ruleUptToDB transforms the JSON transfer rule into its database equivalent.
+func ruleUptToDB(rule *api.UptRule, id uint64) *model.Rule {
 	return &model.Rule{
 		ID:       id,
-		Name:     str(i.Name),
-		Comment:  str(i.Comment),
-		Path:     str(i.Path),
-		InPath:   str(i.InPath),
-		OutPath:  str(i.OutPath),
-		WorkPath: str(i.WorkPath),
+		Name:     str(rule.Name),
+		Comment:  str(rule.Comment),
+		Path:     str(rule.Path),
+		InPath:   str(rule.InPath),
+		OutPath:  str(rule.OutPath),
+		WorkPath: str(rule.WorkPath),
 	}
 }
 
-// OutRule is the JSON representation of a transfer rule in responses sent by
-// the REST interface.
-type OutRule struct {
-	Name       string      `json:"name"`
-	Comment    string      `json:"comment,omitempty"`
-	IsSend     bool        `json:"isSend"`
-	Path       string      `json:"path"`
-	InPath     string      `json:"inPath,omitempty"`
-	OutPath    string      `json:"outPath,omitempty"`
-	WorkPath   string      `json:"workPath,omitempty"`
-	Authorized *RuleAccess `json:"authorized,omitempty"`
-	PreTasks   []RuleTask  `json:"preTasks,omitempty"`
-	PostTasks  []RuleTask  `json:"postTasks,omitempty"`
-	ErrorTasks []RuleTask  `json:"errorTasks,omitempty"`
-}
-
 // FromRule transforms the given database transfer rule into its JSON equivalent.
-func FromRule(db *database.DB, r *model.Rule) (*OutRule, error) {
+func FromRule(db *database.DB, r *model.Rule) (*api.OutRule, error) {
 	access, err := makeRuleAccess(db, r)
 	if err != nil {
 		return nil, err
 	}
 
-	rule := &OutRule{
+	rule := &api.OutRule{
 		Name:       r.Name,
 		Comment:    r.Comment,
 		IsSend:     r.IsSend,
@@ -113,8 +77,8 @@ func FromRule(db *database.DB, r *model.Rule) (*OutRule, error) {
 
 // FromRules transforms the given list of database transfer rules into its JSON
 // equivalent.
-func FromRules(db *database.DB, rs []model.Rule) ([]OutRule, error) {
-	rules := make([]OutRule, len(rs))
+func FromRules(db *database.DB, rs []model.Rule) ([]api.OutRule, error) {
+	rules := make([]api.OutRule, len(rs))
 	for i, r := range rs {
 		rule := r
 		res, err := FromRule(db, &rule)
@@ -152,15 +116,15 @@ func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {
 	return rule, nil
 }
 
-func createRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonRule := &InRule{}
+			jsonRule := &api.InRule{}
 			if err := readJSON(r, jsonRule); err != nil {
 				return err
 			}
 
-			rule, err := jsonRule.ToModel(0)
+			rule, err := ruleToDB(jsonRule, 0)
 			if err != nil {
 				return err
 			}
@@ -235,7 +199,7 @@ func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutRule{"rules": rules}
+			resp := map[string][]api.OutRule{"rules": rules}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -261,7 +225,7 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			if err := ses.Update(rule.ToModel(old.ID)); err != nil {
+			if err := ses.Update(ruleUptToDB(rule, old.ID)); err != nil {
 				ses.Rollback()
 				return err
 			}
@@ -291,7 +255,7 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			rule := &UptRule{}
+			rule := &api.UptRule{}
 			if err := readJSON(r, rule); err != nil {
 				return err
 			}
@@ -300,7 +264,7 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			if err := ses.Update(rule.ToModel(old.ID)); err != nil {
+			if err := ses.Update(ruleUptToDB(rule, old.ID)); err != nil {
 				ses.Rollback()
 				return err
 			}

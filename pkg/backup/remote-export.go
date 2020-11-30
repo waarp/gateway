@@ -1,19 +1,21 @@
 package backup
 
 import (
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/go-xorm/builder"
 )
 
-func exportRemotes(logger *log.Logger, db *database.Session) ([]remoteAgent, error) {
-	dbRemotes := []model.RemoteAgent{}
+func exportRemotes(logger *log.Logger, db *database.Session) ([]file.RemoteAgent, error) {
+	var dbRemotes []model.RemoteAgent
 
 	if err := db.Select(&dbRemotes, nil); err != nil {
 		return nil, err
 	}
-	res := make([]remoteAgent, len(dbRemotes))
+	res := make([]file.RemoteAgent, len(dbRemotes))
 
 	for i, src := range dbRemotes {
 
@@ -27,9 +29,10 @@ func exportRemotes(logger *log.Logger, db *database.Session) ([]remoteAgent, err
 		}
 
 		logger.Infof("Export remote partner %s\n", src.Name)
-		agent := remoteAgent{
+		agent := file.RemoteAgent{
 			Name:          src.Name,
 			Protocol:      src.Protocol,
+			Address:       src.Address,
 			Configuration: src.ProtoConfig,
 			Accounts:      accounts,
 			Certs:         certificates,
@@ -40,15 +43,15 @@ func exportRemotes(logger *log.Logger, db *database.Session) ([]remoteAgent, err
 }
 
 func exportRemoteAccounts(logger *log.Logger, db *database.Session,
-	agentID uint64) ([]remoteAccount, error) {
-	dbAccounts := []model.RemoteAccount{}
+	agentID uint64) ([]file.RemoteAccount, error) {
+	var dbAccounts []model.RemoteAccount
 	filters := &database.Filters{
 		Conditions: builder.Eq{"remote_agent_id": agentID},
 	}
 	if err := db.Select(&dbAccounts, filters); err != nil {
 		return nil, err
 	}
-	res := make([]remoteAccount, len(dbAccounts))
+	res := make([]file.RemoteAccount, len(dbAccounts))
 
 	for i, src := range dbAccounts {
 
@@ -56,13 +59,13 @@ func exportRemoteAccounts(logger *log.Logger, db *database.Session,
 		if err != nil {
 			return nil, err
 		}
-		pwd, err := model.DecryptPassword(src.Password)
+		pwd, err := utils.DecryptPassword(src.Password)
 		if err != nil {
 			return nil, err
 		}
 
 		logger.Infof("Export remote account %s\n", src.Login)
-		account := remoteAccount{
+		account := file.RemoteAccount{
 			Login:    src.Login,
 			Password: string(pwd),
 			Certs:    certificates,

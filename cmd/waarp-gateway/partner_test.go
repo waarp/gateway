@@ -9,13 +9,14 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func partnerInfoString(p *rest.OutPartner) string {
+func partnerInfoString(p *api.OutPartner) string {
 	return "● Partner " + p.Name + "\n" +
 		"    Protocol:      " + p.Protocol + "\n" +
 		"    Address:       " + p.Address + "\n" +
@@ -39,7 +40,7 @@ func TestGetPartner(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "remote_agent",
+				Name:        "partner_name",
 				Protocol:    "sftp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
@@ -69,7 +70,7 @@ func TestGetPartner(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the partner's info", func() {
-						rules := &rest.AuthorizedRules{
+						rules := &api.AuthorizedRules{
 							Sending:   []string{send.Name, sendAll.Name},
 							Reception: []string{receive.Name},
 						}
@@ -203,7 +204,7 @@ func TestListPartners(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner1 := &model.RemoteAgent{
-				Name:        "remote_agent1",
+				Name:        "partner1",
 				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
@@ -211,15 +212,15 @@ func TestListPartners(t *testing.T) {
 			So(db.Create(partner1), ShouldBeNil)
 
 			partner2 := &model.RemoteAgent{
-				Name:        "remote_agent2",
+				Name:        "partner2",
 				Protocol:    "test2",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
 			So(db.Create(partner2), ShouldBeNil)
 
-			p1 := rest.FromRemoteAgent(partner1, &rest.AuthorizedRules{})
-			p2 := rest.FromRemoteAgent(partner2, &rest.AuthorizedRules{})
+			p1 := rest.FromRemoteAgent(partner1, &api.AuthorizedRules{})
+			p2 := rest.FromRemoteAgent(partner2, &api.AuthorizedRules{})
 
 			Convey("Given no parameters", func() {
 				var args []string
@@ -313,7 +314,7 @@ func TestDeletePartner(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "remote_agent",
+				Name:        "existing",
 				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
@@ -389,7 +390,7 @@ func TestUpdatePartner(t *testing.T) {
 
 			Convey("Given all valid flags", func() {
 				args := []string{"-n", "new_partner", "-p", "test2",
-					"-c", `{}`, "-a", "localhost:1", partner.Name}
+					"-a", "localhost:1", partner.Name}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -421,7 +422,7 @@ func TestUpdatePartner(t *testing.T) {
 
 			Convey("Given an invalid protocol", func() {
 				args := []string{"-n", "new_partner", "-p", "invalid",
-					"-c", `{}`, "-a", "localhost:1", partner.Name}
+					"-a", "localhost:1", partner.Name}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -440,7 +441,7 @@ func TestUpdatePartner(t *testing.T) {
 
 			Convey("Given an invalid configuration", func() {
 				args := []string{"-n", "new_partner", "-p", "fail",
-					"-c", `{"unknown":"val"}`, "-a", "localhost:1", partner.Name}
+					"-c", `unknown:val`, "-a", "localhost:1", partner.Name}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -460,7 +461,7 @@ func TestUpdatePartner(t *testing.T) {
 
 			Convey("Given an invalid address", func() {
 				args := []string{"-n", "new_partner", "-p", "fail",
-					"-c", `{}`, "-a", "invalid_address", partner.Name}
+					"-a", "invalid_address", partner.Name}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -480,7 +481,7 @@ func TestUpdatePartner(t *testing.T) {
 
 			Convey("Given an non-existing name", func() {
 				args := []string{"-n", "new_partner", "-p", "test2",
-					"-c", `{}`, "-a", "localhost:1", "toto"}
+					"-a", "localhost:1", "toto"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)

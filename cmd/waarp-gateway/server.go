@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"path"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
 
 type serverCommand struct {
@@ -15,7 +15,7 @@ type serverCommand struct {
 	Add       serverAdd       `command:"add" description:"Add a new server"`
 	Delete    serverDelete    `command:"delete" description:"Delete a server"`
 	List      serverList      `command:"list" description:"List the known servers"`
-	Update    serverUpdate    `command:"update" description:"Modify a server's information" long-description:"Warning: the server's root & in/out/work paths cannot be changed individually, they must be updated all at once or the old values will be lost"`
+	Update    serverUpdate    `command:"update" description:"Modify a server's information"`
 	Authorize serverAuthorize `command:"authorize" description:"Give a server permission to use a rule"`
 	Revoke    serverRevoke    `command:"revoke" description:"Revoke a server's permission to use a rule"`
 	Cert      struct {
@@ -26,7 +26,7 @@ type serverCommand struct {
 	} `command:"cert" description:"Manage a server's certificates"`
 }
 
-func displayServer(w io.Writer, server *rest.OutServer) {
+func displayServer(w io.Writer, server *api.OutServer) {
 	send := strings.Join(server.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(server.AuthorizedRules.Reception, ", ")
 
@@ -52,9 +52,9 @@ type serverGet struct {
 }
 
 func (s *serverGet) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Name
+	addr.Path = path.Join("/api/servers", s.Args.Name)
 
-	server := &rest.OutServer{}
+	server := &api.OutServer{}
 	if err := get(server); err != nil {
 		return err
 	}
@@ -65,18 +65,22 @@ func (s *serverGet) Execute([]string) error {
 // ######################## ADD ##########################
 
 type serverAdd struct {
-	Name        string  `required:"yes" short:"n" long:"name" description:"The server's name"`
-	Protocol    string  `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
-	Address     string  `required:"yes" short:"a" long:"address" description:"The server's [address:port]"`
-	Root        *string `short:"r" long:"root" description:"The server's root directory"`
-	InDir       *string `short:"i" long:"in" description:"The server's in directory"`
-	OutDir      *string `short:"o" long:"out" description:"The server's out directory"`
-	WorkDir     *string `short:"w" long:"work" description:"The server's work directory"`
-	ProtoConfig string  `required:"yes" short:"c" long:"config" description:"The server's configuration in JSON"`
+	Name        string             `required:"yes" short:"n" long:"name" description:"The server's name"`
+	Protocol    string             `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
+	Address     string             `required:"yes" short:"a" long:"address" description:"The server's [address:port]"`
+	Root        *string            `short:"r" long:"root" description:"The server's root directory"`
+	InDir       *string            `short:"i" long:"in" description:"The server's in directory"`
+	OutDir      *string            `short:"o" long:"out" description:"The server's out directory"`
+	WorkDir     *string            `short:"w" long:"work" description:"The server's work directory"`
+	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The server's configuration, in key:val format. Can be repeated."`
 }
 
 func (s *serverAdd) Execute([]string) error {
-	server := &rest.InServer{
+	conf, err := json.Marshal(s.ProtoConfig)
+	if err != nil {
+		return fmt.Errorf("invalid config: %s", err)
+	}
+	server := &api.InServer{
 		Name:        &s.Name,
 		Protocol:    &s.Protocol,
 		Address:     &s.Address,
@@ -84,9 +88,9 @@ func (s *serverAdd) Execute([]string) error {
 		InDir:       s.InDir,
 		OutDir:      s.OutDir,
 		WorkDir:     s.WorkDir,
-		ProtoConfig: json.RawMessage(s.ProtoConfig),
+		ProtoConfig: conf,
 	}
-	addr.Path = admin.APIPath + rest.ServersPath
+	addr.Path = "/api/servers"
 
 	if err := add(server); err != nil {
 		return err
@@ -104,9 +108,9 @@ type serverDelete struct {
 }
 
 func (s *serverDelete) Execute([]string) error {
-	path := admin.APIPath + rest.ServersPath + "/" + s.Args.Name
+	uri := path.Join("/api/servers", s.Args.Name)
 
-	if err := remove(path); err != nil {
+	if err := remove(uri); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The server", bold(s.Args.Name), "was successfully deleted.")
@@ -122,9 +126,9 @@ type serverList struct {
 }
 
 func (s *serverList) Execute([]string) error {
-	agentListURL(rest.ServersPath, &s.listOptions, s.SortBy, s.Protocols)
+	agentListURL("/api/servers", &s.listOptions, s.SortBy, s.Protocols)
 
-	body := map[string][]rest.OutServer{}
+	body := map[string][]api.OutServer{}
 	if err := list(&body); err != nil {
 		return err
 	}
@@ -149,18 +153,22 @@ type serverUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
 	} `positional-args:"yes"`
-	Name        *string `short:"n" long:"name" description:"The server's name"`
-	Protocol    *string `short:"p" long:"protocol" description:"The server's protocol"`
-	Address     *string `short:"a" long:"address" description:"The server's [address:port]"`
-	Root        *string `short:"r" long:"root" description:"The server's root directory"`
-	InDir       *string `short:"i" long:"in" description:"The server's in directory"`
-	OutDir      *string `short:"o" long:"out" description:"The server's out directory"`
-	WorkDir     *string `short:"w" long:"work" description:"The server's work directory"`
-	ProtoConfig *string `short:"c" long:"config" description:"The server's configuration in JSON"`
+	Name        *string            `short:"n" long:"name" description:"The server's name"`
+	Protocol    *string            `short:"p" long:"protocol" description:"The server's protocol"`
+	Address     *string            `short:"a" long:"address" description:"The server's [address:port]"`
+	Root        *string            `short:"r" long:"root" description:"The server's root directory"`
+	InDir       *string            `short:"i" long:"in" description:"The server's in directory"`
+	OutDir      *string            `short:"o" long:"out" description:"The server's out directory"`
+	WorkDir     *string            `short:"w" long:"work" description:"The server's work directory"`
+	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The server's configuration in JSON"`
 }
 
 func (s *serverUpdate) Execute([]string) error {
-	server := &rest.InServer{
+	conf, err := json.Marshal(s.ProtoConfig)
+	if err != nil {
+		return fmt.Errorf("invalid config: %s", err)
+	}
+	server := &api.InServer{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
 		Address:     s.Address,
@@ -168,9 +176,9 @@ func (s *serverUpdate) Execute([]string) error {
 		InDir:       s.InDir,
 		OutDir:      s.OutDir,
 		WorkDir:     s.WorkDir,
-		ProtoConfig: parseOptBytes(s.ProtoConfig),
+		ProtoConfig: conf,
 	}
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Name
+	addr.Path = path.Join("/api/servers", s.Args.Name)
 
 	if err := update(server); err != nil {
 		return err
@@ -189,13 +197,13 @@ type serverAuthorize struct {
 	Args struct {
 		Server    string `required:"yes" positional-arg-name:"server" description:"The server's name"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"  choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"  choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
 func (s *serverAuthorize) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
-		"/authorize/" + s.Args.Rule + "/" + strings.ToLower(s.Args.Direction)
+	addr.Path = fmt.Sprintf("/api/servers/%s/authorize/%s/%s", s.Args.Server,
+		s.Args.Rule, s.Args.Direction)
 
 	return authorize("server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }
@@ -206,13 +214,13 @@ type serverRevoke struct {
 	Args struct {
 		Server    string `required:"yes" positional-arg-name:"server" description:"The server's name"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"SEND" choice:"RECEIVE"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
 func (s *serverRevoke) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + s.Args.Server +
-		"/revoke/" + s.Args.Rule + "/" + strings.ToLower(s.Args.Direction)
+	addr.Path = fmt.Sprintf("/api/servers/%s/revoke/%s/%s", s.Args.Server,
+		s.Args.Rule, s.Args.Direction)
 
 	return revoke("server", s.Args.Server, s.Args.Rule, s.Args.Direction)
 }

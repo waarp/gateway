@@ -7,18 +7,21 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path"
 	"strconv"
 	"testing"
 	"time"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const historyURI = "http://localhost:8080" + APIPath + HistoryPath + "/"
+const historyURI = "http://localhost:8080/api/history"
 
 func TestGetHistory(t *testing.T) {
 	logger := log.NewLogger("rest_history_get_test")
@@ -50,7 +53,8 @@ func TestGetHistory(t *testing.T) {
 			h.Stop = h.Stop.Local()
 
 			Convey("Given a request with the valid transfer history ID parameter", func() {
-				req, err := http.NewRequest(http.MethodGet, historyURI+id, nil)
+				uri := path.Join(historyURI, id)
+				req, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
 				req = mux.SetURLVars(req, map[string]string{"history": id})
 
@@ -80,7 +84,8 @@ func TestGetHistory(t *testing.T) {
 			})
 
 			Convey("Given a request with a non-existing transfer history ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, historyURI+"1000", nil)
+				uri := path.Join(historyURI, "1000")
+				r, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"history": "1000"})
 
@@ -117,7 +122,7 @@ func TestListHistory(t *testing.T) {
 				Rule:           "rule1",
 				Start:          time.Date(2019, 01, 01, 02, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 06, 00, 00, 00, time.UTC),
-				Status:         model.StatusDone,
+				Status:         types.StatusDone,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
@@ -135,7 +140,7 @@ func TestListHistory(t *testing.T) {
 				Rule:           "rule2",
 				Start:          time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 07, 00, 00, 00, time.UTC),
-				Status:         model.StatusCancelled,
+				Status:         types.StatusCancelled,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
@@ -153,7 +158,7 @@ func TestListHistory(t *testing.T) {
 				Rule:           "rule1",
 				Start:          time.Date(2019, 01, 01, 03, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 8, 00, 00, 00, time.UTC),
-				Status:         model.StatusCancelled,
+				Status:         types.StatusCancelled,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
@@ -171,7 +176,7 @@ func TestListHistory(t *testing.T) {
 				Rule:           "rule2",
 				Start:          time.Date(2019, 01, 01, 04, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 05, 00, 00, 00, time.UTC),
-				Status:         model.StatusDone,
+				Status:         types.StatusDone,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
@@ -435,7 +440,7 @@ func TestRestartTransfer(t *testing.T) {
 				DestFilename:   "file.test",
 				Start:          time.Date(2019, 01, 01, 00, 00, 00, 00, time.UTC),
 				Stop:           time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
-				Status:         model.StatusCancelled,
+				Status:         types.StatusCancelled,
 			}
 			So(db.Create(h), ShouldBeNil)
 
@@ -447,8 +452,8 @@ func TestRestartTransfer(t *testing.T) {
 				date := time.Now().Add(time.Hour + time.Minute).Truncate(time.Second)
 				dateStr := url.QueryEscape(date.Format(time.RFC3339))
 
-				req, err := http.NewRequest(http.MethodPut, historyURI+id+
-					"/restart?date="+dateStr, nil)
+				uri := fmt.Sprintf("%s/%s/restart?date=%s", historyURI, id, dateStr)
+				req, err := http.NewRequest(http.MethodPut, uri, nil)
 				So(err, ShouldBeNil)
 				req = mux.SetURLVars(req, map[string]string{"history": id})
 
@@ -484,7 +489,7 @@ func TestRestartTransfer(t *testing.T) {
 							SourceFile: h.SourceFilename,
 							DestFile:   h.DestFilename,
 							Start:      date,
-							Status:     model.StatusPlanned,
+							Status:     types.StatusPlanned,
 							Owner:      h.Owner,
 						}
 
@@ -497,7 +502,8 @@ func TestRestartTransfer(t *testing.T) {
 			})
 
 			Convey("Given a request with a non-existing transfer history ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, historyURI+"1000", nil)
+				uri := path.Join(historyURI, "1000")
+				r, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"history": "1000"})
 

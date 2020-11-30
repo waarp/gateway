@@ -7,9 +7,8 @@ import (
 	"net/url"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
 type transferCommand struct {
@@ -21,22 +20,22 @@ type transferCommand struct {
 	Cancel transferCancel `command:"cancel" description:"Cancel a transfer"`
 }
 
-func coloredStatus(status model.TransferStatus) string {
+func coloredStatus(status types.TransferStatus) string {
 	text := func() string {
 		switch status {
-		case model.StatusPlanned:
+		case types.StatusPlanned:
 			return cyan(string(status))
-		case model.StatusRunning:
+		case types.StatusRunning:
 			return cyan(string(status))
-		case model.StatusPaused:
+		case types.StatusPaused:
 			return yellow(string(status))
-		case model.StatusInterrupted:
+		case types.StatusInterrupted:
 			return yellow(string(status))
-		case model.StatusCancelled:
+		case types.StatusCancelled:
 			return red(string(status))
-		case model.StatusError:
+		case types.StatusError:
 			return red(string(status))
-		case model.StatusDone:
+		case types.StatusDone:
 			return green(string(status))
 		default:
 			return bold(string(status))
@@ -45,13 +44,16 @@ func coloredStatus(status model.TransferStatus) string {
 	return bold("[") + text + bold("]")
 }
 
-func displayTransfer(w io.Writer, trans *rest.OutTransfer) {
+func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	role := "client"
 	if trans.IsServer {
 		role = "server"
 	}
 
 	fmt.Fprintln(w, bold("● Transfer", trans.ID, "(as "+role+")"), coloredStatus(trans.Status))
+	if trans.RemoteID != "" {
+		fmt.Fprintln(w, orange("    Remote ID:       "), trans.RemoteID)
+	}
 	fmt.Fprintln(w, orange("    Rule:            "), trans.Rule)
 	fmt.Fprintln(w, orange("    Requester:       "), trans.Requester)
 	fmt.Fprintln(w, orange("    Requested:       "), trans.Requested)
@@ -62,7 +64,7 @@ func displayTransfer(w io.Writer, trans *rest.OutTransfer) {
 	fmt.Fprintln(w, orange("    Step:            "), string(trans.Step))
 	fmt.Fprintln(w, orange("    Progress:        "), trans.Progress)
 	fmt.Fprintln(w, orange("    Task number:     "), trans.TaskNumber)
-	if trans.ErrorCode != model.TeOk {
+	if trans.ErrorCode != types.TeOk {
 		fmt.Fprintln(w, orange("    Error code:      "), fmt.Sprint(trans.ErrorCode))
 	}
 	if trans.ErrorMsg != "" {
@@ -74,7 +76,7 @@ func displayTransfer(w io.Writer, trans *rest.OutTransfer) {
 
 type transferAdd struct {
 	File    string `required:"true" short:"f" long:"file" description:"The file to transfer"`
-	Way     string `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"pull" choice:"push"`
+	Way     string `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
 	Name    string `short:"n" long:"name" description:"The name of the file after the transfer"`
 	Partner string `required:"true" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
 	Account string `required:"true" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
@@ -87,10 +89,10 @@ func (t *transferAdd) Execute([]string) (err error) {
 		t.Name = t.File
 	}
 
-	trans := rest.InTransfer{
+	trans := api.InTransfer{
 		Partner:    t.Partner,
 		Account:    t.Account,
-		IsSend:     t.Way == "push",
+		IsSend:     t.Way == "send",
 		SourcePath: t.File,
 		Rule:       t.Rule,
 		DestPath:   t.Name,
@@ -101,7 +103,7 @@ func (t *transferAdd) Execute([]string) (err error) {
 			return fmt.Errorf("'%s' is not a valid date", t.Date)
 		}
 	}
-	addr.Path = admin.APIPath + rest.TransfersPath
+	addr.Path = "/api/transfers"
 
 	if err := add(trans); err != nil {
 		return err
@@ -119,9 +121,9 @@ type transferGet struct {
 }
 
 func (t *transferGet) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.TransfersPath + "/" + fmt.Sprint(t.Args.ID)
+	addr.Path = fmt.Sprintf("/api/transfers/%d", t.Args.ID)
 
-	trans := &rest.OutTransfer{}
+	trans := &api.OutTransfer{}
 	if err := get(trans); err != nil {
 		return err
 	}
@@ -140,7 +142,7 @@ type transferList struct {
 }
 
 func (t *transferList) listURL() error {
-	addr.Path = admin.APIPath + rest.TransfersPath
+	addr.Path = "/api/transfers"
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(t.Limit))
 	query.Set("offset", fmt.Sprint(t.Offset))
@@ -170,7 +172,7 @@ func (t *transferList) Execute([]string) error {
 		return err
 	}
 
-	body := map[string][]rest.OutTransfer{}
+	body := map[string][]api.OutTransfer{}
 	if err := list(&body); err != nil {
 		return err
 	}
@@ -199,7 +201,7 @@ type transferPause struct {
 
 func (t *transferPause) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	addr.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/pause"
+	addr.Path = fmt.Sprintf("/api/transfers/%d/pause", t.Args.ID)
 
 	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
@@ -232,7 +234,7 @@ type transferResume struct {
 
 func (t *transferResume) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	addr.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/resume"
+	addr.Path = fmt.Sprintf("/api/transfers/%d/resume", t.Args.ID)
 
 	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {
@@ -264,7 +266,7 @@ type transferCancel struct {
 
 func (t *transferCancel) Execute([]string) error {
 	id := fmt.Sprint(t.Args.ID)
-	addr.Path = admin.APIPath + rest.TransfersPath + "/" + id + "/cancel"
+	addr.Path = fmt.Sprintf("/api/transfers/%d/cancel", t.Args.ID)
 
 	resp, err := sendRequest(nil, http.MethodPut)
 	if err != nil {

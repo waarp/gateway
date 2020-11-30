@@ -7,25 +7,28 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path"
 	"strconv"
 	"testing"
 	"time"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const transferURI = "http://localhost:8080" + APIPath + TransfersPath + "/"
+const transferURI = "http://localhost:8080/api/transfers"
 
 func TestAddTransfer(t *testing.T) {
 	logger := log.NewLogger("rest_transfer_add_test")
 
 	Convey("Testing the transfer add handler", t, func() {
 		db := database.GetTestDatabase()
-		handler := createTransfer(logger, db)
+		handler := addTransfer(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 partner, 1 certificate & 1 account", func() {
@@ -94,7 +97,7 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the new transfer should be inserted in "+
 						"the database", func() {
-						t, err := trans.ToModel(db)
+						t, err := transToDB(trans, db)
 						So(err, ShouldBeNil)
 						So(db.Get(t), ShouldBeNil)
 					})
@@ -242,7 +245,8 @@ func TestGetTransfer(t *testing.T) {
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
 				id := strconv.FormatUint(trans.ID, 10)
-				req, err := http.NewRequest(http.MethodGet, transferURI+id, nil)
+				uri := path.Join(transferURI, id)
+				req, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
 				req = mux.SetURLVars(req, map[string]string{"transfer": id})
 
@@ -272,7 +276,8 @@ func TestGetTransfer(t *testing.T) {
 			})
 
 			Convey("Given a request with an invalid transfer ID parameter", func() {
-				r, err := http.NewRequest(http.MethodGet, transferURI+"1000", nil)
+				uri := path.Join(transferURI, "1000")
+				r, err := http.NewRequest(http.MethodGet, uri, nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{"transfer": "1000"})
 
@@ -535,10 +540,10 @@ func TestResumeTransfer(t *testing.T) {
 				SourceFile: "src",
 				DestFile:   "dst",
 				Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
-				Status:     model.StatusError,
-				Step:       model.StepData,
-				Error: model.TransferError{
-					Code:    model.TeDataTransfer,
+				Status:     types.StatusError,
+				Step:       types.StepData,
+				Error: types.TransferError{
+					Code:    types.TeDataTransfer,
 					Details: "transfer failed",
 				},
 				Progress:   10,
@@ -573,9 +578,9 @@ func TestResumeTransfer(t *testing.T) {
 							SourceFile: "src",
 							DestFile:   "dst",
 							Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
-							Status:     model.StatusPlanned,
-							Step:       model.StepData,
-							Error:      model.TransferError{},
+							Status:     types.StatusPlanned,
+							Step:       types.StepData,
+							Error:      types.TransferError{},
 							Progress:   10,
 							TaskNumber: 0,
 						}
@@ -625,9 +630,9 @@ func TestPauseTransfer(t *testing.T) {
 				SourceFile: "src",
 				DestFile:   "dst",
 				Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
-				Status:     model.StatusPlanned,
-				Step:       model.StepData,
-				Error:      model.TransferError{},
+				Status:     types.StatusPlanned,
+				Step:       types.StepData,
+				Error:      types.TransferError{},
 				Progress:   10,
 				TaskNumber: 0,
 			}
@@ -660,9 +665,9 @@ func TestPauseTransfer(t *testing.T) {
 							SourceFile: "src",
 							DestFile:   "dst",
 							Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
-							Status:     model.StatusPaused,
-							Step:       model.StepData,
-							Error:      model.TransferError{},
+							Status:     types.StatusPaused,
+							Step:       types.StepData,
+							Error:      types.TransferError{},
 							Progress:   10,
 							TaskNumber: 0,
 						}

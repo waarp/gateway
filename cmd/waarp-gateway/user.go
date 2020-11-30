@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
 
 type userCommand struct {
@@ -16,8 +15,14 @@ type userCommand struct {
 	List   userList   `command:"list" description:"List the known users"`
 }
 
-func displayUser(w io.Writer, user *rest.OutUser) {
+func displayUser(w io.Writer, user *api.OutUser) {
 	fmt.Fprintln(w, bold("● User", user.Username))
+	fmt.Fprintln(w, orange("    Permissions:"))
+	fmt.Fprintln(w, bold("    ├─Transfers:"), user.Perms.Transfers)
+	fmt.Fprintln(w, bold("    ├─Servers:  "), user.Perms.Servers)
+	fmt.Fprintln(w, bold("    ├─Partners: "), user.Perms.Partners)
+	fmt.Fprintln(w, bold("    ├─Rules:    "), user.Perms.Rules)
+	fmt.Fprintln(w, bold("    └─Users:    "), user.Perms.Users)
 }
 
 // ######################## ADD ##########################
@@ -25,14 +30,20 @@ func displayUser(w io.Writer, user *rest.OutUser) {
 type userAdd struct {
 	Username string `required:"true" short:"u" long:"username" description:"The user's name"`
 	Password string `required:"true" short:"p" long:"password" description:"The user's password"`
+	Perms    string `required:"true" short:"r" long:"rights" description:"The user's rights in chmod symbolic format"`
 }
 
 func (u *userAdd) Execute([]string) error {
-	newUser := &rest.InUser{
-		Username: &u.Username,
-		Password: []byte(u.Password),
+	perms, err := parsePerms(u.Perms)
+	if err != nil {
+		return err
 	}
-	addr.Path = admin.APIPath + rest.UsersPath
+	newUser := &api.InUser{
+		Username: &u.Username,
+		Password: &u.Password,
+		Perms:    perms,
+	}
+	addr.Path = "/api/users"
 
 	if err := add(newUser); err != nil {
 		return err
@@ -50,9 +61,9 @@ type userGet struct {
 }
 
 func (u *userGet) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
+	addr.Path = "/api/users/" + u.Args.Username
 
-	user := &rest.OutUser{}
+	user := &api.OutUser{}
 	if err := get(user); err != nil {
 		return err
 	}
@@ -68,14 +79,24 @@ type userUpdate struct {
 	} `positional-args:"yes"`
 	Username *string `short:"u" long:"username" description:"The new username"`
 	Password *string `short:"p" long:"password" description:"The new password"`
+	Perms    *string `short:"r" long:"rights" description:"The user's rights in chmod symbolic format"`
 }
 
 func (u *userUpdate) Execute([]string) error {
-	user := &rest.InUser{
-		Username: u.Username,
-		Password: parseOptBytes(u.Password),
+	var perms *api.Perms
+	if u.Perms != nil {
+		var err error
+		perms, err = parsePerms(*u.Perms)
+		if err != nil {
+			return err
+		}
 	}
-	addr.Path = admin.APIPath + rest.UsersPath + "/" + u.Args.Username
+	user := &api.InUser{
+		Username: u.Username,
+		Password: u.Password,
+		Perms:    perms,
+	}
+	addr.Path = "/api/users/" + u.Args.Username
 
 	if err := update(user); err != nil {
 		return err
@@ -97,7 +118,7 @@ type userDelete struct {
 }
 
 func (u *userDelete) Execute([]string) error {
-	path := admin.APIPath + rest.UsersPath + "/" + u.Args.Username
+	path := "/api/users/" + u.Args.Username
 
 	if err := remove(path); err != nil {
 		return err
@@ -114,10 +135,10 @@ type userList struct {
 }
 
 func (u *userList) Execute([]string) error {
-	addr.Path = rest.APIPath + rest.UsersPath
+	addr.Path = "/api/users"
 	listURL(&u.listOptions, u.SortBy)
 
-	body := map[string][]rest.OutUser{}
+	body := map[string][]api.OutUser{}
 	if err := list(&body); err != nil {
 		return err
 	}

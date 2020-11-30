@@ -1,4 +1,5 @@
-package model
+// Package types contains all the special types used by the database models.
+package types
 
 // TransferStatus represents the valid statuses for a transfer entry.
 type TransferStatus string
@@ -35,11 +36,15 @@ const (
 // 		t == StatusError
 // }
 
-func validateStatusForTransfer(t TransferStatus) bool {
+// ValidateStatusForTransfer returns whether the transfer value is valid for a
+// model.Transfer entry.
+func ValidateStatusForTransfer(t TransferStatus) bool {
 	return t == StatusPlanned || t == StatusRunning || t == StatusPaused ||
 		t == StatusInterrupted || t == StatusError
 }
 
-func validateStatusForHistory(t TransferStatus) bool {
+// ValidateStatusForHistory returns whether the transfer value is valid for a
+// model.TransferHistory entry.
+func ValidateStatusForHistory(t TransferStatus) bool {
 	return t == StatusDone || t == StatusCancelled
 }

@@ -3,6 +3,7 @@ package rest
 import (
 	"net/http"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -92,7 +93,7 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutAccount{"localAccounts": FromLocalAccounts(results, rules)}
+			resp := map[string][]api.OutAccount{"localAccounts": FromLocalAccounts(results, rules)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -101,7 +102,7 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func createLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			parent, err := getLocAg(r, db)
@@ -109,12 +110,12 @@ func createLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			acc := &InAccount{}
+			acc := &api.InAccount{}
 			if err := readJSON(r, acc); err != nil {
 				return err
 			}
 
-			account := acc.ToLocal(parent, 0)
+			account := accToLocal(acc, parent, 0)
 			if err := db.Create(account); err != nil {
 				return err
 			}
@@ -137,16 +138,16 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			account := newInLocAccount(old)
-			if err := readJSON(r, account); err != nil {
+			acc := newInLocAccount(old)
+			if err := readJSON(r, acc); err != nil {
 				return err
 			}
 
-			if err := db.Update(account.ToLocal(parent, old.ID)); err != nil {
+			if err := db.Update(accToLocal(acc, parent, old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(account.Login)))
+			w.Header().Set("Location", locationUpdate(r.URL, str(acc.Login)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -164,16 +165,16 @@ func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			account := &InAccount{}
-			if err := readJSON(r, account); err != nil {
+			acc := &api.InAccount{}
+			if err := readJSON(r, acc); err != nil {
 				return err
 			}
 
-			if err := db.Update(account.ToLocal(parent, old.ID)); err != nil {
+			if err := db.Update(accToLocal(acc, parent, old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(account.Login)))
+			w.Header().Set("Location", locationUpdate(r.URL, str(acc.Login)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -251,7 +252,7 @@ func getLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func createLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			_, acc, err := getLocAcc(r, db)

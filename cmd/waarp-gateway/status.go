@@ -6,8 +6,7 @@ import (
 	"net/http"
 	"sort"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
 
@@ -16,7 +15,7 @@ type statusCommand struct{}
 
 // showStatus writes the status of the gateway services in the given
 // writer with colors, using ANSI coloration codes.
-func showStatus(statuses rest.Statuses, w io.Writer) {
+func showStatus(statuses api.Statuses, w io.Writer) {
 	var errors = make([]string, 0)
 	var actives = make([]string, 0)
 	var offlines = make([]string, 0)
@@ -53,7 +52,7 @@ func showStatus(statuses rest.Statuses, w io.Writer) {
 // the 's' parameter, while the program arguments are stored in the 'args'
 // parameter.
 func (s *statusCommand) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.StatusPath
+	addr.Path = "/api/status"
 
 	resp, err := sendRequest(nil, http.MethodGet)
 	if err != nil {
@@ -64,7 +63,7 @@ func (s *statusCommand) Execute([]string) error {
 	w := getColorable()
 	switch resp.StatusCode {
 	case http.StatusOK:
-		statuses := rest.Statuses{}
+		statuses := api.Statuses{}
 		if err := unmarshalBody(resp.Body, &statuses); err != nil {
 			return err
 		}

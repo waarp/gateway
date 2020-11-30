@@ -8,8 +8,10 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -66,7 +68,7 @@ func TestGetRemoteAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then it should display the account's info", func() {
-						rules := &rest.AuthorizedRules{
+						rules := &api.AuthorizedRules{
 							Sending:   []string{send.Name, sendAll.Name},
 							Reception: []string{receive.Name},
 						}
@@ -151,7 +153,7 @@ func TestAddRemoteAccount(t *testing.T) {
 						}
 						So(db.Get(account), ShouldBeNil)
 
-						clearPwd, err := model.DecryptPassword(account.Password)
+						clearPwd, err := utils.DecryptPassword(account.Password)
 						So(err, ShouldBeNil)
 						So(string(clearPwd), ShouldEqual, command.Password)
 					})
@@ -316,7 +318,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						So(db.Select(&accs, nil), ShouldBeNil)
 						So(len(accs), ShouldEqual, 1)
 
-						clearPwd, err := model.DecryptPassword(accs[0].Password)
+						clearPwd, err := utils.DecryptPassword(accs[0].Password)
 						So(err, ShouldBeNil)
 						So(string(clearPwd), ShouldEqual, "new_password")
 
@@ -345,7 +347,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						}
 						So(db.Get(check), ShouldBeNil)
 
-						clearPwd, err := model.DecryptPassword(check.Password)
+						clearPwd, err := utils.DecryptPassword(check.Password)
 						So(err, ShouldBeNil)
 						So(string(clearPwd), ShouldEqual, string(oldPwd))
 					})
@@ -373,7 +375,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						}
 						So(db.Get(check), ShouldBeNil)
 
-						clearPwd, err := model.DecryptPassword(check.Password)
+						clearPwd, err := utils.DecryptPassword(check.Password)
 						So(err, ShouldBeNil)
 						So(string(clearPwd), ShouldEqual, string(oldPwd))
 					})
@@ -434,9 +436,9 @@ func TestListRemoteAccount(t *testing.T) {
 			}
 			So(db.Create(account3), ShouldBeNil)
 
-			a1 := rest.FromRemoteAccount(account1, &rest.AuthorizedRules{})
-			a2 := rest.FromRemoteAccount(account2, &rest.AuthorizedRules{})
-			a3 := rest.FromRemoteAccount(account3, &rest.AuthorizedRules{})
+			a1 := rest.FromRemoteAccount(account1, &api.AuthorizedRules{})
+			a2 := rest.FromRemoteAccount(account2, &api.AuthorizedRules{})
+			a3 := rest.FromRemoteAccount(account3, &api.AuthorizedRules{})
 
 			Convey("Given no parameters", func() {
 				args := []string{}

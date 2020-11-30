@@ -1,5 +1,7 @@
 package model
 
+import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+
 // ErrorKind states the origin of a transfer error. The error  handling varies
 // depending on the kind of the error.
 type ErrorKind byte
@@ -18,7 +20,7 @@ const (
 // and all transfer signals (shutdown, cancel, pause...).
 type PipelineError struct {
 	Kind  ErrorKind
-	Cause TransferError
+	Cause types.TransferError
 }
 
 func (p *PipelineError) Error() string {
@@ -38,9 +40,9 @@ func (p *PipelineError) Error() string {
 
 // NewPipelineError returns a new TransferError encapsulated inside a
 // PipelineError. This function can only generate "normal" transfer errors.
-func NewPipelineError(code TransferErrorCode, msg string) *PipelineError {
+func NewPipelineError(code types.TransferErrorCode, msg string) *PipelineError {
 	return &PipelineError{
-		Cause: TransferError{
+		Cause: types.TransferError{
 			Code:    code,
 			Details: msg,
 		},

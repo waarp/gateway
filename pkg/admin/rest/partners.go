@@ -3,6 +3,7 @@ package rest
 import (
 	"net/http"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -10,7 +11,7 @@ import (
 )
 
 func getRemAg(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
-	agentName, ok := mux.Vars(r)["remote_agent"]
+	agentName, ok := mux.Vars(r)["partner"]
 	if !ok {
 		return nil, notFound("missing partner name")
 	}
@@ -24,15 +25,15 @@ func getRemAg(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
 	return agent, nil
 }
 
-func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonAgent := &InPartner{}
-			if err := readJSON(r, jsonAgent); err != nil {
+			part := &api.InPartner{}
+			if err := readJSON(r, part); err != nil {
 				return err
 			}
 
-			agent := jsonAgent.ToModel(0)
+			agent := partToDB(part, 0)
 			if err := db.Create(agent); err != nil {
 				return err
 			}
@@ -47,7 +48,7 @@ func createRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func listPartners(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := map[string]string{
 		"default": "name ASC",
 		"proto+":  "protocol ASC",
@@ -81,7 +82,7 @@ func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutPartner{"partners": FromRemoteAgents(results, rules)}
+			resp := map[string][]api.OutPartner{"partners": FromRemoteAgents(results, rules)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -90,7 +91,7 @@ func listRemoteAgents(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func getRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func getPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			result, err := getRemAg(r, db)
@@ -111,7 +112,7 @@ func getRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func deleteRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func deletePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -131,7 +132,7 @@ func deleteRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			old, err := getRemAg(r, db)
@@ -139,16 +140,16 @@ func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			agent := newInPartner(old)
-			if err := readJSON(r, agent); err != nil {
+			part := newInPartner(old)
+			if err := readJSON(r, part); err != nil {
 				return err
 			}
 
-			if err := db.Update(agent.ToModel(old.ID)); err != nil {
+			if err := db.Update(partToDB(part, old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(agent.Name)))
+			w.Header().Set("Location", locationUpdate(r.URL, str(part.Name)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -158,7 +159,7 @@ func updateRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func replaceRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func replacePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			old, err := getRemAg(r, db)
@@ -166,16 +167,16 @@ func replaceRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			agent := &InPartner{}
-			if err := readJSON(r, agent); err != nil {
+			part := &api.InPartner{}
+			if err := readJSON(r, part); err != nil {
 				return err
 			}
 
-			if err := db.Update(agent.ToModel(old.ID)); err != nil {
+			if err := db.Update(partToDB(part, old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(agent.Name)))
+			w.Header().Set("Location", locationUpdate(r.URL, str(part.Name)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -185,7 +186,7 @@ func replaceRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func authorizeRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func authorizePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -201,7 +202,7 @@ func authorizeRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc 
 	}
 }
 
-func revokeRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func revokePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -217,7 +218,7 @@ func revokeRemoteAgent(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func getRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func getPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -233,7 +234,7 @@ func getRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func createRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -249,7 +250,7 @@ func createRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func listRemAgentCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func listPartnerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -265,7 +266,7 @@ func listRemAgentCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func deleteRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func deletePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -281,7 +282,7 @@ func deleteRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func updateRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func updatePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)
@@ -297,7 +298,7 @@ func updateRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func replaceRemAgentCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func replacePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			ag, err := getRemAg(r, db)

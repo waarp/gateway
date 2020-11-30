@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"github.com/go-xorm/builder"
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -16,11 +17,11 @@ func TestImportRules(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
-		Convey("Given a database with some rules", func() {
+		Convey("Given a database with some Rules", func() {
 			insert := &model.Rule{
 				Name:   "test",
 				IsSend: true,
-				Path:   "path/to/rule",
+				Path:   "path/to/Rule",
 			}
 			So(db.Create(insert), ShouldBeNil)
 
@@ -82,8 +83,8 @@ func TestImportRules(t *testing.T) {
 			}
 			So(db.Create(account2), ShouldBeNil)
 
-			Convey("Given a new rule to import", func() {
-				rule1 := rule{
+			Convey("Given a new Rule to import", func() {
+				Rule1 := Rule{
 					Name:   "foo",
 					IsSend: true,
 					Path:   "/test/path",
@@ -92,19 +93,19 @@ func TestImportRules(t *testing.T) {
 						"local::test::foo",
 						"local::test::test",
 					},
-					Pre: []ruleTask{
+					Pre: []Task{
 						{
 							Type: "COPY",
 							Args: []byte(`{"path":"copy/destination"}`),
 						},
 					},
-					Post: []ruleTask{
+					Post: []Task{
 						{
 							Type: "DELETE",
 							Args: []byte("{}"),
 						},
 					},
-					Error: []ruleTask{
+					Error: []Task{
 						{
 							Type: "COPY",
 							Args: []byte(`{"path":"copy/destination"}`),
@@ -115,7 +116,7 @@ func TestImportRules(t *testing.T) {
 						},
 					},
 				}
-				rules := []rule{rule1}
+				Rules := []Rule{Rule1}
 
 				Convey("Given a new transaction", func() {
 					ses, err := db.BeginTransaction()
@@ -123,46 +124,46 @@ func TestImportRules(t *testing.T) {
 
 					defer ses.Rollback()
 
-					Convey("When calling importRules with the new rules", func() {
-						err := importRules(discard, ses, rules)
+					Convey("When calling importRules with the new Rules", func() {
+						err := importRules(discard, ses, Rules)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
 
-						Convey("Then the database should contains the rule "+
+						Convey("Then the database should contains the Rule "+
 							"imported", func() {
 							dbRule := &model.Rule{
-								Name:   rule1.Name,
-								IsSend: rule1.IsSend,
+								Name:   Rule1.Name,
+								IsSend: Rule1.IsSend,
 							}
 							So(ses.Get(dbRule), ShouldBeNil)
 
 							Convey("Then the record should correspond to "+
 								"the data imported", func() {
-								So(dbRule.Path, ShouldEqual, rule1.Path)
+								So(dbRule.Path, ShouldEqual, Rule1.Path)
 
-								auths := []model.RuleAccess{}
+								var auths []model.RuleAccess
 								So(ses.Select(&auths, &database.Filters{
-									Conditions: builder.Eq{"rule_id": dbRule.ID},
+									Conditions: builder.Eq{"Rule_id": dbRule.ID},
 								}), ShouldBeNil)
 								So(len(auths), ShouldEqual, 3)
 
-								pres := []model.Task{}
+								var pres []model.Task
 								So(ses.Select(&pres, &database.Filters{
-									Conditions: builder.Eq{"rule_id": dbRule.ID, "chain": "PRE"},
+									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "PRE"},
 								}), ShouldBeNil)
 								So(len(pres), ShouldEqual, 1)
 
-								posts := []model.Task{}
+								var posts []model.Task
 								So(ses.Select(&posts, &database.Filters{
-									Conditions: builder.Eq{"rule_id": dbRule.ID, "chain": "POST"},
+									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "POST"},
 								}), ShouldBeNil)
 								So(len(posts), ShouldEqual, 1)
 
-								errors := []model.Task{}
+								var errors []model.Task
 								So(ses.Select(&errors, &database.Filters{
-									Conditions: builder.Eq{"rule_id": dbRule.ID, "chain": "ERROR"},
+									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "ERROR"},
 								}), ShouldBeNil)
 								So(len(errors), ShouldEqual, 2)
 							})
@@ -172,8 +173,8 @@ func TestImportRules(t *testing.T) {
 				})
 			})
 
-			Convey("Given a existing rule to fully updated", func() {
-				rule1 := rule{
+			Convey("Given a existing Rule to fully updated", func() {
+				Rule1 := Rule{
 					Name:   insert.Name,
 					IsSend: insert.IsSend,
 					Path:   "/testing",
@@ -181,19 +182,19 @@ func TestImportRules(t *testing.T) {
 						"local::test",
 						"local::test::test",
 					},
-					Pre: []ruleTask{
+					Pre: []Task{
 						{
 							Type: "COPY",
 							Args: []byte(`{"path":"copy/destination"}`),
 						},
 					},
-					Post: []ruleTask{
+					Post: []Task{
 						{
 							Type: "DELETE",
 							Args: []byte("{}"),
 						},
 					},
-					Error: []ruleTask{
+					Error: []Task{
 						{
 							Type: "COPY",
 							Args: []byte(`{"path":"copy/destination"}`),
@@ -204,7 +205,7 @@ func TestImportRules(t *testing.T) {
 						},
 					},
 				}
-				rules := []rule{rule1}
+				Rules := []Rule{Rule1}
 
 				Convey("Given a new transaction", func() {
 					ses, err := db.BeginTransaction()
@@ -212,14 +213,14 @@ func TestImportRules(t *testing.T) {
 
 					defer ses.Rollback()
 
-					Convey("When calling importRules with the new rules", func() {
-						err := importRules(discard, ses, rules)
+					Convey("When calling importRules with the new Rules", func() {
+						err := importRules(discard, ses, Rules)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
 
-						Convey("Then the database should contains the rule imported", func() {
+						Convey("Then the database should contains the Rule imported", func() {
 							dbRule := &model.Rule{
 								Name:   insert.Name,
 								IsSend: insert.IsSend,
@@ -228,29 +229,29 @@ func TestImportRules(t *testing.T) {
 
 							Convey("Then the record should correspond to "+
 								"the data imported", func() {
-								So(dbRule.Path, ShouldEqual, rule1.Path)
+								So(dbRule.Path, ShouldEqual, Rule1.Path)
 
-								auths := []model.RuleAccess{}
+								var auths []model.RuleAccess
 								So(ses.Select(&auths, &database.Filters{
-									Conditions: builder.Eq{"rule_id": dbRule.ID},
+									Conditions: builder.Eq{"Rule_id": dbRule.ID},
 								}), ShouldBeNil)
 								So(len(auths), ShouldEqual, 2)
 
-								pres := []model.Task{}
+								var pres []model.Task
 								So(ses.Select(&pres, &database.Filters{
-									Conditions: builder.Eq{"rule_id": dbRule.ID, "chain": "PRE"},
+									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "PRE"},
 								}), ShouldBeNil)
 								So(len(pres), ShouldEqual, 1)
 
-								posts := []model.Task{}
+								var posts []model.Task
 								So(ses.Select(&posts, &database.Filters{
-									Conditions: builder.Eq{"rule_id": dbRule.ID, "chain": "POST"},
+									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "POST"},
 								}), ShouldBeNil)
 								So(len(posts), ShouldEqual, 1)
 
-								errors := []model.Task{}
+								var errors []model.Task
 								So(ses.Select(&errors, &database.Filters{
-									Conditions: builder.Eq{"rule_id": dbRule.ID, "chain": "ERROR"},
+									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "ERROR"},
 								}), ShouldBeNil)
 								So(len(errors), ShouldEqual, 2)
 							})
@@ -260,8 +261,8 @@ func TestImportRules(t *testing.T) {
 				})
 			})
 
-			Convey("Given a existing rule to partially updated", func() {
-				rule1 := rule{
+			Convey("Given a existing Rule to partially updated", func() {
+				Rule1 := Rule{
 					Name:   insert.Name,
 					IsSend: insert.IsSend,
 					Path:   "/testing",
@@ -270,7 +271,7 @@ func TestImportRules(t *testing.T) {
 						"local::test::test",
 					},
 				}
-				rules := []rule{rule1}
+				Rules := []Rule{Rule1}
 
 				Convey("Given a new transaction", func() {
 					ses, err := db.BeginTransaction()
@@ -278,15 +279,15 @@ func TestImportRules(t *testing.T) {
 
 					defer ses.Rollback()
 
-					Convey("When calling importRules with the new rules", func() {
-						err := importRules(discard, ses, rules)
+					Convey("When calling importRules with the new Rules", func() {
+						err := importRules(discard, ses, Rules)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
 
 						Convey("Then the database should contains the "+
-							"rule imported", func() {
+							"Rule imported", func() {
 							dbRule := &model.Rule{
 								Name:   insert.Name,
 								IsSend: insert.IsSend,
@@ -295,29 +296,29 @@ func TestImportRules(t *testing.T) {
 
 							Convey("Then the record should correspond to "+
 								"the data imported", func() {
-								So(dbRule.Path, ShouldEqual, rule1.Path)
+								So(dbRule.Path, ShouldEqual, Rule1.Path)
 
-								auths := []model.RuleAccess{}
+								var auths []model.RuleAccess
 								So(ses.Select(&auths, &database.Filters{
-									Conditions: builder.Eq{"rule_id": dbRule.ID},
+									Conditions: builder.Eq{"Rule_id": dbRule.ID},
 								}), ShouldBeNil)
 								So(len(auths), ShouldEqual, 2)
 
-								pres := []model.Task{}
+								var pres []model.Task
 								So(ses.Select(&pres, &database.Filters{
-									Conditions: builder.Eq{"rule_id": dbRule.ID, "chain": "PRE"},
+									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "PRE"},
 								}), ShouldBeNil)
 								So(len(pres), ShouldEqual, 2)
 
-								posts := []model.Task{}
+								var posts []model.Task
 								So(ses.Select(&posts, &database.Filters{
-									Conditions: builder.Eq{"rule_id": dbRule.ID, "chain": "POST"},
+									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "POST"},
 								}), ShouldBeNil)
 								So(len(posts), ShouldEqual, 2)
 
-								errors := []model.Task{}
+								var errors []model.Task
 								So(ses.Select(&errors, &database.Filters{
-									Conditions: builder.Eq{"rule_id": dbRule.ID, "chain": "ERROR"},
+									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "ERROR"},
 								}), ShouldBeNil)
 								So(len(errors), ShouldEqual, 0)
 							})
@@ -336,11 +337,11 @@ func TestImportRuleAccess(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
-		Convey("Given a database with some rules", func() {
+		Convey("Given a database with some Rules", func() {
 			insert := &model.Rule{
 				Name:   "test",
 				IsSend: true,
-				Path:   "path/to/rule",
+				Path:   "path/to/Rule",
 			}
 			So(db.Create(insert), ShouldBeNil)
 
@@ -387,9 +388,9 @@ func TestImportRuleAccess(t *testing.T) {
 						})
 
 						Convey("Then the database should contains 3 accesses", func() {
-							dbAccesses := []model.RuleAccess{}
+							var dbAccesses []model.RuleAccess
 							So(ses.Select(&dbAccesses, &database.Filters{
-								Conditions: builder.Eq{"rule_id": insert.ID},
+								Conditions: builder.Eq{"Rule_id": insert.ID},
 							}), ShouldBeNil)
 							So(len(dbAccesses), ShouldEqual, 3)
 
@@ -422,7 +423,7 @@ func TestImportRuleAccess(t *testing.T) {
 				})
 			})
 
-			Convey("Given a rule with 1 access", func() {
+			Convey("Given a Rule with 1 access", func() {
 				acc1 := &model.RuleAccess{
 					RuleID:     insert.ID,
 					ObjectType: "local_agents",
@@ -450,9 +451,9 @@ func TestImportRuleAccess(t *testing.T) {
 							})
 
 							Convey("Then the database should contains 3 accesses", func() {
-								dbAccesses := []model.RuleAccess{}
+								var dbAccesses []model.RuleAccess
 								So(ses.Select(&dbAccesses, &database.Filters{
-									Conditions: builder.Eq{"rule_id": insert.ID},
+									Conditions: builder.Eq{"Rule_id": insert.ID},
 								}), ShouldBeNil)
 								So(len(dbAccesses), ShouldEqual, 3)
 
@@ -493,11 +494,11 @@ func TestImportTasks(t *testing.T) {
 	Convey("Given a database", t, func() {
 		db := database.GetTestDatabase()
 
-		Convey("Given a database with some rules", func() {
+		Convey("Given a database with some Rules", func() {
 			insert := &model.Rule{
 				Name:   "test",
 				IsSend: true,
-				Path:   "path/to/rule",
+				Path:   "path/to/Rule",
 			}
 			So(db.Create(insert), ShouldBeNil)
 
@@ -547,7 +548,7 @@ func TestImportTasks(t *testing.T) {
 			So(db.Create(error1), ShouldBeNil)
 
 			Convey("Given some tasks to import", func() {
-				tasks := []ruleTask{
+				tasks := []Task{
 					{
 						Type: "COPY",
 						Args: []byte(`{"path":"copy/destination"}`),
@@ -572,9 +573,9 @@ func TestImportTasks(t *testing.T) {
 						})
 
 						Convey("Then the database should contains 2 tasks", func() {
-							dbTasks := []model.Task{}
+							var dbTasks []model.Task
 							So(ses.Select(&dbTasks, &database.Filters{
-								Conditions: builder.Eq{"rule_id": insert.ID, "chain": "PRE"},
+								Conditions: builder.Eq{"Rule_id": insert.ID, "chain": "PRE"},
 							}), ShouldBeNil)
 							So(len(dbTasks), ShouldEqual, 2)
 
@@ -595,9 +596,9 @@ func TestImportTasks(t *testing.T) {
 						})
 
 						Convey("Then the database should contains 2 tasks", func() {
-							dbTasks := []model.Task{}
+							var dbTasks []model.Task
 							So(ses.Select(&dbTasks, &database.Filters{
-								Conditions: builder.Eq{"rule_id": insert.ID, "chain": "POST"},
+								Conditions: builder.Eq{"Rule_id": insert.ID, "chain": "POST"},
 							}), ShouldBeNil)
 							So(len(dbTasks), ShouldEqual, 2)
 
@@ -618,9 +619,9 @@ func TestImportTasks(t *testing.T) {
 						})
 
 						Convey("Then the database should contains 2 tasks", func() {
-							dbTasks := []model.Task{}
+							var dbTasks []model.Task
 							So(ses.Select(&dbTasks, &database.Filters{
-								Conditions: builder.Eq{"rule_id": insert.ID, "chain": "ERROR"},
+								Conditions: builder.Eq{"Rule_id": insert.ID, "chain": "ERROR"},
 							}), ShouldBeNil)
 							So(len(dbTasks), ShouldEqual, 2)
 

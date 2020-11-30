@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-r66/r66"
 )
@@ -13,7 +14,7 @@ type stream struct {
 }
 
 func (s *stream) ReadAt(b []byte, off int64) (int, error) {
-	if s.Transfer.Step > model.StepData {
+	if s.Transfer.Step > types.StepData {
 		return 0, io.EOF
 	}
 	n, err := s.TransferStream.ReadAt(b, off)
@@ -24,7 +25,7 @@ func (s *stream) ReadAt(b []byte, off int64) (int, error) {
 }
 
 func (s *stream) WriteAt(b []byte, off int64) (int, error) {
-	if s.Transfer.Step > model.StepData {
+	if s.Transfer.Step > types.StepData {
 		return len(b), nil
 	}
 	n, err := s.TransferStream.WriteAt(b, off)

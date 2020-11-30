@@ -3,6 +3,7 @@ package rest
 import (
 	"net/http"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -10,50 +11,42 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// InUser is the JSON representation of a user account in requests made to the
-// REST interface.
-type InUser struct {
-	Username *string `json:"username,omitempty"`
-	Password []byte  `json:"password,omitempty"`
-}
-
-func newInUser(old *model.User) *InUser {
-	return &InUser{
+func newInUser(old *model.User) *api.InUser {
+	return &api.InUser{
 		Username: &old.Username,
-		Password: old.Password,
+		Password: strPtr(string(old.Password)),
 	}
 }
 
-// ToModel transforms the JSON user into its database equivalent.
-func (i *InUser) ToModel(id uint64) *model.User {
+// userToDB transforms the JSON user into its database equivalent.
+func userToDB(user *api.InUser, old *model.User) (*model.User, error) {
+	mask, err := permsToMask(old.Permissions, user.Perms)
+	if err != nil {
+		return nil, err
+	}
+
 	return &model.User{
-		ID:       id,
-		Owner:    database.Owner,
-		Username: str(i.Username),
-		Password: i.Password,
-	}
-}
-
-// OutUser is the JSON representation of a user account in responses sent by
-// the REST interface.
-type OutUser struct {
-	Username string `json:"username"`
+		ID:          old.ID,
+		Owner:       database.Owner,
+		Username:    str(user.Username),
+		Password:    []byte(str(user.Password)),
+		Permissions: mask,
+	}, nil
 }
 
 // FromUser transforms the given database user into its JSON equivalent.
-func FromUser(user *model.User) *OutUser {
-	return &OutUser{
+func FromUser(user *model.User) *api.OutUser {
+	return &api.OutUser{
 		Username: user.Username,
+		Perms:    *maskToPerms(user.Permissions),
 	}
 }
 
 // FromUsers transforms the given list of user into its JSON equivalent.
-func FromUsers(usr []model.User) []OutUser {
-	users := make([]OutUser, len(usr))
-	for i, user := range usr {
-		users[i] = OutUser{
-			Username: user.Username,
-		}
+func FromUsers(usr []model.User) []api.OutUser {
+	users := make([]api.OutUser, len(usr))
+	for i := range usr {
+		users[i] = *FromUser(&usr[i])
 	}
 	return users
 }
@@ -106,7 +99,7 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutUser{"users": FromUsers(results)}
+			resp := map[string][]api.OutUser{"users": FromUsers(results)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -115,15 +108,18 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func createUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
-			jsonUser := &InUser{}
+			jsonUser := &api.InUser{}
 			if err := readJSON(r, jsonUser); err != nil {
 				return err
 			}
 
-			user := jsonUser.ToModel(0)
+			user, err := userToDB(jsonUser, &model.User{})
+			if err != nil {
+				return err
+			}
 			if err := db.Create(user); err != nil {
 				return err
 			}
@@ -146,16 +142,20 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			user := newInUser(old)
-			if err := readJSON(r, user); err != nil {
+			jUser := newInUser(old)
+			if err := readJSON(r, jUser); err != nil {
 				return err
 			}
 
-			if err := db.Update(user.ToModel(old.ID)); err != nil {
+			user, err := userToDB(jUser, old)
+			if err != nil {
+				return err
+			}
+			if err := db.Update(user); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(user.Username)))
+			w.Header().Set("Location", locationUpdate(r.URL, user.Username))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -173,16 +173,21 @@ func replaceUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			user := &InUser{}
-			if err := readJSON(r, user); err != nil {
+			jUser := &api.InUser{}
+			if err := readJSON(r, jUser); err != nil {
 				return err
 			}
 
-			if err := db.Update(user.ToModel(old.ID)); err != nil {
+			user, err := userToDB(jUser, old)
+			if err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(user.Username)))
+			if err := db.Update(user); err != nil {
+				return err
+			}
+
+			w.Header().Set("Location", locationUpdate(r.URL, user.Username))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

@@ -10,6 +10,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
@@ -23,7 +24,7 @@ func direction(r *model.Rule) string {
 	return "receive"
 }
 
-func ruleInfoString(r *rest.OutRule) string {
+func ruleInfoString(r *api.OutRule) string {
 	way := "receive"
 	if r.IsSend {
 		way = "send"
@@ -46,7 +47,7 @@ func ruleInfoString(r *rest.OutRule) string {
 	locAcc := strings.Join(la, ", ")
 	remAcc := strings.Join(ra, ", ")
 
-	taskStr := func(tasks []rest.RuleTask) string {
+	taskStr := func(tasks []api.Task) string {
 		str := ""
 		for i, t := range tasks {
 			prefix := "    ├─Command "
@@ -81,34 +82,34 @@ func TestDisplayRule(t *testing.T) {
 	Convey("Given a rule entry", t, func() {
 		out = testFile()
 
-		rule := &rest.OutRule{
+		rule := &api.OutRule{
 			Name:    "rule_name",
 			Comment: "this is a comment",
 			IsSend:  true,
 			Path:    "rule/path",
 			InPath:  "rule/in_path",
 			OutPath: "rule/out_path",
-			Authorized: &rest.RuleAccess{
+			Authorized: &api.RuleAccess{
 				LocalServers:   []string{"server1", "server2"},
 				RemotePartners: []string{"partner1", "partner2"},
 				LocalAccounts:  map[string][]string{"server3": {"account1", "account2"}},
 				RemoteAccounts: map[string][]string{"partner3": {"account3", "account4"}},
 			},
-			PreTasks: []rest.RuleTask{{
+			PreTasks: []api.Task{{
 				Type: "COPY",
 				Args: json.RawMessage(`{"path":"/path/to/copy"}`),
 			}, {
 				Type: "EXEC",
 				Args: json.RawMessage(`{"path":"/path/to/script","args":"{}","delay":"0"}`),
 			}},
-			PostTasks: []rest.RuleTask{{
+			PostTasks: []api.Task{{
 				Type: "DELETE",
 				Args: json.RawMessage("{}"),
 			}, {
 				Type: "TRANSFER",
 				Args: json.RawMessage(`{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}`),
 			}},
-			ErrorTasks: []rest.RuleTask{{
+			ErrorTasks: []api.Task{{
 				Type: "MOVE",
 				Args: json.RawMessage(`{"path":"/path/to/move"}`),
 			}, {
@@ -207,7 +208,7 @@ func TestAddRule(t *testing.T) {
 
 			Convey("Given valid parameters", func() {
 				args := []string{"-n", "new_rule", "-c", "new_rule comment",
-					"-d", "RECEIVE", "--path=/new/rule/path", "--out_path=/out/path",
+					"-d", "receive", "--path=/new/rule/path", "--out_path=/out/path",
 					"--in_path=/in/path", "--work_path=/work/path",
 					`--pre={"type":"COPY","args":{"path":"/path/to/copy"}}`,
 					`--pre={"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
@@ -231,7 +232,7 @@ func TestAddRule(t *testing.T) {
 						rule := &model.Rule{
 							Name:     command.Name,
 							Comment:  *command.Comment,
-							IsSend:   command.Direction == "SEND",
+							IsSend:   command.Direction == "send",
 							Path:     command.Path,
 							InPath:   *command.InPath,
 							OutPath:  *command.OutPath,
@@ -297,7 +298,7 @@ func TestAddRule(t *testing.T) {
 
 			Convey("Given that the rule's name already exist", func() {
 				args := []string{"-n", existing.Name, "-c", "new_rule comment",
-					"-d", "RECEIVE", "-p", "new/rule/path"}
+					"-d", "receive", "-p", "new/rule/path"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -306,7 +307,7 @@ func TestAddRule(t *testing.T) {
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, "a rule named '"+existing.Name+
-							"' with send = "+fmt.Sprint(command.Direction == "SEND")+
+							"' with send = "+fmt.Sprint(command.Direction == "send")+
 							" already exist")
 					})
 

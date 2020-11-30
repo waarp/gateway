@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"path"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
 
 type partnerCommand struct {
@@ -26,7 +26,7 @@ type partnerCommand struct {
 	} `command:"cert" description:"Manage an partner's certificates"`
 }
 
-func displayPartner(w io.Writer, partner *rest.OutPartner) {
+func displayPartner(w io.Writer, partner *api.OutPartner) {
 	send := strings.Join(partner.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(partner.AuthorizedRules.Reception, ", ")
 
@@ -49,13 +49,13 @@ type partnerAdd struct {
 }
 
 func (p *partnerAdd) Execute([]string) error {
-	partner := rest.InPartner{
+	partner := api.InPartner{
 		Name:        &p.Name,
 		Protocol:    &p.Protocol,
 		Address:     &p.Address,
 		ProtoConfig: json.RawMessage(p.ProtoConfig),
 	}
-	addr.Path = admin.APIPath + rest.PartnersPath
+	addr.Path = "/api/partners"
 
 	if err := add(partner); err != nil {
 		return err
@@ -73,9 +73,9 @@ type partnerList struct {
 }
 
 func (p *partnerList) Execute([]string) error {
-	agentListURL(rest.PartnersPath, &p.listOptions, p.SortBy, p.Protocols)
+	agentListURL("/api/partners", &p.listOptions, p.SortBy, p.Protocols)
 
-	body := map[string][]rest.OutPartner{}
+	body := map[string][]api.OutPartner{}
 	if err := list(&body); err != nil {
 		return err
 	}
@@ -103,9 +103,9 @@ type partnerGet struct {
 }
 
 func (p *partnerGet) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.PartnersPath + "/" + p.Args.Name
+	addr.Path = path.Join("/api/partners", p.Args.Name)
 
-	partner := &rest.OutPartner{}
+	partner := &api.OutPartner{}
 	if err := get(partner); err != nil {
 		return err
 	}
@@ -122,9 +122,9 @@ type partnerDelete struct {
 }
 
 func (p *partnerDelete) Execute([]string) error {
-	path := admin.APIPath + rest.PartnersPath + "/" + p.Args.Name
+	uri := path.Join("/api/partners", p.Args.Name)
 
-	if err := remove(path); err != nil {
+	if err := remove(uri); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The partner", bold(p.Args.Name), "was successfully deleted.")
@@ -137,21 +137,25 @@ type partnerUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
 	} `positional-args:"yes"`
-	Name        *string `short:"n" long:"name" description:"The partner's name"`
-	Protocol    *string `short:"p" long:"protocol" description:"The partner's protocol'"`
-	Address     *string `short:"a" long:"address" description:"The partner's [address:port]"`
-	ProtoConfig *string `short:"c" long:"config" description:"The partner's configuration in JSON"`
+	Name        *string            `short:"n" long:"name" description:"The partner's name"`
+	Protocol    *string            `short:"p" long:"protocol" description:"The partner's protocol'"`
+	Address     *string            `short:"a" long:"address" description:"The partner's [address:port]"`
+	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration in JSON"`
 }
 
 func (p *partnerUpdate) Execute([]string) error {
-	partner := &rest.InPartner{
+	conf, err := json.Marshal(p.ProtoConfig)
+	if err != nil {
+		return fmt.Errorf("invalid config: %s", err)
+	}
+	partner := &api.InPartner{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
 		Address:     p.Address,
-		ProtoConfig: parseOptBytes(p.ProtoConfig),
+		ProtoConfig: conf,
 	}
 
-	addr.Path = admin.APIPath + rest.PartnersPath + "/" + p.Args.Name
+	addr.Path = path.Join("/api/partners", p.Args.Name)
 
 	if err := update(partner); err != nil {
 		return err
@@ -170,13 +174,13 @@ type partnerAuthorize struct {
 	Args struct {
 		Partner   string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
 		Rule      string `required:"yes" positional-arg-name:"rule" description:"The rule's name"`
-		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction"`
+		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
 }
 
 func (p *partnerAuthorize) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.PartnersPath + "/" + p.Args.Partner +
-		"/authorize/" + p.Args.Rule + "/" + strings.ToLower(p.Args.Direction)
+	addr.Path = fmt.Sprintf("/api/partners/%s/authorize/%s/%s", p.Args.Partner,
+		p.Args.Rule, p.Args.Direction)
 
 	return authorize("partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }
@@ -192,8 +196,8 @@ type partnerRevoke struct {
 }
 
 func (p *partnerRevoke) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.PartnersPath + "/" + p.Args.Partner +
-		"/revoke/" + p.Args.Rule + "/" + strings.ToLower(p.Args.Direction)
+	addr.Path = fmt.Sprintf("/api/partners/%s/revoke/%s/%s", p.Args.Partner,
+		p.Args.Rule, p.Args.Direction)
 
 	return revoke("partner", p.Args.Partner, p.Args.Rule, p.Args.Direction)
 }

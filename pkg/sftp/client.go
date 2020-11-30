@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -58,7 +59,7 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 func (c *Client) Connect() *model.PipelineError {
 	conn, err := net.Dial("tcp", c.Info.Agent.Address)
 	if err != nil {
-		return model.NewPipelineError(model.TeConnection, err.Error())
+		return model.NewPipelineError(types.TeConnection, err.Error())
 	}
 	c.conn = conn
 
@@ -69,19 +70,19 @@ func (c *Client) Connect() *model.PipelineError {
 func (c *Client) Authenticate() *model.PipelineError {
 	conf, err := getSSHClientConfig(&c.Info, c.conf)
 	if err != nil {
-		return model.NewPipelineError(model.TeInternal, err.Error())
+		return model.NewPipelineError(types.TeInternal, err.Error())
 	}
 
 	addr, _, _ := net.SplitHostPort(c.Info.Agent.Address)
 	conn, chans, reqs, err := ssh.NewClientConn(c.conn, addr, conf)
 	if err != nil {
-		return model.NewPipelineError(model.TeBadAuthentication, err.Error())
+		return model.NewPipelineError(types.TeBadAuthentication, err.Error())
 	}
 
 	sshClient := ssh.NewClient(conn, chans, reqs)
 	c.client, err = sftp.NewClient(sshClient)
 	if err != nil {
-		return model.NewPipelineError(model.TeConnection, err.Error())
+		return model.NewPipelineError(types.TeConnection, err.Error())
 	}
 	return nil
 }
@@ -95,12 +96,12 @@ func (c *Client) Request() *model.PipelineError {
 		if err != nil {
 			if msg, ok := isRemoteTaskError(err); ok {
 				fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
-				return model.NewPipelineError(model.TeExternalOperation, fullMsg)
+				return model.NewPipelineError(types.TeExternalOperation, fullMsg)
 			}
 			if err == os.ErrNotExist {
-				return model.NewPipelineError(model.TeFileNotFound, "Target directory does not exist")
+				return model.NewPipelineError(types.TeFileNotFound, "Target directory does not exist")
 			}
-			return model.NewPipelineError(model.TeConnection, err.Error())
+			return model.NewPipelineError(types.TeConnection, err.Error())
 		}
 	} else {
 		remotePath := path.Join(c.Info.Rule.OutPath, c.Info.Transfer.SourceFile)
@@ -108,12 +109,12 @@ func (c *Client) Request() *model.PipelineError {
 		if err != nil {
 			if msg, ok := isRemoteTaskError(err); ok {
 				fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
-				return model.NewPipelineError(model.TeExternalOperation, fullMsg)
+				return model.NewPipelineError(types.TeExternalOperation, fullMsg)
 			}
 			if err == os.ErrNotExist {
-				return model.NewPipelineError(model.TeFileNotFound, "Target file does not exist")
+				return model.NewPipelineError(types.TeFileNotFound, "Target file does not exist")
 			}
-			return model.NewPipelineError(model.TeConnection, err.Error())
+			return model.NewPipelineError(types.TeConnection, err.Error())
 		}
 	}
 	return nil
@@ -149,7 +150,7 @@ func (c *Client) Data(file pipeline.DataStream) *model.PipelineError {
 		return nil
 	}()
 	if err != nil {
-		return model.NewPipelineError(model.TeDataTransfer, err.Error())
+		return model.NewPipelineError(types.TeDataTransfer, err.Error())
 	}
 	return nil
 }
@@ -169,9 +170,9 @@ func (c *Client) Close(pErr *model.PipelineError) *model.PipelineError {
 		if err := c.remoteFile.Close(); err != nil {
 			if msg, ok := isRemoteTaskError(err); ok {
 				fullMsg := fmt.Sprintf("Remote post-tasks failed: %s", msg)
-				return model.NewPipelineError(model.TeExternalOperation, fullMsg)
+				return model.NewPipelineError(types.TeExternalOperation, fullMsg)
 			}
-			return model.NewPipelineError(model.TeConnection, err.Error())
+			return model.NewPipelineError(types.TeConnection, err.Error())
 		}
 	}
 	return nil

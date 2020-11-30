@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 )
 
@@ -39,7 +40,7 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) *model.PipelineErr
 		msg := fmt.Sprintf("Unknown transfer protocol '%s'", info.Agent.Protocol)
 		e.Logger.Critical(msg)
 
-		return model.NewPipelineError(model.TeUnimplemented, msg)
+		return model.NewPipelineError(types.TeUnimplemented, msg)
 	}
 
 	e.client, err = constr(*info, stream.Signals)
@@ -47,7 +48,7 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) *model.PipelineErr
 		msg := fmt.Sprintf("Failed to create transfer client: %s", err)
 		e.Logger.Critical(msg)
 
-		return model.NewPipelineError(model.TeInternal, msg)
+		return model.NewPipelineError(types.TeInternal, msg)
 	}
 
 	return nil
@@ -77,16 +78,16 @@ func (e *Executor) setup() *model.PipelineError {
 func (e *Executor) data() *model.PipelineError {
 	e.Logger.Info("Starting data transfer")
 
-	if e.TransferStream.Transfer.Step != model.StepPreTasks &&
-		e.TransferStream.Transfer.Step != model.StepData {
+	if e.TransferStream.Transfer.Step != types.StepPreTasks &&
+		e.TransferStream.Transfer.Step != types.StepData {
 		return nil
 	}
 
-	e.Transfer.Step = model.StepData
+	e.Transfer.Step = types.StepData
 	e.Transfer.TaskNumber = 0
 	if err := e.DB.Update(e.Transfer); err != nil {
 		e.Logger.Criticalf("Failed to update transfer status: %s", err)
-		return model.NewPipelineError(model.TeInternal, err.Error())
+		return model.NewPipelineError(types.TeInternal, err.Error())
 	}
 
 	if err := e.Start(); err != nil {
@@ -122,11 +123,9 @@ func logTrans(logger *log.Logger, info *model.OutTransferInfo) {
 }
 
 func (e *Executor) prologue() *model.PipelineError {
-	if e.Transfer.Step < model.StepSetup {
-		e.Transfer.Step = model.StepSetup
+	if e.Transfer.Step < types.StepSetup {
+		e.Transfer.Step = types.StepSetup
 	}
-
-	e.Transfer.Status = model.StatusRunning
 
 	if err := e.DB.Update(e.Transfer); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
@@ -134,12 +133,12 @@ func (e *Executor) prologue() *model.PipelineError {
 	}
 
 	if err := e.getClient(e.TransferStream); err != nil {
-		e.Transfer.Step = model.StepSetup
+		e.Transfer.Step = types.StepSetup
 		return err
 	}
 
 	if err := e.setup(); err != nil {
-		e.Transfer.Step = model.StepSetup
+		e.Transfer.Step = types.StepSetup
 		_ = e.client.Close(err)
 		return err
 	}
@@ -175,11 +174,11 @@ func (e *Executor) run() *model.PipelineError {
 		return err
 	}
 
-	e.Transfer.Step = model.StepFinalization
+	e.Transfer.Step = types.StepFinalization
 	e.Transfer.TaskNumber = 0
 	if err := e.DB.Update(e.Transfer); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step to '%s': %s",
-			model.StepFinalization, err)
+			types.StepFinalization, err)
 		return &model.PipelineError{Kind: model.KindDatabase}
 	}
 
@@ -188,8 +187,8 @@ func (e *Executor) run() *model.PipelineError {
 		return err
 	}
 
-	e.Transfer.Step = model.StepNone
-	e.Transfer.Status = model.StatusDone
+	e.Transfer.Step = types.StepNone
+	e.Transfer.Status = types.StatusDone
 
 	return nil
 }

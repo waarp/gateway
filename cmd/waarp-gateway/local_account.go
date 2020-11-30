@@ -5,8 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 )
 
 type localAccountCommand struct {
@@ -28,7 +27,7 @@ type localAccountCommand struct {
 	} `command:"cert" description:"Manage an account's certificates"`
 }
 
-func displayAccount(w io.Writer, account *rest.OutAccount) {
+func displayAccount(w io.Writer, account *api.OutAccount) {
 	send := strings.Join(account.AuthorizedRules.Sending, ", ")
 	recv := strings.Join(account.AuthorizedRules.Reception, ", ")
 
@@ -46,12 +45,12 @@ type locAccAdd struct {
 }
 
 func (l *locAccAdd) Execute([]string) error {
-	account := &rest.InAccount{
+	account := &api.InAccount{
 		Login:    &l.Login,
-		Password: []byte(l.Password),
+		Password: &l.Password,
 	}
 	server := commandLine.Account.Local.Args.Server
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + server + rest.AccountsPath
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", server)
 
 	if err := add(account); err != nil {
 		return err
@@ -70,10 +69,9 @@ type locAccGet struct {
 
 func (l *locAccGet) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + server +
-		rest.AccountsPath + "/" + l.Args.Login
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", server, l.Args.Login)
 
-	account := &rest.OutAccount{}
+	account := &api.OutAccount{}
 	if err := get(account); err != nil {
 		return err
 	}
@@ -92,14 +90,13 @@ type locAccUpdate struct {
 }
 
 func (l *locAccUpdate) Execute([]string) error {
-	account := &rest.InAccount{
+	account := &api.InAccount{
 		Login:    l.Login,
-		Password: parseOptBytes(l.Password),
+		Password: l.Password,
 	}
 
 	server := commandLine.Account.Local.Args.Server
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + server +
-		rest.AccountsPath + "/" + l.Args.Login
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", server, l.Args.Login)
 
 	if err := update(account); err != nil {
 		return err
@@ -123,10 +120,9 @@ type locAccDelete struct {
 
 func (l *locAccDelete) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	path := admin.APIPath + rest.ServersPath + "/" + server +
-		rest.AccountsPath + "/" + l.Args.Login
+	uri := fmt.Sprintf("/api/servers/%s/accounts/%s", server, l.Args.Login)
 
-	if err := remove(path); err != nil {
+	if err := remove(uri); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The account", bold(l.Args.Login), "was successfully deleted.")
@@ -142,10 +138,10 @@ type locAccList struct {
 
 func (l *locAccList) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	addr.Path = rest.APIPath + rest.ServersPath + "/" + server + rest.AccountsPath
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", server)
 	listURL(&l.listOptions, l.SortBy)
 
-	body := map[string][]rest.OutAccount{}
+	body := map[string][]api.OutAccount{}
 	if err := list(&body); err != nil {
 		return err
 	}
@@ -176,9 +172,8 @@ type locAccAuthorize struct {
 
 func (l *locAccAuthorize) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + server +
-		rest.AccountsPath + "/" + l.Args.Login + "/authorize/" + l.Args.Rule +
-		"/" + strings.ToLower(l.Args.Direction)
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/authorize/%s/%s", server,
+		l.Args.Login, l.Args.Rule, l.Args.Direction)
 
 	return authorize("local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }
@@ -195,9 +190,8 @@ type locAccRevoke struct {
 
 func (l *locAccRevoke) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
-	addr.Path = admin.APIPath + rest.ServersPath + "/" + server +
-		rest.AccountsPath + "/" + l.Args.Login + "/revoke/" + l.Args.Rule +
-		"/" + strings.ToLower(l.Args.Direction)
+	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s/revoke/%s/%s", server,
+		l.Args.Login, l.Args.Rule, l.Args.Direction)
 
 	return revoke("local account", l.Args.Login, l.Args.Rule, l.Args.Direction)
 }

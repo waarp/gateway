@@ -3,6 +3,7 @@ package rest
 import (
 	"net/http"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -70,7 +71,7 @@ func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			resp := map[string][]OutAccount{"remoteAccounts": FromRemoteAccounts(results, rules)}
+			resp := map[string][]api.OutAccount{"remoteAccounts": FromRemoteAccounts(results, rules)}
 			return writeJSON(w, resp)
 		}()
 		if err != nil {
@@ -108,16 +109,16 @@ func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			account := newInRemAccount(old)
-			if err := readJSON(r, account); err != nil {
+			acc := newInRemAccount(old)
+			if err := readJSON(r, acc); err != nil {
 				return err
 			}
 
-			if err := db.Update(account.ToRemote(parent, old.ID)); err != nil {
+			if err := db.Update(accToRemote(acc, parent, old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(account.Login)))
+			w.Header().Set("Location", locationUpdate(r.URL, str(acc.Login)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -135,16 +136,16 @@ func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc 
 				return err
 			}
 
-			account := &InAccount{}
-			if err := readJSON(r, account); err != nil {
+			acc := &api.InAccount{}
+			if err := readJSON(r, acc); err != nil {
 				return err
 			}
 
-			if err := db.Update(account.ToRemote(parent, old.ID)); err != nil {
+			if err := db.Update(accToRemote(acc, parent, old.ID)); err != nil {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(account.Login)))
+			w.Header().Set("Location", locationUpdate(r.URL, str(acc.Login)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -154,7 +155,7 @@ func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc 
 	}
 }
 
-func createRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			parent, err := getRemAg(r, db)
@@ -162,12 +163,12 @@ func createRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			jsonAccount := &InAccount{}
-			if err := readJSON(r, jsonAccount); err != nil {
+			acc := &api.InAccount{}
+			if err := readJSON(r, acc); err != nil {
 				return err
 			}
 
-			account := jsonAccount.ToRemote(parent, 0)
+			account := accToRemote(acc, parent, 0)
 			if err := db.Create(account); err != nil {
 				return err
 			}
@@ -250,7 +251,7 @@ func getRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func createRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			_, acc, err := getRemAcc(r, db)

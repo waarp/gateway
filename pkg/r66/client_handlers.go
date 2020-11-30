@@ -2,10 +2,12 @@ package r66
 
 import (
 	"crypto/subtle"
+	"encoding/base64"
 	"encoding/json"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-r66/r66"
 	"code.waarp.fr/waarp-r66/r66/utils"
 )
@@ -25,7 +27,11 @@ func (h *clientAuthHandler) ValidAuth(auth *r66.Authent) (req r66.RequestHandler
 	if subtle.ConstantTimeCompare([]byte(auth.Login), []byte(r66Conf.ServerLogin)) == 0 {
 		err = authErr
 	}
-	if subtle.ConstantTimeCompare(r66Conf.ServerPassword, auth.Password) == 0 {
+	pwd, err := base64.StdEncoding.DecodeString(r66Conf.ServerPassword)
+	if err != nil {
+		err = &r66.Error{Code: r66.Internal, Detail: "failed to check credentials"}
+	}
+	if subtle.ConstantTimeCompare(pwd, auth.Password) == 0 {
 		err = authErr
 	}
 
@@ -43,7 +49,7 @@ func (h *clientRequestHandler) ValidRequest(r *r66.Request) (r66.TransferHandler
 		curBlock = r.Rank
 	}
 	r.Rank = curBlock
-	if h.info.Transfer.Step <= model.StepData {
+	if h.info.Transfer.Step <= types.StepData {
 		h.info.Transfer.Progress = uint64(curBlock) * uint64(r.Block)
 	}
 

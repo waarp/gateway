@@ -2,6 +2,7 @@ package sftp
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"io/ioutil"
 	"net"
@@ -17,6 +18,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
@@ -138,6 +140,7 @@ func TestSFTPPackage(t *testing.T) {
 				cancel:      cancel,
 			}
 			sshList.listen()
+			sshList.handlerMaker = sshList.makeTestHandlers
 			Reset(func() {
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 				defer cancel()
@@ -215,7 +218,9 @@ func TestSFTPPackage(t *testing.T) {
 
 				Convey("Given a transfer from SFTP client to server", func() {
 					srcFile := "sftp_test_file.src"
-					content := []byte("SFTP package test file content")
+					content := make([]byte, 1048576)
+					_, err := rand.Read(content)
+					So(err, ShouldBeNil)
 					srcFilepath := filepath.Join(home, send.OutPath, srcFile)
 					So(os.MkdirAll(filepath.Dir(srcFilepath), 0o700), ShouldBeNil)
 					So(ioutil.WriteFile(srcFilepath, content, 0o600), ShouldBeNil)
@@ -228,7 +233,7 @@ func TestSFTPPackage(t *testing.T) {
 						SourceFile: srcFile,
 						DestFile:   "sftp_test_file.dst",
 						Start:      time.Now().Truncate(time.Second),
-						Status:     model.StatusPlanned,
+						Status:     types.StatusPlanned,
 					}
 					So(db.Create(&trans), ShouldBeNil)
 
@@ -255,6 +260,7 @@ func TestSFTPPackage(t *testing.T) {
 								So(<-checkChannel, ShouldEqual, "SEND | PRE-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "SEND | POST-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "RECEIVE | POST-TASK[0] | OK")
+								So(<-checkChannel, ShouldEqual, "END SERVER TRANSFER")
 								So(<-checkChannel, ShouldEqual, "END TRANSFER 1")
 
 								Convey("Then the destination file should exist", func() {
@@ -262,7 +268,7 @@ func TestSFTPPackage(t *testing.T) {
 									dst, err := ioutil.ReadFile(file)
 									So(err, ShouldBeNil)
 
-									So(string(dst), ShouldResemble, string(content))
+									So(len(dst), ShouldEqual, len(content))
 								})
 
 								Convey("Then the transfers should be over", func() {
@@ -289,9 +295,9 @@ func TestSFTPPackage(t *testing.T) {
 											Rule:           send.Name,
 											Start:          hist[0].Start,
 											Stop:           hist[0].Stop,
-											Status:         model.StatusDone,
-											Step:           model.StepNone,
-											Error:          model.TransferError{},
+											Status:         types.StatusDone,
+											Step:           types.StepNone,
+											Error:          types.TransferError{},
 											Progress:       uint64(len(content)),
 											TaskNumber:     0,
 										}
@@ -313,9 +319,9 @@ func TestSFTPPackage(t *testing.T) {
 											Rule:           receive.Name,
 											Start:          hist[1].Start,
 											Stop:           hist[1].Stop,
-											Status:         model.StatusDone,
-											Step:           model.StepNone,
-											Error:          model.TransferError{},
+											Status:         types.StatusDone,
+											Step:           types.StepNone,
+											Error:          types.TransferError{},
 											Progress:       uint64(len(content)),
 											TaskNumber:     0,
 										}
@@ -371,13 +377,13 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     send.ID,
 											Start:      transfers[0].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code: model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code: types.TeExternalOperation,
 												Details: "Remote pre-tasks failed: Task " +
 													"TESTFAIL @ receive PRE[1]: task failed",
 											},
-											Step:       model.StepSetup,
+											Step:       types.StepSetup,
 											Progress:   0,
 											TaskNumber: 0,
 										}
@@ -398,13 +404,13 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     receive.ID,
 											Start:      transfers[1].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code: model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code: types.TeExternalOperation,
 												Details: "Task TESTFAIL @ receive " +
 													"PRE[1]: task failed",
 											},
-											Step:       model.StepPreTasks,
+											Step:       types.StepPreTasks,
 											Progress:   0,
 											TaskNumber: 1,
 										}
@@ -432,6 +438,7 @@ func TestSFTPPackage(t *testing.T) {
 								So(<-checkChannel, ShouldEqual, "SEND | PRE-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "SEND | PRE-TASK[1] | FAIL")
 								So(<-checkChannel, ShouldEqual, "RECEIVE | ERROR-TASK[0] | OK")
+								So(<-checkChannel, ShouldEqual, "END SERVER TRANSFER")
 								So(<-checkChannel, ShouldEqual, "SEND | ERROR-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "END TRANSFER 3")
 
@@ -461,13 +468,13 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     send.ID,
 											Start:      transfers[0].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code: model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code: types.TeExternalOperation,
 												Details: "Task TESTFAIL @ send " +
 													"PRE[1]: task failed",
 											},
-											Step:       model.StepPreTasks,
+											Step:       types.StepPreTasks,
 											Progress:   0,
 											TaskNumber: 1,
 										}
@@ -488,12 +495,12 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     receive.ID,
 											Start:      transfers[1].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code:    model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code:    types.TeExternalOperation,
 												Details: "Remote pre-tasks failed",
 											},
-											Step:       model.StepPreTasks,
+											Step:       types.StepPreTasks,
 											Progress:   0,
 											TaskNumber: 1,
 										}
@@ -523,6 +530,7 @@ func TestSFTPPackage(t *testing.T) {
 								So(<-checkChannel, ShouldEqual, "RECEIVE | POST-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "RECEIVE | POST-TASK[1] | FAIL")
 								So(<-checkChannel, ShouldEqual, "RECEIVE | ERROR-TASK[0] | OK")
+								So(<-checkChannel, ShouldEqual, "END SERVER TRANSFER")
 								So(<-checkChannel, ShouldEqual, "SEND | ERROR-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "END TRANSFER 4")
 
@@ -532,7 +540,7 @@ func TestSFTPPackage(t *testing.T) {
 									cont, err := ioutil.ReadFile(file)
 									So(err, ShouldBeNil)
 
-									So(string(cont), ShouldEqual, string(content))
+									So(len(cont), ShouldEqual, len(content))
 								})
 
 								Convey("Then the transfers should be over", func() {
@@ -554,13 +562,13 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     send.ID,
 											Start:      transfers[0].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code: model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code: types.TeExternalOperation,
 												Details: "Remote post-tasks failed: Task " +
 													"TESTFAIL @ receive POST[1]: task failed",
 											},
-											Step:       model.StepFinalization,
+											Step:       types.StepFinalization,
 											Progress:   uint64(len(content)),
 											TaskNumber: 0,
 										}
@@ -581,13 +589,13 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     receive.ID,
 											Start:      transfers[1].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code: model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code: types.TeExternalOperation,
 												Details: "Task TESTFAIL @ receive " +
 													"POST[1]: task failed",
 											},
-											Step:       model.StepPostTasks,
+											Step:       types.StepPostTasks,
 											Progress:   uint64(len(content)),
 											TaskNumber: 1,
 										}
@@ -616,19 +624,20 @@ func TestSFTPPackage(t *testing.T) {
 								So(<-checkChannel, ShouldEqual, "SEND | POST-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "SEND | POST-TASK[1] | FAIL")
 								So(<-checkChannel, ShouldEqual, "RECEIVE | ERROR-TASK[0] | OK")
+								So(<-checkChannel, ShouldEqual, "END SERVER TRANSFER")
 								So(<-checkChannel, ShouldEqual, "SEND | ERROR-TASK[0] | OK")
 								So(<-checkChannel, ShouldEqual, "END TRANSFER 5")
 
 								Convey("Then the file should exist", func() {
-									file := filepath.Join(root, receive.WorkPath,
-										trans.DestFile+".tmp")
+									file := filepath.Join(root, receive.InPath,
+										trans.DestFile)
 									cont, err := ioutil.ReadFile(file)
 									So(err, ShouldBeNil)
 
-									So(string(cont), ShouldEqual, string(content))
+									So(len(cont), ShouldEqual, len(content))
 								})
 
-								SkipConvey("Then the transfers should be over", func() {
+								Convey("Then the transfers should be over", func() {
 									var transfers []model.Transfer
 									So(db.Select(&transfers, nil), ShouldBeNil)
 									So(transfers, ShouldHaveLength, 2)
@@ -647,16 +656,16 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     send.ID,
 											Start:      transfers[0].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code:    model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code:    types.TeExternalOperation,
 												Details: "Task TESTFAIL @ send POST[1]: task failed",
 											},
-											Step:       model.StepPostTasks,
-											Progress:   0,
+											Step:       types.StepPostTasks,
+											Progress:   uint64(len(content)),
 											TaskNumber: 1,
 										}
-										So(transfers[1], ShouldResemble, expected)
+										So(transfers[0], ShouldResemble, expected)
 									})
 
 									Convey("Then there should be a server-side "+
@@ -673,16 +682,16 @@ func TestSFTPPackage(t *testing.T) {
 											DestFile:   trans.DestFile,
 											RuleID:     receive.ID,
 											Start:      transfers[1].Start,
-											Status:     model.StatusError,
-											Error: model.TransferError{
-												Code:    model.TeExternalOperation,
+											Status:     types.StatusError,
+											Error: types.TransferError{
+												Code:    types.TeExternalOperation,
 												Details: "Remote post-tasks failed",
 											},
-											Step:       model.StepPostTasks,
-											Progress:   0,
+											Step:       types.StepPostTasks,
+											Progress:   uint64(len(content)),
 											TaskNumber: 0,
 										}
-										So(transfers[0], ShouldResemble, expected)
+										So(transfers[1], ShouldResemble, expected)
 									})
 								})
 							})

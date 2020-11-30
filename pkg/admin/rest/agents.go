@@ -1,31 +1,18 @@
 package rest
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/go-xorm/builder"
 )
 
-// InServer is the JSON representation of a local agent in requests
-// made to the REST interface.
-type InServer struct {
-	Name        *string         `json:"name,omitempty"`
-	Protocol    *string         `json:"protocol,omitempty"`
-	Address     *string         `json:"address,omitempty"`
-	Root        *string         `json:"root,omitempty"`
-	InDir       *string         `json:"inDir,omitempty"`
-	OutDir      *string         `json:"outDir,omitempty"`
-	WorkDir     *string         `json:"workDir,omitempty"`
-	ProtoConfig json.RawMessage `json:"protoConfig,omitempty"`
-}
-
-func newInServer(old *model.LocalAgent) *InServer {
-	return &InServer{
+func newInServer(old *model.LocalAgent) *api.InServer {
+	return &api.InServer{
 		Name:        &old.Name,
 		Protocol:    &old.Protocol,
 		Address:     &old.Address,
@@ -37,33 +24,24 @@ func newInServer(old *model.LocalAgent) *InServer {
 	}
 }
 
-// ToModel transforms the JSON local agent into its database equivalent.
-func (i *InServer) ToModel(id uint64) *model.LocalAgent {
+// servToDB transforms the JSON local agent into its database equivalent.
+func servToDB(serv *api.InServer, id uint64) *model.LocalAgent {
 	return &model.LocalAgent{
 		ID:          id,
 		Owner:       database.Owner,
-		Name:        str(i.Name),
-		Address:     str(i.Address),
-		Root:        str(i.Root),
-		InDir:       str(i.InDir),
-		OutDir:      str(i.OutDir),
-		WorkDir:     str(i.WorkDir),
-		Protocol:    str(i.Protocol),
-		ProtoConfig: i.ProtoConfig,
+		Name:        str(serv.Name),
+		Address:     str(serv.Address),
+		Root:        str(serv.Root),
+		InDir:       str(serv.InDir),
+		OutDir:      str(serv.OutDir),
+		WorkDir:     str(serv.WorkDir),
+		Protocol:    str(serv.Protocol),
+		ProtoConfig: serv.ProtoConfig,
 	}
 }
 
-// InPartner is the JSON representation of a remote agent in requests
-// made to the REST interface.
-type InPartner struct {
-	Name        *string         `json:"name,omitempty"`
-	Protocol    *string         `json:"protocol,omitempty"`
-	Address     *string         `json:"address,omitempty"`
-	ProtoConfig json.RawMessage `json:"protoConfig,omitempty"`
-}
-
-func newInPartner(old *model.RemoteAgent) *InPartner {
-	return &InPartner{
+func newInPartner(old *model.RemoteAgent) *api.InPartner {
+	return &api.InPartner{
 		Name:        &old.Name,
 		Protocol:    &old.Protocol,
 		Address:     &old.Address,
@@ -71,35 +49,21 @@ func newInPartner(old *model.RemoteAgent) *InPartner {
 	}
 }
 
-// ToModel transforms the JSON remote agent into its database equivalent.
-func (i *InPartner) ToModel(id uint64) *model.RemoteAgent {
+// partToDB transforms the JSON remote agent into its database equivalent.
+func partToDB(part *api.InPartner, id uint64) *model.RemoteAgent {
 	return &model.RemoteAgent{
 		ID:          id,
-		Name:        str(i.Name),
-		Protocol:    str(i.Protocol),
-		Address:     str(i.Address),
-		ProtoConfig: i.ProtoConfig,
+		Name:        str(part.Name),
+		Protocol:    str(part.Protocol),
+		Address:     str(part.Address),
+		ProtoConfig: part.ProtoConfig,
 	}
-}
-
-// OutServer is the JSON representation of a local server in responses sent by
-// the REST interface.
-type OutServer struct {
-	Name            string          `json:"name"`
-	Protocol        string          `json:"protocol"`
-	Address         string          `json:"address"`
-	Root            string          `json:"root,omitempty"`
-	InDir           string          `json:"inDir,omitempty"`
-	OutDir          string          `json:"outDir,omitempty"`
-	WorkDir         string          `json:"workDir,omitempty"`
-	ProtoConfig     json.RawMessage `json:"protoConfig"`
-	AuthorizedRules AuthorizedRules `json:"authorizedRules"`
 }
 
 // FromLocalAgent transforms the given database local agent into its JSON
 // equivalent.
-func FromLocalAgent(ag *model.LocalAgent, rules *AuthorizedRules) *OutServer {
-	return &OutServer{
+func FromLocalAgent(ag *model.LocalAgent, rules *api.AuthorizedRules) *api.OutServer {
+	return &api.OutServer{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
 		Address:         ag.Address,
@@ -114,8 +78,8 @@ func FromLocalAgent(ag *model.LocalAgent, rules *AuthorizedRules) *OutServer {
 
 // FromLocalAgents transforms the given list of database local agents into
 // its JSON equivalent.
-func FromLocalAgents(ags []model.LocalAgent, rules []AuthorizedRules) []OutServer {
-	agents := make([]OutServer, len(ags))
+func FromLocalAgents(ags []model.LocalAgent, rules []api.AuthorizedRules) []api.OutServer {
+	agents := make([]api.OutServer, len(ags))
 	for i, ag := range ags {
 		agent := ag
 		agents[i] = *FromLocalAgent(&agent, &rules[i])
@@ -123,20 +87,10 @@ func FromLocalAgents(ags []model.LocalAgent, rules []AuthorizedRules) []OutServe
 	return agents
 }
 
-// OutPartner is the JSON representation of a remote partner in responses sent
-// by the REST interface.
-type OutPartner struct {
-	Name            string           `json:"name"`
-	Protocol        string           `json:"protocol"`
-	Address         string           `json:"address"`
-	ProtoConfig     json.RawMessage  `json:"protoConfig"`
-	AuthorizedRules *AuthorizedRules `json:"authorizedRules,omitempty"`
-}
-
 // FromRemoteAgent transforms the given database remote agent into its JSON
 // equivalent.
-func FromRemoteAgent(ag *model.RemoteAgent, rules *AuthorizedRules) *OutPartner {
-	return &OutPartner{
+func FromRemoteAgent(ag *model.RemoteAgent, rules *api.AuthorizedRules) *api.OutPartner {
+	return &api.OutPartner{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
 		Address:         ag.Address,
@@ -147,8 +101,8 @@ func FromRemoteAgent(ag *model.RemoteAgent, rules *AuthorizedRules) *OutPartner 
 
 // FromRemoteAgents transforms the given list of database remote agents into
 // its JSON equivalent.
-func FromRemoteAgents(ags []model.RemoteAgent, rules []AuthorizedRules) []OutPartner {
-	agents := make([]OutPartner, len(ags))
+func FromRemoteAgents(ags []model.RemoteAgent, rules []api.AuthorizedRules) []api.OutPartner {
+	agents := make([]api.OutPartner, len(ags))
 	for i, ag := range ags {
 		agent := ag
 		agents[i] = *FromRemoteAgent(&agent, &rules[i])

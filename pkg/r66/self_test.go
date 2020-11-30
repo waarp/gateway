@@ -15,6 +15,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
@@ -268,9 +269,9 @@ func checkHistory(ctx *testContext) {
 				Stop:           results[0].Stop,
 				SourceFilename: ctx.trans.SourceFile,
 				DestFilename:   ctx.trans.DestFile,
-				Status:         model.StatusDone,
-				Step:           model.StepNone,
-				Error:          model.TransferError{},
+				Status:         types.StatusDone,
+				Step:           types.StepNone,
+				Error:          types.TransferError{},
 				Progress:       uint64(len(testFileContent)),
 				TaskNumber:     0,
 			}
@@ -295,9 +296,9 @@ func checkHistory(ctx *testContext) {
 				Agent:            ctx.server.Name,
 				Start:            results[1].Start,
 				Stop:             results[1].Stop,
-				Status:           model.StatusDone,
-				Step:             model.StepNone,
-				Error:            model.TransferError{},
+				Status:           types.StatusDone,
+				Step:             types.StepNone,
+				Error:            types.TransferError{},
 				Progress:         uint64(len(testFileContent)),
 				TaskNumber:       0,
 			}
@@ -350,7 +351,7 @@ func checkTransfers(ctx *testContext, cTrans *model.Transfer, sTrans ...*model.T
 					sTrans.RuleID = ctx.recv.ID
 					sTrans.SourceFile = ctx.trans.DestFile
 					sTrans.DestFile = ctx.trans.DestFile
-					if sTrans.Step > model.StepData {
+					if sTrans.Step > types.StepData {
 						sTrans.TrueFilepath = utils.NormalizePath(filepath.Join(
 							ctx.serverPaths.ServerRoot, ctx.serverPaths.ServerIn,
 							ctx.trans.DestFile))
@@ -472,10 +473,10 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 						close(checkChannel)
 
 						cTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepPreTasks,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepPreTasks,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self PRE[1]: task failed",
 							},
 							Progress:   0,
@@ -483,10 +484,10 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 						}
 
 						sTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepPreTasks,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepPreTasks,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self PRE[1]: task failed",
 							},
 							Progress:   0,
@@ -500,7 +501,7 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 
 							retry := &model.Transfer{ID: ctx.trans.ID}
 							So(ctx.db.Get(retry), ShouldBeNil)
-							retry.Status = model.StatusPlanned
+							retry.Status = types.StatusPlanned
 							So(ctx.db.Update(retry), ShouldBeNil)
 							ctx.trans = retry
 
@@ -553,10 +554,10 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 					close(checkChannel)
 
 					cTrans := &model.Transfer{
-						Status: model.StatusError,
-						Step:   model.StepSetup,
-						Error: model.TransferError{
-							Code:    model.TeExternalOperation,
+						Status: types.StatusError,
+						Step:   types.StepSetup,
+						Error: types.TransferError{
+							Code:    types.TeExternalOperation,
 							Details: "Task TESTFAIL @ self PRE[1]: task failed",
 						},
 						Progress:   0,
@@ -564,10 +565,10 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 					}
 
 					sTrans := &model.Transfer{
-						Status: model.StatusError,
-						Step:   model.StepPreTasks,
-						Error: model.TransferError{
-							Code:    model.TeExternalOperation,
+						Status: types.StatusError,
+						Step:   types.StepPreTasks,
+						Error: types.TransferError{
+							Code:    types.TeExternalOperation,
 							Details: "Task TESTFAIL @ self PRE[1]: task failed",
 						},
 						Progress:   0,
@@ -581,7 +582,7 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 
 						retry := &model.Transfer{ID: ctx.trans.ID}
 						So(ctx.db.Get(retry), ShouldBeNil)
-						retry.Status = model.StatusPlanned
+						retry.Status = types.StatusPlanned
 						So(ctx.db.Update(retry), ShouldBeNil)
 						ctx.trans = retry
 
@@ -636,10 +637,10 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 						close(checkChannel)
 
 						cTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepPreTasks,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepPreTasks,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self PRE[1]: task failed",
 							},
 							Progress:   0,
@@ -647,10 +648,10 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 						}
 
 						sTrans1 := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepPreTasks,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepPreTasks,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self PRE[1]: task failed",
 							},
 							Progress:   0,
@@ -658,10 +659,10 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 						}
 
 						sTrans2 := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepData,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepData,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self PRE[1]: task failed",
 							},
 							Progress:   uint64(len(testFileContent)),
@@ -675,7 +676,7 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 
 							retry := &model.Transfer{ID: ctx.trans.ID}
 							So(ctx.db.Get(retry), ShouldBeNil)
-							retry.Status = model.StatusPlanned
+							retry.Status = types.StatusPlanned
 							So(ctx.db.Update(retry), ShouldBeNil)
 							ctx.trans = retry
 
@@ -729,10 +730,10 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 						close(checkChannel)
 
 						cTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepSetup,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepSetup,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self PRE[1]: task failed",
 							},
 							Progress:   0,
@@ -740,10 +741,10 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 						}
 
 						sTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepPreTasks,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepPreTasks,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self PRE[1]: task failed",
 							},
 							Progress:   0,
@@ -757,7 +758,7 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 
 							retry := &model.Transfer{ID: ctx.trans.ID}
 							So(ctx.db.Get(retry), ShouldBeNil)
-							retry.Status = model.StatusPlanned
+							retry.Status = types.StatusPlanned
 							So(ctx.db.Update(retry), ShouldBeNil)
 							ctx.trans = retry
 
@@ -815,10 +816,10 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 						close(checkChannel)
 
 						cTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepPostTasks,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepPostTasks,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self POST[1]: task failed",
 							},
 							Progress:   uint64(len(testFileContent)),
@@ -826,10 +827,10 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 						}
 
 						sTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepPostTasks,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepPostTasks,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self POST[1]: task failed",
 							},
 							Progress:   uint64(len(testFileContent)),
@@ -851,7 +852,7 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 
 							retry := &model.Transfer{ID: ctx.trans.ID}
 							So(ctx.db.Get(retry), ShouldBeNil)
-							retry.Status = model.StatusPlanned
+							retry.Status = types.StatusPlanned
 							So(ctx.db.Update(retry), ShouldBeNil)
 							ctx.trans = retry
 
@@ -907,10 +908,10 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 						close(checkChannel)
 
 						cTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepData,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepData,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self POST[1]: task failed",
 							},
 							Progress:   uint64(len(testFileContent)),
@@ -918,10 +919,10 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 						}
 
 						sTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepPostTasks,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepPostTasks,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self POST[1]: task failed",
 							},
 							Progress:   uint64(len(testFileContent)),
@@ -943,7 +944,7 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 
 							retry := &model.Transfer{ID: ctx.trans.ID}
 							So(ctx.db.Get(retry), ShouldBeNil)
-							retry.Status = model.StatusPlanned
+							retry.Status = types.StatusPlanned
 							So(ctx.db.Update(retry), ShouldBeNil)
 							ctx.trans = retry
 
@@ -1000,10 +1001,10 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 						close(checkChannel)
 
 						cTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepPostTasks,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepPostTasks,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self POST[1]: task failed",
 							},
 							Progress:   uint64(len(testFileContent)),
@@ -1011,10 +1012,10 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 						}
 
 						sTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepData,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepData,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self POST[1]: task failed",
 							},
 							Progress:   uint64(len(testFileContent)),
@@ -1036,7 +1037,7 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 
 							retry := &model.Transfer{ID: ctx.trans.ID}
 							So(ctx.db.Get(retry), ShouldBeNil)
-							retry.Status = model.StatusPlanned
+							retry.Status = types.StatusPlanned
 							So(ctx.db.Update(retry), ShouldBeNil)
 							ctx.trans = retry
 
@@ -1094,10 +1095,10 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 						close(checkChannel)
 
 						cTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepFinalization,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepFinalization,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self POST[1]: task failed",
 							},
 							Progress:   uint64(len(testFileContent)),
@@ -1105,10 +1106,10 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 						}
 
 						sTrans := &model.Transfer{
-							Status: model.StatusError,
-							Step:   model.StepPostTasks,
-							Error: model.TransferError{
-								Code:    model.TeExternalOperation,
+							Status: types.StatusError,
+							Step:   types.StepPostTasks,
+							Error: types.TransferError{
+								Code:    types.TeExternalOperation,
 								Details: "Task TESTFAIL @ self POST[1]: task failed",
 							},
 							Progress:   uint64(len(testFileContent)),
@@ -1130,7 +1131,7 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 
 							retry := &model.Transfer{ID: ctx.trans.ID}
 							So(ctx.db.Get(retry), ShouldBeNil)
-							retry.Status = model.StatusPlanned
+							retry.Status = types.StatusPlanned
 							So(ctx.db.Update(retry), ShouldBeNil)
 							ctx.trans = retry
 

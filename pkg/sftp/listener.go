@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
@@ -31,9 +32,12 @@ type sshListener struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	connWg sync.WaitGroup
+
+	handlerMaker func(ctx context.Context, accountID uint64) sftp.Handlers
 }
 
 func (l *sshListener) listen() {
+	l.handlerMaker = l.makeHandlers
 	go func() {
 		for {
 			conn, err := l.Listener.Accept()
@@ -96,7 +100,7 @@ func (l *sshListener) handleSession(ctx context.Context, wg *sync.WaitGroup,
 		}
 		go acceptRequests(requests)
 
-		server := sftp.NewRequestServer(channel, l.makeHandlers(ctx, accountID))
+		server := sftp.NewRequestServer(channel, l.handlerMaker(ctx, accountID))
 		_ = server.Serve()
 		_ = server.Close()
 
@@ -148,8 +152,8 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
 			SourceFile: path.Base(r.Filepath),
 			DestFile:   path.Base(r.Filepath),
 			Start:      time.Now(),
-			Status:     model.StatusRunning,
-			Step:       model.StepSetup,
+			Status:     types.StatusRunning,
+			Step:       types.StepSetup,
 		}
 
 		l.Logger.Infof("Download of file '%s' requested by '%s' using rule '%s'",
@@ -190,8 +194,8 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64,
 			SourceFile: path.Base(r.Filepath),
 			DestFile:   path.Base(r.Filepath),
 			Start:      time.Now(),
-			Status:     model.StatusRunning,
-			Step:       model.StepSetup,
+			Status:     types.StatusRunning,
+			Step:       types.StepSetup,
 		}
 
 		l.Logger.Infof("Upload of file '%s' requested by '%s' using rule '%s'",

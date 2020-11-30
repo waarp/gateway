@@ -1,4 +1,4 @@
-package model
+package types
 
 import (
 	"database/sql/driver"
@@ -125,8 +125,8 @@ func (tec TransferErrorCode) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements json.Unmarshaler. This operation is not supported:
 // a user cannot modify the error code from an external API, so unmarshaling an
-// errorcode from json is a noop.
-func (tec TransferErrorCode) UnmarshalJSON(v []byte) error {
+// error code from json is a noop.
+func (tec TransferErrorCode) UnmarshalJSON([]byte) error {
 	return nil
 }
 
@@ -295,6 +295,6 @@ func (te TransferError) Error() string {
 }
 
 // UnmarshalJSON implements json.Unmarshaler. It is a noop.
-func (te TransferError) UnmarshalJSON(data []byte) error {
+func (te TransferError) UnmarshalJSON([]byte) error {
 	return nil
 }
