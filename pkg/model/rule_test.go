@@ -78,7 +78,23 @@ func TestRuleValidate(t *testing.T) {
 				})
 			})
 
-			Convey("Given a rule with the same name and same send", func() {
+			Convey("Given a rule with the same path but different direction", func() {
+				rule := &Rule{
+					Name:   old.Name,
+					IsSend: !old.IsSend,
+					Path:   old.Path,
+				}
+
+				Convey("When calling `Validate`", func() {
+					err := rule.Validate(db)
+
+					Convey("Then it should NOT return an error", func() {
+						So(err, ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given a rule with the same name and same direction", func() {
 				rule := &Rule{
 					Name:   old.Name,
 					IsSend: old.IsSend,
@@ -89,8 +105,8 @@ func TestRuleValidate(t *testing.T) {
 					err := rule.Validate(db)
 
 					Convey("Then the error should say that rule already exist", func() {
-						So(err, ShouldBeError, fmt.Sprintf("a rule named '%s' "+
-							"with send = %t already exist", old.Name, old.IsSend))
+						So(err, ShouldBeError, fmt.Sprintf("a %s rule named '%s' "+
+							"already exist", rule.Direction(), rule.Name))
 					})
 				})
 			})
@@ -102,10 +118,10 @@ func TestRuleValidate(t *testing.T) {
 				}
 
 				Convey("When calling `Validate`", func() {
-					err := rule.Validate(db)
+					So(rule.Validate(db), ShouldBeNil)
 
-					Convey("Then it should return an error saying that the path cannot be empty", func() {
-						So(err, ShouldBeError, "the rule's path cannot be empty")
+					Convey("Then the path should have been filled", func() {
+						So(rule.Path, ShouldEqual, "/"+rule.Name)
 					})
 				})
 			})
