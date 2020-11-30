@@ -8,6 +8,11 @@ Historique des versions
   règle n'a pas de ``in/out_path``. Les fichiers pouvant être téléchargés depuis
   le serveur SFTP sont donc maintenant visibles via ces 2 méthodes. Les fichiers
   entrants, en revanche, ne seront pas visibles une fois déposés.
+* :feature:`219` Le chemin (``path``) n'est plus obligatoire lors de la création
+  d'une règle. Par défaut, le nom de la règle sera utilisé comme chemin (les
+  règles d'unicité sur le chemin s'applique toujours).
+* :bug:`219` Il est désormais possible de créer 2 règles avec des chemins
+  (``path``) identiques si leur directions sont différentes.
 * :bug:`221` Ajout de l'identifiant de transfert distant aux interfaces REST &
   terminal. Lorsqu'un agent de transfert se connecte à la *gateway* pour faire
   un transfert, cet identifiant correspond au numéro que cet agent a donné au
