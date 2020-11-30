@@ -111,7 +111,7 @@ func (l *sshListener) makeTestHandlers(ctx context.Context, accountID uint64) sf
 		FileGet:  l.makeTestFileReader(ctx, accountID, paths),
 		FilePut:  l.makeTestFileWriter(ctx, accountID, paths),
 		FileCmd:  makeFileCmder(),
-		FileList: l.makeFileLister(paths),
+		FileList: l.makeFileLister(paths, accountID),
 	}
 }
 
