@@ -3,6 +3,7 @@ package rest
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -346,12 +347,20 @@ func TestUpdateRule(t *testing.T) {
 				OutPath: "/old/out",
 				IsSend:  true,
 			}
+			oldRecv := &model.Rule{
+				Name:    "old",
+				Path:    "/old/pathRecv",
+				InPath:  "/old/in",
+				OutPath: "/old/out",
+				IsSend:  false,
+			}
 			other := &model.Rule{
 				Name:   "other",
 				Path:   "/path/other",
 				IsSend: false,
 			}
 			So(db.Create(old), ShouldBeNil)
+			So(db.Create(oldRecv), ShouldBeNil)
 			So(db.Create(other), ShouldBeNil)
 
 			pTask := &model.Task{
@@ -400,7 +409,7 @@ func TestUpdateRule(t *testing.T) {
 						Convey("Then the rule should have been updated", func() {
 							var results []model.Rule
 							So(db.Select(&results, nil), ShouldBeNil)
-							So(len(results), ShouldEqual, 2)
+							So(len(results), ShouldEqual, 3)
 
 							expected := model.Rule{
 								ID:       old.ID,
@@ -449,8 +458,134 @@ func TestUpdateRule(t *testing.T) {
 					})
 				})
 			})
+
+			for _, rule := range []*model.Rule{old, oldRecv} {
+
+				Convey(fmt.Sprintf("When updating a rule IsSend: %t", rule.IsSend), func() {
+					for i, update := range []UptRule{
+						UptRule{
+							Name: strPtr("update"),
+						},
+						UptRule{
+							Comment: strPtr("update comment"),
+						},
+						UptRule{
+							Path: strPtr("/path/update"),
+						},
+						UptRule{
+							InPath: strPtr("/update/in"),
+						},
+						UptRule{
+							OutPath: strPtr("/update/out"),
+						},
+						UptRule{
+							WorkPath: strPtr("/update/work"),
+						},
+						UptRule{
+							PreTasks: []Task{
+								Task{
+									Type: "DELETE",
+									Args: []byte("{}"),
+								},
+							},
+						},
+						UptRule{
+							PostTasks: []Task{
+								Task{
+									Type: "DELETE",
+									Args: []byte("{}"),
+								},
+							},
+						},
+						UptRule{
+							ErrorTasks: []Task{
+								Task{
+									Type: "DELETE",
+									Args: []byte("{}"),
+								},
+							},
+						},
+					} {
+						Convey(fmt.Sprintf("TEST %d When updating %s", i, rule.Name), func() {
+							_, err := doUpdate(handler, rule, &update)
+							So(err, ShouldBeNil)
+
+							Convey("Then only the property updated should be modified", func() {
+								expexted := getExpected(rule, update)
+								dbRule, err := getFromDb(db, expexted.Name, rule.IsSend)
+								So(err, ShouldBeNil)
+								So(dbRule, ShouldResemble, expexted)
+							})
+						})
+					}
+				})
+			}
 		})
 	})
+}
+
+func doUpdate(handler http.HandlerFunc, old *model.Rule, update *UptRule) (*http.Response, error) {
+	w := httptest.NewRecorder()
+	body, err := json.Marshal(update)
+	if err != nil {
+		return nil, err
+	}
+	r, err := http.NewRequest(http.MethodPatch, ruleURI+old.Name,
+		bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	r = mux.SetURLVars(r, map[string]string{
+		"rule":      old.Name,
+		"direction": ruleDirection(old),
+	})
+	handler.ServeHTTP(w, r)
+	return w.Result(), nil
+}
+
+func getExpected(src *model.Rule, upt UptRule) *model.Rule {
+	res := &model.Rule{
+		ID:       src.ID,
+		Name:     src.Name,
+		Comment:  src.Comment,
+		IsSend:   src.IsSend,
+		Path:     src.Path,
+		InPath:   src.InPath,
+		OutPath:  src.OutPath,
+		WorkPath: src.WorkPath,
+	}
+	if upt.Name != nil {
+		res.Name = *upt.Name
+	}
+	if upt.Comment != nil {
+		res.Comment = *upt.Comment
+	}
+	if upt.Path != nil {
+		res.Path = *upt.Path
+	}
+	if upt.InPath != nil {
+		res.InPath = *upt.InPath
+	}
+	if upt.OutPath != nil {
+		res.OutPath = *upt.OutPath
+	}
+	if upt.WorkPath != nil {
+		res.WorkPath = *upt.WorkPath
+	}
+	// TODO Tasks
+	return res
+}
+
+func getFromDb(db *database.DB, name string, isSend bool) (*model.Rule, error) {
+	res := &model.Rule{
+		Name:   name,
+		IsSend: isSend,
+	}
+	err := db.Get(res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func TestReplaceRule(t *testing.T) {
