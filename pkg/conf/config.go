@@ -64,13 +64,19 @@ type ControllerConfig struct {
 }
 
 func normalizePaths(config *ServerConfig) error {
-	var err error
-	if config.Paths.GatewayHome == "" {
-		if config.Paths.GatewayHome, err = os.Getwd(); err != nil {
-			return fmt.Errorf("failed to retrieve current working directory: %s", err)
+	wd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve current working directory: %s", err)
+	}
+
+	if config.Paths.GatewayHome != "" {
+		if filepath.IsAbs(config.Paths.GatewayHome) {
+			config.Paths.GatewayHome = filepath.Clean(config.Paths.GatewayHome)
+		} else {
+			config.Paths.GatewayHome = filepath.Join(wd, config.Paths.GatewayHome)
 		}
 	} else {
-		config.Paths.GatewayHome = filepath.Clean(config.Paths.GatewayHome)
+		config.Paths.GatewayHome = wd
 	}
 	if config.Paths.InDirectory != "" {
 		if filepath.IsAbs(config.Paths.InDirectory) {
