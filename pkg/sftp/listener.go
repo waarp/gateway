@@ -121,7 +121,7 @@ func (l *sshListener) makeHandlers(ctx context.Context, accountID uint64) sftp.H
 		FileGet:  l.makeFileReader(ctx, accountID, paths),
 		FilePut:  l.makeFileWriter(ctx, accountID, paths),
 		FileCmd:  makeFileCmder(),
-		FileList: l.makeFileLister(paths),
+		FileList: l.makeFileLister(paths, accountID),
 	}
 }
 
