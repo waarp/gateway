@@ -32,9 +32,12 @@ type sshListener struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	connWg sync.WaitGroup
+
+	handlerMaker func(ctx context.Context, accountID uint64) sftp.Handlers
 }
 
 func (l *sshListener) listen() {
+	l.handlerMaker = l.makeHandlers
 	go func() {
 		for {
 			conn, err := l.Listener.Accept()
@@ -97,7 +100,7 @@ func (l *sshListener) handleSession(ctx context.Context, wg *sync.WaitGroup,
 		}
 		go acceptRequests(requests)
 
-		server := sftp.NewRequestServer(channel, l.makeHandlers(ctx, accountID))
+		server := sftp.NewRequestServer(channel, l.handlerMaker(ctx, accountID))
 		_ = server.Serve()
 		_ = server.Close()
 
@@ -118,7 +121,7 @@ func (l *sshListener) makeHandlers(ctx context.Context, accountID uint64) sftp.H
 		FileGet:  l.makeFileReader(ctx, accountID, paths),
 		FilePut:  l.makeFileWriter(ctx, accountID, paths),
 		FileCmd:  makeFileCmder(),
-		FileList: l.makeFileLister(paths),
+		FileList: l.makeFileLister(paths, accountID),
 	}
 }
 

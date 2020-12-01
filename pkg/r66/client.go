@@ -150,7 +150,7 @@ func (c *client) Request() *model.PipelineError {
 	}
 
 	trans := &r66.Transfer{
-		ID:    c.info.Transfer.ID,
+		ID:    int64(c.info.Transfer.ID),
 		Get:   !c.info.Rule.IsSend,
 		File:  file,
 		Rule:  c.info.Rule.Name,

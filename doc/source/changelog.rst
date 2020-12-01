@@ -5,6 +5,28 @@ Historique des versions
 
 * :bug:`211` Correction d'une erreur causant le changement de la direction d'une
   règle lors d'un *update* via l'interface REST.
+* :bug:`212` Correction du comportement des méthodes SFTP ``List`` et ``Stat``.
+  Les substitutions de chemin se font désormais correctement, même lorsque la
+  règle n'a pas de ``in/out_path``. Les fichiers pouvant être téléchargés depuis
+  le serveur SFTP sont donc maintenant visibles via ces 2 méthodes. Les fichiers
+  entrants, en revanche, ne seront pas visibles une fois déposés.
+* :feature:`219` Le chemin (``path``) n'est plus obligatoire lors de la création
+  d'une règle. Par défaut, le nom de la règle sera utilisé comme chemin (les
+  règles d'unicité sur le chemin s'applique toujours).
+* :bug:`219` Il est désormais possible de créer 2 règles avec des chemins
+  (``path``) identiques si leur directions sont différentes.
+* :bug:`221` Ajout de l'identifiant de transfert distant aux interfaces REST &
+  terminal. Lorsqu'un agent de transfert se connecte à la *gateway* pour faire
+  un transfert, cet identifiant correspond au numéro que cet agent a donné au
+  transfert, et qui est donc différent de l'identifiant que la *gateway* a donné
+  à ce transfert.
+* :bug:`216` Ajout de l'adresse manquante lors de l'export d'agents locaux/distants.
+* :bug:`218` Correction d'une erreur où le client de transfert envoyait le premier
+  packet de données en boucle lorsque la taille du fichier dépassait la taille
+  d'un packet.
+* :bug:`217` Correction d'une erreur causant un *panic* du serveur dans certaines
+  circonstances à la fin d'un transfert.
+* :bug:`215` Correction d'une erreur de typage des identifiants de transfert R66.
 * :bug:`176` Les arguments de direction de transfert du client terminal ont été
   rendu consistants entre les différentes commandes. Le sens d'un transfert
   s'exprime désormais toujours avec les mots ``send`` et ``receive`` (en minuscules)
