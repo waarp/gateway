@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -485,7 +486,6 @@ func TestUpdateRule(t *testing.T) {
 									Args:   json.RawMessage(`{"path": "/move/path"}`),
 								}
 								So(p[2], ShouldResemble, newPoTask)
-
 							})
 						})
 					})
