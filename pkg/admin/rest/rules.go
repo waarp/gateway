@@ -28,27 +28,17 @@ func ruleToDB(rule *api.InRule, id uint64) (*model.Rule, error) {
 	}, nil
 }
 
-func newUptRule(old *model.Rule) *api.UptRule {
-	return &api.UptRule{
-		Name:     &old.Name,
-		Comment:  &old.Comment,
-		Path:     &old.Path,
-		InPath:   &old.InPath,
-		OutPath:  &old.OutPath,
-		WorkPath: &old.WorkPath,
-	}
-}
-
-// ruleUptToDB transforms the JSON transfer rule into its database equivalent.
-func ruleUptToDB(rule *api.UptRule, id uint64) *model.Rule {
-	return &model.Rule{
-		ID:       id,
-		Name:     str(rule.Name),
-		Comment:  str(rule.Comment),
-		Path:     str(rule.Path),
-		InPath:   str(rule.InPath),
-		OutPath:  str(rule.OutPath),
-		WorkPath: str(rule.WorkPath),
+func newInRule(old *model.Rule) *api.InRule {
+	return &api.InRule{
+		UptRule: &api.UptRule{
+			Name:     &old.Name,
+			Comment:  &old.Comment,
+			Path:     &old.Path,
+			InPath:   &old.InPath,
+			OutPath:  &old.OutPath,
+			WorkPath: &old.WorkPath,
+		},
+		IsSend: &old.IsSend,
 	}
 }
 
@@ -216,8 +206,8 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			rule := newUptRule(old)
-			if err := readJSON(r, rule); err != nil {
+			jRule := newInRule(old)
+			if err := readJSON(r, jRule); err != nil {
 				return err
 			}
 
@@ -225,11 +215,15 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			if err := ses.Update(ruleUptToDB(rule, old.ID)); err != nil {
+			rule, err := ruleToDB(jRule, old.ID)
+			if err != nil {
+				return err
+			}
+			if err := ses.Update(rule); err != nil {
 				ses.Rollback()
 				return err
 			}
-			if err := doTaskUpdate(ses, rule, old.ID, false); err != nil {
+			if err := doTaskUpdate(ses, jRule.UptRule, old.ID, false); err != nil {
 				ses.Rollback()
 				return err
 			}
@@ -237,7 +231,7 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(rule.Name)))
+			w.Header().Set("Location", locationUpdate(r.URL, str(jRule.Name)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()
@@ -255,8 +249,8 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			rule := &api.UptRule{}
-			if err := readJSON(r, rule); err != nil {
+			jRule := &api.InRule{IsSend: &old.IsSend, UptRule: &api.UptRule{}}
+			if err := readJSON(r, jRule.UptRule); err != nil {
 				return err
 			}
 
@@ -264,11 +258,15 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			if err != nil {
 				return err
 			}
-			if err := ses.Update(ruleUptToDB(rule, old.ID)); err != nil {
+			rule, err := ruleToDB(jRule, old.ID)
+			if err != nil {
+				return err
+			}
+			if err := ses.Update(rule); err != nil {
 				ses.Rollback()
 				return err
 			}
-			if err := doTaskUpdate(ses, rule, old.ID, true); err != nil {
+			if err := doTaskUpdate(ses, jRule.UptRule, old.ID, true); err != nil {
 				ses.Rollback()
 				return err
 			}
@@ -276,7 +274,7 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			w.Header().Set("Location", locationUpdate(r.URL, str(rule.Name)))
+			w.Header().Set("Location", locationUpdate(r.URL, str(jRule.Name)))
 			w.WriteHeader(http.StatusCreated)
 			return nil
 		}()

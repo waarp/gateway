@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`211` Correction d'une erreur causant le changement de la direction d'une
+  règle lors d'un *update* via l'interface REST.
 * :bug:`212` Correction du comportement des méthodes SFTP ``List`` et ``Stat``.
   Les substitutions de chemin se font désormais correctement, même lorsque la
   règle n'a pas de ``in/out_path``. Les fichiers pouvant être téléchargés depuis
@@ -52,7 +54,7 @@ Historique des versions
 * :bug:`205` Correction d'une erreur empêchant le démarrage des serveurs R66 locaux.
 * :bug:`206` Correction d'une erreur causant un double hachage du mot de passe
   du client R66.
-* :bug:`201` Correction du typage de la colonne `step` des tables `transfers` &
+* :bug:`201` Correction du typage de la colonne `step` des tables `transfers` et
   `transfer_history`. La colonne est désormais de type *VARCHAR* (au lieu de *INT*).
 * :bug:`200` Les écritures de la progression du transfert de données se fait
   désormais à intervalles réguliers (1 fois par seconde) au lieu de que ce soit
