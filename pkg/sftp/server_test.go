@@ -133,14 +133,6 @@ func TestSSHServer(t *testing.T) {
 			_, port, err := net.SplitHostPort(listener.Addr().String())
 			So(err, ShouldBeNil)
 
-			otherAgent := &model.LocalAgent{
-				Name:        "other_agent",
-				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:9999",
-			}
-			So(db.Create(otherAgent), ShouldBeNil)
-
 			agent := &model.LocalAgent{
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
@@ -159,13 +151,6 @@ func TestSSHServer(t *testing.T) {
 				Password:     []byte(pwd),
 			}
 			So(db.Create(user), ShouldBeNil)
-
-			otherUser := &model.LocalAccount{
-				LocalAgentID: otherAgent.ID,
-				Login:        user.Login,
-				Password:     []byte("passwd"),
-			}
-			So(db.Create(otherUser), ShouldBeNil)
 
 			cert := &model.Cert{
 				OwnerType:   agent.TableName(),
@@ -266,8 +251,8 @@ func TestSSHServer(t *testing.T) {
 									AccountID: user.ID,
 									AgentID:   agent.ID,
 									TrueFilepath: utils.NormalizePath(
-										filepath.Join(root, receive.WorkPath,
-											"test_in_shutdown.dst.tmp")),
+										filepath.Join(root, receive.InPath,
+											"test_in_shutdown.dst")),
 									SourceFile: "test_in_shutdown.dst",
 									DestFile:   "test_in_shutdown.dst",
 									RuleID:     receive.ID,
@@ -516,7 +501,7 @@ func TestSSHServer(t *testing.T) {
 										AccountID:        user.ID,
 										AgentID:          agent.ID,
 										TrueFilepath: utils.NormalizePath(filepath.Join(
-											root, receive.WorkPath, "test_in_fail.dst.tmp")),
+											root, receive.InPath, "test_in_fail.dst")),
 										SourceFile: "test_in_fail.dst",
 										DestFile:   "test_in_fail.dst",
 										RuleID:     receive.ID,

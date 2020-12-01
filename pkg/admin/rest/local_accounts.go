@@ -102,7 +102,7 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func createLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			parent, err := getLocAg(r, db)
@@ -252,7 +252,7 @@ func getLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func createLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
+func addLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := func() error {
 			_, acc, err := getLocAcc(r, db)

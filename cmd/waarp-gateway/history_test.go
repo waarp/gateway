@@ -24,12 +24,15 @@ func historyInfoString(h *api.OutHistory) string {
 	if h.IsServer {
 		role = "server"
 	}
-	way := "RECEIVE"
+	way := "receive"
 	if h.IsSend {
-		way = "SEND"
+		way = "send"
 	}
-	rv := "● Transfer " + fmt.Sprint(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n" +
-		"    Way:              " + way + "\n" +
+	rv := "● Transfer " + fmt.Sprint(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n"
+	if h.RemoteID != "" {
+		rv += "    Remote ID:        " + h.RemoteID + "\n"
+	}
+	rv += "    Way:              " + way + "\n" +
 		"    Protocol:         " + h.Protocol + "\n" +
 		"    Rule:             " + h.Rule + "\n" +
 		"    Requester:        " + h.Requester + "\n" +

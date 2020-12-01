@@ -127,8 +127,6 @@ func (e *Executor) prologue() *model.PipelineError {
 		e.Transfer.Step = types.StepSetup
 	}
 
-	e.Transfer.Status = types.StatusRunning
-
 	if err := e.DB.Update(e.Transfer); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
 		return &model.PipelineError{Kind: model.KindDatabase}

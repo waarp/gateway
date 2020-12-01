@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -51,7 +52,7 @@ func exist(slice []string, elem string) bool {
 }
 
 func getSSHClientConfig(info *model.OutTransferInfo, protoConfig *config.SftpProtoConfig) (*ssh.ClientConfig, error) {
-	pwd, err := model.DecryptPassword(info.Account.Password)
+	pwd, err := utils.DecryptPassword(info.Account.Password)
 	if err != nil {
 		return nil, err
 	}

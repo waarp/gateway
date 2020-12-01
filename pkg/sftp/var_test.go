@@ -1,12 +1,16 @@
 package sftp
 
 import (
+	"context"
 	"fmt"
+	"io"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
+	"github.com/pkg/sftp"
 )
 
 const (
@@ -56,6 +60,59 @@ func (t *testTaskFail) Validate(map[string]string) error {
 func (t *testTaskFail) Run(args map[string]string, _ *tasks.Processor) (string, error) {
 	checkChannel <- args["msg"]
 	return "task failed", fmt.Errorf("task failed")
+}
+
+type testSFTPStream struct {
+	*sftpStream
+}
+
+func (t *testSFTPStream) Close() error {
+	err := t.sftpStream.Close()
+	checkChannel <- "END SERVER TRANSFER"
+	return err
+}
+
+func (l *sshListener) makeTestFileReader(ctx context.Context, accountID uint64,
+	paths *pipeline.Paths) fileReaderFunc {
+
+	handler := l.makeFileReader(ctx, accountID, paths)
+	return func(r *sftp.Request) (io.ReaderAt, error) {
+		reader, err := handler(r)
+		if err != nil {
+			return nil, err
+		}
+		return &testSFTPStream{reader.(*sftpStream)}, nil
+	}
+}
+
+func (l *sshListener) makeTestFileWriter(ctx context.Context, accountID uint64,
+	paths *pipeline.Paths) fileWriterFunc {
+
+	handler := l.makeFileReader(ctx, accountID, paths)
+	return func(r *sftp.Request) (io.WriterAt, error) {
+		writer, err := handler(r)
+		if err != nil {
+			return nil, err
+		}
+		return &testSFTPStream{writer.(*sftpStream)}, nil
+	}
+}
+
+func (l *sshListener) makeTestHandlers(ctx context.Context, accountID uint64) sftp.Handlers {
+	paths := &pipeline.Paths{
+		PathsConfig: l.GWConf.Paths,
+		ServerRoot:  l.Agent.Root,
+		ServerIn:    l.Agent.InDir,
+		ServerOut:   l.Agent.OutDir,
+		ServerWork:  l.Agent.WorkDir,
+	}
+
+	return sftp.Handlers{
+		FileGet:  l.makeTestFileReader(ctx, accountID, paths),
+		FilePut:  l.makeTestFileWriter(ctx, accountID, paths),
+		FileCmd:  makeFileCmder(),
+		FileList: l.makeFileLister(paths, accountID),
+	}
 }
 
 const rsaPK = `-----BEGIN RSA PRIVATE KEY-----

@@ -155,10 +155,12 @@ func (s *sftpStream) Close() error {
 		}
 	}
 
-	if s.transErr == nil {
+	if s.Transfer.Step >= types.StepData {
 		if err := s.TransferStream.Move(); err != nil {
 			s.transErr = err.(*model.PipelineError)
 		}
+	}
+	if s.transErr == nil {
 		if s.transErr == nil {
 			s.transErr = s.PostTasks()
 			if s.transErr == nil {

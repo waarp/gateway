@@ -5,11 +5,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
@@ -25,12 +24,15 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 	if hist.IsServer {
 		role = "server"
 	}
-	way := "RECEIVE"
+	way := "receive"
 	if hist.IsSend {
-		way = "SEND"
+		way = "send"
 	}
 
 	fmt.Fprintln(w, orange(bold("● Transfer", hist.ID, "(as", role+")")), coloredStatus(hist.Status))
+	if hist.RemoteID != "" {
+		fmt.Fprintln(w, orange("    Remote ID:            "), hist.RemoteID)
+	}
 	fmt.Fprintln(w, orange("    Way:             "), way)
 	fmt.Fprintln(w, orange("    Protocol:        "), hist.Protocol)
 	fmt.Fprintln(w, orange("    Rule:            "), hist.Rule)
@@ -66,7 +68,7 @@ type historyGet struct {
 }
 
 func (h *historyGet) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID)
+	addr.Path = path.Join("/api/history/", fmt.Sprint(h.Args.ID))
 
 	trans := &api.OutHistory{}
 	if err := get(trans); err != nil {
@@ -91,7 +93,7 @@ type historyList struct {
 }
 
 func (h *historyList) listURL() error {
-	addr.Path = admin.APIPath + rest.HistoryPath
+	addr.Path = "/api/history"
 	query := url.Values{}
 	query.Set("limit", fmt.Sprint(h.Limit))
 	query.Set("offset", fmt.Sprint(h.Offset))
@@ -167,7 +169,7 @@ type historyRetry struct {
 }
 
 func (h *historyRetry) Execute([]string) error {
-	addr.Path = admin.APIPath + rest.HistoryPath + "/" + fmt.Sprint(h.Args.ID) + "/retry"
+	addr.Path = fmt.Sprintf("/api/history/%d/retry", h.Args.ID)
 
 	query := url.Values{}
 	if h.Date != "" {
