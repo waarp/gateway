@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -39,27 +38,30 @@ func TestCreateRule(t *testing.T) {
 			So(db.Create(existing), ShouldBeNil)
 
 			Convey("Given a new rule to insert in the database", func() {
-				newRule := &InRule{
-					UptRule: &UptRule{
-						Name:     strPtr("new rule"),
-						Comment:  strPtr(""),
-						Path:     strPtr("/test/rule/path"),
-						InPath:   strPtr("/test/rule/in"),
-						OutPath:  strPtr("/test/rule/out"),
-						WorkPath: strPtr("/test/rule/work"),
-					},
-					IsSend: utils.FalsePtr,
-				}
+				body := strings.NewReader(`{
+					"name": "new_name",
+					"comment": "new comment",
+					"path": "/test_path",
+					"inPath": "/test_in",
+					"outPath": "/test_out",
+					"workPath": "/test_work",
+					"isSend": false,
+					"preTasks": [{
+						"type": "DELETE"
+					}]
+				}`)
 
 				Convey("Given that the new account is valid for insertion", func() {
-					body, err := json.Marshal(newRule)
-					So(err, ShouldBeNil)
-					r, err := http.NewRequest(http.MethodPost, ruleURI, bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPost, ruleURI, body)
 
 					So(err, ShouldBeNil)
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
+
+						Convey("Then the response body should be empty", func() {
+							So(w.Body.String(), ShouldBeEmpty)
+						})
 
 						Convey("Then it should reply 'Created'", func() {
 							So(w.Code, ShouldEqual, http.StatusCreated)
@@ -68,12 +70,7 @@ func TestCreateRule(t *testing.T) {
 						Convey("Then the 'Location' header should contain the URI "+
 							"of the new rule", func() {
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, ruleURI+url.PathEscape(
-								str(newRule.Name)))
-						})
-
-						Convey("Then the response body should be empty", func() {
-							So(w.Body.String(), ShouldBeEmpty)
+							So(location, ShouldEqual, ruleURI+"new_name")
 						})
 
 						Convey("Then the new rule should be inserted "+
@@ -82,9 +79,33 @@ func TestCreateRule(t *testing.T) {
 							So(db.Select(&rules, nil), ShouldBeNil)
 							So(len(rules), ShouldEqual, 2)
 
-							exp, err := ruleToDB(newRule, 2)
-							So(err, ShouldBeNil)
-							So(rules[1], ShouldResemble, *exp)
+							exp := model.Rule{
+								ID:       2,
+								Name:     "new_name",
+								Comment:  "new comment",
+								IsSend:   false,
+								Path:     "/test_path",
+								InPath:   "/test_in",
+								OutPath:  "/test_out",
+								WorkPath: "/test_work",
+							}
+							So(rules[1], ShouldResemble, exp)
+						})
+
+						Convey("Then the new tasks should be inserted "+
+							"in the database", func() {
+							var tasks []model.Task
+							So(db.Select(&tasks, nil), ShouldBeNil)
+							So(len(tasks), ShouldEqual, 1)
+
+							exp := model.Task{
+								RuleID: 2,
+								Chain:  model.ChainPre,
+								Rank:   0,
+								Type:   "DELETE",
+								Args:   json.RawMessage(`{}`),
+							}
+							So(tasks[0], ShouldResemble, exp)
 						})
 
 						Convey("Then the existing rule should still be "+
@@ -350,9 +371,9 @@ func TestUpdateRule(t *testing.T) {
 		Convey("Given a database with 2 rules & a task", func() {
 			old := &model.Rule{
 				Name:    "old",
-				Path:    "/old/path",
-				InPath:  "/old/in",
-				OutPath: "/old/out",
+				Path:    "/old_path",
+				InPath:  "/old_in",
+				OutPath: "/old_out",
 				IsSend:  true,
 			}
 			oldRecv := &model.Rule{
@@ -364,7 +385,7 @@ func TestUpdateRule(t *testing.T) {
 			}
 			other := &model.Rule{
 				Name:   "other",
-				Path:   "/path/other",
+				Path:   "/path_other",
 				IsSend: false,
 			}
 			So(db.Create(old), ShouldBeNil)
@@ -380,18 +401,37 @@ func TestUpdateRule(t *testing.T) {
 			}
 			So(db.Create(pTask), ShouldBeNil)
 
+			poTask := &model.Task{
+				RuleID: old.ID,
+				Chain:  model.ChainPost,
+				Rank:   0,
+				Type:   "DELETE",
+				Args:   json.RawMessage(`{}`),
+			}
+			So(db.Create(poTask), ShouldBeNil)
+
+			eTask := &model.Task{
+				RuleID: old.ID,
+				Chain:  model.ChainError,
+				Rank:   0,
+				Type:   "DELETE",
+				Args:   json.RawMessage(`{}`),
+			}
+			So(db.Create(eTask), ShouldBeNil)
+
 			Convey("Given new values to update the rule with", func() {
-				update := UptRule{
-					Name:     strPtr("update"),
-					InPath:   strPtr(""),
-					WorkPath: strPtr("/update/work"),
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := strings.NewReader(`{
+					"name": "update_name",
+					"inPath": "",
+					"workPath": "/update_work",
+					"postTasks": [{
+						"type": "MOVE",
+						"args": {"path": "/move/path"}
+					}]
+				}`)
 
 				Convey("Given an existing rule name parameter", func() {
-					r, err := http.NewRequest(http.MethodPatch, ruleURI+old.Name,
-						bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPatch, ruleURI+old.Name, body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{
 						"rule":      old.Name,
@@ -412,7 +452,7 @@ func TestUpdateRule(t *testing.T) {
 						Convey("Then the 'Location' header should contain "+
 							"the URI of the updated rule", func() {
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, ruleURI+str(update.Name))
+							So(location, ShouldEqual, ruleURI+"update_name")
 						})
 
 						Convey("Then the rule should have been updated", func() {
@@ -422,29 +462,37 @@ func TestUpdateRule(t *testing.T) {
 
 							expected := model.Rule{
 								ID:       old.ID,
-								Name:     "update",
-								Path:     "/old/path",
+								Name:     "update_name",
+								Path:     "/old_path",
 								InPath:   "",
-								OutPath:  "/old/out",
-								WorkPath: "/update/work",
+								OutPath:  "/old_out",
+								WorkPath: "/update_work",
 								IsSend:   true,
 							}
 							So(results[0], ShouldResemble, expected)
 
-							Convey("Then the tasks should be unchanged", func() {
-								// So(db.Get(pTask), ShouldBeNil)
+							Convey("Then the tasks should have changed", func() {
 								var p []model.Task
 								So(db.Select(&p, nil), ShouldBeNil)
-								So(len(p), ShouldEqual, 1)
+								So(len(p), ShouldEqual, 3)
+
 								So(p[0], ShouldResemble, *pTask)
+								So(p[1], ShouldResemble, *eTask)
+								newPoTask := model.Task{
+									RuleID: 1,
+									Chain:  model.ChainPost,
+									Rank:   0,
+									Type:   "MOVE",
+									Args:   json.RawMessage(`{"path": "/move/path"}`),
+								}
+								So(p[2], ShouldResemble, newPoTask)
 							})
 						})
 					})
 				})
 
 				Convey("Given a non-existing rule name parameter", func() {
-					r, err := http.NewRequest(http.MethodPatch, ruleURI+"toto",
-						bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPatch, ruleURI+"toto", body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{
 						"rule":      "toto",
@@ -621,20 +669,17 @@ func TestReplaceRule(t *testing.T) {
 			So(db.Create(pTask), ShouldBeNil)
 
 			Convey("Given new values to update the rule with", func() {
-				update := UptRule{
-					Name: strPtr("update"),
-					Path: strPtr("/update/path"),
-					PostTasks: []Task{{
-						Type: "MOVE",
-						Args: json.RawMessage(`{"path":"/move/path"}`),
-					}},
-				}
-				body, err := json.Marshal(update)
-				So(err, ShouldBeNil)
+				body := strings.NewReader(`{
+					"name": "update_name",
+					"path": "/update_path",
+					"postTasks": [{
+						"type": "MOVE",
+						"args": {"path": "/move/path"}
+					}]
+				}`)
 
 				Convey("Given an existing rule name parameter", func() {
-					r, err := http.NewRequest(http.MethodPut, ruleURI+old.Name,
-						bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPut, ruleURI+old.Name, body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{
 						"rule":      old.Name,
@@ -655,7 +700,7 @@ func TestReplaceRule(t *testing.T) {
 						Convey("Then the 'Location' header should contain "+
 							"the URI of the updated rule", func() {
 							location := w.Header().Get("Location")
-							So(location, ShouldEqual, ruleURI+str(update.Name))
+							So(location, ShouldEqual, ruleURI+"update_name")
 						})
 
 						Convey("Then the rule should have been updated", func() {
@@ -665,8 +710,8 @@ func TestReplaceRule(t *testing.T) {
 
 							expected := model.Rule{
 								ID:     old.ID,
-								Name:   str(update.Name),
-								Path:   str(update.Path),
+								Name:   "update_name",
+								Path:   "/update_path",
 								IsSend: old.IsSend,
 							}
 							So(results[0], ShouldResemble, expected)
@@ -676,8 +721,8 @@ func TestReplaceRule(t *testing.T) {
 									RuleID: old.ID,
 									Chain:  model.ChainPost,
 									Rank:   0,
-									Type:   update.PostTasks[0].Type,
-									Args:   update.PostTasks[0].Args,
+									Type:   "MOVE",
+									Args:   json.RawMessage(`{"path": "/move/path"}`),
 								}
 								var tasks []model.Task
 								So(db.Select(&tasks, nil), ShouldBeNil)
@@ -689,8 +734,7 @@ func TestReplaceRule(t *testing.T) {
 				})
 
 				Convey("Given a non-existing rule name parameter", func() {
-					r, err := http.NewRequest(http.MethodPut, ruleURI+"toto",
-						bytes.NewReader(body))
+					r, err := http.NewRequest(http.MethodPut, ruleURI+"toto", body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{
 						"rule":      "toto",

@@ -29,7 +29,7 @@ func FromRuleTasks(ts []model.Task) []api.Task {
 }
 
 func doListTasks(db *database.DB, rule *api.OutRule, ruleID uint64) error {
-	preTasks := []model.Task{}
+	var preTasks []model.Task
 	preFilters := &database.Filters{
 		Order:      "rank ASC",
 		Conditions: builder.Eq{"rule_id": ruleID, "chain": model.ChainPre},
@@ -38,7 +38,7 @@ func doListTasks(db *database.DB, rule *api.OutRule, ruleID uint64) error {
 		return err
 	}
 
-	postTasks := []model.Task{}
+	var postTasks []model.Task
 	postFilters := &database.Filters{
 		Order:      "rank ASC",
 		Conditions: builder.Eq{"rule_id": ruleID, "chain": model.ChainPost},
@@ -47,7 +47,7 @@ func doListTasks(db *database.DB, rule *api.OutRule, ruleID uint64) error {
 		return err
 	}
 
-	errorTasks := []model.Task{}
+	var errorTasks []model.Task
 	errorFilters := &database.Filters{
 		Order:      "rank ASC",
 		Conditions: builder.Eq{"rule_id": ruleID, "chain": model.ChainError},
@@ -70,19 +70,19 @@ func taskUpdateDelete(ses *database.Session, rule *api.UptRule, ruleID uint64,
 			return err
 		}
 	} else {
-		if len(rule.PreTasks) == 0 && rule.PreTasks != nil {
+		if rule.PreTasks != nil {
 			if err := ses.Execute("DELETE FROM tasks WHERE rule_id=? AND chain=?",
 				ruleID, model.ChainPre); err != nil {
 				return err
 			}
 		}
-		if len(rule.PostTasks) == 0 && rule.PostTasks == nil {
+		if rule.PostTasks != nil {
 			if err := ses.Execute("DELETE FROM tasks WHERE rule_id=? AND chain=?",
 				ruleID, model.ChainPost); err != nil {
 				return err
 			}
 		}
-		if len(rule.ErrorTasks) == 0 && rule.ErrorTasks == nil {
+		if rule.ErrorTasks != nil {
 			if err := ses.Execute("DELETE FROM tasks WHERE rule_id=? AND chain=?",
 				ruleID, model.ChainError); err != nil {
 				return err
