@@ -67,7 +67,6 @@ func TestCreateRule(t *testing.T) {
 
 						Convey("Then the 'Location' header should contain the URI "+
 							"of the new rule", func() {
-
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, ruleURI+url.PathEscape(
 								str(newRule.Name)))
@@ -131,8 +130,10 @@ func TestGetRule(t *testing.T) {
 			SkipConvey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": recv.Name,
-					"direction": ruleDirection(recv)})
+				r = mux.SetURLVars(r, map[string]string{
+					"rule":      recv.Name,
+					"direction": ruleDirection(recv),
+				})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -163,8 +164,10 @@ func TestGetRule(t *testing.T) {
 			Convey("Given a request with the same rule name but different direction", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": send.Name,
-					"direction": ruleDirection(send)})
+				r = mux.SetURLVars(r, map[string]string{
+					"rule":      send.Name,
+					"direction": ruleDirection(send),
+				})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -197,8 +200,10 @@ func TestGetRule(t *testing.T) {
 			Convey("Given a request with a non-existing rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": "toto",
-					"direction": ruleDirection(recv)})
+				r = mux.SetURLVars(r, map[string]string{
+					"rule":      "toto",
+					"direction": ruleDirection(recv),
+				})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -289,8 +294,10 @@ func TestDeleteRule(t *testing.T) {
 			Convey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": rule.Name,
-					"direction": ruleDirection(rule)})
+				r = mux.SetURLVars(r, map[string]string{
+					"rule":      rule.Name,
+					"direction": ruleDirection(rule),
+				})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -305,7 +312,6 @@ func TestDeleteRule(t *testing.T) {
 
 					Convey("Then the rule should no longer be present "+
 						"in the database", func() {
-
 						var rules []model.Rule
 						So(db.Select(&rules, nil), ShouldBeNil)
 						So(rules, ShouldBeEmpty)
@@ -316,8 +322,10 @@ func TestDeleteRule(t *testing.T) {
 			Convey("Given a request with a non-existing rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
 				So(err, ShouldBeNil)
-				r = mux.SetURLVars(r, map[string]string{"rule": "toto",
-					"direction": ruleDirection(rule)})
+				r = mux.SetURLVars(r, map[string]string{
+					"rule":      "toto",
+					"direction": ruleDirection(rule),
+				})
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
@@ -385,8 +393,10 @@ func TestUpdateRule(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPatch, ruleURI+old.Name,
 						bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": old.Name,
-						"direction": ruleDirection(old)})
+					r = mux.SetURLVars(r, map[string]string{
+						"rule":      old.Name,
+						"direction": ruleDirection(old),
+					})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -401,7 +411,6 @@ func TestUpdateRule(t *testing.T) {
 
 						Convey("Then the 'Location' header should contain "+
 							"the URI of the updated rule", func() {
-
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, ruleURI+str(update.Name))
 						})
@@ -423,7 +432,7 @@ func TestUpdateRule(t *testing.T) {
 							So(results[0], ShouldResemble, expected)
 
 							Convey("Then the tasks should be unchanged", func() {
-								//So(db.Get(pTask), ShouldBeNil)
+								// So(db.Get(pTask), ShouldBeNil)
 								var p []model.Task
 								So(db.Select(&p, nil), ShouldBeNil)
 								So(len(p), ShouldEqual, 1)
@@ -437,8 +446,10 @@ func TestUpdateRule(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPatch, ruleURI+"toto",
 						bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": "toto",
-						"direction": ruleDirection(old)})
+					r = mux.SetURLVars(r, map[string]string{
+						"rule":      "toto",
+						"direction": ruleDirection(old),
+					})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -460,61 +471,54 @@ func TestUpdateRule(t *testing.T) {
 			})
 
 			for _, rule := range []*model.Rule{old, oldRecv} {
-
 				Convey(fmt.Sprintf("When updating a rule IsSend: %t", rule.IsSend), func() {
-					for i, update := range []UptRule{
-						UptRule{
+					testCases := []UptRule{
+						{
 							Name: strPtr("update"),
-						},
-						UptRule{
+						}, {
 							Comment: strPtr("update comment"),
-						},
-						UptRule{
+						}, {
 							Path: strPtr("/path/update"),
-						},
-						UptRule{
+						}, {
 							InPath: strPtr("/update/in"),
-						},
-						UptRule{
+						}, {
 							OutPath: strPtr("/update/out"),
-						},
-						UptRule{
+						}, {
 							WorkPath: strPtr("/update/work"),
-						},
-						UptRule{
+						}, {
 							PreTasks: []Task{
-								Task{
+								{
 									Type: "DELETE",
 									Args: []byte("{}"),
 								},
 							},
-						},
-						UptRule{
+						}, {
 							PostTasks: []Task{
-								Task{
+								{
 									Type: "DELETE",
 									Args: []byte("{}"),
 								},
 							},
-						},
-						UptRule{
+						}, {
 							ErrorTasks: []Task{
-								Task{
+								{
 									Type: "DELETE",
 									Args: []byte("{}"),
 								},
 							},
 						},
-					} {
+					}
+
+					for i, update := range testCases {
 						Convey(fmt.Sprintf("TEST %d When updating %s", i, rule.Name), func() {
 							_, err := doUpdate(handler, rule, &update)
 							So(err, ShouldBeNil)
 
 							Convey("Then only the property updated should be modified", func() {
-								expexted := getExpected(rule, update)
-								dbRule, err := getFromDb(db, expexted.Name, rule.IsSend)
+								expected := getExpected(rule, update)
+								dbRule, err := getFromDb(db, expected.Name, rule.IsSend)
 								So(err, ShouldBeNil)
-								So(dbRule, ShouldResemble, expexted)
+								So(dbRule, ShouldResemble, expected)
 							})
 						})
 					}
@@ -632,8 +636,10 @@ func TestReplaceRule(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPut, ruleURI+old.Name,
 						bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": old.Name,
-						"direction": ruleDirection(old)})
+					r = mux.SetURLVars(r, map[string]string{
+						"rule":      old.Name,
+						"direction": ruleDirection(old),
+					})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
@@ -648,7 +654,6 @@ func TestReplaceRule(t *testing.T) {
 
 						Convey("Then the 'Location' header should contain "+
 							"the URI of the updated rule", func() {
-
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, ruleURI+str(update.Name))
 						})
@@ -687,8 +692,10 @@ func TestReplaceRule(t *testing.T) {
 					r, err := http.NewRequest(http.MethodPut, ruleURI+"toto",
 						bytes.NewReader(body))
 					So(err, ShouldBeNil)
-					r = mux.SetURLVars(r, map[string]string{"rule": "toto",
-						"direction": ruleDirection(old)})
+					r = mux.SetURLVars(r, map[string]string{
+						"rule":      "toto",
+						"direction": ruleDirection(old),
+					})
 
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
