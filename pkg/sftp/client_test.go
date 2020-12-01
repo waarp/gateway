@@ -147,10 +147,10 @@ func TestRequest(t *testing.T) {
 			},
 		}
 		So(client.Connect(), ShouldBeNil)
-		Reset(func() { _ = client.conn.Close() })
+		defer func() { _ = client.conn.Close() }()
 
 		So(client.Authenticate(), ShouldBeNil)
-		Reset(func() { _ = client.client.Close() })
+		defer func() { _ = client.client.Close() }()
 
 		Convey("Given a valid out file transfer", func() {
 			client.Info.Transfer = &model.Transfer{

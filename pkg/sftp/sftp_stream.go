@@ -3,6 +3,7 @@ package sftp
 import (
 	"context"
 	"io"
+	"sync/atomic"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/pkg/sftp"
@@ -122,7 +123,7 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 	if s.transErr != nil {
 		return 0, modelToSFTP(s.transErr)
 	}
-	if uint64(off) != s.Transfer.Progress && off == 0 && len(p) == 1 {
+	if off == 0 && len(p) == 1 && uint64(off) != atomic.LoadUint64(&s.Transfer.Progress) {
 		s.Transfer.Step = types.StepPostTasks
 		if err := s.DB.Update(s.Transfer); err != nil {
 			return 0, err
