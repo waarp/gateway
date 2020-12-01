@@ -195,7 +195,7 @@ func TestValidRequest(t *testing.T) {
 			})
 
 			Convey("Given that the file size is missing", func() {
-				packet.FileSize = 0
+				packet.FileSize = -1
 				shouldFailWith("the file size is missing", "n: missing file size")
 			})
 		})

@@ -12,24 +12,34 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
 )
 
 var errIncorrectHash = fmt.Errorf("file hash does not match expected value")
 
-func checkHash(filepath string, expHash []byte) error {
-	f, err := os.Open(filepath)
+func makeHash(filepath string) ([]byte, error) {
+	f, err := os.Open(utils.DenormalizePath(filepath))
 	if err != nil {
-		return err.(*os.PathError).Err
+		return nil, err.(*os.PathError).Err
 	}
 	defer func() { _ = f.Close() }()
 
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, f); err != nil {
-		return err
+		return nil, err
 	}
 
 	hash := hasher.Sum(nil)
+	return hash, nil
+}
+
+func checkHash(filepath string, expHash []byte) error {
+	hash, err := makeHash(filepath)
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(hash, expHash) {
 		return errIncorrectHash
 	}

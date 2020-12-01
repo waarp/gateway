@@ -3,6 +3,7 @@ package r66
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -11,8 +12,9 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
-	"code.waarp.fr/waarp-r66/r66/utils"
+	r66utils "code.waarp.fr/waarp-r66/r66/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -59,17 +61,10 @@ type sessionHandler struct {
 	hasFileSize, hasHash bool
 }
 
-func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler, error) {
-	if request.Filepath == "" {
-		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "missing filepath"}
-	}
-	if request.Block == 0 {
-		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "missing block size"}
-	}
-
+func (s *sessionHandler) parseRuleMode(r *r66.Request) (bool, *model.Rule, error) {
 	var isMD5 bool
-	rule := model.Rule{Name: request.Rule}
-	switch request.Mode {
+	rule := model.Rule{Name: r.Rule}
+	switch r.Mode {
 	case 1:
 	case 2:
 		rule.IsSend = true
@@ -79,19 +74,41 @@ func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler
 		isMD5 = true
 		rule.IsSend = true
 	default:
-		return nil, &r66.Error{Code: r66.Unimplemented, Detail: "unknown transfer mode"}
+		return false, nil, &r66.Error{Code: r66.Unimplemented, Detail: "unknown transfer mode"}
 	}
+	return isMD5, &rule, nil
+}
 
-	if err := s.db.Get(&rule); err != nil {
+func (s *sessionHandler) getRule(rule *model.Rule) error {
+	if err := s.db.Get(rule); err != nil {
 		if err == database.ErrNotFound {
-			s.logger.Warningf("Requested transfer rule '%s' does not exist", request.Rule)
-			return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "rule does not exist"}
+			s.logger.Warningf("Requested transfer rule '%s' does not exist", rule.Name)
+			return &r66.Error{Code: r66.IncorrectCommand, Detail: "rule does not exist"}
 		}
 		s.logger.Errorf("Failed to retrieve transfer rule: %s", err)
-		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to retrieve rule"}
+		return &r66.Error{Code: r66.Internal, Detail: "failed to retrieve rule"}
+	}
+	return nil
+}
+
+func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler, error) {
+	if request.Filepath == "" {
+		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "missing filepath"}
+	}
+	if request.Block == 0 {
+		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "missing block size"}
 	}
 
-	if !rule.IsSend && s.hasFileSize && request.FileSize == 0 {
+	isMD5, rule, err := s.parseRuleMode(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.getRule(rule); err != nil {
+		return nil, err
+	}
+
+	if !rule.IsSend && s.hasFileSize && request.FileSize < 0 {
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "missing file size"}
 	}
 
@@ -112,12 +129,24 @@ func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler
 		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to initiate transfer"}
 	}
 
+	if rule.IsSend && s.hasFileSize {
+		stats, err := os.Stat(utils.DenormalizePath(tStream.Transfer.TrueFilepath))
+		if err != nil {
+			return nil, &r66.Error{Code: r66.Internal, Detail: err.Error()}
+		}
+		request.FileSize = stats.Size()
+	}
 	setProgress(tStream.Transfer, request)
 
 	//TODO: add transfer info to DB
 	stream := &stream{tStream}
 
-	handler := transferHandler{sessionHandler: s, stream: stream, isMD5: isMD5, fileSize: request.FileSize}
+	handler := transferHandler{
+		sessionHandler: s,
+		stream:         stream,
+		isMD5:          isMD5,
+		fileSize:       request.FileSize,
+	}
 	return &handler, nil
 }
 
@@ -125,7 +154,7 @@ type transferHandler struct {
 	*sessionHandler
 	stream   *stream
 	isMD5    bool
-	fileSize uint64
+	fileSize int64
 }
 
 func (t *transferHandler) RunPreTask() error {
@@ -138,7 +167,7 @@ func (t *transferHandler) RunPreTask() error {
 	return nil
 }
 
-func (t *transferHandler) GetStream() (utils.ReadWriterAt, error) {
+func (t *transferHandler) GetStream() (r66utils.ReadWriterAt, error) {
 	if err := t.stream.Start(); err != nil {
 		return nil, &r66.Error{Code: r66.FileNotAllowed, Detail: "failed to open file"}
 	}
@@ -149,12 +178,12 @@ func (t *transferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 	if t.stream.Close() != nil {
 		return &r66.Error{Code: r66.FinalOp, Detail: "failed to finalize transfer"}
 	}
-	if t.stream.Move() != nil {
-		return &r66.Error{Code: r66.FinalOp, Detail: "failed to finalize transfer"}
+	if t.stream.Transfer.Step > types.StepData {
+		return nil
 	}
 
 	if !t.stream.Rule.IsSend {
-		if t.hasFileSize && t.stream.Transfer.Progress != t.fileSize {
+		if t.hasFileSize && int64(t.stream.Transfer.Progress) != t.fileSize {
 			return &r66.Error{
 				Code: r66.SizeNotAllowed,
 				Detail: fmt.Sprintf("incorrect file size (expected %d, got %d)",
@@ -165,13 +194,25 @@ func (t *transferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 			if len(end.Hash) != 32 {
 				return &r66.Error{Code: r66.FinalOp, Detail: "invalid file hash"}
 			}
-			if checkHash(t.stream.Transfer.TrueFilepath, []byte(end.Hash)) != nil {
+			if err := checkHash(t.stream.Transfer.TrueFilepath, end.Hash); err != nil {
 				return &r66.Error{
 					Code:   r66.FinalOp,
-					Detail: "file hash does not match expected value",
+					Detail: err.Error(),
 				}
 			}
 		}
+	} else {
+		if t.hasHash {
+			hash, err := makeHash(t.stream.Transfer.TrueFilepath)
+			if err != nil {
+				return &r66.Error{Code: r66.FinalOp, Detail: "failed to calculate file hash"}
+			}
+			end.Hash = hash
+		}
+	}
+
+	if t.stream.Move() != nil {
+		return &r66.Error{Code: r66.FinalOp, Detail: "failed to finalize transfer"}
 	}
 
 	return nil

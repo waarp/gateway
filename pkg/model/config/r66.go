@@ -22,6 +22,8 @@ type R66ProtoConfig struct {
 	ServerPassword string `json:"serverPassword,omitempty"`
 	// Specifies whether the partner uses TLS or not. Useless for servers.
 	IsTLS bool `json:"isTLS,omitempty"`
+	// If true, the final hash verification will be disabled.
+	NoFinalHash bool `json:"noFinalHash,omitempty"`
 }
 
 // ValidPartner checks if the configuration is valid for a R66 partner.

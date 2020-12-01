@@ -3,7 +3,7 @@ package r66
 import (
 	"crypto/subtle"
 	"encoding/base64"
-	"encoding/json"
+	"fmt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
@@ -15,19 +15,17 @@ import (
 type clientAuthHandler struct {
 	getFile func() utils.ReadWriterAt
 	info    *model.OutTransferInfo
+	config  *config.R66ProtoConfig
+	size    uint64
 }
 
 func (h *clientAuthHandler) ValidAuth(auth *r66.Authent) (req r66.RequestHandler, err error) {
-	var r66Conf config.R66ProtoConfig
-	if jErr := json.Unmarshal(h.info.Agent.ProtoConfig, &r66Conf); jErr != nil {
-		err = &r66.Error{Code: r66.Internal, Detail: "failed to check credentials"}
-	}
 
 	var authErr error = &r66.Error{Code: r66.BadAuthent, Detail: "invalid credentials"}
-	if subtle.ConstantTimeCompare([]byte(auth.Login), []byte(r66Conf.ServerLogin)) == 0 {
+	if subtle.ConstantTimeCompare([]byte(auth.Login), []byte(h.config.ServerLogin)) == 0 {
 		err = authErr
 	}
-	pwd, err := base64.StdEncoding.DecodeString(r66Conf.ServerPassword)
+	pwd, err := base64.StdEncoding.DecodeString(h.config.ServerPassword)
 	if err != nil {
 		err = &r66.Error{Code: r66.Internal, Detail: "failed to check credentials"}
 	}
@@ -52,6 +50,9 @@ func (h *clientRequestHandler) ValidRequest(r *r66.Request) (r66.TransferHandler
 	if h.info.Transfer.Step <= types.StepData {
 		h.info.Transfer.Progress = uint64(curBlock) * uint64(r.Block)
 	}
+	if !h.info.Rule.IsSend && r.FileSize > 0 {
+		h.size = uint64(r.FileSize)
+	}
 
 	return &clientTransferHandler{h}, nil
 }
@@ -64,8 +65,39 @@ func (h *clientTransferHandler) GetStream() (utils.ReadWriterAt, error) {
 	return h.getFile(), nil
 }
 
-func (h *clientTransferHandler) RunPreTask() error                       { return nil }
-func (h *clientTransferHandler) ValidEndTransfer(*r66.EndTransfer) error { return nil }
-func (h *clientTransferHandler) RunPostTask() error                      { return nil }
-func (h *clientTransferHandler) ValidEndRequest() error                  { return nil }
-func (h *clientTransferHandler) RunErrorTask(error) error                { return nil }
+func (h *clientTransferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
+	if h.info.Transfer.Step > types.StepData {
+		return nil
+	}
+
+	if h.info.Rule.IsSend {
+		if !h.config.NoFinalHash {
+			hash, err := makeHash(h.info.Transfer.TrueFilepath)
+			if err != nil {
+				return &r66.Error{Code: r66.FinalOp, Detail: "failed to calculate file hash"}
+			}
+			end.Hash = hash
+		}
+	} else {
+		if h.info.Transfer.Progress != h.size {
+			return &r66.Error{
+				Code: r66.SizeNotAllowed,
+				Detail: fmt.Sprintf("incorrect file size (expected %d, got %d)",
+					h.size, h.info.Transfer.Progress),
+			}
+		}
+
+		if !h.config.NoFinalHash {
+			if err := checkHash(h.info.Transfer.TrueFilepath, end.Hash); err != nil {
+				return &r66.Error{Code: r66.FinalOp, Detail: err.Error()}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (h *clientTransferHandler) RunPreTask() error        { return nil }
+func (h *clientTransferHandler) RunPostTask() error       { return nil }
+func (h *clientTransferHandler) ValidEndRequest() error   { return nil }
+func (h *clientTransferHandler) RunErrorTask(error) error { return nil }
