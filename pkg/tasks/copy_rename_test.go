@@ -119,7 +119,10 @@ func TestCopyRenameTaskRun(t *testing.T) {
 					})
 
 					Convey("Given the target CANNOT be created", func() {
-						err := os.Mkdir("test/subdir", 0o400)
+						err := os.Mkdir("test/subdir", 0o700)
+						So(err, ShouldBeNil)
+
+						err = ioutil.WriteFile("test/subdir/subsubdir", []byte("hello"), 0o644)
 						So(err, ShouldBeNil)
 
 						Convey("When the task is run", func() {
