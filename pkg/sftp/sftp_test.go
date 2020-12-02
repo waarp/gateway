@@ -269,6 +269,7 @@ func TestSFTPPackage(t *testing.T) {
 									So(err, ShouldBeNil)
 
 									So(len(dst), ShouldEqual, len(content))
+									So(dst, ShouldResemble, content)
 								})
 
 								Convey("Then the transfers should be over", func() {
@@ -541,6 +542,7 @@ func TestSFTPPackage(t *testing.T) {
 									So(err, ShouldBeNil)
 
 									So(len(cont), ShouldEqual, len(content))
+									So(cont, ShouldResemble, content)
 								})
 
 								Convey("Then the transfers should be over", func() {
@@ -635,6 +637,7 @@ func TestSFTPPackage(t *testing.T) {
 									So(err, ShouldBeNil)
 
 									So(len(cont), ShouldEqual, len(content))
+									So(cont, ShouldResemble, content)
 								})
 
 								Convey("Then the transfers should be over", func() {
@@ -684,10 +687,10 @@ func TestSFTPPackage(t *testing.T) {
 											Start:      transfers[1].Start,
 											Status:     types.StatusError,
 											Error: types.TransferError{
-												Code:    types.TeExternalOperation,
-												Details: "Remote post-tasks failed",
+												Code:    types.TeConnectionReset,
+												Details: "SFTP connection closed unexpectedly",
 											},
-											Step:       types.StepPostTasks,
+											Step:       types.StepData,
 											Progress:   uint64(len(content)),
 											TaskNumber: 0,
 										}
