@@ -42,7 +42,7 @@ func (*CopyTask) Run(args map[string]string, runner *Processor) (string, error) 
 }
 
 func doCopy(dest, source string) error {
-	err := os.MkdirAll(filepath.Dir(dest), 0o755)
+	err := os.MkdirAll(filepath.Dir(dest), 0o700)
 	if err != nil {
 		return err
 	}
