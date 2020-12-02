@@ -60,13 +60,13 @@ func TestCopyRenameTaskRun(t *testing.T) {
 			args := map[string]string{
 				"path": "test/dummy.test",
 			}
-			So(os.Mkdir("test", 0744), ShouldBeNil)
+			So(os.Mkdir("test", 0o744), ShouldBeNil)
 			Reset(func() {
 				_ = os.RemoveAll("test")
 			})
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(runner.Transfer.TrueFilepath, []byte("Hello World"), 0700)
+				err := ioutil.WriteFile(runner.Transfer.TrueFilepath, []byte("Hello World"), 0o700)
 				So(err, ShouldBeNil)
 
 				Reset(func() {
@@ -98,10 +98,48 @@ func TestCopyRenameTaskRun(t *testing.T) {
 						So(runner.Transfer.SourceFile, ShouldEqual, "test.src")
 					})
 				})
+
+				Convey("Given the target is a non-existing subdir", func() {
+					args["path"] = "test/subdir/subsubdir/dummy.test"
+
+					Convey("Given the target can be created", func() {
+						Convey("When the task is run", func() {
+							task := &CopyRenameTask{}
+							_, err := task.Run(args, runner)
+
+							Convey("Then it should return no error", func() {
+								So(err, ShouldBeNil)
+							})
+
+							Convey("Then the target file exists", func() {
+								_, err := os.Stat("test/subdir/subsubdir/dummy.test")
+								So(err, ShouldBeNil)
+							})
+						})
+					})
+
+					Convey("Given the target CANNOT be created", func() {
+						err := os.Mkdir("test/subdir", 0o400)
+						So(err, ShouldBeNil)
+
+						Convey("When the task is run", func() {
+							task := &CopyRenameTask{}
+							_, err := task.Run(args, runner)
+
+							Convey("Then it should return an error", func() {
+								So(err, ShouldBeError)
+							})
+
+							Convey("Then the target file does not exist", func() {
+								_, err := os.Stat("test/subdir/subsubdir/dummy.test")
+								So(err, ShouldBeError)
+							})
+						})
+					})
+				})
 			})
 
 			Convey("Given NO file to transfer", func() {
-
 				Convey("When calling the `run` method", func() {
 					task := &CopyRenameTask{}
 					_, err := task.Run(args, runner)
@@ -148,7 +186,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 			args := map[string]string{
 				"path": "test/dummy.test",
 			}
-			So(os.Mkdir("test", 0700), ShouldBeNil)
+			So(os.Mkdir("test", 0o700), ShouldBeNil)
 			Reset(func() {
 				_ = os.RemoveAll("test")
 			})
@@ -189,7 +227,6 @@ func TestCopyRenameTaskRun(t *testing.T) {
 			})
 
 			Convey("Given NO file to transfer", func() {
-
 				Convey("When calling the `run` method", func() {
 					task := &CopyRenameTask{}
 					_, err := task.Run(args, runner)
