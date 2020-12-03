@@ -5,7 +5,7 @@
 name: "waarp-gateway"
 arch: "amd64"
 platform: "linux"
-version: "v0.2.1"
+version: v0.3.0
 release: 1
 section: "default"
 priority: "extra"
@@ -13,8 +13,8 @@ priority: "extra"
 #- foobar
 #provides:
 #- bar
-#depends:
-#- foo
+depends:
+- unzip
 #- bar
 #recommends:
 #- whatever
@@ -34,8 +34,9 @@ homepage: "http://www.waarp.fr"
 files:
   ./build/waarp-gateway_linux_amd64: "/usr/bin/waarp-gateway"
   ./build/waarp-gatewayd_linux_amd64: "/usr/bin/waarp-gatewayd"
+  dist/updateconf.sh: /usr/share/waarp-gateway/updateconf.sh
 config_files:
-  ./build/waarp-gatewayd.ini: "/etc/waarp-gateway/waarp-gatewayd.ini"
+  ./build/waarp-gatewayd.ini: "/etc/waarp-gateway/gatewayd.ini"
 empty_folders:
 - /var/lib/waarp-gateway/in
 - /var/lib/waarp-gateway/out

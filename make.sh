@@ -8,7 +8,7 @@ shift
 #####################################################################
 
 t_test() {
-  go test "$@" ./cmd/... ./pkg/...
+  go test -race "$@" ./cmd/... ./pkg/...
 }
 
 t_check() {
@@ -148,11 +148,23 @@ t_package() {
     build/waarp-gatewayd.ini
 
   # build the packages
-  sed -i -e "s|version:.*|version: v$(cat VERSION)-1|" dist/nfpm.yaml
+  sed -i -e "s|version:.*|version: v$(cat VERSION)|" dist/nfpm.yaml
   nfpm pkg -p rpm -f dist/nfpm.yaml --target build/
   nfpm pkg -p deb -f dist/nfpm.yaml --target build/
 
+  build_portable_archive
+
   t_doc_dist
+}
+
+build_portable_archive() {
+  local dest="build/waarp-gateway-$(cat VERSION)"
+  mkdir -p $dest/{etc,bin}
+  cp ./build/waarp-gatewayd_linux_amd64 $dest/bin/waarp-gatewayd
+  cp ./build/waarp-gateway_linux_amd64 $dest/bin/waarp-gateway
+
+  ./build/waarp-gatewayd_linux_amd64 server -c $dest/etc/waarp-gatewayd.ini -n
+
 }
 
 t_usage() {
