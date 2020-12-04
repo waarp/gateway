@@ -163,6 +163,7 @@ build_portable_archive() {
   version=$(cat VERSION)
 
   mkdir -p "$dest"/{etc,bin,log,share}
+  cp ./dist/manage.sh "$dest/bin"
   cp ./build/waarp-gatewayd_linux_amd64 "$dest/bin/waarp-gatewayd"
   cp ./build/waarp-gateway_linux_amd64 "$dest/bin/waarp-gateway"
   cp ./dist/updateconf.sh "$dest/share/update-conf.sh"
