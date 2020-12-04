@@ -158,13 +158,25 @@ t_package() {
 }
 
 build_portable_archive() {
-  local dest="build/waarp-gateway-$(cat VERSION)"
-  mkdir -p $dest/{etc,bin}
-  cp ./build/waarp-gatewayd_linux_amd64 $dest/bin/waarp-gatewayd
-  cp ./build/waarp-gateway_linux_amd64 $dest/bin/waarp-gateway
+  local dest version
+  dest="build/waarp-gateway-$(cat VERSION)"
+  version=$(cat VERSION)
 
-  ./build/waarp-gatewayd_linux_amd64 server -c $dest/etc/waarp-gatewayd.ini -n
+  mkdir -p "$dest"/{etc,bin,log,share}
+  cp ./build/waarp-gatewayd_linux_amd64 "$dest/bin/waarp-gatewayd"
+  cp ./build/waarp-gateway_linux_amd64 "$dest/bin/waarp-gateway"
+  cp ./dist/updateconf.sh "$dest/share/update-conf.sh"
 
+  ./build/waarp-gatewayd_linux_amd64 server -c "$dest/etc/waarp-gatewayd.ini" -n
+  sed -i \
+    -e "s|; \(GatewayHome =\)|\1 data|" \
+    -e "s|; \(Address =\) |\1 data/db/|" \
+    -e "s|; \(AESPassphrase =\) |\1 etc/|" \
+    "$dest/etc/waarp-gatewayd.ini"
+
+  pushd build
+  tar cvzf waarp-gateway-$version.tar.gz waarp-gateway-$version
+  popd
 }
 
 t_usage() {
