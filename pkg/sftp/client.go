@@ -6,7 +6,6 @@ package sftp
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"path"
@@ -128,23 +127,6 @@ func (c *Client) Data(file pipeline.DataStream) *model.PipelineError {
 			return err
 		}
 		if _, err := c.remoteFile.ReadFrom(file); err != nil {
-			return err
-		}
-
-		// When pushing a file to a server, the client will write the file's 1st
-		// byte again to signal the server (if said server is another gateway)
-		// that the data is over, and that the server should proceed to the
-		// post-tasks. If the server is not a gateway, it will simply write the
-		// byte again.
-		b := make([]byte, 1)
-		if _, err := file.ReadAt(b, 0); err != nil {
-			return err
-		}
-		if stream, ok := file.(*pipeline.TransferStream); ok {
-			stream.Transfer.Progress--
-		}
-		_, _ = c.remoteFile.Seek(0, io.SeekStart)
-		if _, err := c.remoteFile.Write(b); err != nil {
 			return err
 		}
 		return nil

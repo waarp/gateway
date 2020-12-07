@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -241,7 +242,11 @@ func (t *TransferStream) InitData() error {
 func (t *TransferStream) updateProgress() error {
 	select {
 	case <-t.ticker.C:
-		if dbErr := t.DB.Update(t.Transfer); dbErr != nil {
+		updt := &model.Transfer{
+			ID:       t.Transfer.ID,
+			Progress: atomic.LoadUint64(&t.Transfer.Progress),
+		}
+		if dbErr := t.DB.Update(updt); dbErr != nil {
 			t.Logger.Criticalf("Failed to update upload transfer progress: %s", dbErr)
 			return &model.PipelineError{Kind: model.KindDatabase}
 		}
@@ -256,7 +261,7 @@ func (t *TransferStream) Read(p []byte) (int, error) {
 	}
 
 	n, err := t.File.Read(p)
-	t.Transfer.Progress += uint64(n)
+	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
 	if err != nil && err != io.EOF {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
@@ -268,13 +273,13 @@ func (t *TransferStream) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func (t *TransferStream) Write(p []byte) (n int, err error) {
+func (t *TransferStream) Write(p []byte) (int, error) {
 	if err := t.InitData(); err != nil {
 		return 0, err
 	}
 
-	n, err = t.File.Write(p)
-	t.Transfer.Progress += uint64(n)
+	n, err := t.File.Write(p)
+	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
 	if err != nil {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
 		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
@@ -288,20 +293,40 @@ func (t *TransferStream) Write(p []byte) (n int, err error) {
 
 // ReadAt reads the stream, starting at the given offset.
 func (t *TransferStream) ReadAt(p []byte, off int64) (int, error) {
-	_, err := t.Seek(off, io.SeekStart)
-	if err != nil {
+	if err := t.InitData(); err != nil {
 		return 0, err
 	}
-	return t.Read(p)
+
+	n, err := t.File.ReadAt(p, off)
+	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
+	if err != nil && err != io.EOF {
+		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
+		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
+	}
+	if err := t.updateProgress(); err != nil {
+		return n, err
+	}
+
+	return n, err
 }
 
 // WriteAt writes the given bytes to the stream, starting at the given offset.
 func (t *TransferStream) WriteAt(p []byte, off int64) (int, error) {
-	_, err := t.Seek(off, io.SeekStart)
-	if err != nil {
+	if err := t.InitData(); err != nil {
 		return 0, err
 	}
-	return t.Write(p)
+
+	n, err := t.File.WriteAt(p, off)
+	atomic.AddUint64(&t.Transfer.Progress, uint64(n))
+	if err != nil {
+		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
+		err = &model.PipelineError{Kind: model.KindTransfer, Cause: t.Transfer.Error}
+	}
+	if err := t.updateProgress(); err != nil {
+		return n, err
+	}
+
+	return n, err
 }
 
 // Close closes the file and stops the progress tracker.
