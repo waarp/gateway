@@ -34,9 +34,9 @@ func main() {
 	}
 
 	// Additional files
-	if err := moveToConf(archReader.Reader, ""); err != nil {
+	if err := moveToConf(archReader.Reader, "get-file.list"); err != nil {
 		fmt.Printf("Cannot write configuration file: %s\n", err.Error())
-		os.Exit(2)
+		//os.Exit(2)
 	}
 	os.Exit(0)
 }
@@ -93,7 +93,7 @@ func execImport(confReader io.Reader) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "waarp-gatewayd", "import", "-v", "-s", "-")
+	cmd := exec.CommandContext(ctx, "waarp-gatewayd", "import", "-v")
 	writer, err := cmd.StdinPipe()
 	if err != nil {
 		return err
@@ -107,7 +107,9 @@ func execImport(confReader io.Reader) error {
 		}
 	}()
 
-	if err := cmd.Run(); err != nil {
+	out, err := cmd.CombinedOutput()
+	fmt.Print(string(out))
+	if err != nil {
 		return err
 	}
 	return nil
