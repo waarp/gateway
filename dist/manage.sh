@@ -2,11 +2,11 @@
 
 CURDIR=$(cd $(dirname $0) && pwd)
 
-PIDFILE=$CURDIR/../log/gateway.pid
+PIDFILE=$CURDIR/../log/gatewayd.pid
 DAEMONNAME=waarp-gatewayd
 DAEMONPATH=$CURDIR/../bin/$DAEMONNAME
 STARTLOG=$CURDIR/../log/startup.log
-DAEMON_PARAMS="server -c $CURDIR/../etc/waarp-gateway.ini"
+DAEMON_PARAMS="server -c $CURDIR/../etc/gatewayd.ini"
 
 export PATH=$CURDIR/../share:$PATH
 
