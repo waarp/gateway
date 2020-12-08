@@ -7,15 +7,14 @@ Installation
 Installation sur RHEL, Fedora, et Centos
 ========================================
 
-
-Pour faciliter l'installation et les mises à jour de Waarp Manager, nous
+Pour faciliter l'installation et les mises à jour de Waarp Gateway, nous
 fournissons des dépôts pour :abbr:`RHEL (Red Hat Enterprise
 Linux)` 7+, distributions dérivées (Centos/Scientific Linux) et Fedora.
 
 Pour ajouter les dépôts Waarp à votre système, suivez la procédure
 indiquée sur notre `page de présentation des dépôts`_.
 
-Après avoir suivi cette procédure, vous pouvez installer Waarp Manager
+Après avoir suivi cette procédure, vous pouvez installer Waarp Gateway
 avec la commande :
 
 .. code-block:: bash

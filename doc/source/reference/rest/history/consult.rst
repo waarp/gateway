@@ -22,7 +22,7 @@ Consulter une entrée de l'historique
    :resjson string rule: Le nom de la règle de transfert
    :resjson date start: La date de début du transfert
    :resjson date stop: La date de fin du transfert
-   :resjson string status: Le statut final du transfert (``CANCELLED``, ``DONE`` ou ``ERROR``)
+   :resjson string status: Le statut final du transfert (``CANCELLED`` ou ``DONE``)
    :resjson string step: La dernière étape du transfert (``NONE``, ``PRE TASKS``, ``DATA``, ``POST TASKS``, ``ERROR TASKS`` ou ``FINALIZATION``)
    :resjson number progress: La progression (en octets) du transfert de données
    :resjson number taskNumber: Le numéro du dernier traitement exécuté
@@ -53,8 +53,8 @@ Consulter une entrée de l'historique
            "account": "compte_sftp",
            "remote": "serveur_sftp",
            "protocol": "sftp",
-           "sourceFilename": "source/du/fichier",
-           "destFilename": "destination/du/fichier",
+           "sourceFilename": "file.src",
+           "destFilename": "file.dst",
            "start": "2019-01-01T01:00:00+02:00",
            "stop": "2019-01-01T02:00:00+02:00",
            "status": "DONE",

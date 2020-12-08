@@ -20,8 +20,8 @@ Consulter un transfert
    :resjson string sourcePath: Le chemin d'origine du fichier
    :resjson string destPath: Le chemin de destination du fichier
    :resjson date start: La date de début du transfert
-   :resjson string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED* ou *INTERRUPTED*)
-   :resjson string step: L'étape actuelle du transfert (*NONE*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)
+   :resjson string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED*, *INTERRUPTED* ou *ERROR*)
+   :resjson string step: L'étape actuelle du transfert (*NONE*, *SETUP*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)
    :resjson number progress: La progression (en octets) du transfert de données
    :resjson number taskNumber: Le numéro du traitement en cours d'exécution
    :resjson string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)

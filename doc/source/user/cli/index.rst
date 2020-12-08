@@ -17,7 +17,7 @@ Toutes les commandes doivent donc commencer comme ceci :
 
 .. code-block:: shell
 
-   waarp-gateway https://user:mot_de_passe@127.0.0.1:8080 ...
+   waarp-gateway -a http://user:mot_de_passe@127.0.0.1:8080 ...
 
 
 Le mot de passe peut être omis, auquel cas, il sera demandé via l'invité de
@@ -33,7 +33,6 @@ l'exporter en variable d'environnement :
 Pour plus de détails sur les commandes disponibles, vous pouvez consulter
 :any:`la référence complète des commandes <reference-cli>`, ou utiliser
 l'argument d'aide (``-h`` ou ``--help``) dans un terminal (en anglais).
-
 
 .. warning::
 

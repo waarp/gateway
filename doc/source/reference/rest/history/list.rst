@@ -32,7 +32,7 @@ Filtrer l'historique
       Peut être renseigné plusieurs fois pour filtrer plusieurs protocoles.
    :type protocol: [sftp]
    :param status: Filtre uniquement les transferts ayant le statut renseigné.
-      Valeurs possibles: ``CANCELLED``, ``DONE``, ``ERROR``.
+      Valeurs possibles: ``CANCELLED`` ou ``DONE``.
       Peut être renseigné plusieurs fois pour filtrer plusieurs status.
    :type status: string
    :param start: Filtre uniquement les transferts ayant commencé après la date
@@ -60,8 +60,8 @@ Filtrer l'historique
    :resjsonarr string rule: Le nom de la règle de transfert
    :resjsonarr date start: La date de début du transfert
    :resjsonarr date stop: La date de fin du transfert
-   :resjsonarr string status: Le statut final du transfert (``CANCELLED``, ``DONE`` ou ``ERROR``)
-   :resjsonarr string step: La dernière étape du transfert (``NONE``, ``PRE TASKS``, ``DATA``, ``POST TASKS``, ``ERROR TASKS`` ou ``FINALIZATION``)
+   :resjsonarr string status: Le statut final du transfert (``CANCELLED`` ou ``DONE``)
+   :resjsonarr string step: La dernière étape du transfert (``NONE``, ``SETUP``, ``PRE TASKS``, ``DATA``, ``POST TASKS``, ``ERROR TASKS`` ou ``FINALIZATION``)
    :resjsonarr number progress: La progression (en octets) du transfert de données
    :resjsonarr number taskNumber: Le numéro du dernier traitement exécuté
    :resjsonarr string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)
@@ -92,7 +92,8 @@ Filtrer l'historique
              "source": "compte_sftp_1",
              "dest": "serveur_sftp_1",
              "protocol": "sftp",
-             "filename": "nom/de/fichier/1",
+             "sourceFilename": "file1.src",
+             "destFilename": "file1.dst",
              "start": "2019-01-01T01:00:00+02:00",
              "stop": "2019-01-01T02:00:00+02:00",
              "status": "DONE"
@@ -102,11 +103,11 @@ Filtrer l'historique
              "source": "compte_sftp_2",
              "dest": "serveur_sftp_1",
              "protocol": "sftp",
-             "filename": "nom/de/fichier/2",
+             "sourceFilename": "file2.src",
+             "destFilename": "file2.dst",
              "start": "2019-01-01T02:00:00+02:00",
              "stop": "2019-01-01T03:00:00+02:00",
-             "status": "ERROR",
-             "status": "RUNNING",
+             "status": "CANCELLED",
              "step": "DATA",
              "progress": 123456
            }]

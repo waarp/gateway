@@ -76,13 +76,24 @@ Le serveur SFTP est maintenant créé mais n'est pas actif. Comme la Gateway doi
       CGroup: /system.slice/waarp-gatewayd.service
               └─20584 /usr/bin/waarp-gatewayd server -c /etc/waarp-gateway/waarp-gatewayd.ini
 
+Si tout s'est bien passé, la commande ``status`` devrait lister le nouveau serveur :
+
+.. code-block:: shell-session
+
+   # waarp-gateway -a "http://admin:admin_password@127.0.0.1:8080" status
+   Waarp-Gateway services:
+   [Active]  Admin
+   [Active]  Controller
+   [Active]  Database
+   [Active]  sftp_server
+
 Création d'un utilisateur
 =========================
 
 Pour pouvoir se connecter au serveur, nous devons maintenant créer un
 utilisateur. Cela se fait en créant un "compte local" dans la Gateway.
 Cet utilisateur aura ``myuser`` comme login et ``mypassword`` comme mot de
-passe :
+passe :
 
 .. code-block:: shell-session
 
@@ -134,7 +145,7 @@ dans lequel ce fichier est situé est comparé aux chemins des règles (proprié
 transfert est refusé.
 
 Ici, nous voulons envoyer un fichier à la Gateway. La règle aura donc le sens
-``RECEIVE`` (« réception ») : le sens des règles est toujours à prendre du point
+``RECEIVE`` («réception») : le sens des règles est toujours à prendre du point
 de vu de la Gateway (si on envoi un fichier à la Gateway, celle-ci le *reçoit*).
 
 Assemblons tout dans une commande pour créer la règle :
@@ -197,7 +208,6 @@ dossier par défaut du service qui est utilisé :
 
 .. seealso::
    
-   Plus d'informations sur la gestion des dossiers.
+   Plus d'informations sur la :any:`gestion des dossiers <gestion_dossiers>`.
 
-.. todo:: Créer une page gestion des dossiers
 
