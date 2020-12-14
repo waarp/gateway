@@ -23,9 +23,8 @@ var ClientsConstructors = map[string]ClientConstructor{}
 // Executor is the process responsible for executing outgoing transfers.
 type Executor struct {
 	*pipeline.TransferStream
-	client  pipeline.Client
-	Ctx     context.Context
-	R66Home string
+	client pipeline.Client
+	Ctx    context.Context
 }
 
 func (e *Executor) getClient(stream *pipeline.TransferStream) *model.PipelineError {
