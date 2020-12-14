@@ -115,6 +115,16 @@ build_static_binaries() {
     -buildmode pie \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/waarp-gatewayd_${GOOS}_${GOARCH}" ./cmd/waarp-gatewayd
+
+  # get-remotes
+  CGO_ENABLED=0 go build -ldflags "-s -w" \
+    -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
+    -o "build/get-remote_${GOOS}_${GOARCH}" ./dist/get-remote
+
+  # update-conf
+  CGO_ENABLED=0 go build -ldflags "-s -w" \
+    -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
+    -o "build/update-conf_${GOOS}_${GOARCH}" ./dist/update-conf
 }
 
 t_build_dist() {
@@ -124,7 +134,7 @@ and Windows (32 and 64 bits).
 
 Warning:
   It needs a gcc compiler for linux 32bits (in archlinux, the package
-  "lib32-gcc") and for Windows ()
+  "lib32-gcc-libs") and for Windows ()
 
 
 EOW
@@ -166,18 +176,20 @@ build_portable_archive() {
   cp ./dist/manage.sh "$dest/bin"
   cp ./build/waarp-gatewayd_linux_amd64 "$dest/bin/waarp-gatewayd"
   cp ./build/waarp-gateway_linux_amd64 "$dest/bin/waarp-gateway"
-  cp ./dist/updateconf.sh "$dest/share/update-conf.sh"
+  cp ./build/get-remote_linux_amd64 "$dest/share/get-remote"
+  cp ./build/update-conf_linux_amd64 "$dest/share/update-conf"
+  #cp ./dist/updateconf.sh "$dest/share/update-conf.sh"
 
-  ./build/waarp-gatewayd_linux_amd64 server -c "$dest/etc/waarp-gatewayd.ini" -n
+  ./build/waarp-gatewayd_linux_amd64 server -c "$dest/etc/gatewayd.ini" -n
   sed -i \
     -e "s|; \(GatewayHome =\)|\1 data|" \
     -e "s|; \(Address =\) |\1 data/db/|" \
     -e "s|; \(AESPassphrase =\) |\1 etc/|" \
-    "$dest/etc/waarp-gatewayd.ini"
+    "$dest/etc/gatewayd.ini"
 
-  pushd build
-  tar cvzf waarp-gateway-$version.tar.gz waarp-gateway-$version
-  popd
+  pushd build || return 2
+  tar czf "waarp-gateway-$version.linux.tar.gz" "waarp-gateway-$version"
+  popd || return 2
 }
 
 t_usage() {
