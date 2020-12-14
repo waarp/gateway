@@ -34,26 +34,38 @@ homepage: "http://www.waarp.fr"
 files:
   ./build/waarp-gateway_linux_amd64: "/usr/bin/waarp-gateway"
   ./build/waarp-gatewayd_linux_amd64: "/usr/bin/waarp-gatewayd"
+  ./build/get-remote_linux_amd64: "/usr/share/waarp-gateway/get-remote"
+  ./build/update-conf_linux_amd64: "/usr/share/waarp-gateway/update-conf"
   dist/updateconf.sh: /usr/share/waarp-gateway/updateconf.sh
+
 config_files:
   ./build/waarp-gatewayd.ini: "/etc/waarp-gateway/gatewayd.ini"
+
 empty_folders:
 - /var/lib/waarp-gateway/in
 - /var/lib/waarp-gateway/out
 - /var/lib/waarp-gateway/work
 - /var/lib/waarp-gateway/db
+- /var/log/waarp-gateway
+
 scripts:
   preinstall: dist/preinst.sh
   postinstall: dist/postinst.sh
+
 #symlinks:
 #  /sbin/foo: "/usr/local/bin/foo"
+
 overrides:
   rpm:
     files:
       dist/waarp-gatewayd.service: /usr/lib/systemd/system/waarp-gatewayd.service
+      dist/waarp-gateway-get-remote.service: /usr/lib/systemd/system/waarp-gateway-get-remote.service
+      dist/waarp-gateway-get-remote.timer: /usr/lib/systemd/system/waarp-gateway-get-remote.timer
   deb:
     files:
       dist/waarp-gatewayd.service: /lib/systemd/system/waarp-gatewayd.service
+      dist/waarp-gateway-get-remote.service: /lib/systemd/system/waarp-gateway-get-remote.service
+      dist/waarp-gateway-get-remote.timer: /lib/systemd/system/waarp-gateway-get-remote.timer
 #    scripts:
 #      preinstall: ./scripts/preinstall.sh
 #      postremove: ./scripts/postremove.sh
