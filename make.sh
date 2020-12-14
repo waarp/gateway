@@ -143,6 +143,7 @@ EOW
   go generate ./cmd/... ./pkg/...
   GOOS=linux GOARCH=amd64 build_static_binaries
   GOOS=linux GOARCH=386 build_static_binaries
+  GOOS=windows GOARCH=amd64 CC="x86_64-w64-mingw32-gcc" build_static_binaries
 }
 
 t_package() {
