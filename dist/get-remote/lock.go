@@ -1,19 +1,16 @@
 package main
 
-import "os"
+import (
+	"io/ioutil"
+	"os"
+)
 
 type lock struct {
 	path string
 }
 
 func (l lock) acquire() error {
-	f, err := os.Create(l.path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	return nil
+	return ioutil.WriteFile(l.path, []byte("lock"), 0o600)
 }
 
 func (l lock) release() error {

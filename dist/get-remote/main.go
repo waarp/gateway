@@ -65,6 +65,10 @@ func main() {
 		os.Exit(5)
 	}
 
+	processChecks(log, p, checklist)
+}
+
+func processChecks(log *logger, p paths, checklist []check) {
 	for _, check := range checklist {
 		log.Printf("Checking files on %q for flow %q",
 			check.remoteHost, check.flowID)
@@ -153,7 +157,7 @@ func listFilesSftp(c check) ([]string, error) {
 		Auth: []ssh.AuthMethod{
 			ssh.Password(c.password),
 		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint: gosec // ignore for now
 	}
 
 	conn, err := ssh.Dial("tcp", c.remoteHost+":"+c.remotePort, sshconfig)
@@ -218,6 +222,7 @@ func filterFileInfoList(fil []os.FileInfo, pattern string) ([]os.FileInfo, error
 }
 
 func addTransfer(c check, p paths, file string) error {
+	//nolint: gosec // ignore for now
 	cmd := exec.Command(filepath.Join(p.binDir, "waarp-gateway"),
 		"transfer", "add",
 		"--file", path.Base(file),
@@ -228,7 +233,7 @@ func addTransfer(c check, p paths, file string) error {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("Command failed with output %q and error: %w",
+		return fmt.Errorf("command failed with output %q and error: %w",
 			string(out), err)
 	}
 
