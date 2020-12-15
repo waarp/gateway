@@ -173,6 +173,7 @@ func TestControllerListen(t *testing.T) {
 
 					Convey("When the controller starts listening", func() {
 						cont.listen()
+						Reset(cont.cancel)
 
 						Convey("When the database comes back online", func() {
 							time.Sleep(100 * time.Millisecond)
