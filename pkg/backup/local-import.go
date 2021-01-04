@@ -7,23 +7,22 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func importLocalAgents(logger *log.Logger, db *database.Session, list []file.LocalAgent) error {
+func importLocalAgents(logger *log.Logger, db database.Access, list []file.LocalAgent) database.Error {
 	for _, src := range list {
 		// Create model with basic info to check existence
-		agent := &model.LocalAgent{
-			Name: src.Name,
-		}
+		var agent model.LocalAgent
 
 		//Check if agent exists
 		exists := true
-		err := db.Get(agent)
-		if _, ok := err.(*database.NotFoundError); ok {
+		err := db.Get(&agent, "name=?", src.Name).Run()
+		if database.IsNotFound(err) {
 			exists = false
 		} else if err != nil {
 			return err
 		}
 
 		// Populate
+		agent.Name = src.Name
 		agent.Root = src.Root
 		agent.InDir = src.InDir
 		agent.OutDir = src.OutDir
@@ -36,10 +35,10 @@ func importLocalAgents(logger *log.Logger, db *database.Session, list []file.Loc
 		//Create/Update
 		if exists {
 			logger.Infof("Update local server %s\n", agent.Name)
-			err = db.Update(agent)
+			err = db.Update(&agent).Run()
 		} else {
 			logger.Infof("Create local server %s\n", agent.Name)
-			err = db.Create(agent)
+			err = db.Insert(&agent).Run()
 		}
 		if err != nil {
 			return err
@@ -57,24 +56,25 @@ func importLocalAgents(logger *log.Logger, db *database.Session, list []file.Loc
 	return nil
 }
 
-func importLocalAccounts(logger *log.Logger, db *database.Session,
-	list []file.LocalAccount, ownerID uint64) error {
+//nolint:dupl
+func importLocalAccounts(logger *log.Logger, db database.Access,
+	list []file.LocalAccount, ownerID uint64) database.Error {
 
 	for _, src := range list {
 
 		// Create model with basic info to check existence
-		account := &model.LocalAccount{
-			LocalAgentID: ownerID,
-			Login:        src.Login,
-		}
+		var account model.LocalAccount
 
 		// Check if account exists
-		exist, err := accountExists(db, account)
+		exist, err := accountExists(db, &account, "local_agent_id=? AND login=?",
+			ownerID, src.Login)
 		if err != nil {
 			return err
 		}
 
 		// Populate
+		account.LocalAgentID = ownerID
+		account.Login = src.Login
 		if src.Password != "" {
 			account.Password = []byte(src.Password)
 		}
@@ -82,10 +82,10 @@ func importLocalAccounts(logger *log.Logger, db *database.Session,
 		// Create/Update
 		if exist {
 			logger.Infof("Update local account %s\n", account.Login)
-			err = db.Update(account)
+			err = db.Update(&account).Run()
 		} else {
 			logger.Infof("Create local account %s\n", account.Login)
-			err = db.Create(account)
+			err = db.Insert(&account).Run()
 		}
 		if err != nil {
 			return err

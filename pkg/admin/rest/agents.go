@@ -8,7 +8,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"github.com/go-xorm/builder"
 )
 
 func newInServer(old *model.LocalAgent) *api.InServer {
@@ -110,7 +109,7 @@ func FromRemoteAgents(ags []model.RemoteAgent, rules []api.AuthorizedRules) []ap
 	return agents
 }
 
-func parseProtoParam(r *http.Request, filters *database.Filters) error {
+func parseProtoParam(r *http.Request, query *database.SelectQuery) error {
 	if len(r.Form["protocol"]) > 0 {
 		protos := make([]string, len(r.Form["protocol"]))
 		for i, p := range r.Form["protocol"] {
@@ -119,7 +118,7 @@ func parseProtoParam(r *http.Request, filters *database.Filters) error {
 			}
 			protos[i] = p
 		}
-		filters.Conditions = builder.And(builder.In("protocol", protos), filters.Conditions)
+		query.In("protocol", protos)
 	}
 	return nil
 }

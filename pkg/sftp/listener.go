@@ -137,8 +137,8 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
 			return nil, err
 		}
 
-		acc := &model.LocalAccount{ID: accountID}
-		if err := l.DB.Get(acc); err != nil {
+		acc := &model.LocalAccount{}
+		if err := l.DB.Get(acc, "id=?", accountID).Run(); err != nil {
 			l.Logger.Error(err.Error())
 			return nil, err
 		}
@@ -172,8 +172,8 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64,
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		l.Logger.Debug("PUT request received")
 
-		acc := &model.LocalAccount{ID: accountID}
-		if err := l.DB.Get(acc); err != nil {
+		acc := &model.LocalAccount{}
+		if err := l.DB.Get(acc, "id=?", accountID).Run(); err != nil {
 			l.Logger.Error(err.Error())
 			return nil, err
 		}

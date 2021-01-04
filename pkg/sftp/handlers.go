@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	"github.com/go-xorm/builder"
 	"github.com/pkg/sftp"
 )
 
@@ -157,53 +156,59 @@ func (l *sshListener) statAt(r *sftp.Request, paths *pipeline.Paths, accountID u
 }
 
 func (l *sshListener) getRule(accountID uint64, rulePath string, isSend bool) (*model.Rule, error) {
-	var rules []model.Rule
-	filters := &database.Filters{
-		Order: "path ASC",
-		Conditions: builder.Expr(
-			`(id IN 
-				(SELECT DISTINCT rule_id FROM rule_access WHERE 
-					(object_id=? AND object_type='local_accounts') OR 
-					(object_id=? AND object_type='local_agents')
-				)
-			)
-			OR 
-			( (SELECT COUNT(*) FROM rule_access WHERE rule_id = id) = 0 )`,
-			accountID, l.Agent.ID).And(builder.Eq{"path": rulePath, "send": isSend}),
-	}
-	if err := l.DB.Select(&rules, filters); err != nil {
+	var rule model.Rule
+	if err := l.DB.Get(&rule, "path=? AND send=?", rulePath, isSend).Run(); err != nil {
+		if database.IsNotFound(err) {
+			direction := "receive"
+			if isSend {
+				direction = "sending"
+			}
+			l.Logger.Debugf("No %s rule found for path '%s'", direction, rulePath)
+			return nil, nil
+		}
 		l.Logger.Errorf("Failed to retrieve rule: %s", err)
 		return nil, fmt.Errorf("failed to retrieve rule: %s", err)
 	}
-	if len(rules) == 0 {
-		return nil, nil
+
+	var accesses model.RuleAccesses
+	if err := l.DB.Select(&accesses).Where("rule_id=?", rule.ID).Run(); err != nil {
+		l.Logger.Errorf("Failed to retrieve rule permissions: %s", err)
+		return nil, fmt.Errorf("failed to retrieve rule permissions")
 	}
 
-	return &rules[0], nil
+	if len(accesses) == 0 {
+		return &rule, nil
+	}
+
+	for _, access := range accesses {
+		if (access.ObjectType == "local_agents" && access.ObjectID == l.Agent.ID) ||
+			(access.ObjectType == "local_accounts" && access.ObjectID == accountID) {
+			return &rule, nil
+		}
+	}
+	return nil, fmt.Errorf("user is not allowed to use the specified rule")
 }
 
 func (l *sshListener) getRulesPaths(accountID uint64) ([]string, error) {
-	query := `SELECT DISTINCT path FROM rules WHERE (
-		(id IN 
+	var rules model.Rules
+	query := l.DB.Select(&rules).Distinct("path").Where(
+		`(id IN 
 			(SELECT DISTINCT rule_id FROM rule_access WHERE
 				(object_id=? AND object_type='local_accounts') OR
 				(object_id=? AND object_type='local_agents')
 			)
 		)
 		OR 
-		( (SELECT COUNT(*) FROM rule_access WHERE rule_id = id) = 0 )
-	) ORDER BY path ASC`
-	res, err := l.DB.Query(query, accountID, l.Agent.ID)
-	if err != nil {
+		( (SELECT COUNT(*) FROM rule_access WHERE rule_id = id) = 0 )`,
+		accountID, l.Agent.ID).OrderBy("path", true)
+	if err := query.Run(); err != nil {
 		l.Logger.Errorf("Failed to retrieve rule list: %s", err)
 		return nil, err
 	}
 
-	var paths []string
-	for _, rule := range res {
-		if p, ok := rule["path"].(string); ok {
-			paths = append(paths, p)
-		}
+	paths := make([]string, len(rules))
+	for i := range rules {
+		paths[i] = rules[i].Path
 	}
 	return paths, nil
 }

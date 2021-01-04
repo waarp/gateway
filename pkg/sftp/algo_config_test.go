@@ -20,7 +20,7 @@ func TestSFTPAlgoConfig(t *testing.T) {
 	password := []byte("password")
 
 	Convey("Given an SFTP server", t, func(c C) {
-		db := database.GetTestDatabase()
+		db := database.TestDatabase(c, "ERROR")
 		root := testhelpers.TempDir(c, "algo-config")
 		port := testhelpers.GetFreePort(c)
 
@@ -35,14 +35,14 @@ func TestSFTPAlgoConfig(t *testing.T) {
 			}`),
 			Address: fmt.Sprintf("localhost:%d", port),
 		}
-		So(db.Create(agent), ShouldBeNil)
+		So(db.Insert(agent).Run(), ShouldBeNil)
 
 		account := &model.LocalAccount{
 			LocalAgentID: agent.ID,
 			Login:        login,
 			Password:     password,
 		}
-		So(db.Create(account), ShouldBeNil)
+		So(db.Insert(account).Run(), ShouldBeNil)
 
 		cert := &model.Cert{
 			OwnerType:   agent.TableName(),
@@ -52,7 +52,7 @@ func TestSFTPAlgoConfig(t *testing.T) {
 			PublicKey:   testPBK,
 			Certificate: []byte("cert"),
 		}
-		So(db.Create(cert), ShouldBeNil)
+		So(db.Insert(cert).Run(), ShouldBeNil)
 
 		server := NewService(db, agent, logger)
 		So(server.Start(), ShouldBeNil)

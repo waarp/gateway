@@ -31,8 +31,8 @@ func TestGetUser(t *testing.T) {
 		out = testFile()
 		command := &userGet{}
 
-		Convey("Given a gateway with 1 user", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 user", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -47,7 +47,7 @@ func TestGetUser(t *testing.T) {
 					model.PermRulesRead |
 					model.PermUsersRead,
 			}
-			So(db.Create(user), ShouldBeNil)
+			So(db.Insert(user).Run(), ShouldBeNil)
 
 			Convey("Given a valid username", func() {
 				args := []string{user.Username}
@@ -87,8 +87,8 @@ func TestAddUser(t *testing.T) {
 		out = testFile()
 		command := &userAdd{}
 
-		Convey("Given a gateway", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -108,8 +108,8 @@ func TestAddUser(t *testing.T) {
 					})
 
 					Convey("Then the new partner should have been added", func() {
-						var users []model.User
-						So(db.Select(&users, nil), ShouldBeNil)
+						var users model.Users
+						So(db.Select(&users).Run(), ShouldBeNil)
 						So(len(users), ShouldEqual, 2)
 
 						So(bcrypt.CompareHashAndPassword(users[1].Password,
@@ -136,8 +136,8 @@ func TestDeleteUser(t *testing.T) {
 		out = testFile()
 		command := &userDelete{}
 
-		Convey("Given a gateway with 1 user", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 user", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -147,7 +147,7 @@ func TestDeleteUser(t *testing.T) {
 				Username: "user",
 				Password: []byte("password"),
 			}
-			So(db.Create(user), ShouldBeNil)
+			So(db.Insert(user).Run(), ShouldBeNil)
 
 			Convey("Given a valid username", func() {
 				args := []string{user.Username}
@@ -163,10 +163,9 @@ func TestDeleteUser(t *testing.T) {
 					})
 
 					Convey("Then the user should have been removed", func() {
-						var users []model.User
-						So(db.Select(&users, nil), ShouldBeNil)
-						So(len(users), ShouldEqual, 1)
-						So(users[0].Username, ShouldEqual, "admin")
+						var users model.Users
+						So(db.Select(&users).Run(), ShouldBeNil)
+						So(users, ShouldNotContain, *user)
 					})
 				})
 			})
@@ -184,7 +183,9 @@ func TestDeleteUser(t *testing.T) {
 					})
 
 					Convey("Then the partner should still exist", func() {
-						So(db.Get(user), ShouldBeNil)
+						var users model.Users
+						So(db.Select(&users).Run(), ShouldBeNil)
+						So(users, ShouldContain, *user)
 					})
 				})
 			})
@@ -198,8 +199,8 @@ func TestUpdateUser(t *testing.T) {
 		out = testFile()
 		command := &userUpdate{}
 
-		Convey("Given a gateway with 1 user", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 user", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -214,7 +215,7 @@ func TestUpdateUser(t *testing.T) {
 					model.PermRulesRead |
 					model.PermUsersRead,
 			}
-			So(db.Create(user), ShouldBeNil)
+			So(db.Insert(user).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
 				args := []string{user.Username, "-u", "new_user",
@@ -231,8 +232,8 @@ func TestUpdateUser(t *testing.T) {
 					})
 
 					Convey("Then the new user should exist", func() {
-						var users []model.User
-						So(db.Select(&users, nil), ShouldBeNil)
+						var users model.Users
+						So(db.Select(&users).Run(), ShouldBeNil)
 						So(len(users), ShouldEqual, 2)
 
 						So(bcrypt.CompareHashAndPassword(users[1].Password,
@@ -247,7 +248,7 @@ func TestUpdateUser(t *testing.T) {
 								model.PermRulesWrite |
 								model.PermUsersWrite,
 						}
-						So(users[1], ShouldResemble, exp)
+						So(users, ShouldContain, exp)
 					})
 				})
 			})
@@ -265,7 +266,9 @@ func TestUpdateUser(t *testing.T) {
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
-						So(db.Get(user), ShouldBeNil)
+						var users model.Users
+						So(db.Select(&users).Run(), ShouldBeNil)
+						So(users, ShouldContain, *user)
 					})
 				})
 			})
@@ -279,17 +282,17 @@ func TestListUser(t *testing.T) {
 		out = testFile()
 		command := &userList{}
 
-		Convey("Given a gateway with 2 users", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 2 users", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			So(db.Execute("DELETE FROM users WHERE username='admin'"), ShouldBeNil)
+			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			user1 := &model.User{
 				Username:    "user1",
 				Password:    []byte("password"),
 				Permissions: model.PermUsersRead,
 			}
-			So(db.Create(user1), ShouldBeNil)
+			So(db.Insert(user1).Run(), ShouldBeNil)
 			var err error
 			addr, err = url.Parse("http://user1:password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
@@ -298,7 +301,7 @@ func TestListUser(t *testing.T) {
 				Username: "user2",
 				Password: []byte("password"),
 			}
-			So(db.Create(user2), ShouldBeNil)
+			So(db.Insert(user2).Run(), ShouldBeNil)
 
 			u1 := rest.FromUser(user1)
 			u2 := rest.FromUser(user2)

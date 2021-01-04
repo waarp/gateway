@@ -69,15 +69,15 @@ func TestTransferValidate(t *testing.T) {
 
 func TestTransferRun(t *testing.T) {
 
-	Convey("Given a coherent database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a coherent database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		rule := &model.Rule{
 			Name:   "transfer rule",
 			IsSend: true,
 			Path:   "rule/path",
 		}
-		So(db.Create(rule), ShouldBeNil)
+		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		partner := &model.RemoteAgent{
 			Name:        "test partner",
@@ -85,7 +85,7 @@ func TestTransferRun(t *testing.T) {
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:1111",
 		}
-		So(db.Create(partner), ShouldBeNil)
+		So(db.Insert(partner).Run(), ShouldBeNil)
 
 		cert := &model.Cert{
 			OwnerType:   partner.TableName(),
@@ -94,14 +94,14 @@ func TestTransferRun(t *testing.T) {
 			PublicKey:   []byte("public key"),
 			Certificate: []byte("certificate"),
 		}
-		So(db.Create(cert), ShouldBeNil)
+		So(db.Insert(cert).Run(), ShouldBeNil)
 
 		account := &model.RemoteAccount{
 			RemoteAgentID: partner.ID,
 			Login:         "test account",
 			Password:      []byte("password"),
 		}
-		So(db.Create(account), ShouldBeNil)
+		So(db.Insert(account).Run(), ShouldBeNil)
 
 		Convey("Given a 'TRANSFER' task", func() {
 			trans := &TransferTask{}

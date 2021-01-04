@@ -13,7 +13,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"github.com/go-xorm/builder"
 )
 
 // Processor provides a way to execute tasks
@@ -31,16 +30,14 @@ type Processor struct {
 
 // GetTasks returns the list of all tasks of the given rule & chain.
 func (p *Processor) GetTasks(chain model.Chain) ([]model.Task, error) {
-	var list []model.Task
-	filters := &database.Filters{
-		Order:      "rank ASC",
-		Conditions: builder.And(builder.Eq{"rule_id": p.Rule.ID}, builder.Eq{"chain": chain}),
-	}
-
-	if err := p.DB.Select(&list, filters); err != nil {
+	var tasks model.Tasks
+	query := p.DB.Select(&tasks).OrderBy("rank", true).Where(
+		"rule_id=? AND chain=?", p.Rule.ID, chain)
+	if err := query.Run(); err != nil {
 		return nil, err
 	}
-	return list, nil
+
+	return tasks, nil
 }
 
 func (p *Processor) runTask(task model.Task, taskInfo string) error {
@@ -73,13 +70,13 @@ func (p *Processor) runTask(task model.Task, taskInfo string) error {
 		}
 		p.Logger.Warning(logMsg)
 		p.Transfer.Error = types.NewTransferError(types.TeWarning, logMsg)
-		if err := p.DB.Update(p.Transfer); err != nil {
+		if err := p.DB.Update(p.Transfer).Cols("error_code", "error_details").Run(); err != nil {
 			p.Logger.Warningf("Failed to update task status: %s", err.Error())
 			return err
 		}
 	}
 	p.Transfer.TaskNumber++
-	if err := p.DB.Update(p.Transfer); err != nil {
+	if err := p.DB.Update(p.Transfer).Cols("task_number").Run(); err != nil {
 		p.Logger.Warningf("Failed to update task number: %s", err.Error())
 		return err
 	}
@@ -111,10 +108,10 @@ func (p *Processor) RunTasks(tasks []model.Task) error {
 			return err
 		}
 	}
-	if err := p.DB.Update(p.Transfer); err != nil {
-		p.Logger.Warningf("failed to update task number: %s", err.Error())
-		return err
-	}
+	//if err := p.DB.Update(p.Transfer).Run(); err != nil {
+	//	p.Logger.Warningf("failed to update task number: %s", err.Error())
+	//	return err
+	//}
 	return nil
 }
 
@@ -213,18 +210,14 @@ var replacers = map[string]replacer{
 	},
 	"#REMOTEHOST#": func(p *Processor) (string, error) {
 		if p.Transfer.IsServer {
-			account := &model.LocalAccount{
-				ID: p.Transfer.AccountID,
-			}
-			if err := p.DB.Get(account); err != nil {
+			account := &model.LocalAccount{}
+			if err := p.DB.Get(account, "id=?", p.Transfer.AccountID).Run(); err != nil {
 				return "", err
 			}
 			return account.Login, nil
 		}
-		agent := &model.RemoteAgent{
-			ID: p.Transfer.AgentID,
-		}
-		if err := p.DB.Get(agent); err != nil {
+		agent := &model.RemoteAgent{}
+		if err := p.DB.Get(agent, "id=?", p.Transfer.AgentID).Run(); err != nil {
 			return "", err
 		}
 		return agent.Name, nil
@@ -235,18 +228,14 @@ var replacers = map[string]replacer{
 	},
 	"#LOCALHOST#": func(p *Processor) (string, error) {
 		if p.Transfer.IsServer {
-			agent := &model.LocalAgent{
-				ID: p.Transfer.AgentID,
-			}
-			if err := p.DB.Get(agent); err != nil {
+			agent := &model.LocalAgent{}
+			if err := p.DB.Get(agent, "id=?", p.Transfer.AgentID).Run(); err != nil {
 				return "", err
 			}
 			return agent.Name, nil
 		}
-		account := &model.RemoteAccount{
-			ID: p.Transfer.AccountID,
-		}
-		if err := p.DB.Get(account); err != nil {
+		account := &model.RemoteAccount{}
+		if err := p.DB.Get(account, "id=?", p.Transfer.AccountID).Run(); err != nil {
 			return "", err
 		}
 		return account.Login, nil
@@ -303,18 +292,14 @@ var replacers = map[string]replacer{
 
 func getClient(p *Processor) (string, error) {
 	if p.Transfer.IsServer {
-		account := &model.LocalAccount{
-			ID: p.Transfer.AccountID,
-		}
-		if err := p.DB.Get(account); err != nil {
+		account := &model.LocalAccount{}
+		if err := p.DB.Get(account, "id=?", p.Transfer.AccountID).Run(); err != nil {
 			return "", err
 		}
 		return account.Login, nil
 	}
-	account := &model.RemoteAccount{
-		ID: p.Transfer.AccountID,
-	}
-	if err := p.DB.Get(account); err != nil {
+	account := &model.RemoteAccount{}
+	if err := p.DB.Get(account, "id=?", p.Transfer.AccountID).Run(); err != nil {
 		return "", err
 	}
 	return account.Login, nil
@@ -322,18 +307,14 @@ func getClient(p *Processor) (string, error) {
 
 func getServer(p *Processor) (string, error) {
 	if p.Transfer.IsServer {
-		agent := &model.LocalAgent{
-			ID: p.Transfer.AgentID,
-		}
-		if err := p.DB.Get(agent); err != nil {
+		agent := &model.LocalAgent{}
+		if err := p.DB.Get(agent, "id=?", p.Transfer.AgentID).Run(); err != nil {
 			return "", err
 		}
 		return agent.Name, nil
 	}
-	agent := &model.RemoteAgent{
-		ID: p.Transfer.AgentID,
-	}
-	if err := p.DB.Get(agent); err != nil {
+	agent := &model.RemoteAgent{}
+	if err := p.DB.Get(agent, "id=?", p.Transfer.AgentID).Run(); err != nil {
 		return "", err
 	}
 	return agent.Name, nil

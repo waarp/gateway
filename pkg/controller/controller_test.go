@@ -23,7 +23,7 @@ import (
 
 func TestControllerListen(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
-		db := database.GetTestDatabase()
+		db := database.TestDatabase(c, "ERROR")
 
 		remote := &model.RemoteAgent{
 			Name:        "test remote",
@@ -31,14 +31,14 @@ func TestControllerListen(t *testing.T) {
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:1111",
 		}
-		So(db.Create(remote), ShouldBeNil)
+		So(db.Insert(remote).Run(), ShouldBeNil)
 
 		account := &model.RemoteAccount{
 			RemoteAgentID: remote.ID,
 			Login:         "test login",
 			Password:      []byte("test password"),
 		}
-		So(db.Create(account), ShouldBeNil)
+		So(db.Insert(account).Run(), ShouldBeNil)
 
 		cert := &model.Cert{
 			OwnerType:   remote.TableName(),
@@ -48,7 +48,7 @@ func TestControllerListen(t *testing.T) {
 			PublicKey:   []byte("public key"),
 			Certificate: []byte("certificate"),
 		}
-		So(db.Create(cert), ShouldBeNil)
+		So(db.Insert(cert).Run(), ShouldBeNil)
 
 		tmpDir := testhelpers.TempDir(c, "controller-listen")
 
@@ -58,7 +58,7 @@ func TestControllerListen(t *testing.T) {
 			IsSend:  true,
 			OutPath: tmpDir,
 		}
-		So(db.Create(rule), ShouldBeNil)
+		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		sleepTask := &testTaskSleep{}
 		tasks.RunnableTasks["TESTSLEEP"] = sleepTask
@@ -72,9 +72,9 @@ func TestControllerListen(t *testing.T) {
 			Chain:  model.ChainPre,
 			Rank:   1,
 			Type:   "TESTSLEEP",
-			Args:   json.RawMessage([]byte("{}")),
+			Args:   json.RawMessage("{}"),
 		}
-		So(db.Create(ruleTask), ShouldBeNil)
+		So(db.Insert(ruleTask).Run(), ShouldBeNil)
 
 		start := time.Now().Truncate(time.Second)
 
@@ -106,7 +106,7 @@ func TestControllerListen(t *testing.T) {
 					Status:       types.StatusPlanned,
 					Owner:        database.Owner,
 				}
-				So(db.Create(trans), ShouldBeNil)
+				So(db.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("When the controller starts new transfers", func() {
 					cont.startNewTransfers()
@@ -117,15 +117,12 @@ func TestControllerListen(t *testing.T) {
 
 					Convey("After waiting enough time", func() {
 						cont.wg.Wait()
-						// time.Sleep(1000 * time.Millisecond)
 
 						Convey("Then it should have retrieved the planned "+
 							"transfer entry", func() {
-							//err := db.Get(&model.TransferHistory{ID: trans.ID})
-							//So(err, ShouldBeNil)
-							var h []model.TransferHistory
-							So(db.Select(&h, nil), ShouldBeNil)
-							So(h, ShouldNotBeEmpty)
+							var hist model.Histories
+							So(db.Select(&hist).Run(), ShouldBeNil)
+							So(hist, ShouldNotBeEmpty)
 						})
 					})
 				})
@@ -166,7 +163,7 @@ func TestControllerListen(t *testing.T) {
 					Status:       types.StatusRunning,
 					Owner:        database.Owner,
 				}
-				So(db.Create(trans), ShouldBeNil)
+				So(db.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("Given that the database stops responding", func() {
 					db.State().Set(service.Error, "test error")
@@ -183,8 +180,8 @@ func TestControllerListen(t *testing.T) {
 
 								Convey("Then the running entry should now be "+
 									"interrupted", func() {
-									result := &model.Transfer{ID: trans.ID}
-									So(db.Get(result), ShouldBeNil)
+									result := &model.Transfer{}
+									So(db.Get(result, "id=?", trans.ID).Run(), ShouldBeNil)
 									So(result.Status, ShouldEqual, types.StatusInterrupted)
 								})
 							})

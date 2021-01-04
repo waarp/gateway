@@ -47,43 +47,32 @@ func checkSignal(ctx context.Context, ch <-chan model.Signal) error {
 // history entry, and inserts the new history entry in the database.
 // If any of these steps fails, the changes are reverted and an error is returned.
 func ToHistory(db *database.DB, logger *log.Logger, trans *model.Transfer) error {
-	ses, err := db.BeginTransaction()
-	if err != nil {
-		logger.Criticalf("Failed to start archival transaction: %s", err)
-		return err
-	}
+	return db.Transaction(func(ses *database.Session) database.Error {
+		if err := ses.Delete(trans).Run(); err != nil {
+			logger.Criticalf("Failed to delete transfer for archival: %s", err)
+			return err
+		}
 
-	if err := ses.Delete(&model.Transfer{ID: trans.ID}); err != nil {
-		logger.Criticalf("Failed to delete transfer for archival: %s", err)
-		ses.Rollback()
-		return err
-	}
+		hist, err := trans.ToHistory(ses, time.Now())
+		if err != nil {
+			logger.Criticalf("Failed to convert transfer to history: %s", err)
+			return err
+		}
 
-	hist, err := trans.ToHistory(ses, time.Now())
-	if err != nil {
-		logger.Criticalf("Failed to convert transfer to history: %s", err)
-		ses.Rollback()
-		return err
-	}
+		if err := ses.Insert(hist).Run(); err != nil {
+			logger.Criticalf("Failed to create new history entry: %s", err)
+			return err
+		}
 
-	if err := ses.Create(hist); err != nil {
-		logger.Criticalf("Failed to create new history entry: %s", err)
-		ses.Rollback()
-		return err
-	}
-
-	if err := ses.Commit(); err != nil {
-		logger.Criticalf("Failed to commit archival transaction: %s", err)
-		return err
-	}
-	return nil
+		return nil
+	})
 }
 
 func execTasks(proc *tasks.Processor, chain model.Chain,
 	step types.TransferStep) error {
 
 	proc.Transfer.Step = step
-	if err := proc.DB.Update(proc.Transfer); err != nil {
+	if err := proc.DB.Update(proc.Transfer).Cols("step").Run(); err != nil {
 		proc.Logger.Criticalf("Failed to update transfer step to '%s': %s", step, err)
 		return err
 	}
@@ -150,18 +139,18 @@ func makeDir(uri string) error {
 // corresponding to the error kind.
 func HandleError(stream *TransferStream, err error) {
 	switch err.(type) {
-	case *database.ValidationError, *database.InternalError, *database.InputError:
+	case *database.ValidationError, *database.InternalError, *database.NotFoundError:
 		stream.exit()
 	case *model.ShutdownError:
 		stream.Transfer.Status = types.StatusInterrupted
-		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
+		if dbErr := stream.DB.Update(stream.Transfer).Cols("status").Run(); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		stream.exit()
 		stream.Logger.Info("Transfer interrupted")
 	case *model.PauseError:
 		stream.Transfer.Status = types.StatusPaused
-		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
+		if dbErr := stream.DB.Update(stream.Transfer).Cols("status").Run(); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		stream.exit()
@@ -177,14 +166,15 @@ func HandleError(stream *TransferStream, err error) {
 			tErr = types.NewTransferError(types.TeUnknown, err.Error())
 		}
 		stream.Transfer.Error = tErr
-		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
+		if dbErr := stream.DB.Update(stream.Transfer).Cols("error_code", "error_details").
+			Run(); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		if stream.Transfer.Step != types.StepNone {
 			stream.ErrorTasks()
 		}
 		stream.Transfer.Status = types.StatusError
-		if dbErr := stream.DB.Update(stream.Transfer); dbErr != nil {
+		if dbErr := stream.DB.Update(stream.Transfer).Cols("status").Run(); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer status to '%s': %s",
 				stream.Transfer.Status, dbErr)
 			return

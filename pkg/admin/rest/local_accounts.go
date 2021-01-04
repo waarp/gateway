@@ -7,12 +7,11 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"github.com/go-xorm/builder"
 	"github.com/gorilla/mux"
 )
 
 func getLocAcc(r *http.Request, db *database.DB) (*model.LocalAgent, *model.LocalAccount, error) {
-	parent, err := getLocAg(r, db)
+	parent, err := getServ(r, db)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -22,18 +21,16 @@ func getLocAcc(r *http.Request, db *database.DB) (*model.LocalAgent, *model.Loca
 		return parent, nil, notFound("missing account login")
 	}
 
-	result := &model.LocalAccount{}
-	result.LocalAgentID = parent.ID
-	result.Login = login
-
-	if err := db.Get(result); err != nil {
+	var account model.LocalAccount
+	if err := db.Get(&account, "login=? AND local_agent_id=?", login, parent.ID).
+		Run(); err != nil {
 		if database.IsNotFound(err) {
 			return parent, nil, notFound("no account '%s' found for server %s",
 				login, parent.Name)
 		}
 		return parent, nil, err
 	}
-	return parent, result, nil
+	return parent, &account, nil
 }
 
 func getLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -55,40 +52,39 @@ func getLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 //nolint:dupl
 func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	validSorting := map[string]string{
-		"default": "login ASC",
-		"login+":  "login ASC",
-		"login-":  "login DESC",
+	validSorting := orders{
+		"default": order{"login", true},
+		"login+":  order{"login", true},
+		"login-":  order{"login", false},
 	}
 	typ := (&model.LocalAccount{}).TableName()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		filters, err := parseListFilters(r, validSorting)
+		var accounts model.LocalAccounts
+		query, err := parseSelectQuery(r, db, validSorting, &accounts)
 		if handleError(w, logger, err) {
 			return
 		}
-		parent, err := getLocAg(r, db)
+		parent, err := getServ(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
-		filters.Conditions = builder.Eq{"local_agent_id": parent.ID}
+		query.Where("local_agent_id=?", parent.ID)
 
-		var results []model.LocalAccount
-		if err := db.Select(&results, filters); handleError(w, logger, err) {
+		if err := query.Run(); handleError(w, logger, err) {
 			return
 		}
 
-		ids := make([]uint64, len(results))
-		for i, res := range results {
-			ids[i] = res.ID
+		ids := make([]uint64, len(accounts))
+		for i := range accounts {
+			ids[i] = accounts[i].ID
 		}
-
 		rules, err := getAuthorizedRuleList(db, typ, ids)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		resp := map[string][]api.OutAccount{"localAccounts": FromLocalAccounts(results, rules)}
+		resp := map[string][]api.OutAccount{"localAccounts": FromLocalAccounts(accounts, rules)}
 		err = writeJSON(w, resp)
 		handleError(w, logger, err)
 	}
@@ -96,18 +92,18 @@ func listLocalAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parent, err := getLocAg(r, db)
+		parent, err := getServ(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		var acc api.InAccount
-		if err := readJSON(r, &acc); handleError(w, logger, err) {
+		var jAcc api.InAccount
+		if err := readJSON(r, &jAcc); handleError(w, logger, err) {
 			return
 		}
 
-		account := accToLocal(&acc, parent, 0)
-		if err := db.Create(account); handleError(w, logger, err) {
+		account := accToLocal(&jAcc, parent, 0)
+		if err := db.Insert(account).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -123,16 +119,17 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		acc := newInLocAccount(old)
-		if err := readJSON(r, acc); handleError(w, logger, err) {
+		jAcc := newInLocAccount(old)
+		if err := readJSON(r, jAcc); handleError(w, logger, err) {
 			return
 		}
 
-		if err := db.Update(accToLocal(acc, parent, old.ID)); handleError(w, logger, err) {
+		acc := accToLocal(jAcc, parent, old.ID)
+		if err := db.Update(acc).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, str(acc.Login)))
+		w.Header().Set("Location", locationUpdate(r.URL, acc.Login))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -144,16 +141,17 @@ func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		var acc api.InAccount
-		if err := readJSON(r, &acc); handleError(w, logger, err) {
+		var jAcc api.InAccount
+		if err := readJSON(r, &jAcc); handleError(w, logger, err) {
 			return
 		}
 
-		if err := db.Update(accToLocal(&acc, parent, old.ID)); handleError(w, logger, err) {
+		acc := accToLocal(&jAcc, parent, old.ID)
+		if err := db.Update(acc).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, str(acc.Login)))
+		w.Header().Set("Location", locationUpdate(r.URL, acc.Login))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -165,7 +163,7 @@ func deleteLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := db.Delete(acc); handleError(w, logger, err) {
+		if err := db.Delete(acc).Run(); handleError(w, logger, err) {
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)

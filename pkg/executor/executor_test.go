@@ -38,7 +38,7 @@ func TestExecutorRun(t *testing.T) {
 			WorkDirectory: filepath.Join(root, "work"),
 		}}
 
-		db := database.GetTestDatabase()
+		db := database.TestDatabase(c, "ERROR")
 
 		remote := &model.RemoteAgent{
 			Name:        "test remote",
@@ -46,14 +46,14 @@ func TestExecutorRun(t *testing.T) {
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:1111",
 		}
-		So(db.Create(remote), ShouldBeNil)
+		So(db.Insert(remote).Run(), ShouldBeNil)
 
 		account := &model.RemoteAccount{
 			RemoteAgentID: remote.ID,
 			Login:         "test login",
 			Password:      []byte("test password"),
 		}
-		So(db.Create(account), ShouldBeNil)
+		So(db.Insert(account).Run(), ShouldBeNil)
 
 		cert := &model.Cert{
 			OwnerType:   remote.TableName(),
@@ -63,7 +63,7 @@ func TestExecutorRun(t *testing.T) {
 			PublicKey:   []byte("public key"),
 			Certificate: []byte("certificate"),
 		}
-		So(db.Create(cert), ShouldBeNil)
+		So(db.Insert(cert).Run(), ShouldBeNil)
 
 		Convey("Given an outgoing transfer", func() {
 			rule := &model.Rule{
@@ -71,7 +71,7 @@ func TestExecutorRun(t *testing.T) {
 				IsSend: true,
 				Path:   ".",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			content := []byte("executor test run file content")
 			truePath := filepath.Join(paths.OutDirectory, "test_run_src")
@@ -88,7 +88,7 @@ func TestExecutorRun(t *testing.T) {
 				Status:       types.StatusPlanned,
 				Owner:        database.Owner,
 			}
-			So(db.Create(trans), ShouldBeNil)
+			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("Given an executor", func() {
 				stream, err := pipeline.NewTransferStream(context.Background(),
@@ -103,15 +103,15 @@ func TestExecutorRun(t *testing.T) {
 						exe.Run()
 
 						Convey("Then the `Transfer` entry should no longer exist", func() {
-							var res []model.Transfer
-							So(db.Select(&res, nil), ShouldBeNil)
+							var res model.Transfers
+							So(db.Select(&res).Run(), ShouldBeNil)
 							So(res, ShouldBeEmpty)
 						})
 
 						Convey("Then the corresponding `TransferHistory` entry "+
 							"should exist", func() {
-							var results []model.TransferHistory
-							So(db.Select(&results, nil), ShouldBeNil)
+							var results model.Histories
+							So(db.Select(&results).Run(), ShouldBeNil)
 							So(results, ShouldNotBeEmpty)
 
 							expected := model.TransferHistory{
@@ -166,8 +166,8 @@ func TestExecutorRun(t *testing.T) {
 								TaskNumber: 0,
 							}
 
-							var t []model.Transfer
-							So(db.Select(&t, nil), ShouldBeNil)
+							var t model.Transfers
+							So(db.Select(&t).Run(), ShouldBeNil)
 							So(t, ShouldNotBeEmpty)
 							So(t[0], ShouldResemble, exp)
 						})
@@ -202,8 +202,8 @@ func TestExecutorRun(t *testing.T) {
 								TaskNumber: 0,
 							}
 
-							var t []model.Transfer
-							So(db.Select(&t, nil), ShouldBeNil)
+							var t model.Transfers
+							So(db.Select(&t).Run(), ShouldBeNil)
 							So(t, ShouldNotBeEmpty)
 							So(t[0], ShouldResemble, exp)
 						})
@@ -238,8 +238,8 @@ func TestExecutorRun(t *testing.T) {
 								TaskNumber: 0,
 							}
 
-							var t []model.Transfer
-							So(db.Select(&t, nil), ShouldBeNil)
+							var t model.Transfers
+							So(db.Select(&t).Run(), ShouldBeNil)
 							So(t, ShouldNotBeEmpty)
 							So(t[0], ShouldResemble, exp)
 						})
@@ -256,7 +256,7 @@ func TestExecutorRun(t *testing.T) {
 						Type:   "TESTFAIL",
 						Args:   []byte("{}"),
 					}
-					So(db.Create(preTask), ShouldBeNil)
+					So(db.Insert(preTask).Run(), ShouldBeNil)
 
 					Convey("When calling the `Run` method", func() {
 						exe.Run()
@@ -283,8 +283,8 @@ func TestExecutorRun(t *testing.T) {
 								TaskNumber: 0,
 							}
 
-							var t []model.Transfer
-							So(db.Select(&t, nil), ShouldBeNil)
+							var t model.Transfers
+							So(db.Select(&t).Run(), ShouldBeNil)
 							So(t, ShouldNotBeEmpty)
 							So(t[0], ShouldResemble, exp)
 						})
@@ -319,8 +319,8 @@ func TestExecutorRun(t *testing.T) {
 								TaskNumber: 0,
 							}
 
-							var t []model.Transfer
-							So(db.Select(&t, nil), ShouldBeNil)
+							var t model.Transfers
+							So(db.Select(&t).Run(), ShouldBeNil)
 							So(t, ShouldNotBeEmpty)
 							So(t[0], ShouldResemble, exp)
 						})
@@ -337,7 +337,7 @@ func TestExecutorRun(t *testing.T) {
 						Type:   "TESTFAIL",
 						Args:   []byte("{}"),
 					}
-					So(db.Create(preTask), ShouldBeNil)
+					So(db.Insert(preTask).Run(), ShouldBeNil)
 
 					Convey("When calling the `Run` method", func() {
 						exe.Run()
@@ -364,8 +364,8 @@ func TestExecutorRun(t *testing.T) {
 								TaskNumber: 0,
 							}
 
-							var t []model.Transfer
-							So(db.Select(&t, nil), ShouldBeNil)
+							var t model.Transfers
+							So(db.Select(&t).Run(), ShouldBeNil)
 							So(t, ShouldNotBeEmpty)
 							So(t[0], ShouldResemble, exp)
 						})
@@ -400,8 +400,8 @@ func TestExecutorRun(t *testing.T) {
 								TaskNumber: 0,
 							}
 
-							var t []model.Transfer
-							So(db.Select(&t, nil), ShouldBeNil)
+							var t model.Transfers
+							So(db.Select(&t).Run(), ShouldBeNil)
 							So(t, ShouldNotBeEmpty)
 							So(t[0], ShouldResemble, exp)
 						})
@@ -424,7 +424,7 @@ func TestTransferResume(t *testing.T) {
 			WorkDirectory: filepath.Join(root, "work"),
 		}}
 
-		db := database.GetTestDatabase()
+		db := database.TestDatabase(c, "ERROR")
 
 		remote := &model.RemoteAgent{
 			Name:        "test remote",
@@ -432,14 +432,14 @@ func TestTransferResume(t *testing.T) {
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:1111",
 		}
-		So(db.Create(remote), ShouldBeNil)
+		So(db.Insert(remote).Run(), ShouldBeNil)
 
 		account := &model.RemoteAccount{
 			RemoteAgentID: remote.ID,
 			Login:         "test login",
 			Password:      []byte("test password"),
 		}
-		So(db.Create(account), ShouldBeNil)
+		So(db.Insert(account).Run(), ShouldBeNil)
 
 		cert := &model.Cert{
 			OwnerType:   remote.TableName(),
@@ -449,14 +449,14 @@ func TestTransferResume(t *testing.T) {
 			PublicKey:   []byte("public key"),
 			Certificate: []byte("certificate"),
 		}
-		So(db.Create(cert), ShouldBeNil)
+		So(db.Insert(cert).Run(), ShouldBeNil)
 
 		rule := &model.Rule{
 			Name:   "resume",
 			IsSend: true,
 			Path:   ".",
 		}
-		So(db.Create(rule), ShouldBeNil)
+		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		Convey("Given a transfer interrupted during pre-tasks", func() {
 			ClientsConstructors["test"] = NewAllSuccess
@@ -468,7 +468,7 @@ func TestTransferResume(t *testing.T) {
 				Type:   "TESTSUCCESS",
 				Args:   []byte("{}"),
 			}
-			So(db.Create(pre), ShouldBeNil)
+			So(db.Insert(pre).Run(), ShouldBeNil)
 
 			content := []byte("test pre-tasks file content")
 			truePath := filepath.Join(paths.OutDirectory, "test_pre_tasks_src")
@@ -489,7 +489,7 @@ func TestTransferResume(t *testing.T) {
 				Progress:     0,
 				TaskNumber:   1,
 			}
-			So(db.Create(trans), ShouldBeNil)
+			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("When starting the transfer", func() {
 				stream, err := pipeline.NewTransferStream(context.Background(),
@@ -502,14 +502,14 @@ func TestTransferResume(t *testing.T) {
 				exe.Run()
 
 				Convey("Then the `Transfer` entry should no longer exist", func() {
-					var res []model.Transfer
-					So(db.Select(&res, nil), ShouldBeNil)
+					var res model.Transfers
+					So(db.Select(&res).Run(), ShouldBeNil)
 					So(res, ShouldBeEmpty)
 				})
 
 				Convey("Then the corresponding `TransferHistory` entry should exist", func() {
-					var h []model.TransferHistory
-					So(db.Select(&h, nil), ShouldBeNil)
+					var h model.Histories
+					So(db.Select(&h).Run(), ShouldBeNil)
 					So(h, ShouldNotBeEmpty)
 
 					hist := model.TransferHistory{
@@ -545,7 +545,7 @@ func TestTransferResume(t *testing.T) {
 				Type:   "TESTFAIL",
 				Args:   []byte("{}"),
 			}
-			So(db.Create(pre), ShouldBeNil)
+			So(db.Insert(pre).Run(), ShouldBeNil)
 
 			content := []byte("test data file content")
 			truePath := filepath.Join(paths.OutDirectory, "test_data_src")
@@ -566,7 +566,7 @@ func TestTransferResume(t *testing.T) {
 				Progress:     10,
 				TaskNumber:   0,
 			}
-			So(db.Create(trans), ShouldBeNil)
+			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("When starting the transfer", func() {
 				stream, err := pipeline.NewTransferStream(context.Background(),
@@ -577,14 +577,14 @@ func TestTransferResume(t *testing.T) {
 				exe.Run()
 
 				Convey("Then the `Transfer` entry should no longer exist", func() {
-					var res []model.Transfer
-					So(db.Select(&res, nil), ShouldBeNil)
+					var res model.Transfers
+					So(db.Select(&res).Run(), ShouldBeNil)
 					So(res, ShouldBeEmpty)
 				})
 
 				Convey("Then the corresponding `TransferHistory` entry should exist", func() {
-					var h []model.TransferHistory
-					So(db.Select(&h, nil), ShouldBeNil)
+					var h model.Histories
+					So(db.Select(&h).Run(), ShouldBeNil)
 					So(h, ShouldNotBeEmpty)
 
 					hist := model.TransferHistory{
@@ -627,8 +627,8 @@ func TestTransferResume(t *testing.T) {
 				Type:   "TESTSUCCESS",
 				Args:   []byte("{}"),
 			}
-			So(db.Create(pre), ShouldBeNil)
-			So(db.Create(post), ShouldBeNil)
+			So(db.Insert(pre).Run(), ShouldBeNil)
+			So(db.Insert(post).Run(), ShouldBeNil)
 
 			content := []byte("test post-tasks file content")
 			truePath := filepath.Join(paths.OutDirectory, "test_post_tasks_src")
@@ -649,7 +649,7 @@ func TestTransferResume(t *testing.T) {
 				Progress:     uint64(len(content)),
 				TaskNumber:   1,
 			}
-			So(db.Create(trans), ShouldBeNil)
+			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("When starting the transfer", func() {
 				stream, err := pipeline.NewTransferStream(context.Background(),
@@ -660,14 +660,14 @@ func TestTransferResume(t *testing.T) {
 				exe.Run()
 
 				Convey("Then the `Transfer` entry should no longer exist", func() {
-					var res []model.Transfer
-					So(db.Select(&res, nil), ShouldBeNil)
+					var res model.Transfers
+					So(db.Select(&res).Run(), ShouldBeNil)
 					So(res, ShouldBeEmpty)
 				})
 
 				Convey("Then the corresponding `TransferHistory` entry should exist", func() {
-					var h []model.TransferHistory
-					So(db.Select(&h, nil), ShouldBeNil)
+					var h model.Histories
+					So(db.Select(&h).Run(), ShouldBeNil)
 					So(h, ShouldNotBeEmpty)
 
 					hist := model.TransferHistory{

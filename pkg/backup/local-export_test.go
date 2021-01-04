@@ -10,8 +10,8 @@ import (
 )
 
 func TestExportLocalAgents(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		owner := database.Owner
 
 		Convey("Given the database contains locals agents with accounts", func() {
@@ -21,16 +21,16 @@ func TestExportLocalAgents(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Create(agent1), ShouldBeNil)
+			So(db.Insert(agent1).Run(), ShouldBeNil)
 
 			// Change owner for this insert
 			database.Owner = "tata"
-			So(db.Create(&model.LocalAgent{
+			So(db.Insert(&model.LocalAgent{
 				Name:        "foo",
 				Protocol:    "sftp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
-			}), ShouldBeNil)
+			}).Run(), ShouldBeNil)
 			// Revert database owner
 			database.Owner = owner
 
@@ -39,7 +39,7 @@ func TestExportLocalAgents(t *testing.T) {
 				Login:        "test",
 				Password:     []byte("pwd"),
 			}
-			So(db.Create(account1a), ShouldBeNil)
+			So(db.Insert(account1a).Run(), ShouldBeNil)
 
 			cert := &model.Cert{
 				Name:        "test_cert",
@@ -49,7 +49,7 @@ func TestExportLocalAgents(t *testing.T) {
 				PublicKey:   []byte("public"),
 				PrivateKey:  []byte("private"),
 			}
-			So(db.Create(cert), ShouldBeNil)
+			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			agent2 := &model.LocalAgent{
 				Name:        "test2",
@@ -57,30 +57,26 @@ func TestExportLocalAgents(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Create(agent2), ShouldBeNil)
+			So(db.Insert(agent2).Run(), ShouldBeNil)
 
 			account2a := &model.LocalAccount{
 				LocalAgentID: agent2.ID,
 				Login:        "test",
 				Password:     []byte("pwd"),
 			}
-			So(db.Create(account2a), ShouldBeNil)
+			So(db.Insert(account2a).Run(), ShouldBeNil)
 
 			account2b := &model.LocalAccount{
 				LocalAgentID: agent2.ID,
 				Login:        "foo",
 				Password:     []byte("pwd"),
 			}
-			So(db.Create(account2b), ShouldBeNil)
+			So(db.Insert(account2b).Run(), ShouldBeNil)
 
-			Convey("Given a new Transaction", func() {
-				ses, err := db.BeginTransaction()
-				So(err, ShouldBeNil)
-
-				defer ses.Rollback()
+			Convey("Given an empty database", func() {
 
 				Convey("When calling the exportLocal function", func() {
-					res, err := exportLocals(discard, ses)
+					res, err := exportLocals(discard, db)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -153,8 +149,8 @@ func TestExportLocalAgents(t *testing.T) {
 }
 
 func TestExportLocalAccounts(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given the dabase contains a local agent with accounts", func() {
 			agent := &model.LocalAgent{
@@ -163,21 +159,21 @@ func TestExportLocalAccounts(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
 				Password:     []byte("pwd"),
 			}
-			So(db.Create(account1), ShouldBeNil)
+			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
 				Password:     []byte("bar"),
 			}
-			So(db.Create(account2), ShouldBeNil)
+			So(db.Insert(account2).Run(), ShouldBeNil)
 
 			cert := &model.Cert{
 				Name:        "test_cert",
@@ -187,16 +183,12 @@ func TestExportLocalAccounts(t *testing.T) {
 				PublicKey:   []byte("public"),
 				PrivateKey:  []byte("private"),
 			}
-			So(db.Create(cert), ShouldBeNil)
+			So(db.Insert(cert).Run(), ShouldBeNil)
 
-			Convey("Given a new Transaction", func() {
-				ses, err := db.BeginTransaction()
-				So(err, ShouldBeNil)
-
-				defer ses.Rollback()
+			Convey("Given an empty database", func() {
 
 				Convey("When calling the exportLocalAccounts function", func() {
-					res, err := exportLocalAccounts(discard, ses, agent.ID)
+					res, err := exportLocalAccounts(discard, db, agent.ID)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)

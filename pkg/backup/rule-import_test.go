@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
-	"github.com/go-xorm/builder"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -14,8 +13,8 @@ import (
 
 func TestImportRules(t *testing.T) {
 
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a database with some Rules", func() {
 			insert := &model.Rule{
@@ -23,7 +22,7 @@ func TestImportRules(t *testing.T) {
 				IsSend: true,
 				Path:   "path/to/Rule",
 			}
-			So(db.Create(insert), ShouldBeNil)
+			So(db.Insert(insert).Run(), ShouldBeNil)
 
 			pre1 := &model.Task{
 				RuleID: insert.ID,
@@ -32,7 +31,7 @@ func TestImportRules(t *testing.T) {
 				Type:   "COPY",
 				Args:   json.RawMessage(`{"path":"pre1"}`),
 			}
-			So(db.Create(pre1), ShouldBeNil)
+			So(db.Insert(pre1).Run(), ShouldBeNil)
 
 			pre2 := &model.Task{
 				RuleID: insert.ID,
@@ -41,7 +40,7 @@ func TestImportRules(t *testing.T) {
 				Type:   "DELETE",
 				Args:   json.RawMessage(`{}`),
 			}
-			So(db.Create(pre2), ShouldBeNil)
+			So(db.Insert(pre2).Run(), ShouldBeNil)
 
 			post1 := &model.Task{
 				RuleID: insert.ID,
@@ -50,7 +49,7 @@ func TestImportRules(t *testing.T) {
 				Type:   "COPY",
 				Args:   json.RawMessage(`{"path":"pre1"}`),
 			}
-			So(db.Create(post1), ShouldBeNil)
+			So(db.Insert(post1).Run(), ShouldBeNil)
 
 			post2 := &model.Task{
 				RuleID: insert.ID,
@@ -59,7 +58,7 @@ func TestImportRules(t *testing.T) {
 				Type:   "DELETE",
 				Args:   json.RawMessage(`{}`),
 			}
-			So(db.Create(post2), ShouldBeNil)
+			So(db.Insert(post2).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
 				Name:        "test",
@@ -67,21 +66,21 @@ func TestImportRules(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
 				Password:     []byte("pwd"),
 			}
-			So(db.Create(account1), ShouldBeNil)
+			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
 				Password:     []byte("pwd"),
 			}
-			So(db.Create(account2), ShouldBeNil)
+			So(db.Insert(account2).Run(), ShouldBeNil)
 
 			Convey("Given a new Rule to import", func() {
 				Rule1 := Rule{
@@ -118,58 +117,44 @@ func TestImportRules(t *testing.T) {
 				}
 				Rules := []Rule{Rule1}
 
-				Convey("Given a new transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
+				Convey("When calling importRules with the new Rules", func() {
+					err := importRules(discard, db, Rules)
 
-					defer ses.Rollback()
-
-					Convey("When calling importRules with the new Rules", func() {
-						err := importRules(discard, ses, Rules)
-
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
-						})
-
-						Convey("Then the database should contains the Rule "+
-							"imported", func() {
-							dbRule := &model.Rule{
-								Name:   Rule1.Name,
-								IsSend: Rule1.IsSend,
-							}
-							So(ses.Get(dbRule), ShouldBeNil)
-
-							Convey("Then the record should correspond to "+
-								"the data imported", func() {
-								So(dbRule.Path, ShouldEqual, Rule1.Path)
-
-								var auths []model.RuleAccess
-								So(ses.Select(&auths, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": dbRule.ID},
-								}), ShouldBeNil)
-								So(len(auths), ShouldEqual, 3)
-
-								var pres []model.Task
-								So(ses.Select(&pres, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "PRE"},
-								}), ShouldBeNil)
-								So(len(pres), ShouldEqual, 1)
-
-								var posts []model.Task
-								So(ses.Select(&posts, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "POST"},
-								}), ShouldBeNil)
-								So(len(posts), ShouldEqual, 1)
-
-								var errors []model.Task
-								So(ses.Select(&errors, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "ERROR"},
-								}), ShouldBeNil)
-								So(len(errors), ShouldEqual, 2)
-							})
-						})
+					Convey("Then it should return no error", func() {
+						So(err, ShouldBeNil)
 					})
 
+					Convey("Then the database should contains the Rule "+
+						"imported", func() {
+						var dbRule model.Rule
+						So(db.Get(&dbRule, "name=? AND send=?", Rule1.Name,
+							Rule1.IsSend).Run(), ShouldBeNil)
+
+						Convey("Then the record should correspond to "+
+							"the data imported", func() {
+							So(dbRule.Path, ShouldEqual, Rule1.Path)
+
+							var auths model.RuleAccesses
+							So(db.Select(&auths).Where("rule_id=?", dbRule.ID).
+								Run(), ShouldBeNil)
+							So(len(auths), ShouldEqual, 3)
+
+							var pres model.Tasks
+							So(db.Select(&pres).Where("rule_id=? AND chain='PRE'",
+								dbRule.ID).Run(), ShouldBeNil)
+							So(len(pres), ShouldEqual, 1)
+
+							var posts model.Tasks
+							So(db.Select(&posts).Where("rule_id=? AND chain='POST'",
+								dbRule.ID).Run(), ShouldBeNil)
+							So(len(posts), ShouldEqual, 1)
+
+							var errors model.Tasks
+							So(db.Select(&errors).Where("rule_id= ? AND chain='ERROR'",
+								dbRule.ID).Run(), ShouldBeNil)
+							So(len(errors), ShouldEqual, 2)
+						})
+					})
 				})
 			})
 
@@ -207,57 +192,43 @@ func TestImportRules(t *testing.T) {
 				}
 				Rules := []Rule{Rule1}
 
-				Convey("Given a new transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
+				Convey("When calling importRules with the new Rules", func() {
+					err := importRules(discard, db, Rules)
 
-					defer ses.Rollback()
-
-					Convey("When calling importRules with the new Rules", func() {
-						err := importRules(discard, ses, Rules)
-
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
-						})
-
-						Convey("Then the database should contains the Rule imported", func() {
-							dbRule := &model.Rule{
-								Name:   insert.Name,
-								IsSend: insert.IsSend,
-							}
-							So(ses.Get(dbRule), ShouldBeNil)
-
-							Convey("Then the record should correspond to "+
-								"the data imported", func() {
-								So(dbRule.Path, ShouldEqual, Rule1.Path)
-
-								var auths []model.RuleAccess
-								So(ses.Select(&auths, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": dbRule.ID},
-								}), ShouldBeNil)
-								So(len(auths), ShouldEqual, 2)
-
-								var pres []model.Task
-								So(ses.Select(&pres, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "PRE"},
-								}), ShouldBeNil)
-								So(len(pres), ShouldEqual, 1)
-
-								var posts []model.Task
-								So(ses.Select(&posts, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "POST"},
-								}), ShouldBeNil)
-								So(len(posts), ShouldEqual, 1)
-
-								var errors []model.Task
-								So(ses.Select(&errors, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "ERROR"},
-								}), ShouldBeNil)
-								So(len(errors), ShouldEqual, 2)
-							})
-						})
+					Convey("Then it should return no error", func() {
+						So(err, ShouldBeNil)
 					})
 
+					Convey("Then the database should contains the Rule imported", func() {
+						var dbRule model.Rule
+						So(db.Get(&dbRule, "name=? AND send=?", insert.Name,
+							insert.IsSend).Run(), ShouldBeNil)
+
+						Convey("Then the record should correspond to "+
+							"the data imported", func() {
+							So(dbRule.Path, ShouldEqual, Rule1.Path)
+
+							var auths model.RuleAccesses
+							So(db.Select(&auths).Where("rule_id=?", dbRule.ID).
+								Run(), ShouldBeNil)
+							So(len(auths), ShouldEqual, 2)
+
+							var pres model.Tasks
+							So(db.Select(&pres).Where("rule_id=? AND chain='PRE'",
+								dbRule.ID).Run(), ShouldBeNil)
+							So(len(pres), ShouldEqual, 1)
+
+							var posts model.Tasks
+							So(db.Select(&posts).Where("rule_id=? AND chain='POST'",
+								dbRule.ID).Run(), ShouldBeNil)
+							So(len(posts), ShouldEqual, 1)
+
+							var errors model.Tasks
+							So(db.Select(&errors).Where("rule_id=? AND chain='ERROR'",
+								dbRule.ID).Run(), ShouldBeNil)
+							So(len(errors), ShouldEqual, 2)
+						})
+					})
 				})
 			})
 
@@ -273,69 +244,54 @@ func TestImportRules(t *testing.T) {
 				}
 				Rules := []Rule{Rule1}
 
-				Convey("Given a new transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
+				Convey("When calling importRules with the new Rules", func() {
+					err := importRules(discard, db, Rules)
 
-					defer ses.Rollback()
-
-					Convey("When calling importRules with the new Rules", func() {
-						err := importRules(discard, ses, Rules)
-
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
-						})
-
-						Convey("Then the database should contains the "+
-							"Rule imported", func() {
-							dbRule := &model.Rule{
-								Name:   insert.Name,
-								IsSend: insert.IsSend,
-							}
-							So(ses.Get(dbRule), ShouldBeNil)
-
-							Convey("Then the record should correspond to "+
-								"the data imported", func() {
-								So(dbRule.Path, ShouldEqual, Rule1.Path)
-
-								var auths []model.RuleAccess
-								So(ses.Select(&auths, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": dbRule.ID},
-								}), ShouldBeNil)
-								So(len(auths), ShouldEqual, 2)
-
-								var pres []model.Task
-								So(ses.Select(&pres, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "PRE"},
-								}), ShouldBeNil)
-								So(len(pres), ShouldEqual, 2)
-
-								var posts []model.Task
-								So(ses.Select(&posts, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "POST"},
-								}), ShouldBeNil)
-								So(len(posts), ShouldEqual, 2)
-
-								var errors []model.Task
-								So(ses.Select(&errors, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": dbRule.ID, "chain": "ERROR"},
-								}), ShouldBeNil)
-								So(len(errors), ShouldEqual, 0)
-							})
-						})
+					Convey("Then it should return no error", func() {
+						So(err, ShouldBeNil)
 					})
 
+					Convey("Then the database should contains the "+
+						"Rule imported", func() {
+						var dbRule model.Rule
+						So(db.Get(&dbRule, "name=? AND send=?", insert.Name,
+							insert.IsSend).Run(), ShouldBeNil)
+
+						Convey("Then the record should correspond to "+
+							"the data imported", func() {
+							So(dbRule.Path, ShouldEqual, Rule1.Path)
+
+							var auths model.RuleAccesses
+							So(db.Select(&auths).Where("rule_id=?", dbRule.ID).
+								Run(), ShouldBeNil)
+							So(len(auths), ShouldEqual, 2)
+
+							var pres model.Tasks
+							So(db.Select(&pres).Where("rule_id=? AND chain='PRE'",
+								dbRule.ID).Run(), ShouldBeNil)
+							So(len(pres), ShouldEqual, 2)
+
+							var posts model.Tasks
+							So(db.Select(&posts).Where("rule_id=? AND chain='POST'",
+								dbRule.ID).Run(), ShouldBeNil)
+							So(len(posts), ShouldEqual, 2)
+
+							var errors model.Tasks
+							So(db.Select(&errors).Where("rule_id=? AND chain='ERROR'",
+								dbRule.ID).Run(), ShouldBeNil)
+							So(len(errors), ShouldEqual, 0)
+						})
+					})
 				})
 			})
 		})
-
 	})
 }
 
 func TestImportRuleAccess(t *testing.T) {
 
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a database with some Rules", func() {
 			insert := &model.Rule{
@@ -343,7 +299,7 @@ func TestImportRuleAccess(t *testing.T) {
 				IsSend: true,
 				Path:   "path/to/Rule",
 			}
-			So(db.Create(insert), ShouldBeNil)
+			So(db.Insert(insert).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
 				Name:        "test",
@@ -351,21 +307,21 @@ func TestImportRuleAccess(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
 				Password:     []byte("pwd"),
 			}
-			So(db.Create(account1), ShouldBeNil)
+			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
 				Password:     []byte("pwd"),
 			}
-			So(db.Create(account2), ShouldBeNil)
+			So(db.Insert(account2).Run(), ShouldBeNil)
 
 			Convey("Given a new access to import", func() {
 				accesses := []string{
@@ -374,24 +330,72 @@ func TestImportRuleAccess(t *testing.T) {
 					"local::test::test",
 				}
 
-				Convey("Given a new transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
+				Convey("When calling importRuleAccesses with new", func() {
+					err := importRuleAccesses(db, accesses, insert.ID)
 
-					defer ses.Rollback()
+					Convey("Then it should return no error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then the database should contains 3 accesses", func() {
+						var dbAccesses model.RuleAccesses
+						So(db.Select(&dbAccesses).Where("rule_id=?", insert.ID).
+							Run(), ShouldBeNil)
+						So(len(dbAccesses), ShouldEqual, 3)
+
+						Convey("Then the data should correspond to "+
+							"the ones imported", func() {
+							for i := 0; i < len(dbAccesses); i++ {
+								acc := dbAccesses[i]
+								if acc.ObjectType == "local_agents" &&
+									acc.ObjectID == agent.ID {
+									Convey("Then access for agent is found", func() {
+									})
+								} else if acc.ObjectType == "local_accounts" &&
+									acc.ObjectID == account1.ID {
+									Convey("Then access for accunt1 is found", func() {
+									})
+								} else if acc.ObjectType == "local_accounts" &&
+									acc.ObjectID == account2.ID {
+									Convey("Then access for accunt2 is found", func() {
+									})
+								} else {
+									Convey("Then they should be no "+
+										"other records", func() {
+										So(1, ShouldBeNil)
+									})
+								}
+							}
+						})
+					})
+				})
+			})
+
+			Convey("Given a Rule with 1 access", func() {
+				acc1 := &model.RuleAccess{
+					RuleID:     insert.ID,
+					ObjectType: "local_agents",
+					ObjectID:   agent.ID,
+				}
+				So(db.Insert(acc1).Run(), ShouldBeNil)
+
+				Convey("Given a new access to import", func() {
+					accesses := []string{
+						"local::test::foo",
+						"local::test::test",
+					}
 
 					Convey("When calling importRuleAccesses with new", func() {
-						err := importRuleAccesses(ses, accesses, insert.ID)
+						err := importRuleAccesses(db, accesses, insert.ID)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
 
 						Convey("Then the database should contains 3 accesses", func() {
-							var dbAccesses []model.RuleAccess
-							So(ses.Select(&dbAccesses, &database.Filters{
-								Conditions: builder.Eq{"Rule_id": insert.ID},
-							}), ShouldBeNil)
+							var dbAccesses model.RuleAccesses
+							So(db.Select(&dbAccesses).Where("rule_id=?", insert.ID).
+								Run(), ShouldBeNil)
 							So(len(dbAccesses), ShouldEqual, 3)
 
 							Convey("Then the data should correspond to "+
@@ -404,82 +408,18 @@ func TestImportRuleAccess(t *testing.T) {
 										})
 									} else if acc.ObjectType == "local_accounts" &&
 										acc.ObjectID == account1.ID {
-										Convey("Then access for accunt1 is found", func() {
+										Convey("Then access for account1 is found", func() {
 										})
 									} else if acc.ObjectType == "local_accounts" &&
 										acc.ObjectID == account2.ID {
-										Convey("Then access for accunt2 is found", func() {
+										Convey("Then access for account2 is found", func() {
 										})
 									} else {
-										Convey("Then they should be no "+
-											"other records", func() {
+										Convey("Then they should be no other records", func() {
 											So(1, ShouldBeNil)
 										})
 									}
 								}
-							})
-						})
-					})
-				})
-			})
-
-			Convey("Given a Rule with 1 access", func() {
-				acc1 := &model.RuleAccess{
-					RuleID:     insert.ID,
-					ObjectType: "local_agents",
-					ObjectID:   agent.ID,
-				}
-				So(db.Create(acc1), ShouldBeNil)
-
-				Convey("Given a new access to import", func() {
-					accesses := []string{
-						"local::test::foo",
-						"local::test::test",
-					}
-
-					Convey("Given a new transaction", func() {
-						ses, err := db.BeginTransaction()
-						So(err, ShouldBeNil)
-
-						defer ses.Rollback()
-
-						Convey("When calling importRuleAccesses with new", func() {
-							err := importRuleAccesses(ses, accesses, insert.ID)
-
-							Convey("Then it should return no error", func() {
-								So(err, ShouldBeNil)
-							})
-
-							Convey("Then the database should contains 3 accesses", func() {
-								var dbAccesses []model.RuleAccess
-								So(ses.Select(&dbAccesses, &database.Filters{
-									Conditions: builder.Eq{"Rule_id": insert.ID},
-								}), ShouldBeNil)
-								So(len(dbAccesses), ShouldEqual, 3)
-
-								Convey("Then the data should correspond to "+
-									"the ones imported", func() {
-									for i := 0; i < len(dbAccesses); i++ {
-										acc := dbAccesses[i]
-										if acc.ObjectType == "local_agents" &&
-											acc.ObjectID == agent.ID {
-											Convey("Then access for agent is found", func() {
-											})
-										} else if acc.ObjectType == "local_accounts" &&
-											acc.ObjectID == account1.ID {
-											Convey("Then access for account1 is found", func() {
-											})
-										} else if acc.ObjectType == "local_accounts" &&
-											acc.ObjectID == account2.ID {
-											Convey("Then access for account2 is found", func() {
-											})
-										} else {
-											Convey("Then they should be no other records", func() {
-												So(1, ShouldBeNil)
-											})
-										}
-									}
-								})
 							})
 						})
 					})
@@ -491,8 +431,8 @@ func TestImportRuleAccess(t *testing.T) {
 
 func TestImportTasks(t *testing.T) {
 
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a database with some Rules", func() {
 			insert := &model.Rule{
@@ -500,7 +440,7 @@ func TestImportTasks(t *testing.T) {
 				IsSend: true,
 				Path:   "path/to/Rule",
 			}
-			So(db.Create(insert), ShouldBeNil)
+			So(db.Insert(insert).Run(), ShouldBeNil)
 
 			pre1 := &model.Task{
 				RuleID: insert.ID,
@@ -509,7 +449,7 @@ func TestImportTasks(t *testing.T) {
 				Type:   "COPY",
 				Args:   json.RawMessage(`{"path":"pre1"}`),
 			}
-			So(db.Create(pre1), ShouldBeNil)
+			So(db.Insert(pre1).Run(), ShouldBeNil)
 
 			pre2 := &model.Task{
 				RuleID: insert.ID,
@@ -518,7 +458,7 @@ func TestImportTasks(t *testing.T) {
 				Type:   "DELETE",
 				Args:   json.RawMessage(`{}`),
 			}
-			So(db.Create(pre2), ShouldBeNil)
+			So(db.Insert(pre2).Run(), ShouldBeNil)
 
 			post1 := &model.Task{
 				RuleID: insert.ID,
@@ -527,7 +467,7 @@ func TestImportTasks(t *testing.T) {
 				Type:   "COPY",
 				Args:   json.RawMessage(`{"path":"pre1"}`),
 			}
-			So(db.Create(post1), ShouldBeNil)
+			So(db.Insert(post1).Run(), ShouldBeNil)
 
 			post2 := &model.Task{
 				RuleID: insert.ID,
@@ -536,7 +476,7 @@ func TestImportTasks(t *testing.T) {
 				Type:   "DELETE",
 				Args:   json.RawMessage(`{}`),
 			}
-			So(db.Create(post2), ShouldBeNil)
+			So(db.Insert(post2).Run(), ShouldBeNil)
 
 			error1 := &model.Task{
 				RuleID: insert.ID,
@@ -545,7 +485,7 @@ func TestImportTasks(t *testing.T) {
 				Type:   "DELETE",
 				Args:   json.RawMessage(`{}`),
 			}
-			So(db.Create(error1), ShouldBeNil)
+			So(db.Insert(error1).Run(), ShouldBeNil)
 
 			Convey("Given some tasks to import", func() {
 				tasks := []Task{
@@ -559,78 +499,68 @@ func TestImportTasks(t *testing.T) {
 					},
 				}
 
-				Convey("Given a new transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
+				Convey("When calling importTasks on pre tasks", func() {
+					err := importRuleTasks(discard, db, tasks, insert.ID, model.ChainPre)
 
-					defer ses.Rollback()
-
-					Convey("When calling importTasks on pre tasks", func() {
-						err := importRuleTasks(discard, ses, tasks, insert.ID, model.ChainPre)
-
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
-						})
-
-						Convey("Then the database should contains 2 tasks", func() {
-							var dbTasks []model.Task
-							So(ses.Select(&dbTasks, &database.Filters{
-								Conditions: builder.Eq{"Rule_id": insert.ID, "chain": "PRE"},
-							}), ShouldBeNil)
-							So(len(dbTasks), ShouldEqual, 2)
-
-							Convey("Then the data should correspond to the ones imported", func() {
-								for i := 0; i < len(dbTasks); i++ {
-									So(dbTasks[i].Type, ShouldEqual, tasks[i].Type)
-									So(dbTasks[i].Args, ShouldResemble, tasks[i].Args)
-								}
-							})
-						})
+					Convey("Then it should return no error", func() {
+						So(err, ShouldBeNil)
 					})
 
-					Convey("When calling importTasks on post tasks", func() {
-						err := importRuleTasks(discard, ses, tasks, insert.ID, model.ChainPost)
+					Convey("Then the database should contains 2 tasks", func() {
+						var dbTasks model.Tasks
+						So(db.Select(&dbTasks).Where("rule_id=? AND chain='PRE'",
+							insert.ID).Run(), ShouldBeNil)
+						So(len(dbTasks), ShouldEqual, 2)
 
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
-						})
-
-						Convey("Then the database should contains 2 tasks", func() {
-							var dbTasks []model.Task
-							So(ses.Select(&dbTasks, &database.Filters{
-								Conditions: builder.Eq{"Rule_id": insert.ID, "chain": "POST"},
-							}), ShouldBeNil)
-							So(len(dbTasks), ShouldEqual, 2)
-
-							Convey("Then the data should correspond to the ones imported", func() {
-								for i := 0; i < len(dbTasks); i++ {
-									So(dbTasks[i].Type, ShouldEqual, tasks[i].Type)
-									So(dbTasks[i].Args, ShouldResemble, tasks[i].Args)
-								}
-							})
+						Convey("Then the data should correspond to the ones imported", func() {
+							for i := 0; i < len(dbTasks); i++ {
+								So(dbTasks[i].Type, ShouldEqual, tasks[i].Type)
+								So(dbTasks[i].Args, ShouldResemble, tasks[i].Args)
+							}
 						})
 					})
+				})
 
-					Convey("When calling importTasks on error tasks", func() {
-						err := importRuleTasks(discard, ses, tasks, insert.ID, model.ChainError)
+				Convey("When calling importTasks on post tasks", func() {
+					err := importRuleTasks(discard, db, tasks, insert.ID, model.ChainPost)
 
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
+					Convey("Then it should return no error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then the database should contains 2 tasks", func() {
+						var dbTasks model.Tasks
+						So(db.Select(&dbTasks).Where("rule_id=? AND chain='POST'",
+							insert.ID).Run(), ShouldBeNil)
+						So(len(dbTasks), ShouldEqual, 2)
+
+						Convey("Then the data should correspond to the ones imported", func() {
+							for i := 0; i < len(dbTasks); i++ {
+								So(dbTasks[i].Type, ShouldEqual, tasks[i].Type)
+								So(dbTasks[i].Args, ShouldResemble, tasks[i].Args)
+							}
 						})
+					})
+				})
 
-						Convey("Then the database should contains 2 tasks", func() {
-							var dbTasks []model.Task
-							So(ses.Select(&dbTasks, &database.Filters{
-								Conditions: builder.Eq{"Rule_id": insert.ID, "chain": "ERROR"},
-							}), ShouldBeNil)
-							So(len(dbTasks), ShouldEqual, 2)
+				Convey("When calling importTasks on error tasks", func() {
+					err := importRuleTasks(discard, db, tasks, insert.ID, model.ChainError)
 
-							Convey("Then the data should correspond to the ones imported", func() {
-								for i := 0; i < len(dbTasks); i++ {
-									So(dbTasks[i].Type, ShouldEqual, tasks[i].Type)
-									So(dbTasks[i].Args, ShouldResemble, tasks[i].Args)
-								}
-							})
+					Convey("Then it should return no error", func() {
+						So(err, ShouldBeNil)
+					})
+
+					Convey("Then the database should contains 2 tasks", func() {
+						var dbTasks model.Tasks
+						So(db.Select(&dbTasks).Where("rule_id=? AND chain='ERROR'",
+							insert.ID).Run(), ShouldBeNil)
+						So(len(dbTasks), ShouldEqual, 2)
+
+						Convey("Then the data should correspond to the ones imported", func() {
+							for i := 0; i < len(dbTasks); i++ {
+								So(dbTasks[i].Type, ShouldEqual, tasks[i].Type)
+								So(dbTasks[i].Args, ShouldResemble, tasks[i].Args)
+							}
 						})
 					})
 				})

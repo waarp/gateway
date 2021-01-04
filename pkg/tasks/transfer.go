@@ -67,15 +67,15 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 		infoErr = fmt.Errorf("missing transfer rule")
 		return
 	}
-	rule := &model.Rule{Name: ruleName, IsSend: isSend}
-	if err := db.Get(rule); err != nil {
+	rule := &model.Rule{}
+	if err := db.Get(rule, "name=? AND send=?", ruleName, isSend).Run(); err != nil {
 		infoErr = fmt.Errorf("failed to retrieve rule '%s': %s", ruleName, err)
 		return
 	}
 	ruleID = rule.ID
 
-	agent := &model.RemoteAgent{Name: agentName}
-	if err := db.Get(agent); err != nil {
+	agent := &model.RemoteAgent{}
+	if err := db.Get(agent, "name=?", agentName).Run(); err != nil {
 		infoErr = fmt.Errorf("failed to retrieve partner '%s': %s", agentName, err)
 		return
 	}
@@ -86,8 +86,8 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 		infoErr = fmt.Errorf("missing transfer account")
 		return
 	}
-	acc := &model.RemoteAccount{RemoteAgentID: agent.ID, Login: accName}
-	if err := db.Get(acc); err != nil {
+	acc := &model.RemoteAccount{}
+	if err := db.Get(acc, "remote_agent_id=? AND login=?", agent.ID, accName).Run(); err != nil {
 		infoErr = fmt.Errorf("failed to retrieve account '%s': %s", accName, err)
 		return
 	}
@@ -111,7 +111,7 @@ func (t *TransferTask) Run(args map[string]string, processor *Processor) (string
 		SourceFile:   filepath.Base(file),
 		DestFile:     filepath.Base(file),
 	}
-	if err := processor.DB.Create(trans); err != nil {
+	if err := processor.DB.Insert(trans).Run(); err != nil {
 		return fmt.Sprintf("cannot create transfer of file '%s': %s", file, err), err
 	}
 	return "", nil

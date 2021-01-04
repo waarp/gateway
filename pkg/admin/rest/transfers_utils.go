@@ -1,38 +1,39 @@
 package rest
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"github.com/go-xorm/builder"
 )
 
 func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64, error) {
-	rule := &model.Rule{Name: trans.Rule, IsSend: trans.IsSend}
-	if err := db.Get(rule); err != nil {
+	var rule model.Rule
+	if err := db.Get(&rule, "name=? AND send=?", trans.Rule, trans.IsSend).Run(); err != nil {
 		if _, ok := err.(*database.NotFoundError); ok {
-			return 0, 0, 0, badRequest("no rule '%s' found", rule.Name)
+			return 0, 0, 0, badRequest("no rule '%s' found", trans.Rule)
 		}
 		return 0, 0, 0, err
 	}
 
-	partner := &model.RemoteAgent{Name: trans.Partner}
-	if err := db.Get(partner); err != nil {
+	var partner model.RemoteAgent
+	if err := db.Get(&partner, "name=?", trans.Partner).Run(); err != nil {
 		if _, ok := err.(*database.NotFoundError); ok {
-			return 0, 0, 0, badRequest("no partner '%s' found", partner.Name)
+			return 0, 0, 0, badRequest("no partner '%s' found", trans.Partner)
 		}
 		return 0, 0, 0, err
 	}
-	account := &model.RemoteAccount{RemoteAgentID: partner.ID, Login: trans.Account}
-	if err := db.Get(account); err != nil {
+
+	var account model.RemoteAccount
+	if err := db.Get(&account, "remote_agent_id=? AND login=?", partner.ID,
+		trans.Account).Run(); err != nil {
 		if _, ok := err.(*database.NotFoundError); ok {
 			return 0, 0, 0, badRequest("no account '%s' found for partner %s",
-				account.Login, partner.Name)
+				trans.Account, trans.Partner)
 		}
 		return 0, 0, 0, err
 	}
@@ -42,90 +43,98 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64
 // getTransNames returns (in this order) the transfer's rule name, requester and
 // requested.
 func getTransNames(db *database.DB, trans *model.Transfer) (string, string, string, error) {
-	rule := &model.Rule{ID: trans.RuleID}
-	if err := db.Get(rule); err != nil {
+	var rule model.Rule
+	if err := db.Get(&rule, "id=?", trans.RuleID).Run(); err != nil {
 		return "", "", "", err
 	}
 
 	if trans.IsServer {
-		requester := &model.LocalAccount{ID: trans.AccountID}
-		if err := db.Get(requester); err != nil {
-			return "", "", "", fmt.Errorf("no loc account %v", trans.AccountID)
+		var requester model.LocalAccount
+		if err := db.Get(&requester, "id=?", trans.AccountID).Run(); err != nil {
+			return "", "", "", err
 		}
-		requested := &model.LocalAgent{ID: trans.AgentID}
-		if err := db.Get(requested); err != nil {
-			return "", "", "", fmt.Errorf("no server %v", trans.AccountID)
+		var requested model.LocalAgent
+		if err := db.Get(&requested, "id=?", trans.AgentID).Run(); err != nil {
+			return "", "", "", err
 		}
 		return rule.Name, requester.Login, requested.Name, nil
 	}
-	requester := &model.RemoteAccount{ID: trans.AccountID}
-	if err := db.Get(requester); err != nil {
-		return "", "", "", fmt.Errorf("no rem account %v", trans.AccountID)
+	var requester model.RemoteAccount
+	if err := db.Get(&requester, "id=?", trans.AccountID).Run(); err != nil {
+		return "", "", "", err
 	}
-	requested := &model.RemoteAgent{ID: trans.AgentID}
-	if err := db.Get(requested); err != nil {
-		return "", "", "", fmt.Errorf("no partner %v", trans.AgentID)
+	var requested model.RemoteAgent
+	if err := db.Get(&requested, "id=?", trans.AgentID).Run(); err != nil {
+		return "", "", "", err
 	}
 	return rule.Name, requester.Login, requested.Name, nil
 }
 
 //nolint:funlen
-func parseTransferListQuery(r *http.Request) (filters *database.Filters, err error) {
-	filters = &database.Filters{}
+func parseTransferListQuery(r *http.Request, db *database.DB,
+	transfers *model.Transfers) (*database.SelectQuery, error) {
 
-	sorting := map[string]string{
-		"default": "id ASC",
-		"id+":     "id ASC",
-		"id-":     "id DESC",
-		"status+": "status ASC",
-		"status-": "status DESC",
-		"start+":  "start ASC",
-		"start-":  "start DESC",
+	query := db.Select(transfers)
+
+	sorting := orders{
+		"default": order{col: "id", asc: true},
+		"id+":     order{col: "id", asc: true},
+		"id-":     order{col: "id", asc: false},
+		"status+": order{col: "status", asc: true},
+		"status-": order{col: "status", asc: false},
+		"start+":  order{col: "start", asc: true},
+		"start-":  order{col: "start", asc: false},
 	}
-	where := builder.NewCond()
+
 	if err := r.ParseForm(); err != nil {
 		return nil, err
 	}
 
-	filters.Limit = 20
-	filters.Offset = 0
+	var err error
+	limit := 20
+	offset := 0
 	if limStr := r.FormValue("limit"); limStr != "" {
-		filters.Limit, err = strconv.Atoi(limStr)
+		limit, err = strconv.Atoi(limStr)
 		if err != nil {
 			return nil, badRequest("'limit' must be an int")
 		}
 	}
 	if offStr := r.FormValue("offset"); offStr != "" {
-		filters.Offset, err = strconv.Atoi(offStr)
+		offset, err = strconv.Atoi(offStr)
 		if err != nil {
 			return nil, badRequest("'offset' must be an int")
 		}
 	}
+	query.Limit(limit, offset)
 
 	if rules, ok := r.Form["rule"]; ok {
-		where = where.And(builder.In("rule_id", builder.Select("id").From("rules").
-			Where(builder.In("name", rules))))
+		args := make([]interface{}, len(rules))
+		for i := range rules {
+			args[i] = rules[i]
+		}
+		query.Where("rule_id IN (SELECT id FROM rules WHERE name IN (?"+
+			strings.Repeat(",?", len(rules)-1)+"))", args...)
 	}
 	if statuses, ok := r.Form["status"]; ok {
-		where = where.And(builder.In("status", statuses))
+		query.In("status", statuses)
 	}
 	if startStr := r.FormValue("start"); startStr != "" {
 		start, err := time.Parse(time.RFC3339, startStr)
 		if err != nil {
 			return nil, badRequest("'%s' is not a valid date", startStr)
 		}
-		where = where.And(builder.Gte{"start": start.UTC()})
+		query.Where("start >= ?", start.UTC())
 	}
-	filters.Conditions = where
 
-	filters.Order = sorting["default"]
+	sort := sorting["default"]
 	if sortStr := r.FormValue("sort"); sortStr != "" {
-		sort, ok := sorting[sortStr]
+		var ok bool
+		sort, ok = sorting[sortStr]
 		if !ok {
 			return nil, badRequest("'%s' is not a valid order", sortStr)
 		}
-		filters.Order = sort
 	}
+	query.OrderBy(sort.col, sort.asc)
 
-	return filters, nil
+	return query, nil
 }

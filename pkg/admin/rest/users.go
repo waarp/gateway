@@ -7,7 +7,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"github.com/go-xorm/builder"
 	"github.com/gorilla/mux"
 )
 
@@ -42,13 +41,16 @@ func FromUser(user *model.User) *api.OutUser {
 	}
 }
 
-// FromUsers transforms the given list of user into its JSON equivalent.
-func FromUsers(usr []model.User) []api.OutUser {
-	users := make([]api.OutUser, len(usr))
-	for i := range usr {
-		users[i] = *FromUser(&usr[i])
+func writeUsers(users model.Users, w http.ResponseWriter) error {
+	jUsers := make([]api.OutUser, len(users))
+	for i := range users {
+		jUsers[i] = *FromUser(&users[i])
 	}
-	return users
+	if err := writeJSON(w, map[string][]api.OutUser{"users": jUsers}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getUsr(r *http.Request, db *database.DB) (*model.User, error) {
@@ -56,11 +58,16 @@ func getUsr(r *http.Request, db *database.DB) (*model.User, error) {
 	if !ok {
 		return nil, notFound("missing username")
 	}
-	user := &model.User{Username: username, Owner: database.Owner}
-	if err := db.Get(user); err != nil {
-		return nil, notFound("user '%s' not found", username)
+
+	var user model.User
+	if err := db.Get(&user, "username=? AND owner=?", username, database.Owner).
+		Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, notFound("user '%s' not found", username)
+		}
+		return nil, err
 	}
-	return user, nil
+	return &user, nil
 }
 
 func getUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -70,33 +77,29 @@ func getUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = writeJSON(w, FromUser(result))
-		handleError(w, logger, err)
+		handleError(w, logger, writeJSON(w, FromUser(result)))
 	}
 }
 
 func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	validSorting := map[string]string{
-		"default":   "username ASC",
-		"username+": "username ASC",
-		"username-": "username DESC",
+	validSorting := orders{
+		"default":   order{"username", true},
+		"username+": order{"username", true},
+		"username-": order{"username", false},
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		filters, err := parseListFilters(r, validSorting)
+		var users model.Users
+		query, err := parseSelectQuery(r, db, validSorting, &users)
 		if handleError(w, logger, err) {
 			return
 		}
-		filters.Conditions = builder.Eq{"owner": database.Owner}
 
-		var results []model.User
-		if err := db.Select(&results, filters); handleError(w, logger, err) {
+		if err := query.Run(); handleError(w, logger, err) {
 			return
 		}
 
-		resp := map[string][]api.OutUser{"users": FromUsers(results)}
-		err = writeJSON(w, resp)
-		handleError(w, logger, err)
+		handleError(w, logger, writeUsers(users, w))
 	}
 }
 
@@ -112,7 +115,7 @@ func addUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := db.Create(user); handleError(w, logger, err) {
+		if err := db.Insert(user).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -138,7 +141,7 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := db.Update(user); handleError(w, logger, err) {
+		if err := db.Update(user).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -164,7 +167,7 @@ func replaceUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := db.Update(user); handleError(w, logger, err) {
+		if err := db.Update(user).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -186,7 +189,7 @@ func deleteUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := db.Delete(user); handleError(w, logger, err) {
+		if err := db.Delete(user).Run(); handleError(w, logger, err) {
 			return
 		}
 

@@ -86,8 +86,8 @@ func TestAddTransfer(t *testing.T) {
 		out = testFile()
 		command := &transferAdd{}
 
-		Convey("Given a database", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a database", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -98,7 +98,7 @@ func TestAddTransfer(t *testing.T) {
 				IsSend: true,
 				Path:   "path",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
@@ -106,14 +106,14 @@ func TestAddTransfer(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(partner), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				Login:         "login",
 				Password:      []byte("password"),
 				RemoteAgentID: partner.ID,
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
 				args := []string{"-p", partner.Name, "-l", account.Login, "-w",
@@ -131,17 +131,29 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the new transfer should have been added", func() {
-						trans := &model.Transfer{
-							RuleID:     rule.ID,
-							IsServer:   false,
-							AgentID:    partner.ID,
-							AccountID:  account.ID,
-							SourceFile: "file.src",
-							DestFile:   "file.dst",
-							Status:     types.StatusPlanned,
-							Owner:      database.Owner,
+						var transfers model.Transfers
+						So(db.Select(&transfers).Run(), ShouldBeNil)
+						So(transfers, ShouldNotBeEmpty)
+
+						trans := model.Transfer{
+							ID:               1,
+							RemoteTransferID: "",
+							RuleID:           rule.ID,
+							IsServer:         false,
+							AgentID:          partner.ID,
+							AccountID:        account.ID,
+							TrueFilepath:     "",
+							SourceFile:       "file.src",
+							DestFile:         "file.dst",
+							Start:            transfers[0].Start,
+							Step:             types.StepNone,
+							Status:           types.StatusPlanned,
+							Owner:            database.Owner,
+							Progress:         0,
+							TaskNumber:       0,
+							Error:            types.TransferError{},
 						}
-						So(db.Get(trans), ShouldBeNil)
+						So(transfers, ShouldContain, trans)
 					})
 				})
 			})
@@ -220,8 +232,8 @@ func TestGetTransfer(t *testing.T) {
 		out = testFile()
 		command := &transferGet{}
 
-		Convey("Given a database", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a database", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -234,7 +246,7 @@ func TestGetTransfer(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
-				So(db.Create(p), ShouldBeNil)
+				So(db.Insert(p).Run(), ShouldBeNil)
 
 				c := &model.Cert{
 					Name:        "test",
@@ -243,21 +255,21 @@ func TestGetTransfer(t *testing.T) {
 					OwnerType:   "remote_agents",
 					OwnerID:     p.ID,
 				}
-				So(db.Create(c), ShouldBeNil)
+				So(db.Insert(c).Run(), ShouldBeNil)
 
 				a := &model.RemoteAccount{
 					Login:         "login",
 					Password:      []byte("password"),
 					RemoteAgentID: p.ID,
 				}
-				So(db.Create(a), ShouldBeNil)
+				So(db.Insert(a).Run(), ShouldBeNil)
 
 				r := &model.Rule{
 					Name:   "rule",
 					IsSend: false,
 					Path:   "path",
 				}
-				So(db.Create(r), ShouldBeNil)
+				So(db.Insert(r).Run(), ShouldBeNil)
 
 				trans := &model.Transfer{
 					RuleID:     r.ID,
@@ -268,7 +280,7 @@ func TestGetTransfer(t *testing.T) {
 					Start:      time.Now(),
 					Status:     types.StatusPlanned,
 				}
-				So(db.Create(trans), ShouldBeNil)
+				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
 
 				Convey("Given a valid transfer ID", func() {
@@ -311,8 +323,8 @@ func TestListTransfer(t *testing.T) {
 		out = testFile()
 		command := &transferList{}
 
-		Convey("Given a database", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a database", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -320,32 +332,32 @@ func TestListTransfer(t *testing.T) {
 
 			p1 := &model.RemoteAgent{
 				Name:        "remote1",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			p2 := &model.RemoteAgent{
 				Name:        "remote2",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
 			p3 := &model.RemoteAgent{
 				Name:        "remote3",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:3",
 			}
 			p4 := &model.RemoteAgent{
 				Name:        "remote4",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:4",
 			}
-			So(db.Create(p1), ShouldBeNil)
-			So(db.Create(p2), ShouldBeNil)
-			So(db.Create(p3), ShouldBeNil)
-			So(db.Create(p4), ShouldBeNil)
+			So(db.Insert(p1).Run(), ShouldBeNil)
+			So(db.Insert(p2).Run(), ShouldBeNil)
+			So(db.Insert(p3).Run(), ShouldBeNil)
+			So(db.Insert(p4).Run(), ShouldBeNil)
 
 			a1 := &model.RemoteAccount{
 				RemoteAgentID: p1.ID,
@@ -367,37 +379,19 @@ func TestListTransfer(t *testing.T) {
 				Login:         "login",
 				Password:      []byte("password"),
 			}
-			So(db.Create(a1), ShouldBeNil)
-			So(db.Create(a2), ShouldBeNil)
-			So(db.Create(a3), ShouldBeNil)
-			So(db.Create(a4), ShouldBeNil)
+			So(db.Insert(a1).Run(), ShouldBeNil)
+			So(db.Insert(a2).Run(), ShouldBeNil)
+			So(db.Insert(a3).Run(), ShouldBeNil)
+			So(db.Insert(a4).Run(), ShouldBeNil)
 
 			r1 := &model.Rule{Name: "rule1", IsSend: false, Path: "path1"}
 			r2 := &model.Rule{Name: "rule2", IsSend: false, Path: "path2"}
 			r3 := &model.Rule{Name: "rule3", IsSend: false, Path: "path3"}
 			r4 := &model.Rule{Name: "rule4", IsSend: false, Path: "path4"}
-			So(db.Create(r1), ShouldBeNil)
-			So(db.Create(r2), ShouldBeNil)
-			So(db.Create(r3), ShouldBeNil)
-			So(db.Create(r4), ShouldBeNil)
-
-			c := &model.Cert{
-				Name:        "cert",
-				PublicKey:   []byte("test"),
-				Certificate: []byte("test"),
-				OwnerType:   "remote_agents",
-			}
-			c.OwnerID = p1.ID
-			So(db.Create(c), ShouldBeNil)
-			c.OwnerID = p2.ID
-			c.ID = 0
-			So(db.Create(c), ShouldBeNil)
-			c.OwnerID = p3.ID
-			c.ID = 0
-			So(db.Create(c), ShouldBeNil)
-			c.OwnerID = p4.ID
-			c.ID = 0
-			So(db.Create(c), ShouldBeNil)
+			So(db.Insert(r1).Run(), ShouldBeNil)
+			So(db.Insert(r2).Run(), ShouldBeNil)
+			So(db.Insert(r3).Run(), ShouldBeNil)
+			So(db.Insert(r4).Run(), ShouldBeNil)
 
 			Convey("Given 4 valid transfers", func() {
 
@@ -433,15 +427,15 @@ func TestListTransfer(t *testing.T) {
 					DestFile:   "dest3",
 					Start:      time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
 				}
-				So(db.Create(trans1), ShouldBeNil)
-				So(db.Create(trans2), ShouldBeNil)
-				So(db.Create(trans3), ShouldBeNil)
-				So(db.Create(trans4), ShouldBeNil)
+				So(db.Insert(trans1).Run(), ShouldBeNil)
+				So(db.Insert(trans2).Run(), ShouldBeNil)
+				So(db.Insert(trans3).Run(), ShouldBeNil)
+				So(db.Insert(trans4).Run(), ShouldBeNil)
 
 				trans2.Status = types.StatusRunning
 				trans3.Status = types.StatusRunning
-				So(db.Update(trans2), ShouldBeNil)
-				So(db.Update(trans3), ShouldBeNil)
+				So(db.Update(trans2).Run(), ShouldBeNil)
+				So(db.Update(trans3).Run(), ShouldBeNil)
 
 				t1, err := rest.FromTransfer(db, trans1)
 				So(err, ShouldBeNil)
@@ -593,57 +587,48 @@ func TestPauseTransfer(t *testing.T) {
 		out = testFile()
 		command := &transferPause{}
 
-		Convey("Given a database", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a database", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			Convey("Given a paused transfer entry", func() {
-				p := &model.RemoteAgent{
+				part := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
-				So(db.Create(p), ShouldBeNil)
+				So(db.Insert(part).Run(), ShouldBeNil)
 
-				c := &model.Cert{
-					Name:        "test",
-					PublicKey:   []byte("test"),
-					Certificate: []byte("test"),
-					OwnerType:   "remote_agents",
-					OwnerID:     p.ID,
-				}
-				So(db.Create(c), ShouldBeNil)
-
-				a := &model.RemoteAccount{
+				account := &model.RemoteAccount{
 					Login:         "login",
 					Password:      []byte("password"),
-					RemoteAgentID: p.ID,
+					RemoteAgentID: part.ID,
 				}
-				So(db.Create(a), ShouldBeNil)
+				So(db.Insert(account).Run(), ShouldBeNil)
 
-				r := &model.Rule{
+				rule := &model.Rule{
 					Name:   "rule",
 					IsSend: true,
 					Path:   "path",
 				}
-				So(db.Create(r), ShouldBeNil)
+				So(db.Insert(rule).Run(), ShouldBeNil)
 
 				trans := &model.Transfer{
 					IsServer:   false,
-					RuleID:     r.ID,
-					AccountID:  a.ID,
-					AgentID:    p.ID,
+					RuleID:     rule.ID,
+					AccountID:  account.ID,
+					AgentID:    part.ID,
 					SourceFile: "source",
 					DestFile:   "destination",
 					Start:      time.Now().Truncate(time.Second),
 					Status:     types.StatusPlanned,
 					Owner:      database.Owner,
 				}
-				So(db.Create(trans), ShouldBeNil)
+				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
 
 				Convey("Givens a valid transfer ID", func() {
@@ -663,10 +648,9 @@ func TestPauseTransfer(t *testing.T) {
 						Convey("Then the transfer should have been updated", func() {
 							trans.Status = types.StatusPaused
 
-							var t []model.Transfer
-							So(db.Select(&t, nil), ShouldBeNil)
-							So(t, ShouldNotBeEmpty)
-							So(t[0], ShouldResemble, *trans)
+							var transfers model.Transfers
+							So(db.Select(&transfers).Run(), ShouldBeNil)
+							So(transfers, ShouldContain, *trans)
 						})
 
 					})
@@ -696,57 +680,48 @@ func TestResumeTransfer(t *testing.T) {
 		out = testFile()
 		command := &transferResume{}
 
-		Convey("Given a database", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a database", func(cx C) {
+			db := database.TestDatabase(cx, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			Convey("Given a paused transfer entry", func() {
-				p := &model.RemoteAgent{
+				partner := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
-				So(db.Create(p), ShouldBeNil)
+				So(db.Insert(partner).Run(), ShouldBeNil)
 
-				c := &model.Cert{
-					Name:        "test",
-					PublicKey:   []byte("test"),
-					Certificate: []byte("test"),
-					OwnerType:   "remote_agents",
-					OwnerID:     p.ID,
-				}
-				So(db.Create(c), ShouldBeNil)
-
-				a := &model.RemoteAccount{
+				account := &model.RemoteAccount{
 					Login:         "login",
 					Password:      []byte("password"),
-					RemoteAgentID: p.ID,
+					RemoteAgentID: partner.ID,
 				}
-				So(db.Create(a), ShouldBeNil)
+				So(db.Insert(account).Run(), ShouldBeNil)
 
 				r := &model.Rule{
 					Name:   "rule",
 					IsSend: true,
 					Path:   "path",
 				}
-				So(db.Create(r), ShouldBeNil)
+				So(db.Insert(r).Run(), ShouldBeNil)
 
 				trans := &model.Transfer{
 					IsServer:   false,
 					RuleID:     r.ID,
-					AccountID:  a.ID,
-					AgentID:    p.ID,
+					AccountID:  account.ID,
+					AgentID:    partner.ID,
 					SourceFile: "source",
 					DestFile:   "destination",
 					Start:      time.Now().Truncate(time.Second),
 					Status:     types.StatusPaused,
 					Owner:      database.Owner,
 				}
-				So(db.Create(trans), ShouldBeNil)
+				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
 
 				Convey("Given a valid transfer ID", func() {
@@ -765,10 +740,9 @@ func TestResumeTransfer(t *testing.T) {
 						Convey("Then the transfer should have been updated", func() {
 							trans.Status = types.StatusPlanned
 
-							var t []model.Transfer
-							So(db.Select(&t, nil), ShouldBeNil)
-							So(t, ShouldNotBeEmpty)
-							So(t[0], ShouldResemble, *trans)
+							var transfers model.Transfers
+							So(db.Select(&transfers).Run(), ShouldBeNil)
+							So(transfers, ShouldContain, *trans)
 						})
 					})
 				})
@@ -797,57 +771,48 @@ func TestCancelTransfer(t *testing.T) {
 		out = testFile()
 		command := &transferCancel{}
 
-		Convey("Given a database", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a database", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			Convey("Given a paused transfer entry", func() {
-				p := &model.RemoteAgent{
+				partner := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
-				So(db.Create(p), ShouldBeNil)
+				So(db.Insert(partner).Run(), ShouldBeNil)
 
-				c := &model.Cert{
-					Name:        "test",
-					PublicKey:   []byte("test"),
-					Certificate: []byte("test"),
-					OwnerType:   "remote_agents",
-					OwnerID:     p.ID,
-				}
-				So(db.Create(c), ShouldBeNil)
-
-				a := &model.RemoteAccount{
+				account := &model.RemoteAccount{
 					Login:         "login",
 					Password:      []byte("password"),
-					RemoteAgentID: p.ID,
+					RemoteAgentID: partner.ID,
 				}
-				So(db.Create(a), ShouldBeNil)
+				So(db.Insert(account).Run(), ShouldBeNil)
 
-				r := &model.Rule{
+				rule := &model.Rule{
 					Name:   "rule",
 					IsSend: true,
 					Path:   "path",
 				}
-				So(db.Create(r), ShouldBeNil)
+				So(db.Insert(rule).Run(), ShouldBeNil)
 
 				trans := &model.Transfer{
 					IsServer:   false,
-					RuleID:     r.ID,
-					AccountID:  a.ID,
-					AgentID:    p.ID,
+					RuleID:     rule.ID,
+					AccountID:  account.ID,
+					AgentID:    partner.ID,
 					SourceFile: "source",
 					DestFile:   "destination",
 					Start:      time.Now().Truncate(time.Second),
 					Status:     types.StatusPlanned,
 					Owner:      database.Owner,
 				}
-				So(db.Create(trans), ShouldBeNil)
+				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
 
 				Convey("Given a valid transfer ID", func() {
@@ -864,30 +829,30 @@ func TestCancelTransfer(t *testing.T) {
 						})
 
 						Convey("Then the transfer should have been updated", func() {
-							var h []model.TransferHistory
-							So(db.Select(&h, nil), ShouldBeNil)
-							So(h, ShouldNotBeEmpty)
+							var history model.Histories
+							So(db.Select(&history).Run(), ShouldBeNil)
+							So(history, ShouldNotBeEmpty)
 
 							hist := model.TransferHistory{
 								ID:             trans.ID,
 								Owner:          trans.Owner,
 								IsServer:       trans.IsServer,
-								IsSend:         r.IsSend,
-								Account:        a.Login,
-								Agent:          p.Name,
-								Protocol:       p.Protocol,
+								IsSend:         rule.IsSend,
+								Account:        account.Login,
+								Agent:          partner.Name,
+								Protocol:       partner.Protocol,
 								SourceFilename: trans.SourceFile,
 								DestFilename:   trans.DestFile,
-								Rule:           r.Name,
+								Rule:           rule.Name,
 								Start:          trans.Start,
-								Stop:           h[0].Stop,
+								Stop:           history[0].Stop,
 								Status:         types.StatusCancelled,
 								Error:          types.TransferError{},
 								Step:           trans.Step,
 								Progress:       0,
 								TaskNumber:     0,
 							}
-							So(h[0], ShouldResemble, hist)
+							So(history, ShouldContain, hist)
 						})
 					})
 				})

@@ -26,8 +26,8 @@ const historyURI = "http://localhost:8080/api/history"
 func TestGetHistory(t *testing.T) {
 	logger := log.NewLogger("rest_history_get_test")
 
-	Convey("Testing the transfer history get handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Testing the transfer history get handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := getHistory(logger, db)
 		w := httptest.NewRecorder()
 
@@ -46,7 +46,7 @@ func TestGetHistory(t *testing.T) {
 				Stop:           time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
 				Status:         "DONE",
 			}
-			So(db.Create(h), ShouldBeNil)
+			So(db.Insert(h).Run(), ShouldBeNil)
 
 			id := strconv.FormatUint(h.ID, 10)
 			h.Start = h.Start.Local()
@@ -104,8 +104,8 @@ func TestGetHistory(t *testing.T) {
 func TestListHistory(t *testing.T) {
 	logger := log.NewLogger("rest_history_get_test")
 
-	Convey("Testing the transfer history list handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Testing the transfer history list handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := listHistory(logger, db)
 		w := httptest.NewRecorder()
 
@@ -126,7 +126,7 @@ func TestListHistory(t *testing.T) {
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
-			So(db.Create(h1), ShouldBeNil)
+			So(db.Insert(h1).Run(), ShouldBeNil)
 			h1.Start = h1.Start.Local()
 			h1.Stop = h1.Stop.Local()
 
@@ -144,7 +144,7 @@ func TestListHistory(t *testing.T) {
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
-			So(db.Create(h2), ShouldBeNil)
+			So(db.Insert(h2).Run(), ShouldBeNil)
 			h2.Start = h2.Start.Local()
 			h2.Stop = h2.Stop.Local()
 
@@ -162,7 +162,7 @@ func TestListHistory(t *testing.T) {
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
-			So(db.Create(h3), ShouldBeNil)
+			So(db.Insert(h3).Run(), ShouldBeNil)
 			h3.Start = h3.Start.Local()
 			h3.Stop = h3.Stop.Local()
 
@@ -180,7 +180,7 @@ func TestListHistory(t *testing.T) {
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
-			So(db.Create(h4), ShouldBeNil)
+			So(db.Insert(h4).Run(), ShouldBeNil)
 			h4.Start = h4.Start.Local()
 			h4.Stop = h4.Stop.Local()
 
@@ -394,8 +394,8 @@ func TestListHistory(t *testing.T) {
 func TestRestartTransfer(t *testing.T) {
 	logger := log.NewLogger("rest_history_restart_test")
 
-	Convey("Testing the transfer restart handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Testing the transfer restart handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := retryTransfer(logger, db)
 		w := httptest.NewRecorder()
 
@@ -406,7 +406,7 @@ func TestRestartTransfer(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Create(partner), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			cert := &model.Cert{
 				OwnerType:   partner.TableName(),
@@ -416,17 +416,17 @@ func TestRestartTransfer(t *testing.T) {
 				PublicKey:   []byte("public key"),
 				Certificate: []byte("certificate"),
 			}
-			So(db.Create(cert), ShouldBeNil)
+			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
 				Password:      []byte("titi"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			rule := model.Rule{Name: "rule", IsSend: true, Path: "path"}
-			So(db.Create(&rule), ShouldBeNil)
+			So(db.Insert(&rule).Run(), ShouldBeNil)
 
 			h := &model.TransferHistory{
 				ID:             2,
@@ -442,7 +442,7 @@ func TestRestartTransfer(t *testing.T) {
 				Stop:           time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
 				Status:         types.StatusCancelled,
 			}
-			So(db.Create(h), ShouldBeNil)
+			So(db.Insert(h).Run(), ShouldBeNil)
 
 			id := strconv.FormatUint(h.ID, 10)
 			h.Start = h.Start.Local()
@@ -493,10 +493,10 @@ func TestRestartTransfer(t *testing.T) {
 							Owner:      h.Owner,
 						}
 
-						var t []model.Transfer
-						So(db.Select(&t, nil), ShouldBeNil)
-						So(t, ShouldNotBeEmpty)
-						So(t[0], ShouldResemble, expected)
+						var transfers model.Transfers
+						So(db.Select(&transfers).Run(), ShouldBeNil)
+						So(transfers, ShouldNotBeEmpty)
+						So(transfers[0], ShouldResemble, expected)
 					})
 				})
 			})

@@ -38,8 +38,8 @@ func getTestPort() string {
 }
 
 func TestServerStop(t *testing.T) {
-	Convey("Given a running SFTP server service", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a running SFTP server service", t, func(dbc C) {
+		db := database.TestDatabase(dbc, "ERROR")
 		port := getTestPort()
 
 		agent := &model.LocalAgent{
@@ -48,7 +48,7 @@ func TestServerStop(t *testing.T) {
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:" + port,
 		}
-		So(db.Create(agent), ShouldBeNil)
+		So(db.Insert(agent).Run(), ShouldBeNil)
 
 		cert := &model.Cert{
 			OwnerType:   agent.TableName(),
@@ -58,7 +58,7 @@ func TestServerStop(t *testing.T) {
 			PublicKey:   testPBK,
 			Certificate: []byte("cert"),
 		}
-		So(db.Create(cert), ShouldBeNil)
+		So(db.Insert(cert).Run(), ShouldBeNil)
 
 		server := NewService(db, agent, log.NewLogger("test_sftp_server"))
 		So(server.Start(), ShouldBeNil)
@@ -79,8 +79,8 @@ func TestServerStop(t *testing.T) {
 }
 
 func TestServerStart(t *testing.T) {
-	Convey("Given an SFTP server service", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given an SFTP server service", t, func(dbc C) {
+		db := database.TestDatabase(dbc, "ERROR")
 		port := getTestPort()
 		root, err := filepath.Abs("server_start_root")
 		So(err, ShouldBeNil)
@@ -92,7 +92,7 @@ func TestServerStart(t *testing.T) {
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:" + port,
 		}
-		So(db.Create(agent), ShouldBeNil)
+		So(db.Insert(agent).Run(), ShouldBeNil)
 
 		cert := &model.Cert{
 			OwnerType:   agent.TableName(),
@@ -102,7 +102,7 @@ func TestServerStart(t *testing.T) {
 			PublicKey:   testPBK,
 			Certificate: []byte("cert"),
 		}
-		So(db.Create(cert), ShouldBeNil)
+		So(db.Insert(cert).Run(), ShouldBeNil)
 
 		sftpServer := NewService(db, agent, log.NewLogger("test_sftp_server"))
 
@@ -125,7 +125,7 @@ func TestSSHServer(t *testing.T) {
 
 	Convey("Given a server root", t, func(c C) {
 		root := testhelpers.TempDir(c, "test_server_root")
-		db := database.GetTestDatabase()
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given an SFTP server", func() {
 			listener, err := net.Listen("tcp", "localhost:0")
@@ -140,7 +140,7 @@ func TestSSHServer(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:" + port,
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 			var protoConfig config.SftpProtoConfig
 			So(json.Unmarshal(agent.ProtoConfig, &protoConfig), ShouldBeNil)
 
@@ -150,9 +150,9 @@ func TestSSHServer(t *testing.T) {
 				Login:        "toto",
 				Password:     []byte(pwd),
 			}
-			So(db.Create(user), ShouldBeNil)
+			So(db.Insert(user).Run(), ShouldBeNil)
 
-			cert := &model.Cert{
+			cert := model.Cert{
 				OwnerType:   agent.TableName(),
 				OwnerID:     agent.ID,
 				Name:        "test_sftp_server_cert",
@@ -160,7 +160,7 @@ func TestSSHServer(t *testing.T) {
 				PublicKey:   testPBK,
 				Certificate: []byte("cert"),
 			}
-			So(db.Create(cert), ShouldBeNil)
+			So(db.Insert(&cert).Run(), ShouldBeNil)
 
 			receive := &model.Rule{
 				Name:     "receive",
@@ -178,10 +178,10 @@ func TestSSHServer(t *testing.T) {
 				OutPath:  "snd_out",
 				WorkPath: "snd_tmp",
 			}
-			So(db.Create(receive), ShouldBeNil)
-			So(db.Create(send), ShouldBeNil)
+			So(db.Insert(receive).Run(), ShouldBeNil)
+			So(db.Insert(send).Run(), ShouldBeNil)
 
-			serverConfig, err := getSSHServerConfig(db, cert, &protoConfig, agent)
+			serverConfig, err := getSSHServerConfig(db, []model.Cert{cert}, &protoConfig, agent)
 			So(err, ShouldBeNil)
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -240,13 +240,13 @@ func TestSSHServer(t *testing.T) {
 							So(err, ShouldNotBeNil)
 
 							Convey("Then the transfer should appear interrupted", func() {
-								var t []model.Transfer
-								So(db.Select(&t, nil), ShouldBeNil)
-								So(t, ShouldNotBeEmpty)
+								var transfers model.Transfers
+								So(db.Select(&transfers).Run(), ShouldBeNil)
+								So(transfers, ShouldNotBeEmpty)
 
 								trans := model.Transfer{
-									ID:        t[0].ID,
-									Start:     t[0].Start,
+									ID:        transfers[0].ID,
+									Start:     transfers[0].Start,
 									IsServer:  true,
 									AccountID: user.ID,
 									AgentID:   agent.ID,
@@ -261,7 +261,7 @@ func TestSSHServer(t *testing.T) {
 									Owner:      database.Owner,
 									Progress:   1,
 								}
-								So(t[0], ShouldResemble, trans)
+								So(transfers[0], ShouldResemble, trans)
 							})
 						})
 					})
@@ -288,13 +288,13 @@ func TestSSHServer(t *testing.T) {
 							So(err, ShouldNotBeNil)
 
 							Convey("Then the transfer should appear interrupted", func() {
-								var t []model.Transfer
-								So(db.Select(&t, nil), ShouldBeNil)
-								So(t, ShouldNotBeEmpty)
+								var transfers model.Transfers
+								So(db.Select(&transfers).Run(), ShouldBeNil)
+								So(transfers, ShouldNotBeEmpty)
 
 								trans := model.Transfer{
-									ID:        t[0].ID,
-									Start:     t[0].Start,
+									ID:        transfers[0].ID,
+									Start:     transfers[0].Start,
 									IsServer:  true,
 									AccountID: user.ID,
 									AgentID:   agent.ID,
@@ -309,7 +309,7 @@ func TestSSHServer(t *testing.T) {
 									Owner:      database.Owner,
 									Progress:   1,
 								}
-								So(t[0], ShouldResemble, trans)
+								So(transfers[0], ShouldResemble, trans)
 							})
 						})
 					})
@@ -377,20 +377,14 @@ func TestSSHServer(t *testing.T) {
 								})
 							})
 
-							Convey("Then the transfer should appear in the history", func() {
-								hist := &model.TransferHistory{
-									IsServer:       true,
-									IsSend:         receive.IsSend,
-									Account:        user.Login,
-									Agent:          agent.Name,
-									Protocol:       "sftp",
-									SourceFilename: file,
-									DestFilename:   file,
-									Rule:           receive.Name,
-									Status:         types.StatusDone,
-								}
-
-								So(db.Get(hist), ShouldBeNil)
+							Convey("Then the transfer should appear in the history", func(c C) {
+								hist := &model.TransferHistory{}
+								So(db.Get(hist, "is_server=? AND is_send=? AND "+
+									"account=? AND agent=? AND protocol=? AND "+
+									"source_filename=? AND dest_filename=? AND "+
+									"rule=? AND status=?", true, receive.IsSend,
+									user.Login, agent.Name, "sftp", file, file,
+									receive.Name, types.StatusDone).Run(), ShouldBeNil)
 							})
 						})
 
@@ -442,33 +436,25 @@ func TestSSHServer(t *testing.T) {
 							})
 
 							Convey("Then the transfers should appear in the history", func() {
-								hist1 := &model.TransferHistory{
-									IsServer:       true,
-									IsSend:         receive.IsSend,
-									Account:        user.Login,
-									Agent:          agent.Name,
-									Protocol:       "sftp",
-									SourceFilename: "test_in_1.dst",
-									DestFilename:   "test_in_1.dst",
-									Rule:           receive.Name,
-									Status:         types.StatusDone,
-								}
-								hist2 := &model.TransferHistory{
-									IsServer:       true,
-									IsSend:         receive.IsSend,
-									Account:        user.Login,
-									Agent:          agent.Name,
-									Protocol:       "sftp",
-									SourceFilename: "test_in_2.dst",
-									DestFilename:   "test_in_2.dst",
-									Rule:           receive.Name,
-									Status:         types.StatusDone,
-								}
-
 								So(client.Close(), ShouldBeNil)
 
-								So(db.Get(hist1), ShouldBeNil)
-								So(db.Get(hist2), ShouldBeNil)
+								hist1 := &model.TransferHistory{}
+								So(db.Get(hist1, "is_server=? AND is_send=? AND "+
+									"account=? AND agent=? AND protocol=? AND "+
+									"source_filename=? AND dest_filename=? AND "+
+									"rule=? AND status=?", true, receive.IsSend,
+									user.Login, agent.Name, "sftp", "test_in_1.dst",
+									"test_in_1.dst", receive.Name, types.StatusDone).
+									Run(), ShouldBeNil)
+
+								hist2 := &model.TransferHistory{}
+								So(db.Get(hist2, "is_server=? AND is_send=? AND "+
+									"account=? AND agent=? AND protocol=? AND "+
+									"source_filename=? AND dest_filename=? AND "+
+									"rule=? AND status=?", true, receive.IsSend,
+									user.Login, agent.Name, "sftp", "test_in_1.dst",
+									"test_in_1.dst", receive.Name, types.StatusDone).
+									Run(), ShouldBeNil)
 							})
 						})
 
@@ -489,12 +475,12 @@ func TestSSHServer(t *testing.T) {
 								Convey("Then the transfer should appear in the history", func() {
 									time.Sleep(100 * time.Millisecond)
 
-									var t []model.Transfer
-									So(db.Select(&t, nil), ShouldBeNil)
-									So(t, ShouldHaveLength, 1)
+									var transfers model.Transfers
+									So(db.Select(&transfers).Run(), ShouldBeNil)
+									So(transfers, ShouldHaveLength, 1)
 
 									trans := model.Transfer{
-										ID:               t[0].ID,
+										ID:               transfers[0].ID,
 										RemoteTransferID: "",
 										Owner:            database.Owner,
 										IsServer:         true,
@@ -505,14 +491,14 @@ func TestSSHServer(t *testing.T) {
 										SourceFile: "test_in_fail.dst",
 										DestFile:   "test_in_fail.dst",
 										RuleID:     receive.ID,
-										Start:      t[0].Start,
+										Start:      transfers[0].Start,
 										Status:     types.StatusError,
 										Step:       types.StepData,
 										Error: types.NewTransferError(types.TeConnectionReset,
 											"SFTP connection closed unexpectedly"),
 										Progress: 1,
 									}
-									So(t[0], ShouldResemble, trans)
+									So(transfers[0], ShouldResemble, trans)
 								})
 							})
 						})
@@ -523,14 +509,14 @@ func TestSSHServer(t *testing.T) {
 								Login:        "other",
 								Password:     []byte("password"),
 							}
-							So(db.Create(other), ShouldBeNil)
+							So(db.Insert(other).Run(), ShouldBeNil)
 
 							access := &model.RuleAccess{
 								RuleID:     receive.ID,
 								ObjectID:   other.ID,
 								ObjectType: other.TableName(),
 							}
-							So(db.Create(access), ShouldBeNil)
+							So(db.Insert(access).Run(), ShouldBeNil)
 
 							Convey("When starting a transfer", func() {
 								_, err := client.Create(path.Join(receive.Path, "test_in.dst"))
@@ -569,19 +555,14 @@ func TestSSHServer(t *testing.T) {
 							})
 
 							Convey("Then the transfer should appear in the history", func() {
-								hist := &model.TransferHistory{
-									IsServer:       true,
-									IsSend:         send.IsSend,
-									Account:        user.Login,
-									Agent:          agent.Name,
-									Protocol:       "sftp",
-									SourceFilename: "test_out.src",
-									DestFilename:   "test_out.src",
-									Rule:           send.Name,
-									Status:         types.StatusDone,
-								}
-
-								So(db.Get(hist), ShouldBeNil)
+								hist := &model.TransferHistory{}
+								So(db.Get(hist, "is_server=? AND is_send=? AND "+
+									"account=? AND agent=? AND protocol=? AND "+
+									"source_filename=? AND dest_filename=? AND "+
+									"rule=? AND status=?", true, send.IsSend,
+									user.Login, agent.Name, "sftp", "test_out.src",
+									"test_out.src", send.Name, types.StatusDone).
+									Run(), ShouldBeNil)
 							})
 						})
 
@@ -602,12 +583,12 @@ func TestSSHServer(t *testing.T) {
 								Convey("Then the transfer should appear in the history", func() {
 									time.Sleep(100 * time.Millisecond)
 
-									var t []model.Transfer
-									So(db.Select(&t, nil), ShouldBeNil)
-									So(t, ShouldHaveLength, 1)
+									var transfers model.Transfers
+									So(db.Select(&transfers).Run(), ShouldBeNil)
+									So(transfers, ShouldHaveLength, 1)
 
 									trans := model.Transfer{
-										ID:               t[0].ID,
+										ID:               transfers[0].ID,
 										RemoteTransferID: "",
 										Owner:            database.Owner,
 										IsServer:         true,
@@ -618,14 +599,14 @@ func TestSSHServer(t *testing.T) {
 										SourceFile: "test_out.src",
 										DestFile:   "test_out.src",
 										RuleID:     send.ID,
-										Start:      t[0].Start,
+										Start:      transfers[0].Start,
 										Status:     types.StatusError,
 										Step:       types.StepData,
 										Error: types.NewTransferError(types.TeConnectionReset,
 											"SFTP connection closed unexpectedly"),
 										Progress: 1,
 									}
-									So(t[0], ShouldResemble, trans)
+									So(transfers[0], ShouldResemble, trans)
 								})
 							})
 						})

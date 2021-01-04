@@ -39,6 +39,7 @@ type TestProtoConfig struct{}
 
 func (*TestProtoConfig) ValidServer() error  { return nil }
 func (*TestProtoConfig) ValidPartner() error { return nil }
+func (*TestProtoConfig) CertRequired() bool  { return false }
 
 type TestProtoConfigFail struct{}
 
@@ -48,6 +49,7 @@ func (*TestProtoConfigFail) ValidServer() error {
 func (*TestProtoConfigFail) ValidPartner() error {
 	return fmt.Errorf("partner config validation failed")
 }
+func (*TestProtoConfigFail) CertRequired() bool { return false }
 
 func testFile() *os.File {
 	tmp, err := ioutil.TempFile("", "*")

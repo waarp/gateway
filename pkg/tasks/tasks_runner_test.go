@@ -38,8 +38,8 @@ func TestSetup(t *testing.T) {
 			"errMsg":"#ERRORMSG#", "errStrCode":"#ERRORSTRCODE#"}`),
 		}
 
-		Convey("Given a Processor", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a Processor", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 
 			agent := &model.RemoteAgent{
 				Name:        "agent",
@@ -47,14 +47,14 @@ func TestSetup(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6622",
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "account",
 				Password:      []byte("password"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			r := &Processor{
 				DB: db,
@@ -244,12 +244,12 @@ func TestSetup(t *testing.T) {
 }
 
 func TestGetTasks(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a rule", func() {
 			rule := &model.Rule{Name: "rule", IsSend: false, Path: "path"}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given pre, post & error tasks for this rule", func() {
 				pre1 := model.Task{
@@ -259,7 +259,7 @@ func TestGetTasks(t *testing.T) {
 					Type:   taskSuccess,
 					Args:   json.RawMessage(`{}`),
 				}
-				So(db.Create(&pre1), ShouldBeNil)
+				So(db.Insert(&pre1).Run(), ShouldBeNil)
 				pre2 := model.Task{
 					RuleID: rule.ID,
 					Chain:  model.ChainPre,
@@ -267,7 +267,7 @@ func TestGetTasks(t *testing.T) {
 					Type:   taskSuccess,
 					Args:   json.RawMessage(`{}`),
 				}
-				So(db.Create(&pre2), ShouldBeNil)
+				So(db.Insert(&pre2).Run(), ShouldBeNil)
 
 				post1 := model.Task{
 					RuleID: rule.ID,
@@ -276,7 +276,7 @@ func TestGetTasks(t *testing.T) {
 					Type:   taskSuccess,
 					Args:   json.RawMessage(`{}`),
 				}
-				So(db.Create(&post1), ShouldBeNil)
+				So(db.Insert(&post1).Run(), ShouldBeNil)
 				post2 := model.Task{
 					RuleID: rule.ID,
 					Chain:  model.ChainPost,
@@ -284,7 +284,7 @@ func TestGetTasks(t *testing.T) {
 					Type:   taskSuccess,
 					Args:   json.RawMessage(`{}`),
 				}
-				So(db.Create(&post2), ShouldBeNil)
+				So(db.Insert(&post2).Run(), ShouldBeNil)
 
 				err1 := model.Task{
 					RuleID: rule.ID,
@@ -293,7 +293,7 @@ func TestGetTasks(t *testing.T) {
 					Type:   taskSuccess,
 					Args:   json.RawMessage(`{}`),
 				}
-				So(db.Create(&err1), ShouldBeNil)
+				So(db.Insert(&err1).Run(), ShouldBeNil)
 				err2 := model.Task{
 					RuleID: rule.ID,
 					Chain:  model.ChainError,
@@ -301,7 +301,7 @@ func TestGetTasks(t *testing.T) {
 					Type:   taskSuccess,
 					Args:   json.RawMessage(`{}`),
 				}
-				So(db.Create(&err2), ShouldBeNil)
+				So(db.Insert(&err2).Run(), ShouldBeNil)
 
 				Convey("Given a processor", func() {
 					p := Processor{
@@ -348,11 +348,11 @@ func TestGetTasks(t *testing.T) {
 func TestRunTasks(t *testing.T) {
 	logger := log.NewLogger("test_run_tasks")
 
-	Convey("Given a processor", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a processor", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		rule := &model.Rule{Name: "rule", IsSend: false, Path: "path"}
-		So(db.Create(rule), ShouldBeNil)
+		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		agent := &model.RemoteAgent{
 			Name:        "agent",
@@ -360,14 +360,14 @@ func TestRunTasks(t *testing.T) {
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:6622",
 		}
-		So(db.Create(agent), ShouldBeNil)
+		So(db.Insert(agent).Run(), ShouldBeNil)
 
 		account := &model.RemoteAccount{
 			RemoteAgentID: agent.ID,
 			Login:         "login",
 			Password:      []byte("password"),
 		}
-		So(db.Create(account), ShouldBeNil)
+		So(db.Insert(account).Run(), ShouldBeNil)
 
 		trans := &model.Transfer{
 			RuleID:     rule.ID,
@@ -377,7 +377,7 @@ func TestRunTasks(t *testing.T) {
 			SourceFile: "source",
 			DestFile:   "tasks_runner_test.go",
 		}
-		So(db.Create(trans), ShouldBeNil)
+		So(db.Insert(trans).Run(), ShouldBeNil)
 
 		proc := &Processor{
 			DB:       db,

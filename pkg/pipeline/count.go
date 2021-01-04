@@ -32,6 +32,14 @@ func (c *Count) SetLimit(l uint64) {
 	c.limit = l
 }
 
+// GetLimit sets the maximum limit of the counter.
+func (c *Count) GetLimit() uint64 {
+	defer c.mux.Unlock()
+	c.mux.Lock()
+
+	return c.limit
+}
+
 // Get returns the current value of the counter.
 func (c *Count) Get() uint64 {
 	defer c.mux.Unlock()

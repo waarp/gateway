@@ -3,7 +3,6 @@ package rest
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -18,36 +17,46 @@ import (
 var str = utils.String
 var strPtr = utils.StringPtr
 
-func parseListFilters(r *http.Request, validOrders map[string]string) (*database.Filters, error) {
-	filters := &database.Filters{
-		Limit:  20,
-		Offset: 0,
-		Order:  validOrders["default"],
-	}
+type order struct {
+	col string
+	asc bool
+}
 
+type orders map[string]order
+
+func parseSelectQuery(r *http.Request, db *database.DB, validOrders orders,
+	elem database.SelectBean) (*database.SelectQuery, error) {
+
+	query := db.Select(elem)
+	var err error
+
+	limit := 20
 	if limStr := r.FormValue("limit"); limStr != "" {
-		lim, err := strconv.Atoi(limStr)
+		limit, err = strconv.Atoi(limStr)
 		if err != nil {
 			return nil, badRequest("'limit' must be an int")
 		}
-		filters.Limit = lim
 	}
+	offset := 0
 	if offStr := r.FormValue("offset"); offStr != "" {
-		off, err := strconv.Atoi(offStr)
+		offset, err = strconv.Atoi(offStr)
 		if err != nil {
 			return nil, badRequest("'offset' must be an int")
 		}
-		filters.Offset = off
 	}
+	query.Limit(limit, offset)
 
+	orderBy := validOrders["default"]
 	if sortStr := r.FormValue("sort"); sortStr != "" {
-		sort, ok := validOrders[sortStr]
+		var ok bool
+		orderBy, ok = validOrders[sortStr]
 		if !ok {
 			return nil, badRequest(fmt.Sprintf("'%s' is not a valid sort parameter", sortStr))
 		}
-		filters.Order = sort
 	}
-	return filters, nil
+	query.OrderBy(orderBy.col, orderBy.asc)
+
+	return query, nil
 }
 
 // handleError returns `true` if an error has been caught. It returns `false`
@@ -57,35 +66,27 @@ func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
 		return false
 	}
 
-	var nf *errNotFound
-	if errors.As(err, &nf) {
-		http.Error(w, nf.Error(), http.StatusNotFound)
+	switch err.(type) {
+	case *errNotFound:
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return true
+	case *errBadRequest:
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return true
+	case *forbidden:
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return true
+	case *database.ValidationError:
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return true
+	case *database.NotFoundError:
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return true
+	default:
+		logger.Errorf("Unexpected error: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return true
 	}
-	var br *errBadRequest
-	if errors.As(err, &br) {
-		http.Error(w, br.Error(), http.StatusBadRequest)
-		return true
-	}
-	var f *forbidden
-	if errors.As(err, &f) {
-		http.Error(w, f.Error(), http.StatusForbidden)
-		return true
-	}
-	var inv *database.ValidationError
-	if errors.As(err, &inv) {
-		http.Error(w, inv.Error(), http.StatusBadRequest)
-		return true
-	}
-	var inp *database.InputError
-	if errors.As(err, &inp) {
-		http.Error(w, inp.Error(), http.StatusBadRequest)
-		return true
-	}
-
-	logger.Errorf("Unexpected error: %s", err)
-	http.Error(w, err.Error(), http.StatusInternalServerError)
-	return true
 }
 
 func writeJSON(w http.ResponseWriter, bean interface{}) error {

@@ -35,9 +35,8 @@ func (s *stream) WriteAt(b []byte, off int64) (int, error) {
 }
 
 func toR66Error(err error) *r66.Error {
-	if tErr, ok := err.(*types.TransferError); ok {
-		return &r66.Error{Code: tErr.Code.R66Code(), Detail: err.Error()}
-	} else {
-		return &r66.Error{Code: r66.Unknown, Detail: err.Error()}
+	if tErr, ok := err.(types.TransferError); ok {
+		return &r66.Error{Code: tErr.Code.R66Code(), Detail: tErr.Details}
 	}
+	return &r66.Error{Code: r66.Unknown, Detail: err.Error()}
 }

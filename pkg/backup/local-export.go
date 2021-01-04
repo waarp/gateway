@@ -5,21 +5,16 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"github.com/go-xorm/builder"
 )
 
-func exportLocals(logger *log.Logger, db *database.Session) ([]file.LocalAgent, error) {
-	var dbLocals []model.LocalAgent
-	filter := database.Filters{
-		Conditions: builder.Eq{"owner": database.Owner},
-	}
-
-	if err := db.Select(&dbLocals, &filter); err != nil {
+func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent, error) {
+	var dbLocals model.LocalAgents
+	query := db.Select(&dbLocals).Where("owner=?", database.Owner)
+	if err := query.Run(); err != nil {
 		return nil, err
 	}
 
 	res := make([]file.LocalAgent, len(dbLocals))
-
 	for i, src := range dbLocals {
 		accounts, err := exportLocalAccounts(logger, db, src.ID)
 		if err != nil {
@@ -49,15 +44,11 @@ func exportLocals(logger *log.Logger, db *database.Session) ([]file.LocalAgent, 
 	return res, nil
 }
 
-func exportLocalAccounts(logger *log.Logger, db *database.Session,
+func exportLocalAccounts(logger *log.Logger, db database.ReadAccess,
 	agentID uint64) ([]file.LocalAccount, error) {
 
-	var dbAccounts []model.LocalAccount
-	filters := &database.Filters{
-		Conditions: builder.Eq{"local_agent_id": agentID},
-	}
-
-	if err := db.Select(&dbAccounts, filters); err != nil {
+	var dbAccounts model.LocalAccounts
+	if err := db.Select(&dbAccounts).Where("local_agent_id=?", agentID).Run(); err != nil {
 		return nil, err
 	}
 

@@ -7,15 +7,14 @@ import (
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"github.com/go-xorm/builder"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func TestImportLocalAgents(t *testing.T) {
 
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a database with some local agent", func() {
 			agent := &model.LocalAgent{
@@ -24,7 +23,7 @@ func TestImportLocalAgents(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			Convey("Given a list of new agents", func() {
 				agent1 := LocalAgent{
@@ -44,23 +43,17 @@ func TestImportLocalAgents(t *testing.T) {
 				}
 				agents := []LocalAgent{agent1}
 
-				Convey("Given a new Transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
-
-					defer ses.Rollback()
+				Convey("Given an empty database", func() {
 
 					Convey("When calling the importLocals method", func() {
-						err := importLocalAgents(discard, ses, agents)
+						err := importLocalAgents(discard, db, agents)
 
 						Convey("Then it should return no error", func() {
 							So(err, ShouldBeNil)
 						})
 						Convey("Then the database should contains the local agents", func() {
-							dbAgent := &model.LocalAgent{
-								Name: agent1.Name,
-							}
-							So(ses.Get(dbAgent), ShouldBeNil)
+							var dbAgent model.LocalAgent
+							So(db.Get(&dbAgent, "name=?", agent1.Name).Run(), ShouldBeNil)
 
 							Convey("Then the data shuld correspond to the "+
 								"one imported", func() {
@@ -69,10 +62,9 @@ func TestImportLocalAgents(t *testing.T) {
 								So(dbAgent.ProtoConfig, ShouldResemble,
 									agent1.Configuration)
 
-								var accounts []model.LocalAccount
-								So(ses.Select(&accounts, &database.Filters{
-									Conditions: builder.Eq{"local_agent_id": dbAgent.ID},
-								}), ShouldBeNil)
+								var accounts model.LocalAccounts
+								So(db.Select(&accounts).Where("local_agent_id=?",
+									dbAgent.ID).Run(), ShouldBeNil)
 
 								So(len(accounts), ShouldEqual, 2)
 							})
@@ -104,46 +96,34 @@ func TestImportLocalAgents(t *testing.T) {
 				}
 				agents := []LocalAgent{agent1}
 
-				Convey("Given a new Transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
+				Convey("When calling the importLocals method", func() {
+					err := importLocalAgents(discard, db, agents)
 
-					defer ses.Rollback()
+					Convey("Then it should return no error", func() {
+						So(err, ShouldBeNil)
+					})
+					Convey("Then the database should contains the local agents", func() {
+						var dbAgent model.LocalAgent
+						So(db.Get(&dbAgent, "name=?", agent1.Name).Run(), ShouldBeNil)
 
-					Convey("When calling the importLocals method", func() {
-						err := importLocalAgents(discard, ses, agents)
+						Convey("Then the data shuld correspond to the "+
+							"one imported", func() {
+							So(dbAgent.Name, ShouldEqual, agent1.Name)
+							So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
+							So(dbAgent.ProtoConfig, ShouldResemble,
+								agent1.Configuration)
 
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
-						})
-						Convey("Then the database should contains the local agents", func() {
-							dbAgent := &model.LocalAgent{
-								Name: agent1.Name,
-							}
-							So(ses.Get(dbAgent), ShouldBeNil)
+							var accounts model.LocalAccounts
+							So(db.Select(&accounts).Where("local_agent_id=?",
+								dbAgent.ID).Run(), ShouldBeNil)
 
-							Convey("Then the data shuld correspond to the "+
-								"one imported", func() {
-								So(dbAgent.Name, ShouldEqual, agent1.Name)
-								So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
-								So(dbAgent.ProtoConfig, ShouldResemble,
-									agent1.Configuration)
+							So(len(accounts), ShouldEqual, 1)
 
-								var accounts []model.LocalAccount
-								So(ses.Select(&accounts, &database.Filters{
-									Conditions: builder.Eq{"local_agent_id": dbAgent.ID},
-								}), ShouldBeNil)
+							var certs model.Certificates
+							So(db.Select(&certs).Where("owner_type='local_agents' "+
+								"AND owner_id=?", dbAgent.ID).Run(), ShouldBeNil)
 
-								So(len(accounts), ShouldEqual, 1)
-
-								var certs []model.Cert
-								So(ses.Select(&certs, &database.Filters{
-									Conditions: builder.Eq{"owner_id": dbAgent.ID,
-										"owner_type": "local_agents"},
-								}), ShouldBeNil)
-
-								So(len(accounts), ShouldEqual, 1)
-							})
+							So(len(accounts), ShouldEqual, 1)
 						})
 					})
 				})
@@ -154,8 +134,8 @@ func TestImportLocalAgents(t *testing.T) {
 
 func TestImportLocalAccounts(t *testing.T) {
 
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a database with some a local agent and some local accounts", func() {
 			agent := &model.LocalAgent{
@@ -164,14 +144,14 @@ func TestImportLocalAccounts(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			dbAccount := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
 				Password:     []byte("bar"),
 			}
-			So(db.Create(dbAccount), ShouldBeNil)
+			So(db.Insert(dbAccount).Run(), ShouldBeNil)
 
 			Convey("Given a list of new accounts", func() {
 				account1 := LocalAccount{
@@ -186,58 +166,50 @@ func TestImportLocalAccounts(t *testing.T) {
 					account1, account2,
 				}
 
-				Convey("Given a new Transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
+				Convey("When calling the importLocalAccounts method", func() {
+					err := importLocalAccounts(discard, db, accounts, agent.ID)
 
-					defer ses.Rollback()
+					Convey("Then it should return no error", func() {
+						So(err, ShouldBeNil)
+					})
+					Convey("Then the database should contains the local "+
+						"accounts", func() {
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Where("local_agent_id=?",
+							agent.ID).Run(), ShouldBeNil)
 
-					Convey("When calling the importLocalAccounts method", func() {
-						err := importLocalAccounts(discard, ses, accounts, agent.ID)
+						So(len(accounts), ShouldEqual, 3)
 
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
-						})
-						Convey("Then the database should contains the local "+
-							"accounts", func() {
-							var accounts []model.LocalAccount
-							So(ses.Select(&accounts, &database.Filters{
-								Conditions: builder.Eq{"local_agent_id": agent.ID},
-							}), ShouldBeNil)
+						Convey("Then the data should correspond to the "+
+							"one imported", func() {
+							for i := 0; i < len(accounts); i++ {
+								if accounts[i].Login == account1.Login {
 
-							So(len(accounts), ShouldEqual, 3)
+									Convey("Then account1 is found", func() {
+										So(bcrypt.CompareHashAndPassword(
+											accounts[i].Password, []byte("pwd")),
+											ShouldBeNil)
+									})
+								} else if accounts[i].Login == account2.Login {
 
-							Convey("Then the data should correspond to the "+
-								"one imported", func() {
-								for i := 0; i < len(accounts); i++ {
-									if accounts[i].Login == account1.Login {
+									Convey("Then account2 is found", func() {
+										So(bcrypt.CompareHashAndPassword(
+											accounts[i].Password, []byte("pwd")),
+											ShouldBeNil)
+									})
+								} else if accounts[i].Login == dbAccount.Login {
 
-										Convey("Then account1 is found", func() {
-											So(bcrypt.CompareHashAndPassword(
-												accounts[i].Password, []byte("pwd")),
-												ShouldBeNil)
-										})
-									} else if accounts[i].Login == account2.Login {
-
-										Convey("Then account2 is found", func() {
-											So(bcrypt.CompareHashAndPassword(
-												accounts[i].Password, []byte("pwd")),
-												ShouldBeNil)
-										})
-									} else if accounts[i].Login == dbAccount.Login {
-
-										Convey("Then dbAccount is found", func() {
-											So(accounts[i].Password, ShouldResemble,
-												dbAccount.Password)
-										})
-									} else {
-										Convey("Then they should be no other "+
-											"records", func() {
-											So(1, ShouldBeNil)
-										})
-									}
+									Convey("Then dbAccount is found", func() {
+										So(accounts[i].Password, ShouldResemble,
+											dbAccount.Password)
+									})
+								} else {
+									Convey("Then they should be no other "+
+										"records", func() {
+										So(1, ShouldBeNil)
+									})
 								}
-							})
+							}
 						})
 					})
 				})
@@ -258,51 +230,41 @@ func TestImportLocalAccounts(t *testing.T) {
 				}
 				accounts := []LocalAccount{account1}
 
-				Convey("Given a new Transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
+				Convey("When calling the importLocalAccounts method", func() {
+					err := importLocalAccounts(discard, db, accounts, agent.ID)
 
-					defer ses.Rollback()
+					Convey("Then it should return no error", func() {
+						So(err, ShouldBeNil)
+					})
+					Convey("Then the database should contains the "+
+						"local accounts", func() {
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Where("local_agent_id=?",
+							agent.ID).Run(), ShouldBeNil)
 
-					Convey("When calling the importLocalAccounts method", func() {
-						err := importLocalAccounts(discard, ses, accounts, agent.ID)
+						So(len(accounts), ShouldEqual, 1)
 
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
-						})
-						Convey("Then the database should contains the "+
-							"local accounts", func() {
-							var accounts []model.LocalAccount
-							So(ses.Select(&accounts, &database.Filters{
-								Conditions: builder.Eq{"local_agent_id": agent.ID},
-							}), ShouldBeNil)
+						Convey("Then the data should correspond to the "+
+							"one imported", func() {
+							for i := 0; i < len(accounts); i++ {
+								if accounts[i].Login == dbAccount.Login {
 
-							So(len(accounts), ShouldEqual, 1)
+									Convey("When dbAccount is found", func() {
+										So(accounts[i].Password, ShouldNotResemble,
+											dbAccount.Password)
+										var certs model.Certificates
+										So(db.Select(&certs).Where("owner_type='local_accounts'"+
+											" AND owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
 
-							Convey("Then the data should correspond to the "+
-								"one imported", func() {
-								for i := 0; i < len(accounts); i++ {
-									if accounts[i].Login == dbAccount.Login {
-
-										Convey("When dbAccount is found", func() {
-											So(accounts[i].Password, ShouldNotResemble,
-												dbAccount.Password)
-											var certs []model.Cert
-											So(ses.Select(&certs, &database.Filters{
-												Conditions: builder.Eq{"owner_id": dbAccount.ID,
-													"owner_type": "local_accounts"},
-											}), ShouldBeNil)
-
-											So(len(accounts), ShouldEqual, 1)
-										})
-									} else {
-										Convey("Then they should be no "+
-											"other records", func() {
-											So(1, ShouldBeNil)
-										})
-									}
+										So(len(accounts), ShouldEqual, 1)
+									})
+								} else {
+									Convey("Then they should be no "+
+										"other records", func() {
+										So(1, ShouldBeNil)
+									})
 								}
-							})
+							}
 						})
 					})
 				})
@@ -322,51 +284,41 @@ func TestImportLocalAccounts(t *testing.T) {
 				}
 				accounts := []LocalAccount{account1}
 
-				Convey("Given a new Transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
+				Convey("When calling the importLocalAccounts method", func() {
+					err := importLocalAccounts(discard, db, accounts, agent.ID)
 
-					defer ses.Rollback()
+					Convey("Then it should return no error", func() {
+						So(err, ShouldBeNil)
+					})
+					Convey("Then the database should contains the "+
+						"local accounts", func() {
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Where("local_agent_id=?",
+							agent.ID).Run(), ShouldBeNil)
 
-					Convey("When calling the importLocalAccounts method", func() {
-						err := importLocalAccounts(discard, ses, accounts, agent.ID)
+						So(len(accounts), ShouldEqual, 1)
 
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
-						})
-						Convey("Then the database should contains the "+
-							"local accounts", func() {
-							var accounts []model.LocalAccount
-							So(ses.Select(&accounts, &database.Filters{
-								Conditions: builder.Eq{"local_agent_id": agent.ID},
-							}), ShouldBeNil)
+						Convey("Then the data should correspond to the "+
+							"one imported", func() {
+							for i := 0; i < len(accounts); i++ {
+								if accounts[i].Login == dbAccount.Login {
 
-							So(len(accounts), ShouldEqual, 1)
+									Convey("When dbAccount is found", func() {
+										So(accounts[i].Password, ShouldResemble,
+											dbAccount.Password)
+										var certs model.Certificates
+										So(db.Select(&certs).Where("owner_type='local_accounts' "+
+											"AND owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
 
-							Convey("Then the data should correspond to the "+
-								"one imported", func() {
-								for i := 0; i < len(accounts); i++ {
-									if accounts[i].Login == dbAccount.Login {
-
-										Convey("When dbAccount is found", func() {
-											So(accounts[i].Password, ShouldResemble,
-												dbAccount.Password)
-											var certs []model.Cert
-											So(ses.Select(&certs, &database.Filters{
-												Conditions: builder.Eq{"owner_id": dbAccount.ID,
-													"owner_type": "local_accounts"},
-											}), ShouldBeNil)
-
-											So(len(accounts), ShouldEqual, 1)
-										})
-									} else {
-										Convey("Then they should be no "+
-											"other records", func() {
-											So(1, ShouldBeNil)
-										})
-									}
+										So(len(accounts), ShouldEqual, 1)
+									})
+								} else {
+									Convey("Then they should be no "+
+										"other records", func() {
+										So(1, ShouldBeNil)
+									})
 								}
-							})
+							}
 						})
 					})
 				})

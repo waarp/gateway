@@ -4,7 +4,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"github.com/go-xorm/builder"
 )
 
 // taskToDB transforms the JSON task into its database equivalent.
@@ -29,30 +28,21 @@ func FromRuleTasks(ts []model.Task) []api.Task {
 }
 
 func doListTasks(db *database.DB, rule *api.OutRule, ruleID uint64) error {
-	var preTasks []model.Task
-	preFilters := &database.Filters{
-		Order:      "rank ASC",
-		Conditions: builder.Eq{"rule_id": ruleID, "chain": model.ChainPre},
-	}
-	if err := db.Select(&preTasks, preFilters); err != nil {
+	var preTasks model.Tasks
+	if err := db.Select(&preTasks).Where("rule_id=? AND chain=?", ruleID,
+		model.ChainPre).Run(); err != nil {
 		return err
 	}
 
-	var postTasks []model.Task
-	postFilters := &database.Filters{
-		Order:      "rank ASC",
-		Conditions: builder.Eq{"rule_id": ruleID, "chain": model.ChainPost},
-	}
-	if err := db.Select(&postTasks, postFilters); err != nil {
+	var postTasks model.Tasks
+	if err := db.Select(&postTasks).Where("rule_id=? AND chain=?", ruleID,
+		model.ChainPost).Run(); err != nil {
 		return err
 	}
 
-	var errorTasks []model.Task
-	errorFilters := &database.Filters{
-		Order:      "rank ASC",
-		Conditions: builder.Eq{"rule_id": ruleID, "chain": model.ChainError},
-	}
-	if err := db.Select(&errorTasks, errorFilters); err != nil {
+	var errorTasks model.Tasks
+	if err := db.Select(&errorTasks).Where("rule_id=? AND chain=?", ruleID,
+		model.ChainError).Run(); err != nil {
 		return err
 	}
 
@@ -63,28 +53,29 @@ func doListTasks(db *database.DB, rule *api.OutRule, ruleID uint64) error {
 }
 
 func taskUpdateDelete(ses *database.Session, rule *api.UptRule, ruleID uint64,
-	isReplace bool) error {
+	isReplace bool) database.Error {
 
+	var task model.Task
 	if isReplace {
-		if err := ses.Execute("DELETE FROM tasks WHERE rule_id=?", ruleID); err != nil {
+		if err := ses.DeleteAll(&task).Where("rule_id=?", ruleID).Run(); err != nil {
 			return err
 		}
 	} else {
 		if rule.PreTasks != nil {
-			if err := ses.Execute("DELETE FROM tasks WHERE rule_id=? AND chain=?",
-				ruleID, model.ChainPre); err != nil {
+			if err := ses.DeleteAll(&task).Where("rule_id=? AND chain=?", ruleID,
+				model.ChainPre).Run(); err != nil {
 				return err
 			}
 		}
 		if rule.PostTasks != nil {
-			if err := ses.Execute("DELETE FROM tasks WHERE rule_id=? AND chain=?",
-				ruleID, model.ChainPost); err != nil {
+			if err := ses.DeleteAll(&task).Where("rule_id=? AND chain=?", ruleID,
+				model.ChainPost).Run(); err != nil {
 				return err
 			}
 		}
 		if rule.ErrorTasks != nil {
-			if err := ses.Execute("DELETE FROM tasks WHERE rule_id=? AND chain=?",
-				ruleID, model.ChainError); err != nil {
+			if err := ses.DeleteAll(&task).Where("rule_id=? AND chain=?", ruleID,
+				model.ChainError).Run(); err != nil {
 				return err
 			}
 		}
@@ -93,7 +84,7 @@ func taskUpdateDelete(ses *database.Session, rule *api.UptRule, ruleID uint64,
 }
 
 func doTaskUpdate(ses *database.Session, rule *api.UptRule, ruleID uint64,
-	isReplace bool) error {
+	isReplace bool) database.Error {
 
 	if err := taskUpdateDelete(ses, rule, ruleID, isReplace); err != nil {
 		return err
@@ -104,7 +95,7 @@ func doTaskUpdate(ses *database.Session, rule *api.UptRule, ruleID uint64,
 		task.RuleID = ruleID
 		task.Chain = model.ChainPre
 		task.Rank = uint32(rank)
-		if err := ses.Create(task); err != nil {
+		if err := ses.Insert(task).Run(); err != nil {
 			return err
 		}
 	}
@@ -113,7 +104,7 @@ func doTaskUpdate(ses *database.Session, rule *api.UptRule, ruleID uint64,
 		task.RuleID = ruleID
 		task.Chain = model.ChainPost
 		task.Rank = uint32(rank)
-		if err := ses.Create(task); err != nil {
+		if err := ses.Insert(task).Run(); err != nil {
 			return err
 		}
 	}
@@ -122,7 +113,7 @@ func doTaskUpdate(ses *database.Session, rule *api.UptRule, ruleID uint64,
 		task.RuleID = ruleID
 		task.Chain = model.ChainError
 		task.Rank = uint32(rank)
-		if err := ses.Create(task); err != nil {
+		if err := ses.Insert(task).Run(); err != nil {
 			return err
 		}
 	}

@@ -55,7 +55,7 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) error {
 }
 
 func (e *Executor) setup() error {
-	e.Logger.Info("Sending transfer request to remote server '%s'")
+	e.Logger.Info("Sending transfer request to remote server")
 
 	if err := e.client.Connect(); err != nil {
 		e.Logger.Errorf("Failed to connect to remote server: %s", err)
@@ -85,7 +85,7 @@ func (e *Executor) data() error {
 
 	e.Transfer.Step = types.StepData
 	e.Transfer.TaskNumber = 0
-	if err := e.DB.Update(e.Transfer); err != nil {
+	if err := e.DB.Update(e.Transfer).Cols("step", "task_number").Run(); err != nil {
 		e.Logger.Criticalf("Failed to update transfer status: %s", err)
 		return types.NewTransferError(types.TeInternal, err.Error())
 	}
@@ -127,7 +127,7 @@ func (e *Executor) prologue() error {
 		e.Transfer.Step = types.StepSetup
 	}
 
-	if err := e.DB.Update(e.Transfer); err != nil {
+	if err := e.DB.Update(e.Transfer).Cols("step").Run(); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
 		return err
 	}
@@ -176,7 +176,7 @@ func (e *Executor) run() error {
 
 	e.Transfer.Step = types.StepFinalization
 	e.Transfer.TaskNumber = 0
-	if err := e.DB.Update(e.Transfer); err != nil {
+	if err := e.DB.Update(e.Transfer).Cols("step", "task_number").Run(); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step to '%s': %s",
 			types.StepFinalization, err)
 		return types.NewTransferError(types.TeInternal, "internal database error")

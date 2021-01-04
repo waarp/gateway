@@ -96,14 +96,15 @@ func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {
 	if !ok {
 		return nil, notFound("missing rule direction")
 	}
-	rule := &model.Rule{Name: ruleName, IsSend: ruleDirection == "send"}
-	if err := db.Get(rule); err != nil {
+	var rule model.Rule
+	if err := db.Get(&rule, "name=? AND send=?", ruleName,
+		ruleDirection == "send").Run(); err != nil {
 		if database.IsNotFound(err) {
-			return nil, notFound("rule '%s' not found", ruleName)
+			return nil, notFound("%s rule '%s' not found", ruleDirection, ruleName)
 		}
 		return nil, err
 	}
-	return rule, nil
+	return &rule, nil
 }
 
 func addRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -117,20 +118,19 @@ func addRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if handleError(w, logger, err) {
 			return
 		}
-		ses, err := db.BeginTransaction()
+
+		err = db.Transaction(func(ses *database.Session) database.Error {
+			if err := ses.Insert(rule).Run(); err != nil {
+				return err
+			}
+
+			if err := doTaskUpdate(ses, jsonRule.UptRule, rule.ID, true); err != nil {
+				return err
+			}
+
+			return nil
+		})
 		if handleError(w, logger, err) {
-			return
-		}
-		if err := ses.Create(rule); handleError(w, logger, err) {
-			ses.Rollback()
-			return
-		}
-		err = doTaskUpdate(ses, jsonRule.UptRule, rule.ID, true)
-		if handleError(w, logger, err) {
-			ses.Rollback()
-			return
-		}
-		if err := ses.Commit(); handleError(w, logger, err) {
 			return
 		}
 
@@ -157,29 +157,29 @@ func getRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	validSorting := map[string]string{
-		"default": "name ASC",
-		"name+":   "name ASC",
-		"name-":   "name DESC",
+	validSorting := orders{
+		"default": order{col: "name", asc: true},
+		"name+":   order{col: "name", asc: true},
+		"name-":   order{col: "name", asc: false},
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		filters, err := parseListFilters(r, validSorting)
+		var rules model.Rules
+		query, err := parseSelectQuery(r, db, validSorting, &rules)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		var results []model.Rule
-		if err := db.Select(&results, filters); handleError(w, logger, err) {
+		if err := query.Run(); handleError(w, logger, err) {
 			return
 		}
 
-		rules, err := FromRules(db, results)
+		jRules, err := FromRules(db, rules)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		resp := map[string][]api.OutRule{"rules": rules}
+		resp := map[string][]api.OutRule{"rules": jRules}
 		err = writeJSON(w, resp)
 		handleError(w, logger, err)
 	}
@@ -197,24 +197,23 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		ses, err := db.BeginTransaction()
-		if handleError(w, logger, err) {
-			return
-		}
 		rule, err := ruleToDB(jRule, old.ID)
 		if handleError(w, logger, err) {
 			return
 		}
-		if err := ses.Update(rule); handleError(w, logger, err) {
-			ses.Rollback()
-			return
-		}
-		err = doTaskUpdate(ses, jRule.UptRule, old.ID, false)
+
+		err = db.Transaction(func(ses *database.Session) database.Error {
+			if err := ses.Update(rule).Run(); err != nil {
+				return err
+			}
+
+			if err := doTaskUpdate(ses, jRule.UptRule, old.ID, false); err != nil {
+				return err
+			}
+
+			return nil
+		})
 		if handleError(w, logger, err) {
-			ses.Rollback()
-			return
-		}
-		if err := ses.Commit(); handleError(w, logger, err) {
 			return
 		}
 
@@ -235,24 +234,23 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		ses, err := db.BeginTransaction()
-		if handleError(w, logger, err) {
-			return
-		}
 		rule, err := ruleToDB(jRule, old.ID)
 		if handleError(w, logger, err) {
 			return
 		}
-		if err := ses.Update(rule); handleError(w, logger, err) {
-			ses.Rollback()
-			return
-		}
-		err = doTaskUpdate(ses, jRule.UptRule, old.ID, true)
+
+		err = db.Transaction(func(ses *database.Session) database.Error {
+			if err := ses.Update(rule).Run(); handleError(w, logger, err) {
+				return err
+			}
+
+			if err := doTaskUpdate(ses, jRule.UptRule, old.ID, true); err != nil {
+				return err
+			}
+
+			return nil
+		})
 		if handleError(w, logger, err) {
-			ses.Rollback()
-			return
-		}
-		if err := ses.Commit(); handleError(w, logger, err) {
 			return
 		}
 
@@ -268,7 +266,7 @@ func deleteRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := db.Delete(rule); handleError(w, logger, err) {
+		if err := db.Delete(rule).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -283,7 +281,7 @@ func allowAllRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = db.Execute("DELETE FROM rule_access WHERE rule_id=?", rule.ID)
+		err = db.DeleteAll(&model.RuleAccess{}).Where("rule_id=?", rule.ID).Run()
 		if handleError(w, logger, err) {
 			return
 		}

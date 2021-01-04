@@ -10,19 +10,20 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func getRemAg(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
+func getPart(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
 	agentName, ok := mux.Vars(r)["partner"]
 	if !ok {
 		return nil, notFound("missing partner name")
 	}
-	agent := &model.RemoteAgent{Name: agentName}
-	if err := db.Get(agent); err != nil {
+
+	var partner model.RemoteAgent
+	if err := db.Get(&partner, "name=?", agentName).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("partner '%s' not found", agentName)
 		}
 		return nil, err
 	}
-	return agent, nil
+	return &partner, nil
 }
 
 func addPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -32,50 +33,51 @@ func addPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		agent := partToDB(&part, 0)
-		if err := db.Create(agent); handleError(w, logger, err) {
+		partner := partToDB(&part, 0)
+		if err := db.Insert(partner).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", location(r.URL, agent.Name))
+		w.Header().Set("Location", location(r.URL, partner.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func listPartners(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	validSorting := map[string]string{
-		"default": "name ASC",
-		"proto+":  "protocol ASC",
-		"proto-":  "protocol DESC",
-		"name+":   "name ASC",
-		"name-":   "name DESC",
+	validSorting := orders{
+		"default": order{"name", true},
+		"proto+":  order{"protocol", true},
+		"proto-":  order{"protocol", false},
+		"name+":   order{"name", true},
+		"name-":   order{"name", false},
 	}
 	typ := (&model.RemoteAgent{}).TableName()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		filters, err := parseListFilters(r, validSorting)
+		var partners model.RemoteAgents
+		query, err := parseSelectQuery(r, db, validSorting, &partners)
 		if handleError(w, logger, err) {
 			return
 		}
-		if err := parseProtoParam(r, filters); handleError(w, logger, err) {
+
+		if err := parseProtoParam(r, query); handleError(w, logger, err) {
 			return
 		}
 
-		var results []model.RemoteAgent
-		if err := db.Select(&results, filters); handleError(w, logger, err) {
+		if err := query.Run(); handleError(w, logger, err) {
 			return
 		}
 
-		ids := make([]uint64, len(results))
-		for i, res := range results {
-			ids[i] = res.ID
+		ids := make([]uint64, len(partners))
+		for i := range partners {
+			ids[i] = partners[i].ID
 		}
 		rules, err := getAuthorizedRuleList(db, typ, ids)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		resp := map[string][]api.OutPartner{"partners": FromRemoteAgents(results, rules)}
+		resp := map[string][]api.OutPartner{"partners": FromRemoteAgents(partners, rules)}
 		err = writeJSON(w, resp)
 		handleError(w, logger, err)
 	}
@@ -83,7 +85,7 @@ func listPartners(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func getPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		result, err := getRemAg(r, db)
+		result, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -100,12 +102,12 @@ func getPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func deletePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getRemAg(r, db)
+		partner, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		if err := db.Delete(ag); handleError(w, logger, err) {
+		if err := db.Delete(partner).Run(); handleError(w, logger, err) {
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -114,49 +116,51 @@ func deletePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getRemAg(r, db)
+		old, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		part := newInPartner(old)
-		if err := readJSON(r, part); handleError(w, logger, err) {
+		jPart := newInPartner(old)
+		if err := readJSON(r, jPart); handleError(w, logger, err) {
 			return
 		}
 
-		if err := db.Update(partToDB(part, old.ID)); handleError(w, logger, err) {
+		partner := partToDB(jPart, old.ID)
+		if err := db.Update(partner).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, str(part.Name)))
+		w.Header().Set("Location", locationUpdate(r.URL, partner.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func replacePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		old, err := getRemAg(r, db)
+		old, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		var part api.InPartner
-		if err := readJSON(r, &part); handleError(w, logger, err) {
+		var jPart api.InPartner
+		if err := readJSON(r, &jPart); handleError(w, logger, err) {
 			return
 		}
 
-		if err := db.Update(partToDB(&part, old.ID)); handleError(w, logger, err) {
+		partner := partToDB(&jPart, old.ID)
+		if err := db.Update(partner).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		w.Header().Set("Location", locationUpdate(r.URL, str(part.Name)))
+		w.Header().Set("Location", locationUpdate(r.URL, partner.Name))
 		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func authorizePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getRemAg(r, db)
+		ag, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -168,7 +172,7 @@ func authorizePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func revokePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getRemAg(r, db)
+		ag, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -180,7 +184,7 @@ func revokePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func getPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getRemAg(r, db)
+		ag, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -192,7 +196,7 @@ func getPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func addPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getRemAg(r, db)
+		ag, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -204,7 +208,7 @@ func addPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func listPartnerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getRemAg(r, db)
+		ag, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -216,7 +220,7 @@ func listPartnerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func deletePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getRemAg(r, db)
+		ag, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -228,7 +232,7 @@ func deletePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func updatePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getRemAg(r, db)
+		ag, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -240,7 +244,7 @@ func updatePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func replacePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ag, err := getRemAg(r, db)
+		ag, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}

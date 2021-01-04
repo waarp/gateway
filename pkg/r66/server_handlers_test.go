@@ -17,21 +17,21 @@ func TestValidAuth(t *testing.T) {
 	logger := log.NewLogger("test_valid_auth")
 
 	Convey("Given an R66 authentication handler", t, func(c C) {
-		db := database.GetTestDatabase()
+		db := database.TestDatabase(c, "ERROR")
 		r66Server := &model.LocalAgent{
 			Name:        "r66 server",
 			Protocol:    "r66",
 			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:6666",
 		}
-		So(db.Create(r66Server), ShouldBeNil)
+		So(db.Insert(r66Server).Run(), ShouldBeNil)
 
 		toto := &model.LocalAccount{
 			LocalAgentID: r66Server.ID,
 			Login:        "toto",
 			Password:     []byte("sesame"),
 		}
-		So(db.Create(toto), ShouldBeNil)
+		So(db.Insert(toto).Run(), ShouldBeNil)
 
 		handler := &authHandler{Service: &Service{
 			db:     db,
@@ -94,14 +94,14 @@ func TestValidRequest(t *testing.T) {
 	logger := log.NewLogger("test_valid_request")
 
 	Convey("Given an R66 authentication handler", t, func(c C) {
-		db := database.GetTestDatabase()
+		db := database.TestDatabase(c, "ERROR")
 
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: false,
 			Path:   "/rule",
 		}
-		So(db.Create(rule), ShouldBeNil)
+		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		server := &model.LocalAgent{
 			Name:        "r66 server",
@@ -109,14 +109,14 @@ func TestValidRequest(t *testing.T) {
 			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:6666",
 		}
-		So(db.Create(server), ShouldBeNil)
+		So(db.Insert(server).Run(), ShouldBeNil)
 
 		account := &model.LocalAccount{
 			LocalAgentID: server.ID,
 			Login:        "toto",
 			Password:     []byte("sesame"),
 		}
-		So(db.Create(account), ShouldBeNil)
+		So(db.Insert(account).Run(), ShouldBeNil)
 
 		ses := sessionHandler{
 			authHandler: &authHandler{Service: &Service{

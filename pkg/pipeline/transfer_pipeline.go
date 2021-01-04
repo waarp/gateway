@@ -52,14 +52,14 @@ func (p *Pipeline) ErrorTasks() {
 	// tasks have finished
 	failedStep := p.Transfer.Step
 	failedTask := p.Transfer.TaskNumber
-	defer func() {
-		p.Transfer.Step = failedStep
-		p.Transfer.TaskNumber = failedTask
-	}()
 	p.Transfer.TaskNumber = 0
 
 	p.Logger.Info("Executing error tasks")
 	_ = execTasks(p.proc, model.ChainError, types.StepErrorTasks)
+
+	p.Transfer.Step = failedStep
+	p.Transfer.TaskNumber = failedTask
+	_ = p.DB.Update(p.Transfer).Cols("step", "task_number").Run()
 }
 
 // Archive deletes the transfer entry and saves it in the history.

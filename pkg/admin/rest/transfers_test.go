@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,6 +8,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -26,55 +26,41 @@ const transferURI = "http://localhost:8080/api/transfers"
 func TestAddTransfer(t *testing.T) {
 	logger := log.NewLogger("rest_transfer_add_test")
 
-	Convey("Testing the transfer add handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Testing the transfer add handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := addTransfer(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 partner, 1 certificate & 1 account", func() {
 			partner := &model.RemoteAgent{
-				Name:        "sftp_test",
-				Protocol:    "sftp",
+				Name:        "remote",
+				Protocol:    "test",
 				Address:     "localhost:1",
 				ProtoConfig: json.RawMessage(`{}`),
 			}
-			So(db.Create(partner), ShouldBeNil)
-
-			cert := &model.Cert{
-				OwnerType:   partner.TableName(),
-				OwnerID:     partner.ID,
-				Name:        "sftp_cert",
-				PrivateKey:  nil,
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
-			}
-			So(db.Create(cert), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
-				Login:         "login",
+				Login:         "toto",
 				Password:      []byte("password"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
-			push := model.Rule{Name: "test_push", IsSend: true, Path: "path"}
-			So(db.Create(&push), ShouldBeNil)
-
-			trans := &InTransfer{
-				Rule:       push.Name,
-				Partner:    partner.Name,
-				Account:    account.Login,
-				IsSend:     true,
-				SourcePath: "src",
-				DestPath:   "dst",
-			}
+			push := model.Rule{Name: "push", IsSend: true, Path: "/push"}
+			So(db.Insert(&push).Run(), ShouldBeNil)
 
 			Convey("Given a valid new transfer", func() {
+				body := strings.NewReader(`{
+					"rule": "push",
+					"partner": "remote",
+					"account": "toto",
+					"isSend": true,
+					"sourcePath": "file.src",
+					"destPath": "file.dst"
+				}`)
 
 				Convey("When calling the handler", func() {
-					content, err := json.Marshal(trans)
-					So(err, ShouldBeNil)
-					body := bytes.NewReader(content)
 					r, err := http.NewRequest(http.MethodPost, transferURI, body)
 					So(err, ShouldBeNil)
 
@@ -97,20 +83,45 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the new transfer should be inserted in "+
 						"the database", func() {
-						t, err := transToDB(trans, db)
-						So(err, ShouldBeNil)
-						So(db.Get(t), ShouldBeNil)
+						var transfers model.Transfers
+						So(db.Select(&transfers).Run(), ShouldBeNil)
+						So(transfers, ShouldNotBeEmpty)
+
+						exp := model.Transfer{
+							ID:               1,
+							RemoteTransferID: "",
+							RuleID:           push.ID,
+							IsServer:         false,
+							AgentID:          partner.ID,
+							AccountID:        account.ID,
+							TrueFilepath:     "",
+							SourceFile:       "file.src",
+							DestFile:         "file.dst",
+							Start:            transfers[0].Start,
+							Step:             types.StepNone,
+							Status:           types.StatusPlanned,
+							Owner:            database.Owner,
+							Progress:         0,
+							TaskNumber:       0,
+							Error:            types.TransferError{},
+						}
+
+						So(transfers[0], ShouldResemble, exp)
 					})
 				})
 			})
 
 			Convey("Given a new transfer with an invalid rule name", func() {
-				trans.Rule = "toto"
+				body := strings.NewReader(`{
+					"rule": "tata",
+					"partner": "remote",
+					"account": "toto",
+					"isSend": true,
+					"sourcePath": "file.src",
+					"destPath": "file.dst"
+				}`)
 
 				Convey("When calling the handler", func() {
-					content, err := json.Marshal(&trans)
-					So(err, ShouldBeNil)
-					body := bytes.NewReader(content)
 					r, err := http.NewRequest(http.MethodPost, transferURI, body)
 					So(err, ShouldBeNil)
 
@@ -121,18 +132,22 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, "no rule 'toto' found\n")
+						So(w.Body.String(), ShouldEqual, "no rule 'tata' found\n")
 					})
 				})
 			})
 
 			Convey("Given a new transfer with an invalid partner name", func() {
-				trans.Partner = "toto"
+				body := strings.NewReader(`{
+					"rule": "push",
+					"partner": "tata",
+					"account": "toto",
+					"isSend": true,
+					"sourcePath": "file.src",
+					"destPath": "file.dst"
+				}`)
 
 				Convey("When calling the handler", func() {
-					content, err := json.Marshal(&trans)
-					So(err, ShouldBeNil)
-					body := bytes.NewReader(content)
 					r, err := http.NewRequest(http.MethodPost, "", body)
 					So(err, ShouldBeNil)
 
@@ -143,18 +158,22 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, "no partner 'toto' found\n")
+						So(w.Body.String(), ShouldEqual, "no partner 'tata' found\n")
 					})
 				})
 			})
 
 			Convey("Given a new transfer with an invalid account name", func() {
-				trans.Account = "toto"
+				body := strings.NewReader(`{
+					"rule": "push",
+					"partner": "remote",
+					"account": "tata",
+					"isSend": true,
+					"sourcePath": "file.src",
+					"destPath": "file.dst"
+				}`)
 
 				Convey("When calling the handler", func() {
-					content, err := json.Marshal(trans)
-					So(err, ShouldBeNil)
-					body := bytes.NewReader(content)
 					r, err := http.NewRequest(http.MethodPost, "", body)
 					So(err, ShouldBeNil)
 
@@ -165,19 +184,26 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say the partner is invalid", func() {
-						So(w.Body.String(), ShouldEqual, "no account 'toto' found "+
+						So(w.Body.String(), ShouldEqual, "no account 'tata' found "+
 							"for partner "+partner.Name+"\n")
 					})
 				})
 			})
 
 			Convey("Given the partner does not have a certificate", func() {
-				So(db.Delete(cert), ShouldBeNil)
+				partner.Protocol = "sftp"
+				So(db.Update(partner).Run(), ShouldBeNil)
+
+				body := strings.NewReader(`{
+					"rule": "push",
+					"partner": "remote",
+					"account": "toto",
+					"isSend": true,
+					"sourcePath": "file.src",
+					"destPath": "file.dst"
+				}`)
 
 				Convey("When calling the handler", func() {
-					content, err := json.Marshal(trans)
-					So(err, ShouldBeNil)
-					body := bytes.NewReader(content)
 					r, err := http.NewRequest(http.MethodPost, "", body)
 					So(err, ShouldBeNil)
 
@@ -188,8 +214,8 @@ func TestAddTransfer(t *testing.T) {
 					})
 
 					Convey("Then the response body should say a host key is missing", func() {
-						So(w.Body.String(), ShouldEqual, "the partner is missing "+
-							"an SFTP host key\n")
+						So(w.Body.String(), ShouldEqual, "the sftp partner is missing "+
+							"a certificate when it was required\n")
 					})
 				})
 			})
@@ -200,39 +226,29 @@ func TestAddTransfer(t *testing.T) {
 func TestGetTransfer(t *testing.T) {
 	logger := log.NewLogger("rest_transfer_get_test")
 
-	Convey("Testing the transfer get handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Testing the transfer get handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := getTransfer(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 transfer", func() {
 			partner := &model.RemoteAgent{
-				Name:        "sftp_test",
-				Protocol:    "sftp",
+				Name:        "partner",
+				Protocol:    "test",
 				Address:     "localhost:1",
 				ProtoConfig: json.RawMessage(`{}`),
 			}
-			So(db.Create(partner), ShouldBeNil)
-
-			cert := &model.Cert{
-				OwnerType:   partner.TableName(),
-				OwnerID:     partner.ID,
-				Name:        "sftp_cert",
-				PrivateKey:  nil,
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
-			}
-			So(db.Create(cert), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
 				Password:      []byte("titi"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
-			push := &model.Rule{Name: "test_push", IsSend: false, Path: "path"}
-			So(db.Create(push), ShouldBeNil)
+			push := &model.Rule{Name: "push", IsSend: false, Path: "/push"}
+			So(db.Insert(push).Run(), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:     push.ID,
@@ -241,7 +257,7 @@ func TestGetTransfer(t *testing.T) {
 				SourceFile: "src",
 				DestFile:   "dst",
 			}
-			So(db.Create(trans), ShouldBeNil)
+			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
 				id := strconv.FormatUint(trans.ID, 10)
@@ -296,8 +312,8 @@ func TestGetTransfer(t *testing.T) {
 func TestListTransfer(t *testing.T) {
 	logger := log.NewLogger("rest_transfer_list_test")
 
-	Convey("Testing the transfer list handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Testing the transfer list handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := listTransfers(logger, db)
 		w := httptest.NewRecorder()
 
@@ -310,7 +326,7 @@ func TestListTransfer(t *testing.T) {
 				Address:     "localhost:1",
 				ProtoConfig: json.RawMessage(`{}`),
 			}
-			So(db.Create(p1), ShouldBeNil)
+			So(db.Insert(p1).Run(), ShouldBeNil)
 
 			p2 := &model.RemoteAgent{
 				Name:        "sftp2",
@@ -318,7 +334,7 @@ func TestListTransfer(t *testing.T) {
 				Address:     "localhost:2",
 				ProtoConfig: json.RawMessage(`{}`),
 			}
-			So(db.Create(p2), ShouldBeNil)
+			So(db.Insert(p2).Run(), ShouldBeNil)
 
 			c1 := &model.Cert{
 				OwnerType:   p1.TableName(),
@@ -328,7 +344,7 @@ func TestListTransfer(t *testing.T) {
 				PublicKey:   []byte("public key"),
 				Certificate: []byte("certificate"),
 			}
-			So(db.Create(c1), ShouldBeNil)
+			So(db.Insert(c1).Run(), ShouldBeNil)
 
 			c2 := &model.Cert{
 				OwnerType:   p2.TableName(),
@@ -338,27 +354,27 @@ func TestListTransfer(t *testing.T) {
 				PublicKey:   []byte("public key"),
 				Certificate: []byte("certificate"),
 			}
-			So(db.Create(c2), ShouldBeNil)
+			So(db.Insert(c2).Run(), ShouldBeNil)
 
 			a1 := &model.RemoteAccount{
 				RemoteAgentID: p1.ID,
 				Login:         "toto",
 				Password:      []byte("titi"),
 			}
-			So(db.Create(a1), ShouldBeNil)
+			So(db.Insert(a1).Run(), ShouldBeNil)
 
 			a2 := &model.RemoteAccount{
 				RemoteAgentID: p2.ID,
 				Login:         "toto",
 				Password:      []byte("titi"),
 			}
-			So(db.Create(a2), ShouldBeNil)
+			So(db.Insert(a2).Run(), ShouldBeNil)
 
 			r1 := &model.Rule{Name: "rule1", IsSend: false, Path: "path1"}
-			So(db.Create(r1), ShouldBeNil)
+			So(db.Insert(r1).Run(), ShouldBeNil)
 
 			r2 := &model.Rule{Name: "rule2", IsSend: false, Path: "path2"}
-			So(db.Create(r2), ShouldBeNil)
+			So(db.Insert(r2).Run(), ShouldBeNil)
 
 			t1 := &model.Transfer{
 				RuleID:     r1.ID,
@@ -369,7 +385,7 @@ func TestListTransfer(t *testing.T) {
 				Progress:   1,
 				TaskNumber: 2,
 			}
-			So(db.Create(t1), ShouldBeNil)
+			So(db.Insert(t1).Run(), ShouldBeNil)
 
 			t2 := &model.Transfer{
 				RuleID:     r2.ID,
@@ -378,7 +394,7 @@ func TestListTransfer(t *testing.T) {
 				SourceFile: "src2",
 				DestFile:   "dst2",
 			}
-			So(db.Create(t2), ShouldBeNil)
+			So(db.Insert(t2).Run(), ShouldBeNil)
 
 			t3 := &model.Transfer{
 				RuleID:     r2.ID,
@@ -388,7 +404,7 @@ func TestListTransfer(t *testing.T) {
 				DestFile:   "dst3",
 				Start:      t2.Start.Add(2 * time.Hour),
 			}
-			So(db.Create(t3), ShouldBeNil)
+			So(db.Insert(t3).Run(), ShouldBeNil)
 
 			trans1, err := FromTransfer(db, t1)
 			So(err, ShouldBeNil)
@@ -509,8 +525,8 @@ func TestListTransfer(t *testing.T) {
 func TestResumeTransfer(t *testing.T) {
 	logger := log.NewLogger("rest_transfer_list_test")
 
-	Convey("Testing the transfer resume handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Testing the transfer resume handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := resumeTransfer(logger, db)
 		w := httptest.NewRecorder()
 
@@ -521,17 +537,17 @@ func TestResumeTransfer(t *testing.T) {
 				Address:     "localhost:1",
 				ProtoConfig: json.RawMessage(`{}`),
 			}
-			So(db.Create(partner), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
 				Password:      []byte("titi"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			rule := &model.Rule{Name: "test_rule", IsSend: false, Path: "path"}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:     rule.ID,
@@ -549,7 +565,7 @@ func TestResumeTransfer(t *testing.T) {
 				Progress:   10,
 				TaskNumber: 0,
 			}
-			So(db.Create(trans), ShouldBeNil)
+			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
 				id := strconv.FormatUint(trans.ID, 10)
@@ -585,10 +601,10 @@ func TestResumeTransfer(t *testing.T) {
 							TaskNumber: 0,
 						}
 
-						var t []model.Transfer
-						So(db.Select(&t, nil), ShouldBeNil)
-						So(t, ShouldNotBeEmpty)
-						So(t[0], ShouldResemble, exp)
+						var transfers model.Transfers
+						So(db.Select(&transfers).Run(), ShouldBeNil)
+						So(transfers, ShouldNotBeEmpty)
+						So(transfers[0], ShouldResemble, exp)
 					})
 				})
 			})
@@ -599,8 +615,8 @@ func TestResumeTransfer(t *testing.T) {
 func TestPauseTransfer(t *testing.T) {
 	logger := log.NewLogger("rest_transfer_list_test")
 
-	Convey("Testing the transfer resume handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Testing the transfer resume handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := pauseTransfer(logger, db)
 		w := httptest.NewRecorder()
 
@@ -611,17 +627,17 @@ func TestPauseTransfer(t *testing.T) {
 				Address:     "localhost:1",
 				ProtoConfig: json.RawMessage(`{}`),
 			}
-			So(db.Create(partner), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
 				Password:      []byte("titi"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			rule := &model.Rule{Name: "test_rule", IsSend: false, Path: "path"}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:     rule.ID,
@@ -636,7 +652,7 @@ func TestPauseTransfer(t *testing.T) {
 				Progress:   10,
 				TaskNumber: 0,
 			}
-			So(db.Create(trans), ShouldBeNil)
+			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid transfer ID parameter", func() {
 				id := strconv.FormatUint(trans.ID, 10)
@@ -672,10 +688,10 @@ func TestPauseTransfer(t *testing.T) {
 							TaskNumber: 0,
 						}
 
-						var t []model.Transfer
-						So(db.Select(&t, nil), ShouldBeNil)
-						So(t, ShouldNotBeEmpty)
-						So(t[0], ShouldResemble, exp)
+						var transfers model.Transfers
+						So(db.Select(&transfers).Run(), ShouldBeNil)
+						So(transfers, ShouldNotBeEmpty)
+						So(transfers[0], ShouldResemble, exp)
 					})
 				})
 			})

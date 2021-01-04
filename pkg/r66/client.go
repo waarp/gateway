@@ -135,7 +135,7 @@ func (c *client) Authenticate() error {
 
 func (c *client) Request() error {
 	file := c.info.Transfer.SourceFile
-	var size uint64
+	var size int64
 	if c.info.Rule.IsSend {
 		file = c.info.Transfer.DestFile
 
@@ -143,9 +143,8 @@ func (c *client) Request() error {
 		if err != nil {
 			return types.NewTransferError(types.TeInternal, err.Error())
 		}
-		size = uint64(stats.Size())
 
-		c.r66Client.AuthentHandler.(*clientAuthHandler).size = size
+		size = stats.Size()
 	}
 
 	var blockSize uint32 = 65536
@@ -160,7 +159,7 @@ func (c *client) Request() error {
 		Rule:  c.info.Rule.Name,
 		Block: blockSize,
 		Rank:  uint32(c.info.Transfer.Progress / uint64(c.r66Client.Block)),
-		Size:  int64(size),
+		Size:  size,
 	}
 
 	if err := c.session.Request(trans); err != nil {

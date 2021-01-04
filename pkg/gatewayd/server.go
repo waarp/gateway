@@ -12,8 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-xorm/builder"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/controller"
@@ -73,19 +71,19 @@ func (wg *WG) startServices() error {
 		return err
 	}
 
-	servers := []*model.LocalAgent{}
-	filters := &database.Filters{Conditions: builder.Eq{"owner": database.Owner}}
-	if err := wg.dbService.Select(&servers, filters); err != nil {
+	var servers model.LocalAgents
+	if err := wg.dbService.Select(&servers).Where("owner=?", database.Owner).
+		Run(); err != nil {
 		return err
 	}
 
-	for _, server := range servers {
+	for i, server := range servers {
 		l := log.NewLogger(server.Name)
 		switch server.Protocol {
 		case "sftp":
-			wg.Services[server.Name] = sftp.NewService(wg.dbService, server, l)
+			wg.Services[server.Name] = sftp.NewService(wg.dbService, &servers[i], l)
 		case "r66":
-			wg.Services[server.Name] = r66.NewService(wg.dbService, server, l)
+			wg.Services[server.Name] = r66.NewService(wg.dbService, &servers[i], l)
 		default:
 			wg.Logger.Warningf("Unknown server protocol '%s'", server.Protocol)
 		}

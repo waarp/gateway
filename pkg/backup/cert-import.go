@@ -7,27 +7,27 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func importCerts(logger *log.Logger, db *database.Session, list []file.Certificate,
-	ownerType string, ownerID uint64) error {
+func importCerts(logger *log.Logger, db database.Access, list []file.Certificate,
+	ownerType string, ownerID uint64) database.Error {
 
 	for _, src := range list {
 		// Create model with basic info to check existence
-		cert := &model.Cert{
-			OwnerType: ownerType,
-			OwnerID:   ownerID,
-			Name:      src.Name,
-		}
+		var cert model.Cert
 
 		//Check if cert exists
 		exist := true
-		err := db.Get(cert)
-		if _, ok := err.(*database.NotFoundError); ok {
+		err := db.Get(&cert, "owner_type=? AND owner_id=? AND name=?", ownerType,
+			ownerID, src.Name).Run()
+		if database.IsNotFound(err) {
 			exist = false
 		} else if err != nil {
 			return err
 		}
 
 		// Populate
+		cert.OwnerType = ownerType
+		cert.OwnerID = ownerID
+		cert.Name = src.Name
 		cert.PrivateKey = []byte(src.PrivateKey)
 		cert.PublicKey = []byte(src.PublicKey)
 		cert.Certificate = []byte(src.Certificate)
@@ -35,10 +35,10 @@ func importCerts(logger *log.Logger, db *database.Session, list []file.Certifica
 		// Create/Update
 		if exist {
 			logger.Infof("Update certificate %s\n", cert.Name)
-			err = db.Update(cert)
+			err = db.Update(&cert).Run()
 		} else {
 			logger.Infof("Create certificate %s\n", cert.Name)
-			err = db.Create(cert)
+			err = db.Insert(&cert).Run()
 		}
 		if err != nil {
 			return err

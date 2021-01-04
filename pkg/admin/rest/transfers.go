@@ -80,14 +80,14 @@ func getTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 	if err != nil || id == 0 {
 		return nil, notFound("'%s' is not a valid transfer ID", val)
 	}
-	transfer := &model.Transfer{ID: id}
-	if err := db.Get(transfer); err != nil {
+	var transfer model.Transfer
+	if err := db.Get(&transfer, "id=?", id).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("transfer %v not found", id)
 		}
 		return nil, err
 	}
-	return transfer, nil
+	return &transfer, nil
 }
 
 func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
@@ -101,7 +101,7 @@ func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if handleError(w, logger, err) {
 			return
 		}
-		if err := db.Create(trans); handleError(w, logger, err) {
+		if err := db.Insert(trans).Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -129,13 +129,13 @@ func getTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		filters, err := parseTransferListQuery(r)
+		var transfers model.Transfers
+		query, err := parseTransferListQuery(r, db, &transfers)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		var transfers []model.Transfer
-		if err := db.Select(&transfers, filters); handleError(w, logger, err) {
+		if err := query.Run(); handleError(w, logger, err) {
 			return
 		}
 
@@ -166,7 +166,7 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		switch check.Status {
 		case types.StatusPlanned:
 			check.Status = types.StatusPaused
-			if err := db.Update(check); handleError(w, logger, err) {
+			if err := db.Update(check).Run(); handleError(w, logger, err) {
 				return
 			}
 		case types.StatusRunning:
@@ -186,10 +186,6 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		check, err := getTrans(r, db)
 		if handleError(w, logger, err) {
-			return
-		}
-
-		if err := db.Get(check); handleError(w, logger, err) {
 			return
 		}
 
@@ -228,7 +224,7 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		check.Status = types.StatusPlanned
 		check.Error = types.TransferError{}
-		if err := db.Update(check); handleError(w, logger, err) {
+		if err := db.Update(check).Run(); handleError(w, logger, err) {
 			return
 		}
 

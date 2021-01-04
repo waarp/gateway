@@ -28,7 +28,7 @@ func TestSFTPList(t *testing.T) {
 
 	Convey("Given a SFTP server", t, func(c C) {
 		root := testhelpers.TempDir(c, "test_list_root")
-		db := database.GetTestDatabase()
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given an SFTP server", func() {
 			listener, err := net.Listen("tcp", "localhost:0")
@@ -43,7 +43,7 @@ func TestSFTPList(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:" + port,
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 			var protoConfig config.SftpProtoConfig
 			So(json.Unmarshal(agent.ProtoConfig, &protoConfig), ShouldBeNil)
 
@@ -52,16 +52,16 @@ func TestSFTPList(t *testing.T) {
 				Login:        "toto",
 				Password:     []byte("toto"),
 			}
-			So(db.Create(toto), ShouldBeNil)
+			So(db.Insert(toto).Run(), ShouldBeNil)
 
 			tata := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "tata",
 				Password:     []byte("tata"),
 			}
-			So(db.Create(tata), ShouldBeNil)
+			So(db.Insert(tata).Run(), ShouldBeNil)
 
-			cert := &model.Cert{
+			cert := model.Cert{
 				OwnerType:   agent.TableName(),
 				OwnerID:     agent.ID,
 				Name:        "test_sftp_server_cert",
@@ -69,9 +69,9 @@ func TestSFTPList(t *testing.T) {
 				PublicKey:   testPBK,
 				Certificate: []byte("cert"),
 			}
-			So(db.Create(cert), ShouldBeNil)
+			So(db.Insert(&cert).Run(), ShouldBeNil)
 
-			serverConfig, err := getSSHServerConfig(db, cert, &protoConfig, agent)
+			serverConfig, err := getSSHServerConfig(db, []model.Cert{cert}, &protoConfig, agent)
 			So(err, ShouldBeNil)
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -133,12 +133,12 @@ func TestSFTPList(t *testing.T) {
 					Path:    "/path5",
 				}
 
-				So(db.Create(send1), ShouldBeNil)
-				So(db.Create(send2), ShouldBeNil)
-				So(db.Create(send3), ShouldBeNil)
-				So(db.Create(send4), ShouldBeNil)
-				So(db.Create(recv1), ShouldBeNil)
-				So(db.Create(recv2), ShouldBeNil)
+				So(db.Insert(send1).Run(), ShouldBeNil)
+				So(db.Insert(send2).Run(), ShouldBeNil)
+				So(db.Insert(send3).Run(), ShouldBeNil)
+				So(db.Insert(send4).Run(), ShouldBeNil)
+				So(db.Insert(recv1).Run(), ShouldBeNil)
+				So(db.Insert(recv2).Run(), ShouldBeNil)
 
 				totoAccess := &model.RuleAccess{
 					RuleID:     send1.ID,
@@ -155,9 +155,9 @@ func TestSFTPList(t *testing.T) {
 					ObjectID:   agent.ID,
 					ObjectType: agent.TableName(),
 				}
-				So(db.Create(totoAccess), ShouldBeNil)
-				So(db.Create(tataAccess), ShouldBeNil)
-				So(db.Create(serverAccess), ShouldBeNil)
+				So(db.Insert(totoAccess).Run(), ShouldBeNil)
+				So(db.Insert(tataAccess).Run(), ShouldBeNil)
+				So(db.Insert(serverAccess).Run(), ShouldBeNil)
 
 				Convey("Given a SFTP client", func() {
 					sshConf := &ssh.ClientConfig{

@@ -16,7 +16,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"github.com/go-xorm/builder"
 )
 
 // ServiceName is the name of the controller service.
@@ -38,31 +37,16 @@ type Controller struct {
 }
 
 func (c *Controller) checkIsDBDown() bool {
-	owner := builder.Eq{"owner": database.Owner}
-	statusDown := builder.Eq{"status": types.StatusRunning}
-	filtersDown := database.Filters{
-		Conditions: builder.And(owner, statusDown),
-	}
-
 	if st, _ := c.DB.State().Get(); st != service.Running {
 		return true
 	}
 
-	var runningTrans []model.Transfer
-	if err := c.DB.Select(&runningTrans, &filtersDown); err != nil {
+	query := c.DB.UpdateAll(&model.Transfer{}, database.UpdVals{"status": types.StatusInterrupted},
+		"owner=? AND status=?", database.Owner, types.StatusRunning)
+	if err := query.Run(); err != nil {
 		c.logger.Errorf("Failed to access database: %s", err.Error())
 		return true
 	}
-
-	for _, t := range runningTrans {
-		trans := t
-		trans.Status = types.StatusInterrupted
-		if err := c.DB.Update(&trans); err != nil {
-			c.logger.Errorf("Failed to access database: %s", err.Error())
-			return true
-		}
-	}
-
 	return false
 }
 
@@ -89,27 +73,26 @@ func (c *Controller) startNewTransfers() {
 		return
 	}
 
-	owner := builder.Eq{"owner": database.Owner}
-	status := builder.Eq{"status": types.StatusPlanned}
-	client := builder.Eq{"is_server": false}
-	start := builder.Lte{"start": time.Now()}
-	filters := database.Filters{
-		Conditions: builder.And(owner, start, status, client),
+	var plannedTrans model.Transfers
+	query := c.DB.Select(&plannedTrans).Where("owner=? AND status=? AND "+
+		"is_server=? AND start<?", database.Owner, types.StatusPlanned, false,
+		time.Now())
+	lim := pipeline.TransferOutCount.GetLimit()
+	if lim > 0 {
+		query.Limit(int(lim-pipeline.TransferOutCount.Get()), 0)
 	}
 
-	plannedTrans := []model.Transfer{}
-	if err := c.DB.Select(&plannedTrans, &filters); err != nil {
+	if err := query.Run(); err != nil {
 		c.logger.Errorf("Failed to access database: %s", err.Error())
 		return
 	}
 
 	for _, trans := range plannedTrans {
 		exe, err := c.getExecutor(trans)
-		if errors.Is(err, pipeline.ErrLimitReached) {
-			break
-		}
-
 		if err != nil {
+			if errors.Is(err, pipeline.ErrLimitReached) {
+				break
+			}
 			continue
 		}
 

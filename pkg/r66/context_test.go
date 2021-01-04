@@ -52,7 +52,7 @@ func (t *testContext) isPush() bool {
 
 func initForSelfTransfer(c C) *testContext {
 	logger := log.NewLogger("r66_self_transfer")
-	db := database.GetTestDatabase()
+	db := database.TestDatabase(c, "ERROR")
 	home := testhelpers.TempDir(c, "r66_self_transfer")
 	port := testhelpers.GetFreePort(c)
 
@@ -85,14 +85,14 @@ func initForSelfTransfer(c C) *testContext {
 		ProtoConfig: json.RawMessage(`{"blockSize":50,"serverPassword":"sesame"}`),
 		Address:     fmt.Sprintf("localhost:%d", port),
 	}
-	c.So(db.Create(server), ShouldBeNil)
+	c.So(db.Insert(server).Run(), ShouldBeNil)
 
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
 		Login:        "toto",
 		Password:     []byte("Sesame"),
 	}
-	c.So(db.Create(locAccount), ShouldBeNil)
+	c.So(db.Insert(locAccount).Run(), ShouldBeNil)
 
 	partner := &model.RemoteAgent{
 		Name:     "r66_partner",
@@ -101,14 +101,14 @@ func initForSelfTransfer(c C) *testContext {
 			"serverPassword":"sesame"}`),
 		Address: fmt.Sprintf("localhost:%d", port),
 	}
-	c.So(db.Create(partner), ShouldBeNil)
+	c.So(db.Insert(partner).Run(), ShouldBeNil)
 
 	remAccount := &model.RemoteAccount{
 		RemoteAgentID: partner.ID,
 		Login:         "toto",
 		Password:      []byte("Sesame"),
 	}
-	c.So(db.Create(remAccount), ShouldBeNil)
+	c.So(db.Insert(remAccount).Run(), ShouldBeNil)
 
 	service := NewService(db, server, logger)
 	c.So(service.Start(), ShouldBeNil)
@@ -158,7 +158,7 @@ func makeTransfer(c C, ctx *testContext, isPush bool) {
 			DestFile:     "r66_self_transfer_push.dst",
 			Start:        time.Now(),
 		}
-		So(ctx.db.Create(trans), ShouldBeNil)
+		c.So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
 		ctx.trans = trans
 		return
@@ -178,7 +178,7 @@ func makeTransfer(c C, ctx *testContext, isPush bool) {
 		DestFile:     "r66_self_transfer_pull.dst",
 		Start:        time.Now(),
 	}
-	c.So(ctx.db.Create(trans), ShouldBeNil)
+	c.So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
 	ctx.trans = trans
 }
@@ -206,16 +206,16 @@ func processTransfer(c C, ctx *testContext) {
 }
 
 func checkTransfersOK(c C, ctx *testContext) {
-	c.Convey("Then the transfers should be over", func() {
-		var transfers []model.Transfer
-		So(ctx.db.Select(&transfers, nil), ShouldBeNil)
-		So(transfers, ShouldBeEmpty)
+	c.Convey("Then the transfers should be over", func(c C) {
+		var transfers model.Transfers
+		c.So(ctx.db.Select(&transfers).Run(), ShouldBeNil)
+		c.So(transfers, ShouldBeEmpty)
 
-		var results []model.TransferHistory
-		So(ctx.db.Select(&results, nil), ShouldBeNil)
-		So(len(results), ShouldEqual, 2)
+		var results model.Histories
+		c.So(ctx.db.Select(&results).Run(), ShouldBeNil)
+		c.So(len(results), ShouldEqual, 2)
 
-		Convey("Then there should be a client-side history entry", func() {
+		c.Convey("Then there should be a client-side history entry", func(c C) {
 			cTrans := model.TransferHistory{
 				ID:             ctx.trans.ID,
 				Owner:          database.Owner,
@@ -240,10 +240,10 @@ func checkTransfersOK(c C, ctx *testContext) {
 				cTrans.IsSend = false
 				cTrans.Rule = ctx.cPull.Name
 			}
-			So(results[0], ShouldResemble, cTrans)
+			c.So(results[0], ShouldResemble, cTrans)
 		})
 
-		Convey("Then there should be a server-side history entry", func() {
+		c.Convey("Then there should be a server-side history entry", func(c C) {
 			sTrans := model.TransferHistory{
 				ID:               ctx.trans.ID + 1,
 				RemoteTransferID: fmt.Sprint(ctx.trans.ID),
@@ -271,7 +271,7 @@ func checkTransfersOK(c C, ctx *testContext) {
 				sTrans.SourceFilename = ctx.trans.SourceFile
 				sTrans.DestFilename = ctx.trans.SourceFile
 			}
-			So(results[1], ShouldResemble, sTrans)
+			c.So(results[1], ShouldResemble, sTrans)
 		})
 	})
 
@@ -279,12 +279,12 @@ func checkTransfersOK(c C, ctx *testContext) {
 }
 
 func checkTransfersErr(c C, ctx *testContext, cTrans *model.Transfer, sTrans ...*model.Transfer) {
-	c.Convey("Then the transfers should be over", func() {
-		var results []model.Transfer
-		So(ctx.db.Select(&results, nil), ShouldBeNil)
-		So(len(results), ShouldEqual, 2)
+	c.Convey("Then the transfers should be over", func(c C) {
+		var results model.Transfers
+		c.So(ctx.db.Select(&results).Run(), ShouldBeNil)
+		c.So(len(results), ShouldEqual, 2)
 
-		Convey("Then there should be a client-side transfer entry in error", func() {
+		c.Convey("Then there should be a client-side transfer entry in error", func(c C) {
 			cTrans.Owner = database.Owner
 			cTrans.ID = ctx.trans.ID
 			cTrans.Status = types.StatusError
@@ -296,10 +296,10 @@ func checkTransfersErr(c C, ctx *testContext, cTrans *model.Transfer, sTrans ...
 			cTrans.SourceFile = ctx.trans.SourceFile
 			cTrans.DestFile = ctx.trans.DestFile
 			cTrans.TrueFilepath = ctx.trans.TrueFilepath
-			So(results[0], ShouldResemble, *cTrans)
+			c.So(results[0], ShouldResemble, *cTrans)
 		})
 
-		Convey("Then there should be a server-side transfer entry in error", func() {
+		c.Convey("Then there should be a server-side transfer entry in error", func(c C) {
 			var transfers []interface{}
 			for _, sTrans := range sTrans {
 				sTrans.Owner = database.Owner
@@ -334,24 +334,24 @@ func checkTransfersErr(c C, ctx *testContext, cTrans *model.Transfer, sTrans ...
 				transfers = append(transfers, *sTrans)
 			}
 			if len(sTrans) > 1 {
-				So(results[1], testhelpers.ShouldBeOneOf, transfers...)
+				c.So(results[1], testhelpers.ShouldBeOneOf, transfers...)
 			} else {
-				So(results[1], ShouldResemble, *sTrans[0])
+				c.So(results[1], ShouldResemble, *sTrans[0])
 			}
 		})
 	})
 }
 
 func checkDestFile(c C, ctx *testContext) {
-	c.Convey("Then the file should have been sent entirely", func() {
+	c.Convey("Then the file should have been sent entirely", func(c C) {
 		path := filepath.Join(ctx.clientPaths.GatewayHome, ctx.trans.DestFile)
 		if ctx.isPush() {
 			path = filepath.Join(ctx.serverPaths.ServerRoot, ctx.serverPaths.ServerIn,
 				ctx.trans.DestFile)
 		}
 		content, err := ioutil.ReadFile(path)
-		So(err, ShouldBeNil)
-		So(string(content), ShouldEqual, string(testFileContent))
+		c.So(err, ShouldBeNil)
+		c.So(string(content), ShouldEqual, string(testFileContent))
 	})
 }
 
@@ -393,19 +393,20 @@ func addTaskFailure(c C, ctx *testContext, isClient bool, chain model.Chain) (st
 			errMsg = "Task " + serverErr + " @ " + ctx.sPull.Name + " " + string(chain) + "[1]: task failed"
 		}
 	}
-	c.So(ctx.db.Create(taskFailure), ShouldBeNil)
+	c.So(ctx.db.Insert(taskFailure).Run(), ShouldBeNil)
 
 	return errMsg, func() {
-		c.So(ctx.db.Delete(taskFailure), ShouldBeNil)
+		c.So(ctx.db.DeleteAll(&model.Task{}).Where("rule_id=? AND chain=? AND rank=?",
+			taskFailure.RuleID, taskFailure.Chain, taskFailure.Rank).Run(), ShouldBeNil)
 	}
 }
 
 func retryTransfer(c C, ctx *testContext, removeFail func()) {
 	removeFail()
-	retry := &model.Transfer{ID: ctx.trans.ID}
-	c.So(ctx.db.Get(retry), ShouldBeNil)
+	retry := &model.Transfer{}
+	c.So(ctx.db.Get(retry, "id=?", ctx.trans.ID).Run(), ShouldBeNil)
 	retry.Status = types.StatusPlanned
-	c.So(ctx.db.Update(retry), ShouldBeNil)
+	c.So(ctx.db.Update(retry).Cols("status").Run(), ShouldBeNil)
 	ctx.trans = retry
 }
 
@@ -415,7 +416,7 @@ func makeClientPushRule(c C, db *database.DB) *model.Rule {
 		Path:   "/push",
 		IsSend: true,
 	}
-	c.So(db.Create(clientPush), ShouldBeNil)
+	c.So(db.Insert(clientPush).Run(), ShouldBeNil)
 
 	cPreTask := &model.Task{
 		RuleID: clientPush.ID,
@@ -424,7 +425,7 @@ func makeClientPushRule(c C, db *database.DB) *model.Rule {
 		Type:   clientOK,
 		Args:   json.RawMessage(`{"msg":"PUSH | PRE-TASKS[0]"}`),
 	}
-	c.So(db.Create(cPreTask), ShouldBeNil)
+	c.So(db.Insert(cPreTask).Run(), ShouldBeNil)
 
 	cPostTask := &model.Task{
 		RuleID: clientPush.ID,
@@ -433,7 +434,7 @@ func makeClientPushRule(c C, db *database.DB) *model.Rule {
 		Type:   clientOK,
 		Args:   json.RawMessage(`{"msg":"PUSH | POST-TASKS[0]"}`),
 	}
-	c.So(db.Create(cPostTask), ShouldBeNil)
+	c.So(db.Insert(cPostTask).Run(), ShouldBeNil)
 
 	cErrTask := &model.Task{
 		RuleID: clientPush.ID,
@@ -442,7 +443,7 @@ func makeClientPushRule(c C, db *database.DB) *model.Rule {
 		Type:   clientOK,
 		Args:   json.RawMessage(`{"msg":"PUSH | ERROR-TASKS[0]"}`),
 	}
-	c.So(db.Create(cErrTask), ShouldBeNil)
+	c.So(db.Insert(cErrTask).Run(), ShouldBeNil)
 
 	return clientPush
 }
@@ -453,7 +454,7 @@ func makeServerPushRule(c C, db *database.DB) *model.Rule {
 		Path:   "/push",
 		IsSend: false,
 	}
-	c.So(db.Create(serverPush), ShouldBeNil)
+	c.So(db.Insert(serverPush).Run(), ShouldBeNil)
 
 	sPreTask := &model.Task{
 		RuleID: serverPush.ID,
@@ -462,7 +463,7 @@ func makeServerPushRule(c C, db *database.DB) *model.Rule {
 		Type:   serverOK,
 		Args:   json.RawMessage(`{"msg":"PUSH | PRE-TASKS[0]"}`),
 	}
-	c.So(db.Create(sPreTask), ShouldBeNil)
+	c.So(db.Insert(sPreTask).Run(), ShouldBeNil)
 
 	sPostTask := &model.Task{
 		RuleID: serverPush.ID,
@@ -471,7 +472,7 @@ func makeServerPushRule(c C, db *database.DB) *model.Rule {
 		Type:   serverOK,
 		Args:   json.RawMessage(`{"msg":"PUSH | POST-TASKS[0]"}`),
 	}
-	c.So(db.Create(sPostTask), ShouldBeNil)
+	c.So(db.Insert(sPostTask).Run(), ShouldBeNil)
 
 	cErrTask := &model.Task{
 		RuleID: serverPush.ID,
@@ -480,7 +481,7 @@ func makeServerPushRule(c C, db *database.DB) *model.Rule {
 		Type:   serverOK,
 		Args:   json.RawMessage(`{"msg":"PUSH | ERROR-TASKS[0]"}`),
 	}
-	c.So(db.Create(cErrTask), ShouldBeNil)
+	c.So(db.Insert(cErrTask).Run(), ShouldBeNil)
 
 	return serverPush
 }
@@ -491,7 +492,7 @@ func makeClientPullRule(c C, db *database.DB) *model.Rule {
 		Path:   "/pull",
 		IsSend: false,
 	}
-	c.So(db.Create(clientPull), ShouldBeNil)
+	c.So(db.Insert(clientPull).Run(), ShouldBeNil)
 
 	cPreTask := &model.Task{
 		RuleID: clientPull.ID,
@@ -500,7 +501,7 @@ func makeClientPullRule(c C, db *database.DB) *model.Rule {
 		Type:   clientOK,
 		Args:   json.RawMessage(`{"msg":"PULL | PRE-TASKS[0]"}`),
 	}
-	c.So(db.Create(cPreTask), ShouldBeNil)
+	c.So(db.Insert(cPreTask).Run(), ShouldBeNil)
 
 	cPostTask := &model.Task{
 		RuleID: clientPull.ID,
@@ -509,7 +510,7 @@ func makeClientPullRule(c C, db *database.DB) *model.Rule {
 		Type:   clientOK,
 		Args:   json.RawMessage(`{"msg":"PULL | POST-TASKS[0]"}`),
 	}
-	c.So(db.Create(cPostTask), ShouldBeNil)
+	c.So(db.Insert(cPostTask).Run(), ShouldBeNil)
 
 	cErrTask := &model.Task{
 		RuleID: clientPull.ID,
@@ -518,7 +519,7 @@ func makeClientPullRule(c C, db *database.DB) *model.Rule {
 		Type:   clientOK,
 		Args:   json.RawMessage(`{"msg":"PULL | ERROR-TASKS[0]"}`),
 	}
-	c.So(db.Create(cErrTask), ShouldBeNil)
+	c.So(db.Insert(cErrTask).Run(), ShouldBeNil)
 
 	return clientPull
 }
@@ -529,7 +530,7 @@ func makeServerPullRule(c C, db *database.DB) *model.Rule {
 		Path:   "/pull",
 		IsSend: true,
 	}
-	c.So(db.Create(serverPull), ShouldBeNil)
+	c.So(db.Insert(serverPull).Run(), ShouldBeNil)
 
 	sPreTask := &model.Task{
 		RuleID: serverPull.ID,
@@ -538,7 +539,7 @@ func makeServerPullRule(c C, db *database.DB) *model.Rule {
 		Type:   serverOK,
 		Args:   json.RawMessage(`{"msg":"PULL | PRE-TASKS[0]"}`),
 	}
-	c.So(db.Create(sPreTask), ShouldBeNil)
+	c.So(db.Insert(sPreTask).Run(), ShouldBeNil)
 
 	sPostTask := &model.Task{
 		RuleID: serverPull.ID,
@@ -547,7 +548,7 @@ func makeServerPullRule(c C, db *database.DB) *model.Rule {
 		Type:   serverOK,
 		Args:   json.RawMessage(`{"msg":"PULL | POST-TASKS[0]"}`),
 	}
-	c.So(db.Create(sPostTask), ShouldBeNil)
+	c.So(db.Insert(sPostTask).Run(), ShouldBeNil)
 
 	cErrTask := &model.Task{
 		RuleID: serverPull.ID,
@@ -556,7 +557,7 @@ func makeServerPullRule(c C, db *database.DB) *model.Rule {
 		Type:   serverOK,
 		Args:   json.RawMessage(`{"msg":"PULL | ERROR-TASKS[0]"}`),
 	}
-	c.So(db.Create(cErrTask), ShouldBeNil)
+	c.So(db.Insert(cErrTask).Run(), ShouldBeNil)
 
 	return serverPull
 }

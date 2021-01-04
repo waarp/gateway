@@ -23,8 +23,8 @@ const ruleURI = "http://remotehost:8080/api/rules/"
 func TestCreateRule(t *testing.T) {
 	logger := log.NewLogger("rest_rule_create_logger")
 
-	Convey("Given the rule creation handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the rule creation handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := addRule(logger, db)
 		w := httptest.NewRecorder()
 
@@ -35,7 +35,7 @@ func TestCreateRule(t *testing.T) {
 				IsSend:  false,
 				Path:    "test/existing/path",
 			}
-			So(db.Create(existing), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given a new rule to insert in the database", func() {
 				body := strings.NewReader(`{
@@ -75,8 +75,8 @@ func TestCreateRule(t *testing.T) {
 
 						Convey("Then the new rule should be inserted "+
 							"in the database", func() {
-							var rules []model.Rule
-							So(db.Select(&rules, nil), ShouldBeNil)
+							var rules model.Rules
+							So(db.Select(&rules).Run(), ShouldBeNil)
 							So(len(rules), ShouldEqual, 2)
 
 							exp := model.Rule{
@@ -94,8 +94,8 @@ func TestCreateRule(t *testing.T) {
 
 						Convey("Then the new tasks should be inserted "+
 							"in the database", func() {
-							var tasks []model.Task
-							So(db.Select(&tasks, nil), ShouldBeNil)
+							var tasks model.Tasks
+							So(db.Select(&tasks).Run(), ShouldBeNil)
 							So(len(tasks), ShouldEqual, 1)
 
 							exp := model.Task{
@@ -110,8 +110,8 @@ func TestCreateRule(t *testing.T) {
 
 						Convey("Then the existing rule should still be "+
 							"present as well", func() {
-							var rules []model.Rule
-							So(db.Select(&rules, nil), ShouldBeNil)
+							var rules model.Rules
+							So(db.Select(&rules).Run(), ShouldBeNil)
 							So(len(rules), ShouldEqual, 2)
 
 							So(rules[0], ShouldResemble, *existing)
@@ -126,8 +126,8 @@ func TestCreateRule(t *testing.T) {
 func TestGetRule(t *testing.T) {
 	logger := log.NewLogger("rest_rule_get_test")
 
-	Convey("Given the rule get handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the rule get handler", t, func(c C) {
+		db := database.TestDatabase(c, "DEBUG")
 		handler := getRule(logger, db)
 		w := httptest.NewRecorder()
 
@@ -138,7 +138,7 @@ func TestGetRule(t *testing.T) {
 				IsSend:  false,
 				Path:    "recv/existing/path",
 			}
-			So(db.Create(recv), ShouldBeNil)
+			So(db.Insert(recv).Run(), ShouldBeNil)
 
 			send := &model.Rule{
 				Name:    recv.Name,
@@ -146,7 +146,7 @@ func TestGetRule(t *testing.T) {
 				IsSend:  true,
 				Path:    "send/existing/path",
 			}
-			So(db.Create(send), ShouldBeNil)
+			So(db.Insert(send).Run(), ShouldBeNil)
 
 			SkipConvey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -241,8 +241,8 @@ func TestGetRule(t *testing.T) {
 func TestListRules(t *testing.T) {
 	logger := log.NewLogger("rest_rules_list_test")
 
-	Convey("Testing the transfer list handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Testing the transfer list handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := listRules(logger, db)
 		w := httptest.NewRecorder()
 
@@ -254,14 +254,14 @@ func TestListRules(t *testing.T) {
 				IsSend: false,
 				Path:   "path1",
 			}
-			So(db.Create(r1), ShouldBeNil)
+			So(db.Insert(r1).Run(), ShouldBeNil)
 
 			r2 := &model.Rule{
 				Name:   "rule2",
 				IsSend: true,
 				Path:   "path2",
 			}
-			So(db.Create(r2), ShouldBeNil)
+			So(db.Insert(r2).Run(), ShouldBeNil)
 
 			rule1, err := FromRule(db, r1)
 			So(err, ShouldBeNil)
@@ -300,8 +300,8 @@ func TestListRules(t *testing.T) {
 func TestDeleteRule(t *testing.T) {
 	logger := log.NewLogger("rest_rule_delete_test")
 
-	Convey("Given the rules deletion handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the rules deletion handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := deleteRule(logger, db)
 		w := httptest.NewRecorder()
 
@@ -310,7 +310,7 @@ func TestDeleteRule(t *testing.T) {
 				Name: "rule",
 				Path: "path",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
@@ -333,8 +333,8 @@ func TestDeleteRule(t *testing.T) {
 
 					Convey("Then the rule should no longer be present "+
 						"in the database", func() {
-						var rules []model.Rule
-						So(db.Select(&rules, nil), ShouldBeNil)
+						var rules model.Rules
+						So(db.Select(&rules).Run(), ShouldBeNil)
 						So(rules, ShouldBeEmpty)
 					})
 				})
@@ -363,8 +363,8 @@ func TestDeleteRule(t *testing.T) {
 func TestUpdateRule(t *testing.T) {
 	logger := log.NewLogger("rest_rule_update_logger")
 
-	Convey("Given the rule updating handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the rule updating handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := updateRule(logger, db)
 		w := httptest.NewRecorder()
 
@@ -388,9 +388,9 @@ func TestUpdateRule(t *testing.T) {
 				Path:   "/path_other",
 				IsSend: false,
 			}
-			So(db.Create(old), ShouldBeNil)
-			So(db.Create(oldRecv), ShouldBeNil)
-			So(db.Create(other), ShouldBeNil)
+			So(db.Insert(old).Run(), ShouldBeNil)
+			So(db.Insert(oldRecv).Run(), ShouldBeNil)
+			So(db.Insert(other).Run(), ShouldBeNil)
 
 			pTask := &model.Task{
 				RuleID: old.ID,
@@ -399,7 +399,7 @@ func TestUpdateRule(t *testing.T) {
 				Type:   "DELETE",
 				Args:   json.RawMessage(`{}`),
 			}
-			So(db.Create(pTask), ShouldBeNil)
+			So(db.Insert(pTask).Run(), ShouldBeNil)
 
 			poTask := &model.Task{
 				RuleID: old.ID,
@@ -408,7 +408,7 @@ func TestUpdateRule(t *testing.T) {
 				Type:   "DELETE",
 				Args:   json.RawMessage(`{}`),
 			}
-			So(db.Create(poTask), ShouldBeNil)
+			So(db.Insert(poTask).Run(), ShouldBeNil)
 
 			eTask := &model.Task{
 				RuleID: old.ID,
@@ -417,7 +417,7 @@ func TestUpdateRule(t *testing.T) {
 				Type:   "DELETE",
 				Args:   json.RawMessage(`{}`),
 			}
-			So(db.Create(eTask), ShouldBeNil)
+			So(db.Insert(eTask).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the rule with", func() {
 				body := strings.NewReader(`{
@@ -456,8 +456,8 @@ func TestUpdateRule(t *testing.T) {
 						})
 
 						Convey("Then the rule should have been updated", func() {
-							var results []model.Rule
-							So(db.Select(&results, nil), ShouldBeNil)
+							var results model.Rules
+							So(db.Select(&results).Run(), ShouldBeNil)
 							So(len(results), ShouldEqual, 3)
 
 							expected := model.Rule{
@@ -472,12 +472,12 @@ func TestUpdateRule(t *testing.T) {
 							So(results[0], ShouldResemble, expected)
 
 							Convey("Then the tasks should have changed", func() {
-								var p []model.Task
-								So(db.Select(&p, nil), ShouldBeNil)
-								So(len(p), ShouldEqual, 3)
+								var tasks model.Tasks
+								So(db.Select(&tasks).Run(), ShouldBeNil)
+								So(len(tasks), ShouldEqual, 3)
 
-								So(p[0], ShouldResemble, *pTask)
-								So(p[1], ShouldResemble, *eTask)
+								So(tasks[0], ShouldResemble, *pTask)
+								So(tasks[1], ShouldResemble, *eTask)
 								newPoTask := model.Task{
 									RuleID: 1,
 									Chain:  model.ChainPost,
@@ -485,7 +485,7 @@ func TestUpdateRule(t *testing.T) {
 									Type:   "MOVE",
 									Args:   json.RawMessage(`{"path": "/move/path"}`),
 								}
-								So(p[2], ShouldResemble, newPoTask)
+								So(tasks[2], ShouldResemble, newPoTask)
 							})
 						})
 					})
@@ -508,11 +508,15 @@ func TestUpdateRule(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the rule was not found", func() {
-							So(w.Body.String(), ShouldEqual, "rule 'toto' not found\n")
+							So(w.Body.String(), ShouldEqual, ruleDirection(old)+
+								" rule 'toto' not found\n")
 						})
 
 						Convey("Then the old rule should still exist", func() {
-							So(db.Get(old), ShouldBeNil)
+							var rules model.Rules
+							So(db.Select(&rules).Run(), ShouldBeNil)
+							So(rules, ShouldHaveLength, 3)
+							So(rules[0], ShouldResemble, *old)
 						})
 					})
 				})
@@ -629,22 +633,18 @@ func getExpected(src *model.Rule, upt UptRule) *model.Rule {
 }
 
 func getFromDb(db *database.DB, name string, isSend bool) (*model.Rule, error) {
-	res := &model.Rule{
-		Name:   name,
-		IsSend: isSend,
-	}
-	err := db.Get(res)
-	if err != nil {
+	var rule model.Rule
+	if err := db.Get(&rule, "name=? AND send=?", name, isSend).Run(); err != nil {
 		return nil, err
 	}
-	return res, nil
+	return &rule, nil
 }
 
 func TestReplaceRule(t *testing.T) {
 	logger := log.NewLogger("rest_rule_replace")
 
-	Convey("Given the rule updating handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the rule updating handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := replaceRule(logger, db)
 		w := httptest.NewRecorder()
 
@@ -657,7 +657,7 @@ func TestReplaceRule(t *testing.T) {
 				WorkPath: "/old/work",
 				IsSend:   true,
 			}
-			So(db.Create(old), ShouldBeNil)
+			So(db.Insert(old).Run(), ShouldBeNil)
 
 			pTask := &model.Task{
 				RuleID: old.ID,
@@ -666,7 +666,7 @@ func TestReplaceRule(t *testing.T) {
 				Type:   "DELETE",
 				Args:   json.RawMessage(`{}`),
 			}
-			So(db.Create(pTask), ShouldBeNil)
+			So(db.Insert(pTask).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the rule with", func() {
 				body := strings.NewReader(`{
@@ -704,8 +704,8 @@ func TestReplaceRule(t *testing.T) {
 						})
 
 						Convey("Then the rule should have been updated", func() {
-							var results []model.Rule
-							So(db.Select(&results, nil), ShouldBeNil)
+							var results model.Rules
+							So(db.Select(&results).Run(), ShouldBeNil)
 							So(len(results), ShouldEqual, 1)
 
 							expected := model.Rule{
@@ -724,8 +724,8 @@ func TestReplaceRule(t *testing.T) {
 									Type:   "MOVE",
 									Args:   json.RawMessage(`{"path": "/move/path"}`),
 								}
-								var tasks []model.Task
-								So(db.Select(&tasks, nil), ShouldBeNil)
+								var tasks model.Tasks
+								So(db.Select(&tasks).Run(), ShouldBeNil)
 								So(len(tasks), ShouldEqual, 1)
 								So(tasks[0], ShouldResemble, exp)
 							})
@@ -750,11 +750,15 @@ func TestReplaceRule(t *testing.T) {
 
 						Convey("Then the response body should state that "+
 							"the rule was not found", func() {
-							So(w.Body.String(), ShouldEqual, "rule 'toto' not found\n")
+							So(w.Body.String(), ShouldEqual, ruleDirection(old)+
+								" rule 'toto' not found\n")
 						})
 
 						Convey("Then the old rule should still exist", func() {
-							So(db.Get(old), ShouldBeNil)
+							var rules model.Rules
+							So(db.Select(&rules).Run(), ShouldBeNil)
+							So(rules, ShouldNotBeEmpty)
+							So(rules[0], ShouldResemble, *old)
 						})
 					})
 				})

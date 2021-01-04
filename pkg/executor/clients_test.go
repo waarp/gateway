@@ -25,6 +25,7 @@ type TestProtoConfig struct{}
 
 func (*TestProtoConfig) ValidServer() error  { return nil }
 func (*TestProtoConfig) ValidPartner() error { return nil }
+func (*TestProtoConfig) CertRequired() bool  { return false }
 
 type AllSuccess struct{}
 

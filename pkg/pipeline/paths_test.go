@@ -33,8 +33,8 @@ func TestPathIn(t *testing.T) {
 			},
 		}
 
-		Convey("Given some transfer agents", func() {
-			db := database.GetTestDatabase()
+		Convey("Given some transfer agents", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 
 			localAgent := &model.LocalAgent{
 				Name:        "local_agent",
@@ -42,14 +42,14 @@ func TestPathIn(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
-			So(db.Create(localAgent), ShouldBeNil)
+			So(db.Insert(localAgent).Run(), ShouldBeNil)
 
 			localAccount := &model.LocalAccount{
 				LocalAgentID: localAgent.ID,
 				Login:        "local_account",
 				Password:     []byte("password"),
 			}
-			So(db.Create(localAccount), ShouldBeNil)
+			So(db.Insert(localAccount).Run(), ShouldBeNil)
 
 			remoteAgent := &model.RemoteAgent{
 				Name:        "remote_agent",
@@ -57,21 +57,21 @@ func TestPathIn(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2222",
 			}
-			So(db.Create(remoteAgent), ShouldBeNil)
+			So(db.Insert(remoteAgent).Run(), ShouldBeNil)
 
 			remoteAccount := &model.RemoteAccount{
 				RemoteAgentID: remoteAgent.ID,
 				Login:         "remote_account",
 				Password:      []byte("password"),
 			}
-			So(db.Create(remoteAccount), ShouldBeNil)
+			So(db.Insert(remoteAccount).Run(), ShouldBeNil)
 
 			receive := &model.Rule{
 				Name:   "receive",
 				IsSend: false,
 				Path:   "receive_path",
 			}
-			So(db.Create(receive), ShouldBeNil)
+			So(db.Insert(receive).Run(), ShouldBeNil)
 
 			trans := model.Transfer{
 				RuleID:     receive.ID,
@@ -117,8 +117,13 @@ func TestPathIn(t *testing.T) {
 						paths.ServerWork = ""
 					}
 
-					rule := "UPDATE rules SET in_path=?, work_path=? WHERE id=?"
-					So(db.Execute(rule, tc.ruleIn, tc.ruleWork, receive.ID), ShouldBeNil)
+					rule := &model.Rule{
+						ID:       receive.ID,
+						Name:     receive.Name,
+						InPath:   tc.ruleIn,
+						WorkPath: tc.ruleWork,
+					}
+					So(db.Update(rule).Cols("in_path", "work_path").Run(), ShouldBeNil)
 
 					Convey("When launching a transfer stream", func() {
 						stream, err := NewTransferStream(context.Background(),
@@ -158,8 +163,8 @@ func TestPathOut(t *testing.T) {
 			PathsConfig: conf.PathsConfig{GatewayHome: gwRoot},
 		}
 
-		Convey("Given some transfer agents", func() {
-			db := database.GetTestDatabase()
+		Convey("Given some transfer agents", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 
 			localAgent := &model.LocalAgent{
 				Name:        "local_agent",
@@ -167,14 +172,15 @@ func TestPathOut(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
-			So(db.Create(localAgent), ShouldBeNil)
+			So(db.Insert(localAgent).Run(), ShouldBeNil)
 
 			localAccount := &model.LocalAccount{
 				LocalAgentID: localAgent.ID,
 				Login:        "local_account",
 				Password:     []byte("password"),
 			}
-			So(db.Create(localAccount), ShouldBeNil)
+			So(db.Insert(localAccount).Run(), ShouldBeNil)
+			So(db.Insert(localAccount).Run(), ShouldBeNil)
 
 			remoteAgent := &model.RemoteAgent{
 				Name:        "remote_agent",
@@ -182,14 +188,14 @@ func TestPathOut(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2222",
 			}
-			So(db.Create(remoteAgent), ShouldBeNil)
+			So(db.Insert(remoteAgent).Run(), ShouldBeNil)
 
 			remoteAccount := &model.RemoteAccount{
 				RemoteAgentID: remoteAgent.ID,
 				Login:         "remote_account",
 				Password:      []byte("password"),
 			}
-			So(db.Create(remoteAccount), ShouldBeNil)
+			So(db.Insert(remoteAccount).Run(), ShouldBeNil)
 
 			testFunc := func(ruleID uint64, srcPath string) {
 				Convey("When creating & starting a transfer stream", func() {
@@ -235,7 +241,7 @@ func TestPathOut(t *testing.T) {
 							Path:    "path",
 							OutPath: "rule_out",
 						}
-						So(db.Create(send), ShouldBeNil)
+						So(db.Insert(send).Run(), ShouldBeNil)
 
 						outPath := Join(gwRoot, serverDir, send.OutPath)
 						testFunc(send.ID, outPath)
@@ -247,7 +253,7 @@ func TestPathOut(t *testing.T) {
 							IsSend: true,
 							Path:   "path",
 						}
-						So(db.Create(send), ShouldBeNil)
+						So(db.Insert(send).Run(), ShouldBeNil)
 
 						outPath := Join(gwRoot, serverDir)
 						testFunc(send.ID, outPath)
@@ -262,7 +268,7 @@ func TestPathOut(t *testing.T) {
 							Path:    "path",
 							OutPath: "rule_out",
 						}
-						So(db.Create(send), ShouldBeNil)
+						So(db.Insert(send).Run(), ShouldBeNil)
 
 						outPath := Join(gwRoot, send.OutPath)
 						testFunc(send.ID, outPath)
@@ -274,7 +280,7 @@ func TestPathOut(t *testing.T) {
 							IsSend: true,
 							Path:   "path",
 						}
-						So(db.Create(send), ShouldBeNil)
+						So(db.Insert(send).Run(), ShouldBeNil)
 
 						outPath := Join(gwRoot, outDir)
 						testFunc(send.ID, outPath)
@@ -296,7 +302,7 @@ func TestPathOut(t *testing.T) {
 							Path:    "path",
 							OutPath: "rule_out",
 						}
-						So(db.Create(send), ShouldBeNil)
+						So(db.Insert(send).Run(), ShouldBeNil)
 
 						outPath := Join(gwRoot, serverDir, send.OutPath)
 						testFunc(send.ID, outPath)
@@ -308,7 +314,7 @@ func TestPathOut(t *testing.T) {
 							IsSend: true,
 							Path:   "path",
 						}
-						So(db.Create(send), ShouldBeNil)
+						So(db.Insert(send).Run(), ShouldBeNil)
 
 						outPath := Join(gwRoot, serverDir)
 						testFunc(send.ID, outPath)
@@ -323,7 +329,7 @@ func TestPathOut(t *testing.T) {
 							Path:    "path",
 							OutPath: "rule_out",
 						}
-						So(db.Create(send), ShouldBeNil)
+						So(db.Insert(send).Run(), ShouldBeNil)
 
 						outPath := Join(gwRoot, send.OutPath)
 						testFunc(send.ID, outPath)
@@ -335,7 +341,7 @@ func TestPathOut(t *testing.T) {
 							IsSend: true,
 							Path:   "path",
 						}
-						So(db.Create(send), ShouldBeNil)
+						So(db.Insert(send).Run(), ShouldBeNil)
 
 						outPath := gwRoot
 						testFunc(send.ID, outPath)

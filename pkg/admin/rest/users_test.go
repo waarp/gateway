@@ -21,8 +21,8 @@ const usersURI = "http://localhost:8080/api/users/"
 func TestGetUser(t *testing.T) {
 	logger := log.NewLogger("rest_user_get_test")
 
-	Convey("Given the user get handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the user get handler", t, func(c C) {
+		db := database.TestDatabase(c, "DEBUG")
 		handler := getUser(logger, db)
 		w := httptest.NewRecorder()
 
@@ -31,7 +31,7 @@ func TestGetUser(t *testing.T) {
 				Username: "existing",
 				Password: []byte("existing"),
 			}
-			So(db.Create(expected), ShouldBeNil)
+			So(db.Insert(expected).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid username parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -40,6 +40,15 @@ func TestGetUser(t *testing.T) {
 
 				Convey("When sending the request to the handler", func() {
 					handler.ServeHTTP(w, r)
+
+					Convey("Then the body should contain the requested partner "+
+						"in JSON format", func() {
+
+						exp, err := json.Marshal(FromUser(expected))
+
+						So(err, ShouldBeNil)
+						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
+					})
 
 					Convey("Then it should reply 'OK'", func() {
 						So(w.Code, ShouldEqual, http.StatusOK)
@@ -50,15 +59,6 @@ func TestGetUser(t *testing.T) {
 						contentType := w.Header().Get("Content-Type")
 
 						So(contentType, ShouldEqual, "application/json")
-					})
-
-					Convey("Then the body should contain the requested partner "+
-						"in JSON format", func() {
-
-						exp, err := json.Marshal(FromUser(expected))
-
-						So(err, ShouldBeNil)
-						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
 					})
 				})
 			})
@@ -84,6 +84,14 @@ func TestListUsers(t *testing.T) {
 	logger := log.NewLogger("rest_user_list_test")
 
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutUser) {
+		Convey("Then the response body should contain an array "+
+			"of the requested users in JSON format", func() {
+			decoder := json.NewDecoder(w.Body)
+			var actual map[string][]OutUser
+			So(decoder.Decode(&actual), ShouldBeNil)
+			So(actual, ShouldResemble, expected)
+		})
+
 		Convey("Then it should reply 'OK'", func() {
 			So(w.Code, ShouldEqual, http.StatusOK)
 		})
@@ -94,18 +102,10 @@ func TestListUsers(t *testing.T) {
 
 			So(contentType, ShouldEqual, "application/json")
 		})
-
-		Convey("Then the response body should contain an array "+
-			"of the requested users in JSON format", func() {
-
-			exp, err := json.Marshal(expected)
-			So(err, ShouldBeNil)
-			So(w.Body.String(), ShouldResemble, string(exp)+"\n")
-		})
 	}
 
-	Convey("Given the user listing handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the user listing handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := listUsers(logger, db)
 		w := httptest.NewRecorder()
 		expected := map[string][]OutUser{}
@@ -128,11 +128,11 @@ func TestListUsers(t *testing.T) {
 				Password: []byte("user4"),
 			}
 
-			So(db.Create(u1), ShouldBeNil)
-			So(db.Create(u2), ShouldBeNil)
-			So(db.Create(u3), ShouldBeNil)
-			So(db.Create(u4), ShouldBeNil)
-			So(db.Delete(&model.User{Username: "admin"}), ShouldBeNil)
+			So(db.Insert(u1).Run(), ShouldBeNil)
+			So(db.Insert(u2).Run(), ShouldBeNil)
+			So(db.Insert(u3).Run(), ShouldBeNil)
+			So(db.Insert(u4).Run(), ShouldBeNil)
+			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			user1 := *FromUser(u1)
 			user2 := *FromUser(u2)
@@ -193,17 +193,18 @@ func TestListUsers(t *testing.T) {
 func TestCreateUser(t *testing.T) {
 	logger := log.NewLogger("rest_user_create_logger")
 
-	Convey("Given the user creation handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the user creation handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := addUser(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 user", func() {
-			existing := &model.User{
+			existing := model.User{
 				Username: "old",
 				Password: []byte("old_password"),
 			}
-			So(db.Create(existing), ShouldBeNil)
+			So(db.Insert(&existing).Run(), ShouldBeNil)
+			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			Convey("Given a new user to insert in the database", func() {
 				body := strings.NewReader(`{
@@ -242,17 +243,17 @@ func TestCreateUser(t *testing.T) {
 
 						Convey("Then the new user should be inserted in the "+
 							"database", func() {
-							var users []model.User
-							So(db.Select(&users, nil), ShouldBeNil)
-							So(len(users), ShouldEqual, 3)
+							var users model.Users
+							So(db.Select(&users).Run(), ShouldBeNil)
+							So(users, ShouldHaveLength, 2)
 
-							So(bcrypt.CompareHashAndPassword(users[2].Password,
+							So(bcrypt.CompareHashAndPassword(users[1].Password,
 								[]byte("password")), ShouldBeNil)
-							So(users[2], ShouldResemble, model.User{
+							So(users[1], ShouldResemble, model.User{
 								ID:       3,
 								Owner:    database.Owner,
 								Username: "toto",
-								Password: users[2].Password,
+								Password: users[1].Password,
 								Permissions: model.PermTransfersRead | model.PermTransfersWrite |
 									model.PermServersRead | model.PermServersDelete |
 									model.PermPartnersRead | model.PermPartnersWrite |
@@ -262,7 +263,9 @@ func TestCreateUser(t *testing.T) {
 						})
 
 						Convey("Then the existing user should still exist", func() {
-							So(db.Get(existing), ShouldBeNil)
+							var users model.Users
+							So(db.Select(&users).Run(), ShouldBeNil)
+							So(users, ShouldContain, existing)
 						})
 					})
 				})
@@ -274,17 +277,23 @@ func TestCreateUser(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	logger := log.NewLogger("rest_user_delete_test")
 
-	Convey("Given the user deletion handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the user deletion handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := deleteUser(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 user", func() {
-			existing := &model.User{
+		Convey("Given a database with 2 users", func() {
+			existing := model.User{
 				Username: "existing",
 				Password: []byte("existing"),
 			}
-			So(db.Create(existing), ShouldBeNil)
+			other := model.User{
+				Username: "other",
+				Password: []byte("other_password"),
+			}
+			So(db.Insert(&existing).Run(), ShouldBeNil)
+			So(db.Insert(&other).Run(), ShouldBeNil)
+			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid username parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
@@ -304,13 +313,19 @@ func TestDeleteUser(t *testing.T) {
 
 					Convey("Then the user should no longer be present "+
 						"in the database", func() {
-						var users []model.User
-						So(db.Select(&users, nil), ShouldBeNil)
-						So(len(users), ShouldEqual, 1)
+						var users model.Users
+						So(db.Select(&users).Run(), ShouldBeNil)
+						So(users, ShouldNotContain, existing)
+					})
+
+					Convey("Then the other user should still be present", func() {
+						var users model.Users
+						So(db.Select(&users).Run(), ShouldBeNil)
+						So(users, ShouldContain, other)
 					})
 				})
 
-				Convey("Given the request using the deleted user as authentification", func() {
+				Convey("Given the request using the deleted user as authentication", func() {
 					r.SetBasicAuth(existing.Username, "")
 
 					Convey("When sending the request to the handler", func() {
@@ -324,8 +339,11 @@ func TestDeleteUser(t *testing.T) {
 							So(w.Body.String(), ShouldResemble, "user cannot delete self\n")
 						})
 
-						Convey("Then the user should still exist in the database", func() {
-							So(db.Get(existing), ShouldBeNil)
+						Convey("Then the users should still exist in the database", func() {
+							var users model.Users
+							So(db.Select(&users).Run(), ShouldBeNil)
+							So(users, ShouldContain, existing)
+							So(users, ShouldContain, other)
 						})
 					})
 				})
@@ -350,7 +368,10 @@ func TestDeleteUser(t *testing.T) {
 
 					Convey("Then the user should still be present in the "+
 						"database", func() {
-						So(db.Get(existing), ShouldBeNil)
+						var users model.Users
+						So(db.Select(&users).Run(), ShouldBeNil)
+						So(users, ShouldContain, existing)
+						So(users, ShouldContain, other)
 					})
 				})
 			})
@@ -361,13 +382,13 @@ func TestDeleteUser(t *testing.T) {
 func TestUpdateUser(t *testing.T) {
 	logger := log.NewLogger("rest_user_update_logger")
 
-	Convey("Given the user updating handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the user updating handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := updateUser(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 2 users", func() {
-			old := &model.User{
+			old := model.User{
 				Username: "old",
 				Password: []byte("old_password"),
 				Permissions: model.PermTransfersRead | model.PermTransfersWrite |
@@ -376,13 +397,14 @@ func TestUpdateUser(t *testing.T) {
 					model.PermRulesRead | model.PermRulesWrite |
 					model.PermUsersRead,
 			}
-			other := &model.User{
+			other := model.User{
 				Username:    "other",
 				Password:    []byte("other_password"),
 				Permissions: model.PermAll,
 			}
-			So(db.Create(old), ShouldBeNil)
-			So(db.Create(other), ShouldBeNil)
+			So(db.Insert(&old).Run(), ShouldBeNil)
+			So(db.Insert(&other).Run(), ShouldBeNil)
+			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			Convey("Given new values to update the user with", func() {
 				body := strings.NewReader(`{
@@ -421,22 +443,28 @@ func TestUpdateUser(t *testing.T) {
 						})
 
 						Convey("Then the user should have been updated", func() {
-							var users []model.User
-							So(db.Select(&users, nil), ShouldBeNil)
-							So(len(users), ShouldEqual, 3)
+							var users model.Users
+							So(db.Select(&users).Run(), ShouldBeNil)
+							So(users, ShouldHaveLength, 2)
 
-							So(bcrypt.CompareHashAndPassword(users[1].Password,
+							So(bcrypt.CompareHashAndPassword(users[0].Password,
 								[]byte("password")), ShouldBeNil)
-							So(users[1], ShouldResemble, model.User{
+							So(users[0], ShouldResemble, model.User{
 								ID:       2,
 								Owner:    database.Owner,
 								Username: "toto",
-								Password: users[1].Password,
+								Password: users[0].Password,
 								Permissions: model.PermTransfersRead |
 									model.PermServersRead | model.PermServersWrite |
 									model.PermPartnersWrite | model.PermPartnersDelete |
 									model.PermRulesRead | model.PermRulesDelete |
 									model.PermUsersRead | model.PermUsersWrite,
+							})
+
+							Convey("Then the other user should be unchanged", func() {
+								var users model.Users
+								So(db.Select(&users).Run(), ShouldBeNil)
+								So(users, ShouldContain, other)
 							})
 						})
 					})
@@ -459,8 +487,11 @@ func TestUpdateUser(t *testing.T) {
 							So(w.Body.String(), ShouldEqual, "user 'toto' not found\n")
 						})
 
-						Convey("Then the old user should still exist", func() {
-							So(db.Get(old), ShouldBeNil)
+						Convey("Then the old users should be unchanged", func() {
+							var users model.Users
+							So(db.Select(&users).Run(), ShouldBeNil)
+							So(users, ShouldContain, old)
+							So(users, ShouldContain, other)
 						})
 					})
 				})
@@ -494,21 +525,27 @@ func TestUpdateUser(t *testing.T) {
 
 						Convey("Then the user should have been updated but the "+
 							"password should stay the same", func() {
-							var users []model.User
-							So(db.Select(&users, nil), ShouldBeNil)
-							So(len(users), ShouldEqual, 3)
+							var users model.Users
+							So(db.Select(&users).Run(), ShouldBeNil)
+							So(len(users), ShouldEqual, 2)
 
-							So(bcrypt.CompareHashAndPassword(users[1].Password,
+							So(bcrypt.CompareHashAndPassword(users[0].Password,
 								[]byte("old_password")), ShouldBeNil)
-							So(maskToPerms(users[1].Permissions), ShouldResemble,
+							So(maskToPerms(users[0].Permissions), ShouldResemble,
 								maskToPerms(old.Permissions))
-							So(users[1], ShouldResemble, model.User{
+							So(users[0], ShouldResemble, model.User{
 								ID:          2,
 								Owner:       database.Owner,
 								Username:    "upd_user",
-								Password:    users[1].Password,
+								Password:    users[0].Password,
 								Permissions: old.Permissions,
 							})
+						})
+
+						Convey("Then the other user should be unchanged", func() {
+							var users model.Users
+							So(db.Select(&users).Run(), ShouldBeNil)
+							So(users, ShouldContain, other)
 						})
 					})
 				})
@@ -542,17 +579,17 @@ func TestUpdateUser(t *testing.T) {
 
 						Convey("Then the user should have been updated but the "+
 							"username should stay the same", func() {
-							var users []model.User
-							So(db.Select(&users, nil), ShouldBeNil)
-							So(len(users), ShouldEqual, 3)
+							var users model.Users
+							So(db.Select(&users).Run(), ShouldBeNil)
+							So(len(users), ShouldEqual, 2)
 
-							So(bcrypt.CompareHashAndPassword(users[1].Password,
+							So(bcrypt.CompareHashAndPassword(users[0].Password,
 								[]byte("upd_password")), ShouldBeNil)
-							So(users[1], ShouldResemble, model.User{
+							So(users[0], ShouldResemble, model.User{
 								ID:          2,
 								Owner:       database.Owner,
 								Username:    "old",
-								Password:    users[1].Password,
+								Password:    users[0].Password,
 								Permissions: old.Permissions,
 							})
 						})
@@ -566,17 +603,23 @@ func TestUpdateUser(t *testing.T) {
 func TestReplaceUser(t *testing.T) {
 	logger := log.NewLogger("rest_user_replace")
 
-	Convey("Given the user replacing handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the user replacing handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := replaceUser(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 user", func() {
-			old := &model.User{
+		Convey("Given a database with 2 users", func() {
+			old := model.User{
 				Username: "old",
 				Password: []byte("old"),
 			}
-			So(db.Create(old), ShouldBeNil)
+			other := model.User{
+				Username: "other",
+				Password: []byte("other"),
+			}
+			So(db.Insert(&old).Run(), ShouldBeNil)
+			So(db.Insert(&other).Run(), ShouldBeNil)
+			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			Convey("Given new values to update the user with", func() {
 				body := strings.NewReader(`{
@@ -608,18 +651,24 @@ func TestReplaceUser(t *testing.T) {
 						})
 
 						Convey("Then the user should have been updated", func() {
-							var users []model.User
-							So(db.Select(&users, nil), ShouldBeNil)
+							var users model.Users
+							So(db.Select(&users).Run(), ShouldBeNil)
 							So(len(users), ShouldEqual, 2)
 
-							So(bcrypt.CompareHashAndPassword(users[1].Password,
+							So(bcrypt.CompareHashAndPassword(users[0].Password,
 								[]byte("upd_password")), ShouldBeNil)
-							So(users[1], ShouldResemble, model.User{
+							So(users[0], ShouldResemble, model.User{
 								ID:       2,
 								Owner:    database.Owner,
 								Username: "upd_user",
-								Password: users[1].Password,
+								Password: users[0].Password,
 							})
+						})
+
+						Convey("Then the other user should be unchanged", func() {
+							var users model.Users
+							So(db.Select(&users).Run(), ShouldBeNil)
+							So(users, ShouldContain, other)
 						})
 					})
 				})
@@ -632,17 +681,20 @@ func TestReplaceUser(t *testing.T) {
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
 
-						Convey("Then it should reply 'NotFound'", func() {
-							So(w.Code, ShouldEqual, http.StatusNotFound)
-						})
-
 						Convey("Then the response body should state that "+
 							"the user was not found", func() {
 							So(w.Body.String(), ShouldEqual, "user 'toto' not found\n")
 						})
 
-						Convey("Then the old user should still exist", func() {
-							So(db.Get(old), ShouldBeNil)
+						Convey("Then it should reply 'NotFound'", func() {
+							So(w.Code, ShouldEqual, http.StatusNotFound)
+						})
+
+						Convey("Then the users should be unchanged", func() {
+							var users model.Users
+							So(db.Select(&users).Run(), ShouldBeNil)
+							So(users, ShouldContain, old)
+							So(users, ShouldContain, other)
 						})
 					})
 				})
@@ -659,18 +711,21 @@ func TestReplaceUser(t *testing.T) {
 					Convey("When sending the request to the handler", func() {
 						handler.ServeHTTP(w, r)
 
-						Convey("Then it should reply 'BadRequest'", func() {
-							So(w.Code, ShouldEqual, http.StatusBadRequest)
-						})
-
 						Convey("Then the response body should state that "+
 							"a password is required", func() {
 							So(w.Body.String(), ShouldEqual,
 								"the user password cannot be empty\n")
 						})
 
-						Convey("Then the old user should still exist", func() {
-							So(db.Get(old), ShouldBeNil)
+						Convey("Then it should reply 'BadRequest'", func() {
+							So(w.Code, ShouldEqual, http.StatusBadRequest)
+						})
+
+						Convey("Then the users should be unchanged", func() {
+							var users model.Users
+							So(db.Select(&users).Run(), ShouldBeNil)
+							So(users, ShouldContain, old)
+							So(users, ShouldContain, other)
 						})
 					})
 				})
