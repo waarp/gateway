@@ -24,55 +24,54 @@ func TestRuleAccessTableName(t *testing.T) {
 }
 
 func TestIsRuleAuthorized(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a rule entry", func() {
-			r := &Rule{
+			r := Rule{
 				Name:   "Test",
 				Path:   "test",
 				IsSend: true,
 			}
-			So(db.Create(r), ShouldBeNil)
+			So(db.Insert(&r).Run(), ShouldBeNil)
 
-			rAgent := &RemoteAgent{
+			rAgent := RemoteAgent{
 				Name:        "Test",
 				Protocol:    "sftp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
-			So(db.Create(rAgent), ShouldBeNil)
+			So(db.Insert(&rAgent).Run(), ShouldBeNil)
 
-			rAccount := &RemoteAccount{
+			rAccount := RemoteAccount{
 				RemoteAgentID: rAgent.ID,
 				Login:         "Test",
 				Password:      []byte("password"),
 			}
-			So(db.Create(rAccount), ShouldBeNil)
+			So(db.Insert(&rAccount).Run(), ShouldBeNil)
 
-			lAgent := &LocalAgent{
+			lAgent := LocalAgent{
 				Name:        "Test",
 				Protocol:    "sftp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2222",
 			}
-			So(db.Create(lAgent), ShouldBeNil)
+			So(db.Insert(&lAgent).Run(), ShouldBeNil)
 
-			lAccount := &LocalAccount{
+			lAccount := LocalAccount{
 				LocalAgentID: lAgent.ID,
 				Login:        "Test",
 				Password:     []byte("password"),
 			}
-			So(db.Create(lAccount), ShouldBeNil)
+			So(db.Insert(&lAccount).Run(), ShouldBeNil)
 
 			Convey("Given a remote_agent authorized for the rule", func() {
-
-				lAccess := &RuleAccess{
+				lAccess := RuleAccess{
 					RuleID:     r.ID,
 					ObjectType: "local_agents",
 					ObjectID:   lAgent.ID,
 				}
-				So(db.Create(lAccess), ShouldBeNil)
+				So(db.Insert(&lAccess).Run(), ShouldBeNil)
 
 				Convey("Given a non authorized transfer", func() {
 					t := &Transfer{
@@ -99,9 +98,9 @@ func TestIsRuleAuthorized(t *testing.T) {
 	})
 }
 
-func TestRuleAccessValidate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+func TestRuleAccessBeforeWrite(t *testing.T) {
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a rule entry", func() {
 			r := &Rule{
@@ -109,45 +108,45 @@ func TestRuleAccessValidate(t *testing.T) {
 				IsSend: true,
 				Path:   "path",
 			}
-			So(db.Create(r), ShouldBeNil)
+			So(db.Insert(r).Run(), ShouldBeNil)
 
-			rAgent := &RemoteAgent{
+			rAgent := RemoteAgent{
 				Name:        "Test",
 				Protocol:    "sftp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
-			So(db.Create(rAgent), ShouldBeNil)
+			So(db.Insert(&rAgent).Run(), ShouldBeNil)
 
-			rAccount := &RemoteAccount{
+			rAccount := RemoteAccount{
 				RemoteAgentID: rAgent.ID,
 				Login:         "Test",
 				Password:      []byte("dummy"),
 			}
-			So(db.Create(rAccount), ShouldBeNil)
+			So(db.Insert(&rAccount).Run(), ShouldBeNil)
 
-			lAgent := &LocalAgent{
+			lAgent := LocalAgent{
 				Name:        "Test",
 				Protocol:    "sftp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2222",
 			}
-			So(db.Create(lAgent), ShouldBeNil)
+			So(db.Insert(&lAgent).Run(), ShouldBeNil)
 
-			lAccount := &LocalAccount{
+			lAccount := LocalAccount{
 				LocalAgentID: lAgent.ID,
 				Login:        "Test",
 				Password:     []byte("dummy"),
 			}
-			So(db.Create(lAccount), ShouldBeNil)
+			So(db.Insert(&lAccount).Run(), ShouldBeNil)
 
 			Convey("Given a RuleAccess with an invalid RuleID", func() {
 				ra := &RuleAccess{
 					RuleID: 1000,
 				}
 
-				Convey("When calling the `Validate` method", func() {
-					err := ra.Validate(db)
+				Convey("When calling the `BeforeWrite` method", func() {
+					err := ra.BeforeWrite(db)
 
 					Convey("Then the error should say 'No rule found'", func() {
 						So(err, ShouldBeError, database.NewValidationError(
@@ -162,8 +161,8 @@ func TestRuleAccessValidate(t *testing.T) {
 					ObjectType: "dummy",
 				}
 
-				Convey("When calling the `Validate` method", func() {
-					err := ra.Validate(db)
+				Convey("When calling the `BeforeWrite` method", func() {
+					err := ra.BeforeWrite(db)
 
 					Convey("Then the error should say 'No rule found'", func() {
 						So(err, ShouldBeError, database.NewValidationError(
@@ -182,8 +181,8 @@ func TestRuleAccessValidate(t *testing.T) {
 						ObjectID:   1000,
 					}
 
-					Convey("When calling the `Validate` method", func() {
-						err := ra.Validate(db)
+					Convey("When calling the `BeforeWrite` method", func() {
+						err := ra.BeforeWrite(db)
 
 						Convey("Then the error should say 'No rule found'", func() {
 							So(err, ShouldBeError, database.NewValidationError(
@@ -211,8 +210,8 @@ func TestRuleAccessValidate(t *testing.T) {
 						ObjectID:   id,
 					}
 
-					Convey("When calling the `Validate` method", func() {
-						err := ra.Validate(db)
+					Convey("When calling the `BeforeWrite` method", func() {
+						err := ra.BeforeWrite(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)

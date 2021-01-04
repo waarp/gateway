@@ -42,9 +42,6 @@ func TestOracleDB(t *testing.T) {
 			t.Logf("Failed to delete passphrase file: %s", err)
 		}
 	}()
-	if err := db.engine.CreateTables(&testBean{}); err != nil {
-		t.Fatal(err)
-	}
 
 	Convey("Given an Oracledb service", t, func() {
 		testDatabase(oracleTestDatabase)

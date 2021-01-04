@@ -22,8 +22,8 @@ type OutTransferInfo struct {
 // An error is returned a problem occurs while accessing the database.
 func NewOutTransferInfo(db *database.DB, trans *Transfer) (*OutTransferInfo, error) {
 
-	remote := &RemoteAgent{ID: trans.AgentID}
-	if err := db.Get(remote); err != nil {
+	var remote RemoteAgent
+	if err := db.Get(&remote, "id=?", trans.AgentID).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, fmt.Errorf("the partner n°%v does not exist", trans.AgentID)
 		}
@@ -33,8 +33,8 @@ func NewOutTransferInfo(db *database.DB, trans *Transfer) (*OutTransferInfo, err
 	if err != nil {
 		return nil, err
 	}
-	account := &RemoteAccount{ID: trans.AccountID}
-	if err := db.Get(account); err != nil {
+	var account RemoteAccount
+	if err := db.Get(&account, "id=?", trans.AccountID).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, fmt.Errorf("the account n°%v does not exist", account.ID)
 		}
@@ -45,8 +45,8 @@ func NewOutTransferInfo(db *database.DB, trans *Transfer) (*OutTransferInfo, err
 			account.ID, remote.ID)
 	}
 
-	rule := &Rule{ID: trans.RuleID}
-	if err := db.Get(rule); err != nil {
+	var rule Rule
+	if err := db.Get(&rule, "id=?", trans.RuleID).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, fmt.Errorf("the rule n°%v does not exist", rule.ID)
 		}
@@ -59,9 +59,9 @@ func NewOutTransferInfo(db *database.DB, trans *Transfer) (*OutTransferInfo, err
 
 	return &OutTransferInfo{
 		Transfer:    trans,
-		Agent:       remote,
-		Account:     account,
-		Rule:        rule,
+		Agent:       &remote,
+		Account:     &account,
+		Rule:        &rule,
 		ServerCerts: serverCerts,
 		ClientCerts: clientCerts,
 	}, nil

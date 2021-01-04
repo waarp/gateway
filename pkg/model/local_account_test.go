@@ -24,8 +24,8 @@ func TestLocalAccountTableName(t *testing.T) {
 }
 
 func TestLocalAccountBeforeDelete(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a local account entry", func() {
 			ag := &LocalAgent{
@@ -34,26 +34,26 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
-			So(db.Create(ag), ShouldBeNil)
+			So(db.Insert(ag).Run(), ShouldBeNil)
 
-			acc := &LocalAccount{LocalAgentID: ag.ID, Login: "login", Password: []byte("password")}
-			So(db.Create(acc), ShouldBeNil)
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "login", Password: []byte("password")}
+			So(db.Insert(&acc).Run(), ShouldBeNil)
 
-			cert := &Cert{
-				OwnerType:   acc.TableName(),
+			cert := Cert{
+				OwnerType:   "local_accounts",
 				OwnerID:     acc.ID,
 				Name:        "test cert",
 				PrivateKey:  []byte("private key"),
 				PublicKey:   []byte("public key"),
 				Certificate: []byte("certificate"),
 			}
-			So(db.Create(cert), ShouldBeNil)
+			So(db.Insert(&cert).Run(), ShouldBeNil)
 
-			rule := &Rule{Name: "rule", IsSend: true, Path: "path"}
-			So(db.Create(rule), ShouldBeNil)
+			rule := Rule{Name: "rule", IsSend: true, Path: "path"}
+			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			access := &RuleAccess{RuleID: rule.ID, ObjectType: acc.TableName(), ObjectID: acc.ID}
-			So(db.Create(access), ShouldBeNil)
+			access := RuleAccess{RuleID: rule.ID, ObjectType: acc.TableName(), ObjectID: acc.ID}
+			So(db.Insert(&access).Run(), ShouldBeNil)
 
 			Convey("Given that the account is unused", func() {
 
@@ -61,15 +61,15 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 					So(acc.BeforeDelete(db), ShouldBeNil)
 
 					Convey("Then the account's certificates should have been deleted", func() {
-						certs, err := db.Query("SELECT * FROM certificates")
-						So(err, ShouldBeNil)
+						var certs Certificates
+						So(db.Select(&certs).Run(), ShouldBeNil)
 						So(certs, ShouldBeEmpty)
 					})
 
 					Convey("Then the account's accesses should have been deleted", func() {
-						access, err := db.Query("SELECT * FROM rule_access")
-						So(err, ShouldBeNil)
-						So(access, ShouldBeEmpty)
+						var perms RuleAccesses
+						So(db.Select(&perms).Run(), ShouldBeNil)
+						So(perms, ShouldBeEmpty)
 					})
 				})
 			})
@@ -83,16 +83,16 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 					SourceFile: "file.src",
 					DestFile:   "file.dst",
 				}
-				So(db.Create(trans), ShouldBeNil)
+				So(db.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("When calling the `BeforeDelete` hook", func() {
 					err := acc.BeforeDelete(db)
 
 					Convey("Then it should say that the account is being used", func() {
 						So(err, ShouldBeError, database.NewValidationError(
-							"this account is currently being "+
-								"used in a running transfer and cannot be deleted, "+
-								"cancel the transfer or wait for it to finish"))
+							"this account is currently being used in one or more "+
+								"running transfers and thus cannot be deleted, "+
+								"cancel the transfers or wait for them to finish"))
 					})
 				})
 			})
@@ -100,26 +100,19 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 	})
 }
 
-func TestLocalAccountValidate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+func TestLocalAccountBeforeWrite(t *testing.T) {
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given the database contains 1 local agent with 1 local account", func() {
-			parentAgent := &LocalAgent{
+			parentAgent := LocalAgent{
 				Owner:       "test_gateway",
 				Name:        "parent_agent",
 				Protocol:    "sftp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2222",
 			}
-			So(db.Create(parentAgent), ShouldBeNil)
-
-			oldAccount := &LocalAccount{
-				LocalAgentID: parentAgent.ID,
-				Login:        "old",
-				Password:     []byte("password"),
-			}
-			So(db.Create(oldAccount), ShouldBeNil)
+			So(db.Insert(&parentAgent).Run(), ShouldBeNil)
 
 			Convey("Given a new local account", func() {
 				newAccount := &LocalAccount{
@@ -128,10 +121,20 @@ func TestLocalAccountValidate(t *testing.T) {
 					Password:     []byte("password"),
 				}
 
+				shouldFailWith := func(errDesc string, expErr error) {
+					Convey("When calling the 'BeforeValidate' function", func() {
+						err := newAccount.BeforeWrite(db)
+
+						Convey("Then the error should say that "+errDesc, func() {
+							So(err, ShouldBeError, expErr)
+						})
+					})
+				}
+
 				Convey("Given that the new account is valid", func() {
 
-					Convey("When calling the 'Validate' function", func() {
-						So(newAccount.Validate(db), ShouldBeNil)
+					Convey("When calling the 'BeforeWrite' function", func() {
+						So(newAccount.BeforeWrite(db), ShouldBeNil)
 
 						Convey("Then the account's password should be hashed", func() {
 							hash, err := utils.HashPassword(newAccount.Password)
@@ -143,74 +146,59 @@ func TestLocalAccountValidate(t *testing.T) {
 
 				Convey("Given that the new account is missing an agent ID", func() {
 					newAccount.LocalAgentID = 0
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAccount.Validate(db)
-
-						Convey("Then the error should say that the agent ID is missing", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the account's agentID cannot be empty"))
-						})
-					})
+					shouldFailWith("the agent ID is missing", database.NewValidationError(
+						"the account's agentID cannot be empty"))
 				})
 
 				Convey("Given that the new account is missing a login", func() {
 					newAccount.Login = ""
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAccount.Validate(db)
-
-						Convey("Then the error should say that the login is missing", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the account's login cannot be empty"))
-						})
-					})
+					shouldFailWith("the login is missing", database.NewValidationError(
+						"the account's login cannot be empty"))
 				})
 
 				Convey("Given that the new account has an invalid agent ID", func() {
 					newAccount.LocalAgentID = 1000
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAccount.Validate(db)
-
-						Convey("Then the error should say that the agent ID is invalid", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"no local agent found with the ID '%d'",
-								newAccount.LocalAgentID))
-						})
-					})
+					shouldFailWith("the agent ID is invalid", database.NewValidationError(
+						"no local agent found with the ID '%d'", newAccount.LocalAgentID))
 				})
 
 				Convey("Given that the new account's login is already taken", func() {
+					oldAccount := LocalAccount{
+						LocalAgentID: parentAgent.ID,
+						Login:        "old",
+						Password:     []byte("password"),
+					}
+					So(db.Insert(&oldAccount).Run(), ShouldBeNil)
+
 					newAccount.Login = oldAccount.Login
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAccount.Validate(db)
-
-						Convey("Then the error should say that the login is already taken", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"a local account with the same login '%s' already exist",
-								newAccount.Login))
-						})
-					})
+					shouldFailWith("the login is already taken", database.NewValidationError(
+						"a local account with the same login '%s' already exist",
+						newAccount.Login))
 				})
 
 				Convey("Given that the new account's name is already taken but the"+
 					"parent agent is different", func() {
-					otherAgent := &LocalAgent{
+					otherAgent := LocalAgent{
 						Owner:       "test_gateway",
 						Name:        "other",
 						Protocol:    "sftp",
 						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}
-					So(db.Create(otherAgent), ShouldBeNil)
+					So(db.Insert(&otherAgent).Run(), ShouldBeNil)
+
+					oldAccount := LocalAccount{
+						LocalAgentID: parentAgent.ID,
+						Login:        "old",
+						Password:     []byte("password"),
+					}
+					So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
 					newAccount.LocalAgentID = otherAgent.ID
 					newAccount.Login = oldAccount.Login
 
 					Convey("When calling the 'Validate' function", func() {
-						err := newAccount.Validate(db)
+						err := newAccount.BeforeWrite(db)
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)

@@ -1,43 +1,57 @@
 package database
 
-import "database/sql"
-
-type deleteBean interface {
-	table
-	appellation
-	deletionHook
+// DeleteBean is the interface that a model must implement in order to be
+// deletable via the Delete query builder.
+type DeleteBean interface {
+	Table
+	Identifier
+	DeletionHook
 }
 
-type deleteQuery struct {
-	bean deleteBean
+// DeleteQuery is the type representing a SQL DELETE statement with an ID
+// condition (so for a single entry). The ID is taken from the given model.
+type DeleteQuery struct {
+	db   Access
+	bean DeleteBean
 }
 
-// Delete creates a query to delete the given `bean` parameter in the database
-// (using the struct fields as filters for the deletion).
-//
-//nolint:golint //This exported function returns an unexported type on purpose
-//so that instances of deleteQuery cannot be created outside of this function
-func Delete(bean deleteBean) *deleteQuery {
-	return &deleteQuery{bean: bean}
-}
+// Run executes the 'DELETE' query.
+func (d *DeleteQuery) Run() Error {
+	logger := d.db.GetLogger()
 
-func (d *deleteQuery) exec(ses *Session) (sql.Result, error) {
-	if d.bean == nil {
-		ses.logger.Error("'DELETE' called with a `nil` target")
-		return nil, ErrNilRecord
-	}
-
-	if err := d.bean.BeforeDelete(ses); err != nil {
-		return nil, err
-	}
-
-	n, err := ses.session.Table(d.bean.Table()).Delete(d.bean)
+	exist, err := d.db.getUnderlying().NoAutoCondition().ID(d.bean.GetID()).Exist(d.bean)
 	if err != nil {
-		ses.logger.Errorf("Failed to delete the %s entry: %s",
-			d.bean.Appellation(), err)
-		return nil, NewInternalError(err, "failed to delete the %s entry",
-			d.bean.Appellation())
+		logger.Errorf("Failed to check if the %s to update exists: %s", d.bean.Appellation(), err)
+		return NewInternalError(err)
+	}
+	if !exist {
+		logger.Infof("No %s found with ID %d", d.bean.Appellation(), d.bean.GetID())
+		return NewNotFoundError(d.bean)
 	}
 
-	return &dbResult{affected: n}, nil
+	f := func(s *Session) Error {
+		if err := d.bean.BeforeDelete(s); err != nil {
+			logger.Errorf("%s deletion hook failed: %s", d.bean.Appellation(), err)
+			return err
+		}
+		query := s.getUnderlying().NoAutoCondition().Table(d.bean.TableName()).
+			ID(d.bean.GetID())
+		_, err = query.Delete(d.bean)
+		logSQL(query, logger)
+
+		if err != nil {
+			logger.Errorf("Failed to delete the %s entry: %s", d.bean.Appellation(), err)
+			return NewInternalError(err)
+		}
+		return nil
+	}
+
+	switch db := d.db.(type) {
+	case *Standalone:
+		return db.Transaction(f)
+	case *Session:
+		return f(db)
+	default:
+		panic("unknown database accessor type")
+	}
 }

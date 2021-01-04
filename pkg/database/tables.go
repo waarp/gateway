@@ -2,7 +2,7 @@ package database
 
 var (
 	// Tables lists the schema of all database tables
-	Tables []tableName
+	Tables []Table
 
 	// BcryptRounds defines the number of rounds taken by bcrypt to hash passwords
 	// in the database
@@ -10,37 +10,31 @@ var (
 )
 
 type initer interface {
-	Init(Accessor) error
+	Init(*Session) Error
 }
 
 // initTables creates the database tables if they don't exist and fills them
 // with the default entries.
-func initTables(db *DB) error {
-	trans, err := db.BeginTransaction()
-	if err != nil {
-		return err
-	}
-	defer trans.session.Close()
+func initTables(db *Standalone) error {
+	return db.Transaction(func(ses *Session) Error {
+		for _, tbl := range Tables {
+			if ok, err := ses.session.IsTableExist(tbl.TableName()); err != nil {
+				db.logger.Criticalf("Failed to retrieve database table list: %s", err)
+				return NewInternalError(err)
+			} else if !ok {
+				if err := ses.session.Table(tbl.TableName()).CreateTable(tbl); err != nil {
+					db.logger.Criticalf("Failed to create the '%s' database table: %s",
+						tbl.TableName(), err)
+					return NewInternalError(err)
+				}
 
-	for _, tbl := range Tables {
-		if ok, err := trans.session.IsTableExist(tbl); err != nil {
-			return NewInternalError(err, "cannot retrieve database table list")
-		} else if !ok {
-			if t, ok := tbl.(table); ok {
-				trans.session.Table(t.Table())
-			}
-			if err := trans.session.CreateTable(tbl); err != nil {
-				return NewInternalError(err, "failed to create '%s' database table",
-					tbl.TableName())
-			}
-
-			if init, ok := tbl.(initer); ok {
-				if err := init.Init(trans); err != nil {
-					return err
+				if init, ok := tbl.(initer); ok {
+					if err := init.Init(ses); err != nil {
+						return err
+					}
 				}
 			}
 		}
-	}
-
-	return trans.Commit()
+		return nil
+	})
 }

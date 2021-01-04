@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/go-xorm/xorm"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
@@ -30,18 +29,18 @@ func init() {
 	sqliteTestDatabase = &DB{Conf: sqliteConfig}
 }
 
-func testSelect(db *DB) {
+func testIterate(db *DB) {
 	bean1 := testValid{ID: 1, String: "str1"}
 	bean2 := testValid{ID: 2, String: "str2"}
 	bean3 := testValid{ID: 3, String: "str2"}
 	bean4 := testValid{ID: 4, String: "str3"}
 	bean5 := testValid{ID: 5, String: "str1"}
 
-	shouldContain := func(exec queryFunc, query query, exps ...testValid) {
+	shouldContain := func(query *IterateQuery, exps ...testValid) {
 		Convey("When executing the query", func() {
-			rows, err := exec(query)
+			rows, err := query.Run()
 			So(err, ShouldBeNil)
-			defer rows.Close()
+			Reset(rows.Close)
 
 			Convey("Then the result should contain the expected elements", func() {
 				for _, exp := range exps {
@@ -55,79 +54,194 @@ func testSelect(db *DB) {
 		})
 	}
 
-	runTests := func(exec queryFunc, db xorm.Interface) {
-		query := Select(&testValid{})
-
-		Convey("With a nil bean", func() {
-			_, err := exec(Select(nil))
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, ErrNilRecord)
-			})
-		})
+	runTests := func(db ReadAccess) {
+		query := db.Iterate(&testValid{})
 
 		Convey("With no conditions", func() {
-			shouldContain(exec, query, bean1, bean2, bean3, bean4, bean5)
+			shouldContain(query, bean1, bean2, bean3, bean4, bean5)
 		})
 
 		Convey("With a '=' condition", func() {
-			query.Where(Equal("string", "str2"))
-			shouldContain(exec, query, bean2, bean3)
+			query.Where("string=?", "str2")
+			shouldContain(query, bean2, bean3)
 		})
 
 		Convey("With a '<>' condition", func() {
-			query.Where(NotEqual("string", "str2"))
-			shouldContain(exec, query, bean1, bean4, bean5)
+			query.Where("string<>?", "str2")
+			shouldContain(query, bean1, bean4, bean5)
 		})
 
 		Convey("With a '>' condition", func() {
-			query.Where(GreaterThan("id", 3))
-			shouldContain(exec, query, bean4, bean5)
+			query.Where("id>?", 3)
+			shouldContain(query, bean4, bean5)
 		})
 
 		Convey("With a '<' condition", func() {
-			query.Where(LowerThan("id", 3))
-			shouldContain(exec, query, bean1, bean2)
+			query.Where("id<?", 3)
+			shouldContain(query, bean1, bean2)
 		})
 
 		Convey("With a '>=' condition", func() {
-			query.Where(GreaterThanOrEqual("id", 3))
-			shouldContain(exec, query, bean3, bean4, bean5)
+			query.Where("id>=?", 3)
+			shouldContain(query, bean3, bean4, bean5)
 		})
 
 		Convey("With a '<=' condition", func() {
-			query.Where(LowerThanOrEqual("id", 3))
-			shouldContain(exec, query, bean1, bean2, bean3)
+			query.Where("id<=?", 3)
+			shouldContain(query, bean1, bean2, bean3)
 		})
 
 		Convey("With a 'AND' condition", func() {
-			query.Where(Equal("id", 3).And(Equal("string", "str2")))
-			shouldContain(exec, query, bean3)
+			query.Where("id=? AND string=?", 3, "str2")
+			shouldContain(query, bean3)
 		})
 
 		Convey("With a 'OR' condition", func() {
-			query.Where(Equal("string", "str3").Or(Equal("string", "str2")))
-			shouldContain(exec, query, bean2, bean3, bean4)
+			query.Where("string=? OR string=?", "str3", "str2")
+			shouldContain(query, bean2, bean3, bean4)
 		})
 
 		Convey("With an 'IN' condition", func() {
-			query.Where(In("string", "str1", "str2"))
-			shouldContain(exec, query, bean1, bean2, bean3, bean5)
+			query.Where("string IN (?,?)", "str1", "str2")
+			shouldContain(query, bean1, bean2, bean3, bean5)
 		})
 
 		Convey("With an 'IN SELECT' condition", func() {
 			b1 := &testValid2{ID: 1, String: "str1"}
 			b2 := &testValid2{ID: 2, String: "str2"}
 			b3 := &testValid2{ID: 3, String: "str3"}
-			_, err := db.Insert(b1, b2, b3)
+			_, err := db.getUnderlying().Insert(b1, b2, b3)
 			So(err, ShouldBeNil)
 
-			query.Where(In("string", Expr("SELECT string FROM test_valid_2 WHERE id=2 OR id=3")))
-			shouldContain(exec, query, bean2, bean3, bean4)
+			query.Where("string IN (SELECT string FROM test_valid_2 WHERE id=? OR id=?)", 2, 3)
+			shouldContain(query, bean2, bean3, bean4)
 		})
 
 		Convey("With a limit and offset", func() {
 			query.Limit(2, 1)
-			shouldContain(exec, query, bean2, bean3)
+			shouldContain(query, bean2, bean3)
+		})
+
+		Convey("With a 'DISTINCT' clause", func() {
+			query.Distinct("string")
+			shouldContain(query, testValid{String: bean1.String},
+				testValid{String: bean2.String}, testValid{String: bean4.String})
+		})
+	}
+
+	Convey("When executing a 'ITERATE' query", func() {
+		_, err := db.engine.Insert(&bean1, &bean2,
+			&bean3, &bean4, &bean5)
+		So(err, ShouldBeNil)
+
+		Convey("As a standalone query", func() {
+			runTests(db)
+		})
+
+		Convey("Inside a transaction", func() {
+			ses := db.newSession()
+			So(ses.session.Begin(), ShouldBeNil)
+			Reset(ses.session.Close)
+
+			runTests(ses)
+		})
+	})
+
+}
+
+func testSelect(db *DB) {
+	bean1 := testValid{ID: 1, String: "str1"}
+	bean2 := testValid{ID: 2, String: "str2"}
+	bean3 := testValid{ID: 3, String: "str2"}
+	bean4 := testValid{ID: 4, String: "str3"}
+	bean5 := testValid{ID: 5, String: "str1"}
+
+	shouldContain := func(query *SelectQuery, res *validList, exps ...testValid) {
+		Convey("When executing the query", func() {
+			So(query.Run(), ShouldBeNil)
+
+			Convey("Then the result should contain the expected elements", func() {
+				So(res, ShouldHaveLength, len(exps))
+				for i, r := range *res {
+					So(r, ShouldResemble, exps[i])
+				}
+			})
+		})
+	}
+
+	runTests := func(db ReadAccess) {
+		var res validList
+		query := db.Select(&res)
+
+		Convey("With no conditions", func() {
+			shouldContain(query, &res, bean1, bean2, bean3, bean4, bean5)
+		})
+
+		Convey("With a '=' condition", func() {
+			query.Where("string=?", "str2")
+			shouldContain(query, &res, bean2, bean3)
+		})
+
+		Convey("With a '<>' condition", func() {
+			query.Where("string<>?", "str2")
+			shouldContain(query, &res, bean1, bean4, bean5)
+		})
+
+		Convey("With a '>' condition", func() {
+			query.Where("id>?", 3)
+			shouldContain(query, &res, bean4, bean5)
+		})
+
+		Convey("With a '<' condition", func() {
+			query.Where("id<?", 3)
+			shouldContain(query, &res, bean1, bean2)
+		})
+
+		Convey("With a '>=' condition", func() {
+			query.Where("id>=?", 3)
+			shouldContain(query, &res, bean3, bean4, bean5)
+		})
+
+		Convey("With a '<=' condition", func() {
+			query.Where("id<=?", 3)
+			shouldContain(query, &res, bean1, bean2, bean3)
+		})
+
+		Convey("With a 'AND' condition", func() {
+			query.Where("id=? AND string=?", 3, "str2")
+			shouldContain(query, &res, bean3)
+		})
+
+		Convey("With a 'OR' condition", func() {
+			query.Where("string=? OR string=?", "str3", "str2")
+			shouldContain(query, &res, bean2, bean3, bean4)
+		})
+
+		Convey("With an 'IN' condition", func() {
+			query.Where("string IN (?,?)", "str1", "str2")
+			shouldContain(query, &res, bean1, bean2, bean3, bean5)
+		})
+
+		Convey("With an 'IN SELECT' condition", func() {
+			b1 := &testValid2{ID: 1, String: "str1"}
+			b2 := &testValid2{ID: 2, String: "str2"}
+			b3 := &testValid2{ID: 3, String: "str3"}
+			_, err := db.getUnderlying().Insert(b1, b2, b3)
+			So(err, ShouldBeNil)
+
+			query.Where("string IN (SELECT string FROM test_valid_2 WHERE id=? OR id=?)", 2, 3)
+			shouldContain(query, &res, bean2, bean3, bean4)
+		})
+
+		Convey("With a limit and offset", func() {
+			query.Limit(2, 1)
+			shouldContain(query, &res, bean2, bean3)
+		})
+
+		Convey("With a 'DISTINCT' clause", func() {
+			query.Distinct("string")
+			shouldContain(query, &res, testValid{String: bean1.String},
+				testValid{String: bean2.String}, testValid{String: bean4.String})
 		})
 	}
 
@@ -137,15 +251,15 @@ func testSelect(db *DB) {
 		So(err, ShouldBeNil)
 
 		Convey("As a standalone query", func() {
-			runTests(db.Query2, db.engine)
+			runTests(db)
 		})
 
 		Convey("Inside a transaction", func() {
 			ses := db.newSession()
 			So(ses.session.Begin(), ShouldBeNil)
-			Reset(ses.rollback)
+			Reset(ses.session.Close)
 
-			runTests(ses.Query2, ses.session)
+			runTests(ses)
 		})
 	})
 
@@ -155,14 +269,13 @@ func testInsert(db *DB) {
 	existing := testValid{ID: 1, String: "existing"}
 	newElem := testValid{ID: 2, String: "new"}
 
-	runTests := func(exec execFunc, db xorm.Interface) {
+	runTests := func(db Access) {
 		Convey("With a valid record", func() {
-			_, err := exec(Insert(&newElem))
-			So(err, ShouldBeNil)
+			So(db.Insert(&newElem).Run(), ShouldBeNil)
 
 			Convey("Then the record should have been inserted", func() {
 				var actuals []testValid
-				So(db.Find(&actuals), ShouldBeNil)
+				So(db.getUnderlying().Find(&actuals), ShouldBeNil)
 				So(actuals, ShouldHaveLength, 2)
 				exp := testValid{ID: 2, String: "new"}
 				So(actuals, ShouldContain, exp)
@@ -173,29 +286,82 @@ func testInsert(db *DB) {
 			})
 		})
 
-		Convey("With a nil record ", func() {
-			_, err := exec(Insert(nil))
+		Convey("Given that the write hook fails", func() {
+			newElem := testWriteFail{ID: 2}
+			err := db.Insert(&newElem).Run()
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, ErrNilRecord)
+				So(err, ShouldNotBeNil)
+			})
+
+			Convey("Then the record should NOT have been inserted", func() {
+				var actuals []testValid
+				So(db.getUnderlying().Find(&actuals), ShouldBeNil)
+				So(actuals, ShouldContain, existing)
+			})
+
+			Convey("Then the `WriteHook` should have been called", func() {
+				So(newElem.Hooks, ShouldEqual, "write hook")
 			})
 		})
 	}
 
-	Convey("When executing an 'INSERT' query", func() {
+	Convey("When executing an 'Insert' query", func() {
 		_, err := db.engine.InsertOne(&existing)
 		So(err, ShouldBeNil)
 
 		Convey("As a standalone query", func() {
-			runTests(db.Exec, db.engine)
+			runTests(db)
 		})
 
 		Convey("Inside a transaction", func() {
 			ses := db.newSession()
 			So(ses.session.Begin(), ShouldBeNil)
-			Reset(ses.rollback)
+			Reset(ses.session.Close)
 
-			runTests(ses.Exec, ses.session)
+			runTests(ses)
+		})
+	})
+}
+
+func testGet(db *DB) {
+	toGet := testValid{ID: 1, String: "update"}
+	other := testValid{ID: 2, String: "other"}
+
+	runTests := func(db Access) {
+		Convey("With an existing record", func() {
+			get := testValid{}
+			So(db.Get(&get, "id=?", toGet.ID).Run(), ShouldBeNil)
+
+			Convey("Then the record should have been retrieved", func() {
+				So(get, ShouldResemble, toGet)
+			})
+		})
+
+		Convey("With an unknown record", func() {
+			unknown := testValid{}
+			err := db.Get(&unknown, "id=?", 3).Run()
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
+			})
+		})
+	}
+
+	Convey("When calling the 'Get' method", func() {
+		_, err := db.engine.Insert(&toGet, &other)
+		So(err, ShouldBeNil)
+
+		Convey("As a standalone query", func() {
+			runTests(db)
+		})
+
+		Convey("Inside a transaction", func() {
+			ses := db.newSession()
+			So(ses.session.Begin(), ShouldBeNil)
+			Reset(ses.session.Close)
+
+			runTests(ses)
 		})
 	})
 }
@@ -204,15 +370,14 @@ func testUpdate(db *DB) {
 	toUpdate := testValid{ID: 1, String: "update"}
 	other := testValid{ID: 2, String: "other"}
 
-	runTests := func(exec execFunc, db xorm.Interface) {
+	runTests := func(db Access) {
 		Convey("With an existing record", func() {
 			toUpdate.String = "updated"
-			_, err := exec(Update(&toUpdate))
-			So(err, ShouldBeNil)
+			So(db.Update(&toUpdate).Run(), ShouldBeNil)
 
 			Convey("Then the record should have been updated", func() {
 				var beans []testValid
-				So(db.Find(&beans), ShouldBeNil)
+				So(db.getUnderlying().Find(&beans), ShouldBeNil)
 				So(beans, ShouldHaveLength, 2)
 				exp := testValid{ID: 1, String: "updated"}
 				So(beans, ShouldContain, other)
@@ -226,18 +391,29 @@ func testUpdate(db *DB) {
 
 		Convey("With an unknown record", func() {
 			unknown := testValid{ID: 3, String: "fail"}
-			_, err := exec(Update(&unknown))
+			err := db.Update(&unknown).Run()
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError)
 			})
 		})
 
-		Convey("With an nil record", func() {
-			_, err := exec(Update(nil))
+		Convey("With an a columns condition", func() {
+			toUpdate.ID = 1
+			toUpdate.String = "updated"
+			So(db.Update(&toUpdate).Cols("id").Run(), ShouldBeNil)
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, ErrNilRecord)
+			Convey("Then only the set columns should have been updated", func() {
+				var beans []testValid
+				So(db.getUnderlying().Find(&beans), ShouldBeNil)
+				So(beans, ShouldHaveLength, 2)
+				exp := testValid{ID: 1, String: "update"}
+				So(beans, ShouldContain, other)
+				So(beans, ShouldContain, exp)
+			})
+
+			Convey("Then the `Validate` hook should have been called", func() {
+				So(toUpdate.Hooks, ShouldEqual, "write hook")
 			})
 		})
 	}
@@ -246,16 +422,60 @@ func testUpdate(db *DB) {
 		_, err := db.engine.Insert(&toUpdate, &other)
 		So(err, ShouldBeNil)
 
-		Convey("Using the standalone accessor", func() {
-			runTests(db.Exec, db.engine)
+		Convey("As a standalone query", func() {
+			runTests(db)
 		})
 
-		Convey("Using the transaction accessor", func() {
+		Convey("Inside a transaction", func() {
 			ses := db.newSession()
 			So(ses.session.Begin(), ShouldBeNil)
 			Reset(ses.session.Close)
 
-			runTests(ses.Exec, ses.session)
+			runTests(ses)
+		})
+	})
+}
+
+func testUpdateAll(db *DB) {
+	bean1 := testValid{ID: 1, String: "str1"}
+	bean2 := testValid{ID: 2, String: "str2"}
+	bean3 := testValid{ID: 3, String: "str2"}
+	bean4 := testValid{ID: 4, String: "str3"}
+	bean5 := testValid{ID: 5, String: "str3"}
+
+	runTests := func(db Access) {
+		Convey("With a condition", func() {
+			So(db.UpdateAll(&testValid{}, UpdVals{"string": "upd"}, "id>2").Run(),
+				ShouldBeNil)
+
+			Convey("Then the corresponding entries should have been updated", func() {
+				var beans []testValid
+				So(db.getUnderlying().Find(&beans), ShouldBeNil)
+				So(beans, ShouldHaveLength, 5)
+
+				for _, bean := range beans {
+					if bean.ID > 2 {
+						So(bean.String, ShouldEqual, "upd")
+					}
+				}
+			})
+		})
+	}
+
+	Convey("When calling the 'UpdateAll' method", func() {
+		_, err := db.engine.Insert(&bean1, &bean2, &bean3, &bean4, &bean5)
+		So(err, ShouldBeNil)
+
+		Convey("As a standalone query", func() {
+			runTests(db)
+		})
+
+		Convey("Inside a transaction", func() {
+			ses := db.newSession()
+			So(ses.session.Begin(), ShouldBeNil)
+			Reset(ses.session.Close)
+
+			runTests(ses)
 		})
 	})
 }
@@ -263,15 +483,15 @@ func testUpdate(db *DB) {
 func testDelete(db *DB) {
 	toDelete1 := testValid{ID: 1, String: "delete1"}
 	toDelete2 := testValid{ID: 2, String: "delete2"}
+	toDeleteFail := testDeleteFail{ID: 1}
 
-	runTests := func(exec execFunc, db xorm.Interface) {
-		Convey("With no conditions", func() {
-			_, err := exec(Delete(&toDelete1))
-			So(err, ShouldBeNil)
+	runTests := func(db Access) {
+		Convey("With a valid entry", func() {
+			So(db.Delete(&toDelete1).Run(), ShouldBeNil)
 
 			Convey("Then the record should no longer be present in the database", func() {
 				var beans []testValid
-				So(db.Find(&beans), ShouldBeNil)
+				So(db.getUnderlying().Find(&beans), ShouldBeNil)
 				So(beans, ShouldHaveLength, 1)
 				So(beans, ShouldNotContain, toDelete1)
 			})
@@ -281,86 +501,154 @@ func testDelete(db *DB) {
 			})
 		})
 
-		Convey("With a nil record", func() {
-			_, err := exec(Delete(nil))
+		Convey("Given that the delete hook fails", func() {
+			err := db.Delete(&toDeleteFail).Run()
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, ErrNilRecord)
+				So(err, ShouldNotBeNil)
+			})
+
+			Convey("Then the record should still be present in the database", func() {
+				var beans []testDeleteFail
+				So(db.getUnderlying().Find(&beans), ShouldBeNil)
+				So(beans, ShouldNotBeEmpty)
+				So(beans[0], ShouldResemble, testDeleteFail{ID: 1})
+
+				if _, ok := db.(*Standalone); ok {
+					Convey("Then the hook changes should have been reverted", func() {
+						So(beans, ShouldHaveLength, 1)
+					})
+				}
+			})
+
+			Convey("Then the `BeforeDelete` hook should have been called", func() {
+				So(toDeleteFail.Hooks, ShouldEqual, "delete hook")
+			})
+		})
+
+		Convey("With an unknown record", func() {
+			unknown := testValid{ID: 3, String: "fail"}
+			err := db.Delete(&unknown).Run()
+
+			Convey("Then it should return an error", func() {
+				So(err, ShouldBeError)
 			})
 		})
 	}
 
 	Convey("When calling the 'Delete' method", func() {
-		_, err := db.engine.Insert(&toDelete1, &toDelete2)
+		_, err := db.engine.Insert(&toDelete1, &toDelete2, &toDeleteFail)
 		So(err, ShouldBeNil)
 
-		Convey("Using the standalone accessor", func() {
-			runTests(db.Exec, db.engine)
+		Convey("As a standalone query", func() {
+			runTests(db)
 		})
 
-		Convey("Using the session accessor", func() {
+		Convey("Inside a transaction", func() {
 			ses := db.newSession()
 			So(ses.session.Begin(), ShouldBeNil)
 			Reset(ses.session.Close)
 
-			runTests(ses.Exec, ses.session)
+			runTests(ses)
 		})
 
 	})
 }
 
-func testTrans(db *DB) {
-	bean := testBean{
-		ID:     1,
-		String: "test trans",
+func testDeleteAll(db *DB) {
+	toDelete1 := testValid{ID: 1, String: "delete1"}
+	toDelete2 := testValid{ID: 2, String: "delete2"}
+	toDelete3 := testValid{ID: 3, String: "delete2"}
+	toDelete4 := testValid{ID: 4, String: "delete3"}
+
+	runTests := func(db Access) {
+		Convey("With no conditions", func() {
+			So(db.DeleteAll(&toDelete1).Run(), ShouldBeNil)
+
+			Convey("Then all records should have been deleted", func() {
+				var beans []testValid
+				So(db.getUnderlying().Find(&beans), ShouldBeNil)
+				So(beans, ShouldBeEmpty)
+			})
+		})
 	}
 
-	Convey("Given a new transaction", func() {
-		ses, err := db.BeginTransaction()
+	Convey("When calling the 'DeleteAll' method", func() {
+		_, err := db.engine.Insert(&toDelete1, &toDelete2, &toDelete3, &toDelete4)
 		So(err, ShouldBeNil)
 
-		Convey("Given a pending insertion operation", func() {
-			err := ses.Create(&bean)
-			So(err, ShouldBeNil)
+		Convey("As a standalone query", func() {
+			runTests(db)
+		})
 
-			Convey("When calling the 'Commit' method", func() {
-				err := ses.Commit()
+		Convey("Inside a transaction", func() {
+			ses := db.newSession()
+			So(ses.session.Begin(), ShouldBeNil)
+			Reset(ses.session.Close)
 
-				Convey("Then it should NOT return an error", func() {
-					So(err, ShouldBeNil)
+			runTests(ses)
+		})
 
-					Convey("Then the new insertion should have been committed", func() {
-						exists, err := db.engine.Exist(&bean)
-						So(err, ShouldBeNil)
-						So(exists, ShouldBeTrue)
-					})
-				})
+	})
+}
+
+func testTransaction(db *DB) {
+	bean := testValid{
+		ID:     1,
+		String: "test transaction",
+	}
+
+	Convey("Given a valid transaction", func() {
+		trans := func(ses *Session) Error {
+			return ses.Insert(&bean).Run()
+		}
+
+		Convey("When executing the transaction", func() {
+			So(db.Transaction(trans), ShouldBeNil)
+
+			Convey("Then the new insertion should have been committed", func() {
+				exists, err := db.engine.Exist(&bean)
+				So(err, ShouldBeNil)
+				So(exists, ShouldBeTrue)
 			})
+		})
+	})
 
-			Convey("When calling the 'Rollback' method", func() {
-				ses.Rollback()
+	Convey("Given an invalid transaction", func() {
+		trans := func(ses *Session) Error {
+			So(ses.Insert(&bean).Run(), ShouldBeNil)
+			return NewInternalError(fmt.Errorf("transaction failed"))
+		}
 
-				Convey("Then the new insertion should NOT have been committed", func() {
-					exists, err := db.engine.Exist(&bean)
-					So(err, ShouldBeNil)
-					So(exists, ShouldBeFalse)
-				})
+		Convey("When executing the transaction", func() {
+			So(db.Transaction(trans), ShouldBeError)
+
+			Convey("Then the new insertion should NOT have been committed", func() {
+				exists, err := db.engine.Exist(&bean)
+				So(err, ShouldBeNil)
+				So(exists, ShouldBeFalse)
 			})
 		})
 	})
 }
 
 func testDatabase(db *DB) {
-	So(db.engine.CreateTables(&testBean{}, &testValid{}, &testValid2{}), ShouldBeNil)
+	So(db.engine.CreateTables(&testValid{}, &testValid2{}, &testWriteFail{},
+		&testDeleteFail{}), ShouldBeNil)
 	Reset(func() {
-		So(db.engine.DropTables(&testBean{}, &testValid{}, &testValid2{}), ShouldBeNil)
+		So(db.engine.DropTables(&testValid{}, &testValid2{}, &testWriteFail{},
+			&testDeleteFail{}), ShouldBeNil)
 	})
 
+	testIterate(db)
 	testSelect(db)
+	testGet(db)
 	testInsert(db)
 	testUpdate(db)
+	testUpdateAll(db)
 	testDelete(db)
-	testTrans(db)
+	testDeleteAll(db)
+	testTransaction(db)
 }
 
 func TestSqlite(t *testing.T) {

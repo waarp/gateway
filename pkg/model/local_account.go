@@ -4,7 +4,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
-	"github.com/go-xorm/builder"
 )
 
 func init() {
@@ -32,8 +31,8 @@ func (*LocalAccount) TableName() string {
 	return "local_accounts"
 }
 
-// ElemName returns the name of 1 element of the local accounts table.
-func (*LocalAccount) ElemName() string {
+// Appellation returns the name of 1 element of the local accounts table.
+func (*LocalAccount) Appellation() string {
 	return "local account"
 }
 
@@ -43,23 +42,14 @@ func (l *LocalAccount) GetID() uint64 {
 }
 
 // GetCerts fetch in the database then return the associated Certificates if they exist
-func (l *LocalAccount) GetCerts(db database.Accessor) ([]Cert, error) {
-	filters := &database.Filters{
-		Conditions: builder.And(builder.Eq{"owner_type": l.TableName()},
-			builder.Eq{"owner_id": l.ID}),
-	}
-
-	results := []Cert{}
-	if err := db.Select(&results, filters); err != nil {
-		return nil, err
-	}
-	return results, nil
+func (l *LocalAccount) GetCerts(db *database.DB) ([]Cert, database.Error) {
+	return GetCerts(db, l)
 }
 
-// Validate checks if the new `LocalAccount` entry is valid and can be
+// BeforeWrite checks if the new `LocalAccount` entry is valid and can be
 // inserted in the database.
 //nolint:dupl
-func (l *LocalAccount) Validate(db database.Accessor) (err error) {
+func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	if l.LocalAgentID == 0 {
 		return database.NewValidationError("the account's agentID cannot be empty")
 	}
@@ -70,51 +60,59 @@ func (l *LocalAccount) Validate(db database.Accessor) (err error) {
 		return database.NewValidationError("the account's password cannot be empty")
 	}
 
-	parents, err := db.Query("SELECT id,protocol FROM local_agents WHERE id=?", l.LocalAgentID)
-	if err != nil {
-		return database.NewInternalError(err, "failed to retrieve the list of servers")
-	} else if len(parents) == 0 {
-		return database.NewValidationError("no local agent found with the ID '%v'",
-			l.LocalAgentID)
+	parent := &LocalAgent{}
+	if err := db.Get(parent, "id=?", l.LocalAgentID).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return database.NewValidationError("no local agent found with the ID '%v'", l.LocalAgentID)
+		}
+		return err
 	}
 
-	if res, err := db.Query("SELECT id FROM local_accounts WHERE id<>? AND "+
-		"local_agent_id=? AND login=?", l.ID, l.LocalAgentID, l.Login); err != nil {
-		return database.NewInternalError(err, "failed to retrieve the list of existing accounts")
-	} else if len(res) > 0 {
+	n, err := db.Count(l).Where("id<>? AND local_agent_id=? AND login=?",
+		l.ID, l.LocalAgentID, l.Login).Run()
+	if err != nil {
+		return err
+	} else if n > 0 {
 		return database.NewValidationError("a local account with the same login '%s' "+
 			"already exist", l.Login)
 	}
 
-	if parents[0]["protocol"] == "r66" {
+	if parent.Protocol == "r66" {
 		l.Password = r66.CryptPass(l.Password)
 	}
-	l.Password, err = utils.HashPassword(l.Password)
-	return err
+
+	var err1 error
+	l.Password, err1 = utils.HashPassword(l.Password)
+	if err1 != nil {
+		return database.NewInternalError(err)
+	}
+	return nil
 }
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
-func (l *LocalAccount) BeforeDelete(db database.Accessor) error {
-	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND account_id=?",
-		true, l.ID)
+func (l *LocalAccount) BeforeDelete(db database.Access) database.Error {
+	n, err := db.Count(&Transfer{}).Where("is_server=? AND account_id=?",
+		true, l.ID).Run()
 	if err != nil {
-		return database.NewInternalError(err, "failed to retrieve the list of transfers")
+		return err
 	}
-	if len(trans) > 0 {
-		return database.NewValidationError("this account is currently being used in a " +
-			"running transfer and cannot be deleted, cancel the transfer or wait " +
-			"for it to finish")
-	}
-
-	certQuery := "DELETE FROM certificates WHERE owner_type='local_accounts' AND owner_id=?"
-	if err := db.Execute(certQuery, l.ID); err != nil {
-		return database.NewInternalError(err, "failed to delete the account's certificates")
+	if n > 0 {
+		return database.NewValidationError("this account is currently being used in one " +
+			"or more running transfers and thus cannot be deleted, cancel " +
+			"the transfers or wait for them to finish")
 	}
 
-	accessQuery := "DELETE FROM rule_access WHERE object_type='local_accounts' AND object_id=?"
-	if err := db.Execute(accessQuery, l.ID); err != nil {
-		return database.NewInternalError(err, "failed to delete the account's rule permissions")
+	certQuery := db.DeleteAll(&Cert{}).Where("owner_type='local_accounts' AND owner_id=?",
+		l.ID)
+	if err := certQuery.Run(); err != nil {
+		return err
+	}
+
+	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
+		"object_type='local_accounts' AND object_id=?", l.ID)
+	if err := accessQuery.Run(); err != nil {
+		return err
 	}
 
 	return nil

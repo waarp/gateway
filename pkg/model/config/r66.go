@@ -40,7 +40,7 @@ func (c *R66ProtoConfig) ValidPartner() error {
 }
 
 // ValidServer checks if the configuration is valid for a R66 server.
-func (c *R66ProtoConfig) ValidServer() (err error) {
+func (c *R66ProtoConfig) ValidServer() error {
 	if len(c.ServerPassword) == 0 {
 		return fmt.Errorf("missing server password")
 	}
@@ -50,4 +50,11 @@ func (c *R66ProtoConfig) ValidServer() (err error) {
 	}
 	c.ServerPassword = base64.StdEncoding.EncodeToString(pwd)
 	return nil
+}
+
+// CertRequired returns whether, according to the configuration, a certificate
+// is required for the R66 agent. Always returns false since the gateway does
+// not implement R66 at the moment.
+func (c *R66ProtoConfig) CertRequired() bool {
+	return false
 }

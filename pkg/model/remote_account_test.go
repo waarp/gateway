@@ -24,58 +24,60 @@ func TestRemoteAccountTableName(t *testing.T) {
 }
 
 func TestRemoteAccountBeforeDelete(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a remote account entry", func() {
-			ag := &RemoteAgent{
+			ag := RemoteAgent{
 				Name:        "server",
 				Protocol:    "dummy",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
-			So(db.Create(ag), ShouldBeNil)
+			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := &RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: []byte("password")}
-			So(db.Create(acc), ShouldBeNil)
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: []byte("password")}
+			So(db.Insert(&acc).Run(), ShouldBeNil)
 
-			cert := &Cert{
-				OwnerType:   acc.TableName(),
+			cert := Cert{
+				OwnerType:   "remote_accounts",
 				OwnerID:     acc.ID,
 				Name:        "test cert",
 				PrivateKey:  []byte("private key"),
 				PublicKey:   []byte("public key"),
 				Certificate: []byte("certificate"),
 			}
-			So(db.Create(cert), ShouldBeNil)
+			So(db.Insert(&cert).Run(), ShouldBeNil)
 
-			rule := &Rule{Name: "rule", IsSend: true, Path: "path"}
-			So(db.Create(rule), ShouldBeNil)
+			rule := Rule{Name: "rule", IsSend: true, Path: "path"}
+			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			access := &RuleAccess{RuleID: rule.ID, ObjectType: acc.TableName(), ObjectID: acc.ID}
-			So(db.Create(access), ShouldBeNil)
+			access := RuleAccess{RuleID: rule.ID, ObjectType: "remote_accounts", ObjectID: acc.ID}
+			So(db.Insert(&access).Run(), ShouldBeNil)
 
 			Convey("Given that the account is unused", func() {
 
 				Convey("When calling the `BeforeDelete` hook", func() {
-					So(acc.BeforeDelete(db), ShouldBeNil)
+					So(db.Transaction(func(ses *database.Session) database.Error {
+						return acc.BeforeDelete(ses)
+					}), ShouldBeNil)
 
 					Convey("Then the account's certificates should have been deleted", func() {
-						certs, err := db.Query("SELECT * FROM certificates")
-						So(err, ShouldBeNil)
+						var certs Certificates
+						So(db.Select(&certs).Run(), ShouldBeNil)
 						So(certs, ShouldBeEmpty)
 					})
 
 					Convey("Then the account's accesses should have been deleted", func() {
-						access, err := db.Query("SELECT * FROM rule_access")
-						So(err, ShouldBeNil)
-						So(access, ShouldBeEmpty)
+						var perms RuleAccesses
+						So(db.Select(&perms).Run(), ShouldBeNil)
+						So(perms, ShouldBeEmpty)
 					})
 				})
 			})
 
 			Convey("Given that the account is used in a transfer", func() {
-				trans := &Transfer{
+				trans := Transfer{
 					RuleID:     rule.ID,
 					IsServer:   false,
 					AgentID:    ag.ID,
@@ -83,10 +85,12 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 					SourceFile: "file.src",
 					DestFile:   "file.dst",
 				}
-				So(db.Create(trans), ShouldBeNil)
+				So(db.Insert(&trans).Run(), ShouldBeNil)
 
 				Convey("When calling the `BeforeDelete` hook", func() {
-					err := acc.BeforeDelete(db)
+					err := db.Transaction(func(ses *database.Session) database.Error {
+						return acc.BeforeDelete(ses)
+					})
 
 					Convey("Then it should say that the account is being used", func() {
 						So(err, ShouldBeError, database.NewValidationError(
@@ -100,37 +104,50 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 	})
 }
 
-func TestRemoteAccountValidate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+func TestRemoteAccountBeforeWrite(t *testing.T) {
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given the database contains 1 remote agent with 1 remote account", func() {
-			parentAgent := &RemoteAgent{
+			parentAgent := RemoteAgent{
 				Name:        "parent_agent",
 				Protocol:    "sftp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Create(parentAgent), ShouldBeNil)
+			So(db.Insert(&parentAgent).Run(), ShouldBeNil)
 
-			oldAccount := &RemoteAccount{
+			oldAccount := RemoteAccount{
 				RemoteAgentID: parentAgent.ID,
 				Login:         "old",
 				Password:      []byte("password"),
 			}
-			So(db.Create(oldAccount), ShouldBeNil)
+			So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
 			Convey("Given a new remote account", func() {
-				newAccount := &RemoteAccount{
+				newAccount := RemoteAccount{
 					RemoteAgentID: parentAgent.ID,
 					Login:         "new",
 					Password:      []byte("password"),
 				}
 
-				Convey("Given that the new account is valid", func() {
+				shouldFailWith := func(errDesc string, expErr error) {
+					Convey("When calling the 'BeforeWrite' function", func() {
+						err := db.Transaction(func(ses *database.Session) database.Error {
+							return newAccount.BeforeWrite(ses)
+						})
 
-					Convey("When calling the 'Validate' function", func() {
-						So(newAccount.Validate(db), ShouldBeNil)
+						Convey("Then the error should say that "+errDesc, func() {
+							So(err, ShouldBeError, expErr)
+						})
+					})
+				}
+
+				Convey("Given that the new account is valid", func() {
+					Convey("When calling the 'BeforeWrite' function", func() {
+						So(db.Transaction(func(ses *database.Session) database.Error {
+							return newAccount.BeforeWrite(ses)
+						}), ShouldBeNil)
 
 						Convey("Then the account's password should be encrypted", func() {
 							cipher, err := utils.CryptPassword(newAccount.Password)
@@ -142,80 +159,51 @@ func TestRemoteAccountValidate(t *testing.T) {
 
 				Convey("Given that the new account is missing an agent ID", func() {
 					newAccount.RemoteAgentID = 0
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAccount.Validate(db)
-
-						Convey("Then the error should say that the agent ID is missing", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the account's agentID cannot be empty"))
-						})
-					})
+					shouldFailWith("the agent ID is missing", database.NewValidationError(
+						"the account's agentID cannot be empty"))
 				})
 
 				Convey("Given that the new account is missing a login", func() {
 					newAccount.Login = ""
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAccount.Validate(db)
-
-						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError)
-						})
-
-						Convey("Then the error should say that the login is missing", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the account's login cannot be empty"))
-						})
-					})
+					shouldFailWith("the login is missing", database.NewValidationError(
+						"the account's login cannot be empty"))
 				})
 
 				Convey("Given that the new account has an invalid agent ID", func() {
 					newAccount.RemoteAgentID = 1000
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAccount.Validate(db)
-
-						Convey("Then the error should say that the agent ID is invalid", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"no remote agent found with the ID '%d'",
-								newAccount.RemoteAgentID))
-						})
-					})
+					shouldFailWith("the agent ID is invalid", database.NewValidationError(
+						"no remote agent found with the ID '%d'", newAccount.RemoteAgentID))
 				})
 
 				Convey("Given that the new account's login is already taken", func() {
 					newAccount.Login = oldAccount.Login
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAccount.Validate(db)
-
-						Convey("Then the error should say that the login is already taken", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"a remote account with the same login '%s' already exist",
-								newAccount.Login))
-						})
-					})
+					shouldFailWith("the login is already taken", database.NewValidationError(
+						"a remote account with the same login '%s' already exist",
+						newAccount.Login))
 				})
 
 				Convey("Given that the new account's name is already taken but the"+
 					"parent agent is different", func() {
-					otherAgent := &RemoteAgent{
+					otherAgent := RemoteAgent{
 						Name:        "other",
 						Protocol:    "sftp",
 						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}
-					So(db.Create(otherAgent), ShouldBeNil)
+					So(db.Insert(&otherAgent).Run(), ShouldBeNil)
 
 					newAccount.RemoteAgentID = otherAgent.ID
 					newAccount.Login = oldAccount.Login
 
-					Convey("When calling the 'Validate' function", func() {
-						err := newAccount.Validate(db)
+					Convey("When calling the 'BeforeWrite' function", func() {
+						So(db.Transaction(func(ses *database.Session) database.Error {
+							return newAccount.BeforeWrite(ses)
+						}), ShouldBeNil)
 
-						Convey("Then it should NOT return an error", func() {
+						Convey("Then the account's password should be encrypted", func() {
+							cipher, err := utils.CryptPassword(newAccount.Password)
 							So(err, ShouldBeNil)
+							So(string(newAccount.Password), ShouldEqual, string(cipher))
 						})
 					})
 				})

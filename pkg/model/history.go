@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -40,8 +39,8 @@ func (*TransferHistory) TableName() string {
 	return "transfer_history"
 }
 
-// ElemName returns the name of 1 element of the transfer history table.
-func (*TransferHistory) ElemName() string {
+// Appellation returns the name of 1 element of the transfer history table.
+func (*TransferHistory) Appellation() string {
 	return "history entry"
 }
 
@@ -50,9 +49,9 @@ func (h *TransferHistory) GetID() uint64 {
 	return h.ID
 }
 
-// Validate checks if the new `TransferHistory` entry is valid and can be
+// BeforeWrite checks if the new `TransferHistory` entry is valid and can be
 // inserted in the database.
-func (h *TransferHistory) Validate(database.Accessor) error {
+func (h *TransferHistory) BeforeWrite(database.ReadAccess) database.Error {
 	h.Owner = database.Owner
 
 	if h.Owner == "" {
@@ -109,31 +108,33 @@ func (h *TransferHistory) Validate(database.Accessor) error {
 
 // Restart takes a History entry and converts it to a Transfer entry ready
 // to be executed.
-func (h *TransferHistory) Restart(acc database.Accessor, date time.Time) (*Transfer, error) {
-	rule := &Rule{Name: h.Rule, IsSend: h.IsSend}
-	if err := acc.Get(rule); err != nil {
-		return nil, fmt.Errorf("failed to retrieve rule: %s", err)
+func (h *TransferHistory) Restart(db database.Access, date time.Time) (*Transfer, database.Error) {
+	rule := &Rule{}
+	if err := db.Get(rule, "name=? AND send=?", h.Rule, h.IsSend).Run(); err != nil {
+		return nil, err
 	}
 	var agentID, accountID uint64
 	if h.IsServer {
-		agent := &LocalAgent{Owner: h.Owner, Name: h.Agent}
-		if err := acc.Get(agent); err != nil {
-			return nil, fmt.Errorf("failed to retrieve local agent: %s", err)
+		agent := &LocalAgent{}
+		if err := db.Get(agent, "owner=? AND name=?", h.Owner, h.Agent).Run(); err != nil {
+			return nil, err
 		}
-		account := &LocalAccount{LocalAgentID: agentID, Login: h.Account}
-		if err := acc.Get(account); err != nil {
-			return nil, fmt.Errorf("failed to retrieve local account: %s", err)
+		account := &LocalAccount{}
+		if err := db.Get(account, "local_agent_id=? AND login=?", agent.ID, h.Account).
+			Run(); err != nil {
+			return nil, err
 		}
 		agentID = agent.ID
 		accountID = account.ID
 	} else {
-		agent := &RemoteAgent{Name: h.Agent}
-		if err := acc.Get(agent); err != nil {
-			return nil, fmt.Errorf("failed to retrieve remote agent: %s", err)
+		agent := &RemoteAgent{}
+		if err := db.Get(agent, "name=?", h.Agent).Run(); err != nil {
+			return nil, err
 		}
-		account := &RemoteAccount{RemoteAgentID: agentID, Login: h.Account}
-		if err := acc.Get(account); err != nil {
-			return nil, fmt.Errorf("failed to retrieve remote account: %s", err)
+		account := &RemoteAccount{}
+		if err := db.Get(account, "remote_agent_id=? AND login=?", agent.ID, h.Account).
+			Run(); err != nil {
+			return nil, err
 		}
 		agentID = agent.ID
 		accountID = account.ID

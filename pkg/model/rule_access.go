@@ -20,47 +20,49 @@ func (*RuleAccess) TableName() string {
 	return "rule_access"
 }
 
-// ElemName returns the name of 1 element of the rule access table.
-func (*RuleAccess) ElemName() string {
+// Appellation returns the name of 1 element of the rule access table.
+func (*RuleAccess) Appellation() string {
 	return "rule permission"
 }
 
-// Validate is called before inserting a new `RuleAccess` entry in the
+// BeforeWrite is called before inserting a new `RuleAccess` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RuleAccess) Validate(db database.Accessor) error {
-	if res, err := db.Query("SELECT id FROM rules WHERE id=?", r.RuleID); err != nil {
-		return database.NewInternalError(err, "failed to retrieve the list of rules")
-	} else if len(res) < 1 {
+func (r *RuleAccess) BeforeWrite(db database.ReadAccess) database.Error {
+	i, err1 := db.Count(&Rule{}).Where("id=?", r.RuleID).Run()
+	if err1 != nil {
+		return err1
+	} else if i < 1 {
 		return database.NewValidationError("no rule found with ID %d", r.RuleID)
 	}
 
-	var res []map[string]interface{}
-	var err error
+	var n uint64
+	var err database.Error
 	switch r.ObjectType {
 	case "local_agents":
-		res, err = db.Query("SELECT id FROM local_agents WHERE id=?", r.ObjectID)
+		n, err = db.Count(&LocalAgent{}).Where("id=?", r.ObjectID).Run()
 	case "remote_agents":
-		res, err = db.Query("SELECT id FROM remote_agents WHERE id=?", r.ObjectID)
+		n, err = db.Count(&RemoteAgent{}).Where("id=?", r.ObjectID).Run()
 	case "local_accounts":
-		res, err = db.Query("SELECT id FROM local_accounts WHERE id=?", r.ObjectID)
+		n, err = db.Count(&LocalAccount{}).Where("id=?", r.ObjectID).Run()
 	case "remote_accounts":
-		res, err = db.Query("SELECT id FROM remote_accounts WHERE id=?", r.ObjectID)
+		n, err = db.Count(&RemoteAccount{}).Where("id=?", r.ObjectID).Run()
 	default:
 		return database.NewValidationError("the rule_access's object type must be one of %s",
 			validOwnerTypes)
 	}
 	if err != nil {
-		return database.NewInternalError(err, "failed to retrieve the list of %s",
-			r.ObjectType)
-	} else if len(res) == 0 {
+		return err
+	} else if n == 0 {
 		return database.NewValidationError("no %s found with ID %v", r.ObjectType, r.ObjectID)
 	}
 
-	if err := db.Get(r); err == nil {
+	n, err = db.Count(r).Where("rule_id=? AND object_type=? AND object_id=?",
+		r.RuleID, r.ObjectType, r.ObjectID).Run()
+	if err != nil {
+		return err
+	} else if n > 0 {
 		return database.NewValidationError("the agent has already been granted access " +
 			"to this rule")
-	} else if _, ok := err.(*database.NotFoundError); !ok {
-		return database.NewInternalError(err, "failed to check the existing rule permissions")
 	}
 
 	return nil
@@ -68,11 +70,11 @@ func (r *RuleAccess) Validate(db database.Accessor) error {
 
 // IsRuleAuthorized verify if the rule requested by the transfer is authorized for
 // the requesting transfer
-func IsRuleAuthorized(db database.Accessor, t *Transfer) (bool, error) {
-	res, err := db.Query("SELECT rule_id FROM rule_access WHERE rule_id=?", t.RuleID)
+func IsRuleAuthorized(db database.ReadAccess, t *Transfer) (bool, database.Error) {
+	n, err := db.Count(&RuleAccess{}).Where("rule_id=?", t.RuleID).Run()
 	if err != nil {
 		return false, err
-	} else if len(res) == 0 {
+	} else if n == 0 {
 		return true, nil
 	}
 
@@ -82,12 +84,12 @@ func IsRuleAuthorized(db database.Accessor, t *Transfer) (bool, error) {
 		agent = "local_agents"
 		account = "local_accounts"
 	}
-	res, err = db.Query("SELECT rule_id FROM rule_access WHERE rule_id=? AND "+
+	n, err = db.Count(&RuleAccess{}).Where("rule_id=? AND "+
 		"((object_type=? AND object_id=?) OR (object_type=? and object_id=?))",
-		t.RuleID, agent, t.AgentID, account, t.AccountID)
+		t.RuleID, agent, t.AgentID, account, t.AccountID).Run()
 	if err != nil {
 		return false, err
-	} else if len(res) < 1 {
+	} else if n < 1 {
 		return false, nil
 	}
 	return true, nil

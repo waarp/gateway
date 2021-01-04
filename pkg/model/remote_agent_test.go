@@ -23,73 +23,75 @@ func TestRemoteAgentTableName(t *testing.T) {
 }
 
 func TestRemoteAgentBeforeDelete(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a remote agent entry", func() {
-			ag := &RemoteAgent{
+			ag := RemoteAgent{
 				Name:        "partner",
 				Protocol:    "dummy",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
-			So(db.Create(ag), ShouldBeNil)
+			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := &RemoteAccount{RemoteAgentID: ag.ID, Login: "login",
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "login",
 				Password: json.RawMessage("password")}
-			So(db.Create(acc), ShouldBeNil)
+			So(db.Insert(&acc).Run(), ShouldBeNil)
 
-			rule := &Rule{Name: "rule", IsSend: false, Path: "path"}
-			So(db.Create(rule), ShouldBeNil)
+			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
+			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			agAccess := &RuleAccess{RuleID: rule.ID, ObjectID: ag.ID,
-				ObjectType: ag.TableName()}
-			So(db.Create(agAccess), ShouldBeNil)
-			accAccess := &RuleAccess{RuleID: rule.ID, ObjectID: acc.ID,
-				ObjectType: acc.TableName()}
-			So(db.Create(accAccess), ShouldBeNil)
+			agAccess := RuleAccess{RuleID: rule.ID, ObjectID: ag.ID,
+				ObjectType: "remote_agents"}
+			So(db.Insert(&agAccess).Run(), ShouldBeNil)
+			accAccess := RuleAccess{RuleID: rule.ID, ObjectID: acc.ID,
+				ObjectType: "remote_accounts"}
+			So(db.Insert(&accAccess).Run(), ShouldBeNil)
 
-			certAg := &Cert{
-				OwnerType:   ag.TableName(),
+			certAg := Cert{
+				OwnerType:   "remote_agents",
 				OwnerID:     ag.ID,
 				Name:        "test agent cert",
 				PrivateKey:  json.RawMessage("private key"),
 				PublicKey:   json.RawMessage("public key"),
 				Certificate: json.RawMessage("certificate"),
 			}
-			So(db.Create(certAg), ShouldBeNil)
+			So(db.Insert(&certAg).Run(), ShouldBeNil)
 
-			certAcc := &Cert{
-				OwnerType:   acc.TableName(),
+			certAcc := Cert{
+				OwnerType:   "remote_accounts",
 				OwnerID:     acc.ID,
 				Name:        "test account cert",
 				PrivateKey:  json.RawMessage("private key"),
 				PublicKey:   json.RawMessage("public key"),
 				Certificate: json.RawMessage("certificate"),
 			}
-			So(db.Create(certAcc), ShouldBeNil)
+			So(db.Insert(&certAcc).Run(), ShouldBeNil)
 
 			Convey("Given that the agent is unused", func() {
 
 				Convey("When calling the `BeforeDelete` hook", func() {
-					So(ag.BeforeDelete(db), ShouldBeNil)
+					So(db.Transaction(func(ses *database.Session) database.Error {
+						return ag.BeforeDelete(ses)
+					}), ShouldBeNil)
 
 					Convey("Then the agent's accounts should have been deleted", func() {
-						accounts, err := db.Query("SELECT * FROM remote_accounts")
-						So(err, ShouldBeNil)
+						var accounts RemoteAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldBeEmpty)
 					})
 
 					Convey("Then both certificates should have been deleted", func() {
-						certs, err := db.Query("SELECT * FROM certificates")
-						So(err, ShouldBeNil)
+						var certs Certificates
+						So(db.Select(&certs).Run(), ShouldBeNil)
 						So(certs, ShouldBeEmpty)
 					})
 
 					Convey("Then the rule accesses should have been deleted", func() {
-						access, err := db.Query("SELECT * FROM rule_access")
-						So(err, ShouldBeNil)
-						So(access, ShouldBeEmpty)
+						var perms RuleAccesses
+						So(db.Select(&perms).Run(), ShouldBeNil)
+						So(perms, ShouldBeEmpty)
 					})
 				})
 			})
@@ -103,16 +105,18 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 					SourceFile: "file.src",
 					DestFile:   "file.dst",
 				}
-				So(db.Create(trans), ShouldBeNil)
+				So(db.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("When calling the `BeforeDelete` hook", func() {
-					err := ag.BeforeDelete(db)
+					err := db.Transaction(func(ses *database.Session) database.Error {
+						return ag.BeforeDelete(ses)
+					})
 
 					Convey("Then it should say that the agent is being used", func() {
 						So(err, ShouldBeError, database.NewValidationError(
-							"this partner is currently being used in a running "+
-								"transfer and cannot be deleted, cancel "+
-								"the transfer or wait for it to finish"))
+							"this partner is currently being used in one or more "+
+								"running transfers and thus cannot be deleted, "+
+								"cancel these transfers or wait for them to finish"))
 					})
 				})
 			})
@@ -121,17 +125,17 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 }
 
 func TestRemoteAgentValidate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given the database contains 1 remote agent", func() {
-			oldAgent := &RemoteAgent{
+			oldAgent := RemoteAgent{
 				Name:        "old",
 				Protocol:    "sftp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Create(oldAgent), ShouldBeNil)
+			So(db.Insert(&oldAgent).Run(), ShouldBeNil)
 
 			Convey("Given a new remote agent", func() {
 				newAgent := &RemoteAgent{
@@ -141,10 +145,23 @@ func TestRemoteAgentValidate(t *testing.T) {
 					Address:     "localhost:2023",
 				}
 
-				Convey("Given that the new agent is valid", func() {
+				shouldFailWith := func(errDesc string, expErr error) {
+					Convey("When calling the 'BeforeWrite' function", func() {
+						err := db.Transaction(func(ses *database.Session) database.Error {
+							return newAgent.BeforeWrite(ses)
+						})
 
-					Convey("When calling the 'Validate' function", func() {
-						err := newAgent.Validate(db)
+						Convey("Then the error should say that "+errDesc, func() {
+							So(err, ShouldBeError, expErr)
+						})
+					})
+				}
+
+				Convey("Given that the new agent is valid", func() {
+					Convey("When calling the 'BeforeWrite' function", func() {
+						err := db.Transaction(func(ses *database.Session) database.Error {
+							return newAgent.BeforeWrite(ses)
+						})
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
@@ -154,81 +171,39 @@ func TestRemoteAgentValidate(t *testing.T) {
 
 				Convey("Given that the new agent is missing a name", func() {
 					newAgent.Name = ""
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAgent.Validate(db)
-
-						Convey("Then the error should say that the name is missing", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the agent's name cannot be empty"))
-						})
-					})
+					shouldFailWith("the name is missing", database.NewValidationError(
+						"the agent's name cannot be empty"))
 				})
 
 				Convey("Given that the new agent's name is already taken", func() {
 					newAgent.Name = oldAgent.Name
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAgent.Validate(db)
-
-						Convey("Then the error should say that the name is already taken", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"a remote agent with the same name '%s' already exist",
-								newAgent.Name))
-						})
-					})
+					shouldFailWith("the name is already taken", database.NewValidationError(
+						"a remote agent with the same name '%s' already exist", newAgent.Name))
 				})
 
 				Convey("Given that the new agent is missing an address", func() {
 					newAgent.Address = ""
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAgent.Validate(db)
-
-						Convey("Then the error should say that the address is missing", func() {
-							So(err, ShouldBeError, "the partner's address cannot be empty")
-						})
-					})
+					shouldFailWith("the address is missing", database.NewValidationError(
+						"the partner's address cannot be empty"))
 				})
 
 				Convey("Given that the new agent's address is invalid", func() {
 					newAgent.Address = "not_an_address"
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAgent.Validate(db)
-
-						Convey("Then the error should say that the address is invalid", func() {
-							So(err, ShouldBeError, "'not_an_address' is not a valid partner address")
-						})
-					})
+					shouldFailWith("the address is invalid", database.NewValidationError(
+						"'not_an_address' is not a valid partner address"))
 				})
 
 				Convey("Given that the new agent's protocol is not valid", func() {
 					newAgent.Protocol = "not a protocol"
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAgent.Validate(db)
-
-						Convey("Then the error should say that the protocol is invalid", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"unknown protocol '%s'", newAgent.Protocol))
-						})
-					})
+					shouldFailWith("the protocol is invalid", database.NewValidationError(
+						"unknown protocol '%s'", newAgent.Protocol))
 				})
 
 				Convey("Given that the new agent's protocol configuration is not valid", func() {
 					newAgent.ProtoConfig = json.RawMessage("invalid")
-
-					Convey("When calling the 'Validate' function", func() {
-						err := newAgent.Validate(db)
-
-						Convey("Then the error should say that the configuration"+
-							" is invalid", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"failed to parse protocol configuration: invalid "+
-									"character 'i' looking for beginning of value"))
-						})
-					})
+					shouldFailWith("the configuration is invalid", database.NewValidationError(
+						"failed to parse protocol configuration: invalid "+
+							"character 'i' looking for beginning of value"))
 				})
 			})
 		})

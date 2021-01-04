@@ -4,6 +4,9 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"fmt"
+	"io/ioutil"
+	"os"
 
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -17,12 +20,8 @@ const (
 	testDriver = "sqlite3"
 )
 
-func testinfo(conf.DatabaseConfig) (string, string) {
-	return testDriver, testDSN()
-}
-
-func testDSN() string {
-	return "file::memory:?cache=shared&mode=rwc"
+func testinfo(c conf.DatabaseConfig) (string, string) {
+	return testDriver, fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc", c.Name)
 }
 
 func testGCM() {
@@ -40,19 +39,29 @@ func testGCM() {
 	convey.So(err, convey.ShouldBeNil)
 }
 
-// GetTestDatabase returns a testing Sqlite database stored in memory. If the
-// database cannot be started, the function will panic.
-func GetTestDatabase() *DB {
+// TestDatabase returns a testing Sqlite database stored in memory for testing
+// purposes. The function must be called within a convey context.
+// The database will log messages at the level given.
+func TestDatabase(c convey.C, logLevel string) *DB {
 	supportedRBMS[test] = testinfo
 	BcryptRounds = bcrypt.MinCost
 
 	config := &conf.ServerConfig{}
 	config.GatewayName = "test_gateway"
+	f, err := ioutil.TempFile(os.TempDir(), "test_database_*.db")
+	c.So(err, convey.ShouldBeNil)
+	c.So(f.Close(), convey.ShouldBeNil)
+	c.So(os.Remove(f.Name()), convey.ShouldBeNil)
+
+	config.Database.Name = f.Name()
 	config.Database.Type = test
 
-	logger := &logging.Logger{}
+	level, err := logging.LevelByName(logLevel)
+	c.So(err, convey.ShouldBeNil)
+
+	logger := logging.NewLogger("Test Database")
 	logger.SetBackend(logging.NewStdoutBackend())
-	logger.SetLevel(logging.WARNING)
+	logger.SetLevel(level)
 
 	testGCM()
 	db := &DB{
@@ -60,8 +69,12 @@ func GetTestDatabase() *DB {
 		logger: &log.Logger{Logger: logger},
 	}
 
-	convey.So(db.Start(), convey.ShouldBeNil)
-	convey.Reset(func() { _ = db.engine.Close() })
+	c.So(db.Start(), convey.ShouldBeNil)
+	c.Reset(func() {
+		_ = db.engine.Close()
+		_ = os.Remove(f.Name())
+	})
+	db.engine.SetMaxOpenConns(1)
 
 	return db
 }

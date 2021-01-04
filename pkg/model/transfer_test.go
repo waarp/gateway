@@ -25,27 +25,27 @@ func TestTransferTableName(t *testing.T) {
 	})
 }
 
-func TestTransferValidate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+func TestTransferBeforeWrite(t *testing.T) {
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given the database contains a valid remote agent", func() {
-			remote := &RemoteAgent{
+			remote := RemoteAgent{
 				Name:        "remote",
 				Protocol:    "sftp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Create(remote), ShouldBeNil)
+			So(db.Insert(&remote).Run(), ShouldBeNil)
 
-			account := &RemoteAccount{
+			account := RemoteAccount{
 				RemoteAgentID: remote.ID,
 				Login:         "toto",
 				Password:      []byte("password"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(&account).Run(), ShouldBeNil)
 
-			cert := &Cert{
+			cert := Cert{
 				OwnerType:   remote.TableName(),
 				OwnerID:     remote.ID,
 				Name:        "remote_cert",
@@ -53,17 +53,17 @@ func TestTransferValidate(t *testing.T) {
 				PublicKey:   []byte("public_key"),
 				Certificate: []byte("certificate"),
 			}
-			So(db.Create(cert), ShouldBeNil)
+			So(db.Insert(&cert).Run(), ShouldBeNil)
 
-			rule := &Rule{
+			rule := Rule{
 				Name:   "rule1",
 				IsSend: true,
 				Path:   "path",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(&rule).Run(), ShouldBeNil)
 
 			Convey("Given a new transfer", func() {
-				trans := &Transfer{
+				trans := Transfer{
 					RuleID:       rule.ID,
 					IsServer:     false,
 					AgentID:      remote.ID,
@@ -76,10 +76,20 @@ func TestTransferValidate(t *testing.T) {
 					Owner:        database.Owner,
 				}
 
+				shouldFailWith := func(errDesc string, expErr error) {
+					Convey("When calling the 'BeforeWrite' function", func() {
+						err := trans.BeforeWrite(db)
+
+						Convey("Then the error should say that "+errDesc, func() {
+							So(err, ShouldBeError, expErr)
+						})
+					})
+				}
+
 				Convey("Given that the new transfer is valid", func() {
 
-					Convey("When calling the 'Validate' function", func() {
-						So(trans.Validate(db), ShouldBeNil)
+					Convey("When calling the 'BeforeWrite' function", func() {
+						So(trans.BeforeWrite(db), ShouldBeNil)
 
 						Convey("Then the transfer status should be 'planned'", func() {
 							So(trans.Status, ShouldEqual, "PLANNED")
@@ -93,150 +103,82 @@ func TestTransferValidate(t *testing.T) {
 
 				Convey("Given that the rule ID is missing", func() {
 					trans.RuleID = 0
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say the rule ID is missing", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the transfer's rule ID cannot be empty"))
-						})
-					})
+					shouldFailWith("the rule ID is missing", database.NewValidationError(
+						"the transfer's rule ID cannot be empty"))
 				})
 
 				Convey("Given that the remote ID is missing", func() {
 					trans.AgentID = 0
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say the remote ID is missing", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the transfer's remote ID cannot be empty"))
-						})
-					})
+					shouldFailWith("the remote ID is missing", database.NewValidationError(
+						"the transfer's remote ID cannot be empty"))
 				})
 
 				Convey("Given that the account ID is missing", func() {
 					trans.AccountID = 0
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say the account ID is missing", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the transfer's account ID cannot be empty"))
-						})
-					})
+					shouldFailWith("the account ID is missing", database.NewValidationError(
+						"the transfer's account ID cannot be empty"))
 				})
 
 				Convey("Given that the source is missing", func() {
 					trans.SourceFile = ""
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say the source is missing", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the transfer's source cannot be empty"))
-						})
-					})
+					shouldFailWith("the source is missing", database.NewValidationError(
+						"the transfer's source cannot be empty"))
 				})
 
 				Convey("Given that the destination is missing", func() {
 					trans.DestFile = ""
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say the destination is missing", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the transfer's destination cannot be empty"))
-						})
-					})
+					shouldFailWith("the destination is missing", database.NewValidationError(
+						"the transfer's destination cannot be empty"))
 				})
 
 				Convey("Given that the rule id is invalid", func() {
 					trans.RuleID = 1000
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say the rule does not exist", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the rule %d does not exist", trans.RuleID))
-						})
-					})
+					shouldFailWith("the rule does not exist", database.NewValidationError(
+						"the rule %d does not exist", trans.RuleID))
 				})
 
 				Convey("Given that the remote id is invalid", func() {
 					trans.AgentID = 1000
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say the partner does not exist", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the partner %d does not exist", trans.AgentID))
-						})
-					})
+					shouldFailWith("the partner does not exist", database.NewValidationError(
+						"the partner %d does not exist", trans.AgentID))
 				})
 
 				Convey("Given that the account id is invalid", func() {
 					trans.AccountID = 1000
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say the account does not exist", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the agent %d does not have an account %d",
-								trans.AgentID, trans.AccountID))
-						})
-					})
+					shouldFailWith("the account does not exist", database.NewValidationError(
+						"the agent %d does not have an account %d", trans.AgentID,
+						trans.AccountID))
 				})
 
 				Convey("Given that the account id does not belong to the agent", func() {
-					remote2 := &RemoteAgent{
+					remote2 := RemoteAgent{
 						Name:        "remote2",
 						Protocol:    "sftp",
 						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}
-					So(db.Create(remote2), ShouldBeNil)
+					So(db.Insert(&remote2).Run(), ShouldBeNil)
 
-					account2 := &RemoteAccount{
+					account2 := RemoteAccount{
 						RemoteAgentID: remote2.ID,
 						Login:         "titi",
 						Password:      []byte("password"),
 					}
-					So(db.Create(account2), ShouldBeNil)
+					So(db.Insert(&account2).Run(), ShouldBeNil)
 
 					trans.AgentID = remote.ID
 					trans.AccountID = account2.ID
 
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say the account does not exist", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the agent %d does not have an account %d",
-								trans.AgentID, trans.AccountID))
-						})
-					})
+					shouldFailWith("the account does not exist", database.NewValidationError(
+						"the agent %d does not have an account %d", trans.AgentID,
+						trans.AccountID))
 				})
 
 				Convey("Given that the remote does not have a certificate", func() {
-					So(db.Delete(cert), ShouldBeNil)
-
-					Convey("When calling the 'Validate' function", func() {
-						err := trans.Validate(db)
-
-						Convey("Then the error should say the remote does not have a certificate", func() {
-							So(err, ShouldBeError, database.NewValidationError(
-								"the partner is missing an SFTP host key"))
-						})
-					})
+					So(db.Delete(&cert).Run(), ShouldBeNil)
+					shouldFailWith("the remote does not have a certificate",
+						database.NewValidationError("the sftp partner is missing "+
+							"a certificate when it was required"))
 				})
 
 				statusTestCases := []statusTestCase{
@@ -248,7 +190,7 @@ func TestTransferValidate(t *testing.T) {
 					{"toto", false},
 				}
 				for _, tc := range statusTestCases {
-					testTransferStatus(tc, "Validate", trans, db)
+					testTransferStatus(tc, &trans, db)
 				}
 			})
 		})
@@ -256,33 +198,33 @@ func TestTransferValidate(t *testing.T) {
 }
 
 func TestTransferToHistory(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
-		remote := &RemoteAgent{
+		remote := RemoteAgent{
 			Name:        "remote",
-			Protocol:    "sftp",
+			Protocol:    "dummy",
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:2022",
 		}
-		So(db.Create(remote), ShouldBeNil)
+		So(db.Insert(&remote).Run(), ShouldBeNil)
 
-		account := &RemoteAccount{
+		account := RemoteAccount{
 			RemoteAgentID: remote.ID,
 			Login:         "toto",
 			Password:      []byte("password"),
 		}
-		So(db.Create(account), ShouldBeNil)
+		So(db.Insert(&account).Run(), ShouldBeNil)
 
-		rule := &Rule{
+		rule := Rule{
 			Name:   "rule1",
 			IsSend: true,
 			Path:   "path",
 		}
-		So(db.Create(rule), ShouldBeNil)
+		So(db.Insert(&rule).Run(), ShouldBeNil)
 
 		Convey("Given a transfer entry", func() {
-			trans := &Transfer{
+			trans := Transfer{
 				ID:         1,
 				RuleID:     rule.ID,
 				IsServer:   false,
@@ -297,11 +239,12 @@ func TestTransferToHistory(t *testing.T) {
 
 			Convey("When calling the `ToHistory` method", func() {
 				stop := time.Now()
-				hist, err := trans.ToHistory(db, stop)
-
-				Convey("Then it should not return an error", func() {
-					So(err, ShouldBeNil)
-				})
+				var hist *TransferHistory
+				So(db.Transaction(func(ses *database.Session) database.Error {
+					var err database.Error
+					hist, err = trans.ToHistory(ses, stop)
+					return err
+				}), ShouldBeNil)
 
 				Convey("Then it should return an equivalent `TransferHistory` entry", func() {
 					expected := &TransferHistory{
@@ -341,7 +284,12 @@ func TestTransferToHistory(t *testing.T) {
 						trans.Status = tc.status
 
 						Convey("When calling the `ToHistory` method", func() {
-							h, err := trans.ToHistory(db, stop)
+							var h *TransferHistory
+							err := db.Transaction(func(ses *database.Session) database.Error {
+								var err database.Error
+								h, err = trans.ToHistory(ses, stop)
+								return err
+							})
 
 							if tc.expectedSuccess {
 								Convey("Then it should not return any error", func() {
@@ -358,7 +306,7 @@ func TestTransferToHistory(t *testing.T) {
 									)
 									So(err, ShouldBeError, expectedError)
 								})
-								Convey("Then it should Nnot return a History object", func() {
+								Convey("Then it should not return a History object", func() {
 									So(h, ShouldBeNil)
 								})
 							}

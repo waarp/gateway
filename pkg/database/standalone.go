@@ -6,20 +6,55 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-// Session is a struct used to perform transactions on the database. A session
-// can be performed using the Standalone.Transaction method.
-type Session struct {
-	session *xorm.Session
-	logger  *log.Logger
-	state   *service.State
+// Standalone is a struct used to execute standalone commands on the database.
+type Standalone struct {
+	engine *xorm.Engine
+	logger *log.Logger
+	state  *service.State
 }
 
-func (s *Session) getUnderlying() xorm.Interface {
-	return s.session
+func (s *Standalone) newSession() *Session {
+	return &Session{
+		session: s.engine.NewSession(),
+		logger:  s.logger,
+		state:   s.state,
+	}
+}
+
+// Transaction executes all the commands in the given function as a transaction.
+// The transaction will be then be roll-backed or committed, depending whether
+// the function returned an error or not.
+func (s *Standalone) Transaction(f func(*Session) Error) Error {
+	//s.mutex.Lock()
+	//defer s.mutex.Unlock()
+	ses := s.newSession()
+
+	if err := ses.session.Begin(); err != nil {
+		s.logger.Errorf("Failed to start transaction: %s", err)
+		return NewInternalError(err)
+	}
+	defer ses.session.Close()
+
+	s.logger.Debug("Beginning transaction")
+	if err := f(ses); err != nil {
+		s.logger.Error("Transaction failed, changes have been rolled back")
+		_ = ses.session.Rollback()
+		return err
+	}
+	if err := ses.session.Commit(); err != nil {
+		s.logger.Errorf("Failed to commit changes: %s", err)
+		return NewInternalError(err)
+	}
+	s.logger.Debug("Transaction succeeded, changes have been committed")
+	return nil
+}
+
+func (s *Standalone) getUnderlying() xorm.Interface {
+	return s.engine
 }
 
 // GetLogger returns the database logger instance.
-func (s *Session) GetLogger() *log.Logger {
+func (s *Standalone) GetLogger() *log.Logger {
 	return s.logger
 }
 
@@ -29,7 +64,7 @@ func (s *Session) GetLogger() *log.Logger {
 //
 // The request can then be executed using the IterateQuery.Run method. The
 // selected entries will be returned inside an Iterator instance.
-func (s *Session) Iterate(bean IterateBean) *IterateQuery {
+func (s *Standalone) Iterate(bean IterateBean) *IterateQuery {
 	return &IterateQuery{db: s, bean: bean}
 }
 
@@ -39,18 +74,18 @@ func (s *Session) Iterate(bean IterateBean) *IterateQuery {
 //
 // The request can then be executed using the SelectQuery.Run method. The
 // selected entries will be returned inside the SelectBean parameter.
-func (s *Session) Select(bean SelectBean) *SelectQuery {
+func (s *Standalone) Select(bean SelectBean) *SelectQuery {
 	return &SelectQuery{db: s, bean: bean}
 }
 
 // Get starts building a SQL 'SELECT' query to retrieve a single entry of
-// the given model from the database. The function also requires an SQL
-// string with arguments to filter the result (similarly to the
-// IterateQuery.Where method).
+// the given model from the database. As a consequence, the function thus
+// requires an SQL string with arguments to filter the said entry (the syntax is
+// similar to the IterateQuery.Where method).
 //
 // The request can then be executed using the GetQuery.Run method. The bean
 // parameter will be filled with the values retrieved from the database.
-func (s *Session) Get(bean GetBean, where string, args ...interface{}) *GetQuery {
+func (s *Standalone) Get(bean GetBean, where string, args ...interface{}) *GetQuery {
 	return &GetQuery{db: s, bean: bean, sql: where, args: args}
 }
 
@@ -60,7 +95,7 @@ func (s *Session) Get(bean GetBean, where string, args ...interface{}) *GetQuery
 //
 // The request can then be executed using the IterateQuery.Run method. The
 // selected entries will be returned inside an Iterator instance.
-func (s *Session) Count(bean IterateBean) *CountQuery {
+func (s *Standalone) Count(bean IterateBean) *CountQuery {
 	return &CountQuery{db: s, bean: bean}
 }
 
@@ -68,7 +103,7 @@ func (s *Session) Count(bean IterateBean) *CountQuery {
 // to the database.
 //
 // The request can then be executed using the InsertQuery.Run method.
-func (s *Session) Insert(bean InsertBean) *InsertQuery {
+func (s *Standalone) Insert(bean InsertBean) *InsertQuery {
 	return &InsertQuery{db: s, bean: bean}
 }
 
@@ -77,7 +112,7 @@ func (s *Session) Insert(bean InsertBean) *InsertQuery {
 // an error if the entry does not exist.
 //
 // The request can then be executed using the UpdateQuery.Run method.
-func (s *Session) Update(bean UpdateBean) *UpdateQuery {
+func (s *Standalone) Update(bean UpdateBean) *UpdateQuery {
 	return &UpdateQuery{db: s, bean: bean}
 }
 
@@ -92,7 +127,7 @@ func (s *Session) Update(bean UpdateBean) *UpdateQuery {
 // extreme caution.
 //
 // The request can then be executed using the UpdateAllQuery.Run method.
-func (s *Session) UpdateAll(bean UpdateAllBean, vals UpdVals, sql string,
+func (s *Standalone) UpdateAll(bean UpdateAllBean, vals UpdVals, sql string,
 	args ...interface{}) *UpdateAllQuery {
 	return &UpdateAllQuery{db: s, bean: bean, vals: vals, conds: sql, args: args}
 }
@@ -101,7 +136,7 @@ func (s *Session) UpdateAll(bean UpdateAllBean, vals UpdVals, sql string,
 // the given model from the database, using the entry's ID as parameter.
 //
 // The request can then be executed using the DeleteQuery.Run method.
-func (s *Session) Delete(bean DeleteBean) *DeleteQuery {
+func (s *Standalone) Delete(bean DeleteBean) *DeleteQuery {
 	return &DeleteQuery{db: s, bean: bean}
 }
 
@@ -115,6 +150,6 @@ func (s *Session) Delete(bean DeleteBean) *DeleteQuery {
 // with no DeletionHook.
 //
 // The request can then be executed using the DeleteAllQuery.Run method.
-func (s *Session) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
+func (s *Standalone) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 	return &DeleteAllQuery{db: s, bean: bean}
 }

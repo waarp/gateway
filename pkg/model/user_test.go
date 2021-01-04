@@ -3,20 +3,10 @@ package model
 import (
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/crypto/bcrypt"
 )
-
-func init() {
-	logConf := conf.LogConfig{
-		Level: "CRITICAL",
-		LogTo: "stdout",
-	}
-	_ = log.InitBackend(logConf)
-}
 
 func TestUsersTableName(t *testing.T) {
 	Convey("Given a `User` instance", t, func() {
@@ -32,16 +22,16 @@ func TestUsersTableName(t *testing.T) {
 	})
 }
 
-func TestUsersValidate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+func TestUsersBeforeWrite(t *testing.T) {
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given the database contains 1 user", func() {
 			existing := &User{
 				Username: "existing",
 				Password: []byte("password_existing"),
 			}
-			So(db.Create(existing), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given a user account", func() {
 				user := &User{
@@ -52,13 +42,12 @@ func TestUsersValidate(t *testing.T) {
 
 				Convey("Given that the new account is valid", func() {
 
-					Convey("When calling the 'Validate' function", func() {
-						So(user.Validate(db), ShouldBeNil)
+					Convey("When calling the 'BeforeWrite' function", func() {
+						So(user.BeforeWrite(db), ShouldBeNil)
 
 						Convey("Then the user's password should be hashed", func() {
-							hash, err := utils.HashPassword(user.Password)
-							So(err, ShouldBeNil)
-							So(string(user.Password), ShouldEqual, string(hash))
+							So(bcrypt.CompareHashAndPassword(user.Password,
+								[]byte("password_user")), ShouldBeNil)
 						})
 					})
 				})
@@ -66,8 +55,8 @@ func TestUsersValidate(t *testing.T) {
 				Convey("Given that the new user is missing a username", func() {
 					user.Username = ""
 
-					Convey("When calling the 'Validate' function", func() {
-						err := user.Validate(db)
+					Convey("When calling the 'BeforeWrite' function", func() {
+						err := user.BeforeWrite(db)
 
 						Convey("Then the error should say that the username is missing", func() {
 							So(err, ShouldBeError, database.NewValidationError(
@@ -79,8 +68,8 @@ func TestUsersValidate(t *testing.T) {
 				Convey("Given that the new username is already taken", func() {
 					user.Username = existing.Username
 
-					Convey("When calling the 'Validate' function", func() {
-						err := user.Validate(db)
+					Convey("When calling the 'BeforeWrite' function", func() {
+						err := user.BeforeWrite(db)
 
 						Convey("Then the error should say that the login is already taken", func() {
 							So(err, ShouldBeError, database.NewValidationError(
@@ -93,72 +82,16 @@ func TestUsersValidate(t *testing.T) {
 	})
 }
 
-func TestUsersBeforeUpdate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
-
-		Convey("Given the database contains 2 users", func() {
-			existing := &User{
-				Username:    "existing",
-				Password:    []byte("password_existing"),
-				Permissions: PermServersWrite,
-			}
-			So(db.Create(existing), ShouldBeNil)
-
-			old := &User{
-				Username:    "old",
-				Password:    []byte("password_old"),
-				Permissions: PermRulesRead,
-			}
-			So(db.Create(old), ShouldBeNil)
-
-			Convey("Given a user account", func() {
-				user := &User{
-					Username:    "new",
-					Password:    []byte("password_new"),
-					Permissions: PermUsersWrite,
-				}
-
-				Convey("Given that the new account is valid", func() {
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						So(user.Validate(db), ShouldBeNil)
-
-						Convey("Then the user's password should be hashed", func() {
-							hash, err := utils.HashPassword(user.Password)
-							So(err, ShouldBeNil)
-							So(string(user.Password), ShouldEqual, string(hash))
-						})
-					})
-				})
-
-				Convey("Given that the new username is already taken", func() {
-					user.Username = existing.Username
-
-					Convey("When calling the 'BeforeUpdate' function", func() {
-						err := user.Validate(db)
-
-						Convey("Then the error should say that the login is already taken", func() {
-							So(err, ShouldBeError, "a user named '"+user.Username+
-								"' already exist")
-						})
-					})
-				})
-			})
-		})
-	})
-}
-
 func TestUsersBeforeDelete(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		owner := database.Owner
 		Convey("Given the database contains 1 user for this gateway", func() {
 			mine := &User{
 				Username: "existing",
 				Password: []byte("password_existing"),
 			}
-			So(db.Create(mine), ShouldBeNil)
+			So(db.Insert(mine).Run(), ShouldBeNil)
 
 			// Change database ownership
 			database.Owner = "tata"
@@ -166,15 +99,17 @@ func TestUsersBeforeDelete(t *testing.T) {
 				Username: "old",
 				Password: []byte("password_old"),
 			}
-			So(db.Create(other), ShouldBeNil)
+			So(db.Insert(other).Run(), ShouldBeNil)
 			// Revert database ownership
 			database.Owner = owner
 
 			// Delete base admin
-			So(db.Delete(&User{Username: "admin"}), ShouldBeNil)
+			So(db.DeleteAll(&User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			Convey("When calling BeforeDelete", func() {
-				err := mine.BeforeDelete(db)
+				err := db.Transaction(func(ses *database.Session) database.Error {
+					return mine.BeforeDelete(ses)
+				})
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)
@@ -192,19 +127,21 @@ func TestUsersBeforeDelete(t *testing.T) {
 				Username: "existing",
 				Password: []byte("password_existing"),
 			}
-			So(db.Create(mine), ShouldBeNil)
+			So(db.Insert(mine).Run(), ShouldBeNil)
 
 			other := &User{
 				Username: "old",
 				Password: []byte("password_old"),
 			}
-			So(db.Create(other), ShouldBeNil)
+			So(db.Insert(other).Run(), ShouldBeNil)
 
 			// Delete base admin
-			So(db.Delete(&User{Username: "admin"}), ShouldBeNil)
+			So(db.DeleteAll(&User{}).Where("username='admin'").Run(), ShouldBeNil)
 
 			Convey("When calling BeforeDelete", func() {
-				err := mine.BeforeDelete(db)
+				err := db.Transaction(func(ses *database.Session) database.Error {
+					return mine.BeforeDelete(ses)
+				})
 
 				Convey("Then it should return No error", func() {
 					So(err, ShouldBeNil)

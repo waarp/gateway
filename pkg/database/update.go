@@ -1,60 +1,63 @@
 package database
 
-import (
-	"database/sql"
-)
-
-type updateBean interface {
-	table
-	appellation
-	identifier
-	writeHook
+// UpdateBean is the interface that a model must implement in order to be
+// updatable via the Access.Update query builder.
+type UpdateBean interface {
+	Table
+	Identifier
+	WriteHook
 }
 
-type updateQuery struct {
-	bean updateBean
+// UpdateQuery is the type representing a SQL UPDATE statement for a single entry.
+type UpdateQuery struct {
+	db   Access
+	bean UpdateBean
+
+	cols []string
 }
 
-// Update creates a query to update the given `bean` parameter in the database.
-// The entry's ID will be used as condition for the update.
-//
-//nolint:golint //This exported function returns an unexported type on purpose
-//so that instances of updateQuery cannot be created outside of this function
-func Update(bean updateBean) *updateQuery {
-	return &updateQuery{bean: bean}
+// Cols allows to specify the list of columns to update to perform a partial
+// update of the entry, instead of a full replacement, which should improve
+// performance a bit and make the logs more readable.
+func (u *UpdateQuery) Cols(columns ...string) *UpdateQuery {
+	u.cols = append(u.cols, columns...)
+	return u
 }
 
-func (u *updateQuery) exec(ses *Session) (sql.Result, error) {
-	if u.bean == nil {
-		ses.logger.Error("'UPDATE' called with a `nil` target")
-		return nil, ErrNilRecord
-	}
+// Run executes the 'UPDATE' query.
+func (u *UpdateQuery) Run() Error {
+	logger := u.db.GetLogger()
 
-	res, err := ses.Count(Select(u.bean).Where(Equal("id", u.bean.GetID())))
+	q := u.db.getUnderlying().NoAutoCondition().Table(u.bean.TableName()).
+		Where("id=?", u.bean.GetID())
+	exist, err := q.Exist()
 	if err != nil {
-		ses.logger.Errorf("Failed to check if the %s to update exists: %s",
-			u.bean.Appellation(), err)
-		return nil, NewInternalError(err, "failed to check if the %s to update exists",
-			u.bean.Appellation())
+		logger.Errorf("Failed to check if the %s to update exists: %s", u.bean.Appellation(), err)
+		return NewInternalError(err)
 	}
-	if res < 1 {
-		ses.logger.Errorf("No %s found with ID %d", u.bean.Appellation(), u.bean.GetID())
-		return nil, newNotFoundError(u.bean.Appellation())
+	if !exist {
+		logger.Infof("No %s found with ID %d", u.bean.Appellation(), u.bean.GetID())
+		return NewNotFoundError(u.bean)
 	}
 
-	if err := u.bean.BeforeWrite(ses); err != nil {
-		ses.logger.Errorf("%s entry UPDATE validation failed: %s",
-			u.bean.Appellation(), err)
-		return nil, err
+	if err := u.bean.BeforeWrite(u.db); err != nil {
+		logger.Errorf("%s entry UPDATE validation failed: %s", u.bean.Appellation(), err)
+		return err
 	}
 
-	n, err := ses.session.Table(u.bean.Table()).ID(u.bean.GetID()).AllCols().Update(u.bean)
-	if err != nil {
-		ses.logger.Errorf("Failed to update the %s entry: %s",
-			u.bean.Appellation(), err)
-		return nil, NewInternalError(err, "failed to update the %s entry",
-			u.bean.Appellation())
+	query := u.db.getUnderlying().NoAutoCondition().Table(u.bean.TableName()).ID(u.bean.GetID())
+	if len(u.cols) == 0 {
+		query = query.AllCols()
+	} else {
+		query = query.Cols(u.cols...)
 	}
 
-	return &dbResult{affected: n}, nil
+	_, err1 := query.Update(u.bean)
+	logSQL(query, logger)
+	if err1 != nil {
+		logger.Errorf("Failed to update the %s entry: %s", u.bean.Appellation(), err1)
+		return NewInternalError(err1)
+	}
+
+	return nil
 }

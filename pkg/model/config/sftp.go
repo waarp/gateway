@@ -39,8 +39,7 @@ type SftpProtoConfig struct {
 	MACs         []string `json:"macs,omitempty"`
 }
 
-// ValidPartner checks if the configuration is valid for an SFTP partner.
-func (c *SftpProtoConfig) ValidPartner() error {
+func (c SftpProtoConfig) valid() error {
 	for _, k := range c.KeyExchanges {
 		if _, ok := validKeyExchange[k]; !ok {
 			return fmt.Errorf("unknown key exchange algorithm '%s'", k)
@@ -56,11 +55,22 @@ func (c *SftpProtoConfig) ValidPartner() error {
 			return fmt.Errorf("unknown MAC algorithm '%s'", m)
 		}
 	}
-
 	return nil
+}
+
+// ValidPartner checks if the configuration is valid for an SFTP partner.
+func (c *SftpProtoConfig) ValidPartner() error {
+	return c.valid()
 }
 
 // ValidServer checks if the configuration is valid for a local SFTP server.
 func (c *SftpProtoConfig) ValidServer() error {
-	return c.ValidPartner()
+	return c.valid()
+}
+
+// CertRequired returns whether, according to the configuration, a certificate
+// is required for the agent. This function always returns true since SFTP
+// always requires at least a public key to establish a connection.
+func (c *SftpProtoConfig) CertRequired() bool {
+	return true
 }

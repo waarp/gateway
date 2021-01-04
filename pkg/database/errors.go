@@ -4,21 +4,13 @@ import (
 	"fmt"
 )
 
-var (
-	// ErrServiceUnavailable is the error returned by database operation
-	// methods when the database is inactive
-	ErrServiceUnavailable = &InternalError{
-		msg:   "the database service is not running",
-		cause: fmt.Errorf(""),
-	}
-
-	// ErrNilRecord is the error returned by database operation when the object
-	// Which should be  used to generate the query or used to unmarshal the
-	// query result is nil
-	ErrNilRecord = &InputError{
-		msg: "the record cannot be nil",
-	}
-)
+// Error is the interface representing a database error. All database operations
+// must return an error of this type to ensure (via type-checking) that database
+// errors are correctly handled internally.
+type Error interface {
+	error
+	db()
+}
 
 // ValidationError is the error returned when the entry given for insertion is
 // not valid.
@@ -30,15 +22,7 @@ func (v *ValidationError) Error() string {
 	return v.msg
 }
 
-// InputError is the error returned when the given bean does not correspond to
-// a database table.
-type InputError struct {
-	msg string
-}
-
-func (i *InputError) Error() string {
-	return i.msg
-}
+func (*ValidationError) db() {}
 
 // InternalError is the error encapsulating the database driver errors.
 type InternalError struct {
@@ -55,6 +39,8 @@ func (i *InternalError) Unwrap() error {
 	return i.cause
 }
 
+func (i *InternalError) db() {}
+
 // NotFoundError is the error returned when the requested element in a 'Get',
 // 'Update' or 'Delete' command could not be found.
 type NotFoundError struct {
@@ -65,16 +51,19 @@ func (n *NotFoundError) Error() string {
 	return n.msg
 }
 
-func newNotFoundError(elem string) *NotFoundError {
-	return &NotFoundError{
-		msg: fmt.Sprintf("%s not found", elem),
-	}
-}
+func (*NotFoundError) db() {}
 
 // IsNotFound returns whether the given error is of type NotFoundError.
 func IsNotFound(err error) bool {
 	_, ok := err.(*NotFoundError)
 	return ok
+}
+
+// NewNotFoundError returns a new validation `Error` for the given entry.
+func NewNotFoundError(elem Table) *NotFoundError {
+	return &NotFoundError{
+		msg: fmt.Sprintf("%s not found", elem.Appellation()),
+	}
 }
 
 // NewValidationError returns a new validation `Error` with the given formatted message.
@@ -85,9 +74,9 @@ func NewValidationError(msg string, args ...interface{}) *ValidationError {
 }
 
 // NewInternalError returns a new internal `Error` with the given formatted message.
-func NewInternalError(err error, msg string, args ...interface{}) *InternalError {
+func NewInternalError(err error) *InternalError {
 	return &InternalError{
 		cause: err,
-		msg:   fmt.Sprintf(msg, args...),
+		msg:   "internal database error",
 	}
 }

@@ -1,43 +1,34 @@
 package database
 
-import "database/sql"
-
-type insertBean interface {
-	table
-	appellation
-	writeHook
+// InsertBean is the interface that a model must implement in order to be
+// insertable via the Access.Insert query builder.
+type InsertBean interface {
+	Table
+	WriteHook
 }
 
-type insertQuery struct {
-	bean insertBean
+// InsertQuery is the type representing a SQL INSERT statement.
+type InsertQuery struct {
+	db   Access
+	bean InsertBean
 }
 
-// Insert creates a query to insert the given `bean` parameter in the database.
-//
-//nolint:golint //This exported function returns an unexported type on purpose
-//so that instances of insertQuery cannot be created outside of this function
-func Insert(bean insertBean) *insertQuery {
-	return &insertQuery{bean: bean}
-}
+// Run executes the 'INSERT' query.
+func (i *InsertQuery) Run() Error {
+	logger := i.db.GetLogger()
 
-func (i *insertQuery) exec(ses *Session) (sql.Result, error) {
-	if i.bean == nil {
-		ses.logger.Error("'INSERT' called with a `nil` target")
-		return nil, ErrNilRecord
-	}
-	if err := i.bean.BeforeWrite(ses); err != nil {
-		ses.logger.Errorf("%s entry INSERT validation failed: %s",
-			i.bean.Appellation(), err)
-		return nil, err
+	if err := i.bean.BeforeWrite(i.db); err != nil {
+		logger.Errorf("%s entry INSERT validation failed: %s", i.bean.Appellation(), err)
+		return err
 	}
 
-	n, err := ses.session.Table(i.bean.Table()).InsertOne(i.bean)
+	query := i.db.getUnderlying().Table(i.bean.TableName())
+	_, err := query.InsertOne(i.bean)
+	logSQL(query, logger)
 	if err != nil {
-		ses.logger.Errorf("Failed to insert the new %s entry: %s",
-			i.bean.Appellation(), err)
-		return nil, NewInternalError(err, "failed to insert the new %s entry",
-			i.bean.Appellation())
+		logger.Errorf("Failed to insert the new %s entry: %s", i.bean.Appellation(), err)
+		return NewInternalError(err)
 	}
 
-	return &dbResult{affected: n}, nil
+	return nil
 }

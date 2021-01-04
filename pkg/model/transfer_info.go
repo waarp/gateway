@@ -19,26 +19,25 @@ func (*TransferInfo) TableName() string {
 	return "transfer_info"
 }
 
-func (*TransferInfo) ElemName() string {
+func (*TransferInfo) Appellation() string {
 	return "transfer info"
 }
 
-// Validate checks if the TransferInfo entry is valid for insertion in the database.
-func (e *TransferInfo) Validate(db database.Accessor) error {
-	res, err := db.Query("SELECT id FROM transfers WHERE id=?", e.TransferID)
+// BeforeWrite checks if the TransferInfo entry is valid for insertion in the database.
+func (e *TransferInfo) BeforeWrite(db database.ReadAccess) database.Error {
+	n, err := db.Count(&Transfer{}).Where("id=?", e.TransferID).Run()
 	if err != nil {
 		return database.NewValidationError("failed to retrieve transfer list: %s", err)
 	}
-	if len(res) > 0 {
+	if n > 0 {
 		return database.NewValidationError("no transfer %d found", e.TransferID)
 	}
 
-	res, err = db.Query("SELECT transfer_id FROM transfer_info WHERE transfer_id=?"+
-		"AND name=?", e.TransferID, e.Name)
+	n, err = db.Count(&TransferInfo{}).Where("transfer_id=? AND name=?", e.TransferID, e.Name).Run()
 	if err != nil {
 		return database.NewValidationError("failed to retrieve info list: %s", err)
 	}
-	if len(res) > 0 {
+	if n > 0 {
 		return database.NewValidationError("transfer %d already has a property '%s'",
 			e.TransferID, e.Name)
 	}

@@ -7,7 +7,6 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	"github.com/go-xorm/builder"
 )
 
 func init() {
@@ -64,8 +63,8 @@ func (u *User) TableName() string {
 	return "users"
 }
 
-// ElemName returns the name of 1 element of the users table.
-func (*User) ElemName() string {
+// Appellation returns the name of 1 element of the users table.
+func (*User) Appellation() string {
 	return "user"
 }
 
@@ -75,36 +74,33 @@ func (u *User) GetID() uint64 {
 }
 
 // Init inserts the default user in the database when the table is created.
-func (u *User) Init(acc database.Accessor) error {
+func (u *User) Init(ses *database.Session) database.Error {
 	user := &User{
 		Username:    "admin",
 		Owner:       database.Owner,
 		Password:    []byte("admin_password"),
 		Permissions: PermAll,
 	}
-	return acc.Create(user)
+	err := ses.Insert(user).Run()
+	return err
 }
 
 // BeforeDelete is called before removing the user from the database. Its
 // role is to check that at least one admin user remains
-func (u *User) BeforeDelete(db database.Accessor) error {
-	var users []User
-	err := db.Select(&users, &database.Filters{
-		// TODO update for admin user
-		Conditions: builder.Eq{"owner": database.Owner},
-	})
+func (u *User) BeforeDelete(db database.Access) database.Error {
+	n, err := db.Count(&User{}).Where("owner=?", database.Owner).Run()
 	if err != nil {
-		return database.NewInternalError(err, "failed to retrieve the list of users")
+		return err
 	}
-	if len(users) < 2 {
+	if n < 2 {
 		return database.NewValidationError("cannot delete gateway last admin")
 	}
 	return nil
 }
 
-// Validate checks if the new `User` entry is valid and can be
+// BeforeWrite checks if the new `User` entry is valid and can be
 // inserted in the database.
-func (u *User) Validate(db database.Accessor) error {
+func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
 	u.Owner = database.Owner
 	if u.Username == "" {
 		return database.NewValidationError("the username cannot be empty")
@@ -113,16 +109,21 @@ func (u *User) Validate(db database.Accessor) error {
 		return database.NewValidationError("the user password cannot be empty")
 	}
 
-	if res, err := db.Query("SELECT id FROM users WHERE id<>? AND owner=? AND username=?",
-		u.ID, u.Owner, u.Username); err != nil {
-		return database.NewInternalError(err, "failed to retrieve the list os existing users")
-	} else if len(res) != 0 {
+	var users Users
+	_ = db.Select(&users).Run()
+
+	n, err := db.Count(&User{}).Where("id<>? AND owner=? AND username=?",
+		u.ID, u.Owner, u.Username).Run()
+	if err != nil {
+		return err
+	} else if n != 0 {
 		return database.NewValidationError("a user named '%s' already exist", u.Username)
 	}
 
-	var err error
-	if u.Password, err = utils.HashPassword(u.Password); err != nil {
-		return database.NewInternalError(err, "failed to hash the user password")
+	var err1 error
+	if u.Password, err1 = utils.HashPassword(u.Password); err1 != nil {
+		db.GetLogger().Errorf("Failed to hash the user password: %s", err)
+		return database.NewInternalError(err)
 	}
 	return nil
 }

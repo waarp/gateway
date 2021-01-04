@@ -45,12 +45,12 @@ func (*Task) TableName() string {
 	return "tasks"
 }
 
-// ElemName returns the name of 1 element of the tasks table.
-func (*Task) ElemName() string {
+// Appellation returns the name of 1 element of the tasks table.
+func (*Task) Appellation() string {
 	return "task"
 }
 
-func (t *Task) validateTasks() error {
+func (t *Task) validateTasks() database.Error {
 	if t.Chain != ChainPre && t.Chain != ChainPost && t.Chain != ChainError {
 		return database.NewValidationError("%s is not a valid task chain", t.Chain)
 	}
@@ -75,12 +75,13 @@ func (t *Task) validateTasks() error {
 	return nil
 }
 
-// Validate checks if the new `Task` entry is valid and can be
+// BeforeWrite checks if the new `Task` entry is valid and can be
 // inserted in the database.
-func (t *Task) Validate(db database.Accessor) error {
-	if res, err := db.Query("SELECT id FROM rules WHERE id=?", t.RuleID); err != nil {
-		return database.NewInternalError(err, "failed to retrieve the list of rules")
-	} else if len(res) < 1 {
+func (t *Task) BeforeWrite(db database.ReadAccess) database.Error {
+	n, err := db.Count(&Rule{}).Where("id=?", t.RuleID).Run()
+	if err != nil {
+		return err
+	} else if n < 1 {
 		return database.NewValidationError("no rule found with ID %d", t.RuleID)
 	}
 
@@ -88,10 +89,11 @@ func (t *Task) Validate(db database.Accessor) error {
 		return err
 	}
 
-	if res, err := db.Query("SELECT rule_id FROM tasks WHERE rule_id=? AND chain=? AND rank=?",
-		t.RuleID, t.Chain, t.Rank); err != nil {
-		return database.NewInternalError(err, "failed to retrieve the list of rules")
-	} else if len(res) > 0 {
+	n, err = db.Count(t).Where("rule_id=? AND chain=? AND rank=?", t.RuleID,
+		t.Chain, t.Rank).Run()
+	if err != nil {
+		return err
+	} else if n > 0 {
 		return database.NewValidationError("rule %d already has a task in %s at %d",
 			t.RuleID, t.Chain, t.Rank)
 	}

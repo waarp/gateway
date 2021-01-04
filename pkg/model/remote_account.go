@@ -3,7 +3,6 @@ package model
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	"github.com/go-xorm/builder"
 )
 
 func init() {
@@ -32,8 +31,8 @@ func (*RemoteAccount) TableName() string {
 	return "remote_accounts"
 }
 
-// ElemName returns the name of 1 element of the remote accounts table.
-func (*RemoteAccount) ElemName() string {
+// Appellation returns the name of 1 element of the remote accounts table.
+func (*RemoteAccount) Appellation() string {
 	return "remote account"
 }
 
@@ -42,24 +41,10 @@ func (r *RemoteAccount) GetID() uint64 {
 	return r.ID
 }
 
-// GetCerts fetch in the database then return the associated Certificates if they exist
-func (r *RemoteAccount) GetCerts(db database.Accessor) ([]Cert, error) {
-	filters := &database.Filters{
-		Conditions: builder.And(builder.Eq{"owner_type": r.TableName()},
-			builder.Eq{"owner_id": r.ID}),
-	}
-
-	results := []Cert{}
-	if err := db.Select(&results, filters); err != nil {
-		return nil, err
-	}
-	return results, nil
-}
-
-// Validate checks if the new `RemoteAccount` entry is valid and can be
+// BeforeWrite checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
 //nolint:dupl
-func (r *RemoteAccount) Validate(db database.Accessor) error {
+func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	if r.RemoteAgentID == 0 {
 		return database.NewValidationError("the account's agentID cannot be empty")
 	}
@@ -70,52 +55,60 @@ func (r *RemoteAccount) Validate(db database.Accessor) error {
 		return database.NewValidationError("The account's password cannot be empty")
 	}
 
-	if res, err := db.Query("SELECT id FROM remote_agents WHERE id=?",
-		r.RemoteAgentID); err != nil {
-		return database.NewInternalError(err, "failed to retrieve the list of partners")
-	} else if len(res) == 0 {
+	n, err := db.Count(&RemoteAgent{}).Where("id=?", r.RemoteAgentID).Run()
+	if err != nil {
+		return err
+	} else if n == 0 {
 		return database.NewValidationError("no remote agent found with the ID '%v'",
 			r.RemoteAgentID)
 	}
 
-	if res, err := db.Query("SELECT id FROM remote_accounts WHERE id<>? AND "+
-		"remote_agent_id=? AND login=?", r.ID, r.RemoteAgentID, r.Login); err != nil {
-		return database.NewInternalError(err, "failed to retrieve the list of existing accounts")
-	} else if len(res) > 0 {
+	n, err = db.Count(&RemoteAccount{}).Where("id<>? AND remote_agent_id=? AND login=?",
+		r.ID, r.RemoteAgentID, r.Login).Run()
+	if err != nil {
+		return err
+	} else if n > 0 {
 		return database.NewValidationError(
 			"a remote account with the same login '%s' already exist", r.Login)
 	}
 
 	var pErr error
 	if r.Password, pErr = utils.CryptPassword(r.Password); pErr != nil {
-		return database.NewInternalError(pErr, "failed to encrypt the account password")
+		db.GetLogger().Errorf("Failed to encrypt the remote agent password: %s", pErr)
+		return database.NewInternalError(pErr)
 	}
 	return nil
 }
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
-func (r *RemoteAccount) BeforeDelete(db database.Accessor) error {
-	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND account_id=?",
-		false, r.ID)
+func (r *RemoteAccount) BeforeDelete(db database.Access) database.Error {
+	n, err := db.Count(&Transfer{}).Where("is_server=? AND account_id=?", false, r.ID).Run()
 	if err != nil {
-		return database.NewInternalError(err, "failed to retrieve the list of transfers")
+		return err
 	}
-	if len(trans) > 0 {
+	if n > 0 {
 		return database.NewValidationError("this account is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
 			"for it to finish")
 	}
 
-	certQuery := "DELETE FROM certificates WHERE owner_type='remote_accounts' AND owner_id=?"
-	if err := db.Execute(certQuery, r.ID); err != nil {
-		return database.NewInternalError(err, "failed to delete the account's certificates")
+	certQuery := db.DeleteAll(&Cert{}).Where(
+		"owner_type='remote_accounts' AND owner_id=?", r.ID)
+	if err := certQuery.Run(); err != nil {
+		return err
 	}
 
-	accessQuery := "DELETE FROM rule_access WHERE object_type='remote_accounts' AND object_id=?"
-	if err := db.Execute(accessQuery, r.ID); err != nil {
-		return database.NewInternalError(err, "failed to delete the account's rule permissions")
+	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
+		"object_type='remote_accounts' AND object_id=?", r.ID)
+	if err := accessQuery.Run(); err != nil {
+		return err
 	}
 
 	return nil
+}
+
+// GetCerts fetch in the database then return the associated Certificates if they exist
+func (r *RemoteAccount) GetCerts(db database.ReadAccess) ([]Cert, database.Error) {
+	return GetCerts(db, r)
 }
