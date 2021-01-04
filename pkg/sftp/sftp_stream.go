@@ -96,6 +96,7 @@ func (s *sftpStream) ReadAt(p []byte, off int64) (int, error) {
 
 	n, err := s.TransferStream.ReadAt(p, off)
 	if err != nil && err != io.EOF {
+		s.transErr = err
 		_ = s.Close()
 		return n, modelToSFTP(s.transErr)
 	}
@@ -115,6 +116,7 @@ func (s *sftpStream) WriteAt(p []byte, off int64) (int, error) {
 
 	n, err := s.TransferStream.WriteAt(p, off)
 	if err != nil {
+		s.transErr = err
 		_ = s.Close()
 		return n, modelToSFTP(s.transErr)
 	}
@@ -128,23 +130,22 @@ func (s *sftpStream) Close() error {
 		}
 	}
 
-	if s.Transfer.Step >= types.StepData {
+	if s.Transfer.Step >= types.StepData && s.transErr == nil {
 		if err := s.TransferStream.Move(); err != nil {
 			s.transErr = err
 		}
 	}
+
 	if s.transErr == nil {
+		s.transErr = s.PostTasks()
 		if s.transErr == nil {
-			s.transErr = s.PostTasks()
-			if s.transErr == nil {
-				s.Transfer.Step = types.StepNone
-				s.Transfer.Status = types.StatusDone
-				s.Transfer.TaskNumber = 0
-				if s.Archive() == nil {
-					s.Logger.Info("Execution finished without errors")
-				}
-				return nil
+			s.Transfer.Step = types.StepNone
+			s.Transfer.Status = types.StatusDone
+			s.Transfer.TaskNumber = 0
+			if s.Archive() == nil {
+				s.Logger.Info("Execution finished without errors")
 			}
+			return nil
 		}
 	}
 

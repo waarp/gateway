@@ -631,8 +631,8 @@ func TestSFTPPackage(t *testing.T) {
 								So(<-checkChannel, ShouldEqual, "END TRANSFER 5")
 
 								Convey("Then the file should exist", func() {
-									file := filepath.Join(root, receive.InPath,
-										trans.DestFile)
+									file := filepath.Join(root, receive.WorkPath,
+										trans.DestFile+".tmp")
 									cont, err := ioutil.ReadFile(file)
 									So(err, ShouldBeNil)
 
@@ -680,7 +680,7 @@ func TestSFTPPackage(t *testing.T) {
 											AccountID: localAccount.ID,
 											AgentID:   localAgent.ID,
 											TrueFilepath: utils.NormalizePath(filepath.Join(
-												root, receive.InPath, trans.DestFile)),
+												root, receive.WorkPath, trans.DestFile+".tmp")),
 											SourceFile: trans.DestFile,
 											DestFile:   trans.DestFile,
 											RuleID:     receive.ID,

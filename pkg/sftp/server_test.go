@@ -202,7 +202,7 @@ func TestSSHServer(t *testing.T) {
 			Reset(func() {
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 				defer cancel()
-				So(sshList.close(ctx), ShouldBeNil)
+				_ = sshList.close(ctx)
 			})
 
 			Convey("Given that the server shuts down", func() {
@@ -232,12 +232,12 @@ func TestSSHServer(t *testing.T) {
 							_, err := dst.Write([]byte{'a'})
 							So(err, ShouldBeNil)
 
-							ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-							defer cancel()
-							So(sshList.close(ctx), ShouldBeNil)
+							sshList.cancel()
 
 							_, err = dst.Write([]byte{'b'})
 							So(err, ShouldNotBeNil)
+
+							sshList.connWg.Wait()
 
 							Convey("Then the transfer should appear interrupted", func() {
 								var transfers model.Transfers
@@ -251,8 +251,8 @@ func TestSSHServer(t *testing.T) {
 									AccountID: user.ID,
 									AgentID:   agent.ID,
 									TrueFilepath: utils.NormalizePath(
-										filepath.Join(root, receive.InPath,
-											"test_in_shutdown.dst")),
+										filepath.Join(root, receive.WorkPath,
+											"test_in_shutdown.dst.tmp")),
 									SourceFile: "test_in_shutdown.dst",
 									DestFile:   "test_in_shutdown.dst",
 									RuleID:     receive.ID,
@@ -280,12 +280,12 @@ func TestSSHServer(t *testing.T) {
 							_, err := src.Read(make([]byte, 1))
 							So(err, ShouldBeNil)
 
-							ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-							defer cancel()
-							So(sshList.close(ctx), ShouldBeNil)
+							sshList.cancel()
 
 							_, err = src.Read(make([]byte, 1))
 							So(err, ShouldNotBeNil)
+
+							sshList.connWg.Wait()
 
 							Convey("Then the transfer should appear interrupted", func() {
 								var transfers model.Transfers
@@ -469,12 +469,12 @@ func TestSSHServer(t *testing.T) {
 							So(conn.Close(), ShouldBeNil)
 							_, err = dst.ReadFrom(src)
 
+							sshList.connWg.Wait()
+
 							Convey("Then it should return an error", func() {
 								So(err, ShouldNotBeNil)
 
 								Convey("Then the transfer should appear in the history", func() {
-									time.Sleep(100 * time.Millisecond)
-
 									var transfers model.Transfers
 									So(db.Select(&transfers).Run(), ShouldBeNil)
 									So(transfers, ShouldHaveLength, 1)
@@ -487,7 +487,7 @@ func TestSSHServer(t *testing.T) {
 										AccountID:        user.ID,
 										AgentID:          agent.ID,
 										TrueFilepath: utils.NormalizePath(filepath.Join(
-											root, receive.InPath, "test_in_fail.dst")),
+											root, receive.WorkPath, "test_in_fail.dst.tmp")),
 										SourceFile: "test_in_fail.dst",
 										DestFile:   "test_in_fail.dst",
 										RuleID:     receive.ID,
@@ -577,12 +577,12 @@ func TestSSHServer(t *testing.T) {
 							So(conn.Close(), ShouldBeNil)
 							_, err = src.WriteTo(dst)
 
+							sshList.connWg.Wait()
+
 							Convey("Then it should return an error", func() {
 								So(err, ShouldNotBeNil)
 
 								Convey("Then the transfer should appear in the history", func() {
-									time.Sleep(100 * time.Millisecond)
-
 									var transfers model.Transfers
 									So(db.Select(&transfers).Run(), ShouldBeNil)
 									So(transfers, ShouldHaveLength, 1)

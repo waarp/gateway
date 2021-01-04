@@ -64,7 +64,15 @@ func (l *sshListener) handleConnection(parent context.Context, nConn net.Conn) {
 			return
 		}
 		go func() {
-			<-ctx.Done()
+			closed := make(chan bool)
+			go func() {
+				_ = servConn.Wait()
+				close(closed)
+			}()
+			select {
+			case <-closed:
+			case <-ctx.Done():
+			}
 			_ = servConn.Close()
 		}()
 
@@ -222,6 +230,7 @@ func (l *sshListener) close(ctx context.Context) error {
 	case err := <-finished:
 		return err
 	case <-ctx.Done():
+		_ = l.Listener.Close()
 		return ctx.Err()
 	}
 }
