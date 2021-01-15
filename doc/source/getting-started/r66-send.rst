@@ -182,7 +182,7 @@ transferts de la Gateway :
    $ waarp-gateway history list
    History:
    [...]
-   ● Transfer 2 (as client) [DONE]
+   * Transfer 2 (as client) [DONE]
        Way:              SEND
        Protocol:         r66
        Rule:             default

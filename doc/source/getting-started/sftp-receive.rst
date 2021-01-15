@@ -67,7 +67,7 @@ Le serveur SFTP est maintenant créé mais n'est pas actif. Comme la Gateway doi
 
    # systemctl restart waarp-gatewayd
    # systemctl status waarp-gatewayd
-   ● waarp-gatewayd.service - Waarp Gateway server
+   * waarp-gatewayd.service - Waarp Gateway server
       Loaded: loaded (/usr/lib/systemd/system/waarp-gatewayd.service; disabled; vendor preset: disabled)
       Active: active (running) since Thu 2020-08-27 08:52:23 UTC; 5s ago
     Main PID: 20584 (waarp-gatewayd)
@@ -185,7 +185,7 @@ transferts de la Gateway :
 
    $ waarp-gateway history list
    History:
-   ● Transfer 1 (as server) [DONE]
+   * Transfer 1 (as server) [DONE]
        Way:              RECEIVE
        Protocol:         sftp
        Rule:             sftp_recv

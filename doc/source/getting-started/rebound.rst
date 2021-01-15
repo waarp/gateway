@@ -95,7 +95,7 @@ transferts de la Gateway :
    $ waarp-gateway history list
    History:
    [...]
-   ● Transfer 25 (as server) [DONE]
+   * Transfer 25 (as server) [DONE]
        Way:              RECEIVE
        Protocol:         sftp
        Rule:             sftp_recv
@@ -105,7 +105,7 @@ transferts de la Gateway :
        Destination file: test04.txt
        Start date:       2020-10-02T15:10:48Z
        End date:         2020-10-02T15:10:49Z
-   ● Transfer 26 (as client) [DONE]
+   * Transfer 26 (as client) [DONE]
        Way:              SEND
        Protocol:         r66
        Rule:             default
