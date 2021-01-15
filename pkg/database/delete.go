@@ -5,7 +5,6 @@ package database
 type DeleteBean interface {
 	Table
 	Identifier
-	DeletionHook
 }
 
 // DeleteQuery is the type representing a SQL DELETE statement with an ID
@@ -30,9 +29,11 @@ func (d *DeleteQuery) Run() Error {
 	}
 
 	f := func(s *Session) Error {
-		if err := d.bean.BeforeDelete(s); err != nil {
-			logger.Errorf("%s deletion hook failed: %s", d.bean.Appellation(), err)
-			return err
+		if hook, ok := d.bean.(DeletionHook); ok {
+			if err := hook.BeforeDelete(s); err != nil {
+				logger.Errorf("%s deletion hook failed: %s", d.bean.Appellation(), err)
+				return err
+			}
 		}
 		query := s.getUnderlying().NoAutoCondition().Table(d.bean.TableName()).
 			ID(d.bean.GetID())

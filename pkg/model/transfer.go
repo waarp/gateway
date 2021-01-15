@@ -208,11 +208,6 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	return nil
 }
 
-// BeforeDelete is executed before deleting the transfer entry. Is is noop.
-func (t *Transfer) BeforeDelete(database.Access) database.Error {
-	return nil
-}
-
 // ToHistory converts the `Transfer` entry into an equivalent `TransferHistory`
 // entry with the given time as the end date.
 func (t *Transfer) ToHistory(db database.ReadAccess, stop time.Time) (*TransferHistory, database.Error) {

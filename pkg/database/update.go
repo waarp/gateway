@@ -5,7 +5,6 @@ package database
 type UpdateBean interface {
 	Table
 	Identifier
-	WriteHook
 }
 
 // UpdateQuery is the type representing a SQL UPDATE statement for a single entry.
@@ -40,9 +39,11 @@ func (u *UpdateQuery) Run() Error {
 		return NewNotFoundError(u.bean)
 	}
 
-	if err := u.bean.BeforeWrite(u.db); err != nil {
-		logger.Errorf("%s entry UPDATE validation failed: %s", u.bean.Appellation(), err)
-		return err
+	if hook, ok := u.bean.(WriteHook); ok {
+		if err := hook.BeforeWrite(u.db); err != nil {
+			logger.Errorf("%s entry UPDATE validation failed: %s", u.bean.Appellation(), err)
+			return err
+		}
 	}
 
 	query := u.db.getUnderlying().NoAutoCondition().Table(u.bean.TableName()).ID(u.bean.GetID())

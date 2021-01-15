@@ -107,9 +107,3 @@ func (c *Cert) BeforeWrite(db database.ReadAccess) database.Error {
 
 	return nil
 }
-
-// BeforeDelete for Cert is noop, since no validations are required to delete
-// a certificate.
-func (c *Cert) BeforeDelete(database.Access) database.Error {
-	return nil
-}

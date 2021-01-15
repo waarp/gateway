@@ -4,7 +4,6 @@ package database
 // insertable via the Access.Insert query builder.
 type InsertBean interface {
 	Table
-	WriteHook
 }
 
 // InsertQuery is the type representing a SQL INSERT statement.
@@ -17,9 +16,11 @@ type InsertQuery struct {
 func (i *InsertQuery) Run() Error {
 	logger := i.db.GetLogger()
 
-	if err := i.bean.BeforeWrite(i.db); err != nil {
-		logger.Errorf("%s entry INSERT validation failed: %s", i.bean.Appellation(), err)
-		return err
+	if hook, ok := i.bean.(WriteHook); ok {
+		if err := hook.BeforeWrite(i.db); err != nil {
+			logger.Errorf("%s entry INSERT validation failed: %s", i.bean.Appellation(), err)
+			return err
+		}
 	}
 
 	query := i.db.getUnderlying().Table(i.bean.TableName())
