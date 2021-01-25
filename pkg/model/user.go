@@ -57,7 +57,7 @@ type User struct {
 	Password []byte `xorm:"notnull 'password'"`
 
 	// The users permissions for reading and writing the database.
-	Permissions PermsMask `xorm:"notnull 'permissions'"`
+	Permissions PermsMask `xorm:"notnull binary 'permissions'"`
 }
 
 // TableName returns the users table name.
