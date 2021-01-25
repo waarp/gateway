@@ -42,7 +42,8 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64
 
 // getTransNames returns (in this order) the transfer's rule name, requester and
 // requested.
-func getTransNames(db *database.DB, trans *model.Transfer) (string, string, string, error) {
+func getTransNames(db *database.DB, trans *model.Transfer) (ruleName, requesterName,
+	requestedName string, err error) {
 	var rule model.Rule
 	if err := db.Get(&rule, "id=?", trans.RuleID).Run(); err != nil {
 		return "", "", "", err
@@ -77,7 +78,7 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 	query := db.Select(transfers)
 
 	sorting := orders{
-		"default": order{col: "id", asc: true},
+		"default": order{col: "start", asc: true},
 		"id+":     order{col: "id", asc: true},
 		"id-":     order{col: "id", asc: false},
 		"status+": order{col: "status", asc: true},
@@ -119,11 +120,12 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 		query.In("status", statuses)
 	}
 	if startStr := r.FormValue("start"); startStr != "" {
-		start, err := time.Parse(time.RFC3339, startStr)
+		start, err := time.Parse(time.RFC3339Nano, startStr)
 		if err != nil {
 			return nil, badRequest("'%s' is not a valid date", startStr)
 		}
-		query.Where("start >= ?", start.UTC())
+		query.Where("start >= ?", start.UTC().Truncate(time.Microsecond).
+			Format(time.RFC3339Nano))
 	}
 
 	sort := sorting["default"]

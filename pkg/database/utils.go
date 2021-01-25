@@ -1,22 +1,35 @@
 package database
 
 import (
+	"fmt"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // logSQL logs the last executed SQL command.
 func logSQL(query *xorm.Session, logger *log.Logger) {
-	msg, err := builder.ConvertToBoundSQL(query.LastSQL())
-	if err != nil {
-		logger.Warningf("Failed to log SQL command: %s", err)
-	} else {
-		logger.Debug(msg)
+	sql, args := query.LastSQL()
+	if len(args) == 0 {
+		logger.Debugf("[SQL] %s", sql)
+		return
 	}
+	if strings.Contains(sql, "?") {
+		sqlMsg, err := builder.ConvertToBoundSQL(sql, args)
+		if err == nil {
+			logger.Debugf("[SQL] %s", sqlMsg)
+			return
+		}
+	}
+	argsStr := make([]string, len(args))
+	for i := range args {
+		argsStr[i] = fmt.Sprint(args[i])
+	}
+	//logger.Debugf("[SQL] %s | [%v]", sql, strings.Join(argsStr, ", "))
+	logger.Debugf("[SQL] %s | %v", sql, args)
 }
 
 // ping checks if the database is reachable and updates the service state accordingly.

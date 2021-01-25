@@ -3,7 +3,7 @@ package database
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // Standalone is a struct used to execute standalone commands on the database.
@@ -35,7 +35,7 @@ func (s *Standalone) Transaction(f func(*Session) Error) Error {
 	}
 	defer ses.session.Close()
 
-	s.logger.Debug("Beginning transaction")
+	s.logger.Debug("[SQL] Beginning transaction")
 	if err := f(ses); err != nil {
 		s.logger.Error("Transaction failed, changes have been rolled back")
 		_ = ses.session.Rollback()
@@ -45,7 +45,7 @@ func (s *Standalone) Transaction(f func(*Session) Error) Error {
 		s.logger.Errorf("Failed to commit changes: %s", err)
 		return NewInternalError(err)
 	}
-	s.logger.Debug("Transaction succeeded, changes have been committed")
+	s.logger.Debug("[SQL] Transaction succeeded, changes have been committed")
 	return nil
 }
 

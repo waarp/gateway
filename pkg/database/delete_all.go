@@ -1,6 +1,6 @@
 package database
 
-import "github.com/go-xorm/builder"
+import "xorm.io/builder"
 
 // DeleteAllBean is the interface that a model must implement in order to be
 // deletable via the Delete query builder.

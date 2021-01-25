@@ -1,6 +1,6 @@
 package database
 
-import "github.com/go-xorm/builder"
+import "xorm.io/builder"
 
 // UpdateAllBean is the interface that a model must implement in order to be
 // updatable via the Access.Update query builder.

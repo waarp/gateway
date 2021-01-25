@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // SelectBean is the interface that a model must implement in order to be
@@ -83,7 +83,7 @@ func (s *SelectQuery) Run() Error {
 	query := s.db.getUnderlying().NoAutoCondition().Table(s.bean.TableName())
 
 	for _, cond := range s.conds {
-		query.Where(builder.Expr(cond.sql, cond.args...))
+		query.And(cond.sql, cond.args...)
 	}
 
 	if s.lim != 0 || s.off != 0 {

@@ -15,8 +15,9 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
+	log2 "xorm.io/xorm/log"
+	"xorm.io/xorm/names"
 )
 
 const (
@@ -86,19 +87,19 @@ func (db *DB) loadAESKey() error {
 // createDSN creates and returns the dataSourceName string necessary to open
 // a connection to the database. The DSN varies depending on the options given
 // in the database configuration.
-func (db *DB) createConnectionInfo() (driver string, dsn string, err error) {
+func (db *DB) createConnectionInfo() (string, string, func(*xorm.Engine) error, error) {
 	rdbms := db.Conf.Database.Type
 
 	info, ok := supportedRBMS[rdbms]
 	if !ok {
-		return "", "", fmt.Errorf("unknown database type '%s'", rdbms)
+		return "", "", nil, fmt.Errorf("unknown database type '%s'", rdbms)
 	}
 
-	driver, dsn = info(db.Conf.Database)
-	return
+	driver, dsn, f := info(db.Conf.Database)
+	return driver, dsn, f, nil
 }
 
-type dbinfo func(conf.DatabaseConfig) (string, string)
+type dbinfo func(conf.DatabaseConfig) (string, string, func(*xorm.Engine) error)
 
 var supportedRBMS = map[string]dbinfo{}
 
@@ -126,7 +127,7 @@ func (db *DB) Start() error {
 		return err
 	}
 
-	driver, dsn, err := db.createConnectionInfo()
+	driver, dsn, init, err := db.createConnectionInfo()
 	if err != nil {
 		db.state.Set(service.Error, err.Error())
 		db.logger.Criticalf("Database configuration invalid: %s", err)
@@ -139,8 +140,11 @@ func (db *DB) Start() error {
 		db.logger.Criticalf("Failed to open database: %s", err)
 		return err
 	}
-	engine.SetLogger(xorm.DiscardLogger{})
-	engine.SetMapper(core.GonicMapper{})
+	engine.SetLogger(log2.DiscardLogger{})
+	engine.SetMapper(names.GonicMapper{})
+	if err := init(engine); err != nil {
+		return err
+	}
 
 	if err := engine.Ping(); err != nil {
 		db.state.Set(service.Error, err.Error())

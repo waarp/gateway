@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // IterateBean is the interface that a model must implement in order to be

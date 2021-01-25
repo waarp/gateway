@@ -76,7 +76,7 @@ func TestControllerListen(t *testing.T) {
 		}
 		So(db.Insert(ruleTask).Run(), ShouldBeNil)
 
-		start := time.Now().Truncate(time.Second)
+		start := time.Now()
 
 		Convey("Given a controller", func() {
 			tick := time.Nanosecond
@@ -120,6 +120,10 @@ func TestControllerListen(t *testing.T) {
 
 						Convey("Then it should have retrieved the planned "+
 							"transfer entry", func() {
+							var trans model.Transfers
+							So(db.Select(&trans).Run(), ShouldBeNil)
+							So(trans, ShouldBeEmpty)
+
 							var hist model.Histories
 							So(db.Select(&hist).Run(), ShouldBeNil)
 							So(hist, ShouldNotBeEmpty)
@@ -170,6 +174,11 @@ func TestControllerListen(t *testing.T) {
 
 					Convey("When the controller starts listening", func() {
 						cont.listen()
+						Reset(func() {
+							ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+							defer cancel()
+							So(cont.Stop(ctx), ShouldBeNil)
+						})
 
 						Convey("When the database comes back online", func() {
 							time.Sleep(100 * time.Millisecond)

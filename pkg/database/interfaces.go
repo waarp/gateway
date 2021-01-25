@@ -2,7 +2,7 @@ package database
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // ReadAccess is the interface listing all the read operations possible on the
@@ -119,6 +119,12 @@ type DeletionHook interface {
 // inserting or updating an entry.
 type WriteHook interface {
 	BeforeWrite(ReadAccess) Error
+}
+
+// WriteReset is an interface which adds a function which will be run after
+// inserting or updating an entry.
+type WriteReset interface {
+	AfterWrite()
 }
 
 // Table is the interface which adds the base methods that all database models

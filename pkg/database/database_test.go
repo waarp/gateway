@@ -55,7 +55,7 @@ func testIterate(db *DB) {
 	}
 
 	runTests := func(db ReadAccess) {
-		query := db.Iterate(&testValid{})
+		query := db.Iterate(&testValid{}).OrderBy("id", true)
 
 		Convey("With no conditions", func() {
 			shouldContain(query, bean1, bean2, bean3, bean4, bean5)
@@ -123,7 +123,7 @@ func testIterate(db *DB) {
 		})
 
 		Convey("With a 'DISTINCT' clause", func() {
-			query.Distinct("string")
+			query.Distinct("string").OrderBy("string", true)
 			shouldContain(query, testValid{String: bean1.String},
 				testValid{String: bean2.String}, testValid{String: bean4.String})
 		})
@@ -141,7 +141,7 @@ func testIterate(db *DB) {
 		Convey("Inside a transaction", func() {
 			ses := db.newSession()
 			So(ses.session.Begin(), ShouldBeNil)
-			Reset(ses.session.Close)
+			Reset(func() { _ = ses.session.Close() })
 
 			runTests(ses)
 		})
@@ -171,7 +171,7 @@ func testSelect(db *DB) {
 
 	runTests := func(db ReadAccess) {
 		var res validList
-		query := db.Select(&res)
+		query := db.Select(&res).OrderBy("id", true)
 
 		Convey("With no conditions", func() {
 			shouldContain(query, &res, bean1, bean2, bean3, bean4, bean5)
@@ -239,7 +239,7 @@ func testSelect(db *DB) {
 		})
 
 		Convey("With a 'DISTINCT' clause", func() {
-			query.Distinct("string")
+			query.Distinct("string").OrderBy("string", true)
 			shouldContain(query, &res, testValid{String: bean1.String},
 				testValid{String: bean2.String}, testValid{String: bean4.String})
 		})
@@ -257,7 +257,7 @@ func testSelect(db *DB) {
 		Convey("Inside a transaction", func() {
 			ses := db.newSession()
 			So(ses.session.Begin(), ShouldBeNil)
-			Reset(ses.session.Close)
+			Reset(func() { _ = ses.session.Close() })
 
 			runTests(ses)
 		})
@@ -317,7 +317,7 @@ func testInsert(db *DB) {
 		Convey("Inside a transaction", func() {
 			ses := db.newSession()
 			So(ses.session.Begin(), ShouldBeNil)
-			Reset(ses.session.Close)
+			Reset(func() { _ = ses.session.Close() })
 
 			runTests(ses)
 		})
@@ -359,7 +359,7 @@ func testGet(db *DB) {
 		Convey("Inside a transaction", func() {
 			ses := db.newSession()
 			So(ses.session.Begin(), ShouldBeNil)
-			Reset(ses.session.Close)
+			Reset(func() { _ = ses.session.Close() })
 
 			runTests(ses)
 		})
@@ -429,7 +429,7 @@ func testUpdate(db *DB) {
 		Convey("Inside a transaction", func() {
 			ses := db.newSession()
 			So(ses.session.Begin(), ShouldBeNil)
-			Reset(ses.session.Close)
+			Reset(func() { _ = ses.session.Close() })
 
 			runTests(ses)
 		})
@@ -473,7 +473,7 @@ func testUpdateAll(db *DB) {
 		Convey("Inside a transaction", func() {
 			ses := db.newSession()
 			So(ses.session.Begin(), ShouldBeNil)
-			Reset(ses.session.Close)
+			Reset(func() { _ = ses.session.Close() })
 
 			runTests(ses)
 		})
@@ -547,7 +547,7 @@ func testDelete(db *DB) {
 		Convey("Inside a transaction", func() {
 			ses := db.newSession()
 			So(ses.session.Begin(), ShouldBeNil)
-			Reset(ses.session.Close)
+			Reset(func() { _ = ses.session.Close() })
 
 			runTests(ses)
 		})
@@ -584,7 +584,7 @@ func testDeleteAll(db *DB) {
 		Convey("Inside a transaction", func() {
 			ses := db.newSession()
 			So(ses.session.Begin(), ShouldBeNil)
-			Reset(ses.session.Close)
+			Reset(func() { _ = ses.session.Close() })
 
 			runTests(ses)
 		})

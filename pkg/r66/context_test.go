@@ -212,7 +212,7 @@ func checkTransfersOK(c C, ctx *testContext) {
 		c.So(transfers, ShouldBeEmpty)
 
 		var results model.Histories
-		c.So(ctx.db.Select(&results).Run(), ShouldBeNil)
+		c.So(ctx.db.Select(&results).OrderBy("id", true).Run(), ShouldBeNil)
 		c.So(len(results), ShouldEqual, 2)
 
 		c.Convey("Then there should be a client-side history entry", func(c C) {
@@ -281,7 +281,7 @@ func checkTransfersOK(c C, ctx *testContext) {
 func checkTransfersErr(c C, ctx *testContext, cTrans *model.Transfer, sTrans ...*model.Transfer) {
 	c.Convey("Then the transfers should be over", func(c C) {
 		var results model.Transfers
-		c.So(ctx.db.Select(&results).Run(), ShouldBeNil)
+		c.So(ctx.db.Select(&results).OrderBy("id", true).Run(), ShouldBeNil)
 		c.So(len(results), ShouldEqual, 2)
 
 		c.Convey("Then there should be a client-side transfer entry in error", func(c C) {

@@ -40,8 +40,8 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 	fmt.Fprintln(w, orange("    Requested:       "), hist.Requested)
 	fmt.Fprintln(w, orange("    Source file:     "), hist.SourceFilename)
 	fmt.Fprintln(w, orange("    Destination file:"), hist.DestFilename)
-	fmt.Fprintln(w, orange("    Start date:      "), hist.Start.Format(time.RFC3339))
-	fmt.Fprintln(w, orange("    End date:        "), hist.Stop.Format(time.RFC3339))
+	fmt.Fprintln(w, orange("    Start date:      "), hist.Start.Format(time.RFC3339Nano))
+	fmt.Fprintln(w, orange("    End date:        "), hist.Stop.Format(time.RFC3339Nano))
 	if hist.ErrorCode != types.TeOk {
 		fmt.Fprintln(w, orange("    Error code:      "), hist.ErrorCode)
 		if hist.ErrorMsg != "" {
@@ -115,20 +115,20 @@ func (h *historyList) listURL() error {
 		query.Add("status", sta)
 	}
 	if h.Start != "" {
-		start, err := time.Parse(time.RFC3339, h.Start)
+		start, err := time.Parse(time.RFC3339Nano, h.Start)
 		if err != nil {
 			return fmt.Errorf("'%s' is not a start valid date (accepted format: '%s')",
-				h.Start, time.RFC3339)
+				h.Start, time.RFC3339Nano)
 		}
-		query.Set("start", start.Format(time.RFC3339))
+		query.Set("start", start.Format(time.RFC3339Nano))
 	}
 	if h.Stop != "" {
-		stop, err := time.Parse(time.RFC3339, h.Stop)
+		stop, err := time.Parse(time.RFC3339Nano, h.Stop)
 		if err != nil {
 			return fmt.Errorf("'%s' is not a end valid date (accepted format: '%s')",
-				h.Start, time.RFC3339)
+				h.Start, time.RFC3339Nano)
 		}
-		query.Set("stop", stop.Format(time.RFC3339))
+		query.Set("stop", stop.Format(time.RFC3339Nano))
 	}
 	addr.RawQuery = query.Encode()
 
@@ -173,12 +173,12 @@ func (h *historyRetry) Execute([]string) error {
 
 	query := url.Values{}
 	if h.Date != "" {
-		start, err := time.Parse(time.RFC3339, h.Date)
+		start, err := time.Parse(time.RFC3339Nano, h.Date)
 		if err != nil {
 			return fmt.Errorf("'%s' is not a start valid date (accepted format: '%s')",
-				h.Date, time.RFC3339)
+				h.Date, time.RFC3339Nano)
 		}
-		query.Set("date", start.Format(time.RFC3339))
+		query.Set("date", start.Format(time.RFC3339Nano))
 	}
 	addr.RawQuery = query.Encode()
 

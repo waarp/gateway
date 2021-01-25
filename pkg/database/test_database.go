@@ -13,15 +13,17 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+	"xorm.io/xorm"
 )
 
 const (
-	test       = "test"
-	testDriver = "sqlite3"
+	testDBType = "test"
+	testDBEnv  = "GATEWAY_TEST_DB"
 )
 
-func testinfo(c conf.DatabaseConfig) (string, string) {
-	return testDriver, fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc", c.Name)
+func testinfo(c conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc",
+		c.Address), sqliteInit
 }
 
 func testGCM() {
@@ -39,22 +41,64 @@ func testGCM() {
 	convey.So(err, convey.ShouldBeNil)
 }
 
-// TestDatabase returns a testing Sqlite database stored in memory for testing
-// purposes. The function must be called within a convey context.
-// The database will log messages at the level given.
-func TestDatabase(c convey.C, logLevel string) *DB {
-	supportedRBMS[test] = testinfo
-	BcryptRounds = bcrypt.MinCost
-
-	config := &conf.ServerConfig{}
-	config.GatewayName = "test_gateway"
+func tempFilename(c convey.C) string {
 	f, err := ioutil.TempFile(os.TempDir(), "test_database_*.db")
 	c.So(err, convey.ShouldBeNil)
 	c.So(f.Close(), convey.ShouldBeNil)
 	c.So(os.Remove(f.Name()), convey.ShouldBeNil)
+	return f.Name()
+}
 
-	config.Database.Name = f.Name()
-	config.Database.Type = test
+func initTestDBConf(c convey.C, config *conf.DatabaseConfig) {
+	dbType := os.Getenv(testDBEnv)
+	switch dbType {
+	case postgres:
+		config.Type = postgres
+		config.User = "postgres"
+		config.Name = "waarp_gateway_test"
+		config.Address = "localhost:5432"
+	case mysql:
+		config.Type = mysql
+		config.User = "root"
+		config.Name = "waarp_gateway_test"
+		config.Address = "localhost:3306"
+	case sqlite:
+		config.Type = sqlite
+		config.Address = tempFilename(c)
+	case "":
+		supportedRBMS[testDBType] = testinfo
+		config.Type = testDBType
+		config.Address = tempFilename(c)
+	default:
+		_, _ = c.Printf("Unknown database type '%s'\n", dbType)
+		c.So(dbType, convey.ShouldNotEqual, dbType)
+	}
+}
+
+func resetDB(c convey.C, db *DB, config *conf.DatabaseConfig) {
+	switch config.Type {
+	case postgres, mysql:
+		for _, tbl := range Tables {
+			c.So(db.engine.DropTables(tbl.TableName()), convey.ShouldBeNil)
+		}
+		c.So(db.engine.Close(), convey.ShouldBeNil)
+	case sqlite, testDBType:
+		c.So(db.engine.Close(), convey.ShouldBeNil)
+		c.So(os.Remove(config.Address), convey.ShouldBeNil)
+	default:
+		_, _ = c.Printf("Unknown database type '%s'\n", config.Type)
+		c.So(config.Type, convey.ShouldNotEqual, config.Type)
+	}
+}
+
+// TestDatabase returns a testing Sqlite database stored in memory for testing
+// purposes. The function must be called within a convey context.
+// The database will log messages at the level given.
+func TestDatabase(c convey.C, logLevel string) *DB {
+	BcryptRounds = bcrypt.MinCost
+	config := &conf.ServerConfig{}
+	config.GatewayName = "test_gateway"
+	initTestDBConf(c, &config.Database)
 
 	level, err := logging.LevelByName(logLevel)
 	c.So(err, convey.ShouldBeNil)
@@ -70,11 +114,7 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 	}
 
 	c.So(db.Start(), convey.ShouldBeNil)
-	c.Reset(func() {
-		_ = db.engine.Close()
-		_ = os.Remove(f.Name())
-	})
-	db.engine.SetMaxOpenConns(1)
+	c.Reset(func() { resetDB(c, db, &config.Database) })
 
 	return db
 }

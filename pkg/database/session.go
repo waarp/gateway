@@ -3,7 +3,7 @@ package database
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // Session is a struct used to perform transactions on the database. A session

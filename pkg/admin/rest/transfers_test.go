@@ -256,6 +256,7 @@ func TestGetTransfer(t *testing.T) {
 				AccountID:  account.ID,
 				SourceFile: "src",
 				DestFile:   "dst",
+				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -384,6 +385,9 @@ func TestListTransfer(t *testing.T) {
 				DestFile:   "dst2",
 				Progress:   1,
 				TaskNumber: 2,
+				Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
+				Step:       types.StepPreTasks,
+				Status:     types.StatusPlanned,
 			}
 			So(db.Insert(t1).Run(), ShouldBeNil)
 
@@ -393,6 +397,9 @@ func TestListTransfer(t *testing.T) {
 				AccountID:  a2.ID,
 				SourceFile: "src2",
 				DestFile:   "dst2",
+				Start:      time.Date(2021, 1, 1, 2, 0, 0, 234000, time.Local),
+				Step:       types.StepPostTasks,
+				Status:     types.StatusError,
 			}
 			So(db.Insert(t2).Run(), ShouldBeNil)
 
@@ -402,9 +409,14 @@ func TestListTransfer(t *testing.T) {
 				AccountID:  a1.ID,
 				SourceFile: "src3",
 				DestFile:   "dst3",
-				Start:      t2.Start.Add(2 * time.Hour),
+				Start:      time.Date(2021, 1, 1, 3, 0, 0, 345000, time.Local),
+				Step:       types.StepData,
+				Status:     types.StatusPaused,
 			}
 			So(db.Insert(t3).Run(), ShouldBeNil)
+
+			t1.Step = types.StepFinalization
+			So(db.Update(t1).Run(), ShouldBeNil)
 
 			trans1, err := FromTransfer(db, t1)
 			So(err, ShouldBeNil)
@@ -482,7 +494,7 @@ func TestListTransfer(t *testing.T) {
 					})
 
 					Convey("Then it should return all transfer", func() {
-						expected["transfers"] = []OutTransfer{*trans1, *trans2, *trans3}
+						expected["transfers"] = []OutTransfer{*trans1}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -492,9 +504,9 @@ func TestListTransfer(t *testing.T) {
 			})
 
 			Convey("Given a request with a valid 'start' parameter", func() {
-				date := t3.Start.Add(-time.Minute)
+				date := t3.Start
 				req, err := http.NewRequest(http.MethodGet,
-					fmt.Sprintf("?start=%s", url.QueryEscape(date.Format(time.RFC3339))), nil)
+					fmt.Sprintf("?start=%s", url.QueryEscape(date.Format(time.RFC3339Nano))), nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -593,7 +605,7 @@ func TestResumeTransfer(t *testing.T) {
 							AccountID:  account.ID,
 							SourceFile: "src",
 							DestFile:   "dst",
-							Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
+							Start:      trans.Start.Local(),
 							Status:     types.StatusPlanned,
 							Step:       types.StepData,
 							Error:      types.TransferError{},
@@ -645,7 +657,7 @@ func TestPauseTransfer(t *testing.T) {
 				AccountID:  account.ID,
 				SourceFile: "src",
 				DestFile:   "dst",
-				Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
+				Start:      time.Date(2020, 1, 2, 3, 4, 5, 678000, time.Local),
 				Status:     types.StatusPlanned,
 				Step:       types.StepData,
 				Error:      types.TransferError{},
@@ -671,7 +683,7 @@ func TestPauseTransfer(t *testing.T) {
 						So(w.Code, ShouldEqual, http.StatusAccepted)
 					})
 
-					Convey("Then the transfer should have been reprogrammed", func() {
+					Convey("Then the transfer should have been paused", func() {
 						exp := model.Transfer{
 							ID:         trans.ID,
 							Owner:      database.Owner,
@@ -680,7 +692,7 @@ func TestPauseTransfer(t *testing.T) {
 							AccountID:  account.ID,
 							SourceFile: "src",
 							DestFile:   "dst",
-							Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
+							Start:      trans.Start.Local(),
 							Status:     types.StatusPaused,
 							Step:       types.StepData,
 							Error:      types.TransferError{},

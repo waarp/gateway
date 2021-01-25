@@ -27,7 +27,7 @@ type Transfer struct {
 	TrueFilepath     string               `xorm:"notnull 'true_filepath'"`
 	SourceFile       string               `xorm:"notnull 'source_file'"`
 	DestFile         string               `xorm:"notnull 'dest_file'"`
-	Start            time.Time            `xorm:"notnull 'start'"`
+	Start            time.Time            `xorm:"notnull timestampz 'start'"`
 	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
 	Status           types.TransferStatus `xorm:"notnull 'status'"`
 	Owner            string               `xorm:"notnull 'owner'"`
@@ -160,8 +160,9 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the transfer's destination cannot be empty")
 	}
 	if t.Start.IsZero() {
-		t.Start = time.Now().Truncate(time.Second)
+		t.Start = time.Now()
 	}
+
 	if t.Status == "" {
 		t.Status = types.StatusPlanned
 	}

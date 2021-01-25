@@ -42,15 +42,13 @@ func TestGetHistory(t *testing.T) {
 				Protocol:       "sftp",
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
-				Start:          time.Date(2019, 01, 01, 00, 00, 00, 00, time.UTC),
-				Stop:           time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
+				Start:          time.Date(2021, 1, 2, 3, 4, 5, 678000, time.Local),
+				Stop:           time.Date(2021, 2, 3, 4, 5, 6, 789000, time.Local),
 				Status:         "DONE",
 			}
 			So(db.Insert(h).Run(), ShouldBeNil)
 
 			id := strconv.FormatUint(h.ID, 10)
-			h.Start = h.Start.Local()
-			h.Stop = h.Stop.Local()
 
 			Convey("Given a request with the valid transfer history ID parameter", func() {
 				uri := path.Join(historyURI, id)
@@ -120,15 +118,13 @@ func TestListHistory(t *testing.T) {
 				Agent:          "to3",
 				Protocol:       "sftp",
 				Rule:           "rule1",
-				Start:          time.Date(2019, 01, 01, 02, 00, 00, 00, time.UTC),
-				Stop:           time.Date(2019, 01, 01, 06, 00, 00, 00, time.UTC),
+				Start:          time.Date(2019, 1, 1, 1, 0, 0, 1000, time.Local),
+				Stop:           time.Date(2019, 1, 1, 3, 0, 0, 1000, time.Local),
 				Status:         types.StatusDone,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
 			So(db.Insert(h1).Run(), ShouldBeNil)
-			h1.Start = h1.Start.Local()
-			h1.Stop = h1.Stop.Local()
 
 			h2 := &model.TransferHistory{
 				ID:             2,
@@ -138,15 +134,13 @@ func TestListHistory(t *testing.T) {
 				Agent:          "to1",
 				Protocol:       "sftp",
 				Rule:           "rule2",
-				Start:          time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
-				Stop:           time.Date(2019, 01, 01, 07, 00, 00, 00, time.UTC),
+				Start:          time.Date(2019, 1, 1, 2, 0, 0, 2000, time.Local),
+				Stop:           time.Date(2019, 1, 1, 4, 0, 0, 2000, time.Local),
 				Status:         types.StatusCancelled,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
 			So(db.Insert(h2).Run(), ShouldBeNil)
-			h2.Start = h2.Start.Local()
-			h2.Stop = h2.Stop.Local()
 
 			h3 := &model.TransferHistory{
 				ID:             3,
@@ -156,15 +150,13 @@ func TestListHistory(t *testing.T) {
 				Agent:          "to2",
 				Protocol:       "sftp",
 				Rule:           "rule1",
-				Start:          time.Date(2019, 01, 01, 03, 00, 00, 00, time.UTC),
-				Stop:           time.Date(2019, 01, 01, 8, 00, 00, 00, time.UTC),
+				Start:          time.Date(2019, 1, 1, 3, 0, 0, 3000, time.Local),
+				Stop:           time.Date(2019, 1, 1, 5, 0, 0, 3000, time.Local),
 				Status:         types.StatusCancelled,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
 			So(db.Insert(h3).Run(), ShouldBeNil)
-			h3.Start = h3.Start.Local()
-			h3.Stop = h3.Stop.Local()
 
 			h4 := &model.TransferHistory{
 				ID:             4,
@@ -174,15 +166,13 @@ func TestListHistory(t *testing.T) {
 				Agent:          "to3",
 				Protocol:       "sftp",
 				Rule:           "rule2",
-				Start:          time.Date(2019, 01, 01, 04, 00, 00, 00, time.UTC),
-				Stop:           time.Date(2019, 01, 01, 05, 00, 00, 00, time.UTC),
+				Start:          time.Date(2019, 1, 1, 4, 0, 0, 4000, time.Local),
+				Stop:           time.Date(2019, 1, 1, 6, 0, 0, 4000, time.Local),
 				Status:         types.StatusDone,
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
 			}
 			So(db.Insert(h4).Run(), ShouldBeNil)
-			h4.Start = h4.Start.Local()
-			h4.Stop = h4.Stop.Local()
 
 			hist1 := *FromHistory(h1)
 			hist2 := *FromHistory(h2)
@@ -206,7 +196,7 @@ func TestListHistory(t *testing.T) {
 					})
 
 					Convey("Then it should return 2 transfer history", func() {
-						expected["history"] = []OutHistory{hist2, hist1}
+						expected["history"] = []OutHistory{hist1, hist2}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -287,7 +277,7 @@ func TestListHistory(t *testing.T) {
 					})
 
 					Convey("Then it should return all 4 transfer history", func() {
-						expected["history"] = []OutHistory{hist2, hist1, hist3, hist4}
+						expected["history"] = []OutHistory{hist1, hist2, hist3, hist4}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -297,9 +287,9 @@ func TestListHistory(t *testing.T) {
 			})
 
 			Convey("Given a request with 1 valid 'start' parameter", func() {
-				date := h1.Start.Add(-time.Minute)
+				date := h3.Start.Format(time.RFC3339Nano)
 				req, err := http.NewRequest(http.MethodGet,
-					fmt.Sprintf("?start=%s", url.QueryEscape(date.Format(time.RFC3339))), nil)
+					fmt.Sprintf("?start=%s", url.QueryEscape(date)), nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -310,7 +300,7 @@ func TestListHistory(t *testing.T) {
 					})
 
 					Convey("Then it should return 3 transfer history", func() {
-						expected["history"] = []OutHistory{hist1, hist3, hist4}
+						expected["history"] = []OutHistory{hist3, hist4}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -320,9 +310,9 @@ func TestListHistory(t *testing.T) {
 			})
 
 			Convey("Given a request with 1 valid 'stop' parameter", func() {
-				date := h4.Stop.Add(time.Minute)
+				date := h2.Stop.Format(time.RFC3339Nano)
 				req, err := http.NewRequest(http.MethodGet,
-					fmt.Sprintf("?stop=%s", url.QueryEscape(date.Format(time.RFC3339))), nil)
+					fmt.Sprintf("?stop=%s", url.QueryEscape(date)), nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -333,7 +323,7 @@ func TestListHistory(t *testing.T) {
 					})
 
 					Convey("Then it should return 1 transfer history", func() {
-						expected["history"] = []OutHistory{hist4}
+						expected["history"] = []OutHistory{hist1, hist2}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -343,11 +333,11 @@ func TestListHistory(t *testing.T) {
 			})
 
 			Convey("Given a request with 1 valid 'stop' and 1 valid 'start' parameter", func() {
-				start := h3.Start.Add(-time.Minute)
+				start := h2.Start.Add(-time.Minute)
 				stop := h3.Stop.Add(time.Minute)
 				req, err := http.NewRequest(http.MethodGet,
-					fmt.Sprintf("?start=%s&stop=%s", url.QueryEscape(start.Format(time.RFC3339)),
-						url.QueryEscape(stop.Format(time.RFC3339))), nil)
+					fmt.Sprintf("?start=%s&stop=%s", url.QueryEscape(start.Format(time.RFC3339Nano)),
+						url.QueryEscape(stop.Format(time.RFC3339Nano))), nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -358,7 +348,7 @@ func TestListHistory(t *testing.T) {
 					})
 
 					Convey("Then it should return 1 transfer history", func() {
-						expected["history"] = []OutHistory{hist3, hist4}
+						expected["history"] = []OutHistory{hist2, hist3}
 						exp, err := json.Marshal(expected)
 
 						So(err, ShouldBeNil)
@@ -438,19 +428,16 @@ func TestRestartTransfer(t *testing.T) {
 				Protocol:       "test",
 				SourceFilename: "file.test",
 				DestFilename:   "file.test",
-				Start:          time.Date(2019, 01, 01, 00, 00, 00, 00, time.UTC),
-				Stop:           time.Date(2019, 01, 01, 01, 00, 00, 00, time.UTC),
+				Start:          time.Date(2019, 1, 1, 0, 0, 0, 0, time.Local),
+				Stop:           time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:         types.StatusCancelled,
 			}
 			So(db.Insert(h).Run(), ShouldBeNil)
 
 			id := strconv.FormatUint(h.ID, 10)
-			h.Start = h.Start.Local()
-			h.Stop = h.Stop.Local()
 
 			Convey("Given a request with the valid transfer history ID parameter", func() {
-				date := time.Now().Add(time.Hour + time.Minute).Truncate(time.Second)
-				dateStr := url.QueryEscape(date.Format(time.RFC3339))
+				dateStr := url.QueryEscape(h.Start.Format(time.RFC3339Nano))
 
 				uri := fmt.Sprintf("%s/%s/restart?date=%s", historyURI, id, dateStr)
 				req, err := http.NewRequest(http.MethodPut, uri, nil)
@@ -488,7 +475,7 @@ func TestRestartTransfer(t *testing.T) {
 							AccountID:  account.ID,
 							SourceFile: h.SourceFilename,
 							DestFile:   h.DestFilename,
-							Start:      date,
+							Start:      h.Start,
 							Status:     types.StatusPlanned,
 							Owner:      h.Owner,
 						}

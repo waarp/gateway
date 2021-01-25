@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // GetBean is the interface that a model must implement in order to be usable

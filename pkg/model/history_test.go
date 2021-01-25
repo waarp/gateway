@@ -109,7 +109,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 					"the transfer's end date cannot be empty"))
 			})
 
-			Convey("Given that the end date is before the ", func() {
+			Convey("Given that the end date is before the start date", func() {
 				hist.Stop = hist.Start.AddDate(0, 0, -1)
 				shouldFailWith("the end date is anterior", database.NewValidationError(
 					"the transfer's end date cannot be anterior to the start date"))
@@ -207,8 +207,8 @@ func TestTransferHistoryRestart(t *testing.T) {
 				SourceFilename:   "file.src",
 				DestFilename:     "file.dst",
 				Rule:             rule.Name,
-				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.UTC),
-				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.UTC),
+				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
+				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Status:           types.StatusDone,
 				Error:            TransferError{},
 				Step:             types.StepNone,
@@ -217,7 +217,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 			}
 
 			Convey("When calling the 'Restart' function", func() {
-				date := time.Date(2021, 0, 0, 0, 0, 0, 0, time.UTC)
+				date := time.Date(2021, 0, 0, 0, 0, 0, 0, time.Local)
 				trans, err := history.Restart(db, date)
 				So(err, ShouldBeNil)
 
@@ -273,8 +273,8 @@ func TestTransferHistoryRestart(t *testing.T) {
 				SourceFilename:   "file.src",
 				DestFilename:     "file.dst",
 				Rule:             rule.Name,
-				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.UTC),
-				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.UTC),
+				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
+				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Status:           types.StatusDone,
 				Error:            TransferError{},
 				Step:             types.StepNone,
@@ -283,7 +283,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 			}
 
 			Convey("When calling the 'Restart' function", func() {
-				date := time.Date(2021, 0, 0, 0, 0, 0, 0, time.UTC)
+				date := time.Date(2021, 0, 0, 0, 0, 0, 0, time.Local)
 				trans, err := history.Restart(db, date)
 				So(err, ShouldBeNil)
 

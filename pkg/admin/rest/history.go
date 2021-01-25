@@ -27,8 +27,8 @@ func FromHistory(h *model.TransferHistory) *api.OutHistory {
 		SourceFilename: h.SourceFilename,
 		DestFilename:   h.DestFilename,
 		Rule:           h.Rule,
-		Start:          h.Start,
-		Stop:           h.Stop,
+		Start:          h.Start.Local(),
+		Stop:           h.Stop.Local(),
 		Status:         h.Status,
 		ErrorCode:      h.Error.Code,
 		ErrorMsg:       h.Error.Details,
@@ -42,26 +42,8 @@ func FromHistory(h *model.TransferHistory) *api.OutHistory {
 // JSON equivalent.
 func FromHistories(hs []model.TransferHistory) []api.OutHistory {
 	hist := make([]api.OutHistory, len(hs))
-	for i, h := range hs {
-		hist[i] = api.OutHistory{
-			ID:             h.ID,
-			IsServer:       h.IsServer,
-			IsSend:         h.IsSend,
-			Requester:      h.Account,
-			Requested:      h.Agent,
-			Protocol:       h.Protocol,
-			SourceFilename: h.SourceFilename,
-			DestFilename:   h.DestFilename,
-			Rule:           h.Rule,
-			Start:          h.Start,
-			Stop:           h.Stop,
-			Status:         h.Status,
-			ErrorCode:      h.Error.Code,
-			ErrorMsg:       h.Error.Details,
-			Step:           h.Step,
-			Progress:       h.Progress,
-			TaskNumber:     h.TaskNumber,
-		}
+	for i := range hs {
+		hist[i] = *FromHistory(&hs[i])
 	}
 	return hist
 }
@@ -112,19 +94,21 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 	}
 	starts := r.Form["start"]
 	if len(starts) > 0 {
-		start, err := time.Parse(time.RFC3339, starts[0])
+		start, err := time.Parse(time.RFC3339Nano, starts[0])
 		if err != nil {
 			return badRequest("'%s' is not a valid date", starts[0])
 		}
-		query.Where("start >= ?", start.UTC())
+		query.Where("start >= ?", start.UTC().Truncate(time.Microsecond).
+			Format(time.RFC3339Nano))
 	}
 	stops := r.Form["stop"]
 	if len(stops) > 0 {
-		stop, err := time.Parse(time.RFC3339, stops[0])
+		stop, err := time.Parse(time.RFC3339Nano, stops[0])
 		if err != nil {
 			return badRequest("'%s' is not a valid date", stops[0])
 		}
-		query.Where("stop <= ?", stop.UTC())
+		query.Where("stop <= ?", stop.UTC().Truncate(time.Microsecond).
+			Format(time.RFC3339Nano))
 	}
 
 	return nil
@@ -188,7 +172,7 @@ func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		date := time.Now().UTC()
 		if dateStr := r.FormValue("date"); dateStr != "" {
-			date, err = time.Parse(time.RFC3339, dateStr)
+			date, err = time.Parse(time.RFC3339Nano, dateStr)
 			if handleError(w, logger, err) {
 				return
 			}

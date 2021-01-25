@@ -25,9 +25,9 @@ type TransferHistory struct {
 	SourceFilename   string               `xorm:"notnull 'source_filename'"`
 	DestFilename     string               `xorm:"notnull 'dest_filename'"`
 	Rule             string               `xorm:"notnull 'rule'"`
-	Start            time.Time            `xorm:"notnull 'start'"`
-	Stop             time.Time            `xorm:"notnull 'stop'"`
-	Status           types.TransferStatus `xorm:"notnull 'status'"`
+	Start            time.Time            `xorm:"notnull timestampz 'start'"`
+	Stop             time.Time            `xorm:"notnull timestampz 'stop'"`
+	Status           types.TransferStatus `xorm:"notnull varchar(50) 'status'"`
 	Error            types.TransferError  `xorm:"extends"`
 	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
 	Progress         uint64               `xorm:"notnull 'progression'"`
@@ -148,7 +148,7 @@ func (h *TransferHistory) Restart(db database.Access, date time.Time) (*Transfer
 		AccountID:        accountID,
 		SourceFile:       h.SourceFilename,
 		DestFile:         h.DestFilename,
-		Start:            date.UTC(),
+		Start:            date,
 		Status:           types.StatusPlanned,
 		Step:             types.StepNone,
 		Owner:            h.Owner,

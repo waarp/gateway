@@ -127,7 +127,7 @@ func TestGetRule(t *testing.T) {
 	logger := log.NewLogger("rest_rule_get_test")
 
 	Convey("Given the rule get handler", t, func(c C) {
-		db := database.TestDatabase(c, "DEBUG")
+		db := database.TestDatabase(c, "ERROR")
 		handler := getRule(logger, db)
 		w := httptest.NewRecorder()
 
@@ -457,7 +457,7 @@ func TestUpdateRule(t *testing.T) {
 
 						Convey("Then the rule should have been updated", func() {
 							var results model.Rules
-							So(db.Select(&results).Run(), ShouldBeNil)
+							So(db.Select(&results).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(results), ShouldEqual, 3)
 
 							expected := model.Rule{

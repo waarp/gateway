@@ -59,6 +59,9 @@ func (u *UpdateQuery) Run() Error {
 		logger.Errorf("Failed to update the %s entry: %s", u.bean.Appellation(), err1)
 		return NewInternalError(err1)
 	}
+	if reset, ok := u.bean.(WriteReset); ok {
+		reset.AfterWrite()
+	}
 
 	return nil
 }

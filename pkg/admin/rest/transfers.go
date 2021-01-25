@@ -49,12 +49,12 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 		TrueFilepath: trans.TrueFilepath,
 		SourcePath:   trans.SourceFile,
 		DestPath:     trans.DestFile,
-		Start:        trans.Start,
+		Start:        trans.Start.Local(),
 		Status:       trans.Status,
-		Step:         trans.Step,
+		Step:         trans.Step.String(),
 		Progress:     trans.Progress,
 		TaskNumber:   trans.TaskNumber,
-		ErrorCode:    trans.Error.Code,
+		ErrorCode:    trans.Error.Code.String(),
 		ErrorMsg:     trans.Error.Details,
 	}, nil
 }
@@ -166,7 +166,7 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		switch check.Status {
 		case types.StatusPlanned:
 			check.Status = types.StatusPaused
-			if err := db.Update(check).Run(); handleError(w, logger, err) {
+			if err := db.Update(check).Cols("status").Run(); handleError(w, logger, err) {
 				return
 			}
 		case types.StatusRunning:
@@ -224,7 +224,8 @@ func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		check.Status = types.StatusPlanned
 		check.Error = types.TransferError{}
-		if err := db.Update(check).Run(); handleError(w, logger, err) {
+		if err := db.Update(check).Cols("status", "error_code", "error_details").
+			Run(); handleError(w, logger, err) {
 			return
 		}
 

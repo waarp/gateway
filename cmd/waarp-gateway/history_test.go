@@ -39,8 +39,8 @@ func historyInfoString(h *api.OutHistory) string {
 		"    Requested:        " + h.Requested + "\n" +
 		"    Source file:      " + h.SourceFilename + "\n" +
 		"    Destination file: " + h.DestFilename + "\n" +
-		"    Start date:       " + h.Start.Local().Format(time.RFC3339) + "\n" +
-		"    End date:         " + h.Stop.Local().Format(time.RFC3339) + "\n"
+		"    Start date:       " + h.Start.Local().Format(time.RFC3339Nano) + "\n" +
+		"    End date:         " + h.Stop.Local().Format(time.RFC3339Nano) + "\n"
 	if h.ErrorCode != types.TeOk {
 		rv += "    Error code:       " + h.ErrorCode.String() + "\n"
 		if h.ErrorMsg != "" {
@@ -155,8 +155,8 @@ func TestGetHistory(t *testing.T) {
 					Protocol:       "sftp",
 					SourceFilename: "file/path",
 					DestFilename:   "file/path",
-					Start:          time.Now(),
-					Stop:           time.Now().Add(time.Hour),
+					Start:          time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+					Stop:           time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
 					Status:         types.StatusDone,
 					Owner:          database.Owner,
 				}
@@ -220,8 +220,8 @@ func TestListHistory(t *testing.T) {
 					SourceFilename: "file1",
 					DestFilename:   "file1",
 					Rule:           "rule1",
-					Start:          time.Date(2019, 1, 1, 1, 0, 0, 0, time.UTC),
-					Stop:           time.Date(2019, 1, 1, 1, 1, 0, 0, time.UTC),
+					Start:          time.Date(2019, 1, 1, 1, 1, 0, 1000, time.Local),
+					Stop:           time.Date(2019, 1, 1, 1, 2, 0, 1000, time.Local),
 					Status:         types.StatusDone,
 				}
 				h2 := &model.TransferHistory{
@@ -234,8 +234,8 @@ func TestListHistory(t *testing.T) {
 					SourceFilename: "file2",
 					DestFilename:   "file2",
 					Rule:           "rule2",
-					Start:          time.Date(2019, 1, 1, 2, 0, 0, 0, time.UTC),
-					Stop:           time.Date(2019, 1, 1, 2, 1, 0, 0, time.UTC),
+					Start:          time.Date(2019, 1, 1, 2, 0, 0, 2000, time.Local),
+					Stop:           time.Date(2019, 1, 1, 2, 1, 0, 2000, time.Local),
 					Status:         types.StatusCancelled,
 				}
 				h3 := &model.TransferHistory{
@@ -248,8 +248,8 @@ func TestListHistory(t *testing.T) {
 					SourceFilename: "file3",
 					DestFilename:   "file3",
 					Rule:           "rule3",
-					Start:          time.Date(2019, 1, 1, 3, 0, 0, 0, time.UTC),
-					Stop:           time.Date(2019, 1, 1, 3, 1, 0, 0, time.UTC),
+					Start:          time.Date(2019, 1, 1, 3, 0, 0, 3000, time.Local),
+					Stop:           time.Date(2019, 1, 1, 3, 1, 0, 3000, time.Local),
 					Status:         types.StatusDone,
 				}
 				h4 := &model.TransferHistory{
@@ -262,8 +262,8 @@ func TestListHistory(t *testing.T) {
 					SourceFilename: "file4",
 					DestFilename:   "file4",
 					Rule:           "rule4",
-					Start:          time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
-					Stop:           time.Date(2019, 1, 1, 4, 1, 0, 0, time.UTC),
+					Start:          time.Date(2019, 1, 1, 4, 0, 0, 4000, time.Local),
+					Stop:           time.Date(2019, 1, 1, 4, 1, 0, 4000, time.Local),
 					Status:         types.StatusCancelled,
 				}
 				So(db.Insert(h1).Run(), ShouldBeNil)
@@ -340,8 +340,7 @@ func TestListHistory(t *testing.T) {
 				})
 
 				Convey("Given a start parameter", func() {
-					args := []string{"--start=" + time.Date(2019, 1, 1, 2, 30, 0, 0, time.UTC).
-						Format(time.RFC3339)}
+					args := []string{"--start=" + h3.Start.Format(time.RFC3339Nano)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -357,8 +356,7 @@ func TestListHistory(t *testing.T) {
 				})
 
 				Convey("Given a stop parameter", func() {
-					args := []string{"--stop=" + time.Date(2019, 1, 1, 2, 30, 0, 0, time.UTC).
-						Format(time.RFC3339)}
+					args := []string{"--stop=" + h2.Stop.Format(time.RFC3339Nano)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -456,8 +454,8 @@ func TestListHistory(t *testing.T) {
 
 				Convey("Given a combination of multiple parameters", func() {
 					args := []string{
-						"--start=" + time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
-						"--stop=" + time.Date(2019, 1, 3, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
+						"--start=" + time.Date(2019, 1, 1, 0, 0, 0, 0, time.Local).Format(time.RFC3339Nano),
+						"--stop=" + time.Date(2019, 1, 3, 0, 0, 0, 0, time.Local).Format(time.RFC3339Nano),
 						"--requester=" + h1.Account, "--requester=" + h2.Account,
 						"--requested=" + h4.Agent, "--requested=" + h1.Agent,
 						"--rule=" + h3.Rule, "--rule=" + h1.Rule, "--rule=" + h2.Rule,
@@ -537,8 +535,8 @@ func TestRetryHistory(t *testing.T) {
 					Protocol:       part.Protocol,
 					SourceFilename: "source",
 					DestFilename:   "destination",
-					Start:          time.Now(),
-					Stop:           time.Now().Add(time.Hour),
+					Start:          time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+					Stop:           time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
 					Status:         types.StatusCancelled,
 					Owner:          database.Owner,
 				}
@@ -546,8 +544,8 @@ func TestRetryHistory(t *testing.T) {
 				id := fmt.Sprint(hist.ID)
 
 				Convey("Given a valid history entry ID and date", func() {
-					args := []string{id,
-						"-d", time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local).Format(time.RFC3339)}
+					args := []string{id, "-d", time.Date(2030, 1, 1, 1, 0, 0, 123000,
+						time.Local).Format(time.RFC3339Nano)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -568,7 +566,7 @@ func TestRetryHistory(t *testing.T) {
 								AccountID:  acc.ID,
 								SourceFile: hist.SourceFilename,
 								DestFile:   hist.DestFilename,
-								Start:      time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+								Start:      time.Date(2030, 1, 1, 1, 0, 0, 123000, time.Local),
 								Status:     types.StatusPlanned,
 								Owner:      hist.Owner,
 							}

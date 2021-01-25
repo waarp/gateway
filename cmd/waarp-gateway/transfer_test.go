@@ -34,12 +34,12 @@ func transferInfoString(t *api.OutTransfer) string {
 		"    True filepath:    " + t.TrueFilepath + "\n" +
 		"    Source file:      " + t.SourcePath + "\n" +
 		"    Destination file: " + t.DestPath + "\n" +
-		"    Start time:       " + t.Start.Local().Format(time.RFC3339) + "\n" +
-		"    Step:             " + string(t.Step) + "\n" +
+		"    Start time:       " + t.Start.Local().Format(time.RFC3339Nano) + "\n" +
+		"    Step:             " + t.Step + "\n" +
 		"    Progress:         " + fmt.Sprint(t.Progress) + "\n" +
 		"    Task number:      " + fmt.Sprint(t.TaskNumber) + "\n"
-	if t.ErrorCode != types.TeOk {
-		rv += "    Error code:       " + t.ErrorCode.String() + "\n"
+	if t.ErrorCode != types.TeOk.String() {
+		rv += "    Error code:       " + t.ErrorCode + "\n"
 	}
 	if t.ErrorMsg != "" {
 		rv += "    Error message:    " + t.ErrorMsg + "\n"
@@ -63,10 +63,10 @@ func TestDisplayTransfer(t *testing.T) {
 			TrueFilepath: "/true/filepath",
 			Start:        time.Now(),
 			Status:       types.StatusPlanned,
-			Step:         types.StepData,
+			Step:         types.StepData.String(),
 			Progress:     1,
 			TaskNumber:   2,
-			ErrorCode:    types.TeForbidden,
+			ErrorCode:    types.TeForbidden.String(),
 			ErrorMsg:     "custom error message",
 		}
 		Convey("When calling the `displayTransfer` function", func() {
@@ -277,7 +277,7 @@ func TestGetTransfer(t *testing.T) {
 					AccountID:  a.ID,
 					SourceFile: "source",
 					DestFile:   "dest",
-					Start:      time.Now(),
+					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPlanned,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
@@ -396,46 +396,53 @@ func TestListTransfer(t *testing.T) {
 			Convey("Given 4 valid transfers", func() {
 
 				trans1 := &model.Transfer{
-					RuleID:     r1.ID,
-					AgentID:    p1.ID,
-					AccountID:  a1.ID,
-					SourceFile: "source1",
-					DestFile:   "dest1",
-					Start:      time.Date(2019, 1, 1, 1, 0, 0, 0, time.UTC),
+					RuleID:       r1.ID,
+					AgentID:      p1.ID,
+					AccountID:    a1.ID,
+					SourceFile:   "source1",
+					DestFile:     "dest1",
+					TrueFilepath: "/true/filepath/1",
+					Step:         types.StepNone,
+					Status:       types.StatusPlanned,
+					Start:        time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),
 				}
 				trans2 := &model.Transfer{
-					RuleID:     r2.ID,
-					AgentID:    p2.ID,
-					AccountID:  a2.ID,
-					SourceFile: "source2",
-					DestFile:   "dest2",
-					Start:      time.Date(2019, 1, 1, 2, 0, 0, 0, time.UTC),
+					RuleID:       r2.ID,
+					AgentID:      p2.ID,
+					AccountID:    a2.ID,
+					SourceFile:   "source2",
+					DestFile:     "dest2",
+					TrueFilepath: "/true/filepath/2",
+					Step:         types.StepSetup,
+					Status:       types.StatusRunning,
+					Start:        time.Date(2019, 1, 1, 2, 0, 0, 0, time.Local),
 				}
 				trans3 := &model.Transfer{
-					RuleID:     r3.ID,
-					AgentID:    p3.ID,
-					AccountID:  a3.ID,
-					SourceFile: "source3",
-					DestFile:   "dest3",
-					Start:      time.Date(2019, 1, 1, 3, 0, 0, 0, time.UTC),
+					RuleID:       r3.ID,
+					AgentID:      p3.ID,
+					AccountID:    a3.ID,
+					SourceFile:   "source3",
+					DestFile:     "dest3",
+					TrueFilepath: "/true/filepath/3",
+					Step:         types.StepData,
+					Status:       types.StatusError,
+					Start:        time.Date(2019, 1, 1, 3, 0, 0, 0, time.Local),
 				}
 				trans4 := &model.Transfer{
-					RuleID:     r4.ID,
-					AgentID:    p4.ID,
-					AccountID:  a4.ID,
-					SourceFile: "source3",
-					DestFile:   "dest3",
-					Start:      time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
+					RuleID:       r4.ID,
+					AgentID:      p4.ID,
+					AccountID:    a4.ID,
+					SourceFile:   "source3",
+					DestFile:     "dest3",
+					TrueFilepath: "/true/filepath/4",
+					Step:         types.StepFinalization,
+					Status:       types.StatusPlanned,
+					Start:        time.Date(2019, 1, 1, 4, 0, 0, 0, time.Local),
 				}
 				So(db.Insert(trans1).Run(), ShouldBeNil)
 				So(db.Insert(trans2).Run(), ShouldBeNil)
 				So(db.Insert(trans3).Run(), ShouldBeNil)
 				So(db.Insert(trans4).Run(), ShouldBeNil)
-
-				trans2.Status = types.StatusRunning
-				trans3.Status = types.StatusRunning
-				So(db.Update(trans2).Run(), ShouldBeNil)
-				So(db.Update(trans3).Run(), ShouldBeNil)
 
 				t1, err := rest.FromTransfer(db, trans1)
 				So(err, ShouldBeNil)
@@ -510,8 +517,8 @@ func TestListTransfer(t *testing.T) {
 				})
 
 				Convey("Given a start parameter", func() {
-					args := []string{"-d", time.Date(2019, 1, 1, 2, 30, 0, 0, time.UTC).
-						Format(time.RFC3339)}
+					args := []string{"-d", time.Date(2019, 1, 1, 2, 30, 0, 0, time.Local).
+						Format(time.RFC3339Nano)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -559,7 +566,7 @@ func TestListTransfer(t *testing.T) {
 				})
 
 				Convey("Given multiple parameters", func() {
-					args := []string{"-d", t2.Start.Add(-time.Minute).Format(time.RFC3339),
+					args := []string{"-d", t2.Start.Add(-time.Minute).Format(time.RFC3339Nano),
 						"-r", r1.Name, "-r", r2.Name, "-r", r4.Name,
 						"-t", "RUNNING",
 					}
@@ -624,7 +631,7 @@ func TestPauseTransfer(t *testing.T) {
 					AgentID:    part.ID,
 					SourceFile: "source",
 					DestFile:   "destination",
-					Start:      time.Now().Truncate(time.Second),
+					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPlanned,
 					Owner:      database.Owner,
 				}
@@ -717,7 +724,7 @@ func TestResumeTransfer(t *testing.T) {
 					AgentID:    partner.ID,
 					SourceFile: "source",
 					DestFile:   "destination",
-					Start:      time.Now().Truncate(time.Second),
+					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPaused,
 					Owner:      database.Owner,
 				}
@@ -808,7 +815,7 @@ func TestCancelTransfer(t *testing.T) {
 					AgentID:    partner.ID,
 					SourceFile: "source",
 					DestFile:   "destination",
-					Start:      time.Now().Truncate(time.Second),
+					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPlanned,
 					Owner:      database.Owner,
 				}

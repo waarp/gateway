@@ -76,7 +76,7 @@ func (c *Controller) startNewTransfers() {
 	var plannedTrans model.Transfers
 	query := c.DB.Select(&plannedTrans).Where("owner=? AND status=? AND "+
 		"is_server=? AND start<?", database.Owner, types.StatusPlanned, false,
-		time.Now())
+		time.Now().UTC().Truncate(time.Microsecond).Format(time.RFC3339Nano))
 	lim := pipeline.TransferOutCount.GetLimit()
 	if lim > 0 {
 		query.Limit(int(lim-pipeline.TransferOutCount.Get()), 0)

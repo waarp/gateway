@@ -1,6 +1,6 @@
 package database
 
-import "github.com/go-xorm/builder"
+import "xorm.io/builder"
 
 // CountQuery is the type representing a SQL COUNT statement.
 type CountQuery struct {

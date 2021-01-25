@@ -232,7 +232,7 @@ func TestSFTPPackage(t *testing.T) {
 						AccountID:  remoteAccount.ID,
 						SourceFile: srcFile,
 						DestFile:   "sftp_test_file.dst",
-						Start:      time.Now().Truncate(time.Second),
+						Start:      time.Now(),
 						Status:     types.StatusPlanned,
 					}
 					So(db.Insert(&trans).Run(), ShouldBeNil)
@@ -278,7 +278,7 @@ func TestSFTPPackage(t *testing.T) {
 									So(transfers, ShouldBeEmpty)
 
 									var hist model.Histories
-									So(db.Select(&hist).Run(), ShouldBeNil)
+									So(db.Select(&hist).OrderBy("id", true).Run(), ShouldBeNil)
 									So(hist, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side "+
@@ -361,7 +361,7 @@ func TestSFTPPackage(t *testing.T) {
 
 								Convey("Then the transfers should be over", func() {
 									var transfers model.Transfers
-									So(db.Select(&transfers).Run(), ShouldBeNil)
+									So(db.Select(&transfers).OrderBy("id", true).Run(), ShouldBeNil)
 									So(transfers, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side "+
@@ -452,7 +452,7 @@ func TestSFTPPackage(t *testing.T) {
 
 								Convey("Then the transfers should be over", func() {
 									var transfers model.Transfers
-									So(db.Select(&transfers).Run(), ShouldBeNil)
+									So(db.Select(&transfers).OrderBy("id", true).Run(), ShouldBeNil)
 									So(transfers, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side"+
@@ -547,7 +547,7 @@ func TestSFTPPackage(t *testing.T) {
 
 								Convey("Then the transfers should be over", func() {
 									var transfers model.Transfers
-									So(db.Select(&transfers).Run(), ShouldBeNil)
+									So(db.Select(&transfers).OrderBy("id", true).Run(), ShouldBeNil)
 									So(transfers, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side "+
@@ -642,7 +642,7 @@ func TestSFTPPackage(t *testing.T) {
 
 								Convey("Then the transfers should be over", func() {
 									var transfers model.Transfers
-									So(db.Select(&transfers).Run(), ShouldBeNil)
+									So(db.Select(&transfers).OrderBy("id", true).Run(), ShouldBeNil)
 									So(transfers, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side "+

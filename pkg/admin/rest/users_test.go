@@ -22,7 +22,7 @@ func TestGetUser(t *testing.T) {
 	logger := log.NewLogger("rest_user_get_test")
 
 	Convey("Given the user get handler", t, func(c C) {
-		db := database.TestDatabase(c, "DEBUG")
+		db := database.TestDatabase(c, "ERROR")
 		handler := getUser(logger, db)
 		w := httptest.NewRecorder()
 
@@ -444,7 +444,7 @@ func TestUpdateUser(t *testing.T) {
 
 						Convey("Then the user should have been updated", func() {
 							var users model.Users
-							So(db.Select(&users).Run(), ShouldBeNil)
+							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(users, ShouldHaveLength, 2)
 
 							So(bcrypt.CompareHashAndPassword(users[0].Password,
@@ -526,7 +526,7 @@ func TestUpdateUser(t *testing.T) {
 						Convey("Then the user should have been updated but the "+
 							"password should stay the same", func() {
 							var users model.Users
-							So(db.Select(&users).Run(), ShouldBeNil)
+							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(users), ShouldEqual, 2)
 
 							So(bcrypt.CompareHashAndPassword(users[0].Password,
@@ -580,7 +580,7 @@ func TestUpdateUser(t *testing.T) {
 						Convey("Then the user should have been updated but the "+
 							"username should stay the same", func() {
 							var users model.Users
-							So(db.Select(&users).Run(), ShouldBeNil)
+							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(users), ShouldEqual, 2)
 
 							So(bcrypt.CompareHashAndPassword(users[0].Password,
@@ -652,7 +652,7 @@ func TestReplaceUser(t *testing.T) {
 
 						Convey("Then the user should have been updated", func() {
 							var users model.Users
-							So(db.Select(&users).Run(), ShouldBeNil)
+							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(users), ShouldEqual, 2)
 
 							So(bcrypt.CompareHashAndPassword(users[0].Password,
