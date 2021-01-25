@@ -3,7 +3,7 @@
 Historique des versions
 =======================
 
-* :release:`0.3.1 <2021-01-18>`
+* :release:`0.3.1 <2021-01-25>`
 * :bug:`241` Correction du typage de la colonne `permissions` de la table `users`.
   La colonne est désormais de type *BINARY* (au lieu de *INT*).
 
