@@ -48,7 +48,7 @@ func TestAddTransfer(t *testing.T) {
 
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			push := model.Rule{Name: "push", IsSend: true, Path: "/push"}
+			push := model.Rule{Name: "push", IsSend: true, Path: "path"}
 			So(db.Insert(&push).Run(), ShouldBeNil)
 
 			Convey("Given a valid new transfer", func() {
