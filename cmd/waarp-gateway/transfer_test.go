@@ -23,8 +23,13 @@ func transferInfoString(t *api.OutTransfer) string {
 	if t.IsServer {
 		role = "server"
 	}
+	dir := "receive"
+	if t.IsSend {
+		dir = "send"
+	}
 
-	rv := "● Transfer " + fmt.Sprint(t.ID) + " (as " + role + ") [" + string(t.Status) + "]\n"
+	rv := "● Transfer " + fmt.Sprint(t.ID) + " (" + dir + " as " + role + ") [" +
+		string(t.Status) + "]\n"
 	if t.RemoteID != "" {
 		rv += "    Remote ID:        " + t.RemoteID + "\n"
 	}

@@ -42,8 +42,9 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 	return &api.OutTransfer{
 		ID:           trans.ID,
 		RemoteID:     trans.RemoteTransferID,
-		Rule:         rule,
+		Rule:         rule.Name,
 		IsServer:     trans.IsServer,
+		IsSend:       rule.IsSend,
 		Requested:    requested,
 		Requester:    requester,
 		TrueFilepath: trans.TrueFilepath,

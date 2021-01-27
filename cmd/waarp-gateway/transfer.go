@@ -9,6 +9,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 type transferCommand struct {
@@ -49,8 +50,12 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	if trans.IsServer {
 		role = "server"
 	}
+	dir := "receive"
+	if trans.IsSend {
+		dir = "send"
+	}
 
-	fmt.Fprintln(w, bold("● Transfer", trans.ID, "(as "+role+")"), coloredStatus(trans.Status))
+	fmt.Fprintln(w, bold("● Transfer", trans.ID, "("+dir+" as "+role+")"), coloredStatus(trans.Status))
 	if trans.RemoteID != "" {
 		fmt.Fprintln(w, orange("    Remote ID:       "), trans.RemoteID)
 	}
@@ -92,7 +97,7 @@ func (t *transferAdd) Execute([]string) (err error) {
 	trans := api.InTransfer{
 		Partner:    t.Partner,
 		Account:    t.Account,
-		IsSend:     t.Way == "send",
+		IsSend:     utils.BoolPtr(t.Way == "send"),
 		SourcePath: t.File,
 		Rule:       t.Rule,
 		DestPath:   t.Name,

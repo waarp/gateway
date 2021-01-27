@@ -45,6 +45,7 @@ func TestAddTransfer(t *testing.T) {
 				Login:         "toto",
 				Password:      []byte("password"),
 			}
+
 			So(db.Insert(account).Run(), ShouldBeNil)
 
 			push := model.Rule{Name: "push", IsSend: true, Path: "/push"}
@@ -66,17 +67,16 @@ func TestAddTransfer(t *testing.T) {
 
 					handler.ServeHTTP(w, r)
 
-					Convey("Then the response body should be empty", func() {
-						So(w.Body.String(), ShouldBeBlank)
-					})
-
 					Convey("Then it should return a code 201", func() {
 						So(w.Code, ShouldEqual, http.StatusCreated)
 					})
 
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldBeBlank)
+					})
+
 					Convey("Then the 'Location' header should contain the URI "+
 						"of the new transfer", func() {
-
 						location := w.Header().Get("Location")
 						So(location, ShouldStartWith, transferURI)
 					})
@@ -216,6 +216,32 @@ func TestAddTransfer(t *testing.T) {
 					Convey("Then the response body should say a host key is missing", func() {
 						So(w.Body.String(), ShouldEqual, "the sftp partner is missing "+
 							"a certificate when it was required\n")
+					})
+				})
+			})
+
+			Convey("Given the transfer direction is missing", func() {
+				body := strings.NewReader(`{
+					"rule": "push",
+					"partner": "remote",
+					"account": "toto",
+					"sourcePath": "file.src",
+					"destPath": "file.dst"
+				}`)
+
+				Convey("When calling the handler", func() {
+					r, err := http.NewRequest(http.MethodPost, "", body)
+					So(err, ShouldBeNil)
+
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should return a code 400", func() {
+						So(w.Code, ShouldEqual, http.StatusBadRequest)
+					})
+
+					Convey("Then the response body should say the direction is missing", func() {
+						So(w.Body.String(), ShouldEqual, "the transfer direction "+
+							"(isSend) is missing\n")
 					})
 				})
 			})
