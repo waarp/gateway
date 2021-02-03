@@ -5,6 +5,10 @@ Historique des versions
 
 * :bug:`` Les dates de début/fin de transfert sont désormais précises à la
   milliseconde près (au lieu de la seconde).
+* :bub:`243` Correction d'un bug empêchant l'annulation d'un transfert avant
+  qu'il n'ait commencé car sa date de fin se retrouvait antérieure à sa date de
+  début. Par conséquent, désormais, en cas d'annulation, la date de fin du
+  transfert sera donc nulle.
 * :feature:`242` Ajout de la direction (`isSend`) à l'objet *transfer* de REST.
 
 * :release:`0.3.3 <2021-04-07>`
