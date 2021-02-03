@@ -183,7 +183,6 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		check, err := getTrans(r, db)
 		if handleError(w, logger, err) {
