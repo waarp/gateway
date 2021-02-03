@@ -32,6 +32,11 @@ func historyInfoString(h *api.OutHistory) string {
 	if h.RemoteID != "" {
 		rv += "    Remote ID:        " + h.RemoteID + "\n"
 	}
+	stop := "N/A"
+	if h.Stop != nil {
+		stop = h.Stop.Local().Format(time.RFC3339Nano)
+	}
+
 	rv += "    Way:              " + way + "\n" +
 		"    Protocol:         " + h.Protocol + "\n" +
 		"    Rule:             " + h.Rule + "\n" +
@@ -40,7 +45,7 @@ func historyInfoString(h *api.OutHistory) string {
 		"    Source file:      " + h.SourceFilename + "\n" +
 		"    Destination file: " + h.DestFilename + "\n" +
 		"    Start date:       " + h.Start.Local().Format(time.RFC3339Nano) + "\n" +
-		"    End date:         " + h.Stop.Local().Format(time.RFC3339Nano) + "\n"
+		"    End date:         " + stop + "\n"
 	if h.ErrorCode != types.TeOk {
 		rv += "    Error code:       " + h.ErrorCode.String() + "\n"
 		if h.ErrorMsg != "" {
@@ -60,7 +65,6 @@ func historyInfoString(h *api.OutHistory) string {
 }
 
 func TestDisplayHistory(t *testing.T) {
-
 	Convey("Given a history entry", t, func() {
 		out = testFile()
 
@@ -75,8 +79,8 @@ func TestDisplayHistory(t *testing.T) {
 			SourceFilename: "source/path",
 			DestFilename:   "dest/path",
 			Start:          time.Now(),
-			Stop:           time.Now().Add(time.Hour),
-			Status:         types.StatusPlanned,
+			Stop:           nil,
+			Status:         types.StatusCancelled,
 			Step:           types.StepSetup,
 			Progress:       1,
 			TaskNumber:     2,
@@ -96,43 +100,9 @@ func TestDisplayHistory(t *testing.T) {
 			})
 		})
 	})
-
-	Convey("Given a history entry with error", t, func() {
-		out = testFile()
-
-		hist := api.OutHistory{
-			ID:             1,
-			IsServer:       true,
-			IsSend:         false,
-			Rule:           "rule",
-			Requester:      "source",
-			Requested:      "destination",
-			Protocol:       "sftp",
-			SourceFilename: "file/path",
-			DestFilename:   "file/path",
-			Start:          time.Now(),
-			Stop:           time.Now().Add(time.Hour),
-			Status:         types.StatusPlanned,
-			ErrorCode:      types.TeConnectionReset,
-			ErrorMsg:       "connexion reset by peer",
-		}
-		Convey("When calling the `displayHistory` function", func() {
-			w := getColorable()
-			displayHistory(w, &hist)
-
-			Convey("Then it should display the entry's info correctly", func() {
-				_, err := out.Seek(0, 0)
-				So(err, ShouldBeNil)
-				cont, err := ioutil.ReadAll(out)
-				So(err, ShouldBeNil)
-				So(string(cont), ShouldEqual, historyInfoString(&hist))
-			})
-		})
-	})
 }
 
 func TestGetHistory(t *testing.T) {
-
 	Convey("Testing the partner 'get' command", t, func() {
 		out = testFile()
 		command := &historyGet{}
@@ -197,7 +167,6 @@ func TestGetHistory(t *testing.T) {
 }
 
 func TestListHistory(t *testing.T) {
-
 	Convey("Testing the history 'list' command", t, func() {
 		out = testFile()
 		command := &historyList{}
@@ -481,7 +450,6 @@ func TestListHistory(t *testing.T) {
 }
 
 func TestRetryHistory(t *testing.T) {
-
 	Convey("Testing the history 'retry' command", t, func() {
 		out = testFile()
 		command := &historyRetry{}

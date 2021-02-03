@@ -561,7 +561,7 @@ func TestListTransfer(t *testing.T) {
 }
 
 func TestResumeTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_list_test")
+	logger := log.NewLogger("rest_transfer_resume_test")
 
 	Convey("Testing the transfer resume handler", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
@@ -651,14 +651,14 @@ func TestResumeTransfer(t *testing.T) {
 }
 
 func TestPauseTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_list_test")
+	logger := log.NewLogger("rest_transfer_pause_test")
 
 	Convey("Testing the transfer resume handler", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 		handler := pauseTransfer(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 running transfer", func() {
+		Convey("Given a database with 1 planned transfer", func() {
 			partner := &model.RemoteAgent{
 				Name:        "test_server",
 				Protocol:    "test",
@@ -730,6 +730,98 @@ func TestPauseTransfer(t *testing.T) {
 						So(db.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
 						So(transfers[0], ShouldResemble, exp)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestCancelTransfer(t *testing.T) {
+	logger := log.NewLogger("rest_transfer_cancel_test")
+
+	Convey("Testing the transfer resume handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
+		handler := cancelTransfer(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 planned transfer", func() {
+			partner := &model.RemoteAgent{
+				Name:        "test_server",
+				Protocol:    "test",
+				Address:     "localhost:1",
+				ProtoConfig: json.RawMessage(`{}`),
+			}
+			So(db.Insert(partner).Run(), ShouldBeNil)
+
+			account := &model.RemoteAccount{
+				RemoteAgentID: partner.ID,
+				Login:         "toto",
+				Password:      []byte("titi"),
+			}
+			So(db.Insert(account).Run(), ShouldBeNil)
+
+			rule := &model.Rule{Name: "test_rule", IsSend: false, Path: "path"}
+			So(db.Insert(rule).Run(), ShouldBeNil)
+
+			trans := &model.Transfer{
+				RuleID:     rule.ID,
+				AgentID:    partner.ID,
+				AccountID:  account.ID,
+				SourceFile: "src",
+				DestFile:   "dst",
+				Start:      time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:     types.StatusPlanned,
+				Step:       types.StepNone,
+				Error:      types.TransferError{},
+				Progress:   0,
+				TaskNumber: 0,
+			}
+			So(db.Insert(trans).Run(), ShouldBeNil)
+
+			Convey("Given a request with the valid transfer ID parameter", func() {
+				id := strconv.FormatUint(trans.ID, 10)
+				req, err := http.NewRequest(http.MethodPut, "", nil)
+				So(err, ShouldBeNil)
+				req = mux.SetURLVars(req, map[string]string{"transfer": id})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldBeBlank)
+					})
+
+					Convey("Then it should reply 'Accepted'", func() {
+						So(w.Code, ShouldEqual, http.StatusAccepted)
+					})
+
+					Convey("Then the transfer should have been cancelled", func() {
+						exp := model.TransferHistory{
+							ID:               trans.ID,
+							Owner:            database.Owner,
+							RemoteTransferID: "",
+							IsServer:         false,
+							IsSend:           false,
+							Account:          account.Login,
+							Agent:            partner.Name,
+							Protocol:         "test",
+							SourceFilename:   "src",
+							DestFilename:     "dst",
+							Rule:             rule.Name,
+							Start:            time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+							Stop:             time.Time{},
+							Status:           types.StatusCancelled,
+							Error:            types.TransferError{},
+							Step:             types.StepNone,
+							Progress:         0,
+							TaskNumber:       0,
+						}
+
+						var t model.Histories
+						So(db.Select(&t).Run(), ShouldBeNil)
+						So(t, ShouldNotBeEmpty)
+						So(t[0], ShouldResemble, exp)
 					})
 				})
 			})

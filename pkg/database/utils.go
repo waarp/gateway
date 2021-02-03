@@ -36,6 +36,13 @@ func logSQL(query *xorm.Session, logger *log.Logger) {
 		logger.Debugf("[SQL] %s", sql)
 		return
 	}
+
+	for i := range args {
+		if args[i] == nil {
+			args[i] = "<nil>"
+		}
+	}
+
 	if strings.Contains(sql, "?") {
 		sqlMsg, err := builder.ConvertToBoundSQL(sql, args)
 		if err == nil {
