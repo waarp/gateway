@@ -51,7 +51,7 @@ func exist(slice []string, elem string) bool {
 	return false
 }
 
-func getSSHClientConfig(info *model.OutTransferInfo, protoConfig *config.SftpProtoConfig) (*ssh.ClientConfig, error) {
+func getSSHClientConfig(info *model.TransferContext, protoConfig *config.SftpProtoConfig) (*ssh.ClientConfig, error) {
 	pwd, err := utils.DecryptPassword(info.Account.Password)
 	if err != nil {
 		return nil, err

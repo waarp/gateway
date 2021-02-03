@@ -17,7 +17,7 @@ import (
 
 type clientAuthHandler struct {
 	getFile func() r66utils.ReadWriterAt
-	info    *model.OutTransferInfo
+	info    *model.TransferContext
 	config  *config.R66ProtoConfig
 	size    int64
 }

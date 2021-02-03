@@ -2,8 +2,6 @@
 
 package tasks
 
-var lineSeparator = "\n"
-
 var execScriptFile = "./exec_test_script.sh"
 var execMoveScriptFile = "./execmove_test_script.sh"
 var execOutputScriptFile = "./execoutput_test_script.sh"
@@ -24,6 +22,11 @@ const scriptExecInfinite = `#!/bin/sh
 while [ true ]; do
   echo $1
 done`
+
+const scriptExecMove = `#!/bin/sh
+mv $1 $2
+echo $2
+exit 0`
 
 const scriptExecOutputFail = `#!/bin/sh
 echo "This is a message"

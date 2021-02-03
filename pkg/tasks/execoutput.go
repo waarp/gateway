@@ -6,23 +6,24 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
-	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
-// ExecOutputTask is a task which executes an external program which moves the
+// execOutputTask is a task which executes an external program which moves the
 // transferred file.
-type ExecOutputTask struct{}
+type execOutputTask struct{}
 
 func init() {
-	RunnableTasks["EXECOUTPUT"] = &ExecOutputTask{}
-	model.ValidTasks["EXECOUTPUT"] = &ExecOutputTask{}
+	model.ValidTasks["EXECOUTPUT"] = &execOutputTask{}
 }
 
 // Validate checks if the EXECMOVE task has all the required arguments.
-func (e *ExecOutputTask) Validate(params map[string]string) error {
+func (e *execOutputTask) Validate(params map[string]string) error {
 
 	if _, _, _, err := parseExecArgs(params); err != nil {
 		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
@@ -32,7 +33,7 @@ func (e *ExecOutputTask) Validate(params map[string]string) error {
 }
 
 func getNewFileName(output string) string {
-	lines := strings.Split(strings.TrimSpace(output), "\n")
+	lines := strings.Split(strings.TrimSpace(output), lineSeparator)
 	lastLine := lines[len(lines)-1]
 
 	if strings.HasPrefix(lastLine, "NEWFILENAME:") {
@@ -42,27 +43,27 @@ func getNewFileName(output string) string {
 }
 
 // Run executes the task by executing an external program with the given parameters.
-func (e *ExecOutputTask) Run(params map[string]string, processor *Processor) (string, error) {
+func (e *execOutputTask) Run(params map[string]string, _ *database.DB,
+	info *model.TransferContext, parent context.Context) (string, error) {
 
-	path, args, delay, err := parseExecArgs(params)
+	script, args, delay, err := parseExecArgs(params)
 	if err != nil {
-		return err.Error(), fmt.Errorf("failed to parse task arguments: %s", err.Error())
+		return "", fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
 
 	var ctx context.Context
 	var cancel context.CancelFunc
 	if delay != 0 {
-		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(delay)*
-			time.Millisecond)
+		ctx, cancel = context.WithTimeout(parent, delay)
 	} else {
-		ctx, cancel = context.WithCancel(context.Background())
+		ctx, cancel = context.WithCancel(parent)
 	}
 	defer cancel()
 
-	cmd := getCommand(ctx, path, args)
+	cmd := getCommand(ctx, script, args)
 	in, out, err := os.Pipe()
 	if err != nil {
-		return err.Error(), err
+		return "", fmt.Errorf("failed to pipe script output: %s", err)
 	}
 	defer func() {
 		_ = in.Close()
@@ -71,31 +72,32 @@ func (e *ExecOutputTask) Run(params map[string]string, processor *Processor) (st
 	cmd.Stdout = out
 
 	cmdErr := cmd.Run()
-	if cmdErr == nil {
-		return "", nil
-	}
-
-	select {
-	case <-ctx.Done():
-		return "max exec delay expired", fmt.Errorf("max exec delay expired")
-	default:
-		if ex, ok := cmdErr.(*exec.ExitError); ok && ex.ExitCode() == 1 {
-			return cmdErr.Error(), errWarning
-		}
-	}
-
 	_ = out.Close()
 	msg, err := ioutil.ReadAll(in)
 	if err != nil {
-		return err.Error(), err
+		return "", fmt.Errorf("failed to read script output: %s", err)
 	}
 
-	if newPath := getNewFileName(string(msg)); newPath != "" {
-		if processor.Rule.IsSend {
-			processor.Transfer.SourceFile = newPath
-		} else {
-			processor.Transfer.DestFile = newPath
+	if cmdErr != nil {
+		if newPath := getNewFileName(string(msg)); newPath != "" {
+			info.Transfer.TrueFilepath = utils.NormalizePath(newPath)
+			if info.Rule.IsSend {
+				info.Transfer.SourceFile = path.Base(info.Transfer.TrueFilepath)
+			} else {
+				info.Transfer.DestFile = path.Base(info.Transfer.TrueFilepath)
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return "", fmt.Errorf("max execution delay expired")
+		default:
+			if ex, ok := cmdErr.(*exec.ExitError); ok && ex.ExitCode() == 1 {
+				return "", &errWarning{cmdErr.Error()}
+			}
+			return "", cmdErr
 		}
 	}
-	return string(msg), cmdErr
+
+	return string(msg), nil
 }

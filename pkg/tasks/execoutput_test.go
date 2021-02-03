@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -12,7 +13,7 @@ import (
 func TestExecOutputValidate(t *testing.T) {
 
 	Convey("Given an 'EXECOUTPUT' task", t, func() {
-		exec := &ExecOutputTask{}
+		exec := &execOutputTask{}
 
 		Convey("Given valid arguments", func() {
 			args := map[string]string{
@@ -82,8 +83,8 @@ func TestExecOutputValidate(t *testing.T) {
 func TestExecOutputRun(t *testing.T) {
 
 	Convey("Given an 'EXECOUTPUT' task", t, func() {
-		exec := &ExecOutputTask{}
-		proc := &Processor{
+		exec := &execOutputTask{}
+		info := &model.TransferContext{
 			Transfer: &model.Transfer{},
 			Rule:     &model.Rule{},
 		}
@@ -102,7 +103,7 @@ func TestExecOutputRun(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(args, proc)
+					_, err := exec.Run(args, nil, info, context.Background())
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -115,33 +116,27 @@ func TestExecOutputRun(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(args, proc)
+					_, err := exec.Run(args, nil, info, context.Background())
 
 					Convey("Then it should return a 'warning' error", func() {
-						So(err, ShouldBeError, errWarning)
+						So(err, ShouldHaveSameTypeAs, &errWarning{})
 					})
 				})
 			})
 
 			Convey("Given that the command fails", func() {
-				err := ioutil.WriteFile(execOutputScriptFile, []byte(scriptExecOutputFail), 0700)
-				So(err, ShouldBeNil)
+				So(ioutil.WriteFile(execOutputScriptFile,
+					[]byte(scriptExecOutputFail), 0700), ShouldBeNil)
 
 				Convey("When running the task", func() {
-					msg, err := exec.Run(args, proc)
+					_, err := exec.Run(args, nil, info, context.Background())
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
-						So(err, ShouldNotEqual, errWarning)
-
-						Convey("Then the message should contain the script "+
-							"output", func() {
-							So(msg, ShouldEqual, "This is a message"+lineSeparator+
-								"NEWFILENAME:new_name.file"+lineSeparator)
-						})
+						So(err, ShouldNotHaveSameTypeAs, &errWarning{})
 
 						Convey("Then the transfer file should have changed", func() {
-							So(proc.Transfer.DestFile, ShouldEqual, "new_name.file")
+							So(info.Transfer.DestFile, ShouldEqual, "new_name.file")
 						})
 					})
 				})
@@ -154,15 +149,10 @@ func TestExecOutputRun(t *testing.T) {
 				args["delay"] = "100"
 
 				Convey("When running the task", func() {
-					msg, err := exec.Run(args, proc)
+					_, err := exec.Run(args, nil, info, context.Background())
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-
-						Convey("Then the message should say that the "+
-							"delay has expired", func() {
-							So(msg, ShouldEqual, "max exec delay expired")
-						})
+						So(err, ShouldBeError, "max execution delay expired")
 					})
 				})
 			})

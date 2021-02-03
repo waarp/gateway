@@ -106,7 +106,7 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	}
 	t.Signals = Signals.Add(t.Transfer.ID)
 
-	t.proc = &tasks.Processor{
+	t.proc = &tasks.Runner{
 		DB:       t.DB,
 		Logger:   t.Logger,
 		Rule:     t.Rule,

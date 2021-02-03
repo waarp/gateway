@@ -1,22 +1,23 @@
 package tasks
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
-// MoveTask is a task which moves the file without renaming it
+// moveTask is a task which moves the file without renaming it
 // the transfer model is modified to reflect this change.
-type MoveTask struct{}
+type moveTask struct{}
 
 func init() {
-	RunnableTasks["MOVE"] = &MoveTask{}
-	model.ValidTasks["MOVE"] = &MoveTask{}
+	model.ValidTasks["MOVE"] = &moveTask{}
 }
 
 // Warning: both 'oldPath' and 'newPath' must be in denormalized format.
@@ -25,7 +26,7 @@ func fallbackMove(dest, source string) error {
 		return err
 	}
 	if err := os.Remove(source); err != nil {
-		return normalizeFileError(err)
+		return normalizeFileError("delete old file", err)
 	}
 
 	return nil
@@ -36,17 +37,23 @@ func MoveFile(source, dest string) error {
 	trueSource := utils.DenormalizePath(source)
 	trueDest := utils.DenormalizePath(dest)
 
+	if _, err := os.Stat(filepath.Dir(trueDest)); os.IsNotExist(err) {
+		if err := os.MkdirAll(filepath.Dir(trueDest), 0700); err != nil {
+			return normalizeFileError("create target directory", err)
+		}
+	}
+
 	if err := os.Rename(trueSource, trueDest); err != nil {
 		if _, ok := err.(*os.LinkError); ok {
 			return fallbackMove(trueDest, trueSource)
 		}
-		return normalizeFileError(err)
+		return normalizeFileError("rename file", err)
 	}
 	return nil
 }
 
 // Validate checks if the MOVE task has all the required arguments.
-func (*MoveTask) Validate(args map[string]string) error {
+func (*moveTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
 		return fmt.Errorf("cannot create a move task without a `path` argument")
 	}
@@ -54,16 +61,16 @@ func (*MoveTask) Validate(args map[string]string) error {
 }
 
 // Run executes the task by moving the file in the requested directory.
-// TODO Create directory if not exist
-func (*MoveTask) Run(args map[string]string, processor *Processor) (string, error) {
+func (*moveTask) Run(args map[string]string, _ *database.DB,
+	info *model.TransferContext, _ context.Context) (string, error) {
 	newDir := args["path"]
 
-	source := processor.Transfer.TrueFilepath
+	source := info.Transfer.TrueFilepath
 	dest := path.Join(newDir, filepath.Base(source))
 
 	if err := MoveFile(source, dest); err != nil {
 		return err.Error(), err
 	}
-	processor.Transfer.TrueFilepath = dest
+	info.Transfer.TrueFilepath = utils.NormalizePath(dest)
 	return "", nil
 }

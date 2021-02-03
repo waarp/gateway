@@ -15,7 +15,7 @@ import (
 // ClientConstructor is the type representing the constructors used to make new
 // instances of transfer clients. All transfer clients must have a ClientConstructor
 // function in order to be called by the transfer executor.
-type ClientConstructor func(model.OutTransferInfo, <-chan model.Signal) (pipeline.Client, error)
+type ClientConstructor func(model.TransferContext, <-chan model.Signal) (pipeline.Client, error)
 
 // ClientsConstructors is a map associating a protocol to its client constructor.
 var ClientsConstructors = map[string]ClientConstructor{}
@@ -111,7 +111,7 @@ func (e *Executor) data() error {
 	return nil
 }
 
-func logTrans(logger *log.Logger, info *model.OutTransferInfo) {
+func logTrans(logger *log.Logger, info *model.TransferContext) {
 	if info.Rule.IsSend {
 		logger.Debugf("Starting %s upload of file '%s' to partner '%s' as '%s' using rule '%s'",
 			info.Agent.Protocol, info.Transfer.SourceFile, info.Agent.Name,

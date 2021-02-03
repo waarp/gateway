@@ -111,12 +111,11 @@ func TestTransferRun(t *testing.T) {
 				"as":   account.Login,
 				"rule": rule.Name,
 			}
-			processor := &Processor{DB: db}
 
 			Convey("Given that the parameters are valid", func() {
 
 				Convey("When running the task", func() {
-					msg, err := trans.Run(args, processor)
+					msg, err := trans.Run(args, db, nil, nil)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -132,7 +131,7 @@ func TestTransferRun(t *testing.T) {
 				args["to"] = "toto"
 
 				Convey("When running the task", func() {
-					msg, err := trans.Run(args, processor)
+					msg, err := trans.Run(args, db, nil, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)
@@ -151,7 +150,7 @@ func TestTransferRun(t *testing.T) {
 				args["as"] = "toto"
 
 				Convey("When running the task", func() {
-					msg, err := trans.Run(args, processor)
+					msg, err := trans.Run(args, db, nil, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)
@@ -170,7 +169,7 @@ func TestTransferRun(t *testing.T) {
 				args["rule"] = "toto"
 
 				Convey("When running the task", func() {
-					msg, err := trans.Run(args, processor)
+					msg, err := trans.Run(args, db, nil, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)

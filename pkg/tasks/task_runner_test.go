@@ -38,7 +38,7 @@ func TestSetup(t *testing.T) {
 			"errMsg":"#ERRORMSG#", "errStrCode":"#ERRORSTRCODE#"}`),
 		}
 
-		Convey("Given a Processor", func(c C) {
+		Convey("Given a Runner", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
 
 			agent := &model.RemoteAgent{
@@ -56,24 +56,25 @@ func TestSetup(t *testing.T) {
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			r := &Processor{
-				DB: db,
-				Rule: &model.Rule{
-					Name:    "Test",
-					IsSend:  true,
-					Path:    "path/to/test",
-					OutPath: "out/path",
-				},
-				Transfer: &model.Transfer{
-					ID:        1234,
-					IsServer:  false,
-					AgentID:   agent.ID,
-					AccountID: account.ID,
-					Error: types.TransferError{
-						Details: `", "bad":1`,
+			r := &Runner{
+				db: db,
+				info: &model.TransferContext{
+					Rule: &model.Rule{
+						Name:    "Test",
+						IsSend:  true,
+						Path:    "path/to/test",
+						OutPath: "out/path",
+					},
+					Transfer: &model.Transfer{
+						ID:        1234,
+						IsServer:  false,
+						AgentID:   agent.ID,
+						AccountID: account.ID,
+						Error: types.TransferError{
+							Details: `", "bad":1`,
+						},
 					},
 				},
-				OutPath: "out/path",
 			}
 
 			Convey("When calling the `setup` function", func() {
@@ -87,7 +88,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[rule] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.Rule.Name)
+							So(val, ShouldEqual, r.info.Rule.Name)
 						})
 					})
 
@@ -111,21 +112,12 @@ func TestSetup(t *testing.T) {
 						})
 					})
 
-					Convey("Then res should contain an entry `path`", func() {
-						val, ok := res["path"]
-						So(ok, ShouldBeTrue)
-
-						Convey("Then res[path] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.OutPath)
-						})
-					})
-
 					Convey("Then res should contain an entry `trueFullPath`", func() {
 						val, ok := res["trueFullPath"]
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[trueFullPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.Transfer.SourceFile)
+							So(val, ShouldEqual, r.info.Transfer.SourceFile)
 						})
 					})
 
@@ -134,7 +126,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[trueFilename] should contain the resolved variable", func() {
-							So(val, ShouldEqual, filepath.Base(r.Transfer.SourceFile))
+							So(val, ShouldEqual, filepath.Base(r.info.Transfer.SourceFile))
 						})
 					})
 
@@ -143,7 +135,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[fullPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.Transfer.SourceFile)
+							So(val, ShouldEqual, r.info.Transfer.SourceFile)
 						})
 					})
 
@@ -152,7 +144,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[filename] should contain the resolved variable", func() {
-							So(val, ShouldEqual, filepath.Base(r.Transfer.SourceFile))
+							So(val, ShouldEqual, filepath.Base(r.info.Transfer.SourceFile))
 						})
 					})
 
@@ -179,7 +171,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[transferID] should contain the resolved variable", func() {
-							So(val, ShouldEqual, fmt.Sprint(r.Transfer.ID))
+							So(val, ShouldEqual, fmt.Sprint(r.info.Transfer.ID))
 						})
 					})
 
@@ -206,8 +198,8 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[fullTransferID] should contain the resolved variable", func() {
-							So(val, ShouldEqual, fmt.Sprintf("%d_%s_%s", r.Transfer.ID,
-								account.Login, agent.Name))
+							So(val, ShouldEqual, fmt.Sprintf("%d_%s_%s",
+								r.info.Transfer.ID, account.Login, agent.Name))
 						})
 					})
 
@@ -216,7 +208,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[errCode] should contain the resolved variable", func() {
-							So(val, ShouldEqual, string(r.Transfer.Error.Code.R66Code()))
+							So(val, ShouldEqual, string(r.info.Transfer.Error.Code.R66Code()))
 						})
 					})
 
@@ -225,7 +217,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[msg] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.Transfer.Error.Details)
+							So(val, ShouldEqual, r.info.Transfer.Error.Details)
 						})
 					})
 
@@ -234,112 +226,10 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[errStrCode] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.Transfer.Error.Details)
+							So(val, ShouldEqual, r.info.Transfer.Error.Details)
 						})
 					})
 				})
-			})
-		})
-	})
-}
-
-func TestGetTasks(t *testing.T) {
-	Convey("Given a database", t, func(c C) {
-		db := database.TestDatabase(c, "ERROR")
-
-		Convey("Given a rule", func() {
-			rule := &model.Rule{Name: "rule", IsSend: false, Path: "path"}
-			So(db.Insert(rule).Run(), ShouldBeNil)
-
-			Convey("Given pre, post & error tasks for this rule", func() {
-				pre1 := model.Task{
-					RuleID: rule.ID,
-					Chain:  model.ChainPre,
-					Rank:   0,
-					Type:   taskSuccess,
-					Args:   json.RawMessage(`{}`),
-				}
-				So(db.Insert(&pre1).Run(), ShouldBeNil)
-				pre2 := model.Task{
-					RuleID: rule.ID,
-					Chain:  model.ChainPre,
-					Rank:   1,
-					Type:   taskSuccess,
-					Args:   json.RawMessage(`{}`),
-				}
-				So(db.Insert(&pre2).Run(), ShouldBeNil)
-
-				post1 := model.Task{
-					RuleID: rule.ID,
-					Chain:  model.ChainPost,
-					Rank:   0,
-					Type:   taskSuccess,
-					Args:   json.RawMessage(`{}`),
-				}
-				So(db.Insert(&post1).Run(), ShouldBeNil)
-				post2 := model.Task{
-					RuleID: rule.ID,
-					Chain:  model.ChainPost,
-					Rank:   1,
-					Type:   taskSuccess,
-					Args:   json.RawMessage(`{}`),
-				}
-				So(db.Insert(&post2).Run(), ShouldBeNil)
-
-				err1 := model.Task{
-					RuleID: rule.ID,
-					Chain:  model.ChainError,
-					Rank:   0,
-					Type:   taskSuccess,
-					Args:   json.RawMessage(`{}`),
-				}
-				So(db.Insert(&err1).Run(), ShouldBeNil)
-				err2 := model.Task{
-					RuleID: rule.ID,
-					Chain:  model.ChainError,
-					Rank:   1,
-					Type:   taskSuccess,
-					Args:   json.RawMessage(`{}`),
-				}
-				So(db.Insert(&err2).Run(), ShouldBeNil)
-
-				Convey("Given a processor", func() {
-					p := Processor{
-						DB: db,
-						//Logger:   e.Logger,
-						Rule: rule,
-						//Transfer: info.Transfer,
-						//Shutdown: e.Shutdown,
-					}
-
-					Convey("When retrieving the rule's pre-tasks", func() {
-						tasks, err := p.GetTasks(model.ChainPre)
-						So(err, ShouldBeNil)
-
-						Convey("Then it should return the rule's pre-tasks", func() {
-							So(tasks, ShouldResemble, []model.Task{pre1, pre2})
-						})
-					})
-
-					Convey("When retrieving the rule's post-tasks", func() {
-						tasks, err := p.GetTasks(model.ChainPost)
-						So(err, ShouldBeNil)
-
-						Convey("Then it should return the rule's post-tasks", func() {
-							So(tasks, ShouldResemble, []model.Task{post1, post2})
-						})
-					})
-
-					Convey("When retrieving the rule's error-tasks", func() {
-						tasks, err := p.GetTasks(model.ChainError)
-						So(err, ShouldBeNil)
-
-						Convey("Then it should return the rule's error-tasks", func() {
-							So(tasks, ShouldResemble, []model.Task{err1, err2})
-						})
-					})
-				})
-
 			})
 		})
 	})
@@ -375,17 +265,18 @@ func TestRunTasks(t *testing.T) {
 			AgentID:    agent.ID,
 			AccountID:  account.ID,
 			SourceFile: "source",
-			DestFile:   "tasks_runner_test.go",
+			DestFile:   "task_runner_test.go",
 		}
 		So(db.Insert(trans).Run(), ShouldBeNil)
 
-		proc := &Processor{
-			DB:       db,
-			Logger:   logger,
-			Rule:     rule,
-			Transfer: trans,
-			Signals:  make(chan model.Signal),
-			Ctx:      context.Background(),
+		proc := &Runner{
+			db:     db,
+			logger: logger,
+			info: &model.TransferContext{
+				Rule:     rule,
+				Transfer: trans,
+			},
+			ctx: context.Background(),
 		}
 
 		Convey("Given a list of tasks", func() {
@@ -409,7 +300,7 @@ func TestRunTasks(t *testing.T) {
 				}
 
 				Convey("Then it should run the tasks without error", func() {
-					rv := proc.RunTasks(tasks)
+					rv := proc.runTasks(tasks)
 					So(rv, ShouldBeNil)
 
 					dummyTaskCheck <- "DONE"
@@ -441,7 +332,7 @@ func TestRunTasks(t *testing.T) {
 				}
 
 				Convey("Then it should run the tasks without error", func() {
-					rv := proc.RunTasks(tasks)
+					rv := proc.runTasks(tasks)
 					So(rv, ShouldBeNil)
 
 					dummyTaskCheck <- "DONE"
@@ -485,7 +376,7 @@ func TestRunTasks(t *testing.T) {
 				}
 
 				Convey("Then running the tasks should return an error", func() {
-					rv := proc.RunTasks(tasks)
+					rv := proc.runTasks(tasks)
 					So(rv, ShouldBeError)
 					dummyTaskCheck <- "DONE"
 
@@ -509,7 +400,7 @@ func TestRunTasks(t *testing.T) {
 				}}
 
 				Convey("Then running the tasks should return an error", func() {
-					So(proc.RunTasks(tasks), ShouldNotBeNil)
+					So(proc.runTasks(tasks), ShouldNotBeNil)
 				})
 			})
 
@@ -525,7 +416,7 @@ func TestRunTasks(t *testing.T) {
 				}}
 
 				Convey("Then running the tasks should return an error", func() {
-					So(proc.RunTasks(tasks), ShouldNotBeNil)
+					So(proc.runTasks(tasks), ShouldNotBeNil)
 				})
 			})
 		})

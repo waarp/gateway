@@ -4,32 +4,39 @@ import (
 	"path"
 )
 
-// Elems is a list of elements forming a full filepath. Each element of the path
-// is represented as a pair of values.
-// The first value of  the pair must be a string containing the actual path
-// element. The second member of the pair must be a boolean specifying if the
-// must be the last element of the path.
-type Elems [][2]interface{}
+type Elem interface {
+	IsLeaf() bool
+	String() string
+}
 
-// GetPath return the path given by joining the given tail with all the given
+type Leaf string
+
+func (Leaf) IsLeaf() bool     { return true }
+func (l Leaf) String() string { return string(l) }
+
+type Branch string
+
+func (Branch) IsLeaf() bool     { return false }
+func (b Branch) String() string { return string(b) }
+
+// MakePath return the path given by joining the given tail with all the given
 // parents in the order they are given. The function will stop at the first
 // absolute path, and return the path formed by all the previous parents.
-func GetPath(tail string, elems Elems) string {
-	if path.IsAbs(tail) {
-		return tail
+func GetPath(file string, elems ...Elem) string {
+	if path.IsAbs(file) {
+		return file
 	}
 
-	filepath := []string{tail}
+	filepath := []string{file}
 	for _, e := range elems {
-		p := e[0].(string)
-		if p == "" {
+		if e.String() == "" {
 			continue
 		}
-		if e[1].(bool) && len(filepath) > 1 {
+		if e.IsLeaf() && len(filepath) > 1 {
 			continue
 		}
 
-		p = NormalizePath(p)
+		p := NormalizePath(e.String())
 		filepath = append([]string{p}, filepath...)
 		if path.IsAbs(p) {
 			return path.Join(filepath...)

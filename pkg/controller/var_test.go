@@ -28,7 +28,7 @@ func (*TestProtoConfig) CertRequired() bool  { return false }
 
 type AllSuccess struct{}
 
-func NewAllSuccess(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
+func NewAllSuccess(_ model.TransferContext, _ <-chan model.Signal) (pipeline.Client, error) {
 	return AllSuccess{}, nil
 }
 func (AllSuccess) Connect() error                 { return nil }

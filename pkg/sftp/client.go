@@ -27,7 +27,7 @@ func init() {
 // enables the gateway to initiate SFTP transfers.
 type Client struct {
 	Signals <-chan model.Signal
-	Info    model.OutTransferInfo
+	Info    model.TransferContext
 
 	conf       *config.SftpProtoConfig
 	conn       net.Conn
@@ -38,7 +38,7 @@ type Client struct {
 // NewClient returns a new SFTP transfer client with the given transfer info,
 // local file, and signal channel. An error is returned if the client
 // configuration is incorrect.
-func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipeline.Client, error) {
+func NewClient(info model.TransferContext, signals <-chan model.Signal) (pipeline.Client, error) {
 
 	client := &Client{
 		Info:    info,

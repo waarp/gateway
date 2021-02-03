@@ -29,7 +29,7 @@ func (*TestProtoConfig) CertRequired() bool  { return false }
 
 type AllSuccess struct{}
 
-func NewAllSuccess(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
+func NewAllSuccess(_ model.TransferContext, _ <-chan model.Signal) (pipeline.Client, error) {
 	return AllSuccess{}, nil
 }
 func (AllSuccess) Connect() error      { return nil }
@@ -45,35 +45,35 @@ func (AllSuccess) Close(error) error { return nil }
 
 type ConnectFail struct{ AllSuccess }
 
-func NewConnectFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
+func NewConnectFail(_ model.TransferContext, _ <-chan model.Signal) (pipeline.Client, error) {
 	return ConnectFail{}, nil
 }
 func (ConnectFail) Connect() error { return errConn }
 
 type AuthFail struct{ AllSuccess }
 
-func NewAuthFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
+func NewAuthFail(_ model.TransferContext, _ <-chan model.Signal) (pipeline.Client, error) {
 	return AuthFail{}, nil
 }
 func (AuthFail) Authenticate() error { return errAuth }
 
 type RequestFail struct{ AllSuccess }
 
-func NewRequestFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
+func NewRequestFail(_ model.TransferContext, _ <-chan model.Signal) (pipeline.Client, error) {
 	return RequestFail{}, nil
 }
 func (RequestFail) Request() error { return errReq }
 
 type DataFail struct{ AllSuccess }
 
-func NewDataFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
+func NewDataFail(_ model.TransferContext, _ <-chan model.Signal) (pipeline.Client, error) {
 	return DataFail{}, nil
 }
 func (DataFail) Data(pipeline.DataStream) error { return errData }
 
 type CloseFail struct{ AllSuccess }
 
-func NewCloseFail(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
+func NewCloseFail(_ model.TransferContext, _ <-chan model.Signal) (pipeline.Client, error) {
 	return CloseFail{}, nil
 }
 func (CloseFail) Close(error) error { return errClose }

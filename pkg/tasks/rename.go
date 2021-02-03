@@ -1,23 +1,26 @@
 package tasks
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"path"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
-// RenameTask is a task which rename the target of the transfer
+// renameTask is a task which rename the target of the transfer
 // without impacting the filesystem.
-type RenameTask struct{}
+type renameTask struct{}
 
 func init() {
-	RunnableTasks["RENAME"] = &RenameTask{}
-	model.ValidTasks["RENAME"] = &RenameTask{}
+	model.ValidTasks["RENAME"] = &renameTask{}
 }
 
 // Validate checks if the RENAME tasks has all the required arguments.
-func (*RenameTask) Validate(args map[string]string) error {
+func (*renameTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
 		return fmt.Errorf("cannot create a rename task without a `path` argument")
 	}
@@ -25,13 +28,19 @@ func (*RenameTask) Validate(args map[string]string) error {
 }
 
 // Run executes the task by renaming the transfer file
-func (*RenameTask) Run(args map[string]string, processor *Processor) (string, error) {
+func (*renameTask) Run(args map[string]string, _ *database.DB,
+	info *model.TransferContext, _ context.Context) (string, error) {
 	newPath := args["path"]
-	processor.Transfer.TrueFilepath = newPath
-	if processor.Rule.IsSend {
-		processor.Transfer.SourceFile = path.Base(newPath)
+
+	if _, err := os.Stat(utils.DenormalizePath(newPath)); err != nil {
+		return "", normalizeFileError("change transfer target file to", err)
+	}
+
+	info.Transfer.TrueFilepath = utils.NormalizePath(newPath)
+	if info.Rule.IsSend {
+		info.Transfer.SourceFile = path.Base(info.Transfer.TrueFilepath)
 		return "", nil
 	}
-	processor.Transfer.DestFile = path.Base(newPath)
+	info.Transfer.DestFile = path.Base(info.Transfer.TrueFilepath)
 	return "", nil
 }

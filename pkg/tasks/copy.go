@@ -1,26 +1,28 @@
 package tasks
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
-// CopyTask is a task which allow to copy the current file
+// copyTask is a task which allow to copy the current file
 // to a given destination with the same filename
-type CopyTask struct{}
+type copyTask struct{}
 
 func init() {
-	RunnableTasks["COPY"] = &CopyTask{}
-	model.ValidTasks["COPY"] = &CopyTask{}
+	model.ValidTasks["COPY"] = &copyTask{}
 }
 
 // Validate check if the task has a destination for the copy
-func (*CopyTask) Validate(args map[string]string) error {
+func (*copyTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
 		return fmt.Errorf("cannot create a copy task without a `path` argument")
 	}
@@ -28,10 +30,11 @@ func (*CopyTask) Validate(args map[string]string) error {
 }
 
 // Run copy the current file to the destination
-func (*CopyTask) Run(args map[string]string, runner *Processor) (string, error) {
+func (*copyTask) Run(args map[string]string, _ *database.DB,
+	info *model.TransferContext, _ context.Context) (string, error) {
 	newDir := args["path"]
 
-	source := runner.Transfer.TrueFilepath
+	source := info.Transfer.TrueFilepath
 	dest := path.Join(newDir, filepath.Base(source))
 
 	if err := doCopy(dest, source); err != nil {
@@ -42,20 +45,23 @@ func (*CopyTask) Run(args map[string]string, runner *Processor) (string, error) 
 }
 
 func doCopy(dest, source string) error {
-	err := os.MkdirAll(filepath.Dir(dest), 0o700)
+	trueSource := utils.DenormalizePath(source)
+	trueDest := utils.DenormalizePath(dest)
+
+	err := os.MkdirAll(filepath.Dir(trueDest), 0o700)
 	if err != nil {
 		return err
 	}
 
-	srcFile, err := os.Open(source)
+	srcFile, err := os.Open(trueSource)
 	if err != nil {
-		return normalizeFileError(err)
+		return normalizeFileError("open source file", err)
 	}
 	defer func() { _ = srcFile.Close() }()
 
-	destFile, err := os.Create(dest)
+	destFile, err := os.Create(trueDest)
 	if err != nil {
-		return normalizeFileError(err)
+		return normalizeFileError("create destination file", err)
 	}
 	defer func() { _ = destFile.Close() }()
 	_, err = io.Copy(destFile, srcFile)

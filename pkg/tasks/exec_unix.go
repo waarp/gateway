@@ -7,6 +7,8 @@ import (
 	"os/exec"
 )
 
+const lineSeparator = "\n"
+
 func getCommand(ctx context.Context, path, args string) *exec.Cmd {
 	return exec.CommandContext(ctx, "/bin/sh", "-c", path+" "+args) //nolint:gosec
 }

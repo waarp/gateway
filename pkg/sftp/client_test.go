@@ -27,7 +27,7 @@ func TestConnect(t *testing.T) {
 		client := &Client{}
 
 		Convey("Given a valid address", func() {
-			client.Info = model.OutTransferInfo{
+			client.Info = model.TransferContext{
 				Agent: &model.RemoteAgent{
 					Address: fmt.Sprintf("localhost:%d", clientTestPort),
 				},
@@ -48,7 +48,7 @@ func TestConnect(t *testing.T) {
 		})
 
 		Convey("Given an incorrect address", func() {
-			client.Info = model.OutTransferInfo{
+			client.Info = model.TransferContext{
 				Agent: &model.RemoteAgent{
 					Address: fmt.Sprintf("255.255.255.255:%d", clientTestPort),
 				},
@@ -75,7 +75,7 @@ func TestAuthenticate(t *testing.T) {
 	Convey("Given a SFTP client", t, func() {
 		client := &Client{
 			conf: &config.SftpProtoConfig{},
-			Info: model.OutTransferInfo{
+			Info: model.TransferContext{
 				Agent: &model.RemoteAgent{
 					Address: fmt.Sprintf("localhost:%d", clientTestPort),
 				},
@@ -134,7 +134,7 @@ func TestRequest(t *testing.T) {
 	Convey("Given a SFTP client", t, func() {
 		client := &Client{
 			conf: &config.SftpProtoConfig{},
-			Info: model.OutTransferInfo{
+			Info: model.TransferContext{
 				Agent: &model.RemoteAgent{
 					Address: fmt.Sprintf("localhost:%d", clientTestPort),
 				},
@@ -221,7 +221,7 @@ func TestData(t *testing.T) {
 	Convey("Given a SFTP client", t, func() {
 		client := &Client{
 			conf: &config.SftpProtoConfig{},
-			Info: model.OutTransferInfo{
+			Info: model.TransferContext{
 				Agent: &model.RemoteAgent{
 					Address: fmt.Sprintf("localhost:%d", clientTestPort),
 				},

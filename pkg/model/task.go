@@ -1,17 +1,19 @@
 package model
 
 import (
+	"context"
 	"encoding/json"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 )
 
 // ValidTasks is a list of all the tasks known by the gateway
-var ValidTasks = map[string]Validator{}
+var ValidTasks = make(map[string]TaskRunner)
 
-// Validator permits to validate the arguments for a given task
-type Validator interface {
-	Validate(map[string]string) error
+// TaskRunner checks to validate the arguments for a given task.
+type TaskRunner interface {
+	Validate(args map[string]string) error
+	Run(map[string]string, *database.DB, *TransferContext, context.Context) (string, error)
 }
 
 func init() {

@@ -6,22 +6,23 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"time"
+	"path"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
-// ExecMoveTask is a task which executes an external program which moves the
+// execMoveTask is a task which executes an external program which moves the
 // transferred file.
-type ExecMoveTask struct{}
+type execMoveTask struct{}
 
 func init() {
-	RunnableTasks["EXECMOVE"] = &ExecMoveTask{}
-	model.ValidTasks["EXECMOVE"] = &ExecMoveTask{}
+	model.ValidTasks["EXECMOVE"] = &execMoveTask{}
 }
 
 // Validate checks if the EXECMOVE task has all the required arguments.
-func (e *ExecMoveTask) Validate(params map[string]string) error {
+func (e *execMoveTask) Validate(params map[string]string) error {
 	if _, _, _, err := parseExecArgs(params); err != nil {
 		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
@@ -30,26 +31,26 @@ func (e *ExecMoveTask) Validate(params map[string]string) error {
 }
 
 // Run executes the task by executing an external program with the given parameters.
-func (e *ExecMoveTask) Run(params map[string]string, processor *Processor) (string, error) {
-	path, args, delay, err := parseExecArgs(params)
+func (e *execMoveTask) Run(params map[string]string, _ *database.DB,
+	info *model.TransferContext, parent context.Context) (string, error) {
+	script, args, delay, err := parseExecArgs(params)
 	if err != nil {
-		return err.Error(), fmt.Errorf("failed to parse task arguments: %s", err.Error())
+		return "", fmt.Errorf("failed to parse task arguments: %s", err)
 	}
 
 	var ctx context.Context
 	var cancel context.CancelFunc
 	if delay != 0 {
-		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(delay)*
-			time.Millisecond)
+		ctx, cancel = context.WithTimeout(parent, delay)
 	} else {
-		ctx, cancel = context.WithCancel(context.Background())
+		ctx, cancel = context.WithCancel(parent)
 	}
 	defer cancel()
 
-	cmd := getCommand(ctx, path, args)
+	cmd := getCommand(ctx, script, args)
 	in, out, err := os.Pipe()
 	if err != nil {
-		return err.Error(), err
+		return "", err
 	}
 	defer func() {
 		_ = in.Close()
@@ -60,12 +61,12 @@ func (e *ExecMoveTask) Run(params map[string]string, processor *Processor) (stri
 	if err := cmd.Run(); err != nil {
 		select {
 		case <-ctx.Done():
-			return "max exec delay expired", fmt.Errorf("max exec delay expired")
+			return "", fmt.Errorf("max execution delay expired")
 		default:
 			if ex, ok := err.(*exec.ExitError); ok && ex.ExitCode() == 1 {
-				return err.Error(), errWarning
+				return "", &errWarning{err.Error()}
 			}
-			return err.Error(), err
+			return "", err
 		}
 	}
 	_ = out.Close()
@@ -77,13 +78,14 @@ func (e *ExecMoveTask) Run(params map[string]string, processor *Processor) (stri
 	}
 
 	if _, err := os.Stat(newPath); err != nil {
-		return "could not find moved file", err
+		return "", fmt.Errorf("could not find moved file: %s", err)
 	}
 
-	if processor.Rule.IsSend {
-		processor.Transfer.SourceFile = newPath
+	info.Transfer.TrueFilepath = utils.NormalizePath(newPath)
+	if info.Rule.IsSend {
+		info.Transfer.SourceFile = path.Base(info.Transfer.TrueFilepath)
 	} else {
-		processor.Transfer.DestFile = newPath
+		info.Transfer.DestFile = path.Base(info.Transfer.TrueFilepath)
 	}
 	return "", nil
 }

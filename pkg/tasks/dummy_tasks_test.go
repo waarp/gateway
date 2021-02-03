@@ -3,17 +3,15 @@
 package tasks
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
 func init() {
-	RunnableTasks[taskSuccess] = &testTaskSuccess{}
-	RunnableTasks[taskWarning] = &testTaskWarning{}
-	RunnableTasks[taskFail] = &testTaskFail{}
-	RunnableTasks[taskLong] = &testTaskLong{}
 	model.ValidTasks[taskSuccess] = &testTaskSuccess{}
 	model.ValidTasks[taskWarning] = &testTaskWarning{}
 	model.ValidTasks[taskFail] = &testTaskFail{}
@@ -35,7 +33,8 @@ func (t *testTaskSuccess) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskSuccess) Run(map[string]string, *Processor) (string, error) {
+func (t *testTaskSuccess) Run(map[string]string, *database.DB,
+	*model.TransferContext, context.Context) (string, error) {
 	dummyTaskCheck <- "SUCCESS"
 	return "", nil
 }
@@ -46,9 +45,9 @@ func (t *testTaskWarning) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskWarning) Run(map[string]string, *Processor) (string, error) {
+func (t *testTaskWarning) Run(map[string]string, *database.DB, *model.TransferContext, context.Context) (string, error) {
 	dummyTaskCheck <- "WARNING"
-	return "warning message", errWarning
+	return "warning message", &errWarning{"warning message"}
 }
 
 type testTaskFail struct{}
@@ -57,7 +56,7 @@ func (t *testTaskFail) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskFail) Run(map[string]string, *Processor) (string, error) {
+func (t *testTaskFail) Run(map[string]string, *database.DB, *model.TransferContext, context.Context) (string, error) {
 	dummyTaskCheck <- "FAILURE"
 	return "task failed", fmt.Errorf("task failed")
 }
@@ -68,7 +67,7 @@ func (t *testTaskLong) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskLong) Run(map[string]string, *Processor) (string, error) {
+func (t *testTaskLong) Run(map[string]string, *database.DB, *model.TransferContext, context.Context) (string, error) {
 	dummyTaskCheck <- "LONG"
 	time.Sleep(time.Minute)
 	return "task failed", fmt.Errorf("task failed")

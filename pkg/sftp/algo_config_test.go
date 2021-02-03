@@ -59,7 +59,7 @@ func TestSFTPAlgoConfig(t *testing.T) {
 		Reset(func() { _ = server.Stop(context.Background()) })
 
 		Convey("Given an SFTP client", func() {
-			info := model.OutTransferInfo{
+			info := model.TransferContext{
 				Agent: &model.RemoteAgent{
 					Name:        "remote_sftp",
 					Address:     agent.Address,

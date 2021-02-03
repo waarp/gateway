@@ -20,7 +20,7 @@ type Pipeline struct {
 	Rule    *model.Rule
 	Signals chan model.Signal
 	Ctx     context.Context
-	proc    *tasks.Processor
+	proc    *tasks.Runner
 }
 
 // PreTasks executes the transfer's pre-tasks. It returns an error if the

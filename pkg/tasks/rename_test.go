@@ -1,9 +1,13 @@
 package tasks
 
 import (
+	"io/ioutil"
+	"path/filepath"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -14,7 +18,7 @@ func TestRenameTaskValidate(t *testing.T) {
 		}
 
 		Convey("When calling the `Validate` method", func() {
-			runner := &RenameTask{}
+			runner := &renameTask{}
 			err := runner.Validate(args)
 
 			Convey("Then it should NOT return an error", func() {
@@ -27,7 +31,7 @@ func TestRenameTaskValidate(t *testing.T) {
 		args := map[string]string{}
 
 		Convey("When calling the `Validate` method", func() {
-			runner := &RenameTask{}
+			runner := &renameTask{}
 			err := runner.Validate(args)
 
 			Convey("Then it should return an error", func() {
@@ -41,64 +45,55 @@ func TestRenameTaskValidate(t *testing.T) {
 	})
 }
 
-func TestRebaneTaskRun(t *testing.T) {
-	Convey("Given a Processor for a sending Transfer", t, func() {
-		runner := &Processor{
+func TestRenameTaskRun(t *testing.T) {
+	Convey("Given a Runner for a sending Transfer", t, func(c C) {
+		root := testhelpers.TempDir(c, "task_rename")
+		task := &renameTask{}
+
+		srcPath := filepath.Join(root, "rename.src")
+		So(ioutil.WriteFile(srcPath, []byte("Hello World"), 0o700), ShouldBeNil)
+		dstPath := filepath.Join(root, "rename.dst")
+		So(ioutil.WriteFile(dstPath, []byte("Goodbye World"), 0o700), ShouldBeNil)
+
+		info := &model.TransferContext{
 			Rule: &model.Rule{
 				IsSend: true,
 			},
 			Transfer: &model.Transfer{
-				SourceFile: "test/dummy",
-				DestFile:   "test/dest",
+				TrueFilepath: srcPath,
+				SourceFile:   "rename.src",
 			},
 		}
 
-		Convey("Given a model.Task", func() {
-			args := map[string]string{
-				"path": "test",
-			}
+		Convey("Given a valid new path", func() {
+			args := map[string]string{"path": dstPath}
 
-			Convey("When caliing the `run` method", func() {
-				task := &RenameTask{}
-				_, err := task.Run(args, runner)
+			Convey("When calling the `run` method", func() {
+				_, err := task.Run(args, nil, info, nil)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
+				})
+
+				Convey("Then transfer filepath should be modified", func() {
+					So(info.Transfer.TrueFilepath, ShouldEqual, utils.NormalizePath(dstPath))
 				})
 
 				Convey("Then transfer source path should be modified", func() {
-					So(runner.Transfer.SourceFile, ShouldEqual, "test")
+					So(info.Transfer.SourceFile, ShouldEqual, "rename.dst")
 				})
 			})
 		})
-	})
 
-	Convey("Given a Processor for a sending Transfer", t, func() {
-		runner := &Processor{
-			Rule: &model.Rule{
-				IsSend: false,
-			},
-			Transfer: &model.Transfer{
-				SourceFile: "test/dummy",
-				DestFile:   "test/dest",
-			},
-		}
+		Convey("Given an invalid new path", func() {
+			args := map[string]string{"path": filepath.Join(root, "dummy")}
 
-		Convey("Given a model.Task", func() {
-			args := map[string]string{
-				"path": "test",
-			}
+			Convey("When calling the `run` method", func() {
+				_, err := task.Run(args, nil, info, nil)
 
-			Convey("When caliing the `run` method", func() {
-				task := &RenameTask{}
-				_, err := task.Run(args, runner)
-
-				Convey("Then it should NOT return an error", func() {
-					So(err, ShouldBeNil)
-				})
-
-				Convey("Then transfer DestPath should be modified", func() {
-					So(runner.Transfer.DestFile, ShouldEqual, "test")
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, &errFileNotFound{"change transfer target file to",
+						args["path"]})
 				})
 			})
 		})

@@ -7,46 +7,51 @@ import (
 	"strconv"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-// ExecTask is a task which executes an external program.
-type ExecTask struct{}
+// execTask is a task which executes an external program.
+type execTask struct{}
 
 func init() {
-	RunnableTasks["EXEC"] = &ExecTask{}
-	model.ValidTasks["EXEC"] = &ExecTask{}
+	model.ValidTasks["EXEC"] = &execTask{}
 }
 
 func parseExecArgs(params map[string]string) (path, args string,
-	delay float64, err error) {
+	delay time.Duration, err error) {
 
 	var ok bool
 	if path, ok = params["path"]; !ok || path == "" {
 		err = fmt.Errorf("missing program path")
 		return
 	}
+
 	if args, ok = params["args"]; !ok {
 		err = fmt.Errorf("missing program arguments")
 		return
 	}
+
 	d, ok := params["delay"]
 	if !ok {
 		err = fmt.Errorf("missing program delay")
 		return
 	}
-	delay, err = strconv.ParseFloat(d, 64)
+	d2, err := strconv.ParseFloat(d, 64)
 	if err != nil {
 		err = fmt.Errorf("invalid program delay")
+		return
 	}
 	if delay < 0 {
 		err = fmt.Errorf("invalid program delay value (must be positive or 0)")
+		return
 	}
+	delay = time.Duration(d2) * time.Millisecond
 	return
 }
 
 // Validate checks if the EXEC task has all the required arguments.
-func (e *ExecTask) Validate(params map[string]string) error {
+func (e *execTask) Validate(params map[string]string) error {
 	if _, _, _, err := parseExecArgs(params); err != nil {
 		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
@@ -55,20 +60,20 @@ func (e *ExecTask) Validate(params map[string]string) error {
 }
 
 // Run executes the task by executing the external program with the given parameters.
-func (e *ExecTask) Run(params map[string]string, _ *Processor) (string, error) {
+func (e *execTask) Run(params map[string]string, _ *database.DB,
+	_ *model.TransferContext, parent context.Context) (string, error) {
 
 	path, args, delay, err := parseExecArgs(params)
 	if err != nil {
-		return err.Error(), fmt.Errorf("failed to parse task arguments: %s", err.Error())
+		return "", fmt.Errorf("failed to parse task arguments: %s", err)
 	}
 
 	var ctx context.Context
 	var cancel context.CancelFunc
 	if delay != 0 {
-		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(delay)*
-			time.Millisecond)
+		ctx, cancel = context.WithTimeout(parent, delay)
 	} else {
-		ctx, cancel = context.WithCancel(context.Background())
+		ctx, cancel = context.WithCancel(parent)
 	}
 	defer cancel()
 
@@ -81,11 +86,11 @@ func (e *ExecTask) Run(params map[string]string, _ *Processor) (string, error) {
 
 	select {
 	case <-ctx.Done():
-		return "max exec delay expired", fmt.Errorf("max exec delay expired")
+		return "", fmt.Errorf("max execution delay expired")
 	default:
 		if ex, ok := execErr.(*exec.ExitError); ok && ex.ExitCode() == 1 {
-			return execErr.Error(), errWarning
+			return "", &errWarning{execErr.Error()}
 		}
-		return execErr.Error(), execErr
+		return "", execErr
 	}
 }
