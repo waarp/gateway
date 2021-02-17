@@ -82,7 +82,7 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	var err1 error
-	l.Password, err1 = utils.HashPassword(l.Password)
+	l.Password, err1 = utils.HashPassword(database.BcryptRounds, l.Password)
 	if err1 != nil {
 		return database.NewInternalError(err)
 	}

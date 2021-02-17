@@ -7,34 +7,48 @@ Ajouter une règle
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
-   :resjson string name: Le nom de la règle
-   :resjson string comment: Un commentaire optionnel à propos de la règle (description...)
-   :resjson bool isSend: Si vrai, la règle ne peut être utilisée que pour l'envoi
+   :reqjson string name: Le nom de la règle
+   :reqjson string comment: Un commentaire optionnel à propos de la règle (description...)
+   :reqjson bool isSend: Si vrai, la règle ne peut être utilisée que pour l'envoi
       de fichiers, si faux, la règle ne peut être utilisée que pour la réception
       de fichiers
-   :resjson string path: Le chemin d'identification de la règle. Sert à identifier
+   :reqjson string path: Le chemin d'identification de la règle. Sert à identifier
       la règle lors d'un transfert si le protocole ne le permet pas. Doit être un
       chemin absolu.
-   :resjson string inPath: Le dossier de destination de la règle. Tous les fichiers
-      transférés avec cette règle sont envoyés dans ce dossier.
-   :resjson string outPath: Le dossier source de la règle. Tous les fichiers
-      transférés avec cette règle sont récupérés depuis ce dossier.
-   :resjson array preTasks: La liste des pré-traitements de la règle.
+   :reqjson string inPath: Le dossier de destination de la règle. Tous les fichiers
+      transférés avec cette règle sont envoyés dans ce dossier. (OBSOLÈTE:
+      remplacé par 'localDir' & 'remoteDir')
+   :reqjson string outPath: Le dossier source de la règle. Tous les fichiers
+      transférés avec cette règle sont récupérés depuis ce dossier. (OBSOLÈTE:
+      remplacé par 'localDir' & 'remoteDir')
+   :reqjson string workPath: Le dossier temporaire de la règle. Tous les fichiers
+      entrants transférés avec cette règle sont déposés dans ce dossier le temps
+      du transfert. (OBSOLÈTE: remplacé par 'localTmpDir')
+   :reqjson string localDir: Le dossier de la règle sur le disque local de la
+      Gateway. Si la règle est une règle d'envoi, ce dossier sert de source au
+      fichier; dans le cas contraire, il sert de destination.
+   :reqjson string remoteDir: Le chemin de la règle sur l'hôte distant. Si la
+      règle est une règle d'envoi, ce dossier sert de destination au fichier;
+      dans le cas contraire, il sert de source.
+   :reqjson string localTmpDir: Le dossier temporaire local de la règle. Tous
+      les fichiers reçu avec cette règle sont déposés dans ce dossier le temps
+      du transfert, puis déplacé dans le 'localDir' une fois terminé.
+   :reqjson array preTasks: La liste des pré-traitements de la règle.
 
       * **type** (*string*) - Le type de traitements.
       * **reception** (*object*) - Les arguments du traitement. La structure dépend du type de traitement.
 
-   :resjson array postTasks: La liste des post-traitements de la règle.
+   :reqjson array postTasks: La liste des post-traitements de la règle.
 
       * **type** (*string*) - Le type de traitement.
       * **reception** (*object*) - Les arguments du traitement. La structure dépend du type de traitement.
 
-   :resjson array errorTasks: La liste des traitements d'erreur de la règle.
+   :reqjson array errorTasks: La liste des traitements d'erreur de la règle.
 
       * **type** (*string*) - Le type de traitement.
       * **reception** (*object*) - Les arguments du traitement. La structure dépend du type de traitement.
 
-   :resjson object authorized: Les agents autorisés à utiliser cette règle. Par
+   :reqjson object authorized: Les agents autorisés à utiliser cette règle. Par
       défaut, si cet objet est vide, alors la règle peut être utilisée par tous
       le monde, sans exception.
 
@@ -66,9 +80,10 @@ Ajouter une règle
            "name": "règle_1",
            "comment": "ceci est un exemple de règle d'envoi",
            "isSend": true,
-           "path": "/chemin/de/la/règle",
-           "outPath": "/chemin/source/des/fichiers",
-           "inPath": "/chemin/destination/des/fichiers",
+           "path": "/chemin/identificateur/de/la/règle",
+           "localDir": "/dossier/local",
+           "remoteDir": "/dossier/distant",
+           "localTmpDir": "/dossier/temporaire",
            "preTasks": [{
              "type": "COPY",
              "args": {"path":"/chemin/de/copie"}

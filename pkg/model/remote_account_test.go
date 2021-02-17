@@ -82,8 +82,8 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 					IsServer:   false,
 					AgentID:    ag.ID,
 					AccountID:  acc.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 
@@ -150,7 +150,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 						}), ShouldBeNil)
 
 						Convey("Then the account's password should be encrypted", func() {
-							cipher, err := utils.CryptPassword(newAccount.Password)
+							cipher, err := utils.CryptPassword(database.GCM, newAccount.Password)
 							So(err, ShouldBeNil)
 							So(string(newAccount.Password), ShouldEqual, string(cipher))
 						})
@@ -201,7 +201,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 						}), ShouldBeNil)
 
 						Convey("Then the account's password should be encrypted", func() {
-							cipher, err := utils.CryptPassword(newAccount.Password)
+							cipher, err := utils.CryptPassword(database.GCM, newAccount.Password)
 							So(err, ShouldBeNil)
 							So(string(newAccount.Password), ShouldEqual, string(cipher))
 						})

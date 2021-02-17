@@ -3,7 +3,6 @@ package model
 import (
 	"fmt"
 	"path"
-	"path/filepath"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -19,18 +18,17 @@ func init() {
 // Transfer represents one record of the 'transfers' table.
 type Transfer struct {
 	ID               uint64               `xorm:"pk autoincr <- 'id'"`
+	Owner            string               `xorm:"notnull 'owner'"`
 	RemoteTransferID string               `xorm:"unique(transRemID) 'remote_transfer_id'"`
-	RuleID           uint64               `xorm:"notnull 'rule_id'"`
 	IsServer         bool                 `xorm:"notnull 'is_server'"`
+	RuleID           uint64               `xorm:"notnull 'rule_id'"`
 	AgentID          uint64               `xorm:"notnull 'agent_id'"`
 	AccountID        uint64               `xorm:"notnull unique(transRemID) 'account_id'"`
-	TrueFilepath     string               `xorm:"notnull 'true_filepath'"`
-	SourceFile       string               `xorm:"notnull 'source_file'"`
-	DestFile         string               `xorm:"notnull 'dest_file'"`
+	LocalPath        string               `xorm:"notnull 'local_path'"`
+	RemotePath       string               `xorm:"notnull 'remote_path'"`
 	Start            time.Time            `xorm:"notnull timestampz 'start'"`
-	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
 	Status           types.TransferStatus `xorm:"notnull 'status'"`
-	Owner            string               `xorm:"notnull 'owner'"`
+	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
 	Progress         uint64               `xorm:"notnull 'progression'"`
 	TaskNumber       uint64               `xorm:"notnull 'task_number'"`
 	Error            types.TransferError  `xorm:"extends"`
@@ -153,12 +151,10 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	if t.AccountID == 0 {
 		return database.NewValidationError("the transfer's account ID cannot be empty")
 	}
-	if t.SourceFile == "" {
-		return database.NewValidationError("the transfer's source cannot be empty")
+	if t.LocalPath == "" {
+		return database.NewValidationError("the local filepath is missing")
 	}
-	if t.DestFile == "" {
-		return database.NewValidationError("the transfer's destination cannot be empty")
-	}
+
 	if t.Start.IsZero() {
 		t.Start = time.Now()
 	}
@@ -175,17 +171,22 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	if !t.Error.Code.IsValid() {
 		return database.NewValidationError("'%s' is not a valid transfer error code", t.Error.Code)
 	}
-	if t.SourceFile != filepath.Base(t.SourceFile) {
-		return database.NewValidationError("the source file cannot contain subdirectories")
-	}
-	if t.DestFile != filepath.Base(t.DestFile) {
-		return database.NewValidationError("the destination file cannot contain subdirectories")
-	}
-	if t.TrueFilepath != "" {
-		t.TrueFilepath = utils.NormalizePath(t.TrueFilepath)
-		if !path.IsAbs(t.TrueFilepath) {
-			return database.NewValidationError("the filepath must be an absolute path")
+
+	if t.LocalPath != "" {
+		t.LocalPath = utils.ToOSPath(t.LocalPath)
+		if !path.IsAbs(t.LocalPath) && t.LocalPath != path.Base(t.LocalPath) {
+			return database.NewValidationError("the local file cannot contain subdirectories")
 		}
+	} else {
+		return database.NewValidationError("the local file cannot be empty")
+	}
+	if t.RemotePath != "" {
+		t.RemotePath = utils.ToStandardPath(t.RemotePath)
+		if !path.IsAbs(t.RemotePath) && t.RemotePath != path.Base(t.RemotePath) {
+			return database.NewValidationError("the remote file cannot contain subdirectories")
+		}
+	} else {
+		return database.NewValidationError("the remote file cannot be empty")
 	}
 
 	n, err := db.Count(&Rule{}).Where("id=?", t.RuleID).Run()
@@ -260,8 +261,8 @@ func (t *Transfer) ToHistory(db database.ReadAccess, stop time.Time) (*TransferH
 		Account:          accountLogin,
 		Agent:            agentName,
 		Protocol:         protocol,
-		SourceFilename:   t.SourceFile,
-		DestFilename:     t.DestFile,
+		LocalPath:        t.LocalPath,
+		RemotePath:       t.RemotePath,
 		Rule:             rule.Name,
 		Start:            t.Start,
 		Stop:             stop,

@@ -6,8 +6,10 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 func newInServer(old *model.LocalAgent) *api.InServer {
@@ -16,24 +18,40 @@ func newInServer(old *model.LocalAgent) *api.InServer {
 		Protocol:    &old.Protocol,
 		Address:     &old.Address,
 		Root:        &old.Root,
-		InDir:       &old.InDir,
-		OutDir:      &old.OutDir,
-		WorkDir:     &old.WorkDir,
+		LocalInDir:  &old.LocalInDir,
+		LocalOutDir: &old.LocalOutDir,
+		LocalTmpDir: &old.LocalTmpDir,
 		ProtoConfig: old.ProtoConfig,
 	}
 }
 
 // servToDB transforms the JSON local agent into its database equivalent.
-func servToDB(serv *api.InServer, id uint64) *model.LocalAgent {
+func servToDB(serv *api.InServer, id uint64, logger *log.Logger) *model.LocalAgent {
+	in := str(serv.LocalInDir)
+	if serv.InDir != nil {
+		logger.Warning("JSON field 'inDir' is deprecated, use 'serverLocalInDir' instead")
+		in = str(serv.InDir)
+	}
+	out := str(serv.LocalOutDir)
+	if serv.OutDir != nil {
+		logger.Warning("JSON field 'outDir' is deprecated, use 'serverLocalOutDir' instead")
+		in = str(serv.OutDir)
+	}
+	tmp := str(serv.LocalTmpDir)
+	if serv.WorkDir != nil {
+		logger.Warning("JSON field 'workDir' is deprecated, use 'serverLocalTmpDir' instead")
+		in = str(serv.WorkDir)
+	}
+
 	return &model.LocalAgent{
 		ID:          id,
 		Owner:       database.Owner,
 		Name:        str(serv.Name),
 		Address:     str(serv.Address),
 		Root:        str(serv.Root),
-		InDir:       str(serv.InDir),
-		OutDir:      str(serv.OutDir),
-		WorkDir:     str(serv.WorkDir),
+		LocalInDir:  in,
+		LocalOutDir: out,
+		LocalTmpDir: tmp,
 		Protocol:    str(serv.Protocol),
 		ProtoConfig: serv.ProtoConfig,
 	}
@@ -62,14 +80,18 @@ func partToDB(part *api.InPartner, id uint64) *model.RemoteAgent {
 // FromLocalAgent transforms the given database local agent into its JSON
 // equivalent.
 func FromLocalAgent(ag *model.LocalAgent, rules *api.AuthorizedRules) *api.OutServer {
+
 	return &api.OutServer{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
 		Address:         ag.Address,
 		Root:            ag.Root,
-		InDir:           ag.InDir,
-		OutDir:          ag.OutDir,
-		WorkDir:         ag.WorkDir,
+		InDir:           utils.NormalizePath(ag.LocalInDir),
+		OutDir:          utils.NormalizePath(ag.LocalOutDir),
+		WorkDir:         utils.NormalizePath(ag.LocalTmpDir),
+		LocalInDir:      ag.LocalInDir,
+		LocalOutDir:     ag.LocalInDir,
+		LocalTmpDir:     ag.LocalTmpDir,
 		ProtoConfig:     ag.ProtoConfig,
 		AuthorizedRules: *rules,
 	}

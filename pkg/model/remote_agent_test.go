@@ -102,8 +102,8 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 					IsServer:   false,
 					AgentID:    ag.ID,
 					AccountID:  acc.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 

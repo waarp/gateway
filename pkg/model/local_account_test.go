@@ -80,8 +80,8 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 					IsServer:   true,
 					AgentID:    ag.ID,
 					AccountID:  acc.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -137,7 +137,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 						So(newAccount.BeforeWrite(db), ShouldBeNil)
 
 						Convey("Then the account's password should be hashed", func() {
-							hash, err := utils.HashPassword(newAccount.Password)
+							hash, err := utils.HashPassword(database.BcryptRounds, newAccount.Password)
 							So(err, ShouldBeNil)
 							So(string(newAccount.Password), ShouldEqual, string(hash))
 						})

@@ -29,9 +29,31 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule) datab
 		rule.Name = src.Name
 		rule.IsSend = src.IsSend
 		rule.Path = src.Path
-		rule.InPath = src.InPath
-		rule.OutPath = src.OutPath
-		rule.WorkPath = src.WorkPath
+		rule.LocalDir = src.LocalDir
+		rule.RemoteDir = src.RemoteDir
+		rule.LocalTmpDir = src.LocalTmpDir
+		if src.InPath != "" {
+			logger.Warning("JSON field 'rule.inPath' is deprecated, use 'localDir' & " +
+				"'remoteDir' instead")
+			if src.IsSend {
+				rule.RemoteDir = src.InPath
+			} else {
+				rule.LocalDir = src.InPath
+			}
+		}
+		if src.OutPath != "" {
+			logger.Warning("JSON field 'rule.outPath' is deprecated, use 'localDir' & " +
+				"'remoteDir' instead")
+			if src.IsSend {
+				rule.LocalDir = src.OutPath
+			} else {
+				rule.RemoteDir = src.OutPath
+			}
+		}
+		if src.WorkPath != "" {
+			logger.Warning("JSON field 'rule.workPath' is deprecated, use 'localTmpDir' instead")
+			rule.LocalTmpDir = src.WorkPath
+		}
 
 		// Create/Update
 		if exists {

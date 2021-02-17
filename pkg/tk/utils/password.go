@@ -1,12 +1,12 @@
 package utils
 
 import (
+	"crypto/cipher"
 	"crypto/rand"
 	"errors"
 	"io"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,19 +16,19 @@ import (
 //
 // If the password is already encrypted, it is returned unchanged.
 // If the password cannot be encrypted, an error is returned.
-func CryptPassword(password []byte) ([]byte, error) {
+func CryptPassword(gcm cipher.AEAD, password []byte) ([]byte, error) {
 
 	// If password is already encrypted, don't encrypt it again.
 	if strings.HasPrefix(string(password), "$AES$") {
 		return password, nil
 	}
 
-	nonce := make([]byte, database.GCM.NonceSize())
+	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, err
 	}
 
-	cipherText := database.GCM.Seal(nonce, nonce, password, nil)
+	cipherText := gcm.Seal(nonce, nonce, password, nil)
 	cipherText = append([]byte("$AES$"), cipherText...)
 	return cipherText, nil
 }
@@ -37,19 +37,19 @@ func CryptPassword(password []byte) ([]byte, error) {
 // returns it decrypted.
 //
 // If the password cannot be decrypted, an error is returned.
-func DecryptPassword(cipher []byte) ([]byte, error) {
+func DecryptPassword(gcm cipher.AEAD, cipher []byte) ([]byte, error) {
 	if !strings.HasPrefix(string(cipher), "$AES$") {
 		return cipher, nil
 	}
 	cryptPassword := cipher[5:]
 
-	nonceSize := database.GCM.NonceSize()
+	nonceSize := gcm.NonceSize()
 	if len(cryptPassword) < nonceSize {
 		return nil, errors.New("the nonce cannot be longer than the text")
 	}
 
 	nonce, cipherText := cryptPassword[:nonceSize], cryptPassword[nonceSize:]
-	password, err := database.GCM.Open(nil, nonce, cipherText, nil)
+	password, err := gcm.Open(nil, nonce, cipherText, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -62,14 +62,14 @@ func DecryptPassword(cipher []byte) ([]byte, error) {
 //
 // If the password is already hashed, the hash is returned unchanged.
 // If the password cannot be hashed, an error is returned.
-func HashPassword(password []byte) ([]byte, error) {
+func HashPassword(bcryptRounds int, password []byte) ([]byte, error) {
 
 	// If password is already hashed, don't encrypt it again.
 	if _, isHashed := bcrypt.Cost(password); isHashed == nil {
 		return password, nil
 	}
 
-	hash, err := bcrypt.GenerateFromPassword(password, database.BcryptRounds)
+	hash, err := bcrypt.GenerateFromPassword(password, bcryptRounds)
 	if err != nil {
 		return nil, err
 	}

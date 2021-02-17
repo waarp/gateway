@@ -81,11 +81,9 @@ func (e *execMoveTask) Run(params map[string]string, _ *database.DB,
 		return "", fmt.Errorf("could not find moved file: %s", err)
 	}
 
-	info.Transfer.TrueFilepath = utils.NormalizePath(newPath)
-	if info.Rule.IsSend {
-		info.Transfer.SourceFile = path.Base(info.Transfer.TrueFilepath)
-	} else {
-		info.Transfer.DestFile = path.Base(info.Transfer.TrueFilepath)
-	}
+	info.Transfer.LocalPath = utils.ToStandardPath(newPath)
+	info.Transfer.RemotePath = path.Join(path.Dir(info.Transfer.RemotePath),
+		path.Base(info.Transfer.LocalPath))
+
 	return "", nil
 }

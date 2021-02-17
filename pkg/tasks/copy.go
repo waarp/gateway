@@ -34,7 +34,7 @@ func (*copyTask) Run(args map[string]string, _ *database.DB,
 	info *model.TransferContext, _ context.Context) (string, error) {
 	newDir := args["path"]
 
-	source := info.Transfer.TrueFilepath
+	source := info.Transfer.LocalPath
 	dest := path.Join(newDir, filepath.Base(source))
 
 	if err := doCopy(dest, source); err != nil {
@@ -45,8 +45,8 @@ func (*copyTask) Run(args map[string]string, _ *database.DB,
 }
 
 func doCopy(dest, source string) error {
-	trueSource := utils.DenormalizePath(source)
-	trueDest := utils.DenormalizePath(dest)
+	trueSource := utils.ToOSPath(source)
+	trueDest := utils.ToOSPath(dest)
 
 	err := os.MkdirAll(filepath.Dir(trueDest), 0o700)
 	if err != nil {

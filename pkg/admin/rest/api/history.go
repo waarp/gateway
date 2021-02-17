@@ -16,8 +16,10 @@ type OutHistory struct {
 	Requester      string                  `json:"requester"`
 	Requested      string                  `json:"requested"`
 	Protocol       string                  `json:"protocol"`
-	SourceFilename string                  `json:"sourceFilename"`
-	DestFilename   string                  `json:"destFilename"`
+	SourceFilename string                  `json:"sourceFilename"` // DEPRECATED
+	DestFilename   string                  `json:"destFilename"`   // DEPRECATED
+	LocalPath      string                  `json:"localPath"`
+	RemotePath     string                  `json:"remotePath"`
 	Rule           string                  `json:"rule"`
 	Start          time.Time               `json:"start"`
 	Stop           time.Time               `json:"stop"`

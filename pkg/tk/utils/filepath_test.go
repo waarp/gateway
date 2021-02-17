@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -34,7 +35,7 @@ func TestGetPath(t *testing.T) {
 			Convey(fmt.Sprintf("When calling the 'GetPath' function with roots: [%v]", tc.roots), func() {
 				res := GetPath(tc.path, tc.roots...)
 				Convey(fmt.Sprintf("Then it should returns '%s'", tc.expected), func() {
-					So(res, ShouldEqual, tc.expected)
+					So(res, ShouldEqual, filepath.FromSlash(tc.expected))
 				})
 			})
 		})

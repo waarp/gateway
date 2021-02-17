@@ -3,10 +3,11 @@ package tasks
 import (
 	"context"
 	"io/ioutil"
-	"os"
+	"path/filepath"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -82,24 +83,25 @@ func TestExecOutputValidate(t *testing.T) {
 
 func TestExecOutputRun(t *testing.T) {
 
-	Convey("Given an 'EXECOUTPUT' task", t, func() {
+	Convey("Given an 'EXECOUTPUT' task", t, func(c C) {
+		root := testhelpers.TempDir(c, "task_execoutput")
+		scriptFile := filepath.Join(root, execOutputScriptFile)
+
 		exec := &execOutputTask{}
 		info := &model.TransferContext{
 			Transfer: &model.Transfer{},
 			Rule:     &model.Rule{},
 		}
 
-		Reset(func() { _ = os.Remove(execOutputScriptFile) })
-
 		Convey("Given that the task is valid", func() {
 			args := map[string]string{
-				"path":  execOutputScriptFile,
-				"args":  "execmove.go",
+				"path":  scriptFile,
+				"args":  scriptFile,
 				"delay": "1000",
 			}
 
 			Convey("Given that the command succeeds", func() {
-				err := ioutil.WriteFile(execOutputScriptFile, []byte(scriptExecOK), 0700)
+				err := ioutil.WriteFile(scriptFile, []byte(scriptExecOK), 0700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -112,7 +114,7 @@ func TestExecOutputRun(t *testing.T) {
 			})
 
 			Convey("Given that the command sends a warning", func() {
-				err := ioutil.WriteFile(execOutputScriptFile, []byte(scriptExecWarn), 0700)
+				err := ioutil.WriteFile(scriptFile, []byte(scriptExecWarn), 0700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -125,8 +127,8 @@ func TestExecOutputRun(t *testing.T) {
 			})
 
 			Convey("Given that the command fails", func() {
-				So(ioutil.WriteFile(execOutputScriptFile,
-					[]byte(scriptExecOutputFail), 0700), ShouldBeNil)
+				So(ioutil.WriteFile(scriptFile, []byte(scriptExecOutputFail),
+					0700), ShouldBeNil)
 
 				Convey("When running the task", func() {
 					_, err := exec.Run(args, nil, info, context.Background())
@@ -136,14 +138,14 @@ func TestExecOutputRun(t *testing.T) {
 						So(err, ShouldNotHaveSameTypeAs, &errWarning{})
 
 						Convey("Then the transfer file should have changed", func() {
-							So(info.Transfer.DestFile, ShouldEqual, "new_name.file")
+							So(info.Transfer.LocalPath, ShouldEqual, "new_name.file")
 						})
 					})
 				})
 			})
 
 			Convey("Given that the command delay expires", func() {
-				err := ioutil.WriteFile(execOutputScriptFile, []byte(scriptExecInfinite), 0700)
+				err := ioutil.WriteFile(scriptFile, []byte(scriptExecInfinite), 0700)
 				So(err, ShouldBeNil)
 
 				args["delay"] = "100"

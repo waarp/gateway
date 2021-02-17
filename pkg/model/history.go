@@ -1,6 +1,7 @@
 package model
 
 import (
+	"path"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -19,19 +20,19 @@ type TransferHistory struct {
 	RemoteTransferID string               `xorm:"unique(histRemID) 'remote_transfer_id'"`
 	IsServer         bool                 `xorm:"notnull 'is_server'"`
 	IsSend           bool                 `xorm:"notnull 'is_send'"`
-	Account          string               `xorm:"notnull unique(histRemID) 'account'"`
-	Agent            string               `xorm:"notnull unique(histRemID) 'agent'"`
-	Protocol         string               `xorm:"notnull 'protocol'"`
-	SourceFilename   string               `xorm:"notnull 'source_filename'"`
-	DestFilename     string               `xorm:"notnull 'dest_filename'"`
 	Rule             string               `xorm:"notnull 'rule'"`
+	Agent            string               `xorm:"notnull unique(histRemID) 'agent'"`
+	Account          string               `xorm:"notnull unique(histRemID) 'account'"`
+	Protocol         string               `xorm:"notnull 'protocol'"`
+	LocalPath        string               `xorm:"notnull 'local_path'"`
+	RemotePath       string               `xorm:"notnull 'remote_path'"`
 	Start            time.Time            `xorm:"notnull timestampz 'start'"`
 	Stop             time.Time            `xorm:"notnull timestampz 'stop'"`
 	Status           types.TransferStatus `xorm:"notnull varchar(50) 'status'"`
-	Error            types.TransferError  `xorm:"extends"`
 	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
 	Progress         uint64               `xorm:"notnull 'progression'"`
 	TaskNumber       uint64               `xorm:"notnull 'task_number'"`
+	Error            types.TransferError  `xorm:"extends"`
 }
 
 // TableName returns the name of the transfer history table.
@@ -69,19 +70,12 @@ func (h *TransferHistory) BeforeWrite(database.ReadAccess) database.Error {
 	if h.Agent == "" {
 		return database.NewValidationError("the transfer's agent cannot be empty")
 	}
-	if h.IsServer {
-		if h.IsSend && h.DestFilename == "" {
-			return database.NewValidationError("the transfer's destination filename cannot be empty")
-		} else if !h.IsSend && h.SourceFilename == "" {
-			return database.NewValidationError("the transfer's destination filename cannot be empty")
-		}
-	} else {
-		if h.SourceFilename == "" {
-			return database.NewValidationError("the transfer's source filename cannot be empty")
-		}
-		if h.DestFilename == "" {
-			return database.NewValidationError("the transfer's destination filename cannot be empty")
-		}
+
+	if h.LocalPath == "" {
+		return database.NewValidationError("the local filepath cannot be empty")
+	}
+	if h.RemotePath == "" {
+		return database.NewValidationError("the remote filepath cannot be empty")
 	}
 	if h.Start.IsZero() {
 		return database.NewValidationError("the transfer's start date cannot be empty")
@@ -146,8 +140,8 @@ func (h *TransferHistory) Restart(db database.Access, date time.Time) (*Transfer
 		IsServer:         h.IsServer,
 		AgentID:          agentID,
 		AccountID:        accountID,
-		SourceFile:       h.SourceFilename,
-		DestFile:         h.DestFilename,
+		LocalPath:        path.Base(h.LocalPath),
+		RemotePath:       path.Base(h.RemotePath),
 		Start:            date,
 		Status:           types.StatusPlanned,
 		Step:             types.StepNone,

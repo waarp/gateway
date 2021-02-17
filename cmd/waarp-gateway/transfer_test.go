@@ -28,21 +28,20 @@ func transferInfoString(t *api.OutTransfer) string {
 	if t.RemoteID != "" {
 		rv += "    Remote ID:        " + t.RemoteID + "\n"
 	}
-	rv += "    Rule:             " + t.Rule + "\n" +
-		"    Requester:        " + t.Requester + "\n" +
-		"    Requested:        " + t.Requested + "\n" +
-		"    True filepath:    " + t.TrueFilepath + "\n" +
-		"    Source file:      " + t.SourcePath + "\n" +
-		"    Destination file: " + t.DestPath + "\n" +
-		"    Start time:       " + t.Start.Local().Format(time.RFC3339Nano) + "\n" +
-		"    Step:             " + t.Step + "\n" +
-		"    Progress:         " + fmt.Sprint(t.Progress) + "\n" +
-		"    Task number:      " + fmt.Sprint(t.TaskNumber) + "\n"
+	rv += "    Rule:            " + t.Rule + "\n" +
+		"    Requester:       " + t.Requester + "\n" +
+		"    Requested:       " + t.Requested + "\n" +
+		"    Local filepath:  " + t.LocalPath + "\n" +
+		"    Remote filepath: " + t.RemotePath + "\n" +
+		"    Start time:      " + t.Start.Local().Format(time.RFC3339Nano) + "\n" +
+		"    Step:            " + t.Step + "\n" +
+		"    Progress:        " + fmt.Sprint(t.Progress) + "\n" +
+		"    Task number:     " + fmt.Sprint(t.TaskNumber) + "\n"
 	if t.ErrorCode != types.TeOk.String() {
-		rv += "    Error code:       " + t.ErrorCode + "\n"
+		rv += "    Error code:      " + t.ErrorCode + "\n"
 	}
 	if t.ErrorMsg != "" {
-		rv += "    Error message:    " + t.ErrorMsg + "\n"
+		rv += "    Error message:   " + t.ErrorMsg + "\n"
 	}
 	return rv
 }
@@ -53,21 +52,20 @@ func TestDisplayTransfer(t *testing.T) {
 		out = testFile()
 
 		trans := &api.OutTransfer{
-			ID:           1,
-			RemoteID:     "1234",
-			Rule:         "rule",
-			Requester:    "requester",
-			Requested:    "requested",
-			SourcePath:   "source/path",
-			DestPath:     "dest/path",
-			TrueFilepath: "/true/filepath",
-			Start:        time.Now(),
-			Status:       types.StatusPlanned,
-			Step:         types.StepData.String(),
-			Progress:     1,
-			TaskNumber:   2,
-			ErrorCode:    types.TeForbidden.String(),
-			ErrorMsg:     "custom error message",
+			ID:         1,
+			RemoteID:   "1234",
+			Rule:       "rule",
+			Requester:  "requester",
+			Requested:  "requested",
+			LocalPath:  "/local/path",
+			RemotePath: "/remote/path",
+			Start:      time.Now(),
+			Status:     types.StatusPlanned,
+			Step:       types.StepData.String(),
+			Progress:   1,
+			TaskNumber: 2,
+			ErrorCode:  types.TeForbidden.String(),
+			ErrorMsg:   "custom error message",
 		}
 		Convey("When calling the `displayTransfer` function", func() {
 			w := getColorable()
@@ -117,7 +115,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given all valid flags", func() {
 				args := []string{"-p", partner.Name, "-l", account.Login, "-w",
-					"send", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
+					"send", "-r", rule.Name, "-f", "test_file",
 					"-d", "2020-01-01T01:00:00+01:00"}
 
 				Convey("When executing the command", func() {
@@ -126,7 +124,7 @@ func TestAddTransfer(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the transfer was added", func() {
-						So(getOutput(), ShouldEqual, "The transfer of file file.src"+
+						So(getOutput(), ShouldEqual, "The transfer of file test_file"+
 							" was successfully added.\n")
 					})
 
@@ -142,9 +140,8 @@ func TestAddTransfer(t *testing.T) {
 							IsServer:         false,
 							AgentID:          partner.ID,
 							AccountID:        account.ID,
-							TrueFilepath:     "",
-							SourceFile:       "file.src",
-							DestFile:         "file.dst",
+							LocalPath:        "test_file",
+							RemotePath:       "test_file",
 							Start:            transfers[0].Start,
 							Step:             types.StepNone,
 							Status:           types.StatusPlanned,
@@ -160,7 +157,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid rule name", func() {
 				args := []string{"-p", partner.Name, "-l", account.Login, "-w",
-					"send", "-r", "toto", "-f", "file.src", "-n", "file.dst",
+					"send", "-r", "toto", "-f", "file",
 					"-d", "2020-01-01T01:00:00+01:00"}
 
 				Convey("When executing the command", func() {
@@ -176,7 +173,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				args := []string{"-p", partner.Name, "-l", "toto", "-w",
-					"send", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
+					"send", "-r", rule.Name, "-f", "file",
 					"-d", "2020-01-01T01:00:00+01:00"}
 
 				Convey("When executing the command", func() {
@@ -193,7 +190,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid partner name", func() {
 				args := []string{"-p", "toto", "-l", account.Login, "-w",
-					"send", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
+					"send", "-r", rule.Name, "-f", "file",
 					"-d", "2020-01-01T01:00:00+01:00"}
 
 				Convey("When executing the command", func() {
@@ -209,7 +206,7 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid start date", func() {
 				args := []string{"-p", partner.Name, "-l", account.Login, "-w",
-					"send", "-r", rule.Name, "-f", "file.src", "-n", "file.dst",
+					"send", "-r", rule.Name, "-f", "file",
 					"-d", "toto"}
 
 				Convey("When executing the command", func() {
@@ -275,8 +272,8 @@ func TestGetTransfer(t *testing.T) {
 					RuleID:     r.ID,
 					AgentID:    p.ID,
 					AccountID:  a.ID,
-					SourceFile: "source",
-					DestFile:   "dest",
+					LocalPath:  "/local/path",
+					RemotePath: "/remote/path",
 					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPlanned,
 				}
@@ -396,48 +393,44 @@ func TestListTransfer(t *testing.T) {
 			Convey("Given 4 valid transfers", func() {
 
 				trans1 := &model.Transfer{
-					RuleID:       r1.ID,
-					AgentID:      p1.ID,
-					AccountID:    a1.ID,
-					SourceFile:   "source1",
-					DestFile:     "dest1",
-					TrueFilepath: "/true/filepath/1",
-					Step:         types.StepNone,
-					Status:       types.StatusPlanned,
-					Start:        time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),
+					RuleID:     r1.ID,
+					AgentID:    p1.ID,
+					AccountID:  a1.ID,
+					LocalPath:  "/local/path1",
+					RemotePath: "/remote/path1",
+					Step:       types.StepNone,
+					Status:     types.StatusPlanned,
+					Start:      time.Date(2019, 1, 1, 1, 0, 0, 0, time.Local),
 				}
 				trans2 := &model.Transfer{
-					RuleID:       r2.ID,
-					AgentID:      p2.ID,
-					AccountID:    a2.ID,
-					SourceFile:   "source2",
-					DestFile:     "dest2",
-					TrueFilepath: "/true/filepath/2",
-					Step:         types.StepSetup,
-					Status:       types.StatusRunning,
-					Start:        time.Date(2019, 1, 1, 2, 0, 0, 0, time.Local),
+					RuleID:     r2.ID,
+					AgentID:    p2.ID,
+					AccountID:  a2.ID,
+					LocalPath:  "/local/path2",
+					RemotePath: "/remote/path2",
+					Step:       types.StepSetup,
+					Status:     types.StatusRunning,
+					Start:      time.Date(2019, 1, 1, 2, 0, 0, 0, time.Local),
 				}
 				trans3 := &model.Transfer{
-					RuleID:       r3.ID,
-					AgentID:      p3.ID,
-					AccountID:    a3.ID,
-					SourceFile:   "source3",
-					DestFile:     "dest3",
-					TrueFilepath: "/true/filepath/3",
-					Step:         types.StepData,
-					Status:       types.StatusError,
-					Start:        time.Date(2019, 1, 1, 3, 0, 0, 0, time.Local),
+					RuleID:     r3.ID,
+					AgentID:    p3.ID,
+					AccountID:  a3.ID,
+					LocalPath:  "/local/path3",
+					RemotePath: "/remote/path3",
+					Step:       types.StepData,
+					Status:     types.StatusError,
+					Start:      time.Date(2019, 1, 1, 3, 0, 0, 0, time.Local),
 				}
 				trans4 := &model.Transfer{
-					RuleID:       r4.ID,
-					AgentID:      p4.ID,
-					AccountID:    a4.ID,
-					SourceFile:   "source3",
-					DestFile:     "dest3",
-					TrueFilepath: "/true/filepath/4",
-					Step:         types.StepFinalization,
-					Status:       types.StatusPlanned,
-					Start:        time.Date(2019, 1, 1, 4, 0, 0, 0, time.Local),
+					RuleID:     r4.ID,
+					AgentID:    p4.ID,
+					AccountID:  a4.ID,
+					LocalPath:  "/local/path4",
+					RemotePath: "/remote/path4",
+					Step:       types.StepFinalization,
+					Status:     types.StatusPlanned,
+					Start:      time.Date(2019, 1, 1, 4, 0, 0, 0, time.Local),
 				}
 				So(db.Insert(trans1).Run(), ShouldBeNil)
 				So(db.Insert(trans2).Run(), ShouldBeNil)
@@ -629,8 +622,8 @@ func TestPauseTransfer(t *testing.T) {
 					RuleID:     rule.ID,
 					AccountID:  account.ID,
 					AgentID:    part.ID,
-					SourceFile: "source",
-					DestFile:   "destination",
+					LocalPath:  "/local/path",
+					RemotePath: "/remote/path",
 					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPlanned,
 					Owner:      database.Owner,
@@ -722,8 +715,8 @@ func TestResumeTransfer(t *testing.T) {
 					RuleID:     r.ID,
 					AccountID:  account.ID,
 					AgentID:    partner.ID,
-					SourceFile: "source",
-					DestFile:   "destination",
+					LocalPath:  "/local/path",
+					RemotePath: "/remote/path",
 					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPaused,
 					Owner:      database.Owner,
@@ -813,8 +806,8 @@ func TestCancelTransfer(t *testing.T) {
 					RuleID:     rule.ID,
 					AccountID:  account.ID,
 					AgentID:    partner.ID,
-					SourceFile: "source",
-					DestFile:   "destination",
+					LocalPath:  "/local/path",
+					RemotePath: "/remote/path",
 					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPlanned,
 					Owner:      database.Owner,
@@ -841,23 +834,23 @@ func TestCancelTransfer(t *testing.T) {
 							So(history, ShouldNotBeEmpty)
 
 							hist := model.TransferHistory{
-								ID:             trans.ID,
-								Owner:          trans.Owner,
-								IsServer:       trans.IsServer,
-								IsSend:         rule.IsSend,
-								Account:        account.Login,
-								Agent:          partner.Name,
-								Protocol:       partner.Protocol,
-								SourceFilename: trans.SourceFile,
-								DestFilename:   trans.DestFile,
-								Rule:           rule.Name,
-								Start:          trans.Start,
-								Stop:           history[0].Stop,
-								Status:         types.StatusCancelled,
-								Error:          types.TransferError{},
-								Step:           trans.Step,
-								Progress:       0,
-								TaskNumber:     0,
+								ID:         trans.ID,
+								Owner:      trans.Owner,
+								IsServer:   trans.IsServer,
+								IsSend:     rule.IsSend,
+								Account:    account.Login,
+								Agent:      partner.Name,
+								Protocol:   partner.Protocol,
+								LocalPath:  trans.LocalPath,
+								RemotePath: trans.RemotePath,
+								Rule:       rule.Name,
+								Start:      trans.Start,
+								Stop:       history[0].Stop,
+								Status:     types.StatusCancelled,
+								Error:      types.TransferError{},
+								Step:       trans.Step,
+								Progress:   0,
+								TaskNumber: 0,
 							}
 							So(history, ShouldContain, hist)
 						})

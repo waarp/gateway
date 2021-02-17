@@ -156,8 +156,8 @@ func TestRuleBeforeDelete(t *testing.T) {
 					IsServer:   true,
 					AgentID:    server.ID,
 					AccountID:  account.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 

@@ -31,13 +31,13 @@ func displayServer(w io.Writer, server *api.OutServer) {
 	recv := strings.Join(server.AuthorizedRules.Reception, ", ")
 
 	fmt.Fprintln(w, orange(bold("● Server", server.Name)))
-	fmt.Fprintln(w, orange("    Protocol:      "), server.Protocol)
-	fmt.Fprintln(w, orange("    Address:       "), server.Address)
-	fmt.Fprintln(w, orange("    Root:          "), server.Root)
-	fmt.Fprintln(w, orange("    In directory:  "), server.InDir)
-	fmt.Fprintln(w, orange("    Out directory: "), server.OutDir)
-	fmt.Fprintln(w, orange("    Work directory:"), server.WorkDir)
-	fmt.Fprintln(w, orange("    Configuration: "), string(server.ProtoConfig))
+	fmt.Fprintln(w, orange("    Protocol:           "), server.Protocol)
+	fmt.Fprintln(w, orange("    Address:            "), server.Address)
+	fmt.Fprintln(w, orange("    Root:               "), server.Root)
+	fmt.Fprintln(w, orange("    Local IN directory: "), server.LocalInDir)
+	fmt.Fprintln(w, orange("    Local OUT directory:"), server.LocalOutDir)
+	fmt.Fprintln(w, orange("    Local TMP directory:"), server.LocalTmpDir)
+	fmt.Fprintln(w, orange("    Configuration:      "), string(server.ProtoConfig))
 	fmt.Fprintln(w, orange("    Authorized rules"))
 	fmt.Fprintln(w, bold("    ├─Sending:  "), send)
 	fmt.Fprintln(w, bold("    └─Reception:"), recv)
@@ -69,9 +69,10 @@ type serverAdd struct {
 	Protocol    string             `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
 	Address     string             `required:"yes" short:"a" long:"address" description:"The server's [address:port]"`
 	Root        *string            `short:"r" long:"root" description:"The server's root directory"`
-	InDir       *string            `short:"i" long:"in" description:"The server's in directory"`
-	OutDir      *string            `short:"o" long:"out" description:"The server's out directory"`
-	WorkDir     *string            `short:"w" long:"work" description:"The server's work directory"`
+	InDir       *string            `short:"i" long:"in" description:"The server's local in directory"`
+	OutDir      *string            `short:"o" long:"out" description:"The server's local out directory"`
+	WorkDir     *string            `short:"w" long:"work" description:"[DEPRECATED] The server's work directory"` // DEPRECATED
+	TempDir     *string            `short:"t" long:"tmp" description:"The server's local temp directory"`
 	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The server's configuration, in key:val format. Can be repeated."`
 }
 
@@ -85,13 +86,18 @@ func (s *serverAdd) Execute([]string) error {
 		Protocol:    &s.Protocol,
 		Address:     &s.Address,
 		Root:        s.Root,
-		InDir:       s.InDir,
-		OutDir:      s.OutDir,
-		WorkDir:     s.WorkDir,
+		LocalInDir:  s.InDir,
+		LocalOutDir: s.OutDir,
+		LocalTmpDir: s.TempDir,
 		ProtoConfig: conf,
 	}
-	addr.Path = "/api/servers"
+	if s.WorkDir != nil {
+		fmt.Fprintln(out, "[WARNING] The '-w' ('-work') option is deprecated. "+
+			"Use '-t' ('-tmp') instead.")
+		server.WorkDir = s.WorkDir
+	}
 
+	addr.Path = "/api/servers"
 	if err := add(server); err != nil {
 		return err
 	}
@@ -159,7 +165,8 @@ type serverUpdate struct {
 	Root        *string            `short:"r" long:"root" description:"The server's root directory"`
 	InDir       *string            `short:"i" long:"in" description:"The server's in directory"`
 	OutDir      *string            `short:"o" long:"out" description:"The server's out directory"`
-	WorkDir     *string            `short:"w" long:"work" description:"The server's work directory"`
+	WorkDir     *string            `short:"w" long:"work" description:"[DEPRECATED] The server's work directory"` // DEPRECATED
+	TempDir     *string            `short:"t" long:"tmp" description:"The server's local temp directory"`
 	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The server's configuration in JSON"`
 }
 
@@ -173,11 +180,17 @@ func (s *serverUpdate) Execute([]string) error {
 		Protocol:    s.Protocol,
 		Address:     s.Address,
 		Root:        s.Root,
-		InDir:       s.InDir,
-		OutDir:      s.OutDir,
-		WorkDir:     s.WorkDir,
+		LocalInDir:  s.InDir,
+		LocalOutDir: s.OutDir,
+		LocalTmpDir: s.TempDir,
 		ProtoConfig: conf,
 	}
+	if s.WorkDir != nil {
+		fmt.Fprintln(out, "[WARNING] The '-w' ('-work') option is deprecated. "+
+			"Use '-t' ('-tmp') instead.")
+		server.WorkDir = s.WorkDir
+	}
+
 	addr.Path = path.Join("/api/servers", s.Args.Name)
 
 	if err := update(server); err != nil {

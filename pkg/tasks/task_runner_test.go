@@ -8,20 +8,16 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func init() {
-	logConf := conf.LogConfig{
-		Level: "DEBUG",
-		LogTo: "stdout",
-	}
-	_ = log.InitBackend(logConf)
+	_ = log.InitBackend("DEBUG", "stdout", "")
 }
 
 func TestSetup(t *testing.T) {
@@ -60,10 +56,10 @@ func TestSetup(t *testing.T) {
 				db: db,
 				info: &model.TransferContext{
 					Rule: &model.Rule{
-						Name:    "Test",
-						IsSend:  true,
-						Path:    "path/to/test",
-						OutPath: "out/path",
+						Name:     "Test",
+						IsSend:   true,
+						Path:     "path/to/test",
+						LocalDir: "/local/dir",
 					},
 					Transfer: &model.Transfer{
 						ID:        1234,
@@ -117,7 +113,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[trueFullPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.info.Transfer.SourceFile)
+							So(val, ShouldEqual, r.info.Transfer.LocalPath)
 						})
 					})
 
@@ -126,7 +122,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[trueFilename] should contain the resolved variable", func() {
-							So(val, ShouldEqual, filepath.Base(r.info.Transfer.SourceFile))
+							So(val, ShouldEqual, filepath.Base(r.info.Transfer.LocalPath))
 						})
 					})
 
@@ -135,7 +131,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[fullPath] should contain the resolved variable", func() {
-							So(val, ShouldEqual, r.info.Transfer.SourceFile)
+							So(val, ShouldEqual, utils.ToOSPath(r.info.Transfer.LocalPath))
 						})
 					})
 
@@ -144,7 +140,7 @@ func TestSetup(t *testing.T) {
 						So(ok, ShouldBeTrue)
 
 						Convey("Then res[filename] should contain the resolved variable", func() {
-							So(val, ShouldEqual, filepath.Base(r.info.Transfer.SourceFile))
+							So(val, ShouldEqual, filepath.Base(r.info.Transfer.LocalPath))
 						})
 					})
 
@@ -264,8 +260,8 @@ func TestRunTasks(t *testing.T) {
 			IsServer:   false,
 			AgentID:    agent.ID,
 			AccountID:  account.ID,
-			SourceFile: "source",
-			DestFile:   "task_runner_test.go",
+			LocalPath:  "/local/file",
+			RemotePath: "/remote/file",
 		}
 		So(db.Insert(trans).Run(), ShouldBeNil)
 

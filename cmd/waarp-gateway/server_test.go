@@ -21,13 +21,13 @@ import (
 
 func serverInfoString(s *api.OutServer) string {
 	return "● Server " + s.Name + "\n" +
-		"    Protocol:       " + s.Protocol + "\n" +
-		"    Address:        " + s.Address + "\n" +
-		"    Root:           " + s.Root + "\n" +
-		"    In directory:   " + s.InDir + "\n" +
-		"    Out directory:  " + s.OutDir + "\n" +
-		"    Work directory: " + s.WorkDir + "\n" +
-		"    Configuration:  " + string(s.ProtoConfig) + "\n" +
+		"    Protocol:            " + s.Protocol + "\n" +
+		"    Address:             " + s.Address + "\n" +
+		"    Root:                " + s.Root + "\n" +
+		"    Local IN directory:  " + s.LocalInDir + "\n" +
+		"    Local OUT directory: " + s.LocalOutDir + "\n" +
+		"    Local TMP directory: " + s.LocalTmpDir + "\n" +
+		"    Configuration:       " + string(s.ProtoConfig) + "\n" +
 		"    Authorized rules\n" +
 		"    ├─Sending:   " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
 		"    └─Reception: " + strings.Join(s.AuthorizedRules.Reception, ", ") + "\n"
@@ -50,9 +50,9 @@ func TestGetServer(t *testing.T) {
 				Name:        "server_name",
 				Protocol:    "test",
 				Root:        "/server/root",
-				InDir:       "/server/in",
-				OutDir:      "/server/out",
-				WorkDir:     "/server/work",
+				LocalInDir:  "/in",
+				LocalOutDir: "/out",
+				LocalTmpDir: "/tmp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -124,7 +124,7 @@ func TestAddServer(t *testing.T) {
 			Convey("Given valid flags", func() {
 				args := []string{"-n", "server_name", "-p", "test",
 					"--root=root", "--in=in_dir", "--out=out_dir",
-					"--work=work_dir", "-a", "localhost:1"}
+					"--tmp=tmp_dir", "-a", "localhost:1"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -147,9 +147,9 @@ func TestAddServer(t *testing.T) {
 							Address:     command.Address,
 							Protocol:    command.Protocol,
 							Root:        *command.Root,
-							InDir:       *command.InDir,
-							OutDir:      *command.OutDir,
-							WorkDir:     *command.WorkDir,
+							LocalInDir:  *command.InDir,
+							LocalOutDir: *command.OutDir,
+							LocalTmpDir: *command.TempDir,
 							ProtoConfig: json.RawMessage(`{}`),
 						}
 						So(servers, ShouldContain, exp)
@@ -208,7 +208,7 @@ func TestAddServer(t *testing.T) {
 			Convey("Given a new R66 server", func() {
 				args := []string{"-n", "r66_server", "-p", "r66",
 					"--root=root", "--in=in_dir", "--out=out_dir",
-					"--work=work_dir", "-a", "localhost:1", "-c", "blockSize:256",
+					"--tmp=tmp_dir", "-a", "localhost:1", "-c", "blockSize:256",
 					"-c", "serverPassword:sesame"}
 
 				Convey("When executing the command", func() {
@@ -230,7 +230,7 @@ func TestAddServer(t *testing.T) {
 						So(json.Unmarshal(servers[0].ProtoConfig, &conf), ShouldBeNil)
 						bytes, err := base64.StdEncoding.DecodeString(conf.ServerPassword)
 						So(err, ShouldBeNil)
-						pwd, err := utils.DecryptPassword(bytes)
+						pwd, err := utils.DecryptPassword(database.GCM, bytes)
 						So(err, ShouldBeNil)
 
 						So(string(pwd), ShouldEqual, "sesame")
@@ -245,9 +245,9 @@ func TestAddServer(t *testing.T) {
 							Address:     "localhost:1",
 							Protocol:    "r66",
 							Root:        "root",
-							InDir:       "in_dir",
-							OutDir:      "out_dir",
-							WorkDir:     "work_dir",
+							LocalInDir:  "in_dir",
+							LocalOutDir: "out_dir",
+							LocalTmpDir: "tmp_dir",
 							ProtoConfig: json.RawMessage(`{"blockSize":256,"serverPassword":"sesame"}`),
 						}
 						So(servers[0], ShouldResemble, exp)
@@ -275,9 +275,9 @@ func TestListServers(t *testing.T) {
 				Name:        "server1",
 				Protocol:    "test",
 				Root:        "/test/root1",
-				InDir:       "/test/in1",
-				OutDir:      "/test/out1",
-				WorkDir:     "/test/work1",
+				LocalInDir:  "/test/in1",
+				LocalOutDir: "/test/out1",
+				LocalTmpDir: "/test/tmp1",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -287,9 +287,9 @@ func TestListServers(t *testing.T) {
 				Name:        "server2",
 				Protocol:    "test2",
 				Root:        "/test/root2",
-				InDir:       "/test/in2",
-				OutDir:      "/test/out2",
-				WorkDir:     "/test/work2",
+				LocalInDir:  "/test/in2",
+				LocalOutDir: "/test/out2",
+				LocalTmpDir: "/test/tmp2",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
@@ -606,7 +606,7 @@ func TestAuthorizeServer(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -706,7 +706,7 @@ func TestRevokeServer(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 

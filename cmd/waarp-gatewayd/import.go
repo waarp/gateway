@@ -27,7 +27,7 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, error) {
 	default:
 		logConf = conf.LogConfig{LogTo: "stderr", Level: "DEBUG"}
 	}
-	if err := log.InitBackend(logConf); err != nil {
+	if err := log.InitBackend(logConf.Level, logConf.LogTo, ""); err != nil {
 		return nil, err
 	}
 

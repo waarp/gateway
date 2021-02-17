@@ -73,7 +73,7 @@ func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	var pErr error
-	if r.Password, pErr = utils.CryptPassword(r.Password); pErr != nil {
+	if r.Password, pErr = utils.CryptPassword(database.GCM, r.Password); pErr != nil {
 		db.GetLogger().Errorf("Failed to encrypt the remote agent password: %s", pErr)
 		return database.NewInternalError(pErr)
 	}

@@ -31,16 +31,13 @@ func (*moveRenameTask) Validate(args map[string]string) error {
 func (*moveRenameTask) Run(args map[string]string, _ *database.DB,
 	info *model.TransferContext, _ context.Context) (string, error) {
 	newPath := args["path"]
-	oldPath := info.Transfer.TrueFilepath
+	oldPath := info.Transfer.LocalPath
 
 	if err := MoveFile(oldPath, newPath); err != nil {
 		return err.Error(), err
 	}
-	info.Transfer.TrueFilepath = utils.NormalizePath(newPath)
-	if info.Rule.IsSend {
-		info.Transfer.SourceFile = path.Base(info.Transfer.TrueFilepath)
-	} else {
-		info.Transfer.DestFile = path.Base(info.Transfer.TrueFilepath)
-	}
+	info.Transfer.LocalPath = utils.ToStandardPath(newPath)
+	info.Transfer.RemotePath = path.Join(path.Dir(info.Transfer.RemotePath),
+		path.Base(info.Transfer.LocalPath))
 	return "", nil
 }

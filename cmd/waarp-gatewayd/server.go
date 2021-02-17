@@ -5,7 +5,6 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 )
 
 type serverCommand struct {
@@ -40,9 +39,6 @@ func (cmd *serverCommand) Execute([]string) error {
 		return err
 	}
 
-	if err := log.InitBackend(config.Log); err != nil {
-		return err
-	}
 	s := gatewayd.NewWG(config)
 	if err := s.Start(); err != nil {
 		return err

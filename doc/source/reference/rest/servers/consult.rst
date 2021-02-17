@@ -17,11 +17,20 @@ Consulter un serveur
    :resjson string root: La racine du serveur. Peut être relatif (à la racine
       de la *gateway*) ou absolu.
    :resjson string inDir: Le dossier de réception du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu.
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'serverLocalInDir')
    :resjson string outDir: Le dossier d'envoi du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu.
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'serverLocalOutDir')
    :resjson string workDir: Le dossier temporaire du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'serverLocalTmpDir')
+   :reqjson string serverLocalInDir: Le dossier de réception du serveur. Peut
+      être relatif (à la racine du serveur) ou absolu.
+   :reqjson string serverLocalOutDir: Le dossier d'envoi du serveur. Peut être
       relatif (à la racine du serveur) ou absolu.
+   :reqjson string serverLocalTmpDir: Le dossier temporaire du serveur. Peut
+      être relatif (à la racine du serveur) ou absolu.
    :resjson object protoConfig: La configuration du serveur encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
    :resjson object authorizedRules: Les règles que le serveur est autorisé à
@@ -52,9 +61,9 @@ Consulter un serveur
         "protocol": "sftp",
         "address": "localhost:2022",
         "root": "/sftp/root",
-        "inDir: "in",
-        "outDir": "out",
-        "work": "work",
+        "serverLocalInDir: "in",
+        "serverLocalOutDir": "out",
+        "serverLocalTmpDir": "tmp",
         "protoConfig": {},
         "authorizedRules": {
           "sending": ["règle_envoi_1", "règle_envoi_2"],

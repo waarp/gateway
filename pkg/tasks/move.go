@@ -34,8 +34,8 @@ func fallbackMove(dest, source string) error {
 
 // MoveFile moves the given file to the given location. Works across partitions.
 func MoveFile(source, dest string) error {
-	trueSource := utils.DenormalizePath(source)
-	trueDest := utils.DenormalizePath(dest)
+	trueSource := utils.ToOSPath(source)
+	trueDest := utils.ToOSPath(dest)
 
 	if _, err := os.Stat(filepath.Dir(trueDest)); os.IsNotExist(err) {
 		if err := os.MkdirAll(filepath.Dir(trueDest), 0700); err != nil {
@@ -65,12 +65,12 @@ func (*moveTask) Run(args map[string]string, _ *database.DB,
 	info *model.TransferContext, _ context.Context) (string, error) {
 	newDir := args["path"]
 
-	source := info.Transfer.TrueFilepath
-	dest := path.Join(newDir, filepath.Base(source))
+	source := info.Transfer.LocalPath
+	dest := path.Join(utils.ToStandardPath(newDir), filepath.Base(source))
 
 	if err := MoveFile(source, dest); err != nil {
 		return err.Error(), err
 	}
-	info.Transfer.TrueFilepath = utils.NormalizePath(dest)
+	info.Transfer.LocalPath = utils.ToStandardPath(dest)
 	return "", nil
 }

@@ -3,7 +3,6 @@ package tasks
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -104,13 +103,12 @@ func (t *TransferTask) Run(args map[string]string, db *database.DB,
 	}
 
 	trans := &model.Transfer{
-		RuleID:       ruleID,
-		IsServer:     false,
-		AgentID:      agentID,
-		AccountID:    accID,
-		TrueFilepath: file,
-		SourceFile:   filepath.Base(file),
-		DestFile:     filepath.Base(file),
+		RuleID:     ruleID,
+		IsServer:   false,
+		AgentID:    agentID,
+		AccountID:  accID,
+		LocalPath:  file,
+		RemotePath: file,
 	}
 	if err := db.Insert(trans).Run(); err != nil {
 		return fmt.Sprintf("cannot create transfer of file '%s': %s", file, err), err

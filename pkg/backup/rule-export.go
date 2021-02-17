@@ -38,16 +38,16 @@ func exportRules(logger *log.Logger, db database.ReadAccess) ([]file.Rule, error
 
 		logger.Infof("Export Rule %s\n", src.Name)
 		Rule := file.Rule{
-			Name:     src.Name,
-			IsSend:   src.IsSend,
-			Path:     src.Path,
-			InPath:   src.InPath,
-			OutPath:  src.OutPath,
-			WorkPath: src.WorkPath,
-			Accesses: accs,
-			Pre:      pre,
-			Post:     post,
-			Error:    errors,
+			Name:        src.Name,
+			IsSend:      src.IsSend,
+			Path:        src.Path,
+			LocalDir:    src.LocalDir,
+			RemoteDir:   src.RemoteDir,
+			LocalTmpDir: src.LocalTmpDir,
+			Accesses:    accs,
+			Pre:         pre,
+			Post:        post,
+			Error:       errors,
 		}
 		res[i] = Rule
 	}

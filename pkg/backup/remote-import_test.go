@@ -183,14 +183,14 @@ func TestImportRemoteAccounts(t *testing.T) {
 								if accounts[i].Login == account1.Login {
 
 									Convey("Then account1 is found", func() {
-										b, err := utils.DecryptPassword(accounts[i].Password)
+										b, err := utils.DecryptPassword(database.GCM, accounts[i].Password)
 										So(err, ShouldBeNil)
 										So(string(b), ShouldResemble, account1.Password)
 									})
 								} else if accounts[i].Login == account2.Login {
 
 									Convey("Then account2 is found", func() {
-										b, err := utils.DecryptPassword(accounts[i].Password)
+										b, err := utils.DecryptPassword(database.GCM, accounts[i].Password)
 										So(err, ShouldBeNil)
 										So(string(b), ShouldResemble, account2.Password)
 									})

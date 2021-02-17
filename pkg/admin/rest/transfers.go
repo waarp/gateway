@@ -26,8 +26,8 @@ func transToDB(trans *api.InTransfer, db *database.DB) (*model.Transfer, error) 
 		IsServer:   false,
 		AgentID:    agentID,
 		AccountID:  accountID,
-		SourceFile: trans.SourcePath,
-		DestFile:   trans.DestPath,
+		LocalPath:  trans.File,
+		RemotePath: trans.File,
 		Start:      trans.Start,
 	}, nil
 }
@@ -40,22 +40,21 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 	}
 
 	return &api.OutTransfer{
-		ID:           trans.ID,
-		RemoteID:     trans.RemoteTransferID,
-		Rule:         rule,
-		IsServer:     trans.IsServer,
-		Requested:    requested,
-		Requester:    requester,
-		TrueFilepath: trans.TrueFilepath,
-		SourcePath:   trans.SourceFile,
-		DestPath:     trans.DestFile,
-		Start:        trans.Start.Local(),
-		Status:       trans.Status,
-		Step:         trans.Step.String(),
-		Progress:     trans.Progress,
-		TaskNumber:   trans.TaskNumber,
-		ErrorCode:    trans.Error.Code.String(),
-		ErrorMsg:     trans.Error.Details,
+		ID:         trans.ID,
+		RemoteID:   trans.RemoteTransferID,
+		Rule:       rule,
+		IsServer:   trans.IsServer,
+		Requested:  requested,
+		Requester:  requester,
+		LocalPath:  trans.LocalPath,
+		RemotePath: trans.RemotePath,
+		Start:      trans.Start.Local(),
+		Status:     trans.Status,
+		Step:       trans.Step.String(),
+		Progress:   trans.Progress,
+		TaskNumber: trans.TaskNumber,
+		ErrorCode:  trans.Error.Code.String(),
+		ErrorMsg:   trans.Error.Details,
 	}, nil
 }
 

@@ -56,7 +56,7 @@ func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
 		if err != nil {
 			return nil, err
 		}
-		pwd, err := utils.DecryptPassword(src.Password)
+		pwd, err := utils.DecryptPassword(database.GCM, src.Password)
 		if err != nil {
 			return nil, err
 		}

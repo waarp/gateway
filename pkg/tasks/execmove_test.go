@@ -116,12 +116,8 @@ func TestExecMoveRun(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then the transfer filepath should have changed", func() {
-						So(utils.DenormalizePath(info.Transfer.TrueFilepath),
+						So(utils.ToOSPath(info.Transfer.LocalPath),
 							ShouldEqual, dstFile)
-					})
-
-					Convey("Then the transfer destination should have changed", func() {
-						So(info.Transfer.DestFile, ShouldEqual, "test.dst")
 					})
 				})
 			})

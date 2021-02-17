@@ -80,12 +80,9 @@ func (e *execOutputTask) Run(params map[string]string, _ *database.DB,
 
 	if cmdErr != nil {
 		if newPath := getNewFileName(string(msg)); newPath != "" {
-			info.Transfer.TrueFilepath = utils.NormalizePath(newPath)
-			if info.Rule.IsSend {
-				info.Transfer.SourceFile = path.Base(info.Transfer.TrueFilepath)
-			} else {
-				info.Transfer.DestFile = path.Base(info.Transfer.TrueFilepath)
-			}
+			info.Transfer.LocalPath = utils.ToOSPath(newPath)
+			info.Transfer.RemotePath = utils.ToStandardPath(path.Dir(
+				info.Transfer.RemotePath), path.Base(info.Transfer.LocalPath))
 		}
 
 		select {

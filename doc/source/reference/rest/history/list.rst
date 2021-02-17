@@ -55,8 +55,10 @@ Filtrer l'historique
    :resjsonarr string account: Le nom du compte ayant demandé le transfert
    :resjsonarr string remote: Le nom du partenaire avec lequel le transfert a été effectué
    :resjsonarr string protocol: Le protocole utilisé pour le transfert
-   :resjsonarr string sourceFilename: Le nom du fichier avant le transfert
-   :resjsonarr string destFilename: Le nom du fichier après le transfert
+   :resjsonarr string sourceFilename: Le nom du fichier avant le transfert (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
+   :resjsonarr string destFilename: Le nom du fichier après le transfert (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
+   :resjsonarr string localPath: Le chemin du fichier sur le disque local
+   :resjsonarr string remotePath: Le chemin du fichier sur le partenaire distant
    :resjsonarr string rule: Le nom de la règle de transfert
    :resjsonarr date start: La date de début du transfert
    :resjsonarr date stop: La date de fin du transfert
@@ -92,7 +94,8 @@ Filtrer l'historique
              "source": "compte_sftp_1",
              "dest": "serveur_sftp_1",
              "protocol": "sftp",
-             "filename": "nom/de/fichier/1",
+             "localPath": "/chemin/local/fichier1",
+             "remotePath": "/chemin/distant/fichier1",
              "start": "2019-01-01T01:00:00+02:00",
              "stop": "2019-01-01T02:00:00+02:00",
              "status": "DONE"
@@ -102,7 +105,8 @@ Filtrer l'historique
              "source": "compte_sftp_2",
              "dest": "serveur_sftp_1",
              "protocol": "sftp",
-             "filename": "nom/de/fichier/2",
+             "localPath": "/chemin/local/fichier2",
+             "remotePath": "/chemin/distant/fichier2",
              "start": "2019-01-01T02:00:00+02:00",
              "stop": "2019-01-01T03:00:00+02:00",
              "status": "ERROR",

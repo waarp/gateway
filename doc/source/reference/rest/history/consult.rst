@@ -17,8 +17,10 @@ Consulter une entrée de l'historique
    :resjson string account: Le nom du compte ayant demandé le transfert
    :resjson string remote: Le nom du partenaire avec lequel le transfert a été effectué
    :resjson string protocol: Le protocole utilisé pour le transfert
-   :resjson string sourceFilename: Le nom du fichier avant le transfert
-   :resjson string destFilename: Le nom du fichier après le transfert
+   :resjson string sourceFilename: Le nom du fichier avant le transfert (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
+   :resjson string destFilename: Le nom du fichier après le transfert (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
+   :resjson string localPath: Le chemin du fichier sur le disque local
+   :resjson string remotePath: Le chemin du fichier sur le partenaire distant
    :resjson string rule: Le nom de la règle de transfert
    :resjson date start: La date de début du transfert
    :resjson date stop: La date de fin du transfert
@@ -53,8 +55,8 @@ Consulter une entrée de l'historique
            "account": "compte_sftp",
            "remote": "serveur_sftp",
            "protocol": "sftp",
-           "sourceFilename": "source/du/fichier",
-           "destFilename": "destination/du/fichier",
+           "localPath": "/chemin/local/fichier1",
+           "remotePath": "/chemin/distant/fichier1",
            "start": "2019-01-01T01:00:00+02:00",
            "stop": "2019-01-01T02:00:00+02:00",
            "status": "DONE",

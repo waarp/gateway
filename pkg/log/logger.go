@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 )
 
 var backend logging.Backend
@@ -17,22 +16,22 @@ type Logger struct {
 
 // InitBackend initializes the logging backend according to the given configuration.
 // If the backend cannot be accessed, an error is returned.
-func InitBackend(conf conf.LogConfig) (err error) {
-	switch conf.LogTo {
+func InitBackend(level, logTo, facility string) (err error) {
+	switch logTo {
 	case "stdout":
 		backend = logging.NewStdoutBackend()
 	case "/dev/null", "nul", "NUL":
 		backend, _ = logging.NewNoopBackend()
 	case "syslog":
-		backend, err = newSyslogBackend(conf.SyslogFacility)
+		backend, err = newSyslogBackend(facility)
 	default:
-		backend, err = logging.NewFileBackend(conf.LogTo)
+		backend, err = logging.NewFileBackend(logTo)
 	}
 	if err != nil {
 		return
 	}
 
-	if err := setLevel(conf.Level, backend); err != nil {
+	if err := setLevel(level, backend); err != nil {
 		record := &logging.Record{
 			Logger:    "log",
 			Timestamp: time.Now(),

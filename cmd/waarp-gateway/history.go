@@ -33,28 +33,28 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 	if hist.RemoteID != "" {
 		fmt.Fprintln(w, orange("    Remote ID:            "), hist.RemoteID)
 	}
-	fmt.Fprintln(w, orange("    Way:             "), way)
-	fmt.Fprintln(w, orange("    Protocol:        "), hist.Protocol)
-	fmt.Fprintln(w, orange("    Rule:            "), hist.Rule)
-	fmt.Fprintln(w, orange("    Requester:       "), hist.Requester)
-	fmt.Fprintln(w, orange("    Requested:       "), hist.Requested)
-	fmt.Fprintln(w, orange("    Source file:     "), hist.SourceFilename)
-	fmt.Fprintln(w, orange("    Destination file:"), hist.DestFilename)
-	fmt.Fprintln(w, orange("    Start date:      "), hist.Start.Format(time.RFC3339Nano))
-	fmt.Fprintln(w, orange("    End date:        "), hist.Stop.Format(time.RFC3339Nano))
+	fmt.Fprintln(w, orange("    Way:            "), way)
+	fmt.Fprintln(w, orange("    Protocol:       "), hist.Protocol)
+	fmt.Fprintln(w, orange("    Rule:           "), hist.Rule)
+	fmt.Fprintln(w, orange("    Requester:      "), hist.Requester)
+	fmt.Fprintln(w, orange("    Requested:      "), hist.Requested)
+	fmt.Fprintln(w, orange("    Local filepath: "), hist.LocalPath)
+	fmt.Fprintln(w, orange("    Remote filepath:"), hist.RemotePath)
+	fmt.Fprintln(w, orange("    Start date:     "), hist.Start.Format(time.RFC3339Nano))
+	fmt.Fprintln(w, orange("    End date:       "), hist.Stop.Format(time.RFC3339Nano))
 	if hist.ErrorCode != types.TeOk {
-		fmt.Fprintln(w, orange("    Error code:      "), hist.ErrorCode)
+		fmt.Fprintln(w, orange("    Error code:     "), hist.ErrorCode)
 		if hist.ErrorMsg != "" {
-			fmt.Fprintln(w, orange("    Error message:   "), hist.ErrorMsg)
+			fmt.Fprintln(w, orange("    Error message:  "), hist.ErrorMsg)
 		}
 	}
 	if hist.Step != types.StepNone {
-		fmt.Fprintln(w, orange("    Failed step:     "), hist.Step.String())
+		fmt.Fprintln(w, orange("    Failed step:    "), hist.Step.String())
 		switch hist.Step {
 		case types.StepData:
-			fmt.Fprintln(w, orange("    Progress:        "), hist.Progress)
+			fmt.Fprintln(w, orange("    Progress:       "), hist.Progress)
 		case types.StepPreTasks, types.StepPostTasks:
-			fmt.Fprintln(w, orange("    Failed task:     "), hist.TaskNumber)
+			fmt.Fprintln(w, orange("    Failed task:    "), hist.TaskNumber)
 		}
 	}
 }

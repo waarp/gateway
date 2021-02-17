@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 )
 
+// Deprecated:
 // NormalizePath transforms a Windows path into a valid "file" URI according to
 // RFC 8089.
 func NormalizePath(path string) string {
@@ -17,6 +18,7 @@ func NormalizePath(path string) string {
 	return norm
 }
 
+// Deprecated:
 // DenormalizePath transforms a "file" URI into a valid Windows path.
 func DenormalizePath(norm string) string {
 	if path.IsAbs(norm) {

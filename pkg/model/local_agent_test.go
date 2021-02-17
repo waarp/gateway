@@ -99,8 +99,8 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 					IsServer:   true,
 					AgentID:    ag.ID,
 					AccountID:  acc.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 
@@ -140,9 +140,9 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 					Owner:       "test_gateway",
 					Name:        "new",
 					Root:        "root",
-					InDir:       "rcv",
-					OutDir:      "send",
-					WorkDir:     "tmp",
+					LocalInDir:  "rcv",
+					LocalOutDir: "send",
+					LocalTmpDir: "tmp",
 					Protocol:    "sftp",
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2023",

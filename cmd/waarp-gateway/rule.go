@@ -85,11 +85,11 @@ func displayRule(w io.Writer, rule *api.OutRule) {
 	}
 
 	fmt.Fprintln(w, orange(bold("● Rule", rule.Name, "("+way+")")))
-	fmt.Fprintln(w, orange("    Comment:       "), rule.Comment)
-	fmt.Fprintln(w, orange("    Path:          "), rule.Path)
-	fmt.Fprintln(w, orange("    In directory:  "), rule.InPath)
-	fmt.Fprintln(w, orange("    Out directory: "), rule.OutPath)
-	fmt.Fprintln(w, orange("    Work directory:"), rule.WorkPath)
+	fmt.Fprintln(w, orange("    Comment:         "), rule.Comment)
+	fmt.Fprintln(w, orange("    Path:            "), rule.Path)
+	fmt.Fprintln(w, orange("    Local directory: "), rule.LocalDir)
+	fmt.Fprintln(w, orange("    Remote directory:"), rule.RemoteDir)
+	fmt.Fprintln(w, orange("    Temp directory:  "), rule.LocalTmpDir)
 	displayTasks(w, rule)
 	fmt.Fprintln(w, orange("    Authorized agents:"))
 	fmt.Fprintln(w, bold("    ├─Servers:         "), servers)
@@ -153,9 +153,12 @@ type ruleAdd struct {
 	Comment    *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
 	Direction  string   `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"send" choice:"receive"`
 	Path       string   `short:"p" long:"path" description:"The path used to identify the rule, by default, the rule's name is used"`
-	InPath     *string  `short:"i" long:"in_path" description:"The path to the destination of the file"`
-	OutPath    *string  `short:"o" long:"out_path" description:"The path to the source of the file"`
-	WorkPath   *string  `short:"w" long:"work_path" description:"The path to write the received file"`
+	InPath     *string  `short:"i" long:"in_path" description:"[DEPRECATED] The path to the destination of the file"` // DEPRECATED
+	OutPath    *string  `short:"o" long:"out_path" description:"[DEPRECATED] The path to the source of the file"`     // DEPRECATED
+	WorkPath   *string  `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file"`   // DEPRECATED
+	LocalDir   *string  `short:"l" long:"local_dir" description:"The directory for files on the local disk"`
+	RemoteDir  *string  `short:"m" long:"remote_dir" description:"The directory for files on the remote host"`
+	TempDir    *string  `short:"t" long:"tmp_dir" description:"The local temp directory for partially received files "`
 	PreTasks   []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
 	PostTasks  []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`
 	ErrorTasks []string `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated"`
@@ -165,15 +168,31 @@ func (r *ruleAdd) Execute([]string) error {
 	isSend := r.Direction == "send"
 	rule := &api.InRule{
 		UptRule: &api.UptRule{
-			Name:     &r.Name,
-			Comment:  r.Comment,
-			Path:     &r.Path,
-			InPath:   r.InPath,
-			OutPath:  r.OutPath,
-			WorkPath: r.WorkPath,
+			Name:        &r.Name,
+			Comment:     r.Comment,
+			Path:        &r.Path,
+			LocalDir:    r.LocalDir,
+			RemoteDir:   r.RemoteDir,
+			LocalTmpDir: r.TempDir,
 		},
 		IsSend: &isSend,
 	}
+	if r.InPath != nil {
+		fmt.Fprintln(out, "[WARNING] The '-i' ('-in_path') option is deprecated. "+
+			"Use '-l' ('local_dir') and '-m' ('remote_dir') instead.")
+		rule.InPath = r.InPath
+	}
+	if r.OutPath != nil {
+		fmt.Fprintln(out, "[WARNING] The '-o' ('-out_path') option is deprecated. "+
+			"Use '-l' ('local_dir') and '-m' ('remote_dir') instead.")
+		rule.OutPath = r.OutPath
+	}
+	if r.WorkPath != nil {
+		fmt.Fprintln(out, "[WARNING] The '-w' ('-work_path') option is deprecated. "+
+			"Use '-t' ('tmp_dir') instead.")
+		rule.WorkPath = r.WorkPath
+	}
+
 	if err := parseTasks(rule.UptRule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {
 		return err
 	}
@@ -248,9 +267,12 @@ type ruleUpdate struct {
 	Name       *string  `short:"n" long:"name" description:"The rule's name"`
 	Comment    *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
 	Path       *string  `short:"p" long:"path" description:"The path used to identify the rule"`
-	InPath     *string  `short:"i" long:"in_path" description:"The path to the destination of the file"`
-	OutPath    *string  `short:"o" long:"out_path" description:"The path to the source of the file"`
-	WorkPath   *string  `short:"w" long:"work_path" description:"The path to write the received file"`
+	InPath     *string  `short:"i" long:"in_path" description:"[DEPRECATED] The path to the destination of the file"` // DEPRECATED
+	OutPath    *string  `short:"o" long:"out_path" description:"[DEPRECATED] The path to the source of the file"`     // DEPRECATED
+	WorkPath   *string  `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file"`   // DEPRECATED
+	LocalDir   *string  `short:"l" long:"local_dir" description:"The directory for files on the local disk"`
+	RemoteDir  *string  `short:"e" long:"remote_dir" description:"The directory for files on the remote host"`
+	TempDir    *string  `short:"t" long:"tmp_dir" description:"The local temp directory for partially received files "`
 	PreTasks   []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
 	PostTasks  []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`
 	ErrorTasks []string `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated"`
@@ -263,13 +285,29 @@ func (r *ruleUpdate) Execute([]string) error {
 	addr.Path = path.Join("/api/rules", r.Args.Name, strings.ToLower(r.Args.Direction))
 
 	rule := &api.UptRule{
-		Name:     r.Name,
-		Comment:  r.Comment,
-		Path:     r.Path,
-		InPath:   r.InPath,
-		OutPath:  r.OutPath,
-		WorkPath: r.WorkPath,
+		Name:        r.Name,
+		Comment:     r.Comment,
+		Path:        r.Path,
+		LocalDir:    r.LocalDir,
+		RemoteDir:   r.RemoteDir,
+		LocalTmpDir: r.TempDir,
 	}
+	if r.InPath != nil {
+		fmt.Fprintln(out, "[WARNING] The '-i' ('-in_path') option is deprecated. "+
+			"Use '-l' ('local_dir') and '-m' ('remote_dir') instead.")
+		rule.InPath = r.InPath
+	}
+	if r.OutPath != nil {
+		fmt.Fprintln(out, "[WARNING] The '-o' ('-out_path') option is deprecated. "+
+			"Use '-l' ('local_dir') and '-m' ('remote_dir') instead.")
+		rule.OutPath = r.OutPath
+	}
+	if r.WorkPath != nil {
+		fmt.Fprintln(out, "[WARNING] The '-w' ('-work_path') option is deprecated. "+
+			"Use '-t' ('tmp_dir') instead.")
+		rule.WorkPath = r.WorkPath
+	}
+
 	if err := parseTasks(rule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {
 		return err
 	}

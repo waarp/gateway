@@ -34,7 +34,7 @@ func TestDeleteTaskRun(t *testing.T) {
 		srcFile := filepath.Join(root, "test.src")
 
 		info := &model.TransferContext{Transfer: &model.Transfer{
-			TrueFilepath: utils.NormalizePath(srcFile),
+			LocalPath: utils.ToStandardPath(srcFile),
 		}}
 
 		So(ioutil.WriteFile(srcFile, []byte("Hello World"), 0o700), ShouldBeNil)
@@ -49,8 +49,8 @@ func TestDeleteTaskRun(t *testing.T) {
 					So(err, ShouldBeNil)
 				})
 
-				Convey("Then the source file should no longer be present in the system", func() {
-					_, err := os.Stat(info.Transfer.TrueFilepath)
+				Convey("Then the local file should no longer be present in the system", func() {
+					_, err := os.Stat(utils.ToOSPath(info.Transfer.LocalPath))
 					So(os.IsNotExist(err), ShouldBeTrue)
 				})
 			})

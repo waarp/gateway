@@ -11,7 +11,7 @@ import (
 
 func TestLoadServerConfig(t *testing.T) {
 	directContent := []byte(`[Log]
-LogTo = direct-foo
+LogTo = stdout
 Level = direct-bar
 
 [Admin]
@@ -19,7 +19,7 @@ Host = direct-address
 
 `)
 	parentEtcContent := []byte(`[Log]
-LogTo = parent-etc-foo
+LogTo = stdout
 SyslogFacility = parent-etc-baz
 
 [Admin]
@@ -27,14 +27,14 @@ Host = parent-etc-address
 
 `)
 	userConfContent := []byte(`[Log]
-LogTo = user-foo
+LogTo = stdout
 
 [Admin]
 Host = user-address
 
 `)
 	badContent := []byte(`[Log]
-LogTo user-foo
+LogTo stdout
 
 `)
 
@@ -72,7 +72,7 @@ LogTo user-foo
 					})
 
 					Convey("Then it is parsed", func() {
-						So(c.Log.LogTo, ShouldEqual, "direct-foo")
+						So(c.Log.LogTo, ShouldEqual, "stdout")
 						So(c.Admin.Host, ShouldEqual, "direct-address")
 					})
 
@@ -114,7 +114,7 @@ LogTo user-foo
 				})
 
 				Convey("Then it is parsed", func() {
-					So(c.Log.LogTo, ShouldEqual, "parent-etc-foo")
+					So(c.Log.LogTo, ShouldEqual, "stdout")
 					So(c.Admin.Host, ShouldEqual, "parent-etc-address")
 				})
 
@@ -140,7 +140,7 @@ LogTo user-foo
 				})
 
 				Convey("Then only the one in the same directory is parsed", func() {
-					So(c.Log.LogTo, ShouldEqual, "direct-foo")
+					So(c.Log.LogTo, ShouldEqual, "stdout")
 					So(c.Log.SyslogFacility, ShouldEqual, "local0")
 					So(c.Admin.Host, ShouldEqual, "direct-address")
 				})
@@ -171,7 +171,7 @@ LogTo user-foo
 					})
 
 					Convey("Then it is parsed", func() {
-						So(c.Log.LogTo, ShouldEqual, "user-foo")
+						So(c.Log.LogTo, ShouldEqual, "stdout")
 						So(c.Admin.Host, ShouldEqual, "user-address")
 					})
 
@@ -195,7 +195,7 @@ LogTo user-foo
 					})
 
 					Convey("Then it is parsed", func() {
-						So(c.Log.LogTo, ShouldEqual, "user-foo")
+						So(c.Log.LogTo, ShouldEqual, "stdout")
 						So(c.Admin.Host, ShouldEqual, "user-address")
 					})
 

@@ -20,7 +20,6 @@ EXIT /B 2`
 
 const scriptExecInfinite = `@ECHO OFF
 :loop
-ECHO %1
 GOTO loop`
 
 const scriptExecMove = `@ECHO OFF

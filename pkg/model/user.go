@@ -94,7 +94,7 @@ func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	var err1 error
-	if u.Password, err1 = utils.HashPassword(u.Password); err1 != nil {
+	if u.Password, err1 = utils.HashPassword(database.BcryptRounds, u.Password); err1 != nil {
 		db.GetLogger().Errorf("Failed to hash the user password: %s", err)
 		return database.NewInternalError(err)
 	}

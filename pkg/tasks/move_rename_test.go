@@ -59,8 +59,8 @@ func TestMoveRenameTaskRun(t *testing.T) {
 				IsSend: true,
 			},
 			Transfer: &model.Transfer{
-				TrueFilepath: srcPath,
-				SourceFile:   "move.src",
+				LocalPath:  srcPath,
+				RemotePath: "/remote/move_rename.src",
 			},
 		}
 
@@ -83,13 +83,13 @@ func TestMoveRenameTaskRun(t *testing.T) {
 						So(err, ShouldBeNil)
 					})
 
-					Convey("Then the transfer true file path should be modified", func() {
-						So(info.Transfer.TrueFilepath, ShouldEqual, utils.NormalizePath(
+					Convey("Then the transfer local filepath should be modified", func() {
+						So(info.Transfer.LocalPath, ShouldEqual, utils.ToStandardPath(
 							args["path"]))
 					})
 
 					Convey("Then the transfer source path should NOT be modified", func() {
-						So(info.Transfer.SourceFile, ShouldEqual, "move_rename.dst")
+						So(info.Transfer.RemotePath, ShouldEqual, "/remote/move_rename.dst")
 					})
 				})
 			})

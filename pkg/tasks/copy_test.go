@@ -53,7 +53,7 @@ func TestCopyTaskRun(t *testing.T) {
 		srcFile := filepath.Join(root, "test.src")
 
 		info := &model.TransferContext{Transfer: &model.Transfer{
-			TrueFilepath: utils.NormalizePath(srcFile),
+			LocalPath: utils.ToStandardPath(srcFile),
 		}}
 
 		So(ioutil.WriteFile(srcFile, []byte("Hello World"), 0o700), ShouldBeNil)

@@ -2,37 +2,36 @@ package tasks
 
 import (
 	"fmt"
-	"path/filepath"
+	"path"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 type replacer func(*Runner) (string, error)
 
 var replacers = map[string]replacer{
 	"#TRUEFULLPATH#": func(r *Runner) (string, error) {
-		return r.info.Transfer.TrueFilepath, nil
+		return r.info.Transfer.LocalPath, nil
 	},
 	"#TRUEFILENAME#": func(r *Runner) (string, error) {
-		if r.info.Rule.IsSend {
-			return filepath.Clean(r.info.Transfer.SourceFile), nil
-		}
-		return filepath.Clean(r.info.Transfer.DestFile), nil
+		return path.Base(r.info.Transfer.LocalPath), nil
 	},
 	"#ORIGINALFULLPATH#": func(r *Runner) (string, error) {
 		if r.info.Rule.IsSend {
-			return r.info.Transfer.SourceFile, nil
+			return utils.ToOSPath(r.info.Transfer.LocalPath), nil
 		}
-		return r.info.Transfer.DestFile, nil
+		return r.info.Transfer.RemotePath, nil
 	},
 	"#ORIGINALFILENAME#": func(r *Runner) (string, error) {
 		if r.info.Rule.IsSend {
-			return filepath.Clean(r.info.Transfer.SourceFile), nil
+			return path.Base(r.info.Transfer.LocalPath), nil
 		}
-		return filepath.Clean(r.info.Transfer.DestFile), nil
+		return path.Base(r.info.Transfer.RemotePath), nil
 	},
 	"#FILESIZE#": func(r *Runner) (string, error) {
+		// NOT IMPLEMENTED
 		return "0", nil
 	},
 	"#INPATH#": func(r *Runner) (string, error) {

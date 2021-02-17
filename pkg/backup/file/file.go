@@ -17,9 +17,12 @@ type LocalAgent struct {
 	Name          string          `json:"name"`
 	Protocol      string          `json:"protocol"`
 	Root          string          `json:"root"`
-	InDir         string          `json:"inDir"`
-	OutDir        string          `json:"outDir"`
-	WorkDir       string          `json:"workDir"`
+	InDir         string          `json:"inDir"`   //DEPRECATED
+	OutDir        string          `json:"outDir"`  //DEPRECATED
+	WorkDir       string          `json:"workDir"` //DEPRECATED
+	LocalInDir    string          `json:"localInDir"`
+	LocalOutDir   string          `json:"localOutDir"`
+	LocalTmpDir   string          `json:"localTmpDir"`
 	Address       string          `json:"address"`
 	Configuration json.RawMessage `json:"configuration"`
 	Accounts      []LocalAccount  `json:"accounts"`
@@ -61,16 +64,19 @@ type Certificate struct {
 
 // Rule is the JSON struct representing a transfer rule.
 type Rule struct {
-	Name     string   `json:"name"`
-	IsSend   bool     `json:"isSend"`
-	Path     string   `json:"path"`
-	InPath   string   `json:"inPath"`
-	OutPath  string   `json:"outPath"`
-	WorkPath string   `json:"workPath"`
-	Accesses []string `json:"auth"`
-	Pre      []Task   `json:"pre"`
-	Post     []Task   `json:"post"`
-	Error    []Task   `json:"error"`
+	Name        string   `json:"name"`
+	IsSend      bool     `json:"isSend"`
+	Path        string   `json:"path"`
+	InPath      string   `json:"inPath"`   // DEPRECATED
+	OutPath     string   `json:"outPath"`  // DEPRECATED
+	WorkPath    string   `json:"workPath"` // DEPRECATED
+	LocalDir    string   `json:"localDir"`
+	RemoteDir   string   `json:"remoteDir"`
+	LocalTmpDir string   `json:"localTmpDir"`
+	Accesses    []string `json:"auth"`
+	Pre         []Task   `json:"pre"`
+	Post        []Task   `json:"post"`
+	Error       []Task   `json:"error"`
 }
 
 // Task is the JSON struct representing a rule task.

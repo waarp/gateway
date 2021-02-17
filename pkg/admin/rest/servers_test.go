@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -273,10 +274,10 @@ func TestCreateServer(t *testing.T) {
 								Name:        "new_server",
 								Protocol:    "test",
 								Address:     "localhost:2",
-								Root:        "/new_root",
-								InDir:       "in",
-								OutDir:      "out",
-								WorkDir:     "work",
+								Root:        filepath.FromSlash("/new_root"),
+								LocalInDir:  filepath.FromSlash("in"),
+								LocalOutDir: filepath.FromSlash("out"),
+								LocalTmpDir: filepath.FromSlash("tmp"),
 								ProtoConfig: json.RawMessage("{}"),
 							}
 							var res model.LocalAgents
@@ -373,9 +374,9 @@ func TestUpdateServer(t *testing.T) {
 				Protocol:    "test",
 				Address:     "localhost:1",
 				Root:        "/old/root",
-				InDir:       "/old/in",
-				OutDir:      "/old/out",
-				WorkDir:     "/old/work",
+				LocalInDir:  "/old/in",
+				LocalOutDir: "/old/out",
+				LocalTmpDir: "/old/tmp",
 				ProtoConfig: json.RawMessage(`{}`),
 			}
 			So(db.Insert(&old).Run(), ShouldBeNil)
@@ -384,8 +385,8 @@ func TestUpdateServer(t *testing.T) {
 				body := strings.NewReader(`{
 					"name": "update",
 					"root": "/upt/root",
-					"inDir": "/upt/in",
-					"outDir": "",
+					"serverLocalInDir": "/upt/in",
+					"serverLocalOutDir": "",
 					"address": "localhost:2"
 				}`)
 
@@ -418,10 +419,10 @@ func TestUpdateServer(t *testing.T) {
 							Name:        "update",
 							Protocol:    "test",
 							Address:     "localhost:2",
-							Root:        "/upt/root",
-							InDir:       "/upt/in",
-							OutDir:      "out", //sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
-							WorkDir:     "/old/work",
+							Root:        filepath.FromSlash("/upt/root"),
+							LocalInDir:  filepath.FromSlash("/upt/in"),
+							LocalOutDir: filepath.FromSlash("out"), //sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
+							LocalTmpDir: filepath.FromSlash("/old/tmp"),
 							ProtoConfig: json.RawMessage(`{}`),
 						}
 
@@ -475,9 +476,9 @@ func TestReplaceServer(t *testing.T) {
 				Protocol:    "test",
 				Address:     "localhost:1",
 				Root:        "/old/root",
-				InDir:       "/old/in",
-				OutDir:      "/old/out",
-				WorkDir:     "/old/work",
+				LocalInDir:  "/old/in",
+				LocalOutDir: "/old/out",
+				LocalTmpDir: "/old/tmp",
 				ProtoConfig: json.RawMessage(`{}`),
 			}
 			So(db.Insert(&old).Run(), ShouldBeNil)
@@ -488,8 +489,8 @@ func TestReplaceServer(t *testing.T) {
 					"protocol": "test2",
 					"address": "localhost:2",
 					"root": "/upt/root",
-					"inDir": "/upt/in",
-					"outDir": "",
+					"serverLocalInDir": "/upt/in",
+					"serverLocalOutDir": "",
 					"protoConfig": {}
 				}`)
 
@@ -522,10 +523,10 @@ func TestReplaceServer(t *testing.T) {
 							Name:        "update",
 							Protocol:    "test2",
 							Address:     "localhost:2",
-							Root:        "/upt/root",
-							InDir:       "/upt/in",
-							OutDir:      "out",  //sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
-							WorkDir:     "work", //idem
+							Root:        filepath.FromSlash("/upt/root"),
+							LocalInDir:  filepath.FromSlash("/upt/in"),
+							LocalOutDir: filepath.FromSlash("out"), //sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
+							LocalTmpDir: filepath.FromSlash("tmp"), //idem
 							ProtoConfig: json.RawMessage(`{}`),
 						}
 

@@ -6,6 +6,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 func init() {
@@ -33,14 +34,14 @@ type LocalAgent struct {
 	// The root directory of the agent.
 	Root string `xorm:"notnull 'root'"`
 
-	// The agent's directory for received files.
-	InDir string `xorm:"notnull 'in_dir'"`
+	// The server's directory for received files.
+	LocalInDir string `xorm:"notnull 'server_local_in_dir'"`
 
-	// The agent's directory for files to be sent.
-	OutDir string `xorm:"notnull 'out_dir'"`
+	// The server's directory for files to be sent.
+	LocalOutDir string `xorm:"notnull 'server_local_out_dir'"`
 
-	// The working directory of the agent.
-	WorkDir string `xorm:"notnull 'work_dir'"`
+	// The server's temporary directory for partially received files.
+	LocalTmpDir string `xorm:"notnull 'server_local_tmp_dir'"`
 
 	// The agent's configuration in raw JSON format.
 	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
@@ -82,14 +83,22 @@ func (l *LocalAgent) makePaths() {
 	}
 
 	if !isEmpty(l.Root) {
-		if isEmpty(l.InDir) {
-			l.InDir = "in"
+		l.Root = utils.ToOSPath(l.Root)
+
+		if isEmpty(l.LocalInDir) {
+			l.LocalInDir = "in"
+		} else {
+			l.LocalInDir = utils.ToOSPath(l.LocalInDir)
 		}
-		if isEmpty(l.OutDir) {
-			l.OutDir = "out"
+		if isEmpty(l.LocalOutDir) {
+			l.LocalOutDir = "out"
+		} else {
+			l.LocalOutDir = utils.ToOSPath(l.LocalOutDir)
 		}
-		if isEmpty(l.WorkDir) {
-			l.WorkDir = "work"
+		if isEmpty(l.LocalTmpDir) {
+			l.LocalTmpDir = "tmp"
+		} else {
+			l.LocalTmpDir = utils.ToOSPath(l.LocalTmpDir)
 		}
 	}
 }

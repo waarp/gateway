@@ -24,10 +24,10 @@ func (*deleteTask) Validate(map[string]string) error {
 // Run delete the current file from the system
 func (*deleteTask) Run(_ map[string]string, _ *database.DB,
 	info *model.TransferContext, _ context.Context) (string, error) {
-	truePath := utils.DenormalizePath(info.Transfer.TrueFilepath)
+	truePath := utils.ToOSPath(info.Transfer.LocalPath)
 	if err := os.Remove(truePath); err != nil {
 		return "", normalizeFileError("delete file", err)
 	}
-	info.Transfer.TrueFilepath = ""
+
 	return "", nil
 }

@@ -54,49 +54,50 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	if trans.RemoteID != "" {
 		fmt.Fprintln(w, orange("    Remote ID:       "), trans.RemoteID)
 	}
-	fmt.Fprintln(w, orange("    Rule:            "), trans.Rule)
-	fmt.Fprintln(w, orange("    Requester:       "), trans.Requester)
-	fmt.Fprintln(w, orange("    Requested:       "), trans.Requested)
-	fmt.Fprintln(w, orange("    True filepath:   "), trans.TrueFilepath)
-	fmt.Fprintln(w, orange("    Source file:     "), trans.SourcePath)
-	fmt.Fprintln(w, orange("    Destination file:"), trans.DestPath)
-	fmt.Fprintln(w, orange("    Start time:      "), trans.Start.Format(time.RFC3339Nano))
-	fmt.Fprintln(w, orange("    Step:            "), trans.Step)
-	fmt.Fprintln(w, orange("    Progress:        "), trans.Progress)
-	fmt.Fprintln(w, orange("    Task number:     "), trans.TaskNumber)
+	fmt.Fprintln(w, orange("    Rule:           "), trans.Rule)
+	fmt.Fprintln(w, orange("    Requester:      "), trans.Requester)
+	fmt.Fprintln(w, orange("    Requested:      "), trans.Requested)
+	fmt.Fprintln(w, orange("    Local filepath: "), trans.LocalPath)
+	fmt.Fprintln(w, orange("    Remote filepath:"), trans.RemotePath)
+	fmt.Fprintln(w, orange("    Start time:     "), trans.Start.Format(time.RFC3339Nano))
+	fmt.Fprintln(w, orange("    Step:           "), trans.Step)
+	fmt.Fprintln(w, orange("    Progress:       "), trans.Progress)
+	fmt.Fprintln(w, orange("    Task number:    "), trans.TaskNumber)
 	if trans.ErrorCode != types.TeOk.String() {
-		fmt.Fprintln(w, orange("    Error code:      "), fmt.Sprint(trans.ErrorCode))
+		fmt.Fprintln(w, orange("    Error code:     "), fmt.Sprint(trans.ErrorCode))
 	}
 	if trans.ErrorMsg != "" {
-		fmt.Fprintln(w, orange("    Error message:   "), trans.ErrorMsg)
+		fmt.Fprintln(w, orange("    Error message:  "), trans.ErrorMsg)
 	}
 }
 
 // ######################## ADD ##########################
 
 type transferAdd struct {
-	File    string `required:"true" short:"f" long:"file" description:"The file to transfer"`
-	Way     string `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
-	Name    string `short:"n" long:"name" description:"The name of the file after the transfer"`
-	Partner string `required:"true" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
-	Account string `required:"true" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
-	Rule    string `required:"true" short:"r" long:"rule" description:"The rule to use for the transfer"`
-	Date    string `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
+	File    string  `required:"true" short:"f" long:"file" description:"The file to transfer"`
+	Way     string  `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
+	Name    *string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer"` // DEPRECATED
+	Partner string  `required:"true" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
+	Account string  `required:"true" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
+	Rule    string  `required:"true" short:"r" long:"rule" description:"The rule to use for the transfer"`
+	Date    string  `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
 }
 
 func (t *transferAdd) Execute([]string) (err error) {
-	if t.Name == "" {
-		t.Name = t.File
+	trans := api.InTransfer{
+		Partner: t.Partner,
+		Account: t.Account,
+		IsSend:  t.Way == "send",
+		File:    t.File,
+		Rule:    t.Rule,
+	}
+	if t.Name != nil {
+		fmt.Fprintln(out, "[WARNING] The '-n' ('-name') option is deprecated. "+
+			"For simplicity, in the future, files will have the same name at "+
+			"the source and the destination")
+		trans.DestPath = *t.Name
 	}
 
-	trans := api.InTransfer{
-		Partner:    t.Partner,
-		Account:    t.Account,
-		IsSend:     t.Way == "send",
-		SourcePath: t.File,
-		Rule:       t.Rule,
-		DestPath:   t.Name,
-	}
 	if t.Date != "" {
 		trans.Start, err = time.Parse(time.RFC3339Nano, t.Date)
 		if err != nil {

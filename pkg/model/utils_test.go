@@ -1,17 +1,12 @@
 package model
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 )
 
 func init() {
-	logConf := conf.LogConfig{
-		Level: "CRITICAL",
-		LogTo: "stdout",
-	}
-	_ = log.InitBackend(logConf)
+	_ = log.InitBackend("DEBUG", "stdout", "")
 
 	config.ProtoConfigs["dummy"] = func() config.ProtoConfig { return new(TestProtoConfig) }
 }

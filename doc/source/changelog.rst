@@ -3,10 +3,35 @@
 Historique des versions
 =======================
 
+* :feature:`` Dépréciation des options ``InDirectory``, ``OutDirectory`` &
+  ``WorkDirectory`` du fichier de configuration de la *Gateway*. Ces options ont
+  été remplacés respectivement par ``DefaultInDir``, ``DefaultOutDir`` &
+  ``DefaultTmpDir``.
+* :feature:`` Dépréciation des champs JSON ``inDir``, ``outDir`` & ``workDir`` de
+  l'objet REST de serveur local. Les champs ont été remplacé par ``serverLocalInDir``,
+  ``serverLocalOutDir`` & ``serverLocalTmpDir`` représentant respectivement le
+  dossier de réception du serveur, le dossier d'envoi du serveur, et le dossier
+  de réception temporaire.
+* :feature:`` Dépréciation des champs JSON ``inPath``, ``outPath`` & ``workPath``
+  de l'objet REST de règle. Les champs ont été remplacé par ``localDir``,
+  ``remoteDir`` & ``localTmpDir`` représentant respectivement le dossier sur le
+  disque local de la *Gateway*, le dossier sur l'hôte distant, et le dossier
+  temporaire local.
+* :feature:`` Dépréciation des champs JSON ``sourcePath``, ``destPath`` & ``trueFilepath``
+  des objets REST de consultation des transferts et de l'historique. Ces champs ont été
+  remplacé par les champs ``localPath`` & ``remotePath`` contenant respectivement
+  le chemin du fichier sur le disque local de la *Gateway*, et le chemin d'accès au
+  fichier sur l'hôte distant.
+* :feature:`` Dépréciation des champs ``sourcePath`` & ``destPath`` des objets
+  REST de création de transfert. Ces champs ont été remplacé par le champ
+  ``file`` contenant le nom du fichier à transférer. Il ne sera donc, à terme,
+  plus possible de donner au fichier de destination du transfer un nom différent
+  de celui du fichier source.
+
 * :release:`0.3.3 <2021-04-07>`
-* :bug:`251` Corrige le probème de création du fichier distant en SFTP 
+* :bug:`251` Corrige le probème de création du fichier distant en SFTP
   lorsque le serveur refuse l'ouverture de fichier en écriture ET en lecture.
-* :bug:`251` Corrige un problème du script d'update-conf qui sort en erreur 
+* :bug:`251` Corrige un problème du script d'update-conf qui sort en erreur
   si les fichiers optionels ne sont pas dans l'archive de déploiement.
 
 * :release:`0.3.2 <2021-04-06>`

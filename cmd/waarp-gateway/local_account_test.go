@@ -574,7 +574,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -705,7 +705,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 

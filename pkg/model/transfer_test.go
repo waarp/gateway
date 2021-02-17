@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -64,16 +65,15 @@ func TestTransferBeforeWrite(t *testing.T) {
 
 			Convey("Given a new transfer", func() {
 				trans := Transfer{
-					RuleID:       rule.ID,
-					IsServer:     false,
-					AgentID:      remote.ID,
-					AccountID:    account.ID,
-					TrueFilepath: "/filepath",
-					SourceFile:   "source",
-					DestFile:     "dest",
-					Start:        time.Now(),
-					Status:       "PLANNED",
-					Owner:        database.Owner,
+					RuleID:     rule.ID,
+					IsServer:   false,
+					AgentID:    remote.ID,
+					AccountID:  account.ID,
+					LocalPath:  "/local/path",
+					RemotePath: "/remote/path",
+					Start:      time.Now(),
+					Status:     "PLANNED",
+					Owner:      database.Owner,
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -98,6 +98,10 @@ func TestTransferBeforeWrite(t *testing.T) {
 						Convey("Then the transfer owner should be 'test_gateway'", func() {
 							So(trans.Owner, ShouldEqual, "test_gateway")
 						})
+
+						Convey("Then the local path should be in the OS's format", func() {
+							So(trans.LocalPath, ShouldEqual, utils.ToOSPath("/local/path"))
+						})
 					})
 				})
 
@@ -119,16 +123,10 @@ func TestTransferBeforeWrite(t *testing.T) {
 						"the transfer's account ID cannot be empty"))
 				})
 
-				Convey("Given that the source is missing", func() {
-					trans.SourceFile = ""
-					shouldFailWith("the source is missing", database.NewValidationError(
-						"the transfer's source cannot be empty"))
-				})
-
-				Convey("Given that the destination is missing", func() {
-					trans.DestFile = ""
-					shouldFailWith("the destination is missing", database.NewValidationError(
-						"the transfer's destination cannot be empty"))
+				Convey("Given that the local filepath is missing", func() {
+					trans.LocalPath = ""
+					shouldFailWith("the local filepath is missing", database.NewValidationError(
+						"the local filepath is missing"))
 				})
 
 				Convey("Given that the rule id is invalid", func() {
@@ -230,8 +228,8 @@ func TestTransferToHistory(t *testing.T) {
 				IsServer:   false,
 				AgentID:    remote.ID,
 				AccountID:  account.ID,
-				SourceFile: "test/source/path",
-				DestFile:   "test/dest/path",
+				LocalPath:  "/test/local/path",
+				RemotePath: "/test/remote/path",
 				Start:      time.Now(),
 				Status:     StatusDone,
 				Owner:      database.Owner,
@@ -248,19 +246,19 @@ func TestTransferToHistory(t *testing.T) {
 
 				Convey("Then it should return an equivalent `TransferHistory` entry", func() {
 					expected := &TransferHistory{
-						ID:             trans.ID,
-						Owner:          trans.Owner,
-						IsServer:       false,
-						IsSend:         true,
-						Account:        account.Login,
-						Agent:          remote.Name,
-						Protocol:       remote.Protocol,
-						SourceFilename: trans.SourceFile,
-						DestFilename:   trans.DestFile,
-						Rule:           rule.Name,
-						Start:          trans.Start,
-						Stop:           stop,
-						Status:         trans.Status,
+						ID:         trans.ID,
+						Owner:      trans.Owner,
+						IsServer:   false,
+						IsSend:     true,
+						Account:    account.Login,
+						Agent:      remote.Name,
+						Protocol:   remote.Protocol,
+						LocalPath:  trans.LocalPath,
+						RemotePath: trans.RemotePath,
+						Rule:       rule.Name,
+						Start:      trans.Start,
+						Stop:       stop,
+						Status:     trans.Status,
 					}
 
 					So(hist, ShouldResemble, expected)

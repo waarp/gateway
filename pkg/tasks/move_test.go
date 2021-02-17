@@ -3,7 +3,6 @@ package tasks
 import (
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 
@@ -59,15 +58,15 @@ func TestMoveTaskRun(t *testing.T) {
 				IsSend: true,
 			},
 			Transfer: &model.Transfer{
-				TrueFilepath: srcPath,
-				SourceFile:   "move.src",
+				LocalPath:  srcPath,
+				RemotePath: "/remote/move.src",
 			},
 		}
 
 		args := map[string]string{}
 
 		Convey("Given that the path is valid", func() {
-			args["path"] = path.Join(root, "dest")
+			args["path"] = filepath.Join(root, "dest")
 
 			Convey("Given that the file exists", func() {
 
@@ -83,13 +82,13 @@ func TestMoveTaskRun(t *testing.T) {
 						So(err, ShouldBeNil)
 					})
 
-					Convey("Then the transfer true file path should be modified", func() {
-						So(info.Transfer.TrueFilepath, ShouldEqual, utils.NormalizePath(
-							path.Join(args["path"], "move.src")))
+					Convey("Then the transfer local filepath should be modified", func() {
+						So(info.Transfer.LocalPath, ShouldEqual, utils.ToStandardPath(
+							args["path"]+"/move.src"))
 					})
 
-					Convey("Then the transfer source path should NOT be modified", func() {
-						So(info.Transfer.SourceFile, ShouldEqual, "move.src")
+					Convey("Then the transfer remote path should NOT be modified", func() {
+						So(info.Transfer.RemotePath, ShouldEqual, "/remote/move.src")
 					})
 				})
 			})

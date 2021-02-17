@@ -17,6 +17,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -56,8 +57,7 @@ func TestAddTransfer(t *testing.T) {
 					"partner": "remote",
 					"account": "toto",
 					"isSend": true,
-					"sourcePath": "file.src",
-					"destPath": "file.dst"
+					"file": "test.file"
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -94,9 +94,8 @@ func TestAddTransfer(t *testing.T) {
 							IsServer:         false,
 							AgentID:          partner.ID,
 							AccountID:        account.ID,
-							TrueFilepath:     "",
-							SourceFile:       "file.src",
-							DestFile:         "file.dst",
+							LocalPath:        "test.file",
+							RemotePath:       "test.file",
 							Start:            transfers[0].Start,
 							Step:             types.StepNone,
 							Status:           types.StatusPlanned,
@@ -117,8 +116,7 @@ func TestAddTransfer(t *testing.T) {
 					"partner": "remote",
 					"account": "toto",
 					"isSend": true,
-					"sourcePath": "file.src",
-					"destPath": "file.dst"
+					"file": "test.file"
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -143,8 +141,7 @@ func TestAddTransfer(t *testing.T) {
 					"partner": "tata",
 					"account": "toto",
 					"isSend": true,
-					"sourcePath": "file.src",
-					"destPath": "file.dst"
+					"file": "test.file"
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -169,8 +166,7 @@ func TestAddTransfer(t *testing.T) {
 					"partner": "remote",
 					"account": "tata",
 					"isSend": true,
-					"sourcePath": "file.src",
-					"destPath": "file.dst"
+					"file": "test.file"
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -199,8 +195,7 @@ func TestAddTransfer(t *testing.T) {
 					"partner": "remote",
 					"account": "toto",
 					"isSend": true,
-					"sourcePath": "file.src",
-					"destPath": "file.dst"
+					"file": "test.file"
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -254,8 +249,8 @@ func TestGetTransfer(t *testing.T) {
 				RuleID:     push.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
-				SourceFile: "src",
-				DestFile:   "dst",
+				LocalPath:  "/local/file.test",
+				RemotePath: "/remote/file.test",
 				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
@@ -381,8 +376,8 @@ func TestListTransfer(t *testing.T) {
 				RuleID:     r1.ID,
 				AgentID:    p1.ID,
 				AccountID:  a1.ID,
-				SourceFile: "src1",
-				DestFile:   "dst2",
+				LocalPath:  "/local/file1.test",
+				RemotePath: "/remote/file1.test",
 				Progress:   1,
 				TaskNumber: 2,
 				Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
@@ -395,8 +390,8 @@ func TestListTransfer(t *testing.T) {
 				RuleID:     r2.ID,
 				AgentID:    p2.ID,
 				AccountID:  a2.ID,
-				SourceFile: "src2",
-				DestFile:   "dst2",
+				LocalPath:  "/local/file2.test",
+				RemotePath: "/remote/file2.test",
 				Start:      time.Date(2021, 1, 1, 2, 0, 0, 234000, time.Local),
 				Step:       types.StepPostTasks,
 				Status:     types.StatusError,
@@ -407,8 +402,8 @@ func TestListTransfer(t *testing.T) {
 				RuleID:     r2.ID,
 				AgentID:    p1.ID,
 				AccountID:  a1.ID,
-				SourceFile: "src3",
-				DestFile:   "dst3",
+				LocalPath:  "/local/file3.test",
+				RemotePath: "/remote/file3.test",
 				Start:      time.Date(2021, 1, 1, 3, 0, 0, 345000, time.Local),
 				Step:       types.StepData,
 				Status:     types.StatusPaused,
@@ -565,8 +560,8 @@ func TestResumeTransfer(t *testing.T) {
 				RuleID:     rule.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
-				SourceFile: "src",
-				DestFile:   "dst",
+				LocalPath:  "/local/file.test",
+				RemotePath: "/remote/file.test",
 				Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:     types.StatusError,
 				Step:       types.StepData,
@@ -603,8 +598,8 @@ func TestResumeTransfer(t *testing.T) {
 							RuleID:     rule.ID,
 							AgentID:    partner.ID,
 							AccountID:  account.ID,
-							SourceFile: "src",
-							DestFile:   "dst",
+							LocalPath:  utils.ToOSPath("/local/file.test"),
+							RemotePath: "/remote/file.test",
 							Start:      trans.Start.Local(),
 							Status:     types.StatusPlanned,
 							Step:       types.StepData,
@@ -655,8 +650,8 @@ func TestPauseTransfer(t *testing.T) {
 				RuleID:     rule.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
-				SourceFile: "src",
-				DestFile:   "dst",
+				LocalPath:  "/local/file.test",
+				RemotePath: "/remote/file.test",
 				Start:      time.Date(2020, 1, 2, 3, 4, 5, 678000, time.Local),
 				Status:     types.StatusPlanned,
 				Step:       types.StepData,
@@ -690,8 +685,8 @@ func TestPauseTransfer(t *testing.T) {
 							RuleID:     rule.ID,
 							AgentID:    partner.ID,
 							AccountID:  account.ID,
-							SourceFile: "src",
-							DestFile:   "dst",
+							LocalPath:  utils.ToOSPath("/local/file.test"),
+							RemotePath: "/remote/file.test",
 							Start:      trans.Start.Local(),
 							Status:     types.StatusPaused,
 							Step:       types.StepData,

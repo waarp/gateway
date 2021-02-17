@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	. "github.com/smartystreets/goconvey/convey"
@@ -15,11 +14,7 @@ import (
 var discard *log.Logger
 
 func init() {
-	logConf := conf.LogConfig{
-		Level: "CRITICAL",
-		LogTo: "stdout",
-	}
-	_ = log.InitBackend(logConf)
+	_ = log.InitBackend("CRITICAL", "stdout", "")
 	discard = log.NewLogger("test_client")
 	discard.SetBackend(&logging.NoopBackend{})
 

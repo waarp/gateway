@@ -21,9 +21,23 @@ Consulter une règle
       la règle lors d'un transfert si le protocole ne le permet pas. Doit être un
       chemin absolu.
    :resjson string inPath: Le dossier de destination de la règle. Tous les fichiers
-      transférés avec cette règle sont envoyés dans ce dossier.
+      transférés avec cette règle sont envoyés dans ce dossier. (OBSOLÈTE:
+      remplacé par 'localDir' & 'remoteDir')
    :resjson string outPath: Le dossier source de la règle. Tous les fichiers
-      transférés avec cette règle sont récupérés depuis ce dossier.
+      transférés avec cette règle sont récupérés depuis ce dossier. (OBSOLÈTE:
+      remplacé par 'localDir' & 'remoteDir')
+   :resjson string workPath: Le dossier temporaire de la règle. Tous les fichiers
+      entrants transférés avec cette règle sont déposés dans ce dossier le temps
+      du transfert. (OBSOLÈTE: remplacé par 'localTmpDir')
+   :resjson string localDir: Le dossier de la règle sur le disque local de la
+      Gateway. Si la règle est une règle d'envoi, ce dossier sert de source au
+      fichier; dans le cas contraire, il sert de destination.
+   :resjson string remoteDir: Le chemin de la règle sur l'hôte distant. Si la
+      règle est une règle d'envoi, ce dossier sert de destination au fichier;
+      dans le cas contraire, il sert de source.
+   :resjson string localTmpDir: Le dossier temporaire local de la règle. Tous
+      les fichiers reçu avec cette règle sont déposés dans ce dossier le temps
+      du transfert, puis déplacé dans le 'localDir' une fois terminé.
    :resjson array preTasks: La liste des pré-traitements de la règle.
 
       * **type** (*string*) - Le type de traitements.
@@ -70,9 +84,10 @@ Consulter une règle
            "name": "règle_1",
            "comment": "ceci est un exemple de règle d'envoi",
            "isSend": true,
-           "path": "/chemin/de/la/règle",
-           "outPath": "/chemin/source/des/fichiers",
-           "inPath": "/chemin/destination/des/fichiers",
+           "path": "/chemin/identificateur/de/la/règle",
+           "localDir": "/dossier/local",
+           "remoteDir": "/dossier/distant",
+           "localTmpDir": "/dossier/temporaire",
            "preTasks": [{
              "type": "COPY",
              "args": {"path":"/chemin/de/copie"}

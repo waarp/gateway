@@ -151,7 +151,7 @@ func TestAddRemoteAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldNotBeEmpty)
 
-						clearPwd, err := utils.DecryptPassword(accounts[0].Password)
+						clearPwd, err := utils.DecryptPassword(database.GCM, accounts[0].Password)
 						So(err, ShouldBeNil)
 						So(string(clearPwd), ShouldEqual, "password")
 
@@ -328,7 +328,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldNotBeEmpty)
 
-						clearPwd, err := utils.DecryptPassword(accounts[0].Password)
+						clearPwd, err := utils.DecryptPassword(database.GCM, accounts[0].Password)
 						So(err, ShouldBeNil)
 						So(string(clearPwd), ShouldEqual, "new_password")
 
@@ -561,7 +561,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -692,7 +692,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 

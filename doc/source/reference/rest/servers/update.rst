@@ -18,11 +18,20 @@ Modifier un serveur
    :reqjson string root: La racine du serveur. Peut être relatif (à la racine
       de la *gateway*) ou absolu.
    :reqjson string inDir: Le dossier de réception du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu.
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'serverLocalInDir')
    :reqjson string outDir: Le dossier d'envoi du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu.
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'serverLocalOutDir')
    :reqjson string workDir: Le dossier temporaire du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'serverLocalTmpDir')
+   :reqjson string serverLocalInDir: Le dossier de réception du serveur. Peut
+      être relatif (à la racine du serveur) ou absolu.
+   :reqjson string serverLocalOutDir: Le dossier d'envoi du serveur. Peut être
       relatif (à la racine du serveur) ou absolu.
+   :reqjson string serverLocalTmpDir: Le dossier temporaire du serveur. Peut
+      être relatif (à la racine du serveur) ou absolu.
    :reqjson object protoConfig: La configuration du serveur encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
 

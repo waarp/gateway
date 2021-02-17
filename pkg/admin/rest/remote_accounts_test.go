@@ -325,7 +325,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
 
-							clear, err := utils.DecryptPassword(accs[0].Password)
+							clear, err := utils.DecryptPassword(database.GCM, accs[0].Password)
 							So(err, ShouldBeNil)
 							accs[0].Password = clear
 							So(accs[0], ShouldResemble, model.RemoteAccount{
@@ -511,7 +511,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
 
-							pswd, err := utils.DecryptPassword(res[0].Password)
+							pswd, err := utils.DecryptPassword(database.GCM, res[0].Password)
 							So(err, ShouldBeNil)
 							So(pswd, ShouldResemble, []byte("upd_password"))
 
@@ -647,7 +647,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
 
-							pswd, err := utils.DecryptPassword(res[0].Password)
+							pswd, err := utils.DecryptPassword(database.GCM, res[0].Password)
 							So(err, ShouldBeNil)
 							So(pswd, ShouldResemble, []byte("upd_password"))
 

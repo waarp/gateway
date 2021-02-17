@@ -21,7 +21,7 @@ func TestAuthorizeRule(t *testing.T) {
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: true,
-			Path:   "rule/path",
+			Path:   "/rule_path",
 		}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -151,7 +151,7 @@ func TestRevokeRule(t *testing.T) {
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: true,
-			Path:   "rule/path",
+			Path:   "/rule_path",
 		}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -286,7 +286,7 @@ func TestRuleAllowAll(t *testing.T) {
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: true,
-			Path:   "rule/path",
+			Path:   "/rule_path",
 		}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
