@@ -169,7 +169,13 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return
 			}
 		case types.StatusRunning:
-			pipeline.Signals.SendSignal(check.ID, model.SignalPause)
+			pip, ok := pipeline.RunningTransfers.Load(check.ID)
+			if !ok {
+				err := badRequest("cannot find the pipeline associated with the transfer")
+				handleError(w, logger, err)
+				return
+			}
+			pip.(pipeline.TransferInterrupter).Pause()
 		default:
 			err := badRequest("cannot pause an already interrupted transfer")
 			handleError(w, logger, err)
@@ -190,11 +196,17 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		if check.Status != types.StatusRunning {
 			check.Status = types.StatusCancelled
-			if err := pipeline.ToHistory(db, logger, check); handleError(w, logger, err) {
+			if err := check.ToHistory(db, logger); handleError(w, logger, err) {
 				return
 			}
 		} else {
-			pipeline.Signals.SendSignal(check.ID, model.SignalCancel)
+			pip, ok := pipeline.RunningTransfers.Load(check.ID)
+			if !ok {
+				err := badRequest("cannot find the pipeline associated with the transfer")
+				handleError(w, logger, err)
+				return
+			}
+			pip.(pipeline.TransferInterrupter).Cancel()
 		}
 
 		r.URL.Path = "/api/history"

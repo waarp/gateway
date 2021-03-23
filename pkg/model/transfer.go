@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
@@ -210,9 +211,9 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	return nil
 }
 
-// ToHistory converts the `Transfer` entry into an equivalent `TransferHistory`
+// makeHistoryEntry converts the `Transfer` entry into an equivalent `HistoryEntry`
 // entry with the given time as the end date.
-func (t *Transfer) ToHistory(db database.ReadAccess, stop time.Time) (*TransferHistory, database.Error) {
+func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*HistoryEntry, database.Error) {
 	rule := &Rule{}
 	if err := db.Get(rule, "id=?", t.RuleID).Run(); err != nil {
 		return nil, err
@@ -252,7 +253,7 @@ func (t *Transfer) ToHistory(db database.ReadAccess, stop time.Time) (*TransferH
 		)
 	}
 
-	hist := TransferHistory{
+	hist := HistoryEntry{
 		ID:               t.ID,
 		Owner:            t.Owner,
 		RemoteTransferID: t.RemoteTransferID,
@@ -273,6 +274,31 @@ func (t *Transfer) ToHistory(db database.ReadAccess, stop time.Time) (*TransferH
 		TaskNumber:       t.TaskNumber,
 	}
 	return &hist, nil
+}
+
+// ToHistory removes the transfer entry from the database, converts it into a
+// history entry, and inserts the new history entry in the database.
+// If any of these steps fails, the changes are reverted and an error is returned.
+func (t *Transfer) ToHistory(db *database.DB, logger *log.Logger) database.Error {
+	return db.Transaction(func(ses *database.Session) database.Error {
+		if err := ses.Delete(t).Run(); err != nil {
+			logger.Errorf("Failed to delete transfer for archival: %s", err)
+			return err
+		}
+
+		hist, err := t.makeHistoryEntry(ses, time.Now())
+		if err != nil {
+			logger.Errorf("Failed to convert transfer to history: %s", err)
+			return err
+		}
+
+		if err := ses.Insert(hist).Run(); err != nil {
+			logger.Errorf("Failed to create new history entry: %s", err)
+			return err
+		}
+
+		return nil
+	})
 }
 
 // GetTransferInfo returns the list of the transfer's TransferInfo as a map[string]string

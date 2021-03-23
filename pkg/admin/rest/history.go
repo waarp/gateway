@@ -15,7 +15,7 @@ import (
 )
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
-func FromHistory(h *model.TransferHistory) *api.OutHistory {
+func FromHistory(h *model.HistoryEntry) *api.OutHistory {
 	return &api.OutHistory{
 		ID:         h.ID,
 		RemoteID:   h.RemoteTransferID,
@@ -40,7 +40,7 @@ func FromHistory(h *model.TransferHistory) *api.OutHistory {
 
 // FromHistories transforms the given list of database history entries into its
 // JSON equivalent.
-func FromHistories(hs []model.TransferHistory) []api.OutHistory {
+func FromHistories(hs []model.HistoryEntry) []api.OutHistory {
 	hist := make([]api.OutHistory, len(hs))
 	for i := range hs {
 		hist[i] = *FromHistory(&hs[i])
@@ -48,13 +48,13 @@ func FromHistories(hs []model.TransferHistory) []api.OutHistory {
 	return hist
 }
 
-func getHist(r *http.Request, db *database.DB) (*model.TransferHistory, error) {
+func getHist(r *http.Request, db *database.DB) (*model.HistoryEntry, error) {
 	val := mux.Vars(r)["history"]
 	id, err := strconv.ParseUint(val, 10, 64)
 	if err != nil || id == 0 {
 		return nil, notFound("'%s' is not a valid transfer ID", val)
 	}
-	var history model.TransferHistory
+	var history model.HistoryEntry
 	if err := db.Get(&history, "id=?", id).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("transfer %v not found", id)
@@ -144,7 +144,7 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var results model.Histories
+		var results model.HistoryEntries
 		query, err := parseSelectQuery(r, db, validSorting, &results)
 		if handleError(w, logger, err) {
 			return

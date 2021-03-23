@@ -62,15 +62,15 @@ func (*moveTask) Validate(args map[string]string) error {
 
 // Run executes the task by moving the file in the requested directory.
 func (*moveTask) Run(args map[string]string, _ *database.DB,
-	info *model.TransferContext, _ context.Context) (string, error) {
+	transCtx *model.TransferContext, _ context.Context) (string, error) {
 	newDir := args["path"]
 
-	source := info.Transfer.LocalPath
+	source := transCtx.Transfer.LocalPath
 	dest := path.Join(utils.ToStandardPath(newDir), filepath.Base(source))
 
 	if err := MoveFile(source, dest); err != nil {
 		return err.Error(), err
 	}
-	info.Transfer.LocalPath = utils.ToStandardPath(dest)
+	transCtx.Transfer.LocalPath = utils.ToStandardPath(dest)
 	return "", nil
 }

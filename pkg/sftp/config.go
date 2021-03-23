@@ -4,22 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"net"
-	"strings"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+
 	"golang.org/x/crypto/ssh"
 )
-
-func isRemoteTaskError(err error) (string, bool) {
-	if !strings.Contains(err.Error(), "TransferError(TeExternalOperation)") {
-		return "", false
-	}
-	msg := strings.TrimPrefix(err.Error(), "sftp: \"TransferError(TeExternalOperation): ")
-	msg = strings.TrimSuffix(msg, "\" (SSH_FX_FAILURE)")
-	return msg, true
-}
 
 type fixedHostKeys []ssh.PublicKey
 
@@ -42,31 +34,22 @@ func makeFixedHostKeys(keys []ssh.PublicKey) ssh.HostKeyCallback {
 	return hk.check
 }
 
-func exist(slice []string, elem string) bool {
-	for _, e := range slice {
-		if e == elem {
-			return true
-		}
-	}
-	return false
-}
-
 func getSSHClientConfig(info *model.TransferContext, protoConfig *config.SftpProtoConfig) (*ssh.ClientConfig, error) {
-	pwd, err := utils.DecryptPassword(info.Account.Password)
+	pwd, err := utils.DecryptPassword(database.GCM, info.RemoteAccount.Password)
 	if err != nil {
 		return nil, err
 	}
 
 	var hostKeys []ssh.PublicKey
 	var algos []string
-	for _, c := range info.ServerCerts {
+	for _, c := range info.RemoteAgentCerts {
 		key, _, _, _, err := ssh.ParseAuthorizedKey(c.PublicKey) //nolint:dogsled
 		if err != nil {
 			return nil, err
 		}
 
 		hostKeys = append(hostKeys, key)
-		if !exist(algos, key.Type()) {
+		if !utils.ContainsStrings(algos, key.Type()) {
 			algos = append(algos, key.Type())
 		}
 	}
@@ -77,7 +60,7 @@ func getSSHClientConfig(info *model.TransferContext, protoConfig *config.SftpPro
 			Ciphers:      protoConfig.Ciphers,
 			MACs:         protoConfig.MACs,
 		},
-		User: info.Account.Login,
+		User: info.RemoteAccount.Login,
 		Auth: []ssh.AuthMethod{
 			ssh.Password(string(pwd)),
 		},
@@ -85,8 +68,8 @@ func getSSHClientConfig(info *model.TransferContext, protoConfig *config.SftpPro
 		HostKeyAlgorithms: algos,
 	}
 
-	signers := []ssh.Signer{}
-	for _, c := range info.ClientCerts {
+	var signers []ssh.Signer
+	for _, c := range info.RemoteAccountCerts {
 		signer, err := ssh.ParsePrivateKey(c.PrivateKey)
 		if err != nil {
 			continue

@@ -54,7 +54,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 		srcPath := filepath.Join(root, "move_rename.src")
 		So(ioutil.WriteFile(srcPath, []byte("Hello World"), 0o700), ShouldBeNil)
 
-		info := &model.TransferContext{
+		transCtx := &model.TransferContext{
 			Rule: &model.Rule{
 				IsSend: true,
 			},
@@ -72,7 +72,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 			Convey("Given that the file exists", func() {
 
 				Convey("When calling the `Run` method", func() {
-					_, err := task.Run(args, nil, info, nil)
+					_, err := task.Run(args, nil, transCtx, nil)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -84,12 +84,12 @@ func TestMoveRenameTaskRun(t *testing.T) {
 					})
 
 					Convey("Then the transfer local filepath should be modified", func() {
-						So(info.Transfer.LocalPath, ShouldEqual, utils.ToStandardPath(
+						So(transCtx.Transfer.LocalPath, ShouldEqual, utils.ToStandardPath(
 							args["path"]))
 					})
 
 					Convey("Then the transfer source path should NOT be modified", func() {
-						So(info.Transfer.RemotePath, ShouldEqual, "/remote/move_rename.dst")
+						So(transCtx.Transfer.RemotePath, ShouldEqual, "/remote/move_rename.dst")
 					})
 				})
 			})
@@ -98,7 +98,7 @@ func TestMoveRenameTaskRun(t *testing.T) {
 				So(os.Remove(srcPath), ShouldBeNil)
 
 				Convey("When calling the 'Run' method", func() {
-					_, err := task.Run(args, nil, info, nil)
+					_, err := task.Run(args, nil, transCtx, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)

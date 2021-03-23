@@ -53,7 +53,7 @@ func SkipTestTLS(t *testing.T) {
 			client := &client{
 				conf:      config.R66ProtoConfig{IsTLS: true},
 				r66Client: r66.NewClient("toto", []byte("sesame")),
-				info: model.TransferContext{
+				transCtx: model.TransferContext{
 					Agent: &model.RemoteAgent{
 						Address: addr,
 					},
@@ -68,7 +68,7 @@ func SkipTestTLS(t *testing.T) {
 				},
 			}
 			var err error
-			client.tlsConf, err = makeClientTLSConfig(&client.info)
+			client.tlsConf, err = makeClientTLSConfig(&client.transCtx)
 			So(err, ShouldBeNil)
 
 			Convey("When connecting to the server", func() {
@@ -90,7 +90,7 @@ func SkipTestTLS(t *testing.T) {
 			client := &client{
 				conf:      config.R66ProtoConfig{IsTLS: true},
 				r66Client: r66.NewClient("toto", []byte("sesame")),
-				info: model.TransferContext{
+				transCtx: model.TransferContext{
 					Agent: &model.RemoteAgent{
 						Address: addr,
 					},
@@ -101,7 +101,7 @@ func SkipTestTLS(t *testing.T) {
 				},
 			}
 			var err error
-			client.tlsConf, err = makeClientTLSConfig(&client.info)
+			client.tlsConf, err = makeClientTLSConfig(&client.transCtx)
 			So(err, ShouldBeNil)
 
 			Convey("When connecting to the server", func() {
@@ -120,7 +120,7 @@ func SkipTestTLS(t *testing.T) {
 			client := &client{
 				conf:      config.R66ProtoConfig{IsTLS: true},
 				r66Client: r66.NewClient("toto", []byte("sesame")),
-				info: model.TransferContext{
+				transCtx: model.TransferContext{
 					Agent: &model.RemoteAgent{
 						Address: addr,
 					},
@@ -131,7 +131,7 @@ func SkipTestTLS(t *testing.T) {
 				},
 			}
 			var err error
-			client.tlsConf, err = makeClientTLSConfig(&client.info)
+			client.tlsConf, err = makeClientTLSConfig(&client.transCtx)
 			So(err, ShouldBeNil)
 
 			Convey("When connecting to the server", func() {

@@ -11,7 +11,6 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -188,7 +187,7 @@ func processTransfer(c C, ctx *testContext) {
 		ctx.logger, ctx.db, ctx.clientPaths, ctx.trans)
 	c.So(err, ShouldBeNil)
 
-	exe := executor.Executor{TransferStream: stream}
+	//exe := executor.Executor{TransferStream: stream}
 	clientCheckChannel = make(chan string, 200)
 	serverCheckChannel = make(chan string, 200)
 	c.Reset(func() {

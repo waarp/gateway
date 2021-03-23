@@ -26,10 +26,10 @@ func (*copyRenameTask) Validate(args map[string]string) error {
 
 // Run copy the current file to the destination
 func (*copyRenameTask) Run(args map[string]string, _ *database.DB,
-	info *model.TransferContext, _ context.Context) (string, error) {
+	transCtx *model.TransferContext, _ context.Context) (string, error) {
 
 	dstPath := args["path"]
-	srcPath := info.Transfer.LocalPath
+	srcPath := transCtx.Transfer.LocalPath
 
 	if err := doCopy(dstPath, srcPath); err != nil {
 		return err.Error(), err

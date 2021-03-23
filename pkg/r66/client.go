@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"os"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -17,12 +16,12 @@ import (
 )
 
 func init() {
-	executor.ClientsConstructors["r66"] = NewClient
+	//executor.ClientsConstructors["r66"] = NewClient
 }
 
 type client struct {
 	r66Client *r66.Client
-	info      model.TransferContext
+	transCtx  model.TransferContext
 	signals   <-chan model.Signal
 
 	conf    config.R66ProtoConfig
@@ -35,43 +34,43 @@ type client struct {
 	hasData bool
 }
 
-// NewClient creates and returns a new r66 client using the given transfer info.
-func NewClient(info model.TransferContext, signals <-chan model.Signal) (pipeline.Client, error) {
-	pswd, err := utils.DecryptPassword(info.Account.Password)
+// NewClient creates and returns a new r66 client using the given transfer context.
+func NewClient(transCtx model.TransferContext, signals <-chan model.Signal) (pipeline.Client, error) {
+	pswd, err := utils.DecryptPassword(transCtx.Account.Password)
 	if err != nil {
 		return nil, err
 	}
 
 	var conf config.R66ProtoConfig
-	if err := json.Unmarshal(info.Agent.ProtoConfig, &conf); err != nil {
+	if err := json.Unmarshal(transCtx.Agent.ProtoConfig, &conf); err != nil {
 		return nil, err
 	}
 
 	var tlsConf *tls.Config
 	if conf.IsTLS {
 		var err error
-		tlsConf, err = makeClientTLSConfig(&info)
+		tlsConf, err = makeClientTLSConfig(&transCtx)
 		if err != nil {
 			return nil, types.NewTransferError(types.TeInternal, "invalid R66 TLS config")
 		}
 	}
 
-	r66Client := r66.NewClient(info.Account.Login, pswd)
+	r66Client := r66.NewClient(transCtx.Account.Login, pswd)
 	r66Client.FileSize = true
 	r66Client.FinalHash = !conf.NoFinalHash
 
 	//TODO: configure r66 client
 	c := &client{
 		r66Client: r66Client,
-		info:      info,
+		transCtx:  transCtx,
 		signals:   signals,
 		conf:      conf,
 		tlsConf:   tlsConf,
 	}
 	c.r66Client.AuthentHandler = &clientAuthHandler{
-		getFile: func() r66utils.ReadWriterAt { return c.stream },
-		info:    &info,
-		config:  &conf,
+		getFile:  func() r66utils.ReadWriterAt { return c.stream },
+		transCtx: &transCtx,
+		config:   &conf,
 	}
 
 	return c, nil
@@ -106,9 +105,9 @@ func (c *client) Connect() error {
 	var remote *r66.Remote
 	var err error
 	if c.tlsConf != nil {
-		remote, err = c.r66Client.DialTLS(c.info.Agent.Address, c.tlsConf)
+		remote, err = c.r66Client.DialTLS(c.transCtx.Agent.Address, c.tlsConf)
 	} else {
-		remote, err = c.r66Client.Dial(c.info.Agent.Address)
+		remote, err = c.r66Client.Dial(c.transCtx.Agent.Address)
 	}
 
 	if err != nil {
@@ -134,12 +133,12 @@ func (c *client) Authenticate() error {
 }
 
 func (c *client) Request() error {
-	file := c.info.Transfer.SourceFile
+	file := c.transCtx.Transfer.SourceFile
 	var size int64
-	if c.info.Rule.IsSend {
-		file = c.info.Transfer.DestFile
+	if c.transCtx.Rule.IsSend {
+		file = c.transCtx.Transfer.DestFile
 
-		stats, err := os.Stat(utils.DenormalizePath(c.info.Transfer.TrueFilepath))
+		stats, err := os.Stat(utils.DenormalizePath(c.transCtx.Transfer.TrueFilepath))
 		if err != nil {
 			return types.NewTransferError(types.TeInternal, err.Error())
 		}
@@ -153,12 +152,12 @@ func (c *client) Request() error {
 	}
 
 	trans := &r66.Transfer{
-		ID:    int64(c.info.Transfer.ID),
-		Get:   !c.info.Rule.IsSend,
+		ID:    int64(c.transCtx.Transfer.ID),
+		Get:   !c.transCtx.Rule.IsSend,
 		File:  file,
-		Rule:  c.info.Rule.Name,
+		Rule:  c.transCtx.Rule.Name,
 		Block: blockSize,
-		Rank:  uint32(c.info.Transfer.Progress / uint64(c.r66Client.Block)),
+		Rank:  uint32(c.transCtx.Transfer.Progress / uint64(c.r66Client.Block)),
 		Size:  size,
 	}
 

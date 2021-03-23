@@ -89,7 +89,7 @@ func TestExecMoveRun(t *testing.T) {
 		scriptPath := filepath.Join(root, execMoveScriptFile)
 
 		exec := &execMoveTask{}
-		info := &model.TransferContext{
+		transCtx := &model.TransferContext{
 			Rule:     &model.Rule{IsSend: false},
 			Transfer: &model.Transfer{},
 		}
@@ -110,13 +110,13 @@ func TestExecMoveRun(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("When running the task", func() {
-				_, err := exec.Run(args, nil, info, context.Background())
+				_, err := exec.Run(args, nil, transCtx, context.Background())
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
 
 					Convey("Then the transfer filepath should have changed", func() {
-						So(utils.ToOSPath(info.Transfer.LocalPath),
+						So(utils.ToOSPath(transCtx.Transfer.LocalPath),
 							ShouldEqual, dstFile)
 					})
 				})
@@ -128,7 +128,7 @@ func TestExecMoveRun(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("When running the task", func() {
-				_, err := exec.Run(args, nil, info, context.Background())
+				_, err := exec.Run(args, nil, transCtx, context.Background())
 
 				Convey("Then it should return a 'warning' error", func() {
 					So(err, ShouldHaveSameTypeAs, &errWarning{})
@@ -141,7 +141,7 @@ func TestExecMoveRun(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("When running the task", func() {
-				_, err := exec.Run(args, nil, info, context.Background())
+				_, err := exec.Run(args, nil, transCtx, context.Background())
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError)
@@ -157,7 +157,7 @@ func TestExecMoveRun(t *testing.T) {
 			args["delay"] = "100"
 
 			Convey("When running the task", func() {
-				_, err := exec.Run(args, nil, info, context.Background())
+				_, err := exec.Run(args, nil, transCtx, context.Background())
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError, "max execution delay expired")

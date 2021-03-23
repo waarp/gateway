@@ -1,67 +1,90 @@
 package pipeline
 
 import (
-	"fmt"
+	"math"
 	"sync"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
-// ErrLimitReached is the error returned when a counter cannot be incremented
+// RunningTransfers is a synchronized map containing the pipelines of all currently
+// running transfers. It can be used to interrupt transfers using the various
+// functions exposed by the TransferInterrupter interface.
+var RunningTransfers sync.Map
+
+// errLimitReached is the error returned when a counter cannot be incremented
 // because the maximum limit has been reached.
-var ErrLimitReached = fmt.Errorf("transfer limit reached")
+var errLimitReached = types.NewTransferError(types.TeExceededLimit, "transfer limit reached")
 
-// TransferInCount counts the current and maximum number of concurrent incoming
-// transfers. A limit of 0 means no limit.
-var TransferInCount = &Count{}
+// TransferInterrupter is the interface stored in the RunningTransfers map. The
+// functions exposed by this interface can be used to interrupt running transfers.
+type TransferInterrupter interface {
+	// Pause pauses the transfer. It can be resumed later on command.
+	Pause()
 
-// TransferOutCount counts the current and maximum number of concurrent outgoing
-// transfers. A limit of 0 means no limit.
-var TransferOutCount = &Count{}
+	// Interrupt stops the transfer because of a service shutdown. Transfer will
+	// be resumed automatically when the service restarts.
+	Interrupt()
 
-// Count is a thread-safe counter with a maximum limit check included.
-type Count struct {
+	// Cancel cancels the transfer. Transfer will be moved to history and thus
+	// cannot be resumed.
+	Cancel()
+}
+
+var (
+	// TransferInCount counts the current and maximum number of concurrent incoming
+	// transfers. A limit of 0 means no limit.
+	TransferInCount = &count{}
+
+	// TransferOutCount counts the current and maximum number of concurrent outgoing
+	// transfers. A limit of 0 means no limit.
+	TransferOutCount = &count{}
+)
+
+// count is a thread-safe counter with a maximum limit check included.
+type count struct {
 	count uint64
 	limit uint64
 	mux   sync.Mutex
 }
 
 // SetLimit sets the maximum limit of the counter.
-func (c *Count) SetLimit(l uint64) {
-	defer c.mux.Unlock()
+func (c *count) SetLimit(l uint64) {
 	c.mux.Lock()
+	defer c.mux.Unlock()
 
 	c.limit = l
 }
 
-// GetLimit sets the maximum limit of the counter.
-func (c *Count) GetLimit() uint64 {
-	defer c.mux.Unlock()
+func (c *count) Add() (added bool) {
 	c.mux.Lock()
-
-	return c.limit
-}
-
-// Get returns the current value of the counter.
-func (c *Count) Get() uint64 {
 	defer c.mux.Unlock()
-	c.mux.Lock()
 
-	return c.limit
-}
-
-func (c *Count) add() error {
-	defer c.mux.Unlock()
-	c.mux.Lock()
-
-	if c.limit > 0 && c.count >= c.limit {
-		return ErrLimitReached
+	if c.limit == 0 {
+		return true
 	}
-	c.count++
-	return nil
+
+	newCount := c.count + 1
+	if newCount > c.limit {
+		return false
+	}
+	c.count = newCount
+	return true
 }
 
-func (c *Count) sub() {
-	defer c.mux.Unlock()
+func (c *count) Sub() {
 	c.mux.Lock()
+	defer c.mux.Unlock()
 
 	c.count--
+}
+
+func (c *count) GetAvailable() uint64 {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	if c.limit == 0 {
+		return math.MaxUint64 - c.count
+	}
+	return c.limit - c.count
 }

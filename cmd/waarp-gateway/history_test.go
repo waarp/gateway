@@ -145,7 +145,7 @@ func TestGetHistory(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Given a valid history entry", func() {
-				h := &model.TransferHistory{
+				h := &model.HistoryEntry{
 					ID:         1,
 					IsServer:   true,
 					IsSend:     false,
@@ -210,7 +210,7 @@ func TestListHistory(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Given 4 valid history entries", func() {
-				h1 := &model.TransferHistory{
+				h1 := &model.HistoryEntry{
 					ID:         1,
 					IsServer:   true,
 					IsSend:     false,
@@ -224,7 +224,7 @@ func TestListHistory(t *testing.T) {
 					Stop:       time.Date(2019, 1, 1, 1, 2, 0, 1000, time.Local),
 					Status:     types.StatusDone,
 				}
-				h2 := &model.TransferHistory{
+				h2 := &model.HistoryEntry{
 					ID:         2,
 					IsServer:   true,
 					IsSend:     false,
@@ -238,7 +238,7 @@ func TestListHistory(t *testing.T) {
 					Stop:       time.Date(2019, 1, 1, 2, 1, 0, 2000, time.Local),
 					Status:     types.StatusCancelled,
 				}
-				h3 := &model.TransferHistory{
+				h3 := &model.HistoryEntry{
 					ID:         3,
 					IsServer:   true,
 					IsSend:     false,
@@ -252,7 +252,7 @@ func TestListHistory(t *testing.T) {
 					Stop:       time.Date(2019, 1, 1, 3, 1, 0, 3000, time.Local),
 					Status:     types.StatusDone,
 				}
-				h4 := &model.TransferHistory{
+				h4 := &model.HistoryEntry{
 					ID:         4,
 					IsServer:   true,
 					IsSend:     false,
@@ -525,7 +525,7 @@ func TestRetryHistory(t *testing.T) {
 				}
 				So(db.Insert(r).Run(), ShouldBeNil)
 
-				hist := &model.TransferHistory{
+				hist := &model.HistoryEntry{
 					ID:         1,
 					IsServer:   false,
 					IsSend:     r.IsSend,

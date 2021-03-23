@@ -16,10 +16,10 @@ import (
 )
 
 type clientAuthHandler struct {
-	getFile func() r66utils.ReadWriterAt
-	info    *model.TransferContext
-	config  *config.R66ProtoConfig
-	size    int64
+	getFile  func() r66utils.ReadWriterAt
+	transCtx *model.TransferContext
+	config   *config.R66ProtoConfig
+	size     int64
 }
 
 func (h *clientAuthHandler) ValidAuth(auth *r66.Authent) (req r66.RequestHandler, err error) {
@@ -45,17 +45,17 @@ type clientRequestHandler struct {
 }
 
 func (h *clientRequestHandler) ValidRequest(r *r66.Request) (r66.TransferHandler, error) {
-	curBlock := uint32(h.info.Transfer.Progress / uint64(r.Block))
+	curBlock := uint32(h.transCtx.Transfer.Progress / uint64(r.Block))
 	if r.Rank < curBlock {
 		curBlock = r.Rank
 	}
 	r.Rank = curBlock
-	if h.info.Transfer.Step <= types.StepData {
-		h.info.Transfer.Progress = uint64(curBlock) * uint64(r.Block)
+	if h.transCtx.Transfer.Step <= types.StepData {
+		h.transCtx.Transfer.Progress = uint64(curBlock) * uint64(r.Block)
 	}
 
 	h.clientAuthHandler.size = -1
-	if !h.info.Rule.IsSend {
+	if !h.transCtx.Rule.IsSend {
 		h.clientAuthHandler.size = r.FileSize
 	}
 
@@ -71,20 +71,20 @@ func (h *clientTransferHandler) GetStream() (r66utils.ReadWriterAt, error) {
 }
 
 func (h *clientTransferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
-	if h.info.Transfer.Step > types.StepData {
+	if h.transCtx.Transfer.Step > types.StepData {
 		return nil
 	}
 
-	if h.info.Rule.IsSend {
+	if h.transCtx.Rule.IsSend {
 		if !h.config.NoFinalHash {
-			hash, err := makeHash(h.info.Transfer.TrueFilepath)
+			hash, err := makeHash(h.transCtx.Transfer.TrueFilepath)
 			if err != nil {
 				return &r66.Error{Code: r66.FinalOp, Detail: "failed to calculate file hash"}
 			}
 			end.Hash = hash
 		}
 	} else {
-		stat, err := os.Stat(utils.DenormalizePath(h.info.Transfer.TrueFilepath))
+		stat, err := os.Stat(utils.DenormalizePath(h.transCtx.Transfer.TrueFilepath))
 		if err != nil {
 			return &r66.Error{
 				Code:   r66.Internal,
@@ -100,7 +100,7 @@ func (h *clientTransferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 		}
 
 		if !h.config.NoFinalHash {
-			if err := checkHash(h.info.Transfer.TrueFilepath, end.Hash); err != nil {
+			if err := checkHash(h.transCtx.Transfer.TrueFilepath, end.Hash); err != nil {
 				return &r66.Error{Code: r66.FinalOp, Detail: err.Error()}
 			}
 		}
@@ -115,7 +115,7 @@ func (h *clientTransferHandler) ValidEndRequest() error   { return nil }
 func (h *clientTransferHandler) RunErrorTask(error) error { return nil }
 
 func (h *clientTransferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
-	if h.info.Transfer.Step >= types.StepData {
+	if h.transCtx.Transfer.Step >= types.StepData {
 		return &r66.Error{
 			Code:   r66.IncorrectCommand,
 			Detail: "cannot update transfer info after data transfer started"}
@@ -123,23 +123,23 @@ func (h *clientTransferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
 
 	if info.Filename != "" {
 		filename := path.Base(info.Filename)
-		newPath := path.Join(path.Dir(h.info.Transfer.TrueFilepath), filename)
+		newPath := path.Join(path.Dir(h.transCtx.Transfer.TrueFilepath), filename)
 
-		if h.info.Rule.IsSend {
-			if err := os.Rename(h.info.Transfer.TrueFilepath, newPath); err != nil {
+		if h.transCtx.Rule.IsSend {
+			if err := os.Rename(h.transCtx.Transfer.TrueFilepath, newPath); err != nil {
 				return &r66.Error{
 					Code:   r66.FileNotAllowed,
 					Detail: "failed to rename file",
 				}
 			}
 
-			h.info.Transfer.TrueFilepath = newPath
-			h.info.Transfer.SourceFile = filename
-			h.info.Transfer.DestFile = filename
+			h.transCtx.Transfer.TrueFilepath = newPath
+			h.transCtx.Transfer.SourceFile = filename
+			h.transCtx.Transfer.DestFile = filename
 		} else {
-			h.info.Transfer.TrueFilepath = newPath
-			h.info.Transfer.SourceFile = filename
-			h.info.Transfer.DestFile = filename
+			h.transCtx.Transfer.TrueFilepath = newPath
+			h.transCtx.Transfer.SourceFile = filename
+			h.transCtx.Transfer.DestFile = filename
 		}
 	}
 

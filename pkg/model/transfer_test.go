@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
@@ -196,6 +198,8 @@ func TestTransferBeforeWrite(t *testing.T) {
 }
 
 func TestTransferToHistory(t *testing.T) {
+	logger := log.NewLogger("test_to_history")
+
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
@@ -230,22 +234,21 @@ func TestTransferToHistory(t *testing.T) {
 				AccountID:  account.ID,
 				LocalPath:  "/test/local/path",
 				RemotePath: "/test/remote/path",
-				Start:      time.Now(),
-				Status:     StatusDone,
+				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:     StatusPlanned,
 				Owner:      database.Owner,
 			}
+			So(db.Insert(&trans).Run(), ShouldBeNil)
 
 			Convey("When calling the `ToHistory` method", func() {
-				stop := time.Now()
-				var hist *TransferHistory
-				So(db.Transaction(func(ses *database.Session) database.Error {
-					var err database.Error
-					hist, err = trans.ToHistory(ses, stop)
-					return err
-				}), ShouldBeNil)
+				trans.Status = StatusDone
+				So(trans.ToHistory(db, logger), ShouldBeNil)
 
-				Convey("Then it should return an equivalent `TransferHistory` entry", func() {
-					expected := &TransferHistory{
+				Convey("Then it should have inserted an equivalent `HistoryEntry` entry", func() {
+					var hist HistoryEntry
+					So(db.Get(&hist, "id=?", trans.ID).Run(), ShouldBeNil)
+
+					expected := HistoryEntry{
 						ID:         trans.ID,
 						Owner:      trans.Owner,
 						IsServer:   false,
@@ -257,61 +260,64 @@ func TestTransferToHistory(t *testing.T) {
 						RemotePath: trans.RemotePath,
 						Rule:       rule.Name,
 						Start:      trans.Start,
-						Stop:       stop,
+						Stop:       hist.Stop,
 						Status:     trans.Status,
 					}
 
 					So(hist, ShouldResemble, expected)
 				})
 
-				type statusTestCase struct {
-					status          TransferStatus
-					expectedSuccess bool
-				}
-				statusesTestCases := []statusTestCase{
-					{StatusPlanned, false},
-					{StatusRunning, false},
-					{StatusDone, true},
-					{StatusError, false},
-					{StatusCancelled, true},
-					{"toto", false},
-				}
-
-				for _, tc := range statusesTestCases {
-					Convey(fmt.Sprintf("Given the status is set to '%s'", tc.status), func() {
-						trans.Status = tc.status
-
-						Convey("When calling the `ToHistory` method", func() {
-							var h *TransferHistory
-							err := db.Transaction(func(ses *database.Session) database.Error {
-								var err database.Error
-								h, err = trans.ToHistory(ses, stop)
-								return err
-							})
-
-							if tc.expectedSuccess {
-								Convey("Then it should not return any error", func() {
-									So(err, ShouldBeNil)
-								})
-								Convey("Then it should return a History object", func() {
-									So(h, ShouldNotBeNil)
-								})
-							} else {
-								Convey("Then it should return an error", func() {
-									expectedError := fmt.Sprintf(
-										"a transfer cannot be recorded in history with status '%s'",
-										tc.status,
-									)
-									So(err, ShouldBeError, expectedError)
-								})
-								Convey("Then it should not return a History object", func() {
-									So(h, ShouldBeNil)
-								})
-							}
-						})
-					})
-				}
+				Convey("Then it should have removed the old transfer entry", func() {
+					var results Transfers
+					So(db.Select(&results).Run(), ShouldBeNil)
+					So(results, ShouldBeEmpty)
+				})
 			})
+
+			type statusTestCase struct {
+				status          TransferStatus
+				expectedSuccess bool
+			}
+			statusesTestCases := []statusTestCase{
+				{StatusPlanned, false},
+				{StatusRunning, false},
+				{StatusDone, true},
+				{StatusError, false},
+				{StatusCancelled, true},
+				{"toto", false},
+			}
+
+			for _, tc := range statusesTestCases {
+				Convey(fmt.Sprintf("Given the status is set to '%s'", tc.status), func() {
+					trans.Status = tc.status
+
+					Convey("When calling the `ToHistory` method", func() {
+						err := trans.ToHistory(db, logger)
+						var hist HistoryEntries
+						So(db.Select(&hist).Run(), ShouldBeNil)
+
+						if tc.expectedSuccess {
+							Convey("Then it should not return any error", func() {
+								So(err, ShouldBeNil)
+							})
+							Convey("Then it should have inserted a HistoryEntry object", func() {
+								So(hist, ShouldNotBeEmpty)
+							})
+						} else {
+							Convey("Then it should return an error", func() {
+								expectedError := fmt.Sprintf(
+									"a transfer cannot be recorded in history with status '%s'",
+									tc.status,
+								)
+								So(err, ShouldBeError, expectedError)
+							})
+							Convey("Then it should NOT have inserted a HistoryEntry object", func() {
+								So(hist, ShouldBeEmpty)
+							})
+						}
+					})
+				})
+			}
 		})
 	})
 }

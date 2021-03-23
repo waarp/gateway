@@ -1,3 +1,5 @@
+//+build old
+
 package sftp
 
 import (
@@ -22,131 +24,10 @@ func init() {
 	clientTestPort = uint16(listener.Addr().(*net.TCPAddr).Port)
 }
 
-func TestConnect(t *testing.T) {
-	Convey("Given a SFTP client", t, func() {
-		client := &Client{}
-
-		Convey("Given a valid address", func() {
-			client.Info = model.TransferContext{
-				Agent: &model.RemoteAgent{
-					Address: fmt.Sprintf("localhost:%d", clientTestPort),
-				},
-			}
-
-			Convey("When calling the `Connect` method", func() {
-				err := client.Connect()
-
-				Convey("Then it should NOT return an error", func() {
-					So(err, ShouldBeNil)
-
-					Convey("Then the connection should be open", func() {
-						So(client.conn, ShouldNotBeNil)
-						So(client.conn.Close(), ShouldBeNil)
-					})
-				})
-			})
-		})
-
-		Convey("Given an incorrect address", func() {
-			client.Info = model.TransferContext{
-				Agent: &model.RemoteAgent{
-					Address: fmt.Sprintf("255.255.255.255:%d", clientTestPort),
-				},
-			}
-
-			Convey("When calling the `Connect` method", func() {
-				err := client.Connect()
-
-				Convey("Then it should return an error", func() {
-					te, ok := err.(types.TransferError)
-					So(ok, ShouldBeTrue)
-					So(te.Code, ShouldEqual, types.TeConnection)
-
-					Convey("Then the connection should NOT be open", func() {
-						So(client.conn, ShouldBeNil)
-					})
-				})
-			})
-		})
-	})
-}
-
-func TestAuthenticate(t *testing.T) {
-	Convey("Given a SFTP client", t, func() {
-		client := &Client{
-			conf: &config.SftpProtoConfig{},
-			Info: model.TransferContext{
-				Agent: &model.RemoteAgent{
-					Address: fmt.Sprintf("localhost:%d", clientTestPort),
-				},
-			},
-		}
-		So(client.Connect(), ShouldBeNil)
-		Reset(func() { _ = client.conn.Close() })
-
-		Convey("Given a valid SFTP configuration", func() {
-			client.Info.Account = &model.RemoteAccount{
-				Login:    testLogin,
-				Password: []byte("testPassword"),
-			}
-			client.Info.ServerCerts = []model.Cert{{
-				PublicKey: testPBK,
-			}}
-			client.Info.ClientCerts = []model.Cert{{
-				PrivateKey: []byte(rsaPK),
-			}}
-
-			err := client.Authenticate()
-
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
-
-				Convey("Then the SSH tunnel should be opened", func() {
-					So(client.client, ShouldNotBeNil)
-					So(client.client.Close(), ShouldBeNil)
-				})
-			})
-		})
-
-		Convey("Given an incorrect SFTP configuration", func() {
-			client.Info.Account = &model.RemoteAccount{
-				Login:    testLogin,
-				Password: []byte("tutu"),
-			}
-			client.Info.ServerCerts = []model.Cert{{
-				PublicKey: testPBK,
-			}}
-
-			err := client.Authenticate()
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldNotBeNil)
-
-				Convey("Then the SSH tunnel NOT should be opened", func() {
-					So(client.client, ShouldBeNil)
-				})
-			})
-		})
-	})
-}
-
 func TestRequest(t *testing.T) {
 	Convey("Given a SFTP client", t, func() {
-		client := &Client{
-			conf: &config.SftpProtoConfig{},
-			Info: model.TransferContext{
-				Agent: &model.RemoteAgent{
-					Address: fmt.Sprintf("localhost:%d", clientTestPort),
-				},
-				Account: &model.RemoteAccount{
-					Login:    testLogin,
-					Password: []byte(testPassword),
-				},
-				ServerCerts: []model.Cert{{
-					PublicKey: testPBK,
-				}},
-			},
-		}
+
+		client := NewClient()
 		So(client.Connect(), ShouldBeNil)
 		defer func() { _ = client.conn.Close() }()
 
@@ -177,7 +58,7 @@ func TestRequest(t *testing.T) {
 
 		Convey("Given a valid in file transfer", func() {
 			client.Info.Transfer = &model.Transfer{
-				SourceFile: "client.go",
+				SourceFile: "protocol_handler.go",
 			}
 			client.Info.Rule = &model.Rule{
 				IsSend: false,
@@ -219,9 +100,9 @@ func TestRequest(t *testing.T) {
 
 func TestData(t *testing.T) {
 	Convey("Given a SFTP client", t, func() {
-		client := &Client{
+		client := &client{
 			conf: &config.SftpProtoConfig{},
-			Info: model.TransferContext{
+			Info: model.OutTransferInfo{
 				Agent: &model.RemoteAgent{
 					Address: fmt.Sprintf("localhost:%d", clientTestPort),
 				},
@@ -238,7 +119,7 @@ func TestData(t *testing.T) {
 		Reset(func() { _ = client.conn.Close() })
 
 		srcFile := "client_test.src"
-		content := []byte("Client test transfer file content")
+		content := []byte("client test transfer file content")
 		So(ioutil.WriteFile(srcFile, content, 0600), ShouldBeNil)
 		Reset(func() { _ = os.Remove(client.Info.Transfer.SourceFile) })
 

@@ -119,3 +119,7 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 
 	return db
 }
+
+func SimulateError(c convey.C, db *DB) {
+	c.So(db.engine.Close(), convey.ShouldBeNil)
+}

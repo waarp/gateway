@@ -13,22 +13,22 @@ type replacer func(*Runner) (string, error)
 
 var replacers = map[string]replacer{
 	"#TRUEFULLPATH#": func(r *Runner) (string, error) {
-		return r.info.Transfer.LocalPath, nil
+		return r.transCtx.Transfer.LocalPath, nil
 	},
 	"#TRUEFILENAME#": func(r *Runner) (string, error) {
-		return path.Base(r.info.Transfer.LocalPath), nil
+		return path.Base(r.transCtx.Transfer.LocalPath), nil
 	},
 	"#ORIGINALFULLPATH#": func(r *Runner) (string, error) {
-		if r.info.Rule.IsSend {
-			return utils.ToOSPath(r.info.Transfer.LocalPath), nil
+		if r.transCtx.Rule.IsSend {
+			return utils.ToOSPath(r.transCtx.Transfer.LocalPath), nil
 		}
-		return r.info.Transfer.RemotePath, nil
+		return r.transCtx.Transfer.RemotePath, nil
 	},
 	"#ORIGINALFILENAME#": func(r *Runner) (string, error) {
-		if r.info.Rule.IsSend {
-			return path.Base(r.info.Transfer.LocalPath), nil
+		if r.transCtx.Rule.IsSend {
+			return path.Base(r.transCtx.Transfer.LocalPath), nil
 		}
-		return path.Base(r.info.Transfer.RemotePath), nil
+		return path.Base(r.transCtx.Transfer.RemotePath), nil
 	},
 	"#FILESIZE#": func(r *Runner) (string, error) {
 		// NOT IMPLEMENTED
@@ -55,7 +55,7 @@ var replacers = map[string]replacer{
 		return "", nil
 	},
 	"#RULE#": func(r *Runner) (string, error) {
-		return r.info.Rule.Name, nil
+		return r.transCtx.Rule.Name, nil
 	},
 	"#DATE#": func(r *Runner) (string, error) {
 		t := time.Now()
@@ -66,15 +66,15 @@ var replacers = map[string]replacer{
 		return t.Format("030405"), nil
 	},
 	"#REMOTEHOST#": func(r *Runner) (string, error) {
-		if r.info.Transfer.IsServer {
+		if r.transCtx.Transfer.IsServer {
 			account := &model.LocalAccount{}
-			if err := r.db.Get(account, "id=?", r.info.Transfer.AccountID).Run(); err != nil {
+			if err := r.db.Get(account, "id=?", r.transCtx.Transfer.AccountID).Run(); err != nil {
 				return "", err
 			}
 			return account.Login, nil
 		}
 		agent := &model.RemoteAgent{}
-		if err := r.db.Get(agent, "id=?", r.info.Transfer.AgentID).Run(); err != nil {
+		if err := r.db.Get(agent, "id=?", r.transCtx.Transfer.AgentID).Run(); err != nil {
 			return "", err
 		}
 		return agent.Name, nil
@@ -84,15 +84,15 @@ var replacers = map[string]replacer{
 		return "", nil
 	},
 	"#LOCALHOST#": func(r *Runner) (string, error) {
-		if r.info.Transfer.IsServer {
+		if r.transCtx.Transfer.IsServer {
 			agent := &model.LocalAgent{}
-			if err := r.db.Get(agent, "id=?", r.info.Transfer.AgentID).Run(); err != nil {
+			if err := r.db.Get(agent, "id=?", r.transCtx.Transfer.AgentID).Run(); err != nil {
 				return "", err
 			}
 			return agent.Name, nil
 		}
 		account := &model.RemoteAccount{}
-		if err := r.db.Get(account, "id=?", r.info.Transfer.AccountID).Run(); err != nil {
+		if err := r.db.Get(account, "id=?", r.transCtx.Transfer.AccountID).Run(); err != nil {
 			return "", err
 		}
 		return account.Login, nil
@@ -102,7 +102,7 @@ var replacers = map[string]replacer{
 		return "", nil
 	},
 	"#TRANFERID#": func(r *Runner) (string, error) {
-		return fmt.Sprint(r.info.Transfer.ID), nil
+		return fmt.Sprint(r.transCtx.Transfer.ID), nil
 	},
 	"#REQUESTERHOST#": func(r *Runner) (string, error) {
 		client, err := getClient(r)
@@ -122,7 +122,7 @@ var replacers = map[string]replacer{
 		if err != nil {
 			return "", nil
 		}
-		return fmt.Sprintf("%d_%s_%s", r.info.Transfer.ID, client, server), nil
+		return fmt.Sprintf("%d_%s_%s", r.transCtx.Transfer.ID, client, server), nil
 	},
 	"#RANKTRANSFER#": func(r *Runner) (string, error) {
 		return "0", nil
@@ -131,13 +131,13 @@ var replacers = map[string]replacer{
 		return "1", nil
 	},
 	"#ERRORMSG#": func(r *Runner) (string, error) {
-		return r.info.Transfer.Error.Details, nil
+		return r.transCtx.Transfer.Error.Details, nil
 	},
 	"#ERRORCODE#": func(r *Runner) (string, error) {
-		return string(r.info.Transfer.Error.Code.R66Code()), nil
+		return string(r.transCtx.Transfer.Error.Code.R66Code()), nil
 	},
 	"#ERRORSTRCODE#": func(r *Runner) (string, error) {
-		return r.info.Transfer.Error.Details, nil
+		return r.transCtx.Transfer.Error.Details, nil
 	},
 	"#NOWAIT#": func(r *Runner) (string, error) {
 		return "", nil
@@ -148,30 +148,30 @@ var replacers = map[string]replacer{
 }
 
 func getClient(r *Runner) (string, error) {
-	if r.info.Transfer.IsServer {
+	if r.transCtx.Transfer.IsServer {
 		account := &model.LocalAccount{}
-		if err := r.db.Get(account, "id=?", r.info.Transfer.AccountID).Run(); err != nil {
+		if err := r.db.Get(account, "id=?", r.transCtx.Transfer.AccountID).Run(); err != nil {
 			return "", err
 		}
 		return account.Login, nil
 	}
 	account := &model.RemoteAccount{}
-	if err := r.db.Get(account, "id=?", r.info.Transfer.AccountID).Run(); err != nil {
+	if err := r.db.Get(account, "id=?", r.transCtx.Transfer.AccountID).Run(); err != nil {
 		return "", err
 	}
 	return account.Login, nil
 }
 
 func getServer(r *Runner) (string, error) {
-	if r.info.Transfer.IsServer {
+	if r.transCtx.Transfer.IsServer {
 		agent := &model.LocalAgent{}
-		if err := r.db.Get(agent, "id=?", r.info.Transfer.AgentID).Run(); err != nil {
+		if err := r.db.Get(agent, "id=?", r.transCtx.Transfer.AgentID).Run(); err != nil {
 			return "", err
 		}
 		return agent.Name, nil
 	}
 	agent := &model.RemoteAgent{}
-	if err := r.db.Get(agent, "id=?", r.info.Transfer.AgentID).Run(); err != nil {
+	if err := r.db.Get(agent, "id=?", r.transCtx.Transfer.AgentID).Run(); err != nil {
 		return "", err
 	}
 	return agent.Name, nil

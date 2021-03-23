@@ -44,21 +44,19 @@ func getNewFileName(output string) string {
 
 // Run executes the task by executing an external program with the given parameters.
 func (e *execOutputTask) Run(params map[string]string, _ *database.DB,
-	info *model.TransferContext, parent context.Context) (string, error) {
+	transCtx *model.TransferContext, parent context.Context) (string, error) {
 
 	script, args, delay, err := parseExecArgs(params)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
 
-	var ctx context.Context
+	ctx := parent
 	var cancel context.CancelFunc
 	if delay != 0 {
 		ctx, cancel = context.WithTimeout(parent, delay)
-	} else {
-		ctx, cancel = context.WithCancel(parent)
+		defer cancel()
 	}
-	defer cancel()
 
 	cmd := getCommand(ctx, script, args)
 	in, out, err := os.Pipe()
@@ -80,9 +78,9 @@ func (e *execOutputTask) Run(params map[string]string, _ *database.DB,
 
 	if cmdErr != nil {
 		if newPath := getNewFileName(string(msg)); newPath != "" {
-			info.Transfer.LocalPath = utils.ToOSPath(newPath)
-			info.Transfer.RemotePath = utils.ToStandardPath(path.Dir(
-				info.Transfer.RemotePath), path.Base(info.Transfer.LocalPath))
+			transCtx.Transfer.LocalPath = utils.ToOSPath(newPath)
+			transCtx.Transfer.RemotePath = utils.ToStandardPath(path.Dir(
+				transCtx.Transfer.RemotePath), path.Base(transCtx.Transfer.LocalPath))
 		}
 
 		select {

@@ -31,10 +31,10 @@ func (*copyTask) Validate(args map[string]string) error {
 
 // Run copy the current file to the destination
 func (*copyTask) Run(args map[string]string, _ *database.DB,
-	info *model.TransferContext, _ context.Context) (string, error) {
+	transCtx *model.TransferContext, _ context.Context) (string, error) {
 	newDir := args["path"]
 
-	source := info.Transfer.LocalPath
+	source := transCtx.Transfer.LocalPath
 	dest := path.Join(newDir, filepath.Base(source))
 
 	if err := doCopy(dest, source); err != nil {

@@ -13,8 +13,8 @@ import (
 )
 
 func TestHistoryTableName(t *testing.T) {
-	Convey("Given a `TransferHistory` instance", t, func() {
-		hist := &TransferHistory{}
+	Convey("Given a `HistoryEntry` instance", t, func() {
+		hist := &HistoryEntry{}
 
 		Convey("When calling the 'TableName' method", func() {
 			name := hist.TableName()
@@ -31,7 +31,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a new history entry", func() {
-			hist := &TransferHistory{
+			hist := &HistoryEntry{
 				ID:         1,
 				Rule:       "rule",
 				IsServer:   true,
@@ -148,7 +148,7 @@ type statusTestCase struct {
 func testTransferStatus(tc statusTestCase, target database.WriteHook, db *database.DB) {
 	Convey(fmt.Sprintf("Given the status is set to '%s'", tc.status), func() {
 		var typeName string
-		if t, ok := target.(*TransferHistory); ok {
+		if t, ok := target.(*HistoryEntry); ok {
 			t.Status = tc.status
 			typeName = "transfer history"
 		}
@@ -201,7 +201,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			history := &TransferHistory{
+			history := &HistoryEntry{
 				ID:               1,
 				Owner:            database.Owner,
 				RemoteTransferID: "2",
@@ -266,7 +266,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			history := &TransferHistory{
+			history := &HistoryEntry{
 				ID:               1,
 				Owner:            database.Owner,
 				RemoteTransferID: "2",

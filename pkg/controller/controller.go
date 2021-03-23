@@ -4,13 +4,11 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -81,46 +79,25 @@ func (c *Controller) startNewTransfers() {
 	var plannedTrans model.Transfers
 	query := c.DB.Select(&plannedTrans).Where("owner=? AND status=? AND "+
 		"is_server=? AND start<?", database.Owner, types.StatusPlanned, false,
-		time.Now().UTC().Truncate(time.Microsecond).Format(time.RFC3339Nano))
-	lim := pipeline.TransferOutCount.GetLimit()
-	if lim > 0 {
-		query.Limit(int(lim-pipeline.TransferOutCount.Get()), 0)
-	}
+		time.Now().UTC().Format(time.RFC3339Nano)).
+		Limit(int(pipeline.TransferOutCount.GetAvailable()), 0)
 
 	if err := query.Run(); err != nil {
 		c.logger.Errorf("Failed to access database: %s", err.Error())
 		return
 	}
 
-	for _, trans := range plannedTrans {
-		exe, err := c.getExecutor(trans)
+	for i := range plannedTrans {
+		pip, err := pipeline.NewClientPipeline(c.DB, &c.Conf.Paths, &plannedTrans[i])
 		if err != nil {
-			if errors.Is(err, pipeline.ErrLimitReached) {
-				break
-			}
 			continue
 		}
-
 		c.wg.Add(1)
 		go func() {
-			defer c.wg.Done()
-			exe.Run()
+			pip.Run()
+			c.wg.Done()
 		}()
 	}
-}
-
-func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, error) {
-	paths := pipeline.Paths{PathsConfig: c.Conf.Paths}
-
-	stream, err := pipeline.NewTransferStream(c.ctx, c.logger, c.DB, paths, &trans)
-	if err != nil {
-		c.logger.Errorf("Failed to create transfer stream: %s", err.Error())
-		return nil, err
-	}
-
-	exe := &executor.Executor{TransferStream: stream, R66Home: c.Conf.Controller.R66Home}
-
-	return exe, nil
 }
 
 // Start starts the transfer controller service.

@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -71,12 +73,12 @@ func TestSFTPList(t *testing.T) {
 			}
 			So(db.Insert(&cert).Run(), ShouldBeNil)
 
-			serverConfig, err := getSSHServerConfig(db, []model.Cert{cert}, &protoConfig, agent)
+			serverConfig, err := internal.GetSSHServerConfig(db, []model.Cert{cert}, &protoConfig, agent)
 			So(err, ShouldBeNil)
 
 			ctx, cancel := context.WithCancel(context.Background())
 
-			sshList := &sshListener{
+			sshList := &SSHListener{
 				DB:          db,
 				Logger:      logger,
 				Agent:       agent,

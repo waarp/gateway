@@ -1,3 +1,5 @@
+//+build todo
+
 package sftp
 
 import (
@@ -12,6 +14,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
@@ -181,12 +185,12 @@ func TestSSHServer(t *testing.T) {
 			So(db.Insert(receive).Run(), ShouldBeNil)
 			So(db.Insert(send).Run(), ShouldBeNil)
 
-			serverConfig, err := getSSHServerConfig(db, []model.Cert{cert}, &protoConfig, agent)
+			serverConfig, err := internal.GetSSHServerConfig(db, []model.Cert{cert}, &protoConfig, agent)
 			So(err, ShouldBeNil)
 
 			ctx, cancel := context.WithCancel(context.Background())
 
-			sshList := &sshListener{
+			sshList := &SSHListener{
 				DB:          db,
 				Logger:      logger,
 				Agent:       agent,
@@ -250,7 +254,7 @@ func TestSSHServer(t *testing.T) {
 									IsServer:  true,
 									AccountID: user.ID,
 									AgentID:   agent.ID,
-									TrueFilepath: utils.NormalizePath(
+									TrueFilepath: utils.ToStandardPath(
 										filepath.Join(root, receive.WorkPath,
 											"test_in_shutdown.dst.tmp")),
 									SourceFile: "test_in_shutdown.dst",
@@ -298,7 +302,7 @@ func TestSSHServer(t *testing.T) {
 									IsServer:  true,
 									AccountID: user.ID,
 									AgentID:   agent.ID,
-									TrueFilepath: utils.NormalizePath(
+									TrueFilepath: utils.ToStandardPath(
 										filepath.Join(root, send.OutPath,
 											"test_out_shutdown.src")),
 									SourceFile: "test_out_shutdown.src",
@@ -378,7 +382,7 @@ func TestSSHServer(t *testing.T) {
 							})
 
 							Convey("Then the transfer should appear in the history", func(c C) {
-								hist := &model.TransferHistory{}
+								hist := &model.HistoryEntry{}
 								So(db.Get(hist, "is_server=? AND is_send=? AND "+
 									"account=? AND agent=? AND protocol=? AND "+
 									"source_filename=? AND dest_filename=? AND "+
@@ -438,7 +442,7 @@ func TestSSHServer(t *testing.T) {
 							Convey("Then the transfers should appear in the history", func() {
 								So(client.Close(), ShouldBeNil)
 
-								hist1 := &model.TransferHistory{}
+								hist1 := &model.HistoryEntry{}
 								So(db.Get(hist1, "is_server=? AND is_send=? AND "+
 									"account=? AND agent=? AND protocol=? AND "+
 									"source_filename=? AND dest_filename=? AND "+
@@ -447,7 +451,7 @@ func TestSSHServer(t *testing.T) {
 									"test_in_1.dst", receive.Name, types.StatusDone).
 									Run(), ShouldBeNil)
 
-								hist2 := &model.TransferHistory{}
+								hist2 := &model.HistoryEntry{}
 								So(db.Get(hist2, "is_server=? AND is_send=? AND "+
 									"account=? AND agent=? AND protocol=? AND "+
 									"source_filename=? AND dest_filename=? AND "+
@@ -486,7 +490,7 @@ func TestSSHServer(t *testing.T) {
 										IsServer:         true,
 										AccountID:        user.ID,
 										AgentID:          agent.ID,
-										TrueFilepath: utils.NormalizePath(filepath.Join(
+										TrueFilepath: utils.ToStandardPath(filepath.Join(
 											root, receive.WorkPath, "test_in_fail.dst.tmp")),
 										SourceFile: "test_in_fail.dst",
 										DestFile:   "test_in_fail.dst",
@@ -555,7 +559,7 @@ func TestSSHServer(t *testing.T) {
 							})
 
 							Convey("Then the transfer should appear in the history", func() {
-								hist := &model.TransferHistory{}
+								hist := &model.HistoryEntry{}
 								So(db.Get(hist, "is_server=? AND is_send=? AND "+
 									"account=? AND agent=? AND protocol=? AND "+
 									"source_filename=? AND dest_filename=? AND "+
@@ -594,7 +598,7 @@ func TestSSHServer(t *testing.T) {
 										IsServer:         true,
 										AccountID:        user.ID,
 										AgentID:          agent.ID,
-										TrueFilepath: utils.NormalizePath(filepath.Join(
+										TrueFilepath: utils.ToStandardPath(filepath.Join(
 											root, send.OutPath, "test_out.src")),
 										SourceFile: "test_out.src",
 										DestFile:   "test_out.src",

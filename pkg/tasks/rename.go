@@ -29,16 +29,16 @@ func (*renameTask) Validate(args map[string]string) error {
 
 // Run executes the task by renaming the transfer file
 func (*renameTask) Run(args map[string]string, _ *database.DB,
-	info *model.TransferContext, _ context.Context) (string, error) {
+	transCtx *model.TransferContext, _ context.Context) (string, error) {
 	newPath := args["path"]
 
 	if _, err := os.Stat(utils.ToOSPath(newPath)); err != nil {
 		return "", normalizeFileError("change transfer target file to", err)
 	}
 
-	info.Transfer.LocalPath = utils.ToStandardPath(newPath)
-	info.Transfer.RemotePath = path.Join(path.Dir(info.Transfer.RemotePath),
-		path.Base(info.Transfer.LocalPath))
+	transCtx.Transfer.LocalPath = utils.ToStandardPath(newPath)
+	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
+		path.Base(transCtx.Transfer.LocalPath))
 
 	return "", nil
 }

@@ -29,15 +29,15 @@ func (*moveRenameTask) Validate(args map[string]string) error {
 // Run move and rename the current file to the destination and
 // modify the transfer model to reflect the file change.
 func (*moveRenameTask) Run(args map[string]string, _ *database.DB,
-	info *model.TransferContext, _ context.Context) (string, error) {
+	transCtx *model.TransferContext, _ context.Context) (string, error) {
 	newPath := args["path"]
-	oldPath := info.Transfer.LocalPath
+	oldPath := transCtx.Transfer.LocalPath
 
 	if err := MoveFile(oldPath, newPath); err != nil {
 		return err.Error(), err
 	}
-	info.Transfer.LocalPath = utils.ToStandardPath(newPath)
-	info.Transfer.RemotePath = path.Join(path.Dir(info.Transfer.RemotePath),
-		path.Base(info.Transfer.LocalPath))
+	transCtx.Transfer.LocalPath = utils.ToStandardPath(newPath)
+	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
+		path.Base(transCtx.Transfer.LocalPath))
 	return "", nil
 }

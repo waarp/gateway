@@ -32,20 +32,18 @@ func (e *execMoveTask) Validate(params map[string]string) error {
 
 // Run executes the task by executing an external program with the given parameters.
 func (e *execMoveTask) Run(params map[string]string, _ *database.DB,
-	info *model.TransferContext, parent context.Context) (string, error) {
+	transCtx *model.TransferContext, parent context.Context) (string, error) {
 	script, args, delay, err := parseExecArgs(params)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse task arguments: %s", err)
 	}
 
-	var ctx context.Context
+	ctx := parent
 	var cancel context.CancelFunc
 	if delay != 0 {
 		ctx, cancel = context.WithTimeout(parent, delay)
-	} else {
-		ctx, cancel = context.WithCancel(parent)
+		defer cancel()
 	}
-	defer cancel()
 
 	cmd := getCommand(ctx, script, args)
 	in, out, err := os.Pipe()
@@ -81,9 +79,9 @@ func (e *execMoveTask) Run(params map[string]string, _ *database.DB,
 		return "", fmt.Errorf("could not find moved file: %s", err)
 	}
 
-	info.Transfer.LocalPath = utils.ToStandardPath(newPath)
-	info.Transfer.RemotePath = path.Join(path.Dir(info.Transfer.RemotePath),
-		path.Base(info.Transfer.LocalPath))
+	transCtx.Transfer.LocalPath = utils.ToStandardPath(newPath)
+	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
+		path.Base(transCtx.Transfer.LocalPath))
 
 	return "", nil
 }

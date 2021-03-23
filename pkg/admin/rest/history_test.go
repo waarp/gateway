@@ -32,7 +32,7 @@ func TestGetHistory(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 transfer history", func() {
-			h := &model.TransferHistory{
+			h := &model.HistoryEntry{
 				ID:         1,
 				IsServer:   true,
 				IsSend:     false,
@@ -110,7 +110,7 @@ func TestListHistory(t *testing.T) {
 		expected := map[string][]OutHistory{}
 
 		Convey("Given a database with 4 transfer history", func() {
-			h1 := &model.TransferHistory{
+			h1 := &model.HistoryEntry{
 				ID:         1,
 				IsServer:   true,
 				IsSend:     false,
@@ -126,7 +126,7 @@ func TestListHistory(t *testing.T) {
 			}
 			So(db.Insert(h1).Run(), ShouldBeNil)
 
-			h2 := &model.TransferHistory{
+			h2 := &model.HistoryEntry{
 				ID:         2,
 				IsServer:   false,
 				IsSend:     false,
@@ -142,7 +142,7 @@ func TestListHistory(t *testing.T) {
 			}
 			So(db.Insert(h2).Run(), ShouldBeNil)
 
-			h3 := &model.TransferHistory{
+			h3 := &model.HistoryEntry{
 				ID:         3,
 				IsServer:   false,
 				IsSend:     true,
@@ -158,7 +158,7 @@ func TestListHistory(t *testing.T) {
 			}
 			So(db.Insert(h3).Run(), ShouldBeNil)
 
-			h4 := &model.TransferHistory{
+			h4 := &model.HistoryEntry{
 				ID:         4,
 				IsServer:   false,
 				IsSend:     true,
@@ -418,7 +418,7 @@ func TestRestartTransfer(t *testing.T) {
 			rule := model.Rule{Name: "rule", IsSend: true, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			h := &model.TransferHistory{
+			h := &model.HistoryEntry{
 				ID:         2,
 				IsServer:   false,
 				IsSend:     rule.IsSend,

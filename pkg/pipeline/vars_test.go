@@ -1,7 +1,6 @@
 package pipeline
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 )
@@ -9,11 +8,7 @@ import (
 func init() {
 	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
 
-	logConf := conf.LogConfig{
-		Level: "DEBUG",
-		LogTo: "stdout",
-	}
-	_ = log.InitBackend(logConf)
+	_ = log.InitBackend("DEBUG", "stdout", "")
 }
 
 type TestProtoConfig struct{}

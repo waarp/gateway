@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
+	"sync"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -17,39 +17,46 @@ import (
 // Runner provides a way to execute tasks
 // given a transfer context (rule, transfer)
 type Runner struct {
-	db     *database.DB
-	logger *log.Logger
-	info   *model.TransferContext
-	ctx    context.Context
+	db       *database.DB
+	logger   *log.Logger
+	transCtx *model.TransferContext
+	ctx      context.Context
+	Stop     context.CancelFunc
+	lock     sync.WaitGroup
 }
 
 // NewTaskRunner returns a new tasks.Runner using the given elements.
-func NewTaskRunner(db *database.DB, logger *log.Logger, info *model.TransferContext,
-	ctx context.Context) *Runner {
-	return &Runner{
-		db:     db,
-		logger: logger,
-		info:   info,
-		ctx:    ctx,
+func NewTaskRunner(db *database.DB, logger *log.Logger, transCtx *model.TransferContext) *Runner {
+	ctx, cancel := context.WithCancel(context.Background())
+	r := &Runner{
+		db:       db,
+		logger:   logger,
+		transCtx: transCtx,
+		ctx:      ctx,
 	}
+	r.Stop = func() {
+		cancel()
+		r.lock.Wait()
+	}
+	return r
 }
 
 // PreTasks executes the transfer's pre-tasks.
 func (r *Runner) PreTasks() error {
-	return r.runTasks(r.info.PreTasks)
+	return r.runTasks(r.transCtx.PreTasks, false)
 }
 
 // PostTasks executes the transfer's post-tasks.
 func (r *Runner) PostTasks() error {
-	return r.runTasks(r.info.PostTasks)
+	return r.runTasks(r.transCtx.PostTasks, false)
 }
 
 // ErrorTasks executes the transfer's error-tasks.
 func (r *Runner) ErrorTasks() error {
-	return r.runTasks(r.info.ErrTasks)
+	return r.runTasks(r.transCtx.ErrTasks, true)
 }
 
-func (r *Runner) runTask(task model.Task, taskInfo string) error {
+func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) error {
 	runner, ok := model.ValidTasks[task.Type]
 	if !ok {
 		logMsg := fmt.Sprintf("%s: unknown task", taskInfo)
@@ -68,21 +75,28 @@ func (r *Runner) runTask(task model.Task, taskInfo string) error {
 		return types.NewTransferError(types.TeExternalOperation, logMsg)
 	}
 
-	msg, err := runner.Run(args, nil, r.info, nil)
+	var msg string
+	if isErrTasks {
+		msg, err = runner.Run(args, r.db, r.transCtx, context.Background())
+	} else {
+		msg, err = runner.Run(args, r.db, r.transCtx, r.ctx)
+	}
+
 	if err != nil {
 		errMsg := fmt.Sprintf("%s: %s", taskInfo, err)
 		if _, ok := err.(*errWarning); !ok {
 			r.logger.Error(errMsg)
-			r.info.Transfer.Error = types.NewTransferError(types.TeExternalOperation, errMsg)
-			return types.NewTransferError(types.TeExternalOperation, fmt.Sprintf(
-				"%s-task failed", strings.ToLower(string(task.Chain))))
+			r.transCtx.Transfer.Error = types.NewTransferError(types.TeExternalOperation, errMsg)
+			return types.NewTransferError(types.TeExternalOperation, errMsg)
 		}
 
 		r.logger.Warning(errMsg)
-		r.info.Transfer.Error = types.NewTransferError(types.TeWarning, errMsg)
-		if dbErr := r.db.Update(r.info.Transfer).Cols("error_code", "error_details").Run(); dbErr != nil {
+		r.transCtx.Transfer.Error = types.NewTransferError(types.TeWarning, errMsg)
+		if dbErr := r.db.Update(r.transCtx.Transfer).Cols("error_code", "error_details").Run(); dbErr != nil {
 			r.logger.Errorf("Failed to update task status: %s", dbErr)
-			return dbErr
+			if !isErrTasks {
+				return types.NewTransferError(types.TeInternal, dbErr.Error())
+			}
 		}
 	} else if msg != "" {
 		r.logger.Debugf("%s: %s", taskInfo, msg)
@@ -90,29 +104,44 @@ func (r *Runner) runTask(task model.Task, taskInfo string) error {
 		r.logger.Debug(taskInfo)
 	}
 
-	r.info.Transfer.TaskNumber++
-	if err := r.db.Update(r.info.Transfer).Cols("task_number").Run(); err != nil {
-		r.logger.Warningf("Failed to update task number: %s", err.Error())
-		return err
+	r.transCtx.Transfer.TaskNumber++
+	if err := r.db.Update(r.transCtx.Transfer).Cols("task_number").Run(); err != nil {
+		r.logger.Errorf("Failed to update task number: %s", err.Error())
+		if !isErrTasks {
+			return types.NewTransferError(types.TeInternal, err.Error())
+		}
 	}
 	return nil
 }
 
 // runTasks execute sequentially the list of tasks given
 // according to the Runner context
-func (r *Runner) runTasks(tasks []model.Task) error {
-	for i := r.info.Transfer.TaskNumber; i < uint64(len(tasks)); i++ {
+func (r *Runner) runTasks(tasks []model.Task, isErrTasks bool) error {
+	r.lock.Add(1)
+	defer r.lock.Done()
+
+	for i := r.transCtx.Transfer.TaskNumber; i < uint64(len(tasks)); i++ {
 		task := tasks[i]
-		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, r.info.Rule.Name,
+		taskInfo := fmt.Sprintf("Task %s @ %s %s[%v]", task.Type, r.transCtx.Rule.Name,
 			task.Chain, task.Rank)
-		select {
-		case <-r.ctx.Done():
-			return &model.ShutdownError{}
-		default:
+		if !isErrTasks {
+			select {
+			case <-r.ctx.Done():
+				return r.ctx.Err()
+			default:
+			}
 		}
 
-		if err := r.runTask(task, taskInfo); err != nil {
+		if err := r.runTask(task, taskInfo, isErrTasks); err != nil {
 			return err
+		}
+	}
+
+	r.transCtx.Transfer.TaskNumber = 0
+	if err := r.db.Update(r.transCtx.Transfer).Cols("task_number").Run(); err != nil {
+		r.logger.Errorf("Failed to reset task number: %s", err.Error())
+		if !isErrTasks {
+			return types.NewTransferError(types.TeInternal, err.Error())
 		}
 	}
 

@@ -829,11 +829,11 @@ func TestCancelTransfer(t *testing.T) {
 						})
 
 						Convey("Then the transfer should have been updated", func() {
-							var history model.Histories
+							var history model.HistoryEntries
 							So(db.Select(&history).Run(), ShouldBeNil)
 							So(history, ShouldNotBeEmpty)
 
-							hist := model.TransferHistory{
+							hist := model.HistoryEntry{
 								ID:         trans.ID,
 								Owner:      trans.Owner,
 								IsServer:   trans.IsServer,

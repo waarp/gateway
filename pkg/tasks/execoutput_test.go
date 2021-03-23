@@ -88,7 +88,7 @@ func TestExecOutputRun(t *testing.T) {
 		scriptFile := filepath.Join(root, execOutputScriptFile)
 
 		exec := &execOutputTask{}
-		info := &model.TransferContext{
+		transCtx := &model.TransferContext{
 			Transfer: &model.Transfer{},
 			Rule:     &model.Rule{},
 		}
@@ -105,7 +105,7 @@ func TestExecOutputRun(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(args, nil, info, context.Background())
+					_, err := exec.Run(args, nil, transCtx, context.Background())
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -118,7 +118,7 @@ func TestExecOutputRun(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(args, nil, info, context.Background())
+					_, err := exec.Run(args, nil, transCtx, context.Background())
 
 					Convey("Then it should return a 'warning' error", func() {
 						So(err, ShouldHaveSameTypeAs, &errWarning{})
@@ -131,14 +131,14 @@ func TestExecOutputRun(t *testing.T) {
 					0700), ShouldBeNil)
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(args, nil, info, context.Background())
+					_, err := exec.Run(args, nil, transCtx, context.Background())
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err, ShouldNotHaveSameTypeAs, &errWarning{})
 
 						Convey("Then the transfer file should have changed", func() {
-							So(info.Transfer.LocalPath, ShouldEqual, "new_name.file")
+							So(transCtx.Transfer.LocalPath, ShouldEqual, "new_name.file")
 						})
 					})
 				})
@@ -151,7 +151,7 @@ func TestExecOutputRun(t *testing.T) {
 				args["delay"] = "100"
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(args, nil, info, context.Background())
+					_, err := exec.Run(args, nil, transCtx, context.Background())
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, "max execution delay expired")

@@ -52,7 +52,7 @@ func TestCopyTaskRun(t *testing.T) {
 		task := &copyTask{}
 		srcFile := filepath.Join(root, "test.src")
 
-		info := &model.TransferContext{Transfer: &model.Transfer{
+		transCtx := &model.TransferContext{Transfer: &model.Transfer{
 			LocalPath: utils.ToStandardPath(srcFile),
 		}}
 
@@ -63,7 +63,7 @@ func TestCopyTaskRun(t *testing.T) {
 			So(os.Remove(srcFile), ShouldBeNil)
 
 			Convey("When calling the run method", func() {
-				_, err := task.Run(args, nil, info, nil)
+				_, err := task.Run(args, nil, transCtx, nil)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)
@@ -81,7 +81,7 @@ func TestCopyTaskRun(t *testing.T) {
 			Convey("Given the target can be created", func() {
 
 				Convey("When the task is run", func() {
-					_, err := task.Run(args, nil, info, nil)
+					_, err := task.Run(args, nil, transCtx, nil)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -99,7 +99,7 @@ func TestCopyTaskRun(t *testing.T) {
 					[]byte("hello"), 0o600), ShouldBeNil)
 
 				Convey("When the task is run", func() {
-					_, err := task.Run(args, nil, info, nil)
+					_, err := task.Run(args, nil, transCtx, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)

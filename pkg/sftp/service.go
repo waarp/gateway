@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -19,7 +21,7 @@ type Service struct {
 	logger *log.Logger
 
 	state    service.State
-	listener *sshListener
+	listener *SSHListener
 }
 
 // NewService returns a new SFTP service instance with the given attributes.
@@ -45,7 +47,7 @@ func (s *Service) Start() error {
 			return err
 		}
 
-		sshConf, err1 := getSSHServerConfig(s.db, certs, &protoConfig, s.agent)
+		sshConf, err1 := internal.GetSSHServerConfig(s.db, certs, &protoConfig, s.agent)
 		if err1 != nil {
 			s.logger.Errorf("Failed to parse the SSH server configuration: %s", err1)
 			return err1
@@ -57,7 +59,7 @@ func (s *Service) Start() error {
 			return err2
 		}
 
-		s.listener = &sshListener{
+		s.listener = &SSHListener{
 			DB:          s.db,
 			Logger:      s.logger,
 			Agent:       s.agent,

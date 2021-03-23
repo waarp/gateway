@@ -68,14 +68,12 @@ func (e *execTask) Run(params map[string]string, _ *database.DB,
 		return "", fmt.Errorf("failed to parse task arguments: %s", err)
 	}
 
-	var ctx context.Context
+	ctx := parent
 	var cancel context.CancelFunc
 	if delay != 0 {
 		ctx, cancel = context.WithTimeout(parent, delay)
-	} else {
-		ctx, cancel = context.WithCancel(parent)
+		defer cancel()
 	}
-	defer cancel()
 
 	cmd := getCommand(ctx, path, args)
 

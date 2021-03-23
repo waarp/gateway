@@ -34,52 +34,52 @@ type TransferContext struct {
 // from the database, and returns it wrapped in a TransferInfo instance.
 // An error is returned a problem occurs while accessing the database.
 func NewOutTransferInfo(db *database.DB, trans *Transfer, paths *conf.PathsConfig) (*TransferContext, error) {
-	info := &TransferContext{
+	transCtx := &TransferContext{
 		Transfer: trans,
 		Paths:    paths,
 	}
 
-	if err := db.Get(info.Rule, "id=?", trans.RuleID).Run(); err != nil {
+	if err := db.Get(transCtx.Rule, "id=?", trans.RuleID).Run(); err != nil {
 		return nil, err
 	}
 
 	if trans.IsServer {
-		if err := db.Get(info.LocalAgent, "id=?", trans.AgentID).Run(); err != nil {
+		if err := db.Get(transCtx.LocalAgent, "id=?", trans.AgentID).Run(); err != nil {
 			return nil, err
 		}
-		if err := db.Get(info.LocalAccount, "id=?", trans.AccountID).Run(); err != nil {
+		if err := db.Get(transCtx.LocalAccount, "id=?", trans.AccountID).Run(); err != nil {
 			return nil, err
 		}
 
 		var err error
-		info.LocalAgentCerts, err = info.LocalAgent.GetCerts(db)
+		transCtx.LocalAgentCerts, err = transCtx.LocalAgent.GetCerts(db)
 		if err != nil {
 			return nil, err
 		}
-		info.LocalAccountCerts, err = info.LocalAccount.GetCerts(db)
+		transCtx.LocalAccountCerts, err = transCtx.LocalAccount.GetCerts(db)
 		if err != nil {
 			return nil, err
 		}
 
-		return info, nil
+		return transCtx, nil
 	}
 
-	if err := db.Get(info.RemoteAgent, "id=?", trans.AgentID).Run(); err != nil {
+	if err := db.Get(transCtx.RemoteAgent, "id=?", trans.AgentID).Run(); err != nil {
 		return nil, err
 	}
-	if err := db.Get(info.RemoteAccount, "id=?", trans.AccountID).Run(); err != nil {
+	if err := db.Get(transCtx.RemoteAccount, "id=?", trans.AccountID).Run(); err != nil {
 		return nil, err
 	}
 
 	var err error
-	info.RemoteAgentCerts, err = info.RemoteAgent.GetCerts(db)
+	transCtx.RemoteAgentCerts, err = transCtx.RemoteAgent.GetCerts(db)
 	if err != nil {
 		return nil, err
 	}
-	info.RemoteAccountCerts, err = info.RemoteAccount.GetCerts(db)
+	transCtx.RemoteAccountCerts, err = transCtx.RemoteAccount.GetCerts(db)
 	if err != nil {
 		return nil, err
 	}
 
-	return info, nil
+	return transCtx, nil
 }

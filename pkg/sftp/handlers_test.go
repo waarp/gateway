@@ -1,3 +1,5 @@
+//+build todo
+
 package sftp
 
 import (
@@ -68,7 +70,7 @@ func TestFileReader(t *testing.T) {
 				pathsConfig := conf.PathsConfig{GatewayHome: root}
 				paths := &pipeline.Paths{PathsConfig: pathsConfig}
 
-				handler := (&sshListener{
+				handler := (&SSHListener{
 					DB:          db,
 					Logger:      logger,
 					Agent:       agent,
@@ -173,7 +175,7 @@ func TestFileWriter(t *testing.T) {
 				pathsConfig := conf.PathsConfig{GatewayHome: root}
 				paths := &pipeline.Paths{PathsConfig: pathsConfig}
 
-				handler := (&sshListener{
+				handler := (&SSHListener{
 					DB:          db,
 					Logger:      logger,
 					Agent:       agent,

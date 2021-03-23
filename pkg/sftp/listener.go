@@ -8,6 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -17,10 +21,9 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 )
 
-type sshListener struct {
+type SSHListener struct {
 	DB          *database.DB
 	Logger      *log.Logger
 	Agent       *model.LocalAgent
@@ -33,10 +36,10 @@ type sshListener struct {
 	cancel context.CancelFunc
 	connWg sync.WaitGroup
 
-	handlerMaker func(ctx context.Context, accountID uint64) sftp.Handlers
+	handlerMaker func(ssh.Channel, *model.LocalAccount) sftp.Handlers
 }
 
-func (l *sshListener) listen() {
+func (l *SSHListener) listen() {
 	l.handlerMaker = l.makeHandlers
 	go func() {
 		for {
@@ -50,7 +53,7 @@ func (l *sshListener) listen() {
 	}()
 }
 
-func (l *sshListener) handleConnection(parent context.Context, nConn net.Conn) {
+func (l *SSHListener) handleConnection(parent context.Context, nConn net.Conn) {
 	l.connWg.Add(1)
 	ctx, cancel := context.WithCancel(parent)
 
@@ -78,21 +81,24 @@ func (l *sshListener) handleConnection(parent context.Context, nConn net.Conn) {
 
 		go ssh.DiscardRequests(reqs)
 
+		var acc model.LocalAccount
+		if err := l.DB.Get(&acc, "local_agent_id=? AND login=?", l.Agent.ID,
+			servConn.User()).Run(); err != nil {
+			l.Logger.Errorf("Failed to retrieve SFTP user: %s", err)
+			return
+		}
+
 		sesWg := &sync.WaitGroup{}
 		for newChannel := range channels {
-			accountID, err := getAccountID(l.DB, l.Agent.ID, servConn.User())
-			if err != nil {
-				l.Logger.Errorf("Failed to retrieve user: %s", err)
-				continue
-			}
-			l.handleSession(ctx, sesWg, accountID, newChannel)
+			l.handleSession(sesWg, &acc, newChannel)
 		}
 		sesWg.Wait()
 	}()
 }
 
-func (l *sshListener) handleSession(ctx context.Context, wg *sync.WaitGroup,
-	accountID uint64, newChannel ssh.NewChannel) {
+func (l *SSHListener) handleSession(wg *sync.WaitGroup, acc *model.LocalAccount,
+	newChannel ssh.NewChannel) {
+
 	wg.Add(1)
 	go func() {
 		if newChannel.ChannelType() != "session" {
@@ -106,9 +112,9 @@ func (l *sshListener) handleSession(ctx context.Context, wg *sync.WaitGroup,
 			l.Logger.Errorf("Failed to accept SFTP session: %s", err)
 			return
 		}
-		go acceptRequests(requests)
+		go internal.AcceptRequests(requests)
 
-		server := sftp.NewRequestServer(channel, l.handlerMaker(ctx, accountID))
+		server := sftp.NewRequestServer(channel, l.handlerMaker(channel, acc))
 		_ = server.Serve()
 		_ = server.Close()
 
@@ -116,108 +122,92 @@ func (l *sshListener) handleSession(ctx context.Context, wg *sync.WaitGroup,
 	}()
 }
 
-func (l *sshListener) makeHandlers(ctx context.Context, accountID uint64) sftp.Handlers {
-	paths := &pipeline.Paths{
-		PathsConfig: l.GWConf.Paths,
-		ServerRoot:  l.Agent.Root,
-		ServerIn:    l.Agent.InDir,
-		ServerOut:   l.Agent.OutDir,
-		ServerWork:  l.Agent.WorkDir,
-	}
-
+func (l *SSHListener) makeHandlers(ch ssh.Channel, acc *model.LocalAccount) sftp.Handlers {
 	return sftp.Handlers{
-		FileGet:  l.makeFileReader(ctx, accountID, paths),
-		FilePut:  l.makeFileWriter(ctx, accountID, paths),
+		FileGet:  l.makeFileReader(ch, acc),
+		FilePut:  l.makeFileWriter(ch, acc),
 		FileCmd:  makeFileCmder(),
-		FileList: l.makeFileLister(paths, accountID),
+		FileList: l.makeFileLister(acc),
 	}
 }
 
-func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
-	paths *pipeline.Paths) fileReaderFunc {
+func (l *SSHListener) makeFileReader(ch ssh.Channel, acc *model.LocalAccount) internal.ReaderAtFunc {
 	return func(r *sftp.Request) (io.ReaderAt, error) {
-		l.Logger.Info("GET request received")
+		l.Logger.Debug("GET request received")
 
 		// Get rule according to request filepath
-		rule, err := getRuleFromPath(l.DB, r, true)
+		rule, err := internal.GetRuleFromPath(l.DB, r, true)
 		if err != nil {
-			l.Logger.Error(err.Error())
-			return nil, err
-		}
-
-		acc := &model.LocalAccount{}
-		if err := l.DB.Get(acc, "id=?", accountID).Run(); err != nil {
-			l.Logger.Error(err.Error())
-			return nil, err
+			l.Logger.Errorf("Failed to retrieve transfer rule: %s", err)
+			return nil, errDatabase
 		}
 
 		// Create Transfer
-		trans := model.Transfer{
+		trans := &model.Transfer{
 			RuleID:     rule.ID,
 			IsServer:   true,
 			AgentID:    l.Agent.ID,
-			AccountID:  accountID,
-			SourceFile: path.Base(r.Filepath),
-			DestFile:   path.Base(r.Filepath),
+			AccountID:  acc.ID,
+			LocalPath:  path.Base(r.Filepath),
+			RemotePath: path.Base(r.Filepath),
 			Start:      time.Now(),
 			Status:     types.StatusRunning,
-			Step:       types.StepSetup,
+			Step:       types.StepNone,
 		}
 
 		l.Logger.Infof("Download of file '%s' requested by '%s' using rule '%s'",
-			trans.SourceFile, acc.Login, rule.Name)
+			trans.RemotePath, acc.Login, rule.Name)
 
-		stream, err := newSftpStream(ctx, l.Logger, l.DB, *paths, trans)
-		if err != nil {
+		if err := pipeline.NewServerTransfer(l.DB, l.Logger, trans); err != nil {
 			return nil, err
 		}
-		return stream, nil
+		str, err := newStream(l.DB, &l.GWConf.Paths, trans, &errorHandler{ch})
+		if err != nil {
+			return str, err
+		}
+		return str, nil
 	}
 }
 
-func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64,
-	paths *pipeline.Paths) fileWriterFunc {
+func (l *SSHListener) makeFileWriter(ch ssh.Channel, acc *model.LocalAccount) internal.WriterAtFunc {
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		l.Logger.Debug("PUT request received")
 
-		acc := &model.LocalAccount{}
-		if err := l.DB.Get(acc, "id=?", accountID).Run(); err != nil {
-			l.Logger.Error(err.Error())
-			return nil, err
-		}
-
 		// Get rule according to request filepath
-		rule, err := getRuleFromPath(l.DB, r, false)
+		rule, err := internal.GetRuleFromPath(l.DB, r, false)
 		if err != nil {
-			l.Logger.Error(err.Error())
-			return nil, err
+			l.Logger.Errorf("Failed to retrieve transfer rule: %s", err)
+			return nil, errDatabase
 		}
 
 		// Create Transfer
-		trans := model.Transfer{
+		trans := &model.Transfer{
 			RuleID:     rule.ID,
 			IsServer:   true,
 			AgentID:    l.Agent.ID,
-			AccountID:  accountID,
-			SourceFile: path.Base(r.Filepath),
-			DestFile:   path.Base(r.Filepath),
+			AccountID:  acc.ID,
+			LocalPath:  path.Base(r.Filepath),
+			RemotePath: path.Base(r.Filepath),
 			Start:      time.Now(),
 			Status:     types.StatusRunning,
-			Step:       types.StepSetup,
+			Step:       types.StepNone,
 		}
 
 		l.Logger.Infof("Upload of file '%s' requested by '%s' using rule '%s'",
-			trans.SourceFile, acc.Login, rule.Name)
+			trans.RemotePath, acc.Login, rule.Name)
 
-		stream, err := newSftpStream(ctx, l.Logger, l.DB, *paths, trans)
-		if err != nil {
+		if err := pipeline.NewServerTransfer(l.DB, l.Logger, trans); err != nil {
 			return nil, err
 		}
-		return stream, nil
+		str, err := newStream(l.DB, &l.GWConf.Paths, trans, &errorHandler{ch})
+		if err != nil {
+			return str, err
+		}
+		return str, nil
 	}
 }
 
-func (l *sshListener) close(ctx context.Context) error {
+func (l *SSHListener) close(ctx context.Context) error {
 	l.cancel()
 
 	finished := make(chan error)
