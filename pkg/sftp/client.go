@@ -117,6 +117,7 @@ func (c *client) Data(data pipeline.TransferStream) error {
 				"failed to read from SFTP file")
 		}
 	}
+
 	return nil
 }
 

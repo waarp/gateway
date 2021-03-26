@@ -53,8 +53,15 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 	}
 
 	transCtx.Transfer.Status = types.StatusRunning
-	transCtx.Transfer.Step = types.StepSetup
-	if dbErr := db.Update(transCtx.Transfer).Cols("status", "step").Run(); dbErr != nil {
+	cols := []string{"status"}
+	if transCtx.Transfer.Step < types.StepSetup {
+		transCtx.Transfer.Step = types.StepSetup
+		cols = append(cols, "step")
+	} else {
+		transCtx.Transfer.Error = types.TransferError{}
+		cols = append(cols, "error_code", "error_details")
+	}
+	if dbErr := db.Update(transCtx.Transfer).Cols(cols...).Run(); dbErr != nil {
 		logger.Errorf("Failed to update transfer status to RUNNING: %s", dbErr)
 		return nil, errDatabase
 	}
@@ -76,6 +83,10 @@ func (p *Pipeline) PreTasks() error {
 	}
 
 	if p.transCtx.Transfer.Step > types.StepPreTasks {
+		if err := p.machine.Transition("pre-tasks done"); err != nil {
+			p.handleStateErr("PreTasksDone", p.machine.Current())
+			return errStateMachine
+		}
 		return nil
 	}
 	p.transCtx.Transfer.Step = types.StepPreTasks
@@ -109,7 +120,12 @@ func (p *Pipeline) StartData() (TransferStream, error) {
 	}
 
 	if p.transCtx.Transfer.Step > types.StepPreTasks {
-		return &nullStream{}, nil
+		var err error
+		if p.stream, err = newVoidStream(p); err != nil {
+			p.handleError(types.TeInternal, "Failed to create file stream", err.Error())
+			return nil, err
+		}
+		return p.stream, nil
 	}
 	p.transCtx.Transfer.Step = types.StepPreTasks
 	if dbErr := p.db.Update(p.transCtx.Transfer).Cols("step").Run(); dbErr != nil {
@@ -154,8 +170,13 @@ func (p *Pipeline) PostTasks() error {
 	}
 
 	if p.transCtx.Transfer.Step > types.StepPostTasks {
+		if err := p.machine.Transition("post-tasks done"); err != nil {
+			p.handleStateErr("PostTasksDone", p.machine.Current())
+			return errStateMachine
+		}
 		return nil
 	}
+
 	p.transCtx.Transfer.Step = types.StepPostTasks
 	if dbErr := p.db.Update(p.transCtx.Transfer).Cols("step").Run(); dbErr != nil {
 		p.handleError(types.TeInternal, "Failed to update transfer step for post-tasks",
@@ -235,7 +256,11 @@ func (p *Pipeline) errDo(code types.TransferErrorCode, msg, cause string) {
 	p.runner.Stop()
 
 	go func() {
-		internal.UpdateError(p.db, p.logger, p.transCtx.Transfer, code, fmt.Sprintf("%s: %s", msg, cause))
+		p.transCtx.Transfer.Error = types.NewTransferError(code, fmt.Sprintf("%s: %s", msg, cause))
+		if dbErr := p.db.Update(p.transCtx.Transfer).Cols("progress", "error_code",
+			"error_details").Run(); dbErr != nil {
+			p.logger.Errorf("Failed to update transfer error: %s", dbErr)
+		}
 
 		p.errorTasks()
 

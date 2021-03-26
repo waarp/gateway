@@ -82,7 +82,7 @@ func TestSelfErrorClient(t *testing.T) {
 		Convey("Given a new SFTP push transfer", func(c C) {
 			selftransfer.AddTransfer(c, ctx, true)
 
-			Convey("Given that an error occurs", func() {
+			Convey("Given that an error occurs", func(c C) {
 				task := model.Task{
 					RuleID: ctx.ClientPush.ID,
 					Chain:  model.ChainPre,
@@ -137,7 +137,7 @@ func TestSelfErrorServer(t *testing.T) {
 		Convey("Given a new SFTP push transfer", func(c C) {
 			selftransfer.AddTransfer(c, ctx, true)
 
-			Convey("Given that an error occurs", func() {
+			Convey("Given that an error occurs", func(c C) {
 				task := model.Task{
 					RuleID: ctx.ServerPush.ID,
 					Chain:  model.ChainPre,
@@ -175,6 +175,55 @@ func TestSelfErrorServer(t *testing.T) {
 						}
 
 						selftransfer.CheckTransfersError(c, ctx, cTrans, sTrans)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestSelfPushRetry(t *testing.T) {
+	Convey("Given an SFTP service", t, func(c C) {
+		ctx := selftransfer.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
+		addCerts(c, ctx)
+		startService(c, ctx)
+
+		Convey("Given a failed SFTP push transfer", func(c C) {
+			selftransfer.AddTransfer(c, ctx, true)
+			task := model.Task{
+				RuleID: ctx.ClientPush.ID,
+				Chain:  model.ChainPost,
+				Rank:   1,
+				Type:   testhelpers.ClientErr,
+				Args:   json.RawMessage(`{"msg":"PUSH | POST-TASKS[1]"}`),
+			}
+			So(ctx.DB.Insert(&task).Run(), ShouldBeNil)
+
+			selftransfer.RunTransfer(c, ctx)
+			testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
+			testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[0] | OK")
+			testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[0] | OK")
+			testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[1] | ERROR")
+			testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | ERROR-TASKS[0] | OK")
+			testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | ERROR-TASKS[0] | OK")
+			testhelpers.ServerMsgShouldBe(c, "SERVER TRANSFER END")
+			testhelpers.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
+
+			Convey("When retrying the transfer", func(c C) {
+				So(ctx.DB.DeleteAll(&task).Where("type=?", testhelpers.ClientErr).
+					Run(), ShouldBeNil)
+				ctx.Trans.Status = types.StatusPlanned
+
+				Convey("Once the transfer has been processed", func(c C) {
+					selftransfer.RunTransfer(c, ctx)
+
+					Convey("Then it should have executed all the remaining tasks in order", func(c C) {
+						testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
+						testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | POST-TASKS[0] | OK")
+						testhelpers.ServerMsgShouldBe(c, "SERVER TRANSFER END")
+						testhelpers.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
+
+						selftransfer.CheckTransfersOK(c, ctx)
 					})
 				})
 			})

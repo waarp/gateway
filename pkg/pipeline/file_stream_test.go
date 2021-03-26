@@ -173,7 +173,7 @@ func TestStreamRead(t *testing.T) {
 				})
 			})
 
-			SkipConvey("Given that database error occurs", func(c C) {
+			Convey("Given that database error occurs", func(c C) {
 				database.SimulateError(c, ctx.db)
 				time.Sleep(time.Microsecond) // just to be sure the ticker had the time to tick at least once
 

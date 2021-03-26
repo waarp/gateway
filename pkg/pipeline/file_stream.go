@@ -81,10 +81,10 @@ func (f *fileStream) Read(p []byte) (int, error) {
 	f.wg.Add(1)
 	n, err := f.file.Read(p)
 	atomic.AddUint64(&f.progress, uint64(n))
+	f.wg.Done()
 	if err := f.updateProgress(); err != nil {
 		return n, err
 	}
-	f.wg.Done()
 
 	if err != nil && err != io.EOF {
 		f.handleError(types.TeDataTransfer, "Failed to read from the file stream",
@@ -104,10 +104,10 @@ func (f *fileStream) Write(p []byte) (int, error) {
 	f.wg.Add(1)
 	n, err := f.file.Write(p)
 	atomic.AddUint64(&f.progress, uint64(n))
+	f.wg.Done()
 	if err := f.updateProgress(); err != nil {
 		return n, err
 	}
-	f.wg.Done()
 
 	if err != nil {
 		f.handleError(types.TeDataTransfer, "Failed to write to the file stream",
@@ -128,10 +128,10 @@ func (f *fileStream) ReadAt(p []byte, off int64) (int, error) {
 	f.wg.Add(1)
 	n, err := f.file.ReadAt(p, off)
 	atomic.AddUint64(&f.progress, uint64(n))
+	f.wg.Done()
 	if err := f.updateProgress(); err != nil {
 		return n, err
 	}
-	f.wg.Done()
 
 	if err != nil && err != io.EOF {
 		f.handleError(types.TeDataTransfer, "Failed to readAt from the file stream",
@@ -152,10 +152,10 @@ func (f *fileStream) WriteAt(p []byte, off int64) (int, error) {
 	f.wg.Add(1)
 	n, err := f.file.WriteAt(p, off)
 	atomic.AddUint64(&f.progress, uint64(n))
+	f.wg.Done()
 	if err := f.updateProgress(); err != nil {
 		return n, err
 	}
-	f.wg.Done()
 
 	if err != nil {
 		f.handleError(types.TeDataTransfer, "Failed to writeAt to the file stream",
@@ -177,12 +177,20 @@ func (f *fileStream) handleError(code types.TransferErrorCode, msg, cause string
 		fullMsg := fmt.Sprintf("%s: %s", msg, cause)
 		f.logger.Error(fullMsg)
 
-		if err := f.file.Close(); err != nil {
-			f.logger.Warningf("Failed to close transfer file: %s", err)
-		}
-
 		go func() {
-			internal.UpdateError(f.db, f.logger, f.transCtx.Transfer, code, fmt.Sprintf("%s: %s", msg, cause))
+			f.ticker.Stop()
+			//f.wg.Wait()
+
+			if err := f.file.Close(); err != nil {
+				f.logger.Warningf("Failed to close transfer file: %s", err)
+			}
+
+			f.transCtx.Transfer.Error = types.NewTransferError(code, fmt.Sprintf("%s: %s", msg, cause))
+			f.transCtx.Transfer.Progress = f.progress
+			if dbErr := f.db.Update(f.transCtx.Transfer).Cols("progress", "error_code",
+				"error_details").Run(); dbErr != nil {
+				f.logger.Errorf("Failed to update transfer error: %s", dbErr)
+			}
 
 			f.errorTasks()
 
@@ -207,11 +215,17 @@ func (f *fileStream) close() error {
 	}
 	f.ticker.Stop()
 
+	stat, sErr := f.file.Stat()
+	if sErr != nil {
+		f.handleError(types.TeInternal, "Failed to get final file info", sErr.Error())
+		return types.NewTransferError(types.TeInternal, "failed to get final file info")
+	}
+
 	if fErr := f.file.Close(); fErr != nil {
 		f.logger.Warningf("Failed to close file: %s", fErr)
 	}
 
-	f.transCtx.Transfer.Progress = atomic.LoadUint64(&f.progress)
+	f.transCtx.Transfer.Progress = uint64(stat.Size())
 	if dbErr := f.db.Update(f.transCtx.Transfer).Cols("progression").Run(); dbErr != nil {
 		f.handleError(types.TeInternal, "Failed to update final transfer progress",
 			dbErr.Error())

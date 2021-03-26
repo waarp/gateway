@@ -254,10 +254,6 @@ func RunTransfer(c C, ctx *Context) {
 // correctly.
 func CheckTransfersOK(c C, ctx *Context) {
 	c.Convey("Then the transfers should be over", func(c C) {
-		var transfers model.Transfers
-		c.So(ctx.DB.Select(&transfers).Run(), ShouldBeNil)
-		c.So(transfers, ShouldBeEmpty)
-
 		var results model.HistoryEntries
 		c.So(ctx.DB.Select(&results).OrderBy("id", true).Run(), ShouldBeNil)
 		c.So(len(results), ShouldEqual, 2)
@@ -292,7 +288,7 @@ func CheckTransfersOK(c C, ctx *Context) {
 
 		c.Convey("Then there should be a server-side history entry", func(c C) {
 			sTrans := model.HistoryEntry{
-				ID:         ctx.Trans.ID + 1,
+				ID:         results[1].ID,
 				Owner:      database.Owner,
 				Protocol:   ctx.Server.Protocol,
 				IsServer:   true,

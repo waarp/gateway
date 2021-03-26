@@ -82,7 +82,11 @@ func (c *ClientPipeline) postTasks() error {
 	// Simple post-tasks
 	pt, ok := c.client.(PostTasksHandler)
 	if !ok {
-		return c.pip.PostTasks()
+		if err := c.pip.PostTasks(); err != nil {
+			c.client.SendError(err)
+			return err
+		}
+		return nil
 	}
 
 	// Extended post-task handling
@@ -91,6 +95,7 @@ func (c *ClientPipeline) postTasks() error {
 		return err
 	}
 	if err := c.pip.PostTasks(); err != nil {
+		c.client.SendError(err)
 		return err
 	}
 	if err := pt.EndPostTasks(); err != nil {

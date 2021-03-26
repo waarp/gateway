@@ -197,6 +197,7 @@ func TestPipelinePreTasks(t *testing.T) {
 				Convey("Then the transfer should end in error", func(c C) {
 					So(<-testhelpers.ClientCheckChannel, ShouldEqual,
 						"CLIENT | TEST | ERROR-TASKS[0] | OK")
+					WaitEndTransfer(c, pip)
 				})
 			})
 		})
@@ -282,7 +283,7 @@ func TestPipelineStartData(t *testing.T) {
 
 				Convey("Then it should return a dummy stream", func(c C) {
 					So(stream, ShouldNotBeNil)
-					So(stream, ShouldHaveSameTypeAs, &nullStream{})
+					So(stream, ShouldHaveSameTypeAs, &voidStream{})
 				})
 			})
 		})
@@ -297,6 +298,7 @@ func TestPipelineStartData(t *testing.T) {
 				Convey("Then the transfer should end in error", func(c C) {
 					So(<-testhelpers.ClientCheckChannel, ShouldEqual,
 						"CLIENT | TEST | ERROR-TASKS[0] | OK")
+					WaitEndTransfer(c, pip)
 				})
 			})
 		})
@@ -352,6 +354,7 @@ func TestPipelineEndData(t *testing.T) {
 			Convey("Then the transfer should end in error", func(c C) {
 				So(<-testhelpers.ClientCheckChannel, ShouldEqual,
 					"CLIENT | TEST | ERROR-TASKS[0] | OK")
+				WaitEndTransfer(c, pip)
 			})
 		})
 	})
@@ -428,6 +431,7 @@ func TestPipelinePostTasks(t *testing.T) {
 				Convey("Then the transfer should end in error", func(c C) {
 					So(<-testhelpers.ClientCheckChannel, ShouldEqual,
 						"CLIENT | TEST | ERROR-TASKS[0] | OK")
+					WaitEndTransfer(c, pip)
 				})
 			})
 		})

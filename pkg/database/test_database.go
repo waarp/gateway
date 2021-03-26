@@ -1,12 +1,16 @@
 package database
 
 import (
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
+
+	"xorm.io/xorm/contexts"
 
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -120,6 +124,19 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 	return db
 }
 
-func SimulateError(c convey.C, db *DB) {
-	c.So(db.engine.Close(), convey.ShouldBeNil)
+type errHook struct{ once sync.Once }
+
+func (e *errHook) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
+	ctx := c.Ctx
+	var err error
+	e.once.Do(func() {
+		err = fmt.Errorf("simulated database error")
+	})
+	return ctx, err
+}
+
+func (*errHook) AfterProcess(*contexts.ContextHook) error { return nil }
+
+func SimulateError(_ convey.C, db *DB) {
+	db.engine.AddHook(&errHook{})
 }
