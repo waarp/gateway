@@ -13,6 +13,7 @@ var (
 	out         = os.Stdout
 	commandLine options
 	addr        *url.URL
+	insecure    bool
 )
 
 type options struct {
