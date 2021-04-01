@@ -113,13 +113,13 @@ func (s *Service) Start() error {
 	s.server = &r66.Server{
 		Login:    s.agent.Name,
 		Password: pwd,
-		Conf: r66.Configuration{
-			FileSize:   true,
-			FinalHash:  true,
-			DigestAlgo: "SHA-256",
-			Proxified:  false,
+		Conf: &r66.Config{
+			FileSize:  true,
+			FinalHash: true,
+			HashAlgo:  "SHA-256",
+			Proxified: false,
 		},
-		AuthentHandler: &authHandler{
+		Handler: &authHandler{
 			Service: s,
 			ctx:     ctx,
 		},

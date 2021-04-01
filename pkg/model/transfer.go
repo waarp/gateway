@@ -46,14 +46,14 @@ func (t *Transfer) GetID() uint64 {
 	return t.ID
 }
 
-// SetExtInfo replaces all the ExtInfo in the database of the the given transfer
+// SetTransferInfo replaces all the TransferInfo in the database of the the given transfer
 // by those given in the map parameter.
-func (t *Transfer) SetExtInfo(db database.Accessor, info map[string]interface{}) error {
-	if err := db.Delete(&ExtInfo{TransferID: t.ID}); err != nil {
+func (t *Transfer) SetTransferInfo(db database.Accessor, info map[string]interface{}) error {
+	if err := db.Delete(&TransferInfo{TransferID: t.ID}); err != nil {
 		return err
 	}
 	for name, val := range info {
-		i := &ExtInfo{TransferID: t.ID, Name: name, Value: fmt.Sprint(val)}
+		i := &TransferInfo{TransferID: t.ID, Name: name, Value: fmt.Sprint(val)}
 		if err := db.Create(i); err != nil {
 			return err
 		}
@@ -253,10 +253,10 @@ func (t *Transfer) ToHistory(acc database.Accessor, stop time.Time) (*TransferHi
 	return &hist, nil
 }
 
-// GetExtInfo returns the list of the transfer's ExtInfo as a map[string]string
-func GetExtInfo(db database.Accessor, tID uint64) (map[string]string, error) {
-	var res []ExtInfo
-	filters := &database.Filters{Conditions: builder.Eq{"transfer_id": tID}}
+// GetTransferInfo returns the list of the transfer's TransferInfo as a map[string]string
+func (t *Transfer) GetTransferInfo(db database.Accessor) (map[string]string, error) {
+	var res []TransferInfo
+	filters := &database.Filters{Conditions: builder.Eq{"transfer_id": t.ID}}
 	if err := db.Select(&res, filters); err != nil {
 		return nil, err
 	}

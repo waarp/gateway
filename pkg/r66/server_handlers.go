@@ -61,6 +61,22 @@ type sessionHandler struct {
 	hasFileSize, hasHash bool
 }
 
+func (s *sessionHandler) GetTransferInfo(ID int64, isClient bool) (*r66.TransferInfo, error) {
+	panic("implement me")
+}
+
+func (s *sessionHandler) GetFileInfo(rule string, filename string) ([]r66.FileInfo, error) {
+	panic("implement me")
+}
+
+func (s *sessionHandler) GetBandwidth() (*r66.Bandwidth, error) {
+	panic("implement me")
+}
+
+func (s *sessionHandler) SetBandwidth(*r66.Bandwidth) (*r66.Bandwidth, error) {
+	panic("implement me")
+}
+
 func (s *sessionHandler) parseRuleMode(r *r66.Request) (bool, *model.Rule, error) {
 	var isMD5 bool
 	rule := model.Rule{Name: r.Rule}
@@ -138,12 +154,11 @@ func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler
 	}
 	setProgress(tStream.Transfer, request)
 
-	//TODO: add transfer info to DB
-	stream := &stream{tStream}
+	file := &stream{tStream}
 
 	handler := transferHandler{
 		sessionHandler: s,
-		stream:         stream,
+		file:           file,
 		isMD5:          isMD5,
 		fileSize:       request.FileSize,
 	}
@@ -152,13 +167,82 @@ func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler
 
 type transferHandler struct {
 	*sessionHandler
-	stream   *stream
+	file     *stream
 	isMD5    bool
 	fileSize int64
 }
 
+func (t *transferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
+	if t.file.Transfer.Step >= types.StepData {
+		return &r66.Error{
+			Code:   r66.IncorrectCommand,
+			Detail: "cannot update transfer info after data transfer started"}
+	}
+
+	if info.Filename != "" {
+		filename := path.Base(info.Filename)
+		newPath := path.Join(path.Dir(t.file.Transfer.TrueFilepath), filename)
+
+		if t.file.Rule.IsSend {
+			if err := os.Rename(t.file.Transfer.TrueFilepath, newPath); err != nil {
+				t.file.Logger.Errorf("Failed to rename R66 file: %s", err)
+				return &r66.Error{
+					Code:   r66.FileNotAllowed,
+					Detail: "failed to rename file",
+				}
+			}
+
+			t.file.Transfer.TrueFilepath = newPath
+			t.file.Transfer.SourceFile = filename
+			t.file.Transfer.DestFile = filename
+		} else {
+			t.file.Transfer.TrueFilepath = newPath
+			t.file.Transfer.SourceFile = filename
+			t.file.Transfer.DestFile = filename
+		}
+	}
+
+	if info.FileSize != 0 {
+		t.fileSize = info.FileSize
+	}
+
+	if err := t.db.Update(t.file.Transfer); err != nil {
+		t.logger.Errorf("Failed to update transfer: %s", err)
+		return &r66.Error{Code: r66.Internal, Detail: "database error"}
+	}
+
+	/* TODO: de-comment once TransferInfo are used
+	tid := t.file.Transfer.ID
+	if info.FileInfo != nil {
+		oldInfo, err := t.file.Transfer.GetTransferInfo(t.db)
+		if err != nil {
+			t.logger.Errorf("Failed to retrieve transfer info: %s", err)
+			return &r66.Error{Code: r66.Internal, Detail: "database error"}
+		}
+
+		for key, val := range info.FileInfo {
+			ti := &model.TransferInfo{TransferID: tid, Name: key, Value: fmt.Sprint(val)}
+
+			var dbErr error
+			if _, ok := oldInfo[key]; ok {
+				dbErr = t.db.Execute("UPDATE transfer_info SET value=? WHERE transfer_id=? AND name=?",
+					ti.Value, ti.TransferID, ti.Name)
+			} else {
+				dbErr = t.db.Create(ti)
+			}
+			if dbErr != nil {
+				t.logger.Errorf("Failed to update transfer info: %s", err)
+				return &r66.Error{Code: r66.Internal, Detail: "database error"}
+			}
+		}
+	}
+	*/
+
+	return nil
+}
+
 func (t *transferHandler) RunPreTask() error {
-	if err := t.stream.PreTasks(); err != nil {
+	if err := t.file.PreTasks(); err != nil {
 		if err.Kind == model.KindTransfer {
 			return &r66.Error{Code: r66.ExternalOperation, Detail: err.Cause.Details}
 		}
@@ -168,33 +252,33 @@ func (t *transferHandler) RunPreTask() error {
 }
 
 func (t *transferHandler) GetStream() (r66utils.ReadWriterAt, error) {
-	if err := t.stream.Start(); err != nil {
+	if err := t.file.Start(); err != nil {
 		return nil, &r66.Error{Code: r66.FileNotAllowed, Detail: "failed to open file"}
 	}
-	return t.stream, nil
+	return t.file, nil
 }
 
 func (t *transferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
-	if t.stream.Close() != nil {
+	if t.file.Close() != nil {
 		return &r66.Error{Code: r66.FinalOp, Detail: "failed to finalize transfer"}
 	}
-	if t.stream.Transfer.Step > types.StepData {
+	if t.file.Transfer.Step > types.StepData {
 		return nil
 	}
 
-	if !t.stream.Rule.IsSend {
-		if t.hasFileSize && int64(t.stream.Transfer.Progress) != t.fileSize {
+	if !t.file.Rule.IsSend {
+		if t.hasFileSize && int64(t.file.Transfer.Progress) != t.fileSize {
 			return &r66.Error{
 				Code: r66.SizeNotAllowed,
 				Detail: fmt.Sprintf("incorrect file size (expected %d, got %d)",
-					t.fileSize, t.stream.Transfer.Progress),
+					t.fileSize, t.file.Transfer.Progress),
 			}
 		}
 		if t.hasHash {
 			if len(end.Hash) != 32 {
 				return &r66.Error{Code: r66.FinalOp, Detail: "invalid file hash"}
 			}
-			if err := checkHash(t.stream.Transfer.TrueFilepath, end.Hash); err != nil {
+			if err := checkHash(t.file.Transfer.TrueFilepath, end.Hash); err != nil {
 				return &r66.Error{
 					Code:   r66.FinalOp,
 					Detail: err.Error(),
@@ -203,7 +287,7 @@ func (t *transferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 		}
 	} else {
 		if t.hasHash {
-			hash, err := makeHash(t.stream.Transfer.TrueFilepath)
+			hash, err := makeHash(t.file.Transfer.TrueFilepath)
 			if err != nil {
 				return &r66.Error{Code: r66.FinalOp, Detail: "failed to calculate file hash"}
 			}
@@ -211,7 +295,7 @@ func (t *transferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 		}
 	}
 
-	if t.stream.Move() != nil {
+	if t.file.Move() != nil {
 		return &r66.Error{Code: r66.FinalOp, Detail: "failed to finalize transfer"}
 	}
 
@@ -219,7 +303,7 @@ func (t *transferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 }
 
 func (t *transferHandler) RunPostTask() error {
-	if err := t.stream.PostTasks(); err != nil {
+	if err := t.file.PostTasks(); err != nil {
 		if err.Kind == model.KindTransfer {
 			return &r66.Error{Code: r66.ExternalOperation, Detail: err.Cause.Details}
 		}
@@ -229,31 +313,31 @@ func (t *transferHandler) RunPostTask() error {
 }
 
 func (t *transferHandler) ValidEndRequest() error {
-	t.stream.Transfer.Step = types.StepNone
-	t.stream.Transfer.TaskNumber = 0
-	t.stream.Transfer.Status = types.StatusDone
-	if err := t.stream.Archive(); err != nil {
+	t.file.Transfer.Step = types.StepNone
+	t.file.Transfer.TaskNumber = 0
+	t.file.Transfer.Status = types.StatusDone
+	if err := t.file.Archive(); err != nil {
 		return &r66.Error{Code: r66.Internal, Detail: "failed to archive transfer"}
 	}
 	return nil
 }
 
 func (t *transferHandler) RunErrorTask(protoErr error) error {
-	_ = t.stream.File.Close()
+	_ = t.file.File.Close()
 
-	if t.stream.Transfer.Error.Code == types.TeOk {
+	if t.file.Transfer.Error.Code == types.TeOk {
 		if r66Err, ok := protoErr.(*r66.Error); ok {
-			t.stream.Transfer.Error.Code = types.FromR66Code(r66Err.Code)
-			t.stream.Transfer.Error.Details = r66Err.Detail
+			t.file.Transfer.Error.Code = types.FromR66Code(r66Err.Code)
+			t.file.Transfer.Error.Details = r66Err.Detail
 		} else {
-			t.stream.Transfer.Error.Code = types.TeUnknownRemote
-			t.stream.Transfer.Error.Details = protoErr.Error()
+			t.file.Transfer.Error.Code = types.TeUnknownRemote
+			t.file.Transfer.Error.Details = protoErr.Error()
 		}
 	}
 
-	t.stream.ErrorTasks()
-	t.stream.Transfer.Status = types.StatusError
-	if err := t.db.Update(t.stream.Transfer); err != nil {
+	t.file.ErrorTasks()
+	t.file.Transfer.Status = types.StatusError
+	if err := t.db.Update(t.file.Transfer); err != nil {
 		t.logger.Criticalf("Failed to update transfer status to '%s': %s",
 			types.StatusError, err)
 		return &r66.Error{Code: r66.Internal, Detail: "failed to archive transfer"}
