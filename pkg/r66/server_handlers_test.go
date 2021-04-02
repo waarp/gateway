@@ -139,7 +139,7 @@ func TestValidRequest(t *testing.T) {
 				Block:    512,
 				Rank:     0,
 				//Limit:      0,
-				TransferInfo: nil,
+				Infos: nil,
 			}
 
 			shouldFailWith := func(desc, msg string) {

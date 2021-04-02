@@ -10,6 +10,10 @@ code.waarp.fr/waarp-r66/r66 v0.0.0-20210401083918-41d31da0d02a h1:nxjU3hvUUxGcnS
 code.waarp.fr/waarp-r66/r66 v0.0.0-20210401083918-41d31da0d02a/go.mod h1:1/hIMbR+K4t7db9DuvLFpQj/hLOm0DIZC0fxAtHAOQ8=
 code.waarp.fr/waarp-r66/r66 v0.0.0-20210401093458-8bc11f155417 h1:55xtJot74mGifdvDeKz4Phpm9KxsdU/Ao3ctL5di9GY=
 code.waarp.fr/waarp-r66/r66 v0.0.0-20210401093458-8bc11f155417/go.mod h1:1/hIMbR+K4t7db9DuvLFpQj/hLOm0DIZC0fxAtHAOQ8=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210402075204-3e0bc142f7aa h1:4cIuYQ/0o7wyJZFdIRWLXSfiYkof4LqUVtUfobV3+es=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210402075204-3e0bc142f7aa/go.mod h1:1/hIMbR+K4t7db9DuvLFpQj/hLOm0DIZC0fxAtHAOQ8=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210402090458-5ab170a4f14e h1:p7Vgy7sApq7LyqBEyE3ydF/qYMEU+z3dwI15uafrfh4=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210402090458-5ab170a4f14e/go.mod h1:1/hIMbR+K4t7db9DuvLFpQj/hLOm0DIZC0fxAtHAOQ8=
 github.com/PuerkitoBio/goquery v1.5.1/go.mod h1:GsLWisAFVj4WgDibEWF4pvYnkVQBpKBKeU+7zCJoLcc=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
 github.com/cockroachdb/apd v1.1.0 h1:3LFP3629v+1aKXU5Q37mxmRxX/pIu1nijXydLShEq5I=
