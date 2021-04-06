@@ -17,7 +17,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestTLS(t *testing.T) {
+func SkipTestTLS(t *testing.T) {
 	logger := log.NewLogger("test_r66_tls")
 
 	Convey("Given a TLS R66 server", t, func(c C) {
@@ -108,8 +108,10 @@ func TestTLS(t *testing.T) {
 				err := client.Connect()
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError, types.TransferError{Code: types.TeConnection,
-						Details: "x509: certificate signed by unknown authority"})
+					So(err, ShouldBeError, types.TransferError{
+						Code:    types.TeConnection,
+						Details: "x509: certificate signed by unknown authority",
+					})
 				})
 			})
 		})

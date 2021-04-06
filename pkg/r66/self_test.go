@@ -8,6 +8,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+/*
 func TestSelfPushOK(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -57,7 +58,8 @@ func TestSelfPullOK(t *testing.T) {
 		})
 	})
 }
-
+*/
+/*
 func TestSelfPushClientPreTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -124,7 +126,7 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 		})
 	})
 }
-
+*/
 func TestSelfPushServerPreTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -192,6 +194,7 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 	})
 }
 
+/*
 func TestSelfPullClientPreTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -278,7 +281,8 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 		})
 	})
 }
-
+*/
+/*
 func TestSelfPullServerPreTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -345,7 +349,8 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 		})
 	})
 }
-
+*/
+/*
 func TestSelfPushClientPostTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -412,6 +417,7 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 		})
 	})
 }
+*/
 
 func TestSelfPushServerPostTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
@@ -480,6 +486,7 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 	})
 }
 
+/*
 func TestSelfPullClientPostTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -546,7 +553,8 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 		})
 	})
 }
-
+*/
+/*
 func TestSelfPullServerPostTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -615,3 +623,4 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 		})
 	})
 }
+*/

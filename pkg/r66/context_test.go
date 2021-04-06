@@ -112,7 +112,7 @@ func initForSelfTransfer(c C) *testContext {
 
 	service := NewService(db, server, logger)
 	c.So(service.Start(), ShouldBeNil)
-	service.server.AuthentHandler = &testAuthHandler{service.server.AuthentHandler}
+	service.server.Handler = &testAuthHandler{service.server.Handler}
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
@@ -189,8 +189,8 @@ func processTransfer(c C, ctx *testContext) {
 	c.So(err, ShouldBeNil)
 
 	exe := executor.Executor{TransferStream: stream}
-	clientCheckChannel = make(chan string, 10)
-	serverCheckChannel = make(chan string, 10)
+	clientCheckChannel = make(chan string, 200)
+	serverCheckChannel = make(chan string, 200)
 	c.Reset(func() {
 		if clientCheckChannel != nil {
 			close(clientCheckChannel)

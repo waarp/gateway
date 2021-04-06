@@ -139,7 +139,7 @@ func TestValidRequest(t *testing.T) {
 				Block:    512,
 				Rank:     0,
 				//Limit:      0,
-				TransferInfo: nil,
+				Infos: nil,
 			}
 
 			shouldFailWith := func(desc, msg string) {
@@ -159,20 +159,20 @@ func TestValidRequest(t *testing.T) {
 					trans := t.(*transferHandler)
 
 					Convey("Then it should have created a transfer", func() {
-						So(trans.stream.Transfer.RuleID, ShouldEqual, rule.ID)
-						So(trans.stream.Transfer.IsServer, ShouldBeTrue)
-						So(trans.stream.Transfer.AgentID, ShouldEqual, server.ID)
-						So(trans.stream.Transfer.AccountID, ShouldEqual, account.ID)
-						So(trans.stream.Transfer.TrueFilepath, ShouldEqual, packet.Filepath+".tmp")
-						So(trans.stream.Transfer.SourceFile, ShouldEqual, path.Base(packet.Filepath))
-						So(trans.stream.Transfer.DestFile, ShouldEqual, path.Base(packet.Filepath))
-						So(trans.stream.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
-						So(trans.stream.Transfer.Step, ShouldEqual, types.StepNone)
-						So(trans.stream.Transfer.Status, ShouldEqual, types.StatusRunning)
+						So(trans.file.Transfer.RuleID, ShouldEqual, rule.ID)
+						So(trans.file.Transfer.IsServer, ShouldBeTrue)
+						So(trans.file.Transfer.AgentID, ShouldEqual, server.ID)
+						So(trans.file.Transfer.AccountID, ShouldEqual, account.ID)
+						So(trans.file.Transfer.TrueFilepath, ShouldEqual, packet.Filepath+".tmp")
+						So(trans.file.Transfer.SourceFile, ShouldEqual, path.Base(packet.Filepath))
+						So(trans.file.Transfer.DestFile, ShouldEqual, path.Base(packet.Filepath))
+						So(trans.file.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
+						So(trans.file.Transfer.Step, ShouldEqual, types.StepNone)
+						So(trans.file.Transfer.Status, ShouldEqual, types.StatusRunning)
 					})
 
 					Convey("Then it should return a new session handler", func() {
-						So(trans.stream.Rule, ShouldResemble, rule)
+						So(trans.file.Rule, ShouldResemble, rule)
 						So(trans.isMD5, ShouldBeTrue)
 						So(trans.fileSize, ShouldEqual, packet.FileSize)
 					})

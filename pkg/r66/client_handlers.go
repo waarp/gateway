@@ -4,6 +4,8 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"path"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
@@ -101,3 +103,39 @@ func (h *clientTransferHandler) RunPreTask() error        { return nil }
 func (h *clientTransferHandler) RunPostTask() error       { return nil }
 func (h *clientTransferHandler) ValidEndRequest() error   { return nil }
 func (h *clientTransferHandler) RunErrorTask(error) error { return nil }
+
+func (h *clientTransferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
+	if h.info.Transfer.Step >= types.StepData {
+		return &r66.Error{
+			Code:   r66.IncorrectCommand,
+			Detail: "cannot update transfer info after data transfer started"}
+	}
+
+	if info.Filename != "" {
+		filename := path.Base(info.Filename)
+		newPath := path.Join(path.Dir(h.info.Transfer.TrueFilepath), filename)
+
+		if h.info.Rule.IsSend {
+			if err := os.Rename(h.info.Transfer.TrueFilepath, newPath); err != nil {
+				return &r66.Error{
+					Code:   r66.FileNotAllowed,
+					Detail: "failed to rename file",
+				}
+			}
+
+			h.info.Transfer.TrueFilepath = newPath
+			h.info.Transfer.SourceFile = filename
+			h.info.Transfer.DestFile = filename
+		} else {
+			h.info.Transfer.TrueFilepath = newPath
+			h.info.Transfer.SourceFile = filename
+			h.info.Transfer.DestFile = filename
+		}
+	}
+
+	if info.FileSize != 0 {
+		h.size = uint64(info.FileSize)
+	}
+
+	return nil
+}

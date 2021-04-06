@@ -2,6 +2,7 @@ package r66
 
 import (
 	"fmt"
+	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
@@ -20,12 +21,29 @@ var (
 	serverCheckChannel chan string
 )
 
-func clientMsgShouldBe(c convey.C, msg string) {
-	c.So(<-clientCheckChannel, convey.ShouldEqual, msg)
+func clientMsgShouldBe(c convey.C, exp string) {
+	ticker := time.NewTicker(time.Second * 3)
+	defer ticker.Stop()
+
+	select {
+	case msg := <-clientCheckChannel:
+		c.So(msg, convey.ShouldEqual, exp)
+	case <-ticker.C:
+		panic(fmt.Sprintf("Test timed out waiting for client message '%s'", exp))
+	}
 }
 
-func serverMsgShouldBe(c convey.C, msg string) {
-	c.So(<-serverCheckChannel, convey.ShouldEqual, msg)
+func serverMsgShouldBe(c convey.C, exp string) {
+	timer := time.NewTimer(time.Second * 3)
+	defer timer.Stop()
+
+	select {
+	case msg := <-serverCheckChannel:
+		c.So(msg, convey.ShouldEqual, exp)
+	case <-timer.C:
+		panic(fmt.Sprintf("Test timed out waiting for server message '%s'", exp))
+	}
+	return
 }
 
 func init() {
@@ -46,16 +64,31 @@ type clientTask struct{}
 
 func (*clientTask) Validate(map[string]string) error { return nil }
 func (*clientTask) Run(args map[string]string, _ *tasks.Processor) (string, error) {
-	clientCheckChannel <- "CLIENT | " + args["msg"] + " | OK"
-	return "", nil
+	timer := time.NewTimer(time.Second * 1)
+	defer timer.Stop()
+
+	select {
+	case clientCheckChannel <- "CLIENT | " + args["msg"] + " | OK":
+		return "", nil
+	case <-timer.C:
+		panic(fmt.Sprintf("task timed out sending client message '%s'", args["msg"]))
+	}
+
 }
 
 type clientTaskError struct{}
 
 func (*clientTaskError) Validate(map[string]string) error { return nil }
 func (*clientTaskError) Run(args map[string]string, _ *tasks.Processor) (string, error) {
-	clientCheckChannel <- "CLIENT | " + args["msg"] + " | ERROR"
-	return "task failed", fmt.Errorf("task failed")
+	timer := time.NewTimer(time.Second * 1)
+	defer timer.Stop()
+
+	select {
+	case clientCheckChannel <- "CLIENT | " + args["msg"] + " | ERROR":
+		return "task failed", fmt.Errorf("task failed")
+	case <-timer.C:
+		panic(fmt.Sprintf("task timed out sending client message '%s'", args["msg"]))
+	}
 }
 
 // ##### SERVER #####
@@ -64,14 +97,28 @@ type serverTask struct{}
 
 func (*serverTask) Validate(map[string]string) error { return nil }
 func (*serverTask) Run(args map[string]string, _ *tasks.Processor) (string, error) {
-	serverCheckChannel <- "SERVER | " + args["msg"] + " | OK"
-	return "", nil
+	timer := time.NewTimer(time.Second * 1)
+	defer timer.Stop()
+
+	select {
+	case serverCheckChannel <- "SERVER | " + args["msg"] + " | OK":
+		return "", nil
+	case <-timer.C:
+		panic(fmt.Sprintf("task timed out sending server message '%s'", args["msg"]))
+	}
 }
 
 type serverTaskError struct{}
 
 func (*serverTaskError) Validate(map[string]string) error { return nil }
 func (*serverTaskError) Run(args map[string]string, _ *tasks.Processor) (string, error) {
-	serverCheckChannel <- "SERVER | " + args["msg"] + " | ERROR"
-	return "task failed", fmt.Errorf("task failed")
+	timer := time.NewTimer(time.Second * 1)
+	defer timer.Stop()
+
+	select {
+	case serverCheckChannel <- "SERVER | " + args["msg"] + " | ERROR":
+		return "task failed", fmt.Errorf("task failed")
+	case <-timer.C:
+		panic(fmt.Sprintf("task timed out sending server message '%s'", args["msg"]))
+	}
 }

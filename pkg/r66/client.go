@@ -224,6 +224,6 @@ func (c *client) Close(err *model.PipelineError) *model.PipelineError {
 	}
 
 	r66Err := &r66.Error{Code: err.Cause.Code.R66Code(), Detail: err.Cause.Details}
-	_ = c.session.SendError(r66Err)
+	c.session.SendError(r66Err)
 	return nil
 }
