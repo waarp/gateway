@@ -16,7 +16,7 @@ require (
 	github.com/pkg/sftp v1.11.0
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
 	github.com/smartystreets/goconvey v1.6.4
-	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 )
 
 go 1.13
