@@ -176,7 +176,8 @@ func (t *transferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
 	if t.file.Transfer.Step >= types.StepData {
 		return &r66.Error{
 			Code:   r66.IncorrectCommand,
-			Detail: "cannot update transfer info after data transfer started"}
+			Detail: "cannot update transfer info after data transfer started",
+		}
 	}
 
 	if info.Filename != "" {
@@ -191,15 +192,11 @@ func (t *transferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
 					Detail: "failed to rename file",
 				}
 			}
-
-			t.file.Transfer.TrueFilepath = newPath
-			t.file.Transfer.SourceFile = filename
-			t.file.Transfer.DestFile = filename
-		} else {
-			t.file.Transfer.TrueFilepath = newPath
-			t.file.Transfer.SourceFile = filename
-			t.file.Transfer.DestFile = filename
 		}
+
+		t.file.Transfer.TrueFilepath = newPath
+		t.file.Transfer.SourceFile = filename
+		t.file.Transfer.DestFile = filename
 	}
 
 	if info.FileSize != 0 {
@@ -219,10 +216,8 @@ func (t *transferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
 			t.logger.Errorf("Failed to retrieve transfer info: %s", err)
 			return &r66.Error{Code: r66.Internal, Detail: "database error"}
 		}
-
 		for key, val := range info.FileInfo {
 			ti := &model.TransferInfo{TransferID: tid, Name: key, Value: fmt.Sprint(val)}
-
 			var dbErr error
 			if _, ok := oldInfo[key]; ok {
 				dbErr = t.db.Execute("UPDATE transfer_info SET value=? WHERE transfer_id=? AND name=?",
@@ -235,8 +230,7 @@ func (t *transferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
 				return &r66.Error{Code: r66.Internal, Detail: "database error"}
 			}
 		}
-	}
-	*/
+	} */
 
 	return nil
 }
