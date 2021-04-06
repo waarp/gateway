@@ -1,8 +1,11 @@
 package model
 
-var ValidPublicKey string = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDCnGXRhf571U4APnZmae/3O0Zxtis/d32sGRbwwZe/Zkon3/qCV3PS5zh2Uw9Cgq6q15zq6P4vNCMBgWEiu7nh/EUTn9bFyEnnhVZIEQ53qaNuaV8laNhYuV/qgypnLlhdm3dREKFWNm3aqkkVFoZjGv9lIjIMR4ioOW6lA9MsOYzNnQ5U5B66fVMNvMY/DQppCzlkffYkZa6ioa7meZXp03Mg5ywnoGlapzP0TxvmoN+yN+/POMZOVHKqbmiZZDPMMZnhOtFgreTMQG/9qDZytJke7o2ny840lXEUqdCQdWaXC0hlsTgQuK8tNiad02ryaDfLDaE3TVuQOSjIO3GbTftiPOSzSLzdWhrPkGLwGINGbT//No+vv3ezaqS7251ZLhIUzhvP+dQ9HEbQpFuYRJSByVzbvo9yqKTpoeK1OAlbFLDtVXEwpQKVOS4DUXa4vKD3VJbwJzA5dmNEehK2G+9nAvxm5LijSHwsmb3hTjJaIpoEh3WGD4wZBVl8pbE= test@waarp"
-var InvalidPublicKey string = "public key"
-var ValidPrivateKey string = `-----BEGIN OPENSSH PRIVATE KEY-----
+//nolint: golint // those are test utils
+var (
+	ValidPublicKey    string = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDCnGXRhf571U4APnZmae/3O0Zxtis/d32sGRbwwZe/Zkon3/qCV3PS5zh2Uw9Cgq6q15zq6P4vNCMBgWEiu7nh/EUTn9bFyEnnhVZIEQ53qaNuaV8laNhYuV/qgypnLlhdm3dREKFWNm3aqkkVFoZjGv9lIjIMR4ioOW6lA9MsOYzNnQ5U5B66fVMNvMY/DQppCzlkffYkZa6ioa7meZXp03Mg5ywnoGlapzP0TxvmoN+yN+/POMZOVHKqbmiZZDPMMZnhOtFgreTMQG/9qDZytJke7o2ny840lXEUqdCQdWaXC0hlsTgQuK8tNiad02ryaDfLDaE3TVuQOSjIO3GbTftiPOSzSLzdWhrPkGLwGINGbT//No+vv3ezaqS7251ZLhIUzhvP+dQ9HEbQpFuYRJSByVzbvo9yqKTpoeK1OAlbFLDtVXEwpQKVOS4DUXa4vKD3VJbwJzA5dmNEehK2G+9nAvxm5LijSHwsmb3hTjJaIpoEh3WGD4wZBVl8pbE= test@waarp"
+	InvalidPublicKey  string = "public key"
+	InvalidPrivateKey []byte = []byte("private key")
+	ValidPrivateKey   string = `-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAYEAwpxl0YX+e9VOAD52Zmnv9ztGcbYrP3d9rBkW8MGXv2ZKJ9/6gldz
 0uc4dlMPQoKuqtec6uj+LzQjAYFhIru54fxFE5/WxchJ54VWSBEOd6mjbmlfJWjYWLlf6o
@@ -40,4 +43,4 @@ Ntj0kCNQrxr3XuLJCQm3km8wd/CDjZsXYE4Ow2KWZU/XbKiBLEDy2G6GOjK0+M8il09hXU
 tlAHAzDZbyzbvo0VN/PDNLrgXI/kX3l2k3Ka6MYM6jnsA9GmMyf+XvtZpVKffXqF9MopKL
 f3J+SMTxKZ1y3F7QAAAA1tcm9AZGV2LXdhYXJwAQIDBA==
 -----END OPENSSH PRIVATE KEY-----`
-var InvalidPrivateKey []byte = []byte("private key")
+)

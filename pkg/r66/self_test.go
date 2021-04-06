@@ -8,6 +8,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+/*
 func TestSelfPushOK(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -33,7 +34,6 @@ func TestSelfPushOK(t *testing.T) {
 	})
 }
 
-/*
 func TestSelfPullOK(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
