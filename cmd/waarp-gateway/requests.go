@@ -11,11 +11,12 @@ import (
 	"time"
 )
 
-func getHttpClient() *http.Client {
+func getHTTPClient() *http.Client {
 	customTransport := http.DefaultTransport.(*http.Transport).Clone()
-	if commandLine.addrOpt.Insecure {
-		customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	}
+
+	//nolint: gosec // needed to pass the option given by the user
+	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: commandLine.addrOpt.Insecure}
+
 	return &http.Client{Transport: customTransport}
 }
 
@@ -40,7 +41,7 @@ func sendRequest(object interface{}, method string) (*http.Response, error) {
 	}
 	req.SetBasicAuth(user, passwd)
 
-	return getHttpClient().Do(req)
+	return getHTTPClient().Do(req)
 }
 
 func add(object interface{}) error {
