@@ -8,7 +8,7 @@ import (
 
 type addrOpt struct {
 	Address  gwAddr `short:"a" long:"address" description:"The address of the gateway" env:"WAARP_GATEWAY_ADDRESS"`
-	Insecure bool   `short:"i" long:"insecure" description:"Skip certificate verification"`
+	Insecure bool   `short:"i" long:"insecure" description:"Skip certificate verification" env:"WAARP_GATEWAY_INSECURE"`
 }
 
 type gwAddr struct{}
