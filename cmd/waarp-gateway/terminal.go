@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 func isTerminal() bool {
-	return terminal.IsTerminal(int(in.Fd())) && terminal.IsTerminal(int(out.Fd()))
+	return term.IsTerminal(int(in.Fd())) && term.IsTerminal(int(out.Fd()))
 }
 
 func promptUser() (string, error) {
@@ -29,13 +29,13 @@ func promptPassword() (string, error) {
 	}
 
 	fmt.Fprint(out, "Password: ")
-	st, err := terminal.MakeRaw(int(in.Fd()))
+	st, err := term.MakeRaw(int(in.Fd()))
 	if err != nil {
 		return "", err
 	}
-	defer func() { _ = terminal.Restore(int(in.Fd()), st) }()
+	defer func() { _ = term.Restore(int(in.Fd()), st) }()
 
-	term := terminal.NewTerminal(in, "")
+	term := term.NewTerminal(in, "")
 	pwd, err := term.ReadPassword("")
 	if err != nil {
 		return "", err

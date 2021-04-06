@@ -3,12 +3,22 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 )
+
+func getHTTPClient() *http.Client {
+	customTransport := http.DefaultTransport.(*http.Transport).Clone()
+
+	//nolint: gosec // needed to pass the option given by the user
+	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: commandLine.addrOpt.Insecure}
+
+	return &http.Client{Transport: customTransport}
+}
 
 func sendRequest(object interface{}, method string) (*http.Response, error) {
 	var body io.Reader
@@ -31,7 +41,7 @@ func sendRequest(object interface{}, method string) (*http.Response, error) {
 	}
 	req.SetBasicAuth(user, passwd)
 
-	return http.DefaultClient.Do(req)
+	return getHTTPClient().Do(req)
 }
 
 func add(object interface{}) error {
