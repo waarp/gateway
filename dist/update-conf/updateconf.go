@@ -45,8 +45,7 @@ func main() {
 	if err := moveToConf(&archReader.Reader, "get-file.list"); err != nil {
 		fmt.Printf("Cannot write configuration file: %s\n", err.Error())
 
-		_ = archReader.Close() //nolint: errcheck
-		// ignore error
+		_ = archReader.Close() //nolint: errcheck // ignore error
 	}
 
 	_ = archReader.Close() //nolint: errcheck // ignore error
