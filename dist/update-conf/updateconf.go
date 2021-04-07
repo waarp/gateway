@@ -46,8 +46,6 @@ func main() {
 		fmt.Printf("Cannot write configuration file: %s\n", err.Error())
 
 		_ = archReader.Close() //nolint: errcheck // ignore error
-
-		os.Exit(exitErrorCode)
 	}
 
 	_ = archReader.Close() //nolint: errcheck // ignore error
