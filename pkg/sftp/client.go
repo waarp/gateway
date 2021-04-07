@@ -91,7 +91,7 @@ func (c *Client) Request() *model.PipelineError {
 	var err error
 	if c.Info.Rule.IsSend {
 		remotePath := path.Join(c.Info.Rule.InPath, c.Info.Transfer.DestFile)
-		c.remoteFile, err = c.client.Create(remotePath)
+		c.remoteFile, err = c.client.OpenFile(remotePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
 		if err != nil {
 			if msg, ok := isRemoteTaskError(err); ok {
 				fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)

@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :bug:`251` Corrige le probème de création du fichier distant en SFTP 
+  lorsque le serveur refuse l'ouverture de fichier en écriture ET en lecture.
+  Corrige un problème du script d'update-conf qui sort en erreur 
+  si les fichiers optionels ne sont pas dans l'archive de déploiement.
 * :release:`0.3.2 <2021-04-06>`
 * :bug:`248` Ajout de l'option `insecure` au client terminal afin de désactiver la
   vérification des certificats serveur https.
