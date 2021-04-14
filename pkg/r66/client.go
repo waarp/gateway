@@ -78,24 +78,25 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 }
 
 func makeClientTLSConfig(info *model.OutTransferInfo) (*tls.Config, error) {
-	tlsCerts := make([]tls.Certificate, len(info.ClientCerts))
-	for i, cert := range info.ClientCerts {
+	tlsCerts := make([]tls.Certificate, len(info.ClientCryptos))
+	for i, cert := range info.ClientCryptos {
 		var err error
-		tlsCerts[i], err = tls.X509KeyPair(cert.Certificate, cert.PrivateKey)
+		tlsCerts[i], err = tls.X509KeyPair([]byte(cert.Certificate), []byte(cert.PrivateKey))
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	var caPool *x509.CertPool
-	for _, cert := range info.ServerCerts {
+	for _, cert := range info.ServerCryptos {
 		if caPool == nil {
 			caPool = x509.NewCertPool()
 		}
-		caPool.AppendCertsFromPEM(cert.Certificate)
+		caPool.AppendCertsFromPEM([]byte(cert.Certificate))
 	}
 
 	return &tls.Config{
+		ServerName:   info.Agent.Address,
 		Certificates: tlsCerts,
 		MinVersion:   tls.VersionTLS12,
 		RootCAs:      caPool,

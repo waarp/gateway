@@ -106,7 +106,7 @@ func (r *RemoteAgent) BeforeDelete(db database.Access) database.Error {
 			"transfers or wait for them to finish")
 	}
 
-	certQuery := db.DeleteAll(&Cert{}).Where(
+	certQuery := db.DeleteAll(&Crypto{}).Where(
 		"(owner_type='remote_agents' AND owner_id=?) OR "+
 			"(owner_type='remote_accounts' AND owner_id IN "+
 			"(SELECT id FROM remote_accounts WHERE remote_agent_id=?))",
@@ -132,7 +132,7 @@ func (r *RemoteAgent) BeforeDelete(db database.Access) database.Error {
 	return nil
 }
 
-// GetCerts returns a list of all the partner's certificates.
-func (r *RemoteAgent) GetCerts(db database.ReadAccess) ([]Cert, database.Error) {
-	return GetCerts(db, r)
+// GetCryptos returns a list of all the partner's certificates.
+func (r *RemoteAgent) GetCryptos(db database.ReadAccess) ([]Crypto, database.Error) {
+	return GetCryptos(db, r)
 }

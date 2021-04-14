@@ -124,7 +124,7 @@ func TestRuleBeforeDelete(t *testing.T) {
 
 			server := LocalAgent{
 				Name:        "server",
-				Protocol:    "dummy",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}

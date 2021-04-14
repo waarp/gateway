@@ -470,15 +470,6 @@ func TestRetryHistory(t *testing.T) {
 				}
 				So(db.Insert(part).Run(), ShouldBeNil)
 
-				cert := &model.Cert{
-					Name:        "test",
-					PublicKey:   []byte("test"),
-					Certificate: []byte("test"),
-					OwnerType:   "remote_agents",
-					OwnerID:     part.ID,
-				}
-				So(db.Insert(cert).Run(), ShouldBeNil)
-
 				acc := &model.RemoteAccount{
 					Login:         "login",
 					Password:      []byte("password"),

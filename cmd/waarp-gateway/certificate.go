@@ -6,7 +6,10 @@ import (
 	"io/ioutil"
 	"path"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+
 	"github.com/jessevdk/go-flags"
 )
 
@@ -18,11 +21,11 @@ type certificateCommand struct {
 	Update certUpdate `command:"update" description:"Update an existing certificate"`
 }
 
-func displayCertificate(w io.Writer, cert *rest.OutCert) {
+func displayCertificate(w io.Writer, cert *api.OutCrypto) {
 	fmt.Fprintln(w, orange(bold("● Certificate", cert.Name)))
-	fmt.Fprintln(w, orange("    Private key:"), string(cert.PrivateKey))
-	fmt.Fprintln(w, orange("    Public key: "), string(cert.PublicKey))
-	fmt.Fprintln(w, orange("    Content:    "), string(cert.Certificate))
+	fmt.Fprintln(w, orange("    Private key:"), cert.PrivateKey)
+	fmt.Fprintln(w, orange("    Public key: "), cert.PublicKey)
+	fmt.Fprintln(w, orange("    Content:    "), cert.Certificate)
 }
 
 func getCertPath() string {
@@ -52,7 +55,7 @@ type certGet struct {
 func (c *certGet) Execute([]string) error {
 	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
-	cert := &rest.OutCert{}
+	cert := &api.OutCrypto{}
 	if err := get(cert); err != nil {
 		return err
 	}
@@ -70,31 +73,34 @@ type certAdd struct {
 }
 
 func (c *certAdd) Execute([]string) (err error) {
-	cert := &rest.InCert{
+	inCrypto := &api.InCrypto{
 		Name: &c.Name,
 	}
 	if c.PrivateKey != "" {
-		cert.PrivateKey, err = ioutil.ReadFile(string(c.PrivateKey))
+		pk, err := ioutil.ReadFile(string(c.PrivateKey))
 		if err != nil {
 			return err
 		}
+		inCrypto.PrivateKey = utils.StringPtr(string(pk))
 	}
 	if c.PublicKey != "" {
-		cert.PublicKey, err = ioutil.ReadFile(string(c.PublicKey))
+		pbk, err := ioutil.ReadFile(string(c.PublicKey))
 		if err != nil {
 			return err
 		}
+		inCrypto.PublicKey = utils.StringPtr(string(pbk))
 	}
 	if c.Certificate != "" {
-		cert.Certificate, err = ioutil.ReadFile(string(c.Certificate))
+		cert, err := ioutil.ReadFile(string(c.Certificate))
 		if err != nil {
 			return err
 		}
+		inCrypto.Certificate = utils.StringPtr(string(cert))
 	}
 
 	addr.Path = path.Join(getCertPath(), "certificates")
 
-	if err := add(cert); err != nil {
+	if err := add(inCrypto); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The certificate", bold(c.Name), "was successfully added.")
@@ -131,7 +137,7 @@ func (c *certList) Execute([]string) error {
 	addr.Path = path.Join(getCertPath(), "certificates")
 	listURL(&c.listOptions, c.SortBy)
 
-	body := map[string][]rest.OutCert{}
+	body := map[string][]api.OutCrypto{}
 	if err := list(&body); err != nil {
 		return err
 	}
@@ -164,36 +170,39 @@ type certUpdate struct {
 }
 
 func (c *certUpdate) Execute([]string) (err error) {
-	cert := &rest.InCert{
+	inCrypto := &api.InCrypto{
 		Name: c.Name,
 	}
 	if c.PrivateKey != "" {
-		cert.PrivateKey, err = ioutil.ReadFile(string(c.PrivateKey))
+		pk, err := ioutil.ReadFile(string(c.PrivateKey))
 		if err != nil {
 			return err
 		}
+		inCrypto.PrivateKey = utils.StringPtr(string(pk))
 	}
 	if c.PublicKey != "" {
-		cert.PublicKey, err = ioutil.ReadFile(string(c.PublicKey))
+		pbk, err := ioutil.ReadFile(string(c.PublicKey))
 		if err != nil {
 			return err
 		}
+		inCrypto.PublicKey = utils.StringPtr(string(pbk))
 	}
 	if c.Certificate != "" {
-		cert.Certificate, err = ioutil.ReadFile(string(c.Certificate))
+		cert, err := ioutil.ReadFile(string(c.Certificate))
 		if err != nil {
 			return err
 		}
+		inCrypto.Certificate = utils.StringPtr(string(cert))
 	}
 
 	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
-	if err := update(cert); err != nil {
+	if err := update(inCrypto); err != nil {
 		return err
 	}
 	name := c.Args.Cert
-	if cert.Name != nil && *cert.Name != "" {
-		name = *cert.Name
+	if inCrypto.Name != nil && *inCrypto.Name != "" {
+		name = *inCrypto.Name
 	}
 	fmt.Fprintln(getColorable(), "The certificate", bold(name), "was successfully updated.")
 

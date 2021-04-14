@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
@@ -16,9 +18,9 @@ func TestExportRemoteAgents(t *testing.T) {
 		Convey("Given the database contains remotes agents with accounts", func() {
 			agent1 := &model.RemoteAgent{
 				Name:        "test",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Address:     "localhost:6666",
 			}
 			So(db.Insert(agent1).Run(), ShouldBeNil)
 
@@ -29,19 +31,17 @@ func TestExportRemoteAgents(t *testing.T) {
 			}
 			So(db.Insert(account1a).Run(), ShouldBeNil)
 
-			cert := &model.Cert{
+			cert := &model.Crypto{
 				Name:        "test_cert",
 				OwnerType:   "remote_agents",
 				OwnerID:     agent1.ID,
-				Certificate: []byte("cert"),
-				PublicKey:   []byte("public"),
-				PrivateKey:  []byte("private"),
+				Certificate: testhelpers.LocalhostCert,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			agent2 := &model.RemoteAgent{
 				Name:        "test2",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2023",
 			}
@@ -133,7 +133,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 			pwd2 := "bar"
 			agent := &model.RemoteAgent{
 				Name:        "test",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -153,13 +153,12 @@ func TestExportRemoteAccounts(t *testing.T) {
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
-			cert := &model.Cert{
+			cert := &model.Crypto{
 				Name:        "test_cert",
 				OwnerType:   "remote_accounts",
 				OwnerID:     account2.ID,
-				Certificate: []byte("cert"),
-				PublicKey:   []byte("public"),
-				PrivateKey:  []byte("private"),
+				Certificate: testhelpers.ClientCert,
+				PrivateKey:  testhelpers.ClientKey,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 

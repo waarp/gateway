@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -29,9 +31,9 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 		Convey("Given a local agent entry", func() {
 			ag := LocalAgent{
 				Name:        "test agent",
-				Protocol:    "dummy",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Address:     "localhost:6666",
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
@@ -46,23 +48,20 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			accAccess := RuleAccess{RuleID: rule.ID, ObjectID: acc.ID, ObjectType: acc.TableName()}
 			So(db.Insert(&accAccess).Run(), ShouldBeNil)
 
-			certAg := Cert{
+			certAg := Crypto{
 				OwnerType:   "local_agents",
 				OwnerID:     ag.ID,
 				Name:        "test agent cert",
-				PrivateKey:  json.RawMessage("private key"),
-				PublicKey:   json.RawMessage("public key"),
-				Certificate: json.RawMessage("certificate"),
+				PrivateKey:  testhelpers.LocalhostKey,
+				Certificate: testhelpers.LocalhostCert,
 			}
 			So(db.Insert(&certAg).Run(), ShouldBeNil)
 
-			certAcc := Cert{
+			certAcc := Crypto{
 				OwnerType:   "local_accounts",
 				OwnerID:     acc.ID,
 				Name:        "test account cert",
-				PrivateKey:  json.RawMessage("private key"),
-				PublicKey:   json.RawMessage("public key"),
-				Certificate: json.RawMessage("certificate"),
+				Certificate: testhelpers.ClientCert,
 			}
 			So(db.Insert(&certAcc).Run(), ShouldBeNil)
 
@@ -80,7 +79,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 					})
 
 					Convey("Then both certificates should have been deleted", func() {
-						var certs Certificates
+						var certs Cryptos
 						So(db.Select(&certs).Run(), ShouldBeNil)
 						So(certs, ShouldBeEmpty)
 					})
@@ -129,7 +128,7 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 			oldAgent := LocalAgent{
 				Owner:       "test_gateway",
 				Name:        "old",
-				Protocol:    "sftp",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -143,7 +142,7 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 					InDir:       "rcv",
 					OutDir:      "send",
 					WorkDir:     "tmp",
-					Protocol:    "sftp",
+					Protocol:    dummyProto,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2023",
 				}

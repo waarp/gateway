@@ -39,13 +39,13 @@ func (s *Service) Start() error {
 			return err
 		}
 
-		certs, err := s.agent.GetCerts(s.db)
+		hostKeys, err := s.agent.GetCryptos(s.db)
 		if err != nil {
-			s.logger.Errorf("Failed to retrieve the server certificates: %s", err)
+			s.logger.Errorf("Failed to retrieve the server host keys: %s", err)
 			return err
 		}
 
-		sshConf, err1 := getSSHServerConfig(s.db, certs, &protoConfig, s.agent)
+		sshConf, err1 := getSSHServerConfig(s.db, hostKeys, &protoConfig, s.agent)
 		if err1 != nil {
 			s.logger.Errorf("Failed to parse the SSH server configuration: %s", err1)
 			return err1

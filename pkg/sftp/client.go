@@ -148,7 +148,7 @@ func (c *Client) Close(pErr error) error {
 		}
 	}()
 
-	if pErr == nil {
+	if pErr == nil && c.remoteFile != nil {
 		if err := c.remoteFile.Close(); err != nil {
 			if msg, ok := isRemoteTaskError(err); ok {
 				fullMsg := fmt.Sprintf("Remote post-tasks failed: %s", msg)

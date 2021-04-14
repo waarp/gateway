@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
@@ -30,7 +32,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 		Convey("Given a remote account entry", func() {
 			ag := RemoteAgent{
 				Name:        "server",
-				Protocol:    "dummy",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
@@ -39,13 +41,12 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: []byte("password")}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
-			cert := Cert{
+			cert := Crypto{
 				OwnerType:   "remote_accounts",
 				OwnerID:     acc.ID,
 				Name:        "test cert",
-				PrivateKey:  []byte("private key"),
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
+				PrivateKey:  testhelpers.ClientKey,
+				Certificate: testhelpers.ClientCert,
 			}
 			So(db.Insert(&cert).Run(), ShouldBeNil)
 
@@ -63,7 +64,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 					}), ShouldBeNil)
 
 					Convey("Then the account's certificates should have been deleted", func() {
-						var certs Certificates
+						var certs Cryptos
 						So(db.Select(&certs).Run(), ShouldBeNil)
 						So(certs, ShouldBeEmpty)
 					})
@@ -111,7 +112,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 		Convey("Given the database contains 1 remote agent with 1 remote account", func() {
 			parentAgent := RemoteAgent{
 				Name:        "parent_agent",
-				Protocol:    "sftp",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -186,7 +187,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 					"parent agent is different", func() {
 					otherAgent := RemoteAgent{
 						Name:        "other",
-						Protocol:    "sftp",
+						Protocol:    dummyProto,
 						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}

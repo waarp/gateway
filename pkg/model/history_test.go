@@ -42,7 +42,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 				DestFilename:   "test/source/path",
 				Start:          time.Now(),
 				Stop:           time.Now(),
-				Protocol:       "sftp",
+				Protocol:       dummyProto,
 				Status:         "DONE",
 				Owner:          database.Owner,
 			}
@@ -176,7 +176,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 		Convey("Given a client history entry", func() {
 			agent := &RemoteAgent{
 				Name:        "partner",
-				Protocol:    "dummy",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -242,7 +242,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 		Convey("Given a server history entry", func() {
 			agent := &LocalAgent{
 				Name:        "server",
-				Protocol:    "dummy",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}

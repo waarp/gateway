@@ -41,9 +41,9 @@ func (l *LocalAccount) GetID() uint64 {
 	return l.ID
 }
 
-// GetCerts fetch in the database then return the associated Certificates if they exist
-func (l *LocalAccount) GetCerts(db *database.DB) ([]Cert, database.Error) {
-	return GetCerts(db, l)
+// GetCryptos fetch in the database then return the associated Cryptos if they exist
+func (l *LocalAccount) GetCryptos(db *database.DB) ([]Crypto, database.Error) {
+	return GetCryptos(db, l)
 }
 
 // BeforeWrite checks if the new `LocalAccount` entry is valid and can be
@@ -103,7 +103,7 @@ func (l *LocalAccount) BeforeDelete(db database.Access) database.Error {
 			"the transfers or wait for them to finish")
 	}
 
-	certQuery := db.DeleteAll(&Cert{}).Where("owner_type='local_accounts' AND owner_id=?",
+	certQuery := db.DeleteAll(&Crypto{}).Where("owner_type='local_accounts' AND owner_id=?",
 		l.ID)
 	if err := certQuery.Run(); err != nil {
 		return err

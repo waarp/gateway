@@ -61,17 +61,15 @@ func TestSFTPList(t *testing.T) {
 			}
 			So(db.Insert(tata).Run(), ShouldBeNil)
 
-			cert := model.Cert{
-				OwnerType:   agent.TableName(),
-				OwnerID:     agent.ID,
-				Name:        "test_sftp_server_cert",
-				PrivateKey:  testPK,
-				PublicKey:   testPBK,
-				Certificate: []byte("cert"),
+			hostKey := model.Crypto{
+				OwnerType:  agent.TableName(),
+				OwnerID:    agent.ID,
+				Name:       "test_sftp_server_key",
+				PrivateKey: rsaPK,
 			}
-			So(db.Insert(&cert).Run(), ShouldBeNil)
+			So(db.Insert(&hostKey).Run(), ShouldBeNil)
 
-			serverConfig, err := getSSHServerConfig(db, []model.Cert{cert}, &protoConfig, agent)
+			serverConfig, err := getSSHServerConfig(db, []model.Crypto{hostKey}, &protoConfig, agent)
 			So(err, ShouldBeNil)
 
 			ctx, cancel := context.WithCancel(context.Background())

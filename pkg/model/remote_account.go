@@ -93,7 +93,7 @@ func (r *RemoteAccount) BeforeDelete(db database.Access) database.Error {
 			"for it to finish")
 	}
 
-	certQuery := db.DeleteAll(&Cert{}).Where(
+	certQuery := db.DeleteAll(&Crypto{}).Where(
 		"owner_type='remote_accounts' AND owner_id=?", r.ID)
 	if err := certQuery.Run(); err != nil {
 		return err
@@ -108,7 +108,7 @@ func (r *RemoteAccount) BeforeDelete(db database.Access) database.Error {
 	return nil
 }
 
-// GetCerts fetch in the database then return the associated Certificates if they exist
-func (r *RemoteAccount) GetCerts(db database.ReadAccess) ([]Cert, database.Error) {
-	return GetCerts(db, r)
+// GetCryptos fetch in the database then return the associated Cryptos if they exist
+func (r *RemoteAccount) GetCryptos(db database.ReadAccess) ([]Crypto, database.Error) {
+	return GetCryptos(db, r)
 }

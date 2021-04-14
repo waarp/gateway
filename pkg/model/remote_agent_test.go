@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -29,9 +31,9 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 		Convey("Given a remote agent entry", func() {
 			ag := RemoteAgent{
 				Name:        "partner",
-				Protocol:    "dummy",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Address:     "localhost:6666",
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
@@ -49,23 +51,20 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 				ObjectType: "remote_accounts"}
 			So(db.Insert(&accAccess).Run(), ShouldBeNil)
 
-			certAg := Cert{
+			certAg := Crypto{
 				OwnerType:   "remote_agents",
 				OwnerID:     ag.ID,
 				Name:        "test agent cert",
-				PrivateKey:  json.RawMessage("private key"),
-				PublicKey:   json.RawMessage("public key"),
-				Certificate: json.RawMessage("certificate"),
+				Certificate: testhelpers.LocalhostCert,
 			}
 			So(db.Insert(&certAg).Run(), ShouldBeNil)
 
-			certAcc := Cert{
+			certAcc := Crypto{
 				OwnerType:   "remote_accounts",
 				OwnerID:     acc.ID,
 				Name:        "test account cert",
-				PrivateKey:  json.RawMessage("private key"),
-				PublicKey:   json.RawMessage("public key"),
-				Certificate: json.RawMessage("certificate"),
+				PrivateKey:  testhelpers.ClientKey,
+				Certificate: testhelpers.ClientCert,
 			}
 			So(db.Insert(&certAcc).Run(), ShouldBeNil)
 
@@ -83,7 +82,7 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 					})
 
 					Convey("Then both certificates should have been deleted", func() {
-						var certs Certificates
+						var certs Cryptos
 						So(db.Select(&certs).Run(), ShouldBeNil)
 						So(certs, ShouldBeEmpty)
 					})
@@ -131,7 +130,7 @@ func TestRemoteAgentValidate(t *testing.T) {
 		Convey("Given the database contains 1 remote agent", func() {
 			oldAgent := RemoteAgent{
 				Name:        "old",
-				Protocol:    "sftp",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -140,7 +139,7 @@ func TestRemoteAgentValidate(t *testing.T) {
 			Convey("Given a new remote agent", func() {
 				newAgent := &RemoteAgent{
 					Name:        "new",
-					Protocol:    "sftp",
+					Protocol:    dummyProto,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2023",
 				}

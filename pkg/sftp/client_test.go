@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	listener, err := makeDummyServer(testPK, testPBK, testLogin, testPassword)
+	listener, err := makeDummyServer(rsaPK, rsaPBK, testLogin, testPassword)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -89,11 +89,11 @@ func TestAuthenticate(t *testing.T) {
 				Login:    testLogin,
 				Password: []byte("testPassword"),
 			}
-			client.Info.ServerCerts = []model.Cert{{
-				PublicKey: testPBK,
+			client.Info.ServerCryptos = []model.Crypto{{
+				SSHPublicKey: rsaPBK,
 			}}
-			client.Info.ClientCerts = []model.Cert{{
-				PrivateKey: []byte(rsaPK),
+			client.Info.ClientCryptos = []model.Crypto{{
+				PrivateKey: rsaPK,
 			}}
 
 			err := client.Authenticate()
@@ -113,8 +113,8 @@ func TestAuthenticate(t *testing.T) {
 				Login:    testLogin,
 				Password: []byte("tutu"),
 			}
-			client.Info.ServerCerts = []model.Cert{{
-				PublicKey: testPBK,
+			client.Info.ServerCryptos = []model.Crypto{{
+				SSHPublicKey: rsaPBK,
 			}}
 
 			err := client.Authenticate()
@@ -142,8 +142,8 @@ func TestRequest(t *testing.T) {
 					Login:    testLogin,
 					Password: []byte(testPassword),
 				},
-				ServerCerts: []model.Cert{{
-					PublicKey: testPBK,
+				ServerCryptos: []model.Crypto{{
+					SSHPublicKey: rsaPBK,
 				}},
 			},
 		}
@@ -229,8 +229,8 @@ func TestData(t *testing.T) {
 					Login:    testLogin,
 					Password: []byte(testPassword),
 				},
-				ServerCerts: []model.Cert{{
-					PublicKey: testPBK,
+				ServerCryptos: []model.Crypto{{
+					SSHPublicKey: rsaPBK,
 				}},
 			},
 		}

@@ -29,7 +29,7 @@ func getRuleFromPath(db *database.DB, r *sftp.Request, isSend bool) (*model.Rule
 	return rule, nil
 }
 
-func getSSHServerConfig(db *database.DB, certs []model.Cert, protoConfig *config.SftpProtoConfig,
+func getSSHServerConfig(db *database.DB, hostKeys []model.Crypto, protoConfig *config.SftpProtoConfig,
 	agent *model.LocalAgent) (*ssh.ServerConfig, error) {
 	conf := &ssh.ServerConfig{
 		Config: ssh.Config{
@@ -43,13 +43,13 @@ func getSSHServerConfig(db *database.DB, certs []model.Cert, protoConfig *config
 				conn.User()).Run(); err != nil {
 				return nil, fmt.Errorf("authentication failed")
 			}
-			certs, err := user.GetCerts(db)
+			userKeys, err := user.GetCryptos(db)
 			if err != nil {
 				return nil, fmt.Errorf("authentication failed")
 			}
 
-			for _, cert := range certs {
-				publicKey, _, _, _, err := ssh.ParseAuthorizedKey(cert.PublicKey)
+			for _, userKey := range userKeys {
+				publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(userKey.SSHPublicKey))
 				if err != nil {
 					return nil, err
 				}
@@ -73,8 +73,8 @@ func getSSHServerConfig(db *database.DB, certs []model.Cert, protoConfig *config
 		},
 	}
 
-	for _, cert := range certs {
-		privateKey, err := ssh.ParsePrivateKey(cert.PrivateKey)
+	for _, hostKey := range hostKeys {
+		privateKey, err := ssh.ParsePrivateKey([]byte(hostKey.PrivateKey))
 		if err != nil {
 			return nil, err
 		}
