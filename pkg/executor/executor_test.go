@@ -55,16 +55,6 @@ func TestExecutorRun(t *testing.T) {
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 
-		cert := &model.Cert{
-			OwnerType:   remote.TableName(),
-			OwnerID:     remote.ID,
-			Name:        "test cert",
-			PrivateKey:  nil,
-			PublicKey:   []byte("public key"),
-			Certificate: []byte("certificate"),
-		}
-		So(db.Insert(cert).Run(), ShouldBeNil)
-
 		Convey("Given an outgoing transfer", func() {
 			rule := &model.Rule{
 				Name:   "test_rule",
@@ -440,16 +430,6 @@ func TestTransferResume(t *testing.T) {
 			Password:      []byte("test password"),
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
-
-		cert := &model.Cert{
-			OwnerType:   remote.TableName(),
-			OwnerID:     remote.ID,
-			Name:        "test cert",
-			PrivateKey:  nil,
-			PublicKey:   []byte("public key"),
-			Certificate: []byte("certificate"),
-		}
-		So(db.Insert(cert).Run(), ShouldBeNil)
 
 		rule := &model.Rule{
 			Name:   "resume",

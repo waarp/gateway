@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -76,7 +78,7 @@ func TestImportRemoteAgents(t *testing.T) {
 				Name:          "test",
 				Protocol:      "sftp",
 				Configuration: []byte(`{}`),
-				Address:       "localhost:90",
+				Address:       "localhost:6666",
 				Accounts: []RemoteAccount{
 					{
 						Login:    "test",
@@ -86,9 +88,7 @@ func TestImportRemoteAgents(t *testing.T) {
 				Certs: []Certificate{
 					{
 						Name:        "cert",
-						PublicKey:   "public",
-						PrivateKey:  "private",
-						Certificate: "key",
+						Certificate: testhelpers.LocalhostCert,
 					},
 				},
 			}
@@ -117,8 +117,8 @@ func TestImportRemoteAgents(t *testing.T) {
 
 						So(len(accounts), ShouldEqual, 1)
 
-						var certs model.Certificates
-						So(db.Select(&certs).Where("owner_type='remote_agents' "+
+						var cryptos model.Cryptos
+						So(db.Select(&cryptos).Where("owner_type='remote_agents' "+
 							"AND owner_id=?", dbAgent.ID).Run(), ShouldBeNil)
 
 						So(len(accounts), ShouldEqual, 1)
@@ -217,9 +217,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							PublicKey:   "public",
-							PrivateKey:  "private",
-							Certificate: "key",
+							PrivateKey:  testhelpers.ClientKey,
+							Certificate: testhelpers.ClientCert,
 						},
 					},
 				}
@@ -247,8 +246,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 									Convey("When dbAccount is found", func() {
 										So(accounts[i].Password, ShouldNotResemble,
 											dbAccount.Password)
-										var certs model.Certificates
-										So(db.Select(&certs).Where("owner_type='remote_accounts'"+
+										var cryptos model.Cryptos
+										So(db.Select(&cryptos).Where("owner_type='remote_accounts'"+
 											" AND owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
@@ -271,9 +270,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							PublicKey:   "public",
-							PrivateKey:  "private",
-							Certificate: "key",
+							PrivateKey:  testhelpers.ClientKey,
+							Certificate: testhelpers.ClientCert,
 						},
 					},
 				}
@@ -301,8 +299,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 									Convey("When dbAccount is found", func() {
 										So(accounts[i].Password, ShouldResemble,
 											dbAccount.Password)
-										var certs model.Certificates
-										So(db.Select(&certs).Where("owner_type='remote_accounts' AND "+
+										var cryptos model.Cryptos
+										So(db.Select(&cryptos).Where("owner_type='remote_accounts' AND "+
 											"owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)

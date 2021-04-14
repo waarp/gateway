@@ -59,8 +59,8 @@ func getSSHClientConfig(info *model.OutTransferInfo, protoConfig *config.SftpPro
 
 	var hostKeys []ssh.PublicKey
 	var algos []string
-	for _, c := range info.ServerCerts {
-		key, _, _, _, err := ssh.ParseAuthorizedKey(c.PublicKey) //nolint:dogsled
+	for _, c := range info.ServerCryptos {
+		key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(c.SSHPublicKey)) //nolint:dogsled
 		if err != nil {
 			return nil, err
 		}
@@ -85,9 +85,9 @@ func getSSHClientConfig(info *model.OutTransferInfo, protoConfig *config.SftpPro
 		HostKeyAlgorithms: algos,
 	}
 
-	signers := []ssh.Signer{}
-	for _, c := range info.ClientCerts {
-		signer, err := ssh.ParsePrivateKey(c.PrivateKey)
+	var signers []ssh.Signer
+	for _, c := range info.ClientCryptos {
+		signer, err := ssh.ParsePrivateKey([]byte(c.PrivateKey))
 		if err != nil {
 			continue
 		}

@@ -67,24 +67,21 @@ func TestSFTPPackage(t *testing.T) {
 			}
 			So(db.Insert(localAccount).Run(), ShouldBeNil)
 
-			localServerCert := model.Cert{
-				OwnerType:   localAgent.TableName(),
-				OwnerID:     localAgent.ID,
-				Name:        "test_sftp_server_cert",
-				PrivateKey:  testPK,
-				PublicKey:   testPBK,
-				Certificate: []byte("cert"),
+			localServerKey := model.Crypto{
+				OwnerType:  localAgent.TableName(),
+				OwnerID:    localAgent.ID,
+				Name:       "test_sftp_server_key",
+				PrivateKey: rsaPK,
 			}
-			So(db.Insert(&localServerCert).Run(), ShouldBeNil)
+			So(db.Insert(&localServerKey).Run(), ShouldBeNil)
 
-			localUserCert := &model.Cert{
-				OwnerType:   localAccount.TableName(),
-				OwnerID:     localAccount.ID,
-				Name:        "test_sftp_user_cert",
-				PublicKey:   []byte(rsaPBK),
-				Certificate: []byte{'.'},
+			localUserKey := &model.Crypto{
+				OwnerType:    localAccount.TableName(),
+				OwnerID:      localAccount.ID,
+				Name:         "test_sftp_user_key",
+				SSHPublicKey: rsaPBK,
 			}
-			So(db.Insert(localUserCert).Run(), ShouldBeNil)
+			So(db.Insert(localUserKey).Run(), ShouldBeNil)
 
 			receive := &model.Rule{
 				Name:     "receive",
@@ -122,7 +119,7 @@ func TestSFTPPackage(t *testing.T) {
 			So(db.Insert(receivePostTask).Run(), ShouldBeNil)
 			So(db.Insert(receiveErrorTask).Run(), ShouldBeNil)
 
-			serverConfig, err := getSSHServerConfig(db, []model.Cert{localServerCert},
+			serverConfig, err := getSSHServerConfig(db, []model.Crypto{localServerKey},
 				&protoConfig, localAgent)
 			So(err, ShouldBeNil)
 			ctx, cancel := context.WithCancel(context.Background())
@@ -163,23 +160,21 @@ func TestSFTPPackage(t *testing.T) {
 				}
 				So(db.Insert(remoteAccount).Run(), ShouldBeNil)
 
-				remoteServerCert := &model.Cert{
-					OwnerType:   remoteAgent.TableName(),
-					OwnerID:     remoteAgent.ID,
-					Name:        "test_sftp_partner_cert",
-					PublicKey:   testPBK,
-					Certificate: []byte("cert"),
+				remoteServerKey := &model.Crypto{
+					OwnerType:    remoteAgent.TableName(),
+					OwnerID:      remoteAgent.ID,
+					Name:         "test_sftp_partner_key",
+					SSHPublicKey: rsaPBK,
 				}
-				So(db.Insert(remoteServerCert).Run(), ShouldBeNil)
+				So(db.Insert(remoteServerKey).Run(), ShouldBeNil)
 
-				remoteUserCert := &model.Cert{
-					OwnerType:   remoteAccount.TableName(),
-					OwnerID:     remoteAccount.ID,
-					Name:        "test_sftp_account_cert",
-					PrivateKey:  []byte(rsaPK),
-					Certificate: []byte{'.'},
+				remoteUserKey := &model.Crypto{
+					OwnerType:  remoteAccount.TableName(),
+					OwnerID:    remoteAccount.ID,
+					Name:       "test_sftp_account_key",
+					PrivateKey: rsaPK,
 				}
-				So(db.Insert(remoteUserCert).Run(), ShouldBeNil)
+				So(db.Insert(remoteUserKey).Run(), ShouldBeNil)
 
 				send := &model.Rule{
 					Name:    "send",

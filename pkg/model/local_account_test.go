@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
@@ -30,7 +32,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 		Convey("Given a local account entry", func() {
 			ag := &LocalAgent{
 				Name:        "server",
-				Protocol:    "dummy",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
@@ -39,13 +41,11 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 			acc := LocalAccount{LocalAgentID: ag.ID, Login: "login", Password: []byte("password")}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
-			cert := Cert{
+			cert := Crypto{
 				OwnerType:   "local_accounts",
 				OwnerID:     acc.ID,
 				Name:        "test cert",
-				PrivateKey:  []byte("private key"),
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
+				Certificate: testhelpers.ClientCert,
 			}
 			So(db.Insert(&cert).Run(), ShouldBeNil)
 
@@ -61,7 +61,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 					So(acc.BeforeDelete(db), ShouldBeNil)
 
 					Convey("Then the account's certificates should have been deleted", func() {
-						var certs Certificates
+						var certs Cryptos
 						So(db.Select(&certs).Run(), ShouldBeNil)
 						So(certs, ShouldBeEmpty)
 					})
@@ -108,7 +108,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 			parentAgent := LocalAgent{
 				Owner:       "test_gateway",
 				Name:        "parent_agent",
-				Protocol:    "sftp",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2222",
 			}
@@ -181,7 +181,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 					otherAgent := LocalAgent{
 						Owner:       "test_gateway",
 						Name:        "other",
-						Protocol:    "sftp",
+						Protocol:    dummyProto,
 						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}

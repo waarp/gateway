@@ -96,7 +96,7 @@ func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error
 		return database.NewValidationError("invalid partner protocol configuration: %s", err1)
 	}
 	if protoConf.CertRequired() {
-		n, err := db.Count(&Cert{}).Where("owner_type=? AND owner_id=?",
+		n, err := db.Count(&Crypto{}).Where("owner_type=? AND owner_id=?",
 			remote.TableName(), remote.ID).Run()
 		if err != nil {
 			return err

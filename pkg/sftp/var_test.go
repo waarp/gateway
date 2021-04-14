@@ -20,8 +20,6 @@ const (
 
 var (
 	clientTestPort uint16
-	testPK         = []byte(rsaPK)
-	testPBK        = []byte(rsaPBK)
 )
 
 func init() {
@@ -162,4 +160,4 @@ const rsaPBK = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDhbxVecyg3NbOuGgIbzUuB3" +
 	"fAz3y4ucEYiOr/4bkOBTuAMxbvE+S8mvbOTQ+itsFQxuJgWTrx/53Yth3QYDwgjTaT7TLSSR" +
 	"pi1+s9QQg6XTanJyjtEmmYbnaB+EhAQfI0mfOripP/1cTq9StZfYTKl58ObrYWmc5CDH338u" +
 	"CdK5GxIP9eNz4RcLqPLvcVBrm62qsYReoD62InykggeOSgkOo4UGbC7JSEdW3afMBGdh797e" +
-	"ht6qX3ywKbs7GNVwOt2M7xrpmCehU1uegN7GtIRvCZR0JH4+KSGitWFY3E= test@waarp.org"
+	"ht6qX3ywKbs7GNVwOt2M7xrpmCehU1uegN7GtIRvCZR0JH4+KSGitWFY3E="

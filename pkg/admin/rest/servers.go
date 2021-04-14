@@ -191,7 +191,7 @@ func getServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = getCertificate(w, r, db, ag.TableName(), ag.ID)
+		err = getCrypto(w, r, db, ag.TableName(), ag.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -203,7 +203,7 @@ func addServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = createCertificate(w, r, db, ag.TableName(), ag.ID)
+		err = createCrypto(w, r, db, ag.TableName(), ag.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -215,7 +215,7 @@ func listServerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = listCertificates(w, r, db, ag.TableName(), ag.ID)
+		err = listCryptos(w, r, db, ag.TableName(), ag.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -227,7 +227,7 @@ func deleteServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = deleteCertificate(w, r, db, ag.TableName(), ag.ID)
+		err = deleteCrypto(w, r, db, ag.TableName(), ag.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -239,7 +239,7 @@ func updateServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = updateCertificate(w, r, db, ag.TableName(), ag.ID)
+		err = updateCrypto(w, r, db, ag.TableName(), ag.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -251,7 +251,7 @@ func replaceServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = replaceCertificate(w, r, db, ag.TableName(), ag.ID)
+		err = replaceCrypto(w, r, db, ag.TableName(), ag.ID)
 		handleError(w, logger, err)
 	}
 }

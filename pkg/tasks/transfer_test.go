@@ -81,20 +81,11 @@ func TestTransferRun(t *testing.T) {
 
 		partner := &model.RemoteAgent{
 			Name:        "test partner",
-			Protocol:    "sftp",
+			Protocol:    "test",
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:1111",
 		}
 		So(db.Insert(partner).Run(), ShouldBeNil)
-
-		cert := &model.Cert{
-			OwnerType:   partner.TableName(),
-			OwnerID:     partner.ID,
-			Name:        "test cert",
-			PublicKey:   []byte("public key"),
-			Certificate: []byte("certificate"),
-		}
-		So(db.Insert(cert).Run(), ShouldBeNil)
 
 		account := &model.RemoteAccount{
 			RemoteAgentID: partner.ID,

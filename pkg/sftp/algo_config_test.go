@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -44,19 +45,21 @@ func TestSFTPAlgoConfig(t *testing.T) {
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 
-		cert := &model.Cert{
-			OwnerType:   agent.TableName(),
-			OwnerID:     agent.ID,
-			Name:        "local_agent_cert",
-			PrivateKey:  testPK,
-			PublicKey:   testPBK,
-			Certificate: []byte("cert"),
+		hostKey := &model.Crypto{
+			OwnerType:  agent.TableName(),
+			OwnerID:    agent.ID,
+			Name:       "local_agent_key",
+			PrivateKey: rsaPK,
 		}
-		So(db.Insert(cert).Run(), ShouldBeNil)
+		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
 		server := NewService(db, agent, logger)
 		So(server.Start(), ShouldBeNil)
-		Reset(func() { _ = server.Stop(context.Background()) })
+		Reset(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			c.So(server.Stop(ctx), ShouldBeNil)
+		})
 
 		Convey("Given an SFTP client", func() {
 			info := model.OutTransferInfo{
@@ -70,20 +73,19 @@ func TestSFTPAlgoConfig(t *testing.T) {
 					Login:    login,
 					Password: password,
 				},
-				ServerCerts: []model.Cert{{
-					Name:        "remote_agent_cert",
-					PublicKey:   testPBK,
-					Certificate: []byte("cert"),
+				ServerCryptos: []model.Crypto{{
+					Name:         "server_key",
+					SSHPublicKey: rsaPBK,
 				}},
-				ClientCerts: nil,
+				ClientCryptos: nil,
 			}
 			c, err := NewClient(info, make(chan model.Signal))
 			So(err, ShouldBeNil)
 			client := c.(*Client)
+			So(client.Connect(), ShouldBeNil)
 
 			Convey("Given the SFTP client has the same configured algos", func() {
 				Convey("Then it should authenticate without errors", func() {
-					So(client.Connect(), ShouldBeNil)
 					So(client.Authenticate(), ShouldBeNil)
 				})
 			})
@@ -92,7 +94,6 @@ func TestSFTPAlgoConfig(t *testing.T) {
 				client.conf.KeyExchanges = []string{"diffie-hellman-group1-sha1"}
 
 				Convey("Then the authentication should fail", func() {
-					So(client.Connect(), ShouldBeNil)
 					So(client.Authenticate(), ShouldNotBeNil)
 				})
 			})
@@ -101,7 +102,6 @@ func TestSFTPAlgoConfig(t *testing.T) {
 				client.conf.Ciphers = []string{"aes192-ctr"}
 
 				Convey("Then the authentication should fail", func() {
-					So(client.Connect(), ShouldBeNil)
 					So(client.Authenticate(), ShouldNotBeNil)
 				})
 			})
@@ -110,7 +110,6 @@ func TestSFTPAlgoConfig(t *testing.T) {
 				client.conf.MACs = []string{"hmac-sha1"}
 
 				Convey("Then the authentication should fail", func() {
-					So(client.Connect(), ShouldBeNil)
 					So(client.Authenticate(), ShouldNotBeNil)
 				})
 			})

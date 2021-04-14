@@ -242,20 +242,11 @@ func TestGetTransfer(t *testing.T) {
 			Convey("Given a valid transfer", func() {
 				p := &model.RemoteAgent{
 					Name:        "test",
-					Protocol:    "sftp",
+					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
 				So(db.Insert(p).Run(), ShouldBeNil)
-
-				c := &model.Cert{
-					Name:        "test",
-					PublicKey:   []byte("test"),
-					Certificate: []byte("test"),
-					OwnerType:   "remote_agents",
-					OwnerID:     p.ID,
-				}
-				So(db.Insert(c).Run(), ShouldBeNil)
 
 				a := &model.RemoteAccount{
 					Login:         "login",

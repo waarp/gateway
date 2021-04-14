@@ -53,7 +53,7 @@ func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *S
 }
 
 func (s *Service) makeTLSConf() (*tls.Config, error) {
-	certs, err := s.agent.GetCerts(s.db)
+	certs, err := s.agent.GetCryptos(s.db)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (s *Service) makeTLSConf() (*tls.Config, error) {
 	tlsCerts := make([]tls.Certificate, len(certs))
 	for i, cert := range certs {
 		var err error
-		tlsCerts[i], err = tls.X509KeyPair(cert.Certificate, cert.PrivateKey)
+		tlsCerts[i], err = tls.X509KeyPair([]byte(cert.Certificate), []byte(cert.PrivateKey))
 		if err != nil {
 			return nil, err
 		}

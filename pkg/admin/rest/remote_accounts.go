@@ -202,7 +202,7 @@ func getRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = getCertificate(w, r, db, acc.TableName(), acc.ID)
+		err = getCrypto(w, r, db, acc.TableName(), acc.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -214,7 +214,7 @@ func addRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = createCertificate(w, r, db, acc.TableName(), acc.ID)
+		err = createCrypto(w, r, db, acc.TableName(), acc.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -226,7 +226,7 @@ func listRemAccountCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = listCertificates(w, r, db, acc.TableName(), acc.ID)
+		err = listCryptos(w, r, db, acc.TableName(), acc.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -238,7 +238,7 @@ func deleteRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			return
 		}
 
-		err = deleteCertificate(w, r, db, acc.TableName(), acc.ID)
+		err = deleteCrypto(w, r, db, acc.TableName(), acc.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -250,7 +250,7 @@ func updateRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			return
 		}
 
-		err = updateCertificate(w, r, db, acc.TableName(), acc.ID)
+		err = updateCrypto(w, r, db, acc.TableName(), acc.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -262,7 +262,7 @@ func replaceRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc
 			return
 		}
 
-		err = replaceCertificate(w, r, db, acc.TableName(), acc.ID)
+		err = replaceCrypto(w, r, db, acc.TableName(), acc.ID)
 		handleError(w, logger, err)
 	}
 }

@@ -11,8 +11,8 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func makeDummyServer(pk, pbk []byte, login, password string) (net.Listener, error) {
-	publicKey, _, _, _, err := ssh.ParseAuthorizedKey(pbk)
+func makeDummyServer(pk, pbk, login, password string) (net.Listener, error) {
+	publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pbk))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse user public key: %s", err)
 	}
@@ -32,7 +32,7 @@ func makeDummyServer(pk, pbk []byte, login, password string) (net.Listener, erro
 		},
 	}
 
-	privateKey, err := ssh.ParsePrivateKey(pk)
+	privateKey, err := ssh.ParsePrivateKey([]byte(pk))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse SFTP server key: %s", err)
 	}

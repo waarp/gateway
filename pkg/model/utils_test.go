@@ -6,6 +6,8 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 )
 
+const dummyProto = "dummy"
+
 func init() {
 	logConf := conf.LogConfig{
 		Level: "CRITICAL",
@@ -13,7 +15,7 @@ func init() {
 	}
 	_ = log.InitBackend(logConf)
 
-	config.ProtoConfigs["dummy"] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs[dummyProto] = func() config.ProtoConfig { return new(TestProtoConfig) }
 }
 
 type TestProtoConfig struct{}

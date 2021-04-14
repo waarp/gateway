@@ -189,36 +189,6 @@ func TestAddTransfer(t *testing.T) {
 					})
 				})
 			})
-
-			Convey("Given the partner does not have a certificate", func() {
-				partner.Protocol = "sftp"
-				So(db.Update(partner).Run(), ShouldBeNil)
-
-				body := strings.NewReader(`{
-					"rule": "push",
-					"partner": "remote",
-					"account": "toto",
-					"isSend": true,
-					"sourcePath": "file.src",
-					"destPath": "file.dst"
-				}`)
-
-				Convey("When calling the handler", func() {
-					r, err := http.NewRequest(http.MethodPost, "", body)
-					So(err, ShouldBeNil)
-
-					handler.ServeHTTP(w, r)
-
-					Convey("Then it should return a code 400", func() {
-						So(w.Code, ShouldEqual, http.StatusBadRequest)
-					})
-
-					Convey("Then the response body should say a host key is missing", func() {
-						So(w.Body.String(), ShouldEqual, "the sftp partner is missing "+
-							"a certificate when it was required\n")
-					})
-				})
-			})
 		})
 	})
 }
@@ -322,7 +292,7 @@ func TestListTransfer(t *testing.T) {
 
 		Convey("Given a database with 2 transfer", func() {
 			p1 := &model.RemoteAgent{
-				Name:        "sftp1",
+				Name:        "part1",
 				Protocol:    "test",
 				Address:     "localhost:1",
 				ProtoConfig: json.RawMessage(`{}`),
@@ -330,32 +300,12 @@ func TestListTransfer(t *testing.T) {
 			So(db.Insert(p1).Run(), ShouldBeNil)
 
 			p2 := &model.RemoteAgent{
-				Name:        "sftp2",
+				Name:        "part2",
 				Protocol:    "test2",
 				Address:     "localhost:2",
 				ProtoConfig: json.RawMessage(`{}`),
 			}
 			So(db.Insert(p2).Run(), ShouldBeNil)
-
-			c1 := &model.Cert{
-				OwnerType:   p1.TableName(),
-				OwnerID:     p1.ID,
-				Name:        "sftp_cert",
-				PrivateKey:  nil,
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
-			}
-			So(db.Insert(c1).Run(), ShouldBeNil)
-
-			c2 := &model.Cert{
-				OwnerType:   p2.TableName(),
-				OwnerID:     p2.ID,
-				Name:        "sftp_cert",
-				PrivateKey:  nil,
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
-			}
-			So(db.Insert(c2).Run(), ShouldBeNil)
 
 			a1 := &model.RemoteAccount{
 				RemoteAgentID: p1.ID,

@@ -392,21 +392,11 @@ func TestRestartTransfer(t *testing.T) {
 		Convey("Given a database with 1 transfer history", func() {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
-
-			cert := &model.Cert{
-				OwnerType:   partner.TableName(),
-				OwnerID:     partner.ID,
-				Name:        "sftp_cert",
-				PrivateKey:  nil,
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
-			}
-			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
