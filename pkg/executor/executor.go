@@ -55,7 +55,7 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) error {
 }
 
 func (e *Executor) setup() error {
-	e.Logger.Info("Sending transfer request to remote server")
+	e.Logger.Debug("Sending transfer request to remote server")
 
 	if err := e.client.Connect(); err != nil {
 		e.Logger.Errorf("Failed to connect to remote server: %s", err)
@@ -76,7 +76,7 @@ func (e *Executor) setup() error {
 }
 
 func (e *Executor) data() error {
-	e.Logger.Info("Starting data transfer")
+	e.Logger.Debug("Starting data transfer")
 
 	if e.TransferStream.Transfer.Step != types.StepPreTasks &&
 		e.TransferStream.Transfer.Step != types.StepData {
@@ -106,17 +106,18 @@ func (e *Executor) data() error {
 	if err := e.Move(); err != nil {
 		return err
 	}
+	e.Logger.Debug("Data transfer done")
 
 	return nil
 }
 
 func logTrans(logger *log.Logger, info *model.OutTransferInfo) {
 	if info.Rule.IsSend {
-		logger.Infof("Starting %s upload of file '%s' to partner '%s' as '%s' using rule '%s'",
+		logger.Debugf("Starting %s upload of file '%s' to partner '%s' as '%s' using rule '%s'",
 			info.Agent.Protocol, info.Transfer.SourceFile, info.Agent.Name,
 			info.Account.Login, info.Rule.Name)
 	} else {
-		logger.Infof("Starting %s download of file '%s' from partner '%s' as '%s' using rule '%s'",
+		logger.Debugf("Starting %s download of file '%s' from partner '%s' as '%s' using rule '%s'",
 			info.Agent.Protocol, info.Transfer.SourceFile, info.Agent.Name,
 			info.Account.Login, info.Rule.Name)
 	}
@@ -182,6 +183,7 @@ func (e *Executor) run() error {
 		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
 
+	e.Logger.Debug("Sending transfer end message")
 	if err := e.client.Close(nil); err != nil {
 		e.Logger.Errorf("Remote post-task failed")
 		return err
@@ -195,7 +197,7 @@ func (e *Executor) run() error {
 
 // Run executes the transfer stream given in the executor.
 func (e *Executor) Run() {
-	e.Logger.Infof("Processing transfer n°%d", e.Transfer.ID)
+	e.Logger.Debugf("Processing transfer n°%d", e.Transfer.ID)
 
 	if tErr := e.run(); tErr != nil {
 		pipeline.HandleError(e.TransferStream, tErr)
@@ -203,6 +205,6 @@ func (e *Executor) Run() {
 	}
 
 	if e.Archive() == nil {
-		e.Logger.Info("Execution finished without errors")
+		e.Logger.Debug("Execution finished without errors")
 	}
 }

@@ -30,7 +30,8 @@ func (p *Pipeline) PreTasks() error {
 		return nil
 	}
 
-	p.Logger.Info("Executing pre-tasks")
+	p.Logger.Debug("Executing pre-tasks")
+	defer p.Logger.Debug("Post-tasks done")
 	return execTasks(p.proc, model.ChainPre, types.StepPreTasks)
 }
 
@@ -41,7 +42,8 @@ func (p *Pipeline) PostTasks() error {
 		return nil
 	}
 
-	p.Logger.Info("Executing post-tasks")
+	p.Logger.Debug("Executing post-tasks")
+	defer p.Logger.Debug("Post-tasks done")
 	return execTasks(p.proc, model.ChainPost, types.StepPostTasks)
 }
 
@@ -54,7 +56,8 @@ func (p *Pipeline) ErrorTasks() {
 	failedTask := p.Transfer.TaskNumber
 	p.Transfer.TaskNumber = 0
 
-	p.Logger.Info("Executing error tasks")
+	p.Logger.Debug("Executing error-tasks")
+	defer p.Logger.Debug("Error-tasks done")
 	_ = execTasks(p.proc, model.ChainError, types.StepErrorTasks)
 
 	p.Transfer.Step = failedStep
@@ -64,7 +67,7 @@ func (p *Pipeline) ErrorTasks() {
 
 // Archive deletes the transfer entry and saves it in the history.
 func (p *Pipeline) Archive() error {
-	p.Logger.Info("Transfer finished, saving into transfer history")
+	p.Logger.Debug("Transfer finished, saving into transfer history")
 	err := ToHistory(p.DB, p.Logger, p.Transfer)
 	p.exit()
 	return err

@@ -56,7 +56,7 @@ func (t *TransferStream) getOldTransfer() error {
 		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
 
-	t.Transfer = getTrans
+	*t.Transfer = *getTrans
 	return nil
 }
 
@@ -97,6 +97,7 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 		return nil, err
 	}
 	t.Logger = log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
+	t.Logger.Debugf("Starting transfer n°%d", trans.ID)
 
 	t.Pipeline.Rule = &model.Rule{}
 	if err := t.DB.Get(t.Rule, "id=?", trans.RuleID).Run(); err != nil {
@@ -156,7 +157,7 @@ func (t *TransferStream) createTransfer(trans *model.Transfer) error {
 		t.Logger.Criticalf("Failed to create transfer entry: %s", err.Error())
 		return err
 	}
-	t.Logger.Infof("Transfer was given ID n°%d", trans.ID)
+	t.Logger.Debugf("Transfer was given ID n°%d", trans.ID)
 	return nil
 }
 

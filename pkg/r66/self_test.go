@@ -8,51 +8,51 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-/*
 func TestSelfPushOK(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
 
 		Convey("Given a new r66 push transfer", func(c C) {
-			makeTransfer(ctx, true)
+			makeTransfer(c, ctx, true)
 
 			Convey("Once the transfer has been processed", func(c C) {
-				processTransfer(ctx)
+				processTransfer(c, ctx)
 
 				Convey("Then it should have executed all the tasks in order", func(c C) {
-					serverMsgShouldBe("SERVER | PUSH | PRE-TASKS[0] | OK")
-					clientMsgShouldBe("CLIENT | PUSH | PRE-TASKS[0] | OK")
-					serverMsgShouldBe("SERVER | PUSH | POST-TASKS[0] | OK")
-					clientMsgShouldBe("CLIENT | PUSH | POST-TASKS[0] | OK")
-					serverMsgShouldBe("SERVER END TRANSFER OK")
-					clientMsgShouldBe("CLIENT END TRANSFER")
+					serverMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
+					clientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[0] | OK")
+					serverMsgShouldBe(c, "SERVER | PUSH | POST-TASKS[0] | OK")
+					clientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[0] | OK")
+					serverMsgShouldBe(c, "SERVER END TRANSFER OK")
+					clientMsgShouldBe(c, "CLIENT END TRANSFER")
 
-					checkTransfersOK(ctx)
+					checkTransfersOK(c, ctx)
 				})
 			})
 		})
 	})
 }
 
+/*
 func TestSelfPullOK(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
 
 		Convey("Given a new r66 pull transfer", func(c C) {
-			makeTransfer(ctx, false)
+			makeTransfer(c, ctx, false)
 
 			Convey("Once the transfer has been processed", func(c C) {
-				processTransfer(ctx)
+				processTransfer(c, ctx)
 
 				Convey("Then it should have executed all the tasks in order", func(c C) {
-					serverMsgShouldBe("SERVER | PULL | PRE-TASKS[0] | OK")
-					clientMsgShouldBe("CLIENT | PULL | PRE-TASKS[0] | OK")
-					clientMsgShouldBe("CLIENT | PULL | POST-TASKS[0] | OK")
-					serverMsgShouldBe("SERVER | PULL | POST-TASKS[0] | OK")
-					serverMsgShouldBe("SERVER END TRANSFER OK")
-					clientMsgShouldBe("CLIENT END TRANSFER")
+					serverMsgShouldBe(c, "SERVER | PULL | PRE-TASKS[0] | OK")
+					clientMsgShouldBe(c, "CLIENT | PULL | PRE-TASKS[0] | OK")
+					clientMsgShouldBe(c, "CLIENT | PULL | POST-TASKS[0] | OK")
+					serverMsgShouldBe(c, "SERVER | PULL | POST-TASKS[0] | OK")
+					serverMsgShouldBe(c, "SERVER END TRANSFER OK")
+					clientMsgShouldBe(c, "CLIENT END TRANSFER")
 
-					checkTransfersOK(ctx)
+					checkTransfersOK(c, ctx)
 				})
 			})
 		})
@@ -65,22 +65,22 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 		ctx := initForSelfTransfer(c)
 
 		Convey("Given a new r66 push transfer", func(c C) {
-			makeTransfer(ctx, true)
+			makeTransfer(c, ctx, true)
 
 			Convey("Given an error during the client's pre-tasks", func(c C) {
-				errMsg, removeFail := addClientFailure(ctx, model.ChainPre)
+				errMsg, removeFail := addClientFailure(c, ctx, model.ChainPre)
 
 				Convey("Once the transfer has been processed", func(c C) {
-					processTransfer(ctx)
+					processTransfer(c, ctx)
 
 					Convey("Then it should have executed all the tasks in order", func(c C) {
-						serverMsgShouldBe("SERVER | PUSH | PRE-TASKS[0] | OK")
-						clientMsgShouldBe("CLIENT | PUSH | PRE-TASKS[0] | OK")
-						clientMsgShouldBe("CLIENT | PUSH | PRE-TASKS[1] | ERROR")
-						clientMsgShouldBe("CLIENT | PUSH | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe("SERVER | PUSH | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe("SERVER END TRANSFER ERROR")
-						clientMsgShouldBe("CLIENT END TRANSFER")
+						serverMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
+						clientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[0] | OK")
+						clientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[1] | ERROR")
+						clientMsgShouldBe(c, "CLIENT | PUSH | ERROR-TASKS[0] | OK")
+						serverMsgShouldBe(c, "SERVER | PUSH | ERROR-TASKS[0] | OK")
+						serverMsgShouldBe(c, "SERVER END TRANSFER ERROR")
+						clientMsgShouldBe(c, "CLIENT END TRANSFER")
 
 						cTrans := &model.Transfer{
 							Step: types.StepPreTasks,
@@ -102,21 +102,21 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 							TaskNumber: 1,
 						}
 
-						checkTransfersErr(ctx, cTrans, sTrans)
+						checkTransfersErr(c, ctx, cTrans, sTrans)
 
 						Convey("When retrying the transfer", func(c C) {
-							retryTransfer(ctx, removeFail)
+							retryTransfer(c, ctx, removeFail)
 
 							Convey("Once the transfer has been processed", func(c C) {
-								processTransfer(ctx)
+								processTransfer(c, ctx)
 
 								Convey("Then it should have executed all the tasks in order", func(c C) {
-									serverMsgShouldBe("SERVER | PUSH | POST-TASKS[0] | OK")
-									clientMsgShouldBe("CLIENT | PUSH | POST-TASKS[0] | OK")
-									serverMsgShouldBe("SERVER END TRANSFER OK")
-									clientMsgShouldBe("CLIENT END TRANSFER")
+									serverMsgShouldBe(c, "SERVER | PUSH | POST-TASKS[0] | OK")
+									clientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[0] | OK")
+									serverMsgShouldBe(c, "SERVER END TRANSFER OK")
+									clientMsgShouldBe(c, "CLIENT END TRANSFER")
 
-									checkTransfersOK(ctx)
+									checkTransfersOK(c, ctx)
 								})
 							})
 						})
@@ -127,6 +127,7 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 	})
 }
 */
+
 func TestSelfPushServerPreTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -194,6 +195,7 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 	})
 }
 
+/*
 func TestSelfPullClientPreTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -280,7 +282,8 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 		})
 	})
 }
-
+*/
+/*
 func TestSelfPullServerPreTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -347,7 +350,8 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 		})
 	})
 }
-
+*/
+/*
 func TestSelfPushClientPostTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -414,6 +418,7 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 		})
 	})
 }
+*/
 
 func TestSelfPushServerPostTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
@@ -482,6 +487,7 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 	})
 }
 
+/*
 func TestSelfPullClientPostTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -548,7 +554,8 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 		})
 	})
 }
-
+*/
+/*
 func TestSelfPullServerPostTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -617,3 +624,4 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 		})
 	})
 }
+*/

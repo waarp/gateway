@@ -84,6 +84,7 @@ func resetDB(c convey.C, db *DB, config *conf.DatabaseConfig) {
 		c.So(db.engine.Close(), convey.ShouldBeNil)
 	case sqlite, testDBType:
 		c.So(db.engine.Close(), convey.ShouldBeNil)
+		c.So(db.engine.Close(), convey.ShouldBeNil)
 		c.So(os.Remove(config.Address), convey.ShouldBeNil)
 	default:
 		_, _ = c.Printf("Unknown database type '%s'\n", config.Type)

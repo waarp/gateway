@@ -147,19 +147,19 @@ func HandleError(stream *TransferStream, err error) {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		stream.exit()
-		stream.Logger.Info("Transfer interrupted")
+		stream.Logger.Debug("Transfer interrupted")
 	case *model.PauseError:
 		stream.Transfer.Status = types.StatusPaused
 		if dbErr := stream.DB.Update(stream.Transfer).Cols("status").Run(); dbErr != nil {
 			stream.Logger.Criticalf("Failed to update transfer error: %s", dbErr)
 		}
 		stream.exit()
-		stream.Logger.Info("Transfer paused")
+		stream.Logger.Debug("Transfer paused")
 	case *model.CancelError:
 		stream.Transfer.Status = types.StatusCancelled
 		_ = os.Remove(stream.File.Name())
 		_ = stream.Archive()
-		stream.Logger.Info("Transfer cancelled by user")
+		stream.Logger.Debug("Transfer cancelled by user")
 	default:
 		tErr, ok := err.(types.TransferError)
 		if !ok {

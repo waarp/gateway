@@ -141,6 +141,9 @@ func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler
 		Status:           types.StatusRunning,
 	}
 
+	s.logger.Infof("Transfer of file %s was requested by %s, using rule %s",
+		trans.SourceFile, s.account.Login, rule.Name)
+
 	tStream, err := pipeline.NewTransferStream(s.ctx, s.logger, s.db, s.paths, &trans)
 	if err != nil {
 		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to initiate transfer"}

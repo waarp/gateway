@@ -32,6 +32,7 @@ type Controller struct {
 	state  service.State
 
 	wg     *sync.WaitGroup
+	done   chan struct{}
 	ctx    context.Context
 	cancel context.CancelFunc
 }
@@ -52,12 +53,15 @@ func (c *Controller) checkIsDBDown() bool {
 
 func (c *Controller) listen() {
 	c.wg = &sync.WaitGroup{}
+	c.done = make(chan struct{})
 	c.ctx, c.cancel = context.WithCancel(context.Background())
 
 	go func() {
 		for {
 			select {
 			case <-c.ctx.Done():
+				c.wg.Wait()
+				close(c.done)
 				return
 			case <-c.ticker.C:
 				c.startNewTransfers()
@@ -69,6 +73,7 @@ func (c *Controller) listen() {
 // startNewTransfers checks the database for new planned transfers and starts
 // them, as long as there are available transfer slots.
 func (c *Controller) startNewTransfers() {
+
 	if c.checkIsDBDown() {
 		return
 	}
@@ -143,15 +148,8 @@ func (c *Controller) Stop(ctx context.Context) error {
 
 	c.cancel()
 
-	finished := make(chan struct{})
-
-	go func() {
-		c.wg.Wait()
-		close(finished)
-	}()
-
 	select {
-	case <-finished:
+	case <-c.done:
 		c.logger.Info("Shutdown complete")
 		return nil
 	case <-ctx.Done():

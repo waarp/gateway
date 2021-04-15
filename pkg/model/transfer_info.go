@@ -19,6 +19,7 @@ func (*TransferInfo) TableName() string {
 	return "transfer_info"
 }
 
+// Appellation returns the display name of a transfer info entry.
 func (*TransferInfo) Appellation() string {
 	return "transfer info"
 }

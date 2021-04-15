@@ -467,7 +467,7 @@ func TestSSHServer(t *testing.T) {
 							_, err = dst.Write(src.Next(1))
 							So(err, ShouldBeNil)
 							So(conn.Close(), ShouldBeNil)
-							_, err = dst.ReadFrom(src)
+							_, err = dst.Write(src.Next(1))
 
 							sshList.connWg.Wait()
 
