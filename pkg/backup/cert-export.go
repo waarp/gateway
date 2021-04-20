@@ -22,7 +22,7 @@ func exportCertificates(logger *log.Logger, db database.ReadAccess, ownerType st
 		cert := file.Certificate{
 			Name:        src.Name,
 			PublicKey:   src.SSHPublicKey,
-			PrivateKey:  src.PrivateKey,
+			PrivateKey:  string(src.PrivateKey),
 			Certificate: src.Certificate,
 		}
 		res[i] = cert

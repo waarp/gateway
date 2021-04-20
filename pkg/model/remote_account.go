@@ -2,7 +2,7 @@ package model
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
 func init() {
@@ -23,7 +23,7 @@ type RemoteAccount struct {
 	Login string `xorm:"unique(rem_ac) notnull 'login'"`
 
 	// The account's password
-	Password []byte `xorm:"'password'"`
+	Password types.CypherText `xorm:"text 'password'"`
 }
 
 // TableName returns the remote accounts table name.
@@ -51,9 +51,6 @@ func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	if r.Login == "" {
 		return database.NewValidationError("the account's login cannot be empty")
 	}
-	if len(r.Password) == 0 {
-		return database.NewValidationError("The account's password cannot be empty")
-	}
 
 	n, err := db.Count(&RemoteAgent{}).Where("id=?", r.RemoteAgentID).Run()
 	if err != nil {
@@ -72,11 +69,6 @@ func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
 			"a remote account with the same login '%s' already exist", r.Login)
 	}
 
-	var pErr error
-	if r.Password, pErr = utils.CryptPassword(r.Password); pErr != nil {
-		db.GetLogger().Errorf("Failed to encrypt the remote agent password: %s", pErr)
-		return database.NewInternalError(pErr)
-	}
 	return nil
 }
 

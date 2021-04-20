@@ -37,11 +37,6 @@ type client struct {
 
 // NewClient creates and returns a new r66 client using the given transfer info.
 func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipeline.Client, error) {
-	pswd, err := utils.DecryptPassword(info.Account.Password)
-	if err != nil {
-		return nil, err
-	}
-
 	var conf config.R66ProtoConfig
 	if err := json.Unmarshal(info.Agent.ProtoConfig, &conf); err != nil {
 		return nil, err
@@ -56,7 +51,7 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 		}
 	}
 
-	r66Client := r66.NewClient(info.Account.Login, pswd)
+	r66Client := r66.NewClient(info.Account.Login, []byte(info.Account.Password))
 	r66Client.FileSize = true
 	r66Client.FinalHash = !conf.NoFinalHash
 

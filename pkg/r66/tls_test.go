@@ -16,10 +16,10 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func SkipTestTLS(t *testing.T) {
+func TestTLS(t *testing.T) {
 	logger := log.NewLogger("test_r66_tls")
 
-	Convey("Given a TLS R66 server", t, func(c C) {
+	SkipConvey("Given a TLS R66 server", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
 		addr := "localhost:6666"
@@ -61,7 +61,6 @@ func SkipTestTLS(t *testing.T) {
 						Certificate: testhelpers.ClientCert,
 					}},
 					ServerCryptos: []model.Crypto{{
-						PrivateKey:  testhelpers.LocalhostKey,
 						Certificate: testhelpers.LocalhostCert,
 					}},
 				},
@@ -85,7 +84,7 @@ func SkipTestTLS(t *testing.T) {
 			})
 		})
 
-		Convey("Given that the server certificate is unknown", func() {
+		SkipConvey("Given that the server certificate is unknown", func() {
 			client := &client{
 				conf:      config.R66ProtoConfig{IsTLS: true},
 				r66Client: r66.NewClient("toto", []byte("sesame")),
@@ -115,7 +114,7 @@ func SkipTestTLS(t *testing.T) {
 			})
 		})
 
-		Convey("Given that the client does not provide a certificate", func() {
+		SkipConvey("Given that the client does not provide a certificate", func() {
 			client := &client{
 				conf:      config.R66ProtoConfig{IsTLS: true},
 				r66Client: r66.NewClient("toto", []byte("sesame")),

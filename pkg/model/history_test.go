@@ -191,7 +191,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 			account := &RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "toto",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 

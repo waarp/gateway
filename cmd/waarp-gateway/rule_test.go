@@ -540,7 +540,7 @@ func TestRuleAllowAll(t *testing.T) {
 				ra := &model.RemoteAccount{
 					RemoteAgentID: p.ID,
 					Login:         "tata",
-					Password:      []byte("password"),
+					Password:      "password",
 				}
 				So(db.Insert(la).Run(), ShouldBeNil)
 				So(db.Insert(ra).Run(), ShouldBeNil)

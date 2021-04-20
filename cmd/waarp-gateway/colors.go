@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/mattn/go-colorable"
@@ -10,8 +11,8 @@ import (
 )
 
 func getColorable() io.Writer {
-	if term.IsTerminal(int(out.Fd())) {
-		return colorable.NewColorable(out)
+	if file, ok := out.(*os.File); ok && term.IsTerminal(int(file.Fd())) {
+		return colorable.NewColorable(file)
 	}
 	return colorable.NewNonColorable(out)
 }

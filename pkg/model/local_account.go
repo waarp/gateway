@@ -56,9 +56,6 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	if l.Login == "" {
 		return database.NewValidationError("the account's login cannot be empty")
 	}
-	if len(l.Password) == 0 {
-		return database.NewValidationError("the account's password cannot be empty")
-	}
 
 	parent := &LocalAgent{}
 	if err := db.Get(parent, "id=?", l.LocalAgentID).Run(); err != nil {
@@ -81,10 +78,12 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 		l.Password = r66.CryptPass(l.Password)
 	}
 
-	var err1 error
-	l.Password, err1 = utils.HashPassword(l.Password)
-	if err1 != nil {
-		return database.NewInternalError(err)
+	if len(l.Password) > 0 {
+		var err1 error
+		l.Password, err1 = utils.HashPassword(l.Password)
+		if err1 != nil {
+			return database.NewInternalError(err)
+		}
 	}
 	return nil
 }

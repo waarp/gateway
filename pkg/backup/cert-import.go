@@ -5,6 +5,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
 func importCerts(logger *log.Logger, db database.Access, list []file.Certificate,
@@ -28,7 +29,7 @@ func importCerts(logger *log.Logger, db database.Access, list []file.Certificate
 		crypto.OwnerType = ownerType
 		crypto.OwnerID = ownerID
 		crypto.Name = src.Name
-		crypto.PrivateKey = src.PrivateKey
+		crypto.PrivateKey = types.CypherText(src.PrivateKey)
 		crypto.SSHPublicKey = src.PublicKey
 		crypto.Certificate = src.Certificate
 

@@ -9,13 +9,18 @@ import (
 	"path"
 	"strconv"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
-var str = utils.String
-var strPtr = utils.StringPtr
+var (
+	str    = utils.String
+	strPtr = utils.StringPtr
+	cStr   = func(s *string) types.CypherText { return types.CypherText(str(s)) }
+)
 
 type order struct {
 	col string

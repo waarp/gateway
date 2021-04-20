@@ -35,7 +35,7 @@ func accToRemote(acc *api.InAccount, agent *model.RemoteAgent, id uint64) *model
 		ID:            id,
 		RemoteAgentID: agent.ID,
 		Login:         str(acc.Login),
-		Password:      []byte(str(acc.Password)),
+		Password:      cStr(acc.Password),
 	}
 }
 

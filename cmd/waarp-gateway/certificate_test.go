@@ -107,7 +107,7 @@ func TestGetCertificate(t *testing.T) {
 					account := &model.RemoteAccount{
 						RemoteAgentID: partner.ID,
 						Login:         "rem_account",
-						Password:      []byte("password"),
+						Password:      "password",
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 					cert := &model.Crypto{
@@ -339,7 +339,7 @@ func TestGetCertificate(t *testing.T) {
 
 func TestAddCertificate(t *testing.T) {
 
-	Convey("Testing the cert 'add' command", t, func() {
+	Convey("Testing the cert 'add' command", t, func(c C) {
 		out = testFile()
 		command := &certAdd{}
 		commandLine = options{}
@@ -428,7 +428,7 @@ func TestAddCertificate(t *testing.T) {
 					account := &model.RemoteAccount{
 						RemoteAgentID: partner.ID,
 						Login:         "rem_account",
-						Password:      []byte("password"),
+						Password:      "password",
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -797,7 +797,7 @@ func TestDeleteCertificate(t *testing.T) {
 					account := &model.RemoteAccount{
 						RemoteAgentID: partner.ID,
 						Login:         "rem_account",
-						Password:      []byte("password"),
+						Password:      "password",
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -1229,7 +1229,7 @@ func TestListCertificate(t *testing.T) {
 					account := &model.RemoteAccount{
 						RemoteAgentID: partner.ID,
 						Login:         "rem_account",
-						Password:      []byte("password"),
+						Password:      "password",
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -1727,7 +1727,7 @@ func TestUpdateCertificate(t *testing.T) {
 					account := &model.RemoteAccount{
 						RemoteAgentID: partner.ID,
 						Login:         "rem_account",
-						Password:      []byte("password"),
+						Password:      "password",
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 

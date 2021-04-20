@@ -36,7 +36,7 @@ func TestControllerListen(t *testing.T) {
 		account := &model.RemoteAccount{
 			RemoteAgentID: remote.ID,
 			Login:         "test login",
-			Password:      []byte("test password"),
+			Password:      "test password",
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 

@@ -156,7 +156,7 @@ func TestSFTPPackage(t *testing.T) {
 				remoteAccount := &model.RemoteAccount{
 					RemoteAgentID: remoteAgent.ID,
 					Login:         "toto",
-					Password:      []byte(pwd),
+					Password:      types.CypherText(pwd),
 				}
 				So(db.Insert(remoteAccount).Run(), ShouldBeNil)
 

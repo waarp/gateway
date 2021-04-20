@@ -42,7 +42,7 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 	}
 
 	if bcrypt.CompareHashAndPassword(acc.Password, authent.Password) != nil {
-		a.logger.Warningf("Account '%s' authenticated with wrong password", authent.Login)
+		a.logger.Warningf("Account '%s' authenticated with wrong password %s", authent.Login, string(authent.Password))
 		return nil, &r66.Error{Code: r66.BadAuthent, Detail: "incorrect credentials"}
 	}
 
