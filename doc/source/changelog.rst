@@ -3,8 +3,12 @@
 Historique des versions
 =======================
 
+* :bug:`252` Les certificats, clés publiques & clés privées sont désormais parsés
+  avant d'être insérés en base de données. Les données invalides seront désormais
+  refusées.
+
 * :release:`0.3.3 <2021-04-07>`
-* :bug:`251` Corrige le probème de création du fichier distant en SFTP 
+* :bug:`251` Corrige le problème de création du fichier distant en SFTP
   lorsque le serveur refuse l'ouverture de fichier en écriture ET en lecture.
 * :bug:`251` Corrige un problème du script d'update-conf qui sort en erreur 
   si les fichiers optionels ne sont pas dans l'archive de déploiement.

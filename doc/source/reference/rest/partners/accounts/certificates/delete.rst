@@ -18,7 +18,7 @@ Supprimer un certificat
 
       .. code-block:: http
 
-         DELETE https://my_waarp_gateway.net/api/partners/waarp_sftp/accounts/titi/certificates/certificat_titi HTTP/1.1
+         DELETE https://my_waarp_gateway.net/api/partners/waarp_r66/accounts/titi/certificates/certificat_titi HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**
