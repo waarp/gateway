@@ -106,7 +106,7 @@ func initForSelfTransfer(c C) *testContext {
 	remAccount := &model.RemoteAccount{
 		RemoteAgentID: partner.ID,
 		Login:         "toto",
-		Password:      []byte("Sesame"),
+		Password:      "Sesame",
 	}
 	c.So(db.Insert(remAccount).Run(), ShouldBeNil)
 

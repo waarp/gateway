@@ -8,7 +8,6 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -52,11 +51,6 @@ func exist(slice []string, elem string) bool {
 }
 
 func getSSHClientConfig(info *model.OutTransferInfo, protoConfig *config.SftpProtoConfig) (*ssh.ClientConfig, error) {
-	pwd, err := utils.DecryptPassword(info.Account.Password)
-	if err != nil {
-		return nil, err
-	}
-
 	var hostKeys []ssh.PublicKey
 	var algos []string
 	for _, c := range info.ServerCryptos {
@@ -77,10 +71,8 @@ func getSSHClientConfig(info *model.OutTransferInfo, protoConfig *config.SftpPro
 			Ciphers:      protoConfig.Ciphers,
 			MACs:         protoConfig.MACs,
 		},
-		User: info.Account.Login,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(string(pwd)),
-		},
+		User:              info.Account.Login,
+		Auth:              []ssh.AuthMethod{},
 		HostKeyCallback:   makeFixedHostKeys(hostKeys),
 		HostKeyAlgorithms: algos,
 	}
@@ -94,10 +86,10 @@ func getSSHClientConfig(info *model.OutTransferInfo, protoConfig *config.SftpPro
 		signers = append(signers, signer)
 	}
 	if len(signers) > 0 {
-		conf.Auth = []ssh.AuthMethod{
-			ssh.PublicKeys(signers...),
-			ssh.Password(string(pwd)),
-		}
+		conf.Auth = append(conf.Auth, ssh.PublicKeys(signers...))
+	}
+	if len(info.Account.Password) > 0 {
+		conf.Auth = append(conf.Auth, ssh.Password(string(info.Account.Password)))
 	}
 
 	return conf, nil

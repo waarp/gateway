@@ -51,7 +51,7 @@ func TestExportCertificates(t *testing.T) {
 							So(c.Name, ShouldEqual, cert.Name)
 							So(c.Certificate, ShouldResemble, cert.Certificate)
 							So(c.PublicKey, ShouldResemble, cert.SSHPublicKey)
-							So(c.PrivateKey, ShouldResemble, cert.PrivateKey)
+							So(c.PrivateKey, ShouldResemble, string(cert.PrivateKey))
 						})
 					})
 				})

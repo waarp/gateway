@@ -3,6 +3,8 @@ package model
 import (
 	"strings"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"golang.org/x/crypto/ssh"
@@ -34,13 +36,13 @@ type Crypto struct {
 	Name string `xorm:"unique(cert) notnull 'name'"`
 
 	// A PEM encoded TLS private key.
-	PrivateKey string `xorm:"'private_key'"`
+	PrivateKey types.CypherText `xorm:"text 'private_key'"`
 
 	// A PEM encoded TLS certificate.
-	Certificate string `xorm:"'certificate'"`
+	Certificate string `xorm:"text 'certificate'"`
 
 	// An SSH public key in authorized_keys format.
-	SSHPublicKey string `xorm:"'ssh_public_key'"`
+	SSHPublicKey string `xorm:"text 'ssh_public_key'"`
 
 	// A checksum of the raw certificate (if one is provided), used for search purposes.
 	Signature []byte `xorm:"'signature'"`

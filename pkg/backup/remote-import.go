@@ -5,6 +5,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
 func importRemoteAgents(logger *log.Logger, db database.Access, list []file.RemoteAgent) database.Error {
@@ -71,7 +72,7 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 		account.RemoteAgentID = ownerID
 		account.Login = src.Login
 		if src.Password != "" {
-			account.Password = []byte(src.Password)
+			account.Password = types.CypherText(src.Password)
 		}
 
 		// Create/Update

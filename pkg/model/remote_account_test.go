@@ -7,7 +7,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -38,7 +37,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: []byte("password")}
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: "password"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			cert := Crypto{
@@ -121,7 +120,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 			oldAccount := RemoteAccount{
 				RemoteAgentID: parentAgent.ID,
 				Login:         "old",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
@@ -129,7 +128,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 				newAccount := RemoteAccount{
 					RemoteAgentID: parentAgent.ID,
 					Login:         "new",
-					Password:      []byte("password"),
+					Password:      "password",
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -146,14 +145,12 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 
 				Convey("Given that the new account is valid", func() {
 					Convey("When calling the 'BeforeWrite' function", func() {
-						So(db.Transaction(func(ses *database.Session) database.Error {
+						err := db.Transaction(func(ses *database.Session) database.Error {
 							return newAccount.BeforeWrite(ses)
-						}), ShouldBeNil)
+						})
 
-						Convey("Then the account's password should be encrypted", func() {
-							cipher, err := utils.CryptPassword(newAccount.Password)
+						Convey("Then it should not return an error", func() {
 							So(err, ShouldBeNil)
-							So(string(newAccount.Password), ShouldEqual, string(cipher))
 						})
 					})
 				})
@@ -197,14 +194,12 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 					newAccount.Login = oldAccount.Login
 
 					Convey("When calling the 'BeforeWrite' function", func() {
-						So(db.Transaction(func(ses *database.Session) database.Error {
+						err := db.Transaction(func(ses *database.Session) database.Error {
 							return newAccount.BeforeWrite(ses)
-						}), ShouldBeNil)
+						})
 
-						Convey("Then the account's password should be encrypted", func() {
-							cipher, err := utils.CryptPassword(newAccount.Password)
+						Convey("Then it should not return an error", func() {
 							So(err, ShouldBeNil)
-							So(string(newAccount.Password), ShouldEqual, string(cipher))
 						})
 					})
 				})

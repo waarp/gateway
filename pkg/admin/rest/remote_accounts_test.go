@@ -12,7 +12,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -41,7 +40,7 @@ func TestGetRemoteAccount(t *testing.T) {
 			expected := &model.RemoteAccount{
 				Login:         "existing",
 				RemoteAgentID: parent.ID,
-				Password:      []byte("existing"),
+				Password:      "existing",
 			}
 			So(db.Insert(expected).Run(), ShouldBeNil)
 
@@ -157,22 +156,22 @@ func TestListRemoteAccounts(t *testing.T) {
 
 			a1 := &model.RemoteAccount{
 				Login:         "account1",
-				Password:      []byte("account1"),
+				Password:      "account1",
 				RemoteAgentID: p1.ID,
 			}
 			a2 := &model.RemoteAccount{
 				Login:         "account2",
-				Password:      []byte("account2"),
+				Password:      "account2",
 				RemoteAgentID: p1.ID,
 			}
 			a3 := &model.RemoteAccount{
 				Login:         "account3",
-				Password:      []byte("account3"),
+				Password:      "account3",
 				RemoteAgentID: p2.ID,
 			}
 			a4 := &model.RemoteAccount{
 				Login:         "account4",
-				Password:      []byte("account4"),
+				Password:      "account4",
 				RemoteAgentID: p1.ID,
 			}
 
@@ -325,14 +324,11 @@ func TestCreateRemoteAccount(t *testing.T) {
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
 
-							clear, err := utils.DecryptPassword(accs[0].Password)
-							So(err, ShouldBeNil)
-							accs[0].Password = clear
 							So(accs[0], ShouldResemble, model.RemoteAccount{
 								ID:            1,
 								RemoteAgentID: parent.ID,
 								Login:         "new_account",
-								Password:      []byte("new_password"),
+								Password:      "new_password",
 							})
 						})
 					})
@@ -387,7 +383,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 
 			existing := &model.RemoteAccount{
 				Login:         "existing",
-				Password:      []byte("existing"),
+				Password:      "existing",
 				RemoteAgentID: parent.ID,
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
@@ -470,7 +466,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 			old := &model.RemoteAccount{
 				Login:         "old",
-				Password:      []byte("old"),
+				Password:      "old",
 				RemoteAgentID: parent.ID,
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
@@ -511,17 +507,12 @@ func TestUpdateRemoteAccount(t *testing.T) {
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
 
-							pswd, err := utils.DecryptPassword(res[0].Password)
-							So(err, ShouldBeNil)
-							So(pswd, ShouldResemble, []byte("upd_password"))
-
-							exp := model.RemoteAccount{
+							So(res[0], ShouldResemble, model.RemoteAccount{
 								ID:            old.ID,
 								RemoteAgentID: parent.ID,
 								Login:         "old",
 								Password:      res[0].Password,
-							}
-							So(res[0], ShouldResemble, exp)
+							})
 						})
 					})
 				})
@@ -606,7 +597,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 
 			old := &model.RemoteAccount{
 				Login:         "old",
-				Password:      []byte("old"),
+				Password:      "old",
 				RemoteAgentID: parent.ID,
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
@@ -647,17 +638,12 @@ func TestReplaceRemoteAccount(t *testing.T) {
 							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
 
-							pswd, err := utils.DecryptPassword(res[0].Password)
-							So(err, ShouldBeNil)
-							So(pswd, ShouldResemble, []byte("upd_password"))
-
-							exp := model.RemoteAccount{
+							So(res[0], ShouldResemble, model.RemoteAccount{
 								ID:            old.ID,
 								RemoteAgentID: parent.ID,
 								Login:         "upd_login",
 								Password:      res[0].Password,
-							}
-							So(res[0], ShouldResemble, exp)
+							})
 						})
 					})
 				})

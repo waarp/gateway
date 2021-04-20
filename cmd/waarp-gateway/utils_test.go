@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -29,8 +31,13 @@ func init() {
 }
 
 func writeFile(content string) *os.File {
-	file := testFile()
-	_, err := file.WriteString(content)
+	file, err := ioutil.TempFile("", "*")
+	So(err, ShouldBeNil)
+	Reset(func() {
+		_ = file.Close()
+		_ = os.Remove(file.Name())
+	})
+	_, err = file.WriteString(content)
 	So(err, ShouldBeNil)
 	return file
 }
@@ -51,20 +58,12 @@ func (*TestProtoConfigFail) ValidPartner() error {
 }
 func (*TestProtoConfigFail) CertRequired() bool { return false }
 
-func testFile() *os.File {
-	tmp, err := ioutil.TempFile("", "*")
-	So(err, ShouldBeNil)
-	Reset(func() {
-		_ = tmp.Close()
-		_ = os.Remove(tmp.Name())
-	})
-	return tmp
+func testFile() io.Writer {
+	return &strings.Builder{}
 }
 
 func getOutput() string {
-	_, err := out.Seek(0, 0)
-	So(err, ShouldBeNil)
-	cont, err := ioutil.ReadAll(out)
-	So(err, ShouldBeNil)
-	return string(cont)
+	str, ok := out.(*strings.Builder)
+	So(ok, ShouldBeTrue)
+	return str.String()
 }

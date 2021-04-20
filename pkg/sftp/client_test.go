@@ -87,7 +87,7 @@ func TestAuthenticate(t *testing.T) {
 		Convey("Given a valid SFTP configuration", func() {
 			client.Info.Account = &model.RemoteAccount{
 				Login:    testLogin,
-				Password: []byte("testPassword"),
+				Password: "testPassword",
 			}
 			client.Info.ServerCryptos = []model.Crypto{{
 				SSHPublicKey: rsaPBK,
@@ -111,7 +111,7 @@ func TestAuthenticate(t *testing.T) {
 		Convey("Given an incorrect SFTP configuration", func() {
 			client.Info.Account = &model.RemoteAccount{
 				Login:    testLogin,
-				Password: []byte("tutu"),
+				Password: "tutu",
 			}
 			client.Info.ServerCryptos = []model.Crypto{{
 				SSHPublicKey: rsaPBK,
@@ -140,7 +140,7 @@ func TestRequest(t *testing.T) {
 				},
 				Account: &model.RemoteAccount{
 					Login:    testLogin,
-					Password: []byte(testPassword),
+					Password: testPassword,
 				},
 				ServerCryptos: []model.Crypto{{
 					SSHPublicKey: rsaPBK,
@@ -227,7 +227,7 @@ func TestData(t *testing.T) {
 				},
 				Account: &model.RemoteAccount{
 					Login:    testLogin,
-					Password: []byte(testPassword),
+					Password: testPassword,
 				},
 				ServerCryptos: []model.Crypto{{
 					SSHPublicKey: rsaPBK,

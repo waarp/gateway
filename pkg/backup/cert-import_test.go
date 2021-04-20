@@ -70,7 +70,7 @@ func TestImportCerts(t *testing.T) {
 							"to the one imported", func() {
 							So(dbCerts[0].Name, ShouldResemble, insert.Name)
 							So(dbCerts[0].SSHPublicKey, ShouldResemble, insert.PublicKey)
-							So(dbCerts[0].PrivateKey, ShouldResemble, insert.PrivateKey)
+							So(string(dbCerts[0].PrivateKey), ShouldResemble, insert.PrivateKey)
 							So(dbCerts[0].Certificate, ShouldResemble, insert.Certificate)
 						})
 					})
@@ -105,11 +105,10 @@ func TestImportCerts(t *testing.T) {
 							"to the one imported", func() {
 							So(dbCerts[0].Name, ShouldResemble, insert.Name)
 							So(dbCerts[0].SSHPublicKey, ShouldResemble, insert.PublicKey)
-							So(dbCerts[0].PrivateKey, ShouldResemble, insert.PrivateKey)
+							So(string(dbCerts[0].PrivateKey), ShouldResemble, insert.PrivateKey)
 							So(dbCerts[0].Certificate, ShouldResemble, insert.Certificate)
 						})
 					})
-
 				})
 			})
 		})

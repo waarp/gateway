@@ -43,7 +43,7 @@ func TestAddTransfer(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 
 			So(db.Insert(account).Run(), ShouldBeNil)
@@ -269,7 +269,7 @@ func TestGetTransfer(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      []byte("titi"),
+				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -366,14 +366,14 @@ func TestListTransfer(t *testing.T) {
 			a1 := &model.RemoteAccount{
 				RemoteAgentID: p1.ID,
 				Login:         "toto",
-				Password:      []byte("titi"),
+				Password:      "titi",
 			}
 			So(db.Insert(a1).Run(), ShouldBeNil)
 
 			a2 := &model.RemoteAccount{
 				RemoteAgentID: p2.ID,
 				Login:         "toto",
-				Password:      []byte("titi"),
+				Password:      "titi",
 			}
 			So(db.Insert(a2).Run(), ShouldBeNil)
 
@@ -560,7 +560,7 @@ func TestResumeTransfer(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      []byte("titi"),
+				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -650,7 +650,7 @@ func TestPauseTransfer(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      []byte("titi"),
+				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -737,7 +737,7 @@ func TestCancelTransfer(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      []byte("titi"),
+				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 

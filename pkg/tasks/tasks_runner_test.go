@@ -52,7 +52,7 @@ func TestSetup(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "account",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -365,7 +365,7 @@ func TestRunTasks(t *testing.T) {
 		account := &model.RemoteAccount{
 			RemoteAgentID: agent.ID,
 			Login:         "login",
-			Password:      []byte("password"),
+			Password:      "password",
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 

@@ -60,8 +60,8 @@ func getSSHServerConfig(db *database.DB, hostKeys []model.Crypto, protoConfig *c
 			return nil, fmt.Errorf("authentication failed")
 		},
 		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			user := &model.LocalAccount{}
-			if err := db.Get(user, "local_agent_id=? AND login=?", agent.ID,
+			var user model.LocalAccount
+			if err := db.Get(&user, "local_agent_id=? AND login=?", agent.ID,
 				conn.User()).Run(); err != nil {
 				return nil, fmt.Errorf("authentication failed")
 			}

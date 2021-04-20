@@ -3,10 +3,11 @@ package r66
 import (
 	"context"
 	"crypto/tls"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
+
+	"code.bcarlin.xyz/go/logging"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -92,17 +93,7 @@ func (s *Service) Start() error {
 		return err1
 	}
 
-	var ctx context.Context
-	ctx, s.cancel = context.WithCancel(context.Background())
-
-	pwd, err := base64.StdEncoding.DecodeString(conf.ServerPassword)
-	if err != nil {
-		s.logger.Errorf("Failed to decode server password: %s", err)
-		dErr := fmt.Errorf("failed to decode server password: %s", err)
-		s.state.Set(service.Error, dErr.Error())
-		return dErr
-	}
-	pwd, err = utils.DecryptPassword(pwd)
+	pwd, err := utils.AESDecrypt(conf.ServerPassword)
 	if err != nil {
 		s.logger.Errorf("Failed to decrypt server password: %s", err)
 		dErr := fmt.Errorf("failed to decrypt server password: %s", err)
@@ -110,9 +101,12 @@ func (s *Service) Start() error {
 		return dErr
 	}
 
+	var ctx context.Context
+	ctx, s.cancel = context.WithCancel(context.Background())
+
 	s.server = &r66.Server{
 		Login:    s.agent.Name,
-		Password: pwd,
+		Password: []byte(pwd),
 		Conf: &r66.Config{
 			FileSize:  true,
 			FinalHash: true,
@@ -123,6 +117,7 @@ func (s *Service) Start() error {
 			Service: s,
 			ctx:     ctx,
 		},
+		Logger: s.logger.AsStdLog(logging.DEBUG),
 	}
 
 	if err := s.listen(); err != nil {

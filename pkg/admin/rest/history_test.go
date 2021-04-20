@@ -401,7 +401,7 @@ func TestRestartTransfer(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      []byte("titi"),
+				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 

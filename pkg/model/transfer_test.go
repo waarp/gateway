@@ -41,7 +41,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 			account := RemoteAccount{
 				RemoteAgentID: remote.ID,
 				Login:         "toto",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(&account).Run(), ShouldBeNil)
 
@@ -152,7 +152,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 					account2 := RemoteAccount{
 						RemoteAgentID: remote2.ID,
 						Login:         "titi",
-						Password:      []byte("password"),
+						Password:      "password",
 					}
 					So(db.Insert(&account2).Run(), ShouldBeNil)
 
@@ -195,7 +195,7 @@ func TestTransferToHistory(t *testing.T) {
 		account := RemoteAccount{
 			RemoteAgentID: remote.ID,
 			Login:         "toto",
-			Password:      []byte("password"),
+			Password:      "password",
 		}
 		So(db.Insert(&account).Run(), ShouldBeNil)
 

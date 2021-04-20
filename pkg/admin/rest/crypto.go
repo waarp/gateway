@@ -3,6 +3,8 @@ package rest
 import (
 	"net/http"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
@@ -17,7 +19,7 @@ func cryptoToModel(a *api.InCrypto, id uint64, ownerType string, ownerID uint64)
 		OwnerType:    ownerType,
 		OwnerID:      ownerID,
 		Name:         str(a.Name),
-		PrivateKey:   str(a.PrivateKey),
+		PrivateKey:   types.CypherText(str(a.PrivateKey)),
 		SSHPublicKey: str(a.PublicKey),
 		Certificate:  str(a.Certificate),
 	}
@@ -26,7 +28,7 @@ func cryptoToModel(a *api.InCrypto, id uint64, ownerType string, ownerID uint64)
 func inCryptoFromModel(c *model.Crypto) *api.InCrypto {
 	return &api.InCrypto{
 		Name:        &c.Name,
-		PrivateKey:  &c.PrivateKey,
+		PrivateKey:  strPtr(string(c.PrivateKey)),
 		PublicKey:   &c.SSHPublicKey,
 		Certificate: &c.Certificate,
 	}
@@ -36,7 +38,7 @@ func inCryptoFromModel(c *model.Crypto) *api.InCrypto {
 func FromCrypto(a *model.Crypto) *api.OutCrypto {
 	return &api.OutCrypto{
 		Name:        a.Name,
-		PrivateKey:  a.PrivateKey,
+		PrivateKey:  string(a.PrivateKey),
 		PublicKey:   a.SSHPublicKey,
 		Certificate: a.Certificate,
 	}
