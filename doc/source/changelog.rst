@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`252` Les certificats, clés publiques & clés privées sont désormais parsés
+  avant d'être insérés en base de données. Les données invalides seront désormais
+  refusées.
 * :bug:`` Correction d'une régression empêchant le redémarrage des transferts SFTP.
 * :feature:`242` Ajout de la direction (`isSend`) à l'objet *transfer* de REST.
 * :bug:`239` Correction d'une erreur de base de données survenant lors de la mise
