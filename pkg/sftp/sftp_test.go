@@ -63,7 +63,7 @@ func TestSFTPPackage(t *testing.T) {
 			localAccount := &model.LocalAccount{
 				LocalAgentID: localAgent.ID,
 				Login:        "toto",
-				Password:     []byte(pwd),
+				PasswordHash: hash(pwd),
 			}
 			So(db.Insert(localAccount).Run(), ShouldBeNil)
 

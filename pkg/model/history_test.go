@@ -257,7 +257,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 			account := &LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "toto",
-				Password:     []byte("password"),
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 

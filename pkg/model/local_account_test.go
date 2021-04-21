@@ -7,7 +7,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -38,7 +37,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(ag).Run(), ShouldBeNil)
 
-			acc := LocalAccount{LocalAgentID: ag.ID, Login: "login", Password: []byte("password")}
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "login", PasswordHash: hash("password")}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			cert := Crypto{
@@ -118,7 +117,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 				newAccount := &LocalAccount{
 					LocalAgentID: parentAgent.ID,
 					Login:        "new",
-					Password:     []byte("password"),
+					PasswordHash: hash("password"),
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -134,12 +133,10 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 				Convey("Given that the new account is valid", func() {
 
 					Convey("When calling the 'BeforeWrite' function", func() {
-						So(newAccount.BeforeWrite(db), ShouldBeNil)
+						err := newAccount.BeforeWrite(db)
 
-						Convey("Then the account's password should be hashed", func() {
-							hash, err := utils.HashPassword(newAccount.Password)
+						Convey("Then it should not return an error", func() {
 							So(err, ShouldBeNil)
-							So(string(newAccount.Password), ShouldEqual, string(hash))
 						})
 					})
 				})
@@ -166,7 +163,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 					oldAccount := LocalAccount{
 						LocalAgentID: parentAgent.ID,
 						Login:        "old",
-						Password:     []byte("password"),
+						PasswordHash: hash("password"),
 					}
 					So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
@@ -190,7 +187,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 					oldAccount := LocalAccount{
 						LocalAgentID: parentAgent.ID,
 						Login:        "old",
-						Password:     []byte("password"),
+						PasswordHash: hash("password"),
 					}
 					So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 

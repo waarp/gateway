@@ -50,7 +50,7 @@ type Crypto struct {
 
 // TableName returns the name of the certificates table.
 func (*Crypto) TableName() string {
-	return "certificates"
+	return "crypto_credentials"
 }
 
 // Appellation returns the name of 1 element of the certificates table.

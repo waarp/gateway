@@ -102,7 +102,11 @@ func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		account := accToLocal(&jAcc, parent, 0)
+		account, err := accToLocal(&jAcc, parent, 0)
+		if handleError(w, logger, err) {
+			return
+		}
+
 		if err := db.Insert(account).Run(); handleError(w, logger, err) {
 			return
 		}
@@ -124,7 +128,11 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		acc := accToLocal(jAcc, parent, old.ID)
+		acc, err := accToLocal(jAcc, parent, old.ID)
+		if handleError(w, logger, err) {
+			return
+		}
+
 		if err := db.Update(acc).Run(); handleError(w, logger, err) {
 			return
 		}
@@ -146,7 +154,11 @@ func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		acc := accToLocal(&jAcc, parent, old.ID)
+		acc, err := accToLocal(&jAcc, parent, old.ID)
+		if handleError(w, logger, err) {
+			return
+		}
+
 		if err := db.Update(acc).Run(); handleError(w, logger, err) {
 			return
 		}

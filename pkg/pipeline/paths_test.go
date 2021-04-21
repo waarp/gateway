@@ -47,7 +47,7 @@ func TestPathIn(t *testing.T) {
 			localAccount := &model.LocalAccount{
 				LocalAgentID: localAgent.ID,
 				Login:        "local_account",
-				Password:     []byte("password"),
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(localAccount).Run(), ShouldBeNil)
 
@@ -177,7 +177,7 @@ func TestPathOut(t *testing.T) {
 			localAccount := &model.LocalAccount{
 				LocalAgentID: localAgent.ID,
 				Login:        "local_account",
-				Password:     []byte("password"),
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(localAccount).Run(), ShouldBeNil)
 			So(db.Insert(localAccount).Run(), ShouldBeNil)

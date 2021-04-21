@@ -65,7 +65,7 @@ func getSSHServerConfig(db *database.DB, hostKeys []model.Crypto, protoConfig *c
 				conn.User()).Run(); err != nil {
 				return nil, fmt.Errorf("authentication failed")
 			}
-			if err := bcrypt.CompareHashAndPassword(user.Password, pass); err != nil {
+			if err := bcrypt.CompareHashAndPassword(user.PasswordHash, pass); err != nil {
 				return nil, fmt.Errorf("authentication failed")
 			}
 

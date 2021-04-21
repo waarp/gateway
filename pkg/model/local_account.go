@@ -2,8 +2,7 @@ package model
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	"code.waarp.fr/waarp-r66/r66"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func init() {
@@ -22,8 +21,8 @@ type LocalAccount struct {
 	// The account's login
 	Login string `xorm:"unique(loc_ac) notnull 'login'"`
 
-	// The account's password
-	Password []byte `xorm:"'password'"`
+	// A bcrypt hash of the account's password
+	PasswordHash []byte `xorm:"text 'password_hash'"`
 }
 
 // TableName returns the local accounts table name.
@@ -57,6 +56,12 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the account's login cannot be empty")
 	}
 
+	if len(l.PasswordHash) > 0 {
+		if _, isHashed := bcrypt.Cost(l.PasswordHash); isHashed != nil {
+			return database.NewValidationError("the password is not hashed")
+		}
+	}
+
 	parent := &LocalAgent{}
 	if err := db.Get(parent, "id=?", l.LocalAgentID).Run(); err != nil {
 		if database.IsNotFound(err) {
@@ -74,17 +79,6 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 			"already exist", l.Login)
 	}
 
-	if parent.Protocol == "r66" {
-		l.Password = r66.CryptPass(l.Password)
-	}
-
-	if len(l.Password) > 0 {
-		var err1 error
-		l.Password, err1 = utils.HashPassword(l.Password)
-		if err1 != nil {
-			return database.NewInternalError(err)
-		}
-	}
 	return nil
 }
 

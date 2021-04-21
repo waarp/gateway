@@ -5,7 +5,7 @@ type Cryptos []Crypto
 
 // TableName returns the name of the certificates table.
 func (*Cryptos) TableName() string {
-	return "certificates"
+	return "crypto_credentials"
 }
 
 // Elem returns the name of 1 element of the certificates table.

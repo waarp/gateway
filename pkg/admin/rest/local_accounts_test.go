@@ -44,7 +44,7 @@ func TestGetLocalAccount(t *testing.T) {
 			expected := &model.LocalAccount{
 				Login:        "existing",
 				LocalAgentID: parent.ID,
-				Password:     []byte("existing"),
+				PasswordHash: hash("existing"),
 			}
 			So(db.Insert(expected).Run(), ShouldBeNil)
 
@@ -160,22 +160,22 @@ func TestListLocalAccounts(t *testing.T) {
 
 			a1 := &model.LocalAccount{
 				Login:        "account1",
-				Password:     []byte("account1"),
+				PasswordHash: hash("account1"),
 				LocalAgentID: p1.ID,
 			}
 			a2 := &model.LocalAccount{
 				Login:        "account2",
-				Password:     []byte("account2"),
+				PasswordHash: hash("account2"),
 				LocalAgentID: p1.ID,
 			}
 			a3 := &model.LocalAccount{
 				Login:        "account3",
-				Password:     []byte("account3"),
+				PasswordHash: hash("account3"),
 				LocalAgentID: p2.ID,
 			}
 			a4 := &model.LocalAccount{
 				Login:        "account4",
-				Password:     []byte("account4"),
+				PasswordHash: hash("account4"),
 				LocalAgentID: p1.ID,
 			}
 
@@ -328,13 +328,13 @@ func TestCreateLocalAccount(t *testing.T) {
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
 
-							So(bcrypt.CompareHashAndPassword(accs[0].Password,
+							So(bcrypt.CompareHashAndPassword(accs[0].PasswordHash,
 								[]byte("new_password")), ShouldBeNil)
 							So(accs[0], ShouldResemble, model.LocalAccount{
 								ID:           1,
 								LocalAgentID: parent.ID,
 								Login:        "new_account",
-								Password:     accs[0].Password,
+								PasswordHash: accs[0].PasswordHash,
 							})
 						})
 					})
@@ -389,7 +389,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 
 			existing := &model.LocalAccount{
 				Login:        "existing",
-				Password:     []byte("existing"),
+				PasswordHash: hash("existing"),
 				LocalAgentID: parent.ID,
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
@@ -483,7 +483,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 			old := &model.LocalAccount{
 				Login:        "old",
-				Password:     []byte("old"),
+				PasswordHash: hash("old"),
 				LocalAgentID: parent.ID,
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
@@ -522,13 +522,13 @@ func TestUpdateLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(len(accounts), ShouldEqual, 1)
 
-						So(bcrypt.CompareHashAndPassword(accounts[0].Password,
+						So(bcrypt.CompareHashAndPassword(accounts[0].PasswordHash,
 							[]byte("upd_password")), ShouldBeNil)
 						So(accounts[0], ShouldResemble, model.LocalAccount{
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
 							Login:        "old",
-							Password:     accounts[0].Password,
+							PasswordHash: accounts[0].PasswordHash,
 						})
 					})
 				})
@@ -607,7 +607,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 
 			old := &model.LocalAccount{
 				Login:        "old",
-				Password:     []byte("old"),
+				PasswordHash: hash("old"),
 				LocalAgentID: parent.ID,
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
@@ -647,13 +647,13 @@ func TestReplaceLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(len(accounts), ShouldEqual, 1)
 
-						So(bcrypt.CompareHashAndPassword(accounts[0].Password,
+						So(bcrypt.CompareHashAndPassword(accounts[0].PasswordHash,
 							[]byte("upd_password")), ShouldBeNil)
 						So(accounts[0], ShouldResemble, model.LocalAccount{
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
 							Login:        "upd_login",
-							Password:     accounts[0].Password,
+							PasswordHash: accounts[0].PasswordHash,
 						})
 					})
 				})
