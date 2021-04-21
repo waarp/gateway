@@ -18,7 +18,7 @@ func TestCryptoTableName(t *testing.T) {
 			name := agent.TableName()
 
 			Convey("Then it should return the name of the certificates table", func() {
-				So(name, ShouldEqual, "certificates")
+				So(name, ShouldEqual, "crypto_credentials")
 			})
 		})
 	})

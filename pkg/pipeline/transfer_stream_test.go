@@ -145,7 +145,7 @@ func TestStreamRead(t *testing.T) {
 			account := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "login",
-				Password:     []byte("password"),
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -262,7 +262,7 @@ func TestStreamWrite(t *testing.T) {
 			account := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "login",
-				Password:     []byte("password"),
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 

@@ -39,7 +39,7 @@ func TestExportLocalAgents(t *testing.T) {
 			account1a := &model.LocalAccount{
 				LocalAgentID: agent1.ID,
 				Login:        "test",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1a).Run(), ShouldBeNil)
 
@@ -63,14 +63,14 @@ func TestExportLocalAgents(t *testing.T) {
 			account2a := &model.LocalAccount{
 				LocalAgentID: agent2.ID,
 				Login:        "test",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2a).Run(), ShouldBeNil)
 
 			account2b := &model.LocalAccount{
 				LocalAgentID: agent2.ID,
 				Login:        "foo",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2b).Run(), ShouldBeNil)
 
@@ -165,14 +165,14 @@ func TestExportLocalAccounts(t *testing.T) {
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
-				Password:     []byte("bar"),
+				PasswordHash: hash("bar"),
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
@@ -204,8 +204,8 @@ func TestExportLocalAccounts(t *testing.T) {
 								Convey("When login1 is found", func() {
 
 									Convey("Then it should be equal to the data in DB", func() {
-										So(res[i].Password, ShouldResemble,
-											string(account1.Password))
+										So(res[i].PasswordHash, ShouldResemble,
+											string(account1.PasswordHash))
 									})
 
 									Convey("Then it should have no certificate", func() {
@@ -217,8 +217,8 @@ func TestExportLocalAccounts(t *testing.T) {
 								Convey("When login2 is found", func() {
 
 									Convey("Then it should be equal to the data in DB", func() {
-										So(res[i].Password, ShouldResemble,
-											string(account2.Password))
+										So(res[i].PasswordHash, ShouldResemble,
+											string(account2.PasswordHash))
 									})
 
 									Convey("Then it should have 1 certificate", func() {

@@ -37,7 +37,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := LocalAccount{LocalAgentID: ag.ID, Login: "login", Password: json.RawMessage("password")}
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "login", PasswordHash: hash("password")}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
@@ -79,9 +79,9 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 					})
 
 					Convey("Then both certificates should have been deleted", func() {
-						var certs Cryptos
-						So(db.Select(&certs).Run(), ShouldBeNil)
-						So(certs, ShouldBeEmpty)
+						var cryptos Cryptos
+						So(db.Select(&cryptos).Run(), ShouldBeNil)
+						So(cryptos, ShouldBeEmpty)
 					})
 
 					Convey("Then the rule accesses should have been deleted", func() {

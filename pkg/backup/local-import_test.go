@@ -150,7 +150,7 @@ func TestImportLocalAccounts(t *testing.T) {
 			dbAccount := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
-				Password:     []byte("bar"),
+				PasswordHash: hash("bar"),
 			}
 			So(db.Insert(dbAccount).Run(), ShouldBeNil)
 
@@ -188,21 +188,21 @@ func TestImportLocalAccounts(t *testing.T) {
 
 									Convey("Then account1 is found", func() {
 										So(bcrypt.CompareHashAndPassword(
-											accounts[i].Password, []byte("pwd")),
+											accounts[i].PasswordHash, []byte("pwd")),
 											ShouldBeNil)
 									})
 								} else if accounts[i].Login == account2.Login {
 
 									Convey("Then account2 is found", func() {
 										So(bcrypt.CompareHashAndPassword(
-											accounts[i].Password, []byte("pwd")),
+											accounts[i].PasswordHash, []byte("pwd")),
 											ShouldBeNil)
 									})
 								} else if accounts[i].Login == dbAccount.Login {
 
 									Convey("Then dbAccount is found", func() {
-										So(accounts[i].Password, ShouldResemble,
-											dbAccount.Password)
+										So(accounts[i].PasswordHash, ShouldResemble,
+											dbAccount.PasswordHash)
 									})
 								} else {
 									Convey("Then they should be no other "+
@@ -249,8 +249,8 @@ func TestImportLocalAccounts(t *testing.T) {
 								if accounts[i].Login == dbAccount.Login {
 
 									Convey("When dbAccount is found", func() {
-										So(accounts[i].Password, ShouldNotResemble,
-											dbAccount.Password)
+										So(accounts[i].PasswordHash, ShouldNotResemble,
+											dbAccount.PasswordHash)
 										var cryptos model.Cryptos
 										So(db.Select(&cryptos).Where("owner_type='local_accounts'"+
 											" AND owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
@@ -301,8 +301,8 @@ func TestImportLocalAccounts(t *testing.T) {
 								if accounts[i].Login == dbAccount.Login {
 
 									Convey("When dbAccount is found", func() {
-										So(accounts[i].Password, ShouldResemble,
-											dbAccount.Password)
+										So(accounts[i].PasswordHash, ShouldResemble,
+											dbAccount.PasswordHash)
 										var cryptos model.Cryptos
 										So(db.Select(&cryptos).Where("owner_type='local_accounts' "+
 											"AND owner_id=?", dbAccount.ID).Run(), ShouldBeNil)

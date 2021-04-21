@@ -144,7 +144,7 @@ func TestSSHServer(t *testing.T) {
 			user := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "toto",
-				Password:     []byte(pwd),
+				PasswordHash: hash(pwd),
 			}
 			So(db.Insert(user).Run(), ShouldBeNil)
 
@@ -501,7 +501,7 @@ func TestSSHServer(t *testing.T) {
 							other := &model.LocalAccount{
 								LocalAgentID: agent.ID,
 								Login:        "other",
-								Password:     []byte("password"),
+								PasswordHash: hash("password"),
 							}
 							So(db.Insert(other).Run(), ShouldBeNil)
 

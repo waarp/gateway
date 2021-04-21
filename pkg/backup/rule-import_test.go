@@ -71,14 +71,14 @@ func TestImportRules(t *testing.T) {
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
@@ -312,14 +312,14 @@ func TestImportRuleAccess(t *testing.T) {
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 

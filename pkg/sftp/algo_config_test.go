@@ -20,7 +20,7 @@ func TestSFTPAlgoConfig(t *testing.T) {
 	logger := log.NewLogger("test_sftp_algo")
 
 	login := "login"
-	password := []byte("password")
+	password := "password"
 
 	Convey("Given an SFTP server", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
@@ -43,7 +43,7 @@ func TestSFTPAlgoConfig(t *testing.T) {
 		account := &model.LocalAccount{
 			LocalAgentID: agent.ID,
 			Login:        login,
-			Password:     password,
+			PasswordHash: hash(password),
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 

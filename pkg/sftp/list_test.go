@@ -50,14 +50,14 @@ func TestSFTPList(t *testing.T) {
 			toto := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "toto",
-				Password:     []byte("toto"),
+				PasswordHash: hash("toto"),
 			}
 			So(db.Insert(toto).Run(), ShouldBeNil)
 
 			tata := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "tata",
-				Password:     []byte("tata"),
+				PasswordHash: hash("tata"),
 			}
 			So(db.Insert(tata).Run(), ShouldBeNil)
 

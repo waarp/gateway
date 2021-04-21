@@ -73,7 +73,7 @@ func TestExportCertificates(t *testing.T) {
 				account := &model.LocalAccount{
 					LocalAgentID: agent.ID,
 					Login:        "test",
-					Password:     []byte("pwd"),
+					PasswordHash: hash("pwd"),
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 

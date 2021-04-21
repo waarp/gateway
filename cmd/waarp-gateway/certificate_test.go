@@ -256,7 +256,7 @@ func TestGetCertificate(t *testing.T) {
 					account := &model.LocalAccount{
 						LocalAgentID: server.ID,
 						Login:        "loc_account",
-						Password:     []byte("password"),
+						PasswordHash: hash("password"),
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 					cert := &model.Crypto{
@@ -598,7 +598,7 @@ func TestAddCertificate(t *testing.T) {
 					account := &model.LocalAccount{
 						LocalAgentID: server.ID,
 						Login:        "loc_account",
-						Password:     []byte("password"),
+						PasswordHash: hash("password"),
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -994,7 +994,7 @@ func TestDeleteCertificate(t *testing.T) {
 					account := &model.LocalAccount{
 						LocalAgentID: server.ID,
 						Login:        "loc_account",
-						Password:     []byte("password"),
+						PasswordHash: hash("password"),
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -1471,7 +1471,7 @@ func TestListCertificate(t *testing.T) {
 					account := &model.LocalAccount{
 						LocalAgentID: server.ID,
 						Login:        "loc_account",
-						Password:     []byte("password"),
+						PasswordHash: hash("password"),
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -1975,7 +1975,7 @@ func TestUpdateCertificate(t *testing.T) {
 					account := &model.LocalAccount{
 						LocalAgentID: server.ID,
 						Login:        "loc_account",
-						Password:     []byte("password"),
+						PasswordHash: hash("password"),
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 

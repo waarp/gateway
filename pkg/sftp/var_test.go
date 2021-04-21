@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/smartystreets/goconvey/convey"
+	"golang.org/x/crypto/bcrypt"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -33,6 +36,12 @@ func init() {
 		LogTo: "stdout",
 	}
 	_ = log.InitBackend(logConf)
+}
+
+func hash(pwd string) []byte {
+	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
+	convey.So(err, convey.ShouldBeNil)
+	return h
 }
 
 var checkChannel = make(chan string, 100)

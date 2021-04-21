@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -28,6 +30,12 @@ func init() {
 	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
 	config.ProtoConfigs["test2"] = func() config.ProtoConfig { return new(TestProtoConfig) }
 	config.ProtoConfigs["fail"] = func() config.ProtoConfig { return new(TestProtoConfigFail) }
+}
+
+func hash(pwd string) []byte {
+	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
+	So(err, ShouldBeNil)
+	return h
 }
 
 func writeFile(content string) *os.File {

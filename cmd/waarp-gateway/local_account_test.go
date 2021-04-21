@@ -48,7 +48,7 @@ func TestGetLocalAccount(t *testing.T) {
 
 			account := &model.LocalAccount{
 				Login:        "login",
-				Password:     []byte("password"),
+				PasswordHash: hash("password"),
 				LocalAgentID: server.ID,
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
@@ -159,13 +159,13 @@ func TestAddLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldNotBeEmpty)
 
-						So(bcrypt.CompareHashAndPassword(accounts[0].Password,
+						So(bcrypt.CompareHashAndPassword(accounts[0].PasswordHash,
 							[]byte(command.Password)), ShouldBeNil)
 						exp := model.LocalAccount{
 							ID:           1,
 							LocalAgentID: server.ID,
 							Login:        command.Login,
-							Password:     accounts[0].Password,
+							PasswordHash: accounts[0].PasswordHash,
 						}
 						So(accounts, ShouldContain, exp)
 
@@ -216,7 +216,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 			account := &model.LocalAccount{
 				LocalAgentID: server.ID,
 				Login:        "login",
-				Password:     []byte("password"),
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -309,11 +309,10 @@ func TestUpdateLocalAccount(t *testing.T) {
 			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
 
-			oldPwd := []byte("password")
 			account := &model.LocalAccount{
 				LocalAgentID: server.ID,
 				Login:        "login",
-				Password:     oldPwd,
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -336,13 +335,13 @@ func TestUpdateLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldNotBeEmpty)
 
-						So(bcrypt.CompareHashAndPassword(accounts[0].Password,
+						So(bcrypt.CompareHashAndPassword(accounts[0].PasswordHash,
 							[]byte("new_password")), ShouldBeNil)
 						exp := model.LocalAccount{
 							ID:           account.ID,
 							LocalAgentID: account.LocalAgentID,
 							Login:        "new_login",
-							Password:     accounts[0].Password,
+							PasswordHash: accounts[0].PasswordHash,
 						}
 						So(accounts, ShouldContain, exp)
 					})
@@ -427,21 +426,21 @@ func TestListLocalAccount(t *testing.T) {
 			account1 := &model.LocalAccount{
 				LocalAgentID: server1.ID,
 				Login:        "account1",
-				Password:     []byte("password"),
+				PasswordHash: hash("password1"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: server2.ID,
 				Login:        "account2",
-				Password:     []byte("password"),
+				PasswordHash: hash("password2"),
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
 			account3 := &model.LocalAccount{
 				LocalAgentID: server1.ID,
 				Login:        "account3",
-				Password:     []byte("password"),
+				PasswordHash: hash("password3"),
 			}
 			So(db.Insert(account3).Run(), ShouldBeNil)
 
@@ -567,7 +566,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 			account := &model.LocalAccount{
 				LocalAgentID: server.ID,
 				Login:        "login",
-				Password:     []byte("password"),
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -698,7 +697,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 			account := &model.LocalAccount{
 				LocalAgentID: server.ID,
 				Login:        "login",
-				Password:     []byte("password"),
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
