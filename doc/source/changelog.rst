@@ -3,6 +3,13 @@
 Historique des versions
 =======================
 
+* :feature:`` Un champ `passwordHash` a été ajouté à l'objet JSON de compte local
+  du fichier d'import/export. Il remplace le champ `password` pour l'export de
+  configuration. La gateway ne stockant que des hash de mots de passe, le nom du
+  champ n'était pas approprié. Le champ `password` reste cependant utilisable
+  pour l'import de fichiers de configuration généré par des outils tiers.
+* :bug:`` Les champs optionnels vides ne seront désormais plus ajouté aux fichiers
+  de sauvegarde lors d'un export de configuration.
 * :bug:`252` Les certificats, clés publiques & clés privées sont désormais parsés
   avant d'être insérés en base de données. Les données invalides seront désormais
   refusées.
