@@ -9,11 +9,15 @@ import (
 func Leaf(s string) utils.Leaf     { return utils.Leaf(s) }
 func Branch(s string) utils.Branch { return utils.Branch(s) }
 
-type TransferStream interface {
+type DataStream interface {
 	io.Reader
 	io.Writer
 	io.ReaderAt
 	io.WriterAt
+}
+
+type TransferStream interface {
+	DataStream
 	close() error
 	move() error
 	stop()

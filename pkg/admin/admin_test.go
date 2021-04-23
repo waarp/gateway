@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -84,16 +86,18 @@ func TestStart(t *testing.T) {
 			})
 		})
 
-		Convey("Given an incorrect port number", func() {
+		Convey("Given an incorrect port number", func(c C) {
 			config.Admin.Host = "localhost"
-			config.Admin.Port = 9999
-			rest := &Server{Conf: config, Services: make(map[string]service.Service)}
+			config.Admin.Port = testhelpers.GetFreePort(c)
+
 			l, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", config.Admin.Port))
 			So(err, ShouldBeNil)
 			Reset(func() { _ = l.Close() })
 
+			serv := &Server{Conf: config, Services: make(map[string]service.Service)}
+
 			Convey("When starting the service", func() {
-				err := rest.Start()
+				err := serv.Start()
 
 				Convey("Then it should produce an error", func() {
 					So(err, ShouldBeError)

@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers/selftransfer"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func addCerts(c C, ctx *selftransfer.Context) {
+func addCerts(c C, ctx *testhelpers.Context) {
 	serverKey := model.Cert{
 		OwnerType:  ctx.Server.TableName(),
 		OwnerID:    ctx.Server.ID,
@@ -32,7 +32,7 @@ func addCerts(c C, ctx *selftransfer.Context) {
 	ctx.ServerCerts = []model.Cert{partnerKey}
 }
 
-func startService(c C, ctx *selftransfer.Context) {
+func startService(c C, ctx *testhelpers.Context) {
 	serv := NewService(ctx.DB, ctx.Server, ctx.Logger)
 	c.So(serv.Start(), ShouldBeNil)
 	c.Reset(func() {

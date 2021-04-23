@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -22,8 +21,7 @@ const ServiceName = "Controller"
 // Controller is the service responsible for checking the database for new
 // transfers at regular intervals, and starting those new transfers.
 type Controller struct {
-	Conf *conf.ServerConfig
-	DB   *database.DB
+	DB *database.DB
 
 	ticker *time.Ticker
 	logger *log.Logger
@@ -88,7 +86,7 @@ func (c *Controller) startNewTransfers() {
 	}
 
 	for i := range plannedTrans {
-		pip, err := pipeline.NewClientPipeline(c.DB, &c.Conf.Paths, &plannedTrans[i])
+		pip, err := pipeline.NewClientPipeline(c.DB, &plannedTrans[i])
 		if err != nil {
 			continue
 		}
@@ -104,9 +102,9 @@ func (c *Controller) startNewTransfers() {
 func (c *Controller) Start() error {
 	c.logger = log.NewLogger(ServiceName)
 
-	pipeline.TransferInCount.SetLimit(c.Conf.Controller.MaxTransfersIn)
-	pipeline.TransferOutCount.SetLimit(c.Conf.Controller.MaxTransfersOut)
-	c.ticker = time.NewTicker(c.Conf.Controller.Delay)
+	pipeline.TransferInCount.SetLimit(c.DB.Conf.Controller.MaxTransfersIn)
+	pipeline.TransferOutCount.SetLimit(c.DB.Conf.Controller.MaxTransfersOut)
+	c.ticker = time.NewTicker(c.DB.Conf.Controller.Delay)
 	c.state.Set(service.Running, "")
 
 	c.listen()

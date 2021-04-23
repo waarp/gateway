@@ -1,7 +1,6 @@
 package pipeline
 
 import (
-	"math"
 	"sync"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -84,7 +83,7 @@ func (c *count) GetAvailable() uint64 {
 	defer c.mux.Unlock()
 
 	if c.limit == 0 {
-		return math.MaxUint64 - c.count
+		return 0
 	}
 	return c.limit - c.count
 }

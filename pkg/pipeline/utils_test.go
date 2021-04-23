@@ -31,6 +31,10 @@ type testContext struct {
 	recv *model.Rule
 }
 
+func init() {
+	_ = log.InitBackend("DEBUG", "stdout", "")
+}
+
 func initTestDB(c C) *testContext {
 	root := testhelpers.TempDir(c, "new_transfer_stream")
 	db := database.TestDatabase(c, "ERROR")
@@ -214,7 +218,7 @@ func (t *testProtoClient) EndPreTasks() error {
 	return nil
 }
 
-func (t *testProtoClient) Data(s TransferStream) error {
+func (t *testProtoClient) Data(s DataStream) error {
 	if _, err := io.Copy(ioutil.Discard, s); err != nil {
 		return errData
 	}

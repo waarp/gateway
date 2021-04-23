@@ -1,14 +1,13 @@
-package pipeline
+package testhelpers
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 )
 
-func init() {
-	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
+const TestProtocol = "test"
 
-	_ = log.InitBackend("DEBUG", "stdout", "")
+func init() {
+	config.ProtoConfigs[TestProtocol] = func() config.ProtoConfig { return new(TestProtoConfig) }
 }
 
 type TestProtoConfig struct{}

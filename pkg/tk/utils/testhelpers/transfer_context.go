@@ -1,6 +1,7 @@
-package selftransfer
+package testhelpers
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,23 +9,20 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-
-	. "github.com/smartystreets/goconvey/convey"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-var (
-	testFileContent = []byte("self transfer test file")
+const (
+	TestFileSize uint64 = 1000000 // 1MB
+
+	TestLogin    = "toto"
+	TestPassword = "sesame"
 )
 
 // Context is a struct regrouping all the elements necessary for a self-transfer
@@ -43,7 +41,8 @@ type Context struct {
 
 	ClientPush, ClientPull, ServerPush, ServerPull *model.Rule
 
-	Trans *model.Transfer
+	Trans       *model.Transfer
+	fileContent []byte
 }
 
 func (c *Context) isPush() bool {
@@ -56,9 +55,76 @@ func (c *Context) isPush() bool {
 func InitDBForSelfTransfer(c C, proto string, partConf, servConf json.RawMessage) *Context {
 	logger := log.NewLogger(proto + "_self_transfer")
 	db := database.TestDatabase(c, "ERROR")
-	home := testhelpers.TempDir(c, proto+"_self_transfer")
-	port := testhelpers.GetFreePort(c)
+	home := TempDir(c, proto+"_self_transfer")
+	port := GetFreePort(c)
 
+	paths := makePaths(c, home)
+	db.Conf.Paths = *paths
+	server, locAcc := makeServerConf(c, db, port, home, proto, servConf)
+	partner, remAcc := makeClientConf(c, db, port, proto, partConf)
+
+	return &Context{
+		Logger:     logger,
+		DB:         db,
+		Paths:      paths,
+		Server:     server,
+		LocAccount: locAcc,
+		Partner:    partner,
+		RemAccount: remAcc,
+		ClientPush: makeRule(c, db, true, false),
+		ClientPull: makeRule(c, db, false, false),
+		ServerPush: makeRule(c, db, true, true),
+		ServerPull: makeRule(c, db, false, true),
+	}
+}
+
+// InitServer creates a database and fills it with all the elements necessary
+// for a server transfer test of the given protocol. It then returns all these
+// element inside a Context.
+func InitServer(c C, proto string, partConf json.RawMessage) *Context {
+	logger := log.NewLogger(proto + "_server")
+	db := database.TestDatabase(c, "ERROR")
+	home := TempDir(c, proto+"_server")
+	port := GetFreePort(c)
+	paths := makePaths(c, home)
+	db.Conf.Paths = *paths
+	server, locAcc := makeServerConf(c, db, port, home, proto, partConf)
+
+	return &Context{
+		Logger:     logger,
+		DB:         db,
+		Paths:      paths,
+		Server:     server,
+		LocAccount: locAcc,
+		ServerPush: makeRule(c, db, true, true),
+		ServerPull: makeRule(c, db, false, true),
+	}
+}
+
+// InitClient creates a database and fills it with all the elements necessary
+// for a client transfer test of the given protocol. It then returns all these
+// element inside a Context.
+func InitClient(c C, proto string, partConf json.RawMessage) *Context {
+	logger := log.NewLogger(proto + "_client")
+	db := database.TestDatabase(c, "ERROR")
+	home := TempDir(c, proto+"_client")
+	port := GetFreePort(c)
+	paths := makePaths(c, home)
+	db.Conf.Paths = *paths
+	partner, remAcc := makeClientConf(c, db, port, proto, partConf)
+
+	return &Context{
+		Logger:     logger,
+		DB:         db,
+		Paths:      paths,
+		Partner:    partner,
+		RemAccount: remAcc,
+		ClientPush: makeRule(c, db, true, false),
+		ClientPull: makeRule(c, db, false, false),
+	}
+}
+
+func makePaths(c C, home string) *conf.PathsConfig {
 	paths := &conf.PathsConfig{
 		GatewayHome:   home,
 		DefaultInDir:  "in",
@@ -68,6 +134,15 @@ func InitDBForSelfTransfer(c C, proto string, partConf, servConf json.RawMessage
 	c.So(os.MkdirAll(filepath.Join(home, paths.DefaultInDir), 0o700), ShouldBeNil)
 	c.So(os.MkdirAll(filepath.Join(home, paths.DefaultOutDir), 0o700), ShouldBeNil)
 	c.So(os.MkdirAll(filepath.Join(home, paths.DefaultTmpDir), 0o700), ShouldBeNil)
+	return paths
+}
+
+func makeServerConf(c C, db *database.DB, port uint16, home, proto string,
+	servConf json.RawMessage) (ag *model.LocalAgent, acc *model.LocalAccount) {
+
+	if servConf == nil {
+		servConf = json.RawMessage(`{}`)
+	}
 
 	root := filepath.Join(home, proto+"_server_root")
 	c.So(os.MkdirAll(root, 0o700), ShouldBeNil)
@@ -86,10 +161,20 @@ func InitDBForSelfTransfer(c C, proto string, partConf, servConf json.RawMessage
 
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
-		Login:        "toto",
-		Password:     []byte("sesame"),
+		Login:        TestLogin,
+		Password:     []byte(TestPassword),
 	}
 	c.So(db.Insert(locAccount).Run(), ShouldBeNil)
+
+	return server, locAccount
+}
+
+func makeClientConf(c C, db *database.DB, port uint16, proto string,
+	partConf json.RawMessage) (*model.RemoteAgent, *model.RemoteAccount) {
+
+	if partConf == nil {
+		partConf = json.RawMessage(`{}`)
+	}
 
 	partner := &model.RemoteAgent{
 		Name:        "partner",
@@ -101,24 +186,12 @@ func InitDBForSelfTransfer(c C, proto string, partConf, servConf json.RawMessage
 
 	remAccount := &model.RemoteAccount{
 		RemoteAgentID: partner.ID,
-		Login:         "toto",
-		Password:      []byte("sesame"),
+		Login:         TestLogin,
+		Password:      []byte(TestPassword),
 	}
 	c.So(db.Insert(remAccount).Run(), ShouldBeNil)
 
-	return &Context{
-		Logger:     logger,
-		DB:         db,
-		Paths:      paths,
-		Server:     server,
-		LocAccount: locAccount,
-		Partner:    partner,
-		RemAccount: remAccount,
-		ClientPush: makeRule(c, db, true, false),
-		ClientPull: makeRule(c, db, false, false),
-		ServerPush: makeRule(c, db, true, true),
-		ServerPull: makeRule(c, db, false, true),
-	}
+	return partner, remAccount
 }
 
 func makeRule(c C, db *database.DB, isPush, isServer bool) *model.Rule {
@@ -126,7 +199,7 @@ func makeRule(c C, db *database.DB, isPush, isServer bool) *model.Rule {
 	rule := &model.Rule{}
 
 	if isServer {
-		taskType = testhelpers.ServerOK
+		taskType = ServerOK
 		if isPush {
 			rule.Name = "PUSH"
 			rule.IsSend = false
@@ -137,7 +210,7 @@ func makeRule(c C, db *database.DB, isPush, isServer bool) *model.Rule {
 			rule.Path = "/pull"
 		}
 	} else {
-		taskType = testhelpers.ClientOK
+		taskType = ClientOK
 		if isPush {
 			rule.Name = "PUSH"
 			rule.IsSend = true
@@ -183,13 +256,23 @@ func makeRule(c C, db *database.DB, isPush, isServer bool) *model.Rule {
 	return rule
 }
 
+// AddSourceFile creates a file under the given directory with the given name,
+// fills it with random data, and then returns said data.
+func AddSourceFile(c C, dir, file string) []byte {
+	cont := make([]byte, TestFileSize)
+	_, err := rand.Read(cont)
+	c.So(err, ShouldBeNil)
+	path := filepath.Join(dir, file)
+	c.So(ioutil.WriteFile(path, cont, 0o600), ShouldBeNil)
+	return cont
+}
+
 // AddTransfer creates a new transfer with the given direction and adds it to
 // the database. The transfer is then added to the Context.
 func AddTransfer(c C, ctx *Context, isPush bool) {
 	if isPush {
-		testFile := filepath.Join(ctx.Paths.GatewayHome, ctx.Paths.DefaultOutDir,
-			"self_transfer_push")
-		c.So(ioutil.WriteFile(testFile, testFileContent, 0o600), ShouldBeNil)
+		testDir := filepath.Join(ctx.Paths.GatewayHome, ctx.Paths.DefaultOutDir)
+		ctx.fileContent = AddSourceFile(c, testDir, "self_transfer_push")
 
 		trans := &model.Transfer{
 			RuleID:     ctx.ClientPush.ID,
@@ -206,8 +289,8 @@ func AddTransfer(c C, ctx *Context, isPush bool) {
 		return
 	}
 
-	testFile := filepath.Join(ctx.Server.Root, ctx.Server.LocalOutDir, "self_transfer_pull")
-	c.So(ioutil.WriteFile(testFile, testFileContent, 0o600), ShouldBeNil)
+	testDir := filepath.Join(ctx.Server.Root, ctx.Server.LocalOutDir)
+	ctx.fileContent = AddSourceFile(c, testDir, "self_transfer_pull")
 
 	trans := &model.Transfer{
 		RuleID:     ctx.ClientPull.ID,
@@ -225,29 +308,18 @@ func AddTransfer(c C, ctx *Context, isPush bool) {
 
 // MakeChan initializes the tasks channels.
 func MakeChan(c C) {
-	testhelpers.ClientCheckChannel = make(chan string, 10)
-	testhelpers.ServerCheckChannel = make(chan string, 10)
+	ClientCheckChannel = make(chan string, 10)
+	ServerCheckChannel = make(chan string, 10)
 	c.Reset(func() {
-		if testhelpers.ClientCheckChannel != nil {
-			close(testhelpers.ClientCheckChannel)
+		if ClientCheckChannel != nil {
+			close(ClientCheckChannel)
 		}
-		if testhelpers.ServerCheckChannel != nil {
-			close(testhelpers.ServerCheckChannel)
+		if ServerCheckChannel != nil {
+			close(ServerCheckChannel)
 		}
-		testhelpers.ClientCheckChannel = nil
-		testhelpers.ServerCheckChannel = nil
+		ClientCheckChannel = nil
+		ServerCheckChannel = nil
 	})
-}
-
-// RunTransfer executes the transfer in the given context.
-func RunTransfer(c C, ctx *Context) {
-	pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.Paths, ctx.Trans)
-	c.So(err, ShouldBeNil)
-
-	MakeChan(c)
-	pip.Run()
-	pipeline.WaitEndClientTransfer(c, pip)
-	testhelpers.ClientCheckChannel <- "CLIENT TRANSFER END"
 }
 
 // CheckTransfersOK checks whether both the server & client transfers finished
@@ -261,7 +333,7 @@ func CheckTransfersOK(c C, ctx *Context) {
 		c.Convey("Then there should be a client-side history entry", func(c C) {
 			cTrans := model.HistoryEntry{
 				ID:         ctx.Trans.ID,
-				Owner:      database.Owner,
+				Owner:      ctx.DB.Conf.GatewayName,
 				Protocol:   ctx.Partner.Protocol,
 				IsServer:   false,
 				Account:    ctx.RemAccount.Login,
@@ -273,7 +345,7 @@ func CheckTransfersOK(c C, ctx *Context) {
 				Status:     types.StatusDone,
 				Step:       types.StepNone,
 				Error:      types.TransferError{},
-				Progress:   uint64(len(testFileContent)),
+				Progress:   uint64(len(ctx.fileContent)),
 				TaskNumber: 0,
 			}
 			if ctx.isPush() {
@@ -289,7 +361,7 @@ func CheckTransfersOK(c C, ctx *Context) {
 		c.Convey("Then there should be a server-side history entry", func(c C) {
 			sTrans := model.HistoryEntry{
 				ID:         results[1].ID,
-				Owner:      database.Owner,
+				Owner:      ctx.DB.Conf.GatewayName,
 				Protocol:   ctx.Server.Protocol,
 				IsServer:   true,
 				Account:    ctx.LocAccount.Login,
@@ -300,7 +372,7 @@ func CheckTransfersOK(c C, ctx *Context) {
 				Status:     types.StatusDone,
 				Step:       types.StepNone,
 				Error:      types.TransferError{},
-				Progress:   uint64(len(testFileContent)),
+				Progress:   uint64(len(ctx.fileContent)),
 				TaskNumber: 0,
 			}
 			if ctx.Server.Protocol == "r66" {
@@ -333,7 +405,9 @@ func checkDestFile(c C, ctx *Context) {
 		}
 		content, err := ioutil.ReadFile(path)
 		c.So(err, ShouldBeNil)
-		c.So(string(content), ShouldEqual, string(testFileContent))
+		c.So(content, ShouldHaveLength, TestFileSize)
+		c.So(content[:9], ShouldResemble, ctx.fileContent[:9])
+		c.So(content, ShouldResemble, ctx.fileContent)
 	})
 }
 
@@ -345,7 +419,7 @@ func CheckTransfersError(c C, ctx *Context, cTrans, sTrans *model.Transfer) {
 
 		c.Convey("Then there should be a client-side transfer in error", func(c C) {
 			cTrans.ID = ctx.Trans.ID
-			cTrans.Owner = database.Owner
+			cTrans.Owner = ctx.DB.Conf.GatewayName
 			cTrans.IsServer = false
 			cTrans.Status = types.StatusError
 			cTrans.RuleID = transfers[0].RuleID
@@ -360,7 +434,7 @@ func CheckTransfersError(c C, ctx *Context, cTrans, sTrans *model.Transfer) {
 
 		c.Convey("Then there should be a server-side transfer in error", func(c C) {
 			sTrans.ID = ctx.Trans.ID + 1
-			sTrans.Owner = database.Owner
+			sTrans.Owner = ctx.DB.Conf.GatewayName
 			sTrans.IsServer = true
 			sTrans.Status = types.StatusError
 			sTrans.RuleID = transfers[1].RuleID

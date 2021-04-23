@@ -92,7 +92,7 @@ func (c *client) Request() error {
 }
 
 // Data copies the content of the source file into the destination file.
-func (c *client) Data(data pipeline.TransferStream) error {
+func (c *client) Data(data pipeline.DataStream) error {
 	if c.transCtx.Transfer.Progress != 0 {
 		_, err := c.remoteFile.Seek(int64(c.transCtx.Transfer.Progress), io.SeekStart)
 		if err != nil {

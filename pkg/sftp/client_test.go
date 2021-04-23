@@ -1,97 +1,104 @@
-//+build old
-
 package sftp
 
 import (
-	"fmt"
 	"io/ioutil"
-	"log"
-	"net"
-	"os"
+	"path/filepath"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func init() {
-	listener, err := makeDummyServer(testPK, testPBK, testLogin, testPassword)
-	if err != nil {
-		log.Fatal(err)
-	}
-	clientTestPort = uint16(listener.Addr().(*net.TCPAddr).Port)
-}
-
 func TestRequest(t *testing.T) {
-	Convey("Given a SFTP client", t, func() {
+	logger := log.NewLogger("test_client_request")
 
-		client := NewClient()
-		So(client.Connect(), ShouldBeNil)
-		defer func() { _ = client.conn.Close() }()
+	Convey("Given a client transfer context", t, func(c C) {
+		ctx := testhelpers.InitClient(c, "sftp", nil)
 
-		So(client.Authenticate(), ShouldBeNil)
-		defer func() { _ = client.client.Close() }()
+		Convey("Given a lambda SFTP server", func() {
+			makeDummyServer(ctx.Paths.GatewayHome, ctx.Partner.Address)
 
-		Convey("Given a valid out file transfer", func() {
-			client.Info.Transfer = &model.Transfer{
-				DestFile: "client_test.dst",
+			transCtx := &model.TransferContext{
+				RemoteAgent:   ctx.Partner,
+				RemoteAccount: ctx.RemAccount,
+				Rule:          ctx.ClientPush,
+				RemoteAgentCerts: []model.Cert{{
+					Name:      "partner_key",
+					PublicKey: []byte(rsaPBK),
+				}},
+				Transfer: &model.Transfer{
+					IsServer:   false,
+					LocalPath:  "trans_local",
+					RemotePath: "trans_remote",
+				},
 			}
-			client.Info.Rule = &model.Rule{
-				IsSend: true,
-				Path:   ".",
-			}
 
-			err := client.Request()
-			Reset(func() { _ = os.Remove(client.Info.Transfer.DestFile) })
+			Convey("Given a valid out file transfer", func() {
+				transCtx.Rule.IsSend = true
 
-			Convey("Then it should NOT return an error", func() {
+				cli, err := NewClient(logger, transCtx)
 				So(err, ShouldBeNil)
 
-				Convey("Then the file stream should be open", func() {
-					So(client.remoteFile, ShouldNotBeNil)
-					So(client.remoteFile.Close(), ShouldBeNil)
+				Convey("Then it should NOT return an error", func() {
+					So(cli.Request(), ShouldBeNil)
+
+					Convey("Then the file stream should be open", func() {
+						So(cli.(*client).remoteFile, ShouldNotBeNil)
+						_ = cli.(*client).remoteFile.Close()
+					})
 				})
 			})
-		})
 
-		Convey("Given a valid in file transfer", func() {
-			client.Info.Transfer = &model.Transfer{
-				SourceFile: "protocol_handler.go",
-			}
-			client.Info.Rule = &model.Rule{
-				IsSend: false,
-			}
+			Convey("Given a valid in file transfer", func(c C) {
+				transCtx.Rule.IsSend = false
+				testhelpers.AddSourceFile(c, ctx.Paths.GatewayHome, "trans_remote")
 
-			err := client.Request()
-
-			Convey("Then it should NOT return an error", func() {
+				cli, err := NewClient(logger, transCtx)
 				So(err, ShouldBeNil)
 
-				Convey("Then the file stream should be open", func() {
-					So(client.remoteFile, ShouldNotBeNil)
-					So(client.remoteFile.Close(), ShouldBeNil)
+				Convey("Then it should NOT return an error", func() {
+					So(cli.Request(), ShouldBeNil)
+
+					Convey("Then the file stream should be open", func() {
+						So(cli.(*client).remoteFile, ShouldNotBeNil)
+						_ = cli.(*client).remoteFile.Close()
+					})
 				})
 			})
-		})
 
-		Convey("Given an invalid in file transfer", func() {
-			client.Info.Transfer = &model.Transfer{
-				SourceFile: "unknown.file",
-			}
-			client.Info.Rule = &model.Rule{
-				IsSend: false,
-			}
+			Convey("Given an invalid out file transfer", func() {
+				transCtx.Rule.IsSend = true
+				transCtx.Transfer.RemotePath = "invalid/file"
 
-			err := client.Request()
+				cli, err := NewClient(logger, transCtx)
+				So(err, ShouldBeNil)
 
-			Convey("Then it should return an error", func() {
-				So(err, ShouldResemble, types.NewTransferError(types.TeFileNotFound,
-					"Target file does not exist"))
+				Convey("Then it should return an error", func() {
+					So(cli.Request(), ShouldNotBeNil)
 
-				Convey("Then the file stream should NOT be open", func() {
-					So(client.remoteFile, ShouldBeNil)
+					Convey("Then the file stream should NOT be open", func() {
+						So(cli.(*client).remoteFile, ShouldBeNil)
+					})
+				})
+			})
+
+			Convey("Given an invalid in file transfer", func() {
+				transCtx.Rule.IsSend = false
+				transCtx.Transfer.RemotePath = "invalid"
+
+				cli, err := NewClient(logger, transCtx)
+				So(err, ShouldBeNil)
+
+				Convey("Then it should return an error", func() {
+					So(cli.Request(), ShouldNotBeNil)
+
+					Convey("Then the file stream should NOT be open", func() {
+						So(cli.(*client).remoteFile, ShouldBeNil)
+					})
 				})
 			})
 		})
@@ -99,98 +106,67 @@ func TestRequest(t *testing.T) {
 }
 
 func TestData(t *testing.T) {
-	Convey("Given a SFTP client", t, func() {
-		client := &client{
-			conf: &config.SftpProtoConfig{},
-			Info: model.OutTransferInfo{
-				Agent: &model.RemoteAgent{
-					Address: fmt.Sprintf("localhost:%d", clientTestPort),
-				},
-				Account: &model.RemoteAccount{
-					Login:    testLogin,
-					Password: []byte(testPassword),
-				},
-				ServerCerts: []model.Cert{{
-					PublicKey: testPBK,
+	logger := log.NewLogger("test_client_request")
+
+	Convey("Given a client transfer context", t, func(c C) {
+		ctx := testhelpers.InitClient(c, "sftp", nil)
+
+		Convey("Given a lambda SFTP server", func() {
+			makeDummyServer(ctx.Paths.GatewayHome, ctx.Partner.Address)
+
+			transCtx := &model.TransferContext{
+				RemoteAgent:   ctx.Partner,
+				RemoteAccount: ctx.RemAccount,
+				Rule:          ctx.ClientPush,
+				RemoteAgentCerts: []model.Cert{{
+					Name:      "partner_key",
+					PublicKey: []byte(rsaPBK),
 				}},
-			},
-		}
-		So(client.Connect(), ShouldBeNil)
-		Reset(func() { _ = client.conn.Close() })
-
-		srcFile := "client_test.src"
-		content := []byte("client test transfer file content")
-		So(ioutil.WriteFile(srcFile, content, 0600), ShouldBeNil)
-		Reset(func() { _ = os.Remove(client.Info.Transfer.SourceFile) })
-
-		So(client.Authenticate(), ShouldBeNil)
-		Reset(func() { _ = client.client.Close() })
-
-		Convey("Given a valid out file transfer", func() {
-			client.Info.Transfer = &model.Transfer{
-				SourceFile: srcFile,
-				DestFile:   "client_test_out.dst",
+				Transfer: &model.Transfer{
+					IsServer:   false,
+					LocalPath:  "trans_local",
+					RemotePath: "trans_remote",
+				},
 			}
 
-			client.Info.Rule = &model.Rule{
-				IsSend: true,
-			}
-			So(client.Request(), ShouldBeNil)
-			Reset(func() {
-				_ = client.Close(nil)
-				_ = os.Remove(client.Info.Transfer.DestFile)
-			})
+			Convey("Given a valid out file transfer", func() {
+				transCtx.Rule.IsSend = true
 
-			Convey("Given that the requests succeeded", func() {
-				file, err := os.Open(client.Info.Transfer.SourceFile)
+				cli, err := NewClient(logger, transCtx)
 				So(err, ShouldBeNil)
-				Reset(func() { _ = file.Close() })
 
-				err = client.Data(file)
+				So(cli.Request(), ShouldBeNil)
+				Reset(func() { _ = cli.(*client).remoteFile.Close() })
 
-				Convey("Then it should NOT return an error", func() {
-					So(err, ShouldBeNil)
+				Convey("When transferring the data", func(c C) {
+					src := testhelpers.NewSrcStream(c)
+					So(cli.Data(src), ShouldBeNil)
 
-					Convey("Then the file should have been copied", func() {
-						dst, err := ioutil.ReadFile(client.Info.Transfer.DestFile)
+					Convey("Then it should have sent the file content", func(c C) {
+						dstCont, err := ioutil.ReadFile(filepath.Join(
+							ctx.Paths.GatewayHome, "trans_remote"))
 						So(err, ShouldBeNil)
-
-						So(dst, ShouldResemble, content)
+						So(dstCont, ShouldResemble, src.Content())
 					})
 				})
 			})
-		})
 
-		Convey("Given a valid in file transfer", func() {
-			client.Info.Transfer = &model.Transfer{
-				DestFile:   "client_test_in.dst",
-				SourceFile: srcFile,
-			}
-			client.Info.Rule = &model.Rule{
-				IsSend: false,
-			}
+			Convey("Given a valid in file transfer", func(c C) {
+				transCtx.Rule.IsSend = false
+				srcCont := testhelpers.AddSourceFile(c, ctx.Paths.GatewayHome, "trans_remote")
 
-			So(client.Request(), ShouldBeNil)
-			Reset(func() {
-				_ = client.Close(nil)
-				_ = os.Remove(client.Info.Transfer.DestFile)
-			})
-
-			Convey("Given that the request succeeded", func() {
-				file, err := os.Create(client.Info.Transfer.DestFile)
+				cli, err := NewClient(logger, transCtx)
 				So(err, ShouldBeNil)
-				Reset(func() { _ = file.Close() })
 
-				err = client.Data(file)
+				So(cli.Request(), ShouldBeNil)
+				Reset(func() { _ = cli.(*client).remoteFile.Close() })
 
-				Convey("Then it should NOT return an error", func() {
-					So(err, ShouldBeNil)
+				Convey("When transferring the data", func(c C) {
+					dst := testhelpers.NewDstStream(c)
+					So(cli.Data(dst), ShouldBeNil)
 
-					Convey("Then the file should have been copied", func() {
-						dst, err := ioutil.ReadFile(client.Info.Transfer.DestFile)
-						So(err, ShouldBeNil)
-
-						So(dst, ShouldResemble, content)
+					Convey("Then it should have sent the file content", func(c C) {
+						So(dst.Content(), ShouldResemble, srcCont)
 					})
 				})
 			})

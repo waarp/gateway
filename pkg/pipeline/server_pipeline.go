@@ -3,9 +3,6 @@ package pipeline
 import (
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/internal"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -26,12 +23,11 @@ func NewServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfe
 	return nil
 }
 
-func NewServerPipeline(db *database.DB, paths *conf.PathsConfig,
-	trans *model.Transfer, handlers Server) (*Pipeline, error) {
+func NewServerPipeline(db *database.DB, trans *model.Transfer, handlers Server) (*Pipeline, error) {
 
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 
-	info, err := internal.GetTransferInfo(db, logger, trans, paths)
+	info, err := model.GetTransferInfo(db, logger, trans)
 	if err != nil {
 		return nil, err
 	}

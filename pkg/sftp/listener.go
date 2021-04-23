@@ -16,7 +16,6 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -28,7 +27,6 @@ type SSHListener struct {
 	Logger      *log.Logger
 	Agent       *model.LocalAgent
 	ProtoConfig *config.SftpProtoConfig
-	GWConf      *conf.ServerConfig
 	SSHConf     *ssh.ServerConfig
 	Listener    net.Listener
 
@@ -161,7 +159,11 @@ func (l *SSHListener) makeFileReader(ch ssh.Channel, acc *model.LocalAccount) in
 		if err := pipeline.NewServerTransfer(l.DB, l.Logger, trans); err != nil {
 			return nil, err
 		}
-		str, err := newStream(l.DB, &l.GWConf.Paths, trans, &errorHandler{ch})
+		pip, err := pipeline.NewServerPipeline(l.DB, trans, &errorHandler{ch})
+		if err != nil {
+			return nil, modelToSFTP(err)
+		}
+		str, err := newStream(pip)
 		if err != nil {
 			return str, err
 		}
@@ -199,7 +201,11 @@ func (l *SSHListener) makeFileWriter(ch ssh.Channel, acc *model.LocalAccount) in
 		if err := pipeline.NewServerTransfer(l.DB, l.Logger, trans); err != nil {
 			return nil, err
 		}
-		str, err := newStream(l.DB, &l.GWConf.Paths, trans, &errorHandler{ch})
+		pip, err := pipeline.NewServerPipeline(l.DB, trans, &errorHandler{ch})
+		if err != nil {
+			return nil, modelToSFTP(err)
+		}
+		str, err := newStream(pip)
 		if err != nil {
 			return str, err
 		}

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers/selftransfer"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -74,7 +73,7 @@ func (l *SSHListener) makeTestHandlers(c C) func(ssh.Channel, *model.LocalAccoun
 	}
 }
 
-func initRcvStream(c C, ctx *selftransfer.Context) {
+func initRcvStream(c C, ctx *testhelpers.Context) {
 	trans := &model.Transfer{
 		RuleID:     ctx.ServerPush.ID,
 		IsServer:   false,
@@ -94,7 +93,7 @@ func initRcvStream(c C, ctx *selftransfer.Context) {
 
 var testFileContent = []byte("file content")
 
-func initSndStream(c C, ctx *selftransfer.Context) {
+func initSndStream(c C, ctx *testhelpers.Context) {
 	testFile := filepath.Join(ctx.Paths.GatewayHome, ctx.Paths.DefaultOutDir,
 		"transfer_file")
 	c.So(ioutil.WriteFile(testFile, testFileContent, 0o600), ShouldBeNil)

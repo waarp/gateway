@@ -14,7 +14,6 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -83,7 +82,6 @@ func TestSFTPList(t *testing.T) {
 				Logger:      logger,
 				Agent:       agent,
 				ProtoConfig: &protoConfig,
-				GWConf:      &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: root}},
 				SSHConf:     serverConfig,
 				Listener:    listener,
 				connWg:      sync.WaitGroup{},

@@ -21,8 +21,8 @@ type Client interface {
 	Request() error
 
 	// Data is the method which transfers the file content between the given
-	// TransferStream and the remote.
-	Data(TransferStream) error
+	// DataStream and the remote.
+	Data(DataStream) error
 
 	// EndTransfer informs the partner of the transfer's end, and then closes
 	// the connection.

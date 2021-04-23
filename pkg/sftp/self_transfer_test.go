@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers/selftransfer"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -19,17 +19,27 @@ var (
 	partConf = json.RawMessage("{}")
 )
 
+func runTransfer(c C, ctx *testhelpers.Context) {
+	pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.Trans)
+	c.So(err, ShouldBeNil)
+
+	testhelpers.MakeChan(c)
+	pip.Run()
+	pipeline.WaitEndClientTransfer(c, pip)
+	testhelpers.ClientCheckChannel <- "CLIENT TRANSFER END"
+}
+
 func TestSelfPushOK(t *testing.T) {
 	Convey("Given an SFTP service", t, func(c C) {
-		ctx := selftransfer.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
+		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
 		addCerts(c, ctx)
 		startService(c, ctx)
 
 		Convey("Given a new SFTP push transfer", func(c C) {
-			selftransfer.AddTransfer(c, ctx, true)
+			testhelpers.AddTransfer(c, ctx, true)
 
 			Convey("Once the transfer has been processed", func(c C) {
-				selftransfer.RunTransfer(c, ctx)
+				runTransfer(c, ctx)
 
 				Convey("Then it should have executed all the tasks in order", func(c C) {
 					testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
@@ -39,7 +49,7 @@ func TestSelfPushOK(t *testing.T) {
 					testhelpers.ServerMsgShouldBe(c, "SERVER TRANSFER END")
 					testhelpers.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
 
-					selftransfer.CheckTransfersOK(c, ctx)
+					testhelpers.CheckTransfersOK(c, ctx)
 				})
 			})
 		})
@@ -48,15 +58,15 @@ func TestSelfPushOK(t *testing.T) {
 
 func TestSelfPullOK(t *testing.T) {
 	Convey("Given an SFTP service", t, func(c C) {
-		ctx := selftransfer.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
+		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
 		addCerts(c, ctx)
 		startService(c, ctx)
 
 		Convey("Given a new SFTP pull transfer", func(c C) {
-			selftransfer.AddTransfer(c, ctx, false)
+			testhelpers.AddTransfer(c, ctx, false)
 
 			Convey("Once the transfer has been processed", func(c C) {
-				selftransfer.RunTransfer(c, ctx)
+				runTransfer(c, ctx)
 
 				Convey("Then it should have executed all the tasks in order", func(c C) {
 					testhelpers.ServerMsgShouldBe(c, "SERVER | PULL | PRE-TASKS[0] | OK")
@@ -66,7 +76,7 @@ func TestSelfPullOK(t *testing.T) {
 					testhelpers.ServerMsgShouldBe(c, "SERVER TRANSFER END")
 					testhelpers.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
 
-					selftransfer.CheckTransfersOK(c, ctx)
+					testhelpers.CheckTransfersOK(c, ctx)
 				})
 			})
 		})
@@ -75,12 +85,12 @@ func TestSelfPullOK(t *testing.T) {
 
 func TestSelfErrorClient(t *testing.T) {
 	Convey("Given an SFTP service", t, func(c C) {
-		ctx := selftransfer.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
+		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
 		addCerts(c, ctx)
 		startService(c, ctx)
 
 		Convey("Given a new SFTP push transfer", func(c C) {
-			selftransfer.AddTransfer(c, ctx, true)
+			testhelpers.AddTransfer(c, ctx, true)
 
 			Convey("Given that an error occurs", func(c C) {
 				task := model.Task{
@@ -93,7 +103,7 @@ func TestSelfErrorClient(t *testing.T) {
 				So(ctx.DB.Insert(&task).Run(), ShouldBeNil)
 
 				Convey("Once the transfer has been processed", func(c C) {
-					selftransfer.RunTransfer(c, ctx)
+					runTransfer(c, ctx)
 
 					Convey("Then it should have executed all the tasks in order", func(c C) {
 						testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
@@ -120,7 +130,7 @@ func TestSelfErrorClient(t *testing.T) {
 									"session closed by remote host"),
 						}
 
-						selftransfer.CheckTransfersError(c, ctx, cTrans, sTrans)
+						testhelpers.CheckTransfersError(c, ctx, cTrans, sTrans)
 					})
 				})
 			})
@@ -130,12 +140,12 @@ func TestSelfErrorClient(t *testing.T) {
 
 func TestSelfErrorServer(t *testing.T) {
 	Convey("Given an SFTP service", t, func(c C) {
-		ctx := selftransfer.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
+		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
 		addCerts(c, ctx)
 		startService(c, ctx)
 
 		Convey("Given a new SFTP push transfer", func(c C) {
-			selftransfer.AddTransfer(c, ctx, true)
+			testhelpers.AddTransfer(c, ctx, true)
 
 			Convey("Given that an error occurs", func(c C) {
 				task := model.Task{
@@ -148,7 +158,7 @@ func TestSelfErrorServer(t *testing.T) {
 				So(ctx.DB.Insert(&task).Run(), ShouldBeNil)
 
 				Convey("Once the transfer has been processed", func(c C) {
-					selftransfer.RunTransfer(c, ctx)
+					runTransfer(c, ctx)
 
 					Convey("Then it should have executed all the tasks in order", func(c C) {
 						testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
@@ -174,7 +184,7 @@ func TestSelfErrorServer(t *testing.T) {
 								"Pre-tasks failed: Task SERVERERR @ PUSH PRE[1]: task failed"),
 						}
 
-						selftransfer.CheckTransfersError(c, ctx, cTrans, sTrans)
+						testhelpers.CheckTransfersError(c, ctx, cTrans, sTrans)
 					})
 				})
 			})
@@ -184,12 +194,12 @@ func TestSelfErrorServer(t *testing.T) {
 
 func TestSelfPushRetry(t *testing.T) {
 	Convey("Given an SFTP service", t, func(c C) {
-		ctx := selftransfer.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
+		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
 		addCerts(c, ctx)
 		startService(c, ctx)
 
 		Convey("Given a failed SFTP push transfer", func(c C) {
-			selftransfer.AddTransfer(c, ctx, true)
+			testhelpers.AddTransfer(c, ctx, true)
 			task := model.Task{
 				RuleID: ctx.ClientPush.ID,
 				Chain:  model.ChainPost,
@@ -199,7 +209,7 @@ func TestSelfPushRetry(t *testing.T) {
 			}
 			So(ctx.DB.Insert(&task).Run(), ShouldBeNil)
 
-			selftransfer.RunTransfer(c, ctx)
+			runTransfer(c, ctx)
 			testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
 			testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[0] | OK")
 			testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[0] | OK")
@@ -215,7 +225,7 @@ func TestSelfPushRetry(t *testing.T) {
 				ctx.Trans.Status = types.StatusPlanned
 
 				Convey("Once the transfer has been processed", func(c C) {
-					selftransfer.RunTransfer(c, ctx)
+					runTransfer(c, ctx)
 
 					Convey("Then it should have executed all the remaining tasks in order", func(c C) {
 						testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
@@ -223,7 +233,7 @@ func TestSelfPushRetry(t *testing.T) {
 						testhelpers.ServerMsgShouldBe(c, "SERVER TRANSFER END")
 						testhelpers.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
 
-						selftransfer.CheckTransfersOK(c, ctx)
+						testhelpers.CheckTransfersOK(c, ctx)
 					})
 				})
 			})

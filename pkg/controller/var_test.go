@@ -26,7 +26,7 @@ func NewAllSuccess(_ *log.Logger, ctx *model.TransferContext) (pipeline.Client, 
 	return AllSuccess{ctx.Rule.IsSend}, nil
 }
 
-func (a AllSuccess) Request() error                     { return nil }
-func (a AllSuccess) Data(pipeline.TransferStream) error { return nil }
-func (a AllSuccess) EndTransfer() error                 { return nil }
-func (a AllSuccess) SendError(error)                    {}
+func (a AllSuccess) Request() error                 { return nil }
+func (a AllSuccess) Data(pipeline.DataStream) error { return nil }
+func (a AllSuccess) EndTransfer() error             { return nil }
+func (a AllSuccess) SendError(error)                {}

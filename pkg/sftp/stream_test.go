@@ -4,21 +4,24 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers/selftransfer"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestNewStream(t *testing.T) {
 	Convey("Given database suited for transfers", t, func(c C) {
-		ctx := selftransfer.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
+		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
 		addCerts(c, ctx)
 		initRcvStream(c, ctx)
 
 		Convey("When creating a new stream", func(c C) {
 			var server testServer = make(chan struct{})
-			str, err := newStream(ctx.DB, ctx.Paths, ctx.Trans, server)
+			pip, err := pipeline.NewServerPipeline(ctx.DB, ctx.Trans, server)
+			So(err, ShouldBeNil)
+			str, err := newStream(pip)
 			So(err, ShouldBeNil)
 			Reset(func() { _ = str.pipeline.EndData() })
 
@@ -39,13 +42,15 @@ func TestNewStream(t *testing.T) {
 
 func TestStreamReadAt(t *testing.T) {
 	Convey("Given database suited for transfers", t, func(c C) {
-		ctx := selftransfer.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
+		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
 		addCerts(c, ctx)
 		initSndStream(c, ctx)
 
 		Convey("Given an SFTP stream", func(c C) {
 			var server testServer = make(chan struct{})
-			str, err := newStream(ctx.DB, ctx.Paths, ctx.Trans, server)
+			pip, err := pipeline.NewServerPipeline(ctx.DB, ctx.Trans, server)
+			So(err, ShouldBeNil)
+			str, err := newStream(pip)
 			So(err, ShouldBeNil)
 			Reset(func() { _ = str.pipeline.EndData() })
 
@@ -64,13 +69,15 @@ func TestStreamReadAt(t *testing.T) {
 
 func TestStreamWriteAt(t *testing.T) {
 	Convey("Given database suited for transfers", t, func(c C) {
-		ctx := selftransfer.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
+		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
 		addCerts(c, ctx)
 		initRcvStream(c, ctx)
 
 		Convey("Given an SFTP stream", func(c C) {
 			var server testServer = make(chan struct{})
-			str, err := newStream(ctx.DB, ctx.Paths, ctx.Trans, server)
+			pip, err := pipeline.NewServerPipeline(ctx.DB, ctx.Trans, server)
+			So(err, ShouldBeNil)
+			str, err := newStream(pip)
 			So(err, ShouldBeNil)
 			Reset(func() { _ = str.pipeline.EndData() })
 
@@ -91,13 +98,15 @@ func TestStreamWriteAt(t *testing.T) {
 
 func TestStreamClose(t *testing.T) {
 	Convey("Given database suited for transfers", t, func(c C) {
-		ctx := selftransfer.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
+		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
 		addCerts(c, ctx)
 		initRcvStream(c, ctx)
 
 		Convey("Given an SFTP stream", func(c C) {
 			var server testServer = make(chan struct{})
-			str, err := newStream(ctx.DB, ctx.Paths, ctx.Trans, server)
+			pip, err := pipeline.NewServerPipeline(ctx.DB, ctx.Trans, server)
+			So(err, ShouldBeNil)
+			str, err := newStream(pip)
 			So(err, ShouldBeNil)
 
 			Convey("When closing the stream", func(c C) {

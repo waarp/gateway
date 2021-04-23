@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -79,7 +78,6 @@ func TestControllerListen(t *testing.T) {
 			tick := time.Nanosecond
 			cont := &Controller{
 				DB:     db,
-				Conf:   &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: "."}},
 				ticker: time.NewTicker(tick),
 				logger: log.NewLogger("test_controller"),
 				wg:     new(sync.WaitGroup),

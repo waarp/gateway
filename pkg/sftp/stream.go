@@ -4,11 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"golang.org/x/crypto/ssh"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 )
 
@@ -28,14 +25,7 @@ type stream struct {
 // newStream initialises a special kind of TransferStream tailored for
 // the SFTP server. This constructor initialises a TransferStream, opens the
 // local file and executes the pre-tasks.
-func newStream(db *database.DB, paths *conf.PathsConfig, trans *model.Transfer,
-	handler pipeline.Server) (*stream, error) {
-
-	pip, err := pipeline.NewServerPipeline(db, paths, trans, handler)
-	if err != nil {
-		return nil, modelToSFTP(err)
-	}
-
+func newStream(pip *pipeline.Pipeline) (*stream, error) {
 	str := &stream{pipeline: pip}
 
 	if err := pip.PreTasks(); err != nil {

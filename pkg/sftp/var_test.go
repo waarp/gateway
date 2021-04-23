@@ -4,15 +4,9 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 )
 
-const (
-	testLogin    = "test_user"
-	testPassword = "test_password"
-)
-
 var (
-	clientTestPort uint16
-	testPK         = []byte(rsaPK)
-	testPBK        = []byte(rsaPBK)
+	testPK  = []byte(rsaPK)
+	testPBK = []byte(rsaPBK)
 )
 
 func init() {

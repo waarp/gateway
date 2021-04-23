@@ -3,9 +3,6 @@ package pipeline
 import (
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/internal"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -17,28 +14,27 @@ type ClientPipeline struct {
 	client Client
 }
 
-func NewClientPipeline(db *database.DB, paths *conf.PathsConfig,
-	trans *model.Transfer) (*ClientPipeline, error) {
+func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline, error) {
 
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 
-	info, err := internal.GetTransferInfo(db, logger, trans, paths)
+	transCtx, err := model.GetTransferInfo(db, logger, trans)
 	if err != nil {
 		return nil, err
 	}
 
-	constr, ok := ClientConstructors[info.RemoteAgent.Protocol]
+	constr, ok := ClientConstructors[transCtx.RemoteAgent.Protocol]
 	if !ok {
-		logger.Errorf("No client found for protocol %s", info.RemoteAgent.Protocol)
+		logger.Errorf("No client found for protocol %s", transCtx.RemoteAgent.Protocol)
 		return nil, err
 	}
 
-	client, err := constr(logger, info)
+	client, err := constr(logger, transCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	pipeline, err := newPipeline(db, logger, info)
+	pipeline, err := newPipeline(db, logger, transCtx)
 	if err != nil {
 		return nil, err
 	}
