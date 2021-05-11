@@ -5,15 +5,18 @@ require (
 	code.waarp.fr/waarp-r66/r66 v0.0.0-20210402171137-41ab4b252f00
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gorilla/mux v1.7.3
+	github.com/jackc/pgconn v1.8.0
+	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jackc/pgx/v4 v4.10.1
 	github.com/jessevdk/go-flags v1.4.1-0.20181006083204-9c49a3351d49
 	github.com/mattn/go-colorable v0.1.6
 	github.com/mattn/go-oci8 v0.0.2
-	github.com/mattn/go-sqlite3 v1.14.6
+	github.com/mattn/go-sqlite3 v1.14.7
 	github.com/pkg/sftp v1.11.0
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
 	github.com/smartystreets/goconvey v1.6.4
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+	golang.org/x/mod v0.0.0-20190513183733-4bf6d317e70e
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 	xorm.io/builder v0.3.7
 	xorm.io/xorm v1.0.7

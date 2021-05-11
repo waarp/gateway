@@ -3,7 +3,7 @@ package model
 import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 
 func init() {
-	database.Tables = append(database.Tables, &TransferInfo{})
+	database.AddTable(&TransferInfo{})
 }
 
 // TransferInfo represents the transfer_info database table, which contains all the

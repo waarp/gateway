@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &Transfer{})
+	database.AddTable(&Transfer{})
 }
 
 // Transfer represents one record of the 'transfers' table.

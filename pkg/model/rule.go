@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &Rule{})
+	database.AddTable(&Rule{})
 }
 
 // Rule represents a transfer rule.

@@ -78,7 +78,7 @@ func initTestDBConf(c convey.C, config *conf.DatabaseConfig) {
 func resetDB(c convey.C, db *DB, config *conf.DatabaseConfig) {
 	switch config.Type {
 	case postgres, mysql:
-		for _, tbl := range Tables {
+		for _, tbl := range tables {
 			c.So(db.engine.DropTables(tbl.TableName()), convey.ShouldBeNil)
 		}
 		c.So(db.engine.Close(), convey.ShouldBeNil)
