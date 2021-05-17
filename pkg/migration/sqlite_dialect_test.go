@@ -11,7 +11,8 @@ import (
 
 func getTestSqliteDB() *sql.DB {
 	file := tempFilename()
-	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc", file))
+	//db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc", file))
+	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=rwc", file))
 	So(err, ShouldBeNil)
 
 	Reset(func() {
@@ -21,34 +22,36 @@ func getTestSqliteDB() *sql.DB {
 	return db
 }
 
-func testSqliteEngine(db *sql.DB) Dialect {
+func testSQLiteEngine(db *sql.DB) Dialect {
+	_, err := db.Exec("PRAGMA foreign_keys = ON")
+	So(err, ShouldBeNil)
 	return newSqliteEngine(&queryWriter{db: db, writer: os.Stdout})
 }
 
-func TestSqliteCreateTable(t *testing.T) {
-	testSQLCreateTable(t, "SQLite", getTestSqliteDB, testSqliteEngine)
+func TestSQLiteCreateTable(t *testing.T) {
+	testSQLCreateTable(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
 }
 
-func TestSqliteRenameTable(t *testing.T) {
-	testSQLRenameTable(t, "SQLite", getTestSqliteDB, testSqliteEngine)
+func TestSQLiteRenameTable(t *testing.T) {
+	testSQLRenameTable(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
 }
 
-func TestSqliteDropTable(t *testing.T) {
-	testSQLDropTable(t, "SQLite", getTestSqliteDB, testSqliteEngine)
+func TestSQLiteDropTable(t *testing.T) {
+	testSQLDropTable(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
 }
 
-func TestSqliteRenameColumn(t *testing.T) {
-	testSQLRenameColumn(t, "SQLite", getTestSqliteDB, testSqliteEngine)
+func TestSQLiteRenameColumn(t *testing.T) {
+	testSQLRenameColumn(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
 }
 
-func TestSqliteAddColumn(t *testing.T) {
-	testSQLAddColumn(t, "SQLite", getTestSqliteDB, testSqliteEngine)
+func TestSQLiteAddColumn(t *testing.T) {
+	testSQLAddColumn(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
 }
 
 func TestSQLiteDropColumn(t *testing.T) {
-	testSQLDropColumn(t, "SQLite", getTestSqliteDB, testSqliteEngine)
+	testSQLDropColumn(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
 }
 
 func TestSQLiteAddRow(t *testing.T) {
-	testSQLAddRow(t, "SQLite", getTestSqliteDB, testSqliteEngine)
+	testSQLAddRow(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
 }

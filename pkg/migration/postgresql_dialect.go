@@ -4,7 +4,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
-	"strings"
 
 	_ "github.com/jackc/pgx/v4/stdlib" //register the PostgreSQL driver
 )
@@ -85,13 +84,22 @@ func (p *postgreDialect) sqlTypeToDBType(typ sqlType) (string, error) {
 	}
 }
 
-func (p *postgreDialect) makeConstraints(table string, col *Column, uniques *[][]string) (string, error) {
+func (p *postgreDialect) makeConstraints(col *Column) ([]string, error) {
 	var consList []string
 	for _, c := range col.Constraints {
-		switch c.kind {
-		case primaryKey:
-			consList = append(consList, fmt.Sprintf("CONSTRAINT %s_pk PRIMARY KEY", table))
+		switch con := c.(type) {
+		case pk:
+			consList = append(consList, "PRIMARY KEY")
+		case fk:
+			consList = append(consList, fmt.Sprintf("REFERENCES %s(%s)", con.table, con.col))
+		case notNull:
+			consList = append(consList, "NOT NULL")
 		case autoIncr:
+			if !isIntegerType(col.Type) {
+				return nil, fmt.Errorf("auto-increments can only be used on "+
+					"integer types (%s is not an integer type)", col.Type.code.String())
+			}
+			// PostgreSQL handles auto-increments by changing the type to a serial.
 			switch col.Type.code {
 			case tinyint, smallint:
 				col.Type = custom("SMALLSERIAL")
@@ -100,79 +108,25 @@ func (p *postgreDialect) makeConstraints(table string, col *Column, uniques *[][
 			case bigint:
 				col.Type = custom("BIGSERIAL")
 			}
-		case notNull:
-			consList = append(consList, "NOT NULL")
-		case defaultVal:
-			sqlVal, err := p.formatValueToSQL(c.params[0], col.Type)
+		case unique:
+			consList = append(consList, "UNIQUE")
+		case defaul:
+			sqlVal, err := p.formatValueToSQL(con.val, col.Type)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 			consList = append(consList, fmt.Sprintf("DEFAULT %s", sqlVal))
-		case unique:
-			colNames, err := convertUniqueParams(col.Name, c.params)
-			if err != nil {
-				return "", err
-			}
-			if !hasEquivalent(*uniques, colNames) {
-				*uniques = append(*uniques, colNames)
-			}
 		default:
-			return "", fmt.Errorf("unknown constraint")
+			return nil, fmt.Errorf("unknown constraint type %T", c)
 		}
 	}
-	return strings.Join(consList, " "), nil
+	return consList, nil
 }
 
-func (p *postgreDialect) makeColumnStr(table string, col Column,
-	uniques *[][]string) (string, string, error) {
-
-	constStr, err := p.makeConstraints(table, &col, uniques)
-	if err != nil {
-		return "", "", err
-	}
-	typ, err := p.sqlTypeToDBType(col.Type)
-	if err != nil {
-		return "", "", err
-	}
-	return typ, constStr, nil
-}
-
-func (p *postgreDialect) CreateTable(table string, columns ...Column) error {
-	if len(columns) == 0 {
-		return fmt.Errorf("missing columns in CREATE TABLE statement")
-	}
-
-	//unique constraints are handled in a separate statement
-	var uniques [][]string
-
-	var cols []string
-	for _, col := range columns {
-		typ, constStr, err := p.makeColumnStr(table, col, &uniques)
-		if err != nil {
-			return err
-		}
-		if constStr == "" {
-			cols = append(cols, fmt.Sprintf("%s %s", col.Name, typ))
-		} else {
-			cols = append(cols, fmt.Sprintf("%s %s %s", col.Name, typ, constStr))
-		}
-	}
-	colsStr := strings.Join(cols, ", ")
-	_, err := p.Exec("CREATE TABLE %s (%s)", table, colsStr)
-	if err != nil {
-		return err
-	}
-
-	for _, uniqueCols := range uniques {
-		if _, err := p.Exec("CREATE UNIQUE INDEX %s_uindex ON %s (%s)",
-			strings.Join(uniqueCols, "_"), table,
-			strings.Join(uniqueCols, ", ")); err != nil {
-			return err
-		}
-	}
-	return nil
+func (p *postgreDialect) CreateTable(table string, defs ...Definition) error {
+	return p.standardSQL.createTable(p, table, defs)
 }
 
 func (p *postgreDialect) AddRow(table string, values Cells) error {
-	return p.standardSQL.addRow(p.formatValueToSQL, table, values)
+	return p.standardSQL.addRow(p, table, values)
 }

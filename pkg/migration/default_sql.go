@@ -1,6 +1,7 @@
 package migration
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -39,11 +40,11 @@ func (s *standardSQL) DropColumn(table, name string) error {
 	return err
 }
 
-func (s *standardSQL) addRow(format func(interface{}, sqlType) (string, error), table string,
+func (s *standardSQL) addRow(conv sqlFormatter, table string,
 	values Cells) error {
 	var colList, valuesList []string
 	for col, cell := range values {
-		str, err := format(cell.Val, cell.Type)
+		str, err := conv.formatValueToSQL(cell.Val, cell.Type)
 		if err != nil {
 			return err
 		}
@@ -55,6 +56,88 @@ func (s *standardSQL) addRow(format func(interface{}, sqlType) (string, error), 
 	return err
 }
 
-func (s *standardSQL) AddRow(table string, values Cells) error {
-	return s.addRow(s.formatValueToSQL, table, values)
+func (s *standardSQL) makeColumnDef(formatter sqlFormatter, col Column) (string, error) {
+	constr, err := formatter.makeConstraints(&col)
+	if err != nil {
+		return "", err
+	}
+
+	typ, err := formatter.sqlTypeToDBType(col.Type)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.Join(append([]string{col.Name, typ}, constr...), " "), nil
+}
+
+func (s *standardSQL) makeTblConstraint(colsDef []Column, cons TableConstraint) (string, error) {
+	checkCol := func(col string) error {
+		for _, def := range colsDef {
+			if def.Name == col {
+				return nil
+			}
+		}
+		return fmt.Errorf("column %s does not exist", col)
+	}
+
+	checkCols := func(cols []string) error {
+		for _, col := range cols {
+			if err := checkCol(col); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	switch con := cons.(type) {
+	case tblPk:
+		if err := checkCols(con.cols); err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("PRIMARY KEY (%s)", strings.Join(con.cols, ", ")), nil
+	case tblUnique:
+		if err := checkCols(con.cols); err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("UNIQUE (%s)", strings.Join(con.cols, ", ")), nil
+	default:
+		return "", fmt.Errorf("invalid table definition %#v", con)
+	}
+}
+
+func (s *standardSQL) createTable(formatter sqlFormatter, table string, defs []Definition) error {
+
+	var colDefs []Column
+	var constrDefs []TableConstraint
+	for _, d := range defs {
+		switch def := d.(type) {
+		case Column:
+			colDefs = append(colDefs, def)
+		case TableConstraint:
+			constrDefs = append(constrDefs, def)
+		}
+	}
+
+	var defsStr []string
+	for _, col := range colDefs {
+		str, err := s.makeColumnDef(formatter, col)
+		if err != nil {
+			return err
+		}
+		defsStr = append(defsStr, str)
+	}
+	for _, con := range constrDefs {
+		str, err := s.makeTblConstraint(colDefs, con)
+		if err != nil {
+			return err
+		}
+		defsStr = append(defsStr, str)
+	}
+
+	_, err := s.Exec("CREATE TABLE %s (%s)", table, strings.Join(defsStr, ", "))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

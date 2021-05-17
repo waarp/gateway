@@ -95,11 +95,11 @@ func (db *DB) createConnectionInfo() (string, string, func(*xorm.Engine) error, 
 		return "", "", nil, fmt.Errorf("unknown database type '%s'", rdbms)
 	}
 
-	driver, dsn, f := info(db.Conf.Database)
+	driver, dsn, f := info(&db.Conf.Database)
 	return driver, dsn, f, nil
 }
 
-type dbinfo func(conf.DatabaseConfig) (string, string, func(*xorm.Engine) error)
+type dbinfo func(*conf.DatabaseConfig) (string, string, func(*xorm.Engine) error)
 
 var supportedRBMS = map[string]dbinfo{}
 

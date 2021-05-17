@@ -14,21 +14,21 @@ const (
 	// Configuration option for using the OracleDB RDBMS
 	oracle = "oracledb"
 
-	// Name of the OracleDB database driver
-	oracleDriver = "oci8"
+	// OracleDriver is the name of the OracleDB database driver
+	OracleDriver = "oci8"
 )
 
 func init() {
 	supportedRBMS[oracle] = oracleinfo
 }
 
-func oracleinfo(config conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return oracleDriver, oracleDSN(config), func(*xorm.Engine) error {
+func oracleinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+	return OracleDriver, oracleDSN(config), func(*xorm.Engine) error {
 		return nil
 	}
 }
 
-func oracleDSN(config conf.DatabaseConfig) string {
+func oracleDSN(config *conf.DatabaseConfig) string {
 	var pass string
 	if config.Password != "" {
 		pass = fmt.Sprintf("/%s", config.Password)

@@ -155,22 +155,15 @@ func colShouldHaveType(engine Dialect, table, col string, t sqlType) {
 	panic(fmt.Sprintf("no column '%s' found", col))
 }
 
-func colsShouldHaveType(eng Dialect, table string, cols []Column) {
-	for _, col := range cols {
-		Convey(fmt.Sprintf("Then column %s should have type %s", col.Name,
-			col.Type.code.String()), func() {
-			colShouldHaveType(eng, table, col.Name, col.Type)
-		})
-	}
-}
-
 func getTimeFormats(eng Dialect) (date, ts, tsz string) {
 	date = "2006-01-02"
 	ts = "2006-01-02 15:04:05.999999999"
 	tsz = "2006-01-02 15:04:05.999999999Z07:00"
-	if _, ok := eng.(*mySQLDialect); ok {
-		ts = "2006-01-02 15:04:05"
-	}
+	/*
+		if _, ok := eng.(*mySQLDialect); ok {
+			ts = "2006-01-02 15:04:05"
+		}
+	*/
 	if _, ok := eng.(*postgreDialect); ok {
 		date = time.RFC3339
 		ts = "2006-01-02T15:04:05.999999Z07:00"

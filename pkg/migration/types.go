@@ -148,3 +148,12 @@ func (s *standardSQL) formatValueToSQL(val interface{}, sqlTyp sqlType) (string,
 		return "", fmt.Errorf("unsupported SQL datatype")
 	}
 }
+
+func isIntegerType(typ sqlType) bool {
+	switch typ.code {
+	case tinyint, smallint, integer, bigint:
+		return true
+	default:
+		return false
+	}
+}

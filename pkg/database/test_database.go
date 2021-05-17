@@ -21,7 +21,7 @@ const (
 	testDBEnv  = "GATEWAY_TEST_DB"
 )
 
-func testinfo(c conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+func testinfo(c *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
 	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc",
 		c.Address), sqliteInit
 }

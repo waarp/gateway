@@ -18,18 +18,10 @@ func getTestPostgreDB() *sql.DB {
 	So(err, ShouldBeNil)
 
 	Reset(func() {
-		rows, err := db.Query(`SELECT 'DROP TABLE IF EXISTS "' || tablename || '" CASCADE;' 
-			FROM pg_tables WHERE schemaname = 'public'`)
+		_, err := db.Exec("DROP SCHEMA public CASCADE")
 		So(err, ShouldBeNil)
-
-		for rows.Next() {
-			var cmd string
-			So(rows.Scan(&cmd), ShouldBeNil)
-			_, err := db.Exec(cmd)
-			So(err, ShouldBeNil)
-		}
-
-		So(rows.Close(), ShouldBeNil)
+		_, err = db.Exec("CREATE SCHEMA public")
+		So(err, ShouldBeNil)
 		So(db.Close(), ShouldBeNil)
 	})
 	return db

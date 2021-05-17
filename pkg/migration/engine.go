@@ -38,7 +38,7 @@ func (e *Engine) Upgrade(migrations []Migration) (txErr error) {
 	dialect := e.constr(&queryWriter{db: tx})
 
 	for _, m := range migrations {
-		if txErr = m.Up(dialect); txErr != nil {
+		if txErr = m.Script.Up(dialect); txErr != nil {
 			return
 		}
 	}
@@ -63,7 +63,7 @@ func (e *Engine) Downgrade(migrations []Migration) (txErr error) {
 	dialect := e.constr(&queryWriter{db: tx})
 
 	for i := len(migrations) - 1; i >= 0; i-- {
-		if txErr = migrations[i].Down(dialect); txErr != nil {
+		if txErr = migrations[i].Script.Down(dialect); txErr != nil {
 			return
 		}
 	}

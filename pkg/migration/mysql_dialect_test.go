@@ -20,18 +20,10 @@ func getTestMySQLDB() *sql.DB {
 	So(err, ShouldBeNil)
 
 	Reset(func() {
-		rows, err := db.Query(`SELECT concat('DROP TABLE IF EXISTS ', table_name, ';')
-			FROM information_schema.tables WHERE table_schema = 'waarp_gateway_test';`)
+		_, err := db.Exec("DROP DATABASE waarp_gateway_test")
 		So(err, ShouldBeNil)
-
-		for rows.Next() {
-			var cmd string
-			So(rows.Scan(&cmd), ShouldBeNil)
-			_, err := db.Exec(cmd)
-			So(err, ShouldBeNil)
-		}
-
-		So(rows.Close(), ShouldBeNil)
+		_, err = db.Exec("CREATE DATABASE waarp_gateway_test")
+		So(err, ShouldBeNil)
 		So(db.Close(), ShouldBeNil)
 	})
 	return db

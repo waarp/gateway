@@ -14,31 +14,41 @@ func testSQLCreateTable(t *testing.T, dbms string, initDB func() *sql.DB,
 
 	Convey(fmt.Sprintf("Given a %s database", dbms), t, func() {
 		db := initDB()
+		_, err := db.Exec("CREATE TABLE titi (id INTEGER PRIMARY KEY)")
+		So(err, ShouldBeNil)
 
 		Convey(fmt.Sprintf("Given a %s dialect engine", dbms), func() {
 			engine := getEngine(db)
 
-			Convey("When adding a table with various types", func() {
-				cols := []Column{
-					Col("i32", INTEGER, PRIMARYKEY, AUTOINCR),
-					Col("i64", BIGINT, UNIQUE("i8")),
-					Col("i16", SMALLINT, NOTNULL, DEFAULT(int16(0))),
-					Col("i8", TINYINT, UNIQUE("i64")),
-					Col("flo", FLOAT, UNIQUE()),
+			Convey("When adding a table with various columns and constraints", func() {
+				defs := []Definition{
+					Col("i64", BIGINT, PRIMARYKEY, AUTOINCR),
+					Col("i32", INTEGER, NOTNULL, FOREIGNKEY("titi", "id")),
+					Col("i16", SMALLINT, NOTNULL),
+					Col("i8", TINYINT),
+					Col("flo", FLOAT, UNIQUE),
 					Col("dou", DOUBLE),
 					Col("bol", BOOLEAN),
 					Col("vc1", VARCHAR(4)),
-					Col("str", TEXT),
+					Col("str", TEXT, DEFAULT("txt")),
 					Col("bin", BINARY(4)),
 					Col("blo", BLOB),
 					Col("dat", DATE),
 					Col("ts", TIMESTAMP),
 					Col("tsz", TIMESTAMPZ),
+					Unique("i32", "i8"),
 				}
-				So(engine.CreateTable("toto", cols...), ShouldBeNil)
+				So(engine.CreateTable("toto", defs...), ShouldBeNil)
 
 				Convey("Then it should have added the table with the correct types", func() {
-					colsShouldHaveType(engine, "toto", cols)
+					for _, def := range defs {
+						if col, ok := def.(Column); ok {
+							Convey(fmt.Sprintf("Then column %s should have type %s", col.Name,
+								col.Type.code.String()), func() {
+								colShouldHaveType(engine, "toto", col.Name, col.Type)
+							})
+						}
+					}
 				})
 			})
 		})
@@ -258,9 +268,9 @@ func testSQLAddRow(t *testing.T, dbms string, initDB func() *sql.DB,
 				), ShouldBeNil)
 
 				Convey("When adding a row", func() {
-					t1 := time.Date(1970, 1, 1, 1, 0, 0, 0, time.UTC)
-					t2 := time.Date(1980, 1, 1, 1, 0, 0, 111111111, time.UTC)
-					t3 := time.Date(1990, 1, 1, 1, 0, 0, 222222222, time.Local)
+					tDat := time.Date(1970, 1, 1, 1, 0, 0, 0, time.UTC)
+					tTs := time.Date(1980, 1, 1, 1, 0, 0, 111111111, time.UTC)
+					tTsz := time.Date(1990, 1, 1, 1, 0, 0, 222222222, time.Local)
 
 					So(engine.AddRow("toto", Cells{
 						"i64": Cel(BIGINT, int64(64)),
@@ -274,9 +284,9 @@ func testSQLAddRow(t *testing.T, dbms string, initDB func() *sql.DB,
 						"str": Cel(TEXT, &testInterface{str: "message"}),
 						"bin": Cel(BINARY(4), []byte{0x00, 0xFF, 0x00, 0xFF}),
 						"blo": Cel(BLOB, []byte{0x00, 0xFF, 0xFF, 0x00}),
-						"dat": Cel(DATE, t1),
-						"ts":  Cel(TIMESTAMP, t2),
-						"tsz": Cel(TIMESTAMPZ, t3),
+						"dat": Cel(DATE, tDat),
+						"ts":  Cel(TIMESTAMP, tTs),
+						"tsz": Cel(TIMESTAMPZ, tTsz),
 					}), ShouldBeNil)
 
 					Convey("Then the row should have been added", func() {
@@ -313,9 +323,9 @@ func testSQLAddRow(t *testing.T, dbms string, initDB func() *sql.DB,
 						So(str, ShouldEqual, "message")
 						So(bin, ShouldResemble, []byte{0x0, 0xFF, 0x00, 0xFF})
 						So(blo, ShouldResemble, []byte{0x0, 0xFF, 0xFF, 0x00})
-						SkipSo(dat, ShouldEqual, t1.Format(dateFormat))
-						So(ts, ShouldEqual, t2.Format(tsFormat))
-						So(tsz, ShouldEqual, t3.Format(tszFormat))
+						SkipSo(dat, ShouldEqual, tDat.Format(dateFormat))
+						SkipSo(ts, ShouldEqual, tTs.Format(tsFormat))
+						So(tsz, ShouldEqual, tTsz.Format(tszFormat))
 					})
 				})
 			})

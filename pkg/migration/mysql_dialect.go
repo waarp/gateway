@@ -2,7 +2,6 @@ package migration
 
 import (
 	"fmt"
-	"strings"
 
 	_ "github.com/go-sql-driver/mysql" //register the MySQL driver
 )
@@ -54,89 +53,41 @@ func (m *mySQLDialect) sqlTypeToDBType(typ sqlType) (string, error) {
 	}
 }
 
-func (m *mySQLDialect) makeConstraints(table string, col *Column,
-	uniques *[][]string) (string, string, error) {
-
+func (m *mySQLDialect) makeConstraints(col *Column) ([]string, error) {
 	var consList []string
-	var pk string
 	for _, c := range col.Constraints {
-		switch c.kind {
-		case primaryKey:
-			pk = fmt.Sprintf("CONSTRAINT %s_pk PRIMARY KEY (%s)", table, col.Name)
-		case autoIncr:
-			consList = append(consList, "AUTO_INCREMENT")
+		switch con := c.(type) {
+		case pk:
+			consList = append(consList, "PRIMARY KEY")
+		case fk:
+			consList = append(consList, fmt.Sprintf("REFERENCES %s(%s)", con.table, con.col))
 		case notNull:
 			consList = append(consList, "NOT NULL")
-		case defaultVal:
-			sqlVal, err := m.formatValueToSQL(c.params[0], col.Type)
+		case autoIncr:
+			if !isIntegerType(col.Type) {
+				return nil, fmt.Errorf("auto-increments can only be used on "+
+					"integer types (%s is not an integer type)", col.Type.code.String())
+			}
+			consList = append(consList, "AUTO_INCREMENT")
+		case unique:
+			consList = append(consList, "UNIQUE")
+		case defaul:
+			sqlVal, err := m.formatValueToSQL(con.val, col.Type)
 			if err != nil {
-				return "", "", err
+				return nil, err
 			}
 			consList = append(consList, fmt.Sprintf("DEFAULT %s", sqlVal))
-		case unique:
-			colNames, err := convertUniqueParams(col.Name, c.params)
-			if err != nil {
-				return "", "", err
-			}
-			if !hasEquivalent(*uniques, colNames) {
-				*uniques = append(*uniques, colNames)
-			}
 		default:
-			return "", "", fmt.Errorf("unknown constraint")
+			return nil, fmt.Errorf("unknown constraint type %T", c)
 		}
 	}
-	return strings.Join(consList, " "), pk, nil
+	return consList, nil
 }
 
-func (m *mySQLDialect) makeColumnStr(table string, col Column,
-	uniques *[][]string) (string, string, string, error) {
-
-	constStr, pkStr, err := m.makeConstraints(table, &col, uniques)
-	if err != nil {
-		return "", "", "", err
-	}
-	typ, err := m.sqlTypeToDBType(col.Type)
-	if err != nil {
-		return "", "", "", err
-	}
-	return typ, constStr, pkStr, nil
+func (m *mySQLDialect) CreateTable(table string, defs ...Definition) error {
+	return m.standardSQL.createTable(m, table, defs)
 }
 
-func (m *mySQLDialect) CreateTable(table string, columns ...Column) error {
-	if len(columns) == 0 {
-		return fmt.Errorf("missing columns in CREATE TABLE statement")
-	}
-
-	//unique constraints are handled in a separate statement
-	var uniques [][]string
-
-	var cols []string
-	for _, col := range columns {
-		typ, constStr, pkStr, err := m.makeColumnStr(table, col, &uniques)
-		if err != nil {
-			return err
-		}
-		if constStr == "" {
-			cols = append(cols, fmt.Sprintf("%s %s", col.Name, typ))
-		} else {
-			cols = append(cols, fmt.Sprintf("%s %s %s", col.Name, typ, constStr))
-		}
-		if pkStr != "" {
-			cols = append(cols, pkStr)
-		}
-	}
-	colsStr := strings.Join(cols, ", ")
-	_, err := m.Exec("CREATE TABLE %s (%s)", table, colsStr)
-	if err != nil {
-		return err
-	}
-
-	for _, uniqueCols := range uniques {
-		if _, err := m.Exec("CREATE UNIQUE INDEX %s_uindex ON %s (%s)",
-			strings.Join(uniqueCols, "_"), table,
-			strings.Join(uniqueCols, ", ")); err != nil {
-			return err
-		}
-	}
-	return nil
+func (m *mySQLDialect) AddRow(table string, values Cells) error {
+	return m.addRow(m, table, values)
 }

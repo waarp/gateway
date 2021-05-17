@@ -59,82 +59,45 @@ func (s *sqliteDialect) sqlTypeToDBType(typ sqlType) (string, error) {
 	}
 }
 
-func (s *sqliteDialect) makeConstraints(table string, col *Column, uniques *[][]string) (string, error) {
+func (s *sqliteDialect) makeConstraints(col *Column) ([]string, error) {
 	var consList []string
 	for _, c := range col.Constraints {
-		switch c.kind {
-		case primaryKey:
-			consList = append(consList, fmt.Sprintf("CONSTRAINT %s_pk PRIMARY KEY", table))
-		case autoIncr:
-			consList = append(consList, "AUTOINCREMENT")
-			col.Type = INTEGER //SQLite only accepts autoincrements on INTEGER type
+		switch con := c.(type) {
+		case pk:
+			consList = append(consList, "PRIMARY KEY")
+		case fk:
+			consList = append(consList, fmt.Sprintf("REFERENCES %s(%s)", con.table, con.col))
 		case notNull:
 			consList = append(consList, "NOT NULL")
-		case defaultVal:
-			sqlVal, err := s.formatValueToSQL(c.params[0], col.Type)
+		case autoIncr:
+			if !isIntegerType(col.Type) {
+				return nil, fmt.Errorf("auto-increments can only be used on "+
+					"integer types (%s is not an integer type)", col.Type.code.String())
+			}
+			// AUTOINCR is not needed in SQLite, INTEGER PRIMARY KEY column already
+			// have an auto-increment by default.
+			//consList = append(consList, "AUTOINCREMENT")
+		case unique:
+			consList = append(consList, "UNIQUE")
+		case defaul:
+			sqlVal, err := s.formatValueToSQL(con.val, col.Type)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 			consList = append(consList, fmt.Sprintf("DEFAULT %s", sqlVal))
-		case unique:
-			colNames, err := convertUniqueParams(col.Name, c.params)
-			if err != nil {
-				return "", err
-			}
-			if !hasEquivalent(*uniques, colNames) {
-				*uniques = append(*uniques, colNames)
-			}
 		default:
-			return "", fmt.Errorf("unknown constraint")
+			return nil, fmt.Errorf("unknown constraint type %T", c)
 		}
 	}
-	return strings.Join(consList, " "), nil
+	return consList, nil
 }
 
-func (s *sqliteDialect) makeColumnStr(table string, col Column,
-	uniques *[][]string) (string, string, error) {
-
-	constStr, err := s.makeConstraints(table, &col, uniques)
-	if err != nil {
-		return "", "", err
-	}
-	typ, err := s.sqlTypeToDBType(col.Type)
-	if err != nil {
-		return "", "", err
-	}
-	return typ, constStr, nil
+func (s *sqliteDialect) CreateTable(table string, defs ...Definition) error {
+	return s.standardSQL.createTable(s, table, defs)
 }
 
-func (s *sqliteDialect) CreateTable(table string, columns ...Column) error {
-	//unique constraints are handled in a separate statement
-	var uniques [][]string
-
-	var cols []string
-	for _, col := range columns {
-		typ, constStr, err := s.makeColumnStr(table, col, &uniques)
-		if err != nil {
-			return err
-		}
-		if constStr == "" {
-			cols = append(cols, fmt.Sprintf("%s %s", col.Name, typ))
-		} else {
-			cols = append(cols, fmt.Sprintf("%s %s %s", col.Name, typ, constStr))
-		}
-	}
-	colsStr := strings.Join(cols, ", ")
-	_, err := s.Exec("CREATE TABLE %s (%s)", table, colsStr)
-	if err != nil {
-		return err
-	}
-
-	for _, uniqueCols := range uniques {
-		if _, err := s.Exec("CREATE UNIQUE INDEX %s_uindex ON %s (%s)",
-			strings.Join(uniqueCols, "_"), table,
-			strings.Join(uniqueCols, ", ")); err != nil {
-			return err
-		}
-	}
-	return nil
+func (s *sqliteDialect) AddRow(table string, values Cells) error {
+	return s.addRow(s, table, values)
 }
 
 func (s *sqliteDialect) DropColumn(table, name string) error {
