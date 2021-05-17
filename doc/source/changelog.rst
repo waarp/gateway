@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`254` Ajout des contraintes d'unicité manquantes lors de l'initialisation
+  de la base de données.
+
 * :release:`0.3.3 <2021-04-07>`
 * :bug:`251` Corrige le probème de création du fichier distant en SFTP 
   lorsque le serveur refuse l'ouverture de fichier en écriture ET en lecture.
