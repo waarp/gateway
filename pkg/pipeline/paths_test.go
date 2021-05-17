@@ -180,7 +180,6 @@ func TestPathOut(t *testing.T) {
 				Password:     []byte("password"),
 			}
 			So(db.Insert(localAccount).Run(), ShouldBeNil)
-			So(db.Insert(localAccount).Run(), ShouldBeNil)
 
 			remoteAgent := &model.RemoteAgent{
 				Name:        "remote_agent",

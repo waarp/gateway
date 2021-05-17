@@ -27,6 +27,16 @@ func initTables(db *Standalone) error {
 						tbl.TableName(), err)
 					return NewInternalError(err)
 				}
+				if err := ses.session.Table(tbl.TableName()).CreateUniques(tbl); err != nil {
+					db.logger.Criticalf("Failed to create the '%s' table uniques: %s",
+						tbl.TableName(), err)
+					return NewInternalError(err)
+				}
+				if err := ses.session.Table(tbl.TableName()).CreateIndexes(tbl); err != nil {
+					db.logger.Criticalf("Failed to create the '%s' table indexes: %s",
+						tbl.TableName(), err)
+					return NewInternalError(err)
+				}
 
 				if init, ok := tbl.(initer); ok {
 					if err := init.Init(ses); err != nil {
