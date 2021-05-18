@@ -3,6 +3,7 @@ package migrations
 import (
 	"database/sql"
 	"fmt"
+	"io"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
 
@@ -52,7 +53,7 @@ func getCurrent(db *sql.DB, dialect string) (index int, err error) {
 	return -1, fmt.Errorf("the current database version (%s) is unknown", current)
 }
 
-func doMigration(db *sql.DB, version, dialect string) error {
+func doMigration(db *sql.DB, version, dialect string, out io.Writer) error {
 	current, err := getCurrent(db, dialect)
 	if err != nil {
 		return err
@@ -67,7 +68,7 @@ func doMigration(db *sql.DB, version, dialect string) error {
 		return nil //nothing to do
 	}
 
-	engine, err := migration.NewEngine(db, dialect)
+	engine, err := migration.NewEngine(db, dialect, out)
 	if err != nil {
 		return err
 	}
@@ -78,7 +79,9 @@ func doMigration(db *sql.DB, version, dialect string) error {
 	return engine.Downgrade(Migrations[target:current])
 }
 
-func Execute(conf *conf.DatabaseConfig, version string) error {
+// Execute migrates the database given in the configuration from its current
+// version to the one given as parameter.
+func Execute(conf *conf.DatabaseConfig, version string, out io.Writer) error {
 	dbInfo, ok := rdbms[conf.Type]
 	if !ok {
 		return fmt.Errorf("unknown RDBMS %s", conf.Type)
@@ -88,7 +91,7 @@ func Execute(conf *conf.DatabaseConfig, version string) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %s", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
-	return doMigration(db, version, conf.Type)
+	return doMigration(db, version, conf.Type, out)
 }

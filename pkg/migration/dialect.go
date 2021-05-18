@@ -25,7 +25,7 @@ type queryWriter struct {
 func (q *queryWriter) Exec(query string, args ...interface{}) (sql.Result, error) {
 	command := fmt.Sprintf(query, args...)
 	if q.writer != nil {
-		_, err := q.writer.Write(append([]byte(command), ";\n"...))
+		_, err := q.writer.Write([]byte(fmt.Sprintf("\n%s;\n", command)))
 		if err != nil {
 			return nil, err
 		}

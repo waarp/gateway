@@ -4,30 +4,30 @@ import (
 	"database/sql"
 	"fmt"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
 )
 
-func initVersion() Script {
-	return Script{
-		Up: func(db Dialect) error {
-			if err := db.CreateTable("version", Col("current", TEXT)); err != nil {
+func initVersion() migration.Script {
+	return migration.Script{
+		Up: func(db migration.Dialect) error {
+			if err := db.CreateTable("version", migration.Col("current", migration.TEXT)); err != nil {
 				return err
 			}
-			return db.AddRow("version", Cells{"current": Cel(TEXT, "0.0.0")})
+			return db.AddRow("version", migration.Cells{"current": migration.Cel(migration.TEXT, "0.0.0")})
 		},
-		Down: func(db Dialect) error {
+		Down: func(db migration.Dialect) error {
 			return db.DropTable("version")
 		},
 	}
 }
 
-func bumpVersion(from, to string) Script {
-	return Script{
-		Up: func(db Dialect) error {
+func bumpVersion(from, to string) migration.Script {
+	return migration.Script{
+		Up: func(db migration.Dialect) error {
 			_, err := db.Exec("UPDATE 'version' SET current='%s'", to)
 			return err
 		},
-		Down: func(db Dialect) error {
+		Down: func(db migration.Dialect) error {
 			_, err := db.Exec("UPDATE 'version' SET current='%s'", from)
 			return err
 		},
@@ -36,7 +36,7 @@ func bumpVersion(from, to string) Script {
 
 func checkVersionTableExist(db *sql.DB, dialect string) (bool, error) {
 	switch dialect {
-	case SQLite:
+	case migration.SQLite:
 		row := db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='version'")
 		var name string
 		if err := row.Scan(&name); err != nil {
@@ -46,14 +46,14 @@ func checkVersionTableExist(db *sql.DB, dialect string) (bool, error) {
 			return false, err
 		}
 		return true, nil
-	case PostgreSQL:
+	case migration.PostgreSQL:
 		row := db.QueryRow("SELECT to_regclass('version')")
 		var regclass interface{}
 		if err := row.Scan(&regclass); err != nil {
 			return false, err
 		}
 		return regclass != nil, nil
-	case MySQL:
+	case migration.MySQL:
 		row := db.QueryRow("SHOW TABLES LIKE 'version')")
 		var name string
 		if err := row.Scan(&name); err != nil {

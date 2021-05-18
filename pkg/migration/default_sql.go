@@ -51,7 +51,7 @@ func (s *standardSQL) addRow(conv sqlFormatter, table string,
 		colList = append(colList, col)
 		valuesList = append(valuesList, str)
 	}
-	_, err := s.Exec("INSERT INTO %s (%s) VALUES (%s)", table,
+	_, err := s.Exec("INSERT INTO %s (%s)\n VALUES (%s)", table,
 		strings.Join(colList, ", "), strings.Join(valuesList, ", "))
 	return err
 }
@@ -133,11 +133,16 @@ func (s *standardSQL) createTable(formatter sqlFormatter, table string, defs []D
 		}
 		defsStr = append(defsStr, str)
 	}
-
-	_, err := s.Exec("CREATE TABLE %s (%s)", table, strings.Join(defsStr, ", "))
-	if err != nil {
-		return err
+	if len(defsStr) == 0 {
+		return fmt.Errorf("cannot create a table without columns")
 	}
 
-	return nil
+	var err error
+	if len(defsStr) > 1 {
+		_, err = s.Exec("CREATE TABLE %s (\n    %s\n)", table, strings.Join(defsStr, ",\n    "))
+	} else {
+		_, err = s.Exec("CREATE TABLE %s (%s)", table, defsStr[0])
+	}
+
+	return err
 }
