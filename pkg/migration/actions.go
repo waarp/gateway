@@ -42,26 +42,46 @@ func (q *queryWriter) Query(query string, args ...interface{}) (*sql.Rows, error
 	return q.db.Query(command)
 }
 
-var dialects = map[string]func(*queryWriter) Dialect{}
+var dialects = map[string]func(*queryWriter) Actions{}
 
 // Definition represents one part of a column definition. It can be a column
 // or a table constraint.
 type Definition interface{}
 
-// Dialect is an interface exposing the standard Exec & Query functions for
+// Actions is an interface exposing the standard Exec & Query functions for
 // sending queries to a database, along with a few helper functions for common
-// operations. Dialect is used for database migration operations.
-type Dialect interface {
+// operations. Actions is used for database migration operations.
+type Actions interface {
 	QueryExecutor
+	DestructiveActions
 
+	// CreateTable creates a new table with the given definitions. A definition
+	// can be either Column or a TableConstraint.
 	CreateTable(name string, defs ...Definition) error
+
+	// AddColumn adds a new column
+	AddColumn(table, column string, dataType sqlType, constraints ...Constraint) error
+
+	// AddRow inserts a new row into the given table.
+	AddRow(table string, values Cells) error
+}
+
+// DestructiveActions regroups all the destructive migrations actions. Since they
+// are destructive, these actions should only be used during major updates, as
+// they break retro-compatibility.
+type DestructiveActions interface {
+	// RenameTable changes the name of the given table to a new one.
 	RenameTable(oldName, newName string) error
+
+	// DropTable drops the given table.
 	DropTable(name string) error
 
+	// RenameColumn changes the name of the given column.
 	RenameColumn(table, oldName, newName string) error
-	ChangeColumnType(table, col string, old, new sqlType) error
-	AddColumn(table, name, datatype string) error
-	DropColumn(table, name string) error
 
-	AddRow(table string, values Cells) error
+	// ChangeColumnType changes the type of the given column.
+	ChangeColumnType(table, col string, old, new sqlType) error
+
+	// DropColumn drops the given column.
+	DropColumn(table, name string) error
 }

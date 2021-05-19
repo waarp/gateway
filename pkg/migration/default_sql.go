@@ -34,9 +34,20 @@ func (s *standardSQL) RenameColumn(table, oldName, newName string) error {
 	return err
 }
 
-func (s *standardSQL) AddColumn(table, column, datatype string) error {
-	query := "ALTER TABLE %s ADD COLUMN %s %s"
-	_, err := s.Exec(query, table, column, datatype)
+func (s *standardSQL) addColumn(form sqlFormatter, table, column string, typ sqlType, cons []Constraint) error {
+	dbType, err := form.sqlTypeToDBType(typ)
+	if err != nil {
+		return err
+	}
+	c := Col(column, typ, cons...)
+	consList, err := form.makeConstraints(&c)
+	if err != nil {
+		return err
+	}
+
+	query := "ALTER TABLE %s ADD COLUMN %s"
+	def := append([]string{column, dbType}, consList...)
+	_, err = s.Exec(query, table, strings.Join(def, " "))
 	return err
 }
 

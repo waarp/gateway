@@ -16,7 +16,7 @@ func init() {
 // mySQLDialect is the dialect engine for SQLite.
 type mySQLDialect struct{ *standardSQL }
 
-func newMySQLEngine(db *queryWriter) Dialect {
+func newMySQLEngine(db *queryWriter) Actions {
 	return &mySQLDialect{standardSQL: &standardSQL{queryWriter: db}}
 }
 
@@ -86,6 +86,11 @@ func (m *mySQLDialect) makeConstraints(col *Column) ([]string, error) {
 
 func (m *mySQLDialect) CreateTable(table string, defs ...Definition) error {
 	return m.standardSQL.createTable(m, table, defs)
+}
+
+func (m *mySQLDialect) AddColumn(table, column string, dataType sqlType,
+	constraints ...Constraint) error {
+	return m.standardSQL.addColumn(m, table, column, dataType, constraints)
 }
 
 func (m *mySQLDialect) ChangeColumnType(table, col string, old, new sqlType) error {

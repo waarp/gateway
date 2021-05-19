@@ -25,7 +25,7 @@ func init() {
 
 type testEngine interface {
 	sqlFormatter
-	Dialect
+	Actions
 }
 
 type testInterface struct {
@@ -154,7 +154,7 @@ func colShouldHaveType(engine testEngine, table, col string, exp sqlType) {
 	So(types[0].DatabaseTypeName(), ShouldEqual, typ)
 }
 
-func getTimeFormats(eng Dialect) (date, ts, tsz string) {
+func getTimeFormats(eng Actions) (date, ts, tsz string) {
 	date = "2006-01-02"
 	ts = "2006-01-02 15:04:05.999999999"
 	tsz = "2006-01-02 15:04:05.999999999Z07:00"

@@ -207,15 +207,16 @@ func testSQLAddColumn(t *testing.T, dbms string, initDB func() *sql.DB,
 			engine := getEngine(db)
 
 			Convey("When adding a column", func() {
-				So(engine.AddColumn("toto", "id", "text"), ShouldBeNil)
+				So(engine.AddColumn("toto", "id", INTEGER, NOTNULL), ShouldBeNil)
 
 				Convey("Then the column should have been added", func() {
 					tableShouldHaveColumns(db, "toto", "str", "id")
+					colShouldHaveType(engine, "toto", "id", INTEGER)
 				})
 			})
 
 			Convey("When adding an already existing column", func() {
-				err := engine.AddColumn("toto", "str", "text")
+				err := engine.AddColumn("toto", "str", INTEGER)
 				So(isColumnAlreadyExist(err), ShouldBeTrue)
 
 				Convey("Then the table should be unchanged", func() {
@@ -225,7 +226,7 @@ func testSQLAddColumn(t *testing.T, dbms string, initDB func() *sql.DB,
 			})
 
 			Convey("When adding a column to a non-existing table", func() {
-				err := engine.AddColumn("titi", "id", "text")
+				err := engine.AddColumn("titi", "id", INTEGER)
 				So(isTableNotFound(err), ShouldBeTrue)
 
 				Convey("Then the existing table should be unchanged", func() {

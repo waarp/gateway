@@ -6,8 +6,8 @@ package migration
 // migrations short, and not to run many operation in a migration.
 type Script struct {
 	// The SQL script to execute. Up applies the migration, Down undoes it.
-	Up   func(db Dialect) error
-	Down func(db Dialect) error
+	Up   func(db Actions) error
+	Down func(db Actions) error
 }
 
 // Migration is a single entry of the Migrations list. It contains the migration script

@@ -18,7 +18,7 @@ func init() {
 // sqliteDialect is the dialect engine for SQLite.
 type sqliteDialect struct{ *standardSQL }
 
-func newSqliteEngine(db *queryWriter) Dialect {
+func newSqliteEngine(db *queryWriter) Actions {
 	return &sqliteDialect{standardSQL: &standardSQL{queryWriter: db}}
 }
 
@@ -106,6 +106,11 @@ func (s *sqliteDialect) ChangeColumnType(_, _ string, old, new sqlType) error {
 
 func (s *sqliteDialect) AddRow(table string, values Cells) error {
 	return s.addRow(s, table, values)
+}
+
+func (s *sqliteDialect) AddColumn(table, column string, dataType sqlType,
+	constraints ...Constraint) error {
+	return s.standardSQL.addColumn(s, table, column, dataType, constraints)
 }
 
 func (s *sqliteDialect) DropColumn(table, name string) error {

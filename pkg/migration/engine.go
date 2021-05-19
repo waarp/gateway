@@ -11,7 +11,7 @@ import (
 type Engine struct {
 	db     *sql.DB
 	out    io.Writer
-	constr func(*queryWriter) Dialect
+	constr func(*queryWriter) Actions
 }
 
 // NewEngine returns a nex Engine instantiated with the correct dialect translator.

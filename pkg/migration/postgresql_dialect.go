@@ -18,7 +18,7 @@ func init() {
 // postgreDialect is the dialect engine for SQLite.
 type postgreDialect struct{ *standardSQL }
 
-func newPostgreEngine(db *queryWriter) Dialect {
+func newPostgreEngine(db *queryWriter) Actions {
 	return &postgreDialect{standardSQL: &standardSQL{queryWriter: db}}
 }
 
@@ -125,6 +125,11 @@ func (p *postgreDialect) makeConstraints(col *Column) ([]string, error) {
 
 func (p *postgreDialect) CreateTable(table string, defs ...Definition) error {
 	return p.standardSQL.createTable(p, table, defs)
+}
+
+func (p *postgreDialect) AddColumn(table, column string, dataType sqlType,
+	constraints ...Constraint) error {
+	return p.standardSQL.addColumn(p, table, column, dataType, constraints)
 }
 
 func (p *postgreDialect) ChangeColumnType(table, col string, old, new sqlType) error {

@@ -9,13 +9,13 @@ import (
 
 func initVersion() migration.Script {
 	return migration.Script{
-		Up: func(db migration.Dialect) error {
+		Up: func(db migration.Actions) error {
 			if err := db.CreateTable("version", migration.Col("current", migration.TEXT)); err != nil {
 				return err
 			}
 			return db.AddRow("version", migration.Cells{"current": migration.Cel(migration.TEXT, "0.0.0")})
 		},
-		Down: func(db migration.Dialect) error {
+		Down: func(db migration.Actions) error {
 			return db.DropTable("version")
 		},
 	}
@@ -23,11 +23,11 @@ func initVersion() migration.Script {
 
 func bumpVersion(from, to string) migration.Script {
 	return migration.Script{
-		Up: func(db migration.Dialect) error {
+		Up: func(db migration.Actions) error {
 			_, err := db.Exec("UPDATE 'version' SET current='%s'", to)
 			return err
 		},
-		Down: func(db migration.Dialect) error {
+		Down: func(db migration.Actions) error {
 			_, err := db.Exec("UPDATE 'version' SET current='%s'", from)
 			return err
 		},
