@@ -22,6 +22,8 @@ func newPostgreEngine(db *queryWriter) Actions {
 	return &postgreDialect{standardSQL: &standardSQL{queryWriter: db}}
 }
 
+func (*postgreDialect) GetDialect() string { return PostgreSQL }
+
 func (p *postgreDialect) formatValueToSQL(val interface{}, sqlTyp sqlType) (string, error) {
 	if valuer, ok := val.(driver.Valuer); ok {
 		value, err := valuer.Value()
@@ -144,8 +146,7 @@ func (p *postgreDialect) ChangeColumnType(table, col string, old, new sqlType) e
 	}
 
 	query := "ALTER TABLE %s\nALTER COLUMN %s TYPE %s USING %s::%s"
-	_, err = p.Exec(query, table, col, newType, col, newType)
-	return err
+	return p.Exec(query, table, col, newType, col, newType)
 }
 
 func (p *postgreDialect) AddRow(table string, values Cells) error {

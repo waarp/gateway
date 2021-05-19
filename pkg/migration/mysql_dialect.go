@@ -20,6 +20,8 @@ func newMySQLEngine(db *queryWriter) Actions {
 	return &mySQLDialect{standardSQL: &standardSQL{queryWriter: db}}
 }
 
+func (*mySQLDialect) GetDialect() string { return MySQL }
+
 func (m *mySQLDialect) sqlTypeToDBType(typ sqlType) (string, error) {
 	switch typ.code {
 	case boolean, tinyint:
@@ -105,8 +107,7 @@ func (m *mySQLDialect) ChangeColumnType(table, col string, old, new sqlType) err
 	}
 
 	query := "ALTER TABLE %s\nMODIFY COLUMN %s %s"
-	_, err = m.Exec(query, table, col, newType)
-	return err
+	return m.Exec(query, table, col, newType)
 }
 
 func (m *mySQLDialect) AddRow(table string, values Cells) error {

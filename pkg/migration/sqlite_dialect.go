@@ -22,6 +22,8 @@ func newSqliteEngine(db *queryWriter) Actions {
 	return &sqliteDialect{standardSQL: &standardSQL{queryWriter: db}}
 }
 
+func (*sqliteDialect) GetDialect() string { return SQLite }
+
 func (s *sqliteDialect) isAtLeastVersion(target string) (bool, error) {
 	res, err := s.Query("SELECT sqlite_version()")
 	if err != nil {
@@ -139,7 +141,7 @@ func (s *sqliteDialect) DropColumn(table, name string) error {
 	query := fmt.Sprintf("CREATE TABLE %s_new AS SELECT %s FROM %s", table,
 		strings.Join(cols, ", "), table)
 
-	if _, err := s.Exec(query); err != nil {
+	if err := s.Exec(query); err != nil {
 		return err
 	}
 

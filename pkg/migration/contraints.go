@@ -1,10 +1,5 @@
 package migration
 
-// Constraint represents a single SQL column constraint to be used when declaring
-// a column. Valid constraints are: PRIMARYKEY, FOREIGNKEY, NOTNULL, AUTOINCR,
-// UNIQUE and DEFAULT.
-type Constraint interface{}
-
 type pk struct{}
 type fk struct{ table, col string }
 type notNull struct{}
@@ -40,10 +35,6 @@ var (
 	// parameter of the constraint (ex: DEFAULT(0))
 	DEFAULT = defaultFn
 )
-
-// TableConstraint represents a constraint put on an SQL table when declaring said
-// table. Valid table constraints are: PrimaryKey and Unique.
-type TableConstraint interface{}
 
 type tblPk struct{ cols []string }
 type tblUnique struct{ cols []string }

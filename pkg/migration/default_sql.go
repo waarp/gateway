@@ -19,19 +19,16 @@ type standardSQL struct {
 
 func (s *standardSQL) RenameTable(oldName, newName string) error {
 	query := "ALTER TABLE %s RENAME TO %s"
-	_, err := s.Exec(query, oldName, newName)
-	return err
+	return s.Exec(query, oldName, newName)
 }
 
 func (s *standardSQL) DropTable(name string) error {
-	_, err := s.Exec("DROP TABLE %s", name)
-	return err
+	return s.Exec("DROP TABLE %s", name)
 }
 
 func (s *standardSQL) RenameColumn(table, oldName, newName string) error {
 	query := "ALTER TABLE %s RENAME COLUMN %s TO %s"
-	_, err := s.Exec(query, table, oldName, newName)
-	return err
+	return s.Exec(query, table, oldName, newName)
 }
 
 func (s *standardSQL) addColumn(form sqlFormatter, table, column string, typ sqlType, cons []Constraint) error {
@@ -47,14 +44,12 @@ func (s *standardSQL) addColumn(form sqlFormatter, table, column string, typ sql
 
 	query := "ALTER TABLE %s ADD COLUMN %s"
 	def := append([]string{column, dbType}, consList...)
-	_, err = s.Exec(query, table, strings.Join(def, " "))
-	return err
+	return s.Exec(query, table, strings.Join(def, " "))
 }
 
 func (s *standardSQL) DropColumn(table, name string) error {
 	query := "ALTER TABLE %s DROP COLUMN %s"
-	_, err := s.Exec(query, table, name)
-	return err
+	return s.Exec(query, table, name)
 }
 
 func (s *standardSQL) addRow(conv sqlFormatter, table string,
@@ -68,9 +63,8 @@ func (s *standardSQL) addRow(conv sqlFormatter, table string,
 		colList = append(colList, col)
 		valuesList = append(valuesList, str)
 	}
-	_, err := s.Exec("INSERT INTO %s (%s)\n VALUES (%s)", table,
+	return s.Exec("INSERT INTO %s (%s)\n VALUES (%s)", table,
 		strings.Join(colList, ", "), strings.Join(valuesList, ", "))
-	return err
 }
 
 func (s *standardSQL) makeColumnDef(formatter sqlFormatter, col Column) (string, error) {
@@ -123,12 +117,8 @@ func (s *standardSQL) createTable(formatter sqlFormatter, table string, defs []D
 	}
 	defsStr := append(colDefs, constrDefs...)
 
-	var err error
-	if len(defsStr) > 1 {
-		_, err = s.Exec("CREATE TABLE %s (\n    %s\n)", table, strings.Join(defsStr, ",\n    "))
-	} else {
-		_, err = s.Exec("CREATE TABLE %s (%s)", table, defsStr[0])
+	if len(defsStr) == 1 {
+		return s.Exec("CREATE TABLE %s (%s)", table, defsStr[0])
 	}
-
-	return err
+	return s.Exec("CREATE TABLE %s (\n    %s\n)", table, strings.Join(defsStr, ",\n    "))
 }

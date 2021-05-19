@@ -36,7 +36,7 @@ func Col(name string, typ sqlType, constraints ...Constraint) Column {
 	return Column{Name: name, Type: typ, Constraints: constraints}
 }
 
-func getColumnsNames(db QueryExecutor, table string) ([]string, error) {
+func getColumnsNames(db Querier, table string) ([]string, error) {
 	rows, err := db.Query("SELECT * FROM %s", table)
 	if err != nil {
 		return nil, err
