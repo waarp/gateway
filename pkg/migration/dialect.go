@@ -48,24 +48,18 @@ var dialects = map[string]func(*queryWriter) Dialect{}
 // or a table constraint.
 type Definition interface{}
 
-type sqlFormatter interface {
-	formatValueToSQL(val interface{}, sqlTyp sqlType) (string, error)
-	sqlTypeToDBType(sqlType sqlType) (string, error)
-	makeConstraints(col *Column) ([]string, error)
-}
-
 // Dialect is an interface exposing the standard Exec & Query functions for
 // sending queries to a database, along with a few helper functions for common
 // operations. Dialect is used for database migration operations.
 type Dialect interface {
 	QueryExecutor
-	sqlFormatter
 
 	CreateTable(name string, defs ...Definition) error
 	RenameTable(oldName, newName string) error
 	DropTable(name string) error
 
 	RenameColumn(table, oldName, newName string) error
+	ChangeColumnType(table, col string, old, new sqlType) error
 	AddColumn(table, name, datatype string) error
 	DropColumn(table, name string) error
 

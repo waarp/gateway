@@ -23,6 +23,11 @@ func init() {
 	isTest = true
 }
 
+type testEngine interface {
+	sqlFormatter
+	Dialect
+}
+
 type testInterface struct {
 	str string
 }
@@ -135,35 +140,27 @@ func removeTypeLength(typ string) string {
 	return strings.Split(typ, "(")[0]
 }
 
-func colShouldHaveType(engine Dialect, table, col string, t sqlType) {
-	rows, err := engine.Query("SELECT * FROM %s", table)
+func colShouldHaveType(engine testEngine, table, col string, exp sqlType) {
+	rows, err := engine.Query("SELECT %s FROM %s", col, table)
 	So(err, ShouldBeNil)
 	defer rows.Close()
 
-	typ, err := engine.sqlTypeToDBType(t)
+	typ, err := engine.sqlTypeToDBType(exp)
 	So(err, ShouldBeNil)
 	typ = removeTypeLength(typ)
 	types, err := rows.ColumnTypes()
 	So(err, ShouldBeNil)
 
-	for _, t := range types {
-		if t.Name() == col {
-			So(t.DatabaseTypeName(), ShouldEqual, typ)
-			return
-		}
-	}
-	panic(fmt.Sprintf("no column '%s' found", col))
+	So(types[0].DatabaseTypeName(), ShouldEqual, typ)
 }
 
 func getTimeFormats(eng Dialect) (date, ts, tsz string) {
 	date = "2006-01-02"
 	ts = "2006-01-02 15:04:05.999999999"
 	tsz = "2006-01-02 15:04:05.999999999Z07:00"
-	/*
-		if _, ok := eng.(*mySQLDialect); ok {
-			ts = "2006-01-02 15:04:05"
-		}
-	*/
+	if _, ok := eng.(*mySQLDialect); ok {
+		ts = "2006-01-02 15:04:05"
+	}
 	if _, ok := eng.(*postgreDialect); ok {
 		date = time.RFC3339
 		ts = "2006-01-02T15:04:05.999999Z07:00"

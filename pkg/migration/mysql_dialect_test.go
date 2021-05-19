@@ -29,8 +29,12 @@ func getTestMySQLDB() *sql.DB {
 	return db
 }
 
-func testMySQLEngine(db *sql.DB) Dialect {
-	return newMySQLEngine(&queryWriter{db: db, writer: os.Stdout})
+func testMySQLEngine(db *sql.DB) testEngine {
+	return &mySQLDialect{
+		standardSQL: &standardSQL{
+			queryWriter: &queryWriter{db: db, writer: os.Stdout},
+		},
+	}
 }
 
 func TestMySQLCreateTable(t *testing.T) {
@@ -47,6 +51,10 @@ func TestMySQLDropTable(t *testing.T) {
 
 func TestMySQLRenameColumn(t *testing.T) {
 	testSQLRenameColumn(t, "MySQL", getTestMySQLDB, testMySQLEngine)
+}
+
+func TestMySQLChangeColumnType(t *testing.T) {
+	testSQLChangeColumnType(t, "MySQL", getTestMySQLDB, testMySQLEngine)
 }
 
 func TestMySQLAddColumn(t *testing.T) {

@@ -96,6 +96,14 @@ func (s *sqliteDialect) CreateTable(table string, defs ...Definition) error {
 	return s.standardSQL.createTable(s, table, defs)
 }
 
+func (s *sqliteDialect) ChangeColumnType(_, _ string, old, new sqlType) error {
+	if old.canConvertTo(new) {
+		return nil //nothing to do
+	}
+	return fmt.Errorf("cannot convert from type %s to type %s", old.code.String(),
+		new.code.String())
+}
+
 func (s *sqliteDialect) AddRow(table string, values Cells) error {
 	return s.addRow(s, table, values)
 }

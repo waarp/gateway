@@ -22,10 +22,14 @@ func getTestSqliteDB() *sql.DB {
 	return db
 }
 
-func testSQLiteEngine(db *sql.DB) Dialect {
+func testSQLiteEngine(db *sql.DB) testEngine {
 	_, err := db.Exec("PRAGMA foreign_keys = ON")
 	So(err, ShouldBeNil)
-	return newSqliteEngine(&queryWriter{db: db, writer: os.Stdout})
+	return &sqliteDialect{
+		standardSQL: &standardSQL{
+			queryWriter: &queryWriter{db: db, writer: os.Stdout},
+		},
+	}
 }
 
 func TestSQLiteCreateTable(t *testing.T) {
@@ -42,6 +46,10 @@ func TestSQLiteDropTable(t *testing.T) {
 
 func TestSQLiteRenameColumn(t *testing.T) {
 	testSQLRenameColumn(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
+}
+
+func TestSQLiteChangeColumnType(t *testing.T) {
+	testSQLChangeColumnType(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
 }
 
 func TestSQLiteAddColumn(t *testing.T) {

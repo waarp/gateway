@@ -36,6 +36,37 @@ type sqlType struct {
 	size uint64
 }
 
+func (s1 sqlType) canConvertTo(s2 sqlType) bool {
+	if s1.code == s2.code {
+		return true
+	}
+	switch s1.code {
+	case tinyint:
+		switch s2.code {
+		case smallint, integer, bigint:
+			return true
+		}
+	case smallint:
+		switch s2.code {
+		case integer, bigint:
+			return true
+		}
+	case integer:
+		if s2.code == bigint {
+			return true
+		}
+	case float:
+		if s2.code == double {
+			return true
+		}
+	case varchar:
+		if s2.code == text {
+			return true
+		}
+	}
+	return false
+}
+
 // The SQL types supported by the migration engine. These values should be used
 // when declaring a column or when adding a row to a table. If a database RDBMS
 // does not support a specific type, it will be converted to the closest supported

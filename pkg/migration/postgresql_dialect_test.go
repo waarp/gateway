@@ -27,8 +27,12 @@ func getTestPostgreDB() *sql.DB {
 	return db
 }
 
-func testPostgreEngine(db *sql.DB) Dialect {
-	return newPostgreEngine(&queryWriter{db: db, writer: os.Stdout})
+func testPostgreEngine(db *sql.DB) testEngine {
+	return &postgreDialect{
+		standardSQL: &standardSQL{
+			queryWriter: &queryWriter{db: db, writer: os.Stdout},
+		},
+	}
 }
 
 func TestPostgreCreateTable(t *testing.T) {
@@ -45,6 +49,10 @@ func TestPostgreDropTable(t *testing.T) {
 
 func TestPostgreRenameColumn(t *testing.T) {
 	testSQLRenameColumn(t, "PostgreSQL", getTestPostgreDB, testPostgreEngine)
+}
+
+func TestPostgreChangeColumnType(t *testing.T) {
+	testSQLChangeColumnType(t, "PostgreSQL", getTestPostgreDB, testPostgreEngine)
 }
 
 func TestPostgreAddColumn(t *testing.T) {

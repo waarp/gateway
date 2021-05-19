@@ -88,6 +88,22 @@ func (m *mySQLDialect) CreateTable(table string, defs ...Definition) error {
 	return m.standardSQL.createTable(m, table, defs)
 }
 
+func (m *mySQLDialect) ChangeColumnType(table, col string, old, new sqlType) error {
+	if !old.canConvertTo(new) {
+		return fmt.Errorf("cannot convert from type %s to type %s", old.code.String(),
+			new.code.String())
+	}
+
+	newType, err := m.sqlTypeToDBType(new)
+	if err != nil {
+		return err
+	}
+
+	query := "ALTER TABLE %s\nMODIFY COLUMN %s %s"
+	_, err = m.Exec(query, table, col, newType)
+	return err
+}
+
 func (m *mySQLDialect) AddRow(table string, values Cells) error {
 	return m.addRow(m, table, values)
 }

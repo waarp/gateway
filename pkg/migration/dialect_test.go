@@ -10,7 +10,7 @@ import (
 )
 
 func testSQLCreateTable(t *testing.T, dbms string, initDB func() *sql.DB,
-	getEngine func(*sql.DB) Dialect) {
+	getEngine func(*sql.DB) testEngine) {
 
 	Convey(fmt.Sprintf("Given a %s database", dbms), t, func() {
 		db := initDB()
@@ -56,7 +56,7 @@ func testSQLCreateTable(t *testing.T, dbms string, initDB func() *sql.DB,
 }
 
 func testSQLRenameTable(t *testing.T, dbms string, initDB func() *sql.DB,
-	getEngine func(*sql.DB) Dialect) {
+	getEngine func(*sql.DB) testEngine) {
 	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func() {
 		db := initDB()
 		_, err := db.Exec("CREATE TABLE toto (str TEXT)")
@@ -87,7 +87,7 @@ func testSQLRenameTable(t *testing.T, dbms string, initDB func() *sql.DB,
 }
 
 func testSQLDropTable(t *testing.T, dbms string, initDB func() *sql.DB,
-	getEngine func(*sql.DB) Dialect) {
+	getEngine func(*sql.DB) testEngine) {
 	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func() {
 		db := initDB()
 		_, err := db.Exec("CREATE TABLE toto (str TEXT)")
@@ -117,7 +117,7 @@ func testSQLDropTable(t *testing.T, dbms string, initDB func() *sql.DB,
 }
 
 func testSQLRenameColumn(t *testing.T, dbms string, initDB func() *sql.DB,
-	getEngine func(*sql.DB) Dialect) {
+	getEngine func(*sql.DB) testEngine) {
 	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func() {
 		db := initDB()
 		_, err := db.Exec("CREATE TABLE toto (str TEXT, id BIGINT)")
@@ -166,8 +166,38 @@ func testSQLRenameColumn(t *testing.T, dbms string, initDB func() *sql.DB,
 	})
 }
 
+func testSQLChangeColumnType(t *testing.T, dbms string, initDB func() *sql.DB,
+	getEngine func(*sql.DB) testEngine) {
+	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func() {
+		db := initDB()
+
+		Convey(fmt.Sprintf("Given a %s dialect engine", dbms), func() {
+			engine := getEngine(db)
+			So(engine.CreateTable("toto", Col("str", VARCHAR(10))), ShouldBeNil)
+			So(engine.AddRow("toto", Cells{"str": Cel(VARCHAR(10), "sesame")}), ShouldBeNil)
+
+			Convey("When changing a column's type", func() {
+				So(engine.ChangeColumnType("toto", "str", VARCHAR(10), TEXT), ShouldBeNil)
+
+				Convey("Then the column's type should have changed", func() {
+					colShouldHaveType(engine, "toto", "str", TEXT)
+				})
+			})
+
+			Convey("When the type conversion is not possible", func() {
+				err := engine.ChangeColumnType("toto", "str", VARCHAR(10), DOUBLE)
+				So(err, ShouldBeError, "cannot convert from type varchar to type double")
+
+				Convey("Then the table should be unchanged", func() {
+					colShouldHaveType(engine, "toto", "str", VARCHAR(10))
+				})
+			})
+		})
+	})
+}
+
 func testSQLAddColumn(t *testing.T, dbms string, initDB func() *sql.DB,
-	getEngine func(*sql.DB) Dialect) {
+	getEngine func(*sql.DB) testEngine) {
 	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func() {
 		db := initDB()
 		_, err := db.Exec("CREATE TABLE toto (str TEXT)")
@@ -208,7 +238,7 @@ func testSQLAddColumn(t *testing.T, dbms string, initDB func() *sql.DB,
 }
 
 func testSQLDropColumn(t *testing.T, dbms string, initDB func() *sql.DB,
-	getEngine func(*sql.DB) Dialect) {
+	getEngine func(*sql.DB) testEngine) {
 
 	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func() {
 		db := initDB()
@@ -240,7 +270,7 @@ func testSQLDropColumn(t *testing.T, dbms string, initDB func() *sql.DB,
 }
 
 func testSQLAddRow(t *testing.T, dbms string, initDB func() *sql.DB,
-	getEngine func(*sql.DB) Dialect) {
+	getEngine func(*sql.DB) testEngine) {
 
 	Convey(fmt.Sprintf("Given a %s database", dbms), t, func() {
 		db := initDB()

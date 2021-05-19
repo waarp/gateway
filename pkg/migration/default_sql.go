@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+type sqlFormatter interface {
+	formatValueToSQL(val interface{}, sqlTyp sqlType) (string, error)
+	sqlTypeToDBType(sqlType sqlType) (string, error)
+	makeConstraints(col *Column) ([]string, error)
+}
+
 // standardSQL is the dialect engine for standard SQL. Other dialect engines should
 // use this one as a base, and overwrite only the parts needed.
 type standardSQL struct {
@@ -70,35 +76,11 @@ func (s *standardSQL) makeColumnDef(formatter sqlFormatter, col Column) (string,
 	return strings.Join(append([]string{col.Name, typ}, constr...), " "), nil
 }
 
-func (s *standardSQL) makeTblConstraint(colsDef []Column, cons TableConstraint) (string, error) {
-	checkCol := func(col string) error {
-		for _, def := range colsDef {
-			if def.Name == col {
-				return nil
-			}
-		}
-		return fmt.Errorf("column %s does not exist", col)
-	}
-
-	checkCols := func(cols []string) error {
-		for _, col := range cols {
-			if err := checkCol(col); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
+func (s *standardSQL) makeTblConstraint(cons TableConstraint) (string, error) {
 	switch con := cons.(type) {
 	case tblPk:
-		if err := checkCols(con.cols); err != nil {
-			return "", err
-		}
 		return fmt.Sprintf("PRIMARY KEY (%s)", strings.Join(con.cols, ", ")), nil
 	case tblUnique:
-		if err := checkCols(con.cols); err != nil {
-			return "", err
-		}
 		return fmt.Sprintf("UNIQUE (%s)", strings.Join(con.cols, ", ")), nil
 	default:
 		return "", fmt.Errorf("invalid table definition %#v", con)
@@ -106,36 +88,29 @@ func (s *standardSQL) makeTblConstraint(colsDef []Column, cons TableConstraint) 
 }
 
 func (s *standardSQL) createTable(formatter sqlFormatter, table string, defs []Definition) error {
-
-	var colDefs []Column
-	var constrDefs []TableConstraint
+	var colDefs []string
+	var constrDefs []string
 	for _, d := range defs {
 		switch def := d.(type) {
 		case Column:
-			colDefs = append(colDefs, def)
+			str, err := s.makeColumnDef(formatter, def)
+			if err != nil {
+				return err
+			}
+			colDefs = append(colDefs, str)
 		case TableConstraint:
-			constrDefs = append(constrDefs, def)
+			str, err := s.makeTblConstraint(def)
+			if err != nil {
+				return err
+			}
+			constrDefs = append(constrDefs, str)
 		}
 	}
 
-	var defsStr []string
-	for _, col := range colDefs {
-		str, err := s.makeColumnDef(formatter, col)
-		if err != nil {
-			return err
-		}
-		defsStr = append(defsStr, str)
-	}
-	for _, con := range constrDefs {
-		str, err := s.makeTblConstraint(colDefs, con)
-		if err != nil {
-			return err
-		}
-		defsStr = append(defsStr, str)
-	}
-	if len(defsStr) == 0 {
+	if len(colDefs) == 0 {
 		return fmt.Errorf("cannot create a table without columns")
 	}
+	defsStr := append(colDefs, constrDefs...)
 
 	var err error
 	if len(defsStr) > 1 {

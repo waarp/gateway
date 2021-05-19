@@ -127,6 +127,22 @@ func (p *postgreDialect) CreateTable(table string, defs ...Definition) error {
 	return p.standardSQL.createTable(p, table, defs)
 }
 
+func (p *postgreDialect) ChangeColumnType(table, col string, old, new sqlType) error {
+	if !old.canConvertTo(new) {
+		return fmt.Errorf("cannot convert from type %s to type %s", old.code.String(),
+			new.code.String())
+	}
+
+	newType, err := p.sqlTypeToDBType(new)
+	if err != nil {
+		return err
+	}
+
+	query := "ALTER TABLE %s\nALTER COLUMN %s TYPE %s USING %s::%s"
+	_, err = p.Exec(query, table, col, newType, col, newType)
+	return err
+}
+
 func (p *postgreDialect) AddRow(table string, values Cells) error {
 	return p.standardSQL.addRow(p, table, values)
 }
