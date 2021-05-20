@@ -17,9 +17,8 @@ func getRuleFromPath(db *database.DB, r *sftp.Request, isSend bool) (*model.Rule
 	filepath := path.Dir(r.Filepath)
 	filepath = path.Clean("/" + filepath)
 
-	rule := &model.Rule{Path: filepath, IsSend: isSend}
-
-	if err := db.Get(rule); err != nil {
+	rule := &model.Rule{}
+	if err := db.Get(rule, "path=? AND send=?", filepath, isSend).Run(); err != nil {
 		dir := "receiving"
 		if isSend {
 			dir = "sending"
@@ -30,20 +29,7 @@ func getRuleFromPath(db *database.DB, r *sftp.Request, isSend bool) (*model.Rule
 	return rule, nil
 }
 
-func loadCert(db *database.DB, server *model.LocalAgent) (*model.Cert, error) {
-	cert := &model.Cert{OwnerType: server.TableName(), OwnerID: server.ID}
-	if err := db.Get(cert); err != nil {
-		if err == database.ErrNotFound {
-			return nil, fmt.Errorf("no certificate found for SFTP server '%s'",
-				server.Name)
-		}
-		return nil, err
-	}
-
-	return cert, nil
-}
-
-func getSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.SftpProtoConfig,
+func getSSHServerConfig(db *database.DB, certs []model.Cert, protoConfig *config.SftpProtoConfig,
 	agent *model.LocalAgent) (*ssh.ServerConfig, error) {
 	conf := &ssh.ServerConfig{
 		Config: ssh.Config{
@@ -53,7 +39,8 @@ func getSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.S
 		},
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
 			user := &model.LocalAccount{LocalAgentID: agent.ID, Login: conn.User()}
-			if err := db.Get(user); err != nil {
+			if err := db.Get(user, "local_agent_id=? AND login=?", agent.ID,
+				conn.User()).Run(); err != nil {
 				return nil, fmt.Errorf("authentication failed")
 			}
 			certs, err := user.GetCerts(db)
@@ -61,8 +48,8 @@ func getSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.S
 				return nil, fmt.Errorf("authentication failed")
 			}
 
-			for _, c := range certs {
-				publicKey, _, _, _, err := ssh.ParseAuthorizedKey(c.PublicKey)
+			for _, cert := range certs {
+				publicKey, _, _, _, err := ssh.ParseAuthorizedKey(cert.PublicKey)
 				if err != nil {
 					return nil, err
 				}
@@ -73,8 +60,9 @@ func getSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.S
 			return nil, fmt.Errorf("authentication failed")
 		},
 		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			user := &model.LocalAccount{LocalAgentID: agent.ID, Login: conn.User()}
-			if err := db.Get(user); err != nil {
+			user := &model.LocalAccount{}
+			if err := db.Get(user, "local_agent_id=? AND login=?", agent.ID,
+				conn.User()).Run(); err != nil {
 				return nil, fmt.Errorf("authentication failed")
 			}
 			if err := bcrypt.CompareHashAndPassword(user.Password, pass); err != nil {
@@ -85,18 +73,20 @@ func getSSHServerConfig(db *database.DB, cert *model.Cert, protoConfig *config.S
 		},
 	}
 
-	privateKey, err := ssh.ParsePrivateKey(cert.PrivateKey)
-	if err != nil {
-		return nil, err
+	for _, cert := range certs {
+		privateKey, err := ssh.ParsePrivateKey(cert.PrivateKey)
+		if err != nil {
+			return nil, err
+		}
+		conf.AddHostKey(privateKey)
 	}
-	conf.AddHostKey(privateKey)
 
 	return conf, nil
 }
 
 func getAccountID(db *database.DB, agentID uint64, login string) (uint64, error) {
 	account := model.LocalAccount{LocalAgentID: agentID, Login: login}
-	if err := db.Get(&account); err != nil {
+	if err := db.Get(&account, "local_agent_id=? AND login=?", agentID, login).Run(); err != nil {
 		return 0, err
 	}
 	return account.ID, nil

@@ -34,8 +34,8 @@ func (l logger) Print(msg string) {
 
 	defer func() { _ = f.Close() }()
 
-	fmt.Fprintf(f, "%s [%d] %s\n", time.Now().Format(time.RFC3339), l.pid, msg)
-	fmt.Printf("%s [%d] %s\n", time.Now().Format(time.RFC3339), l.pid, msg)
+	fmt.Fprintf(f, "%s [%d] %s\n", time.Now().Format(time.RFC3339Nano), l.pid, msg)
+	fmt.Printf("%s [%d] %s\n", time.Now().Format(time.RFC3339Nano), l.pid, msg)
 }
 
 func (l logger) Printf(msg string, args ...interface{}) {

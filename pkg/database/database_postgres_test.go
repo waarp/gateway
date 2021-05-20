@@ -19,9 +19,10 @@ var (
 func init() {
 	psqlConfig = &conf.ServerConfig{}
 	psqlConfig.Database.Type = postgres
-	psqlConfig.Database.User = "waarp"
-	psqlConfig.Database.Name = "waarp_gatewayd_test"
-	psqlConfig.Database.Address = "localhost"
+	psqlConfig.Database.User = "postgres"
+	psqlConfig.Database.Password = "waarp"
+	psqlConfig.Database.Name = "waarp_gateway_test"
+	psqlConfig.Database.Address = "localhost:5432"
 	psqlConfig.Database.AESPassphrase = fmt.Sprintf("%s%spsql_test_passphrase.aes",
 		os.TempDir(), string(os.PathSeparator))
 
@@ -29,14 +30,18 @@ func init() {
 }
 
 func TestPostgreSQL(t *testing.T) {
-	defer func() { _ = os.Remove(psqlConfig.Database.AESPassphrase) }()
 	db := psqlTestDatabase
 	if err := db.Start(); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.engine.CreateTables(&testBean{}); err != nil {
-		t.Fatal(err)
-	}
+	defer func() {
+		if err := db.engine.Close(); err != nil {
+			t.Logf("Failed to close database: %s", err)
+		}
+		if err := os.Remove(sqliteConfig.Database.AESPassphrase); err != nil {
+			t.Logf("Failed to delete passphrase file: %s", err)
+		}
+	}()
 
 	Convey("Given a PostgreSQL service", t, func() {
 		testDatabase(psqlTestDatabase)

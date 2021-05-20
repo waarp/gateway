@@ -16,14 +16,14 @@ import (
 func TestAuthorizeRule(t *testing.T) {
 	logger := log.NewLogger("rest_auth_rule_logger")
 
-	Convey("Given a database with 1 rule", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database with 1 rule", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: true,
 			Path:   "rule/path",
 		}
-		So(db.Create(rule), ShouldBeNil)
+		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		r, err := http.NewRequest(http.MethodPut, "", nil)
@@ -51,8 +51,8 @@ func TestAuthorizeRule(t *testing.T) {
 
 				Convey("Then the new access should be inserted "+
 					"in the database", func() {
-					var res []model.RuleAccess
-					So(db.Select(&res, nil), ShouldBeNil)
+					var res model.RuleAccesses
+					So(db.Select(&res).Run(), ShouldBeNil)
 					So(len(res), ShouldEqual, 1)
 					So(res[0], ShouldResemble, expectedResult)
 				})
@@ -66,7 +66,7 @@ func TestAuthorizeRule(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 
 			exp := model.RuleAccess{
 				RuleID:     rule.ID,
@@ -85,7 +85,7 @@ func TestAuthorizeRule(t *testing.T) {
 					Login:        "toto",
 					Password:     []byte("password"),
 				}
-				So(db.Create(account), ShouldBeNil)
+				So(db.Insert(account).Run(), ShouldBeNil)
 
 				exp := model.RuleAccess{
 					RuleID:     rule.ID,
@@ -107,7 +107,7 @@ func TestAuthorizeRule(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(partner), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			exp := model.RuleAccess{
 				RuleID:     rule.ID,
@@ -126,7 +126,7 @@ func TestAuthorizeRule(t *testing.T) {
 					Login:         "toto",
 					Password:      []byte("password"),
 				}
-				So(db.Create(account), ShouldBeNil)
+				So(db.Insert(account).Run(), ShouldBeNil)
 
 				exp := model.RuleAccess{
 					RuleID:     rule.ID,
@@ -146,14 +146,14 @@ func TestAuthorizeRule(t *testing.T) {
 func TestRevokeRule(t *testing.T) {
 	logger := log.NewLogger("rest_revoke_rule_logger")
 
-	Convey("Given a database with 1 rule", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database with 1 rule", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: true,
 			Path:   "rule/path",
 		}
-		So(db.Create(rule), ShouldBeNil)
+		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		w := httptest.NewRecorder()
 		r, err := http.NewRequest(http.MethodPut, "", nil)
@@ -180,8 +180,8 @@ func TestRevokeRule(t *testing.T) {
 				})
 
 				Convey("Then the access should have been removed from the database", func() {
-					var res []model.RuleAccess
-					So(db.Select(&res, nil), ShouldBeNil)
+					var res model.RuleAccesses
+					So(db.Select(&res).Run(), ShouldBeNil)
 					So(len(res), ShouldEqual, 0)
 				})
 			})
@@ -194,7 +194,7 @@ func TestRevokeRule(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 			vals["server"] = server.Name
 
 			Convey("Given a server access", func() {
@@ -203,7 +203,7 @@ func TestRevokeRule(t *testing.T) {
 					ObjectID:   server.ID,
 					ObjectType: server.TableName(),
 				}
-				So(db.Create(access), ShouldBeNil)
+				So(db.Insert(access).Run(), ShouldBeNil)
 
 				handler := revokeServer(logger, db)
 				test(handler)
@@ -215,14 +215,14 @@ func TestRevokeRule(t *testing.T) {
 					Login:        "toto",
 					Password:     []byte("password"),
 				}
-				So(db.Create(account), ShouldBeNil)
+				So(db.Insert(account).Run(), ShouldBeNil)
 
 				access := &model.RuleAccess{
 					RuleID:     rule.ID,
 					ObjectID:   account.ID,
 					ObjectType: account.TableName(),
 				}
-				So(db.Create(access), ShouldBeNil)
+				So(db.Insert(access).Run(), ShouldBeNil)
 
 				handler := revokeLocalAccount(logger, db)
 				vals["local_account"] = account.Login
@@ -238,7 +238,7 @@ func TestRevokeRule(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(partner), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 			vals["partner"] = partner.Name
 
 			Convey("Given a partner access", func() {
@@ -247,7 +247,7 @@ func TestRevokeRule(t *testing.T) {
 					ObjectID:   partner.ID,
 					ObjectType: partner.TableName(),
 				}
-				So(db.Create(access), ShouldBeNil)
+				So(db.Insert(access).Run(), ShouldBeNil)
 
 				handler := revokePartner(logger, db)
 
@@ -260,14 +260,14 @@ func TestRevokeRule(t *testing.T) {
 					Login:         "toto",
 					Password:      []byte("password"),
 				}
-				So(db.Create(account), ShouldBeNil)
+				So(db.Insert(account).Run(), ShouldBeNil)
 
 				access := &model.RuleAccess{
 					RuleID:     rule.ID,
 					ObjectID:   account.ID,
 					ObjectType: account.TableName(),
 				}
-				So(db.Create(access), ShouldBeNil)
+				So(db.Insert(access).Run(), ShouldBeNil)
 
 				handler := revokeRemoteAccount(logger, db)
 				vals["remote_account"] = account.Login
@@ -281,14 +281,14 @@ func TestRevokeRule(t *testing.T) {
 func TestRuleAllowAll(t *testing.T) {
 	logger := log.NewLogger("rest_revoke_rule_logger")
 
-	Convey("Given a database with a rule", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database with a rule", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: true,
 			Path:   "rule/path",
 		}
-		So(db.Create(rule), ShouldBeNil)
+		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		Convey("Given multiple accesses to that rule", func() {
 			s := &model.LocalAgent{
@@ -303,8 +303,8 @@ func TestRuleAllowAll(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(p), ShouldBeNil)
-			So(db.Create(s), ShouldBeNil)
+			So(db.Insert(p).Run(), ShouldBeNil)
+			So(db.Insert(s).Run(), ShouldBeNil)
 
 			la := &model.LocalAccount{
 				LocalAgentID: s.ID,
@@ -316,8 +316,8 @@ func TestRuleAllowAll(t *testing.T) {
 				Login:         "tata",
 				Password:      []byte("password"),
 			}
-			So(db.Create(la), ShouldBeNil)
-			So(db.Create(ra), ShouldBeNil)
+			So(db.Insert(la).Run(), ShouldBeNil)
+			So(db.Insert(ra).Run(), ShouldBeNil)
 
 			sAcc := &model.RuleAccess{
 				RuleID:     rule.ID,
@@ -339,10 +339,10 @@ func TestRuleAllowAll(t *testing.T) {
 				ObjectID:   ra.ID,
 				ObjectType: ra.TableName(),
 			}
-			So(db.Create(sAcc), ShouldBeNil)
-			So(db.Create(pAcc), ShouldBeNil)
-			So(db.Create(laAcc), ShouldBeNil)
-			So(db.Create(raAcc), ShouldBeNil)
+			So(db.Insert(sAcc).Run(), ShouldBeNil)
+			So(db.Insert(pAcc).Run(), ShouldBeNil)
+			So(db.Insert(laAcc).Run(), ShouldBeNil)
+			So(db.Insert(raAcc).Run(), ShouldBeNil)
 
 			Convey("Given the 'allow_all' rule handler", func() {
 				handler := allowAllRule(logger, db)
@@ -369,8 +369,8 @@ func TestRuleAllowAll(t *testing.T) {
 					})
 
 					Convey("Then all accesses should have been removed from the database", func() {
-						var res []model.RuleAccess
-						So(db.Select(&res, nil), ShouldBeNil)
+						var res model.RuleAccesses
+						So(db.Select(&res).Run(), ShouldBeNil)
 						So(len(res), ShouldEqual, 0)
 					})
 				})

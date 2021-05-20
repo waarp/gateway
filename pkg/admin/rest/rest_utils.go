@@ -3,6 +3,7 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -17,81 +18,86 @@ import (
 var str = utils.String
 var strPtr = utils.StringPtr
 
-type errBadRequest string
-
-func (e errBadRequest) Error() string { return string(e) }
-
-func badRequest(format string, args ...interface{}) errBadRequest {
-	return errBadRequest(fmt.Sprintf(format, args...))
+type order struct {
+	col string
+	asc bool
 }
 
-type forbidden struct {
-	msg string
-}
+type orders map[string]order
 
-func (e *forbidden) Error() string {
-	return e.msg
-}
+func parseSelectQuery(r *http.Request, db *database.DB, validOrders orders,
+	elem database.SelectBean) (*database.SelectQuery, error) {
 
-type errNotFound string
+	query := db.Select(elem)
+	var err error
 
-func (e errNotFound) Error() string { return string(e) }
-
-func notFound(format string, args ...interface{}) errNotFound {
-	return errNotFound(fmt.Sprintf(format, args...))
-}
-
-func parseListFilters(r *http.Request, validOrders map[string]string) (*database.Filters, error) {
-	filters := &database.Filters{
-		Limit:  20,
-		Offset: 0,
-		Order:  validOrders["default"],
-	}
-
+	limit := 20
 	if limStr := r.FormValue("limit"); limStr != "" {
-		lim, err := strconv.Atoi(limStr)
+		limit, err = strconv.Atoi(limStr)
 		if err != nil {
 			return nil, badRequest("'limit' must be an int")
 		}
-		filters.Limit = lim
 	}
+	offset := 0
 	if offStr := r.FormValue("offset"); offStr != "" {
-		off, err := strconv.Atoi(offStr)
+		offset, err = strconv.Atoi(offStr)
 		if err != nil {
 			return nil, badRequest("'offset' must be an int")
 		}
-		filters.Offset = off
 	}
+	query.Limit(limit, offset)
 
+	orderBy := validOrders["default"]
 	if sortStr := r.FormValue("sort"); sortStr != "" {
-		sort, ok := validOrders[sortStr]
+		var ok bool
+		orderBy, ok = validOrders[sortStr]
 		if !ok {
 			return nil, badRequest(fmt.Sprintf("'%s' is not a valid sort parameter", sortStr))
 		}
-		filters.Order = sort
 	}
-	return filters, nil
+	query.OrderBy(orderBy.col, orderBy.asc)
+
+	return query, nil
 }
 
-func handleErrors(w http.ResponseWriter, logger *log.Logger, err error) {
-	switch err.(type) {
-	case errNotFound:
-		http.Error(w, err.Error(), http.StatusNotFound)
-	case errBadRequest:
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	case *forbidden:
-		http.Error(w, err.Error(), http.StatusForbidden)
-	case *database.ErrInvalid:
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	default:
-		logger.Warning(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+// handleError returns `true` if an error has been caught. It returns `false`
+// if there is no error, and execution can continue.
+func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
+	if err == nil {
+		return false
 	}
+
+	var nf *errNotFound
+	var dbNF *database.NotFoundError
+	if errors.As(err, &nf) || errors.As(err, &dbNF) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return true
+	}
+
+	var br *errBadRequest
+	var val *database.ValidationError
+	if errors.As(err, &br) || errors.As(err, &val) {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return true
+	}
+
+	var fo *forbidden
+	if errors.As(err, &fo) {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return true
+	}
+
+	logger.Errorf("Unexpected error: %s", err)
+	http.Error(w, err.Error(), http.StatusInternalServerError)
+	return true
 }
 
 func writeJSON(w http.ResponseWriter, bean interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
-	return json.NewEncoder(w).Encode(bean)
+	if err := json.NewEncoder(w).Encode(bean); err != nil {
+		return fmt.Errorf("failed to write response JSON object: %s", err)
+	}
+	return nil
 }
 
 func readJSON(r *http.Request, dest interface{}) error {
@@ -99,7 +105,7 @@ func readJSON(r *http.Request, dest interface{}) error {
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(dest); err != nil {
-		return badRequest(err.Error())
+		return badRequest("malformed JSON object: %s", err)
 	}
 	return nil
 }

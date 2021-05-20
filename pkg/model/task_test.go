@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -40,28 +39,28 @@ func TestTaskTableName(t *testing.T) {
 }
 
 func TestTaskBeforeInsert(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a rule entry", func() {
-			r := &Rule{
+			r := Rule{
 				Name:   "rule1",
 				IsSend: true,
 				Path:   "path",
 			}
-			So(db.Create(r), ShouldBeNil)
+			So(db.Insert(&r).Run(), ShouldBeNil)
 
-			t := &Task{
+			t := Task{
 				RuleID: r.ID,
 				Chain:  ChainPre,
 				Rank:   0,
 				Type:   "TESTSUCCESS",
 				Args:   []byte("{}"),
 			}
-			So(db.Create(t), ShouldBeNil)
+			So(db.Insert(&t).Run(), ShouldBeNil)
 
 			Convey("Given a task with an invalid RuleID", func() {
-				t2 := &Task{
+				t2 := Task{
 					RuleID: 0,
 					Chain:  ChainPre,
 					Rank:   0,
@@ -69,12 +68,12 @@ func TestTaskBeforeInsert(t *testing.T) {
 					Args:   []byte("{}"),
 				}
 
-				Convey("When calling the `Validate` method", func() {
-					err := t2.Validate(db)
+				Convey("When calling the `BeforeWrite` method", func() {
+					err := t2.BeforeWrite(db)
 
 					Convey("Then the error should say the rule was not found", func() {
-						So(err, ShouldBeError, "no rule found with ID "+
-							fmt.Sprint(t2.RuleID))
+						So(err, ShouldBeError, database.NewValidationError(
+							"no rule found with ID %d", t2.RuleID))
 					})
 				})
 			})
@@ -88,18 +87,18 @@ func TestTaskBeforeInsert(t *testing.T) {
 					Args:   []byte("{}"),
 				}
 
-				Convey("When calling the `Validate` method", func() {
-					err := t2.Validate(db)
+				Convey("When calling the `BeforeWrite` method", func() {
+					err := t2.BeforeWrite(db)
 
 					Convey("Then the error should say that the chain is invalid", func() {
-						So(err, ShouldBeError, fmt.Sprintf(
+						So(err, ShouldBeError, database.NewValidationError(
 							"%s is not a valid task chain", t2.Chain))
 					})
 				})
 			})
 
 			Convey("Given a task which would overwrite another task", func() {
-				t2 := &Task{
+				t2 := Task{
 					RuleID: t.RuleID,
 					Chain:  t.Chain,
 					Rank:   t.Rank,
@@ -107,11 +106,12 @@ func TestTaskBeforeInsert(t *testing.T) {
 					Args:   []byte("{}"),
 				}
 
-				Convey("When calling the `Validate` method", func() {
-					err := t2.Validate(db)
+				Convey("When calling the `BeforeWrite` method", func() {
+					err := t2.BeforeWrite(db)
 
 					Convey("Then the error should say that the task already exist", func() {
-						So(err, ShouldBeError, fmt.Sprintf("rule %d already has a task in %s at %d",
+						So(err, ShouldBeError, database.NewValidationError(
+							"rule %d already has a task in %s at %d",
 							t2.RuleID, t2.Chain, t2.Rank))
 					})
 				})

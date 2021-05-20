@@ -64,7 +64,15 @@ func (l *sshListener) handleConnection(parent context.Context, nConn net.Conn) {
 			return
 		}
 		go func() {
-			<-ctx.Done()
+			closed := make(chan bool)
+			go func() {
+				_ = servConn.Wait()
+				close(closed)
+			}()
+			select {
+			case <-closed:
+			case <-ctx.Done():
+			}
 			_ = servConn.Close()
 		}()
 
@@ -137,8 +145,8 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
 			return nil, err
 		}
 
-		acc := &model.LocalAccount{ID: accountID}
-		if err := l.DB.Get(acc); err != nil {
+		acc := &model.LocalAccount{}
+		if err := l.DB.Get(acc, "id=?", accountID).Run(); err != nil {
 			l.Logger.Error(err.Error())
 			return nil, err
 		}
@@ -172,8 +180,8 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64,
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		l.Logger.Debug("PUT request received")
 
-		acc := &model.LocalAccount{ID: accountID}
-		if err := l.DB.Get(acc); err != nil {
+		acc := &model.LocalAccount{}
+		if err := l.DB.Get(acc, "id=?", accountID).Run(); err != nil {
 			l.Logger.Error(err.Error())
 			return nil, err
 		}
@@ -222,6 +230,7 @@ func (l *sshListener) close(ctx context.Context) error {
 	case err := <-finished:
 		return err
 	case <-ctx.Done():
+		_ = l.Listener.Close()
 		return ctx.Err()
 	}
 }

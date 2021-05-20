@@ -16,31 +16,26 @@ import (
 // Possible values for targets are 'rules' for the transfer rules, 'servers' for
 // local servers and accounts, 'partners' for remote partners and accounts, or
 // 'all' for all data.
-func ExportData(db *database.DB, w io.Writer, targets []string) error {
+func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
 	logger := log.NewLogger("export")
 
-	ses, err := db.BeginTransaction()
-	if err != nil {
-		return err
-	}
-	defer ses.Rollback()
-
+	var err error
 	data := &file.Data{}
 
 	if utils.ContainsStrings(targets, "servers", "all") {
-		data.Locals, err = exportLocals(logger, ses)
+		data.Locals, err = exportLocals(logger, db)
 		if err != nil {
 			return err
 		}
 	}
 	if utils.ContainsStrings(targets, "partners", "all") {
-		data.Remotes, err = exportRemotes(logger, ses)
+		data.Remotes, err = exportRemotes(logger, db)
 		if err != nil {
 			return err
 		}
 	}
 	if utils.ContainsStrings(targets, "rules", "all") {
-		data.Rules, err = exportRules(logger, ses)
+		data.Rules, err = exportRules(logger, db)
 		if err != nil {
 			return err
 		}

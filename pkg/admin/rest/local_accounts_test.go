@@ -27,8 +27,8 @@ func localAccountsURI(agent, login string) string {
 func TestGetLocalAccount(t *testing.T) {
 	logger := log.NewLogger("rest_account_get_test")
 
-	Convey("Given the account get handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the account get handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := getLocalAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -39,14 +39,14 @@ func TestGetLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(parent), ShouldBeNil)
+			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			expected := &model.LocalAccount{
 				Login:        "existing",
 				LocalAgentID: parent.ID,
 				Password:     []byte("existing"),
 			}
-			So(db.Create(expected), ShouldBeNil)
+			So(db.Insert(expected).Run(), ShouldBeNil)
 
 			Convey("Given a request with a valid account login parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -136,8 +136,8 @@ func TestListLocalAccounts(t *testing.T) {
 		})
 	}
 
-	Convey("Given the local account listing handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the local account listing handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := listLocalAccounts(logger, db)
 		w := httptest.NewRecorder()
 		expected := map[string][]OutAccount{}
@@ -155,8 +155,8 @@ func TestListLocalAccounts(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
-			So(db.Create(p1), ShouldBeNil)
-			So(db.Create(p2), ShouldBeNil)
+			So(db.Insert(p1).Run(), ShouldBeNil)
+			So(db.Insert(p2).Run(), ShouldBeNil)
 
 			a1 := &model.LocalAccount{
 				Login:        "account1",
@@ -179,10 +179,10 @@ func TestListLocalAccounts(t *testing.T) {
 				LocalAgentID: p1.ID,
 			}
 
-			So(db.Create(a1), ShouldBeNil)
-			So(db.Create(a2), ShouldBeNil)
-			So(db.Create(a3), ShouldBeNil)
-			So(db.Create(a4), ShouldBeNil)
+			So(db.Insert(a1).Run(), ShouldBeNil)
+			So(db.Insert(a2).Run(), ShouldBeNil)
+			So(db.Insert(a3).Run(), ShouldBeNil)
+			So(db.Insert(a4).Run(), ShouldBeNil)
 
 			account1 := *FromLocalAccount(a1, &AuthorizedRules{})
 			account2 := *FromLocalAccount(a2, &AuthorizedRules{})
@@ -276,8 +276,8 @@ func TestListLocalAccounts(t *testing.T) {
 func TestCreateLocalAccount(t *testing.T) {
 	logger := log.NewLogger("rest_account_create_logger")
 
-	Convey("Given the account creation handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the account creation handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := addLocalAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -288,7 +288,7 @@ func TestCreateLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(parent), ShouldBeNil)
+			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			Convey("Given a new account to insert in the database", func() {
 				body := strings.NewReader(`{
@@ -324,8 +324,8 @@ func TestCreateLocalAccount(t *testing.T) {
 						Convey("Then the new account should be inserted in the "+
 							"database", func() {
 
-							var accs []model.LocalAccount
-							So(db.Select(&accs, nil), ShouldBeNil)
+							var accs model.LocalAccounts
+							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
 
 							So(bcrypt.CompareHashAndPassword(accs[0].Password,
@@ -359,8 +359,8 @@ func TestCreateLocalAccount(t *testing.T) {
 						})
 
 						Convey("Then the new account should NOT exist", func() {
-							var accs []model.LocalAccount
-							So(db.Select(&accs, nil), ShouldBeNil)
+							var accs model.LocalAccounts
+							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(accs, ShouldBeEmpty)
 						})
 					})
@@ -373,8 +373,8 @@ func TestCreateLocalAccount(t *testing.T) {
 func TestDeleteLocalAccount(t *testing.T) {
 	logger := log.NewLogger("rest_account_delete_test")
 
-	Convey("Given the account deletion handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the account deletion handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := deleteLocalAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -385,14 +385,14 @@ func TestDeleteLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(parent), ShouldBeNil)
+			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			existing := &model.LocalAccount{
 				Login:        "existing",
 				Password:     []byte("existing"),
 				LocalAgentID: parent.ID,
 			}
-			So(db.Create(existing), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid account login parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
@@ -413,9 +413,9 @@ func TestDeleteLocalAccount(t *testing.T) {
 
 					Convey("Then the account should no longer be present "+
 						"in the database", func() {
-						var a []model.LocalAccount
-						So(db.Select(&a, nil), ShouldBeNil)
-						So(a, ShouldBeEmpty)
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(accounts, ShouldBeEmpty)
 					})
 				})
 			})
@@ -467,8 +467,8 @@ func TestDeleteLocalAccount(t *testing.T) {
 func TestUpdateLocalAccount(t *testing.T) {
 	logger := log.NewLogger("rest_account_update_logger")
 
-	Convey("Given the account updating handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the account updating handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := updateLocalAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -479,14 +479,14 @@ func TestUpdateLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(parent), ShouldBeNil)
+			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			old := &model.LocalAccount{
 				Login:        "old",
 				Password:     []byte("old"),
 				LocalAgentID: parent.ID,
 			}
-			So(db.Create(old), ShouldBeNil)
+			So(db.Insert(old).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
 				body := strings.NewReader(`{
@@ -518,17 +518,17 @@ func TestUpdateLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should have been updated", func() {
-						var res []model.LocalAccount
-						So(db.Select(&res, nil), ShouldBeNil)
-						So(len(res), ShouldEqual, 1)
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(len(accounts), ShouldEqual, 1)
 
-						So(bcrypt.CompareHashAndPassword(res[0].Password,
+						So(bcrypt.CompareHashAndPassword(accounts[0].Password,
 							[]byte("upd_password")), ShouldBeNil)
-						So(res[0], ShouldResemble, model.LocalAccount{
+						So(accounts[0], ShouldResemble, model.LocalAccount{
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
 							Login:        "old",
-							Password:     res[0].Password,
+							Password:     accounts[0].Password,
 						})
 					})
 				})
@@ -553,7 +553,9 @@ func TestUpdateLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the old account should still exist", func() {
-						So(db.Get(old), ShouldBeNil)
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(*old, ShouldBeIn, accounts)
 					})
 				})
 
@@ -576,7 +578,9 @@ func TestUpdateLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the old account should still exist", func() {
-						So(db.Get(old), ShouldBeNil)
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(*old, ShouldBeIn, accounts)
 					})
 				})
 			})
@@ -587,8 +591,8 @@ func TestUpdateLocalAccount(t *testing.T) {
 func TestReplaceLocalAccount(t *testing.T) {
 	logger := log.NewLogger("rest_account_update_logger")
 
-	Convey("Given the account updating handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the account updating handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := replaceLocalAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -599,14 +603,14 @@ func TestReplaceLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(parent), ShouldBeNil)
+			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			old := &model.LocalAccount{
 				Login:        "old",
 				Password:     []byte("old"),
 				LocalAgentID: parent.ID,
 			}
-			So(db.Create(old), ShouldBeNil)
+			So(db.Insert(old).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
 				body := strings.NewReader(`{
@@ -639,17 +643,17 @@ func TestReplaceLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should have been updated", func() {
-						var res []model.LocalAccount
-						So(db.Select(&res, nil), ShouldBeNil)
-						So(len(res), ShouldEqual, 1)
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(len(accounts), ShouldEqual, 1)
 
-						So(bcrypt.CompareHashAndPassword(res[0].Password,
+						So(bcrypt.CompareHashAndPassword(accounts[0].Password,
 							[]byte("upd_password")), ShouldBeNil)
-						So(res[0], ShouldResemble, model.LocalAccount{
+						So(accounts[0], ShouldResemble, model.LocalAccount{
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
 							Login:        "upd_login",
-							Password:     res[0].Password,
+							Password:     accounts[0].Password,
 						})
 					})
 				})
@@ -674,7 +678,9 @@ func TestReplaceLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the old account should still exist", func() {
-						So(db.Get(old), ShouldBeNil)
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(*old, ShouldBeIn, accounts)
 					})
 				})
 
@@ -697,7 +703,9 @@ func TestReplaceLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the old account should still exist", func() {
-						So(db.Get(old), ShouldBeNil)
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(*old, ShouldBeIn, accounts)
 					})
 				})
 			})

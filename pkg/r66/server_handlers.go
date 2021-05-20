@@ -29,9 +29,10 @@ func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error
 		return nil, &r66.Error{Code: r66.Unimplemented, Detail: "unknown final hash digest"}
 	}
 
-	acc := model.LocalAccount{Login: authent.Login, LocalAgentID: a.agent.ID}
-	if err := a.db.Get(&acc); err != nil {
-		if err == database.ErrNotFound {
+	acc := model.LocalAccount{}
+	if err := a.db.Get(&acc, "login=? AND local_agent_id=?", authent.Login,
+		a.agent.ID).Run(); err != nil {
+		if database.IsNotFound(err) {
 			a.logger.Warningf("Unknown account '%s'", authent.Login)
 			return nil, &r66.Error{Code: r66.BadAuthent, Detail: "incorrect credentials"}
 		}
@@ -61,50 +62,49 @@ type sessionHandler struct {
 	hasFileSize, hasHash bool
 }
 
-func (s *sessionHandler) GetTransferInfo(ID int64, isClient bool) (*r66.TransferInfo, error) {
-	panic("implement me")
+func (s *sessionHandler) GetTransferInfo(int64, bool) (*r66.TransferInfo, error) {
+	return nil, &r66.Error{Code: r66.Unimplemented, Detail: "command not implemented"}
 }
 
-func (s *sessionHandler) GetFileInfo(rule string, filename string) ([]r66.FileInfo, error) {
-	panic("implement me")
+func (s *sessionHandler) GetFileInfo(string, string) ([]r66.FileInfo, error) {
+	return nil, &r66.Error{Code: r66.Unimplemented, Detail: "command not implemented"}
 }
 
 func (s *sessionHandler) GetBandwidth() (*r66.Bandwidth, error) {
-	panic("implement me")
+	return nil, &r66.Error{Code: r66.Unimplemented, Detail: "command not implemented"}
 }
 
 func (s *sessionHandler) SetBandwidth(*r66.Bandwidth) (*r66.Bandwidth, error) {
-	panic("implement me")
+	return nil, &r66.Error{Code: r66.Unimplemented, Detail: "command not implemented"}
 }
 
-func (s *sessionHandler) parseRuleMode(r *r66.Request) (bool, *model.Rule, error) {
-	var isMD5 bool
-	rule := model.Rule{Name: r.Rule}
+func (s *sessionHandler) parseRuleMode(r *r66.Request) (isMD5, isSend bool, err error) {
 	switch r.Mode {
 	case 1:
 	case 2:
-		rule.IsSend = true
+		isSend = true
 	case 3:
 		isMD5 = true
 	case 4:
 		isMD5 = true
-		rule.IsSend = true
+		isSend = true
 	default:
-		return false, nil, &r66.Error{Code: r66.Unimplemented, Detail: "unknown transfer mode"}
+		return false, false, &r66.Error{Code: r66.Unimplemented, Detail: "unknown transfer mode"}
 	}
-	return isMD5, &rule, nil
+	return
 }
 
-func (s *sessionHandler) getRule(rule *model.Rule) error {
-	if err := s.db.Get(rule); err != nil {
-		if err == database.ErrNotFound {
+func (s *sessionHandler) getRule(ruleName string, isSend bool) (*model.Rule, error) {
+	rule := &model.Rule{}
+	if err := s.db.Get(rule, "name=? AND send=?", ruleName, isSend).Run(); err != nil {
+		if database.IsNotFound(err) {
 			s.logger.Warningf("Requested transfer rule '%s' does not exist", rule.Name)
-			return &r66.Error{Code: r66.IncorrectCommand, Detail: "rule does not exist"}
+			return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "rule does not exist"}
 		}
 		s.logger.Errorf("Failed to retrieve transfer rule: %s", err)
-		return &r66.Error{Code: r66.Internal, Detail: "failed to retrieve rule"}
+		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to retrieve rule"}
 	}
-	return nil
+	return rule, nil
 }
 
 func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler, error) {
@@ -115,16 +115,17 @@ func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "missing block size"}
 	}
 
-	isMD5, rule, err := s.parseRuleMode(request)
+	isMD5, isSend, err := s.parseRuleMode(request)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := s.getRule(rule); err != nil {
+	rule, err := s.getRule(request.Rule, isSend)
+	if err != nil {
 		return nil, err
 	}
 
-	if !rule.IsSend && s.hasFileSize && request.FileSize < 0 {
+	if !isSend && s.hasFileSize && request.FileSize < 0 {
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "missing file size"}
 	}
 
@@ -140,6 +141,9 @@ func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler
 		Status:           types.StatusRunning,
 	}
 
+	s.logger.Infof("Transfer of file %s was requested by %s, using rule %s",
+		trans.SourceFile, s.account.Login, rule.Name)
+
 	tStream, err := pipeline.NewTransferStream(s.ctx, s.logger, s.db, s.paths, &trans)
 	if err != nil {
 		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to initiate transfer"}
@@ -154,11 +158,12 @@ func (s *sessionHandler) ValidRequest(request *r66.Request) (r66.TransferHandler
 	}
 	setProgress(tStream.Transfer, request)
 
-	file := &stream{tStream}
+	//TODO: add transfer info to DB
+	stream := &stream{tStream}
 
 	handler := transferHandler{
 		sessionHandler: s,
-		file:           file,
+		file:           stream,
 		isMD5:          isMD5,
 		fileSize:       request.FileSize,
 	}
@@ -237,10 +242,7 @@ func (t *transferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
 
 func (t *transferHandler) RunPreTask() error {
 	if err := t.file.PreTasks(); err != nil {
-		if err.Kind == model.KindTransfer {
-			return &r66.Error{Code: r66.ExternalOperation, Detail: err.Cause.Details}
-		}
-		return &r66.Error{Code: r66.Internal, Detail: "pre-tasks failed"}
+		return toR66Error(err)
 	}
 	return nil
 }
@@ -261,11 +263,23 @@ func (t *transferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 	}
 
 	if !t.file.Rule.IsSend {
-		if t.hasFileSize && int64(t.file.Transfer.Progress) != t.fileSize {
-			return &r66.Error{
-				Code: r66.SizeNotAllowed,
-				Detail: fmt.Sprintf("incorrect file size (expected %d, got %d)",
-					t.fileSize, t.file.Transfer.Progress),
+		if t.hasFileSize {
+			stat, err := os.Stat(utils.DenormalizePath(t.file.Transfer.TrueFilepath))
+			if err != nil {
+				t.logger.Errorf("Failed to retrieve file info: %s", err)
+				return &r66.Error{
+					Code:   r66.Internal,
+					Detail: "failed to retrieve file info",
+				}
+			}
+			if stat.Size() != t.fileSize {
+				t.logger.Errorf("Incorrect file size (expected %d, got %d)",
+					t.fileSize, stat.Size())
+				return &r66.Error{
+					Code: r66.SizeNotAllowed,
+					Detail: fmt.Sprintf("incorrect file size (expected %d, got %d)",
+						t.fileSize, stat.Size()),
+				}
 			}
 		}
 		if t.hasHash {
@@ -298,10 +312,7 @@ func (t *transferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 
 func (t *transferHandler) RunPostTask() error {
 	if err := t.file.PostTasks(); err != nil {
-		if err.Kind == model.KindTransfer {
-			return &r66.Error{Code: r66.ExternalOperation, Detail: err.Cause.Details}
-		}
-		return &r66.Error{Code: r66.Internal, Detail: "pre-tasks failed"}
+		return toR66Error(err)
 	}
 	return nil
 }
@@ -317,7 +328,7 @@ func (t *transferHandler) ValidEndRequest() error {
 }
 
 func (t *transferHandler) RunErrorTask(protoErr error) error {
-	_ = t.file.File.Close()
+	_ = t.file.Close()
 
 	if t.file.Transfer.Error.Code == types.TeOk {
 		if r66Err, ok := protoErr.(*r66.Error); ok {
@@ -328,10 +339,15 @@ func (t *transferHandler) RunErrorTask(protoErr error) error {
 			t.file.Transfer.Error.Details = protoErr.Error()
 		}
 	}
+	if err := t.db.Update(t.file.Transfer).Cols("error_code", "error_details").Run(); err != nil {
+		t.logger.Criticalf("Failed to update transfer error to '%s': %s",
+			t.file.Transfer.Error.Code.String(), err)
+		return &r66.Error{Code: r66.Internal, Detail: "failed to archive transfer"}
+	}
 
 	t.file.ErrorTasks()
 	t.file.Transfer.Status = types.StatusError
-	if err := t.db.Update(t.file.Transfer); err != nil {
+	if err := t.db.Update(t.file.Transfer).Cols("status").Run(); err != nil {
 		t.logger.Criticalf("Failed to update transfer status to '%s': %s",
 			types.StatusError, err)
 		return &r66.Error{Code: r66.Internal, Detail: "failed to archive transfer"}

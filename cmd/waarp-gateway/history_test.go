@@ -39,8 +39,8 @@ func historyInfoString(h *api.OutHistory) string {
 		"    Requested:        " + h.Requested + "\n" +
 		"    Source file:      " + h.SourceFilename + "\n" +
 		"    Destination file: " + h.DestFilename + "\n" +
-		"    Start date:       " + h.Start.Local().Format(time.RFC3339) + "\n" +
-		"    End date:         " + h.Stop.Local().Format(time.RFC3339) + "\n"
+		"    Start date:       " + h.Start.Local().Format(time.RFC3339Nano) + "\n" +
+		"    End date:         " + h.Stop.Local().Format(time.RFC3339Nano) + "\n"
 	if h.ErrorCode != types.TeOk {
 		rv += "    Error code:       " + h.ErrorCode.String() + "\n"
 		if h.ErrorMsg != "" {
@@ -137,8 +137,8 @@ func TestGetHistory(t *testing.T) {
 		out = testFile()
 		command := &historyGet{}
 
-		Convey("Given a database", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a database", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -155,12 +155,12 @@ func TestGetHistory(t *testing.T) {
 					Protocol:       "sftp",
 					SourceFilename: "file/path",
 					DestFilename:   "file/path",
-					Start:          time.Now(),
-					Stop:           time.Now().Add(time.Hour),
+					Start:          time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+					Stop:           time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
 					Status:         types.StatusDone,
 					Owner:          database.Owner,
 				}
-				So(db.Create(h), ShouldBeNil)
+				So(db.Insert(h).Run(), ShouldBeNil)
 				id := fmt.Sprint(h.ID)
 
 				Convey("Given a valid history entry ID", func() {
@@ -202,8 +202,8 @@ func TestListHistory(t *testing.T) {
 		out = testFile()
 		command := &historyList{}
 
-		Convey("Given a database", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a database", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -220,8 +220,8 @@ func TestListHistory(t *testing.T) {
 					SourceFilename: "file1",
 					DestFilename:   "file1",
 					Rule:           "rule1",
-					Start:          time.Date(2019, 1, 1, 1, 0, 0, 0, time.UTC),
-					Stop:           time.Date(2019, 1, 1, 1, 1, 0, 0, time.UTC),
+					Start:          time.Date(2019, 1, 1, 1, 1, 0, 1000, time.Local),
+					Stop:           time.Date(2019, 1, 1, 1, 2, 0, 1000, time.Local),
 					Status:         types.StatusDone,
 				}
 				h2 := &model.TransferHistory{
@@ -234,8 +234,8 @@ func TestListHistory(t *testing.T) {
 					SourceFilename: "file2",
 					DestFilename:   "file2",
 					Rule:           "rule2",
-					Start:          time.Date(2019, 1, 1, 2, 0, 0, 0, time.UTC),
-					Stop:           time.Date(2019, 1, 1, 2, 1, 0, 0, time.UTC),
+					Start:          time.Date(2019, 1, 1, 2, 0, 0, 2000, time.Local),
+					Stop:           time.Date(2019, 1, 1, 2, 1, 0, 2000, time.Local),
 					Status:         types.StatusCancelled,
 				}
 				h3 := &model.TransferHistory{
@@ -248,8 +248,8 @@ func TestListHistory(t *testing.T) {
 					SourceFilename: "file3",
 					DestFilename:   "file3",
 					Rule:           "rule3",
-					Start:          time.Date(2019, 1, 1, 3, 0, 0, 0, time.UTC),
-					Stop:           time.Date(2019, 1, 1, 3, 1, 0, 0, time.UTC),
+					Start:          time.Date(2019, 1, 1, 3, 0, 0, 3000, time.Local),
+					Stop:           time.Date(2019, 1, 1, 3, 1, 0, 3000, time.Local),
 					Status:         types.StatusDone,
 				}
 				h4 := &model.TransferHistory{
@@ -262,14 +262,14 @@ func TestListHistory(t *testing.T) {
 					SourceFilename: "file4",
 					DestFilename:   "file4",
 					Rule:           "rule4",
-					Start:          time.Date(2019, 1, 1, 4, 0, 0, 0, time.UTC),
-					Stop:           time.Date(2019, 1, 1, 4, 1, 0, 0, time.UTC),
+					Start:          time.Date(2019, 1, 1, 4, 0, 0, 4000, time.Local),
+					Stop:           time.Date(2019, 1, 1, 4, 1, 0, 4000, time.Local),
 					Status:         types.StatusCancelled,
 				}
-				So(db.Create(h1), ShouldBeNil)
-				So(db.Create(h2), ShouldBeNil)
-				So(db.Create(h3), ShouldBeNil)
-				So(db.Create(h4), ShouldBeNil)
+				So(db.Insert(h1).Run(), ShouldBeNil)
+				So(db.Insert(h2).Run(), ShouldBeNil)
+				So(db.Insert(h3).Run(), ShouldBeNil)
+				So(db.Insert(h4).Run(), ShouldBeNil)
 
 				hist1 := rest.FromHistory(h1)
 				hist2 := rest.FromHistory(h2)
@@ -340,8 +340,7 @@ func TestListHistory(t *testing.T) {
 				})
 
 				Convey("Given a start parameter", func() {
-					args := []string{"--start=" + time.Date(2019, 1, 1, 2, 30, 0, 0, time.UTC).
-						Format(time.RFC3339)}
+					args := []string{"--start=" + h3.Start.Format(time.RFC3339Nano)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -357,8 +356,7 @@ func TestListHistory(t *testing.T) {
 				})
 
 				Convey("Given a stop parameter", func() {
-					args := []string{"--stop=" + time.Date(2019, 1, 1, 2, 30, 0, 0, time.UTC).
-						Format(time.RFC3339)}
+					args := []string{"--stop=" + h2.Stop.Format(time.RFC3339Nano)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -456,8 +454,8 @@ func TestListHistory(t *testing.T) {
 
 				Convey("Given a combination of multiple parameters", func() {
 					args := []string{
-						"--start=" + time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
-						"--stop=" + time.Date(2019, 1, 3, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
+						"--start=" + time.Date(2019, 1, 1, 0, 0, 0, 0, time.Local).Format(time.RFC3339Nano),
+						"--stop=" + time.Date(2019, 1, 3, 0, 0, 0, 0, time.Local).Format(time.RFC3339Nano),
 						"--requester=" + h1.Account, "--requester=" + h2.Account,
 						"--requested=" + h4.Agent, "--requested=" + h1.Agent,
 						"--rule=" + h3.Rule, "--rule=" + h1.Rule, "--rule=" + h2.Rule,
@@ -488,66 +486,66 @@ func TestRetryHistory(t *testing.T) {
 		out = testFile()
 		command := &historyRetry{}
 
-		Convey("Given a database", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a database", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			Convey("Given a failed history entry", func() {
-				p := &model.RemoteAgent{
+				part := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
-				So(db.Create(p), ShouldBeNil)
+				So(db.Insert(part).Run(), ShouldBeNil)
 
-				c := &model.Cert{
+				cert := &model.Cert{
 					Name:        "test",
 					PublicKey:   []byte("test"),
 					Certificate: []byte("test"),
 					OwnerType:   "remote_agents",
-					OwnerID:     p.ID,
+					OwnerID:     part.ID,
 				}
-				So(db.Create(c), ShouldBeNil)
+				So(db.Insert(cert).Run(), ShouldBeNil)
 
-				a := &model.RemoteAccount{
+				acc := &model.RemoteAccount{
 					Login:         "login",
 					Password:      []byte("password"),
-					RemoteAgentID: p.ID,
+					RemoteAgentID: part.ID,
 				}
-				So(db.Create(a), ShouldBeNil)
+				So(db.Insert(acc).Run(), ShouldBeNil)
 
 				r := &model.Rule{
 					Name:   "rule",
 					IsSend: true,
 					Path:   "path",
 				}
-				So(db.Create(r), ShouldBeNil)
+				So(db.Insert(r).Run(), ShouldBeNil)
 
-				h := &model.TransferHistory{
+				hist := &model.TransferHistory{
 					ID:             1,
 					IsServer:       false,
 					IsSend:         r.IsSend,
 					Rule:           r.Name,
-					Account:        a.Login,
-					Agent:          p.Name,
-					Protocol:       p.Protocol,
+					Account:        acc.Login,
+					Agent:          part.Name,
+					Protocol:       part.Protocol,
 					SourceFilename: "source",
 					DestFilename:   "destination",
-					Start:          time.Now(),
-					Stop:           time.Now().Add(time.Hour),
+					Start:          time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+					Stop:           time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
 					Status:         types.StatusCancelled,
 					Owner:          database.Owner,
 				}
-				So(db.Create(h), ShouldBeNil)
-				id := fmt.Sprint(h.ID)
+				So(db.Insert(hist).Run(), ShouldBeNil)
+				id := fmt.Sprint(hist.ID)
 
 				Convey("Given a valid history entry ID and date", func() {
-					args := []string{id,
-						"-d", time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local).Format(time.RFC3339)}
+					args := []string{id, "-d", time.Date(2030, 1, 1, 1, 0, 0, 123000,
+						time.Local).Format(time.RFC3339Nano)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -564,18 +562,18 @@ func TestRetryHistory(t *testing.T) {
 								ID:         1,
 								RuleID:     r.ID,
 								IsServer:   false,
-								AgentID:    p.ID,
-								AccountID:  a.ID,
-								SourceFile: h.SourceFilename,
-								DestFile:   h.DestFilename,
-								Start:      time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+								AgentID:    part.ID,
+								AccountID:  acc.ID,
+								SourceFile: hist.SourceFilename,
+								DestFile:   hist.DestFilename,
+								Start:      time.Date(2030, 1, 1, 1, 0, 0, 123000, time.Local),
 								Status:     types.StatusPlanned,
-								Owner:      h.Owner,
+								Owner:      hist.Owner,
 							}
 
-							var t []model.Transfer
-							So(db.Select(&t, nil), ShouldBeNil)
-							So(t[0], ShouldResemble, expected)
+							var trans model.Transfers
+							So(db.Select(&trans).Run(), ShouldBeNil)
+							So(trans[0], ShouldResemble, expected)
 						})
 					})
 				})

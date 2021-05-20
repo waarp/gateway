@@ -49,12 +49,12 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 		TrueFilepath: trans.TrueFilepath,
 		SourcePath:   trans.SourceFile,
 		DestPath:     trans.DestFile,
-		Start:        trans.Start,
+		Start:        trans.Start.Local(),
 		Status:       trans.Status,
-		Step:         trans.Step,
+		Step:         trans.Step.String(),
 		Progress:     trans.Progress,
 		TaskNumber:   trans.TaskNumber,
-		ErrorCode:    trans.Error.Code,
+		ErrorCode:    trans.Error.Code.String(),
 		ErrorMsg:     trans.Error.Details,
 	}, nil
 }
@@ -80,189 +80,155 @@ func getTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 	if err != nil || id == 0 {
 		return nil, notFound("'%s' is not a valid transfer ID", val)
 	}
-	transfer := &model.Transfer{ID: id}
-	if err := db.Get(transfer); err != nil {
-		if err == database.ErrNotFound {
+	var transfer model.Transfer
+	if err := db.Get(&transfer, "id=?", id).Run(); err != nil {
+		if database.IsNotFound(err) {
 			return nil, notFound("transfer %v not found", id)
 		}
 		return nil, err
 	}
-	return transfer, nil
+	return &transfer, nil
 }
 
 func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			jsonTrans := &api.InTransfer{}
-			if err := readJSON(r, jsonTrans); err != nil {
-				return err
-			}
-
-			trans, err := transToDB(jsonTrans, db)
-			if err != nil {
-				return err
-			}
-			if err := db.Create(trans); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", location(r.URL, fmt.Sprint(trans.ID)))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		var jsonTrans api.InTransfer
+		if err := readJSON(r, &jsonTrans); handleError(w, logger, err) {
+			return
 		}
+
+		trans, err := transToDB(&jsonTrans, db)
+		if handleError(w, logger, err) {
+			return
+		}
+		if err := db.Insert(trans).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", location(r.URL, fmt.Sprint(trans.ID)))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func getTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			result, err := getTrans(r, db)
-			if err != nil {
-				return err
-			}
-
-			json, err := FromTransfer(db, result)
-			if err != nil {
-				return err
-			}
-			return writeJSON(w, json)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		result, err := getTrans(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		json, err := FromTransfer(db, result)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		err = writeJSON(w, json)
+		handleError(w, logger, err)
 	}
 }
 
 func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			filters, err := parseTransferListQuery(r)
-			if err != nil {
-				return err
-			}
-
-			var transfers []model.Transfer
-			if err := db.Select(&transfers, filters); err != nil {
-				return fmt.Errorf("query failed: %s", err.Error())
-			}
-
-			json, err := FromTransfers(db, transfers)
-			if err != nil {
-				return err
-			}
-
-			resp := map[string][]api.OutTransfer{"transfers": json}
-			return writeJSON(w, resp)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		var transfers model.Transfers
+		query, err := parseTransferListQuery(r, db, &transfers)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		if err := query.Run(); handleError(w, logger, err) {
+			return
+		}
+
+		json, err := FromTransfers(db, transfers)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		resp := map[string][]api.OutTransfer{"transfers": json}
+		err = writeJSON(w, resp)
+		handleError(w, logger, err)
 	}
 }
 
 func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			check, err := getTrans(r, db)
-			if err != nil {
-				return err
-			}
-
-			if check.Status != types.StatusPlanned && check.Status != types.StatusRunning {
-				return badRequest("cannot pause an already interrupted transfer")
-			}
-
-			switch check.Status {
-			case types.StatusPlanned:
-				check.Status = types.StatusPaused
-				if err := db.Update(check); err != nil {
-					return err
-				}
-			case types.StatusRunning:
-				pipeline.Signals.SendSignal(check.ID, model.SignalPause)
-			default:
-				return badRequest("cannot pause an already interrupted transfer")
-			}
-
-			w.WriteHeader(http.StatusAccepted)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		check, err := getTrans(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		if check.Status != types.StatusPlanned && check.Status != types.StatusRunning {
+			err := badRequest("cannot pause an already interrupted transfer")
+			handleError(w, logger, err)
+			return
+		}
+
+		switch check.Status {
+		case types.StatusPlanned:
+			check.Status = types.StatusPaused
+			if err := db.Update(check).Cols("status").Run(); handleError(w, logger, err) {
+				return
+			}
+		case types.StatusRunning:
+			pipeline.Signals.SendSignal(check.ID, model.SignalPause)
+		default:
+			err := badRequest("cannot pause an already interrupted transfer")
+			handleError(w, logger, err)
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
 	}
 }
 
 func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			check, err := getTrans(r, db)
-			if err != nil {
-				return err
-			}
-
-			if check.Status != types.StatusRunning {
-				check.Status = types.StatusCancelled
-				if err := pipeline.ToHistory(db, logger, check); err != nil {
-					return err
-				}
-			} else {
-				pipeline.Signals.SendSignal(check.ID, model.SignalCancel)
-			}
-
-			r.URL.Path = "/api/history"
-			w.Header().Set("Location", location(r.URL, fmt.Sprint(check.ID)))
-			w.WriteHeader(http.StatusAccepted)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		check, err := getTrans(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		if check.Status != types.StatusRunning {
+			check.Status = types.StatusCancelled
+			if err := pipeline.ToHistory(db, logger, check); handleError(w, logger, err) {
+				return
+			}
+		} else {
+			pipeline.Signals.SendSignal(check.ID, model.SignalCancel)
+		}
+
+		r.URL.Path = "/api/history"
+		w.Header().Set("Location", location(r.URL, fmt.Sprint(check.ID)))
+		w.WriteHeader(http.StatusAccepted)
 	}
 }
 
 func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			check, err := getTrans(r, db)
-			if err != nil {
-				return err
-			}
-
-			if check.IsServer {
-				return badRequest("only the client can restart a transfer")
-			}
-
-			if check.Status != types.StatusPaused && check.Status != types.StatusInterrupted &&
-				check.Status != types.StatusError {
-				return badRequest("cannot resume an already running transfer")
-			}
-
-			agent := &model.RemoteAgent{ID: check.AgentID}
-			if err := db.Get(agent); err != nil {
-				return fmt.Errorf("failed to retrieve partner: %s", err.Error())
-			}
-			if agent.Protocol == "sftp" {
-				return badRequest("cannot restart an SFTP transfer")
-			}
-
-			check.Status = types.StatusPlanned
-			check.Error = types.TransferError{}
-			if err := db.Update(check); err != nil {
-				return fmt.Errorf("failed to update the transfer status: %s", err)
-			}
-
-			w.WriteHeader(http.StatusAccepted)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		check, err := getTrans(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		if check.IsServer {
+			handleError(w, logger, badRequest("only the client can restart a transfer"))
+			return
+		}
+
+		if check.Status != types.StatusPaused && check.Status != types.StatusInterrupted &&
+			check.Status != types.StatusError {
+			handleError(w, logger, badRequest("cannot resume an already running transfer"))
+			return
+		}
+
+		check.Status = types.StatusPlanned
+		check.Error = types.TransferError{}
+		if err := db.Update(check).Cols("status", "error_code", "error_details").
+			Run(); handleError(w, logger, err) {
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
 	}
 }

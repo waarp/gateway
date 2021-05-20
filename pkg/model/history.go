@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -26,9 +25,9 @@ type TransferHistory struct {
 	SourceFilename   string               `xorm:"notnull 'source_filename'"`
 	DestFilename     string               `xorm:"notnull 'dest_filename'"`
 	Rule             string               `xorm:"notnull 'rule'"`
-	Start            time.Time            `xorm:"notnull 'start'"`
-	Stop             time.Time            `xorm:"notnull 'stop'"`
-	Status           types.TransferStatus `xorm:"notnull 'status'"`
+	Start            time.Time            `xorm:"notnull timestampz 'start'"`
+	Stop             time.Time            `xorm:"notnull timestampz 'stop'"`
+	Status           types.TransferStatus `xorm:"notnull varchar(50) 'status'"`
 	Error            types.TransferError  `xorm:"extends"`
 	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
 	Progress         uint64               `xorm:"notnull 'progression'"`
@@ -40,63 +39,68 @@ func (*TransferHistory) TableName() string {
 	return "transfer_history"
 }
 
+// Appellation returns the name of 1 element of the transfer history table.
+func (*TransferHistory) Appellation() string {
+	return "history entry"
+}
+
 // GetID returns the transfer's ID.
 func (h *TransferHistory) GetID() uint64 {
 	return h.ID
 }
 
-// Validate checks if the new `TransferHistory` entry is valid and can be
+// BeforeWrite checks if the new `TransferHistory` entry is valid and can be
 // inserted in the database.
-func (h *TransferHistory) Validate(database.Accessor) error {
+func (h *TransferHistory) BeforeWrite(database.ReadAccess) database.Error {
 	h.Owner = database.Owner
 
 	if h.Owner == "" {
-		return database.InvalidError("the transfer's owner cannot be empty")
+		return database.NewValidationError("the transfer's owner cannot be empty")
 	}
 	if h.ID == 0 {
-		return database.InvalidError("the transfer's ID cannot be empty")
+		return database.NewValidationError("the transfer's ID cannot be empty")
 	}
 	if h.Rule == "" {
-		return database.InvalidError("the transfer's rule cannot be empty")
+		return database.NewValidationError("the transfer's rule cannot be empty")
 	}
 	if h.Account == "" {
-		return database.InvalidError("the transfer's account cannot be empty")
+		return database.NewValidationError("the transfer's account cannot be empty")
 	}
 	if h.Agent == "" {
-		return database.InvalidError("the transfer's agent cannot be empty")
+		return database.NewValidationError("the transfer's agent cannot be empty")
 	}
 	if h.IsServer {
 		if h.IsSend && h.DestFilename == "" {
-			return database.InvalidError("the transfer's destination filename cannot be empty")
+			return database.NewValidationError("the transfer's destination filename cannot be empty")
 		} else if !h.IsSend && h.SourceFilename == "" {
-			return database.InvalidError("the transfer's destination filename cannot be empty")
+			return database.NewValidationError("the transfer's destination filename cannot be empty")
 		}
 	} else {
 		if h.SourceFilename == "" {
-			return database.InvalidError("the transfer's source filename cannot be empty")
+			return database.NewValidationError("the transfer's source filename cannot be empty")
 		}
 		if h.DestFilename == "" {
-			return database.InvalidError("the transfer's destination filename cannot be empty")
+			return database.NewValidationError("the transfer's destination filename cannot be empty")
 		}
 	}
 	if h.Start.IsZero() {
-		return database.InvalidError("the transfer's start date cannot be empty")
+		return database.NewValidationError("the transfer's start date cannot be empty")
 	}
 	if h.Stop.IsZero() {
-		return database.InvalidError("the transfer's end date cannot be empty")
+		return database.NewValidationError("the transfer's end date cannot be empty")
 	}
 
 	if h.Stop.Before(h.Start) {
-		return database.InvalidError("the transfer's end date cannot be anterior " +
+		return database.NewValidationError("the transfer's end date cannot be anterior " +
 			"to the start date")
 	}
 
 	if _, ok := config.ProtoConfigs[h.Protocol]; !ok {
-		return database.InvalidError("'%s' is not a valid protocol", h.Protocol)
+		return database.NewValidationError("'%s' is not a valid protocol", h.Protocol)
 	}
 
 	if !types.ValidateStatusForHistory(h.Status) {
-		return database.InvalidError("'%s' is not a valid transfer history status", h.Status)
+		return database.NewValidationError("'%s' is not a valid transfer history status", h.Status)
 	}
 
 	return nil
@@ -104,31 +108,33 @@ func (h *TransferHistory) Validate(database.Accessor) error {
 
 // Restart takes a History entry and converts it to a Transfer entry ready
 // to be executed.
-func (h *TransferHistory) Restart(acc database.Accessor, date time.Time) (*Transfer, error) {
-	rule := &Rule{Name: h.Rule, IsSend: h.IsSend}
-	if err := acc.Get(rule); err != nil {
-		return nil, fmt.Errorf("failed to retrieve rule: %s", err)
+func (h *TransferHistory) Restart(db database.Access, date time.Time) (*Transfer, database.Error) {
+	rule := &Rule{}
+	if err := db.Get(rule, "name=? AND send=?", h.Rule, h.IsSend).Run(); err != nil {
+		return nil, err
 	}
 	var agentID, accountID uint64
 	if h.IsServer {
-		agent := &LocalAgent{Owner: h.Owner, Name: h.Agent}
-		if err := acc.Get(agent); err != nil {
-			return nil, fmt.Errorf("failed to retrieve local agent: %s", err)
+		agent := &LocalAgent{}
+		if err := db.Get(agent, "owner=? AND name=?", h.Owner, h.Agent).Run(); err != nil {
+			return nil, err
 		}
-		account := &LocalAccount{LocalAgentID: agentID, Login: h.Account}
-		if err := acc.Get(account); err != nil {
-			return nil, fmt.Errorf("failed to retrieve local account: %s", err)
+		account := &LocalAccount{}
+		if err := db.Get(account, "local_agent_id=? AND login=?", agent.ID, h.Account).
+			Run(); err != nil {
+			return nil, err
 		}
 		agentID = agent.ID
 		accountID = account.ID
 	} else {
-		agent := &RemoteAgent{Name: h.Agent}
-		if err := acc.Get(agent); err != nil {
-			return nil, fmt.Errorf("failed to retrieve remote agent: %s", err)
+		agent := &RemoteAgent{}
+		if err := db.Get(agent, "name=?", h.Agent).Run(); err != nil {
+			return nil, err
 		}
-		account := &RemoteAccount{RemoteAgentID: agentID, Login: h.Account}
-		if err := acc.Get(account); err != nil {
-			return nil, fmt.Errorf("failed to retrieve remote account: %s", err)
+		account := &RemoteAccount{}
+		if err := db.Get(account, "remote_agent_id=? AND login=?", agent.ID, h.Account).
+			Run(); err != nil {
+			return nil, err
 		}
 		agentID = agent.ID
 		accountID = account.ID
@@ -142,7 +148,7 @@ func (h *TransferHistory) Restart(acc database.Accessor, date time.Time) (*Trans
 		AccountID:        accountID,
 		SourceFile:       h.SourceFilename,
 		DestFile:         h.DestFilename,
-		Start:            date.UTC(),
+		Start:            date,
 		Status:           types.StatusPlanned,
 		Step:             types.StepNone,
 		Owner:            h.Owner,

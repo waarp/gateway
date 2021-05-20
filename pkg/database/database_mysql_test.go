@@ -29,14 +29,18 @@ func init() {
 }
 
 func TestMySQL(t *testing.T) {
-	defer func() { _ = os.Remove(mysqlConfig.Database.AESPassphrase) }()
 	db := mysqlTestDatabase
 	if err := db.Start(); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.engine.CreateTables(&testBean{}); err != nil {
-		t.Fatal(err)
-	}
+	defer func() {
+		if err := db.engine.Close(); err != nil {
+			t.Logf("Failed to close database: %s", err)
+		}
+		if err := os.Remove(sqliteConfig.Database.AESPassphrase); err != nil {
+			t.Logf("Failed to delete passphrase file: %s", err)
+		}
+	}()
 
 	Convey("Given a MySQL service", t, func() {
 		testDatabase(mysqlTestDatabase)

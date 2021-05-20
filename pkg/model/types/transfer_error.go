@@ -24,7 +24,7 @@ const (
 	// TeUnimplemented indicates that a remote asked for a unimplemented feature
 	TeUnimplemented
 
-	// TeConnection means that the connetion to a remote could not be
+	// TeConnection means that the connection to a remote could not be
 	// established. It is the most general. A more specific error should be
 	// used if applicable.
 	TeConnection
@@ -33,7 +33,7 @@ const (
 	TeConnectionReset
 
 	// TeUnknownRemote should be used when a remote is not known in our
-	// database. For Security reasons, its use is discouraged for incomming
+	// database. For Security reasons, its use is discouraged for incoming
 	// connection and TeBadAuthentication should be preferred, as it leaks
 	// information (the account exist, but the password is wrong).
 	TeUnknownRemote

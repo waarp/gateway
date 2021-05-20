@@ -7,12 +7,12 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"github.com/go-xorm/builder"
 	"github.com/gorilla/mux"
 )
 
-func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent, *model.RemoteAccount, error) {
-	parent, err := getRemAg(r, db)
+func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent,
+	*model.RemoteAccount, error) {
+	parent, err := getPart(r, db)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -22,311 +22,247 @@ func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent, *model.Rem
 		return parent, nil, notFound("missing partner name")
 	}
 
-	result := &model.RemoteAccount{}
-	result.RemoteAgentID = parent.ID
-	result.Login = login
-
-	if err := db.Get(result); err != nil {
-		if err == database.ErrNotFound {
+	var account model.RemoteAccount
+	if err := db.Get(&account, "login=? AND remote_agent_id=?", login, parent.ID).
+		Run(); err != nil {
+		if database.IsNotFound(err) {
 			return parent, nil, notFound("no account '%s' found for partner %s",
 				login, parent.Name)
 		}
 		return parent, nil, err
 	}
-	return parent, result, nil
+	return parent, &account, nil
 }
 
 //nolint:dupl
 func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	validSorting := map[string]string{
-		"default": "login ASC",
-		"login+":  "login ASC",
-		"login-":  "login DESC",
+	validSorting := orders{
+		"default": order{"login", true},
+		"login+":  order{"login", true},
+		"login-":  order{"login", false},
 	}
 	typ := (&model.RemoteAccount{}).TableName()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			filters, err := parseListFilters(r, validSorting)
-			if err != nil {
-				return err
-			}
-			parent, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-			filters.Conditions = builder.Eq{"remote_agent_id": parent.ID}
-
-			var results []model.RemoteAccount
-			if err := db.Select(&results, filters); err != nil {
-				return err
-			}
-
-			ids := make([]uint64, len(results))
-			for i, res := range results {
-				ids[i] = res.ID
-			}
-			rules, err := getAuthorizedRuleList(db, typ, ids)
-			if err != nil {
-				return err
-			}
-
-			resp := map[string][]api.OutAccount{"remoteAccounts": FromRemoteAccounts(results, rules)}
-			return writeJSON(w, resp)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		var accounts model.RemoteAccounts
+		query, err := parseSelectQuery(r, db, validSorting, &accounts)
+		if handleError(w, logger, err) {
+			return
 		}
+		parent, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+		query.Where("remote_agent_id=?", parent.ID)
+
+		if err := query.Run(); handleError(w, logger, err) {
+			return
+		}
+
+		ids := make([]uint64, len(accounts))
+		for i := range accounts {
+			ids[i] = accounts[i].ID
+		}
+		rules, err := getAuthorizedRuleList(db, typ, ids)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		resp := map[string][]api.OutAccount{"remoteAccounts": FromRemoteAccounts(accounts, rules)}
+		err = writeJSON(w, resp)
+		handleError(w, logger, err)
 	}
 }
 
 func getRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			_, result, err := getRemAcc(r, db)
-			if err != nil {
-				return err
-			}
-
-			rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
-			if err != nil {
-				return err
-			}
-
-			return writeJSON(w, FromRemoteAccount(result, rules))
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		_, result, err := getRemAcc(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		err = writeJSON(w, FromRemoteAccount(result, rules))
+		handleError(w, logger, err)
 	}
 }
 
 func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			parent, old, err := getRemAcc(r, db)
-			if err != nil {
-				return err
-			}
-
-			acc := newInRemAccount(old)
-			if err := readJSON(r, acc); err != nil {
-				return err
-			}
-
-			if err := db.Update(accToRemote(acc, parent, old.ID)); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", locationUpdate(r.URL, str(acc.Login)))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		parent, old, err := getRemAcc(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		jAccount := newInRemAccount(old)
+		if err := readJSON(r, jAccount); handleError(w, logger, err) {
+			return
+		}
+
+		account := accToRemote(jAccount, parent, old.ID)
+		if err := db.Update(account).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", locationUpdate(r.URL, account.Login))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			parent, old, err := getRemAcc(r, db)
-			if err != nil {
-				return err
-			}
-
-			acc := &api.InAccount{}
-			if err := readJSON(r, acc); err != nil {
-				return err
-			}
-
-			if err := db.Update(accToRemote(acc, parent, old.ID)); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", locationUpdate(r.URL, str(acc.Login)))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		parent, old, err := getRemAcc(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		var jAccount api.InAccount
+		if err := readJSON(r, &jAccount); handleError(w, logger, err) {
+			return
+		}
+
+		account := accToRemote(&jAccount, parent, old.ID)
+		if err := db.Update(account).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", locationUpdate(r.URL, account.Login))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func addRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			parent, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			acc := &api.InAccount{}
-			if err := readJSON(r, acc); err != nil {
-				return err
-			}
-
-			account := accToRemote(acc, parent, 0)
-			if err := db.Create(account); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", location(r.URL, account.Login))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		parent, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		var jsonAccount api.InAccount
+		if err := readJSON(r, &jsonAccount); handleError(w, logger, err) {
+			return
+		}
+
+		account := accToRemote(&jsonAccount, parent, 0)
+		if err := db.Insert(account).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", location(r.URL, account.Login))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func deleteRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			_, acc, err := getRemAcc(r, db)
-			if err != nil {
-				return err
-			}
-
-			if err := db.Delete(acc); err != nil {
-				return err
-			}
-			w.WriteHeader(http.StatusNoContent)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		_, acc, err := getRemAcc(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		if err := db.Delete(acc).Run(); handleError(w, logger, err) {
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
 func authorizeRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			_, acc, err := getRemAcc(r, db)
-			if err != nil {
-				return err
-			}
-
-			return authorizeRule(w, r, db, acc.TableName(), acc.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		_, acc, err := getRemAcc(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = authorizeRule(w, r, db, acc.TableName(), acc.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func revokeRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			_, acc, err := getRemAcc(r, db)
-			if err != nil {
-				return err
-			}
-
-			return revokeRule(w, r, db, acc.TableName(), acc.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		_, acc, err := getRemAcc(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = revokeRule(w, r, db, acc.TableName(), acc.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func getRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			_, acc, err := getRemAcc(r, db)
-			if err != nil {
-				return err
-			}
-
-			return getCertificate(w, r, db, acc.TableName(), acc.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		_, acc, err := getRemAcc(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = getCertificate(w, r, db, acc.TableName(), acc.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func addRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			_, acc, err := getRemAcc(r, db)
-			if err != nil {
-				return err
-			}
-
-			return createCertificate(w, r, db, acc.TableName(), acc.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		_, acc, err := getRemAcc(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = createCertificate(w, r, db, acc.TableName(), acc.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func listRemAccountCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			_, acc, err := getRemAcc(r, db)
-			if err != nil {
-				return err
-			}
-
-			return listCertificates(w, r, db, acc.TableName(), acc.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		_, acc, err := getRemAcc(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = listCertificates(w, r, db, acc.TableName(), acc.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func deleteRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			_, acc, err := getRemAcc(r, db)
-			if err != nil {
-				return err
-			}
-
-			return deleteCertificate(w, r, db, acc.TableName(), acc.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		_, acc, err := getRemAcc(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = deleteCertificate(w, r, db, acc.TableName(), acc.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func updateRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			_, acc, err := getRemAcc(r, db)
-			if err != nil {
-				return err
-			}
-
-			return updateCertificate(w, r, db, acc.TableName(), acc.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		_, acc, err := getRemAcc(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = updateCertificate(w, r, db, acc.TableName(), acc.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func replaceRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			_, acc, err := getRemAcc(r, db)
-			if err != nil {
-				return err
-			}
-
-			return replaceCertificate(w, r, db, acc.TableName(), acc.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		_, acc, err := getRemAcc(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = replaceCertificate(w, r, db, acc.TableName(), acc.ID)
+		handleError(w, logger, err)
 	}
 }

@@ -88,7 +88,7 @@ func (l *sshListener) makeTestFileReader(ctx context.Context, accountID uint64,
 func (l *sshListener) makeTestFileWriter(ctx context.Context, accountID uint64,
 	paths *pipeline.Paths) fileWriterFunc {
 
-	handler := l.makeFileReader(ctx, accountID, paths)
+	handler := l.makeFileWriter(ctx, accountID, paths)
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		writer, err := handler(r)
 		if err != nil {

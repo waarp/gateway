@@ -40,8 +40,8 @@ func TestRequestStatus(t *testing.T) {
 		out = testFile()
 		s := statusCommand{}
 
-		Convey("Given a running gateway", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a running gateway", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			services := map[string]service.Service{
 				"Service 1": &emptyService{state: &offlineState},
 				"Service 2": &emptyService{state: &runningState},

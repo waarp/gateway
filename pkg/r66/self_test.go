@@ -8,7 +8,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-/*
 func TestSelfPushOK(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -34,6 +33,7 @@ func TestSelfPushOK(t *testing.T) {
 	})
 }
 
+/*
 func TestSelfPullOK(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -127,6 +127,7 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 	})
 }
 */
+
 func TestSelfPushServerPreTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
@@ -250,7 +251,7 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 						sTrans3 := &model.Transfer{
 							Step: types.StepData,
 							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
+								Code:    types.TeUnknownRemote,
 								Details: "Session closed",
 							},
 							Progress:   uint64(len(testFileContent)),

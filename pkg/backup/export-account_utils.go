@@ -2,14 +2,11 @@ package backup
 
 import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 
-type tableName interface {
-	TableName() string
-}
-
-func accountExists(db *database.Session, account tableName) (bool, error) {
-	err := db.Get(account)
+func accountExists(db database.ReadAccess, account database.GetBean, cond string,
+	args ...interface{}) (bool, database.Error) {
+	err := db.Get(account, cond, args...).Run()
 	if err != nil {
-		if err == database.ErrNotFound {
+		if database.IsNotFound(err) {
 			return false, nil
 		}
 		return false, err

@@ -31,13 +31,13 @@ type Rule struct {
 	Path string `xorm:"unique(path) notnull 'path'"`
 
 	// The directory for all incoming files.
-	InPath string `xorm:"unique notnull 'in_path'"`
+	InPath string `xorm:"notnull 'in_path'"`
 
 	// The directory for all outgoing files.
-	OutPath string `xorm:"unique notnull 'out_path'"`
+	OutPath string `xorm:"notnull 'out_path'"`
 
 	// The temp directory for all running transfer files.
-	WorkPath string `xorm:"unique notnull 'work_path'"`
+	WorkPath string `xorm:"notnull 'work_path'"`
 }
 
 // TableName returns the remote accounts table name.
@@ -45,12 +45,17 @@ func (*Rule) TableName() string {
 	return "rules"
 }
 
+// Appellation returns the name of 1 element of the rules table.
+func (*Rule) Appellation() string {
+	return "rule"
+}
+
 // GetID returns the rule's ID.
 func (r *Rule) GetID() uint64 {
 	return r.ID
 }
 
-func (r *Rule) normalizePaths() error {
+func (r *Rule) normalizePaths() {
 	if r.Path == "" {
 		r.Path = "/" + r.Name
 	} else {
@@ -68,35 +73,31 @@ func (r *Rule) normalizePaths() error {
 	if r.WorkPath != "" {
 		r.WorkPath = utils.NormalizePath(r.WorkPath)
 	}
-
-	return nil
 }
 
-// Validate is called before inserting a new `Rule` entry in the
-// database. It checks whether the new entry is valid or not.
-func (r *Rule) Validate(db database.Accessor) error {
+// BeforeWrite is called before writing the `Rule` entry in the database. It
+// checks whether the new entry is valid or not.
+func (r *Rule) BeforeWrite(db database.ReadAccess) database.Error {
 	if r.Name == "" {
-		return database.InvalidError("the rule's name cannot be empty")
+		return database.NewValidationError("the rule's name cannot be empty")
 	}
 
-	if err := r.normalizePaths(); err != nil {
-		return err
-	}
+	r.normalizePaths()
 
-	if res, err := db.Query("SELECT id FROM rules WHERE id<>? AND name=? AND send=?",
-		r.ID, r.Name, r.IsSend); err != nil {
+	n, err := db.Count(r).Where("id<>? AND name=? AND send=?", r.ID,
+		r.Name, r.IsSend).Run()
+	if err != nil {
 		return err
-	} else if len(res) > 0 {
-		return database.InvalidError("a %s rule named '%s' already exist",
+	} else if n > 0 {
+		return database.NewValidationError("a %s rule named '%s' already exist",
 			r.Direction(), r.Name)
 	}
 
-	if res, err := db.Query("SELECT id FROM rules WHERE id<>? AND send=? AND path=?",
-		r.ID, r.IsSend, r.Path); err != nil {
+	n, err = db.Count(r).Where("id<>? AND path=? AND send=?", r.ID, r.Path, r.IsSend).Run()
+	if err != nil {
 		return err
-	} else if len(res) > 0 {
-		return database.InvalidError("a %s rule with path '%s' already exist",
-			r.Direction(), r.Path)
+	} else if n > 0 {
+		return database.NewValidationError("a rule with path: %s already exist", r.Path)
 	}
 
 	return nil
@@ -112,19 +113,25 @@ func (r *Rule) Direction() string {
 
 // BeforeDelete is called before deleting the rule from the database. Its
 // role is to delete all the RuleAccess entries attached to this rule.
-func (r *Rule) BeforeDelete(db database.Accessor) error {
-	trans, err := db.Query("SELECT id FROM transfers WHERE rule_id=?", r.ID)
+func (r *Rule) BeforeDelete(db database.Access) database.Error {
+	n, err := db.Count(&Transfer{}).Where("rule_id=?", r.ID).Run()
 	if err != nil {
 		return err
 	}
-	if len(trans) > 0 {
-		return database.InvalidError("this rule is currently being used in a " +
+	if n > 0 {
+		return database.NewValidationError("this rule is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
 			"for it to finish")
 	}
 
-	if err := db.Execute("DELETE FROM rule_access WHERE rule_id=?", r.ID); err != nil {
+	err = db.DeleteAll(&RuleAccess{}).Where("rule_id=?", r.ID).Run()
+	if err != nil {
 		return err
 	}
-	return db.Execute("DELETE FROM tasks WHERE rule_id=?", r.ID)
+
+	err = db.DeleteAll(&Task{}).Where("rule_id=?", r.ID).Run()
+	if err != nil {
+		return err
+	}
+	return nil
 }

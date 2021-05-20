@@ -2,9 +2,11 @@ package database
 
 import (
 	"crypto/tls"
+	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	msql "github.com/go-sql-driver/mysql" // register the mysql driver
+	"xorm.io/xorm"
 )
 
 const (
@@ -19,8 +21,11 @@ func init() {
 	supportedRBMS[mysql] = mysqlinfo
 }
 
-func mysqlinfo(config conf.DatabaseConfig) (string, string) {
-	return mysqlDriver, mysqlDSN(config)
+func mysqlinfo(config conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+	return mysqlDriver, mysqlDSN(config), func(db *xorm.Engine) error {
+		db.DatabaseTZ = time.UTC
+		return nil
+	}
 }
 
 func mysqlDSN(config conf.DatabaseConfig) string {
@@ -40,6 +45,8 @@ func mysqlDSN(config conf.DatabaseConfig) string {
 
 		dsn.TLSConfig = "db"
 	}
+
+	//dsn.Params = map[string]string{"time_zone": "'+00:00'"}
 
 	return dsn.FormatDSN()
 }

@@ -28,11 +28,11 @@ type Executor struct {
 	R66Home string
 }
 
-func (e *Executor) getClient(stream *pipeline.TransferStream) *model.PipelineError {
+func (e *Executor) getClient(stream *pipeline.TransferStream) error {
 	info, err := model.NewOutTransferInfo(e.DB, stream.Transfer)
 	if err != nil {
 		e.Logger.Criticalf("Failed to retrieve transfer info: %s", err)
-		return &model.PipelineError{Kind: model.KindDatabase}
+		return err
 	}
 
 	constr, ok := ClientsConstructors[info.Agent.Protocol]
@@ -40,7 +40,7 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) *model.PipelineErr
 		msg := fmt.Sprintf("Unknown transfer protocol '%s'", info.Agent.Protocol)
 		e.Logger.Critical(msg)
 
-		return model.NewPipelineError(types.TeUnimplemented, msg)
+		return types.NewTransferError(types.TeUnimplemented, msg)
 	}
 
 	e.client, err = constr(*info, stream.Signals)
@@ -48,14 +48,14 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) *model.PipelineErr
 		msg := fmt.Sprintf("Failed to create transfer client: %s", err)
 		e.Logger.Critical(msg)
 
-		return model.NewPipelineError(types.TeInternal, msg)
+		return types.NewTransferError(types.TeInternal, msg)
 	}
 
 	return nil
 }
 
-func (e *Executor) setup() *model.PipelineError {
-	e.Logger.Info("Sending transfer request to remote server '%s'")
+func (e *Executor) setup() error {
+	e.Logger.Debug("Sending transfer request to remote server")
 
 	if err := e.client.Connect(); err != nil {
 		e.Logger.Errorf("Failed to connect to remote server: %s", err)
@@ -75,8 +75,8 @@ func (e *Executor) setup() *model.PipelineError {
 	return nil
 }
 
-func (e *Executor) data() *model.PipelineError {
-	e.Logger.Info("Starting data transfer")
+func (e *Executor) data() error {
+	e.Logger.Debug("Starting data transfer")
 
 	if e.TransferStream.Transfer.Step != types.StepPreTasks &&
 		e.TransferStream.Transfer.Step != types.StepData {
@@ -85,9 +85,9 @@ func (e *Executor) data() *model.PipelineError {
 
 	e.Transfer.Step = types.StepData
 	e.Transfer.TaskNumber = 0
-	if err := e.DB.Update(e.Transfer); err != nil {
+	if err := e.DB.Update(e.Transfer).Cols("step", "task_number").Run(); err != nil {
 		e.Logger.Criticalf("Failed to update transfer status: %s", err)
-		return model.NewPipelineError(types.TeInternal, err.Error())
+		return types.NewTransferError(types.TeInternal, err.Error())
 	}
 
 	if err := e.Start(); err != nil {
@@ -101,35 +101,36 @@ func (e *Executor) data() *model.PipelineError {
 	}
 
 	if err := e.Close(); err != nil {
-		return err.(*model.PipelineError)
+		return err
 	}
 	if err := e.Move(); err != nil {
-		return err.(*model.PipelineError)
+		return err
 	}
+	e.Logger.Debug("Data transfer done")
 
 	return nil
 }
 
 func logTrans(logger *log.Logger, info *model.OutTransferInfo) {
 	if info.Rule.IsSend {
-		logger.Infof("Starting %s upload of file '%s' to partner '%s' as '%s' using rule '%s'",
+		logger.Debugf("Starting %s upload of file '%s' to partner '%s' as '%s' using rule '%s'",
 			info.Agent.Protocol, info.Transfer.SourceFile, info.Agent.Name,
 			info.Account.Login, info.Rule.Name)
 	} else {
-		logger.Infof("Starting %s download of file '%s' from partner '%s' as '%s' using rule '%s'",
+		logger.Debugf("Starting %s download of file '%s' from partner '%s' as '%s' using rule '%s'",
 			info.Agent.Protocol, info.Transfer.SourceFile, info.Agent.Name,
 			info.Account.Login, info.Rule.Name)
 	}
 }
 
-func (e *Executor) prologue() *model.PipelineError {
+func (e *Executor) prologue() error {
 	if e.Transfer.Step < types.StepSetup {
 		e.Transfer.Step = types.StepSetup
 	}
 
-	if err := e.DB.Update(e.Transfer); err != nil {
+	if err := e.DB.Update(e.Transfer).Cols("step").Run(); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
-		return &model.PipelineError{Kind: model.KindDatabase}
+		return err
 	}
 
 	if err := e.getClient(e.TransferStream); err != nil {
@@ -146,11 +147,11 @@ func (e *Executor) prologue() *model.PipelineError {
 	return nil
 }
 
-func (e *Executor) run() *model.PipelineError {
+func (e *Executor) run() error {
 	info, err := model.NewOutTransferInfo(e.DB, e.Transfer)
 	if err != nil {
 		e.Logger.Criticalf("Failed to retrieve transfer info: %s", err)
-		return &model.PipelineError{Kind: model.KindDatabase}
+		return err
 	}
 
 	logTrans(e.Logger, info)
@@ -176,12 +177,13 @@ func (e *Executor) run() *model.PipelineError {
 
 	e.Transfer.Step = types.StepFinalization
 	e.Transfer.TaskNumber = 0
-	if err := e.DB.Update(e.Transfer); err != nil {
+	if err := e.DB.Update(e.Transfer).Cols("step", "task_number").Run(); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step to '%s': %s",
 			types.StepFinalization, err)
-		return &model.PipelineError{Kind: model.KindDatabase}
+		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
 
+	e.Logger.Debug("Sending transfer end message")
 	if err := e.client.Close(nil); err != nil {
 		e.Logger.Errorf("Remote post-task failed")
 		return err
@@ -195,7 +197,7 @@ func (e *Executor) run() *model.PipelineError {
 
 // Run executes the transfer stream given in the executor.
 func (e *Executor) Run() {
-	e.Logger.Infof("Processing transfer n°%d", e.Transfer.ID)
+	e.Logger.Debugf("Processing transfer n°%d", e.Transfer.ID)
 
 	if tErr := e.run(); tErr != nil {
 		pipeline.HandleError(e.TransferStream, tErr)
@@ -203,6 +205,6 @@ func (e *Executor) Run() {
 	}
 
 	if e.Archive() == nil {
-		e.Logger.Info("Execution finished without errors")
+		e.Logger.Debug("Execution finished without errors")
 	}
 }

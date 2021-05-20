@@ -128,9 +128,10 @@ func makeHandlerFactory(l *log.Logger, db *database.DB, router *mux.Router) hand
 				return
 			}
 
-			user := &model.User{Username: login, Owner: database.Owner}
-			if err := db.Get(user); err != nil {
-				l.Criticalf("Database error: %s", err)
+			var user model.User
+			if err := db.Get(&user, "username=? AND owner=?", login, database.Owner).
+				Run(); err != nil {
+				l.Errorf("Database error: %s", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)
 				return
 			}

@@ -34,8 +34,8 @@ func TestFileReader(t *testing.T) {
 		content := []byte("File reader test file content")
 		So(ioutil.WriteFile(file, content, 0o600), ShouldBeNil)
 
-		Convey("Given a database with a rule, a localAgent and a localAccount", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a database with a rule, a localAgent and a localAccount", func(dbc C) {
+			db := database.TestDatabase(dbc, "ERROR")
 
 			rule := &model.Rule{
 				Name:    "test",
@@ -43,7 +43,7 @@ func TestFileReader(t *testing.T) {
 				Path:    "test/path",
 				OutPath: "test/out",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
 				Name:        "test_sftp_server",
@@ -52,14 +52,14 @@ func TestFileReader(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2023",
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
 				Password:     []byte("password"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			var serverConf config.SftpProtoConfig
 			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
@@ -89,13 +89,9 @@ func TestFileReader(t *testing.T) {
 						})
 
 						Convey("Then a transfer should be present in db", func() {
-							trans := &model.Transfer{
-								RuleID:    rule.ID,
-								IsServer:  true,
-								AgentID:   agent.ID,
-								AccountID: account.ID,
-							}
-							So(db.Get(trans), ShouldBeNil)
+							trans := &model.Transfer{}
+							So(db.Get(trans, "rule_id=? AND is_server=? AND agent_id=? AND account_id=?",
+								rule.ID, true, agent.ID, account.ID).Run(), ShouldBeNil)
 
 							Convey("With a valid Source, Destination and Status", func() {
 								So(trans.SourceFile, ShouldEqual, filepath.Base(request.Filepath))
@@ -144,15 +140,15 @@ func TestFileWriter(t *testing.T) {
 	Convey("Given a file", t, func(c C) {
 		root := testhelpers.TempDir(c, "file_writer_test_root")
 
-		Convey("Given a database with a rule and a localAgent", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a database with a rule and a localAgent", func(dbc C) {
+			db := database.TestDatabase(dbc, "ERROR")
 
 			rule := &model.Rule{
 				Name:   "test",
 				IsSend: false,
 				Path:   "test",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
 				Name:        "test_sftp_server",
@@ -161,14 +157,14 @@ func TestFileWriter(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2023",
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
 				Password:     []byte("password"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			var serverConf config.SftpProtoConfig
 			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
@@ -198,13 +194,9 @@ func TestFileWriter(t *testing.T) {
 						})
 
 						Convey("Then a transfer should be present in db", func() {
-							trans := &model.Transfer{
-								RuleID:    rule.ID,
-								IsServer:  true,
-								AgentID:   agent.ID,
-								AccountID: account.ID,
-							}
-							So(db.Get(trans), ShouldBeNil)
+							trans := &model.Transfer{}
+							So(db.Get(trans, "rule_id=? AND is_server=? AND agent_id=? AND account_id=?",
+								rule.ID, true, agent.ID, account.ID).Run(), ShouldBeNil)
 
 							Convey("With a valid Source, Destination and Status", func() {
 								So(trans.SourceFile, ShouldEqual, filepath.Base(request.Filepath))

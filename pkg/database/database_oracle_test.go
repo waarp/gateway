@@ -30,14 +30,18 @@ func init() {
 }
 
 func TestOracleDB(t *testing.T) {
-	defer func() { _ = os.Remove(oracleConfig.Database.AESPassphrase) }()
 	db := oracleTestDatabase
 	if err := db.Start(); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.engine.CreateTables(&testBean{}); err != nil {
-		t.Fatal(err)
-	}
+	defer func() {
+		if err := db.engine.Close(); err != nil {
+			t.Logf("Failed to close database: %s", err)
+		}
+		if err := os.Remove(sqliteConfig.Database.AESPassphrase); err != nil {
+			t.Logf("Failed to delete passphrase file: %s", err)
+		}
+	}()
 
 	Convey("Given an Oracledb service", t, func() {
 		testDatabase(oracleTestDatabase)
