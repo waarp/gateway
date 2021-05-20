@@ -14,7 +14,7 @@ import (
 func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64, error) {
 	var rule model.Rule
 	if err := db.Get(&rule, "name=? AND send=?", trans.Rule, trans.IsSend).Run(); err != nil {
-		if _, ok := err.(*database.NotFoundError); ok {
+		if database.IsNotFound(err) {
 			return 0, 0, 0, badRequest("no rule '%s' found", trans.Rule)
 		}
 		return 0, 0, 0, err
@@ -22,7 +22,7 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64
 
 	var partner model.RemoteAgent
 	if err := db.Get(&partner, "name=?", trans.Partner).Run(); err != nil {
-		if _, ok := err.(*database.NotFoundError); ok {
+		if database.IsNotFound(err) {
 			return 0, 0, 0, badRequest("no partner '%s' found", trans.Partner)
 		}
 		return 0, 0, 0, err
@@ -31,7 +31,7 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64
 	var account model.RemoteAccount
 	if err := db.Get(&account, "remote_agent_id=? AND login=?", partner.ID,
 		trans.Account).Run(); err != nil {
-		if _, ok := err.(*database.NotFoundError); ok {
+		if database.IsNotFound(err) {
 			return 0, 0, 0, badRequest("no account '%s' found for partner %s",
 				trans.Account, trans.Partner)
 		}

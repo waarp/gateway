@@ -1,6 +1,8 @@
 package rest
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type errBadRequest struct{ msg string }
 
