@@ -14,44 +14,36 @@ type DeleteQuery struct {
 	bean DeleteBean
 }
 
-// Run executes the 'DELETE' query.
-func (d *DeleteQuery) Run() Error {
-	logger := d.db.GetLogger()
+func (d *DeleteQuery) run(s *Session) Error {
+	if hook, ok := d.bean.(DeletionHook); ok {
+		if err := hook.BeforeDelete(s); err != nil {
+			s.logger.Errorf("%s deletion hook failed: %s", d.bean.Appellation(), err)
+			return err
+		}
+	}
+	query := s.session.NoAutoCondition().Table(d.bean.TableName()).
+		ID(d.bean.GetID())
+	_, err := query.Delete(d.bean)
+	logSQL(query, s.logger)
 
-	exist, err := d.db.getUnderlying().NoAutoCondition().ID(d.bean.GetID()).Exist(d.bean)
 	if err != nil {
-		logger.Errorf("Failed to check if the %s to update exists: %s", d.bean.Appellation(), err)
+		s.logger.Errorf("Failed to delete the %s entry: %s", d.bean.Appellation(), err)
 		return NewInternalError(err)
 	}
-	if !exist {
-		logger.Infof("No %s found with ID %d", d.bean.Appellation(), d.bean.GetID())
-		return NewNotFoundError(d.bean)
-	}
+	return nil
+}
 
-	f := func(s *Session) Error {
-		if hook, ok := d.bean.(DeletionHook); ok {
-			if err := hook.BeforeDelete(s); err != nil {
-				logger.Errorf("%s deletion hook failed: %s", d.bean.Appellation(), err)
-				return err
-			}
-		}
-		query := s.getUnderlying().NoAutoCondition().Table(d.bean.TableName()).
-			ID(d.bean.GetID())
-		_, err = query.Delete(d.bean)
-		logSQL(query, logger)
-
-		if err != nil {
-			logger.Errorf("Failed to delete the %s entry: %s", d.bean.Appellation(), err)
-			return NewInternalError(err)
-		}
-		return nil
+// Run executes the 'DELETE' query.
+func (d *DeleteQuery) Run() Error {
+	if err := checkExists(d.db, d.bean); err != nil {
+		return err
 	}
 
 	switch db := d.db.(type) {
 	case *Standalone:
-		return db.Transaction(f)
+		return db.Transaction(d.run)
 	case *Session:
-		return f(db)
+		return d.run(db)
 	default:
 		panic("unknown database accessor type")
 	}
