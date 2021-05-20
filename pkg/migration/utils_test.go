@@ -5,8 +5,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"strings"
 	"time"
 
@@ -47,14 +45,6 @@ func (v *testInterface) Scan(i interface{}) error {
 	default:
 		return fmt.Errorf("invalid type %T", i)
 	}
-}
-
-func tempFilename() string {
-	f, err := ioutil.TempFile(os.TempDir(), "test_migration_database_*.db")
-	So(err, ShouldBeNil)
-	So(f.Close(), ShouldBeNil)
-	So(os.Remove(f.Name()), ShouldBeNil)
-	return f.Name()
 }
 
 func isTableNotFound(err error) bool {

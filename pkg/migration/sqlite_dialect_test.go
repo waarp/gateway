@@ -2,25 +2,13 @@ package migration
 
 import (
 	"database/sql"
-	"fmt"
 	"os"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
-
-func getTestSqliteDB() *sql.DB {
-	file := tempFilename()
-	//db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc", file))
-	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=rwc", file))
-	So(err, ShouldBeNil)
-
-	Reset(func() {
-		So(db.Close(), ShouldBeNil)
-		So(os.Remove(file), ShouldBeNil)
-	})
-	return db
-}
 
 func testSQLiteEngine(db *sql.DB) testEngine {
 	_, err := db.Exec("PRAGMA foreign_keys = ON")
@@ -33,33 +21,33 @@ func testSQLiteEngine(db *sql.DB) testEngine {
 }
 
 func TestSQLiteCreateTable(t *testing.T) {
-	testSQLCreateTable(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
+	testSQLCreateTable(t, "SQLite", testhelpers.GetTestSqliteDB, testSQLiteEngine)
 }
 
 func TestSQLiteRenameTable(t *testing.T) {
-	testSQLRenameTable(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
+	testSQLRenameTable(t, "SQLite", testhelpers.GetTestSqliteDB, testSQLiteEngine)
 }
 
 func TestSQLiteDropTable(t *testing.T) {
-	testSQLDropTable(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
+	testSQLDropTable(t, "SQLite", testhelpers.GetTestSqliteDB, testSQLiteEngine)
 }
 
 func TestSQLiteRenameColumn(t *testing.T) {
-	testSQLRenameColumn(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
+	testSQLRenameColumn(t, "SQLite", testhelpers.GetTestSqliteDB, testSQLiteEngine)
 }
 
 func TestSQLiteChangeColumnType(t *testing.T) {
-	testSQLChangeColumnType(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
+	testSQLChangeColumnType(t, "SQLite", testhelpers.GetTestSqliteDB, testSQLiteEngine)
 }
 
 func TestSQLiteAddColumn(t *testing.T) {
-	testSQLAddColumn(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
+	testSQLAddColumn(t, "SQLite", testhelpers.GetTestSqliteDB, testSQLiteEngine)
 }
 
 func TestSQLiteDropColumn(t *testing.T) {
-	testSQLDropColumn(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
+	testSQLDropColumn(t, "SQLite", testhelpers.GetTestSqliteDB, testSQLiteEngine)
 }
 
 func TestSQLiteAddRow(t *testing.T) {
-	testSQLAddRow(t, "SQLite", getTestSqliteDB, testSQLiteEngine)
+	testSQLAddRow(t, "SQLite", testhelpers.GetTestSqliteDB, testSQLiteEngine)
 }

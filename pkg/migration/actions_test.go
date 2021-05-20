@@ -9,11 +9,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func testSQLCreateTable(t *testing.T, dbms string, initDB func() *sql.DB,
+func testSQLCreateTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
 
-	Convey(fmt.Sprintf("Given a %s database", dbms), t, func() {
-		db := initDB()
+	Convey(fmt.Sprintf("Given a %s database", dbms), t, func(c C) {
+		db := initDB(c)
 		_, err := db.Exec("CREATE TABLE titi (id INTEGER PRIMARY KEY)")
 		So(err, ShouldBeNil)
 
@@ -55,10 +55,11 @@ func testSQLCreateTable(t *testing.T, dbms string, initDB func() *sql.DB,
 	})
 }
 
-func testSQLRenameTable(t *testing.T, dbms string, initDB func() *sql.DB,
+func testSQLRenameTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
-	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func() {
-		db := initDB()
+
+	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func(c C) {
+		db := initDB(c)
 		_, err := db.Exec("CREATE TABLE toto (str TEXT)")
 		So(err, ShouldBeNil)
 
@@ -86,10 +87,11 @@ func testSQLRenameTable(t *testing.T, dbms string, initDB func() *sql.DB,
 	})
 }
 
-func testSQLDropTable(t *testing.T, dbms string, initDB func() *sql.DB,
+func testSQLDropTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
-	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func() {
-		db := initDB()
+
+	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func(c C) {
+		db := initDB(c)
 		_, err := db.Exec("CREATE TABLE toto (str TEXT)")
 		So(err, ShouldBeNil)
 
@@ -116,10 +118,11 @@ func testSQLDropTable(t *testing.T, dbms string, initDB func() *sql.DB,
 	})
 }
 
-func testSQLRenameColumn(t *testing.T, dbms string, initDB func() *sql.DB,
+func testSQLRenameColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
-	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func() {
-		db := initDB()
+
+	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func(c C) {
+		db := initDB(c)
 		_, err := db.Exec("CREATE TABLE toto (str TEXT, id BIGINT)")
 		So(err, ShouldBeNil)
 
@@ -166,10 +169,11 @@ func testSQLRenameColumn(t *testing.T, dbms string, initDB func() *sql.DB,
 	})
 }
 
-func testSQLChangeColumnType(t *testing.T, dbms string, initDB func() *sql.DB,
+func testSQLChangeColumnType(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
-	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func() {
-		db := initDB()
+
+	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func(c C) {
+		db := initDB(c)
 
 		Convey(fmt.Sprintf("Given a %s dialect engine", dbms), func() {
 			engine := getEngine(db)
@@ -196,10 +200,11 @@ func testSQLChangeColumnType(t *testing.T, dbms string, initDB func() *sql.DB,
 	})
 }
 
-func testSQLAddColumn(t *testing.T, dbms string, initDB func() *sql.DB,
+func testSQLAddColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
-	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func() {
-		db := initDB()
+
+	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func(c C) {
+		db := initDB(c)
 		_, err := db.Exec("CREATE TABLE toto (str TEXT)")
 		So(err, ShouldBeNil)
 
@@ -238,11 +243,11 @@ func testSQLAddColumn(t *testing.T, dbms string, initDB func() *sql.DB,
 	})
 }
 
-func testSQLDropColumn(t *testing.T, dbms string, initDB func() *sql.DB,
+func testSQLDropColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
 
-	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func() {
-		db := initDB()
+	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func(c C) {
+		db := initDB(c)
 		_, err := db.Exec("CREATE TABLE toto (str TEXT, id BIGINT)")
 		So(err, ShouldBeNil)
 
@@ -270,11 +275,11 @@ func testSQLDropColumn(t *testing.T, dbms string, initDB func() *sql.DB,
 	})
 }
 
-func testSQLAddRow(t *testing.T, dbms string, initDB func() *sql.DB,
+func testSQLAddRow(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
 
-	Convey(fmt.Sprintf("Given a %s database", dbms), t, func() {
-		db := initDB()
+	Convey(fmt.Sprintf("Given a %s database", dbms), t, func(c C) {
+		db := initDB(c)
 
 		Convey(fmt.Sprintf("Given a %s dialect engine", dbms), func() {
 			engine := getEngine(db)

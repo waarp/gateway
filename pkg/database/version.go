@@ -7,7 +7,7 @@ func init() {
 }
 
 type version struct {
-	Current string `xorm:"notnull 'current'"`
+	Current string `xorm:"notnull text 'current'"`
 }
 
 // TableName returns the name of the version table.

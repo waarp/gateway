@@ -7,25 +7,9 @@ import (
 	"os"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	_ "github.com/jackc/pgx/v4"
-
-	. "github.com/smartystreets/goconvey/convey"
 )
-
-func getTestPostgreDB() *sql.DB {
-	db, err := sql.Open("pgx", "user='postgres' host='localhost' port='5432' "+
-		"dbname='waarp_gateway_test' sslmode='disable'")
-	So(err, ShouldBeNil)
-
-	Reset(func() {
-		_, err := db.Exec("DROP SCHEMA public CASCADE")
-		So(err, ShouldBeNil)
-		_, err = db.Exec("CREATE SCHEMA public")
-		So(err, ShouldBeNil)
-		So(db.Close(), ShouldBeNil)
-	})
-	return db
-}
 
 func testPostgreEngine(db *sql.DB) testEngine {
 	return &postgreDialect{
@@ -36,33 +20,33 @@ func testPostgreEngine(db *sql.DB) testEngine {
 }
 
 func TestPostgreCreateTable(t *testing.T) {
-	testSQLCreateTable(t, "PostgreSQL", getTestPostgreDB, testPostgreEngine)
+	testSQLCreateTable(t, "PostgreSQL", testhelpers.GetTestPostgreDB, testPostgreEngine)
 }
 
 func TestPostgreRenameTable(t *testing.T) {
-	testSQLRenameTable(t, "PostgreSQL", getTestPostgreDB, testPostgreEngine)
+	testSQLRenameTable(t, "PostgreSQL", testhelpers.GetTestPostgreDB, testPostgreEngine)
 }
 
 func TestPostgreDropTable(t *testing.T) {
-	testSQLDropTable(t, "PostgreSQL", getTestPostgreDB, testPostgreEngine)
+	testSQLDropTable(t, "PostgreSQL", testhelpers.GetTestPostgreDB, testPostgreEngine)
 }
 
 func TestPostgreRenameColumn(t *testing.T) {
-	testSQLRenameColumn(t, "PostgreSQL", getTestPostgreDB, testPostgreEngine)
+	testSQLRenameColumn(t, "PostgreSQL", testhelpers.GetTestPostgreDB, testPostgreEngine)
 }
 
 func TestPostgreChangeColumnType(t *testing.T) {
-	testSQLChangeColumnType(t, "PostgreSQL", getTestPostgreDB, testPostgreEngine)
+	testSQLChangeColumnType(t, "PostgreSQL", testhelpers.GetTestPostgreDB, testPostgreEngine)
 }
 
 func TestPostgreAddColumn(t *testing.T) {
-	testSQLAddColumn(t, "PostgreSQL", getTestPostgreDB, testPostgreEngine)
+	testSQLAddColumn(t, "PostgreSQL", testhelpers.GetTestPostgreDB, testPostgreEngine)
 }
 
 func TestPostgreDropColumn(t *testing.T) {
-	testSQLDropColumn(t, "PostgreSQL", getTestPostgreDB, testPostgreEngine)
+	testSQLDropColumn(t, "PostgreSQL", testhelpers.GetTestPostgreDB, testPostgreEngine)
 }
 
 func TestPostgreAddRow(t *testing.T) {
-	testSQLAddRow(t, "PostgreSQL", getTestPostgreDB, testPostgreEngine)
+	testSQLAddRow(t, "PostgreSQL", testhelpers.GetTestPostgreDB, testPostgreEngine)
 }

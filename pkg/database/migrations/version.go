@@ -24,12 +24,10 @@ func initVersion() migration.Script {
 func bumpVersion(from, to string) migration.Script {
 	return migration.Script{
 		Up: func(db migration.Actions) error {
-			_, err := db.Exec("UPDATE 'version' SET current='%s'", to)
-			return err
+			return db.Exec("UPDATE 'version' SET current='%s'", to)
 		},
 		Down: func(db migration.Actions) error {
-			_, err := db.Exec("UPDATE 'version' SET current='%s'", from)
-			return err
+			return db.Exec("UPDATE 'version' SET current='%s'", from)
 		},
 	}
 }
