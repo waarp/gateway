@@ -20,7 +20,7 @@ type Branch string
 func (Branch) IsLeaf() bool     { return false }
 func (b Branch) String() string { return string(b) }
 
-// MakePath return the path given by joining the given tail with all the given
+// GetPath return the path given by joining the given tail with all the given
 // parents in the order they are given. The function will stop at the first
 // absolute path, and return the path formed by all the previous parents.
 func GetPath(file string, elems ...Elem) string {

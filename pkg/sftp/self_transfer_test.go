@@ -122,7 +122,7 @@ func TestSelfErrorClient(t *testing.T) {
 								"Pre-tasks failed: Task CLIENTERR @ PUSH PRE[1]: task failed"),
 						}
 						sTrans := &model.Transfer{
-							Step:       types.StepPreTasks,
+							Step:       types.StepData,
 							Progress:   0,
 							TaskNumber: 0,
 							Error: types.NewTransferError(types.TeUnknownRemote,

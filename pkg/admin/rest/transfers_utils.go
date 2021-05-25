@@ -1,10 +1,15 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -139,4 +144,44 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 	query.OrderBy(sort.col, sort.asc)
 
 	return query, nil
+}
+
+// PipelineMapper is an interface which service.Service implementations should
+// also implement in order for the admin interface to ba able to retrieve
+// transfer pipelines running on said service.
+type PipelineMapper interface {
+	// GetPipelines returns a map of the service's currently running transfer pipelines.
+	GetPipelines() *pipeline.TransferMap
+}
+
+func getTransPipeline(db *database.DB, services map[string]service.Service,
+	trans *model.Transfer) (pipeline.TransferInterrupter, error) {
+
+	if !trans.IsServer {
+		pip, ok := pipeline.ClientTransfers.Get(trans.ID)
+		if !ok {
+			return nil, fmt.Errorf("cannot find the pipeline associated with the transfer")
+		}
+		return pip, nil
+	}
+
+	var agent model.LocalAgent
+	if err := db.Get(&agent, "id=?", trans.AgentID).Run(); err != nil {
+		return nil, err
+	}
+	serv, ok := services[agent.Name]
+	if !ok {
+		return nil, fmt.Errorf("cannot find the service associated with the transfer")
+	}
+	mapper, ok := serv.(PipelineMapper)
+	if !ok {
+		return nil, fmt.Errorf("cannot find the service associated with the transfer")
+	}
+	pipelines := mapper.GetPipelines()
+	pip, ok := pipelines.Get(trans.ID)
+	if !ok {
+		return nil, fmt.Errorf("cannot find the pipeline associated with the transfer")
+	}
+
+	return pip, nil
 }

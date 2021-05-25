@@ -622,9 +622,9 @@ func TestResumeTransfer(t *testing.T) {
 func TestPauseTransfer(t *testing.T) {
 	logger := log.NewLogger("rest_transfer_list_test")
 
-	Convey("Testing the transfer resume handler", t, func(c C) {
+	Convey("Testing the transfer pause handler", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
-		handler := pauseTransfer(logger, db)
+		handler := pauseTransfer(nil)(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 running transfer", func() {

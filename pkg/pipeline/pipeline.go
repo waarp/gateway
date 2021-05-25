@@ -35,6 +35,10 @@ type Pipeline struct {
 func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext) (*Pipeline, error) {
 	runner := tasks.NewTaskRunner(db, logger, transCtx)
 	internal.MakeFilepaths(transCtx)
+	if dbErr := db.Update(transCtx.Transfer).Cols("local_path", "remote_path").Run(); dbErr != nil {
+		logger.Errorf("Failed to update transfer paths: %s", dbErr)
+		return nil, errDatabase
+	}
 
 	if transCtx.Rule.IsSend {
 		if err := internal.CheckFileExist(transCtx.Transfer, logger); err != nil {
@@ -119,7 +123,7 @@ func (p *Pipeline) StartData() (TransferStream, error) {
 		return nil, errStateMachine
 	}
 
-	if p.transCtx.Transfer.Step > types.StepPreTasks {
+	if p.transCtx.Transfer.Step > types.StepData {
 		var err error
 		if p.stream, err = newVoidStream(p); err != nil {
 			p.handleError(types.TeInternal, "Failed to create file stream", err.Error())
@@ -127,7 +131,7 @@ func (p *Pipeline) StartData() (TransferStream, error) {
 		}
 		return p.stream, nil
 	}
-	p.transCtx.Transfer.Step = types.StepPreTasks
+	p.transCtx.Transfer.Step = types.StepData
 	if dbErr := p.db.Update(p.transCtx.Transfer).Cols("step").Run(); dbErr != nil {
 		p.handleError(types.TeInternal, "Failed to update transfer step for pre-tasks",
 			dbErr.Error())

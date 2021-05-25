@@ -21,7 +21,8 @@ func TestNewStream(t *testing.T) {
 			var server testServer = make(chan struct{})
 			pip, err := pipeline.NewServerPipeline(ctx.DB, ctx.Trans, server)
 			So(err, ShouldBeNil)
-			str, err := newStream(pip)
+			list := &SSHListener{runningTransfers: pipeline.NewTransferMap()}
+			str, err := list.newStream(pip, ctx.Trans)
 			So(err, ShouldBeNil)
 			Reset(func() { _ = str.pipeline.EndData() })
 
@@ -50,7 +51,8 @@ func TestStreamReadAt(t *testing.T) {
 			var server testServer = make(chan struct{})
 			pip, err := pipeline.NewServerPipeline(ctx.DB, ctx.Trans, server)
 			So(err, ShouldBeNil)
-			str, err := newStream(pip)
+			list := &SSHListener{runningTransfers: pipeline.NewTransferMap()}
+			str, err := list.newStream(pip, ctx.Trans)
 			So(err, ShouldBeNil)
 			Reset(func() { _ = str.pipeline.EndData() })
 
@@ -77,7 +79,8 @@ func TestStreamWriteAt(t *testing.T) {
 			var server testServer = make(chan struct{})
 			pip, err := pipeline.NewServerPipeline(ctx.DB, ctx.Trans, server)
 			So(err, ShouldBeNil)
-			str, err := newStream(pip)
+			list := &SSHListener{runningTransfers: pipeline.NewTransferMap()}
+			str, err := list.newStream(pip, ctx.Trans)
 			So(err, ShouldBeNil)
 			Reset(func() { _ = str.pipeline.EndData() })
 
@@ -106,7 +109,8 @@ func TestStreamClose(t *testing.T) {
 			var server testServer = make(chan struct{})
 			pip, err := pipeline.NewServerPipeline(ctx.DB, ctx.Trans, server)
 			So(err, ShouldBeNil)
-			str, err := newStream(pip)
+			list := &SSHListener{runningTransfers: pipeline.NewTransferMap()}
+			str, err := list.newStream(pip, ctx.Trans)
 			So(err, ShouldBeNil)
 
 			Convey("When closing the stream", func(c C) {

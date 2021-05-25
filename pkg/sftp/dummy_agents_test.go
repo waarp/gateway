@@ -26,6 +26,7 @@ func makeDummyClient(addr, login, pwd string) *sftp.Client {
 
 	conn, err := ssh.Dial("tcp", addr, clientConf)
 	So(err, ShouldBeNil)
+	Reset(func() { _ = conn.Close() })
 
 	cli, err := sftp.NewClient(conn)
 	So(err, ShouldBeNil)

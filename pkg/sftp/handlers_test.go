@@ -5,9 +5,10 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/pkg/sftp"
@@ -67,10 +68,11 @@ func TestFileReader(t *testing.T) {
 
 			Convey("Given the FileReader", func() {
 				handler := (&SSHListener{
-					DB:          db,
-					Logger:      logger,
-					Agent:       agent,
-					ProtoConfig: &serverConf,
+					DB:               db,
+					Logger:           logger,
+					Agent:            agent,
+					ProtoConfig:      &serverConf,
+					runningTransfers: pipeline.NewTransferMap(),
 				}).makeFileReader(nil, account)
 
 				Convey("Given a request for an existing file in the rule path", func() {
@@ -92,7 +94,8 @@ func TestFileReader(t *testing.T) {
 								rule.ID, true, agent.ID, account.ID).Run(), ShouldBeNil)
 
 							Convey("With a valid file and status", func() {
-								So(trans.LocalPath, ShouldEqual, path.Base(request.Filepath))
+								So(trans.LocalPath, ShouldEqual, filepath.Join(
+									root, rule.LocalDir, "file_read.src"))
 								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
 						})
@@ -169,15 +172,16 @@ func TestFileWriter(t *testing.T) {
 
 			Convey("Given the Filewriter", func() {
 				handler := (&SSHListener{
-					DB:          db,
-					Logger:      logger,
-					Agent:       agent,
-					ProtoConfig: &serverConf,
+					DB:               db,
+					Logger:           logger,
+					Agent:            agent,
+					ProtoConfig:      &serverConf,
+					runningTransfers: pipeline.NewTransferMap(),
 				}).makeFileWriter(nil, account)
 
 				Convey("Given a request for an existing file in the rule path", func() {
 					request := &sftp.Request{
-						Filepath: "/test/file.test",
+						Filepath: "/test/file.dst",
 					}
 
 					Convey("When calling the handler", func() {
@@ -194,7 +198,8 @@ func TestFileWriter(t *testing.T) {
 								rule.ID, true, agent.ID, account.ID).Run(), ShouldBeNil)
 
 							Convey("With a valid file and status", func() {
-								So(trans.LocalPath, ShouldEqual, path.Base(request.Filepath))
+								So(trans.LocalPath, ShouldEqual, filepath.Join(
+									root, agent.LocalTmpDir, "file.dst.part"))
 								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
 						})
@@ -203,7 +208,7 @@ func TestFileWriter(t *testing.T) {
 
 				Convey("Given a request for an non existing rule", func() {
 					request := &sftp.Request{
-						Filepath: "/toto/file.test",
+						Filepath: "/toto/file.dst",
 					}
 
 					Convey("When calling the handler", func() {
@@ -217,7 +222,7 @@ func TestFileWriter(t *testing.T) {
 
 				Convey("Given a request for a file at the server root", func() {
 					request := &sftp.Request{
-						Filepath: "file.test",
+						Filepath: "file.dst",
 					}
 
 					Convey("When calling the handler", func() {

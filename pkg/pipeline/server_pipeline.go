@@ -10,7 +10,7 @@ import (
 )
 
 type ServerPipeline struct {
-	pip      *Pipeline
+	*Pipeline
 	handlers Server
 }
 
@@ -23,8 +23,7 @@ func NewServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfe
 	return nil
 }
 
-func NewServerPipeline(db *database.DB, trans *model.Transfer, handlers Server) (*Pipeline, error) {
-
+func NewServerPipeline(db *database.DB, trans *model.Transfer, handlers Server) (*ServerPipeline, error) {
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 
 	info, err := model.GetTransferInfo(db, logger, trans)
@@ -38,11 +37,10 @@ func NewServerPipeline(db *database.DB, trans *model.Transfer, handlers Server) 
 	}
 
 	s := &ServerPipeline{
-		pip:      pipeline,
+		Pipeline: pipeline,
 		handlers: handlers,
 	}
-	RunningTransfers.Store(trans.ID, s)
-	return pipeline, nil
+	return s, nil
 }
 
 func (s *ServerPipeline) Pause() {
@@ -52,13 +50,13 @@ func (s *ServerPipeline) Pause() {
 		s.handlers.SendError(types.NewTransferError(types.TeStopped,
 			"transfer paused by user"))
 	}
-	s.pip.Pause()
+	s.Pipeline.Pause()
 }
 
 func (s *ServerPipeline) Interrupt() {
 	s.handlers.SendError(types.NewTransferError(types.TeShuttingDown,
 		"transfer interrupted by service shutdown"))
-	s.pip.interrupt()
+	s.Pipeline.interrupt()
 }
 
 func (s *ServerPipeline) Cancel() {
@@ -68,5 +66,5 @@ func (s *ServerPipeline) Cancel() {
 		s.handlers.SendError(types.NewTransferError(types.TeCanceled,
 			"transfer cancelled by user"))
 	}
-	s.pip.Cancel()
+	s.Pipeline.Cancel()
 }

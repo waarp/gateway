@@ -40,5 +40,5 @@ func startService(c C, ctx *testhelpers.Context) {
 		defer cancel()
 		c.So(serv.Stop(ctx), ShouldBeNil)
 	})
-	serv.listener.handlerMaker = serv.listener.makeTestHandlers(c)
+	serv.(*Service).listener.handlerMaker = serv.(*Service).listener.makeTestHandlers(c)
 }

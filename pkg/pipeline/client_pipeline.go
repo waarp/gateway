@@ -43,7 +43,7 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline,
 		pip:    pipeline,
 		client: client,
 	}
-	RunningTransfers.Store(trans.ID, c)
+	ClientTransfers.Add(trans.ID, c)
 	return c, nil
 }
 
@@ -102,6 +102,7 @@ func (c *ClientPipeline) postTasks() error {
 }
 
 func (c *ClientPipeline) Run() {
+	defer ClientTransfers.Delete(c.pip.transCtx.Transfer.ID)
 	// REQUEST
 	if err := c.client.Request(); err != nil {
 		c.pip.SetError(err)
@@ -120,9 +121,11 @@ func (c *ClientPipeline) Run() {
 	}
 	if err := c.client.Data(file); err != nil {
 		c.pip.SetError(err)
+		c.client.SendError(err)
 		return
 	}
-	if c.pip.EndData() != nil {
+	if err := c.pip.EndData(); err != nil {
+		c.client.SendError(err)
 		return
 	}
 

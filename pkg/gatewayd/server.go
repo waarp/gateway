@@ -18,10 +18,12 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/r66"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
+
+type serviceConstructor func(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.Service
+
+var ServiceConstructors = map[string]serviceConstructor{}
 
 // WG is the top level service handler. It manages all other components.
 type WG struct {
@@ -60,8 +62,9 @@ func (wg *WG) initServices() {
 
 	wg.dbService = &database.DB{Conf: wg.Conf}
 	adminService := &admin.Server{Conf: wg.Conf, DB: wg.dbService, Services: wg.Services}
-	controllerService := &controller.Controller{Conf: wg.Conf, DB: wg.dbService}
+	controllerService := &controller.Controller{DB: wg.dbService}
 
+	wg.Services[database.ServiceName] = wg.dbService
 	wg.Services[admin.ServiceName] = adminService
 	wg.Services[controller.ServiceName] = controllerService
 }
@@ -77,25 +80,21 @@ func (wg *WG) startServices() error {
 		return err
 	}
 
-	for i, server := range servers {
+	for _, server := range servers {
 		l := log.NewLogger(server.Name)
-		switch server.Protocol {
-		case "sftp":
-			wg.Services[server.Name] = sftp.NewService(wg.dbService, &servers[i], l)
-		case "r66":
-			wg.Services[server.Name] = r66.NewService(wg.dbService, &servers[i], l)
-		default:
-			wg.Logger.Warningf("Unknown server protocol '%s'", server.Protocol)
+		constr, ok := ServiceConstructors[server.Protocol]
+		if !ok {
+			wg.Logger.Warningf("Unknown protocol '%s' for server %s",
+				server.Protocol, server.Name)
 		}
+		constr(wg.dbService, &server, l)
 	}
 
 	for _, serv := range wg.Services {
 		if err := serv.Start(); err != nil {
 			wg.Logger.Errorf("Error starting service: %s", err)
 		}
-
 	}
-	wg.Services[database.ServiceName] = wg.dbService
 
 	return nil
 }

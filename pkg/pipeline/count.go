@@ -6,11 +6,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
-// RunningTransfers is a synchronized map containing the pipelines of all currently
-// running transfers. It can be used to interrupt transfers using the various
-// functions exposed by the TransferInterrupter interface.
-var RunningTransfers sync.Map
-
 // errLimitReached is the error returned when a counter cannot be incremented
 // because the maximum limit has been reached.
 var errLimitReached = types.NewTransferError(types.TeExceededLimit, "transfer limit reached")

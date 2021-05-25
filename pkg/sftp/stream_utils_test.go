@@ -25,7 +25,7 @@ type testSFTPStream struct {
 
 func (t *testSFTPStream) Close() error {
 	err := t.stream.Close()
-	pipeline.WaitEndTransfer(t.c, t.stream.pipeline)
+	pipeline.WaitEndServerTransfer(t.c, t.stream.pipeline)
 	testhelpers.ServerCheckChannel <- "SERVER TRANSFER END"
 	return err
 }
@@ -37,7 +37,7 @@ func (l *SSHListener) makeTestFileReader(c C, ch ssh.Channel, acc *model.LocalAc
 		reader, err := handler(r)
 		if err != nil {
 			if str, ok := reader.(*stream); ok && str != nil {
-				pipeline.WaitEndTransfer(c, str.pipeline)
+				pipeline.WaitEndServerTransfer(c, str.pipeline)
 			}
 			testhelpers.ServerCheckChannel <- "SERVER TRANSFER END"
 			return nil, err
@@ -53,7 +53,7 @@ func (l *SSHListener) makeTestFileWriter(c C, ch ssh.Channel, acc *model.LocalAc
 		writer, err := handler(r)
 		if err != nil {
 			if str, ok := writer.(*stream); ok && str != nil {
-				pipeline.WaitEndTransfer(c, str.pipeline)
+				pipeline.WaitEndServerTransfer(c, str.pipeline)
 			}
 			testhelpers.ServerCheckChannel <- "SERVER TRANSFER END"
 			return nil, err

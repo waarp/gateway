@@ -5,6 +5,10 @@ import (
 	"encoding/json"
 	"net"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -24,8 +28,12 @@ type Service struct {
 	listener *SSHListener
 }
 
+func init() {
+	gatewayd.ServiceConstructors["sftp"] = NewService
+}
+
 // NewService returns a new SFTP service instance with the given attributes.
-func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *Service {
+func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.Service {
 	return &Service{
 		db:     db,
 		agent:  agent,
@@ -60,14 +68,14 @@ func (s *Service) Start() error {
 		}
 
 		s.listener = &SSHListener{
-			DB:          s.db,
-			Logger:      s.logger,
-			Agent:       s.agent,
-			ProtoConfig: &protoConfig,
-			SSHConf:     sshConf,
-			Listener:    listener,
+			DB:               s.db,
+			Logger:           s.logger,
+			Agent:            s.agent,
+			ProtoConfig:      &protoConfig,
+			SSHConf:          sshConf,
+			Listener:         listener,
+			runningTransfers: pipeline.NewTransferMap(),
 		}
-		s.listener.ctx, s.listener.cancel = context.WithCancel(context.Background())
 		s.listener.listen()
 		return nil
 	}

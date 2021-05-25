@@ -259,6 +259,7 @@ func makeRule(c C, db *database.DB, isPush, isServer bool) *model.Rule {
 // AddSourceFile creates a file under the given directory with the given name,
 // fills it with random data, and then returns said data.
 func AddSourceFile(c C, dir, file string) []byte {
+	c.So(os.MkdirAll(dir, 0700), ShouldBeNil)
 	cont := make([]byte, TestFileSize)
 	_, err := rand.Read(cont)
 	c.So(err, ShouldBeNil)

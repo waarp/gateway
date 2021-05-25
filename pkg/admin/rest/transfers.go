@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+
 	api "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -149,69 +150,77 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		check, err := getTrans(r, db)
-		if handleError(w, logger, err) {
-			return
-		}
-
-		if check.Status != types.StatusPlanned && check.Status != types.StatusRunning {
-			err := badRequest("cannot pause an already interrupted transfer")
-			handleError(w, logger, err)
-			return
-		}
-
-		switch check.Status {
-		case types.StatusPlanned:
-			check.Status = types.StatusPaused
-			if err := db.Update(check).Cols("status").Run(); handleError(w, logger, err) {
+func pauseTransfer(services map[string]service.Service) handler {
+	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			check, err := getTrans(r, db)
+			if handleError(w, logger, err) {
 				return
 			}
-		case types.StatusRunning:
-			pip, ok := pipeline.RunningTransfers.Load(check.ID)
-			if !ok {
-				err := badRequest("cannot find the pipeline associated with the transfer")
+
+			if check.Status != types.StatusPlanned && check.Status != types.StatusRunning {
+				err := badRequest("cannot pause an already interrupted transfer")
 				handleError(w, logger, err)
 				return
 			}
-			pip.(pipeline.TransferInterrupter).Pause()
-		default:
-			err := badRequest("cannot pause an already interrupted transfer")
-			handleError(w, logger, err)
-			return
-		}
 
-		w.WriteHeader(http.StatusAccepted)
+			switch check.Status {
+			case types.StatusPlanned:
+				check.Status = types.StatusPaused
+				if err := db.Update(check).Cols("status").Run(); handleError(w, logger, err) {
+					return
+				}
+				w.WriteHeader(http.StatusAccepted)
+				return
+			case types.StatusRunning:
+				pip, err := getTransPipeline(db, services, check)
+				if handleError(w, logger, err) {
+					return
+				}
+				pip.Pause()
+				w.WriteHeader(http.StatusAccepted)
+				return
+			default:
+				err := badRequest("cannot pause an already interrupted transfer")
+				handleError(w, logger, err)
+				return
+			}
+		}
 	}
 }
 
-func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		check, err := getTrans(r, db)
-		if handleError(w, logger, err) {
-			return
-		}
-
-		if check.Status != types.StatusRunning {
-			check.Status = types.StatusCancelled
-			if err := check.ToHistory(db, logger); handleError(w, logger, err) {
+func cancelTransfer(services map[string]service.Service) handler {
+	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			check, err := getTrans(r, db)
+			if handleError(w, logger, err) {
 				return
 			}
-		} else {
-			pip, ok := pipeline.RunningTransfers.Load(check.ID)
-			if !ok {
-				err := badRequest("cannot find the pipeline associated with the transfer")
+
+			switch check.Status {
+			case types.StatusPlanned:
+				check.Status = types.StatusCancelled
+				if err := check.ToHistory(db, logger); handleError(w, logger, err) {
+					return
+				}
+				w.WriteHeader(http.StatusAccepted)
+			case types.StatusRunning:
+				pip, err := getTransPipeline(db, services, check)
+				if handleError(w, logger, err) {
+					return
+				}
+				pip.Pause()
+				w.WriteHeader(http.StatusAccepted)
+			default:
+				err := badRequest("cannot pause an already interrupted transfer")
 				handleError(w, logger, err)
 				return
 			}
-			pip.(pipeline.TransferInterrupter).Cancel()
-		}
 
-		r.URL.Path = "/api/history"
-		w.Header().Set("Location", location(r.URL, fmt.Sprint(check.ID)))
-		w.WriteHeader(http.StatusAccepted)
+			r.URL.Path = "/api/history"
+			w.Header().Set("Location", location(r.URL, fmt.Sprint(check.ID)))
+			w.WriteHeader(http.StatusAccepted)
+		}
 	}
 }
 

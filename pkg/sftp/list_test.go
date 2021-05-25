@@ -8,9 +8,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
 
@@ -75,18 +76,14 @@ func TestSFTPList(t *testing.T) {
 			serverConfig, err := internal.GetSSHServerConfig(db, []model.Cert{cert}, &protoConfig, agent)
 			So(err, ShouldBeNil)
 
-			ctx, cancel := context.WithCancel(context.Background())
-
 			sshList := &SSHListener{
-				DB:          db,
-				Logger:      logger,
-				Agent:       agent,
-				ProtoConfig: &protoConfig,
-				SSHConf:     serverConfig,
-				Listener:    listener,
-				connWg:      sync.WaitGroup{},
-				ctx:         ctx,
-				cancel:      cancel,
+				DB:               db,
+				Logger:           logger,
+				Agent:            agent,
+				ProtoConfig:      &protoConfig,
+				SSHConf:          serverConfig,
+				Listener:         listener,
+				runningTransfers: pipeline.NewTransferMap(),
 			}
 			sshList.listen()
 			Reset(func() {
@@ -175,8 +172,10 @@ func TestSFTPList(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					sshClient := ssh.NewClient(sshConn, chans, reqs)
+					defer sshClient.Close()
 					client, err := sftp.NewClient(sshClient)
 					So(err, ShouldBeNil)
+					defer client.Close()
 
 					Convey("When sending a List request at top level", func() {
 						list, err := client.ReadDir("/")

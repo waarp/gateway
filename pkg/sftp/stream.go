@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+
 	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
@@ -18,15 +20,18 @@ func (e *errorHandler) SendError(error) {
 }
 
 type stream struct {
-	pipeline *pipeline.Pipeline
+	list     *SSHListener
+	trans    *model.Transfer
+	pipeline *pipeline.ServerPipeline
 	file     pipeline.TransferStream
 }
 
 // newStream initialises a special kind of TransferStream tailored for
 // the SFTP server. This constructor initialises a TransferStream, opens the
 // local file and executes the pre-tasks.
-func newStream(pip *pipeline.Pipeline) (*stream, error) {
-	str := &stream{pipeline: pip}
+func (l *SSHListener) newStream(pip *pipeline.ServerPipeline, trans *model.Transfer) (*stream, error) {
+	l.runningTransfers.Add(trans.ID, pip)
+	str := &stream{list: l, pipeline: pip, trans: trans}
 
 	if err := pip.PreTasks(); err != nil {
 		return str, modelToSFTP(err)
@@ -66,6 +71,7 @@ func (s *stream) WriteAt(p []byte, off int64) (int, error) {
 }
 
 func (s *stream) close() error {
+	defer s.list.runningTransfers.Delete(s.trans.ID)
 	if err := s.pipeline.EndData(); err != nil {
 		return err
 	}

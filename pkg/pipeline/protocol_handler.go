@@ -70,7 +70,7 @@ type PostTasksHandler interface {
 	// The function returns once the post-tasks are over.
 	BeginPostTasks() error
 
-	// EndPreTasks informs the remote partner that the client has finished executing
+	// EndPostTasks informs the remote partner that the client has finished executing
 	// its post-tasks.
 	EndPostTasks() error
 }

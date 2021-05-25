@@ -164,7 +164,7 @@ func TestStreamRead(t *testing.T) {
 				So(err, ShouldBeError, "TransferError(TeDataTransfer): failed to read data")
 
 				Convey("Then it should have called the error-tasks", func(c C) {
-					WaitEndTransfer(c, stream.Pipeline)
+					waitEndTransfer(c, stream.Pipeline)
 
 					Convey("Then any subsequent call to 'Read' should return an error", func(c C) {
 						_, err := stream.Read(b)
@@ -182,7 +182,7 @@ func TestStreamRead(t *testing.T) {
 				So(err, ShouldBeError, "TransferError(TeInternal): database error")
 
 				Convey("Then it should have called the error-tasks", func(c C) {
-					WaitEndTransfer(c, stream.Pipeline)
+					waitEndTransfer(c, stream.Pipeline)
 
 					Convey("Then any subsequent call to 'Read' should return an error", func(c C) {
 						_, err := stream.Read(b)
@@ -250,7 +250,7 @@ func TestStreamReadAt(t *testing.T) {
 				So(err, ShouldBeError, "TransferError(TeDataTransfer): failed to read data")
 
 				Convey("Then it should have called the error-tasks", func(c C) {
-					WaitEndTransfer(c, stream.Pipeline)
+					waitEndTransfer(c, stream.Pipeline)
 
 					Convey("Then any subsequent call to 'ReadAt' should return an error", func(c C) {
 						_, err := stream.ReadAt(b, 0)
@@ -268,7 +268,7 @@ func TestStreamReadAt(t *testing.T) {
 				So(err, ShouldBeError, "TransferError(TeInternal): database error")
 
 				Convey("Then it should have called the error-tasks", func(c C) {
-					WaitEndTransfer(c, stream.Pipeline)
+					waitEndTransfer(c, stream.Pipeline)
 
 					Convey("Then any subsequent call to 'ReadAt' should return an error", func(c C) {
 						_, err := stream.ReadAt(b, 0)
@@ -336,7 +336,7 @@ func TestStreamWrite(t *testing.T) {
 				So(err, ShouldBeError, "TransferError(TeDataTransfer): failed to write data")
 
 				Convey("Then it should have called the error-tasks", func(c C) {
-					WaitEndTransfer(c, stream.Pipeline)
+					waitEndTransfer(c, stream.Pipeline)
 
 					Convey("Then any subsequent call to 'Write' should return an error", func(c C) {
 						_, err := stream.Write(b)
@@ -354,7 +354,7 @@ func TestStreamWrite(t *testing.T) {
 				So(err, ShouldBeError, "TransferError(TeInternal): database error")
 
 				Convey("Then it should have called the error-tasks", func(c C) {
-					WaitEndTransfer(c, stream.Pipeline)
+					waitEndTransfer(c, stream.Pipeline)
 
 					Convey("Then any subsequent call to 'Write' should return an error", func(c C) {
 						_, err := stream.Write(b)
@@ -423,7 +423,7 @@ func TestStreamWriteAt(t *testing.T) {
 				So(err, ShouldBeError, "TransferError(TeDataTransfer): failed to write data")
 
 				Convey("Then it should have called the error-tasks", func(c C) {
-					WaitEndTransfer(c, stream.Pipeline)
+					waitEndTransfer(c, stream.Pipeline)
 
 					Convey("Then any subsequent call to 'WriteAt' should return an error", func(c C) {
 						_, err := stream.WriteAt(b, 0)
@@ -441,7 +441,7 @@ func TestStreamWriteAt(t *testing.T) {
 				So(err, ShouldBeError, "TransferError(TeInternal): database error")
 
 				Convey("Then it should have called the error-tasks", func(c C) {
-					WaitEndTransfer(c, stream.Pipeline)
+					waitEndTransfer(c, stream.Pipeline)
 
 					Convey("Then any subsequent call to 'WriteAt' should return an error", func(c C) {
 						_, err := stream.WriteAt(b, 0)
@@ -491,7 +491,7 @@ func TestStreamClose(t *testing.T) {
 
 				Convey("Then subsequent call to `close` should return an error", func(c C) {
 					So(stream.close(), ShouldBeError, errStateMachine)
-					WaitEndTransfer(c, stream.Pipeline)
+					waitEndTransfer(c, stream.Pipeline)
 				})
 			})
 
@@ -500,7 +500,7 @@ func TestStreamClose(t *testing.T) {
 				So(stream.close(), ShouldBeError, "TransferError(TeInternal): database error")
 
 				Convey("Then it should have called the error-tasks", func(c C) {
-					WaitEndTransfer(c, stream.Pipeline)
+					waitEndTransfer(c, stream.Pipeline)
 				})
 			})
 		})
@@ -517,7 +517,7 @@ func TestStreamMove(t *testing.T) {
 			IsServer:   false,
 			AgentID:    ctx.partner.ID,
 			AccountID:  ctx.remoteAccount.ID,
-			LocalPath:  filepath.Join(ctx.root, ctx.paths.DefaultTmpDir, "file.part"),
+			LocalPath:  filepath.Join(ctx.root, ctx.paths.DefaultTmpDir, "file"),
 			RemotePath: "/remote/file",
 			RuleID:     ctx.recv.ID,
 		}
@@ -545,7 +545,7 @@ func TestStreamMove(t *testing.T) {
 
 				Convey("Then subsequent call to `move` should return an error", func(c C) {
 					So(stream.move(), ShouldBeError, errStateMachine)
-					WaitEndTransfer(c, stream.Pipeline)
+					waitEndTransfer(c, stream.Pipeline)
 				})
 			})
 
@@ -557,7 +557,7 @@ func TestStreamMove(t *testing.T) {
 						"failed to move temp file")
 
 					Convey("Then it should have called the error tasks", func(c C) {
-						WaitEndTransfer(c, stream.Pipeline)
+						waitEndTransfer(c, stream.Pipeline)
 					})
 				})
 			})
@@ -570,7 +570,7 @@ func TestStreamMove(t *testing.T) {
 						"database error")
 
 					Convey("Then it should have called the error tasks", func(c C) {
-						WaitEndTransfer(c, stream.Pipeline)
+						waitEndTransfer(c, stream.Pipeline)
 					})
 				})
 			})

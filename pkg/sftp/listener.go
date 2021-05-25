@@ -30,11 +30,10 @@ type SSHListener struct {
 	SSHConf     *ssh.ServerConfig
 	Listener    net.Listener
 
-	ctx    context.Context
-	cancel context.CancelFunc
 	connWg sync.WaitGroup
 
-	handlerMaker func(ssh.Channel, *model.LocalAccount) sftp.Handlers
+	handlerMaker     func(ssh.Channel, *model.LocalAccount) sftp.Handlers
+	runningTransfers *pipeline.TransferMap
 }
 
 func (l *SSHListener) listen() {
@@ -46,17 +45,15 @@ func (l *SSHListener) listen() {
 				break
 			}
 
-			l.handleConnection(l.ctx, conn)
+			l.handleConnection(conn)
 		}
 	}()
 }
 
-func (l *SSHListener) handleConnection(parent context.Context, nConn net.Conn) {
+func (l *SSHListener) handleConnection(nConn net.Conn) {
 	l.connWg.Add(1)
-	ctx, cancel := context.WithCancel(parent)
 
 	go func() {
-		defer cancel()
 		defer l.connWg.Done()
 
 		servConn, channels, reqs, err := ssh.NewServerConn(nConn, l.SSHConf)
@@ -64,19 +61,7 @@ func (l *SSHListener) handleConnection(parent context.Context, nConn net.Conn) {
 			l.Logger.Errorf("Failed to perform handshake: %s", err)
 			return
 		}
-		go func() {
-			closed := make(chan bool)
-			go func() {
-				_ = servConn.Wait()
-				close(closed)
-			}()
-			select {
-			case <-closed:
-			case <-ctx.Done():
-			}
-			_ = servConn.Close()
-		}()
-
+		defer func() { _ = servConn.Close() }()
 		go ssh.DiscardRequests(reqs)
 
 		var acc model.LocalAccount
@@ -163,7 +148,7 @@ func (l *SSHListener) makeFileReader(ch ssh.Channel, acc *model.LocalAccount) in
 		if err != nil {
 			return nil, modelToSFTP(err)
 		}
-		str, err := newStream(pip)
+		str, err := l.newStream(pip, trans)
 		if err != nil {
 			return str, err
 		}
@@ -205,7 +190,7 @@ func (l *SSHListener) makeFileWriter(ch ssh.Channel, acc *model.LocalAccount) in
 		if err != nil {
 			return nil, modelToSFTP(err)
 		}
-		str, err := newStream(pip)
+		str, err := l.newStream(pip, trans)
 		if err != nil {
 			return str, err
 		}
@@ -214,17 +199,18 @@ func (l *SSHListener) makeFileWriter(ch ssh.Channel, acc *model.LocalAccount) in
 }
 
 func (l *SSHListener) close(ctx context.Context) error {
-	l.cancel()
-
-	finished := make(chan error)
+	finished := make(chan struct{})
 	go func() {
+		l.runningTransfers.Iterate(func(t pipeline.TransferInterrupter) {
+			t.Interrupt()
+		})
 		l.connWg.Wait()
 		close(finished)
 	}()
 
 	select {
-	case err := <-finished:
-		return err
+	case <-finished:
+		return nil
 	case <-ctx.Done():
 		_ = l.Listener.Close()
 		return ctx.Err()

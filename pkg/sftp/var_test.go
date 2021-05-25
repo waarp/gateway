@@ -2,6 +2,8 @@ package sftp
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"github.com/smartystreets/goconvey/convey"
 )
 
 var (
@@ -17,6 +19,14 @@ type testServer chan struct{}
 
 func (t testServer) SendError(error) {
 	close(t)
+}
+
+func (l *SSHListener) waitTransferEnd(c convey.C, id uint64) {
+	pip, ok := l.runningTransfers.Get(id)
+	if !ok {
+		return
+	}
+	pipeline.WaitEndServerTransfer(c, pip.(*pipeline.ServerPipeline))
 }
 
 const rsaPK = `-----BEGIN RSA PRIVATE KEY-----

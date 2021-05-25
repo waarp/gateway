@@ -248,7 +248,7 @@ func (f *fileStream) move() error {
 		return nil
 	}
 
-	file := strings.TrimRight(filepath.Base(f.transCtx.Transfer.LocalPath), ".part")
+	file := strings.TrimSuffix(filepath.Base(f.transCtx.Transfer.LocalPath), ".part")
 	var dest string
 	if f.transCtx.Transfer.IsServer {
 		dest = utils.GetPath(file, Leaf(f.transCtx.Rule.LocalDir),

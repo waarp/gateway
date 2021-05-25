@@ -7,10 +7,14 @@ import (
 )
 
 func WaitEndClientTransfer(c C, pip *ClientPipeline) {
-	WaitEndTransfer(c, pip.pip)
+	waitEndTransfer(c, pip.pip)
 }
 
-func WaitEndTransfer(c C, pip *Pipeline) {
+func WaitEndServerTransfer(c C, pip *ServerPipeline) {
+	waitEndTransfer(c, pip.Pipeline)
+}
+
+func waitEndTransfer(c C, pip *Pipeline) {
 	timeout := time.NewTimer(time.Second * 300)
 	ticker := time.NewTicker(time.Millisecond * 100)
 	defer func() {
