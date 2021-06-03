@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`` Il n'est plus obligatoire pour un partenaire SFTP d'avoir une
+  *hostkey* (certificat) pour pouvoir créer un transfert vers/depuis cet agent.
+  Une *hostkey*, reste nécessaire pour les transferts SFTP, mais la vérification
+  sera désormais faite au démarrage du transfert (au lieu de son enregistrement).
 * :feature:`` Dépréciation des options ``InDirectory``, ``OutDirectory`` &
   ``WorkDirectory`` du fichier de configuration de la *Gateway*. Ces options ont
   été remplacés respectivement par ``DefaultInDir``, ``DefaultOutDir`` &

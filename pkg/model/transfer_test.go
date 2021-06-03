@@ -174,13 +174,6 @@ func TestTransferBeforeWrite(t *testing.T) {
 						trans.AccountID))
 				})
 
-				Convey("Given that the remote does not have a certificate", func() {
-					So(db.Delete(&cert).Run(), ShouldBeNil)
-					shouldFailWith("the remote does not have a certificate",
-						database.NewValidationError("the sftp partner is missing "+
-							"a certificate when it was required"))
-				})
-
 				statusTestCases := []statusTestCase{
 					{StatusPlanned, true},
 					{StatusRunning, true},

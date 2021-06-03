@@ -7,7 +7,6 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
@@ -90,22 +89,6 @@ func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error
 			t.RuleID)
 	}
 
-	protoConf, err1 := config.GetProtoConfig(remote.Protocol, remote.ProtoConfig)
-	if err1 != nil {
-		return database.NewValidationError("invalid partner protocol configuration: %s", err1)
-	}
-	if protoConf.CertRequired() {
-		n, err := db.Count(&Cert{}).Where("owner_type=? AND owner_id=?",
-			remote.TableName(), remote.ID).Run()
-		if err != nil {
-			return err
-		}
-		if n == 0 {
-			return database.NewValidationError(
-				"the %s partner is missing a certificate when it was required",
-				remote.Protocol)
-		}
-	}
 	return nil
 }
 

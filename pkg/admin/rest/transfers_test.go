@@ -185,35 +185,6 @@ func TestAddTransfer(t *testing.T) {
 					})
 				})
 			})
-
-			Convey("Given the partner does not have a certificate", func() {
-				partner.Protocol = "sftp"
-				So(db.Update(partner).Run(), ShouldBeNil)
-
-				body := strings.NewReader(`{
-					"rule": "push",
-					"partner": "remote",
-					"account": "toto",
-					"isSend": true,
-					"file": "test.file"
-				}`)
-
-				Convey("When calling the handler", func() {
-					r, err := http.NewRequest(http.MethodPost, "", body)
-					So(err, ShouldBeNil)
-
-					handler.ServeHTTP(w, r)
-
-					Convey("Then it should return a code 400", func() {
-						So(w.Code, ShouldEqual, http.StatusBadRequest)
-					})
-
-					Convey("Then the response body should say a host key is missing", func() {
-						So(w.Body.String(), ShouldEqual, "the sftp partner is missing "+
-							"a certificate when it was required\n")
-					})
-				})
-			})
 		})
 	})
 }
