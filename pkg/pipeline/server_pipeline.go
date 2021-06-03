@@ -14,16 +14,32 @@ type ServerPipeline struct {
 	handlers Server
 }
 
-func NewServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer) error {
+func GetOldServerTransfer(db *database.DB, logger *log.Logger, remoteID string,
+	acc *model.LocalAccount) (*model.Transfer, *types.TransferError) {
+
+	var trans model.Transfer
+	if err := db.Get(&trans, "is_server=? AND remote_transfer_id=? AND account_id=?",
+		true, remoteID, acc.ID).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, nil
+		}
+		logger.Errorf("Failed to retrieve old server transfer: %s", err)
+		return nil, errDatabase
+	}
+	return &trans, nil
+}
+
+func NewServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer) *types.TransferError {
 	if err := db.Insert(trans).Run(); err != nil {
-		logger.Errorf("Failed to insert new transfer: %s", err)
+		logger.Errorf("Failed to insert new server transfer: %s", err)
 		return errDatabase
 	}
 
 	return nil
 }
 
-func NewServerPipeline(db *database.DB, trans *model.Transfer, handlers Server) (*ServerPipeline, error) {
+func NewServerPipeline(db *database.DB, trans *model.Transfer, handlers Server,
+) (*ServerPipeline, *types.TransferError) {
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 
 	info, err := model.GetTransferInfo(db, logger, trans)

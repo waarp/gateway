@@ -1,11 +1,10 @@
 package pipeline
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
-type ClientConstructor func(*log.Logger, *model.TransferContext) (Client, error)
+type ClientConstructor func(*Pipeline) (Client, *types.TransferError)
 
 var ClientConstructors = map[string]ClientConstructor{}
 
@@ -18,15 +17,15 @@ type Client interface {
 
 	// Request opens a connection to the transfer partner and then sends a
 	// transfer request to the remote.
-	Request() error
+	Request() *types.TransferError
 
 	// Data is the method which transfers the file content between the given
 	// DataStream and the remote.
-	Data(DataStream) error
+	Data(DataStream) *types.TransferError
 
 	// EndTransfer informs the partner of the transfer's end, and then closes
 	// the connection.
-	EndTransfer() error
+	EndTransfer() *types.TransferError
 
 	ErrorHandler
 }
@@ -40,7 +39,7 @@ type Server interface {
 // occurred.
 type ErrorHandler interface {
 	// SendError sends the given error to the remote, and then closes the connection.
-	SendError(error)
+	SendError(*types.TransferError)
 }
 
 // PreTasksHandler is an interface which clients can optionally implement in
@@ -52,11 +51,11 @@ type PreTasksHandler interface {
 
 	// BeginPreTasks tells the remote partner to begin executing its pre-tasks.
 	// The function returns once the pre-tasks are over.
-	BeginPreTasks() error
+	BeginPreTasks() *types.TransferError
 
 	// EndPreTasks informs the remote partner that the client has finished executing
 	// its pre-tasks.
-	EndPreTasks() error
+	EndPreTasks() *types.TransferError
 }
 
 // PostTasksHandler is an interface which clients can optionally implement in
@@ -68,11 +67,11 @@ type PostTasksHandler interface {
 
 	// BeginPostTasks tells the remote partner to begin executing its post-tasks.
 	// The function returns once the post-tasks are over.
-	BeginPostTasks() error
+	BeginPostTasks() *types.TransferError
 
 	// EndPostTasks informs the remote partner that the client has finished executing
 	// its post-tasks.
-	EndPostTasks() error
+	EndPostTasks() *types.TransferError
 }
 
 // PauseHandler is an interface which clients and servers can optionally
@@ -81,7 +80,7 @@ type PostTasksHandler interface {
 // Client.SendError or Server.SendError will be used instead.
 type PauseHandler interface {
 	// Pause informs the partner that the transfer has been paused.
-	Pause() error
+	Pause() *types.TransferError
 }
 
 // CancelHandler is an interface which clients and servers can optionally
@@ -90,5 +89,5 @@ type PauseHandler interface {
 // Client.SendError or Server.SendError will be used instead.
 type CancelHandler interface {
 	// Cancel informs the partner that the transfer has been cancelled.
-	Cancel() error
+	Cancel() *types.TransferError
 }

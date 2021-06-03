@@ -18,9 +18,8 @@ import (
 )
 
 type testContext struct {
-	root  string
-	db    *database.DB
-	paths *conf.PathsConfig
+	root string
+	db   *database.DB
 
 	partner       *model.RemoteAgent
 	remoteAccount *model.RemoteAccount
@@ -35,19 +34,39 @@ func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
 }
 
+func waitEndTransfer(pip *Pipeline) {
+	timeout := time.NewTimer(time.Second * 3)
+	ticker := time.NewTicker(time.Millisecond * 100)
+	defer func() {
+		timeout.Stop()
+		ticker.Stop()
+	}()
+
+	for {
+		select {
+		case <-timeout.C:
+			panic("test transfer end timeout exceeded")
+		case <-ticker.C:
+			if pip.machine.HasEnded() {
+				return
+			}
+		}
+	}
+}
+
 func initTestDB(c C) *testContext {
 	root := testhelpers.TempDir(c, "new_transfer_stream")
 	db := database.TestDatabase(c, "ERROR")
 
-	paths := &conf.PathsConfig{
+	db.Conf.Paths = conf.PathsConfig{
 		GatewayHome:   root,
 		DefaultInDir:  "in",
 		DefaultOutDir: "out",
 		DefaultTmpDir: "work",
 	}
-	So(os.Mkdir(filepath.Join(root, paths.DefaultInDir), 0700), ShouldBeNil)
-	So(os.Mkdir(filepath.Join(root, paths.DefaultOutDir), 0700), ShouldBeNil)
-	So(os.Mkdir(filepath.Join(root, paths.DefaultTmpDir), 0700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, db.Conf.Paths.DefaultInDir), 0700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, db.Conf.Paths.DefaultOutDir), 0700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, db.Conf.Paths.DefaultTmpDir), 0700), ShouldBeNil)
 
 	send := &model.Rule{
 		Name:   "send",
@@ -95,7 +114,6 @@ func initTestDB(c C) *testContext {
 	return &testContext{
 		root:          root,
 		db:            db,
-		paths:         paths,
 		partner:       partner,
 		remoteAccount: remAccount,
 		server:        server,
@@ -127,7 +145,7 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.TransferContext {
 		Rule:          ctx.recv,
 		RemoteAgent:   ctx.partner,
 		RemoteAccount: ctx.remoteAccount,
-		Paths:         ctx.paths,
+		Paths:         &ctx.db.Conf.Paths,
 	}
 }
 
@@ -156,7 +174,7 @@ func mkSendTransfer(ctx *testContext, filename string) *model.TransferContext {
 		Rule:          ctx.send,
 		RemoteAgent:   ctx.partner,
 		RemoteAccount: ctx.remoteAccount,
-		Paths:         ctx.paths,
+		Paths:         &ctx.db.Conf.Paths,
 	}
 }
 
@@ -189,7 +207,7 @@ func init() {
 	ClientConstructors["test"] = newTestProtoClient
 }
 
-func newTestProtoClient(*log.Logger, *model.TransferContext) (Client, error) {
+func newTestProtoClient(*Pipeline) (Client, *types.TransferError) {
 	return &testProtoClient{}, nil
 }
 
@@ -197,28 +215,28 @@ type testProtoClient struct {
 	request, pre1, pre2, data, post1, post2, end bool
 }
 
-func (t *testProtoClient) Request() error {
+func (t *testProtoClient) Request() *types.TransferError {
 	if t.request {
 		return errRequest
 	}
 	return nil
 }
 
-func (t *testProtoClient) BeginPreTasks() error {
+func (t *testProtoClient) BeginPreTasks() *types.TransferError {
 	if t.pre1 {
 		return errPre
 	}
 	return nil
 }
 
-func (t *testProtoClient) EndPreTasks() error {
+func (t *testProtoClient) EndPreTasks() *types.TransferError {
 	if t.pre2 {
 		return errPre
 	}
 	return nil
 }
 
-func (t *testProtoClient) Data(s DataStream) error {
+func (t *testProtoClient) Data(s DataStream) *types.TransferError {
 	if _, err := io.Copy(ioutil.Discard, s); err != nil {
 		return errData
 	}
@@ -228,32 +246,32 @@ func (t *testProtoClient) Data(s DataStream) error {
 	return nil
 }
 
-func (t *testProtoClient) BeginPostTasks() error {
+func (t *testProtoClient) BeginPostTasks() *types.TransferError {
 	if t.post1 {
 		return errPost
 	}
 	return nil
 }
 
-func (t *testProtoClient) EndPostTasks() error {
+func (t *testProtoClient) EndPostTasks() *types.TransferError {
 	if t.post2 {
 		return errPost
 	}
 	return nil
 }
 
-func (t *testProtoClient) EndTransfer() error {
+func (t *testProtoClient) EndTransfer() *types.TransferError {
 	if t.request {
 		return errEnd
 	}
 	return nil
 }
 
-func (t *testProtoClient) SendError(err error) {
+func (t *testProtoClient) SendError(err *types.TransferError) {
 	errChan <- err
 }
 
-func (t *testProtoClient) Pause() error {
+func (t *testProtoClient) Pause() *types.TransferError {
 	pauseChan <- true
 	return nil
 }

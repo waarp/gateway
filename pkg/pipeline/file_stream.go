@@ -35,24 +35,28 @@ type fileStream struct {
 	progress uint64
 }
 
-func newFileStream(pipeline *Pipeline, updateInterval time.Duration) (*fileStream, error) {
+func newFileStream(pipeline *Pipeline, updateInterval time.Duration) (*fileStream, *types.TransferError) {
 
 	stream := &fileStream{
 		Pipeline: pipeline,
 		ticker:   time.NewTicker(updateInterval),
-		progress: pipeline.transCtx.Transfer.Progress,
+		progress: pipeline.TransCtx.Transfer.Progress,
 	}
 
-	file, err := internal.GetFile(stream.logger, stream.transCtx.Rule, stream.transCtx.Transfer)
+	file, err := internal.GetFile(stream.Logger, stream.TransCtx.Rule, stream.TransCtx.Transfer)
 	if err != nil {
 		return nil, err
 	}
 	stream.file = file
 
-	if stream.transCtx.Rule.IsSend {
-		err = stream.machine.Transition("reading")
+	var mErr error
+	if stream.TransCtx.Rule.IsSend {
+		mErr = stream.machine.Transition("reading")
 	} else {
-		err = stream.machine.Transition("writing")
+		mErr = stream.machine.Transition("writing")
+	}
+	if mErr != nil {
+		return nil, types.NewTransferError(types.TeInternal, mErr.Error())
 	}
 
 	return stream, nil
@@ -61,8 +65,8 @@ func newFileStream(pipeline *Pipeline, updateInterval time.Duration) (*fileStrea
 func (f *fileStream) updateProgress() error {
 	select {
 	case <-f.ticker.C:
-		f.transCtx.Transfer.Progress = atomic.LoadUint64(&f.progress)
-		if dbErr := f.db.Update(f.transCtx.Transfer).Cols("progression").Run(); dbErr != nil {
+		f.TransCtx.Transfer.Progress = atomic.LoadUint64(&f.progress)
+		if dbErr := f.DB.Update(f.TransCtx.Transfer).Cols("progression").Run(); dbErr != nil {
 			f.handleError(types.TeInternal, "Failed to update transfer progress",
 				dbErr.Error())
 			return errDatabase
@@ -175,28 +179,28 @@ func (f *fileStream) handleError(code types.TransferErrorCode, msg, cause string
 	f.errOnce.Do(func() {
 		_ = f.machine.Transition("error")
 		fullMsg := fmt.Sprintf("%s: %s", msg, cause)
-		f.logger.Error(fullMsg)
+		f.Logger.Error(fullMsg)
 
 		go func() {
 			f.ticker.Stop()
 			//f.wg.Wait()
 
 			if err := f.file.Close(); err != nil {
-				f.logger.Warningf("Failed to close transfer file: %s", err)
+				f.Logger.Warningf("Failed to close transfer file: %s", err)
 			}
 
-			f.transCtx.Transfer.Error = types.NewTransferError(code, fmt.Sprintf("%s: %s", msg, cause))
-			f.transCtx.Transfer.Progress = f.progress
-			if dbErr := f.db.Update(f.transCtx.Transfer).Cols("progress", "error_code",
+			f.TransCtx.Transfer.Error = *types.NewTransferError(code, fmt.Sprintf("%s: %s", msg, cause))
+			f.TransCtx.Transfer.Progress = f.progress
+			if dbErr := f.DB.Update(f.TransCtx.Transfer).Cols("progress", "error_code",
 				"error_details").Run(); dbErr != nil {
-				f.logger.Errorf("Failed to update transfer error: %s", dbErr)
+				f.Logger.Errorf("Failed to update transfer error: %s", dbErr)
 			}
 
 			f.errorTasks()
 
-			f.transCtx.Transfer.Status = types.StatusError
-			if dbErr := f.db.Update(f.transCtx.Transfer).Cols("status").Run(); dbErr != nil {
-				f.logger.Errorf("Failed to update transfer status to ERROR: %s", dbErr)
+			f.TransCtx.Transfer.Status = types.StatusError
+			if dbErr := f.DB.Update(f.TransCtx.Transfer).Cols("status").Run(); dbErr != nil {
+				f.Logger.Errorf("Failed to update transfer status to ERROR: %s", dbErr)
 			}
 
 			if err := f.machine.Transition("in error"); err != nil {
@@ -208,7 +212,7 @@ func (f *fileStream) handleError(code types.TransferErrorCode, msg, cause string
 }
 
 // close closes the file and stops the progress tracker.
-func (f *fileStream) close() error {
+func (f *fileStream) close() *types.TransferError {
 	if err := f.machine.Transition("close"); err != nil {
 		f.handleStateErr("close", f.machine.Current())
 		return errStateMachine
@@ -222,11 +226,11 @@ func (f *fileStream) close() error {
 	}
 
 	if fErr := f.file.Close(); fErr != nil {
-		f.logger.Warningf("Failed to close file: %s", fErr)
+		f.Logger.Warningf("Failed to close file: %s", fErr)
 	}
 
-	f.transCtx.Transfer.Progress = uint64(stat.Size())
-	if dbErr := f.db.Update(f.transCtx.Transfer).Cols("progression").Run(); dbErr != nil {
+	f.TransCtx.Transfer.Progress = uint64(stat.Size())
+	if dbErr := f.DB.Update(f.TransCtx.Transfer).Cols("progression").Run(); dbErr != nil {
 		f.handleError(types.TeInternal, "Failed to update final transfer progress",
 			dbErr.Error())
 		return errDatabase
@@ -238,28 +242,28 @@ func (f *fileStream) close() error {
 // move moves the file from the temporary work directory to its final destination
 // (if the file is the transfer's destination). The method returns an error if
 // the file cannot be moved.
-func (f *fileStream) move() error {
+func (f *fileStream) move() *types.TransferError {
 	if err := f.machine.Transition("move"); err != nil {
 		f.handleStateErr("move", f.machine.Current())
 		return errStateMachine
 	}
 
-	if f.transCtx.Rule.IsSend {
+	if f.TransCtx.Rule.IsSend {
 		return nil
 	}
 
-	file := strings.TrimSuffix(filepath.Base(f.transCtx.Transfer.LocalPath), ".part")
+	file := strings.TrimSuffix(filepath.Base(f.TransCtx.Transfer.LocalPath), ".part")
 	var dest string
-	if f.transCtx.Transfer.IsServer {
-		dest = utils.GetPath(file, Leaf(f.transCtx.Rule.LocalDir),
-			Leaf(f.transCtx.LocalAgent.LocalInDir), Branch(f.transCtx.LocalAgent.Root),
-			Leaf(f.transCtx.Paths.DefaultInDir), Branch(f.transCtx.Paths.GatewayHome))
+	if f.TransCtx.Transfer.IsServer {
+		dest = utils.GetPath(file, Leaf(f.TransCtx.Rule.LocalDir),
+			Leaf(f.TransCtx.LocalAgent.LocalInDir), Branch(f.TransCtx.LocalAgent.Root),
+			Leaf(f.TransCtx.Paths.DefaultInDir), Branch(f.TransCtx.Paths.GatewayHome))
 	} else {
-		dest = utils.GetPath(file, Leaf(f.transCtx.Rule.LocalDir),
-			Leaf(f.transCtx.Paths.DefaultInDir), Branch(f.transCtx.Paths.GatewayHome))
+		dest = utils.GetPath(file, Leaf(f.TransCtx.Rule.LocalDir),
+			Leaf(f.TransCtx.Paths.DefaultInDir), Branch(f.TransCtx.Paths.GatewayHome))
 	}
 
-	if f.transCtx.Transfer.LocalPath == dest {
+	if f.TransCtx.Transfer.LocalPath == dest {
 		return nil
 	}
 
@@ -270,13 +274,13 @@ func (f *fileStream) move() error {
 		return moveErr
 	}
 
-	if err := tasks.MoveFile(f.transCtx.Transfer.LocalPath, dest); err != nil {
+	if err := tasks.MoveFile(f.TransCtx.Transfer.LocalPath, dest); err != nil {
 		f.handleError(types.TeFinalization, "Failed to move temp file", err.Error())
 		return moveErr
 	}
 
-	f.transCtx.Transfer.LocalPath = dest
-	if err := f.db.Update(f.transCtx.Transfer).Cols("local_path").Run(); err != nil {
+	f.TransCtx.Transfer.LocalPath = dest
+	if err := f.DB.Update(f.TransCtx.Transfer).Cols("local_path").Run(); err != nil {
 		f.handleError(types.TeInternal, "Failed to update transfer filepath", err.Error())
 		return errDatabase
 	}
@@ -288,12 +292,12 @@ func (f *fileStream) stop() {
 	f.ticker.Stop()
 
 	if fErr := f.file.Close(); fErr != nil {
-		f.logger.Warningf("Failed to close file: %s", fErr)
+		f.Logger.Warningf("Failed to close file: %s", fErr)
 	}
 
-	f.transCtx.Transfer.Progress = atomic.LoadUint64(&f.progress)
-	if dbErr := f.db.Update(f.transCtx.Transfer).Cols("progression").Run(); dbErr != nil {
-		f.logger.Errorf("Failed to update transfer progress at interruption: %s", dbErr)
+	f.TransCtx.Transfer.Progress = atomic.LoadUint64(&f.progress)
+	if dbErr := f.DB.Update(f.TransCtx.Transfer).Cols("progression").Run(); dbErr != nil {
+		f.Logger.Errorf("Failed to update transfer progress at interruption: %s", dbErr)
 		return
 	}
 }

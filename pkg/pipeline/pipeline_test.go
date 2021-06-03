@@ -7,13 +7,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -166,12 +165,12 @@ func TestPipelinePreTasks(t *testing.T) {
 
 			Convey("Then it should have executed the pre-tasks", func(c C) {
 				So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-					"CLIENT | TEST | PRE-TASKS[0] | OK")
+					"CLIENT | recv | TEST | PRE-TASKS[0] | OK")
 			})
 
 			Convey("Then any subsequent calls will return an error", func(c C) {
 				So(pip.PreTasks(), ShouldBeError, errStateMachine)
-				waitEndTransfer(c, pip)
+				waitEndTransfer(pip)
 			})
 		})
 
@@ -196,8 +195,8 @@ func TestPipelinePreTasks(t *testing.T) {
 
 				Convey("Then the transfer should end in error", func(c C) {
 					So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-						"CLIENT | TEST | ERROR-TASKS[0] | OK")
-					waitEndTransfer(c, pip)
+						"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+					waitEndTransfer(pip)
 				})
 			})
 		})
@@ -217,12 +216,12 @@ func TestPipelinePreTasks(t *testing.T) {
 
 				Convey("Then the transfer should end in error", func(c C) {
 					So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-						"CLIENT | TEST | PRE-TASKS[0] | OK")
+						"CLIENT | recv | TEST | PRE-TASKS[0] | OK")
 					So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-						"CLIENT | TEST | PRE-TASKS[1] | ERROR")
+						"CLIENT | recv | TEST | PRE-TASKS[1] | ERROR")
 					So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-						"CLIENT | TEST | ERROR-TASKS[0] | OK")
-					waitEndTransfer(c, pip)
+						"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+					waitEndTransfer(pip)
 				})
 			})
 		})
@@ -270,12 +269,12 @@ func TestPipelineStartData(t *testing.T) {
 			Convey("Then any subsequent calls to StartData should return an error", func(c C) {
 				_, err := pip.StartData()
 				So(err, ShouldBeError, errStateMachine)
-				waitEndTransfer(c, pip)
+				waitEndTransfer(pip)
 			})
 		})
 
 		Convey("Given that the transfer is a recovery", func(c C) {
-			pip.transCtx.Transfer.Step = types.StepPostTasks
+			pip.TransCtx.Transfer.Step = types.StepPostTasks
 
 			Convey("When starting the data transfer", func(c C) {
 				stream, err := pip.StartData()
@@ -297,8 +296,8 @@ func TestPipelineStartData(t *testing.T) {
 
 				Convey("Then the transfer should end in error", func(c C) {
 					So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-						"CLIENT | TEST | ERROR-TASKS[0] | OK")
-					waitEndTransfer(c, pip)
+						"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+					waitEndTransfer(pip)
 				})
 			})
 		})
@@ -340,7 +339,7 @@ func TestPipelineEndData(t *testing.T) {
 
 			Convey("Then any subsequent calls to EndData should return an error", func(c C) {
 				So(pip.EndData(), ShouldBeError, errStateMachine)
-				waitEndTransfer(c, pip)
+				waitEndTransfer(pip)
 			})
 		})
 
@@ -353,8 +352,8 @@ func TestPipelineEndData(t *testing.T) {
 
 			Convey("Then the transfer should end in error", func(c C) {
 				So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-					"CLIENT | TEST | ERROR-TASKS[0] | OK")
-				waitEndTransfer(c, pip)
+					"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+				waitEndTransfer(pip)
 			})
 		})
 	})
@@ -391,21 +390,22 @@ func TestPipelinePostTasks(t *testing.T) {
 		So(pip.machine.Transition("pre-tasks done"), ShouldBeNil)
 		So(pip.machine.Transition("start data"), ShouldBeNil)
 		So(pip.machine.Transition("writing"), ShouldBeNil)
+		So(pip.machine.Transition("end data"), ShouldBeNil)
 		So(pip.machine.Transition("close"), ShouldBeNil)
 		So(pip.machine.Transition("move"), ShouldBeNil)
-		So(pip.machine.Transition("end data"), ShouldBeNil)
+		So(pip.machine.Transition("data ended"), ShouldBeNil)
 
 		Convey("When calling the post-tasks", func(c C) {
 			So(pip.PostTasks(), ShouldBeNil)
 
 			Convey("Then it should have executed the post-tasks", func(c C) {
 				So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-					"CLIENT | TEST | POST-TASKS[0] | OK")
+					"CLIENT | recv | TEST | POST-TASKS[0] | OK")
 			})
 
 			Convey("Then any subsequent calls will return an error", func(c C) {
 				So(pip.PostTasks(), ShouldBeError, errStateMachine)
-				waitEndTransfer(c, pip)
+				waitEndTransfer(pip)
 			})
 		})
 
@@ -430,8 +430,8 @@ func TestPipelinePostTasks(t *testing.T) {
 
 				Convey("Then the transfer should end in error", func(c C) {
 					So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-						"CLIENT | TEST | ERROR-TASKS[0] | OK")
-					waitEndTransfer(c, pip)
+						"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+					waitEndTransfer(pip)
 				})
 			})
 		})
@@ -451,12 +451,12 @@ func TestPipelinePostTasks(t *testing.T) {
 
 				Convey("Then the transfer should end in error", func(c C) {
 					So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-						"CLIENT | TEST | POST-TASKS[0] | OK")
+						"CLIENT | recv | TEST | POST-TASKS[0] | OK")
 					So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-						"CLIENT | TEST | POST-TASKS[1] | ERROR")
+						"CLIENT | recv | TEST | POST-TASKS[1] | ERROR")
 					So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-						"CLIENT | TEST | ERROR-TASKS[0] | OK")
-					waitEndTransfer(c, pip)
+						"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+					waitEndTransfer(pip)
 				})
 			})
 		})
@@ -466,8 +466,8 @@ func TestPipelinePostTasks(t *testing.T) {
 func TestPipelineSetError(t *testing.T) {
 	logger := log.NewLogger("test_set_error")
 	remErr := types.NewTransferError(types.TeUnknownRemote, "remote error")
-	tErr := types.NewTransferError(types.TeUnknownRemote,
-		"An error occurred on the remote partner: remote error")
+	expErr := *types.NewTransferError(types.TeUnknownRemote,
+		"Error on remote partner: remote error")
 
 	Convey("Given a transfer pipeline", t, func(c C) {
 		ctx := initTestDB(c)
@@ -489,17 +489,17 @@ func TestPipelineSetError(t *testing.T) {
 
 		Convey("Given an pre-transfer error", func(c C) {
 			pip.SetError(remErr)
-			waitEndTransfer(c, pip)
+			waitEndTransfer(pip)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
 				So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-					"CLIENT | TEST | ERROR-TASKS[0] | OK")
+					"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
 					var trans model.Transfer
 					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(trans.Status, ShouldEqual, types.StatusError)
-					So(trans.Error, ShouldResemble, tErr)
+					So(trans.Error, ShouldResemble, expErr)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -529,13 +529,13 @@ func TestPipelineSetError(t *testing.T) {
 			}()
 
 			So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-				"CLIENT | TEST | PRE-TASKS[0] | OK")
+				"CLIENT | recv | TEST | PRE-TASKS[0] | OK")
 			pip.SetError(remErr)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
 				So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-					"CLIENT | TEST | ERROR-TASKS[0] | OK")
-				waitEndTransfer(c, pip)
+					"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+				waitEndTransfer(pip)
 				testhelpers.ClientCheckChannel <- ""
 
 				Convey("Then it should have interrupted the pre-tasks", func(c C) {
@@ -548,7 +548,7 @@ func TestPipelineSetError(t *testing.T) {
 					var trans model.Transfer
 					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(trans.Status, ShouldEqual, types.StatusError)
-					So(trans.Error, ShouldResemble, tErr)
+					So(trans.Error, ShouldResemble, expErr)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -564,17 +564,17 @@ func TestPipelineSetError(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			pip.SetError(remErr)
-			waitEndTransfer(c, pip)
+			waitEndTransfer(pip)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
 				So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-					"CLIENT | TEST | ERROR-TASKS[0] | OK")
+					"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
 					var trans model.Transfer
 					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(trans.Status, ShouldEqual, types.StatusError)
-					So(trans.Error, ShouldResemble, tErr)
+					So(trans.Error, ShouldResemble, expErr)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -607,13 +607,13 @@ func TestPipelineSetError(t *testing.T) {
 			go func() { errCheck <- pip.PostTasks() }()
 
 			So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-				"CLIENT | TEST | POST-TASKS[0] | OK")
+				"CLIENT | recv | TEST | POST-TASKS[0] | OK")
 			pip.SetError(remErr)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
 				So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-					"CLIENT | TEST | ERROR-TASKS[0] | OK")
-				waitEndTransfer(c, pip)
+					"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+				waitEndTransfer(pip)
 				testhelpers.ClientCheckChannel <- ""
 
 				Convey("Then it should have interrupted the post-tasks", func(c C) {
@@ -626,7 +626,7 @@ func TestPipelineSetError(t *testing.T) {
 					var trans model.Transfer
 					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(trans.Status, ShouldEqual, types.StatusError)
-					So(trans.Error, ShouldResemble, tErr)
+					So(trans.Error, ShouldResemble, expErr)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -643,17 +643,17 @@ func TestPipelineSetError(t *testing.T) {
 			So(pip.PostTasks(), ShouldBeNil)
 
 			pip.SetError(remErr)
-			waitEndTransfer(c, pip)
+			waitEndTransfer(pip)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
 				So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-					"CLIENT | TEST | ERROR-TASKS[0] | OK")
+					"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
 					var trans model.Transfer
 					So(ctx.db.Get(&trans, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(trans.Status, ShouldEqual, types.StatusError)
-					So(trans.Error, ShouldResemble, tErr)
+					So(trans.Error, ShouldResemble, expErr)
 				})
 
 				Convey("Then any calls to the pipeline should return an error", func(c C) {
@@ -725,7 +725,7 @@ func TestPipelinePause(t *testing.T) {
 			}()
 
 			So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-				"CLIENT | TEST | PRE-TASKS[0] | OK")
+				"CLIENT | recv | TEST | PRE-TASKS[0] | OK")
 			pip.Pause()
 			testhelpers.ClientCheckChannel <- "END"
 
@@ -796,7 +796,7 @@ func TestPipelinePause(t *testing.T) {
 			}()
 
 			So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-				"CLIENT | TEST | POST-TASKS[0] | OK")
+				"CLIENT | recv | TEST | POST-TASKS[0] | OK")
 			pip.Pause()
 			testhelpers.ClientCheckChannel <- "END"
 
@@ -905,7 +905,7 @@ func TestPipelineCancel(t *testing.T) {
 			}()
 
 			So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-				"CLIENT | TEST | PRE-TASKS[0] | OK")
+				"CLIENT | recv | TEST | PRE-TASKS[0] | OK")
 			pip.Cancel()
 			testhelpers.ClientCheckChannel <- "END"
 
@@ -976,7 +976,7 @@ func TestPipelineCancel(t *testing.T) {
 			}()
 
 			So(<-testhelpers.ClientCheckChannel, ShouldEqual,
-				"CLIENT | TEST | POST-TASKS[0] | OK")
+				"CLIENT | recv | TEST | POST-TASKS[0] | OK")
 			pip.Cancel()
 			testhelpers.ClientCheckChannel <- "END"
 

@@ -42,21 +42,21 @@ func NewTaskRunner(db *database.DB, logger *log.Logger, transCtx *model.Transfer
 }
 
 // PreTasks executes the transfer's pre-tasks.
-func (r *Runner) PreTasks() error {
+func (r *Runner) PreTasks() *types.TransferError {
 	return r.runTasks(r.transCtx.PreTasks, false)
 }
 
 // PostTasks executes the transfer's post-tasks.
-func (r *Runner) PostTasks() error {
+func (r *Runner) PostTasks() *types.TransferError {
 	return r.runTasks(r.transCtx.PostTasks, false)
 }
 
 // ErrorTasks executes the transfer's error-tasks.
-func (r *Runner) ErrorTasks() error {
+func (r *Runner) ErrorTasks() *types.TransferError {
 	return r.runTasks(r.transCtx.ErrTasks, true)
 }
 
-func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) error {
+func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) *types.TransferError {
 	runner, ok := model.ValidTasks[task.Type]
 	if !ok {
 		logMsg := fmt.Sprintf("%s: unknown task", taskInfo)
@@ -86,16 +86,16 @@ func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) erro
 		errMsg := fmt.Sprintf("%s: %s", taskInfo, err)
 		if _, ok := err.(*errWarning); !ok {
 			r.logger.Error(errMsg)
-			r.transCtx.Transfer.Error = types.NewTransferError(types.TeExternalOperation, errMsg)
-			return types.NewTransferError(types.TeExternalOperation, errMsg)
+			r.transCtx.Transfer.Error = *types.NewTransferError(types.TeExternalOperation, errMsg)
+			return &r.transCtx.Transfer.Error
 		}
 
 		r.logger.Warning(errMsg)
-		r.transCtx.Transfer.Error = types.NewTransferError(types.TeWarning, errMsg)
+		r.transCtx.Transfer.Error = *types.NewTransferError(types.TeWarning, errMsg)
 		if dbErr := r.db.Update(r.transCtx.Transfer).Cols("error_code", "error_details").Run(); dbErr != nil {
 			r.logger.Errorf("Failed to update task status: %s", dbErr)
 			if !isErrTasks {
-				return types.NewTransferError(types.TeInternal, dbErr.Error())
+				return types.NewTransferError(types.TeInternal, "database error")
 			}
 		}
 	} else if msg != "" {
@@ -105,10 +105,10 @@ func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) erro
 	}
 
 	r.transCtx.Transfer.TaskNumber++
-	if err := r.db.Update(r.transCtx.Transfer).Cols("task_number").Run(); err != nil {
-		r.logger.Errorf("Failed to update task number: %s", err.Error())
+	if dbErr := r.db.Update(r.transCtx.Transfer).Cols("task_number").Run(); dbErr != nil {
+		r.logger.Errorf("Failed to update task number: %s", dbErr)
 		if !isErrTasks {
-			return types.NewTransferError(types.TeInternal, err.Error())
+			return types.NewTransferError(types.TeInternal, "database error")
 		}
 	}
 	return nil
@@ -116,7 +116,7 @@ func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) erro
 
 // runTasks execute sequentially the list of tasks given
 // according to the Runner context
-func (r *Runner) runTasks(tasks []model.Task, isErrTasks bool) error {
+func (r *Runner) runTasks(tasks []model.Task, isErrTasks bool) *types.TransferError {
 	r.lock.Add(1)
 	defer r.lock.Done()
 
@@ -127,21 +127,13 @@ func (r *Runner) runTasks(tasks []model.Task, isErrTasks bool) error {
 		if !isErrTasks {
 			select {
 			case <-r.ctx.Done():
-				return r.ctx.Err()
+				return types.NewTransferError(types.TeInternal, "transfer interrupted")
 			default:
 			}
 		}
 
 		if err := r.runTask(task, taskInfo, isErrTasks); err != nil {
 			return err
-		}
-	}
-
-	r.transCtx.Transfer.TaskNumber = 0
-	if err := r.db.Update(r.transCtx.Transfer).Cols("task_number").Run(); err != nil {
-		r.logger.Errorf("Failed to reset task number: %s", err.Error())
-		if !isErrTasks {
-			return types.NewTransferError(types.TeInternal, err.Error())
 		}
 	}
 

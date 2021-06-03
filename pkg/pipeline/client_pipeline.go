@@ -14,7 +14,7 @@ type ClientPipeline struct {
 	client Client
 }
 
-func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline, error) {
+func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline, *types.TransferError) {
 
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 
@@ -29,12 +29,12 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline,
 		return nil, err
 	}
 
-	client, err := constr(logger, transCtx)
+	pipeline, err := newPipeline(db, logger, transCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	pipeline, err := newPipeline(db, logger, transCtx)
+	client, err := constr(pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (c *ClientPipeline) postTasks() error {
 }
 
 func (c *ClientPipeline) Run() {
-	defer ClientTransfers.Delete(c.pip.transCtx.Transfer.ID)
+	defer ClientTransfers.Delete(c.pip.TransCtx.Transfer.ID)
 	// REQUEST
 	if err := c.client.Request(); err != nil {
 		c.pip.SetError(err)

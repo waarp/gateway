@@ -1,52 +1,99 @@
 package internal
 
 import (
+	"encoding/json"
 	"fmt"
 	. "path/filepath"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
-
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
+func init() {
+	_ = log.InitBackend("DEBUG", "stdout", "")
+}
+
 func TestPathBuilder(t *testing.T) {
+	logger := log.NewLogger("test_path_builder")
 
 	Convey("Given a Gateway configuration", t, func(c C) {
-		ctx := testhelpers.InitServer(c, testhelpers.TestProtocol, nil)
-		ctx.DB.Conf.Paths.DefaultInDir = "gwIn"
-		ctx.DB.Conf.Paths.DefaultOutDir = "gwOut"
-		ctx.DB.Conf.Paths.DefaultTmpDir = "gwTmp"
+		db := database.TestDatabase(c, "ERROR")
+		db.Conf.Paths.GatewayHome = testhelpers.TempDir(c, "path_builder")
+		db.Conf.Paths.DefaultInDir = "gwIn"
+		db.Conf.Paths.DefaultOutDir = "gwOut"
+		db.Conf.Paths.DefaultTmpDir = "gwTmp"
+
+		server := &model.LocalAgent{
+			Name:        "server",
+			Protocol:    testhelpers.TestProtocol,
+			Root:        "serRoot",
+			LocalInDir:  "serIn",
+			LocalOutDir: "serOut",
+			LocalTmpDir: "serTmp",
+			ProtoConfig: json.RawMessage(`{}`),
+			Address:     "localhost:0",
+		}
+		So(db.Insert(server).Run(), ShouldBeNil)
+
+		acc := &model.LocalAccount{
+			LocalAgentID: server.ID,
+			Login:        "toto",
+			Password:     []byte("sesame"),
+		}
+		So(db.Insert(acc).Run(), ShouldBeNil)
+
+		send := &model.Rule{
+			Name:        "SEND",
+			IsSend:      true,
+			Path:        "/path",
+			LocalDir:    "sendLoc",
+			RemoteDir:   "sendRem",
+			LocalTmpDir: "sendTmp",
+		}
+		So(db.Insert(send).Run(), ShouldBeNil)
+
+		recv := &model.Rule{
+			Name:        "RECEIVE",
+			IsSend:      false,
+			Path:        "/path",
+			LocalDir:    "recvLoc",
+			RemoteDir:   "recvRem",
+			LocalTmpDir: "recvTmp",
+		}
+		So(db.Insert(recv).Run(), ShouldBeNil)
 
 		Convey("Given an incoming transfer", func(c C) {
 			trans := &model.Transfer{
-				RuleID:     ctx.ServerPush.ID,
+				RuleID:     recv.ID,
 				IsServer:   true,
-				AgentID:    ctx.Server.ID,
-				AccountID:  ctx.LocAccount.ID,
+				AgentID:    server.ID,
+				AccountID:  acc.ID,
 				LocalPath:  "file.loc",
 				RemotePath: "file.rem",
 			}
 			tmp := trans.LocalPath + ".part"
 
-			transCtx, err := model.GetTransferInfo(ctx.DB, ctx.Logger, trans)
+			transCtx, err := model.GetTransferInfo(db, logger, trans)
 			So(err, ShouldBeNil)
 
 			type testCase struct {
 				serRoot, ruleLoc, ruleTmp string
 				expTmp                    string
 			}
-			gwRoot := ctx.Paths.GatewayHome
+			gwRoot := db.Conf.Paths.GatewayHome
 			testCases := []testCase{
 				{"", "", "", Join(gwRoot, "gwTmp", tmp)},
 				{"serRoot", "", "", Join(gwRoot, "serRoot", "serTmp", tmp)},
-				{"", "ruleLoc", "", Join(gwRoot, "ruleLoc", tmp)},
-				{"", "", "ruleTmp", Join(gwRoot, "ruleTmp", tmp)},
-				{"serRoot", "ruleLoc", "", Join(gwRoot, "serRoot", "ruleLoc", tmp)},
-				{"serRoot", "", "ruleTmp", Join(gwRoot, "serRoot", "ruleTmp", tmp)},
-				{"", "ruleLoc", "ruleTmp", Join(gwRoot, "ruleTmp", tmp)},
-				{"serRoot", "ruleLoc", "ruleTmp", Join(gwRoot, "serRoot", "ruleTmp", tmp)},
+				{"", "recvLoc", "", Join(gwRoot, "recvLoc", tmp)},
+				{"", "", "recvTmp", Join(gwRoot, "recvTmp", tmp)},
+				{"serRoot", "recvLoc", "", Join(gwRoot, "serRoot", "recvLoc", tmp)},
+				{"serRoot", "", "recvTmp", Join(gwRoot, "serRoot", "recvTmp", tmp)},
+				{"", "recvLoc", "recvTmp", Join(gwRoot, "recvTmp", tmp)},
+				{"serRoot", "recvLoc", "recvTmp", Join(gwRoot, "serRoot", "recvTmp", tmp)},
 			}
 
 			for _, tc := range testCases {
@@ -82,29 +129,29 @@ func TestPathBuilder(t *testing.T) {
 
 		Convey("Given an outgoing transfer", func(c C) {
 			trans := &model.Transfer{
-				RuleID:     ctx.ServerPull.ID,
+				RuleID:     send.ID,
 				IsServer:   true,
-				AgentID:    ctx.Server.ID,
-				AccountID:  ctx.LocAccount.ID,
+				AgentID:    server.ID,
+				AccountID:  acc.ID,
 				LocalPath:  "file.loc",
 				RemotePath: "file.rem",
 			}
 
 			file := trans.LocalPath
 
-			transCtx, err := model.GetTransferInfo(ctx.DB, ctx.Logger, trans)
+			transCtx, err := model.GetTransferInfo(db, logger, trans)
 			So(err, ShouldBeNil)
 
 			type testCase struct {
 				serRoot, ruleLoc string
 				expFinal         string
 			}
-			gwRoot := ctx.Paths.GatewayHome
+			gwRoot := db.Conf.Paths.GatewayHome
 			testCases := []testCase{
 				{"", "", Join(gwRoot, "gwOut", file)},
 				{"serRoot", "", Join(gwRoot, "serRoot", "serOut", file)},
-				{"", "ruleLoc", Join(gwRoot, "ruleLoc", file)},
-				{"serRoot", "ruleLoc", Join(gwRoot, "serRoot", "ruleLoc", file)},
+				{"", "sendLoc", Join(gwRoot, "sendLoc", file)},
+				{"serRoot", "sendLoc", Join(gwRoot, "serRoot", "sendLoc", file)},
 			}
 
 			for _, tc := range testCases {

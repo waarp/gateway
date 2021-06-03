@@ -9,7 +9,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 const (
@@ -24,28 +23,6 @@ var (
 	ServerCheckChannel chan string
 )
 
-func ClientMsgShouldBe(c C, exp string) {
-	timer := time.NewTimer(time.Second * 3)
-	defer timer.Stop()
-	select {
-	case <-timer.C:
-		panic(fmt.Sprintf("timeout waiting for client message '%s'", exp))
-	case msg := <-ClientCheckChannel:
-		c.So(msg, ShouldEqual, exp)
-	}
-}
-
-func ServerMsgShouldBe(c C, exp string) {
-	timer := time.NewTimer(time.Second * 3)
-	defer timer.Stop()
-	select {
-	case <-timer.C:
-		panic(fmt.Sprintf("timeout waiting for server message '%s'", exp))
-	case msg := <-ServerCheckChannel:
-		c.So(msg, ShouldEqual, exp)
-	}
-}
-
 func init() {
 	model.ValidTasks[ClientOK] = &testClientTask{}
 	model.ValidTasks[ClientErr] = &testClientTaskError{}
@@ -59,9 +36,9 @@ type testClientTask struct{}
 
 func (*testClientTask) Validate(map[string]string) error { return nil }
 func (*testClientTask) Run(args map[string]string, _ *database.DB,
-	_ *model.TransferContext, ctx context.Context) (string, error) {
+	c *model.TransferContext, ctx context.Context) (string, error) {
 
-	msg := "CLIENT | " + args["msg"] + " | OK"
+	msg := fmt.Sprintf("CLIENT | %s | %s | OK", c.Rule.Name, args["msg"])
 	timer := time.NewTimer(time.Second)
 	defer timer.Stop()
 
@@ -87,9 +64,9 @@ type testClientTaskError struct{}
 
 func (*testClientTaskError) Validate(map[string]string) error { return nil }
 func (*testClientTaskError) Run(args map[string]string, _ *database.DB,
-	_ *model.TransferContext, _ context.Context) (string, error) {
+	c *model.TransferContext, _ context.Context) (string, error) {
 
-	msg := "CLIENT | " + args["msg"] + " | ERROR"
+	msg := fmt.Sprintf("CLIENT | %s | %s | ERROR", c.Rule.Name, args["msg"])
 	timer := time.NewTimer(time.Second)
 	defer timer.Stop()
 	select {
@@ -106,9 +83,9 @@ type testServerTask struct{}
 
 func (*testServerTask) Validate(map[string]string) error { return nil }
 func (*testServerTask) Run(args map[string]string, _ *database.DB,
-	_ *model.TransferContext, _ context.Context) (string, error) {
+	c *model.TransferContext, _ context.Context) (string, error) {
 
-	msg := "SERVER | " + args["msg"] + " | OK"
+	msg := fmt.Sprintf("SERVER | %s | %s | OK", c.Rule.Name, args["msg"])
 	timer := time.NewTimer(time.Second)
 	defer timer.Stop()
 	select {
@@ -123,9 +100,9 @@ type testServerTaskError struct{}
 
 func (*testServerTaskError) Validate(map[string]string) error { return nil }
 func (*testServerTaskError) Run(args map[string]string, _ *database.DB,
-	_ *model.TransferContext, _ context.Context) (string, error) {
+	c *model.TransferContext, _ context.Context) (string, error) {
 
-	msg := "SERVER | " + args["msg"] + " | ERROR"
+	msg := fmt.Sprintf("SERVER | %s | %s | ERROR", c.Rule.Name, args["msg"])
 	timer := time.NewTimer(time.Second)
 	defer timer.Stop()
 	select {

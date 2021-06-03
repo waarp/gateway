@@ -16,7 +16,7 @@ import (
 func Leaf(s string) utils.Leaf     { return utils.Leaf(s) }
 func Branch(s string) utils.Branch { return utils.Branch(s) }
 
-func GetFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.File, error) {
+func GetFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.File, *types.TransferError) {
 
 	path := trans.LocalPath
 	if rule.IsSend {
@@ -69,7 +69,7 @@ func CreateDir(path string) error {
 	return nil
 }
 
-func FileErrToTransferErr(err error) types.TransferError {
+func FileErrToTransferErr(err error) *types.TransferError {
 	if os.IsNotExist(err) {
 		return types.NewTransferError(types.TeFileNotFound, "file not found")
 	}
@@ -81,6 +81,10 @@ func FileErrToTransferErr(err error) types.TransferError {
 }
 
 func MakeFilepaths(transCtx *model.TransferContext) {
+	if transCtx.Transfer.Step != types.StepNone {
+		return
+	}
+
 	transCtx.Transfer.RemotePath = utils.GetPath(transCtx.Transfer.RemotePath,
 		Leaf(transCtx.Rule.RemoteDir))
 
@@ -111,7 +115,7 @@ func MakeFilepaths(transCtx *model.TransferContext) {
 	}
 }
 
-func CheckFileExist(trans *model.Transfer, logger *log.Logger) error {
+func CheckFileExist(trans *model.Transfer, logger *log.Logger) *types.TransferError {
 	_, err := os.Stat(trans.LocalPath)
 	if err != nil {
 		if os.IsNotExist(err) {

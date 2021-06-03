@@ -35,6 +35,14 @@ func (m *Machine) Transition(newState string) error {
 	return nil
 }
 
+func (m *Machine) HasEnded() bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	nextStates := m.states[m.current]
+	return len(nextStates) == 0
+}
+
 func canTransitionTo(vals ...string) map[string]struct{} {
 	m := map[string]struct{}{}
 	for _, val := range vals {
