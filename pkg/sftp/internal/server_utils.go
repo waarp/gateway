@@ -40,9 +40,12 @@ func GetSSHServerConfig(db *database.DB, certs []model.Cert, protoConfig *config
 			MACs:         protoConfig.MACs,
 		},
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			user := &model.LocalAccount{LocalAgentID: agent.ID, Login: conn.User()}
-			if err := db.Get(user, "local_agent_id=? AND login=?", agent.ID,
+			var user model.LocalAccount
+			if err := db.Get(&user, "local_agent_id=? AND login=?", agent.ID,
 				conn.User()).Run(); err != nil {
+				if !database.IsNotFound(err) {
+					return nil, fmt.Errorf("internal database error")
+				}
 				return nil, fmt.Errorf("authentication failed")
 			}
 			certs, err := user.GetCerts(db)
@@ -62,12 +65,16 @@ func GetSSHServerConfig(db *database.DB, certs []model.Cert, protoConfig *config
 			return nil, fmt.Errorf("authentication failed")
 		},
 		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			user := &model.LocalAccount{}
-			if err := db.Get(user, "local_agent_id=? AND login=?", agent.ID,
-				conn.User()).Run(); err != nil {
-				return nil, fmt.Errorf("authentication failed")
+			var user model.LocalAccount
+			err1 := db.Get(&user, "local_agent_id=? AND login=?", agent.ID,
+				conn.User()).Run()
+			if err1 != nil {
+				if !database.IsNotFound(err1) {
+					return nil, fmt.Errorf("internal database error")
+				}
 			}
-			if err := bcrypt.CompareHashAndPassword(user.Password, pass); err != nil {
+			err2 := bcrypt.CompareHashAndPassword(user.Password, pass)
+			if err1 != nil || err2 != nil {
 				return nil, fmt.Errorf("authentication failed")
 			}
 

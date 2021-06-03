@@ -1,241 +1,344 @@
 package sftp
 
 import (
-	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
-	servConf = json.RawMessage("{}")
-	partConf = json.RawMessage("{}")
+	servConf = &config.SftpProtoConfig{}
+	partConf = &config.SftpProtoConfig{}
 )
 
-func runTransfer(c C, ctx *testhelpers.Context) {
-	pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.Trans)
-	c.So(err, ShouldBeNil)
-
-	testhelpers.MakeChan(c)
-	pip.Run()
-	pipeline.WaitEndClientTransfer(c, pip)
-	testhelpers.ClientCheckChannel <- "CLIENT TRANSFER END"
-}
-
 func TestSelfPushOK(t *testing.T) {
-	Convey("Given an SFTP service", t, func(c C) {
-		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
-		addCerts(c, ctx)
-		startService(c, ctx)
+	Convey("Given a new SFTP push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", servConf, partConf)
+		ctx.AddCerts(c, makeCerts(ctx)...)
+		ctx.StartService(c)
 
-		Convey("Given a new SFTP push transfer", func(c C) {
-			testhelpers.AddTransfer(c, ctx, true)
+		Convey("When executing the transfer", func(c C) {
+			ctx.RunTransfer(c)
 
-			Convey("Once the transfer has been processed", func(c C) {
-				runTransfer(c, ctx)
+			Convey("Then it should execute all the tasks in order", func(c C) {
+				ctx.ServerPreTasksShouldBeOK(c)
+				ctx.ClientPreTasksShouldBeOK(c)
+				ctx.ServerPosTasksShouldBeOK(c)
+				ctx.ClientPosTasksShouldBeOK(c)
 
-				Convey("Then it should have executed all the tasks in order", func(c C) {
-					testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
-					testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[0] | OK")
-					testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | POST-TASKS[0] | OK")
-					testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[0] | OK")
-					testhelpers.ServerMsgShouldBe(c, "SERVER TRANSFER END")
-					testhelpers.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
-
-					testhelpers.CheckTransfersOK(c, ctx)
-				})
+				ctx.CheckTransfersOK(c)
 			})
 		})
 	})
 }
 
 func TestSelfPullOK(t *testing.T) {
-	Convey("Given an SFTP service", t, func(c C) {
-		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
-		addCerts(c, ctx)
-		startService(c, ctx)
+	Convey("Given a new SFTP pull transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", servConf, partConf)
+		ctx.AddCerts(c, makeCerts(ctx)...)
+		ctx.StartService(c)
 
-		Convey("Given a new SFTP pull transfer", func(c C) {
-			testhelpers.AddTransfer(c, ctx, false)
+		Convey("When executing the transfer", func(c C) {
+			ctx.RunTransfer(c)
 
-			Convey("Once the transfer has been processed", func(c C) {
-				runTransfer(c, ctx)
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerPreTasksShouldBeOK(c)
+				ctx.ClientPreTasksShouldBeOK(c)
+				ctx.ServerPosTasksShouldBeOK(c)
+				ctx.ClientPosTasksShouldBeOK(c)
 
-				Convey("Then it should have executed all the tasks in order", func(c C) {
-					testhelpers.ServerMsgShouldBe(c, "SERVER | PULL | PRE-TASKS[0] | OK")
-					testhelpers.ClientMsgShouldBe(c, "CLIENT | PULL | PRE-TASKS[0] | OK")
-					testhelpers.ServerMsgShouldBe(c, "SERVER | PULL | POST-TASKS[0] | OK")
-					testhelpers.ClientMsgShouldBe(c, "CLIENT | PULL | POST-TASKS[0] | OK")
-					testhelpers.ServerMsgShouldBe(c, "SERVER TRANSFER END")
-					testhelpers.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
-
-					testhelpers.CheckTransfersOK(c, ctx)
-				})
+				ctx.CheckTransfersOK(c)
 			})
 		})
 	})
 }
 
-func TestSelfErrorClient(t *testing.T) {
-	Convey("Given an SFTP service", t, func(c C) {
-		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
-		addCerts(c, ctx)
-		startService(c, ctx)
+func TestPushClientPreError(t *testing.T) {
+	Convey("Given a new SFTP push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", servConf, partConf)
+		ctx.AddCerts(c, makeCerts(ctx)...)
+		ctx.StartService(c)
 
-		Convey("Given a new SFTP push transfer", func(c C) {
-			testhelpers.AddTransfer(c, ctx, true)
+		Convey("Given that an error occurs in client pre-tasks", func(c C) {
+			ctx.AddClientPreTaskError(c)
+			ctx.RunTransfer(c)
 
-			Convey("Given that an error occurs", func(c C) {
-				task := model.Task{
-					RuleID: ctx.ClientPush.ID,
-					Chain:  model.ChainPre,
-					Rank:   1,
-					Type:   testhelpers.ClientErr,
-					Args:   json.RawMessage(`{"msg":"PUSH | PRE-TASKS[1]"}`),
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerPreTasksShouldBeOK(c)
+				ctx.ClientPreTasksShouldBeError(c)
+
+				cTrans := &model.Transfer{
+					Step:       types.StepPreTasks,
+					Progress:   0,
+					TaskNumber: 1,
+					Error: *types.NewTransferError(types.TeExternalOperation,
+						"Pre-tasks failed: Task CLIENTERR @ PUSH PRE[1]: task failed"),
 				}
-				So(ctx.DB.Insert(&task).Run(), ShouldBeNil)
-
-				Convey("Once the transfer has been processed", func(c C) {
-					runTransfer(c, ctx)
-
-					Convey("Then it should have executed all the tasks in order", func(c C) {
-						testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
-						testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[0] | OK")
-						testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[1] | ERROR")
-						testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | ERROR-TASKS[0] | OK")
-						testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | ERROR-TASKS[0] | OK")
-						testhelpers.ServerMsgShouldBe(c, "SERVER TRANSFER END")
-						testhelpers.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
-
-						cTrans := &model.Transfer{
-							Step:       types.StepPreTasks,
-							Progress:   0,
-							TaskNumber: 1,
-							Error: types.NewTransferError(types.TeExternalOperation,
-								"Pre-tasks failed: Task CLIENTERR @ PUSH PRE[1]: task failed"),
-						}
-						sTrans := &model.Transfer{
-							Step:       types.StepData,
-							Progress:   0,
-							TaskNumber: 0,
-							Error: types.NewTransferError(types.TeUnknownRemote,
-								"An error occurred on the remote partner: "+
-									"session closed by remote host"),
-						}
-
-						testhelpers.CheckTransfersError(c, ctx, cTrans, sTrans)
-					})
-				})
-			})
-		})
-	})
-}
-
-func TestSelfErrorServer(t *testing.T) {
-	Convey("Given an SFTP service", t, func(c C) {
-		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
-		addCerts(c, ctx)
-		startService(c, ctx)
-
-		Convey("Given a new SFTP push transfer", func(c C) {
-			testhelpers.AddTransfer(c, ctx, true)
-
-			Convey("Given that an error occurs", func(c C) {
-				task := model.Task{
-					RuleID: ctx.ServerPush.ID,
-					Chain:  model.ChainPre,
-					Rank:   1,
-					Type:   testhelpers.ServerErr,
-					Args:   json.RawMessage(`{"msg":"PUSH | PRE-TASKS[1]"}`),
+				sTrans := &model.Transfer{
+					Step:       types.StepData,
+					Progress:   0,
+					TaskNumber: 0,
+					Error: *types.NewTransferError(types.TeUnknownRemote,
+						"Error on remote partner: session closed by remote host"),
 				}
-				So(ctx.DB.Insert(&task).Run(), ShouldBeNil)
 
-				Convey("Once the transfer has been processed", func(c C) {
-					runTransfer(c, ctx)
-
-					Convey("Then it should have executed all the tasks in order", func(c C) {
-						testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
-						testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[1] | ERROR")
-						testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | ERROR-TASKS[0] | OK")
-						testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | ERROR-TASKS[0] | OK")
-						testhelpers.ServerMsgShouldBe(c, "SERVER TRANSFER END")
-						testhelpers.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
-
-						cTrans := &model.Transfer{
-							Step:       types.StepSetup,
-							Progress:   0,
-							TaskNumber: 0,
-							Error: types.NewTransferError(types.TeUnknownRemote,
-								"An error occurred on the remote partner: "+
-									"failed to create remote file"),
-						}
-						sTrans := &model.Transfer{
-							Step:       types.StepPreTasks,
-							Progress:   0,
-							TaskNumber: 1,
-							Error: types.NewTransferError(types.TeExternalOperation,
-								"Pre-tasks failed: Task SERVERERR @ PUSH PRE[1]: task failed"),
-						}
-
-						testhelpers.CheckTransfersError(c, ctx, cTrans, sTrans)
-					})
-				})
+				ctx.CheckTransfersError(c, cTrans, sTrans)
 			})
 		})
 	})
 }
 
-func TestSelfPushRetry(t *testing.T) {
-	Convey("Given an SFTP service", t, func(c C) {
-		ctx := testhelpers.InitDBForSelfTransfer(c, "sftp", servConf, partConf)
-		addCerts(c, ctx)
-		startService(c, ctx)
+func TestPushServerPreError(t *testing.T) {
+	Convey("Given a new SFTP push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", servConf, partConf)
+		ctx.AddCerts(c, makeCerts(ctx)...)
+		ctx.StartService(c)
 
-		Convey("Given a failed SFTP push transfer", func(c C) {
-			testhelpers.AddTransfer(c, ctx, true)
-			task := model.Task{
-				RuleID: ctx.ClientPush.ID,
-				Chain:  model.ChainPost,
-				Rank:   1,
-				Type:   testhelpers.ClientErr,
-				Args:   json.RawMessage(`{"msg":"PUSH | POST-TASKS[1]"}`),
-			}
-			So(ctx.DB.Insert(&task).Run(), ShouldBeNil)
+		Convey("Given that an error occurs in server pre-tasks", func(c C) {
+			ctx.AddServerPreTaskError(c)
+			ctx.RunTransfer(c)
 
-			runTransfer(c, ctx)
-			testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
-			testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[0] | OK")
-			testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[0] | OK")
-			testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[1] | ERROR")
-			testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | ERROR-TASKS[0] | OK")
-			testhelpers.ClientMsgShouldBe(c, "CLIENT | PUSH | ERROR-TASKS[0] | OK")
-			testhelpers.ServerMsgShouldBe(c, "SERVER TRANSFER END")
-			testhelpers.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerPreTasksShouldBeError(c)
 
-			Convey("When retrying the transfer", func(c C) {
-				So(ctx.DB.DeleteAll(&task).Where("type=?", testhelpers.ClientErr).
-					Run(), ShouldBeNil)
-				ctx.Trans.Status = types.StatusPlanned
+				cTrans := &model.Transfer{
+					Step:       types.StepSetup,
+					Progress:   0,
+					TaskNumber: 0,
+					Error: *types.NewTransferError(types.TeExternalOperation,
+						"Error on remote partner: pre-tasks failed"),
+				}
+				sTrans := &model.Transfer{
+					Step:       types.StepPreTasks,
+					Progress:   0,
+					TaskNumber: 1,
+					Error: *types.NewTransferError(types.TeExternalOperation,
+						"Pre-tasks failed: Task SERVERERR @ PUSH PRE[1]: task failed"),
+				}
 
-				Convey("Once the transfer has been processed", func(c C) {
-					runTransfer(c, ctx)
+				ctx.CheckTransfersError(c, cTrans, sTrans)
+			})
+		})
+	})
+}
 
-					Convey("Then it should have executed all the remaining tasks in order", func(c C) {
-						testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
-						testhelpers.ServerMsgShouldBe(c, "SERVER | PUSH | POST-TASKS[0] | OK")
-						testhelpers.ServerMsgShouldBe(c, "SERVER TRANSFER END")
-						testhelpers.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
+func TestPushClientPostError(t *testing.T) {
+	Convey("Given a new SFTP push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", servConf, partConf)
+		ctx.AddCerts(c, makeCerts(ctx)...)
+		ctx.StartService(c)
 
-						testhelpers.CheckTransfersOK(c, ctx)
-					})
-				})
+		Convey("Given that an error occurs in client post-tasks", func(c C) {
+			ctx.AddClientPostTaskError(c)
+			ctx.RunTransfer(c)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerPreTasksShouldBeOK(c)
+				ctx.ClientPreTasksShouldBeOK(c)
+				ctx.ClientPosTasksShouldBeError(c)
+
+				cTrans := &model.Transfer{
+					Step:       types.StepPostTasks,
+					Progress:   pipelinetest.TestFileSize,
+					TaskNumber: 1,
+					Error: *types.NewTransferError(types.TeExternalOperation,
+						"Post-tasks failed: Task CLIENTERR @ PUSH POST[1]: task failed"),
+				}
+				sTrans := &model.Transfer{
+					Step:       types.StepData,
+					Progress:   pipelinetest.TestFileSize,
+					TaskNumber: 0,
+					Error: *types.NewTransferError(types.TeUnknownRemote,
+						"Error on remote partner: session closed by remote host"),
+				}
+
+				ctx.CheckTransfersError(c, cTrans, sTrans)
+			})
+		})
+	})
+}
+
+func TestPushServerPostError(t *testing.T) {
+	Convey("Given a new SFTP push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", servConf, partConf)
+		ctx.AddCerts(c, makeCerts(ctx)...)
+		ctx.StartService(c)
+
+		Convey("Given that an error occurs in server post-tasks", func(c C) {
+			ctx.AddServerPostTaskError(c)
+			ctx.RunTransfer(c)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerPreTasksShouldBeOK(c)
+				ctx.ClientPreTasksShouldBeOK(c)
+				ctx.ClientPosTasksShouldBeOK(c)
+				ctx.ServerPosTasksShouldBeError(c)
+
+				cTrans := &model.Transfer{
+					Step:       types.StepPostTasks,
+					Progress:   pipelinetest.TestFileSize,
+					TaskNumber: 1,
+					Error: *types.NewTransferError(types.TeExternalOperation,
+						"Error on remote partner: post-tasks failed"),
+				}
+				sTrans := &model.Transfer{
+					Step:       types.StepPostTasks,
+					Progress:   pipelinetest.TestFileSize,
+					TaskNumber: 1,
+					Error: *types.NewTransferError(types.TeExternalOperation,
+						"Post-tasks failed: Task SERVERERR @ PUSH POST[1]: task failed"),
+				}
+
+				ctx.CheckTransfersError(c, cTrans, sTrans)
+			})
+		})
+	})
+}
+
+func TestPullClientPreError(t *testing.T) {
+	Convey("Given a new SFTP pull transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", servConf, partConf)
+		ctx.AddCerts(c, makeCerts(ctx)...)
+		ctx.StartService(c)
+
+		Convey("Given that an error occurs in client pre-tasks", func(c C) {
+			ctx.AddClientPreTaskError(c)
+			ctx.RunTransfer(c)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerPreTasksShouldBeOK(c)
+				ctx.ClientPreTasksShouldBeError(c)
+
+				cTrans := &model.Transfer{
+					Step:       types.StepPreTasks,
+					Progress:   0,
+					TaskNumber: 1,
+					Error: *types.NewTransferError(types.TeExternalOperation,
+						"Pre-tasks failed: Task CLIENTERR @ PULL PRE[1]: task failed"),
+				}
+				sTrans := &model.Transfer{
+					Step:       types.StepData,
+					Progress:   0,
+					TaskNumber: 0,
+					Error: *types.NewTransferError(types.TeUnknownRemote,
+						"Error on remote partner: session closed by remote host"),
+				}
+
+				ctx.CheckTransfersError(c, cTrans, sTrans)
+			})
+		})
+	})
+}
+
+func TestPullServerPreError(t *testing.T) {
+	Convey("Given a new SFTP pull transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", servConf, partConf)
+		ctx.AddCerts(c, makeCerts(ctx)...)
+		ctx.StartService(c)
+
+		Convey("Given that an error occurs in server pre-tasks", func(c C) {
+			ctx.AddServerPreTaskError(c)
+			ctx.RunTransfer(c)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerPreTasksShouldBeError(c)
+
+				cTrans := &model.Transfer{
+					Step:       types.StepSetup,
+					Progress:   0,
+					TaskNumber: 0,
+					Error: *types.NewTransferError(types.TeExternalOperation,
+						"Error on remote partner: pre-tasks failed"),
+				}
+				sTrans := &model.Transfer{
+					Step:       types.StepPreTasks,
+					Progress:   0,
+					TaskNumber: 1,
+					Error: *types.NewTransferError(types.TeExternalOperation,
+						"Pre-tasks failed: Task SERVERERR @ PULL PRE[1]: task failed"),
+				}
+
+				ctx.CheckTransfersError(c, cTrans, sTrans)
+			})
+		})
+	})
+}
+
+func TestPullClientPostError(t *testing.T) {
+	Convey("Given a new SFTP pull transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", servConf, partConf)
+		ctx.AddCerts(c, makeCerts(ctx)...)
+		ctx.StartService(c)
+
+		Convey("Given that an error occurs in client post-tasks", func(c C) {
+			ctx.AddClientPostTaskError(c)
+			ctx.RunTransfer(c)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerPreTasksShouldBeOK(c)
+				ctx.ClientPreTasksShouldBeOK(c)
+				ctx.ClientPosTasksShouldBeError(c)
+
+				cTrans := &model.Transfer{
+					Step:       types.StepPostTasks,
+					Progress:   pipelinetest.TestFileSize,
+					TaskNumber: 1,
+					Error: *types.NewTransferError(types.TeExternalOperation,
+						"Post-tasks failed: Task CLIENTERR @ PULL POST[1]: task failed"),
+				}
+				sTrans := &model.Transfer{
+					Step:       types.StepData,
+					Progress:   pipelinetest.TestFileSize,
+					TaskNumber: 0,
+					Error: *types.NewTransferError(types.TeUnknownRemote,
+						"Error on remote partner: session closed by remote host"),
+				}
+
+				ctx.CheckTransfersError(c, cTrans, sTrans)
+			})
+		})
+	})
+}
+
+func TestPullServerPostError(t *testing.T) {
+	Convey("Given a new SFTP pull transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", servConf, partConf)
+		ctx.AddCerts(c, makeCerts(ctx)...)
+		ctx.StartService(c)
+
+		Convey("Given that an error occurs in server post-tasks", func(c C) {
+			ctx.AddServerPostTaskError(c)
+			ctx.RunTransfer(c)
+
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerPreTasksShouldBeOK(c)
+				ctx.ClientPreTasksShouldBeOK(c)
+				ctx.ClientPosTasksShouldBeOK(c)
+				ctx.ServerPosTasksShouldBeError(c)
+
+				cTrans := &model.Transfer{
+					Step:       types.StepPostTasks,
+					Progress:   pipelinetest.TestFileSize,
+					TaskNumber: 1,
+					Error: *types.NewTransferError(types.TeExternalOperation,
+						"Error on remote partner: post-tasks failed"),
+				}
+				sTrans := &model.Transfer{
+					Step:       types.StepPostTasks,
+					Progress:   pipelinetest.TestFileSize,
+					TaskNumber: 1,
+					Error: *types.NewTransferError(types.TeExternalOperation,
+						"Post-tasks failed: Task SERVERERR @ PULL POST[1]: task failed"),
+				}
+
+				ctx.CheckTransfersError(c, cTrans, sTrans)
 			})
 		})
 	})

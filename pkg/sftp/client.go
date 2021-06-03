@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"io"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
@@ -23,8 +21,7 @@ func init() {
 // client is the SFTP implementation of the `pipeline.Client` interface which
 // enables the gateway to initiate SFTP transfers.
 type client struct {
-	logger   *log.Logger
-	transCtx *model.TransferContext
+	pip *pipeline.Pipeline
 
 	sshConf *ssh.ClientConfig
 
@@ -36,108 +33,113 @@ type client struct {
 // NewClient returns a new SFTP transfer client with the given transfer info,
 // local file, and signal channel. An error is returned if the client
 // configuration is incorrect.
-func NewClient(logger *log.Logger, transCtx *model.TransferContext) (pipeline.Client, error) {
-	conf := &config.SftpProtoConfig{}
-	if err := json.Unmarshal(transCtx.RemoteAgent.ProtoConfig, conf); err != nil {
-		logger.Errorf("Failed to parse SFTP partner protocol configuration: %s", err)
+func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
+	var conf config.SftpProtoConfig
+	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &conf); err != nil {
+		pip.Logger.Errorf("Failed to parse SFTP partner protocol configuration: %s", err)
 		return nil, types.NewTransferError(types.TeInternal,
 			"failed to parse SFTP partner protocol configuration")
 	}
 
-	sshConf, err := getSSHClientConfig(transCtx, conf)
+	sshConf, err := getSSHClientConfig(pip.TransCtx, &conf)
 	if err != nil {
-		logger.Errorf("Failed to make SFTP client configuration: %s", err)
+		pip.Logger.Errorf("Failed to make SFTP client configuration: %s", err)
 		return nil, types.NewTransferError(types.TeInternal, "failed to make SFTP configuration")
 	}
 
 	return &client{
-		logger:   logger,
-		transCtx: transCtx,
-		sshConf:  sshConf,
+		pip:     pip,
+		sshConf: sshConf,
 	}, nil
 }
 
-func (c *client) Request() error {
+func (c *client) Request() *types.TransferError {
 	var err error
-	c.sshSession, err = ssh.Dial("tcp", c.transCtx.RemoteAgent.Address, c.sshConf)
+	defer func() {
+		if err != nil {
+			_ = c.EndTransfer()
+		}
+	}()
+
+	c.sshSession, err = ssh.Dial("tcp", c.pip.TransCtx.RemoteAgent.Address, c.sshConf)
 	if err != nil {
-		c.logger.Errorf("Failed to connect to SFTP host: %s", err)
-		return types.NewTransferError(sftpToCode(err, types.TeConnection),
-			"failed to connect to SFTP host")
+		c.pip.Logger.Errorf("Failed to connect to SFTP host: %s", err)
+		return sftpToModel(err, types.TeConnection)
 	}
 
 	c.sftpSession, err = sftp.NewClient(c.sshSession)
 	if err != nil {
-		c.logger.Errorf("Failed to start SFTP session: %s", err)
-		return types.NewTransferError(sftpToCode(err, types.TeUnknownRemote),
-			"failed to start SFTP session")
+		c.pip.Logger.Errorf("Failed to start SFTP session: %s", err)
+		return sftpToModel(err, types.TeUnknownRemote)
 	}
 
-	if c.transCtx.Rule.IsSend {
-		c.remoteFile, err = c.sftpSession.Create(c.transCtx.Transfer.RemotePath)
+	if c.pip.TransCtx.Rule.IsSend {
+		c.remoteFile, err = c.sftpSession.Create(c.pip.TransCtx.Transfer.RemotePath)
 		if err != nil {
-			c.logger.Errorf("Failed to create remote file: %s", err)
-			return types.NewTransferError(sftpToCode(err, types.TeUnknownRemote),
-				"failed to create remote file")
+			c.pip.Logger.Errorf("Failed to create remote file: %s", err)
+			return sftpToModel(err, types.TeUnknownRemote)
 		}
 	} else {
-		c.remoteFile, err = c.sftpSession.Open(c.transCtx.Transfer.RemotePath)
+		c.remoteFile, err = c.sftpSession.Open(c.pip.TransCtx.Transfer.RemotePath)
 		if err != nil {
-			c.logger.Errorf("Failed to open remote file: %s", err)
-			return types.NewTransferError(sftpToCode(err, types.TeUnknownRemote),
-				"failed to open remote file")
+			c.pip.Logger.Errorf("Failed to open remote file: %s", err)
+			return sftpToModel(err, types.TeUnknownRemote)
 		}
 	}
 	return nil
 }
 
 // Data copies the content of the source file into the destination file.
-func (c *client) Data(data pipeline.DataStream) error {
-	if c.transCtx.Transfer.Progress != 0 {
-		_, err := c.remoteFile.Seek(int64(c.transCtx.Transfer.Progress), io.SeekStart)
+func (c *client) Data(data pipeline.DataStream) *types.TransferError {
+	if c.pip.TransCtx.Transfer.Progress != 0 {
+		_, err := c.remoteFile.Seek(int64(c.pip.TransCtx.Transfer.Progress), io.SeekStart)
 		if err != nil {
-			c.logger.Errorf("Failed to seek into remote SFTP file: %s", err)
-			return types.NewTransferError(sftpToCode(err, types.TeUnknownRemote),
-				"failed to seek info SFTP file")
+			c.pip.Logger.Errorf("Failed to seek into remote SFTP file: %s", err)
+			return sftpToModel(err, types.TeUnknownRemote)
 		}
 	}
 
-	if c.transCtx.Rule.IsSend {
+	if c.pip.TransCtx.Rule.IsSend {
 		_, err := c.remoteFile.ReadFrom(data)
 		if err != nil {
-			c.logger.Errorf("Failed to write to remote SFTP file: %s", err)
-			return types.NewTransferError(sftpToCode(err, types.TeDataTransfer),
-				"failed to write to SFTP file")
+			c.pip.Logger.Errorf("Failed to write to remote SFTP file: %s", err)
+			return sftpToModel(err, types.TeDataTransfer)
 		}
 	} else {
 		_, err := c.remoteFile.WriteTo(data)
 		if err != nil {
-			c.logger.Errorf("Failed to read from remote SFTP file: %s", err)
-			return types.NewTransferError(sftpToCode(err, types.TeDataTransfer),
-				"failed to read from SFTP file")
+			c.pip.Logger.Errorf("Failed to read from remote SFTP file: %s", err)
+			return sftpToModel(err, types.TeDataTransfer)
 		}
 	}
 
 	return nil
 }
 
-func (c *client) EndTransfer() error {
-	defer func() {
-		_ = c.sshSession.Close()
-	}()
-	if err := c.remoteFile.Close(); err != nil {
-		c.logger.Errorf("Failed to close remote SFTP file: %s", err)
-		return types.NewTransferError(sftpToCode(err, types.TeFinalization),
-			"failed to close remote SFTP file")
+func (c *client) EndTransfer() *types.TransferError {
+	if c.remoteFile != nil {
+		if err := c.remoteFile.Close(); err != nil {
+			c.pip.Logger.Errorf("Failed to close remote SFTP file: %s", err)
+			return sftpToModel(err, types.TeFinalization)
+		}
 	}
-	if err := c.sftpSession.Close(); err != nil {
-		c.logger.Errorf("Failed to close SFTP session: %s", err)
-		return types.NewTransferError(sftpToCode(err, types.TeFinalization),
-			"failed to close SFTP session")
+	if c.sftpSession != nil {
+		if err := c.sftpSession.Close(); err != nil {
+			c.pip.Logger.Errorf("Failed to close SFTP session: %s", err)
+			return sftpToModel(err, types.TeFinalization)
+		}
+	}
+	if c.sshSession != nil {
+		if err := c.sshSession.Close(); err != nil {
+			c.pip.Logger.Errorf("Failed to close SSH session: %s", err)
+			return sftpToModel(err, types.TeFinalization)
+		}
 	}
 	return nil
 }
 
-func (c *client) SendError(error) {
-	_ = c.sshSession.Close()
+func (c *client) SendError(*types.TransferError) {
+	if c.sshSession != nil {
+		_ = c.sshSession.Close()
+	}
 }

@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/subtle"
 	"errors"
 	"io"
 	"strings"
@@ -74,4 +75,10 @@ func HashPassword(bcryptRounds int, password []byte) ([]byte, error) {
 		return nil, err
 	}
 	return hash, nil
+}
+
+// ConstantEqual takes a pair of strings and returns whether they are equal or
+// not. Comparison is done in constant time for security purposes.
+func ConstantEqual(s1, s2 string) bool {
+	return subtle.ConstantTimeCompare([]byte(s1), []byte(s2)) == 1
 }

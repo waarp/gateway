@@ -119,9 +119,9 @@ func (l *SSHListener) makeFileReader(ch ssh.Channel, acc *model.LocalAccount) in
 		l.Logger.Debug("GET request received")
 
 		// Get rule according to request filepath
-		rule, err := internal.GetRuleFromPath(l.DB, r, true)
-		if err != nil {
-			l.Logger.Errorf("Failed to retrieve transfer rule: %s", err)
+		rule, rErr := internal.GetRuleFromPath(l.DB, r, true)
+		if rErr != nil {
+			l.Logger.Errorf("Failed to retrieve transfer rule: %s", rErr)
 			return nil, errDatabase
 		}
 
@@ -144,13 +144,14 @@ func (l *SSHListener) makeFileReader(ch ssh.Channel, acc *model.LocalAccount) in
 		if err := pipeline.NewServerTransfer(l.DB, l.Logger, trans); err != nil {
 			return nil, err
 		}
-		pip, err := pipeline.NewServerPipeline(l.DB, trans, &errorHandler{ch})
+		errH := &errorHandler{ch}
+		pip, err := pipeline.NewServerPipeline(l.DB, trans, errH)
 		if err != nil {
 			return nil, modelToSFTP(err)
 		}
-		str, err := l.newStream(pip, trans)
-		if err != nil {
-			return str, err
+		str, sErr := l.newStream(pip, trans)
+		if sErr != nil {
+			return nil, modelToSFTP(sErr)
 		}
 		return str, nil
 	}
@@ -161,9 +162,9 @@ func (l *SSHListener) makeFileWriter(ch ssh.Channel, acc *model.LocalAccount) in
 		l.Logger.Debug("PUT request received")
 
 		// Get rule according to request filepath
-		rule, err := internal.GetRuleFromPath(l.DB, r, false)
-		if err != nil {
-			l.Logger.Errorf("Failed to retrieve transfer rule: %s", err)
+		rule, rErr := internal.GetRuleFromPath(l.DB, r, false)
+		if rErr != nil {
+			l.Logger.Errorf("Failed to retrieve transfer rule: %s", rErr)
 			return nil, errDatabase
 		}
 
@@ -186,13 +187,14 @@ func (l *SSHListener) makeFileWriter(ch ssh.Channel, acc *model.LocalAccount) in
 		if err := pipeline.NewServerTransfer(l.DB, l.Logger, trans); err != nil {
 			return nil, err
 		}
-		pip, err := pipeline.NewServerPipeline(l.DB, trans, &errorHandler{ch})
+		errH := &errorHandler{ch}
+		pip, err := pipeline.NewServerPipeline(l.DB, trans, errH)
 		if err != nil {
 			return nil, modelToSFTP(err)
 		}
-		str, err := l.newStream(pip, trans)
-		if err != nil {
-			return str, err
+		str, sErr := l.newStream(pip, trans)
+		if sErr != nil {
+			return nil, modelToSFTP(sErr)
 		}
 		return str, nil
 	}

@@ -1,9 +1,9 @@
 package sftp
 
 import (
+	"errors"
 	"fmt"
-	"io"
-	"os"
+	"regexp"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/pkg/sftp"
@@ -16,41 +16,61 @@ var (
 // modelToSFTP converts the given error into its closest equivalent
 // SFTP error code. Since SFTP v3 only supports 8 error codes (9 with code Ok),
 // most errors will be converted to the generic code SSH_FX_FAILURE.
-func modelToSFTP(err error) error {
-	if tErr, ok := err.(types.TransferError); ok {
-		switch tErr.Code {
-		case types.TeOk:
-			return sftp.ErrSSHFxOk
-		case types.TeUnimplemented:
-			return sftp.ErrSSHFxOpUnsupported
-		case types.TeIntegrity:
-			return sftp.ErrSSHFxBadMessage
-		case types.TeFileNotFound:
-			return sftp.ErrSSHFxNoSuchFile
-		case types.TeForbidden:
-			return sftp.ErrSSHFxPermissionDenied
-		default:
-			return fmt.Errorf(tErr.Details)
-		}
+func modelToSFTP(err *types.TransferError) error {
+	switch err.Code {
+	case types.TeOk:
+		return sftp.ErrSSHFxOk
+	case types.TeUnimplemented:
+		return sftp.ErrSSHFxOpUnsupported
+	case types.TeFileNotFound:
+		return sftp.ErrSSHFxNoSuchFile
+	case types.TeForbidden:
+		return sftp.ErrSSHFxPermissionDenied
+	default:
+		return fmt.Errorf(err.Error())
 	}
-	return err
 }
 
-func sftpToCode(err error, def types.TransferErrorCode) types.TransferErrorCode {
-	switch err {
-	case sftp.ErrSSHFxNoSuchFile, os.ErrNotExist:
-		return types.TeFileNotFound
-	case sftp.ErrSSHFxBadMessage, sftp.ErrSSHFxOpUnsupported:
-		return types.TeUnimplemented
-	case sftp.ErrSSHFxConnectionLost:
-		return types.TeConnectionReset
-	case sftp.ErrSSHFxPermissionDenied:
-		return types.TeForbidden
-	case sftp.ErrSSHFxNoConnection:
-		return types.TeConnection
-	case sftp.ErrSSHFxEOF, io.EOF:
-		return types.TeDataTransfer
-	default:
-		return def
+func sftpToModel(err error, defaults types.TransferErrorCode) *types.TransferError {
+	code := defaults
+	msg := err.Error()
+
+	var sErr *sftp.StatusError
+	if !errors.As(err, &sErr) {
+		return types.NewTransferError(code, msg)
 	}
+
+	regex, _ := regexp.Compile(`sftp: "TransferError\((Te\w*)\): (.*)" \(.*\)`)
+	s := regex.FindStringSubmatch(err.Error())
+	if len(s) >= 3 {
+		code = types.TecFromString(s[1])
+		msg = s[2]
+		return types.NewTransferError(code, msg)
+	}
+
+	switch sErr.FxCode() {
+	case sftp.ErrSSHFxOk, sftp.ErrSSHFxEOF:
+		return nil
+	case sftp.ErrSSHFxNoSuchFile:
+		code = types.TeFileNotFound
+	case sftp.ErrSSHFxPermissionDenied:
+		code = types.TeForbidden
+	case sftp.ErrSSHFxFailure:
+		code = types.TeUnknownRemote
+	case sftp.ErrSSHFxBadMessage:
+		code = types.TeUnimplemented
+	case sftp.ErrSSHFxNoConnection:
+		code = types.TeConnection
+	case sftp.ErrSSHFxConnectionLost:
+		code = types.TeConnectionReset
+	case sftp.ErrSSHFxOpUnsupported:
+		code = types.TeUnimplemented
+	}
+
+	regex2, _ := regexp.Compile(`sftp: "(.*)" \(.*\)`)
+	s2 := regex2.FindStringSubmatch(err.Error())
+	if len(s2) >= 1 {
+		msg = s2[1]
+	}
+	return types.NewTransferError(code, msg)
 }

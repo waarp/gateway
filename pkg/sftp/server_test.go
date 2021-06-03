@@ -9,7 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
@@ -18,7 +20,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 )
 
 func getTestPort() string {
@@ -114,119 +115,102 @@ func TestServerStart(t *testing.T) {
 	})
 }
 
-func TestSSHServer(t *testing.T) {
+func TestSSHServerInterruption(t *testing.T) {
 
-	Convey("Given a server transfer context", t, func(c C) {
-		testCtx := testhelpers.InitServer(c, "sftp", nil)
-		testhelpers.MakeChan(c)
-		hostKey := &model.Cert{
-			OwnerType:  testCtx.Server.TableName(),
-			OwnerID:    testCtx.Server.ID,
-			Name:       "sftp_hostkey",
-			PrivateKey: []byte(rsaPK),
-		}
-		So(testCtx.DB.Insert(hostKey).Run(), ShouldBeNil)
+	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
+		test := pipelinetest.InitServerPush(c, "sftp", servConf)
+		test.AddCerts(c, makeServerKey(test.Server))
 
-		Convey("Given an SFTP server", func() {
-			sftpServer := NewService(testCtx.DB, testCtx.Server, log.NewLogger("test_sftp_server")).(*Service)
-			So(sftpServer.Start(), ShouldBeNil)
-			Reset(func() {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-				defer cancel()
-				So(sftpServer.Stop(ctx), ShouldBeNil)
-			})
+		serv := gatewayd.ServiceConstructors[test.Server.Protocol](test.DB, test.Server, test.Logger)
+		c.So(serv.Start(), ShouldBeNil)
 
-			Convey("Given that the server shuts down", func() {
-				Convey("Given an SSH client", func() {
-					cli := makeDummyClient(testCtx.Server.Address, testhelpers.
-						TestLogin, testhelpers.TestPassword)
+		Convey("Given a dummy SFTP client", func() {
+			cli := makeDummyClient(test.Server.Address, pipelinetest.TestLogin, pipelinetest.TestPassword)
 
-					Convey("Given an incoming transfer", func() {
-						dst, err := cli.Create(path.Join(testCtx.ServerPush.Path,
-							"test_in_shutdown.dst"))
-						So(err, ShouldBeNil)
+			Convey("Given that a push transfer started", func() {
+				dst, err := cli.Create(path.Join(test.Rule.Path, "test_in_shutdown.dst"))
+				So(err, ShouldBeNil)
 
-						Convey("When the server shuts down", func(c C) {
-							_, err := dst.Write([]byte{'a'})
-							So(err, ShouldBeNil)
+				_, err = dst.Write([]byte("abc"))
+				So(err, ShouldBeNil)
 
-							pip, ok := sftpServer.listener.runningTransfers.Get(1)
-							So(ok, ShouldBeTrue)
-							pip.Interrupt()
+				Convey("When the server shuts down", func(c C) {
+					ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+					defer cancel()
+					So(serv.Stop(ctx), ShouldBeNil)
 
-							_, err = dst.Write([]byte{'b'})
-							So(err, ShouldNotBeNil)
+					Convey("Then the transfer should have been interrupted", func() {
+						var transfers model.Transfers
+						So(test.DB.Select(&transfers).Run(), ShouldBeNil)
+						So(transfers, ShouldNotBeEmpty)
 
-							pipeline.WaitEndServerTransfer(c, pip.(*pipeline.ServerPipeline))
-
-							Convey("Then the transfer should appear interrupted", func() {
-								var transfers model.Transfers
-								So(testCtx.DB.Select(&transfers).Run(), ShouldBeNil)
-								So(transfers, ShouldNotBeEmpty)
-
-								trans := model.Transfer{
-									ID:        transfers[0].ID,
-									Start:     transfers[0].Start,
-									IsServer:  true,
-									AccountID: testCtx.LocAccount.ID,
-									AgentID:   testCtx.Server.ID,
-									LocalPath: filepath.Join(testCtx.Server.Root,
-										testCtx.Server.LocalTmpDir, "test_in_shutdown.dst.part"),
-									RemotePath: "/test_in_shutdown.dst",
-									RuleID:     testCtx.ServerPush.ID,
-									Status:     types.StatusInterrupted,
-									Step:       types.StepData,
-									Owner:      database.Owner,
-									Progress:   1,
-								}
-								So(transfers[0], ShouldResemble, trans)
-							})
-						})
+						trans := model.Transfer{
+							ID:        transfers[0].ID,
+							Start:     transfers[0].Start,
+							IsServer:  true,
+							AccountID: test.LocAccount.ID,
+							AgentID:   test.Server.ID,
+							LocalPath: filepath.Join(test.Server.Root,
+								test.Server.LocalTmpDir, "test_in_shutdown.dst.part"),
+							RemotePath: "/test_in_shutdown.dst",
+							RuleID:     test.Rule.ID,
+							Status:     types.StatusInterrupted,
+							Step:       types.StepData,
+							Owner:      database.Owner,
+							Progress:   3,
+						}
+						So(transfers[0], ShouldResemble, trans)
 					})
+				})
+			})
+		})
+	})
 
-					Convey("Given an outgoing transfer", func() {
-						testhelpers.AddSourceFile(c, filepath.Join(testCtx.Server.Root,
-							testCtx.Server.LocalOutDir), "test_out_shutdown.src")
-						src, err := cli.Open(path.Join(testCtx.ServerPull.Path,
-							"test_out_shutdown.src"))
-						So(err, ShouldBeNil)
+	Convey("Given an SFTP server ready for pull transfers", t, func(c C) {
+		test := pipelinetest.InitServerPull(c, "sftp", servConf)
+		test.AddCerts(c, makeServerKey(test.Server))
 
-						Convey("When the server shuts down", func() {
-							_, err := src.Read(make([]byte, 1))
-							So(err, ShouldBeNil)
+		serv := gatewayd.ServiceConstructors[test.Server.Protocol](test.DB, test.Server, test.Logger)
+		c.So(serv.Start(), ShouldBeNil)
 
-							pip, ok := sftpServer.listener.runningTransfers.Get(1)
-							So(ok, ShouldBeTrue)
-							pip.Interrupt()
+		Convey("Given a dummy SFTP client", func() {
+			cli := makeDummyClient(test.Server.Address, pipelinetest.TestLogin, pipelinetest.TestPassword)
 
-							_, err = src.Read(make([]byte, 1))
-							So(err, ShouldNotBeNil)
+			Convey("Given that a pull transfer started", func() {
+				pipelinetest.AddSourceFile(c, filepath.Join(test.Server.Root,
+					test.Server.LocalOutDir), "test_out_shutdown.src")
+				dst, err := cli.Open(path.Join(test.Rule.Path, "test_out_shutdown.src"))
+				So(err, ShouldBeNil)
 
-							pipeline.WaitEndServerTransfer(c, pip.(*pipeline.ServerPipeline))
+				_, err = dst.Read(make([]byte, 3))
+				So(err, ShouldBeNil)
 
-							Convey("Then the transfer should appear interrupted", func() {
-								var transfers model.Transfers
-								So(testCtx.DB.Select(&transfers).Run(), ShouldBeNil)
-								So(transfers, ShouldNotBeEmpty)
+				Convey("When the server shuts down", func(c C) {
+					ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+					defer cancel()
+					So(serv.Stop(ctx), ShouldBeNil)
 
-								trans := model.Transfer{
-									ID:        transfers[0].ID,
-									Start:     transfers[0].Start,
-									IsServer:  true,
-									AccountID: testCtx.LocAccount.ID,
-									AgentID:   testCtx.Server.ID,
-									LocalPath: filepath.Join(testCtx.Server.Root,
-										testCtx.Server.LocalOutDir, "test_out_shutdown.src"),
-									RemotePath: "/test_out_shutdown.src",
-									RuleID:     testCtx.ServerPull.ID,
-									Status:     types.StatusInterrupted,
-									Step:       types.StepData,
-									Owner:      database.Owner,
-									Progress:   1,
-								}
-								So(transfers[0], ShouldResemble, trans)
-							})
-						})
+					Convey("Then the transfer should have been interrupted", func() {
+						var transfers model.Transfers
+						So(test.DB.Select(&transfers).Run(), ShouldBeNil)
+						So(transfers, ShouldNotBeEmpty)
+
+						trans := model.Transfer{
+							ID:        transfers[0].ID,
+							Start:     transfers[0].Start,
+							IsServer:  true,
+							AccountID: test.LocAccount.ID,
+							AgentID:   test.Server.ID,
+							LocalPath: filepath.Join(test.Server.Root,
+								test.Server.LocalOutDir, "test_out_shutdown.src"),
+							RemotePath: "/test_out_shutdown.src",
+							RuleID:     test.Rule.ID,
+							Status:     types.StatusInterrupted,
+							Step:       types.StepData,
+							Owner:      database.Owner,
+							Progress:   3,
+						}
+						So(transfers[0], ShouldResemble, trans)
 					})
 				})
 			})

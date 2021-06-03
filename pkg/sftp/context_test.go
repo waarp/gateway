@@ -1,44 +1,30 @@
 package sftp
 
 import (
-	"context"
-	"time"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
 )
 
-func addCerts(c C, ctx *testhelpers.Context) {
-	serverKey := model.Cert{
-		OwnerType:  ctx.Server.TableName(),
-		OwnerID:    ctx.Server.ID,
+func makeCerts(ctx *pipelinetest.SelfContext) []model.Cert {
+	return []model.Cert{makeServerKey(ctx.Server), makePartnerKey(ctx.Partner)}
+}
+
+func makeServerKey(serv *model.LocalAgent) model.Cert {
+	return model.Cert{
+		OwnerType:  serv.TableName(),
+		OwnerID:    serv.ID,
 		Name:       "sftp_server_cert",
 		PrivateKey: []byte(rsaPK),
 		PublicKey:  []byte(rsaPBK),
 	}
-	c.So(ctx.DB.Insert(&serverKey).Run(), ShouldBeNil)
-	ctx.ServerCerts = []model.Cert{serverKey}
+}
 
-	partnerKey := model.Cert{
-		OwnerType:  ctx.Partner.TableName(),
-		OwnerID:    ctx.Partner.ID,
+func makePartnerKey(part *model.RemoteAgent) model.Cert {
+	return model.Cert{
+		OwnerType:  part.TableName(),
+		OwnerID:    part.ID,
 		Name:       "sftp_partner_cert",
 		PrivateKey: []byte(rsaPK),
 		PublicKey:  []byte(rsaPBK),
 	}
-	c.So(ctx.DB.Insert(&partnerKey).Run(), ShouldBeNil)
-	ctx.ServerCerts = []model.Cert{partnerKey}
-}
-
-func startService(c C, ctx *testhelpers.Context) {
-	serv := NewService(ctx.DB, ctx.Server, ctx.Logger)
-	c.So(serv.Start(), ShouldBeNil)
-	c.Reset(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		c.So(serv.Stop(ctx), ShouldBeNil)
-	})
-	serv.(*Service).listener.handlerMaker = serv.(*Service).listener.makeTestHandlers(c)
 }

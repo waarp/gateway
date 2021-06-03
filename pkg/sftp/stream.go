@@ -1,8 +1,10 @@
 package sftp
 
 import (
-	"fmt"
+	"errors"
 	"io"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 
@@ -15,7 +17,7 @@ type errorHandler struct {
 	ch ssh.Channel
 }
 
-func (e *errorHandler) SendError(error) {
+func (e *errorHandler) SendError(*types.TransferError) {
 	_ = e.ch.CloseWrite()
 }
 
@@ -29,17 +31,19 @@ type stream struct {
 // newStream initialises a special kind of TransferStream tailored for
 // the SFTP server. This constructor initialises a TransferStream, opens the
 // local file and executes the pre-tasks.
-func (l *SSHListener) newStream(pip *pipeline.ServerPipeline, trans *model.Transfer) (*stream, error) {
+func (l *SSHListener) newStream(pip *pipeline.ServerPipeline, trans *model.Transfer) (*stream, *types.TransferError) {
 	l.runningTransfers.Add(trans.ID, pip)
 	str := &stream{list: l, pipeline: pip, trans: trans}
 
 	if err := pip.PreTasks(); err != nil {
-		return str, modelToSFTP(err)
+		l.runningTransfers.Delete(trans.ID)
+		return nil, err
 	}
 
 	file, err := pip.StartData()
 	if err != nil {
-		return str, modelToSFTP(err)
+		l.runningTransfers.Delete(trans.ID)
+		return nil, err
 	}
 	str.file = file
 
@@ -48,29 +52,32 @@ func (l *SSHListener) newStream(pip *pipeline.ServerPipeline, trans *model.Trans
 
 func (s *stream) TransferError(err error) {
 	if err == io.EOF {
-		s.pipeline.SetError(fmt.Errorf("session closed by remote host"))
+		s.pipeline.SetError(types.NewTransferError(types.TeUnknownRemote,
+			"session closed by remote host"))
 	} else {
-		s.pipeline.SetError(err)
+		s.pipeline.SetError(types.NewTransferError(types.TeUnknownRemote, err.Error()))
 	}
 }
 
 func (s *stream) ReadAt(p []byte, off int64) (int, error) {
 	n, err := s.file.ReadAt(p, off)
-	if err != nil && err != io.EOF {
-		return n, modelToSFTP(err)
+	var tErr *types.TransferError
+	if err != nil && errors.As(err, &tErr) {
+		return n, modelToSFTP(tErr)
 	}
 	return n, err
 }
 
 func (s *stream) WriteAt(p []byte, off int64) (int, error) {
 	n, err := s.file.WriteAt(p, off)
-	if err != nil {
-		return n, modelToSFTP(err)
+	var tErr *types.TransferError
+	if err != nil && errors.As(err, &tErr) {
+		return n, modelToSFTP(tErr)
 	}
 	return n, nil
 }
 
-func (s *stream) close() error {
+func (s *stream) close() *types.TransferError {
 	defer s.list.runningTransfers.Delete(s.trans.ID)
 	if err := s.pipeline.EndData(); err != nil {
 		return err
