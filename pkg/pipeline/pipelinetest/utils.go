@@ -7,6 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks/taskstest"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -31,6 +35,12 @@ type testData struct {
 type transData struct {
 	ClientTrans *model.Transfer
 	fileContent []byte
+}
+
+func hash(pwd string) []byte {
+	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
+	convey.So(err, convey.ShouldBeNil)
+	return h
 }
 
 // AddSourceFile creates a file under the given directory with the given name,
@@ -61,17 +71,17 @@ func initTestData(c convey.C) *testData {
 }
 
 func makeChan(c convey.C) {
-	testhelpers.ClientCheckChannel = make(chan string, 20)
-	testhelpers.ServerCheckChannel = make(chan string, 20)
+	taskstest.ClientCheckChannel = make(chan string, 20)
+	taskstest.ServerCheckChannel = make(chan string, 20)
 	c.Reset(func() {
-		if testhelpers.ClientCheckChannel != nil {
-			close(testhelpers.ClientCheckChannel)
+		if taskstest.ClientCheckChannel != nil {
+			close(taskstest.ClientCheckChannel)
 		}
-		if testhelpers.ServerCheckChannel != nil {
-			close(testhelpers.ServerCheckChannel)
+		if taskstest.ServerCheckChannel != nil {
+			close(taskstest.ServerCheckChannel)
 		}
-		testhelpers.ClientCheckChannel = nil
-		testhelpers.ServerCheckChannel = nil
+		taskstest.ClientCheckChannel = nil
+		taskstest.ServerCheckChannel = nil
 	})
 }
 
@@ -89,9 +99,9 @@ func makePaths(c convey.C, home string) *conf.PathsConfig {
 }
 
 func makeRuleTasks(c convey.C, db *database.DB, rule *model.Rule, isClient bool) {
-	taskType := testhelpers.ClientOK
+	taskType := taskstest.ClientOK
 	if !isClient {
-		taskType = testhelpers.ServerOK
+		taskType = taskstest.ServerOK
 	}
 
 	cPreTask := &model.Task{

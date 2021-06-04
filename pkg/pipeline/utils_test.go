@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -32,6 +34,12 @@ type testContext struct {
 
 func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
+}
+
+func hash(pwd string) []byte {
+	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
+	So(err, ShouldBeNil)
+	return h
 }
 
 func waitEndTransfer(pip *Pipeline) {
@@ -92,7 +100,7 @@ func initTestDB(c C) *testContext {
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
 		Login:        "login",
-		Password:     []byte("password"),
+		PasswordHash: hash("password"),
 	}
 	So(db.Insert(locAccount).Run(), ShouldBeNil)
 
@@ -107,7 +115,7 @@ func initTestDB(c C) *testContext {
 	remAccount := &model.RemoteAccount{
 		RemoteAgentID: partner.ID,
 		Login:         "login",
-		Password:      []byte("password"),
+		Password:      "password",
 	}
 	So(db.Insert(remAccount).Run(), ShouldBeNil)
 

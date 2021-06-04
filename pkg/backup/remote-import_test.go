@@ -7,7 +7,7 @@ import (
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -76,7 +76,7 @@ func TestImportRemoteAgents(t *testing.T) {
 				Name:          "test",
 				Protocol:      "sftp",
 				Configuration: []byte(`{}`),
-				Address:       "localhost:90",
+				Address:       "localhost:6666",
 				Accounts: []RemoteAccount{
 					{
 						Login:    "test",
@@ -86,9 +86,7 @@ func TestImportRemoteAgents(t *testing.T) {
 				Certs: []Certificate{
 					{
 						Name:        "cert",
-						PublicKey:   "public",
-						PrivateKey:  "private",
-						Certificate: "key",
+						Certificate: testhelpers.LocalhostCert,
 					},
 				},
 			}
@@ -117,8 +115,8 @@ func TestImportRemoteAgents(t *testing.T) {
 
 						So(len(accounts), ShouldEqual, 1)
 
-						var certs model.Certificates
-						So(db.Select(&certs).Where("owner_type='remote_agents' "+
+						var cryptos model.Cryptos
+						So(db.Select(&cryptos).Where("owner_type='remote_agents' "+
 							"AND owner_id=?", dbAgent.ID).Run(), ShouldBeNil)
 
 						So(len(accounts), ShouldEqual, 1)
@@ -145,7 +143,7 @@ func TestImportRemoteAccounts(t *testing.T) {
 			dbAccount := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "foo",
-				Password:      []byte("bar"),
+				Password:      "bar",
 			}
 			So(db.Insert(dbAccount).Run(), ShouldBeNil)
 
@@ -181,22 +179,18 @@ func TestImportRemoteAccounts(t *testing.T) {
 							"the one imported", func() {
 							for i := 0; i < len(accounts); i++ {
 								if accounts[i].Login == account1.Login {
-
 									Convey("Then account1 is found", func() {
-										b, err := utils.DecryptPassword(database.GCM, accounts[i].Password)
-										So(err, ShouldBeNil)
-										So(string(b), ShouldResemble, account1.Password)
+										So(accounts[i].Login, ShouldResemble, account1.Login)
+										So(accounts[i].Password, ShouldEqual, account1.Password)
 									})
 								} else if accounts[i].Login == account2.Login {
-
 									Convey("Then account2 is found", func() {
-										b, err := utils.DecryptPassword(database.GCM, accounts[i].Password)
-										So(err, ShouldBeNil)
-										So(string(b), ShouldResemble, account2.Password)
+										So(accounts[i].Login, ShouldResemble, account2.Login)
+										So(accounts[i].Password, ShouldEqual, account2.Password)
 									})
 								} else if accounts[i].Login == dbAccount.Login {
-
 									Convey("Then dbAccount is found", func() {
+										So(accounts[i], ShouldResemble, *dbAccount)
 									})
 								} else {
 									Convey("Then they should be no "+
@@ -217,9 +211,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							PublicKey:   "public",
-							PrivateKey:  "private",
-							Certificate: "key",
+							PrivateKey:  testhelpers.ClientKey,
+							Certificate: testhelpers.ClientCert,
 						},
 					},
 				}
@@ -247,8 +240,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 									Convey("When dbAccount is found", func() {
 										So(accounts[i].Password, ShouldNotResemble,
 											dbAccount.Password)
-										var certs model.Certificates
-										So(db.Select(&certs).Where("owner_type='remote_accounts'"+
+										var cryptos model.Cryptos
+										So(db.Select(&cryptos).Where("owner_type='remote_accounts'"+
 											" AND owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
@@ -271,9 +264,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							PublicKey:   "public",
-							PrivateKey:  "private",
-							Certificate: "key",
+							PrivateKey:  testhelpers.ClientKey,
+							Certificate: testhelpers.ClientCert,
 						},
 					},
 				}
@@ -301,8 +293,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 									Convey("When dbAccount is found", func() {
 										So(accounts[i].Password, ShouldResemble,
 											dbAccount.Password)
-										var certs model.Certificates
-										So(db.Select(&certs).Where("owner_type='remote_accounts' AND "+
+										var cryptos model.Cryptos
+										So(db.Select(&cryptos).Where("owner_type='remote_accounts' AND "+
 											"owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)

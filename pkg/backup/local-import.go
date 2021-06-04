@@ -1,10 +1,13 @@
 package backup
 
 import (
+	"fmt"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 func importLocalAgents(logger *log.Logger, db database.Access, list []file.LocalAgent) database.Error {
@@ -87,8 +90,15 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 		// Populate
 		account.LocalAgentID = ownerID
 		account.Login = src.Login
-		if src.Password != "" {
-			account.Password = []byte(src.Password)
+		if src.PasswordHash != "" {
+			account.PasswordHash = []byte(src.PasswordHash)
+		} else if src.Password != "" {
+			var err error
+			if account.PasswordHash, err = utils.HashPassword(database.BcryptRounds,
+				[]byte(src.Password)); err != nil {
+				return database.NewInternalError(fmt.Errorf("failed to hash account password: %s", err))
+			}
+
 		}
 
 		// Create/Update

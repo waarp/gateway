@@ -104,7 +104,7 @@ func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
 	remAccount := &model.RemoteAccount{
 		RemoteAgentID: partner.ID,
 		Login:         TestLogin,
-		Password:      []byte(TestPassword),
+		Password:      TestPassword,
 	}
 	c.So(db.Insert(remAccount).Run(), convey.ShouldBeNil)
 

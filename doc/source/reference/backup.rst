@@ -21,23 +21,26 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
     <certificat>` du serveur.
 
     * **name** (*string*) - Le nom du certificat.
-    * **publicKey** (*string*) - La clé publique du certificat.
-    * **privateKey** (*string*) - La clé privée du certificat.
-    * **certificat** (*string*) - Le certificat utilisateur.
+    * **privateKey** (*string*) - La clé privée du serveur en format PEM.
+    * **certificat** (*string*) - La chaîne de certification du serveur en
+      format PEM.
 
   * **accounts** (*array*) - La liste des comptes rattaché au serveur.
 
     * **login** (*string*) - Le login du compte.
     * **password** (*string*) - Le mot de passe du compte. Si le compte a été
-      exporté depuis une gateway existante, il s'agira d'un hash du mot de
-      passe.
+      exporté depuis une gateway existante, `passwordHash` sera utilisé à la
+      place.
+    * **passwordHash** (*string*) - Un hash bcrypt du mot de passe du compte.
+      utilisé uniquement lors de l'export depuis une gateway existante.
     * **certificates** (*array*) - La liste des :term:`certificats<certificat>`
       du compte.
 
       * **name** (*string*) - Le nom du certificat.
-      * **publicKey** (*string*) - La clé publique du certificat.
-      * **privateKey** (*string*) - La clé privée du certificat.
-      * **certificat** (*string*) - Le certificat utilisateur.
+      * **Certificat** (*string*) - La chaîne de certification du compte en
+        format PEM (mutuellement exclusif avec `public_key`).
+      * **publicKey** (*string*) - La clé publique SSH du compte (*hostkey*) en
+        format *authorized_key* (mutuellement exclusif avec `certificate`)
 
 
 * **remotes** (*array*) - La liste des :term:`partenaires<partenaire>` de
@@ -51,9 +54,10 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
     <certificat>` du partenaire.
 
     * **name** (*string*) - Le nom du certificat.
-    * **publicKey** (*string*) - La clé publique du certificat.
-    * **privateKey** (*string*) - La clé privée du certificat.
-    * **certificat** (*string*) - Le certificat utilisateur.
+    * **Certificat** (*string*) - La chaîne de certification du partenaire en
+      format PEM (mutuellement exclusif avec `public_key`).
+    * **publicKey** (*string*) - La clé publique SSH du partenaire (*hostkey*) en
+      format *authorized_key* (mutuellement exclusif avec `certificate`)
 
   * **accounts** (*array*) - La liste des comptes rattaché au partenaire.
 
@@ -63,9 +67,9 @@ stockées dans un fichier en format JSON. Ce JSON a la forme suivante :
       du compte.
 
       * **name** (*string*) - Le nom du certificat.
-      * **publicKey** (*string*) - La clé publique du certificat.
-      * **privateKey** (*string*) - La clé privée du certificat.
-      * **certificat** (*string*) - Le certificat utilisateur.
+      * **privateKey** (*string*) - La clé privée du compte en format PEM.
+      * **certificat** (*string*) - La chaîne de certification du compte en
+        format PEM.
 
 
 * **rules** (*array*) - La liste des règles de transfert de la gateway.

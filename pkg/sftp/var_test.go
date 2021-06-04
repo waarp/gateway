@@ -2,22 +2,18 @@ package sftp
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-)
-
-var (
-	testPK  = []byte(rsaPK)
-	testPBK = []byte(rsaPBK)
+	"github.com/smartystreets/goconvey/convey"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
 }
 
-type testServer chan struct{}
-
-func (t testServer) SendError(*types.TransferError) {
-	close(t)
+func hash(pwd string) []byte {
+	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
+	convey.So(err, convey.ShouldBeNil)
+	return h
 }
 
 const rsaPK = `-----BEGIN RSA PRIVATE KEY-----
@@ -67,4 +63,4 @@ const rsaPBK = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDhbxVecyg3NbOuGgIbzUuB3" +
 	"fAz3y4ucEYiOr/4bkOBTuAMxbvE+S8mvbOTQ+itsFQxuJgWTrx/53Yth3QYDwgjTaT7TLSSR" +
 	"pi1+s9QQg6XTanJyjtEmmYbnaB+EhAQfI0mfOripP/1cTq9StZfYTKl58ObrYWmc5CDH338u" +
 	"CdK5GxIP9eNz4RcLqPLvcVBrm62qsYReoD62InykggeOSgkOo4UGbC7JSEdW3afMBGdh797e" +
-	"ht6qX3ywKbs7GNVwOt2M7xrpmCehU1uegN7GtIRvCZR0JH4+KSGitWFY3E= test@waarp.org"
+	"ht6qX3ywKbs7GNVwOt2M7xrpmCehU1uegN7GtIRvCZR0JH4+KSGitWFY3E="

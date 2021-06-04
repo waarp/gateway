@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
@@ -16,32 +20,30 @@ func TestExportRemoteAgents(t *testing.T) {
 		Convey("Given the database contains remotes agents with accounts", func() {
 			agent1 := &model.RemoteAgent{
 				Name:        "test",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Address:     "localhost:6666",
 			}
 			So(db.Insert(agent1).Run(), ShouldBeNil)
 
 			account1a := &model.RemoteAccount{
 				RemoteAgentID: agent1.ID,
 				Login:         "test",
-				Password:      []byte("pwd"),
+				Password:      "pwd",
 			}
 			So(db.Insert(account1a).Run(), ShouldBeNil)
 
-			cert := &model.Cert{
+			cert := &model.Crypto{
 				Name:        "test_cert",
 				OwnerType:   "remote_agents",
 				OwnerID:     agent1.ID,
-				Certificate: []byte("cert"),
-				PublicKey:   []byte("public"),
-				PrivateKey:  []byte("private"),
+				Certificate: testhelpers.LocalhostCert,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			agent2 := &model.RemoteAgent{
 				Name:        "test2",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2023",
 			}
@@ -50,14 +52,14 @@ func TestExportRemoteAgents(t *testing.T) {
 			account2a := &model.RemoteAccount{
 				RemoteAgentID: agent2.ID,
 				Login:         "test",
-				Password:      []byte("pwd"),
+				Password:      "pwd",
 			}
 			So(db.Insert(account2a).Run(), ShouldBeNil)
 
 			account2b := &model.RemoteAccount{
 				RemoteAgentID: agent2.ID,
 				Login:         "foo",
-				Password:      []byte("pwd"),
+				Password:      "pwd",
 			}
 			So(db.Insert(account2b).Run(), ShouldBeNil)
 
@@ -133,7 +135,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 			pwd2 := "bar"
 			agent := &model.RemoteAgent{
 				Name:        "test",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -142,24 +144,23 @@ func TestExportRemoteAccounts(t *testing.T) {
 			account1 := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "test",
-				Password:      []byte(pwd1),
+				Password:      types.CypherText(pwd1),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "foo",
-				Password:      []byte(pwd2),
+				Password:      types.CypherText(pwd2),
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
-			cert := &model.Cert{
+			cert := &model.Crypto{
 				Name:        "test_cert",
 				OwnerType:   "remote_accounts",
 				OwnerID:     account2.ID,
-				Certificate: []byte("cert"),
-				PublicKey:   []byte("public"),
-				PrivateKey:  []byte("private"),
+				Certificate: testhelpers.ClientCert,
+				PrivateKey:  testhelpers.ClientKey,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 

@@ -19,17 +19,17 @@ type TransferContext struct {
 	PostTasks Tasks
 	ErrTasks  Tasks
 
-	RemoteAgent      *RemoteAgent
-	RemoteAgentCerts []Cert
+	RemoteAgent        *RemoteAgent
+	RemoteAgentCryptos []Crypto
 
-	RemoteAccount      *RemoteAccount
-	RemoteAccountCerts []Cert
+	RemoteAccount        *RemoteAccount
+	RemoteAccountCryptos []Crypto
 
-	LocalAgent      *LocalAgent
-	LocalAgentCerts []Cert
+	LocalAgent        *LocalAgent
+	LocalAgentCryptos []Crypto
 
-	LocalAccount      *LocalAccount
-	LocalAccountCerts []Cert
+	LocalAccount        *LocalAccount
+	LocalAccountCryptos []Crypto
 
 	Paths *conf.PathsConfig
 }
@@ -75,7 +75,7 @@ func GetTransferInfo(db *database.DB, logger *log.Logger, trans *Transfer,
 			logger.Errorf("Failed to retrieve transfer server: %s", err)
 			return nil, errDatabase
 		}
-		if transCtx.LocalAgentCerts, err = transCtx.LocalAgent.GetCerts(db); err != nil {
+		if transCtx.LocalAgentCryptos, err = transCtx.LocalAgent.GetCryptos(db); err != nil {
 			logger.Errorf("Failed to retrieve server certificates: %s", err)
 			return nil, errDatabase
 		}
@@ -83,7 +83,7 @@ func GetTransferInfo(db *database.DB, logger *log.Logger, trans *Transfer,
 			logger.Errorf("Failed to retrieve transfer local account: %s", err)
 			return nil, errDatabase
 		}
-		if transCtx.LocalAccountCerts, err = transCtx.LocalAccount.GetCerts(db); err != nil {
+		if transCtx.LocalAccountCryptos, err = transCtx.LocalAccount.GetCryptos(db); err != nil {
 			logger.Errorf("Failed to retrieve local account certificates: %s", err)
 			return nil, errDatabase
 		}
@@ -95,7 +95,7 @@ func GetTransferInfo(db *database.DB, logger *log.Logger, trans *Transfer,
 		logger.Errorf("Failed to retrieve transfer partner: %s", err)
 		return nil, errDatabase
 	}
-	if transCtx.RemoteAgentCerts, err = transCtx.RemoteAgent.GetCerts(db); err != nil {
+	if transCtx.RemoteAgentCryptos, err = transCtx.RemoteAgent.GetCryptos(db); err != nil {
 		logger.Errorf("Failed to retrieve partner certificates: %s", err)
 		return nil, errDatabase
 	}
@@ -103,7 +103,7 @@ func GetTransferInfo(db *database.DB, logger *log.Logger, trans *Transfer,
 		logger.Errorf("Failed to retrieve transfer remote account: %s", err)
 		return nil, errDatabase
 	}
-	if transCtx.RemoteAccountCerts, err = transCtx.RemoteAccount.GetCerts(db); err != nil {
+	if transCtx.RemoteAccountCryptos, err = transCtx.RemoteAccount.GetCryptos(db); err != nil {
 		logger.Errorf("Failed to retrieve remote account certificates: %s", err)
 		return nil, errDatabase
 	}

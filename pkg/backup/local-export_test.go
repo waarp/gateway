@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
@@ -17,9 +19,9 @@ func TestExportLocalAgents(t *testing.T) {
 		Convey("Given the database contains locals agents with accounts", func() {
 			agent1 := &model.LocalAgent{
 				Name:        "test",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Address:     "localhost:6666",
 			}
 			So(db.Insert(agent1).Run(), ShouldBeNil)
 
@@ -27,7 +29,7 @@ func TestExportLocalAgents(t *testing.T) {
 			database.Owner = "tata"
 			So(db.Insert(&model.LocalAgent{
 				Name:        "foo",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}).Run(), ShouldBeNil)
@@ -37,39 +39,38 @@ func TestExportLocalAgents(t *testing.T) {
 			account1a := &model.LocalAccount{
 				LocalAgentID: agent1.ID,
 				Login:        "test",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1a).Run(), ShouldBeNil)
 
-			cert := &model.Cert{
+			cert := &model.Crypto{
 				Name:        "test_cert",
 				OwnerType:   "local_agents",
 				OwnerID:     agent1.ID,
-				Certificate: []byte("cert"),
-				PublicKey:   []byte("public"),
-				PrivateKey:  []byte("private"),
+				Certificate: testhelpers.LocalhostCert,
+				PrivateKey:  testhelpers.LocalhostKey,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			agent2 := &model.LocalAgent{
 				Name:        "test2",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Address:     "localhost:6666",
 			}
 			So(db.Insert(agent2).Run(), ShouldBeNil)
 
 			account2a := &model.LocalAccount{
 				LocalAgentID: agent2.ID,
 				Login:        "test",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2a).Run(), ShouldBeNil)
 
 			account2b := &model.LocalAccount{
 				LocalAgentID: agent2.ID,
 				Login:        "foo",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2b).Run(), ShouldBeNil)
 
@@ -155,7 +156,7 @@ func TestExportLocalAccounts(t *testing.T) {
 		Convey("Given the dabase contains a local agent with accounts", func() {
 			agent := &model.LocalAgent{
 				Name:        "test",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -164,24 +165,22 @@ func TestExportLocalAccounts(t *testing.T) {
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
-				Password:     []byte("bar"),
+				PasswordHash: hash("bar"),
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
-			cert := &model.Cert{
+			cert := &model.Crypto{
 				Name:        "test_cert",
 				OwnerType:   "local_accounts",
 				OwnerID:     account2.ID,
-				Certificate: []byte("cert"),
-				PublicKey:   []byte("public"),
-				PrivateKey:  []byte("private"),
+				Certificate: testhelpers.ClientCert,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -205,8 +204,8 @@ func TestExportLocalAccounts(t *testing.T) {
 								Convey("When login1 is found", func() {
 
 									Convey("Then it should be equal to the data in DB", func() {
-										So(res[i].Password, ShouldResemble,
-											string(account1.Password))
+										So(res[i].PasswordHash, ShouldResemble,
+											string(account1.PasswordHash))
 									})
 
 									Convey("Then it should have no certificate", func() {
@@ -218,8 +217,8 @@ func TestExportLocalAccounts(t *testing.T) {
 								Convey("When login2 is found", func() {
 
 									Convey("Then it should be equal to the data in DB", func() {
-										So(res[i].Password, ShouldResemble,
-											string(account2.Password))
+										So(res[i].PasswordHash, ShouldResemble,
+											string(account2.PasswordHash))
 									})
 
 									Convey("Then it should have 1 certificate", func() {

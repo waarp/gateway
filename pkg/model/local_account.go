@@ -2,8 +2,7 @@ package model
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	"code.waarp.fr/waarp-r66/r66"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func init() {
@@ -22,8 +21,8 @@ type LocalAccount struct {
 	// The account's login
 	Login string `xorm:"unique(loc_ac) notnull 'login'"`
 
-	// The account's password
-	Password []byte `xorm:"'password'"`
+	// A bcrypt hash of the account's password
+	PasswordHash []byte `xorm:"text 'password_hash'"`
 }
 
 // TableName returns the local accounts table name.
@@ -41,9 +40,9 @@ func (l *LocalAccount) GetID() uint64 {
 	return l.ID
 }
 
-// GetCerts fetch in the database then return the associated Certificates if they exist
-func (l *LocalAccount) GetCerts(db *database.DB) ([]Cert, database.Error) {
-	return GetCerts(db, l)
+// GetCryptos fetch in the database then return the associated Cryptos if they exist
+func (l *LocalAccount) GetCryptos(db *database.DB) ([]Crypto, database.Error) {
+	return GetCryptos(db, l)
 }
 
 // BeforeWrite checks if the new `LocalAccount` entry is valid and can be
@@ -56,8 +55,11 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	if l.Login == "" {
 		return database.NewValidationError("the account's login cannot be empty")
 	}
-	if len(l.Password) == 0 {
-		return database.NewValidationError("the account's password cannot be empty")
+
+	if len(l.PasswordHash) > 0 {
+		if _, isHashed := bcrypt.Cost(l.PasswordHash); isHashed != nil {
+			return database.NewValidationError("the password is not hashed")
+		}
 	}
 
 	parent := &LocalAgent{}
@@ -77,15 +79,6 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 			"already exist", l.Login)
 	}
 
-	if parent.Protocol == "r66" {
-		l.Password = r66.CryptPass(l.Password)
-	}
-
-	var err1 error
-	l.Password, err1 = utils.HashPassword(database.BcryptRounds, l.Password)
-	if err1 != nil {
-		return database.NewInternalError(err)
-	}
 	return nil
 }
 
@@ -103,7 +96,7 @@ func (l *LocalAccount) BeforeDelete(db database.Access) database.Error {
 			"the transfers or wait for them to finish")
 	}
 
-	certQuery := db.DeleteAll(&Cert{}).Where("owner_type='local_accounts' AND owner_id=?",
+	certQuery := db.DeleteAll(&Crypto{}).Where("owner_type='local_accounts' AND owner_id=?",
 		l.ID)
 	if err := certQuery.Run(); err != nil {
 		return err

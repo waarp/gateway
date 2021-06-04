@@ -10,7 +10,7 @@ import (
 func exportCertificates(logger *log.Logger, db database.ReadAccess, ownerType string,
 	ownerID uint64) ([]file.Certificate, error) {
 
-	var dbCerts model.Certificates
+	var dbCerts model.Cryptos
 	if err := db.Select(&dbCerts).Where("owner_type=? AND owner_id=?", ownerType,
 		ownerID).Run(); err != nil {
 		return nil, err
@@ -21,9 +21,9 @@ func exportCertificates(logger *log.Logger, db database.ReadAccess, ownerType st
 		logger.Infof("Export Certificate %s\n", src.Name)
 		cert := file.Certificate{
 			Name:        src.Name,
-			PublicKey:   string(src.PublicKey),
+			PublicKey:   src.SSHPublicKey,
 			PrivateKey:  string(src.PrivateKey),
-			Certificate: string(src.Certificate),
+			Certificate: src.Certificate,
 		}
 		res[i] = cert
 	}

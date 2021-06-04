@@ -2,8 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -23,9 +27,20 @@ func init() {
 	config.ProtoConfigs["fail"] = func() config.ProtoConfig { return new(TestProtoConfigFail) }
 }
 
+func hash(pwd string) []byte {
+	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
+	So(err, ShouldBeNil)
+	return h
+}
+
 func writeFile(content string) *os.File {
-	file := testFile()
-	_, err := file.WriteString(content)
+	file, err := ioutil.TempFile("", "*")
+	So(err, ShouldBeNil)
+	Reset(func() {
+		_ = file.Close()
+		_ = os.Remove(file.Name())
+	})
+	_, err = file.WriteString(content)
 	So(err, ShouldBeNil)
 	return file
 }
@@ -44,20 +59,12 @@ func (*TestProtoConfigFail) ValidPartner() error {
 	return fmt.Errorf("partner config validation failed")
 }
 
-func testFile() *os.File {
-	tmp, err := ioutil.TempFile("", "*")
-	So(err, ShouldBeNil)
-	Reset(func() {
-		_ = tmp.Close()
-		_ = os.Remove(tmp.Name())
-	})
-	return tmp
+func testFile() io.Writer {
+	return &strings.Builder{}
 }
 
 func getOutput() string {
-	_, err := out.Seek(0, 0)
-	So(err, ShouldBeNil)
-	cont, err := ioutil.ReadAll(out)
-	So(err, ShouldBeNil)
-	return string(cont)
+	str, ok := out.(*strings.Builder)
+	So(ok, ShouldBeTrue)
+	return str.String()
 }

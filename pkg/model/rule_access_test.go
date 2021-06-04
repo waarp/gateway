@@ -46,7 +46,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 			rAccount := RemoteAccount{
 				RemoteAgentID: rAgent.ID,
 				Login:         "Test",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(&rAccount).Run(), ShouldBeNil)
 
@@ -61,7 +61,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 			lAccount := LocalAccount{
 				LocalAgentID: lAgent.ID,
 				Login:        "Test",
-				Password:     []byte("password"),
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(&lAccount).Run(), ShouldBeNil)
 
@@ -121,7 +121,7 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 			rAccount := RemoteAccount{
 				RemoteAgentID: rAgent.ID,
 				Login:         "Test",
-				Password:      []byte("dummy"),
+				Password:      "dummy",
 			}
 			So(db.Insert(&rAccount).Run(), ShouldBeNil)
 
@@ -136,7 +136,7 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 			lAccount := LocalAccount{
 				LocalAgentID: lAgent.ID,
 				Login:        "Test",
-				Password:     []byte("dummy"),
+				PasswordHash: hash("dummy"),
 			}
 			So(db.Insert(&lAccount).Run(), ShouldBeNil)
 

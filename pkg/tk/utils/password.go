@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/subtle"
+	"encoding/base64"
 	"errors"
 	"io"
 	"strings"
@@ -11,51 +12,54 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// CryptPassword takes a slice of bytes representing a password and returns
-// it encrypted using the AES algorithm in Galois Counter Mode with the
-// passphrase given in the gateway database configuration.
+// AESCrypt takes a slice of bytes and returns it encrypted using the AES
+// algorithm in Galois Counter Mode using the passphrase given in the gateway
+// database configuration.
 //
-// If the password is already encrypted, it is returned unchanged.
-// If the password cannot be encrypted, an error is returned.
-func CryptPassword(gcm cipher.AEAD, password []byte) ([]byte, error) {
+// If the slice is already encrypted, it is returned unchanged.
+// If the slice cannot be encrypted, an error is returned.
+func AESCrypt(gcm cipher.AEAD, password string) (string, error) {
 
 	// If password is already encrypted, don't encrypt it again.
-	if strings.HasPrefix(string(password), "$AES$") {
+	if strings.HasPrefix(password, "$AES$") {
 		return password, nil
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
+		return "", err
 	}
 
-	cipherText := gcm.Seal(nonce, nonce, password, nil)
-	cipherText = append([]byte("$AES$"), cipherText...)
+	cipher := gcm.Seal(nonce, nonce, []byte(password), nil)
+	cipherText := "$AES$" + base64.StdEncoding.EncodeToString(cipher)
 	return cipherText, nil
 }
 
-// DecryptPassword takes a slice representing an AES encrypted password and
+// AESDecrypt takes a slice representing an AES encrypted text and
 // returns it decrypted.
 //
-// If the password cannot be decrypted, an error is returned.
-func DecryptPassword(gcm cipher.AEAD, cipher []byte) ([]byte, error) {
-	if !strings.HasPrefix(string(cipher), "$AES$") {
+// If the slice cannot be decrypted, an error is returned.
+func AESDecrypt(gcm cipher.AEAD, cipher string) (string, error) {
+	if !strings.HasPrefix(cipher, "$AES$") {
 		return cipher, nil
 	}
-	cryptPassword := cipher[5:]
+	cryptPassword, err := base64.StdEncoding.DecodeString(cipher[5:])
+	if err != nil {
+		return "", errors.New("failed to decode encrypted password string")
+	}
 
 	nonceSize := gcm.NonceSize()
 	if len(cryptPassword) < nonceSize {
-		return nil, errors.New("the nonce cannot be longer than the text")
+		return "", errors.New("the nonce cannot be longer than the text")
 	}
 
 	nonce, cipherText := cryptPassword[:nonceSize], cryptPassword[nonceSize:]
 	password, err := gcm.Open(nil, nonce, cipherText, nil)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return password, nil
+	return string(password), nil
 }
 
 // HashPassword takes a slice of bytes representing a password and returns it

@@ -1,15 +1,15 @@
 package model
 
-// Certificates is the type representing a slice of Cert.
-type Certificates []Cert
+// Cryptos is the type representing a slice of Crypto.
+type Cryptos []Crypto
 
 // TableName returns the name of the certificates table.
-func (*Certificates) TableName() string {
-	return "certificates"
+func (*Cryptos) TableName() string {
+	return "crypto_credentials"
 }
 
 // Elem returns the name of 1 element of the certificates table.
-func (*Certificates) Elem() string {
+func (*Cryptos) Elem() string {
 	return "certificate"
 }
 

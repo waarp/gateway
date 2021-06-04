@@ -34,19 +34,9 @@ func TestControllerListen(t *testing.T) {
 		account := &model.RemoteAccount{
 			RemoteAgentID: remote.ID,
 			Login:         "test login",
-			Password:      []byte("test password"),
+			Password:      "test password",
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
-
-		cert := &model.Cert{
-			OwnerType:   remote.TableName(),
-			OwnerID:     remote.ID,
-			Name:        "test cert",
-			PrivateKey:  nil,
-			PublicKey:   []byte("public key"),
-			Certificate: []byte("certificate"),
-		}
-		So(db.Insert(cert).Run(), ShouldBeNil)
 
 		tmpDir := testhelpers.TempDir(c, "controller-listen")
 

@@ -69,14 +69,14 @@ func TestExportRuleAccesses(t *testing.T) {
 			account1 := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "test",
-				Password:      []byte("aeqqegq"),
+				Password:      "sesame",
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "test2",
-				Password:      []byte("aeqqegq"),
+				Password:      "sesame",
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
@@ -122,7 +122,7 @@ func TestExportRuleAccesses(t *testing.T) {
 					So(err, ShouldBeNil)
 				})
 
-				Convey("Then it should retur 1 records", func() {
+				Convey("Then it should return 1 records", func() {
 					So(len(res), ShouldEqual, 1)
 
 					Convey("Then the result should correspond to the access of rule1", func() {
@@ -139,7 +139,7 @@ func TestExportRuleAccesses(t *testing.T) {
 					So(err, ShouldBeNil)
 				})
 
-				Convey("Then it should retur 2 records", func() {
+				Convey("Then it should return 2 records", func() {
 					So(len(res), ShouldEqual, 2)
 				})
 			})

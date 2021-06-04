@@ -102,7 +102,11 @@ func addLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		account := accToLocal(&jAcc, parent, 0)
+		account, err := accToLocal(&jAcc, parent, 0)
+		if handleError(w, logger, err) {
+			return
+		}
+
 		if err := db.Insert(account).Run(); handleError(w, logger, err) {
 			return
 		}
@@ -124,7 +128,11 @@ func updateLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		acc := accToLocal(jAcc, parent, old.ID)
+		acc, err := accToLocal(jAcc, parent, old.ID)
+		if handleError(w, logger, err) {
+			return
+		}
+
 		if err := db.Update(acc).Run(); handleError(w, logger, err) {
 			return
 		}
@@ -146,7 +154,11 @@ func replaceLocalAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		acc := accToLocal(&jAcc, parent, old.ID)
+		acc, err := accToLocal(&jAcc, parent, old.ID)
+		if handleError(w, logger, err) {
+			return
+		}
+
 		if err := db.Update(acc).Run(); handleError(w, logger, err) {
 			return
 		}
@@ -201,7 +213,7 @@ func getLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = getCertificate(w, r, db, acc.TableName(), acc.ID)
+		err = getCrypto(w, r, db, acc.TableName(), acc.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -213,7 +225,7 @@ func addLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = createCertificate(w, r, db, acc.TableName(), acc.ID)
+		err = createCrypto(w, r, db, acc.TableName(), acc.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -225,7 +237,7 @@ func listLocAccountCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = listCertificates(w, r, db, acc.TableName(), acc.ID)
+		err = listCryptos(w, r, db, acc.TableName(), acc.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -237,7 +249,7 @@ func deleteLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			return
 		}
 
-		err = deleteCertificate(w, r, db, acc.TableName(), acc.ID)
+		err = deleteCrypto(w, r, db, acc.TableName(), acc.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -249,7 +261,7 @@ func updateLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			return
 		}
 
-		err = updateCertificate(w, r, db, acc.TableName(), acc.ID)
+		err = updateCrypto(w, r, db, acc.TableName(), acc.ID)
 		handleError(w, logger, err)
 	}
 }
@@ -261,7 +273,7 @@ func replaceLocAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc
 			return
 		}
 
-		err = replaceCertificate(w, r, db, acc.TableName(), acc.ID)
+		err = replaceCrypto(w, r, db, acc.TableName(), acc.ID)
 		handleError(w, logger, err)
 	}
 }

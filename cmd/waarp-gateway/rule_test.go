@@ -537,12 +537,12 @@ func TestRuleAllowAll(t *testing.T) {
 				la := &model.LocalAccount{
 					LocalAgentID: s.ID,
 					Login:        "toto",
-					Password:     []byte("password"),
+					PasswordHash: hash("password"),
 				}
 				ra := &model.RemoteAccount{
 					RemoteAgentID: p.ID,
 					Login:         "tata",
-					Password:      []byte("password"),
+					Password:      "password",
 				}
 				So(db.Insert(la).Run(), ShouldBeNil)
 				So(db.Insert(ra).Run(), ShouldBeNil)

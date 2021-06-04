@@ -8,7 +8,7 @@ import (
 )
 
 func makeDummyClient(addr, login, pwd string) *sftp.Client {
-	key, _, _, _, err := ssh.ParseAuthorizedKey(testPBK) //nolint:dogsled
+	key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rsaPBK)) //nolint:dogsled
 	So(err, ShouldBeNil)
 
 	clientConf := &ssh.ClientConfig{

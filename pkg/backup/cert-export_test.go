@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
@@ -16,19 +18,18 @@ func TestExportCertificates(t *testing.T) {
 		Convey("Given the database contains 1 local agent with a certificate", func() {
 			agent := &model.LocalAgent{
 				Name:        "test",
-				Protocol:    "sftp",
+				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Address:     "localhost:6666",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
-			cert := &model.Cert{
+			cert := &model.Crypto{
 				Name:        "test_cert",
 				OwnerType:   "local_agents",
 				OwnerID:     agent.ID,
-				Certificate: []byte("cert"),
-				PublicKey:   []byte("public"),
-				PrivateKey:  []byte("private"),
+				Certificate: testhelpers.LocalhostCert,
+				PrivateKey:  testhelpers.LocalhostKey,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -48,9 +49,9 @@ func TestExportCertificates(t *testing.T) {
 							"than in the database", func() {
 							c := res[0]
 							So(c.Name, ShouldEqual, cert.Name)
-							So([]byte(c.Certificate), ShouldResemble, cert.Certificate)
-							So([]byte(c.PublicKey), ShouldResemble, cert.PublicKey)
-							So([]byte(c.PrivateKey), ShouldResemble, cert.PrivateKey)
+							So(c.Certificate, ShouldResemble, cert.Certificate)
+							So(c.PublicKey, ShouldResemble, cert.SSHPublicKey)
+							So(c.PrivateKey, ShouldResemble, string(cert.PrivateKey))
 						})
 					})
 				})
@@ -72,27 +73,23 @@ func TestExportCertificates(t *testing.T) {
 				account := &model.LocalAccount{
 					LocalAgentID: agent.ID,
 					Login:        "test",
-					Password:     []byte("pwd"),
+					PasswordHash: hash("pwd"),
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 
-				cert1 := &model.Cert{
+				cert1 := &model.Crypto{
 					Name:        "cert1",
 					OwnerType:   "local_accounts",
 					OwnerID:     account.ID,
-					Certificate: []byte("cert"),
-					PublicKey:   []byte("public"),
-					PrivateKey:  []byte("private"),
+					Certificate: testhelpers.ClientCert,
 				}
 				So(db.Insert(cert1).Run(), ShouldBeNil)
 
-				cert2 := &model.Cert{
+				cert2 := &model.Crypto{
 					Name:        "cert2",
 					OwnerType:   "local_accounts",
 					OwnerID:     account.ID,
-					Certificate: []byte("cert"),
-					PublicKey:   []byte("public"),
-					PrivateKey:  []byte("private"),
+					Certificate: testhelpers.ClientCert,
 				}
 				So(db.Insert(cert2).Run(), ShouldBeNil)
 

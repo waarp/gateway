@@ -31,12 +31,22 @@ Historique des versions
   ``file`` contenant le nom du fichier à transférer. Il ne sera donc, à terme,
   plus possible de donner au fichier de destination du transfer un nom différent
   de celui du fichier source.
+* :feature:`` Un champ `passwordHash` a été ajouté à l'objet JSON de compte local
+  du fichier d'import/export. Il remplace le champ `password` pour l'export de
+  configuration. La gateway ne stockant que des hash de mots de passe, le nom du
+  champ n'était pas approprié. Le champ `password` reste cependant utilisable
+  pour l'import de fichiers de configuration généré par des outils tiers.
+* :bug:`` Les champs optionnels vides ne seront désormais plus ajouté aux fichiers
+  de sauvegarde lors d'un export de configuration.
+* :bug:`252` Les certificats, clés publiques & clés privées sont désormais parsés
+  avant d'être insérés en base de données. Les données invalides seront désormais
+  refusées.
 
 * :release:`0.3.3 <2021-04-07>`
-* :bug:`251` Corrige le probème de création du fichier distant en SFTP
+* :bug:`251` Corrige le problème de création du fichier distant en SFTP
   lorsque le serveur refuse l'ouverture de fichier en écriture ET en lecture.
-* :bug:`251` Corrige un problème du script d'update-conf qui sort en erreur
-  si les fichiers optionels ne sont pas dans l'archive de déploiement.
+* :bug:`251` Corrige un problème du script d'update-conf qui sort en erreur 
+  si les fichiers optionnels ne sont pas dans l'archive de déploiement.
 
 * :release:`0.3.2 <2021-04-06>`
 * :bug:`248` Ajout de l'option `insecure` au client terminal afin de désactiver la

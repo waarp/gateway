@@ -33,9 +33,8 @@ func TestSelfPushOK(t *testing.T) {
 	})
 }
 
-/*
 func TestSelfPullOK(t *testing.T) {
-	Convey("Given a r66 service", t, func(c C) {
+	SkipConvey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
 
 		Convey("Given a new r66 pull transfer", func(c C) {
@@ -58,10 +57,9 @@ func TestSelfPullOK(t *testing.T) {
 		})
 	})
 }
-*/
-/*
+
 func TestSelfPushClientPreTasksFail(t *testing.T) {
-	Convey("Given a r66 service", t, func(c C) {
+	SkipConvey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
 
 		Convey("Given a new r66 push transfer", func(c C) {
@@ -126,7 +124,6 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 		})
 	})
 }
-*/
 
 func TestSelfPushServerPreTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
@@ -195,9 +192,8 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 	})
 }
 
-/*
 func TestSelfPullClientPreTasksFail(t *testing.T) {
-	Convey("Given a r66 service", t, func(c C) {
+	SkipConvey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
 
 		Convey("Given a new r66 pull transfer", func(c C) {
@@ -282,10 +278,9 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 		})
 	})
 }
-*/
-/*
+
 func TestSelfPullServerPreTasksFail(t *testing.T) {
-	Convey("Given a r66 service", t, func(c C) {
+	SkipConvey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
 
 		Convey("Given a new r66 pull transfer", func(c C) {
@@ -350,10 +345,9 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 		})
 	})
 }
-*/
-/*
+
 func TestSelfPushClientPostTasksFail(t *testing.T) {
-	Convey("Given a r66 service", t, func(c C) {
+	SkipConvey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
 
 		Convey("Given a new r66 push transfer", func(c C) {
@@ -418,7 +412,6 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 		})
 	})
 }
-*/
 
 func TestSelfPushServerPostTasksFail(t *testing.T) {
 	Convey("Given a r66 service", t, func(c C) {
@@ -487,9 +480,8 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 	})
 }
 
-/*
 func TestSelfPullClientPostTasksFail(t *testing.T) {
-	Convey("Given a r66 service", t, func(c C) {
+	SkipConvey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
 
 		Convey("Given a new r66 pull transfer", func(c C) {
@@ -554,10 +546,9 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 		})
 	})
 }
-*/
-/*
+
 func TestSelfPullServerPostTasksFail(t *testing.T) {
-	Convey("Given a r66 service", t, func(c C) {
+	SkipConvey("Given a r66 service", t, func(c C) {
 		ctx := initForSelfTransfer(c)
 
 		Convey("Given a new r66 pull transfer", func(c C) {
@@ -624,4 +615,3 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 		})
 	})
 }
-*/

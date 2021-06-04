@@ -152,7 +152,7 @@ func (l *LocalAgent) BeforeDelete(db database.Access) database.Error {
 			"these transfers or wait for them to finish")
 	}
 
-	certQuery := db.DeleteAll(&Cert{}).Where(
+	certQuery := db.DeleteAll(&Crypto{}).Where(
 		"(owner_type='local_agents' AND owner_id=?) OR "+
 			"(owner_type='local_accounts' AND owner_id IN "+
 			"(SELECT id FROM local_accounts WHERE local_agent_id=?))",
@@ -178,7 +178,7 @@ func (l *LocalAgent) BeforeDelete(db database.Access) database.Error {
 	return nil
 }
 
-// GetCerts fetch in the database then return the associated Certificates if they exist
-func (l *LocalAgent) GetCerts(db database.ReadAccess) ([]Cert, database.Error) {
-	return GetCerts(db, l)
+// GetCryptos fetch in the database then return the associated Cryptos if they exist.
+func (l *LocalAgent) GetCryptos(db database.ReadAccess) ([]Crypto, database.Error) {
+	return GetCryptos(db, l)
 }

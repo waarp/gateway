@@ -4,20 +4,21 @@ import (
 	"fmt"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks/taskstest"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	"github.com/smartystreets/goconvey/convey"
 )
 
 func setTestVar() {
 	pipeline.TestPipelineEnd = func(isServer bool) {
-		if testhelpers.ServerCheckChannel == nil || testhelpers.ClientCheckChannel == nil {
+		if taskstest.ServerCheckChannel == nil || taskstest.ClientCheckChannel == nil {
 			panic("nil test task channels")
 		}
 		if isServer {
-			testhelpers.ServerCheckChannel <- "SERVER TRANSFER END"
+			taskstest.ServerCheckChannel <- "SERVER TRANSFER END"
 		} else {
-			testhelpers.ClientCheckChannel <- "CLIENT TRANSFER END"
+			taskstest.ClientCheckChannel <- "CLIENT TRANSFER END"
 		}
 	}
 }
@@ -74,7 +75,7 @@ func clientMsgShouldBe(c convey.C, exp string) {
 	select {
 	case <-timer.C:
 		panic(fmt.Sprintf("timeout waiting for client message '%s'", exp))
-	case msg := <-testhelpers.ClientCheckChannel:
+	case msg := <-taskstest.ClientCheckChannel:
 		c.So(msg, convey.ShouldEqual, exp)
 	}
 }
@@ -85,7 +86,7 @@ func serverMsgShouldBe(c convey.C, exp string) {
 	select {
 	case <-timer.C:
 		panic(fmt.Sprintf("timeout waiting for server message '%s'", exp))
-	case msg := <-testhelpers.ServerCheckChannel:
+	case msg := <-taskstest.ServerCheckChannel:
 		c.So(msg, convey.ShouldEqual, exp)
 	}
 }

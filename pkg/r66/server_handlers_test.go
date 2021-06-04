@@ -29,7 +29,7 @@ func TestValidAuth(t *testing.T) {
 		toto := &model.LocalAccount{
 			LocalAgentID: r66Server.ID,
 			Login:        "toto",
-			Password:     []byte("sesame"),
+			PasswordHash: hash("sesame"),
 		}
 		So(db.Insert(toto).Run(), ShouldBeNil)
 
@@ -114,7 +114,7 @@ func TestValidRequest(t *testing.T) {
 		account := &model.LocalAccount{
 			LocalAgentID: server.ID,
 			Login:        "toto",
-			Password:     []byte("sesame"),
+			PasswordHash: hash("sesame"),
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 

@@ -44,7 +44,7 @@ func TestAddTransfer(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -209,7 +209,7 @@ func TestGetTransfer(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      []byte("titi"),
+				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -288,7 +288,7 @@ func TestListTransfer(t *testing.T) {
 
 		Convey("Given a database with 2 transfer", func() {
 			p1 := &model.RemoteAgent{
-				Name:        "sftp1",
+				Name:        "part1",
 				Protocol:    "test",
 				Address:     "localhost:1",
 				ProtoConfig: json.RawMessage(`{}`),
@@ -296,44 +296,24 @@ func TestListTransfer(t *testing.T) {
 			So(db.Insert(p1).Run(), ShouldBeNil)
 
 			p2 := &model.RemoteAgent{
-				Name:        "sftp2",
+				Name:        "part2",
 				Protocol:    "test2",
 				Address:     "localhost:2",
 				ProtoConfig: json.RawMessage(`{}`),
 			}
 			So(db.Insert(p2).Run(), ShouldBeNil)
 
-			c1 := &model.Cert{
-				OwnerType:   p1.TableName(),
-				OwnerID:     p1.ID,
-				Name:        "sftp_cert",
-				PrivateKey:  nil,
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
-			}
-			So(db.Insert(c1).Run(), ShouldBeNil)
-
-			c2 := &model.Cert{
-				OwnerType:   p2.TableName(),
-				OwnerID:     p2.ID,
-				Name:        "sftp_cert",
-				PrivateKey:  nil,
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
-			}
-			So(db.Insert(c2).Run(), ShouldBeNil)
-
 			a1 := &model.RemoteAccount{
 				RemoteAgentID: p1.ID,
 				Login:         "toto",
-				Password:      []byte("titi"),
+				Password:      "titi",
 			}
 			So(db.Insert(a1).Run(), ShouldBeNil)
 
 			a2 := &model.RemoteAccount{
 				RemoteAgentID: p2.ID,
 				Login:         "toto",
-				Password:      []byte("titi"),
+				Password:      "titi",
 			}
 			So(db.Insert(a2).Run(), ShouldBeNil)
 
@@ -520,7 +500,7 @@ func TestResumeTransfer(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      []byte("titi"),
+				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -610,7 +590,7 @@ func TestPauseTransfer(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      []byte("titi"),
+				Password:      "titi",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 

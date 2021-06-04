@@ -9,17 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/ssh"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
+	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/crypto/ssh"
 )
 
 func getTestPort() string {
@@ -45,15 +42,13 @@ func TestServerStop(t *testing.T) {
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
-		cert := &model.Cert{
-			OwnerType:   agent.TableName(),
-			OwnerID:     agent.ID,
-			Name:        "test_sftp_server_cert",
-			PrivateKey:  testPK,
-			PublicKey:   testPBK,
-			Certificate: []byte("cert"),
+		hostKey := &model.Crypto{
+			OwnerType:  agent.TableName(),
+			OwnerID:    agent.ID,
+			Name:       "test_sftp_server_key",
+			PrivateKey: rsaPK,
 		}
-		So(db.Insert(cert).Run(), ShouldBeNil)
+		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
 		server := NewService(db, agent, log.NewLogger("test_sftp_server"))
 		So(server.Start(), ShouldBeNil)
@@ -89,15 +84,13 @@ func TestServerStart(t *testing.T) {
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
-		cert := &model.Cert{
-			OwnerType:   agent.TableName(),
-			OwnerID:     agent.ID,
-			Name:        "test_sftp_server_cert",
-			PrivateKey:  testPK,
-			PublicKey:   testPBK,
-			Certificate: []byte("cert"),
+		hostKey := &model.Crypto{
+			OwnerType:  agent.TableName(),
+			OwnerID:    agent.ID,
+			Name:       "test_sftp_server_key",
+			PrivateKey: rsaPK,
 		}
-		So(db.Insert(cert).Run(), ShouldBeNil)
+		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
 		sftpServer := NewService(db, agent, log.NewLogger("test_sftp_server"))
 

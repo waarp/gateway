@@ -31,7 +31,7 @@ func GetRuleFromPath(db *database.DB, r *sftp.Request, isSend bool) (*model.Rule
 	return rule, nil
 }
 
-func GetSSHServerConfig(db *database.DB, certs []model.Cert, protoConfig *config.SftpProtoConfig,
+func GetSSHServerConfig(db *database.DB, certs []model.Crypto, protoConfig *config.SftpProtoConfig,
 	agent *model.LocalAgent) (*ssh.ServerConfig, error) {
 	conf := &ssh.ServerConfig{
 		Config: ssh.Config{
@@ -48,13 +48,13 @@ func GetSSHServerConfig(db *database.DB, certs []model.Cert, protoConfig *config
 				}
 				return nil, fmt.Errorf("authentication failed")
 			}
-			certs, err := user.GetCerts(db)
+			certs, err := user.GetCryptos(db)
 			if err != nil {
 				return nil, fmt.Errorf("authentication failed")
 			}
 
 			for _, cert := range certs {
-				publicKey, _, _, _, err := ssh.ParseAuthorizedKey(cert.PublicKey)
+				publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(cert.SSHPublicKey))
 				if err != nil {
 					return nil, err
 				}
@@ -73,7 +73,7 @@ func GetSSHServerConfig(db *database.DB, certs []model.Cert, protoConfig *config
 					return nil, fmt.Errorf("internal database error")
 				}
 			}
-			err2 := bcrypt.CompareHashAndPassword(user.Password, pass)
+			err2 := bcrypt.CompareHashAndPassword(user.PasswordHash, pass)
 			if err1 != nil || err2 != nil {
 				return nil, fmt.Errorf("authentication failed")
 			}
@@ -83,7 +83,7 @@ func GetSSHServerConfig(db *database.DB, certs []model.Cert, protoConfig *config
 	}
 
 	for _, cert := range certs {
-		privateKey, err := ssh.ParsePrivateKey(cert.PrivateKey)
+		privateKey, err := ssh.ParsePrivateKey([]byte(cert.PrivateKey))
 		if err != nil {
 			return nil, err
 		}

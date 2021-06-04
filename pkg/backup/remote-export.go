@@ -5,7 +5,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAgent, error) {
@@ -56,15 +55,11 @@ func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
 		if err != nil {
 			return nil, err
 		}
-		pwd, err := utils.DecryptPassword(database.GCM, src.Password)
-		if err != nil {
-			return nil, err
-		}
 
 		logger.Infof("Export remote account %s\n", src.Login)
 		account := file.RemoteAccount{
 			Login:    src.Login,
-			Password: string(pwd),
+			Password: string(src.Password),
 			Certs:    certificates,
 		}
 		res[i] = account

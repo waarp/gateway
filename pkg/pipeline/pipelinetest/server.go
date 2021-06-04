@@ -110,14 +110,14 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
 		Login:        TestLogin,
-		Password:     []byte(TestPassword),
+		PasswordHash: hash(TestPassword),
 	}
 	c.So(db.Insert(locAccount).Run(), convey.ShouldBeNil)
 
 	return server, locAccount
 }
 
-func (s *ServerContext) AddCerts(c convey.C, certs ...model.Cert) {
+func (s *ServerContext) AddCerts(c convey.C, certs ...model.Crypto) {
 	for _, cert := range certs {
 		c.So(s.DB.Insert(&cert).Run(), convey.ShouldBeNil)
 	}

@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"golang.org/x/term"
 )
 
 func isTerminal() bool {
-	return term.IsTerminal(int(in.Fd())) && term.IsTerminal(int(out.Fd()))
+	fIn, ok1 := in.(*os.File)
+	fOut, ok2 := out.(*os.File)
+	return ok1 && ok2 && term.IsTerminal(int(fIn.Fd())) && term.IsTerminal(int(fOut.Fd()))
 }
 
 func promptUser() (string, error) {
@@ -29,14 +32,14 @@ func promptPassword() (string, error) {
 	}
 
 	fmt.Fprint(out, "Password: ")
-	st, err := term.MakeRaw(int(in.Fd()))
+	st, err := term.MakeRaw(int(in.(*os.File).Fd()))
 	if err != nil {
 		return "", err
 	}
-	defer func() { _ = term.Restore(int(in.Fd()), st) }()
+	defer func() { _ = term.Restore(int(in.(*os.File).Fd()), st) }()
 
-	term := term.NewTerminal(in, "")
-	pwd, err := term.ReadPassword("")
+	terminal := term.NewTerminal(in.(*os.File), "")
+	pwd, err := terminal.ReadPassword("")
 	if err != nil {
 		return "", err
 	}

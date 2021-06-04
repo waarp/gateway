@@ -16,13 +16,13 @@ type Data struct {
 type LocalAgent struct {
 	Name          string          `json:"name"`
 	Protocol      string          `json:"protocol"`
-	Root          string          `json:"root"`
-	InDir         string          `json:"inDir"`   //DEPRECATED
-	OutDir        string          `json:"outDir"`  //DEPRECATED
-	WorkDir       string          `json:"workDir"` //DEPRECATED
-	LocalInDir    string          `json:"localInDir"`
-	LocalOutDir   string          `json:"localOutDir"`
-	LocalTmpDir   string          `json:"localTmpDir"`
+	Root          string          `json:"root,omitempty"`
+	InDir         string          `json:"inDir,omitempty"`   //DEPRECATED
+	OutDir        string          `json:"outDir,omitempty"`  //DEPRECATED
+	WorkDir       string          `json:"workDir,omitempty"` //DEPRECATED
+	LocalInDir    string          `json:"localInDir,omitempty"`
+	LocalOutDir   string          `json:"localOutDir,omitempty"`
+	LocalTmpDir   string          `json:"localTmpDir,omitempty"`
 	Address       string          `json:"address"`
 	Configuration json.RawMessage `json:"configuration"`
 	Accounts      []LocalAccount  `json:"accounts"`
@@ -31,9 +31,10 @@ type LocalAgent struct {
 
 // LocalAccount is the JSON struct representing a local account.
 type LocalAccount struct {
-	Login    string        `json:"login"`
-	Password string        `json:"password"`
-	Certs    []Certificate `json:"certificates"`
+	Login        string        `json:"login"`
+	Password     string        `json:"password,omitempty"`
+	PasswordHash string        `json:"passwordHash,omitempty"`
+	Certs        []Certificate `json:"certificates,omitempty"`
 }
 
 // RemoteAgent is the JSON struct representing a remote partner along with its
@@ -50,16 +51,16 @@ type RemoteAgent struct {
 // RemoteAccount is the JSON struct representing a local account.
 type RemoteAccount struct {
 	Login    string        `json:"login"`
-	Password string        `json:"password"`
-	Certs    []Certificate `json:"certificates"`
+	Password string        `json:"password,omitempty"`
+	Certs    []Certificate `json:"certificates,omitempty"`
 }
 
 // Certificate is the JSON struct representing a certificate.
 type Certificate struct {
 	Name        string `json:"name"`
-	PublicKey   string `json:"publicKey"`
-	PrivateKey  string `json:"privateKey"`
-	Certificate string `json:"Certificate"`
+	PublicKey   string `json:"publicKey,omitempty"`
+	PrivateKey  string `json:"privateKey,omitempty"`
+	Certificate string `json:"Certificate,omitempty"`
 }
 
 // Rule is the JSON struct representing a transfer rule.
@@ -67,12 +68,12 @@ type Rule struct {
 	Name        string   `json:"name"`
 	IsSend      bool     `json:"isSend"`
 	Path        string   `json:"path"`
-	InPath      string   `json:"inPath"`   // DEPRECATED
-	OutPath     string   `json:"outPath"`  // DEPRECATED
-	WorkPath    string   `json:"workPath"` // DEPRECATED
-	LocalDir    string   `json:"localDir"`
-	RemoteDir   string   `json:"remoteDir"`
-	LocalTmpDir string   `json:"localTmpDir"`
+	InPath      string   `json:"inPath,omitempty"`   // DEPRECATED
+	OutPath     string   `json:"outPath,omitempty"`  // DEPRECATED
+	WorkPath    string   `json:"workPath,omitempty"` // DEPRECATED
+	LocalDir    string   `json:"localDir,omitempty"`
+	RemoteDir   string   `json:"remoteDir,omitempty"`
+	LocalTmpDir string   `json:"localTmpDir,omitempty"`
 	Accesses    []string `json:"auth"`
 	Pre         []Task   `json:"pre"`
 	Post        []Task   `json:"post"`

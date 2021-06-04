@@ -63,9 +63,9 @@ func exportLocalAccounts(logger *log.Logger, db database.ReadAccess,
 
 		logger.Infof("Export local account %s\n", src.Login)
 		res[i] = file.LocalAccount{
-			Login:    src.Login,
-			Password: string(src.Password),
-			Certs:    certificates,
+			Login:        src.Login,
+			PasswordHash: string(src.PasswordHash),
+			Certs:        certificates,
 		}
 	}
 

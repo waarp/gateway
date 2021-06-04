@@ -3,7 +3,6 @@ package r66
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 
@@ -17,13 +16,13 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func SkipTestTLS(t *testing.T) {
+func TestTLS(t *testing.T) {
 	logger := log.NewLogger("test_r66_tls")
 
-	Convey("Given a TLS R66 server", t, func(c C) {
+	SkipConvey("Given a TLS R66 server", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
-		addr := fmt.Sprintf("localhost:%d", testhelpers.GetFreePort(c))
+		addr := "localhost:6666"
 		server := &model.LocalAgent{
 			Name:        "r66_tls",
 			Protocol:    "r66",
@@ -32,12 +31,12 @@ func SkipTestTLS(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
-		servCert := &model.Cert{
+		servCert := &model.Crypto{
 			OwnerType:   server.TableName(),
 			OwnerID:     server.ID,
 			Name:        "server cert",
-			PrivateKey:  []byte(testKey),
-			Certificate: []byte(testCrt),
+			PrivateKey:  testhelpers.LocalhostKey,
+			Certificate: testhelpers.LocalhostCert,
 		}
 		So(db.Insert(servCert).Run(), ShouldBeNil)
 
@@ -57,13 +56,12 @@ func SkipTestTLS(t *testing.T) {
 					Agent: &model.RemoteAgent{
 						Address: addr,
 					},
-					ClientCerts: []model.Cert{{
-						PrivateKey:  []byte(testKey),
-						Certificate: []byte(testCrt),
+					ClientCryptos: []model.Crypto{{
+						PrivateKey:  testhelpers.ClientKey,
+						Certificate: testhelpers.ClientCert,
 					}},
-					ServerCerts: []model.Cert{{
-						PrivateKey:  []byte(testKey),
-						Certificate: []byte(testCrt),
+					ServerCryptos: []model.Crypto{{
+						Certificate: testhelpers.LocalhostCert,
 					}},
 				},
 			}
@@ -86,7 +84,7 @@ func SkipTestTLS(t *testing.T) {
 			})
 		})
 
-		Convey("Given that the server certificate is unknown", func() {
+		SkipConvey("Given that the server certificate is unknown", func() {
 			client := &client{
 				conf:      config.R66ProtoConfig{IsTLS: true},
 				r66Client: r66.NewClient("toto", []byte("sesame")),
@@ -94,9 +92,9 @@ func SkipTestTLS(t *testing.T) {
 					Agent: &model.RemoteAgent{
 						Address: addr,
 					},
-					ClientCerts: []model.Cert{{
-						PrivateKey:  []byte(testKey),
-						Certificate: []byte(testCrt),
+					ClientCryptos: []model.Crypto{{
+						PrivateKey:  testhelpers.ClientKey,
+						Certificate: testhelpers.ClientCert,
 					}},
 				},
 			}
@@ -116,7 +114,7 @@ func SkipTestTLS(t *testing.T) {
 			})
 		})
 
-		Convey("Given that the client does not provide a certificate", func() {
+		SkipConvey("Given that the client does not provide a certificate", func() {
 			client := &client{
 				conf:      config.R66ProtoConfig{IsTLS: true},
 				r66Client: r66.NewClient("toto", []byte("sesame")),
@@ -124,9 +122,9 @@ func SkipTestTLS(t *testing.T) {
 					Agent: &model.RemoteAgent{
 						Address: addr,
 					},
-					ServerCerts: []model.Cert{{
-						PrivateKey:  []byte(testKey),
-						Certificate: []byte(testCrt),
+					ServerCryptos: []model.Crypto{{
+						PrivateKey:  testhelpers.LocalhostKey,
+						Certificate: testhelpers.LocalhostCert,
 					}},
 				},
 			}

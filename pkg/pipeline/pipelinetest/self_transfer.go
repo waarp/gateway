@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks/taskstest"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
@@ -120,7 +122,7 @@ func (s *SelfContext) StartService(c convey.C) {
 	})
 }
 
-func (s *SelfContext) AddCerts(c convey.C, certs ...model.Cert) {
+func (s *SelfContext) AddCerts(c convey.C, certs ...model.Crypto) {
 	for _, cert := range certs {
 		c.So(s.DB.Insert(&cert).Run(), convey.ShouldBeNil)
 	}
@@ -132,7 +134,7 @@ func (s *SelfContext) AddClientPreTaskError(c convey.C) {
 		RuleID: s.ClientRule.ID,
 		Chain:  model.ChainPre,
 		Rank:   1,
-		Type:   testhelpers.ClientErr,
+		Type:   taskstest.ClientErr,
 		Args:   json.RawMessage(`{"msg":"PRE-TASKS[1]"}`),
 	}
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
@@ -144,7 +146,7 @@ func (s *SelfContext) AddClientPostTaskError(c convey.C) {
 		RuleID: s.ClientRule.ID,
 		Chain:  model.ChainPost,
 		Rank:   1,
-		Type:   testhelpers.ClientErr,
+		Type:   taskstest.ClientErr,
 		Args:   json.RawMessage(`{"msg":"POST-TASKS[1]"}`),
 	}
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
@@ -156,7 +158,7 @@ func (s *SelfContext) AddServerPreTaskError(c convey.C) {
 		RuleID: s.ServerRule.ID,
 		Chain:  model.ChainPre,
 		Rank:   1,
-		Type:   testhelpers.ServerErr,
+		Type:   taskstest.ServerErr,
 		Args:   json.RawMessage(`{"msg":"PRE-TASKS[1]"}`),
 	}
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
@@ -168,7 +170,7 @@ func (s *SelfContext) AddServerPostTaskError(c convey.C) {
 		RuleID: s.ServerRule.ID,
 		Chain:  model.ChainPost,
 		Rank:   1,
-		Type:   testhelpers.ServerErr,
+		Type:   taskstest.ServerErr,
 		Args:   json.RawMessage(`{"msg":"POST-TASKS[1]"}`),
 	}
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
@@ -182,7 +184,7 @@ func (s *SelfContext) RunTransfer(c convey.C) {
 }
 
 func (s *SelfContext) ResetTransfer(c convey.C) {
-	c.So(s.DB.DeleteAll(&model.Task{}).Where("type=? OR type=?", testhelpers.ClientErr, testhelpers.ServerErr).
+	c.So(s.DB.DeleteAll(&model.Task{}).Where("type=? OR type=?", taskstest.ClientErr, taskstest.ServerErr).
 		Run(), convey.ShouldBeNil)
 	s.ClientTrans.Status = types.StatusPlanned
 	c.So(s.DB.Update(s.ClientTrans).Cols("status").Run(), convey.ShouldBeNil)

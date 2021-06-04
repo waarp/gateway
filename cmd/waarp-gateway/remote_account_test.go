@@ -11,7 +11,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -40,7 +40,7 @@ func TestGetRemoteAccount(t *testing.T) {
 
 			account := &model.RemoteAccount{
 				Login:         "login",
-				Password:      []byte("password"),
+				Password:      "password",
 				RemoteAgentID: partner.ID,
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
@@ -151,17 +151,12 @@ func TestAddRemoteAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldNotBeEmpty)
 
-						clearPwd, err := utils.DecryptPassword(database.GCM, accounts[0].Password)
-						So(err, ShouldBeNil)
-						So(string(clearPwd), ShouldEqual, "password")
-
-						exp := model.RemoteAccount{
+						So(accounts, ShouldContain, model.RemoteAccount{
 							ID:            1,
 							RemoteAgentID: partner.ID,
 							Login:         command.Login,
-							Password:      accounts[0].Password,
-						}
-						So(accounts, ShouldContain, exp)
+							Password:      types.CypherText(command.Password),
+						})
 					})
 				})
 			})
@@ -209,7 +204,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "login",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -301,11 +296,10 @@ func TestUpdateRemoteAccount(t *testing.T) {
 			So(db.Insert(partner).Run(), ShouldBeNil)
 			commandLine.Account.Remote.Args.Partner = partner.Name
 
-			oldPwd := []byte("password")
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "login",
-				Password:      oldPwd,
+				Password:      "password",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -327,10 +321,12 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						var accounts model.RemoteAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldNotBeEmpty)
-
-						clearPwd, err := utils.DecryptPassword(database.GCM, accounts[0].Password)
-						So(err, ShouldBeNil)
-						So(string(clearPwd), ShouldEqual, "new_password")
+						So(accounts[0], ShouldResemble, model.RemoteAccount{
+							ID:            account.ID,
+							RemoteAgentID: account.RemoteAgentID,
+							Login:         *command.Login,
+							Password:      types.CypherText(*command.Password),
+						})
 
 					})
 				})
@@ -414,21 +410,21 @@ func TestListRemoteAccount(t *testing.T) {
 			account1 := &model.RemoteAccount{
 				RemoteAgentID: partner1.ID,
 				Login:         "account1",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.RemoteAccount{
 				RemoteAgentID: partner2.ID,
 				Login:         "account2",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
 			account3 := &model.RemoteAccount{
 				RemoteAgentID: partner1.ID,
 				Login:         "account3",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(account3).Run(), ShouldBeNil)
 
@@ -554,7 +550,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "login",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -682,10 +678,10 @@ func TestRevokeRemoteAccount(t *testing.T) {
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
-			account := &model.RemoteAccount{
+			var account = &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "login",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 

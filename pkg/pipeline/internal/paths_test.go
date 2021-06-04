@@ -6,6 +6,8 @@ import (
 	. "path/filepath"
 	"testing"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -15,6 +17,12 @@ import (
 
 func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
+}
+
+func hash(pwd string) []byte {
+	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
+	So(err, ShouldBeNil)
+	return h
 }
 
 func TestPathBuilder(t *testing.T) {
@@ -42,7 +50,7 @@ func TestPathBuilder(t *testing.T) {
 		acc := &model.LocalAccount{
 			LocalAgentID: server.ID,
 			Login:        "toto",
-			Password:     []byte("sesame"),
+			PasswordHash: hash("sesame"),
 		}
 		So(db.Insert(acc).Run(), ShouldBeNil)
 

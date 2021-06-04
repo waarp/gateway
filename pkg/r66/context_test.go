@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.waarp.fr/waarp-r66/r66"
+	"golang.org/x/crypto/bcrypt"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -29,6 +32,13 @@ func init() {
 }
 
 var testFileContent = []byte("r66 self transfer test file")
+
+func hash(pwd string) []byte {
+	r66hash := r66.CryptPass([]byte(pwd))
+	h, err := bcrypt.GenerateFromPassword(r66hash, bcrypt.MinCost)
+	So(err, ShouldBeNil)
+	return h
+}
 
 type testContext struct {
 	logger                   *log.Logger
@@ -89,7 +99,7 @@ func initForSelfTransfer(c C) *testContext {
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
 		Login:        "toto",
-		Password:     []byte("Sesame"),
+		PasswordHash: hash("Sesame"),
 	}
 	c.So(db.Insert(locAccount).Run(), ShouldBeNil)
 
@@ -105,7 +115,7 @@ func initForSelfTransfer(c C) *testContext {
 	remAccount := &model.RemoteAccount{
 		RemoteAgentID: partner.ID,
 		Login:         "toto",
-		Password:      []byte("Sesame"),
+		Password:      "Sesame",
 	}
 	c.So(db.Insert(remAccount).Run(), ShouldBeNil)
 
