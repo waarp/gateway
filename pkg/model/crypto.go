@@ -1,6 +1,7 @@
 package model
 
 import (
+	"net"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -117,10 +118,14 @@ func (c *Crypto) BeforeWrite(db database.ReadAccess) database.Error {
 func (c *Crypto) checkContent(parent database.GetBean) database.Error {
 	newErr := database.NewValidationError
 
-	var addr string
+	var host string
 	if c.OwnerType == "local_agents" || c.OwnerType == "remote_accounts" {
 		if t, ok := parent.(*LocalAgent); ok {
-			addr = t.Address
+			var err error
+			host, _, err = net.SplitHostPort(t.Address)
+			if err != nil {
+				return newErr("failed to parse certificate owner address")
+			}
 		}
 		if c.PrivateKey == "" {
 			return newErr("the %s is missing a private key", parent.Appellation())
@@ -130,7 +135,11 @@ func (c *Crypto) checkContent(parent database.GetBean) database.Error {
 		}
 	} else {
 		if t, ok := parent.(*RemoteAgent); ok {
-			addr = t.Address
+			var err error
+			host, _, err = net.SplitHostPort(t.Address)
+			if err != nil {
+				return newErr("failed to parse certificate owner address")
+			}
 		}
 		if c.Certificate == "" && c.SSHPublicKey == "" {
 			return newErr("the %s is missing a TLS certificate or an SSH public key",
@@ -141,10 +150,10 @@ func (c *Crypto) checkContent(parent database.GetBean) database.Error {
 		}
 	}
 
-	return c.validateContent(addr)
+	return c.validateContent(host)
 }
 
-func (c *Crypto) validateContent(addr string) database.Error {
+func (c *Crypto) validateContent(host string) database.Error {
 	newErr := database.NewValidationError
 
 	if c.Certificate != "" {
@@ -152,7 +161,7 @@ func (c *Crypto) validateContent(addr string) database.Error {
 		if err != nil {
 			return newErr("failed to parse certificate: %s", err)
 		}
-		if err := utils.CheckCertChain(certChain, addr); err != nil {
+		if err := utils.CheckCertChain(certChain, host); err != nil {
 			return newErr("certificate validation failed: %s", err)
 		}
 	}

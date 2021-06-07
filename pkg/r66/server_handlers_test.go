@@ -2,8 +2,13 @@ package r66
 
 import (
 	"path"
+	"path/filepath"
 	"testing"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -12,6 +17,10 @@ import (
 	"code.waarp.fr/waarp-r66/r66"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+func init() {
+	_ = log.InitBackend("DEBUG", "stdout", "")
+}
 
 func TestValidAuth(t *testing.T) {
 	logger := log.NewLogger("test_valid_auth")
@@ -66,8 +75,8 @@ func TestValidAuth(t *testing.T) {
 					Convey("Then it should return a new session handler", func() {
 						ses := s.(*sessionHandler)
 						So(ses.account, ShouldResemble, toto)
-						So(ses.hasHash, ShouldBeTrue)
-						So(ses.hasFileSize, ShouldBeTrue)
+						So(ses.conf.FinalHash, ShouldBeTrue)
+						So(ses.conf.Filesize, ShouldBeTrue)
 					})
 				})
 			})
@@ -95,11 +104,13 @@ func TestValidRequest(t *testing.T) {
 
 	Convey("Given an R66 authentication handler", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
+		root := testhelpers.TempDir(c, "r66_valid_request")
 
 		rule := &model.Rule{
-			Name:   "rule",
-			IsSend: false,
-			Path:   "/rule",
+			Name:        "rule",
+			IsSend:      false,
+			Path:        "/rule",
+			LocalTmpDir: "rule_tmp",
 		}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -108,6 +119,7 @@ func TestValidRequest(t *testing.T) {
 			Protocol:    "r66",
 			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:6666",
+			Root:        filepath.Join(root, "server_root"),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -124,9 +136,11 @@ func TestValidRequest(t *testing.T) {
 				logger: logger,
 				agent:  server,
 			}},
-			account:     account,
-			hasHash:     true,
-			hasFileSize: true,
+			account: account,
+			conf: &r66.Authent{
+				FinalHash: true,
+				Filesize:  true,
+			},
 		}
 
 		Convey("Given a request packet", func() {
@@ -139,7 +153,7 @@ func TestValidRequest(t *testing.T) {
 				Block:    512,
 				Rank:     0,
 				//Limit:      0,
-				Infos: nil,
+				Infos: "",
 			}
 
 			shouldFailWith := func(desc, msg string) {
@@ -159,22 +173,22 @@ func TestValidRequest(t *testing.T) {
 					trans := t.(*transferHandler)
 
 					Convey("Then it should have created a transfer", func() {
-						So(trans.file.Transfer.RuleID, ShouldEqual, rule.ID)
-						So(trans.file.Transfer.IsServer, ShouldBeTrue)
-						So(trans.file.Transfer.AgentID, ShouldEqual, server.ID)
-						So(trans.file.Transfer.AccountID, ShouldEqual, account.ID)
-						So(trans.file.Transfer.TrueFilepath, ShouldEqual, packet.Filepath+".tmp")
-						So(trans.file.Transfer.SourceFile, ShouldEqual, path.Base(packet.Filepath))
-						So(trans.file.Transfer.DestFile, ShouldEqual, path.Base(packet.Filepath))
-						So(trans.file.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
-						So(trans.file.Transfer.Step, ShouldEqual, types.StepNone)
-						So(trans.file.Transfer.Status, ShouldEqual, types.StatusRunning)
+						So(trans.pip.TransCtx.Transfer.RuleID, ShouldEqual, rule.ID)
+						So(trans.pip.TransCtx.Transfer.IsServer, ShouldBeTrue)
+						So(trans.pip.TransCtx.Transfer.AgentID, ShouldEqual, server.ID)
+						So(trans.pip.TransCtx.Transfer.AccountID, ShouldEqual, account.ID)
+						So(trans.pip.TransCtx.Transfer.LocalPath, ShouldEqual, filepath.Join(
+							server.Root, rule.LocalTmpDir, path.Base(packet.Filepath)+".part"))
+						So(trans.pip.TransCtx.Transfer.RemotePath, ShouldEqual, "/"+path.Base(packet.Filepath))
+						So(trans.pip.TransCtx.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
+						So(trans.pip.TransCtx.Transfer.Step, ShouldEqual, types.StepSetup)
+						So(trans.pip.TransCtx.Transfer.Status, ShouldEqual, types.StatusRunning)
 					})
 
 					Convey("Then it should return a new session handler", func() {
-						So(trans.file.Rule, ShouldResemble, rule)
-						So(trans.isMD5, ShouldBeTrue)
-						So(trans.fileSize, ShouldEqual, packet.FileSize)
+						So(trans.pip.TransCtx.Rule, ShouldResemble, rule)
+						So(r66.IsMD5(trans.req.Mode), ShouldBeTrue)
+						So(trans.req.FileSize, ShouldEqual, packet.FileSize)
 					})
 				})
 			})
@@ -200,4 +214,11 @@ func TestValidRequest(t *testing.T) {
 			})
 		})
 	})
+}
+
+func hash(pwd string) []byte {
+	crypt := r66.CryptPass([]byte(pwd))
+	h, err := bcrypt.GenerateFromPassword(crypt, bcrypt.MinCost)
+	So(err, ShouldBeNil)
+	return h
 }

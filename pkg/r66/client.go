@@ -1,226 +1,156 @@
 package r66
 
 import (
+	"bytes"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
-	"os"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/r66/internal"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
-	r66utils "code.waarp.fr/waarp-r66/r66/utils"
 )
 
 func init() {
-	//executor.ClientsConstructors["r66"] = NewClient
+	pipeline.ClientConstructors["r66"] = NewClient
 }
 
 type client struct {
-	r66Client *r66.Client
-	transCtx  model.TransferContext
-	signals   <-chan model.Signal
+	pip *pipeline.Pipeline
 
-	conf    config.R66ProtoConfig
-	tlsConf *tls.Config
+	conf      config.R66ProtoConfig
+	tlsConfig *tls.Config
 
-	remote  *r66.Remote
-	session *r66.ClientSession
-
-	stream  pipeline.DataStream
-	hasData bool
+	ses *r66.Session
 }
 
 // NewClient creates and returns a new r66 client using the given transfer context.
-func NewClient(transCtx model.TransferContext, signals <-chan model.Signal) (pipeline.Client, error) {
-	pswd, err := utils.DecryptPassword(transCtx.Account.Password)
-	if err != nil {
-		return nil, err
-	}
-
+func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 	var conf config.R66ProtoConfig
-	if err := json.Unmarshal(transCtx.Agent.ProtoConfig, &conf); err != nil {
-		return nil, err
+	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &conf); err != nil {
+		pip.Logger.Errorf("Failed to parse R66 partner proto config: %s", err)
+		return nil, types.NewTransferError(types.TeInternal, "failed to parse R66 partner proto config")
 	}
 
 	var tlsConf *tls.Config
 	if conf.IsTLS {
 		var err error
-		tlsConf, err = makeClientTLSConfig(&transCtx)
+		tlsConf, err = internal.MakeClientTLSConfig(pip.TransCtx)
 		if err != nil {
+			pip.Logger.Errorf("Failed to parse R66 TLS config: %s", err)
 			return nil, types.NewTransferError(types.TeInternal, "invalid R66 TLS config")
 		}
 	}
 
-	r66Client := r66.NewClient(transCtx.Account.Login, pswd)
-	r66Client.FileSize = true
-	r66Client.FinalHash = !conf.NoFinalHash
-
-	//TODO: configure r66 client
-	c := &client{
-		r66Client: r66Client,
-		transCtx:  transCtx,
-		signals:   signals,
+	return &client{
+		pip:       pip,
 		conf:      conf,
-		tlsConf:   tlsConf,
-	}
-	c.r66Client.AuthentHandler = &clientAuthHandler{
-		getFile:  func() r66utils.ReadWriterAt { return c.stream },
-		transCtx: &transCtx,
-		config:   &conf,
-	}
-
-	return c, nil
-}
-
-func makeClientTLSConfig(info *model.TransferContext) (*tls.Config, error) {
-	tlsCerts := make([]tls.Certificate, len(info.ClientCerts))
-	for i, cert := range info.ClientCerts {
-		var err error
-		tlsCerts[i], err = tls.X509KeyPair(cert.Certificate, cert.PrivateKey)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	var caPool *x509.CertPool
-	for _, cert := range info.ServerCerts {
-		if caPool == nil {
-			caPool = x509.NewCertPool()
-		}
-		caPool.AppendCertsFromPEM(cert.Certificate)
-	}
-
-	return &tls.Config{
-		Certificates: tlsCerts,
-		MinVersion:   tls.VersionTLS12,
-		RootCAs:      caPool,
+		tlsConfig: tlsConf,
 	}, nil
 }
 
-func (c *client) Connect() error {
-	var remote *r66.Remote
-	var err error
-	if c.tlsConf != nil {
-		remote, err = c.r66Client.DialTLS(c.transCtx.Agent.Address, c.tlsConf)
-	} else {
-		remote, err = c.r66Client.Dial(c.transCtx.Agent.Address)
+func (c *client) Request() *types.TransferError {
+	// CONNECTION
+	if err := c.connect(); err != nil {
+		return err
 	}
 
-	if err != nil {
-		if r66Err, ok := err.(*r66.Error); ok {
-			return types.NewTransferError(types.FromR66Code(r66Err.Code), r66Err.Detail)
-		}
-		return types.NewTransferError(types.TeConnection, err.Error())
+	// AUTHENTICATION
+	if err := c.authenticate(); err != nil {
+		return err
 	}
-	c.remote = remote
+
+	// REQUEST
+	if err := c.request(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (c *client) Authenticate() error {
-	ses, err := c.remote.Authent()
-	if err != nil {
-		if r66Err, ok := err.(*r66.Error); ok {
-			return types.NewTransferError(types.FromR66Code(r66Err.Code), r66Err.Detail)
-		}
-		return types.NewTransferError(types.TeBadAuthentication, err.Error())
-	}
-	c.session = ses
-	return nil
-}
-
-func (c *client) Request() error {
-	file := c.transCtx.Transfer.SourceFile
-	var size int64
-	if c.transCtx.Rule.IsSend {
-		file = c.transCtx.Transfer.DestFile
-
-		stats, err := os.Stat(utils.DenormalizePath(c.transCtx.Transfer.TrueFilepath))
+func (c *client) Data(dataStream pipeline.DataStream) *types.TransferError {
+	if c.pip.TransCtx.Rule.IsSend {
+		_, err := c.ses.Send(dataStream, c.makeHash)
 		if err != nil {
-			return types.NewTransferError(types.TeInternal, err.Error())
+			return internal.FromR66Error(err, c.pip)
 		}
-
-		size = stats.Size()
+		return nil
 	}
 
-	var blockSize uint32 = 65536
-	if c.conf.BlockSize != 0 {
-		blockSize = c.conf.BlockSize
+	eot, err := c.ses.Recv(dataStream)
+	if err != nil {
+		return internal.FromR66Error(err, c.pip)
+	}
+	if c.conf.NoFinalHash {
+		return nil
 	}
 
-	trans := &r66.Transfer{
-		ID:    int64(c.transCtx.Transfer.ID),
-		Get:   !c.transCtx.Rule.IsSend,
-		File:  file,
-		Rule:  c.transCtx.Rule.Name,
-		Block: blockSize,
-		Rank:  uint32(c.transCtx.Transfer.Progress / uint64(c.r66Client.Block)),
-		Size:  size,
+	hash, hErr := internal.MakeHash(c.pip.Logger, c.pip.TransCtx.Transfer.LocalPath)
+	if hErr != nil {
+		return hErr
 	}
-
-	if err := c.session.Request(trans); err != nil {
-		if r66Err, ok := err.(*r66.Error); ok {
-			return types.NewTransferError(types.FromR66Code(r66Err.Code), r66Err.Detail)
-		}
-		return types.NewTransferError(types.TeConnection, err.Error())
+	if !bytes.Equal(eot.Hash, hash) {
+		c.pip.Logger.Errorf("File hash does not match expected value")
+		return types.NewTransferError(types.TeIntegrity, "invalid file hash")
 	}
 
 	return nil
 }
 
-func (c *client) Data(file pipeline.DataStream) error {
-	c.hasData = true
-	c.stream = file
-
-	if err := c.session.Data(); err != nil {
-		if e, ok := err.(*r66.Error); ok {
-			return types.NewTransferError(types.FromR66Code(e.Code), e.Detail)
+func (c *client) EndTransfer() *types.TransferError {
+	defer clientConns.Done(c.pip.TransCtx.RemoteAgent.Address)
+	defer func() {
+		if c.ses != nil {
+			c.ses.Close()
 		}
-		return types.NewTransferError(types.TeDataTransfer, err.Error())
-	}
-	if err := c.session.EndTransfer(); err != nil {
-		if e, ok := err.(*r66.Error); ok {
-			return types.NewTransferError(types.FromR66Code(e.Code), e.Detail)
-		}
-		return types.NewTransferError(types.TeDataTransfer, err.Error())
+	}()
+	if err := c.ses.EndRequest(); err != nil {
+		c.pip.Logger.Errorf("Failed to end transfer request: %s", err)
+		return internal.FromR66Error(err, c.pip)
 	}
 	return nil
 }
 
-func (c *client) Close(err error) error {
-	if c.remote == nil {
+func (c *client) SendError(err *types.TransferError) {
+	defer clientConns.Done(c.pip.TransCtx.RemoteAgent.Address)
+	defer func() {
+		if c.ses != nil {
+			c.ses.Close()
+		}
+	}()
+	if sErr := c.ses.SendError(internal.ToR66Error(err)); sErr != nil {
+		c.pip.Logger.Errorf("Failed to send error to remote partner: %s", sErr)
+	}
+}
+
+func (c *client) Pause() *types.TransferError {
+	defer func() {
+		clientConns.Done(c.pip.TransCtx.RemoteAgent.Address)
+	}()
+	if c.ses == nil {
 		return nil
 	}
-	defer c.remote.Close()
+	defer c.ses.Close()
+	if err := c.ses.Stop(); err != nil {
+		c.pip.Logger.Warningf("Failed send pause signal to remote host: %s", err)
+		return internal.FromR66Error(err, c.pip)
+	}
+	return nil
+}
 
-	if c.session == nil {
+func (c *client) Cancel() *types.TransferError {
+	defer func() {
+		clientConns.Done(c.pip.TransCtx.RemoteAgent.Address)
+	}()
+	if c.ses == nil {
 		return nil
 	}
-	defer c.session.Close()
-
-	if !c.hasData && err == nil {
-		if err1 := c.session.EndTransfer(); err1 != nil {
-			if e, ok := err1.(*r66.Error); ok {
-				return types.NewTransferError(types.FromR66Code(e.Code), e.Detail)
-			}
-			return types.NewTransferError(types.TeDataTransfer, err1.Error())
-		}
+	defer c.ses.Close()
+	if err := c.ses.Cancel(); err != nil {
+		c.pip.Logger.Warningf("Failed send cancel signal to remote host: %s", err)
+		return internal.FromR66Error(err, c.pip)
 	}
-
-	if err == nil {
-		err1 := c.session.EndRequest()
-		if err1 == nil {
-			return nil
-		}
-		if e, ok := err1.(*r66.Error); ok {
-			return types.NewTransferError(types.FromR66Code(e.Code), e.Detail)
-		}
-		return types.NewTransferError(types.TeUnknownRemote, err1.Error())
-	}
-
-	c.session.SendError(toR66Error(err))
 	return nil
 }

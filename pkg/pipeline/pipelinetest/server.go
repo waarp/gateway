@@ -1,10 +1,16 @@
 package pipelinetest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
+
+	"code.waarp.fr/waarp-r66/r66"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 
@@ -107,10 +113,14 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string
 	c.So(os.MkdirAll(filepath.Join(root, server.LocalOutDir), 0o700), convey.ShouldBeNil)
 	c.So(os.MkdirAll(filepath.Join(root, server.LocalTmpDir), 0o700), convey.ShouldBeNil)
 
+	pswd := TestPassword
+	if proto == "r66" {
+		pswd = string(r66.CryptPass([]byte(pswd)))
+	}
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
 		Login:        TestLogin,
-		PasswordHash: hash(TestPassword),
+		PasswordHash: hash(pswd),
 	}
 	c.So(db.Insert(locAccount).Run(), convey.ShouldBeNil)
 
@@ -121,4 +131,14 @@ func (s *ServerContext) AddCerts(c convey.C, certs ...model.Crypto) {
 	for _, cert := range certs {
 		c.So(s.DB.Insert(&cert).Run(), convey.ShouldBeNil)
 	}
+}
+
+func (s *ServerContext) StartService(c convey.C) {
+	serv := gatewayd.ServiceConstructors[s.Server.Protocol](s.DB, s.Server, s.Logger)
+	c.So(serv.Start(), convey.ShouldBeNil)
+	c.Reset(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		c.So(serv.Stop(ctx), convey.ShouldBeNil)
+	})
 }
