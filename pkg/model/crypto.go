@@ -45,8 +45,9 @@ type Crypto struct {
 	// An SSH public key in authorized_keys format.
 	SSHPublicKey string `xorm:"text 'ssh_public_key'"`
 
-	// A checksum of the raw certificate (if one is provided), used for search purposes.
-	Signature []byte `xorm:"'signature'"`
+	// A base64 representation of the sha256 checksum of the raw certificate
+	// (if one is provided), used for indexation & search purposes.
+	Signature string `xorm:"varchar(44) unique 'signature'"`
 }
 
 // TableName returns the name of the certificates table.
@@ -164,6 +165,7 @@ func (c *Crypto) validateContent(host string) database.Error {
 		if err := utils.CheckCertChain(certChain, host); err != nil {
 			return newErr("certificate validation failed: %s", err)
 		}
+		c.Signature = utils.MakeSignature(certChain[0])
 	}
 
 	if c.PrivateKey != "" {

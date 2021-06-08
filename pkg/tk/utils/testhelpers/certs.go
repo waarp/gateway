@@ -70,3 +70,13 @@ ag5wun4k3GmfFj5uznKkiFbGpUc9vQJAKvBLGE7jQq+jgAffZFf6VATKi6zjETri
 Zht/QWMq1v8BtVVZIFRksEIn3LIHga7Q5HpkqXmpl9lNh7s0DAvReDb3wyW0UxJS
 vkxL195flB04sw==
 -----END PRIVATE KEY-----`
+
+const (
+	// LocalhostCertSign contains a base64 representation of the sha256 checksum
+	// of LocalhostCert
+	LocalhostCertSign = "X03a9FpciI9PM4lSnegLUunNc4qgsZlsh5jVRMbp5PU="
+
+	// ClientCertSign contains a base64 representation of the sha256 checksum of
+	// ClientCert
+	ClientCertSign = "GsOUu4Z3+amkZloCwrlfSM0BwV6jVtxrXZqXakHE5EU="
+)
