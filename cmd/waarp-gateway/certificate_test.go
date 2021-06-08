@@ -393,6 +393,7 @@ func TestAddCertificate(t *testing.T) {
 									OwnerID:     partner.ID,
 									Name:        "partner_cert",
 									Certificate: testhelpers.LocalhostCert,
+									Signature:   testhelpers.LocalhostCertSign,
 								}
 								So(certs, ShouldContain, exp)
 							})
@@ -464,6 +465,7 @@ func TestAddCertificate(t *testing.T) {
 										Name:        "account_cert",
 										PrivateKey:  testhelpers.ClientKey,
 										Certificate: testhelpers.ClientCert,
+										Signature:   testhelpers.ClientCertSign,
 									}
 									So(certs, ShouldContain, exp)
 								})
@@ -563,6 +565,7 @@ func TestAddCertificate(t *testing.T) {
 									Name:        "server_cert",
 									PrivateKey:  testhelpers.LocalhostKey,
 									Certificate: testhelpers.LocalhostCert,
+									Signature:   testhelpers.LocalhostCertSign,
 								}
 								So(certs, ShouldContain, exp)
 							})
@@ -632,6 +635,7 @@ func TestAddCertificate(t *testing.T) {
 										OwnerID:     account.ID,
 										Name:        "account_cert",
 										Certificate: testhelpers.ClientCert,
+										Signature:   testhelpers.ClientCertSign,
 									}
 									So(certs, ShouldContain, exp)
 								})
@@ -1661,6 +1665,7 @@ func TestUpdateCertificate(t *testing.T) {
 									OwnerID:     partner.ID,
 									Name:        "partner_cert",
 									Certificate: testhelpers.LocalhostCert,
+									Signature:   testhelpers.LocalhostCertSign,
 								}
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
@@ -1769,6 +1774,7 @@ func TestUpdateCertificate(t *testing.T) {
 										Name:        "account_cert",
 										PrivateKey:  testhelpers.ClientKey,
 										Certificate: testhelpers.ClientCert,
+										Signature:   testhelpers.ClientCertSign,
 									}
 									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
@@ -1909,6 +1915,7 @@ func TestUpdateCertificate(t *testing.T) {
 									Name:        "server_cert",
 									PrivateKey:  testhelpers.LocalhostKey,
 									Certificate: testhelpers.LocalhostCert,
+									Signature:   testhelpers.LocalhostCertSign,
 								}
 								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
@@ -2014,6 +2021,7 @@ func TestUpdateCertificate(t *testing.T) {
 										OwnerID:     account.ID,
 										Name:        "account_cert",
 										Certificate: testhelpers.ClientCert,
+										Signature:   testhelpers.ClientCertSign,
 									}
 									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
