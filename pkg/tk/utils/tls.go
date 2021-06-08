@@ -25,6 +25,9 @@ func ParsePEMCertChain(pemCert string) ([]*x509.Certificate, error) {
 
 		certChain = append(certChain, cert)
 	}
+	if len(certChain) == 0 {
+		return nil, fmt.Errorf("no certificate found in PEM block")
+	}
 
 	return certChain, nil
 }
