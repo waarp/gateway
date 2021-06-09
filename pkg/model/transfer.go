@@ -26,6 +26,7 @@ type Transfer struct {
 	AccountID        uint64               `xorm:"notnull unique(transRemID) 'account_id'"`
 	LocalPath        string               `xorm:"notnull 'local_path'"`
 	RemotePath       string               `xorm:"notnull 'remote_path'"`
+	Filesize         int64                `xorm:"notnull 'filesize'"`
 	Start            time.Time            `xorm:"notnull timestampz 'start'"`
 	Status           types.TransferStatus `xorm:"notnull 'status'"`
 	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
@@ -247,6 +248,7 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 		Protocol:         protocol,
 		LocalPath:        t.LocalPath,
 		RemotePath:       t.RemotePath,
+		Filesize:         t.Filesize,
 		Rule:             rule.Name,
 		Start:            t.Start,
 		Stop:             stop,

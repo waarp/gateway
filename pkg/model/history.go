@@ -26,6 +26,7 @@ type HistoryEntry struct {
 	Protocol         string               `xorm:"notnull 'protocol'"`
 	LocalPath        string               `xorm:"notnull 'local_path'"`
 	RemotePath       string               `xorm:"notnull 'remote_path'"`
+	Filesize         int64                `xorm:"notnull 'filesize'"`
 	Start            time.Time            `xorm:"notnull timestampz 'start'"`
 	Stop             time.Time            `xorm:"notnull timestampz 'stop'"`
 	Status           types.TransferStatus `xorm:"notnull varchar(50) 'status'"`
@@ -70,7 +71,6 @@ func (h *HistoryEntry) BeforeWrite(database.ReadAccess) database.Error {
 	if h.Agent == "" {
 		return database.NewValidationError("the transfer's agent cannot be empty")
 	}
-
 	if h.LocalPath == "" {
 		return database.NewValidationError("the local filepath cannot be empty")
 	}

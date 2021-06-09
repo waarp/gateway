@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -115,8 +117,8 @@ func MakeFilepaths(transCtx *model.TransferContext) {
 	}
 }
 
-func CheckFileExist(trans *model.Transfer, logger *log.Logger) *types.TransferError {
-	_, err := os.Stat(trans.LocalPath)
+func CheckFileExist(trans *model.Transfer, db *database.DB, logger *log.Logger) *types.TransferError {
+	info, err := os.Stat(trans.LocalPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			logger.Errorf("Failed to open transfer file %s: file does not exist", trans.LocalPath)
@@ -129,5 +131,11 @@ func CheckFileExist(trans *model.Transfer, logger *log.Logger) *types.TransferEr
 		logger.Errorf("Failed to open transfer file %s: %s", trans.LocalPath, err)
 		return types.NewTransferError(types.TeUnknown, fmt.Sprintf("unknown file error: %s", err))
 	}
+	trans.Filesize = info.Size()
+	if err := db.Update(trans).Cols("filesize").Run(); err != nil {
+		logger.Errorf("Failed to set file size: %s", err)
+		return types.NewTransferError(types.TeInternal, "failed to set file size")
+	}
+
 	return nil
 }

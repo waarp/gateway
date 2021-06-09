@@ -65,7 +65,11 @@ func newFileStream(pipeline *Pipeline, updateInterval time.Duration) (*fileStrea
 func (f *fileStream) updateProgress() error {
 	select {
 	case <-f.ticker.C:
-		f.TransCtx.Transfer.Progress = atomic.LoadUint64(&f.progress)
+		prog := atomic.LoadUint64(&f.progress)
+		if prog == f.TransCtx.Transfer.Progress {
+			return nil
+		}
+		f.TransCtx.Transfer.Progress = prog
 		if dbErr := f.DB.Update(f.TransCtx.Transfer).Cols("progression").Run(); dbErr != nil {
 			f.handleError(types.TeInternal, "Failed to update transfer progress",
 				dbErr.Error())

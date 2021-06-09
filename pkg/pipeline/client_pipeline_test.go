@@ -54,6 +54,7 @@ func TestClientPipelineRun(t *testing.T) {
 						Protocol:         "test",
 						LocalPath:        trans.LocalPath,
 						RemotePath:       trans.RemotePath,
+						Filesize:         int64(len(content)),
 						Start:            trans.Start.Local(),
 						Status:           types.StatusDone,
 						Step:             0,

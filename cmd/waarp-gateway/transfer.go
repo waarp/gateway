@@ -49,6 +49,10 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	if trans.IsServer {
 		role = "server"
 	}
+	size := "unknown"
+	if trans.Filesize >= 0 {
+		size = fmt.Sprint(trans.Filesize)
+	}
 
 	fmt.Fprintln(w, bold("● Transfer", trans.ID, "(as "+role+")"), coloredStatus(trans.Status))
 	if trans.RemoteID != "" {
@@ -59,6 +63,7 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	fmt.Fprintln(w, orange("    Requested:      "), trans.Requested)
 	fmt.Fprintln(w, orange("    Local filepath: "), trans.LocalPath)
 	fmt.Fprintln(w, orange("    Remote filepath:"), trans.RemotePath)
+	fmt.Fprintln(w, orange("    File size:      "), size)
 	fmt.Fprintln(w, orange("    Start time:     "), trans.Start.Format(time.RFC3339Nano))
 	fmt.Fprintln(w, orange("    Step:           "), trans.Step)
 	fmt.Fprintln(w, orange("    Progress:       "), trans.Progress)

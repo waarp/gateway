@@ -23,6 +23,10 @@ func transferInfoString(t *api.OutTransfer) string {
 	if t.IsServer {
 		role = "server"
 	}
+	size := "unknown"
+	if t.Filesize >= 0 {
+		size = fmt.Sprint(t.Filesize)
+	}
 
 	rv := "● Transfer " + fmt.Sprint(t.ID) + " (as " + role + ") [" + string(t.Status) + "]\n"
 	if t.RemoteID != "" {
@@ -33,6 +37,7 @@ func transferInfoString(t *api.OutTransfer) string {
 		"    Requested:       " + t.Requested + "\n" +
 		"    Local filepath:  " + t.LocalPath + "\n" +
 		"    Remote filepath: " + t.RemotePath + "\n" +
+		"    File size:       " + size + "\n" +
 		"    Start time:      " + t.Start.Local().Format(time.RFC3339Nano) + "\n" +
 		"    Step:            " + t.Step + "\n" +
 		"    Progress:        " + fmt.Sprint(t.Progress) + "\n" +

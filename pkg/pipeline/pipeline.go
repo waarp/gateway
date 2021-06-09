@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,7 +33,8 @@ type Pipeline struct {
 	runner *tasks.Runner
 }
 
-func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext) (*Pipeline, *types.TransferError) {
+func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferContext,
+) (*Pipeline, *types.TransferError) {
 	runner := tasks.NewTaskRunner(db, logger, transCtx)
 	internal.MakeFilepaths(transCtx)
 	if dbErr := db.Update(transCtx.Transfer).Cols("local_path", "remote_path").Run(); dbErr != nil {
@@ -41,7 +43,7 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 	}
 
 	if transCtx.Rule.IsSend {
-		if err := internal.CheckFileExist(transCtx.Transfer, logger); err != nil {
+		if err := internal.CheckFileExist(transCtx.Transfer, db, logger); err != nil {
 			return nil, err
 		}
 	}
@@ -78,6 +80,15 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		stream:   nil,
 		runner:   runner,
 	}, nil
+}
+
+func (p *Pipeline) UpdateTrans(cols ...string) *types.TransferError {
+	if err := p.DB.Update(p.TransCtx.Transfer).Cols(cols...).Run(); err != nil {
+		p.handleError(types.TeInternal, fmt.Sprintf("Failed to update transfer %s",
+			strings.Join(cols, ", ")), "database error")
+		return types.NewTransferError(types.TeInternal, "database error")
+	}
+	return nil
 }
 
 func (p *Pipeline) PreTasks() *types.TransferError {
@@ -155,6 +166,13 @@ func (p *Pipeline) EndData() *types.TransferError {
 	}
 	if err := p.stream.move(); err != nil {
 		return err
+	}
+
+	if p.TransCtx.Transfer.Filesize < 0 {
+		if err := internal.CheckFileExist(p.TransCtx.Transfer, p.DB, p.Logger); err != nil {
+			p.handleError(err.Code, "Error during final file check", err.Details)
+			return err
+		}
 	}
 
 	if err := p.machine.Transition("data ended"); err != nil {
@@ -350,4 +368,8 @@ func (p *Pipeline) Cancel() {
 
 		_ = p.machine.Transition("in error")
 	})
+}
+
+func (p *Pipeline) RebuildFilepaths() {
+	internal.MakeFilepaths(p.TransCtx)
 }

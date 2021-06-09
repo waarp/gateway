@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -105,7 +106,14 @@ func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) *typ
 	}
 
 	r.transCtx.Transfer.TaskNumber++
-	if dbErr := r.db.Update(r.transCtx.Transfer).Cols("task_number").Run(); dbErr != nil {
+	query := r.db.Update(r.transCtx.Transfer).Cols("task_number")
+	size := r.getFilesize()
+	if size >= 0 && size != r.transCtx.Transfer.Filesize {
+		r.transCtx.Transfer.Filesize = size
+		query.Cols("filesize")
+	}
+
+	if dbErr := query.Run(); dbErr != nil {
 		r.logger.Errorf("Failed to update task number: %s", dbErr)
 		if !isErrTasks {
 			return types.NewTransferError(types.TeInternal, "database error")
@@ -175,4 +183,16 @@ func (r *Runner) replace(t *model.Task) ([]byte, error) {
 		}
 	}
 	return res, nil
+}
+
+func (r *Runner) getFilesize() int64 {
+	if !r.transCtx.Rule.IsSend {
+		return -1
+	}
+	info, err := os.Stat(r.transCtx.Transfer.LocalPath)
+	if err != nil {
+		r.logger.Warningf("Failed to retrieve file size: %s", err)
+		return -1
+	}
+	return info.Size()
 }

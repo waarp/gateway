@@ -73,10 +73,10 @@ vkxL195flB04sw==
 
 const (
 	// LocalhostCertSign contains a base64 representation of the sha256 checksum
-	// of LocalhostCert
-	LocalhostCertSign = "X03a9FpciI9PM4lSnegLUunNc4qgsZlsh5jVRMbp5PU="
+	// of LocalhostCert.
+	LocalhostCertSign = "K7/JgI5LTl2Sz+WPzRPVEFpT3qbS3PnGpfTnlRuV8B8="
 
 	// ClientCertSign contains a base64 representation of the sha256 checksum of
-	// ClientCert
+	// ClientCert.
 	ClientCertSign = "GsOUu4Z3+amkZloCwrlfSM0BwV6jVtxrXZqXakHE5EU="
 )

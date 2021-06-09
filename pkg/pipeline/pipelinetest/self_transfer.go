@@ -30,9 +30,12 @@ type SelfContext struct {
 	fail                *model.Task
 	cliChain, servChain model.Chain
 	cliIndex, servIndex int
+	protoFeatures       *features
 }
 
 func initSelfTransfer(c convey.C, proto string, partConf, servConf config.ProtoConfig) *SelfContext {
+	feat, ok := protocols[proto]
+	c.So(ok, convey.ShouldBeTrue)
 	t := initTestData(c)
 	port := testhelpers.GetFreePort(c)
 	partner, remAcc := makeClientConf(c, t.DB, port, proto, partConf)
@@ -49,7 +52,8 @@ func initSelfTransfer(c convey.C, proto string, partConf, servConf config.ProtoC
 			Server:     server,
 			LocAccount: locAcc,
 		},
-		transData: &transData{},
+		transData:     &transData{},
+		protoFeatures: &feat,
 	}
 }
 
@@ -105,6 +109,7 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 		AccountID:  s.LocAccount.ID,
 		LocalPath:  "self_transfer_pull",
 		RemotePath: "self_transfer_pull",
+		Filesize:   -1,
 		Start:      time.Now(),
 	}
 	c.So(s.DB.Insert(trans).Run(), convey.ShouldBeNil)
@@ -229,6 +234,7 @@ func (s *SelfContext) CheckTransfersOK(c convey.C) {
 				Stop:       results[0].Stop,
 				LocalPath:  s.ClientTrans.LocalPath,
 				RemotePath: s.ClientTrans.RemotePath,
+				Filesize:   int64(TestFileSize),
 				Status:     types.StatusDone,
 				Step:       types.StepNone,
 				Error:      types.TransferError{},
@@ -251,6 +257,7 @@ func (s *SelfContext) CheckTransfersOK(c convey.C) {
 				Start:      results[1].Start,
 				Stop:       results[1].Stop,
 				RemotePath: "/" + filepath.Base(s.ClientTrans.LocalPath),
+				Filesize:   int64(TestFileSize),
 				Status:     types.StatusDone,
 				Step:       types.StepNone,
 				Error:      types.TransferError{},
@@ -306,9 +313,14 @@ func (s *SelfContext) CheckTransfersError(c convey.C, cTrans, sTrans *model.Tran
 			cTrans.RuleID = transfers[0].RuleID
 			cTrans.LocalPath = transfers[0].LocalPath
 			cTrans.RemotePath = transfers[0].RemotePath
+			cTrans.Filesize = int64(TestFileSize)
 			cTrans.AccountID = s.RemAccount.ID
 			cTrans.AgentID = s.Partner.ID
 			cTrans.Start = transfers[0].Start
+			if !s.ClientRule.IsSend && ((!s.protoFeatures.size && cTrans.Step <= types.StepData) ||
+				s.protoFeatures.size && cTrans.Step <= types.StepSetup) {
+				cTrans.Filesize = -1
+			}
 
 			c.So(transfers[0], convey.ShouldResemble, *cTrans)
 		})
@@ -321,11 +333,15 @@ func (s *SelfContext) CheckTransfersError(c convey.C, cTrans, sTrans *model.Tran
 			sTrans.RuleID = transfers[1].RuleID
 			sTrans.LocalPath = transfers[1].LocalPath
 			sTrans.RemotePath = transfers[1].RemotePath
+			sTrans.Filesize = int64(TestFileSize)
 			sTrans.AccountID = s.LocAccount.ID
 			sTrans.AgentID = s.Server.ID
 			sTrans.Start = transfers[1].Start
-			if s.Server.Protocol == "r66" {
+			if s.protoFeatures.transID {
 				sTrans.RemoteTransferID = fmt.Sprint(s.ClientTrans.ID)
+			}
+			if !s.ServerRule.IsSend && !s.protoFeatures.size && sTrans.Step <= types.StepData {
+				sTrans.Filesize = -1
 			}
 
 			c.So(transfers[1], convey.ShouldResemble, *sTrans)

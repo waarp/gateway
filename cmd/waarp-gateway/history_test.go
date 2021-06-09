@@ -27,6 +27,10 @@ func historyInfoString(h *api.OutHistory) string {
 	if h.IsSend {
 		way = "send"
 	}
+	size := "unknown"
+	if h.Filesize >= 0 {
+		size = fmt.Sprint(h.Filesize)
+	}
 	rv := "● Transfer " + fmt.Sprint(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n"
 	if h.RemoteID != "" {
 		rv += "    Remote ID:        " + h.RemoteID + "\n"
@@ -38,6 +42,7 @@ func historyInfoString(h *api.OutHistory) string {
 		"    Requested:       " + h.Requested + "\n" +
 		"    Local filepath:  " + h.LocalPath + "\n" +
 		"    Remote filepath: " + h.RemotePath + "\n" +
+		"    File size:       " + size + "\n" +
 		"    Start date:      " + h.Start.Local().Format(time.RFC3339Nano) + "\n" +
 		"    End date:        " + h.Stop.Local().Format(time.RFC3339Nano) + "\n"
 	if h.ErrorCode != types.TeOk {

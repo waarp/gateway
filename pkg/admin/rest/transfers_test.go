@@ -96,6 +96,7 @@ func TestAddTransfer(t *testing.T) {
 							AccountID:        account.ID,
 							LocalPath:        "test.file",
 							RemotePath:       "test.file",
+							Filesize:         -1,
 							Start:            transfers[0].Start,
 							Step:             types.StepNone,
 							Status:           types.StatusPlanned,

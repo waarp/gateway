@@ -29,6 +29,7 @@ func transToDB(trans *api.InTransfer, db *database.DB) (*model.Transfer, error) 
 		AccountID:  accountID,
 		LocalPath:  trans.File,
 		RemotePath: trans.File,
+		Filesize:   -1,
 		Start:      trans.Start,
 	}, nil
 }
@@ -49,6 +50,7 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 		Requester:  requester,
 		LocalPath:  trans.LocalPath,
 		RemotePath: trans.RemotePath,
+		Filesize:   trans.Filesize,
 		Start:      trans.Start.Local(),
 		Status:     trans.Status,
 		Step:       trans.Step.String(),

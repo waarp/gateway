@@ -26,6 +26,7 @@ func FromHistory(h *model.HistoryEntry) *api.OutHistory {
 		Protocol:   h.Protocol,
 		LocalPath:  h.LocalPath,
 		RemotePath: h.RemotePath,
+		Filesize:   h.Filesize,
 		Rule:       h.Rule,
 		Start:      h.Start.Local(),
 		Stop:       h.Stop.Local(),

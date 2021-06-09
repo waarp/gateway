@@ -33,6 +33,7 @@ type OutTransfer struct {
 	DestPath     string               `json:"destPath"`     // DEPRECATED
 	LocalPath    string               `json:"localPath"`
 	RemotePath   string               `json:"remotePath"`
+	Filesize     int64                `json:"filesize"`
 	Start        time.Time            `json:"startDate"`
 	Status       types.TransferStatus `json:"status"`
 	Step         string               `json:"step,omitempty"`

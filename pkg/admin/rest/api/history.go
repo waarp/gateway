@@ -20,6 +20,7 @@ type OutHistory struct {
 	DestFilename   string                  `json:"destFilename"`   // DEPRECATED
 	LocalPath      string                  `json:"localPath"`
 	RemotePath     string                  `json:"remotePath"`
+	Filesize       int64                   `json:"filesize"`
 	Rule           string                  `json:"rule"`
 	Start          time.Time               `json:"start"`
 	Stop           time.Time               `json:"stop"`
