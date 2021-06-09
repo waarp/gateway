@@ -1,8 +1,9 @@
 package config
 
 import (
-	"encoding/base64"
 	"fmt"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
@@ -40,8 +41,15 @@ func (c *R66ProtoConfig) ValidPartner() error {
 	if len(c.ServerPassword) == 0 {
 		return fmt.Errorf("missing partner password")
 	}
+	if _, err := bcrypt.Cost([]byte(c.ServerPassword)); err == nil {
+		return nil //password already hashed
+	}
 	pwd := r66.CryptPass([]byte(c.ServerPassword))
-	c.ServerPassword = base64.StdEncoding.EncodeToString(pwd)
+	hashed, err := utils.HashPassword(database.BcryptRounds, pwd)
+	if err != nil {
+		return err
+	}
+	c.ServerPassword = string(hashed)
 	return nil
 }
 
