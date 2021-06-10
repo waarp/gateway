@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`238` Suppression de l'option (maintenant inutile) ``R66Home`` du fichier
+  de configuration.
 * :bug:`254` Ajout des contraintes d'unicité manquantes lors de l'initialisation
   de la base de données.
 * :bug:`` Les dates de début/fin de transfert sont désormais précises à la

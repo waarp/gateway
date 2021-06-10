@@ -118,7 +118,7 @@ func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, erro
 		return nil, err
 	}
 
-	exe := &executor.Executor{TransferStream: stream, R66Home: c.Conf.Controller.R66Home}
+	exe := &executor.Executor{TransferStream: stream}
 
 	return exe, nil
 }
