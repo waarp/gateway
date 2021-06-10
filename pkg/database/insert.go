@@ -12,24 +12,33 @@ type InsertQuery struct {
 	bean InsertBean
 }
 
-// Run executes the 'INSERT' query.
-func (i *InsertQuery) Run() Error {
-	logger := i.db.GetLogger()
-
+func (i *InsertQuery) run(s *Session) Error {
 	if hook, ok := i.bean.(WriteHook); ok {
-		if err := hook.BeforeWrite(i.db); err != nil {
-			logger.Errorf("%s entry INSERT validation failed: %s", i.bean.Appellation(), err)
+		if err := hook.BeforeWrite(s); err != nil {
+			s.logger.Errorf("%s entry INSERT validation failed: %s", i.bean.Appellation(), err)
 			return err
 		}
 	}
 
-	query := i.db.getUnderlying().Table(i.bean.TableName())
+	query := s.session.Table(i.bean.TableName())
 	_, err := query.InsertOne(i.bean)
-	logSQL(query, logger)
+	logSQL(query, s.logger)
 	if err != nil {
-		logger.Errorf("Failed to insert the new %s entry: %s", i.bean.Appellation(), err)
+		s.logger.Errorf("Failed to insert the new %s entry: %s", i.bean.Appellation(), err)
 		return NewInternalError(err)
 	}
 
 	return nil
+}
+
+// Run executes the 'INSERT' query.
+func (i *InsertQuery) Run() Error {
+	switch db := i.db.(type) {
+	case *Standalone:
+		return db.Transaction(i.run)
+	case *Session:
+		return i.run(db)
+	default:
+		panic("unknown database accessor type")
+	}
 }

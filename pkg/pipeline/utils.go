@@ -46,14 +46,15 @@ func checkSignal(ctx context.Context, ch <-chan model.Signal) error {
 // ToHistory removes the given transfer from the database, converts it into a
 // history entry, and inserts the new history entry in the database.
 // If any of these steps fails, the changes are reverted and an error is returned.
-func ToHistory(db *database.DB, logger *log.Logger, trans *model.Transfer) error {
+func ToHistory(db *database.DB, logger *log.Logger, trans *model.Transfer,
+	date time.Time) error {
 	return db.Transaction(func(ses *database.Session) database.Error {
 		if err := ses.Delete(trans).Run(); err != nil {
 			logger.Criticalf("Failed to delete transfer for archival: %s", err)
 			return err
 		}
 
-		hist, err := trans.ToHistory(ses, time.Now())
+		hist, err := trans.ToHistory(ses, date)
 		if err != nil {
 			logger.Criticalf("Failed to convert transfer to history: %s", err)
 			return err
@@ -70,7 +71,6 @@ func ToHistory(db *database.DB, logger *log.Logger, trans *model.Transfer) error
 
 func execTasks(proc *tasks.Processor, chain model.Chain,
 	step types.TransferStep) error {
-
 	proc.Transfer.Step = step
 	if err := proc.DB.Update(proc.Transfer).Cols("step").Run(); err != nil {
 		proc.Logger.Criticalf("Failed to update transfer step to '%s': %s", step, err)
@@ -87,10 +87,9 @@ func execTasks(proc *tasks.Processor, chain model.Chain,
 }
 
 func getFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.File, error) {
-
 	path := utils.DenormalizePath(trans.TrueFilepath)
 	if rule.IsSend {
-		file, err := os.OpenFile(path, os.O_RDONLY, 0600)
+		file, err := os.OpenFile(path, os.O_RDONLY, 0o600)
 		if err != nil {
 			logger.Errorf("Failed to open source file: %s", err)
 			return nil, types.NewTransferError(types.TeForbidden, err.Error())
@@ -104,7 +103,7 @@ func getFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.F
 		return file, nil
 	}
 
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
 		logger.Errorf("Failed to create destination file (%s): %s", path, err)
 		return nil, types.NewTransferError(types.TeForbidden, err.Error())
@@ -123,7 +122,7 @@ func makeDir(uri string) error {
 	dir := filepath.Dir(path)
 	if info, err := os.Lstat(dir); err != nil {
 		if os.IsNotExist(err) {
-			if err := os.MkdirAll(dir, 0700); err != nil {
+			if err := os.MkdirAll(dir, 0o700); err != nil {
 				return err
 			}
 		} else {

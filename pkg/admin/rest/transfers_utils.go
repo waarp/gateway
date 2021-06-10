@@ -12,9 +12,12 @@ import (
 )
 
 func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64, error) {
+	if trans.IsSend == nil {
+		return 0, 0, 0, badRequest("the transfer direction (isSend) is missing")
+	}
 	var rule model.Rule
 	if err := db.Get(&rule, "name=? AND send=?", trans.Rule, trans.IsSend).Run(); err != nil {
-		if _, ok := err.(*database.NotFoundError); ok {
+		if database.IsNotFound(err) {
 			return 0, 0, 0, badRequest("no rule '%s' found", trans.Rule)
 		}
 		return 0, 0, 0, err
@@ -22,7 +25,7 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64
 
 	var partner model.RemoteAgent
 	if err := db.Get(&partner, "name=?", trans.Partner).Run(); err != nil {
-		if _, ok := err.(*database.NotFoundError); ok {
+		if database.IsNotFound(err) {
 			return 0, 0, 0, badRequest("no partner '%s' found", trans.Partner)
 		}
 		return 0, 0, 0, err
@@ -31,7 +34,7 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64
 	var account model.RemoteAccount
 	if err := db.Get(&account, "remote_agent_id=? AND login=?", partner.ID,
 		trans.Account).Run(); err != nil {
-		if _, ok := err.(*database.NotFoundError); ok {
+		if database.IsNotFound(err) {
 			return 0, 0, 0, badRequest("no account '%s' found for partner %s",
 				trans.Account, trans.Partner)
 		}
@@ -40,41 +43,39 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64
 	return rule.ID, account.ID, partner.ID, nil
 }
 
-// getTransNames returns (in this order) the transfer's rule name, requester and
-// requested.
-func getTransNames(db *database.DB, trans *model.Transfer) (ruleName, requesterName,
-	requestedName string, err error) {
+// getTransNames returns (in this order) the transfer's rule, and the names of
+// the requester and requested.
+func getTransNames(db *database.DB, trans *model.Transfer) (*model.Rule, string, string, error) {
 	var rule model.Rule
 	if err := db.Get(&rule, "id=?", trans.RuleID).Run(); err != nil {
-		return "", "", "", err
+		return nil, "", "", err
 	}
 
 	if trans.IsServer {
 		var requester model.LocalAccount
 		if err := db.Get(&requester, "id=?", trans.AccountID).Run(); err != nil {
-			return "", "", "", err
+			return nil, "", "", err
 		}
 		var requested model.LocalAgent
 		if err := db.Get(&requested, "id=?", trans.AgentID).Run(); err != nil {
-			return "", "", "", err
+			return nil, "", "", err
 		}
-		return rule.Name, requester.Login, requested.Name, nil
+		return &rule, requester.Login, requested.Name, nil
 	}
 	var requester model.RemoteAccount
 	if err := db.Get(&requester, "id=?", trans.AccountID).Run(); err != nil {
-		return "", "", "", err
+		return nil, "", "", err
 	}
 	var requested model.RemoteAgent
 	if err := db.Get(&requested, "id=?", trans.AgentID).Run(); err != nil {
-		return "", "", "", err
+		return nil, "", "", err
 	}
-	return rule.Name, requester.Login, requested.Name, nil
+	return &rule, requester.Login, requested.Name, nil
 }
 
 //nolint:funlen
 func parseTransferListQuery(r *http.Request, db *database.DB,
 	transfers *model.Transfers) (*database.SelectQuery, error) {
-
 	query := db.Select(transfers)
 
 	sorting := orders{

@@ -99,8 +99,6 @@ func (s *SelectQuery) Run() Error {
 
 	if len(s.distinct) > 0 {
 		query.Distinct(s.distinct...)
-	} else {
-		query.Cols("*")
 	}
 
 	err := query.Find(s.bean)

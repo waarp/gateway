@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	api "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -42,8 +43,9 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 	return &api.OutTransfer{
 		ID:           trans.ID,
 		RemoteID:     trans.RemoteTransferID,
-		Rule:         rule,
+		Rule:         rule.Name,
 		IsServer:     trans.IsServer,
+		IsSend:       rule.IsSend,
 		Requested:    requested,
 		Requester:    requester,
 		TrueFilepath: trans.TrueFilepath,
@@ -182,7 +184,6 @@ func pauseTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 }
 
 func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		check, err := getTrans(r, db)
 		if handleError(w, logger, err) {
@@ -191,7 +192,7 @@ func cancelTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 		if check.Status != types.StatusRunning {
 			check.Status = types.StatusCancelled
-			if err := pipeline.ToHistory(db, logger, check); handleError(w, logger, err) {
+			if err := pipeline.ToHistory(db, logger, check, time.Time{}); handleError(w, logger, err) {
 				return
 			}
 		} else {

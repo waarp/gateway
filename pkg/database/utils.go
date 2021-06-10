@@ -10,6 +10,25 @@ import (
 	"xorm.io/xorm"
 )
 
+type exister interface {
+	Table
+	Identifier
+}
+
+func checkExists(db Access, bean exister) Error {
+	logger := db.GetLogger()
+	exist, err := db.getUnderlying().NoAutoCondition().ID(bean.GetID()).Exist(bean)
+	if err != nil {
+		logger.Errorf("Failed to check if the %s exists: %s", bean.Appellation(), err)
+		return NewInternalError(err)
+	}
+	if !exist {
+		logger.Infof("No %s found with ID %d", bean.Appellation(), bean.GetID())
+		return NewNotFoundError(bean)
+	}
+	return nil
+}
+
 // logSQL logs the last executed SQL command.
 func logSQL(query *xorm.Session, logger *log.Logger) {
 	sql, args := query.LastSQL()
@@ -17,6 +36,13 @@ func logSQL(query *xorm.Session, logger *log.Logger) {
 		logger.Debugf("[SQL] %s", sql)
 		return
 	}
+
+	for i := range args {
+		if args[i] == nil {
+			args[i] = "<nil>"
+		}
+	}
+
 	if strings.Contains(sql, "?") {
 		sqlMsg, err := builder.ConvertToBoundSQL(sql, args)
 		if err == nil {

@@ -103,8 +103,6 @@ func (i *IterateQuery) Run() (*Iterator, Error) {
 
 	if len(i.distinct) > 0 {
 		query.Distinct(i.distinct...)
-	} else {
-		query.Cols("*")
 	}
 
 	rows, err := query.Rows(i.bean)

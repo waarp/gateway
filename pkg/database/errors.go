@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -55,8 +56,8 @@ func (*NotFoundError) db() {}
 
 // IsNotFound returns whether the given error is of type NotFoundError.
 func IsNotFound(err error) bool {
-	_, ok := err.(*NotFoundError)
-	return ok
+	var nf *NotFoundError
+	return errors.As(err, &nf)
 }
 
 // NewNotFoundError returns a new validation `Error` for the given entry.

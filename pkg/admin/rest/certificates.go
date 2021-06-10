@@ -82,7 +82,7 @@ func getCert(r *http.Request, db *database.DB, ownerType string, ownerID uint64)
 	var cert model.Cert
 	if err := db.Get(&cert, "name=? AND owner_type=? AND owner_id=?", certName,
 		ownerType, ownerID).Run(); err != nil {
-		if _, ok := err.(*database.NotFoundError); ok {
+		if database.IsNotFound(err) {
 			return nil, notFound("certificate '%s' not found", certName)
 		}
 		return nil, err

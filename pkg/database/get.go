@@ -24,7 +24,7 @@ func (g *GetQuery) Run() Error {
 	logger := g.db.GetLogger()
 
 	query := g.db.getUnderlying().NoAutoCondition().Table(g.bean.TableName()).
-		Where(g.sql, g.args...).Cols("*")
+		Where(g.sql, g.args...)
 	exist, err := query.Get(g.bean)
 	logSQL(query, logger)
 

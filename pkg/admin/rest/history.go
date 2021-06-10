@@ -16,6 +16,11 @@ import (
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
 func FromHistory(h *model.TransferHistory) *api.OutHistory {
+	var stop *time.Time
+	if !h.Stop.IsZero() {
+		stop = &h.Stop
+	}
+
 	return &api.OutHistory{
 		ID:             h.ID,
 		RemoteID:       h.RemoteTransferID,
@@ -28,7 +33,7 @@ func FromHistory(h *model.TransferHistory) *api.OutHistory {
 		DestFilename:   h.DestFilename,
 		Rule:           h.Rule,
 		Start:          h.Start.Local(),
-		Stop:           h.Stop.Local(),
+		Stop:           stop,
 		Status:         h.Status,
 		ErrorCode:      h.Error.Code,
 		ErrorMsg:       h.Error.Details,

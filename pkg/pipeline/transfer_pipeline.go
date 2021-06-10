@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -67,8 +68,8 @@ func (p *Pipeline) ErrorTasks() {
 
 // Archive deletes the transfer entry and saves it in the history.
 func (p *Pipeline) Archive() error {
-	p.Logger.Debug("Transfer finished, saving into transfer history")
-	err := ToHistory(p.DB, p.Logger, p.Transfer)
+	p.Logger.Info("Transfer finished, saving into transfer history")
+	err := ToHistory(p.DB, p.Logger, p.Transfer, time.Now())
 	p.exit()
 	return err
 }
