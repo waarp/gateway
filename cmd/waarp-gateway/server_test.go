@@ -39,8 +39,8 @@ func TestGetServer(t *testing.T) {
 		out = testFile()
 		command := &serverGet{}
 
-		Convey("Given a gateway with 1 local server", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 local server", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -56,21 +56,21 @@ func TestGetServer(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 
 			send := &model.Rule{Name: "send", IsSend: true, Path: "send_path"}
-			So(db.Create(send), ShouldBeNil)
+			So(db.Insert(send).Run(), ShouldBeNil)
 			receive := &model.Rule{Name: "receive", IsSend: false, Path: "rcv_path"}
-			So(db.Create(receive), ShouldBeNil)
+			So(db.Insert(receive).Run(), ShouldBeNil)
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
-			So(db.Create(sendAll), ShouldBeNil)
+			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
 			sAccess := &model.RuleAccess{RuleID: send.ID,
 				ObjectType: server.TableName(), ObjectID: server.ID}
-			So(db.Create(sAccess), ShouldBeNil)
+			So(db.Insert(sAccess).Run(), ShouldBeNil)
 			rAccess := &model.RuleAccess{RuleID: receive.ID,
 				ObjectType: server.TableName(), ObjectID: server.ID}
-			So(db.Create(rAccess), ShouldBeNil)
+			So(db.Insert(rAccess).Run(), ShouldBeNil)
 
 			Convey("Given a valid server name", func() {
 				args := []string{server.Name}
@@ -114,8 +114,8 @@ func TestAddServer(t *testing.T) {
 		out = testFile()
 		command := &serverAdd{}
 
-		Convey("Given a gateway", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -137,6 +137,9 @@ func TestAddServer(t *testing.T) {
 					})
 
 					Convey("Then the new server should have been added", func() {
+						var servers model.LocalAgents
+						So(db.Select(&servers).Run(), ShouldBeNil)
+
 						exp := model.LocalAgent{
 							ID:          1,
 							Owner:       database.Owner,
@@ -149,10 +152,7 @@ func TestAddServer(t *testing.T) {
 							WorkDir:     *command.WorkDir,
 							ProtoConfig: json.RawMessage(`{}`),
 						}
-						var res []model.LocalAgent
-						So(db.Select(&res, nil), ShouldBeNil)
-						So(len(res), ShouldEqual, 1)
-						So(res[0], ShouldResemble, exp)
+						So(servers, ShouldContain, exp)
 					})
 				})
 			})
@@ -222,12 +222,12 @@ func TestAddServer(t *testing.T) {
 					})
 
 					Convey("Then the new server should have been added", func() {
-						var res []model.LocalAgent
-						So(db.Select(&res, nil), ShouldBeNil)
-						So(len(res), ShouldEqual, 1)
+						var servers model.LocalAgents
+						So(db.Select(&servers).Run(), ShouldBeNil)
+						So(len(servers), ShouldEqual, 1)
 
 						var conf config.R66ProtoConfig
-						So(json.Unmarshal(res[0].ProtoConfig, &conf), ShouldBeNil)
+						So(json.Unmarshal(servers[0].ProtoConfig, &conf), ShouldBeNil)
 						bytes, err := base64.StdEncoding.DecodeString(conf.ServerPassword)
 						So(err, ShouldBeNil)
 						pwd, err := utils.DecryptPassword(bytes)
@@ -235,7 +235,7 @@ func TestAddServer(t *testing.T) {
 
 						So(string(pwd), ShouldEqual, "sesame")
 						conf.ServerPassword = "sesame"
-						res[0].ProtoConfig, err = json.Marshal(conf)
+						servers[0].ProtoConfig, err = json.Marshal(conf)
 						So(err, ShouldBeNil)
 
 						exp := model.LocalAgent{
@@ -250,7 +250,7 @@ func TestAddServer(t *testing.T) {
 							WorkDir:     "work_dir",
 							ProtoConfig: json.RawMessage(`{"blockSize":256,"serverPassword":"sesame"}`),
 						}
-						So(res[0], ShouldResemble, exp)
+						So(servers[0], ShouldResemble, exp)
 					})
 				})
 			})
@@ -264,8 +264,8 @@ func TestListServers(t *testing.T) {
 		out = testFile()
 		command := &serverList{}
 
-		Convey("Given a gateway with 2 local servers", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 2 local servers", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -281,7 +281,7 @@ func TestListServers(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server1), ShouldBeNil)
+			So(db.Insert(server1).Run(), ShouldBeNil)
 
 			server2 := &model.LocalAgent{
 				Name:        "server2",
@@ -293,7 +293,7 @@ func TestListServers(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
-			So(db.Create(server2), ShouldBeNil)
+			So(db.Insert(server2).Run(), ShouldBeNil)
 
 			s1 := rest.FromLocalAgent(server1, &api.AuthorizedRules{})
 			s2 := rest.FromLocalAgent(server2, &api.AuthorizedRules{})
@@ -382,8 +382,8 @@ func TestDeleteServer(t *testing.T) {
 		out = testFile()
 		command := &serverDelete{}
 
-		Convey("Given a gateway with 1 local server", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 local server", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -395,7 +395,7 @@ func TestDeleteServer(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 
 			Convey("Given a valid server name", func() {
 				args := []string{server.Name}
@@ -411,9 +411,9 @@ func TestDeleteServer(t *testing.T) {
 					})
 
 					Convey("Then the server should have been removed", func() {
-						var serv []model.LocalAgent
-						So(db.Select(&serv, nil), ShouldBeNil)
-						So(serv, ShouldBeEmpty)
+						var servers model.LocalAgents
+						So(db.Select(&servers).Run(), ShouldBeNil)
+						So(servers, ShouldBeEmpty)
 					})
 				})
 			})
@@ -431,7 +431,9 @@ func TestDeleteServer(t *testing.T) {
 					})
 
 					Convey("Then the server should still exist", func() {
-						So(db.Get(server), ShouldBeNil)
+						var servers model.LocalAgents
+						So(db.Select(&servers).Run(), ShouldBeNil)
+						So(servers, ShouldContain, *server)
 					})
 				})
 			})
@@ -445,8 +447,8 @@ func TestUpdateServer(t *testing.T) {
 		out = testFile()
 		command := &serverUpdate{}
 
-		Convey("Given a gateway with 1 local server", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 local server", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -458,7 +460,7 @@ func TestUpdateServer(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
 				args := []string{"-n", "new_server", "-p", "test2",
@@ -475,9 +477,8 @@ func TestUpdateServer(t *testing.T) {
 					})
 
 					Convey("Then the server should have been updated", func() {
-						var serv []model.LocalAgent
-						So(db.Select(&serv, nil), ShouldBeNil)
-						So(len(serv), ShouldEqual, 1)
+						var servers model.LocalAgents
+						So(db.Select(&servers).Run(), ShouldBeNil)
 
 						exp := model.LocalAgent{
 							ID:          server.ID,
@@ -487,7 +488,7 @@ func TestUpdateServer(t *testing.T) {
 							Protocol:    *command.Protocol,
 							ProtoConfig: json.RawMessage(`{}`),
 						}
-						So(serv[0], ShouldResemble, exp)
+						So(servers, ShouldContain, exp)
 					})
 				})
 			})
@@ -506,7 +507,9 @@ func TestUpdateServer(t *testing.T) {
 					})
 
 					Convey("Then the server should stay unchanged", func() {
-						So(db.Get(server), ShouldBeNil)
+						var servers model.LocalAgents
+						So(db.Select(&servers).Run(), ShouldBeNil)
+						So(servers, ShouldContain, *server)
 					})
 				})
 			})
@@ -526,7 +529,9 @@ func TestUpdateServer(t *testing.T) {
 					})
 
 					Convey("Then the server should stay unchanged", func() {
-						So(db.Get(server), ShouldBeNil)
+						var servers model.LocalAgents
+						So(db.Select(&servers).Run(), ShouldBeNil)
+						So(servers, ShouldContain, *server)
 					})
 				})
 			})
@@ -546,7 +551,9 @@ func TestUpdateServer(t *testing.T) {
 					})
 
 					Convey("Then the server should stay unchanged", func() {
-						So(db.Get(server), ShouldBeNil)
+						var servers model.LocalAgents
+						So(db.Select(&servers).Run(), ShouldBeNil)
+						So(servers, ShouldContain, *server)
 					})
 				})
 			})
@@ -565,7 +572,9 @@ func TestUpdateServer(t *testing.T) {
 					})
 
 					Convey("Then the server should stay unchanged", func() {
-						So(db.Get(server), ShouldBeNil)
+						var servers model.LocalAgents
+						So(db.Select(&servers).Run(), ShouldBeNil)
+						So(servers, ShouldContain, *server)
 					})
 				})
 			})
@@ -579,8 +588,8 @@ func TestAuthorizeServer(t *testing.T) {
 		out = testFile()
 		command := &serverAuthorize{}
 
-		Convey("Given a gateway with 1 local server and 1 rule", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 local server and 1 rule", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -592,14 +601,14 @@ func TestAuthorizeServer(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
 				Path:   "rule/path",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given a valid server & rule names", func() {
 				args := []string{server.Name, rule.Name, direction(rule)}
@@ -617,12 +626,15 @@ func TestAuthorizeServer(t *testing.T) {
 					})
 
 					Convey("Then the permission should have been added", func() {
-						access := &model.RuleAccess{
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+
+						access := model.RuleAccess{
 							RuleID:     rule.ID,
 							ObjectID:   server.ID,
 							ObjectType: server.TableName(),
 						}
-						So(db.Get(access), ShouldBeNil)
+						So(accesses, ShouldContain, access)
 					})
 				})
 			})
@@ -636,13 +648,13 @@ func TestAuthorizeServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then is should return an error", func() {
-						So(err, ShouldBeError, "rule 'toto' not found")
+						So(err, ShouldBeError, "send rule 'toto' not found")
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
-						var a []model.RuleAccess
-						So(db.Select(&a, nil), ShouldBeNil)
-						So(a, ShouldBeEmpty)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldBeEmpty)
 					})
 				})
 			})
@@ -660,9 +672,9 @@ func TestAuthorizeServer(t *testing.T) {
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
-						var a []model.RuleAccess
-						So(db.Select(&a, nil), ShouldBeNil)
-						So(a, ShouldBeEmpty)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldBeEmpty)
 					})
 				})
 			})
@@ -676,8 +688,8 @@ func TestRevokeServer(t *testing.T) {
 		out = testFile()
 		command := &serverRevoke{}
 
-		Convey("Given a gateway with 1 distant server and 1 rule", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 distant server and 1 rule", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -689,21 +701,21 @@ func TestRevokeServer(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
 				Path:   "rule/path",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			access := &model.RuleAccess{
 				RuleID:     rule.ID,
 				ObjectID:   server.ID,
 				ObjectType: server.TableName(),
 			}
-			So(db.Create(access), ShouldBeNil)
+			So(db.Insert(access).Run(), ShouldBeNil)
 
 			Convey("Given a valid server & rule names", func() {
 				args := []string{server.Name, rule.Name, direction(rule)}
@@ -721,9 +733,9 @@ func TestRevokeServer(t *testing.T) {
 					})
 
 					Convey("Then the permission should have been removed", func() {
-						var a []model.RuleAccess
-						So(db.Select(&a, nil), ShouldBeNil)
-						So(a, ShouldBeEmpty)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldBeEmpty)
 					})
 				})
 			})
@@ -737,11 +749,13 @@ func TestRevokeServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then is should return an error", func() {
-						So(err, ShouldBeError, "rule 'toto' not found")
+						So(err, ShouldBeError, "send rule 'toto' not found")
 					})
 
 					Convey("Then the permission should NOT have been removed", func() {
-						So(db.Get(access), ShouldBeNil)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldContain, *access)
 					})
 				})
 			})
@@ -759,7 +773,9 @@ func TestRevokeServer(t *testing.T) {
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
-						So(db.Get(access), ShouldBeNil)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldContain, *access)
 					})
 				})
 			})

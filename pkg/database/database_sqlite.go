@@ -2,9 +2,11 @@ package database
 
 import (
 	"fmt"
+	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	_ "github.com/mattn/go-sqlite3" // register the sqlite driver
+	"xorm.io/xorm"
 )
 
 const (
@@ -19,8 +21,14 @@ func init() {
 	supportedRBMS[sqlite] = sqliteinfo
 }
 
-func sqliteinfo(config conf.DatabaseConfig) (string, string) {
-	return sqliteDriver, sqliteDSN(config)
+func sqliteInit(db *xorm.Engine) error {
+	db.SetMaxOpenConns(1)
+	db.DatabaseTZ = time.UTC
+	return nil
+}
+
+func sqliteinfo(config conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+	return sqliteDriver, sqliteDSN(config), sqliteInit
 }
 
 func sqliteDSN(config conf.DatabaseConfig) string {

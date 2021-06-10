@@ -10,306 +10,246 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func getRemAg(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
+func getPart(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
 	agentName, ok := mux.Vars(r)["partner"]
 	if !ok {
 		return nil, notFound("missing partner name")
 	}
-	agent := &model.RemoteAgent{Name: agentName}
-	if err := db.Get(agent); err != nil {
-		if err == database.ErrNotFound {
+
+	var partner model.RemoteAgent
+	if err := db.Get(&partner, "name=?", agentName).Run(); err != nil {
+		if database.IsNotFound(err) {
 			return nil, notFound("partner '%s' not found", agentName)
 		}
 		return nil, err
 	}
-	return agent, nil
+	return &partner, nil
 }
 
 func addPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			part := &api.InPartner{}
-			if err := readJSON(r, part); err != nil {
-				return err
-			}
-
-			agent := partToDB(part, 0)
-			if err := db.Create(agent); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", location(r.URL, agent.Name))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		var part api.InPartner
+		if err := readJSON(r, &part); handleError(w, logger, err) {
+			return
 		}
+
+		partner := partToDB(&part, 0)
+		if err := db.Insert(partner).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", location(r.URL, partner.Name))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func listPartners(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	validSorting := map[string]string{
-		"default": "name ASC",
-		"proto+":  "protocol ASC",
-		"proto-":  "protocol DESC",
-		"name+":   "name ASC",
-		"name-":   "name DESC",
+	validSorting := orders{
+		"default": order{"name", true},
+		"proto+":  order{"protocol", true},
+		"proto-":  order{"protocol", false},
+		"name+":   order{"name", true},
+		"name-":   order{"name", false},
 	}
 	typ := (&model.RemoteAgent{}).TableName()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			filters, err := parseListFilters(r, validSorting)
-			if err != nil {
-				return err
-			}
-			if err := parseProtoParam(r, filters); err != nil {
-				return err
-			}
-
-			var results []model.RemoteAgent
-			if err := db.Select(&results, filters); err != nil {
-				return err
-			}
-
-			ids := make([]uint64, len(results))
-			for i, res := range results {
-				ids[i] = res.ID
-			}
-			rules, err := getAuthorizedRuleList(db, typ, ids)
-			if err != nil {
-				return err
-			}
-
-			resp := map[string][]api.OutPartner{"partners": FromRemoteAgents(results, rules)}
-			return writeJSON(w, resp)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		var partners model.RemoteAgents
+		query, err := parseSelectQuery(r, db, validSorting, &partners)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		if err := parseProtoParam(r, query); handleError(w, logger, err) {
+			return
+		}
+
+		if err := query.Run(); handleError(w, logger, err) {
+			return
+		}
+
+		ids := make([]uint64, len(partners))
+		for i := range partners {
+			ids[i] = partners[i].ID
+		}
+		rules, err := getAuthorizedRuleList(db, typ, ids)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		resp := map[string][]api.OutPartner{"partners": FromRemoteAgents(partners, rules)}
+		err = writeJSON(w, resp)
+		handleError(w, logger, err)
 	}
 }
 
 func getPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			result, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
-			if err != nil {
-				return err
-			}
-
-			return writeJSON(w, FromRemoteAgent(result, rules))
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		result, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		rules, err := getAuthorizedRules(db, result.TableName(), result.ID)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		err = writeJSON(w, FromRemoteAgent(result, rules))
+		handleError(w, logger, err)
 	}
 }
 
 func deletePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			if err := db.Delete(ag); err != nil {
-				return err
-			}
-			w.WriteHeader(http.StatusNoContent)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		partner, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		if err := db.Delete(partner).Run(); handleError(w, logger, err) {
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
 func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			old, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			part := newInPartner(old)
-			if err := readJSON(r, part); err != nil {
-				return err
-			}
-
-			if err := db.Update(partToDB(part, old.ID)); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", locationUpdate(r.URL, str(part.Name)))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		old, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		jPart := newInPartner(old)
+		if err := readJSON(r, jPart); handleError(w, logger, err) {
+			return
+		}
+
+		partner := partToDB(jPart, old.ID)
+		if err := db.Update(partner).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", locationUpdate(r.URL, partner.Name))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func replacePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			old, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			part := &api.InPartner{}
-			if err := readJSON(r, part); err != nil {
-				return err
-			}
-
-			if err := db.Update(partToDB(part, old.ID)); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", locationUpdate(r.URL, str(part.Name)))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		old, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		var jPart api.InPartner
+		if err := readJSON(r, &jPart); handleError(w, logger, err) {
+			return
+		}
+
+		partner := partToDB(&jPart, old.ID)
+		if err := db.Update(partner).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", locationUpdate(r.URL, partner.Name))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func authorizePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return authorizeRule(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = authorizeRule(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func revokePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return revokeRule(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = revokeRule(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func getPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return getCertificate(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = getCertificate(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func addPartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return createCertificate(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = createCertificate(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func listPartnerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return listCertificates(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = listCertificates(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func deletePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return deleteCertificate(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = deleteCertificate(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func updatePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return updateCertificate(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = updateCertificate(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }
 
 func replacePartnerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			ag, err := getRemAg(r, db)
-			if err != nil {
-				return err
-			}
-
-			return replaceCertificate(w, r, db, ag.TableName(), ag.ID)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		ag, err := getPart(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = replaceCertificate(w, r, db, ag.TableName(), ag.ID)
+		handleError(w, logger, err)
 	}
 }

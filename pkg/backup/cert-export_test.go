@@ -10,8 +10,8 @@ import (
 )
 
 func TestExportCertificates(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given the database contains 1 local agent with a certificate", func() {
 			agent := &model.LocalAgent{
@@ -20,7 +20,7 @@ func TestExportCertificates(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			cert := &model.Cert{
 				Name:        "test_cert",
@@ -30,16 +30,12 @@ func TestExportCertificates(t *testing.T) {
 				PublicKey:   []byte("public"),
 				PrivateKey:  []byte("private"),
 			}
-			So(db.Create(cert), ShouldBeNil)
+			So(db.Insert(cert).Run(), ShouldBeNil)
 
-			Convey("Given a new Transaction", func() {
-				ses, err := db.BeginTransaction()
-				So(err, ShouldBeNil)
-
-				defer ses.Rollback()
+			Convey("Given an new Transaction", func() {
 
 				Convey("When calling exportCertificates with the correct argument", func() {
-					res, err := exportCertificates(discard, ses, "local_agents", agent.ID)
+					res, err := exportCertificates(discard, db, "local_agents", agent.ID)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -60,7 +56,7 @@ func TestExportCertificates(t *testing.T) {
 				})
 
 				Convey("When calling exportCertificates with incorrect argument", func() {
-					res, err := exportCertificates(discard, ses, "local_agents", agent.ID+1)
+					res, err := exportCertificates(discard, db, "local_agents", agent.ID+1)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -78,7 +74,7 @@ func TestExportCertificates(t *testing.T) {
 					Login:        "test",
 					Password:     []byte("pwd"),
 				}
-				So(db.Create(account), ShouldBeNil)
+				So(db.Insert(account).Run(), ShouldBeNil)
 
 				cert1 := &model.Cert{
 					Name:        "cert1",
@@ -88,7 +84,7 @@ func TestExportCertificates(t *testing.T) {
 					PublicKey:   []byte("public"),
 					PrivateKey:  []byte("private"),
 				}
-				So(db.Create(cert1), ShouldBeNil)
+				So(db.Insert(cert1).Run(), ShouldBeNil)
 
 				cert2 := &model.Cert{
 					Name:        "cert2",
@@ -98,26 +94,19 @@ func TestExportCertificates(t *testing.T) {
 					PublicKey:   []byte("public"),
 					PrivateKey:  []byte("private"),
 				}
-				So(db.Create(cert2), ShouldBeNil)
+				So(db.Insert(cert2).Run(), ShouldBeNil)
 
-				Convey("Given a new Transaction", func() {
-					ses, err := db.BeginTransaction()
-					So(err, ShouldBeNil)
+				Convey("When calling exportCertificates with the correct argument", func() {
+					res, err := exportCertificates(discard, db, "local_accounts", account.ID)
 
-					defer ses.Rollback()
-
-					Convey("When calling exportCertificates with the correct argument", func() {
-						res, err := exportCertificates(discard, ses, "local_accounts", account.ID)
-
-						Convey("Then it should return no error", func() {
-							So(err, ShouldBeNil)
-						})
-
-						Convey("Then it should return 2 certificates", func() {
-							So(len(res), ShouldEqual, 2)
-						})
-
+					Convey("Then it should return no error", func() {
+						So(err, ShouldBeNil)
 					})
+
+					Convey("Then it should return 2 certificates", func() {
+						So(len(res), ShouldEqual, 2)
+					})
+
 				})
 
 			})

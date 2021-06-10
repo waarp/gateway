@@ -30,8 +30,8 @@ func TestGetLocalAccount(t *testing.T) {
 		out = testFile()
 		command := &locAccGet{}
 
-		Convey("Given a gateway with 1 local account", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 local account", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -43,7 +43,7 @@ func TestGetLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
 
 			account := &model.LocalAccount{
@@ -51,21 +51,21 @@ func TestGetLocalAccount(t *testing.T) {
 				Password:     []byte("password"),
 				LocalAgentID: server.ID,
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			send := &model.Rule{Name: "send", IsSend: true, Path: "send_path"}
-			So(db.Create(send), ShouldBeNil)
+			So(db.Insert(send).Run(), ShouldBeNil)
 			receive := &model.Rule{Name: "receive", IsSend: false, Path: "rcv_path"}
-			So(db.Create(receive), ShouldBeNil)
+			So(db.Insert(receive).Run(), ShouldBeNil)
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
-			So(db.Create(sendAll), ShouldBeNil)
+			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
 			sAccess := &model.RuleAccess{RuleID: send.ID,
 				ObjectType: account.TableName(), ObjectID: account.ID}
-			So(db.Create(sAccess), ShouldBeNil)
+			So(db.Insert(sAccess).Run(), ShouldBeNil)
 			rAccess := &model.RuleAccess{RuleID: receive.ID,
 				ObjectType: account.TableName(), ObjectID: account.ID}
-			So(db.Create(rAccess), ShouldBeNil)
+			So(db.Insert(rAccess).Run(), ShouldBeNil)
 
 			Convey("Given a valid account name", func() {
 				args := []string{account.Login}
@@ -125,8 +125,8 @@ func TestAddLocalAccount(t *testing.T) {
 		out = testFile()
 		command := &locAccAdd{}
 
-		Convey("Given a gateway", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -138,7 +138,7 @@ func TestAddLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
 
 			Convey("Given valid flags", func() {
@@ -155,13 +155,20 @@ func TestAddLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the new account should have been added", func() {
-						account := &model.LocalAccount{
-							Login:        command.Login,
-							LocalAgentID: server.ID,
-						}
-						So(db.Get(account), ShouldBeNil)
-						So(bcrypt.CompareHashAndPassword(account.Password,
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(accounts, ShouldNotBeEmpty)
+
+						So(bcrypt.CompareHashAndPassword(accounts[0].Password,
 							[]byte(command.Password)), ShouldBeNil)
+						exp := model.LocalAccount{
+							ID:           1,
+							LocalAgentID: server.ID,
+							Login:        command.Login,
+							Password:     accounts[0].Password,
+						}
+						So(accounts, ShouldContain, exp)
+
 					})
 				})
 			})
@@ -190,8 +197,8 @@ func TestDeleteLocalAccount(t *testing.T) {
 		out = testFile()
 		command := &locAccDelete{}
 
-		Convey("Given a gateway with 1 local account", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 local account", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -203,7 +210,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
 
 			account := &model.LocalAccount{
@@ -211,7 +218,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 				Login:        "login",
 				Password:     []byte("password"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			Convey("Given a valid account name", func() {
 				args := []string{account.Login}
@@ -228,9 +235,9 @@ func TestDeleteLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should have been removed", func() {
-						var accs []model.RemoteAccount
-						So(db.Select(&accs, nil), ShouldBeNil)
-						So(accs, ShouldBeEmpty)
+						var accounts model.RemoteAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(accounts, ShouldBeEmpty)
 					})
 				})
 			})
@@ -249,7 +256,9 @@ func TestDeleteLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should still exist", func() {
-						So(db.Get(account), ShouldBeNil)
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(accounts, ShouldContain, *account)
 					})
 				})
 			})
@@ -268,7 +277,9 @@ func TestDeleteLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should still exist", func() {
-						So(db.Get(account), ShouldBeNil)
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(accounts, ShouldContain, *account)
 					})
 				})
 			})
@@ -282,8 +293,8 @@ func TestUpdateLocalAccount(t *testing.T) {
 		out = testFile()
 		command := &locAccUpdate{}
 
-		Convey("Given a gateway with 1 local account", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 local account", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -295,7 +306,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
 
 			oldPwd := []byte("password")
@@ -304,7 +315,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 				Login:        "login",
 				Password:     oldPwd,
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
 				args := []string{"-l", "new_login", "-p", "new_password", account.Login}
@@ -321,20 +332,19 @@ func TestUpdateLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should have been updated", func() {
-						var accs []model.LocalAccount
-						So(db.Select(&accs, nil), ShouldBeNil)
-						So(len(accs), ShouldEqual, 1)
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(accounts, ShouldNotBeEmpty)
 
-						So(bcrypt.CompareHashAndPassword(accs[0].Password,
+						So(bcrypt.CompareHashAndPassword(accounts[0].Password,
 							[]byte("new_password")), ShouldBeNil)
 						exp := model.LocalAccount{
 							ID:           account.ID,
 							LocalAgentID: account.LocalAgentID,
 							Login:        "new_login",
-							Password:     accs[0].Password,
+							Password:     accounts[0].Password,
 						}
-						So(accs[0], ShouldResemble, exp)
-
+						So(accounts, ShouldContain, exp)
 					})
 				})
 			})
@@ -353,14 +363,9 @@ func TestUpdateLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should stay unchanged", func() {
-						check := &model.LocalAccount{
-							ID:           account.ID,
-							Login:        account.Login,
-							LocalAgentID: account.LocalAgentID,
-						}
-						So(db.Get(check), ShouldBeNil)
-						So(bcrypt.CompareHashAndPassword(check.Password,
-							oldPwd), ShouldBeNil)
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(accounts, ShouldContain, *account)
 					})
 				})
 			})
@@ -379,14 +384,9 @@ func TestUpdateLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the account should stay unchanged", func() {
-						check := &model.LocalAccount{
-							ID:           account.ID,
-							Login:        account.Login,
-							LocalAgentID: account.LocalAgentID,
-						}
-						So(db.Get(check), ShouldBeNil)
-						So(bcrypt.CompareHashAndPassword(check.Password,
-							oldPwd), ShouldBeNil)
+						var accounts model.LocalAccounts
+						So(db.Select(&accounts).Run(), ShouldBeNil)
+						So(accounts, ShouldContain, *account)
 					})
 				})
 			})
@@ -400,8 +400,8 @@ func TestListLocalAccount(t *testing.T) {
 		out = testFile()
 		command := &locAccList{}
 
-		Convey("Given a gateway with 2 local accounts", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 2 local accounts", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -413,7 +413,7 @@ func TestListLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server1), ShouldBeNil)
+			So(db.Insert(server1).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server1.Name
 
 			server2 := &model.LocalAgent{
@@ -422,28 +422,28 @@ func TestListLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
-			So(db.Create(server2), ShouldBeNil)
+			So(db.Insert(server2).Run(), ShouldBeNil)
 
 			account1 := &model.LocalAccount{
 				LocalAgentID: server1.ID,
 				Login:        "account1",
 				Password:     []byte("password"),
 			}
-			So(db.Create(account1), ShouldBeNil)
+			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: server2.ID,
 				Login:        "account2",
 				Password:     []byte("password"),
 			}
-			So(db.Create(account2), ShouldBeNil)
+			So(db.Insert(account2).Run(), ShouldBeNil)
 
 			account3 := &model.LocalAccount{
 				LocalAgentID: server1.ID,
 				Login:        "account3",
 				Password:     []byte("password"),
 			}
-			So(db.Create(account3), ShouldBeNil)
+			So(db.Insert(account3).Run(), ShouldBeNil)
 
 			a1 := rest.FromLocalAccount(account1, &api.AuthorizedRules{})
 			a2 := rest.FromLocalAccount(account2, &api.AuthorizedRules{})
@@ -549,8 +549,8 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 		out = testFile()
 		command := &locAccAuthorize{}
 
-		Convey("Given a gateway with 1 local account and 1 rule", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 local account and 1 rule", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -562,21 +562,21 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 
 			account := &model.LocalAccount{
 				LocalAgentID: server.ID,
 				Login:        "login",
 				Password:     []byte("password"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
 				Path:   "rule/path",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner, account & rule names", func() {
 				commandLine.Account.Local.Args.Server = server.Name
@@ -595,12 +595,15 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the permission should have been added", func() {
-						access := &model.RuleAccess{
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+
+						exp := model.RuleAccess{
 							RuleID:     rule.ID,
 							ObjectID:   account.ID,
 							ObjectType: account.TableName(),
 						}
-						So(db.Get(access), ShouldBeNil)
+						So(accesses, ShouldContain, exp)
 					})
 				})
 			})
@@ -619,9 +622,9 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
-						a := []model.RuleAccess{}
-						So(db.Select(&a, nil), ShouldBeNil)
-						So(a, ShouldBeEmpty)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldBeEmpty)
 					})
 				})
 			})
@@ -636,13 +639,13 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then is should return an error", func() {
-						So(err, ShouldBeError, "rule 'toto' not found")
+						So(err, ShouldBeError, "send rule 'toto' not found")
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
-						var a []model.RuleAccess
-						So(db.Select(&a, nil), ShouldBeNil)
-						So(a, ShouldBeEmpty)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldBeEmpty)
 					})
 				})
 			})
@@ -661,9 +664,9 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
-						var a []model.RuleAccess
-						So(db.Select(&a, nil), ShouldBeNil)
-						So(a, ShouldBeEmpty)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldBeEmpty)
 					})
 				})
 			})
@@ -677,8 +680,8 @@ func TestRevokeLocalAccount(t *testing.T) {
 		out = testFile()
 		command := &locAccRevoke{}
 
-		Convey("Given a gateway with 1 local account and 1 rule", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 local account and 1 rule", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -690,28 +693,28 @@ func TestRevokeLocalAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(server), ShouldBeNil)
+			So(db.Insert(server).Run(), ShouldBeNil)
 
 			account := &model.LocalAccount{
 				LocalAgentID: server.ID,
 				Login:        "login",
 				Password:     []byte("password"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
 				Path:   "rule/path",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			access := &model.RuleAccess{
 				RuleID:     rule.ID,
 				ObjectID:   account.ID,
 				ObjectType: account.TableName(),
 			}
-			So(db.Create(access), ShouldBeNil)
+			So(db.Insert(access).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner & rule names", func() {
 				commandLine.Account.Local.Args.Server = server.Name
@@ -730,9 +733,9 @@ func TestRevokeLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the permission should have been removed", func() {
-						var a []model.RuleAccess
-						So(db.Select(&a, nil), ShouldBeNil)
-						So(a, ShouldBeEmpty)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldBeEmpty)
 					})
 				})
 			})
@@ -751,7 +754,9 @@ func TestRevokeLocalAccount(t *testing.T) {
 					})
 
 					Convey("Then the permission should NOT have been removed", func() {
-						So(db.Get(access), ShouldBeNil)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldContain, *access)
 					})
 				})
 			})
@@ -766,11 +771,13 @@ func TestRevokeLocalAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then is should return an error", func() {
-						So(err, ShouldBeError, "rule 'toto' not found")
+						So(err, ShouldBeError, "send rule 'toto' not found")
 					})
 
 					Convey("Then the permission should NOT have been removed", func() {
-						So(db.Get(access), ShouldBeNil)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldContain, *access)
 					})
 				})
 			})
@@ -788,8 +795,10 @@ func TestRevokeLocalAccount(t *testing.T) {
 						So(err, ShouldBeError, "no account 'toto' found for server "+server.Name)
 					})
 
-					Convey("Then the permission should NOT have been added", func() {
-						So(db.Get(access), ShouldBeNil)
+					Convey("Then the permission should NOT have been removed", func() {
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldContain, *access)
 					})
 				})
 			})

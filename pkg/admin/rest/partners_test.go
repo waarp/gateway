@@ -42,8 +42,8 @@ func TestListPartners(t *testing.T) {
 		})
 	}
 
-	Convey("Given the partners listing handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the partners listing handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := listPartners(logger, db)
 		w := httptest.NewRecorder()
 		expected := map[string][]OutPartner{}
@@ -74,10 +74,10 @@ func TestListPartners(t *testing.T) {
 				Address:     "localhost:4",
 			}
 
-			So(db.Create(a1), ShouldBeNil)
-			So(db.Create(a2), ShouldBeNil)
-			So(db.Create(a3), ShouldBeNil)
-			So(db.Create(a4), ShouldBeNil)
+			So(db.Insert(a1).Run(), ShouldBeNil)
+			So(db.Insert(a2).Run(), ShouldBeNil)
+			So(db.Insert(a3).Run(), ShouldBeNil)
+			So(db.Insert(a4).Run(), ShouldBeNil)
 
 			agent1 := *FromRemoteAgent(a1, &AuthorizedRules{})
 			agent2 := *FromRemoteAgent(a2, &AuthorizedRules{})
@@ -150,8 +150,8 @@ func TestListPartners(t *testing.T) {
 func TestGetPartner(t *testing.T) {
 	logger := log.NewLogger("rest_partner_get_test")
 
-	Convey("Given the partner get handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the partner get handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := getPartner(logger, db)
 		w := httptest.NewRecorder()
 
@@ -162,7 +162,7 @@ func TestGetPartner(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(existing), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given a request with a valid agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -213,8 +213,8 @@ func TestGetPartner(t *testing.T) {
 func TestCreatePartner(t *testing.T) {
 	logger := log.NewLogger("rest_partner_create_logger")
 
-	Convey("Given the partner creation handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the partner creation handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := addPartner(logger, db)
 		w := httptest.NewRecorder()
 
@@ -225,7 +225,7 @@ func TestCreatePartner(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(existing), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given a new partner to insert in the database", func() {
 				body := strings.NewReader(`{
@@ -260,8 +260,8 @@ func TestCreatePartner(t *testing.T) {
 						Convey("Then the new partner should be inserted in "+
 							"the database", func() {
 
-							var ags []model.RemoteAgent
-							So(db.Select(&ags, nil), ShouldBeNil)
+							var ags model.RemoteAgents
+							So(db.Select(&ags).Run(), ShouldBeNil)
 							So(len(ags), ShouldEqual, 2)
 
 							So(ags[1], ShouldResemble, model.RemoteAgent{
@@ -276,8 +276,8 @@ func TestCreatePartner(t *testing.T) {
 						Convey("Then the existing partner should still be "+
 							"present as well", func() {
 
-							var ags []model.RemoteAgent
-							So(db.Select(&ags, nil), ShouldBeNil)
+							var ags model.RemoteAgents
+							So(db.Select(&ags).Run(), ShouldBeNil)
 							So(len(ags), ShouldEqual, 2)
 
 							So(ags[0], ShouldResemble, *existing)
@@ -292,19 +292,19 @@ func TestCreatePartner(t *testing.T) {
 func TestDeletePartner(t *testing.T) {
 	logger := log.NewLogger("rest_partner_delete_test")
 
-	Convey("Given the partner deletion handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the partner deletion handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := deletePartner(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 partner", func() {
-			existing := &model.RemoteAgent{
+			existing := model.RemoteAgent{
 				Name:        "existing",
 				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(existing), ShouldBeNil)
+			So(db.Insert(&existing).Run(), ShouldBeNil)
 
 			Convey("Given a request with a valid agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
@@ -323,8 +323,8 @@ func TestDeletePartner(t *testing.T) {
 					})
 
 					Convey("Then the agent should no longer be present in the database", func() {
-						var ags []model.RemoteAgent
-						So(db.Select(&ags, nil), ShouldBeNil)
+						var ags model.RemoteAgents
+						So(db.Select(&ags).Run(), ShouldBeNil)
 						So(ags, ShouldBeEmpty)
 					})
 				})
@@ -350,8 +350,8 @@ func TestDeletePartner(t *testing.T) {
 func TestUpdatePartner(t *testing.T) {
 	logger := log.NewLogger("rest_partner_update_logger")
 
-	Convey("Given the agent updating handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the agent updating handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := updatePartner(logger, db)
 		w := httptest.NewRecorder()
 
@@ -362,7 +362,7 @@ func TestUpdatePartner(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(old), ShouldBeNil)
+			So(db.Insert(old).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
@@ -405,8 +405,8 @@ func TestUpdatePartner(t *testing.T) {
 								ProtoConfig: json.RawMessage(`{"key":"val"}`),
 							}
 
-							var parts []model.RemoteAgent
-							So(db.Select(&parts, nil), ShouldBeNil)
+							var parts model.RemoteAgents
+							So(db.Select(&parts).Run(), ShouldBeNil)
 							So(len(parts), ShouldEqual, 1)
 
 							So(parts[0], ShouldResemble, exp)
@@ -432,8 +432,8 @@ func TestUpdatePartner(t *testing.T) {
 						})
 
 						Convey("Then the old agent should still exist", func() {
-							var ags []model.RemoteAgent
-							So(db.Select(&ags, nil), ShouldBeNil)
+							var ags model.RemoteAgents
+							So(db.Select(&ags).Run(), ShouldBeNil)
 							So(len(ags), ShouldEqual, 1)
 
 							So(ags[0], ShouldResemble, *old)
@@ -448,8 +448,8 @@ func TestUpdatePartner(t *testing.T) {
 func TestReplacePartner(t *testing.T) {
 	logger := log.NewLogger("rest_partner_update_logger")
 
-	Convey("Given the agent updating handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the agent updating handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := replacePartner(logger, db)
 		w := httptest.NewRecorder()
 
@@ -460,7 +460,7 @@ func TestReplacePartner(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(old), ShouldBeNil)
+			So(db.Insert(old).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
@@ -503,8 +503,8 @@ func TestReplacePartner(t *testing.T) {
 								Address:     "localhost:2",
 							}
 
-							var parts []model.RemoteAgent
-							So(db.Select(&parts, nil), ShouldBeNil)
+							var parts model.RemoteAgents
+							So(db.Select(&parts).Run(), ShouldBeNil)
 							So(len(parts), ShouldEqual, 1)
 
 							So(parts[0], ShouldResemble, exp)
@@ -530,8 +530,8 @@ func TestReplacePartner(t *testing.T) {
 						})
 
 						Convey("Then the old agent should still exist", func() {
-							var ags []model.RemoteAgent
-							So(db.Select(&ags, nil), ShouldBeNil)
+							var ags model.RemoteAgents
+							So(db.Select(&ags).Run(), ShouldBeNil)
 							So(len(ags), ShouldEqual, 1)
 
 							So(ags[0], ShouldResemble, *old)

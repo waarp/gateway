@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"github.com/mattn/go-colorable"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 func getColorable() io.Writer {
-	if terminal.IsTerminal(int(out.Fd())) {
+	if term.IsTerminal(int(out.Fd())) {
 		return colorable.NewColorable(out)
 	}
 	return colorable.NewNonColorable(out)

@@ -115,6 +115,16 @@ build_static_binaries() {
     -buildmode pie \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/waarp-gatewayd_${GOOS}_${GOARCH}" ./cmd/waarp-gatewayd
+
+  # get-remotes
+  CGO_ENABLED=0 go build -ldflags "-s -w" \
+    -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
+    -o "build/get-remote_${GOOS}_${GOARCH}" ./dist/get-remote
+
+  # update-conf
+  CGO_ENABLED=0 go build -ldflags "-s -w" \
+    -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
+    -o "build/update-conf_${GOOS}_${GOARCH}" ./dist/update-conf
 }
 
 t_build_dist() {
@@ -124,7 +134,7 @@ and Windows (32 and 64 bits).
 
 Warning:
   It needs a gcc compiler for linux 32bits (in archlinux, the package
-  "lib32-gcc") and for Windows ()
+  "lib32-gcc-libs") and for Windows ()
 
 
 EOW
@@ -133,6 +143,7 @@ EOW
   go generate ./cmd/... ./pkg/...
   GOOS=linux GOARCH=amd64 build_static_binaries
   GOOS=linux GOARCH=386 build_static_binaries
+  GOOS=windows GOARCH=amd64 CC="x86_64-w64-mingw32-gcc" build_static_binaries
 }
 
 t_package() {
@@ -148,11 +159,38 @@ t_package() {
     build/waarp-gatewayd.ini
 
   # build the packages
-  sed -i -e "s|version:.*|version: v$(cat VERSION)-1|" dist/nfpm.yaml
+  sed -i -e "s|version:.*|version: v$(cat VERSION)|" dist/nfpm.yaml
   nfpm pkg -p rpm -f dist/nfpm.yaml --target build/
   nfpm pkg -p deb -f dist/nfpm.yaml --target build/
 
+  build_portable_archive
+
   t_doc_dist
+}
+
+build_portable_archive() {
+  local dest version
+  dest="build/waarp-gateway-$(cat VERSION)"
+  version=$(cat VERSION)
+
+  mkdir -p "$dest"/{etc,bin,log,share}
+  cp ./dist/manage.sh "$dest/bin"
+  cp ./build/waarp-gatewayd_linux_amd64 "$dest/bin/waarp-gatewayd"
+  cp ./build/waarp-gateway_linux_amd64 "$dest/bin/waarp-gateway"
+  cp ./build/get-remote_linux_amd64 "$dest/share/get-remote"
+  cp ./build/update-conf_linux_amd64 "$dest/share/update-conf"
+  #cp ./dist/updateconf.sh "$dest/share/update-conf.sh"
+
+  ./build/waarp-gatewayd_linux_amd64 server -c "$dest/etc/gatewayd.ini" -n
+  sed -i \
+    -e "s|; \(GatewayHome =\)|\1 data|" \
+    -e "s|; \(Address =\) |\1 data/db/|" \
+    -e "s|; \(AESPassphrase =\) |\1 etc/|" \
+    "$dest/etc/gatewayd.ini"
+
+  pushd build || return 2
+  tar czf "waarp-gateway-$version.linux.tar.gz" "waarp-gateway-$version"
+  popd || return 2
 }
 
 t_usage() {

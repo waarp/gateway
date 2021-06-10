@@ -1,13 +1,15 @@
 package model
 
-import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+import (
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+)
 
 func init() {
 	database.Tables = append(database.Tables, &Cert{})
 }
 
-var validOwnerTypes = []string{(&LocalAgent{}).TableName(), (&RemoteAgent{}).TableName(),
-	(&LocalAccount{}).TableName(), (&RemoteAccount{}).TableName()}
+var validOwnerTypes = []string{"local_agents", "remote_agents", "local_accounts",
+	"remote_accounts"}
 
 // Cert represents a certificate entry, along with its' public and private keys.
 // A certificate can be attached to agents and accounts.
@@ -41,60 +43,66 @@ func (*Cert) TableName() string {
 	return "certificates"
 }
 
+// Appellation returns the name of 1 element of the certificates table.
+func (*Cert) Appellation() string {
+	return "certificate"
+}
+
 // GetID returns the certificate's ID.
 func (c *Cert) GetID() uint64 {
 	return c.ID
 }
 
-// Validate checks if the new `Cert` entry is valid and can be inserted
+// BeforeWrite checks if the new `Cert` entry is valid and can be inserted
 // in the database.
-func (c *Cert) Validate(db database.Accessor) error {
+func (c *Cert) BeforeWrite(db database.ReadAccess) database.Error {
 	if c.OwnerType == "" {
-		return database.InvalidError("the certificate's owner type is missing")
+		return database.NewValidationError("the certificate's owner type is missing")
 	}
 	if c.OwnerID == 0 {
-		return database.InvalidError("the certificate's owner ID is missing")
+		return database.NewValidationError("the certificate's owner ID is missing")
 	}
 	if c.Name == "" {
-		return database.InvalidError("the certificate's name cannot be empty")
+		return database.NewValidationError("the certificate's name cannot be empty")
 	}
 	if (c.OwnerType == "remote_accounts" || c.OwnerType == "local_agents") &&
 		len(c.PrivateKey) == 0 {
-		return database.InvalidError("the certificate's private key is missing")
+		return database.NewValidationError("the certificate's private key is missing")
 	}
 	if (c.OwnerType == "remote_agents" || c.OwnerType == "local_accounts") &&
 		len(c.PublicKey) == 0 {
-		return database.InvalidError("the certificate's public key is missing")
+		return database.NewValidationError("the certificate's public key is missing")
 	}
 
-	var res []map[string]interface{}
-	var err error
+	var n uint64
+	var err database.Error
 	switch c.OwnerType {
 	case "local_agents":
-		res, err = db.Query("SELECT id FROM local_agents WHERE id=?", c.OwnerID)
+		n, err = db.Count(&LocalAgent{}).Where("id=?", c.OwnerID).Run()
 	case "remote_agents":
-		res, err = db.Query("SELECT id FROM remote_agents WHERE id=?", c.OwnerID)
+		n, err = db.Count(&RemoteAgent{}).Where("id=?", c.OwnerID).Run()
 	case "local_accounts":
-		res, err = db.Query("SELECT id FROM local_accounts WHERE id=?", c.OwnerID)
+		n, err = db.Count(&LocalAccount{}).Where("id=?", c.OwnerID).Run()
 	case "remote_accounts":
-		res, err = db.Query("SELECT id FROM remote_accounts WHERE id=?", c.OwnerID)
+		n, err = db.Count(&RemoteAccount{}).Where("id=?", c.OwnerID).Run()
 	default:
-		return database.InvalidError("the certificate's owner type must be one of %s",
+		return database.NewValidationError("the certificate's owner type must be one of %s",
 			validOwnerTypes)
 	}
 	if err != nil {
 		return err
-	} else if len(res) == 0 {
-		return database.InvalidError("no "+c.OwnerType+" found with ID '%v'", c.OwnerID)
+	} else if n == 0 {
+		return database.NewValidationError("no %s found with ID '%v'", c.OwnerType,
+			c.OwnerID)
 	}
 
-	if res, err := db.Query("SELECT id FROM certificates WHERE id<>? AND "+
-		"owner_type=? AND owner_id=? AND name=?", c.ID, c.OwnerType, c.OwnerID,
-		c.Name); err != nil {
+	n, err = db.Count(c).Where("id<>? AND owner_type=? AND owner_id=? AND name=?",
+		c.ID, c.OwnerType, c.OwnerID, c.Name).Run()
+	if err != nil {
 		return err
-	} else if len(res) > 0 {
-		return database.InvalidError("a certificate with the same name '%s' "+
-			"already exist", c.Name)
+	} else if n > 0 {
+		return database.NewValidationError(
+			"a certificate with the same name '%s' already exist", c.Name)
 	}
 
 	return nil

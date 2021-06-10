@@ -9,6 +9,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
 type transferCommand struct {
@@ -49,8 +50,12 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	if trans.IsServer {
 		role = "server"
 	}
+	dir := "receive"
+	if trans.IsSend {
+		dir = "send"
+	}
 
-	fmt.Fprintln(w, bold("● Transfer", trans.ID, "(as "+role+")"), coloredStatus(trans.Status))
+	fmt.Fprintln(w, bold("● Transfer", trans.ID, "("+dir+" as "+role+")"), coloredStatus(trans.Status))
 	if trans.RemoteID != "" {
 		fmt.Fprintln(w, orange("    Remote ID:       "), trans.RemoteID)
 	}
@@ -60,11 +65,11 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	fmt.Fprintln(w, orange("    True filepath:   "), trans.TrueFilepath)
 	fmt.Fprintln(w, orange("    Source file:     "), trans.SourcePath)
 	fmt.Fprintln(w, orange("    Destination file:"), trans.DestPath)
-	fmt.Fprintln(w, orange("    Start time:      "), trans.Start.Format(time.RFC3339))
-	fmt.Fprintln(w, orange("    Step:            "), string(trans.Step))
+	fmt.Fprintln(w, orange("    Start time:      "), trans.Start.Format(time.RFC3339Nano))
+	fmt.Fprintln(w, orange("    Step:            "), trans.Step)
 	fmt.Fprintln(w, orange("    Progress:        "), trans.Progress)
 	fmt.Fprintln(w, orange("    Task number:     "), trans.TaskNumber)
-	if trans.ErrorCode != types.TeOk {
+	if trans.ErrorCode != types.TeOk.String() {
 		fmt.Fprintln(w, orange("    Error code:      "), fmt.Sprint(trans.ErrorCode))
 	}
 	if trans.ErrorMsg != "" {
@@ -92,13 +97,13 @@ func (t *transferAdd) Execute([]string) (err error) {
 	trans := api.InTransfer{
 		Partner:    t.Partner,
 		Account:    t.Account,
-		IsSend:     t.Way == "send",
+		IsSend:     utils.BoolPtr(t.Way == "send"),
 		SourcePath: t.File,
 		Rule:       t.Rule,
 		DestPath:   t.Name,
 	}
 	if t.Date != "" {
-		trans.Start, err = time.Parse(time.RFC3339, t.Date)
+		trans.Start, err = time.Parse(time.RFC3339Nano, t.Date)
 		if err != nil {
 			return fmt.Errorf("'%s' is not a valid date", t.Date)
 		}
@@ -155,10 +160,10 @@ func (t *transferList) listURL() error {
 		query.Add("status", status)
 	}
 	if t.Start != "" {
-		_, err := time.Parse(time.RFC3339, t.Start)
+		_, err := time.Parse(time.RFC3339Nano, t.Start)
 		if err != nil {
 			return fmt.Errorf("'%s' is not a valid date (accepted format: '%s')",
-				t.Start, time.RFC3339)
+				t.Start, time.RFC3339Nano)
 		}
 		query.Set("start", t.Start)
 	}

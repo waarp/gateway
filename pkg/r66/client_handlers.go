@@ -4,19 +4,22 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"path"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
-	"code.waarp.fr/waarp-r66/r66/utils"
+	r66utils "code.waarp.fr/waarp-r66/r66/utils"
 )
 
 type clientAuthHandler struct {
-	getFile func() utils.ReadWriterAt
+	getFile func() r66utils.ReadWriterAt
 	info    *model.OutTransferInfo
 	config  *config.R66ProtoConfig
-	size    uint64
+	size    int64
 }
 
 func (h *clientAuthHandler) ValidAuth(auth *r66.Authent) (req r66.RequestHandler, err error) {
@@ -50,8 +53,10 @@ func (h *clientRequestHandler) ValidRequest(r *r66.Request) (r66.TransferHandler
 	if h.info.Transfer.Step <= types.StepData {
 		h.info.Transfer.Progress = uint64(curBlock) * uint64(r.Block)
 	}
-	if !h.info.Rule.IsSend && r.FileSize > 0 {
-		h.size = uint64(r.FileSize)
+
+	h.clientAuthHandler.size = -1
+	if !h.info.Rule.IsSend {
+		h.clientAuthHandler.size = r.FileSize
 	}
 
 	return &clientTransferHandler{h}, nil
@@ -61,7 +66,7 @@ type clientTransferHandler struct {
 	*clientRequestHandler
 }
 
-func (h *clientTransferHandler) GetStream() (utils.ReadWriterAt, error) {
+func (h *clientTransferHandler) GetStream() (r66utils.ReadWriterAt, error) {
 	return h.getFile(), nil
 }
 
@@ -79,11 +84,18 @@ func (h *clientTransferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 			end.Hash = hash
 		}
 	} else {
-		if h.info.Transfer.Progress != h.size {
+		stat, err := os.Stat(utils.DenormalizePath(h.info.Transfer.TrueFilepath))
+		if err != nil {
+			return &r66.Error{
+				Code:   r66.Internal,
+				Detail: "failed to retrieve file info",
+			}
+		}
+		if stat.Size() != h.size {
 			return &r66.Error{
 				Code: r66.SizeNotAllowed,
 				Detail: fmt.Sprintf("incorrect file size (expected %d, got %d)",
-					h.size, h.info.Transfer.Progress),
+					h.size, stat.Size()),
 			}
 		}
 
@@ -101,3 +113,39 @@ func (h *clientTransferHandler) RunPreTask() error        { return nil }
 func (h *clientTransferHandler) RunPostTask() error       { return nil }
 func (h *clientTransferHandler) ValidEndRequest() error   { return nil }
 func (h *clientTransferHandler) RunErrorTask(error) error { return nil }
+
+func (h *clientTransferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
+	if h.info.Transfer.Step >= types.StepData {
+		return &r66.Error{
+			Code:   r66.IncorrectCommand,
+			Detail: "cannot update transfer info after data transfer started"}
+	}
+
+	if info.Filename != "" {
+		filename := path.Base(info.Filename)
+		newPath := path.Join(path.Dir(h.info.Transfer.TrueFilepath), filename)
+
+		if h.info.Rule.IsSend {
+			if err := os.Rename(h.info.Transfer.TrueFilepath, newPath); err != nil {
+				return &r66.Error{
+					Code:   r66.FileNotAllowed,
+					Detail: "failed to rename file",
+				}
+			}
+
+			h.info.Transfer.TrueFilepath = newPath
+			h.info.Transfer.SourceFile = filename
+			h.info.Transfer.DestFile = filename
+		} else {
+			h.info.Transfer.TrueFilepath = newPath
+			h.info.Transfer.SourceFile = filename
+			h.info.Transfer.DestFile = filename
+		}
+	}
+
+	if info.FileSize != 0 {
+		h.size = info.FileSize
+	}
+
+	return nil
+}

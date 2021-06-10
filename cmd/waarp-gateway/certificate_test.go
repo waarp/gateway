@@ -28,8 +28,8 @@ func TestGetCertificate(t *testing.T) {
 		command := &certGet{}
 		commandLine = options{}
 
-		Convey("Given a gateway", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -42,7 +42,7 @@ func TestGetCertificate(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
-				So(db.Create(partner), ShouldBeNil)
+				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				Convey("Given a partner certificate", func() {
 					cert := &model.Cert{
@@ -53,7 +53,7 @@ func TestGetCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert), ShouldBeNil)
+					So(db.Insert(cert).Run(), ShouldBeNil)
 
 					Convey("Given valid partner & cert names", func() {
 						commandLine.Partner.Cert.Args.Partner = partner.Name
@@ -108,7 +108,7 @@ func TestGetCertificate(t *testing.T) {
 						Login:         "rem_account",
 						Password:      []byte("password"),
 					}
-					So(db.Create(account), ShouldBeNil)
+					So(db.Insert(account).Run(), ShouldBeNil)
 					cert := &model.Cert{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
@@ -117,7 +117,7 @@ func TestGetCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert), ShouldBeNil)
+					So(db.Insert(cert).Run(), ShouldBeNil)
 
 					Convey("Given valid account, partner & cert names", func() {
 						commandLine.Account.Remote.Args.Partner = partner.Name
@@ -193,7 +193,7 @@ func TestGetCertificate(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2",
 				}
-				So(db.Create(server), ShouldBeNil)
+				So(db.Insert(server).Run(), ShouldBeNil)
 
 				Convey("Given a server certificate", func() {
 					cert := &model.Cert{
@@ -204,7 +204,7 @@ func TestGetCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert), ShouldBeNil)
+					So(db.Insert(cert).Run(), ShouldBeNil)
 
 					Convey("Given valid server & cert names", func() {
 						commandLine.Server.Cert.Args.Server = server.Name
@@ -259,7 +259,7 @@ func TestGetCertificate(t *testing.T) {
 						Login:        "loc_account",
 						Password:     []byte("password"),
 					}
-					So(db.Create(account), ShouldBeNil)
+					So(db.Insert(account).Run(), ShouldBeNil)
 					cert := &model.Cert{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
@@ -268,7 +268,7 @@ func TestGetCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert), ShouldBeNil)
+					So(db.Insert(cert).Run(), ShouldBeNil)
 
 					Convey("Given valid account, server & cert names", func() {
 						commandLine.Account.Local.Args.Server = server.Name
@@ -347,8 +347,8 @@ func TestAddCertificate(t *testing.T) {
 		command := &certAdd{}
 		commandLine = options{}
 
-		Convey("Given a gateway", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -365,7 +365,7 @@ func TestAddCertificate(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
-				So(db.Create(partner), ShouldBeNil)
+				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				Convey("When adding a new certificate", func() {
 
@@ -388,7 +388,11 @@ func TestAddCertificate(t *testing.T) {
 							})
 
 							Convey("Then the new cert should have been added", func() {
-								cert := &model.Cert{
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+
+								exp := model.Cert{
+									ID:          1,
 									OwnerType:   partner.TableName(),
 									OwnerID:     partner.ID,
 									Name:        "partner_cert",
@@ -396,7 +400,7 @@ func TestAddCertificate(t *testing.T) {
 									PublicKey:   []byte("public_key"),
 									Certificate: []byte("certificate"),
 								}
-								So(db.Get(cert), ShouldBeNil)
+								So(certs, ShouldContain, exp)
 							})
 						})
 					})
@@ -419,9 +423,9 @@ func TestAddCertificate(t *testing.T) {
 							})
 
 							Convey("Then the new cert should NOT have been added", func() {
-								c := []model.Cert{}
-								So(db.Select(&c, nil), ShouldBeNil)
-								So(c, ShouldBeEmpty)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldBeEmpty)
 							})
 						})
 					})
@@ -433,7 +437,7 @@ func TestAddCertificate(t *testing.T) {
 						Login:         "rem_account",
 						Password:      []byte("password"),
 					}
-					So(db.Create(account), ShouldBeNil)
+					So(db.Insert(account).Run(), ShouldBeNil)
 
 					Convey("When adding a new certificate", func() {
 
@@ -457,7 +461,12 @@ func TestAddCertificate(t *testing.T) {
 								})
 
 								Convey("Then the new cert should have been added", func() {
-									cert := &model.Cert{
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldNotBeEmpty)
+
+									exp := model.Cert{
+										ID:          1,
 										OwnerType:   account.TableName(),
 										OwnerID:     account.ID,
 										Name:        "account_cert",
@@ -465,7 +474,7 @@ func TestAddCertificate(t *testing.T) {
 										PublicKey:   []byte("public_key"),
 										Certificate: []byte("certificate"),
 									}
-									So(db.Get(cert), ShouldBeNil)
+									So(certs, ShouldContain, exp)
 								})
 							})
 						})
@@ -489,9 +498,9 @@ func TestAddCertificate(t *testing.T) {
 								})
 
 								Convey("Then the new cert should NOT have been added", func() {
-									c := []model.Cert{}
-									So(db.Select(&c, nil), ShouldBeNil)
-									So(c, ShouldBeEmpty)
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldBeEmpty)
 								})
 							})
 						})
@@ -515,9 +524,9 @@ func TestAddCertificate(t *testing.T) {
 								})
 
 								Convey("Then the new cert should NOT have been added", func() {
-									c := []model.Cert{}
-									So(db.Select(&c, nil), ShouldBeNil)
-									So(c, ShouldBeEmpty)
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldBeEmpty)
 								})
 							})
 						})
@@ -532,7 +541,7 @@ func TestAddCertificate(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2",
 				}
-				So(db.Create(server), ShouldBeNil)
+				So(db.Insert(server).Run(), ShouldBeNil)
 
 				Convey("When adding a new certificate", func() {
 
@@ -555,7 +564,12 @@ func TestAddCertificate(t *testing.T) {
 							})
 
 							Convey("Then the new cert should have been added", func() {
-								cert := &model.Cert{
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+
+								exp := model.Cert{
+									ID:          1,
 									OwnerType:   server.TableName(),
 									OwnerID:     server.ID,
 									Name:        "server_cert",
@@ -563,7 +577,7 @@ func TestAddCertificate(t *testing.T) {
 									PublicKey:   []byte("public_key"),
 									Certificate: []byte("certificate"),
 								}
-								So(db.Get(cert), ShouldBeNil)
+								So(certs, ShouldContain, exp)
 							})
 						})
 					})
@@ -586,9 +600,9 @@ func TestAddCertificate(t *testing.T) {
 							})
 
 							Convey("Then the new cert should NOT have been added", func() {
-								c := []model.Cert{}
-								So(db.Select(&c, nil), ShouldBeNil)
-								So(c, ShouldBeEmpty)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldBeEmpty)
 							})
 						})
 					})
@@ -600,7 +614,7 @@ func TestAddCertificate(t *testing.T) {
 						Login:        "loc_account",
 						Password:     []byte("password"),
 					}
-					So(db.Create(account), ShouldBeNil)
+					So(db.Insert(account).Run(), ShouldBeNil)
 
 					Convey("When adding a new certificate", func() {
 
@@ -624,7 +638,12 @@ func TestAddCertificate(t *testing.T) {
 								})
 
 								Convey("Then the new cert should have been added", func() {
-									cert := &model.Cert{
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldNotBeEmpty)
+
+									exp := model.Cert{
+										ID:          1,
 										OwnerType:   account.TableName(),
 										OwnerID:     account.ID,
 										Name:        "account_cert",
@@ -632,7 +651,7 @@ func TestAddCertificate(t *testing.T) {
 										PublicKey:   []byte("public_key"),
 										Certificate: []byte("certificate"),
 									}
-									So(db.Get(cert), ShouldBeNil)
+									So(certs, ShouldContain, exp)
 								})
 							})
 						})
@@ -656,9 +675,9 @@ func TestAddCertificate(t *testing.T) {
 								})
 
 								Convey("Then the new cert should NOT have been added", func() {
-									c := []model.Cert{}
-									So(db.Select(&c, nil), ShouldBeNil)
-									So(c, ShouldBeEmpty)
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldBeEmpty)
 								})
 							})
 						})
@@ -682,9 +701,9 @@ func TestAddCertificate(t *testing.T) {
 								})
 
 								Convey("Then the new cert should NOT have been added", func() {
-									c := []model.Cert{}
-									So(db.Select(&c, nil), ShouldBeNil)
-									So(c, ShouldBeEmpty)
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldBeEmpty)
 								})
 							})
 						})
@@ -702,8 +721,8 @@ func TestDeleteCertificate(t *testing.T) {
 		command := &certDelete{}
 		commandLine = options{}
 
-		Convey("Given a gateway", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -716,7 +735,7 @@ func TestDeleteCertificate(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
-				So(db.Create(partner), ShouldBeNil)
+				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				Convey("Given a partner certificate", func() {
 					cert := &model.Cert{
@@ -727,7 +746,7 @@ func TestDeleteCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert), ShouldBeNil)
+					So(db.Insert(cert).Run(), ShouldBeNil)
 
 					Convey("Given valid partner & cert names", func() {
 						commandLine.Partner.Cert.Args.Partner = partner.Name
@@ -744,9 +763,9 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should have been deleted", func() {
-								c := []model.Cert{}
-								So(db.Select(&c, nil), ShouldBeNil)
-								So(c, ShouldBeEmpty)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldBeEmpty)
 							})
 						})
 					})
@@ -765,7 +784,10 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								So(db.Get(cert), ShouldBeNil)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -784,7 +806,10 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								So(db.Get(cert), ShouldBeNil)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -796,7 +821,8 @@ func TestDeleteCertificate(t *testing.T) {
 						Login:         "rem_account",
 						Password:      []byte("password"),
 					}
-					So(db.Create(account), ShouldBeNil)
+					So(db.Insert(account).Run(), ShouldBeNil)
+
 					cert := &model.Cert{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
@@ -805,7 +831,7 @@ func TestDeleteCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert), ShouldBeNil)
+					So(db.Insert(cert).Run(), ShouldBeNil)
 
 					Convey("Given valid account, partner & cert names", func() {
 						commandLine.Account.Remote.Args.Partner = partner.Name
@@ -823,9 +849,9 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should have been deleted", func() {
-								c := []model.Cert{}
-								So(db.Select(&c, nil), ShouldBeNil)
-								So(c, ShouldBeEmpty)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldBeEmpty)
 							})
 						})
 					})
@@ -845,7 +871,10 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								So(db.Get(cert), ShouldBeNil)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -865,7 +894,10 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								So(db.Get(cert), ShouldBeNil)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -885,7 +917,10 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								So(db.Get(cert), ShouldBeNil)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -899,7 +934,7 @@ func TestDeleteCertificate(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2",
 				}
-				So(db.Create(server), ShouldBeNil)
+				So(db.Insert(server).Run(), ShouldBeNil)
 
 				Convey("Given a server certificate", func() {
 					cert := &model.Cert{
@@ -910,7 +945,7 @@ func TestDeleteCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert), ShouldBeNil)
+					So(db.Insert(cert).Run(), ShouldBeNil)
 
 					Convey("Given valid server & cert names", func() {
 						commandLine.Server.Cert.Args.Server = server.Name
@@ -927,9 +962,9 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should have been deleted", func() {
-								c := []model.Cert{}
-								So(db.Select(&c, nil), ShouldBeNil)
-								So(c, ShouldBeEmpty)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldBeEmpty)
 							})
 						})
 					})
@@ -948,7 +983,10 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								So(db.Get(cert), ShouldBeNil)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -967,7 +1005,10 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								So(db.Get(cert), ShouldBeNil)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -979,7 +1020,8 @@ func TestDeleteCertificate(t *testing.T) {
 						Login:        "loc_account",
 						Password:     []byte("password"),
 					}
-					So(db.Create(account), ShouldBeNil)
+					So(db.Insert(account).Run(), ShouldBeNil)
+
 					cert := &model.Cert{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
@@ -988,7 +1030,7 @@ func TestDeleteCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert), ShouldBeNil)
+					So(db.Insert(cert).Run(), ShouldBeNil)
 
 					Convey("Given valid account, server & cert names", func() {
 						commandLine.Account.Local.Args.Server = server.Name
@@ -1006,9 +1048,9 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should have been deleted", func() {
-								c := []model.Cert{}
-								So(db.Select(&c, nil), ShouldBeNil)
-								So(c, ShouldBeEmpty)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldBeEmpty)
 							})
 						})
 					})
@@ -1028,7 +1070,10 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								So(db.Get(cert), ShouldBeNil)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -1048,7 +1093,10 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								So(db.Get(cert), ShouldBeNil)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -1068,7 +1116,10 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								So(db.Get(cert), ShouldBeNil)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -1085,8 +1136,8 @@ func TestListCertificate(t *testing.T) {
 		command := &certList{}
 		commandLine = options{}
 
-		Convey("Given a gateway", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -1099,7 +1150,7 @@ func TestListCertificate(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
-				So(db.Create(partner), ShouldBeNil)
+				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				Convey("Given a partner certificate", func() {
 					cert1 := &model.Cert{
@@ -1110,7 +1161,7 @@ func TestListCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert1), ShouldBeNil)
+					So(db.Insert(cert1).Run(), ShouldBeNil)
 					cert2 := &model.Cert{
 						OwnerType:   partner.TableName(),
 						OwnerID:     partner.ID,
@@ -1119,7 +1170,7 @@ func TestListCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert2), ShouldBeNil)
+					So(db.Insert(cert2).Run(), ShouldBeNil)
 
 					c1 := rest.FromCert(cert1)
 					c2 := rest.FromCert(cert2)
@@ -1210,7 +1261,8 @@ func TestListCertificate(t *testing.T) {
 						Login:         "rem_account",
 						Password:      []byte("password"),
 					}
-					So(db.Create(account), ShouldBeNil)
+					So(db.Insert(account).Run(), ShouldBeNil)
+
 					cert1 := &model.Cert{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
@@ -1219,7 +1271,8 @@ func TestListCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert1), ShouldBeNil)
+					So(db.Insert(cert1).Run(), ShouldBeNil)
+
 					cert2 := &model.Cert{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
@@ -1228,7 +1281,7 @@ func TestListCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert2), ShouldBeNil)
+					So(db.Insert(cert2).Run(), ShouldBeNil)
 
 					c1 := rest.FromCert(cert1)
 					c2 := rest.FromCert(cert2)
@@ -1342,7 +1395,7 @@ func TestListCertificate(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2",
 				}
-				So(db.Create(server), ShouldBeNil)
+				So(db.Insert(server).Run(), ShouldBeNil)
 
 				Convey("Given a server certificate", func() {
 					cert1 := &model.Cert{
@@ -1353,7 +1406,8 @@ func TestListCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert1), ShouldBeNil)
+					So(db.Insert(cert1).Run(), ShouldBeNil)
+
 					cert2 := &model.Cert{
 						OwnerType:   server.TableName(),
 						OwnerID:     server.ID,
@@ -1362,7 +1416,7 @@ func TestListCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert2), ShouldBeNil)
+					So(db.Insert(cert2).Run(), ShouldBeNil)
 
 					c1 := rest.FromCert(cert1)
 					c2 := rest.FromCert(cert2)
@@ -1453,7 +1507,8 @@ func TestListCertificate(t *testing.T) {
 						Login:        "loc_account",
 						Password:     []byte("password"),
 					}
-					So(db.Create(account), ShouldBeNil)
+					So(db.Insert(account).Run(), ShouldBeNil)
+
 					cert1 := &model.Cert{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
@@ -1462,7 +1517,8 @@ func TestListCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert1), ShouldBeNil)
+					So(db.Insert(cert1).Run(), ShouldBeNil)
+
 					cert2 := &model.Cert{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
@@ -1471,7 +1527,7 @@ func TestListCertificate(t *testing.T) {
 						PublicKey:   []byte("pbk"),
 						Certificate: []byte("cert"),
 					}
-					So(db.Create(cert2), ShouldBeNil)
+					So(db.Insert(cert2).Run(), ShouldBeNil)
 
 					c1 := rest.FromCert(cert1)
 					c2 := rest.FromCert(cert2)
@@ -1588,8 +1644,8 @@ func TestUpdateCertificate(t *testing.T) {
 		command := &certUpdate{}
 		commandLine = options{}
 
-		Convey("Given a gateway", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -1606,7 +1662,7 @@ func TestUpdateCertificate(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
-				So(db.Create(partner), ShouldBeNil)
+				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				Convey("When updating the certificate", func() {
 					cert := &model.Cert{
@@ -1617,7 +1673,7 @@ func TestUpdateCertificate(t *testing.T) {
 						PublicKey:   []byte("public_key"),
 						Certificate: []byte("certificate"),
 					}
-					So(db.Create(cert), ShouldBeNil)
+					So(db.Insert(cert).Run(), ShouldBeNil)
 
 					Convey("Given valid partner, certificate & flags", func() {
 						commandLine.Partner.Cert.Args.Partner = partner.Name
@@ -1649,10 +1705,10 @@ func TestUpdateCertificate(t *testing.T) {
 									PublicKey:   []byte("new_public_key"),
 									Certificate: []byte("new_certificate"),
 								}
-								c := []model.Cert{}
-								So(db.Select(&c, nil), ShouldBeNil)
-								So(len(c), ShouldEqual, 1)
-								So(c[0], ShouldResemble, check)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, check)
 							})
 						})
 					})
@@ -1676,10 +1732,10 @@ func TestUpdateCertificate(t *testing.T) {
 							})
 
 							Convey("Then the new cert should NOT have been changed", func() {
-								c := []model.Cert{}
-								So(db.Select(&c, nil), ShouldBeNil)
-								So(len(c), ShouldEqual, 1)
-								So(c[0], ShouldResemble, *cert)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -1703,10 +1759,10 @@ func TestUpdateCertificate(t *testing.T) {
 							})
 
 							Convey("Then the new cert should NOT have been changed", func() {
-								c := []model.Cert{}
-								So(db.Select(&c, nil), ShouldBeNil)
-								So(len(c), ShouldEqual, 1)
-								So(c[0], ShouldResemble, *cert)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -1718,7 +1774,7 @@ func TestUpdateCertificate(t *testing.T) {
 						Login:         "rem_account",
 						Password:      []byte("password"),
 					}
-					So(db.Create(account), ShouldBeNil)
+					So(db.Insert(account).Run(), ShouldBeNil)
 
 					Convey("When updating the certificate", func() {
 						cert := &model.Cert{
@@ -1729,7 +1785,7 @@ func TestUpdateCertificate(t *testing.T) {
 							PublicKey:   []byte("public_key"),
 							Certificate: []byte("certificate"),
 						}
-						So(db.Create(cert), ShouldBeNil)
+						So(db.Insert(cert).Run(), ShouldBeNil)
 
 						Convey("Given valid account, partner & flags", func() {
 							commandLine.Account.Remote.Args.Partner = partner.Name
@@ -1762,10 +1818,10 @@ func TestUpdateCertificate(t *testing.T) {
 										PublicKey:   []byte("new_public_key"),
 										Certificate: []byte("new_certificate"),
 									}
-									c := []model.Cert{}
-									So(db.Select(&c, nil), ShouldBeNil)
-									So(len(c), ShouldEqual, 1)
-									So(c[0], ShouldResemble, check)
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldNotBeEmpty)
+									So(certs, ShouldContain, check)
 								})
 							})
 						})
@@ -1790,10 +1846,10 @@ func TestUpdateCertificate(t *testing.T) {
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
-									c := []model.Cert{}
-									So(db.Select(&c, nil), ShouldBeNil)
-									So(len(c), ShouldEqual, 1)
-									So(c[0], ShouldResemble, *cert)
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldNotBeEmpty)
+									So(certs, ShouldContain, *cert)
 								})
 							})
 						})
@@ -1819,10 +1875,10 @@ func TestUpdateCertificate(t *testing.T) {
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
-									c := []model.Cert{}
-									So(db.Select(&c, nil), ShouldBeNil)
-									So(len(c), ShouldEqual, 1)
-									So(c[0], ShouldResemble, *cert)
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldNotBeEmpty)
+									So(certs, ShouldContain, *cert)
 								})
 							})
 						})
@@ -1847,10 +1903,10 @@ func TestUpdateCertificate(t *testing.T) {
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
-									c := []model.Cert{}
-									So(db.Select(&c, nil), ShouldBeNil)
-									So(len(c), ShouldEqual, 1)
-									So(c[0], ShouldResemble, *cert)
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldNotBeEmpty)
+									So(certs, ShouldContain, *cert)
 								})
 							})
 						})
@@ -1865,7 +1921,7 @@ func TestUpdateCertificate(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2",
 				}
-				So(db.Create(server), ShouldBeNil)
+				So(db.Insert(server).Run(), ShouldBeNil)
 
 				Convey("When updating the certificate", func() {
 					cert := &model.Cert{
@@ -1876,7 +1932,7 @@ func TestUpdateCertificate(t *testing.T) {
 						PublicKey:   []byte("public_key"),
 						Certificate: []byte("certificate"),
 					}
-					So(db.Create(cert), ShouldBeNil)
+					So(db.Insert(cert).Run(), ShouldBeNil)
 
 					Convey("Given valid server, certificate & flags", func() {
 						commandLine.Server.Cert.Args.Server = server.Name
@@ -1908,10 +1964,10 @@ func TestUpdateCertificate(t *testing.T) {
 									PublicKey:   []byte("new_public_key"),
 									Certificate: []byte("new_certificate"),
 								}
-								c := []model.Cert{}
-								So(db.Select(&c, nil), ShouldBeNil)
-								So(len(c), ShouldEqual, 1)
-								So(c[0], ShouldResemble, check)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, check)
 							})
 						})
 					})
@@ -1935,10 +1991,10 @@ func TestUpdateCertificate(t *testing.T) {
 							})
 
 							Convey("Then the new cert should NOT have been changed", func() {
-								c := []model.Cert{}
-								So(db.Select(&c, nil), ShouldBeNil)
-								So(len(c), ShouldEqual, 1)
-								So(c[0], ShouldResemble, *cert)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -1962,10 +2018,10 @@ func TestUpdateCertificate(t *testing.T) {
 							})
 
 							Convey("Then the new cert should NOT have been changed", func() {
-								c := []model.Cert{}
-								So(db.Select(&c, nil), ShouldBeNil)
-								So(len(c), ShouldEqual, 1)
-								So(c[0], ShouldResemble, *cert)
+								var certs model.Certificates
+								So(db.Select(&certs).Run(), ShouldBeNil)
+								So(certs, ShouldNotBeEmpty)
+								So(certs, ShouldContain, *cert)
 							})
 						})
 					})
@@ -1977,7 +2033,7 @@ func TestUpdateCertificate(t *testing.T) {
 						Login:        "loc_account",
 						Password:     []byte("password"),
 					}
-					So(db.Create(account), ShouldBeNil)
+					So(db.Insert(account).Run(), ShouldBeNil)
 
 					Convey("When updating the certificate", func() {
 						cert := &model.Cert{
@@ -1988,7 +2044,7 @@ func TestUpdateCertificate(t *testing.T) {
 							PublicKey:   []byte("public_key"),
 							Certificate: []byte("certificate"),
 						}
-						So(db.Create(cert), ShouldBeNil)
+						So(db.Insert(cert).Run(), ShouldBeNil)
 
 						Convey("Given valid account, server & flags", func() {
 							commandLine.Account.Local.Args.Server = server.Name
@@ -2021,10 +2077,10 @@ func TestUpdateCertificate(t *testing.T) {
 										PublicKey:   []byte("new_public_key"),
 										Certificate: []byte("new_certificate"),
 									}
-									c := []model.Cert{}
-									So(db.Select(&c, nil), ShouldBeNil)
-									So(len(c), ShouldEqual, 1)
-									So(c[0], ShouldResemble, check)
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldNotBeEmpty)
+									So(certs, ShouldContain, check)
 								})
 							})
 						})
@@ -2049,10 +2105,10 @@ func TestUpdateCertificate(t *testing.T) {
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
-									c := []model.Cert{}
-									So(db.Select(&c, nil), ShouldBeNil)
-									So(len(c), ShouldEqual, 1)
-									So(c[0], ShouldResemble, *cert)
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldNotBeEmpty)
+									So(certs, ShouldContain, *cert)
 								})
 							})
 						})
@@ -2078,10 +2134,10 @@ func TestUpdateCertificate(t *testing.T) {
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
-									c := []model.Cert{}
-									So(db.Select(&c, nil), ShouldBeNil)
-									So(len(c), ShouldEqual, 1)
-									So(c[0], ShouldResemble, *cert)
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldNotBeEmpty)
+									So(certs, ShouldContain, *cert)
 								})
 							})
 						})
@@ -2106,10 +2162,10 @@ func TestUpdateCertificate(t *testing.T) {
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
-									c := []model.Cert{}
-									So(db.Select(&c, nil), ShouldBeNil)
-									So(len(c), ShouldEqual, 1)
-									So(c[0], ShouldResemble, *cert)
+									var certs model.Certificates
+									So(db.Select(&certs).Run(), ShouldBeNil)
+									So(certs, ShouldNotBeEmpty)
+									So(certs, ShouldContain, *cert)
 								})
 							})
 						})

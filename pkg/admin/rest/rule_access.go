@@ -7,18 +7,15 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"github.com/go-xorm/builder"
 )
 
 func getAuthorizedRules(db *database.DB, objType string, objID uint64) (*api.AuthorizedRules, error) {
-	query := "(id IN (SELECT DISTINCT rule_id FROM rule_access WHERE " +
-		"object_id = ? AND object_type = ?)) OR (SELECT COUNT(*) FROM " +
-		"rule_access WHERE rule_id = id) = 0"
-	cond := builder.Expr(query, objID, objType)
-	filters := &database.Filters{Conditions: cond}
-	var rules []model.Rule
+	var rules model.Rules
+	query := db.Select(&rules).Where("(id IN (SELECT DISTINCT rule_id FROM rule_access WHERE "+
+		"object_id = ? AND object_type = ?)) OR (SELECT COUNT(*) FROM "+
+		"rule_access WHERE rule_id = id) = 0", objID, objType)
 
-	if err := db.Select(&rules, filters); err != nil {
+	if err := query.Run(); err != nil {
 		return nil, err
 	}
 
@@ -52,9 +49,9 @@ func authorizeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	a, err := db.Query("SELECT rule_id FROM rule_access WHERE rule_id = ?", rule.ID)
-	if err != nil {
-		return err
+	n, err1 := db.Count(&model.RuleAccess{}).Where("rule_id=?", rule.ID).Run()
+	if err1 != nil {
+		return err1
 	}
 
 	access := &model.RuleAccess{
@@ -62,10 +59,10 @@ func authorizeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 		ObjectID:   id,
 		ObjectType: target,
 	}
-	if err := db.Create(access); err != nil {
+	if err := db.Insert(access).Run(); err != nil {
 		return err
 	}
-	if len(a) == 0 {
+	if n == 0 {
 		fmt.Fprintf(w, "Usage of the %s rule '%s' is now restricted.",
 			ruleDirection(rule), rule.Name)
 	} else {
@@ -81,20 +78,16 @@ func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	access := &model.RuleAccess{
-		RuleID:     rule.ID,
-		ObjectID:   id,
-		ObjectType: target,
-	}
-	if err := db.Delete(access); err != nil {
+	if err := db.DeleteAll(&model.RuleAccess{}).Where("rule_id=? AND object_id=? "+
+		"AND object_type=?", rule.ID, id, target).Run(); err != nil {
 		return err
 	}
 
-	a, err := db.Query("SELECT rule_id FROM rule_access WHERE rule_id = ?", rule.ID)
-	if err != nil {
-		return err
+	n, err1 := db.Count(&model.RuleAccess{}).Where("rule_id=?", rule.ID).Run()
+	if err1 != nil {
+		return err1
 	}
-	if len(a) == 0 {
+	if n == 0 {
 		fmt.Fprintf(w, "Usage of the %s rule '%s' is now unrestricted.",
 			ruleDirection(rule), rule.Name)
 	} else {
@@ -104,43 +97,24 @@ func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 	return nil
 }
 
-func makeAccessIDs(db *database.DB, rule *model.Rule, typ string) ([]uint64, error) {
-	var accesses []model.RuleAccess
-	filters := &database.Filters{Conditions: builder.Eq{
-		"rule_id":     rule.ID,
-		"object_type": typ,
-	}}
-	if err := db.Select(&accesses, filters); err != nil {
-		return nil, err
-	}
-
-	ids := make([]uint64, len(accesses))
-	for i, a := range accesses {
-		ids[i] = a.ObjectID
-	}
-	return ids, nil
-}
-
-func makeLocalNames(db *database.DB, ids []uint64) ([]string, error) {
-	var agents []model.LocalAgent
-	filters := &database.Filters{Conditions: builder.In("id", ids)}
-
-	if err := db.Select(&agents, filters); err != nil {
+func makeServerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
+	var agents model.LocalAgents
+	if err := db.Select(&agents).Where("id IN (SELECT id FROM rule_access WHERE "+
+		"rule_id=? AND object_type='local_agents')", rule.ID).Run(); err != nil {
 		return nil, err
 	}
 
 	names := make([]string, len(agents))
-	for i, agent := range agents {
-		names[i] = agent.Name
+	for i := range agents {
+		names[i] = agents[i].Name
 	}
 	return names, nil
 }
 
-func makeRemoteNames(db *database.DB, ids []uint64) ([]string, error) {
-	var agents []model.RemoteAgent
-	filters := &database.Filters{Conditions: builder.In("id", ids)}
-
-	if err := db.Select(&agents, filters); err != nil {
+func makePartnerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
+	var agents model.RemoteAgents
+	if err := db.Select(&agents).Where("id IN (SELECT id FROM rule_access WHERE "+
+		"rule_id=? AND object_type='remote_agents')", rule.ID).Run(); err != nil {
 		return nil, err
 	}
 
@@ -161,18 +135,16 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[uint64][]string) 
 
 	names := map[string][]string{}
 	if isLocal {
-		var agents []model.LocalAgent
-		filters := &database.Filters{Conditions: builder.In("id", ids)}
-		if err := db.Select(&agents, filters); err != nil {
+		var agents model.LocalAgents
+		if err := db.Select(&agents).In("id", ids).Run(); err != nil {
 			return nil, err
 		}
 		for _, agent := range agents {
 			names[agent.Name] = access[agent.ID]
 		}
 	} else {
-		var agents []model.RemoteAgent
-		filters := &database.Filters{Conditions: builder.In("id", ids)}
-		if err := db.Select(&agents, filters); err != nil {
+		var agents model.RemoteAgents
+		if err := db.Select(&agents).In("id", ids).Run(); err != nil {
 			return nil, err
 		}
 		for _, agent := range agents {
@@ -182,33 +154,10 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[uint64][]string) 
 	return names, nil
 }
 
-func makeServerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
-	ids, err := makeAccessIDs(db, rule, "local_agents")
-	if err != nil {
-		return nil, err
-	}
-
-	return makeLocalNames(db, ids)
-}
-
-func makePartnerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
-	ids, err := makeAccessIDs(db, rule, "remote_agents")
-	if err != nil {
-		return nil, err
-	}
-
-	return makeRemoteNames(db, ids)
-}
-
 func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]string, error) {
-	ids, err := makeAccessIDs(db, rule, "local_accounts")
-	if err != nil {
-		return nil, err
-	}
-
-	var accounts []model.LocalAccount
-	filters := &database.Filters{Conditions: builder.In("id", ids)}
-	if err := db.Select(&accounts, filters); err != nil {
+	var accounts model.LocalAccounts
+	if err := db.Select(&accounts).Where("id IN (SELECT id FROM rule_access WHERE "+
+		"rule_id=? AND object_type='local_accounts')", rule.ID).Run(); err != nil {
 		return nil, err
 	}
 
@@ -225,14 +174,9 @@ func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]str
 }
 
 func makeRemoteAccountAccess(db *database.DB, rule *model.Rule) (map[string][]string, error) {
-	ids, err := makeAccessIDs(db, rule, "remote_accounts")
-	if err != nil {
-		return nil, err
-	}
-
-	var accounts []model.RemoteAccount
-	filters := &database.Filters{Conditions: builder.In("id", ids)}
-	if err := db.Select(&accounts, filters); err != nil {
+	var accounts model.RemoteAccounts
+	if err := db.Select(&accounts).Where("id IN (SELECT id FROM rule_access WHERE "+
+		"rule_id=? AND object_type='remote_accounts')", rule.ID).Run(); err != nil {
 		return nil, err
 	}
 

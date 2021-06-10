@@ -173,8 +173,8 @@ func TestAuthentication(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	Convey("Given an authentication handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given an authentication handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		auth := authentication(authLogger, db).Middleware(handler)
 
 		Convey("Given an incoming request", func() {
@@ -188,6 +188,10 @@ func TestAuthentication(t *testing.T) {
 
 				Convey("When sending the request", func() {
 					auth.ServeHTTP(w, r)
+
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldBeBlank)
+					})
 
 					Convey("Then the handler should reply 'OK'", func() {
 						So(w.Code, ShouldEqual, http.StatusOK)

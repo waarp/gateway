@@ -32,8 +32,8 @@ func TestGetPartner(t *testing.T) {
 		out = testFile()
 		command := &partnerGet{}
 
-		Convey("Given a gateway with 1 distant partner", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 distant partner", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -45,21 +45,21 @@ func TestGetPartner(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(partner), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			send := &model.Rule{Name: "send", IsSend: true, Path: "send_path"}
-			So(db.Create(send), ShouldBeNil)
+			So(db.Insert(send).Run(), ShouldBeNil)
 			receive := &model.Rule{Name: "receive", IsSend: false, Path: "rcv_path"}
-			So(db.Create(receive), ShouldBeNil)
+			So(db.Insert(receive).Run(), ShouldBeNil)
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
-			So(db.Create(sendAll), ShouldBeNil)
+			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
 			sAccess := &model.RuleAccess{RuleID: send.ID,
 				ObjectType: partner.TableName(), ObjectID: partner.ID}
-			So(db.Create(sAccess), ShouldBeNil)
+			So(db.Insert(sAccess).Run(), ShouldBeNil)
 			rAccess := &model.RuleAccess{RuleID: receive.ID,
 				ObjectType: partner.TableName(), ObjectID: partner.ID}
-			So(db.Create(rAccess), ShouldBeNil)
+			So(db.Insert(rAccess).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner name", func() {
 				args := []string{partner.Name}
@@ -103,8 +103,8 @@ func TestAddPartner(t *testing.T) {
 		out = testFile()
 		command := &partnerAdd{}
 
-		Convey("Given a gateway", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -125,9 +125,8 @@ func TestAddPartner(t *testing.T) {
 					})
 
 					Convey("Then the new partner should have been added", func() {
-						var parts []model.RemoteAgent
-						So(db.Select(&parts, nil), ShouldBeNil)
-						So(len(parts), ShouldEqual, 1)
+						var partners model.RemoteAgents
+						So(db.Select(&partners).Run(), ShouldBeNil)
 
 						exp := model.RemoteAgent{
 							ID:          1,
@@ -136,7 +135,7 @@ func TestAddPartner(t *testing.T) {
 							ProtoConfig: json.RawMessage(`{}`),
 							Address:     "localhost:1",
 						}
-						So(parts[0], ShouldResemble, exp)
+						So(partners, ShouldContain, exp)
 					})
 				})
 			})
@@ -196,8 +195,8 @@ func TestListPartners(t *testing.T) {
 		out = testFile()
 		command := &partnerList{}
 
-		Convey("Given a gateway with 2 distant partners", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 2 distant partners", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -209,7 +208,7 @@ func TestListPartners(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(partner1), ShouldBeNil)
+			So(db.Insert(partner1).Run(), ShouldBeNil)
 
 			partner2 := &model.RemoteAgent{
 				Name:        "partner2",
@@ -217,7 +216,7 @@ func TestListPartners(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
-			So(db.Create(partner2), ShouldBeNil)
+			So(db.Insert(partner2).Run(), ShouldBeNil)
 
 			p1 := rest.FromRemoteAgent(partner1, &api.AuthorizedRules{})
 			p2 := rest.FromRemoteAgent(partner2, &api.AuthorizedRules{})
@@ -306,8 +305,8 @@ func TestDeletePartner(t *testing.T) {
 		out = testFile()
 		command := &partnerDelete{}
 
-		Convey("Given a gateway with 1 distant partner", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 distant partner", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -319,7 +318,7 @@ func TestDeletePartner(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(partner), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner name", func() {
 				args := []string{partner.Name}
@@ -335,9 +334,9 @@ func TestDeletePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should have been removed", func() {
-						var parts []model.RemoteAgent
-						So(db.Select(&parts, nil), ShouldBeNil)
-						So(parts, ShouldBeEmpty)
+						var partners model.RemoteAgents
+						So(db.Select(&partners).Run(), ShouldBeNil)
+						So(partners, ShouldBeEmpty)
 					})
 				})
 			})
@@ -355,11 +354,9 @@ func TestDeletePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should still exist", func() {
-						var parts []model.RemoteAgent
-						So(db.Select(&parts, nil), ShouldBeNil)
-						So(len(parts), ShouldEqual, 1)
-
-						So(parts[0], ShouldResemble, *partner)
+						var partners model.RemoteAgents
+						So(db.Select(&partners).Run(), ShouldBeNil)
+						So(partners, ShouldContain, *partner)
 					})
 				})
 			})
@@ -373,8 +370,8 @@ func TestUpdatePartner(t *testing.T) {
 		out = testFile()
 		command := &partnerUpdate{}
 
-		Convey("Given a gateway with 1 distant partner", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 distant partner", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -386,7 +383,7 @@ func TestUpdatePartner(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(partner), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
 				args := []string{"-n", "new_partner", "-p", "test2",
@@ -404,9 +401,8 @@ func TestUpdatePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should have been updated", func() {
-						var parts []model.RemoteAgent
-						So(db.Select(&parts, nil), ShouldBeNil)
-						So(len(parts), ShouldEqual, 1)
+						var partners model.RemoteAgents
+						So(db.Select(&partners).Run(), ShouldBeNil)
 
 						exp := model.RemoteAgent{
 							ID:          partner.ID,
@@ -415,7 +411,7 @@ func TestUpdatePartner(t *testing.T) {
 							Address:     "localhost:1",
 							ProtoConfig: json.RawMessage(`{}`),
 						}
-						So(parts[0], ShouldResemble, exp)
+						So(partners, ShouldContain, exp)
 					})
 				})
 			})
@@ -434,7 +430,9 @@ func TestUpdatePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
-						So(db.Get(partner), ShouldBeNil)
+						var partners model.RemoteAgents
+						So(db.Select(&partners).Run(), ShouldBeNil)
+						So(partners, ShouldContain, *partner)
 					})
 				})
 			})
@@ -454,7 +452,9 @@ func TestUpdatePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
-						So(db.Get(partner), ShouldBeNil)
+						var partners model.RemoteAgents
+						So(db.Select(&partners).Run(), ShouldBeNil)
+						So(partners, ShouldContain, *partner)
 					})
 				})
 			})
@@ -474,7 +474,9 @@ func TestUpdatePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
-						So(db.Get(partner), ShouldBeNil)
+						var partners model.RemoteAgents
+						So(db.Select(&partners).Run(), ShouldBeNil)
+						So(partners, ShouldContain, *partner)
 					})
 				})
 			})
@@ -493,7 +495,9 @@ func TestUpdatePartner(t *testing.T) {
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
-						So(db.Get(partner), ShouldBeNil)
+						var partners model.RemoteAgents
+						So(db.Select(&partners).Run(), ShouldBeNil)
+						So(partners, ShouldContain, *partner)
 					})
 				})
 			})
@@ -507,8 +511,8 @@ func TestAuthorizePartner(t *testing.T) {
 		out = testFile()
 		command := &partnerAuthorize{}
 
-		Convey("Given a gateway with 1 distant partner and 1 rule", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 distant partner and 1 rule", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -520,14 +524,14 @@ func TestAuthorizePartner(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(partner), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
 				Path:   "rule/path",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner & rule names", func() {
 				args := []string{partner.Name, rule.Name, direction(rule)}
@@ -545,12 +549,15 @@ func TestAuthorizePartner(t *testing.T) {
 					})
 
 					Convey("Then the permission should have been added", func() {
-						access := &model.RuleAccess{
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+
+						exp := model.RuleAccess{
 							RuleID:     rule.ID,
 							ObjectID:   partner.ID,
 							ObjectType: partner.TableName(),
 						}
-						So(db.Get(access), ShouldBeNil)
+						So(accesses, ShouldContain, exp)
 					})
 				})
 			})
@@ -564,13 +571,13 @@ func TestAuthorizePartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then is should return an error", func() {
-						So(err, ShouldBeError, "rule 'toto' not found")
+						So(err, ShouldBeError, "send rule 'toto' not found")
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
-						var a []model.RuleAccess
-						So(db.Select(&a, nil), ShouldBeNil)
-						So(a, ShouldBeEmpty)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldBeEmpty)
 					})
 				})
 			})
@@ -588,9 +595,9 @@ func TestAuthorizePartner(t *testing.T) {
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
-						var a []model.RuleAccess
-						So(db.Select(a, nil), ShouldBeNil)
-						So(a, ShouldBeEmpty)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldBeEmpty)
 					})
 				})
 			})
@@ -604,8 +611,8 @@ func TestRevokePartner(t *testing.T) {
 		out = testFile()
 		command := &partnerRevoke{}
 
-		Convey("Given a gateway with 1 distant partner and 1 rule", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 distant partner and 1 rule", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -617,21 +624,21 @@ func TestRevokePartner(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(partner), ShouldBeNil)
+			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
 				Path:   "rule/path",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			access := &model.RuleAccess{
 				RuleID:     rule.ID,
 				ObjectID:   partner.ID,
 				ObjectType: partner.TableName(),
 			}
-			So(db.Create(access), ShouldBeNil)
+			So(db.Insert(access).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner & rule names", func() {
 				args := []string{partner.Name, rule.Name, direction(rule)}
@@ -649,9 +656,9 @@ func TestRevokePartner(t *testing.T) {
 					})
 
 					Convey("Then the permission should have been removed", func() {
-						var a []model.RuleAccess
-						So(db.Select(&a, nil), ShouldBeNil)
-						So(a, ShouldBeEmpty)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldBeEmpty)
 					})
 				})
 			})
@@ -665,11 +672,13 @@ func TestRevokePartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then is should return an error", func() {
-						So(err, ShouldBeError, "rule 'toto' not found")
+						So(err, ShouldBeError, "send rule 'toto' not found")
 					})
 
 					Convey("Then the permission should NOT have been removed", func() {
-						So(db.Get(access), ShouldBeNil)
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldContain, *access)
 					})
 				})
 			})
@@ -686,8 +695,10 @@ func TestRevokePartner(t *testing.T) {
 						So(err, ShouldBeError, "partner 'toto' not found")
 					})
 
-					Convey("Then the permission should NOT have been added", func() {
-						So(db.Get(access), ShouldBeNil)
+					Convey("Then the permission should NOT have been removed", func() {
+						var accesses model.RuleAccesses
+						So(db.Select(&accesses).Run(), ShouldBeNil)
+						So(accesses, ShouldContain, *access)
 					})
 				})
 			})

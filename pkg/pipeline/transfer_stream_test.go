@@ -33,18 +33,18 @@ func TestNewTransferStream(t *testing.T) {
 		WorkDirectory: filepath.Join(root, "work"),
 	}}
 
-	Convey("Given a new transfer", t, func() {
+	Convey("Given a new transfer", t, func(c C) {
 		TransferInCount = &Count{}
 		TransferOutCount = &Count{}
 
-		db := database.GetTestDatabase()
+		db := database.TestDatabase(c, "ERROR")
 
 		rule := &model.Rule{
 			Name:   "rule",
 			IsSend: false,
 			Path:   "rule/path",
 		}
-		So(db.Create(rule), ShouldBeNil)
+		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		agent := &model.RemoteAgent{
 			Name:        "agent",
@@ -52,14 +52,14 @@ func TestNewTransferStream(t *testing.T) {
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:1111",
 		}
-		So(db.Create(agent), ShouldBeNil)
+		So(db.Insert(agent).Run(), ShouldBeNil)
 
 		account := &model.RemoteAccount{
 			RemoteAgentID: agent.ID,
 			Login:         "login",
 			Password:      []byte("password"),
 		}
-		So(db.Create(account), ShouldBeNil)
+		So(db.Insert(account).Run(), ShouldBeNil)
 
 		trans := model.Transfer{
 			RuleID:     rule.ID,
@@ -106,7 +106,7 @@ func TestStreamRead(t *testing.T) {
 	logger := log.NewLogger("test_stream_read")
 
 	Convey("Given a file", t, func(c C) {
-		db := database.GetTestDatabase()
+		db := database.TestDatabase(c, "ERROR")
 		root := testhelpers.TempDir(c, "stream_read_root")
 
 		paths := Paths{PathsConfig: conf.PathsConfig{
@@ -131,7 +131,7 @@ func TestStreamRead(t *testing.T) {
 				InPath:  ".",
 				OutPath: ".",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
 				Owner:       database.Owner,
@@ -140,14 +140,14 @@ func TestStreamRead(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "login",
 				Password:     []byte("password"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:     rule.ID,
@@ -163,7 +163,7 @@ func TestStreamRead(t *testing.T) {
 				TaskNumber: 0,
 				Error:      types.TransferError{},
 			}
-			So(db.Create(trans), ShouldBeNil)
+			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			stream, tErr := NewTransferStream(context.Background(), logger, db, paths, trans)
 			So(tErr, ShouldBeNil)
@@ -184,7 +184,7 @@ func TestStreamRead(t *testing.T) {
 					})
 
 					Convey("Then the transfer progression should have been updated", func() {
-						So(stream.Transfer.Progress, ShouldEqual, len(b))
+						So(stream.progress, ShouldEqual, len(b))
 					})
 
 					Convey("Then the array should contain the file content", func() {
@@ -210,7 +210,7 @@ func TestStreamRead(t *testing.T) {
 					})
 
 					Convey("Then the transfer progression should have been updated", func() {
-						So(stream.Transfer.Progress, ShouldEqual, len(b))
+						So(stream.progress, ShouldEqual, len(b))
 					})
 
 					Convey("Then the array should contain the file content", func() {
@@ -229,7 +229,7 @@ func TestStreamWrite(t *testing.T) {
 	logger := log.NewLogger("test_stream_read")
 
 	Convey("Given a file", t, func(c C) {
-		db := database.GetTestDatabase()
+		db := database.TestDatabase(c, "ERROR")
 		dstFile := "write_test.dst"
 		content := []byte("Transfer stream write test content")
 
@@ -248,7 +248,7 @@ func TestStreamWrite(t *testing.T) {
 				IsSend: false,
 				Path:   ".",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
 				Owner:       database.Owner,
@@ -257,14 +257,14 @@ func TestStreamWrite(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
-			So(db.Create(agent), ShouldBeNil)
+			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "login",
 				Password:     []byte("password"),
 			}
-			So(db.Create(account), ShouldBeNil)
+			So(db.Insert(account).Run(), ShouldBeNil)
 
 			trans := &model.Transfer{
 				RuleID:     rule.ID,
@@ -280,7 +280,7 @@ func TestStreamWrite(t *testing.T) {
 				TaskNumber: 0,
 				Error:      types.TransferError{},
 			}
-			So(db.Create(trans), ShouldBeNil)
+			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			stream, tErr := NewTransferStream(context.Background(), logger, db, paths, trans)
 			So(tErr, ShouldBeNil)
@@ -300,7 +300,7 @@ func TestStreamWrite(t *testing.T) {
 					})
 
 					Convey("Then the transfer progression should have been updated", func() {
-						So(stream.Transfer.Progress, ShouldEqual, len(w))
+						So(stream.progress, ShouldEqual, len(w))
 					})
 
 					Convey("Then the file should contain the array content", func() {
@@ -326,7 +326,7 @@ func TestStreamWrite(t *testing.T) {
 					})
 
 					Convey("Then the transfer progression should have been updated", func() {
-						So(stream.Transfer.Progress, ShouldEqual, len(w))
+						So(stream.progress, ShouldEqual, len(w))
 					})
 
 					Convey("Then the file should contain the array content", func() {

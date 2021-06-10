@@ -58,8 +58,9 @@ func TestConnect(t *testing.T) {
 				err := client.Connect()
 
 				Convey("Then it should return an error", func() {
-					So(err.Kind, ShouldEqual, model.KindTransfer)
-					So(err.Cause.Code, ShouldEqual, types.TeConnection)
+					te, ok := err.(types.TransferError)
+					So(ok, ShouldBeTrue)
+					So(te.Code, ShouldEqual, types.TeConnection)
 
 					Convey("Then the connection should NOT be open", func() {
 						So(client.conn, ShouldBeNil)
@@ -205,7 +206,7 @@ func TestRequest(t *testing.T) {
 			err := client.Request()
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldResemble, model.NewPipelineError(types.TeFileNotFound,
+				So(err, ShouldResemble, types.NewTransferError(types.TeFileNotFound,
 					"Target file does not exist"))
 
 				Convey("Then the file stream should NOT be open", func() {

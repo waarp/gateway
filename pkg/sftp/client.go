@@ -55,10 +55,10 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 }
 
 // Connect opens a TCP connection to the remote.
-func (c *Client) Connect() *model.PipelineError {
+func (c *Client) Connect() error {
 	conn, err := net.Dial("tcp", c.Info.Agent.Address)
 	if err != nil {
-		return model.NewPipelineError(types.TeConnection, err.Error())
+		return types.NewTransferError(types.TeConnection, err.Error())
 	}
 	c.conn = conn
 
@@ -66,41 +66,41 @@ func (c *Client) Connect() *model.PipelineError {
 }
 
 // Authenticate opens the SSH tunnel to the remote.
-func (c *Client) Authenticate() *model.PipelineError {
+func (c *Client) Authenticate() error {
 	conf, err := getSSHClientConfig(&c.Info, c.conf)
 	if err != nil {
-		return model.NewPipelineError(types.TeInternal, err.Error())
+		return types.NewTransferError(types.TeInternal, err.Error())
 	}
 
 	addr, _, _ := net.SplitHostPort(c.Info.Agent.Address)
 	conn, chans, reqs, err := ssh.NewClientConn(c.conn, addr, conf)
 	if err != nil {
-		return model.NewPipelineError(types.TeBadAuthentication, err.Error())
+		return types.NewTransferError(types.TeBadAuthentication, err.Error())
 	}
 
 	sshClient := ssh.NewClient(conn, chans, reqs)
 	c.client, err = sftp.NewClient(sshClient)
 	if err != nil {
-		return model.NewPipelineError(types.TeConnection, err.Error())
+		return types.NewTransferError(types.TeConnection, err.Error())
 	}
 	return nil
 }
 
 // Request opens/creates the remote file.
-func (c *Client) Request() *model.PipelineError {
+func (c *Client) Request() error {
 	var err error
 	if c.Info.Rule.IsSend {
 		remotePath := path.Join(c.Info.Rule.InPath, c.Info.Transfer.DestFile)
-		c.remoteFile, err = c.client.Create(remotePath)
+		c.remoteFile, err = c.client.OpenFile(remotePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
 		if err != nil {
 			if msg, ok := isRemoteTaskError(err); ok {
 				fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
-				return model.NewPipelineError(types.TeExternalOperation, fullMsg)
+				return types.NewTransferError(types.TeExternalOperation, fullMsg)
 			}
 			if err == os.ErrNotExist {
-				return model.NewPipelineError(types.TeFileNotFound, "Target directory does not exist")
+				return types.NewTransferError(types.TeFileNotFound, "Target directory does not exist")
 			}
-			return model.NewPipelineError(types.TeConnection, err.Error())
+			return types.NewTransferError(types.TeConnection, err.Error())
 		}
 	} else {
 		remotePath := path.Join(c.Info.Rule.OutPath, c.Info.Transfer.SourceFile)
@@ -108,19 +108,19 @@ func (c *Client) Request() *model.PipelineError {
 		if err != nil {
 			if msg, ok := isRemoteTaskError(err); ok {
 				fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
-				return model.NewPipelineError(types.TeExternalOperation, fullMsg)
+				return types.NewTransferError(types.TeExternalOperation, fullMsg)
 			}
 			if err == os.ErrNotExist {
-				return model.NewPipelineError(types.TeFileNotFound, "Target file does not exist")
+				return types.NewTransferError(types.TeFileNotFound, "Target file does not exist")
 			}
-			return model.NewPipelineError(types.TeConnection, err.Error())
+			return types.NewTransferError(types.TeConnection, err.Error())
 		}
 	}
 	return nil
 }
 
 // Data copies the content of the source file into the destination file.
-func (c *Client) Data(file pipeline.DataStream) *model.PipelineError {
+func (c *Client) Data(file pipeline.DataStream) error {
 	err := func() error {
 		if !c.Info.Rule.IsSend {
 			_, err := c.remoteFile.WriteTo(file)
@@ -132,13 +132,13 @@ func (c *Client) Data(file pipeline.DataStream) *model.PipelineError {
 		return nil
 	}()
 	if err != nil {
-		return model.NewPipelineError(types.TeDataTransfer, err.Error())
+		return types.NewTransferError(types.TeDataTransfer, err.Error())
 	}
 	return nil
 }
 
 // Close ends the SFTP session and closes the connection.
-func (c *Client) Close(pErr *model.PipelineError) *model.PipelineError {
+func (c *Client) Close(pErr error) error {
 	defer func() {
 		if c.client != nil {
 			_ = c.client.Close()
@@ -152,9 +152,9 @@ func (c *Client) Close(pErr *model.PipelineError) *model.PipelineError {
 		if err := c.remoteFile.Close(); err != nil {
 			if msg, ok := isRemoteTaskError(err); ok {
 				fullMsg := fmt.Sprintf("Remote post-tasks failed: %s", msg)
-				return model.NewPipelineError(types.TeExternalOperation, fullMsg)
+				return types.NewTransferError(types.TeExternalOperation, fullMsg)
 			}
-			return model.NewPipelineError(types.TeConnection, err.Error())
+			return types.NewTransferError(types.TeConnection, err.Error())
 		}
 	}
 	return nil

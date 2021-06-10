@@ -1,0 +1,8 @@
+[Unit]
+Description=Verifies files on sftp partners for Waarp Gateway
+
+[Service]
+Type=oneshot
+User=waarp
+Group=waarp
+ExecStart=/usr/share/waarp-gateway/get-remotes

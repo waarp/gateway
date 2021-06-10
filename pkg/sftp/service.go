@@ -39,19 +39,22 @@ func (s *Service) Start() error {
 			return err
 		}
 
-		cert, err := loadCert(s.db, s.agent)
+		certs, err := s.agent.GetCerts(s.db)
 		if err != nil {
+			s.logger.Errorf("Failed to retrieve the server certificates: %s", err)
 			return err
 		}
 
-		sshConf, err := getSSHServerConfig(s.db, cert, &protoConfig, s.agent)
-		if err != nil {
-			return err
+		sshConf, err1 := getSSHServerConfig(s.db, certs, &protoConfig, s.agent)
+		if err1 != nil {
+			s.logger.Errorf("Failed to parse the SSH server configuration: %s", err1)
+			return err1
 		}
 
-		listener, err := net.Listen("tcp", s.agent.Address)
-		if err != nil {
-			return err
+		listener, err2 := net.Listen("tcp", s.agent.Address)
+		if err2 != nil {
+			s.logger.Errorf("Failed to start server listener: %s", err2)
+			return err2
 		}
 
 		s.listener = &sshListener{
@@ -73,7 +76,7 @@ func (s *Service) Start() error {
 
 	if err := start(); err != nil {
 		s.state.Set(service.Error, err.Error())
-		s.logger.Infof("Failed to start SFTP service: %s", err)
+		s.logger.Error("Failed to start SFTP service")
 		return err
 	}
 

@@ -6,7 +6,8 @@ import (
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	_ "github.com/lib/pq" // register the postgres driver
+	_ "github.com/jackc/pgx/v4/stdlib" // register the postgres driver
+	"xorm.io/xorm"
 )
 
 const (
@@ -14,15 +15,17 @@ const (
 	postgres = "postgresql"
 
 	// Name of the PostgreSQL database driver
-	postgresDriver = "postgres"
+	postgresDriver = "pgx"
 )
 
 func init() {
 	supportedRBMS[postgres] = postgresinfo
 }
 
-func postgresinfo(config conf.DatabaseConfig) (string, string) {
-	return postgresDriver, postgresDSN(config)
+func postgresinfo(config conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+	return postgresDriver, postgresDSN(config), func(*xorm.Engine) error {
+		return nil
+	}
 }
 
 func postgresDSN(config conf.DatabaseConfig) string {

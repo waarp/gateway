@@ -6,13 +6,12 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	"github.com/go-xorm/builder"
 )
 
-func exportRemotes(logger *log.Logger, db *database.Session) ([]file.RemoteAgent, error) {
-	var dbRemotes []model.RemoteAgent
+func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAgent, error) {
 
-	if err := db.Select(&dbRemotes, nil); err != nil {
+	var dbRemotes model.RemoteAgents
+	if err := db.Select(&dbRemotes).Run(); err != nil {
 		return nil, err
 	}
 	res := make([]file.RemoteAgent, len(dbRemotes))
@@ -42,13 +41,11 @@ func exportRemotes(logger *log.Logger, db *database.Session) ([]file.RemoteAgent
 	return res, nil
 }
 
-func exportRemoteAccounts(logger *log.Logger, db *database.Session,
+func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
 	agentID uint64) ([]file.RemoteAccount, error) {
-	var dbAccounts []model.RemoteAccount
-	filters := &database.Filters{
-		Conditions: builder.Eq{"remote_agent_id": agentID},
-	}
-	if err := db.Select(&dbAccounts, filters); err != nil {
+
+	var dbAccounts model.RemoteAccounts
+	if err := db.Select(&dbAccounts).Where("remote_agent_id=?", agentID).Run(); err != nil {
 		return nil, err
 	}
 	res := make([]file.RemoteAccount, len(dbAccounts))

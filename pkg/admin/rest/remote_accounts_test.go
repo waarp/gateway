@@ -1,11 +1,11 @@
 package rest
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
@@ -24,8 +24,8 @@ func remoteAccountsURI(agent, login string) string {
 func TestGetRemoteAccount(t *testing.T) {
 	logger := log.NewLogger("rest_account_get_test")
 
-	Convey("Given the account get handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the account get handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := getRemoteAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -36,14 +36,14 @@ func TestGetRemoteAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(parent), ShouldBeNil)
+			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			expected := &model.RemoteAccount{
 				Login:         "existing",
 				RemoteAgentID: parent.ID,
 				Password:      []byte("existing"),
 			}
-			So(db.Create(expected), ShouldBeNil)
+			So(db.Insert(expected).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid account login parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -133,8 +133,8 @@ func TestListRemoteAccounts(t *testing.T) {
 		})
 	}
 
-	Convey("Given the remote account listing handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the remote account listing handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := listRemoteAccounts(logger, db)
 		w := httptest.NewRecorder()
 		expected := map[string][]OutAccount{}
@@ -152,8 +152,8 @@ func TestListRemoteAccounts(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
-			So(db.Create(p1), ShouldBeNil)
-			So(db.Create(p2), ShouldBeNil)
+			So(db.Insert(p1).Run(), ShouldBeNil)
+			So(db.Insert(p2).Run(), ShouldBeNil)
 
 			a1 := &model.RemoteAccount{
 				Login:         "account1",
@@ -176,10 +176,10 @@ func TestListRemoteAccounts(t *testing.T) {
 				RemoteAgentID: p1.ID,
 			}
 
-			So(db.Create(a1), ShouldBeNil)
-			So(db.Create(a2), ShouldBeNil)
-			So(db.Create(a3), ShouldBeNil)
-			So(db.Create(a4), ShouldBeNil)
+			So(db.Insert(a1).Run(), ShouldBeNil)
+			So(db.Insert(a2).Run(), ShouldBeNil)
+			So(db.Insert(a3).Run(), ShouldBeNil)
+			So(db.Insert(a4).Run(), ShouldBeNil)
 
 			account1 := *FromRemoteAccount(a1, &AuthorizedRules{})
 			account2 := *FromRemoteAccount(a2, &AuthorizedRules{})
@@ -273,8 +273,8 @@ func TestListRemoteAccounts(t *testing.T) {
 func TestCreateRemoteAccount(t *testing.T) {
 	logger := log.NewLogger("rest_account_create_logger")
 
-	Convey("Given the account creation handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the account creation handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := addRemoteAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -285,17 +285,17 @@ func TestCreateRemoteAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(parent), ShouldBeNil)
+			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			Convey("Given a new account to insert in the database", func() {
-				body := []byte(`{
+				body := strings.NewReader(`{
 					"login": "new_account",
 					"password": "new_password"
 				}`)
 
 				Convey("Given a valid agent name parameter", func() {
 					r, err := http.NewRequest(http.MethodPost, remoteAccountsURI(
-						parent.Name, ""), bytes.NewReader(body))
+						parent.Name, ""), body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"partner": parent.Name})
 
@@ -321,8 +321,8 @@ func TestCreateRemoteAccount(t *testing.T) {
 						Convey("Then the new account should be inserted in the "+
 							"database", func() {
 
-							var accs []model.RemoteAccount
-							So(db.Select(&accs, nil), ShouldBeNil)
+							var accs model.RemoteAccounts
+							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
 
 							clear, err := utils.DecryptPassword(accs[0].Password)
@@ -340,7 +340,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 
 				Convey("Given an invalid agent name parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
-						"toto", ""), bytes.NewReader(body))
+						"toto", ""), body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"partner": "toto"})
 
@@ -357,8 +357,8 @@ func TestCreateRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the new account should NOT exist", func() {
-							var accs []model.RemoteAccount
-							So(db.Select(&accs, nil), ShouldBeNil)
+							var accs model.RemoteAccounts
+							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(accs, ShouldBeEmpty)
 						})
 					})
@@ -371,8 +371,8 @@ func TestCreateRemoteAccount(t *testing.T) {
 func TestDeleteRemoteAccount(t *testing.T) {
 	logger := log.NewLogger("rest_account_delete_test")
 
-	Convey("Given the account deletion handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the account deletion handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := deleteRemoteAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -383,14 +383,14 @@ func TestDeleteRemoteAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(parent), ShouldBeNil)
+			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			existing := &model.RemoteAccount{
 				Login:         "existing",
 				Password:      []byte("existing"),
 				RemoteAgentID: parent.ID,
 			}
-			So(db.Create(existing), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given a request with the valid account login parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
@@ -411,9 +411,9 @@ func TestDeleteRemoteAccount(t *testing.T) {
 
 					Convey("Then the account should no longer be present "+
 						"in the database", func() {
-						var a []model.RemoteAccount
-						So(db.Select(&a, nil), ShouldBeNil)
-						So(a, ShouldBeEmpty)
+						var accs model.RemoteAccounts
+						So(db.Select(&accs).Run(), ShouldBeNil)
+						So(accs, ShouldBeEmpty)
 					})
 				})
 			})
@@ -454,8 +454,8 @@ func TestDeleteRemoteAccount(t *testing.T) {
 func TestUpdateRemoteAccount(t *testing.T) {
 	logger := log.NewLogger("rest_account_update_logger")
 
-	Convey("Given the account updating handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the account updating handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := updateRemoteAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -466,23 +466,23 @@ func TestUpdateRemoteAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(parent), ShouldBeNil)
+			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			old := &model.RemoteAccount{
 				Login:         "old",
 				Password:      []byte("old"),
 				RemoteAgentID: parent.ID,
 			}
-			So(db.Create(old), ShouldBeNil)
+			So(db.Insert(old).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
-				body := []byte(`{
+				body := strings.NewReader(`{
 					"password": "upd_password"
 				}`)
 
 				Convey("Given a valid account login parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
-						parent.Name, old.Login), bytes.NewReader(body))
+						parent.Name, old.Login), body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"partner": parent.Name,
 						"remote_account": old.Login})
@@ -507,8 +507,8 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the account should have been updated", func() {
-							var res []model.RemoteAccount
-							So(db.Select(&res, nil), ShouldBeNil)
+							var res model.RemoteAccounts
+							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
 
 							pswd, err := utils.DecryptPassword(res[0].Password)
@@ -528,7 +528,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 				Convey("Given an invalid account login parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
-						parent.Name, "toto"), bytes.NewReader(body))
+						parent.Name, "toto"), body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"partner": parent.Name,
 						"remote_account": "toto"})
@@ -547,14 +547,17 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the old account should still exist", func() {
-							So(db.Get(old), ShouldBeNil)
+							var accs model.RemoteAccounts
+							So(db.Select(&accs).Run(), ShouldBeNil)
+							So(accs, ShouldNotBeEmpty)
+							So(accs[0], ShouldResemble, *old)
 						})
 					})
 				})
 
 				Convey("Given an invalid agent name parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
-						"toto", old.Login), bytes.NewReader(body))
+						"toto", old.Login), body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"partner": "toto",
 						"remote_account": old.Login})
@@ -572,7 +575,10 @@ func TestUpdateRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the old account should still exist", func() {
-							So(db.Get(old), ShouldBeNil)
+							var accs model.RemoteAccounts
+							So(db.Select(&accs).Run(), ShouldBeNil)
+							So(accs, ShouldNotBeEmpty)
+							So(accs[0], ShouldResemble, *old)
 						})
 					})
 				})
@@ -584,8 +590,8 @@ func TestUpdateRemoteAccount(t *testing.T) {
 func TestReplaceRemoteAccount(t *testing.T) {
 	logger := log.NewLogger("rest_account_update_logger")
 
-	Convey("Given the account updating handler", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given the account updating handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		handler := replaceRemoteAccount(logger, db)
 		w := httptest.NewRecorder()
 
@@ -596,24 +602,24 @@ func TestReplaceRemoteAccount(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
-			So(db.Create(parent), ShouldBeNil)
+			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			old := &model.RemoteAccount{
 				Login:         "old",
 				Password:      []byte("old"),
 				RemoteAgentID: parent.ID,
 			}
-			So(db.Create(old), ShouldBeNil)
+			So(db.Insert(old).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
-				body := []byte(`{
+				body := strings.NewReader(`{
 					"login": "upd_login",
 					"password": "upd_password"
 				}`)
 
 				Convey("Given a valid account login parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, remoteAccountsURI(
-						parent.Name, old.Login), bytes.NewReader(body))
+						parent.Name, old.Login), body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"partner": parent.Name,
 						"remote_account": old.Login})
@@ -637,8 +643,8 @@ func TestReplaceRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the account should have been updated", func() {
-							var res []model.RemoteAccount
-							So(db.Select(&res, nil), ShouldBeNil)
+							var res model.RemoteAccounts
+							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 1)
 
 							pswd, err := utils.DecryptPassword(res[0].Password)
@@ -658,7 +664,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 
 				Convey("Given an invalid account login parameter", func() {
 					r, err := http.NewRequest(http.MethodPut, remoteAccountsURI(
-						parent.Name, "toto"), bytes.NewReader(body))
+						parent.Name, "toto"), body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"partner": parent.Name,
 						"remote_account": "toto"})
@@ -677,14 +683,17 @@ func TestReplaceRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the old account should still exist", func() {
-							So(db.Get(old), ShouldBeNil)
+							var accs model.RemoteAccounts
+							So(db.Select(&accs).Run(), ShouldBeNil)
+							So(accs, ShouldNotBeEmpty)
+							So(accs[0], ShouldResemble, *old)
 						})
 					})
 				})
 
 				Convey("Given an invalid agent name parameter", func() {
 					r, err := http.NewRequest(http.MethodPut, remoteAccountsURI(
-						"toto", old.Login), bytes.NewReader(body))
+						"toto", old.Login), body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"partner": "toto",
 						"remote_account": old.Login})
@@ -702,7 +711,10 @@ func TestReplaceRemoteAccount(t *testing.T) {
 						})
 
 						Convey("Then the old account should still exist", func() {
-							So(db.Get(old), ShouldBeNil)
+							var accs model.RemoteAccounts
+							So(db.Select(&accs).Run(), ShouldBeNil)
+							So(accs, ShouldNotBeEmpty)
+							So(accs[0], ShouldResemble, *old)
 						})
 					})
 				})

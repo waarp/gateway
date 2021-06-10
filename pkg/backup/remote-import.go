@@ -7,25 +7,22 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func importRemoteAgents(logger *log.Logger, db *database.Session, list []file.RemoteAgent) error {
+func importRemoteAgents(logger *log.Logger, db database.Access, list []file.RemoteAgent) database.Error {
 	for _, src := range list {
 		// Create model with basic info to check existence
-		agent := &model.RemoteAgent{
-			Name: src.Name,
-		}
+		var agent model.RemoteAgent
 
 		//Check if agent exists
 		exists := true
-		err := db.Get(agent)
-		if err != nil {
-			if err == database.ErrNotFound {
-				exists = false
-			} else {
-				return err
-			}
+		err := db.Get(&agent, "name=?", src.Name).Run()
+		if database.IsNotFound(err) {
+			exists = false
+		} else if err != nil {
+			return err
 		}
 
 		// Populate
+		agent.Name = src.Name
 		agent.Address = src.Address
 		agent.Protocol = src.Protocol
 		agent.ProtoConfig = src.Configuration
@@ -33,10 +30,10 @@ func importRemoteAgents(logger *log.Logger, db *database.Session, list []file.Re
 		//Create/Update
 		if exists {
 			logger.Infof("Update remote partner %s\n", agent.Name)
-			err = db.Update(agent)
+			err = db.Update(&agent).Run()
 		} else {
 			logger.Infof("Create remote partner %s\n", agent.Name)
-			err = db.Create(agent)
+			err = db.Insert(&agent).Run()
 		}
 		if err != nil {
 			return err
@@ -54,24 +51,25 @@ func importRemoteAgents(logger *log.Logger, db *database.Session, list []file.Re
 	return nil
 }
 
-func importRemoteAccounts(logger *log.Logger, db *database.Session,
-	list []file.RemoteAccount, ownerID uint64) error {
+//nolint:dupl
+func importRemoteAccounts(logger *log.Logger, db database.Access,
+	list []file.RemoteAccount, ownerID uint64) database.Error {
 
 	for _, src := range list {
 
 		// Create model with basic info to check existence
-		account := &model.RemoteAccount{
-			RemoteAgentID: ownerID,
-			Login:         src.Login,
-		}
+		var account model.RemoteAccount
 
 		// Check if account exists
-		exist, err := accountExists(db, account)
+		exist, err := accountExists(db, &account, "remote_agent_id=? AND login=?",
+			ownerID, src.Login)
 		if err != nil {
 			return err
 		}
 
 		// Populate
+		account.RemoteAgentID = ownerID
+		account.Login = src.Login
 		if src.Password != "" {
 			account.Password = []byte(src.Password)
 		}
@@ -79,10 +77,10 @@ func importRemoteAccounts(logger *log.Logger, db *database.Session,
 		// Create/Update
 		if exist {
 			logger.Infof("Update remote account %s\n", account.Login)
-			err = db.Update(account)
+			err = db.Update(&account).Run()
 		} else {
 			logger.Infof("Create remote account %s\n", account.Login)
-			err = db.Create(account)
+			err = db.Insert(&account).Run()
 		}
 		if err != nil {
 			return err

@@ -96,233 +96,197 @@ func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {
 	if !ok {
 		return nil, notFound("missing rule direction")
 	}
-	rule := &model.Rule{Name: ruleName, IsSend: ruleDirection == "send"}
-	if err := db.Get(rule); err != nil {
-		if err == database.ErrNotFound {
-			return nil, notFound("rule '%s' not found", ruleName)
+	var rule model.Rule
+	if err := db.Get(&rule, "name=? AND send=?", ruleName,
+		ruleDirection == "send").Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, notFound("%s rule '%s' not found", ruleDirection, ruleName)
 		}
 		return nil, err
 	}
-	return rule, nil
+	return &rule, nil
 }
 
 func addRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			jsonRule := &api.InRule{}
-			if err := readJSON(r, jsonRule); err != nil {
-				return err
-			}
-
-			rule, err := ruleToDB(jsonRule, 0)
-			if err != nil {
-				return err
-			}
-			ses, err := db.BeginTransaction()
-			if err != nil {
-				return err
-			}
-			if err := ses.Create(rule); err != nil {
-				ses.Rollback()
-				return err
-			}
-			if err := doTaskUpdate(ses, jsonRule.UptRule, rule.ID, true); err != nil {
-				ses.Rollback()
-				return err
-			}
-			if err := ses.Commit(); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", location(r.URL, rule.Name))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		var jsonRule api.InRule
+		if err := readJSON(r, &jsonRule); handleError(w, logger, err) {
+			return
 		}
+
+		rule, err := ruleToDB(&jsonRule, 0)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		err = db.Transaction(func(ses *database.Session) database.Error {
+			if err := ses.Insert(rule).Run(); err != nil {
+				return err
+			}
+
+			if err := doTaskUpdate(ses, jsonRule.UptRule, rule.ID, true); err != nil {
+				return err
+			}
+
+			return nil
+		})
+		if handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", location(r.URL, rule.Name))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func getRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			result, err := getRl(r, db)
-			if err != nil {
-				return err
-			}
-
-			rule, err := FromRule(db, result)
-			if err != nil {
-				return err
-			}
-
-			return writeJSON(w, rule)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		result, err := getRl(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		rule, err := FromRule(db, result)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		err = writeJSON(w, rule)
+		handleError(w, logger, err)
 	}
 }
 
 func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	validSorting := map[string]string{
-		"default": "name ASC",
-		"name+":   "name ASC",
-		"name-":   "name DESC",
+	validSorting := orders{
+		"default": order{col: "name", asc: true},
+		"name+":   order{col: "name", asc: true},
+		"name-":   order{col: "name", asc: false},
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			filters, err := parseListFilters(r, validSorting)
-			if err != nil {
-				return err
-			}
-
-			var results []model.Rule
-			if err := db.Select(&results, filters); err != nil {
-				return err
-			}
-
-			rules, err := FromRules(db, results)
-			if err != nil {
-				return err
-			}
-
-			resp := map[string][]api.OutRule{"rules": rules}
-			return writeJSON(w, resp)
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		var rules model.Rules
+		query, err := parseSelectQuery(r, db, validSorting, &rules)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		if err := query.Run(); handleError(w, logger, err) {
+			return
+		}
+
+		jRules, err := FromRules(db, rules)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		resp := map[string][]api.OutRule{"rules": jRules}
+		err = writeJSON(w, resp)
+		handleError(w, logger, err)
 	}
 }
 
 func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			old, err := getRl(r, db)
-			if err != nil {
-				return err
-			}
-
-			jRule := newInRule(old)
-			if err := readJSON(r, jRule); err != nil {
-				return err
-			}
-
-			ses, err := db.BeginTransaction()
-			if err != nil {
-				return err
-			}
-			rule, err := ruleToDB(jRule, old.ID)
-			if err != nil {
-				return err
-			}
-			if err := ses.Update(rule); err != nil {
-				ses.Rollback()
-				return err
-			}
-			if err := doTaskUpdate(ses, jRule.UptRule, old.ID, false); err != nil {
-				ses.Rollback()
-				return err
-			}
-			if err := ses.Commit(); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", locationUpdate(r.URL, str(jRule.Name)))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		old, err := getRl(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		jRule := newInRule(old)
+		if err := readJSON(r, jRule); handleError(w, logger, err) {
+			return
+		}
+
+		rule, err := ruleToDB(jRule, old.ID)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		err = db.Transaction(func(ses *database.Session) database.Error {
+			if err := ses.Update(rule).Run(); err != nil {
+				return err
+			}
+
+			if err := doTaskUpdate(ses, jRule.UptRule, old.ID, false); err != nil {
+				return err
+			}
+
+			return nil
+		})
+		if handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", locationUpdate(r.URL, str(jRule.Name)))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			old, err := getRl(r, db)
-			if err != nil {
-				return err
-			}
-
-			jRule := &api.InRule{IsSend: &old.IsSend, UptRule: &api.UptRule{}}
-			if err := readJSON(r, jRule.UptRule); err != nil {
-				return err
-			}
-
-			ses, err := db.BeginTransaction()
-			if err != nil {
-				return err
-			}
-			rule, err := ruleToDB(jRule, old.ID)
-			if err != nil {
-				return err
-			}
-			if err := ses.Update(rule); err != nil {
-				ses.Rollback()
-				return err
-			}
-			if err := doTaskUpdate(ses, jRule.UptRule, old.ID, true); err != nil {
-				ses.Rollback()
-				return err
-			}
-			if err := ses.Commit(); err != nil {
-				return err
-			}
-
-			w.Header().Set("Location", locationUpdate(r.URL, str(jRule.Name)))
-			w.WriteHeader(http.StatusCreated)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		old, err := getRl(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		jRule := &api.InRule{IsSend: &old.IsSend, UptRule: &api.UptRule{}}
+		if err := readJSON(r, jRule.UptRule); handleError(w, logger, err) {
+			return
+		}
+
+		rule, err := ruleToDB(jRule, old.ID)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		err = db.Transaction(func(ses *database.Session) database.Error {
+			if err := ses.Update(rule).Run(); handleError(w, logger, err) {
+				return err
+			}
+
+			if err := doTaskUpdate(ses, jRule.UptRule, old.ID, true); err != nil {
+				return err
+			}
+
+			return nil
+		})
+		if handleError(w, logger, err) {
+			return
+		}
+
+		w.Header().Set("Location", locationUpdate(r.URL, str(jRule.Name)))
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
 func deleteRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			rule, err := getRl(r, db)
-			if err != nil {
-				return err
-			}
-
-			if err := db.Delete(rule); err != nil {
-				return err
-			}
-
-			w.WriteHeader(http.StatusNoContent)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		rule, err := getRl(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		if err := db.Delete(rule).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
 func allowAllRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := func() error {
-			rule, err := getRl(r, db)
-			if err != nil {
-				return err
-			}
-
-			if err := db.Execute("DELETE FROM rule_access WHERE rule_id=?", rule.ID); err != nil {
-				return err
-			}
-
-			fmt.Fprintf(w, "Usage of the %s rule '%s' is now unrestricted.",
-				ruleDirection(rule), rule.Name)
-			return nil
-		}()
-		if err != nil {
-			handleErrors(w, logger, err)
+		rule, err := getRl(r, db)
+		if handleError(w, logger, err) {
+			return
 		}
+
+		err = db.DeleteAll(&model.RuleAccess{}).Where("rule_id=?", rule.ID).Run()
+		if handleError(w, logger, err) {
+			return
+		}
+
+		fmt.Fprintf(w, "Usage of the %s rule '%s' is now unrestricted.",
+			ruleDirection(rule), rule.Name)
 	}
 }

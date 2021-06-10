@@ -6,7 +6,6 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"github.com/go-xorm/builder"
 )
 
 func init() {
@@ -34,9 +33,14 @@ type RemoteAgent struct {
 	Address string `xorm:"notnull 'address'"`
 }
 
-// TableName returns the remote_agent table name.
-func (r *RemoteAgent) TableName() string {
+// TableName returns the remote agents table name.
+func (*RemoteAgent) TableName() string {
 	return "remote_agents"
+}
+
+// Appellation returns the name of 1 element of the remote agents table.
+func (*RemoteAgent) Appellation() string {
+	return "partner"
 }
 
 // GetID returns the agent's ID.
@@ -57,49 +61,31 @@ func (r *RemoteAgent) validateProtoConfig() error {
 	return err
 }
 
-// GetCerts fetch in the database then return the associated Certificates if they exist
-func (r *RemoteAgent) GetCerts(db database.Accessor) ([]Cert, error) {
-	conditions := make([]builder.Cond, 0)
-	conditions = append(conditions, builder.Eq{"owner_type": "remote_agents"})
-	conditions = append(conditions, builder.Eq{"owner_id": r.ID})
-
-	filters := &database.Filters{
-		Conditions: builder.And(conditions...),
-	}
-
-	// TODO get only validate certificates
-	results := []Cert{}
-	if err := db.Select(&results, filters); err != nil {
-		return nil, err
-	}
-	return results, nil
-}
-
-// Validate is called before inserting a new `RemoteAgent` entry in the
+// BeforeWrite is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
-func (r *RemoteAgent) Validate(db database.Accessor) error {
+func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) database.Error {
 	if r.Name == "" {
-		return database.InvalidError("the agent's name cannot be empty")
+		return database.NewValidationError("the agent's name cannot be empty")
 	}
 	if r.Address == "" {
-		return database.InvalidError("the partner's address cannot be empty")
+		return database.NewValidationError("the partner's address cannot be empty")
 	}
 	if _, _, err := net.SplitHostPort(r.Address); err != nil {
-		return database.InvalidError("'%s' is not a valid partner address", r.Address)
+		return database.NewValidationError("'%s' is not a valid partner address", r.Address)
 	}
 
 	if r.ProtoConfig == nil {
-		return database.InvalidError("the agent's configuration cannot be empty")
+		return database.NewValidationError("the agent's configuration cannot be empty")
 	}
 	if err := r.validateProtoConfig(); err != nil {
-		return database.InvalidError(err.Error())
+		return database.NewValidationError(err.Error())
 	}
 
-	if res, err := db.Query("SELECT id FROM remote_agents WHERE id<>? AND name=?",
-		r.ID, r.Name); err != nil {
+	n, err := db.Count(&RemoteAgent{}).Where("id<>? AND name=?", r.ID, r.Name).Run()
+	if err != nil {
 		return err
-	} else if len(res) > 0 {
-		return database.InvalidError("a remote agent with the same name '%s' "+
+	} else if n > 0 {
+		return database.NewValidationError("a remote agent with the same name '%s' "+
 			"already exist", r.Name)
 	}
 
@@ -108,39 +94,45 @@ func (r *RemoteAgent) Validate(db database.Accessor) error {
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
-func (r *RemoteAgent) BeforeDelete(db database.Accessor) error {
-	trans, err := db.Query("SELECT id FROM transfers WHERE is_server=? AND agent_id=?", false, r.ID)
+//nolint:dupl
+func (r *RemoteAgent) BeforeDelete(db database.Access) database.Error {
+	n, err := db.Count(&Transfer{}).Where("is_server=? AND agent_id=?", false, r.ID).Run()
 	if err != nil {
 		return err
 	}
-	if len(trans) > 0 {
-		return database.InvalidError("this partner is currently being used in a " +
-			"running transfer and cannot be deleted, cancel the transfer or wait " +
-			"for it to finish")
+	if n > 0 {
+		return database.NewValidationError("this partner is currently being used in one " +
+			"or more running transfers and thus cannot be deleted, cancel these " +
+			"transfers or wait for them to finish")
 	}
 
-	certQuery := "DELETE FROM certificates WHERE " +
-		" (owner_type='remote_agents' AND owner_id=?) " +
-		"OR" +
-		" (owner_type='remote_accounts' AND owner_id IN " +
-		"  (SELECT id FROM remote_accounts WHERE remote_agent_id=?))"
-	if err := db.Execute(certQuery, r.ID, r.ID); err != nil {
+	certQuery := db.DeleteAll(&Cert{}).Where(
+		"(owner_type='remote_agents' AND owner_id=?) OR "+
+			"(owner_type='remote_accounts' AND owner_id IN "+
+			"(SELECT id FROM remote_accounts WHERE remote_agent_id=?))",
+		r.ID, r.ID)
+	if err := certQuery.Run(); err != nil {
 		return err
 	}
 
-	accessQuery := "DELETE FROM rule_access WHERE " +
-		" (object_type='remote_agents' AND object_id=?) " +
-		"OR" +
-		" (object_type='remote_accounts' AND object_id IN " +
-		"  (SELECT id FROM remote_accounts WHERE remote_agent_id=?))"
-	if err := db.Execute(accessQuery, r.ID, r.ID); err != nil {
+	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
+		" (object_type='remote_agents' AND object_id=?) OR "+
+			"(object_type='remote_accounts' AND object_id IN "+
+			"(SELECT id FROM remote_accounts WHERE remote_agent_id=?))",
+		r.ID, r.ID)
+	if err := accessQuery.Run(); err != nil {
 		return err
 	}
 
-	accountQuery := "DELETE FROM remote_accounts WHERE remote_agent_id=?"
-	if err := db.Execute(accountQuery, r.ID); err != nil {
+	accountQuery := db.DeleteAll(&RemoteAccount{}).Where("remote_agent_id=?", r.ID)
+	if err := accountQuery.Run(); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// GetCerts returns a list of all the partner's certificates.
+func (r *RemoteAgent) GetCerts(db database.ReadAccess) ([]Cert, database.Error) {
+	return GetCerts(db, r)
 }

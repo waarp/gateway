@@ -100,21 +100,21 @@ func TestPermsToMask(t *testing.T) {
 func TestPermMiddleware(t *testing.T) {
 	logger := log.NewLogger("test_perm_middleware")
 
-	Convey("Given a database with 2 users", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a database with 2 users", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
-		success := &model.User{
+		success := model.User{
 			Username:    "success",
 			Password:    []byte("success"),
 			Permissions: model.PermAll,
 		}
-		So(db.Create(success), ShouldBeNil)
-		fail := &model.User{
+		So(db.Insert(&success).Run(), ShouldBeNil)
+		fail := model.User{
 			Username:    "fail",
 			Password:    []byte("fail"),
 			Permissions: 0,
 		}
-		So(db.Create(fail), ShouldBeNil)
+		So(db.Insert(&fail).Run(), ShouldBeNil)
 
 		Convey("Given a dummy handler", func() {
 			f := func(*log.Logger, *database.DB) http.HandlerFunc {

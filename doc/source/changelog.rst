@@ -5,6 +5,31 @@ Historique des versions
 
 * :bug:`238` Suppression de l'option (maintenant inutile) ``R66Home`` du fichier
   de configuration.
+* :bug:`254` Ajout des contraintes d'unicité manquantes lors de l'initialisation
+  de la base de données.
+* :bug:`` Les dates de début/fin de transfert sont désormais précises à la
+  milliseconde près (au lieu de la seconde).
+* :bug:`243` Correction d'un bug empêchant l'annulation d'un transfert avant
+  qu'il n'ait commencé car sa date de fin se retrouvait antérieure à sa date de
+  début. Par conséquent, désormais, en cas d'annulation, la date de fin du
+  transfert sera donc nulle.
+* :feature:`242` Ajout de la direction (`isSend`) à l'objet *transfer* de REST.
+
+* :release:`0.3.3 <2021-04-07>`
+* :bug:`251` Corrige le probème de création du fichier distant en SFTP
+  lorsque le serveur refuse l'ouverture de fichier en écriture ET en lecture.
+* :bug:`251` Corrige un problème du script d'update-conf qui sort en erreur
+  si les fichiers optionels ne sont pas dans l'archive de déploiement.
+
+* :release:`0.3.2 <2021-04-06>`
+* :bug:`248` Ajout de l'option `insecure` au client terminal afin de désactiver la
+  vérification des certificats serveur https.
+
+* :release:`0.3.1 <2021-01-25>`
+* :bug:`241` Correction du typage de la colonne `permissions` de la table `users`.
+  La colonne est désormais de type *BINARY* (au lieu de *INT*).
+
+* :release:`0.3.0 <2020-12-14>`
 * :bug:`213` Correction d'une erreur causant la suppression des post traitements
   et des traitements d'erreur lors de la mise à jour d'une règle.
 * :bug:`211` Correction d'une erreur causant le changement de la direction d'une

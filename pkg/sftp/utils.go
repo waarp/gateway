@@ -57,8 +57,8 @@ func getSSHClientConfig(info *model.OutTransferInfo, protoConfig *config.SftpPro
 		return nil, err
 	}
 
-	hostKeys := []ssh.PublicKey{}
-	algos := []string{}
+	var hostKeys []ssh.PublicKey
+	var algos []string
 	for _, c := range info.ServerCerts {
 		key, _, _, _, err := ssh.ParseAuthorizedKey(c.PublicKey) //nolint:dogsled
 		if err != nil {

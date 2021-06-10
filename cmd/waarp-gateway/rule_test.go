@@ -134,8 +134,8 @@ func TestGetRule(t *testing.T) {
 		out = testFile()
 		command := &ruleGet{}
 
-		Convey("Given a gateway with 1 rule", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 rule", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -150,7 +150,7 @@ func TestGetRule(t *testing.T) {
 				OutPath:  "test/rule/out",
 				WorkPath: "test/rule/work",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given a valid rule name", func() {
 				args := []string{rule.Name, direction(rule)}
@@ -177,7 +177,7 @@ func TestGetRule(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "rule 'toto' not found")
+						So(err, ShouldBeError, "receive rule 'toto' not found")
 					})
 				})
 			})
@@ -191,8 +191,8 @@ func TestAddRule(t *testing.T) {
 		out = testFile()
 		command := &ruleAdd{}
 
-		Convey("Given a gateway with 1 rule", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 rule", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -204,7 +204,7 @@ func TestAddRule(t *testing.T) {
 				IsSend:  false,
 				Path:    "existing/rule/path",
 			}
-			So(db.Create(existing), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given valid parameters", func() {
 				args := []string{"-n", "new_rule", "-c", "new_rule comment",
@@ -229,69 +229,77 @@ func TestAddRule(t *testing.T) {
 					})
 
 					Convey("Then the new rule should have been added", func() {
-						rule := &model.Rule{
-							Name:     command.Name,
-							Comment:  *command.Comment,
-							IsSend:   command.Direction == "send",
-							Path:     command.Path,
-							InPath:   *command.InPath,
-							OutPath:  *command.OutPath,
-							WorkPath: *command.WorkPath,
-						}
-						So(db.Get(rule), ShouldBeNil)
+						var rules model.Rules
+						So(db.Select(&rules).Run(), ShouldBeNil)
 
-						pre0 := &model.Task{
-							RuleID: rule.ID,
-							Chain:  model.ChainPre,
-							Rank:   0,
-							Type:   "COPY",
-							Args:   json.RawMessage(`{"path":"/path/to/copy"}`),
+						rule := model.Rule{
+							ID:       2,
+							Name:     "new_rule",
+							Comment:  "new_rule comment",
+							IsSend:   false,
+							Path:     "/new/rule/path",
+							InPath:   "/in/path",
+							OutPath:  "/out/path",
+							WorkPath: "/work/path",
 						}
-						So(db.Get(pre0), ShouldBeNil)
-						pre1 := &model.Task{
-							RuleID: rule.ID,
-							Chain:  model.ChainPre,
-							Rank:   1,
-							Type:   "EXEC",
-							Args: json.RawMessage(
-								`{"path":"/path/to/script","args":"{}","delay":"0"}`),
-						}
-						So(db.Get(pre1), ShouldBeNil)
+						So(rules, ShouldContain, rule)
 
-						post0 := &model.Task{
-							RuleID: rule.ID,
-							Chain:  model.ChainPost,
-							Rank:   0,
-							Type:   "DELETE",
-							Args:   json.RawMessage(`{}`),
-						}
-						So(db.Get(post0), ShouldBeNil)
-						post1 := &model.Task{
-							RuleID: rule.ID,
-							Chain:  model.ChainPost,
-							Rank:   1,
-							Type:   "TRANSFER",
-							Args: json.RawMessage(`{"file":"/path/to/file",` +
-								`"to":"server","as":"account","rule":"rule"}`),
-						}
-						So(db.Get(post1), ShouldBeNil)
+						Convey("Then the rule's tasks should have been added", func() {
+							var tasks model.Tasks
+							So(db.Select(&tasks).Run(), ShouldBeNil)
 
-						err0 := &model.Task{
-							RuleID: rule.ID,
-							Chain:  model.ChainError,
-							Rank:   0,
-							Type:   "MOVE",
-							Args:   json.RawMessage(`{"path":"/path/to/move"}`),
-						}
-						So(db.Get(err0), ShouldBeNil)
-						err1 := &model.Task{
-							RuleID: rule.ID,
-							Chain:  model.ChainError,
-							Rank:   1,
-							Type:   "RENAME",
-							Args:   json.RawMessage(`{"path":"/path/to/rename"}`),
-						}
-						So(db.Get(err1), ShouldBeNil)
+							pre0 := model.Task{
+								RuleID: rule.ID,
+								Chain:  model.ChainPre,
+								Rank:   0,
+								Type:   "COPY",
+								Args:   json.RawMessage(`{"path":"/path/to/copy"}`),
+							}
+							pre1 := model.Task{
+								RuleID: rule.ID,
+								Chain:  model.ChainPre,
+								Rank:   1,
+								Type:   "EXEC",
+								Args: json.RawMessage(
+									`{"path":"/path/to/script","args":"{}","delay":"0"}`),
+							}
+							post0 := model.Task{
+								RuleID: rule.ID,
+								Chain:  model.ChainPost,
+								Rank:   0,
+								Type:   "DELETE",
+								Args:   json.RawMessage(`{}`),
+							}
+							post1 := model.Task{
+								RuleID: rule.ID,
+								Chain:  model.ChainPost,
+								Rank:   1,
+								Type:   "TRANSFER",
+								Args: json.RawMessage(`{"file":"/path/to/file",` +
+									`"to":"server","as":"account","rule":"rule"}`),
+							}
+							err0 := model.Task{
+								RuleID: rule.ID,
+								Chain:  model.ChainError,
+								Rank:   0,
+								Type:   "MOVE",
+								Args:   json.RawMessage(`{"path":"/path/to/move"}`),
+							}
+							err1 := model.Task{
+								RuleID: rule.ID,
+								Chain:  model.ChainError,
+								Rank:   1,
+								Type:   "RENAME",
+								Args:   json.RawMessage(`{"path":"/path/to/rename"}`),
+							}
+
+							So(tasks, ShouldContain, pre0)
+							So(tasks, ShouldContain, pre1)
+							So(tasks, ShouldContain, post0)
+							So(tasks, ShouldContain, post1)
+							So(tasks, ShouldContain, err0)
+							So(tasks, ShouldContain, err1)
+						})
 					})
 				})
 			})
@@ -311,10 +319,9 @@ func TestAddRule(t *testing.T) {
 					})
 
 					Convey("Then the rule should have been updated", func() {
-						var rules []model.Rule
-						So(db.Select(&rules, nil), ShouldBeNil)
-						So(len(rules), ShouldEqual, 1)
-						So(rules[0], ShouldResemble, *existing)
+						var rules model.Rules
+						So(db.Select(&rules).Run(), ShouldBeNil)
+						So(rules, ShouldContain, *existing)
 					})
 				})
 			})
@@ -328,8 +335,8 @@ func TestDeleteRule(t *testing.T) {
 		out = testFile()
 		command := &ruleDelete{}
 
-		Convey("Given a gateway with 1 rule", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 1 rule", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -340,7 +347,7 @@ func TestDeleteRule(t *testing.T) {
 				IsSend: true,
 				Path:   "existing/rule/path",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given a valid rule name", func() {
 				args := []string{rule.Name, direction(rule)}
@@ -356,8 +363,8 @@ func TestDeleteRule(t *testing.T) {
 					})
 
 					Convey("Then the rule should have been removed", func() {
-						var rules []model.Rule
-						So(db.Select(&rules, nil), ShouldBeNil)
+						var rules model.Rules
+						So(db.Select(&rules).Run(), ShouldBeNil)
 						So(rules, ShouldBeEmpty)
 					})
 				})
@@ -372,11 +379,13 @@ func TestDeleteRule(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "rule 'toto' not found")
+						So(err, ShouldBeError, "send rule 'toto' not found")
 					})
 
 					Convey("Then the rule should still exist", func() {
-						So(db.Get(rule), ShouldBeNil)
+						var rules model.Rules
+						So(db.Select(&rules).Run(), ShouldBeNil)
+						So(rules, ShouldContain, *rule)
 					})
 				})
 			})
@@ -390,8 +399,8 @@ func TestListRules(t *testing.T) {
 		out = testFile()
 		command := &ruleList{}
 
-		Convey("Given a gateway with 2 rules", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a gateway with 2 rules", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -406,7 +415,7 @@ func TestListRules(t *testing.T) {
 				OutPath:  "receive/out_path",
 				WorkPath: "receive/work_path",
 			}
-			So(db.Create(receive), ShouldBeNil)
+			So(db.Insert(receive).Run(), ShouldBeNil)
 
 			send := &model.Rule{
 				Name:     "send",
@@ -417,7 +426,7 @@ func TestListRules(t *testing.T) {
 				OutPath:  "send/out_path",
 				WorkPath: "send/work_path",
 			}
-			So(db.Create(send), ShouldBeNil)
+			So(db.Insert(send).Run(), ShouldBeNil)
 
 			rcv, err := rest.FromRule(db, receive)
 			So(err, ShouldBeNil)
@@ -493,8 +502,8 @@ func TestRuleAllowAll(t *testing.T) {
 		out = testFile()
 		command := &ruleAllowAll{}
 
-		Convey("Given a database with a rule", func() {
-			db := database.GetTestDatabase()
+		Convey("Given a database with a rule", func(c C) {
+			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -505,7 +514,7 @@ func TestRuleAllowAll(t *testing.T) {
 				IsSend: true,
 				Path:   "rule/path",
 			}
-			So(db.Create(rule), ShouldBeNil)
+			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given multiple accesses to that rule", func() {
 				s := &model.LocalAgent{
@@ -520,8 +529,8 @@ func TestRuleAllowAll(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2",
 				}
-				So(db.Create(p), ShouldBeNil)
-				So(db.Create(s), ShouldBeNil)
+				So(db.Insert(p).Run(), ShouldBeNil)
+				So(db.Insert(s).Run(), ShouldBeNil)
 
 				la := &model.LocalAccount{
 					LocalAgentID: s.ID,
@@ -533,8 +542,8 @@ func TestRuleAllowAll(t *testing.T) {
 					Login:         "tata",
 					Password:      []byte("password"),
 				}
-				So(db.Create(la), ShouldBeNil)
-				So(db.Create(ra), ShouldBeNil)
+				So(db.Insert(la).Run(), ShouldBeNil)
+				So(db.Insert(ra).Run(), ShouldBeNil)
 
 				sAcc := &model.RuleAccess{
 					RuleID:     rule.ID,
@@ -556,10 +565,10 @@ func TestRuleAllowAll(t *testing.T) {
 					ObjectID:   ra.ID,
 					ObjectType: ra.TableName(),
 				}
-				So(db.Create(sAcc), ShouldBeNil)
-				So(db.Create(pAcc), ShouldBeNil)
-				So(db.Create(laAcc), ShouldBeNil)
-				So(db.Create(raAcc), ShouldBeNil)
+				So(db.Insert(sAcc).Run(), ShouldBeNil)
+				So(db.Insert(pAcc).Run(), ShouldBeNil)
+				So(db.Insert(laAcc).Run(), ShouldBeNil)
+				So(db.Insert(raAcc).Run(), ShouldBeNil)
 
 				Convey("Given correct command parameters", func() {
 					args := []string{rule.Name, direction(rule)}
@@ -575,9 +584,9 @@ func TestRuleAllowAll(t *testing.T) {
 						})
 
 						Convey("Then all accesses should have been removed from the database", func() {
-							var res []model.RuleAccess
-							So(db.Select(&res, nil), ShouldBeNil)
-							So(len(res), ShouldEqual, 0)
+							var res model.RuleAccesses
+							So(db.Select(&res).Run(), ShouldBeNil)
+							So(res, ShouldBeEmpty)
 						})
 					})
 				})
@@ -591,12 +600,12 @@ func TestRuleAllowAll(t *testing.T) {
 						err = command.Execute(params)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError, "rule 'toto' not found")
+							So(err, ShouldBeError, "send rule 'toto' not found")
 						})
 
 						Convey("Then the accesses should still exist", func() {
-							var res []model.RuleAccess
-							So(db.Select(&res, nil), ShouldBeNil)
+							var res model.RuleAccesses
+							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 4)
 						})
 					})
@@ -615,8 +624,8 @@ func TestRuleAllowAll(t *testing.T) {
 						})
 
 						Convey("Then the accesses should still exist", func() {
-							var res []model.RuleAccess
-							So(db.Select(&res, nil), ShouldBeNil)
+							var res model.RuleAccesses
+							So(db.Select(&res).Run(), ShouldBeNil)
 							So(len(res), ShouldEqual, 4)
 						})
 					})

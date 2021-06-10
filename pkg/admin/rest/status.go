@@ -20,8 +20,7 @@ func getStatus(logger *log.Logger, services map[string]service.Service) http.Han
 			}
 		}
 
-		if err := writeJSON(w, statuses); err != nil {
-			handleErrors(w, logger, err)
-		}
+		err := writeJSON(w, statuses)
+		handleError(w, logger, err)
 	}
 }

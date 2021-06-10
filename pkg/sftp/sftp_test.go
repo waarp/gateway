@@ -38,7 +38,7 @@ func TestSFTPPackage(t *testing.T) {
 			WorkDirectory: filepath.Join(home, "tmp"),
 		}
 
-		Convey("Given an SFTP server", func() {
+		Convey("Given an SFTP server", func(dbc C) {
 			listener, err := net.Listen("tcp", "localhost:0")
 			So(err, ShouldBeNil)
 			_, port, err := net.SplitHostPort(listener.Addr().String())
@@ -47,7 +47,7 @@ func TestSFTPPackage(t *testing.T) {
 			root := filepath.Join(home, "sftp_root")
 			So(os.Mkdir(root, 0o700), ShouldBeNil)
 
-			db := database.GetTestDatabase()
+			db := database.TestDatabase(dbc, "ERROR")
 			localAgent := &model.LocalAgent{
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
@@ -55,7 +55,7 @@ func TestSFTPPackage(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:" + port,
 			}
-			So(db.Create(localAgent), ShouldBeNil)
+			So(db.Insert(localAgent).Run(), ShouldBeNil)
 			var protoConfig config.SftpProtoConfig
 			So(json.Unmarshal(localAgent.ProtoConfig, &protoConfig), ShouldBeNil)
 
@@ -65,9 +65,9 @@ func TestSFTPPackage(t *testing.T) {
 				Login:        "toto",
 				Password:     []byte(pwd),
 			}
-			So(db.Create(localAccount), ShouldBeNil)
+			So(db.Insert(localAccount).Run(), ShouldBeNil)
 
-			localServerCert := &model.Cert{
+			localServerCert := model.Cert{
 				OwnerType:   localAgent.TableName(),
 				OwnerID:     localAgent.ID,
 				Name:        "test_sftp_server_cert",
@@ -75,7 +75,7 @@ func TestSFTPPackage(t *testing.T) {
 				PublicKey:   testPBK,
 				Certificate: []byte("cert"),
 			}
-			So(db.Create(localServerCert), ShouldBeNil)
+			So(db.Insert(&localServerCert).Run(), ShouldBeNil)
 
 			localUserCert := &model.Cert{
 				OwnerType:   localAccount.TableName(),
@@ -84,7 +84,7 @@ func TestSFTPPackage(t *testing.T) {
 				PublicKey:   []byte(rsaPBK),
 				Certificate: []byte{'.'},
 			}
-			So(db.Create(localUserCert), ShouldBeNil)
+			So(db.Insert(localUserCert).Run(), ShouldBeNil)
 
 			receive := &model.Rule{
 				Name:     "receive",
@@ -95,7 +95,7 @@ func TestSFTPPackage(t *testing.T) {
 				OutPath:  "receive/out",
 				WorkPath: "receive/work",
 			}
-			So(db.Create(receive), ShouldBeNil)
+			So(db.Insert(receive).Run(), ShouldBeNil)
 
 			receivePreTask := &model.Task{
 				RuleID: receive.ID,
@@ -118,11 +118,11 @@ func TestSFTPPackage(t *testing.T) {
 				Type:   "TESTCHECK",
 				Args:   []byte(`{"msg":"RECEIVE | ERROR-TASK[0] | OK"}`),
 			}
-			So(db.Create(receivePreTask), ShouldBeNil)
-			So(db.Create(receivePostTask), ShouldBeNil)
-			So(db.Create(receiveErrorTask), ShouldBeNil)
+			So(db.Insert(receivePreTask).Run(), ShouldBeNil)
+			So(db.Insert(receivePostTask).Run(), ShouldBeNil)
+			So(db.Insert(receiveErrorTask).Run(), ShouldBeNil)
 
-			serverConfig, err := getSSHServerConfig(db, localServerCert,
+			serverConfig, err := getSSHServerConfig(db, []model.Cert{localServerCert},
 				&protoConfig, localAgent)
 			So(err, ShouldBeNil)
 			ctx, cancel := context.WithCancel(context.Background())
@@ -154,14 +154,14 @@ func TestSFTPPackage(t *testing.T) {
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:" + port,
 				}
-				So(db.Create(remoteAgent), ShouldBeNil)
+				So(db.Insert(remoteAgent).Run(), ShouldBeNil)
 
 				remoteAccount := &model.RemoteAccount{
 					RemoteAgentID: remoteAgent.ID,
 					Login:         "toto",
 					Password:      []byte(pwd),
 				}
-				So(db.Create(remoteAccount), ShouldBeNil)
+				So(db.Insert(remoteAccount).Run(), ShouldBeNil)
 
 				remoteServerCert := &model.Cert{
 					OwnerType:   remoteAgent.TableName(),
@@ -170,7 +170,7 @@ func TestSFTPPackage(t *testing.T) {
 					PublicKey:   testPBK,
 					Certificate: []byte("cert"),
 				}
-				So(db.Create(remoteServerCert), ShouldBeNil)
+				So(db.Insert(remoteServerCert).Run(), ShouldBeNil)
 
 				remoteUserCert := &model.Cert{
 					OwnerType:   remoteAccount.TableName(),
@@ -179,7 +179,7 @@ func TestSFTPPackage(t *testing.T) {
 					PrivateKey:  []byte(rsaPK),
 					Certificate: []byte{'.'},
 				}
-				So(db.Create(remoteUserCert), ShouldBeNil)
+				So(db.Insert(remoteUserCert).Run(), ShouldBeNil)
 
 				send := &model.Rule{
 					Name:    "send",
@@ -189,7 +189,7 @@ func TestSFTPPackage(t *testing.T) {
 					InPath:  receive.Path,
 					OutPath: "send/out",
 				}
-				So(db.Create(send), ShouldBeNil)
+				So(db.Insert(send).Run(), ShouldBeNil)
 
 				sendPreTask := &model.Task{
 					RuleID: send.ID,
@@ -212,9 +212,9 @@ func TestSFTPPackage(t *testing.T) {
 					Type:   "TESTCHECK",
 					Args:   []byte(`{"msg":"SEND | ERROR-TASK[0] | OK"}`),
 				}
-				So(db.Create(sendPreTask), ShouldBeNil)
-				So(db.Create(sendPostTask), ShouldBeNil)
-				So(db.Create(sendErrorTask), ShouldBeNil)
+				So(db.Insert(sendPreTask).Run(), ShouldBeNil)
+				So(db.Insert(sendPostTask).Run(), ShouldBeNil)
+				So(db.Insert(sendErrorTask).Run(), ShouldBeNil)
 
 				Convey("Given a transfer from SFTP client to server", func() {
 					srcFile := "sftp_test_file.src"
@@ -232,10 +232,10 @@ func TestSFTPPackage(t *testing.T) {
 						AccountID:  remoteAccount.ID,
 						SourceFile: srcFile,
 						DestFile:   "sftp_test_file.dst",
-						Start:      time.Now().Truncate(time.Second),
+						Start:      time.Now(),
 						Status:     types.StatusPlanned,
 					}
-					So(db.Create(&trans), ShouldBeNil)
+					So(db.Insert(&trans).Run(), ShouldBeNil)
 
 					Convey("Given an executor", func() {
 						ctx, cancel := context.WithCancel(context.Background())
@@ -273,12 +273,12 @@ func TestSFTPPackage(t *testing.T) {
 								})
 
 								Convey("Then the transfers should be over", func() {
-									var transfers []model.Transfer
-									So(db.Select(&transfers, nil), ShouldBeNil)
+									var transfers model.Transfers
+									So(db.Select(&transfers).Run(), ShouldBeNil)
 									So(transfers, ShouldBeEmpty)
 
-									var hist []model.TransferHistory
-									So(db.Select(&hist, nil), ShouldBeNil)
+									var hist model.Histories
+									So(db.Select(&hist).OrderBy("id", true).Run(), ShouldBeNil)
 									So(hist, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side "+
@@ -340,7 +340,7 @@ func TestSFTPPackage(t *testing.T) {
 								Type:   "TESTFAIL",
 								Args:   []byte(`{"msg":"RECEIVE | PRE-TASK[1] | FAIL"}`),
 							}
-							So(db.Create(receivePreTaskFail), ShouldBeNil)
+							So(db.Insert(receivePreTaskFail).Run(), ShouldBeNil)
 
 							exe.Run()
 							checkChannel <- "END TRANSFER 2"
@@ -360,8 +360,8 @@ func TestSFTPPackage(t *testing.T) {
 								})
 
 								Convey("Then the transfers should be over", func() {
-									var transfers []model.Transfer
-									So(db.Select(&transfers, nil), ShouldBeNil)
+									var transfers model.Transfers
+									So(db.Select(&transfers).OrderBy("id", true).Run(), ShouldBeNil)
 									So(transfers, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side "+
@@ -429,7 +429,7 @@ func TestSFTPPackage(t *testing.T) {
 								Type:   "TESTFAIL",
 								Args:   []byte(`{"msg":"SEND | PRE-TASK[1] | FAIL"}`),
 							}
-							So(db.Create(sendPreTaskFail), ShouldBeNil)
+							So(db.Insert(sendPreTaskFail).Run(), ShouldBeNil)
 
 							exe.Run()
 							checkChannel <- "END TRANSFER 3"
@@ -451,8 +451,8 @@ func TestSFTPPackage(t *testing.T) {
 								})
 
 								Convey("Then the transfers should be over", func() {
-									var transfers []model.Transfer
-									So(db.Select(&transfers, nil), ShouldBeNil)
+									var transfers model.Transfers
+									So(db.Select(&transfers).OrderBy("id", true).Run(), ShouldBeNil)
 									So(transfers, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side"+
@@ -519,7 +519,7 @@ func TestSFTPPackage(t *testing.T) {
 								Type:   "TESTFAIL",
 								Args:   []byte(`{"msg":"RECEIVE | POST-TASK[1] | FAIL"}`),
 							}
-							So(db.Create(receivePostTaskFail), ShouldBeNil)
+							So(db.Insert(receivePostTaskFail).Run(), ShouldBeNil)
 
 							exe.Run()
 							checkChannel <- "END TRANSFER 4"
@@ -546,8 +546,8 @@ func TestSFTPPackage(t *testing.T) {
 								})
 
 								Convey("Then the transfers should be over", func() {
-									var transfers []model.Transfer
-									So(db.Select(&transfers, nil), ShouldBeNil)
+									var transfers model.Transfers
+									So(db.Select(&transfers).OrderBy("id", true).Run(), ShouldBeNil)
 									So(transfers, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side "+
@@ -615,7 +615,7 @@ func TestSFTPPackage(t *testing.T) {
 								Type:   "TESTFAIL",
 								Args:   []byte(`{"msg":"SEND | POST-TASK[1] | FAIL"}`),
 							}
-							So(db.Create(sendPostTaskFail), ShouldBeNil)
+							So(db.Insert(sendPostTaskFail).Run(), ShouldBeNil)
 
 							exe.Run()
 							checkChannel <- "END TRANSFER 5"
@@ -631,8 +631,8 @@ func TestSFTPPackage(t *testing.T) {
 								So(<-checkChannel, ShouldEqual, "END TRANSFER 5")
 
 								Convey("Then the file should exist", func() {
-									file := filepath.Join(root, receive.InPath,
-										trans.DestFile)
+									file := filepath.Join(root, receive.WorkPath,
+										trans.DestFile+".tmp")
 									cont, err := ioutil.ReadFile(file)
 									So(err, ShouldBeNil)
 
@@ -641,8 +641,8 @@ func TestSFTPPackage(t *testing.T) {
 								})
 
 								Convey("Then the transfers should be over", func() {
-									var transfers []model.Transfer
-									So(db.Select(&transfers, nil), ShouldBeNil)
+									var transfers model.Transfers
+									So(db.Select(&transfers).OrderBy("id", true).Run(), ShouldBeNil)
 									So(transfers, ShouldHaveLength, 2)
 
 									Convey("Then there should be a client-side "+
@@ -680,7 +680,7 @@ func TestSFTPPackage(t *testing.T) {
 											AccountID: localAccount.ID,
 											AgentID:   localAgent.ID,
 											TrueFilepath: utils.NormalizePath(filepath.Join(
-												root, receive.InPath, trans.DestFile)),
+												root, receive.WorkPath, trans.DestFile+".tmp")),
 											SourceFile: trans.DestFile,
 											DestFile:   trans.DestFile,
 											RuleID:     receive.ID,

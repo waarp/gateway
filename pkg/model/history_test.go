@@ -1,11 +1,13 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -24,9 +26,9 @@ func TestHistoryTableName(t *testing.T) {
 	})
 }
 
-func TestHistoryValidate(t *testing.T) {
-	Convey("Given a database", t, func() {
-		db := database.GetTestDatabase()
+func TestHistoryBeforeWrite(t *testing.T) {
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a new history entry", func() {
 			hist := &TransferHistory{
@@ -45,10 +47,19 @@ func TestHistoryValidate(t *testing.T) {
 				Owner:          database.Owner,
 			}
 
-			Convey("Given that the new transfer is valid", func() {
+			shouldFailWith := func(errDesc string, expErr error) {
+				Convey("When calling the 'BeforeWrite' function", func() {
+					err := hist.BeforeWrite(db)
 
-				Convey("When calling the 'Validate' function", func() {
-					err := hist.Validate(db)
+					Convey("Then the error should say that "+errDesc, func() {
+						So(err, ShouldBeError, expErr)
+					})
+				})
+			}
+
+			Convey("Given that the new transfer is valid", func() {
+				Convey("When calling the 'BeforeWrite' function", func() {
+					err := hist.BeforeWrite(db)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -58,105 +69,44 @@ func TestHistoryValidate(t *testing.T) {
 
 			Convey("Given that the rule name is missing", func() {
 				hist.Rule = ""
-
-				Convey("When calling the 'Validate' function", func() {
-					err := hist.Validate(db)
-
-					Convey("Then the error should say the rule is missing", func() {
-						So(err, ShouldBeError, "the transfer's rule "+
-							"cannot be empty")
-					})
-				})
+				shouldFailWith("the rule is missing", database.NewValidationError(
+					"the transfer's rule cannot be empty"))
 			})
 
 			Convey("Given that the account is missing", func() {
 				hist.Account = ""
-
-				Convey("When calling the 'Validate' function", func() {
-					err := hist.Validate(db)
-
-					Convey("Then the error should say the source is missing", func() {
-						So(err, ShouldBeError, "the transfer's account "+
-							"cannot be empty")
-					})
-				})
+				shouldFailWith("source is missing", database.NewValidationError(
+					"the transfer's account cannot be empty"))
 			})
 
 			Convey("Given that the agent is missing", func() {
 				hist.Agent = ""
-
-				Convey("When calling the 'Validate' function", func() {
-					err := hist.Validate(db)
-
-					Convey("Then the error should say the destination is missing", func() {
-						So(err, ShouldBeError, "the transfer's agent "+
-							"cannot be empty")
-					})
-				})
+				shouldFailWith("the destination is missing", database.NewValidationError(
+					"the transfer's agent cannot be empty"))
 			})
 
 			Convey("Given that the filename is missing", func() {
 				hist.DestFilename = ""
-
-				Convey("When calling the 'Validate' function", func() {
-					err := hist.Validate(db)
-
-					Convey("Then the error should say the filename is missing", func() {
-						So(err, ShouldBeError, "the transfer's destination filename "+
-							"cannot be empty")
-					})
-				})
+				shouldFailWith("the filename is missing", database.NewValidationError(
+					"the transfer's destination filename cannot be empty"))
 			})
 
 			Convey("Given that the protocol is invalid", func() {
 				hist.Protocol = "invalid"
-
-				Convey("When calling the 'Validate' function", func() {
-					err := hist.Validate(db)
-
-					Convey("Then the error should say the protocol is missing", func() {
-						So(err, ShouldBeError, "'invalid' is not a valid protocol")
-					})
-				})
+				shouldFailWith("the protocol is missing", database.NewValidationError(
+					"'invalid' is not a valid protocol"))
 			})
 
 			Convey("Given that the starting date is missing", func() {
 				hist.Start = time.Time{}
-
-				Convey("When calling the 'Validate' function", func() {
-					err := hist.Validate(db)
-
-					Convey("Then the error should say the start date is missing", func() {
-						So(err, ShouldBeError, "the transfer's start "+
-							"date cannot be empty")
-					})
-				})
+				shouldFailWith("the start date is missing", database.NewValidationError(
+					"the transfer's start date cannot be empty"))
 			})
 
-			Convey("Given that the end date is missing", func() {
-				hist.Stop = time.Time{}
-
-				Convey("When calling the 'Validate' function", func() {
-					err := hist.Validate(db)
-
-					Convey("Then the error should say the end date is missing", func() {
-						So(err, ShouldBeError, "the transfer's end "+
-							"date cannot be empty")
-					})
-				})
-			})
-
-			Convey("Given that the end date is before the ", func() {
+			Convey("Given that the end date is before the start date", func() {
 				hist.Stop = hist.Start.AddDate(0, 0, -1)
-
-				Convey("When calling the 'Validate' function", func() {
-					err := hist.Validate(db)
-
-					Convey("Then the error should say the end date is anterior", func() {
-						So(err, ShouldBeError, "the transfer's end "+
-							"date cannot be anterior to the start date")
-					})
-				})
+				shouldFailWith("the end date is anterior", database.NewValidationError(
+					"the transfer's end date cannot be anterior to the start date"))
 			})
 
 			statusTestCases := []statusTestCase{
@@ -168,7 +118,7 @@ func TestHistoryValidate(t *testing.T) {
 				{"toto", false},
 			}
 			for _, tc := range statusTestCases {
-				testTransferStatus(tc, "Validate", hist, db)
+				testTransferStatus(tc, hist, db)
 			}
 		})
 	})
@@ -182,11 +132,8 @@ type statusTestCase struct {
 	status          TransferStatus
 	expectedSuccess bool
 }
-type testInsertValidator interface {
-	Validate(database.Accessor) error
-}
 
-func testTransferStatus(tc statusTestCase, method string, target interface{}, db *database.DB) {
+func testTransferStatus(tc statusTestCase, target database.WriteHook, db *database.DB) {
 	Convey(fmt.Sprintf("Given the status is set to '%s'", tc.status), func() {
 		var typeName string
 		if t, ok := target.(*TransferHistory); ok {
@@ -198,12 +145,8 @@ func testTransferStatus(tc statusTestCase, method string, target interface{}, db
 			typeName = "transfer"
 		}
 
-		Convey(fmt.Sprintf("When the method `%s` is called", method), func() {
-			var err error
-
-			if t, ok := target.(testInsertValidator); ok && method == "Validate" {
-				err = t.Validate(db)
-			}
+		Convey("When the 'BeforeWrite' method is called", func() {
+			err := target.BeforeWrite(db)
 
 			if tc.expectedSuccess {
 				Convey("Then it should not return any error", func() {
@@ -215,13 +158,151 @@ func testTransferStatus(tc statusTestCase, method string, target interface{}, db
 				})
 
 				Convey("Then the error should say that the status is invalid", func() {
-					expectedError := fmt.Sprintf(
-						"'%s' is not a valid %s status",
-						tc.status, typeName,
-					)
-					So(err, ShouldBeError, expectedError)
+					So(err, ShouldBeError, database.NewValidationError(
+						"'%s' is not a valid %s status", tc.status, typeName))
 				})
 			}
+		})
+	})
+}
+
+func TestTransferHistoryRestart(t *testing.T) {
+	Convey("Given a database", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
+
+		rule := &Rule{Name: "rule", IsSend: true}
+		So(db.Insert(rule).Run(), ShouldBeNil)
+
+		Convey("Given a client history entry", func() {
+			agent := &RemoteAgent{
+				Name:        "partner",
+				Protocol:    "dummy",
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
+			}
+			So(db.Insert(agent).Run(), ShouldBeNil)
+
+			account := &RemoteAccount{
+				RemoteAgentID: agent.ID,
+				Login:         "toto",
+				Password:      []byte("password"),
+			}
+			So(db.Insert(account).Run(), ShouldBeNil)
+
+			history := &TransferHistory{
+				ID:               1,
+				Owner:            database.Owner,
+				RemoteTransferID: "2",
+				IsServer:         false,
+				IsSend:           rule.IsSend,
+				Account:          account.Login,
+				Agent:            agent.Name,
+				Protocol:         agent.Protocol,
+				SourceFilename:   "file.src",
+				DestFilename:     "file.dst",
+				Rule:             rule.Name,
+				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
+				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
+				Status:           types.StatusDone,
+				Error:            TransferError{},
+				Step:             types.StepNone,
+				Progress:         100,
+				TaskNumber:       0,
+			}
+
+			Convey("When calling the 'Restart' function", func() {
+				date := time.Date(2021, 0, 0, 0, 0, 0, 0, time.Local)
+				trans, err := history.Restart(db, date)
+				So(err, ShouldBeNil)
+
+				Convey("Then it should return a new transfer instance", func() {
+					exp := &Transfer{
+						ID:               0,
+						RemoteTransferID: "2",
+						RuleID:           rule.ID,
+						IsServer:         false,
+						AgentID:          agent.ID,
+						AccountID:        account.ID,
+						TrueFilepath:     "",
+						SourceFile:       "file.src",
+						DestFile:         "file.dst",
+						Start:            date,
+						Step:             types.StepNone,
+						Status:           types.StatusPlanned,
+						Owner:            database.Owner,
+						Progress:         0,
+						TaskNumber:       0,
+						Error:            TransferError{},
+					}
+					So(trans, ShouldResemble, exp)
+				})
+			})
+		})
+
+		Convey("Given a server history entry", func() {
+			agent := &LocalAgent{
+				Name:        "server",
+				Protocol:    "dummy",
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
+			}
+			So(db.Insert(agent).Run(), ShouldBeNil)
+
+			account := &LocalAccount{
+				LocalAgentID: agent.ID,
+				Login:        "toto",
+				Password:     []byte("password"),
+			}
+			So(db.Insert(account).Run(), ShouldBeNil)
+
+			history := &TransferHistory{
+				ID:               1,
+				Owner:            database.Owner,
+				RemoteTransferID: "2",
+				IsServer:         true,
+				IsSend:           rule.IsSend,
+				Account:          account.Login,
+				Agent:            agent.Name,
+				Protocol:         agent.Protocol,
+				SourceFilename:   "file.src",
+				DestFilename:     "file.dst",
+				Rule:             rule.Name,
+				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
+				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
+				Status:           types.StatusDone,
+				Error:            TransferError{},
+				Step:             types.StepNone,
+				Progress:         100,
+				TaskNumber:       0,
+			}
+
+			Convey("When calling the 'Restart' function", func() {
+				date := time.Date(2021, 0, 0, 0, 0, 0, 0, time.Local)
+				trans, err := history.Restart(db, date)
+				So(err, ShouldBeNil)
+
+				Convey("Then it should return a new transfer instance", func() {
+					exp := &Transfer{
+						ID:               0,
+						RemoteTransferID: "2",
+						RuleID:           rule.ID,
+						IsServer:         true,
+						AgentID:          agent.ID,
+						AccountID:        account.ID,
+						TrueFilepath:     "",
+						SourceFile:       "file.src",
+						DestFile:         "file.dst",
+						Start:            date,
+						Step:             types.StepNone,
+						Status:           types.StatusPlanned,
+						Owner:            database.Owner,
+						Progress:         0,
+						TaskNumber:       0,
+						Error:            TransferError{},
+					}
+					So(trans, ShouldResemble, exp)
+				})
+			})
 		})
 	})
 }

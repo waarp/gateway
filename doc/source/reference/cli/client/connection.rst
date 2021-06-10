@@ -22,8 +22,27 @@ Paramètres de connexion
    :any:`utilisateur <reference-cli-client-users>`. L'utilisateur et le mot de passe peuvent
    être omis, au quel cas, il seront demandés via un *prompt* du terminal.
 
+.. option:: -i, --insecure
+
+   Désactive la validation du certificat de l'interface REST du service Gateway.
+   Peut être utilisé pour les certificats autosignés et les tests.
+
+   .. warning::
+
+      Comme la validation du certificat serveur n'est plus faite, le client fait
+      aveuglément confiance au serveur.
+
+      Celapeut reprensenter une faille de sécurité si vous n'êtes pas absolument
+      certain du serveur quand vous utilisez cette option.
+
+
 .. envvar:: WAARP_GATEWAY_ADDRESS
 
    Si l'adresse de la Gateway n'est pas renseignée dans la commande via l'option
    `-a`, l'adresse sera récupérée dans cette variable d'environnement. La syntaxe
    de l'adresse reste identique à celle décrite ci-dessus.
+
+.. envvar:: WAARP_GATEWAY_INSECURE
+
+   Désactive la validation du certificat de l'interface REST du service Gateway.
+   (équivalent à l'option :option:`-i`)

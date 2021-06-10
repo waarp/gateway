@@ -1,68 +1,47 @@
 package model
 
-import (
-	"fmt"
+import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-)
-
-// OutTransferInfo regroups all the information necessary for an outgoing
-// transfer.
-type OutTransferInfo struct {
-	Transfer    *Transfer
-	Rule        *Rule
-	Agent       *RemoteAgent
-	Account     *RemoteAccount
-	ServerCerts []Cert
-	ClientCerts []Cert
+func init() {
+	database.Tables = append(database.Tables, &TransferInfo{})
 }
 
-// NewOutTransferInfo retrieves all the information regarding the given transfer
-// from the database, and returns it wrapped in a `OutTransferInfo` instance.
-// An error is returned a problem occurs while accessing the database.
-func NewOutTransferInfo(db *database.DB, trans *Transfer) (*OutTransferInfo, error) {
+// TransferInfo represents the transfer_info database table, which contains all the
+// protocol-specific information attached to a transfer.
+type TransferInfo struct {
+	TransferID uint64 `xorm:"notnull unique(infoName) 'transfer_id'"`
+	Name       string `xorm:"notnull unique(infoName) 'name'"`
+	Value      string `xorm:"notnull 'value'"`
+}
 
-	remote := &RemoteAgent{ID: trans.AgentID}
-	if err := db.Get(remote); err != nil {
-		if err == database.ErrNotFound {
-			return nil, fmt.Errorf("the partner n°%v does not exist", trans.AgentID)
-		}
-		return nil, err
-	}
-	serverCerts, err := remote.GetCerts(db)
+// TableName returns the name of the transfers table.
+func (*TransferInfo) TableName() string {
+	return "transfer_info"
+}
+
+// Appellation returns the display name of a transfer info entry.
+func (*TransferInfo) Appellation() string {
+	return "transfer info"
+}
+
+// BeforeWrite checks if the TransferInfo entry is valid for insertion in the database.
+func (e *TransferInfo) BeforeWrite(db database.ReadAccess) database.Error {
+	n, err := db.Count(&Transfer{}).Where("id=?", e.TransferID).Run()
 	if err != nil {
-		return nil, err
+		return database.NewValidationError("failed to retrieve transfer list: %s", err)
 	}
-	account := &RemoteAccount{ID: trans.AccountID}
-	if err := db.Get(account); err != nil {
-		if err == database.ErrNotFound {
-			return nil, fmt.Errorf("the account n°%v does not exist", account.ID)
-		}
-		return nil, err
-	}
-	if account.RemoteAgentID != remote.ID {
-		return nil, fmt.Errorf("the account n°%v does not belong to agent n°%v",
-			account.ID, remote.ID)
+	if n > 0 {
+		return database.NewValidationError("no transfer %d found", e.TransferID)
 	}
 
-	rule := &Rule{ID: trans.RuleID}
-	if err := db.Get(rule); err != nil {
-		if err == database.ErrNotFound {
-			return nil, fmt.Errorf("the rule n°%v does not exist", rule.ID)
-		}
-		return nil, err
-	}
-	clientCerts, err := account.GetCerts(db)
+	n, err = db.Count(&TransferInfo{}).Where("transfer_id=? AND name=?", e.TransferID, e.Name).Run()
 	if err != nil {
-		return nil, err
+		return database.NewValidationError("failed to retrieve info list: %s", err)
+	}
+	if n > 0 {
+		return database.NewValidationError("transfer %d already has a property '%s'",
+			e.TransferID, e.Name)
 	}
 
-	return &OutTransferInfo{
-		Transfer:    trans,
-		Agent:       remote,
-		Account:     account,
-		Rule:        rule,
-		ServerCerts: serverCerts,
-		ClientCerts: clientCerts,
-	}, nil
+	return nil
 }

@@ -7,12 +7,12 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"github.com/go-xorm/builder"
 )
 
-func exportRules(logger *log.Logger, db *database.Session) ([]file.Rule, error) {
-	var dbRules []model.Rule
-	if err := db.Select(&dbRules, nil); err != nil {
+func exportRules(logger *log.Logger, db database.ReadAccess) ([]file.Rule, error) {
+
+	var dbRules model.Rules
+	if err := db.Select(&dbRules).Run(); err != nil {
 		return nil, err
 	}
 	res := make([]file.Rule, len(dbRules))
@@ -54,76 +54,60 @@ func exportRules(logger *log.Logger, db *database.Session) ([]file.Rule, error) 
 	return res, nil
 }
 
-func exportRuleAccesses(db *database.Session, RuleID uint64) ([]string, error) {
-	var dbAccs []model.RuleAccess
-	filters := &database.Filters{
-		Conditions: builder.Eq{"Rule_id": RuleID},
-	}
-	if err := db.Select(&dbAccs, filters); err != nil {
+func exportRuleAccesses(db database.ReadAccess, ruleID uint64) ([]string, error) {
+
+	var dbAccs model.RuleAccesses
+	if err := db.Select(&dbAccs).Where("rule_id=?", ruleID).Run(); err != nil {
 		return nil, err
 	}
 	res := make([]string, len(dbAccs))
 
 	for i, src := range dbAccs {
-		if src.ObjectType == "remote_agents" {
-			agent := &model.RemoteAgent{
-				ID: src.ObjectID,
-			}
-			if err := db.Get(agent); err != nil {
+		switch src.ObjectType {
+		case "remote_agents":
+			var agent model.RemoteAgent
+			if err := db.Get(&agent, "id=?", src.ObjectID).Run(); err != nil {
 				return nil, err
 			}
 			res[i] = fmt.Sprintf("remote::%s", agent.Name)
-		} else if src.ObjectType == "remote_accounts" {
-			account := &model.RemoteAccount{
-				ID: src.ObjectID,
-			}
-			if err := db.Get(account); err != nil {
+		case "remote_accounts":
+			var account model.RemoteAccount
+			if err := db.Get(&account, "id=?", src.ObjectID).Run(); err != nil {
 				return nil, err
 			}
-			agent := &model.RemoteAgent{
-				ID: account.RemoteAgentID,
-			}
-			if err := db.Get(agent); err != nil {
+			var agent model.RemoteAgent
+			if err := db.Get(&agent, "id=?", account.RemoteAgentID).Run(); err != nil {
 				return nil, err
 			}
 			res[i] = fmt.Sprintf("remote::%s::%s", agent.Name, account.Login)
-		} else if src.ObjectType == "local_agents" {
-			agent := &model.LocalAgent{
-				ID: src.ObjectID,
-			}
-			if err := db.Get(agent); err != nil {
+		case "local_agents":
+			var agent model.LocalAgent
+			if err := db.Get(&agent, "id=?", src.ObjectID).Run(); err != nil {
 				return nil, err
 			}
 			res[i] = fmt.Sprintf("local::%s", agent.Name)
-		} else if src.ObjectType == "local_accounts" {
-			account := &model.LocalAccount{
-				ID: src.ObjectID,
-			}
-			if err := db.Get(account); err != nil {
+		case "local_accounts":
+			var account model.LocalAccount
+			if err := db.Get(&account, "id=?", src.ObjectID).Run(); err != nil {
 				return nil, err
 			}
-			agent := &model.LocalAgent{
-				ID: account.LocalAgentID,
-			}
-			if err := db.Get(agent); err != nil {
+			var agent model.LocalAgent
+			if err := db.Get(&agent, "id=?", account.LocalAgentID).Run(); err != nil {
 				return nil, err
 			}
 			res[i] = fmt.Sprintf("local::%s::%s", agent.Name, account.Login)
+		default:
+			return nil, fmt.Errorf("unknown rule access targer '%s'", src.ObjectType)
 		}
 	}
 	return res, nil
 }
 
-func exportRuleTasks(db *database.Session, RuleID uint64, chain string) ([]file.Task, error) {
-	var dbTasks []model.Task
-	filters := &database.Filters{
-		Conditions: builder.And(
-			builder.Eq{"Rule_id": RuleID},
-			builder.Eq{"chain": chain},
-		),
-		Order: "rank ASC",
-	}
-	if err := db.Select(&dbTasks, filters); err != nil {
+func exportRuleTasks(db database.ReadAccess, ruleID uint64, chain string) ([]file.Task, error) {
+
+	var dbTasks model.Tasks
+	if err := db.Select(&dbTasks).Where("rule_id=? AND chain=?", ruleID, chain).
+		OrderBy("rank", true).Run(); err != nil {
 		return nil, err
 	}
 	res := make([]file.Task, len(dbTasks))

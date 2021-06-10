@@ -3,7 +3,6 @@ package rest
 import (
 	"net/http"
 
-	"github.com/go-xorm/builder"
 	"github.com/gorilla/mux"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -80,14 +79,15 @@ func getCert(r *http.Request, db *database.DB, ownerType string, ownerID uint64)
 	if !ok {
 		return nil, notFound("missing certificate name")
 	}
-	cert := &model.Cert{Name: certName, OwnerType: ownerType, OwnerID: ownerID}
-	if err := db.Get(cert); err != nil {
-		if err == database.ErrNotFound {
+	var cert model.Cert
+	if err := db.Get(&cert, "name=? AND owner_type=? AND owner_id=?", certName,
+		ownerType, ownerID).Run(); err != nil {
+		if database.IsNotFound(err) {
 			return nil, notFound("certificate '%s' not found", certName)
 		}
 		return nil, err
 	}
-	return cert, nil
+	return &cert, nil
 }
 
 func getCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
@@ -104,13 +104,13 @@ func getCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 func createCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 	ownerType string, ownerID uint64) error {
 
-	jsonCert := &InCert{}
-	if err := readJSON(r, jsonCert); err != nil {
+	var jsonCert InCert
+	if err := readJSON(r, &jsonCert); err != nil {
 		return err
 	}
 
 	cert := jsonCert.toModel(0, ownerType, ownerID)
-	if err := db.Create(cert); err != nil {
+	if err := db.Insert(cert).Run(); err != nil {
 		return err
 	}
 
@@ -121,20 +121,21 @@ func createCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 
 func listCertificates(w http.ResponseWriter, r *http.Request, db *database.DB,
 	ownerType string, ownerID uint64) error {
-	validSorting := map[string]string{
-		"default": "name ASC",
-		"name+":   "name ASC",
-		"name-":   "name DESC",
+	validSorting := orders{
+		"default": order{col: "name", asc: true},
+		"name+":   order{col: "name", asc: true},
+		"name-":   order{col: "name", asc: false},
 	}
 
-	filters, err := parseListFilters(r, validSorting)
+	var results model.Certificates
+	query, err := parseSelectQuery(r, db, validSorting, &results)
 	if err != nil {
 		return err
 	}
-	filters.Conditions = builder.Eq{"owner_type": ownerType, "owner_id": ownerID}
 
-	var results []model.Cert
-	if err := db.Select(&results, filters); err != nil {
+	query.Where("owner_type=? AND owner_id=?", ownerType, ownerID)
+
+	if err := query.Run(); err != nil {
 		return err
 	}
 
@@ -150,7 +151,7 @@ func deleteCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	if err := db.Delete(cert); err != nil {
+	if err := db.Delete(cert).Run(); err != nil {
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -165,16 +166,17 @@ func replaceCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	cert := &InCert{}
-	if err := readJSON(r, cert); err != nil {
+	var jCert InCert
+	if err := readJSON(r, &jCert); err != nil {
 		return err
 	}
 
-	if err := db.Update(cert.toModel(old.ID, ownerType, ownerID)); err != nil {
+	cert := jCert.toModel(old.ID, ownerType, ownerID)
+	if err := db.Update(cert).Run(); err != nil {
 		return err
 	}
 
-	w.Header().Set("Location", locationUpdate(r.URL, str(cert.Name)))
+	w.Header().Set("Location", locationUpdate(r.URL, cert.Name))
 	w.WriteHeader(http.StatusCreated)
 	return nil
 }
@@ -187,16 +189,17 @@ func updateCertificate(w http.ResponseWriter, r *http.Request, db *database.DB,
 		return err
 	}
 
-	cert := inCertFromModel(old)
-	if err := readJSON(r, cert); err != nil {
+	jCert := inCertFromModel(old)
+	if err := readJSON(r, jCert); err != nil {
 		return err
 	}
 
-	if err := db.Update(cert.toModel(old.ID, ownerType, ownerID)); err != nil {
+	cert := jCert.toModel(old.ID, ownerType, ownerID)
+	if err := db.Update(cert).Run(); err != nil {
 		return err
 	}
 
-	w.Header().Set("Location", locationUpdate(r.URL, str(cert.Name)))
+	w.Header().Set("Location", locationUpdate(r.URL, cert.Name))
 	w.WriteHeader(http.StatusCreated)
 	return nil
 }

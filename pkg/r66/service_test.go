@@ -15,15 +15,15 @@ import (
 func TestServiceStart(t *testing.T) {
 	logger := log.NewLogger("test_r66_start")
 
-	Convey("Given an R66 service", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given an R66 service", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		server := &model.LocalAgent{
 			Name:        "r66_server",
 			Protocol:    "r66",
 			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:8066",
 		}
-		So(db.Create(server), ShouldBeNil)
+		So(db.Insert(server).Run(), ShouldBeNil)
 
 		service := NewService(db, server, logger)
 
@@ -40,15 +40,15 @@ func TestServiceStart(t *testing.T) {
 func TestServiceStop(t *testing.T) {
 	logger := log.NewLogger("test_r66_stop")
 
-	Convey("Given a running R66 service", t, func() {
-		db := database.GetTestDatabase()
+	Convey("Given a running R66 service", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
 		server := &model.LocalAgent{
 			Name:        "r66_server",
 			Protocol:    "r66",
 			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:8067",
 		}
-		So(db.Create(server), ShouldBeNil)
+		So(db.Insert(server).Run(), ShouldBeNil)
 
 		service := NewService(db, server, logger)
 		So(service.Start(), ShouldBeNil)

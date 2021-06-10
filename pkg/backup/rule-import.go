@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"fmt"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
@@ -10,28 +9,25 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
-func importRules(logger *log.Logger, db *database.Session, list []file.Rule) error {
+func importRules(logger *log.Logger, db database.Access, list []file.Rule) database.Error {
 
 	for _, src := range list {
 
 		//  Create model with basic info to check existence
-		rule := &model.Rule{
-			Name:   src.Name,
-			IsSend: src.IsSend,
-		}
+		var rule model.Rule
 
 		// Check if rule exists
 		exists := true
-		err := db.Get(rule)
-		if err != nil {
-			if err == database.ErrNotFound {
-				exists = false
-			} else {
-				return err
-			}
+		err := db.Get(&rule, "name=? AND send=?", src.Name, src.IsSend).Run()
+		if database.IsNotFound(err) {
+			exists = false
+		} else if err != nil {
+			return err
 		}
 
 		// Populate
+		rule.Name = src.Name
+		rule.IsSend = src.IsSend
 		rule.Path = src.Path
 		rule.InPath = src.InPath
 		rule.OutPath = src.OutPath
@@ -40,10 +36,10 @@ func importRules(logger *log.Logger, db *database.Session, list []file.Rule) err
 		// Create/Update
 		if exists {
 			logger.Infof("Update rule %s\n", rule.Name)
-			err = db.Update(rule)
+			err = db.Update(&rule).Run()
 		} else {
 			logger.Infof("Create rule %s\n", rule.Name)
-			err = db.Create(rule)
+			err = db.Insert(&rule).Run()
 		}
 		if err != nil {
 			return err
@@ -64,30 +60,32 @@ func importRules(logger *log.Logger, db *database.Session, list []file.Rule) err
 	return nil
 }
 
-func importRuleAccesses(db *database.Session, list []string, ruleID uint64) error {
+func importRuleAccesses(db database.Access, list []string, ruleID uint64) database.Error {
 
 	for _, src := range list {
 
 		arr := strings.Split(src, "::")
 		if len(arr) < 2 {
-			return fmt.Errorf("rule auth is not in a valid format")
+			return database.NewValidationError("rule auth is not in a valid format")
 		}
 		var access *model.RuleAccess
-		var err error
+		var err database.Error
 		switch arr[0] {
 		case "remote":
 			access, err = createRemoteAccess(db, arr, ruleID)
 		case "local":
 			access, err = createLocalAccess(db, arr, ruleID)
 		default:
-			err = fmt.Errorf("rule auth is not in a valid format")
+			err = database.NewValidationError("rule auth is not in a valid format")
 		}
 		if err != nil {
 			return err
 		}
 		// If ruleAccess does not exist create
-		if err := db.Get(access); err == database.ErrNotFound {
-			if err := db.Create(access); err != nil {
+		err = db.Get(access, "rule_id=? AND object_type=? AND object_id=?",
+			access.RuleID, access.ObjectType, access.ObjectID).Run()
+		if database.IsNotFound(err) {
+			if err := db.Insert(access).Run(); err != nil {
 				return err
 			}
 		} else if err != nil {
@@ -97,13 +95,11 @@ func importRuleAccesses(db *database.Session, list []string, ruleID uint64) erro
 	return nil
 }
 
-func createRemoteAccess(db *database.Session, arr []string,
-	ruleID uint64) (*model.RuleAccess, error) {
+func createRemoteAccess(db database.ReadAccess, arr []string,
+	ruleID uint64) (*model.RuleAccess, database.Error) {
 
-	agent := &model.RemoteAgent{
-		Name: arr[1],
-	}
-	if err := db.Get(agent); err != nil {
+	var agent model.RemoteAgent
+	if err := db.Get(&agent, "name=?", arr[1]).Run(); err != nil {
 		return nil, err
 	}
 	if len(arr) < 3 {
@@ -115,11 +111,9 @@ func createRemoteAccess(db *database.Session, arr []string,
 		}, nil
 	}
 	// RemoteAccount Access
-	account := &model.RemoteAccount{
-		RemoteAgentID: agent.ID,
-		Login:         arr[2],
-	}
-	if err := db.Get(account); err != nil {
+	var account model.RemoteAccount
+	if err := db.Get(&account, "remote_agent_id=? AND login=?", agent.ID, arr[2]).
+		Run(); err != nil {
 		return nil, err
 	}
 	return &model.RuleAccess{
@@ -129,13 +123,11 @@ func createRemoteAccess(db *database.Session, arr []string,
 	}, nil
 }
 
-func createLocalAccess(db *database.Session, arr []string,
-	ruleID uint64) (*model.RuleAccess, error) {
+func createLocalAccess(db database.ReadAccess, arr []string,
+	ruleID uint64) (*model.RuleAccess, database.Error) {
 
-	agent := &model.LocalAgent{
-		Name: arr[1],
-	}
-	if err := db.Get(agent); err != nil {
+	var agent model.LocalAgent
+	if err := db.Get(&agent, "name=?", arr[1]).Run(); err != nil {
 		return nil, err
 	}
 	if len(arr) < 3 {
@@ -147,11 +139,9 @@ func createLocalAccess(db *database.Session, arr []string,
 		}, nil
 	}
 	// LocalAccount Access
-	account := &model.LocalAccount{
-		LocalAgentID: agent.ID,
-		Login:        arr[2],
-	}
-	if err := db.Get(account); err != nil {
+	var account model.LocalAccount
+	if err := db.Get(&account, "local_agent_id=? AND login=?", agent.ID, arr[2]).
+		Run(); err != nil {
 		return nil, err
 	}
 	return &model.RuleAccess{
@@ -161,33 +151,30 @@ func createLocalAccess(db *database.Session, arr []string,
 	}, nil
 }
 
-func importRuleTasks(logger *log.Logger, db *database.Session, list []file.Task,
-	ruleID uint64, chain model.Chain) error {
+func importRuleTasks(logger *log.Logger, db database.Access, list []file.Task,
+	ruleID uint64, chain model.Chain) database.Error {
 
 	if len(list) == 0 {
 		return nil
 	}
 
-	task := &model.Task{
-		RuleID: ruleID,
-		Chain:  chain,
-	}
-	if err := db.Delete(task); err != nil {
-		if err != database.ErrNotFound {
-			return err
-		}
+	var task model.Task
+	if err := db.DeleteAll(&task).Where("rule_id=? AND chain=?", ruleID, chain).Run(); err != nil {
+		return err
 	}
 
 	for i, src := range list {
 
 		// Populate
+		task.RuleID = ruleID
+		task.Chain = chain
 		task.Rank = uint32(i)
 		task.Type = src.Type
 		task.Args = src.Args
 
 		// Create/Update
 		logger.Infof("Create task type %s at chain %s rank %d\n", task.Type, chain, i)
-		if err := db.Create(task); err != nil {
+		if err := db.Insert(&task).Run(); err != nil {
 			return err
 		}
 	}
