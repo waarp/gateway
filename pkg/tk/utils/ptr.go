@@ -16,15 +16,15 @@ func String(s *string) string {
 	return *s
 }
 
-// boolPtr takes a boolean and returns a pointer to that bool. Useful for
+// BoolPtr takes a boolean and returns a pointer to that bool. Useful for
 // putting a boolean literal where a boolean pointer is required.
-func boolPtr(b bool) *bool {
+func BoolPtr(b bool) *bool {
 	return &b
 }
 
 var (
 	// TruePtr is a boolean pointer to a true constant.
-	TruePtr *bool = boolPtr(true)
+	TruePtr *bool = BoolPtr(true)
 	// FalsePtr is a boolean pointer to a false constant.
-	FalsePtr *bool = boolPtr(false)
+	FalsePtr *bool = BoolPtr(false)
 )

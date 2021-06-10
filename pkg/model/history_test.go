@@ -103,12 +103,6 @@ func TestHistoryBeforeWrite(t *testing.T) {
 					"the transfer's start date cannot be empty"))
 			})
 
-			Convey("Given that the end date is missing", func() {
-				hist.Stop = time.Time{}
-				shouldFailWith("the end date is missing", database.NewValidationError(
-					"the transfer's end date cannot be empty"))
-			})
-
 			Convey("Given that the end date is before the start date", func() {
 				hist.Stop = hist.Start.AddDate(0, 0, -1)
 				shouldFailWith("the end date is anterior", database.NewValidationError(

@@ -26,7 +26,7 @@ type TransferHistory struct {
 	DestFilename     string               `xorm:"notnull 'dest_filename'"`
 	Rule             string               `xorm:"notnull 'rule'"`
 	Start            time.Time            `xorm:"notnull timestampz 'start'"`
-	Stop             time.Time            `xorm:"notnull timestampz 'stop'"`
+	Stop             time.Time            `xorm:"timestampz 'stop'"`
 	Status           types.TransferStatus `xorm:"notnull varchar(50) 'status'"`
 	Error            types.TransferError  `xorm:"extends"`
 	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
@@ -86,11 +86,8 @@ func (h *TransferHistory) BeforeWrite(database.ReadAccess) database.Error {
 	if h.Start.IsZero() {
 		return database.NewValidationError("the transfer's start date cannot be empty")
 	}
-	if h.Stop.IsZero() {
-		return database.NewValidationError("the transfer's end date cannot be empty")
-	}
 
-	if h.Stop.Before(h.Start) {
+	if !h.Stop.IsZero() && h.Stop.Before(h.Start) {
 		return database.NewValidationError("the transfer's end date cannot be anterior " +
 			"to the start date")
 	}

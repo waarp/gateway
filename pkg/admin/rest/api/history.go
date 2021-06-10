@@ -20,7 +20,7 @@ type OutHistory struct {
 	DestFilename   string                  `json:"destFilename"`
 	Rule           string                  `json:"rule"`
 	Start          time.Time               `json:"start"`
-	Stop           time.Time               `json:"stop"`
+	Stop           *time.Time              `json:"stop"`
 	Status         types.TransferStatus    `json:"status"`
 	ErrorCode      types.TransferErrorCode `json:"errorCode,omitempty"`
 	ErrorMsg       string                  `json:"errorMsg,omitempty"`
