@@ -3,9 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`254` Ajout des contraintes d'unicité manquantes lors de l'initialisation
+  de la base de données.
 * :bug:`` Les dates de début/fin de transfert sont désormais précises à la
   milliseconde près (au lieu de la seconde).
-* :bub:`243` Correction d'un bug empêchant l'annulation d'un transfert avant
+* :bug:`243` Correction d'un bug empêchant l'annulation d'un transfert avant
   qu'il n'ait commencé car sa date de fin se retrouvait antérieure à sa date de
   début. Par conséquent, désormais, en cas d'annulation, la date de fin du
   transfert sera donc nulle.

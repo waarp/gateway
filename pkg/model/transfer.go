@@ -19,11 +19,11 @@ func init() {
 // Transfer represents one record of the 'transfers' table.
 type Transfer struct {
 	ID               uint64               `xorm:"pk autoincr <- 'id'"`
-	RemoteTransferID string               `xorm:"unique(transRemID) 'remote_transfer_id'"`
+	RemoteTransferID string               `xorm:"notnull 'remote_transfer_id'"`
 	RuleID           uint64               `xorm:"notnull 'rule_id'"`
 	IsServer         bool                 `xorm:"notnull 'is_server'"`
 	AgentID          uint64               `xorm:"notnull 'agent_id'"`
-	AccountID        uint64               `xorm:"notnull unique(transRemID) 'account_id'"`
+	AccountID        uint64               `xorm:"notnull 'account_id'"`
 	TrueFilepath     string               `xorm:"notnull 'true_filepath'"`
 	SourceFile       string               `xorm:"notnull 'source_file'"`
 	DestFile         string               `xorm:"notnull 'dest_file'"`
@@ -83,11 +83,22 @@ func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error
 			t.AgentID, t.AccountID)
 	}
 
+	if t.RemoteTransferID != "" {
+		n, err := db.Count(t).Where("remote_transfer_id=? AND account_id=?",
+			t.RemoteTransferID, t.AccountID).Run()
+		if err != nil {
+			return err
+		}
+		if n != 0 {
+			return database.NewValidationError("a transfer with the same remote ID already exists")
+		}
+	}
+
 	// Check for rule access
 	if auth, err := IsRuleAuthorized(db, t); err != nil {
 		return err
 	} else if !auth {
-		return database.NewValidationError("Rule %d is not authorized for this transfer",
+		return database.NewValidationError("rule %d is not authorized for this transfer",
 			t.RuleID)
 	}
 
