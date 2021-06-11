@@ -105,7 +105,7 @@ func TestAddTransfer(t *testing.T) {
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -244,8 +244,8 @@ func TestGetTransfer(t *testing.T) {
 
 			Convey("Given a valid transfer", func() {
 				p := &model.RemoteAgent{
-					Name:        "test",
-					Protocol:    "test",
+					Name:        testProto1,
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
@@ -326,25 +326,25 @@ func TestListTransfer(t *testing.T) {
 
 			p1 := &model.RemoteAgent{
 				Name:        "remote1",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			p2 := &model.RemoteAgent{
 				Name:        "remote2",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
 			p3 := &model.RemoteAgent{
 				Name:        "remote3",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:3",
 			}
 			p4 := &model.RemoteAgent{
 				Name:        "remote4",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:4",
 			}
@@ -594,7 +594,7 @@ func TestPauseTransfer(t *testing.T) {
 			Convey("Given a paused transfer entry", func() {
 				part := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
@@ -687,7 +687,7 @@ func TestResumeTransfer(t *testing.T) {
 			Convey("Given a paused transfer entry", func() {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
@@ -778,7 +778,7 @@ func TestCancelTransfer(t *testing.T) {
 			Convey("Given a paused transfer entry", func() {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}

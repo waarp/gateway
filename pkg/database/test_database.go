@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	testDBType = "test"
+	testDBType = "test_db"
 	testDBEnv  = "GATEWAY_TEST_DB"
 )
 

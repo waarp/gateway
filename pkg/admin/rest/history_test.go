@@ -392,7 +392,7 @@ func TestRestartTransfer(t *testing.T) {
 		Convey("Given a database with 1 transfer history", func() {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -415,7 +415,7 @@ func TestRestartTransfer(t *testing.T) {
 				Rule:       rule.Name,
 				Account:    account.Login,
 				Agent:      partner.Name,
-				Protocol:   "test",
+				Protocol:   testProto1,
 				LocalPath:  "/local/file.test",
 				RemotePath: "/remote/file.test",
 				Start:      time.Date(2019, 1, 1, 0, 0, 0, 0, time.Local),

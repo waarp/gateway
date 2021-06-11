@@ -18,8 +18,8 @@ func TestImportRemoteAgents(t *testing.T) {
 
 		Convey("Given a database with some remote agent", func() {
 			agent := &model.RemoteAgent{
-				Name:        "test",
-				Protocol:    "sftp",
+				Name:        "partner",
+				Protocol:    testhelpers.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -28,15 +28,15 @@ func TestImportRemoteAgents(t *testing.T) {
 			Convey("Given a list of new agents", func() {
 				agent1 := RemoteAgent{
 					Name:          "foo",
-					Protocol:      "sftp",
+					Protocol:      testhelpers.TestProtocol,
 					Configuration: []byte(`{}`),
 					Address:       "localhost:2022",
 					Accounts: []RemoteAccount{
 						{
-							Login:    "test",
+							Login:    "acc1",
 							Password: "pwd",
 						}, {
-							Login:    "test2",
+							Login:    "acc2",
 							Password: "pwd",
 						},
 					},
@@ -73,13 +73,13 @@ func TestImportRemoteAgents(t *testing.T) {
 
 		Convey("Given a list of fully updated agents", func() {
 			agent1 := RemoteAgent{
-				Name:          "test",
-				Protocol:      "sftp",
+				Name:          "agent1",
+				Protocol:      testhelpers.TestProtocol,
 				Configuration: []byte(`{}`),
 				Address:       "localhost:6666",
 				Accounts: []RemoteAccount{
 					{
-						Login:    "test",
+						Login:    "acc1",
 						Password: "pwd",
 					},
 				},
@@ -133,8 +133,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 
 		Convey("Given a database with some a remote agent and some remote accounts", func() {
 			agent := &model.RemoteAgent{
-				Name:        "test",
-				Protocol:    "sftp",
+				Name:        "partner",
+				Protocol:    testhelpers.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -149,11 +149,11 @@ func TestImportRemoteAccounts(t *testing.T) {
 
 			Convey("Given a list of new accounts", func() {
 				account1 := RemoteAccount{
-					Login:    "test",
+					Login:    "acc1",
 					Password: "pwd",
 				}
 				account2 := RemoteAccount{
-					Login:    "test2",
+					Login:    "acc2",
 					Password: "pwd",
 				}
 				accounts := []RemoteAccount{

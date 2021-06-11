@@ -39,7 +39,7 @@ func TestGetLocalAccount(t *testing.T) {
 
 			server := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -134,7 +134,7 @@ func TestAddLocalAccount(t *testing.T) {
 
 			server := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -206,7 +206,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 
 			server := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -302,7 +302,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 			server := &model.LocalAgent{
 				Name:        "par²ent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -408,7 +408,7 @@ func TestListLocalAccount(t *testing.T) {
 
 			server1 := &model.LocalAgent{
 				Name:        "server1",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -417,7 +417,7 @@ func TestListLocalAccount(t *testing.T) {
 
 			server2 := &model.LocalAgent{
 				Name:        "server2",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
@@ -557,7 +557,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 
 			server := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -688,7 +688,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 
 			server := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}

@@ -2,22 +2,16 @@ package controller
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 )
 
 func init() {
-	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
-	pipeline.ClientConstructors["test"] = NewAllSuccess
+	pipeline.ClientConstructors[testhelpers.TestProtocol] = NewAllSuccess
 
 	_ = log.InitBackend("DEBUG", "stdout", "")
 }
-
-type TestProtoConfig struct{}
-
-func (*TestProtoConfig) ValidServer() error  { return nil }
-func (*TestProtoConfig) ValidPartner() error { return nil }
 
 type AllSuccess struct{}
 

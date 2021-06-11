@@ -20,8 +20,8 @@ func TestImportLocalAgents(t *testing.T) {
 
 		Convey("Given a database with some local agent", func() {
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "sftp",
+				Name:        "server",
+				Protocol:    testhelpers.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -30,15 +30,15 @@ func TestImportLocalAgents(t *testing.T) {
 			Convey("Given a list of new agents", func() {
 				agent1 := LocalAgent{
 					Name:          "foo",
-					Protocol:      "sftp",
+					Protocol:      testhelpers.TestProtocol,
 					Configuration: json.RawMessage(`{}`),
 					Address:       "localhost:2022",
 					Accounts: []LocalAccount{
 						{
-							Login:    "test",
+							Login:    "acc1",
 							Password: "pwd",
 						}, {
-							Login:    "test2",
+							Login:    "acc2",
 							Password: "pwd",
 						},
 					},
@@ -77,13 +77,13 @@ func TestImportLocalAgents(t *testing.T) {
 
 			Convey("Given a list of fully updated agents", func() {
 				agent1 := LocalAgent{
-					Name:          "test",
-					Protocol:      "sftp",
+					Name:          "server",
+					Protocol:      testhelpers.TestProtocol,
 					Configuration: json.RawMessage(`{}`),
 					Address:       "localhost:6666",
 					Accounts: []LocalAccount{
 						{
-							Login:    "test",
+							Login:    "toto",
 							Password: "pwd",
 						},
 					},
@@ -140,8 +140,8 @@ func TestImportLocalAccounts(t *testing.T) {
 
 		Convey("Given a database with some a local agent and some local accounts", func() {
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "sftp",
+				Name:        "server",
+				Protocol:    testhelpers.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -156,11 +156,11 @@ func TestImportLocalAccounts(t *testing.T) {
 
 			Convey("Given a list of new accounts", func() {
 				account1 := LocalAccount{
-					Login:    "test",
+					Login:    "toto",
 					Password: "pwd",
 				}
 				account2 := LocalAccount{
-					Login:    "test2",
+					Login:    "tata",
 					Password: "pwd",
 				}
 				accounts := []LocalAccount{

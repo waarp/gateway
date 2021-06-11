@@ -35,11 +35,11 @@ func TestTLS(t *testing.T) {
 			})
 		})
 
-		SkipConvey("Given that the client does not provide a certificate", func() {
+		Convey("Given that the client does not provide a certificate", func() {
 			err := tlsConnect(ctx, false)
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, "authentication failed")
+				So(err, ShouldBeError, "A: missing credentials")
 			})
 		})
 	})
@@ -69,7 +69,7 @@ func tlsConnect(ctx *pipelinetest.ServerContext, hasCliCert bool) error {
 	So(pool.AppendCertsFromPEM([]byte(testhelpers.LocalhostCert)), ShouldBeTrue)
 
 	conf := &tls.Config{
-		Certificates: []tls.Certificate{cert},
+		Certificates: []tls.Certificate{},
 		RootCAs:      pool,
 	}
 	if hasCliCert {

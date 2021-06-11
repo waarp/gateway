@@ -17,8 +17,8 @@ func TestExportCertificates(t *testing.T) {
 
 		Convey("Given the database contains 1 local agent with a certificate", func() {
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "test",
+				Name:        "server",
+				Protocol:    testhelpers.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6666",
 			}
@@ -72,7 +72,7 @@ func TestExportCertificates(t *testing.T) {
 			Convey("Given the database contains 1 local account with 2 certificates", func() {
 				account := &model.LocalAccount{
 					LocalAgentID: agent.ID,
-					Login:        "test",
+					Login:        "toto",
 					PasswordHash: hash("pwd"),
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)

@@ -7,9 +7,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	testProto1 = "rest_test_1"
+	testProto2 = "rest_test_2"
+)
+
 func init() {
-	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
-	config.ProtoConfigs["test2"] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(TestProtoConfig) }
 
 	_ = log.InitBackend("DEBUG", "stdout", "")
 }

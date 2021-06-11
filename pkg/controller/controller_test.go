@@ -25,7 +25,7 @@ func TestControllerListen(t *testing.T) {
 
 		remote := &model.RemoteAgent{
 			Name:        "test remote",
-			Protocol:    "test",
+			Protocol:    testhelpers.TestProtocol,
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:1111",
 		}

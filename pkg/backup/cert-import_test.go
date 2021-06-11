@@ -19,16 +19,16 @@ func TestImportCerts(t *testing.T) {
 
 		Convey("Given a database with some Cryptos", func() {
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "test",
+				Name:        "server",
+				Protocol:    testhelpers.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6666",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			agent2 := &model.LocalAgent{
-				Name:        "test2",
-				Protocol:    "test",
+				Name:        "agent2",
+				Protocol:    testhelpers.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6666",
 			}

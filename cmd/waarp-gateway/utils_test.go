@@ -17,14 +17,20 @@ import (
 
 var discard *log.Logger
 
+const (
+	testProto1   = "cli_proto_1"
+	testProto2   = "cli_proto_2"
+	testProtoErr = "cli_proto_err"
+)
+
 func init() {
 	_ = log.InitBackend("CRITICAL", "stdout", "")
 	discard = log.NewLogger("test_client")
 	discard.SetBackend(&logging.NoopBackend{})
 
-	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
-	config.ProtoConfigs["test2"] = func() config.ProtoConfig { return new(TestProtoConfig) }
-	config.ProtoConfigs["fail"] = func() config.ProtoConfig { return new(TestProtoConfigFail) }
+	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs[testProtoErr] = func() config.ProtoConfig { return new(TestProtoConfigFail) }
 }
 
 func hash(pwd string) []byte {

@@ -31,7 +31,7 @@ func TestGetRemoteAccount(t *testing.T) {
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -126,7 +126,7 @@ func TestAddRemoteAccount(t *testing.T) {
 
 			partner := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -194,7 +194,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -289,7 +289,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 			partner := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -392,7 +392,7 @@ func TestListRemoteAccount(t *testing.T) {
 
 			partner1 := &model.RemoteAgent{
 				Name:        "partner1",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -401,7 +401,7 @@ func TestListRemoteAccount(t *testing.T) {
 
 			partner2 := &model.RemoteAgent{
 				Name:        "partner2",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
@@ -541,7 +541,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -672,7 +672,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}

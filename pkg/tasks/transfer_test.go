@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
@@ -81,7 +83,7 @@ func TestTransferRun(t *testing.T) {
 
 		partner := &model.RemoteAgent{
 			Name:        "test partner",
-			Protocol:    "test",
+			Protocol:    testhelpers.TestProtocol,
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:1111",
 		}

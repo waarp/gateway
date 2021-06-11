@@ -47,7 +47,7 @@ func TestGetServer(t *testing.T) {
 
 			server := &model.LocalAgent{
 				Name:        "server_name",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				Root:        "/server/root",
 				LocalInDir:  "/in",
 				LocalOutDir: "/out",
@@ -121,7 +121,7 @@ func TestAddServer(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Given valid flags", func() {
-				args := []string{"-n", "server_name", "-p", "test",
+				args := []string{"-n", "server_name", "-p", testProto1,
 					"--root=root", "--in=in_dir", "--out=out_dir",
 					"--tmp=tmp_dir", "-a", "localhost:1"}
 
@@ -172,7 +172,7 @@ func TestAddServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid configuration", func() {
-				args := []string{"-n", "server_name", "-p", "fail",
+				args := []string{"-n", "server_name", "-p", testProtoErr,
 					"--root=/server/root", "-c", "unknown:val",
 					"-a", "localhost:1"}
 
@@ -189,7 +189,7 @@ func TestAddServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid address", func() {
-				args := []string{"-n", "server_name", "-p", "fail",
+				args := []string{"-n", "server_name", "-p", testProtoErr,
 					"--root=/server/root", "-a", "invalid_address"}
 
 				Convey("When executing the command", func() {
@@ -270,7 +270,7 @@ func TestListServers(t *testing.T) {
 
 			server1 := &model.LocalAgent{
 				Name:        "server1",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				Root:        "/test/root1",
 				LocalInDir:  "/test/in1",
 				LocalOutDir: "/test/out1",
@@ -282,7 +282,7 @@ func TestListServers(t *testing.T) {
 
 			server2 := &model.LocalAgent{
 				Name:        "server2",
-				Protocol:    "test2",
+				Protocol:    testProto2,
 				Root:        "/test/root2",
 				LocalInDir:  "/test/in2",
 				LocalOutDir: "/test/out2",
@@ -356,7 +356,7 @@ func TestListServers(t *testing.T) {
 			})
 
 			Convey("Given the 'protocol' parameter is set to 'test'", func() {
-				args := []string{"-p", "test"}
+				args := []string{"-p", testProto1}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -388,7 +388,7 @@ func TestDeleteServer(t *testing.T) {
 
 			server := &model.LocalAgent{
 				Name:        "server_name",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -453,14 +453,14 @@ func TestUpdateServer(t *testing.T) {
 
 			server := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
-				args := []string{"-n", "new_server", "-p", "test2",
+				args := []string{"-n", "new_server", "-p", testProto2,
 					"-a", "localhost:2", server.Name}
 
 				Convey("When executing the command", func() {
@@ -512,7 +512,7 @@ func TestUpdateServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid configuration", func() {
-				args := []string{"-n", "new_server", "-p", "fail",
+				args := []string{"-n", "new_server", "-p", testProtoErr,
 					"-c", "unknown:val", "-a", "localhost:2", server.Name}
 
 				Convey("When executing the command", func() {
@@ -534,7 +534,7 @@ func TestUpdateServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid address", func() {
-				args := []string{"-n", "new_server", "-p", "fail",
+				args := []string{"-n", "new_server", "-p", testProtoErr,
 					"-a", "invalid_address", server.Name}
 
 				Convey("When executing the command", func() {
@@ -556,7 +556,7 @@ func TestUpdateServer(t *testing.T) {
 			})
 
 			Convey("Given a non-existing name", func() {
-				args := []string{"-n", "new_server", "-p", "test2",
+				args := []string{"-n", "new_server", "-p", testProto2,
 					"-c", "updated_key:updated_val", "toto"}
 
 				Convey("When executing the command", func() {
@@ -594,7 +594,7 @@ func TestAuthorizeServer(t *testing.T) {
 
 			server := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -694,7 +694,7 @@ func TestRevokeServer(t *testing.T) {
 
 			server := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}

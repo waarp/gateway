@@ -150,7 +150,7 @@ func TestGetRule(t *testing.T) {
 			}
 			So(db.Insert(send).Run(), ShouldBeNil)
 
-			SkipConvey("Given a request with the valid rule name parameter", func() {
+			Convey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{

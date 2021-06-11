@@ -41,7 +41,7 @@ func TestGetCertificate(t *testing.T) {
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -189,7 +189,7 @@ func TestGetCertificate(t *testing.T) {
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
 					Name:        "server",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -359,7 +359,7 @@ func TestAddCertificate(t *testing.T) {
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -528,7 +528,7 @@ func TestAddCertificate(t *testing.T) {
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
 					Name:        "server",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -715,7 +715,7 @@ func TestDeleteCertificate(t *testing.T) {
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -911,7 +911,7 @@ func TestDeleteCertificate(t *testing.T) {
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
 					Name:        "server",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -1124,7 +1124,7 @@ func TestListCertificate(t *testing.T) {
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -1363,7 +1363,7 @@ func TestListCertificate(t *testing.T) {
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
 					Name:        "server",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -1625,7 +1625,7 @@ func TestUpdateCertificate(t *testing.T) {
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -1872,7 +1872,7 @@ func TestUpdateCertificate(t *testing.T) {
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
 					Name:        "server",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}

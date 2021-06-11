@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -39,7 +41,7 @@ func TestSetup(t *testing.T) {
 
 			agent := &model.RemoteAgent{
 				Name:        "agent",
-				Protocol:    "test",
+				Protocol:    testhelpers.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6622",
 			}
@@ -242,7 +244,7 @@ func TestRunTasks(t *testing.T) {
 
 		agent := &model.RemoteAgent{
 			Name:        "agent",
-			Protocol:    "test",
+			Protocol:    testhelpers.TestProtocol,
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:6622",
 		}

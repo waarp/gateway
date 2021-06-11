@@ -62,7 +62,7 @@ func TestAuthorizeRule(t *testing.T) {
 		Convey("Given a server", func() {
 			server := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -103,7 +103,7 @@ func TestAuthorizeRule(t *testing.T) {
 		Convey("Given a partner", func() {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -190,7 +190,7 @@ func TestRevokeRule(t *testing.T) {
 		Convey("Given a server", func() {
 			server := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -234,7 +234,7 @@ func TestRevokeRule(t *testing.T) {
 		Convey("Given a partner", func() {
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -293,13 +293,13 @@ func TestRuleAllowAll(t *testing.T) {
 		Convey("Given multiple accesses to that rule", func() {
 			s := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			p := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}

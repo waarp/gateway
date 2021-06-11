@@ -91,7 +91,7 @@ func initTestDB(c C) *testContext {
 
 	server := &model.LocalAgent{
 		Name:        "server",
-		Protocol:    "test",
+		Protocol:    testhelpers.TestProtocol,
 		ProtoConfig: json.RawMessage(`{}`),
 		Address:     "localhost:1111",
 	}
@@ -106,7 +106,7 @@ func initTestDB(c C) *testContext {
 
 	partner := &model.RemoteAgent{
 		Name:        "partner",
-		Protocol:    "test",
+		Protocol:    testhelpers.TestProtocol,
 		ProtoConfig: json.RawMessage(`{}`),
 		Address:     "localhost:2222",
 	}
@@ -212,7 +212,7 @@ var (
 )
 
 func init() {
-	ClientConstructors["test"] = newTestProtoClient
+	ClientConstructors[testhelpers.TestProtocol] = newTestProtoClient
 }
 
 func newTestProtoClient(*Pipeline) (Client, *types.TransferError) {

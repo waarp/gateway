@@ -6,7 +6,7 @@ import (
 
 // TestProtocol is the constant defining the name of the dummy protocol associated
 // with the TestProtoConfig struct.
-const TestProtocol = "test"
+const TestProtocol = "test_proto"
 
 func init() {
 	config.ProtoConfigs[TestProtocol] = func() config.ProtoConfig { return new(TestProtoConfig) }

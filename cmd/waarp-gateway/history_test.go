@@ -492,7 +492,7 @@ func TestRetryHistory(t *testing.T) {
 			Convey("Given a failed history entry", func() {
 				part := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}

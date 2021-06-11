@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -51,7 +53,7 @@ func TestClientPipelineRun(t *testing.T) {
 						Rule:             ctx.send.Name,
 						Agent:            ctx.partner.Name,
 						Account:          ctx.remoteAccount.Login,
-						Protocol:         "test",
+						Protocol:         testhelpers.TestProtocol,
 						LocalPath:        trans.LocalPath,
 						RemotePath:       trans.RemotePath,
 						Filesize:         int64(len(content)),

@@ -26,7 +26,7 @@ var (
 )
 
 func (a *authHandler) certAuth(auth *r66.Authent) (*model.LocalAccount, *r66.Error) {
-	if auth.TLS == nil {
+	if auth.TLS == nil || len(auth.TLS.PeerCertificates) == 0 {
 		return nil, nil
 	}
 

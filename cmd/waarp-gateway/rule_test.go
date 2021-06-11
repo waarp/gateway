@@ -521,13 +521,13 @@ func TestRuleAllowAll(t *testing.T) {
 			Convey("Given multiple accesses to that rule", func() {
 				s := &model.LocalAgent{
 					Name:        "server",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
 				p := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2",
 				}

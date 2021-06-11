@@ -51,25 +51,25 @@ func TestListPartners(t *testing.T) {
 		Convey("Given a database with 4 partners", func() {
 			a1 := &model.RemoteAgent{
 				Name:        "partner1",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			a2 := &model.RemoteAgent{
 				Name:        "partner2",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
 			a3 := &model.RemoteAgent{
 				Name:        "partner3",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:3",
 			}
 			a4 := &model.RemoteAgent{
 				Name:        "partner4",
-				Protocol:    "test2",
+				Protocol:    testProto2,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:4",
 			}
@@ -133,7 +133,7 @@ func TestListPartners(t *testing.T) {
 			})
 
 			Convey("Given a request with protocol parameters", func() {
-				r, err := http.NewRequest(http.MethodGet, "?type=http&protocol=test", nil)
+				r, err := http.NewRequest(http.MethodGet, "?type=http&protocol="+testProto1, nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {
@@ -158,7 +158,7 @@ func TestGetPartner(t *testing.T) {
 		Convey("Given a database with 1 partner", func() {
 			existing := &model.RemoteAgent{
 				Name:        "existing",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -221,7 +221,7 @@ func TestCreatePartner(t *testing.T) {
 		Convey("Given a database with 1 partner", func() {
 			existing := &model.RemoteAgent{
 				Name:        "existing",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -230,7 +230,7 @@ func TestCreatePartner(t *testing.T) {
 			Convey("Given a new partner to insert in the database", func() {
 				body := strings.NewReader(`{
 					"name": "new_partner",
-					"protocol": "test",
+					"protocol": "` + testProto1 + `",
 					"protoConfig": {},
 					"address": "localhost:2"
 				}`)
@@ -267,7 +267,7 @@ func TestCreatePartner(t *testing.T) {
 							So(ags[1], ShouldResemble, model.RemoteAgent{
 								ID:          2,
 								Name:        "new_partner",
-								Protocol:    "test",
+								Protocol:    testProto1,
 								ProtoConfig: json.RawMessage(`{}`),
 								Address:     "localhost:2",
 							})
@@ -300,7 +300,7 @@ func TestDeletePartner(t *testing.T) {
 		Convey("Given a database with 1 partner", func() {
 			existing := model.RemoteAgent{
 				Name:        "existing",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -358,7 +358,7 @@ func TestUpdatePartner(t *testing.T) {
 		Convey("Given a database with 1 agent", func() {
 			old := &model.RemoteAgent{
 				Name:        "old",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -367,7 +367,7 @@ func TestUpdatePartner(t *testing.T) {
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
 					"name": "update",
-					"protocol": "test",
+					"protocol": "` + testProto1 + `",
 					"protoConfig": {"key":"val"},
 					"address": "localhost:2"
 				}`)
@@ -400,7 +400,7 @@ func TestUpdatePartner(t *testing.T) {
 							exp := model.RemoteAgent{
 								ID:          old.ID,
 								Name:        "update",
-								Protocol:    "test",
+								Protocol:    testProto1,
 								Address:     "localhost:2",
 								ProtoConfig: json.RawMessage(`{"key":"val"}`),
 							}
@@ -456,7 +456,7 @@ func TestReplacePartner(t *testing.T) {
 		Convey("Given a database with 2 agents", func() {
 			old := &model.RemoteAgent{
 				Name:        "old",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -465,7 +465,7 @@ func TestReplacePartner(t *testing.T) {
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
 					"name": "update",
-					"protocol": "test2",
+					"protocol": "` + testProto2 + `",
 					"protoConfig": {},
 					"address": "localhost:2"
 				}`)
@@ -498,7 +498,7 @@ func TestReplacePartner(t *testing.T) {
 							exp := model.RemoteAgent{
 								ID:          old.ID,
 								Name:        "update",
-								Protocol:    "test2",
+								Protocol:    testProto2,
 								ProtoConfig: json.RawMessage(`{}`),
 								Address:     "localhost:2",
 							}
