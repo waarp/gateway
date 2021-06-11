@@ -28,8 +28,7 @@ func (*moveRenameTask) Validate(args map[string]string) error {
 
 // Run move and rename the current file to the destination and
 // modify the transfer model to reflect the file change.
-func (*moveRenameTask) Run(args map[string]string, _ *database.DB,
-	transCtx *model.TransferContext, _ context.Context) (string, error) {
+func (*moveRenameTask) Run(_ context.Context, args map[string]string, _ *database.DB, transCtx *model.TransferContext) (string, error) {
 	newPath := args["path"]
 	oldPath := transCtx.Transfer.LocalPath
 

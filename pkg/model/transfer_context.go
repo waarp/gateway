@@ -34,6 +34,7 @@ type TransferContext struct {
 	Paths *conf.PathsConfig
 }
 
+//nolint:funlen
 // GetTransferInfo retrieves all the information regarding the given transfer
 // from the database, and returns it wrapped in a TransferInfo instance.
 // An error is returned a problem occurs while accessing the database.

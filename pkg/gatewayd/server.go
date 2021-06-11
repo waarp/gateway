@@ -23,6 +23,10 @@ import (
 
 type serviceConstructor func(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.Service
 
+// ServiceConstructors is a map associating each protocol with a constructor for
+// a client of said protocol. In order for the gateway to be able to perform
+// client transfer with a protocol, a constructor must be added to this map, to
+// allow a client to be instantiated.
 var ServiceConstructors = map[string]serviceConstructor{}
 
 // WG is the top level service handler. It manages all other components.
@@ -80,14 +84,14 @@ func (wg *WG) startServices() error {
 		return err
 	}
 
-	for _, server := range servers {
+	for i, server := range servers {
 		l := log.NewLogger(server.Name)
 		constr, ok := ServiceConstructors[server.Protocol]
 		if !ok {
 			wg.Logger.Warningf("Unknown protocol '%s' for server %s",
 				server.Protocol, server.Name)
 		}
-		constr(wg.dbService, &server, l)
+		constr(wg.dbService, &servers[i], l)
 	}
 
 	for _, serv := range wg.Services {

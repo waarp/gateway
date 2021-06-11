@@ -67,7 +67,7 @@ func TestFileReader(t *testing.T) {
 			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 			Convey("Given the FileReader", func() {
-				handler := (&SSHListener{
+				handler := (&sshListener{
 					DB:               db,
 					Logger:           logger,
 					Agent:            agent,
@@ -171,7 +171,7 @@ func TestFileWriter(t *testing.T) {
 			So(json.Unmarshal(agent.ProtoConfig, &serverConf), ShouldBeNil)
 
 			Convey("Given the Filewriter", func() {
-				handler := (&SSHListener{
+				handler := (&sshListener{
 					DB:               db,
 					Logger:           logger,
 					Agent:            agent,

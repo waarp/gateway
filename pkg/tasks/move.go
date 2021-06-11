@@ -61,8 +61,7 @@ func (*moveTask) Validate(args map[string]string) error {
 }
 
 // Run executes the task by moving the file in the requested directory.
-func (*moveTask) Run(args map[string]string, _ *database.DB,
-	transCtx *model.TransferContext, _ context.Context) (string, error) {
+func (*moveTask) Run(_ context.Context, args map[string]string, _ *database.DB, transCtx *model.TransferContext) (string, error) {
 	newDir := args["path"]
 
 	source := transCtx.Transfer.LocalPath

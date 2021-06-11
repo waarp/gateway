@@ -9,11 +9,16 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
+// ServerPipeline is a struct regrouping a Pipeline with various server handlers
+// for sending interruption signals to the transfer partner when needed.
 type ServerPipeline struct {
 	*Pipeline
 	handlers Server
 }
 
+// GetOldServerTransfer searches the database for a transfer with the given
+// remoteID and made with the given account. If the transfer cannot be found,
+// it returns nil.
 func GetOldServerTransfer(db *database.DB, logger *log.Logger, remoteID string,
 	acc *model.LocalAccount) (*model.Transfer, *types.TransferError) {
 
@@ -29,6 +34,7 @@ func GetOldServerTransfer(db *database.DB, logger *log.Logger, remoteID string,
 	return &trans, nil
 }
 
+// NewServerTransfer inserts the given server transfer in the database.
 func NewServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer) *types.TransferError {
 	if err := db.Insert(trans).Run(); err != nil {
 		logger.Errorf("Failed to insert new server transfer: %s", err)
@@ -38,6 +44,7 @@ func NewServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfe
 	return nil
 }
 
+// NewServerPipeline returns a new ServerPipeline
 func NewServerPipeline(db *database.DB, trans *model.Transfer, handlers Server,
 ) (*ServerPipeline, *types.TransferError) {
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
@@ -59,6 +66,7 @@ func NewServerPipeline(db *database.DB, trans *model.Transfer, handlers Server,
 	return s, nil
 }
 
+// Pause stops the server pipeline and pauses the transfer.
 func (s *ServerPipeline) Pause() {
 	if pa, ok := s.handlers.(PauseHandler); ok {
 		_ = pa.Pause()
@@ -69,12 +77,14 @@ func (s *ServerPipeline) Pause() {
 	s.Pipeline.Pause()
 }
 
+// Interrupt stops the server pipeline and interrupts the transfer.
 func (s *ServerPipeline) Interrupt() {
 	s.handlers.SendError(types.NewTransferError(types.TeShuttingDown,
 		"transfer interrupted by service shutdown"))
 	s.Pipeline.interrupt()
 }
 
+// Cancel stops the server pipeline and cancels the transfer.
 func (s *ServerPipeline) Cancel() {
 	if ca, ok := s.handlers.(CancelHandler); ok {
 		_ = ca.Cancel()

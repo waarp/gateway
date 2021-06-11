@@ -13,7 +13,7 @@ var ValidTasks = make(map[string]TaskRunner)
 // TaskRunner checks to validate the arguments for a given task.
 type TaskRunner interface {
 	Validate(args map[string]string) error
-	Run(map[string]string, *database.DB, *TransferContext, context.Context) (string, error)
+	Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error)
 }
 
 func init() {

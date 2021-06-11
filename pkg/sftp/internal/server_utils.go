@@ -3,11 +3,9 @@ package internal
 import (
 	"bytes"
 	"fmt"
-	"path"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/pkg/sftp"
@@ -15,22 +13,9 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func GetRuleFromPath(db *database.DB, r *sftp.Request, isSend bool) (*model.Rule, error) {
-	filepath := path.Dir(r.Filepath)
-	filepath = path.Clean("/" + filepath)
-
-	rule := &model.Rule{}
-	if err := db.Get(rule, "path=? AND send=?", filepath, isSend).Run(); err != nil {
-		dir := "receiving"
-		if isSend {
-			dir = "sending"
-		}
-		return nil, fmt.Errorf("cannot retrieve transfer rule: the directory "+
-			"'%s' is not associated to any known %s rule", filepath, dir)
-	}
-	return rule, nil
-}
-
+// GetSSHServerConfig builds and returns an ssh.ServerConfig from the given
+// parameters. By default, the server accepts both public key & password
+// authentication, with the former having priority over the later.
 func GetSSHServerConfig(db *database.DB, certs []model.Crypto, protoConfig *config.SftpProtoConfig,
 	agent *model.LocalAgent) (*ssh.ServerConfig, error) {
 	conf := &ssh.ServerConfig{
@@ -93,6 +78,8 @@ func GetSSHServerConfig(db *database.DB, certs []model.Crypto, protoConfig *conf
 	return conf, nil
 }
 
+// AcceptRequests accepts all SFTP requests received on the given channel, and
+// rejects all other types of SSH requests.
 func AcceptRequests(in <-chan *ssh.Request) {
 	for req := range in {
 		ok := false
@@ -106,6 +93,8 @@ func AcceptRequests(in <-chan *ssh.Request) {
 	}
 }
 
+// GetRule returns the rule matching the given path & direction. It also checks
+// is the given account has the rights to use said rule.
 func GetRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
 	ag *model.LocalAgent, rulePath string, isSend bool) (*model.Rule, error) {
 
@@ -142,6 +131,9 @@ func GetRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
 	return nil, fmt.Errorf("user is not allowed to use the specified rule")
 }
 
+// GetListRule returns the rule associated with the given rule path, if the given
+// account is authorized to use it. If 2 rules have the same path, the sending
+// rule has priority.
 func GetListRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
 	ag *model.LocalAgent, rulePath string) (*model.Rule, error) {
 	sndRule, err := GetRule(db, logger, acc, ag, rulePath, true)
@@ -161,6 +153,8 @@ func GetListRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
 	return sndRule, nil
 }
 
+// GetRulesPaths returns the paths of all the rules which the given account has
+// access to. Used for file listing purposes.
 func GetRulesPaths(db *database.DB, logger *log.Logger, ag *model.LocalAgent,
 	acc *model.LocalAccount) ([]string, error) {
 

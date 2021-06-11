@@ -43,8 +43,7 @@ func getNewFileName(output string) string {
 }
 
 // Run executes the task by executing an external program with the given parameters.
-func (e *execOutputTask) Run(params map[string]string, _ *database.DB,
-	transCtx *model.TransferContext, parent context.Context) (string, error) {
+func (e *execOutputTask) Run(parent context.Context, params map[string]string, _ *database.DB, transCtx *model.TransferContext) (string, error) {
 
 	script, args, delay, err := parseExecArgs(params)
 	if err != nil {

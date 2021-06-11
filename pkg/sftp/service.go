@@ -22,7 +22,7 @@ type Service struct {
 	logger *log.Logger
 
 	state    service.State
-	listener *SSHListener
+	listener *sshListener
 }
 
 func init() {
@@ -64,7 +64,7 @@ func (s *Service) Start() error {
 			return err2
 		}
 
-		s.listener = &SSHListener{
+		s.listener = &sshListener{
 			DB:               s.db,
 			Logger:           s.logger,
 			Agent:            s.agent,

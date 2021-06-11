@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
 
@@ -19,9 +20,17 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 )
 
-const (
-	TestFileSize uint64 = 1000000 // 1MB
+// TestFileSize defines the size of the file used for transfer tests.
+const TestFileSize uint64 = 1000000 // 1MB
 
+// UndefinedProgress is the value used to specify that the transfer's progress
+// is undefined at the end of the test (meaning it can have any value between
+// 0 and TestFileSize).
+const UndefinedProgress uint64 = math.MaxUint64
+
+// TestLogin and TestPassword are the credentials used for authentication
+// during transfer tests.
+const (
 	TestLogin    = "toto"
 	TestPassword = "sesame"
 )

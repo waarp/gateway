@@ -127,12 +127,14 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string
 	return server, locAccount
 }
 
-func (s *ServerContext) AddCerts(c convey.C, certs ...model.Crypto) {
-	for _, cert := range certs {
-		c.So(s.DB.Insert(&cert).Run(), convey.ShouldBeNil)
+// AddCryptos adds the given cryptos to the test database.
+func (s *ServerContext) AddCryptos(c convey.C, certs ...model.Crypto) {
+	for i := range certs {
+		c.So(s.DB.Insert(&certs[i]).Run(), convey.ShouldBeNil)
 	}
 }
 
+// StartService starts the service associated with the server defined in ServerContext.
 func (s *ServerContext) StartService(c convey.C) {
 	serv := gatewayd.ServiceConstructors[s.Server.Protocol](s.DB, s.Server, s.Logger)
 	c.So(serv.Start(), convey.ShouldBeNil)

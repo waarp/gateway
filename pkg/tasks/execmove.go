@@ -31,8 +31,7 @@ func (e *execMoveTask) Validate(params map[string]string) error {
 }
 
 // Run executes the task by executing an external program with the given parameters.
-func (e *execMoveTask) Run(params map[string]string, _ *database.DB,
-	transCtx *model.TransferContext, parent context.Context) (string, error) {
+func (e *execMoveTask) Run(parent context.Context, params map[string]string, _ *database.DB, transCtx *model.TransferContext) (string, error) {
 	script, args, delay, err := parseExecArgs(params)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse task arguments: %s", err)

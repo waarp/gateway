@@ -236,7 +236,6 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 			"a transfer cannot be recorded in history with status '%s'", t.Status,
 		)
 	}
-
 	hist := HistoryEntry{
 		ID:               t.ID,
 		Owner:            t.Owner,

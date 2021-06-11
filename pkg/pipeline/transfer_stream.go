@@ -8,9 +8,11 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
-func Leaf(s string) utils.Leaf     { return utils.Leaf(s) }
-func Branch(s string) utils.Branch { return utils.Branch(s) }
+func leaf(s string) utils.Leaf     { return utils.Leaf(s) }
+func branch(s string) utils.Branch { return utils.Branch(s) }
 
+// DataStream is an interface regrouping the common functions used for reading
+// and writing data.
 type DataStream interface {
 	io.Reader
 	io.Writer
@@ -18,6 +20,8 @@ type DataStream interface {
 	io.WriterAt
 }
 
+// TransferStream is an abstraction of the transfer file used by the pipeline.
+// It exposes the common functions used for reading and writing data.
 type TransferStream interface {
 	DataStream
 	close() *types.TransferError

@@ -19,17 +19,29 @@ var (
 	errStateMachine = types.NewTransferError(types.TeInternal, "internal transfer error")
 )
 
+// TestPipelineEnd is a function, which (if not nil) is called when a pipeline
+// has reached its end. Should only be used for test purposes to signal when a
+// transfer has truly ended.
+var TestPipelineEnd func(isServer bool)
+
 // Pipeline is the structure regrouping all elements of the transfer Pipeline
 // which are not protocol-dependent, such as task execution.
+//
+// A typical transfer's execution order should be as follow:
+// - PreTasks
+// - StartData
+// - EndData
+// - PostTasks
+// - EndTransfer
 type Pipeline struct {
 	DB       *database.DB
 	TransCtx *model.TransferContext
 	Logger   *log.Logger
+	Stream   TransferStream
 
 	machine *internal.Machine
 	errOnce sync.Once
 
-	stream TransferStream
 	runner *tasks.Runner
 }
 
@@ -77,11 +89,12 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		Logger:   logger,
 		TransCtx: transCtx,
 		machine:  internal.PipelineSateMachine.New(),
-		stream:   nil,
+		Stream:   nil,
 		runner:   runner,
 	}, nil
 }
 
+// UpdateTrans updates the given columns of the pipeline's transfer.
 func (p *Pipeline) UpdateTrans(cols ...string) *types.TransferError {
 	if err := p.DB.Update(p.TransCtx.Transfer).Cols(cols...).Run(); err != nil {
 		p.handleError(types.TeInternal, fmt.Sprintf("Failed to update transfer %s",
@@ -91,6 +104,11 @@ func (p *Pipeline) UpdateTrans(cols ...string) *types.TransferError {
 	return nil
 }
 
+//nolint:dupl
+// PreTasks executes the transfer's pre-tasks. If an error occurs, the pipeline
+// is stopped and the transfer's status is set to ERROR.
+//
+// When resuming a transfer, tasks already successfully executed will be skipped.
 func (p *Pipeline) PreTasks() *types.TransferError {
 	if err := p.machine.Transition("pre-tasks"); err != nil {
 		p.handleStateErr("PreTasks", p.machine.Current())
@@ -124,6 +142,9 @@ func (p *Pipeline) PreTasks() *types.TransferError {
 	return nil
 }
 
+// StartData marks the beginning of the data transfer. It opens the pipeline's
+// TransferStream and returns it. In the case of a retry, the data transfer will
+// resume at the offset indicated by the Transfer.Progress field.
 func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
 	if err := p.machine.Transition("start data"); err != nil {
 		p.handleStateErr("StartData", p.machine.Current())
@@ -132,11 +153,11 @@ func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
 
 	if p.TransCtx.Transfer.Step > types.StepData {
 		var err *types.TransferError
-		if p.stream, err = newVoidStream(p); err != nil {
+		if p.Stream, err = newVoidStream(p); err != nil {
 			p.handleError(types.TeInternal, "Failed to create file stream", err.Error())
 			return nil, err
 		}
-		return p.stream, nil
+		return p.Stream, nil
 	}
 	p.TransCtx.Transfer.Step = types.StepData
 	p.TransCtx.Transfer.TaskNumber = 0
@@ -147,24 +168,27 @@ func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
 	}
 
 	var err *types.TransferError
-	p.stream, err = newFileStream(p, time.Second)
+	p.Stream, err = newFileStream(p, time.Second)
 	if err != nil {
 		p.handleError(err.Code, "Failed to create file stream", err.Details)
 		return nil, err
 	}
 
-	return p.stream, nil
+	return p.Stream, nil
 }
 
+// EndData marks the end of the data transfer. It closes the pipeline's
+// TransferStream, and moves the file (when needed) from it's temporary location
+// to its final destination.
 func (p *Pipeline) EndData() *types.TransferError {
 	if err := p.machine.Transition("end data"); err != nil {
 		p.handleStateErr("EndData", p.machine.Current())
 		return errStateMachine
 	}
-	if err := p.stream.close(); err != nil {
+	if err := p.Stream.close(); err != nil {
 		return err
 	}
-	if err := p.stream.move(); err != nil {
+	if err := p.Stream.move(); err != nil {
 		return err
 	}
 
@@ -182,6 +206,11 @@ func (p *Pipeline) EndData() *types.TransferError {
 	return nil
 }
 
+//nolint:dupl
+// PostTasks executes the transfer's post-tasks. If an error occurs, the pipeline
+// is stopped and the transfer's status is set to ERROR.
+//
+// When resuming a transfer, tasks already successfully executed will be skipped.
 func (p *Pipeline) PostTasks() *types.TransferError {
 	if err := p.machine.Transition("post-tasks"); err != nil {
 		p.handleStateErr("PostTasks", p.machine.Current())
@@ -216,6 +245,8 @@ func (p *Pipeline) PostTasks() *types.TransferError {
 	return nil
 }
 
+// EndTransfer signals that the transfer has ended normally, and archives in the
+// transfer history.
 func (p *Pipeline) EndTransfer() *types.TransferError {
 	if err := p.machine.Transition("end transfer"); err != nil {
 		p.handleStateErr("EndTransfer", p.machine.Current())
@@ -307,6 +338,7 @@ func (p *Pipeline) handleStateErr(fun, currentState string) {
 		"cannot call %s while in state %s", fun, currentState))
 }
 
+// SetError stops the pipeline and sets its error to the given value.
 func (p *Pipeline) SetError(err *types.TransferError) {
 	p.errOnce.Do(func() {
 		p.stop()
@@ -321,10 +353,11 @@ func (p *Pipeline) stop() {
 	case "pre-tasks", "post-tasks":
 		p.runner.Stop()
 	case "reading", "writing", "close":
-		p.stream.stop()
+		p.Stream.stop()
 	}
 }
 
+// Pause stops the pipeline and pauses the transfer.
 func (p *Pipeline) Pause() {
 	p.errOnce.Do(func() {
 		p.Logger.Info("Transfer paused by user")
@@ -355,6 +388,7 @@ func (p *Pipeline) interrupt() {
 	})
 }
 
+// Cancel stops the pipeline and cancels the transfer.
 func (p *Pipeline) Cancel() {
 	p.errOnce.Do(func() {
 		p.Logger.Info("Transfer cancelled by user")
@@ -370,6 +404,9 @@ func (p *Pipeline) Cancel() {
 	})
 }
 
+// RebuildFilepaths rebuilds the transfer's local and remote paths, just like it
+// is done at the beginning of the transfer. This is useful if the file's name
+// has changed during the transfer.
 func (p *Pipeline) RebuildFilepaths() {
 	internal.MakeFilepaths(p.TransCtx)
 }

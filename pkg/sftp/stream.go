@@ -22,7 +22,7 @@ func (e *errorHandler) SendError(*types.TransferError) {
 }
 
 type stream struct {
-	list     *SSHListener
+	list     *sshListener
 	trans    *model.Transfer
 	pipeline *pipeline.ServerPipeline
 	file     pipeline.TransferStream
@@ -31,7 +31,7 @@ type stream struct {
 // newStream initialises a special kind of TransferStream tailored for
 // the SFTP server. This constructor initialises a TransferStream, opens the
 // local file and executes the pre-tasks.
-func (l *SSHListener) newStream(pip *pipeline.ServerPipeline, trans *model.Transfer) (*stream, *types.TransferError) {
+func (l *sshListener) newStream(pip *pipeline.ServerPipeline, trans *model.Transfer) (*stream, *types.TransferError) {
 	l.runningTransfers.Add(trans.ID, pip)
 	str := &stream{list: l, pipeline: pip, trans: trans}
 

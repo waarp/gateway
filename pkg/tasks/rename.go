@@ -28,8 +28,7 @@ func (*renameTask) Validate(args map[string]string) error {
 }
 
 // Run executes the task by renaming the transfer file
-func (*renameTask) Run(args map[string]string, _ *database.DB,
-	transCtx *model.TransferContext, _ context.Context) (string, error) {
+func (*renameTask) Run(_ context.Context, args map[string]string, _ *database.DB, transCtx *model.TransferContext) (string, error) {
 	newPath := args["path"]
 
 	if _, err := os.Stat(utils.ToOSPath(newPath)); err != nil {

@@ -112,7 +112,7 @@ func TestSSHServerInterruption(t *testing.T) {
 
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
 		test := pipelinetest.InitServerPush(c, "sftp", servConf)
-		test.AddCerts(c, makeServerKey(test.Server))
+		test.AddCryptos(c, makeServerKey(test.Server))
 
 		serv := gatewayd.ServiceConstructors[test.Server.Protocol](test.DB, test.Server, test.Logger)
 		c.So(serv.Start(), ShouldBeNil)
@@ -162,7 +162,7 @@ func TestSSHServerInterruption(t *testing.T) {
 
 	Convey("Given an SFTP server ready for pull transfers", t, func(c C) {
 		test := pipelinetest.InitServerPull(c, "sftp", servConf)
-		test.AddCerts(c, makeServerKey(test.Server))
+		test.AddCryptos(c, makeServerKey(test.Server))
 
 		serv := gatewayd.ServiceConstructors[test.Server.Protocol](test.DB, test.Server, test.Logger)
 		c.So(serv.Start(), ShouldBeNil)

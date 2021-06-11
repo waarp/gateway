@@ -60,8 +60,7 @@ func (e *execTask) Validate(params map[string]string) error {
 }
 
 // Run executes the task by executing the external program with the given parameters.
-func (e *execTask) Run(params map[string]string, _ *database.DB,
-	_ *model.TransferContext, parent context.Context) (string, error) {
+func (e *execTask) Run(parent context.Context, params map[string]string, _ *database.DB, _ *model.TransferContext) (string, error) {
 
 	path, args, delay, err := parseExecArgs(params)
 	if err != nil {

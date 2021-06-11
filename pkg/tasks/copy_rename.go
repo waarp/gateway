@@ -25,8 +25,7 @@ func (*copyRenameTask) Validate(args map[string]string) error {
 }
 
 // Run copy the current file to the destination
-func (*copyRenameTask) Run(args map[string]string, _ *database.DB,
-	transCtx *model.TransferContext, _ context.Context) (string, error) {
+func (*copyRenameTask) Run(_ context.Context, args map[string]string, _ *database.DB, transCtx *model.TransferContext) (string, error) {
 
 	dstPath := args["path"]
 	srcPath := transCtx.Transfer.LocalPath

@@ -23,37 +23,53 @@ func setTestVar() {
 	}
 }
 
+// ServerPreTasksShouldBeOK asserts that the server's pre-tasks should have
+// been executed without errors.
 func (s *SelfContext) ServerPreTasksShouldBeOK(c convey.C) {
 	serverMsgShouldBe(c, fmt.Sprintf("SERVER | %s | PRE-TASKS[0] | OK", s.ServerRule.Name))
 }
 
+// ClientPreTasksShouldBeOK asserts that the client's pre-tasks should have
+// been executed without errors.
 func (s *SelfContext) ClientPreTasksShouldBeOK(c convey.C) {
 	clientMsgShouldBe(c, fmt.Sprintf("CLIENT | %s | PRE-TASKS[0] | OK", s.ClientRule.Name))
 }
 
+// ServerPosTasksShouldBeOK asserts that the server's post-tasks should have
+// been executed without errors.
 func (s *SelfContext) ServerPosTasksShouldBeOK(c convey.C) {
 	serverMsgShouldBe(c, fmt.Sprintf("SERVER | %s | POST-TASKS[0] | OK", s.ServerRule.Name))
 }
 
+// ClientPosTasksShouldBeOK asserts that the client's post-tasks should have
+// been executed without errors.
 func (s *SelfContext) ClientPosTasksShouldBeOK(c convey.C) {
 	clientMsgShouldBe(c, fmt.Sprintf("CLIENT | %s | POST-TASKS[0] | OK", s.ClientRule.Name))
 }
 
+// ServerPreTasksShouldBeError asserts that the server's pre-tasks should have
+// been executed, and that they should have produced an error.
 func (s *SelfContext) ServerPreTasksShouldBeError(c convey.C) {
 	s.ServerPreTasksShouldBeOK(c)
 	serverMsgShouldBe(c, fmt.Sprintf("SERVER | %s | PRE-TASKS[1] | ERROR", s.ServerRule.Name))
 }
 
+// ClientPreTasksShouldBeError asserts that the client's pre-tasks should have
+// been executed, and that they should have produced an error.
 func (s *SelfContext) ClientPreTasksShouldBeError(c convey.C) {
 	s.ClientPreTasksShouldBeOK(c)
 	clientMsgShouldBe(c, fmt.Sprintf("CLIENT | %s | PRE-TASKS[1] | ERROR", s.ClientRule.Name))
 }
 
+// ServerPosTasksShouldBeError asserts that the server's post-tasks should have
+// been executed, and that they should have produced an error.
 func (s *SelfContext) ServerPosTasksShouldBeError(c convey.C) {
 	s.ServerPosTasksShouldBeOK(c)
 	serverMsgShouldBe(c, fmt.Sprintf("SERVER | %s | POST-TASKS[1] | ERROR", s.ServerRule.Name))
 }
 
+// ClientPosTasksShouldBeError asserts that the client's post-tasks should have
+// been executed, and that they should have produced an error.
 func (s *SelfContext) ClientPosTasksShouldBeError(c convey.C) {
 	s.ClientPosTasksShouldBeOK(c)
 	clientMsgShouldBe(c, fmt.Sprintf("CLIENT | %s | POST-TASKS[1] | ERROR", s.ClientRule.Name))

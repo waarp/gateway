@@ -69,7 +69,7 @@ func TestRenameTaskRun(t *testing.T) {
 			args := map[string]string{"path": dstPath}
 
 			Convey("When calling the `run` method", func() {
-				_, err := task.Run(args, nil, transCtx, nil)
+				_, err := task.Run(nil, args, nil, transCtx)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
@@ -89,7 +89,7 @@ func TestRenameTaskRun(t *testing.T) {
 			args := map[string]string{"path": filepath.Join(root, "dummy")}
 
 			Convey("When calling the `run` method", func() {
-				_, err := task.Run(args, nil, transCtx, nil)
+				_, err := task.Run(nil, args, nil, transCtx)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError, &errFileNotFound{"change transfer target file to",

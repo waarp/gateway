@@ -1,3 +1,5 @@
+// Package taskstest defines a dummy transfer task which can be used for test
+// purposes.
 package taskstest
 
 import (
@@ -12,14 +14,30 @@ import (
 )
 
 const (
-	ClientOK  = "CLIENTOK"
+	// ClientOK is a a dummy task type which can be used during client transfer
+	// tests. The task always succeeds.
+	ClientOK = "CLIENTOK"
+
+	// ClientErr is a a dummy task type which can be used during client transfer
+	// tests to check error handling. The task always fails.
 	ClientErr = "CLIENTERR"
-	ServerOK  = "SERVEROK"
+
+	// ServerOK is a a dummy task type which can be used during server transfer
+	// tests. The task always succeeds.
+	ServerOK = "SERVEROK"
+
+	// ServerErr is a a dummy task type which can be used during server transfer
+	// tests to check error handling. The task always fails.
 	ServerErr = "SERVERERR"
 )
 
 var (
+	// ClientCheckChannel is the channel used for checking the execution of the
+	// client's dummy tasks during a transfer test.
 	ClientCheckChannel chan string
+
+	// ServerCheckChannel is the channel used for checking the execution of the
+	// server's dummy tasks during a transfer test.
 	ServerCheckChannel chan string
 )
 
@@ -35,8 +53,7 @@ func init() {
 type testClientTask struct{}
 
 func (*testClientTask) Validate(map[string]string) error { return nil }
-func (*testClientTask) Run(args map[string]string, _ *database.DB,
-	c *model.TransferContext, ctx context.Context) (string, error) {
+func (*testClientTask) Run(ctx context.Context, args map[string]string, _ *database.DB, c *model.TransferContext) (string, error) {
 
 	msg := fmt.Sprintf("CLIENT | %s | %s | OK", c.Rule.Name, args["msg"])
 	timer := time.NewTimer(time.Second)
@@ -63,8 +80,7 @@ func (*testClientTask) Run(args map[string]string, _ *database.DB,
 type testClientTaskError struct{}
 
 func (*testClientTaskError) Validate(map[string]string) error { return nil }
-func (*testClientTaskError) Run(args map[string]string, _ *database.DB,
-	c *model.TransferContext, _ context.Context) (string, error) {
+func (*testClientTaskError) Run(_ context.Context, args map[string]string, _ *database.DB, c *model.TransferContext) (string, error) {
 
 	msg := fmt.Sprintf("CLIENT | %s | %s | ERROR", c.Rule.Name, args["msg"])
 	timer := time.NewTimer(time.Second)
@@ -82,8 +98,7 @@ func (*testClientTaskError) Run(args map[string]string, _ *database.DB,
 type testServerTask struct{}
 
 func (*testServerTask) Validate(map[string]string) error { return nil }
-func (*testServerTask) Run(args map[string]string, _ *database.DB,
-	c *model.TransferContext, _ context.Context) (string, error) {
+func (*testServerTask) Run(_ context.Context, args map[string]string, _ *database.DB, c *model.TransferContext) (string, error) {
 
 	msg := fmt.Sprintf("SERVER | %s | %s | OK", c.Rule.Name, args["msg"])
 	timer := time.NewTimer(time.Second)
@@ -99,8 +114,7 @@ func (*testServerTask) Run(args map[string]string, _ *database.DB,
 type testServerTaskError struct{}
 
 func (*testServerTaskError) Validate(map[string]string) error { return nil }
-func (*testServerTaskError) Run(args map[string]string, _ *database.DB,
-	c *model.TransferContext, _ context.Context) (string, error) {
+func (*testServerTaskError) Run(_ context.Context, args map[string]string, _ *database.DB, c *model.TransferContext) (string, error) {
 
 	msg := fmt.Sprintf("SERVER | %s | %s | ERROR", c.Rule.Name, args["msg"])
 	timer := time.NewTimer(time.Second)

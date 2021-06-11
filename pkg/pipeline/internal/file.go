@@ -5,19 +5,21 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
-func Leaf(s string) utils.Leaf     { return utils.Leaf(s) }
-func Branch(s string) utils.Branch { return utils.Branch(s) }
+func leaf(s string) utils.Leaf     { return utils.Leaf(s) }
+func branch(s string) utils.Branch { return utils.Branch(s) }
 
+// GetFile opens/creates (depending on the transfer's direction) the file pointed
+// by the transfer's local path and returns it as a *os.File.
 func GetFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.File, *types.TransferError) {
 
 	path := trans.LocalPath
@@ -55,6 +57,8 @@ func GetFile(logger *log.Logger, rule *model.Rule, trans *model.Transfer) (*os.F
 	return file, nil
 }
 
+// CreateDir takes a file path and creates all the file's parent directories if
+// they don't exist.
 func CreateDir(path string) error {
 	dir := filepath.Dir(path)
 	if info, err := os.Lstat(dir); err != nil {
@@ -71,6 +75,8 @@ func CreateDir(path string) error {
 	return nil
 }
 
+// FileErrToTransferErr takes an error returned by a file operation function
+// (like os.Open or os.Create) and returns the corresponding types.TransferError.
 func FileErrToTransferErr(err error) *types.TransferError {
 	if os.IsNotExist(err) {
 		return types.NewTransferError(types.TeFileNotFound, "file not found")
@@ -82,41 +88,53 @@ func FileErrToTransferErr(err error) *types.TransferError {
 	return types.NewTransferError(types.TeUnknown, "file operation failed")
 }
 
+// MakeFilepaths builds the transfer's local & remote paths according to the
+// transfer's context. For the local path, the building process is as follow:
+//
+//   GatewayHome                                                                      ↑
+//       ├─────────────────────────────────────────────────────┐                 Less priority
+//   Server root*                                     Default in/out/tmp dir
+//       ├───────────────────────────┐                                           More priority
+//   Rule local path       Server in/out/tmp dir*                                     ↓
+//
+//  *only applicable in server transfers
+//
+// For remote paths, only the rule's remote dir is added (if defined) before the
+// file name.
 func MakeFilepaths(transCtx *model.TransferContext) {
-	if transCtx.Transfer.Step != types.StepNone {
-		return
-	}
-
-	transCtx.Transfer.RemotePath = utils.GetPath(transCtx.Transfer.RemotePath,
-		Leaf(transCtx.Rule.RemoteDir))
+	transCtx.Transfer.RemotePath = path.Join("/", transCtx.Rule.RemoteDir,
+		transCtx.Transfer.RemotePath)
 
 	if transCtx.Rule.IsSend && transCtx.Transfer.IsServer {
 		// Partner client <- GW server
 		transCtx.Transfer.LocalPath = utils.GetPath(transCtx.Transfer.LocalPath,
-			Leaf(transCtx.Rule.LocalDir), Leaf(transCtx.LocalAgent.LocalOutDir),
-			Branch(transCtx.LocalAgent.Root), Leaf(transCtx.Paths.DefaultOutDir),
-			Branch(transCtx.Paths.GatewayHome))
+			leaf(transCtx.Rule.LocalDir), leaf(transCtx.LocalAgent.LocalOutDir),
+			branch(transCtx.LocalAgent.Root), leaf(transCtx.Paths.DefaultOutDir),
+			branch(transCtx.Paths.GatewayHome))
 	} else if transCtx.Transfer.IsServer {
 		// Partner client -> GW server
-		transCtx.Transfer.LocalPath = utils.GetPath(transCtx.Transfer.LocalPath+".part",
-			Leaf(transCtx.Rule.LocalTmpDir), Leaf(transCtx.Rule.LocalDir),
-			Leaf(transCtx.LocalAgent.LocalTmpDir), Leaf(transCtx.LocalAgent.LocalInDir),
-			Branch(transCtx.LocalAgent.Root), Leaf(transCtx.Paths.DefaultTmpDir),
-			Leaf(transCtx.Paths.DefaultInDir), Branch(transCtx.Paths.GatewayHome))
+		transCtx.Transfer.LocalPath = utils.GetPath(transCtx.Transfer.LocalPath,
+			leaf(transCtx.Rule.LocalTmpDir), leaf(transCtx.Rule.LocalDir),
+			leaf(transCtx.LocalAgent.LocalTmpDir), leaf(transCtx.LocalAgent.LocalInDir),
+			branch(transCtx.LocalAgent.Root), leaf(transCtx.Paths.DefaultTmpDir),
+			leaf(transCtx.Paths.DefaultInDir), branch(transCtx.Paths.GatewayHome))
 	} else if transCtx.Rule.IsSend {
 		// GW client -> Partner server
 		transCtx.Transfer.LocalPath = utils.GetPath(transCtx.Transfer.LocalPath,
-			Leaf(transCtx.Rule.LocalDir), Leaf(transCtx.Paths.DefaultOutDir),
-			Branch(transCtx.Paths.GatewayHome))
+			leaf(transCtx.Rule.LocalDir), leaf(transCtx.Paths.DefaultOutDir),
+			branch(transCtx.Paths.GatewayHome))
 	} else {
 		// GW client <- Partner server
-		transCtx.Transfer.LocalPath = utils.GetPath(transCtx.Transfer.LocalPath+".part",
-			Leaf(transCtx.Rule.LocalTmpDir), Leaf(transCtx.Rule.LocalDir),
-			Leaf(transCtx.Paths.DefaultTmpDir), Leaf(transCtx.Paths.DefaultOutDir),
-			Branch(transCtx.Paths.GatewayHome))
+		transCtx.Transfer.LocalPath = utils.GetPath(transCtx.Transfer.LocalPath,
+			leaf(transCtx.Rule.LocalTmpDir), leaf(transCtx.Rule.LocalDir),
+			leaf(transCtx.Paths.DefaultTmpDir), leaf(transCtx.Paths.DefaultOutDir),
+			branch(transCtx.Paths.GatewayHome))
 	}
 }
 
+// CheckFileExist checks if the transfer's local path does point to a file. If
+// the file does exist, it also updates the transfer's filesize field with the
+// file's size. If the file does not exist, an error is returned.
 func CheckFileExist(trans *model.Transfer, db *database.DB, logger *log.Logger) *types.TransferError {
 	info, err := os.Stat(trans.LocalPath)
 	if err != nil {

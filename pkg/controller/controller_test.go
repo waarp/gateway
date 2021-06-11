@@ -193,8 +193,7 @@ func (t *testTaskSleep) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskSleep) Run(map[string]string, *database.DB, *model.TransferContext,
-	context.Context) (string, error) {
+func (t *testTaskSleep) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
 	t.c++
 
 	time.Sleep(30 * time.Millisecond)

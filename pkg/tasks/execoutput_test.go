@@ -105,7 +105,7 @@ func TestExecOutputRun(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(args, nil, transCtx, context.Background())
+					_, err := exec.Run(context.Background(), args, nil, transCtx)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -118,7 +118,7 @@ func TestExecOutputRun(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(args, nil, transCtx, context.Background())
+					_, err := exec.Run(context.Background(), args, nil, transCtx)
 
 					Convey("Then it should return a 'warning' error", func() {
 						So(err, ShouldHaveSameTypeAs, &errWarning{})
@@ -131,7 +131,7 @@ func TestExecOutputRun(t *testing.T) {
 					0700), ShouldBeNil)
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(args, nil, transCtx, context.Background())
+					_, err := exec.Run(context.Background(), args, nil, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
@@ -151,7 +151,7 @@ func TestExecOutputRun(t *testing.T) {
 				args["delay"] = "100"
 
 				Convey("When running the task", func() {
-					_, err := exec.Run(args, nil, transCtx, context.Background())
+					_, err := exec.Run(context.Background(), args, nil, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError, "max execution delay expired")

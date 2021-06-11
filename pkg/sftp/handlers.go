@@ -25,7 +25,7 @@ func makeFileCmder() internal.CmdFunc {
 	}
 }
 
-func (l *SSHListener) makeFileLister(acc *model.LocalAccount) internal.FileListerAtFunc {
+func (l *sshListener) makeFileLister(acc *model.LocalAccount) internal.FileListerAtFunc {
 	return func(r *sftp.Request) (sftp.ListerAt, error) {
 		switch r.Method {
 		case "Stat":
@@ -38,7 +38,7 @@ func (l *SSHListener) makeFileLister(acc *model.LocalAccount) internal.FileListe
 	}
 }
 
-func (l *SSHListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.ListerAtFunc {
+func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.ListerAtFunc {
 	return func(ls []os.FileInfo, offset int64) (int, error) {
 		var infos []os.FileInfo
 
@@ -81,7 +81,7 @@ func (l *SSHListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.
 	}
 }
 
-func (l *SSHListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.ListerAtFunc {
+func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.ListerAtFunc {
 	return func(ls []os.FileInfo, offset int64) (int, error) {
 		l.Logger.Debugf("Received 'Stat' request on %s", r.Filepath)
 

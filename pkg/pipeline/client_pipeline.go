@@ -9,11 +9,15 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
+// ClientPipeline associates a Pipeline with a Client, allowing to run complete
+// client transfers.
 type ClientPipeline struct {
 	pip    *Pipeline
 	client Client
 }
 
+// NewClientPipeline initializes and returns a new ClientPipeline for the given
+// transfer.
 func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline, *types.TransferError) {
 
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
@@ -101,6 +105,8 @@ func (c *ClientPipeline) postTasks() error {
 	return nil
 }
 
+// Run executes the full client transfer pipeline in order. If a transfer error
+// occurs, it will be handled internally.
 func (c *ClientPipeline) Run() {
 	defer ClientTransfers.Delete(c.pip.TransCtx.Transfer.ID)
 	// REQUEST
@@ -143,6 +149,7 @@ func (c *ClientPipeline) Run() {
 	_ = c.pip.EndTransfer()
 }
 
+// Pause stops the client pipeline and pauses the transfer.
 func (c *ClientPipeline) Pause() {
 	if pa, ok := c.client.(PauseHandler); ok {
 		_ = pa.Pause()
@@ -153,12 +160,14 @@ func (c *ClientPipeline) Pause() {
 	c.pip.Pause()
 }
 
+// Interrupt stops the client pipeline and interrupts the transfer.
 func (c *ClientPipeline) Interrupt() {
 	c.client.SendError(types.NewTransferError(types.TeShuttingDown,
 		"transfer interrupted by service shutdown"))
 	c.pip.interrupt()
 }
 
+// Cancel stops the client pipeline and cancels the transfer.
 func (c *ClientPipeline) Cancel() {
 	if ca, ok := c.client.(CancelHandler); ok {
 		_ = ca.Cancel()

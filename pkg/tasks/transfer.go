@@ -95,8 +95,7 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 }
 
 // Run executes the task by scheduling a new transfer with the given parameters.
-func (t *TransferTask) Run(args map[string]string, db *database.DB,
-	_ *model.TransferContext, _ context.Context) (string, error) {
+func (t *TransferTask) Run(_ context.Context, args map[string]string, db *database.DB, _ *model.TransferContext) (string, error) {
 	file, ruleID, agentID, accID, err := getTransferInfo(db, args)
 	if err != nil {
 		return err.Error(), err

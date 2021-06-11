@@ -43,7 +43,7 @@ func TestDeleteTaskRun(t *testing.T) {
 		Convey("Given that the file exists", func() {
 
 			Convey("When calling the run method", func() {
-				_, err := task.Run(args, nil, transCtx, nil)
+				_, err := task.Run(nil, args, nil, transCtx)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
@@ -60,7 +60,7 @@ func TestDeleteTaskRun(t *testing.T) {
 			So(os.Remove(srcFile), ShouldBeNil)
 
 			Convey("When calling the run method", func() {
-				_, err := task.Run(args, nil, transCtx, nil)
+				_, err := task.Run(nil, args, nil, transCtx)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)

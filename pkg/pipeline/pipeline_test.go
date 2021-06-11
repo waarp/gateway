@@ -105,7 +105,7 @@ func TestNewPipeline(t *testing.T) {
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
 						So(info.Transfer.LocalPath, ShouldEqual, filepath.Join(
-							ctx.root, ctx.recv.LocalTmpDir, filename+".part"))
+							ctx.root, ctx.recv.LocalTmpDir, filename))
 						So(info.Transfer.RemotePath, ShouldEqual, path.Join("/",
 							ctx.recv.RemoteDir, filename))
 					})

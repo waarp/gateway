@@ -1,3 +1,5 @@
+// Package pipelinetest regroups a series of utility functions and structs for
+// quickly instantiating & running transfer pipelines for test purposes.
 package pipelinetest
 
 import (
@@ -20,6 +22,8 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 )
 
+// SelfContext is a struct regrouping all the necessary elements to perform
+// self-transfer tests, including transfer failure tests.
 type SelfContext struct {
 	*testData
 	*clientData
@@ -27,10 +31,8 @@ type SelfContext struct {
 	*transData
 	ClientRule, ServerRule *model.Rule
 
-	fail                *model.Task
-	cliChain, servChain model.Chain
-	cliIndex, servIndex int
-	protoFeatures       *features
+	fail          *model.Task
+	protoFeatures *features
 }
 
 func initSelfTransfer(c convey.C, proto string, partConf, servConf config.ProtoConfig) *SelfContext {
@@ -95,7 +97,6 @@ func (s *SelfContext) addPushTransfer(c convey.C) {
 	c.So(s.DB.Insert(trans).Run(), convey.ShouldBeNil)
 
 	s.ClientTrans = trans
-	return
 }
 
 func (s *SelfContext) addPullTransfer(c convey.C) {
@@ -117,6 +118,8 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 	s.ClientTrans = trans
 }
 
+// StartService starts the service associated with the test server defined in
+// the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
 	serv := gatewayd.ServiceConstructors[s.Server.Protocol](s.DB, s.Server, s.Logger)
 	c.So(serv.Start(), convey.ShouldBeNil)
@@ -127,12 +130,15 @@ func (s *SelfContext) StartService(c convey.C) {
 	})
 }
 
-func (s *SelfContext) AddCerts(c convey.C, certs ...model.Crypto) {
-	for _, cert := range certs {
-		c.So(s.DB.Insert(&cert).Run(), convey.ShouldBeNil)
+// AddCryptos adds the given cryptos to the test database.
+func (s *SelfContext) AddCryptos(c convey.C, certs ...model.Crypto) {
+	for i := range certs {
+		c.So(s.DB.Insert(&certs[i]).Run(), convey.ShouldBeNil)
 	}
 }
 
+// AddClientPreTaskError purposefully adds an error in the client's transfer
+// rule's pre-tasks to test error handling.
 func (s *SelfContext) AddClientPreTaskError(c convey.C) {
 	c.So(s.fail, convey.ShouldBeNil)
 	s.fail = &model.Task{
@@ -145,6 +151,8 @@ func (s *SelfContext) AddClientPreTaskError(c convey.C) {
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
 }
 
+// AddClientPostTaskError purposefully adds an error in the client's transfer
+// rule's post-tasks to test error handling.
 func (s *SelfContext) AddClientPostTaskError(c convey.C) {
 	c.So(s.fail, convey.ShouldBeNil)
 	s.fail = &model.Task{
@@ -157,6 +165,8 @@ func (s *SelfContext) AddClientPostTaskError(c convey.C) {
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
 }
 
+// AddServerPreTaskError purposefully adds an error in the server's transfer
+// rule's pre-tasks to test error handling.
 func (s *SelfContext) AddServerPreTaskError(c convey.C) {
 	c.So(s.fail, convey.ShouldBeNil)
 	s.fail = &model.Task{
@@ -169,6 +179,8 @@ func (s *SelfContext) AddServerPreTaskError(c convey.C) {
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
 }
 
+// AddServerPostTaskError purposefully adds an error in the server's transfer
+// rule's post-tasks to test error handling.
 func (s *SelfContext) AddServerPostTaskError(c convey.C) {
 	c.So(s.fail, convey.ShouldBeNil)
 	s.fail = &model.Task{
@@ -181,6 +193,7 @@ func (s *SelfContext) AddServerPostTaskError(c convey.C) {
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
 }
 
+// RunTransfer executes the test self-transfer in its entirety.
 func (s *SelfContext) RunTransfer(c convey.C) {
 	pip, err := pipeline.NewClientPipeline(s.DB, s.ClientTrans)
 	c.So(err, convey.ShouldBeNil)
@@ -188,16 +201,17 @@ func (s *SelfContext) RunTransfer(c convey.C) {
 	pip.Run()
 }
 
-func (s *SelfContext) ResetTransfer(c convey.C) {
+func (s *SelfContext) resetTransfer(c convey.C) {
 	c.So(s.DB.DeleteAll(&model.Task{}).Where("type=? OR type=?", taskstest.ClientErr, taskstest.ServerErr).
 		Run(), convey.ShouldBeNil)
 	s.ClientTrans.Status = types.StatusPlanned
 	c.So(s.DB.Update(s.ClientTrans).Cols("status").Run(), convey.ShouldBeNil)
 }
 
+// TestRetry can be called to test
 func (s *SelfContext) TestRetry(c convey.C, checkRemainingTasks ...func(c convey.C)) {
 	c.Convey("When retrying the transfer", func(c convey.C) {
-		s.ResetTransfer(c)
+		s.resetTransfer(c)
 		s.RunTransfer(c)
 
 		c.Convey("Then it should have executed all the tasks in order", func(c convey.C) {
@@ -210,8 +224,9 @@ func (s *SelfContext) TestRetry(c convey.C, checkRemainingTasks ...func(c convey
 	})
 }
 
-// CheckTransfersOK checks whether both the server & client transfers finished
-// correctly.
+//nolint:funlen
+// CheckTransfersOK checks whether both the server & client test transfers
+// finished correctly.
 func (s *SelfContext) CheckTransfersOK(c convey.C) {
 	s.shouldBeEndTransfer(c)
 
@@ -238,7 +253,7 @@ func (s *SelfContext) CheckTransfersOK(c convey.C) {
 				Status:     types.StatusDone,
 				Step:       types.StepNone,
 				Error:      types.TransferError{},
-				Progress:   uint64(len(s.fileContent)),
+				Progress:   uint64(len(s.transData.fileContent)),
 				TaskNumber: 0,
 			}
 			c.So(results[0], convey.ShouldResemble, cTrans)
@@ -261,7 +276,7 @@ func (s *SelfContext) CheckTransfersOK(c convey.C) {
 				Status:     types.StatusDone,
 				Step:       types.StepNone,
 				Error:      types.TransferError{},
-				Progress:   uint64(len(s.fileContent)),
+				Progress:   uint64(len(s.transData.fileContent)),
 				TaskNumber: 0,
 			}
 			if s.Server.Protocol == "r66" {
@@ -296,6 +311,10 @@ func (s *SelfContext) checkDestFile(c convey.C) {
 	})
 }
 
+// CheckTransfersError takes 2 transfer entries (one for the client and one for
+// the server) and checks that they have failed as expected. The given transfers
+// arguments must specify the step, progress, task number & error details expected.
+// The rest of the transfer entry's attribute will be deduced automatically.
 func (s *SelfContext) CheckTransfersError(c convey.C, cTrans, sTrans *model.Transfer) {
 	s.shouldBeErrorTasks(c)
 	s.shouldBeEndTransfer(c)
@@ -321,6 +340,10 @@ func (s *SelfContext) CheckTransfersError(c convey.C, cTrans, sTrans *model.Tran
 				s.protoFeatures.size && cTrans.Step <= types.StepSetup) {
 				cTrans.Filesize = -1
 			}
+			if cTrans.Progress == UndefinedProgress {
+				convey.So(transfers[0].Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
+				cTrans.Progress = transfers[0].Progress
+			}
 
 			c.So(transfers[0], convey.ShouldResemble, *cTrans)
 		})
@@ -342,6 +365,10 @@ func (s *SelfContext) CheckTransfersError(c convey.C, cTrans, sTrans *model.Tran
 			}
 			if !s.ServerRule.IsSend && !s.protoFeatures.size && sTrans.Step <= types.StepData {
 				sTrans.Filesize = -1
+			}
+			if sTrans.Progress == UndefinedProgress {
+				convey.So(transfers[1].Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
+				sTrans.Progress = transfers[1].Progress
 			}
 
 			c.So(transfers[1], convey.ShouldResemble, *sTrans)

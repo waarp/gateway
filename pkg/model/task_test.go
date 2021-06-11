@@ -20,8 +20,7 @@ func (t *testTaskSuccess) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskSuccess) Run(map[string]string, *database.DB, *TransferContext,
-	context.Context) (string, error) {
+func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error) {
 	return "", nil
 }
 
@@ -31,8 +30,7 @@ func (t *testTaskFail) Validate(map[string]string) error {
 	return fmt.Errorf("validation failed")
 }
 
-func (t *testTaskFail) Run(map[string]string, *database.DB, *TransferContext,
-	context.Context) (string, error) {
+func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error) {
 	return "", fmt.Errorf("execution failed")
 }
 

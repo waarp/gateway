@@ -1,12 +1,26 @@
+// Package pipeline defines the execution of a transfer through the Pipeline
+// struct. A pipeline can be initiated using either the NewClientPipeline or the
+// NewServerPipeline function (one for each side of the transfer). Once initiated,
+// a Pipeline exposes multiple functions for every step of the transfer.
+//
+// The package also defines the interfaces which should be implemented by the
+// gateway's different protocol handlers (clients & servers).
 package pipeline
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
-type ClientConstructor func(*Pipeline) (Client, *types.TransferError)
-
+// ClientConstructors is a map containing constructors for the various clients
+// supported by the gateway. It associates each protocol with the constructor for
+// its client. In order for the gateway to be able to execute a transfer in a
+// given protocol as a client, the constructor for the protocol's client must
+// be added to this map.
 var ClientConstructors = map[string]ClientConstructor{}
+
+// ClientConstructor is the type defining the signature which all clients
+// constructor functions must satisfy.
+type ClientConstructor func(*Pipeline) (Client, *types.TransferError)
 
 // Client is the interface defining a protocol client. All protocol clients
 // (SFTP, R66, HTTP...) must implement this interface in order to be usable by
@@ -30,6 +44,10 @@ type Client interface {
 	ErrorHandler
 }
 
+// Server is the interface exposing the various handler functions which servers
+// must implement in order to initiate a ServerPipeline. The only mandatory
+// function is SendError. Optionally, servers can also implement the PauseHandler
+// and CancelHandler interfaces to allow more refined interruption handling.
 type Server interface {
 	ErrorHandler
 }

@@ -43,6 +43,13 @@ func newFileStream(pipeline *Pipeline, updateInterval time.Duration) (*fileStrea
 		progress: pipeline.TransCtx.Transfer.Progress,
 	}
 
+	if !pipeline.TransCtx.Rule.IsSend {
+		pipeline.TransCtx.Transfer.LocalPath += ".part"
+		if dbErr := pipeline.UpdateTrans("local_path"); dbErr != nil {
+			return nil, dbErr
+		}
+	}
+
 	file, err := internal.GetFile(stream.Logger, stream.TransCtx.Rule, stream.TransCtx.Transfer)
 	if err != nil {
 		return nil, err
@@ -259,12 +266,12 @@ func (f *fileStream) move() *types.TransferError {
 	file := strings.TrimSuffix(filepath.Base(f.TransCtx.Transfer.LocalPath), ".part")
 	var dest string
 	if f.TransCtx.Transfer.IsServer {
-		dest = utils.GetPath(file, Leaf(f.TransCtx.Rule.LocalDir),
-			Leaf(f.TransCtx.LocalAgent.LocalInDir), Branch(f.TransCtx.LocalAgent.Root),
-			Leaf(f.TransCtx.Paths.DefaultInDir), Branch(f.TransCtx.Paths.GatewayHome))
+		dest = utils.GetPath(file, leaf(f.TransCtx.Rule.LocalDir),
+			leaf(f.TransCtx.LocalAgent.LocalInDir), branch(f.TransCtx.LocalAgent.Root),
+			leaf(f.TransCtx.Paths.DefaultInDir), branch(f.TransCtx.Paths.GatewayHome))
 	} else {
-		dest = utils.GetPath(file, Leaf(f.TransCtx.Rule.LocalDir),
-			Leaf(f.TransCtx.Paths.DefaultInDir), Branch(f.TransCtx.Paths.GatewayHome))
+		dest = utils.GetPath(file, leaf(f.TransCtx.Rule.LocalDir),
+			leaf(f.TransCtx.Paths.DefaultInDir), branch(f.TransCtx.Paths.GatewayHome))
 	}
 
 	if f.TransCtx.Transfer.LocalPath == dest {

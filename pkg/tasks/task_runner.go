@@ -69,7 +69,6 @@ func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) *typ
 		r.logger.Error(logMsg)
 		return types.NewTransferError(types.TeExternalOperation, logMsg)
 	}
-
 	if err := runner.Validate(args); err != nil {
 		logMsg := fmt.Sprintf("%s: %s", taskInfo, err.Error())
 		r.logger.Error(logMsg)
@@ -78,9 +77,9 @@ func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) *typ
 
 	var msg string
 	if isErrTasks {
-		msg, err = runner.Run(args, r.db, r.transCtx, context.Background())
+		msg, err = runner.Run(context.Background(), args, r.db, r.transCtx)
 	} else {
-		msg, err = runner.Run(args, r.db, r.transCtx, r.ctx)
+		msg, err = runner.Run(r.ctx, args, r.db, r.transCtx)
 	}
 
 	if err != nil {
@@ -112,7 +111,6 @@ func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) *typ
 		r.transCtx.Transfer.Filesize = size
 		query.Cols("filesize")
 	}
-
 	if dbErr := query.Run(); dbErr != nil {
 		r.logger.Errorf("Failed to update task number: %s", dbErr)
 		if !isErrTasks {

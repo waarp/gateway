@@ -137,6 +137,8 @@ func (e *errHook) BeforeProcess(c *contexts.ContextHook) (context.Context, error
 
 func (*errHook) AfterProcess(*contexts.ContextHook) error { return nil }
 
+// SimulateError adds a database hook which always returns an error to simulate
+// a database error for test purposes.
 func SimulateError(_ convey.C, db *DB) {
 	db.engine.AddHook(&errHook{})
 }

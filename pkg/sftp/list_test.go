@@ -72,7 +72,7 @@ func TestSFTPList(t *testing.T) {
 			serverConfig, err := internal.GetSSHServerConfig(db, []model.Crypto{hostKey}, &protoConfig, agent)
 			So(err, ShouldBeNil)
 
-			sshList := &SSHListener{
+			sshList := &sshListener{
 				DB:               db,
 				Logger:           logger,
 				Agent:            agent,

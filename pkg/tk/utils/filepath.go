@@ -5,18 +5,25 @@ import (
 	"path/filepath"
 )
 
+// Elem is the interface which represent an element of a path tree.
 type Elem interface {
 	IsLeaf() bool
 	String() string
 }
 
+// Leaf is a leaf in a path tree. Thus, it cannot have any children.
 type Leaf string
 
+// IsLeaf returns whether the element is a leaf (and thus, cannot have
+// children) or not. Always true for type Leaf.
 func (Leaf) IsLeaf() bool     { return true }
 func (l Leaf) String() string { return string(l) }
 
+// Branch is a branch of a path tree. It can have 1 or no child.
 type Branch string
 
+// IsLeaf returns whether the element is a leaf (and thus, cannot have
+// children) or not. Always false for type Branch.
 func (Branch) IsLeaf() bool     { return false }
 func (b Branch) String() string { return string(b) }
 

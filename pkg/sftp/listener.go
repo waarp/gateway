@@ -22,7 +22,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 )
 
-type SSHListener struct {
+type sshListener struct {
 	DB          *database.DB
 	Logger      *log.Logger
 	Agent       *model.LocalAgent
@@ -36,7 +36,7 @@ type SSHListener struct {
 	runningTransfers *pipeline.TransferMap
 }
 
-func (l *SSHListener) listen() {
+func (l *sshListener) listen() {
 	l.handlerMaker = l.makeHandlers
 	go func() {
 		for {
@@ -50,7 +50,7 @@ func (l *SSHListener) listen() {
 	}()
 }
 
-func (l *SSHListener) handleConnection(nConn net.Conn) {
+func (l *sshListener) handleConnection(nConn net.Conn) {
 	l.connWg.Add(1)
 
 	go func() {
@@ -79,7 +79,7 @@ func (l *SSHListener) handleConnection(nConn net.Conn) {
 	}()
 }
 
-func (l *SSHListener) handleSession(wg *sync.WaitGroup, acc *model.LocalAccount,
+func (l *sshListener) handleSession(wg *sync.WaitGroup, acc *model.LocalAccount,
 	newChannel ssh.NewChannel) {
 
 	wg.Add(1)
@@ -105,7 +105,7 @@ func (l *SSHListener) handleSession(wg *sync.WaitGroup, acc *model.LocalAccount,
 	}()
 }
 
-func (l *SSHListener) makeHandlers(ch ssh.Channel, acc *model.LocalAccount) sftp.Handlers {
+func (l *sshListener) makeHandlers(ch ssh.Channel, acc *model.LocalAccount) sftp.Handlers {
 	return sftp.Handlers{
 		FileGet:  l.makeFileReader(ch, acc),
 		FilePut:  l.makeFileWriter(ch, acc),
@@ -114,12 +114,17 @@ func (l *SSHListener) makeHandlers(ch ssh.Channel, acc *model.LocalAccount) sftp
 	}
 }
 
-func (l *SSHListener) makeFileReader(ch ssh.Channel, acc *model.LocalAccount) internal.ReaderAtFunc {
+//nolint:dupl
+func (l *sshListener) makeFileReader(ch ssh.Channel, acc *model.LocalAccount) internal.ReaderAtFunc {
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		l.Logger.Debug("GET request received")
 
 		// Get rule according to request filepath
-		rule, rErr := internal.GetRuleFromPath(l.DB, r, true)
+		filepath := path.Join("/", path.Dir(r.Filepath))
+		rule, rErr := internal.GetRule(l.DB, l.Logger, acc, l.Agent, filepath, true)
+		if rule == nil {
+			return nil, sftp.ErrSSHFxNoSuchFile
+		}
 		if rErr != nil {
 			l.Logger.Errorf("Failed to retrieve transfer rule: %s", rErr)
 			return nil, errDatabase
@@ -158,12 +163,17 @@ func (l *SSHListener) makeFileReader(ch ssh.Channel, acc *model.LocalAccount) in
 	}
 }
 
-func (l *SSHListener) makeFileWriter(ch ssh.Channel, acc *model.LocalAccount) internal.WriterAtFunc {
+//nolint:dupl
+func (l *sshListener) makeFileWriter(ch ssh.Channel, acc *model.LocalAccount) internal.WriterAtFunc {
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		l.Logger.Debug("PUT request received")
 
 		// Get rule according to request filepath
-		rule, rErr := internal.GetRuleFromPath(l.DB, r, false)
+		filepath := path.Join("/", path.Dir(r.Filepath))
+		rule, rErr := internal.GetRule(l.DB, l.Logger, acc, l.Agent, filepath, false)
+		if rule == nil {
+			return nil, sftp.ErrSSHFxNoSuchFile
+		}
 		if rErr != nil {
 			l.Logger.Errorf("Failed to retrieve transfer rule: %s", rErr)
 			return nil, errDatabase
@@ -202,12 +212,10 @@ func (l *SSHListener) makeFileWriter(ch ssh.Channel, acc *model.LocalAccount) in
 	}
 }
 
-func (l *SSHListener) close(ctx context.Context) error {
+func (l *sshListener) close(ctx context.Context) error {
 	finished := make(chan struct{})
 	go func() {
-		l.runningTransfers.Iterate(func(t pipeline.TransferInterrupter) {
-			t.Interrupt()
-		})
+		l.runningTransfers.InterruptAll()
 		l.connWg.Wait()
 		close(finished)
 	}()

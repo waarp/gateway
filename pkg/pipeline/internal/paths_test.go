@@ -83,7 +83,7 @@ func TestPathBuilder(t *testing.T) {
 				LocalPath:  "file.loc",
 				RemotePath: "file.rem",
 			}
-			tmp := trans.LocalPath + ".part"
+			file := trans.LocalPath
 
 			transCtx, err := model.GetTransferInfo(db, logger, trans)
 			So(err, ShouldBeNil)
@@ -94,14 +94,14 @@ func TestPathBuilder(t *testing.T) {
 			}
 			gwRoot := db.Conf.Paths.GatewayHome
 			testCases := []testCase{
-				{"", "", "", Join(gwRoot, "gwTmp", tmp)},
-				{"serRoot", "", "", Join(gwRoot, "serRoot", "serTmp", tmp)},
-				{"", "recvLoc", "", Join(gwRoot, "recvLoc", tmp)},
-				{"", "", "recvTmp", Join(gwRoot, "recvTmp", tmp)},
-				{"serRoot", "recvLoc", "", Join(gwRoot, "serRoot", "recvLoc", tmp)},
-				{"serRoot", "", "recvTmp", Join(gwRoot, "serRoot", "recvTmp", tmp)},
-				{"", "recvLoc", "recvTmp", Join(gwRoot, "recvTmp", tmp)},
-				{"serRoot", "recvLoc", "recvTmp", Join(gwRoot, "serRoot", "recvTmp", tmp)},
+				{"", "", "", Join(gwRoot, "gwTmp", file)},
+				{"serRoot", "", "", Join(gwRoot, "serRoot", "serTmp", file)},
+				{"", "recvLoc", "", Join(gwRoot, "recvLoc", file)},
+				{"", "", "recvTmp", Join(gwRoot, "recvTmp", file)},
+				{"serRoot", "recvLoc", "", Join(gwRoot, "serRoot", "recvLoc", file)},
+				{"serRoot", "", "recvTmp", Join(gwRoot, "serRoot", "recvTmp", file)},
+				{"", "recvLoc", "recvTmp", Join(gwRoot, "recvTmp", file)},
+				{"serRoot", "recvLoc", "recvTmp", Join(gwRoot, "serRoot", "recvTmp", file)},
 			}
 
 			for _, tc := range testCases {

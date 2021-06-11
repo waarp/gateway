@@ -33,8 +33,7 @@ func (t *testTaskSuccess) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskSuccess) Run(map[string]string, *database.DB,
-	*model.TransferContext, context.Context) (string, error) {
+func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
 	dummyTaskCheck <- "SUCCESS"
 	return "", nil
 }
@@ -45,7 +44,7 @@ func (t *testTaskWarning) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskWarning) Run(map[string]string, *database.DB, *model.TransferContext, context.Context) (string, error) {
+func (t *testTaskWarning) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
 	dummyTaskCheck <- "WARNING"
 	return "warning message", &errWarning{"warning message"}
 }
@@ -56,7 +55,7 @@ func (t *testTaskFail) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskFail) Run(map[string]string, *database.DB, *model.TransferContext, context.Context) (string, error) {
+func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
 	dummyTaskCheck <- "FAILURE"
 	return "task failed", fmt.Errorf("task failed")
 }
@@ -67,7 +66,7 @@ func (t *testTaskLong) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskLong) Run(map[string]string, *database.DB, *model.TransferContext, context.Context) (string, error) {
+func (t *testTaskLong) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
 	dummyTaskCheck <- "LONG"
 	time.Sleep(time.Minute)
 	return "task failed", fmt.Errorf("task failed")
