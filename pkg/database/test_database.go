@@ -26,7 +26,7 @@ const (
 )
 
 func testinfo(c conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc",
+	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&_mutex=full&_txlock=exclusive&_busy_timeout=10000",
 		c.Address), sqliteInit
 }
 
@@ -38,22 +38,22 @@ func testGCM() {
 	key := make([]byte, 32)
 	_, err := rand.Read(key)
 	convey.So(err, convey.ShouldBeNil)
-	c, err := aes.NewCipher(key)
+	ciph, err := aes.NewCipher(key)
 	convey.So(err, convey.ShouldBeNil)
 
-	GCM, err = cipher.NewGCM(c)
+	GCM, err = cipher.NewGCM(ciph)
 	convey.So(err, convey.ShouldBeNil)
 }
 
-func tempFilename(c convey.C) string {
+func tempFilename() string {
 	f, err := ioutil.TempFile(os.TempDir(), "test_database_*.db")
-	c.So(err, convey.ShouldBeNil)
-	c.So(f.Close(), convey.ShouldBeNil)
-	c.So(os.Remove(f.Name()), convey.ShouldBeNil)
+	convey.So(err, convey.ShouldBeNil)
+	convey.So(f.Close(), convey.ShouldBeNil)
+	convey.So(os.Remove(f.Name()), convey.ShouldBeNil)
 	return f.Name()
 }
 
-func initTestDBConf(c convey.C, config *conf.DatabaseConfig) {
+func initTestDBConf(config *conf.DatabaseConfig) {
 	dbType := os.Getenv(testDBEnv)
 	switch dbType {
 	case postgres:
@@ -68,31 +68,32 @@ func initTestDBConf(c convey.C, config *conf.DatabaseConfig) {
 		config.Address = "localhost:3306"
 	case sqlite:
 		config.Type = sqlite
-		config.Address = tempFilename(c)
+		config.Address = tempFilename()
 	case "":
 		supportedRBMS[testDBType] = testinfo
 		config.Type = testDBType
-		config.Address = tempFilename(c)
+		config.Address = tempFilename()
 	default:
-		_, _ = c.Printf("Unknown database type '%s'\n", dbType)
-		c.So(dbType, convey.ShouldNotEqual, dbType)
+		panic(fmt.Sprintf("Unknown database type '%s'\n", dbType))
 	}
 }
 
-func resetDB(c convey.C, db *DB, config *conf.DatabaseConfig) {
+func resetDB(db *DB, config *conf.DatabaseConfig) {
 	switch config.Type {
 	case postgres, mysql:
 		for _, tbl := range Tables {
-			c.So(db.engine.DropTables(tbl.TableName()), convey.ShouldBeNil)
+			convey.So(db.engine.DropTables(tbl.TableName()), convey.ShouldBeNil)
 		}
-		c.So(db.engine.Close(), convey.ShouldBeNil)
-	case sqlite, testDBType:
-		c.So(db.engine.Close(), convey.ShouldBeNil)
-		c.So(db.engine.Close(), convey.ShouldBeNil)
-		c.So(os.Remove(config.Address), convey.ShouldBeNil)
+		convey.So(db.engine.Close(), convey.ShouldBeNil)
+	case testDBType:
+		convey.So(db.engine.Close(), convey.ShouldBeNil)
+		convey.So(db.engine.Close(), convey.ShouldBeNil)
+	case sqlite:
+		convey.So(db.engine.Close(), convey.ShouldBeNil)
+		convey.So(db.engine.Close(), convey.ShouldBeNil)
+		convey.So(os.Remove(config.Address), convey.ShouldBeNil)
 	default:
-		_, _ = c.Printf("Unknown database type '%s'\n", config.Type)
-		c.So(config.Type, convey.ShouldNotEqual, config.Type)
+		panic(fmt.Sprintf("Unknown database type '%s'\n", config.Type))
 	}
 }
 
@@ -103,7 +104,7 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 	BcryptRounds = bcrypt.MinCost
 	config := &conf.ServerConfig{}
 	config.GatewayName = "test_gateway"
-	initTestDBConf(c, &config.Database)
+	initTestDBConf(&config.Database)
 
 	level, err := logging.LevelByName(logLevel)
 	c.So(err, convey.ShouldBeNil)
@@ -119,7 +120,7 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 	}
 
 	c.So(db.Start(), convey.ShouldBeNil)
-	c.Reset(func() { resetDB(c, db, &config.Database) })
+	c.Reset(func() { resetDB(db, &config.Database) })
 
 	return db
 }
