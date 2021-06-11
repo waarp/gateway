@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
+// MakeHash takes a file path and returns the sha256 checksum of the file.
 func MakeHash(logger *log.Logger, path string) ([]byte, *types.TransferError) {
 	hasher := sha256.New()
 	file, err := os.OpenFile(path, os.O_RDONLY, 0600)

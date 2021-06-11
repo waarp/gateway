@@ -1,3 +1,4 @@
+// Package internal regroups internal utility functions for the pipeline module.
 package internal
 
 import (
@@ -7,6 +8,9 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 )
 
+// MakeClientTLSConfig takes a client R66 transfer context and returns a TLS
+// configuration suited for making that transfer. If the partner does not use
+// TLS, the returned configuration will be nil.
 func MakeClientTLSConfig(info *model.TransferContext) (*tls.Config, error) {
 	tlsCerts := make([]tls.Certificate, len(info.RemoteAccountCryptos))
 	for i, cert := range info.RemoteAccountCryptos {

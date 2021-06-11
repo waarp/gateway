@@ -59,7 +59,7 @@ func addCerts(c C, ctx *pipelinetest.ServerContext) {
 		Name:        "loc_acc_cert",
 		Certificate: testhelpers.ClientCert,
 	}
-	ctx.AddCerts(c, servCert, locAccCert)
+	ctx.AddCryptos(c, servCert, locAccCert)
 }
 
 func tlsConnect(ctx *pipelinetest.ServerContext, hasCliCert bool) error {
@@ -69,7 +69,7 @@ func tlsConnect(ctx *pipelinetest.ServerContext, hasCliCert bool) error {
 	So(pool.AppendCertsFromPEM([]byte(testhelpers.LocalhostCert)), ShouldBeTrue)
 
 	conf := &tls.Config{
-		Certificates: []tls.Certificate{},
+		Certificates: []tls.Certificate{cert},
 		RootCAs:      pool,
 	}
 	if hasCliCert {
@@ -92,6 +92,6 @@ func tlsConnect(ctx *pipelinetest.ServerContext, hasCliCert bool) error {
 
 	sesConf := &r66.Config{DigestAlgo: "SHA-256"}
 	//TODO: remove password and authenticate with certificate only
-	_, err = ses.Authent(pipelinetest.TestLogin, []byte(pipelinetest.TestPassword), sesConf)
+	_, err = ses.Authent("", []byte{}, sesConf)
 	return err
 }

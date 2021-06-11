@@ -2,7 +2,7 @@ module code.waarp.fr/waarp-gateway/waarp-gateway
 
 require (
 	code.bcarlin.xyz/go/logging v0.1.0
-	code.waarp.fr/waarp-r66/r66 v0.0.0-20210526134430-b49688cbe339
+	code.waarp.fr/waarp-r66/r66 v0.0.0-20210610140700-4bb83e4533a3
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gorilla/mux v1.7.3
 	github.com/jackc/pgx/v4 v4.10.1

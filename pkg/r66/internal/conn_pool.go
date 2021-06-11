@@ -15,15 +15,21 @@ type connInfo struct {
 	num  uint64      // the number of sessions open on the connection
 }
 
+// ConnPool is a pool of r66 client connections used for multiplexing.
 type ConnPool struct {
 	m   map[string]*connInfo
 	mux sync.Mutex
 }
 
+// NewConnPool initiates and returns a new ConnPool instance.
 func NewConnPool() *ConnPool {
 	return &ConnPool{m: map[string]*connInfo{}}
 }
 
+// Add returns an R66 connection to the given address. If a connection to that
+// address already exists in the connection pool, it returns that connection and
+// increments its usage counter. If no connection exists to the given address,
+// it opens a new one and adds it to the pool with a counter of 1.
 func (c *ConnPool) Add(addr string, tlsConf *tls.Config, logger *log.Logger) (*r66.Client, error) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
@@ -49,6 +55,10 @@ func (c *ConnPool) Add(addr string, tlsConf *tls.Config, logger *log.Logger) (*r
 	return cli, nil
 }
 
+// Done informs the connection pool that the client has finished using connection
+// to the given address by decrementing its usage counter. If the counter reaches
+// 0, the connection  is closed and removed from the pool. Otherwise, it stays in
+// the pool until the other clients have finished using it.
 func (c *ConnPool) Done(addr string) {
 	c.mux.Lock()
 	defer c.mux.Unlock()

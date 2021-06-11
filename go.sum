@@ -6,6 +6,14 @@ code.waarp.fr/waarp-r66/r66 v0.0.0-20210402171137-41ab4b252f00 h1:hB4NgbS+GSbp1v
 code.waarp.fr/waarp-r66/r66 v0.0.0-20210402171137-41ab4b252f00/go.mod h1:1/hIMbR+K4t7db9DuvLFpQj/hLOm0DIZC0fxAtHAOQ8=
 code.waarp.fr/waarp-r66/r66 v0.0.0-20210526134430-b49688cbe339 h1:m0wxWIMa7TE6BrMYk7RdwtFF/HzR9Y453emVehDYIIw=
 code.waarp.fr/waarp-r66/r66 v0.0.0-20210526134430-b49688cbe339/go.mod h1:wY2gkBOP4ytKGO2Mh/P8QHWJfHwHfYGQpcHRtGzLjLI=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210607142247-51034fcb2231 h1:Z6L7LLldfAD446w1uVK+RdnYewDv4ffZo+bRZD1ql5k=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210607142247-51034fcb2231/go.mod h1:wY2gkBOP4ytKGO2Mh/P8QHWJfHwHfYGQpcHRtGzLjLI=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210610072315-cd1486af94eb h1:n5tudUJF2J3vssPbOn6oavH2IbGz5q1vZPJH8bOyt4s=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210610072315-cd1486af94eb/go.mod h1:wY2gkBOP4ytKGO2Mh/P8QHWJfHwHfYGQpcHRtGzLjLI=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210610133136-08a18bfcfcef h1:XM1oTysPLzpr4u8cd+lVO/2waepbOcZANOk52F1ZfDA=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210610133136-08a18bfcfcef/go.mod h1:wY2gkBOP4ytKGO2Mh/P8QHWJfHwHfYGQpcHRtGzLjLI=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210610140700-4bb83e4533a3 h1:9/o/VjIt+yh7fSfQow1gLUzAhYufqpQJ4TP0V07qldA=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210610140700-4bb83e4533a3/go.mod h1:wY2gkBOP4ytKGO2Mh/P8QHWJfHwHfYGQpcHRtGzLjLI=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=

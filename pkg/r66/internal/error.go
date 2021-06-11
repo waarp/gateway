@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/waarp-r66/r66"
 )
 
+//nolint:funlen
 // ToR66Error takes an error (preferably a types.TransferError) and returns the
 // equivalent r66.Error.
 func ToR66Error(err error) *r66.Error {
@@ -63,6 +64,9 @@ func ToR66Error(err error) *r66.Error {
 	}
 }
 
+//nolint:funlen
+// FromR66Error takes an R66 error (most likely of type r66.Error) and returns
+// the corresponding types.TransferError.
 func FromR66Error(err error, pip *pipeline.Pipeline) *types.TransferError {
 	var rErr *r66.Error
 	if !errors.As(err, &rErr) {

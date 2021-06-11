@@ -1,7 +1,6 @@
 package r66
 
 import (
-	"encoding/base64"
 	"os"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/r66/internal"
@@ -38,7 +37,8 @@ func (c *client) connect() *types.TransferError {
 }
 
 func (c *client) authenticate() *types.TransferError {
-	servHash, err := base64.StdEncoding.DecodeString(c.conf.ServerPassword)
+	//servHash, err := base64.StdEncoding.DecodeString(c.conf.ServerPassword)
+	servHash := []byte(c.conf.ServerPassword)
 
 	conf := &r66.Config{
 		FileSize:   true,
@@ -55,13 +55,13 @@ func (c *client) authenticate() *types.TransferError {
 	}
 
 	loginOK := utils.ConstantEqual(c.conf.ServerLogin, auth.Login)
-	pwdOK := bcrypt.CompareHashAndPassword(servHash, auth.Password) != nil
+	pwdErr := bcrypt.CompareHashAndPassword(servHash, auth.Password)
 	if !loginOK {
 		c.pip.Logger.Errorf("Server authentication failed: wrong login '%s'", auth.Login)
 		return types.NewTransferError(types.TeBadAuthentication, "server authentication failed")
 	}
-	if !pwdOK {
-		c.pip.Logger.Errorf("Server authentication failed: wrong password")
+	if pwdErr != nil {
+		c.pip.Logger.Errorf("Server authentication failed: %s", pwdErr)
 		return types.NewTransferError(types.TeBadAuthentication, "server authentication failed")
 	}
 
@@ -85,8 +85,10 @@ func (c *client) request() *types.TransferError {
 	req := &r66.Request{
 		ID:       int64(c.pip.TransCtx.Transfer.ID),
 		Filepath: c.pip.TransCtx.Transfer.RemotePath,
+		FileSize: c.pip.TransCtx.Transfer.Filesize,
 		Rule:     c.pip.TransCtx.Rule.Name,
 		Block:    c.conf.BlockSize,
+		IsMD5:    c.conf.CheckBlockHash,
 		Infos:    "",
 	}
 	req.Rank = uint32(c.pip.TransCtx.Transfer.Progress / uint64(c.conf.BlockSize))
@@ -98,29 +100,34 @@ func (c *client) request() *types.TransferError {
 			return types.NewTransferError(types.TeInternal, "failed to retrieve file size")
 		}
 		req.FileSize = info.Size()
-
-		if c.conf.CheckBlockHash {
-			req.Mode = uint32(r66.MODE_SEND_MD5)
-		} else {
-			req.Mode = uint32(r66.MODE_SEND)
-		}
+		req.IsRecv = false
 	} else {
-		if c.conf.CheckBlockHash {
-			req.Mode = uint32(r66.MODE_RECV_MD5)
-		} else {
-			req.Mode = uint32(r66.MODE_RECV)
-		}
+		req.IsRecv = true
 	}
 
 	resp, err := c.ses.Request(req)
 	if err != nil {
+		c.pip.Logger.Errorf("Transfer request failed: %s", err)
 		return internal.FromR66Error(err, c.pip)
 	}
 
+	if err := c.checkReqResp(req, resp); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *client) checkReqResp(req, resp *r66.Request) *types.TransferError {
 	if c.pip.TransCtx.Rule.IsSend {
 		if resp.FileSize != req.FileSize {
 			c.logErrConf("different file size")
 			return errConf
+		}
+	} else {
+		c.pip.TransCtx.Transfer.Filesize = resp.FileSize
+		if err := c.pip.UpdateTrans("filesize"); err != nil {
+			return err
 		}
 	}
 	if resp.Filepath != req.Filepath {
@@ -131,7 +138,7 @@ func (c *client) request() *types.TransferError {
 		c.logErrConf("different block size")
 		return errConf
 	}
-	if resp.Mode != req.Mode {
+	if resp.IsRecv != req.IsRecv || resp.IsMD5 != req.IsMD5 {
 		c.logErrConf("different transfer mode")
 		return errConf
 	}
@@ -147,13 +154,11 @@ func (c *client) request() *types.TransferError {
 		progress := uint64(resp.Rank) * uint64(resp.Block)
 		if progress < c.pip.TransCtx.Transfer.Progress {
 			c.pip.TransCtx.Transfer.Progress = progress
-			if err := c.pip.DB.Update(c.pip.TransCtx.Transfer).Cols("progress").Run(); err != nil {
-				c.pip.Logger.Errorf("Failed to update transfer progress: %s", err)
-				return types.NewTransferError(types.TeInternal, "internal database error")
+			if err := c.pip.UpdateTrans("progress"); err != nil {
+				return err
 			}
 		}
 	}
-
 	return nil
 }
 

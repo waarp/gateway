@@ -1,3 +1,5 @@
+// Package r66 contains the functions necessary to execute a file transfer
+// using the R66 protocol. The package defines both a client and a server.
 package r66
 
 import (
@@ -177,6 +179,7 @@ func (s *Service) Stop(ctx context.Context) error {
 	s.state.Set(service.ShuttingDown, "")
 	defer s.state.Set(service.Offline, "")
 
+	go s.runningTransfers.InterruptAll()
 	if err := s.server.Shutdown(ctx); err != nil {
 		s.logger.Error("Failed to shut down R66 server, forcing exit")
 		return err

@@ -175,7 +175,7 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Error on remote partner: pre-tasks failed",
 					},
-					Progress:   0,
+					Progress:   pipelinetest.UndefinedProgress,
 					TaskNumber: 0,
 				}
 

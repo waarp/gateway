@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/r66/internal"
 
@@ -70,10 +71,36 @@ func (c *client) Request() *types.TransferError {
 	return nil
 }
 
+func (c *client) BeginPreTasks() *types.TransferError { return nil }
+
+func (c *client) EndPreTasks() *types.TransferError {
+	if c.pip.TransCtx.Rule.IsSend {
+		info := &r66.UpdateInfo{
+			Filename: strings.TrimPrefix(c.pip.TransCtx.Transfer.RemotePath, "/"),
+			FileSize: c.pip.TransCtx.Transfer.Filesize,
+			FileInfo: &r66.TransferData{},
+		}
+		if err := c.ses.SendUpdateRequest(info); err != nil {
+			c.pip.Logger.Errorf("Failed to send transfer info: %s", err)
+			return internal.FromR66Error(err, c.pip)
+		}
+		return nil
+	}
+
+	info, err := c.ses.RecvUpdateRequest()
+	if err != nil {
+		c.pip.Logger.Errorf("Failed to receive transfer info: %s", err)
+		return internal.FromR66Error(err, c.pip)
+	}
+
+	return internal.UpdateInfo(info, c.pip)
+}
+
 func (c *client) Data(dataStream pipeline.DataStream) *types.TransferError {
 	if c.pip.TransCtx.Rule.IsSend {
 		_, err := c.ses.Send(dataStream, c.makeHash)
 		if err != nil {
+			c.pip.Logger.Errorf("Failed to send transfer file: %s", err)
 			return internal.FromR66Error(err, c.pip)
 		}
 		return nil
@@ -81,6 +108,7 @@ func (c *client) Data(dataStream pipeline.DataStream) *types.TransferError {
 
 	eot, err := c.ses.Recv(dataStream)
 	if err != nil {
+		c.pip.Logger.Errorf("Failed to receive transfer file: %s", err)
 		return internal.FromR66Error(err, c.pip)
 	}
 	if c.conf.NoFinalHash {
@@ -106,6 +134,7 @@ func (c *client) EndTransfer() *types.TransferError {
 			c.ses.Close()
 		}
 	}()
+	c.pip.Logger.Debug("Ending transfert with remote partner")
 	if err := c.ses.EndRequest(); err != nil {
 		c.pip.Logger.Errorf("Failed to end transfer request: %s", err)
 		return internal.FromR66Error(err, c.pip)
@@ -120,6 +149,7 @@ func (c *client) SendError(err *types.TransferError) {
 			c.ses.Close()
 		}
 	}()
+	c.pip.Logger.Debugf("Sending error '%s' to remote partner", err)
 	if sErr := c.ses.SendError(internal.ToR66Error(err)); sErr != nil {
 		c.pip.Logger.Errorf("Failed to send error to remote partner: %s", sErr)
 	}

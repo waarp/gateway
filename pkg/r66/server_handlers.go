@@ -2,50 +2,51 @@ package r66
 
 import (
 	"path"
-	"path/filepath"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/r66/internal"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-r66/r66"
 	r66utils "code.waarp.fr/waarp-r66/r66/utils"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type authHandler struct {
 	*Service
 }
 
-func (a *authHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, error) {
-	if authent.FinalHash && !strings.EqualFold(authent.Digest, "SHA-256") {
-		a.logger.Warningf("Unknown hash digest '%s'", authent.Digest)
+func (a *authHandler) ValidAuth(auth *r66.Authent) (r66.SessionHandler, error) {
+	if auth.FinalHash && !strings.EqualFold(auth.Digest, "SHA-256") {
+		a.logger.Warningf("Unknown hash digest '%s'", auth.Digest)
 		return nil, &r66.Error{Code: r66.Unimplemented, Detail: "unknown final hash digest"}
 	}
 
-	var acc model.LocalAccount
-	if err := a.db.Get(&acc, "login=? AND local_agent_id=?", authent.Login,
-		a.agent.ID).Run(); err != nil {
-		if database.IsNotFound(err) {
-			a.logger.Warningf("Unknown account '%s'", authent.Login)
-			return nil, &r66.Error{Code: r66.BadAuthent, Detail: "incorrect credentials"}
-		}
-		a.logger.Errorf("Failed to retrieve credentials from database: %s", err)
-		return nil, r66ErrDatabase
+	var certAcc, pwdAcc *model.LocalAccount
+	var err *r66.Error
+	if certAcc, err = a.certAuth(auth); err != nil {
+		return nil, err
+	}
+	if pwdAcc, err = a.passwordAuth(auth); err != nil {
+		return nil, err
+	}
+	if certAcc == nil && pwdAcc == nil {
+		return nil, &r66.Error{Code: r66.BadAuthent, Detail: "missing credentials"}
 	}
 
-	if bcrypt.CompareHashAndPassword(acc.PasswordHash, authent.Password) != nil {
-		a.logger.Warningf("Account '%s' authenticated with wrong password %s", authent.Login, string(authent.Password))
-		return nil, &r66.Error{Code: r66.BadAuthent, Detail: "incorrect credentials"}
+	acc := certAcc
+	if certAcc == nil {
+		acc = pwdAcc
+	} else if pwdAcc != nil && certAcc.ID != pwdAcc.ID {
+		return nil, &r66.Error{Code: r66.BadAuthent,
+			Detail: "the given certificate does not match the given login"}
 	}
 
 	ses := sessionHandler{
 		authHandler: a,
-		account:     &acc,
-		conf:        authent,
+		account:     acc,
+		conf:        auth,
 	}
 	return &ses, nil
 }
@@ -61,14 +62,13 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 	if err := s.checkRequest(req); err != nil {
 		return nil, err
 	}
-	isSend := r66.IsRecv(req.Mode)
 
-	rule, err := s.getRule(req.Rule, isSend)
+	rule, err := s.getRule(req.Rule, req.IsRecv)
 	if err != nil {
 		return nil, err
 	}
 
-	if isSend {
+	if req.IsRecv {
 		s.logger.Infof("Upload of file %s was requested by %s, using rule %s",
 			path.Base(req.Filepath), s.account.Login, req.Rule)
 	} else {
@@ -87,7 +87,7 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 	inter := &interruptionHandler{c: make(chan *r66.Error)}
 	pip, pErr := pipeline.NewServerPipeline(s.db, trans, inter)
 	if pErr != nil {
-		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to initiate transfer"}
+		return nil, internal.ToR66Error(err)
 	}
 
 	if err := s.getSize(req, rule, trans); err != nil {
@@ -96,104 +96,70 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 	}
 	//TODO: add transfer info to DB
 
+	s.runningTransfers.Add(trans.ID, pip)
+
 	handler := transferHandler{
-		pip:   pip,
-		inter: inter,
-		conf:  s.conf,
-		req:   req,
+		sessionHandler: s,
+		pip:            pip,
+		inter:          inter,
 	}
 	return &handler, nil
 }
 
 type transferHandler struct {
+	*sessionHandler
 	pip   *pipeline.ServerPipeline
 	inter *interruptionHandler
-	conf  *r66.Authent
-	req   *r66.Request
 }
 
 func (t *transferHandler) GetHash() ([]byte, error) {
 	hash, err := internal.MakeHash(t.pip.Logger, t.pip.TransCtx.Transfer.LocalPath)
 	if err != nil {
 		t.pip.SetError(err)
-		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to compute file hash"}
+		return nil, internal.ToR66Error(err)
 	}
 	return hash, nil
 }
 
 func (t *transferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
-	if t.pip.TransCtx.Transfer.Step >= types.StepData {
-		return nil //cannot update transfer info after data transfer started
-	}
-
-	var cols []string
-	if info.Filename != "" {
-		old := t.pip.TransCtx.Transfer.LocalPath
-		filename := path.Base(info.Filename)
-		newPath := filepath.Join(filepath.Dir(old), filename)
-
-		t.pip.TransCtx.Transfer.LocalPath = newPath
-		cols = append(cols, "local_path", "remote_path")
-	}
-
-	if info.FileSize != 0 {
-		t.req.FileSize = info.FileSize
-	}
-
-	if err := t.pip.DB.Update(t.pip.TransCtx.Transfer).Cols(cols...).Run(); err != nil {
-		t.pip.Logger.Errorf("Failed to update transfer info: %s", err)
-		t.pip.SetError(errDatabase)
-		return r66ErrDatabase
-	}
-
-	/* TODO: de-comment once TransferInfo are used
-	tid := t.file.Transfer.ID
-	if info.FileInfo != nil {
-		oldInfo, err := t.file.Transfer.GetTransferInfo(t.db)
-		if err != nil {
-			t.logger.Errorf("Failed to retrieve transfer info: %s", err)
-			return &r66.Error{Code: r66.Internal, Detail: "database error"}
-		}
-		for key, val := range info.FileInfo {
-			ti := &model.TransferInfo{TransferID: tid, Name: key, Value: fmt.Sprint(val)}
-			var dbErr error
-			if _, ok := oldInfo[key]; ok {
-				dbErr = t.db.Execute("UPDATE transfer_info SET value=? WHERE transfer_id=? AND name=?",
-					ti.Value, ti.TransferID, ti.Name)
-			} else {
-				dbErr = t.db.Create(ti)
-			}
-			if dbErr != nil {
-				t.logger.Errorf("Failed to update transfer info: %s", err)
-				return &r66.Error{Code: r66.Internal, Detail: "database error"}
-			}
-		}
-	} */
-
-	return nil
+	return internal.UpdateServerInfo(info, t.pip.Pipeline)
 }
 
-func (t *transferHandler) RunPreTask() error {
+func (t *transferHandler) RunPreTask() (*r66.UpdateInfo, error) {
 	if err := t.pip.PreTasks(); err != nil {
-		return internal.ToR66Error(err)
+		return nil, internal.ToR66Error(err)
 	}
-	return nil
+	var info *r66.UpdateInfo
+	if t.pip.TransCtx.Rule.IsSend {
+		info = &r66.UpdateInfo{
+			Filename: strings.TrimPrefix(t.pip.TransCtx.Transfer.RemotePath, "/"),
+			FileSize: t.pip.TransCtx.Transfer.Filesize,
+			FileInfo: &r66.TransferData{},
+		}
+	}
+	return info, nil
 }
 
 func (t *transferHandler) GetStream() (r66utils.ReadWriterAt, error) {
 	file, err := t.pip.StartData()
 	if err != nil {
-		return nil, &r66.Error{Code: r66.FileNotAllowed, Detail: "failed to open file"}
+		return nil, internal.ToR66Error(err)
 	}
 	return file, nil
 }
 
 func (t *transferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
-	if t.pip.EndData() != nil {
-		return &r66.Error{Code: r66.FinalOp, Detail: "failed to finalize transfer"}
+	if t.pip.Stream == nil {
+		_, err := t.pip.StartData()
+		if err != nil {
+			return internal.ToR66Error(err)
+		}
+	}
+	if err := t.pip.EndData(); err != nil {
+		return internal.ToR66Error(err)
 	}
 
-	if !t.pip.TransCtx.Rule.IsSend {
+	if !t.pip.TransCtx.Rule.IsSend && t.pip.TransCtx.Transfer.Step == types.StepData {
 		if err := t.checkSize(); err != nil {
 			return err
 		}
@@ -213,25 +179,21 @@ func (t *transferHandler) RunPostTask() error {
 }
 
 func (t *transferHandler) ValidEndRequest() error {
+	defer t.runningTransfers.Delete(t.pip.TransCtx.Transfer.ID)
 	t.pip.TransCtx.Transfer.Step = types.StepNone
 	t.pip.TransCtx.Transfer.TaskNumber = 0
 	t.pip.TransCtx.Transfer.Status = types.StatusDone
 	if err := t.pip.EndTransfer(); err != nil {
-		return &r66.Error{Code: r66.Internal, Detail: "failed to archive transfer"}
-	}
-	if testEndSignal != nil {
-		testEndSignal(t.pip)
+		return internal.ToR66Error(err)
 	}
 	return nil
 }
 
 func (t *transferHandler) RunErrorTask(err error) error {
+	defer t.runningTransfers.Delete(t.pip.TransCtx.Transfer.ID)
 	tErr := internal.FromR66Error(err, t.pip.Pipeline)
 	if tErr != nil {
 		t.pip.SetError(tErr)
-	}
-	if testEndSignal != nil {
-		testEndSignal(t.pip)
 	}
 	return nil
 }

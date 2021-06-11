@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
@@ -132,9 +134,10 @@ func TestValidRequest(t *testing.T) {
 
 		ses := sessionHandler{
 			authHandler: &authHandler{Service: &Service{
-				db:     db,
-				logger: logger,
-				agent:  server,
+				db:               db,
+				logger:           logger,
+				agent:            server,
+				runningTransfers: pipeline.NewTransferMap(),
 			}},
 			account: account,
 			conf: &r66.Authent{
@@ -149,7 +152,8 @@ func TestValidRequest(t *testing.T) {
 				Filepath: "/file",
 				FileSize: 4,
 				Rule:     rule.Name,
-				Mode:     3,
+				IsRecv:   false,
+				IsMD5:    true,
 				Block:    512,
 				Rank:     0,
 				//Limit:      0,
@@ -178,17 +182,17 @@ func TestValidRequest(t *testing.T) {
 						So(trans.pip.TransCtx.Transfer.AgentID, ShouldEqual, server.ID)
 						So(trans.pip.TransCtx.Transfer.AccountID, ShouldEqual, account.ID)
 						So(trans.pip.TransCtx.Transfer.LocalPath, ShouldEqual, filepath.Join(
-							server.Root, rule.LocalTmpDir, path.Base(packet.Filepath)+".part"))
+							server.Root, rule.LocalTmpDir, path.Base(packet.Filepath)))
 						So(trans.pip.TransCtx.Transfer.RemotePath, ShouldEqual, "/"+path.Base(packet.Filepath))
 						So(trans.pip.TransCtx.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
 						So(trans.pip.TransCtx.Transfer.Step, ShouldEqual, types.StepSetup)
 						So(trans.pip.TransCtx.Transfer.Status, ShouldEqual, types.StatusRunning)
 					})
 
-					Convey("Then it should return a new session handler", func() {
+					Convey("Then it should have returned a new session handler", func() {
 						So(trans.pip.TransCtx.Rule, ShouldResemble, rule)
-						So(r66.IsMD5(trans.req.Mode), ShouldBeTrue)
-						So(trans.req.FileSize, ShouldEqual, packet.FileSize)
+						So(trans.pip.TransCtx.LocalAgent, ShouldResemble, server)
+						So(trans.pip.TransCtx.LocalAccount, ShouldResemble, account)
 					})
 				})
 			})

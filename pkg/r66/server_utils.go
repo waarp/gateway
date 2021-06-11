@@ -7,6 +7,10 @@ import (
 	"path"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/r66/internal"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -19,9 +23,57 @@ import (
 var (
 	errDatabase    = types.NewTransferError(types.TeInternal, "database error")
 	r66ErrDatabase = &r66.Error{Code: r66.Internal, Detail: "database error"}
-
-	testEndSignal func(*pipeline.ServerPipeline)
 )
+
+func (a *authHandler) certAuth(auth *r66.Authent) (*model.LocalAccount, *r66.Error) {
+	if auth.TLS == nil {
+		return nil, nil
+	}
+
+	sign := utils.MakeSignature(auth.TLS.PeerCertificates[0])
+	var crypto model.Crypto
+	if err := a.db.Get(&crypto, "owner_type=? AND signature=?", "local_accounts",
+		sign).Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, &r66.Error{Code: r66.BadAuthent, Detail: "unknown certificate"}
+		}
+		a.logger.Errorf("Failed to retrieve client certificate: %s", err)
+		return nil, r66ErrDatabase
+	}
+
+	var acc model.LocalAccount
+	if err := a.db.Get(&acc, "id=?", crypto.OwnerID).Run(); err != nil {
+		a.logger.Errorf("Failed to retrieve client account: %s", err)
+		return nil, r66ErrDatabase
+	}
+	return &acc, nil
+}
+
+func (a *authHandler) passwordAuth(auth *r66.Authent) (*model.LocalAccount, *r66.Error) {
+	if auth.Login == "" || len(auth.Password) == 0 {
+		return nil, nil
+	}
+
+	var acc model.LocalAccount
+	if err := a.db.Get(&acc, "login=? AND local_agent_id=?", auth.Login,
+		a.agent.ID).Run(); err != nil {
+		if !database.IsNotFound(err) {
+			a.logger.Errorf("Failed to retrieve credentials from database: %s", err)
+			return nil, r66ErrDatabase
+		}
+	}
+
+	if bcrypt.CompareHashAndPassword(acc.PasswordHash, auth.Password) != nil {
+		if acc.Login == "" {
+			a.logger.Warningf("Authentication failed with unknown account '%s'", auth.Login)
+		} else {
+			a.logger.Warningf("Account '%s' authenticated with wrong password %s",
+				auth.Login, string(auth.Password))
+		}
+		return nil, &r66.Error{Code: r66.BadAuthent, Detail: "incorrect credentials"}
+	}
+	return &acc, nil
+}
 
 func (s *sessionHandler) checkRequest(req *r66.Request) *r66.Error {
 	if req.Filepath == "" {
@@ -33,11 +85,7 @@ func (s *sessionHandler) checkRequest(req *r66.Request) *r66.Error {
 	if req.Rule == "" {
 		return &r66.Error{Code: r66.IncorrectCommand, Detail: "missing transfer rule"}
 	}
-	if req.Mode == 0 {
-		return &r66.Error{Code: r66.IncorrectCommand, Detail: "missing transfer mode"}
-	}
-	isSend := r66.IsRecv(req.Mode)
-	if !isSend && s.conf.Filesize && req.FileSize < 0 {
+	if !req.IsRecv && s.conf.Filesize && req.FileSize < 0 {
 		return &r66.Error{Code: r66.IncorrectCommand, Detail: "missing file size"}
 	}
 
@@ -82,19 +130,17 @@ func (s *sessionHandler) getTransfer(req *r66.Request, rule *model.Rule) (*model
 }
 
 func (s *sessionHandler) getSize(req *r66.Request, rule *model.Rule, trans *model.Transfer) *types.TransferError {
-	if !rule.IsSend {
+	if rule.IsSend {
+		req.FileSize = trans.Filesize
 		return nil
 	}
-
-	if s.conf.Filesize {
-		stats, err := os.Stat(trans.LocalPath)
-		if err != nil {
-			s.logger.Errorf("Failed to retrieve file size: %s", err)
-			return &types.TransferError{Code: types.TeInternal, Details: "failed to retrieve file size"}
-		}
-		req.FileSize = stats.Size()
-	} else {
-		req.FileSize = -1
+	if req.FileSize < 0 {
+		return nil
+	}
+	trans.Filesize = req.FileSize
+	if err := s.db.Update(trans).Cols("filesize").Run(); err != nil {
+		s.logger.Errorf("Failed to set file size: %s", err)
+		return errDatabase
 	}
 	return nil
 }
@@ -131,9 +177,9 @@ func (t *transferHandler) checkSize() *r66.Error {
 				Detail: "failed to retrieve file info",
 			}
 		}
-		if stat.Size() != t.req.FileSize {
+		if stat.Size() != t.pip.TransCtx.Transfer.Filesize {
 			msg := fmt.Sprintf("incorrect file size (expected %d, got %d)",
-				t.req.FileSize, stat.Size())
+				t.pip.TransCtx.Transfer.Filesize, stat.Size())
 			t.pip.Logger.Error(msg)
 			return &r66.Error{Code: r66.SizeNotAllowed, Detail: msg}
 		}
