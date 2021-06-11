@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :feature:`` Ajout d'un champ taille de fichier ``filesize`` au modèles de
+  transfert et d'historique.
 * :feature:`` Il n'est plus obligatoire pour un partenaire SFTP d'avoir une
   *hostkey* (certificat) pour pouvoir créer un transfert vers/depuis cet agent.
   Une *hostkey*, reste nécessaire pour les transferts SFTP, mais la vérification

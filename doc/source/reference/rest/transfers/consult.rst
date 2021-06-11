@@ -21,6 +21,7 @@ Consulter un transfert
    :resjson string destPath: Le fichier destination du transfer (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
    :resjson string localPath: Le chemin du fichier sur le disque local
    :resjson string remotePath: Le chemin du fichier sur le partenaire distant
+   :resjson number filesize: La taille du fichier (-1 si inconnue)
    :resjson date start: La date de début du transfert
    :resjson string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED* ou *INTERRUPTED*)
    :resjson string step: L'étape actuelle du transfert (*NONE*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)

@@ -59,6 +59,7 @@ Filtrer l'historique
    :resjsonarr string destFilename: Le nom du fichier après le transfert (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
    :resjsonarr string localPath: Le chemin du fichier sur le disque local
    :resjsonarr string remotePath: Le chemin du fichier sur le partenaire distant
+   :resjsonarr number filesize: La taille du fichier (-1 si inconnue)
    :resjsonarr string rule: Le nom de la règle de transfert
    :resjsonarr date start: La date de début du transfert
    :resjsonarr date stop: La date de fin du transfert

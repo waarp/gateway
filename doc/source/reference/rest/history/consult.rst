@@ -21,6 +21,7 @@ Consulter une entrée de l'historique
    :resjson string destFilename: Le nom du fichier après le transfert (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
    :resjson string localPath: Le chemin du fichier sur le disque local
    :resjson string remotePath: Le chemin du fichier sur le partenaire distant
+   :resjson number filesize: La taille du fichier (-1 si inconnue)
    :resjson string rule: Le nom de la règle de transfert
    :resjson date start: La date de début du transfert
    :resjson date stop: La date de fin du transfert

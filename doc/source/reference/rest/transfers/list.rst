@@ -46,8 +46,12 @@ Lister les transferts
    :resjsonarr string rule: L'identifiant de la règle de transfert
    :resjsonarr string requester: Le nom du compte ayant demandé le transfert
    :resjsonarr string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
+   :resjsonarr string trueFilepath: Le chemin local complet du fichier (OBSOLÈTE: remplacé par 'localPath')
+   :resjsonarr string sourcePath: Le fichier source du transfer (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
+   :resjsonarr string destPath: Le fichier destination du transfer (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
    :resjsonarr string localPath: Le chemin du fichier sur le disque local
    :resjsonarr string remotePath: Le chemin du fichier sur le partenaire distant
+   :resjsonarr number filesize: La taille du fichier (-1 si inconnue)
    :resjsonarr date start: La date de début du transfert
    :resjsonarr string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED* ou *INTERRUPTED*)
    :resjsonarr string step: L'étape actuelle du transfert (*NONE*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)
