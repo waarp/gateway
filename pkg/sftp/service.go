@@ -10,7 +10,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
@@ -30,7 +29,7 @@ func init() {
 }
 
 // NewService returns a new SFTP service instance with the given attributes.
-func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.Service {
+func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService {
 	return &Service{
 		db:     db,
 		agent:  agent,
@@ -71,7 +70,8 @@ func (s *Service) Start() error {
 			ProtoConfig:      &protoConfig,
 			SSHConf:          sshConf,
 			Listener:         listener,
-			runningTransfers: pipeline.NewTransferMap(),
+			runningTransfers: service.NewTransferMap(),
+			shutdown:         make(chan struct{}),
 		}
 		s.listener.listen()
 		return nil
@@ -98,13 +98,14 @@ func (s *Service) Stop(ctx context.Context) error {
 		s.logger.Info("Server is already offline, nothing to do")
 		return nil
 	}
+	s.state.Set(service.ShuttingDown, "")
+	defer s.state.Set(service.Offline, "")
 
-	if s.listener.close(ctx) != nil {
+	if err := s.listener.close(ctx); err != nil {
 		s.logger.Error("Failed to shut down SFTP server, forcing exit")
-	} else {
-		s.logger.Info("SFTP server shutdown successful")
+		return err
 	}
-	s.state.Set(service.Offline, "")
+	s.logger.Info("SFTP server shutdown successful")
 	return nil
 }
 
@@ -116,4 +117,9 @@ func (s *Service) State() *service.State {
 		}
 	}
 	return &s.state
+}
+
+// ManageTransfers returns a map of the transfers currently running on the server.
+func (s *Service) ManageTransfers() *service.TransferMap {
+	return s.listener.runningTransfers
 }

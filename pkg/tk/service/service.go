@@ -7,6 +7,26 @@ import (
 	"sync"
 )
 
+const (
+	// DatabaseServiceName is the name of the gatewayd database service
+	DatabaseServiceName = "Database"
+
+	// AdminServiceName is the name of the administration interface service
+	AdminServiceName = "Admin"
+
+	// ControllerServiceName is the name of the controller service.
+	ControllerServiceName = "Controller"
+)
+
+// CoreServiceNames is a list of the names of the core services of the gateway.
+// In consequence, since services must have unique names, these names are also
+// forbidden to use as LocalAgent names.
+var CoreServiceNames = map[string]bool{
+	DatabaseServiceName:   true,
+	AdminServiceName:      true,
+	ControllerServiceName: true,
+}
+
 // Service is the interface of an object which is considered to be a service.
 type Service interface {
 	// Start is the method called to start the service
@@ -17,6 +37,16 @@ type Service interface {
 
 	// State returns the state of the service
 	State() *State
+}
+
+// ProtoService is the interface of an transfer server (implementing a protocol)
+// which is considered to be a service.
+type ProtoService interface {
+	Service
+
+	// ManageTransfers returns a map of the transfers currently running on the
+	// server, along with a few functions to manage each of those transfers.
+	ManageTransfers() *TransferMap
 }
 
 // StateCode represents the state of a service

@@ -63,11 +63,11 @@ const (
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
 //nolint:funlen
 func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
-	services map[string]service.Service) {
+	coreServices map[string]service.Service, protoServices map[string]service.ProtoService) {
 
 	router.StrictSlash(true)
 
-	router.Path(statusPath).Methods(http.MethodGet).Handler(getStatus(logger, services))
+	router.Path(statusPath).Methods(http.MethodGet).Handler(getStatus(logger, coreServices, protoServices))
 	mkHandler := makeHandlerFactory(logger, db, router)
 
 	// Users
@@ -91,9 +91,9 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(transfersPath, listTransfers, model.PermTransfersRead, http.MethodGet)
 	mkHandler(transfersPath, addTransfer, model.PermTransfersWrite, http.MethodPost)
 	mkHandler(transferPath, getTransfer, model.PermTransfersRead, http.MethodGet)
-	mkHandler(transPausePath, pauseTransfer(services), model.PermTransfersWrite, http.MethodPut)
+	mkHandler(transPausePath, pauseTransfer(protoServices), model.PermTransfersWrite, http.MethodPut)
 	mkHandler(transResumePath, resumeTransfer, model.PermTransfersWrite, http.MethodPut)
-	mkHandler(transCancelPath, cancelTransfer(services), model.PermTransfersWrite, http.MethodPut)
+	mkHandler(transCancelPath, cancelTransfer(protoServices), model.PermTransfersWrite, http.MethodPut)
 
 	// History
 	mkHandler(historiesPath, listHistory, model.PermTransfersRead, http.MethodGet)

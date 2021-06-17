@@ -15,9 +15,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
 
-// ServiceName is the name of the controller service.
-const ServiceName = "Controller"
-
 // Controller is the service responsible for checking the database for new
 // transfers at regular intervals, and starting those new transfers.
 type Controller struct {
@@ -100,7 +97,7 @@ func (c *Controller) startNewTransfers() {
 
 // Start starts the transfer controller service.
 func (c *Controller) Start() error {
-	c.logger = log.NewLogger(ServiceName)
+	c.logger = log.NewLogger(service.ControllerServiceName)
 
 	pipeline.TransferInCount.SetLimit(c.DB.Conf.Controller.MaxTransfersIn)
 	pipeline.TransferOutCount.SetLimit(c.DB.Conf.Controller.MaxTransfersOut)

@@ -7,7 +7,12 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func makeDummyClient(addr, login, pwd string) *sftp.Client {
+type dummyClient struct {
+	*sftp.Client
+	conn *ssh.Client
+}
+
+func makeDummyClient(addr, login, pwd string) *dummyClient {
 	key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rsaPBK)) //nolint:dogsled
 	So(err, ShouldBeNil)
 
@@ -26,5 +31,5 @@ func makeDummyClient(addr, login, pwd string) *sftp.Client {
 	cli, err := sftp.NewClient(conn)
 	So(err, ShouldBeNil)
 
-	return cli
+	return &dummyClient{Client: cli, conn: conn}
 }

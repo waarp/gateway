@@ -85,8 +85,8 @@ func TestPushClientPreError(t *testing.T) {
 					Step:       types.StepData,
 					Progress:   0,
 					TaskNumber: 0,
-					Error: *types.NewTransferError(types.TeUnknownRemote,
-						"Error on remote partner: session closed by remote host"),
+					Error: *types.NewTransferError(types.TeConnectionReset,
+						"Error on remote partner: session closed unexpectedly"),
 				}
 
 				ctx.CheckTransfersError(c, cTrans, sTrans)
@@ -155,8 +155,8 @@ func TestPushClientPostError(t *testing.T) {
 					Step:       types.StepData,
 					Progress:   pipelinetest.TestFileSize,
 					TaskNumber: 0,
-					Error: *types.NewTransferError(types.TeUnknownRemote,
-						"Error on remote partner: session closed by remote host"),
+					Error: *types.NewTransferError(types.TeConnectionReset,
+						"Error on remote partner: session closed unexpectedly"),
 				}
 
 				ctx.CheckTransfersError(c, cTrans, sTrans)
@@ -227,8 +227,8 @@ func TestPullClientPreError(t *testing.T) {
 					Step:       types.StepData,
 					Progress:   0,
 					TaskNumber: 0,
-					Error: *types.NewTransferError(types.TeUnknownRemote,
-						"Error on remote partner: session closed by remote host"),
+					Error: *types.NewTransferError(types.TeConnectionReset,
+						"Error on remote partner: session closed unexpectedly"),
 				}
 
 				ctx.CheckTransfersError(c, cTrans, sTrans)
@@ -297,8 +297,8 @@ func TestPullClientPostError(t *testing.T) {
 					Step:       types.StepData,
 					Progress:   pipelinetest.TestFileSize,
 					TaskNumber: 0,
-					Error: *types.NewTransferError(types.TeUnknownRemote,
-						"Error on remote partner: session closed by remote host"),
+					Error: *types.NewTransferError(types.TeConnectionReset,
+						"Error on remote partner: session closed unexpectedly"),
 				}
 
 				ctx.CheckTransfersError(c, cTrans, sTrans)

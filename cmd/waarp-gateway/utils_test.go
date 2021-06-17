@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -31,6 +35,10 @@ func init() {
 	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(TestProtoConfig) }
 	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(TestProtoConfig) }
 	config.ProtoConfigs[testProtoErr] = func() config.ProtoConfig { return new(TestProtoConfigFail) }
+}
+
+func testHandler(db *database.DB) http.Handler {
+	return admin.MakeHandler(discard, db, nil, nil)
 }
 
 func hash(pwd string) []byte {

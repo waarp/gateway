@@ -2,6 +2,7 @@ package r66
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path"
@@ -106,25 +107,20 @@ func (s *sessionHandler) getRule(ruleName string, isSend bool) (*model.Rule, *r6
 }
 
 func (s *sessionHandler) getTransfer(req *r66.Request, rule *model.Rule) (*model.Transfer, *r66.Error) {
-	trans, err := pipeline.GetOldServerTransfer(s.db, s.logger, fmt.Sprint(req.ID), s.account)
-	if err != nil {
-		return nil, r66ErrDatabase
+	trans := &model.Transfer{
+		RemoteTransferID: fmt.Sprint(req.ID),
+		RuleID:           rule.ID,
+		IsServer:         true,
+		AgentID:          s.agent.ID,
+		AccountID:        s.account.ID,
+		LocalPath:        path.Base(req.Filepath),
+		RemotePath:       path.Base(req.Filepath),
+		Start:            time.Now(),
+		Status:           types.StatusPlanned,
 	}
-	if trans == nil {
-		trans = &model.Transfer{
-			RemoteTransferID: fmt.Sprint(req.ID),
-			RuleID:           rule.ID,
-			IsServer:         true,
-			AgentID:          s.agent.ID,
-			AccountID:        s.account.ID,
-			LocalPath:        path.Base(req.Filepath),
-			RemotePath:       path.Base(req.Filepath),
-			Start:            time.Now(),
-			Status:           types.StatusPlanned,
-		}
-		if pipeline.NewServerTransfer(s.db, s.logger, trans) != nil {
-			return nil, r66ErrDatabase
-		}
+	trans, err := pipeline.GetServerTransfer(s.db, s.logger, trans)
+	if err != nil {
+		return nil, internal.ToR66Error(err)
 	}
 	return trans, nil
 }
@@ -167,34 +163,56 @@ func (s *sessionHandler) setProgress(req *r66.Request, trans *model.Transfer) *r
 	return nil
 }
 
-func (t *transferHandler) checkSize() *r66.Error {
-	if t.conf.Filesize {
-		stat, err := os.Stat(t.pip.TransCtx.Transfer.LocalPath)
-		if err != nil {
-			t.pip.Logger.Errorf("Failed to retrieve file info: %s", err)
-			return &r66.Error{
-				Code:   r66.Internal,
-				Detail: "failed to retrieve file info",
-			}
-		}
-		if stat.Size() != t.pip.TransCtx.Transfer.Filesize {
-			msg := fmt.Sprintf("incorrect file size (expected %d, got %d)",
-				t.pip.TransCtx.Transfer.Filesize, stat.Size())
-			t.pip.Logger.Error(msg)
-			return &r66.Error{Code: r66.SizeNotAllowed, Detail: msg}
-		}
+func (t *serverTransfer) checkSize() *types.TransferError {
+	if t.pip.TransCtx.Rule.IsSend || !t.conf.Filesize || t.pip.TransCtx.Transfer.Step > types.StepData {
+		return nil
+	}
+
+	stat, err := os.Stat(t.pip.TransCtx.Transfer.LocalPath)
+	if err != nil {
+		t.pip.Logger.Errorf("Failed to retrieve file info: %s", err)
+		return types.NewTransferError(types.TeInternal, "failed to retrieve file info")
+	}
+	if stat.Size() != t.pip.TransCtx.Transfer.Filesize {
+		msg := fmt.Sprintf("incorrect file size (expected %d, got %d)",
+			t.pip.TransCtx.Transfer.Filesize, stat.Size())
+		t.pip.Logger.Error(msg)
+		return types.NewTransferError(types.TeBadSize, msg)
 	}
 	return nil
 }
 
-func (t *transferHandler) checkHash(exp []byte) *r66.Error {
-	hash, err := internal.MakeHash(t.pip.Logger, t.pip.TransCtx.Transfer.LocalPath)
+func (t *serverTransfer) checkHash(exp []byte) *types.TransferError {
+	hash, err := t.makeHash()
 	if err != nil {
-		return &r66.Error{Code: r66.Internal, Detail: "failed to compute file hash"}
+		return err
 	}
+
 	if !bytes.Equal(hash, exp) {
 		t.pip.Logger.Errorf("File hash verification failed: hashes do not match")
-		return &r66.Error{Code: r66.FinalOp, Detail: "file hash does not match expected value"}
+		return types.NewTransferError(types.TeIntegrity, "file hash does not match expected value")
 	}
 	return nil
+}
+
+func (t *serverTransfer) makeHash() ([]byte, *types.TransferError) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var hash []byte
+	var tErr *types.TransferError
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		hash, tErr = internal.MakeHash(ctx, t.pip.Logger, t.pip.TransCtx.Transfer.LocalPath)
+	}()
+	select {
+	case <-t.store.Wait():
+		cancel()
+		<-done
+	case <-done:
+	}
+	if tErr != nil {
+		return nil, tErr
+	}
+	return hash, nil
 }

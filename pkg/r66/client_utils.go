@@ -167,7 +167,7 @@ func (c *client) makeHash() ([]byte, error) {
 		return nil, nil
 	}
 
-	hash, err := internal.MakeHash(c.pip.Logger, c.pip.TransCtx.Transfer.LocalPath)
+	hash, err := internal.MakeHash(c.ctx, c.pip.Logger, c.pip.TransCtx.Transfer.LocalPath)
 	if err != nil {
 		return nil, internal.ToR66Error(err)
 	}

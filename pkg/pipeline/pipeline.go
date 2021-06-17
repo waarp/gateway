@@ -348,8 +348,6 @@ func (p *Pipeline) SetError(err *types.TransferError) {
 
 func (p *Pipeline) stop() {
 	switch p.machine.Current() {
-	case "error":
-		return
 	case "pre-tasks", "post-tasks":
 		p.runner.Stop()
 	case "reading", "writing", "close":
@@ -358,8 +356,12 @@ func (p *Pipeline) stop() {
 }
 
 // Pause stops the pipeline and pauses the transfer.
-func (p *Pipeline) Pause() {
+func (p *Pipeline) Pause(handles ...func()) {
 	p.errOnce.Do(func() {
+		for _, handle := range handles {
+			handle()
+		}
+
 		p.Logger.Info("Transfer paused by user")
 		p.stop()
 		_ = p.machine.Transition("error")
@@ -370,11 +372,19 @@ func (p *Pipeline) Pause() {
 		}
 
 		_ = p.machine.Transition("in error")
+		if TestPipelineEnd != nil {
+			TestPipelineEnd(p.TransCtx.Transfer.IsServer)
+		}
 	})
 }
 
-func (p *Pipeline) interrupt() {
+// Interrupt stops the pipeline and interrupts the transfer.
+func (p *Pipeline) Interrupt(handles ...func()) {
 	p.errOnce.Do(func() {
+		for _, handle := range handles {
+			handle()
+		}
+
 		p.Logger.Info("Transfer interrupted by a service shutdown")
 		p.stop()
 		_ = p.machine.Transition("error")
@@ -385,12 +395,19 @@ func (p *Pipeline) interrupt() {
 		}
 
 		_ = p.machine.Transition("in error")
+		if TestPipelineEnd != nil {
+			TestPipelineEnd(p.TransCtx.Transfer.IsServer)
+		}
 	})
 }
 
 // Cancel stops the pipeline and cancels the transfer.
-func (p *Pipeline) Cancel() {
+func (p *Pipeline) Cancel(handles ...func()) {
 	p.errOnce.Do(func() {
+		for _, handle := range handles {
+			handle()
+		}
+
 		p.Logger.Info("Transfer cancelled by user")
 		p.stop()
 		_ = p.machine.Transition("error")
@@ -401,6 +418,9 @@ func (p *Pipeline) Cancel() {
 		}
 
 		_ = p.machine.Transition("in error")
+		if TestPipelineEnd != nil {
+			TestPipelineEnd(p.TransCtx.Transfer.IsServer)
+		}
 	})
 }
 

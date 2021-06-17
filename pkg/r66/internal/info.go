@@ -8,15 +8,6 @@ import (
 	"code.waarp.fr/waarp-r66/r66"
 )
 
-// UpdateServerInfo updates the server pipeline transfer's attributes with the
-// ones given.
-func UpdateServerInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) error {
-	if err := UpdateInfo(info, pip); err != nil {
-		return ToR66Error(err)
-	}
-	return nil
-}
-
 // UpdateInfo updates the pipeline transfer's attributes with the ones given.
 func UpdateInfo(info *r66.UpdateInfo, pip *pipeline.Pipeline) *types.TransferError {
 	if pip.TransCtx.Transfer.Step >= types.StepData {

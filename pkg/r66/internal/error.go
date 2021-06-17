@@ -13,6 +13,11 @@ import (
 // ToR66Error takes an error (preferably a types.TransferError) and returns the
 // equivalent r66.Error.
 func ToR66Error(err error) *r66.Error {
+	var rErr *r66.Error
+	if errors.As(err, &rErr) {
+		return rErr
+	}
+
 	var tErr *types.TransferError
 	if !errors.As(err, &tErr) {
 		return &r66.Error{Code: r66.Unknown, Detail: err.Error()}

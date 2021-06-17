@@ -1,13 +1,21 @@
 package pipeline
 
 import (
+	"context"
 	"fmt"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
+
+// ClientTransfers is a synchronized map containing the pipelines of all currently
+// running client transfers. It can be used to interrupt transfers using the various
+// functions exposed by the TransferInterrupter interface.
+var ClientTransfers = service.NewTransferMap()
 
 // ClientPipeline associates a Pipeline with a Client, allowing to run complete
 // client transfers.
@@ -150,30 +158,63 @@ func (c *ClientPipeline) Run() {
 }
 
 // Pause stops the client pipeline and pauses the transfer.
-func (c *ClientPipeline) Pause() {
-	if pa, ok := c.client.(PauseHandler); ok {
-		_ = pa.Pause()
-	} else {
-		c.client.SendError(types.NewTransferError(types.TeStopped,
-			"transfer paused by user"))
+func (c *ClientPipeline) Pause(ctx context.Context) error {
+	handle := func() {
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			if pa, ok := c.client.(PauseHandler); ok {
+				_ = pa.Pause()
+			} else {
+				c.client.SendError(types.NewTransferError(types.TeStopped,
+					"transfer paused by user"))
+			}
+		}()
+		select {
+		case <-done:
+		case <-ctx.Done():
+		}
 	}
-	c.pip.Pause()
+	c.pip.Pause(handle)
+	return ctx.Err()
 }
 
 // Interrupt stops the client pipeline and interrupts the transfer.
-func (c *ClientPipeline) Interrupt() {
-	c.client.SendError(types.NewTransferError(types.TeShuttingDown,
-		"transfer interrupted by service shutdown"))
-	c.pip.interrupt()
+func (c *ClientPipeline) Interrupt(ctx context.Context) error {
+	handle := func() {
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			c.client.SendError(types.NewTransferError(types.TeShuttingDown,
+				"transfer interrupted by service shutdown"))
+		}()
+		select {
+		case <-done:
+		case <-ctx.Done():
+		}
+	}
+	c.pip.Interrupt(handle)
+	return ctx.Err()
 }
 
 // Cancel stops the client pipeline and cancels the transfer.
-func (c *ClientPipeline) Cancel() {
-	if ca, ok := c.client.(CancelHandler); ok {
-		_ = ca.Cancel()
-	} else {
-		c.client.SendError(types.NewTransferError(types.TeCanceled,
-			"transfer cancelled by user"))
+func (c *ClientPipeline) Cancel(ctx context.Context) (err error) {
+	handle := func() {
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			if ca, ok := c.client.(CancelHandler); ok {
+				_ = ca.Cancel()
+			} else {
+				c.client.SendError(types.NewTransferError(types.TeCanceled,
+					"transfer cancelled by user"))
+			}
+		}()
+		select {
+		case <-done:
+		case <-ctx.Done():
+		}
 	}
-	c.pip.Cancel()
+	c.pip.Cancel(handle)
+	return ctx.Err()
 }

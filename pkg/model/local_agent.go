@@ -6,6 +6,7 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
@@ -111,6 +112,9 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 
 	if l.Name == "" {
 		return database.NewValidationError("the agent's name cannot be empty")
+	}
+	if _, ok := service.CoreServiceNames[l.Name]; ok {
+		return database.NewValidationError("%s is reserved server name", l.Name)
 	}
 
 	if l.Address == "" {

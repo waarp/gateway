@@ -9,10 +9,18 @@ import (
 )
 
 // getStatus is called when an HTTP request is received on the StatusURI path.
-func getStatus(logger *log.Logger, services map[string]service.Service) http.HandlerFunc {
+func getStatus(logger *log.Logger, core map[string]service.Service,
+	proto map[string]service.ProtoService) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		var statuses = make(api.Statuses)
-		for name, serv := range services {
+		for name, serv := range core {
+			code, reason := serv.State().Get()
+			statuses[name] = api.Status{
+				State:  code.Name(),
+				Reason: reason,
+			}
+		}
+		for name, serv := range proto {
 			code, reason := serv.State().Get()
 			statuses[name] = api.Status{
 				State:  code.Name(),

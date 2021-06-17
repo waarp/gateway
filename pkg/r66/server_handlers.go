@@ -4,10 +4,11 @@ import (
 	"path"
 	"strings"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/r66/internal"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-r66/r66"
 	r66utils "code.waarp.fr/waarp-r66/r66/utils"
@@ -18,6 +19,12 @@ type authHandler struct {
 }
 
 func (a *authHandler) ValidAuth(auth *r66.Authent) (r66.SessionHandler, error) {
+	select {
+	case <-a.shutdown:
+		return nil, sigShutdown
+	default:
+	}
+
 	if auth.FinalHash && !strings.EqualFold(auth.Digest, "SHA-256") {
 		a.logger.Warningf("Unknown hash digest '%s'", auth.Digest)
 		return nil, &r66.Error{Code: r66.Unimplemented, Detail: "unknown final hash digest"}
@@ -84,8 +91,7 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 		return nil, err
 	}
 
-	inter := &interruptionHandler{c: make(chan *r66.Error)}
-	pip, pErr := pipeline.NewServerPipeline(s.db, trans, inter)
+	pip, pErr := pipeline.NewServerPipeline(s.db, trans)
 	if pErr != nil {
 		return nil, internal.ToR66Error(err)
 	}
@@ -96,104 +102,55 @@ func (s *sessionHandler) ValidRequest(req *r66.Request) (r66.TransferHandler, er
 	}
 	//TODO: add transfer info to DB
 
-	s.runningTransfers.Add(trans.ID, pip)
+	r66Pip := &serverTransfer{
+		conf:  s.conf,
+		pip:   pip,
+		store: utils.NewErrorStorage(),
+	}
+	s.runningTransfers.Add(trans.ID, r66Pip)
 
 	handler := transferHandler{
 		sessionHandler: s,
-		pip:            pip,
-		inter:          inter,
+		trans:          r66Pip,
 	}
 	return &handler, nil
 }
 
 type transferHandler struct {
 	*sessionHandler
-	pip   *pipeline.ServerPipeline
-	inter *interruptionHandler
+	trans *serverTransfer
 }
 
 func (t *transferHandler) GetHash() ([]byte, error) {
-	hash, err := internal.MakeHash(t.pip.Logger, t.pip.TransCtx.Transfer.LocalPath)
-	if err != nil {
-		t.pip.SetError(err)
-		return nil, internal.ToR66Error(err)
-	}
-	return hash, nil
+	return t.trans.getHash()
 }
 
 func (t *transferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
-	return internal.UpdateServerInfo(info, t.pip.Pipeline)
+	return t.trans.updTransInfo(info)
 }
 
 func (t *transferHandler) RunPreTask() (*r66.UpdateInfo, error) {
-	if err := t.pip.PreTasks(); err != nil {
-		return nil, internal.ToR66Error(err)
-	}
-	var info *r66.UpdateInfo
-	if t.pip.TransCtx.Rule.IsSend {
-		info = &r66.UpdateInfo{
-			Filename: strings.TrimPrefix(t.pip.TransCtx.Transfer.RemotePath, "/"),
-			FileSize: t.pip.TransCtx.Transfer.Filesize,
-			FileInfo: &r66.TransferData{},
-		}
-	}
-	return info, nil
+	return t.trans.runPreTask()
 }
 
 func (t *transferHandler) GetStream() (r66utils.ReadWriterAt, error) {
-	file, err := t.pip.StartData()
-	if err != nil {
-		return nil, internal.ToR66Error(err)
-	}
-	return file, nil
+	return t.trans.getStream()
 }
 
 func (t *transferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
-	if t.pip.Stream == nil {
-		_, err := t.pip.StartData()
-		if err != nil {
-			return internal.ToR66Error(err)
-		}
-	}
-	if err := t.pip.EndData(); err != nil {
-		return internal.ToR66Error(err)
-	}
-
-	if !t.pip.TransCtx.Rule.IsSend && t.pip.TransCtx.Transfer.Step == types.StepData {
-		if err := t.checkSize(); err != nil {
-			return err
-		}
-		if err := t.checkHash(end.Hash); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return t.trans.validEndTransfer(end)
 }
 
 func (t *transferHandler) RunPostTask() error {
-	if err := t.pip.PostTasks(); err != nil {
-		return internal.ToR66Error(err)
-	}
-	return nil
+	return t.trans.runPostTask()
 }
 
 func (t *transferHandler) ValidEndRequest() error {
-	defer t.runningTransfers.Delete(t.pip.TransCtx.Transfer.ID)
-	t.pip.TransCtx.Transfer.Step = types.StepNone
-	t.pip.TransCtx.Transfer.TaskNumber = 0
-	t.pip.TransCtx.Transfer.Status = types.StatusDone
-	if err := t.pip.EndTransfer(); err != nil {
-		return internal.ToR66Error(err)
-	}
-	return nil
+	defer t.runningTransfers.Delete(t.trans.pip.TransCtx.Transfer.ID)
+	return t.trans.validEndRequest()
 }
 
 func (t *transferHandler) RunErrorTask(err error) error {
-	defer t.runningTransfers.Delete(t.pip.TransCtx.Transfer.ID)
-	tErr := internal.FromR66Error(err, t.pip.Pipeline)
-	if tErr != nil {
-		t.pip.SetError(tErr)
-	}
-	return nil
+	defer t.runningTransfers.Delete(t.trans.pip.TransCtx.Transfer.ID)
+	return t.trans.runErrorTasks(err)
 }

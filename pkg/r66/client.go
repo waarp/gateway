@@ -2,6 +2,7 @@ package r66
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"strings"
@@ -24,7 +25,9 @@ type client struct {
 	conf      config.R66ProtoConfig
 	tlsConfig *tls.Config
 
-	ses *r66.Session
+	ctx    context.Context
+	cancel func()
+	ses    *r66.Session
 }
 
 // NewClient creates and returns a new r66 client using the given transfer context.
@@ -45,13 +48,18 @@ func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 		}
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	return &client{
 		pip:       pip,
 		conf:      conf,
 		tlsConfig: tlsConf,
+		ctx:       ctx,
+		cancel:    cancel,
 	}, nil
 }
 
+// Request opens a connection to the remote partner, creates a new authenticated
+// session, and sends the transfer request.
 func (c *client) Request() *types.TransferError {
 	// CONNECTION
 	if err := c.connect(); err != nil {
@@ -71,8 +79,10 @@ func (c *client) Request() *types.TransferError {
 	return nil
 }
 
+// BeginPreTasks does nothing (needed to implement PreTaskHandler).
 func (c *client) BeginPreTasks() *types.TransferError { return nil }
 
+// EndPreTasks sends/receives updated transfer info to/from the remote partner.
 func (c *client) EndPreTasks() *types.TransferError {
 	if c.pip.TransCtx.Rule.IsSend {
 		info := &r66.UpdateInfo{
@@ -96,6 +106,7 @@ func (c *client) EndPreTasks() *types.TransferError {
 	return internal.UpdateInfo(info, c.pip)
 }
 
+// Data copies data between the given data stream and the remote partner.
 func (c *client) Data(dataStream pipeline.DataStream) *types.TransferError {
 	if c.pip.TransCtx.Rule.IsSend {
 		_, err := c.ses.Send(dataStream, c.makeHash)
@@ -115,7 +126,7 @@ func (c *client) Data(dataStream pipeline.DataStream) *types.TransferError {
 		return nil
 	}
 
-	hash, hErr := internal.MakeHash(c.pip.Logger, c.pip.TransCtx.Transfer.LocalPath)
+	hash, hErr := internal.MakeHash(c.ctx, c.pip.Logger, c.pip.TransCtx.Transfer.LocalPath)
 	if hErr != nil {
 		return hErr
 	}
@@ -127,7 +138,9 @@ func (c *client) Data(dataStream pipeline.DataStream) *types.TransferError {
 	return nil
 }
 
+// EndTransfer send a transfer end message, and then closes the session.
 func (c *client) EndTransfer() *types.TransferError {
+	defer c.cancel()
 	defer clientConns.Done(c.pip.TransCtx.RemoteAgent.Address)
 	defer func() {
 		if c.ses != nil {
@@ -142,7 +155,10 @@ func (c *client) EndTransfer() *types.TransferError {
 	return nil
 }
 
+// SendError sends the given error to the remote partner and then closes the
+// session.
 func (c *client) SendError(err *types.TransferError) {
+	defer c.cancel()
 	defer clientConns.Done(c.pip.TransCtx.RemoteAgent.Address)
 	defer func() {
 		if c.ses != nil {
@@ -155,7 +171,10 @@ func (c *client) SendError(err *types.TransferError) {
 	}
 }
 
+// Pause sends a pause message to the remote partner and then closes the
+// session.
 func (c *client) Pause() *types.TransferError {
+	defer c.cancel()
 	defer func() {
 		clientConns.Done(c.pip.TransCtx.RemoteAgent.Address)
 	}()
@@ -170,7 +189,10 @@ func (c *client) Pause() *types.TransferError {
 	return nil
 }
 
-func (c *client) Cancel() *types.TransferError {
+// Cancel sends a cancel message to the remote partner and then closes the
+// session.
+func (c *client) Cancel(context.Context) *types.TransferError {
+	defer c.cancel()
 	defer func() {
 		clientConns.Done(c.pip.TransCtx.RemoteAgent.Address)
 	}()

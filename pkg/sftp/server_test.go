@@ -54,7 +54,9 @@ func TestServerStop(t *testing.T) {
 		So(server.Start(), ShouldBeNil)
 
 		Convey("When stopping the service", func() {
-			err := server.Stop(context.Background())
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			err := server.Stop(ctx)
 
 			Convey("Then it should NOT return an error", func() {
 				So(err, ShouldBeNil)
@@ -98,7 +100,9 @@ func TestServerStart(t *testing.T) {
 			err := sftpServer.Start()
 
 			Reset(func() {
-				_ = sftpServer.Stop(context.Background())
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				defer cancel()
+				So(sftpServer.Stop(ctx), ShouldBeNil)
 			})
 
 			Convey("Then it should NOT return an error", func() {
@@ -124,13 +128,21 @@ func TestSSHServerInterruption(t *testing.T) {
 				dst, err := cli.Create(path.Join(test.Rule.Path, "test_in_shutdown.dst"))
 				So(err, ShouldBeNil)
 
-				_, err = dst.Write([]byte("abc"))
+				_, err = dst.Write([]byte("123"))
 				So(err, ShouldBeNil)
 
 				Convey("When the server shuts down", func(c C) {
-					ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+					res := make(chan error, 1)
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						_, err = dst.Write([]byte("456"))
+						res <- err
+					}()
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 					defer cancel()
 					So(serv.Stop(ctx), ShouldBeNil)
+					So(<-res, ShouldBeError, `sftp: "TransferError(TeShuttingDown):`+
+						` service is shutting down" (SSH_FX_FAILURE)`)
 
 					Convey("Then the transfer should have been interrupted", func() {
 						var transfers model.Transfers
@@ -154,6 +166,9 @@ func TestSSHServerInterruption(t *testing.T) {
 							Progress:   3,
 						}
 						So(transfers[0], ShouldResemble, trans)
+
+						ok := serv.(*Service).listener.runningTransfers.Exists(trans.ID)
+						So(ok, ShouldBeFalse)
 					})
 				})
 			})
@@ -180,9 +195,17 @@ func TestSSHServerInterruption(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("When the server shuts down", func(c C) {
-					ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+					res := make(chan error, 1)
+					go func() {
+						time.Sleep(100 * time.Millisecond)
+						_, err = dst.Read(make([]byte, 3))
+						res <- err
+					}()
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 					defer cancel()
 					So(serv.Stop(ctx), ShouldBeNil)
+					So(<-res, ShouldBeError, `sftp: "TransferError(TeShuttingDown):`+
+						` service is shutting down" (SSH_FX_FAILURE)`)
 
 					Convey("Then the transfer should have been interrupted", func() {
 						var transfers model.Transfers

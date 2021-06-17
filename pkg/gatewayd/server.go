@@ -21,7 +21,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
 
-type serviceConstructor func(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.Service
+type serviceConstructor func(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService
 
 // ServiceConstructors is a map associating each protocol with a constructor for
 // a client of said protocol. In order for the gateway to be able to perform
@@ -32,9 +32,12 @@ var ServiceConstructors = map[string]serviceConstructor{}
 // WG is the top level service handler. It manages all other components.
 type WG struct {
 	*log.Logger
-	Conf      *conf.ServerConfig
-	Services  map[string]service.Service
-	dbService *database.DB
+	Conf *conf.ServerConfig
+
+	dbService     *database.DB
+	adminService  *admin.Server
+	controller    *controller.Controller
+	ProtoServices map[string]service.ProtoService
 }
 
 // NewWG creates a new application
@@ -62,15 +65,21 @@ func (wg *WG) makeDirs() error {
 }
 
 func (wg *WG) initServices() {
-	wg.Services = make(map[string]service.Service)
+	core := make(map[string]service.Service)
+	wg.ProtoServices = make(map[string]service.ProtoService)
 
 	wg.dbService = &database.DB{Conf: wg.Conf}
-	adminService := &admin.Server{Conf: wg.Conf, DB: wg.dbService, Services: wg.Services}
-	controllerService := &controller.Controller{DB: wg.dbService}
+	wg.adminService = &admin.Server{
+		Conf:          wg.Conf,
+		DB:            wg.dbService,
+		CoreServices:  core,
+		ProtoServices: wg.ProtoServices,
+	}
+	wg.controller = &controller.Controller{DB: wg.dbService}
 
-	wg.Services[database.ServiceName] = wg.dbService
-	wg.Services[admin.ServiceName] = adminService
-	wg.Services[controller.ServiceName] = controllerService
+	core[service.DatabaseServiceName] = wg.dbService
+	core[service.AdminServiceName] = wg.adminService
+	core[service.ControllerServiceName] = wg.controller
 }
 
 func (wg *WG) startServices() error {
@@ -94,7 +103,7 @@ func (wg *WG) startServices() error {
 		constr(wg.dbService, &servers[i], l)
 	}
 
-	for _, serv := range wg.Services {
+	for _, serv := range wg.ProtoServices {
 		if err := serv.Start(); err != nil {
 			wg.Logger.Errorf("Error starting service: %s", err)
 		}
@@ -107,10 +116,8 @@ func (wg *WG) stopServices() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	delete(wg.Services, database.ServiceName)
-
 	w := sync.WaitGroup{}
-	for _, wgService := range wg.Services {
+	for _, wgService := range wg.ProtoServices {
 		if code, _ := wgService.State().Get(); code != service.Running && code != service.Starting {
 			continue
 		}
@@ -123,6 +130,8 @@ func (wg *WG) stopServices() {
 	}
 	w.Wait()
 
+	_ = wg.controller.Stop(ctx)
+	_ = wg.adminService.Stop(ctx)
 	_ = wg.dbService.Stop(ctx)
 }
 

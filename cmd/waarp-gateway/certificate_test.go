@@ -8,7 +8,6 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -33,7 +32,7 @@ func TestGetCertificate(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
@@ -346,7 +345,7 @@ func TestAddCertificate(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
@@ -707,7 +706,7 @@ func TestDeleteCertificate(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
@@ -1116,7 +1115,7 @@ func TestListCertificate(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
@@ -1612,7 +1611,7 @@ func TestUpdateCertificate(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)

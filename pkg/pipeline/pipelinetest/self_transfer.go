@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks/taskstest"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
@@ -31,6 +33,7 @@ type SelfContext struct {
 	*transData
 	ClientRule, ServerRule *model.Rule
 
+	service       service.ProtoService
 	fail          *model.Task
 	protoFeatures *features
 }
@@ -42,7 +45,6 @@ func initSelfTransfer(c convey.C, proto string, partConf, servConf config.ProtoC
 	port := testhelpers.GetFreePort(c)
 	partner, remAcc := makeClientConf(c, t.DB, port, proto, partConf)
 	server, locAcc := makeServerConf(c, t.DB, port, t.Paths.GatewayHome, proto, servConf)
-	setTestVar()
 
 	return &SelfContext{
 		testData: t,
@@ -121,12 +123,12 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 // StartService starts the service associated with the test server defined in
 // the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
-	serv := gatewayd.ServiceConstructors[s.Server.Protocol](s.DB, s.Server, s.Logger)
-	c.So(serv.Start(), convey.ShouldBeNil)
+	s.service = gatewayd.ServiceConstructors[s.Server.Protocol](s.DB, s.Server, s.Logger)
+	c.So(s.service.Start(), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		c.So(serv.Stop(ctx), convey.ShouldBeNil)
+		c.So(s.service.Stop(ctx), convey.ShouldBeNil)
 	})
 }
 
@@ -229,6 +231,7 @@ func (s *SelfContext) TestRetry(c convey.C, checkRemainingTasks ...func(c convey
 // finished correctly.
 func (s *SelfContext) CheckTransfersOK(c convey.C) {
 	s.shouldBeEndTransfer(c)
+	s.shouldNotBeInLists()
 
 	c.Convey("Then the transfers should be over", func(c convey.C) {
 		var results model.HistoryEntries
@@ -318,6 +321,7 @@ func (s *SelfContext) checkDestFile(c convey.C) {
 func (s *SelfContext) CheckTransfersError(c convey.C, cTrans, sTrans *model.Transfer) {
 	s.shouldBeErrorTasks(c)
 	s.shouldBeEndTransfer(c)
+	s.shouldNotBeInLists()
 
 	c.Convey("Then the transfers should be in error", func(c convey.C) {
 		var transfers model.Transfers
@@ -374,4 +378,11 @@ func (s *SelfContext) CheckTransfersError(c convey.C, cTrans, sTrans *model.Tran
 			c.So(transfers[1], convey.ShouldResemble, *sTrans)
 		})
 	})
+}
+
+func (s *SelfContext) shouldNotBeInLists() {
+	ok := pipeline.ClientTransfers.Exists(s.ClientTrans.ID)
+	convey.So(ok, convey.ShouldBeFalse)
+	ok = s.service.ManageTransfers().Exists(s.ClientTrans.ID + 1)
+	convey.So(ok, convey.ShouldBeFalse)
 }

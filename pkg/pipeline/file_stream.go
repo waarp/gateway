@@ -69,7 +69,7 @@ func newFileStream(pipeline *Pipeline, updateInterval time.Duration) (*fileStrea
 	return stream, nil
 }
 
-func (f *fileStream) updateProgress() error {
+func (f *fileStream) updateProgress() *types.TransferError {
 	select {
 	case <-f.ticker.C:
 		prog := atomic.LoadUint64(&f.progress)
@@ -130,7 +130,7 @@ func (f *fileStream) Write(p []byte) (int, error) {
 		return n, errWrite
 	}
 
-	return n, err
+	return n, nil
 }
 
 // ReadAt reads the stream, starting at the given offset.
@@ -178,7 +178,7 @@ func (f *fileStream) WriteAt(p []byte, off int64) (int, error) {
 		return n, errWrite
 	}
 
-	return n, err
+	return n, nil
 }
 
 func (f *fileStream) handleStateErr(fun, currentState string) {
@@ -194,7 +194,6 @@ func (f *fileStream) handleError(code types.TransferErrorCode, msg, cause string
 
 		go func() {
 			f.ticker.Stop()
-			//f.wg.Wait()
 
 			if err := f.file.Close(); err != nil {
 				f.Logger.Warningf("Failed to close transfer file: %s", err)

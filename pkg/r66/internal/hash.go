@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"crypto/sha256"
 	"io"
 	"os"
@@ -10,7 +11,7 @@ import (
 )
 
 // MakeHash takes a file path and returns the sha256 checksum of the file.
-func MakeHash(logger *log.Logger, path string) ([]byte, *types.TransferError) {
+func MakeHash(ctx context.Context, logger *log.Logger, path string) ([]byte, *types.TransferError) {
 	hasher := sha256.New()
 	file, err := os.OpenFile(path, os.O_RDONLY, 0600)
 	if err != nil {
@@ -19,11 +20,22 @@ func MakeHash(logger *log.Logger, path string) ([]byte, *types.TransferError) {
 	}
 	defer func() { _ = file.Close() }()
 
-	_, err = io.Copy(hasher, file)
-	if err != nil {
-		logger.Errorf("Failed to read file content to hash: %s", err)
-		return nil, types.NewTransferError(types.TeInternal, "failed to read file")
+	res := make(chan *types.TransferError)
+	go func() {
+		defer close(res)
+		_, err = io.Copy(hasher, file)
+		if err != nil {
+			logger.Errorf("Failed to read file content to hash: %s", err)
+			res <- types.NewTransferError(types.TeInternal, "failed to read file")
+		}
+	}()
+	select {
+	case <-ctx.Done():
+		return nil, types.NewTransferError(types.TeInternal, "hash calculation stopped")
+	case err := <-res:
+		if err != nil {
+			return nil, err
+		}
+		return hasher.Sum(nil), nil
 	}
-
-	return hasher.Sum(nil), nil
 }

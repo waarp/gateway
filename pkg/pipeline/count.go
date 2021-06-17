@@ -10,21 +10,6 @@ import (
 // because the maximum limit has been reached.
 var errLimitReached = types.NewTransferError(types.TeExceededLimit, "transfer limit reached")
 
-// TransferInterrupter is the interface stored in the RunningTransfers map. The
-// functions exposed by this interface can be used to interrupt running transfers.
-type TransferInterrupter interface {
-	// Pause pauses the transfer. It can be resumed later on command.
-	Pause()
-
-	// Interrupt stops the transfer because of a service shutdown. Transfer will
-	// be resumed automatically when the service restarts.
-	Interrupt()
-
-	// Cancel cancels the transfer. Transfer will be moved to history and thus
-	// cannot be resumed.
-	Cancel()
-}
-
 var (
 	// TransferInCount counts the current and maximum number of concurrent incoming
 	// transfers. A limit of 0 means no limit.

@@ -16,16 +16,12 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
 
-const (
-	// ServiceName is the name of the administration interface service
-	ServiceName = "Admin"
-)
-
 // Server is the administration service
 type Server struct {
-	Conf     *conf.ServerConfig
-	DB       *database.DB
-	Services map[string]service.Service
+	Conf          *conf.ServerConfig
+	DB            *database.DB
+	CoreServices  map[string]service.Service
+	ProtoServices map[string]service.ProtoService
 
 	logger *log.Logger
 	state  service.State
@@ -60,7 +56,7 @@ func checkAddress(config conf.AdminConfig) (string, error) {
 	addr := net.JoinHostPort(config.Host, fmt.Sprint(config.Port))
 	l, err := net.Listen("tcp", addr)
 	if err == nil {
-		defer l.Close()
+		defer func() { _ = l.Close() }()
 		return l.Addr().String(), nil
 	}
 	return "", err
@@ -93,7 +89,7 @@ func initServer(s *Server) error {
 		s.logger.Info("No TLS certificate configured, using plain HTTP.")
 	}
 
-	handler := MakeHandler(s.logger, s.DB, s.Services)
+	handler := MakeHandler(s.logger, s.DB, s.CoreServices, s.ProtoServices)
 
 	// Create http.Server instance
 	s.server = http.Server{
@@ -108,7 +104,7 @@ func initServer(s *Server) error {
 // Start launches the administration service. If the service cannot be launched,
 // the function returns an error.
 func (s *Server) Start() error {
-	s.logger = log.NewLogger(ServiceName)
+	s.logger = log.NewLogger(service.AdminServiceName)
 
 	s.logger.Info("Startup command received...")
 	if state, _ := s.state.Get(); state != service.Offline && state != service.Error {

@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -279,7 +280,7 @@ func (t *testProtoClient) SendError(err *types.TransferError) {
 	errChan <- err
 }
 
-func (t *testProtoClient) Pause() *types.TransferError {
+func (t *testProtoClient) Pause(context.Context) *types.TransferError {
 	pauseChan <- true
 	return nil
 }

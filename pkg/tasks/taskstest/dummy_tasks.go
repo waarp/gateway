@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/smartystreets/goconvey/convey"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -124,5 +126,31 @@ func (*testServerTaskError) Run(_ context.Context, args map[string]string, _ *da
 		panic(fmt.Sprintf("timeout while executing server task '%s'", msg))
 	case ServerCheckChannel <- msg:
 		return "task failed", fmt.Errorf("task failed")
+	}
+}
+
+// ClientMsgShouldBe asserts that the next message on the test client message
+// channel should be the one given.
+func ClientMsgShouldBe(c convey.C, exp string) {
+	timer := time.NewTimer(time.Second * 10)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		panic(fmt.Sprintf("timeout waiting for client message '%s'", exp))
+	case msg := <-ClientCheckChannel:
+		c.So(msg, convey.ShouldEqual, exp)
+	}
+}
+
+// ServerMsgShouldBe asserts that the next message on the test server message
+// channel should be the one given.
+func ServerMsgShouldBe(c convey.C, exp string) {
+	timer := time.NewTimer(time.Second * 10)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		panic(fmt.Sprintf("timeout waiting for server message '%s'", exp))
+	case msg := <-ServerCheckChannel:
+		c.So(msg, convey.ShouldEqual, exp)
 	}
 }

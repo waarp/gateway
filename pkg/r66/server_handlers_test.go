@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -137,7 +137,7 @@ func TestValidRequest(t *testing.T) {
 				db:               db,
 				logger:           logger,
 				agent:            server,
-				runningTransfers: pipeline.NewTransferMap(),
+				runningTransfers: service.NewTransferMap(),
 			}},
 			account: account,
 			conf: &r66.Authent{
@@ -174,25 +174,25 @@ func TestValidRequest(t *testing.T) {
 				Convey("When calling the `ValidAuth` function", func() {
 					t, err := ses.ValidRequest(packet)
 					So(err, ShouldBeNil)
-					trans := t.(*transferHandler)
+					handler := t.(*transferHandler)
 
 					Convey("Then it should have created a transfer", func() {
-						So(trans.pip.TransCtx.Transfer.RuleID, ShouldEqual, rule.ID)
-						So(trans.pip.TransCtx.Transfer.IsServer, ShouldBeTrue)
-						So(trans.pip.TransCtx.Transfer.AgentID, ShouldEqual, server.ID)
-						So(trans.pip.TransCtx.Transfer.AccountID, ShouldEqual, account.ID)
-						So(trans.pip.TransCtx.Transfer.LocalPath, ShouldEqual, filepath.Join(
+						So(handler.trans.pip.TransCtx.Transfer.RuleID, ShouldEqual, rule.ID)
+						So(handler.trans.pip.TransCtx.Transfer.IsServer, ShouldBeTrue)
+						So(handler.trans.pip.TransCtx.Transfer.AgentID, ShouldEqual, server.ID)
+						So(handler.trans.pip.TransCtx.Transfer.AccountID, ShouldEqual, account.ID)
+						So(handler.trans.pip.TransCtx.Transfer.LocalPath, ShouldEqual, filepath.Join(
 							server.Root, rule.LocalTmpDir, path.Base(packet.Filepath)))
-						So(trans.pip.TransCtx.Transfer.RemotePath, ShouldEqual, "/"+path.Base(packet.Filepath))
-						So(trans.pip.TransCtx.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
-						So(trans.pip.TransCtx.Transfer.Step, ShouldEqual, types.StepSetup)
-						So(trans.pip.TransCtx.Transfer.Status, ShouldEqual, types.StatusRunning)
+						So(handler.trans.pip.TransCtx.Transfer.RemotePath, ShouldEqual, "/"+path.Base(packet.Filepath))
+						So(handler.trans.pip.TransCtx.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
+						So(handler.trans.pip.TransCtx.Transfer.Step, ShouldEqual, types.StepSetup)
+						So(handler.trans.pip.TransCtx.Transfer.Status, ShouldEqual, types.StatusRunning)
 					})
 
 					Convey("Then it should have returned a new session handler", func() {
-						So(trans.pip.TransCtx.Rule, ShouldResemble, rule)
-						So(trans.pip.TransCtx.LocalAgent, ShouldResemble, server)
-						So(trans.pip.TransCtx.LocalAccount, ShouldResemble, account)
+						So(handler.trans.pip.TransCtx.Rule, ShouldResemble, rule)
+						So(handler.trans.pip.TransCtx.LocalAgent, ShouldResemble, server)
+						So(handler.trans.pip.TransCtx.LocalAccount, ShouldResemble, account)
 					})
 				})
 			})

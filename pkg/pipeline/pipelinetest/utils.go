@@ -80,6 +80,7 @@ func initTestData(c convey.C) *testData {
 }
 
 func makeChan(c convey.C) {
+	setTestVar()
 	taskstest.ClientCheckChannel = make(chan string, 20)
 	taskstest.ServerCheckChannel = make(chan string, 20)
 	c.Reset(func() {

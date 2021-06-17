@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/pkg/sftp"
@@ -72,7 +72,7 @@ func TestFileReader(t *testing.T) {
 					Logger:           logger,
 					Agent:            agent,
 					ProtoConfig:      &serverConf,
-					runningTransfers: pipeline.NewTransferMap(),
+					runningTransfers: service.NewTransferMap(),
 				}).makeFileReader(nil, account)
 
 				Convey("Given a request for an existing file in the rule path", func() {
@@ -173,7 +173,7 @@ func TestFileWriter(t *testing.T) {
 					Logger:           logger,
 					Agent:            agent,
 					ProtoConfig:      &serverConf,
-					runningTransfers: pipeline.NewTransferMap(),
+					runningTransfers: service.NewTransferMap(),
 				}).makeFileWriter(nil, account)
 
 				Convey("Given a request for an existing file in the rule path", func() {

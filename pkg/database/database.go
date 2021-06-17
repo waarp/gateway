@@ -20,11 +20,6 @@ import (
 	"xorm.io/xorm/names"
 )
 
-const (
-	// ServiceName is the name of the gatewayd database service
-	ServiceName = "Database"
-)
-
 var (
 	// GCM is the Galois Counter Mode cipher used to encrypt external accounts passwords.
 	GCM cipher.AEAD
@@ -109,7 +104,7 @@ var supportedRBMS = map[string]dbinfo{}
 // If the service is already running, this function does nothing.
 func (db *DB) Start() error {
 	if db.logger == nil {
-		db.logger = log.NewLogger(ServiceName)
+		db.logger = log.NewLogger(service.DatabaseServiceName)
 	}
 
 	db.logger.Info("Starting database service...")

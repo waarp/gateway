@@ -41,7 +41,9 @@ type Client interface {
 	// the connection.
 	EndTransfer() *types.TransferError
 
-	ErrorHandler
+	// SendError sends the given error to the remote partner, and then closes
+	// the connection.
+	SendError(*types.TransferError)
 }
 
 // Server is the interface exposing the various handler functions which servers
@@ -49,15 +51,9 @@ type Client interface {
 // function is SendError. Optionally, servers can also implement the PauseHandler
 // and CancelHandler interfaces to allow more refined interruption handling.
 type Server interface {
-	ErrorHandler
-}
-
-// ErrorHandler is an interface which must be implemented by both clients and
-// servers, providing a function which informs the remote partner when an error
-// occurred.
-type ErrorHandler interface {
-	// SendError sends the given error to the remote, and then closes the connection.
-	SendError(*types.TransferError)
+	// Interrupt informs the partner that the transfer has been interrupted by
+	// an external factor.
+	Interrupt()
 }
 
 // PreTasksHandler is an interface which clients can optionally implement in

@@ -1,9 +1,11 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 
@@ -152,34 +154,40 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func pauseTransfer(services map[string]service.Service) handler {
+func pauseTransfer(protoServices map[string]service.ProtoService) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			check, err := getTrans(r, db)
+			trans, err := getTrans(r, db)
 			if handleError(w, logger, err) {
 				return
 			}
 
-			if check.Status != types.StatusPlanned && check.Status != types.StatusRunning {
+			if trans.Status != types.StatusPlanned && trans.Status != types.StatusRunning {
 				err := badRequest("cannot pause an already interrupted transfer")
 				handleError(w, logger, err)
 				return
 			}
 
-			switch check.Status {
+			switch trans.Status {
 			case types.StatusPlanned:
-				check.Status = types.StatusPaused
-				if err := db.Update(check).Cols("status").Run(); handleError(w, logger, err) {
+				trans.Status = types.StatusPaused
+				if err := db.Update(trans).Cols("status").Run(); handleError(w, logger, err) {
 					return
 				}
 				w.WriteHeader(http.StatusAccepted)
 				return
 			case types.StatusRunning:
-				pip, err := getTransPipeline(db, services, check)
+				pips, err := getPipelineMap(db, protoServices, trans)
 				if handleError(w, logger, err) {
 					return
 				}
-				pip.Pause()
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				defer cancel()
+				ok, err := pips.Pause(ctx, trans.ID)
+				if !ok || err != nil {
+					handleError(w, logger, fmt.Errorf("failed to pause transfer"))
+					return
+				}
 				w.WriteHeader(http.StatusAccepted)
 				return
 			default:
@@ -191,28 +199,35 @@ func pauseTransfer(services map[string]service.Service) handler {
 	}
 }
 
-func cancelTransfer(services map[string]service.Service) handler {
+func cancelTransfer(protoServices map[string]service.ProtoService) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			check, err := getTrans(r, db)
+			trans, err := getTrans(r, db)
 			if handleError(w, logger, err) {
 				return
 			}
 
-			switch check.Status {
+			switch trans.Status {
 			case types.StatusPlanned:
-				check.Status = types.StatusCancelled
-				if err := check.ToHistory(db, logger); handleError(w, logger, err) {
+				trans.Status = types.StatusCancelled
+				if err := trans.ToHistory(db, logger); handleError(w, logger, err) {
 					return
 				}
 				w.WriteHeader(http.StatusAccepted)
 			case types.StatusRunning:
-				pip, err := getTransPipeline(db, services, check)
+				pips, err := getPipelineMap(db, protoServices, trans)
 				if handleError(w, logger, err) {
 					return
 				}
-				pip.Pause()
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				defer cancel()
+				ok, err := pips.Cancel(ctx, trans.ID)
+				if !ok || err != nil {
+					handleError(w, logger, fmt.Errorf("failed to pause transfer"))
+					return
+				}
 				w.WriteHeader(http.StatusAccepted)
+				return
 			default:
 				err := badRequest("cannot pause an already interrupted transfer")
 				handleError(w, logger, err)
@@ -220,7 +235,7 @@ func cancelTransfer(services map[string]service.Service) handler {
 			}
 
 			r.URL.Path = "/api/history"
-			w.Header().Set("Location", location(r.URL, fmt.Sprint(check.ID)))
+			w.Header().Set("Location", location(r.URL, fmt.Sprint(trans.ID)))
 			w.WriteHeader(http.StatusAccepted)
 		}
 	}

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"time"
 
 	"code.bcarlin.xyz/go/logging"
 
@@ -17,7 +18,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
@@ -35,19 +35,22 @@ type Service struct {
 	agent  *model.LocalAgent
 	state  *service.State
 
-	server *r66.Server
+	list     net.Listener
+	server   *r66.Server
+	shutdown chan struct{}
 
-	runningTransfers *pipeline.TransferMap
+	runningTransfers *service.TransferMap
 }
 
 // NewService returns a new R66 service instance with the given attributes.
-func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.Service {
+func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService {
 	return &Service{
 		db:               db,
 		agent:            agent,
 		logger:           logger,
 		state:            &service.State{},
-		runningTransfers: pipeline.NewTransferMap(),
+		shutdown:         make(chan struct{}),
+		runningTransfers: service.NewTransferMap(),
 	}
 }
 
@@ -144,11 +147,10 @@ func (s *Service) listen() error {
 		return err
 	}
 
-	var list net.Listener
 	if tlsConf != nil {
-		list, err = tls.Listen("tcp", s.agent.Address, tlsConf)
+		s.list, err = tls.Listen("tcp", s.agent.Address, tlsConf)
 	} else {
-		list, err = net.Listen("tcp", s.agent.Address)
+		s.list, err = net.Listen("tcp", s.agent.Address)
 	}
 	if err != nil {
 		s.logger.Errorf("Failed to start R66 listener: %s", err)
@@ -157,11 +159,15 @@ func (s *Service) listen() error {
 	}
 
 	go func() {
-		if err := s.server.Serve(list); err != nil {
-			s.logger.Errorf("Server has stopped unexpectedly: %s", err)
-			s.state.Set(service.Error, err.Error())
+		if err := s.server.Serve(s.list); err != nil {
+			select {
+			case <-s.shutdown:
+				return
+			default:
+				s.logger.Errorf("Server has stopped unexpectedly: %s", err)
+				s.state.Set(service.Error, err.Error())
+			}
 		}
-		_ = list.Close()
 	}()
 
 	return nil
@@ -179,11 +185,20 @@ func (s *Service) Stop(ctx context.Context) error {
 	s.state.Set(service.ShuttingDown, "")
 	defer s.state.Set(service.Offline, "")
 
-	go s.runningTransfers.InterruptAll()
-	if err := s.server.Shutdown(ctx); err != nil {
-		s.logger.Error("Failed to shut down R66 server, forcing exit")
-		return err
+	if s.shutdown == nil {
+		s.shutdown = make(chan struct{})
 	}
+	close(s.shutdown)
+
+	//_ = s.list.Close()
+	if err := s.runningTransfers.InterruptAll(ctx); err != nil {
+		s.logger.Error("Failed to interrupt R66 transfers, forcing exit")
+		return ctx.Err()
+	}
+	time.Sleep(time.Second)
+	s.logger.Debug("Closing listener...")
+	_ = s.server.Shutdown(ctx)
+
 	s.logger.Info("R66 server shutdown successful")
 	return nil
 }
@@ -196,4 +211,9 @@ func (s *Service) State() *service.State {
 		}
 	}
 	return s.state
+}
+
+// ManageTransfers returns a map of the transfers currently running on the server.
+func (s *Service) ManageTransfers() *service.TransferMap {
+	return s.runningTransfers
 }

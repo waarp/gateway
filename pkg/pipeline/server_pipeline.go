@@ -9,88 +9,40 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
-// ServerPipeline is a struct regrouping a Pipeline with various server handlers
-// for sending interruption signals to the transfer partner when needed.
-type ServerPipeline struct {
-	*Pipeline
-	handlers Server
-}
+// GetServerTransfer searches the database for an interrupted transfer with the
+// given remoteID and made with the given account. If such a transfer is found,
+// the request is considered a retry, and the old entry is thus returned.
+//
+// If the transfer cannot be found, a new one is created from the information
+// given, and then returned.
+func GetServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
+) (*model.Transfer, *types.TransferError) {
 
-// GetOldServerTransfer searches the database for a transfer with the given
-// remoteID and made with the given account. If the transfer cannot be found,
-// it returns nil.
-func GetOldServerTransfer(db *database.DB, logger *log.Logger, remoteID string,
-	acc *model.LocalAccount) (*model.Transfer, *types.TransferError) {
-
-	var trans model.Transfer
-	if err := db.Get(&trans, "is_server=? AND remote_transfer_id=? AND account_id=?",
-		true, remoteID, acc.ID).Run(); err != nil {
-		if database.IsNotFound(err) {
-			return nil, nil
-		}
+	err := db.Get(trans, "status<>? AND is_server=? AND remote_transfer_id=? AND account_id=?",
+		types.StatusRunning, true, trans.RemoteTransferID, trans.AccountID).Run()
+	if err == nil {
+		return trans, nil
+	}
+	if !database.IsNotFound(err) {
 		logger.Errorf("Failed to retrieve old server transfer: %s", err)
 		return nil, errDatabase
 	}
-	return &trans, nil
-}
 
-// NewServerTransfer inserts the given server transfer in the database.
-func NewServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer) *types.TransferError {
 	if err := db.Insert(trans).Run(); err != nil {
 		logger.Errorf("Failed to insert new server transfer: %s", err)
-		return errDatabase
+		return nil, errDatabase
 	}
-
-	return nil
+	return trans, nil
 }
 
-// NewServerPipeline returns a new ServerPipeline
-func NewServerPipeline(db *database.DB, trans *model.Transfer, handlers Server,
-) (*ServerPipeline, *types.TransferError) {
+// NewServerPipeline initialises and returns a new pipeline suitable for a
+// server transfer.
+func NewServerPipeline(db *database.DB, trans *model.Transfer,
+) (*Pipeline, *types.TransferError) {
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
-
-	info, err := model.GetTransferInfo(db, logger, trans)
+	transCtx, err := model.GetTransferInfo(db, logger, trans)
 	if err != nil {
 		return nil, err
 	}
-
-	pipeline, err := newPipeline(db, logger, info)
-	if err != nil {
-		return nil, err
-	}
-
-	s := &ServerPipeline{
-		Pipeline: pipeline,
-		handlers: handlers,
-	}
-	return s, nil
-}
-
-// Pause stops the server pipeline and pauses the transfer.
-func (s *ServerPipeline) Pause() {
-	if pa, ok := s.handlers.(PauseHandler); ok {
-		_ = pa.Pause()
-	} else {
-		s.handlers.SendError(types.NewTransferError(types.TeStopped,
-			"transfer paused by user"))
-	}
-	s.Pipeline.Pause()
-}
-
-// Interrupt stops the server pipeline and interrupts the transfer.
-func (s *ServerPipeline) Interrupt() {
-	s.handlers.SendError(types.NewTransferError(types.TeShuttingDown,
-		"transfer interrupted by service shutdown"))
-	s.Pipeline.interrupt()
-}
-
-// Cancel stops the server pipeline and cancels the transfer.
-func (s *ServerPipeline) Cancel() {
-	if ca, ok := s.handlers.(CancelHandler); ok {
-		_ = ca.Cancel()
-	} else {
-		s.handlers.SendError(types.NewTransferError(types.TeCanceled,
-			"transfer cancelled by user"))
-	}
-	s.Pipeline.Cancel()
+	return newPipeline(db, logger, transCtx)
 }

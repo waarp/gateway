@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"encoding/hex"
 	"io/ioutil"
 	"os"
@@ -29,7 +30,7 @@ func TestCheckHash(t *testing.T) {
 		defer os.Remove(path)
 
 		Convey("When calling the `checkHash` function with the correct hash", func() {
-			hash, err := MakeHash(logger, path)
+			hash, err := MakeHash(context.Background(), logger, path)
 			So(err, ShouldBeNil)
 
 			Convey("Then it should return the expected hash", func() {
@@ -39,7 +40,7 @@ func TestCheckHash(t *testing.T) {
 
 		Convey("When calling the `checkHash` function with an invalid path", func() {
 			path := "not a path"
-			_, err := MakeHash(logger, path)
+			_, err := MakeHash(context.Background(), logger, path)
 
 			Convey("Then it should return an error", func() {
 				So(err, ShouldBeError, types.NewTransferError(types.TeInternal, "failed to open file"))

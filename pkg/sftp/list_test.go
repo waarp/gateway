@@ -11,11 +11,12 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	"github.com/pkg/sftp"
@@ -79,7 +80,7 @@ func TestSFTPList(t *testing.T) {
 				ProtoConfig:      &protoConfig,
 				SSHConf:          serverConfig,
 				Listener:         listener,
-				runningTransfers: pipeline.NewTransferMap(),
+				runningTransfers: service.NewTransferMap(),
 			}
 			sshList.listen()
 			Reset(func() {

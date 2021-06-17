@@ -2,36 +2,13 @@ package sftp
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/pkg/sftp"
 )
 
-var (
-	errDatabase = fmt.Errorf("database error")
-)
-
-// modelToSFTP converts the given error into its closest equivalent
-// SFTP error code. Since SFTP v3 only supports 8 error codes (9 with code Ok),
-// most errors will be converted to the generic code SSH_FX_FAILURE.
-func modelToSFTP(err *types.TransferError) error {
-	switch err.Code {
-	case types.TeOk:
-		return sftp.ErrSSHFxOk
-	case types.TeUnimplemented:
-		return sftp.ErrSSHFxOpUnsupported
-	case types.TeFileNotFound:
-		return sftp.ErrSSHFxNoSuchFile
-	case types.TeForbidden:
-		return sftp.ErrSSHFxPermissionDenied
-	default:
-		return fmt.Errorf(err.Error())
-	}
-}
-
-func sftpToModel(err error, defaults types.TransferErrorCode) *types.TransferError {
+func (c *client) fromSFTPErr(err error, defaults types.TransferErrorCode) *types.TransferError {
 	code := defaults
 	msg := err.Error()
 
@@ -44,6 +21,12 @@ func sftpToModel(err error, defaults types.TransferErrorCode) *types.TransferErr
 	s := regex.FindStringSubmatch(err.Error())
 	if len(s) >= 3 {
 		code = types.TecFromString(s[1])
+		switch code {
+		case types.TeStopped:
+			c.pip.Pause()
+		case types.TeCanceled:
+			c.pip.Cancel()
+		}
 		msg = s[2]
 		return types.NewTransferError(code, msg)
 	}
