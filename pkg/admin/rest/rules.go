@@ -166,11 +166,7 @@ func addRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := doTaskUpdate(ses, jsonRule.UptRule, rule.ID, true); err != nil {
-				return err
-			}
-
-			return nil
+			return doTaskUpdate(ses, jsonRule.UptRule, rule.ID, true)
 		})
 		if handleError(w, logger, err) {
 			return
@@ -249,11 +245,7 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := doTaskUpdate(ses, jRule.UptRule, old.ID, false); err != nil {
-				return err
-			}
-
-			return nil
+			return doTaskUpdate(ses, jRule.UptRule, old.ID, false)
 		})
 		if handleError(w, logger, err) {
 			return
@@ -286,11 +278,7 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 				return err
 			}
 
-			if err := doTaskUpdate(ses, jRule.UptRule, old.ID, true); err != nil {
-				return err
-			}
-
-			return nil
+			return doTaskUpdate(ses, jRule.UptRule, old.ID, true)
 		})
 		if handleError(w, logger, err) {
 			return

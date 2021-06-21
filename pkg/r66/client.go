@@ -72,11 +72,7 @@ func (c *client) Request() *types.TransferError {
 	}
 
 	// REQUEST
-	if err := c.request(); err != nil {
-		return err
-	}
-
-	return nil
+	return c.request()
 }
 
 // BeginPreTasks does nothing (needed to implement PreTaskHandler).

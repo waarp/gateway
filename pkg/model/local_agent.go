@@ -175,11 +175,8 @@ func (l *LocalAgent) BeforeDelete(db database.Access) database.Error {
 	}
 
 	accountQuery := db.DeleteAll(&LocalAccount{}).Where("local_agent_id=?", l.ID)
-	if err := accountQuery.Run(); err != nil {
-		return err
-	}
 
-	return nil
+	return accountQuery.Run()
 }
 
 // GetCryptos fetch in the database then return the associated Cryptos if they exist.

@@ -46,11 +46,7 @@ func writeUsers(users model.Users, w http.ResponseWriter) error {
 	for i := range users {
 		jUsers[i] = *FromUser(&users[i])
 	}
-	if err := writeJSON(w, map[string][]api.OutUser{"users": jUsers}); err != nil {
-		return err
-	}
-
-	return nil
+	return writeJSON(w, map[string][]api.OutUser{"users": jUsers})
 }
 
 func getUsr(r *http.Request, db *database.DB) (*model.User, error) {

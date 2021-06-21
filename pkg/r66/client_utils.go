@@ -111,11 +111,7 @@ func (c *client) request() *types.TransferError {
 		return internal.FromR66Error(err, c.pip)
 	}
 
-	if err := c.checkReqResp(req, resp); err != nil {
-		return err
-	}
-
-	return nil
+	return c.checkReqResp(req, resp)
 }
 
 func (c *client) checkReqResp(req, resp *r66.Request) *types.TransferError {

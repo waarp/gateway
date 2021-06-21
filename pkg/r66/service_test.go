@@ -111,7 +111,7 @@ func TestR66ServerInterruption(t *testing.T) {
 						}
 					}()
 					_, err := ses.Send(&dummyFile{}, func() ([]byte, error) { panic("should never be called") })
-					So(err, ShouldBeError, "D: connection closed unexpectedly")
+					So(err, ShouldBeError, "S: service is shutting down")
 
 					Convey("Then the transfer should have been interrupted", func(c C) {
 						test.PreTasksShouldBeOK(c)

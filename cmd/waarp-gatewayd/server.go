@@ -40,8 +40,5 @@ func (cmd *serverCommand) Execute([]string) error {
 	}
 
 	s := gatewayd.NewWG(config)
-	if err := s.Start(); err != nil {
-		return err
-	}
-	return nil
+	return s.Start()
 }

@@ -29,7 +29,7 @@ t_check() {
   fi
   go vet ./cmd/... ./pkg/...
   golangci-lint run \
-    --enable bodyclose,dogsled,dupl,funlen,gocognit,gocyclo,gofmt,goimports,golint,gosec,misspell,nakedret,scopelint,stylecheck,unconvert,unparam \
+    --enable bodyclose,dogsled,dupl,funlen,gocognit,gocyclo,gofmt,goimports,revive,gosec,misspell,nakedret,exportloopref,stylecheck,unconvert,unparam \
     --max-issues-per-linter 0 --max-same-issues 0 \
     --exclude-use-default=false  \
     --exclude 'Potential file inclusion via variable' \
