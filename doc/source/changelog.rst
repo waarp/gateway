@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`239` Correction d'une erreur de base de données survenant lors de la mise
+  à jour de la progression des transferts.
 * :bug:`222` Correction d'un comportement incorrect au lancement de la *gateway*
   lorsque la racine `GatewayHome` renseignée est un chemin relatif.
 * :bug:`238` Suppression de l'option (maintenant inutile) ``R66Home`` du fichier
