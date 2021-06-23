@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`222` Correction d'un comportement incorrect au lancement de la *gateway*
+  lorsque la racine `GatewayHome` renseignée est un chemin relatif.
 * :bug:`238` Suppression de l'option (maintenant inutile) ``R66Home`` du fichier
   de configuration.
 * :bug:`254` Ajout des contraintes d'unicité manquantes lors de l'initialisation
