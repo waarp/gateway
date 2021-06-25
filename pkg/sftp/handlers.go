@@ -85,7 +85,7 @@ func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.
 	return func(ls []os.FileInfo, offset int64) (int, error) {
 		l.Logger.Debugf("Received 'Stat' request on %s", r.Filepath)
 
-		rule, err := internal.GetRule(l.DB, l.Logger, acc, l.Agent, path.Dir(r.Filepath), true)
+		rule, err := internal.GetRule(l.DB, l.Logger, acc, path.Dir(r.Filepath), true)
 		if err != nil || rule == nil {
 			return 0, fmt.Errorf("failed to retrieve rule for path '%s'", r.Filepath)
 		}

@@ -115,7 +115,7 @@ func TestServerStart(t *testing.T) {
 func TestSSHServerInterruption(t *testing.T) {
 
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
-		test := pipelinetest.InitServerPush(c, "sftp", servConf)
+		test := pipelinetest.InitServerPush(c, "sftp", nil)
 		test.AddCryptos(c, makeServerKey(test.Server))
 
 		serv := gatewayd.ServiceConstructors[test.Server.Protocol](test.DB, test.Server, test.Logger)
@@ -158,7 +158,7 @@ func TestSSHServerInterruption(t *testing.T) {
 							LocalPath: filepath.Join(test.Server.Root,
 								test.Server.LocalTmpDir, "test_in_shutdown.dst.part"),
 							RemotePath: "/test_in_shutdown.dst",
-							Filesize:   -1,
+							Filesize:   model.UnknownSize,
 							RuleID:     test.Rule.ID,
 							Status:     types.StatusInterrupted,
 							Step:       types.StepData,
@@ -176,7 +176,7 @@ func TestSSHServerInterruption(t *testing.T) {
 	})
 
 	Convey("Given an SFTP server ready for pull transfers", t, func(c C) {
-		test := pipelinetest.InitServerPull(c, "sftp", servConf)
+		test := pipelinetest.InitServerPull(c, "sftp", nil)
 		test.AddCryptos(c, makeServerKey(test.Server))
 
 		serv := gatewayd.ServiceConstructors[test.Server.Protocol](test.DB, test.Server, test.Logger)
@@ -221,7 +221,7 @@ func TestSSHServerInterruption(t *testing.T) {
 							LocalPath: filepath.Join(test.Server.Root,
 								test.Server.LocalOutDir, "test_out_shutdown.src"),
 							RemotePath: "/test_out_shutdown.src",
-							Filesize:   int64(pipelinetest.TestFileSize),
+							Filesize:   pipelinetest.TestFileSize,
 							RuleID:     test.Rule.ID,
 							Status:     types.StatusInterrupted,
 							Step:       types.StepData,

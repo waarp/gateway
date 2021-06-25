@@ -11,6 +11,10 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
 
+// UnknownSize defines the value given to Transfer.Filesize when the file size is
+// unknown.
+const UnknownSize int64 = -1
+
 func init() {
 	database.Tables = append(database.Tables, &Transfer{})
 }

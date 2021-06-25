@@ -112,7 +112,7 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 		AccountID:  s.LocAccount.ID,
 		LocalPath:  "self_transfer_pull",
 		RemotePath: "self_transfer_pull",
-		Filesize:   -1,
+		Filesize:   model.UnknownSize,
 		Start:      time.Now(),
 	}
 	c.So(s.DB.Insert(trans).Run(), convey.ShouldBeNil)
@@ -226,11 +226,87 @@ func (s *SelfContext) TestRetry(c convey.C, checkRemainingTasks ...func(c convey
 	})
 }
 
-//nolint:funlen
+func (s *SelfContext) checkClientTransferOK(c convey.C, actual *model.HistoryEntry) {
+	c.Convey("Then there should be a client-side history entry", func(c convey.C) {
+		expected := &model.HistoryEntry{
+			ID:         s.ClientTrans.ID,
+			Owner:      s.DB.Conf.GatewayName,
+			Protocol:   s.Partner.Protocol,
+			Rule:       s.ClientRule.Name,
+			IsServer:   false,
+			IsSend:     s.ClientRule.IsSend,
+			Account:    s.RemAccount.Login,
+			Agent:      s.Partner.Name,
+			Start:      actual.Start,
+			Stop:       actual.Stop,
+			LocalPath:  s.ClientTrans.LocalPath,
+			RemotePath: s.ClientTrans.RemotePath,
+			Filesize:   TestFileSize,
+			Status:     types.StatusDone,
+			Step:       types.StepNone,
+			Error:      types.TransferError{},
+			Progress:   uint64(len(s.transData.fileContent)),
+			TaskNumber: 0,
+		}
+		c.So(*actual, convey.ShouldResemble, *expected)
+	})
+}
+
+// CheckClientTransferOK checks if the client transfer history entry has
+// succeeded as expected.
+func (s *SelfContext) CheckClientTransferOK(c convey.C) {
+	var actual model.HistoryEntry
+	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID).Run(), convey.ShouldBeNil)
+	s.checkClientTransferOK(c, &actual)
+}
+
+func (s *SelfContext) checkServerTransferOK(c convey.C, actual *model.HistoryEntry) {
+	c.Convey("Then there should be a server-side history entry", func(c convey.C) {
+		expected := &model.HistoryEntry{
+			ID:         actual.ID,
+			Owner:      s.DB.Conf.GatewayName,
+			Protocol:   s.Server.Protocol,
+			IsServer:   true,
+			IsSend:     s.ServerRule.IsSend,
+			Rule:       s.ServerRule.Name,
+			Account:    s.LocAccount.Login,
+			Agent:      s.Server.Name,
+			Start:      actual.Start,
+			Stop:       actual.Stop,
+			RemotePath: "/" + filepath.Base(s.ClientTrans.LocalPath),
+			Filesize:   TestFileSize,
+			Status:     types.StatusDone,
+			Step:       types.StepNone,
+			Error:      types.TransferError{},
+			Progress:   uint64(len(s.transData.fileContent)),
+			TaskNumber: 0,
+		}
+		if s.protoFeatures.transID {
+			expected.RemoteTransferID = fmt.Sprint(s.ClientTrans.ID)
+		}
+		if s.ServerRule.IsSend {
+			expected.LocalPath = filepath.Join(s.Server.Root, s.Server.LocalOutDir,
+				filepath.Base(s.ClientTrans.LocalPath))
+		} else {
+			expected.LocalPath = filepath.Join(s.Server.Root, s.Server.LocalInDir,
+				filepath.Base(s.ClientTrans.LocalPath))
+		}
+		c.So(*actual, convey.ShouldResemble, *expected)
+	})
+}
+
+// CheckServerTransferOK checks if the server transfer history entry has
+// succeeded as expected.
+func (s *SelfContext) CheckServerTransferOK(c convey.C) {
+	var actual model.HistoryEntry
+	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID+1).Run(), convey.ShouldBeNil)
+	s.checkServerTransferOK(c, &actual)
+}
+
 // CheckTransfersOK checks whether both the server & client test transfers
 // finished correctly.
 func (s *SelfContext) CheckTransfersOK(c convey.C) {
-	s.shouldBeEndTransfer(c)
+	s.ShouldBeEndTransfer(c)
 	s.shouldNotBeInLists()
 
 	c.Convey("Then the transfers should be over", func(c convey.C) {
@@ -238,68 +314,16 @@ func (s *SelfContext) CheckTransfersOK(c convey.C) {
 		c.So(s.DB.Select(&results).OrderBy("id", true).Run(), convey.ShouldBeNil)
 		c.So(len(results), convey.ShouldEqual, 2)
 
-		c.Convey("Then there should be a client-side history entry", func(c convey.C) {
-			cTrans := model.HistoryEntry{
-				ID:         s.ClientTrans.ID,
-				Owner:      s.DB.Conf.GatewayName,
-				Protocol:   s.Partner.Protocol,
-				Rule:       s.ClientRule.Name,
-				IsServer:   false,
-				IsSend:     s.ClientRule.IsSend,
-				Account:    s.RemAccount.Login,
-				Agent:      s.Partner.Name,
-				Start:      results[0].Start,
-				Stop:       results[0].Stop,
-				LocalPath:  s.ClientTrans.LocalPath,
-				RemotePath: s.ClientTrans.RemotePath,
-				Filesize:   int64(TestFileSize),
-				Status:     types.StatusDone,
-				Step:       types.StepNone,
-				Error:      types.TransferError{},
-				Progress:   uint64(len(s.transData.fileContent)),
-				TaskNumber: 0,
-			}
-			c.So(results[0], convey.ShouldResemble, cTrans)
-		})
-
-		c.Convey("Then there should be a server-side history entry", func(c convey.C) {
-			sTrans := model.HistoryEntry{
-				ID:         results[1].ID,
-				Owner:      s.DB.Conf.GatewayName,
-				Protocol:   s.Server.Protocol,
-				IsServer:   true,
-				IsSend:     s.ServerRule.IsSend,
-				Rule:       s.ServerRule.Name,
-				Account:    s.LocAccount.Login,
-				Agent:      s.Server.Name,
-				Start:      results[1].Start,
-				Stop:       results[1].Stop,
-				RemotePath: "/" + filepath.Base(s.ClientTrans.LocalPath),
-				Filesize:   int64(TestFileSize),
-				Status:     types.StatusDone,
-				Step:       types.StepNone,
-				Error:      types.TransferError{},
-				Progress:   uint64(len(s.transData.fileContent)),
-				TaskNumber: 0,
-			}
-			if s.Server.Protocol == "r66" {
-				sTrans.RemoteTransferID = fmt.Sprint(s.ClientTrans.ID)
-			}
-			if s.ServerRule.IsSend {
-				sTrans.LocalPath = filepath.Join(s.Server.Root, s.Server.LocalOutDir,
-					filepath.Base(s.ClientTrans.LocalPath))
-			} else {
-				sTrans.LocalPath = filepath.Join(s.Server.Root, s.Server.LocalInDir,
-					filepath.Base(s.ClientTrans.LocalPath))
-			}
-			c.So(results[1], convey.ShouldResemble, sTrans)
-		})
+		s.checkClientTransferOK(c, &results[0])
+		s.checkServerTransferOK(c, &results[1])
 	})
 
-	s.checkDestFile(c)
+	s.CheckDestFile(c)
 }
 
-func (s *SelfContext) checkDestFile(c convey.C) {
+// CheckDestFile checks if the transfer's destination file does exist, and if
+// its content is as expected.
+func (s *SelfContext) CheckDestFile(c convey.C) {
 	c.Convey("Then the file should have been sent entirely", func(c convey.C) {
 		path := s.ClientTrans.LocalPath
 		if s.ClientRule.IsSend {
@@ -308,19 +332,96 @@ func (s *SelfContext) checkDestFile(c convey.C) {
 		}
 		content, err := ioutil.ReadFile(path)
 		c.So(err, convey.ShouldBeNil)
-		c.So(content, convey.ShouldHaveLength, TestFileSize)
+		c.So(len(content), convey.ShouldEqual, ProgressComplete)
 		c.So(content[:9], convey.ShouldResemble, s.fileContent[:9])
 		c.So(content, convey.ShouldResemble, s.fileContent)
 	})
 }
 
+func (s *SelfContext) checkClientTransferError(c convey.C, expected, actual *model.Transfer) {
+	c.Convey("Then there should be a client-side transfer in error", func(c convey.C) {
+		expected.ID = s.ClientTrans.ID
+		expected.Owner = s.DB.Conf.GatewayName
+		expected.IsServer = false
+		expected.Status = types.StatusError
+		expected.RuleID = actual.RuleID
+		expected.LocalPath = actual.LocalPath
+		expected.RemotePath = actual.RemotePath
+		expected.AccountID = s.RemAccount.ID
+		expected.AgentID = s.Partner.ID
+		expected.Start = actual.Start
+		if s.ClientRule.IsSend {
+			expected.Filesize = TestFileSize
+		} else if expected.Filesize == 0 {
+			expected.Filesize = model.UnknownSize
+		}
+		if expected.Progress == UndefinedProgress {
+			convey.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, ProgressComplete)
+			expected.Progress = actual.Progress
+		}
+
+		c.So(*actual, convey.ShouldResemble, *expected)
+	})
+}
+
+// CheckClientTransferError takes asserts that the client transfer should have
+// failed like the given expected one. The expected entry must specify the step,
+// filesize (for the receiver), progress, task. The rest of the transfer entry's
+// attribute will be deduced automatically.
+func (s *SelfContext) CheckClientTransferError(c convey.C, expected *model.Transfer) {
+	var actual model.Transfer
+	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID).Run(), convey.ShouldBeNil)
+	s.checkClientTransferError(c, expected, &actual)
+}
+
+func (s *SelfContext) checkServerTransferError(c convey.C, expected, actual *model.Transfer) {
+	c.Convey("Then there should be a server-side transfer in error", func(c convey.C) {
+		expected.ID = s.ClientTrans.ID + 1
+		expected.Owner = s.DB.Conf.GatewayName
+		expected.IsServer = true
+		expected.Status = types.StatusError
+		expected.RuleID = actual.RuleID
+		expected.LocalPath = actual.LocalPath
+		expected.RemotePath = actual.RemotePath
+		expected.AccountID = s.LocAccount.ID
+		expected.AgentID = s.Server.ID
+		expected.Start = actual.Start
+		if s.protoFeatures.transID {
+			expected.RemoteTransferID = fmt.Sprint(s.ClientTrans.ID)
+		}
+		if s.ServerRule.IsSend {
+			expected.Filesize = TestFileSize
+		} else if expected.Filesize == 0 {
+			expected.Filesize = model.UnknownSize
+		}
+		if expected.Progress == UndefinedProgress {
+			convey.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, ProgressComplete)
+			expected.Progress = actual.Progress
+		}
+
+		c.So(*actual, convey.ShouldResemble, *expected)
+	})
+}
+
+// CheckServerTransferError takes asserts that the server transfer should have
+// failed like the given expected one. The expected entry must specify the step,
+// filesize (for the receiver), progress, task. The rest of the transfer entry's
+// attribute will be deduced automatically.
+func (s *SelfContext) CheckServerTransferError(c convey.C, expected *model.Transfer) {
+	var actual model.Transfer
+	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID+1).Run(), convey.ShouldBeNil)
+	s.checkServerTransferError(c, expected, &actual)
+}
+
 // CheckTransfersError takes 2 transfer entries (one for the client and one for
 // the server) and checks that they have failed as expected. The given transfers
-// arguments must specify the step, progress, task number & error details expected.
-// The rest of the transfer entry's attribute will be deduced automatically.
+// arguments must specify the step, filesize (for the receiver), progress, task
+// number & error details expected. The rest of the transfer entry's attribute
+// will be deduced automatically.
 func (s *SelfContext) CheckTransfersError(c convey.C, cTrans, sTrans *model.Transfer) {
-	s.shouldBeErrorTasks(c)
-	s.shouldBeEndTransfer(c)
+	s.ShouldBeClientErrorTasks(c)
+	s.ShouldBeServerErrorTasks(c)
+	s.ShouldBeEndTransfer(c)
 	s.shouldNotBeInLists()
 
 	c.Convey("Then the transfers should be in error", func(c convey.C) {
@@ -328,55 +429,8 @@ func (s *SelfContext) CheckTransfersError(c convey.C, cTrans, sTrans *model.Tran
 		c.So(s.DB.Select(&transfers).OrderBy("id", true).Run(), convey.ShouldBeNil)
 		c.So(len(transfers), convey.ShouldEqual, 2)
 
-		c.Convey("Then there should be a client-side transfer in error", func(c convey.C) {
-			cTrans.ID = s.ClientTrans.ID
-			cTrans.Owner = s.DB.Conf.GatewayName
-			cTrans.IsServer = false
-			cTrans.Status = types.StatusError
-			cTrans.RuleID = transfers[0].RuleID
-			cTrans.LocalPath = transfers[0].LocalPath
-			cTrans.RemotePath = transfers[0].RemotePath
-			cTrans.Filesize = int64(TestFileSize)
-			cTrans.AccountID = s.RemAccount.ID
-			cTrans.AgentID = s.Partner.ID
-			cTrans.Start = transfers[0].Start
-			if !s.ClientRule.IsSend && ((!s.protoFeatures.size && cTrans.Step <= types.StepData) ||
-				s.protoFeatures.size && cTrans.Step <= types.StepSetup) {
-				cTrans.Filesize = -1
-			}
-			if cTrans.Progress == UndefinedProgress {
-				convey.So(transfers[0].Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
-				cTrans.Progress = transfers[0].Progress
-			}
-
-			c.So(transfers[0], convey.ShouldResemble, *cTrans)
-		})
-
-		c.Convey("Then there should be a server-side transfer in error", func(c convey.C) {
-			sTrans.ID = s.ClientTrans.ID + 1
-			sTrans.Owner = s.DB.Conf.GatewayName
-			sTrans.IsServer = true
-			sTrans.Status = types.StatusError
-			sTrans.RuleID = transfers[1].RuleID
-			sTrans.LocalPath = transfers[1].LocalPath
-			sTrans.RemotePath = transfers[1].RemotePath
-			sTrans.Filesize = int64(TestFileSize)
-			sTrans.AccountID = s.LocAccount.ID
-			sTrans.AgentID = s.Server.ID
-			sTrans.Start = transfers[1].Start
-			if s.protoFeatures.transID {
-				sTrans.RemoteTransferID = fmt.Sprint(s.ClientTrans.ID)
-			}
-			if !s.ServerRule.IsSend && !s.protoFeatures.size && sTrans.Step <= types.StepData {
-				sTrans.Filesize = -1
-			}
-			if sTrans.Progress == UndefinedProgress {
-				convey.So(transfers[1].Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
-				sTrans.Progress = transfers[1].Progress
-			}
-
-			c.So(transfers[1], convey.ShouldResemble, *sTrans)
-		})
+		s.checkClientTransferError(c, cTrans, &transfers[0])
+		s.checkServerTransferError(c, sTrans, &transfers[1])
 	})
 }
 

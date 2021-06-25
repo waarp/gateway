@@ -19,8 +19,9 @@ echo $1
 exit 2`
 
 const scriptExecInfinite = `#!/bin/sh
+echo $1
 while [ true ]; do
-  echo $1
+  echo $1 >> /dev/null
 done`
 
 const scriptExecMove = `#!/bin/sh

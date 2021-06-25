@@ -190,7 +190,6 @@ func (s *Service) Stop(ctx context.Context) error {
 	}
 	close(s.shutdown)
 
-	//_ = s.list.Close()
 	if err := s.runningTransfers.InterruptAll(ctx); err != nil {
 		s.logger.Error("Failed to interrupt R66 transfers, forcing exit")
 		return ctx.Err()

@@ -17,7 +17,7 @@ func (c *client) fromSFTPErr(err error, defaults types.TransferErrorCode) *types
 		return types.NewTransferError(code, msg)
 	}
 
-	regex, _ := regexp.Compile(`sftp: "TransferError\((Te\w*)\): (.*)" \(.*\)`)
+	regex := regexp.MustCompile(`sftp: "TransferError\((Te\w*)\): (.*)" \(.*\)`)
 	s := regex.FindStringSubmatch(err.Error())
 	if len(s) >= 3 {
 		code = types.TecFromString(s[1])
@@ -50,7 +50,7 @@ func (c *client) fromSFTPErr(err error, defaults types.TransferErrorCode) *types
 		code = types.TeUnimplemented
 	}
 
-	regex2, _ := regexp.Compile(`sftp: "(.*)" \(.*\)`)
+	regex2 := regexp.MustCompile(`sftp: "(.*)" \(.*\)`)
 	s2 := regex2.FindStringSubmatch(err.Error())
 	if len(s2) >= 1 {
 		msg = s2[1]

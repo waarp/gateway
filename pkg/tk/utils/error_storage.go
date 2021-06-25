@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"fmt"
 	"sync"
 )
 
@@ -52,7 +51,6 @@ func (e *ErrorStorage) StoreCtx(ctx context.Context, err error) {
 		e.err = err
 		select {
 		case e.done <- err:
-			fmt.Println("#### ERROR HANDLED ####")
 		case <-ctx.Done():
 		}
 	})

@@ -138,3 +138,45 @@ func (r *Rule) BeforeDelete(db database.Access) database.Error {
 	}
 	return nil
 }
+
+// IsAuthorized returns whether the given target is authorized to use the rule
+// for transfers. It will return true either if the rule has no restrictions, or
+// if the target has been given access to the rule.
+//
+// Valid target types are: LocalAgent, RemoteAgent, LocalAccount & RemoteAccount.
+func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bool, database.Error) {
+	var perms RuleAccess
+	n, err := db.Count(&perms).Where("rule_id=?", r.ID).Run()
+	if err != nil {
+		return false, err
+	}
+	if n == 0 {
+		return true, nil
+	}
+
+	var query *database.CountQuery
+	switch object := target.(type) {
+	case *LocalAgent:
+		query = db.Count(&perms).Where("rule_id=? AND (object_type=? AND object_id=?)",
+			r.ID, object.TableName(), object.ID)
+	case *RemoteAgent:
+		query = db.Count(&perms).Where("rule_id=? AND (object_type=? AND object_id=?)",
+			r.ID, object.TableName(), object.ID)
+	case *LocalAccount:
+		query = db.Count(&perms).Where("rule_id=? AND ((object_type=? AND object_id=?) "+
+			"OR (object_type=? AND object_id=?))", r.ID, object.TableName(), object.ID,
+			"local_agents", object.LocalAgentID)
+	case *RemoteAccount:
+		query = db.Count(&perms).Where("rule_id=? AND ((object_type=? AND object_id=?) "+
+			"OR (object_type=? AND object_id=?))", r.ID, object.TableName(), object.ID,
+			"local_agents", object.RemoteAgentID)
+	default:
+		return false, database.NewValidationError("%T is not a valid target model for RuleAccess", target)
+	}
+
+	n, err = query.Run()
+	if err != nil {
+		return false, err
+	}
+	return n != 0, nil
+}

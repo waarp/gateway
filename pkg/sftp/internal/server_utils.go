@@ -96,7 +96,7 @@ func AcceptRequests(in <-chan *ssh.Request) {
 // GetRule returns the rule matching the given path & direction. It also checks
 // is the given account has the rights to use said rule.
 func GetRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
-	ag *model.LocalAgent, rulePath string, isSend bool) (*model.Rule, error) {
+	rulePath string, isSend bool) (*model.Rule, error) {
 
 	var rule model.Rule
 	if err := db.Get(&rule, "path=? AND send=?", rulePath, isSend).Run(); err != nil {
@@ -112,23 +112,15 @@ func GetRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
 		return nil, fmt.Errorf("failed to retrieve rule: %s", err)
 	}
 
-	var accesses model.RuleAccesses
-	if err := db.Select(&accesses).Where("rule_id=?", rule.ID).Run(); err != nil {
-		logger.Errorf("Failed to retrieve rule permissions: %s", err)
-		return nil, fmt.Errorf("failed to retrieve rule permissions")
+	ok, err := rule.IsAuthorized(db, acc)
+	if err != nil {
+		logger.Errorf("Failed to check rule permissions: %s", err)
+		return nil, err
 	}
-
-	if len(accesses) == 0 {
-		return &rule, nil
+	if !ok {
+		return nil, fmt.Errorf("user is not allowed to use the specified rule")
 	}
-
-	for _, access := range accesses {
-		if (access.ObjectType == "local_agents" && access.ObjectID == ag.ID) ||
-			(access.ObjectType == "local_accounts" && access.ObjectID == acc.ID) {
-			return &rule, nil
-		}
-	}
-	return nil, fmt.Errorf("user is not allowed to use the specified rule")
+	return &rule, nil
 }
 
 // GetListRule returns the rule associated with the given rule path, if the given
@@ -136,12 +128,12 @@ func GetRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
 // rule has priority.
 func GetListRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
 	ag *model.LocalAgent, rulePath string) (*model.Rule, error) {
-	sndRule, err := GetRule(db, logger, acc, ag, rulePath, true)
+	sndRule, err := GetRule(db, logger, acc, rulePath, true)
 	if err != nil {
 		return nil, err
 	}
 
-	rcvRule, err := GetRule(db, logger, acc, ag, rulePath, false)
+	rcvRule, err := GetRule(db, logger, acc, rulePath, false)
 	if err != nil {
 		return nil, err
 	}

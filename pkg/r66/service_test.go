@@ -110,7 +110,8 @@ func TestR66ServerInterruption(t *testing.T) {
 							panic(err)
 						}
 					}()
-					_, err := ses.Send(&dummyFile{}, func() ([]byte, error) { panic("should never be called") })
+					f := func() ([]byte, error) { panic("should never be called") }
+					_, err := ses.Send(&dummyFile{}, f)
 					So(err, ShouldBeError, "S: service is shutting down")
 
 					Convey("Then the transfer should have been interrupted", func(c C) {

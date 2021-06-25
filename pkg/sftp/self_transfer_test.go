@@ -3,8 +3,6 @@ package sftp
 import (
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -13,14 +11,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var (
-	servConf = &config.SftpProtoConfig{}
-	partConf = &config.SftpProtoConfig{}
-)
-
 func TestSelfPushOK(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", servConf, partConf)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -41,7 +34,7 @@ func TestSelfPushOK(t *testing.T) {
 
 func TestSelfPullOK(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", servConf, partConf)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -62,7 +55,7 @@ func TestSelfPullOK(t *testing.T) {
 
 func TestPushClientPreError(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", servConf, partConf)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -83,6 +76,7 @@ func TestPushClientPreError(t *testing.T) {
 				}
 				sTrans := &model.Transfer{
 					Step:       types.StepData,
+					Filesize:   model.UnknownSize,
 					Progress:   0,
 					TaskNumber: 0,
 					Error: *types.NewTransferError(types.TeConnectionReset,
@@ -97,7 +91,7 @@ func TestPushClientPreError(t *testing.T) {
 
 func TestPushServerPreError(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", servConf, partConf)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -117,6 +111,7 @@ func TestPushServerPreError(t *testing.T) {
 				}
 				sTrans := &model.Transfer{
 					Step:       types.StepPreTasks,
+					Filesize:   model.UnknownSize,
 					Progress:   0,
 					TaskNumber: 1,
 					Error: *types.NewTransferError(types.TeExternalOperation,
@@ -131,7 +126,7 @@ func TestPushServerPreError(t *testing.T) {
 
 func TestPushClientPostError(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", servConf, partConf)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -146,14 +141,15 @@ func TestPushClientPostError(t *testing.T) {
 
 				cTrans := &model.Transfer{
 					Step:       types.StepPostTasks,
-					Progress:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 1,
 					Error: *types.NewTransferError(types.TeExternalOperation,
 						"Post-tasks failed: Task CLIENTERR @ PUSH POST[1]: task failed"),
 				}
 				sTrans := &model.Transfer{
 					Step:       types.StepData,
-					Progress:   pipelinetest.TestFileSize,
+					Filesize:   model.UnknownSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 0,
 					Error: *types.NewTransferError(types.TeConnectionReset,
 						"Error on remote partner: session closed unexpectedly"),
@@ -167,7 +163,7 @@ func TestPushClientPostError(t *testing.T) {
 
 func TestPushServerPostError(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", servConf, partConf)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -183,14 +179,15 @@ func TestPushServerPostError(t *testing.T) {
 
 				cTrans := &model.Transfer{
 					Step:       types.StepPostTasks,
-					Progress:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 1,
 					Error: *types.NewTransferError(types.TeExternalOperation,
 						"Error on remote partner: post-tasks failed"),
 				}
 				sTrans := &model.Transfer{
 					Step:       types.StepPostTasks,
-					Progress:   pipelinetest.TestFileSize,
+					Filesize:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 1,
 					Error: *types.NewTransferError(types.TeExternalOperation,
 						"Post-tasks failed: Task SERVERERR @ PUSH POST[1]: task failed"),
@@ -204,7 +201,7 @@ func TestPushServerPostError(t *testing.T) {
 
 func TestPullClientPreError(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", servConf, partConf)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -218,6 +215,7 @@ func TestPullClientPreError(t *testing.T) {
 
 				cTrans := &model.Transfer{
 					Step:       types.StepPreTasks,
+					Filesize:   model.UnknownSize,
 					Progress:   0,
 					TaskNumber: 1,
 					Error: *types.NewTransferError(types.TeExternalOperation,
@@ -239,7 +237,7 @@ func TestPullClientPreError(t *testing.T) {
 
 func TestPullServerPreError(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", servConf, partConf)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -252,6 +250,7 @@ func TestPullServerPreError(t *testing.T) {
 
 				cTrans := &model.Transfer{
 					Step:       types.StepSetup,
+					Filesize:   model.UnknownSize,
 					Progress:   0,
 					TaskNumber: 0,
 					Error: *types.NewTransferError(types.TeExternalOperation,
@@ -273,7 +272,7 @@ func TestPullServerPreError(t *testing.T) {
 
 func TestPullClientPostError(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", servConf, partConf)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -288,14 +287,15 @@ func TestPullClientPostError(t *testing.T) {
 
 				cTrans := &model.Transfer{
 					Step:       types.StepPostTasks,
-					Progress:   pipelinetest.TestFileSize,
+					Filesize:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 1,
 					Error: *types.NewTransferError(types.TeExternalOperation,
 						"Post-tasks failed: Task CLIENTERR @ PULL POST[1]: task failed"),
 				}
 				sTrans := &model.Transfer{
 					Step:       types.StepData,
-					Progress:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 0,
 					Error: *types.NewTransferError(types.TeConnectionReset,
 						"Error on remote partner: session closed unexpectedly"),
@@ -309,7 +309,7 @@ func TestPullClientPostError(t *testing.T) {
 
 func TestPullServerPostError(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", servConf, partConf)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -325,14 +325,15 @@ func TestPullServerPostError(t *testing.T) {
 
 				cTrans := &model.Transfer{
 					Step:       types.StepPostTasks,
-					Progress:   pipelinetest.TestFileSize,
+					Filesize:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 1,
 					Error: *types.NewTransferError(types.TeExternalOperation,
 						"Error on remote partner: post-tasks failed"),
 				}
 				sTrans := &model.Transfer{
 					Step:       types.StepPostTasks,
-					Progress:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 1,
 					Error: *types.NewTransferError(types.TeExternalOperation,
 						"Post-tasks failed: Task SERVERERR @ PULL POST[1]: task failed"),

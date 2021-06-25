@@ -34,7 +34,7 @@ type sshListener struct {
 	connWg   sync.WaitGroup
 	shutdown chan struct{}
 
-	handlerMaker     func(func(), *model.LocalAccount) sftp.Handlers
+	handlerMaker     func(func(context.Context), *model.LocalAccount) sftp.Handlers
 	runningTransfers *service.TransferMap
 }
 
@@ -120,8 +120,16 @@ func (l *sshListener) handleSession(acc *model.LocalAccount, newChannel ssh.NewC
 	}
 	go internal.AcceptRequests(requests)
 
+	done := make(chan struct{})
+	defer close(done)
 	var server *sftp.RequestServer
-	endSession := func() {
+	endSession := func(ctx context.Context) {
+		timer := time.NewTimer(time.Second)
+		select {
+		case <-done:
+		case <-timer.C:
+		case <-ctx.Done():
+		}
 		if server != nil {
 			_ = server.Close()
 		}
@@ -132,7 +140,7 @@ func (l *sshListener) handleSession(acc *model.LocalAccount, newChannel ssh.NewC
 	_ = server.Close()
 }
 
-func (l *sshListener) makeHandlers(endSession func(), acc *model.LocalAccount) sftp.Handlers {
+func (l *sshListener) makeHandlers(endSession func(context.Context), acc *model.LocalAccount) sftp.Handlers {
 	return sftp.Handlers{
 		FileGet:  l.makeFileReader(endSession, acc),
 		FilePut:  l.makeFileWriter(endSession, acc),
@@ -142,14 +150,14 @@ func (l *sshListener) makeHandlers(endSession func(), acc *model.LocalAccount) s
 }
 
 //nolint:dupl
-func (l *sshListener) makeFileReader(endSession func(), acc *model.LocalAccount,
+func (l *sshListener) makeFileReader(endSession func(context.Context), acc *model.LocalAccount,
 ) internal.ReaderAtFunc {
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		l.Logger.Debug("GET request received")
 
 		// Get rule according to request filepath
 		filepath := path.Join("/", path.Dir(r.Filepath))
-		rule, rErr := internal.GetRule(l.DB, l.Logger, acc, l.Agent, filepath, true)
+		rule, rErr := internal.GetRule(l.DB, l.Logger, acc, filepath, true)
 		if rule == nil {
 			return nil, sftp.ErrSSHFxNoSuchFile
 		}
@@ -166,7 +174,7 @@ func (l *sshListener) makeFileReader(endSession func(), acc *model.LocalAccount,
 			AccountID:  acc.ID,
 			LocalPath:  path.Base(r.Filepath),
 			RemotePath: path.Base(r.Filepath),
-			Filesize:   -1,
+			Filesize:   model.UnknownSize,
 			Start:      time.Now(),
 			Status:     types.StatusRunning,
 			Step:       types.StepNone,
@@ -184,14 +192,14 @@ func (l *sshListener) makeFileReader(endSession func(), acc *model.LocalAccount,
 }
 
 //nolint:dupl
-func (l *sshListener) makeFileWriter(endSession func(), acc *model.LocalAccount,
+func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *model.LocalAccount,
 ) internal.WriterAtFunc {
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		l.Logger.Debug("PUT request received")
 
 		// Get rule according to request filepath
 		filepath := path.Join("/", path.Dir(r.Filepath))
-		rule, rErr := internal.GetRule(l.DB, l.Logger, acc, l.Agent, filepath, false)
+		rule, rErr := internal.GetRule(l.DB, l.Logger, acc, filepath, false)
 		if rule == nil {
 			return nil, sftp.ErrSSHFxNoSuchFile
 		}
@@ -208,7 +216,7 @@ func (l *sshListener) makeFileWriter(endSession func(), acc *model.LocalAccount,
 			AccountID:  acc.ID,
 			LocalPath:  path.Base(r.Filepath),
 			RemotePath: path.Base(r.Filepath),
-			Filesize:   -1,
+			Filesize:   model.UnknownSize,
 			Start:      time.Now(),
 			Status:     types.StatusRunning,
 			Step:       types.StepNone,

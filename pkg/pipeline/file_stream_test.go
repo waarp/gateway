@@ -52,7 +52,7 @@ func TestNewFileStream(t *testing.T) {
 			So(pip.machine.Transition("start data"), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
-				stream, err := newFileStream(pip, time.Hour)
+				stream, err := newFileStream(pip, time.Hour, false)
 				So(err, ShouldBeNil)
 				Reset(func() { _ = stream.file.Close() })
 
@@ -70,7 +70,7 @@ func TestNewFileStream(t *testing.T) {
 				So(os.Remove(trans.LocalPath), ShouldBeNil)
 
 				Convey("When creating a new transfer stream", func(c C) {
-					_, err := newFileStream(pip, time.Hour)
+					_, err := newFileStream(pip, time.Hour, false)
 
 					Convey("Then it should return an error", func(c C) {
 						So(err, ShouldBeError, types.NewTransferError(
@@ -92,7 +92,7 @@ func TestNewFileStream(t *testing.T) {
 			So(pip.machine.Transition("start data"), ShouldBeNil)
 
 			Convey("When creating a new transfer stream", func(c C) {
-				stream, err := newFileStream(pip, time.Hour)
+				stream, err := newFileStream(pip, time.Hour, false)
 				So(err, ShouldBeNil)
 				Reset(func() { _ = stream.file.Close() })
 

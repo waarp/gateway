@@ -85,7 +85,7 @@ func TestPathBuilder(t *testing.T) {
 			}
 			file := trans.LocalPath
 
-			transCtx, err := model.GetTransferInfo(db, logger, trans)
+			transCtx, err := model.GetTransferContext(db, logger, trans)
 			So(err, ShouldBeNil)
 
 			type testCase struct {
@@ -147,7 +147,7 @@ func TestPathBuilder(t *testing.T) {
 
 			file := trans.LocalPath
 
-			transCtx, err := model.GetTransferInfo(db, logger, trans)
+			transCtx, err := model.GetTransferContext(db, logger, trans)
 			So(err, ShouldBeNil)
 
 			type testCase struct {

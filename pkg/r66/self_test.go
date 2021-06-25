@@ -88,6 +88,7 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Error on remote partner: pre-tasks failed",
 					},
+					Filesize:   pipelinetest.TestFileSize,
 					Progress:   0,
 					TaskNumber: 1,
 				}
@@ -131,6 +132,7 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Pre-tasks failed: Task SERVERERR @ PUSH PRE[1]: task failed",
 					},
+					Filesize:   pipelinetest.TestFileSize,
 					Progress:   0,
 					TaskNumber: 1,
 				}
@@ -165,6 +167,7 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Pre-tasks failed: Task CLIENTERR @ PULL PRE[1]: task failed",
 					},
+					Filesize:   pipelinetest.TestFileSize,
 					Progress:   0,
 					TaskNumber: 1,
 				}
@@ -207,6 +210,7 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Error on remote partner: pre-tasks failed",
 					},
+					Filesize:   model.UnknownSize,
 					Progress:   0,
 					TaskNumber: 0,
 				}
@@ -253,7 +257,7 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Post-tasks failed: Task CLIENTERR @ PUSH POST[1]: task failed",
 					},
-					Progress:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 1,
 				}
 
@@ -263,7 +267,8 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Error on remote partner: post-tasks failed",
 					},
-					Progress:   pipelinetest.TestFileSize,
+					Filesize:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 1,
 				}
 
@@ -294,7 +299,7 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Error on remote partner: post-tasks failed",
 					},
-					Progress:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 0,
 				}
 
@@ -304,7 +309,8 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Post-tasks failed: Task SERVERERR @ PUSH POST[1]: task failed",
 					},
-					Progress:   pipelinetest.TestFileSize,
+					Filesize:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 1,
 				}
 
@@ -337,7 +343,8 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Post-tasks failed: Task CLIENTERR @ PULL POST[1]: task failed",
 					},
-					Progress:   pipelinetest.TestFileSize,
+					Filesize:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 1,
 				}
 
@@ -347,7 +354,7 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Error on remote partner: post-tasks failed",
 					},
-					Progress:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 0,
 				}
 
@@ -382,7 +389,8 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Error on remote partner: post-tasks failed",
 					},
-					Progress:   pipelinetest.TestFileSize,
+					Filesize:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 1,
 				}
 
@@ -393,7 +401,7 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 						Code:    types.TeExternalOperation,
 						Details: "Post-tasks failed: Task SERVERERR @ PULL POST[1]: task failed",
 					},
-					Progress:   pipelinetest.TestFileSize,
+					Progress:   pipelinetest.ProgressComplete,
 					TaskNumber: 1,
 				}
 

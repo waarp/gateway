@@ -159,16 +159,21 @@ func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
 		}
 		return p.Stream, nil
 	}
-	p.TransCtx.Transfer.Step = types.StepData
-	p.TransCtx.Transfer.TaskNumber = 0
-	if dbErr := p.DB.Update(p.TransCtx.Transfer).Cols("step", "task_number").Run(); dbErr != nil {
-		p.handleError(types.TeInternal, "Failed to update transfer step for pre-tasks",
-			dbErr.Error())
-		return nil, errDatabase
+	isResume := false
+	if p.TransCtx.Transfer.Step == types.StepData {
+		isResume = true
+	} else {
+		p.TransCtx.Transfer.Step = types.StepData
+		p.TransCtx.Transfer.TaskNumber = 0
+		if dbErr := p.DB.Update(p.TransCtx.Transfer).Cols("step", "task_number").Run(); dbErr != nil {
+			p.handleError(types.TeInternal, "Failed to update transfer step for pre-tasks",
+				dbErr.Error())
+			return nil, errDatabase
+		}
 	}
 
 	var err *types.TransferError
-	p.Stream, err = newFileStream(p, time.Second)
+	p.Stream, err = newFileStream(p, time.Second, isResume)
 	if err != nil {
 		p.handleError(err.Code, "Failed to create file stream", err.Details)
 		return nil, err

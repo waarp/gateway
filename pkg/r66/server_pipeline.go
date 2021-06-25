@@ -3,7 +3,6 @@ package r66
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 
@@ -19,16 +18,15 @@ import (
 )
 
 var (
-	sigPause    = &r66.Error{Code: r66.StoppedTransfer, Detail: "transfer paused by user"}
-	sigShutdown = &r66.Error{Code: r66.Shutdown, Detail: "service is shutting down"}
-	sigCancel   = &r66.Error{Code: r66.CanceledTransfer, Detail: "transfer cancelled by user"}
+	sigPause    = internal.NewR66Error(r66.StoppedTransfer, "transfer paused by user")
+	sigShutdown = internal.NewR66Error(r66.Shutdown, "service is shutting down")
+	sigCancel   = internal.NewR66Error(r66.CanceledTransfer, "transfer cancelled by user")
 )
 
 func checkBefore(store *utils.ErrorStorage) error {
 	select {
 	case iErr, ok := <-store.Wait():
 		if ok {
-			fmt.Println("#### ERROR BEFORE ####")
 			return iErr
 		}
 		return errors.New("file handle is no longer valid")
@@ -40,7 +38,6 @@ func checkBefore(store *utils.ErrorStorage) error {
 func checkAfter(store *utils.ErrorStorage, tErr *types.TransferError) error {
 	select {
 	case <-store.Wait():
-		fmt.Println("#### ERROR AFTER ####")
 		return store.Get()
 	default:
 		if tErr != nil {
@@ -195,7 +192,6 @@ func (t *serverTransfer) validEndRequest() error {
 }
 
 func (t *serverTransfer) runErrorTasks(err error) error {
-	fmt.Println("#### ERROR TASKS ####")
 	tErr := internal.FromR66Error(err, t.pip)
 	if tErr != nil {
 		t.pip.SetError(tErr)

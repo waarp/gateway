@@ -30,12 +30,12 @@ type ServerPipeline struct {
 
 	transList  *service.TransferMap
 	storage    *utils.ErrorStorage
-	endSession func()
+	endSession func(context.Context)
 }
 
 // initialises the pipeline
 func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
-	endSession func(), transList *service.TransferMap) (*ServerPipeline, error) {
+	endSession func(context.Context), transList *service.TransferMap) (*ServerPipeline, error) {
 
 	var tErr *types.TransferError
 	trans, tErr = pipeline.GetServerTransfer(db, logger, trans)
@@ -60,7 +60,7 @@ func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
 // NewServerPipeline creates a new ServerPipeline, executes the transfer's
 // pre-tasks, and returns the pipeline.
 func NewServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
-	transList *service.TransferMap, endSession func()) (*ServerPipeline, error) {
+	transList *service.TransferMap, endSession func(context.Context)) (*ServerPipeline, error) {
 
 	servPip, err := initPipeline(db, logger, trans, endSession, transList)
 	if err != nil {
@@ -88,7 +88,7 @@ func (s *ServerPipeline) Pause(ctx context.Context) error {
 	s.pipeline.Pause(func() {
 		s.storage.StoreCtx(ctx, sigPause)
 	})
-	s.endSession()
+	s.endSession(ctx)
 	return ctx.Err()
 }
 
@@ -98,7 +98,7 @@ func (s *ServerPipeline) Interrupt(ctx context.Context) error {
 	s.pipeline.Interrupt(func() {
 		s.storage.StoreCtx(ctx, sigShutdown)
 	})
-	s.endSession()
+	s.endSession(ctx)
 	return ctx.Err()
 }
 
@@ -108,7 +108,7 @@ func (s *ServerPipeline) Cancel(ctx context.Context) error {
 	s.pipeline.Cancel(func() {
 		s.storage.StoreCtx(ctx, sigCancel)
 	})
-	s.endSession()
+	s.endSession(ctx)
 	return ctx.Err()
 }
 

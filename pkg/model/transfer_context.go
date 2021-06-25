@@ -35,10 +35,10 @@ type TransferContext struct {
 }
 
 //nolint:funlen
-// GetTransferInfo retrieves all the information regarding the given transfer
+// GetTransferContext retrieves all the information regarding the given transfer
 // from the database, and returns it wrapped in a TransferInfo instance.
 // An error is returned a problem occurs while accessing the database.
-func GetTransferInfo(db *database.DB, logger *log.Logger, trans *Transfer,
+func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 ) (*TransferContext, *types.TransferError) {
 	transCtx := &TransferContext{
 		Transfer:      trans,

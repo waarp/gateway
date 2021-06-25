@@ -45,7 +45,7 @@ type Crypto struct {
 	// An SSH public key in authorized_keys format.
 	SSHPublicKey string `xorm:"text 'ssh_public_key'"`
 
-	// A base64 representation of the sha256 checksum of the raw certificate
+	// A base64 representation of the sha256 checksum of the raw leaf certificate
 	// (if one is provided), used for indexation & search purposes.
 	Signature string `xorm:"varchar(44) unique 'signature'"`
 }

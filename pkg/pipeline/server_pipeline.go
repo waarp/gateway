@@ -18,14 +18,16 @@ import (
 func GetServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfer,
 ) (*model.Transfer, *types.TransferError) {
 
-	err := db.Get(trans, "status<>? AND is_server=? AND remote_transfer_id=? AND account_id=?",
-		types.StatusRunning, true, trans.RemoteTransferID, trans.AccountID).Run()
-	if err == nil {
-		return trans, nil
-	}
-	if !database.IsNotFound(err) {
-		logger.Errorf("Failed to retrieve old server transfer: %s", err)
-		return nil, errDatabase
+	if trans.RemoteTransferID != "" {
+		err := db.Get(trans, "status<>? AND is_server=? AND remote_transfer_id=? AND account_id=?",
+			types.StatusRunning, true, trans.RemoteTransferID, trans.AccountID).Run()
+		if err == nil {
+			return trans, nil
+		}
+		if !database.IsNotFound(err) {
+			logger.Errorf("Failed to retrieve old server transfer: %s", err)
+			return nil, errDatabase
+		}
 	}
 
 	if err := db.Insert(trans).Run(); err != nil {
@@ -40,7 +42,7 @@ func GetServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfe
 func NewServerPipeline(db *database.DB, trans *model.Transfer,
 ) (*Pipeline, *types.TransferError) {
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
-	transCtx, err := model.GetTransferInfo(db, logger, trans)
+	transCtx, err := model.GetTransferContext(db, logger, trans)
 	if err != nil {
 		return nil, err
 	}

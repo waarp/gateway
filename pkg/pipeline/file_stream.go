@@ -35,7 +35,8 @@ type fileStream struct {
 	progress uint64
 }
 
-func newFileStream(pipeline *Pipeline, updateInterval time.Duration) (*fileStream, *types.TransferError) {
+func newFileStream(pipeline *Pipeline, updateInterval time.Duration, isResume bool,
+) (*fileStream, *types.TransferError) {
 
 	stream := &fileStream{
 		Pipeline: pipeline,
@@ -43,7 +44,7 @@ func newFileStream(pipeline *Pipeline, updateInterval time.Duration) (*fileStrea
 		progress: pipeline.TransCtx.Transfer.Progress,
 	}
 
-	if !pipeline.TransCtx.Rule.IsSend {
+	if !isResume && !pipeline.TransCtx.Rule.IsSend {
 		pipeline.TransCtx.Transfer.LocalPath += ".part"
 		if dbErr := pipeline.UpdateTrans("local_path"); dbErr != nil {
 			return nil, dbErr

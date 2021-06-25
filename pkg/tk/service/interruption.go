@@ -27,8 +27,9 @@ type TransferInterrupter interface {
 // The ClientTransfers map contains all the currently running client pipeline.
 // For server pipelines, each server should maintain a TransferMap of its own.
 type TransferMap struct {
-	m   map[uint64]TransferInterrupter
-	mut sync.Mutex
+	m      map[uint64]TransferInterrupter
+	mut    sync.Mutex
+	closed bool
 }
 
 // NewTransferMap initializes and returns a new TransferMap instance.
@@ -98,17 +99,19 @@ func (t *TransferMap) Delete(id uint64) {
 }
 
 // InterruptAll interrupts all the transfers in the TransferMap.
-func (t *TransferMap) InterruptAll(ctx context.Context) (err error) {
+func (t *TransferMap) InterruptAll(ctx context.Context) error {
 	t.mut.Lock()
 	defer t.mut.Unlock()
+	t.closed = true
+	wg := sync.WaitGroup{}
 	for id, ti := range t.m {
-		if err = ti.Interrupt(ctx); err != nil {
-			break
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = ti.Interrupt(ctx)
+		}()
 		delete(t.m, id)
 	}
-	for id := range t.m {
-		delete(t.m, id)
-	}
-	return err
+	wg.Wait()
+	return ctx.Err()
 }

@@ -30,7 +30,7 @@ func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline,
 
 	logger := log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 
-	transCtx, err := model.GetTransferInfo(db, logger, trans)
+	transCtx, err := model.GetTransferContext(db, logger, trans)
 	if err != nil {
 		return nil, err
 	}
@@ -120,6 +120,7 @@ func (c *ClientPipeline) Run() {
 	// REQUEST
 	if err := c.client.Request(); err != nil {
 		c.pip.SetError(err)
+		c.client.SendError(err)
 		return
 	}
 

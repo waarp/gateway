@@ -195,7 +195,7 @@ func initFilestream(ctx *testContext, logger *log.Logger, transCtx *model.Transf
 	So(pip.machine.Transition("pre-tasks done"), ShouldBeNil)
 	So(pip.machine.Transition("start data"), ShouldBeNil)
 
-	stream, err := newFileStream(pip, time.Nanosecond)
+	stream, err := newFileStream(pip, time.Nanosecond, false)
 	So(err, ShouldBeNil)
 	Reset(func() { _ = stream.file.Close() })
 

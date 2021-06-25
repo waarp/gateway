@@ -2,12 +2,19 @@ package internal
 
 import (
 	"errors"
+	"fmt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-r66/r66"
 )
+
+// NewR66Error returns a new r66.Error from the given code and message. The
+// message accepts formats and arguments, similarly to the fmt package.
+func NewR66Error(code rune, details string, args ...interface{}) *r66.Error {
+	return &r66.Error{Code: code, Detail: fmt.Sprintf(details, args...)}
+}
 
 //nolint:funlen
 // ToR66Error takes an error (preferably a types.TransferError) and returns the
@@ -20,52 +27,52 @@ func ToR66Error(err error) *r66.Error {
 
 	var tErr *types.TransferError
 	if !errors.As(err, &tErr) {
-		return &r66.Error{Code: r66.Unknown, Detail: err.Error()}
+		return NewR66Error(r66.Unknown, err.Error())
 	}
 
 	switch tErr.Code {
 	case types.TeOk:
-		return &r66.Error{Code: r66.CompleteOk, Detail: ""}
+		return NewR66Error(r66.CompleteOk, "")
 	case types.TeUnknown:
-		return &r66.Error{Code: r66.Unknown, Detail: tErr.Details}
+		return NewR66Error(r66.Unknown, tErr.Details)
 	case types.TeInternal:
-		return &r66.Error{Code: r66.Internal, Detail: tErr.Details}
+		return NewR66Error(r66.Internal, tErr.Details)
 	case types.TeUnimplemented:
-		return &r66.Error{Code: r66.Unimplemented, Detail: tErr.Details}
+		return NewR66Error(r66.Unimplemented, tErr.Details)
 	case types.TeConnection:
-		return &r66.Error{Code: r66.ConnectionImpossible, Detail: tErr.Details}
+		return NewR66Error(r66.ConnectionImpossible, tErr.Details)
 	case types.TeConnectionReset:
-		return &r66.Error{Code: r66.Disconnection, Detail: tErr.Details}
+		return NewR66Error(r66.Disconnection, tErr.Details)
 	case types.TeUnknownRemote:
-		return &r66.Error{Code: r66.QueryRemotelyUnknown, Detail: tErr.Details}
+		return NewR66Error(r66.QueryRemotelyUnknown, tErr.Details)
 	case types.TeExceededLimit:
-		return &r66.Error{Code: r66.ServerOverloaded, Detail: tErr.Details}
+		return NewR66Error(r66.ServerOverloaded, tErr.Details)
 	case types.TeBadAuthentication:
-		return &r66.Error{Code: r66.BadAuthent, Detail: tErr.Details}
+		return NewR66Error(r66.BadAuthent, tErr.Details)
 	case types.TeDataTransfer:
-		return &r66.Error{Code: r66.TransferError, Detail: tErr.Details}
+		return NewR66Error(r66.TransferError, tErr.Details)
 	case types.TeIntegrity:
-		return &r66.Error{Code: r66.FinalOp, Detail: tErr.Details}
+		return NewR66Error(r66.FinalOp, tErr.Details)
 	case types.TeFinalization:
-		return &r66.Error{Code: r66.FinalOp, Detail: tErr.Details}
+		return NewR66Error(r66.FinalOp, tErr.Details)
 	case types.TeExternalOperation:
-		return &r66.Error{Code: r66.ExternalOperation, Detail: tErr.Details}
+		return NewR66Error(r66.ExternalOperation, tErr.Details)
 	case types.TeWarning:
-		return &r66.Error{Code: r66.Warning, Detail: tErr.Details}
+		return NewR66Error(r66.Warning, tErr.Details)
 	case types.TeStopped:
-		return &r66.Error{Code: r66.StoppedTransfer, Detail: tErr.Details}
+		return NewR66Error(r66.StoppedTransfer, tErr.Details)
 	case types.TeCanceled:
-		return &r66.Error{Code: r66.CanceledTransfer, Detail: tErr.Details}
+		return NewR66Error(r66.CanceledTransfer, tErr.Details)
 	case types.TeFileNotFound:
-		return &r66.Error{Code: r66.FileNotFound, Detail: tErr.Details}
+		return NewR66Error(r66.FileNotFound, tErr.Details)
 	case types.TeForbidden:
-		return &r66.Error{Code: r66.FileNotAllowed, Detail: tErr.Details}
+		return NewR66Error(r66.FileNotAllowed, tErr.Details)
 	case types.TeBadSize:
-		return &r66.Error{Code: r66.SizeNotAllowed, Detail: tErr.Details}
+		return NewR66Error(r66.SizeNotAllowed, tErr.Details)
 	case types.TeShuttingDown:
-		return &r66.Error{Code: r66.Shutdown, Detail: tErr.Details}
+		return NewR66Error(r66.Shutdown, tErr.Details)
 	default:
-		return &r66.Error{Code: r66.Unknown, Detail: tErr.Details}
+		return NewR66Error(r66.Unknown, tErr.Details)
 	}
 }
 

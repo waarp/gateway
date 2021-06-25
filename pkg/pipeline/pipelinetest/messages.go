@@ -74,12 +74,21 @@ func (s *SelfContext) ClientPosTasksShouldBeError(c convey.C) {
 	taskstest.ClientMsgShouldBe(c, fmt.Sprintf("CLIENT | %s | POST-TASKS[1] | ERROR", s.ClientRule.Name))
 }
 
-func (s *SelfContext) shouldBeErrorTasks(c convey.C) {
+// ShouldBeClientErrorTasks asserts that the client's error-tasks should have
+// been executed.
+func (s *SelfContext) ShouldBeClientErrorTasks(c convey.C) {
 	taskstest.ClientMsgShouldBe(c, fmt.Sprintf("CLIENT | %s | ERROR-TASKS[0] | OK", s.ClientRule.Name))
+}
+
+// ShouldBeServerErrorTasks asserts that the server's error-tasks should have
+// been executed.
+func (s *SelfContext) ShouldBeServerErrorTasks(c convey.C) {
 	taskstest.ServerMsgShouldBe(c, fmt.Sprintf("SERVER | %s | ERROR-TASKS[0] | OK", s.ServerRule.Name))
 }
 
-func (s *SelfContext) shouldBeEndTransfer(c convey.C) {
+// ShouldBeEndTransfer asserts that both the client & server transfers should
+// have finished.
+func (s *SelfContext) ShouldBeEndTransfer(c convey.C) {
 	taskstest.ServerMsgShouldBe(c, "SERVER TRANSFER END")
 	taskstest.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
 }

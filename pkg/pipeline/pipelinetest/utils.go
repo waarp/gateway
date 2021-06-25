@@ -21,11 +21,15 @@ import (
 )
 
 // TestFileSize defines the size of the file used for transfer tests.
-const TestFileSize uint64 = 1000000 // 1MB
+const TestFileSize int64 = 1000000 // 1MB
+
+// ProgressComplete defines the value a transfer's progress should have at the
+// end of the transfert.
+const ProgressComplete = uint64(TestFileSize)
 
 // UndefinedProgress is the value used to specify that the transfer's progress
 // is undefined at the end of the test (meaning it can have any value between
-// 0 and TestFileSize).
+// 0 and ProgressComplete).
 const UndefinedProgress uint64 = math.MaxUint64
 
 // TestLogin and TestPassword are the credentials used for authentication
@@ -56,7 +60,7 @@ func hash(pwd string) []byte {
 // fills it with random data, and then returns said data.
 func AddSourceFile(c convey.C, dir, file string) []byte {
 	c.So(os.MkdirAll(dir, 0700), convey.ShouldBeNil)
-	cont := make([]byte, TestFileSize)
+	cont := make([]byte, ProgressComplete)
 	_, err := rand.Read(cont)
 	c.So(err, convey.ShouldBeNil)
 	path := filepath.Join(dir, file)

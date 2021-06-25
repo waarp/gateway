@@ -14,6 +14,10 @@ code.waarp.fr/waarp-r66/r66 v0.0.0-20210610133136-08a18bfcfcef h1:XM1oTysPLzpr4u
 code.waarp.fr/waarp-r66/r66 v0.0.0-20210610133136-08a18bfcfcef/go.mod h1:wY2gkBOP4ytKGO2Mh/P8QHWJfHwHfYGQpcHRtGzLjLI=
 code.waarp.fr/waarp-r66/r66 v0.0.0-20210610140700-4bb83e4533a3 h1:9/o/VjIt+yh7fSfQow1gLUzAhYufqpQJ4TP0V07qldA=
 code.waarp.fr/waarp-r66/r66 v0.0.0-20210610140700-4bb83e4533a3/go.mod h1:wY2gkBOP4ytKGO2Mh/P8QHWJfHwHfYGQpcHRtGzLjLI=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210622173028-7c0730584925 h1:0gZKVNgyjflwtNSu6QQ09ypCbsESMgaFHDPTuH4ZY8k=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210622173028-7c0730584925/go.mod h1:wY2gkBOP4ytKGO2Mh/P8QHWJfHwHfYGQpcHRtGzLjLI=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210628093438-71179762c052 h1:s6AYtnSJ9YfaH0+9KD/tKl9OmWTp9jirmaLA9fJBkBk=
+code.waarp.fr/waarp-r66/r66 v0.0.0-20210628093438-71179762c052/go.mod h1:wY2gkBOP4ytKGO2Mh/P8QHWJfHwHfYGQpcHRtGzLjLI=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
