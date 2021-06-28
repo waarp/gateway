@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`` Sous système Unix, l'interruption de tâches externes se fait désormais
+  via un *SIGINT* (au lieu de *SIGKILL*).
 * :feature:`` Ajout d'un champ taille de fichier ``filesize`` au modèles de
   transfert et d'historique.
 * :feature:`` Il n'est plus obligatoire pour un partenaire SFTP d'avoir une

@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os/exec"
@@ -16,6 +17,22 @@ type execTask struct{}
 
 func init() {
 	model.ValidTasks["EXEC"] = &execTask{}
+}
+
+// Validate checks if the EXEC task has all the required arguments.
+func (e *execTask) Validate(params map[string]string) error {
+	if _, _, _, err := parseExecArgs(params); err != nil {
+		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
+	}
+
+	return nil
+}
+
+// Run executes the task by executing the external program with the given parameters.
+func (e *execTask) Run(parent context.Context, params map[string]string, _ *database.DB, _ *model.TransferContext) (string, error) {
+
+	_, cmdErr := runExec(parent, params, false)
+	return "", cmdErr
 }
 
 func parseExecArgs(params map[string]string) (path, args string,
@@ -50,21 +67,10 @@ func parseExecArgs(params map[string]string) (path, args string,
 	return
 }
 
-// Validate checks if the EXEC task has all the required arguments.
-func (e *execTask) Validate(params map[string]string) error {
-	if _, _, _, err := parseExecArgs(params); err != nil {
-		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
-	}
-
-	return nil
-}
-
-// Run executes the task by executing the external program with the given parameters.
-func (e *execTask) Run(parent context.Context, params map[string]string, _ *database.DB, _ *model.TransferContext) (string, error) {
-
-	path, args, delay, err := parseExecArgs(params)
+func runExec(parent context.Context, params map[string]string, withOutput bool) (*bytes.Buffer, error) {
+	script, args, delay, err := parseExecArgs(params)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse task arguments: %s", err)
+		return nil, fmt.Errorf("failed to parse task arguments: %s", err.Error())
 	}
 
 	ctx := parent
@@ -74,20 +80,30 @@ func (e *execTask) Run(parent context.Context, params map[string]string, _ *data
 		defer cancel()
 	}
 
-	cmd := getCommand(ctx, path, args)
-
-	execErr := cmd.Run()
-	if execErr == nil {
-		return "", nil
+	var output bytes.Buffer
+	cmd := getCommand(script, args)
+	if withOutput {
+		cmd.Stdout = &output
 	}
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start external program: %s", err)
+	}
+
+	waitDone := make(chan error)
+	go func() {
+		defer close(waitDone)
+		waitDone <- cmd.Wait()
+	}()
 
 	select {
 	case <-ctx.Done():
-		return "", fmt.Errorf("max execution delay expired")
-	default:
-		if ex, ok := execErr.(*exec.ExitError); ok && ex.ExitCode() == 1 {
-			return "", &errWarning{execErr.Error()}
+		haltExec(cmd)
+		<-waitDone
+		return nil, fmt.Errorf("max execution delay expired")
+	case cmdErr := <-waitDone:
+		if ex, ok := cmdErr.(*exec.ExitError); ok && ex.ExitCode() == 1 {
+			return &output, &errWarning{cmdErr.Error()}
 		}
-		return "", execErr
+		return &output, cmdErr
 	}
 }

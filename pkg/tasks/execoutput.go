@@ -3,9 +3,6 @@ package tasks
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"os/exec"
 	"path"
 	"strings"
 
@@ -43,55 +40,24 @@ func getNewFileName(output string) string {
 }
 
 // Run executes the task by executing an external program with the given parameters.
-func (e *execOutputTask) Run(parent context.Context, params map[string]string, _ *database.DB, transCtx *model.TransferContext) (string, error) {
+func (e *execOutputTask) Run(parent context.Context, params map[string]string,
+	_ *database.DB, transCtx *model.TransferContext) (string, error) {
 
-	script, args, delay, err := parseExecArgs(params)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse task arguments: %s", err.Error())
-	}
-
-	ctx := parent
-	var cancel context.CancelFunc
-	if delay != 0 {
-		ctx, cancel = context.WithTimeout(parent, delay)
-		defer cancel()
-	}
-
-	cmd := getCommand(ctx, script, args)
-	in, out, err := os.Pipe()
-	if err != nil {
-		return "", fmt.Errorf("failed to pipe script output: %s", err)
-	}
-	defer func() {
-		_ = in.Close()
-		_ = out.Close()
-	}()
-	cmd.Stdout = out
-
-	cmdErr := cmd.Run()
-	_ = out.Close()
-	msg, err := ioutil.ReadAll(in)
-	if err != nil {
-		return "", fmt.Errorf("failed to read script output: %s", err)
+	output, cmdErr := runExec(parent, params, true)
+	msg := ""
+	if output != nil {
+		msg = output.String()
 	}
 
 	if cmdErr != nil {
-		if newPath := getNewFileName(string(msg)); newPath != "" {
+		if newPath := getNewFileName(msg); newPath != "" {
 			transCtx.Transfer.LocalPath = utils.ToOSPath(newPath)
 			transCtx.Transfer.RemotePath = utils.ToStandardPath(path.Dir(
 				transCtx.Transfer.RemotePath), path.Base(transCtx.Transfer.LocalPath))
 		}
 
-		select {
-		case <-ctx.Done():
-			return "", fmt.Errorf("max execution delay expired")
-		default:
-			if ex, ok := cmdErr.(*exec.ExitError); ok && ex.ExitCode() == 1 {
-				return "", &errWarning{cmdErr.Error()}
-			}
-			return "", cmdErr
-		}
+		return "", cmdErr
 	}
 
-	return string(msg), nil
+	return msg, nil
 }
