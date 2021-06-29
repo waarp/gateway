@@ -36,7 +36,7 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(ag).Run(), ShouldBeNil)
 
-			acc := LocalAccount{LocalAgentID: ag.ID, Login: "login", PasswordHash: hash("password")}
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "toto", PasswordHash: hash("sesame")}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			cert := Crypto{
@@ -116,7 +116,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 				newAccount := &LocalAccount{
 					LocalAgentID: parentAgent.ID,
 					Login:        "new",
-					PasswordHash: hash("password"),
+					PasswordHash: hash("sesame"),
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -162,7 +162,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 					oldAccount := LocalAccount{
 						LocalAgentID: parentAgent.ID,
 						Login:        "old",
-						PasswordHash: hash("password"),
+						PasswordHash: hash("sesame"),
 					}
 					So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
@@ -186,7 +186,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 					oldAccount := LocalAccount{
 						LocalAgentID: parentAgent.ID,
 						Login:        "old",
-						PasswordHash: hash("password"),
+						PasswordHash: hash("sesame"),
 					}
 					So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 

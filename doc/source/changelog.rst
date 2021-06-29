@@ -46,10 +46,26 @@ Historique des versions
   avant d'être insérés en base de données. Les données invalides seront désormais
   refusées.
 
+* :bug:`239` Correction d'une erreur de base de données survenant lors de la mise
+  à jour de la progression des transferts.
+* :bug:`222` Correction d'un comportement incorrect au lancement de la *gateway*
+  lorsque la racine `GatewayHome` renseignée est un chemin relatif.
+* :bug:`238` Suppression de l'option (maintenant inutile) ``R66Home`` du fichier
+  de configuration.
+* :bug:`254` Ajout des contraintes d'unicité manquantes lors de l'initialisation
+  de la base de données.
+* :bug:`` Les dates de début/fin de transfert sont désormais précises à la
+  milliseconde près (au lieu de la seconde).
+* :bug:`243` Correction d'un bug empêchant l'annulation d'un transfert avant
+  qu'il n'ait commencé car sa date de fin se retrouvait antérieure à sa date de
+  début. Par conséquent, désormais, en cas d'annulation, la date de fin du
+  transfert sera donc nulle.
+* :feature:`242` Ajout de la direction (`isSend`) à l'objet *transfer* de REST.
+
 * :release:`0.3.3 <2021-04-07>`
 * :bug:`251` Corrige le problème de création du fichier distant en SFTP
   lorsque le serveur refuse l'ouverture de fichier en écriture ET en lecture.
-* :bug:`251` Corrige un problème du script d'update-conf qui sort en erreur 
+* :bug:`251` Corrige un problème du script d'update-conf qui sort en erreur
   si les fichiers optionnels ne sont pas dans l'archive de déploiement.
 
 * :release:`0.3.2 <2021-04-06>`

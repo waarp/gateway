@@ -26,8 +26,13 @@ func transferInfoString(t *api.OutTransfer) string {
 	if t.Filesize >= 0 {
 		size = fmt.Sprint(t.Filesize)
 	}
+	dir := "receive"
+	if t.IsSend {
+		dir = "send"
+	}
 
-	rv := "● Transfer " + fmt.Sprint(t.ID) + " (as " + role + ") [" + string(t.Status) + "]\n"
+	rv := "● Transfer " + fmt.Sprint(t.ID) + " (" + dir + " as " + role + ") [" +
+		string(t.Status) + "]\n"
 	if t.RemoteID != "" {
 		rv += "    Remote ID:        " + t.RemoteID + "\n"
 	}
@@ -111,8 +116,8 @@ func TestAddTransfer(t *testing.T) {
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
-				Login:         "login",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 				RemoteAgentID: partner.ID,
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
@@ -177,7 +182,7 @@ func TestAddTransfer(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				args := []string{"-p", partner.Name, "-l", "toto", "-w",
+				args := []string{"-p", partner.Name, "-l", "tata", "-w",
 					"send", "-r", rule.Name, "-f", "file",
 					"-d", "2020-01-01T01:00:00+01:00"}
 
@@ -187,14 +192,14 @@ func TestAddTransfer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for partner "+
+						So(err, ShouldBeError, "no account 'tata' found for partner "+
 							partner.Name)
 					})
 				})
 			})
 
 			Convey("Given an invalid partner name", func() {
-				args := []string{"-p", "toto", "-l", account.Login, "-w",
+				args := []string{"-p", "tata", "-l", account.Login, "-w",
 					"send", "-r", rule.Name, "-f", "file",
 					"-d", "2020-01-01T01:00:00+01:00"}
 
@@ -204,7 +209,7 @@ func TestAddTransfer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no partner 'toto' found")
+						So(err, ShouldBeError, "no partner 'tata' found")
 					})
 				})
 			})
@@ -243,7 +248,7 @@ func TestGetTransfer(t *testing.T) {
 
 			Convey("Given a valid transfer", func() {
 				p := &model.RemoteAgent{
-					Name:        testProto1,
+					Name:        "partner",
 					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
@@ -251,8 +256,8 @@ func TestGetTransfer(t *testing.T) {
 				So(db.Insert(p).Run(), ShouldBeNil)
 
 				a := &model.RemoteAccount{
-					Login:         "login",
-					Password:      "password",
+					Login:         "toto",
+					Password:      "sesame",
 					RemoteAgentID: p.ID,
 				}
 				So(db.Insert(a).Run(), ShouldBeNil)
@@ -354,23 +359,23 @@ func TestListTransfer(t *testing.T) {
 
 			a1 := &model.RemoteAccount{
 				RemoteAgentID: p1.ID,
-				Login:         "login",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame1",
 			}
 			a2 := &model.RemoteAccount{
 				RemoteAgentID: p2.ID,
-				Login:         "login",
-				Password:      "password",
+				Login:         "tata",
+				Password:      "sesame2",
 			}
 			a3 := &model.RemoteAccount{
 				RemoteAgentID: p3.ID,
-				Login:         "login",
-				Password:      "password",
+				Login:         "titi",
+				Password:      "sesame3",
 			}
 			a4 := &model.RemoteAccount{
 				RemoteAgentID: p4.ID,
-				Login:         "login",
-				Password:      "password",
+				Login:         "tutu",
+				Password:      "sesame4",
 			}
 			So(db.Insert(a1).Run(), ShouldBeNil)
 			So(db.Insert(a2).Run(), ShouldBeNil)
@@ -600,8 +605,8 @@ func TestPauseTransfer(t *testing.T) {
 				So(db.Insert(part).Run(), ShouldBeNil)
 
 				account := &model.RemoteAccount{
-					Login:         "login",
-					Password:      "password",
+					Login:         "toto",
+					Password:      "sesame",
 					RemoteAgentID: part.ID,
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
@@ -693,8 +698,8 @@ func TestResumeTransfer(t *testing.T) {
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				account := &model.RemoteAccount{
-					Login:         "login",
-					Password:      "password",
+					Login:         "toto",
+					Password:      "sesame",
 					RemoteAgentID: partner.ID,
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
@@ -784,8 +789,8 @@ func TestCancelTransfer(t *testing.T) {
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				account := &model.RemoteAccount{
-					Login:         "login",
-					Password:      "password",
+					Login:         "toto",
+					Password:      "sesame",
 					RemoteAgentID: partner.ID,
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)

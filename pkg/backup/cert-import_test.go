@@ -38,8 +38,8 @@ func TestImportCerts(t *testing.T) {
 				Name:        "foo",
 				OwnerType:   "local_agents",
 				OwnerID:     agent2.ID,
-				PrivateKey:  testhelpers.LocalhostKey,
-				Certificate: testhelpers.LocalhostCert,
+				PrivateKey:  testhelpers.OtherLocalhostKey,
+				Certificate: testhelpers.OtherLocalhostCert,
 			}
 			So(db.Insert(cert2).Run(), ShouldBeNil)
 

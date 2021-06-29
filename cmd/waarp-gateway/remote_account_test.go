@@ -38,8 +38,8 @@ func TestGetRemoteAccount(t *testing.T) {
 			commandLine.Account.Remote.Args.Partner = partner.Name
 
 			account := &model.RemoteAccount{
-				Login:         "login",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 				RemoteAgentID: partner.ID,
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
@@ -78,7 +78,7 @@ func TestGetRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				args := []string{"toto"}
+				args := []string{"tata"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -86,7 +86,7 @@ func TestGetRemoteAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for partner "+
+						So(err, ShouldBeError, "no account 'tata' found for partner "+
 							partner.Name)
 					})
 				})
@@ -133,7 +133,7 @@ func TestAddRemoteAccount(t *testing.T) {
 			commandLine.Account.Remote.Args.Partner = partner.Name
 
 			Convey("Given valid flags", func() {
-				args := []string{"-l", "login", "-p", "password"}
+				args := []string{"-l", "toto", "-p", "sesame"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -141,7 +141,7 @@ func TestAddRemoteAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the account was added", func() {
-						So(getOutput(), ShouldEqual, "The account login "+
+						So(getOutput(), ShouldEqual, "The account toto "+
 							"was successfully added.\n")
 					})
 
@@ -161,7 +161,7 @@ func TestAddRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid partner name", func() {
-				args := []string{"-l", "login", "-p", "password"}
+				args := []string{"-l", "toto", "-p", "sesame"}
 				commandLine.Account.Remote.Args.Partner = "toto"
 
 				Convey("When executing the command", func() {
@@ -202,8 +202,8 @@ func TestDeleteRemoteAccount(t *testing.T) {
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
-				Login:         "login",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -229,7 +229,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				args := []string{"toto"}
+				args := []string{"tata"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -237,7 +237,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for partner "+
+						So(err, ShouldBeError, "no account 'tata' found for partner "+
 							partner.Name)
 					})
 
@@ -297,8 +297,8 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
-				Login:         "login",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -332,7 +332,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				args := []string{"-l", "new_login", "-p", "new_password", "toto"}
+				args := []string{"-l", "new_login", "-p", "new_password", "tata"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -340,7 +340,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for partner "+
+						So(err, ShouldBeError, "no account 'tata' found for partner "+
 							partner.Name)
 					})
 
@@ -548,8 +548,8 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
-				Login:         "login",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -634,7 +634,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				commandLine.Account.Remote.Args.Partner = partner.Name
-				args := []string{"toto", rule.Name, direction(rule)}
+				args := []string{"tata", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -642,7 +642,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then is should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for partner "+partner.Name)
+						So(err, ShouldBeError, "no account 'tata' found for partner "+partner.Name)
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
@@ -679,8 +679,8 @@ func TestRevokeRemoteAccount(t *testing.T) {
 
 			var account = &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
-				Login:         "login",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -766,7 +766,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				commandLine.Account.Remote.Args.Partner = partner.Name
-				args := []string{"toto", rule.Name, direction(rule)}
+				args := []string{"tata", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -774,7 +774,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then is should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for partner "+partner.Name)
+						So(err, ShouldBeError, "no account 'tata' found for partner "+partner.Name)
 					})
 
 					Convey("Then the permission should NOT have been added", func() {

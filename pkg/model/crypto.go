@@ -28,7 +28,7 @@ type Crypto struct {
 
 	// The table name of object the credentials are linked to. Valid tables
 	// include: local_agent, remote_agent, local_account or remote_account.
-	OwnerType string `xorm:"unique(cert) notnull 'owner_type'"`
+	OwnerType string `xorm:"unique(cert) unique(sign) notnull 'owner_type'"`
 
 	// The id of the object these credentials are linked to.
 	OwnerID uint64 `xorm:"unique(cert) notnull 'owner_id'"`
@@ -47,7 +47,7 @@ type Crypto struct {
 
 	// A base64 representation of the sha256 checksum of the raw leaf certificate
 	// (if one is provided), used for indexation & search purposes.
-	Signature string `xorm:"varchar(44) unique 'signature'"`
+	Signature string `xorm:"varchar(44) unique(sign) 'signature'"`
 }
 
 // TableName returns the name of the certificates table.
@@ -113,7 +113,18 @@ func (c *Crypto) BeforeWrite(db database.ReadAccess) database.Error {
 		return err
 	}
 
-	return c.checkContent(parent)
+	if err := c.checkContent(parent); err != nil {
+		return err
+	}
+	n, err = db.Count(c).Where("id<>? AND owner_type=? AND signature=?", c.ID,
+		c.OwnerType, c.Signature).Run()
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		return newErr("this certificate is already used by another %s", parent.Appellation())
+	}
+	return nil
 }
 
 func (c *Crypto) checkContent(parent database.GetBean) database.Error {

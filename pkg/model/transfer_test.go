@@ -44,7 +44,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 			account := RemoteAccount{
 				RemoteAgentID: remote.ID,
 				Login:         "toto",
-				Password:      "password",
+				Password:      "sesame",
 			}
 			So(db.Insert(&account).Run(), ShouldBeNil)
 
@@ -152,7 +152,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 					account2 := RemoteAccount{
 						RemoteAgentID: remote2.ID,
 						Login:         "titi",
-						Password:      "password",
+						Password:      "sesame",
 					}
 					So(db.Insert(&account2).Run(), ShouldBeNil)
 
@@ -197,7 +197,7 @@ func TestTransferToHistory(t *testing.T) {
 		account := RemoteAccount{
 			RemoteAgentID: remote.ID,
 			Login:         "toto",
-			Password:      "password",
+			Password:      "sesame",
 		}
 		So(db.Insert(&account).Run(), ShouldBeNil)
 
@@ -225,7 +225,8 @@ func TestTransferToHistory(t *testing.T) {
 
 			Convey("When calling the `ToHistory` method", func() {
 				trans.Status = StatusDone
-				So(trans.ToHistory(db, logger), ShouldBeNil)
+				end := time.Date(2022, 1, 1, 1, 0, 0, 0, time.Local)
+				So(trans.ToHistory(db, logger, end), ShouldBeNil)
 
 				Convey("Then it should have inserted an equivalent `HistoryEntry` entry", func() {
 					var hist HistoryEntry
@@ -243,7 +244,7 @@ func TestTransferToHistory(t *testing.T) {
 						RemotePath: trans.RemotePath,
 						Rule:       rule.Name,
 						Start:      trans.Start,
-						Stop:       hist.Stop,
+						Stop:       end,
 						Status:     trans.Status,
 					}
 
@@ -275,7 +276,7 @@ func TestTransferToHistory(t *testing.T) {
 					trans.Status = tc.status
 
 					Convey("When calling the `ToHistory` method", func() {
-						err := trans.ToHistory(db, logger)
+						err := trans.ToHistory(db, logger, time.Now())
 						var hist HistoryEntries
 						So(db.Select(&hist).Run(), ShouldBeNil)
 

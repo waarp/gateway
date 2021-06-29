@@ -3,6 +3,7 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -71,27 +72,29 @@ func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
 		return false
 	}
 
-	switch err.(type) {
-	case *errNotFound:
+	var nf *errNotFound
+	var dbNF *database.NotFoundError
+	if errors.As(err, &nf) || errors.As(err, &dbNF) {
 		http.Error(w, err.Error(), http.StatusNotFound)
-		return true
-	case *errBadRequest:
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return true
-	case *forbidden:
-		http.Error(w, err.Error(), http.StatusForbidden)
-		return true
-	case *database.ValidationError:
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return true
-	case *database.NotFoundError:
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return true
-	default:
-		logger.Errorf("Unexpected error: %s", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return true
 	}
+
+	var br *errBadRequest
+	var val *database.ValidationError
+	if errors.As(err, &br) || errors.As(err, &val) {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return true
+	}
+
+	var fo *forbidden
+	if errors.As(err, &fo) {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return true
+	}
+
+	logger.Errorf("Unexpected error: %s", err)
+	http.Error(w, err.Error(), http.StatusInternalServerError)
+	return true
 }
 
 func writeJSON(w http.ResponseWriter, bean interface{}) error {

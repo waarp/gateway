@@ -7,15 +7,13 @@ import (
 	"strconv"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-
 	api "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"github.com/gorilla/mux"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"github.com/gorilla/mux"
 )
 
 // transToDB transforms the JSON transfer into its database equivalent.
@@ -46,7 +44,7 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 	return &api.OutTransfer{
 		ID:         trans.ID,
 		RemoteID:   trans.RemoteTransferID,
-		Rule:       rule,
+		Rule:       rule.Name,
 		IsServer:   trans.IsServer,
 		Requested:  requested,
 		Requester:  requester,
@@ -210,7 +208,7 @@ func cancelTransfer(protoServices map[string]service.ProtoService) handler {
 			switch trans.Status {
 			case types.StatusPlanned:
 				trans.Status = types.StatusCancelled
-				if err := trans.ToHistory(db, logger); handleError(w, logger, err) {
+				if err := trans.ToHistory(db, logger, time.Time{}); handleError(w, logger, err) {
 					return
 				}
 				w.WriteHeader(http.StatusAccepted)

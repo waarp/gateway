@@ -23,11 +23,11 @@ func init() {
 type Transfer struct {
 	ID               uint64               `xorm:"pk autoincr <- 'id'"`
 	Owner            string               `xorm:"notnull 'owner'"`
-	RemoteTransferID string               `xorm:"unique(transRemID) 'remote_transfer_id'"`
+	RemoteTransferID string               `xorm:"notnull 'remote_transfer_id'"`
 	IsServer         bool                 `xorm:"notnull 'is_server'"`
 	RuleID           uint64               `xorm:"notnull 'rule_id'"`
 	AgentID          uint64               `xorm:"notnull 'agent_id'"`
-	AccountID        uint64               `xorm:"notnull unique(transRemID) 'account_id'"`
+	AccountID        uint64               `xorm:"notnull 'account_id'"`
 	LocalPath        string               `xorm:"notnull 'local_path'"`
 	RemotePath       string               `xorm:"notnull 'remote_path'"`
 	Filesize         int64                `xorm:"notnull 'filesize'"`
@@ -86,11 +86,22 @@ func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error
 			t.AgentID, t.AccountID)
 	}
 
+	if t.RemoteTransferID != "" {
+		n, err := db.Count(t).Where("remote_transfer_id=? AND account_id=?",
+			t.RemoteTransferID, t.AccountID).Run()
+		if err != nil {
+			return err
+		}
+		if n != 0 {
+			return database.NewValidationError("a transfer with the same remote ID already exists")
+		}
+	}
+
 	// Check for rule access
 	if auth, err := IsRuleAuthorized(db, t); err != nil {
 		return err
 	} else if !auth {
-		return database.NewValidationError("Rule %d is not authorized for this transfer",
+		return database.NewValidationError("rule %d is not authorized for this transfer",
 			t.RuleID)
 	}
 
@@ -267,14 +278,14 @@ func (t *Transfer) makeHistoryEntry(db database.ReadAccess, stop time.Time) (*Hi
 // ToHistory removes the transfer entry from the database, converts it into a
 // history entry, and inserts the new history entry in the database.
 // If any of these steps fails, the changes are reverted and an error is returned.
-func (t *Transfer) ToHistory(db *database.DB, logger *log.Logger) database.Error {
+func (t *Transfer) ToHistory(db *database.DB, logger *log.Logger, end time.Time) database.Error {
 	return db.Transaction(func(ses *database.Session) database.Error {
 		if err := ses.Delete(t).Run(); err != nil {
 			logger.Errorf("Failed to delete transfer for archival: %s", err)
 			return err
 		}
 
-		hist, err := t.makeHistoryEntry(ses, time.Now())
+		hist, err := t.makeHistoryEntry(ses, end)
 		if err != nil {
 			logger.Errorf("Failed to convert transfer to history: %s", err)
 			return err

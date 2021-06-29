@@ -28,8 +28,8 @@ func TestExportCertificates(t *testing.T) {
 				Name:        "test_cert",
 				OwnerType:   "local_agents",
 				OwnerID:     agent.ID,
-				Certificate: testhelpers.LocalhostCert,
-				PrivateKey:  testhelpers.LocalhostKey,
+				Certificate: testhelpers.OtherLocalhostCert,
+				PrivateKey:  testhelpers.OtherLocalhostKey,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -89,7 +89,7 @@ func TestExportCertificates(t *testing.T) {
 					Name:        "cert2",
 					OwnerType:   "local_accounts",
 					OwnerID:     account.ID,
-					Certificate: testhelpers.ClientCert,
+					Certificate: testhelpers.OtherClientCert,
 				}
 				So(db.Insert(cert2).Run(), ShouldBeNil)
 

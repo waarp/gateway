@@ -37,7 +37,7 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: "password"}
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "toto", Password: "sesame"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}

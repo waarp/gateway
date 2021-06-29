@@ -129,7 +129,7 @@ func TestRuleBeforeDelete(t *testing.T) {
 				Address:     "localhost:1111",
 			}
 			So(db.Insert(&server).Run(), ShouldBeNil)
-			account := LocalAccount{LocalAgentID: server.ID, Login: "toto", PasswordHash: hash("password")}
+			account := LocalAccount{LocalAgentID: server.ID, Login: "toto", PasswordHash: hash("sesame")}
 			So(db.Insert(&account).Run(), ShouldBeNil)
 
 			a1 := RuleAccess{RuleID: rule.ID, ObjectID: server.ID, ObjectType: server.TableName()}

@@ -112,8 +112,8 @@ func TestCryptoBeforeWrite(t *testing.T) {
 						OwnerType:   "local_agents",
 						OwnerID:     parentAgent.ID,
 						Name:        "other",
-						PrivateKey:  testhelpers.LocalhostKey,
-						Certificate: testhelpers.LocalhostCert,
+						PrivateKey:  testhelpers.OtherLocalhostKey,
+						Certificate: testhelpers.OtherLocalhostCert,
 					}
 					So(db.Insert(otherCert).Run(), ShouldBeNil)
 					newCert.Name = otherCert.Name
@@ -137,8 +137,8 @@ func TestCryptoBeforeWrite(t *testing.T) {
 						OwnerType:   "local_agents",
 						OwnerID:     parentAgent.ID,
 						Name:        "other",
-						PrivateKey:  testhelpers.LocalhostKey,
-						Certificate: testhelpers.LocalhostCert,
+						PrivateKey:  testhelpers.OtherLocalhostKey,
+						Certificate: testhelpers.OtherLocalhostCert,
 					}
 					So(db.Insert(otherCert).Run(), ShouldBeNil)
 

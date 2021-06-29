@@ -100,8 +100,8 @@ func initTestDB(c C) *testContext {
 
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
-		Login:        "login",
-		PasswordHash: hash("password"),
+		Login:        "toto",
+		PasswordHash: hash("sesame"),
 	}
 	So(db.Insert(locAccount).Run(), ShouldBeNil)
 
@@ -115,8 +115,8 @@ func initTestDB(c C) *testContext {
 
 	remAccount := &model.RemoteAccount{
 		RemoteAgentID: partner.ID,
-		Login:         "login",
-		Password:      "password",
+		Login:         "titi",
+		Password:      "sesame",
 	}
 	So(db.Insert(remAccount).Run(), ShouldBeNil)
 

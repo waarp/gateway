@@ -1141,7 +1141,7 @@ func TestListCertificate(t *testing.T) {
 						OwnerType:   partner.TableName(),
 						OwnerID:     partner.ID,
 						Name:        "partner_cert_2",
-						Certificate: testhelpers.LocalhostCert,
+						Certificate: testhelpers.OtherLocalhostCert,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -1249,8 +1249,8 @@ func TestListCertificate(t *testing.T) {
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert_2",
-						PrivateKey:  testhelpers.ClientKey,
-						Certificate: testhelpers.ClientCert,
+						PrivateKey:  testhelpers.OtherClientKey,
+						Certificate: testhelpers.OtherClientCert,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -1382,8 +1382,8 @@ func TestListCertificate(t *testing.T) {
 						OwnerType:   server.TableName(),
 						OwnerID:     server.ID,
 						Name:        "server_cert_2",
-						PrivateKey:  testhelpers.LocalhostKey,
-						Certificate: testhelpers.LocalhostCert,
+						PrivateKey:  testhelpers.OtherLocalhostKey,
+						Certificate: testhelpers.OtherLocalhostCert,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -1490,7 +1490,7 @@ func TestListCertificate(t *testing.T) {
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert_2",
-						Certificate: testhelpers.ClientCert,
+						Certificate: testhelpers.OtherClientCert,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 

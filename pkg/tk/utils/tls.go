@@ -47,6 +47,8 @@ func CheckCertChain(certChain []*x509.Certificate, hostname string) error {
 	}
 	if hostname == "" {
 		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+	} else {
+		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 	}
 	roots := x509.NewCertPool()
 

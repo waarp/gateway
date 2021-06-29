@@ -15,3 +15,9 @@ func String(s *string) string {
 	}
 	return *s
 }
+
+// BoolPtr takes a boolean and returns a pointer to that bool. Useful for
+// putting a boolean literal where a boolean pointer is required.
+func BoolPtr(b bool) *bool {
+	return &b
+}

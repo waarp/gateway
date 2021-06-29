@@ -261,7 +261,7 @@ func (p *Pipeline) EndTransfer() *types.TransferError {
 	p.TransCtx.Transfer.Status = types.StatusDone
 	p.TransCtx.Transfer.Step = types.StepNone
 	p.TransCtx.Transfer.TaskNumber = 0
-	if err := p.TransCtx.Transfer.ToHistory(p.DB, p.Logger); err != nil {
+	if err := p.TransCtx.Transfer.ToHistory(p.DB, p.Logger, time.Now()); err != nil {
 		p.handleError(types.TeInternal, "Failed to archive transfer", err.Error())
 		return errDatabase
 	}
@@ -418,7 +418,7 @@ func (p *Pipeline) Cancel(handles ...func()) {
 		_ = p.machine.Transition("error")
 
 		p.TransCtx.Transfer.Status = types.StatusCancelled
-		if err := p.TransCtx.Transfer.ToHistory(p.DB, p.Logger); err != nil {
+		if err := p.TransCtx.Transfer.ToHistory(p.DB, p.Logger, time.Now()); err != nil {
 			p.Logger.Errorf("Failed to move cancelled transfer to history: %s", err)
 		}
 

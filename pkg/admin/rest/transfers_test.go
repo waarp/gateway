@@ -17,7 +17,6 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -44,7 +43,7 @@ func TestAddTransfer(t *testing.T) {
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      "password",
+				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -76,7 +75,6 @@ func TestAddTransfer(t *testing.T) {
 
 					Convey("Then the 'Location' header should contain the URI "+
 						"of the new transfer", func() {
-
 						location := w.Header().Get("Location")
 						So(location, ShouldStartWith, transferURI)
 					})
@@ -482,7 +480,7 @@ func TestListTransfer(t *testing.T) {
 }
 
 func TestResumeTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_list_test")
+	logger := log.NewLogger("rest_transfer_resume_test")
 
 	Convey("Testing the transfer resume handler", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
@@ -512,8 +510,8 @@ func TestResumeTransfer(t *testing.T) {
 				RuleID:     rule.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
-				LocalPath:  "/local/file.test",
-				RemotePath: "/remote/file.test",
+				LocalPath:  "file.loc",
+				RemotePath: "file.rem",
 				Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:     types.StatusError,
 				Step:       types.StepData,
@@ -550,8 +548,8 @@ func TestResumeTransfer(t *testing.T) {
 							RuleID:     rule.ID,
 							AgentID:    partner.ID,
 							AccountID:  account.ID,
-							LocalPath:  utils.ToOSPath("/local/file.test"),
-							RemotePath: "/remote/file.test",
+							LocalPath:  "file.loc",
+							RemotePath: "file.rem",
 							Start:      trans.Start.Local(),
 							Status:     types.StatusPlanned,
 							Step:       types.StepData,
@@ -572,14 +570,14 @@ func TestResumeTransfer(t *testing.T) {
 }
 
 func TestPauseTransfer(t *testing.T) {
-	logger := log.NewLogger("rest_transfer_list_test")
+	logger := log.NewLogger("rest_transfer_pause_test")
 
 	Convey("Testing the transfer pause handler", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 		handler := pauseTransfer(nil)(logger, db)
 		w := httptest.NewRecorder()
 
-		Convey("Given a database with 1 running transfer", func() {
+		Convey("Given a database with 1 planned transfer", func() {
 			partner := &model.RemoteAgent{
 				Name:        "test_server",
 				Protocol:    testProto1,
@@ -602,8 +600,8 @@ func TestPauseTransfer(t *testing.T) {
 				RuleID:     rule.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
-				LocalPath:  "/local/file.test",
-				RemotePath: "/remote/file.test",
+				LocalPath:  "file.loc",
+				RemotePath: "file.rem",
 				Start:      time.Date(2020, 1, 2, 3, 4, 5, 678000, time.Local),
 				Status:     types.StatusPlanned,
 				Step:       types.StepData,
@@ -637,8 +635,8 @@ func TestPauseTransfer(t *testing.T) {
 							RuleID:     rule.ID,
 							AgentID:    partner.ID,
 							AccountID:  account.ID,
-							LocalPath:  utils.ToOSPath("/local/file.test"),
-							RemotePath: "/remote/file.test",
+							LocalPath:  "file.loc",
+							RemotePath: "file.rem",
 							Start:      trans.Start.Local(),
 							Status:     types.StatusPaused,
 							Step:       types.StepData,
@@ -651,6 +649,98 @@ func TestPauseTransfer(t *testing.T) {
 						So(db.Select(&transfers).Run(), ShouldBeNil)
 						So(transfers, ShouldNotBeEmpty)
 						So(transfers[0], ShouldResemble, exp)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestCancelTransfer(t *testing.T) {
+	logger := log.NewLogger("rest_transfer_cancel_test")
+
+	Convey("Testing the transfer resume handler", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
+		handler := cancelTransfer(nil)(logger, db)
+		w := httptest.NewRecorder()
+
+		Convey("Given a database with 1 planned transfer", func() {
+			partner := &model.RemoteAgent{
+				Name:        "test_server",
+				Protocol:    testProto1,
+				Address:     "localhost:1",
+				ProtoConfig: json.RawMessage(`{}`),
+			}
+			So(db.Insert(partner).Run(), ShouldBeNil)
+
+			account := &model.RemoteAccount{
+				RemoteAgentID: partner.ID,
+				Login:         "toto",
+				Password:      "titi",
+			}
+			So(db.Insert(account).Run(), ShouldBeNil)
+
+			rule := &model.Rule{Name: "test_rule", IsSend: false, Path: "path"}
+			So(db.Insert(rule).Run(), ShouldBeNil)
+
+			trans := &model.Transfer{
+				RuleID:     rule.ID,
+				AgentID:    partner.ID,
+				AccountID:  account.ID,
+				LocalPath:  "file.loc",
+				RemotePath: "file.rem",
+				Start:      time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+				Status:     types.StatusPlanned,
+				Step:       types.StepNone,
+				Error:      types.TransferError{},
+				Progress:   0,
+				TaskNumber: 0,
+			}
+			So(db.Insert(trans).Run(), ShouldBeNil)
+
+			Convey("Given a request with the valid transfer ID parameter", func() {
+				id := strconv.FormatUint(trans.ID, 10)
+				req, err := http.NewRequest(http.MethodPut, "", nil)
+				So(err, ShouldBeNil)
+				req = mux.SetURLVars(req, map[string]string{"transfer": id})
+
+				Convey("When sending the request to the handler", func() {
+					handler.ServeHTTP(w, req)
+
+					Convey("Then the response body should be empty", func() {
+						So(w.Body.String(), ShouldBeBlank)
+					})
+
+					Convey("Then it should reply 'Accepted'", func() {
+						So(w.Code, ShouldEqual, http.StatusAccepted)
+					})
+
+					Convey("Then the transfer should have been cancelled", func() {
+						exp := model.HistoryEntry{
+							ID:               trans.ID,
+							Owner:            database.Owner,
+							RemoteTransferID: "",
+							IsServer:         false,
+							IsSend:           false,
+							Account:          account.Login,
+							Agent:            partner.Name,
+							Protocol:         testProto1,
+							LocalPath:        "file.loc",
+							RemotePath:       "file.rem",
+							Rule:             rule.Name,
+							Start:            time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
+							Stop:             time.Time{},
+							Status:           types.StatusCancelled,
+							Error:            types.TransferError{},
+							Step:             types.StepNone,
+							Progress:         0,
+							TaskNumber:       0,
+						}
+
+						var hist model.HistoryEntries
+						So(db.Select(&hist).Run(), ShouldBeNil)
+						So(hist, ShouldNotBeEmpty)
+						So(hist[0], ShouldResemble, exp)
 					})
 				})
 			})

@@ -83,7 +83,7 @@ func TestAuthorizeRule(t *testing.T) {
 				account := &model.LocalAccount{
 					LocalAgentID: server.ID,
 					Login:        "toto",
-					PasswordHash: hash("password"),
+					PasswordHash: hash("sesame"),
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -124,7 +124,7 @@ func TestAuthorizeRule(t *testing.T) {
 				account := &model.RemoteAccount{
 					RemoteAgentID: partner.ID,
 					Login:         "toto",
-					Password:      "password",
+					Password:      "sesame",
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -213,7 +213,7 @@ func TestRevokeRule(t *testing.T) {
 				account := &model.LocalAccount{
 					LocalAgentID: server.ID,
 					Login:        "toto",
-					PasswordHash: hash("password"),
+					PasswordHash: hash("sesame"),
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -258,7 +258,7 @@ func TestRevokeRule(t *testing.T) {
 				account := &model.RemoteAccount{
 					RemoteAgentID: partner.ID,
 					Login:         "toto",
-					Password:      "password",
+					Password:      "sesame",
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -309,12 +309,12 @@ func TestRuleAllowAll(t *testing.T) {
 			la := &model.LocalAccount{
 				LocalAgentID: s.ID,
 				Login:        "toto",
-				PasswordHash: hash("password"),
+				PasswordHash: hash("sesame"),
 			}
 			ra := &model.RemoteAccount{
 				RemoteAgentID: p.ID,
 				Login:         "tata",
-				Password:      "password",
+				Password:      "sesame",
 			}
 			So(db.Insert(la).Run(), ShouldBeNil)
 			So(db.Insert(ra).Run(), ShouldBeNil)

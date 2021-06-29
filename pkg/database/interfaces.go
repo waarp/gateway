@@ -48,8 +48,7 @@ type ReadAccess interface {
 	// of the given model from the database. The request can be narrowed using
 	// the CountQuery.Where method.
 	//
-	// The request can then be executed using the IterateQuery.Run method. The
-	// selected entries will be returned inside an Iterator instance.
+	// The request can then be executed using the CountQuery.Run method.
 	Count(IterateBean) *CountQuery
 }
 
@@ -119,12 +118,6 @@ type DeletionHook interface {
 // inserting or updating an entry.
 type WriteHook interface {
 	BeforeWrite(ReadAccess) Error
-}
-
-// WriteReset is an interface which adds a function which will be run after
-// inserting or updating an entry.
-type WriteReset interface {
-	AfterWrite()
 }
 
 // Table is the interface which adds the base methods that all database models

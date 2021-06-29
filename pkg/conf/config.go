@@ -63,19 +63,24 @@ type DatabaseConfig struct {
 // ControllerConfig holds the transfer controller options
 type ControllerConfig struct {
 	Delay           time.Duration `ini-name:"Delay" default:"5s" description:"The frequency at which the database will be probed for new transfers"`
-	R66Home         string        `ini-name:"R66Home" description:"The installation directory of Waarp-R66"` // DEPRECATED
 	MaxTransfersIn  uint64        `ini-name:"MaxTransferIn" description:"The maximum number of concurrent incoming transfers allowed on the gateway (0 = unlimited)."`
 	MaxTransfersOut uint64        `ini-name:"MaxTransferOut" description:"The maximum number of concurrent outgoing transfers allowed on the gateway (0 = unlimited)."`
 }
 
 func normalizePaths(config *ServerConfig, logger *log.Logger) error {
-	var err error
-	if config.Paths.GatewayHome == "" {
-		if config.Paths.GatewayHome, err = os.Getwd(); err != nil {
-			return fmt.Errorf("failed to retrieve current working directory: %s", err)
+	wd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve current working directory: %s", err)
+	}
+
+	if config.Paths.GatewayHome != "" {
+		if filepath.IsAbs(config.Paths.GatewayHome) {
+			config.Paths.GatewayHome = filepath.Clean(config.Paths.GatewayHome)
+		} else {
+			config.Paths.GatewayHome = filepath.Join(wd, config.Paths.GatewayHome)
 		}
 	} else {
-		config.Paths.GatewayHome = filepath.Clean(config.Paths.GatewayHome)
+		config.Paths.GatewayHome = wd
 	}
 	if config.Paths.InDirectory != "" {
 		logger.Warning("Option 'InDirectory' is deprecated, use 'DefaultInDir' instead")

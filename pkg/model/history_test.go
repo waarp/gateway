@@ -109,12 +109,6 @@ func TestHistoryBeforeWrite(t *testing.T) {
 					"the transfer's start date cannot be empty"))
 			})
 
-			Convey("Given that the end date is missing", func() {
-				hist.Stop = time.Time{}
-				shouldFailWith("the end date is missing", database.NewValidationError(
-					"the transfer's end date cannot be empty"))
-			})
-
 			Convey("Given that the end date is before the start date", func() {
 				hist.Stop = hist.Start.AddDate(0, 0, -1)
 				shouldFailWith("the end date is anterior", database.NewValidationError(
@@ -197,7 +191,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 			account := &RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "toto",
-				Password:      "password",
+				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -262,7 +256,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 			account := &LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "toto",
-				PasswordHash: hash("password"),
+				PasswordHash: hash("sesame"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 

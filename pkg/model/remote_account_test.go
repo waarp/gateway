@@ -36,7 +36,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: "password"}
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "toto", Password: "sesame"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			cert := Crypto{
@@ -119,7 +119,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 			oldAccount := RemoteAccount{
 				RemoteAgentID: parentAgent.ID,
 				Login:         "old",
-				Password:      "password",
+				Password:      "sesame",
 			}
 			So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
@@ -127,7 +127,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 				newAccount := RemoteAccount{
 					RemoteAgentID: parentAgent.ID,
 					Login:         "new",
-					Password:      "password",
+					Password:      "sesame_new",
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {

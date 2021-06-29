@@ -43,6 +43,7 @@ Lister les transferts
    :resjson array transfers: La liste des transferts demandés
    :resjsonarr number id: L'identifiant unique du transfert
    :resjsonarr bool isServer: Précise si la gateway était à l'origine du transfert
+   :resjsonarr bool isSend: Précise le sens de transfert du fichier
    :resjsonarr string rule: L'identifiant de la règle de transfert
    :resjsonarr string requester: Le nom du compte ayant demandé le transfert
    :resjsonarr string requested: Le nom du serveur/partenaire auquel le transfert a été demandé

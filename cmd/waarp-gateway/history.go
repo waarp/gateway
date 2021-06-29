@@ -32,6 +32,10 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 	if hist.Filesize >= 0 {
 		size = fmt.Sprint(hist.Filesize)
 	}
+	stop := "N/A"
+	if hist.Stop != nil {
+		stop = hist.Stop.Local().Format(time.RFC3339Nano)
+	}
 
 	fmt.Fprintln(w, orange(bold("● Transfer", hist.ID, "(as", role+")")), coloredStatus(hist.Status))
 	if hist.RemoteID != "" {
@@ -46,7 +50,7 @@ func displayHistory(w io.Writer, hist *api.OutHistory) {
 	fmt.Fprintln(w, orange("    Remote filepath:"), hist.RemotePath)
 	fmt.Fprintln(w, orange("    File size:      "), size)
 	fmt.Fprintln(w, orange("    Start date:     "), hist.Start.Format(time.RFC3339Nano))
-	fmt.Fprintln(w, orange("    End date:       "), hist.Stop.Format(time.RFC3339Nano))
+	fmt.Fprintln(w, orange("    End date:       "), stop)
 	if hist.ErrorCode != types.TeOk {
 		fmt.Fprintln(w, orange("    Error code:     "), hist.ErrorCode)
 		if hist.ErrorMsg != "" {

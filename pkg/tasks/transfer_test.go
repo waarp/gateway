@@ -92,7 +92,7 @@ func TestTransferRun(t *testing.T) {
 		account := &model.RemoteAccount{
 			RemoteAgentID: partner.ID,
 			Login:         "test account",
-			Password:      "password",
+			Password:      "sesame",
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 

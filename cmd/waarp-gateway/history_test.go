@@ -34,6 +34,10 @@ func historyInfoString(h *api.OutHistory) string {
 	if h.RemoteID != "" {
 		rv += "    Remote ID:        " + h.RemoteID + "\n"
 	}
+	stop := "N/A"
+	if h.Stop != nil {
+		stop = h.Stop.Local().Format(time.RFC3339Nano)
+	}
 	rv += "    Way:             " + way + "\n" +
 		"    Protocol:        " + h.Protocol + "\n" +
 		"    Rule:            " + h.Rule + "\n" +
@@ -43,7 +47,7 @@ func historyInfoString(h *api.OutHistory) string {
 		"    Remote filepath: " + h.RemotePath + "\n" +
 		"    File size:       " + size + "\n" +
 		"    Start date:      " + h.Start.Local().Format(time.RFC3339Nano) + "\n" +
-		"    End date:        " + h.Stop.Local().Format(time.RFC3339Nano) + "\n"
+		"    End date:        " + stop + "\n"
 	if h.ErrorCode != types.TeOk {
 		rv += "    Error code:      " + h.ErrorCode.String() + "\n"
 		if h.ErrorMsg != "" {
@@ -63,7 +67,6 @@ func historyInfoString(h *api.OutHistory) string {
 }
 
 func TestDisplayHistory(t *testing.T) {
-
 	Convey("Given a history entry", t, func() {
 		out = testFile()
 
@@ -74,12 +77,12 @@ func TestDisplayHistory(t *testing.T) {
 			Rule:       "Rule",
 			Requester:  "Account",
 			Requested:  "Server",
-			Protocol:   "sftp",
+			Protocol:   testProto1,
 			LocalPath:  "/local/path",
 			RemotePath: "/remote/path",
 			Start:      time.Now(),
-			Stop:       time.Now().Add(time.Hour),
-			Status:     types.StatusPlanned,
+			Stop:       nil,
+			Status:     types.StatusCancelled,
 			Step:       types.StepSetup,
 			Progress:   1,
 			TaskNumber: 2,
@@ -99,6 +102,7 @@ func TestDisplayHistory(t *testing.T) {
 	Convey("Given a history entry with error", t, func() {
 		out = testFile()
 
+		stop := time.Now().Add(time.Hour)
 		hist := api.OutHistory{
 			ID:         1,
 			IsServer:   true,
@@ -106,11 +110,11 @@ func TestDisplayHistory(t *testing.T) {
 			Rule:       "rule",
 			Requester:  "source",
 			Requested:  "destination",
-			Protocol:   "sftp",
+			Protocol:   testProto1,
 			LocalPath:  "/local/path",
 			RemotePath: "/remote/path",
 			Start:      time.Now(),
-			Stop:       time.Now().Add(time.Hour),
+			Stop:       &stop,
 			Status:     types.StatusPlanned,
 			ErrorCode:  types.TeConnectionReset,
 			ErrorMsg:   "connexion reset by peer",
@@ -127,7 +131,6 @@ func TestDisplayHistory(t *testing.T) {
 }
 
 func TestGetHistory(t *testing.T) {
-
 	Convey("Testing the partner 'get' command", t, func() {
 		out = testFile()
 		command := &historyGet{}
@@ -147,7 +150,7 @@ func TestGetHistory(t *testing.T) {
 					Rule:       "rule",
 					Account:    "source",
 					Agent:      "destination",
-					Protocol:   "sftp",
+					Protocol:   testProto1,
 					LocalPath:  "/local/path",
 					RemotePath: "/remote/path",
 					Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
@@ -192,7 +195,6 @@ func TestGetHistory(t *testing.T) {
 }
 
 func TestListHistory(t *testing.T) {
-
 	Convey("Testing the history 'list' command", t, func() {
 		out = testFile()
 		command := &historyList{}
@@ -211,7 +213,7 @@ func TestListHistory(t *testing.T) {
 					IsSend:     false,
 					Account:    "src1",
 					Agent:      "dst1",
-					Protocol:   "sftp",
+					Protocol:   testProto1,
 					LocalPath:  "/local/path1",
 					RemotePath: "/remote/path1",
 					Rule:       "rule1",
@@ -225,7 +227,7 @@ func TestListHistory(t *testing.T) {
 					IsSend:     false,
 					Account:    "src2",
 					Agent:      "dst2",
-					Protocol:   "sftp",
+					Protocol:   testProto1,
 					LocalPath:  "/local/path2",
 					RemotePath: "/remote/path2",
 					Rule:       "rule2",
@@ -239,7 +241,7 @@ func TestListHistory(t *testing.T) {
 					IsSend:     false,
 					Account:    "src3",
 					Agent:      "dst3",
-					Protocol:   "sftp",
+					Protocol:   testProto2,
 					LocalPath:  "/local/path3",
 					RemotePath: "/remote/path3",
 					Rule:       "rule3",
@@ -253,7 +255,7 @@ func TestListHistory(t *testing.T) {
 					IsSend:     false,
 					Account:    "src4",
 					Agent:      "dst4",
-					Protocol:   "sftp",
+					Protocol:   testProto2,
 					LocalPath:  "/local/path4",
 					RemotePath: "/remote/path4",
 					Rule:       "rule4",
@@ -431,7 +433,7 @@ func TestListHistory(t *testing.T) {
 				})
 
 				Convey("Given a protocol parameter", func() {
-					args := []string{"--protocol=sftp"}
+					args := []string{"--protocol=" + testProto1}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -441,8 +443,7 @@ func TestListHistory(t *testing.T) {
 						Convey("Then it should display all the entries using "+
 							"one of these protocoles", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
-								historyInfoString(hist1)+historyInfoString(hist2)+
-								historyInfoString(hist3)+historyInfoString(hist4))
+								historyInfoString(hist1)+historyInfoString(hist2))
 						})
 					})
 				})
@@ -455,7 +456,7 @@ func TestListHistory(t *testing.T) {
 						"--requested=" + h4.Agent, "--requested=" + h1.Agent,
 						"--rule=" + h3.Rule, "--rule=" + h1.Rule, "--rule=" + h2.Rule,
 						"--status=DONE", "--status=CANCELLED",
-						"--protocol=sftp",
+						"--protocol=" + testProto1,
 					}
 
 					Convey("When executing the command", func() {
@@ -476,7 +477,6 @@ func TestListHistory(t *testing.T) {
 }
 
 func TestRetryHistory(t *testing.T) {
-
 	Convey("Testing the history 'retry' command", t, func() {
 		out = testFile()
 		command := &historyRetry{}

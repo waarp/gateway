@@ -40,7 +40,7 @@ func TestSetup(t *testing.T) {
 			db := database.TestDatabase(c, "ERROR")
 
 			agent := &model.RemoteAgent{
-				Name:        "agent",
+				Name:        "partner",
 				Protocol:    testhelpers.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6622",
@@ -49,8 +49,8 @@ func TestSetup(t *testing.T) {
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
-				Login:         "account",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -58,7 +58,7 @@ func TestSetup(t *testing.T) {
 				db: db,
 				transCtx: &model.TransferContext{
 					Rule: &model.Rule{
-						Name:     "Test",
+						Name:     "rulename",
 						IsSend:   true,
 						Path:     "path/to/test",
 						LocalDir: "/local/dir",
@@ -252,8 +252,8 @@ func TestRunTasks(t *testing.T) {
 
 		account := &model.RemoteAccount{
 			RemoteAgentID: agent.ID,
-			Login:         "login",
-			Password:      "password",
+			Login:         "toto",
+			Password:      "sesame",
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 
