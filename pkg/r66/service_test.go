@@ -80,6 +80,7 @@ func TestR66ServerInterruption(t *testing.T) {
 
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
 		test := pipelinetest.InitServerPush(c, "r66", servConf)
+		pipelinetest.MakeServerChan(c)
 
 		serv := gatewayd.ServiceConstructors["r66"](test.DB, test.Server, log.NewLogger("server"))
 		c.So(serv.Start(), ShouldBeNil)

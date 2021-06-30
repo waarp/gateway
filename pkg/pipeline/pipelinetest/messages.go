@@ -11,13 +11,16 @@ import (
 
 func setTestVar() {
 	pipeline.TestPipelineEnd = func(isServer bool) {
-		if taskstest.ServerCheckChannel == nil || taskstest.ClientCheckChannel == nil {
-			panic("nil test task channels")
-		}
 		if isServer {
-			taskstest.ServerCheckChannel <- "SERVER TRANSFER END"
+			if taskstest.ServerCheckChannel == nil {
+				panic("nil server task channels")
+			}
+			close(taskstest.ServerCheckChannel)
 		} else {
-			taskstest.ClientCheckChannel <- "CLIENT TRANSFER END"
+			if taskstest.ClientCheckChannel == nil {
+				panic("nil client task channels")
+			}
+			close(taskstest.ClientCheckChannel)
 		}
 	}
 }
@@ -89,6 +92,8 @@ func (s *SelfContext) ShouldBeServerErrorTasks(c convey.C) {
 // ShouldBeEndTransfer asserts that both the client & server transfers should
 // have finished.
 func (s *SelfContext) ShouldBeEndTransfer(c convey.C) {
-	taskstest.ServerMsgShouldBe(c, "SERVER TRANSFER END")
-	taskstest.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
+	//taskstest.ServerMsgShouldBe(c, "SERVER TRANSFER END")
+	//taskstest.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
+	taskstest.ServerShouldBeEnd(c)
+	taskstest.ClientShouldBeEnd(c)
 }

@@ -117,6 +117,7 @@ func TestSSHServerInterruption(t *testing.T) {
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
 		test := pipelinetest.InitServerPush(c, "sftp", nil)
 		test.AddCryptos(c, makeServerKey(test.Server))
+		pipelinetest.MakeServerChan(c)
 
 		serv := gatewayd.ServiceConstructors[test.Server.Protocol](test.DB, test.Server, test.Logger)
 		c.So(serv.Start(), ShouldBeNil)
@@ -124,9 +125,10 @@ func TestSSHServerInterruption(t *testing.T) {
 		Convey("Given a dummy SFTP client", func() {
 			cli := makeDummyClient(test.Server.Address, pipelinetest.TestLogin, pipelinetest.TestPassword)
 
-			Convey("Given that a push transfer started", func() {
+			Convey("Given that a push transfer started", func(c C) {
 				dst, err := cli.Create(path.Join(test.Rule.Path, "test_in_shutdown.dst"))
 				So(err, ShouldBeNil)
+				test.PreTasksShouldBeOK(c)
 
 				_, err = dst.Write([]byte("123"))
 				So(err, ShouldBeNil)
@@ -178,6 +180,7 @@ func TestSSHServerInterruption(t *testing.T) {
 	Convey("Given an SFTP server ready for pull transfers", t, func(c C) {
 		test := pipelinetest.InitServerPull(c, "sftp", nil)
 		test.AddCryptos(c, makeServerKey(test.Server))
+		pipelinetest.MakeServerChan(c)
 
 		serv := gatewayd.ServiceConstructors[test.Server.Protocol](test.DB, test.Server, test.Logger)
 		c.So(serv.Start(), ShouldBeNil)
@@ -190,6 +193,7 @@ func TestSSHServerInterruption(t *testing.T) {
 					test.Server.LocalOutDir), "test_out_shutdown.src")
 				dst, err := cli.Open(path.Join(test.Rule.Path, "test_out_shutdown.src"))
 				So(err, ShouldBeNil)
+				test.PreTasksShouldBeOK(c)
 
 				_, err = dst.Read(make([]byte, 3))
 				So(err, ShouldBeNil)

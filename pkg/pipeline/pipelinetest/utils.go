@@ -74,7 +74,6 @@ func initTestData(c convey.C) *testData {
 	home := testhelpers.TempDir(c, "transfer_test")
 	paths := makePaths(c, home)
 	db.Conf.Paths = *paths
-	makeChan(c)
 
 	return &testData{
 		Logger: logger,
@@ -83,19 +82,21 @@ func initTestData(c convey.C) *testData {
 	}
 }
 
-func makeChan(c convey.C) {
+// MakeClientChan initialises the client task checking channel.
+func MakeClientChan(c convey.C) {
 	setTestVar()
 	taskstest.ClientCheckChannel = make(chan string, 20)
+	c.Reset(func() {
+		taskstest.ClientShouldBeEnd(c)
+	})
+}
+
+// MakeServerChan initialises the server task checking channel.
+func MakeServerChan(c convey.C) {
+	setTestVar()
 	taskstest.ServerCheckChannel = make(chan string, 20)
 	c.Reset(func() {
-		if taskstest.ClientCheckChannel != nil {
-			close(taskstest.ClientCheckChannel)
-		}
-		if taskstest.ServerCheckChannel != nil {
-			close(taskstest.ServerCheckChannel)
-		}
-		taskstest.ClientCheckChannel = nil
-		taskstest.ServerCheckChannel = nil
+		taskstest.ServerShouldBeEnd(c)
 	})
 }
 

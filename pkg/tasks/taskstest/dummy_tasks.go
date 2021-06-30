@@ -142,6 +142,21 @@ func ClientMsgShouldBe(c convey.C, exp string) {
 	}
 }
 
+// ClientShouldBeEnd asserts that the client transfer should have ended (i.e.
+// the client task channel should be closed).
+func ClientShouldBeEnd(c convey.C) {
+	timer := time.NewTimer(time.Second * 5)
+	defer timer.Stop()
+
+	select {
+	case msg, ok := <-ClientCheckChannel:
+		c.So(msg, convey.ShouldBeBlank)
+		c.So(ok, convey.ShouldBeFalse)
+	case <-timer.C:
+		panic("timeout waiting for client transfer end")
+	}
+}
+
 // ServerMsgShouldBe asserts that the next message on the test server message
 // channel should be the one given.
 func ServerMsgShouldBe(c convey.C, exp string) {
@@ -152,5 +167,20 @@ func ServerMsgShouldBe(c convey.C, exp string) {
 		panic(fmt.Sprintf("timeout waiting for server message '%s'", exp))
 	case msg := <-ServerCheckChannel:
 		c.So(msg, convey.ShouldEqual, exp)
+	}
+}
+
+// ServerShouldBeEnd asserts that the server transfer should have ended (i.e.
+// the server task channel should be closed).
+func ServerShouldBeEnd(c convey.C) {
+	timer := time.NewTimer(time.Second * 5)
+	defer timer.Stop()
+
+	select {
+	case msg, ok := <-ServerCheckChannel:
+		c.So(msg, convey.ShouldBeBlank)
+		c.So(ok, convey.ShouldBeFalse)
+	case <-timer.C:
+		panic("timeout waiting for server transfer end")
 	}
 }

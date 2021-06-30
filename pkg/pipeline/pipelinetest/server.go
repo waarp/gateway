@@ -169,5 +169,5 @@ func (s *ServerContext) ErrTasksShouldBeOK(c convey.C) {
 
 // ShouldBeEndTransfer asserts that the server transfer should have reached its end.
 func (s *ServerContext) ShouldBeEndTransfer(c convey.C) {
-	taskstest.ServerMsgShouldBe(c, "SERVER TRANSFER END")
+	taskstest.ServerShouldBeEnd(c)
 }

@@ -197,6 +197,8 @@ func (s *SelfContext) AddServerPostTaskError(c convey.C) {
 
 // RunTransfer executes the test self-transfer in its entirety.
 func (s *SelfContext) RunTransfer(c convey.C) {
+	MakeClientChan(c)
+	MakeServerChan(c)
 	pip, err := pipeline.NewClientPipeline(s.DB, s.ClientTrans)
 	c.So(err, convey.ShouldBeNil)
 
