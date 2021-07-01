@@ -92,8 +92,7 @@ func (s *SelfContext) ShouldBeServerErrorTasks(c convey.C) {
 // ShouldBeEndTransfer asserts that both the client & server transfers should
 // have finished.
 func (s *SelfContext) ShouldBeEndTransfer(c convey.C) {
-	//taskstest.ServerMsgShouldBe(c, "SERVER TRANSFER END")
-	//taskstest.ClientMsgShouldBe(c, "CLIENT TRANSFER END")
 	taskstest.ServerShouldBeEnd(c)
 	taskstest.ClientShouldBeEnd(c)
+	s.shouldNotBeInLists()
 }

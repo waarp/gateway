@@ -1,12 +1,10 @@
 package r66
 
 import (
-	"fmt"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
@@ -33,7 +31,7 @@ func TestSelfPushOK(t *testing.T) {
 				ctx.ClientPosTasksShouldBeOK(c)
 				ctx.ServerPosTasksShouldBeOK(c)
 
-				ctx.CheckTransfersOK(c)
+				ctx.CheckEndTransferOK(c)
 			})
 		})
 	})
@@ -53,7 +51,7 @@ func TestSelfPullOK(t *testing.T) {
 				ctx.ClientPosTasksShouldBeOK(c)
 				ctx.ServerPosTasksShouldBeOK(c)
 
-				ctx.CheckTransfersOK(c)
+				ctx.CheckEndTransferOK(c)
 			})
 		})
 	})
@@ -71,29 +69,17 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerPreTasksShouldBeOK(c)
 				ctx.ClientPreTasksShouldBeError(c)
+				ctx.CheckEndTransferError(c)
 
-				cTrans := &model.Transfer{
-					Step: types.StepPreTasks,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Pre-tasks failed: Task CLIENTERR @ PUSH PRE[1]: task failed",
-					},
-					Progress:   0,
-					TaskNumber: 1,
-				}
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Pre-tasks failed: Task CLIENTERR @ PUSH PRE[1]: task failed",
+					types.StepPreTasks)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: pre-tasks failed",
+					types.StepPreTasks)
 
-				sTrans := &model.Transfer{
-					Step: types.StepPreTasks,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Error on remote partner: pre-tasks failed",
-					},
-					Filesize:   pipelinetest.TestFileSize,
-					Progress:   0,
-					TaskNumber: 1,
-				}
-
-				ctx.CheckTransfersError(c, cTrans, sTrans)
 				ctx.TestRetry(c,
 					ctx.ServerPosTasksShouldBeOK,
 					ctx.ClientPosTasksShouldBeOK,
@@ -114,30 +100,17 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerPreTasksShouldBeError(c)
+				ctx.CheckEndTransferError(c)
 
-				cTrans := &model.Transfer{
-					Step: types.StepSetup,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Error on remote partner: pre-tasks failed",
-					},
-					Progress:   0,
-					TaskNumber: 0,
-				}
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: pre-tasks failed",
+					types.StepSetup)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Pre-tasks failed: Task SERVERERR @ PUSH PRE[1]: task failed",
+					types.StepPreTasks)
 
-				sTrans := &model.Transfer{
-					RemoteTransferID: fmt.Sprint(ctx.ClientTrans.ID),
-					Step:             types.StepPreTasks,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Pre-tasks failed: Task SERVERERR @ PUSH PRE[1]: task failed",
-					},
-					Filesize:   pipelinetest.TestFileSize,
-					Progress:   0,
-					TaskNumber: 1,
-				}
-
-				ctx.CheckTransfersError(c, cTrans, sTrans)
 				ctx.TestRetry(c,
 					ctx.ClientPreTasksShouldBeOK,
 					ctx.ServerPosTasksShouldBeOK,
@@ -160,29 +133,17 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerPreTasksShouldBeOK(c)
 				ctx.ClientPreTasksShouldBeError(c)
+				ctx.CheckEndTransferError(c)
 
-				cTrans := &model.Transfer{
-					Step: types.StepPreTasks,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Pre-tasks failed: Task CLIENTERR @ PULL PRE[1]: task failed",
-					},
-					Filesize:   pipelinetest.TestFileSize,
-					Progress:   0,
-					TaskNumber: 1,
-				}
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Pre-tasks failed: Task CLIENTERR @ PULL PRE[1]: task failed",
+					types.StepPreTasks)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: pre-tasks failed",
+					types.StepData)
 
-				sTrans := &model.Transfer{
-					Step: types.StepData,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Error on remote partner: pre-tasks failed",
-					},
-					Progress:   pipelinetest.UndefinedProgress,
-					TaskNumber: 0,
-				}
-
-				ctx.CheckTransfersError(c, cTrans, sTrans)
 				ctx.TestRetry(c,
 					ctx.ClientPosTasksShouldBeOK,
 					ctx.ServerPosTasksShouldBeOK,
@@ -203,29 +164,17 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
 				ctx.ServerPreTasksShouldBeError(c)
+				ctx.CheckEndTransferError(c)
 
-				cTrans := &model.Transfer{
-					Step: types.StepSetup,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Error on remote partner: pre-tasks failed",
-					},
-					Filesize:   model.UnknownSize,
-					Progress:   0,
-					TaskNumber: 0,
-				}
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: pre-tasks failed",
+					types.StepSetup)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Pre-tasks failed: Task SERVERERR @ PULL PRE[1]: task failed",
+					types.StepPreTasks)
 
-				sTrans := &model.Transfer{
-					Step: types.StepPreTasks,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Pre-tasks failed: Task SERVERERR @ PULL PRE[1]: task failed",
-					},
-					Progress:   0,
-					TaskNumber: 1,
-				}
-
-				ctx.CheckTransfersError(c, cTrans, sTrans)
 				ctx.TestRetry(c,
 					ctx.ClientPreTasksShouldBeOK,
 					ctx.ClientPosTasksShouldBeOK,
@@ -250,29 +199,17 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 				ctx.ClientPreTasksShouldBeOK(c)
 				ctx.ServerPosTasksShouldBeOK(c)
 				ctx.ClientPosTasksShouldBeError(c)
+				ctx.CheckEndTransferError(c)
 
-				cTrans := &model.Transfer{
-					Step: types.StepPostTasks,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Post-tasks failed: Task CLIENTERR @ PUSH POST[1]: task failed",
-					},
-					Progress:   pipelinetest.ProgressComplete,
-					TaskNumber: 1,
-				}
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Post-tasks failed: Task CLIENTERR @ PUSH POST[1]: task failed",
+					types.StepPostTasks)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: post-tasks failed",
+					types.StepPostTasks)
 
-				sTrans := &model.Transfer{
-					Step: types.StepPostTasks,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Error on remote partner: post-tasks failed",
-					},
-					Filesize:   pipelinetest.TestFileSize,
-					Progress:   pipelinetest.ProgressComplete,
-					TaskNumber: 1,
-				}
-
-				ctx.CheckTransfersError(c, cTrans, sTrans)
 				ctx.TestRetry(c)
 			})
 		})
@@ -292,29 +229,17 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 				ctx.ServerPreTasksShouldBeOK(c)
 				ctx.ClientPreTasksShouldBeOK(c)
 				ctx.ServerPosTasksShouldBeError(c)
+				ctx.CheckEndTransferError(c)
 
-				cTrans := &model.Transfer{
-					Step: types.StepData,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Error on remote partner: post-tasks failed",
-					},
-					Progress:   pipelinetest.ProgressComplete,
-					TaskNumber: 0,
-				}
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: post-tasks failed",
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Post-tasks failed: Task SERVERERR @ PUSH POST[1]: task failed",
+					types.StepPostTasks)
 
-				sTrans := &model.Transfer{
-					Step: types.StepPostTasks,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Post-tasks failed: Task SERVERERR @ PUSH POST[1]: task failed",
-					},
-					Filesize:   pipelinetest.TestFileSize,
-					Progress:   pipelinetest.ProgressComplete,
-					TaskNumber: 1,
-				}
-
-				ctx.CheckTransfersError(c, cTrans, sTrans)
 				ctx.TestRetry(c,
 					ctx.ClientPosTasksShouldBeOK,
 				)
@@ -336,29 +261,17 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 				ctx.ServerPreTasksShouldBeOK(c)
 				ctx.ClientPreTasksShouldBeOK(c)
 				ctx.ClientPosTasksShouldBeError(c)
+				ctx.CheckEndTransferError(c)
 
-				cTrans := &model.Transfer{
-					Step: types.StepPostTasks,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Post-tasks failed: Task CLIENTERR @ PULL POST[1]: task failed",
-					},
-					Filesize:   pipelinetest.TestFileSize,
-					Progress:   pipelinetest.ProgressComplete,
-					TaskNumber: 1,
-				}
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Post-tasks failed: Task CLIENTERR @ PULL POST[1]: task failed",
+					types.StepPostTasks)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: post-tasks failed",
+					types.StepData)
 
-				sTrans := &model.Transfer{
-					Step: types.StepData,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Error on remote partner: post-tasks failed",
-					},
-					Progress:   pipelinetest.ProgressComplete,
-					TaskNumber: 0,
-				}
-
-				ctx.CheckTransfersError(c, cTrans, sTrans)
 				ctx.TestRetry(c,
 					ctx.ServerPosTasksShouldBeOK,
 				)
@@ -381,31 +294,17 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 				ctx.ClientPreTasksShouldBeOK(c)
 				ctx.ClientPosTasksShouldBeOK(c)
 				ctx.ServerPosTasksShouldBeError(c)
+				ctx.CheckEndTransferError(c)
 
-				cTrans := &model.Transfer{
-					Status: types.StatusError,
-					Step:   types.StepPostTasks,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Error on remote partner: post-tasks failed",
-					},
-					Filesize:   pipelinetest.TestFileSize,
-					Progress:   pipelinetest.ProgressComplete,
-					TaskNumber: 1,
-				}
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: post-tasks failed",
+					types.StepPostTasks)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Post-tasks failed: Task SERVERERR @ PULL POST[1]: task failed",
+					types.StepPostTasks)
 
-				sTrans := &model.Transfer{
-					Status: types.StatusError,
-					Step:   types.StepPostTasks,
-					Error: types.TransferError{
-						Code:    types.TeExternalOperation,
-						Details: "Post-tasks failed: Task SERVERERR @ PULL POST[1]: task failed",
-					},
-					Progress:   pipelinetest.ProgressComplete,
-					TaskNumber: 1,
-				}
-
-				ctx.CheckTransfersError(c, cTrans, sTrans)
 				ctx.TestRetry(c)
 			})
 		})

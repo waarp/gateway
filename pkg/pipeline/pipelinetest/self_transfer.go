@@ -223,7 +223,7 @@ func (s *SelfContext) TestRetry(c convey.C, checkRemainingTasks ...func(c convey
 				f(c)
 			}
 
-			s.CheckTransfersOK(c)
+			s.CheckEndTransferOK(c)
 		})
 	})
 }
@@ -305,11 +305,10 @@ func (s *SelfContext) CheckServerTransferOK(c convey.C) {
 	s.checkServerTransferOK(c, &actual)
 }
 
-// CheckTransfersOK checks whether both the server & client test transfers
+// CheckEndTransferOK checks whether both the server & client test transfers
 // finished correctly.
-func (s *SelfContext) CheckTransfersOK(c convey.C) {
+func (s *SelfContext) CheckEndTransferOK(c convey.C) {
 	s.ShouldBeEndTransfer(c)
-	s.shouldNotBeInLists()
 
 	c.Convey("Then the transfers should be over", func(c convey.C) {
 		var results model.HistoryEntries
@@ -334,106 +333,98 @@ func (s *SelfContext) CheckDestFile(c convey.C) {
 		}
 		content, err := ioutil.ReadFile(path)
 		c.So(err, convey.ShouldBeNil)
-		c.So(len(content), convey.ShouldEqual, ProgressComplete)
+		c.So(len(content), convey.ShouldEqual, TestFileSize)
 		c.So(content[:9], convey.ShouldResemble, s.fileContent[:9])
 		c.So(content, convey.ShouldResemble, s.fileContent)
 	})
 }
 
-func (s *SelfContext) checkClientTransferError(c convey.C, expected, actual *model.Transfer) {
-	c.Convey("Then there should be a client-side transfer in error", func(c convey.C) {
-		expected.ID = s.ClientTrans.ID
-		expected.Owner = s.DB.Conf.GatewayName
-		expected.IsServer = false
-		expected.Status = types.StatusError
-		expected.RuleID = actual.RuleID
-		expected.LocalPath = actual.LocalPath
-		expected.RemotePath = actual.RemotePath
-		expected.AccountID = s.RemAccount.ID
-		expected.AgentID = s.Partner.ID
-		expected.Start = actual.Start
-		if s.ClientRule.IsSend {
-			expected.Filesize = TestFileSize
-		} else if expected.Filesize == 0 {
-			expected.Filesize = model.UnknownSize
-		}
-		if expected.Progress == UndefinedProgress {
-			convey.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, ProgressComplete)
-			expected.Progress = actual.Progress
-		}
-
-		c.So(*actual, convey.ShouldResemble, *expected)
-	})
-}
-
+//nolint:dupl
 // CheckClientTransferError takes asserts that the client transfer should have
 // failed like the given expected one. The expected entry must specify the step,
 // filesize (for the receiver), progress, task. The rest of the transfer entry's
 // attribute will be deduced automatically.
-func (s *SelfContext) CheckClientTransferError(c convey.C, expected *model.Transfer) {
+func (s *SelfContext) CheckClientTransferError(c convey.C, errCode types.TransferErrorCode,
+	errMsg string, steps ...types.TransferStep) {
+
 	var actual model.Transfer
 	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID).Run(), convey.ShouldBeNil)
-	s.checkClientTransferError(c, expected, &actual)
-}
 
-func (s *SelfContext) checkServerTransferError(c convey.C, expected, actual *model.Transfer) {
-	c.Convey("Then there should be a server-side transfer in error", func(c convey.C) {
-		expected.ID = s.ClientTrans.ID + 1
-		expected.Owner = s.DB.Conf.GatewayName
-		expected.IsServer = true
-		expected.Status = types.StatusError
-		expected.RuleID = actual.RuleID
-		expected.LocalPath = actual.LocalPath
-		expected.RemotePath = actual.RemotePath
-		expected.AccountID = s.LocAccount.ID
-		expected.AgentID = s.Server.ID
-		expected.Start = actual.Start
-		if s.protoFeatures.transID {
-			expected.RemoteTransferID = fmt.Sprint(s.ClientTrans.ID)
-		}
-		if s.ServerRule.IsSend {
-			expected.Filesize = TestFileSize
-		} else if expected.Filesize == 0 {
-			expected.Filesize = model.UnknownSize
-		}
-		if expected.Progress == UndefinedProgress {
-			convey.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, ProgressComplete)
-			expected.Progress = actual.Progress
-		}
+	var stepsStr []string
+	for _, s := range steps {
+		stepsStr = append(stepsStr, s.String())
+	}
 
-		c.So(*actual, convey.ShouldResemble, *expected)
+	c.Convey("Then there should be a client-side transfer in error", func(c convey.C) {
+		c.So(actual.ID, convey.ShouldEqual, 1)
+		c.So(actual.Owner, convey.ShouldEqual, s.DB.Conf.GatewayName)
+		c.So(actual.IsServer, convey.ShouldBeFalse)
+		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
+		c.So(actual.RuleID, convey.ShouldEqual, s.ClientRule.ID)
+		c.So(actual.AccountID, convey.ShouldEqual, s.RemAccount.ID)
+		c.So(actual.AgentID, convey.ShouldEqual, s.Partner.ID)
+		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
+
+		err := types.TransferError{Code: errCode, Details: errMsg}
+		c.So(actual.Error, convey.ShouldResemble, err)
+		c.So(actual.Filesize, testhelpers.ShouldBeOneOf, model.UnknownSize, TestFileSize)
+		c.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
+		c.So(actual.Step.String(), testhelpers.ShouldBeOneOf, stepsStr)
+
+		if actual.Step == types.StepPreTasks || actual.Step == types.StepPostTasks {
+			c.So(actual.TaskNumber, convey.ShouldEqual, 1)
+		} else {
+			c.So(actual.TaskNumber, convey.ShouldEqual, 0)
+		}
 	})
 }
 
+//nolint:dupl
 // CheckServerTransferError takes asserts that the server transfer should have
 // failed like the given expected one. The expected entry must specify the step,
 // filesize (for the receiver), progress, task. The rest of the transfer entry's
 // attribute will be deduced automatically.
-func (s *SelfContext) CheckServerTransferError(c convey.C, expected *model.Transfer) {
+func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.TransferErrorCode,
+	errMsg string, steps ...types.TransferStep) {
+
 	var actual model.Transfer
 	c.So(s.DB.Get(&actual, "id=?", s.ClientTrans.ID+1).Run(), convey.ShouldBeNil)
-	s.checkServerTransferError(c, expected, &actual)
+
+	var stepsStr []string
+	for _, s := range steps {
+		stepsStr = append(stepsStr, s.String())
+	}
+
+	c.Convey("Then there should be a server-side transfer in error", func(c convey.C) {
+		c.So(actual.ID, convey.ShouldEqual, 2)
+		c.So(actual.Owner, convey.ShouldEqual, s.DB.Conf.GatewayName)
+		c.So(actual.IsServer, convey.ShouldBeTrue)
+		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
+		c.So(actual.RuleID, convey.ShouldEqual, s.ServerRule.ID)
+		c.So(actual.AccountID, convey.ShouldEqual, s.LocAccount.ID)
+		c.So(actual.AgentID, convey.ShouldEqual, s.Server.ID)
+		c.So(actual.Status, convey.ShouldEqual, types.StatusError)
+
+		err := types.TransferError{Code: errCode, Details: errMsg}
+		c.So(actual.Error, convey.ShouldResemble, err)
+		c.So(actual.Filesize, testhelpers.ShouldBeOneOf, model.UnknownSize, TestFileSize)
+		c.So(actual.Progress, convey.ShouldBeBetweenOrEqual, 0, TestFileSize)
+		c.So(actual.Step.String(), testhelpers.ShouldBeOneOf, stepsStr)
+
+		if actual.Step == types.StepPreTasks || actual.Step == types.StepPostTasks {
+			c.So(actual.TaskNumber, convey.ShouldEqual, 1)
+		} else {
+			c.So(actual.TaskNumber, convey.ShouldEqual, 0)
+		}
+	})
 }
 
-// CheckTransfersError takes 2 transfer entries (one for the client and one for
-// the server) and checks that they have failed as expected. The given transfers
-// arguments must specify the step, filesize (for the receiver), progress, task
-// number & error details expected. The rest of the transfer entry's attribute
-// will be deduced automatically.
-func (s *SelfContext) CheckTransfersError(c convey.C, cTrans, sTrans *model.Transfer) {
+// CheckEndTransferError asserts that the transfer (on both sides) should have
+// ended in error.
+func (s *SelfContext) CheckEndTransferError(c convey.C) {
 	s.ShouldBeClientErrorTasks(c)
 	s.ShouldBeServerErrorTasks(c)
 	s.ShouldBeEndTransfer(c)
-	s.shouldNotBeInLists()
-
-	c.Convey("Then the transfers should be in error", func(c convey.C) {
-		var transfers model.Transfers
-		c.So(s.DB.Select(&transfers).OrderBy("id", true).Run(), convey.ShouldBeNil)
-		c.So(len(transfers), convey.ShouldEqual, 2)
-
-		s.checkClientTransferError(c, cTrans, &transfers[0])
-		s.checkServerTransferError(c, sTrans, &transfers[1])
-	})
 }
 
 func (s *SelfContext) shouldNotBeInLists() {

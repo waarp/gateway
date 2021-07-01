@@ -19,9 +19,13 @@ func GetServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfe
 ) (*model.Transfer, *types.TransferError) {
 
 	if trans.RemoteTransferID != "" {
-		err := db.Get(trans, "status<>? AND is_server=? AND remote_transfer_id=? AND account_id=?",
-			types.StatusRunning, true, trans.RemoteTransferID, trans.AccountID).Run()
+		err := db.Get(trans, "is_server=? AND remote_transfer_id=? AND account_id=?",
+			true, trans.RemoteTransferID, trans.AccountID).Run()
 		if err == nil {
+			if trans.Status == types.StatusRunning {
+				return nil, types.NewTransferError(types.TeForbidden, "cannot "+
+					"resume a currently running transfer")
+			}
 			return trans, nil
 		}
 		if !database.IsNotFound(err) {

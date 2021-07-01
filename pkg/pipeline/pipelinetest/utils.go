@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"io/ioutil"
-	"math"
 	"os"
 	"path/filepath"
 
@@ -20,24 +19,15 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 )
 
-// TestFileSize defines the size of the file used for transfer tests.
-const TestFileSize int64 = 1000000 // 1MB
-
-// ProgressComplete defines the value a transfer's progress should have at the
-// end of the transfert.
-const ProgressComplete = uint64(TestFileSize)
-
-// UndefinedProgress is the value used to specify that the transfer's progress
-// is undefined at the end of the test (meaning it can have any value between
-// 0 and ProgressComplete).
-const UndefinedProgress uint64 = math.MaxUint64
-
 // TestLogin and TestPassword are the credentials used for authentication
 // during transfer tests.
 const (
 	TestLogin    = "toto"
 	TestPassword = "sesame"
 )
+
+// TestFileSize defines the size of the file used for transfer tests.
+const TestFileSize int64 = 1000000 // 1MB
 
 type testData struct {
 	Logger *log.Logger
@@ -60,7 +50,7 @@ func hash(pwd string) []byte {
 // fills it with random data, and then returns said data.
 func AddSourceFile(c convey.C, dir, file string) []byte {
 	c.So(os.MkdirAll(dir, 0700), convey.ShouldBeNil)
-	cont := make([]byte, ProgressComplete)
+	cont := make([]byte, TestFileSize)
 	_, err := rand.Read(cont)
 	c.So(err, convey.ShouldBeNil)
 	path := filepath.Join(dir, file)
