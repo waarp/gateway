@@ -11,14 +11,12 @@ type Signature [32]byte
 // for non-struct types (Value() and Scan()), thus must be mapped to XORM own
 // conversion interface.
 func (s *Signature) FromDB(bytes []byte) error {
-	fmt.Println("#### FROM DB")
 	return s.Scan(bytes)
 }
 
 // Scan implements database/sql.Scanner. It takes a binary blob and returns
 // the matching Signature.
 func (s *Signature) Scan(src interface{}) error {
-	fmt.Println("#### SCAN")
 	switch v := src.(type) {
 	case []byte:
 		copy(s[:], v)
