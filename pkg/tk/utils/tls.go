@@ -48,7 +48,10 @@ func CheckCertChain(certChain []*x509.Certificate, hostname string) error {
 	if hostname == "" {
 		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
 	}
-	roots := x509.NewCertPool()
+	roots, _ := x509.SystemCertPool()
+	if roots == nil {
+		roots = x509.NewCertPool()
+	}
 
 	for i := 1; i < len(certChain)-1; i++ {
 		if certChain[i].Issuer.CommonName == certChain[i].Subject.CommonName {
