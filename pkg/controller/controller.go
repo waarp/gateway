@@ -70,6 +70,35 @@ func (c *Controller) listen() {
 	}()
 }
 
+func (c *Controller) retrieveTransfers() (model.Transfers, error) {
+	var transfers model.Transfers
+	if tErr := c.DB.Transaction(func(ses *database.Session) database.Error {
+		query := ses.SelectForUpdate(&transfers).Where("owner=? AND status=? AND "+
+			"is_server=? AND start<?", database.Owner, types.StatusPlanned, false,
+			time.Now().UTC().Truncate(time.Microsecond).Format(time.RFC3339Nano))
+		lim := pipeline.TransferOutCount.GetLimit()
+		if lim > 0 {
+			query.Limit(int(lim-pipeline.TransferOutCount.Get()), 0)
+		}
+
+		if err := query.Run(); err != nil {
+			c.logger.Errorf("Failed to access database: %s", err.Error())
+			return err
+		}
+
+		for i := range transfers {
+			transfers[i].Status = types.StatusRunning
+			if err := ses.Update(&transfers[i]).Cols("status").Run(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); tErr != nil {
+		return nil, tErr
+	}
+	return transfers, nil
+}
+
 // startNewTransfers checks the database for new planned transfers and starts
 // them, as long as there are available transfer slots.
 func (c *Controller) startNewTransfers() {
@@ -78,17 +107,8 @@ func (c *Controller) startNewTransfers() {
 		return
 	}
 
-	var plannedTrans model.Transfers
-	query := c.DB.Select(&plannedTrans).Where("owner=? AND status=? AND "+
-		"is_server=? AND start<?", database.Owner, types.StatusPlanned, false,
-		time.Now().UTC().Truncate(time.Microsecond).Format(time.RFC3339Nano))
-	lim := pipeline.TransferOutCount.GetLimit()
-	if lim > 0 {
-		query.Limit(int(lim-pipeline.TransferOutCount.Get()), 0)
-	}
-
-	if err := query.Run(); err != nil {
-		c.logger.Errorf("Failed to access database: %s", err.Error())
+	plannedTrans, err := c.retrieveTransfers()
+	if err != nil {
 		return
 	}
 
