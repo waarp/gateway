@@ -1,8 +1,8 @@
 package database
 
 import (
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"xorm.io/xorm"
 )
 
@@ -10,14 +10,14 @@ import (
 type Standalone struct {
 	engine *xorm.Engine
 	logger *log.Logger
-	state  *service.State
+	conf   *conf.DatabaseConfig
 }
 
 func (s *Standalone) newSession() *Session {
 	return &Session{
 		session: s.engine.NewSession(),
 		logger:  s.logger,
-		state:   s.state,
+		conf:    s.conf,
 	}
 }
 
@@ -25,13 +25,34 @@ func (s *Standalone) newSession() *Session {
 // The transaction will be then be roll-backed or committed, depending whether
 // the function returned an error or not.
 func (s *Standalone) Transaction(f func(*Session) Error) Error {
+	return s.transaction(false, f)
+}
+
+// WriteTransaction executes all the commands in the given function as a transaction.
+// The difference between this function and Transaction is that, on an SQLite
+// database, this function will open an EXCLUSIVE transaction instead of a normal
+// one, preventing other connections from opening new transactions while this one
+// is active.
+//
+// Generally, if your transaction function calls Session.SelectForUpdate, you
+// should execute the transaction using this method instead of Transaction.
+func (s *Standalone) WriteTransaction(f func(*Session) Error) Error {
+	return s.transaction(true, f)
+}
+
+func (s *Standalone) transaction(isWrite bool, f func(*Session) Error) Error {
 	ses := s.newSession()
 
 	if err := ses.session.Begin(); err != nil {
 		s.logger.Errorf("Failed to start transaction: %s", err)
 		return NewInternalError(err)
 	}
-	defer ses.session.Close()
+	if isWrite && s.conf.Type == sqlite {
+		if _, err := ses.session.Exec("ROLLBACK; BEGIN IMMEDIATE"); err != nil {
+			return &InternalError{msg: "failed to start transaction", cause: err}
+		}
+	}
+	defer func() { _ = ses.session.Close() }()
 
 	s.logger.Debug("[SQL] Beginning transaction")
 	if err := f(ses); err != nil {
@@ -45,6 +66,10 @@ func (s *Standalone) Transaction(f func(*Session) Error) Error {
 	}
 	s.logger.Debug("[SQL] Transaction succeeded, changes have been committed")
 	return nil
+}
+
+func (s *Standalone) getType() string {
+	return s.conf.Type
 }
 
 func (s *Standalone) getUnderlying() xorm.Interface {

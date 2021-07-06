@@ -25,6 +25,7 @@ type SelectQuery struct {
 	distinct []string
 	order    string
 	asc      bool
+	forUpd   bool
 }
 
 // Where adds a 'WHERE' clause to the 'SELECT' query with the given conditions
@@ -99,6 +100,9 @@ func (s *SelectQuery) Run() Error {
 
 	if len(s.distinct) > 0 {
 		query.Distinct(s.distinct...)
+	}
+	if s.forUpd {
+		query.ForUpdate()
 	}
 
 	err := query.Find(s.bean)

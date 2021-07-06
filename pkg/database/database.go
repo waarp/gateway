@@ -118,7 +118,6 @@ func (db *DB) Start() error {
 		return nil
 	}
 	db.state.Set(service.Starting, "")
-
 	Owner = db.Conf.GatewayName
 
 	if err := db.loadAESKey(); err != nil {
@@ -157,6 +156,7 @@ func (db *DB) Start() error {
 	db.Standalone = &Standalone{
 		engine: engine,
 		logger: db.logger,
+		conf:   &db.Conf.Database,
 	}
 
 	if err := initTables(db.Standalone); err != nil {
