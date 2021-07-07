@@ -63,10 +63,6 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
-
-							Convey("Then it should have computed the certificate's Signature", func() {
-								So(newCert.Signature, ShouldResemble, testhelpers.LocalhostCertSign)
-							})
 						})
 					})
 				})

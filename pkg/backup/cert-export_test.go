@@ -72,8 +72,8 @@ func TestExportCertificates(t *testing.T) {
 			Convey("Given the database contains 1 local account with 2 certificates", func() {
 				account := &model.LocalAccount{
 					LocalAgentID: agent.ID,
-					Login:        "test",
-					PasswordHash: hash("pwd"),
+					Login:        "foo",
+					PasswordHash: hash("bar"),
 				}
 				So(db.Insert(account).Run(), ShouldBeNil)
 

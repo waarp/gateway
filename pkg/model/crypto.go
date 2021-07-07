@@ -43,10 +43,6 @@ type Crypto struct {
 
 	// An SSH public key in authorized_keys format.
 	SSHPublicKey string `xorm:"text 'ssh_public_key'"`
-
-	// A base64 representation of the sha256 checksum of the raw certificate
-	// (if one is provided), used for indexation & search purposes.
-	Signature string `xorm:"varchar(44) unique 'signature'"`
 }
 
 // TableName returns the name of the certificates table.
@@ -112,40 +108,64 @@ func (c *Crypto) BeforeWrite(db database.ReadAccess) database.Error {
 		return err
 	}
 
-	return c.checkContent(parent)
+	return c.checkContent(db, parent)
 }
 
-func (c *Crypto) checkContent(parent database.GetBean) database.Error {
+func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) database.Error {
 	newErr := database.NewValidationError
 
-	var addr string
-	if c.OwnerType == TableLocAgents || c.OwnerType == TableRemAccounts {
-		if t, ok := parent.(*LocalAgent); ok {
-			addr = t.Address
-		}
+	var addr, login, proto string
+	switch t := parent.(type) {
+	case *LocalAgent:
+		addr = t.Address
+		proto = t.Protocol
 		if c.PrivateKey == "" {
 			return newErr("the %s is missing a private key", parent.Appellation())
 		}
 		if c.SSHPublicKey != "" {
 			return newErr("a %s does not need an SSH public key", parent.Appellation())
 		}
-	} else {
-		if t, ok := parent.(*RemoteAgent); ok {
-			addr = t.Address
-		}
+	case *LocalAccount:
+		login = t.Login
 		if c.Certificate == "" && c.SSHPublicKey == "" {
-			return newErr("the %s is missing a TLS certificate or an SSH public key",
-				parent.Appellation())
+			return newErr("the %s is missing a TLS certificate or an SSH public key", parent.Appellation())
 		}
 		if c.PrivateKey != "" {
 			return newErr("a %s does not need a private key", parent.Appellation())
 		}
+		var parentParent LocalAgent
+		if err := db.Get(&parentParent, "id=?", t.LocalAgentID).Run(); err != nil {
+			return err
+		}
+		proto = parentParent.Protocol
+	case *RemoteAgent:
+		addr = t.Address
+		proto = t.Protocol
+		if c.Certificate == "" && c.SSHPublicKey == "" {
+			return newErr("the %s is missing a TLS certificate or an SSH public key", parent.Appellation())
+		}
+		if c.PrivateKey != "" {
+			return newErr("a %s does not need a private key", parent.Appellation())
+		}
+	case *RemoteAccount:
+		login = t.Login
+		if c.PrivateKey == "" {
+			return newErr("the %s is missing a private key", parent.Appellation())
+		}
+		if c.SSHPublicKey != "" {
+			return newErr("a %s does not need an SSH public key", parent.Appellation())
+		}
+		var parentParent RemoteAgent
+		if err := db.Get(&parentParent, "id=?", t.RemoteAgentID).Run(); err != nil {
+			return err
+		}
+		proto = parentParent.Protocol
 	}
 
-	return c.validateContent(addr)
+	return c.validateContent(addr, login, proto)
 }
 
-func (c *Crypto) validateContent(addr string) database.Error {
+func (c *Crypto) validateContent(addr, login, proto string) database.Error {
 	newErr := database.NewValidationError
 
 	if c.Certificate != "" {
@@ -156,7 +176,12 @@ func (c *Crypto) validateContent(addr string) database.Error {
 		if err := utils.CheckCertChain(certChain, addr); err != nil {
 			return newErr("certificate validation failed: %s", err)
 		}
-		c.Signature = utils.MakeSignature(certChain[0])
+		if login != "" && proto != "r66" {
+			if certChain[0].Subject.CommonName != login {
+				return newErr("the certificate subject common name '%s' does not match the account login '%s'",
+					certChain[0].Subject.CommonName, login)
+			}
+		}
 	}
 
 	if c.PrivateKey != "" {

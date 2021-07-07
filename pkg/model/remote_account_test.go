@@ -37,7 +37,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: "password"}
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo", Password: "bar"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			cert := Crypto{
