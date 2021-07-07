@@ -14,8 +14,8 @@ func init() {
 	database.Tables = append(database.Tables, &Crypto{})
 }
 
-var validOwnerTypes = []string{"local_agents", "remote_agents", "local_accounts",
-	"remote_accounts"}
+var validOwnerTypes = []string{TableLocAgents, TableRemAgents, TableLocAccounts,
+	TableRemAccounts}
 
 // Crypto represents credentials used to establish secure (encrypted) transfer
 // channels. This includes both TLS and SSH tunnels. These credentials can be
@@ -51,12 +51,12 @@ type Crypto struct {
 
 // TableName returns the name of the certificates table.
 func (*Crypto) TableName() string {
-	return "crypto_credentials"
+	return TableCrypto
 }
 
 // Appellation returns the name of 1 element of the certificates table.
 func (*Crypto) Appellation() string {
-	return "certificate"
+	return "crypto credentials"
 }
 
 // GetID returns the certificate's ID.
@@ -94,13 +94,13 @@ func (c *Crypto) BeforeWrite(db database.ReadAccess) database.Error {
 
 	var parent database.GetBean
 	switch c.OwnerType {
-	case "local_agents":
+	case TableLocAgents:
 		parent = &LocalAgent{}
-	case "remote_agents":
+	case TableRemAgents:
 		parent = &RemoteAgent{}
-	case "local_accounts":
+	case TableLocAccounts:
 		parent = &LocalAccount{}
-	case "remote_accounts":
+	case TableRemAccounts:
 		parent = &RemoteAccount{}
 	default:
 		return newErr("the credentials' owner type must be one of %s", validOwnerTypes)
@@ -119,7 +119,7 @@ func (c *Crypto) checkContent(parent database.GetBean) database.Error {
 	newErr := database.NewValidationError
 
 	var addr string
-	if c.OwnerType == "local_agents" || c.OwnerType == "remote_accounts" {
+	if c.OwnerType == TableLocAgents || c.OwnerType == TableRemAccounts {
 		if t, ok := parent.(*LocalAgent); ok {
 			addr = t.Address
 		}

@@ -64,13 +64,13 @@ func exportRuleAccesses(db database.ReadAccess, ruleID uint64) ([]string, error)
 
 	for i, src := range dbAccs {
 		switch src.ObjectType {
-		case "remote_agents":
+		case model.TableRemAgents:
 			var agent model.RemoteAgent
 			if err := db.Get(&agent, "id=?", src.ObjectID).Run(); err != nil {
 				return nil, err
 			}
 			res[i] = fmt.Sprintf("remote::%s", agent.Name)
-		case "remote_accounts":
+		case model.TableRemAccounts:
 			var account model.RemoteAccount
 			if err := db.Get(&account, "id=?", src.ObjectID).Run(); err != nil {
 				return nil, err
@@ -80,13 +80,13 @@ func exportRuleAccesses(db database.ReadAccess, ruleID uint64) ([]string, error)
 				return nil, err
 			}
 			res[i] = fmt.Sprintf("remote::%s::%s", agent.Name, account.Login)
-		case "local_agents":
+		case model.TableLocAgents:
 			var agent model.LocalAgent
 			if err := db.Get(&agent, "id=?", src.ObjectID).Run(); err != nil {
 				return nil, err
 			}
 			res[i] = fmt.Sprintf("local::%s", agent.Name)
-		case "local_accounts":
+		case model.TableLocAccounts:
 			var account model.LocalAccount
 			if err := db.Get(&account, "id=?", src.ObjectID).Run(); err != nil {
 				return nil, err

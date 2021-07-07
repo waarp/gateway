@@ -35,7 +35,7 @@ func TestExportRemoteAgents(t *testing.T) {
 
 			cert := &model.Crypto{
 				Name:        "test_cert",
-				OwnerType:   "remote_agents",
+				OwnerType:   model.TableRemAgents,
 				OwnerID:     agent1.ID,
 				Certificate: testhelpers.LocalhostCert,
 			}
@@ -157,7 +157,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 
 			cert := &model.Crypto{
 				Name:        "test_cert",
-				OwnerType:   "remote_accounts",
+				OwnerType:   model.TableRemAccounts,
 				OwnerID:     account2.ID,
 				Certificate: testhelpers.ClientCert,
 				PrivateKey:  testhelpers.ClientKey,

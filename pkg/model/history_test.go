@@ -20,7 +20,7 @@ func TestHistoryTableName(t *testing.T) {
 			name := hist.TableName()
 
 			Convey("Then it should return the name of the history table", func() {
-				So(name, ShouldEqual, "transfer_history")
+				So(name, ShouldEqual, TableHistory)
 			})
 		})
 	})

@@ -19,7 +19,7 @@ func TestTransferTableName(t *testing.T) {
 			name := trans.TableName()
 
 			Convey("Then it should return the name of the transfers table", func() {
-				So(name, ShouldEqual, "transfers")
+				So(name, ShouldEqual, TableTransfers)
 			})
 		})
 	})

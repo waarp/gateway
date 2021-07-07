@@ -18,7 +18,7 @@ func TestCryptoTableName(t *testing.T) {
 			name := agent.TableName()
 
 			Convey("Then it should return the name of the certificates table", func() {
-				So(name, ShouldEqual, "crypto_credentials")
+				So(name, ShouldEqual, TableCrypto)
 			})
 		})
 	})
@@ -40,7 +40,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 			Convey("Given new credentials", func() {
 				newCert := &Crypto{
-					OwnerType:   "local_agents",
+					OwnerType:   TableLocAgents,
 					OwnerID:     parentAgent.ID,
 					Name:        "cert",
 					PrivateKey:  testhelpers.LocalhostKey,
@@ -109,7 +109,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 				Convey("Given that the new credentials' name is already taken", func() {
 					otherCert := &Crypto{
-						OwnerType:   "local_agents",
+						OwnerType:   TableLocAgents,
 						OwnerID:     parentAgent.ID,
 						Name:        "other",
 						PrivateKey:  testhelpers.LocalhostKey,
@@ -134,7 +134,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 					So(db.Insert(otherAgent).Run(), ShouldBeNil)
 
 					otherCert := &Crypto{
-						OwnerType:   "local_agents",
+						OwnerType:   TableLocAgents,
 						OwnerID:     parentAgent.ID,
 						Name:        "other",
 						PrivateKey:  testhelpers.LocalhostKey,

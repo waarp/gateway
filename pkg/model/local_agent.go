@@ -51,7 +51,7 @@ type LocalAgent struct {
 
 // TableName returns the local agents table name.
 func (*LocalAgent) TableName() string {
-	return "local_agents"
+	return TableLocAgents
 }
 
 // Appellation returns the name of 1 element of the local agents table.
@@ -144,19 +144,17 @@ func (l *LocalAgent) BeforeDelete(db database.Access) database.Error {
 	}
 
 	certQuery := db.DeleteAll(&Crypto{}).Where(
-		"(owner_type='local_agents' AND owner_id=?) OR "+
-			"(owner_type='local_accounts' AND owner_id IN "+
-			"(SELECT id FROM local_accounts WHERE local_agent_id=?))",
-		l.ID, l.ID)
+		"(owner_type=? AND owner_id=?) OR (owner_type=? AND owner_id IN "+
+			"(SELECT id FROM "+TableLocAccounts+" WHERE local_agent_id=?))",
+		TableLocAgents, l.ID, TableLocAccounts, l.ID)
 	if err := certQuery.Run(); err != nil {
 		return err
 	}
 
 	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
-		"(object_type='local_agents' AND object_id=?) OR "+
-			"(object_type='local_accounts' AND object_id IN "+
-			"(SELECT id FROM local_accounts WHERE local_agent_id=?))",
-		l.ID, l.ID)
+		"(object_type=? AND object_id=?) OR (object_type=? AND object_id IN "+
+			"(SELECT id FROM "+TableLocAccounts+" WHERE local_agent_id=?))",
+		TableLocAgents, l.ID, TableLocAccounts, l.ID)
 	if err := accessQuery.Run(); err != nil {
 		return err
 	}

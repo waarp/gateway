@@ -27,7 +27,7 @@ type LocalAccount struct {
 
 // TableName returns the local accounts table name.
 func (*LocalAccount) TableName() string {
-	return "local_accounts"
+	return TableLocAccounts
 }
 
 // Appellation returns the name of 1 element of the local accounts table.
@@ -96,14 +96,14 @@ func (l *LocalAccount) BeforeDelete(db database.Access) database.Error {
 			"the transfers or wait for them to finish")
 	}
 
-	certQuery := db.DeleteAll(&Crypto{}).Where("owner_type='local_accounts' AND owner_id=?",
-		l.ID)
+	certQuery := db.DeleteAll(&Crypto{}).Where("owner_type=? AND owner_id=?",
+		TableLocAccounts, l.ID)
 	if err := certQuery.Run(); err != nil {
 		return err
 	}
 
 	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
-		"object_type='local_accounts' AND object_id=?", l.ID)
+		"object_type=? AND object_id=?", TableLocAccounts, l.ID)
 	if err := accessQuery.Run(); err != nil {
 		return err
 	}

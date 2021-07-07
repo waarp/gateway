@@ -47,7 +47,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 			return err
 		}
 
-		if err := importCerts(logger, db, src.Certs, "local_agents",
+		if err := importCerts(logger, db, src.Certs, model.TableLocAgents,
 			agent.ID); err != nil {
 			return err
 		}
@@ -100,7 +100,7 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 			return err
 		}
 
-		if err := importCerts(logger, db, src.Certs, "local_accounts",
+		if err := importCerts(logger, db, src.Certs, model.TableLocAccounts,
 			account.ID); err != nil {
 			return err
 		}

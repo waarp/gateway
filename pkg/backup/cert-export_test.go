@@ -26,7 +26,7 @@ func TestExportCertificates(t *testing.T) {
 
 			cert := &model.Crypto{
 				Name:        "test_cert",
-				OwnerType:   "local_agents",
+				OwnerType:   model.TableLocAgents,
 				OwnerID:     agent.ID,
 				Certificate: testhelpers.LocalhostCert,
 				PrivateKey:  testhelpers.LocalhostKey,
@@ -36,7 +36,7 @@ func TestExportCertificates(t *testing.T) {
 			Convey("Given an new Transaction", func() {
 
 				Convey("When calling exportCertificates with the correct argument", func() {
-					res, err := exportCertificates(discard, db, "local_agents", agent.ID)
+					res, err := exportCertificates(discard, db, model.TableLocAgents, agent.ID)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -57,7 +57,7 @@ func TestExportCertificates(t *testing.T) {
 				})
 
 				Convey("When calling exportCertificates with incorrect argument", func() {
-					res, err := exportCertificates(discard, db, "local_agents", agent.ID+1)
+					res, err := exportCertificates(discard, db, model.TableLocAgents, agent.ID+1)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -79,7 +79,7 @@ func TestExportCertificates(t *testing.T) {
 
 				cert1 := &model.Crypto{
 					Name:        "cert1",
-					OwnerType:   "local_accounts",
+					OwnerType:   model.TableLocAccounts,
 					OwnerID:     account.ID,
 					Certificate: testhelpers.ClientCert,
 				}
@@ -87,14 +87,14 @@ func TestExportCertificates(t *testing.T) {
 
 				cert2 := &model.Crypto{
 					Name:        "cert2",
-					OwnerType:   "local_accounts",
+					OwnerType:   model.TableLocAccounts,
 					OwnerID:     account.ID,
 					Certificate: testhelpers.ClientCert,
 				}
 				So(db.Insert(cert2).Run(), ShouldBeNil)
 
 				Convey("When calling exportCertificates with the correct argument", func() {
-					res, err := exportCertificates(discard, db, "local_accounts", account.ID)
+					res, err := exportCertificates(discard, db, model.TableLocAccounts, account.ID)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)

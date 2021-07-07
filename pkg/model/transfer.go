@@ -38,7 +38,7 @@ type Transfer struct {
 
 // TableName returns the name of the transfers table.
 func (*Transfer) TableName() string {
-	return "transfers"
+	return TableTransfers
 }
 
 // Appellation returns the name of 1 element of the transfers table.
