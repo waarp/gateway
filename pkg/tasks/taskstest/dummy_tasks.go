@@ -5,182 +5,147 @@ package taskstest
 import (
 	"context"
 	"fmt"
-	"strconv"
+	"sync/atomic"
 	"time"
 
-	"github.com/smartystreets/goconvey/convey"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
 const (
-	// ClientOK is a a dummy task type which can be used during client transfer
-	// tests. The task always succeeds.
-	ClientOK = "CLIENTOK"
+	// TaskOK is a a dummy task type which can be used during transfer tests.
+	// The task always succeeds.
+	TaskOK = "TASKOK"
 
-	// ClientErr is a a dummy task type which can be used during client transfer
-	// tests to check error handling. The task always fails.
-	ClientErr = "CLIENTERR"
-
-	// ServerOK is a a dummy task type which can be used during server transfer
-	// tests. The task always succeeds.
-	ServerOK = "SERVEROK"
-
-	// ServerErr is a a dummy task type which can be used during server transfer
-	// tests to check error handling. The task always fails.
-	ServerErr = "SERVERERR"
+	// TaskErr is a a dummy task type which can be used during transfer tests.
+	// The task always fails.
+	TaskErr = "TASKERR"
 )
 
-var (
-	// ClientCheckChannel is the channel used for checking the execution of the
-	// client's dummy tasks during a transfer test.
-	ClientCheckChannel chan string
-
-	// ServerCheckChannel is the channel used for checking the execution of the
-	// server's dummy tasks during a transfer test.
-	ServerCheckChannel chan string
-)
-
-func init() {
-	model.ValidTasks[ClientOK] = &testClientTask{}
-	model.ValidTasks[ClientErr] = &testClientTaskError{}
-	model.ValidTasks[ServerOK] = &testServerTask{}
-	model.ValidTasks[ServerErr] = &testServerTaskError{}
+// TaskChecker is a struct used in tests to check if a transfer's tasks have been
+// executed properly.
+type TaskChecker struct {
+	Cond chan bool
+	cPre, sPre,
+	cPost, sPost,
+	cErr, sErr uint32
+	cDone, sDone chan struct{}
 }
 
-// ##### CLIENT #####
-
-type testClientTask struct{}
-
-func (*testClientTask) Validate(map[string]string) error { return nil }
-func (*testClientTask) Run(ctx context.Context, args map[string]string, _ *database.DB, c *model.TransferContext) (string, error) {
-
-	msg := fmt.Sprintf("CLIENT | %s | %s | OK", c.Rule.Name, args["msg"])
-	timer := time.NewTimer(time.Second)
-	defer timer.Stop()
-
-	select {
-	case <-timer.C:
-		panic(fmt.Sprintf("timeout while executing client task '%s'", msg))
-	case ClientCheckChannel <- msg:
-	case <-ctx.Done():
-		return "", ctx.Err()
-	}
-
-	if d, ok := args["delay"]; ok {
-		delay, err := strconv.ParseInt(d, 10, 64)
-		if err != nil {
-			return "", err
-		}
-		time.Sleep(time.Millisecond * time.Duration(delay))
-	}
-	return "", nil
-}
-
-type testClientTaskError struct{}
-
-func (*testClientTaskError) Validate(map[string]string) error { return nil }
-func (*testClientTaskError) Run(_ context.Context, args map[string]string, _ *database.DB, c *model.TransferContext) (string, error) {
-
-	msg := fmt.Sprintf("CLIENT | %s | %s | ERROR", c.Rule.Name, args["msg"])
-	timer := time.NewTimer(time.Second)
-	defer timer.Stop()
-	select {
-	case <-timer.C:
-		panic(fmt.Sprintf("timeout while executing client task '%s'", msg))
-	case ClientCheckChannel <- msg:
-		return "task failed", fmt.Errorf("task failed")
+// InitTaskChecker initialises and returns a new TaskChecker.
+func InitTaskChecker() *TaskChecker {
+	cond := make(chan bool)
+	defer close(cond)
+	return &TaskChecker{
+		Cond:  cond,
+		cDone: make(chan struct{}),
+		sDone: make(chan struct{}),
 	}
 }
 
-// ##### SERVER #####
-
-type testServerTask struct{}
-
-func (*testServerTask) Validate(map[string]string) error { return nil }
-func (*testServerTask) Run(_ context.Context, args map[string]string, _ *database.DB, c *model.TransferContext) (string, error) {
-
-	msg := fmt.Sprintf("SERVER | %s | %s | OK", c.Rule.Name, args["msg"])
-	timer := time.NewTimer(time.Second)
-	defer timer.Stop()
-	select {
-	case <-timer.C:
-		panic(fmt.Sprintf("timeout while executing server task '%s'", msg))
-	case ServerCheckChannel <- msg:
-		return "", nil
-	}
+// Retry resets the TaskChecker so that a the transfer can be retried. Be aware
+// that the tasks counters are not reset, only the end transfer channels.
+func (t *TaskChecker) Retry() {
+	t.cDone = make(chan struct{})
+	t.sDone = make(chan struct{})
 }
 
-type testServerTaskError struct{}
+// ClientPreTaskNB returns the number of pre-tasks executed by the client.
+func (t *TaskChecker) ClientPreTaskNB() uint32 { return atomic.LoadUint32(&t.cPre) }
 
-func (*testServerTaskError) Validate(map[string]string) error { return nil }
-func (*testServerTaskError) Run(_ context.Context, args map[string]string, _ *database.DB, c *model.TransferContext) (string, error) {
+// ClientPostTaskNB returns the number of post-tasks executed by the client.
+func (t *TaskChecker) ClientPostTaskNB() uint32 { return atomic.LoadUint32(&t.cPost) }
 
-	msg := fmt.Sprintf("SERVER | %s | %s | ERROR", c.Rule.Name, args["msg"])
-	timer := time.NewTimer(time.Second)
-	defer timer.Stop()
-	select {
-	case <-timer.C:
-		panic(fmt.Sprintf("timeout while executing server task '%s'", msg))
-	case ServerCheckChannel <- msg:
-		return "task failed", fmt.Errorf("task failed")
-	}
-}
+// ServerPreTaskNB returns the number of pre-tasks executed by the server.
+func (t *TaskChecker) ServerPreTaskNB() uint32 { return atomic.LoadUint32(&t.sPre) }
 
-// ClientMsgShouldBe asserts that the next message on the test client message
-// channel should be the one given.
-func ClientMsgShouldBe(c convey.C, exp string) {
+// ServerPostTaskNB returns the number of post-tasks executed by the server.
+func (t *TaskChecker) ServerPostTaskNB() uint32 { return atomic.LoadUint32(&t.sPost) }
+
+// ClientErrTaskNB returns the number of error-tasks executed by the client.
+func (t *TaskChecker) ClientErrTaskNB() uint32 { return atomic.LoadUint32(&t.cErr) }
+
+// ServerErrTaskNB returns the number of error-tasks executed by the server.
+func (t *TaskChecker) ServerErrTaskNB() uint32 { return atomic.LoadUint32(&t.sErr) }
+
+// ClientDone signals the TaskChecker that the client has finished its side of the transfer.
+func (t *TaskChecker) ClientDone() { close(t.cDone) }
+
+// ServerDone signals the TaskChecker that the server has finished its side of the transfer.
+func (t *TaskChecker) ServerDone() { close(t.sDone) }
+
+// WaitClientDone waits for the client to have finished its side of the transfer.
+func (t *TaskChecker) WaitClientDone() {
 	timer := time.NewTimer(time.Second * 10)
-	defer timer.Stop()
 	select {
-	case <-timer.C:
-		panic(fmt.Sprintf("timeout waiting for client message '%s'", exp))
-	case msg := <-ClientCheckChannel:
-		c.So(msg, convey.ShouldEqual, exp)
-	}
-}
-
-// ClientShouldBeEnd asserts that the client transfer should have ended (i.e.
-// the client task channel should be closed).
-func ClientShouldBeEnd(c convey.C) {
-	timer := time.NewTimer(time.Second * 5)
-	defer timer.Stop()
-
-	select {
-	case msg, ok := <-ClientCheckChannel:
-		c.So(msg, convey.ShouldBeBlank)
-		c.So(ok, convey.ShouldBeFalse)
 	case <-timer.C:
 		panic("timeout waiting for client transfer end")
+	case <-t.cDone:
 	}
 }
 
-// ServerMsgShouldBe asserts that the next message on the test server message
-// channel should be the one given.
-func ServerMsgShouldBe(c convey.C, exp string) {
+// WaitServerDone waits for the server to have finished its side of the transfer.
+func (t *TaskChecker) WaitServerDone() {
 	timer := time.NewTimer(time.Second * 10)
-	defer timer.Stop()
 	select {
-	case <-timer.C:
-		panic(fmt.Sprintf("timeout waiting for server message '%s'", exp))
-	case msg := <-ServerCheckChannel:
-		c.So(msg, convey.ShouldEqual, exp)
-	}
-}
-
-// ServerShouldBeEnd asserts that the server transfer should have ended (i.e.
-// the server task channel should be closed).
-func ServerShouldBeEnd(c convey.C) {
-	timer := time.NewTimer(time.Second * 5)
-	defer timer.Stop()
-
-	select {
-	case msg, ok := <-ServerCheckChannel:
-		c.So(msg, convey.ShouldBeBlank)
-		c.So(ok, convey.ShouldBeFalse)
 	case <-timer.C:
 		panic("timeout waiting for server transfer end")
+	case <-t.sDone:
 	}
+}
+
+func (t *TaskChecker) execTask(ctx context.Context, c *model.TransferContext) error {
+	select {
+	case <-t.Cond:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	if c.Transfer.IsServer {
+		switch c.Transfer.Step {
+		case types.StepPreTasks:
+			atomic.AddUint32(&t.sPre, 1)
+		case types.StepPostTasks:
+			atomic.AddUint32(&t.sPost, 1)
+		case types.StepErrorTasks:
+			atomic.AddUint32(&t.sErr, 1)
+		default:
+			panic(fmt.Sprintf("invalid transfer state '%s' for tasks", c.Transfer.Step))
+		}
+	} else {
+		switch c.Transfer.Step {
+		case types.StepPreTasks:
+			atomic.AddUint32(&t.cPre, 1)
+		case types.StepPostTasks:
+			atomic.AddUint32(&t.cPost, 1)
+		case types.StepErrorTasks:
+			atomic.AddUint32(&t.cErr, 1)
+		default:
+			panic(fmt.Sprintf("invalid transfer state '%s' for tasks", c.Transfer.Step))
+		}
+	}
+	return nil
+}
+
+// TestTask is a dummy task made for testing. It always succeeds.
+type TestTask struct{ *TaskChecker }
+
+// Run executes the dummy task, which will always succeed.
+func (t *TestTask) Run(ctx context.Context, _ map[string]string, _ *database.DB,
+	c *model.TransferContext) (string, error) {
+
+	return "", t.execTask(ctx, c)
+}
+
+// TestTaskError is a dummy task made for testing. It always fails.
+type TestTaskError struct{ *TaskChecker }
+
+// Run executes the dummy task, which will always return an error.
+func (t *TestTaskError) Run(ctx context.Context, _ map[string]string, _ *database.DB,
+	c *model.TransferContext) (string, error) {
+
+	if err := t.execTask(ctx, c); err != nil {
+		return "", err
+	}
+	return "task failed", fmt.Errorf("task failed")
 }

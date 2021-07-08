@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"time"
 
 	"code.bcarlin.xyz/go/logging"
 
@@ -194,7 +193,6 @@ func (s *Service) Stop(ctx context.Context) error {
 		s.logger.Error("Failed to interrupt R66 transfers, forcing exit")
 		return ctx.Err()
 	}
-	time.Sleep(time.Second)
 	s.logger.Debug("Closing listener...")
 	_ = s.server.Shutdown(ctx)
 

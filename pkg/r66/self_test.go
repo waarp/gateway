@@ -26,10 +26,10 @@ func TestSelfPushOK(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeOK(c)
-				ctx.ClientPosTasksShouldBeOK(c)
-				ctx.ServerPosTasksShouldBeOK(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
 
 				ctx.CheckEndTransferOK(c)
 			})
@@ -46,10 +46,10 @@ func TestSelfPullOK(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeOK(c)
-				ctx.ClientPosTasksShouldBeOK(c)
-				ctx.ServerPosTasksShouldBeOK(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
 
 				ctx.CheckEndTransferOK(c)
 			})
@@ -67,13 +67,14 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
-					"Pre-tasks failed: Task CLIENTERR @ PUSH PRE[1]: task failed",
+					"Pre-tasks failed: Task TASKERR @ PUSH PRE[1]: task failed",
 					types.StepPreTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
@@ -81,8 +82,8 @@ func TestSelfPushClientPreTasksFail(t *testing.T) {
 					types.StepPreTasks)
 
 				ctx.TestRetry(c,
-					ctx.ServerPosTasksShouldBeOK,
-					ctx.ClientPosTasksShouldBeOK,
+					ctx.ServerShouldHavePostTasked,
+					ctx.ClientShouldHavePostTasked,
 				)
 			})
 		})
@@ -99,8 +100,9 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
@@ -108,13 +110,13 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 					types.StepSetup)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
-					"Pre-tasks failed: Task SERVERERR @ PUSH PRE[1]: task failed",
+					"Pre-tasks failed: Task TASKERR @ PUSH PRE[1]: task failed",
 					types.StepPreTasks)
 
 				ctx.TestRetry(c,
-					ctx.ClientPreTasksShouldBeOK,
-					ctx.ServerPosTasksShouldBeOK,
-					ctx.ClientPosTasksShouldBeOK,
+					ctx.ClientShouldHavePreTasked,
+					ctx.ServerShouldHavePostTasked,
+					ctx.ClientShouldHavePostTasked,
 				)
 			})
 		})
@@ -131,13 +133,14 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
-					"Pre-tasks failed: Task CLIENTERR @ PULL PRE[1]: task failed",
+					"Pre-tasks failed: Task TASKERR @ PULL PRE[1]: task failed",
 					types.StepPreTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
@@ -145,8 +148,8 @@ func TestSelfPullClientPreTasksFail(t *testing.T) {
 					types.StepData)
 
 				ctx.TestRetry(c,
-					ctx.ClientPosTasksShouldBeOK,
-					ctx.ServerPosTasksShouldBeOK,
+					ctx.ClientShouldHavePostTasked,
+					ctx.ServerShouldHavePostTasked,
 				)
 			})
 		})
@@ -163,8 +166,9 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
@@ -172,13 +176,13 @@ func TestSelfPullServerPreTasksFail(t *testing.T) {
 					types.StepSetup)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
-					"Pre-tasks failed: Task SERVERERR @ PULL PRE[1]: task failed",
+					"Pre-tasks failed: Task TASKERR @ PULL PRE[1]: task failed",
 					types.StepPreTasks)
 
 				ctx.TestRetry(c,
-					ctx.ClientPreTasksShouldBeOK,
-					ctx.ClientPosTasksShouldBeOK,
-					ctx.ServerPosTasksShouldBeOK,
+					ctx.ClientShouldHavePreTasked,
+					ctx.ClientShouldHavePostTasked,
+					ctx.ServerShouldHavePostTasked,
 				)
 			})
 		})
@@ -195,15 +199,16 @@ func TestSelfPushClientPostTasksFail(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeOK(c)
-				ctx.ServerPosTasksShouldBeOK(c)
-				ctx.ClientPosTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
-					"Post-tasks failed: Task CLIENTERR @ PUSH POST[1]: task failed",
+					"Post-tasks failed: Task TASKERR @ PUSH POST[1]: task failed",
 					types.StepPostTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
@@ -226,10 +231,11 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeOK(c)
-				ctx.ServerPosTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
@@ -237,11 +243,11 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 					types.StepData)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
-					"Post-tasks failed: Task SERVERERR @ PUSH POST[1]: task failed",
+					"Post-tasks failed: Task TASKERR @ PUSH POST[1]: task failed",
 					types.StepPostTasks)
 
 				ctx.TestRetry(c,
-					ctx.ClientPosTasksShouldBeOK,
+					ctx.ClientShouldHavePostTasked,
 				)
 			})
 		})
@@ -258,14 +264,15 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeOK(c)
-				ctx.ClientPosTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
-					"Post-tasks failed: Task CLIENTERR @ PULL POST[1]: task failed",
+					"Post-tasks failed: Task TASKERR @ PULL POST[1]: task failed",
 					types.StepPostTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
@@ -273,7 +280,7 @@ func TestSelfPullClientPostTasksFail(t *testing.T) {
 					types.StepData)
 
 				ctx.TestRetry(c,
-					ctx.ServerPosTasksShouldBeOK,
+					ctx.ServerShouldHavePostTasked,
 				)
 			})
 		})
@@ -290,11 +297,12 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeOK(c)
-				ctx.ClientPosTasksShouldBeOK(c)
-				ctx.ServerPosTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
@@ -302,7 +310,7 @@ func TestSelfPullServerPostTasksFail(t *testing.T) {
 					types.StepPostTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
-					"Post-tasks failed: Task SERVERERR @ PULL POST[1]: task failed",
+					"Post-tasks failed: Task TASKERR @ PULL POST[1]: task failed",
 					types.StepPostTasks)
 
 				ctx.TestRetry(c)

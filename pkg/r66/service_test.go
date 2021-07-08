@@ -80,7 +80,6 @@ func TestR66ServerInterruption(t *testing.T) {
 
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
 		test := pipelinetest.InitServerPush(c, "r66", servConf)
-		pipelinetest.MakeServerChan(c)
 
 		serv := gatewayd.ServiceConstructors["r66"](test.DB, test.Server, log.NewLogger("server"))
 		c.So(serv.Start(), ShouldBeNil)
@@ -116,8 +115,8 @@ func TestR66ServerInterruption(t *testing.T) {
 					So(err, ShouldBeError, "S: service is shutting down")
 
 					Convey("Then the transfer should have been interrupted", func(c C) {
-						test.PreTasksShouldBeOK(c)
-						test.ShouldBeEndTransfer(c)
+						test.ServerShouldHavePreTasked(c)
+						test.TasksChecker.WaitServerDone()
 
 						var transfers model.Transfers
 						So(test.DB.Select(&transfers).Run(), ShouldBeNil)

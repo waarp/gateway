@@ -2,10 +2,11 @@ package pipelinetest
 
 import (
 	"crypto/rand"
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -30,9 +31,10 @@ const (
 const TestFileSize int64 = 1000000 // 1MB
 
 type testData struct {
-	Logger *log.Logger
-	DB     *database.DB
-	Paths  *conf.PathsConfig
+	Logger       *log.Logger
+	DB           *database.DB
+	Paths        *conf.PathsConfig
+	TasksChecker *taskstest.TaskChecker
 }
 
 type transData struct {
@@ -64,30 +66,23 @@ func initTestData(c convey.C) *testData {
 	home := testhelpers.TempDir(c, "transfer_test")
 	paths := makePaths(c, home)
 	db.Conf.Paths = *paths
+	tasksChecker := taskstest.InitTaskChecker()
+	model.ValidTasks[taskstest.TaskOK] = &taskstest.TestTask{TaskChecker: tasksChecker}
+	model.ValidTasks[taskstest.TaskErr] = &taskstest.TestTaskError{TaskChecker: tasksChecker}
+	pipeline.TestPipelineEnd = func(isServer bool) {
+		if isServer {
+			tasksChecker.ServerDone()
+		} else {
+			tasksChecker.ClientDone()
+		}
+	}
 
 	return &testData{
-		Logger: logger,
-		DB:     db,
-		Paths:  paths,
+		Logger:       logger,
+		DB:           db,
+		Paths:        paths,
+		TasksChecker: tasksChecker,
 	}
-}
-
-// MakeClientChan initialises the client task checking channel.
-func MakeClientChan(c convey.C) {
-	setTestVar()
-	taskstest.ClientCheckChannel = make(chan string, 20)
-	c.Reset(func() {
-		taskstest.ClientShouldBeEnd(c)
-	})
-}
-
-// MakeServerChan initialises the server task checking channel.
-func MakeServerChan(c convey.C) {
-	setTestVar()
-	taskstest.ServerCheckChannel = make(chan string, 20)
-	c.Reset(func() {
-		taskstest.ServerShouldBeEnd(c)
-	})
 }
 
 func makePaths(c convey.C, home string) *conf.PathsConfig {
@@ -103,18 +98,12 @@ func makePaths(c convey.C, home string) *conf.PathsConfig {
 	return paths
 }
 
-func makeRuleTasks(c convey.C, db *database.DB, rule *model.Rule, isClient bool) {
-	taskType := taskstest.ClientOK
-	if !isClient {
-		taskType = taskstest.ServerOK
-	}
-
+func makeRuleTasks(c convey.C, db *database.DB, rule *model.Rule) {
 	cPreTask := &model.Task{
 		RuleID: rule.ID,
 		Chain:  model.ChainPre,
 		Rank:   0,
-		Type:   taskType,
-		Args:   json.RawMessage(`{"msg":"PRE-TASKS[0]"}`),
+		Type:   taskstest.TaskOK,
 	}
 	c.So(db.Insert(cPreTask).Run(), convey.ShouldBeNil)
 
@@ -122,8 +111,7 @@ func makeRuleTasks(c convey.C, db *database.DB, rule *model.Rule, isClient bool)
 		RuleID: rule.ID,
 		Chain:  model.ChainPost,
 		Rank:   0,
-		Type:   taskType,
-		Args:   json.RawMessage(`{"msg":"POST-TASKS[0]"}`),
+		Type:   taskstest.TaskOK,
 	}
 	c.So(db.Insert(cPostTask).Run(), convey.ShouldBeNil)
 
@@ -131,8 +119,31 @@ func makeRuleTasks(c convey.C, db *database.DB, rule *model.Rule, isClient bool)
 		RuleID: rule.ID,
 		Chain:  model.ChainError,
 		Rank:   0,
-		Type:   taskType,
-		Args:   json.RawMessage(`{"msg":"ERROR-TASKS[0]"}`),
+		Type:   taskstest.TaskOK,
 	}
 	c.So(db.Insert(cErrTask).Run(), convey.ShouldBeNil)
+}
+
+func (t *testData) ClientShouldHavePreTasked(c convey.C) {
+	c.So(t.TasksChecker.ClientPreTaskNB(), convey.ShouldNotEqual, 0)
+}
+
+func (t *testData) ServerShouldHavePreTasked(c convey.C) {
+	c.So(t.TasksChecker.ServerPreTaskNB(), convey.ShouldNotEqual, 0)
+}
+
+func (t *testData) ClientShouldHavePostTasked(c convey.C) {
+	c.So(t.TasksChecker.ClientPostTaskNB(), convey.ShouldNotEqual, 0)
+}
+
+func (t *testData) ServerShouldHavePostTasked(c convey.C) {
+	c.So(t.TasksChecker.ServerPostTaskNB(), convey.ShouldNotEqual, 0)
+}
+
+func (t *testData) ClientShouldHaveErrorTasked(c convey.C) {
+	c.So(t.TasksChecker.ClientErrTaskNB(), convey.ShouldNotEqual, 0)
+}
+
+func (t *testData) ServerShouldHaveErrorTasked(c convey.C) {
+	c.So(t.TasksChecker.ServerErrTaskNB(), convey.ShouldNotEqual, 0)
 }

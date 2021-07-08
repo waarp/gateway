@@ -140,21 +140,20 @@ func TestPipelinePreTasks(t *testing.T) {
 		filename := "file"
 		info := mkRecvTransfer(ctx, filename)
 
-		taskstest.ClientCheckChannel = make(chan string, 10)
-		Reset(func() { close(taskstest.ClientCheckChannel) })
+		taskChecker := initTaskChecker()
 		info.PreTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainPre,
 			Rank:   0,
-			Type:   taskstest.ClientOK,
-			Args:   json.RawMessage(`{"msg":"TEST | PRE-TASKS[0]"}`),
+			Type:   taskstest.TaskOK,
+			Args:   json.RawMessage(`{}`),
 		}}
 		info.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
-			Type:   taskstest.ClientOK,
-			Args:   json.RawMessage(`{"msg":"TEST | ERROR-TASKS[0]"}`),
+			Type:   taskstest.TaskOK,
+			Args:   json.RawMessage(`{}`),
 		}}
 
 		pip, err := newPipeline(ctx.db, logger, info)
@@ -164,8 +163,7 @@ func TestPipelinePreTasks(t *testing.T) {
 			So(pip.PreTasks(), ShouldBeNil)
 
 			Convey("Then it should have executed the pre-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual,
-					"CLIENT | recv | TEST | PRE-TASKS[0] | OK")
+				So(taskChecker.ClientPreTaskNB(), ShouldEqual, 1)
 			})
 
 			Convey("Then any subsequent calls will return an error", func(c C) {
@@ -179,10 +177,9 @@ func TestPipelinePreTasks(t *testing.T) {
 
 			Convey("When calling the pre-tasks", func(c C) {
 				So(pip.PreTasks(), ShouldBeNil)
-				taskstest.ClientCheckChannel <- ""
 
 				Convey("Then it should do nothing", func(c C) {
-					So(<-taskstest.ClientCheckChannel, ShouldEqual, "")
+					So(taskChecker.ClientPreTaskNB(), ShouldEqual, 0)
 				})
 			})
 		})
@@ -194,9 +191,8 @@ func TestPipelinePreTasks(t *testing.T) {
 				So(pip.PreTasks(), ShouldBeError, errDatabase)
 
 				Convey("Then the transfer should end in error", func(c C) {
-					So(<-taskstest.ClientCheckChannel, ShouldEqual,
-						"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
 					waitEndTransfer(pip)
+					c.So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 				})
 			})
 		})
@@ -206,22 +202,18 @@ func TestPipelinePreTasks(t *testing.T) {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   1,
-				Type:   taskstest.ClientErr,
-				Args:   json.RawMessage(`{"msg":"TEST | PRE-TASKS[1]"}`),
+				Type:   taskstest.TaskErr,
+				Args:   json.RawMessage(`{}`),
 			})
 
 			Convey("When calling the pre-tasks", func(c C) {
 				So(pip.PreTasks(), ShouldBeError, types.NewTransferError(
 					types.TeExternalOperation, "pre-tasks failed"))
 
-				Convey("Then the transfer should end in error", func(c C) {
-					So(<-taskstest.ClientCheckChannel, ShouldEqual,
-						"CLIENT | recv | TEST | PRE-TASKS[0] | OK")
-					So(<-taskstest.ClientCheckChannel, ShouldEqual,
-						"CLIENT | recv | TEST | PRE-TASKS[1] | ERROR")
-					So(<-taskstest.ClientCheckChannel, ShouldEqual,
-						"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+				Convey("Then the transfer should end in error", func() {
 					waitEndTransfer(pip)
+					So(taskChecker.ClientPreTaskNB(), ShouldEqual, 2)
+					So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 				})
 			})
 		})
@@ -236,14 +228,13 @@ func TestPipelineStartData(t *testing.T) {
 		filename := "file"
 		info := mkRecvTransfer(ctx, filename)
 
-		taskstest.ClientCheckChannel = make(chan string, 10)
-		Reset(func() { close(taskstest.ClientCheckChannel) })
+		taskChecker := initTaskChecker()
 		info.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
-			Type:   taskstest.ClientOK,
-			Args:   json.RawMessage(`{"msg":"TEST | ERROR-TASKS[0]"}`),
+			Type:   taskstest.TaskOK,
+			Args:   json.RawMessage(`{}`),
 		}}
 
 		pip, err := newPipeline(ctx.db, logger, info)
@@ -295,9 +286,8 @@ func TestPipelineStartData(t *testing.T) {
 				So(err, ShouldBeError, errDatabase)
 
 				Convey("Then the transfer should end in error", func(c C) {
-					So(<-taskstest.ClientCheckChannel, ShouldEqual,
-						"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
 					waitEndTransfer(pip)
+					c.So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 				})
 			})
 		})
@@ -312,14 +302,13 @@ func TestPipelineEndData(t *testing.T) {
 		filename := "file"
 		info := mkRecvTransfer(ctx, filename)
 
-		taskstest.ClientCheckChannel = make(chan string, 10)
-		Reset(func() { close(taskstest.ClientCheckChannel) })
+		taskChecker := initTaskChecker()
 		info.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
-			Type:   taskstest.ClientOK,
-			Args:   json.RawMessage(`{"msg":"TEST | ERROR-TASKS[0]"}`),
+			Type:   taskstest.TaskOK,
+			Args:   json.RawMessage(`{}`),
 		}}
 
 		pip, err := newPipeline(ctx.db, logger, info)
@@ -351,9 +340,8 @@ func TestPipelineEndData(t *testing.T) {
 			So(pip.EndData(), ShouldBeError, errDatabase)
 
 			Convey("Then the transfer should end in error", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual,
-					"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
 				waitEndTransfer(pip)
+				c.So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 			})
 		})
 	})
@@ -367,21 +355,20 @@ func TestPipelinePostTasks(t *testing.T) {
 		filename := "file"
 		info := mkRecvTransfer(ctx, filename)
 
-		taskstest.ClientCheckChannel = make(chan string, 10)
-		Reset(func() { close(taskstest.ClientCheckChannel) })
+		taskChecker := initTaskChecker()
 		info.PostTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainPost,
 			Rank:   0,
-			Type:   taskstest.ClientOK,
-			Args:   json.RawMessage(`{"msg":"TEST | POST-TASKS[0]"}`),
+			Type:   taskstest.TaskOK,
+			Args:   json.RawMessage(`{}`),
 		}}
 		info.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
-			Type:   taskstest.ClientOK,
-			Args:   json.RawMessage(`{"msg":"TEST | ERROR-TASKS[0]"}`),
+			Type:   taskstest.TaskOK,
+			Args:   json.RawMessage(`{}`),
 		}}
 
 		pip, err := newPipeline(ctx.db, logger, info)
@@ -399,8 +386,7 @@ func TestPipelinePostTasks(t *testing.T) {
 			So(pip.PostTasks(), ShouldBeNil)
 
 			Convey("Then it should have executed the post-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual,
-					"CLIENT | recv | TEST | POST-TASKS[0] | OK")
+				So(taskChecker.ClientPostTaskNB(), ShouldEqual, 1)
 			})
 
 			Convey("Then any subsequent calls will return an error", func(c C) {
@@ -414,10 +400,9 @@ func TestPipelinePostTasks(t *testing.T) {
 
 			Convey("When calling the post-tasks", func(c C) {
 				So(pip.PostTasks(), ShouldBeNil)
-				taskstest.ClientCheckChannel <- ""
 
 				Convey("Then it should do nothing", func(c C) {
-					So(<-taskstest.ClientCheckChannel, ShouldEqual, "")
+					So(taskChecker.ClientPostTaskNB(), ShouldEqual, 0)
 				})
 			})
 		})
@@ -429,9 +414,8 @@ func TestPipelinePostTasks(t *testing.T) {
 				So(pip.PostTasks(), ShouldBeError, errDatabase)
 
 				Convey("Then the transfer should end in error", func(c C) {
-					So(<-taskstest.ClientCheckChannel, ShouldEqual,
-						"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
 					waitEndTransfer(pip)
+					c.So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 				})
 			})
 		})
@@ -441,22 +425,18 @@ func TestPipelinePostTasks(t *testing.T) {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   1,
-				Type:   taskstest.ClientErr,
-				Args:   json.RawMessage(`{"msg":"TEST | POST-TASKS[1]"}`),
+				Type:   taskstest.TaskErr,
+				Args:   json.RawMessage(`{}`),
 			})
 
 			Convey("When calling the post-tasks", func(c C) {
 				So(pip.PostTasks(), ShouldBeError, types.NewTransferError(
 					types.TeExternalOperation, "post-tasks failed"))
 
-				Convey("Then the transfer should end in error", func(c C) {
-					So(<-taskstest.ClientCheckChannel, ShouldEqual,
-						"CLIENT | recv | TEST | POST-TASKS[0] | OK")
-					So(<-taskstest.ClientCheckChannel, ShouldEqual,
-						"CLIENT | recv | TEST | POST-TASKS[1] | ERROR")
-					So(<-taskstest.ClientCheckChannel, ShouldEqual,
-						"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+				Convey("Then the transfer should end in error", func() {
 					waitEndTransfer(pip)
+					So(taskChecker.ClientPostTaskNB(), ShouldEqual, 2)
+					So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 				})
 			})
 		})
@@ -474,14 +454,13 @@ func TestPipelineSetError(t *testing.T) {
 		filename := "file"
 		info := mkRecvTransfer(ctx, filename)
 
-		taskstest.ClientCheckChannel = make(chan string, 10)
-		Reset(func() { close(taskstest.ClientCheckChannel) })
+		taskChecker := initTaskChecker()
 		info.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
-			Type:   taskstest.ClientOK,
-			Args:   json.RawMessage(`{"msg":"TEST | ERROR-TASKS[0]"}`),
+			Type:   taskstest.TaskOK,
+			Args:   json.RawMessage(`{}`),
 		}}
 
 		pip, err := newPipeline(ctx.db, logger, info)
@@ -492,8 +471,7 @@ func TestPipelineSetError(t *testing.T) {
 			waitEndTransfer(pip)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual,
-					"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+				c.So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
 					var trans model.Transfer
@@ -513,35 +491,32 @@ func TestPipelineSetError(t *testing.T) {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   0,
-				Type:   taskstest.ClientOK,
-				Args:   json.RawMessage(`{"msg":"TEST | PRE-TASKS[0]","delay":"1000"}`),
+				Type:   taskstest.TaskOK,
+				Args:   json.RawMessage(`{}`),
 			}, {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   1,
-				Type:   taskstest.ClientOK,
-				Args:   json.RawMessage(`{"msg":"TEST | PRE-TASKS[1]"}`),
+				Type:   taskstest.TaskOK,
+				Args:   json.RawMessage(`{}`),
 			}}
 
+			taskChecker.Cond = make(chan bool)
 			errCheck := make(chan error, 1)
-			go func() {
-				errCheck <- pip.PreTasks()
-			}()
+			go func() { errCheck <- pip.PreTasks() }()
 
-			So(<-taskstest.ClientCheckChannel, ShouldEqual,
-				"CLIENT | recv | TEST | PRE-TASKS[0] | OK")
+			taskChecker.Cond <- true
 			pip.SetError(remErr)
+			close(taskChecker.Cond)
+			waitEndTransfer(pip)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual,
-					"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
-				waitEndTransfer(pip)
-				taskstest.ClientCheckChannel <- ""
+				c.So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 
 				Convey("Then it should have interrupted the pre-tasks", func(c C) {
 					So(<-errCheck, ShouldBeError, types.NewTransferError(
 						types.TeExternalOperation, "pre-tasks failed"))
-					So(<-taskstest.ClientCheckChannel, ShouldBeZeroValue)
+					So(taskChecker.ClientPreTaskNB(), ShouldEqual, 1)
 				})
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
@@ -567,8 +542,7 @@ func TestPipelineSetError(t *testing.T) {
 			waitEndTransfer(pip)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual,
-					"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+				c.So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
 					var trans model.Transfer
@@ -588,14 +562,14 @@ func TestPipelineSetError(t *testing.T) {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   0,
-				Type:   taskstest.ClientOK,
-				Args:   json.RawMessage(`{"msg":"TEST | POST-TASKS[0]","delay":"1000"}`),
+				Type:   taskstest.TaskOK,
+				Args:   json.RawMessage(`{}`),
 			}, {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   1,
-				Type:   taskstest.ClientOK,
-				Args:   json.RawMessage(`{"msg":"TEST | POST-TASKS[1]"}`),
+				Type:   taskstest.TaskOK,
+				Args:   json.RawMessage(`{}`),
 			}}
 
 			So(pip.PreTasks(), ShouldBeNil)
@@ -603,23 +577,22 @@ func TestPipelineSetError(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(pip.EndData(), ShouldBeNil)
 
+			taskChecker.Cond = make(chan bool)
 			errCheck := make(chan error, 1)
 			go func() { errCheck <- pip.PostTasks() }()
 
-			So(<-taskstest.ClientCheckChannel, ShouldEqual,
-				"CLIENT | recv | TEST | POST-TASKS[0] | OK")
+			taskChecker.Cond <- true
 			pip.SetError(remErr)
+			close(taskChecker.Cond)
+			waitEndTransfer(pip)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual,
-					"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
-				waitEndTransfer(pip)
-				taskstest.ClientCheckChannel <- ""
+				c.So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 
 				Convey("Then it should have interrupted the post-tasks", func(c C) {
 					So(<-errCheck, ShouldBeError, types.NewTransferError(
 						types.TeExternalOperation, "post-tasks failed"))
-					So(<-taskstest.ClientCheckChannel, ShouldBeZeroValue)
+					So(taskChecker.ClientPostTaskNB(), ShouldEqual, 1)
 				})
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
@@ -646,8 +619,7 @@ func TestPipelineSetError(t *testing.T) {
 			waitEndTransfer(pip)
 
 			Convey("Then it should have called the error-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual,
-					"CLIENT | recv | TEST | ERROR-TASKS[0] | OK")
+				c.So(taskChecker.ClientErrTaskNB(), ShouldEqual, 1)
 
 				Convey("Then the transfer should have the ERROR status", func(c C) {
 					var trans model.Transfer
@@ -672,14 +644,13 @@ func TestPipelinePause(t *testing.T) {
 		filename := "file"
 		info := mkRecvTransfer(ctx, filename)
 
-		taskstest.ClientCheckChannel = make(chan string, 10)
-		Reset(func() { close(taskstest.ClientCheckChannel) })
+		taskChecker := initTaskChecker()
 		info.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
-			Type:   taskstest.ClientOK,
-			Args:   json.RawMessage(`{"msg":"TEST | ERROR-TASKS[0]"}`),
+			Type:   taskstest.TaskOK,
+			Args:   json.RawMessage(`{}`),
 		}}
 
 		pip, err := newPipeline(ctx.db, logger, info)
@@ -687,10 +658,10 @@ func TestPipelinePause(t *testing.T) {
 
 		Convey("Given an pre-transfer pause", func(c C) {
 			pip.Pause()
-			taskstest.ClientCheckChannel <- "END"
+			waitEndTransfer(pip)
 
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual, "END")
+				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
 					var trans model.Transfer
@@ -709,30 +680,31 @@ func TestPipelinePause(t *testing.T) {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   0,
-				Type:   taskstest.ClientOK,
-				Args:   json.RawMessage(`{"msg":"TEST | PRE-TASKS[0]","delay":"1000"}`),
+				Type:   taskstest.TaskOK,
+				Args:   json.RawMessage(`{}`),
 			}, {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   1,
-				Type:   taskstest.ClientOK,
-				Args:   json.RawMessage(`{"msg":"TEST | PRE-TASKS[1]"}`),
+				Type:   taskstest.TaskOK,
+				Args:   json.RawMessage(`{}`),
 			}}
 
-			err := make(chan error, 1)
+			taskChecker.Cond = make(chan bool)
+			errCheck := make(chan error, 1)
 			go func() {
-				err <- pip.PreTasks()
+				errCheck <- pip.PreTasks()
 			}()
 
-			So(<-taskstest.ClientCheckChannel, ShouldEqual,
-				"CLIENT | recv | TEST | PRE-TASKS[0] | OK")
+			taskChecker.Cond <- true
 			pip.Pause()
-			taskstest.ClientCheckChannel <- "END"
+			close(taskChecker.Cond)
+			waitEndTransfer(pip)
 
 			Convey("Then it should have interrupted the pre-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual, "END")
-				So(<-err, ShouldBeError, types.NewTransferError(
+				So(<-errCheck, ShouldBeError, types.NewTransferError(
 					types.TeExternalOperation, "pre-tasks failed"))
+				So(taskChecker.ClientPreTaskNB(), ShouldEqual, 1)
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
 					var trans model.Transfer
@@ -753,10 +725,10 @@ func TestPipelinePause(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			pip.Pause()
-			taskstest.ClientCheckChannel <- "END"
+			waitEndTransfer(pip)
 
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual, "END")
+				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
 					var trans model.Transfer
@@ -775,14 +747,14 @@ func TestPipelinePause(t *testing.T) {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   0,
-				Type:   taskstest.ClientOK,
-				Args:   json.RawMessage(`{"msg":"TEST | POST-TASKS[0]","delay":"1000"}`),
+				Type:   taskstest.TaskOK,
+				Args:   json.RawMessage(`{}`),
 			}, {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   1,
-				Type:   taskstest.ClientOK,
-				Args:   json.RawMessage(`{"msg":"TEST | POST-TASKS[1]"}`),
+				Type:   taskstest.TaskOK,
+				Args:   json.RawMessage(`{}`),
 			}}
 
 			So(pip.PreTasks(), ShouldBeNil)
@@ -790,20 +762,21 @@ func TestPipelinePause(t *testing.T) {
 			So(e, ShouldBeNil)
 			So(pip.EndData(), ShouldBeNil)
 
-			err := make(chan error, 1)
+			taskChecker.Cond = make(chan bool)
+			errCheck := make(chan error, 1)
 			go func() {
-				err <- pip.PostTasks()
+				errCheck <- pip.PostTasks()
 			}()
 
-			So(<-taskstest.ClientCheckChannel, ShouldEqual,
-				"CLIENT | recv | TEST | POST-TASKS[0] | OK")
+			taskChecker.Cond <- true
 			pip.Pause()
-			taskstest.ClientCheckChannel <- "END"
+			close(taskChecker.Cond)
+			waitEndTransfer(pip)
 
 			Convey("Then it should have interrupted the post-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual, "END")
-				So(<-err, ShouldBeError, types.NewTransferError(
+				So(<-errCheck, ShouldBeError, types.NewTransferError(
 					types.TeExternalOperation, "post-tasks failed"))
+				So(taskChecker.ClientPostTaskNB(), ShouldEqual, 1)
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
 					var trans model.Transfer
@@ -825,10 +798,10 @@ func TestPipelinePause(t *testing.T) {
 			So(pip.PostTasks(), ShouldBeNil)
 
 			pip.Pause()
-			taskstest.ClientCheckChannel <- "END"
+			waitEndTransfer(pip)
 
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual, "END")
+				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
 				Convey("Then the transfer should have the PAUSED status", func(c C) {
 					var trans model.Transfer
@@ -852,14 +825,13 @@ func TestPipelineCancel(t *testing.T) {
 		filename := "file"
 		info := mkRecvTransfer(ctx, filename)
 
-		taskstest.ClientCheckChannel = make(chan string, 10)
-		Reset(func() { close(taskstest.ClientCheckChannel) })
+		taskChecker := initTaskChecker()
 		info.ErrTasks = model.Tasks{{
 			RuleID: ctx.recv.ID,
 			Chain:  model.ChainError,
 			Rank:   0,
-			Type:   taskstest.ClientOK,
-			Args:   json.RawMessage(`{"msg":"TEST | ERROR-TASKS[0]"}`),
+			Type:   taskstest.TaskOK,
+			Args:   json.RawMessage(`{}`),
 		}}
 
 		pip, err := newPipeline(ctx.db, logger, info)
@@ -867,10 +839,10 @@ func TestPipelineCancel(t *testing.T) {
 
 		Convey("Given an pre-transfer cancel", func(c C) {
 			pip.Cancel()
-			taskstest.ClientCheckChannel <- "END"
+			waitEndTransfer(pip)
 
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual, "END")
+				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
 				Convey("Then the transfer should have been cancelled", func(c C) {
 					var hist model.HistoryEntry
@@ -889,30 +861,31 @@ func TestPipelineCancel(t *testing.T) {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   0,
-				Type:   taskstest.ClientOK,
-				Args:   json.RawMessage(`{"msg":"TEST | PRE-TASKS[0]","delay":"1000"}`),
+				Type:   taskstest.TaskOK,
+				Args:   json.RawMessage(`{}`),
 			}, {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPre,
 				Rank:   1,
-				Type:   taskstest.ClientOK,
-				Args:   json.RawMessage(`{"msg":"TEST | PRE-TASKS[1]"}`),
+				Type:   taskstest.TaskOK,
+				Args:   json.RawMessage(`{}`),
 			}}
 
-			err := make(chan error, 1)
+			taskChecker.Cond = make(chan bool)
+			errCheck := make(chan error, 1)
 			go func() {
-				err <- pip.PreTasks()
+				errCheck <- pip.PreTasks()
 			}()
 
-			So(<-taskstest.ClientCheckChannel, ShouldEqual,
-				"CLIENT | recv | TEST | PRE-TASKS[0] | OK")
+			taskChecker.Cond <- true
 			pip.Cancel()
-			taskstest.ClientCheckChannel <- "END"
+			close(taskChecker.Cond)
+			waitEndTransfer(pip)
 
 			Convey("Then it should have interrupted the pre-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual, "END")
-				So(<-err, ShouldBeError, types.NewTransferError(
+				So(<-errCheck, ShouldBeError, types.NewTransferError(
 					types.TeExternalOperation, "pre-tasks failed"))
+				So(taskChecker.ClientPreTaskNB(), ShouldEqual, 1)
 
 				Convey("Then the transfer should have been cancelled", func(c C) {
 					var hist model.HistoryEntry
@@ -933,10 +906,10 @@ func TestPipelineCancel(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			pip.Cancel()
-			taskstest.ClientCheckChannel <- "END"
+			waitEndTransfer(pip)
 
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual, "END")
+				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
 				Convey("Then the transfer should have been cancelled", func(c C) {
 					var hist model.HistoryEntry
@@ -955,14 +928,14 @@ func TestPipelineCancel(t *testing.T) {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   0,
-				Type:   taskstest.ClientOK,
-				Args:   json.RawMessage(`{"msg":"TEST | POST-TASKS[0]","delay":"1000"}`),
+				Type:   taskstest.TaskOK,
+				Args:   json.RawMessage(`{}`),
 			}, {
 				RuleID: ctx.recv.ID,
 				Chain:  model.ChainPost,
 				Rank:   1,
-				Type:   taskstest.ClientOK,
-				Args:   json.RawMessage(`{"msg":"TEST | POST-TASKS[1]"}`),
+				Type:   taskstest.TaskOK,
+				Args:   json.RawMessage(`{}`),
 			}}
 
 			So(pip.PreTasks(), ShouldBeNil)
@@ -970,20 +943,21 @@ func TestPipelineCancel(t *testing.T) {
 			So(e, ShouldBeNil)
 			So(pip.EndData(), ShouldBeNil)
 
-			err := make(chan error, 1)
+			taskChecker.Cond = make(chan bool)
+			errCheck := make(chan error, 1)
 			go func() {
-				err <- pip.PostTasks()
+				errCheck <- pip.PostTasks()
 			}()
 
-			So(<-taskstest.ClientCheckChannel, ShouldEqual,
-				"CLIENT | recv | TEST | POST-TASKS[0] | OK")
+			taskChecker.Cond <- true
 			pip.Cancel()
-			taskstest.ClientCheckChannel <- "END"
+			close(taskChecker.Cond)
+			waitEndTransfer(pip)
 
 			Convey("Then it should have interrupted the post-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual, "END")
-				So(<-err, ShouldBeError, types.NewTransferError(
+				So(<-errCheck, ShouldBeError, types.NewTransferError(
 					types.TeExternalOperation, "post-tasks failed"))
+				So(taskChecker.ClientPostTaskNB(), ShouldEqual, 1)
 
 				Convey("Then the transfer should have been cancelled", func(c C) {
 					var hist model.HistoryEntry
@@ -1005,10 +979,10 @@ func TestPipelineCancel(t *testing.T) {
 			So(pip.PostTasks(), ShouldBeNil)
 
 			pip.Cancel()
-			taskstest.ClientCheckChannel <- "END"
+			waitEndTransfer(pip)
 
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
-				So(<-taskstest.ClientCheckChannel, ShouldEqual, "END")
+				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
 				Convey("Then the transfer should have been cancelled", func(c C) {
 					var hist model.HistoryEntry

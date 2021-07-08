@@ -67,7 +67,7 @@ func makeClientPush(c convey.C, db *database.DB) *model.Rule {
 		RemoteDir: "/push",
 	}
 	c.So(db.Insert(rule).Run(), convey.ShouldBeNil)
-	makeRuleTasks(c, db, rule, true)
+	makeRuleTasks(c, db, rule)
 	return rule
 }
 
@@ -79,7 +79,7 @@ func makeClientPull(c convey.C, db *database.DB) *model.Rule {
 		RemoteDir: "/pull",
 	}
 	c.So(db.Insert(rule).Run(), convey.ShouldBeNil)
-	makeRuleTasks(c, db, rule, true)
+	makeRuleTasks(c, db, rule)
 	return rule
 }
 

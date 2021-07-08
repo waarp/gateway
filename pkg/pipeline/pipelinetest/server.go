@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks/taskstest"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 
 	"code.waarp.fr/waarp-r66/r66"
@@ -77,7 +75,7 @@ func makeServerPush(c convey.C, db *database.DB) *model.Rule {
 		Path:   "/push",
 	}
 	c.So(db.Insert(rule).Run(), convey.ShouldBeNil)
-	makeRuleTasks(c, db, rule, false)
+	makeRuleTasks(c, db, rule)
 	return rule
 }
 
@@ -88,7 +86,7 @@ func makeServerPull(c convey.C, db *database.DB) *model.Rule {
 		Path:   "/pull",
 	}
 	c.So(db.Insert(rule).Run(), convey.ShouldBeNil)
-	makeRuleTasks(c, db, rule, false)
+	makeRuleTasks(c, db, rule)
 	return rule
 }
 
@@ -148,26 +146,4 @@ func (s *ServerContext) StartService(c convey.C) service.Service {
 		c.So(serv.Stop(ctx), convey.ShouldBeNil)
 	})
 	return serv
-}
-
-// PreTasksShouldBeOK asserts that the server's pre-tasks should have been
-// executed without errors.
-func (s *ServerContext) PreTasksShouldBeOK(c convey.C) {
-	taskstest.ServerMsgShouldBe(c, fmt.Sprintf("SERVER | %s | PRE-TASKS[0] | OK", s.Rule.Name))
-}
-
-// PosTasksShouldBeOK asserts that the server's post-tasks should have been
-// executed without errors.
-func (s *ServerContext) PosTasksShouldBeOK(c convey.C) {
-	taskstest.ServerMsgShouldBe(c, fmt.Sprintf("SERVER | %s | POST-TASKS[0] | OK", s.Rule.Name))
-}
-
-// ErrTasksShouldBeOK asserts that the server should have executed its error-tasks.
-func (s *ServerContext) ErrTasksShouldBeOK(c convey.C) {
-	taskstest.ServerMsgShouldBe(c, fmt.Sprintf("SERVER | %s | ERROR-TASKS[0] | OK", s.Rule.Name))
-}
-
-// ShouldBeEndTransfer asserts that the server transfer should have reached its end.
-func (s *ServerContext) ShouldBeEndTransfer(c convey.C) {
-	taskstest.ServerShouldBeEnd(c)
 }

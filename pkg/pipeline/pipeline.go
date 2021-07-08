@@ -289,7 +289,7 @@ func (p *Pipeline) errorTasks() {
 	}()
 
 	p.TransCtx.Transfer.TaskNumber = 0
-	p.TransCtx.Transfer.Step = types.StepPostTasks
+	p.TransCtx.Transfer.Step = types.StepErrorTasks
 	if dbErr := p.DB.Update(p.TransCtx.Transfer).Cols("step", "task_number").Run(); dbErr != nil {
 		p.Logger.Errorf("Failed to update transfer step for error-tasks: %s", dbErr)
 	}

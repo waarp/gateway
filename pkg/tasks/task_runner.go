@@ -69,19 +69,19 @@ func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) *typ
 		r.logger.Error(logMsg)
 		return types.NewTransferError(types.TeExternalOperation, logMsg)
 	}
-	if err := runner.Validate(args); err != nil {
-		logMsg := fmt.Sprintf("%s: %s", taskInfo, err.Error())
-		r.logger.Error(logMsg)
-		return types.NewTransferError(types.TeExternalOperation, logMsg)
+	if validator, ok := runner.(model.TaskValidator); ok {
+		if err := validator.Validate(args); err != nil {
+			logMsg := fmt.Sprintf("%s: %s", taskInfo, err.Error())
+			r.logger.Error(logMsg)
+			return types.NewTransferError(types.TeExternalOperation, logMsg)
+		}
 	}
-
 	var msg string
 	if isErrTasks {
 		msg, err = runner.Run(context.Background(), args, r.db, r.transCtx)
 	} else {
 		msg, err = runner.Run(r.ctx, args, r.db, r.transCtx)
 	}
-
 	if err != nil {
 		errMsg := fmt.Sprintf("%s: %s", taskInfo, err)
 		if _, ok := err.(*errWarning); !ok {

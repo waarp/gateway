@@ -4,7 +4,6 @@ package pipelinetest
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -147,8 +146,7 @@ func (s *SelfContext) AddClientPreTaskError(c convey.C) {
 		RuleID: s.ClientRule.ID,
 		Chain:  model.ChainPre,
 		Rank:   1,
-		Type:   taskstest.ClientErr,
-		Args:   json.RawMessage(`{"msg":"PRE-TASKS[1]"}`),
+		Type:   taskstest.TaskErr,
 	}
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
 }
@@ -161,8 +159,7 @@ func (s *SelfContext) AddClientPostTaskError(c convey.C) {
 		RuleID: s.ClientRule.ID,
 		Chain:  model.ChainPost,
 		Rank:   1,
-		Type:   taskstest.ClientErr,
-		Args:   json.RawMessage(`{"msg":"POST-TASKS[1]"}`),
+		Type:   taskstest.TaskErr,
 	}
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
 }
@@ -175,8 +172,7 @@ func (s *SelfContext) AddServerPreTaskError(c convey.C) {
 		RuleID: s.ServerRule.ID,
 		Chain:  model.ChainPre,
 		Rank:   1,
-		Type:   taskstest.ServerErr,
-		Args:   json.RawMessage(`{"msg":"PRE-TASKS[1]"}`),
+		Type:   taskstest.TaskErr,
 	}
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
 }
@@ -189,27 +185,28 @@ func (s *SelfContext) AddServerPostTaskError(c convey.C) {
 		RuleID: s.ServerRule.ID,
 		Chain:  model.ChainPost,
 		Rank:   1,
-		Type:   taskstest.ServerErr,
-		Args:   json.RawMessage(`{"msg":"POST-TASKS[1]"}`),
+		Type:   taskstest.TaskErr,
 	}
 	c.So(s.DB.Insert(s.fail).Run(), convey.ShouldBeNil)
 }
 
 // RunTransfer executes the test self-transfer in its entirety.
 func (s *SelfContext) RunTransfer(c convey.C) {
-	MakeClientChan(c)
-	MakeServerChan(c)
 	pip, err := pipeline.NewClientPipeline(s.DB, s.ClientTrans)
 	c.So(err, convey.ShouldBeNil)
 
 	pip.Run()
+	s.TasksChecker.WaitClientDone()
+	s.TasksChecker.WaitServerDone()
+	s.shouldNotBeInLists()
 }
 
 func (s *SelfContext) resetTransfer(c convey.C) {
-	c.So(s.DB.DeleteAll(&model.Task{}).Where("type=? OR type=?", taskstest.ClientErr, taskstest.ServerErr).
+	c.So(s.DB.DeleteAll(&model.Task{}).Where("type=?", taskstest.TaskErr).
 		Run(), convey.ShouldBeNil)
 	s.ClientTrans.Status = types.StatusPlanned
 	c.So(s.DB.Update(s.ClientTrans).Cols("status").Run(), convey.ShouldBeNil)
+	s.TasksChecker.Retry()
 }
 
 // TestRetry can be called to test
@@ -308,8 +305,6 @@ func (s *SelfContext) CheckServerTransferOK(c convey.C) {
 // CheckEndTransferOK checks whether both the server & client test transfers
 // finished correctly.
 func (s *SelfContext) CheckEndTransferOK(c convey.C) {
-	s.ShouldBeEndTransfer(c)
-
 	c.Convey("Then the transfers should be over", func(c convey.C) {
 		var results model.HistoryEntries
 		c.So(s.DB.Select(&results).OrderBy("id", true).Run(), convey.ShouldBeNil)
@@ -417,14 +412,6 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 			c.So(actual.TaskNumber, convey.ShouldEqual, 0)
 		}
 	})
-}
-
-// CheckEndTransferError asserts that the transfer (on both sides) should have
-// ended in error.
-func (s *SelfContext) CheckEndTransferError(c convey.C) {
-	s.ShouldBeClientErrorTasks(c)
-	s.ShouldBeServerErrorTasks(c)
-	s.ShouldBeEndTransfer(c)
 }
 
 func (s *SelfContext) shouldNotBeInLists() {

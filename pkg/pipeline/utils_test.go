@@ -1,13 +1,14 @@
 package pipeline
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks/taskstest"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -35,6 +36,14 @@ type testContext struct {
 
 func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
+}
+
+func initTaskChecker() *taskstest.TaskChecker {
+	taskChecker := taskstest.InitTaskChecker()
+	model.ValidTasks[taskstest.TaskOK] = &taskstest.TestTask{TaskChecker: taskChecker}
+	model.ValidTasks[taskstest.TaskErr] = &taskstest.TestTaskError{TaskChecker: taskChecker}
+
+	return taskChecker
 }
 
 func hash(pwd string) []byte {
@@ -209,7 +218,6 @@ var (
 	errPost    = types.NewTransferError(types.TeExternalOperation, "remote post-tasks failed")
 	errEnd     = types.NewTransferError(types.TeFinalization, "remote transfer finalization failed")
 	errChan    = make(chan error, 1)
-	pauseChan  = make(chan bool, 1)
 )
 
 func init() {
@@ -278,9 +286,4 @@ func (t *testProtoClient) EndTransfer() *types.TransferError {
 
 func (t *testProtoClient) SendError(err *types.TransferError) {
 	errChan <- err
-}
-
-func (t *testProtoClient) Pause(context.Context) *types.TransferError {
-	pauseChan <- true
-	return nil
 }
