@@ -6,19 +6,22 @@ import (
 	"net/url"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func certInfoString(c *rest.OutCert) string {
+func certInfoString(c *api.OutCrypto) string {
 	return "● Certificate " + c.Name + "\n" +
-		"    Private key: " + string(c.PrivateKey) + "\n" +
-		"    Public key:  " + string(c.PublicKey) + "\n" +
-		"    Content:     " + string(c.Certificate) + "\n"
+		"    Private key: " + c.PrivateKey + "\n" +
+		"    Public key:  " + c.PublicKey + "\n" +
+		"    Content:     " + c.Certificate + "\n"
 }
 
 func TestGetCertificate(t *testing.T) {
@@ -40,18 +43,16 @@ func TestGetCertificate(t *testing.T) {
 					Name:        "partner",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:1",
+					Address:     "localhost:6666",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				Convey("Given a partner certificate", func() {
-					cert := &model.Cert{
+					cert := &model.Crypto{
 						OwnerType:   partner.TableName(),
 						OwnerID:     partner.ID,
 						Name:        "partner_cert",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -65,14 +66,14 @@ func TestGetCertificate(t *testing.T) {
 							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should display the cert's info", func() {
-								c := rest.FromCert(cert)
+								c := rest.FromCrypto(cert)
 								So(getOutput(), ShouldEqual, certInfoString(c))
 							})
 						})
 					})
 
 					Convey("Given an invalid partner name", func() {
-						commandLine.Partner.Cert.Args.Partner = "toto"
+						commandLine.Partner.Cert.Args.Partner = "tutu"
 						args := []string{cert.Name}
 
 						Convey("When executing the command", func() {
@@ -81,14 +82,14 @@ func TestGetCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "partner 'toto' not found")
+								So(err, ShouldBeError, "partner 'tutu' not found")
 							})
 						})
 					})
 
 					Convey("Given an invalid cert name", func() {
 						commandLine.Partner.Cert.Args.Partner = partner.Name
-						args := []string{"toto"}
+						args := []string{"tutu"}
 
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
@@ -96,7 +97,7 @@ func TestGetCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'toto' not found")
+								So(err, ShouldBeError, "certificate 'tutu' not found")
 							})
 						})
 					})
@@ -105,17 +106,16 @@ func TestGetCertificate(t *testing.T) {
 				Convey("Given an account with a certificate", func() {
 					account := &model.RemoteAccount{
 						RemoteAgentID: partner.ID,
-						Login:         "rem_account",
-						Password:      []byte("password"),
+						Login:         "foo",
+						Password:      "password",
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
-					cert := &model.Cert{
+					cert := &model.Crypto{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						PrivateKey:  testhelpers.ClientKey,
+						Certificate: testhelpers.ClientCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -130,14 +130,14 @@ func TestGetCertificate(t *testing.T) {
 							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should display the cert's info", func() {
-								c := rest.FromCert(cert)
+								c := rest.FromCrypto(cert)
 								So(getOutput(), ShouldEqual, certInfoString(c))
 							})
 						})
 					})
 
 					Convey("Given an invalid partner name", func() {
-						commandLine.Account.Remote.Args.Partner = "toto"
+						commandLine.Account.Remote.Args.Partner = "tutu"
 						commandLine.Account.Remote.Cert.Args.Account = account.Login
 						args := []string{cert.Name}
 
@@ -147,14 +147,14 @@ func TestGetCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "partner 'toto' not found")
+								So(err, ShouldBeError, "partner 'tutu' not found")
 							})
 						})
 					})
 
 					Convey("Given an invalid account name", func() {
 						commandLine.Account.Remote.Args.Partner = partner.Name
-						commandLine.Account.Remote.Cert.Args.Account = "toto"
+						commandLine.Account.Remote.Cert.Args.Account = "tutu"
 						args := []string{cert.Name}
 
 						Convey("When executing the command", func() {
@@ -163,7 +163,7 @@ func TestGetCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "no account 'toto' found for partner "+partner.Name)
+								So(err, ShouldBeError, "no account 'tutu' found for partner "+partner.Name)
 							})
 						})
 					})
@@ -171,7 +171,7 @@ func TestGetCertificate(t *testing.T) {
 					Convey("Given an invalid cert name", func() {
 						commandLine.Account.Remote.Args.Partner = partner.Name
 						commandLine.Account.Remote.Cert.Args.Account = account.Login
-						args := []string{"toto"}
+						args := []string{"tutu"}
 
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
@@ -179,7 +179,7 @@ func TestGetCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'toto' not found")
+								So(err, ShouldBeError, "certificate 'tutu' not found")
 							})
 						})
 					})
@@ -191,18 +191,17 @@ func TestGetCertificate(t *testing.T) {
 					Name:        "server",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:2",
+					Address:     "localhost:6666",
 				}
 				So(db.Insert(server).Run(), ShouldBeNil)
 
 				Convey("Given a server certificate", func() {
-					cert := &model.Cert{
+					cert := &model.Crypto{
 						OwnerType:   server.TableName(),
 						OwnerID:     server.ID,
 						Name:        "server_cert",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						PrivateKey:  testhelpers.LocalhostKey,
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -216,14 +215,14 @@ func TestGetCertificate(t *testing.T) {
 							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should display the cert's info", func() {
-								c := rest.FromCert(cert)
+								c := rest.FromCrypto(cert)
 								So(getOutput(), ShouldEqual, certInfoString(c))
 							})
 						})
 					})
 
 					Convey("Given an invalid server name", func() {
-						commandLine.Server.Cert.Args.Server = "toto"
+						commandLine.Server.Cert.Args.Server = "tutu"
 						args := []string{cert.Name}
 
 						Convey("When executing the command", func() {
@@ -232,14 +231,14 @@ func TestGetCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "server 'toto' not found")
+								So(err, ShouldBeError, "server 'tutu' not found")
 							})
 						})
 					})
 
 					Convey("Given an invalid cert name", func() {
 						commandLine.Server.Cert.Args.Server = server.Name
-						args := []string{"toto"}
+						args := []string{"tutu"}
 
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
@@ -247,7 +246,7 @@ func TestGetCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'toto' not found")
+								So(err, ShouldBeError, "certificate 'tutu' not found")
 							})
 						})
 					})
@@ -256,17 +255,15 @@ func TestGetCertificate(t *testing.T) {
 				Convey("Given an account with a certificate", func() {
 					account := &model.LocalAccount{
 						LocalAgentID: server.ID,
-						Login:        "loc_account",
-						Password:     []byte("password"),
+						Login:        "foo",
+						PasswordHash: hash("password"),
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
-					cert := &model.Cert{
+					cert := &model.Crypto{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						Certificate: testhelpers.ClientCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -281,14 +278,14 @@ func TestGetCertificate(t *testing.T) {
 							So(command.Execute(params), ShouldBeNil)
 
 							Convey("Then it should display the cert's info", func() {
-								c := rest.FromCert(cert)
+								c := rest.FromCrypto(cert)
 								So(getOutput(), ShouldEqual, certInfoString(c))
 							})
 						})
 					})
 
 					Convey("Given an invalid partner name", func() {
-						commandLine.Account.Local.Args.Server = "toto"
+						commandLine.Account.Local.Args.Server = "tutu"
 						commandLine.Account.Local.Cert.Args.Account = account.Login
 						args := []string{cert.Name}
 
@@ -298,14 +295,14 @@ func TestGetCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "server 'toto' not found")
+								So(err, ShouldBeError, "server 'tutu' not found")
 							})
 						})
 					})
 
 					Convey("Given an invalid account name", func() {
 						commandLine.Account.Local.Args.Server = server.Name
-						commandLine.Account.Local.Cert.Args.Account = "toto"
+						commandLine.Account.Local.Cert.Args.Account = "tutu"
 						args := []string{cert.Name}
 
 						Convey("When executing the command", func() {
@@ -314,7 +311,7 @@ func TestGetCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "no account 'toto' found for server "+server.Name)
+								So(err, ShouldBeError, "no account 'tutu' found for server "+server.Name)
 							})
 						})
 					})
@@ -322,7 +319,7 @@ func TestGetCertificate(t *testing.T) {
 					Convey("Given an invalid cert name", func() {
 						commandLine.Account.Local.Args.Server = server.Name
 						commandLine.Account.Local.Cert.Args.Account = account.Login
-						args := []string{"toto"}
+						args := []string{"tutu"}
 
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
@@ -330,7 +327,7 @@ func TestGetCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'toto' not found")
+								So(err, ShouldBeError, "certificate 'tutu' not found")
 							})
 						})
 					})
@@ -342,7 +339,7 @@ func TestGetCertificate(t *testing.T) {
 
 func TestAddCertificate(t *testing.T) {
 
-	Convey("Testing the cert 'add' command", t, func() {
+	Convey("Testing the cert 'add' command", t, func(c C) {
 		out = testFile()
 		command := &certAdd{}
 		commandLine = options{}
@@ -354,16 +351,17 @@ func TestAddCertificate(t *testing.T) {
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
-			pk := writeFile("private_key")
-			pbk := writeFile("public_key")
-			crt := writeFile("certificate")
+			cPk := writeFile(testhelpers.ClientKey)
+			cCrt := writeFile(testhelpers.ClientCert)
+			sPk := writeFile(testhelpers.LocalhostKey)
+			sCrt := writeFile(testhelpers.LocalhostCert)
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:1",
+					Address:     "localhost:6666",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -372,9 +370,7 @@ func TestAddCertificate(t *testing.T) {
 					Convey("Given valid partner & flags", func() {
 						commandLine.Partner.Cert.Args.Partner = partner.Name
 						args := []string{"-n", "partner_cert",
-							"-p", pk.Name(),
-							"-b", pbk.Name(),
-							"-c", crt.Name(),
+							"-c", sCrt.Name(),
 						}
 
 						Convey("When executing the command", func() {
@@ -388,17 +384,15 @@ func TestAddCertificate(t *testing.T) {
 							})
 
 							Convey("Then the new cert should have been added", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 
-								exp := model.Cert{
+								exp := model.Crypto{
 									ID:          1,
 									OwnerType:   partner.TableName(),
 									OwnerID:     partner.ID,
 									Name:        "partner_cert",
-									PrivateKey:  []byte("private_key"),
-									PublicKey:   []byte("public_key"),
-									Certificate: []byte("certificate"),
+									Certificate: testhelpers.LocalhostCert,
 								}
 								So(certs, ShouldContain, exp)
 							})
@@ -406,11 +400,10 @@ func TestAddCertificate(t *testing.T) {
 					})
 
 					Convey("Given an invalid partner", func() {
-						commandLine.Partner.Cert.Args.Partner = "toto"
+						commandLine.Partner.Cert.Args.Partner = "tutu"
 						args := []string{"-n", "partner_cert",
-							"-p", pk.Name(),
-							"-b", pbk.Name(),
-							"-c", crt.Name(),
+							"-p", sPk.Name(),
+							"-c", sCrt.Name(),
 						}
 
 						Convey("When executing the command", func() {
@@ -419,11 +412,11 @@ func TestAddCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then is should return an error", func() {
-								So(err, ShouldBeError, "partner 'toto' not found")
+								So(err, ShouldBeError, "partner 'tutu' not found")
 							})
 
 							Convey("Then the new cert should NOT have been added", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldBeEmpty)
 							})
@@ -434,8 +427,8 @@ func TestAddCertificate(t *testing.T) {
 				Convey("Given a partner account", func() {
 					account := &model.RemoteAccount{
 						RemoteAgentID: partner.ID,
-						Login:         "rem_account",
-						Password:      []byte("password"),
+						Login:         "foo",
+						Password:      "password",
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -445,9 +438,8 @@ func TestAddCertificate(t *testing.T) {
 							commandLine.Account.Remote.Args.Partner = partner.Name
 							commandLine.Account.Remote.Cert.Args.Account = account.Login
 							args := []string{"-n", "account_cert",
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
+								"-p", cPk.Name(),
+								"-c", cCrt.Name(),
 							}
 
 							Convey("When executing the command", func() {
@@ -461,18 +453,17 @@ func TestAddCertificate(t *testing.T) {
 								})
 
 								Convey("Then the new cert should have been added", func() {
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
 
-									exp := model.Cert{
+									exp := model.Crypto{
 										ID:          1,
 										OwnerType:   account.TableName(),
 										OwnerID:     account.ID,
 										Name:        "account_cert",
-										PrivateKey:  []byte("private_key"),
-										PublicKey:   []byte("public_key"),
-										Certificate: []byte("certificate"),
+										PrivateKey:  testhelpers.ClientKey,
+										Certificate: testhelpers.ClientCert,
 									}
 									So(certs, ShouldContain, exp)
 								})
@@ -480,12 +471,11 @@ func TestAddCertificate(t *testing.T) {
 						})
 
 						Convey("Given an invalid partner", func() {
-							commandLine.Account.Remote.Args.Partner = "toto"
+							commandLine.Account.Remote.Args.Partner = "tutu"
 							commandLine.Account.Remote.Cert.Args.Account = account.Login
 							args := []string{"-n", "account_cert",
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
+								"-p", cPk.Name(),
+								"-c", cCrt.Name(),
 							}
 
 							Convey("When executing the command", func() {
@@ -494,11 +484,11 @@ func TestAddCertificate(t *testing.T) {
 								err = command.Execute(params)
 
 								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "partner 'toto' not found")
+									So(err, ShouldBeError, "partner 'tutu' not found")
 								})
 
 								Convey("Then the new cert should NOT have been added", func() {
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldBeEmpty)
 								})
@@ -507,11 +497,10 @@ func TestAddCertificate(t *testing.T) {
 
 						Convey("Given an invalid account", func() {
 							commandLine.Account.Remote.Args.Partner = partner.Name
-							commandLine.Account.Remote.Cert.Args.Account = "toto"
+							commandLine.Account.Remote.Cert.Args.Account = "tutu"
 							args := []string{"-n", "account_cert",
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
+								"-p", cPk.Name(),
+								"-c", cCrt.Name(),
 							}
 
 							Convey("When executing the command", func() {
@@ -520,11 +509,11 @@ func TestAddCertificate(t *testing.T) {
 								err = command.Execute(params)
 
 								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "no account 'toto' found for partner "+partner.Name)
+									So(err, ShouldBeError, "no account 'tutu' found for partner "+partner.Name)
 								})
 
 								Convey("Then the new cert should NOT have been added", func() {
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldBeEmpty)
 								})
@@ -539,7 +528,7 @@ func TestAddCertificate(t *testing.T) {
 					Name:        "server",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:2",
+					Address:     "localhost:6666",
 				}
 				So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -548,9 +537,8 @@ func TestAddCertificate(t *testing.T) {
 					Convey("Given valid server & flags", func() {
 						commandLine.Server.Cert.Args.Server = server.Name
 						args := []string{"-n", "server_cert",
-							"-p", pk.Name(),
-							"-b", pbk.Name(),
-							"-c", crt.Name(),
+							"-p", sPk.Name(),
+							"-c", sCrt.Name(),
 						}
 
 						Convey("When executing the command", func() {
@@ -564,18 +552,17 @@ func TestAddCertificate(t *testing.T) {
 							})
 
 							Convey("Then the new cert should have been added", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 
-								exp := model.Cert{
+								exp := model.Crypto{
 									ID:          1,
 									OwnerType:   server.TableName(),
 									OwnerID:     server.ID,
 									Name:        "server_cert",
-									PrivateKey:  []byte("private_key"),
-									PublicKey:   []byte("public_key"),
-									Certificate: []byte("certificate"),
+									PrivateKey:  testhelpers.LocalhostKey,
+									Certificate: testhelpers.LocalhostCert,
 								}
 								So(certs, ShouldContain, exp)
 							})
@@ -583,11 +570,10 @@ func TestAddCertificate(t *testing.T) {
 					})
 
 					Convey("Given an invalid server", func() {
-						commandLine.Server.Cert.Args.Server = "toto"
+						commandLine.Server.Cert.Args.Server = "tutu"
 						args := []string{"-n", "server_cert",
-							"-p", pk.Name(),
-							"-b", pbk.Name(),
-							"-c", crt.Name(),
+							"-p", sPk.Name(),
+							"-c", sCrt.Name(),
 						}
 
 						Convey("When executing the command", func() {
@@ -596,11 +582,11 @@ func TestAddCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then is should return an error", func() {
-								So(err, ShouldBeError, "server 'toto' not found")
+								So(err, ShouldBeError, "server 'tutu' not found")
 							})
 
 							Convey("Then the new cert should NOT have been added", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldBeEmpty)
 							})
@@ -611,8 +597,8 @@ func TestAddCertificate(t *testing.T) {
 				Convey("Given a server account", func() {
 					account := &model.LocalAccount{
 						LocalAgentID: server.ID,
-						Login:        "loc_account",
-						Password:     []byte("password"),
+						Login:        "foo",
+						PasswordHash: hash("password"),
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -622,9 +608,7 @@ func TestAddCertificate(t *testing.T) {
 							commandLine.Account.Local.Args.Server = server.Name
 							commandLine.Account.Local.Cert.Args.Account = account.Login
 							args := []string{"-n", "account_cert",
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
+								"-c", cCrt.Name(),
 							}
 
 							Convey("When executing the command", func() {
@@ -638,18 +622,16 @@ func TestAddCertificate(t *testing.T) {
 								})
 
 								Convey("Then the new cert should have been added", func() {
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
 
-									exp := model.Cert{
+									exp := model.Crypto{
 										ID:          1,
 										OwnerType:   account.TableName(),
 										OwnerID:     account.ID,
 										Name:        "account_cert",
-										PrivateKey:  []byte("private_key"),
-										PublicKey:   []byte("public_key"),
-										Certificate: []byte("certificate"),
+										Certificate: testhelpers.ClientCert,
 									}
 									So(certs, ShouldContain, exp)
 								})
@@ -657,12 +639,11 @@ func TestAddCertificate(t *testing.T) {
 						})
 
 						Convey("Given an invalid server", func() {
-							commandLine.Account.Local.Args.Server = "toto"
+							commandLine.Account.Local.Args.Server = "tutu"
 							commandLine.Account.Local.Cert.Args.Account = account.Login
 							args := []string{"-n", "account_cert",
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
+								"-p", cPk.Name(),
+								"-c", cCrt.Name(),
 							}
 
 							Convey("When executing the command", func() {
@@ -671,11 +652,11 @@ func TestAddCertificate(t *testing.T) {
 								err = command.Execute(params)
 
 								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "server 'toto' not found")
+									So(err, ShouldBeError, "server 'tutu' not found")
 								})
 
 								Convey("Then the new cert should NOT have been added", func() {
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldBeEmpty)
 								})
@@ -684,11 +665,10 @@ func TestAddCertificate(t *testing.T) {
 
 						Convey("Given an invalid account", func() {
 							commandLine.Account.Local.Args.Server = server.Name
-							commandLine.Account.Local.Cert.Args.Account = "toto"
+							commandLine.Account.Local.Cert.Args.Account = "tutu"
 							args := []string{"-n", "account_cert",
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
+								"-p", cPk.Name(),
+								"-c", cCrt.Name(),
 							}
 
 							Convey("When executing the command", func() {
@@ -697,11 +677,11 @@ func TestAddCertificate(t *testing.T) {
 								err = command.Execute(params)
 
 								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "no account 'toto' found for server "+server.Name)
+									So(err, ShouldBeError, "no account 'tutu' found for server "+server.Name)
 								})
 
 								Convey("Then the new cert should NOT have been added", func() {
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldBeEmpty)
 								})
@@ -733,18 +713,16 @@ func TestDeleteCertificate(t *testing.T) {
 					Name:        "partner",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:1",
+					Address:     "localhost:6666",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				Convey("Given a partner certificate", func() {
-					cert := &model.Cert{
+					cert := &model.Crypto{
 						OwnerType:   partner.TableName(),
 						OwnerID:     partner.ID,
 						Name:        "partner_cert",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -763,7 +741,7 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldBeEmpty)
 							})
@@ -771,7 +749,7 @@ func TestDeleteCertificate(t *testing.T) {
 					})
 
 					Convey("Given an invalid partner name", func() {
-						commandLine.Partner.Cert.Args.Partner = "toto"
+						commandLine.Partner.Cert.Args.Partner = "tutu"
 						args := []string{cert.Name}
 
 						Convey("When executing the command", func() {
@@ -780,11 +758,11 @@ func TestDeleteCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "partner 'toto' not found")
+								So(err, ShouldBeError, "partner 'tutu' not found")
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -794,7 +772,7 @@ func TestDeleteCertificate(t *testing.T) {
 
 					Convey("Given an invalid cert name", func() {
 						commandLine.Partner.Cert.Args.Partner = partner.Name
-						args := []string{"toto"}
+						args := []string{"tutu"}
 
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
@@ -802,11 +780,11 @@ func TestDeleteCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'toto' not found")
+								So(err, ShouldBeError, "certificate 'tutu' not found")
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -818,18 +796,17 @@ func TestDeleteCertificate(t *testing.T) {
 				Convey("Given an account with a certificate", func() {
 					account := &model.RemoteAccount{
 						RemoteAgentID: partner.ID,
-						Login:         "rem_account",
-						Password:      []byte("password"),
+						Login:         "foo",
+						Password:      "password",
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
-					cert := &model.Cert{
+					cert := &model.Crypto{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						PrivateKey:  testhelpers.ClientKey,
+						Certificate: testhelpers.ClientCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -849,7 +826,7 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldBeEmpty)
 							})
@@ -857,7 +834,7 @@ func TestDeleteCertificate(t *testing.T) {
 					})
 
 					Convey("Given an invalid partner name", func() {
-						commandLine.Account.Remote.Args.Partner = "toto"
+						commandLine.Account.Remote.Args.Partner = "tutu"
 						commandLine.Account.Remote.Cert.Args.Account = account.Login
 						args := []string{cert.Name}
 
@@ -867,11 +844,11 @@ func TestDeleteCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "partner 'toto' not found")
+								So(err, ShouldBeError, "partner 'tutu' not found")
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -881,7 +858,7 @@ func TestDeleteCertificate(t *testing.T) {
 
 					Convey("Given an invalid account name", func() {
 						commandLine.Account.Remote.Args.Partner = partner.Name
-						commandLine.Account.Remote.Cert.Args.Account = "toto"
+						commandLine.Account.Remote.Cert.Args.Account = "tutu"
 						args := []string{cert.Name}
 
 						Convey("When executing the command", func() {
@@ -890,11 +867,11 @@ func TestDeleteCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "no account 'toto' found for partner "+partner.Name)
+								So(err, ShouldBeError, "no account 'tutu' found for partner "+partner.Name)
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -905,7 +882,7 @@ func TestDeleteCertificate(t *testing.T) {
 					Convey("Given an invalid cert name", func() {
 						commandLine.Account.Remote.Args.Partner = partner.Name
 						commandLine.Account.Remote.Cert.Args.Account = account.Login
-						args := []string{"toto"}
+						args := []string{"tutu"}
 
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
@@ -913,11 +890,11 @@ func TestDeleteCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'toto' not found")
+								So(err, ShouldBeError, "certificate 'tutu' not found")
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -932,18 +909,17 @@ func TestDeleteCertificate(t *testing.T) {
 					Name:        "server",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:2",
+					Address:     "localhost:6666",
 				}
 				So(db.Insert(server).Run(), ShouldBeNil)
 
 				Convey("Given a server certificate", func() {
-					cert := &model.Cert{
+					cert := &model.Crypto{
 						OwnerType:   server.TableName(),
 						OwnerID:     server.ID,
 						Name:        "server_cert",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						PrivateKey:  testhelpers.LocalhostKey,
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -962,7 +938,7 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldBeEmpty)
 							})
@@ -970,7 +946,7 @@ func TestDeleteCertificate(t *testing.T) {
 					})
 
 					Convey("Given an invalid server name", func() {
-						commandLine.Server.Cert.Args.Server = "toto"
+						commandLine.Server.Cert.Args.Server = "tutu"
 						args := []string{cert.Name}
 
 						Convey("When executing the command", func() {
@@ -979,11 +955,11 @@ func TestDeleteCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "server 'toto' not found")
+								So(err, ShouldBeError, "server 'tutu' not found")
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -993,7 +969,7 @@ func TestDeleteCertificate(t *testing.T) {
 
 					Convey("Given an invalid cert name", func() {
 						commandLine.Server.Cert.Args.Server = server.Name
-						args := []string{"toto"}
+						args := []string{"tutu"}
 
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
@@ -1001,11 +977,11 @@ func TestDeleteCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'toto' not found")
+								So(err, ShouldBeError, "certificate 'tutu' not found")
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -1017,18 +993,16 @@ func TestDeleteCertificate(t *testing.T) {
 				Convey("Given an account with a certificate", func() {
 					account := &model.LocalAccount{
 						LocalAgentID: server.ID,
-						Login:        "loc_account",
-						Password:     []byte("password"),
+						Login:        "foo",
+						PasswordHash: hash("password"),
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
-					cert := &model.Cert{
+					cert := &model.Crypto{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						Certificate: testhelpers.ClientCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -1048,7 +1022,7 @@ func TestDeleteCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldBeEmpty)
 							})
@@ -1056,7 +1030,7 @@ func TestDeleteCertificate(t *testing.T) {
 					})
 
 					Convey("Given an invalid server name", func() {
-						commandLine.Account.Local.Args.Server = "toto"
+						commandLine.Account.Local.Args.Server = "tutu"
 						commandLine.Account.Local.Cert.Args.Account = account.Login
 						args := []string{cert.Name}
 
@@ -1066,11 +1040,11 @@ func TestDeleteCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "server 'toto' not found")
+								So(err, ShouldBeError, "server 'tutu' not found")
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -1080,7 +1054,7 @@ func TestDeleteCertificate(t *testing.T) {
 
 					Convey("Given an invalid account name", func() {
 						commandLine.Account.Local.Args.Server = server.Name
-						commandLine.Account.Local.Cert.Args.Account = "toto"
+						commandLine.Account.Local.Cert.Args.Account = "tutu"
 						args := []string{cert.Name}
 
 						Convey("When executing the command", func() {
@@ -1089,11 +1063,11 @@ func TestDeleteCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "no account 'toto' found for server "+server.Name)
+								So(err, ShouldBeError, "no account 'tutu' found for server "+server.Name)
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -1104,7 +1078,7 @@ func TestDeleteCertificate(t *testing.T) {
 					Convey("Given an invalid cert name", func() {
 						commandLine.Account.Local.Args.Server = server.Name
 						commandLine.Account.Local.Cert.Args.Account = account.Login
-						args := []string{"toto"}
+						args := []string{"tutu"}
 
 						Convey("When executing the command", func() {
 							params, err := flags.ParseArgs(command, args)
@@ -1112,11 +1086,11 @@ func TestDeleteCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "certificate 'toto' not found")
+								So(err, ShouldBeError, "certificate 'tutu' not found")
 							})
 
 							Convey("Then the cert should NOT have been deleted", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -1148,32 +1122,28 @@ func TestListCertificate(t *testing.T) {
 					Name:        "partner",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:1",
+					Address:     "localhost:6666",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				Convey("Given a partner certificate", func() {
-					cert1 := &model.Cert{
+					cert1 := &model.Crypto{
 						OwnerType:   partner.TableName(),
 						OwnerID:     partner.ID,
 						Name:        "partner_cert_1",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert1).Run(), ShouldBeNil)
-					cert2 := &model.Cert{
+					cert2 := &model.Crypto{
 						OwnerType:   partner.TableName(),
 						OwnerID:     partner.ID,
 						Name:        "partner_cert_2",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
-					c1 := rest.FromCert(cert1)
-					c2 := rest.FromCert(cert2)
+					c1 := rest.FromCrypto(cert1)
+					c2 := rest.FromCrypto(cert2)
 
 					Convey("Given no flags", func() {
 						commandLine.Partner.Cert.Args.Partner = partner.Name
@@ -1192,7 +1162,7 @@ func TestListCertificate(t *testing.T) {
 					})
 
 					Convey("Given an invalid partner name", func() {
-						commandLine.Partner.Cert.Args.Partner = "toto"
+						commandLine.Partner.Cert.Args.Partner = "tutu"
 						args := []string{}
 
 						Convey("When executing the command", func() {
@@ -1201,7 +1171,7 @@ func TestListCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "partner 'toto' not found")
+								So(err, ShouldBeError, "partner 'tutu' not found")
 							})
 						})
 					})
@@ -1258,33 +1228,31 @@ func TestListCertificate(t *testing.T) {
 				Convey("Given an account with a certificate", func() {
 					account := &model.RemoteAccount{
 						RemoteAgentID: partner.ID,
-						Login:         "rem_account",
-						Password:      []byte("password"),
+						Login:         "foo",
+						Password:      "password",
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
-					cert1 := &model.Cert{
+					cert1 := &model.Crypto{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert_1",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						PrivateKey:  testhelpers.ClientKey,
+						Certificate: testhelpers.ClientCert,
 					}
 					So(db.Insert(cert1).Run(), ShouldBeNil)
 
-					cert2 := &model.Cert{
+					cert2 := &model.Crypto{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert_2",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						PrivateKey:  testhelpers.ClientKey,
+						Certificate: testhelpers.ClientCert,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
-					c1 := rest.FromCert(cert1)
-					c2 := rest.FromCert(cert2)
+					c1 := rest.FromCrypto(cert1)
+					c2 := rest.FromCrypto(cert2)
 
 					Convey("Given no flags", func() {
 						commandLine.Account.Remote.Args.Partner = partner.Name
@@ -1304,7 +1272,7 @@ func TestListCertificate(t *testing.T) {
 					})
 
 					Convey("Given an invalid partner name", func() {
-						commandLine.Account.Remote.Args.Partner = "toto"
+						commandLine.Account.Remote.Args.Partner = "tutu"
 						commandLine.Account.Remote.Cert.Args.Account = account.Login
 						args := []string{}
 
@@ -1314,14 +1282,14 @@ func TestListCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "partner 'toto' not found")
+								So(err, ShouldBeError, "partner 'tutu' not found")
 							})
 						})
 					})
 
 					Convey("Given an invalid account name", func() {
 						commandLine.Account.Remote.Args.Partner = partner.Name
-						commandLine.Account.Remote.Cert.Args.Account = "toto"
+						commandLine.Account.Remote.Cert.Args.Account = "tutu"
 						args := []string{}
 
 						Convey("When executing the command", func() {
@@ -1330,7 +1298,7 @@ func TestListCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "no account 'toto' found for partner "+partner.Name)
+								So(err, ShouldBeError, "no account 'tutu' found for partner "+partner.Name)
 							})
 						})
 					})
@@ -1393,33 +1361,31 @@ func TestListCertificate(t *testing.T) {
 					Name:        "server",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:2",
+					Address:     "localhost:6666",
 				}
 				So(db.Insert(server).Run(), ShouldBeNil)
 
 				Convey("Given a server certificate", func() {
-					cert1 := &model.Cert{
+					cert1 := &model.Crypto{
 						OwnerType:   server.TableName(),
 						OwnerID:     server.ID,
 						Name:        "server_cert_1",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						PrivateKey:  testhelpers.LocalhostKey,
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert1).Run(), ShouldBeNil)
 
-					cert2 := &model.Cert{
+					cert2 := &model.Crypto{
 						OwnerType:   server.TableName(),
 						OwnerID:     server.ID,
 						Name:        "server_cert_2",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						PrivateKey:  testhelpers.LocalhostKey,
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
-					c1 := rest.FromCert(cert1)
-					c2 := rest.FromCert(cert2)
+					c1 := rest.FromCrypto(cert1)
+					c2 := rest.FromCrypto(cert2)
 
 					Convey("Given no flags", func() {
 						commandLine.Server.Cert.Args.Server = server.Name
@@ -1438,7 +1404,7 @@ func TestListCertificate(t *testing.T) {
 					})
 
 					Convey("Given an invalid server name", func() {
-						commandLine.Server.Cert.Args.Server = "toto"
+						commandLine.Server.Cert.Args.Server = "tutu"
 						args := []string{}
 
 						Convey("When executing the command", func() {
@@ -1447,7 +1413,7 @@ func TestListCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "server 'toto' not found")
+								So(err, ShouldBeError, "server 'tutu' not found")
 							})
 						})
 					})
@@ -1504,33 +1470,29 @@ func TestListCertificate(t *testing.T) {
 				Convey("Given an account with a certificate", func() {
 					account := &model.LocalAccount{
 						LocalAgentID: server.ID,
-						Login:        "loc_account",
-						Password:     []byte("password"),
+						Login:        "foo",
+						PasswordHash: hash("password"),
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
-					cert1 := &model.Cert{
+					cert1 := &model.Crypto{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert_1",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						Certificate: testhelpers.ClientCert,
 					}
 					So(db.Insert(cert1).Run(), ShouldBeNil)
 
-					cert2 := &model.Cert{
+					cert2 := &model.Crypto{
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert_2",
-						PrivateKey:  []byte("pk"),
-						PublicKey:   []byte("pbk"),
-						Certificate: []byte("cert"),
+						Certificate: testhelpers.ClientCert,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
-					c1 := rest.FromCert(cert1)
-					c2 := rest.FromCert(cert2)
+					c1 := rest.FromCrypto(cert1)
+					c2 := rest.FromCrypto(cert2)
 
 					Convey("Given no flags", func() {
 						commandLine.Account.Local.Args.Server = server.Name
@@ -1550,7 +1512,7 @@ func TestListCertificate(t *testing.T) {
 					})
 
 					Convey("Given an invalid server name", func() {
-						commandLine.Account.Local.Args.Server = "toto"
+						commandLine.Account.Local.Args.Server = "tutu"
 						commandLine.Account.Local.Cert.Args.Account = account.Login
 						args := []string{}
 
@@ -1560,14 +1522,14 @@ func TestListCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "server 'toto' not found")
+								So(err, ShouldBeError, "server 'tutu' not found")
 							})
 						})
 					})
 
 					Convey("Given an invalid account name", func() {
 						commandLine.Account.Local.Args.Server = server.Name
-						commandLine.Account.Local.Cert.Args.Account = "toto"
+						commandLine.Account.Local.Cert.Args.Account = "tutu"
 						args := []string{}
 
 						Convey("When executing the command", func() {
@@ -1576,7 +1538,7 @@ func TestListCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then it should return an error", func() {
-								So(err, ShouldBeError, "no account 'toto' found for server "+server.Name)
+								So(err, ShouldBeError, "no account 'tutu' found for server "+server.Name)
 							})
 						})
 					})
@@ -1651,36 +1613,33 @@ func TestUpdateCertificate(t *testing.T) {
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
-			pk := writeFile("new_private_key")
-			pbk := writeFile("new_public_key")
-			crt := writeFile("new_certificate")
+			cPk := writeFile(testhelpers.ClientKey)
+			cCrt := writeFile(testhelpers.ClientCert)
+			sPk := writeFile(testhelpers.LocalhostKey)
+			sCrt := writeFile(testhelpers.LocalhostCert)
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:1",
+					Address:     "localhost:6666",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
 				Convey("When updating the certificate", func() {
-					cert := &model.Cert{
+					cert := &model.Crypto{
 						OwnerType:   partner.TableName(),
 						OwnerID:     partner.ID,
 						Name:        "partner_cert",
-						PrivateKey:  []byte("private_key"),
-						PublicKey:   []byte("public_key"),
-						Certificate: []byte("certificate"),
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
 					Convey("Given valid partner, certificate & flags", func() {
 						commandLine.Partner.Cert.Args.Partner = partner.Name
 						args := []string{
-							"-p", pk.Name(),
-							"-b", pbk.Name(),
-							"-c", crt.Name(),
+							"-c", sCrt.Name(),
 							cert.Name,
 						}
 
@@ -1696,16 +1655,14 @@ func TestUpdateCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should have been updated", func() {
-								check := model.Cert{
+								check := model.Crypto{
 									ID:          cert.ID,
 									OwnerType:   partner.TableName(),
 									OwnerID:     partner.ID,
 									Name:        "partner_cert",
-									PrivateKey:  []byte("new_private_key"),
-									PublicKey:   []byte("new_public_key"),
-									Certificate: []byte("new_certificate"),
+									Certificate: testhelpers.LocalhostCert,
 								}
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, check)
@@ -1714,11 +1671,10 @@ func TestUpdateCertificate(t *testing.T) {
 					})
 
 					Convey("Given an invalid partner name", func() {
-						commandLine.Partner.Cert.Args.Partner = "toto"
+						commandLine.Partner.Cert.Args.Partner = "tutu"
 						args := []string{"-n", "partner_cert",
-							"-p", pk.Name(),
-							"-b", pbk.Name(),
-							"-c", crt.Name(),
+							"-p", sPk.Name(),
+							"-c", sCrt.Name(),
 							cert.Name,
 						}
 
@@ -1728,11 +1684,11 @@ func TestUpdateCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then is should return an error", func() {
-								So(err, ShouldBeError, "partner 'toto' not found")
+								So(err, ShouldBeError, "partner 'tutu' not found")
 							})
 
 							Convey("Then the new cert should NOT have been changed", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -1743,10 +1699,9 @@ func TestUpdateCertificate(t *testing.T) {
 					Convey("Given an invalid certificate name", func() {
 						commandLine.Partner.Cert.Args.Partner = partner.Name
 						args := []string{"-n", "partner_cert",
-							"-p", pk.Name(),
-							"-b", pbk.Name(),
-							"-c", crt.Name(),
-							"toto",
+							"-p", sPk.Name(),
+							"-c", sCrt.Name(),
+							"tutu",
 						}
 
 						Convey("When executing the command", func() {
@@ -1755,11 +1710,11 @@ func TestUpdateCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then is should return an error", func() {
-								So(err, ShouldBeError, "certificate 'toto' not found")
+								So(err, ShouldBeError, "certificate 'tutu' not found")
 							})
 
 							Convey("Then the new cert should NOT have been changed", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -1771,19 +1726,18 @@ func TestUpdateCertificate(t *testing.T) {
 				Convey("Given a partner account", func() {
 					account := &model.RemoteAccount{
 						RemoteAgentID: partner.ID,
-						Login:         "rem_account",
-						Password:      []byte("password"),
+						Login:         "foo",
+						Password:      "password",
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
 					Convey("When updating the certificate", func() {
-						cert := &model.Cert{
+						cert := &model.Crypto{
 							OwnerType:   account.TableName(),
 							OwnerID:     account.ID,
 							Name:        "account_cert",
-							PrivateKey:  []byte("private_key"),
-							PublicKey:   []byte("public_key"),
-							Certificate: []byte("certificate"),
+							PrivateKey:  testhelpers.ClientKey,
+							Certificate: testhelpers.ClientCert,
 						}
 						So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -1791,9 +1745,8 @@ func TestUpdateCertificate(t *testing.T) {
 							commandLine.Account.Remote.Args.Partner = partner.Name
 							commandLine.Account.Remote.Cert.Args.Account = account.Login
 							args := []string{
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
+								"-p", cPk.Name(),
+								"-c", cCrt.Name(),
 								cert.Name,
 							}
 
@@ -1809,16 +1762,15 @@ func TestUpdateCertificate(t *testing.T) {
 								})
 
 								Convey("Then the cert should have been updated", func() {
-									check := model.Cert{
+									check := model.Crypto{
 										ID:          cert.ID,
 										OwnerType:   account.TableName(),
 										OwnerID:     account.ID,
 										Name:        "account_cert",
-										PrivateKey:  []byte("new_private_key"),
-										PublicKey:   []byte("new_public_key"),
-										Certificate: []byte("new_certificate"),
+										PrivateKey:  testhelpers.ClientKey,
+										Certificate: testhelpers.ClientCert,
 									}
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
 									So(certs, ShouldContain, check)
@@ -1827,12 +1779,11 @@ func TestUpdateCertificate(t *testing.T) {
 						})
 
 						Convey("Given an invalid partner name", func() {
-							commandLine.Account.Remote.Args.Partner = "toto"
+							commandLine.Account.Remote.Args.Partner = "tutu"
 							commandLine.Account.Remote.Cert.Args.Account = account.Login
 							args := []string{
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
+								"-p", cPk.Name(),
+								"-c", cCrt.Name(),
 								cert.Name,
 							}
 
@@ -1842,11 +1793,11 @@ func TestUpdateCertificate(t *testing.T) {
 								err = command.Execute(params)
 
 								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "partner 'toto' not found")
+									So(err, ShouldBeError, "partner 'tutu' not found")
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
 									So(certs, ShouldContain, *cert)
@@ -1856,11 +1807,10 @@ func TestUpdateCertificate(t *testing.T) {
 
 						Convey("Given an invalid account name", func() {
 							commandLine.Account.Remote.Args.Partner = partner.Name
-							commandLine.Account.Remote.Cert.Args.Account = "toto"
+							commandLine.Account.Remote.Cert.Args.Account = "tutu"
 							args := []string{
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
+								"-p", cPk.Name(),
+								"-c", cCrt.Name(),
 								cert.Name,
 							}
 
@@ -1870,12 +1820,12 @@ func TestUpdateCertificate(t *testing.T) {
 								err = command.Execute(params)
 
 								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "no account 'toto' "+
+									So(err, ShouldBeError, "no account 'tutu' "+
 										"found for partner "+partner.Name)
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
 									So(certs, ShouldContain, *cert)
@@ -1887,10 +1837,9 @@ func TestUpdateCertificate(t *testing.T) {
 							commandLine.Account.Remote.Args.Partner = partner.Name
 							commandLine.Account.Remote.Cert.Args.Account = account.Login
 							args := []string{
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
-								"toto",
+								"-p", cPk.Name(),
+								"-c", cCrt.Name(),
+								"tutu",
 							}
 
 							Convey("When executing the command", func() {
@@ -1899,11 +1848,11 @@ func TestUpdateCertificate(t *testing.T) {
 								err = command.Execute(params)
 
 								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "certificate 'toto' not found")
+									So(err, ShouldBeError, "certificate 'tutu' not found")
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
 									So(certs, ShouldContain, *cert)
@@ -1919,27 +1868,25 @@ func TestUpdateCertificate(t *testing.T) {
 					Name:        "server",
 					Protocol:    "test",
 					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:2",
+					Address:     "localhost:6666",
 				}
 				So(db.Insert(server).Run(), ShouldBeNil)
 
 				Convey("When updating the certificate", func() {
-					cert := &model.Cert{
+					cert := &model.Crypto{
 						OwnerType:   server.TableName(),
 						OwnerID:     server.ID,
 						Name:        "server_cert",
-						PrivateKey:  []byte("private_key"),
-						PublicKey:   []byte("public_key"),
-						Certificate: []byte("certificate"),
+						PrivateKey:  testhelpers.LocalhostKey,
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
 					Convey("Given valid server, certificate & flags", func() {
 						commandLine.Server.Cert.Args.Server = server.Name
 						args := []string{
-							"-p", pk.Name(),
-							"-b", pbk.Name(),
-							"-c", crt.Name(),
+							"-p", sPk.Name(),
+							"-c", sCrt.Name(),
 							cert.Name,
 						}
 
@@ -1955,16 +1902,15 @@ func TestUpdateCertificate(t *testing.T) {
 							})
 
 							Convey("Then the cert should have been updated", func() {
-								check := model.Cert{
+								check := model.Crypto{
 									ID:          cert.ID,
 									OwnerType:   server.TableName(),
 									OwnerID:     server.ID,
 									Name:        "server_cert",
-									PrivateKey:  []byte("new_private_key"),
-									PublicKey:   []byte("new_public_key"),
-									Certificate: []byte("new_certificate"),
+									PrivateKey:  testhelpers.LocalhostKey,
+									Certificate: testhelpers.LocalhostCert,
 								}
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, check)
@@ -1973,11 +1919,10 @@ func TestUpdateCertificate(t *testing.T) {
 					})
 
 					Convey("Given an invalid server name", func() {
-						commandLine.Server.Cert.Args.Server = "toto"
+						commandLine.Server.Cert.Args.Server = "tutu"
 						args := []string{
-							"-p", pk.Name(),
-							"-b", pbk.Name(),
-							"-c", crt.Name(),
+							"-p", sPk.Name(),
+							"-c", sCrt.Name(),
 							cert.Name,
 						}
 
@@ -1987,11 +1932,11 @@ func TestUpdateCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then is should return an error", func() {
-								So(err, ShouldBeError, "server 'toto' not found")
+								So(err, ShouldBeError, "server 'tutu' not found")
 							})
 
 							Convey("Then the new cert should NOT have been changed", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -2002,10 +1947,9 @@ func TestUpdateCertificate(t *testing.T) {
 					Convey("Given an invalid certificate name", func() {
 						commandLine.Server.Cert.Args.Server = server.Name
 						args := []string{
-							"-p", pk.Name(),
-							"-b", pbk.Name(),
-							"-c", crt.Name(),
-							"toto",
+							"-p", sPk.Name(),
+							"-c", sCrt.Name(),
+							"tutu",
 						}
 
 						Convey("When executing the command", func() {
@@ -2014,11 +1958,11 @@ func TestUpdateCertificate(t *testing.T) {
 							err = command.Execute(params)
 
 							Convey("Then is should return an error", func() {
-								So(err, ShouldBeError, "certificate 'toto' not found")
+								So(err, ShouldBeError, "certificate 'tutu' not found")
 							})
 
 							Convey("Then the new cert should NOT have been changed", func() {
-								var certs model.Certificates
+								var certs model.Cryptos
 								So(db.Select(&certs).Run(), ShouldBeNil)
 								So(certs, ShouldNotBeEmpty)
 								So(certs, ShouldContain, *cert)
@@ -2030,19 +1974,17 @@ func TestUpdateCertificate(t *testing.T) {
 				Convey("Given a server account", func() {
 					account := &model.LocalAccount{
 						LocalAgentID: server.ID,
-						Login:        "loc_account",
-						Password:     []byte("password"),
+						Login:        "foo",
+						PasswordHash: hash("password"),
 					}
 					So(db.Insert(account).Run(), ShouldBeNil)
 
 					Convey("When updating the certificate", func() {
-						cert := &model.Cert{
+						cert := &model.Crypto{
 							OwnerType:   account.TableName(),
 							OwnerID:     account.ID,
 							Name:        "account_cert",
-							PrivateKey:  []byte("private_key"),
-							PublicKey:   []byte("public_key"),
-							Certificate: []byte("certificate"),
+							Certificate: testhelpers.ClientCert,
 						}
 						So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -2050,9 +1992,7 @@ func TestUpdateCertificate(t *testing.T) {
 							commandLine.Account.Local.Args.Server = server.Name
 							commandLine.Account.Local.Cert.Args.Account = account.Login
 							args := []string{
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
+								"-c", cCrt.Name(),
 								cert.Name,
 							}
 
@@ -2068,16 +2008,14 @@ func TestUpdateCertificate(t *testing.T) {
 								})
 
 								Convey("Then the cert should have been updated", func() {
-									check := model.Cert{
+									check := model.Crypto{
 										ID:          cert.ID,
 										OwnerType:   account.TableName(),
 										OwnerID:     account.ID,
 										Name:        "account_cert",
-										PrivateKey:  []byte("new_private_key"),
-										PublicKey:   []byte("new_public_key"),
-										Certificate: []byte("new_certificate"),
+										Certificate: testhelpers.ClientCert,
 									}
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
 									So(certs, ShouldContain, check)
@@ -2086,12 +2024,11 @@ func TestUpdateCertificate(t *testing.T) {
 						})
 
 						Convey("Given an invalid server name", func() {
-							commandLine.Account.Local.Args.Server = "toto"
+							commandLine.Account.Local.Args.Server = "tutu"
 							commandLine.Account.Local.Cert.Args.Account = account.Login
 							args := []string{
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
+								"-p", cPk.Name(),
+								"-c", cCrt.Name(),
 								cert.Name,
 							}
 
@@ -2101,11 +2038,11 @@ func TestUpdateCertificate(t *testing.T) {
 								err = command.Execute(params)
 
 								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "server 'toto' not found")
+									So(err, ShouldBeError, "server 'tutu' not found")
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
 									So(certs, ShouldContain, *cert)
@@ -2115,11 +2052,10 @@ func TestUpdateCertificate(t *testing.T) {
 
 						Convey("Given an invalid account name", func() {
 							commandLine.Account.Local.Args.Server = server.Name
-							commandLine.Account.Local.Cert.Args.Account = "toto"
+							commandLine.Account.Local.Cert.Args.Account = "tutu"
 							args := []string{
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
+								"-p", cPk.Name(),
+								"-c", cCrt.Name(),
 								cert.Name,
 							}
 
@@ -2129,12 +2065,12 @@ func TestUpdateCertificate(t *testing.T) {
 								err = command.Execute(params)
 
 								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "no account 'toto' "+
+									So(err, ShouldBeError, "no account 'tutu' "+
 										"found for server "+server.Name)
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
 									So(certs, ShouldContain, *cert)
@@ -2146,10 +2082,9 @@ func TestUpdateCertificate(t *testing.T) {
 							commandLine.Account.Local.Args.Server = server.Name
 							commandLine.Account.Local.Cert.Args.Account = account.Login
 							args := []string{
-								"-p", pk.Name(),
-								"-b", pbk.Name(),
-								"-c", crt.Name(),
-								"toto",
+								"-p", cPk.Name(),
+								"-c", cCrt.Name(),
+								"tutu",
 							}
 
 							Convey("When executing the command", func() {
@@ -2158,11 +2093,11 @@ func TestUpdateCertificate(t *testing.T) {
 								err = command.Execute(params)
 
 								Convey("Then is should return an error", func() {
-									So(err, ShouldBeError, "certificate 'toto' not found")
+									So(err, ShouldBeError, "certificate 'tutu' not found")
 								})
 
 								Convey("Then the cert should NOT have been updated", func() {
-									var certs model.Certificates
+									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
 									So(certs, ShouldNotBeEmpty)
 									So(certs, ShouldContain, *cert)

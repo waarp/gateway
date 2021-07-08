@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 
@@ -9,8 +10,8 @@ import (
 )
 
 var (
-	in          = os.Stdin
-	out         = os.Stdout
+	in          io.Reader = os.Stdin
+	out         io.Writer = os.Stdout
 	commandLine options
 	addr        *url.URL
 )

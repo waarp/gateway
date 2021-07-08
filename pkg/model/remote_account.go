@@ -2,7 +2,7 @@ package model
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 )
 
 func init() {
@@ -23,12 +23,12 @@ type RemoteAccount struct {
 	Login string `xorm:"unique(rem_ac) notnull 'login'"`
 
 	// The account's password
-	Password []byte `xorm:"'password'"`
+	Password types.CypherText `xorm:"text 'password'"`
 }
 
 // TableName returns the remote accounts table name.
 func (*RemoteAccount) TableName() string {
-	return "remote_accounts"
+	return TableRemAccounts
 }
 
 // Appellation returns the name of 1 element of the remote accounts table.
@@ -51,9 +51,6 @@ func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	if r.Login == "" {
 		return database.NewValidationError("the account's login cannot be empty")
 	}
-	if len(r.Password) == 0 {
-		return database.NewValidationError("The account's password cannot be empty")
-	}
 
 	n, err := db.Count(&RemoteAgent{}).Where("id=?", r.RemoteAgentID).Run()
 	if err != nil {
@@ -72,11 +69,6 @@ func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
 			"a remote account with the same login '%s' already exist", r.Login)
 	}
 
-	var pErr error
-	if r.Password, pErr = utils.CryptPassword(r.Password); pErr != nil {
-		db.GetLogger().Errorf("Failed to encrypt the remote agent password: %s", pErr)
-		return database.NewInternalError(pErr)
-	}
 	return nil
 }
 
@@ -93,14 +85,14 @@ func (r *RemoteAccount) BeforeDelete(db database.Access) database.Error {
 			"for it to finish")
 	}
 
-	certQuery := db.DeleteAll(&Cert{}).Where(
-		"owner_type='remote_accounts' AND owner_id=?", r.ID)
+	certQuery := db.DeleteAll(&Crypto{}).Where(
+		"owner_type=? AND owner_id=?", TableRemAccounts, r.ID)
 	if err := certQuery.Run(); err != nil {
 		return err
 	}
 
 	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
-		"object_type='remote_accounts' AND object_id=?", r.ID)
+		"object_type=? AND object_id=?", TableRemAccounts, r.ID)
 	if err := accessQuery.Run(); err != nil {
 		return err
 	}
@@ -108,7 +100,7 @@ func (r *RemoteAccount) BeforeDelete(db database.Access) database.Error {
 	return nil
 }
 
-// GetCerts fetch in the database then return the associated Certificates if they exist
-func (r *RemoteAccount) GetCerts(db database.ReadAccess) ([]Cert, database.Error) {
-	return GetCerts(db, r)
+// GetCryptos fetch in the database then return the associated Cryptos if they exist
+func (r *RemoteAccount) GetCryptos(db database.ReadAccess) ([]Crypto, database.Error) {
+	return GetCryptos(db, r)
 }

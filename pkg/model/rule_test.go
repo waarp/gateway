@@ -16,7 +16,7 @@ func TestRuleTableName(t *testing.T) {
 			name := rule.TableName()
 
 			Convey("Then it should return the name of the rule table", func() {
-				So(name, ShouldEqual, "rules")
+				So(name, ShouldEqual, TableRules)
 			})
 		})
 
@@ -124,12 +124,12 @@ func TestRuleBeforeDelete(t *testing.T) {
 
 			server := LocalAgent{
 				Name:        "server",
-				Protocol:    "dummy",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
 			So(db.Insert(&server).Run(), ShouldBeNil)
-			account := LocalAccount{LocalAgentID: server.ID, Login: "toto", Password: []byte("password")}
+			account := LocalAccount{LocalAgentID: server.ID, Login: "toto", PasswordHash: hash("password")}
 			So(db.Insert(&account).Run(), ShouldBeNil)
 
 			a1 := RuleAccess{RuleID: rule.ID, ObjectID: server.ID, ObjectType: server.TableName()}

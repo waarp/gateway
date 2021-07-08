@@ -4,25 +4,27 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestCertTableName(t *testing.T) {
-	Convey("Given a `Cert` instance", t, func() {
-		agent := &Cert{}
+func TestCryptoTableName(t *testing.T) {
+	Convey("Given a `Crypto` instance", t, func() {
+		agent := &Crypto{}
 
 		Convey("When calling the 'TableName' method", func() {
 			name := agent.TableName()
 
 			Convey("Then it should return the name of the certificates table", func() {
-				So(name, ShouldEqual, "certificates")
+				So(name, ShouldEqual, TableCrypto)
 			})
 		})
 	})
 }
 
-func TestCertBeforeWrite(t *testing.T) {
+func TestCryptoBeforeWrite(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
@@ -30,20 +32,19 @@ func TestCertBeforeWrite(t *testing.T) {
 			parentAgent := &LocalAgent{
 				Owner:       "test_gateway",
 				Name:        "parent",
-				Protocol:    "sftp",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:21",
+				Address:     "localhost:6666",
 			}
 			So(db.Insert(parentAgent).Run(), ShouldBeNil)
 
-			Convey("Given a new certificate", func() {
-				newCert := &Cert{
-					OwnerType:   "local_agents",
+			Convey("Given new credentials", func() {
+				newCert := &Crypto{
+					OwnerType:   TableLocAgents,
 					OwnerID:     parentAgent.ID,
 					Name:        "cert",
-					PrivateKey:  []byte("private key"),
-					PublicKey:   []byte("public key"),
-					Certificate: []byte("content"),
+					PrivateKey:  testhelpers.LocalhostKey,
+					Certificate: testhelpers.LocalhostCert,
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -62,87 +63,79 @@ func TestCertBeforeWrite(t *testing.T) {
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
+
 						})
 					})
 				})
 
-				Convey("Given that the new certificate is missing an owner type", func() {
+				Convey("Given that the new credentials are missing an owner type", func() {
 					newCert.OwnerType = ""
 					shouldFailWith("the owner type is missing", database.NewValidationError(
-						"the certificate's owner type is missing"))
+						"the credentials' owner type is missing"))
 				})
 
-				Convey("Given that the new certificate is missing an owner ID", func() {
+				Convey("Given that the new credentials are missing an owner ID", func() {
 					newCert.OwnerID = 0
 					shouldFailWith("the owner ID is missing", database.NewValidationError(
-						"the certificate's owner ID is missing"))
+						"the credentials' owner ID is missing"))
 				})
 
-				Convey("Given that the new certificate is missing a name", func() {
+				Convey("Given that the new credentials are missing a name", func() {
 					newCert.Name = ""
 					shouldFailWith("the name is missing", database.NewValidationError(
-						"the certificate's name cannot be empty"))
+						"the credentials' name cannot be empty"))
 				})
 
-				Convey("Given that the new certificate is missing a private key", func() {
-					newCert.PrivateKey = nil
-					shouldFailWith("the public key is missing", database.NewValidationError(
-						"the certificate's private key is missing"))
+				Convey("Given that the new credentials are missing a private key", func() {
+					newCert.PrivateKey = ""
+					shouldFailWith("the private key is missing", database.NewValidationError(
+						"the server is missing a private key"))
 				})
 
-				Convey("Given that the new certificate is missing a public key", func() {
-					newCert.OwnerType = "remote_agents"
-					newCert.PublicKey = nil
-					shouldFailWith("the public key is missing", database.NewValidationError(
-						"the certificate's public key is missing"))
-				})
-
-				Convey("Given that the new certificate has an invalid owner type", func() {
+				Convey("Given that the new credentials have an invalid owner type", func() {
 					newCert.OwnerType = "incorrect"
 					shouldFailWith("the owner type is invalid", database.NewValidationError(
-						"the certificate's owner type must be one of %s", validOwnerTypes))
+						"the credentials' owner type must be one of %s", validOwnerTypes))
 				})
 
-				Convey("Given that the new certificate has an invalid owner ID", func() {
+				Convey("Given that the new credentials have an invalid owner ID", func() {
 					newCert.OwnerID = 1000
 					shouldFailWith("the owner ID is invalid", database.NewValidationError(
-						"no local_agents found with ID '1000'"))
+						"no server found with ID '1000'"))
 				})
 
-				Convey("Given that the new certificate's name is already taken", func() {
-					otherCert := &Cert{
-						OwnerType:   "local_agents",
+				Convey("Given that the new credentials' name is already taken", func() {
+					otherCert := &Crypto{
+						OwnerType:   TableLocAgents,
 						OwnerID:     parentAgent.ID,
 						Name:        "other",
-						PrivateKey:  []byte("private key"),
-						PublicKey:   []byte("public key"),
-						Certificate: []byte("content"),
+						PrivateKey:  testhelpers.LocalhostKey,
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(otherCert).Run(), ShouldBeNil)
 					newCert.Name = otherCert.Name
 					shouldFailWith("the name is taken", database.NewValidationError(
-						"a certificate with the same name '%s' already exist",
+						"credentials with the same name '%s' already exist",
 						newCert.Name))
 				})
 
-				Convey("Given that the new certificate's name is already taken "+
+				Convey("Given that the new credentials' name is already taken "+
 					"but the owner is different", func() {
 					otherAgent := &LocalAgent{
 						Owner:       "test_gateway",
 						Name:        "other",
-						Protocol:    "sftp",
+						Protocol:    dummyProto,
 						ProtoConfig: json.RawMessage(`{}`),
-						Address:     "localhost:22",
+						Address:     "localhost:6666",
 					}
 					So(db.Insert(otherAgent).Run(), ShouldBeNil)
 
-					otherCert := &Cert{
-						OwnerType:   "local_agents",
+					otherCert := &Crypto{
+						OwnerType:   TableLocAgents,
 						OwnerID:     parentAgent.ID,
 						Name:        "other",
-						PrivateKey:  []byte("private key"),
-						PublicKey:   []byte("public key"),
-						Certificate: []byte("content"),
+						PrivateKey:  testhelpers.LocalhostKey,
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(otherCert).Run(), ShouldBeNil)
 
@@ -156,6 +149,13 @@ func TestCertBeforeWrite(t *testing.T) {
 							So(err, ShouldBeNil)
 						})
 					})
+				})
+
+				Convey("Given that the certificate is not valid for the host", func() {
+					parentAgent.Address = "localhost:1"
+					So(db.Update(parentAgent).Cols("address").Run(), ShouldBeNil)
+					shouldFailWith("the certificate host is incorrect", database.NewValidationError(
+						"the certificate is not valid for host 'localhost:1'"))
 				})
 			})
 		})

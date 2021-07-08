@@ -29,4 +29,4 @@ Affiche les informations des certificats du serveur suivant les critères donné
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 server cert serveur_sftp list -l 10 -o 5 -s name-
+   waarp-gateway http://user:password@localhost:8080 server cert gw_r66 list -l 10 -o 5 -s name-

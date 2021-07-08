@@ -21,7 +21,7 @@ func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent
 			return nil, err
 		}
 
-		certificates, err := exportCertificates(logger, db, "local_agents", src.ID)
+		certificates, err := exportCertificates(logger, db, model.TableLocAgents, src.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -56,16 +56,16 @@ func exportLocalAccounts(logger *log.Logger, db database.ReadAccess,
 
 	for i, src := range dbAccounts {
 
-		certificates, err := exportCertificates(logger, db, "local_accounts", src.ID)
+		certificates, err := exportCertificates(logger, db, model.TableLocAccounts, src.ID)
 		if err != nil {
 			return nil, err
 		}
 
 		logger.Infof("Export local account %s\n", src.Login)
 		res[i] = file.LocalAccount{
-			Login:    src.Login,
-			Password: string(src.Password),
-			Certs:    certificates,
+			Login:        src.Login,
+			PasswordHash: string(src.PasswordHash),
+			Certs:        certificates,
 		}
 	}
 

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -92,11 +91,37 @@ func TestDisplayHistory(t *testing.T) {
 			displayHistory(w, hist)
 
 			Convey("Then it should display the entry's info correctly", func() {
-				_, err := out.Seek(0, 0)
-				So(err, ShouldBeNil)
-				cont, err := ioutil.ReadAll(out)
-				So(err, ShouldBeNil)
-				So(string(cont), ShouldEqual, historyInfoString(hist))
+				So(getOutput(), ShouldEqual, historyInfoString(hist))
+			})
+		})
+	})
+
+	Convey("Given a history entry with error", t, func() {
+		out = testFile()
+
+		stopTime := time.Now().Add(time.Hour)
+		hist := api.OutHistory{
+			ID:             1,
+			IsServer:       true,
+			IsSend:         false,
+			Rule:           "rule",
+			Requester:      "source",
+			Requested:      "destination",
+			Protocol:       "sftp",
+			SourceFilename: "file/path",
+			DestFilename:   "file/path",
+			Start:          time.Now(),
+			Stop:           &stopTime,
+			Status:         types.StatusPlanned,
+			ErrorCode:      types.TeConnectionReset,
+			ErrorMsg:       "connexion reset by peer",
+		}
+		Convey("When calling the `displayHistory` function", func() {
+			w := getColorable()
+			displayHistory(w, &hist)
+
+			Convey("Then it should display the entry's info correctly", func() {
+				So(getOutput(), ShouldEqual, historyInfoString(&hist))
 			})
 		})
 	})
@@ -470,18 +495,9 @@ func TestRetryHistory(t *testing.T) {
 				}
 				So(db.Insert(part).Run(), ShouldBeNil)
 
-				cert := &model.Cert{
-					Name:        "test",
-					PublicKey:   []byte("test"),
-					Certificate: []byte("test"),
-					OwnerType:   "remote_agents",
-					OwnerID:     part.ID,
-				}
-				So(db.Insert(cert).Run(), ShouldBeNil)
-
 				acc := &model.RemoteAccount{
 					Login:         "login",
-					Password:      []byte("password"),
+					Password:      "password",
 					RemoteAgentID: part.ID,
 				}
 				So(db.Insert(acc).Run(), ShouldBeNil)

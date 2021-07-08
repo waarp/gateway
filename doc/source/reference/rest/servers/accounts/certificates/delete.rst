@@ -9,7 +9,7 @@ Supprimer un certificat
 
    :statuscode 204: Le certificat a été supprimé avec succès
    :statuscode 401: Authentification d'utilisateur invalide
-   :statuscode 404: Le serveur, le compte ou le certificat demandés n'existent pas
+   :statuscode 404: Le partenaire, le compte ou le certificat demandés n'existent pas
 
 
    |
@@ -18,7 +18,7 @@ Supprimer un certificat
 
       .. code-block:: http
 
-         DELETE https://my_waarp_gateway.net/api/servers/serveur_sftp/accounts/toto/certificates/certificat_toto HTTP/1.1
+         DELETE https://my_waarp_gateway.net/api/servers/gw_r66/accounts/toto/certificates/certificat_toto HTTP/1.1
          Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
 
    **Exemple de réponse**

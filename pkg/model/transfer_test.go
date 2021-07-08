@@ -19,7 +19,7 @@ func TestTransferTableName(t *testing.T) {
 			name := trans.TableName()
 
 			Convey("Then it should return the name of the transfers table", func() {
-				So(name, ShouldEqual, "transfers")
+				So(name, ShouldEqual, TableTransfers)
 			})
 		})
 	})
@@ -32,7 +32,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 		Convey("Given the database contains a valid remote agent", func() {
 			remote := RemoteAgent{
 				Name:        "remote",
-				Protocol:    "sftp",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -41,19 +41,9 @@ func TestTransferBeforeWrite(t *testing.T) {
 			account := RemoteAccount{
 				RemoteAgentID: remote.ID,
 				Login:         "toto",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(&account).Run(), ShouldBeNil)
-
-			cert := Cert{
-				OwnerType:   remote.TableName(),
-				OwnerID:     remote.ID,
-				Name:        "remote_cert",
-				PrivateKey:  nil,
-				PublicKey:   []byte("public_key"),
-				Certificate: []byte("certificate"),
-			}
-			So(db.Insert(&cert).Run(), ShouldBeNil)
 
 			rule := Rule{
 				Name:   "rule1",
@@ -153,7 +143,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 				Convey("Given that the account id does not belong to the agent", func() {
 					remote2 := RemoteAgent{
 						Name:        "remote2",
-						Protocol:    "sftp",
+						Protocol:    dummyProto,
 						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}
@@ -162,7 +152,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 					account2 := RemoteAccount{
 						RemoteAgentID: remote2.ID,
 						Login:         "titi",
-						Password:      []byte("password"),
+						Password:      "password",
 					}
 					So(db.Insert(&account2).Run(), ShouldBeNil)
 
@@ -172,13 +162,6 @@ func TestTransferBeforeWrite(t *testing.T) {
 					shouldFailWith("the account does not exist", database.NewValidationError(
 						"the agent %d does not have an account %d", trans.AgentID,
 						trans.AccountID))
-				})
-
-				Convey("Given that the remote does not have a certificate", func() {
-					So(db.Delete(&cert).Run(), ShouldBeNil)
-					shouldFailWith("the remote does not have a certificate",
-						database.NewValidationError("the sftp partner is missing "+
-							"a certificate when it was required"))
 				})
 
 				statusTestCases := []statusTestCase{
@@ -203,7 +186,7 @@ func TestTransferToHistory(t *testing.T) {
 
 		remote := RemoteAgent{
 			Name:        "remote",
-			Protocol:    "dummy",
+			Protocol:    dummyProto,
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:2022",
 		}
@@ -212,7 +195,7 @@ func TestTransferToHistory(t *testing.T) {
 		account := RemoteAccount{
 			RemoteAgentID: remote.ID,
 			Login:         "toto",
-			Password:      []byte("password"),
+			Password:      "password",
 		}
 		So(db.Insert(&account).Run(), ShouldBeNil)
 

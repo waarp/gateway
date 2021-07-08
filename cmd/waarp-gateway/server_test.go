@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"net/http/httptest"
 	"net/url"
@@ -228,12 +227,10 @@ func TestAddServer(t *testing.T) {
 
 						var conf config.R66ProtoConfig
 						So(json.Unmarshal(servers[0].ProtoConfig, &conf), ShouldBeNil)
-						bytes, err := base64.StdEncoding.DecodeString(conf.ServerPassword)
-						So(err, ShouldBeNil)
-						pwd, err := utils.DecryptPassword(bytes)
+						pwd, err := utils.AESDecrypt(conf.ServerPassword)
 						So(err, ShouldBeNil)
 
-						So(string(pwd), ShouldEqual, "sesame")
+						So(pwd, ShouldEqual, "sesame")
 						conf.ServerPassword = "sesame"
 						servers[0].ProtoConfig, err = json.Marshal(conf)
 						So(err, ShouldBeNil)

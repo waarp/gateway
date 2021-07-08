@@ -44,11 +44,11 @@ func (c *R66ProtoConfig) ValidServer() error {
 	if len(c.ServerPassword) == 0 {
 		return fmt.Errorf("missing server password")
 	}
-	pwd, err := utils.CryptPassword([]byte(c.ServerPassword))
+	pwd, err := utils.AESCrypt(c.ServerPassword)
 	if err != nil {
 		return fmt.Errorf("failed to crypt server password: %s", err)
 	}
-	c.ServerPassword = base64.StdEncoding.EncodeToString(pwd)
+	c.ServerPassword = pwd
 	return nil
 }
 

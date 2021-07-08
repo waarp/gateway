@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -16,7 +18,7 @@ func TestLocalAgentTableName(t *testing.T) {
 			name := agent.TableName()
 
 			Convey("Then it should return the name of the local agents table", func() {
-				So(name, ShouldEqual, "local_agents")
+				So(name, ShouldEqual, TableLocAgents)
 			})
 		})
 	})
@@ -29,13 +31,13 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 		Convey("Given a local agent entry", func() {
 			ag := LocalAgent{
 				Name:        "test agent",
-				Protocol:    "dummy",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Address:     "localhost:6666",
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := LocalAccount{LocalAgentID: ag.ID, Login: "login", Password: json.RawMessage("password")}
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("bar")}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
@@ -46,23 +48,20 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			accAccess := RuleAccess{RuleID: rule.ID, ObjectID: acc.ID, ObjectType: acc.TableName()}
 			So(db.Insert(&accAccess).Run(), ShouldBeNil)
 
-			certAg := Cert{
-				OwnerType:   "local_agents",
+			certAg := Crypto{
+				OwnerType:   TableLocAgents,
 				OwnerID:     ag.ID,
 				Name:        "test agent cert",
-				PrivateKey:  json.RawMessage("private key"),
-				PublicKey:   json.RawMessage("public key"),
-				Certificate: json.RawMessage("certificate"),
+				PrivateKey:  testhelpers.LocalhostKey,
+				Certificate: testhelpers.LocalhostCert,
 			}
 			So(db.Insert(&certAg).Run(), ShouldBeNil)
 
-			certAcc := Cert{
-				OwnerType:   "local_accounts",
+			certAcc := Crypto{
+				OwnerType:   TableLocAccounts,
 				OwnerID:     acc.ID,
 				Name:        "test account cert",
-				PrivateKey:  json.RawMessage("private key"),
-				PublicKey:   json.RawMessage("public key"),
-				Certificate: json.RawMessage("certificate"),
+				Certificate: testhelpers.ClientCert,
 			}
 			So(db.Insert(&certAcc).Run(), ShouldBeNil)
 
@@ -80,9 +79,9 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 					})
 
 					Convey("Then both certificates should have been deleted", func() {
-						var certs Certificates
-						So(db.Select(&certs).Run(), ShouldBeNil)
-						So(certs, ShouldBeEmpty)
+						var cryptos Cryptos
+						So(db.Select(&cryptos).Run(), ShouldBeNil)
+						So(cryptos, ShouldBeEmpty)
 					})
 
 					Convey("Then the rule accesses should have been deleted", func() {
@@ -129,7 +128,7 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 			oldAgent := LocalAgent{
 				Owner:       "test_gateway",
 				Name:        "old",
-				Protocol:    "sftp",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -143,7 +142,7 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 					InDir:       "rcv",
 					OutDir:      "send",
 					WorkDir:     "tmp",
-					Protocol:    "sftp",
+					Protocol:    dummyProto,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2023",
 				}

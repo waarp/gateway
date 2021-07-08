@@ -15,4 +15,4 @@ Supprime le certificat demandé. Les noms du serveur et du certificat doivent
 
 .. code-block:: shell
 
-   waarp-gateway http://user:password@localhost:8080 server cert serveur_sftp delete cert_sftp
+   waarp-gateway http://user:password@localhost:8080 server cert gw_r66 delete cert_r66

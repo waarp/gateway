@@ -50,15 +50,13 @@ func TestServerStop(t *testing.T) {
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
-		cert := &model.Cert{
-			OwnerType:   agent.TableName(),
-			OwnerID:     agent.ID,
-			Name:        "test_sftp_server_cert",
-			PrivateKey:  testPK,
-			PublicKey:   testPBK,
-			Certificate: []byte("cert"),
+		hostKey := &model.Crypto{
+			OwnerType:  agent.TableName(),
+			OwnerID:    agent.ID,
+			Name:       "test_sftp_server_key",
+			PrivateKey: rsaPK,
 		}
-		So(db.Insert(cert).Run(), ShouldBeNil)
+		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
 		server := NewService(db, agent, log.NewLogger("test_sftp_server"))
 		So(server.Start(), ShouldBeNil)
@@ -94,15 +92,13 @@ func TestServerStart(t *testing.T) {
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
-		cert := &model.Cert{
-			OwnerType:   agent.TableName(),
-			OwnerID:     agent.ID,
-			Name:        "test_sftp_server_cert",
-			PrivateKey:  testPK,
-			PublicKey:   testPBK,
-			Certificate: []byte("cert"),
+		hostKey := &model.Crypto{
+			OwnerType:  agent.TableName(),
+			OwnerID:    agent.ID,
+			Name:       "test_sftp_server_key",
+			PrivateKey: rsaPK,
 		}
-		So(db.Insert(cert).Run(), ShouldBeNil)
+		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
 		sftpServer := NewService(db, agent, log.NewLogger("test_sftp_server"))
 
@@ -148,19 +144,17 @@ func TestSSHServer(t *testing.T) {
 			user := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "toto",
-				Password:     []byte(pwd),
+				PasswordHash: hash(pwd),
 			}
 			So(db.Insert(user).Run(), ShouldBeNil)
 
-			cert := model.Cert{
-				OwnerType:   agent.TableName(),
-				OwnerID:     agent.ID,
-				Name:        "test_sftp_server_cert",
-				PrivateKey:  testPK,
-				PublicKey:   testPBK,
-				Certificate: []byte("cert"),
+			hostKey := model.Crypto{
+				OwnerType:  agent.TableName(),
+				OwnerID:    agent.ID,
+				Name:       "test_sftp_server_key",
+				PrivateKey: rsaPK,
 			}
-			So(db.Insert(&cert).Run(), ShouldBeNil)
+			So(db.Insert(&hostKey).Run(), ShouldBeNil)
 
 			receive := &model.Rule{
 				Name:     "receive",
@@ -181,7 +175,7 @@ func TestSSHServer(t *testing.T) {
 			So(db.Insert(receive).Run(), ShouldBeNil)
 			So(db.Insert(send).Run(), ShouldBeNil)
 
-			serverConfig, err := getSSHServerConfig(db, []model.Cert{cert}, &protoConfig, agent)
+			serverConfig, err := getSSHServerConfig(db, []model.Crypto{hostKey}, &protoConfig, agent)
 			So(err, ShouldBeNil)
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -207,7 +201,7 @@ func TestSSHServer(t *testing.T) {
 
 			Convey("Given that the server shuts down", func() {
 				Convey("Given an SSH client", func() {
-					key, _, _, _, err := ssh.ParseAuthorizedKey(testPBK) //nolint:dogsled
+					key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rsaPBK)) //nolint:dogsled
 					So(err, ShouldBeNil)
 
 					clientConf := &ssh.ClientConfig{
@@ -324,7 +318,7 @@ func TestSSHServer(t *testing.T) {
 				})
 
 				Convey("Given an SSH client", func() {
-					key, _, _, _, err := ssh.ParseAuthorizedKey(testPBK) //nolint:dogsled
+					key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rsaPBK)) //nolint:dogsled
 					So(err, ShouldBeNil)
 
 					clientConf := &ssh.ClientConfig{
@@ -507,7 +501,7 @@ func TestSSHServer(t *testing.T) {
 							other := &model.LocalAccount{
 								LocalAgentID: agent.ID,
 								Login:        "other",
-								Password:     []byte("password"),
+								PasswordHash: hash("password"),
 							}
 							So(db.Insert(other).Run(), ShouldBeNil)
 

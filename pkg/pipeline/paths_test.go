@@ -47,7 +47,7 @@ func TestPathIn(t *testing.T) {
 			localAccount := &model.LocalAccount{
 				LocalAgentID: localAgent.ID,
 				Login:        "local_account",
-				Password:     []byte("password"),
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(localAccount).Run(), ShouldBeNil)
 
@@ -62,7 +62,7 @@ func TestPathIn(t *testing.T) {
 			remoteAccount := &model.RemoteAccount{
 				RemoteAgentID: remoteAgent.ID,
 				Login:         "remote_account",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(remoteAccount).Run(), ShouldBeNil)
 
@@ -177,7 +177,7 @@ func TestPathOut(t *testing.T) {
 			localAccount := &model.LocalAccount{
 				LocalAgentID: localAgent.ID,
 				Login:        "local_account",
-				Password:     []byte("password"),
+				PasswordHash: hash("password"),
 			}
 			So(db.Insert(localAccount).Run(), ShouldBeNil)
 
@@ -192,7 +192,7 @@ func TestPathOut(t *testing.T) {
 			remoteAccount := &model.RemoteAccount{
 				RemoteAgentID: remoteAgent.ID,
 				Login:         "remote_account",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(remoteAccount).Run(), ShouldBeNil)
 
@@ -207,7 +207,6 @@ func TestPathOut(t *testing.T) {
 						DestFile:   "file.dst",
 					}
 					path := Join(srcPath, trans.SourceFile)
-					Printf("srcPath: %q\n", srcPath)
 					So(os.MkdirAll(srcPath, 0o700), ShouldBeNil)
 					So(ioutil.WriteFile(path, nil, 0o700), ShouldBeNil)
 

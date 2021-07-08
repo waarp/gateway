@@ -36,7 +36,7 @@ type TransferHistory struct {
 
 // TableName returns the name of the transfer history table.
 func (*TransferHistory) TableName() string {
-	return "transfer_history"
+	return TableHistory
 }
 
 // Appellation returns the name of 1 element of the transfer history table.

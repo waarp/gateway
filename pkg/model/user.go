@@ -33,7 +33,7 @@ type User struct {
 
 // TableName returns the users table name.
 func (u *User) TableName() string {
-	return "users"
+	return TableUsers
 }
 
 // Appellation returns the name of 1 element of the users table.

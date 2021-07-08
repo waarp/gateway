@@ -71,14 +71,14 @@ func TestImportRules(t *testing.T) {
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
@@ -312,14 +312,14 @@ func TestImportRuleAccess(t *testing.T) {
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "test",
-				Password:     []byte("pwd"),
+				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
@@ -347,15 +347,15 @@ func TestImportRuleAccess(t *testing.T) {
 							"the ones imported", func() {
 							for i := 0; i < len(dbAccesses); i++ {
 								acc := dbAccesses[i]
-								if acc.ObjectType == "local_agents" &&
+								if acc.ObjectType == model.TableLocAgents &&
 									acc.ObjectID == agent.ID {
 									Convey("Then access for agent is found", func() {
 									})
-								} else if acc.ObjectType == "local_accounts" &&
+								} else if acc.ObjectType == model.TableLocAccounts &&
 									acc.ObjectID == account1.ID {
 									Convey("Then access for accunt1 is found", func() {
 									})
-								} else if acc.ObjectType == "local_accounts" &&
+								} else if acc.ObjectType == model.TableLocAccounts &&
 									acc.ObjectID == account2.ID {
 									Convey("Then access for accunt2 is found", func() {
 									})
@@ -374,7 +374,7 @@ func TestImportRuleAccess(t *testing.T) {
 			Convey("Given a Rule with 1 access", func() {
 				acc1 := &model.RuleAccess{
 					RuleID:     insert.ID,
-					ObjectType: "local_agents",
+					ObjectType: model.TableLocAgents,
 					ObjectID:   agent.ID,
 				}
 				So(db.Insert(acc1).Run(), ShouldBeNil)
@@ -402,15 +402,15 @@ func TestImportRuleAccess(t *testing.T) {
 								"the ones imported", func() {
 								for i := 0; i < len(dbAccesses); i++ {
 									acc := dbAccesses[i]
-									if acc.ObjectType == "local_agents" &&
+									if acc.ObjectType == model.TableLocAgents &&
 										acc.ObjectID == agent.ID {
 										Convey("Then access for agent is found", func() {
 										})
-									} else if acc.ObjectType == "local_accounts" &&
+									} else if acc.ObjectType == model.TableLocAccounts &&
 										acc.ObjectID == account1.ID {
 										Convey("Then access for account1 is found", func() {
 										})
-									} else if acc.ObjectType == "local_accounts" &&
+									} else if acc.ObjectType == model.TableLocAccounts &&
 										acc.ObjectID == account2.ID {
 										Convey("Then access for account2 is found", func() {
 										})

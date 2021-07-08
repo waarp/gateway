@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -78,7 +80,7 @@ func TestImportLocalAgents(t *testing.T) {
 					Name:          "test",
 					Protocol:      "sftp",
 					Configuration: json.RawMessage(`{}`),
-					Address:       "localhost:90",
+					Address:       "localhost:6666",
 					Accounts: []LocalAccount{
 						{
 							Login:    "test",
@@ -88,9 +90,8 @@ func TestImportLocalAgents(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							PublicKey:   "public",
-							PrivateKey:  "private",
-							Certificate: "key",
+							PrivateKey:  testhelpers.LocalhostKey,
+							Certificate: testhelpers.LocalhostCert,
 						},
 					},
 				}
@@ -119,9 +120,9 @@ func TestImportLocalAgents(t *testing.T) {
 
 							So(len(accounts), ShouldEqual, 1)
 
-							var certs model.Certificates
-							So(db.Select(&certs).Where("owner_type='local_agents' "+
-								"AND owner_id=?", dbAgent.ID).Run(), ShouldBeNil)
+							var cryptos model.Cryptos
+							So(db.Select(&cryptos).Where("owner_type=? AND owner_id=?",
+								model.TableLocAgents, dbAgent.ID).Run(), ShouldBeNil)
 
 							So(len(accounts), ShouldEqual, 1)
 						})
@@ -149,7 +150,7 @@ func TestImportLocalAccounts(t *testing.T) {
 			dbAccount := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
-				Password:     []byte("bar"),
+				PasswordHash: hash("bar"),
 			}
 			So(db.Insert(dbAccount).Run(), ShouldBeNil)
 
@@ -187,21 +188,21 @@ func TestImportLocalAccounts(t *testing.T) {
 
 									Convey("Then account1 is found", func() {
 										So(bcrypt.CompareHashAndPassword(
-											accounts[i].Password, []byte("pwd")),
+											accounts[i].PasswordHash, []byte("pwd")),
 											ShouldBeNil)
 									})
 								} else if accounts[i].Login == account2.Login {
 
 									Convey("Then account2 is found", func() {
 										So(bcrypt.CompareHashAndPassword(
-											accounts[i].Password, []byte("pwd")),
+											accounts[i].PasswordHash, []byte("pwd")),
 											ShouldBeNil)
 									})
 								} else if accounts[i].Login == dbAccount.Login {
 
 									Convey("Then dbAccount is found", func() {
-										So(accounts[i].Password, ShouldResemble,
-											dbAccount.Password)
+										So(accounts[i].PasswordHash, ShouldResemble,
+											dbAccount.PasswordHash)
 									})
 								} else {
 									Convey("Then they should be no other "+
@@ -222,9 +223,7 @@ func TestImportLocalAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							PublicKey:   "public",
-							PrivateKey:  "private",
-							Certificate: "key",
+							Certificate: testhelpers.ClientCert,
 						},
 					},
 				}
@@ -250,11 +249,13 @@ func TestImportLocalAccounts(t *testing.T) {
 								if accounts[i].Login == dbAccount.Login {
 
 									Convey("When dbAccount is found", func() {
-										So(accounts[i].Password, ShouldNotResemble,
-											dbAccount.Password)
-										var certs model.Certificates
-										So(db.Select(&certs).Where("owner_type='local_accounts'"+
-											" AND owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
+										So(accounts[i].PasswordHash, ShouldNotResemble,
+											dbAccount.PasswordHash)
+										var cryptos model.Cryptos
+										So(db.Select(&cryptos).Where(
+											"owner_type=? AND owner_id=?",
+											model.TableLocAccounts, dbAccount.ID).
+											Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
 									})
@@ -276,9 +277,7 @@ func TestImportLocalAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							PublicKey:   "public",
-							PrivateKey:  "private",
-							Certificate: "key",
+							Certificate: testhelpers.ClientCert,
 						},
 					},
 				}
@@ -304,11 +303,13 @@ func TestImportLocalAccounts(t *testing.T) {
 								if accounts[i].Login == dbAccount.Login {
 
 									Convey("When dbAccount is found", func() {
-										So(accounts[i].Password, ShouldResemble,
-											dbAccount.Password)
-										var certs model.Certificates
-										So(db.Select(&certs).Where("owner_type='local_accounts' "+
-											"AND owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
+										So(accounts[i].PasswordHash, ShouldResemble,
+											dbAccount.PasswordHash)
+										var cryptos model.Cryptos
+										So(db.Select(&cryptos).Where(
+											"owner_type=? AND owner_id=?",
+											dbAccount.ID, model.TableLocAccounts).
+											Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
 									})

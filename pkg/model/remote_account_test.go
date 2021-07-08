@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -17,7 +18,7 @@ func TestRemoteAccountTableName(t *testing.T) {
 			name := agent.TableName()
 
 			Convey("Then it should return the name of the remote account table", func() {
-				So(name, ShouldEqual, "remote_accounts")
+				So(name, ShouldEqual, TableRemAccounts)
 			})
 		})
 	})
@@ -30,29 +31,28 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 		Convey("Given a remote account entry", func() {
 			ag := RemoteAgent{
 				Name:        "server",
-				Protocol:    "dummy",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: []byte("password")}
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo", Password: "bar"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
-			cert := Cert{
-				OwnerType:   "remote_accounts",
+			cert := Crypto{
+				OwnerType:   TableRemAccounts,
 				OwnerID:     acc.ID,
 				Name:        "test cert",
-				PrivateKey:  []byte("private key"),
-				PublicKey:   []byte("public key"),
-				Certificate: []byte("certificate"),
+				PrivateKey:  testhelpers.ClientKey,
+				Certificate: testhelpers.ClientCert,
 			}
 			So(db.Insert(&cert).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: true, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			access := RuleAccess{RuleID: rule.ID, ObjectType: "remote_accounts", ObjectID: acc.ID}
+			access := RuleAccess{RuleID: rule.ID, ObjectType: TableRemAccounts, ObjectID: acc.ID}
 			So(db.Insert(&access).Run(), ShouldBeNil)
 
 			Convey("Given that the account is unused", func() {
@@ -63,7 +63,7 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 					}), ShouldBeNil)
 
 					Convey("Then the account's certificates should have been deleted", func() {
-						var certs Certificates
+						var certs Cryptos
 						So(db.Select(&certs).Run(), ShouldBeNil)
 						So(certs, ShouldBeEmpty)
 					})
@@ -111,7 +111,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 		Convey("Given the database contains 1 remote agent with 1 remote account", func() {
 			parentAgent := RemoteAgent{
 				Name:        "parent_agent",
-				Protocol:    "sftp",
+				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -120,7 +120,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 			oldAccount := RemoteAccount{
 				RemoteAgentID: parentAgent.ID,
 				Login:         "old",
-				Password:      []byte("password"),
+				Password:      "password",
 			}
 			So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
@@ -128,7 +128,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 				newAccount := RemoteAccount{
 					RemoteAgentID: parentAgent.ID,
 					Login:         "new",
-					Password:      []byte("password"),
+					Password:      "password",
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -145,14 +145,12 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 
 				Convey("Given that the new account is valid", func() {
 					Convey("When calling the 'BeforeWrite' function", func() {
-						So(db.Transaction(func(ses *database.Session) database.Error {
+						err := db.Transaction(func(ses *database.Session) database.Error {
 							return newAccount.BeforeWrite(ses)
-						}), ShouldBeNil)
+						})
 
-						Convey("Then the account's password should be encrypted", func() {
-							cipher, err := utils.CryptPassword(newAccount.Password)
+						Convey("Then it should not return an error", func() {
 							So(err, ShouldBeNil)
-							So(string(newAccount.Password), ShouldEqual, string(cipher))
 						})
 					})
 				})
@@ -186,7 +184,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 					"parent agent is different", func() {
 					otherAgent := RemoteAgent{
 						Name:        "other",
-						Protocol:    "sftp",
+						Protocol:    dummyProto,
 						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}
@@ -196,14 +194,12 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 					newAccount.Login = oldAccount.Login
 
 					Convey("When calling the 'BeforeWrite' function", func() {
-						So(db.Transaction(func(ses *database.Session) database.Error {
+						err := db.Transaction(func(ses *database.Session) database.Error {
 							return newAccount.BeforeWrite(ses)
-						}), ShouldBeNil)
+						})
 
-						Convey("Then the account's password should be encrypted", func() {
-							cipher, err := utils.CryptPassword(newAccount.Password)
+						Convey("Then it should not return an error", func() {
 							So(err, ShouldBeNil)
-							So(string(newAccount.Password), ShouldEqual, string(cipher))
 						})
 					})
 				})

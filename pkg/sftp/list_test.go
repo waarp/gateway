@@ -50,28 +50,26 @@ func TestSFTPList(t *testing.T) {
 			toto := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "toto",
-				Password:     []byte("toto"),
+				PasswordHash: hash("toto"),
 			}
 			So(db.Insert(toto).Run(), ShouldBeNil)
 
 			tata := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "tata",
-				Password:     []byte("tata"),
+				PasswordHash: hash("tata"),
 			}
 			So(db.Insert(tata).Run(), ShouldBeNil)
 
-			cert := model.Cert{
-				OwnerType:   agent.TableName(),
-				OwnerID:     agent.ID,
-				Name:        "test_sftp_server_cert",
-				PrivateKey:  testPK,
-				PublicKey:   testPBK,
-				Certificate: []byte("cert"),
+			hostKey := model.Crypto{
+				OwnerType:  agent.TableName(),
+				OwnerID:    agent.ID,
+				Name:       "test_sftp_server_key",
+				PrivateKey: rsaPK,
 			}
-			So(db.Insert(&cert).Run(), ShouldBeNil)
+			So(db.Insert(&hostKey).Run(), ShouldBeNil)
 
-			serverConfig, err := getSSHServerConfig(db, []model.Cert{cert}, &protoConfig, agent)
+			serverConfig, err := getSSHServerConfig(db, []model.Crypto{hostKey}, &protoConfig, agent)
 			So(err, ShouldBeNil)
 
 			ctx, cancel := context.WithCancel(context.Background())

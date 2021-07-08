@@ -181,8 +181,8 @@ func (l *sshListener) getRule(accountID uint64, rulePath string, isSend bool) (*
 	}
 
 	for _, access := range accesses {
-		if (access.ObjectType == "local_agents" && access.ObjectID == l.Agent.ID) ||
-			(access.ObjectType == "local_accounts" && access.ObjectID == accountID) {
+		if (access.ObjectType == model.TableLocAgents && access.ObjectID == l.Agent.ID) ||
+			(access.ObjectType == model.TableLocAccounts && access.ObjectID == accountID) {
 			return &rule, nil
 		}
 	}
@@ -193,14 +193,15 @@ func (l *sshListener) getRulesPaths(accountID uint64) ([]string, error) {
 	var rules model.Rules
 	query := l.DB.Select(&rules).Distinct("path").Where(
 		`(id IN 
-			(SELECT DISTINCT rule_id FROM rule_access WHERE
-				(object_id=? AND object_type='local_accounts') OR
-				(object_id=? AND object_type='local_agents')
+			(SELECT DISTINCT rule_id FROM `+model.TableRuleAccesses+` WHERE
+				(object_id=? AND object_type=?) OR
+				(object_id=? AND object_type=?)
 			)
 		)
 		OR 
-		( (SELECT COUNT(*) FROM rule_access WHERE rule_id = id) = 0 )`,
-		accountID, l.Agent.ID).OrderBy("path", true)
+		( (SELECT COUNT(*) FROM `+model.TableRuleAccesses+` WHERE rule_id = id) = 0 )`,
+		accountID, model.TableLocAccounts, l.Agent.ID, model.TableLocAgents).
+		OrderBy("path", true)
 	if err := query.Run(); err != nil {
 		l.Logger.Errorf("Failed to retrieve rule list: %s", err)
 		return nil, err

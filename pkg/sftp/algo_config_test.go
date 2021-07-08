@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -17,7 +20,7 @@ func TestSFTPAlgoConfig(t *testing.T) {
 	logger := log.NewLogger("test_sftp_algo")
 
 	login := "login"
-	password := []byte("password")
+	password := "password"
 
 	Convey("Given an SFTP server", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
@@ -40,23 +43,25 @@ func TestSFTPAlgoConfig(t *testing.T) {
 		account := &model.LocalAccount{
 			LocalAgentID: agent.ID,
 			Login:        login,
-			Password:     password,
+			PasswordHash: hash(password),
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 
-		cert := &model.Cert{
-			OwnerType:   agent.TableName(),
-			OwnerID:     agent.ID,
-			Name:        "local_agent_cert",
-			PrivateKey:  testPK,
-			PublicKey:   testPBK,
-			Certificate: []byte("cert"),
+		hostKey := &model.Crypto{
+			OwnerType:  agent.TableName(),
+			OwnerID:    agent.ID,
+			Name:       "local_agent_key",
+			PrivateKey: rsaPK,
 		}
-		So(db.Insert(cert).Run(), ShouldBeNil)
+		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
 		server := NewService(db, agent, logger)
 		So(server.Start(), ShouldBeNil)
-		Reset(func() { _ = server.Stop(context.Background()) })
+		Reset(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			c.So(server.Stop(ctx), ShouldBeNil)
+		})
 
 		Convey("Given an SFTP client", func() {
 			info := model.OutTransferInfo{
@@ -64,26 +69,25 @@ func TestSFTPAlgoConfig(t *testing.T) {
 					Name:        "remote_sftp",
 					Address:     agent.Address,
 					Protocol:    "sftp",
-					ProtoConfig: agent.ProtoConfig,
+					ProtoConfig: json.RawMessage(`{}`),
 				},
 				Account: &model.RemoteAccount{
 					Login:    login,
-					Password: password,
+					Password: types.CypherText(password),
 				},
-				ServerCerts: []model.Cert{{
-					Name:        "remote_agent_cert",
-					PublicKey:   testPBK,
-					Certificate: []byte("cert"),
+				ServerCryptos: []model.Crypto{{
+					Name:         "server_key",
+					SSHPublicKey: rsaPBK,
 				}},
-				ClientCerts: nil,
+				ClientCryptos: nil,
 			}
 			c, err := NewClient(info, make(chan model.Signal))
 			So(err, ShouldBeNil)
 			client := c.(*Client)
+			So(client.Connect(), ShouldBeNil)
 
 			Convey("Given the SFTP client has the same configured algos", func() {
 				Convey("Then it should authenticate without errors", func() {
-					So(client.Connect(), ShouldBeNil)
 					So(client.Authenticate(), ShouldBeNil)
 				})
 			})
@@ -92,7 +96,6 @@ func TestSFTPAlgoConfig(t *testing.T) {
 				client.conf.KeyExchanges = []string{"diffie-hellman-group1-sha1"}
 
 				Convey("Then the authentication should fail", func() {
-					So(client.Connect(), ShouldBeNil)
 					So(client.Authenticate(), ShouldNotBeNil)
 				})
 			})
@@ -101,7 +104,6 @@ func TestSFTPAlgoConfig(t *testing.T) {
 				client.conf.Ciphers = []string{"aes192-ctr"}
 
 				Convey("Then the authentication should fail", func() {
-					So(client.Connect(), ShouldBeNil)
 					So(client.Authenticate(), ShouldNotBeNil)
 				})
 			})
@@ -110,8 +112,89 @@ func TestSFTPAlgoConfig(t *testing.T) {
 				client.conf.MACs = []string{"hmac-sha1"}
 
 				Convey("Then the authentication should fail", func() {
-					So(client.Connect(), ShouldBeNil)
 					So(client.Authenticate(), ShouldNotBeNil)
+				})
+			})
+		})
+	})
+}
+
+func TestSFTPKeyAuth(t *testing.T) {
+	logger := log.NewLogger("test_sftp_key_auth")
+
+	Convey("Given an SFTP server", t, func(c C) {
+		db := database.TestDatabase(c, "ERROR")
+		root := testhelpers.TempDir(c, "algo-config")
+		port := testhelpers.GetFreePort(c)
+
+		agent := &model.LocalAgent{
+			Name:        "sftp_server",
+			Protocol:    "sftp",
+			Root:        root,
+			ProtoConfig: json.RawMessage(`{}`),
+			Address:     fmt.Sprintf("localhost:%d", port),
+		}
+		So(db.Insert(agent).Run(), ShouldBeNil)
+
+		hostKey := &model.Crypto{
+			OwnerType:  agent.TableName(),
+			OwnerID:    agent.ID,
+			Name:       "local_agent_key",
+			PrivateKey: rsaPK,
+		}
+		So(db.Insert(hostKey).Run(), ShouldBeNil)
+
+		server := NewService(db, agent, logger)
+		So(server.Start(), ShouldBeNil)
+		Reset(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			c.So(server.Stop(ctx), ShouldBeNil)
+		})
+
+		Convey("Given an account with no password and a public key", func() {
+			account := &model.LocalAccount{
+				LocalAgentID: agent.ID,
+				Login:        "toto",
+			}
+			So(db.Insert(account).Run(), ShouldBeNil)
+
+			clientKey := &model.Crypto{
+				OwnerType:    account.TableName(),
+				OwnerID:      account.ID,
+				Name:         "client_key",
+				SSHPublicKey: rsaPBK,
+			}
+			So(db.Insert(clientKey).Run(), ShouldBeNil)
+
+			Convey("When connecting to the server with that account", func() {
+				info := model.OutTransferInfo{
+					Agent: &model.RemoteAgent{
+						Name:        "remote_sftp",
+						Address:     agent.Address,
+						Protocol:    "sftp",
+						ProtoConfig: json.RawMessage(`{}`),
+					},
+					Account: &model.RemoteAccount{
+						Login: account.Login,
+					},
+					ServerCryptos: []model.Crypto{{
+						Name:         "host_key",
+						SSHPublicKey: rsaPBK,
+					}},
+					ClientCryptos: []model.Crypto{{
+						Name:       "client_key",
+						PrivateKey: rsaPK,
+					}},
+				}
+
+				c, err := NewClient(info, make(chan model.Signal))
+				So(err, ShouldBeNil)
+				client := c.(*Client)
+				So(client.Connect(), ShouldBeNil)
+
+				Convey("Then it should authenticate without errors", func() {
+					So(client.Authenticate(), ShouldBeNil)
 				})
 			})
 		})

@@ -35,7 +35,7 @@ type RemoteAgent struct {
 
 // TableName returns the remote agents table name.
 func (*RemoteAgent) TableName() string {
-	return "remote_agents"
+	return TableRemAgents
 }
 
 // Appellation returns the name of 1 element of the remote agents table.
@@ -106,20 +106,18 @@ func (r *RemoteAgent) BeforeDelete(db database.Access) database.Error {
 			"transfers or wait for them to finish")
 	}
 
-	certQuery := db.DeleteAll(&Cert{}).Where(
-		"(owner_type='remote_agents' AND owner_id=?) OR "+
-			"(owner_type='remote_accounts' AND owner_id IN "+
-			"(SELECT id FROM remote_accounts WHERE remote_agent_id=?))",
-		r.ID, r.ID)
+	certQuery := db.DeleteAll(&Crypto{}).Where(
+		"(owner_type=? AND owner_id=?) OR (owner_type=? AND owner_id IN "+
+			"(SELECT id FROM "+TableRemAccounts+" WHERE remote_agent_id=?))",
+		TableRemAgents, r.ID, TableRemAccounts, r.ID)
 	if err := certQuery.Run(); err != nil {
 		return err
 	}
 
 	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
-		" (object_type='remote_agents' AND object_id=?) OR "+
-			"(object_type='remote_accounts' AND object_id IN "+
-			"(SELECT id FROM remote_accounts WHERE remote_agent_id=?))",
-		r.ID, r.ID)
+		" (object_type=? AND object_id=?) OR (object_type=? AND object_id IN "+
+			"(SELECT id FROM "+TableRemAccounts+" WHERE remote_agent_id=?))",
+		TableRemAgents, r.ID, TableRemAccounts, r.ID)
 	if err := accessQuery.Run(); err != nil {
 		return err
 	}
@@ -132,7 +130,7 @@ func (r *RemoteAgent) BeforeDelete(db database.Access) database.Error {
 	return nil
 }
 
-// GetCerts returns a list of all the partner's certificates.
-func (r *RemoteAgent) GetCerts(db database.ReadAccess) ([]Cert, database.Error) {
-	return GetCerts(db, r)
+// GetCryptos returns a list of all the partner's certificates.
+func (r *RemoteAgent) GetCryptos(db database.ReadAccess) ([]Crypto, database.Error) {
+	return GetCryptos(db, r)
 }
