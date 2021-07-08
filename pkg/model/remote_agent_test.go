@@ -18,7 +18,7 @@ func TestRemoteAgentTableName(t *testing.T) {
 			name := agent.TableName()
 
 			Convey("Then it should return the name of the remote agents table", func() {
-				So(name, ShouldEqual, "remote_agents")
+				So(name, ShouldEqual, TableRemAgents)
 			})
 		})
 	})
@@ -37,21 +37,21 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "login", Password: "password"}
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo", Password: "bar"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
 			agAccess := RuleAccess{RuleID: rule.ID, ObjectID: ag.ID,
-				ObjectType: "remote_agents"}
+				ObjectType: TableRemAgents}
 			So(db.Insert(&agAccess).Run(), ShouldBeNil)
 			accAccess := RuleAccess{RuleID: rule.ID, ObjectID: acc.ID,
-				ObjectType: "remote_accounts"}
+				ObjectType: TableRemAccounts}
 			So(db.Insert(&accAccess).Run(), ShouldBeNil)
 
 			certAg := Crypto{
-				OwnerType:   "remote_agents",
+				OwnerType:   TableRemAgents,
 				OwnerID:     ag.ID,
 				Name:        "test agent cert",
 				Certificate: testhelpers.LocalhostCert,
@@ -59,7 +59,7 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			So(db.Insert(&certAg).Run(), ShouldBeNil)
 
 			certAcc := Crypto{
-				OwnerType:   "remote_accounts",
+				OwnerType:   TableRemAccounts,
 				OwnerID:     acc.ID,
 				Name:        "test account cert",
 				PrivateKey:  testhelpers.ClientKey,

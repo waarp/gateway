@@ -14,8 +14,8 @@ func init() {
 	database.Tables = append(database.Tables, &Crypto{})
 }
 
-var validOwnerTypes = []string{"local_agents", "remote_agents", "local_accounts",
-	"remote_accounts"}
+var validOwnerTypes = []string{TableLocAgents, TableRemAgents, TableLocAccounts,
+	TableRemAccounts}
 
 // Crypto represents credentials used to establish secure (encrypted) transfer
 // channels. This includes both TLS and SSH tunnels. These credentials can be
@@ -43,20 +43,16 @@ type Crypto struct {
 
 	// An SSH public key in authorized_keys format.
 	SSHPublicKey string `xorm:"text 'ssh_public_key'"`
-
-	// A base64 representation of the sha256 checksum of the raw certificate
-	// (if one is provided), used for indexation & search purposes.
-	Signature string `xorm:"varchar(44) unique 'signature'"`
 }
 
 // TableName returns the name of the certificates table.
 func (*Crypto) TableName() string {
-	return "crypto_credentials"
+	return TableCrypto
 }
 
 // Appellation returns the name of 1 element of the certificates table.
 func (*Crypto) Appellation() string {
-	return "certificate"
+	return "crypto credentials"
 }
 
 // GetID returns the certificate's ID.
@@ -94,13 +90,13 @@ func (c *Crypto) BeforeWrite(db database.ReadAccess) database.Error {
 
 	var parent database.GetBean
 	switch c.OwnerType {
-	case "local_agents":
+	case TableLocAgents:
 		parent = &LocalAgent{}
-	case "remote_agents":
+	case TableRemAgents:
 		parent = &RemoteAgent{}
-	case "local_accounts":
+	case TableLocAccounts:
 		parent = &LocalAccount{}
-	case "remote_accounts":
+	case TableRemAccounts:
 		parent = &RemoteAccount{}
 	default:
 		return newErr("the credentials' owner type must be one of %s", validOwnerTypes)
@@ -112,40 +108,77 @@ func (c *Crypto) BeforeWrite(db database.ReadAccess) database.Error {
 		return err
 	}
 
-	return c.checkContent(parent)
+	return c.checkContent(db, parent)
 }
 
-func (c *Crypto) checkContent(parent database.GetBean) database.Error {
-	newErr := database.NewValidationError
-
-	var addr string
-	if c.OwnerType == "local_agents" || c.OwnerType == "remote_accounts" {
-		if t, ok := parent.(*LocalAgent); ok {
-			addr = t.Address
-		}
-		if c.PrivateKey == "" {
-			return newErr("the %s is missing a private key", parent.Appellation())
-		}
-		if c.SSHPublicKey != "" {
-			return newErr("a %s does not need an SSH public key", parent.Appellation())
-		}
-	} else {
-		if t, ok := parent.(*RemoteAgent); ok {
-			addr = t.Address
-		}
-		if c.Certificate == "" && c.SSHPublicKey == "" {
-			return newErr("the %s is missing a TLS certificate or an SSH public key",
-				parent.Appellation())
-		}
-		if c.PrivateKey != "" {
-			return newErr("a %s does not need a private key", parent.Appellation())
-		}
+func (c *Crypto) checkContentLocal(parent database.GetBean) database.Error {
+	if c.PrivateKey == "" {
+		return database.NewValidationError("the %s is missing a private key",
+			parent.Appellation())
 	}
-
-	return c.validateContent(addr)
+	if c.SSHPublicKey != "" {
+		return database.NewValidationError("a %s does not need an SSH public key",
+			parent.Appellation())
+	}
+	return nil
 }
 
-func (c *Crypto) validateContent(addr string) database.Error {
+func (c *Crypto) checkContentRemote(parent database.GetBean) database.Error {
+	if c.Certificate == "" && c.SSHPublicKey == "" {
+		return database.NewValidationError(
+			"the %s is missing a TLS certificate or an SSH public key",
+			parent.Appellation())
+	}
+	if c.PrivateKey != "" {
+		return database.NewValidationError("a %s does not need a private key",
+			parent.Appellation())
+	}
+	return nil
+}
+
+func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) database.Error {
+	var host, proto string
+	var isServer bool
+	switch t := parent.(type) {
+	case *LocalAgent:
+		isServer = true
+		host = t.Address
+		proto = t.Protocol
+		if err := c.checkContentLocal(parent); err != nil {
+			return err
+		}
+	case *LocalAccount:
+		host = t.Login
+		if err := c.checkContentRemote(parent); err != nil {
+			return err
+		}
+		var parentParent LocalAgent
+		if err := db.Get(&parentParent, "id=?", t.LocalAgentID).Run(); err != nil {
+			return err
+		}
+		proto = parentParent.Protocol
+	case *RemoteAgent:
+		isServer = true
+		host = t.Address
+		proto = t.Protocol
+		if err := c.checkContentRemote(parent); err != nil {
+			return err
+		}
+	case *RemoteAccount:
+		host = t.Login
+		if err := c.checkContentLocal(parent); err != nil {
+			return err
+		}
+		var parentParent RemoteAgent
+		if err := db.Get(&parentParent, "id=?", t.RemoteAgentID).Run(); err != nil {
+			return err
+		}
+		proto = parentParent.Protocol
+	}
+	return c.validateContent(host, proto, isServer)
+}
+
+func (c *Crypto) validateContent(host, proto string, isServer bool) database.Error {
 	newErr := database.NewValidationError
 
 	if c.Certificate != "" {
@@ -153,10 +186,14 @@ func (c *Crypto) validateContent(addr string) database.Error {
 		if err != nil {
 			return newErr("failed to parse certificate: %s", err)
 		}
-		if err := utils.CheckCertChain(certChain, addr); err != nil {
+		if err := utils.CheckCertChain(certChain, isServer); err != nil {
 			return newErr("certificate validation failed: %s", err)
 		}
-		c.Signature = utils.MakeSignature(certChain[0])
+		if host != "" && proto != "r66" {
+			if err := certChain[0].VerifyHostname(host); err != nil {
+				return newErr("the certificate is not valid for host '%s'", host)
+			}
+		}
 	}
 
 	if c.PrivateKey != "" {

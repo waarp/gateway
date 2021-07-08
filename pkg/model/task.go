@@ -42,7 +42,7 @@ type Task struct {
 
 // TableName returns the name of the tasks table.
 func (*Task) TableName() string {
-	return "tasks"
+	return TableTasks
 }
 
 // Appellation returns the name of 1 element of the tasks table.

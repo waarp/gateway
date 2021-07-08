@@ -16,7 +16,7 @@ type TransferInfo struct {
 
 // TableName returns the name of the transfers table.
 func (*TransferInfo) TableName() string {
-	return "transfer_info"
+	return TableTransferInfo
 }
 
 // Appellation returns the display name of a transfer info entry.

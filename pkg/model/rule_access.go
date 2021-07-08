@@ -17,7 +17,7 @@ type RuleAccess struct {
 
 // TableName returns the rule access table name.
 func (*RuleAccess) TableName() string {
-	return "rule_access"
+	return TableRuleAccesses
 }
 
 // Appellation returns the name of 1 element of the rule access table.
@@ -38,13 +38,13 @@ func (r *RuleAccess) BeforeWrite(db database.ReadAccess) database.Error {
 	var n uint64
 	var err database.Error
 	switch r.ObjectType {
-	case "local_agents":
+	case TableLocAgents:
 		n, err = db.Count(&LocalAgent{}).Where("id=?", r.ObjectID).Run()
-	case "remote_agents":
+	case TableRemAgents:
 		n, err = db.Count(&RemoteAgent{}).Where("id=?", r.ObjectID).Run()
-	case "local_accounts":
+	case TableLocAccounts:
 		n, err = db.Count(&LocalAccount{}).Where("id=?", r.ObjectID).Run()
-	case "remote_accounts":
+	case TableRemAccounts:
 		n, err = db.Count(&RemoteAccount{}).Where("id=?", r.ObjectID).Run()
 	default:
 		return database.NewValidationError("the rule_access's object type must be one of %s",
@@ -78,11 +78,11 @@ func IsRuleAuthorized(db database.ReadAccess, t *Transfer) (bool, database.Error
 		return true, nil
 	}
 
-	agent := "remote_agents"
-	account := "remote_accounts"
+	agent := TableRemAgents
+	account := TableRemAccounts
 	if t.IsServer {
-		agent = "local_agents"
-		account = "local_accounts"
+		agent = TableLocAgents
+		account = TableLocAccounts
 	}
 	n, err = db.Count(&RuleAccess{}).Where("rule_id=? AND "+
 		"((object_type=? AND object_id=?) OR (object_type=? and object_id=?))",
