@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -33,18 +33,18 @@ func TestTransferBeforeWrite(t *testing.T) {
 		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given the database contains a valid remote agent", func() {
-			remote := RemoteAgent{
+			server := LocalAgent{
 				Name:        "remote",
 				Protocol:    dummyProto,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
-			So(db.Insert(&remote).Run(), ShouldBeNil)
+			So(db.Insert(&server).Run(), ShouldBeNil)
 
-			account := RemoteAccount{
-				RemoteAgentID: remote.ID,
-				Login:         "toto",
-				Password:      "sesame",
+			account := LocalAccount{
+				LocalAgentID: server.ID,
+				Login:        "toto",
+				PasswordHash: hash("sesame"),
 			}
 			So(db.Insert(&account).Run(), ShouldBeNil)
 
@@ -57,15 +57,16 @@ func TestTransferBeforeWrite(t *testing.T) {
 
 			Convey("Given a new transfer", func() {
 				trans := Transfer{
-					RuleID:     rule.ID,
-					IsServer:   false,
-					AgentID:    remote.ID,
-					AccountID:  account.ID,
-					LocalPath:  "/local/path",
-					RemotePath: "/remote/path",
-					Start:      time.Now(),
-					Status:     "PLANNED",
-					Owner:      database.Owner,
+					RemoteTransferID: "1",
+					RuleID:           rule.ID,
+					IsServer:         true,
+					AgentID:          server.ID,
+					AccountID:        account.ID,
+					LocalPath:        "/local/path",
+					RemotePath:       "/remote/path",
+					Start:            time.Now(),
+					Status:           StatusPlanned,
+					Owner:            database.Owner,
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -129,38 +130,81 @@ func TestTransferBeforeWrite(t *testing.T) {
 
 				Convey("Given that the remote id is invalid", func() {
 					trans.AgentID = 1000
-					shouldFailWith("the partner does not exist", database.NewValidationError(
-						"the partner %d does not exist", trans.AgentID))
+					shouldFailWith("the server does not exist", database.NewValidationError(
+						"the server %d does not exist", trans.AgentID))
 				})
 
 				Convey("Given that the account id is invalid", func() {
 					trans.AccountID = 1000
 					shouldFailWith("the account does not exist", database.NewValidationError(
-						"the agent %d does not have an account %d", trans.AgentID,
+						"the server %d does not have an account %d", trans.AgentID,
 						trans.AccountID))
 				})
 
+				Convey("Given that an transfer with the same remoteID already exist", func() {
+					t2 := &Transfer{
+						Owner:            database.Owner,
+						RemoteTransferID: trans.RemoteTransferID,
+						IsServer:         true,
+						RuleID:           rule.ID,
+						AgentID:          server.ID,
+						AccountID:        account.ID,
+						LocalPath:        "/local/path",
+						RemotePath:       "/remote/path",
+						Filesize:         -1,
+						Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+						Status:           StatusRunning,
+					}
+					So(db.Insert(t2).Run(), ShouldBeNil)
+
+					shouldFailWith("the remoteID is already taken", database.NewValidationError(
+						"a transfer from the same account with the same remote ID already exists"))
+				})
+
+				Convey("Given that an history entry with the same remoteID already exist", func() {
+					t2 := &HistoryEntry{
+						ID:               10,
+						Owner:            database.Owner,
+						RemoteTransferID: trans.RemoteTransferID,
+						Protocol:         testhelpers.TestProtocol,
+						IsServer:         true,
+						Rule:             rule.Name,
+						Agent:            server.Name,
+						Account:          account.Login,
+						LocalPath:        "/local/path",
+						RemotePath:       "/remote/path",
+						Filesize:         100,
+						Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+						Stop:             time.Date(2021, 1, 2, 1, 0, 0, 0, time.UTC),
+						Status:           StatusDone,
+					}
+					So(db.Insert(t2).Run(), ShouldBeNil)
+
+					shouldFailWith("the remoteID is already taken", database.NewValidationError(
+						"a transfer from the same account with the same remote ID already exists"))
+				})
+
 				Convey("Given that the account id does not belong to the agent", func() {
-					remote2 := RemoteAgent{
+					server2 := LocalAgent{
 						Name:        "remote2",
 						Protocol:    dummyProto,
 						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}
-					So(db.Insert(&remote2).Run(), ShouldBeNil)
+					So(db.Insert(&server2).Run(), ShouldBeNil)
 
-					account2 := RemoteAccount{
-						RemoteAgentID: remote2.ID,
-						Login:         "titi",
-						Password:      "sesame",
+					account2 := LocalAccount{
+						LocalAgentID: server2.ID,
+						Login:        "titi",
+						PasswordHash: hash("sesame"),
 					}
 					So(db.Insert(&account2).Run(), ShouldBeNil)
 
-					trans.AgentID = remote.ID
+					trans.AgentID = server.ID
 					trans.AccountID = account2.ID
 
 					shouldFailWith("the account does not exist", database.NewValidationError(
-						"the agent %d does not have an account %d", trans.AgentID,
+						"the server %d does not have an account %d", trans.AgentID,
 						trans.AccountID))
 				})
 

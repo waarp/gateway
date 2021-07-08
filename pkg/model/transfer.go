@@ -70,6 +70,8 @@ func (t *Transfer) SetTransferInfo(db database.Access, info map[string]interface
 }
 
 func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error {
+	t.RemoteTransferID = ""
+
 	remote := &RemoteAgent{}
 	if err := db.Get(remote, "id=?", t.AgentID).Run(); err != nil {
 		if database.IsNotFound(err) {
@@ -84,17 +86,6 @@ func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error
 	} else if n == 0 {
 		return database.NewValidationError("the agent %d does not have an account %d",
 			t.AgentID, t.AccountID)
-	}
-
-	if t.RemoteTransferID != "" {
-		n, err := db.Count(t).Where("remote_transfer_id=? AND account_id=?",
-			t.RemoteTransferID, t.AccountID).Run()
-		if err != nil {
-			return err
-		}
-		if n != 0 {
-			return database.NewValidationError("a transfer with the same remote ID already exists")
-		}
 	}
 
 	// Check for rule access
@@ -125,6 +116,24 @@ func (t *Transfer) validateServerTransfer(db database.ReadAccess) database.Error
 	if n == 0 {
 		return database.NewValidationError("the server %d does not have an account %d",
 			t.AgentID, t.AccountID)
+	}
+
+	if t.RemoteTransferID != "" {
+		n1, err := db.Count(t).Where("id<>? AND remote_transfer_id=? AND account_id=?",
+			t.ID, t.RemoteTransferID, t.AccountID).Run()
+		if err != nil {
+			return err
+		}
+		n2, err := db.Count(&HistoryEntry{}).Where("id<>? AND remote_transfer_id=? AND "+
+			"account=(SELECT login FROM local_accounts WHERE id=?)", t.ID,
+			t.RemoteTransferID, t.AccountID).Run()
+		if err != nil {
+			return err
+		}
+		if n1 != 0 || n2 != 0 {
+			return database.NewValidationError("a transfer from the same account " +
+				"with the same remote ID already exists")
+		}
 	}
 
 	// Check for rule access
