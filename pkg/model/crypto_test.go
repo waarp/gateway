@@ -149,6 +149,13 @@ func TestCryptoBeforeWrite(t *testing.T) {
 						})
 					})
 				})
+
+				Convey("Given that the certificate is not valid for the host", func() {
+					parentAgent.Address = "localhost:1"
+					So(db.Update(parentAgent).Cols("address").Run(), ShouldBeNil)
+					shouldFailWith("the certificate host is incorrect", database.NewValidationError(
+						"the certificate is not valid for host 'localhost:1'"))
+				})
 			})
 		})
 	})

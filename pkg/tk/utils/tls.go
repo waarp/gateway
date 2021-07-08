@@ -36,16 +36,15 @@ func ParsePEMCertChain(pemCert string) ([]*x509.Certificate, error) {
 // x509.Certificate (with the leaf first) and and verifies if the chain is valid.
 // An optional hostname can also be given to check if the certificate covers
 // that domain.
-func CheckCertChain(certChain []*x509.Certificate, hostname string) error {
+func CheckCertChain(certChain []*x509.Certificate, isServer bool) error {
 	if len(certChain) == 0 {
 		return fmt.Errorf("cannot verify an empty certificate chain")
 	}
 
-	options := x509.VerifyOptions{
-		DNSName:       hostname,
-		Intermediates: x509.NewCertPool(),
-	}
-	if hostname == "" {
+	options := x509.VerifyOptions{Intermediates: x509.NewCertPool()}
+	if isServer {
+		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
+	} else {
 		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
 	}
 	roots, _ := x509.SystemCertPool()

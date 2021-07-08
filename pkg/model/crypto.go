@@ -111,27 +111,46 @@ func (c *Crypto) BeforeWrite(db database.ReadAccess) database.Error {
 	return c.checkContent(db, parent)
 }
 
-func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) database.Error {
-	newErr := database.NewValidationError
+func (c *Crypto) checkContentLocal(parent database.GetBean) database.Error {
+	if c.PrivateKey == "" {
+		return database.NewValidationError("the %s is missing a private key",
+			parent.Appellation())
+	}
+	if c.SSHPublicKey != "" {
+		return database.NewValidationError("a %s does not need an SSH public key",
+			parent.Appellation())
+	}
+	return nil
+}
 
-	var addr, login, proto string
+func (c *Crypto) checkContentRemote(parent database.GetBean) database.Error {
+	if c.Certificate == "" && c.SSHPublicKey == "" {
+		return database.NewValidationError(
+			"the %s is missing a TLS certificate or an SSH public key",
+			parent.Appellation())
+	}
+	if c.PrivateKey != "" {
+		return database.NewValidationError("a %s does not need a private key",
+			parent.Appellation())
+	}
+	return nil
+}
+
+func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) database.Error {
+	var host, proto string
+	var isServer bool
 	switch t := parent.(type) {
 	case *LocalAgent:
-		addr = t.Address
+		isServer = true
+		host = t.Address
 		proto = t.Protocol
-		if c.PrivateKey == "" {
-			return newErr("the %s is missing a private key", parent.Appellation())
-		}
-		if c.SSHPublicKey != "" {
-			return newErr("a %s does not need an SSH public key", parent.Appellation())
+		if err := c.checkContentLocal(parent); err != nil {
+			return err
 		}
 	case *LocalAccount:
-		login = t.Login
-		if c.Certificate == "" && c.SSHPublicKey == "" {
-			return newErr("the %s is missing a TLS certificate or an SSH public key", parent.Appellation())
-		}
-		if c.PrivateKey != "" {
-			return newErr("a %s does not need a private key", parent.Appellation())
+		host = t.Login
+		if err := c.checkContentRemote(parent); err != nil {
+			return err
 		}
 		var parentParent LocalAgent
 		if err := db.Get(&parentParent, "id=?", t.LocalAgentID).Run(); err != nil {
@@ -139,21 +158,16 @@ func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) d
 		}
 		proto = parentParent.Protocol
 	case *RemoteAgent:
-		addr = t.Address
+		isServer = true
+		host = t.Address
 		proto = t.Protocol
-		if c.Certificate == "" && c.SSHPublicKey == "" {
-			return newErr("the %s is missing a TLS certificate or an SSH public key", parent.Appellation())
-		}
-		if c.PrivateKey != "" {
-			return newErr("a %s does not need a private key", parent.Appellation())
+		if err := c.checkContentRemote(parent); err != nil {
+			return err
 		}
 	case *RemoteAccount:
-		login = t.Login
-		if c.PrivateKey == "" {
-			return newErr("the %s is missing a private key", parent.Appellation())
-		}
-		if c.SSHPublicKey != "" {
-			return newErr("a %s does not need an SSH public key", parent.Appellation())
+		host = t.Login
+		if err := c.checkContentLocal(parent); err != nil {
+			return err
 		}
 		var parentParent RemoteAgent
 		if err := db.Get(&parentParent, "id=?", t.RemoteAgentID).Run(); err != nil {
@@ -161,11 +175,10 @@ func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) d
 		}
 		proto = parentParent.Protocol
 	}
-
-	return c.validateContent(addr, login, proto)
+	return c.validateContent(host, proto, isServer)
 }
 
-func (c *Crypto) validateContent(addr, login, proto string) database.Error {
+func (c *Crypto) validateContent(host, proto string, isServer bool) database.Error {
 	newErr := database.NewValidationError
 
 	if c.Certificate != "" {
@@ -173,13 +186,12 @@ func (c *Crypto) validateContent(addr, login, proto string) database.Error {
 		if err != nil {
 			return newErr("failed to parse certificate: %s", err)
 		}
-		if err := utils.CheckCertChain(certChain, addr); err != nil {
+		if err := utils.CheckCertChain(certChain, isServer); err != nil {
 			return newErr("certificate validation failed: %s", err)
 		}
-		if login != "" && proto != "r66" {
-			if certChain[0].Subject.CommonName != login {
-				return newErr("the certificate subject common name '%s' does not match the account login '%s'",
-					certChain[0].Subject.CommonName, login)
+		if host != "" && proto != "r66" {
+			if err := certChain[0].VerifyHostname(host); err != nil {
+				return newErr("the certificate is not valid for host '%s'", host)
 			}
 		}
 	}
