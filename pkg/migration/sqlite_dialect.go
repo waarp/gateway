@@ -65,6 +65,7 @@ func (s *sqliteDialect) sqlTypeToDBType(typ sqlType) (string, error) {
 	}
 }
 
+//nolint:dupl
 func (s *sqliteDialect) makeConstraints(col *Column) ([]string, error) {
 	var consList []string
 	for _, c := range col.Constraints {
@@ -80,8 +81,6 @@ func (s *sqliteDialect) makeConstraints(col *Column) ([]string, error) {
 				return nil, fmt.Errorf("auto-increments can only be used on "+
 					"integer types (%s is not an integer type)", col.Type.code.String())
 			}
-			// AUTOINCR is not needed in SQLite, INTEGER PRIMARY KEY column already
-			// have an auto-increment by default.
 			consList = append(consList, "AUTOINCREMENT")
 		case unique:
 			consList = append(consList, "UNIQUE")

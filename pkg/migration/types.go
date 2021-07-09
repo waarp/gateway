@@ -73,25 +73,25 @@ func (s1 sqlType) canConvertTo(s2 sqlType) bool {
 // equivalent.
 var (
 	custom  = func(s string) sqlType { return sqlType{code: internal, name: s} }
-	BOOLEAN = sqlType{code: boolean}
+	Boolean = sqlType{code: boolean}
 
-	TINYINT  = sqlType{code: tinyint}
-	SMALLINT = sqlType{code: smallint}
-	INTEGER  = sqlType{code: integer}
-	BIGINT   = sqlType{code: bigint}
+	TinyInt  = sqlType{code: tinyint}
+	SmallInt = sqlType{code: smallint}
+	Integer  = sqlType{code: integer}
+	BigInt   = sqlType{code: bigint}
 
-	FLOAT  = sqlType{code: float}
-	DOUBLE = sqlType{code: double}
+	Float  = sqlType{code: float}
+	Double = sqlType{code: double}
 
-	VARCHAR = func(s uint64) sqlType { return sqlType{code: varchar, size: s} }
-	TEXT    = sqlType{code: text}
+	Varchar = func(s uint64) sqlType { return sqlType{code: varchar, size: s} }
+	Text    = sqlType{code: text}
 
-	DATE       = sqlType{code: date}
-	TIMESTAMP  = sqlType{code: timestamp}
-	TIMESTAMPZ = sqlType{code: timestampz}
+	Date       = sqlType{code: date}
+	Timestamp  = sqlType{code: timestamp}
+	Timestampz = sqlType{code: timestampz}
 
-	BINARY = func(s uint64) sqlType { return sqlType{code: binary, size: s} }
-	BLOB   = sqlType{code: blob}
+	Binary = func(s uint64) sqlType { return sqlType{code: binary, size: s} }
+	Blob   = sqlType{code: blob}
 )
 
 //nolint:funlen

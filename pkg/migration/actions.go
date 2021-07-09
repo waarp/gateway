@@ -11,12 +11,12 @@ var dialects = map[string]func(*queryWriter) Actions{}
 type Definition interface{}
 
 // Constraint represents a single SQL column constraint to be used when declaring
-// a column. Valid constraints are: PRIMARYKEY, FOREIGNKEY, NOTNULL, AUTOINCR,
-// UNIQUE and DEFAULT.
+// a column. Valid constraints are: PrimaryKey, ForeignKey, NotNull, AutoIncr,
+// Unique and Default.
 type Constraint interface{}
 
 // TableConstraint represents a constraint put on an SQL table when declaring said
-// table. Valid table constraints are: PrimaryKey and Unique.
+// table. Valid table constraints are: MultiPrimaryKey and MultiUnique.
 type TableConstraint interface{}
 
 // Querier is an interface exposing the common function for sending database

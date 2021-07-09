@@ -10,10 +10,10 @@ import (
 func initVersion() migration.Script {
 	return migration.Script{
 		Up: func(db migration.Actions) error {
-			if err := db.CreateTable("version", migration.Col("current", migration.TEXT)); err != nil {
+			if err := db.CreateTable("version", migration.Col("current", migration.Text)); err != nil {
 				return err
 			}
-			return db.AddRow("version", migration.Cells{"current": migration.Cel(migration.TEXT, "0.0.0")})
+			return db.AddRow("version", migration.Cells{"current": migration.Cel(migration.Text, "0.0.0")})
 		},
 		Down: func(db migration.Actions) error {
 			return db.DropTable("version")

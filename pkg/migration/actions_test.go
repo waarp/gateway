@@ -22,21 +22,21 @@ func testSQLCreateTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 			Convey("When adding a table with various columns and constraints", func() {
 				defs := []Definition{
-					Col("i64", BIGINT, PRIMARYKEY, AUTOINCR),
-					Col("i32", INTEGER, NOTNULL, FOREIGNKEY("titi", "id")),
-					Col("i16", SMALLINT, NOTNULL),
-					Col("i8", TINYINT),
-					Col("flo", FLOAT, UNIQUE),
-					Col("dou", DOUBLE),
-					Col("bol", BOOLEAN),
-					Col("vc1", VARCHAR(4)),
-					Col("str", TEXT, DEFAULT("txt")),
-					Col("bin", BINARY(4)),
-					Col("blo", BLOB),
-					Col("dat", DATE),
-					Col("ts", TIMESTAMP),
-					Col("tsz", TIMESTAMPZ),
-					Unique("i32", "i8"),
+					Col("i64", BigInt, PrimaryKey, AutoIncr),
+					Col("i32", Integer, NotNull, ForeignKey("titi", "id")),
+					Col("i16", SmallInt, NotNull),
+					Col("i8", TinyInt),
+					Col("flo", Float, Unique),
+					Col("dou", Double),
+					Col("bol", Boolean),
+					Col("vc1", Varchar(4)),
+					Col("str", Text, Default("txt")),
+					Col("bin", Binary(4)),
+					Col("blo", Blob),
+					Col("dat", Date),
+					Col("ts", Timestamp),
+					Col("tsz", Timestampz),
+					MultiUnique("i32", "i8"),
 				}
 				So(engine.CreateTable("toto", defs...), ShouldBeNil)
 
@@ -155,7 +155,7 @@ func testSQLRenameColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 				Convey("Then the table should be unchanged", func() {
 					tableShouldHaveColumns(db, "toto", "str", "id")
-					colShouldHaveType(engine, "toto", "str", TEXT)
+					colShouldHaveType(engine, "toto", "str", Text)
 				})
 			})
 
@@ -189,23 +189,23 @@ func testSQLChangeColumnType(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 		Convey(fmt.Sprintf("Given a %s dialect engine", dbms), func() {
 			engine := getEngine(db)
-			So(engine.CreateTable("toto", Col("str", VARCHAR(10))), ShouldBeNil)
-			So(engine.AddRow("toto", Cells{"str": Cel(VARCHAR(10), "sesame")}), ShouldBeNil)
+			So(engine.CreateTable("toto", Col("str", Varchar(10))), ShouldBeNil)
+			So(engine.AddRow("toto", Cells{"str": Cel(Varchar(10), "sesame")}), ShouldBeNil)
 
 			Convey("When changing a column's type", func() {
-				So(engine.ChangeColumnType("toto", "str", VARCHAR(10), TEXT), ShouldBeNil)
+				So(engine.ChangeColumnType("toto", "str", Varchar(10), Text), ShouldBeNil)
 
 				Convey("Then the column's type should have changed", func() {
-					colShouldHaveType(engine, "toto", "str", TEXT)
+					colShouldHaveType(engine, "toto", "str", Text)
 				})
 			})
 
 			Convey("When the type conversion is not possible", func() {
-				err := engine.ChangeColumnType("toto", "str", VARCHAR(10), DOUBLE)
+				err := engine.ChangeColumnType("toto", "str", Varchar(10), Double)
 				So(err, ShouldBeError, "cannot convert from type varchar to type double")
 
 				Convey("Then the table should be unchanged", func() {
-					colShouldHaveType(engine, "toto", "str", VARCHAR(10))
+					colShouldHaveType(engine, "toto", "str", Varchar(10))
 				})
 			})
 		})
@@ -224,26 +224,26 @@ func testSQLAddColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 			engine := getEngine(db)
 
 			Convey("When adding a column", func() {
-				So(engine.AddColumn("toto", "id", INTEGER, NOTNULL), ShouldBeNil)
+				So(engine.AddColumn("toto", "id", Integer, NotNull), ShouldBeNil)
 
 				Convey("Then the column should have been added", func() {
 					tableShouldHaveColumns(db, "toto", "str", "id")
-					colShouldHaveType(engine, "toto", "id", INTEGER)
+					colShouldHaveType(engine, "toto", "id", Integer)
 				})
 			})
 
 			Convey("When adding an already existing column", func() {
-				err := engine.AddColumn("toto", "str", INTEGER)
+				err := engine.AddColumn("toto", "str", Integer)
 				So(isColumnAlreadyExist(err), ShouldBeTrue)
 
 				Convey("Then the table should be unchanged", func() {
 					tableShouldHaveColumns(db, "toto", "str")
-					colShouldHaveType(engine, "toto", "str", TEXT)
+					colShouldHaveType(engine, "toto", "str", Text)
 				})
 			})
 
 			Convey("When adding a column to a non-existing table", func() {
-				err := engine.AddColumn("titi", "id", INTEGER)
+				err := engine.AddColumn("titi", "id", Integer)
 				So(isTableNotFound(err), ShouldBeTrue)
 
 				Convey("Then the existing table should be unchanged", func() {
@@ -308,20 +308,20 @@ func testSQLAddRow(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 			Convey("Given a table with various types", func() {
 				So(engine.CreateTable("toto",
-					Col("i64", BIGINT),
-					Col("i32", INTEGER),
-					Col("i16", SMALLINT),
-					Col("i8", TINYINT),
-					Col("flo", FLOAT),
-					Col("dou", DOUBLE),
-					Col("bol", BOOLEAN),
-					Col("vc1", VARCHAR(4)),
-					Col("str", TEXT),
-					Col("bin", BINARY(4)),
-					Col("blo", BLOB),
-					Col("dat", DATE),
-					Col("ts", TIMESTAMP),
-					Col("tsz", TIMESTAMPZ),
+					Col("i64", BigInt),
+					Col("i32", Integer),
+					Col("i16", SmallInt),
+					Col("i8", TinyInt),
+					Col("flo", Float),
+					Col("dou", Double),
+					Col("bol", Boolean),
+					Col("vc1", Varchar(4)),
+					Col("str", Text),
+					Col("bin", Binary(4)),
+					Col("blo", Blob),
+					Col("dat", Date),
+					Col("ts", Timestamp),
+					Col("tsz", Timestampz),
 				), ShouldBeNil)
 
 				Convey("When adding a row", func() {
@@ -330,20 +330,20 @@ func testSQLAddRow(t *testing.T, dbms string, initDB func(C) *sql.DB,
 					tTsz := time.Date(1990, 1, 1, 1, 0, 0, 222222222, time.Local)
 
 					So(engine.AddRow("toto", Cells{
-						"i64": Cel(BIGINT, int64(64)),
-						"i32": Cel(INTEGER, int32(32)),
-						"i16": Cel(SMALLINT, int16(16)),
-						"i8":  Cel(TINYINT, int8(8)),
-						"flo": Cel(FLOAT, float32(1.1)),
-						"dou": Cel(DOUBLE, float64(2.2)),
-						"bol": Cel(BOOLEAN, true),
-						"vc1": Cel(VARCHAR(4), "abcd"),
-						"str": Cel(TEXT, &testInterface{str: "message"}),
-						"bin": Cel(BINARY(4), []byte{0x00, 0xFF, 0x00, 0xFF}),
-						"blo": Cel(BLOB, []byte{0x00, 0xFF, 0xFF, 0x00}),
-						"dat": Cel(DATE, tDat),
-						"ts":  Cel(TIMESTAMP, tTs),
-						"tsz": Cel(TIMESTAMPZ, tTsz),
+						"i64": Cel(BigInt, int64(64)),
+						"i32": Cel(Integer, int32(32)),
+						"i16": Cel(SmallInt, int16(16)),
+						"i8":  Cel(TinyInt, int8(8)),
+						"flo": Cel(Float, float32(1.1)),
+						"dou": Cel(Double, float64(2.2)),
+						"bol": Cel(Boolean, true),
+						"vc1": Cel(Varchar(4), "abcd"),
+						"str": Cel(Text, &testInterface{str: "message"}),
+						"bin": Cel(Binary(4), []byte{0x00, 0xFF, 0x00, 0xFF}),
+						"blo": Cel(Blob, []byte{0x00, 0xFF, 0xFF, 0x00}),
+						"dat": Cel(Date, tDat),
+						"ts":  Cel(Timestamp, tTs),
+						"tsz": Cel(Timestampz, tTsz),
 					}), ShouldBeNil)
 
 					Convey("Then the row should have been added", func() {

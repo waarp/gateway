@@ -55,6 +55,7 @@ func (m *mySQLDialect) sqlTypeToDBType(typ sqlType) (string, error) {
 	}
 }
 
+//nolint:dupl
 func (m *mySQLDialect) makeConstraints(col *Column) ([]string, error) {
 	var consList []string
 	for _, c := range col.Constraints {
