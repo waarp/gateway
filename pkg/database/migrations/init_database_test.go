@@ -1,5 +1,0 @@
-package migrations
-
-const sqliteScript = `
-
-`
