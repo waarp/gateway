@@ -15,6 +15,10 @@ func init() {
 	dialects[SQLite] = newSqliteEngine
 }
 
+type sqliteError string
+
+func (s sqliteError) Error() string { return string(s) }
+
 // sqliteDialect is the dialect engine for SQLite.
 type sqliteDialect struct{ *standardSQL }
 
@@ -131,11 +135,16 @@ func (s *sqliteDialect) DropColumn(table, name string) error {
 	if err != nil {
 		return err
 	}
+	var found bool
 	for i, col := range cols {
 		if col == name {
 			cols = append(cols[:i], cols[i+1:]...)
+			found = true
 			break
 		}
+	}
+	if !found {
+		return sqliteError(fmt.Sprintf(`no such column: "%s"`, name))
 	}
 
 	query := fmt.Sprintf("CREATE TABLE %s_new AS SELECT %s FROM %s", table,

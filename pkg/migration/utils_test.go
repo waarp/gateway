@@ -67,9 +67,13 @@ func isTableNotFound(err error) bool {
 }
 
 func isColumnNotFound(err error) bool {
-	var sqlErr sqlite3.Error
-	if errors.As(err, &sqlErr) {
-		return strings.HasPrefix(sqlErr.Error(), "no such column:")
+	var sqlErr1 sqlite3.Error
+	if errors.As(err, &sqlErr1) {
+		return strings.HasPrefix(sqlErr1.Error(), "no such column:")
+	}
+	var sqlErr2 sqliteError
+	if errors.As(err, &sqlErr2) {
+		return strings.HasPrefix(sqlErr2.Error(), "no such column:")
 	}
 
 	var pgErr *pgconn.PgError
@@ -79,7 +83,7 @@ func isColumnNotFound(err error) bool {
 
 	var myErr *mysql.MySQLError
 	if errors.As(err, &myErr) {
-		return myErr.Number == 1054
+		return myErr.Number == 1054 || myErr.Number == 1091
 	}
 
 	panic(fmt.Sprintf("unknown error type %T: %s", err, err))

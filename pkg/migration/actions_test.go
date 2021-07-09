@@ -58,9 +58,11 @@ func testSQLCreateTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 func testSQLRenameTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
 
-	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func(c C) {
+	Convey(fmt.Sprintf("Given a %s database with 2 tables", dbms), t, func(c C) {
 		db := initDB(c)
 		_, err := db.Exec("CREATE TABLE toto (str TEXT)")
+		So(err, ShouldBeNil)
+		_, err = db.Exec("CREATE TABLE tutu (str TEXT)")
 		So(err, ShouldBeNil)
 
 		Convey(fmt.Sprintf("Given a %s dialect engine", dbms), func() {
@@ -81,6 +83,16 @@ func testSQLRenameTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 				Convey("Then the existing table should be unchanged", func() {
 					So(doesTableExist(db, "toto"), ShouldBeTrue)
+				})
+			})
+
+			Convey("When renaming a table to an already existing name", func() {
+				err := engine.RenameTable("toto", "tutu")
+				So(err, ShouldNotBeNil)
+
+				Convey("Then the existing tables should be unchanged", func() {
+					So(doesTableExist(db, "toto"), ShouldBeTrue)
+					So(doesTableExist(db, "tutu"), ShouldBeTrue)
 				})
 			})
 		})
@@ -269,6 +281,15 @@ func testSQLDropColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 				Convey("Then the existing table should be unchanged", func() {
 					tableShouldHaveColumns(db, "toto", "str", "id")
 
+				})
+			})
+
+			Convey("When dropping a non-existing column", func() {
+				err := engine.DropColumn("toto", "NA")
+				So(isColumnNotFound(err), ShouldBeTrue)
+
+				Convey("Then the existing table should be unchanged", func() {
+					tableShouldHaveColumns(db, "toto", "str", "id")
 				})
 			})
 		})
