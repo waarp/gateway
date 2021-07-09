@@ -82,7 +82,7 @@ func (s *sqliteDialect) makeConstraints(col *Column) ([]string, error) {
 			}
 			// AUTOINCR is not needed in SQLite, INTEGER PRIMARY KEY column already
 			// have an auto-increment by default.
-			//consList = append(consList, "AUTOINCREMENT")
+			consList = append(consList, "AUTOINCREMENT")
 		case unique:
 			consList = append(consList, "UNIQUE")
 		case defaul:
