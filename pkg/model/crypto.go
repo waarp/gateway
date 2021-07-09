@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &Crypto{})
+	database.AddTable(&Crypto{})
 }
 
 var validOwnerTypes = []string{TableLocAgents, TableRemAgents, TableLocAccounts,

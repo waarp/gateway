@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &RemoteAccount{})
+	database.AddTable(&RemoteAccount{})
 }
 
 // RemoteAccount represents an account on a remote agent. It is used by the

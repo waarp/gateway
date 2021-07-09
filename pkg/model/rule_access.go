@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &RuleAccess{})
+	database.AddTable(&RuleAccess{})
 }
 
 // RuleAccess represents a authorised access to a rule.

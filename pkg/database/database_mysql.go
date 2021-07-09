@@ -4,6 +4,8 @@ import (
 	"crypto/tls"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	msql "github.com/go-sql-driver/mysql" // register the mysql driver
 	"xorm.io/xorm"
@@ -11,24 +13,26 @@ import (
 
 const (
 	// Configuration option for using the MySQL RDBMS
-	mysql = "mysql"
+	mysql = migration.MySQL
 
-	// Name of the MySQL database driver
-	mysqlDriver = "mysql"
+	// MysqlDriver is the name of the MySQL database driver
+	MysqlDriver = "mysql"
 )
 
 func init() {
 	supportedRBMS[mysql] = mysqlinfo
 }
 
-func mysqlinfo(config conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return mysqlDriver, mysqlDSN(config), func(db *xorm.Engine) error {
+func mysqlinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+	return MysqlDriver, MysqlDSN(config), func(db *xorm.Engine) error {
 		db.DatabaseTZ = time.UTC
 		return nil
 	}
 }
 
-func mysqlDSN(config conf.DatabaseConfig) string {
+// MysqlDSN takes a database configuration and returns the corresponding MySQL
+// DSN necessary to connect to the database.
+func MysqlDSN(config *conf.DatabaseConfig) string {
 	dsn := msql.NewConfig()
 	dsn.Addr = config.Address
 	dsn.DBName = config.Name
@@ -45,8 +49,6 @@ func mysqlDSN(config conf.DatabaseConfig) string {
 
 		dsn.TLSConfig = "db"
 	}
-
-	//dsn.Params = map[string]string{"time_zone": "'+00:00'"}
 
 	return dsn.FormatDSN()
 }

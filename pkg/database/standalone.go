@@ -25,8 +25,6 @@ func (s *Standalone) newSession() *Session {
 // The transaction will be then be roll-backed or committed, depending whether
 // the function returned an error or not.
 func (s *Standalone) Transaction(f func(*Session) Error) Error {
-	//s.mutex.Lock()
-	//defer s.mutex.Unlock()
 	ses := s.newSession()
 
 	if err := ses.session.Begin(); err != nil {

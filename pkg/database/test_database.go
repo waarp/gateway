@@ -21,7 +21,7 @@ const (
 	testDBEnv  = "GATEWAY_TEST_DB"
 )
 
-func testinfo(c conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+func testinfo(c *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
 	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc",
 		c.Address), sqliteInit
 }
@@ -78,7 +78,7 @@ func initTestDBConf(c convey.C, config *conf.DatabaseConfig) {
 func resetDB(c convey.C, db *DB, config *conf.DatabaseConfig) {
 	switch config.Type {
 	case postgres, mysql:
-		for _, tbl := range Tables {
+		for _, tbl := range tables {
 			c.So(db.engine.DropTables(tbl.TableName()), convey.ShouldBeNil)
 		}
 		c.So(db.engine.Close(), convey.ShouldBeNil)

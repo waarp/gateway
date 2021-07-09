@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &TransferHistory{})
+	database.AddTable(&TransferHistory{})
 }
 
 // TransferHistory represents one record of the 'transfers_history' table.

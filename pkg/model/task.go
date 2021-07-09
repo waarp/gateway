@@ -15,7 +15,7 @@ type Validator interface {
 }
 
 func init() {
-	database.Tables = append(database.Tables, &Task{})
+	database.AddTable(&Task{})
 }
 
 // Chain represents the valid chains for a task entry

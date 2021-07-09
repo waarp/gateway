@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &LocalAgent{})
+	database.AddTable(&LocalAgent{})
 }
 
 // LocalAgent represents a local server instance operated by the gateway itself.

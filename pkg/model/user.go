@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &User{})
+	database.AddTable(&User{})
 }
 
 // User represents a human account on the gateway. These accounts allow users

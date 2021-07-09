@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	_ "github.com/mattn/go-sqlite3" // register the sqlite driver
 	"xorm.io/xorm"
@@ -11,10 +13,10 @@ import (
 
 const (
 	// Configuration option for using the Sqlite RDBMS
-	sqlite = "sqlite"
+	sqlite = migration.SQLite
 
-	// Name of the Sqlite database driver
-	sqliteDriver = "sqlite3"
+	// SqliteDriver is the name of the Sqlite database driver
+	SqliteDriver = "sqlite3"
 )
 
 func init() {
@@ -27,11 +29,13 @@ func sqliteInit(db *xorm.Engine) error {
 	return nil
 }
 
-func sqliteinfo(config conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return sqliteDriver, sqliteDSN(config), sqliteInit
+func sqliteinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+	return SqliteDriver, SqliteDSN(config), sqliteInit
 }
 
-func sqliteDSN(config conf.DatabaseConfig) string {
+// SqliteDSN takes a database configuration and returns the corresponding
+// Sqlite DSN necessary to connect to the database.
+func SqliteDSN(config *conf.DatabaseConfig) string {
 	var user, pass string
 	if config.User != "" {
 		user = fmt.Sprintf("&_auth_user=%s", config.User)

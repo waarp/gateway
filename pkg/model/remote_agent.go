@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &RemoteAgent{})
+	database.AddTable(&RemoteAgent{})
 }
 
 // RemoteAgent represents a distant server instance with which the gateway can
