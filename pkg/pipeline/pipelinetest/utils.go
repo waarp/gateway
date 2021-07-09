@@ -125,25 +125,25 @@ func makeRuleTasks(c convey.C, db *database.DB, rule *model.Rule) {
 }
 
 func (t *testData) ClientShouldHavePreTasked(c convey.C) {
-	c.So(t.TasksChecker.ClientPreTaskNB(), convey.ShouldNotEqual, 0)
+	c.So(t.TasksChecker.ClientPreTaskNB() != 0, convey.ShouldBeTrue)
 }
 
 func (t *testData) ServerShouldHavePreTasked(c convey.C) {
-	c.So(t.TasksChecker.ServerPreTaskNB(), convey.ShouldNotEqual, 0)
+	c.So(t.TasksChecker.ServerPreTaskNB() != 0, convey.ShouldBeTrue)
 }
 
 func (t *testData) ClientShouldHavePostTasked(c convey.C) {
-	c.So(t.TasksChecker.ClientPostTaskNB(), convey.ShouldNotEqual, 0)
+	c.So(t.TasksChecker.ClientPostTaskNB() != 0, convey.ShouldBeTrue)
 }
 
 func (t *testData) ServerShouldHavePostTasked(c convey.C) {
-	c.So(t.TasksChecker.ServerPostTaskNB(), convey.ShouldNotEqual, 0)
+	c.So(t.TasksChecker.ServerPostTaskNB() != 0, convey.ShouldBeTrue)
 }
 
 func (t *testData) ClientShouldHaveErrorTasked(c convey.C) {
-	c.So(t.TasksChecker.ClientErrTaskNB(), convey.ShouldNotEqual, 0)
+	c.So(t.TasksChecker.ClientErrTaskNB() != 0, convey.ShouldBeTrue)
 }
 
 func (t *testData) ServerShouldHaveErrorTasked(c convey.C) {
-	c.So(t.TasksChecker.ServerErrTaskNB(), convey.ShouldNotEqual, 0)
+	c.So(t.TasksChecker.ServerErrTaskNB() != 0, convey.ShouldBeTrue)
 }

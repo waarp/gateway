@@ -154,14 +154,13 @@ func (c *client) EndTransfer() *types.TransferError {
 // SendError sends the given error to the remote partner and then closes the
 // session.
 func (c *client) SendError(err *types.TransferError) {
+	c.pip.Logger.Debugf("Sending error '%s' to remote partner", err)
 	defer c.cancel()
 	defer clientConns.Done(c.pip.TransCtx.RemoteAgent.Address)
-	defer func() {
-		if c.ses != nil {
-			c.ses.Close()
-		}
-	}()
-	c.pip.Logger.Debugf("Sending error '%s' to remote partner", err)
+	if c.ses == nil {
+		return
+	}
+	defer c.ses.Close()
 	if sErr := c.ses.SendError(internal.ToR66Error(err)); sErr != nil {
 		c.pip.Logger.Errorf("Failed to send error to remote partner: %s", sErr)
 	}
