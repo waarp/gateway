@@ -198,7 +198,7 @@ func (s *SelfContext) RunTransfer(c convey.C) {
 	pip.Run()
 	s.TasksChecker.WaitClientDone()
 	s.TasksChecker.WaitServerDone()
-	s.shouldNotBeInLists()
+	s.waitForListDeletion()
 }
 
 func (s *SelfContext) resetTransfer(c convey.C) {
@@ -414,9 +414,21 @@ func (s *SelfContext) CheckServerTransferError(c convey.C, errCode types.Transfe
 	})
 }
 
-func (s *SelfContext) shouldNotBeInLists() {
-	ok := pipeline.ClientTransfers.Exists(s.ClientTrans.ID)
-	convey.So(ok, convey.ShouldBeFalse)
-	ok = s.service.ManageTransfers().Exists(s.ClientTrans.ID + 1)
-	convey.So(ok, convey.ShouldBeFalse)
+func (s *SelfContext) waitForListDeletion() {
+	timer := time.NewTimer(time.Second * 3)
+	ticker := time.NewTicker(time.Millisecond * 100)
+	defer timer.Stop()
+	defer ticker.Stop()
+	for {
+		select {
+		case <-timer.C:
+			panic("timeout waiting for transfers to be removed from running list")
+		default:
+			ok1 := pipeline.ClientTransfers.Exists(s.ClientTrans.ID)
+			ok2 := s.service.ManageTransfers().Exists(s.ClientTrans.ID + 1)
+			if !ok1 && !ok2 {
+				return
+			}
+		}
+	}
 }
