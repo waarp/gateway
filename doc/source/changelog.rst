@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :bug:`133` Correction d'une erreur rendant impossible la répartition de charge
+  sur plusieurs instances d'une même *gateway*. Précédemment, il était possible
+  pour 2 instances d'une même *gateway* de récupérer un même transfert depuis la
+  base de données, et de l'exécuter 2 fois en parallèle. Ce n'est désormais plus
+  possible.
 * :feature:`` Un champ `passwordHash` a été ajouté à l'objet JSON de compte local
   du fichier d'import/export. Il remplace le champ `password` pour l'export de
   configuration. La gateway ne stockant que des hash de mots de passe, le nom du

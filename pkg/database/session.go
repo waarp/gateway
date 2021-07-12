@@ -1,8 +1,8 @@
 package database
 
 import (
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"xorm.io/xorm"
 )
 
@@ -11,7 +11,11 @@ import (
 type Session struct {
 	session *xorm.Session
 	logger  *log.Logger
-	state   *service.State
+	conf    *conf.DatabaseConfig
+}
+
+func (s *Session) getType() string {
+	return s.conf.Type
 }
 
 func (s *Session) getUnderlying() xorm.Interface {
@@ -40,7 +44,17 @@ func (s *Session) Iterate(bean IterateBean) *IterateQuery {
 // The request can then be executed using the SelectQuery.Run method. The
 // selected entries will be returned inside the SelectBean parameter.
 func (s *Session) Select(bean SelectBean) *SelectQuery {
-	return &SelectQuery{db: s, bean: bean}
+	return &SelectQuery{db: s, bean: bean, forUpd: false}
+}
+
+// SelectForUpdate starts building a SQL 'SELECT FOR UPDATE' query to retrieve
+// entries of the given model from the database. The request can be narrowed
+// using the SelectQuery methods.
+//
+// The request can then be executed using the SelectQuery.Run method. The
+// selected entries will be returned inside the SelectBean parameter.
+func (s *Session) SelectForUpdate(bean SelectBean) *SelectQuery {
+	return &SelectQuery{db: s, bean: bean, forUpd: true}
 }
 
 // Get starts building a SQL 'SELECT' query to retrieve a single entry of
