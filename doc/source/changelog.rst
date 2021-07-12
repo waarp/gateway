@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.4.0 <2021-07-12>`
 * :bug:`133` Correction d'une erreur rendant impossible la répartition de charge
   sur plusieurs instances d'une même *gateway*. Précédemment, il était possible
   pour 2 instances d'une même *gateway* de récupérer un même transfert depuis la
