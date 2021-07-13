@@ -3,6 +3,8 @@ package r66
 import (
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -246,6 +248,8 @@ func TestSelfPushServerPostTasksFail(t *testing.T) {
 					"Post-tasks failed: Task TASKERR @ PUSH POST[1]: task failed",
 					types.StepPostTasks)
 
+				var transs model.Transfers
+				_ = ctx.DB.Select(&transs).Run()
 				ctx.TestRetry(c,
 					ctx.ClientShouldHavePostTasked,
 				)

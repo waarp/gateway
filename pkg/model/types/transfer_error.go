@@ -273,7 +273,7 @@ type TransferError struct {
 // NewTransferError creates a new transfer error with the given error code and
 // details.  It panics if an unknown error code is given, as it is probably a
 // bug and it should be during development
-func NewTransferError(code TransferErrorCode, details string) *TransferError {
+func NewTransferError(code TransferErrorCode, details string, args ...interface{}) *TransferError {
 	if !code.IsValid() {
 		panic(fmt.Sprintf("%v is an invalid error code", code))
 	}
@@ -282,7 +282,7 @@ func NewTransferError(code TransferErrorCode, details string) *TransferError {
 		details = ""
 	}
 
-	return &TransferError{Code: code, Details: details}
+	return &TransferError{Code: code, Details: fmt.Sprintf(details, args...)}
 }
 
 func (te *TransferError) Error() string {

@@ -82,16 +82,25 @@ func (c *client) authenticate() *types.TransferError {
 }
 
 func (c *client) request() *types.TransferError {
+	blockNB := c.pip.TransCtx.Transfer.Progress / uint64(c.conf.BlockSize)
+	blockRest := c.pip.TransCtx.Transfer.Progress % uint64(c.conf.BlockSize)
+	if c.pip.TransCtx.Transfer.Step <= types.StepData && blockRest != 0 {
+		//round progress to the beginning of the block
+		c.pip.TransCtx.Transfer.Progress -= blockRest
+		if err := c.pip.UpdateTrans("progression"); err != nil {
+			return err
+		}
+	}
 	req := &r66.Request{
 		ID:       int64(c.pip.TransCtx.Transfer.ID),
 		Filepath: c.pip.TransCtx.Transfer.RemotePath,
 		FileSize: c.pip.TransCtx.Transfer.Filesize,
 		Rule:     c.pip.TransCtx.Rule.Name,
 		Block:    c.conf.BlockSize,
+		Rank:     uint32(blockNB),
 		IsMD5:    c.conf.CheckBlockHash,
 		Infos:    "",
 	}
-	req.Rank = uint32(c.pip.TransCtx.Transfer.Progress / uint64(c.conf.BlockSize))
 
 	if c.pip.TransCtx.Rule.IsSend {
 		info, err := os.Stat(c.pip.TransCtx.Transfer.LocalPath)

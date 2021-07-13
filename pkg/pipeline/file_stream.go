@@ -240,8 +240,9 @@ func (f *fileStream) close() *types.TransferError {
 		f.Logger.Warningf("Failed to close file: %s", fErr)
 	}
 
-	f.TransCtx.Transfer.Progress = uint64(stat.Size())
-	if dbErr := f.DB.Update(f.TransCtx.Transfer).Cols("progression").Run(); dbErr != nil {
+	f.TransCtx.Transfer.Progress = atomic.LoadUint64(&f.progress)
+	f.TransCtx.Transfer.Filesize = stat.Size()
+	if dbErr := f.DB.Update(f.TransCtx.Transfer).Cols("progression", "filesize").Run(); dbErr != nil {
 		f.handleError(types.TeInternal, "Failed to update final transfer progress",
 			dbErr.Error())
 		return errDatabase

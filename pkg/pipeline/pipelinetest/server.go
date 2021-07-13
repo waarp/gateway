@@ -28,12 +28,13 @@ import (
 type ServerContext struct {
 	*testData
 	*serverData
+	filename string
 }
 
 type serverData struct {
 	Server     *model.LocalAgent
 	LocAccount *model.LocalAccount
-	Rule       *model.Rule
+	ServerRule *model.Rule
 }
 
 func initServer(c convey.C, proto string, servConf config.ProtoConfig) *ServerContext {
@@ -47,15 +48,19 @@ func initServer(c convey.C, proto string, servConf config.ProtoConfig) *ServerCo
 			Server:     server,
 			LocAccount: locAcc,
 		},
+		filename: "test_server.file",
 	}
 }
+
+// Filename returns the expected name of the file used in server transfer tests.
+func (s *ServerContext) Filename() string { return s.filename }
 
 // InitServerPush creates a database and fills it with all the elements necessary
 // for a server push transfer test of the given protocol. It then returns all these
 // element inside a ServerContext.
 func InitServerPush(c convey.C, proto string, servConf config.ProtoConfig) *ServerContext {
 	ctx := initServer(c, proto, servConf)
-	ctx.Rule = makeServerPush(c, ctx.DB)
+	ctx.ServerRule = makeServerPush(c, ctx.DB)
 	return ctx
 }
 
@@ -64,7 +69,7 @@ func InitServerPush(c convey.C, proto string, servConf config.ProtoConfig) *Serv
 // element inside a ServerContext.
 func InitServerPull(c convey.C, proto string, servConf config.ProtoConfig) *ServerContext {
 	ctx := initServer(c, proto, servConf)
-	ctx.Rule = makeServerPull(c, ctx.DB)
+	ctx.ServerRule = makeServerPull(c, ctx.DB)
 	return ctx
 }
 
@@ -146,4 +151,14 @@ func (s *ServerContext) StartService(c convey.C) service.Service {
 		c.So(serv.Stop(ctx), convey.ShouldBeNil)
 	})
 	return serv
+}
+
+// CheckTransferOK checks if the client transfer history entry has succeeded as
+// expected.
+func (s *ServerContext) CheckTransferOK(c convey.C) {
+	var actual model.HistoryEntry
+	c.So(s.DB.Get(&actual, "id=?", 1).Run(), convey.ShouldBeNil)
+	remoteID := ""
+	progress := uint64(TestFileSize)
+	s.checkServerTransferOK(c, remoteID, s.filename, progress, s.DB, &actual)
 }

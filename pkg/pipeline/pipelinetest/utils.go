@@ -23,7 +23,7 @@ import (
 // TestLogin and TestPassword are the credentials used for authentication
 // during transfer tests.
 const (
-	TestLogin    = "toto"
+	TestLogin    = "foo"
 	TestPassword = "sesame"
 )
 
@@ -35,11 +35,6 @@ type testData struct {
 	DB           *database.DB
 	Paths        *conf.PathsConfig
 	TasksChecker *taskstest.TaskChecker
-}
-
-type transData struct {
-	ClientTrans *model.Transfer
-	fileContent []byte
 }
 
 func hash(pwd string) []byte {

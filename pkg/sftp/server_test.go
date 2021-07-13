@@ -125,7 +125,7 @@ func TestSSHServerInterruption(t *testing.T) {
 			cli := makeDummyClient(test.Server.Address, pipelinetest.TestLogin, pipelinetest.TestPassword)
 
 			Convey("Given that a push transfer started", func(c C) {
-				dst, err := cli.Create(path.Join(test.Rule.Path, "test_in_shutdown.dst"))
+				dst, err := cli.Create(path.Join(test.ServerRule.Path, "test_in_shutdown.dst"))
 				So(err, ShouldBeNil)
 				test.ServerShouldHavePreTasked(c)
 
@@ -160,7 +160,7 @@ func TestSSHServerInterruption(t *testing.T) {
 								test.Server.LocalTmpDir, "test_in_shutdown.dst.part"),
 							RemotePath: "/test_in_shutdown.dst",
 							Filesize:   model.UnknownSize,
-							RuleID:     test.Rule.ID,
+							RuleID:     test.ServerRule.ID,
 							Status:     types.StatusInterrupted,
 							Step:       types.StepData,
 							Owner:      database.Owner,
@@ -189,7 +189,7 @@ func TestSSHServerInterruption(t *testing.T) {
 			Convey("Given that a pull transfer started", func() {
 				pipelinetest.AddSourceFile(c, filepath.Join(test.Server.Root,
 					test.Server.LocalOutDir), "test_out_shutdown.src")
-				dst, err := cli.Open(path.Join(test.Rule.Path, "test_out_shutdown.src"))
+				dst, err := cli.Open(path.Join(test.ServerRule.Path, "test_out_shutdown.src"))
 				So(err, ShouldBeNil)
 				test.ServerShouldHavePreTasked(c)
 
@@ -224,7 +224,7 @@ func TestSSHServerInterruption(t *testing.T) {
 								test.Server.LocalOutDir, "test_out_shutdown.src"),
 							RemotePath: "/test_out_shutdown.src",
 							Filesize:   pipelinetest.TestFileSize,
-							RuleID:     test.Rule.ID,
+							RuleID:     test.ServerRule.ID,
 							Status:     types.StatusInterrupted,
 							Step:       types.StepData,
 							Owner:      database.Owner,
