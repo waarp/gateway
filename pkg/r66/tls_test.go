@@ -35,11 +35,11 @@ func TestTLS(t *testing.T) {
 			})
 		})
 
-		Convey("Given that the client does not provide a certificate", func() {
+		Convey("Given that the client provides a bad certificate", func() {
 			err := tlsConnect(ctx, false)
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, "A: missing credentials")
+				So(err, ShouldBeError, "remote error: tls: bad certificate")
 			})
 		})
 	})
@@ -57,23 +57,26 @@ func addCerts(c C, ctx *pipelinetest.ServerContext) {
 		OwnerType:   ctx.LocAccount.TableName(),
 		OwnerID:     ctx.LocAccount.ID,
 		Name:        "loc_acc_cert",
-		Certificate: testhelpers.ClientCert,
+		Certificate: testhelpers.ClientFooCert,
 	}
 	ctx.AddCryptos(c, servCert, locAccCert)
 }
 
-func tlsConnect(ctx *pipelinetest.ServerContext, hasCliCert bool) error {
-	cert, err := tls.X509KeyPair([]byte(testhelpers.ClientCert), []byte(testhelpers.ClientKey))
+func tlsConnect(ctx *pipelinetest.ServerContext, validCert bool) error {
+	var cert tls.Certificate
+	var err error
+	if validCert {
+		cert, err = tls.X509KeyPair([]byte(testhelpers.ClientFooCert), []byte(testhelpers.ClientFooKey))
+	} else {
+		cert, err = tls.X509KeyPair([]byte(testhelpers.ClientBarCert), []byte(testhelpers.ClientBarKey))
+	}
 	So(err, ShouldBeNil)
 	pool := x509.NewCertPool()
 	So(pool.AppendCertsFromPEM([]byte(testhelpers.LocalhostCert)), ShouldBeTrue)
 
 	conf := &tls.Config{
-		Certificates: []tls.Certificate{},
+		Certificates: []tls.Certificate{cert},
 		RootCAs:      pool,
-	}
-	if hasCliCert {
-		conf.Certificates = append(conf.Certificates, cert)
 	}
 
 	conn, err := tls.Dial("tcp", ctx.Server.Address, conf)
@@ -91,7 +94,6 @@ func tlsConnect(ctx *pipelinetest.ServerContext, hasCliCert bool) error {
 	defer ses.Close()
 
 	sesConf := &r66.Config{DigestAlgo: "SHA-256"}
-	//TODO: remove password and authenticate with certificate only
-	_, err = ses.Authent("", []byte{}, sesConf)
+	_, err = ses.Authent(ctx.LocAccount.Login, []byte(pipelinetest.TestPassword), sesConf)
 	return err
 }

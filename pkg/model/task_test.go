@@ -42,7 +42,7 @@ func TestTaskTableName(t *testing.T) {
 			name := task.TableName()
 
 			Convey("Then it should return the name of the task table", func() {
-				So(name, ShouldEqual, "tasks")
+				So(name, ShouldEqual, TableTasks)
 			})
 		})
 	})

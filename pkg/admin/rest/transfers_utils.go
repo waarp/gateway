@@ -119,7 +119,7 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 		for i := range rules {
 			args[i] = rules[i]
 		}
-		query.Where("rule_id IN (SELECT id FROM rules WHERE name IN (?"+
+		query.Where("rule_id IN (SELECT id FROM "+model.TableRules+" WHERE name IN (?"+
 			strings.Repeat(",?", len(rules)-1)+"))", args...)
 	}
 	if statuses, ok := r.Form["status"]; ok {

@@ -1,7 +1,7 @@
 package database
 
 import (
-	"fmt"
+	"regexp"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -43,19 +43,16 @@ func logSQL(query *xorm.Session, logger *log.Logger) {
 		}
 	}
 
-	if strings.Contains(sql, "?") {
-		sqlMsg, err := builder.ConvertToBoundSQL(sql, args)
-		if err == nil {
-			logger.Debugf("[SQL] %s", sqlMsg)
-			return
-		}
+	if !strings.Contains(sql, "?") {
+		reg := regexp.MustCompile(`\$\d`)
+		sql = reg.ReplaceAllLiteralString(sql, "?")
 	}
-	argsStr := make([]string, len(args))
-	for i := range args {
-		argsStr[i] = fmt.Sprint(args[i])
+
+	sqlMsg, err := builder.ConvertToBoundSQL(sql, args)
+	if err == nil {
+		logger.Debugf("[SQL] %s", sqlMsg)
+		return
 	}
-	//logger.Debugf("[SQL] %s | [%v]", sql, strings.Join(argsStr, ", "))
-	logger.Debugf("[SQL] %s | %v", sql, args)
 }
 
 // ping checks if the database is reachable and updates the service state accordingly.

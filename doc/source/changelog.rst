@@ -3,6 +3,12 @@
 Historique des versions
 =======================
 
+* :release:`0.4.0 <2021-07-12>`
+* :bug:`133` Correction d'une erreur rendant impossible la répartition de charge
+  sur plusieurs instances d'une même *gateway*. Précédemment, il était possible
+  pour 2 instances d'une même *gateway* de récupérer un même transfert depuis la
+  base de données, et de l'exécuter 2 fois en parallèle. Ce n'est désormais plus
+  possible.
 * :bug:`` Sous système Unix, l'interruption de tâches externes se fait désormais
   via un *SIGINT* (au lieu de *SIGKILL*).
 * :feature:`` Ajout d'un champ taille de fichier ``filesize`` au modèles de
@@ -45,7 +51,8 @@ Historique des versions
 * :bug:`252` Les certificats, clés publiques & clés privées sont désormais parsés
   avant d'être insérés en base de données. Les données invalides seront désormais
   refusées.
-
+* :bug:`` Correction d'une régression empêchant le redémarrage des transferts SFTP.
+* :feature:`242` Ajout de la direction (`isSend`) à l'objet *transfer* de REST.
 * :bug:`239` Correction d'une erreur de base de données survenant lors de la mise
   à jour de la progression des transferts.
 * :bug:`222` Correction d'un comportement incorrect au lancement de la *gateway*

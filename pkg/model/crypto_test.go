@@ -18,7 +18,7 @@ func TestCryptoTableName(t *testing.T) {
 			name := agent.TableName()
 
 			Convey("Then it should return the name of the certificates table", func() {
-				So(name, ShouldEqual, "crypto_credentials")
+				So(name, ShouldEqual, TableCrypto)
 			})
 		})
 	})
@@ -40,7 +40,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 			Convey("Given new credentials", func() {
 				newCert := &Crypto{
-					OwnerType:   "local_agents",
+					OwnerType:   parentAgent.TableName(),
 					OwnerID:     parentAgent.ID,
 					Name:        "cert",
 					PrivateKey:  testhelpers.LocalhostKey,
@@ -64,9 +64,6 @@ func TestCryptoBeforeWrite(t *testing.T) {
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
 
-							Convey("Then it should have computed the certificate's Signature", func() {
-								So(newCert.Signature, ShouldResemble, testhelpers.LocalhostCertSign)
-							})
 						})
 					})
 				})
@@ -109,7 +106,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 				Convey("Given that the new credentials' name is already taken", func() {
 					otherCert := &Crypto{
-						OwnerType:   "local_agents",
+						OwnerType:   TableLocAgents,
 						OwnerID:     parentAgent.ID,
 						Name:        "other",
 						PrivateKey:  testhelpers.OtherLocalhostKey,
@@ -134,11 +131,11 @@ func TestCryptoBeforeWrite(t *testing.T) {
 					So(db.Insert(otherAgent).Run(), ShouldBeNil)
 
 					otherCert := &Crypto{
-						OwnerType:   "local_agents",
+						OwnerType:   parentAgent.TableName(),
 						OwnerID:     parentAgent.ID,
 						Name:        "other",
-						PrivateKey:  testhelpers.OtherLocalhostKey,
-						Certificate: testhelpers.OtherLocalhostCert,
+						PrivateKey:  testhelpers.LocalhostKey,
+						Certificate: testhelpers.LocalhostCert,
 					}
 					So(db.Insert(otherCert).Run(), ShouldBeNil)
 
@@ -152,6 +149,13 @@ func TestCryptoBeforeWrite(t *testing.T) {
 							So(err, ShouldBeNil)
 						})
 					})
+				})
+
+				Convey("Given that the certificate is not valid for the host", func() {
+					parentAgent.Address = "not_localhost:6666"
+					So(db.Update(parentAgent).Cols("address").Run(), ShouldBeNil)
+					shouldFailWith("the certificate host is incorrect", database.NewValidationError(
+						"the certificate is not valid for host 'not_localhost'"))
 				})
 			})
 		})

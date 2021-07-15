@@ -90,11 +90,11 @@ func (db *DB) createConnectionInfo() (string, string, func(*xorm.Engine) error, 
 		return "", "", nil, fmt.Errorf("unknown database type '%s'", rdbms)
 	}
 
-	driver, dsn, f := info(db.Conf.Database)
+	driver, dsn, f := info(&db.Conf.Database)
 	return driver, dsn, f, nil
 }
 
-type dbinfo func(conf.DatabaseConfig) (string, string, func(*xorm.Engine) error)
+type dbinfo func(*conf.DatabaseConfig) (string, string, func(*xorm.Engine) error)
 
 var supportedRBMS = map[string]dbinfo{}
 
@@ -113,7 +113,6 @@ func (db *DB) Start() error {
 		return nil
 	}
 	db.state.Set(service.Starting, "")
-
 	Owner = db.Conf.GatewayName
 
 	if err := db.loadAESKey(); err != nil {
@@ -152,6 +151,7 @@ func (db *DB) Start() error {
 	db.Standalone = &Standalone{
 		engine: engine,
 		logger: db.logger,
+		conf:   &db.Conf.Database,
 	}
 
 	if err := initTables(db.Standalone); err != nil {

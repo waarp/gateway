@@ -132,7 +132,7 @@ func createRemoteAccess(db database.ReadAccess, arr []string,
 		// RemoteAgent Access
 		return &model.RuleAccess{
 			RuleID:     ruleID,
-			ObjectType: "remote_agents",
+			ObjectType: model.TableRemAgents,
 			ObjectID:   agent.ID,
 		}, nil
 	}
@@ -144,7 +144,7 @@ func createRemoteAccess(db database.ReadAccess, arr []string,
 	}
 	return &model.RuleAccess{
 		RuleID:     ruleID,
-		ObjectType: "remote_accounts",
+		ObjectType: model.TableRemAccounts,
 		ObjectID:   account.ID,
 	}, nil
 }
@@ -160,7 +160,7 @@ func createLocalAccess(db database.ReadAccess, arr []string,
 		// LocalAgent Access
 		return &model.RuleAccess{
 			RuleID:     ruleID,
-			ObjectType: "local_agents",
+			ObjectType: model.TableLocAgents,
 			ObjectID:   agent.ID,
 		}, nil
 	}
@@ -172,7 +172,7 @@ func createLocalAccess(db database.ReadAccess, arr []string,
 	}
 	return &model.RuleAccess{
 		RuleID:     ruleID,
-		ObjectType: "local_accounts",
+		ObjectType: model.TableLocAccounts,
 		ObjectID:   account.ID,
 	}, nil
 }

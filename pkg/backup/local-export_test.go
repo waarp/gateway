@@ -45,7 +45,7 @@ func TestExportLocalAgents(t *testing.T) {
 
 			cert := &model.Crypto{
 				Name:        "test_cert",
-				OwnerType:   "local_agents",
+				OwnerType:   model.TableLocAgents,
 				OwnerID:     agent1.ID,
 				Certificate: testhelpers.LocalhostCert,
 				PrivateKey:  testhelpers.LocalhostKey,
@@ -178,9 +178,9 @@ func TestExportLocalAccounts(t *testing.T) {
 
 			cert := &model.Crypto{
 				Name:        "test_cert",
-				OwnerType:   "local_accounts",
+				OwnerType:   model.TableLocAccounts,
 				OwnerID:     account2.ID,
-				Certificate: testhelpers.ClientCert,
+				Certificate: testhelpers.ClientFooCert,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 

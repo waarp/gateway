@@ -16,7 +16,7 @@ import (
 const UnknownSize int64 = -1
 
 func init() {
-	database.Tables = append(database.Tables, &Transfer{})
+	database.AddTable(&Transfer{})
 }
 
 // Transfer represents one record of the 'transfers' table.
@@ -41,7 +41,7 @@ type Transfer struct {
 
 // TableName returns the name of the transfers table.
 func (*Transfer) TableName() string {
-	return "transfers"
+	return TableTransfers
 }
 
 // Appellation returns the name of 1 element of the transfers table.

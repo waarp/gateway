@@ -102,7 +102,7 @@ func TestDisplayHistory(t *testing.T) {
 	Convey("Given a history entry with error", t, func() {
 		out = testFile()
 
-		stop := time.Now().Add(time.Hour)
+		stopTime := time.Now().Add(time.Hour)
 		hist := api.OutHistory{
 			ID:         1,
 			IsServer:   true,
@@ -114,7 +114,7 @@ func TestDisplayHistory(t *testing.T) {
 			LocalPath:  "/local/path",
 			RemotePath: "/remote/path",
 			Start:      time.Now(),
-			Stop:       &stop,
+			Stop:       &stopTime,
 			Status:     types.StatusPlanned,
 			ErrorCode:  types.TeConnectionReset,
 			ErrorMsg:   "connexion reset by peer",

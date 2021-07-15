@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &LocalAccount{})
+	database.AddTable(&LocalAccount{})
 }
 
 // LocalAccount represents an account on a local agent. It is used by remote
@@ -27,7 +27,7 @@ type LocalAccount struct {
 
 // TableName returns the local accounts table name.
 func (*LocalAccount) TableName() string {
-	return "local_accounts"
+	return TableLocAccounts
 }
 
 // Appellation returns the name of 1 element of the local accounts table.
@@ -96,13 +96,13 @@ func (l *LocalAccount) BeforeDelete(db database.Access) database.Error {
 			"the transfers or wait for them to finish")
 	}
 
-	certQuery := db.DeleteAll(&Crypto{}).Where("owner_type='local_accounts' AND owner_id=?",
-		l.ID)
+	certQuery := db.DeleteAll(&Crypto{}).Where("owner_type=? AND owner_id=?",
+		TableLocAccounts, l.ID)
 	if err := certQuery.Run(); err != nil {
 		return err
 	}
 
 	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
-		"object_type='local_accounts' AND object_id=?", l.ID)
+		"object_type=? AND object_id=?", TableLocAccounts, l.ID)
 	return accessQuery.Run()
 }

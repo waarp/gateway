@@ -90,7 +90,7 @@ func TestExportRuleAccesses(t *testing.T) {
 
 			access1 := &model.RuleAccess{
 				RuleID:     rule1.ID,
-				ObjectType: "remote_agents",
+				ObjectType: model.TableRemAgents,
 				ObjectID:   agent.ID,
 			}
 			So(db.Insert(access1).Run(), ShouldBeNil)
@@ -104,14 +104,14 @@ func TestExportRuleAccesses(t *testing.T) {
 
 			access2 := &model.RuleAccess{
 				RuleID:     rule2.ID,
-				ObjectType: "remote_accounts",
+				ObjectType: model.TableRemAccounts,
 				ObjectID:   account1.ID,
 			}
 			So(db.Insert(access2).Run(), ShouldBeNil)
 
 			access3 := &model.RuleAccess{
 				RuleID:     rule2.ID,
-				ObjectType: "remote_accounts",
+				ObjectType: model.TableRemAccounts,
 				ObjectID:   account2.ID,
 			}
 			So(db.Insert(access3).Run(), ShouldBeNil)

@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &RemoteAccount{})
+	database.AddTable(&RemoteAccount{})
 }
 
 // RemoteAccount represents an account on a remote agent. It is used by the
@@ -28,7 +28,7 @@ type RemoteAccount struct {
 
 // TableName returns the remote accounts table name.
 func (*RemoteAccount) TableName() string {
-	return "remote_accounts"
+	return TableRemAccounts
 }
 
 // Appellation returns the name of 1 element of the remote accounts table.
@@ -86,13 +86,13 @@ func (r *RemoteAccount) BeforeDelete(db database.Access) database.Error {
 	}
 
 	certQuery := db.DeleteAll(&Crypto{}).Where(
-		"owner_type='remote_accounts' AND owner_id=?", r.ID)
+		"owner_type=? AND owner_id=?", TableRemAccounts, r.ID)
 	if err := certQuery.Run(); err != nil {
 		return err
 	}
 
 	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
-		"object_type='remote_accounts' AND object_id=?", r.ID)
+		"object_type=? AND object_id=?", TableRemAccounts, r.ID)
 	return accessQuery.Run()
 }
 

@@ -20,13 +20,65 @@ var (
 func init() {
 	BcryptRounds = bcrypt.MinCost
 
-	sqliteConfig = &conf.ServerConfig{}
+	sqliteConfig = &conf.ServerConfig{Log: conf.LogConfig{Level: "CRITICAL", LogTo: "discard.log"}}
 	sqliteConfig.Database.Type = sqlite
 	sqliteConfig.Database.Address = filepath.Join(os.TempDir(), "test.sqlite")
 	sqliteConfig.Database.AESPassphrase = fmt.Sprintf("%s%ssqlite_test_passphrase.aes",
 		os.TempDir(), string(os.PathSeparator))
 
 	sqliteTestDatabase = &DB{Conf: sqliteConfig}
+}
+
+func testSelectForUpdate(db *DB) {
+	bean1 := testValid{ID: 1, String: "str1"}
+	bean2 := testValid{ID: 2, String: "str2"}
+	bean3 := testValid{ID: 3, String: "str2"}
+
+	db2 := &DB{Conf: db.Conf}
+	So(db2.Start(), ShouldBeNil)
+	//db2.engine.Exec("PRAGMA busy_timeout = 60000")
+	Reset(func() { So(db2.engine.Close(), ShouldBeNil) })
+
+	transRes := make(chan Error)
+	trans2 := func() {
+		defer close(transRes)
+		tErr2 := db2.WriteTransaction(func(ses *Session) Error {
+			var beans validList
+			if err := ses.SelectForUpdate(&beans).Where("string=?", "str2").Run(); err != nil {
+				return err
+			}
+			if len(beans) != 0 {
+				return NewValidationError("%+v should be empty", beans)
+			}
+			return nil
+		})
+		transRes <- tErr2
+	}
+
+	Convey("When executing a 'SELECT FOR UPDATE' query", func() {
+		_, err := db.engine.Insert(&bean1, &bean2, &bean3)
+		So(err, ShouldBeNil)
+
+		tErr1 := db.WriteTransaction(func(ses *Session) Error {
+			var beans validList
+			err := ses.SelectForUpdate(&beans).Where("string=?", "str2").Run()
+			So(err, ShouldBeNil)
+
+			go trans2()
+			err2 := ses.UpdateAll(&testValid{}, UpdVals{"string": "new_str2"}, "string=?", "str2").Run()
+			So(err2, ShouldBeNil)
+			return nil
+		})
+
+		So(tErr1, ShouldBeNil)
+		So(<-transRes, ShouldBeNil)
+
+		var res []testValid
+		So(db.engine.Find(&res), ShouldBeNil)
+		So(res, ShouldContain, testValid{ID: 1, String: "str1"})
+		So(res, ShouldContain, testValid{ID: 2, String: "new_str2"})
+		So(res, ShouldContain, testValid{ID: 3, String: "new_str2"})
+	})
 }
 
 func testIterate(db *DB) {
@@ -640,6 +692,7 @@ func testDatabase(db *DB) {
 			&testDeleteFail{}), ShouldBeNil)
 	})
 
+	testSelectForUpdate(db)
 	testIterate(db)
 	testSelect(db)
 	testGet(db)

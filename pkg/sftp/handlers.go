@@ -7,9 +7,8 @@ import (
 	"os"
 	"path"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/pkg/sftp"
 )

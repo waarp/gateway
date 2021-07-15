@@ -121,8 +121,8 @@ func TestImportLocalAgents(t *testing.T) {
 							So(len(accounts), ShouldEqual, 1)
 
 							var cryptos model.Cryptos
-							So(db.Select(&cryptos).Where("owner_type='local_agents' "+
-								"AND owner_id=?", dbAgent.ID).Run(), ShouldBeNil)
+							So(db.Select(&cryptos).Where("owner_type=? AND owner_id=?",
+								model.TableLocAgents, dbAgent.ID).Run(), ShouldBeNil)
 
 							So(len(accounts), ShouldEqual, 1)
 						})
@@ -223,7 +223,7 @@ func TestImportLocalAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							Certificate: testhelpers.ClientCert,
+							Certificate: testhelpers.ClientFooCert,
 						},
 					},
 				}
@@ -252,8 +252,10 @@ func TestImportLocalAccounts(t *testing.T) {
 										So(accounts[i].PasswordHash, ShouldNotResemble,
 											dbAccount.PasswordHash)
 										var cryptos model.Cryptos
-										So(db.Select(&cryptos).Where("owner_type='local_accounts'"+
-											" AND owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
+										So(db.Select(&cryptos).Where(
+											"owner_type=? AND owner_id=?",
+											model.TableLocAccounts, dbAccount.ID).
+											Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
 									})
@@ -275,7 +277,7 @@ func TestImportLocalAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							Certificate: testhelpers.ClientCert,
+							Certificate: testhelpers.ClientFooCert,
 						},
 					},
 				}
@@ -304,8 +306,10 @@ func TestImportLocalAccounts(t *testing.T) {
 										So(accounts[i].PasswordHash, ShouldResemble,
 											dbAccount.PasswordHash)
 										var cryptos model.Cryptos
-										So(db.Select(&cryptos).Where("owner_type='local_accounts' "+
-											"AND owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
+										So(db.Select(&cryptos).Where(
+											"owner_type=? AND owner_id=?",
+											dbAccount.ID, model.TableLocAccounts).
+											Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
 									})

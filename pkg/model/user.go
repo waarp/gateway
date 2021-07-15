@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &User{})
+	database.AddTable(&User{})
 }
 
 // User represents a human account on the gateway. These accounts allow users
@@ -33,7 +33,7 @@ type User struct {
 
 // TableName returns the users table name.
 func (u *User) TableName() string {
-	return "users"
+	return TableUsers
 }
 
 // Appellation returns the name of 1 element of the users table.

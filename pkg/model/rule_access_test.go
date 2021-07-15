@@ -19,7 +19,7 @@ func TestRuleAccessTableName(t *testing.T) {
 			name := ruleAccess.TableName()
 
 			Convey("Then it should return the name of the rule_access table", func() {
-				So(name, ShouldEqual, "rule_access")
+				So(name, ShouldEqual, TableRuleAccesses)
 			})
 		})
 	})
@@ -70,7 +70,7 @@ func TestIsRuleAuthorized(t *testing.T) {
 			Convey("Given a remote_agent authorized for the rule", func() {
 				lAccess := RuleAccess{
 					RuleID:     r.ID,
-					ObjectType: "local_agents",
+					ObjectType: TableLocAgents,
 					ObjectID:   lAgent.ID,
 				}
 				So(db.Insert(&lAccess).Run(), ShouldBeNil)
@@ -174,8 +174,8 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 				})
 			})
 
-			for _, objType := range []string{"local_agents", "local_accounts",
-				"remote_agents", "remote_accounts"} {
+			for _, objType := range []string{TableLocAgents, TableLocAccounts,
+				TableRemAgents, TableRemAccounts} {
 				Convey(fmt.Sprintf("Given a RuleAccess with an invalid %s ID", objType), func() {
 					ra := &RuleAccess{
 						RuleID:     r.ID,
@@ -196,13 +196,13 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 				Convey(fmt.Sprintf("Given a RuleAccess with an valid %s ID", objType), func() {
 					id := uint64(0)
 					switch objType {
-					case "local_agents":
+					case TableLocAgents:
 						id = lAgent.ID
-					case "local_accounts":
+					case TableLocAccounts:
 						id = lAccount.ID
-					case "remote_agents":
+					case TableRemAgents:
 						id = rAgent.ID
-					case "remote_accounts":
+					case TableRemAccounts:
 						id = rAccount.ID
 					}
 

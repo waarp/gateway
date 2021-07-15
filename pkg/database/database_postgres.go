@@ -14,21 +14,23 @@ const (
 	// Configuration option for using the PostgreSQL RDBMS
 	postgres = "postgresql"
 
-	// Name of the PostgreSQL database driver
-	postgresDriver = "pgx"
+	// PostgresDriver is the name of the PostgreSQL database driver
+	PostgresDriver = "pgx"
 )
 
 func init() {
 	supportedRBMS[postgres] = postgresinfo
 }
 
-func postgresinfo(config conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return postgresDriver, postgresDSN(config), func(*xorm.Engine) error {
+func postgresinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+	return PostgresDriver, PostgresDSN(config), func(*xorm.Engine) error {
 		return nil
 	}
 }
 
-func postgresDSN(config conf.DatabaseConfig) string {
+// PostgresDSN takes a database configuration and returns the corresponding
+// PostgreSQL DSN necessary to connect to the database.
+func PostgresDSN(config *conf.DatabaseConfig) string {
 	dns := []string{}
 	if config.User != "" {
 		dns = append(dns, fmt.Sprintf("user='%s'", config.User))

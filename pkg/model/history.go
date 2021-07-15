@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &HistoryEntry{})
+	database.AddTable(&HistoryEntry{})
 }
 
 // HistoryEntry represents one record of the 'transfers_history' table.
@@ -38,7 +38,7 @@ type HistoryEntry struct {
 
 // TableName returns the name of the transfer history table.
 func (*HistoryEntry) TableName() string {
-	return "transfer_history"
+	return TableHistory
 }
 
 // Appellation returns the name of 1 element of the transfer history table.
