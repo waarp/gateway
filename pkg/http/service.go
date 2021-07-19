@@ -82,7 +82,11 @@ func (h *httpService) Start() error {
 		ErrorLog:  h.logger.AsStdLog(logging.ERROR),
 	}
 
-	h.listen()
+	if err := h.listen(); err != nil {
+		h.state.Set(service.Error, err.Error())
+		return err
+	}
+
 	h.logger.Infof("HTTP server started at: %s", h.agent.Address)
 	h.state.Set(service.Running, "")
 

@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
@@ -62,13 +63,19 @@ func (h *httpService) makeTLSConf() (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
-func (h *httpService) listen() {
+func (h *httpService) listen() error {
+	list, err := net.Listen("tcp", h.agent.Address)
+	if err != nil {
+		h.logger.Errorf("Failed to start server listener: %s", err)
+		return fmt.Errorf("failed to start server listener")
+	}
+
 	go func() {
 		var err error
 		if h.conf.UseHTTPS {
-			err = h.serv.ListenAndServeTLS("", "")
+			err = h.serv.ServeTLS(list, "", "")
 		} else {
-			err = h.serv.ListenAndServe()
+			err = h.serv.Serve(list)
 		}
 		if err != http.ErrServerClosed {
 			h.logger.Errorf("Unexpected error: %h", err)
@@ -77,6 +84,7 @@ func (h *httpService) listen() {
 			h.state.Set(service.Offline, "")
 		}
 	}()
+	return nil
 }
 
 func (h *httpService) makeHandler() http.HandlerFunc {
