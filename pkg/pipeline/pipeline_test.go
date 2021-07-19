@@ -113,11 +113,11 @@ func TestNewPipeline(t *testing.T) {
 			})
 
 			Convey("Given that the transfer limit has been reached", func(c C) {
-				TransferInCount.SetLimit(1)
-				TransferInCount.Add()
+				TransferOutCount.SetLimit(1)
+				TransferOutCount.Add()
 				Reset(func() {
-					TransferInCount.Sub()
-					TransferInCount.SetLimit(0)
+					TransferOutCount.Sub()
+					TransferOutCount.SetLimit(0)
 				})
 
 				Convey("When initiating a new pipeline for this transfer", func(c C) {

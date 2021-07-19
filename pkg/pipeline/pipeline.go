@@ -60,7 +60,7 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		}
 	}
 
-	if transCtx.Rule.IsSend {
+	if !transCtx.Transfer.IsServer {
 		if !TransferOutCount.Add() {
 			return nil, errLimitReached
 		}
