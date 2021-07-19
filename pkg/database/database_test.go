@@ -44,7 +44,7 @@ func testSelectForUpdate(db *DB) {
 		defer close(transRes)
 		tErr2 := db2.WriteTransaction(func(ses *Session) Error {
 			var beans validList
-			if err := ses.SelectForUpdate(&beans).Where("string=?", "str2").Run(); err != nil {
+			if err := ses.SelectForUpdate(&beans).Where("string=? AND id<>0", "str2").Run(); err != nil {
 				return err
 			}
 			if len(beans) != 0 {
@@ -69,6 +69,7 @@ func testSelectForUpdate(db *DB) {
 			So(err2, ShouldBeNil)
 			return nil
 		})
+		defer func() { <-transRes }()
 
 		So(tErr1, ShouldBeNil)
 		So(<-transRes, ShouldBeNil)
@@ -706,6 +707,10 @@ func testDatabase(db *DB) {
 
 func TestSqlite(t *testing.T) {
 	db := sqliteTestDatabase
+	if err := db.Start(); err != nil {
+		t.Fatal(err)
+	}
+
 	defer func() {
 		if err := db.engine.Close(); err != nil {
 			t.Logf("Failed to close database: %s", err)
@@ -717,9 +722,6 @@ func TestSqlite(t *testing.T) {
 			t.Logf("Failed to delete sqlite file: %s", err)
 		}
 	}()
-	if err := db.Start(); err != nil {
-		t.Fatal(err)
-	}
 
 	Convey("Given a Sqlite service", t, func() {
 		testDatabase(db)

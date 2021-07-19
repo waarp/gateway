@@ -25,6 +25,8 @@ func GetCryptos(db database.ReadAccess, agent agent) ([]Crypto, database.Error) 
 	return certs, nil
 }
 
+// CheckClientAuthent checks if the given login and certificate chain are valid
+// for client authentication, using the crypto credentials as root CA.
 func (c *Cryptos) CheckClientAuthent(login string, certs []*x509.Certificate) error {
 	if len(*c) == 0 {
 		return fmt.Errorf("no certificates found for user '%s'", login)
@@ -37,14 +39,14 @@ func (c *Cryptos) CheckClientAuthent(login string, certs []*x509.Certificate) er
 	for _, crypto := range *c {
 		roots.AppendCertsFromPEM([]byte(crypto.Certificate))
 	}
-	interm := x509.NewCertPool()
+	intermediate := x509.NewCertPool()
 	for _, cert := range certs {
-		interm.AddCert(cert)
+		intermediate.AddCert(cert)
 	}
 	opt := x509.VerifyOptions{
 		DNSName:       login,
 		Roots:         roots,
-		Intermediates: interm,
+		Intermediates: intermediate,
 		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}
 	if _, err := certs[0].Verify(opt); err != nil {

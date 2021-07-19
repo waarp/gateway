@@ -37,7 +37,7 @@ func TestMySQL(t *testing.T) {
 		if err := db.engine.Close(); err != nil {
 			t.Logf("Failed to close database: %s", err)
 		}
-		if err := os.Remove(sqliteConfig.Database.AESPassphrase); err != nil {
+		if err := os.Remove(mysqlConfig.Database.AESPassphrase); err != nil {
 			t.Logf("Failed to delete passphrase file: %s", err)
 		}
 	}()

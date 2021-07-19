@@ -45,7 +45,7 @@ func GetServerTransfer(db *database.DB, logger *log.Logger, trans *model.Transfe
 // server transfer.
 func NewServerPipeline(db *database.DB, trans *model.Transfer,
 ) (*Pipeline, *types.TransferError) {
-	logger := log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
+	logger := log.NewLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
 	transCtx, err := model.GetTransferContext(db, logger, trans)
 	if err != nil {
 		return nil, err

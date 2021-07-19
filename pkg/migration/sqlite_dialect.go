@@ -156,9 +156,5 @@ func (s *sqliteDialect) DropColumn(table, name string) error {
 	if err := s.DropTable(table); err != nil {
 		return err
 	}
-	if err := s.RenameTable(table+"_new", table); err != nil {
-		return err
-	}
-
-	return nil
+	return s.RenameTable(table+"_new", table)
 }
