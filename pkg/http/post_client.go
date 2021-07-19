@@ -64,8 +64,14 @@ func (p *postClient) checkResume(url string) *types.TransferError {
 	}
 
 	if prog != p.pip.TransCtx.Transfer.Progress {
+		cols := []string{"progression"}
 		p.pip.TransCtx.Transfer.Progress = prog
-		if err := p.pip.UpdateTrans("progression"); err != nil {
+		if p.pip.TransCtx.Transfer.Step > types.StepData {
+			cols = append(cols, "step")
+			p.pip.TransCtx.Transfer.Step = types.StepData
+		}
+
+		if err := p.pip.UpdateTrans(cols...); err != nil {
 			p.pip.Logger.Errorf("Failed to parse response Content-Range: %s", err)
 			return types.NewTransferError(types.TeInternal, "database error")
 		}
