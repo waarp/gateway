@@ -10,3 +10,4 @@ ainsi que leurs détails d'implémentation spécifiques à cette dernière.
 
    sftp
    r66
+   http

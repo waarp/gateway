@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :feature:`247` Ajout d'un client et d'un serveur HTTP à la *gateway*. Il est
+  donc désormais possible d'effectuer des transferts via ce protocole.
+
 * :release:`0.4.0 <2021-07-12>`
 * :bug:`133` Correction d'une erreur rendant impossible la répartition de charge
   sur plusieurs instances d'une même *gateway*. Précédemment, il était possible
