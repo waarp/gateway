@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`259` Correction d'un bug causant une erreur après les pré-tâches d'un
+  transfer R66 côté serveur.
 * :bug:`260` Correction d'une erreur dans l'import des mots de passe de comptes
   locaux R66.
 

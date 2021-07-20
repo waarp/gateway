@@ -185,57 +185,34 @@ func (t *transferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
 		}
 	}
 
-	if info.Filename != "" {
-		filename := path.Base(info.Filename)
-		newPath := path.Join(path.Dir(t.file.Transfer.TrueFilepath), filename)
+	if !t.file.Rule.IsSend {
+		if info.Filename != "" {
+			filename := path.Base(info.Filename)
+			newPath := path.Join(path.Dir(t.file.Transfer.TrueFilepath), filename)
 
-		if t.file.Rule.IsSend {
-			if err := os.Rename(t.file.Transfer.TrueFilepath, newPath); err != nil {
-				t.file.Logger.Errorf("Failed to rename R66 file: %s", err)
-				return &r66.Error{
-					Code:   r66.FileNotAllowed,
-					Detail: "failed to rename file",
-				}
-			}
+			t.file.Transfer.TrueFilepath = newPath
+			t.file.Transfer.SourceFile = filename
+			t.file.Transfer.DestFile = filename
+		}
+		if info.FileSize != 0 {
+			t.fileSize = info.FileSize
 		}
 
-		t.file.Transfer.TrueFilepath = newPath
-		t.file.Transfer.SourceFile = filename
-		t.file.Transfer.DestFile = filename
-	}
-
-	if info.FileSize != 0 {
-		t.fileSize = info.FileSize
-	}
-
-	if err := t.db.Update(t.file.Transfer); err != nil {
-		t.logger.Errorf("Failed to update transfer: %s", err)
-		return &r66.Error{Code: r66.Internal, Detail: "database error"}
-	}
-
-	/* TODO: de-comment once TransferInfo are used
-	tid := t.file.Transfer.ID
-	if info.FileInfo != nil {
-		oldInfo, err := t.file.Transfer.GetTransferInfo(t.db)
-		if err != nil {
-			t.logger.Errorf("Failed to retrieve transfer info: %s", err)
+		if err := t.db.Update(t.file.Transfer).Run(); err != nil {
+			t.logger.Errorf("Failed to update transfer: %s", err)
 			return &r66.Error{Code: r66.Internal, Detail: "database error"}
 		}
-		for key, val := range info.FileInfo {
-			ti := &model.TransferInfo{TransferID: tid, Name: key, Value: fmt.Sprint(val)}
-			var dbErr error
-			if _, ok := oldInfo[key]; ok {
-				dbErr = t.db.Execute("UPDATE transfer_info SET value=? WHERE transfer_id=? AND name=?",
-					ti.Value, ti.TransferID, ti.Name)
-			} else {
-				dbErr = t.db.Create(ti)
-			}
-			if dbErr != nil {
-				t.logger.Errorf("Failed to update transfer info: %s", err)
-				return &r66.Error{Code: r66.Internal, Detail: "database error"}
-			}
+	} else {
+		info.Filename = t.file.Transfer.SourceFile
+
+		fileInfo, err := os.Stat(utils.DenormalizePath(t.file.Transfer.TrueFilepath))
+		if err != nil {
+			t.logger.Errorf("Failed to retrieve file size: %s", err)
+			return &r66.Error{Code: r66.Internal, Detail: "failed to retrieve file size"}
 		}
-	} */
+		t.fileSize = fileInfo.Size()
+		info.FileSize = fileInfo.Size()
+	}
 
 	return nil
 }
