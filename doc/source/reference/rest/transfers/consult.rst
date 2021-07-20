@@ -12,8 +12,10 @@ Consulter un transfert
    :statuscode 404: Le transfert demandé n'existe pas
 
    :resjson number id: L'identifiant unique du transfert
-   :resjson bool isServer: Précise si la gateway est à l'origine du transfert
-   :resjson bool isSend: Précise le sens de transfert du fichier
+   :resjson bool isServer: Indique si la *gateway* est agit en tant que serveur
+     (``true``) ou en tant que client (``false``)
+   :resjson bool isSend: Indique si le transfert est un envoi (``true``) ou une
+     réception (``false``)
    :resjson string rule: L'identifiant de la règle de transfert
    :resjson string requester: Le nom du compte ayant demandé le transfert
    :resjson string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
@@ -24,8 +26,8 @@ Consulter un transfert
    :resjson string remotePath: Le chemin du fichier sur le partenaire distant
    :resjson number filesize: La taille du fichier (-1 si inconnue)
    :resjson date start: La date de début du transfert
-   :resjson string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED* ou *INTERRUPTED*)
-   :resjson string step: L'étape actuelle du transfert (*NONE*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)
+   :resjson string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED*, *INTERRUPTED* ou *ERROR*)
+   :resjson string step: L'étape actuelle du transfert (*NONE*, *SETUP*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)
    :resjson number progress: La progression (en octets) du transfert de données
    :resjson number taskNumber: Le numéro du traitement en cours d'exécution
    :resjson string errorCode: Le code d'erreur du transfert (si une erreur s'est produite)

@@ -89,18 +89,3 @@ Pour fonctionner, la *gateway* nécessite un fichier de configuration en format
    défaut, il est fortement recommandé de consulter le détail du
    :any:`configuration-file` pour ensuite le modifier avec des valeurs plus
    adaptées à votre utilisation.
-
-
-Support R66
-===========
-
-Pour le moment, la Gateway ne supporte pas directement le protocole R66.
-Afin d'effectuer des transferts R66, la *gateway* utilise un client et un
-serveur Waarp R66 externe. Pour que la *gateway* puisse lancer des transferts
-R66, le chemin de l'exécutable du client R66 doit être fournit via l'option
-:confval:`R66Home` du :any:`configuration-file`.
-
-.. warning::
-   Pour que la Gateway puisse correctement récupérer le statut des transferts
-   lancés via le client R66, celui-ci doit IMPÉRATIVEMENT être configuré pour
-   écrire les *logs* dans un fichier, et non sur la sortie standard.
