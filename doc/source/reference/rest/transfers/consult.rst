@@ -12,8 +12,10 @@ Consulter un transfert
    :statuscode 404: Le transfert demandé n'existe pas
 
    :resjson number id: L'identifiant unique du transfert
-   :resjson bool isServer: Précise si la gateway est à l'origine du transfert
-   :resjson bool isSend: Précise le sens de transfert du fichier
+   :resjson bool isServer: Indique si la *gateway* est agit en tant que serveur
+     (``true``) ou en tant que client (``false``)
+   :resjson bool isSend: Indique si le transfert est un envoi (``true``) ou une
+     réception (``false``)
    :resjson string rule: L'identifiant de la règle de transfert
    :resjson string requester: Le nom du compte ayant demandé le transfert
    :resjson string requested: Le nom du serveur/partenaire auquel le transfert a été demandé

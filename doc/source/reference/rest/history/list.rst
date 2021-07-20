@@ -50,8 +50,10 @@ Filtrer l'historique
 
    :resjson array history: La liste des transferts demandés
    :resjsonarr number id: L'identifiant unique du transfert
-   :resjsonarr bool isServer: Précise si la gateway était à l'origine du transfert
-   :resjsonarr bool isSend: Précise si le transfert était entrant ou sortant
+   :resjsonarr bool isServer: Indique si la *gateway* est agit en tant que serveur
+     (``true``) ou en tant que client (``false``)
+   :resjsonarr bool isSend: Indique si le transfert est un envoi (``true``) ou une
+     réception (``false``)
    :resjsonarr string account: Le nom du compte ayant demandé le transfert
    :resjsonarr string remote: Le nom du partenaire avec lequel le transfert a été effectué
    :resjsonarr string protocol: Le protocole utilisé pour le transfert

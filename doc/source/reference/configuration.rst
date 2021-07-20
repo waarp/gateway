@@ -10,6 +10,23 @@ Fichier de configuration ``waarp-gatewayd.ini``
 Le fichier de configuration ``waarp-gatewayd.ini`` permet de contrôler et modifier
 le comportement du démon ``waarp-gatewayd``.
 
+.. confval:: GatewayName
+
+   Définit le nom de la *gateway*. Par défaut, le nom ``waarp-gateway`` est utilisé.
+   Il est cependant recommandé de donner un nom unique à chaque nouvelle instance
+   pour éviter les confusions.
+
+   Il est également possible de donner le même nom à plusieurs instances partageant
+   une même base de données. Dans ce cas, les instances seront des copies les unes
+   des autres (elles auront la même configuration et le même historique).
+
+   .. warning:: Dans une configuration avec plusieurs instances identiques, il est
+      très fortement déconseillé de laisser la valeur par défaut de ``MaxTransfersOut``,
+      et de fixer une limite au nombre de transferts client autorisés en parallèle
+      pour une instance. En l'absence de limite, les transferts clients seront tous
+      exécutés par la même instance au lieu d'être répartis sur les différentes
+      instances.
+
 Section ``[path]``
 ==================
 
@@ -162,11 +179,6 @@ La section ``[controller]`` regroupe toutes les options de configuration du
    "s", "m", "h".
 
    Valeur par défaut : ``5s``
-
-.. confval:: R66Home
-
-   Le dossier racine du serveur *Waarp-R66* associé à cette *gateway* (s'il y en
-   a un).
 
 .. confval:: MaxTransfersIn
 

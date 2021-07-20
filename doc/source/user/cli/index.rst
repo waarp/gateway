@@ -41,7 +41,7 @@ l'argument d'aide (``-h`` ou ``--help``) dans un terminal (en anglais).
    n'a vocation à être utilisé que pour créer d'autres utilisateurs pour
    administrer la *gateway*.  Il est donc fortement recommandé de créer
    immédiatement un ou plusieurs utilisateurs, puis de supprimer le compte
-   'admin', ou au moins de changer son mot de passe.
+   'admin', ou *a minima* de changer son mot de passe.
 
 
 .. toctree::

@@ -12,8 +12,10 @@ Consulter une entrée de l'historique
    :statuscode 404: Le transfert demandé n'existe pas
 
    :resjson number id: L'identifiant unique du transfert
-   :resjson bool isServer: Précise si la gateway était à l'origine du transfert
-   :resjson bool isSend: Précise si le transfert était entrant ou sortant
+   :resjson bool isServer: Indique si la *gateway* est agit en tant que serveur
+     (``true``) ou en tant que client (``false``)
+   :resjson bool isSend: Indique si le transfert est un envoi (``true``) ou une
+     réception (``false``)
    :resjson string account: Le nom du compte ayant demandé le transfert
    :resjson string remote: Le nom du partenaire avec lequel le transfert a été effectué
    :resjson string protocol: Le protocole utilisé pour le transfert
