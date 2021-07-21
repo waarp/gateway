@@ -121,10 +121,10 @@ build_static_binaries() {
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/get-remote_${GOOS}_${GOARCH}" ./dist/get-remote
 
-  # update-conf
+  # updateconf
   CGO_ENABLED=0 go build -ldflags "-s -w" \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
-    -o "build/update-conf_${GOOS}_${GOARCH}" ./dist/update-conf
+    -o "build/updateconf_${GOOS}_${GOARCH}" ./dist/updateconf
 }
 
 t_build_dist() {
@@ -178,8 +178,7 @@ build_portable_archive() {
   cp ./build/waarp-gatewayd_linux_amd64 "$dest/bin/waarp-gatewayd"
   cp ./build/waarp-gateway_linux_amd64 "$dest/bin/waarp-gateway"
   cp ./build/get-remote_linux_amd64 "$dest/share/get-remote"
-  cp ./build/update-conf_linux_amd64 "$dest/share/update-conf"
-  #cp ./dist/updateconf.sh "$dest/share/update-conf.sh"
+  cp ./build/updateconf_linux_amd64 "$dest/share/updateconf"
 
   ./build/waarp-gatewayd_linux_amd64 server -c "$dest/etc/gatewayd.ini" -n
   sed -i \
