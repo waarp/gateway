@@ -3,12 +3,13 @@
 Historique des versions
 =======================
 
+* :release:`0.4.0 <2021-07-21>`
 * :bug:`259` Correction d'un bug causant une erreur après les pré-tâches d'un
   transfer R66 côté serveur.
 * :bug:`260` Correction d'une erreur dans l'import des mots de passe de comptes
   locaux R66.
 
-* :release:`0.4.0 <2021-07-12>`
+* :release:`0.4.0 <2021-07-19>`
 * :bug:`133` Correction d'une erreur rendant impossible la répartition de charge
   sur plusieurs instances d'une même *gateway*. Précédemment, il était possible
   pour 2 instances d'une même *gateway* de récupérer un même transfert depuis la
@@ -44,7 +45,7 @@ Historique des versions
 * :release:`0.3.3 <2021-04-07>`
 * :bug:`251` Corrige le probème de création du fichier distant en SFTP
   lorsque le serveur refuse l'ouverture de fichier en écriture ET en lecture.
-* :bug:`251` Corrige un problème du script d'update-conf qui sort en erreur
+* :bug:`251` Corrige un problème du script d'updateconf qui sort en erreur
   si les fichiers optionnels ne sont pas dans l'archive de déploiement.
 
 * :release:`0.3.2 <2021-04-06>`

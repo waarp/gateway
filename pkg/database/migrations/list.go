@@ -17,5 +17,9 @@ var Migrations = []migration.Migration{
 		Description: "Bump the database version to 0.4.0",
 		Script:      bumpVersion("0.0.0", "0.4.0"),
 		Version:     "0.4.0",
+	}, {
+		Description: "Bump the database version to 0.4.1",
+		Script:      bumpVersion("0.4.0", "0.4.1"),
+		Version:     "0.4.1",
 	},
 }
