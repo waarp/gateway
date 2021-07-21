@@ -1,4 +1,4 @@
-// +build test_full test_db_oracle
+// +build test_db_oracle
 
 package database
 

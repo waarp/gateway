@@ -13,8 +13,8 @@ const (
 	// Configuration option for using the Sqlite RDBMS
 	sqlite = "sqlite"
 
-	// Name of the Sqlite database driver
-	sqliteDriver = "sqlite3"
+	// SqliteDriver is the name of the Sqlite database driver
+	SqliteDriver = "sqlite3"
 )
 
 func init() {
@@ -27,11 +27,13 @@ func sqliteInit(db *xorm.Engine) error {
 	return nil
 }
 
-func sqliteinfo(config conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return sqliteDriver, sqliteDSN(config), sqliteInit
+func sqliteinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+	return SqliteDriver, SqliteDSN(config), sqliteInit
 }
 
-func sqliteDSN(config conf.DatabaseConfig) string {
+// SqliteDSN takes a database configuration and returns the corresponding
+// Sqlite DSN necessary to connect to the database.
+func SqliteDSN(config *conf.DatabaseConfig) string {
 	var user, pass string
 	if config.User != "" {
 		user = fmt.Sprintf("&_auth_user=%s", config.User)
@@ -40,6 +42,6 @@ func sqliteDSN(config conf.DatabaseConfig) string {
 		pass = fmt.Sprintf("&_auth_pass=%s", config.Password)
 	}
 	return fmt.Sprintf(
-		"file:%s?cache=shared&mode=rwc&_busy_timeout=10000&_txlock=exclusive%s%s",
+		"file:%s?cache=shared&mode=rwc&_busy_timeout=10000%s%s",
 		config.Address, user, pass)
 }

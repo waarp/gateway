@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	database.Tables = append(database.Tables, &Rule{})
+	database.AddTable(&Rule{})
 }
 
 // Rule represents a transfer rule.
@@ -42,7 +42,7 @@ type Rule struct {
 
 // TableName returns the remote accounts table name.
 func (*Rule) TableName() string {
-	return "rules"
+	return TableRules
 }
 
 // Appellation returns the name of 1 element of the rules table.

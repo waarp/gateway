@@ -19,9 +19,9 @@ var (
 func init() {
 	mysqlConfig = &conf.ServerConfig{}
 	mysqlConfig.Database.Type = mysql
-	mysqlConfig.Database.User = "waarp"
-	mysqlConfig.Database.Name = "waarp_gatewayd_test"
-	mysqlConfig.Database.Address = "localhost"
+	mysqlConfig.Database.User = "root"
+	mysqlConfig.Database.Name = "waarp_gateway_test"
+	mysqlConfig.Database.Address = "localhost:3306"
 	mysqlConfig.Database.AESPassphrase = fmt.Sprintf("%s%smysql_test_passphrase.aes",
 		os.TempDir(), string(os.PathSeparator))
 

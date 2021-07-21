@@ -40,7 +40,7 @@ func importRemoteAgents(logger *log.Logger, db database.Access, list []file.Remo
 			return err
 		}
 
-		if err := importCerts(logger, db, src.Certs, "remote_agents",
+		if err := importCerts(logger, db, src.Certs, model.TableRemAgents,
 			agent.ID); err != nil {
 			return err
 		}
@@ -87,7 +87,7 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 			return err
 		}
 
-		if err := importCerts(logger, db, src.Certs, "remote_accounts",
+		if err := importCerts(logger, db, src.Certs, model.TableRemAccounts,
 			account.ID); err != nil {
 			return err
 		}

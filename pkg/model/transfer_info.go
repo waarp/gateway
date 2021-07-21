@@ -3,7 +3,7 @@ package model
 import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 
 func init() {
-	database.Tables = append(database.Tables, &TransferInfo{})
+	database.AddTable(&TransferInfo{})
 }
 
 // TransferInfo represents the transfer_info database table, which contains all the
@@ -16,7 +16,7 @@ type TransferInfo struct {
 
 // TableName returns the name of the transfers table.
 func (*TransferInfo) TableName() string {
-	return "transfer_info"
+	return TableTransferInfo
 }
 
 // Appellation returns the display name of a transfer info entry.

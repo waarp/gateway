@@ -16,7 +16,7 @@ func TestUsersTableName(t *testing.T) {
 			name := user.TableName()
 
 			Convey("Then it should return the name of the users table", func() {
-				So(name, ShouldEqual, "users")
+				So(name, ShouldEqual, TableUsers)
 			})
 		})
 	})

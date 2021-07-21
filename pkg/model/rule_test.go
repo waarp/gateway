@@ -16,7 +16,7 @@ func TestRuleTableName(t *testing.T) {
 			name := rule.TableName()
 
 			Convey("Then it should return the name of the rule table", func() {
-				So(name, ShouldEqual, "rules")
+				So(name, ShouldEqual, TableRules)
 			})
 		})
 

@@ -17,7 +17,7 @@ func TestLocalAccountTableName(t *testing.T) {
 			name := agent.TableName()
 
 			Convey("Then it should return the name of the local account table", func() {
-				So(name, ShouldEqual, "local_accounts")
+				So(name, ShouldEqual, TableLocAccounts)
 			})
 		})
 	})
@@ -36,14 +36,14 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(ag).Run(), ShouldBeNil)
 
-			acc := LocalAccount{LocalAgentID: ag.ID, Login: "toto", PasswordHash: hash("sesame")}
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("sesame")}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			cert := Crypto{
-				OwnerType:   "local_accounts",
+				OwnerType:   TableLocAccounts,
 				OwnerID:     acc.ID,
 				Name:        "test cert",
-				Certificate: testhelpers.ClientCert,
+				Certificate: testhelpers.ClientFooCert,
 			}
 			So(db.Insert(&cert).Run(), ShouldBeNil)
 

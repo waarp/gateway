@@ -11,9 +11,9 @@ import (
 
 func getAuthorizedRules(db *database.DB, objType string, objID uint64) (*api.AuthorizedRules, error) {
 	var rules model.Rules
-	query := db.Select(&rules).Where("(id IN (SELECT DISTINCT rule_id FROM rule_access WHERE "+
-		"object_id = ? AND object_type = ?)) OR (SELECT COUNT(*) FROM "+
-		"rule_access WHERE rule_id = id) = 0", objID, objType)
+	query := db.Select(&rules).Where("(id IN (SELECT DISTINCT rule_id FROM "+model.TableRuleAccesses+
+		" WHERE object_id = ? AND object_type = ?)) OR (SELECT COUNT(*) FROM "+model.TableRuleAccesses+
+		" WHERE rule_id = id) = 0", objID, objType)
 
 	if err := query.Run(); err != nil {
 		return nil, err
@@ -99,8 +99,8 @@ func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 
 func makeServerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
 	var agents model.LocalAgents
-	if err := db.Select(&agents).Where("id IN (SELECT id FROM rule_access WHERE "+
-		"rule_id=? AND object_type='local_agents')", rule.ID).Run(); err != nil {
+	if err := db.Select(&agents).Where("id IN (SELECT id FROM "+model.TableRuleAccesses+
+		" WHERE rule_id=? AND object_type=?)", rule.ID, model.TableLocAgents).Run(); err != nil {
 		return nil, err
 	}
 
@@ -113,8 +113,8 @@ func makeServerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
 
 func makePartnerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
 	var agents model.RemoteAgents
-	if err := db.Select(&agents).Where("id IN (SELECT id FROM rule_access WHERE "+
-		"rule_id=? AND object_type='remote_agents')", rule.ID).Run(); err != nil {
+	if err := db.Select(&agents).Where("id IN (SELECT id FROM "+model.TableRuleAccesses+
+		" WHERE rule_id=? AND object_type=?)", rule.ID, model.TableRemAgents).Run(); err != nil {
 		return nil, err
 	}
 
@@ -156,8 +156,8 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[uint64][]string) 
 
 func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]string, error) {
 	var accounts model.LocalAccounts
-	if err := db.Select(&accounts).Where("id IN (SELECT id FROM rule_access WHERE "+
-		"rule_id=? AND object_type='local_accounts')", rule.ID).Run(); err != nil {
+	if err := db.Select(&accounts).Where("id IN (SELECT id FROM "+model.TableRuleAccesses+
+		" WHERE rule_id=? AND object_type=?)", rule.ID, model.TableLocAccounts).Run(); err != nil {
 		return nil, err
 	}
 
@@ -175,8 +175,8 @@ func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]str
 
 func makeRemoteAccountAccess(db *database.DB, rule *model.Rule) (map[string][]string, error) {
 	var accounts model.RemoteAccounts
-	if err := db.Select(&accounts).Where("id IN (SELECT id FROM rule_access WHERE "+
-		"rule_id=? AND object_type='remote_accounts')", rule.ID).Run(); err != nil {
+	if err := db.Select(&accounts).Where("id IN (SELECT id FROM "+model.TableRuleAccesses+
+		" WHERE rule_id=? AND object_type=?)", rule.ID, model.TableRemAccounts).Run(); err != nil {
 		return nil, err
 	}
 

@@ -116,8 +116,8 @@ func TestImportRemoteAgents(t *testing.T) {
 						So(len(accounts), ShouldEqual, 1)
 
 						var cryptos model.Cryptos
-						So(db.Select(&cryptos).Where("owner_type='remote_agents' "+
-							"AND owner_id=?", dbAgent.ID).Run(), ShouldBeNil)
+						So(db.Select(&cryptos).Where("owner_type=? AND owner_id=?",
+							model.TableRemAgents, dbAgent.ID).Run(), ShouldBeNil)
 
 						So(len(accounts), ShouldEqual, 1)
 					})
@@ -211,8 +211,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							PrivateKey:  testhelpers.ClientKey,
-							Certificate: testhelpers.ClientCert,
+							PrivateKey:  testhelpers.ClientFooKey,
+							Certificate: testhelpers.ClientFooCert,
 						},
 					},
 				}
@@ -241,8 +241,10 @@ func TestImportRemoteAccounts(t *testing.T) {
 										So(accounts[i].Password, ShouldNotResemble,
 											dbAccount.Password)
 										var cryptos model.Cryptos
-										So(db.Select(&cryptos).Where("owner_type='remote_accounts'"+
-											" AND owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
+										So(db.Select(&cryptos).Where(
+											"owner_type=? AND owner_id=?",
+											model.TableRemAccounts, dbAccount.ID).
+											Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
 									})
@@ -264,8 +266,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							PrivateKey:  testhelpers.ClientKey,
-							Certificate: testhelpers.ClientCert,
+							PrivateKey:  testhelpers.ClientFooKey,
+							Certificate: testhelpers.ClientFooCert,
 						},
 					},
 				}
@@ -294,8 +296,10 @@ func TestImportRemoteAccounts(t *testing.T) {
 										So(accounts[i].Password, ShouldResemble,
 											dbAccount.Password)
 										var cryptos model.Cryptos
-										So(db.Select(&cryptos).Where("owner_type='remote_accounts' AND "+
-											"owner_id=?", dbAccount.ID).Run(), ShouldBeNil)
+										So(db.Select(&cryptos).Where(
+											"owner_type=? AND owner_id=?",
+											model.TableRemAccounts, dbAccount.ID).
+											Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)
 									})

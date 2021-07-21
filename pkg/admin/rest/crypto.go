@@ -62,7 +62,7 @@ func retrieveCrypto(r *http.Request, db *database.DB, ownerType string, ownerID 
 	var crypto model.Crypto
 	if err := db.Get(&crypto, "name=? AND owner_type=? AND owner_id=?", cryptName,
 		ownerType, ownerID).Run(); err != nil {
-		if _, ok := err.(*database.NotFoundError); ok {
+		if database.IsNotFound(err) {
 			return nil, notFound("certificate '%s' not found", cryptName)
 		}
 		return nil, err

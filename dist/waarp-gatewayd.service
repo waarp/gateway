@@ -6,7 +6,7 @@ Type=simple
 User=waarp
 Group=waarp
 WorkingDirectory=/var/lib/waarp-gateway
-ExecStart=/usr/bin/waarp-gatewayd server -c /etc/waarp-gateway/gatewayd.ini
+ExecStart=/bin/sh -c 'PATH=/usr/share/waarp-gateway:$PATH exec /usr/bin/waarp-gatewayd server -c /etc/waarp-gateway/gatewayd.ini'
 Restart=on-failure
 
 [Install]

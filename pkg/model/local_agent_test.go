@@ -17,7 +17,7 @@ func TestLocalAgentTableName(t *testing.T) {
 			name := agent.TableName()
 
 			Convey("Then it should return the name of the local agents table", func() {
-				So(name, ShouldEqual, "local_agents")
+				So(name, ShouldEqual, TableLocAgents)
 			})
 		})
 	})
@@ -36,7 +36,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := LocalAccount{LocalAgentID: ag.ID, Login: "toto", PasswordHash: hash("sesame")}
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("sesame")}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
@@ -48,7 +48,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			So(db.Insert(&accAccess).Run(), ShouldBeNil)
 
 			certAg := Crypto{
-				OwnerType:   "local_agents",
+				OwnerType:   TableLocAgents,
 				OwnerID:     ag.ID,
 				Name:        "test agent cert",
 				PrivateKey:  testhelpers.LocalhostKey,
@@ -57,10 +57,10 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			So(db.Insert(&certAg).Run(), ShouldBeNil)
 
 			certAcc := Crypto{
-				OwnerType:   "local_accounts",
+				OwnerType:   TableLocAccounts,
 				OwnerID:     acc.ID,
 				Name:        "test account cert",
-				Certificate: testhelpers.ClientCert,
+				Certificate: testhelpers.ClientFooCert,
 			}
 			So(db.Insert(&certAcc).Run(), ShouldBeNil)
 

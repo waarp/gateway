@@ -17,7 +17,7 @@ func TestRemoteAccountTableName(t *testing.T) {
 			name := agent.TableName()
 
 			Convey("Then it should return the name of the remote account table", func() {
-				So(name, ShouldEqual, "remote_accounts")
+				So(name, ShouldEqual, TableRemAccounts)
 			})
 		})
 	})
@@ -36,22 +36,22 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "toto", Password: "sesame"}
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo", Password: "sesame"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			cert := Crypto{
-				OwnerType:   "remote_accounts",
+				OwnerType:   TableRemAccounts,
 				OwnerID:     acc.ID,
 				Name:        "test cert",
-				PrivateKey:  testhelpers.ClientKey,
-				Certificate: testhelpers.ClientCert,
+				PrivateKey:  testhelpers.ClientFooKey,
+				Certificate: testhelpers.ClientFooCert,
 			}
 			So(db.Insert(&cert).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: true, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			access := RuleAccess{RuleID: rule.ID, ObjectType: "remote_accounts", ObjectID: acc.ID}
+			access := RuleAccess{RuleID: rule.ID, ObjectType: TableRemAccounts, ObjectID: acc.ID}
 			So(db.Insert(&access).Run(), ShouldBeNil)
 
 			Convey("Given that the account is unused", func() {

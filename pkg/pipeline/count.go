@@ -1,6 +1,8 @@
 package pipeline
 
 import (
+	"math"
+	"math/bits"
 	"sync"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -58,12 +60,19 @@ func (c *count) Sub() {
 	c.count--
 }
 
-func (c *count) GetAvailable() uint64 {
+func (c *count) GetAvailable() (int, bool) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
 	if c.limit == 0 {
-		return 0
+		return 0, false
 	}
-	return c.limit - c.count
+	available := c.limit - c.count
+	if bits.UintSize == 64 {
+		return int(available), true
+	}
+	if available <= math.MaxInt32 {
+		return int(available), true
+	}
+	return math.MaxInt32, true
 }

@@ -10,14 +10,13 @@ import (
 	"os"
 	"sync"
 
-	"xorm.io/xorm/contexts"
-
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/xorm"
+	"xorm.io/xorm/contexts"
 )
 
 const (
@@ -25,8 +24,8 @@ const (
 	testDBEnv  = "GATEWAY_TEST_DB"
 )
 
-func testinfo(c conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&_mutex=full&_txlock=exclusive&_busy_timeout=10000",
+func testinfo(c *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc",
 		c.Address), sqliteInit
 }
 
@@ -81,7 +80,7 @@ func initTestDBConf(config *conf.DatabaseConfig) {
 func resetDB(db *DB, config *conf.DatabaseConfig) {
 	switch config.Type {
 	case postgres, mysql:
-		for _, tbl := range Tables {
+		for _, tbl := range tables {
 			convey.So(db.engine.DropTables(tbl.TableName()), convey.ShouldBeNil)
 		}
 		convey.So(db.engine.Close(), convey.ShouldBeNil)

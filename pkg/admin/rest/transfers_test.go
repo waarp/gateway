@@ -184,6 +184,32 @@ func TestAddTransfer(t *testing.T) {
 					})
 				})
 			})
+
+			Convey("Given the transfer direction is missing", func() {
+				body := strings.NewReader(`{
+					"rule": "push",
+					"partner": "remote",
+					"account": "toto",
+					"sourcePath": "file.src",
+					"destPath": "file.dst"
+				}`)
+
+				Convey("When calling the handler", func() {
+					r, err := http.NewRequest(http.MethodPost, "", body)
+					So(err, ShouldBeNil)
+
+					handler.ServeHTTP(w, r)
+
+					Convey("Then it should return a code 400", func() {
+						So(w.Code, ShouldEqual, http.StatusBadRequest)
+					})
+
+					Convey("Then the response body should say the direction is missing", func() {
+						So(w.Body.String(), ShouldEqual, "the transfer direction "+
+							"(isSend) is missing\n")
+					})
+				})
+			})
 		})
 	})
 }

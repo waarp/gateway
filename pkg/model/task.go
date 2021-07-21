@@ -25,7 +25,7 @@ type TaskRunner interface {
 }
 
 func init() {
-	database.Tables = append(database.Tables, &Task{})
+	database.AddTable(&Task{})
 }
 
 // Chain represents the valid chains for a task entry
@@ -52,7 +52,7 @@ type Task struct {
 
 // TableName returns the name of the tasks table.
 func (*Task) TableName() string {
-	return "tasks"
+	return TableTasks
 }
 
 // Appellation returns the name of 1 element of the tasks table.

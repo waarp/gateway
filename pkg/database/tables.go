@@ -1,15 +1,23 @@
 package database
 
 var (
-	// Tables lists the schema of all database tables
-	Tables []Table
+	// tables lists the schema of all database tables
+	tables []Table
 
 	// BcryptRounds defines the number of rounds taken by bcrypt to hash passwords
 	// in the database
 	BcryptRounds = 12
 )
 
-type initer interface {
+// AddTable adds the given model to the pool of database tables.
+func AddTable(t Table) {
+	tables = append(tables, t)
+}
+
+// initialiser is an interface which models can optionally implement in order to
+// set default values after the table is created when the application is launched
+// for the first time.
+type initialiser interface {
 	Init(*Session) Error
 }
 
@@ -17,7 +25,7 @@ type initer interface {
 // with the default entries.
 func initTables(db *Standalone) error {
 	return db.Transaction(func(ses *Session) Error {
-		for _, tbl := range Tables {
+		for _, tbl := range tables {
 			if ok, err := ses.session.IsTableExist(tbl.TableName()); err != nil {
 				db.logger.Criticalf("Failed to retrieve database table list: %s", err)
 				return NewInternalError(err)
@@ -38,7 +46,7 @@ func initTables(db *Standalone) error {
 					return NewInternalError(err)
 				}
 
-				if init, ok := tbl.(initer); ok {
+				if init, ok := tbl.(initialiser); ok {
 					if err := init.Init(ses); err != nil {
 						return err
 					}

@@ -5,8 +5,6 @@ import (
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/r66/internal"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"golang.org/x/crypto/bcrypt"
 
@@ -62,22 +60,26 @@ func (a *authHandler) certAuth(auth *r66.Authent) (*model.LocalAccount, *r66.Err
 		return nil, nil
 	}
 
-	sign := utils.MakeSignature(auth.TLS.PeerCertificates[0])
-	var crypto model.Crypto
-	if err := a.db.Get(&crypto, "owner_type=? AND signature=?", "local_accounts",
-		sign).Run(); err != nil {
-		if database.IsNotFound(err) {
-			return nil, internal.NewR66Error(r66.BadAuthent, "unknown certificate")
+	var acc model.LocalAccount
+	if err := a.db.Get(&acc, "local_agent_id=? AND login=?", a.agent.ID, auth.Login).Run(); err != nil {
+		if !database.IsNotFound(err) {
+			a.logger.Errorf("Failed to retrieve client account: %s", err)
+			return nil, r66ErrDatabase
 		}
-		a.logger.Errorf("Failed to retrieve client certificate: %s", err)
+	}
+
+	var cryptos model.Cryptos
+	if err := a.db.Select(&cryptos).Where("owner_type=? AND owner_id=?",
+		acc.TableName(), acc.ID).Run(); err != nil {
+		a.logger.Errorf("Failed to retrieve client certificates: %s", err)
 		return nil, r66ErrDatabase
 	}
 
-	var acc model.LocalAccount
-	if err := a.db.Get(&acc, "id=?", crypto.OwnerID).Run(); err != nil {
-		a.logger.Errorf("Failed to retrieve client account: %s", err)
-		return nil, r66ErrDatabase
+	if err := cryptos.CheckClientAuthent(auth.Login, auth.TLS.PeerCertificates); err != nil {
+		a.logger.Warningf(err.Error())
+		return nil, &r66.Error{Code: r66.BadAuthent, Detail: err.Error()}
 	}
+
 	return &acc, nil
 }
 
