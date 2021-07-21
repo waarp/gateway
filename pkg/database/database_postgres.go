@@ -5,23 +5,21 @@ import (
 	"net"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	_ "github.com/jackc/pgx/v4/stdlib" // register the postgres driver
 	"xorm.io/xorm"
 )
 
 const (
-	// Configuration option for using the PostgreSQL RDBMS
-	postgres = migration.PostgreSQL
+	// PostgreSQL is the configuration option for using the PostgreSQL RDBMS
+	PostgreSQL = "postgresql"
 
 	// PostgresDriver is the name of the PostgreSQL database driver
 	PostgresDriver = "pgx"
 )
 
 func init() {
-	supportedRBMS[postgres] = postgresinfo
+	supportedRBMS[PostgreSQL] = postgresinfo
 }
 
 func postgresinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {

@@ -21,7 +21,7 @@ func init() {
 	BcryptRounds = bcrypt.MinCost
 
 	sqliteConfig = &conf.ServerConfig{Log: conf.LogConfig{Level: "CRITICAL", LogTo: "discard.log"}}
-	sqliteConfig.Database.Type = sqlite
+	sqliteConfig.Database.Type = SQLite
 	sqliteConfig.Database.Address = filepath.Join(os.TempDir(), "test.sqlite")
 	sqliteConfig.Database.AESPassphrase = fmt.Sprintf("%s%ssqlite_test_passphrase.aes",
 		os.TempDir(), string(os.PathSeparator))
