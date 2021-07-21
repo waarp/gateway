@@ -3,6 +3,8 @@ package backup
 import (
 	"fmt"
 
+	"code.waarp.fr/waarp-r66/r66"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -52,7 +54,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 			return err
 		}
 
-		if err := importLocalAccounts(logger, db, src.Accounts, agent.ID); err != nil {
+		if err := importLocalAccounts(logger, db, src.Accounts, &agent); err != nil {
 			return err
 		}
 	}
@@ -61,7 +63,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 
 //nolint:dupl
 func importLocalAccounts(logger *log.Logger, db database.Access,
-	list []file.LocalAccount, ownerID uint64) database.Error {
+	list []file.LocalAccount, server *model.LocalAgent) database.Error {
 
 	for _, src := range list {
 
@@ -70,19 +72,25 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 
 		// Check if account exists
 		exist, err := accountExists(db, &account, "local_agent_id=? AND login=?",
-			ownerID, src.Login)
+			server.ID, src.Login)
 		if err != nil {
 			return err
 		}
 
 		// Populate
-		account.LocalAgentID = ownerID
+		account.LocalAgentID = server.ID
 		account.Login = src.Login
 		if src.PasswordHash != "" {
 			account.PasswordHash = []byte(src.PasswordHash)
 		} else if src.Password != "" {
+			pswd := []byte(src.Password)
+			if server.Protocol == "r66" {
+				// Unlike other protocols, when authenticating, an R66 client sends a
+				// hash instead of a password, so we replace the password with its hash.
+				pswd = r66.CryptPass(pswd)
+			}
 			var err error
-			if account.PasswordHash, err = utils.HashPassword([]byte(src.Password)); err != nil {
+			if account.PasswordHash, err = utils.HashPassword(pswd); err != nil {
 				return database.NewInternalError(fmt.Errorf("failed to hash account password: %s", err))
 			}
 
