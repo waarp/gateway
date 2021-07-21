@@ -47,7 +47,7 @@ func (s *Standalone) transaction(isWrite bool, f func(*Session) Error) Error {
 		s.logger.Errorf("Failed to start transaction: %s", err)
 		return NewInternalError(err)
 	}
-	if isWrite && s.conf.Type == sqlite {
+	if isWrite && s.conf.Type == SQLite {
 		if _, err := ses.session.Exec("ROLLBACK; BEGIN IMMEDIATE"); err != nil {
 			return &InternalError{msg: "failed to start transaction", cause: err}
 		}

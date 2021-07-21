@@ -5,8 +5,11 @@ import (
 	"os"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 
+	"github.com/smartystreets/goconvey/convey"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -16,6 +19,18 @@ func tempFilename() string {
 	So(f.Close(), ShouldBeNil)
 	So(os.Remove(f.Name()), ShouldBeNil)
 	return f.Name()
+}
+
+func getSQLiteEngine(c convey.C) *migration.Engine {
+	db := testhelpers.GetTestSqliteDB(c)
+
+	_, err := db.Exec(sqliteCreationScript)
+	So(err, ShouldBeNil)
+
+	eng, err := migration.NewEngine(db, migration.SQLite, nil)
+	So(err, ShouldBeNil)
+
+	return eng
 }
 
 func TestSqliteCreationScript(t *testing.T) {
