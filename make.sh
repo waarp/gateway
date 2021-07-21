@@ -159,7 +159,6 @@ t_package() {
     build/waarp-gatewayd.ini
 
   # build the packages
-  sed -i -e "s|version:.*|version: v$(cat VERSION)|" dist/nfpm.yaml
   nfpm pkg -p rpm -f dist/nfpm.yaml --target build/
   nfpm pkg -p deb -f dist/nfpm.yaml --target build/
 
@@ -192,6 +191,15 @@ build_portable_archive() {
   popd || return 2
 }
 
+t_bump() {
+  if [ -z "$1" ]; then
+    echo "ERROR: bump needs the version to be specified as the first argument"
+  fi
+
+  echo "$1" > VERSION
+  sed -i -e "s|version:.*|version: v$(cat VERSION)|" dist/nfpm.yaml
+}
+
 t_usage() {
   echo "Usage $0 [ACTION]"
   echo ""
@@ -208,6 +216,7 @@ t_usage() {
   echo "  doc watch   Watch the source of the documentation and builds it when"
   echo "  doc dist    Builds doc for distribution"
   echo "              it has been changed"
+  echo "  bump        Sets the version"
   echo ""
 }
 
@@ -268,6 +277,10 @@ case $ACTION in
         t_doc "$@"
         ;;
     esac
+    ;;
+
+  bump)
+    t_bump $1
     ;;
 
   *)
