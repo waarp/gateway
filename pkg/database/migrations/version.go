@@ -7,8 +7,8 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
 )
 
-func initVersion() migration.Script {
-	return migration.Script{
+func initVersion() *migration.Script {
+	return &migration.Script{
 		Up: func(db migration.Actions) error {
 			if err := db.CreateTable("version", migration.Col("current", migration.Text)); err != nil {
 				return err
@@ -21,8 +21,8 @@ func initVersion() migration.Script {
 	}
 }
 
-func bumpVersion(from, to string) migration.Script {
-	return migration.Script{
+func bumpVersion(from, to string) *migration.Script {
+	return &migration.Script{
 		Up: func(db migration.Actions) error {
 			return db.Exec("UPDATE 'version' SET current='%s'", to)
 		},
