@@ -768,9 +768,9 @@ func TestDatabaseStartVersionMismatch(t *testing.T) {
 				AESPassphrase: filepath.Join(os.TempDir(), "passphrase.aes"),
 			},
 		}}
+		defer os.Remove(db.Conf.Database.Address)
+		defer os.Remove(db.Conf.Database.AESPassphrase)
 		So(db.Start(), ShouldBeNil)
-		defer os.Remove(db.conf.Address)
-		defer os.Remove(db.conf.AESPassphrase)
 
 		Convey("Given that the database version does not match the program", func() {
 			ver := &version{Current: "0.0.0"}

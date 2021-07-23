@@ -165,11 +165,13 @@ func (db *DB) Start() error {
 	}
 
 	if err := initTables(db.Standalone); err != nil {
+		_ = engine.Close()
 		db.state.Set(service.Error, err.Error())
 		db.logger.Errorf("Failed to create tables: %s", err)
 		return err
 	}
 	if err := db.checkVersion(); err != nil {
+		_ = engine.Close()
 		db.state.Set(service.Error, err.Error())
 		return err
 	}
