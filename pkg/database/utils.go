@@ -23,7 +23,7 @@ func checkExists(db Access, bean exister) Error {
 		return NewInternalError(err)
 	}
 	if !exist {
-		logger.Infof("No %s found with ID %d", bean.Appellation(), bean.GetID())
+		logger.Debugf("No %s found with ID %d", bean.Appellation(), bean.GetID())
 		return NewNotFoundError(bean)
 	}
 	return nil
