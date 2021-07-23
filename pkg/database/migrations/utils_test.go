@@ -7,8 +7,16 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func setupDatabaseUpTo(eng *migration.Engine, migrationIndex int) {
-	So(eng.Upgrade(Migrations[:migrationIndex]), ShouldNotBeNil)
+func setupDatabaseUpTo(eng *migration.Engine, target *migration.Script) {
+	index := -1
+	for i, mig := range Migrations {
+		if mig.Script == target {
+			index = i
+			break
+		}
+	}
+	So(index, ShouldBeGreaterThanOrEqualTo, 0)
+	So(eng.Upgrade(Migrations[:index]), ShouldNotBeNil)
 }
 
 func tableShouldHaveColumn(db *sql.DB, table string, cols ...string) {

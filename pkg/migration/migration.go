@@ -15,6 +15,6 @@ type Script struct {
 // version tag should be unique, and they should be declared in order.
 type Migration struct {
 	Description string
-	Script      Script
+	Script      *Script
 	Version     string
 }
