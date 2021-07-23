@@ -209,7 +209,11 @@ func (l *sshListener) getRulesPaths(accountID uint64) ([]string, error) {
 
 	paths := make([]string, len(rules))
 	for i := range rules {
-		paths[i] = rules[i].Path
+		p := rules[i].Path
+		if p[0] == '/' {
+			p = p[1:]
+		}
+		paths[i] = p
 	}
 	return paths, nil
 }
