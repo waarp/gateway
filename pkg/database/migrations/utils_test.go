@@ -2,12 +2,13 @@ package migrations
 
 import (
 	"database/sql"
+	"fmt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func setupDatabaseUpTo(eng *migration.Engine, target *migration.Script) {
+func setupDatabaseUpTo(eng *migration.Engine, target migration.Script) {
 	index := -1
 	for i, mig := range Migrations {
 		if mig.Script == target {
@@ -16,7 +17,25 @@ func setupDatabaseUpTo(eng *migration.Engine, target *migration.Script) {
 		}
 	}
 	So(index, ShouldBeGreaterThanOrEqualTo, 0)
-	So(eng.Upgrade(Migrations[:index]), ShouldNotBeNil)
+	So(eng.Upgrade(Migrations[:index]), ShouldBeNil)
+}
+
+func doesIndexExist(db *sql.DB, dialect, table, index string) bool {
+	var rows *sql.Rows
+	var err error
+	switch dialect {
+	case migration.SQLite:
+		rows, err = db.Query("SELECT * FROM sqlite_master WHERE type=? AND name=?", "index", index)
+	case migration.PostgreSQL:
+		rows, err = db.Query("SELECT indexname FROM pg_indexes WHERE indexname=$1", index)
+	case migration.MySQL:
+		rows, err = db.Query("SHOW INDEX FROM "+table+" WHERE Key_name=?", index)
+	default:
+		panic(fmt.Sprintf("unknown database engine '%s'", dialect))
+	}
+	So(err, ShouldBeNil)
+	defer rows.Close()
+	return rows.Next()
 }
 
 func tableShouldHaveColumn(db *sql.DB, table string, cols ...string) {

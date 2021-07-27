@@ -11,15 +11,12 @@ import (
 // never changes.
 var Migrations = []migration.Migration{
 	{
-		Description: "Adds the version table to the database",
-		Script:      initVersion(),
-	}, {
 		Description: "Bump the database version to 0.4.0",
-		Script:      bumpVersion("0.0.0", "0.4.0"),
-		Version:     "0.4.0",
+		Script:      bumpVersion{from: "0.0.0", to: "0.4.0"},
+		VersionTag:  "0.4.0",
 	}, {
 		Description: "Bump the database version to 0.4.1",
-		Script:      bumpVersion("0.4.0", "0.4.1"),
-		Version:     "0.4.1",
+		Script:      bumpVersion{from: "0.4.0", to: "0.4.1"},
+		VersionTag:  "0.4.1",
 	},
 }
