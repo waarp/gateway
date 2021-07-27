@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`266` Correction d'une erreur dans les authorisations de règles renvoyées
+  via l'API REST. Les authorisations renvoyées devraient désormais être correctes.
+
 * :release:`0.4.0 <2021-07-21>`
 * :bug:`259` Correction d'un bug causant une erreur après les pré-tâches d'un
   transfer R66 côté serveur.

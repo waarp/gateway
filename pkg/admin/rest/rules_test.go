@@ -148,7 +148,7 @@ func TestGetRule(t *testing.T) {
 			}
 			So(db.Insert(send).Run(), ShouldBeNil)
 
-			SkipConvey("Given a request with the valid rule name parameter", func() {
+			Convey("Given a request with the valid rule name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
 				So(err, ShouldBeNil)
 				r = mux.SetURLVars(r, map[string]string{
@@ -231,6 +231,147 @@ func TestGetRule(t *testing.T) {
 
 					Convey("Then it should reply with a 'Not Found' error", func() {
 						So(w.Code, ShouldEqual, http.StatusNotFound)
+					})
+				})
+			})
+
+			Convey("Given some agents", func() {
+				serv1 := &model.LocalAgent{
+					Name:        "serv1",
+					Address:     "localhost:1",
+					Protocol:    "test",
+					ProtoConfig: json.RawMessage(`{}`),
+				}
+				serv2 := &model.LocalAgent{
+					Name:        "serv2",
+					Address:     "localhost:2",
+					Protocol:    "test",
+					ProtoConfig: json.RawMessage(`{}`),
+				}
+				So(db.Insert(serv1).Run(), ShouldBeNil)
+				So(db.Insert(serv2).Run(), ShouldBeNil)
+
+				serv1acc1 := &model.LocalAccount{
+					LocalAgentID: serv1.ID,
+					Login:        "acc1",
+					PasswordHash: hash("sesame"),
+				}
+				serv1acc2 := &model.LocalAccount{
+					LocalAgentID: serv1.ID,
+					Login:        "acc2",
+					PasswordHash: hash("sesame"),
+				}
+				serv2acc1 := &model.LocalAccount{
+					LocalAgentID: serv2.ID,
+					Login:        "acc1",
+					PasswordHash: hash("sesame"),
+				}
+				So(db.Insert(serv1acc1).Run(), ShouldBeNil)
+				So(db.Insert(serv1acc2).Run(), ShouldBeNil)
+				So(db.Insert(serv2acc1).Run(), ShouldBeNil)
+
+				part1 := &model.RemoteAgent{
+					Name:        "part1",
+					Address:     "localhost:10",
+					Protocol:    "test",
+					ProtoConfig: json.RawMessage(`{}`),
+				}
+				part2 := &model.RemoteAgent{
+					Name:        "part2",
+					Address:     "localhost:20",
+					Protocol:    "test",
+					ProtoConfig: json.RawMessage(`{}`),
+				}
+				So(db.Insert(part1).Run(), ShouldBeNil)
+				So(db.Insert(part2).Run(), ShouldBeNil)
+
+				part1acc1 := &model.RemoteAccount{
+					RemoteAgentID: part1.ID,
+					Login:         "acc1",
+					Password:      "sesame",
+				}
+				part2acc1 := &model.RemoteAccount{
+					RemoteAgentID: part2.ID,
+					Login:         "acc2",
+					Password:      "sesame",
+				}
+				part2acc2 := &model.RemoteAccount{
+					RemoteAgentID: part2.ID,
+					Login:         "acc1",
+					Password:      "sesame",
+				}
+				So(db.Insert(part1acc1).Run(), ShouldBeNil)
+				So(db.Insert(part2acc1).Run(), ShouldBeNil)
+				So(db.Insert(part2acc2).Run(), ShouldBeNil)
+
+				Convey("Given some authorizations on those agents", func() {
+					authServ1 := &model.RuleAccess{
+						RuleID:     send.ID,
+						ObjectID:   serv1.ID,
+						ObjectType: serv1.TableName(),
+					}
+					authServ1Acc1 := &model.RuleAccess{
+						RuleID:     send.ID,
+						ObjectID:   serv1acc1.ID,
+						ObjectType: serv1acc1.TableName(),
+					}
+					authServ1Acc2 := &model.RuleAccess{
+						RuleID:     send.ID,
+						ObjectID:   serv1acc2.ID,
+						ObjectType: serv1acc2.TableName(),
+					}
+					authServ2Acc1 := &model.RuleAccess{
+						RuleID:     send.ID,
+						ObjectID:   serv2acc1.ID,
+						ObjectType: serv2acc1.TableName(),
+					}
+					authPart1 := &model.RuleAccess{
+						RuleID:     send.ID,
+						ObjectID:   part1.ID,
+						ObjectType: part1.TableName(),
+					}
+					authPart1Acc1 := &model.RuleAccess{
+						RuleID:     send.ID,
+						ObjectID:   part1acc1.ID,
+						ObjectType: part1acc1.TableName(),
+					}
+					authPart2Acc1 := &model.RuleAccess{
+						RuleID:     send.ID,
+						ObjectID:   part2acc1.ID,
+						ObjectType: part2acc1.TableName(),
+					}
+					So(db.Insert(authServ1).Run(), ShouldBeNil)
+					So(db.Insert(authServ1Acc1).Run(), ShouldBeNil)
+					So(db.Insert(authServ1Acc2).Run(), ShouldBeNil)
+					So(db.Insert(authServ2Acc1).Run(), ShouldBeNil)
+					So(db.Insert(authPart1).Run(), ShouldBeNil)
+					So(db.Insert(authPart1Acc1).Run(), ShouldBeNil)
+					So(db.Insert(authPart2Acc1).Run(), ShouldBeNil)
+
+					Convey("When sending the request to the handler", func() {
+						r, err := http.NewRequest(http.MethodGet, "", nil)
+						So(err, ShouldBeNil)
+						r = mux.SetURLVars(r, map[string]string{
+							"rule":      send.Name,
+							"direction": ruleDirection(send),
+						})
+						handler.ServeHTTP(w, r)
+
+						Convey("Then it should have returned the correct authorizations", func() {
+							var rule OutRule
+							So(json.Unmarshal(w.Body.Bytes(), &rule), ShouldBeNil)
+
+							So(rule.Authorized.LocalServers, ShouldResemble, []string{serv1.Name})
+							So(rule.Authorized.RemotePartners, ShouldResemble, []string{part1.Name})
+							So(rule.Authorized.LocalAccounts, ShouldResemble, map[string][]string{
+								serv1.Name: {serv1acc1.Login, serv1acc2.Login},
+								serv2.Name: {serv2acc1.Login},
+							})
+							So(rule.Authorized.RemoteAccounts, ShouldResemble, map[string][]string{
+								part1.Name: {part1acc1.Login},
+								part2.Name: {part2acc1.Login},
+							})
+						})
 					})
 				})
 			})
