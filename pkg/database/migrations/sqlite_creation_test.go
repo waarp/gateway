@@ -33,7 +33,7 @@ func getSQLiteEngine(c convey.C) *migration.Engine {
 	return eng
 }
 
-func TestSqliteCreationScript(t *testing.T) {
+func TestSQLiteCreationScript(t *testing.T) {
 	Convey("Given a SQLite database", t, func(c C) {
 		db := testhelpers.GetTestSqliteDB(c)
 
