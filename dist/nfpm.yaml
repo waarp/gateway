@@ -4,7 +4,7 @@
 name: "waarp-gateway"
 arch: "amd64"
 platform: "linux"
-version: v0.4.0
+version: v0.4.1
 release: 2
 section: "default"
 priority: "extra"
@@ -37,10 +37,8 @@ contents:
     dst: "/usr/bin/waarp-gatewayd"
   - src: ./build/get-remote_linux_amd64
     dst: "/usr/share/waarp-gateway/get-remote"
-  - src: ./build/update-conf_linux_amd64
-    dst: "/usr/share/waarp-gateway/update-conf"
-  - src: dist/updateconf.sh
-    dst: /usr/share/waarp-gateway/updateconf.sh
+  - src: ./build/updateconf_linux_amd64
+    dst: "/usr/share/waarp-gateway/updateconf"
 
   - src: ./build/waarp-gatewayd.ini
     dst: "/etc/waarp-gateway/gatewayd.ini"
@@ -75,10 +73,8 @@ overrides:
         dst: "/usr/bin/waarp-gatewayd"
       - src: ./build/get-remote_linux_amd64
         dst: "/usr/share/waarp-gateway/get-remote"
-      - src: ./build/update-conf_linux_amd64
-        dst: "/usr/share/waarp-gateway/update-conf"
-      - src: dist/updateconf.sh
-        dst: /usr/share/waarp-gateway/updateconf.sh
+      - src: ./build/updateconf_linux_amd64
+        dst: "/usr/share/waarp-gateway/updateconf"
 
       - src: ./build/waarp-gatewayd.ini
         dst: "/etc/waarp-gateway/gatewayd.ini"
@@ -97,10 +93,8 @@ overrides:
         dst: "/usr/bin/waarp-gatewayd"
       - src: ./build/get-remote_linux_amd64
         dst: "/usr/share/waarp-gateway/get-remote"
-      - src: ./build/update-conf_linux_amd64
-        dst: "/usr/share/waarp-gateway/update-conf"
-      - src: dist/updateconf.sh
-        dst: /usr/share/waarp-gateway/updateconf.sh
+      - src: ./build/updateconf_linux_amd64
+        dst: "/usr/share/waarp-gateway/updateconf"
 
       - src: ./build/waarp-gatewayd.ini
         dst: "/etc/waarp-gateway/gatewayd.ini"

@@ -9,8 +9,8 @@ chown root:waarp /var/log/waarp-gateway
 chmod 664 /var/log/waarp-gateway
 
 # Data # waarp:waarp 774
-chown waarp: /var/lib/waarp-gateway/
-chmod 774 /var/lib/waarp-gateway/
+chown -R waarp: /var/lib/waarp-gateway/
+chmod -R 774 /var/lib/waarp-gateway/
 
 # Share # root:waarp 750
 chown root:waarp /usr/share/waarp-gateway/*
