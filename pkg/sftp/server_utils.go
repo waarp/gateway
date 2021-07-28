@@ -73,6 +73,9 @@ func getSSHServerConfig(db *database.DB, hostKeys []model.Crypto, protoConfig *c
 		},
 	}
 
+	if len(hostKeys) == 0 {
+		return nil, fmt.Errorf("'%s' SFTP server is missing a hostkey", agent.Name)
+	}
 	for _, hostKey := range hostKeys {
 		privateKey, err := ssh.ParsePrivateKey([]byte(hostKey.PrivateKey))
 		if err != nil {

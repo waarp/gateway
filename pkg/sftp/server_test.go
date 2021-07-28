@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
@@ -102,15 +103,30 @@ func TestServerStart(t *testing.T) {
 
 		sftpServer := NewService(db, agent, log.NewLogger("test_sftp_server"))
 
-		Convey("When starting the server", func() {
-			err := sftpServer.Start()
+		Convey("Given that the configuration is valid", func() {
+			Convey("When starting the server", func() {
+				err := sftpServer.Start()
 
-			Reset(func() {
-				_ = sftpServer.Stop(context.Background())
+				Reset(func() {
+					_ = sftpServer.Stop(context.Background())
+				})
+
+				Convey("Then it should NOT return an error", func() {
+					So(err, ShouldBeNil)
+				})
 			})
+		})
 
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
+		Convey("Given that the server is missing a hostkey", func() {
+			So(db.Delete(hostKey).Run(), ShouldBeNil)
+
+			Convey("When starting the server", func() {
+				err := sftpServer.Start()
+
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, fmt.Errorf("'%s' SFTP server is "+
+						"missing a hostkey", agent.Name))
+				})
 			})
 		})
 	})
