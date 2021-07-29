@@ -6,8 +6,14 @@ Historique des versions
 * :bug:`263` Suppression du '/' présent au début des noms de dossiers renvoyés
   lors de l'envoi d'une commande SFTP *ls* . Cela devrait résoudre un certains
   nombre de problèmes survenant lors de l'utilisation de cette commande.
+* :bug:`266` Correction d'une erreur dans les authorisations de règles renvoyées
+  via l'API REST. Les authorisations renvoyées devraient désormais être correctes.
+* :bug:`267` Correction d'une erreur permettant de démarrer un serveur SFTP même
+  quand celui-ci n'a pas de *hostkey*, empêchant ainsi toute connexion à ce
+  serveur. Dorénavant, l'utilisateur sera informé de cette absence de *hostkey*
+  au démarrage du serveur (et non lors de la connexion à celui-ci).
 
-* :release:`0.4.0 <2021-07-21>`
+* :release:`0.4.1 <2021-07-21>`
 * :bug:`259` Correction d'un bug causant une erreur après les pré-tâches d'un
   transfer R66 côté serveur.
 * :bug:`260` Correction d'une erreur dans l'import des mots de passe de comptes
