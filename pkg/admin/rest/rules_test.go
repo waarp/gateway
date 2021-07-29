@@ -84,7 +84,7 @@ func TestCreateRule(t *testing.T) {
 								Name:     "new_name",
 								Comment:  "new comment",
 								IsSend:   false,
-								Path:     "/test_path",
+								Path:     "test_path",
 								InPath:   "/test_in",
 								OutPath:  "/test_out",
 								WorkPath: "/test_work",
@@ -604,7 +604,7 @@ func TestUpdateRule(t *testing.T) {
 							expected := model.Rule{
 								ID:       old.ID,
 								Name:     "update_name",
-								Path:     "/old_path",
+								Path:     "old_path",
 								InPath:   "",
 								OutPath:  "/old_out",
 								WorkPath: "/update_work",
@@ -671,7 +671,7 @@ func TestUpdateRule(t *testing.T) {
 						}, {
 							Comment: strPtr("update comment"),
 						}, {
-							Path: strPtr("/path/update"),
+							Path: strPtr("path/update"),
 						}, {
 							InPath: strPtr("/update/in"),
 						}, {
@@ -852,7 +852,7 @@ func TestReplaceRule(t *testing.T) {
 							expected := model.Rule{
 								ID:     old.ID,
 								Name:   "update_name",
-								Path:   "/update_path",
+								Path:   "update_path",
 								IsSend: old.IsSend,
 							}
 							So(results[0], ShouldResemble, expected)

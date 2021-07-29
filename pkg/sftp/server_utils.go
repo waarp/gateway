@@ -3,31 +3,13 @@ package sftp
 import (
 	"bytes"
 	"fmt"
-	"path"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"github.com/pkg/sftp"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ssh"
 )
-
-func getRuleFromPath(db *database.DB, r *sftp.Request, isSend bool) (*model.Rule, error) {
-	filepath := path.Dir(r.Filepath)
-	filepath = path.Clean("/" + filepath)
-
-	rule := &model.Rule{}
-	if err := db.Get(rule, "path=? AND send=?", filepath, isSend).Run(); err != nil {
-		dir := "receiving"
-		if isSend {
-			dir = "sending"
-		}
-		return nil, fmt.Errorf("cannot retrieve transfer rule: the directory "+
-			"'%s' is not associated to any known %s rule", filepath, dir)
-	}
-	return rule, nil
-}
 
 func getSSHServerConfig(db *database.DB, hostKeys []model.Crypto, protoConfig *config.SftpProtoConfig,
 	agent *model.LocalAgent) (*ssh.ServerConfig, error) {
@@ -87,12 +69,12 @@ func getSSHServerConfig(db *database.DB, hostKeys []model.Crypto, protoConfig *c
 	return conf, nil
 }
 
-func getAccountID(db *database.DB, agentID uint64, login string) (uint64, error) {
-	account := model.LocalAccount{LocalAgentID: agentID, Login: login}
+func getAccount(db *database.DB, agentID uint64, login string) (*model.LocalAccount, error) {
+	var account model.LocalAccount
 	if err := db.Get(&account, "local_agent_id=? AND login=?", agentID, login).Run(); err != nil {
-		return 0, err
+		return nil, err
 	}
-	return account.ID, nil
+	return &account, nil
 }
 
 func acceptRequests(in <-chan *ssh.Request) {

@@ -86,7 +86,7 @@ func TestImportRules(t *testing.T) {
 				Rule1 := Rule{
 					Name:   "foo",
 					IsSend: true,
-					Path:   "/test/path",
+					Path:   "test/path",
 					Accesses: []string{
 						"local::test",
 						"local::test::foo",
@@ -162,7 +162,7 @@ func TestImportRules(t *testing.T) {
 				Rule1 := Rule{
 					Name:   insert.Name,
 					IsSend: insert.IsSend,
-					Path:   "/testing",
+					Path:   "testing",
 					Accesses: []string{
 						"local::test",
 						"local::test::test",
@@ -236,7 +236,7 @@ func TestImportRules(t *testing.T) {
 				Rule1 := Rule{
 					Name:   insert.Name,
 					IsSend: insert.IsSend,
-					Path:   "/testing",
+					Path:   "testing",
 					Accesses: []string{
 						"local::test",
 						"local::test::test",

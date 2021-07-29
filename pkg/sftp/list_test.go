@@ -98,37 +98,37 @@ func TestSFTPList(t *testing.T) {
 					Name:    "send1",
 					Comment: "",
 					IsSend:  true,
-					Path:    "/path1",
+					Path:    "path1/send1",
 				}
 				send2 := &model.Rule{
 					Name:    "send2",
 					Comment: "",
 					IsSend:  true,
-					Path:    "/path2",
+					Path:    "path2/send2",
 				}
 				send3 := &model.Rule{
 					Name:    "send3",
 					Comment: "",
 					IsSend:  true,
-					Path:    "/path3",
+					Path:    "path3",
 				}
 				send4 := &model.Rule{
 					Name:    "send4",
 					Comment: "",
 					IsSend:  true,
-					Path:    "/path4",
+					Path:    "path1/subdir/send4",
 				}
 				recv1 := &model.Rule{
 					Name:    "recv1",
 					Comment: "",
 					IsSend:  false,
-					Path:    "/path3",
+					Path:    "path3",
 				}
 				recv2 := &model.Rule{
 					Name:    "recv2",
 					Comment: "",
 					IsSend:  false,
-					Path:    "/path5",
+					Path:    "path4",
 				}
 
 				So(db.Insert(send1).Run(), ShouldBeNil)
@@ -181,11 +181,10 @@ func TestSFTPList(t *testing.T) {
 						So(err, ShouldBeNil)
 
 						Convey("Then it should return a list of all the authorized rule paths", func() {
-							So(len(list), ShouldEqual, 4)
+							So(len(list), ShouldEqual, 3)
 							So(list[0].Name(), ShouldEqual, "path1")
 							So(list[1].Name(), ShouldEqual, "path3")
 							So(list[2].Name(), ShouldEqual, "path4")
-							So(list[3].Name(), ShouldEqual, "path5")
 						})
 					})
 

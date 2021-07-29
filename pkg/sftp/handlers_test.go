@@ -74,11 +74,11 @@ func TestFileReader(t *testing.T) {
 					Agent:       agent,
 					ProtoConfig: &serverConf,
 					GWConf:      &conf.ServerConfig{Paths: pathsConfig},
-				}).makeFileReader(context.Background(), account.ID, paths)
+				}).makeFileReader(context.Background(), account, paths)
 
 				Convey("Given a request for an existing file in the rule path", func() {
 					request := &sftp.Request{
-						Filepath: "/test/path/file_read.src",
+						Filepath: "test/path/file_read.src",
 					}
 
 					Convey("When calling the handler", func() {
@@ -179,11 +179,11 @@ func TestFileWriter(t *testing.T) {
 					Agent:       agent,
 					ProtoConfig: &serverConf,
 					GWConf:      &conf.ServerConfig{Paths: pathsConfig},
-				}).makeFileWriter(context.Background(), account.ID, paths)
+				}).makeFileWriter(context.Background(), account, paths)
 
 				Convey("Given a request for an existing file in the rule path", func() {
 					request := &sftp.Request{
-						Filepath: "/test/file.test",
+						Filepath: "test/file.test",
 					}
 
 					Convey("When calling the handler", func() {
@@ -209,7 +209,7 @@ func TestFileWriter(t *testing.T) {
 
 				Convey("Given a request for an non existing rule", func() {
 					request := &sftp.Request{
-						Filepath: "/toto/file.test",
+						Filepath: "toto/file.test",
 					}
 
 					Convey("When calling the handler", func() {

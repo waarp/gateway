@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"path"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -31,14 +32,14 @@ func TestRuleBeforeWrite(t *testing.T) {
 			old := Rule{
 				Name:   "old",
 				IsSend: true,
-				Path:   "old_path",
+				Path:   "old_path/subdir",
 			}
 			So(db.Insert(&old).Run(), ShouldBeNil)
 
 			rule := Rule{
-				Name:   "rule",
+				Name:   "new",
 				IsSend: true,
-				Path:   "path",
+				Path:   "new_path",
 			}
 
 			shouldSucceed := func() {
@@ -83,6 +84,19 @@ func TestRuleBeforeWrite(t *testing.T) {
 
 			})
 
+			Convey("Given a rule with a path ancestor to this rule's path", func() {
+				rule.Path = path.Join(old.Path, rule.Path)
+				shouldFailWith("the path cannot be a descendant", database.NewValidationError(
+					"the rule's path cannot be the descendant of another rule's path "+
+						"(the path '%s' is already used by rule '%s')", old.Path, old.Name))
+			})
+
+			Convey("Given a rule with a path descendant to this rule's path", func() {
+				rule.Path = path.Dir(old.Path)
+				shouldFailWith("the path cannot be an ancestor", database.NewValidationError(
+					"the rule's path cannot be the ancestor of another rule's path"))
+			})
+
 			Convey("Given a rule without a path", func() {
 				rule.Path = ""
 
@@ -95,7 +109,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 						So(err, ShouldBeNil)
 
 						Convey("Then the path should have been filled", func() {
-							So(rule.Path, ShouldEqual, "/"+rule.Name)
+							So(rule.Path, ShouldEqual, rule.Name)
 						})
 					})
 				})

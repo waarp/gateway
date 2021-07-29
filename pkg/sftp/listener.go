@@ -33,7 +33,7 @@ type sshListener struct {
 	cancel context.CancelFunc
 	connWg sync.WaitGroup
 
-	handlerMaker func(ctx context.Context, accountID uint64) sftp.Handlers
+	handlerMaker func(ctx context.Context, acc *model.LocalAccount) sftp.Handlers
 }
 
 func (l *sshListener) listen() {
@@ -80,19 +80,19 @@ func (l *sshListener) handleConnection(parent context.Context, nConn net.Conn) {
 
 		sesWg := &sync.WaitGroup{}
 		for newChannel := range channels {
-			accountID, err := getAccountID(l.DB, l.Agent.ID, servConn.User())
+			acc, err := getAccount(l.DB, l.Agent.ID, servConn.User())
 			if err != nil {
 				l.Logger.Errorf("Failed to retrieve user: %s", err)
 				continue
 			}
-			l.handleSession(ctx, sesWg, accountID, newChannel)
+			l.handleSession(ctx, sesWg, acc, newChannel)
 		}
 		sesWg.Wait()
 	}()
 }
 
 func (l *sshListener) handleSession(ctx context.Context, wg *sync.WaitGroup,
-	accountID uint64, newChannel ssh.NewChannel) {
+	acc *model.LocalAccount, newChannel ssh.NewChannel) {
 	wg.Add(1)
 	go func() {
 		if newChannel.ChannelType() != "session" {
@@ -108,7 +108,7 @@ func (l *sshListener) handleSession(ctx context.Context, wg *sync.WaitGroup,
 		}
 		go acceptRequests(requests)
 
-		server := sftp.NewRequestServer(channel, l.handlerMaker(ctx, accountID))
+		server := sftp.NewRequestServer(channel, l.handlerMaker(ctx, acc))
 		_ = server.Serve()
 		_ = server.Close()
 
@@ -116,7 +116,7 @@ func (l *sshListener) handleSession(ctx context.Context, wg *sync.WaitGroup,
 	}()
 }
 
-func (l *sshListener) makeHandlers(ctx context.Context, accountID uint64) sftp.Handlers {
+func (l *sshListener) makeHandlers(ctx context.Context, acc *model.LocalAccount) sftp.Handlers {
 	paths := &pipeline.Paths{
 		PathsConfig: l.GWConf.Paths,
 		ServerRoot:  l.Agent.Root,
@@ -126,29 +126,26 @@ func (l *sshListener) makeHandlers(ctx context.Context, accountID uint64) sftp.H
 	}
 
 	return sftp.Handlers{
-		FileGet:  l.makeFileReader(ctx, accountID, paths),
-		FilePut:  l.makeFileWriter(ctx, accountID, paths),
+		FileGet:  l.makeFileReader(ctx, acc, paths),
+		FilePut:  l.makeFileWriter(ctx, acc, paths),
 		FileCmd:  makeFileCmder(),
-		FileList: l.makeFileLister(paths, accountID),
+		FileList: l.makeFileLister(paths, acc),
 	}
 }
 
-func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
+func (l *sshListener) makeFileReader(ctx context.Context, acc *model.LocalAccount,
 	paths *pipeline.Paths) fileReaderFunc {
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		l.Logger.Info("GET request received")
 
 		// Get rule according to request filepath
-		rule, err := getRuleFromPath(l.DB, r, true)
+		rule, err := l.getClosestRule(acc, r.Filepath, true)
 		if err != nil {
 			l.Logger.Error(err.Error())
 			return nil, err
 		}
-
-		acc := &model.LocalAccount{}
-		if err := l.DB.Get(acc, "id=?", accountID).Run(); err != nil {
-			l.Logger.Error(err.Error())
-			return nil, err
+		if !rule.IsSend {
+			return nil, sftp.ErrSSHFxNoSuchFile
 		}
 
 		// Create Transfer
@@ -156,7 +153,7 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
 			RuleID:     rule.ID,
 			IsServer:   true,
 			AgentID:    l.Agent.ID,
-			AccountID:  accountID,
+			AccountID:  acc.ID,
 			SourceFile: path.Base(r.Filepath),
 			DestFile:   path.Base(r.Filepath),
 			Start:      time.Now(),
@@ -175,22 +172,19 @@ func (l *sshListener) makeFileReader(ctx context.Context, accountID uint64,
 	}
 }
 
-func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64,
+func (l *sshListener) makeFileWriter(ctx context.Context, acc *model.LocalAccount,
 	paths *pipeline.Paths) fileWriterFunc {
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		l.Logger.Debug("PUT request received")
 
-		acc := &model.LocalAccount{}
-		if err := l.DB.Get(acc, "id=?", accountID).Run(); err != nil {
-			l.Logger.Error(err.Error())
-			return nil, err
-		}
-
 		// Get rule according to request filepath
-		rule, err := getRuleFromPath(l.DB, r, false)
+		rule, err := l.getClosestRule(acc, r.Filepath, false)
 		if err != nil {
 			l.Logger.Error(err.Error())
 			return nil, err
+		}
+		if rule.IsSend {
+			return nil, sftp.ErrSSHFxPermissionDenied
 		}
 
 		// Create Transfer
@@ -198,7 +192,7 @@ func (l *sshListener) makeFileWriter(ctx context.Context, accountID uint64,
 			RuleID:     rule.ID,
 			IsServer:   true,
 			AgentID:    l.Agent.ID,
-			AccountID:  accountID,
+			AccountID:  acc.ID,
 			SourceFile: path.Base(r.Filepath),
 			DestFile:   path.Base(r.Filepath),
 			Start:      time.Now(),

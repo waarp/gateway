@@ -79,10 +79,10 @@ func (t *testSFTPStream) Close() error {
 	return err
 }
 
-func (l *sshListener) makeTestFileReader(ctx context.Context, accountID uint64,
+func (l *sshListener) makeTestFileReader(ctx context.Context, acc *model.LocalAccount,
 	paths *pipeline.Paths) fileReaderFunc {
 
-	handler := l.makeFileReader(ctx, accountID, paths)
+	handler := l.makeFileReader(ctx, acc, paths)
 	return func(r *sftp.Request) (io.ReaderAt, error) {
 		reader, err := handler(r)
 		if err != nil {
@@ -92,10 +92,10 @@ func (l *sshListener) makeTestFileReader(ctx context.Context, accountID uint64,
 	}
 }
 
-func (l *sshListener) makeTestFileWriter(ctx context.Context, accountID uint64,
+func (l *sshListener) makeTestFileWriter(ctx context.Context, acc *model.LocalAccount,
 	paths *pipeline.Paths) fileWriterFunc {
 
-	handler := l.makeFileWriter(ctx, accountID, paths)
+	handler := l.makeFileWriter(ctx, acc, paths)
 	return func(r *sftp.Request) (io.WriterAt, error) {
 		writer, err := handler(r)
 		if err != nil {
@@ -105,7 +105,7 @@ func (l *sshListener) makeTestFileWriter(ctx context.Context, accountID uint64,
 	}
 }
 
-func (l *sshListener) makeTestHandlers(ctx context.Context, accountID uint64) sftp.Handlers {
+func (l *sshListener) makeTestHandlers(ctx context.Context, acc *model.LocalAccount) sftp.Handlers {
 	paths := &pipeline.Paths{
 		PathsConfig: l.GWConf.Paths,
 		ServerRoot:  l.Agent.Root,
@@ -115,10 +115,10 @@ func (l *sshListener) makeTestHandlers(ctx context.Context, accountID uint64) sf
 	}
 
 	return sftp.Handlers{
-		FileGet:  l.makeTestFileReader(ctx, accountID, paths),
-		FilePut:  l.makeTestFileWriter(ctx, accountID, paths),
+		FileGet:  l.makeTestFileReader(ctx, acc, paths),
+		FilePut:  l.makeTestFileWriter(ctx, acc, paths),
 		FileCmd:  makeFileCmder(),
-		FileList: l.makeFileLister(paths, accountID),
+		FileList: l.makeFileLister(paths, acc),
 	}
 }
 

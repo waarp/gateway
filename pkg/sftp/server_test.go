@@ -176,7 +176,7 @@ func TestSSHServer(t *testing.T) {
 				Name:     "receive",
 				Comment:  "",
 				IsSend:   false,
-				Path:     "/receive",
+				Path:     "receive",
 				InPath:   "rcv_in",
 				WorkPath: "rcv_tmp",
 			}
@@ -235,7 +235,7 @@ func TestSSHServer(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Given an incoming transfer", func() {
-						dst, err := client.Create(path.Join(receive.Path, "/test_in_shutdown.dst"))
+						dst, err := client.Create(path.Join(receive.Path, "test_in_shutdown.dst"))
 						So(err, ShouldBeNil)
 
 						Convey("When the server shuts down", func() {

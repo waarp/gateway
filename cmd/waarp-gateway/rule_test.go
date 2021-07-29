@@ -237,7 +237,7 @@ func TestAddRule(t *testing.T) {
 							Name:     "new_rule",
 							Comment:  "new_rule comment",
 							IsSend:   false,
-							Path:     "/new/rule/path",
+							Path:     "new/rule/path",
 							InPath:   "/in/path",
 							OutPath:  "/out/path",
 							WorkPath: "/work/path",
