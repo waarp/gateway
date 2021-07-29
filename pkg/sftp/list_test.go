@@ -206,7 +206,7 @@ func TestSFTPList(t *testing.T) {
 					})
 
 					Convey("When sending a List with an unknown path", func() {
-						_, err := client.ReadDir("/unknown")
+						_, err := client.ReadDir("unknown")
 
 						Convey("Then it should return an error", func() {
 							So(err, ShouldBeError, "file does not exist")
@@ -214,19 +214,53 @@ func TestSFTPList(t *testing.T) {
 					})
 
 					Convey("When sending a Stat to an existing file", func() {
-						So(os.Mkdir(filepath.Join(root, "out"), 0o700), ShouldBeNil)
-						So(ioutil.WriteFile(filepath.Join(root, "out", "stat_file"),
+						So(os.MkdirAll(filepath.Join(root, "out", "sub"), 0o700), ShouldBeNil)
+						So(ioutil.WriteFile(filepath.Join(root, "out", "sub", "stat_file"),
 							[]byte("Hello world"), 0o600), ShouldBeNil)
 
-						info, err := client.Stat(path.Join(send1.Path, "stat_file"))
+						info, err := client.Stat(path.Join(send1.Path, "sub", "stat_file"))
 						So(err, ShouldBeNil)
 
 						Convey("Then it should returns the file's info", func() {
-							exp, err := os.Stat(filepath.Join(root, "out", "stat_file"))
+							exp, err := os.Stat(filepath.Join(root, "out", "sub", "stat_file"))
 							So(err, ShouldBeNil)
-							So(info.Name(), ShouldResemble, exp.Name())
-							So(info.Size(), ShouldResemble, exp.Size())
-							So(info.Mode(), ShouldResemble, exp.Mode())
+							So(info.Name(), ShouldEqual, exp.Name())
+							So(info.Size(), ShouldEqual, exp.Size())
+							So(info.Mode(), ShouldEqual, exp.Mode())
+						})
+					})
+
+					Convey("When sending a Stat to a virtual directory", func() {
+						virtDir := path.Dir(send1.Path)
+						info, err := client.Stat(virtDir)
+						So(err, ShouldBeNil)
+
+						Convey("Then it should returns the directory's info", func() {
+							So(info.Name(), ShouldEqual, path.Base(virtDir))
+							So(info.Size(), ShouldEqual, 0)
+							So(info.Mode(), ShouldEqual, 0o700|os.ModeDir)
+						})
+					})
+
+					Convey("When sending a Stat to a real sub-directory", func() {
+						So(os.MkdirAll(filepath.Join(root, "out", "sub"), 0o700), ShouldBeNil)
+						info, err := client.Stat(path.Join(send1.Path, "sub"))
+						So(err, ShouldBeNil)
+
+						Convey("Then it should returns the directory's info", func() {
+							exp, err := os.Stat(filepath.Join(root, "out", "sub"))
+							So(err, ShouldBeNil)
+							So(info.Name(), ShouldEqual, exp.Name())
+							So(info.Size(), ShouldEqual, exp.Size())
+							So(info.Mode(), ShouldEqual, exp.Mode())
+						})
+					})
+
+					Convey("When sending a Stat to an unknown virtual directory", func() {
+						_, err := client.Stat("unknown")
+
+						Convey("Then it should return an error", func() {
+							So(err, ShouldBeError, "file does not exist")
 						})
 					})
 

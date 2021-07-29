@@ -69,10 +69,9 @@ func (l *sshListener) makeFileLister(paths *pipeline.Paths, acc *model.LocalAcco
 func (l *sshListener) listAt(r *sftp.Request, confPaths *pipeline.Paths, acc *model.LocalAccount) listerAtFunc {
 	return func(ls []os.FileInfo, offset int64) (int, error) {
 		var infos []os.FileInfo
-
 		l.Logger.Debugf("Received 'List' request on %s", r.Filepath)
 
-		realDir, err := l.getRealDir(acc, confPaths, r.Filepath)
+		realDir, err := l.getRealPath(acc, confPaths, r.Filepath)
 		if err != nil {
 			return 0, modelToSFTP(err)
 		}
@@ -80,6 +79,9 @@ func (l *sshListener) listAt(r *sftp.Request, confPaths *pipeline.Paths, acc *mo
 		if realDir != "" {
 			infos, err = ioutil.ReadDir(realDir)
 			if err != nil {
+				if os.IsNotExist(err) {
+					return 0, sftp.ErrSSHFxNoSuchFile
+				}
 				l.Logger.Errorf("Failed to list directory: %s", err)
 				return 0, fmt.Errorf("failed to list directory")
 			}
@@ -105,49 +107,54 @@ func (l *sshListener) listAt(r *sftp.Request, confPaths *pipeline.Paths, acc *mo
 	}
 }
 
-func (l *sshListener) statAt(r *sftp.Request, paths *pipeline.Paths, acc *model.LocalAccount) listerAtFunc {
-	return func(ls []os.FileInfo, offset int64) (int, error) {
+func (l *sshListener) statAt(r *sftp.Request, confPaths *pipeline.Paths, acc *model.LocalAccount) listerAtFunc {
+	return func(ls []os.FileInfo, _ int64) (int, error) {
+		var infos os.FileInfo
 		l.Logger.Debugf("Received 'Stat' request on %s", r.Filepath)
 
-		rule, err := l.getClosestRule(acc, r.Filepath, true)
-		if err != nil || rule == nil {
-			return 0, fmt.Errorf("failed to retrieve rule for path '%s'", r.Filepath)
+		realDir, err := l.getRealPath(acc, confPaths, r.Filepath)
+		if err != nil {
+			return 0, modelToSFTP(err)
 		}
 
-		file := utils.GetPath(path.Base(r.Filepath), utils.Elems{{rule.OutPath, true},
-			{paths.ServerOut, true}, {paths.ServerRoot, false},
-			{paths.OutDirectory, true}, {paths.GatewayHome, false}})
-
-		fi, err := os.Stat(utils.DenormalizePath(file))
-		if err != nil {
-			if os.IsNotExist(err) {
+		if realDir != "" {
+			infos, err = os.Stat(realDir)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return 0, sftp.ErrSSHFxNoSuchFile
+				}
+				l.Logger.Errorf("Failed to stat file %s", err)
+				return 0, fmt.Errorf("failed to stat file")
+			}
+		} else {
+			if n, err := l.DB.Count(&model.Rule{}).Where("path LIKE ?",
+				r.Filepath[1:]+"%").Run(); err != nil {
+				return 0, err
+			} else if n == 0 {
 				return 0, sftp.ErrSSHFxNoSuchFile
 			}
-			l.Logger.Errorf("Failed to get file stats: %s", r.Filepath)
-			return 0, fmt.Errorf("failed to get file stats")
+			infos = dirInfo(path.Base(r.Filepath))
 		}
-		tmp := []os.FileInfo{fi}
-		n := copy(ls, tmp)
-		if n < len(ls) {
-			return n, io.EOF
-		}
-		return n, nil
+		copy(ls, []os.FileInfo{infos})
+		return 1, io.EOF
 	}
 }
 
-func (l *sshListener) getRealDir(acc *model.LocalAccount, confPaths *pipeline.Paths,
+func (l *sshListener) getRealPath(acc *model.LocalAccount, confPaths *pipeline.Paths,
 	dir string) (string, error) {
 
 	dir = strings.TrimPrefix(dir, "/")
 	rule, err := l.getClosestRule(acc, dir, true)
-	if err != nil && err != sftp.ErrSSHFxNoSuchFile {
-		return "", err
-	}
-	if err == sftp.ErrSSHFxNoSuchFile || rule.Path != dir || !rule.IsSend {
+	if err == sftp.ErrSSHFxNoSuchFile {
 		return "", nil
 	}
+	if err != nil {
+		return "", err
+	}
 
-	realDir := utils.GetPath("", utils.Elems{{rule.OutPath, true},
+	rest := strings.TrimPrefix(dir, rule.Path)
+	rest = strings.TrimPrefix(rest, "/")
+	realDir := utils.GetPath(rest, utils.Elems{{rule.OutPath, true},
 		{confPaths.ServerOut, true}, {confPaths.ServerRoot, false},
 		{confPaths.OutDirectory, true}, {confPaths.GatewayHome, false}})
 	return utils.DenormalizePath(realDir), nil
