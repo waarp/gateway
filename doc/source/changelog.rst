@@ -12,6 +12,8 @@ Historique des versions
   quand celui-ci n'a pas de *hostkey*, empêchant ainsi toute connexion à ce
   serveur. Dorénavant, l'utilisateur sera informé de cette absence de *hostkey*
   au démarrage du serveur (et non lors de la connexion à celui-ci).
+* :bug:`0` La *gateway* refusera désormais de démarrer si la version de la base
+  de données est différente de celle du programme.
 
 * :release:`0.4.1 <2021-07-21>`
 * :bug:`259` Correction d'un bug causant une erreur après les pré-tâches d'un
