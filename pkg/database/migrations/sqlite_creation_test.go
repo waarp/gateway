@@ -1,8 +1,6 @@
 package migrations
 
 import (
-	"io/ioutil"
-	"os"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
@@ -12,14 +10,6 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 	. "github.com/smartystreets/goconvey/convey"
 )
-
-func tempFilename() string {
-	f, err := ioutil.TempFile(os.TempDir(), "test_migration_database_*.db")
-	So(err, ShouldBeNil)
-	So(f.Close(), ShouldBeNil)
-	So(os.Remove(f.Name()), ShouldBeNil)
-	return f.Name()
-}
 
 func getSQLiteEngine(c convey.C) *migration.Engine {
 	db := testhelpers.GetTestSqliteDB(c)

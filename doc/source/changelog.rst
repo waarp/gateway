@@ -3,6 +3,22 @@
 Historique des versions
 =======================
 
+* :feature:`270` Lors d'une requête SFTP, la recherche de la règle associée au
+  chemin de la requête se fait désormais récursivement, au lieu de juste prendre
+  le dossier parent. Cela a les conséquences suivantes:
+
+  - il est désormais possible d'ajouter des sous-dossiers à l'intérieur du dossier
+    d'une règle
+  - la commande SFTP `stat` fonctionne désormais correctement sur les dossiers
+  Pour que cela soit possible, les changements suivants ont été nécessaires:
+
+  - les chemins de règles ne sont plus stockés avec un '/' au début
+  - le chemin d'une règle ne peut plus être parent du chemin d'une autre règle
+    (par exemple, une règle `/toto/tata` ne peut exister en même temps qu'une
+    règle `/toto` car cela créerait des conflits)
+* :bug:`0` Les chemins de règle (*path*) ne sont désormais plus stockés avec le
+  '/' de début.
+
 * :bug:`263` Suppression du '/' présent au début des noms de dossiers renvoyés
   lors de l'envoi d'une commande SFTP *ls* . Cela devrait résoudre un certains
   nombre de problèmes survenant lors de l'utilisation de cette commande.

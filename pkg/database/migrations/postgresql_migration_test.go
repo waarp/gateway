@@ -13,7 +13,9 @@ func TestPostgreSQLMigrations(t *testing.T) {
 	const dbType = migration.PostgreSQL
 
 	Convey("Given an un-migrated PostgreSQL database engine", t, func(c C) {
-		_ = getPostgreEngine(c)
+		eng := getPostgreEngine(c)
 
+		testVer0_5_0RemoveRulePathSlash(eng, dbType)
+		testVer0_5_0CheckRulePathAncestor(eng, dbType)
 	})
 }

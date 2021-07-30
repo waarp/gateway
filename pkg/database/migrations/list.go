@@ -18,5 +18,11 @@ var Migrations = []migration.Migration{
 		Description: "Bump the database version to 0.4.1",
 		Script:      bumpVersion{from: "0.4.0", to: "0.4.1"},
 		VersionTag:  "0.4.1",
+	}, {
+		Description: "Remove the leading / from all rule paths",
+		Script:      ver0_5_0RemoveRulePathSlash{},
+	}, {
+		Description: "Check that no rule path is the parent of another",
+		Script:      ver0_5_0CheckRulePathParent{},
 	},
 }

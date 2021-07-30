@@ -11,7 +11,9 @@ func TestSQLiteMigrations(t *testing.T) {
 	const dbType = migration.SQLite
 
 	Convey("Given an un-migrated SQLite database engine", t, func(c C) {
-		_ = getSQLiteEngine(c)
+		eng := getSQLiteEngine(c)
 
+		testVer0_5_0RemoveRulePathSlash(eng, dbType)
+		testVer0_5_0CheckRulePathAncestor(eng, dbType)
 	})
 }
