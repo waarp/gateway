@@ -11,6 +11,8 @@ Historique des versions
   au démarrage du serveur (et non lors de la connexion à celui-ci).
 
 * :release:`0.4.1 <2021-07-21>`
+* :bug:`-` La *gateway* refusera désormais de démarrer si la version de la base
+  de données est différente de celle du programme.
 * :bug:`259` Correction d'un bug causant une erreur après les pré-tâches d'un
   transfer R66 côté serveur.
 * :bug:`260` Correction d'une erreur dans l'import des mots de passe de comptes

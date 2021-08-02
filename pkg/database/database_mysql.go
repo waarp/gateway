@@ -4,23 +4,21 @@ import (
 	"crypto/tls"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	msql "github.com/go-sql-driver/mysql" // register the mysql driver
 	"xorm.io/xorm"
 )
 
 const (
-	// Configuration option for using the MySQL RDBMS
-	mysql = migration.MySQL
+	// MySQL is the configuration option for using the MySQL RDBMS
+	MySQL = "mysql"
 
 	// MysqlDriver is the name of the MySQL database driver
 	MysqlDriver = "mysql"
 )
 
 func init() {
-	supportedRBMS[mysql] = mysqlinfo
+	supportedRBMS[MySQL] = mysqlinfo
 }
 
 func mysqlinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
