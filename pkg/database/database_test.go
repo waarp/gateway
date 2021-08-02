@@ -37,7 +37,7 @@ func testSelectForUpdate(db *DB) {
 
 	db2 := &DB{Conf: db.Conf}
 	So(db2.Start(), ShouldBeNil)
-	//db2.engine.Exec("PRAGMA busy_timeout = 60000")
+	// db2.engine.Exec("PRAGMA busy_timeout = 60000")
 	Reset(func() { So(db2.engine.Close(), ShouldBeNil) })
 
 	transRes := make(chan Error)
@@ -199,7 +199,6 @@ func testIterate(db *DB) {
 			runTests(ses)
 		})
 	})
-
 }
 
 func testSelect(db *DB) {
@@ -315,7 +314,6 @@ func testSelect(db *DB) {
 			runTests(ses)
 		})
 	})
-
 }
 
 func testInsert(db *DB) {
@@ -604,7 +602,6 @@ func testDelete(db *DB) {
 
 			runTests(ses)
 		})
-
 	})
 }
 
@@ -641,7 +638,6 @@ func testDeleteAll(db *DB) {
 
 			runTests(ses)
 		})
-
 	})
 }
 

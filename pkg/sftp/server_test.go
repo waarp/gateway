@@ -448,23 +448,54 @@ func TestSSHServer(t *testing.T) {
 							Convey("Then the transfers should appear in the history", func() {
 								So(client.Close(), ShouldBeNil)
 
-								hist1 := &model.TransferHistory{}
-								So(db.Get(hist1, "is_server=? AND is_send=? AND "+
-									"account=? AND agent=? AND protocol=? AND "+
-									"source_filename=? AND dest_filename=? AND "+
-									"rule=? AND status=?", true, receive.IsSend,
-									user.Login, agent.Name, "sftp", "test_in_1.dst",
-									"test_in_1.dst", receive.Name, types.StatusDone).
-									Run(), ShouldBeNil)
+								var trans model.Transfers
+								So(db.Select(&trans).Run(), ShouldBeNil)
+								So(trans, ShouldBeEmpty)
 
-								hist2 := &model.TransferHistory{}
-								So(db.Get(hist2, "is_server=? AND is_send=? AND "+
-									"account=? AND agent=? AND protocol=? AND "+
-									"source_filename=? AND dest_filename=? AND "+
-									"rule=? AND status=?", true, receive.IsSend,
-									user.Login, agent.Name, "sftp", "test_in_1.dst",
-									"test_in_1.dst", receive.Name, types.StatusDone).
-									Run(), ShouldBeNil)
+								var hist model.Histories
+								So(db.Select(&hist).Run(), ShouldBeNil)
+								So(hist, ShouldHaveLength, 2)
+
+								So(hist[0], ShouldResemble, model.TransferHistory{
+									ID:               1,
+									Owner:            database.Owner,
+									RemoteTransferID: "",
+									IsServer:         true,
+									IsSend:           false,
+									Account:          user.Login,
+									Agent:            agent.Name,
+									Protocol:         "sftp",
+									SourceFilename:   "test_in_1.dst",
+									DestFilename:     "test_in_1.dst",
+									Rule:             receive.Name,
+									Start:            hist[0].Start,
+									Stop:             hist[0].Stop,
+									Status:           types.StatusDone,
+									Error:            types.TransferError{},
+									Step:             types.StepNone,
+									Progress:         uint64(len(content)),
+									TaskNumber:       0,
+								})
+								So(hist[1], ShouldResemble, model.TransferHistory{
+									ID:               2,
+									Owner:            database.Owner,
+									RemoteTransferID: "",
+									IsServer:         true,
+									IsSend:           false,
+									Account:          user.Login,
+									Agent:            agent.Name,
+									Protocol:         "sftp",
+									SourceFilename:   "test_in_2.dst",
+									DestFilename:     "test_in_2.dst",
+									Rule:             receive.Name,
+									Start:            hist[1].Start,
+									Stop:             hist[1].Stop,
+									Status:           types.StatusDone,
+									Error:            types.TransferError{},
+									Step:             types.StepNone,
+									Progress:         uint64(len(content)),
+									TaskNumber:       0,
+								})
 							})
 						})
 

@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`265` Correction d'un bug causé par une contrainte d'unicité sur la table
+  d'historique.
 * :bug:`266` Correction d'une erreur dans les authorisations de règles renvoyées
   via l'API REST. Les authorisations renvoyées devraient désormais être correctes.
 * :bug:`267` Correction d'une erreur permettant de démarrer un serveur SFTP même
