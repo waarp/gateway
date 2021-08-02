@@ -29,8 +29,11 @@ var (
 	// GCM is the Galois Counter Mode cipher used to encrypt external accounts passwords.
 	GCM cipher.AEAD
 
-	// Owner is the name of the gateway instance specified in the configuration file.
+	// Owner is the name of the gateway cluster specified in the configuration file.
 	Owner string
+
+	// Node is the name of the gateway node specified in the server start command.
+	Node string
 )
 
 // DB is the database service. It encapsulates a data connection and implements
@@ -145,6 +148,7 @@ func (db *DB) Start() error {
 	}
 	db.state.Set(service.Starting, "")
 	Owner = db.Conf.GatewayName
+	Node = db.Conf.NodeIdentifier
 
 	if err := db.loadAESKey(); err != nil {
 		db.state.Set(service.Error, err.Error())

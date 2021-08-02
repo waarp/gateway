@@ -13,12 +13,13 @@ import (
 
 // ServerConfig holds the server configuration options
 type ServerConfig struct {
-	GatewayName string           `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
-	Paths       PathsConfig      `group:"paths"`
-	Log         LogConfig        `group:"log"`
-	Admin       AdminConfig      `group:"admin"`
-	Database    DatabaseConfig   `group:"database"`
-	Controller  ControllerConfig `group:"controller"`
+	GatewayName    string           `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
+	NodeIdentifier string           `no-ini:"true"`
+	Paths          PathsConfig      `group:"paths"`
+	Log            LogConfig        `group:"log"`
+	Admin          AdminConfig      `group:"admin"`
+	Database       DatabaseConfig   `group:"database"`
+	Controller     ControllerConfig `group:"controller"`
 }
 
 // PathsConfig holds the server paths
@@ -139,6 +140,7 @@ func LoadServerConfig(userConfig string) (*ServerConfig, error) {
 	if err := normalizePaths(c); err != nil {
 		return nil, err
 	}
+	c.NodeIdentifier = c.GatewayName
 
 	return c, nil
 }

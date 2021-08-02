@@ -9,9 +9,10 @@ import (
 )
 
 type serverCommand struct {
-	ConfigFile string `short:"c" long:"config" description:"The configuration file to use"`
-	Update     bool   `short:"u" long:"update" description:"Updates the configuration file at the location given with --config"`
-	Create     bool   `short:"n" long:"create" description:"Creates a new configuration file at the location given with --config"`
+	ConfigFile   string `short:"c" long:"config" description:"The configuration file to use"`
+	Update       bool   `short:"u" long:"update" description:"Updates the configuration file at the location given with --config"`
+	Create       bool   `short:"n" long:"create" description:"Creates a new configuration file at the location given with --config"`
+	InstanceName string `short:"i" long:"instance" description:"The unique identifier of the instance inside a cluster"`
 }
 
 func (cmd *serverCommand) Execute([]string) error {
@@ -38,6 +39,9 @@ func (cmd *serverCommand) Execute([]string) error {
 	config, err := conf.LoadServerConfig(cmd.ConfigFile)
 	if err != nil {
 		return err
+	}
+	if cmd.InstanceName != "" {
+		config.NodeIdentifier = cmd.InstanceName
 	}
 
 	if err := log.InitBackend(config.Log); err != nil {
