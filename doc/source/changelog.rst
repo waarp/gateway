@@ -3,6 +3,9 @@
 Historique des versions
 =======================
 
+* :bug:`263` Suppression du '/' présent au début des noms de dossiers renvoyés
+  lors de l'envoi d'une commande SFTP *ls* . Cela devrait résoudre un certains
+  nombre de problèmes survenant lors de l'utilisation de cette commande.
 * :bug:`265` Correction d'un bug causé par une contrainte d'unicité sur la table
   d'historique.
 * :bug:`266` Correction d'une erreur dans les authorisations de règles renvoyées
@@ -15,6 +18,9 @@ Historique des versions
 * :release:`0.4.1 <2021-07-21>`
 * :bug:`-` La *gateway* refusera désormais de démarrer si la version de la base
   de données est différente de celle du programme.
+
+* :release:`0.4.0 <2021-07-21>`
+>>>>>>> 8d5842b (Removed the leading '/' in dir names when using SFTP listing command)
 * :bug:`259` Correction d'un bug causant une erreur après les pré-tâches d'un
   transfer R66 côté serveur.
 * :bug:`260` Correction d'une erreur dans l'import des mots de passe de comptes
