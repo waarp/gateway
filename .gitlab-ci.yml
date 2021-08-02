@@ -1,47 +1,99 @@
 # This file is a template, and might need editing before it works on your project.
 image: golang:latest
 
-variables:
-  GOLANGCI_LINT_VERSION: 1.32.2
-
-before_script:
-  - git config --global url."https://code.bcarlin.xyz".insteadOf "ssh://git@code.bcarlin.xyz:2222"
-  - git config --global url."https://gitlab-ci-token:$CI_JOB_TOKEN@code.waarp.fr".insteadOf "https://code.waarp.fr"
-  - cd $CI_PROJECT_DIR
-  - mkdir -p .gocache
-  - export GOPATH="$CI_PROJECT_DIR/.gocache"
-  - export PATH="$CI_PROJECT_DIR/.gocache/bin:$PATH"
-  - which golangci-lint >/dev/null 2>&1 && golangci-lint --version | grep "$GOLANGCI_LINT_VERSION" >/dev/null 2>&1
-    || curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v$GOLANGCI_LINT_VERSION
-  - go get -u golang.org/x/tools/cmd/stringer
-  - env
-
-cache:
-  key: go_dependencies_cache
-  paths:
-  - $CI_PROJECT_DIR/.gocache/
+    #before_script:
+    #  - git config --global url."https://code.bcarlin.xyz".insteadOf "ssh://git@code.bcarlin.xyz:2222"
+    #  - git config --global url."https://gitlab-ci-token:$CI_JOB_TOKEN@code.waarp.fr".insteadOf "https://code.waarp.fr"
+    #  - cd $CI_PROJECT_DIR
+    #  - mkdir -p .gocache
+    #  - env
 
 
 stages:
     - test
     - build
 
+code_navigation:
+  stage: test
+  image: sourcegraph/lsif-go:latest
+  allow_failure: true # recommended
+  script:
+  - lsif-go --no-animation
+  - ls -lh dump.lsif
+  artifacts:
+    reports:
+      lsif: dump.lsif
+
+lint:
+  stage: test
+  image: golangci/golangci-lint:latest
+  script:
+  - golangci-lint run --out-format junit-xml > lint.junit.xml
+  artifacts:
+    reports:
+      junit: lint.junit.xml
+
 tests:
-    stage: test
-    script:
-      - go generate ./pkg/...
-      - gofmt -d -e ./pkg/ ./cmd/
-      - ./make.sh check
-      - go test -coverpkg ./cmd/...,./pkg/... -coverprofile cover.out -v ./cmd/... ./pkg/...
-      - go tool cover -func=cover.out
+  stage: test
+  before_script:
+    - export GOPATH="$CI_PROJECT_DIR/.gocache"
+    - export PATH="$CI_PROJECT_DIR/.gocache/bin:$PATH"
+    - go get gotest.tools/gotestsum
+  script:
+    #- gotestsum --junitfile tests.junit.xml -- -coverprofile=coverage.txt -covermode atomic -race ./...
+    - gotestsum --junitfile tests.junit.xml -- -coverprofile=coverage.txt -covermode atomic ./...
+  after_script:
+    - go get github.com/boumenot/gocover-cobertura
+    - gocover-cobertura < coverage.txt > coverage.xml
+    - go tool cover -func=coverage.txt | grep "total:"
+  coverage: '/total:\s+\(statements\)\s+(\d+.\d+\%)/'
+  cache:
+    key: go_dependencies_cache
+    paths:
+    - $CI_PROJECT_DIR/.gocache/
+  artifacts:
+    reports:
+      cobertura: coverage.xml
+      junit: tests.junit.xml
 
 compile:
-    stage: build
-    only: [ tags ]
-    script:
-      - export CGO_ENABLED=0
-      - go generate ./pkg/...
-      - go build -ldflags "-s -w" -o $CI_PROJECT_DIR/waarp-gatewayd ./cmd/waarp-gatewayd
-    artifacts:
-      paths:
-        - waarp-gatewayd
+  stage: build
+  except: [ tags ]
+  before_script:
+    - >
+      apt update -y
+      && apt install -y file gcc-multilib gcc-mingw-w64-x86-64
+      && apt clean
+      && rm -rf /var/lib/apt/lists/*
+    - export GOPATH="$CI_PROJECT_DIR/.gocache"
+    - export PATH="$CI_PROJECT_DIR/.gocache/bin:$PATH"
+  script:
+    - ./make.sh build dist
+  cache:
+    key: go_dependencies_cache
+    paths:
+    - $CI_PROJECT_DIR/.gocache/
+
+package:
+  stage: build
+  only: [ tags ]
+  before_script:
+    - >
+      apt update -y
+      && apt install -y file gcc-multilib gcc-mingw-w64-x86-64 virtualenv zip
+      && apt clean
+      && rm -rf /var/lib/apt/lists/*
+    - export GOPATH="$CI_PROJECT_DIR/.gocache"
+    - export PATH="$CI_PROJECT_DIR/.gocache/bin:$PATH"
+    - git config --global url."https://gitlab-ci-token:$CI_JOB_TOKEN@code.waarp.fr".insteadOf "https://code.waarp.fr"
+    - go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+  script:
+    - ./make.sh package
+  cache:
+    key: go_dependencies_cache
+    paths:
+    - $CI_PROJECT_DIR/.gocache/
+  artifacts:
+    paths:
+      - build/
+

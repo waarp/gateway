@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
-ACTION=$1
-shift
+set -e
+
+ACTION=${1:-help}
+shift || true
 
 #####################################################################
 ###  TASKS
@@ -47,15 +49,31 @@ t_test_watch() {
   goconvey -launchBrowser=false -port=8081 -excludedDirs=doc "$@"
 }
 
+ensure-venv() {
+  test -d .venv && return 0
+  
+  local VENV_CMD="python -m venv"
+  if ! $VENV_CMD -h >/dev/null 2>&1; then
+    VENV_CMD=virtualenv
+  fi
+
+  $VENV_CMD .venv
+  ./.venv/bin/pip install -r requirement.txt
+
+}
+
 t_doc() {
   pushd doc || return 2
+  ensure-venv
   make html SPHINXBUILD=".venv/bin/sphinx-build" "$@"
   popd || return 2
 }
 
 t_doc_watch() {
-  cd doc || return 2
+  pushd doc || return 2
+  ensure-venv
   PATH=.venv/bin:$PATH sphinx-autobuild --port 8082 "$@" source/ build/html/
+  popd || return 2
 }
 
 t_doc_dist() {
@@ -63,6 +81,7 @@ t_doc_dist() {
   name="waarp-gateway-doc-$(cat VERSION)"
 
   pushd doc || return 2
+  ensure-venv
   make clean html \
     SPHINXBUILD=".venv/bin/sphinx-build" \
     SPHINXOPTS="-D todo_include_todos=0" \
@@ -79,9 +98,14 @@ t_doc_dist() {
   mv "doc/build/$name.zip" build
 }
 
+t_generate() {
+  go get -u golang.org/x/tools/cmd/stringer
+  go generate ./cmd/... ./pkg/...
+}
+
 t_build() {
   mkdir -p build
-  go generate ./cmd/... ./pkg/...
+
   CGO_ENABLED=1 go build -ldflags " \
     -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Date=$(date -u --iso-8601=seconds) \
     -X code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version.Num=$(git describe --tags --dirty) \
@@ -125,6 +149,33 @@ build_static_binaries() {
   CGO_ENABLED=0 go build -ldflags "-s -w" \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/updateconf_${GOOS}_${GOARCH}" ./dist/updateconf
+
+  # Checking compiled binaries
+  if [ "$GOOS" = "linux" ]; then
+    local out binary_file
+
+    for name in waarp-gateway waarp-gatewayd updateconf get-remote; do
+      binary_file="build/${name}_${GOOS}_${GOARCH}"
+      out=$(file "$binary_file")
+
+      echo "-> Verifying $binary_file:"
+      echo "$out"
+      echo
+
+      if [[ ! "$out" = *statically* ]]; then
+        echo "ERROR: $binary_file is not a static binary"
+        return 2
+      fi
+      if [[ ! "$out" = *stripped* ]]; then
+        echo "ERROR: $binary_file is not a stripped binary"
+        return 2
+      fi
+      if [[ "$out" = *"for GNU/Linux 4.4.0"* ]]; then
+        echo "ERROR: $binary_file is only compatible with Linux 4.4.0+"
+        return 2
+      fi
+    done
+  fi
 }
 
 t_build_dist() {
@@ -134,13 +185,13 @@ and Windows (32 and 64 bits).
 
 Warning:
   It needs a gcc compiler for linux 32bits (in archlinux, the package
-  "lib32-gcc-libs") and for Windows ()
+  "lib32-gcc-libs") and for Windows (mingw-w64-gcc).
 
 
 EOW
   
   mkdir -p build
-  go generate ./cmd/... ./pkg/...
+  
   GOOS=linux GOARCH=amd64 build_static_binaries
   GOOS=linux GOARCH=386 build_static_binaries
   GOOS=windows GOARCH=amd64 CC="x86_64-w64-mingw32-gcc" build_static_binaries
@@ -205,6 +256,7 @@ t_usage() {
   echo ""
   echo "Available actions"
   echo ""
+  echo "  generate    Runs go generate"
   echo "  build       Builds binaries"
   echo "  build dist  Builds binaries for distribution"
   echo "  package     Generates packages"
@@ -225,6 +277,10 @@ t_usage() {
 #####################################################################
 
 case $ACTION in
+  generate)
+    t_generate
+    ;;
+
   build)
     SUB=$1
     case $SUB in
@@ -280,7 +336,7 @@ case $ACTION in
     ;;
 
   bump)
-    t_bump $1
+    t_bump "$1"
     ;;
 
   *)
