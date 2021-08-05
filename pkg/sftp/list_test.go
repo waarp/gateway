@@ -29,6 +29,7 @@ func TestSFTPList(t *testing.T) {
 	Convey("Given a SFTP server", t, func(c C) {
 		root := testhelpers.TempDir(c, "test_list_root")
 		db := database.TestDatabase(c, "ERROR")
+		conf.GlobalConfig.ServerConf.Paths.GatewayHome = root
 
 		Convey("Given an SFTP server", func() {
 			listener, err := net.Listen("tcp", "localhost:0")
@@ -79,7 +80,6 @@ func TestSFTPList(t *testing.T) {
 				Logger:      logger,
 				Agent:       agent,
 				ProtoConfig: &protoConfig,
-				GWConf:      &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: root}},
 				SSHConf:     serverConfig,
 				Listener:    listener,
 				connWg:      sync.WaitGroup{},

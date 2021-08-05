@@ -25,7 +25,6 @@ type sshListener struct {
 	Logger      *log.Logger
 	Agent       *model.LocalAgent
 	ProtoConfig *config.SftpProtoConfig
-	GWConf      *conf.ServerConfig
 	SSHConf     *ssh.ServerConfig
 	Listener    net.Listener
 
@@ -118,7 +117,7 @@ func (l *sshListener) handleSession(ctx context.Context, wg *sync.WaitGroup,
 
 func (l *sshListener) makeHandlers(ctx context.Context, acc *model.LocalAccount) sftp.Handlers {
 	paths := &pipeline.Paths{
-		PathsConfig: l.GWConf.Paths,
+		PathsConfig: conf.GlobalConfig.ServerConf.Paths,
 		ServerRoot:  l.Agent.Root,
 		ServerIn:    l.Agent.InDir,
 		ServerOut:   l.Agent.OutDir,

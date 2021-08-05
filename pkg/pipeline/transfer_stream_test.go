@@ -134,7 +134,7 @@ func TestStreamRead(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Owner:       database.Owner,
+				Owner:       conf.GlobalConfig.ServerConf.GatewayName,
 				Name:        "agent",
 				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
@@ -158,7 +158,7 @@ func TestStreamRead(t *testing.T) {
 				DestFile:   dstFile,
 				Start:      time.Now(),
 				Status:     types.StatusRunning,
-				Owner:      database.Owner,
+				Owner:      conf.GlobalConfig.ServerConf.GatewayName,
 				Progress:   0,
 				TaskNumber: 0,
 				Error:      types.TransferError{},
@@ -251,7 +251,7 @@ func TestStreamWrite(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Owner:       database.Owner,
+				Owner:       conf.GlobalConfig.ServerConf.GatewayName,
 				Name:        "agent",
 				Protocol:    "test",
 				ProtoConfig: json.RawMessage(`{}`),
@@ -275,7 +275,7 @@ func TestStreamWrite(t *testing.T) {
 				DestFile:   dstFile,
 				Start:      time.Now(),
 				Status:     types.StatusRunning,
-				Owner:      database.Owner,
+				Owner:      conf.GlobalConfig.ServerConf.GatewayName,
 				Progress:   0,
 				TaskNumber: 0,
 				Error:      types.TransferError{},

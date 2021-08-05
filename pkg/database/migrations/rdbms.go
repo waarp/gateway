@@ -1,14 +1,13 @@
 package migrations
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
 )
 
 type dbInfo struct {
 	driver  string
-	makeDSN func(*conf.DatabaseConfig) string
+	makeDSN func() string
 }
 
 var rdbms = map[string]dbInfo{

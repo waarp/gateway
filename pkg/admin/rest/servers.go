@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -17,7 +18,7 @@ func getServ(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 	}
 
 	var serv model.LocalAgent
-	if err := db.Get(&serv, "name=? AND owner=?", serverName, database.Owner).
+	if err := db.Get(&serv, "name=? AND owner=?", serverName, conf.GlobalConfig.ServerConf.GatewayName).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("server '%s' not found", serverName)
@@ -61,7 +62,7 @@ func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		query.Where("owner=?", database.Owner)
+		query.Where("owner=?", conf.GlobalConfig.ServerConf.GatewayName)
 		if err := parseProtoParam(r, query); handleError(w, logger, err) {
 			return
 		}

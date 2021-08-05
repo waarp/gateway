@@ -10,14 +10,12 @@ import (
 type Standalone struct {
 	engine *xorm.Engine
 	logger *log.Logger
-	conf   *conf.DatabaseConfig
 }
 
 func (s *Standalone) newSession() *Session {
 	return &Session{
 		session: s.engine.NewSession(),
 		logger:  s.logger,
-		conf:    s.conf,
 	}
 }
 
@@ -47,7 +45,7 @@ func (s *Standalone) transaction(isWrite bool, f func(*Session) Error) Error {
 		s.logger.Errorf("Failed to start transaction: %s", err)
 		return NewInternalError(err)
 	}
-	if isWrite && s.conf.Type == SQLite {
+	if isWrite && conf.GlobalConfig.ServerConf.Database.Type == SQLite {
 		if _, err := ses.session.Exec("ROLLBACK; BEGIN IMMEDIATE"); err != nil {
 			return &InternalError{msg: "failed to start transaction", cause: err}
 		}
@@ -66,10 +64,6 @@ func (s *Standalone) transaction(isWrite bool, f func(*Session) Error) Error {
 	}
 	s.logger.Debug("[SQL] Transaction succeeded, changes have been committed")
 	return nil
-}
-
-func (s *Standalone) getType() string {
-	return s.conf.Type
 }
 
 func (s *Standalone) getUnderlying() xorm.Interface {

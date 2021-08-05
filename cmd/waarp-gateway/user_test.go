@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
@@ -115,7 +116,7 @@ func TestAddUser(t *testing.T) {
 						So(bcrypt.CompareHashAndPassword(users[1].Password,
 							[]byte("password")), ShouldBeNil)
 						exp := model.User{
-							Owner:    database.Owner,
+							Owner:    conf.GlobalConfig.ServerConf.GatewayName,
 							ID:       2,
 							Username: "user",
 							Password: users[1].Password,
@@ -239,7 +240,7 @@ func TestUpdateUser(t *testing.T) {
 						So(bcrypt.CompareHashAndPassword(users[1].Password,
 							[]byte("new_password")), ShouldBeNil)
 						exp := model.User{
-							Owner:    database.Owner,
+							Owner:    conf.GlobalConfig.ServerConf.GatewayName,
 							ID:       user.ID,
 							Username: "new_user",
 							Password: users[1].Password,

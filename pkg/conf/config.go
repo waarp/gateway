@@ -11,15 +11,25 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/config"
 )
 
+// GlobalConfig is a global instance of GatewayConfig containing the configuration
+// of the gateway instance.
+var GlobalConfig GatewayConfig
+
+// GatewayConfig regroups the gateway's global configuration with its local,
+// instance-specific, settings overrides.
+type GatewayConfig struct {
+	ServerConf     ServerConfig
+	LocalOverrides Override
+}
+
 // ServerConfig holds the server configuration options
 type ServerConfig struct {
-	GatewayName    string           `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
-	NodeIdentifier string           `no-ini:"true"`
-	Paths          PathsConfig      `group:"paths"`
-	Log            LogConfig        `group:"log"`
-	Admin          AdminConfig      `group:"admin"`
-	Database       DatabaseConfig   `group:"database"`
-	Controller     ControllerConfig `group:"controller"`
+	GatewayName string           `ini-name:"GatewayName" default:"waarp-gateway" description:"The name given to identify this gateway instance. If the the database is shared between multiple gateways, this name MUST be unique across these gateways."`
+	Paths       PathsConfig      `group:"paths"`
+	Log         LogConfig        `group:"log"`
+	Admin       AdminConfig      `group:"admin"`
+	Database    DatabaseConfig   `group:"database"`
+	Controller  ControllerConfig `group:"controller"`
 }
 
 // PathsConfig holds the server paths
@@ -110,19 +120,13 @@ func normalizePaths(config *ServerConfig) error {
 	return nil
 }
 
-// LoadServerConfig creates a configuration object.
-// It tries to read configuration files from common places to populate the
-// configuration object (paths are relative to cwd):
-// - gatewayd.ini
-// - etc/gatewayd.ini
-// - /etc/waarp/gatewayd.ini
-func LoadServerConfig(userConfig string) (*ServerConfig, error) {
+func loadServerConfig(userConfig string) (*ServerConfig, string, error) {
 	c := &ServerConfig{}
 	p := config.NewParser(c)
 
 	if userConfig != "" {
 		if err := p.ParseFile(userConfig); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 	} else {
 		for _, file := range fileList {
@@ -131,17 +135,30 @@ func LoadServerConfig(userConfig string) (*ServerConfig, error) {
 				if os.IsNotExist(err) {
 					continue
 				}
-				return nil, err
+				return nil, "", err
 			}
+			userConfig = file
 			break
 		}
 	}
 
 	if err := normalizePaths(c); err != nil {
+		return nil, "", err
+	}
+	return c, userConfig, nil
+}
+
+// LoadServerConfig creates a configuration object.
+// It tries to read configuration files from common places to populate the
+// configuration object (paths are relative to cwd):
+// - gatewayd.ini
+// - etc/gatewayd.ini
+// - /etc/waarp/gatewayd.ini
+func LoadServerConfig(userConfig string) (*ServerConfig, error) {
+	c, _, err := loadServerConfig(userConfig)
+	if err != nil {
 		return nil, err
 	}
-	c.NodeIdentifier = c.GatewayName
-
 	return c, nil
 }
 
@@ -161,4 +178,79 @@ func CreateServerConfig(configFile string) error {
 	c := &ServerConfig{}
 	p := config.NewParser(c)
 	return p.WriteFile(configFile)
+}
+
+func updateOverride(configFile, nodeID string) error {
+	if nodeID == "" {
+		return nil
+	}
+	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
+	oRead := NewOverride(overrideFile)
+	pRead := config.NewParser(&oRead)
+	if err := pRead.ParseFile(overrideFile); err != nil {
+		return err
+	}
+
+	oWrite := oRead.makeWrite()
+	pWrite := config.NewParser(oWrite)
+	return pWrite.WriteFile(overrideFile)
+}
+
+func createOverride(configFile, nodeID string) error {
+	if nodeID == "" {
+		return nil
+	}
+	o := &overrideWrite{}
+	p := config.NewParser(o)
+	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
+	return p.WriteFile(overrideFile)
+}
+
+func loadOverride(configPath, nodeID string) (*Override, error) {
+	overrideConfig := &Override{}
+	p := config.NewParser(overrideConfig)
+	overrideFile := filepath.Join(filepath.Dir(configPath), nodeID+".ini")
+	if err := p.ParseFile(overrideFile); err != nil {
+		return nil, err
+	}
+	return overrideConfig, nil
+}
+
+// LoadGatewayConfig loads the given configuration file, along with the local
+// override file associated with the given node ID, and stores both in the global
+// GlobalConfig variable.
+func LoadGatewayConfig(configFile, nodeID string) error {
+	serverConfig, configPath, err := loadServerConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	overrideConfig, err := loadOverride(configPath, nodeID)
+	if err != nil {
+		return err
+	}
+
+	GlobalConfig.ServerConf = *serverConfig
+	GlobalConfig.LocalOverrides = *overrideConfig
+	return nil
+}
+
+// UpdateGatewayConfig updates both the gateway configuration file, and the
+// settings override file associated with the given node ID to their latest versions.
+func UpdateGatewayConfig(configFile, nodeID string) error {
+	if err := UpdateServerConfig(configFile); err != nil {
+		return err
+	}
+
+	return updateOverride(configFile, nodeID)
+}
+
+// CreateGatewayConfig creates a new configuration file at the given location,
+// along with a new settings override file for the given node ID.
+func CreateGatewayConfig(configFile, nodeID string) error {
+	if err := CreateServerConfig(configFile); err != nil {
+		return err
+	}
+
+	return createOverride(configFile, nodeID)
 }

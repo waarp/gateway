@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
@@ -29,12 +31,13 @@ func TestStart(t *testing.T) {
 			_ = os.Remove("key.pem")
 		})
 
-		config := &conf.ServerConfig{}
-		config.Admin.Host = "localhost"
-		config.Admin.Port = 0
-		config.Admin.TLSCert = "cert.pem"
-		config.Admin.TLSKey = "key.pem"
-		server := &Server{Conf: config, Services: make(map[string]service.Service)}
+		conf.GlobalConfig.ServerConf.Admin = conf.AdminConfig{
+			Host:    "localhost",
+			Port:    0,
+			TLSCert: "cert.pem",
+			TLSKey:  "key.pem",
+		}
+		server := &Server{Services: make(map[string]service.Service)}
 		Reset(func() { _ = server.server.Close() })
 
 		Convey("Given a correct configuration", func() {
@@ -71,9 +74,9 @@ func TestStart(t *testing.T) {
 		})
 
 		Convey("Given an incorrect host", func() {
-			config.Admin.Host = "invalid_host"
-			config.Admin.Port = 0
-			rest := &Server{Conf: config, Services: make(map[string]service.Service)}
+			conf.GlobalConfig.ServerConf.Admin.Host = "invalid_host"
+			conf.GlobalConfig.ServerConf.Admin.Port = 0
+			rest := &Server{Services: make(map[string]service.Service)}
 
 			Convey("When starting the service", func() {
 				err := rest.Start()
@@ -84,11 +87,12 @@ func TestStart(t *testing.T) {
 			})
 		})
 
-		Convey("Given an incorrect port number", func() {
-			config.Admin.Host = "localhost"
-			config.Admin.Port = 9999
-			rest := &Server{Conf: config, Services: make(map[string]service.Service)}
-			l, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", config.Admin.Port))
+		Convey("Given an incorrect port number", func(c C) {
+			port := testhelpers.GetFreePort(c)
+			conf.GlobalConfig.ServerConf.Admin.Host = "localhost"
+			conf.GlobalConfig.ServerConf.Admin.Port = port
+			rest := &Server{Services: make(map[string]service.Service)}
+			l, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 			So(err, ShouldBeNil)
 			Reset(func() { _ = l.Close() })
 
@@ -102,11 +106,11 @@ func TestStart(t *testing.T) {
 		})
 
 		Convey("Given an incorrect certificate", func() {
-			config.Admin.Host = "localhost"
-			config.Admin.Port = 0
-			config.Admin.TLSCert = "not_a_cert"
-			config.Admin.TLSKey = "not_a_key"
-			rest := &Server{Conf: config, Services: make(map[string]service.Service)}
+			conf.GlobalConfig.ServerConf.Admin.Host = "localhost"
+			conf.GlobalConfig.ServerConf.Admin.Port = 0
+			conf.GlobalConfig.ServerConf.Admin.TLSCert = "not_a_cert"
+			conf.GlobalConfig.ServerConf.Admin.TLSKey = "not_a_key"
+			rest := &Server{Services: make(map[string]service.Service)}
 
 			Convey("When starting the service", func() {
 				err := rest.Start()
@@ -121,10 +125,8 @@ func TestStart(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	Convey("Given a running REST service", t, func() {
-		config := &conf.ServerConfig{}
-		config.Admin.Host = "localhost"
-		config.Admin.Port = 0
-		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
+		conf.GlobalConfig.ServerConf.Admin = conf.AdminConfig{Host: "localhost"}
+		rest := &Server{Services: make(map[string]service.Service)}
 
 		err := rest.Start()
 		So(err, ShouldBeNil)

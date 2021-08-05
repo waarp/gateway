@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
@@ -27,7 +28,7 @@ func newInServer(old *model.LocalAgent) *api.InServer {
 func servToDB(serv *api.InServer, id uint64) *model.LocalAgent {
 	return &model.LocalAgent{
 		ID:          id,
-		Owner:       database.Owner,
+		Owner:       conf.GlobalConfig.ServerConf.GatewayName,
 		Name:        str(serv.Name),
 		Address:     str(serv.Address),
 		Root:        str(serv.Root),

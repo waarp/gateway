@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -153,7 +154,7 @@ func TestAddTransfer(t *testing.T) {
 							Start:            transfers[0].Start,
 							Step:             types.StepNone,
 							Status:           types.StatusPlanned,
-							Owner:            database.Owner,
+							Owner:            conf.GlobalConfig.ServerConf.GatewayName,
 							Progress:         0,
 							TaskNumber:       0,
 							Error:            types.TransferError{},
@@ -629,7 +630,7 @@ func TestPauseTransfer(t *testing.T) {
 					DestFile:   "destination",
 					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPlanned,
-					Owner:      database.Owner,
+					Owner:      conf.GlobalConfig.ServerConf.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
@@ -722,7 +723,7 @@ func TestResumeTransfer(t *testing.T) {
 					DestFile:   "destination",
 					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPaused,
-					Owner:      database.Owner,
+					Owner:      conf.GlobalConfig.ServerConf.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
@@ -813,7 +814,7 @@ func TestCancelTransfer(t *testing.T) {
 					DestFile:   "destination",
 					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPlanned,
-					Owner:      database.Owner,
+					Owner:      conf.GlobalConfig.ServerConf.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)

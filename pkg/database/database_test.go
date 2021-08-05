@@ -13,21 +13,8 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 )
 
-var (
-	sqliteTestDatabase *DB
-	sqliteConfig       *conf.ServerConfig
-)
-
 func init() {
 	BcryptRounds = bcrypt.MinCost
-
-	sqliteConfig = &conf.ServerConfig{Log: conf.LogConfig{Level: "CRITICAL", LogTo: "discard.log"}}
-	sqliteConfig.Database.Type = SQLite
-	sqliteConfig.Database.Address = filepath.Join(os.TempDir(), "test.sqlite")
-	sqliteConfig.Database.AESPassphrase = fmt.Sprintf("%s%ssqlite_test_passphrase.aes",
-		os.TempDir(), string(os.PathSeparator))
-
-	sqliteTestDatabase = &DB{Conf: sqliteConfig}
 }
 
 func testSelectForUpdate(db *DB) {
@@ -35,7 +22,7 @@ func testSelectForUpdate(db *DB) {
 	bean2 := testValid{ID: 2, String: "str2"}
 	bean3 := testValid{ID: 3, String: "str2"}
 
-	db2 := &DB{Conf: db.Conf}
+	db2 := &DB{}
 	So(db2.Start(), ShouldBeNil)
 	//db2.engine.Exec("PRAGMA busy_timeout = 60000")
 	Reset(func() { So(db2.engine.Close(), ShouldBeNil) })
@@ -706,15 +693,21 @@ func testDatabase(db *DB) {
 }
 
 func TestSqlite(t *testing.T) {
-	db := sqliteTestDatabase
+	conf.GlobalConfig.ServerConf.Log.Level = "CRITICAL"
+	conf.GlobalConfig.ServerConf.Log.LogTo = "stdout"
+	conf.GlobalConfig.ServerConf.Database.Type = SQLite
+	conf.GlobalConfig.ServerConf.Database.Address = filepath.Join(os.TempDir(), "test.db")
+	conf.GlobalConfig.ServerConf.Database.AESPassphrase = filepath.Join(os.TempDir(), "sqlite_test_passphrase.aes")
+
+	db := &DB{}
 	defer func() {
 		if err := db.engine.Close(); err != nil {
 			t.Logf("Failed to close database: %s", err)
 		}
-		if err := os.Remove(sqliteConfig.Database.AESPassphrase); err != nil {
+		if err := os.Remove(conf.GlobalConfig.ServerConf.Database.AESPassphrase); err != nil {
 			t.Logf("Failed to delete passphrase file: %s", err)
 		}
-		if err := os.Remove(sqliteConfig.Database.Address); err != nil {
+		if err := os.Remove(conf.GlobalConfig.ServerConf.Database.Address); err != nil {
 			t.Logf("Failed to delete sqlite file: %s", err)
 		}
 	}()
@@ -732,22 +725,21 @@ func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 	GCM = nil
 	defer func() { GCM = gcm }()
 
+	conf.GlobalConfig.ServerConf.Log.Level = "CRITICAL"
+	conf.GlobalConfig.ServerConf.Log.LogTo = "stdout"
+	conf.GlobalConfig.ServerConf.Database.Type = SQLite
+	conf.GlobalConfig.ServerConf.Database.Address = filepath.Join(os.TempDir(), "test_no_passphrase.db")
+	conf.GlobalConfig.ServerConf.Database.AESPassphrase = filepath.Join(os.TempDir(), "test_no_passphrase.aes")
+
 	Convey("Given a test database", t, func() {
-		db := &DB{
-			Conf: &conf.ServerConfig{
-				Database: conf.DatabaseConfig{
-					Type:          "sqlite",
-					AESPassphrase: filepath.Join(os.TempDir(), "test_no_passphrase.aes"),
-				},
-			},
-		}
+		db := &DB{}
 
 		Convey("When the database service is started", func() {
 			So(db.Start(), ShouldBeNil)
-			Reset(func() { _ = os.Remove(db.Conf.Database.AESPassphrase) })
+			Reset(func() { _ = os.Remove(conf.GlobalConfig.ServerConf.Database.AESPassphrase) })
 
 			Convey("Then there is a new passphrase file", func() {
-				stats, err := os.Stat(db.Conf.Database.AESPassphrase)
+				stats, err := os.Stat(conf.GlobalConfig.ServerConf.Database.AESPassphrase)
 				So(err, ShouldBeNil)
 				So(stats, ShouldNotBeNil)
 
@@ -760,17 +752,17 @@ func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 }
 
 func TestDatabaseStartVersionMismatch(t *testing.T) {
+	conf.GlobalConfig.ServerConf.Log.Level = "CRITICAL"
+	conf.GlobalConfig.ServerConf.Log.LogTo = "stdout"
+	conf.GlobalConfig.ServerConf.Database.Type = SQLite
+	conf.GlobalConfig.ServerConf.Database.Address = filepath.Join(os.TempDir(), "test_version_mismatch.db")
+	conf.GlobalConfig.ServerConf.Database.AESPassphrase = filepath.Join(os.TempDir(), "test_version_mismatch.aes")
+
 	Convey("Given a test database", t, func() {
-		db := &DB{Conf: &conf.ServerConfig{
-			Database: conf.DatabaseConfig{
-				Type:          SQLite,
-				Address:       filepath.Join(os.TempDir(), "test_version_mismatch.db"),
-				AESPassphrase: filepath.Join(os.TempDir(), "passphrase.aes"),
-			},
-		}}
-		defer os.Remove(db.Conf.Database.Address)
-		defer os.Remove(db.Conf.Database.AESPassphrase)
+		db := &DB{}
 		So(db.Start(), ShouldBeNil)
+		defer os.Remove(conf.GlobalConfig.ServerConf.Database.Address)
+		defer os.Remove(conf.GlobalConfig.ServerConf.Database.AESPassphrase)
 
 		Convey("Given that the database version does not match the program", func() {
 			ver := &version{Current: "0.0.0"}

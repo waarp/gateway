@@ -24,8 +24,7 @@ const ServiceName = "Controller"
 // Controller is the service responsible for checking the database for new
 // transfers at regular intervals, and starting those new transfers.
 type Controller struct {
-	Conf *conf.ServerConfig
-	DB   *database.DB
+	DB *database.DB
 
 	ticker *time.Ticker
 	logger *log.Logger
@@ -43,7 +42,7 @@ func (c *Controller) checkIsDBDown() bool {
 	}
 
 	query := c.DB.UpdateAll(&model.Transfer{}, database.UpdVals{"status": types.StatusInterrupted},
-		"owner=? AND status=?", database.Owner, types.StatusRunning)
+		"owner=? AND status=?", conf.GlobalConfig.ServerConf.GatewayName, types.StatusRunning)
 	if err := query.Run(); err != nil {
 		c.logger.Errorf("Failed to access database: %s", err.Error())
 		return true
@@ -74,7 +73,7 @@ func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 	var transfers model.Transfers
 	if tErr := c.DB.Transaction(func(ses *database.Session) database.Error {
 		query := ses.SelectForUpdate(&transfers).Where("owner=? AND status=? AND "+
-			"is_server=? AND start<?", database.Owner, types.StatusPlanned, false,
+			"is_server=? AND start<?", conf.GlobalConfig.ServerConf.GatewayName, types.StatusPlanned, false,
 			time.Now().UTC().Truncate(time.Microsecond).Format(time.RFC3339Nano))
 		lim := pipeline.TransferOutCount.GetLimit()
 		if lim > 0 {
@@ -130,7 +129,7 @@ func (c *Controller) startNewTransfers() {
 }
 
 func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, error) {
-	paths := pipeline.Paths{PathsConfig: c.Conf.Paths}
+	paths := pipeline.Paths{PathsConfig: conf.GlobalConfig.ServerConf.Paths}
 
 	stream, err := pipeline.NewTransferStream(c.ctx, c.logger, c.DB, paths, &trans)
 	if err != nil {
@@ -147,9 +146,10 @@ func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, erro
 func (c *Controller) Start() error {
 	c.logger = log.NewLogger(ServiceName)
 
-	pipeline.TransferInCount.SetLimit(c.Conf.Controller.MaxTransfersIn)
-	pipeline.TransferOutCount.SetLimit(c.Conf.Controller.MaxTransfersOut)
-	c.ticker = time.NewTicker(c.Conf.Controller.Delay)
+	config := &conf.GlobalConfig.ServerConf.Controller
+	pipeline.TransferInCount.SetLimit(config.MaxTransfersIn)
+	pipeline.TransferOutCount.SetLimit(config.MaxTransfersOut)
+	c.ticker = time.NewTicker(config.Delay)
 	c.state.Set(service.Running, "")
 
 	c.listen()

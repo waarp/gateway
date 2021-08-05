@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -129,7 +130,7 @@ func makeHandlerFactory(l *log.Logger, db *database.DB, router *mux.Router) hand
 			}
 
 			var user model.User
-			if err := db.Get(&user, "username=? AND owner=?", login, database.Owner).
+			if err := db.Get(&user, "username=? AND owner=?", login, conf.GlobalConfig.ServerConf.GatewayName).
 				Run(); err != nil {
 				l.Errorf("Database error: %s", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)

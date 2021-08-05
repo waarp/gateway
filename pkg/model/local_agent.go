@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 )
@@ -65,14 +66,14 @@ func (l *LocalAgent) GetID() uint64 {
 }
 
 func (l *LocalAgent) validateProtoConfig() error {
-	conf, err := config.GetProtoConfig(l.Protocol, l.ProtoConfig)
+	protoConf, err := config.GetProtoConfig(l.Protocol, l.ProtoConfig)
 	if err != nil {
 		return err
 	}
-	if err := conf.ValidServer(); err != nil {
+	if err := protoConf.ValidServer(); err != nil {
 		return err
 	}
-	l.ProtoConfig, err = json.Marshal(conf)
+	l.ProtoConfig, err = json.Marshal(protoConf)
 	return err
 }
 
@@ -97,7 +98,7 @@ func (l *LocalAgent) makePaths() {
 // BeforeWrite is called before inserting a new `LocalAgent` entry in the
 // database. It checks whether the new entry is valid or not.
 func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
-	l.Owner = database.Owner
+	l.Owner = conf.GlobalConfig.ServerConf.GatewayName
 	l.makePaths()
 
 	if l.Name == "" {

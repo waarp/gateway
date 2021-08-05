@@ -138,6 +138,7 @@ func TestSSHServer(t *testing.T) {
 	Convey("Given a server root", t, func(c C) {
 		root := testhelpers.TempDir(c, "test_server_root")
 		db := database.TestDatabase(c, "ERROR")
+		conf.GlobalConfig.ServerConf.Paths.GatewayHome = root
 
 		Convey("Given an SFTP server", func() {
 			listener, err := net.Listen("tcp", "localhost:0")
@@ -201,7 +202,6 @@ func TestSSHServer(t *testing.T) {
 				Logger:      logger,
 				Agent:       agent,
 				ProtoConfig: &protoConfig,
-				GWConf:      &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: root}},
 				SSHConf:     serverConfig,
 				Listener:    listener,
 				connWg:      sync.WaitGroup{},
@@ -268,7 +268,7 @@ func TestSSHServer(t *testing.T) {
 									RuleID:     receive.ID,
 									Status:     types.StatusInterrupted,
 									Step:       types.StepData,
-									Owner:      database.Owner,
+									Owner:      conf.GlobalConfig.ServerConf.GatewayName,
 									Progress:   1,
 								}
 								So(transfers[0], ShouldResemble, trans)
@@ -316,7 +316,7 @@ func TestSSHServer(t *testing.T) {
 									RuleID:     send.ID,
 									Status:     types.StatusInterrupted,
 									Step:       types.StepData,
-									Owner:      database.Owner,
+									Owner:      conf.GlobalConfig.ServerConf.GatewayName,
 									Progress:   1,
 								}
 								So(transfers[0], ShouldResemble, trans)
@@ -492,7 +492,7 @@ func TestSSHServer(t *testing.T) {
 									trans := model.Transfer{
 										ID:               transfers[0].ID,
 										RemoteTransferID: "",
-										Owner:            database.Owner,
+										Owner:            conf.GlobalConfig.ServerConf.GatewayName,
 										IsServer:         true,
 										AccountID:        user.ID,
 										AgentID:          agent.ID,
@@ -600,7 +600,7 @@ func TestSSHServer(t *testing.T) {
 									trans := model.Transfer{
 										ID:               transfers[0].ID,
 										RemoteTransferID: "",
-										Owner:            database.Owner,
+										Owner:            conf.GlobalConfig.ServerConf.GatewayName,
 										IsServer:         true,
 										AccountID:        user.ID,
 										AgentID:          agent.ID,

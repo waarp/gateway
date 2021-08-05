@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
@@ -63,7 +64,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 					DestFile:     "dest",
 					Start:        time.Now(),
 					Status:       "PLANNED",
-					Owner:        database.Owner,
+					Owner:        conf.GlobalConfig.ServerConf.GatewayName,
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -217,7 +218,7 @@ func TestTransferToHistory(t *testing.T) {
 				DestFile:   "test/dest/path",
 				Start:      time.Now(),
 				Status:     StatusDone,
-				Owner:      database.Owner,
+				Owner:      conf.GlobalConfig.ServerConf.GatewayName,
 			}
 
 			Convey("When calling the `ToHistory` method", func() {

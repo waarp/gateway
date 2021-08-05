@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+
 	msql "github.com/go-sql-driver/mysql" // register the mysql driver
 	"xorm.io/xorm"
 )
@@ -21,8 +22,8 @@ func init() {
 	supportedRBMS[MySQL] = mysqlinfo
 }
 
-func mysqlinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return MysqlDriver, MysqlDSN(config), func(db *xorm.Engine) error {
+func mysqlinfo() (string, string, func(*xorm.Engine) error) {
+	return MysqlDriver, MysqlDSN(), func(db *xorm.Engine) error {
 		db.DatabaseTZ = time.UTC
 		return nil
 	}
@@ -30,8 +31,9 @@ func mysqlinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) 
 
 // MysqlDSN takes a database configuration and returns the corresponding MySQL
 // DSN necessary to connect to the database.
-func MysqlDSN(config *conf.DatabaseConfig) string {
+func MysqlDSN() string {
 	dsn := msql.NewConfig()
+	config := &conf.GlobalConfig.ServerConf.Database
 	dsn.Addr = config.Address
 	dsn.DBName = config.Name
 	dsn.User = config.User

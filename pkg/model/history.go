@@ -3,6 +3,7 @@ package model
 import (
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -52,7 +53,7 @@ func (h *TransferHistory) GetID() uint64 {
 // BeforeWrite checks if the new `TransferHistory` entry is valid and can be
 // inserted in the database.
 func (h *TransferHistory) BeforeWrite(database.ReadAccess) database.Error {
-	h.Owner = database.Owner
+	h.Owner = conf.GlobalConfig.ServerConf.GatewayName
 
 	if h.Owner == "" {
 		return database.NewValidationError("the transfer's owner cannot be empty")

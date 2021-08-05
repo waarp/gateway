@@ -28,20 +28,11 @@ const (
 var (
 	// GCM is the Galois Counter Mode cipher used to encrypt external accounts passwords.
 	GCM cipher.AEAD
-
-	// Owner is the name of the gateway cluster specified in the configuration file.
-	Owner string
-
-	// Node is the name of the gateway node specified in the server start command.
-	Node string
 )
 
 // DB is the database service. It encapsulates a data connection and implements
 // Accessor
 type DB struct {
-	// The gateway configuration
-	Conf *conf.ServerConfig
-
 	// The service Logger
 	logger *log.Logger
 	// The state of the database service
@@ -56,7 +47,7 @@ func (db *DB) loadAESKey() error {
 		return nil
 	}
 
-	filename := db.Conf.Database.AESPassphrase
+	filename := conf.GlobalConfig.ServerConf.Database.AESPassphrase
 	if _, err := os.Stat(filepath.FromSlash(filename)); os.IsNotExist(err) {
 		db.logger.Infof("Creating AES passphrase file at '%s'", filename)
 		key := make([]byte, 32)
@@ -91,18 +82,18 @@ func (db *DB) loadAESKey() error {
 // a connection to the database. The DSN varies depending on the options given
 // in the database configuration.
 func (db *DB) createConnectionInfo() (string, string, func(*xorm.Engine) error, error) {
-	rdbms := db.Conf.Database.Type
+	rdbms := conf.GlobalConfig.ServerConf.Database.Type
 
 	info, ok := supportedRBMS[rdbms]
 	if !ok {
 		return "", "", nil, fmt.Errorf("unknown database type '%s'", rdbms)
 	}
 
-	driver, dsn, f := info(&db.Conf.Database)
+	driver, dsn, f := info()
 	return driver, dsn, f, nil
 }
 
-type dbinfo func(*conf.DatabaseConfig) (string, string, func(*xorm.Engine) error)
+type dbinfo func() (string, string, func(*xorm.Engine) error)
 
 var supportedRBMS = map[string]dbinfo{}
 
@@ -147,8 +138,6 @@ func (db *DB) Start() error {
 		return nil
 	}
 	db.state.Set(service.Starting, "")
-	Owner = db.Conf.GatewayName
-	Node = db.Conf.NodeIdentifier
 
 	if err := db.loadAESKey(); err != nil {
 		db.state.Set(service.Error, err.Error())
@@ -165,7 +154,6 @@ func (db *DB) Start() error {
 	db.Standalone = &Standalone{
 		engine: engine,
 		logger: db.logger,
-		conf:   &db.Conf.Database,
 	}
 
 	if err := initTables(db.Standalone); err != nil {

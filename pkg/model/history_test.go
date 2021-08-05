@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -44,7 +45,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 				Stop:           time.Now(),
 				Protocol:       dummyProto,
 				Status:         "DONE",
-				Owner:          database.Owner,
+				Owner:          conf.GlobalConfig.ServerConf.GatewayName,
 			}
 
 			shouldFailWith := func(errDesc string, expErr error) {
@@ -191,7 +192,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 
 			history := &TransferHistory{
 				ID:               1,
-				Owner:            database.Owner,
+				Owner:            conf.GlobalConfig.ServerConf.GatewayName,
 				RemoteTransferID: "2",
 				IsServer:         false,
 				IsSend:           rule.IsSend,
@@ -229,7 +230,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 						Start:            date,
 						Step:             types.StepNone,
 						Status:           types.StatusPlanned,
-						Owner:            database.Owner,
+						Owner:            conf.GlobalConfig.ServerConf.GatewayName,
 						Progress:         0,
 						TaskNumber:       0,
 						Error:            TransferError{},
@@ -257,7 +258,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 
 			history := &TransferHistory{
 				ID:               1,
-				Owner:            database.Owner,
+				Owner:            conf.GlobalConfig.ServerConf.GatewayName,
 				RemoteTransferID: "2",
 				IsServer:         true,
 				IsSend:           rule.IsSend,
@@ -295,7 +296,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 						Start:            date,
 						Step:             types.StepNone,
 						Status:           types.StatusPlanned,
-						Owner:            database.Owner,
+						Owner:            conf.GlobalConfig.ServerConf.GatewayName,
 						Progress:         0,
 						TaskNumber:       0,
 						Error:            TransferError{},

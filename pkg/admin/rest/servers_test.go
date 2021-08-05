@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -269,7 +270,7 @@ func TestCreateServer(t *testing.T) {
 							"the database", func() {
 							exp := model.LocalAgent{
 								ID:          2,
-								Owner:       database.Owner,
+								Owner:       conf.GlobalConfig.ServerConf.GatewayName,
 								Name:        "new_server",
 								Protocol:    "test",
 								Address:     "localhost:2",
@@ -414,7 +415,7 @@ func TestUpdateServer(t *testing.T) {
 					Convey("Then the agent should have been updated", func() {
 						exp := model.LocalAgent{
 							ID:          old.ID,
-							Owner:       database.Owner,
+							Owner:       conf.GlobalConfig.ServerConf.GatewayName,
 							Name:        "update",
 							Protocol:    "test",
 							Address:     "localhost:2",
@@ -518,7 +519,7 @@ func TestReplaceServer(t *testing.T) {
 					Convey("Then the agent should have been updated", func() {
 						exp := model.LocalAgent{
 							ID:          old.ID,
-							Owner:       database.Owner,
+							Owner:       conf.GlobalConfig.ServerConf.GatewayName,
 							Name:        "update",
 							Protocol:    "test2",
 							Address:     "localhost:2",

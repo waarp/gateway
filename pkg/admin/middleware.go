@@ -3,6 +3,7 @@ package admin
 import (
 	"net/http"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -25,7 +26,7 @@ func authentication(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 			}
 
 			var user model.User
-			if err := db.Get(&user, "username=? AND owner=?", login, database.Owner).
+			if err := db.Get(&user, "username=? AND owner=?", login, conf.GlobalConfig.ServerConf.GatewayName).
 				Run(); err != nil {
 				if database.IsNotFound(err) {
 					logger.Warningf("Invalid authentication for user '%s'", login)

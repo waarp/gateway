@@ -27,13 +27,14 @@ func sqliteInit(db *xorm.Engine) error {
 	return nil
 }
 
-func sqliteinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return SqliteDriver, SqliteDSN(config), sqliteInit
+func sqliteinfo() (string, string, func(*xorm.Engine) error) {
+	return SqliteDriver, SqliteDSN(), sqliteInit
 }
 
 // SqliteDSN takes a database configuration and returns the corresponding
 // SQLite DSN necessary to connect to the database.
-func SqliteDSN(config *conf.DatabaseConfig) string {
+func SqliteDSN() string {
+	config := &conf.GlobalConfig.ServerConf.Database
 	var user, pass string
 	if config.User != "" {
 		user = fmt.Sprintf("&_auth_user=%s", config.User)

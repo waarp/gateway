@@ -22,15 +22,16 @@ func init() {
 	supportedRBMS[PostgreSQL] = postgresinfo
 }
 
-func postgresinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return PostgresDriver, PostgresDSN(config), func(*xorm.Engine) error {
+func postgresinfo() (string, string, func(*xorm.Engine) error) {
+	return PostgresDriver, PostgresDSN(), func(*xorm.Engine) error {
 		return nil
 	}
 }
 
 // PostgresDSN takes a database configuration and returns the corresponding
 // PostgreSQL DSN necessary to connect to the database.
-func PostgresDSN(config *conf.DatabaseConfig) string {
+func PostgresDSN() string {
+	config := &conf.GlobalConfig.ServerConf.Database
 	dns := []string{}
 	if config.User != "" {
 		dns = append(dns, fmt.Sprintf("user='%s'", config.User))

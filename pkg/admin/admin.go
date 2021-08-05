@@ -23,7 +23,6 @@ const (
 
 // Server is the administration service
 type Server struct {
-	Conf     *conf.ServerConfig
 	DB       *database.DB
 	Services map[string]service.Service
 
@@ -56,7 +55,8 @@ func listen(s *Server) {
 
 // checkAddress checks if the address given in the configuration is a
 // valid address on which the server can listen
-func checkAddress(config conf.AdminConfig) (string, error) {
+func checkAddress() (string, error) {
+	config := &conf.GlobalConfig.ServerConf.Admin
 	addr := net.JoinHostPort(config.Host, fmt.Sprint(config.Port))
 	l, err := net.Listen("tcp", addr)
 	if err == nil {
@@ -71,17 +71,16 @@ func checkAddress(config conf.AdminConfig) (string, error) {
 // If the configuration is invalid, this function returns an error.
 func initServer(s *Server) error {
 	// Load REST s address
-	addr, err := checkAddress(s.Conf.Admin)
+	addr, err := checkAddress()
 	if err != nil {
 		return err
 	}
 
 	// Load TLS configuration
-	certFile := s.Conf.Admin.TLSCert
-	keyFile := s.Conf.Admin.TLSKey
+	config := &conf.GlobalConfig.ServerConf.Admin
 	var tlsConfig *tls.Config
-	if certFile != "" && keyFile != "" {
-		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if config.TLSCert != "" && config.TLSKey != "" {
+		cert, err := tls.LoadX509KeyPair(config.TLSCert, config.TLSKey)
 		if err != nil {
 			return fmt.Errorf("could not load REST certificate (%s)", err)
 		}

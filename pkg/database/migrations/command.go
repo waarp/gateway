@@ -87,7 +87,7 @@ func Execute(conf *conf.DatabaseConfig, version string, out io.Writer) error {
 		return fmt.Errorf("unknown RDBMS %s", conf.Type)
 	}
 
-	db, err := sql.Open(dbInfo.driver, dbInfo.makeDSN(conf))
+	db, err := sql.Open(dbInfo.driver, dbInfo.makeDSN())
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %s", err)
 	}

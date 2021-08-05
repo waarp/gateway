@@ -13,6 +13,7 @@ import (
 	"time"
 
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -100,7 +101,7 @@ func TestAddTransfer(t *testing.T) {
 							Start:            transfers[0].Start,
 							Step:             types.StepNone,
 							Status:           types.StatusPlanned,
-							Owner:            database.Owner,
+							Owner:            conf.GlobalConfig.ServerConf.GatewayName,
 							Progress:         0,
 							TaskNumber:       0,
 							Error:            types.TransferError{},
@@ -605,7 +606,7 @@ func TestResumeTransfer(t *testing.T) {
 					Convey("Then the transfer should have been reprogrammed", func() {
 						exp := model.Transfer{
 							ID:         trans.ID,
-							Owner:      database.Owner,
+							Owner:      conf.GlobalConfig.ServerConf.GatewayName,
 							RuleID:     rule.ID,
 							AgentID:    partner.ID,
 							AccountID:  account.ID,
@@ -692,7 +693,7 @@ func TestPauseTransfer(t *testing.T) {
 					Convey("Then the transfer should have been paused", func() {
 						exp := model.Transfer{
 							ID:         trans.ID,
-							Owner:      database.Owner,
+							Owner:      conf.GlobalConfig.ServerConf.GatewayName,
 							RuleID:     rule.ID,
 							AgentID:    partner.ID,
 							AccountID:  account.ID,
@@ -779,7 +780,7 @@ func TestCancelTransfer(t *testing.T) {
 					Convey("Then the transfer should have been cancelled", func() {
 						exp := model.TransferHistory{
 							ID:               trans.ID,
-							Owner:            database.Owner,
+							Owner:            conf.GlobalConfig.ServerConf.GatewayName,
 							RemoteTransferID: "",
 							IsServer:         false,
 							IsSend:           false,

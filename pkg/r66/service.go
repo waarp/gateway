@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+
 	"code.bcarlin.xyz/go/logging"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -38,7 +40,7 @@ type Service struct {
 // NewService returns a new R66 service instance with the given attributes.
 func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *Service {
 	paths := pipeline.Paths{
-		PathsConfig: db.Conf.Paths,
+		PathsConfig: conf.GlobalConfig.ServerConf.Paths,
 		ServerRoot:  agent.Root,
 		ServerIn:    agent.InDir,
 		ServerOut:   agent.OutDir,
@@ -85,15 +87,15 @@ func (s *Service) Start() error {
 	s.logger.Infof("Starting R66 server '%s'...", s.agent.Name)
 	s.state.Set(service.Starting, "")
 
-	var conf config.R66ProtoConfig
-	if err := json.Unmarshal(s.agent.ProtoConfig, &conf); err != nil {
+	var r66Conf config.R66ProtoConfig
+	if err := json.Unmarshal(s.agent.ProtoConfig, &r66Conf); err != nil {
 		s.logger.Errorf("Failed to parse server ProtoConfig: %s", err)
 		err1 := fmt.Errorf("failed to parse ProtoConfig: %s", err)
 		s.state.Set(service.Error, err1.Error())
 		return err1
 	}
 
-	pwd, err := utils.AESDecrypt(conf.ServerPassword)
+	pwd, err := utils.AESDecrypt(r66Conf.ServerPassword)
 	if err != nil {
 		s.logger.Errorf("Failed to decrypt server password: %s", err)
 		dErr := fmt.Errorf("failed to decrypt server password: %s", err)

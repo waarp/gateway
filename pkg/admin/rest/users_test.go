@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -251,7 +252,7 @@ func TestCreateUser(t *testing.T) {
 								[]byte("password")), ShouldBeNil)
 							So(users[1], ShouldResemble, model.User{
 								ID:       3,
-								Owner:    database.Owner,
+								Owner:    conf.GlobalConfig.ServerConf.GatewayName,
 								Username: "toto",
 								Password: users[1].Password,
 								Permissions: model.PermTransfersRead | model.PermTransfersWrite |
@@ -451,7 +452,7 @@ func TestUpdateUser(t *testing.T) {
 								[]byte("password")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
 								ID:       2,
-								Owner:    database.Owner,
+								Owner:    conf.GlobalConfig.ServerConf.GatewayName,
 								Username: "toto",
 								Password: users[0].Password,
 								Permissions: model.PermTransfersRead |
@@ -535,7 +536,7 @@ func TestUpdateUser(t *testing.T) {
 								maskToPerms(old.Permissions))
 							So(users[0], ShouldResemble, model.User{
 								ID:          2,
-								Owner:       database.Owner,
+								Owner:       conf.GlobalConfig.ServerConf.GatewayName,
 								Username:    "upd_user",
 								Password:    users[0].Password,
 								Permissions: old.Permissions,
@@ -587,7 +588,7 @@ func TestUpdateUser(t *testing.T) {
 								[]byte("upd_password")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
 								ID:          2,
-								Owner:       database.Owner,
+								Owner:       conf.GlobalConfig.ServerConf.GatewayName,
 								Username:    "old",
 								Password:    users[0].Password,
 								Permissions: old.Permissions,
@@ -659,7 +660,7 @@ func TestReplaceUser(t *testing.T) {
 								[]byte("upd_password")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
 								ID:       2,
-								Owner:    database.Owner,
+								Owner:    conf.GlobalConfig.ServerConf.GatewayName,
 								Username: "upd_user",
 								Password: users[0].Password,
 							})

@@ -26,30 +26,29 @@ import (
 // WG is the top level service handler. It manages all other components.
 type WG struct {
 	*log.Logger
-	Conf      *conf.ServerConfig
 	Services  map[string]service.Service
 	dbService *database.DB
 }
 
 // NewWG creates a new application
-func NewWG(config *conf.ServerConfig) *WG {
+func NewWG() *WG {
 	return &WG{
 		Logger: log.NewLogger("Waarp-Gateway"),
-		Conf:   config,
 	}
 }
 
 func (wg *WG) makeDirs() error {
-	if err := os.MkdirAll(wg.Conf.Paths.GatewayHome, 0744); err != nil {
+	config := &conf.GlobalConfig.ServerConf.Paths
+	if err := os.MkdirAll(config.GatewayHome, 0744); err != nil {
 		return fmt.Errorf("failed to create gateway home directory: %s", err)
 	}
-	if err := os.MkdirAll(wg.Conf.Paths.InDirectory, 0744); err != nil {
+	if err := os.MkdirAll(config.InDirectory, 0744); err != nil {
 		return fmt.Errorf("failed to create gateway in directory: %s", err)
 	}
-	if err := os.MkdirAll(wg.Conf.Paths.OutDirectory, 0744); err != nil {
+	if err := os.MkdirAll(config.OutDirectory, 0744); err != nil {
 		return fmt.Errorf("failed to create gateway out directory: %s", err)
 	}
-	if err := os.MkdirAll(wg.Conf.Paths.WorkDirectory, 0744); err != nil {
+	if err := os.MkdirAll(config.WorkDirectory, 0744); err != nil {
 		return fmt.Errorf("failed to create gateway work directory: %s", err)
 	}
 	return nil
@@ -58,9 +57,9 @@ func (wg *WG) makeDirs() error {
 func (wg *WG) initServices() {
 	wg.Services = make(map[string]service.Service)
 
-	wg.dbService = &database.DB{Conf: wg.Conf}
-	adminService := &admin.Server{Conf: wg.Conf, DB: wg.dbService, Services: wg.Services}
-	controllerService := &controller.Controller{Conf: wg.Conf, DB: wg.dbService}
+	wg.dbService = &database.DB{}
+	adminService := &admin.Server{DB: wg.dbService, Services: wg.Services}
+	controllerService := &controller.Controller{DB: wg.dbService}
 
 	wg.Services[admin.ServiceName] = adminService
 	wg.Services[controller.ServiceName] = controllerService
@@ -72,7 +71,7 @@ func (wg *WG) startServices() error {
 	}
 
 	var servers model.LocalAgents
-	if err := wg.dbService.Select(&servers).Where("owner=?", database.Owner).
+	if err := wg.dbService.Select(&servers).Where("owner=?", conf.GlobalConfig.ServerConf.GatewayName).
 		Run(); err != nil {
 		return err
 	}
@@ -125,7 +124,8 @@ func (wg *WG) stopServices() {
 
 // Start starts the main service of the Gateway
 func (wg *WG) Start() error {
-	wg.Infof("Waarp Gateway '%s' is starting", wg.Conf.GatewayName)
+	gwName := conf.GlobalConfig.ServerConf.GatewayName
+	wg.Infof("Waarp Gateway '%s' is starting", gwName)
 	if err := wg.makeDirs(); err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func (wg *WG) Start() error {
 	if err := wg.startServices(); err != nil {
 		return err
 	}
-	wg.Infof("Waarp Gateway '%s' has started", wg.Conf.GatewayName)
+	wg.Infof("Waarp Gateway '%s' has started", gwName)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)

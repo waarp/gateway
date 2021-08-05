@@ -67,13 +67,13 @@ func TestFileReader(t *testing.T) {
 			Convey("Given the FileReader", func() {
 				pathsConfig := conf.PathsConfig{GatewayHome: root}
 				paths := &pipeline.Paths{PathsConfig: pathsConfig}
+				conf.GlobalConfig.ServerConf.Paths = pathsConfig
 
 				handler := (&sshListener{
 					DB:          db,
 					Logger:      logger,
 					Agent:       agent,
 					ProtoConfig: &serverConf,
-					GWConf:      &conf.ServerConfig{Paths: pathsConfig},
 				}).makeFileReader(context.Background(), account, paths)
 
 				Convey("Given a request for an existing file in the rule path", func() {
@@ -172,13 +172,13 @@ func TestFileWriter(t *testing.T) {
 			Convey("Given the Filewriter", func() {
 				pathsConfig := conf.PathsConfig{GatewayHome: root}
 				paths := &pipeline.Paths{PathsConfig: pathsConfig}
+				conf.GlobalConfig.ServerConf.Paths = pathsConfig
 
 				handler := (&sshListener{
 					DB:          db,
 					Logger:      logger,
 					Agent:       agent,
 					ProtoConfig: &serverConf,
-					GWConf:      &conf.ServerConfig{Paths: pathsConfig},
 				}).makeFileWriter(context.Background(), account, paths)
 
 				Convey("Given a request for an existing file in the rule path", func() {

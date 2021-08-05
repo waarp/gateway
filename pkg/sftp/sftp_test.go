@@ -37,6 +37,7 @@ func TestSFTPPackage(t *testing.T) {
 			OutDirectory:  home,
 			WorkDirectory: filepath.Join(home, "tmp"),
 		}
+		conf.GlobalConfig.ServerConf.Paths = pathConf
 
 		Convey("Given an SFTP server", func(dbc C) {
 			listener, err := net.Listen("tcp", "localhost:0")
@@ -129,7 +130,6 @@ func TestSFTPPackage(t *testing.T) {
 				Logger:      logger,
 				Agent:       localAgent,
 				ProtoConfig: &protoConfig,
-				GWConf:      &conf.ServerConfig{Paths: pathConf},
 				SSHConf:     serverConfig,
 				Listener:    listener,
 				connWg:      sync.WaitGroup{},
@@ -280,7 +280,7 @@ func TestSFTPPackage(t *testing.T) {
 										"history entry", func() {
 										expected := model.TransferHistory{
 											ID:             1,
-											Owner:          database.Owner,
+											Owner:          conf.GlobalConfig.ServerConf.GatewayName,
 											IsServer:       false,
 											IsSend:         true,
 											Account:        remoteAccount.Login,
@@ -304,7 +304,7 @@ func TestSFTPPackage(t *testing.T) {
 										"history entry", func() {
 										expected := model.TransferHistory{
 											ID:             2,
-											Owner:          database.Owner,
+											Owner:          conf.GlobalConfig.ServerConf.GatewayName,
 											IsServer:       true,
 											IsSend:         false,
 											Account:        localAccount.Login,
@@ -363,7 +363,7 @@ func TestSFTPPackage(t *testing.T) {
 										"transfer entry in error", func() {
 										expected := model.Transfer{
 											ID:        1,
-											Owner:     database.Owner,
+											Owner:     conf.GlobalConfig.ServerConf.GatewayName,
 											IsServer:  false,
 											AccountID: remoteAccount.ID,
 											AgentID:   remoteAgent.ID,
@@ -390,7 +390,7 @@ func TestSFTPPackage(t *testing.T) {
 										"transfer entry in error", func() {
 										expected := model.Transfer{
 											ID:        2,
-											Owner:     database.Owner,
+											Owner:     conf.GlobalConfig.ServerConf.GatewayName,
 											IsServer:  true,
 											AccountID: localAccount.ID,
 											AgentID:   localAgent.ID,
@@ -454,7 +454,7 @@ func TestSFTPPackage(t *testing.T) {
 										"transfer entry in error", func() {
 										expected := model.Transfer{
 											ID:        1,
-											Owner:     database.Owner,
+											Owner:     conf.GlobalConfig.ServerConf.GatewayName,
 											IsServer:  trans.IsServer,
 											AccountID: remoteAccount.ID,
 											AgentID:   remoteAgent.ID,
@@ -481,7 +481,7 @@ func TestSFTPPackage(t *testing.T) {
 										"transfer entry in error", func() {
 										expected := model.Transfer{
 											ID:        2,
-											Owner:     database.Owner,
+											Owner:     conf.GlobalConfig.ServerConf.GatewayName,
 											IsServer:  true,
 											AccountID: localAccount.ID,
 											AgentID:   localAgent.ID,
@@ -549,7 +549,7 @@ func TestSFTPPackage(t *testing.T) {
 										"transfer entry in error", func() {
 										expected := model.Transfer{
 											ID:        1,
-											Owner:     database.Owner,
+											Owner:     conf.GlobalConfig.ServerConf.GatewayName,
 											IsServer:  false,
 											AccountID: remoteAccount.ID,
 											AgentID:   remoteAgent.ID,
@@ -576,7 +576,7 @@ func TestSFTPPackage(t *testing.T) {
 										"transfer entry in error", func() {
 										expected := model.Transfer{
 											ID:        2,
-											Owner:     database.Owner,
+											Owner:     conf.GlobalConfig.ServerConf.GatewayName,
 											IsServer:  true,
 											AccountID: localAccount.ID,
 											AgentID:   localAgent.ID,
@@ -644,7 +644,7 @@ func TestSFTPPackage(t *testing.T) {
 										"transfer entry in error", func() {
 										expected := model.Transfer{
 											ID:        1,
-											Owner:     database.Owner,
+											Owner:     conf.GlobalConfig.ServerConf.GatewayName,
 											IsServer:  false,
 											AccountID: remoteAccount.ID,
 											AgentID:   remoteAgent.ID,
@@ -670,7 +670,7 @@ func TestSFTPPackage(t *testing.T) {
 										"transfer entry in error", func() {
 										expected := model.Transfer{
 											ID:        2,
-											Owner:     database.Owner,
+											Owner:     conf.GlobalConfig.ServerConf.GatewayName,
 											IsServer:  true,
 											AccountID: localAccount.ID,
 											AgentID:   localAgent.ID,

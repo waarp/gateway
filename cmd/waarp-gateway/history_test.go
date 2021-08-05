@@ -11,6 +11,7 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -153,7 +154,7 @@ func TestGetHistory(t *testing.T) {
 					Start:          time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 					Stop:           time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
 					Status:         types.StatusDone,
-					Owner:          database.Owner,
+					Owner:          conf.GlobalConfig.ServerConf.GatewayName,
 				}
 				So(db.Insert(h).Run(), ShouldBeNil)
 				id := fmt.Sprint(h.ID)
@@ -522,7 +523,7 @@ func TestRetryHistory(t *testing.T) {
 					Start:          time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 					Stop:           time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
 					Status:         types.StatusCancelled,
-					Owner:          database.Owner,
+					Owner:          conf.GlobalConfig.ServerConf.GatewayName,
 				}
 				So(db.Insert(hist).Run(), ShouldBeNil)
 				id := fmt.Sprint(hist.ID)

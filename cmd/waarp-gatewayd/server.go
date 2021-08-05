@@ -21,7 +21,7 @@ func (cmd *serverCommand) Execute([]string) error {
 		if cmd.ConfigFile == "" {
 			return fmt.Errorf("the path to the configuration file must be given with the argument --config")
 		}
-		if err := conf.CreateServerConfig(cmd.ConfigFile); err != nil {
+		if err := conf.CreateGatewayConfig(cmd.ConfigFile, cmd.InstanceName); err != nil {
 			return err
 		}
 		return nil
@@ -30,24 +30,20 @@ func (cmd *serverCommand) Execute([]string) error {
 		if cmd.ConfigFile == "" {
 			return fmt.Errorf("the path to the configuration file must be given with the argument --config")
 		}
-		if err := conf.UpdateServerConfig(cmd.ConfigFile); err != nil {
+		if err := conf.UpdateGatewayConfig(cmd.ConfigFile, cmd.InstanceName); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	config, err := conf.LoadServerConfig(cmd.ConfigFile)
-	if err != nil {
+	if err := conf.LoadGatewayConfig(cmd.ConfigFile, cmd.InstanceName); err != nil {
 		return err
-	}
-	if cmd.InstanceName != "" {
-		config.NodeIdentifier = cmd.InstanceName
 	}
 
-	if err := log.InitBackend(config.Log); err != nil {
+	if err := log.InitBackend(conf.GlobalConfig.ServerConf.Log); err != nil {
 		return err
 	}
-	s := gatewayd.NewWG(config)
+	s := gatewayd.NewWG()
 	if err := s.Start(); err != nil {
 		return err
 	}

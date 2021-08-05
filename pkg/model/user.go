@@ -3,6 +3,7 @@
 package model
 
 import (
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 )
@@ -50,7 +51,7 @@ func (u *User) GetID() uint64 {
 func (u *User) Init(ses *database.Session) database.Error {
 	user := &User{
 		Username:    "admin",
-		Owner:       database.Owner,
+		Owner:       conf.GlobalConfig.ServerConf.GatewayName,
 		Password:    []byte("admin_password"),
 		Permissions: PermAll,
 	}
@@ -61,7 +62,7 @@ func (u *User) Init(ses *database.Session) database.Error {
 // BeforeDelete is called before removing the user from the database. Its
 // role is to check that at least one admin user remains
 func (u *User) BeforeDelete(db database.Access) database.Error {
-	n, err := db.Count(&User{}).Where("owner=?", database.Owner).Run()
+	n, err := db.Count(&User{}).Where("owner=?", conf.GlobalConfig.ServerConf.GatewayName).Run()
 	if err != nil {
 		return err
 	}
@@ -74,7 +75,7 @@ func (u *User) BeforeDelete(db database.Access) database.Error {
 // BeforeWrite checks if the new `User` entry is valid and can be
 // inserted in the database.
 func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
-	u.Owner = database.Owner
+	u.Owner = conf.GlobalConfig.ServerConf.GatewayName
 	if u.Username == "" {
 		return database.NewValidationError("the username cannot be empty")
 	}

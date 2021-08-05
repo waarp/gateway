@@ -261,7 +261,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 				Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				Step:             types.StepPreTasks,
 				Status:           types.StatusRunning,
-				Owner:            database.Owner,
+				Owner:            conf.GlobalConfig.ServerConf.GatewayName,
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -318,7 +318,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 				Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 				Step:             types.StepPreTasks,
 				Status:           types.StatusRunning,
-				Owner:            database.Owner,
+				Owner:            conf.GlobalConfig.ServerConf.GatewayName,
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 

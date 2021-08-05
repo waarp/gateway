@@ -24,9 +24,9 @@ const (
 	testDBEnv  = "GATEWAY_TEST_DB"
 )
 
-func testinfo(c *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
+func testinfo() (string, string, func(*xorm.Engine) error) {
 	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc",
-		c.Address), sqliteInit
+		conf.GlobalConfig.ServerConf.Database.Address), sqliteInit
 }
 
 func testGCM() {
@@ -52,7 +52,9 @@ func tempFilename() string {
 	return f.Name()
 }
 
-func initTestDBConf(config *conf.DatabaseConfig) {
+func initTestDBConf() {
+	conf.GlobalConfig.ServerConf.GatewayName = "test_gateway"
+	config := &conf.GlobalConfig.ServerConf.Database
 	dbType := os.Getenv(testDBEnv)
 	switch dbType {
 	case PostgreSQL:
@@ -77,7 +79,8 @@ func initTestDBConf(config *conf.DatabaseConfig) {
 	}
 }
 
-func resetDB(db *DB, config *conf.DatabaseConfig) {
+func resetDB(db *DB) {
+	config := &conf.GlobalConfig.ServerConf.Database
 	switch config.Type {
 	case PostgreSQL, MySQL:
 		for _, tbl := range tables {
@@ -101,9 +104,7 @@ func resetDB(db *DB, config *conf.DatabaseConfig) {
 // The database will log messages at the level given.
 func TestDatabase(c convey.C, logLevel string) *DB {
 	BcryptRounds = bcrypt.MinCost
-	config := &conf.ServerConfig{}
-	config.GatewayName = "test_gateway"
-	initTestDBConf(&config.Database)
+	initTestDBConf()
 
 	level, err := logging.LevelByName(logLevel)
 	c.So(err, convey.ShouldBeNil)
@@ -113,13 +114,10 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 	logger.SetLevel(level)
 
 	testGCM()
-	db := &DB{
-		Conf:   config,
-		logger: &log.Logger{Logger: logger},
-	}
+	db := &DB{logger: &log.Logger{Logger: logger}}
 
 	c.So(db.Start(), convey.ShouldBeNil)
-	c.Reset(func() { resetDB(db, &config.Database) })
+	c.Reset(func() { resetDB(db) })
 
 	return db
 }

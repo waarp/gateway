@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -153,7 +154,7 @@ func (t *Transfer) validateServerTransfer(db database.ReadAccess) database.Error
 // inserted in the database.
 //nolint:funlen
 func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
-	t.Owner = database.Owner
+	t.Owner = conf.GlobalConfig.ServerConf.GatewayName
 
 	if t.RuleID == 0 {
 		return database.NewValidationError("the transfer's rule ID cannot be empty")

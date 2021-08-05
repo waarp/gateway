@@ -2,6 +2,7 @@ package backup
 
 import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -9,7 +10,7 @@ import (
 
 func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent, error) {
 	var dbLocals model.LocalAgents
-	query := db.Select(&dbLocals).Where("owner=?", database.Owner)
+	query := db.Select(&dbLocals).Where("owner=?", conf.GlobalConfig.ServerConf.GatewayName)
 	if err := query.Run(); err != nil {
 		return nil, err
 	}
