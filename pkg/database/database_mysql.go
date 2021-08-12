@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	msql "github.com/go-sql-driver/mysql" // register the mysql driver
 	"xorm.io/xorm"
 )

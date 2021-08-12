@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 // RenameTask is a task which rename the target of the transfer

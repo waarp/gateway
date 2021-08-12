@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
 )
 

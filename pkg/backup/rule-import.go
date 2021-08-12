@@ -3,10 +3,10 @@ package backup
 import (
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func importRules(logger *log.Logger, db database.Access, list []file.Rule) database.Error {

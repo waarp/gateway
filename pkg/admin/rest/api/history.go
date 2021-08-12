@@ -3,7 +3,7 @@ package api
 import (
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 // OutHistory is the JSON representation of a history entry in responses sent by

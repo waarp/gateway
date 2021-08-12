@@ -3,7 +3,7 @@ package model
 import (
 	"encoding/json"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 // ValidTasks is a list of all the tasks known by the gateway

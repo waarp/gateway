@@ -3,7 +3,7 @@ package tasks
 import (
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 // CopyRenameTask is a task which allow to copy the current file

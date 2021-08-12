@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"golang.org/x/crypto/bcrypt"
 )
 

@@ -1,6 +1,6 @@
 package model
 
-import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+import "code.waarp.fr/apps/gateway/gateway/pkg/database"
 
 func init() {
 	database.AddTable(&TransferInfo{})

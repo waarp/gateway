@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
 type localAccountCommand struct {

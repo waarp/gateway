@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
 type userCommand struct {

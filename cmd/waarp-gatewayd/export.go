@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup"
+	"code.waarp.fr/apps/gateway/gateway/pkg/backup"
 )
 
 type exportCommand struct {

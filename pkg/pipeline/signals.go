@@ -3,7 +3,7 @@ package pipeline
 import (
 	"sync"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 // Signals is a map regrouping the signal channels of all ongoing transfers.

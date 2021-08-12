@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 var backend logging.Backend

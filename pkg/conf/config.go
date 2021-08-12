@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
 )
 
 // ServerConfig holds the server configuration options

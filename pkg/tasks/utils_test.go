@@ -1,6 +1,6 @@
 package tasks
 
-import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+import "code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 
 func init() {
 	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }

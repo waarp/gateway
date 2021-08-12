@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
 )
 
 type bumpVersion struct{ from, to string }

@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
+	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func TestImportRules(t *testing.T) {

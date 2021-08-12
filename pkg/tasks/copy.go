@@ -7,7 +7,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 // CopyTask is a task which allow to copy the current file

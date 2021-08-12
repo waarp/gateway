@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	. "code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

@@ -3,7 +3,7 @@ package model
 import (
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

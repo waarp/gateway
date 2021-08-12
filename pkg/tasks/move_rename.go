@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 // MoveRenameTask is a task which move and rename the current file

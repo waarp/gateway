@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 type versionCommand struct {

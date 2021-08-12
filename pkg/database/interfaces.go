@@ -1,7 +1,7 @@
 package database
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"xorm.io/xorm"
 )
 

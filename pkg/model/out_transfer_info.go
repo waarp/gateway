@@ -3,7 +3,7 @@ package model
 import (
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 // OutTransferInfo regroups all the information necessary for an outgoing

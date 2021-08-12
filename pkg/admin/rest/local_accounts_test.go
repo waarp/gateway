@@ -8,16 +8,16 @@ import (
 	"strings"
 	"testing"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func localAccountsURI(agent, login string) string {

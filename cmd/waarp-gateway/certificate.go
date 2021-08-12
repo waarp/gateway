@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"path"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 
 	"github.com/jessevdk/go-flags"
 )

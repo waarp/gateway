@@ -1,7 +1,7 @@
 package migrations
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

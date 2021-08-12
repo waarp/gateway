@@ -5,7 +5,7 @@ import (
 	"net"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	_ "github.com/jackc/pgx/v4/stdlib" // register the postgres driver
 	"xorm.io/xorm"
 )

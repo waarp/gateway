@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 // ExecMoveTask is a task which executes an external program which moves the

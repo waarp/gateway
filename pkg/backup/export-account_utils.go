@@ -1,6 +1,6 @@
 package backup
 
-import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+import "code.waarp.fr/apps/gateway/gateway/pkg/database"
 
 func accountExists(db database.ReadAccess, account database.GetBean, cond string,
 	args ...interface{}) (bool, database.Error) {

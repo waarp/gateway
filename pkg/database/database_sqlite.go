@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	_ "github.com/mattn/go-sqlite3" // register the sqlite driver
 	"xorm.io/xorm"
 )

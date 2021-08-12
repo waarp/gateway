@@ -3,7 +3,7 @@ package tasks
 import (
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/backup"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 func initImportExport(configFile string, verbose []bool) (*database.DB, error) {

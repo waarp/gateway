@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	vers "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )

@@ -1,6 +1,6 @@
 package database
 
-import vers "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version"
+import vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 
 func init() {
 	AddTable(&version{})

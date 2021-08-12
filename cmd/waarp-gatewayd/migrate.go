@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database/migrations"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
 	"github.com/jessevdk/go-flags"
 )
 

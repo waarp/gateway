@@ -1,4 +1,4 @@
-module code.waarp.fr/waarp-gateway/waarp-gateway
+module code.waarp.fr/apps/gateway/gateway
 
 require (
 	code.bcarlin.xyz/go/logging v0.1.0

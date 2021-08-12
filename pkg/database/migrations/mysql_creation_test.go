@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 
 	"github.com/smartystreets/goconvey/convey"
 	. "github.com/smartystreets/goconvey/convey"
