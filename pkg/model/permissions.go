@@ -28,6 +28,9 @@ const (
 	PermUsersRead
 	PermUsersWrite
 	PermUsersDelete
+	PermAdminRead
+	PermAdminWrite
+	PermAdminDelete
 
 	PermAll PermsMask = math.MaxUint32 &^ permTransferDelete
 )

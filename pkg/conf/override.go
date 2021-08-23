@@ -22,13 +22,12 @@ type Override struct {
 
 // NewOverride returns a new, correctly initialised, instance of Override.
 func NewOverride(filename string) Override {
+	overrideLock.Lock()
+	defer overrideLock.Unlock()
 	override := Override{
 		filename: filename,
-		ListenAddresses: AddressOverride{
-			addressMap: map[string]string{},
-		},
 	}
-	override.ListenAddresses.Listen = override.ListenAddresses.parseListen
+	override.ListenAddresses.init()
 	return override
 }
 
@@ -67,7 +66,17 @@ func (o *Override) writeTo(w io.Writer) {
 
 // AddressOverride is a struct defining a local list of address indirections
 // (or overrides) which allows a gateway instance to replace an address defined
-// at the cluster level with another one.
+// at the cluster level with another one. Address indirections are given using
+// the `IndirectAddress` ini option, followed by the target address and the real
+// address separated by a '->'. The option name must be repeated for each indirection.
+// This means that the indirections should have the following format:
+//
+//    IndirectAddress = localhost -> 127.0.0.1
+//    IndirectAddress = example.com -> 8.8.8.8:80
+//    IndirectAddress = 192.168.1.1 -> [::1]:8080
+//
+// Do note that, although not mandatory, IPv6 addresses should be surrounded with
+// [brackets] to avoid confusion when adding a port number at the end.
 type AddressOverride struct {
 	addressMap map[string]string
 	Listen     func(string) error `ini-name:"IndirectAddress" description:"Replace the target address with another one"`
@@ -75,6 +84,13 @@ type AddressOverride struct {
 
 type addressOverrideWrite struct {
 	Listen []string `ini-name:"IndirectAddress" description:"Replace the target address with another one"`
+}
+
+func (a *AddressOverride) init() {
+	a.Listen = a.parseListen
+	if a.addressMap == nil {
+		a.addressMap = map[string]string{}
+	}
 }
 
 func (a *AddressOverride) parseListen(val string) error {

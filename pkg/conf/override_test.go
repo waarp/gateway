@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -93,7 +91,7 @@ func TestOverrideWrite(t *testing.T) {
 
 				So(nextLine(), ShouldEqual, "[Address Indirection]\n")
 				So(nextLine(), ShouldEqual, "; Replace the target address with another one\n")
-				So(buf.String(), testhelpers.ShouldBeOneOf,
+				So(buf.String(), ShouldBeIn,
 					line1+line2+line3+"\n", line1+line3+line2+"\n",
 					line2+line1+line3+"\n", line2+line3+line1+"\n",
 					line3+line1+line2+"\n", line3+line2+line1+"\n")

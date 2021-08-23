@@ -90,6 +90,9 @@ func permsToMask(old model.PermsMask, perms *api.Perms) (model.PermsMask, error)
 	if err := permToMask(&old, perms.Users, 12); err != nil {
 		return 0, err
 	}
+	if err := permToMask(&old, perms.Administration, 15); err != nil {
+		return 0, err
+	}
 	return old, nil
 }
 
@@ -108,45 +111,69 @@ func maskToStr(m model.PermsMask, s int) string {
 
 func maskToPerms(m model.PermsMask) *api.Perms {
 	return &api.Perms{
-		Transfers: maskToStr(m, 0),
-		Servers:   maskToStr(m, 3),
-		Partners:  maskToStr(m, 6),
-		Rules:     maskToStr(m, 9),
-		Users:     maskToStr(m, 12),
+		Transfers:      maskToStr(m, 0),
+		Servers:        maskToStr(m, 3),
+		Partners:       maskToStr(m, 6),
+		Rules:          maskToStr(m, 9),
+		Users:          maskToStr(m, 12),
+		Administration: maskToStr(m, 15),
 	}
 }
 
 type handler func(*log.Logger, *database.DB) http.HandlerFunc
-type handlerFactory func(string, handler, model.PermsMask, ...string)
+type handlerNoDB func(*log.Logger) http.HandlerFunc
 
-func makeHandlerFactory(l *log.Logger, db *database.DB, router *mux.Router) handlerFactory {
-	return func(path string, h handler, perm model.PermsMask, methods ...string) {
-		var auth http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
-			login, _, ok := r.BasicAuth()
-			if !ok {
-				w.Header().Set("WWW-Authenticate", "Basic")
-				http.Error(w, "the request is missing credentials", http.StatusUnauthorized)
-				return
-			}
+type handlerFactory struct {
+	logger *log.Logger
+	db     *database.DB
+	router *mux.Router
+}
 
-			var user model.User
-			if err := db.Get(&user, "username=? AND owner=?", login, conf.GlobalConfig.ServerConf.GatewayName).
-				Run(); err != nil {
-				l.Errorf("Database error: %s", err)
-				http.Error(w, "internal database error", http.StatusInternalServerError)
-				return
-			}
-
-			if perm&user.Permissions != perm {
-				l.Warningf("User '%s' tried method '%s' on '%s' without sufficient privileges",
-					login, r.Method, r.URL)
-				http.Error(w, "you do not have sufficient privileges to perform this action",
-					http.StatusForbidden)
-				return
-			}
-
-			h(l, db).ServeHTTP(w, r)
-		}
-		router.HandleFunc(path, auth).Methods(methods...)
+func makeHandlerFactory(logger *log.Logger, db *database.DB, router *mux.Router) *handlerFactory {
+	return &handlerFactory{
+		logger: logger,
+		db:     db,
+		router: router,
 	}
+}
+
+func (f *handlerFactory) mkAuth(h http.HandlerFunc, perm model.PermsMask) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		login, _, ok := r.BasicAuth()
+		if !ok {
+			w.Header().Set("WWW-Authenticate", "Basic")
+			http.Error(w, "the request is missing credentials", http.StatusUnauthorized)
+			return
+		}
+
+		var user model.User
+		if err := f.db.Get(&user, "username=? AND owner=?", login, conf.GlobalConfig.ServerConf.GatewayName).
+			Run(); err != nil {
+			f.logger.Errorf("Database error: %s", err)
+			http.Error(w, "internal database error", http.StatusInternalServerError)
+			return
+		}
+
+		if perm&user.Permissions != perm {
+			f.logger.Warningf("User '%s' tried method '%s' on '%s' without sufficient privileges",
+				login, r.Method, r.URL)
+			http.Error(w, "you do not have sufficient privileges to perform this action",
+				http.StatusForbidden)
+			return
+		}
+
+		h.ServeHTTP(w, r)
+	}
+}
+
+func (f *handlerFactory) mkHandler(path string, h handler, perm model.PermsMask, methods ...string) {
+	handlerFunc := h(f.logger, f.db)
+	auth := f.mkAuth(handlerFunc, perm)
+	f.router.HandleFunc(path, auth).Methods(methods...)
+}
+
+func (f *handlerFactory) mkHandlerNoDB(path string, h handlerNoDB, perm model.PermsMask, methods ...string) {
+	handlerFunc := h(f.logger)
+	auth := f.mkAuth(handlerFunc, perm)
+	f.router.HandleFunc(path, auth).Methods(methods...)
 }
