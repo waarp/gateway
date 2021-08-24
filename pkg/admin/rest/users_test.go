@@ -252,7 +252,7 @@ func TestCreateUser(t *testing.T) {
 								[]byte("password")), ShouldBeNil)
 							So(users[1], ShouldResemble, model.User{
 								ID:       3,
-								Owner:    conf.GlobalConfig.ServerConf.GatewayName,
+								Owner:    conf.GlobalConfig.GatewayName,
 								Username: "toto",
 								Password: users[1].Password,
 								Permissions: model.PermTransfersRead | model.PermTransfersWrite |
@@ -452,7 +452,7 @@ func TestUpdateUser(t *testing.T) {
 								[]byte("password")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
 								ID:       2,
-								Owner:    conf.GlobalConfig.ServerConf.GatewayName,
+								Owner:    conf.GlobalConfig.GatewayName,
 								Username: "toto",
 								Password: users[0].Password,
 								Permissions: model.PermTransfersRead |
@@ -536,7 +536,7 @@ func TestUpdateUser(t *testing.T) {
 								maskToPerms(old.Permissions))
 							So(users[0], ShouldResemble, model.User{
 								ID:          2,
-								Owner:       conf.GlobalConfig.ServerConf.GatewayName,
+								Owner:       conf.GlobalConfig.GatewayName,
 								Username:    "upd_user",
 								Password:    users[0].Password,
 								Permissions: old.Permissions,
@@ -588,7 +588,7 @@ func TestUpdateUser(t *testing.T) {
 								[]byte("upd_password")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
 								ID:          2,
-								Owner:       conf.GlobalConfig.ServerConf.GatewayName,
+								Owner:       conf.GlobalConfig.GatewayName,
 								Username:    "old",
 								Password:    users[0].Password,
 								Permissions: old.Permissions,
@@ -660,7 +660,7 @@ func TestReplaceUser(t *testing.T) {
 								[]byte("upd_password")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
 								ID:       2,
-								Owner:    conf.GlobalConfig.ServerConf.GatewayName,
+								Owner:    conf.GlobalConfig.GatewayName,
 								Username: "upd_user",
 								Password: users[0].Password,
 							})

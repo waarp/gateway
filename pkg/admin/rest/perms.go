@@ -147,7 +147,7 @@ func (f *handlerFactory) mkAuth(h http.HandlerFunc, perm model.PermsMask) http.H
 		}
 
 		var user model.User
-		if err := f.db.Get(&user, "username=? AND owner=?", login, conf.GlobalConfig.ServerConf.GatewayName).
+		if err := f.db.Get(&user, "username=? AND owner=?", login, conf.GlobalConfig.GatewayName).
 			Run(); err != nil {
 			f.logger.Errorf("Database error: %s", err)
 			http.Error(w, "internal database error", http.StatusInternalServerError)

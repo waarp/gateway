@@ -154,7 +154,7 @@ func TestAddTransfer(t *testing.T) {
 							Start:            transfers[0].Start,
 							Step:             types.StepNone,
 							Status:           types.StatusPlanned,
-							Owner:            conf.GlobalConfig.ServerConf.GatewayName,
+							Owner:            conf.GlobalConfig.GatewayName,
 							Progress:         0,
 							TaskNumber:       0,
 							Error:            types.TransferError{},
@@ -630,7 +630,7 @@ func TestPauseTransfer(t *testing.T) {
 					DestFile:   "destination",
 					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPlanned,
-					Owner:      conf.GlobalConfig.ServerConf.GatewayName,
+					Owner:      conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
@@ -723,7 +723,7 @@ func TestResumeTransfer(t *testing.T) {
 					DestFile:   "destination",
 					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPaused,
-					Owner:      conf.GlobalConfig.ServerConf.GatewayName,
+					Owner:      conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)
@@ -814,7 +814,7 @@ func TestCancelTransfer(t *testing.T) {
 					DestFile:   "destination",
 					Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
 					Status:     types.StatusPlanned,
-					Owner:      conf.GlobalConfig.ServerConf.GatewayName,
+					Owner:      conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 				id := fmt.Sprint(trans.ID)

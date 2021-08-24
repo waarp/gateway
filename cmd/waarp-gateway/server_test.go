@@ -142,7 +142,7 @@ func TestAddServer(t *testing.T) {
 
 						exp := model.LocalAgent{
 							ID:          1,
-							Owner:       conf.GlobalConfig.ServerConf.GatewayName,
+							Owner:       conf.GlobalConfig.GatewayName,
 							Name:        command.Name,
 							Address:     command.Address,
 							Protocol:    command.Protocol,
@@ -238,7 +238,7 @@ func TestAddServer(t *testing.T) {
 
 						exp := model.LocalAgent{
 							ID:          1,
-							Owner:       conf.GlobalConfig.ServerConf.GatewayName,
+							Owner:       conf.GlobalConfig.GatewayName,
 							Name:        "r66_server",
 							Address:     "localhost:1",
 							Protocol:    "r66",

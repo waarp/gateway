@@ -29,7 +29,7 @@ func oracleinfo() (string, string, func(*xorm.Engine) error) {
 }
 
 func oracleDSN() string {
-	config := &conf.GlobalConfig.ServerConf.Database
+	config := &conf.GlobalConfig.Database
 	var pass string
 	if config.Password != "" {
 		pass = fmt.Sprintf("/%s", config.Password)

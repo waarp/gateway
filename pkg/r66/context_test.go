@@ -228,7 +228,7 @@ func checkTransfersOK(c C, ctx *testContext) {
 		c.Convey("Then there should be a client-side history entry", func(c C) {
 			cTrans := model.TransferHistory{
 				ID:             ctx.trans.ID,
-				Owner:          conf.GlobalConfig.ServerConf.GatewayName,
+				Owner:          conf.GlobalConfig.GatewayName,
 				Protocol:       "r66",
 				IsServer:       false,
 				Account:        ctx.remAccount.Login,
@@ -257,7 +257,7 @@ func checkTransfersOK(c C, ctx *testContext) {
 			sTrans := model.TransferHistory{
 				ID:               ctx.trans.ID + 1,
 				RemoteTransferID: fmt.Sprint(ctx.trans.ID),
-				Owner:            conf.GlobalConfig.ServerConf.GatewayName,
+				Owner:            conf.GlobalConfig.GatewayName,
 				Protocol:         "r66",
 				IsServer:         true,
 				Account:          ctx.locAccount.Login,
@@ -295,7 +295,7 @@ func checkTransfersErr(c C, ctx *testContext, cTrans *model.Transfer, sTrans ...
 		c.So(len(results), ShouldEqual, 2)
 
 		c.Convey("Then there should be a client-side transfer entry in error", func(c C) {
-			cTrans.Owner = conf.GlobalConfig.ServerConf.GatewayName
+			cTrans.Owner = conf.GlobalConfig.GatewayName
 			cTrans.ID = ctx.trans.ID
 			cTrans.Status = types.StatusError
 			cTrans.IsServer = false
@@ -312,7 +312,7 @@ func checkTransfersErr(c C, ctx *testContext, cTrans *model.Transfer, sTrans ...
 		c.Convey("Then there should be a server-side transfer entry in error", func(c C) {
 			var transfers []interface{}
 			for _, sTrans := range sTrans {
-				sTrans.Owner = conf.GlobalConfig.ServerConf.GatewayName
+				sTrans.Owner = conf.GlobalConfig.GatewayName
 				sTrans.ID = ctx.trans.ID + 1
 				sTrans.Status = types.StatusError
 				sTrans.RemoteTransferID = fmt.Sprint(ctx.trans.ID)

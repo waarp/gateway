@@ -24,10 +24,10 @@ func TestGetAddressOverride(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a configuration with some address indirections", func() {
-			conf.GlobalConfig.LocalOverrides = conf.NewOverride(ovrdFile)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.AddIndirection(
+			conf.InitOverride(ovrdFile)
+			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
 				"localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.AddIndirection(
+			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
 				"[::1]", "192.168.1.1"), ShouldBeNil)
 
 			Convey("Given a request with a valid address parameter", func() {
@@ -81,10 +81,10 @@ func TestListAddressOverride(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a configuration with some address indirections", func() {
-			conf.GlobalConfig.LocalOverrides = conf.NewOverride(ovrdFile)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.AddIndirection(
+			conf.InitOverride(ovrdFile)
+			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
 				"localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.AddIndirection(
+			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
 				"[::1]", "192.168.1.1"), ShouldBeNil)
 
 			Convey("When sending the request to the handler", func() {
@@ -122,8 +122,8 @@ func TestAddAddressOverride(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a configuration with some address indirections", func() {
-			conf.GlobalConfig.LocalOverrides = conf.NewOverride(ovrdFile)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.AddIndirection(
+			conf.InitOverride(ovrdFile)
+			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
 				"[::1]", "192.168.1.1"), ShouldBeNil)
 
 			Convey("When sending the request to the handler", func() {
@@ -142,10 +142,10 @@ func TestAddAddressOverride(t *testing.T) {
 				})
 
 				Convey("Then the indirections should have been added to the config", func() {
-					So(conf.GlobalConfig.LocalOverrides.ListenAddresses.
-						GetRealAddress("localhost"), ShouldEqual, "127.0.0.1")
-					So(conf.GlobalConfig.LocalOverrides.ListenAddresses.
-						GetRealAddress("example.com"), ShouldEqual, "8.8.8.8:80")
+					So(conf.LocalOverrides.ListenAddresses.
+						GetIndirection("localhost"), ShouldEqual, "127.0.0.1")
+					So(conf.LocalOverrides.ListenAddresses.
+						GetIndirection("example.com"), ShouldEqual, "8.8.8.8:80")
 				})
 			})
 		})
@@ -161,10 +161,10 @@ func TestDeleteAddressOverride(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		Convey("Given a configuration with some address indirections", func() {
-			conf.GlobalConfig.LocalOverrides = conf.NewOverride(ovrdFile)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.AddIndirection(
+			conf.InitOverride(ovrdFile)
+			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
 				"localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.AddIndirection(
+			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
 				"[::1]", "192.168.1.1"), ShouldBeNil)
 
 			Convey("Given a request with a valid address parameter", func() {
@@ -184,8 +184,8 @@ func TestDeleteAddressOverride(t *testing.T) {
 					})
 
 					Convey("Then the indirection should have been deleted", func() {
-						So(conf.GlobalConfig.LocalOverrides.ListenAddresses.
-							GetRealAddress("localhost"), ShouldBeBlank)
+						So(conf.LocalOverrides.ListenAddresses.
+							GetIndirection("localhost"), ShouldBeBlank)
 					})
 				})
 			})

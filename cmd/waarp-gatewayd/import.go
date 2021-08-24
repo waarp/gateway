@@ -31,7 +31,7 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, error) {
 		return nil, err
 	}
 
-	conf.GlobalConfig.ServerConf = *config
+	conf.GlobalConfig = *config
 	db := &database.DB{}
 
 	err = db.Start()

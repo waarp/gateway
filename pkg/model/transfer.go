@@ -154,7 +154,7 @@ func (t *Transfer) validateServerTransfer(db database.ReadAccess) database.Error
 // inserted in the database.
 //nolint:funlen
 func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
-	t.Owner = conf.GlobalConfig.ServerConf.GatewayName
+	t.Owner = conf.GlobalConfig.GatewayName
 
 	if t.RuleID == 0 {
 		return database.NewValidationError("the transfer's rule ID cannot be empty")

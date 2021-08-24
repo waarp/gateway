@@ -29,10 +29,10 @@ func TestGetAddressOverride(t *testing.T) {
 			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			ovrdFile := filepath.Join(os.TempDir(), "rest_test_get_addr_override.ini")
-			conf.GlobalConfig.LocalOverrides = conf.NewOverride(ovrdFile)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.
+			conf.InitOverride(ovrdFile)
+			So(conf.LocalOverrides.ListenAddresses.
 				AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.
+			So(conf.LocalOverrides.ListenAddresses.
 				AddIndirection("waarp.fr", "1.2.3.4"), ShouldBeNil)
 
 			var err error
@@ -66,7 +66,7 @@ func TestSetAddressOverride(t *testing.T) {
 			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			ovrdFile := filepath.Join(os.TempDir(), "rest_test_set_addr_override.ini")
-			conf.GlobalConfig.LocalOverrides = conf.NewOverride(ovrdFile)
+			conf.InitOverride(ovrdFile)
 
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -86,8 +86,8 @@ func TestSetAddressOverride(t *testing.T) {
 					})
 
 					Convey("Then the new indirection should have been added", func() {
-						So(conf.GlobalConfig.LocalOverrides.ListenAddresses.
-							GetRealAddress("localhost"), ShouldEqual, "127.0.0.1")
+						So(conf.LocalOverrides.ListenAddresses.
+							GetIndirection("localhost"), ShouldEqual, "127.0.0.1")
 					})
 				})
 			})
@@ -105,10 +105,10 @@ func TestListAddressOverrides(t *testing.T) {
 			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			ovrdFile := filepath.Join(os.TempDir(), "rest_test_list_addr_override.ini")
-			conf.GlobalConfig.LocalOverrides = conf.NewOverride(ovrdFile)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.
+			conf.InitOverride(ovrdFile)
+			So(conf.LocalOverrides.ListenAddresses.
 				AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.
+			So(conf.LocalOverrides.ListenAddresses.
 				AddIndirection("waarp.fr", "1.2.3.4"), ShouldBeNil)
 
 			var err error
@@ -143,10 +143,10 @@ func TestDeleteAddressOverride(t *testing.T) {
 			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
 			ovrdFile := filepath.Join(os.TempDir(), "rest_test_delete_addr_override.ini")
-			conf.GlobalConfig.LocalOverrides = conf.NewOverride(ovrdFile)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.
+			conf.InitOverride(ovrdFile)
+			So(conf.LocalOverrides.ListenAddresses.
 				AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.GlobalConfig.LocalOverrides.ListenAddresses.
+			So(conf.LocalOverrides.ListenAddresses.
 				AddIndirection("waarp.fr", "1.2.3.4"), ShouldBeNil)
 
 			var err error
@@ -167,10 +167,10 @@ func TestDeleteAddressOverride(t *testing.T) {
 					})
 
 					Convey("Then the new indirection should have been deleted", func() {
-						So(conf.GlobalConfig.LocalOverrides.ListenAddresses.
-							GetRealAddress("localhost"), ShouldBeBlank)
-						So(conf.GlobalConfig.LocalOverrides.ListenAddresses.
-							GetRealAddress("waarp.fr"), ShouldEqual, "1.2.3.4")
+						So(conf.LocalOverrides.ListenAddresses.
+							GetIndirection("localhost"), ShouldBeBlank)
+						So(conf.LocalOverrides.ListenAddresses.
+							GetIndirection("waarp.fr"), ShouldEqual, "1.2.3.4")
 					})
 				})
 			})

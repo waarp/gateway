@@ -31,7 +31,7 @@ func postgresinfo() (string, string, func(*xorm.Engine) error) {
 // PostgresDSN takes a database configuration and returns the corresponding
 // PostgreSQL DSN necessary to connect to the database.
 func PostgresDSN() string {
-	config := &conf.GlobalConfig.ServerConf.Database
+	config := &conf.GlobalConfig.Database
 	dns := []string{}
 	if config.User != "" {
 		dns = append(dns, fmt.Sprintf("user='%s'", config.User))

@@ -40,7 +40,7 @@ type Service struct {
 // NewService returns a new R66 service instance with the given attributes.
 func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *Service {
 	paths := pipeline.Paths{
-		PathsConfig: conf.GlobalConfig.ServerConf.Paths,
+		PathsConfig: conf.GlobalConfig.Paths,
 		ServerRoot:  agent.Root,
 		ServerIn:    agent.InDir,
 		ServerOut:   agent.OutDir,

@@ -26,7 +26,7 @@ const (
 
 func testinfo() (string, string, func(*xorm.Engine) error) {
 	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc",
-		conf.GlobalConfig.ServerConf.Database.Address), sqliteInit
+		conf.GlobalConfig.Database.Address), sqliteInit
 }
 
 func testGCM() {
@@ -53,8 +53,8 @@ func tempFilename() string {
 }
 
 func initTestDBConf() {
-	conf.GlobalConfig.ServerConf.GatewayName = "test_gateway"
-	config := &conf.GlobalConfig.ServerConf.Database
+	conf.GlobalConfig.GatewayName = "test_gateway"
+	config := &conf.GlobalConfig.Database
 	dbType := os.Getenv(testDBEnv)
 	switch dbType {
 	case PostgreSQL:
@@ -80,7 +80,7 @@ func initTestDBConf() {
 }
 
 func resetDB(db *DB) {
-	config := &conf.GlobalConfig.ServerConf.Database
+	config := &conf.GlobalConfig.Database
 	switch config.Type {
 	case PostgreSQL, MySQL:
 		for _, tbl := range tables {

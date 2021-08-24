@@ -270,7 +270,7 @@ func TestCreateServer(t *testing.T) {
 							"the database", func() {
 							exp := model.LocalAgent{
 								ID:          2,
-								Owner:       conf.GlobalConfig.ServerConf.GatewayName,
+								Owner:       conf.GlobalConfig.GatewayName,
 								Name:        "new_server",
 								Protocol:    "test",
 								Address:     "localhost:2",
@@ -415,7 +415,7 @@ func TestUpdateServer(t *testing.T) {
 					Convey("Then the agent should have been updated", func() {
 						exp := model.LocalAgent{
 							ID:          old.ID,
-							Owner:       conf.GlobalConfig.ServerConf.GatewayName,
+							Owner:       conf.GlobalConfig.GatewayName,
 							Name:        "update",
 							Protocol:    "test",
 							Address:     "localhost:2",
@@ -519,7 +519,7 @@ func TestReplaceServer(t *testing.T) {
 					Convey("Then the agent should have been updated", func() {
 						exp := model.LocalAgent{
 							ID:          old.ID,
-							Owner:       conf.GlobalConfig.ServerConf.GatewayName,
+							Owner:       conf.GlobalConfig.GatewayName,
 							Name:        "update",
 							Protocol:    "test2",
 							Address:     "localhost:2",

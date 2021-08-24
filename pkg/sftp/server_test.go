@@ -138,7 +138,7 @@ func TestSSHServer(t *testing.T) {
 	Convey("Given a server root", t, func(c C) {
 		root := testhelpers.TempDir(c, "test_server_root")
 		db := database.TestDatabase(c, "ERROR")
-		conf.GlobalConfig.ServerConf.Paths.GatewayHome = root
+		conf.GlobalConfig.Paths.GatewayHome = root
 
 		Convey("Given an SFTP server", func() {
 			listener, err := net.Listen("tcp", "localhost:0")
@@ -268,7 +268,7 @@ func TestSSHServer(t *testing.T) {
 									RuleID:     receive.ID,
 									Status:     types.StatusInterrupted,
 									Step:       types.StepData,
-									Owner:      conf.GlobalConfig.ServerConf.GatewayName,
+									Owner:      conf.GlobalConfig.GatewayName,
 									Progress:   1,
 								}
 								So(transfers[0], ShouldResemble, trans)
@@ -316,7 +316,7 @@ func TestSSHServer(t *testing.T) {
 									RuleID:     send.ID,
 									Status:     types.StatusInterrupted,
 									Step:       types.StepData,
-									Owner:      conf.GlobalConfig.ServerConf.GatewayName,
+									Owner:      conf.GlobalConfig.GatewayName,
 									Progress:   1,
 								}
 								So(transfers[0], ShouldResemble, trans)
@@ -492,7 +492,7 @@ func TestSSHServer(t *testing.T) {
 									trans := model.Transfer{
 										ID:               transfers[0].ID,
 										RemoteTransferID: "",
-										Owner:            conf.GlobalConfig.ServerConf.GatewayName,
+										Owner:            conf.GlobalConfig.GatewayName,
 										IsServer:         true,
 										AccountID:        user.ID,
 										AgentID:          agent.ID,
@@ -600,7 +600,7 @@ func TestSSHServer(t *testing.T) {
 									trans := model.Transfer{
 										ID:               transfers[0].ID,
 										RemoteTransferID: "",
-										Owner:            conf.GlobalConfig.ServerConf.GatewayName,
+										Owner:            conf.GlobalConfig.GatewayName,
 										IsServer:         true,
 										AccountID:        user.ID,
 										AgentID:          agent.ID,

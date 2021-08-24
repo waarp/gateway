@@ -47,7 +47,7 @@ func (db *DB) loadAESKey() error {
 		return nil
 	}
 
-	filename := conf.GlobalConfig.ServerConf.Database.AESPassphrase
+	filename := conf.GlobalConfig.Database.AESPassphrase
 	if _, err := os.Stat(filepath.FromSlash(filename)); os.IsNotExist(err) {
 		db.logger.Infof("Creating AES passphrase file at '%s'", filename)
 		key := make([]byte, 32)
@@ -82,7 +82,7 @@ func (db *DB) loadAESKey() error {
 // a connection to the database. The DSN varies depending on the options given
 // in the database configuration.
 func (db *DB) createConnectionInfo() (string, string, func(*xorm.Engine) error, error) {
-	rdbms := conf.GlobalConfig.ServerConf.Database.Type
+	rdbms := conf.GlobalConfig.Database.Type
 
 	info, ok := supportedRBMS[rdbms]
 	if !ok {

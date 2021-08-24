@@ -38,7 +38,7 @@ func NewWG() *WG {
 }
 
 func (wg *WG) makeDirs() error {
-	config := &conf.GlobalConfig.ServerConf.Paths
+	config := &conf.GlobalConfig.Paths
 	if err := os.MkdirAll(config.GatewayHome, 0744); err != nil {
 		return fmt.Errorf("failed to create gateway home directory: %s", err)
 	}
@@ -71,7 +71,7 @@ func (wg *WG) startServices() error {
 	}
 
 	var servers model.LocalAgents
-	if err := wg.dbService.Select(&servers).Where("owner=?", conf.GlobalConfig.ServerConf.GatewayName).
+	if err := wg.dbService.Select(&servers).Where("owner=?", conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (wg *WG) stopServices() {
 
 // Start starts the main service of the Gateway
 func (wg *WG) Start() error {
-	gwName := conf.GlobalConfig.ServerConf.GatewayName
+	gwName := conf.GlobalConfig.GatewayName
 	wg.Infof("Waarp Gateway '%s' is starting", gwName)
 	if err := wg.makeDirs(); err != nil {
 		return err

@@ -76,7 +76,7 @@ func TestExecutorRun(t *testing.T) {
 				DestFile:     "test_run_dst",
 				Start:        time.Now().Round(time.Microsecond),
 				Status:       types.StatusPlanned,
-				Owner:        conf.GlobalConfig.ServerConf.GatewayName,
+				Owner:        conf.GlobalConfig.GatewayName,
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -465,7 +465,7 @@ func TestTransferResume(t *testing.T) {
 				Start:        time.Now().Round(time.Microsecond),
 				Step:         types.StepPreTasks,
 				Status:       types.StatusPlanned,
-				Owner:        conf.GlobalConfig.ServerConf.GatewayName,
+				Owner:        conf.GlobalConfig.GatewayName,
 				Progress:     0,
 				TaskNumber:   1,
 			}
@@ -542,7 +542,7 @@ func TestTransferResume(t *testing.T) {
 				Start:        time.Now().Round(time.Microsecond),
 				Step:         types.StepData,
 				Status:       types.StatusPlanned,
-				Owner:        conf.GlobalConfig.ServerConf.GatewayName,
+				Owner:        conf.GlobalConfig.GatewayName,
 				Progress:     10,
 				TaskNumber:   0,
 			}
@@ -625,7 +625,7 @@ func TestTransferResume(t *testing.T) {
 				Start:        time.Now().Round(time.Microsecond),
 				Step:         types.StepPostTasks,
 				Status:       types.StatusPlanned,
-				Owner:        conf.GlobalConfig.ServerConf.GatewayName,
+				Owner:        conf.GlobalConfig.GatewayName,
 				Progress:     uint64(len(content)),
 				TaskNumber:   1,
 			}

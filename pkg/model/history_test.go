@@ -45,7 +45,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 				Stop:           time.Now(),
 				Protocol:       dummyProto,
 				Status:         "DONE",
-				Owner:          conf.GlobalConfig.ServerConf.GatewayName,
+				Owner:          conf.GlobalConfig.GatewayName,
 			}
 
 			shouldFailWith := func(errDesc string, expErr error) {
@@ -192,7 +192,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 
 			history := &TransferHistory{
 				ID:               1,
-				Owner:            conf.GlobalConfig.ServerConf.GatewayName,
+				Owner:            conf.GlobalConfig.GatewayName,
 				RemoteTransferID: "2",
 				IsServer:         false,
 				IsSend:           rule.IsSend,
@@ -230,7 +230,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 						Start:            date,
 						Step:             types.StepNone,
 						Status:           types.StatusPlanned,
-						Owner:            conf.GlobalConfig.ServerConf.GatewayName,
+						Owner:            conf.GlobalConfig.GatewayName,
 						Progress:         0,
 						TaskNumber:       0,
 						Error:            TransferError{},
@@ -258,7 +258,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 
 			history := &TransferHistory{
 				ID:               1,
-				Owner:            conf.GlobalConfig.ServerConf.GatewayName,
+				Owner:            conf.GlobalConfig.GatewayName,
 				RemoteTransferID: "2",
 				IsServer:         true,
 				IsSend:           rule.IsSend,
@@ -296,7 +296,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 						Start:            date,
 						Step:             types.StepNone,
 						Status:           types.StatusPlanned,
-						Owner:            conf.GlobalConfig.ServerConf.GatewayName,
+						Owner:            conf.GlobalConfig.GatewayName,
 						Progress:         0,
 						TaskNumber:       0,
 						Error:            TransferError{},

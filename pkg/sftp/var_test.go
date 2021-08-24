@@ -107,7 +107,7 @@ func (l *sshListener) makeTestFileWriter(ctx context.Context, acc *model.LocalAc
 
 func (l *sshListener) makeTestHandlers(ctx context.Context, acc *model.LocalAccount) sftp.Handlers {
 	paths := &pipeline.Paths{
-		PathsConfig: conf.GlobalConfig.ServerConf.Paths,
+		PathsConfig: conf.GlobalConfig.Paths,
 		ServerRoot:  l.Agent.Root,
 		ServerIn:    l.Agent.InDir,
 		ServerOut:   l.Agent.OutDir,

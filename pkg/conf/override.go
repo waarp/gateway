@@ -3,6 +3,7 @@ package conf
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"sync"
@@ -10,25 +11,27 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/config"
 )
 
-var overrideLock sync.RWMutex
+// LocalOverrides is a global instance of Override containing the local
+// configuration overrides defined for this particular gateway node.
+var LocalOverrides Override
 
 // Override is a struct defining a list of settings local to a gateway instance
 // (or node) which can be used to override settings defined at the cluster level.
 type Override struct {
+	mux             sync.RWMutex
 	filename        string
 	NodeIdentifier  string          `no-ini:"true"`
 	ListenAddresses AddressOverride `group:"Address Indirection"`
 }
 
-// NewOverride returns a new, correctly initialised, instance of Override.
-func NewOverride(filename string) Override {
-	overrideLock.Lock()
-	defer overrideLock.Unlock()
-	override := Override{
-		filename: filename,
-	}
-	override.ListenAddresses.init()
-	return override
+// InitOverride initialises the LocalOverrides global instance with a new,
+//correctly initialised, instance of Override.
+func InitOverride(filename string) {
+	LocalOverrides.mux.Lock()
+	defer LocalOverrides.mux.Unlock()
+	LocalOverrides.filename = filename
+	LocalOverrides.ListenAddresses.over = &LocalOverrides
+	LocalOverrides.ListenAddresses.init()
 }
 
 type overrideWrite struct {
@@ -47,8 +50,8 @@ func (o *Override) writeFile() error {
 
 // WriteFile writes the content of Override to the given .ini file.
 func (o *Override) WriteFile() error {
-	overrideLock.RLock()
-	defer overrideLock.RUnlock()
+	o.mux.RLock()
+	defer o.mux.RUnlock()
 	return o.writeFile()
 }
 
@@ -78,6 +81,7 @@ func (o *Override) writeTo(w io.Writer) {
 // Do note that, although not mandatory, IPv6 addresses should be surrounded with
 // [brackets] to avoid confusion when adding a port number at the end.
 type AddressOverride struct {
+	over       *Override
 	addressMap map[string]string
 	Listen     func(string) error `ini-name:"IndirectAddress" description:"Replace the target address with another one"`
 }
@@ -109,18 +113,39 @@ func (a *AddressOverride) parseListen(val string) error {
 	return nil
 }
 
-// GetRealAddress returns the real address associated with the given target address.
-func (a *AddressOverride) GetRealAddress(target string) string {
-	overrideLock.RLock()
-	defer overrideLock.RUnlock()
+// GetIndirection returns the real address associated with the given target address.
+func (a *AddressOverride) GetIndirection(target string) string {
+	a.over.mux.RLock()
+	defer a.over.mux.RUnlock()
 	return a.addressMap[target]
+}
+
+// GetRealAddress returns the real address obtained after indirection has been
+// applied to the given address. The address must have both a host & a port.
+// If no indirection exist for the given address or for its host, the address is
+// returned unchanged (because it already is a real address).
+func (a *AddressOverride) GetRealAddress(target string) (string, error) {
+	a.over.mux.RLock()
+	defer a.over.mux.RUnlock()
+
+	host, port, err := net.SplitHostPort(target)
+	if err != nil {
+		return "", err
+	}
+	if realAddr := a.addressMap[target]; realAddr != "" {
+		return realAddr, nil
+	}
+	if realHost := a.addressMap[host]; realHost != "" {
+		return net.JoinHostPort(realHost, port), nil
+	}
+	return target, nil
 }
 
 // GetAllIndirections return a map containing all the address indirections present
 // in the configuration. The returned map is a copy of the real, global map.
 func (a *AddressOverride) GetAllIndirections() map[string]string {
-	overrideLock.RLock()
-	defer overrideLock.RUnlock()
+	a.over.mux.RLock()
+	defer a.over.mux.RUnlock()
 	newMap := map[string]string{}
 	for k, v := range a.addressMap {
 		newMap[k] = v
@@ -132,21 +157,21 @@ func (a *AddressOverride) GetAllIndirections() map[string]string {
 // associated file will also be updated. If the indirection already exist, the
 // old value will be overwritten.
 func (a *AddressOverride) AddIndirection(target, real string) error {
-	overrideLock.Lock()
-	defer overrideLock.Unlock()
+	a.over.mux.Lock()
+	defer a.over.mux.Unlock()
 	a.addressMap[target] = real
 
-	return GlobalConfig.LocalOverrides.writeFile()
+	return a.over.writeFile()
 }
 
 // RemoveIndirection removes the given address indirection from the local overrides,
 // and from the associated override file.
 func (a *AddressOverride) RemoveIndirection(target string) error {
-	overrideLock.Lock()
-	defer overrideLock.Unlock()
+	a.over.mux.Lock()
+	defer a.over.mux.Unlock()
 	delete(a.addressMap, target)
 
-	return GlobalConfig.LocalOverrides.writeFile()
+	return a.over.writeFile()
 }
 
 func (a *AddressOverride) makeWrite() addressOverrideWrite {

@@ -15,7 +15,7 @@ import (
 func TestExportLocalAgents(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
-		owner := conf.GlobalConfig.ServerConf.GatewayName
+		owner := conf.GlobalConfig.GatewayName
 
 		Convey("Given the database contains locals agents with accounts", func() {
 			agent1 := &model.LocalAgent{
@@ -27,7 +27,7 @@ func TestExportLocalAgents(t *testing.T) {
 			So(db.Insert(agent1).Run(), ShouldBeNil)
 
 			// Change owner for this insert
-			conf.GlobalConfig.ServerConf.GatewayName = "tata"
+			conf.GlobalConfig.GatewayName = "tata"
 			So(db.Insert(&model.LocalAgent{
 				Name:        "foo",
 				Protocol:    "test",
@@ -35,7 +35,7 @@ func TestExportLocalAgents(t *testing.T) {
 				Address:     "localhost:2022",
 			}).Run(), ShouldBeNil)
 			// Revert database owner
-			conf.GlobalConfig.ServerConf.GatewayName = owner
+			conf.GlobalConfig.GatewayName = owner
 
 			account1a := &model.LocalAccount{
 				LocalAgentID: agent1.ID,

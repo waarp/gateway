@@ -10,7 +10,7 @@ import (
 
 func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent, error) {
 	var dbLocals model.LocalAgents
-	query := db.Select(&dbLocals).Where("owner=?", conf.GlobalConfig.ServerConf.GatewayName)
+	query := db.Select(&dbLocals).Where("owner=?", conf.GlobalConfig.GatewayName)
 	if err := query.Run(); err != nil {
 		return nil, err
 	}

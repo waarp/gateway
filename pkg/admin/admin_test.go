@@ -31,7 +31,7 @@ func TestStart(t *testing.T) {
 			_ = os.Remove("key.pem")
 		})
 
-		conf.GlobalConfig.ServerConf.Admin = conf.AdminConfig{
+		conf.GlobalConfig.Admin = conf.AdminConfig{
 			Host:    "localhost",
 			Port:    0,
 			TLSCert: "cert.pem",
@@ -74,8 +74,8 @@ func TestStart(t *testing.T) {
 		})
 
 		Convey("Given an incorrect host", func() {
-			conf.GlobalConfig.ServerConf.Admin.Host = "invalid_host"
-			conf.GlobalConfig.ServerConf.Admin.Port = 0
+			conf.GlobalConfig.Admin.Host = "invalid_host"
+			conf.GlobalConfig.Admin.Port = 0
 			rest := &Server{Services: make(map[string]service.Service)}
 
 			Convey("When starting the service", func() {
@@ -89,8 +89,8 @@ func TestStart(t *testing.T) {
 
 		Convey("Given an incorrect port number", func(c C) {
 			port := testhelpers.GetFreePort(c)
-			conf.GlobalConfig.ServerConf.Admin.Host = "localhost"
-			conf.GlobalConfig.ServerConf.Admin.Port = port
+			conf.GlobalConfig.Admin.Host = "localhost"
+			conf.GlobalConfig.Admin.Port = port
 			rest := &Server{Services: make(map[string]service.Service)}
 			l, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 			So(err, ShouldBeNil)
@@ -106,10 +106,10 @@ func TestStart(t *testing.T) {
 		})
 
 		Convey("Given an incorrect certificate", func() {
-			conf.GlobalConfig.ServerConf.Admin.Host = "localhost"
-			conf.GlobalConfig.ServerConf.Admin.Port = 0
-			conf.GlobalConfig.ServerConf.Admin.TLSCert = "not_a_cert"
-			conf.GlobalConfig.ServerConf.Admin.TLSKey = "not_a_key"
+			conf.GlobalConfig.Admin.Host = "localhost"
+			conf.GlobalConfig.Admin.Port = 0
+			conf.GlobalConfig.Admin.TLSCert = "not_a_cert"
+			conf.GlobalConfig.Admin.TLSKey = "not_a_key"
 			rest := &Server{Services: make(map[string]service.Service)}
 
 			Convey("When starting the service", func() {
@@ -125,7 +125,7 @@ func TestStart(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	Convey("Given a running REST service", t, func() {
-		conf.GlobalConfig.ServerConf.Admin = conf.AdminConfig{Host: "localhost"}
+		conf.GlobalConfig.Admin = conf.AdminConfig{Host: "localhost"}
 		rest := &Server{Services: make(map[string]service.Service)}
 
 		err := rest.Start()

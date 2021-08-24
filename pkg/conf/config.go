@@ -11,16 +11,9 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/config"
 )
 
-// GlobalConfig is a global instance of GatewayConfig containing the configuration
-// of the gateway instance.
-var GlobalConfig GatewayConfig
-
-// GatewayConfig regroups the gateway's global configuration with its local,
-// instance-specific, settings overrides.
-type GatewayConfig struct {
-	ServerConf     ServerConfig
-	LocalOverrides Override
-}
+// GlobalConfig is a global instance of ServerConfig containing the
+// configuration of the gateway instance.
+var GlobalConfig ServerConfig
 
 // ServerConfig holds the server configuration options
 type ServerConfig struct {
@@ -185,13 +178,13 @@ func updateOverride(configFile, nodeID string) error {
 		return nil
 	}
 	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
-	oRead := NewOverride(overrideFile)
-	pRead := config.NewParser(&oRead)
+	InitOverride(overrideFile)
+	pRead := config.NewParser(&LocalOverrides)
 	if err := pRead.ParseFile(overrideFile); err != nil {
 		return err
 	}
 
-	oWrite := oRead.makeWrite()
+	oWrite := LocalOverrides.makeWrite()
 	pWrite := config.NewParser(oWrite)
 	return pWrite.WriteFile(overrideFile)
 }
@@ -230,8 +223,8 @@ func LoadGatewayConfig(configFile, nodeID string) error {
 		return err
 	}
 
-	GlobalConfig.ServerConf = *serverConfig
-	GlobalConfig.LocalOverrides = *overrideConfig
+	GlobalConfig = *serverConfig
+	LocalOverrides = *overrideConfig
 	return nil
 }
 

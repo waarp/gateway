@@ -28,7 +28,7 @@ func newInServer(old *model.LocalAgent) *api.InServer {
 func servToDB(serv *api.InServer, id uint64) *model.LocalAgent {
 	return &model.LocalAgent{
 		ID:          id,
-		Owner:       conf.GlobalConfig.ServerConf.GatewayName,
+		Owner:       conf.GlobalConfig.GatewayName,
 		Name:        str(serv.Name),
 		Address:     str(serv.Address),
 		Root:        str(serv.Root),

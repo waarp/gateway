@@ -67,7 +67,7 @@ func TestFileReader(t *testing.T) {
 			Convey("Given the FileReader", func() {
 				pathsConfig := conf.PathsConfig{GatewayHome: root}
 				paths := &pipeline.Paths{PathsConfig: pathsConfig}
-				conf.GlobalConfig.ServerConf.Paths = pathsConfig
+				conf.GlobalConfig.Paths = pathsConfig
 
 				handler := (&sshListener{
 					DB:          db,
@@ -172,7 +172,7 @@ func TestFileWriter(t *testing.T) {
 			Convey("Given the Filewriter", func() {
 				pathsConfig := conf.PathsConfig{GatewayHome: root}
 				paths := &pipeline.Paths{PathsConfig: pathsConfig}
-				conf.GlobalConfig.ServerConf.Paths = pathsConfig
+				conf.GlobalConfig.Paths = pathsConfig
 
 				handler := (&sshListener{
 					DB:          db,

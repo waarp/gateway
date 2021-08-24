@@ -34,7 +34,7 @@ func sqliteinfo() (string, string, func(*xorm.Engine) error) {
 // SqliteDSN takes a database configuration and returns the corresponding
 // SQLite DSN necessary to connect to the database.
 func SqliteDSN() string {
-	config := &conf.GlobalConfig.ServerConf.Database
+	config := &conf.GlobalConfig.Database
 	var user, pass string
 	if config.User != "" {
 		user = fmt.Sprintf("&_auth_user=%s", config.User)

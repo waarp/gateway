@@ -27,7 +27,7 @@ func userToDB(user *api.InUser, old *model.User) (*model.User, error) {
 
 	return &model.User{
 		ID:          old.ID,
-		Owner:       conf.GlobalConfig.ServerConf.GatewayName,
+		Owner:       conf.GlobalConfig.GatewayName,
 		Username:    str(user.Username),
 		Password:    []byte(str(user.Password)),
 		Permissions: mask,
@@ -61,7 +61,7 @@ func getUsr(r *http.Request, db *database.DB) (*model.User, error) {
 	}
 
 	var user model.User
-	if err := db.Get(&user, "username=? AND owner=?", username, conf.GlobalConfig.ServerConf.GatewayName).
+	if err := db.Get(&user, "username=? AND owner=?", username, conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("user '%s' not found", username)

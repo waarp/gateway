@@ -98,7 +98,7 @@ func (l *LocalAgent) makePaths() {
 // BeforeWrite is called before inserting a new `LocalAgent` entry in the
 // database. It checks whether the new entry is valid or not.
 func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
-	l.Owner = conf.GlobalConfig.ServerConf.GatewayName
+	l.Owner = conf.GlobalConfig.GatewayName
 	l.makePaths()
 
 	if l.Name == "" {

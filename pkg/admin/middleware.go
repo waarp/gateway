@@ -26,7 +26,7 @@ func authentication(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 			}
 
 			var user model.User
-			if err := db.Get(&user, "username=? AND owner=?", login, conf.GlobalConfig.ServerConf.GatewayName).
+			if err := db.Get(&user, "username=? AND owner=?", login, conf.GlobalConfig.GatewayName).
 				Run(); err != nil {
 				if database.IsNotFound(err) {
 					logger.Warningf("Invalid authentication for user '%s'", login)

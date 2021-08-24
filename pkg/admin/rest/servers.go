@@ -18,7 +18,7 @@ func getServ(r *http.Request, db *database.DB) (*model.LocalAgent, error) {
 	}
 
 	var serv model.LocalAgent
-	if err := db.Get(&serv, "name=? AND owner=?", serverName, conf.GlobalConfig.ServerConf.GatewayName).
+	if err := db.Get(&serv, "name=? AND owner=?", serverName, conf.GlobalConfig.GatewayName).
 		Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("server '%s' not found", serverName)
@@ -62,7 +62,7 @@ func listServers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		query.Where("owner=?", conf.GlobalConfig.ServerConf.GatewayName)
+		query.Where("owner=?", conf.GlobalConfig.GatewayName)
 		if err := parseProtoParam(r, query); handleError(w, logger, err) {
 			return
 		}

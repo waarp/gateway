@@ -116,7 +116,7 @@ func TestAddUser(t *testing.T) {
 						So(bcrypt.CompareHashAndPassword(users[1].Password,
 							[]byte("password")), ShouldBeNil)
 						exp := model.User{
-							Owner:    conf.GlobalConfig.ServerConf.GatewayName,
+							Owner:    conf.GlobalConfig.GatewayName,
 							ID:       2,
 							Username: "user",
 							Password: users[1].Password,
@@ -240,7 +240,7 @@ func TestUpdateUser(t *testing.T) {
 						So(bcrypt.CompareHashAndPassword(users[1].Password,
 							[]byte("new_password")), ShouldBeNil)
 						exp := model.User{
-							Owner:    conf.GlobalConfig.ServerConf.GatewayName,
+							Owner:    conf.GlobalConfig.GatewayName,
 							ID:       user.ID,
 							Username: "new_user",
 							Password: users[1].Password,

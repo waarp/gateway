@@ -70,7 +70,7 @@ func TestControllerListen(t *testing.T) {
 
 		Convey("Given a controller", func() {
 			tick := time.Nanosecond
-			conf.GlobalConfig.ServerConf.Paths = conf.PathsConfig{GatewayHome: tmpDir}
+			conf.GlobalConfig.Paths = conf.PathsConfig{GatewayHome: tmpDir}
 			cont := &Controller{
 				DB:     db,
 				ticker: time.NewTicker(tick),
@@ -94,7 +94,7 @@ func TestControllerListen(t *testing.T) {
 					DestFile:     "dest_file_1",
 					Start:        start,
 					Status:       types.StatusPlanned,
-					Owner:        conf.GlobalConfig.ServerConf.GatewayName,
+					Owner:        conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -155,7 +155,7 @@ func TestControllerListen(t *testing.T) {
 					DestFile:     "dest_file_2",
 					Start:        start,
 					Status:       types.StatusRunning,
-					Owner:        conf.GlobalConfig.ServerConf.GatewayName,
+					Owner:        conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 

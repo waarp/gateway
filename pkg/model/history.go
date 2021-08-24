@@ -53,7 +53,7 @@ func (h *TransferHistory) GetID() uint64 {
 // BeforeWrite checks if the new `TransferHistory` entry is valid and can be
 // inserted in the database.
 func (h *TransferHistory) BeforeWrite(database.ReadAccess) database.Error {
-	h.Owner = conf.GlobalConfig.ServerConf.GatewayName
+	h.Owner = conf.GlobalConfig.GatewayName
 
 	if h.Owner == "" {
 		return database.NewValidationError("the transfer's owner cannot be empty")

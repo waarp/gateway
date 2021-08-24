@@ -18,7 +18,7 @@ func getAddrOverride(r *http.Request) (*addr, error) {
 		return nil, notFound("missing target address")
 	}
 
-	realAddress := conf.GlobalConfig.LocalOverrides.ListenAddresses.GetRealAddress(target)
+	realAddress := conf.LocalOverrides.ListenAddresses.GetIndirection(target)
 	if realAddress == "" {
 		return nil, notFound("target address does not exist")
 	}
@@ -39,7 +39,7 @@ func getAddressOverride(logger *log.Logger) http.HandlerFunc {
 
 func listAddressOverrides(logger *log.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		indirections := conf.GlobalConfig.LocalOverrides.ListenAddresses.GetAllIndirections()
+		indirections := conf.LocalOverrides.ListenAddresses.GetAllIndirections()
 		handleError(w, logger, writeJSON(w, indirections))
 	}
 }
@@ -51,7 +51,7 @@ func addAddressOverride(logger *log.Logger) http.HandlerFunc {
 			return
 		}
 		for target, realAddr := range indirections {
-			if err := conf.GlobalConfig.LocalOverrides.ListenAddresses.
+			if err := conf.LocalOverrides.ListenAddresses.
 				AddIndirection(target, realAddr); handleError(w, logger, err) {
 				return
 			}
@@ -66,7 +66,7 @@ func deleteAddressOverride(logger *log.Logger) http.HandlerFunc {
 		if handleError(w, logger, err) {
 			return
 		}
-		if err := conf.GlobalConfig.LocalOverrides.ListenAddresses.
+		if err := conf.LocalOverrides.ListenAddresses.
 			RemoveIndirection(address.target); handleError(w, logger, err) {
 			return
 		}

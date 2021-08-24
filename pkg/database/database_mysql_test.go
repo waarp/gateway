@@ -12,13 +12,13 @@ import (
 )
 
 func TestMySQL(t *testing.T) {
-	conf.GlobalConfig.ServerConf.Log.Level = "CRITICAL"
-	conf.GlobalConfig.ServerConf.Log.LogTo = "stdout"
-	conf.GlobalConfig.ServerConf.Database.Type = MySQL
-	conf.GlobalConfig.ServerConf.Database.User = "root"
-	conf.GlobalConfig.ServerConf.Database.Name = "waarp_gateway_test"
-	conf.GlobalConfig.ServerConf.Database.Address = "localhost:3306"
-	conf.GlobalConfig.ServerConf.Database.AESPassphrase = filepath.Join(os.TempDir(), "mysql_test_passphrase.aes")
+	conf.GlobalConfig.Log.Level = "CRITICAL"
+	conf.GlobalConfig.Log.LogTo = "stdout"
+	conf.GlobalConfig.Database.Type = MySQL
+	conf.GlobalConfig.Database.User = "root"
+	conf.GlobalConfig.Database.Name = "waarp_gateway_test"
+	conf.GlobalConfig.Database.Address = "localhost:3306"
+	conf.GlobalConfig.Database.AESPassphrase = filepath.Join(os.TempDir(), "mysql_test_passphrase.aes")
 
 	db := &DB{}
 	if err := db.Start(); err != nil {
@@ -28,7 +28,7 @@ func TestMySQL(t *testing.T) {
 		if err := db.engine.Close(); err != nil {
 			t.Logf("Failed to close database: %s", err)
 		}
-		if err := os.Remove(conf.GlobalConfig.ServerConf.Database.AESPassphrase); err != nil {
+		if err := os.Remove(conf.GlobalConfig.Database.AESPassphrase); err != nil {
 			t.Logf("Failed to delete passphrase file: %s", err)
 		}
 	}()

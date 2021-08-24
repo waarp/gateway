@@ -33,7 +33,7 @@ func mysqlinfo() (string, string, func(*xorm.Engine) error) {
 // DSN necessary to connect to the database.
 func MysqlDSN() string {
 	dsn := msql.NewConfig()
-	config := &conf.GlobalConfig.ServerConf.Database
+	config := &conf.GlobalConfig.Database
 	dsn.Addr = config.Address
 	dsn.DBName = config.Name
 	dsn.User = config.User

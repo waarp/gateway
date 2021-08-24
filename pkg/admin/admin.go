@@ -56,7 +56,7 @@ func listen(s *Server) {
 // checkAddress checks if the address given in the configuration is a
 // valid address on which the server can listen
 func checkAddress() (string, error) {
-	config := &conf.GlobalConfig.ServerConf.Admin
+	config := &conf.GlobalConfig.Admin
 	addr := net.JoinHostPort(config.Host, fmt.Sprint(config.Port))
 	l, err := net.Listen("tcp", addr)
 	if err == nil {
@@ -77,7 +77,7 @@ func initServer(s *Server) error {
 	}
 
 	// Load TLS configuration
-	config := &conf.GlobalConfig.ServerConf.Admin
+	config := &conf.GlobalConfig.Admin
 	var tlsConfig *tls.Config
 	if config.TLSCert != "" && config.TLSKey != "" {
 		cert, err := tls.LoadX509KeyPair(config.TLSCert, config.TLSKey)

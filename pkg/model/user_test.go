@@ -86,7 +86,7 @@ func TestUsersBeforeWrite(t *testing.T) {
 func TestUsersBeforeDelete(t *testing.T) {
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
-		owner := conf.GlobalConfig.ServerConf.GatewayName
+		owner := conf.GlobalConfig.GatewayName
 		Convey("Given the database contains 1 user for this gateway", func() {
 			mine := &User{
 				Username: "existing",
@@ -95,14 +95,14 @@ func TestUsersBeforeDelete(t *testing.T) {
 			So(db.Insert(mine).Run(), ShouldBeNil)
 
 			// Change database ownership
-			conf.GlobalConfig.ServerConf.GatewayName = "tata"
+			conf.GlobalConfig.GatewayName = "tata"
 			other := &User{
 				Username: "old",
 				Password: []byte("password_old"),
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
 			// Revert database ownership
-			conf.GlobalConfig.ServerConf.GatewayName = owner
+			conf.GlobalConfig.GatewayName = owner
 
 			// Delete base admin
 			So(db.DeleteAll(&User{}).Where("username='admin'").Run(), ShouldBeNil)

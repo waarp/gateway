@@ -64,7 +64,7 @@ func TestTransferBeforeWrite(t *testing.T) {
 					DestFile:     "dest",
 					Start:        time.Now(),
 					Status:       "PLANNED",
-					Owner:        conf.GlobalConfig.ServerConf.GatewayName,
+					Owner:        conf.GlobalConfig.GatewayName,
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -218,7 +218,7 @@ func TestTransferToHistory(t *testing.T) {
 				DestFile:   "test/dest/path",
 				Start:      time.Now(),
 				Status:     StatusDone,
-				Owner:      conf.GlobalConfig.ServerConf.GatewayName,
+				Owner:      conf.GlobalConfig.GatewayName,
 			}
 
 			Convey("When calling the `ToHistory` method", func() {

@@ -101,7 +101,7 @@ func TestAddTransfer(t *testing.T) {
 							Start:            transfers[0].Start,
 							Step:             types.StepNone,
 							Status:           types.StatusPlanned,
-							Owner:            conf.GlobalConfig.ServerConf.GatewayName,
+							Owner:            conf.GlobalConfig.GatewayName,
 							Progress:         0,
 							TaskNumber:       0,
 							Error:            types.TransferError{},
@@ -606,7 +606,7 @@ func TestResumeTransfer(t *testing.T) {
 					Convey("Then the transfer should have been reprogrammed", func() {
 						exp := model.Transfer{
 							ID:         trans.ID,
-							Owner:      conf.GlobalConfig.ServerConf.GatewayName,
+							Owner:      conf.GlobalConfig.GatewayName,
 							RuleID:     rule.ID,
 							AgentID:    partner.ID,
 							AccountID:  account.ID,
@@ -693,7 +693,7 @@ func TestPauseTransfer(t *testing.T) {
 					Convey("Then the transfer should have been paused", func() {
 						exp := model.Transfer{
 							ID:         trans.ID,
-							Owner:      conf.GlobalConfig.ServerConf.GatewayName,
+							Owner:      conf.GlobalConfig.GatewayName,
 							RuleID:     rule.ID,
 							AgentID:    partner.ID,
 							AccountID:  account.ID,
@@ -780,7 +780,7 @@ func TestCancelTransfer(t *testing.T) {
 					Convey("Then the transfer should have been cancelled", func() {
 						exp := model.TransferHistory{
 							ID:               trans.ID,
-							Owner:            conf.GlobalConfig.ServerConf.GatewayName,
+							Owner:            conf.GlobalConfig.GatewayName,
 							RemoteTransferID: "",
 							IsServer:         false,
 							IsSend:           false,
