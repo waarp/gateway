@@ -118,9 +118,9 @@ type userDelete struct {
 }
 
 func (u *userDelete) Execute([]string) error {
-	path := "/api/users/" + u.Args.Username
+	addr.Path = "/api/users/" + u.Args.Username
 
-	if err := remove(path); err != nil {
+	if err := remove(); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The user", bold(u.Args.Username), "was successfully deleted.")

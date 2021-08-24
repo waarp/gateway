@@ -29,6 +29,7 @@ type options struct {
 	Transfer transferCommand `command:"transfer" description:"Manage the running transfers"`
 	Rule     ruleCommand     `command:"rule" description:"Manage the transfer rules"`
 	User     userCommand     `command:"user" description:"Manage the gateway users"`
+	Override overrideCommand `command:"override" description:"Manage the node's setting overrides"`
 }
 
 func main() {

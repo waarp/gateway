@@ -199,9 +199,9 @@ func (r *ruleDelete) Execute([]string) error {
 	if err := checkRuleDir(r.Args.Direction); err != nil {
 		return err
 	}
-	uri := path.Join("/api/rules", r.Args.Name, r.Args.Direction)
+	addr.Path = path.Join("/api/rules", r.Args.Name, r.Args.Direction)
 
-	if err := remove(uri); err != nil {
+	if err := remove(); err != nil {
 		return err
 	}
 	fmt.Fprintln(getColorable(), "The rule", bold(r.Args.Name), "was successfully deleted.")
