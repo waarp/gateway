@@ -173,44 +173,8 @@ func CreateServerConfig(configFile string) error {
 	return p.WriteFile(configFile)
 }
 
-func updateOverride(configFile, nodeID string) error {
-	if nodeID == "" {
-		return nil
-	}
-	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
-	InitOverride(overrideFile)
-	pRead := config.NewParser(&LocalOverrides)
-	if err := pRead.ParseFile(overrideFile); err != nil {
-		return err
-	}
-
-	oWrite := LocalOverrides.makeWrite()
-	pWrite := config.NewParser(oWrite)
-	return pWrite.WriteFile(overrideFile)
-}
-
-func createOverride(configFile, nodeID string) error {
-	if nodeID == "" {
-		return nil
-	}
-	o := &overrideWrite{}
-	p := config.NewParser(o)
-	overrideFile := filepath.Join(filepath.Dir(configFile), nodeID+".ini")
-	return p.WriteFile(overrideFile)
-}
-
-func loadOverride(configPath, nodeID string) (*Override, error) {
-	overrideConfig := &Override{}
-	p := config.NewParser(overrideConfig)
-	overrideFile := filepath.Join(filepath.Dir(configPath), nodeID+".ini")
-	if err := p.ParseFile(overrideFile); err != nil {
-		return nil, err
-	}
-	return overrideConfig, nil
-}
-
 // LoadGatewayConfig loads the given configuration file, along with the local
-// override file associated with the given node ID, and stores both in the global
+// configOverride file associated with the given node ID, and stores both in the global
 // GlobalConfig variable.
 func LoadGatewayConfig(configFile, nodeID string) error {
 	serverConfig, configPath, err := loadServerConfig(configFile)
@@ -224,12 +188,12 @@ func LoadGatewayConfig(configFile, nodeID string) error {
 	}
 
 	GlobalConfig = *serverConfig
-	LocalOverrides = *overrideConfig
+	LocalOverrides = overrideConfig
 	return nil
 }
 
 // UpdateGatewayConfig updates both the gateway configuration file, and the
-// settings override file associated with the given node ID to their latest versions.
+// settings configOverride file associated with the given node ID to their latest versions.
 func UpdateGatewayConfig(configFile, nodeID string) error {
 	if err := UpdateServerConfig(configFile); err != nil {
 		return err
@@ -239,7 +203,7 @@ func UpdateGatewayConfig(configFile, nodeID string) error {
 }
 
 // CreateGatewayConfig creates a new configuration file at the given location,
-// along with a new settings override file for the given node ID.
+// along with a new settings configOverride file for the given node ID.
 func CreateGatewayConfig(configFile, nodeID string) error {
 	if err := CreateServerConfig(configFile); err != nil {
 		return err

@@ -58,6 +58,8 @@ func listen(s *Server) {
 func checkAddress() (string, error) {
 	config := &conf.GlobalConfig.Admin
 	addr := net.JoinHostPort(config.Host, fmt.Sprint(config.Port))
+	addr, _ = conf.GetRealAddress(addr)
+
 	l, err := net.Listen("tcp", addr)
 	if err == nil {
 		defer l.Close()

@@ -44,8 +44,8 @@ func testGCM() {
 	convey.So(err, convey.ShouldBeNil)
 }
 
-func tempFilename() string {
-	f, err := ioutil.TempFile(os.TempDir(), "test_database_*.db")
+func tempFilename(pattern string) string {
+	f, err := ioutil.TempFile(os.TempDir(), pattern)
 	convey.So(err, convey.ShouldBeNil)
 	convey.So(f.Close(), convey.ShouldBeNil)
 	convey.So(os.Remove(f.Name()), convey.ShouldBeNil)
@@ -69,11 +69,11 @@ func initTestDBConf() {
 		config.Address = "localhost:3306"
 	case SQLite:
 		config.Type = SQLite
-		config.Address = tempFilename()
+		config.Address = tempFilename("test_database_*.db")
 	case "":
 		supportedRBMS[testDBType] = testinfo
 		config.Type = testDBType
-		config.Address = tempFilename()
+		config.Address = tempFilename("test_memory_database_*.db")
 	default:
 		panic(fmt.Sprintf("Unknown database type '%s'\n", dbType))
 	}

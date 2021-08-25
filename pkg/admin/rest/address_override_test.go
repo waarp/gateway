@@ -23,12 +23,10 @@ func TestGetAddressOverride(t *testing.T) {
 		handler := getAddressOverride(logger)
 		w := httptest.NewRecorder()
 
-		Convey("Given a configuration with some address indirections", func() {
-			conf.InitOverride(ovrdFile)
-			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
-				"localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
-				"[::1]", "192.168.1.1"), ShouldBeNil)
+		Convey("Given a configuration with some address indirections", func(c C) {
+			conf.InitTestOverrides(c, ovrdFile)
+			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
+			So(conf.AddIndirection("[::1]", "192.168.1.1"), ShouldBeNil)
 
 			Convey("Given a request with a valid address parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -80,12 +78,10 @@ func TestListAddressOverride(t *testing.T) {
 		handler := listAddressOverrides(logger)
 		w := httptest.NewRecorder()
 
-		Convey("Given a configuration with some address indirections", func() {
-			conf.InitOverride(ovrdFile)
-			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
-				"localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
-				"[::1]", "192.168.1.1"), ShouldBeNil)
+		Convey("Given a configuration with some address indirections", func(c C) {
+			conf.InitTestOverrides(c, ovrdFile)
+			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
+			So(conf.AddIndirection("[::1]", "192.168.1.1"), ShouldBeNil)
 
 			Convey("When sending the request to the handler", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -121,10 +117,9 @@ func TestAddAddressOverride(t *testing.T) {
 		handler := addAddressOverride(logger)
 		w := httptest.NewRecorder()
 
-		Convey("Given a configuration with some address indirections", func() {
-			conf.InitOverride(ovrdFile)
-			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
-				"[::1]", "192.168.1.1"), ShouldBeNil)
+		Convey("Given a configuration with some address indirections", func(c C) {
+			conf.InitTestOverrides(c, ovrdFile)
+			So(conf.AddIndirection("[::1]", "192.168.1.1"), ShouldBeNil)
 
 			Convey("When sending the request to the handler", func() {
 				body := strings.NewReader(`{"localhost":"127.0.0.1",
@@ -142,10 +137,8 @@ func TestAddAddressOverride(t *testing.T) {
 				})
 
 				Convey("Then the indirections should have been added to the config", func() {
-					So(conf.LocalOverrides.ListenAddresses.
-						GetIndirection("localhost"), ShouldEqual, "127.0.0.1")
-					So(conf.LocalOverrides.ListenAddresses.
-						GetIndirection("example.com"), ShouldEqual, "8.8.8.8:80")
+					So(conf.GetIndirection("localhost"), ShouldEqual, "127.0.0.1")
+					So(conf.GetIndirection("example.com"), ShouldEqual, "8.8.8.8:80")
 				})
 			})
 		})
@@ -160,12 +153,10 @@ func TestDeleteAddressOverride(t *testing.T) {
 		handler := deleteAddressOverride(logger)
 		w := httptest.NewRecorder()
 
-		Convey("Given a configuration with some address indirections", func() {
-			conf.InitOverride(ovrdFile)
-			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
-				"localhost", "127.0.0.1"), ShouldBeNil)
-			So(conf.LocalOverrides.ListenAddresses.AddIndirection(
-				"[::1]", "192.168.1.1"), ShouldBeNil)
+		Convey("Given a configuration with some address indirections", func(c C) {
+			conf.InitTestOverrides(c, ovrdFile)
+			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
+			So(conf.AddIndirection("[::1]", "192.168.1.1"), ShouldBeNil)
 
 			Convey("Given a request with a valid address parameter", func() {
 				r, err := http.NewRequest(http.MethodDelete, "", nil)
@@ -184,8 +175,7 @@ func TestDeleteAddressOverride(t *testing.T) {
 					})
 
 					Convey("Then the indirection should have been deleted", func() {
-						So(conf.LocalOverrides.ListenAddresses.
-							GetIndirection("localhost"), ShouldBeBlank)
+						So(conf.GetIndirection("localhost"), ShouldBeBlank)
 					})
 				})
 			})
