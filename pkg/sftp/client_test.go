@@ -8,6 +8,8 @@ import (
 	"os"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -64,6 +66,28 @@ func TestConnect(t *testing.T) {
 
 					Convey("Then the connection should NOT be open", func() {
 						So(client.conn, ShouldBeNil)
+					})
+				})
+			})
+		})
+
+		Convey("Given an indirect address", func(c C) {
+			conf.InitTestOverrides(c)
+			So(conf.AddIndirection("indirect.ex:99999",
+				fmt.Sprintf("localhost:%d", clientTestPort)), ShouldBeNil)
+			client.Info = model.OutTransferInfo{
+				Agent: &model.RemoteAgent{Address: "indirect.ex:99999"},
+			}
+
+			Convey("When calling the `Connect` method", func() {
+				err := client.Connect()
+
+				Convey("Then it should NOT return an error", func() {
+					So(err, ShouldBeNil)
+
+					Convey("Then the connection should be open", func() {
+						So(client.conn, ShouldNotBeNil)
+						So(client.conn.Close(), ShouldBeNil)
 					})
 				})
 			})

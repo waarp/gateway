@@ -139,11 +139,15 @@ func (s *Service) listen() error {
 		return err
 	}
 
+	addr, err := conf.GetRealAddress(s.agent.Address)
+	if err != nil {
+		return err
+	}
 	var list net.Listener
 	if tlsConf != nil {
-		list, err = tls.Listen("tcp", s.agent.Address, tlsConf)
+		list, err = tls.Listen("tcp", addr, tlsConf)
 	} else {
-		list, err = net.Listen("tcp", s.agent.Address)
+		list, err = net.Listen("tcp", addr)
 	}
 	if err != nil {
 		s.logger.Errorf("Failed to start R66 listener: %s", err)

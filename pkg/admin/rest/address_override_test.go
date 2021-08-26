@@ -3,8 +3,6 @@ package rest
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -19,12 +17,11 @@ func TestGetAddressOverride(t *testing.T) {
 	logger := log.NewLogger("rest_addr_ovrd_get_test")
 
 	Convey("Given the address override get handler", t, func() {
-		ovrdFile := filepath.Join(os.TempDir(), "rest_test_get_addr_override.ini")
 		handler := getAddressOverride(logger)
 		w := httptest.NewRecorder()
 
 		Convey("Given a configuration with some address indirections", func(c C) {
-			conf.InitTestOverrides(c, ovrdFile)
+			conf.InitTestOverrides(c)
 			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
 			So(conf.AddIndirection("[::1]", "192.168.1.1"), ShouldBeNil)
 
@@ -74,12 +71,11 @@ func TestListAddressOverride(t *testing.T) {
 	logger := log.NewLogger("rest_addr_ovrd_list_test")
 
 	Convey("Given the address override list handler", t, func() {
-		ovrdFile := filepath.Join(os.TempDir(), "rest_test_list_addr_override.ini")
 		handler := listAddressOverrides(logger)
 		w := httptest.NewRecorder()
 
 		Convey("Given a configuration with some address indirections", func(c C) {
-			conf.InitTestOverrides(c, ovrdFile)
+			conf.InitTestOverrides(c)
 			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
 			So(conf.AddIndirection("[::1]", "192.168.1.1"), ShouldBeNil)
 
@@ -113,12 +109,11 @@ func TestAddAddressOverride(t *testing.T) {
 	logger := log.NewLogger("rest_addr_ovrd_add_test")
 
 	Convey("Given the address override add handler", t, func() {
-		ovrdFile := filepath.Join(os.TempDir(), "rest_test_add_addr_override.ini")
 		handler := addAddressOverride(logger)
 		w := httptest.NewRecorder()
 
 		Convey("Given a configuration with some address indirections", func(c C) {
-			conf.InitTestOverrides(c, ovrdFile)
+			conf.InitTestOverrides(c)
 			So(conf.AddIndirection("[::1]", "192.168.1.1"), ShouldBeNil)
 
 			Convey("When sending the request to the handler", func() {
@@ -149,12 +144,11 @@ func TestDeleteAddressOverride(t *testing.T) {
 	logger := log.NewLogger("rest_addr_ovrd_delete_test")
 
 	Convey("Given the address override delete handler", t, func() {
-		ovrdFile := filepath.Join(os.TempDir(), "rest_test_delete_addr_override.ini")
 		handler := deleteAddressOverride(logger)
 		w := httptest.NewRecorder()
 
 		Convey("Given a configuration with some address indirections", func(c C) {
-			conf.InitTestOverrides(c, ovrdFile)
+			conf.InitTestOverrides(c)
 			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
 			So(conf.AddIndirection("[::1]", "192.168.1.1"), ShouldBeNil)
 

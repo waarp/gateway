@@ -117,6 +117,27 @@ func TestServerStart(t *testing.T) {
 			})
 		})
 
+		Convey("Given that the server address is indirect", func(c C) {
+			conf.InitTestOverrides(c)
+			So(conf.AddIndirection("indirect.ex:99999", "127.0.0.1:"+port), ShouldBeNil)
+			agent.Address = "indirect.ex:99999"
+			So(db.Update(agent).Cols("address").Run(), ShouldBeNil)
+
+			Convey("When starting the server", func() {
+				err := sftpServer.Start()
+
+				Reset(func() {
+					_ = sftpServer.Stop(context.Background())
+				})
+
+				Convey("Then it should NOT return an error", func() {
+					So(err, ShouldBeNil)
+					So(sftpServer.listener.Listener.Addr().String(), ShouldEqual,
+						"127.0.0.1:"+port)
+				})
+			})
+		})
+
 		Convey("Given that the server is missing a hostkey", func() {
 			So(db.Delete(hostKey).Run(), ShouldBeNil)
 

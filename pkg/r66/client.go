@@ -4,7 +4,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"net"
 	"os"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -37,13 +40,13 @@ type client struct {
 
 // NewClient creates and returns a new r66 client using the given transfer info.
 func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipeline.Client, error) {
-	var conf config.R66ProtoConfig
-	if err := json.Unmarshal(info.Agent.ProtoConfig, &conf); err != nil {
+	var protoConfig config.R66ProtoConfig
+	if err := json.Unmarshal(info.Agent.ProtoConfig, &protoConfig); err != nil {
 		return nil, err
 	}
 
 	var tlsConf *tls.Config
-	if conf.IsTLS {
+	if protoConfig.IsTLS {
 		var err error
 		tlsConf, err = makeClientTLSConfig(&info)
 		if err != nil {
@@ -53,20 +56,20 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 
 	r66Client := r66.NewClient(info.Account.Login, []byte(info.Account.Password))
 	r66Client.FileSize = true
-	r66Client.FinalHash = !conf.NoFinalHash
+	r66Client.FinalHash = !protoConfig.NoFinalHash
 
 	//TODO: configure r66 client
 	c := &client{
 		r66Client: r66Client,
 		info:      info,
 		signals:   signals,
-		conf:      conf,
+		conf:      protoConfig,
 		tlsConf:   tlsConf,
 	}
 	c.r66Client.AuthentHandler = &clientAuthHandler{
 		getFile: func() r66utils.ReadWriterAt { return c.stream },
 		info:    &info,
-		config:  &conf,
+		config:  &protoConfig,
 	}
 
 	return c, nil
@@ -90,8 +93,13 @@ func makeClientTLSConfig(info *model.OutTransferInfo) (*tls.Config, error) {
 		caPool.AppendCertsFromPEM([]byte(cert.Certificate))
 	}
 
+	host, _, err := net.SplitHostPort(info.Agent.Address)
+	if err != nil {
+		return nil, err
+	}
+
 	return &tls.Config{
-		ServerName:   info.Agent.Address,
+		ServerName:   host,
 		Certificates: tlsCerts,
 		MinVersion:   tls.VersionTLS12,
 		RootCAs:      caPool,
@@ -99,12 +107,17 @@ func makeClientTLSConfig(info *model.OutTransferInfo) (*tls.Config, error) {
 }
 
 func (c *client) Connect() error {
+	addr, err := conf.GetRealAddress(c.info.Agent.Address)
+	if err != nil {
+		return types.NewTransferError(types.TeInternal, err.Error())
+	}
+
 	var remote *r66.Remote
-	var err error
 	if c.tlsConf != nil {
-		remote, err = c.r66Client.DialTLS(c.info.Agent.Address, c.tlsConf)
+		c.tlsConf.ServerName, _, _ = net.SplitHostPort(addr)
+		remote, err = c.r66Client.DialTLS(addr, c.tlsConf)
 	} else {
-		remote, err = c.r66Client.Dial(c.info.Agent.Address)
+		remote, err = c.r66Client.Dial(addr)
 	}
 
 	if err != nil {

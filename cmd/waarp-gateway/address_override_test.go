@@ -3,8 +3,6 @@ package main
 import (
 	"net/http/httptest"
 	"net/url"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -28,8 +26,7 @@ func TestGetAddressOverride(t *testing.T) {
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			ovrdFile := filepath.Join(os.TempDir(), "rest_test_get_addr_override.ini")
-			conf.InitTestOverrides(c, ovrdFile)
+			conf.InitTestOverrides(c)
 			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
 			So(conf.AddIndirection("waarp.fr", "1.2.3.4"), ShouldBeNil)
 
@@ -63,8 +60,7 @@ func TestSetAddressOverride(t *testing.T) {
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			ovrdFile := filepath.Join(os.TempDir(), "rest_test_set_addr_override.ini")
-			conf.InitTestOverrides(c, ovrdFile)
+			conf.InitTestOverrides(c)
 
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
@@ -101,8 +97,7 @@ func TestListAddressOverrides(t *testing.T) {
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			ovrdFile := filepath.Join(os.TempDir(), "rest_test_list_addr_override.ini")
-			conf.InitTestOverrides(c, ovrdFile)
+			conf.InitTestOverrides(c)
 			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
 			So(conf.AddIndirection("waarp.fr", "1.2.3.4"), ShouldBeNil)
 
@@ -137,8 +132,7 @@ func TestDeleteAddressOverride(t *testing.T) {
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
 			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
-			ovrdFile := filepath.Join(os.TempDir(), "rest_test_delete_addr_override.ini")
-			conf.InitTestOverrides(c, ovrdFile)
+			conf.InitTestOverrides(c)
 			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
 			So(conf.AddIndirection("waarp.fr", "1.2.3.4"), ShouldBeNil)
 

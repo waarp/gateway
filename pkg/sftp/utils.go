@@ -22,14 +22,14 @@ func isRemoteTaskError(err error) (string, bool) {
 
 type fixedHostKeys []ssh.PublicKey
 
-func (f fixedHostKeys) check(_ string, _ net.Addr, key ssh.PublicKey) error {
+func (f fixedHostKeys) check(_ string, _ net.Addr, remoteKey ssh.PublicKey) error {
 	if len(f) == 0 {
 		return fmt.Errorf("ssh: required host key was nil")
 	}
 
-	remoteKey := key.Marshal()
+	remoteBytes := remoteKey.Marshal()
 	for _, key := range f {
-		if bytes.Equal(remoteKey, key.Marshal()) {
+		if bytes.Equal(remoteBytes, key.Marshal()) {
 			return nil
 		}
 	}

@@ -10,6 +10,8 @@ import (
 	"os"
 	"path"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
@@ -45,18 +47,22 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 		Signals: signals,
 	}
 
-	conf := &config.SftpProtoConfig{}
-	if err := json.Unmarshal(info.Agent.ProtoConfig, conf); err != nil {
+	protoConf := &config.SftpProtoConfig{}
+	if err := json.Unmarshal(info.Agent.ProtoConfig, protoConf); err != nil {
 		return nil, err
 	}
-	client.conf = conf
+	client.conf = protoConf
 
 	return client, nil
 }
 
 // Connect opens a TCP connection to the remote.
 func (c *Client) Connect() error {
-	conn, err := net.Dial("tcp", c.Info.Agent.Address)
+	addr, err := conf.GetRealAddress(c.Info.Agent.Address)
+	if err != nil {
+		return err
+	}
+	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return types.NewTransferError(types.TeConnection, err.Error())
 	}
@@ -67,13 +73,13 @@ func (c *Client) Connect() error {
 
 // Authenticate opens the SSH tunnel to the remote.
 func (c *Client) Authenticate() error {
-	conf, err := getSSHClientConfig(&c.Info, c.conf)
+	sshConf, err := getSSHClientConfig(&c.Info, c.conf)
 	if err != nil {
 		return types.NewTransferError(types.TeInternal, err.Error())
 	}
 
-	addr, _, _ := net.SplitHostPort(c.Info.Agent.Address)
-	conn, chans, reqs, err := ssh.NewClientConn(c.conn, addr, conf)
+	host, _, _ := net.SplitHostPort(c.conn.RemoteAddr().String())
+	conn, chans, reqs, err := ssh.NewClientConn(c.conn, host, sshConf)
 	if err != nil {
 		return types.NewTransferError(types.TeBadAuthentication, err.Error())
 	}

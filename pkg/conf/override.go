@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+
 	"github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/config"
@@ -33,9 +35,10 @@ func newOverride() *configOverride {
 
 // InitTestOverrides is a test helper function to quickly initiate the
 // LocalOverrides global variable. This function should only be used in tests.
-func InitTestOverrides(c convey.C, filename string) {
+func InitTestOverrides(c convey.C) {
+	ovrdFile := testhelpers.TempFile(c, "test_addr_override_*.ini")
 	LocalOverrides = newOverride()
-	LocalOverrides.filename = filename
+	LocalOverrides.filename = ovrdFile
 	c.So(LocalOverrides.ListenAddresses.parse(), convey.ShouldBeNil)
 }
 

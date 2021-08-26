@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
@@ -51,10 +53,14 @@ func (s *Service) Start() error {
 			return err1
 		}
 
-		listener, err2 := net.Listen("tcp", s.agent.Address)
+		addr, err2 := conf.GetRealAddress(s.agent.Address)
 		if err2 != nil {
-			s.logger.Errorf("Failed to start server listener: %s", err2)
 			return err2
+		}
+		listener, err3 := net.Listen("tcp", addr)
+		if err3 != nil {
+			s.logger.Errorf("Failed to start server listener: %s", err3)
+			return err3
 		}
 
 		s.listener = &sshListener{
