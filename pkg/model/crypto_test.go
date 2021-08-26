@@ -40,7 +40,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 			Convey("Given new credentials", func() {
 				newCert := &Crypto{
-					OwnerType:   parentAgent.TableName(),
+					OwnerType:   TableLocAgents,
 					OwnerID:     parentAgent.ID,
 					Name:        "cert",
 					PrivateKey:  testhelpers.LocalhostKey,
@@ -131,11 +131,11 @@ func TestCryptoBeforeWrite(t *testing.T) {
 					So(db.Insert(otherAgent).Run(), ShouldBeNil)
 
 					otherCert := &Crypto{
-						OwnerType:   parentAgent.TableName(),
+						OwnerType:   TableLocAgents,
 						OwnerID:     parentAgent.ID,
 						Name:        "other",
-						PrivateKey:  testhelpers.LocalhostKey,
-						Certificate: testhelpers.LocalhostCert,
+						PrivateKey:  testhelpers.OtherLocalhostKey,
+						Certificate: testhelpers.OtherLocalhostCert,
 					}
 					So(db.Insert(otherCert).Run(), ShouldBeNil)
 
@@ -152,7 +152,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 				})
 
 				Convey("Given that the certificate is not valid for the host", func() {
-					parentAgent.Address = "not_localhost:6666"
+					parentAgent.Address = "not_localhost:1"
 					So(db.Update(parentAgent).Cols("address").Run(), ShouldBeNil)
 					shouldFailWith("the certificate host is incorrect", database.NewValidationError(
 						"the certificate is not valid for host 'not_localhost'"))

@@ -25,8 +25,8 @@ func GetCryptos(db database.ReadAccess, agent agent) ([]Crypto, database.Error) 
 	return certs, nil
 }
 
-// CheckClientAuthent checks if the given login and certificate chain are valid
-// for client authentication, using the crypto credentials as root CA.
+// CheckClientAuthent checks whether the given certificate chain is valid as
+// a client certificate for the given login, using the target cryptos as root CAs.
 func (c *Cryptos) CheckClientAuthent(login string, certs []*x509.Certificate) error {
 	if len(*c) == 0 {
 		return fmt.Errorf("no certificates found for user '%s'", login)

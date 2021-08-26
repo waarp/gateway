@@ -107,7 +107,8 @@ func TestControllerListen(t *testing.T) {
 							var trans model.Transfers
 							So(db.Select(&trans).Run(), ShouldBeNil)
 							So(trans, ShouldBeEmpty)
-
+						})
+						Convey("Then it", func() {
 							var hist model.HistoryEntries
 							So(db.Select(&hist).Run(), ShouldBeNil)
 							So(hist, ShouldNotBeEmpty)

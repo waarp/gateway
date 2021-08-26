@@ -65,11 +65,16 @@ func (c *Controller) listen() {
 
 func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 	var transfers model.Transfers
-	if tErr := c.DB.Transaction(func(ses *database.Session) database.Error {
+	if tErr := c.DB.WriteTransaction(func(ses *database.Session) database.Error {
+		lim, hasLimit := pipeline.TransferOutCount.GetAvailable()
+		if hasLimit && lim == 0 {
+			return nil //cannot start more transfers, limit has been reached
+		}
+
 		query := ses.SelectForUpdate(&transfers).Where("owner=? AND status=? AND "+
 			"is_server=? AND start<?", database.Owner, types.StatusPlanned, false,
 			time.Now().UTC().Truncate(time.Microsecond).Format(time.RFC3339Nano)).
-			Limit(int(pipeline.TransferOutCount.GetAvailable()), 0)
+			Limit(lim, 0)
 
 		if err := query.Run(); err != nil {
 			c.logger.Errorf("Failed to access database: %s", err.Error())

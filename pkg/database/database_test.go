@@ -72,7 +72,8 @@ func testSelectForUpdate(db *DB) {
 		defer func() { <-transRes }()
 
 		So(tErr1, ShouldBeNil)
-		So(<-transRes, ShouldBeNil)
+		tErr2 := <-transRes
+		So(tErr2, ShouldBeNil)
 
 		var res []testValid
 		So(db.engine.Find(&res), ShouldBeNil)

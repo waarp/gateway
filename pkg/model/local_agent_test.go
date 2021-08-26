@@ -36,7 +36,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("bar")}
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("sesame")}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}

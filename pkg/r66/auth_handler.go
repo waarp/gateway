@@ -3,13 +3,11 @@ package r66
 import (
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/r66/internal"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"golang.org/x/crypto/bcrypt"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/r66/internal"
 	"code.waarp.fr/waarp-r66/r66"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type authHandler struct {
@@ -62,8 +60,10 @@ func (a *authHandler) certAuth(auth *r66.Authent) (*model.LocalAccount, *r66.Err
 
 	var acc model.LocalAccount
 	if err := a.db.Get(&acc, "local_agent_id=? AND login=?", a.agent.ID, auth.Login).Run(); err != nil {
-		a.logger.Errorf("Failed to retrieve client account: %s", err)
-		return nil, r66ErrDatabase
+		if !database.IsNotFound(err) {
+			a.logger.Errorf("Failed to retrieve client account: %s", err)
+			return nil, r66ErrDatabase
+		}
 	}
 
 	var cryptos model.Cryptos
@@ -77,6 +77,7 @@ func (a *authHandler) certAuth(auth *r66.Authent) (*model.LocalAccount, *r66.Err
 		a.logger.Warningf(err.Error())
 		return nil, &r66.Error{Code: r66.BadAuthent, Detail: err.Error()}
 	}
+
 	return &acc, nil
 }
 

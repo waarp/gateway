@@ -144,8 +144,9 @@ func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) d
 	switch t := parent.(type) {
 	case *LocalAgent:
 		isServer = true
-		if host, _, err = net.SplitHostPort(t.Address); err != nil {
-			host = t.Address
+		host, _, err = net.SplitHostPort(t.Address)
+		if err != nil {
+			return database.NewValidationError("failed to parse certificate owner address")
 		}
 		proto = t.Protocol
 		if err := c.checkContentLocal(parent); err != nil {
@@ -163,8 +164,9 @@ func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) d
 		proto = parentParent.Protocol
 	case *RemoteAgent:
 		isServer = true
-		if host, _, err = net.SplitHostPort(t.Address); err != nil {
-			host = t.Address
+		host, _, err = net.SplitHostPort(t.Address)
+		if err != nil {
+			return database.NewValidationError("failed to parse certificate owner address")
 		}
 		proto = t.Protocol
 		if err := c.checkContentRemote(parent); err != nil {

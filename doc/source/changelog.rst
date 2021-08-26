@@ -12,7 +12,7 @@ Historique des versions
   pour 2 instances d'une même *gateway* de récupérer un même transfert depuis la
   base de données, et de l'exécuter 2 fois en parallèle. Ce n'est désormais plus
   possible.
-* :bug:`0` Sous système Unix, l'interruption de tâches externes se fait désormais
+* :bug:`` Sous système Unix, l'interruption de tâches externes se fait désormais
   via un *SIGINT* (au lieu de *SIGKILL*).
 * :feature:`0` Ajout d'un champ taille de fichier ``filesize`` au modèles de
   transfert et d'historique.
@@ -44,7 +44,7 @@ Historique des versions
   ``file`` contenant le nom du fichier à transférer. Il ne sera donc, à terme,
   plus possible de donner au fichier de destination du transfer un nom différent
   de celui du fichier source.
-* :feature:0`` Un champ `passwordHash` a été ajouté à l'objet JSON de compte local
+* :feature:`0` Un champ `passwordHash` a été ajouté à l'objet JSON de compte local
   du fichier d'import/export. Il remplace le champ `password` pour l'export de
   configuration. La gateway ne stockant que des hash de mots de passe, le nom du
   champ n'était pas approprié. Le champ `password` reste cependant utilisable
