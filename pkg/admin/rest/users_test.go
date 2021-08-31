@@ -545,8 +545,8 @@ func TestUpdateUser(t *testing.T) {
 
 							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
 								[]byte("old_password")), ShouldBeNil)
-							So(maskToPerms(users[0].Permissions), ShouldResemble,
-								maskToPerms(old.Permissions))
+							So(model.MaskToPerms(users[0].Permissions), ShouldResemble,
+								model.MaskToPerms(old.Permissions))
 							So(users[0], ShouldResemble, model.User{
 								ID:           2,
 								Owner:        conf.GlobalConfig.GatewayName,

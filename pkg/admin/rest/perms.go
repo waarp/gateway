@@ -112,31 +112,16 @@ func permsToMask(old model.PermsMask, perms *api.Perms) (model.PermsMask, error)
 	return old, nil
 }
 
-func maskToStr(m model.PermsMask, s int) string {
-	const rwd = "rwd"
-
-	buf := make([]byte, 3) //nolint:gomnd // too specific
-
-	for i, c := range rwd {
-		if m&(1<<uint(32-1-s-i)) != 0 {
-			buf[i] = byte(c)
-		} else {
-			buf[i] = '-'
-		}
-	}
-
-	return string(buf)
-}
-
 func maskToPerms(m model.PermsMask) *api.Perms {
-	//nolint:gomnd // too specific
+	perms := model.MaskToPerms(m)
+
 	return &api.Perms{
-		Transfers:      maskToStr(m, 0),
-		Servers:        maskToStr(m, 3),
-		Partners:       maskToStr(m, 6),
-		Rules:          maskToStr(m, 9),
-		Users:          maskToStr(m, 12),
-		Administration: maskToStr(m, 15),
+		Transfers:      perms.Transfers,
+		Servers:        perms.Servers,
+		Partners:       perms.Partners,
+		Rules:          perms.Rules,
+		Users:          perms.Users,
+		Administration: perms.Administration,
 	}
 }
 
