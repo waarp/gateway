@@ -108,7 +108,8 @@ func TestControllerListen(t *testing.T) {
 							So(db.Select(&trans).Run(), ShouldBeNil)
 							So(trans, ShouldBeEmpty)
 						})
-						Convey("Then it", func() {
+
+						Convey("Then it should have created the new history entries", func() {
 							var hist model.HistoryEntries
 							So(db.Select(&hist).Run(), ShouldBeNil)
 							So(hist, ShouldNotBeEmpty)
