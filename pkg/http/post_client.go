@@ -11,6 +11,8 @@ import (
 	"path"
 	"path/filepath"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/http/httpconst"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -84,7 +86,14 @@ func (p *postClient) prepareRequest(ready chan struct{}) *types.TransferError {
 	if p.transport.TLSClientConfig != nil {
 		scheme = "https://"
 	}
-	url := scheme + path.Join(p.pip.TransCtx.RemoteAgent.Address, p.pip.TransCtx.Transfer.RemotePath)
+
+	addr, err := conf.GetRealAddress(p.pip.TransCtx.RemoteAgent.Address)
+	if err != nil {
+		p.pip.Logger.Errorf("Failed to retrieve HTTP address: %s", err)
+		return types.NewTransferError(types.TeInternal, "failed to retrieve HTTP address")
+	}
+
+	url := scheme + path.Join(addr, p.pip.TransCtx.Transfer.RemotePath)
 	if err := p.checkResume(url); err != nil {
 		return err
 	}

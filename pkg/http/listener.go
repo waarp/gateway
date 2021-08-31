@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -64,7 +66,13 @@ func (h *httpService) makeTLSConf() (*tls.Config, error) {
 }
 
 func (h *httpService) listen() error {
-	list, err := net.Listen("tcp", h.agent.Address)
+	addr, err := conf.GetRealAddress(h.agent.Address)
+	if err != nil {
+		h.logger.Errorf("Failed to retrieve HTTP server address: %s", err)
+		return fmt.Errorf("failed to retrieve HTTP server address")
+	}
+
+	list, err := net.Listen("tcp", addr)
 	if err != nil {
 		h.logger.Errorf("Failed to start server listener: %s", err)
 		return fmt.Errorf("failed to start server listener")
