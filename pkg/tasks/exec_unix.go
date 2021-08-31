@@ -1,12 +1,30 @@
-// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+// +build !windows
 
 package tasks
 
 import (
-	"context"
+	"os"
 	"os/exec"
+	"time"
 )
 
-func getCommand(ctx context.Context, path, args string) *exec.Cmd {
-	return exec.CommandContext(ctx, "/bin/sh", "-c", path+" "+args) //nolint:gosec
+const lineSeparator = "\n"
+
+func getCommand(path, args string) *exec.Cmd {
+	return exec.Command("/bin/sh", "-c", "exec "+path+" "+args) //nolint:gosec
+}
+
+func haltExec(cmd *exec.Cmd) {
+	timer := time.NewTimer(time.Second / 2)
+	defer timer.Stop()
+	intDone := make(chan struct{})
+	go func() {
+		defer close(intDone)
+		_ = cmd.Process.Signal(os.Interrupt)
+	}()
+	select {
+	case <-intDone:
+	case <-timer.C:
+		_ = cmd.Process.Kill()
+	}
 }

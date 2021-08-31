@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -18,7 +20,7 @@ func TestImportRules(t *testing.T) {
 
 		Convey("Given a database with some Rules", func() {
 			insert := &model.Rule{
-				Name:   "test",
+				Name:   "rule_insert",
 				IsSend: true,
 				Path:   "path/to/Rule",
 			}
@@ -61,8 +63,8 @@ func TestImportRules(t *testing.T) {
 			So(db.Insert(post2).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "sftp",
+				Name:        "server",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -70,14 +72,14 @@ func TestImportRules(t *testing.T) {
 
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
-				Login:        "foo",
+				Login:        "account1",
 				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
-				Login:        "test",
+				Login:        "account2",
 				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
@@ -88,9 +90,9 @@ func TestImportRules(t *testing.T) {
 					IsSend: true,
 					Path:   "test/path",
 					Accesses: []string{
-						"local::test",
-						"local::test::foo",
-						"local::test::test",
+						"local::server",
+						"local::server::account1",
+						"local::server::account2",
 					},
 					Pre: []Task{
 						{
@@ -164,8 +166,8 @@ func TestImportRules(t *testing.T) {
 					IsSend: insert.IsSend,
 					Path:   "testing",
 					Accesses: []string{
-						"local::test",
-						"local::test::test",
+						"local::server",
+						"local::server::account2",
 					},
 					Pre: []Task{
 						{
@@ -238,8 +240,8 @@ func TestImportRules(t *testing.T) {
 					IsSend: insert.IsSend,
 					Path:   "testing",
 					Accesses: []string{
-						"local::test",
-						"local::test::test",
+						"local::server",
+						"local::server::account2",
 					},
 				}
 				Rules := []Rule{Rule1}
@@ -295,15 +297,15 @@ func TestImportRuleAccess(t *testing.T) {
 
 		Convey("Given a database with some Rules", func() {
 			insert := &model.Rule{
-				Name:   "test",
+				Name:   "rule_insert",
 				IsSend: true,
 				Path:   "path/to/Rule",
 			}
 			So(db.Insert(insert).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "sftp",
+				Name:        "server",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -311,23 +313,23 @@ func TestImportRuleAccess(t *testing.T) {
 
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
-				Login:        "foo",
+				Login:        "account1",
 				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
-				Login:        "test",
+				Login:        "account2",
 				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
 			Convey("Given a new access to import", func() {
 				accesses := []string{
-					"local::test",
-					"local::test::foo",
-					"local::test::test",
+					"local::server",
+					"local::server::account1",
+					"local::server::account2",
 				}
 
 				Convey("When calling importRuleAccesses with new", func() {
@@ -381,8 +383,8 @@ func TestImportRuleAccess(t *testing.T) {
 
 				Convey("Given a new access to import", func() {
 					accesses := []string{
-						"local::test::foo",
-						"local::test::test",
+						"local::server::account1",
+						"local::server::account2",
 					}
 
 					Convey("When calling importRuleAccesses with new", func() {
@@ -436,7 +438,7 @@ func TestImportTasks(t *testing.T) {
 
 		Convey("Given a database with some Rules", func() {
 			insert := &model.Rule{
-				Name:   "test",
+				Name:   "rule_insert",
 				IsSend: true,
 				Path:   "path/to/Rule",
 			}

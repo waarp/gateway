@@ -1,0 +1,71 @@
+package sftp
+
+import (
+	"testing"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+
+	. "github.com/smartystreets/goconvey/convey"
+)
+
+func TestAddressIndirection(t *testing.T) {
+	fakeAddr := "not_a_real_address:99999"
+
+	Convey("Given a SFTP service with an indirect address", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil)
+		defer func() { pipeline.TestPipelineEnd = nil }()
+
+		realAddr := ctx.Server.Address
+		conf.InitTestOverrides(c)
+
+		So(conf.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
+		ctx.Server.Address = fakeAddr
+		ctx.Partner.Address = fakeAddr
+		So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
+		So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
+
+		serverHostkey := model.Crypto{
+			OwnerType:  ctx.Server.TableName(),
+			OwnerID:    ctx.Server.ID,
+			Name:       "sftp_hostkey",
+			PrivateKey: rsaPK,
+		}
+		partnerHostkey := model.Crypto{
+			OwnerType:    ctx.Partner.TableName(),
+			OwnerID:      ctx.Partner.ID,
+			Name:         "sftp_hostkey",
+			SSHPublicKey: rsaPBK,
+		}
+		ctx.AddCryptos(c, serverHostkey, partnerHostkey)
+
+		ctx.StartService(c)
+
+		Convey("Given a new SFTP transfer", func(c C) {
+
+			Convey("When connecting to the server", func(c C) {
+				pip, err := pipeline.NewClientPipeline(ctx.DB, ctx.ClientTrans)
+				So(err, ShouldBeNil)
+
+				cli, err := NewClient(pip.Pip)
+				So(err, ShouldBeNil)
+
+				So(cli.Request(), ShouldBeNil)
+				defer func() {
+					_ = cli.(*client).remoteFile.Close()
+					_ = cli.(*client).sftpSession.Close()
+					_ = cli.(*client).sshSession.Close()
+				}()
+
+				Convey("Then it should have connected to the server", func() {
+					So(cli.(*client).sshSession.RemoteAddr().String(), ShouldEqual,
+						realAddr)
+				})
+			})
+		})
+	})
+}

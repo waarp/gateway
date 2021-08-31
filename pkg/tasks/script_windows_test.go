@@ -2,8 +2,6 @@
 
 package tasks
 
-var lineSeparator = "\r\n"
-
 var execScriptFile = "exec_test_script.bat"
 var execMoveScriptFile = "execmove_test_script.bat"
 var execOutputScriptFile = "execoutput_test_script.bat"
@@ -22,8 +20,12 @@ EXIT /B 2`
 
 const scriptExecInfinite = `@ECHO OFF
 :loop
-ECHO %1
 GOTO loop`
+
+const scriptExecMove = `@ECHO OFF
+MOVE %1 %2
+ECHO %2
+EXIT /B 0`
 
 const scriptExecOutputFail = `@ECHO OFF
 ECHO This is a message

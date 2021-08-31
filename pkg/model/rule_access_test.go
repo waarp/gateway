@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -29,15 +31,15 @@ func TestIsRuleAuthorized(t *testing.T) {
 
 		Convey("Given a rule entry", func() {
 			r := Rule{
-				Name:   "Test",
-				Path:   "test",
+				Name:   "rulename",
+				Path:   "/test_path",
 				IsSend: true,
 			}
 			So(db.Insert(&r).Run(), ShouldBeNil)
 
 			rAgent := RemoteAgent{
-				Name:        "Test",
-				Protocol:    "sftp",
+				Name:        "partner",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
@@ -45,14 +47,14 @@ func TestIsRuleAuthorized(t *testing.T) {
 
 			rAccount := RemoteAccount{
 				RemoteAgentID: rAgent.ID,
-				Login:         "Test",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 			}
 			So(db.Insert(&rAccount).Run(), ShouldBeNil)
 
 			lAgent := LocalAgent{
-				Name:        "Test",
-				Protocol:    "sftp",
+				Name:        "server",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2222",
 			}
@@ -60,8 +62,8 @@ func TestIsRuleAuthorized(t *testing.T) {
 
 			lAccount := LocalAccount{
 				LocalAgentID: lAgent.ID,
-				Login:        "Test",
-				PasswordHash: hash("password"),
+				Login:        "titi",
+				PasswordHash: hash("sesame"),
 			}
 			So(db.Insert(&lAccount).Run(), ShouldBeNil)
 
@@ -104,15 +106,15 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 
 		Convey("Given a rule entry", func() {
 			r := &Rule{
-				Name:   "Test",
+				Name:   "rulename",
 				IsSend: true,
 				Path:   "path",
 			}
 			So(db.Insert(r).Run(), ShouldBeNil)
 
 			rAgent := RemoteAgent{
-				Name:        "Test",
-				Protocol:    "sftp",
+				Name:        "partner",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
@@ -120,14 +122,14 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 
 			rAccount := RemoteAccount{
 				RemoteAgentID: rAgent.ID,
-				Login:         "Test",
-				Password:      "dummy",
+				Login:         "toto",
+				Password:      "sesame",
 			}
 			So(db.Insert(&rAccount).Run(), ShouldBeNil)
 
 			lAgent := LocalAgent{
-				Name:        "Test",
-				Protocol:    "sftp",
+				Name:        "server",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2222",
 			}
@@ -135,8 +137,8 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 
 			lAccount := LocalAccount{
 				LocalAgentID: lAgent.ID,
-				Login:        "Test",
-				PasswordHash: hash("dummy"),
+				Login:        "titi",
+				PasswordHash: hash("sesame"),
 			}
 			So(db.Insert(&lAccount).Run(), ShouldBeNil)
 

@@ -40,12 +40,10 @@ func (cmd *serverCommand) Execute([]string) error {
 		return err
 	}
 
-	if err := log.InitBackend(conf.GlobalConfig.Log); err != nil {
+	logConf := conf.GlobalConfig.Log
+	if err := log.InitBackend(logConf.Level, logConf.LogTo, logConf.SyslogFacility); err != nil {
 		return err
 	}
 	s := gatewayd.NewWG()
-	if err := s.Start(); err != nil {
-		return err
-	}
-	return nil
+	return s.Start()
 }

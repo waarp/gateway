@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 
 	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
@@ -19,16 +21,16 @@ func TestImportCerts(t *testing.T) {
 
 		Convey("Given a database with some Cryptos", func() {
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "test",
+				Name:        "server",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6666",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			agent2 := &model.LocalAgent{
-				Name:        "test2",
-				Protocol:    "test",
+				Name:        "agent2",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6666",
 			}
@@ -38,8 +40,8 @@ func TestImportCerts(t *testing.T) {
 				Name:        "foo",
 				OwnerType:   model.TableLocAgents,
 				OwnerID:     agent2.ID,
-				PrivateKey:  testhelpers.LocalhostKey,
-				Certificate: testhelpers.LocalhostCert,
+				PrivateKey:  testhelpers.OtherLocalhostKey,
+				Certificate: testhelpers.OtherLocalhostCert,
 			}
 			So(db.Insert(cert2).Run(), ShouldBeNil)
 

@@ -30,12 +30,21 @@ Lister les serveurs
    :resjsonarr string address: L'adresse du serveur (en format [adresse:port])
    :resjsonarr string root: La racine du serveur. Peut être relatif (à la racine
       de la *gateway*) ou absolu.
-   :resjsonarr string inDir: Le dossier de réception du serveur. Peut être
+   :resjson string inDir: Le dossier de réception du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'serverLocalInDir')
+   :resjson string outDir: Le dossier d'envoi du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'serverLocalOutDir')
+   :resjson string workDir: Le dossier temporaire du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
+      'serverLocalTmpDir')
+   :reqjson string serverLocalInDir: Le dossier de réception du serveur. Peut
+      être relatif (à la racine du serveur) ou absolu.
+   :reqjson string serverLocalOutDir: Le dossier d'envoi du serveur. Peut être
       relatif (à la racine du serveur) ou absolu.
-   :resjsonarr string outDir: Le dossier d'envoi du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu.
-   :resjsonarr string workDir: Le dossier temporaire du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu.
+   :reqjson string serverLocalTmpDir: Le dossier temporaire du serveur. Peut
+      être relatif (à la racine du serveur) ou absolu.
    :resjsonarr object protoConfig: La configuration du serveur encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
    :resjsonarr object authorizedRules: Les règles que le serveur est autorisé à

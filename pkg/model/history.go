@@ -1,6 +1,7 @@
 package model
 
 import (
+	"path"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -10,49 +11,50 @@ import (
 )
 
 func init() {
-	database.AddTable(&TransferHistory{})
+	database.AddTable(&HistoryEntry{})
 }
 
-// TransferHistory represents one record of the 'transfers_history' table.
-type TransferHistory struct {
+// HistoryEntry represents one record of the 'transfers_history' table.
+type HistoryEntry struct {
 	ID               uint64               `xorm:"pk 'id'"`
 	Owner            string               `xorm:"notnull 'owner'"`
 	RemoteTransferID string               `xorm:"unique(histRemID) 'remote_transfer_id'"`
 	IsServer         bool                 `xorm:"notnull 'is_server'"`
 	IsSend           bool                 `xorm:"notnull 'is_send'"`
-	Account          string               `xorm:"notnull unique(histRemID) 'account'"`
-	Agent            string               `xorm:"notnull unique(histRemID) 'agent'"`
-	Protocol         string               `xorm:"notnull 'protocol'"`
-	SourceFilename   string               `xorm:"notnull 'source_filename'"`
-	DestFilename     string               `xorm:"notnull 'dest_filename'"`
 	Rule             string               `xorm:"notnull 'rule'"`
+	Agent            string               `xorm:"notnull unique(histRemID) 'agent'"`
+	Account          string               `xorm:"notnull unique(histRemID) 'account'"`
+	Protocol         string               `xorm:"notnull 'protocol'"`
+	LocalPath        string               `xorm:"notnull 'local_path'"`
+	RemotePath       string               `xorm:"notnull 'remote_path'"`
+	Filesize         int64                `xorm:"notnull 'filesize'"`
 	Start            time.Time            `xorm:"notnull timestampz 'start'"`
 	Stop             time.Time            `xorm:"timestampz 'stop'"`
 	Status           types.TransferStatus `xorm:"notnull varchar(50) 'status'"`
-	Error            types.TransferError  `xorm:"extends"`
 	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
 	Progress         uint64               `xorm:"notnull 'progression'"`
 	TaskNumber       uint64               `xorm:"notnull 'task_number'"`
+	Error            types.TransferError  `xorm:"extends"`
 }
 
 // TableName returns the name of the transfer history table.
-func (*TransferHistory) TableName() string {
+func (*HistoryEntry) TableName() string {
 	return TableHistory
 }
 
 // Appellation returns the name of 1 element of the transfer history table.
-func (*TransferHistory) Appellation() string {
+func (*HistoryEntry) Appellation() string {
 	return "history entry"
 }
 
 // GetID returns the transfer's ID.
-func (h *TransferHistory) GetID() uint64 {
+func (h *HistoryEntry) GetID() uint64 {
 	return h.ID
 }
 
-// BeforeWrite checks if the new `TransferHistory` entry is valid and can be
+// BeforeWrite checks if the new `HistoryEntry` entry is valid and can be
 // inserted in the database.
-func (h *TransferHistory) BeforeWrite(database.ReadAccess) database.Error {
+func (h *HistoryEntry) BeforeWrite(database.ReadAccess) database.Error {
 	h.Owner = conf.GlobalConfig.GatewayName
 
 	if h.Owner == "" {
@@ -70,19 +72,11 @@ func (h *TransferHistory) BeforeWrite(database.ReadAccess) database.Error {
 	if h.Agent == "" {
 		return database.NewValidationError("the transfer's agent cannot be empty")
 	}
-	if h.IsServer {
-		if h.IsSend && h.DestFilename == "" {
-			return database.NewValidationError("the transfer's destination filename cannot be empty")
-		} else if !h.IsSend && h.SourceFilename == "" {
-			return database.NewValidationError("the transfer's destination filename cannot be empty")
-		}
-	} else {
-		if h.SourceFilename == "" {
-			return database.NewValidationError("the transfer's source filename cannot be empty")
-		}
-		if h.DestFilename == "" {
-			return database.NewValidationError("the transfer's destination filename cannot be empty")
-		}
+	if h.LocalPath == "" {
+		return database.NewValidationError("the local filepath cannot be empty")
+	}
+	if h.RemotePath == "" {
+		return database.NewValidationError("the remote filepath cannot be empty")
 	}
 	if h.Start.IsZero() {
 		return database.NewValidationError("the transfer's start date cannot be empty")
@@ -104,9 +98,9 @@ func (h *TransferHistory) BeforeWrite(database.ReadAccess) database.Error {
 	return nil
 }
 
-// Restart takes a History entry and converts it to a Transfer entry ready
+// Restart takes a HistoryEntry entry and converts it to a Transfer entry ready
 // to be executed.
-func (h *TransferHistory) Restart(db database.Access, date time.Time) (*Transfer, database.Error) {
+func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, database.Error) {
 	rule := &Rule{}
 	if err := db.Get(rule, "name=? AND send=?", h.Rule, h.IsSend).Run(); err != nil {
 		return nil, err
@@ -144,8 +138,8 @@ func (h *TransferHistory) Restart(db database.Access, date time.Time) (*Transfer
 		IsServer:         h.IsServer,
 		AgentID:          agentID,
 		AccountID:        accountID,
-		SourceFile:       h.SourceFilename,
-		DestFile:         h.DestFilename,
+		LocalPath:        path.Base(h.LocalPath),
+		RemotePath:       path.Base(h.RemotePath),
 		Start:            date,
 		Status:           types.StatusPlanned,
 		Step:             types.StepNone,

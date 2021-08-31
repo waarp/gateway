@@ -11,7 +11,7 @@ import (
 
 func TestLoadServerConfig(t *testing.T) {
 	directContent := []byte(`[Log]
-LogTo = direct-foo
+LogTo = stdout
 Level = direct-bar
 
 [Admin]
@@ -19,7 +19,7 @@ Host = direct-address
 
 `)
 	parentEtcContent := []byte(`[Log]
-LogTo = parent-etc-foo
+LogTo = stdout
 SyslogFacility = parent-etc-baz
 
 [Admin]
@@ -27,14 +27,14 @@ Host = parent-etc-address
 
 `)
 	userConfContent := []byte(`[Log]
-LogTo = user-foo
+LogTo = stdout
 
 [Admin]
 Host = user-address
 
 `)
 	badContent := []byte(`[Log]
-LogTo user-foo
+LogTo stdout
 
 `)
 
@@ -72,7 +72,7 @@ LogTo user-foo
 					})
 
 					Convey("Then it is parsed", func() {
-						So(c.Log.LogTo, ShouldEqual, "direct-foo")
+						So(c.Log.LogTo, ShouldEqual, "stdout")
 						So(c.Admin.Host, ShouldEqual, "direct-address")
 					})
 
@@ -114,7 +114,7 @@ LogTo user-foo
 				})
 
 				Convey("Then it is parsed", func() {
-					So(c.Log.LogTo, ShouldEqual, "parent-etc-foo")
+					So(c.Log.LogTo, ShouldEqual, "stdout")
 					So(c.Admin.Host, ShouldEqual, "parent-etc-address")
 				})
 
@@ -140,7 +140,7 @@ LogTo user-foo
 				})
 
 				Convey("Then only the one in the same directory is parsed", func() {
-					So(c.Log.LogTo, ShouldEqual, "direct-foo")
+					So(c.Log.LogTo, ShouldEqual, "stdout")
 					So(c.Log.SyslogFacility, ShouldEqual, "local0")
 					So(c.Admin.Host, ShouldEqual, "direct-address")
 				})
@@ -171,7 +171,7 @@ LogTo user-foo
 					})
 
 					Convey("Then it is parsed", func() {
-						So(c.Log.LogTo, ShouldEqual, "user-foo")
+						So(c.Log.LogTo, ShouldEqual, "stdout")
 						So(c.Admin.Host, ShouldEqual, "user-address")
 					})
 
@@ -195,7 +195,7 @@ LogTo user-foo
 					})
 
 					Convey("Then it is parsed", func() {
-						So(c.Log.LogTo, ShouldEqual, "user-foo")
+						So(c.Log.LogTo, ShouldEqual, "stdout")
 						So(c.Admin.Host, ShouldEqual, "user-address")
 					})
 
@@ -338,51 +338,4 @@ HasBeenRemoved = true
 
 	})
 
-}
-
-func TestNormalizePaths(t *testing.T) {
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Failed to retrieve working directory: %s", err)
-	}
-
-	Convey("Given a conf object", t, func() {
-		conf := &ServerConfig{}
-
-		testCases := []struct {
-			desc                            string
-			home, in, out, work             string
-			expDesc                         string
-			expHome, expIn, expOut, expWork string
-		}{
-			{"all paths are absolute", "/home", "/home/in", "/home/out", "/home/work",
-				"the paths should be unchanged", "/home", "/home/in", "/home/out", "/home/work"},
-			{"the sub dirs are relative", "/home", "in", "out", "work",
-				"the paths should be placed under the home dir", "/home", "/home/in", "/home/out", "/home/work"},
-			{"the home dir is relative", "./home", "/in", "/out", "/work",
-				"the home dir should be under the current dir", wd + "/home", "/in", "/out", "/work"},
-			{"the home dir is empty", "", "/in", "/out", "/work",
-				"the home dir should be the current dir", wd, "/in", "/out", "/work"},
-		}
-
-		for _, testCase := range testCases {
-			Convey("Given that "+testCase.desc, func() {
-				conf.Paths.GatewayHome = mkWin(testCase.home)
-				conf.Paths.InDirectory = mkWin(testCase.in)
-				conf.Paths.OutDirectory = mkWin(testCase.out)
-				conf.Paths.WorkDirectory = mkWin(testCase.work)
-
-				Convey("When normalizing the paths", func() {
-					So(normalizePaths(conf), ShouldBeNil)
-
-					Convey("Then "+testCase.expDesc, func() {
-						So(conf.Paths.GatewayHome, ShouldEqual, mkWin(testCase.expHome))
-						So(conf.Paths.InDirectory, ShouldEqual, mkWin(testCase.expIn))
-						So(conf.Paths.OutDirectory, ShouldEqual, mkWin(testCase.expOut))
-						So(conf.Paths.WorkDirectory, ShouldEqual, mkWin(testCase.expWork))
-					})
-				})
-			})
-		}
-	})
 }

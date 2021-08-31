@@ -1,10 +1,11 @@
-Retenter un transfert échoué
-============================
+Reprogrammer un transfert
+=========================
 
 .. http:put:: /api/history/(int:history_id)/retry
 
-   Redémarre le transfert portant l'identifiant ``history_id``. Retenter un
-   transfert réussi n'est pas permit.
+   Reprogramme le transfert portant l'identifiant ``history_id``. Reprogrammer
+   un transfert crée un nouveau transfert identique et l'ajoute à la liste des
+   transferts en attente.
 
    :reqheader Authorization: Les identifiants de l'utilisateur
 
@@ -14,7 +15,7 @@ Retenter un transfert échoué
       redémarre immédiatement.
    :type date: date
 
-   :statuscode 201: Le transfert a été redémarré avec succès
+   :statuscode 201: Le transfert a été reprogrammé avec succès
    :statuscode 400: Le transfert demandé ne peut pas être redémarré
    :statuscode 401: Authentification d'utilisateur invalide
    :statuscode 404: Le transfert demandé n'existe pas

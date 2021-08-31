@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -21,13 +20,13 @@ import (
 
 func serverInfoString(s *api.OutServer) string {
 	return "● Server " + s.Name + "\n" +
-		"    Protocol:       " + s.Protocol + "\n" +
-		"    Address:        " + s.Address + "\n" +
-		"    Root:           " + s.Root + "\n" +
-		"    In directory:   " + s.InDir + "\n" +
-		"    Out directory:  " + s.OutDir + "\n" +
-		"    Work directory: " + s.WorkDir + "\n" +
-		"    Configuration:  " + string(s.ProtoConfig) + "\n" +
+		"    Protocol:            " + s.Protocol + "\n" +
+		"    Address:             " + s.Address + "\n" +
+		"    Root:                " + s.Root + "\n" +
+		"    Local IN directory:  " + s.LocalInDir + "\n" +
+		"    Local OUT directory: " + s.LocalOutDir + "\n" +
+		"    Local TMP directory: " + s.LocalTmpDir + "\n" +
+		"    Configuration:       " + string(s.ProtoConfig) + "\n" +
 		"    Authorized rules\n" +
 		"    ├─Sending:   " + strings.Join(s.AuthorizedRules.Sending, ", ") + "\n" +
 		"    └─Reception: " + strings.Join(s.AuthorizedRules.Reception, ", ") + "\n"
@@ -41,18 +40,18 @@ func TestGetServer(t *testing.T) {
 
 		Convey("Given a gateway with 1 local server", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "server_name",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				Root:        "/server/root",
-				InDir:       "/server/in",
-				OutDir:      "/server/out",
-				WorkDir:     "/server/work",
+				LocalInDir:  "/in",
+				LocalOutDir: "/out",
+				LocalTmpDir: "/tmp",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -116,15 +115,15 @@ func TestAddServer(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			Convey("Given valid flags", func() {
-				args := []string{"-n", "server_name", "-p", "test",
+				args := []string{"-n", "server_name", "-p", testProto1,
 					"--root=root", "--in=in_dir", "--out=out_dir",
-					"--work=work_dir", "-a", "localhost:1"}
+					"--tmp=tmp_dir", "-a", "localhost:1"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -147,9 +146,9 @@ func TestAddServer(t *testing.T) {
 							Address:     command.Address,
 							Protocol:    command.Protocol,
 							Root:        *command.Root,
-							InDir:       *command.InDir,
-							OutDir:      *command.OutDir,
-							WorkDir:     *command.WorkDir,
+							LocalInDir:  *command.InDir,
+							LocalOutDir: *command.OutDir,
+							LocalTmpDir: *command.TempDir,
 							ProtoConfig: json.RawMessage(`{}`),
 						}
 						So(servers, ShouldContain, exp)
@@ -173,7 +172,7 @@ func TestAddServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid configuration", func() {
-				args := []string{"-n", "server_name", "-p", "fail",
+				args := []string{"-n", "server_name", "-p", testProtoErr,
 					"--root=/server/root", "-c", "unknown:val",
 					"-a", "localhost:1"}
 
@@ -190,7 +189,7 @@ func TestAddServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid address", func() {
-				args := []string{"-n", "server_name", "-p", "fail",
+				args := []string{"-n", "server_name", "-p", testProtoErr,
 					"--root=/server/root", "-a", "invalid_address"}
 
 				Convey("When executing the command", func() {
@@ -208,7 +207,7 @@ func TestAddServer(t *testing.T) {
 			Convey("Given a new R66 server", func() {
 				args := []string{"-n", "r66_server", "-p", "r66",
 					"--root=root", "--in=in_dir", "--out=out_dir",
-					"--work=work_dir", "-a", "localhost:1", "-c", "blockSize:256",
+					"--tmp=tmp_dir", "-a", "localhost:1", "-c", "blockSize:256",
 					"-c", "serverPassword:sesame"}
 
 				Convey("When executing the command", func() {
@@ -228,7 +227,7 @@ func TestAddServer(t *testing.T) {
 
 						var r66Conf config.R66ProtoConfig
 						So(json.Unmarshal(servers[0].ProtoConfig, &r66Conf), ShouldBeNil)
-						pwd, err := utils.AESDecrypt(r66Conf.ServerPassword)
+						pwd, err := utils.AESDecrypt(database.GCM, r66Conf.ServerPassword)
 						So(err, ShouldBeNil)
 
 						So(pwd, ShouldEqual, "sesame")
@@ -243,9 +242,9 @@ func TestAddServer(t *testing.T) {
 							Address:     "localhost:1",
 							Protocol:    "r66",
 							Root:        "root",
-							InDir:       "in_dir",
-							OutDir:      "out_dir",
-							WorkDir:     "work_dir",
+							LocalInDir:  "in_dir",
+							LocalOutDir: "out_dir",
+							LocalTmpDir: "tmp_dir",
 							ProtoConfig: json.RawMessage(`{"blockSize":256,"serverPassword":"sesame"}`),
 						}
 						So(servers[0], ShouldResemble, exp)
@@ -264,18 +263,18 @@ func TestListServers(t *testing.T) {
 
 		Convey("Given a gateway with 2 local servers", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server1 := &model.LocalAgent{
 				Name:        "server1",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				Root:        "/test/root1",
-				InDir:       "/test/in1",
-				OutDir:      "/test/out1",
-				WorkDir:     "/test/work1",
+				LocalInDir:  "/test/in1",
+				LocalOutDir: "/test/out1",
+				LocalTmpDir: "/test/tmp1",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -283,11 +282,11 @@ func TestListServers(t *testing.T) {
 
 			server2 := &model.LocalAgent{
 				Name:        "server2",
-				Protocol:    "test2",
+				Protocol:    testProto2,
 				Root:        "/test/root2",
-				InDir:       "/test/in2",
-				OutDir:      "/test/out2",
-				WorkDir:     "/test/work2",
+				LocalInDir:  "/test/in2",
+				LocalOutDir: "/test/out2",
+				LocalTmpDir: "/test/tmp2",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
@@ -357,7 +356,7 @@ func TestListServers(t *testing.T) {
 			})
 
 			Convey("Given the 'protocol' parameter is set to 'test'", func() {
-				args := []string{"-p", "test"}
+				args := []string{"-p", testProto1}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -382,14 +381,14 @@ func TestDeleteServer(t *testing.T) {
 
 		Convey("Given a gateway with 1 local server", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "server_name",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -447,21 +446,21 @@ func TestUpdateServer(t *testing.T) {
 
 		Convey("Given a gateway with 1 local server", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
-				args := []string{"-n", "new_server", "-p", "test2",
+				args := []string{"-n", "new_server", "-p", testProto2,
 					"-a", "localhost:2", server.Name}
 
 				Convey("When executing the command", func() {
@@ -513,7 +512,7 @@ func TestUpdateServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid configuration", func() {
-				args := []string{"-n", "new_server", "-p", "fail",
+				args := []string{"-n", "new_server", "-p", testProtoErr,
 					"-c", "unknown:val", "-a", "localhost:2", server.Name}
 
 				Convey("When executing the command", func() {
@@ -535,7 +534,7 @@ func TestUpdateServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid address", func() {
-				args := []string{"-n", "new_server", "-p", "fail",
+				args := []string{"-n", "new_server", "-p", testProtoErr,
 					"-a", "invalid_address", server.Name}
 
 				Convey("When executing the command", func() {
@@ -557,7 +556,7 @@ func TestUpdateServer(t *testing.T) {
 			})
 
 			Convey("Given a non-existing name", func() {
-				args := []string{"-n", "new_server", "-p", "test2",
+				args := []string{"-n", "new_server", "-p", testProto2,
 					"-c", "updated_key:updated_val", "toto"}
 
 				Convey("When executing the command", func() {
@@ -588,14 +587,14 @@ func TestAuthorizeServer(t *testing.T) {
 
 		Convey("Given a gateway with 1 local server and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -604,7 +603,7 @@ func TestAuthorizeServer(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -688,14 +687,14 @@ func TestRevokeServer(t *testing.T) {
 
 		Convey("Given a gateway with 1 distant server and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -704,7 +703,7 @@ func TestRevokeServer(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 

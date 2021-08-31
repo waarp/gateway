@@ -9,71 +9,48 @@ import (
 	"strings"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/pkg/sftp"
 )
 
-type fileWriterFunc func(r *sftp.Request) (io.WriterAt, error)
+var (
+	leaf   = func(str string) utils.Leaf { return utils.Leaf(str) }
+	branch = func(str string) utils.Branch { return utils.Branch(str) }
+)
 
-func (fw fileWriterFunc) Filewrite(r *sftp.Request) (io.WriterAt, error) {
-	return fw(r)
-}
-
-type fileReaderFunc func(r *sftp.Request) (io.ReaderAt, error)
-
-func (fr fileReaderFunc) Fileread(r *sftp.Request) (io.ReaderAt, error) {
-	return fr(r)
-}
-
-type fileCmdFunc func(r *sftp.Request) error
-
-func (fc fileCmdFunc) Filecmd(r *sftp.Request) error {
-	return fc(r)
-}
-
-type fileListerFunc func(r *sftp.Request) (sftp.ListerAt, error)
-
-func (fl fileListerFunc) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
-	return fl(r)
-}
-
-type listerAtFunc func(ls []os.FileInfo, offset int64) (int, error)
-
-func (la listerAtFunc) ListAt(ls []os.FileInfo, offset int64) (int, error) {
-	return la(ls, offset)
-}
-
-func makeFileCmder() fileCmdFunc {
+func makeFileCmder() internal.CmdFunc {
 	return func(r *sftp.Request) error {
 		return sftp.ErrSSHFxOpUnsupported
 	}
 }
 
-func (l *sshListener) makeFileLister(paths *pipeline.Paths, acc *model.LocalAccount) fileListerFunc {
+func (l *sshListener) makeFileLister(acc *model.LocalAccount) internal.FileListerAtFunc {
 	return func(r *sftp.Request) (sftp.ListerAt, error) {
 		switch r.Method {
 		case "Stat":
-			return l.statAt(r, paths, acc), nil
+			return l.statAt(r, acc), nil
 		case "List":
-			return l.listAt(r, paths, acc), nil
+			return l.listAt(r, acc), nil
 		default:
 			return nil, sftp.ErrSSHFxOpUnsupported
 		}
 	}
 }
 
-func (l *sshListener) listAt(r *sftp.Request, confPaths *pipeline.Paths, acc *model.LocalAccount) listerAtFunc {
+func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.ListerAtFunc {
 	return func(ls []os.FileInfo, offset int64) (int, error) {
 		var infos []os.FileInfo
 		l.Logger.Debugf("Received 'List' request on %s", r.Filepath)
 
-		realDir, err := l.getRealPath(acc, confPaths, r.Filepath)
+		realDir, err := l.getRealPath(acc, r.Filepath)
 		if err != nil {
-			return 0, modelToSFTP(err)
+			return 0, internal.ToSFTPErr(err)
 		}
 
 		if realDir != "" {
@@ -88,7 +65,7 @@ func (l *sshListener) listAt(r *sftp.Request, confPaths *pipeline.Paths, acc *mo
 		} else {
 			rulesPaths, err := l.getRulesPaths(acc, r.Filepath)
 			if err != nil {
-				return 0, modelToSFTP(err)
+				return 0, internal.ToSFTPErr(err)
 			}
 			for i := range rulesPaths {
 				infos = append(infos, dirInfo(rulesPaths[i]))
@@ -107,14 +84,14 @@ func (l *sshListener) listAt(r *sftp.Request, confPaths *pipeline.Paths, acc *mo
 	}
 }
 
-func (l *sshListener) statAt(r *sftp.Request, confPaths *pipeline.Paths, acc *model.LocalAccount) listerAtFunc {
+func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.ListerAtFunc {
 	return func(ls []os.FileInfo, _ int64) (int, error) {
 		var infos os.FileInfo
 		l.Logger.Debugf("Received 'Stat' request on %s", r.Filepath)
 
-		realDir, err := l.getRealPath(acc, confPaths, r.Filepath)
+		realDir, err := l.getRealPath(acc, r.Filepath)
 		if err != nil {
-			return 0, modelToSFTP(err)
+			return 0, internal.ToSFTPErr(err)
 		}
 
 		if realDir != "" {
@@ -140,8 +117,7 @@ func (l *sshListener) statAt(r *sftp.Request, confPaths *pipeline.Paths, acc *mo
 	}
 }
 
-func (l *sshListener) getRealPath(acc *model.LocalAccount, confPaths *pipeline.Paths,
-	dir string) (string, error) {
+func (l *sshListener) getRealPath(acc *model.LocalAccount, dir string) (string, error) {
 
 	dir = strings.TrimPrefix(dir, "/")
 	rule, err := l.getClosestRule(acc, dir, true)
@@ -152,12 +128,12 @@ func (l *sshListener) getRealPath(acc *model.LocalAccount, confPaths *pipeline.P
 		return "", err
 	}
 
+	confPaths := &conf.GlobalConfig.Paths
 	rest := strings.TrimPrefix(dir, rule.Path)
 	rest = strings.TrimPrefix(rest, "/")
-	realDir := utils.GetPath(rest, utils.Elems{{rule.OutPath, true},
-		{confPaths.ServerOut, true}, {confPaths.ServerRoot, false},
-		{confPaths.OutDirectory, true}, {confPaths.GatewayHome, false}})
-	return utils.DenormalizePath(realDir), nil
+	realDir := utils.GetPath(rest, leaf(rule.LocalDir), leaf(l.Agent.LocalOutDir),
+		branch(l.Agent.Root), leaf(confPaths.DefaultOutDir), branch(confPaths.GatewayHome))
+	return utils.ToOSPath(realDir), nil
 }
 
 func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
@@ -214,7 +190,7 @@ func (l *sshListener) getRulesPaths(acc *model.LocalAccount, dir string) ([]stri
 		return nil, err
 	}
 	if len(rules) == 0 {
-		return nil, sftp.ErrSSHFxNoSuchFile
+		return nil, types.NewTransferError(types.TeFileNotFound, os.ErrNotExist.Error())
 	}
 
 	paths := make([]string, 0, len(rules))

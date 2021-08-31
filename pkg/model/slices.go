@@ -18,14 +18,14 @@ func (*TransferInfoList) TableName() string { return TableTransferInfo }
 // Elem returns the name of 1 element of the transfer info table.
 func (*TransferInfoList) Elem() string { return "transfer info" }
 
-// Histories is the type representing a slice of TransferHistory.
-type Histories []TransferHistory
+// HistoryEntries is the type representing a slice of HistoryEntry.
+type HistoryEntries []HistoryEntry
 
 // TableName returns the name of the transfer history table.
-func (*Histories) TableName() string { return TableHistory }
+func (*HistoryEntries) TableName() string { return TableHistory }
 
 // Elem returns the name of 1 element of the transfer history table.
-func (*Histories) Elem() string { return "history entry" }
+func (*HistoryEntries) Elem() string { return "history entry" }
 
 // LocalAccounts is the type representing a slice of LocalAccount.
 type LocalAccounts []LocalAccount

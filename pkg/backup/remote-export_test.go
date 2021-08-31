@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
@@ -19,8 +21,8 @@ func TestExportRemoteAgents(t *testing.T) {
 
 		Convey("Given the database contains remotes agents with accounts", func() {
 			agent1 := &model.RemoteAgent{
-				Name:        "test",
-				Protocol:    "test",
+				Name:        "agent1",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6666",
 			}
@@ -28,7 +30,7 @@ func TestExportRemoteAgents(t *testing.T) {
 
 			account1a := &model.RemoteAccount{
 				RemoteAgentID: agent1.ID,
-				Login:         "test",
+				Login:         "acc1a",
 				Password:      "pwd",
 			}
 			So(db.Insert(account1a).Run(), ShouldBeNil)
@@ -42,8 +44,8 @@ func TestExportRemoteAgents(t *testing.T) {
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			agent2 := &model.RemoteAgent{
-				Name:        "test2",
-				Protocol:    "test",
+				Name:        "agent2",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2023",
 			}
@@ -51,7 +53,7 @@ func TestExportRemoteAgents(t *testing.T) {
 
 			account2a := &model.RemoteAccount{
 				RemoteAgentID: agent2.ID,
-				Login:         "test",
+				Login:         "acc2a",
 				Password:      "pwd",
 			}
 			So(db.Insert(account2a).Run(), ShouldBeNil)
@@ -134,8 +136,8 @@ func TestExportRemoteAccounts(t *testing.T) {
 			pwd1 := "pwd"
 			pwd2 := "bar"
 			agent := &model.RemoteAgent{
-				Name:        "test",
-				Protocol:    "test",
+				Name:        "partner",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -143,7 +145,7 @@ func TestExportRemoteAccounts(t *testing.T) {
 
 			account1 := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
-				Login:         "test",
+				Login:         "acc1",
 				Password:      types.CypherText(pwd1),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
@@ -159,8 +161,8 @@ func TestExportRemoteAccounts(t *testing.T) {
 				Name:        "test_cert",
 				OwnerType:   model.TableRemAccounts,
 				OwnerID:     account2.ID,
-				Certificate: testhelpers.ClientCert,
-				PrivateKey:  testhelpers.ClientKey,
+				Certificate: testhelpers.ClientFooCert,
+				PrivateKey:  testhelpers.ClientFooKey,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 

@@ -81,6 +81,32 @@ de la commande est disponible :any:`ici <reference-cli-client-servers-list>`.
 
    waarp-gateway 'https://admin@127.0.0.1:8080' history list
 
+Mettre un transfert en pause
+============================
+
+Pour mettre un transfert en pause, la commande est ``transfer pause``, suivie
+ensuite de l'identifiant du transfert.
+
+**Exemple**
+
+.. code-block:: shell
+
+   waarp-gateway 'https://admin@127.0.0.1:8080' transfer pause '1234'
+
+Reprendre un transfert arrêté
+=============================
+
+Pour reprendre un transfert à l'arrêt, la commande est ``transfer resume``, suivie
+ensuite de l'identifiant du transfert. Le transfert reprendra là où il s'était
+arrêté.
+
+.. note:: Seuls les transferts en pause ou en erreur peuvent être repris.
+
+**Exemple**
+
+.. code-block:: shell
+
+   waarp-gateway 'https://admin@127.0.0.1:8080' transfer resume '1234'
 
 Annuler un transfert
 ====================
@@ -95,17 +121,16 @@ l'identifiant du transfert.
    waarp-gateway 'https://admin@127.0.0.1:8080' transfer cancel '1234'
 
 
-Redémarrer un transfert
-=======================
+Reprogrammer un transfert
+=========================
 
-Pour redémarrer un transfert, la commande est ``history retry``, suivie ensuite
-de l'identifiant du transfert.
+Pour reprogrammer un transfert, la commande est ``history retry``, suivie ensuite
+de l'identifiant du transfert. Le transfert recommencera depuis le début.
 
-.. note::
-   Seuls les transferts ayant échoué ou ayant été annulés peuvent être retentés.
+.. note:: Seuls les transferts terminés peuvent être reprogrammés.
 
 **Exemple**
 
 .. code-block:: shell
 
-   waarp-gateway 'https://admin@127.0.0.1:8080' transfer cancel '1234'
+   waarp-gateway 'https://admin@127.0.0.1:8080' transfer retry '1234'

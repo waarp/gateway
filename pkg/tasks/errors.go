@@ -5,17 +5,23 @@ import (
 	"os"
 )
 
-var errWarning = fmt.Errorf("warning")
+type errWarning struct {
+	msg string
+}
+
+func (e *errWarning) Error() string {
+	return e.msg
+}
 
 // Converts OS-specific file errors into normalized versions.
-func normalizeFileError(err error) error {
+func normalizeFileError(action string, err error) error {
 	if os.IsNotExist(err) {
 		e := err.(*os.PathError)
-		return &errFileNotFound{e.Op, e.Path}
+		return &errFileNotFound{action, e.Path}
 	}
 	if os.IsPermission(err) {
 		e := err.(*os.PathError)
-		return &errPermissionDenied{e.Op, e.Path}
+		return &errPermissionDenied{action, e.Path}
 	}
 	return err
 }
@@ -25,7 +31,7 @@ type errFileNotFound struct {
 }
 
 func (e *errFileNotFound) Error() string {
-	return fmt.Sprintf("cannot %s file '%s' - file does not exist", e.action, e.path)
+	return fmt.Sprintf("failed to %s '%s' - file does not exist", e.action, e.path)
 }
 
 type errPermissionDenied struct {
@@ -33,5 +39,5 @@ type errPermissionDenied struct {
 }
 
 func (e *errPermissionDenied) Error() string {
-	return fmt.Sprintf("cannot %s file '%s' - permission denied", e.action, e.path)
+	return fmt.Sprintf("failed to %s '%s' - permission denied", e.action, e.path)
 }

@@ -13,8 +13,9 @@ type InTransfer struct {
 	Partner    string    `json:"partner"`
 	Account    string    `json:"account"`
 	IsSend     *bool     `json:"isSend"`
-	SourcePath string    `json:"sourcePath"`
-	DestPath   string    `json:"destPath"`
+	SourcePath string    `json:"sourcePath,omitempty"` // DEPRECATED
+	DestPath   string    `json:"destPath,omitempty"`   // DEPRECATED
+	File       string    `json:"file"`
 	Start      time.Time `json:"startDate"`
 }
 
@@ -28,9 +29,12 @@ type OutTransfer struct {
 	IsSend       bool                 `json:"isSend"`
 	Requested    string               `json:"requested"`
 	Requester    string               `json:"requester"`
-	TrueFilepath string               `json:"trueFilepath"`
-	SourcePath   string               `json:"sourcePath"`
-	DestPath     string               `json:"destPath"`
+	TrueFilepath string               `json:"trueFilepath"` // DEPRECATED
+	SourcePath   string               `json:"sourcePath"`   // DEPRECATED
+	DestPath     string               `json:"destPath"`     // DEPRECATED
+	LocalPath    string               `json:"localPath"`
+	RemotePath   string               `json:"remotePath"`
+	Filesize     int64                `json:"filesize"`
 	Start        time.Time            `json:"startDate"`
 	Status       types.TransferStatus `json:"status"`
 	Step         string               `json:"step,omitempty"`

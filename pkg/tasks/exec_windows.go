@@ -1,10 +1,18 @@
+// +build windows
+
 package tasks
 
 import (
-	"context"
+	"os"
 	"os/exec"
 )
 
-func getCommand(ctx context.Context, path, args string) *exec.Cmd {
-	return exec.CommandContext(ctx, "cmd.exe", "/C", path+" "+args) //nolint:gosec
+const lineSeparator = "\r\n"
+
+func getCommand(path, args string) *exec.Cmd {
+	return exec.Command("cmd.exe", "/C", path+" "+args) //nolint:gosec
+}
+
+func haltExec(cmd *exec.Cmd) {
+	_ = cmd.Process.Signal(os.Kill)
 }

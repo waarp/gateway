@@ -18,16 +18,25 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/r66"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
+
+type serviceConstructor func(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService
+
+// ServiceConstructors is a map associating each protocol with a constructor for
+// a client of said protocol. In order for the gateway to be able to perform
+// client transfer with a protocol, a constructor must be added to this map, to
+// allow a client to be instantiated.
+var ServiceConstructors = map[string]serviceConstructor{}
 
 // WG is the top level service handler. It manages all other components.
 type WG struct {
 	*log.Logger
-	Services  map[string]service.Service
-	dbService *database.DB
+
+	dbService     *database.DB
+	adminService  *admin.Server
+	controller    *controller.Controller
+	ProtoServices map[string]service.ProtoService
 }
 
 // NewWG creates a new application
@@ -42,27 +51,33 @@ func (wg *WG) makeDirs() error {
 	if err := os.MkdirAll(config.GatewayHome, 0744); err != nil {
 		return fmt.Errorf("failed to create gateway home directory: %s", err)
 	}
-	if err := os.MkdirAll(config.InDirectory, 0744); err != nil {
+	if err := os.MkdirAll(config.DefaultInDir, 0744); err != nil {
 		return fmt.Errorf("failed to create gateway in directory: %s", err)
 	}
-	if err := os.MkdirAll(config.OutDirectory, 0744); err != nil {
+	if err := os.MkdirAll(config.DefaultOutDir, 0744); err != nil {
 		return fmt.Errorf("failed to create gateway out directory: %s", err)
 	}
-	if err := os.MkdirAll(config.WorkDirectory, 0744); err != nil {
+	if err := os.MkdirAll(config.DefaultTmpDir, 0744); err != nil {
 		return fmt.Errorf("failed to create gateway work directory: %s", err)
 	}
 	return nil
 }
 
 func (wg *WG) initServices() {
-	wg.Services = make(map[string]service.Service)
+	core := make(map[string]service.Service)
+	wg.ProtoServices = make(map[string]service.ProtoService)
 
 	wg.dbService = &database.DB{}
-	adminService := &admin.Server{DB: wg.dbService, Services: wg.Services}
-	controllerService := &controller.Controller{DB: wg.dbService}
+	wg.adminService = &admin.Server{
+		DB:            wg.dbService,
+		CoreServices:  core,
+		ProtoServices: wg.ProtoServices,
+	}
+	wg.controller = &controller.Controller{DB: wg.dbService}
 
-	wg.Services[admin.ServiceName] = adminService
-	wg.Services[controller.ServiceName] = controllerService
+	core[service.DatabaseServiceName] = wg.dbService
+	core[service.AdminServiceName] = wg.adminService
+	core[service.ControllerServiceName] = wg.controller
 }
 
 func (wg *WG) startServices() error {
@@ -78,23 +93,19 @@ func (wg *WG) startServices() error {
 
 	for i, server := range servers {
 		l := log.NewLogger(server.Name)
-		switch server.Protocol {
-		case "sftp":
-			wg.Services[server.Name] = sftp.NewService(wg.dbService, &servers[i], l)
-		case "r66":
-			wg.Services[server.Name] = r66.NewService(wg.dbService, &servers[i], l)
-		default:
-			wg.Logger.Warningf("Unknown server protocol '%s'", server.Protocol)
+		constr, ok := ServiceConstructors[server.Protocol]
+		if !ok {
+			wg.Logger.Warningf("Unknown protocol '%s' for server %s",
+				server.Protocol, server.Name)
 		}
+		constr(wg.dbService, &servers[i], l)
 	}
 
-	for _, serv := range wg.Services {
+	for _, serv := range wg.ProtoServices {
 		if err := serv.Start(); err != nil {
 			wg.Logger.Errorf("Error starting service: %s", err)
 		}
-
 	}
-	wg.Services[database.ServiceName] = wg.dbService
 
 	return nil
 }
@@ -103,10 +114,8 @@ func (wg *WG) stopServices() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	delete(wg.Services, database.ServiceName)
-
 	w := sync.WaitGroup{}
-	for _, wgService := range wg.Services {
+	for _, wgService := range wg.ProtoServices {
 		if code, _ := wgService.State().Get(); code != service.Running && code != service.Starting {
 			continue
 		}
@@ -119,6 +128,8 @@ func (wg *WG) stopServices() {
 	}
 	w.Wait()
 
+	_ = wg.controller.Stop(ctx)
+	_ = wg.adminService.Stop(ctx)
 	_ = wg.dbService.Stop(ctx)
 }
 

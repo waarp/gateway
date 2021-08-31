@@ -104,9 +104,5 @@ func (l *LocalAccount) BeforeDelete(db database.Access) database.Error {
 
 	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
 		"object_type=? AND object_id=?", TableLocAccounts, l.ID)
-	if err := accessQuery.Run(); err != nil {
-		return err
-	}
-
-	return nil
+	return accessQuery.Run()
 }

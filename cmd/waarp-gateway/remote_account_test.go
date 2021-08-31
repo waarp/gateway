@@ -6,13 +6,11 @@ import (
 	"net/url"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -25,14 +23,14 @@ func TestGetRemoteAccount(t *testing.T) {
 
 		Convey("Given a gateway with 1 remote account", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -40,8 +38,8 @@ func TestGetRemoteAccount(t *testing.T) {
 			commandLine.Account.Remote.Args.Partner = partner.Name
 
 			account := &model.RemoteAccount{
-				Login:         "login",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 				RemoteAgentID: partner.ID,
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
@@ -80,7 +78,7 @@ func TestGetRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				args := []string{"toto"}
+				args := []string{"tata"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -88,7 +86,7 @@ func TestGetRemoteAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for partner "+
+						So(err, ShouldBeError, "no account 'tata' found for partner "+
 							partner.Name)
 					})
 				})
@@ -120,14 +118,14 @@ func TestAddRemoteAccount(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -135,7 +133,7 @@ func TestAddRemoteAccount(t *testing.T) {
 			commandLine.Account.Remote.Args.Partner = partner.Name
 
 			Convey("Given valid flags", func() {
-				args := []string{"-l", "login", "-p", "password"}
+				args := []string{"-l", "toto", "-p", "sesame"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -143,7 +141,7 @@ func TestAddRemoteAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the account was added", func() {
-						So(getOutput(), ShouldEqual, "The account login "+
+						So(getOutput(), ShouldEqual, "The account toto "+
 							"was successfully added.\n")
 					})
 
@@ -163,7 +161,7 @@ func TestAddRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid partner name", func() {
-				args := []string{"-l", "login", "-p", "password"}
+				args := []string{"-l", "toto", "-p", "sesame"}
 				commandLine.Account.Remote.Args.Partner = "toto"
 
 				Convey("When executing the command", func() {
@@ -188,14 +186,14 @@ func TestDeleteRemoteAccount(t *testing.T) {
 
 		Convey("Given a gateway with 1 remote account", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -204,8 +202,8 @@ func TestDeleteRemoteAccount(t *testing.T) {
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
-				Login:         "login",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -231,7 +229,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				args := []string{"toto"}
+				args := []string{"tata"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -239,7 +237,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for partner "+
+						So(err, ShouldBeError, "no account 'tata' found for partner "+
 							partner.Name)
 					})
 
@@ -283,14 +281,14 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 		Convey("Given a gateway with 1 remote account", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -299,8 +297,8 @@ func TestUpdateRemoteAccount(t *testing.T) {
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
-				Login:         "login",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -334,7 +332,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				args := []string{"-l", "new_login", "-p", "new_password", "toto"}
+				args := []string{"-l", "new_login", "-p", "new_password", "tata"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -342,7 +340,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for partner "+
+						So(err, ShouldBeError, "no account 'tata' found for partner "+
 							partner.Name)
 					})
 
@@ -386,14 +384,14 @@ func TestListRemoteAccount(t *testing.T) {
 
 		Convey("Given a gateway with 2 remote accounts", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner1 := &model.RemoteAgent{
 				Name:        "partner1",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -402,7 +400,7 @@ func TestListRemoteAccount(t *testing.T) {
 
 			partner2 := &model.RemoteAgent{
 				Name:        "partner2",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
@@ -535,14 +533,14 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 
 		Convey("Given a gateway with 1 remote account and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -550,15 +548,15 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
-				Login:         "login",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -636,7 +634,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				commandLine.Account.Remote.Args.Partner = partner.Name
-				args := []string{"toto", rule.Name, direction(rule)}
+				args := []string{"tata", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -644,7 +642,7 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then is should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for partner "+partner.Name)
+						So(err, ShouldBeError, "no account 'tata' found for partner "+partner.Name)
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
@@ -666,14 +664,14 @@ func TestRevokeRemoteAccount(t *testing.T) {
 
 		Convey("Given a gateway with 1 remote account and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -681,15 +679,15 @@ func TestRevokeRemoteAccount(t *testing.T) {
 
 			var account = &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
-				Login:         "login",
-				Password:      "password",
+				Login:         "toto",
+				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -768,7 +766,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				commandLine.Account.Remote.Args.Partner = partner.Name
-				args := []string{"toto", rule.Name, direction(rule)}
+				args := []string{"tata", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -776,7 +774,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then is should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for partner "+partner.Name)
+						So(err, ShouldBeError, "no account 'tata' found for partner "+partner.Name)
 					})
 
 					Convey("Then the permission should NOT have been added", func() {

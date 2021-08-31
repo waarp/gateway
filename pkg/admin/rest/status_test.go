@@ -17,29 +17,43 @@ type testService struct {
 	state service.State
 }
 
-func (*testService) Start() error               { return nil }
-func (*testService) Stop(context.Context) error { return nil }
-func (t *testService) State() *service.State    { return &t.state }
+func (*testService) Start() error                          { return nil }
+func (*testService) Stop(context.Context) error            { return nil }
+func (t *testService) State() *service.State               { return &t.state }
+func (*testService) ManageTransfers() *service.TransferMap { return service.NewTransferMap() }
 
 func TestStatus(t *testing.T) {
 	statusLogger := log.NewLogger("rest_status_test")
 
-	var services = make(map[string]service.Service)
-	services["Test Running Service"] = &testService{state: service.State{}}
-	services["Test Running Service"].State().Set(service.Running, "")
-	services["Test Offline Service"] = &testService{state: service.State{}}
-	services["Test Offline Service"].State().Set(service.Offline, "")
-	services["Test Error Service"] = &testService{state: service.State{}}
-	services["Test Error Service"].State().Set(service.Error, "Test Reason")
+	core := map[string]service.Service{
+		"Core Running Service": &testService{state: service.State{}},
+		"Core Offline Service": &testService{state: service.State{}},
+		"Core Error Service":   &testService{state: service.State{}},
+	}
+	core["Core Running Service"].State().Set(service.Running, "")
+	core["Core Offline Service"].State().Set(service.Offline, "")
+	core["Core Error Service"].State().Set(service.Error, "Test Reason")
+
+	proto := map[string]service.ProtoService{
+		"Proto Running Service": &testService{state: service.State{}},
+		"Proto Offline Service": &testService{state: service.State{}},
+		"Proto Error Service":   &testService{state: service.State{}},
+	}
+	proto["Proto Running Service"].State().Set(service.Running, "")
+	proto["Proto Offline Service"].State().Set(service.Offline, "")
+	proto["Proto Error Service"].State().Set(service.Error, "Test Reason")
 
 	statuses := map[string]api.Status{
-		"Test Error Service":   {State: service.Error.Name(), Reason: "Test Reason"},
-		"Test Offline Service": {State: service.Offline.Name()},
-		"Test Running Service": {State: service.Running.Name()},
+		"Core Error Service":    {State: service.Error.Name(), Reason: "Test Reason"},
+		"Core Offline Service":  {State: service.Offline.Name()},
+		"Core Running Service":  {State: service.Running.Name()},
+		"Proto Error Service":   {State: service.Error.Name(), Reason: "Test Reason"},
+		"Proto Offline Service": {State: service.Offline.Name()},
+		"Proto Running Service": {State: service.Running.Name()},
 	}
 
 	Convey("Given the REST status handler", t, func() {
-		handler := getStatus(statusLogger, services)
+		handler := getStatus(statusLogger, core, proto)
 
 		Convey("Given a status request", func() {
 			w := httptest.NewRecorder()

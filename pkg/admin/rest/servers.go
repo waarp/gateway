@@ -93,7 +93,7 @@ func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		agent := servToDB(&serv, 0)
+		agent := servToDB(&serv, 0, logger)
 		if err := db.Insert(agent).Run(); handleError(w, logger, err) {
 			return
 		}
@@ -115,7 +115,7 @@ func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		serv := servToDB(jServ, old.ID)
+		serv := servToDB(jServ, old.ID, logger)
 		if err := db.Update(serv).Run(); handleError(w, logger, err) {
 			return
 		}
@@ -137,7 +137,7 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		serv := servToDB(&jServ, old.ID)
+		serv := servToDB(&jServ, old.ID, logger)
 		if err := db.Update(serv).Run(); handleError(w, logger, err) {
 			return
 		}

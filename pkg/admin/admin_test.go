@@ -2,16 +2,12 @@ package admin
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -37,7 +33,10 @@ func TestStart(t *testing.T) {
 			TLSCert: "cert.pem",
 			TLSKey:  "key.pem",
 		}
-		server := &Server{Services: make(map[string]service.Service)}
+		server := &Server{
+			CoreServices:  map[string]service.Service{},
+			ProtoServices: map[string]service.ProtoService{},
+		}
 		Reset(func() { _ = server.server.Close() })
 
 		Convey("Given a correct configuration", func() {
@@ -76,25 +75,10 @@ func TestStart(t *testing.T) {
 		Convey("Given an incorrect host", func() {
 			conf.GlobalConfig.Admin.Host = "invalid_host"
 			conf.GlobalConfig.Admin.Port = 0
-			rest := &Server{Services: make(map[string]service.Service)}
-
-			Convey("When starting the service", func() {
-				err := rest.Start()
-
-				Convey("Then it should produce an error", func() {
-					So(err, ShouldBeError)
-				})
-			})
-		})
-
-		Convey("Given an incorrect port number", func(c C) {
-			port := testhelpers.GetFreePort(c)
-			conf.GlobalConfig.Admin.Host = "localhost"
-			conf.GlobalConfig.Admin.Port = port
-			rest := &Server{Services: make(map[string]service.Service)}
-			l, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
-			So(err, ShouldBeNil)
-			Reset(func() { _ = l.Close() })
+			rest := &Server{
+				CoreServices:  map[string]service.Service{},
+				ProtoServices: map[string]service.ProtoService{},
+			}
 
 			Convey("When starting the service", func() {
 				err := rest.Start()
@@ -110,7 +94,10 @@ func TestStart(t *testing.T) {
 			conf.GlobalConfig.Admin.Port = 0
 			conf.GlobalConfig.Admin.TLSCert = "not_a_cert"
 			conf.GlobalConfig.Admin.TLSKey = "not_a_key"
-			rest := &Server{Services: make(map[string]service.Service)}
+			rest := &Server{
+				CoreServices:  map[string]service.Service{},
+				ProtoServices: map[string]service.ProtoService{},
+			}
 
 			Convey("When starting the service", func() {
 				err := rest.Start()
@@ -126,7 +113,10 @@ func TestStart(t *testing.T) {
 func TestStop(t *testing.T) {
 	Convey("Given a running REST service", t, func() {
 		conf.GlobalConfig.Admin = conf.AdminConfig{Host: "localhost"}
-		rest := &Server{Services: make(map[string]service.Service)}
+		rest := &Server{
+			CoreServices:  map[string]service.Service{},
+			ProtoServices: map[string]service.ProtoService{},
+		}
 
 		err := rest.Start()
 		So(err, ShouldBeNil)

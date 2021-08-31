@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
@@ -28,6 +27,10 @@ func historyInfoString(h *api.OutHistory) string {
 	if h.IsSend {
 		way = "send"
 	}
+	size := "unknown"
+	if h.Filesize >= 0 {
+		size = fmt.Sprint(h.Filesize)
+	}
 	rv := "● Transfer " + fmt.Sprint(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n"
 	if h.RemoteID != "" {
 		rv += "    Remote ID:        " + h.RemoteID + "\n"
@@ -36,28 +39,28 @@ func historyInfoString(h *api.OutHistory) string {
 	if h.Stop != nil {
 		stop = h.Stop.Local().Format(time.RFC3339Nano)
 	}
-
-	rv += "    Way:              " + way + "\n" +
-		"    Protocol:         " + h.Protocol + "\n" +
-		"    Rule:             " + h.Rule + "\n" +
-		"    Requester:        " + h.Requester + "\n" +
-		"    Requested:        " + h.Requested + "\n" +
-		"    Source file:      " + h.SourceFilename + "\n" +
-		"    Destination file: " + h.DestFilename + "\n" +
-		"    Start date:       " + h.Start.Local().Format(time.RFC3339Nano) + "\n" +
-		"    End date:         " + stop + "\n"
+	rv += "    Way:             " + way + "\n" +
+		"    Protocol:        " + h.Protocol + "\n" +
+		"    Rule:            " + h.Rule + "\n" +
+		"    Requester:       " + h.Requester + "\n" +
+		"    Requested:       " + h.Requested + "\n" +
+		"    Local filepath:  " + h.LocalPath + "\n" +
+		"    Remote filepath: " + h.RemotePath + "\n" +
+		"    File size:       " + size + "\n" +
+		"    Start date:      " + h.Start.Local().Format(time.RFC3339Nano) + "\n" +
+		"    End date:        " + stop + "\n"
 	if h.ErrorCode != types.TeOk {
-		rv += "    Error code:       " + h.ErrorCode.String() + "\n"
+		rv += "    Error code:      " + h.ErrorCode.String() + "\n"
 		if h.ErrorMsg != "" {
-			rv += "    Error message:    " + h.ErrorMsg + "\n"
+			rv += "    Error message:   " + h.ErrorMsg + "\n"
 		}
 	}
 	if h.Step != types.StepNone {
-		rv += "    Failed step:      " + h.Step.String() + "\n"
+		rv += "    Failed step:     " + h.Step.String() + "\n"
 		if h.Step == types.StepData {
-			rv += "    Progress:         " + fmt.Sprint(h.Progress) + "\n"
+			rv += "    Progress:        " + fmt.Sprint(h.Progress) + "\n"
 		} else if h.Step == types.StepPreTasks || h.Step == types.StepPostTasks {
-			rv += "    Failed task:      " + fmt.Sprint(h.TaskNumber) + "\n"
+			rv += "    Failed task:     " + fmt.Sprint(h.TaskNumber) + "\n"
 		}
 	}
 
@@ -69,23 +72,23 @@ func TestDisplayHistory(t *testing.T) {
 		out = testFile()
 
 		hist := &api.OutHistory{
-			ID:             1,
-			IsServer:       true,
-			IsSend:         false,
-			Rule:           "Rule",
-			Requester:      "Account",
-			Requested:      "Server",
-			Protocol:       "sftp",
-			SourceFilename: "source/path",
-			DestFilename:   "dest/path",
-			Start:          time.Now(),
-			Stop:           nil,
-			Status:         types.StatusCancelled,
-			Step:           types.StepSetup,
-			Progress:       1,
-			TaskNumber:     2,
-			ErrorMsg:       "error message",
-			ErrorCode:      types.TeUnknown,
+			ID:         1,
+			IsServer:   true,
+			IsSend:     false,
+			Rule:       "Rule",
+			Requester:  "Account",
+			Requested:  "Server",
+			Protocol:   testProto1,
+			LocalPath:  "/local/path",
+			RemotePath: "/remote/path",
+			Start:      time.Now(),
+			Stop:       nil,
+			Status:     types.StatusCancelled,
+			Step:       types.StepSetup,
+			Progress:   1,
+			TaskNumber: 2,
+			ErrorMsg:   "error message",
+			ErrorCode:  types.TeUnknown,
 		}
 		Convey("When calling the `displayHistory` function", func() {
 			w := getColorable()
@@ -102,20 +105,20 @@ func TestDisplayHistory(t *testing.T) {
 
 		stopTime := time.Now().Add(time.Hour)
 		hist := api.OutHistory{
-			ID:             1,
-			IsServer:       true,
-			IsSend:         false,
-			Rule:           "rule",
-			Requester:      "source",
-			Requested:      "destination",
-			Protocol:       "sftp",
-			SourceFilename: "file/path",
-			DestFilename:   "file/path",
-			Start:          time.Now(),
-			Stop:           &stopTime,
-			Status:         types.StatusPlanned,
-			ErrorCode:      types.TeConnectionReset,
-			ErrorMsg:       "connexion reset by peer",
+			ID:         1,
+			IsServer:   true,
+			IsSend:     false,
+			Rule:       "rule",
+			Requester:  "source",
+			Requested:  "destination",
+			Protocol:   testProto1,
+			LocalPath:  "/local/path",
+			RemotePath: "/remote/path",
+			Start:      time.Now(),
+			Stop:       &stopTime,
+			Status:     types.StatusPlanned,
+			ErrorCode:  types.TeConnectionReset,
+			ErrorMsg:   "connexion reset by peer",
 		}
 		Convey("When calling the `displayHistory` function", func() {
 			w := getColorable()
@@ -135,26 +138,26 @@ func TestGetHistory(t *testing.T) {
 
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			Convey("Given a valid history entry", func() {
-				h := &model.TransferHistory{
-					ID:             1,
-					IsServer:       true,
-					IsSend:         false,
-					Rule:           "rule",
-					Account:        "source",
-					Agent:          "destination",
-					Protocol:       "sftp",
-					SourceFilename: "file/path",
-					DestFilename:   "file/path",
-					Start:          time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
-					Stop:           time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
-					Status:         types.StatusDone,
-					Owner:          conf.GlobalConfig.GatewayName,
+				h := &model.HistoryEntry{
+					ID:         1,
+					IsServer:   true,
+					IsSend:     false,
+					Rule:       "rule",
+					Account:    "source",
+					Agent:      "destination",
+					Protocol:   testProto1,
+					LocalPath:  "/local/path",
+					RemotePath: "/remote/path",
+					Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+					Stop:       time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
+					Status:     types.StatusDone,
+					Owner:      conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(h).Run(), ShouldBeNil)
 				id := fmt.Sprint(h.ID)
@@ -199,67 +202,67 @@ func TestListHistory(t *testing.T) {
 
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			Convey("Given 4 valid history entries", func() {
-				h1 := &model.TransferHistory{
-					ID:             1,
-					IsServer:       true,
-					IsSend:         false,
-					Account:        "src1",
-					Agent:          "dst1",
-					Protocol:       "sftp",
-					SourceFilename: "file1",
-					DestFilename:   "file1",
-					Rule:           "rule1",
-					Start:          time.Date(2019, 1, 1, 1, 1, 0, 1000, time.Local),
-					Stop:           time.Date(2019, 1, 1, 1, 2, 0, 1000, time.Local),
-					Status:         types.StatusDone,
+				h1 := &model.HistoryEntry{
+					ID:         1,
+					IsServer:   true,
+					IsSend:     false,
+					Account:    "src1",
+					Agent:      "dst1",
+					Protocol:   testProto1,
+					LocalPath:  "/local/path1",
+					RemotePath: "/remote/path1",
+					Rule:       "rule1",
+					Start:      time.Date(2019, 1, 1, 1, 1, 0, 1000, time.Local),
+					Stop:       time.Date(2019, 1, 1, 1, 2, 0, 1000, time.Local),
+					Status:     types.StatusDone,
 				}
-				h2 := &model.TransferHistory{
-					ID:             2,
-					IsServer:       true,
-					IsSend:         false,
-					Account:        "src2",
-					Agent:          "dst2",
-					Protocol:       "sftp",
-					SourceFilename: "file2",
-					DestFilename:   "file2",
-					Rule:           "rule2",
-					Start:          time.Date(2019, 1, 1, 2, 0, 0, 2000, time.Local),
-					Stop:           time.Date(2019, 1, 1, 2, 1, 0, 2000, time.Local),
-					Status:         types.StatusCancelled,
+				h2 := &model.HistoryEntry{
+					ID:         2,
+					IsServer:   true,
+					IsSend:     false,
+					Account:    "src2",
+					Agent:      "dst2",
+					Protocol:   testProto1,
+					LocalPath:  "/local/path2",
+					RemotePath: "/remote/path2",
+					Rule:       "rule2",
+					Start:      time.Date(2019, 1, 1, 2, 0, 0, 2000, time.Local),
+					Stop:       time.Date(2019, 1, 1, 2, 1, 0, 2000, time.Local),
+					Status:     types.StatusCancelled,
 				}
-				h3 := &model.TransferHistory{
-					ID:             3,
-					IsServer:       true,
-					IsSend:         false,
-					Account:        "src3",
-					Agent:          "dst3",
-					Protocol:       "sftp",
-					SourceFilename: "file3",
-					DestFilename:   "file3",
-					Rule:           "rule3",
-					Start:          time.Date(2019, 1, 1, 3, 0, 0, 3000, time.Local),
-					Stop:           time.Date(2019, 1, 1, 3, 1, 0, 3000, time.Local),
-					Status:         types.StatusDone,
+				h3 := &model.HistoryEntry{
+					ID:         3,
+					IsServer:   true,
+					IsSend:     false,
+					Account:    "src3",
+					Agent:      "dst3",
+					Protocol:   testProto2,
+					LocalPath:  "/local/path3",
+					RemotePath: "/remote/path3",
+					Rule:       "rule3",
+					Start:      time.Date(2019, 1, 1, 3, 0, 0, 3000, time.Local),
+					Stop:       time.Date(2019, 1, 1, 3, 1, 0, 3000, time.Local),
+					Status:     types.StatusDone,
 				}
-				h4 := &model.TransferHistory{
-					ID:             4,
-					IsServer:       true,
-					IsSend:         false,
-					Account:        "src4",
-					Agent:          "dst4",
-					Protocol:       "sftp",
-					SourceFilename: "file4",
-					DestFilename:   "file4",
-					Rule:           "rule4",
-					Start:          time.Date(2019, 1, 1, 4, 0, 0, 4000, time.Local),
-					Stop:           time.Date(2019, 1, 1, 4, 1, 0, 4000, time.Local),
-					Status:         types.StatusCancelled,
+				h4 := &model.HistoryEntry{
+					ID:         4,
+					IsServer:   true,
+					IsSend:     false,
+					Account:    "src4",
+					Agent:      "dst4",
+					Protocol:   testProto2,
+					LocalPath:  "/local/path4",
+					RemotePath: "/remote/path4",
+					Rule:       "rule4",
+					Start:      time.Date(2019, 1, 1, 4, 0, 0, 4000, time.Local),
+					Stop:       time.Date(2019, 1, 1, 4, 1, 0, 4000, time.Local),
+					Status:     types.StatusCancelled,
 				}
 				So(db.Insert(h1).Run(), ShouldBeNil)
 				So(db.Insert(h2).Run(), ShouldBeNil)
@@ -431,7 +434,7 @@ func TestListHistory(t *testing.T) {
 				})
 
 				Convey("Given a protocol parameter", func() {
-					args := []string{"--protocol=sftp"}
+					args := []string{"--protocol=" + testProto1}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -441,8 +444,7 @@ func TestListHistory(t *testing.T) {
 						Convey("Then it should display all the entries using "+
 							"one of these protocoles", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
-								historyInfoString(hist1)+historyInfoString(hist2)+
-								historyInfoString(hist3)+historyInfoString(hist4))
+								historyInfoString(hist1)+historyInfoString(hist2))
 						})
 					})
 				})
@@ -455,7 +457,7 @@ func TestListHistory(t *testing.T) {
 						"--requested=" + h4.Agent, "--requested=" + h1.Agent,
 						"--rule=" + h3.Rule, "--rule=" + h1.Rule, "--rule=" + h2.Rule,
 						"--status=DONE", "--status=CANCELLED",
-						"--protocol=sftp",
+						"--protocol=" + testProto1,
 					}
 
 					Convey("When executing the command", func() {
@@ -482,7 +484,7 @@ func TestRetryHistory(t *testing.T) {
 
 		Convey("Given a database", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
@@ -490,7 +492,7 @@ func TestRetryHistory(t *testing.T) {
 			Convey("Given a failed history entry", func() {
 				part := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
@@ -510,20 +512,20 @@ func TestRetryHistory(t *testing.T) {
 				}
 				So(db.Insert(r).Run(), ShouldBeNil)
 
-				hist := &model.TransferHistory{
-					ID:             1,
-					IsServer:       false,
-					IsSend:         r.IsSend,
-					Rule:           r.Name,
-					Account:        acc.Login,
-					Agent:          part.Name,
-					Protocol:       part.Protocol,
-					SourceFilename: "source",
-					DestFilename:   "destination",
-					Start:          time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
-					Stop:           time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
-					Status:         types.StatusCancelled,
-					Owner:          conf.GlobalConfig.GatewayName,
+				hist := &model.HistoryEntry{
+					ID:         1,
+					IsServer:   false,
+					IsSend:     r.IsSend,
+					Rule:       r.Name,
+					Account:    acc.Login,
+					Agent:      part.Name,
+					Protocol:   part.Protocol,
+					LocalPath:  "/local/path.loc",
+					RemotePath: "/remote/path.rem",
+					Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
+					Stop:       time.Date(2021, 1, 1, 2, 0, 0, 0, time.Local),
+					Status:     types.StatusCancelled,
+					Owner:      conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(hist).Run(), ShouldBeNil)
 				id := fmt.Sprint(hist.ID)
@@ -549,8 +551,8 @@ func TestRetryHistory(t *testing.T) {
 								IsServer:   false,
 								AgentID:    part.ID,
 								AccountID:  acc.ID,
-								SourceFile: hist.SourceFilename,
-								DestFile:   hist.DestFilename,
+								LocalPath:  "path.loc",
+								RemotePath: "path.rem",
 								Start:      time.Date(2030, 1, 1, 1, 0, 0, 123000, time.Local),
 								Status:     types.StatusPlanned,
 								Owner:      hist.Owner,

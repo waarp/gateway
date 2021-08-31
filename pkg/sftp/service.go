@@ -6,11 +6,12 @@ import (
 	"net"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 )
 
@@ -24,8 +25,12 @@ type Service struct {
 	listener *sshListener
 }
 
+func init() {
+	gatewayd.ServiceConstructors["sftp"] = NewService
+}
+
 // NewService returns a new SFTP service instance with the given attributes.
-func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *Service {
+func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService {
 	return &Service{
 		db:     db,
 		agent:  agent,
@@ -47,7 +52,7 @@ func (s *Service) Start() error {
 			return err
 		}
 
-		sshConf, err1 := getSSHServerConfig(s.db, hostKeys, &protoConfig, s.agent)
+		sshConf, err1 := internal.GetSSHServerConfig(s.db, hostKeys, &protoConfig, s.agent)
 		if err1 != nil {
 			s.logger.Errorf("Failed to parse the SSH server configuration: %s", err1)
 			return err1
@@ -64,14 +69,15 @@ func (s *Service) Start() error {
 		}
 
 		s.listener = &sshListener{
-			DB:          s.db,
-			Logger:      s.logger,
-			Agent:       s.agent,
-			ProtoConfig: &protoConfig,
-			SSHConf:     sshConf,
-			Listener:    listener,
+			DB:               s.db,
+			Logger:           s.logger,
+			Agent:            s.agent,
+			ProtoConfig:      &protoConfig,
+			SSHConf:          sshConf,
+			Listener:         listener,
+			runningTransfers: service.NewTransferMap(),
+			shutdown:         make(chan struct{}),
 		}
-		s.listener.ctx, s.listener.cancel = context.WithCancel(context.Background())
 		s.listener.listen()
 		return nil
 	}
@@ -97,13 +103,14 @@ func (s *Service) Stop(ctx context.Context) error {
 		s.logger.Info("Server is already offline, nothing to do")
 		return nil
 	}
+	s.state.Set(service.ShuttingDown, "")
+	defer s.state.Set(service.Offline, "")
 
-	if s.listener.close(ctx) != nil {
+	if err := s.listener.close(ctx); err != nil {
 		s.logger.Error("Failed to shut down SFTP server, forcing exit")
-	} else {
-		s.logger.Info("SFTP server shutdown successful")
+		return err
 	}
-	s.state.Set(service.Offline, "")
+	s.logger.Info("SFTP server shutdown successful")
 	return nil
 }
 
@@ -115,4 +122,9 @@ func (s *Service) State() *service.State {
 		}
 	}
 	return &s.state
+}
+
+// ManageTransfers returns a map of the transfers currently running on the server.
+func (s *Service) ManageTransfers() *service.TransferMap {
+	return s.listener.runningTransfers
 }

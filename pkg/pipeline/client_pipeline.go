@@ -1,0 +1,221 @@
+package pipeline
+
+import (
+	"context"
+	"fmt"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+)
+
+// ClientTransfers is a synchronized map containing the pipelines of all currently
+// running client transfers. It can be used to interrupt transfers using the various
+// functions exposed by the TransferInterrupter interface.
+var ClientTransfers = service.NewTransferMap()
+
+// ClientPipeline associates a Pipeline with a Client, allowing to run complete
+// client transfers.
+type ClientPipeline struct {
+	Pip    *Pipeline
+	client Client
+}
+
+// NewClientPipeline initializes and returns a new ClientPipeline for the given
+// transfer.
+func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline, *types.TransferError) {
+
+	logger := log.NewLogger(fmt.Sprintf("Pipeline %d (client)", trans.ID))
+
+	transCtx, err := model.GetTransferContext(db, logger, trans)
+	if err != nil {
+		return nil, err
+	}
+
+	constr, ok := ClientConstructors[transCtx.RemoteAgent.Protocol]
+	if !ok {
+		logger.Errorf("No client found for protocol %s", transCtx.RemoteAgent.Protocol)
+		return nil, err
+	}
+
+	pipeline, err := newPipeline(db, logger, transCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := constr(pipeline)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &ClientPipeline{
+		Pip:    pipeline,
+		client: client,
+	}
+	ClientTransfers.Add(trans.ID, c)
+	return c, nil
+}
+
+func (c *ClientPipeline) preTasks() error {
+	// Simple pre-tasks
+	pt, ok := c.client.(PreTasksHandler)
+	if !ok {
+		if err := c.Pip.PreTasks(); err != nil {
+			c.client.SendError(err)
+			return err
+		}
+		return nil
+	}
+
+	// Extended pre-task handling
+	if err := pt.BeginPreTasks(); err != nil {
+		c.Pip.SetError(err)
+		return err
+	}
+	if err := c.Pip.PreTasks(); err != nil {
+		c.client.SendError(err)
+		return err
+	}
+	if err := pt.EndPreTasks(); err != nil {
+		c.Pip.SetError(err)
+		return err
+	}
+	return nil
+}
+
+func (c *ClientPipeline) postTasks() error {
+	// Simple post-tasks
+	pt, ok := c.client.(PostTasksHandler)
+	if !ok {
+		if err := c.Pip.PostTasks(); err != nil {
+			c.client.SendError(err)
+			return err
+		}
+		return nil
+	}
+
+	// Extended post-task handling
+	if err := pt.BeginPostTasks(); err != nil {
+		c.Pip.SetError(err)
+		return err
+	}
+	if err := c.Pip.PostTasks(); err != nil {
+		c.client.SendError(err)
+		return err
+	}
+	if err := pt.EndPostTasks(); err != nil {
+		c.Pip.SetError(err)
+		return err
+	}
+	return nil
+}
+
+// Run executes the full client transfer pipeline in order. If a transfer error
+// occurs, it will be handled internally.
+func (c *ClientPipeline) Run() {
+	defer ClientTransfers.Delete(c.Pip.TransCtx.Transfer.ID)
+	// REQUEST
+	if err := c.client.Request(); err != nil {
+		c.Pip.SetError(err)
+		c.client.SendError(err)
+		return
+	}
+
+	// PRE-TASKS
+	if c.preTasks() != nil {
+		return
+	}
+
+	// DATA
+	file, fErr := c.Pip.StartData()
+	if fErr != nil {
+		return
+	}
+	if err := c.client.Data(file); err != nil {
+		c.Pip.SetError(err)
+		c.client.SendError(err)
+		return
+	}
+	if err := c.Pip.EndData(); err != nil {
+		c.client.SendError(err)
+		return
+	}
+
+	// POST-TASKS
+	if c.postTasks() != nil {
+		return
+	}
+
+	// END TRANSFER
+	if err := c.client.EndTransfer(); err != nil {
+		c.Pip.SetError(err)
+		return
+	}
+
+	_ = c.Pip.EndTransfer()
+}
+
+// Pause stops the client pipeline and pauses the transfer.
+func (c *ClientPipeline) Pause(ctx context.Context) error {
+	handle := func() {
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			if pa, ok := c.client.(PauseHandler); ok {
+				_ = pa.Pause()
+			} else {
+				c.client.SendError(types.NewTransferError(types.TeStopped,
+					"transfer paused by user"))
+			}
+		}()
+		select {
+		case <-done:
+		case <-ctx.Done():
+		}
+	}
+	c.Pip.Pause(handle)
+	return ctx.Err()
+}
+
+// Interrupt stops the client pipeline and interrupts the transfer.
+func (c *ClientPipeline) Interrupt(ctx context.Context) error {
+	handle := func() {
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			c.client.SendError(types.NewTransferError(types.TeShuttingDown,
+				"transfer interrupted by service shutdown"))
+		}()
+		select {
+		case <-done:
+		case <-ctx.Done():
+		}
+	}
+	c.Pip.Interrupt(handle)
+	return ctx.Err()
+}
+
+// Cancel stops the client pipeline and cancels the transfer.
+func (c *ClientPipeline) Cancel(ctx context.Context) (err error) {
+	handle := func() {
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			if ca, ok := c.client.(CancelHandler); ok {
+				_ = ca.Cancel()
+			} else {
+				c.client.SendError(types.NewTransferError(types.TeCanceled,
+					"transfer cancelled by user"))
+			}
+		}()
+		select {
+		case <-done:
+		case <-ctx.Done():
+		}
+	}
+	c.Pip.Cancel(handle)
+	return ctx.Err()
+}

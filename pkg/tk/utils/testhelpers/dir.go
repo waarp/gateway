@@ -14,7 +14,7 @@ import (
 // The directory exits for the duration of the test only.
 //
 // It integrates fully with Convey :
-// - Reset is used to remove the directory at the end of the test
+// - Retry is used to remove the directory at the end of the test
 // - any error will mark the test as failed
 // - It will panic if it is not called from within a convey context.
 func TempDir(c convey.C, name string) string {

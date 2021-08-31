@@ -25,7 +25,7 @@ const (
 )
 
 func testinfo() (string, string, func(*xorm.Engine) error) {
-	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc",
+	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared",
 		conf.GlobalConfig.Database.Address), sqliteInit
 }
 

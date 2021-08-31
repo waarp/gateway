@@ -14,8 +14,8 @@ import (
 )
 
 func TestHistoryTableName(t *testing.T) {
-	Convey("Given a `TransferHistory` instance", t, func() {
-		hist := &TransferHistory{}
+	Convey("Given a `HistoryEntry` instance", t, func() {
+		hist := &HistoryEntry{}
 
 		Convey("When calling the 'TableName' method", func() {
 			name := hist.TableName()
@@ -32,20 +32,20 @@ func TestHistoryBeforeWrite(t *testing.T) {
 		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a new history entry", func() {
-			hist := &TransferHistory{
-				ID:             1,
-				Rule:           "rule",
-				IsServer:       true,
-				IsSend:         true,
-				Agent:          "from",
-				Account:        "to",
-				SourceFilename: "test/source/path",
-				DestFilename:   "test/source/path",
-				Start:          time.Now(),
-				Stop:           time.Now(),
-				Protocol:       dummyProto,
-				Status:         "DONE",
-				Owner:          conf.GlobalConfig.GatewayName,
+			hist := &HistoryEntry{
+				ID:         1,
+				Rule:       "rule",
+				IsServer:   true,
+				IsSend:     true,
+				Agent:      "from",
+				Account:    "to",
+				LocalPath:  "test/local/path",
+				RemotePath: "test/remote/path",
+				Start:      time.Now(),
+				Stop:       time.Now(),
+				Protocol:   dummyProto,
+				Status:     "DONE",
+				Owner:      conf.GlobalConfig.GatewayName,
 			}
 
 			shouldFailWith := func(errDesc string, expErr error) {
@@ -86,10 +86,16 @@ func TestHistoryBeforeWrite(t *testing.T) {
 					"the transfer's agent cannot be empty"))
 			})
 
-			Convey("Given that the filename is missing", func() {
-				hist.DestFilename = ""
-				shouldFailWith("the filename is missing", database.NewValidationError(
-					"the transfer's destination filename cannot be empty"))
+			Convey("Given that the local path is missing", func() {
+				hist.LocalPath = ""
+				shouldFailWith("the local filename is missing", database.NewValidationError(
+					"the local filepath cannot be empty"))
+			})
+
+			Convey("Given that the remote path is missing", func() {
+				hist.RemotePath = ""
+				shouldFailWith("the remote filename is missing", database.NewValidationError(
+					"the remote filepath cannot be empty"))
 			})
 
 			Convey("Given that the protocol is invalid", func() {
@@ -137,7 +143,7 @@ type statusTestCase struct {
 func testTransferStatus(tc statusTestCase, target database.WriteHook, db *database.DB) {
 	Convey(fmt.Sprintf("Given the status is set to '%s'", tc.status), func() {
 		var typeName string
-		if t, ok := target.(*TransferHistory); ok {
+		if t, ok := target.(*HistoryEntry); ok {
 			t.Status = tc.status
 			typeName = "transfer history"
 		}
@@ -186,11 +192,11 @@ func TestTransferHistoryRestart(t *testing.T) {
 			account := &RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "toto",
-				Password:      "password",
+				Password:      "sesame",
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			history := &TransferHistory{
+			history := &HistoryEntry{
 				ID:               1,
 				Owner:            conf.GlobalConfig.GatewayName,
 				RemoteTransferID: "2",
@@ -199,8 +205,8 @@ func TestTransferHistoryRestart(t *testing.T) {
 				Account:          account.Login,
 				Agent:            agent.Name,
 				Protocol:         agent.Protocol,
-				SourceFilename:   "file.src",
-				DestFilename:     "file.dst",
+				LocalPath:        "file.loc",
+				RemotePath:       "file.rem",
 				Rule:             rule.Name,
 				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
@@ -224,9 +230,8 @@ func TestTransferHistoryRestart(t *testing.T) {
 						IsServer:         false,
 						AgentID:          agent.ID,
 						AccountID:        account.ID,
-						TrueFilepath:     "",
-						SourceFile:       "file.src",
-						DestFile:         "file.dst",
+						LocalPath:        "file.loc",
+						RemotePath:       "file.rem",
 						Start:            date,
 						Step:             types.StepNone,
 						Status:           types.StatusPlanned,
@@ -252,11 +257,11 @@ func TestTransferHistoryRestart(t *testing.T) {
 			account := &LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "toto",
-				PasswordHash: hash("password"),
+				PasswordHash: hash("sesame"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			history := &TransferHistory{
+			history := &HistoryEntry{
 				ID:               1,
 				Owner:            conf.GlobalConfig.GatewayName,
 				RemoteTransferID: "2",
@@ -265,8 +270,8 @@ func TestTransferHistoryRestart(t *testing.T) {
 				Account:          account.Login,
 				Agent:            agent.Name,
 				Protocol:         agent.Protocol,
-				SourceFilename:   "file.src",
-				DestFilename:     "file.dst",
+				LocalPath:        "file.loc",
+				RemotePath:       "file.rem",
 				Rule:             rule.Name,
 				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
@@ -290,9 +295,8 @@ func TestTransferHistoryRestart(t *testing.T) {
 						IsServer:         true,
 						AgentID:          agent.ID,
 						AccountID:        account.ID,
-						TrueFilepath:     "",
-						SourceFile:       "file.src",
-						DestFile:         "file.dst",
+						LocalPath:        "file.loc",
+						RemotePath:       "file.rem",
 						Start:            date,
 						Step:             types.StepNone,
 						Status:           types.StatusPlanned,

@@ -123,11 +123,7 @@ func (r *RemoteAgent) BeforeDelete(db database.Access) database.Error {
 	}
 
 	accountQuery := db.DeleteAll(&RemoteAccount{}).Where("remote_agent_id=?", r.ID)
-	if err := accountQuery.Run(); err != nil {
-		return err
-	}
-
-	return nil
+	return accountQuery.Run()
 }
 
 // GetCryptos returns a list of all the partner's certificates.

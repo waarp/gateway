@@ -1,10 +1,15 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -140,4 +145,22 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 	query.OrderBy(sort.col, sort.asc)
 
 	return query, nil
+}
+
+func getPipelineMap(db *database.DB, protoServices map[string]service.ProtoService,
+	trans *model.Transfer) (*service.TransferMap, error) {
+
+	if !trans.IsServer {
+		return pipeline.ClientTransfers, nil
+	}
+
+	var agent model.LocalAgent
+	if err := db.Get(&agent, "id=?", trans.AgentID).Run(); err != nil {
+		return nil, err
+	}
+	serv, ok := protoServices[agent.Name]
+	if !ok {
+		return nil, fmt.Errorf("cannot find the service associated with the transfer")
+	}
+	return serv.ManageTransfers(), nil
 }

@@ -21,10 +21,3 @@ func String(s *string) string {
 func BoolPtr(b bool) *bool {
 	return &b
 }
-
-var (
-	// TruePtr is a boolean pointer to a true constant.
-	TruePtr *bool = BoolPtr(true)
-	// FalsePtr is a boolean pointer to a false constant.
-	FalsePtr *bool = BoolPtr(false)
-)

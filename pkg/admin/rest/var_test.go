@@ -1,22 +1,22 @@
 package rest
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func init() {
-	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
-	config.ProtoConfigs["test2"] = func() config.ProtoConfig { return new(TestProtoConfig) }
+const (
+	testProto1 = "rest_test_1"
+	testProto2 = "rest_test_2"
+)
 
-	logConf := conf.LogConfig{
-		Level: "DEBUG",
-		LogTo: "stdout",
-	}
-	_ = log.InitBackend(logConf)
+func init() {
+	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(TestProtoConfig) }
+
+	_ = log.InitBackend("DEBUG", "stdout", "")
 }
 
 type TestProtoConfig struct {
@@ -25,7 +25,6 @@ type TestProtoConfig struct {
 
 func (*TestProtoConfig) ValidServer() error  { return nil }
 func (*TestProtoConfig) ValidPartner() error { return nil }
-func (*TestProtoConfig) CertRequired() bool  { return false }
 
 func hash(pwd string) []byte {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)

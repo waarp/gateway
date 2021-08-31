@@ -17,9 +17,12 @@ type LocalAgent struct {
 	Name          string          `json:"name"`
 	Protocol      string          `json:"protocol"`
 	Root          string          `json:"root,omitempty"`
-	InDir         string          `json:"inDir,omitempty"`
-	OutDir        string          `json:"outDir,omitempty"`
-	WorkDir       string          `json:"workDir,omitempty"`
+	InDir         string          `json:"inDir,omitempty"`   //DEPRECATED
+	OutDir        string          `json:"outDir,omitempty"`  //DEPRECATED
+	WorkDir       string          `json:"workDir,omitempty"` //DEPRECATED
+	LocalInDir    string          `json:"localInDir,omitempty"`
+	LocalOutDir   string          `json:"localOutDir,omitempty"`
+	LocalTmpDir   string          `json:"localTmpDir,omitempty"`
 	Address       string          `json:"address"`
 	Configuration json.RawMessage `json:"configuration"`
 	Accounts      []LocalAccount  `json:"accounts"`
@@ -62,16 +65,19 @@ type Certificate struct {
 
 // Rule is the JSON struct representing a transfer rule.
 type Rule struct {
-	Name     string   `json:"name"`
-	IsSend   bool     `json:"isSend"`
-	Path     string   `json:"path"`
-	InPath   string   `json:"inPath,omitempty"`
-	OutPath  string   `json:"outPath,omitempty"`
-	WorkPath string   `json:"workPath,omitempty"`
-	Accesses []string `json:"auth,omitempty"`
-	Pre      []Task   `json:"pre,omitempty"`
-	Post     []Task   `json:"post,omitempty"`
-	Error    []Task   `json:"error,omitempty"`
+	Name        string   `json:"name"`
+	IsSend      bool     `json:"isSend"`
+	Path        string   `json:"path"`
+	InPath      string   `json:"inPath,omitempty"`   // DEPRECATED
+	OutPath     string   `json:"outPath,omitempty"`  // DEPRECATED
+	WorkPath    string   `json:"workPath,omitempty"` // DEPRECATED
+	LocalDir    string   `json:"localDir,omitempty"`
+	RemoteDir   string   `json:"remoteDir,omitempty"`
+	LocalTmpDir string   `json:"localTmpDir,omitempty"`
+	Accesses    []string `json:"auth"`
+	Pre         []Task   `json:"pre"`
+	Post        []Task   `json:"post"`
+	Error       []Task   `json:"error"`
 }
 
 // Task is the JSON struct representing a rule task.

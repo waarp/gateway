@@ -29,7 +29,7 @@ Lister les transferts
       Peut être renseigné plusieurs fois pour filtrer plusieurs règles.
    :type rule: int
    :param status: Filtre uniquement les transferts ayant le statut renseigné.
-      Valeurs possibles : ``PLANNED``, ``RUNNING``, ``PAUSED``.
+      Valeurs possibles : ``PLANNED``, ``RUNNING``, ``PAUSED``, ``INTERRUPTED`` ou ``ERROR``.
       Peut être renseigné plusieurs fois pour filtrer plusieurs status.
    :type status: string
    :param start: Filtre uniquement les transferts dont la date est ultérieure à
@@ -42,15 +42,21 @@ Lister les transferts
 
    :resjson array transfers: La liste des transferts demandés
    :resjsonarr number id: L'identifiant unique du transfert
-   :resjsonarr bool isServer: Précise si la gateway était à l'origine du transfert
-   :resjsonarr bool isSend: Précise le sens de transfert du fichier
+   :resjsonarr bool isServer: Indique si la *gateway* est agit en tant que serveur
+     (``true``) ou en tant que client (``false``)
+   :resjsonarr bool isSend: Indique si le transfert est un envoi (``true``) ou une
+     réception (``false``)
    :resjsonarr string rule: L'identifiant de la règle de transfert
    :resjsonarr string requester: Le nom du compte ayant demandé le transfert
    :resjsonarr string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
-   :resjsonarr string sourcePath: Le chemin d'origine du fichier
-   :resjsonarr string destPath: Le chemin de destination du fichier
+   :resjsonarr string trueFilepath: Le chemin local complet du fichier (OBSOLÈTE: remplacé par 'localPath')
+   :resjsonarr string sourcePath: Le fichier source du transfer (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
+   :resjsonarr string destPath: Le fichier destination du transfer (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
+   :resjsonarr string localPath: Le chemin du fichier sur le disque local
+   :resjsonarr string remotePath: Le chemin du fichier sur le partenaire distant
+   :resjsonarr number filesize: La taille du fichier (-1 si inconnue)
    :resjsonarr date start: La date de début du transfert
-   :resjsonarr string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED* ou *INTERRUPTED*)
+   :resjsonarr string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED*, *INTERRUPTED* ou *ERROR*)
    :resjsonarr string step: L'étape actuelle du transfert (*NONE*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)
    :resjsonarr number progress: La progression (en octets) du transfert de données
    :resjsonarr number taskNumber: Le numéro du traitement en cours d'exécution
@@ -82,8 +88,8 @@ Lister les transferts
              "rule": "règle_1",
              "requester": "toto",
              "requested": "waarp_sftp",
-             "source": "chemin/source/fichier1",
-             "destination": "chemin/dest/fichier1",
+             "localPath": "/chemin/local/fichier1",
+             "remotePath": "/chemin/distant/fichier1",
              "start": "2019-01-01T02:00:00+02:00",
              "status": "RUNNING",
              "step": "DATA",
@@ -94,8 +100,8 @@ Lister les transferts
              "rule": "règle_2",
              "requester": "tata",
              "requested": "sftp_serveur",
-             "source": "chemin/source/fichier2",
-             "destination": "chemin/dest/fichier2",
+             "localPath": "/chemin/local/fichier2",
+             "remotePath": "/chemin/distant/fichier2",
              "start": "2019-01-01T03:00:00+02:00",
              "status": "PLANNED"
            }]

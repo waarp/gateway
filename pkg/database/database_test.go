@@ -32,7 +32,7 @@ func testSelectForUpdate(db *DB) {
 		defer close(transRes)
 		tErr2 := db2.WriteTransaction(func(ses *Session) Error {
 			var beans validList
-			if err := ses.SelectForUpdate(&beans).Where("string=?", "str2").Run(); err != nil {
+			if err := ses.SelectForUpdate(&beans).Where("string=? AND id<>0", "str2").Run(); err != nil {
 				return err
 			}
 			if len(beans) != 0 {
@@ -57,9 +57,11 @@ func testSelectForUpdate(db *DB) {
 			So(err2, ShouldBeNil)
 			return nil
 		})
+		defer func() { <-transRes }()
 
 		So(tErr1, ShouldBeNil)
-		So(<-transRes, ShouldBeNil)
+		tErr2 := <-transRes
+		So(tErr2, ShouldBeNil)
 
 		var res []testValid
 		So(db.engine.Find(&res), ShouldBeNil)

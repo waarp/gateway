@@ -5,8 +5,7 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-
-	msql "github.com/go-sql-driver/mysql" // register the mysql driver
+	"github.com/go-sql-driver/mysql" // register the mysql driver
 	"xorm.io/xorm"
 )
 
@@ -32,7 +31,7 @@ func mysqlinfo() (string, string, func(*xorm.Engine) error) {
 // MysqlDSN takes a database configuration and returns the corresponding MySQL
 // DSN necessary to connect to the database.
 func MysqlDSN() string {
-	dsn := msql.NewConfig()
+	dsn := mysql.NewConfig()
 	config := &conf.GlobalConfig.Database
 	dsn.Addr = config.Address
 	dsn.DBName = config.Name
@@ -45,7 +44,7 @@ func MysqlDSN() string {
 			MinVersion:   tls.VersionTLS12,
 			Certificates: []tls.Certificate{cert},
 		}
-		_ = msql.RegisterTLSConfig("db", tlsConf)
+		_ = mysql.RegisterTLSConfig("db", tlsConf)
 
 		dsn.TLSConfig = "db"
 	}

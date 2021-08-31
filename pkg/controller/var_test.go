@@ -1,38 +1,25 @@
 package controller
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 )
 
 func init() {
-	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
-	executor.ClientsConstructors["test"] = NewAllSuccess
+	pipeline.ClientConstructors[config.TestProtocol] = NewAllSuccess
 
-	logConf := conf.LogConfig{
-		Level: "DEBUG",
-		LogTo: "stdout",
-	}
-	_ = log.InitBackend(logConf)
+	_ = log.InitBackend("DEBUG", "stdout", "")
 }
-
-type TestProtoConfig struct{}
-
-func (*TestProtoConfig) ValidServer() error  { return nil }
-func (*TestProtoConfig) ValidPartner() error { return nil }
-func (*TestProtoConfig) CertRequired() bool  { return false }
 
 type AllSuccess struct{}
 
-func NewAllSuccess(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
+func NewAllSuccess(*pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 	return AllSuccess{}, nil
 }
-func (AllSuccess) Connect() error                 { return nil }
-func (AllSuccess) Authenticate() error            { return nil }
-func (AllSuccess) Request() error                 { return nil }
-func (AllSuccess) Data(pipeline.DataStream) error { return nil }
-func (AllSuccess) Close(error) error              { return nil }
+
+func (a AllSuccess) Request() *types.TransferError                 { return nil }
+func (a AllSuccess) Data(pipeline.DataStream) *types.TransferError { return nil }
+func (a AllSuccess) EndTransfer() *types.TransferError             { return nil }
+func (a AllSuccess) SendError(*types.TransferError)                {}

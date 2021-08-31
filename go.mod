@@ -2,7 +2,7 @@ module code.waarp.fr/waarp-gateway/waarp-gateway
 
 require (
 	code.bcarlin.xyz/go/logging v0.1.0
-	code.waarp.fr/waarp-r66/r66 v0.0.0-20210402171137-41ab4b252f00
+	code.waarp.fr/waarp-r66/r66 v0.0.0-20210628093438-71179762c052
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gorilla/mux v1.7.3
 	github.com/jackc/pgconn v1.8.0
@@ -16,7 +16,7 @@ require (
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
 	github.com/smartystreets/goconvey v1.6.4
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
-	golang.org/x/mod v0.3.0
+	golang.org/x/mod v0.4.2
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 	xorm.io/builder v0.3.8
 	xorm.io/xorm v1.1.2

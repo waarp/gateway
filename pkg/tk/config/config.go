@@ -38,10 +38,7 @@ func NewParser(data interface{}) *Parser {
 // Parse gets a Reader interface to an ini structure parsed to populate the
 // config struct
 func (p Parser) Parse(r io.Reader) error {
-	if err := flags.NewIniParser(p.parser).Parse(r); err != nil {
-		return err
-	}
-	return nil
+	return flags.NewIniParser(p.parser).Parse(r)
 }
 
 // ParseFile tries to read the configuration file filename and parses its

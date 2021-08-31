@@ -1,0 +1,178 @@
+package tasks
+
+import (
+	"fmt"
+	"path"
+	"time"
+
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+)
+
+type replacer func(*Runner) (string, error)
+
+var replacers = map[string]replacer{
+	"#TRUEFULLPATH#": func(r *Runner) (string, error) {
+		return r.transCtx.Transfer.LocalPath, nil
+	},
+	"#TRUEFILENAME#": func(r *Runner) (string, error) {
+		return path.Base(r.transCtx.Transfer.LocalPath), nil
+	},
+	"#ORIGINALFULLPATH#": func(r *Runner) (string, error) {
+		if r.transCtx.Rule.IsSend {
+			return utils.ToOSPath(r.transCtx.Transfer.LocalPath), nil
+		}
+		return r.transCtx.Transfer.RemotePath, nil
+	},
+	"#ORIGINALFILENAME#": func(r *Runner) (string, error) {
+		if r.transCtx.Rule.IsSend {
+			return path.Base(r.transCtx.Transfer.LocalPath), nil
+		}
+		return path.Base(r.transCtx.Transfer.RemotePath), nil
+	},
+	"#FILESIZE#": func(r *Runner) (string, error) {
+		// NOT IMPLEMENTED
+		return "0", nil
+	},
+	"#INPATH#": func(r *Runner) (string, error) {
+		// DEPRECATED
+		return "", nil
+	},
+	"#OUTPATH#": func(r *Runner) (string, error) {
+		// DEPRECATED
+		return "", nil
+	},
+	"#WORKPATH#": func(r *Runner) (string, error) {
+		// DEPRECATED
+		return "", nil
+	},
+	"#ARCHPATH#": func(r *Runner) (string, error) {
+		// DEPRECATED
+		return "", nil
+	},
+	"#HOMEPATH#": func(r *Runner) (string, error) {
+		// TODO ???
+		return "", nil
+	},
+	"#RULE#": func(r *Runner) (string, error) {
+		return r.transCtx.Rule.Name, nil
+	},
+	"#DATE#": func(r *Runner) (string, error) {
+		t := time.Now()
+		return t.Format("20060102"), nil
+	},
+	"#HOUR#": func(r *Runner) (string, error) {
+		t := time.Now()
+		return t.Format("030405"), nil
+	},
+	"#REMOTEHOST#": func(r *Runner) (string, error) {
+		if r.transCtx.Transfer.IsServer {
+			account := &model.LocalAccount{}
+			if err := r.db.Get(account, "id=?", r.transCtx.Transfer.AccountID).Run(); err != nil {
+				return "", err
+			}
+			return account.Login, nil
+		}
+		agent := &model.RemoteAgent{}
+		if err := r.db.Get(agent, "id=?", r.transCtx.Transfer.AgentID).Run(); err != nil {
+			return "", err
+		}
+		return agent.Name, nil
+	},
+	"#REMOTEHOSTIP#": func(r *Runner) (string, error) {
+		// TODO
+		return "", nil
+	},
+	"#LOCALHOST#": func(r *Runner) (string, error) {
+		if r.transCtx.Transfer.IsServer {
+			agent := &model.LocalAgent{}
+			if err := r.db.Get(agent, "id=?", r.transCtx.Transfer.AgentID).Run(); err != nil {
+				return "", err
+			}
+			return agent.Name, nil
+		}
+		account := &model.RemoteAccount{}
+		if err := r.db.Get(account, "id=?", r.transCtx.Transfer.AccountID).Run(); err != nil {
+			return "", err
+		}
+		return account.Login, nil
+	},
+	"#LOCALHOSTIP#": func(r *Runner) (string, error) {
+		// TODO
+		return "", nil
+	},
+	"#TRANFERID#": func(r *Runner) (string, error) {
+		return fmt.Sprint(r.transCtx.Transfer.ID), nil
+	},
+	"#REQUESTERHOST#": func(r *Runner) (string, error) {
+		client, err := getClient(r)
+		return client, err
+	},
+	"#REQUESTEDHOST#": func(r *Runner) (string, error) {
+		server, err := getServer(r)
+		return server, err
+	},
+	"#FULLTRANFERID#": func(r *Runner) (string, error) {
+		//DEPRECATED
+		client, err := getClient(r)
+		if err != nil {
+			return "", nil
+		}
+		server, err := getServer(r)
+		if err != nil {
+			return "", nil
+		}
+		return fmt.Sprintf("%d_%s_%s", r.transCtx.Transfer.ID, client, server), nil
+	},
+	"#RANKTRANSFER#": func(r *Runner) (string, error) {
+		return "0", nil
+	},
+	"#BLOCKSIZE#": func(r *Runner) (string, error) {
+		return "1", nil
+	},
+	"#ERRORMSG#": func(r *Runner) (string, error) {
+		return r.transCtx.Transfer.Error.Details, nil
+	},
+	"#ERRORCODE#": func(r *Runner) (string, error) {
+		return string(r.transCtx.Transfer.Error.Code.R66Code()), nil
+	},
+	"#ERRORSTRCODE#": func(r *Runner) (string, error) {
+		return r.transCtx.Transfer.Error.Details, nil
+	},
+	"#NOWAIT#": func(r *Runner) (string, error) {
+		return "", nil
+	},
+	"#LOCALEXEC#": func(r *Runner) (string, error) {
+		return "", nil
+	},
+}
+
+func getClient(r *Runner) (string, error) {
+	if r.transCtx.Transfer.IsServer {
+		account := &model.LocalAccount{}
+		if err := r.db.Get(account, "id=?", r.transCtx.Transfer.AccountID).Run(); err != nil {
+			return "", err
+		}
+		return account.Login, nil
+	}
+	account := &model.RemoteAccount{}
+	if err := r.db.Get(account, "id=?", r.transCtx.Transfer.AccountID).Run(); err != nil {
+		return "", err
+	}
+	return account.Login, nil
+}
+
+func getServer(r *Runner) (string, error) {
+	if r.transCtx.Transfer.IsServer {
+		agent := &model.LocalAgent{}
+		if err := r.db.Get(agent, "id=?", r.transCtx.Transfer.AgentID).Run(); err != nil {
+			return "", err
+		}
+		return agent.Name, nil
+	}
+	agent := &model.RemoteAgent{}
+	if err := r.db.Get(agent, "id=?", r.transCtx.Transfer.AgentID).Run(); err != nil {
+		return "", err
+	}
+	return agent.Name, nil
+}

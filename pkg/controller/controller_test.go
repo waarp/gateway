@@ -14,8 +14,8 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
@@ -27,7 +27,7 @@ func TestControllerListen(t *testing.T) {
 
 		remote := &model.RemoteAgent{
 			Name:        "test remote",
-			Protocol:    "test",
+			Protocol:    config.TestProtocol,
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:1111",
 		}
@@ -43,19 +43,17 @@ func TestControllerListen(t *testing.T) {
 		tmpDir := testhelpers.TempDir(c, "controller-listen")
 
 		rule := &model.Rule{
-			Name:    "test rule",
-			Path:    "test_rule",
-			IsSend:  true,
-			OutPath: tmpDir,
+			Name:     "test rule",
+			Path:     "test_rule",
+			IsSend:   true,
+			LocalDir: tmpDir,
 		}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		sleepTask := &testTaskSleep{}
-		tasks.RunnableTasks["TESTSLEEP"] = sleepTask
-		defer delete(tasks.RunnableTasks, "TESTSLEEP")
 
 		model.ValidTasks["TESTSLEEP"] = sleepTask
-		defer delete(tasks.RunnableTasks, "TESTSLEEP")
+		defer delete(model.ValidTasks, "TESTSLEEP")
 
 		ruleTask := &model.Task{
 			RuleID: rule.ID,
@@ -80,21 +78,20 @@ func TestControllerListen(t *testing.T) {
 			}
 
 			Convey("Given a planned transfer", func() {
-				err := ioutil.WriteFile(filepath.Join(tmpDir, "source_file_1"),
-					[]byte("hello world"), 0o644)
+				path1 := filepath.Join(tmpDir, "file_1")
+				err := ioutil.WriteFile(path1, []byte("hello world"), 0o644)
 				So(err, ShouldBeNil)
 
 				trans := &model.Transfer{
-					RuleID:       rule.ID,
-					IsServer:     false,
-					AgentID:      remote.ID,
-					AccountID:    account.ID,
-					TrueFilepath: "/filepath_1",
-					SourceFile:   "source_file_1",
-					DestFile:     "dest_file_1",
-					Start:        start,
-					Status:       types.StatusPlanned,
-					Owner:        conf.GlobalConfig.GatewayName,
+					RuleID:     rule.ID,
+					IsServer:   false,
+					AgentID:    remote.ID,
+					AccountID:  account.ID,
+					LocalPath:  path1,
+					RemotePath: "/file_1",
+					Start:      start,
+					Status:     types.StatusPlanned,
+					Owner:      conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -114,7 +111,7 @@ func TestControllerListen(t *testing.T) {
 							So(db.Select(&trans).Run(), ShouldBeNil)
 							So(trans, ShouldBeEmpty)
 
-							var hist model.Histories
+							var hist model.HistoryEntries
 							So(db.Select(&hist).Run(), ShouldBeNil)
 							So(hist, ShouldNotBeEmpty)
 						})
@@ -141,21 +138,20 @@ func TestControllerListen(t *testing.T) {
 			})
 
 			Convey("Given a running transfer", func() {
-				err := ioutil.WriteFile(filepath.Join(tmpDir, "source_file_2"),
-					[]byte("hello world"), 0o644)
+				path2 := filepath.Join(tmpDir, "file_2")
+				err := ioutil.WriteFile(path2, []byte("hello world"), 0o644)
 				So(err, ShouldBeNil)
 
 				trans := &model.Transfer{
-					RuleID:       rule.ID,
-					IsServer:     false,
-					AgentID:      remote.ID,
-					AccountID:    account.ID,
-					TrueFilepath: "/filepath_2",
-					SourceFile:   "source_file_2",
-					DestFile:     "dest_file_2",
-					Start:        start,
-					Status:       types.StatusRunning,
-					Owner:        conf.GlobalConfig.GatewayName,
+					RuleID:     rule.ID,
+					IsServer:   false,
+					AgentID:    remote.ID,
+					AccountID:  account.ID,
+					LocalPath:  path2,
+					RemotePath: "/file_2",
+					Start:      start,
+					Status:     types.StatusRunning,
+					Owner:      conf.GlobalConfig.GatewayName,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -200,7 +196,7 @@ func (t *testTaskSleep) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskSleep) Run(map[string]string, *tasks.Processor) (string, error) {
+func (t *testTaskSleep) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
 	t.c++
 
 	time.Sleep(30 * time.Millisecond)

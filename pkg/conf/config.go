@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/config"
 )
 
@@ -28,9 +29,12 @@ type ServerConfig struct {
 // PathsConfig holds the server paths
 type PathsConfig struct {
 	GatewayHome   string `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the working directory of the process."`
-	InDirectory   string `ini-name:"InDirectory" default:"in" description:"The directory for all incoming files."`
-	OutDirectory  string `ini-name:"OutDirectory" default:"out" description:"The directory for all outgoing files."`
-	WorkDirectory string `ini-name:"WorkDirectory" default:"work" description:"The directory for all running transfer files."`
+	InDirectory   string `ini-name:"InDirectory" default:"in" description:"DEPRECATED, use DefaultInDir instead"`      // DEPRECATED
+	OutDirectory  string `ini-name:"OutDirectory" default:"out" description:"DEPRECATED, use DefaultOutDir instead"`   // DEPRECATED
+	WorkDirectory string `ini-name:"WorkDirectory" default:"work" description:"DEPRECATED, use DefaultTmpDir instead"` // DEPRECATED
+	DefaultInDir  string `ini-name:"DefaultInDir" default:"in" description:"The directory for all incoming files."`
+	DefaultOutDir string `ini-name:"DefaultOutDir" default:"out" description:"The directory for all outgoing files."`
+	DefaultTmpDir string `ini-name:"DefaultTmpDir" default:"tmp" description:"The directory for all running transfer files."`
 }
 
 // LogConfig holds the server logging options
@@ -67,7 +71,7 @@ type ControllerConfig struct {
 	MaxTransfersOut uint64        `ini-name:"MaxTransferOut" description:"The maximum number of concurrent outgoing transfers allowed on the gateway (0 = unlimited)."`
 }
 
-func normalizePaths(config *ServerConfig) error {
+func normalizePaths(config *ServerConfig, logger *log.Logger) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to retrieve current working directory: %s", err)
@@ -83,31 +87,16 @@ func normalizePaths(config *ServerConfig) error {
 		config.Paths.GatewayHome = wd
 	}
 	if config.Paths.InDirectory != "" {
-		if filepath.IsAbs(config.Paths.InDirectory) {
-			config.Paths.InDirectory = filepath.Clean(config.Paths.InDirectory)
-		} else {
-			config.Paths.InDirectory = filepath.Join(config.Paths.GatewayHome, config.Paths.InDirectory)
-		}
-	} else {
-		config.Paths.InDirectory = config.Paths.GatewayHome
+		logger.Warning("Option 'InDirectory' is deprecated, use 'DefaultInDir' instead")
+		config.Paths.DefaultInDir = config.Paths.InDirectory
 	}
 	if config.Paths.OutDirectory != "" {
-		if filepath.IsAbs(config.Paths.OutDirectory) {
-			config.Paths.OutDirectory = filepath.Clean(config.Paths.OutDirectory)
-		} else {
-			config.Paths.OutDirectory = filepath.Join(config.Paths.GatewayHome, config.Paths.OutDirectory)
-		}
-	} else {
-		config.Paths.OutDirectory = config.Paths.GatewayHome
+		logger.Warning("Option 'OutDirectory' is deprecated, use 'DefaultOutDir' instead")
+		config.Paths.DefaultOutDir = config.Paths.OutDirectory
 	}
 	if config.Paths.WorkDirectory != "" {
-		if filepath.IsAbs(config.Paths.WorkDirectory) {
-			config.Paths.WorkDirectory = filepath.Clean(config.Paths.WorkDirectory)
-		} else {
-			config.Paths.WorkDirectory = filepath.Join(config.Paths.GatewayHome, config.Paths.WorkDirectory)
-		}
-	} else {
-		config.Paths.WorkDirectory = config.Paths.GatewayHome
+		logger.Warning("Option 'WorkDirectory' is deprecated, use 'DefaultTmpDir' instead")
+		config.Paths.DefaultTmpDir = config.Paths.WorkDirectory
 	}
 
 	return nil
@@ -135,7 +124,12 @@ func loadServerConfig(userConfig string) (*ServerConfig, string, error) {
 		}
 	}
 
-	if err := normalizePaths(c); err != nil {
+	if err := log.InitBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility); err != nil {
+		return nil, "", err
+	}
+
+	logger := log.NewLogger("Config file")
+	if err := normalizePaths(c, logger); err != nil {
 		return nil, "", err
 	}
 	return c, userConfig, nil

@@ -1,6 +1,8 @@
 package model
 
 import (
+	"context"
+	"fmt"
 	"testing"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -18,10 +20,18 @@ func (t *testTaskSuccess) Validate(map[string]string) error {
 	return nil
 }
 
+func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error) {
+	return "", nil
+}
+
 type testTaskFail struct{}
 
 func (t *testTaskFail) Validate(map[string]string) error {
-	return nil
+	return fmt.Errorf("validation failed")
+}
+
+func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error) {
+	return "", fmt.Errorf("execution failed")
 }
 
 func TestTaskTableName(t *testing.T) {

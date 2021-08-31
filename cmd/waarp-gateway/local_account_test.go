@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
@@ -32,14 +31,14 @@ func TestGetLocalAccount(t *testing.T) {
 
 		Convey("Given a gateway with 1 local account", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -47,8 +46,8 @@ func TestGetLocalAccount(t *testing.T) {
 			commandLine.Account.Local.Args.Server = server.Name
 
 			account := &model.LocalAccount{
-				Login:        "login",
-				PasswordHash: hash("password"),
+				Login:        "toto",
+				PasswordHash: hash("sesame"),
 				LocalAgentID: server.ID,
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
@@ -87,7 +86,7 @@ func TestGetLocalAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				args := []string{"toto"}
+				args := []string{"tata"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -95,7 +94,7 @@ func TestGetLocalAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for server "+
+						So(err, ShouldBeError, "no account 'tata' found for server "+
 							server.Name)
 					})
 				})
@@ -127,14 +126,14 @@ func TestAddLocalAccount(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -142,7 +141,7 @@ func TestAddLocalAccount(t *testing.T) {
 			commandLine.Account.Local.Args.Server = server.Name
 
 			Convey("Given valid flags", func() {
-				args := []string{"-l", "login", "-p", "password"}
+				args := []string{"-l", "toto", "-p", "sesame"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -150,7 +149,7 @@ func TestAddLocalAccount(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the server was added", func() {
-						So(getOutput(), ShouldEqual, "The account login "+
+						So(getOutput(), ShouldEqual, "The account toto "+
 							"was successfully added.\n")
 					})
 
@@ -174,7 +173,7 @@ func TestAddLocalAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid server name", func() {
-				args := []string{"-l", "login", "-p", "password"}
+				args := []string{"-l", "toto", "-p", "sesame"}
 				commandLine.Account.Local.Args.Server = "toto"
 
 				Convey("When executing the command", func() {
@@ -199,14 +198,14 @@ func TestDeleteLocalAccount(t *testing.T) {
 
 		Convey("Given a gateway with 1 local account", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -215,8 +214,8 @@ func TestDeleteLocalAccount(t *testing.T) {
 
 			account := &model.LocalAccount{
 				LocalAgentID: server.ID,
-				Login:        "login",
-				PasswordHash: hash("password"),
+				Login:        "toto",
+				PasswordHash: hash("sesame"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -243,7 +242,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				args := []string{"toto"}
+				args := []string{"tata"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -251,7 +250,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for server "+
+						So(err, ShouldBeError, "no account 'tata' found for server "+
 							server.Name)
 					})
 
@@ -295,14 +294,14 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 		Convey("Given a gateway with 1 local account", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "par²ent",
-				Protocol:    "test",
+				Name:        "parent",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -311,8 +310,8 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 			account := &model.LocalAccount{
 				LocalAgentID: server.ID,
-				Login:        "login",
-				PasswordHash: hash("password"),
+				Login:        "toto",
+				PasswordHash: hash("sesame"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -349,7 +348,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				args := []string{"-l", "new_login", "-p", "new_password", "toto"}
+				args := []string{"-l", "new_login", "-p", "new_password", "tata"}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -357,7 +356,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for server "+
+						So(err, ShouldBeError, "no account 'tata' found for server "+
 							server.Name)
 					})
 
@@ -401,14 +400,14 @@ func TestListLocalAccount(t *testing.T) {
 
 		Convey("Given a gateway with 2 local accounts", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server1 := &model.LocalAgent{
 				Name:        "server1",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -417,7 +416,7 @@ func TestListLocalAccount(t *testing.T) {
 
 			server2 := &model.LocalAgent{
 				Name:        "server2",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
@@ -550,14 +549,14 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 
 		Convey("Given a gateway with 1 local account and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -565,15 +564,15 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 
 			account := &model.LocalAccount{
 				LocalAgentID: server.ID,
-				Login:        "login",
-				PasswordHash: hash("password"),
+				Login:        "toto",
+				PasswordHash: hash("sesame"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -651,7 +650,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				commandLine.Account.Local.Args.Server = server.Name
-				args := []string{"toto", rule.Name, direction(rule)}
+				args := []string{"tata", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -659,7 +658,7 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then is should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for server "+server.Name)
+						So(err, ShouldBeError, "no account 'tata' found for server "+server.Name)
 					})
 
 					Convey("Then the permission should NOT have been added", func() {
@@ -681,14 +680,14 @@ func TestRevokeLocalAccount(t *testing.T) {
 
 		Convey("Given a gateway with 1 local account and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -696,15 +695,15 @@ func TestRevokeLocalAccount(t *testing.T) {
 
 			account := &model.LocalAccount{
 				LocalAgentID: server.ID,
-				Login:        "login",
-				PasswordHash: hash("password"),
+				Login:        "toto",
+				PasswordHash: hash("sesame"),
 			}
 			So(db.Insert(account).Run(), ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -783,7 +782,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				commandLine.Account.Local.Args.Server = server.Name
-				args := []string{"toto", rule.Name, direction(rule)}
+				args := []string{"tata", rule.Name, direction(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -791,7 +790,7 @@ func TestRevokeLocalAccount(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then is should return an error", func() {
-						So(err, ShouldBeError, "no account 'toto' found for server "+server.Name)
+						So(err, ShouldBeError, "no account 'tata' found for server "+server.Name)
 					})
 
 					Convey("Then the permission should NOT have been removed", func() {

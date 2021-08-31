@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -19,18 +20,18 @@ func TestExportLocalAgents(t *testing.T) {
 
 		Convey("Given the database contains locals agents with accounts", func() {
 			agent1 := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "test",
+				Name:        "agent1",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6666",
 			}
 			So(db.Insert(agent1).Run(), ShouldBeNil)
 
 			// Change owner for this insert
-			conf.GlobalConfig.GatewayName = "tata"
+			conf.GlobalConfig.GatewayName = "unknown"
 			So(db.Insert(&model.LocalAgent{
 				Name:        "foo",
-				Protocol:    "test",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}).Run(), ShouldBeNil)
@@ -39,7 +40,7 @@ func TestExportLocalAgents(t *testing.T) {
 
 			account1a := &model.LocalAccount{
 				LocalAgentID: agent1.ID,
-				Login:        "test",
+				Login:        "acc1a",
 				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1a).Run(), ShouldBeNil)
@@ -54,8 +55,8 @@ func TestExportLocalAgents(t *testing.T) {
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			agent2 := &model.LocalAgent{
-				Name:        "test2",
-				Protocol:    "test",
+				Name:        "agent2",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6666",
 			}
@@ -63,7 +64,7 @@ func TestExportLocalAgents(t *testing.T) {
 
 			account2a := &model.LocalAccount{
 				LocalAgentID: agent2.ID,
-				Login:        "test",
+				Login:        "acc2a",
 				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2a).Run(), ShouldBeNil)
@@ -97,9 +98,9 @@ func TestExportLocalAgents(t *testing.T) {
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent1.Protocol)
 										So(res[i].Root, ShouldEqual, agent1.Root)
-										So(res[i].InDir, ShouldEqual, agent1.InDir)
-										So(res[i].OutDir, ShouldEqual, agent1.OutDir)
-										So(res[i].WorkDir, ShouldEqual, agent1.WorkDir)
+										So(res[i].LocalInDir, ShouldEqual, agent1.LocalInDir)
+										So(res[i].LocalOutDir, ShouldEqual, agent1.LocalOutDir)
+										So(res[i].LocalTmpDir, ShouldEqual, agent1.LocalTmpDir)
 										So(res[i].Address, ShouldEqual, agent1.Address)
 										So(res[i].Configuration, ShouldResemble,
 											agent1.ProtoConfig)
@@ -120,9 +121,9 @@ func TestExportLocalAgents(t *testing.T) {
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent2.Protocol)
 										So(res[i].Root, ShouldEqual, agent2.Root)
-										So(res[i].InDir, ShouldEqual, agent2.InDir)
-										So(res[i].OutDir, ShouldEqual, agent2.OutDir)
-										So(res[i].WorkDir, ShouldEqual, agent2.WorkDir)
+										So(res[i].LocalInDir, ShouldEqual, agent2.LocalInDir)
+										So(res[i].LocalOutDir, ShouldEqual, agent2.LocalOutDir)
+										So(res[i].LocalTmpDir, ShouldEqual, agent2.LocalTmpDir)
 										So(res[i].Address, ShouldEqual, agent2.Address)
 										So(res[i].Configuration, ShouldResemble,
 											agent2.ProtoConfig)
@@ -156,8 +157,8 @@ func TestExportLocalAccounts(t *testing.T) {
 
 		Convey("Given the dabase contains a local agent with accounts", func() {
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "test",
+				Name:        "server",
+				Protocol:    config.TestProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -165,7 +166,7 @@ func TestExportLocalAccounts(t *testing.T) {
 
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
-				Login:        "test",
+				Login:        "acc1",
 				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
@@ -181,7 +182,7 @@ func TestExportLocalAccounts(t *testing.T) {
 				Name:        "test_cert",
 				OwnerType:   model.TableLocAccounts,
 				OwnerID:     account2.ID,
-				Certificate: testhelpers.ClientCert,
+				Certificate: testhelpers.ClientFooCert,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 

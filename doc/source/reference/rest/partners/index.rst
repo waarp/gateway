@@ -1,7 +1,7 @@
-Gestion des partenaires locaux
-##############################
+Gestion des partenaires distants
+################################
 
-Le point d'accès pour gérer les différents partenaires locaux de la gateway est
+Le point d'accès pour gérer les différents partenaires distants de la gateway est
 ``/api/partners``.
 
 .. toctree::

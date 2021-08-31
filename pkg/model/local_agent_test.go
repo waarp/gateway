@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -37,7 +36,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("bar")}
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("sesame")}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
@@ -61,7 +60,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 				OwnerType:   TableLocAccounts,
 				OwnerID:     acc.ID,
 				Name:        "test account cert",
-				Certificate: testhelpers.ClientCert,
+				Certificate: testhelpers.ClientFooCert,
 			}
 			So(db.Insert(&certAcc).Run(), ShouldBeNil)
 
@@ -98,8 +97,8 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 					IsServer:   true,
 					AgentID:    ag.ID,
 					AccountID:  acc.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 
@@ -139,9 +138,9 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 					Owner:       "test_gateway",
 					Name:        "new",
 					Root:        "root",
-					InDir:       "rcv",
-					OutDir:      "send",
-					WorkDir:     "tmp",
+					LocalInDir:  "rcv",
+					LocalOutDir: "send",
+					LocalTmpDir: "tmp",
 					Protocol:    dummyProto,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2023",

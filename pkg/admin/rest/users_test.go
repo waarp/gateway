@@ -210,7 +210,7 @@ func TestCreateUser(t *testing.T) {
 			Convey("Given a new user to insert in the database", func() {
 				body := strings.NewReader(`{
 					"username": "toto",
-					"password": "password",
+					"password": "sesame",
 					"perms": {
 						"transfers": "rw",
 						"servers": "rd",
@@ -249,7 +249,7 @@ func TestCreateUser(t *testing.T) {
 							So(users, ShouldHaveLength, 2)
 
 							So(bcrypt.CompareHashAndPassword(users[1].Password,
-								[]byte("password")), ShouldBeNil)
+								[]byte("sesame")), ShouldBeNil)
 							So(users[1], ShouldResemble, model.User{
 								ID:       3,
 								Owner:    conf.GlobalConfig.GatewayName,
@@ -410,7 +410,7 @@ func TestUpdateUser(t *testing.T) {
 			Convey("Given new values to update the user with", func() {
 				body := strings.NewReader(`{
 					"username": "toto",
-					"password": "password",
+					"password": "sesame",
 					"perms": {
 						"transfers": "-w",
 						"servers": "=rw",
@@ -449,7 +449,7 @@ func TestUpdateUser(t *testing.T) {
 							So(users, ShouldHaveLength, 2)
 
 							So(bcrypt.CompareHashAndPassword(users[0].Password,
-								[]byte("password")), ShouldBeNil)
+								[]byte("sesame")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
 								ID:       2,
 								Owner:    conf.GlobalConfig.GatewayName,

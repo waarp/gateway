@@ -30,14 +30,14 @@ type Rule struct {
 	// This path is always an absolute path.
 	Path string `xorm:"unique(path) notnull 'path'"`
 
-	// The directory for all incoming files.
-	InPath string `xorm:"notnull 'in_path'"`
+	// The local directory for all file transfers using this rule.
+	LocalDir string `xorm:"notnull 'local_dir'"`
 
-	// The directory for all outgoing files.
-	OutPath string `xorm:"notnull 'out_path'"`
+	// The remote directory for all file transfers using this rule.
+	RemoteDir string `xorm:"notnull 'remote_dir'"`
 
-	// The temp directory for all running transfer files.
-	WorkPath string `xorm:"notnull 'work_path'"`
+	// The temporary directory for all running transfer files.
+	LocalTmpDir string `xorm:"notnull 'local_tmp_dir'"`
 }
 
 // TableName returns the remote accounts table name.
@@ -60,19 +60,19 @@ func (r *Rule) normalizePaths() {
 	if r.Path == "/" || r.Path == "." {
 		r.Path = r.Name
 	} else {
-		r.Path = utils.NormalizePath(r.Path)
+		r.Path = utils.ToStandardPath(r.Path)
 		if path.IsAbs(r.Path) {
 			r.Path = r.Path[1:]
 		}
 	}
-	if r.InPath != "" {
-		r.InPath = utils.NormalizePath(r.InPath)
+	if r.LocalDir != "" {
+		r.LocalDir = utils.ToOSPath(r.LocalDir)
 	}
-	if r.OutPath != "" {
-		r.OutPath = utils.NormalizePath(r.OutPath)
+	if r.RemoteDir != "" {
+		r.RemoteDir = utils.ToStandardPath(r.RemoteDir)
 	}
-	if r.WorkPath != "" {
-		r.WorkPath = utils.NormalizePath(r.WorkPath)
+	if r.LocalTmpDir != "" {
+		r.LocalTmpDir = utils.ToOSPath(r.LocalTmpDir)
 	}
 }
 

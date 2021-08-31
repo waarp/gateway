@@ -1,6 +1,7 @@
 package model
 
 import (
+	"net"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
@@ -139,10 +140,14 @@ func (c *Crypto) checkContentRemote(parent database.GetBean) database.Error {
 func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) database.Error {
 	var host, proto string
 	var isServer bool
+	var err error
 	switch t := parent.(type) {
 	case *LocalAgent:
 		isServer = true
-		host = t.Address
+		host, _, err = net.SplitHostPort(t.Address)
+		if err != nil {
+			return database.NewValidationError("failed to parse certificate owner address")
+		}
 		proto = t.Protocol
 		if err := c.checkContentLocal(parent); err != nil {
 			return err
@@ -159,7 +164,10 @@ func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) d
 		proto = parentParent.Protocol
 	case *RemoteAgent:
 		isServer = true
-		host = t.Address
+		host, _, err = net.SplitHostPort(t.Address)
+		if err != nil {
+			return database.NewValidationError("failed to parse certificate owner address")
+		}
 		proto = t.Protocol
 		if err := c.checkContentRemote(parent); err != nil {
 			return err

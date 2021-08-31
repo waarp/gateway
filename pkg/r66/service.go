@@ -1,25 +1,30 @@
+// Package r66 contains the functions necessary to execute a file transfer
+// using the R66 protocol. The package defines both a client and a server.
 package r66
 
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"net"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-
 	"code.bcarlin.xyz/go/logging"
-
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
 )
+
+func init() {
+	gatewayd.ServiceConstructors["r66"] = NewService
+}
 
 // Service represents a r66 service, which encompasses a r66 server usable for
 // transfers.
@@ -27,31 +32,24 @@ type Service struct {
 	db     *database.DB
 	logger *log.Logger
 	agent  *model.LocalAgent
-
-	cancel context.CancelFunc
-	paths  pipeline.Paths
-
 	state  *service.State
-	server *r66.Server
 
-	done chan struct{}
+	list     net.Listener
+	server   *r66.Server
+	shutdown chan struct{}
+
+	runningTransfers *service.TransferMap
 }
 
 // NewService returns a new R66 service instance with the given attributes.
-func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *Service {
-	paths := pipeline.Paths{
-		PathsConfig: conf.GlobalConfig.Paths,
-		ServerRoot:  agent.Root,
-		ServerIn:    agent.InDir,
-		ServerOut:   agent.OutDir,
-		ServerWork:  agent.WorkDir,
-	}
+func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService {
 	return &Service{
-		db:     db,
-		agent:  agent,
-		logger: logger,
-		paths:  paths,
-		state:  &service.State{},
+		db:               db,
+		agent:            agent,
+		logger:           logger,
+		state:            &service.State{},
+		shutdown:         make(chan struct{}),
+		runningTransfers: service.NewTransferMap(),
 	}
 }
 
@@ -73,12 +71,27 @@ func (s *Service) makeTLSConf() (*tls.Config, error) {
 		}
 	}
 
-	//ca, _ := x509.SystemCertPool()
+	ca, cErr := x509.SystemCertPool()
+	if cErr != nil {
+		ca = x509.NewCertPool()
+	}
+	var clientCerts model.Cryptos
+	if err := s.db.Select(&clientCerts).Where(
+		"owner_type=? AND owner_id IN (SELECT id FROM local_accounts WHERE local_agent_id=?)",
+		"local_accounts", s.agent.ID).Run(); err != nil {
+		return nil, err
+	}
+	for _, cert := range clientCerts {
+		if !ca.AppendCertsFromPEM([]byte(cert.Certificate)) {
+			return nil, fmt.Errorf("failed to add cert %s to trusted certificates pool", cert.Name)
+		}
+	}
+
 	return &tls.Config{
 		Certificates: tlsCerts,
 		MinVersion:   tls.VersionTLS12,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		//ClientCAs:    ca,
+		ClientAuth:   tls.VerifyClientCertIfGiven,
+		ClientCAs:    ca,
 	}, nil
 }
 
@@ -95,7 +108,7 @@ func (s *Service) Start() error {
 		return err1
 	}
 
-	pwd, err := utils.AESDecrypt(r66Conf.ServerPassword)
+	pwd, err := utils.AESDecrypt(database.GCM, r66Conf.ServerPassword)
 	if err != nil {
 		s.logger.Errorf("Failed to decrypt server password: %s", err)
 		dErr := fmt.Errorf("failed to decrypt server password: %s", err)
@@ -103,23 +116,17 @@ func (s *Service) Start() error {
 		return dErr
 	}
 
-	var ctx context.Context
-	ctx, s.cancel = context.WithCancel(context.Background())
-
 	s.server = &r66.Server{
-		Login:    s.agent.Name,
+		Login:    r66Conf.ServerLogin,
 		Password: []byte(pwd),
+		Logger:   s.logger.AsStdLog(logging.DEBUG),
 		Conf: &r66.Config{
-			FileSize:  true,
-			FinalHash: true,
-			HashAlgo:  "SHA-256",
-			Proxified: false,
+			FileSize:   true,
+			FinalHash:  true,
+			DigestAlgo: "SHA-256",
+			Proxified:  false,
 		},
-		Handler: &authHandler{
-			Service: s,
-			ctx:     ctx,
-		},
-		Logger: s.logger.AsStdLog(logging.DEBUG),
+		Handler: &authHandler{Service: s},
 	}
 
 	if err := s.listen(); err != nil {
@@ -135,7 +142,7 @@ func (s *Service) listen() error {
 	tlsConf, err := s.makeTLSConf()
 	if err != nil {
 		s.logger.Errorf("Failed to parse server TLS config: %s", err)
-		s.state.Set(service.Error, err.Error())
+		s.state.Set(service.Error, "failed to parse server TLS config")
 		return err
 	}
 
@@ -143,11 +150,10 @@ func (s *Service) listen() error {
 	if err != nil {
 		return err
 	}
-	var list net.Listener
 	if tlsConf != nil {
-		list, err = tls.Listen("tcp", addr, tlsConf)
+		s.list, err = tls.Listen("tcp", addr, tlsConf)
 	} else {
-		list, err = net.Listen("tcp", addr)
+		s.list, err = net.Listen("tcp", addr)
 	}
 	if err != nil {
 		s.logger.Errorf("Failed to start R66 listener: %s", err)
@@ -155,13 +161,16 @@ func (s *Service) listen() error {
 		return err
 	}
 
-	s.done = make(chan struct{})
 	go func() {
-		if err := s.server.Serve(list); err != nil {
-			s.logger.Errorf("Server has stopped unexpectedly: %s", err)
-			s.state.Set(service.Error, err.Error())
+		if err := s.server.Serve(s.list); err != nil {
+			select {
+			case <-s.shutdown:
+				return
+			default:
+				s.logger.Errorf("Server has stopped unexpectedly: %s", err)
+				s.state.Set(service.Error, err.Error())
+			}
 		}
-		close(s.done)
 	}()
 
 	return nil
@@ -179,19 +188,19 @@ func (s *Service) Stop(ctx context.Context) error {
 	s.state.Set(service.ShuttingDown, "")
 	defer s.state.Set(service.Offline, "")
 
-	if err := s.server.Shutdown(ctx); err != nil {
-		s.logger.Error("Failed to shut down R66 server, forcing exit")
-		return err
+	if s.shutdown == nil {
+		s.shutdown = make(chan struct{})
 	}
-	s.logger.Info("R66 server shutdown successful")
+	close(s.shutdown)
 
-	select {
-	case <-ctx.Done():
-		s.logger.Error("Failed to shut down R66 server, forcing exit")
+	if err := s.runningTransfers.InterruptAll(ctx); err != nil {
+		s.logger.Error("Failed to interrupt R66 transfers, forcing exit")
 		return ctx.Err()
-	case <-s.done:
 	}
+	s.logger.Debug("Closing listener...")
+	_ = s.server.Shutdown(ctx)
 
+	s.logger.Info("R66 server shutdown successful")
 	return nil
 }
 
@@ -203,4 +212,9 @@ func (s *Service) State() *service.State {
 		}
 	}
 	return s.state
+}
+
+// ManageTransfers returns a map of the transfers currently running on the server.
+func (s *Service) ManageTransfers() *service.TransferMap {
+	return s.runningTransfers
 }

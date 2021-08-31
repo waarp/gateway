@@ -31,7 +31,7 @@ func TestGetRemoteAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -141,13 +141,13 @@ func TestListRemoteAccounts(t *testing.T) {
 		Convey("Given a database with 4 remote accounts", func() {
 			p1 := &model.RemoteAgent{
 				Name:        "parent1",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			p2 := &model.RemoteAgent{
 				Name:        "parent2",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
@@ -280,7 +280,7 @@ func TestCreateRemoteAccount(t *testing.T) {
 		Convey("Given a database with 1 agent", func() {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -375,7 +375,7 @@ func TestDeleteRemoteAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -458,7 +458,7 @@ func TestUpdateRemoteAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -589,7 +589,7 @@ func TestReplaceRemoteAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}

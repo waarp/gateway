@@ -35,7 +35,7 @@ func TestGetLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -145,13 +145,13 @@ func TestListLocalAccounts(t *testing.T) {
 		Convey("Given a database with 4 local accounts", func() {
 			p1 := &model.LocalAgent{
 				Name:        "parent1",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			p2 := &model.LocalAgent{
 				Name:        "parent2",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
@@ -284,7 +284,7 @@ func TestCreateLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 agent", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -381,7 +381,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -475,7 +475,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -599,7 +599,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}

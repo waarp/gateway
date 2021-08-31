@@ -9,20 +9,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"time"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"xorm.io/xorm"
 	log2 "xorm.io/xorm/log"
 	"xorm.io/xorm/names"
-)
-
-const (
-	// ServiceName is the name of the gatewayd database service
-	ServiceName = "Database"
 )
 
 var (
@@ -48,19 +43,19 @@ func (db *DB) loadAESKey() error {
 	}
 
 	filename := conf.GlobalConfig.Database.AESPassphrase
-	if _, err := os.Stat(filepath.FromSlash(filename)); os.IsNotExist(err) {
+	if _, err := os.Stat(utils.ToOSPath(filename)); os.IsNotExist(err) {
 		db.logger.Infof("Creating AES passphrase file at '%s'", filename)
 		key := make([]byte, 32)
 		if _, err := rand.Read(key); err != nil {
 			return err
 		}
 
-		if err := ioutil.WriteFile(filepath.FromSlash(filename), key, 0600); err != nil {
+		if err := ioutil.WriteFile(utils.ToOSPath(filename), key, 0600); err != nil {
 			return err
 		}
 	}
 
-	key, err := ioutil.ReadFile(filepath.FromSlash(filename))
+	key, err := ioutil.ReadFile(utils.ToOSPath(filename))
 	if err != nil {
 		return err
 	}
@@ -129,7 +124,7 @@ func (db *DB) initEngine() (*xorm.Engine, error) {
 // If the service is already running, this function does nothing.
 func (db *DB) Start() error {
 	if db.logger == nil {
-		db.logger = log.NewLogger(ServiceName)
+		db.logger = log.NewLogger(service.DatabaseServiceName)
 	}
 
 	db.logger.Info("Starting database service...")

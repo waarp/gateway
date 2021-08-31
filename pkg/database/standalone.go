@@ -47,6 +47,7 @@ func (s *Standalone) transaction(isWrite bool, f func(*Session) Error) Error {
 	}
 	if isWrite && conf.GlobalConfig.Database.Type == SQLite {
 		if _, err := ses.session.Exec("ROLLBACK; BEGIN IMMEDIATE"); err != nil {
+			s.logger.Errorf("Failed to start transaction: %s", err)
 			return &InternalError{msg: "failed to start transaction", cause: err}
 		}
 	}

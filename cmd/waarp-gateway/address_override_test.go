@@ -25,7 +25,7 @@ func TestGetAddressOverride(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil, nil))
 			conf.InitTestOverrides(c)
 			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
 			So(conf.AddIndirection("waarp.fr", "1.2.3.4"), ShouldBeNil)
@@ -59,7 +59,7 @@ func TestSetAddressOverride(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil, nil))
 			conf.InitTestOverrides(c)
 
 			var err error
@@ -96,7 +96,7 @@ func TestListAddressOverrides(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil, nil))
 			conf.InitTestOverrides(c)
 			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
 			So(conf.AddIndirection("waarp.fr", "1.2.3.4"), ShouldBeNil)
@@ -131,7 +131,7 @@ func TestDeleteAddressOverride(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil, nil))
 			conf.InitTestOverrides(c)
 			So(conf.AddIndirection("localhost", "127.0.0.1"), ShouldBeNil)
 			So(conf.AddIndirection("waarp.fr", "1.2.3.4"), ShouldBeNil)

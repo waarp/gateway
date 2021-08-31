@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -37,15 +36,15 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo", Password: "bar"}
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo", Password: "sesame"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			cert := Crypto{
 				OwnerType:   TableRemAccounts,
 				OwnerID:     acc.ID,
 				Name:        "test cert",
-				PrivateKey:  testhelpers.ClientKey,
-				Certificate: testhelpers.ClientCert,
+				PrivateKey:  testhelpers.ClientFooKey,
+				Certificate: testhelpers.ClientFooCert,
 			}
 			So(db.Insert(&cert).Run(), ShouldBeNil)
 
@@ -82,8 +81,8 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 					IsServer:   false,
 					AgentID:    ag.ID,
 					AccountID:  acc.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 
@@ -120,7 +119,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 			oldAccount := RemoteAccount{
 				RemoteAgentID: parentAgent.ID,
 				Login:         "old",
-				Password:      "password",
+				Password:      "sesame",
 			}
 			So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
@@ -128,7 +127,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 				newAccount := RemoteAccount{
 					RemoteAgentID: parentAgent.ID,
 					Login:         "new",
-					Password:      "password",
+					Password:      "sesame_new",
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {

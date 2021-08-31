@@ -37,7 +37,7 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo", Password: "bar"}
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo", Password: "sesame"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
@@ -62,8 +62,8 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 				OwnerType:   TableRemAccounts,
 				OwnerID:     acc.ID,
 				Name:        "test account cert",
-				PrivateKey:  testhelpers.ClientKey,
-				Certificate: testhelpers.ClientCert,
+				PrivateKey:  testhelpers.ClientFooKey,
+				Certificate: testhelpers.ClientFooCert,
 			}
 			So(db.Insert(&certAcc).Run(), ShouldBeNil)
 
@@ -100,8 +100,8 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 					IsServer:   false,
 					AgentID:    ag.ID,
 					AccountID:  acc.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 

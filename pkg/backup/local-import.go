@@ -3,13 +3,12 @@ package backup
 import (
 	"fmt"
 
-	"code.waarp.fr/waarp-r66/r66"
-
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/waarp-r66/r66"
 )
 
 func importLocalAgents(logger *log.Logger, db database.Access, list []file.LocalAgent) database.Error {
@@ -29,13 +28,25 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 		// Populate
 		agent.Name = src.Name
 		agent.Root = src.Root
-		agent.InDir = src.InDir
-		agent.OutDir = src.OutDir
-		agent.WorkDir = src.WorkDir
+		agent.LocalInDir = src.LocalInDir
+		agent.LocalOutDir = src.LocalOutDir
+		agent.LocalTmpDir = src.LocalTmpDir
 		agent.Address = src.Address
 		agent.Protocol = src.Protocol
 		agent.ProtoConfig = src.Configuration
 		agent.Owner = ""
+		if src.InDir != "" {
+			logger.Warning("JSON field 'locals.inDir' is deprecated, use 'localInDir' instead")
+			agent.LocalInDir = src.InDir
+		}
+		if src.OutDir != "" {
+			logger.Warning("JSON field 'locals.outDir' is deprecated, use 'localOutDir' instead")
+			agent.LocalOutDir = src.OutDir
+		}
+		if src.WorkDir != "" {
+			logger.Warning("JSON field 'locals.workDir' is deprecated, use 'localTmpDir' instead")
+			agent.LocalTmpDir = src.WorkDir
+		}
 
 		//Create/Update
 		if exists {
@@ -90,7 +101,8 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 				pswd = r66.CryptPass(pswd)
 			}
 			var err error
-			if account.PasswordHash, err = utils.HashPassword(pswd); err != nil {
+			if account.PasswordHash, err = utils.HashPassword(database.BcryptRounds,
+				pswd); err != nil {
 				return database.NewInternalError(fmt.Errorf("failed to hash account password: %s", err))
 			}
 
