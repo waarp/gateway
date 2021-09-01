@@ -159,6 +159,7 @@ func permToMask(mask *PermsMask, perm string, off int) database.Error {
 }
 
 // PermsToMask converts the given Permissions instance to an equivalent PermsMask.
+//
 //nolint:gomnd //too specific
 func PermsToMask(perms *Permissions) (PermsMask, database.Error) {
 	if perms == nil {

@@ -51,6 +51,11 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry bool) error 
 				return err
 			}
 		}
+		if utils.ContainsStrings(targets, "users", "all") {
+			if err := importUsers(logger, ses, data.Users); err != nil {
+				return err
+			}
+		}
 
 		if dry {
 			return errDry
