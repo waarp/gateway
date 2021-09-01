@@ -28,7 +28,7 @@ const (
 var errSimulated = fmt.Errorf("simulated database error")
 
 func testinfo(c *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc",
+	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&_busy_timeout=10000",
 		c.Address), sqliteInit
 }
 

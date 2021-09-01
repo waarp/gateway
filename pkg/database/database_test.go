@@ -39,14 +39,13 @@ func testSelectForUpdate(db *DB) {
 
 	db2 := &DB{Conf: db.Conf}
 	So(db2.Start(), ShouldBeNil)
-	// db2.engine.Exec("PRAGMA busy_timeout = 60000")
 	Reset(func() { So(db2.engine.Close(), ShouldBeNil) })
 
-	transRes := make(chan Error)
-	trans2 := func() {
-		defer close(transRes)
-
-		tErr2 := db2.WriteTransaction(func(ses *Session) Error {
+	transRes := make(chan Error, 1)
+	trans2 := func(ready chan<- bool) {
+		close(ready)
+		db2.engine.Exec("PRAGMA busy_timeout = 10000")
+		transRes <- db2.WriteTransaction(func(ses *Session) Error {
 			var beans validList
 			if err := ses.SelectForUpdate(&beans).Where("string=?", "str2").Run(); err != nil {
 				return err
@@ -58,8 +57,6 @@ func testSelectForUpdate(db *DB) {
 
 			return nil
 		})
-
-		transRes <- tErr2
 	}
 
 	Convey("When executing a 'SELECT FOR UPDATE' query", func() {
@@ -71,7 +68,10 @@ func testSelectForUpdate(db *DB) {
 			err := ses.SelectForUpdate(&beans).Where("string=?", "str2").Run()
 			So(err, ShouldBeNil)
 
-			go trans2()
+			ready := make(chan bool)
+			go trans2(ready)
+			<-ready
+
 			err2 := ses.UpdateAll(&testValid{}, UpdVals{"string": "new_str2"}, "string=?", "str2").Run()
 			So(err2, ShouldBeNil)
 
@@ -79,7 +79,8 @@ func testSelectForUpdate(db *DB) {
 		})
 
 		So(tErr1, ShouldBeNil)
-		So(<-transRes, ShouldBeNil)
+		tErr2 := <-transRes
+		So(tErr2, ShouldBeNil)
 
 		var res []testValid
 		So(db.engine.Find(&res), ShouldBeNil)
