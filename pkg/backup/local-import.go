@@ -20,8 +20,8 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 
 		// Check if agent exists
 		exists := true
+		err := db.Get(&agent, "name=? AND owner=?", src.Name, database.Owner).Run()
 
-		err := db.Get(&agent, "name=?", src.Name).Run()
 		if database.IsNotFound(err) {
 			exists = false
 		} else if err != nil {

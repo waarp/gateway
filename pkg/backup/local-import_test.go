@@ -24,6 +24,19 @@ func TestImportLocalAgents(t *testing.T) {
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
+
+			// add another LocalAgent with the same name but different owner
+			agent2 := &model.LocalAgent{
+				Name:        agent.Name,
+				Protocol:    "test",
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:9999",
+			}
+			owner := database.Owner
+			database.Owner = "toto"
+			So(db.Insert(agent2).Run(), ShouldBeNil)
+			database.Owner = owner
+
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			Convey("Given a list of new agents", func() {
@@ -53,7 +66,8 @@ func TestImportLocalAgents(t *testing.T) {
 						})
 						Convey("Then the database should contains the local agents", func() {
 							var dbAgent model.LocalAgent
-							So(db.Get(&dbAgent, "name=?", agent1.Name).Run(), ShouldBeNil)
+							So(db.Get(&dbAgent, "name=? AND owner=?", agent1.Name,
+								database.Owner).Run(), ShouldBeNil)
 
 							Convey("Then the data shuld correspond to the "+
 								"one imported", func() {
@@ -103,9 +117,10 @@ func TestImportLocalAgents(t *testing.T) {
 					})
 					Convey("Then the database should contains the local agents", func() {
 						var dbAgent model.LocalAgent
-						So(db.Get(&dbAgent, "name=?", agent1.Name).Run(), ShouldBeNil)
+						So(db.Get(&dbAgent, "name=? AND owner=?", agent1.Name,
+							database.Owner).Run(), ShouldBeNil)
 
-						Convey("Then the data shuld correspond to the "+
+						Convey("Then the data should correspond to the "+
 							"one imported", func() {
 							So(dbAgent.Name, ShouldEqual, agent1.Name)
 							So(dbAgent.Protocol, ShouldEqual, agent1.Protocol)
