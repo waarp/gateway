@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -16,12 +17,18 @@ import (
 )
 
 func TestStart(t *testing.T) {
-	Convey("Given an admin service", t, func() {
+	Convey("Given an admin service", t, func(c C) {
+		certFile := testhelpers.TempFile(c, "rest_cert_*.pem")
+		keyFile := testhelpers.TempFile(c, "rest_key_*.pem")
+
+		So(os.WriteFile(certFile, []byte(cert), 0o600), ShouldBeNil)
+		So(os.WriteFile(keyFile, []byte(key), 0o600), ShouldBeNil)
+
 		conf.GlobalConfig.Admin = conf.AdminConfig{
 			Host:    "localhost",
 			Port:    0,
-			TLSCert: "../../test_data/rest_cert.pem",
-			TLSKey:  "../../test_data/rest_key.pem",
+			TLSCert: certFile,
+			TLSKey:  keyFile,
 		}
 		server := &Server{
 			CoreServices:  map[string]service.Service{},
@@ -31,10 +38,10 @@ func TestStart(t *testing.T) {
 
 		Convey("Given a correct configuration", func() {
 			Convey("When starting the service", func() {
-				err := server.Start()
+				So(server.Start(), ShouldBeNil)
 
-				Convey("Then it should return no error", func() {
-					So(err, ShouldBeNil)
+				Convey("Then it should have started a TLS listener", func() {
+					So(server.server.TLSConfig, ShouldNotBeNil)
 				})
 
 				Convey("Then the service should be running", func() {
@@ -45,11 +52,7 @@ func TestStart(t *testing.T) {
 				})
 
 				Convey("When starting the service a second time", func() {
-					err := server.Start()
-
-					Convey("Then it should not return an error", func() {
-						So(err, ShouldBeNil)
-					})
+					So(server.Start(), ShouldBeNil)
 
 					Convey("Then the service should still be running", func() {
 						code, reason := server.State().Get()
@@ -58,6 +61,27 @@ func TestStart(t *testing.T) {
 						So(reason, ShouldBeEmpty)
 					})
 				})
+			})
+		})
+
+		Convey("Given a key file with a passphrase", func() {
+			keyFilePass := testhelpers.TempFile(c, "rest_key_passphrase_*.pem")
+			So(os.WriteFile(keyFilePass, []byte(keyWithPassphrase), 0o600), ShouldBeNil)
+
+			conf.GlobalConfig.Admin.TLSKey = keyFilePass
+			conf.GlobalConfig.Admin.TLSPassphrase = keyPassphrase
+
+			So(server.Start(), ShouldBeNil)
+
+			Convey("Then it should have started a TLS listener", func() {
+				So(server.server.TLSConfig, ShouldNotBeNil)
+			})
+
+			Convey("Then the service should be running", func() {
+				code, reason := server.State().Get()
+
+				So(code, ShouldEqual, service.Running)
+				So(reason, ShouldBeEmpty)
 			})
 		})
 

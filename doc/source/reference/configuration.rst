@@ -139,6 +139,10 @@ et l'API REST.
    Le chemin de la clé du certificat TLS. Si ce paramètre n'est pas défini,
    le serveur utilisera du HTTP en clair à la place de HTTPS.
 
+.. confval:: TLSPassphrase
+
+   Le mot de passe de la clé du certificat (si la clé est chiffrée).
+
 
 Section ``[database]``
 ======================
