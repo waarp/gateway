@@ -1,8 +1,14 @@
 package database
 
 import (
+	"fmt"
+
+	"xorm.io/xorm/schemas"
+
 	"code.waarp.fr/lib/log"
 	"xorm.io/xorm"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 // Session is a struct used to perform transactions on the database. A session
@@ -114,16 +120,57 @@ func (s *Session) Delete(bean DeleteBean) *DeleteQuery {
 	return &DeleteQuery{db: s, bean: bean}
 }
 
-// DeleteAll starts building a SQL 'DELETE' query to delete entries of the
+// DeleteAll starts building an SQL 'DELETE' query to delete entries of the
 // given model from the database. The request can be narrowed using the
 // DeleteAllQuery.Where method.
 //
 // Be aware, since DeleteAll deletes multiple entries with only one SQL
 // command, the model's `BeforeDelete` function will not be called when using
 // this method. Thus DeleteAll should exclusively be used on models with
-// with no DeletionHook.
+// no DeletionHook.
 //
 // The request can then be executed using the DeleteAllQuery.Run method.
 func (s *Session) DeleteAll(bean DeleteAllBean) *DeleteAllQuery {
 	return &DeleteAllQuery{db: s, bean: bean}
+}
+
+// ResetIncrement resets the auto-increment on the given model's ID primary key.
+// The auto-increment can only be reset if the table is empty.
+func (s *Session) ResetIncrement(bean IterateBean) Error {
+	if n, err := s.session.NoAutoCondition().Count(bean); err != nil {
+		s.logger.Error("Failed to query table '%s': %s", bean.TableName(), err)
+
+		return NewInternalError(err)
+	} else if n != 0 {
+		return NewValidationError("cannot reset the increment on table %q "+
+			"while there are still rows in it", bean.TableName())
+	}
+
+	var err error
+
+	switch dbType := s.session.Engine().Dialect().URI().DBType; dbType {
+	case schemas.SQLITE:
+		_, err = s.session.Exec("DELETE FROM sqlite_sequence WHERE name=?", bean.TableName())
+	case schemas.POSTGRES:
+		_, err = s.session.Exec("ALTER SEQUENCE " + bean.TableName() + "_id_seq RESTART WITH 1")
+	case schemas.MYSQL:
+		_, err = s.session.Exec("ALTER TABLE " + bean.TableName() + " AUTO_INCREMENT = 1")
+	default:
+		s.logger.Error("%s databases do not support resetting an auto-increment",
+			conf.GlobalConfig.Database.Type)
+
+		return &InternalError{
+			msg:   fmt.Sprintf("unsupported database: %s", dbType),
+			cause: errUnsuportedDB,
+		}
+	}
+
+	if err != nil {
+		s.logger.Error("Failed to reset the auto-increment on table '%s': %s",
+			bean.TableName(), err)
+
+		return NewInternalError(err)
+	}
+
+	return nil
 }

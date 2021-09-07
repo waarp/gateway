@@ -669,6 +669,52 @@ func testTransaction(db *DB) {
 	})
 }
 
+func testResetIncrement(db *DB) {
+	bean1 := testValid{String: "str1"}
+	bean2 := testValid{String: "str2"}
+
+	Convey("When calling the 'ResetIncrement' method", func() {
+		_, err := db.engine.Insert(&bean1, &bean2)
+		So(err, ShouldBeNil)
+		_, err = db.engine.NoAutoCondition().Where("id=id").Delete(&testValid{})
+		So(err, ShouldBeNil)
+
+		Convey("Inside a transaction", func() {
+			Convey("Given that the table is empty", func() {
+				ses := db.newSession()
+				So(ses.session.Begin(), ShouldBeNil)
+				Reset(func() { _ = ses.session.Close() })
+
+				So(ses.ResetIncrement(&testValid{}), ShouldBeNil)
+				So(ses.session.Commit(), ShouldBeNil)
+
+				Convey("Then it should have reset the increment", func() {
+					bean3 := testValid{String: "str3"}
+					_, err := db.engine.Insert(&bean3)
+					So(err, ShouldBeNil)
+
+					So(bean3.ID, ShouldEqual, 1)
+				})
+			})
+
+			Convey("Given that the table is NOT empty", func() {
+				bean3 := testValid{String: "str3"}
+				_, err := db.engine.Insert(&bean3)
+				So(err, ShouldBeNil)
+				So(bean3.ID, ShouldEqual, 3)
+
+				ses := db.newSession()
+				So(ses.session.Begin(), ShouldBeNil)
+				Reset(func() { _ = ses.session.Close() })
+
+				So(ses.ResetIncrement(&testValid{}), ShouldBeError, fmt.Sprintf(
+					"cannot reset the increment on table %q while there are still rows in it",
+					bean3.TableName()))
+			})
+		})
+	})
+}
+
 func testDatabase(db *DB) {
 	So(db.engine.CreateTables(&testValid{}, &testValid2{}, &testWriteFail{},
 		&testDeleteFail{}), ShouldBeNil)
@@ -687,6 +733,7 @@ func testDatabase(db *DB) {
 	testDelete(db)
 	testDeleteAll(db)
 	testTransaction(db)
+	testResetIncrement(db)
 }
 
 func TestSqlite(t *testing.T) {

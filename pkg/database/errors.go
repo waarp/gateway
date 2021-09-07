@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+var ErrUnsupportedReset = errors.New("unsupported operation 'ResetIncrement'")
+
 // Error is the interface representing a database error. All database operations
 // must return an error of this type to ensure (via type-checking) that database
 // errors are correctly handled internally.
