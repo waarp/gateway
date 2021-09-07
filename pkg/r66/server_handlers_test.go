@@ -216,10 +216,12 @@ func TestValidRequest(t *testing.T) {
 				shouldFailWith("the block size is missing", "n: missing block size")
 			})
 
-			Convey("Given that the file size is missing", func() {
-				packet.FileSize = model.UnknownSize
-				shouldFailWith("the file size is missing", "n: missing file size")
-			})
+			/*
+				Convey("Given that the file size is missing", func() {
+					packet.FileSize = model.UnknownSize
+					shouldFailWith("the file size is missing", "n: missing file size")
+				})
+			*/
 		})
 	})
 }
