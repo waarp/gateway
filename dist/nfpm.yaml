@@ -1,12 +1,11 @@
-# nfpm example config file
 #
 # check https://nfpm.goreleaser.com/configuration for detailed usage
 #
 name: "waarp-gateway"
 arch: "amd64"
 platform: "linux"
-version: v0.3.2
-release: 1
+version: v0.4.1
+release: 2
 section: "default"
 priority: "extra"
 #replaces:
@@ -31,15 +30,19 @@ vendor: "Waarp"
 homepage: "http://www.waarp.fr"
 #license: "MIT"
 #changelog: "changelog.yaml"
-files:
-  ./build/waarp-gateway_linux_amd64: "/usr/bin/waarp-gateway"
-  ./build/waarp-gatewayd_linux_amd64: "/usr/bin/waarp-gatewayd"
-  ./build/get-remote_linux_amd64: "/usr/share/waarp-gateway/get-remote"
-  ./build/update-conf_linux_amd64: "/usr/share/waarp-gateway/update-conf"
-  dist/updateconf.sh: /usr/share/waarp-gateway/updateconf.sh
+contents:
+  - src: ./build/waarp-gateway_linux_amd64
+    dst: "/usr/bin/waarp-gateway"
+  - src: ./build/waarp-gatewayd_linux_amd64
+    dst: "/usr/bin/waarp-gatewayd"
+  - src: ./build/get-remote_linux_amd64
+    dst: "/usr/share/waarp-gateway/get-remote"
+  - src: ./build/updateconf_linux_amd64
+    dst: "/usr/share/waarp-gateway/updateconf"
 
-config_files:
-  ./build/waarp-gatewayd.ini: "/etc/waarp-gateway/gatewayd.ini"
+  - src: ./build/waarp-gatewayd.ini
+    dst: "/etc/waarp-gateway/gatewayd.ini"
+    type: config
 
 empty_folders:
 - /var/lib/waarp-gateway/in
@@ -57,15 +60,45 @@ scripts:
 
 overrides:
   rpm:
-    files:
-      dist/waarp-gatewayd.service: /usr/lib/systemd/system/waarp-gatewayd.service
-      dist/waarp-gateway-get-remote.service: /usr/lib/systemd/system/waarp-gateway-get-remote.service
-      dist/waarp-gateway-get-remote.timer: /usr/lib/systemd/system/waarp-gateway-get-remote.timer
+    contents:
+      - src: dist/waarp-gatewayd.service
+        dst: /usr/lib/systemd/system/waarp-gatewayd.service
+      - src: dist/waarp-gateway-get-remote.service
+        dst: /usr/lib/systemd/system/waarp-gateway-get-remote.service
+      - src: dist/waarp-gateway-get-remote.timer
+        dst: /usr/lib/systemd/system/waarp-gateway-get-remote.timer
+      - src: ./build/waarp-gateway_linux_amd64
+        dst: "/usr/bin/waarp-gateway"
+      - src: ./build/waarp-gatewayd_linux_amd64
+        dst: "/usr/bin/waarp-gatewayd"
+      - src: ./build/get-remote_linux_amd64
+        dst: "/usr/share/waarp-gateway/get-remote"
+      - src: ./build/updateconf_linux_amd64
+        dst: "/usr/share/waarp-gateway/updateconf"
+
+      - src: ./build/waarp-gatewayd.ini
+        dst: "/etc/waarp-gateway/gatewayd.ini"
+        type: config
   deb:
-    files:
-      dist/waarp-gatewayd.service: /lib/systemd/system/waarp-gatewayd.service
-      dist/waarp-gateway-get-remote.service: /lib/systemd/system/waarp-gateway-get-remote.service
-      dist/waarp-gateway-get-remote.timer: /lib/systemd/system/waarp-gateway-get-remote.timer
+    contents:
+      - src: dist/waarp-gatewayd.service
+        dst: /lib/systemd/system/waarp-gatewayd.service
+      - src: dist/waarp-gateway-get-remote.service
+        dst: /lib/systemd/system/waarp-gateway-get-remote.service
+      - src: dist/waarp-gateway-get-remote.timer
+        dst: /lib/systemd/system/waarp-gateway-get-remote.timer
+      - src: ./build/waarp-gateway_linux_amd64
+        dst: "/usr/bin/waarp-gateway"
+      - src: ./build/waarp-gatewayd_linux_amd64
+        dst: "/usr/bin/waarp-gatewayd"
+      - src: ./build/get-remote_linux_amd64
+        dst: "/usr/share/waarp-gateway/get-remote"
+      - src: ./build/updateconf_linux_amd64
+        dst: "/usr/share/waarp-gateway/updateconf"
+
+      - src: ./build/waarp-gatewayd.ini
+        dst: "/etc/waarp-gateway/gatewayd.ini"
+        type: config
 #    scripts:
 #      preinstall: ./scripts/preinstall.sh
 #      postremove: ./scripts/postremove.sh

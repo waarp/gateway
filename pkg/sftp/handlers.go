@@ -51,7 +51,7 @@ func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.
 				infos = append(infos, internal.DirInfo(paths[i]))
 			}
 		} else {
-			rule, err := internal.GetListRule(l.DB, l.Logger, acc, l.Agent, r.Filepath)
+			rule, err := internal.GetListRule(l.DB, l.Logger, acc, r.Filepath)
 			if err != nil {
 				return 0, err
 			}

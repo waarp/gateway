@@ -9,7 +9,7 @@ import (
 // Engine is an object which can execute a series of migrations, using the Run
 // function. It requires an *sql.DB, an SQL dialect to initiate.
 type Engine struct {
-	db     *sql.DB
+	DB     *sql.DB
 	out    io.Writer
 	constr func(*queryWriter) Actions
 }
@@ -21,14 +21,14 @@ func NewEngine(db *sql.DB, dialect string, out io.Writer) (*Engine, error) {
 		return nil, fmt.Errorf("unknown SQL dialect %s", dialect)
 	}
 
-	return &Engine{db: db, constr: constr, out: out}, nil
+	return &Engine{DB: db, constr: constr, out: out}, nil
 }
 
 // Upgrade takes a slice of migrations, and executes them sequentially by calling
 // all their Up functions in order. All the migrations are run inside a single
 // transaction, and if any of them fails, the whole transaction will be cancelled.
 func (e *Engine) Upgrade(migrations []Migration) (txErr error) {
-	tx, err := e.db.Begin()
+	tx, err := e.DB.Begin()
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (e *Engine) Upgrade(migrations []Migration) (txErr error) {
 // are run inside a single transaction, and if any of them fails, the whole
 // transaction will be cancelled.
 func (e *Engine) Downgrade(migrations []Migration) (txErr error) {
-	tx, err := e.db.Begin()
+	tx, err := e.DB.Begin()
 	if err != nil {
 		return err
 	}

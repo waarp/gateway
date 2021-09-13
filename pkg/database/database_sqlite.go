@@ -10,19 +10,20 @@ import (
 )
 
 const (
-	// Configuration option for using the Sqlite RDBMS
-	sqlite = "sqlite"
+	// SQLite is the configuration option for using the SQLite RDBMS
+	SQLite = "sqlite"
 
-	// SqliteDriver is the name of the Sqlite database driver
+	// SqliteDriver is the name of the SQLite database driver
 	SqliteDriver = "sqlite3"
 )
 
 func init() {
-	supportedRBMS[sqlite] = sqliteinfo
+	supportedRBMS[SQLite] = sqliteinfo
 }
 
 func sqliteInit(db *xorm.Engine) error {
 	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 	db.DatabaseTZ = time.UTC
 	_, _ = db.Exec("PRAGMA busy_timeout = 10000")
 	return nil
@@ -33,7 +34,7 @@ func sqliteinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine)
 }
 
 // SqliteDSN takes a database configuration and returns the corresponding
-// Sqlite DSN necessary to connect to the database.
+// SQLite DSN necessary to connect to the database.
 func SqliteDSN(config *conf.DatabaseConfig) string {
 	var user, pass string
 	if config.User != "" {
@@ -42,7 +43,6 @@ func SqliteDSN(config *conf.DatabaseConfig) string {
 	if config.Password != "" {
 		pass = fmt.Sprintf("&_auth_pass=%s", config.Password)
 	}
-	return fmt.Sprintf(
-		"file:%s?cache=shared&mode=rwc&_busy_timeout=10000%s%s",
+	return fmt.Sprintf("file:%s?mode=rwc&_busy_timeout=10000%s%s",
 		config.Address, user, pass)
 }

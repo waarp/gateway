@@ -6,7 +6,30 @@ Historique des versions
 * :feature:`247` Ajout d'un client et d'un serveur HTTP à la *gateway*. Il est
   donc désormais possible d'effectuer des transferts via ce protocole.
 
-* :release:`0.4.0 <2021-07-12>`
+* :bug:`273` Correction d'une erreur "database table locked" pouvant survenir
+  lorsqu'une base de données SQLite est partagée entre plusieurs instances de
+  *gateway*.
+* :bug:`263` Suppression du '/' présent au début des noms de dossiers renvoyés
+  lors de l'envoi d'une commande SFTP *ls* . Cela devrait résoudre un certains
+  nombre de problèmes survenant lors de l'utilisation de cette commande.
+* :bug:`265` Correction d'un bug causé par une contrainte d'unicité sur la table
+  d'historique.
+* :bug:`266` Correction d'une erreur dans les authorisations de règles renvoyées
+  via l'API REST. Les authorisations renvoyées devraient désormais être correctes.
+* :bug:`267` Correction d'une erreur permettant de démarrer un serveur SFTP même
+  quand celui-ci n'a pas de *hostkey*, empêchant ainsi toute connexion à ce
+  serveur. Dorénavant, l'utilisateur sera informé de cette absence de *hostkey*
+  au démarrage du serveur (et non lors de la connexion à celui-ci).
+
+* :release:`0.4.1 <2021-07-21>`
+* :bug:`-` La *gateway* refusera désormais de démarrer si la version de la base
+  de données est différente de celle du programme.
+
+* :release:`0.4.0 <2021-07-21>`
+* :bug:`259` Correction d'un bug causant une erreur après les pré-tâches d'un
+  transfer R66 côté serveur.
+* :bug:`260` Correction d'une erreur dans l'import des mots de passe de comptes
+  locaux R66.
 * :bug:`133` Correction d'une erreur rendant impossible la répartition de charge
   sur plusieurs instances d'une même *gateway*. Précédemment, il était possible
   pour 2 instances d'une même *gateway* de récupérer un même transfert depuis la

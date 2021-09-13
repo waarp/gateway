@@ -18,7 +18,7 @@ var (
 
 func init() {
 	psqlConfig = &conf.ServerConfig{}
-	psqlConfig.Database.Type = postgres
+	psqlConfig.Database.Type = PostgreSQL
 	psqlConfig.Database.User = "postgres"
 	psqlConfig.Database.Name = "waarp_gateway_test"
 	psqlConfig.Database.Address = "localhost:5432"

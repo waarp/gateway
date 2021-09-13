@@ -3,6 +3,7 @@ package sftp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"path"
 	"path/filepath"
@@ -96,17 +97,32 @@ func TestServerStart(t *testing.T) {
 
 		sftpServer := NewService(db, agent, log.NewLogger("test_sftp_server"))
 
-		Convey("When starting the server", func() {
-			err := sftpServer.Start()
+		Convey("Given that the configuration is valid", func() {
+			Convey("When starting the server", func() {
+				err := sftpServer.Start()
 
-			Reset(func() {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-				defer cancel()
-				So(sftpServer.Stop(ctx), ShouldBeNil)
+				Reset(func() {
+					ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+					defer cancel()
+					So(sftpServer.Stop(ctx), ShouldBeNil)
+				})
+
+				Convey("Then it should NOT return an error", func() {
+					So(err, ShouldBeNil)
+				})
 			})
+		})
 
-			Convey("Then it should NOT return an error", func() {
-				So(err, ShouldBeNil)
+		Convey("Given that the server is missing a hostkey", func() {
+			So(db.Delete(hostKey).Run(), ShouldBeNil)
+
+			Convey("When starting the server", func() {
+				err := sftpServer.Start()
+
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, fmt.Errorf("'%s' SFTP server is "+
+						"missing a hostkey", agent.Name))
+				})
 			})
 		})
 	})
@@ -170,67 +186,6 @@ func TestSSHServerInterruption(t *testing.T) {
 
 						ok := serv.(*Service).listener.runningTransfers.Exists(trans.ID)
 						So(ok, ShouldBeFalse)
-					})
-				})
-			})
-		})
-	})
-
-	Convey("Given an SFTP server ready for pull transfers", t, func(c C) {
-		test := pipelinetest.InitServerPull(c, "sftp", nil)
-		test.AddCryptos(c, makeServerKey(test.Server))
-
-		serv := gatewayd.ServiceConstructors[test.Server.Protocol](test.DB, test.Server, test.Logger)
-		c.So(serv.Start(), ShouldBeNil)
-
-		Convey("Given a dummy SFTP client", func() {
-			cli := makeDummyClient(test.Server.Address, pipelinetest.TestLogin, pipelinetest.TestPassword)
-
-			Convey("Given that a pull transfer started", func() {
-				pipelinetest.AddSourceFile(c, filepath.Join(test.Server.Root,
-					test.Server.LocalOutDir), "test_out_shutdown.src")
-				dst, err := cli.Open(path.Join(test.ServerRule.Path, "test_out_shutdown.src"))
-				So(err, ShouldBeNil)
-				test.ServerShouldHavePreTasked(c)
-
-				_, err = dst.Read(make([]byte, 3))
-				So(err, ShouldBeNil)
-
-				Convey("When the server shuts down", func(c C) {
-					res := make(chan error, 1)
-					go func() {
-						time.Sleep(100 * time.Millisecond)
-						_, err = dst.Read(make([]byte, 3))
-						res <- err
-					}()
-					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-					defer cancel()
-					So(serv.Stop(ctx), ShouldBeNil)
-					So(<-res, ShouldBeError, `sftp: "TransferError(TeShuttingDown):`+
-						` service is shutting down" (SSH_FX_FAILURE)`)
-
-					Convey("Then the transfer should have been interrupted", func() {
-						var transfers model.Transfers
-						So(test.DB.Select(&transfers).Run(), ShouldBeNil)
-						So(transfers, ShouldNotBeEmpty)
-
-						trans := model.Transfer{
-							ID:        transfers[0].ID,
-							Start:     transfers[0].Start,
-							IsServer:  true,
-							AccountID: test.LocAccount.ID,
-							AgentID:   test.Server.ID,
-							LocalPath: filepath.Join(test.Server.Root,
-								test.Server.LocalOutDir, "test_out_shutdown.src"),
-							RemotePath: "/test_out_shutdown.src",
-							Filesize:   pipelinetest.TestFileSize,
-							RuleID:     test.ServerRule.ID,
-							Status:     types.StatusInterrupted,
-							Step:       types.StepData,
-							Owner:      database.Owner,
-							Progress:   3,
-						}
-						So(transfers[0], ShouldResemble, trans)
 					})
 				})
 			})

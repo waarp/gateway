@@ -13,12 +13,10 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// GetSSHServerConfig builds and returns an ssh.ServerConfig from the given
-// parameters. By default, the server accepts both public key & password
-// authentication, with the former having priority over the later.
-func GetSSHServerConfig(db *database.DB, certs []model.Crypto, protoConfig *config.SftpProtoConfig,
-	agent *model.LocalAgent) (*ssh.ServerConfig, error) {
-	conf := &ssh.ServerConfig{
+func makeServerConf(db *database.DB, protoConfig *config.SftpProtoConfig,
+	agent *model.LocalAgent) *ssh.ServerConfig {
+
+	return &ssh.ServerConfig{
 		Config: ssh.Config{
 			KeyExchanges: protoConfig.KeyExchanges,
 			Ciphers:      protoConfig.Ciphers,
@@ -66,8 +64,21 @@ func GetSSHServerConfig(db *database.DB, certs []model.Crypto, protoConfig *conf
 			return &ssh.Permissions{}, nil
 		},
 	}
+}
 
-	for _, cert := range certs {
+// GetSSHServerConfig builds and returns an ssh.ServerConfig from the given
+// parameters. By default, the server accepts both public key & password
+// authentication, with the former having priority over the later.
+func GetSSHServerConfig(db *database.DB, hostkeys []model.Crypto, protoConfig *config.SftpProtoConfig,
+	agent *model.LocalAgent) (*ssh.ServerConfig, error) {
+
+	conf := makeServerConf(db, protoConfig, agent)
+
+	if len(hostkeys) == 0 {
+		return nil, fmt.Errorf("'%s' SFTP server is missing a hostkey", agent.Name)
+	}
+
+	for _, cert := range hostkeys {
 		privateKey, err := ssh.ParsePrivateKey([]byte(cert.PrivateKey))
 		if err != nil {
 			return nil, err
@@ -127,7 +138,7 @@ func GetRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
 // account is authorized to use it. If 2 rules have the same path, the sending
 // rule has priority.
 func GetListRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
-	ag *model.LocalAgent, rulePath string) (*model.Rule, error) {
+	rulePath string) (*model.Rule, error) {
 	sndRule, err := GetRule(db, logger, acc, rulePath, true)
 	if err != nil {
 		return nil, err

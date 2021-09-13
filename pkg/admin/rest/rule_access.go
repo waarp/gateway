@@ -99,7 +99,7 @@ func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 
 func makeServerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
 	var agents model.LocalAgents
-	if err := db.Select(&agents).Where("id IN (SELECT id FROM "+model.TableRuleAccesses+
+	if err := db.Select(&agents).Where("id IN (SELECT object_id FROM "+model.TableRuleAccesses+
 		" WHERE rule_id=? AND object_type=?)", rule.ID, model.TableLocAgents).Run(); err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func makeServerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
 
 func makePartnerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
 	var agents model.RemoteAgents
-	if err := db.Select(&agents).Where("id IN (SELECT id FROM "+model.TableRuleAccesses+
+	if err := db.Select(&agents).Where("id IN (SELECT object_id FROM "+model.TableRuleAccesses+
 		" WHERE rule_id=? AND object_type=?)", rule.ID, model.TableRemAgents).Run(); err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[uint64][]string) 
 
 func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]string, error) {
 	var accounts model.LocalAccounts
-	if err := db.Select(&accounts).Where("id IN (SELECT id FROM "+model.TableRuleAccesses+
+	if err := db.Select(&accounts).Where("id IN (SELECT object_id FROM "+model.TableRuleAccesses+
 		" WHERE rule_id=? AND object_type=?)", rule.ID, model.TableLocAccounts).Run(); err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]str
 
 func makeRemoteAccountAccess(db *database.DB, rule *model.Rule) (map[string][]string, error) {
 	var accounts model.RemoteAccounts
-	if err := db.Select(&accounts).Where("id IN (SELECT id FROM "+model.TableRuleAccesses+
+	if err := db.Select(&accounts).Where("id IN (SELECT object_id FROM "+model.TableRuleAccesses+
 		" WHERE rule_id=? AND object_type=?)", rule.ID, model.TableRemAccounts).Run(); err != nil {
 		return nil, err
 	}

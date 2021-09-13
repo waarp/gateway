@@ -5,9 +5,23 @@ package migrations
 import (
 	"testing"
 
+	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
+	"github.com/smartystreets/goconvey/convey"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+func getPostgreEngine(c convey.C) *migration.Engine {
+	db := testhelpers.GetTestPostgreDB(c)
+
+	_, err := db.Exec(postgresCreationScript)
+	So(err, ShouldBeNil)
+
+	eng, err := migration.NewEngine(db, migration.PostgreSQL, nil)
+	So(err, ShouldBeNil)
+
+	return eng
+}
 
 func TestPostgreSQLCreationScript(t *testing.T) {
 	Convey("Given a PostgreSQL database", t, func(c C) {

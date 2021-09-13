@@ -18,7 +18,7 @@ var (
 
 func init() {
 	mysqlConfig = &conf.ServerConfig{}
-	mysqlConfig.Database.Type = mysql
+	mysqlConfig.Database.Type = MySQL
 	mysqlConfig.Database.User = "root"
 	mysqlConfig.Database.Name = "waarp_gateway_test"
 	mysqlConfig.Database.Address = "localhost:3306"

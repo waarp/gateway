@@ -10,15 +10,15 @@ import (
 )
 
 const (
-	// Configuration option for using the MySQL RDBMS
-	mysql = "mysql"
+	// MySQL is the configuration option for using the MySQL RDBMS
+	MySQL = "mysql"
 
 	// MysqlDriver is the name of the MySQL database driver
 	MysqlDriver = "mysql"
 )
 
 func init() {
-	supportedRBMS[mysql] = mysqlinfo
+	supportedRBMS[MySQL] = mysqlinfo
 }
 
 func mysqlinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {

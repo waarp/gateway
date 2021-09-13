@@ -7,29 +7,13 @@ import (
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
 )
 
-func initVersion() migration.Script {
-	return migration.Script{
-		Up: func(db migration.Actions) error {
-			if err := db.CreateTable("version", migration.Col("current", migration.Text)); err != nil {
-				return err
-			}
-			return db.AddRow("version", migration.Cells{"current": migration.Cel(migration.Text, "0.0.0")})
-		},
-		Down: func(db migration.Actions) error {
-			return db.DropTable("version")
-		},
-	}
-}
+type bumpVersion struct{ from, to string }
 
-func bumpVersion(from, to string) migration.Script {
-	return migration.Script{
-		Up: func(db migration.Actions) error {
-			return db.Exec("UPDATE 'version' SET current='%s'", to)
-		},
-		Down: func(db migration.Actions) error {
-			return db.Exec("UPDATE 'version' SET current='%s'", from)
-		},
-	}
+func (b bumpVersion) Up(db migration.Actions) error {
+	return db.Exec("UPDATE version SET current='%s'", b.to)
+}
+func (b bumpVersion) Down(db migration.Actions) error {
+	return db.Exec("UPDATE versionSET current='%s'", b.from)
 }
 
 func checkVersionTableExist(db *sql.DB, dialect string) (bool, error) {

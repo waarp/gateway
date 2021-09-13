@@ -25,7 +25,7 @@ const (
 )
 
 func testinfo(c *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
-	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&_mutex=full&_txlock=exclusive&_busy_timeout=10000",
+	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&_busy_timeout=10000",
 		c.Address), sqliteInit
 }
 
@@ -55,18 +55,18 @@ func tempFilename() string {
 func initTestDBConf(config *conf.DatabaseConfig) {
 	dbType := os.Getenv(testDBEnv)
 	switch dbType {
-	case postgres:
-		config.Type = postgres
+	case PostgreSQL:
+		config.Type = PostgreSQL
 		config.User = "postgres"
 		config.Name = "waarp_gateway_test"
 		config.Address = "localhost:5432"
-	case mysql:
-		config.Type = mysql
+	case MySQL:
+		config.Type = MySQL
 		config.User = "root"
 		config.Name = "waarp_gateway_test"
 		config.Address = "localhost:3306"
-	case sqlite:
-		config.Type = sqlite
+	case SQLite:
+		config.Type = SQLite
 		config.Address = tempFilename()
 	case "":
 		supportedRBMS[testDBType] = testinfo
@@ -79,16 +79,14 @@ func initTestDBConf(config *conf.DatabaseConfig) {
 
 func resetDB(db *DB, config *conf.DatabaseConfig) {
 	switch config.Type {
-	case postgres, mysql:
+	case PostgreSQL, MySQL:
 		for _, tbl := range tables {
 			convey.So(db.engine.DropTables(tbl.TableName()), convey.ShouldBeNil)
 		}
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
 	case testDBType:
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
-		convey.So(db.engine.Close(), convey.ShouldBeNil)
-	case sqlite:
-		convey.So(db.engine.Close(), convey.ShouldBeNil)
+	case SQLite:
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
 		convey.So(os.Remove(config.Address), convey.ShouldBeNil)
 	default:
@@ -96,7 +94,7 @@ func resetDB(db *DB, config *conf.DatabaseConfig) {
 	}
 }
 
-// TestDatabase returns a testing Sqlite database stored in memory for testing
+// TestDatabase returns a testing SQLite database stored in memory for testing
 // purposes. The function must be called within a convey context.
 // The database will log messages at the level given.
 func TestDatabase(c convey.C, logLevel string) *DB {

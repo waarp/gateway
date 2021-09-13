@@ -98,6 +98,32 @@ type dbinfo func(*conf.DatabaseConfig) (string, string, func(*xorm.Engine) error
 
 var supportedRBMS = map[string]dbinfo{}
 
+func (db *DB) initEngine() (*xorm.Engine, error) {
+	driver, dsn, init, err := db.createConnectionInfo()
+	if err != nil {
+		db.logger.Criticalf("Database configuration invalid: %s", err)
+		return nil, err
+	}
+
+	engine, err := xorm.NewEngine(driver, dsn)
+	if err != nil {
+		db.logger.Criticalf("Failed to open database: %s", err)
+		return nil, err
+	}
+	engine.SetLogger(log2.DiscardLogger{})
+	engine.SetMapper(names.GonicMapper{})
+	if err := init(engine); err != nil {
+		return nil, err
+	}
+
+	if err := engine.Ping(); err != nil {
+		db.logger.Errorf("Failed to access database: %s", err)
+		return nil, err
+	}
+
+	return engine, nil
+}
+
 // Start launches the database service using the configuration given in the
 // Environment field. If the configuration in invalid, or if the database
 // cannot be reached, an error is returned.
@@ -121,32 +147,11 @@ func (db *DB) Start() error {
 		return err
 	}
 
-	driver, dsn, init, err := db.createConnectionInfo()
+	engine, err := db.initEngine()
 	if err != nil {
 		db.state.Set(service.Error, err.Error())
-		db.logger.Criticalf("Database configuration invalid: %s", err)
 		return err
 	}
-
-	engine, err := xorm.NewEngine(driver, dsn)
-	if err != nil {
-		db.state.Set(service.Error, err.Error())
-		db.logger.Criticalf("Failed to open database: %s", err)
-		return err
-	}
-	engine.SetLogger(log2.DiscardLogger{})
-	engine.SetMapper(names.GonicMapper{})
-	if err := init(engine); err != nil {
-		return err
-	}
-
-	if err := engine.Ping(); err != nil {
-		db.state.Set(service.Error, err.Error())
-		db.logger.Errorf("Failed to access database: %s", err)
-		return err
-	}
-
-	db.state.Set(service.Running, "")
 
 	db.Standalone = &Standalone{
 		engine: engine,
@@ -155,12 +160,19 @@ func (db *DB) Start() error {
 	}
 
 	if err := initTables(db.Standalone); err != nil {
+		_ = engine.Close()
 		db.state.Set(service.Error, err.Error())
 		db.logger.Errorf("Failed to create tables: %s", err)
 		return err
 	}
+	if err := db.checkVersion(); err != nil {
+		_ = engine.Close()
+		db.state.Set(service.Error, err.Error())
+		return err
+	}
 
 	db.logger.Info("Startup successful")
+	db.state.Set(service.Running, "")
 
 	return nil
 }
