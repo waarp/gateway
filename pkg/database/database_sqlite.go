@@ -10,15 +10,15 @@ import (
 )
 
 const (
-	// Configuration option for using the Sqlite RDBMS
-	sqlite = "sqlite"
+	// SQLite is the configuration option for using the SQLite RDBMS
+	SQLite = "sqlite"
 
-	// SqliteDriver is the name of the Sqlite database driver
+	// SqliteDriver is the name of the SQLite database driver
 	SqliteDriver = "sqlite3"
 )
 
 func init() {
-	supportedRBMS[sqlite] = sqliteinfo
+	supportedRBMS[SQLite] = sqliteinfo
 }
 
 func sqliteInit(db *xorm.Engine) error {
@@ -32,7 +32,7 @@ func sqliteinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine)
 }
 
 // SqliteDSN takes a database configuration and returns the corresponding
-// Sqlite DSN necessary to connect to the database.
+// SQLite DSN necessary to connect to the database.
 func SqliteDSN(config *conf.DatabaseConfig) string {
 	var user, pass string
 	if config.User != "" {

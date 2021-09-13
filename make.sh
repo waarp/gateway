@@ -121,10 +121,10 @@ build_static_binaries() {
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
     -o "build/get-remote_${GOOS}_${GOARCH}" ./dist/get-remote
 
-  # update-conf
+  # updateconf
   CGO_ENABLED=0 go build -ldflags "-s -w" \
     -tags 'osusergo netgo static_build sqlite_omit_load_extension' \
-    -o "build/update-conf_${GOOS}_${GOARCH}" ./dist/update-conf
+    -o "build/updateconf_${GOOS}_${GOARCH}" ./dist/updateconf
 }
 
 t_build_dist() {
@@ -159,7 +159,6 @@ t_package() {
     build/waarp-gatewayd.ini
 
   # build the packages
-  sed -i -e "s|version:.*|version: v$(cat VERSION)|" dist/nfpm.yaml
   nfpm pkg -p rpm -f dist/nfpm.yaml --target build/
   nfpm pkg -p deb -f dist/nfpm.yaml --target build/
 
@@ -178,8 +177,7 @@ build_portable_archive() {
   cp ./build/waarp-gatewayd_linux_amd64 "$dest/bin/waarp-gatewayd"
   cp ./build/waarp-gateway_linux_amd64 "$dest/bin/waarp-gateway"
   cp ./build/get-remote_linux_amd64 "$dest/share/get-remote"
-  cp ./build/update-conf_linux_amd64 "$dest/share/update-conf"
-  #cp ./dist/updateconf.sh "$dest/share/update-conf.sh"
+  cp ./build/updateconf_linux_amd64 "$dest/share/updateconf"
 
   ./build/waarp-gatewayd_linux_amd64 server -c "$dest/etc/gatewayd.ini" -n
   sed -i \
@@ -191,6 +189,15 @@ build_portable_archive() {
   pushd build || return 2
   tar czf "waarp-gateway-$version.linux.tar.gz" "waarp-gateway-$version"
   popd || return 2
+}
+
+t_bump() {
+  if [ -z "$1" ]; then
+    echo "ERROR: bump needs the version to be specified as the first argument"
+  fi
+
+  echo "$1" > VERSION
+  sed -i -e "s|version:.*|version: v$(cat VERSION)|" dist/nfpm.yaml
 }
 
 t_usage() {
@@ -209,6 +216,7 @@ t_usage() {
   echo "  doc watch   Watch the source of the documentation and builds it when"
   echo "  doc dist    Builds doc for distribution"
   echo "              it has been changed"
+  echo "  bump        Sets the version"
   echo ""
 }
 
@@ -269,6 +277,10 @@ case $ACTION in
         t_doc "$@"
         ;;
     esac
+    ;;
+
+  bump)
+    t_bump $1
     ;;
 
   *)

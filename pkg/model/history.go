@@ -17,12 +17,12 @@ func init() {
 type HistoryEntry struct {
 	ID               uint64               `xorm:"pk 'id'"`
 	Owner            string               `xorm:"notnull 'owner'"`
-	RemoteTransferID string               `xorm:"unique(histRemID) 'remote_transfer_id'"`
+	RemoteTransferID string               `xorm:"'remote_transfer_id'"`
 	IsServer         bool                 `xorm:"notnull 'is_server'"`
 	IsSend           bool                 `xorm:"notnull 'is_send'"`
 	Rule             string               `xorm:"notnull 'rule'"`
-	Agent            string               `xorm:"notnull unique(histRemID) 'agent'"`
-	Account          string               `xorm:"notnull unique(histRemID) 'account'"`
+	Account          string               `xorm:"notnull 'account'"`
+	Agent            string               `xorm:"notnull 'agent'"`
 	Protocol         string               `xorm:"notnull 'protocol'"`
 	LocalPath        string               `xorm:"notnull 'local_path'"`
 	RemotePath       string               `xorm:"notnull 'remote_path'"`
@@ -53,7 +53,7 @@ func (h *HistoryEntry) GetID() uint64 {
 
 // BeforeWrite checks if the new `HistoryEntry` entry is valid and can be
 // inserted in the database.
-func (h *HistoryEntry) BeforeWrite(database.ReadAccess) database.Error {
+func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 	h.Owner = database.Owner
 
 	if h.Owner == "" {
@@ -92,6 +92,16 @@ func (h *HistoryEntry) BeforeWrite(database.ReadAccess) database.Error {
 
 	if !types.ValidateStatusForHistory(h.Status) {
 		return database.NewValidationError("'%s' is not a valid transfer history status", h.Status)
+	}
+
+	if h.RemoteTransferID != "" {
+		if n, err := db.Count(&HistoryEntry{}).Where("remote_transfer_id=? AND agent=? AND account=?",
+			h.RemoteTransferID, h.Agent, h.Account).Run(); err != nil {
+			return err
+		} else if n != 0 {
+			return database.NewValidationError("a history entry from the same " +
+				"partner with the same remote ID already exist")
+		}
 	}
 
 	return nil

@@ -11,15 +11,15 @@ import (
 )
 
 const (
-	// Configuration option for using the PostgreSQL RDBMS
-	postgres = "postgresql"
+	// PostgreSQL is the configuration option for using the PostgreSQL RDBMS
+	PostgreSQL = "postgresql"
 
 	// PostgresDriver is the name of the PostgreSQL database driver
 	PostgresDriver = "pgx"
 )
 
 func init() {
-	supportedRBMS[postgres] = postgresinfo
+	supportedRBMS[PostgreSQL] = postgresinfo
 }
 
 func postgresinfo(config *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {

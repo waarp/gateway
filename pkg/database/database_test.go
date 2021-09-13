@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,7 +22,7 @@ func init() {
 	BcryptRounds = bcrypt.MinCost
 
 	sqliteConfig = &conf.ServerConfig{Log: conf.LogConfig{Level: "CRITICAL", LogTo: "discard.log"}}
-	sqliteConfig.Database.Type = sqlite
+	sqliteConfig.Database.Type = SQLite
 	sqliteConfig.Database.Address = filepath.Join(os.TempDir(), "test.sqlite")
 	sqliteConfig.Database.AESPassphrase = fmt.Sprintf("%s%ssqlite_test_passphrase.aes",
 		os.TempDir(), string(os.PathSeparator))
@@ -36,7 +37,7 @@ func testSelectForUpdate(db *DB) {
 
 	db2 := &DB{Conf: db.Conf}
 	So(db2.Start(), ShouldBeNil)
-	//db2.engine.Exec("PRAGMA busy_timeout = 60000")
+	// db2.engine.Exec("PRAGMA busy_timeout = 60000")
 	Reset(func() { So(db2.engine.Close(), ShouldBeNil) })
 
 	transRes := make(chan Error)
@@ -199,7 +200,6 @@ func testIterate(db *DB) {
 			runTests(ses)
 		})
 	})
-
 }
 
 func testSelect(db *DB) {
@@ -315,7 +315,6 @@ func testSelect(db *DB) {
 			runTests(ses)
 		})
 	})
-
 }
 
 func testInsert(db *DB) {
@@ -604,7 +603,6 @@ func testDelete(db *DB) {
 
 			runTests(ses)
 		})
-
 	})
 }
 
@@ -641,7 +639,6 @@ func testDeleteAll(db *DB) {
 
 			runTests(ses)
 		})
-
 	})
 }
 
@@ -690,7 +687,7 @@ func testDatabase(db *DB) {
 		&testDeleteFail{}), ShouldBeNil)
 	Reset(func() {
 		So(db.engine.DropTables(&testValid{}, &testValid2{}, &testWriteFail{},
-			&testDeleteFail{}), ShouldBeNil)
+			&testDeleteFail{}, &version{}), ShouldBeNil)
 	})
 
 	testSelectForUpdate(db)
@@ -753,6 +750,36 @@ func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 
 				Convey("Then the permissions of the files are secure", func() {
 					So(stats.Mode().Perm(), ShouldEqual, aesFilePerm)
+				})
+			})
+		})
+	})
+}
+
+func TestDatabaseStartVersionMismatch(t *testing.T) {
+	Convey("Given a test database", t, func() {
+		db := &DB{Conf: &conf.ServerConfig{
+			Database: conf.DatabaseConfig{
+				Type:          SQLite,
+				Address:       filepath.Join(os.TempDir(), "test_version_mismatch.db"),
+				AESPassphrase: filepath.Join(os.TempDir(), "passphrase.aes"),
+			},
+		}}
+		defer os.Remove(db.Conf.Database.Address)
+		defer os.Remove(db.Conf.Database.AESPassphrase)
+		So(db.Start(), ShouldBeNil)
+
+		Convey("Given that the database version does not match the program", func() {
+			ver := &version{Current: "0.0.0"}
+			_, err := db.engine.Table(ver.TableName()).Update(ver)
+			So(err, ShouldBeNil)
+			So(db.Stop(context.Background()), ShouldBeNil)
+
+			Convey("When starting the database", func() {
+				err := db.Start()
+
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, "database version mismatch")
 				})
 			})
 		})

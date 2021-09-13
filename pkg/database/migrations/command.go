@@ -22,7 +22,7 @@ func getTarget(version string) (index int, err error) {
 	}
 
 	for i, m := range Migrations {
-		if m.Version == version {
+		if m.VersionTag == version {
 			return i, nil
 		}
 	}
@@ -46,7 +46,7 @@ func getCurrent(db *sql.DB, dialect string) (index int, err error) {
 	}
 
 	for i, m := range Migrations {
-		if m.Version == current {
+		if m.VersionTag == current {
 			return i, nil
 		}
 	}

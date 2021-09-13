@@ -3,7 +3,30 @@
 Historique des versions
 =======================
 
-* :release:`0.4.0 <2021-07-12>`
+* :bug:`263` Suppression du '/' présent au début des noms de dossiers renvoyés
+  lors de l'envoi d'une commande SFTP *ls* . Cela devrait résoudre un certains
+  nombre de problèmes survenant lors de l'utilisation de cette commande.
+* :bug:`265` Correction d'un bug causé par une contrainte d'unicité sur la table
+  d'historique.
+* :bug:`266` Correction d'une erreur dans les authorisations de règles renvoyées
+  via l'API REST. Les authorisations renvoyées devraient désormais être correctes.
+* :bug:`267` Correction d'une erreur permettant de démarrer un serveur SFTP même
+  quand celui-ci n'a pas de *hostkey*, empêchant ainsi toute connexion à ce
+  serveur. Dorénavant, l'utilisateur sera informé de cette absence de *hostkey*
+  au démarrage du serveur (et non lors de la connexion à celui-ci).
+
+* :release:`0.4.1 <2021-07-21>`
+* :bug:`-` La *gateway* refusera désormais de démarrer si la version de la base
+  de données est différente de celle du programme.
+
+* :release:`0.4.0 <2021-07-21>`
+>>>>>>> 8d5842b (Removed the leading '/' in dir names when using SFTP listing command)
+* :bug:`259` Correction d'un bug causant une erreur après les pré-tâches d'un
+  transfer R66 côté serveur.
+* :bug:`260` Correction d'une erreur dans l'import des mots de passe de comptes
+  locaux R66.
+
+* :release:`0.4.0 <2021-07-19>`
 * :bug:`133` Correction d'une erreur rendant impossible la répartition de charge
   sur plusieurs instances d'une même *gateway*. Précédemment, il était possible
   pour 2 instances d'une même *gateway* de récupérer un même transfert depuis la
@@ -72,7 +95,7 @@ Historique des versions
 * :release:`0.3.3 <2021-04-07>`
 * :bug:`251` Corrige le problème de création du fichier distant en SFTP
   lorsque le serveur refuse l'ouverture de fichier en écriture ET en lecture.
-* :bug:`251` Corrige un problème du script d'update-conf qui sort en erreur
+* :bug:`251` Corrige un problème du script d'updateconf qui sort en erreur
   si les fichiers optionnels ne sont pas dans l'archive de déploiement.
 
 * :release:`0.3.2 <2021-04-06>`

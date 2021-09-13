@@ -1,11 +1,13 @@
 package database
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	vers "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -13,6 +15,20 @@ import (
 type exister interface {
 	Table
 	Identifier
+}
+
+func (db *DB) checkVersion() error {
+	dbVer := &version{}
+	if err := db.Get(dbVer, "").Run(); err != nil {
+		db.logger.Errorf("Failed to retrieve database version: %s", err)
+		return err
+	}
+	if dbVer.Current != vers.Num {
+		db.logger.Criticalf("Mismatch between database (%s) and program (%s) versions.",
+			dbVer.Current, vers.Num)
+		return fmt.Errorf("database version mismatch")
+	}
+	return nil
 }
 
 func checkExists(db Access, bean exister) Error {
@@ -23,7 +39,7 @@ func checkExists(db Access, bean exister) Error {
 		return NewInternalError(err)
 	}
 	if !exist {
-		logger.Infof("No %s found with ID %d", bean.Appellation(), bean.GetID())
+		logger.Debugf("No %s found with ID %d", bean.Appellation(), bean.GetID())
 		return NewNotFoundError(bean)
 	}
 	return nil

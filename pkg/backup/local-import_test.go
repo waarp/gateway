@@ -168,7 +168,7 @@ func TestImportLocalAccounts(t *testing.T) {
 				}
 
 				Convey("When calling the importLocalAccounts method", func() {
-					err := importLocalAccounts(discard, db, accounts, agent.ID)
+					err := importLocalAccounts(discard, db, accounts, agent)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -230,7 +230,7 @@ func TestImportLocalAccounts(t *testing.T) {
 				accounts := []LocalAccount{account1}
 
 				Convey("When calling the importLocalAccounts method", func() {
-					err := importLocalAccounts(discard, db, accounts, agent.ID)
+					err := importLocalAccounts(discard, db, accounts, agent)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -284,7 +284,7 @@ func TestImportLocalAccounts(t *testing.T) {
 				accounts := []LocalAccount{account1}
 
 				Convey("When calling the importLocalAccounts method", func() {
-					err := importLocalAccounts(discard, db, accounts, agent.ID)
+					err := importLocalAccounts(discard, db, accounts, agent)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)

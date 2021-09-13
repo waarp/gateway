@@ -34,7 +34,7 @@ func (g *GetQuery) Run() Error {
 	}
 	if !exist {
 		where, _ := builder.ConvertToBoundSQL(g.sql, g.args)
-		logger.Infof("No %s found with conditions '%s'", g.bean.Appellation(), where)
+		logger.Debugf("No %s found with conditions '%s'", g.bean.Appellation(), where)
 		return NewNotFoundError(g.bean)
 	}
 
