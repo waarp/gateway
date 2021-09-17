@@ -28,7 +28,8 @@ lint:
   stage: test
   image: golangci/golangci-lint:latest
   script:
-  - golangci-lint run --out-format junit-xml > lint.junit.xml
+  - golangci-lint cache status
+  - golangci-lint run --timeout 5m --out-format junit-xml > lint.junit.xml
   artifacts:
     reports:
       junit: lint.junit.xml
@@ -38,12 +39,12 @@ tests:
   before_script:
     - export GOPATH="$CI_PROJECT_DIR/.gocache"
     - export PATH="$CI_PROJECT_DIR/.gocache/bin:$PATH"
-    - go get gotest.tools/gotestsum
+    - go install gotest.tools/gotestsum
   script:
     #- gotestsum --junitfile tests.junit.xml -- -coverprofile=coverage.txt -covermode atomic -race ./...
     - gotestsum --junitfile tests.junit.xml -- -coverprofile=coverage.txt -covermode atomic ./...
   after_script:
-    - go get github.com/boumenot/gocover-cobertura
+    - go install github.com/boumenot/gocover-cobertura
     - gocover-cobertura < coverage.txt > coverage.xml
     - go tool cover -func=coverage.txt | grep "total:"
   coverage: '/total:\s+\(statements\)\s+(\d+.\d+\%)/'
