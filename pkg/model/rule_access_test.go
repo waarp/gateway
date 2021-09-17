@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 func TestRuleAccessTableName(t *testing.T) {
@@ -172,8 +173,10 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 				})
 			})
 
-			for _, objType := range []string{TableLocAgents, TableLocAccounts,
-				TableRemAgents, TableRemAccounts} {
+			for _, objType := range []string{
+				TableLocAgents, TableLocAccounts,
+				TableRemAgents, TableRemAccounts,
+			} {
 				Convey(fmt.Sprintf("Given a RuleAccess with an invalid %s ID", objType), func() {
 					ra := &RuleAccess{
 						RuleID:     r.ID,

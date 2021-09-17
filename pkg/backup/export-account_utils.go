@@ -9,7 +9,9 @@ func accountExists(db database.ReadAccess, account database.GetBean, cond string
 		if database.IsNotFound(err) {
 			return false, nil
 		}
+
 		return false, err
 	}
+
 	return true, nil
 }

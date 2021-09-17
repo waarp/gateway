@@ -6,5 +6,6 @@ import (
 )
 
 func getCommand(ctx context.Context, path, args string) *exec.Cmd {
-	return exec.CommandContext(ctx, "cmd.exe", "/C", path+" "+args) //nolint:gosec
+	//nolint:gosec // Arguments cannot be passed outside of a variable
+	return exec.CommandContext(ctx, "cmd.exe", "/C", path+" "+args)
 }

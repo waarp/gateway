@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&TransferHistory{})
 }
@@ -51,24 +52,30 @@ func (h *TransferHistory) GetID() uint64 {
 
 // BeforeWrite checks if the new `TransferHistory` entry is valid and can be
 // inserted in the database.
+//nolint:funlen,gocyclo,cyclop // validation can be long...
 func (h *TransferHistory) BeforeWrite(db database.ReadAccess) database.Error {
 	h.Owner = database.Owner
 
 	if h.Owner == "" {
 		return database.NewValidationError("the transfer's owner cannot be empty")
 	}
+
 	if h.ID == 0 {
 		return database.NewValidationError("the transfer's ID cannot be empty")
 	}
+
 	if h.Rule == "" {
 		return database.NewValidationError("the transfer's rule cannot be empty")
 	}
+
 	if h.Account == "" {
 		return database.NewValidationError("the transfer's account cannot be empty")
 	}
+
 	if h.Agent == "" {
 		return database.NewValidationError("the transfer's agent cannot be empty")
 	}
+
 	if h.IsServer {
 		if h.IsSend && h.DestFilename == "" {
 			return database.NewValidationError("the transfer's destination filename cannot be empty")
@@ -83,6 +90,7 @@ func (h *TransferHistory) BeforeWrite(db database.ReadAccess) database.Error {
 			return database.NewValidationError("the transfer's destination filename cannot be empty")
 		}
 	}
+
 	if h.Start.IsZero() {
 		return database.NewValidationError("the transfer's start date cannot be empty")
 	}
@@ -120,17 +128,21 @@ func (h *TransferHistory) Restart(db database.Access, date time.Time) (*Transfer
 	if err := db.Get(rule, "name=? AND send=?", h.Rule, h.IsSend).Run(); err != nil {
 		return nil, err
 	}
+
 	var agentID, accountID uint64
+
 	if h.IsServer {
 		agent := &LocalAgent{}
 		if err := db.Get(agent, "owner=? AND name=?", h.Owner, h.Agent).Run(); err != nil {
 			return nil, err
 		}
+
 		account := &LocalAccount{}
 		if err := db.Get(account, "local_agent_id=? AND login=?", agent.ID, h.Account).
 			Run(); err != nil {
 			return nil, err
 		}
+
 		agentID = agent.ID
 		accountID = account.ID
 	} else {

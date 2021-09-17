@@ -8,7 +8,6 @@ import (
 )
 
 func TestGetPath(t *testing.T) {
-
 	testCases := []struct {
 		path     string
 		roots    Elems

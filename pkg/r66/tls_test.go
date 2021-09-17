@@ -6,14 +6,15 @@ import (
 	"testing"
 	"time"
 
+	"code.waarp.fr/waarp-r66/r66"
+	. "github.com/smartystreets/goconvey/convey"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
-	"code.waarp.fr/waarp-r66/r66"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestTLS(t *testing.T) {
@@ -52,7 +53,7 @@ func TestTLS(t *testing.T) {
 			client := &client{
 				conf:      config.R66ProtoConfig{IsTLS: true},
 				r66Client: r66.NewClient("toto", []byte("sesame")),
-				info: model.OutTransferInfo{
+				info: &model.OutTransferInfo{
 					Agent: &model.RemoteAgent{
 						Address: addr,
 					},
@@ -66,7 +67,7 @@ func TestTLS(t *testing.T) {
 				},
 			}
 			var err error
-			client.tlsConf, err = makeClientTLSConfig(&client.info)
+			client.tlsConf, err = makeClientTLSConfig(client.info)
 			So(err, ShouldBeNil)
 
 			Convey("When connecting to the server", func() {
@@ -88,7 +89,7 @@ func TestTLS(t *testing.T) {
 			client := &client{
 				conf:      config.R66ProtoConfig{IsTLS: true},
 				r66Client: r66.NewClient("toto", []byte("sesame")),
-				info: model.OutTransferInfo{
+				info: &model.OutTransferInfo{
 					Agent: &model.RemoteAgent{
 						Address: addr,
 					},
@@ -99,7 +100,7 @@ func TestTLS(t *testing.T) {
 				},
 			}
 			var err error
-			client.tlsConf, err = makeClientTLSConfig(&client.info)
+			client.tlsConf, err = makeClientTLSConfig(client.info)
 			So(err, ShouldBeNil)
 
 			Convey("When connecting to the server", func() {
@@ -118,7 +119,7 @@ func TestTLS(t *testing.T) {
 			client := &client{
 				conf:      config.R66ProtoConfig{IsTLS: true},
 				r66Client: r66.NewClient("toto", []byte("sesame")),
-				info: model.OutTransferInfo{
+				info: &model.OutTransferInfo{
 					Agent: &model.RemoteAgent{
 						Address: addr,
 					},
@@ -129,7 +130,7 @@ func TestTLS(t *testing.T) {
 				},
 			}
 			var err error
-			client.tlsConf, err = makeClientTLSConfig(&client.info)
+			client.tlsConf, err = makeClientTLSConfig(client.info)
 			So(err, ShouldBeNil)
 
 			Convey("When connecting to the server", func() {

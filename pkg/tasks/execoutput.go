@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,6 +17,7 @@ import (
 // transferred file.
 type ExecOutputTask struct{}
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	RunnableTasks["EXECOUTPUT"] = &ExecOutputTask{}
 	model.ValidTasks["EXECOUTPUT"] = &ExecOutputTask{}
@@ -23,9 +25,8 @@ func init() {
 
 // Validate checks if the EXECMOVE task has all the required arguments.
 func (e *ExecOutputTask) Validate(params map[string]string) error {
-
 	if _, _, _, err := parseExecArgs(params); err != nil {
-		return fmt.Errorf("failed to parse task arguments: %s", err.Error())
+		return fmt.Errorf("failed to parse task arguments: %w", err)
 	}
 
 	return nil
@@ -38,36 +39,46 @@ func getNewFileName(output string) string {
 	if strings.HasPrefix(lastLine, "NEWFILENAME:") {
 		return strings.TrimPrefix(lastLine, "NEWFILENAME:")
 	}
+
 	return ""
 }
 
 // Run executes the task by executing an external program with the given parameters.
+// FIXME: Should be refactored and factorized between all exec* tasks
+//nolint:funlen // Should be refactored
 func (e *ExecOutputTask) Run(params map[string]string, processor *Processor) (string, error) {
-
 	path, args, delay, err := parseExecArgs(params)
 	if err != nil {
-		return err.Error(), fmt.Errorf("failed to parse task arguments: %s", err.Error())
+		return err.Error(), fmt.Errorf("failed to parse task arguments: %w", err)
 	}
 
-	var ctx context.Context
-	var cancel context.CancelFunc
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+	)
+
 	if delay != 0 {
 		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(delay)*
 			time.Millisecond)
 	} else {
 		ctx, cancel = context.WithCancel(context.Background())
 	}
+
 	defer cancel()
 
 	cmd := getCommand(ctx, path, args)
+
 	in, out, err := os.Pipe()
 	if err != nil {
 		return err.Error(), err
 	}
+
+	//nolint:errcheck // Those errors can be useless in a defered function
 	defer func() {
 		_ = in.Close()
 		_ = out.Close()
 	}()
+
 	cmd.Stdout = out
 
 	cmdErr := cmd.Run()
@@ -77,14 +88,17 @@ func (e *ExecOutputTask) Run(params map[string]string, processor *Processor) (st
 
 	select {
 	case <-ctx.Done():
-		return "max exec delay expired", fmt.Errorf("max exec delay expired")
+		return maxDelayExpired, errCommandTimeout
 	default:
-		if ex, ok := cmdErr.(*exec.ExitError); ok && ex.ExitCode() == 1 {
+		var ex *exec.ExitError
+		if ok := errors.As(cmdErr, &ex); ok && ex.ExitCode() == 1 {
 			return cmdErr.Error(), errWarning
 		}
 	}
 
+	//nolint:errcheck // This error can be useless at this stage
 	_ = out.Close()
+
 	msg, err := ioutil.ReadAll(in)
 	if err != nil {
 		return err.Error(), err
@@ -97,5 +111,6 @@ func (e *ExecOutputTask) Run(params map[string]string, processor *Processor) (st
 			processor.Transfer.DestFile = newPath
 		}
 	}
+
 	return string(msg), cmdErr
 }

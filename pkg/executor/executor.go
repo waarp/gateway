@@ -15,9 +15,10 @@ import (
 // ClientConstructor is the type representing the constructors used to make new
 // instances of transfer clients. All transfer clients must have a ClientConstructor
 // function in order to be called by the transfer executor.
-type ClientConstructor func(model.OutTransferInfo, <-chan model.Signal) (pipeline.Client, error)
+type ClientConstructor func(*model.OutTransferInfo, <-chan model.Signal) (pipeline.Client, error)
 
 // ClientsConstructors is a map associating a protocol to its client constructor.
+//nolint:gochecknoglobals // it is by design
 var ClientsConstructors = map[string]ClientConstructor{}
 
 // Executor is the process responsible for executing outgoing transfers.
@@ -31,7 +32,8 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) error {
 	info, err := model.NewOutTransferInfo(e.DB, stream.Transfer)
 	if err != nil {
 		e.Logger.Criticalf("Failed to retrieve transfer info: %s", err)
-		return err
+
+		return err //nolint:wrapcheck // wrapping the errors might change the signature
 	}
 
 	constr, ok := ClientsConstructors[info.Agent.Protocol]
@@ -42,7 +44,7 @@ func (e *Executor) getClient(stream *pipeline.TransferStream) error {
 		return types.NewTransferError(types.TeUnimplemented, msg)
 	}
 
-	e.client, err = constr(*info, stream.Signals)
+	e.client, err = constr(info, stream.Signals)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to create transfer client: %s", err)
 		e.Logger.Critical(msg)
@@ -58,17 +60,20 @@ func (e *Executor) setup() error {
 
 	if err := e.client.Connect(); err != nil {
 		e.Logger.Errorf("Failed to connect to remote server: %s", err)
-		return err
+
+		return err //nolint:wrapcheck // wrapping the errors might change the signatures
 	}
 
 	if err := e.client.Authenticate(); err != nil {
 		e.Logger.Errorf("Failed to authenticate on remote server: %s", err)
-		return err
+
+		return err //nolint:wrapcheck // wrapping the errors might change the signatures
 	}
 
 	if err := e.client.Request(); err != nil {
 		e.Logger.Errorf("Failed to make transfer request: %s", err)
-		return err
+
+		return err //nolint:wrapcheck // wrapping the errors might change the signatures
 	}
 
 	return nil
@@ -84,27 +89,35 @@ func (e *Executor) data() error {
 
 	e.Transfer.Step = types.StepData
 	e.Transfer.TaskNumber = 0
+
 	if err := e.DB.Update(e.Transfer).Cols("step", "task_number").Run(); err != nil {
 		e.Logger.Criticalf("Failed to update transfer status: %s", err)
+
 		return types.NewTransferError(types.TeInternal, err.Error())
 	}
 
 	if err := e.Start(); err != nil {
-		return err
+		return err //nolint:wrapcheck // wrapping the errors might change the signatures
 	}
 
 	if err := e.client.Data(e.TransferStream); err != nil {
-		_ = e.Close()
+		if err2 := e.Close(); err2 != nil {
+			e.Logger.Warningf("an error occurred while closing the executor: %v", err2)
+		}
+
 		e.Logger.Errorf("Error while transmitting data: %s", err)
-		return err
+
+		return err //nolint:wrapcheck // wrapping the errors might change the signatures
 	}
 
 	if err := e.Close(); err != nil {
-		return err
+		return err //nolint:wrapcheck // wrapping the errors might change the signatures
 	}
+
 	if err := e.Move(); err != nil {
-		return err
+		return err //nolint:wrapcheck // wrapping the errors might change the signatures
 	}
+
 	e.Logger.Debug("Data transfer done")
 
 	return nil
@@ -129,17 +142,22 @@ func (e *Executor) prologue() error {
 
 	if err := e.DB.Update(e.Transfer).Cols("step").Run(); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step to 'SETUP': %s", err)
+
 		return err
 	}
 
 	if err := e.getClient(e.TransferStream); err != nil {
 		e.Transfer.Step = types.StepSetup
+
 		return err
 	}
 
 	if err := e.setup(); err != nil {
 		e.Transfer.Step = types.StepSetup
-		_ = e.client.Close(err)
+		if err2 := e.client.Close(err); err2 != nil {
+			e.Logger.Warningf("An error occurred while closing the client: %v", err2)
+		}
+
 		return err
 	}
 
@@ -149,8 +167,10 @@ func (e *Executor) prologue() error {
 func (e *Executor) run() error {
 	info, err := model.NewOutTransferInfo(e.DB, e.Transfer)
 	if err != nil {
-		e.Logger.Criticalf("Failed to retrieve transfer info: %s", err)
-		return err
+		err2 := fmt.Errorf("failed to retrieve transfer info: %w", err)
+		e.Logger.Criticalf(err2.Error())
+
+		return err2
 	}
 
 	logTrans(e.Logger, info)
@@ -160,32 +180,45 @@ func (e *Executor) run() error {
 	}
 
 	if err := e.TransferStream.PreTasks(); err != nil {
-		_ = e.client.Close(err)
-		return err
+		if err2 := e.client.Close(err); err2 != nil {
+			e.Logger.Warningf("An error occurred while closing the client: %v", err2)
+		}
+
+		return err //nolint:wrapcheck // wrapping the errors might change the signatures
 	}
 
 	if err := e.data(); err != nil {
-		_ = e.client.Close(err)
+		if err2 := e.client.Close(err); err2 != nil {
+			e.Logger.Warningf("An error occurred while closing the client: %v", err2)
+		}
+
 		return err
 	}
 
 	if err := e.TransferStream.PostTasks(); err != nil {
-		_ = e.client.Close(err)
-		return err
+		if err2 := e.client.Close(err); err2 != nil {
+			e.Logger.Warningf("An error occurred while closing the client: %v", err2)
+		}
+
+		return err //nolint:wrapcheck // wrapping the errors might change the signatures
 	}
 
 	e.Transfer.Step = types.StepFinalization
 	e.Transfer.TaskNumber = 0
+
 	if err := e.DB.Update(e.Transfer).Cols("step", "task_number").Run(); err != nil {
 		e.Logger.Criticalf("Failed to update transfer step to '%s': %s",
 			types.StepFinalization, err)
+
 		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
 
 	e.Logger.Debug("Sending transfer end message")
+
 	if err := e.client.Close(nil); err != nil {
 		e.Logger.Errorf("Remote post-task failed")
-		return err
+
+		return err //nolint:wrapcheck // wrapping the errors might change the signatures
 	}
 
 	e.Transfer.Step = types.StepNone
@@ -200,6 +233,7 @@ func (e *Executor) Run() {
 
 	if tErr := e.run(); tErr != nil {
 		pipeline.HandleError(e.TransferStream, tErr)
+
 		return
 	}
 

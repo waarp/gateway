@@ -36,6 +36,7 @@ type SelectQuery struct {
 // using the 'AND' operator.
 func (s *SelectQuery) Where(sql string, args ...interface{}) *SelectQuery {
 	s.conds = append(s.conds, cond{sql: sql, args: args})
+
 	return s
 }
 
@@ -47,7 +48,9 @@ func (s *SelectQuery) In(col string, vals ...interface{}) *SelectQuery {
 	if builder.In(col, vals...).WriteTo(sql) != nil {
 		return s
 	}
+
 	s.conds = append(s.conds, cond{sql: sql.String(), args: sql.args})
+
 	return s
 }
 
@@ -59,6 +62,7 @@ func (s *SelectQuery) In(col string, vals ...interface{}) *SelectQuery {
 // account for the SELECT.
 func (s *SelectQuery) Distinct(columns ...string) *SelectQuery {
 	s.distinct = append(s.distinct, columns...)
+
 	return s
 }
 
@@ -67,6 +71,7 @@ func (s *SelectQuery) Distinct(columns ...string) *SelectQuery {
 func (s *SelectQuery) OrderBy(order string, asc bool) *SelectQuery {
 	s.order = order
 	s.asc = asc
+
 	return s
 }
 
@@ -75,6 +80,7 @@ func (s *SelectQuery) OrderBy(order string, asc bool) *SelectQuery {
 func (s *SelectQuery) Limit(limit, offset int) *SelectQuery {
 	s.lim = limit
 	s.off = offset
+
 	return s
 }
 
@@ -83,13 +89,14 @@ func (s *SelectQuery) Run() Error {
 	logger := s.db.GetLogger()
 	query := s.db.getUnderlying().NoAutoCondition().Table(s.bean.TableName())
 
-	for _, cond := range s.conds {
-		query.And(cond.sql, cond.args...)
+	for i := range s.conds {
+		query.And(s.conds[i].sql, s.conds[i].args...)
 	}
 
 	if s.lim != 0 || s.off != 0 {
 		query.Limit(s.lim, s.off)
 	}
+
 	if s.order != "" {
 		if s.asc {
 			query.OrderBy(fmt.Sprintf("%s ASC", s.order))
@@ -101,15 +108,16 @@ func (s *SelectQuery) Run() Error {
 	if len(s.distinct) > 0 {
 		query.Distinct(s.distinct...)
 	}
+
 	if s.forUpd {
 		query.ForUpdate()
 	}
 
-	err := query.Find(s.bean)
-	logSQL(query, logger)
+	defer logSQL(query, logger)
 
-	if err != nil {
+	if err := query.Find(s.bean); err != nil {
 		logger.Errorf("Failed to retrieve the %s entries: %s", s.bean.Elem(), err)
+
 		return NewInternalError(err)
 	}
 

@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/smartystreets/goconvey/convey"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
@@ -16,15 +18,16 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestNewTransferStream(t *testing.T) {
 	logger := log.NewLogger("test_new_transfer_stream")
+
 	cd, err := os.Getwd()
 	if err != nil {
 		t.FailNow()
 	}
+
 	root := filepath.Join(cd, "new_stream_root")
 	paths := Paths{PathsConfig: conf.PathsConfig{
 		GatewayHome:   root,

@@ -7,6 +7,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&Rule{})
 }
@@ -64,12 +65,15 @@ func (r *Rule) normalizePaths() {
 			r.Path = "/" + r.Path
 		}
 	}
+
 	if r.InPath != "" {
 		r.InPath = utils.NormalizePath(r.InPath)
 	}
+
 	if r.OutPath != "" {
 		r.OutPath = utils.NormalizePath(r.OutPath)
 	}
+
 	if r.WorkPath != "" {
 		r.WorkPath = utils.NormalizePath(r.WorkPath)
 	}
@@ -108,6 +112,7 @@ func (r *Rule) Direction() string {
 	if r.IsSend {
 		return "send"
 	}
+
 	return "receive"
 }
 
@@ -118,6 +123,7 @@ func (r *Rule) BeforeDelete(db database.Access) database.Error {
 	if err != nil {
 		return err
 	}
+
 	if n > 0 {
 		return database.NewValidationError("this rule is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
@@ -133,5 +139,6 @@ func (r *Rule) BeforeDelete(db database.Access) database.Error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }

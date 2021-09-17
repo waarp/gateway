@@ -6,19 +6,18 @@ import (
 	"net/url"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"github.com/jessevdk/go-flags"
+	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"github.com/jessevdk/go-flags"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func TestGetRemoteAccount(t *testing.T) {
-
 	Convey("Testing the account 'get' command", t, func() {
 		out = testFile()
 		command := &remAccGet{}
@@ -53,11 +52,15 @@ func TestGetRemoteAccount(t *testing.T) {
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
-			sAccess := &model.RuleAccess{RuleID: send.ID,
-				ObjectType: account.TableName(), ObjectID: account.ID}
+			sAccess := &model.RuleAccess{
+				RuleID:     send.ID,
+				ObjectType: account.TableName(), ObjectID: account.ID,
+			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
-			rAccess := &model.RuleAccess{RuleID: receive.ID,
-				ObjectType: account.TableName(), ObjectID: account.ID}
+			rAccess := &model.RuleAccess{
+				RuleID:     receive.ID,
+				ObjectType: account.TableName(), ObjectID: account.ID,
+			}
 			So(db.Insert(rAccess).Run(), ShouldBeNil)
 
 			Convey("Given a valid account name", func() {
@@ -113,7 +116,6 @@ func TestGetRemoteAccount(t *testing.T) {
 }
 
 func TestAddRemoteAccount(t *testing.T) {
-
 	Convey("Testing the account 'add' command", t, func() {
 		out = testFile()
 		command := &remAccAdd{}
@@ -181,7 +183,6 @@ func TestAddRemoteAccount(t *testing.T) {
 }
 
 func TestDeleteRemoteAccount(t *testing.T) {
-
 	Convey("Testing the account 'delete' command", t, func() {
 		out = testFile()
 		command := &remAccDelete{}
@@ -276,7 +277,6 @@ func TestDeleteRemoteAccount(t *testing.T) {
 }
 
 func TestUpdateRemoteAccount(t *testing.T) {
-
 	Convey("Testing the account 'delete' command", t, func() {
 		out = testFile()
 		command := &remAccUpdate{}
@@ -328,7 +328,6 @@ func TestUpdateRemoteAccount(t *testing.T) {
 							Login:         *command.Login,
 							Password:      types.CypherText(*command.Password),
 						})
-
 					})
 				})
 			})
@@ -379,7 +378,6 @@ func TestUpdateRemoteAccount(t *testing.T) {
 }
 
 func TestListRemoteAccount(t *testing.T) {
-
 	Convey("Testing the account 'list' command", t, func() {
 		out = testFile()
 		command := &remAccList{}
@@ -528,7 +526,6 @@ func TestListRemoteAccount(t *testing.T) {
 }
 
 func TestAuthorizeRemoteAccount(t *testing.T) {
-
 	Convey("Testing the remote account 'authorize' command", t, func() {
 		out = testFile()
 		command := &remAccAuthorize{}
@@ -659,7 +656,6 @@ func TestAuthorizeRemoteAccount(t *testing.T) {
 }
 
 func TestRevokeRemoteAccount(t *testing.T) {
-
 	Convey("Testing the remote account 'revoke' command", t, func() {
 		out = testFile()
 		command := &remAccRevoke{}
@@ -679,7 +675,7 @@ func TestRevokeRemoteAccount(t *testing.T) {
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
-			var account = &model.RemoteAccount{
+			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "login",
 				Password:      "password",

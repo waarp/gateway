@@ -20,6 +20,7 @@ type UpdateQuery struct {
 // performance a bit and make the logs more readable.
 func (u *UpdateQuery) Cols(columns ...string) *UpdateQuery {
 	u.cols = append(u.cols, columns...)
+
 	return u
 }
 
@@ -27,6 +28,7 @@ func (u *UpdateQuery) run(s *Session) Error {
 	if hook, ok := u.bean.(WriteHook); ok {
 		if err := hook.BeforeWrite(s); err != nil {
 			s.logger.Errorf("%s entry UPDATE validation failed: %s", u.bean.Appellation(), err)
+
 			return err
 		}
 	}
@@ -38,10 +40,11 @@ func (u *UpdateQuery) run(s *Session) Error {
 		query = query.Cols(u.cols...)
 	}
 
-	_, err1 := query.Update(u.bean)
-	logSQL(query, s.logger)
-	if err1 != nil {
+	defer logSQL(query, s.logger)
+
+	if _, err1 := query.Update(u.bean); err1 != nil {
 		s.logger.Errorf("Failed to update the %s entry: %s", u.bean.Appellation(), err1)
+
 		return NewInternalError(err1)
 	}
 

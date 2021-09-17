@@ -18,6 +18,7 @@ const (
 	OracleDriver = "oci8"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	supportedRBMS[oracle] = oracleinfo
 }

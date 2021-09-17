@@ -5,8 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func TestDeleteTaskValidate(t *testing.T) {
@@ -41,7 +42,7 @@ func TestDeleteTaskRun(t *testing.T) {
 			args := map[string]string{}
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(processor.Transfer.TrueFilepath, []byte("Hello World"), 0700)
+				err := ioutil.WriteFile(processor.Transfer.TrueFilepath, []byte("Hello World"), 0o700)
 
 				So(err, ShouldBeNil)
 
@@ -65,7 +66,6 @@ func TestDeleteTaskRun(t *testing.T) {
 			})
 
 			Convey("Given no file to transfer", func() {
-
 				Convey("When calling the run method", func() {
 					task := &DeleteTask{}
 					_, err := task.Run(args, processor)
@@ -99,7 +99,7 @@ func TestDeleteTaskRun(t *testing.T) {
 			args := map[string]string{}
 
 			Convey("Given a file to transfer", func() {
-				err := ioutil.WriteFile(processor.Transfer.TrueFilepath, []byte("Hello World"), 0700)
+				err := ioutil.WriteFile(processor.Transfer.TrueFilepath, []byte("Hello World"), 0o700)
 
 				So(err, ShouldBeNil)
 
@@ -123,7 +123,6 @@ func TestDeleteTaskRun(t *testing.T) {
 			})
 
 			Convey("Given no file to transfer", func() {
-
 				Convey("When calling the run method", func() {
 					task := &DeleteTask{}
 					_, err := task.Run(args, processor)

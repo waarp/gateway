@@ -25,18 +25,28 @@ func (q *queryWriter) Exec(query string, args ...interface{}) error {
 	if q.writer != nil {
 		_, err := q.writer.Write([]byte(fmt.Sprintf("\n%s;\n", command)))
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot write command: %w", err)
 		}
+
 		if !isTest {
 			return nil
 		}
 	}
 
-	_, err := q.db.Exec(command)
-	return err
+	if _, err := q.db.Exec(command); err != nil {
+		return fmt.Errorf("cannot execute command: %w", err)
+	}
+
+	return nil
 }
 
 func (q *queryWriter) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	command := fmt.Sprintf(query, args...)
-	return q.db.Query(command)
+
+	rows, err := q.db.Query(command)
+	if err != nil {
+		return nil, fmt.Errorf("cannot execute query: %w", err)
+	}
+
+	return rows, nil
 }

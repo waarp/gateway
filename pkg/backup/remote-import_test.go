@@ -4,16 +4,15 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	. "github.com/smartystreets/goconvey/convey"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestImportRemoteAgents(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
@@ -179,21 +178,22 @@ func TestImportRemoteAccounts(t *testing.T) {
 						Convey("Then the data should correspond to "+
 							"the one imported", func() {
 							for i := 0; i < len(accounts); i++ {
-								if accounts[i].Login == account1.Login {
+								switch {
+								case accounts[i].Login == account1.Login:
 									Convey("Then account1 is found", func() {
 										So(accounts[i].Login, ShouldResemble, account1.Login)
 										So(accounts[i].Password, ShouldEqual, account1.Password)
 									})
-								} else if accounts[i].Login == account2.Login {
+								case accounts[i].Login == account2.Login:
 									Convey("Then account2 is found", func() {
 										So(accounts[i].Login, ShouldResemble, account2.Login)
 										So(accounts[i].Password, ShouldEqual, account2.Password)
 									})
-								} else if accounts[i].Login == dbAccount.Login {
+								case accounts[i].Login == dbAccount.Login:
 									Convey("Then dbAccount is found", func() {
 										So(accounts[i], ShouldResemble, *dbAccount)
 									})
-								} else {
+								default:
 									Convey("Then they should be no "+
 										"other records", func() {
 										So(1, ShouldBeNil)
@@ -237,7 +237,6 @@ func TestImportRemoteAccounts(t *testing.T) {
 							"the one imported", func() {
 							for i := 0; i < len(accounts); i++ {
 								if accounts[i].Login == dbAccount.Login {
-
 									Convey("When dbAccount is found", func() {
 										So(accounts[i].Password, ShouldNotResemble,
 											dbAccount.Password)
@@ -292,7 +291,6 @@ func TestImportRemoteAccounts(t *testing.T) {
 							"the one imported", func() {
 							for i := 0; i < len(accounts); i++ {
 								if accounts[i].Login == dbAccount.Login {
-
 									Convey("When dbAccount is found", func() {
 										So(accounts[i].Password, ShouldResemble,
 											dbAccount.Password)

@@ -4,11 +4,12 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&RuleAccess{})
 }
 
-// RuleAccess represents a authorised access to a rule.
+// RuleAccess represents a authorized access to a rule.
 type RuleAccess struct {
 	RuleID     uint64 `xorm:"notnull unique(perm) 'rule_id'"`
 	ObjectID   uint64 `xorm:"notnull unique(perm) 'object_id'"`
@@ -35,8 +36,11 @@ func (r *RuleAccess) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("no rule found with ID %d", r.RuleID)
 	}
 
-	var n uint64
-	var err database.Error
+	var (
+		n   uint64
+		err database.Error
+	)
+
 	switch r.ObjectType {
 	case TableLocAgents:
 		n, err = db.Count(&LocalAgent{}).Where("id=?", r.ObjectID).Run()
@@ -50,6 +54,7 @@ func (r *RuleAccess) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the rule_access's object type must be one of %s",
 			validOwnerTypes)
 	}
+
 	if err != nil {
 		return err
 	} else if n == 0 {
@@ -69,7 +74,7 @@ func (r *RuleAccess) BeforeWrite(db database.ReadAccess) database.Error {
 }
 
 // IsRuleAuthorized verify if the rule requested by the transfer is authorized for
-// the requesting transfer
+// the requesting transfer.
 func IsRuleAuthorized(db database.ReadAccess, t *Transfer) (bool, database.Error) {
 	n, err := db.Count(&RuleAccess{}).Where("rule_id=?", t.RuleID).Run()
 	if err != nil {
@@ -80,10 +85,12 @@ func IsRuleAuthorized(db database.ReadAccess, t *Transfer) (bool, database.Error
 
 	agent := TableRemAgents
 	account := TableRemAccounts
+
 	if t.IsServer {
 		agent = TableLocAgents
 		account = TableLocAccounts
 	}
+
 	n, err = db.Count(&RuleAccess{}).Where("rule_id=? AND "+
 		"((object_type=? AND object_id=?) OR (object_type=? and object_id=?))",
 		t.RuleID, agent, t.AgentID, account, t.AccountID).Run()
@@ -92,5 +99,6 @@ func IsRuleAuthorized(db database.ReadAccess, t *Transfer) (bool, database.Error
 	} else if n < 1 {
 		return false, nil
 	}
+
 	return true, nil
 }

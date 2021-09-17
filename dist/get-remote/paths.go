@@ -42,8 +42,6 @@ func getPaths() (paths, error) {
 		p.logDir = "/var/log/waarp-gateway"
 		p.confDir = "/etc/waarp-gateway"
 		p.binDir = "/usr/bin"
-		//} else {
-		//	return paths{}, errors.New("Unable to detect installation mode")
 	}
 
 	return p, nil

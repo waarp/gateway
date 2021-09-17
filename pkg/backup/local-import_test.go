@@ -4,17 +4,16 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/crypto/bcrypt"
 
 	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestImportLocalAgents(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
@@ -46,7 +45,6 @@ func TestImportLocalAgents(t *testing.T) {
 				agents := []LocalAgent{agent1}
 
 				Convey("Given an empty database", func() {
-
 					Convey("When calling the importLocals method", func() {
 						err := importLocalAgents(discard, db, agents)
 
@@ -134,7 +132,6 @@ func TestImportLocalAgents(t *testing.T) {
 }
 
 func TestImportLocalAccounts(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
@@ -184,27 +181,25 @@ func TestImportLocalAccounts(t *testing.T) {
 						Convey("Then the data should correspond to the "+
 							"one imported", func() {
 							for i := 0; i < len(accounts); i++ {
-								if accounts[i].Login == account1.Login {
-
+								switch {
+								case accounts[i].Login == account1.Login:
 									Convey("Then account1 is found", func() {
 										So(bcrypt.CompareHashAndPassword(
 											accounts[i].PasswordHash, []byte("pwd")),
 											ShouldBeNil)
 									})
-								} else if accounts[i].Login == account2.Login {
-
+								case accounts[i].Login == account2.Login:
 									Convey("Then account2 is found", func() {
 										So(bcrypt.CompareHashAndPassword(
 											accounts[i].PasswordHash, []byte("pwd")),
 											ShouldBeNil)
 									})
-								} else if accounts[i].Login == dbAccount.Login {
-
+								case accounts[i].Login == dbAccount.Login:
 									Convey("Then dbAccount is found", func() {
 										So(accounts[i].PasswordHash, ShouldResemble,
 											dbAccount.PasswordHash)
 									})
-								} else {
+								default:
 									Convey("Then they should be no other "+
 										"records", func() {
 										So(1, ShouldBeNil)
@@ -247,7 +242,6 @@ func TestImportLocalAccounts(t *testing.T) {
 							"one imported", func() {
 							for i := 0; i < len(accounts); i++ {
 								if accounts[i].Login == dbAccount.Login {
-
 									Convey("When dbAccount is found", func() {
 										So(accounts[i].PasswordHash, ShouldNotResemble,
 											dbAccount.PasswordHash)
@@ -301,7 +295,6 @@ func TestImportLocalAccounts(t *testing.T) {
 							"one imported", func() {
 							for i := 0; i < len(accounts); i++ {
 								if accounts[i].Login == dbAccount.Login {
-
 									Convey("When dbAccount is found", func() {
 										So(accounts[i].PasswordHash, ShouldResemble,
 											dbAccount.PasswordHash)
@@ -324,7 +317,6 @@ func TestImportLocalAccounts(t *testing.T) {
 					})
 				})
 			})
-
 		})
 	})
 }

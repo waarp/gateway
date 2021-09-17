@@ -14,8 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
@@ -25,6 +23,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -124,7 +124,8 @@ func TestServerStart(t *testing.T) {
 				err := sftpServer.Start()
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError, fmt.Errorf("'%s' SFTP server is "+
+					So(err, ShouldBeError)
+					So(err.Error(), ShouldContainSubstring, fmt.Sprintf("'%s' SFTP server is "+
 						"missing a hostkey", agent.Name))
 				})
 			})
@@ -217,7 +218,7 @@ func TestSSHServer(t *testing.T) {
 
 			Convey("Given that the server shuts down", func() {
 				Convey("Given an SSH client", func() {
-					key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rsaPBK)) //nolint:dogsled
+					key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rsaPBK))
 					So(err, ShouldBeNil)
 
 					clientConf := &ssh.ClientConfig{
@@ -334,7 +335,7 @@ func TestSSHServer(t *testing.T) {
 				})
 
 				Convey("Given an SSH client", func() {
-					key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rsaPBK)) //nolint:dogsled
+					key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rsaPBK))
 					So(err, ShouldBeNil)
 
 					clientConf := &ssh.ClientConfig{

@@ -13,7 +13,8 @@ func (t *testAuthHandler) ValidAuth(authent *r66.Authent) (r66.SessionHandler, e
 	if err != nil {
 		serverCheckChannel <- err.Error()
 	}
-	return &testSessionHandler{s}, err
+
+	return &testSessionHandler{s}, err //nolint:wrapcheck // this is used for tests
 }
 
 type testSessionHandler struct {
@@ -25,7 +26,8 @@ func (t *testSessionHandler) ValidRequest(request *r66.Request) (r66.TransferHan
 	if err != nil {
 		serverCheckChannel <- err.Error()
 	}
-	return &testTransferHandler{h}, err
+
+	return &testTransferHandler{h}, err //nolint:wrapcheck // this is used for tests
 }
 
 type testTransferHandler struct {
@@ -37,17 +39,20 @@ func (t *testTransferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 	if err != nil {
 		serverCheckChannel <- err.Error()
 	}
-	return err
+
+	return err //nolint:wrapcheck // this is used for tests
 }
 
 func (t *testTransferHandler) ValidEndRequest() error {
 	err := t.TransferHandler.ValidEndRequest()
 	serverCheckChannel <- "SERVER END TRANSFER OK"
-	return err
+
+	return err //nolint:wrapcheck // this is used for tests
 }
 
 func (t *testTransferHandler) RunErrorTask(protoErr error) error {
 	err := t.TransferHandler.RunErrorTask(protoErr)
 	serverCheckChannel <- "SERVER END TRANSFER ERROR"
-	return err
+
+	return err //nolint:wrapcheck // this is used for tests
 }

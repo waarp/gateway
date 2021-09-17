@@ -79,10 +79,12 @@ func FromLocalAgent(ag *model.LocalAgent, rules *api.AuthorizedRules) *api.OutSe
 // its JSON equivalent.
 func FromLocalAgents(ags []model.LocalAgent, rules []api.AuthorizedRules) []api.OutServer {
 	agents := make([]api.OutServer, len(ags))
-	for i, ag := range ags {
-		agent := ag
-		agents[i] = *FromLocalAgent(&agent, &rules[i])
+
+	for i := range ags {
+		agent := &ags[i]
+		agents[i] = *FromLocalAgent(agent, &rules[i])
 	}
+
 	return agents
 }
 
@@ -102,23 +104,29 @@ func FromRemoteAgent(ag *model.RemoteAgent, rules *api.AuthorizedRules) *api.Out
 // its JSON equivalent.
 func FromRemoteAgents(ags []model.RemoteAgent, rules []api.AuthorizedRules) []api.OutPartner {
 	agents := make([]api.OutPartner, len(ags))
-	for i, ag := range ags {
-		agent := ag
-		agents[i] = *FromRemoteAgent(&agent, &rules[i])
+
+	for i := range ags {
+		agent := &ags[i]
+		agents[i] = *FromRemoteAgent(agent, &rules[i])
 	}
+
 	return agents
 }
 
 func parseProtoParam(r *http.Request, query *database.SelectQuery) error {
 	if len(r.Form["protocol"]) > 0 {
 		protos := make([]string, len(r.Form["protocol"]))
+
 		for i, p := range r.Form["protocol"] {
 			if _, ok := config.ProtoConfigs[p]; !ok {
 				return badRequest(fmt.Sprintf("'%s' is not a valid protocol", p))
 			}
+
 			protos[i] = p
 		}
+
 		query.In("protocol", protos)
 	}
+
 	return nil
 }

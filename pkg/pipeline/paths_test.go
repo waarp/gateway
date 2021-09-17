@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	. "path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -89,6 +88,8 @@ func TestPathIn(t *testing.T) {
 				serRoot, ruleIn, ruleWork string
 				expTmp, expFinal          string
 			}
+
+			Join := filepath.Join
 			testCases := []testCase{
 				{"", "", "", Join(gwRoot, "gwWork", tmp), Join(gwRoot, "gwIn", file)},
 				{"serRoot", "", "", Join(gwRoot, "serRoot", "serWork", tmp), Join(gwRoot, "serRoot", "serIn", file)},
@@ -97,7 +98,7 @@ func TestPathIn(t *testing.T) {
 				{"serRoot", "ruleIn", "", Join(gwRoot, "serRoot", "serWork", tmp), Join(gwRoot, "serRoot", "ruleIn", file)},
 				{"serRoot", "", "ruleWork", Join(gwRoot, "serRoot", "ruleWork", tmp), Join(gwRoot, "serRoot", "serIn", file)},
 				{"", "ruleIn", "ruleWork", Join(gwRoot, "ruleWork", tmp), Join(gwRoot, "ruleIn", file)},
-				{"serRoot", "ruleIn", "ruleWork", Join(gwRoot, "serRoot", "ruleWork", tmp), Join(gwRoot, "serRoot", "ruleIn", file)},
+				{"serRoot", "ruleIn", "ruleWork", Join(gwRoot, "serRoot", "ruleWork", tmp), Join(gwRoot, "serRoot", "ruleIn", file)}, //nolint:lll // ok for a test
 			}
 
 			for _, tc := range testCases {
@@ -206,7 +207,7 @@ func TestPathOut(t *testing.T) {
 						SourceFile: "file.src",
 						DestFile:   "file.dst",
 					}
-					path := Join(srcPath, trans.SourceFile)
+					path := filepath.Join(srcPath, trans.SourceFile)
 					So(os.MkdirAll(srcPath, 0o700), ShouldBeNil)
 					So(ioutil.WriteFile(path, nil, 0o700), ShouldBeNil)
 
@@ -226,11 +227,11 @@ func TestPathOut(t *testing.T) {
 
 			Convey("Given that it has an 'out' directory", func() {
 				outDir := "out"
-				paths.OutDirectory = Join(gwRoot, outDir)
+				paths.OutDirectory = filepath.Join(gwRoot, outDir)
 
 				Convey("Given a server with a root directory", func() {
 					serverDir := "server_root"
-					paths.ServerRoot = Join(gwRoot, serverDir)
+					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
 
 					Convey("Given that the rule has an 'out' directory", func() {
 						send := &model.Rule{
@@ -241,7 +242,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Insert(send).Run(), ShouldBeNil)
 
-						outPath := Join(gwRoot, serverDir, send.OutPath)
+						outPath := filepath.Join(gwRoot, serverDir, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -253,7 +254,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Insert(send).Run(), ShouldBeNil)
 
-						outPath := Join(gwRoot, serverDir)
+						outPath := filepath.Join(gwRoot, serverDir)
 						testFunc(send.ID, outPath)
 					})
 				})
@@ -268,7 +269,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Insert(send).Run(), ShouldBeNil)
 
-						outPath := Join(gwRoot, send.OutPath)
+						outPath := filepath.Join(gwRoot, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -280,7 +281,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Insert(send).Run(), ShouldBeNil)
 
-						outPath := Join(gwRoot, outDir)
+						outPath := filepath.Join(gwRoot, outDir)
 						testFunc(send.ID, outPath)
 					})
 				})
@@ -291,7 +292,7 @@ func TestPathOut(t *testing.T) {
 
 				Convey("Given a server with a root directory", func() {
 					serverDir := "server_root"
-					paths.ServerRoot = Join(gwRoot, serverDir)
+					paths.ServerRoot = filepath.Join(gwRoot, serverDir)
 
 					Convey("Given that the rule has an 'out' directory", func() {
 						send := &model.Rule{
@@ -302,7 +303,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Insert(send).Run(), ShouldBeNil)
 
-						outPath := Join(gwRoot, serverDir, send.OutPath)
+						outPath := filepath.Join(gwRoot, serverDir, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 
@@ -314,7 +315,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Insert(send).Run(), ShouldBeNil)
 
-						outPath := Join(gwRoot, serverDir)
+						outPath := filepath.Join(gwRoot, serverDir)
 						testFunc(send.ID, outPath)
 					})
 				})
@@ -329,7 +330,7 @@ func TestPathOut(t *testing.T) {
 						}
 						So(db.Insert(send).Run(), ShouldBeNil)
 
-						outPath := Join(gwRoot, send.OutPath)
+						outPath := filepath.Join(gwRoot, send.OutPath)
 						testFunc(send.ID, outPath)
 					})
 

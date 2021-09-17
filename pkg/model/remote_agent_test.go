@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestRemoteAgentTableName(t *testing.T) {
@@ -43,11 +43,15 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
 
-			agAccess := RuleAccess{RuleID: rule.ID, ObjectID: ag.ID,
-				ObjectType: TableRemAgents}
+			agAccess := RuleAccess{
+				RuleID: rule.ID, ObjectID: ag.ID,
+				ObjectType: TableRemAgents,
+			}
 			So(db.Insert(&agAccess).Run(), ShouldBeNil)
-			accAccess := RuleAccess{RuleID: rule.ID, ObjectID: acc.ID,
-				ObjectType: TableRemAccounts}
+			accAccess := RuleAccess{
+				RuleID: rule.ID, ObjectID: acc.ID,
+				ObjectType: TableRemAccounts,
+			}
 			So(db.Insert(&accAccess).Run(), ShouldBeNil)
 
 			certAg := Crypto{
@@ -68,7 +72,6 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			So(db.Insert(&certAcc).Run(), ShouldBeNil)
 
 			Convey("Given that the agent is unused", func() {
-
 				Convey("When calling the `BeforeDelete` hook", func() {
 					So(db.Transaction(func(ses *database.Session) database.Error {
 						return ag.BeforeDelete(ses)
@@ -150,7 +153,8 @@ func TestRemoteAgentValidate(t *testing.T) {
 						})
 
 						Convey("Then the error should say that "+errDesc, func() {
-							So(err, ShouldBeError, expErr)
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldContainSubstring, expErr.Error())
 						})
 					})
 				}

@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"code.bcarlin.xyz/go/logging"
+	"code.waarp.fr/waarp-r66/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
@@ -16,7 +17,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/waarp-r66/r66"
 )
 
 // Service represents a r66 service, which encompasses a r66 server usable for
@@ -44,6 +44,7 @@ func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) *S
 		ServerOut:   agent.OutDir,
 		ServerWork:  agent.WorkDir,
 	}
+
 	return &Service{
 		db:     db,
 		agent:  agent,
@@ -58,25 +59,31 @@ func (s *Service) makeTLSConf() (*tls.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if len(certs) == 0 {
 		return nil, nil
 	}
 
 	tlsCerts := make([]tls.Certificate, len(certs))
-	for i, cert := range certs {
+
+	for i := range certs {
 		var err error
-		tlsCerts[i], err = tls.X509KeyPair([]byte(cert.Certificate), []byte(cert.PrivateKey))
+		tlsCerts[i], err = tls.X509KeyPair(
+			[]byte(certs[i].Certificate),
+			[]byte(certs[i].PrivateKey),
+		)
+
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot generate certificate list: %w", err)
 		}
 	}
 
-	//ca, _ := x509.SystemCertPool()
+	// ca, _ := x509.SystemCertPool()
 	return &tls.Config{
 		Certificates: tlsCerts,
 		MinVersion:   tls.VersionTLS12,
 		ClientAuth:   tls.RequireAndVerifyClientCert,
-		//ClientCAs:    ca,
+		// ClientCAs:    ca,
 	}, nil
 }
 
@@ -88,16 +95,18 @@ func (s *Service) Start() error {
 	var conf config.R66ProtoConfig
 	if err := json.Unmarshal(s.agent.ProtoConfig, &conf); err != nil {
 		s.logger.Errorf("Failed to parse server ProtoConfig: %s", err)
-		err1 := fmt.Errorf("failed to parse ProtoConfig: %s", err)
+		err1 := fmt.Errorf("failed to parse ProtoConfig: %w", err)
 		s.state.Set(service.Error, err1.Error())
+
 		return err1
 	}
 
 	pwd, err := utils.AESDecrypt(conf.ServerPassword)
 	if err != nil {
 		s.logger.Errorf("Failed to decrypt server password: %s", err)
-		dErr := fmt.Errorf("failed to decrypt server password: %s", err)
+		dErr := fmt.Errorf("failed to decrypt server password: %w", err)
 		s.state.Set(service.Error, dErr.Error())
+
 		return dErr
 	}
 
@@ -126,6 +135,7 @@ func (s *Service) Start() error {
 
 	s.state.Set(service.Running, "")
 	s.logger.Infof("R66 server started at %s", s.agent.Address)
+
 	return nil
 }
 
@@ -134,6 +144,7 @@ func (s *Service) listen() error {
 	if err != nil {
 		s.logger.Errorf("Failed to parse server TLS config: %s", err)
 		s.state.Set(service.Error, err.Error())
+
 		return err
 	}
 
@@ -143,18 +154,22 @@ func (s *Service) listen() error {
 	} else {
 		list, err = net.Listen("tcp", s.agent.Address)
 	}
+
 	if err != nil {
 		s.logger.Errorf("Failed to start R66 listener: %s", err)
 		s.state.Set(service.Error, err.Error())
-		return err
+
+		return fmt.Errorf("cannot start listener: %w", err)
 	}
 
 	s.done = make(chan struct{})
+
 	go func() {
 		if err := s.server.Serve(list); err != nil {
 			s.logger.Errorf("Server has stopped unexpectedly: %s", err)
 			s.state.Set(service.Error, err.Error())
 		}
+
 		close(s.done)
 	}()
 
@@ -167,6 +182,7 @@ func (s *Service) Stop(ctx context.Context) error {
 
 	if code, _ := s.State().Get(); code == service.Error || code == service.Offline {
 		s.logger.Info("Server is already offline, nothing to do")
+
 		return nil
 	}
 
@@ -175,14 +191,21 @@ func (s *Service) Stop(ctx context.Context) error {
 
 	if err := s.server.Shutdown(ctx); err != nil {
 		s.logger.Error("Failed to shut down R66 server, forcing exit")
-		return err
+
+		return fmt.Errorf("failed to shut down R66 server: %w", err)
 	}
+
 	s.logger.Info("R66 server shutdown successful")
 
 	select {
 	case <-ctx.Done():
 		s.logger.Error("Failed to shut down R66 server, forcing exit")
-		return ctx.Err()
+
+		if ctx.Err() != nil {
+			return fmt.Errorf("failed to shut down R66 server: %w", ctx.Err())
+		}
+
+		return nil
 	case <-s.done:
 	}
 
@@ -196,5 +219,6 @@ func (s *Service) State() *service.State {
 			s.state.Set(service.Offline, "")
 		}
 	}
+
 	return s.state
 }

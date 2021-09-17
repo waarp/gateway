@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
 	executor.ClientsConstructors["test"] = NewAllSuccess
@@ -28,7 +29,7 @@ func (*TestProtoConfig) CertRequired() bool  { return false }
 
 type AllSuccess struct{}
 
-func NewAllSuccess(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
+func NewAllSuccess(_ *model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return AllSuccess{}, nil
 }
 func (AllSuccess) Connect() error                 { return nil }

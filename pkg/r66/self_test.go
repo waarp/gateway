@@ -3,9 +3,10 @@ package r66
 import (
 	"testing"
 
+	. "github.com/smartystreets/goconvey/convey"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestSelfPushOK(t *testing.T) {

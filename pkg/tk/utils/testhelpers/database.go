@@ -16,14 +16,17 @@ func GetTestSqliteDB(c convey.C) *sql.DB {
 	c.So(err, convey.ShouldBeNil)
 	c.So(f.Close(), convey.ShouldBeNil)
 	c.So(os.Remove(f.Name()), convey.ShouldBeNil)
+
 	file := f.Name()
 	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc", file))
+
 	c.So(err, convey.ShouldBeNil)
 
 	c.Reset(func() {
 		c.So(db.Close(), convey.ShouldBeNil)
 		c.So(os.Remove(file), convey.ShouldBeNil)
 	})
+
 	return db
 }
 
@@ -38,10 +41,12 @@ func GetTestPostgreDB(c convey.C) *sql.DB {
 	c.Reset(func() {
 		_, err := db.Exec("DROP SCHEMA public CASCADE")
 		c.So(err, convey.ShouldBeNil)
+
 		_, err = db.Exec("CREATE SCHEMA public")
 		c.So(err, convey.ShouldBeNil)
 		c.So(db.Close(), convey.ShouldBeNil)
 	})
+
 	return db
 }
 
@@ -53,6 +58,7 @@ func GetTestMySQLDB(c convey.C) *sql.DB {
 	conf.User = "root"
 	conf.DBName = "waarp_gateway_test"
 	conf.Addr = "localhost:3306"
+
 	db, err := sql.Open("mysql", conf.FormatDSN())
 	c.So(err, convey.ShouldBeNil)
 
@@ -63,5 +69,6 @@ func GetTestMySQLDB(c convey.C) *sql.DB {
 		c.So(err, convey.ShouldBeNil)
 		c.So(db.Close(), convey.ShouldBeNil)
 	})
+
 	return db
 }

@@ -7,14 +7,16 @@ import (
 	"os"
 )
 
-var fileList = []string{
-	"gatewayd.ini",
-	"etc\\gatewayd.ini",
-}
+func getDefaultConfFiles() []string {
+	rv := []string{
+		"gatewayd.ini",
+		"etc\\gatewayd.ini",
+	}
 
-func init() {
 	pd := os.Getenv("ProgramData")
 	if pd != "" {
-		fileList = append(fileList, fmt.Sprintf("%s\\waarp-gateway\\gatewayd.ini", pd))
+		fileList = append(rv, fmt.Sprintf("%s\\waarp-gateway\\gatewayd.ini", pd))
 	}
+
+	return rv
 }

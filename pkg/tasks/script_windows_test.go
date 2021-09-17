@@ -2,11 +2,13 @@
 
 package tasks
 
-var lineSeparator = "\r\n"
+const lineSeparator = "\r\n"
 
-var execScriptFile = "exec_test_script.bat"
-var execMoveScriptFile = "execmove_test_script.bat"
-var execOutputScriptFile = "execoutput_test_script.bat"
+const (
+	execScriptFile       = "exec_test_script.bat"
+	execMoveScriptFile   = "execmove_test_script.bat"
+	execOutputScriptFile = "execoutput_test_script.bat"
+)
 
 const scriptExecOK = `@ECHO OFF
 ECHO %1

@@ -11,6 +11,7 @@ type dbInfo struct {
 	makeDSN func(*conf.DatabaseConfig) string
 }
 
+//nolint:gochecknoglobals // global var is used by design
 var rdbms = map[string]dbInfo{
 	migration.SQLite: {
 		driver:  database.SqliteDriver,

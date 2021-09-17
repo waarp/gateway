@@ -23,7 +23,7 @@ type LocalAgent struct {
 	Address       string          `json:"address"`
 	Configuration json.RawMessage `json:"configuration"`
 	Accounts      []LocalAccount  `json:"accounts"`
-	Certs         []Certificate   `json:"certificates"`
+	Certs         []Certificate   `json:"certificates"` //nolint:tagliatelle // doesn't matter
 }
 
 // LocalAccount is the JSON struct representing a local account.
@@ -31,7 +31,7 @@ type LocalAccount struct {
 	Login        string        `json:"login"`
 	Password     string        `json:"password,omitempty"`
 	PasswordHash string        `json:"passwordHash,omitempty"`
-	Certs        []Certificate `json:"certificates,omitempty"`
+	Certs        []Certificate `json:"certificates,omitempty"` //nolint:tagliatelle // doesn't matter
 }
 
 // RemoteAgent is the JSON struct representing a remote partner along with its
@@ -42,14 +42,14 @@ type RemoteAgent struct {
 	Protocol      string          `json:"protocol"`
 	Configuration json.RawMessage `json:"configuration"`
 	Accounts      []RemoteAccount `json:"accounts"`
-	Certs         []Certificate   `json:"certificates"`
+	Certs         []Certificate   `json:"certificates"` //nolint:tagliatelle // doesn't matter
 }
 
 // RemoteAccount is the JSON struct representing a local account.
 type RemoteAccount struct {
 	Login    string        `json:"login"`
 	Password string        `json:"password,omitempty"`
-	Certs    []Certificate `json:"certificates,omitempty"`
+	Certs    []Certificate `json:"certificates,omitempty"` //nolint:tagliatelle // doesn't matter
 }
 
 // Certificate is the JSON struct representing a certificate.
@@ -57,7 +57,7 @@ type Certificate struct {
 	Name        string `json:"name"`
 	PublicKey   string `json:"publicKey,omitempty"`
 	PrivateKey  string `json:"privateKey,omitempty"`
-	Certificate string `json:"Certificate,omitempty"`
+	Certificate string `json:"Certificate,omitempty"` //nolint:tagliatelle // doesn't matter
 }
 
 // Rule is the JSON struct representing a transfer rule.
@@ -68,7 +68,7 @@ type Rule struct {
 	InPath   string   `json:"inPath,omitempty"`
 	OutPath  string   `json:"outPath,omitempty"`
 	WorkPath string   `json:"workPath,omitempty"`
-	Accesses []string `json:"auth,omitempty"`
+	Accesses []string `json:"auth,omitempty"` //nolint:tagliatelle // doesn't matter
 	Pre      []Task   `json:"pre,omitempty"`
 	Post     []Task   `json:"post,omitempty"`
 	Error    []Task   `json:"error,omitempty"`

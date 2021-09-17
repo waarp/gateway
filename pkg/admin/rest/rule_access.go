@@ -20,6 +20,7 @@ func getAuthorizedRules(db *database.DB, objType string, objID uint64) (*api.Aut
 	}
 
 	authorized := &api.AuthorizedRules{}
+
 	for _, rule := range rules {
 		if rule.IsSend { // if send == true
 			authorized.Sending = append(authorized.Sending, rule.Name)
@@ -27,18 +28,22 @@ func getAuthorizedRules(db *database.DB, objType string, objID uint64) (*api.Aut
 			authorized.Reception = append(authorized.Reception, rule.Name)
 		}
 	}
+
 	return authorized, nil
 }
 
 func getAuthorizedRuleList(db *database.DB, objType string, ids []uint64) ([]api.AuthorizedRules, error) {
 	rules := make([]api.AuthorizedRules, len(ids))
+
 	for i, obj := range ids {
 		r, err := getAuthorizedRules(db, objType, obj)
 		if err != nil {
 			return nil, err
 		}
+
 		rules[i] = *r
 	}
+
 	return rules, nil
 }
 
@@ -62,12 +67,14 @@ func authorizeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 	if err := db.Insert(access).Run(); err != nil {
 		return err
 	}
+
 	if n == 0 {
 		fmt.Fprintf(w, "Usage of the %s rule '%s' is now restricted.",
 			ruleDirection(rule), rule.Name)
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
+
 	return nil
 }
 
@@ -87,6 +94,7 @@ func revokeRule(w http.ResponseWriter, r *http.Request, db *database.DB,
 	if err1 != nil {
 		return err1
 	}
+
 	if n == 0 {
 		fmt.Fprintf(w, "Usage of the %s rule '%s' is now unrestricted.",
 			ruleDirection(rule), rule.Name)
@@ -108,6 +116,7 @@ func makeServerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
 	for i := range agents {
 		names[i] = agents[i].Name
 	}
+
 	return names, nil
 }
 
@@ -122,25 +131,29 @@ func makePartnerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
 	for i, agent := range agents {
 		names[i] = agent.Name
 	}
+
 	return names, nil
 }
 
 func convertAgentIDs(db *database.DB, isLocal bool, access map[uint64][]string) (map[string][]string, error) {
 	ids := make([]uint64, len(access))
 	i := 0
+
 	for id := range access {
 		ids[i] = id
 		i++
 	}
 
 	names := map[string][]string{}
+
 	if isLocal {
 		var agents model.LocalAgents
 		if err := db.Select(&agents).In("id", ids).Run(); err != nil {
 			return nil, err
 		}
-		for _, agent := range agents {
-			names[agent.Name] = access[agent.ID]
+
+		for i := range agents {
+			names[agents[i].Name] = access[agents[i].ID]
 		}
 	} else {
 		var agents model.RemoteAgents
@@ -151,9 +164,11 @@ func convertAgentIDs(db *database.DB, isLocal bool, access map[uint64][]string) 
 			names[agent.Name] = access[agent.ID]
 		}
 	}
+
 	return names, nil
 }
 
+//nolint:dupl // duplicated code is about a different type
 func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]string, error) {
 	var accounts model.LocalAccounts
 	if err := db.Select(&accounts).Where("id IN (SELECT object_id FROM "+model.TableRuleAccesses+
@@ -173,6 +188,7 @@ func makeLocalAccountAccess(db *database.DB, rule *model.Rule) (map[string][]str
 	return convertAgentIDs(db, true, accessIDs)
 }
 
+//nolint:dupl // duplicated code is about a different type
 func makeRemoteAccountAccess(db *database.DB, rule *model.Rule) (map[string][]string, error) {
 	var accounts model.RemoteAccounts
 	if err := db.Select(&accounts).Where("id IN (SELECT object_id FROM "+model.TableRuleAccesses+
@@ -197,6 +213,7 @@ func makeRuleAccess(db *database.DB, rule *model.Rule) (*api.RuleAccess, error) 
 	if err != nil {
 		return nil, err
 	}
+
 	partners, err := makePartnerAccess(db, rule)
 	if err != nil {
 		return nil, err
@@ -206,6 +223,7 @@ func makeRuleAccess(db *database.DB, rule *model.Rule) (*api.RuleAccess, error) 
 	if err != nil {
 		return nil, err
 	}
+
 	remAccounts, err := makeRemoteAccountAccess(db, rule)
 	if err != nil {
 		return nil, err

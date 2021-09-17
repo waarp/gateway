@@ -7,23 +7,25 @@ import (
 )
 
 // CopyRenameTask is a task which allow to copy the current file
-// to a given destination
+// to a given destination.
 type CopyRenameTask struct{}
 
+//nolint:gochecknoinits // designed to use init
 func init() {
 	RunnableTasks["COPYRENAME"] = &CopyRenameTask{}
 	model.ValidTasks["COPYRENAME"] = &CopyRenameTask{}
 }
 
-// Validate check if the task has a destination for the copy
+// Validate check if the task has a destination for the copy.
 func (*CopyRenameTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
-		return fmt.Errorf("cannot create a copy_rename task without a `path` argument")
+		return fmt.Errorf("cannot create a copy_rename task without a `path` argument: %w", errBadTaskArguments)
 	}
+
 	return nil
 }
 
-// Run copy the current file to the destination
+// Run copy the current file to the destination.
 func (*CopyRenameTask) Run(args map[string]string, processor *Processor) (string, error) {
 	var (
 		newPath = args["path"]

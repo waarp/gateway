@@ -7,13 +7,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
-type versionCommand struct {
-}
+type versionCommand struct{}
 
+//nolint:forbidigo,unparam // this is the intended behavior
 func (d *versionCommand) Execute([]string) error {
-	_, err := fmt.Printf("Waarp Gateway %s (%s - %s) [%s %s/%s %s]\n",
+	fmt.Printf("Waarp Gateway %s (%s - %s) [%s %s/%s %s]\n",
 		version.Num, version.Date, version.Commit,
 		runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 
-	return err
+	return nil
 }

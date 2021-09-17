@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 func TestRuleTableName(t *testing.T) {
@@ -19,7 +20,6 @@ func TestRuleTableName(t *testing.T) {
 				So(name, ShouldEqual, TableRules)
 			})
 		})
-
 	})
 }
 
@@ -80,7 +80,6 @@ func TestRuleBeforeWrite(t *testing.T) {
 				rule.IsSend = old.IsSend
 				shouldFailWith("the rule already exist", database.NewValidationError(
 					"a %s rule named '%s' already exist", rule.Direction(), rule.Name))
-
 			})
 
 			Convey("Given a rule without a path", func() {
@@ -99,7 +98,6 @@ func TestRuleBeforeWrite(t *testing.T) {
 						})
 					})
 				})
-
 			})
 		})
 	})
@@ -138,7 +136,6 @@ func TestRuleBeforeDelete(t *testing.T) {
 			So(db.Insert(&a2).Run(), ShouldBeNil)
 
 			Convey("Given that the rule is unused", func() {
-
 				Convey("When calling the `BeforeDelete` function", func() {
 					err := db.Transaction(func(ses *database.Session) database.Error {
 						return rule.BeforeDelete(ses)

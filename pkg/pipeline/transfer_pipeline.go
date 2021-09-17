@@ -33,6 +33,7 @@ func (p *Pipeline) PreTasks() error {
 
 	p.Logger.Debug("Executing pre-tasks")
 	defer p.Logger.Debug("Post-tasks done")
+
 	return execTasks(p.proc, model.ChainPre, types.StepPreTasks)
 }
 
@@ -45,6 +46,7 @@ func (p *Pipeline) PostTasks() error {
 
 	p.Logger.Debug("Executing post-tasks")
 	defer p.Logger.Debug("Post-tasks done")
+
 	return execTasks(p.proc, model.ChainPost, types.StepPostTasks)
 }
 
@@ -59,11 +61,17 @@ func (p *Pipeline) ErrorTasks() {
 
 	p.Logger.Debug("Executing error-tasks")
 	defer p.Logger.Debug("Error-tasks done")
-	_ = execTasks(p.proc, model.ChainError, types.StepErrorTasks)
+
+	if err := execTasks(p.proc, model.ChainError, types.StepErrorTasks); err != nil {
+		p.Logger.Warningf("an error occurred during the execution of the error tasks: %v", err)
+	}
 
 	p.Transfer.Step = failedStep
 	p.Transfer.TaskNumber = failedTask
-	_ = p.DB.Update(p.Transfer).Cols("step", "task_number").Run()
+
+	if err := p.DB.Update(p.Transfer).Cols("step", "task_number").Run(); err != nil {
+		p.Logger.Warningf("The state could not be saved in database: %v", err)
+	}
 }
 
 // Archive deletes the transfer entry and saves it in the history.
@@ -71,12 +79,14 @@ func (p *Pipeline) Archive() error {
 	p.Logger.Info("Transfer finished, saving into transfer history")
 	err := ToHistory(p.DB, p.Logger, p.Transfer, time.Now())
 	p.exit()
+
 	return err
 }
 
 // exit deletes the transfer's signal channel.
 func (p *Pipeline) exit() {
 	Signals.Delete(p.Transfer.ID)
+
 	if p.Transfer.IsServer {
 		TransferInCount.sub()
 	} else {

@@ -4,22 +4,22 @@ import (
 	"fmt"
 )
 
-type errBadRequest struct{ msg string }
+type badRequestError struct{ msg string }
 
-func (e *errBadRequest) Error() string { return e.msg }
+func (e *badRequestError) Error() string { return e.msg }
 
 type forbidden struct{ msg string }
 
 func (f *forbidden) Error() string { return f.msg }
 
-type errNotFound struct{ msg string }
+type notFoundError struct{ msg string }
 
-func (e *errNotFound) Error() string { return e.msg }
+func (e *notFoundError) Error() string { return e.msg }
 
-func badRequest(format string, args ...interface{}) *errBadRequest {
-	return &errBadRequest{msg: fmt.Sprintf(format, args...)}
+func badRequest(format string, args ...interface{}) *badRequestError {
+	return &badRequestError{msg: fmt.Sprintf(format, args...)}
 }
 
-func notFound(format string, args ...interface{}) *errNotFound {
-	return &errNotFound{msg: fmt.Sprintf(format, args...)}
+func notFound(format string, args ...interface{}) *notFoundError {
+	return &notFoundError{msg: fmt.Sprintf(format, args...)}
 }

@@ -19,6 +19,7 @@ type standardSQL struct {
 
 func (s *standardSQL) RenameTable(oldName, newName string) error {
 	query := "ALTER TABLE %s RENAME TO %s"
+
 	return s.Exec(query, oldName, newName)
 }
 
@@ -28,41 +29,50 @@ func (s *standardSQL) DropTable(name string) error {
 
 func (s *standardSQL) RenameColumn(table, oldName, newName string) error {
 	query := "ALTER TABLE %s RENAME COLUMN %s TO %s"
+
 	return s.Exec(query, table, oldName, newName)
 }
 
 func (s *standardSQL) addColumn(form sqlFormatter, table, column string, typ sqlType, cons []Constraint) error {
 	dbType, err := form.sqlTypeToDBType(typ)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get SQL Type for column: %w", err)
 	}
+
 	c := Col(column, typ, cons...)
+
 	consList, err := form.makeConstraints(&c)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot make constraints: %w", err)
 	}
 
 	query := "ALTER TABLE %s ADD COLUMN %s"
+
 	def := append([]string{column, dbType}, consList...)
+
 	return s.Exec(query, table, strings.Join(def, " "))
 }
 
 func (s *standardSQL) DropColumn(table, name string) error {
 	query := "ALTER TABLE %s DROP COLUMN %s"
+
 	return s.Exec(query, table, name)
 }
 
 func (s *standardSQL) addRow(conv sqlFormatter, table string,
 	values Cells) error {
 	var colList, valuesList []string
-	for col, cell := range values {
+
+	for col, cell := range values { //nolint:gocritic // FIXME to be refactored
 		str, err := conv.formatValueToSQL(cell.Val, cell.Type)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot format value to SQL: %w", err)
 		}
+
 		colList = append(colList, col)
 		valuesList = append(valuesList, str)
 	}
+
 	return s.Exec("INSERT INTO %s (%s)\n VALUES (%s)", table,
 		strings.Join(colList, ", "), strings.Join(valuesList, ", "))
 }
@@ -70,12 +80,12 @@ func (s *standardSQL) addRow(conv sqlFormatter, table string,
 func (s *standardSQL) makeColumnDef(formatter sqlFormatter, col Column) (string, error) {
 	constr, err := formatter.makeConstraints(&col)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot make constraints: %w", err)
 	}
 
 	typ, err := formatter.sqlTypeToDBType(col.Type)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot get SQL Type for column: %w", err)
 	}
 
 	return strings.Join(append([]string{col.Name, typ}, constr...), " "), nil
@@ -88,13 +98,13 @@ func (s *standardSQL) makeTblConstraint(cons TableConstraint) (string, error) {
 	case tblUnique:
 		return fmt.Sprintf("UNIQUE (%s)", strings.Join(con.cols, ", ")), nil
 	default:
-		return "", fmt.Errorf("invalid table definition %#v", con)
+		return "", fmt.Errorf("invalid table definition %#v: %w", con, errBadConstraint)
 	}
 }
 
 func (s *standardSQL) createTable(formatter sqlFormatter, table string, defs []Definition) error {
-	var colDefs []string
-	var constrDefs []string
+	var colDefs, constrDefs []string
+
 	for _, d := range defs {
 		switch def := d.(type) {
 		case Column:
@@ -102,23 +112,28 @@ func (s *standardSQL) createTable(formatter sqlFormatter, table string, defs []D
 			if err != nil {
 				return err
 			}
+
 			colDefs = append(colDefs, str)
+
 		case TableConstraint:
 			str, err := s.makeTblConstraint(def)
 			if err != nil {
 				return err
 			}
+
 			constrDefs = append(constrDefs, str)
 		}
 	}
 
 	if len(colDefs) == 0 {
-		return fmt.Errorf("cannot create a table without columns")
+		return fmt.Errorf("cannot create a table without columns: %w", errOperation)
 	}
-	defsStr := append(colDefs, constrDefs...)
 
-	if len(defsStr) == 1 {
-		return s.Exec("CREATE TABLE %s (%s)", table, defsStr[0])
+	colDefs = append(colDefs, constrDefs...)
+
+	if len(colDefs) == 1 {
+		return s.Exec("CREATE TABLE %s (%s)", table, colDefs[0])
 	}
-	return s.Exec("CREATE TABLE %s (\n    %s\n)", table, strings.Join(defsStr, ",\n    "))
+
+	return s.Exec("CREATE TABLE %s (\n    %s\n)", table, strings.Join(colDefs, ",\n    "))
 }

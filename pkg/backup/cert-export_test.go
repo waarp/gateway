@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestExportCertificates(t *testing.T) {
@@ -34,7 +34,6 @@ func TestExportCertificates(t *testing.T) {
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			Convey("Given an new Transaction", func() {
-
 				Convey("When calling exportCertificates with the correct argument", func() {
 					res, err := exportCertificates(discard, db, model.TableLocAgents, agent.ID)
 
@@ -103,9 +102,7 @@ func TestExportCertificates(t *testing.T) {
 					Convey("Then it should return 2 certificates", func() {
 						So(len(res), ShouldEqual, 2)
 					})
-
 				})
-
 			})
 		})
 	})

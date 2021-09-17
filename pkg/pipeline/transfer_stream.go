@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -52,11 +53,14 @@ func (t *TransferStream) getOldTransfer() error {
 			// If no transfer entry is found, then create a new one instead.
 			return t.createTransfer(t.Transfer)
 		}
+
 		t.Logger.Criticalf("Failed to retrieve transfer: %s", err.Error())
+
 		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
 
 	*t.Transfer = *getTrans
+
 	return nil
 }
 
@@ -64,19 +68,23 @@ func countTransfer(trans *model.Transfer, logger *log.Logger) error {
 	if trans.IsServer {
 		if err := TransferInCount.add(); err != nil {
 			logger.Error("Incoming transfer limit reached")
+
 			return err
 		}
 	} else {
 		if err := TransferOutCount.add(); err != nil {
 			logger.Error("Outgoing transfer limit reached")
+
 			return err
 		}
 	}
+
 	return nil
 }
 
-// NewTransferStream initialises a new stream for the given transfer. This stream
+// NewTransferStream initializes a new stream for the given transfer. This stream
 // can then be used to execute a transfer.
+//nolint:gocritic // FIXME should be a pointer
 func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	paths Paths, trans *model.Transfer) (*TransferStream, error) {
 	if err := countTransfer(trans, logger); err != nil {
@@ -96,14 +104,17 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 	if err := t.getOldTransfer(); err != nil {
 		return nil, err
 	}
+
 	t.Logger = log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
 	t.Logger.Debugf("Starting transfer n°%d", trans.ID)
 
 	t.Pipeline.Rule = &model.Rule{}
 	if err := t.DB.Get(t.Rule, "id=?", trans.RuleID).Run(); err != nil {
 		logger.Criticalf("Failed to retrieve transfer rule: %s", err.Error())
+
 		return nil, err
 	}
+
 	t.Signals = Signals.Add(t.Transfer.ID)
 
 	t.proc = &tasks.Processor{
@@ -124,12 +135,15 @@ func NewTransferStream(ctx context.Context, logger *log.Logger, db *database.DB,
 			{paths.GatewayHome, false},
 		}),
 	}
+
 	if err := t.setTrueFilepath(); err != nil {
 		return nil, err
 	}
+
 	if err := t.initStatus(); err != nil {
 		return nil, err
 	}
+
 	return t, nil
 }
 
@@ -142,8 +156,10 @@ func (t *TransferStream) initStatus() error {
 	if err := t.DB.Update(t.Transfer).Cols("status", "error_code", "error_details").
 		Run(); err != nil {
 		t.Logger.Criticalf("Failed to set transfer status to %s: %s", types.StatusRunning, err.Error())
+
 		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
+
 	return nil
 }
 
@@ -152,12 +168,17 @@ func (t *TransferStream) createTransfer(trans *model.Transfer) error {
 	if err := t.DB.Insert(trans).Run(); err != nil {
 		if _, ok := err.(*database.ValidationError); ok {
 			t.Logger.Errorf("Failed to create transfer entry: %s", err.Error())
+
 			return types.NewTransferError(types.TeForbidden, err.Error())
 		}
+
 		t.Logger.Criticalf("Failed to create transfer entry: %s", err.Error())
+
 		return err
 	}
+
 	t.Logger.Debugf("Transfer was given ID n°%d", trans.ID)
+
 	return nil
 }
 
@@ -192,10 +213,13 @@ func (t *TransferStream) setTrueFilepath() error {
 			t.Transfer.TrueFilepath = fullPath + ".tmp"
 		}
 	}
+
 	if err := t.DB.Update(t.Transfer).Cols("true_filepath").Run(); err != nil {
 		t.Logger.Criticalf("Failed to update transfer filepath: %s", err.Error())
+
 		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
+
 	return nil
 }
 
@@ -209,6 +233,7 @@ func (t *TransferStream) Start() error {
 	if !t.Rule.IsSend {
 		if err := makeDir(t.Transfer.TrueFilepath); err != nil {
 			t.Logger.Errorf("Failed to create temp directory: %s", err)
+
 			return types.NewTransferError(types.TeForbidden, err.Error())
 		}
 	}
@@ -220,6 +245,7 @@ func (t *TransferStream) Start() error {
 
 	t.progress = t.Transfer.Progress
 	t.ticker = time.NewTicker(time.Second)
+
 	return nil
 }
 
@@ -228,14 +254,17 @@ func (t *TransferStream) InitData() error {
 	if err := checkSignal(t.Ctx, t.Signals); err != nil {
 		return err
 	}
+
 	if t.Transfer.Step == types.StepData {
 		return nil
 	}
 
 	t.Transfer.TaskNumber = 0
 	t.Transfer.Step = types.StepData
+
 	if dbErr := t.DB.Update(t.Transfer).Cols("task_number", "step").Run(); dbErr != nil {
 		t.Logger.Criticalf("Failed to update upload transfer step to 'DATA': %s", dbErr)
+
 		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
 
@@ -248,10 +277,12 @@ func (t *TransferStream) updateProgress() error {
 		t.Transfer.Progress = atomic.LoadUint64(&t.progress)
 		if dbErr := t.DB.Update(t.Transfer).Cols("progression").Run(); dbErr != nil {
 			t.Logger.Criticalf("Failed to update upload transfer progress: %s", dbErr)
+
 			return types.NewTransferError(types.TeInternal, "internal database ")
 		}
 	default:
 	}
+
 	return nil
 }
 
@@ -262,12 +293,14 @@ func (t *TransferStream) Read(p []byte) (int, error) {
 
 	n, err := t.File.Read(p)
 	atomic.AddUint64(&t.progress, uint64(n))
+
 	if err != nil && err != io.EOF {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
 		err = t.Transfer.Error
 	}
-	if err := t.updateProgress(); err != nil {
-		return n, err
+
+	if err2 := t.updateProgress(); err2 != nil {
+		return n, err2
 	}
 
 	return n, err
@@ -280,12 +313,14 @@ func (t *TransferStream) Write(p []byte) (int, error) {
 
 	n, err := t.File.Write(p)
 	atomic.AddUint64(&t.progress, uint64(n))
+
 	if err != nil {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
 		err = t.Transfer.Error
 	}
-	if err := t.updateProgress(); err != nil {
-		return n, err
+
+	if err2 := t.updateProgress(); err2 != nil {
+		return n, err2
 	}
 
 	return n, err
@@ -299,12 +334,14 @@ func (t *TransferStream) ReadAt(p []byte, off int64) (int, error) {
 
 	n, err := t.File.ReadAt(p, off)
 	atomic.AddUint64(&t.progress, uint64(n))
+
 	if err != nil && err != io.EOF {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
 		err = t.Transfer.Error
 	}
-	if err := t.updateProgress(); err != nil {
-		return n, err
+
+	if err2 := t.updateProgress(); err2 != nil {
+		return n, err2
 	}
 
 	return n, err
@@ -318,12 +355,14 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (int, error) {
 
 	n, err := t.File.WriteAt(p, off)
 	atomic.AddUint64(&t.progress, uint64(n))
+
 	if err != nil {
 		t.Transfer.Error = types.NewTransferError(types.TeDataTransfer, err.Error())
 		err = t.Transfer.Error
 	}
-	if err := t.updateProgress(); err != nil {
-		return n, err
+
+	if err2 := t.updateProgress(); err2 != nil {
+		return n, err2
 	}
 
 	return n, err
@@ -333,8 +372,11 @@ func (t *TransferStream) WriteAt(p []byte, off int64) (int, error) {
 func (t *TransferStream) Close() error {
 	if t.File != nil {
 		if err := t.File.Close(); err != nil {
+			var err2 *os.PathError
+
+			errors.As(err, &err2)
 			t.Logger.Warningf("Failed to close file '%s': %s", t.File.Name(),
-				err.(*os.PathError).Err.Error())
+				err2.Err.Error())
 		}
 	}
 
@@ -345,6 +387,7 @@ func (t *TransferStream) Close() error {
 	t.Transfer.Progress = atomic.LoadUint64(&t.progress)
 	if err := t.DB.Update(t.Transfer).Cols("progression").Run(); err != nil {
 		t.Logger.Criticalf("Failed to update transfer progress: %s", err.Error())
+
 		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
 
@@ -373,18 +416,22 @@ func (t *TransferStream) Move() error {
 
 	if err := makeDir(filepath); err != nil {
 		t.Logger.Errorf("Failed to create destination directory: %s", err.Error())
+
 		return types.NewTransferError(types.TeFinalization, err.Error())
 	}
 
 	if err := tasks.MoveFile(t.Transfer.TrueFilepath, filepath); err != nil {
 		t.Logger.Errorf("Failed to move temp file: %s", err.Error())
+
 		return types.NewTransferError(types.TeFinalization, err.Error())
 	}
 
 	t.Transfer.TrueFilepath = filepath
 	if err := t.DB.Update(t.Transfer).Cols("true_filepath").Run(); err != nil {
 		t.Logger.Errorf("Failed to update transfer filepath: %s", err.Error())
+
 		return types.NewTransferError(types.TeInternal, "internal database error")
 	}
+
 	return nil
 }

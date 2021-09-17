@@ -7,14 +7,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jessevdk/go-flags"
+	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/crypto/bcrypt"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"github.com/jessevdk/go-flags"
-	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func accInfoString(a *api.OutAccount) string {
@@ -25,7 +26,6 @@ func accInfoString(a *api.OutAccount) string {
 }
 
 func TestGetLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'get' command", t, func() {
 		out = testFile()
 		command := &locAccGet{}
@@ -60,11 +60,15 @@ func TestGetLocalAccount(t *testing.T) {
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
-			sAccess := &model.RuleAccess{RuleID: send.ID,
-				ObjectType: account.TableName(), ObjectID: account.ID}
+			sAccess := &model.RuleAccess{
+				RuleID:     send.ID,
+				ObjectType: account.TableName(), ObjectID: account.ID,
+			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
-			rAccess := &model.RuleAccess{RuleID: receive.ID,
-				ObjectType: account.TableName(), ObjectID: account.ID}
+			rAccess := &model.RuleAccess{
+				RuleID:     receive.ID,
+				ObjectType: account.TableName(), ObjectID: account.ID,
+			}
 			So(db.Insert(rAccess).Run(), ShouldBeNil)
 
 			Convey("Given a valid account name", func() {
@@ -120,7 +124,6 @@ func TestGetLocalAccount(t *testing.T) {
 }
 
 func TestAddLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'add' command", t, func() {
 		out = testFile()
 		command := &locAccAdd{}
@@ -168,7 +171,6 @@ func TestAddLocalAccount(t *testing.T) {
 							PasswordHash: accounts[0].PasswordHash,
 						}
 						So(accounts, ShouldContain, exp)
-
 					})
 				})
 			})
@@ -192,7 +194,6 @@ func TestAddLocalAccount(t *testing.T) {
 }
 
 func TestDeleteLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'delete' command", t, func() {
 		out = testFile()
 		command := &locAccDelete{}
@@ -288,7 +289,6 @@ func TestDeleteLocalAccount(t *testing.T) {
 }
 
 func TestUpdateLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'update' command", t, func() {
 		out = testFile()
 		command := &locAccUpdate{}
@@ -394,7 +394,6 @@ func TestUpdateLocalAccount(t *testing.T) {
 }
 
 func TestListLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'list' command", t, func() {
 		out = testFile()
 		command := &locAccList{}
@@ -543,7 +542,6 @@ func TestListLocalAccount(t *testing.T) {
 }
 
 func TestAuthorizeLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'authorize' command", t, func() {
 		out = testFile()
 		command := &locAccAuthorize{}
@@ -674,7 +672,6 @@ func TestAuthorizeLocalAccount(t *testing.T) {
 }
 
 func TestRevokeLocalAccount(t *testing.T) {
-
 	Convey("Testing the local account 'revoke' command", t, func() {
 		out = testFile()
 		command := &locAccRevoke{}

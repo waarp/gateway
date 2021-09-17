@@ -1,12 +1,14 @@
 package r66
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/smartystreets/goconvey/convey"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
-	"github.com/smartystreets/goconvey/convey"
 )
 
 const (
@@ -16,9 +18,12 @@ const (
 	serverErr = "SERVERERR"
 )
 
+//nolint:gochecknoglobals // made globals to ease the tests
 var (
 	clientCheckChannel chan string
 	serverCheckChannel chan string
+
+	errTaskFailed = errors.New("task failed")
 )
 
 func clientMsgShouldBe(c convey.C, exp string) {
@@ -43,9 +48,9 @@ func serverMsgShouldBe(c convey.C, exp string) {
 	case <-timer.C:
 		panic(fmt.Sprintf("Test timed out waiting for server message '%s'", exp))
 	}
-	return
 }
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	tasks.RunnableTasks[clientOK] = &clientTask{}
 	tasks.RunnableTasks[clientErr] = &clientTaskError{}
@@ -73,7 +78,6 @@ func (*clientTask) Run(args map[string]string, _ *tasks.Processor) (string, erro
 	case <-timer.C:
 		panic(fmt.Sprintf("task timed out sending client message '%s'", args["msg"]))
 	}
-
 }
 
 type clientTaskError struct{}
@@ -85,7 +89,7 @@ func (*clientTaskError) Run(args map[string]string, _ *tasks.Processor) (string,
 
 	select {
 	case clientCheckChannel <- "CLIENT | " + args["msg"] + " | ERROR":
-		return "task failed", fmt.Errorf("task failed")
+		return "task failed", errTaskFailed
 	case <-timer.C:
 		panic(fmt.Sprintf("task timed out sending client message '%s'", args["msg"]))
 	}
@@ -117,7 +121,7 @@ func (*serverTaskError) Run(args map[string]string, _ *tasks.Processor) (string,
 
 	select {
 	case serverCheckChannel <- "SERVER | " + args["msg"] + " | ERROR":
-		return "task failed", fmt.Errorf("task failed")
+		return "task failed", errTaskFailed
 	case <-timer.C:
 		panic(fmt.Sprintf("task timed out sending server message '%s'", args["msg"]))
 	}

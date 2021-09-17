@@ -5,8 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func TestCopyRenameTaskValidate(t *testing.T) {
@@ -37,7 +38,7 @@ func TestCopyRenameTaskValidate(t *testing.T) {
 			})
 
 			Convey("Then error should say `need path argument`", func() {
-				So(err.Error(), ShouldEqual, "cannot create a copy_rename task without a `path` argument")
+				So(err.Error(), ShouldContainSubstring, "cannot create a copy_rename task without a `path` argument")
 			})
 		})
 	})

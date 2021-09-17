@@ -10,6 +10,6 @@ const (
 	SignalPause Signal = iota
 
 	// SignalCancel is the signal sent to a transfer executor when the current transfer
-	// has been cancelled.
+	// has been canceled.
 	SignalCancel
 )

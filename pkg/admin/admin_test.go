@@ -11,18 +11,18 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/smartystreets/goconvey/convey"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestStart(t *testing.T) {
-
 	Convey("Given an admin service", t, func() {
-		So(ioutil.WriteFile("cert.pem", []byte(cert), 0700), ShouldBeNil)
-		So(ioutil.WriteFile("key.pem", []byte(key), 0700), ShouldBeNil)
+		So(ioutil.WriteFile("cert.pem", []byte(cert), 0o700), ShouldBeNil)
+		So(ioutil.WriteFile("key.pem", []byte(key), 0o700), ShouldBeNil)
 
 		Reset(func() {
 			_ = os.Remove("cert.pem")
@@ -38,7 +38,6 @@ func TestStart(t *testing.T) {
 		Reset(func() { _ = server.server.Close() })
 
 		Convey("Given a correct configuration", func() {
-
 			Convey("When starting the service", func() {
 				err := server.Start()
 
@@ -143,7 +142,7 @@ func TestStop(t *testing.T) {
 
 			Convey("Then the service should no longer respond to requests", func() {
 				client := new(http.Client)
-				response, err := client.Get(addr)
+				response, err := client.Get(addr) //nolint:noctx // this is a test
 
 				So(err, ShouldBeError)
 				So(response, ShouldBeNil)

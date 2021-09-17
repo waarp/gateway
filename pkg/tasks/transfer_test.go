@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"testing"
 
+	. "github.com/smartystreets/goconvey/convey"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestTransferValidate(t *testing.T) {
-
 	Convey("Given a 'TRANSFER' task", t, func() {
 		trans := &TransferTask{}
 
@@ -68,7 +68,6 @@ func TestTransferValidate(t *testing.T) {
 }
 
 func TestTransferRun(t *testing.T) {
-
 	Convey("Given a coherent database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
@@ -105,7 +104,6 @@ func TestTransferRun(t *testing.T) {
 			processor := &Processor{DB: db}
 
 			Convey("Given that the parameters are valid", func() {
-
 				Convey("When running the task", func() {
 					msg, err := trans.Run(args, processor)
 

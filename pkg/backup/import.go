@@ -5,6 +5,8 @@ package backup
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
@@ -27,9 +29,10 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry bool) error 
 	logger := log.NewLogger("import")
 
 	data := &file.Data{}
+
 	err := json.NewDecoder(r).Decode(data)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot read data: %w", err)
 	}
 
 	err = db.Transaction(func(ses *database.Session) database.Error {
@@ -52,14 +55,16 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry bool) error 
 		if dry {
 			return errDry
 		}
+
 		return nil
 	})
 
 	if err != nil {
-		if dry && err == errDry {
+		if dry && errors.Is(err, errDry) {
 			return nil
 		}
-		return err
+
+		return fmt.Errorf("cannot import file: %w", err)
 	}
 
 	return nil

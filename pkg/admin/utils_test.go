@@ -5,6 +5,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	logConf := conf.LogConfig{
 		Level: "DEBUG",

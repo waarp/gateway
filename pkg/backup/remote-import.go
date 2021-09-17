@@ -13,9 +13,10 @@ func importRemoteAgents(logger *log.Logger, db database.Access, list []file.Remo
 		// Create model with basic info to check existence
 		var agent model.RemoteAgent
 
-		//Check if agent exists
+		// Check if agent exists
 		exists := true
 		err := db.Get(&agent, "name=?", src.Name).Run()
+
 		if database.IsNotFound(err) {
 			exists = false
 		} else if err != nil {
@@ -28,7 +29,7 @@ func importRemoteAgents(logger *log.Logger, db database.Access, list []file.Remo
 		agent.Protocol = src.Protocol
 		agent.ProtoConfig = src.Configuration
 
-		//Create/Update
+		// Create/Update
 		if exists {
 			logger.Infof("Update remote partner %s\n", agent.Name)
 			err = db.Update(&agent).Run()
@@ -36,6 +37,7 @@ func importRemoteAgents(logger *log.Logger, db database.Access, list []file.Remo
 			logger.Infof("Create remote partner %s\n", agent.Name)
 			err = db.Insert(&agent).Run()
 		}
+
 		if err != nil {
 			return err
 		}
@@ -49,15 +51,14 @@ func importRemoteAgents(logger *log.Logger, db database.Access, list []file.Remo
 			return err
 		}
 	}
+
 	return nil
 }
 
-//nolint:dupl
+//nolint:dupl // duplicated code is about two different types
 func importRemoteAccounts(logger *log.Logger, db database.Access,
 	list []file.RemoteAccount, ownerID uint64) database.Error {
-
 	for _, src := range list {
-
 		// Create model with basic info to check existence
 		var account model.RemoteAccount
 
@@ -71,6 +72,7 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 		// Populate
 		account.RemoteAgentID = ownerID
 		account.Login = src.Login
+
 		if src.Password != "" {
 			account.Password = types.CypherText(src.Password)
 		}
@@ -83,6 +85,7 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 			logger.Infof("Create remote account %s\n", account.Login)
 			err = db.Insert(&account).Run()
 		}
+
 		if err != nil {
 			return err
 		}
@@ -92,5 +95,6 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 			return err
 		}
 	}
+
 	return nil
 }

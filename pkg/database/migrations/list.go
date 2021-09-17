@@ -9,6 +9,7 @@ import (
 // Migrations should be declared here in chronological order. This means that
 // new migrations should ALWAYS be added at the end of the list so that the order
 // never changes.
+//nolint:gochecknoglobals // global var is used by design
 var Migrations = []migration.Migration{
 	{
 		Description: "Bump the database version to 0.4.0",

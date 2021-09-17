@@ -7,12 +7,13 @@ import (
 	"os"
 	"path"
 
+	"code.waarp.fr/waarp-r66/r66"
+	r66utils "code.waarp.fr/waarp-r66/r66/utils"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/waarp-r66/r66"
-	r66utils "code.waarp.fr/waarp-r66/r66/utils"
 )
 
 type clientAuthHandler struct {
@@ -23,20 +24,34 @@ type clientAuthHandler struct {
 }
 
 func (h *clientAuthHandler) ValidAuth(auth *r66.Authent) (req r66.RequestHandler, err error) {
+	var (
+		authErr    error = &r66.Error{Code: r66.BadAuthent, Detail: "invalid credentials"}
+		err1, err2 bool
+	)
 
-	var authErr error = &r66.Error{Code: r66.BadAuthent, Detail: "invalid credentials"}
 	if subtle.ConstantTimeCompare([]byte(auth.Login), []byte(h.config.ServerLogin)) == 0 {
-		err = authErr
+		err1 = true
 	}
+
 	pwd, err := base64.StdEncoding.DecodeString(h.config.ServerPassword)
 	if err != nil {
-		err = &r66.Error{Code: r66.Internal, Detail: "failed to check credentials"}
+		err2 = true
 	}
+
 	if subtle.ConstantTimeCompare(pwd, auth.Password) == 0 {
-		err = authErr
+		err1 = true
 	}
 
 	req = &clientRequestHandler{h}
+
+	switch {
+	case err2:
+		err = &r66.Error{Code: r66.Internal, Detail: "failed to check credentials"}
+
+	case err1:
+		err = authErr
+	}
+
 	return
 }
 
@@ -49,7 +64,9 @@ func (h *clientRequestHandler) ValidRequest(r *r66.Request) (r66.TransferHandler
 	if r.Rank < curBlock {
 		curBlock = r.Rank
 	}
+
 	r.Rank = curBlock
+
 	if h.info.Transfer.Step <= types.StepData {
 		h.info.Transfer.Progress = uint64(curBlock) * uint64(r.Block)
 	}
@@ -76,33 +93,51 @@ func (h *clientTransferHandler) ValidEndTransfer(end *r66.EndTransfer) error {
 	}
 
 	if h.info.Rule.IsSend {
-		if !h.config.NoFinalHash {
-			hash, err := makeHash(h.info.Transfer.TrueFilepath)
-			if err != nil {
-				return &r66.Error{Code: r66.FinalOp, Detail: "failed to calculate file hash"}
-			}
-			end.Hash = hash
+		if err := validEndTransferClientSend(h, end); err != nil {
+			return err
 		}
 	} else {
-		stat, err := os.Stat(utils.DenormalizePath(h.info.Transfer.TrueFilepath))
-		if err != nil {
-			return &r66.Error{
-				Code:   r66.Internal,
-				Detail: "failed to retrieve file info",
-			}
+		if err := validEndTransferClientReceive(h, end); err != nil {
+			return err
 		}
-		if stat.Size() != h.size {
-			return &r66.Error{
-				Code: r66.SizeNotAllowed,
-				Detail: fmt.Sprintf("incorrect file size (expected %d, got %d)",
-					h.size, stat.Size()),
-			}
+	}
+
+	return nil
+}
+
+func validEndTransferClientSend(h *clientTransferHandler, end *r66.EndTransfer) error {
+	if !h.config.NoFinalHash {
+		hash, err := makeHash(h.info.Transfer.TrueFilepath)
+		if err != nil {
+			return &r66.Error{Code: r66.FinalOp, Detail: "failed to calculate file hash"}
 		}
 
-		if !h.config.NoFinalHash {
-			if err := checkHash(h.info.Transfer.TrueFilepath, end.Hash); err != nil {
-				return &r66.Error{Code: r66.FinalOp, Detail: err.Error()}
-			}
+		end.Hash = hash
+	}
+
+	return nil
+}
+
+func validEndTransferClientReceive(h *clientTransferHandler, end *r66.EndTransfer) error {
+	stat, err := os.Stat(utils.DenormalizePath(h.info.Transfer.TrueFilepath))
+	if err != nil {
+		return &r66.Error{
+			Code:   r66.Internal,
+			Detail: "failed to retrieve file info",
+		}
+	}
+
+	if stat.Size() != h.size {
+		return &r66.Error{
+			Code: r66.SizeNotAllowed,
+			Detail: fmt.Sprintf("incorrect file size (expected %d, got %d)",
+				h.size, stat.Size()),
+		}
+	}
+
+	if !h.config.NoFinalHash {
+		if err := checkHash(h.info.Transfer.TrueFilepath, end.Hash); err != nil {
+			return &r66.Error{Code: r66.FinalOp, Detail: err.Error()}
 		}
 	}
 
@@ -118,7 +153,8 @@ func (h *clientTransferHandler) UpdateTransferInfo(info *r66.UpdateInfo) error {
 	if h.info.Transfer.Step >= types.StepData {
 		return &r66.Error{
 			Code:   r66.IncorrectCommand,
-			Detail: "cannot update transfer info after data transfer started"}
+			Detail: "cannot update transfer info after data transfer started",
+		}
 	}
 
 	if info.Filename != "" {

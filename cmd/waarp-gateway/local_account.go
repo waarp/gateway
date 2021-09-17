@@ -55,7 +55,9 @@ func (l *locAccAdd) Execute([]string) error {
 	if err := add(account); err != nil {
 		return err
 	}
+
 	fmt.Fprintln(getColorable(), "The account", bold(l.Login), "was successfully added.")
+
 	return nil
 }
 
@@ -75,7 +77,9 @@ func (l *locAccGet) Execute([]string) error {
 	if err := get(account); err != nil {
 		return err
 	}
+
 	displayAccount(getColorable(), account)
+
 	return nil
 }
 
@@ -89,6 +93,7 @@ type locAccUpdate struct {
 	Password *string `short:"p" long:"password" description:"The account's password"`
 }
 
+//nolint:dupl // FIXME too hard to refactor?
 func (l *locAccUpdate) Execute([]string) error {
 	account := &api.InAccount{
 		Login:    l.Login,
@@ -106,7 +111,9 @@ func (l *locAccUpdate) Execute([]string) error {
 	if l.Login != nil && *l.Login != "" {
 		login = *l.Login
 	}
+
 	fmt.Fprintln(getColorable(), "The account", bold(login), "was successfully updated.")
+
 	return nil
 }
 
@@ -125,20 +132,25 @@ func (l *locAccDelete) Execute([]string) error {
 	if err := remove(uri); err != nil {
 		return err
 	}
+
 	fmt.Fprintln(getColorable(), "The account", bold(l.Args.Login), "was successfully deleted.")
+
 	return nil
 }
 
 // ######################## LIST ##########################
 
+//nolint:lll // struct tags for command line arguments can be long
 type locAccList struct {
 	listOptions
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"login+" choice:"login-" default:"login+"`
 }
 
+//nolint:dupl // FIXME too hard to refactor?
 func (l *locAccList) Execute([]string) error {
 	server := commandLine.Account.Local.Args.Server
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", server)
+
 	listURL(&l.listOptions, l.SortBy)
 
 	body := map[string][]api.OutAccount{}
@@ -147,16 +159,19 @@ func (l *locAccList) Execute([]string) error {
 	}
 
 	accounts := body["localAccounts"]
-	w := getColorable()
+
+	w := getColorable() //nolint:ifshort // decrease readability
+
 	if len(accounts) > 0 {
 		fmt.Fprintln(w, bold("Accounts of server '"+server+"':"))
-		for _, a := range accounts {
-			account := a
-			displayAccount(w, &account)
+
+		for i := range accounts {
+			displayAccount(w, &accounts[i])
 		}
 	} else {
 		fmt.Fprintln(w, "Server", bold(server), "has no accounts.")
 	}
+
 	return nil
 }
 

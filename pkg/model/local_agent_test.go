@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestLocalAgentTableName(t *testing.T) {
@@ -66,7 +66,6 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			So(db.Insert(&certAcc).Run(), ShouldBeNil)
 
 			Convey("Given that the agent is unused", func() {
-
 				Convey("When calling the `BeforeDelete` hook", func() {
 					So(db.Transaction(func(ses *database.Session) database.Error {
 						return ag.BeforeDelete(ses)
@@ -154,7 +153,8 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 						})
 
 						Convey("Then the error should say that "+errDesc, func() {
-							So(err, ShouldBeError, expErr)
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldContainSubstring, expErr.Error())
 						})
 					})
 				}

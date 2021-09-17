@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.waarp.fr/waarp-r66/r66"
+	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -21,9 +22,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
+//nolint:gochecknoinits // init is used to ease the tests
 func init() {
 	logConf := conf.LogConfig{
 		Level: "DEBUG",
@@ -32,12 +33,14 @@ func init() {
 	_ = log.InitBackend(logConf)
 }
 
+//nolint:gochecknoglobals // globals are used to ease the tests
 var testFileContent = []byte("r66 self transfer test file")
 
 func hash(pwd string) []byte {
 	r66hash := r66.CryptPass([]byte(pwd))
 	h, err := bcrypt.GenerateFromPassword(r66hash, bcrypt.MinCost)
 	So(err, ShouldBeNil)
+
 	return h
 }
 
@@ -123,6 +126,7 @@ func initForSelfTransfer(c C) *testContext {
 	service := NewService(db, server, logger)
 	c.So(service.Start(), ShouldBeNil)
 	service.server.Handler = &testAuthHandler{service.server.Handler}
+
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
@@ -171,6 +175,7 @@ func makeTransfer(c C, ctx *testContext, isPush bool) {
 		c.So(ctx.db.Insert(trans).Run(), ShouldBeNil)
 
 		ctx.trans = trans
+
 		return
 	}
 
@@ -201,6 +206,7 @@ func processTransfer(c C, ctx *testContext) {
 	exe := executor.Executor{TransferStream: stream}
 	clientCheckChannel = make(chan string, 200)
 	serverCheckChannel = make(chan string, 200)
+
 	c.Reset(func() {
 		if clientCheckChannel != nil {
 			close(clientCheckChannel)
@@ -378,6 +384,7 @@ func addTaskFailure(c C, ctx *testContext, isClient bool, chain model.Chain) (st
 		Rank:  1,
 		Chain: chain,
 	}
+
 	var errMsg string
 
 	if isClient {
@@ -403,6 +410,7 @@ func addTaskFailure(c C, ctx *testContext, isClient bool, chain model.Chain) (st
 			errMsg = "Task " + serverErr + " @ " + ctx.sPull.Name + " " + string(chain) + "[1]: task failed"
 		}
 	}
+
 	c.So(ctx.db.Insert(taskFailure).Run(), ShouldBeNil)
 
 	return errMsg, func() {
@@ -413,6 +421,7 @@ func addTaskFailure(c C, ctx *testContext, isClient bool, chain model.Chain) (st
 
 func retryTransfer(c C, ctx *testContext, removeFail func()) {
 	removeFail()
+
 	retry := &model.Transfer{}
 	c.So(ctx.db.Get(retry, "id=?", ctx.trans.ID).Run(), ShouldBeNil)
 	retry.Status = types.StatusPlanned

@@ -5,6 +5,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&RemoteAccount{})
 }
@@ -43,11 +44,12 @@ func (r *RemoteAccount) GetID() uint64 {
 
 // BeforeWrite checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
-//nolint:dupl
+//nolint:dupl // too many differences to be factorized easily
 func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	if r.RemoteAgentID == 0 {
 		return database.NewValidationError("the account's agentID cannot be empty")
 	}
+
 	if r.Login == "" {
 		return database.NewValidationError("the account's login cannot be empty")
 	}
@@ -74,11 +76,13 @@ func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) database.Error {
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
+//nolint:dupl // too many differences to be factorized easily
 func (r *RemoteAccount) BeforeDelete(db database.Access) database.Error {
 	n, err := db.Count(&Transfer{}).Where("is_server=? AND account_id=?", false, r.ID).Run()
 	if err != nil {
 		return err
 	}
+
 	if n > 0 {
 		return database.NewValidationError("this account is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
@@ -100,7 +104,7 @@ func (r *RemoteAccount) BeforeDelete(db database.Access) database.Error {
 	return nil
 }
 
-// GetCryptos fetch in the database then return the associated Cryptos if they exist
+// GetCryptos fetch in the database then return the associated Cryptos if they exist.
 func (r *RemoteAccount) GetCryptos(db database.ReadAccess) ([]Crypto, database.Error) {
 	return GetCryptos(db, r)
 }

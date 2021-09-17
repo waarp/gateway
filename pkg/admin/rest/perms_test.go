@@ -5,17 +5,17 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gorilla/mux"
+	. "github.com/smartystreets/goconvey/convey"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"github.com/gorilla/mux"
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestMaskToPerm(t *testing.T) {
 	Convey("Testing the permission mask converter", t, func() {
-
 		Convey("Given a permission mask", func() {
 			mask := model.PermTransfersRead | model.PermTransfersWrite |
 				model.PermServersWrite |
@@ -62,7 +62,6 @@ func TestMaskToPerm(t *testing.T) {
 
 func TestPermsToMask(t *testing.T) {
 	Convey("Testing the permission mask converter", t, func() {
-
 		Convey("Given a permission mask and a permission string", func() {
 			mask := model.PermTransfersRead | model.PermTransfersWrite |
 				model.PermServersWrite |
@@ -139,6 +138,8 @@ func TestPermMiddleware(t *testing.T) {
 						router.ServeHTTP(w, r)
 						res := w.Result()
 
+						defer res.Body.Close()
+
 						So(res.StatusCode, ShouldEqual, http.StatusOK)
 					})
 				})
@@ -149,6 +150,8 @@ func TestPermMiddleware(t *testing.T) {
 					Convey("Then it should reply 'FORBIDDEN'", func() {
 						router.ServeHTTP(w, r)
 						res := w.Result()
+
+						defer res.Body.Close()
 
 						So(res.StatusCode, ShouldEqual, http.StatusForbidden)
 					})

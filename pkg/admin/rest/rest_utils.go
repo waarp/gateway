@@ -10,13 +10,13 @@ import (
 	"path"
 	"strconv"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+//nolint:gochecknoglobals // global var is used by design
 var (
 	str    = utils.String
 	strPtr = utils.StringPtr
@@ -32,8 +32,8 @@ type orders map[string]order
 
 func parseSelectQuery(r *http.Request, db *database.DB, validOrders orders,
 	elem database.SelectBean) (*database.SelectQuery, error) {
-
 	query := db.Select(elem)
+
 	var err error
 
 	limit := 20
@@ -43,23 +43,29 @@ func parseSelectQuery(r *http.Request, db *database.DB, validOrders orders,
 			return nil, badRequest("'limit' must be an int")
 		}
 	}
+
 	offset := 0
+
 	if offStr := r.FormValue("offset"); offStr != "" {
 		offset, err = strconv.Atoi(offStr)
 		if err != nil {
 			return nil, badRequest("'offset' must be an int")
 		}
 	}
+
 	query.Limit(limit, offset)
 
 	orderBy := validOrders["default"]
+
 	if sortStr := r.FormValue("sort"); sortStr != "" {
 		var ok bool
+
 		orderBy, ok = validOrders[sortStr]
 		if !ok {
 			return nil, badRequest(fmt.Sprintf("'%s' is not a valid sort parameter", sortStr))
 		}
 	}
+
 	query.OrderBy(orderBy.col, orderBy.asc)
 
 	return query, nil
@@ -72,36 +78,48 @@ func handleError(w http.ResponseWriter, logger *log.Logger, err error) bool {
 		return false
 	}
 
-	var nf *errNotFound
-	var dbNF *database.NotFoundError
+	var (
+		nf   *notFoundError
+		dbNF *database.NotFoundError
+	)
+
 	if errors.As(err, &nf) || errors.As(err, &dbNF) {
 		http.Error(w, err.Error(), http.StatusNotFound)
+
 		return true
 	}
 
-	var br *errBadRequest
-	var val *database.ValidationError
+	var (
+		br  *badRequestError
+		val *database.ValidationError
+	)
+
 	if errors.As(err, &br) || errors.As(err, &val) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+
 		return true
 	}
 
 	var fo *forbidden
 	if errors.As(err, &fo) {
 		http.Error(w, err.Error(), http.StatusForbidden)
+
 		return true
 	}
 
 	logger.Errorf("Unexpected error: %s", err)
 	http.Error(w, err.Error(), http.StatusInternalServerError)
+
 	return true
 }
 
 func writeJSON(w http.ResponseWriter, bean interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
+
 	if err := json.NewEncoder(w).Encode(bean); err != nil {
-		return fmt.Errorf("failed to write response JSON object: %s", err)
+		return fmt.Errorf("failed to write response JSON object: %w", err)
 	}
+
 	return nil
 }
 
@@ -112,6 +130,7 @@ func readJSON(r *http.Request, dest interface{}) error {
 	if err := decoder.Decode(dest); err != nil {
 		return badRequest("malformed JSON object: %s", err)
 	}
+
 	return nil
 }
 
@@ -121,6 +140,7 @@ func location(u *url.URL, name string) string {
 		Host:   u.Host,
 		Path:   path.Join(u.Path, name),
 	}
+
 	return loc.String()
 }
 
@@ -130,5 +150,6 @@ func locationUpdate(u *url.URL, name string) string {
 		Host:   u.Host,
 		Path:   path.Join(path.Dir(u.Path), name),
 	}
+
 	return loc.String()
 }

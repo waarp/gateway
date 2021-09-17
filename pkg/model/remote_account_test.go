@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestRemoteAccountTableName(t *testing.T) {
@@ -56,7 +56,6 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 			So(db.Insert(&access).Run(), ShouldBeNil)
 
 			Convey("Given that the account is unused", func() {
-
 				Convey("When calling the `BeforeDelete` hook", func() {
 					So(db.Transaction(func(ses *database.Session) database.Error {
 						return acc.BeforeDelete(ses)

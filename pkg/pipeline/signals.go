@@ -9,6 +9,7 @@ import (
 // Signals is a map regrouping the signal channels of all ongoing transfers.
 // The signal channel of a specific transfer can be retrieved from this map
 // using the transfer's ID.
+//nolint:gochecknoglobals // FIXME: could be refactored
 var Signals = &SignalMap{mp: map[uint64]chan model.Signal{}}
 
 // SignalMap is the type of the Signals map. It consists of a map associating
@@ -29,8 +30,10 @@ func (s *SignalMap) Add(id uint64) chan model.Signal {
 	if ch, ok := s.mp[id]; ok {
 		return ch
 	}
+
 	ch := make(chan model.Signal)
 	s.mp[id] = ch
+
 	return ch
 }
 
@@ -58,6 +61,7 @@ func (s *SignalMap) Delete(id uint64) {
 	if !ok {
 		return
 	}
+
 	close(ch)
 	delete(s.mp, id)
 }

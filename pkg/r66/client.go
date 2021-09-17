@@ -4,7 +4,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
+
+	"code.waarp.fr/waarp-r66/r66"
+	r66utils "code.waarp.fr/waarp-r66/r66/utils"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/executor"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -12,17 +17,16 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
-	"code.waarp.fr/waarp-r66/r66"
-	r66utils "code.waarp.fr/waarp-r66/r66/utils"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	executor.ClientsConstructors["r66"] = NewClient
 }
 
 type client struct {
 	r66Client *r66.Client
-	info      model.OutTransferInfo
+	info      *model.OutTransferInfo
 	signals   <-chan model.Signal
 
 	conf    config.R66ProtoConfig
@@ -36,16 +40,18 @@ type client struct {
 }
 
 // NewClient creates and returns a new r66 client using the given transfer info.
-func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipeline.Client, error) {
+func NewClient(info *model.OutTransferInfo, signals <-chan model.Signal) (pipeline.Client, error) {
 	var conf config.R66ProtoConfig
 	if err := json.Unmarshal(info.Agent.ProtoConfig, &conf); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot parse client protoconfig: %w", err)
 	}
 
 	var tlsConf *tls.Config
+
 	if conf.IsTLS {
 		var err error
-		tlsConf, err = makeClientTLSConfig(&info)
+		tlsConf, err = makeClientTLSConfig(info)
+
 		if err != nil {
 			return nil, types.NewTransferError(types.TeInternal, "invalid R66 TLS config")
 		}
@@ -55,7 +61,7 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 	r66Client.FileSize = true
 	r66Client.FinalHash = !conf.NoFinalHash
 
-	//TODO: configure r66 client
+	// TODO: configure r66 client
 	c := &client{
 		r66Client: r66Client,
 		info:      info,
@@ -65,7 +71,7 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 	}
 	c.r66Client.AuthentHandler = &clientAuthHandler{
 		getFile: func() r66utils.ReadWriterAt { return c.stream },
-		info:    &info,
+		info:    info,
 		config:  &conf,
 	}
 
@@ -74,20 +80,27 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 
 func makeClientTLSConfig(info *model.OutTransferInfo) (*tls.Config, error) {
 	tlsCerts := make([]tls.Certificate, len(info.ClientCryptos))
-	for i, cert := range info.ClientCryptos {
+
+	for i := range info.ClientCryptos {
 		var err error
-		tlsCerts[i], err = tls.X509KeyPair([]byte(cert.Certificate), []byte(cert.PrivateKey))
+		tlsCerts[i], err = tls.X509KeyPair(
+			[]byte(info.ClientCryptos[i].Certificate),
+			[]byte(info.ClientCryptos[i].PrivateKey),
+		)
+
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot make key pairs for client: %w", err)
 		}
 	}
 
 	var caPool *x509.CertPool
-	for _, cert := range info.ServerCryptos {
+
+	for i := range info.ServerCryptos {
 		if caPool == nil {
 			caPool = x509.NewCertPool()
 		}
-		caPool.AppendCertsFromPEM([]byte(cert.Certificate))
+
+		caPool.AppendCertsFromPEM([]byte(info.ServerCryptos[i].Certificate))
 	}
 
 	return &tls.Config{
@@ -99,8 +112,11 @@ func makeClientTLSConfig(info *model.OutTransferInfo) (*tls.Config, error) {
 }
 
 func (c *client) Connect() error {
-	var remote *r66.Remote
-	var err error
+	var (
+		remote *r66.Remote
+		err    error
+	)
+
 	if c.tlsConf != nil {
 		remote, err = c.r66Client.DialTLS(c.info.Agent.Address, c.tlsConf)
 	} else {
@@ -108,30 +124,40 @@ func (c *client) Connect() error {
 	}
 
 	if err != nil {
-		if r66Err, ok := err.(*r66.Error); ok {
+		var r66Err *r66.Error
+		if ok := errors.As(err, &r66Err); ok {
 			return types.NewTransferError(types.FromR66Code(r66Err.Code), r66Err.Detail)
 		}
+
 		return types.NewTransferError(types.TeConnection, err.Error())
 	}
+
 	c.remote = remote
+
 	return nil
 }
 
 func (c *client) Authenticate() error {
 	ses, err := c.remote.Authent()
 	if err != nil {
-		if r66Err, ok := err.(*r66.Error); ok {
+		var r66Err *r66.Error
+		if ok := errors.As(err, &r66Err); ok {
 			return types.NewTransferError(types.FromR66Code(r66Err.Code), r66Err.Detail)
 		}
+
 		return types.NewTransferError(types.TeBadAuthentication, err.Error())
 	}
+
 	c.session = ses
+
 	return nil
 }
 
 func (c *client) Request() error {
 	file := c.info.Transfer.SourceFile
+
 	var size int64
+
 	if c.info.Rule.IsSend {
 		file = c.info.Transfer.DestFile
 
@@ -159,9 +185,11 @@ func (c *client) Request() error {
 	}
 
 	if err := c.session.Request(trans); err != nil {
-		if r66Err, ok := err.(*r66.Error); ok {
+		var r66Err *r66.Error
+		if ok := errors.As(err, &r66Err); ok {
 			return types.NewTransferError(types.FromR66Code(r66Err.Code), r66Err.Detail)
 		}
+
 		return types.NewTransferError(types.TeConnection, err.Error())
 	}
 
@@ -173,17 +201,23 @@ func (c *client) Data(file pipeline.DataStream) error {
 	c.stream = file
 
 	if err := c.session.Data(); err != nil {
-		if e, ok := err.(*r66.Error); ok {
+		var e *r66.Error
+		if ok := errors.As(err, &e); ok {
 			return types.NewTransferError(types.FromR66Code(e.Code), e.Detail)
 		}
+
 		return types.NewTransferError(types.TeDataTransfer, err.Error())
 	}
+
 	if err := c.session.EndTransfer(); err != nil {
-		if e, ok := err.(*r66.Error); ok {
+		var e *r66.Error
+		if ok := errors.As(err, &e); ok {
 			return types.NewTransferError(types.FromR66Code(e.Code), e.Detail)
 		}
+
 		return types.NewTransferError(types.TeDataTransfer, err.Error())
 	}
+
 	return nil
 }
 
@@ -200,9 +234,11 @@ func (c *client) Close(err error) error {
 
 	if !c.hasData && err == nil {
 		if err1 := c.session.EndTransfer(); err1 != nil {
-			if e, ok := err1.(*r66.Error); ok {
+			var e *r66.Error
+			if ok := errors.As(err, &e); ok {
 				return types.NewTransferError(types.FromR66Code(e.Code), e.Detail)
 			}
+
 			return types.NewTransferError(types.TeDataTransfer, err1.Error())
 		}
 	}
@@ -212,12 +248,16 @@ func (c *client) Close(err error) error {
 		if err1 == nil {
 			return nil
 		}
-		if e, ok := err1.(*r66.Error); ok {
+
+		var e *r66.Error
+		if ok := errors.As(err, &e); ok {
 			return types.NewTransferError(types.FromR66Code(e.Code), e.Detail)
 		}
+
 		return types.NewTransferError(types.TeUnknownRemote, err1.Error())
 	}
 
 	c.session.SendError(toR66Error(err))
+
 	return nil
 }

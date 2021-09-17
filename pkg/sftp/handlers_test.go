@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -17,6 +16,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )

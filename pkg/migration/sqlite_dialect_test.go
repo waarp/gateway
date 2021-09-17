@@ -5,14 +5,15 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
-
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func testSQLiteEngine(db *sql.DB) testEngine {
 	_, err := db.Exec("PRAGMA foreign_keys = ON")
 	So(err, ShouldBeNil)
+
 	return &sqliteDialect{
 		standardSQL: &standardSQL{
 			queryWriter: &queryWriter{db: db, writer: os.Stdout},

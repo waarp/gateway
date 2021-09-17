@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestExportLocalAgents(t *testing.T) {
@@ -75,7 +75,6 @@ func TestExportLocalAgents(t *testing.T) {
 			So(db.Insert(account2b).Run(), ShouldBeNil)
 
 			Convey("Given an empty database", func() {
-
 				Convey("When calling the exportLocal function", func() {
 					res, err := exportLocals(discard, db)
 
@@ -89,10 +88,9 @@ func TestExportLocalAgents(t *testing.T) {
 
 					Convey("When searching for local agents", func() {
 						for i := 0; i < len(res); i++ {
-							if res[i].Name == agent1.Name {
-
+							switch {
+							case res[i].Name == agent1.Name:
 								Convey("When agent1 is found", func() {
-
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent1.Protocol)
 										So(res[i].Root, ShouldEqual, agent1.Root)
@@ -112,10 +110,8 @@ func TestExportLocalAgents(t *testing.T) {
 										})
 									})
 								})
-							} else if res[i].Name == agent2.Name {
-
+							case res[i].Name == agent2.Name:
 								Convey("When agent2 is found", func() {
-
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent2.Protocol)
 										So(res[i].Root, ShouldEqual, agent2.Root)
@@ -135,8 +131,7 @@ func TestExportLocalAgents(t *testing.T) {
 										})
 									})
 								})
-							} else {
-
+							default:
 								Convey("Then they should be no other records", func() {
 									So(1, ShouldBeNil)
 								})
@@ -185,7 +180,6 @@ func TestExportLocalAccounts(t *testing.T) {
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			Convey("Given an empty database", func() {
-
 				Convey("When calling the exportLocalAccounts function", func() {
 					res, err := exportLocalAccounts(discard, db, agent.ID)
 
@@ -199,10 +193,9 @@ func TestExportLocalAccounts(t *testing.T) {
 
 					Convey("When searching for local accounts", func() {
 						for i := 0; i < len(res); i++ {
-							if res[i].Login == account1.Login {
-
+							switch {
+							case res[i].Login == account1.Login:
 								Convey("When login1 is found", func() {
-
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].PasswordHash, ShouldResemble,
 											string(account1.PasswordHash))
@@ -212,10 +205,8 @@ func TestExportLocalAccounts(t *testing.T) {
 										So(len(res[i].Certs), ShouldEqual, 0)
 									})
 								})
-							} else if res[i].Login == account2.Login {
-
+							case res[i].Login == account2.Login:
 								Convey("When login2 is found", func() {
-
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].PasswordHash, ShouldResemble,
 											string(account2.PasswordHash))
@@ -225,8 +216,7 @@ func TestExportLocalAccounts(t *testing.T) {
 										So(len(res[i].Certs), ShouldEqual, 1)
 									})
 								})
-							} else {
-
+							default:
 								Convey("Then they should be no other records", func() {
 									So(1, ShouldBeNil)
 								})
@@ -235,7 +225,6 @@ func TestExportLocalAccounts(t *testing.T) {
 					})
 				})
 			})
-
 		})
 	})
 }

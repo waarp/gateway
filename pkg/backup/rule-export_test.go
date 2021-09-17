@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
+	. "github.com/smartystreets/goconvey/convey"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestExportRules(t *testing.T) {
@@ -53,7 +53,6 @@ func TestExportRules(t *testing.T) {
 }
 
 func TestExportRuleAccesses(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
@@ -148,7 +147,6 @@ func TestExportRuleAccesses(t *testing.T) {
 }
 
 func TestExportRuleTasks(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 

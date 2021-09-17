@@ -57,6 +57,7 @@ func (*NotFoundError) db() {}
 // IsNotFound returns whether the given error is of type NotFoundError.
 func IsNotFound(err error) bool {
 	var nf *NotFoundError
+
 	return errors.As(err, &nf)
 }
 

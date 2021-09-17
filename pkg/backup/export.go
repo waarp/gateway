@@ -2,6 +2,7 @@ package backup
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
@@ -20,6 +21,7 @@ func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
 	logger := log.NewLogger("export")
 
 	var err error
+
 	data := &file.Data{}
 
 	if utils.ContainsStrings(targets, "servers", "all") {
@@ -28,12 +30,14 @@ func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
 			return err
 		}
 	}
+
 	if utils.ContainsStrings(targets, "partners", "all") {
 		data.Remotes, err = exportRemotes(logger, db)
 		if err != nil {
 			return err
 		}
 	}
+
 	if utils.ContainsStrings(targets, "rules", "all") {
 		data.Rules, err = exportRules(logger, db)
 		if err != nil {
@@ -44,5 +48,9 @@ func ExportData(db database.ReadAccess, w io.Writer, targets []string) error {
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
 
-	return encoder.Encode(data)
+	if err := encoder.Encode(data); err != nil {
+		return fmt.Errorf("cannot encode data: %w", err)
+	}
+
+	return nil
 }

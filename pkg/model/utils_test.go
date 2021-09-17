@@ -1,15 +1,17 @@
 package model
 
 import (
+	"github.com/smartystreets/goconvey/convey"
+	"golang.org/x/crypto/bcrypt"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const dummyProto = "dummy"
 
+//nolint:gochecknoinits // init is used to ease the tests
 func init() {
 	logConf := conf.LogConfig{
 		Level: "CRITICAL",
@@ -29,5 +31,6 @@ func (*TestProtoConfig) CertRequired() bool  { return false }
 func hash(pwd string) []byte {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	convey.So(err, convey.ShouldBeNil)
+
 	return h
 }

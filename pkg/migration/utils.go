@@ -1,8 +1,11 @@
 package migration
 
+import "fmt"
+
 // isTest indicates whether the current environment is a test environnement or not.
 // Should be used to run specific tests, even when the normal conditions are not met
 // (like the test database's version).
+//nolint:gochecknoglobals // global var is used by design
 var isTest bool
 
 // Cells is a map type representing a table row in a INSERT INTO statement. It
@@ -39,8 +42,15 @@ func Col(name string, typ sqlType, constraints ...Constraint) Column {
 func getColumnsNames(db Querier, table string) ([]string, error) {
 	rows, err := db.Query("SELECT * FROM %s", table)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot get column names: %w", err)
 	}
-	defer rows.Close()
-	return rows.Columns()
+
+	defer rows.Close() //nolint:errcheck // no logger to handle the error
+
+	names, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get column names: %w", err)
+	}
+
+	return names, nil
 }

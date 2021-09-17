@@ -82,7 +82,7 @@ linters-settings:
 
   cyclop:
     # the maximal code complexity to report
-    max-complexity: 10
+    max-complexity: 20
     # the maximal average package complexity. If it's higher than 0.0 (float) the check is enabled (default 0.0)
     package-average: 0.0
     # should ignore tests (default false)
@@ -171,7 +171,7 @@ linters-settings:
 
   nestif:
     # minimal complexity of if statements to report, 5 by default
-    min-complexity: 5
+    min-complexity: 8
 
   goconst:
     # minimal length of string constant, 3 by default
@@ -205,10 +205,13 @@ linters-settings:
 
     # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint run` to see all tags and checks.
     # Empty list by default. See https://github.com/go-critic/go-critic#usage -> section "Tags".
-    #enabled-tags:
-    #  - performance
-    #disabled-tags:
-    #  - experimental
+    enabled-tags:
+      - diagnostic
+      - opinionated
+      - performance
+      - style
+    disabled-tags:
+      - experimental
 
     # Settings passed to gocritic.
     # The settings key is the name of a supported gocritic checker.
@@ -223,9 +226,9 @@ linters-settings:
       hugeParam:
         # size in bytes that makes the warning trigger (default 80)
         sizeThreshold: 80
-      nestingReduce:
-        # min number of statements inside a branch to trigger a warning (default 5)
-        bodyWidth: 5
+      #nestingReduce:
+      #  # min number of statements inside a branch to trigger a warning (default 5)
+      #  bodyWidth: 5
       rangeExprCopy:
         # size in bytes that makes the warning trigger (default 512)
         sizeThreshold: 512
@@ -233,29 +236,29 @@ linters-settings:
         skipTestFuncs: true
       rangeValCopy:
         # size in bytes that makes the warning trigger (default 128)
-        sizeThreshold: 32
+        sizeThreshold: 128
         # whether to check test functions (default true)
         skipTestFuncs: true
-      ruleguard:
-        # path to a gorules file for the ruleguard checker
-        rules: ''
-      truncateCmp:
-        # whether to skip int/uint/uintptr types (default true)
-        skipArchDependent: true
+      # ruleguard:
+      #   # path to a gorules file for the ruleguard checker
+      #   rules: ''
+      # truncateCmp:
+      #   # whether to skip int/uint/uintptr types (default true)
+      #   skipArchDependent: true
       underef:
         # whether to skip (*x).method() calls where x is a pointer receiver (default true)
         skipRecvDeref: true
-      unnamedResult:
-        # whether to check exported functions
-        checkExported: true
+      #unnamedResult:
+      #  # whether to check exported functions
+      #  checkExported: true
 
   gocyclo:
     # minimal code complexity to report, 30 by default (but we recommend 10-20)
-    min-complexity: 30
+    min-complexity: 20
 
   godot:
     # comments to be checked: `declarations`, `toplevel`, or `all`
-    scope: all
+    scope: declarations
     # list of regexps for excluding particular comment lines from check
     exclude:
       # example: exclude comments which contain numbers
@@ -326,8 +329,10 @@ linters-settings:
       mnd:
         # the list of enabled checks, see https://github.com/tommy-muehle/go-mnd/#checks for description.
         checks: argument,case,condition,operation,return,assign
-        # ignored-numbers: 1000
-        # ignored-files: magic_.*.go
+        # for files perm: 384=0o600
+        ignored-numbers: 0o600,384,0o700,0o744
+        # test files are ignored by default
+        # ignored-files: 
         # ignored-functions: math.*
 
   gomoddirectives:
@@ -549,7 +554,7 @@ linters-settings:
     dot-import-whitelist:
       - fmt
     # https://staticcheck.io/docs/options#initialisms
-    initialisms: [ "ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "QPS", "RAM", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS" ]
+    initialisms: [ "ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "PEM", "QPS", "RAM", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS" ]
     # https://staticcheck.io/docs/options#http_status_code_whitelist
     http-status-code-whitelist: [ "200", "400", "404", "500" ]
 
@@ -638,11 +643,18 @@ linters:
   enable-all: true
   disable:
     - depguard
+    - dogsled
     - exhaustivestruct
     - godox
     - goheader
+    - golint
+    - interfacer
     - maligned
+    - nilerr
+    - paralleltest
     - prealloc
+    - scopelint
+    - testpackage
   #presets:
   #  - bugs
   #  - unused
@@ -662,9 +674,12 @@ issues:
     # Exclude some linters from running on tests files.
     - path: _test\.go
       linters:
-        - gocyclo
-        - errcheck
         - dupl
+        - errcheck
+        - funlen
+        - goconst
+        - gocognit
+        - gocyclo
         - gosec
 
     # Exclude known linters from partially hard-vendored code,
@@ -683,6 +698,16 @@ issues:
     - linters:
         - lll
       source: "^//go:generate "
+
+    # dupl can mark code as duplicated when it finds matches in test files.
+    - linters:
+      - dupl
+      text: "_test.go"
+
+    # tagliatelle does not consider mac as a word
+    - linters:
+      - tagliatelle
+      text: "got 'macs' want 'maCs'"
 
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all

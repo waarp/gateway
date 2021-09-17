@@ -10,7 +10,7 @@ import (
 // the REST interface.
 type OutHistory struct {
 	ID             uint64                  `json:"id"`
-	RemoteID       string                  `json:"remoteID,omitempty"`
+	RemoteID       string                  `json:"remoteID,omitempty"` //nolint:tagliatelle,lll // FIXME too late to change that
 	IsServer       bool                    `json:"isServer"`
 	IsSend         bool                    `json:"isSend"`
 	Requester      string                  `json:"requester"`

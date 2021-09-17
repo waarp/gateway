@@ -12,15 +12,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/sftp"
+	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/crypto/ssh"
+
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
-	"github.com/pkg/sftp"
-	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/ssh"
 )
 
 func TestSFTPList(t *testing.T) {

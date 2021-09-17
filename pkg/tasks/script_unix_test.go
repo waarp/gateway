@@ -1,12 +1,14 @@
-// +build !windows
+//go:build !windows
 
 package tasks
 
-var lineSeparator = "\n"
+const lineSeparator = "\n"
 
-var execScriptFile = "./exec_test_script.sh"
-var execMoveScriptFile = "./execmove_test_script.sh"
-var execOutputScriptFile = "./execoutput_test_script.sh"
+const (
+	execScriptFile       = "./exec_test_script.sh"
+	execMoveScriptFile   = "./execmove_test_script.sh"
+	execOutputScriptFile = "./execoutput_test_script.sh"
+)
 
 const scriptExecOK = `#!/bin/sh
 echo $1
