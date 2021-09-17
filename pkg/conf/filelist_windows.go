@@ -1,4 +1,5 @@
-//+build windows
+//go:build windows
+// +build windows
 
 package conf
 
@@ -15,7 +16,7 @@ func getDefaultConfFiles() []string {
 
 	pd := os.Getenv("ProgramData")
 	if pd != "" {
-		fileList = append(rv, fmt.Sprintf("%s\\waarp-gateway\\gatewayd.ini", pd))
+		rv = append(rv, fmt.Sprintf("%s\\waarp-gateway\\gatewayd.ini", pd))
 	}
 
 	return rv
