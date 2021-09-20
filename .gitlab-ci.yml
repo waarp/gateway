@@ -9,6 +9,14 @@ image: golang:latest
     #  - env
 
 
+variables:
+  VERSION: "${CI_COMMIT_TAG"
+  PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/waarp-gateway/${VERSION}"
+  PACKAGE_DEB: "waarp-gateway_${VERSION}-1_amd64.deb"
+  PACKAGE_RPM: "waarp-gateway-${VERSION}-1.x86_64.rpm"
+  PACKAGE_LIN: "waarp-gateway-${VERSION}.linux.tar.gz"
+  PACKAGE_DOC: "waarp-gateway-doc-${VERSION}.zip"
+
 stages:
     - test
     - build
@@ -86,7 +94,7 @@ package:
       && rm -rf /var/lib/apt/lists/*
     - export GOPATH="$CI_PROJECT_DIR/.gocache"
     - export PATH="$CI_PROJECT_DIR/.gocache/bin:$PATH"
-    - git config --global url."https://gitlab-ci-token:$CI_JOB_TOKEN@code.waarp.fr".insteadOf "https://code.waarp.fr"
+    - git config url."https://gitlab-ci-token:$CI_JOB_TOKEN@code.waarp.fr".insteadOf "https://code.waarp.fr"
     - go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
   script:
     - ./make.sh package
@@ -97,4 +105,34 @@ package:
   artifacts:
     paths:
       - build/
+
+upload:
+  stage: upload
+  image: curlimages/curl:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_DEB} ${PACKAGE_REGISTRY_URL}/${PACKAGE_DEB}
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_RPM} ${PACKAGE_REGISTRY_URL}/${PACKAGE_RPM}
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_LIN} ${PACKAGE_REGISTRY_URL}/${PACKAGE_LIN}
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file bin/${PACKAGE_DOC} ${PACKAGE_REGISTRY_URL}/${PACKAGE_DOC}
+
+release:
+  # Caution, as of 2021-02-02 these assets links require a login, see:
+  # https://gitlab.com/gitlab-org/gitlab/-/issues/299384
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      release-cli create --name "${CI_COMMIT_MESSAGE}" --tag-name $CI_COMMIT_TAG \
+        --assets-link "{\"name\":\"${PACKAGE_DEB}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_DEB}\"}" \
+        --assets-link "{\"name\":\"${PACKAGE_RPM}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_RPM}\"}" \
+        --assets-link "{\"name\":\"${PACKAGE_LIN}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_LIN}\"}" \
+        --assets-link "{\"name\":\"${PACKAGE_DOC}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PACKAGE_DOC}\"}"
 
