@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CURDIR=$(cd $(dirname $0) && pwd)
+CURDIR=$(cd "$(dirname "$0")" && pwd)
 
 PIDFILE=$CURDIR/../log/gatewayd.pid
 DAEMONNAME=waarp-gatewayd
@@ -11,7 +11,7 @@ DAEMON_PARAMS="server -c $CURDIR/../etc/gatewayd.ini"
 export PATH=$CURDIR/../share:$CURDIR/../bin:$PATH
 
 
-cd $CURDIR/..
+cd "$CURDIR/.." || exit 2
 
 ACTION=$1
 shift;
@@ -22,12 +22,12 @@ do_start() {
         echo "Waarp Gateway is already running."
         rv=2
     else 
-        nohup $DAEMONPATH $DAEMON_PARAMS >> $STARTLOG 2>&1 &
+        nohup "$DAEMONPATH" "$DAEMON_PARAMS" >> "$STARTLOG" 2>&1 &
         local pid=$!
         sleep 2
         if pgrep -f $DAEMONNAME | grep $pid >/dev/null 2>&1; then
             echo "Waarp Gateaway is started"
-            echo $pid > $PIDFILE
+            echo $pid > "$PIDFILE"
             rv=0
         else
             echo "Waarp Gateway could not start. See $STARTLOG for more information."
@@ -41,14 +41,14 @@ do_stop() {
     local rv
     if do_status >/dev/null ; then
         echo -n "Waarp Gateway has been asked to exit. It May take some time"
-        if kill -SIGTERM $(cat $PIDFILE); then
+        if kill -SIGTERM "$(cat "$PIDFILE")"; then
             for i in $(seq 1 24); do
-                if pgrep -f $DAEMONNAME | grep $(cat $PIDFILE) >/dev/null 2>&1; then
+                if pgrep -f $DAEMONNAME | grep "$(cat "$PIDFILE")" >/dev/null 2>&1; then
                     echo -n "."
                 else
                     echo
                     echo "Waarp Gateway has been stopped."
-                    rm $PIDFILE
+                    rm "$PIDFILE"
                     rv=0
                     return $rv
                 fi
@@ -73,9 +73,9 @@ do_stop() {
 do_force_stop() {
     local rv
     if do_status >/dev/null ; then
-        if kill -SIGKILL $(cat $PIDFILE); then
+        if kill -SIGKILL "$(cat "$PIDFILE")"; then
             echo "Waarp Gateway has been killed."
-            rm $PIDFILE
+            rm "$PIDFILE"
             rv=0
         else
             echo "Waarp Gateway could not be killed."
@@ -91,7 +91,7 @@ do_force_stop() {
 do_status() {
     local rv
     if [[ -f $PIDFILE ]]; then
-        kill -0 $(cat $PIDFILE) >/dev/null 2>&1
+        kill -0 "$(cat "$PIDFILE")" >/dev/null 2>&1
         rv=$?
     else
         rv=2
@@ -126,7 +126,7 @@ do_restart() {
 
 case $ACTION in
     start)
-        do_start $*
+        do_start "$*"
         ;;
     stop)
         do_stop
