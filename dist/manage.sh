@@ -8,7 +8,8 @@ DAEMONPATH=$CURDIR/../bin/$DAEMONNAME
 STARTLOG=$CURDIR/../log/startup.log
 DAEMON_PARAMS="server -c $CURDIR/../etc/gatewayd.ini"
 
-export PATH=$CURDIR/../share:$PATH
+export PATH=$CURDIR/../share:$CURDIR/../bin:$PATH
+
 
 cd $CURDIR/..
 
