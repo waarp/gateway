@@ -20,6 +20,8 @@ variables:
 stages:
     - test
     - build
+    - upload
+    - release
 
 code_navigation:
   stage: test
