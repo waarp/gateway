@@ -7,12 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+
+	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 const testServersURI = "http://localhost:8080/api/servers/"
@@ -23,7 +24,6 @@ func TestListServers(t *testing.T) {
 	check := func(w *httptest.ResponseRecorder, expected map[string][]OutServer) {
 		Convey("Then the response body should contain an array "+
 			"of the requested agents in JSON format", func() {
-
 			exp, err := json.Marshal(expected)
 
 			So(err, ShouldBeNil)
@@ -189,7 +189,6 @@ func TestGetServer(t *testing.T) {
 
 					Convey("Then the body should contain the requested server "+
 						"in JSON format", func() {
-
 						exp, err := json.Marshal(FromLocalAgent(&existing, &AuthorizedRules{}))
 
 						So(err, ShouldBeNil)
@@ -260,7 +259,6 @@ func TestCreateServer(t *testing.T) {
 
 						Convey("Then the 'Location' header should contain the URI "+
 							"of the new server", func() {
-
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, testServersURI+"new_server")
 						})
@@ -406,7 +404,6 @@ func TestUpdateServer(t *testing.T) {
 
 					Convey("Then the 'Location' header should contain "+
 						"the URI of the updated agent", func() {
-
 						location := w.Header().Get("Location")
 						So(location, ShouldEqual, testServersURI+"update")
 					})
@@ -420,7 +417,7 @@ func TestUpdateServer(t *testing.T) {
 							Address:     "localhost:2",
 							Root:        "/upt/root",
 							InDir:       "/upt/in",
-							OutDir:      "out", //sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
+							OutDir:      "out", // sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
 							WorkDir:     "/old/work",
 							ProtoConfig: json.RawMessage(`{}`),
 						}
@@ -494,6 +491,7 @@ func TestReplaceServer(t *testing.T) {
 				}`)
 
 				Convey("Given a valid name parameter", func() {
+					//nolint:noctx // this is a test
 					r, err := http.NewRequest(http.MethodPatch, testServersURI+old.Name, body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"server": old.Name})
@@ -510,7 +508,6 @@ func TestReplaceServer(t *testing.T) {
 
 					Convey("Then the 'Location' header should contain "+
 						"the URI of the updated agent", func() {
-
 						location := w.Header().Get("Location")
 						So(location, ShouldEqual, testServersURI+"update")
 					})
@@ -524,8 +521,8 @@ func TestReplaceServer(t *testing.T) {
 							Address:     "localhost:2",
 							Root:        "/upt/root",
 							InDir:       "/upt/in",
-							OutDir:      "out",  //sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
-							WorkDir:     "work", //idem
+							OutDir:      "out",  // sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
+							WorkDir:     "work", // idem
 							ProtoConfig: json.RawMessage(`{}`),
 						}
 
@@ -538,6 +535,7 @@ func TestReplaceServer(t *testing.T) {
 				})
 
 				Convey("Given an invalid agent name", func() {
+					//nolint:noctx // this is a test
 					r, err := http.NewRequest(http.MethodPatch, testServersURI+"toto", body)
 					So(err, ShouldBeNil)
 					r = mux.SetURLVars(r, map[string]string{"server": "toto"})

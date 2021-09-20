@@ -7,10 +7,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 type testService struct {
@@ -24,7 +25,7 @@ func (t *testService) State() *service.State    { return &t.state }
 func TestStatus(t *testing.T) {
 	statusLogger := log.NewLogger("rest_status_test")
 
-	var services = make(map[string]service.Service)
+	services := make(map[string]service.Service)
 	services["Test Running Service"] = &testService{state: service.State{}}
 	services["Test Running Service"].State().Set(service.Running, "")
 	services["Test Offline Service"] = &testService{state: service.State{}}

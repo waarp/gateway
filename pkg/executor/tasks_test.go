@@ -3,10 +3,11 @@ package executor
 import (
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	tasks.RunnableTasks["TESTSUCCESS"] = &testTaskSuccess{}
 	tasks.RunnableTasks["TESTFAIL"] = &testTaskFail{}
@@ -15,6 +16,8 @@ func init() {
 	model.ValidTasks["TESTFAIL"] = &testTaskFail{}
 	model.ValidTasks["TESTINFINITE"] = &testTaskInfinite{}
 }
+
+var errTaskFailed = fmt.Errorf("task failed")
 
 type testTaskSuccess struct{}
 
@@ -33,7 +36,7 @@ func (t *testTaskFail) Validate(map[string]string) error {
 }
 
 func (t *testTaskFail) Run(map[string]string, *tasks.Processor) (string, error) {
-	return "task failed", fmt.Errorf("task failed")
+	return "task failed", errTaskFailed
 }
 
 type testTaskInfinite struct{}
@@ -48,5 +51,6 @@ func (t *testTaskInfinite) Run(map[string]string, *tasks.Processor) (string, err
 			break
 		}
 	}
-	return "task failed", fmt.Errorf("task failed")
+
+	return "task failed", errTaskFailed
 }

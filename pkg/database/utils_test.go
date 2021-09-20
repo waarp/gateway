@@ -1,11 +1,13 @@
 package database
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	logConf := conf.LogConfig{
 		Level: "DEBUG",
@@ -26,11 +28,13 @@ func (t *testValid) GetID() uint64     { return t.ID }
 
 func (t *testValid) BeforeWrite(ReadAccess) Error {
 	t.Hooks = "write hook"
+
 	return nil
 }
 
 func (t *testValid) BeforeDelete(Access) Error {
 	t.Hooks = "delete hook"
+
 	return nil
 }
 
@@ -51,11 +55,13 @@ func (t *testValid2) GetID() uint64     { return t.ID }
 
 func (t *testValid2) BeforeWrite(ReadAccess) Error {
 	t.Hooks = "write hook"
+
 	return nil
 }
 
 func (t *testValid2) BeforeDelete(Access) Error {
 	t.Hooks = "delete hook"
+
 	return nil
 }
 
@@ -70,6 +76,7 @@ func (t *testWriteFail) GetID() uint64     { return t.ID }
 
 func (t *testWriteFail) BeforeWrite(ReadAccess) Error {
 	t.Hooks = "write hook"
+
 	return NewValidationError("write hook failed")
 }
 
@@ -84,11 +91,14 @@ func (t *testDeleteFail) GetID() uint64     { return t.ID }
 
 func (t *testDeleteFail) BeforeWrite(ReadAccess) Error {
 	t.Hooks = "write hook"
+
 	return nil
 }
 
 func (t *testDeleteFail) BeforeDelete(db Access) Error {
 	t.Hooks = "delete hook"
+
 	convey.So(db.Insert(&testDeleteFail{ID: 1000}).Run(), convey.ShouldBeNil)
+
 	return NewValidationError("delete hook failed")
 }

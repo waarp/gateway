@@ -1,10 +1,12 @@
 package migrations
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
 )
 
+//nolint:stylecheck // function should contain the name of the version
 func testVer0_4_2RemoveHistoryRemoteIdUnique(eng *migration.Engine, dialect string) {
 	Convey("Given the 0.4.2 history unique constraint removal", func() {
 		setupDatabaseUpTo(eng, ver0_4_2RemoveHistoryRemoteIDUnique{})

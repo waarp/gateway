@@ -1,4 +1,4 @@
-// +build aix darwin dragonfly freebsd js,wasm linux nacl netbsd openbsd solaris
+//go:build aix || darwin || dragonfly || freebsd || (js && wasm) || linux || nacl || netbsd || openbsd || solaris
 
 package tasks
 
@@ -8,5 +8,6 @@ import (
 )
 
 func getCommand(ctx context.Context, path, args string) *exec.Cmd {
-	return exec.CommandContext(ctx, "/bin/sh", "-c", path+" "+args) //nolint:gosec
+	//nolint:gosec // Arguments cannot be passed outside of a variable
+	return exec.CommandContext(ctx, "/bin/sh", "-c", path+" "+args)
 }

@@ -5,20 +5,22 @@ import (
 
 	"code.waarp.fr/waarp-r66/r66"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func importLocalAgents(logger *log.Logger, db database.Access, list []file.LocalAgent) database.Error {
-	for _, src := range list {
+	for i := range list {
+		src := &list[i]
 		// Create model with basic info to check existence
 		var agent model.LocalAgent
 
-		//Check if agent exists
+		// Check if agent exists
 		exists := true
+
 		err := db.Get(&agent, "name=?", src.Name).Run()
 		if database.IsNotFound(err) {
 			exists = false
@@ -37,7 +39,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 		agent.ProtoConfig = src.Configuration
 		agent.Owner = ""
 
-		//Create/Update
+		// Create/Update
 		if exists {
 			logger.Infof("Update local server %s\n", agent.Name)
 			err = db.Update(&agent).Run()
@@ -45,6 +47,7 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 			logger.Infof("Create local server %s\n", agent.Name)
 			err = db.Insert(&agent).Run()
 		}
+
 		if err != nil {
 			return err
 		}
@@ -58,15 +61,14 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 			return err
 		}
 	}
+
 	return nil
 }
 
-//nolint:dupl
+//nolint:dupl // duplicated code is about two different types
 func importLocalAccounts(logger *log.Logger, db database.Access,
 	list []file.LocalAccount, server *model.LocalAgent) database.Error {
-
 	for _, src := range list {
-
 		// Create model with basic info to check existence
 		var account model.LocalAccount
 
@@ -80,6 +82,7 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 		// Populate
 		account.LocalAgentID = server.ID
 		account.Login = src.Login
+
 		if src.PasswordHash != "" {
 			account.PasswordHash = []byte(src.PasswordHash)
 		} else if src.Password != "" {
@@ -91,9 +94,8 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 			}
 			var err error
 			if account.PasswordHash, err = utils.HashPassword(pswd); err != nil {
-				return database.NewInternalError(fmt.Errorf("failed to hash account password: %s", err))
+				return database.NewInternalError(fmt.Errorf("failed to hash account password: %w", err))
 			}
-
 		}
 
 		// Create/Update
@@ -104,6 +106,7 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 			logger.Infof("Create local account %s\n", account.Login)
 			err = db.Insert(&account).Run()
 		}
+
 		if err != nil {
 			return err
 		}
@@ -113,5 +116,6 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 			return err
 		}
 	}
+
 	return nil
 }

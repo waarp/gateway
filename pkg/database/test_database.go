@@ -11,18 +11,21 @@ import (
 	"sync"
 
 	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/xorm"
 	"xorm.io/xorm/contexts"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 const (
 	testDBType = "test_db"
 	testDBEnv  = "GATEWAY_TEST_DB"
 )
+
+var errSimulated = fmt.Errorf("simulated database error")
 
 func testinfo(c *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error) {
 	return "sqlite3", fmt.Sprintf("file:%s?mode=memory&cache=shared&mode=rwc",
@@ -34,9 +37,11 @@ func testGCM() {
 		return
 	}
 
-	key := make([]byte, 32)
+	key := make([]byte, aesKeySize)
+
 	_, err := rand.Read(key)
 	convey.So(err, convey.ShouldBeNil)
+
 	ciph, err := aes.NewCipher(key)
 	convey.So(err, convey.ShouldBeNil)
 
@@ -49,6 +54,7 @@ func tempFilename() string {
 	convey.So(err, convey.ShouldBeNil)
 	convey.So(f.Close(), convey.ShouldBeNil)
 	convey.So(os.Remove(f.Name()), convey.ShouldBeNil)
+
 	return f.Name()
 }
 
@@ -83,6 +89,7 @@ func resetDB(db *DB, config *conf.DatabaseConfig) {
 		for _, tbl := range tables {
 			convey.So(db.engine.DropTables(tbl.TableName()), convey.ShouldBeNil)
 		}
+
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
 	case testDBType:
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
@@ -113,6 +120,7 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 	logger.SetLevel(level)
 
 	testGCM()
+
 	db := &DB{
 		Conf:   config,
 		logger: &log.Logger{Logger: logger},
@@ -127,11 +135,14 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 type errHook struct{ once sync.Once }
 
 func (e *errHook) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
-	ctx := c.Ctx
 	var err error
+
+	ctx := c.Ctx
+
 	e.once.Do(func() {
-		err = fmt.Errorf("simulated database error")
+		err = errSimulated
 	})
+
 	return ctx, err
 }
 

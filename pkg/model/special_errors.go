@@ -7,11 +7,11 @@ func (p *PauseError) Error() string {
 	return "transfer paused"
 }
 
-// CancelError is the error returned when a transfer is cancelled by the user.
+// CancelError is the error returned when a transfer is canceled by the user.
 type CancelError struct{}
 
 func (c *CancelError) Error() string {
-	return "transfer cancelled"
+	return "transfer canceled"
 }
 
 // ShutdownError is the error returned when a transfer is interrupted by a

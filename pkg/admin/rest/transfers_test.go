@@ -12,13 +12,14 @@ import (
 	"testing"
 	"time"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+
+	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 const transferURI = "http://localhost:8080/api/transfers"
@@ -230,6 +231,7 @@ func TestAddTransfer(t *testing.T) {
 				}`)
 
 				Convey("When calling the handler", func() {
+					//nolint:noctx //this is a test
 					r, err := http.NewRequest(http.MethodPost, "", body)
 					So(err, ShouldBeNil)
 
@@ -776,7 +778,7 @@ func TestCancelTransfer(t *testing.T) {
 						So(w.Code, ShouldEqual, http.StatusAccepted)
 					})
 
-					Convey("Then the transfer should have been cancelled", func() {
+					Convey("Then the transfer should have been canceled", func() {
 						exp := model.TransferHistory{
 							ID:               trans.ID,
 							Owner:            database.Owner,

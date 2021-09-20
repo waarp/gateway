@@ -9,17 +9,16 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-r66/r66"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestValidAuth(t *testing.T) {
@@ -73,7 +72,8 @@ func TestValidAuth(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then it should return a new session handler", func() {
-						ses := s.(*sessionHandler)
+						ses, ok := s.(*sessionHandler)
+						So(ok, ShouldBeTrue)
 						So(ses.account, ShouldResemble, toto)
 						So(ses.hasHash, ShouldBeTrue)
 						So(ses.hasFileSize, ShouldBeTrue)
@@ -147,7 +147,7 @@ func TestValidRequest(t *testing.T) {
 				Mode:     3,
 				Block:    512,
 				Rank:     0,
-				//Limit:      0,
+				// Limit:      0,
 				Infos: nil,
 			}
 
@@ -165,7 +165,8 @@ func TestValidRequest(t *testing.T) {
 				Convey("When calling the `ValidAuth` function", func() {
 					t, err := ses.ValidRequest(packet)
 					So(err, ShouldBeNil)
-					trans := t.(*transferHandler)
+					trans, ok := t.(*transferHandler)
+					So(ok, ShouldBeTrue)
 
 					Convey("Then it should have created a transfer", func() {
 						So(trans.file.Transfer.RuleID, ShouldEqual, rule.ID)
@@ -323,8 +324,8 @@ func TestUpdateTransferInfo(t *testing.T) {
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			dir := filepath.Join(paths.GatewayHome, paths.ServerRoot, paths.ServerOut)
-			So(os.MkdirAll(dir, 0700), ShouldBeNil)
-			So(ioutil.WriteFile(filepath.Join(dir, "new.file"), []byte("file content"), 0600), ShouldBeNil)
+			So(os.MkdirAll(dir, 0o700), ShouldBeNil)
+			So(ioutil.WriteFile(filepath.Join(dir, "new.file"), []byte("file content"), 0o600), ShouldBeNil)
 			pip, err := pipeline.NewTransferStream(context.Background(), logger, db,
 				paths, trans)
 			So(err, ShouldBeNil)

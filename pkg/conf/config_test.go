@@ -42,7 +42,6 @@ LogTo user-foo
 		userConf := ""
 
 		Convey("Given there are no configuration file", func() {
-
 			Convey("When the configuration is loaded", func() {
 				c, err := LoadServerConfig(userConf)
 
@@ -54,14 +53,12 @@ LogTo user-foo
 					So(c.Log.LogTo, ShouldEqual, "stdout")
 					So(c.Admin.Host, ShouldEqual, "localhost")
 				})
-
 			})
-
 		})
 
 		Convey("Given a configuration file in the same folder", func() {
 			Convey("Given it can be parsed", func() {
-				err := ioutil.WriteFile("gatewayd.ini", directContent, 0644)
+				err := ioutil.WriteFile("gatewayd.ini", directContent, 0o644)
 				So(err, ShouldBeNil)
 
 				Convey("When the configuration is loaded", func() {
@@ -75,14 +72,13 @@ LogTo user-foo
 						So(c.Log.LogTo, ShouldEqual, "direct-foo")
 						So(c.Admin.Host, ShouldEqual, "direct-address")
 					})
-
 				})
 
 				So(os.Remove("gatewayd.ini"), ShouldBeNil)
 			})
 
 			Convey("Given it cannot be parsed", func() {
-				err := ioutil.WriteFile("gatewayd.ini", badContent, 0644)
+				err := ioutil.WriteFile("gatewayd.ini", badContent, 0o644)
 				So(err, ShouldBeNil)
 
 				Convey("When the configuration is loaded", func() {
@@ -91,19 +87,16 @@ LogTo user-foo
 					Convey("Then an error is returned", func() {
 						So(err, ShouldNotBeNil)
 					})
-
 				})
 
 				So(os.Remove("gatewayd.ini"), ShouldBeNil)
-
 			})
-
 		})
 
 		Convey("Given a configuration file in the etc folder", func() {
-			err := os.Mkdir("etc", 0750)
+			err := os.Mkdir("etc", 0o750)
 			So(err, ShouldBeNil)
-			err = ioutil.WriteFile("etc/gatewayd.ini", parentEtcContent, 0644)
+			err = ioutil.WriteFile("etc/gatewayd.ini", parentEtcContent, 0o644)
 			So(err, ShouldBeNil)
 
 			Convey("When the configuration is loaded", func() {
@@ -117,19 +110,17 @@ LogTo user-foo
 					So(c.Log.LogTo, ShouldEqual, "parent-etc-foo")
 					So(c.Admin.Host, ShouldEqual, "parent-etc-address")
 				})
-
 			})
 
 			So(os.RemoveAll("etc"), ShouldBeNil)
-
 		})
 
 		Convey("Given both configuration files exist", func() {
-			err := ioutil.WriteFile("gatewayd.ini", directContent, 0644)
+			err := ioutil.WriteFile("gatewayd.ini", directContent, 0o644)
 			So(err, ShouldBeNil)
-			err = os.Mkdir("etc", 0750)
+			err = os.Mkdir("etc", 0o750)
 			So(err, ShouldBeNil)
-			err = ioutil.WriteFile("etc/gatewayd.ini", parentEtcContent, 0644)
+			err = ioutil.WriteFile("etc/gatewayd.ini", parentEtcContent, 0o644)
 			So(err, ShouldBeNil)
 
 			Convey("When the configuration is loaded", func() {
@@ -144,25 +135,21 @@ LogTo user-foo
 					So(c.Log.SyslogFacility, ShouldEqual, "local0")
 					So(c.Admin.Host, ShouldEqual, "direct-address")
 				})
-
 			})
 
 			So(os.RemoveAll("etc"), ShouldBeNil)
 			So(os.Remove("gatewayd.ini"), ShouldBeNil)
-
 		})
-
 	})
 
 	Convey("Given the user passed a configuration file", t, func() {
 		userConf := "userConf.ini"
 
 		Convey("Given that file exist", func() {
-			err := ioutil.WriteFile(userConf, userConfContent, 0644)
+			err := ioutil.WriteFile(userConf, userConfContent, 0o644)
 			So(err, ShouldBeNil)
 
 			Convey("Given no other configuration files exist", func() {
-
 				Convey("When the configuration is loaded", func() {
 					c, err := LoadServerConfig(userConf)
 
@@ -174,17 +161,15 @@ LogTo user-foo
 						So(c.Log.LogTo, ShouldEqual, "user-foo")
 						So(c.Admin.Host, ShouldEqual, "user-address")
 					})
-
 				})
-
 			})
 
 			Convey("Given both other configuration files exist", func() {
-				err := ioutil.WriteFile("gatewayd.ini", directContent, 0644)
+				err := ioutil.WriteFile("gatewayd.ini", directContent, 0o644)
 				So(err, ShouldBeNil)
-				err = os.Mkdir("etc", 0750)
+				err = os.Mkdir("etc", 0o750)
 				So(err, ShouldBeNil)
-				err = ioutil.WriteFile("etc/gatewayd.ini", parentEtcContent, 0644)
+				err = ioutil.WriteFile("etc/gatewayd.ini", parentEtcContent, 0o644)
 				So(err, ShouldBeNil)
 
 				Convey("When the configuration is loaded", func() {
@@ -203,20 +188,17 @@ LogTo user-foo
 						So(c.Log.Level, ShouldEqual, "INFO")
 						So(c.Log.SyslogFacility, ShouldEqual, "local0")
 					})
-
 				})
 
 				So(os.RemoveAll("etc"), ShouldBeNil)
 				So(os.Remove("gatewayd.ini"), ShouldBeNil)
-
 			})
 
 			So(os.Remove(userConf), ShouldBeNil)
-
 		})
 
 		Convey("Given that cannot be parsed", func() {
-			err := ioutil.WriteFile(userConf, badContent, 0644)
+			err := ioutil.WriteFile(userConf, badContent, 0o644)
 			So(err, ShouldBeNil)
 
 			Convey("When the configuration is loaded", func() {
@@ -225,11 +207,9 @@ LogTo user-foo
 				Convey("Then an error is returned", func() {
 					So(err, ShouldNotBeNil)
 				})
-
 			})
 
 			So(os.Remove(userConf), ShouldBeNil)
-
 		})
 
 		Convey("Given that file does not exist", func() {
@@ -241,13 +221,9 @@ LogTo user-foo
 				Convey("Then an error is returned", func() {
 					So(err, ShouldNotBeNil)
 				})
-
 			})
-
 		})
-
 	})
-
 }
 
 func TestUpdateServerConfig(t *testing.T) {
@@ -263,6 +239,7 @@ HasBeenRemoved = true
 		if err != nil {
 			panic(err.Error())
 		}
+
 		return string(content)
 	}
 
@@ -270,7 +247,7 @@ HasBeenRemoved = true
 		userConfig := "userConfig.ini"
 
 		Convey("Given it can be read", func() {
-			err := ioutil.WriteFile(userConfig, oldContent, 0644)
+			err := ioutil.WriteFile(userConfig, oldContent, 0o644)
 			So(err, ShouldBeNil)
 
 			Convey("When the file is updated", func() {
@@ -298,29 +275,24 @@ HasBeenRemoved = true
 					So(newContent, ShouldNotContainSubstring, "; old desc")
 					So(newContent, ShouldContainSubstring, "; All messages")
 				})
-
 			})
 
 			So(os.Remove(userConfig), ShouldBeNil)
-
 		})
 
 		Convey("Given it cannot be read", func() {
-
 			Convey("When the file is updated", func() {
 				err := UpdateServerConfig(userConfig)
 
 				Convey("Then an error is returned", func() {
 					So(err, ShouldNotBeNil)
 				})
-
 			})
-
 		})
 
 		Convey("Given it cannot be parsed", func() {
-			badContent := bytes.Replace(oldContent, []byte("="), []byte(""), -1)
-			err := ioutil.WriteFile(userConfig, badContent, 0644)
+			badContent := bytes.ReplaceAll(oldContent, []byte("="), []byte(""))
+			err := ioutil.WriteFile(userConfig, badContent, 0o644)
 			So(err, ShouldBeNil)
 
 			Convey("When the file is updated", func() {
@@ -329,15 +301,11 @@ HasBeenRemoved = true
 				Convey("Then an error is returned", func() {
 					So(err, ShouldNotBeNil)
 				})
-
 			})
 
 			So(os.Remove(userConfig), ShouldBeNil)
-
 		})
-
 	})
-
 }
 
 func TestNormalizePaths(t *testing.T) {
@@ -355,14 +323,22 @@ func TestNormalizePaths(t *testing.T) {
 			expDesc                         string
 			expHome, expIn, expOut, expWork string
 		}{
-			{"all paths are absolute", "/home", "/home/in", "/home/out", "/home/work",
-				"the paths should be unchanged", "/home", "/home/in", "/home/out", "/home/work"},
-			{"the sub dirs are relative", "/home", "in", "out", "work",
-				"the paths should be placed under the home dir", "/home", "/home/in", "/home/out", "/home/work"},
-			{"the home dir is relative", "./home", "/in", "/out", "/work",
-				"the home dir should be under the current dir", wd + "/home", "/in", "/out", "/work"},
-			{"the home dir is empty", "", "/in", "/out", "/work",
-				"the home dir should be the current dir", wd, "/in", "/out", "/work"},
+			{
+				"all paths are absolute", "/home", "/home/in", "/home/out", "/home/work",
+				"the paths should be unchanged", "/home", "/home/in", "/home/out", "/home/work",
+			},
+			{
+				"the sub dirs are relative", "/home", "in", "out", "work",
+				"the paths should be placed under the home dir", "/home", "/home/in", "/home/out", "/home/work",
+			},
+			{
+				"the home dir is relative", "./home", "/in", "/out", "/work",
+				"the home dir should be under the current dir", wd + "/home", "/in", "/out", "/work",
+			},
+			{
+				"the home dir is empty", "", "/in", "/out", "/work",
+				"the home dir should be the current dir", wd, "/in", "/out", "/work",
+			},
 		}
 
 		for _, testCase := range testCases {

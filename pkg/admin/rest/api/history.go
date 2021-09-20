@@ -3,14 +3,14 @@ package api
 import (
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 // OutHistory is the JSON representation of a history entry in responses sent by
 // the REST interface.
 type OutHistory struct {
 	ID             uint64                  `json:"id"`
-	RemoteID       string                  `json:"remoteID,omitempty"`
+	RemoteID       string                  `json:"remoteID,omitempty"` //nolint:tagliatelle,lll // FIXME too late to change that
 	IsServer       bool                    `json:"isServer"`
 	IsSend         bool                    `json:"isSend"`
 	Requester      string                  `json:"requester"`

@@ -4,7 +4,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 // CypherText is a wrapper of string which add transparent encryption/decryption
@@ -17,11 +17,14 @@ func (c *CypherText) FromDB(bytes []byte) error {
 	if len(bytes) == 0 {
 		return nil
 	}
+
 	plain, err := utils.AESDecrypt(string(bytes))
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot decrypt password: %w", err)
 	}
+
 	*c = CypherText(plain)
+
 	return nil
 }
 
@@ -31,15 +34,17 @@ func (c *CypherText) ToDB() ([]byte, error) {
 	if *c == "" {
 		return nil, nil
 	}
+
 	cypher, err := utils.AESCrypt(string(*c))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot encrypt password: %w", err)
 	}
+
 	return []byte(cypher), nil
 }
 
 // Scan implements database/sql.Scanner. It takes an AES encrypted string and
-// returns the
+// sets the object.
 func (c *CypherText) Scan(v interface{}) error {
 	switch val := v.(type) {
 	case []byte:
@@ -47,6 +52,7 @@ func (c *CypherText) Scan(v interface{}) error {
 	case string:
 		return c.FromDB([]byte(val))
 	default:
+		//nolint:goerr113 // too specific to have a base error
 		return fmt.Errorf("type %T is incompatible with CypherText", val)
 	}
 }

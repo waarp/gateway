@@ -18,6 +18,7 @@ type CountQuery struct {
 // using the 'AND' operator.
 func (c *CountQuery) Where(sql string, args ...interface{}) *CountQuery {
 	c.conds = append(c.conds, cond{sql: sql, args: args})
+
 	return c
 }
 
@@ -32,8 +33,10 @@ func (c *CountQuery) Run() (uint64, Error) {
 
 	n, err := query.Count(c.bean)
 	logSQL(query, logger)
+
 	if err != nil {
 		logger.Errorf("Failed to insert the new %s entry: %s", c.bean.Appellation(), err)
+
 		return 0, NewInternalError(err)
 	}
 

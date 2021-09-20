@@ -3,9 +3,10 @@ package model
 import (
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 func TestUsersTableName(t *testing.T) {
@@ -41,7 +42,6 @@ func TestUsersBeforeWrite(t *testing.T) {
 				}
 
 				Convey("Given that the new account is valid", func() {
-
 					Convey("When calling the 'BeforeWrite' function", func() {
 						So(user.BeforeWrite(db), ShouldBeNil)
 

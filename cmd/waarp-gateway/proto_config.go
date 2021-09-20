@@ -15,7 +15,13 @@ func (c confVal) MarshalJSON() ([]byte, error) {
 
 	var val interface{}
 	if err := json.Unmarshal([]byte(str), &val); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot parse json: %w", err)
 	}
-	return json.Marshal(val)
+
+	rv, err := json.Marshal(val)
+	if err != nil {
+		return nil, fmt.Errorf("cannot serialize value to JSON: %w", err)
+	}
+
+	return rv, nil
 }

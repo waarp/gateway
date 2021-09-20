@@ -2,7 +2,7 @@
 // build of the software.
 package version
 
-//nolint:gochecknoglobals //cannot be constant: must be changed by the linter
+//nolint:gochecknoglobals //cannot be constant: must be changed by the linker
 var (
 	Num    = "dev"
 	Date   = ""

@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -15,8 +16,15 @@ import (
 const (
 	minArgs       = 2
 	exitErrorCode = 2
+	execTimeout   = 2 * time.Second
 )
 
+var (
+	errFileNotFound = errors.New("file not found")
+	errNoConfDir    = errors.New("configuration directory not found or invalid")
+)
+
+//nolint:forbidigo // this is allowed in the main function
 func main() {
 	if len(os.Args) < minArgs {
 		fmt.Printf("updateconf needs at least 1 parameter")
@@ -98,41 +106,43 @@ func getFileFromArch(arch *zip.Reader, file string) (io.ReadCloser, error) {
 		if f.Name == file {
 			conf, err := f.Open()
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("cannot read zip file: %w", err)
 			}
 
 			return conf, nil
 		}
 	}
 
-	return nil, fmt.Errorf("file %s is not in the archive", file)
+	return nil, fmt.Errorf("file %s is not in the archive: %w", file, errFileNotFound)
 }
 
 func execImport(confReader io.Reader) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), execTimeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "waarp-gatewayd", "import", "-v")
+
 	writer, err := cmd.StdinPipe()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot open subprocess stdin: %w", err)
 	}
 
 	go func() {
-		defer writer.Close()
+		defer writer.Close() //nolint:errcheck // nothing to handle the error
 
 		_, err = io.Copy(writer, confReader)
 		if err != nil {
+			//nolint:forbidigo // with this design, this is sadly the only way to handle the error
 			fmt.Printf("cannot import configuration: %s\n", err.Error())
 		}
 	}()
 
 	out, err := cmd.CombinedOutput()
-	fmt.Print(string(out))
-
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot read subprocess output: %w", err)
 	}
+
+	fmt.Print(string(out)) //nolint:forbidigo // output must be written for the Gateway uses it
 
 	return nil
 }
@@ -149,15 +159,14 @@ func moveToConf(arch *zip.Reader, files ...string) error {
 			return err
 		}
 
-		// TODO
 		dst, err := os.Create(confDir + f)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot open file %q: %w", confDir+f, err)
 		}
 
 		_, err = io.Copy(dst, src)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot write to file %q: %w", confDir+f, err)
 		}
 	}
 
@@ -169,12 +178,12 @@ func getConfDir(dirs ...string) (string, error) {
 		info, err := os.Stat(dir)
 		if err == nil {
 			if !info.IsDir() {
-				return "", fmt.Errorf("%s exists but is not a directory", dir)
+				return "", fmt.Errorf("%s exists but is not a directory: %w", dir, errNoConfDir)
 			}
 
 			return dir, nil
 		}
 	}
 
-	return "", fmt.Errorf("no gateway directory found")
+	return "", fmt.Errorf("no gateway directory found: %w", errNoConfDir)
 }

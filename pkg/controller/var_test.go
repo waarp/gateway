@@ -1,14 +1,15 @@
 package controller
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/executor"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
 	executor.ClientsConstructors["test"] = NewAllSuccess
@@ -28,7 +29,7 @@ func (*TestProtoConfig) CertRequired() bool  { return false }
 
 type AllSuccess struct{}
 
-func NewAllSuccess(_ model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
+func NewAllSuccess(_ *model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
 	return AllSuccess{}, nil
 }
 func (AllSuccess) Connect() error                 { return nil }

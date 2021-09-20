@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 // ruleToDB transforms the JSON transfer rule into its database equivalent.
@@ -16,6 +17,7 @@ func ruleToDB(rule *api.InRule, id uint64) (*model.Rule, error) {
 	if rule.IsSend == nil {
 		return nil, badRequest("missing rule direction")
 	}
+
 	return &model.Rule{
 		ID:       id,
 		Name:     str(rule.Name),
@@ -62,6 +64,7 @@ func FromRule(db *database.DB, r *model.Rule) (*api.OutRule, error) {
 	if err := doListTasks(db, rule, r.ID); err != nil {
 		return nil, err
 	}
+
 	return rule, nil
 }
 
@@ -69,14 +72,18 @@ func FromRule(db *database.DB, r *model.Rule) (*api.OutRule, error) {
 // equivalent.
 func FromRules(db *database.DB, rs []model.Rule) ([]api.OutRule, error) {
 	rules := make([]api.OutRule, len(rs))
+
 	for i, r := range rs {
 		rule := r
+
 		res, err := FromRule(db, &rule)
 		if err != nil {
 			return nil, err
 		}
+
 		rules[i] = *res
 	}
+
 	return rules, nil
 }
 
@@ -84,6 +91,7 @@ func ruleDirection(rule *model.Rule) string {
 	if rule.IsSend {
 		return "send"
 	}
+
 	return "receive"
 }
 
@@ -92,18 +100,22 @@ func getRl(r *http.Request, db *database.DB) (*model.Rule, error) {
 	if !ok {
 		return nil, notFound("missing rule name")
 	}
+
 	ruleDirection, ok := mux.Vars(r)["direction"]
 	if !ok {
 		return nil, notFound("missing rule direction")
 	}
+
 	var rule model.Rule
 	if err := db.Get(&rule, "name=? AND send=?", ruleName,
 		ruleDirection == "send").Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("%s rule '%s' not found", ruleDirection, ruleName)
 		}
+
 		return nil, err
 	}
+
 	return &rule, nil
 }
 
@@ -165,6 +177,7 @@ func listRules(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var rules model.Rules
+
 		query, err := parseSelectQuery(r, db, validSorting, &rules)
 		if handleError(w, logger, err) {
 			return
@@ -193,7 +206,7 @@ func updateRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		jRule := newInRule(old)
-		if err := readJSON(r, jRule); handleError(w, logger, err) {
+		if err2 := readJSON(r, jRule); handleError(w, logger, err2) {
 			return
 		}
 
@@ -230,7 +243,7 @@ func replaceRule(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		jRule := &api.InRule{IsSend: &old.IsSend, UptRule: &api.UptRule{}}
-		if err := readJSON(r, jRule.UptRule); handleError(w, logger, err) {
+		if err2 := readJSON(r, jRule.UptRule); handleError(w, logger, err2) {
 			return
 		}
 

@@ -10,12 +10,13 @@ import (
 	"strings"
 	"testing"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+
+	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 const ruleURI = "http://remotehost:8080/api/rules/"
@@ -349,6 +350,7 @@ func TestGetRule(t *testing.T) {
 					So(db.Insert(authPart2Acc1).Run(), ShouldBeNil)
 
 					Convey("When sending the request to the handler", func() {
+						//nolint:noctx // this is a test
 						r, err := http.NewRequest(http.MethodGet, "", nil)
 						So(err, ShouldBeNil)
 						r = mux.SetURLVars(r, map[string]string{
@@ -704,11 +706,13 @@ func TestUpdateRule(t *testing.T) {
 
 					for i, update := range testCases {
 						Convey(fmt.Sprintf("TEST %d When updating %s", i, rule.Name), func() {
-							_, err := doUpdate(handler, rule, &update)
+							resp, err := doUpdate(handler, rule, &update)
 							So(err, ShouldBeNil)
 
+							defer resp.Body.Close()
+
 							Convey("Then only the property updated should be modified", func() {
-								expected := getExpected(rule, update)
+								expected := getExpected(rule, &update)
 								dbRule, err := getFromDb(db, expected.Name, rule.IsSend)
 								So(err, ShouldBeNil)
 								So(dbRule, ShouldResemble, expected)
@@ -721,26 +725,32 @@ func TestUpdateRule(t *testing.T) {
 	})
 }
 
+//nolint:wrapcheck // this is a test helper, err must be passed as is
 func doUpdate(handler http.HandlerFunc, old *model.Rule, update *UptRule) (*http.Response, error) {
 	w := httptest.NewRecorder()
+
 	body, err := json.Marshal(update)
 	if err != nil {
 		return nil, err
 	}
+
+	//nolint:noctx //this is a test
 	r, err := http.NewRequest(http.MethodPatch, ruleURI+old.Name,
 		bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
+
 	r = mux.SetURLVars(r, map[string]string{
 		"rule":      old.Name,
 		"direction": ruleDirection(old),
 	})
 	handler.ServeHTTP(w, r)
+
 	return w.Result(), nil
 }
 
-func getExpected(src *model.Rule, upt UptRule) *model.Rule {
+func getExpected(src *model.Rule, upt *UptRule) *model.Rule {
 	res := &model.Rule{
 		ID:       src.ID,
 		Name:     src.Name,
@@ -751,24 +761,31 @@ func getExpected(src *model.Rule, upt UptRule) *model.Rule {
 		OutPath:  src.OutPath,
 		WorkPath: src.WorkPath,
 	}
+
 	if upt.Name != nil {
 		res.Name = *upt.Name
 	}
+
 	if upt.Comment != nil {
 		res.Comment = *upt.Comment
 	}
+
 	if upt.Path != nil {
 		res.Path = *upt.Path
 	}
+
 	if upt.InPath != nil {
 		res.InPath = *upt.InPath
 	}
+
 	if upt.OutPath != nil {
 		res.OutPath = *upt.OutPath
 	}
+
 	if upt.WorkPath != nil {
 		res.WorkPath = *upt.WorkPath
 	}
+
 	// TODO Tasks
 	return res
 }
@@ -778,6 +795,7 @@ func getFromDb(db *database.DB, name string, isSend bool) (*model.Rule, error) {
 	if err := db.Get(&rule, "name=? AND send=?", name, isSend).Run(); err != nil {
 		return nil, err
 	}
+
 	return &rule, nil
 }
 

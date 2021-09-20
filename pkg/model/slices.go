@@ -97,6 +97,7 @@ type Transfers []Transfer
 func (*Transfers) TableName() string { return TableTransfers }
 
 // Elem returns the name of 1 element of the transfers table.
+//nolint:goconst // this is the same as a constant
 func (*Transfers) Elem() string { return "transfer" }
 
 // Users is the type representing a slice of User.

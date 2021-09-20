@@ -2,15 +2,23 @@ package sftp
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"path"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ssh"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+)
+
+var (
+	errRuleNotFound = errors.New("transfer rule not found")
+	errAuthFailed   = errors.New("authentication failed")
 )
 
 func getRuleFromPath(db *database.DB, r *sftp.Request, isSend bool) (*model.Rule, error) {
@@ -23,9 +31,11 @@ func getRuleFromPath(db *database.DB, r *sftp.Request, isSend bool) (*model.Rule
 		if isSend {
 			dir = "sending"
 		}
+
 		return nil, fmt.Errorf("cannot retrieve transfer rule: the directory "+
-			"'%s' is not associated to any known %s rule", filepath, dir)
+			"'%s' is not associated to any known %s rule: %w", filepath, dir, errRuleNotFound)
 	}
+
 	return rule, nil
 }
 
@@ -37,54 +47,73 @@ func getSSHServerConfig(db *database.DB, hostKeys []model.Crypto, protoConfig *c
 			Ciphers:      protoConfig.Ciphers,
 			MACs:         protoConfig.MACs,
 		},
-		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			user := &model.LocalAccount{LocalAgentID: agent.ID, Login: conn.User()}
-			if err := db.Get(user, "local_agent_id=? AND login=?", agent.ID,
-				conn.User()).Run(); err != nil {
-				return nil, fmt.Errorf("authentication failed")
-			}
-			userKeys, err := user.GetCryptos(db)
-			if err != nil {
-				return nil, fmt.Errorf("authentication failed")
-			}
-
-			for _, userKey := range userKeys {
-				publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(userKey.SSHPublicKey))
-				if err != nil {
-					return nil, err
-				}
-				if bytes.Equal(publicKey.Marshal(), key.Marshal()) {
-					return &ssh.Permissions{}, nil
-				}
-			}
-			return nil, fmt.Errorf("authentication failed")
-		},
-		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			var user model.LocalAccount
-			if err := db.Get(&user, "local_agent_id=? AND login=?", agent.ID,
-				conn.User()).Run(); err != nil {
-				return nil, fmt.Errorf("authentication failed")
-			}
-			if err := bcrypt.CompareHashAndPassword(user.PasswordHash, pass); err != nil {
-				return nil, fmt.Errorf("authentication failed")
-			}
-
-			return &ssh.Permissions{}, nil
-		},
+		PublicKeyCallback: makeVerifyPublicKey(db, agent),
+		PasswordCallback:  makeVerifyPassword(db, agent),
 	}
 
 	if len(hostKeys) == 0 {
-		return nil, fmt.Errorf("'%s' SFTP server is missing a hostkey", agent.Name)
+		return nil, fmt.Errorf("'%s' SFTP server is missing a hostkey: %w",
+			agent.Name, errSSHNoKey)
 	}
-	for _, hostKey := range hostKeys {
-		privateKey, err := ssh.ParsePrivateKey([]byte(hostKey.PrivateKey))
+
+	for i := range hostKeys {
+		privateKey, err := ssh.ParsePrivateKey([]byte(hostKeys[i].PrivateKey))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot parse private key: %w", err)
 		}
+
 		conf.AddHostKey(privateKey)
 	}
 
 	return conf, nil
+}
+
+type passworkCallback func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error)
+
+func makeVerifyPassword(db *database.DB, agent *model.LocalAgent) passworkCallback {
+	return func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
+		var user model.LocalAccount
+		if err := db.Get(&user, "local_agent_id=? AND login=?", agent.ID,
+			conn.User()).Run(); err != nil {
+			return nil, errAuthFailed
+		}
+
+		if err := bcrypt.CompareHashAndPassword(user.PasswordHash, pass); err != nil {
+			return nil, errAuthFailed
+		}
+
+		return &ssh.Permissions{}, nil
+	}
+}
+
+type publicKeyCallback func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error)
+
+func makeVerifyPublicKey(db *database.DB, agent *model.LocalAgent) publicKeyCallback {
+	return func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+		user := &model.LocalAccount{LocalAgentID: agent.ID, Login: conn.User()}
+		if err := db.Get(user, "local_agent_id=? AND login=?", agent.ID,
+			conn.User()).Run(); err != nil {
+			return nil, errAuthFailed
+		}
+
+		userKeys, err := user.GetCryptos(db)
+		if err != nil {
+			return nil, errAuthFailed
+		}
+
+		for i := range userKeys {
+			publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(userKeys[i].SSHPublicKey))
+			if err != nil {
+				return nil, fmt.Errorf("cannot parse partner key: %w", err)
+			}
+
+			if bytes.Equal(publicKey.Marshal(), key.Marshal()) {
+				return &ssh.Permissions{}, nil
+			}
+		}
+
+		return nil, errAuthFailed
+	}
 }
 
 func getAccountID(db *database.DB, agentID uint64, login string) (uint64, error) {
@@ -92,18 +121,22 @@ func getAccountID(db *database.DB, agentID uint64, login string) (uint64, error)
 	if err := db.Get(&account, "local_agent_id=? AND login=?", agentID, login).Run(); err != nil {
 		return 0, err
 	}
+
 	return account.ID, nil
 }
 
-func acceptRequests(in <-chan *ssh.Request) {
+func acceptRequests(in <-chan *ssh.Request, l *log.Logger) {
 	for req := range in {
 		ok := false
-		switch req.Type {
-		case "subsystem":
+
+		if req.Type == "subsystem" {
 			if string(req.Payload[4:]) == "sftp" {
 				ok = true
 			}
 		}
-		_ = req.Reply(ok, nil)
+
+		if err := req.Reply(ok, nil); err != nil {
+			l.Warningf("a reply operation returned an error: %v", err)
+		}
 	}
 }

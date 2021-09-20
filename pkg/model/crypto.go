@@ -3,19 +3,23 @@ package model
 import (
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"golang.org/x/crypto/ssh"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&Crypto{})
 }
 
-var validOwnerTypes = []string{TableLocAgents, TableRemAgents, TableLocAccounts,
-	TableRemAccounts}
+//nolint:gochecknoglobals // globals are used by design
+var validOwnerTypes = []string{
+	TableLocAgents, TableRemAgents, TableLocAccounts,
+	TableRemAccounts,
+}
 
 // Crypto represents credentials used to establish secure (encrypted) transfer
 // channels. This includes both TLS and SSH tunnels. These credentials can be
@@ -68,9 +72,11 @@ func (c *Crypto) BeforeWrite(db database.ReadAccess) database.Error {
 	if c.Name == "" {
 		return newErr("the credentials' name cannot be empty")
 	}
+
 	if c.OwnerType == "" {
 		return newErr("the credentials' owner type is missing")
 	}
+
 	if c.OwnerID == 0 {
 		return newErr("the credentials' owner ID is missing")
 	}
@@ -89,6 +95,7 @@ func (c *Crypto) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	var parent database.GetBean
+
 	switch c.OwnerType {
 	case TableLocAgents:
 		parent = &LocalAgent{}
@@ -101,10 +108,12 @@ func (c *Crypto) BeforeWrite(db database.ReadAccess) database.Error {
 	default:
 		return newErr("the credentials' owner type must be one of %s", validOwnerTypes)
 	}
+
 	if err := db.Get(parent, "id=?", c.OwnerID).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return newErr("no %s found with ID '%v'", parent.Appellation(), c.OwnerID)
 		}
+
 		return err
 	}
 
@@ -116,10 +125,12 @@ func (c *Crypto) checkContentLocal(parent database.GetBean) database.Error {
 		return database.NewValidationError("the %s is missing a private key",
 			parent.Appellation())
 	}
+
 	if c.SSHPublicKey != "" {
 		return database.NewValidationError("a %s does not need an SSH public key",
 			parent.Appellation())
 	}
+
 	return nil
 }
 
@@ -129,52 +140,69 @@ func (c *Crypto) checkContentRemote(parent database.GetBean) database.Error {
 			"the %s is missing a TLS certificate or an SSH public key",
 			parent.Appellation())
 	}
+
 	if c.PrivateKey != "" {
 		return database.NewValidationError("a %s does not need a private key",
 			parent.Appellation())
 	}
+
 	return nil
 }
 
 func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) database.Error {
-	var host, proto string
-	var isServer bool
+	var (
+		host, proto string
+		isServer    bool
+	)
+
 	switch t := parent.(type) {
 	case *LocalAgent:
 		isServer = true
 		host = t.Address
 		proto = t.Protocol
+
 		if err := c.checkContentLocal(parent); err != nil {
 			return err
 		}
+
 	case *LocalAccount:
 		host = t.Login
+
 		if err := c.checkContentRemote(parent); err != nil {
 			return err
 		}
+
 		var parentParent LocalAgent
 		if err := db.Get(&parentParent, "id=?", t.LocalAgentID).Run(); err != nil {
 			return err
 		}
+
 		proto = parentParent.Protocol
+
 	case *RemoteAgent:
 		isServer = true
 		host = t.Address
 		proto = t.Protocol
+
 		if err := c.checkContentRemote(parent); err != nil {
 			return err
 		}
+
 	case *RemoteAccount:
 		host = t.Login
+
 		if err := c.checkContentLocal(parent); err != nil {
 			return err
 		}
+
 		var parentParent RemoteAgent
 		if err := db.Get(&parentParent, "id=?", t.RemoteAgentID).Run(); err != nil {
 			return err
 		}
+
 		proto = parentParent.Protocol
 	}
+
 	return c.validateContent(host, proto, isServer)
 }
 
@@ -186,9 +214,11 @@ func (c *Crypto) validateContent(host, proto string, isServer bool) database.Err
 		if err != nil {
 			return newErr("failed to parse certificate: %s", err)
 		}
+
 		if err := utils.CheckCertChain(certChain, isServer); err != nil {
 			return newErr("certificate validation failed: %s", err)
 		}
+
 		if host != "" && proto != "r66" {
 			if err := certChain[0].VerifyHostname(host); err != nil {
 				return newErr("the certificate is not valid for host '%s'", host)
@@ -204,7 +234,8 @@ func (c *Crypto) validateContent(host, proto string, isServer bool) database.Err
 	}
 
 	if c.SSHPublicKey != "" {
-		if _, _, _, _, err := ssh.ParseAuthorizedKey([]byte(c.SSHPublicKey)); err != nil { //nolint:dogsled
+		//nolint:dogsled // it is caused by the design of a third party library...
+		if _, _, _, _, err := ssh.ParseAuthorizedKey([]byte(c.SSHPublicKey)); err != nil {
 			return newErr("failed to parse SSH public key: %s",
 				strings.TrimPrefix(err.Error(), "ssh: "))
 		}

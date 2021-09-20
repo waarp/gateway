@@ -1,7 +1,8 @@
 package database
 
-import vers "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/version"
+import vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	AddTable(&version{})
 }
@@ -17,7 +18,7 @@ func (v *version) TableName() string { return "version" }
 // relevant since the version table will always have only 1 row).
 func (v *version) Appellation() string { return "version" }
 
-// Init initialises the version table with the current program version.
+// Init initializes the version table with the current program version.
 func (v *version) Init(ses *Session) Error {
 	return ses.Insert(&version{vers.Num}).Run()
 }

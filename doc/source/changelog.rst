@@ -20,7 +20,6 @@ Historique des versions
   de données est différente de celle du programme.
 
 * :release:`0.4.0 <2021-07-21>`
->>>>>>> 8d5842b (Removed the leading '/' in dir names when using SFTP listing command)
 * :bug:`259` Correction d'un bug causant une erreur après les pré-tâches d'un
   transfer R66 côté serveur.
 * :bug:`260` Correction d'une erreur dans l'import des mots de passe de comptes

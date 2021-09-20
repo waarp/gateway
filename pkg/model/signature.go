@@ -20,8 +20,10 @@ func (s *Signature) Scan(src interface{}) error {
 	switch v := src.(type) {
 	case []byte:
 		copy(s[:], v)
+
 		return nil
 	default:
-		return fmt.Errorf("cannot scan %+v of type %T into a Signature", v, v)
+		//nolint:goerr113 // no use defining a base error for this single case
+		return fmt.Errorf("cannot scan %+v of type %T into a signature", v, v)
 	}
 }

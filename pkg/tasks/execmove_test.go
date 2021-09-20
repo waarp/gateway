@@ -5,12 +5,12 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func TestExecMoveValidate(t *testing.T) {
-
 	Convey("Given an 'EXECMOVE' task", t, func() {
 		exec := &ExecMoveTask{}
 
@@ -80,7 +80,6 @@ func TestExecMoveValidate(t *testing.T) {
 }
 
 func TestExecMoveRun(t *testing.T) {
-
 	Convey("Given an 'EXECMOVE' task", t, func() {
 		exec := &ExecMoveTask{}
 		proc := &Processor{
@@ -98,7 +97,7 @@ func TestExecMoveRun(t *testing.T) {
 			}
 
 			Convey("Given that the command succeeds", func() {
-				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecOK), 0700)
+				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecOK), 0o700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -116,7 +115,7 @@ func TestExecMoveRun(t *testing.T) {
 			})
 
 			Convey("Given that the command sends a warning", func() {
-				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecWarn), 0700)
+				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecWarn), 0o700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -129,7 +128,7 @@ func TestExecMoveRun(t *testing.T) {
 			})
 
 			Convey("Given that the command fails", func() {
-				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecFail), 0700)
+				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecFail), 0o700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -143,7 +142,7 @@ func TestExecMoveRun(t *testing.T) {
 			})
 
 			Convey("Given that the command delay expires", func() {
-				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecInfinite), 0700)
+				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecInfinite), 0o700)
 				So(err, ShouldBeNil)
 
 				args["delay"] = "100"

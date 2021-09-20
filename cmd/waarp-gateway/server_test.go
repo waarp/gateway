@@ -7,15 +7,16 @@ import (
 	"strings"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func serverInfoString(s *api.OutServer) string {
@@ -33,7 +34,6 @@ func serverInfoString(s *api.OutServer) string {
 }
 
 func TestGetServer(t *testing.T) {
-
 	Convey("Testing the server 'get' command", t, func() {
 		out = testFile()
 		command := &serverGet{}
@@ -64,11 +64,15 @@ func TestGetServer(t *testing.T) {
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
-			sAccess := &model.RuleAccess{RuleID: send.ID,
-				ObjectType: server.TableName(), ObjectID: server.ID}
+			sAccess := &model.RuleAccess{
+				RuleID:     send.ID,
+				ObjectType: server.TableName(), ObjectID: server.ID,
+			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
-			rAccess := &model.RuleAccess{RuleID: receive.ID,
-				ObjectType: server.TableName(), ObjectID: server.ID}
+			rAccess := &model.RuleAccess{
+				RuleID:     receive.ID,
+				ObjectType: server.TableName(), ObjectID: server.ID,
+			}
 			So(db.Insert(rAccess).Run(), ShouldBeNil)
 
 			Convey("Given a valid server name", func() {
@@ -108,7 +112,6 @@ func TestGetServer(t *testing.T) {
 }
 
 func TestAddServer(t *testing.T) {
-
 	Convey("Testing the server 'add' command", t, func() {
 		out = testFile()
 		command := &serverAdd{}
@@ -121,9 +124,11 @@ func TestAddServer(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Given valid flags", func() {
-				args := []string{"-n", "server_name", "-p", "test",
+				args := []string{
+					"-n", "server_name", "-p", "test",
 					"--root=root", "--in=in_dir", "--out=out_dir",
-					"--work=work_dir", "-a", "localhost:1"}
+					"--work=work_dir", "-a", "localhost:1",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -157,8 +162,10 @@ func TestAddServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid protocol", func() {
-				args := []string{"-n", "server_name", "-p", "invalid",
-					"--root=/server/root", "-a", "localhost:1"}
+				args := []string{
+					"-n", "server_name", "-p", "invalid",
+					"--root=/server/root", "-a", "localhost:1",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -166,15 +173,18 @@ func TestAddServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "unknown protocol 'invalid'")
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldContainSubstring, "unknown protocol 'invalid'")
 					})
 				})
 			})
 
 			Convey("Given an invalid configuration", func() {
-				args := []string{"-n", "server_name", "-p", "fail",
+				args := []string{
+					"-n", "server_name", "-p", "fail",
 					"--root=/server/root", "-c", "unknown:val",
-					"-a", "localhost:1"}
+					"-a", "localhost:1",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -182,15 +192,18 @@ func TestAddServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, `failed to parse protocol `+
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldContainSubstring, `failed to parse protocol `+
 							`configuration: json: unknown field "unknown"`)
 					})
 				})
 			})
 
 			Convey("Given an invalid address", func() {
-				args := []string{"-n", "server_name", "-p", "fail",
-					"--root=/server/root", "-a", "invalid_address"}
+				args := []string{
+					"-n", "server_name", "-p", "fail",
+					"--root=/server/root", "-a", "invalid_address",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -205,10 +218,12 @@ func TestAddServer(t *testing.T) {
 			})
 
 			Convey("Given a new R66 server", func() {
-				args := []string{"-n", "r66_server", "-p", "r66",
+				args := []string{
+					"-n", "r66_server", "-p", "r66",
 					"--root=root", "--in=in_dir", "--out=out_dir",
 					"--work=work_dir", "-a", "localhost:1", "-c", "blockSize:256",
-					"-c", "serverPassword:sesame"}
+					"-c", "serverPassword:sesame",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -256,7 +271,6 @@ func TestAddServer(t *testing.T) {
 }
 
 func TestListServers(t *testing.T) {
-
 	Convey("Testing the server 'list' command", t, func() {
 		out = testFile()
 		command := &serverList{}
@@ -374,7 +388,6 @@ func TestListServers(t *testing.T) {
 }
 
 func TestDeleteServer(t *testing.T) {
-
 	Convey("Testing the server 'delete' command", t, func() {
 		out = testFile()
 		command := &serverDelete{}
@@ -439,7 +452,6 @@ func TestDeleteServer(t *testing.T) {
 }
 
 func TestUpdateServer(t *testing.T) {
-
 	Convey("Testing the server 'delete' command", t, func() {
 		out = testFile()
 		command := &serverUpdate{}
@@ -460,8 +472,10 @@ func TestUpdateServer(t *testing.T) {
 			So(db.Insert(server).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
-				args := []string{"-n", "new_server", "-p", "test2",
-					"-a", "localhost:2", server.Name}
+				args := []string{
+					"-n", "new_server", "-p", "test2",
+					"-a", "localhost:2", server.Name,
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -491,8 +505,10 @@ func TestUpdateServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid protocol", func() {
-				args := []string{"-n", "new_server", "-p", "invalid",
-					"-a", "localhost:2", server.Name}
+				args := []string{
+					"-n", "new_server", "-p", "invalid",
+					"-a", "localhost:2", server.Name,
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -500,7 +516,8 @@ func TestUpdateServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "unknown protocol 'invalid'")
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldContainSubstring, "unknown protocol 'invalid'")
 					})
 
 					Convey("Then the server should stay unchanged", func() {
@@ -512,8 +529,10 @@ func TestUpdateServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid configuration", func() {
-				args := []string{"-n", "new_server", "-p", "fail",
-					"-c", "unknown:val", "-a", "localhost:2", server.Name}
+				args := []string{
+					"-n", "new_server", "-p", "fail",
+					"-c", "unknown:val", "-a", "localhost:2", server.Name,
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -521,7 +540,8 @@ func TestUpdateServer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "failed to parse protocol "+
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldContainSubstring, "failed to parse protocol "+
 							`configuration: json: unknown field "unknown"`)
 					})
 
@@ -534,8 +554,10 @@ func TestUpdateServer(t *testing.T) {
 			})
 
 			Convey("Given an invalid address", func() {
-				args := []string{"-n", "new_server", "-p", "fail",
-					"-a", "invalid_address", server.Name}
+				args := []string{
+					"-n", "new_server", "-p", "fail",
+					"-a", "invalid_address", server.Name,
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -556,8 +578,10 @@ func TestUpdateServer(t *testing.T) {
 			})
 
 			Convey("Given a non-existing name", func() {
-				args := []string{"-n", "new_server", "-p", "test2",
-					"-c", "updated_key:updated_val", "toto"}
+				args := []string{
+					"-n", "new_server", "-p", "test2",
+					"-c", "updated_key:updated_val", "toto",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -580,7 +604,6 @@ func TestUpdateServer(t *testing.T) {
 }
 
 func TestAuthorizeServer(t *testing.T) {
-
 	Convey("Testing the server 'authorize' command", t, func() {
 		out = testFile()
 		command := &serverAuthorize{}
@@ -680,7 +703,6 @@ func TestAuthorizeServer(t *testing.T) {
 }
 
 func TestRevokeServer(t *testing.T) {
-
 	Convey("Testing the server 'revoke' command", t, func() {
 		out = testFile()
 		command := &serverRevoke{}

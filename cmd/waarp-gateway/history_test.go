@@ -8,14 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func historyInfoString(h *api.OutHistory) string {
@@ -23,14 +24,17 @@ func historyInfoString(h *api.OutHistory) string {
 	if h.IsServer {
 		role = "server"
 	}
+
 	way := "receive"
 	if h.IsSend {
 		way = "send"
 	}
+
 	rv := "● Transfer " + fmt.Sprint(h.ID) + " (as " + role + ") [" + string(h.Status) + "]\n"
 	if h.RemoteID != "" {
 		rv += "    Remote ID:        " + h.RemoteID + "\n"
 	}
+
 	stop := "N/A"
 	if h.Stop != nil {
 		stop = h.Stop.Local().Format(time.RFC3339Nano)
@@ -51,6 +55,7 @@ func historyInfoString(h *api.OutHistory) string {
 			rv += "    Error message:    " + h.ErrorMsg + "\n"
 		}
 	}
+
 	if h.Step != types.StepNone {
 		rv += "    Failed step:      " + h.Step.String() + "\n"
 		if h.Step == types.StepData {
@@ -114,7 +119,7 @@ func TestDisplayHistory(t *testing.T) {
 			Stop:           &stopTime,
 			Status:         types.StatusPlanned,
 			ErrorCode:      types.TeConnectionReset,
-			ErrorMsg:       "connexion reset by peer",
+			ErrorMsg:       "connection reset by peer",
 		}
 		Convey("When calling the `displayHistory` function", func() {
 			w := getColorable()
@@ -438,7 +443,7 @@ func TestListHistory(t *testing.T) {
 						So(command.Execute(params), ShouldBeNil)
 
 						Convey("Then it should display all the entries using "+
-							"one of these protocoles", func() {
+							"one of these protocols", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist1)+historyInfoString(hist2)+
 								historyInfoString(hist3)+historyInfoString(hist4))
@@ -453,7 +458,7 @@ func TestListHistory(t *testing.T) {
 						"--requester=" + h1.Account, "--requester=" + h2.Account,
 						"--requested=" + h4.Agent, "--requested=" + h1.Agent,
 						"--rule=" + h3.Rule, "--rule=" + h1.Rule, "--rule=" + h2.Rule,
-						"--status=DONE", "--status=CANCELLED",
+						"--status=DONE", "--status=CANCELED",
 						"--protocol=sftp",
 					}
 

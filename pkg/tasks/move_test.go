@@ -5,8 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func TestMoveTaskValidate(t *testing.T) {
@@ -37,7 +38,7 @@ func TestMoveTaskValidate(t *testing.T) {
 			})
 
 			Convey("Then error should say `need path argument`", func() {
-				So(err.Error(), ShouldEqual, "cannot create a move task without a `path` argument")
+				So(err.Error(), ShouldContainSubstring, "cannot create a move task without a `path` argument")
 			})
 		})
 	})
@@ -60,7 +61,9 @@ func TestMoveTaskRun(t *testing.T) {
 			args := map[string]string{
 				"path": "move_out",
 			}
-			So(os.Mkdir("move_out", 0700), ShouldBeNil)
+
+			So(os.Mkdir("move_out", 0o700), ShouldBeNil)
+
 			Reset(func() {
 				So(os.RemoveAll("move_out"), ShouldBeNil)
 			})
@@ -94,7 +97,6 @@ func TestMoveTaskRun(t *testing.T) {
 			})
 
 			Convey("Given NO file to transfer", func() {
-
 				Convey("When calling the `run` method", func() {
 					task := &MoveTask{}
 					_, err := task.Run(args, runner)
@@ -141,7 +143,7 @@ func TestMoveTaskRun(t *testing.T) {
 			args := map[string]string{
 				"path": "move_in",
 			}
-			So(os.Mkdir("move_in", 0700), ShouldBeNil)
+			So(os.Mkdir("move_in", 0o700), ShouldBeNil)
 			Reset(func() { _ = os.RemoveAll("move_in") })
 
 			Convey("Given a file to transfer", func() {
@@ -173,7 +175,6 @@ func TestMoveTaskRun(t *testing.T) {
 			})
 
 			Convey("Given NO file to transfer", func() {
-
 				Convey("When calling the `run` method", func() {
 					task := &MoveTask{}
 					_, err := task.Run(args, runner)

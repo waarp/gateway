@@ -14,7 +14,7 @@ type DataStream interface {
 }
 
 // Client is the interface defining a protocol client. All protocol clients
-// (SFTP, R66, HTTP...) must implement this interface in order to be usable by
+// (SFTP, R66, HTTP...) Must implement this interface in order to be usable by
 // the transfer executor.
 // The `Client` should provide a constructor which can then be used by the
 // transfer executor to initialize the client when the transfer starts. As a

@@ -2,12 +2,14 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&LocalAgent{})
 }
@@ -67,13 +69,22 @@ func (l *LocalAgent) GetID() uint64 {
 func (l *LocalAgent) validateProtoConfig() error {
 	conf, err := config.GetProtoConfig(l.Protocol, l.ProtoConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot parse protocol config for server %q: %w", l.Name, err)
 	}
-	if err := conf.ValidServer(); err != nil {
-		return err
+
+	if err2 := conf.ValidServer(); err2 != nil {
+		return fmt.Errorf("the protocol configuration for server %q is not valid: %w",
+			l.Name, err2)
 	}
+
 	l.ProtoConfig, err = json.Marshal(conf)
-	return err
+
+	if err != nil {
+		return fmt.Errorf("cannot marshal the protocol config for server %q to JSON: %w",
+			l.Name, err)
+	}
+
+	return nil
 }
 
 func (l *LocalAgent) makePaths() {
@@ -85,9 +96,11 @@ func (l *LocalAgent) makePaths() {
 		if isEmpty(l.InDir) {
 			l.InDir = "in"
 		}
+
 		if isEmpty(l.OutDir) {
 			l.OutDir = "out"
 		}
+
 		if isEmpty(l.WorkDir) {
 			l.WorkDir = "work"
 		}
@@ -107,6 +120,7 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 	if l.Address == "" {
 		return database.NewValidationError("the server's address cannot be empty")
 	}
+
 	if _, _, err := net.SplitHostPort(l.Address); err != nil {
 		return database.NewValidationError("'%s' is not a valid server address", l.Address)
 	}
@@ -114,6 +128,7 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 	if l.ProtoConfig == nil {
 		return database.NewValidationError("the agent's configuration cannot be empty")
 	}
+
 	if err := l.validateProtoConfig(); err != nil {
 		return database.NewValidationError(err.Error())
 	}
@@ -131,12 +146,13 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
-//nolint:dupl
+//nolint:dupl // to many differences
 func (l *LocalAgent) BeforeDelete(db database.Access) database.Error {
 	n, err := db.Count(&Transfer{}).Where("is_server=? AND agent_id=?", true, l.ID).Run()
 	if err != nil {
 		return err
 	}
+
 	if n > 0 {
 		return database.NewValidationError("this server is currently being used in " +
 			"one or more running transfers and thus cannot be deleted, cancel " +

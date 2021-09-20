@@ -78,7 +78,6 @@ func TestExecValidate(t *testing.T) {
 }
 
 func TestExecRun(t *testing.T) {
-
 	Convey("Given an 'EXEC' task", t, func() {
 		exec := &ExecTask{}
 		args := map[string]string{
@@ -91,7 +90,7 @@ func TestExecRun(t *testing.T) {
 			Reset(func() { _ = os.Remove(execScriptFile) })
 
 			Convey("Given that the command succeeds", func() {
-				err := ioutil.WriteFile(execScriptFile, []byte(scriptExecOK), 0700)
+				err := ioutil.WriteFile(execScriptFile, []byte(scriptExecOK), 0o700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -108,7 +107,7 @@ func TestExecRun(t *testing.T) {
 			})
 
 			Convey("Given that the command sends a warning", func() {
-				err := ioutil.WriteFile(execScriptFile, []byte(scriptExecWarn), 0700)
+				err := ioutil.WriteFile(execScriptFile, []byte(scriptExecWarn), 0o700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -125,7 +124,7 @@ func TestExecRun(t *testing.T) {
 			})
 
 			Convey("Given that the command fails", func() {
-				err := ioutil.WriteFile(execScriptFile, []byte(scriptExecFail), 0700)
+				err := ioutil.WriteFile(execScriptFile, []byte(scriptExecFail), 0o700)
 				So(err, ShouldBeNil)
 
 				Convey("When running the task", func() {
@@ -142,7 +141,7 @@ func TestExecRun(t *testing.T) {
 			})
 
 			Convey("Given that the command delay expires", func() {
-				err := ioutil.WriteFile(execScriptFile, []byte(scriptExecInfinite), 0700)
+				err := ioutil.WriteFile(execScriptFile, []byte(scriptExecInfinite), 0o700)
 				So(err, ShouldBeNil)
 
 				args["delay"] = "100"

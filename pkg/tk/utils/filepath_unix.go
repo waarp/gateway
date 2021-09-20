@@ -1,4 +1,5 @@
-// +build !windows,!plan9
+//go:build !windows || ignore
+// +build !windows ignore
 
 package utils
 

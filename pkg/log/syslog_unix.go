@@ -1,9 +1,18 @@
-//+build !windows,!nacl,!plan9
+//go:build !windows && !nacl && !plan9
 
 package log
 
-import "code.bcarlin.xyz/go/logging"
+import (
+	"fmt"
+
+	"code.bcarlin.xyz/go/logging"
+)
 
 func newSyslogBackend(facility string) (logging.Backend, error) {
-	return logging.NewSyslogBackend(facility, "waarp-manager-ng")
+	logger, err := logging.NewSyslogBackend(facility, "waarp-manager")
+	if err != nil {
+		return nil, fmt.Errorf("cannot initialize syslog backend: %w", err)
+	}
+
+	return logger, nil
 }

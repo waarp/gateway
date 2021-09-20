@@ -8,7 +8,6 @@ import (
 )
 
 func TestTransferErrorCode(t *testing.T) {
-
 	Convey("Given a valid transfer error", t, func() {
 		ec := TeOk
 
@@ -134,7 +133,6 @@ func TestTransferErrorCode(t *testing.T) {
 }
 
 func TestTransferError(t *testing.T) {
-
 	Convey("Testing TransferError", t, func() {
 		Convey("Given a complete and valid transfer error", func() {
 			terr := NewTransferError(TeUnimplemented, "more info")
@@ -204,5 +202,4 @@ func TestTransferError(t *testing.T) {
 			})
 		})
 	})
-
 }

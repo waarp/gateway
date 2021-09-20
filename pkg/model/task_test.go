@@ -3,10 +3,12 @@ package model
 import (
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	ValidTasks["TESTSUCCESS"] = &testTaskSuccess{}
 	ValidTasks["TESTFAIL"] = &testTaskFail{}

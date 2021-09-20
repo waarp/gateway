@@ -5,23 +5,25 @@ package admin
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 
 	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 const (
-	// ServiceName is the name of the administration interface service
+	// ServiceName is the name of the administration interface service.
 	ServiceName = "Admin"
 )
 
-// Server is the administration service
+// Server is the administration service.
 type Server struct {
 	Conf     *conf.ServerConfig
 	DB       *database.DB
@@ -32,38 +34,43 @@ type Server struct {
 	server http.Server
 }
 
-// listen starts the HTTP server listener on the configured port
+// listen starts the HTTP server listener on the configured port.
 func listen(s *Server) {
 	s.logger.Infof("Listening at address %s", s.server.Addr)
 
 	go func() {
 		s.state.Set(service.Running, "")
+
 		var err error
+
 		if s.server.TLSConfig == nil {
 			err = s.server.ListenAndServe()
 		} else {
 			err = s.server.ListenAndServeTLS("", "")
 		}
-		if err != http.ErrServerClosed {
+
+		if !errors.Is(err, http.ErrServerClosed) {
 			s.logger.Errorf("Unexpected error: %s", err)
 			s.state.Set(service.Error, err.Error())
 		} else {
 			s.state.Set(service.Offline, "")
 		}
 	}()
-
 }
 
 // checkAddress checks if the address given in the configuration is a
-// valid address on which the server can listen
+// valid address on which the server can listen.
 func checkAddress(config conf.AdminConfig) (string, error) {
 	addr := net.JoinHostPort(config.Host, fmt.Sprint(config.Port))
+
 	l, err := net.Listen("tcp", addr)
 	if err == nil {
-		defer l.Close()
+		defer l.Close() //nolint:errcheck // nothing to handle the error
+
 		return l.Addr().String(), nil
 	}
-	return "", err
+
+	return "", fmt.Errorf("canot open listener: %w", err)
 }
 
 // initServer initializes the HTTP server instance using the parameters defined
@@ -79,12 +86,15 @@ func initServer(s *Server) error {
 	// Load TLS configuration
 	certFile := s.Conf.Admin.TLSCert
 	keyFile := s.Conf.Admin.TLSKey
+
 	var tlsConfig *tls.Config
+
 	if certFile != "" && keyFile != "" {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err != nil {
-			return fmt.Errorf("could not load REST certificate (%s)", err)
+			return fmt.Errorf("could not load REST certificate: %w", err)
 		}
+
 		tlsConfig = &tls.Config{
 			MinVersion:   tls.VersionTLS12,
 			Certificates: []tls.Certificate{cert},
@@ -102,6 +112,7 @@ func initServer(s *Server) error {
 		Handler:   handler,
 		ErrorLog:  s.logger.AsStdLog(logging.ERROR),
 	}
+
 	return nil
 }
 
@@ -111,8 +122,10 @@ func (s *Server) Start() error {
 	s.logger = log.NewLogger(ServiceName)
 
 	s.logger.Info("Startup command received...")
+
 	if state, _ := s.state.Get(); state != service.Offline && state != service.Error {
 		s.logger.Infof("Cannot start because the server is already running.")
+
 		return nil
 	}
 
@@ -121,6 +134,7 @@ func (s *Server) Start() error {
 	if err := initServer(s); err != nil {
 		s.logger.Errorf("Failed to start: %s", err)
 		s.state.Set(service.Error, err.Error())
+
 		return err
 	}
 
@@ -128,6 +142,7 @@ func (s *Server) Start() error {
 
 	s.state.Set(service.Running, "")
 	s.logger.Info("Server started")
+
 	return nil
 }
 
@@ -135,8 +150,10 @@ func (s *Server) Start() error {
 // If it fails, the service is forcefully stopped.
 func (s *Server) Stop(ctx context.Context) error {
 	s.logger.Info("Shutdown command received...")
+
 	if state, _ := s.state.Get(); state != service.Running {
 		s.logger.Info("Cannot stop because the server is not running")
+
 		return nil
 	}
 
@@ -150,11 +167,17 @@ func (s *Server) Stop(ctx context.Context) error {
 		err = s.server.Close()
 		s.logger.Warning("The server was forcefully stopped")
 	}
+
 	s.state.Set(service.Offline, "")
-	return err
+
+	if err != nil {
+		return fmt.Errorf("an error occurred while stopping the server: %w", err)
+	}
+
+	return nil
 }
 
-// State returns the state of the service
+// State returns the state of the service.
 func (s *Server) State() *service.State {
 	return &s.state
 }

@@ -20,20 +20,24 @@ func GetPath(tail string, elems Elems) string {
 	}
 
 	filepath := []string{tail}
-	for _, e := range elems {
-		p := e[0].(string)
-		if p == "" {
+
+	for i := range elems {
+		p, ok := elems[i][0].(string)
+		if !ok || p == "" {
 			continue
 		}
-		if e[1].(bool) && len(filepath) > 1 {
+
+		if elems[i][1].(bool) && len(filepath) > 1 {
 			continue
 		}
 
 		p = NormalizePath(p)
 		filepath = append([]string{p}, filepath...)
+
 		if path.IsAbs(p) {
 			return path.Join(filepath...)
 		}
 	}
+
 	return "/" + path.Join(filepath...)
 }

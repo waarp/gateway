@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"path"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 // MoveRenameTask is a task which move and rename the current file
-// to a given destination
+// to a given destination.
 type MoveRenameTask struct{}
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	RunnableTasks["MOVERENAME"] = &MoveRenameTask{}
 	model.ValidTasks["MOVERENAME"] = &MoveRenameTask{}
@@ -19,8 +20,10 @@ func init() {
 // Validate check if the task has a destination for the move.
 func (*MoveRenameTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
-		return fmt.Errorf("cannot create a move_rename task without a `path` argument")
+		return fmt.Errorf("cannot create a move_rename task without a `path` argument: %w",
+			errBadTaskArguments)
 	}
+
 	return nil
 }
 
@@ -33,11 +36,14 @@ func (*MoveRenameTask) Run(args map[string]string, processor *Processor) (string
 	if err := MoveFile(oldPath, newPath); err != nil {
 		return err.Error(), err
 	}
+
 	processor.Transfer.TrueFilepath = newPath
+
 	if processor.Rule.IsSend {
 		processor.Transfer.SourceFile = path.Base(newPath)
 	} else {
 		processor.Transfer.DestFile = path.Base(newPath)
 	}
+
 	return "", nil
 }

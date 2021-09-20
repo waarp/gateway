@@ -3,11 +3,12 @@ package rest
 import (
 	"net/http"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	"github.com/gorilla/mux"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 // The definitions of all the REST entry points paths.
@@ -61,10 +62,9 @@ const (
 )
 
 // MakeRESTHandler appends all the REST API handlers to the given HTTP router.
-//nolint:funlen
+//nolint:funlen // hard to shorten
 func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	services map[string]service.Service) {
-
 	router.StrictSlash(true)
 
 	router.Path(statusPath).Methods(http.MethodGet).Handler(getStatus(logger, services))

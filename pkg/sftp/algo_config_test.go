@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestSFTPAlgoConfig(t *testing.T) {
@@ -64,7 +64,7 @@ func TestSFTPAlgoConfig(t *testing.T) {
 		})
 
 		Convey("Given an SFTP client", func() {
-			info := model.OutTransferInfo{
+			info := &model.OutTransferInfo{
 				Agent: &model.RemoteAgent{
 					Name:        "remote_sftp",
 					Address:     agent.Address,
@@ -83,7 +83,9 @@ func TestSFTPAlgoConfig(t *testing.T) {
 			}
 			c, err := NewClient(info, make(chan model.Signal))
 			So(err, ShouldBeNil)
-			client := c.(*Client)
+
+			client, ok := c.(*Client)
+			So(ok, ShouldBeTrue)
 			So(client.Connect(), ShouldBeNil)
 
 			Convey("Given the SFTP client has the same configured algos", func() {
@@ -168,7 +170,7 @@ func TestSFTPKeyAuth(t *testing.T) {
 			So(db.Insert(clientKey).Run(), ShouldBeNil)
 
 			Convey("When connecting to the server with that account", func() {
-				info := model.OutTransferInfo{
+				info := &model.OutTransferInfo{
 					Agent: &model.RemoteAgent{
 						Name:        "remote_sftp",
 						Address:     agent.Address,
@@ -190,7 +192,9 @@ func TestSFTPKeyAuth(t *testing.T) {
 
 				c, err := NewClient(info, make(chan model.Signal))
 				So(err, ShouldBeNil)
-				client := c.(*Client)
+
+				client, ok := c.(*Client)
+				So(ok, ShouldBeTrue)
 				So(client.Connect(), ShouldBeNil)
 
 				Convey("Then it should authenticate without errors", func() {

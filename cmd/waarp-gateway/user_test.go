@@ -5,14 +5,15 @@ import (
 	"net/url"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func userInfoString(u *api.OutUser) string {
@@ -26,7 +27,6 @@ func userInfoString(u *api.OutUser) string {
 }
 
 func TestGetUser(t *testing.T) {
-
 	Convey("Testing the user 'get' command", t, func() {
 		out = testFile()
 		command := &userGet{}
@@ -82,7 +82,6 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestAddUser(t *testing.T) {
-
 	Convey("Testing the user 'add' command", t, func() {
 		out = testFile()
 		command := &userAdd{}
@@ -131,7 +130,6 @@ func TestAddUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-
 	Convey("Testing the user 'delete' command", t, func() {
 		out = testFile()
 		command := &userDelete{}
@@ -194,7 +192,6 @@ func TestDeleteUser(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-
 	Convey("Testing the user 'delete' command", t, func() {
 		out = testFile()
 		command := &userUpdate{}
@@ -218,8 +215,10 @@ func TestUpdateUser(t *testing.T) {
 			So(db.Insert(user).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
-				args := []string{user.Username, "-u", "new_user",
-					"-p", "new_password", "-r", "T+w,S-rw,P=wd,R+w-r,U=w"}
+				args := []string{
+					user.Username, "-u", "new_user",
+					"-p", "new_password", "-r", "T+w,S-rw,P=wd,R+w-r,U=w",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -277,7 +276,6 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestListUser(t *testing.T) {
-
 	Convey("Testing the user 'list' command", t, func() {
 		out = testFile()
 		command := &userList{}

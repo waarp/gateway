@@ -8,14 +8,16 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
+//nolint:gochecknoinits // designed this way
 func init() {
 	logConf := conf.LogConfig{
 		Level: "DEBUG",
@@ -306,10 +308,10 @@ func TestGetTasks(t *testing.T) {
 				Convey("Given a processor", func() {
 					p := Processor{
 						DB: db,
-						//Logger:   e.Logger,
+						// Logger:   e.Logger,
 						Rule: rule,
-						//Transfer: info.Transfer,
-						//Shutdown: e.Shutdown,
+						// Transfer: info.Transfer,
+						// Shutdown: e.Shutdown,
 					}
 
 					Convey("When retrieving the rule's pre-tasks", func() {
@@ -339,7 +341,6 @@ func TestGetTasks(t *testing.T) {
 						})
 					})
 				})
-
 			})
 		})
 	})
@@ -389,7 +390,6 @@ func TestRunTasks(t *testing.T) {
 		}
 
 		Convey("Given a list of tasks", func() {
-
 			Convey("Given that all the tasks succeed", func() {
 				dummyTaskCheck = make(chan string, 3)
 				tasks := []model.Task{

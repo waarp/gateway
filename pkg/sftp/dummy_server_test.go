@@ -2,6 +2,7 @@ package sftp
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,7 +15,7 @@ import (
 func makeDummyServer(pk, pbk, login, password string) (net.Listener, error) {
 	publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pbk))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse user public key: %s", err)
+		return nil, fmt.Errorf("failed to parse user public key: %w", err)
 	}
 
 	conf := &ssh.ServerConfig{
@@ -22,26 +23,30 @@ func makeDummyServer(pk, pbk, login, password string) (net.Listener, error) {
 			if conn.User() == login && bytes.Equal(key.Marshal(), publicKey.Marshal()) {
 				return &ssh.Permissions{}, nil
 			}
-			return nil, fmt.Errorf("public key '%s' rejected for user '%s'", key.Type(), conn.User())
+
+			return nil, fmt.Errorf("public key '%s' rejected for user '%s': %w",
+				key.Type(), conn.User(), errAuthFailed)
 		},
 		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			if conn.User() == login && string(pass) == password {
 				return &ssh.Permissions{}, nil
 			}
-			return nil, fmt.Errorf("password '%s' rejected for user '%s'", pass, conn.User())
+
+			return nil, fmt.Errorf("password '%s' rejected for user '%s': %w",
+				pass, conn.User(), errAuthFailed)
 		},
 	}
 
 	privateKey, err := ssh.ParsePrivateKey([]byte(pk))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse SFTP server key: %s", err)
+		return nil, fmt.Errorf("failed to parse SFTP server key: %w", err)
 	}
 
 	conf.AddHostKey(privateKey)
 
 	listener, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
-		return nil, fmt.Errorf("failed to start SFTP server: %s", err)
+		return nil, fmt.Errorf("failed to start SFTP server: %w", err)
 	}
 
 	go handleSFTP(listener, conf)
@@ -54,12 +59,14 @@ func handleSFTP(listener net.Listener, config *ssh.ServerConfig) {
 		nConn, err := listener.Accept()
 		if err != nil {
 			log.Println("Failed to accept incoming connection", err)
+
 			continue
 		}
 
 		_, chans, reqs, err := ssh.NewServerConn(nConn, config)
 		if err != nil {
 			log.Println("Failed to handshake", err)
+
 			continue
 		}
 
@@ -68,39 +75,49 @@ func handleSFTP(listener net.Listener, config *ssh.ServerConfig) {
 		for newChannel := range chans {
 			if newChannel.ChannelType() != "session" {
 				_ = newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
+
 				continue
 			}
+
 			channel, requests, err := newChannel.Accept()
 			if err != nil {
 				log.Println("Could not accept channel.", err)
+
 				break
 			}
 
-			go func(in <-chan *ssh.Request) {
-				for req := range in {
-					ok := false
-					switch req.Type {
-					case "subsystem":
-						if string(req.Payload[4:]) == "sftp" {
-							ok = true
-						}
-					}
-					_ = req.Reply(ok, nil)
-				}
-			}(requests)
+			go handleRequests(requests)
 
 			server, err := sftp.NewServer(channel)
 			if err != nil {
 				log.Println("Failed to start SFTP server", err)
+
 				break
 			}
-			if err := server.Serve(); err == io.EOF {
+
+			if err := server.Serve(); errors.Is(err, io.EOF) {
 				_ = server.Close()
+
 				break
 			} else if err != nil {
 				log.Println("sftp server completed with error:", err)
+
 				break
 			}
 		}
+	}
+}
+
+func handleRequests(in <-chan *ssh.Request) {
+	for req := range in {
+		ok := false
+
+		if req.Type == "subsystem" {
+			if string(req.Payload[4:]) == "sftp" {
+				ok = true
+			}
+		}
+
+		_ = req.Reply(ok, nil)
 	}
 }

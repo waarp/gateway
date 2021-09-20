@@ -13,6 +13,7 @@ func String(s *string) string {
 	if s == nil {
 		return ""
 	}
+
 	return *s
 }
 
@@ -22,9 +23,11 @@ func BoolPtr(b bool) *bool {
 	return &b
 }
 
+//nolint:gochecknoglobals // Cannot be defined as constants
 var (
 	// TruePtr is a boolean pointer to a true constant.
 	TruePtr *bool = BoolPtr(true)
+
 	// FalsePtr is a boolean pointer to a false constant.
 	FalsePtr *bool = BoolPtr(false)
 )

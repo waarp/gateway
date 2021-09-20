@@ -1,23 +1,25 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
 
+	"code.bcarlin.xyz/go/logging"
+	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
 
+//nolint:gochecknoglobals // global var is used by design
 var discard *log.Logger
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	logConf := conf.LogConfig{
 		Level: "CRITICAL",
@@ -35,6 +37,7 @@ func init() {
 func hash(pwd string) []byte {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	So(err, ShouldBeNil)
+
 	return h
 }
 
@@ -45,8 +48,10 @@ func writeFile(content string) *os.File {
 		_ = file.Close()
 		_ = os.Remove(file.Name())
 	})
+
 	_, err = file.WriteString(content)
 	So(err, ShouldBeNil)
+
 	return file
 }
 
@@ -59,10 +64,13 @@ func (*TestProtoConfig) CertRequired() bool  { return false }
 type TestProtoConfigFail struct{}
 
 func (*TestProtoConfigFail) ValidServer() error {
-	return fmt.Errorf("server config validation failed")
+	//nolint:goerr113 // base case for a test
+	return errors.New("server config validation failed")
 }
+
 func (*TestProtoConfigFail) ValidPartner() error {
-	return fmt.Errorf("partner config validation failed")
+	//nolint:goerr113 // base case for a test
+	return errors.New("partner config validation failed")
 }
 func (*TestProtoConfigFail) CertRequired() bool { return false }
 
@@ -73,5 +81,6 @@ func testFile() io.Writer {
 func getOutput() string {
 	str, ok := out.(*strings.Builder)
 	So(ok, ShouldBeTrue)
+
 	return str.String()
 }

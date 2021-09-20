@@ -10,5 +10,6 @@ import (
 // checksum of the certificate.
 func MakeSignature(cert *x509.Certificate) string {
 	sum := sha256.Sum256(cert.Raw)
+
 	return base64.StdEncoding.EncodeToString(sum[:])
 }

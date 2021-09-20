@@ -11,10 +11,12 @@ var ErrLimitReached = fmt.Errorf("transfer limit reached")
 
 // TransferInCount counts the current and maximum number of concurrent incoming
 // transfers. A limit of 0 means no limit.
+//nolint:gochecknoglobals // FIXME: could be refactored
 var TransferInCount = &Count{}
 
 // TransferOutCount counts the current and maximum number of concurrent outgoing
 // transfers. A limit of 0 means no limit.
+//nolint:gochecknoglobals // FIXME: could be refactored
 var TransferOutCount = &Count{}
 
 // Count is a thread-safe counter with a maximum limit check included.
@@ -56,6 +58,7 @@ func (c *Count) add() error {
 		return ErrLimitReached
 	}
 	c.count++
+
 	return nil
 }
 

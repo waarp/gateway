@@ -8,19 +8,21 @@ import (
 	"strings"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func direction(r *model.Rule) string {
 	if r.IsSend {
 		return "send"
 	}
+
 	return "receive"
 }
 
@@ -33,29 +35,36 @@ func ruleInfoString(r *api.OutRule) string {
 	servers := strings.Join(r.Authorized.LocalServers, ", ")
 	partners := strings.Join(r.Authorized.RemotePartners, ", ")
 	la := []string{}
+
 	for server, accounts := range r.Authorized.LocalAccounts {
 		for _, account := range accounts {
 			la = append(la, fmt.Sprint(server, ".", account))
 		}
 	}
+
 	ra := []string{}
+
 	for partner, accounts := range r.Authorized.RemoteAccounts {
 		for _, account := range accounts {
 			ra = append(ra, fmt.Sprint(partner, ".", account))
 		}
 	}
+
 	locAcc := strings.Join(la, ", ")
 	remAcc := strings.Join(ra, ", ")
 
 	taskStr := func(tasks []api.Task) string {
 		str := ""
+
 		for i, t := range tasks {
 			prefix := "    ├─Command "
 			if i == len(tasks)-1 {
 				prefix = "    └─Command "
 			}
+
 			str += prefix + t.Type + " with args: " + string(t.Args) + "\n"
 		}
+
 		return str
 	}
 
@@ -78,7 +87,6 @@ func ruleInfoString(r *api.OutRule) string {
 }
 
 func TestDisplayRule(t *testing.T) {
-
 	Convey("Given a rule entry", t, func() {
 		out = testFile()
 
@@ -129,7 +137,6 @@ func TestDisplayRule(t *testing.T) {
 }
 
 func TestGetRule(t *testing.T) {
-
 	Convey("Testing the rule 'get' command", t, func() {
 		out = testFile()
 		command := &ruleGet{}
@@ -186,7 +193,6 @@ func TestGetRule(t *testing.T) {
 }
 
 func TestAddRule(t *testing.T) {
-
 	Convey("Testing the rule 'add' command", t, func() {
 		out = testFile()
 		command := &ruleAdd{}
@@ -207,7 +213,8 @@ func TestAddRule(t *testing.T) {
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given valid parameters", func() {
-				args := []string{"-n", "new_rule", "-c", "new_rule comment",
+				args := []string{
+					"-n", "new_rule", "-c", "new_rule comment",
 					"-d", "receive", "--path=/new/rule/path", "--out_path=/out/path",
 					"--in_path=/in/path", "--work_path=/work/path",
 					`--pre={"type":"COPY","args":{"path":"/path/to/copy"}}`,
@@ -305,8 +312,10 @@ func TestAddRule(t *testing.T) {
 			})
 
 			Convey("Given that the rule's name already exist", func() {
-				args := []string{"-n", existing.Name, "-c", "new_rule comment",
-					"-d", "receive", "-p", "new/rule/path"}
+				args := []string{
+					"-n", existing.Name, "-c", "new_rule comment",
+					"-d", "receive", "-p", "new/rule/path",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -330,7 +339,6 @@ func TestAddRule(t *testing.T) {
 }
 
 func TestDeleteRule(t *testing.T) {
-
 	Convey("Testing the rule 'delete' command", t, func() {
 		out = testFile()
 		command := &ruleDelete{}
@@ -394,7 +402,6 @@ func TestDeleteRule(t *testing.T) {
 }
 
 func TestListRules(t *testing.T) {
-
 	Convey("Testing the rule 'list' command", t, func() {
 		out = testFile()
 		command := &ruleList{}
@@ -497,7 +504,6 @@ func TestListRules(t *testing.T) {
 }
 
 func TestRuleAllowAll(t *testing.T) {
-
 	Convey("Testing the rule 'list' command", t, func() {
 		out = testFile()
 		command := &ruleAllowAll{}
@@ -620,7 +626,8 @@ func TestRuleAllowAll(t *testing.T) {
 						err = command.Execute(params)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError, "invalid rule direction 'toto'")
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldContainSubstring, "invalid rule direction 'toto'")
 						})
 
 						Convey("Then the accesses should still exist", func() {

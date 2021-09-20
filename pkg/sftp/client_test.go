@@ -1,6 +1,7 @@
 package sftp
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -8,17 +9,20 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
+//nolint:gochecknoinits // ok... this is a test
 func init() {
 	listener, err := makeDummyServer(rsaPK, rsaPBK, testLogin, testPassword)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	clientTestPort = uint16(listener.Addr().(*net.TCPAddr).Port)
 }
 
@@ -27,7 +31,7 @@ func TestConnect(t *testing.T) {
 		client := &Client{}
 
 		Convey("Given a valid address", func() {
-			client.Info = model.OutTransferInfo{
+			client.Info = &model.OutTransferInfo{
 				Agent: &model.RemoteAgent{
 					Address: fmt.Sprintf("localhost:%d", clientTestPort),
 				},
@@ -48,7 +52,7 @@ func TestConnect(t *testing.T) {
 		})
 
 		Convey("Given an incorrect address", func() {
-			client.Info = model.OutTransferInfo{
+			client.Info = &model.OutTransferInfo{
 				Agent: &model.RemoteAgent{
 					Address: fmt.Sprintf("255.255.255.255:%d", clientTestPort),
 				},
@@ -58,7 +62,8 @@ func TestConnect(t *testing.T) {
 				err := client.Connect()
 
 				Convey("Then it should return an error", func() {
-					te, ok := err.(types.TransferError)
+					var te types.TransferError
+					ok := errors.As(err, &te)
 					So(ok, ShouldBeTrue)
 					So(te.Code, ShouldEqual, types.TeConnection)
 
@@ -75,7 +80,7 @@ func TestAuthenticate(t *testing.T) {
 	Convey("Given a SFTP client", t, func() {
 		client := &Client{
 			conf: &config.SftpProtoConfig{},
-			Info: model.OutTransferInfo{
+			Info: &model.OutTransferInfo{
 				Agent: &model.RemoteAgent{
 					Address: fmt.Sprintf("localhost:%d", clientTestPort),
 				},
@@ -134,7 +139,7 @@ func TestRequest(t *testing.T) {
 	Convey("Given a SFTP client", t, func() {
 		client := &Client{
 			conf: &config.SftpProtoConfig{},
-			Info: model.OutTransferInfo{
+			Info: &model.OutTransferInfo{
 				Agent: &model.RemoteAgent{
 					Address: fmt.Sprintf("localhost:%d", clientTestPort),
 				},
@@ -221,7 +226,7 @@ func TestData(t *testing.T) {
 	Convey("Given a SFTP client", t, func() {
 		client := &Client{
 			conf: &config.SftpProtoConfig{},
-			Info: model.OutTransferInfo{
+			Info: &model.OutTransferInfo{
 				Agent: &model.RemoteAgent{
 					Address: fmt.Sprintf("localhost:%d", clientTestPort),
 				},
@@ -239,7 +244,7 @@ func TestData(t *testing.T) {
 
 		srcFile := "client_test.src"
 		content := []byte("Client test transfer file content")
-		So(ioutil.WriteFile(srcFile, content, 0600), ShouldBeNil)
+		So(ioutil.WriteFile(srcFile, content, 0o600), ShouldBeNil)
 		Reset(func() { _ = os.Remove(client.Info.Transfer.SourceFile) })
 
 		So(client.Authenticate(), ShouldBeNil)

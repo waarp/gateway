@@ -30,11 +30,18 @@ func (g *GetQuery) Run() Error {
 
 	if err != nil {
 		logger.Errorf("Failed to retrieve the %s entry: %s", g.bean.Appellation(), err)
+
 		return NewInternalError(err)
 	}
+
 	if !exist {
-		where, _ := builder.ConvertToBoundSQL(g.sql, g.args)
+		where, err := builder.ConvertToBoundSQL(g.sql, g.args)
+		if err != nil {
+			logger.Warningf("an error occurred while preparing the query: %v", err)
+		}
+
 		logger.Debugf("No %s found with conditions '%s'", g.bean.Appellation(), where)
+
 		return NewNotFoundError(g.bean)
 	}
 

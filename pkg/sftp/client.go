@@ -5,20 +5,23 @@ package sftp
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
 	"path"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/executor"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
+//nolint:gochecknoinits // designed to use inits
 func init() {
 	executor.ClientsConstructors["sftp"] = NewClient
 }
@@ -27,7 +30,7 @@ func init() {
 // enables the gateway to initiate SFTP transfers.
 type Client struct {
 	Signals <-chan model.Signal
-	Info    model.OutTransferInfo
+	Info    *model.OutTransferInfo
 
 	conf       *config.SftpProtoConfig
 	conn       net.Conn
@@ -38,8 +41,7 @@ type Client struct {
 // NewClient returns a new SFTP transfer client with the given transfer info,
 // local file, and signal channel. An error is returned if the client
 // configuration is incorrect.
-func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipeline.Client, error) {
-
+func NewClient(info *model.OutTransferInfo, signals <-chan model.Signal) (pipeline.Client, error) {
 	client := &Client{
 		Info:    info,
 		Signals: signals,
@@ -47,8 +49,9 @@ func NewClient(info model.OutTransferInfo, signals <-chan model.Signal) (pipelin
 
 	conf := &config.SftpProtoConfig{}
 	if err := json.Unmarshal(info.Agent.ProtoConfig, conf); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot parse protoconfig for %q: %w", info.Agent.Name, err)
 	}
+
 	client.conf = conf
 
 	return client, nil
@@ -60,6 +63,7 @@ func (c *Client) Connect() error {
 	if err != nil {
 		return types.NewTransferError(types.TeConnection, err.Error())
 	}
+
 	c.conn = conn
 
 	return nil
@@ -67,73 +71,108 @@ func (c *Client) Connect() error {
 
 // Authenticate opens the SSH tunnel to the remote.
 func (c *Client) Authenticate() error {
-	conf, err := getSSHClientConfig(&c.Info, c.conf)
+	conf, err := getSSHClientConfig(c.Info, c.conf)
 	if err != nil {
 		return types.NewTransferError(types.TeInternal, err.Error())
 	}
 
-	addr, _, _ := net.SplitHostPort(c.Info.Agent.Address)
+	addr, _, err := net.SplitHostPort(c.Info.Agent.Address)
+	if err != nil {
+		return types.NewTransferError(types.TeInternal, err.Error())
+	}
+
 	conn, chans, reqs, err := ssh.NewClientConn(c.conn, addr, conf)
 	if err != nil {
 		return types.NewTransferError(types.TeBadAuthentication, err.Error())
 	}
 
 	sshClient := ssh.NewClient(conn, chans, reqs)
+
 	c.client, err = sftp.NewClient(sshClient)
 	if err != nil {
 		return types.NewTransferError(types.TeConnection, err.Error())
 	}
+
 	return nil
 }
 
 // Request opens/creates the remote file.
 func (c *Client) Request() error {
 	var err error
+
 	if c.Info.Rule.IsSend {
-		remotePath := path.Join(c.Info.Rule.InPath, c.Info.Transfer.DestFile)
-		c.remoteFile, err = c.client.OpenFile(remotePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
-		if err != nil {
-			if msg, ok := isRemoteTaskError(err); ok {
-				fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
-				return types.NewTransferError(types.TeExternalOperation, fullMsg)
-			}
-			if err == os.ErrNotExist {
-				return types.NewTransferError(types.TeFileNotFound, "Target directory does not exist")
-			}
-			return types.NewTransferError(types.TeConnection, err.Error())
-		}
+		err = doSendRequest(c)
 	} else {
-		remotePath := path.Join(c.Info.Rule.OutPath, c.Info.Transfer.SourceFile)
-		c.remoteFile, err = c.client.Open(remotePath)
-		if err != nil {
-			if msg, ok := isRemoteTaskError(err); ok {
-				fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
-				return types.NewTransferError(types.TeExternalOperation, fullMsg)
-			}
-			if err == os.ErrNotExist {
-				return types.NewTransferError(types.TeFileNotFound, "Target file does not exist")
-			}
-			return types.NewTransferError(types.TeConnection, err.Error())
-		}
+		err = doRecvRequest(c)
 	}
+
+	return err
+}
+
+func doSendRequest(c *Client) error {
+	remotePath := path.Join(c.Info.Rule.InPath, c.Info.Transfer.DestFile)
+
+	remoteFile, err := c.client.OpenFile(remotePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+	if err != nil {
+		if msg, ok := isRemoteTaskError(err); ok {
+			fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
+
+			return types.NewTransferError(types.TeExternalOperation, fullMsg)
+		}
+
+		if errors.Is(err, os.ErrNotExist) {
+			return types.NewTransferError(types.TeFileNotFound, "Target directory does not exist")
+		}
+
+		return types.NewTransferError(types.TeConnection, err.Error())
+	}
+
+	c.remoteFile = remoteFile
+
+	return nil
+}
+
+func doRecvRequest(c *Client) error {
+	remotePath := path.Join(c.Info.Rule.OutPath, c.Info.Transfer.SourceFile)
+
+	remoteFile, err := c.client.Open(remotePath)
+	if err != nil {
+		if msg, ok := isRemoteTaskError(err); ok {
+			fullMsg := fmt.Sprintf("Remote pre-tasks failed: %s", msg)
+
+			return types.NewTransferError(types.TeExternalOperation, fullMsg)
+		}
+
+		if errors.Is(err, os.ErrNotExist) {
+			return types.NewTransferError(types.TeFileNotFound, "Target file does not exist")
+		}
+
+		return types.NewTransferError(types.TeConnection, err.Error())
+	}
+
+	c.remoteFile = remoteFile
+
 	return nil
 }
 
 // Data copies the content of the source file into the destination file.
 func (c *Client) Data(file pipeline.DataStream) error {
-	err := func() error {
-		if !c.Info.Rule.IsSend {
-			_, err := c.remoteFile.WriteTo(file)
-			return err
+	if !c.Info.Rule.IsSend {
+		_, err2 := c.remoteFile.WriteTo(file)
+		if err2 != nil {
+			return types.NewTransferError(types.TeDataTransfer,
+				fmt.Sprintf("cannot write data: %v", err2))
 		}
-		if _, err := c.remoteFile.ReadFrom(file); err != nil {
-			return err
-		}
+
 		return nil
-	}()
-	if err != nil {
-		return types.NewTransferError(types.TeDataTransfer, err.Error())
 	}
+
+	_, err := c.remoteFile.ReadFrom(file)
+	if err != nil {
+		return types.NewTransferError(types.TeDataTransfer,
+			fmt.Sprintf("cannot read data: %v", err))
+	}
+
 	return nil
 }
 
@@ -141,10 +180,11 @@ func (c *Client) Data(file pipeline.DataStream) error {
 func (c *Client) Close(pErr error) error {
 	defer func() {
 		if c.client != nil {
-			_ = c.client.Close()
+			_ = c.client.Close() //nolint:errcheck // no logger to do anything with the error
 		}
+
 		if c.conn != nil {
-			_ = c.conn.Close()
+			_ = c.conn.Close() //nolint:errcheck // no logger to do anything with the error
 		}
 	}()
 
@@ -152,10 +192,13 @@ func (c *Client) Close(pErr error) error {
 		if err := c.remoteFile.Close(); err != nil {
 			if msg, ok := isRemoteTaskError(err); ok {
 				fullMsg := fmt.Sprintf("Remote post-tasks failed: %s", msg)
+
 				return types.NewTransferError(types.TeExternalOperation, fullMsg)
 			}
+
 			return types.NewTransferError(types.TeConnection, err.Error())
 		}
 	}
+
 	return nil
 }

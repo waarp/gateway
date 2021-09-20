@@ -7,13 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+
+	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 const usersURI = "http://localhost:8080/api/users/"
@@ -43,7 +44,6 @@ func TestGetUser(t *testing.T) {
 
 					Convey("Then the body should contain the requested partner "+
 						"in JSON format", func() {
-
 						exp, err := json.Marshal(FromUser(expected))
 
 						So(err, ShouldBeNil)
@@ -236,7 +236,6 @@ func TestCreateUser(t *testing.T) {
 
 						Convey("Then the 'Location' header should contain the "+
 							"URI of the new user", func() {
-
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, usersURI+"toto")
 						})
@@ -437,7 +436,6 @@ func TestUpdateUser(t *testing.T) {
 
 						Convey("Then the 'Location' header should contain "+
 							"the URI of the updated user", func() {
-
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, usersURI+"toto")
 						})
@@ -518,7 +516,6 @@ func TestUpdateUser(t *testing.T) {
 
 						Convey("Then the 'Location' header should contain "+
 							"the URI of the updated user", func() {
-
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, usersURI+"upd_user")
 						})
@@ -572,7 +569,6 @@ func TestUpdateUser(t *testing.T) {
 
 						Convey("Then the 'Location' header should contain "+
 							"the URI of the updated user", func() {
-
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, usersURI+old.Username)
 						})
@@ -645,7 +641,6 @@ func TestReplaceUser(t *testing.T) {
 
 						Convey("Then the 'Location' header should contain "+
 							"the URI of the updated user", func() {
-
 							location := w.Header().Get("Location")
 							So(location, ShouldEqual, usersURI+"upd_user")
 						})

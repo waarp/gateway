@@ -6,14 +6,16 @@ package r66
 import (
 	"bytes"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"code.waarp.fr/waarp-r66/r66"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 var errIncorrectHash = fmt.Errorf("file hash does not match expected value")
@@ -21,16 +23,23 @@ var errIncorrectHash = fmt.Errorf("file hash does not match expected value")
 func makeHash(filepath string) ([]byte, error) {
 	f, err := os.Open(utils.DenormalizePath(filepath))
 	if err != nil {
-		return nil, err.(*os.PathError).Err
+		var err2 *os.PathError
+
+		errors.As(err, &err2)
+
+		return nil, err2.Err
 	}
+
+	//nolint:errcheck // no logger to handle the error
 	defer func() { _ = f.Close() }()
 
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, f); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot generate hash: %w", err)
 	}
 
 	hash := hasher.Sum(nil)
+
 	return hash, nil
 }
 
@@ -52,7 +61,9 @@ func setProgress(trans *model.Transfer, request *r66.Request) {
 	if request.Rank < curBlock {
 		curBlock = request.Rank
 	}
+
 	request.Rank = curBlock
+
 	if trans.Step == types.StepData {
 		trans.Progress = uint64(curBlock) * uint64(request.Block)
 	}

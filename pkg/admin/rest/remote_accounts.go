@@ -3,13 +3,15 @@ package rest
 import (
 	"net/http"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
+//nolint:dupl // duplicated code is about a different type
 func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent,
 	*model.RemoteAccount, error) {
 	parent, err := getPart(r, db)
@@ -29,12 +31,14 @@ func getRemAcc(r *http.Request, db *database.DB) (*model.RemoteAgent,
 			return parent, nil, notFound("no account '%s' found for partner %s",
 				login, parent.Name)
 		}
+
 		return parent, nil, err
 	}
+
 	return parent, &account, nil
 }
 
-//nolint:dupl
+//nolint:dupl // duplicated code is about a different type
 func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	validSorting := orders{
 		"default": order{"login", true},
@@ -45,14 +49,17 @@ func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var accounts model.RemoteAccounts
+
 		query, err := parseSelectQuery(r, db, validSorting, &accounts)
 		if handleError(w, logger, err) {
 			return
 		}
+
 		parent, err := getPart(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
+
 		query.Where("remote_agent_id=?", parent.ID)
 
 		if err := query.Run(); handleError(w, logger, err) {
@@ -63,6 +70,7 @@ func listRemoteAccounts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		for i := range accounts {
 			ids[i] = accounts[i].ID
 		}
+
 		rules, err := getAuthorizedRuleList(db, typ, ids)
 		if handleError(w, logger, err) {
 			return
@@ -167,6 +175,7 @@ func deleteRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if err := db.Delete(acc).Run(); handleError(w, logger, err) {
 			return
 		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

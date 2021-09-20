@@ -14,6 +14,7 @@ func getColorable() io.Writer {
 	if file, ok := out.(*os.File); ok && term.IsTerminal(int(file.Fd())) {
 		return colorable.NewColorable(file)
 	}
+
 	return colorable.NewNonColorable(out)
 }
 

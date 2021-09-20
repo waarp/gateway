@@ -7,13 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func partnerInfoString(p *api.OutPartner) string {
@@ -27,7 +28,6 @@ func partnerInfoString(p *api.OutPartner) string {
 }
 
 func TestGetPartner(t *testing.T) {
-
 	Convey("Testing the partner 'get' command", t, func() {
 		out = testFile()
 		command := &partnerGet{}
@@ -54,11 +54,15 @@ func TestGetPartner(t *testing.T) {
 			sendAll := &model.Rule{Name: "send_all", IsSend: true, Path: "send_all_path"}
 			So(db.Insert(sendAll).Run(), ShouldBeNil)
 
-			sAccess := &model.RuleAccess{RuleID: send.ID,
-				ObjectType: partner.TableName(), ObjectID: partner.ID}
+			sAccess := &model.RuleAccess{
+				RuleID:     send.ID,
+				ObjectType: partner.TableName(), ObjectID: partner.ID,
+			}
 			So(db.Insert(sAccess).Run(), ShouldBeNil)
-			rAccess := &model.RuleAccess{RuleID: receive.ID,
-				ObjectType: partner.TableName(), ObjectID: partner.ID}
+			rAccess := &model.RuleAccess{
+				RuleID:     receive.ID,
+				ObjectType: partner.TableName(), ObjectID: partner.ID,
+			}
 			So(db.Insert(rAccess).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner name", func() {
@@ -98,7 +102,6 @@ func TestGetPartner(t *testing.T) {
 }
 
 func TestAddPartner(t *testing.T) {
-
 	Convey("Testing the partner 'add' command", t, func() {
 		out = testFile()
 		command := &partnerAdd{}
@@ -111,8 +114,10 @@ func TestAddPartner(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			Convey("Given valid flags", func() {
-				args := []string{"-n", "server_name", "-p", "test",
-					"-c", `{}`, "-a", "localhost:1"}
+				args := []string{
+					"-n", "server_name", "-p", "test",
+					"-c", `{}`, "-a", "localhost:1",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -141,8 +146,10 @@ func TestAddPartner(t *testing.T) {
 			})
 
 			Convey("Given an invalid protocol", func() {
-				args := []string{"-n", "server_name", "-p", "invalid",
-					"-c", `{}`, "-a", "localhost:1"}
+				args := []string{
+					"-n", "server_name", "-p", "invalid",
+					"-c", `{}`, "-a", "localhost:1",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -150,14 +157,17 @@ func TestAddPartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "unknown protocol 'invalid'")
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldContainSubstring, "unknown protocol 'invalid'")
 					})
 				})
 			})
 
 			Convey("Given an invalid configuration", func() {
-				args := []string{"-n", "server_name", "-p", "fail",
-					"-c", `{"unknown":"val"}`, "-a", "localhost:1"}
+				args := []string{
+					"-n", "server_name", "-p", "fail",
+					"-c", `{"unknown":"val"}`, "-a", "localhost:1",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -165,15 +175,18 @@ func TestAddPartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, `failed to parse protocol `+
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldContainSubstring, `failed to parse protocol `+
 							`configuration: json: unknown field "unknown"`)
 					})
 				})
 			})
 
 			Convey("Given an invalid address", func() {
-				args := []string{"-n", "server_name", "-p", "fail",
-					"-c", `{"key":"val"}`, "-a", "invalid_address"}
+				args := []string{
+					"-n", "server_name", "-p", "fail",
+					"-c", `{"key":"val"}`, "-a", "invalid_address",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -190,7 +203,6 @@ func TestAddPartner(t *testing.T) {
 }
 
 func TestListPartners(t *testing.T) {
-
 	Convey("Testing the partner 'list' command", t, func() {
 		out = testFile()
 		command := &partnerList{}
@@ -300,7 +312,6 @@ func TestListPartners(t *testing.T) {
 }
 
 func TestDeletePartner(t *testing.T) {
-
 	Convey("Testing the partner 'delete' command", t, func() {
 		out = testFile()
 		command := &partnerDelete{}
@@ -365,7 +376,6 @@ func TestDeletePartner(t *testing.T) {
 }
 
 func TestUpdatePartner(t *testing.T) {
-
 	Convey("Testing the partner 'update' command", t, func() {
 		out = testFile()
 		command := &partnerUpdate{}
@@ -386,8 +396,10 @@ func TestUpdatePartner(t *testing.T) {
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
-				args := []string{"-n", "new_partner", "-p", "test2",
-					"-a", "localhost:1", partner.Name}
+				args := []string{
+					"-n", "new_partner", "-p", "test2",
+					"-a", "localhost:1", partner.Name,
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -417,8 +429,10 @@ func TestUpdatePartner(t *testing.T) {
 			})
 
 			Convey("Given an invalid protocol", func() {
-				args := []string{"-n", "new_partner", "-p", "invalid",
-					"-a", "localhost:1", partner.Name}
+				args := []string{
+					"-n", "new_partner", "-p", "invalid",
+					"-a", "localhost:1", partner.Name,
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -426,7 +440,8 @@ func TestUpdatePartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "unknown protocol 'invalid'")
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldContainSubstring, "unknown protocol 'invalid'")
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
@@ -438,8 +453,10 @@ func TestUpdatePartner(t *testing.T) {
 			})
 
 			Convey("Given an invalid configuration", func() {
-				args := []string{"-n", "new_partner", "-p", "fail",
-					"-c", `unknown:val`, "-a", "localhost:1", partner.Name}
+				args := []string{
+					"-n", "new_partner", "-p", "fail",
+					"-c", `unknown:val`, "-a", "localhost:1", partner.Name,
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -447,7 +464,8 @@ func TestUpdatePartner(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, `failed to parse protocol `+
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldContainSubstring, `failed to parse protocol `+
 							`configuration: json: unknown field "unknown"`)
 					})
 
@@ -460,8 +478,10 @@ func TestUpdatePartner(t *testing.T) {
 			})
 
 			Convey("Given an invalid address", func() {
-				args := []string{"-n", "new_partner", "-p", "fail",
-					"-a", "invalid_address", partner.Name}
+				args := []string{
+					"-n", "new_partner", "-p", "fail",
+					"-a", "invalid_address", partner.Name,
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -482,8 +502,10 @@ func TestUpdatePartner(t *testing.T) {
 			})
 
 			Convey("Given an non-existing name", func() {
-				args := []string{"-n", "new_partner", "-p", "test2",
-					"-a", "localhost:1", "toto"}
+				args := []string{
+					"-n", "new_partner", "-p", "test2",
+					"-a", "localhost:1", "toto",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -506,7 +528,6 @@ func TestUpdatePartner(t *testing.T) {
 }
 
 func TestAuthorizePartner(t *testing.T) {
-
 	Convey("Testing the partner 'authorize' command", t, func() {
 		out = testFile()
 		command := &partnerAuthorize{}
@@ -606,7 +627,6 @@ func TestAuthorizePartner(t *testing.T) {
 }
 
 func TestRevokePartner(t *testing.T) {
-
 	Convey("Testing the partner 'revoke' command", t, func() {
 		out = testFile()
 		command := &partnerRevoke{}

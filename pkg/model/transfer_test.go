@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	. "code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func TestTransferTableName(t *testing.T) {
@@ -77,7 +78,6 @@ func TestTransferBeforeWrite(t *testing.T) {
 				}
 
 				Convey("Given that the new transfer is valid", func() {
-
 					Convey("When calling the 'BeforeWrite' function", func() {
 						So(trans.BeforeWrite(db), ShouldBeNil)
 
@@ -226,6 +226,7 @@ func TestTransferToHistory(t *testing.T) {
 				So(db.Transaction(func(ses *database.Session) database.Error {
 					var err database.Error
 					hist, err = trans.ToHistory(ses, stop)
+
 					return err
 				}), ShouldBeNil)
 
@@ -271,6 +272,7 @@ func TestTransferToHistory(t *testing.T) {
 							err := db.Transaction(func(ses *database.Session) database.Error {
 								var err database.Error
 								h, err = trans.ToHistory(ses, stop)
+
 								return err
 							})
 

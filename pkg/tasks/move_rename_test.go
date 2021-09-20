@@ -5,9 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestMoveRenameTaskValidate(t *testing.T) {
@@ -38,7 +39,7 @@ func TestMoveRenameTaskValidate(t *testing.T) {
 			})
 
 			Convey("Then error should say `need path argument`", func() {
-				So(err.Error(), ShouldEqual, "cannot create a move_rename task without a `path` argument")
+				So(err.Error(), ShouldContainSubstring, "cannot create a move_rename task without a `path` argument")
 			})
 		})
 	})

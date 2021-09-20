@@ -1,9 +1,9 @@
 package migrations
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
 )
 
 type dbInfo struct {
@@ -11,6 +11,7 @@ type dbInfo struct {
 	makeDSN func(*conf.DatabaseConfig) string
 }
 
+//nolint:gochecknoglobals // global var is used by design
 var rdbms = map[string]dbInfo{
 	migration.SQLite: {
 		driver:  database.SqliteDriver,

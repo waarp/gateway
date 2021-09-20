@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func TestHistoryTableName(t *testing.T) {
@@ -110,11 +110,11 @@ func TestHistoryBeforeWrite(t *testing.T) {
 			})
 
 			statusTestCases := []statusTestCase{
-				{StatusPlanned, false},
-				{StatusRunning, false},
-				{StatusDone, true},
-				{StatusError, false},
-				{StatusCancelled, true},
+				{types.StatusPlanned, false},
+				{types.StatusRunning, false},
+				{types.StatusDone, true},
+				{types.StatusError, false},
+				{types.StatusCancelled, true},
 				{"toto", false},
 			}
 			for _, tc := range statusTestCases {
@@ -129,7 +129,7 @@ func TestHistoryBeforeWrite(t *testing.T) {
 //
 
 type statusTestCase struct {
-	status          TransferStatus
+	status          types.TransferStatus
 	expectedSuccess bool
 }
 
@@ -204,7 +204,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Status:           types.StatusDone,
-				Error:            TransferError{},
+				Error:            types.TransferError{},
 				Step:             types.StepNone,
 				Progress:         100,
 				TaskNumber:       0,
@@ -232,7 +232,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 						Owner:            database.Owner,
 						Progress:         0,
 						TaskNumber:       0,
-						Error:            TransferError{},
+						Error:            types.TransferError{},
 					}
 					So(trans, ShouldResemble, exp)
 				})
@@ -270,7 +270,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 				Start:            time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Stop:             time.Date(2020, 0, 0, 0, 0, 0, 0, time.Local),
 				Status:           types.StatusDone,
-				Error:            TransferError{},
+				Error:            types.TransferError{},
 				Step:             types.StepNone,
 				Progress:         100,
 				TaskNumber:       0,
@@ -298,7 +298,7 @@ func TestTransferHistoryRestart(t *testing.T) {
 						Owner:            database.Owner,
 						Progress:         0,
 						TaskNumber:       0,
-						Error:            TransferError{},
+						Error:            types.TransferError{},
 					}
 					So(trans, ShouldResemble, exp)
 				})

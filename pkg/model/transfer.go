@@ -6,12 +6,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&Transfer{})
 }
@@ -46,7 +47,7 @@ func (*Transfer) Appellation() string {
 	return "transfer"
 }
 
-// GetID returns the transfer's ID
+// GetID returns the transfer's ID.
 func (t *Transfer) GetID() uint64 {
 	return t.ID
 }
@@ -57,12 +58,14 @@ func (t *Transfer) SetTransferInfo(db database.Access, info map[string]interface
 	if err := db.DeleteAll(&TransferInfo{TransferID: t.ID}).Run(); err != nil {
 		return err
 	}
+
 	for name, val := range info {
 		i := &TransferInfo{TransferID: t.ID, Name: name, Value: fmt.Sprint(val)}
 		if err := db.Insert(i).Run(); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -72,8 +75,10 @@ func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error
 		if database.IsNotFound(err) {
 			return database.NewValidationError("the partner %d does not exist", t.AgentID)
 		}
+
 		return err
 	}
+
 	n, err := db.Count(&RemoteAccount{}).Where("id=? AND remote_agent_id=?",
 		t.AccountID, t.AgentID).Run()
 	if err != nil {
@@ -89,6 +94,7 @@ func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error
 		if err != nil {
 			return err
 		}
+
 		if n != 0 {
 			return database.NewValidationError("a transfer with the same remote ID already exists")
 		}
@@ -106,18 +112,21 @@ func (t *Transfer) validateClientTransfer(db database.ReadAccess) database.Error
 	if err1 != nil {
 		return database.NewValidationError("invalid partner protocol configuration: %s", err1)
 	}
+
 	if protoConf.CertRequired() {
 		n, err := db.Count(&Crypto{}).Where("owner_type=? AND owner_id=?",
 			remote.TableName(), remote.ID).Run()
 		if err != nil {
 			return err
 		}
+
 		if n == 0 {
 			return database.NewValidationError(
 				"the %s partner is missing a certificate when it was required",
 				remote.Protocol)
 		}
 	}
+
 	return nil
 }
 
@@ -126,6 +135,7 @@ func (t *Transfer) validateServerTransfer(db database.ReadAccess) database.Error
 	if err != nil {
 		return err
 	}
+
 	if n == 0 {
 		return database.NewValidationError("the server %d does not exist", t.AgentID)
 	}
@@ -135,6 +145,7 @@ func (t *Transfer) validateServerTransfer(db database.ReadAccess) database.Error
 	if err != nil {
 		return err
 	}
+
 	if n == 0 {
 		return database.NewValidationError("the server %d does not have an account %d",
 			t.AgentID, t.AccountID)
@@ -146,30 +157,36 @@ func (t *Transfer) validateServerTransfer(db database.ReadAccess) database.Error
 	} else if !auth {
 		return database.NewValidationError("Rule %d is not authorized for this transfer", t.RuleID)
 	}
+
 	return nil
 }
 
 // BeforeWrite checks if the new `Transfer` entry is valid and can be
 // inserted in the database.
-//nolint:funlen
+//nolint:funlen // validations can be long...
 func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	t.Owner = database.Owner
 
 	if t.RuleID == 0 {
 		return database.NewValidationError("the transfer's rule ID cannot be empty")
 	}
+
 	if t.AgentID == 0 {
 		return database.NewValidationError("the transfer's remote ID cannot be empty")
 	}
+
 	if t.AccountID == 0 {
 		return database.NewValidationError("the transfer's account ID cannot be empty")
 	}
+
 	if t.SourceFile == "" {
 		return database.NewValidationError("the transfer's source cannot be empty")
 	}
+
 	if t.DestFile == "" {
 		return database.NewValidationError("the transfer's destination cannot be empty")
 	}
+
 	if t.Start.IsZero() {
 		t.Start = time.Now()
 	}
@@ -177,21 +194,27 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	if t.Status == "" {
 		t.Status = types.StatusPlanned
 	}
+
 	if !types.ValidateStatusForTransfer(t.Status) {
 		return database.NewValidationError("'%s' is not a valid transfer status", t.Status)
 	}
+
 	if !t.Step.IsValid() {
 		return database.NewValidationError("'%s' is not a valid transfer step", t.Step)
 	}
+
 	if !t.Error.Code.IsValid() {
 		return database.NewValidationError("'%s' is not a valid transfer error code", t.Error.Code)
 	}
+
 	if t.SourceFile != filepath.Base(t.SourceFile) {
 		return database.NewValidationError("the source file cannot contain subdirectories")
 	}
+
 	if t.DestFile != filepath.Base(t.DestFile) {
 		return database.NewValidationError("the destination file cannot contain subdirectories")
 	}
+
 	if t.TrueFilepath != "" {
 		t.TrueFilepath = utils.NormalizePath(t.TrueFilepath)
 		if !path.IsAbs(t.TrueFilepath) {
@@ -203,6 +226,7 @@ func (t *Transfer) BeforeWrite(db database.ReadAccess) database.Error {
 	if err != nil {
 		return err
 	}
+
 	if n == 0 {
 		return database.NewValidationError("the rule %d does not exist", t.RuleID)
 	}
@@ -227,39 +251,38 @@ func (t *Transfer) ToHistory(db database.ReadAccess, stop time.Time) (*TransferH
 	if err := db.Get(rule, "id=?", t.RuleID).Run(); err != nil {
 		return nil, err
 	}
-	agentName := ""
-	accountLogin := ""
-	protocol := ""
+
+	var agentName, accountLogin, protocol string
 
 	if t.IsServer {
 		agent := &LocalAgent{}
 		if err := db.Get(agent, "id=?", t.AgentID).Run(); err != nil {
 			return nil, err
 		}
+
 		account := &LocalAccount{}
 		if err := db.Get(account, "id=?", t.AccountID).Run(); err != nil {
 			return nil, err
 		}
-		agentName = agent.Name
-		accountLogin = account.Login
-		protocol = agent.Protocol
+
+		agentName, accountLogin, protocol = agent.Name, account.Login, agent.Protocol
 	} else {
 		agent := &RemoteAgent{}
 		if err := db.Get(agent, "id=?", t.AgentID).Run(); err != nil {
 			return nil, err
 		}
+
 		account := &RemoteAccount{}
 		if err := db.Get(account, "id=?", t.AccountID).Run(); err != nil {
 			return nil, err
 		}
-		agentName = agent.Name
-		accountLogin = account.Login
-		protocol = agent.Protocol
+
+		agentName, accountLogin, protocol = agent.Name, account.Login, agent.Protocol
 	}
+
 	if !types.ValidateStatusForHistory(t.Status) {
 		return nil, database.NewValidationError(
-			"a transfer cannot be recorded in history with status '%s'", t.Status,
-		)
+			"a transfer cannot be recorded in history with status '%s'", t.Status)
 	}
 
 	hist := TransferHistory{
@@ -282,10 +305,11 @@ func (t *Transfer) ToHistory(db database.ReadAccess, stop time.Time) (*TransferH
 		Progress:         t.Progress,
 		TaskNumber:       t.TaskNumber,
 	}
+
 	return &hist, nil
 }
 
-// GetTransferInfo returns the list of the transfer's TransferInfo as a map[string]string
+// GetTransferInfo returns the list of the transfer's TransferInfo as a map[string]string.
 func (t *Transfer) GetTransferInfo(db database.ReadAccess, tID uint64) (map[string]string, error) {
 	var infoList TransferInfoList
 	if err := db.Select(&infoList).Where("transfer_id=?", tID).Run(); err != nil {
@@ -293,8 +317,10 @@ func (t *Transfer) GetTransferInfo(db database.ReadAccess, tID uint64) (map[stri
 	}
 
 	infoMap := make(map[string]string, len(infoList))
-	for _, info := range infoList {
-		infoMap[info.Name] = info.Value
+
+	for i := range infoList {
+		infoMap[infoList[i].Name] = infoList[i].Value
 	}
+
 	return infoMap, nil
 }
