@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.4.1 <2021-09-21>`
 * :bug:`273` Correction d'une erreur "database table locked" pouvant survenir
   lorsqu'une base de données SQLite est partagée entre plusieurs instances de
   *gateway*.
