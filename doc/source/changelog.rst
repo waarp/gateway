@@ -6,6 +6,9 @@ Historique des versions
 * :bug:`273` Correction d'une erreur "database table locked" pouvant survenir
   lorsqu'une base de données SQLite est partagée entre plusieurs instances de
   *gateway*.
+* :bug:`272` Correction d'une erreur pouvant survenir lors de l'import d'un
+  serveur local dont le nom existe déjà sur une autre instance de *gateway*
+  partageant la même base de données.
 * :bug:`263` Suppression du '/' présent au début des noms de dossiers renvoyés
   lors de l'envoi d'une commande SFTP *ls* . Cela devrait résoudre un certains
   nombre de problèmes survenant lors de l'utilisation de cette commande.
