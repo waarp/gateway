@@ -333,7 +333,7 @@ func testSQLAddRow(t *testing.T, dbms string, initDB func(C) *sql.DB,
 				), ShouldBeNil)
 
 				Convey("When adding a row", func() {
-					tDat := time.Date(1970, 1, 1, 1, 0, 0, 0, time.UTC)
+					tDat := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 					tTs := time.Date(1980, 1, 1, 1, 0, 0, 111111111, time.UTC)
 					tTsz := time.Date(1990, 1, 1, 1, 0, 0, 222222222, time.Local)
 
@@ -389,8 +389,8 @@ func testSQLAddRow(t *testing.T, dbms string, initDB func(C) *sql.DB,
 						So(str, ShouldEqual, "message")
 						So(bin, ShouldResemble, []byte{0x0, 0xFF, 0x00, 0xFF})
 						So(blo, ShouldResemble, []byte{0x0, 0xFF, 0xFF, 0x00})
-						SkipSo(dat, ShouldEqual, tDat.Format(dateFormat))
-						SkipSo(ts, ShouldEqual, tTs.Format(tsFormat))
+						So(dat, ShouldEqual, tDat.Format(dateFormat))
+						So(ts, ShouldEqual, tTs.Format(tsFormat))
 						So(tsz, ShouldEqual, tTsz.Format(tszFormat))
 					})
 				})
