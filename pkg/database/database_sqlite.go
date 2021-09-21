@@ -26,6 +26,7 @@ func init() {
 
 func sqliteInit(db *xorm.Engine) error {
 	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 	db.DatabaseTZ = time.UTC
 
 	return nil
@@ -47,7 +48,6 @@ func SqliteDSN(config *conf.DatabaseConfig) string {
 		pass = fmt.Sprintf("&_auth_pass=%s", config.Password)
 	}
 
-	return fmt.Sprintf(
-		"file:%s?cache=shared&mode=rwc&_busy_timeout=10000%s%s",
+	return fmt.Sprintf("file:%s?mode=rwc&_busy_timeout=10000%s%s",
 		config.Address, user, pass)
 }
