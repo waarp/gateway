@@ -1,3 +1,4 @@
+//go:build test_db_oracle
 // +build test_db_oracle
 
 package database
