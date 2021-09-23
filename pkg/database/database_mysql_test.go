@@ -1,4 +1,5 @@
-//+build test_full test_db_mysql
+//go:build test_full || test_db_mysql
+// +build test_full test_db_mysql
 
 package database
 
