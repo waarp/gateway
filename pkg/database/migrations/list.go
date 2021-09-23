@@ -22,5 +22,9 @@ var Migrations = []migration.Migration{
 	}, {
 		Description: "Remove the UNIQUE constraint on the history table's remote ID",
 		Script:      ver0_4_2RemoveHistoryRemoteIDUnique{},
+	}, {
+		Description: "Bump the database version to 0.4.2",
+		Script:      bumpVersion{from: "0.4.1", to: "0.4.2"},
+		VersionTag:  "0.4.2",
 	},
 }
