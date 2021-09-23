@@ -1,3 +1,4 @@
+//go:build test_full || test_db_postgresql
 // +build test_full test_db_postgresql
 
 package database

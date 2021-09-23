@@ -3,6 +3,8 @@
 Historique des versions
 =======================
 
+* :bug:`-` Correction de la compilation avec certaines versions de Go
+
 * :release:`0.4.2 <2021-09-21>`
 * :bug:`273` Correction d'une erreur "database table locked" pouvant survenir
   lorsqu'une base de données SQLite est partagée entre plusieurs instances de
