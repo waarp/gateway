@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :bug:`-` Activation des migrations de base de données vers la version 0.4.2
 * :bug:`-` Correction de la compilation avec certaines versions de Go
 
 * :release:`0.4.2 <2021-09-21>`
