@@ -72,7 +72,7 @@ func (h *httpService) listen() error {
 
 	go func() {
 		var err error
-		if h.conf.UseHTTPS {
+		if h.agent.Protocol == "https" {
 			err = h.serv.ServeTLS(list, "", "")
 		} else {
 			err = h.serv.Serve(list)

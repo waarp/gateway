@@ -50,8 +50,7 @@ func TestHTTPSClient(t *testing.T) {
 		addr := strings.TrimLeft(serv.URL, "https://")
 
 		Convey("Given a new HTTPS push transfer", func(c C) {
-			ctx := pipelinetest.InitClientPush(c, "http",
-				&config.HTTPProtoConfig{UseHTTPS: true})
+			ctx := pipelinetest.InitClientPush(c, "https", &config.HTTPProtoConfig{})
 
 			ctx.Partner.Address = addr
 			So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
@@ -76,8 +75,7 @@ func TestHTTPSClient(t *testing.T) {
 		})
 
 		Convey("Given a new HTTPS pull transfer", func(c C) {
-			ctx := pipelinetest.InitClientPull(c, "http", src.Content(),
-				&config.HTTPProtoConfig{UseHTTPS: true})
+			ctx := pipelinetest.InitClientPull(c, "https", src.Content(), &config.HTTPProtoConfig{})
 
 			ctx.Partner.Address = addr
 			So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
@@ -105,7 +103,7 @@ func TestHTTPSClient(t *testing.T) {
 
 func TestHTTPSServer(t *testing.T) {
 	Convey("Given a HTTPS server for push transfers", t, func(c C) {
-		ctx := pipelinetest.InitServerPush(c, "http", &config.HTTPProtoConfig{UseHTTPS: true})
+		ctx := pipelinetest.InitServerPush(c, "https", &config.HTTPProtoConfig{})
 		serverCert := model.Crypto{
 			OwnerType:   ctx.Server.TableName(),
 			OwnerID:     ctx.Server.ID,

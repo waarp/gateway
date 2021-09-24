@@ -1,8 +1,8 @@
-===
-R66
-===
+============
+HTTP & HTTPS
+============
 
-L'implémentation de HTTP dans la *Gateway* ajoute quelques fonctionnalités
+L'implémentation de HTTP et HTTPSdans la *Gateway* ajoute quelques fonctionnalités
 supplémentaire par rapport au standard. À l'exception d'une seule, toutes ces
 fonctionnalités non-standard sont optionnelles, afin de permettre une compatibilité
 maximale.

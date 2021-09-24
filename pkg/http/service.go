@@ -24,6 +24,7 @@ import (
 
 func init() {
 	gatewayd.ServiceConstructors["http"] = NewService
+	gatewayd.ServiceConstructors["https"] = NewService
 }
 
 type httpService struct {
@@ -66,7 +67,7 @@ func (h *httpService) Start() error {
 	}
 
 	var tlsConf *tls.Config
-	if h.conf.UseHTTPS {
+	if h.agent.Protocol == "https" {
 		var err error
 		if tlsConf, err = h.makeTLSConf(); err != nil {
 			h.state.Set(service.Error, err.Error())

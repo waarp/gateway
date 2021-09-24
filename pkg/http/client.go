@@ -3,13 +3,10 @@ package http
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
@@ -22,22 +19,24 @@ var (
 )
 
 func init() {
-	pipeline.ClientConstructors["http"] = NewClient
+	pipeline.ClientConstructors["http"] = newHTTPClient
+	pipeline.ClientConstructors["https"] = newHTTPSClient
 }
 
-// NewClient initializes and returns a new HTTP transfer client.
-func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
-	var conf config.HTTPProtoConfig
-	if err := json.Unmarshal(pip.TransCtx.RemoteAgent.ProtoConfig, &conf); err != nil {
-		pip.Logger.Errorf("failed to parse R66 partner configuration: %s", err)
-		return nil, types.NewTransferError(types.TeInternal, "failed to parse partner configuration")
-	}
-	tlsConf, err := makeTLSConf(pip.TransCtx, &conf)
+func newHTTPClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
+	return newClient(pip, nil)
+}
+
+func newHTTPSClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
+	tlsConf, err := makeTLSConf(pip.TransCtx)
 	if err != nil {
 		pip.Logger.Errorf("failed to make TLS configuration: %s", err)
 		return nil, types.NewTransferError(types.TeInternal, "failed to make TLS configuration")
 	}
+	return newClient(pip, tlsConf)
+}
 
+func newClient(pip *pipeline.Pipeline, tlsConf *tls.Config) (pipeline.Client, *types.TransferError) {
 	if pip.TransCtx.Rule.IsSend {
 		return &postClient{
 			pip:       pip,
@@ -52,11 +51,7 @@ func NewClient(pip *pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
 	}, nil
 }
 
-func makeTLSConf(transCtx *model.TransferContext, conf *config.HTTPProtoConfig) (*tls.Config, error) {
-	if !conf.UseHTTPS {
-		return nil, nil
-	}
-
+func makeTLSConf(transCtx *model.TransferContext) (*tls.Config, error) {
 	rootCAs, err := x509.SystemCertPool()
 	if err != nil {
 		rootCAs = x509.NewCertPool()

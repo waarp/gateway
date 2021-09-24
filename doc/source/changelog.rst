@@ -3,8 +3,8 @@
 Historique des versions
 =======================
 
-* :feature:`247` Ajout d'un client et d'un serveur HTTP à la *gateway*. Il est
-  donc désormais possible d'effectuer des transferts via ce protocole.
+* :feature:`247` Ajout d'un client et d'un serveur HTTP/S à la *gateway*. Il est
+  donc désormais possible d'effectuer des transferts via ces 2 protocoles.
 
 * :bug:`273` Correction d'une erreur "database table locked" pouvant survenir
   lorsqu'une base de données SQLite est partagée entre plusieurs instances de
