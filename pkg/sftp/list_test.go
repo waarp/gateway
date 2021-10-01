@@ -11,17 +11,16 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestSFTPList(t *testing.T) {
@@ -34,15 +33,14 @@ func TestSFTPList(t *testing.T) {
 		Convey("Given an SFTP server", func() {
 			listener, err := net.Listen("tcp", "localhost:0")
 			So(err, ShouldBeNil)
-			_, port, err := net.SplitHostPort(listener.Addr().String())
-			So(err, ShouldBeNil)
+			addr := listener.Addr().String()
 
 			agent := &model.LocalAgent{
 				Name:        "test_sftp_server",
 				Protocol:    "sftp",
 				Root:        root,
 				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:" + port,
+				Address:     addr,
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 			var protoConfig config.SftpProtoConfig
@@ -70,7 +68,7 @@ func TestSFTPList(t *testing.T) {
 			}
 			So(db.Insert(&hostKey).Run(), ShouldBeNil)
 
-			serverConfig, err := internal.GetSSHServerConfig(db, []model.Crypto{hostKey}, &protoConfig, agent)
+			serverConfig, err := getSSHServerConfig(db, []model.Crypto{hostKey}, &protoConfig, agent)
 			So(err, ShouldBeNil)
 
 			sshList := &sshListener{
@@ -161,14 +159,9 @@ func TestSFTPList(t *testing.T) {
 						},
 						HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 					}
-					addr := "localhost:" + port
 
-					conn, err := net.Dial("tcp", addr)
+					sshClient, err := ssh.Dial("tcp", addr, sshConf)
 					So(err, ShouldBeNil)
-					sshConn, chans, reqs, err := ssh.NewClientConn(conn, addr, sshConf)
-					So(err, ShouldBeNil)
-
-					sshClient := ssh.NewClient(sshConn, chans, reqs)
 					defer sshClient.Close()
 					client, err := sftp.NewClient(sshClient)
 					So(err, ShouldBeNil)

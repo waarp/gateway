@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
+//nolint:lll // struct tags for command line arguments can be long
 type remoteAccountCommand struct {
 	Args struct {
 		Partner string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`
@@ -41,7 +42,9 @@ func (r *remAccGet) Execute([]string) error {
 	if err := get(account); err != nil {
 		return err
 	}
+
 	displayAccount(getColorable(), account)
+
 	return nil
 }
 
@@ -63,7 +66,9 @@ func (r *remAccAdd) Execute([]string) error {
 	if err := add(account); err != nil {
 		return err
 	}
+
 	fmt.Fprintln(getColorable(), "The account", bold(r.Login), "was successfully added.")
+
 	return nil
 }
 
@@ -82,7 +87,9 @@ func (r *remAccDelete) Execute([]string) error {
 	if err := remove(uri); err != nil {
 		return err
 	}
+
 	fmt.Fprintln(getColorable(), "The account", bold(r.Args.Login), "was successfully deleted.")
+
 	return nil
 }
 
@@ -96,6 +103,7 @@ type remAccUpdate struct {
 	Password *string `short:"p" long:"password" description:"The account's password"`
 }
 
+//nolint:dupl // FIXME too hard to refactor?
 func (r *remAccUpdate) Execute([]string) error {
 	account := &api.InAccount{
 		Login:    r.Login,
@@ -108,24 +116,31 @@ func (r *remAccUpdate) Execute([]string) error {
 	if err := update(account); err != nil {
 		return err
 	}
+
 	login := r.Args.Login
+
 	if account.Login != nil && *account.Login != "" {
 		login = *account.Login
 	}
+
 	fmt.Fprintln(getColorable(), "The account", bold(login), "was successfully updated.")
+
 	return nil
 }
 
 // ######################## LIST ##########################
 
+//nolint:lll // struct tags for command line arguments can be long
 type remAccList struct {
 	listOptions
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"login+" choice:"login-" default:"login+"`
 }
 
+//nolint:dupl // FIXME too hard to refactor?
 func (r *remAccList) Execute([]string) error {
 	partner := commandLine.Account.Remote.Args.Partner
 	addr.Path = fmt.Sprintf("/api/partners/%s/accounts", partner)
+
 	listURL(&r.listOptions, r.SortBy)
 
 	body := map[string][]api.OutAccount{}
@@ -134,9 +149,12 @@ func (r *remAccList) Execute([]string) error {
 	}
 
 	accounts := body["remoteAccounts"]
-	w := getColorable()
+
+	w := getColorable() //nolint:ifshort // decrease readability
+
 	if len(accounts) > 0 {
 		fmt.Fprintln(w, bold("Accounts of partner '"+partner+"':"))
+
 		for _, a := range accounts {
 			account := a
 			displayAccount(w, &account)
@@ -144,6 +162,7 @@ func (r *remAccList) Execute([]string) error {
 	} else {
 		fmt.Fprintln(w, "Partner", bold(partner), "has no accounts.")
 	}
+
 	return nil
 }
 

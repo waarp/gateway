@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
 func getTestPort() string {
@@ -120,7 +120,8 @@ func TestServerStart(t *testing.T) {
 				err := sftpServer.Start()
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError, fmt.Errorf("'%s' SFTP server is "+
+					So(err, ShouldBeError)
+					So(err.Error(), ShouldContainSubstring, fmt.Sprintf("'%s' SFTP server is "+
 						"missing a hostkey", agent.Name))
 				})
 			})
@@ -129,12 +130,11 @@ func TestServerStart(t *testing.T) {
 }
 
 func TestSSHServerInterruption(t *testing.T) {
-
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
-		test := pipelinetest.InitServerPush(c, "sftp", nil)
+		test := pipelinetest.InitServerPush(c, "sftp", NewService, nil)
 		test.AddCryptos(c, makeServerKey(test.Server))
 
-		serv := gatewayd.ServiceConstructors[test.Server.Protocol](test.DB, test.Server, test.Logger)
+		serv := NewService(test.DB, test.Server, test.Logger)
 		c.So(serv.Start(), ShouldBeNil)
 
 		Convey("Given a dummy SFTP client", func() {

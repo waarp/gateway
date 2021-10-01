@@ -31,31 +31,40 @@ func (b Branch) String() string { return string(b) }
 // parents in the order they are given. The function will stop at the first
 // absolute path, and return the path formed by all the previous parents.
 func GetPath(file string, elems ...Elem) string {
-	if filepath.IsAbs(file) || path.IsAbs(file) {
-		return ToOSPath(file)
+	if filepath.IsAbs(file) {
+		return file
 	}
 
 	strings := []string{file}
-	for _, e := range elems {
-		if e.String() == "" {
-			continue
-		}
-		if e.IsLeaf() && len(strings) > 1 {
+
+	for i := range elems {
+		if elems[i].String() == "" {
 			continue
 		}
 
-		p := ToOSPath(e.String())
+		if elems[i].IsLeaf() && len(strings) > 1 {
+			continue
+		}
+
+		p := ToOSPath(elems[i].String())
 		strings = append([]string{p}, strings...)
-		if filepath.IsAbs(e.String()) || path.IsAbs(e.String()) {
-			return ToOSPath(strings...)
+
+		if filepath.IsAbs(elems[i].String()) {
+			return filepath.Join(strings...)
 		}
 	}
-	return string(filepath.Separator) + ToOSPath(strings...)
+
+	return filepath.Join(strings...)
 }
 
 // ToStandardPath transforms a path into a valid "file" URI according to the RFC 8089.
 func ToStandardPath(paths ...string) string {
-	return filepath.ToSlash(filepath.Join(paths...))
+	fullpath := filepath.Join(paths...)
+	if filepath.IsAbs(fullpath) {
+		return path.Join("/", filepath.ToSlash(fullpath))
+	}
+
+	return filepath.ToSlash(fullpath)
 }
 
 // ToOSPath transforms a "file" URI into a valid path for the OS.

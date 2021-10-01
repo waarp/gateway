@@ -1,9 +1,8 @@
 package sftp
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
-
 	"github.com/pkg/sftp"
+	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -13,7 +12,8 @@ type dummyClient struct {
 }
 
 func makeDummyClient(addr, login, pwd string) *dummyClient {
-	key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rsaPBK)) //nolint:dogsled
+	//nolint:dogsled // this is caused by the design of a third party library
+	key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(rsaPBK))
 	So(err, ShouldBeNil)
 
 	clientConf := &ssh.ClientConfig{

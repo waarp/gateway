@@ -1,30 +1,31 @@
 package rest
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64, error) {
 	if trans.IsSend == nil {
 		return 0, 0, 0, badRequest("the transfer direction (isSend) is missing")
 	}
+
 	var rule model.Rule
 	if err := db.Get(&rule, "name=? AND send=?", trans.Rule, trans.IsSend).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return 0, 0, 0, badRequest("no rule '%s' found", trans.Rule)
 		}
+
 		return 0, 0, 0, err
 	}
 
@@ -33,6 +34,7 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64
 		if database.IsNotFound(err) {
 			return 0, 0, 0, badRequest("no partner '%s' found", trans.Partner)
 		}
+
 		return 0, 0, 0, err
 	}
 
@@ -43,8 +45,10 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64
 			return 0, 0, 0, badRequest("no account '%s' found for partner %s",
 				trans.Account, trans.Partner)
 		}
+
 		return 0, 0, 0, err
 	}
+
 	return rule.ID, account.ID, partner.ID, nil
 }
 
@@ -61,24 +65,29 @@ func getTransNames(db *database.DB, trans *model.Transfer) (*model.Rule, string,
 		if err := db.Get(&requester, "id=?", trans.AccountID).Run(); err != nil {
 			return nil, "", "", err
 		}
+
 		var requested model.LocalAgent
 		if err := db.Get(&requested, "id=?", trans.AgentID).Run(); err != nil {
 			return nil, "", "", err
 		}
+
 		return &rule, requester.Login, requested.Name, nil
 	}
+
 	var requester model.RemoteAccount
 	if err := db.Get(&requester, "id=?", trans.AccountID).Run(); err != nil {
 		return nil, "", "", err
 	}
+
 	var requested model.RemoteAgent
 	if err := db.Get(&requested, "id=?", trans.AgentID).Run(); err != nil {
 		return nil, "", "", err
 	}
+
 	return &rule, requester.Login, requested.Name, nil
 }
 
-//nolint:funlen
+//nolint:funlen // FIXME should be refactored
 func parseTransferListQuery(r *http.Request, db *database.DB,
 	transfers *model.Transfers) (*database.SelectQuery, error) {
 	query := db.Select(transfers)
@@ -94,24 +103,28 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 	}
 
 	if err := r.ParseForm(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot parse form data: %w", err)
 	}
 
 	var err error
+
 	limit := 20
 	offset := 0
+
 	if limStr := r.FormValue("limit"); limStr != "" {
 		limit, err = strconv.Atoi(limStr)
 		if err != nil {
 			return nil, badRequest("'limit' must be an int")
 		}
 	}
+
 	if offStr := r.FormValue("offset"); offStr != "" {
 		offset, err = strconv.Atoi(offStr)
 		if err != nil {
 			return nil, badRequest("'offset' must be an int")
 		}
 	}
+
 	query.Limit(limit, offset)
 
 	if rules, ok := r.Form["rule"]; ok {
@@ -119,37 +132,45 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 		for i := range rules {
 			args[i] = rules[i]
 		}
+
 		query.Where("rule_id IN (SELECT id FROM "+model.TableRules+" WHERE name IN (?"+
 			strings.Repeat(",?", len(rules)-1)+"))", args...)
 	}
+
 	if statuses, ok := r.Form["status"]; ok {
 		query.In("status", statuses)
 	}
+
 	if startStr := r.FormValue("start"); startStr != "" {
 		start, err := time.Parse(time.RFC3339Nano, startStr)
 		if err != nil {
 			return nil, badRequest("'%s' is not a valid date", startStr)
 		}
+
 		query.Where("start >= ?", start.UTC().Truncate(time.Microsecond).
 			Format(time.RFC3339Nano))
 	}
 
 	sort := sorting["default"]
+
 	if sortStr := r.FormValue("sort"); sortStr != "" {
 		var ok bool
 		sort, ok = sorting[sortStr]
+
 		if !ok {
 			return nil, badRequest("'%s' is not a valid order", sortStr)
 		}
 	}
+
 	query.OrderBy(sort.col, sort.asc)
 
 	return query, nil
 }
 
+var errServiceNotFound = errors.New("cannot find the service associated with the transfer")
+
 func getPipelineMap(db *database.DB, protoServices map[string]service.ProtoService,
 	trans *model.Transfer) (*service.TransferMap, error) {
-
 	if !trans.IsServer {
 		return pipeline.ClientTransfers, nil
 	}
@@ -158,9 +179,11 @@ func getPipelineMap(db *database.DB, protoServices map[string]service.ProtoServi
 	if err := db.Get(&agent, "id=?", trans.AgentID).Run(); err != nil {
 		return nil, err
 	}
+
 	serv, ok := protoServices[agent.Name]
 	if !ok {
-		return nil, fmt.Errorf("cannot find the service associated with the transfer")
+		return nil, errServiceNotFound
 	}
+
 	return serv.ManageTransfers(), nil
 }

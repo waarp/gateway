@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestExecOutputValidate(t *testing.T) {
-
 	Convey("Given an 'EXECOUTPUT' task", t, func() {
 		exec := &execOutputTask{}
 
@@ -82,7 +82,6 @@ func TestExecOutputValidate(t *testing.T) {
 }
 
 func TestExecOutputRun(t *testing.T) {
-
 	Convey("Given an 'EXECOUTPUT' task", t, func(c C) {
 		root := testhelpers.TempDir(c, "task_execoutput")
 		scriptFile := filepath.Join(root, execOutputScriptFile)
@@ -154,7 +153,7 @@ func TestExecOutputRun(t *testing.T) {
 					_, err := exec.Run(context.Background(), args, nil, transCtx)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "max execution delay expired")
+						So(err, ShouldBeError, errCommandTimeout)
 					})
 				})
 			})

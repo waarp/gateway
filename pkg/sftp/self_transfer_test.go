@@ -3,14 +3,15 @@ package sftp
 import (
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
-
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
 func TestSelfPushOK(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", NewService, nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -31,7 +32,7 @@ func TestSelfPushOK(t *testing.T) {
 
 func TestSelfPullOK(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", NewService, nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -50,10 +51,9 @@ func TestSelfPullOK(t *testing.T) {
 	})
 }
 
-/*
 func TestPushClientPreError(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", NewService, nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -62,13 +62,14 @@ func TestPushClientPreError(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
-					"Pre-tasks failed: Task CLIENTERR @ PUSH PRE[1]: task failed",
+					"Pre-tasks failed: Task TASKERR @ PUSH PRE[1]: task failed",
 					types.StepPreTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeConnectionReset,
@@ -81,7 +82,7 @@ func TestPushClientPreError(t *testing.T) {
 
 func TestPushServerPreError(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", NewService, nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -90,8 +91,9 @@ func TestPushServerPreError(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
@@ -99,7 +101,7 @@ func TestPushServerPreError(t *testing.T) {
 					types.StepSetup)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
-					"Pre-tasks failed: Task SERVERERR @ PUSH PRE[1]: task failed",
+					"Pre-tasks failed: Task TASKERR @ PUSH PRE[1]: task failed",
 					types.StepPreTasks)
 			})
 		})
@@ -108,7 +110,7 @@ func TestPushServerPreError(t *testing.T) {
 
 func TestPushClientPostError(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", NewService, nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -117,14 +119,15 @@ func TestPushClientPostError(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeOK(c)
-				ctx.ClientPosTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
-					"Post-tasks failed: Task CLIENTERR @ PUSH POST[1]: task failed",
+					"Post-tasks failed: Task TASKERR @ PUSH POST[1]: task failed",
 					types.StepPostTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeConnectionReset,
@@ -137,7 +140,7 @@ func TestPushClientPostError(t *testing.T) {
 
 func TestPushServerPostError(t *testing.T) {
 	Convey("Given a new SFTP push transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", nil, nil)
+		ctx := pipelinetest.InitSelfPushTransfer(c, "sftp", NewService, nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -146,11 +149,12 @@ func TestPushServerPostError(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeOK(c)
-				ctx.ClientPosTasksShouldBeOK(c)
-				ctx.ServerPosTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
@@ -158,7 +162,7 @@ func TestPushServerPostError(t *testing.T) {
 					types.StepPostTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
-					"Post-tasks failed: Task SERVERERR @ PUSH POST[1]: task failed",
+					"Post-tasks failed: Task TASKERR @ PUSH POST[1]: task failed",
 					types.StepPostTasks)
 			})
 		})
@@ -167,7 +171,7 @@ func TestPushServerPostError(t *testing.T) {
 
 func TestPullClientPreError(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", NewService, nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -176,13 +180,14 @@ func TestPullClientPreError(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
-					"Pre-tasks failed: Task CLIENTERR @ PULL PRE[1]: task failed",
+					"Pre-tasks failed: Task TASKERR @ PULL PRE[1]: task failed",
 					types.StepPreTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeConnectionReset,
@@ -195,7 +200,7 @@ func TestPullClientPreError(t *testing.T) {
 
 func TestPullServerPreError(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", NewService, nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -204,8 +209,9 @@ func TestPullServerPreError(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
@@ -213,7 +219,7 @@ func TestPullServerPreError(t *testing.T) {
 					types.StepSetup)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
-					"Pre-tasks failed: Task SERVERERR @ PULL PRE[1]: task failed",
+					"Pre-tasks failed: Task TASKERR @ PULL PRE[1]: task failed",
 					types.StepPreTasks)
 			})
 		})
@@ -222,7 +228,7 @@ func TestPullServerPreError(t *testing.T) {
 
 func TestPullClientPostError(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", NewService, nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -231,14 +237,15 @@ func TestPullClientPostError(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeOK(c)
-				ctx.ClientPosTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
-					"Post-tasks failed: Task CLIENTERR @ PULL POST[1]: task failed",
+					"Post-tasks failed: Task TASKERR @ PULL POST[1]: task failed",
 					types.StepPostTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeConnectionReset,
@@ -251,7 +258,7 @@ func TestPullClientPostError(t *testing.T) {
 
 func TestPullServerPostError(t *testing.T) {
 	Convey("Given a new SFTP pull transfer", t, func(c C) {
-		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", nil, nil)
+		ctx := pipelinetest.InitSelfPullTransfer(c, "sftp", NewService, nil, nil)
 		ctx.AddCryptos(c, makeCerts(ctx)...)
 		ctx.StartService(c)
 
@@ -260,11 +267,12 @@ func TestPullServerPostError(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ServerPreTasksShouldBeOK(c)
-				ctx.ClientPreTasksShouldBeOK(c)
-				ctx.ClientPosTasksShouldBeOK(c)
-				ctx.ServerPosTasksShouldBeError(c)
-				ctx.CheckEndTransferError(c)
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
@@ -272,10 +280,9 @@ func TestPullServerPostError(t *testing.T) {
 					types.StepPostTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
-					"Post-tasks failed: Task SERVERERR @ PULL POST[1]: task failed",
+					"Post-tasks failed: Task TASKERR @ PULL POST[1]: task failed",
 					types.StepPostTasks)
 			})
 		})
 	})
 }
-*/

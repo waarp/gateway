@@ -1,17 +1,5 @@
 package testhelpers
 
-import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-)
-
-// TestProtocol is the constant defining the name of the dummy protocol associated
-// with the TestProtoConfig struct.
-const TestProtocol = "test_proto"
-
-func init() {
-	config.ProtoConfigs[TestProtocol] = func() config.ProtoConfig { return new(TestProtoConfig) }
-}
-
 // TestProtoConfig is a dummy implementation of config.ProtoConfig for test purposes.
 type TestProtoConfig struct{}
 

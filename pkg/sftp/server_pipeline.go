@@ -1,30 +1,23 @@
-package internal
+package sftp
 
 import (
 	"context"
 	"errors"
 	"io"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-var (
-	sigShutdown = &types.TransferError{Code: types.TeShuttingDown, Details: "service is shutting down"}
-	sigPause    = &types.TransferError{Code: types.TeStopped, Details: "transfer paused by user"}
-	sigCancel   = &types.TransferError{Code: types.TeCanceled, Details: "transfer cancelled by user"}
-)
-
-// ServerPipeline is a struct used by SFTP servers to make SFTP transfers. It
+// serverPipeline is a struct used by SFTP servers to make SFTP transfers. It
 // contains a pipeline, and implements the necessary functions to allow transfer
 // interruption.
-type ServerPipeline struct {
+type serverPipeline struct {
 	pipeline *pipeline.Pipeline
 	file     pipeline.TransferStream
 
@@ -33,35 +26,37 @@ type ServerPipeline struct {
 	endSession func(context.Context)
 }
 
-// initialises the pipeline
+// initPipeline initializes the pipeline.
 func initPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
-	endSession func(context.Context), transList *service.TransferMap) (*ServerPipeline, error) {
-
+	endSession func(context.Context), transList *service.TransferMap) (*serverPipeline, error) {
 	var tErr *types.TransferError
+
 	trans, tErr = pipeline.GetServerTransfer(db, logger, trans)
 	if tErr != nil {
-		return nil, ToSFTPErr(tErr)
-	}
-	pip, tErr := pipeline.NewServerPipeline(db, trans)
-	if tErr != nil {
-		return nil, ToSFTPErr(tErr)
+		return nil, toSFTPErr(tErr)
 	}
 
-	servPip := &ServerPipeline{
+	pip, tErr := pipeline.NewServerPipeline(db, trans)
+	if tErr != nil {
+		return nil, toSFTPErr(tErr)
+	}
+
+	servPip := &serverPipeline{
 		pipeline:   pip,
 		transList:  transList,
 		storage:    utils.NewErrorStorage(),
 		endSession: endSession,
 	}
+
 	transList.Add(trans.ID, servPip)
+
 	return servPip, nil
 }
 
-// NewServerPipeline creates a new ServerPipeline, executes the transfer's
+// newServerPipeline creates a new serverPipeline, executes the transfer's
 // pre-tasks, and returns the pipeline.
-func NewServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
-	transList *service.TransferMap, endSession func(context.Context)) (*ServerPipeline, error) {
-
+func newServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfer,
+	transList *service.TransferMap, endSession func(context.Context)) (*serverPipeline, error) {
 	servPip, err := initPipeline(db, logger, trans, endSession, transList)
 	if err != nil {
 		return nil, err
@@ -76,76 +71,92 @@ func NewServerPipeline(db *database.DB, logger *log.Logger, trans *model.Transfe
 
 // TransferError is the function called when an error occurred on the remote
 // client (or when the connection to the client is lost).
-func (s *ServerPipeline) TransferError(err error) {
+func (s *serverPipeline) TransferError(err error) {
 	s.pipeline.SetError(types.NewTransferError(types.TeConnectionReset,
 		"session closed unexpectedly"))
+	//nolint:errcheck // the returned error is unimportant
 	_ = s.handleError(err)
 }
 
 // Pause pauses the transfer and set the transfer's error to the pause error, so
 // that it can be sent to the remote client.
-func (s *ServerPipeline) Pause(ctx context.Context) error {
+func (s *serverPipeline) Pause(ctx context.Context) error {
+	sigPause := &types.TransferError{Code: types.TeStopped, Details: "transfer paused by user"}
+
 	s.pipeline.Pause(func() {
 		s.storage.StoreCtx(ctx, sigPause)
 	})
 	s.endSession(ctx)
-	return ctx.Err()
+
+	return nil
 }
 
 // Interrupt interrupts the transfer and set the transfer's error to the shutdown
 // error, so that it can be sent to the remote client.
-func (s *ServerPipeline) Interrupt(ctx context.Context) error {
+func (s *serverPipeline) Interrupt(ctx context.Context) error {
+	sigShutdown := &types.TransferError{Code: types.TeShuttingDown, Details: "service is shutting down"}
+
 	s.pipeline.Interrupt(func() {
 		s.storage.StoreCtx(ctx, sigShutdown)
 	})
 	s.endSession(ctx)
-	return ctx.Err()
+
+	return nil
 }
 
-// Cancel cancels the transfer and set the transfer's error to the cancelled
+// Cancel cancels the transfer and set the transfer's error to the canceled
 // error, so that it can be sent to the remote client.
-func (s *ServerPipeline) Cancel(ctx context.Context) error {
+func (s *serverPipeline) Cancel(ctx context.Context) error {
+	sigCancel := &types.TransferError{Code: types.TeCanceled, Details: "transfer canceled by user"}
+
 	s.pipeline.Cancel(func() {
 		s.storage.StoreCtx(ctx, sigCancel)
 	})
 	s.endSession(ctx)
-	return ctx.Err()
+
+	return nil
 }
 
-func (s *ServerPipeline) handleError(err error) error {
+func (s *serverPipeline) handleError(err error) error {
 	s.transList.Delete(s.pipeline.TransCtx.Transfer.ID)
-	sErr := ToSFTPErr(err)
+
+	sErr := toSFTPErr(err)
 	s.storage.Store(sErr)
+
 	return sErr
 }
 
-func (s *ServerPipeline) exec(f func() *types.TransferError) error {
+func (s *serverPipeline) exec(f func() *types.TransferError) error {
 	select {
 	case <-s.storage.Wait():
-		return errors.New("file handle is no longer valid")
+		return errInvalidHandle
 	default:
 	}
 
 	var err *types.TransferError
+
 	done := make(chan struct{})
+
 	go func() {
 		err = f()
+
 		close(done)
 	}()
 
 	select {
 	case <-s.storage.Wait():
-		return s.storage.Get()
+		return s.handleError(s.storage.Get())
 	case <-done:
 		if err != nil {
 			return s.handleError(err)
 		}
+
 		return nil
 	}
 }
 
-// Execute pre-tasks & open transfer stream
-func (s *ServerPipeline) init() error {
+// Execute pre-tasks & open transfer stream.
+func (s *serverPipeline) init() error {
 	return s.exec(func() *types.TransferError {
 		if tErr := s.pipeline.PreTasks(); tErr != nil {
 			return tErr
@@ -156,18 +167,20 @@ func (s *ServerPipeline) init() error {
 			return tErr
 		}
 		s.file = file
+
 		return nil
 	})
 }
 
 // ReadAt reads the requested part of the transfer file.
-func (s *ServerPipeline) ReadAt(p []byte, off int64) (int, error) {
+func (s *serverPipeline) ReadAt(p []byte, off int64) (int, error) {
 	select {
 	case iErr, ok := <-s.storage.Wait():
 		if ok {
 			return 0, iErr
 		}
-		return 0, errors.New("file handle is no longer valid")
+
+		return 0, errInvalidHandle
 	default:
 	}
 
@@ -175,23 +188,25 @@ func (s *ServerPipeline) ReadAt(p []byte, off int64) (int, error) {
 
 	select {
 	case <-s.storage.Wait():
-		return n, s.storage.Get()
+		return n, s.handleError(s.storage.Get())
 	default:
-		if err != nil && err != io.EOF {
+		if err != nil && !errors.Is(err, io.EOF) {
 			return n, s.handleError(err)
 		}
-		return n, err
+
+		return n, io.EOF
 	}
 }
 
 // WriteAt writes the given data to the transfer file.
-func (s *ServerPipeline) WriteAt(p []byte, off int64) (int, error) {
+func (s *serverPipeline) WriteAt(p []byte, off int64) (int, error) {
 	select {
 	case iErr, ok := <-s.storage.Wait():
 		if ok {
 			return 0, iErr
 		}
-		return 0, errors.New("file handle is no longer valid")
+
+		return 0, errInvalidHandle
 	default:
 	}
 
@@ -199,27 +214,33 @@ func (s *ServerPipeline) WriteAt(p []byte, off int64) (int, error) {
 
 	select {
 	case <-s.storage.Wait():
-		return n, s.storage.Get()
+		return n, s.handleError(s.storage.Get())
+
 	default:
 		if err != nil {
 			return n, s.handleError(err)
 		}
+
 		return n, nil
 	}
 }
 
-// Close file, executes post-tasks & end transfer
-func (s *ServerPipeline) Close() error {
+// Close file, executes post-tasks & end transfer.
+func (s *serverPipeline) Close() error {
 	err := s.exec(func() *types.TransferError {
 		if tErr := s.pipeline.EndData(); tErr != nil {
 			return tErr
 		}
+
 		if tErr := s.pipeline.PostTasks(); tErr != nil {
 			return tErr
 		}
+
 		return s.pipeline.EndTransfer()
 	})
+
 	s.storage.Close()
 	s.transList.Delete(s.pipeline.TransCtx.Transfer.ID)
-	return err
+
+	return toSFTPErr(err)
 }

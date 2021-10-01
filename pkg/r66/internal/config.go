@@ -4,8 +4,9 @@ package internal
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 // MakeClientTLSConfig takes a client R66 transfer context and returns a TLS
@@ -13,11 +14,13 @@ import (
 // TLS, the returned configuration will be nil.
 func MakeClientTLSConfig(info *model.TransferContext) (*tls.Config, error) {
 	tlsCerts := make([]tls.Certificate, len(info.RemoteAccountCryptos))
+
 	for i, cert := range info.RemoteAccountCryptos {
 		var err error
+
 		tlsCerts[i], err = tls.X509KeyPair([]byte(cert.Certificate), []byte(cert.PrivateKey))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to parse TLS certificate: %w", err)
 		}
 	}
 
@@ -26,6 +29,7 @@ func MakeClientTLSConfig(info *model.TransferContext) (*tls.Config, error) {
 		if caPool == nil {
 			caPool = x509.NewCertPool()
 		}
+
 		caPool.AppendCertsFromPEM([]byte(cert.Certificate))
 	}
 

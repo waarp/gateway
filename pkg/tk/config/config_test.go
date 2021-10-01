@@ -11,7 +11,6 @@ import (
 )
 
 func TestParse(t *testing.T) {
-
 	Convey("Testing parsing", t, func() {
 		Convey("Subsequent parsing overwrite values", func() {
 			c := struct {
@@ -27,9 +26,10 @@ Foo = blah
 Foo = blih
 `)
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
-			err := p.Parse(b1)
+			err = p.Parse(b1)
 			So(err, ShouldBeNil)
 			err = p.Parse(b2)
 			So(err, ShouldBeNil)
@@ -45,9 +45,10 @@ Foo = blih
 			b1 := strings.NewReader(`
 `)
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
-			err := p.Parse(b1)
+			err = p.Parse(b1)
 			So(err, ShouldBeNil)
 
 			So(c.Foo, ShouldEqual, "default")
@@ -64,9 +65,10 @@ Foo = blih
 Foo blah
 `)
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
-			err := p.Parse(b1)
+			err = p.Parse(b1)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "malformed")
 		})
@@ -82,9 +84,10 @@ Foo blah
 Bar = string
 `)
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
-			err := p.Parse(b1)
+			err = p.Parse(b1)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldContainSubstring, "invalid syntax")
 		})
@@ -101,9 +104,10 @@ Foo = blah
 Bar = baz
 `)
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
-			err := p.Parse(b1)
+			err = p.Parse(b1)
 			So(err, ShouldBeNil)
 
 			So(c.Foo, ShouldEqual, "blah")
@@ -122,9 +126,10 @@ Bar = baz
 Foo = blah
 `)
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
-			err := p.Parse(b1)
+			err = p.Parse(b1)
 			So(err, ShouldBeNil)
 
 			So(c.Bar, ShouldEqual, "init2")
@@ -134,26 +139,26 @@ Foo = blah
 
 func writeConf(p *Parser) string {
 	var buf bytes.Buffer
+
 	p.Write(&buf)
-	content := buf.String()
-	return content
+
+	return buf.String()
 }
 
 func TestWrite(t *testing.T) {
-
 	type C struct {
 		Foo string `ini-name:"Foo" description:"the foo description"`
 		Bar string `ini-name:"Bar" default:"blah" description:"the bar description"`
 	}
 
 	Convey("Basic tests", t, func() {
-
 		Convey("It can write conf", func() {
 			c := C{
 				Foo: "init",
 			}
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
 			content := writeConf(p)
 			expected := `[global]
@@ -170,13 +175,13 @@ Foo = init
 	})
 
 	Convey("Write format", t, func() {
-
 		Convey("The main section is called global", func() {
 			c := C{
 				Foo: "init",
 			}
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
 			content := writeConf(p)
 			expected := "[global]"
@@ -189,7 +194,8 @@ Foo = init
 				Foo: "init",
 			}
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
 			content := writeConf(p)
 			expected := "; the foo description"
@@ -202,7 +208,8 @@ Foo = init
 				Foo: "init",
 			}
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
 			content := writeConf(p)
 			expected := "; Bar = blah"
@@ -215,7 +222,8 @@ Foo = init
 				Foo: "init",
 			}
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
 			content := writeConf(p)
 			expected := "Foo = init"
@@ -235,13 +243,13 @@ Foo = init
 			c := C{}
 			c.Group1.Foo = "init"
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
 			content := writeConf(p)
 
 			So(content, ShouldContainSubstring, "[group1]")
 			So(content, ShouldContainSubstring, "[group2]")
-
 		})
 
 		Convey("Descriptions are written as comments in groups", func() {
@@ -256,16 +264,15 @@ Foo = init
 			c := C{}
 			c.Group1.Foo = "init"
 
-			p := NewParser(&c)
+			p, err := NewParser(&c)
+			So(err, ShouldBeNil)
 
 			content := writeConf(p)
 
 			So(content, ShouldContainSubstring, "; the foo description")
 			So(content, ShouldContainSubstring, "; the bar description")
-
 		})
 	})
-
 }
 
 func TestUpdateFile(t *testing.T) {
@@ -280,15 +287,19 @@ func TestUpdateFile(t *testing.T) {
 Foo = bar
 Old = baz
 `)
-		err := ioutil.WriteFile("config-test.ini", content, 0644)
+		err := ioutil.WriteFile("config-test.ini", content, 0o644)
 		So(err, ShouldBeNil)
 
 		Convey("When UpdateConf is called", func() {
-			p := NewParser(&C{})
-			err := p.UpdateFile("config-test.ini")
+			p, err := NewParser(&C{})
 			So(err, ShouldBeNil)
+
+			err = p.UpdateFile("config-test.ini")
+			So(err, ShouldBeNil)
+
 			contentBytes, err := ioutil.ReadFile("config-test.ini")
 			So(err, ShouldBeNil)
+
 			content := string(contentBytes)
 
 			Convey("Then existing options are kept with their values", func() {

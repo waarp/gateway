@@ -3,12 +3,13 @@
 package migrations
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
 // Migrations should be declared here in chronological order. This means that
 // new migrations should ALWAYS be added at the end of the list so that the order
 // never changes.
+//nolint:gochecknoglobals // global var is used by design
 var Migrations = []migration.Migration{
 	{
 		Description: "Bump the database version to 0.4.0",
@@ -21,5 +22,13 @@ var Migrations = []migration.Migration{
 	}, {
 		Description: "Remove the UNIQUE constraint on the history table's remote ID",
 		Script:      ver0_4_2RemoveHistoryRemoteIDUnique{},
+	}, {
+		Description: "Bump the database version to 0.4.2",
+		Script:      bumpVersion{from: "0.4.1", to: "0.4.2"},
+		VersionTag:  "0.4.2",
+	}, {
+		Description: "Bump the database version to 0.4.3",
+		Script:      bumpVersion{from: "0.4.2", to: "0.4.3"},
+		VersionTag:  "0.4.3",
 	},
 }

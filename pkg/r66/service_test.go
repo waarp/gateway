@@ -9,18 +9,16 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
-
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-r66/r66"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
 func TestServiceStart(t *testing.T) {
@@ -77,9 +75,8 @@ func TestServiceStop(t *testing.T) {
 }
 
 func TestR66ServerInterruption(t *testing.T) {
-
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
-		test := pipelinetest.InitServerPush(c, "r66", servConf)
+		test := pipelinetest.InitServerPush(c, "r66", NewService, servConf)
 
 		serv := gatewayd.ServiceConstructors["r66"](test.DB, test.Server, log.NewLogger("server"))
 		c.So(serv.Start(), ShouldBeNil)
@@ -167,5 +164,6 @@ type dummyFile struct{}
 
 func (d *dummyFile) ReadAt(p []byte, _ int64) (int, error) {
 	time.Sleep(100 * time.Millisecond)
-	return rand.Read(p)
+
+	return rand.Read(p) //nolint:wrapcheck // this is a test
 }

@@ -8,20 +8,21 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	"code.waarp.fr/waarp-r66/r66"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
 }
@@ -77,7 +78,8 @@ func TestValidAuth(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					Convey("Then it should return a new session handler", func() {
-						ses := s.(*sessionHandler)
+						ses, ok := s.(*sessionHandler)
+						So(ok, ShouldBeTrue)
 						So(ses.account, ShouldResemble, toto)
 						So(ses.conf.FinalHash, ShouldBeTrue)
 						So(ses.conf.Filesize, ShouldBeTrue)
@@ -158,8 +160,7 @@ func TestValidRequest(t *testing.T) {
 				IsMD5:    true,
 				Block:    512,
 				Rank:     0,
-				//Limit:      0,
-				Infos: "",
+				Infos:    "",
 			}
 
 			shouldFailWith := func(desc, msg string) {
@@ -176,7 +177,8 @@ func TestValidRequest(t *testing.T) {
 				Convey("When calling the `ValidAuth` function", func() {
 					t, err := ses.ValidRequest(packet)
 					So(err, ShouldBeNil)
-					handler := t.(*transferHandler)
+					handler, ok := t.(*transferHandler)
+					So(ok, ShouldBeTrue)
 
 					Convey("Then it should have created a transfer", func() {
 						So(handler.trans.pip.TransCtx.Transfer.RuleID, ShouldEqual, rule.ID)
@@ -355,5 +357,6 @@ func hash(pwd string) []byte {
 	crypt := r66.CryptPass([]byte(pwd))
 	h, err := bcrypt.GenerateFromPassword(crypt, bcrypt.MinCost)
 	So(err, ShouldBeNil)
+
 	return h
 }

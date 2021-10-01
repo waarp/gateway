@@ -8,17 +8,17 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks/taskstest"
-
+	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 type testContext struct {
@@ -34,8 +34,15 @@ type testContext struct {
 	recv *model.Rule
 }
 
+const testProtocol = "test_proto"
+
+//nolint:gochecknoinits // init is used by design
 func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
+
+	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
+		return new(testhelpers.TestProtoConfig)
+	}
 }
 
 func initTaskChecker() *taskstest.TaskChecker {
@@ -49,12 +56,14 @@ func initTaskChecker() *taskstest.TaskChecker {
 func hash(pwd string) []byte {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	So(err, ShouldBeNil)
+
 	return h
 }
 
 func waitEndTransfer(pip *Pipeline) {
 	timeout := time.NewTimer(time.Second * 3)
 	ticker := time.NewTicker(time.Millisecond * 100)
+
 	defer func() {
 		timeout.Stop()
 		ticker.Stop()
@@ -101,7 +110,7 @@ func initTestDB(c C) *testContext {
 
 	server := &model.LocalAgent{
 		Name:        "server",
-		Protocol:    testhelpers.TestProtocol,
+		Protocol:    testProtocol,
 		ProtoConfig: json.RawMessage(`{}`),
 		Address:     "localhost:1111",
 	}
@@ -116,7 +125,7 @@ func initTestDB(c C) *testContext {
 
 	partner := &model.RemoteAgent{
 		Name:        "partner",
-		Protocol:    testhelpers.TestProtocol,
+		Protocol:    testProtocol,
 		ProtoConfig: json.RawMessage(`{}`),
 		Address:     "localhost:2222",
 	}
@@ -220,8 +229,9 @@ var (
 	errChan    = make(chan error, 1)
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
-	ClientConstructors[testhelpers.TestProtocol] = newTestProtoClient
+	ClientConstructors[testProtocol] = newTestProtoClient
 }
 
 func newTestProtoClient(*Pipeline) (Client, *types.TransferError) {
@@ -236,6 +246,7 @@ func (t *testProtoClient) Request() *types.TransferError {
 	if t.request {
 		return errRequest
 	}
+
 	return nil
 }
 
@@ -243,6 +254,7 @@ func (t *testProtoClient) BeginPreTasks() *types.TransferError {
 	if t.pre1 {
 		return errPre
 	}
+
 	return nil
 }
 
@@ -250,6 +262,7 @@ func (t *testProtoClient) EndPreTasks() *types.TransferError {
 	if t.pre2 {
 		return errPre
 	}
+
 	return nil
 }
 
@@ -257,9 +270,11 @@ func (t *testProtoClient) Data(s DataStream) *types.TransferError {
 	if _, err := io.Copy(ioutil.Discard, s); err != nil {
 		return errData
 	}
+
 	if t.data {
 		return errData
 	}
+
 	return nil
 }
 
@@ -267,6 +282,7 @@ func (t *testProtoClient) BeginPostTasks() *types.TransferError {
 	if t.post1 {
 		return errPost
 	}
+
 	return nil
 }
 
@@ -274,13 +290,15 @@ func (t *testProtoClient) EndPostTasks() *types.TransferError {
 	if t.post2 {
 		return errPost
 	}
+
 	return nil
 }
 
 func (t *testProtoClient) EndTransfer() *types.TransferError {
-	if t.request {
+	if t.end {
 		return errEnd
 	}
+
 	return nil
 }
 

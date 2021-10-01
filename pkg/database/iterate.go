@@ -39,6 +39,7 @@ type IterateQuery struct {
 // using the 'AND' operator.
 func (i *IterateQuery) Where(sql string, args ...interface{}) *IterateQuery {
 	i.conds = append(i.conds, cond{sql: sql, args: args})
+
 	return i
 }
 
@@ -50,7 +51,9 @@ func (i *IterateQuery) In(col string, vals ...interface{}) *IterateQuery {
 	if builder.In(col, vals...).WriteTo(sql) != nil {
 		return i
 	}
+
 	i.conds = append(i.conds, cond{sql: sql.String(), args: sql.args})
+
 	return i
 }
 
@@ -62,6 +65,7 @@ func (i *IterateQuery) In(col string, vals ...interface{}) *IterateQuery {
 // account for the SELECT.
 func (i *IterateQuery) Distinct(columns ...string) *IterateQuery {
 	i.distinct = append(i.distinct, columns...)
+
 	return i
 }
 
@@ -70,6 +74,7 @@ func (i *IterateQuery) Distinct(columns ...string) *IterateQuery {
 func (i *IterateQuery) OrderBy(order string, asc bool) *IterateQuery {
 	i.order = order
 	i.asc = asc
+
 	return i
 }
 
@@ -78,6 +83,7 @@ func (i *IterateQuery) OrderBy(order string, asc bool) *IterateQuery {
 func (i *IterateQuery) Limit(limit, offset int) *IterateQuery {
 	i.lim = limit
 	i.off = offset
+
 	return i
 }
 
@@ -86,13 +92,14 @@ func (i *IterateQuery) Run() (*Iterator, Error) {
 	logger := i.db.GetLogger()
 	query := i.db.getUnderlying().NoAutoCondition().Table(i.bean.TableName())
 
-	for _, cond := range i.conds {
-		query.Where(builder.Expr(cond.sql, cond.args...))
+	for j := range i.conds {
+		query.Where(builder.Expr(i.conds[j].sql, i.conds[j].args...))
 	}
 
 	if i.lim != 0 || i.off != 0 {
 		query.Limit(i.lim, i.off)
 	}
+
 	if i.order != "" {
 		if i.asc {
 			query.OrderBy(fmt.Sprintf("%s ASC", i.order))
@@ -110,6 +117,7 @@ func (i *IterateQuery) Run() (*Iterator, Error) {
 
 	if err != nil {
 		logger.Errorf("Failed to retrieve the %s entries: %s", i.bean.Appellation(), err)
+
 		return nil, NewInternalError(err)
 	}
 

@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
 type serverCommand struct {
@@ -58,12 +58,15 @@ func (s *serverGet) Execute([]string) error {
 	if err := get(server); err != nil {
 		return err
 	}
+
 	displayServer(getColorable(), server)
+
 	return nil
 }
 
 // ######################## ADD ##########################
 
+//nolint:lll // struct tags can be long for command line args
 type serverAdd struct {
 	Name        string             `required:"yes" short:"n" long:"name" description:"The server's name"`
 	Protocol    string             `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
@@ -79,8 +82,9 @@ type serverAdd struct {
 func (s *serverAdd) Execute([]string) error {
 	conf, err := json.Marshal(s.ProtoConfig)
 	if err != nil {
-		return fmt.Errorf("invalid config: %s", err)
+		return fmt.Errorf("invalid config: %w", err)
 	}
+
 	server := &api.InServer{
 		Name:        &s.Name,
 		Protocol:    &s.Protocol,
@@ -91,17 +95,22 @@ func (s *serverAdd) Execute([]string) error {
 		LocalTmpDir: s.TempDir,
 		ProtoConfig: conf,
 	}
+
 	if s.WorkDir != nil {
 		fmt.Fprintln(out, "[WARNING] The '-w' ('-work') option is deprecated. "+
 			"Use '-t' ('-tmp') instead.")
+
 		server.WorkDir = s.WorkDir
 	}
 
 	addr.Path = "/api/servers"
+
 	if err := add(server); err != nil {
 		return err
 	}
+
 	fmt.Fprintln(getColorable(), "The server", bold(s.Name), "was successfully added.")
+
 	return nil
 }
 
@@ -119,18 +128,22 @@ func (s *serverDelete) Execute([]string) error {
 	if err := remove(uri); err != nil {
 		return err
 	}
+
 	fmt.Fprintln(getColorable(), "The server", bold(s.Args.Name), "was successfully deleted.")
+
 	return nil
 }
 
 // ######################## LIST ##########################
 
+//nolint:lll // struct tags can be long for command line args
 type serverList struct {
 	listOptions
 	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" choice:"protocol+" choice:"protocol-" default:"name+" `
 	Protocols []string `short:"p" long:"protocol" description:"Filter the agents based on the protocol they use. Can be repeated multiple times to filter multiple protocols."`
 }
 
+//nolint:dupl // hard to factorize
 func (s *serverList) Execute([]string) error {
 	agentListURL("/api/servers", &s.listOptions, s.SortBy, s.Protocols)
 
@@ -140,21 +153,26 @@ func (s *serverList) Execute([]string) error {
 	}
 
 	servers := body["servers"]
-	w := getColorable()
+
+	w := getColorable() //nolint:ifshort // decrease readability
+
 	if len(servers) > 0 {
 		fmt.Fprintln(w, bold("Servers:"))
-		for _, s := range servers {
-			server := s
+
+		for i := range servers {
+			server := servers[i]
 			displayServer(w, &server)
 		}
 	} else {
 		fmt.Fprintln(w, "No servers found.")
 	}
+
 	return nil
 }
 
 // ######################## UPDATE ##########################
 
+//nolint:lll // struct tags can be long for command line args
 type serverUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The server's name"`
@@ -173,8 +191,9 @@ type serverUpdate struct {
 func (s *serverUpdate) Execute([]string) error {
 	conf, err := json.Marshal(s.ProtoConfig)
 	if err != nil {
-		return fmt.Errorf("invalid config: %s", err)
+		return fmt.Errorf("invalid config: %w", err)
 	}
+
 	server := &api.InServer{
 		Name:        s.Name,
 		Protocol:    s.Protocol,
@@ -185,9 +204,11 @@ func (s *serverUpdate) Execute([]string) error {
 		LocalTmpDir: s.TempDir,
 		ProtoConfig: conf,
 	}
+
 	if s.WorkDir != nil {
 		fmt.Fprintln(out, "[WARNING] The '-w' ('-work') option is deprecated. "+
 			"Use '-t' ('-tmp') instead.")
+
 		server.WorkDir = s.WorkDir
 	}
 
@@ -196,16 +217,20 @@ func (s *serverUpdate) Execute([]string) error {
 	if err := update(server); err != nil {
 		return err
 	}
+
 	name := s.Args.Name
 	if server.Name != nil && *server.Name != "" {
 		name = *server.Name
 	}
+
 	fmt.Fprintln(getColorable(), "The server", bold(name), "was successfully updated.")
+
 	return nil
 }
 
 // ######################## AUTHORIZE ##########################
 
+//nolint:lll // struct tags can be long for command line args
 type serverAuthorize struct {
 	Args struct {
 		Server    string `required:"yes" positional-arg-name:"server" description:"The server's name"`
@@ -223,6 +248,7 @@ func (s *serverAuthorize) Execute([]string) error {
 
 // ######################## REVOKE ##########################
 
+//nolint:lll // struct tags can be long for command line args
 type serverRevoke struct {
 	Args struct {
 		Server    string `required:"yes" positional-arg-name:"server" description:"The server's name"`

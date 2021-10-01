@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks/taskstest"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
 )
 
 func TestNewPipeline(t *testing.T) {
@@ -844,7 +844,7 @@ func TestPipelineCancel(t *testing.T) {
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
 				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
-				Convey("Then the transfer should have been cancelled", func(c C) {
+				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
 					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
@@ -887,7 +887,7 @@ func TestPipelineCancel(t *testing.T) {
 					types.TeExternalOperation, "pre-tasks failed"))
 				So(taskChecker.ClientPreTaskNB(), ShouldEqual, 1)
 
-				Convey("Then the transfer should have been cancelled", func(c C) {
+				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
 					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
@@ -911,7 +911,7 @@ func TestPipelineCancel(t *testing.T) {
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
 				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
-				Convey("Then the transfer should have been cancelled", func(c C) {
+				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
 					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
@@ -959,7 +959,7 @@ func TestPipelineCancel(t *testing.T) {
 					types.TeExternalOperation, "post-tasks failed"))
 				So(taskChecker.ClientPostTaskNB(), ShouldEqual, 1)
 
-				Convey("Then the transfer should have been cancelled", func(c C) {
+				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
 					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)
@@ -984,7 +984,7 @@ func TestPipelineCancel(t *testing.T) {
 			Convey("Then it should NOT have called the error-tasks", func(c C) {
 				So(taskChecker.ClientErrTaskNB(), ShouldEqual, 0)
 
-				Convey("Then the transfer should have been cancelled", func(c C) {
+				Convey("Then the transfer should have been canceled", func(c C) {
 					var hist model.HistoryEntry
 					So(ctx.db.Get(&hist, "id=?", info.Transfer.ID).Run(), ShouldBeNil)
 					So(hist.Status, ShouldEqual, types.StatusCancelled)

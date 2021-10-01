@@ -6,12 +6,15 @@ import "sort"
 // strings or not.
 func ContainsStrings(slice []string, strings ...string) bool {
 	n := len(slice)
-	return sort.Search(n, func(i int) bool {
+	foundIndex := sort.Search(n, func(i int) bool {
 		for _, s := range strings {
 			if slice[i] == s {
 				return true
 			}
 		}
+
 		return false
-	}) != n
+	})
+
+	return foundIndex != n
 }

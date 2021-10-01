@@ -5,10 +5,17 @@ import (
 	"fmt"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
+var (
+	errExec  = fmt.Errorf("execution failed")
+	errValid = fmt.Errorf("validation failed")
+)
+
+//nolint:gochecknoinits // init is used by design
 func init() {
 	ValidTasks["TESTSUCCESS"] = &testTaskSuccess{}
 	ValidTasks["TESTFAIL"] = &testTaskFail{}
@@ -27,11 +34,11 @@ func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB, 
 type testTaskFail struct{}
 
 func (t *testTaskFail) Validate(map[string]string) error {
-	return fmt.Errorf("validation failed")
+	return errValid
 }
 
 func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error) {
-	return "", fmt.Errorf("execution failed")
+	return "", errExec
 }
 
 func TestTaskTableName(t *testing.T) {

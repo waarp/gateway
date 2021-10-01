@@ -8,16 +8,16 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+//nolint:gochecknoinits // designed this way
 func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
 }
@@ -27,13 +27,12 @@ func TestSetup(t *testing.T) {
 		task := &model.Task{
 			Type: "DUMMY",
 			Args: []byte(`{"rule":"#RULE#", "date":"#DATE#", "hour":"#HOUR#", 
-			"path":"#OUTPATH#", "trueFullPath":"#TRUEFULLPATH#",
-			"trueFilename":"#TRUEFILENAME#", "fullPath":"#ORIGINALFULLPATH#", 
-			"filename":"#ORIGINALFILENAME#", "remoteHost":"#REMOTEHOST#", 
-			"localHost":"#LOCALHOST#", "transferID":"#TRANFERID#",
-			"requesterHost":"#REQUESTERHOST#", "requestedHost":"#REQUESTEDHOST#",
-			"fullTransferID":"#FULLTRANFERID#", "errCode":"#ERRORCODE#",
-			"errMsg":"#ERRORMSG#", "errStrCode":"#ERRORSTRCODE#"}`),
+			"trueFullPath":"#TRUEFULLPATH#", "trueFilename":"#TRUEFILENAME#", 
+			"fullPath":"#ORIGINALFULLPATH#", "filename":"#ORIGINALFILENAME#", 
+			"remoteHost":"#REMOTEHOST#", "localHost":"#LOCALHOST#", 
+			"transferID":"#TRANFERID#", "requesterHost":"#REQUESTERHOST#",
+			"requestedHost":"#REQUESTEDHOST#", "fullTransferID":"#FULLTRANFERID#",
+			"errCode":"#ERRORCODE#", "errMsg":"#ERRORMSG#", "errStrCode":"#ERRORSTRCODE#"}`),
 		}
 
 		Convey("Given a Runner", func(c C) {
@@ -41,7 +40,7 @@ func TestSetup(t *testing.T) {
 
 			agent := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    testhelpers.TestProtocol,
+				Protocol:    testProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6622",
 			}
@@ -244,7 +243,7 @@ func TestRunTasks(t *testing.T) {
 
 		agent := &model.RemoteAgent{
 			Name:        "agent",
-			Protocol:    testhelpers.TestProtocol,
+			Protocol:    testProtocol,
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:6622",
 		}
@@ -278,7 +277,6 @@ func TestRunTasks(t *testing.T) {
 		}
 
 		Convey("Given a list of tasks", func() {
-
 			Convey("Given that all the tasks succeed", func() {
 				dummyTaskCheck = make(chan string, 3)
 				tasks := []model.Task{

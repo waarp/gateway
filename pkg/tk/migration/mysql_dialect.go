@@ -3,12 +3,14 @@ package migration
 import (
 	"fmt"
 
-	_ "github.com/go-sql-driver/mysql" //register the MySQL driver
+	// Register the MySQL driver.
+	_ "github.com/go-sql-driver/mysql"
 )
 
 // MySQL is the constant name of the MySQL dialect translator.
 const MySQL = "mysql"
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	dialects[MySQL] = newMySQLEngine
 }
@@ -39,7 +41,7 @@ func (m *mySQLDialect) sqlTypeToDBType(typ sqlType) (string, error) {
 	case varchar:
 		return fmt.Sprintf("VARCHAR(%d)", typ.size), nil
 	case text:
-		return "TEXT", nil
+		return "TEXT", nil //nolint:goconst // no need here
 	case date:
 		return "DATE", nil
 	case timestamp:
@@ -51,13 +53,14 @@ func (m *mySQLDialect) sqlTypeToDBType(typ sqlType) (string, error) {
 	case blob:
 		return "BLOB", nil
 	default:
-		return "", fmt.Errorf("unsupported SQL datatype")
+		return "", fmt.Errorf("unsupported SQL datatype") //nolint:goerr113 // base error
 	}
 }
 
-//nolint:dupl
+//nolint:dupl // FIXME to be factorized
 func (m *mySQLDialect) makeConstraints(col *Column) ([]string, error) {
 	var consList []string
+
 	for _, c := range col.Constraints {
 		switch con := c.(type) {
 		case pk:
@@ -69,9 +72,12 @@ func (m *mySQLDialect) makeConstraints(col *Column) ([]string, error) {
 		case autoIncr:
 			if !isIntegerType(col.Type) {
 				return nil, fmt.Errorf("auto-increments can only be used on "+
-					"integer types (%s is not an integer type)", col.Type.code.String())
+					"integer types (%s is not an integer type): %w",
+					col.Type.code.String(), errBadConstraint)
 			}
+
 			consList = append(consList, "AUTO_INCREMENT")
+
 		case unique:
 			consList = append(consList, "UNIQUE")
 		case defaul:
@@ -79,11 +85,14 @@ func (m *mySQLDialect) makeConstraints(col *Column) ([]string, error) {
 			if err != nil {
 				return nil, err
 			}
+
 			consList = append(consList, fmt.Sprintf("DEFAULT %s", sqlVal))
+
 		default:
-			return nil, fmt.Errorf("unknown constraint type %T", c)
+			return nil, fmt.Errorf("unknown constraint type %T: %w", c, errBadConstraint)
 		}
 	}
+
 	return consList, nil
 }
 
@@ -96,18 +105,19 @@ func (m *mySQLDialect) AddColumn(table, column string, dataType sqlType,
 	return m.standardSQL.addColumn(m, table, column, dataType, constraints)
 }
 
-func (m *mySQLDialect) ChangeColumnType(table, col string, old, new sqlType) error {
-	if !old.canConvertTo(new) {
-		return fmt.Errorf("cannot convert from type %s to type %s", old.code.String(),
-			new.code.String())
+func (m *mySQLDialect) ChangeColumnType(table, col string, from, to sqlType) error {
+	if !from.canConvertTo(to) {
+		return fmt.Errorf("cannot convert from type %s to type %s: %w",
+			from.code.String(), to.code.String(), errOperation)
 	}
 
-	newType, err := m.sqlTypeToDBType(new)
+	newType, err := m.sqlTypeToDBType(to)
 	if err != nil {
 		return err
 	}
 
 	query := "ALTER TABLE %s\nMODIFY COLUMN %s %s"
+
 	return m.Exec(query, table, col, newType)
 }
 

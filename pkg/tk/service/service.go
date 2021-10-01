@@ -8,34 +8,32 @@ import (
 )
 
 const (
-	// DatabaseServiceName is the name of the gatewayd database service
+	// DatabaseServiceName is the name of the gatewayd database service.
 	DatabaseServiceName = "Database"
 
-	// AdminServiceName is the name of the administration interface service
+	// AdminServiceName is the name of the administration interface service.
 	AdminServiceName = "Admin"
 
 	// ControllerServiceName is the name of the controller service.
 	ControllerServiceName = "Controller"
 )
 
-// CoreServiceNames is a list of the names of the core services of the gateway.
-// In consequence, since services must have unique names, these names are also
-// forbidden to use as LocalAgent names.
-var CoreServiceNames = map[string]bool{
-	DatabaseServiceName:   true,
-	AdminServiceName:      true,
-	ControllerServiceName: true,
+// IsReservedServiceName returns whether the given service name is already a
+// reserved name. Reserved names cannot be used as service names.
+func IsReservedServiceName(name string) bool {
+	return name == DatabaseServiceName || name == AdminServiceName ||
+		name == ControllerServiceName
 }
 
 // Service is the interface of an object which is considered to be a service.
 type Service interface {
-	// Start is the method called to start the service
+	// Start is the method called to start the service.
 	Start() error
 
-	// Stop is the method called to stop the service. It may include a timeout
+	// Stop is the method called to stop the service. It may include a timeout.
 	Stop(ctx context.Context) error
 
-	// State returns the state of the service
+	// State returns the state of the service.
 	State() *State
 }
 
@@ -49,8 +47,8 @@ type ProtoService interface {
 	ManageTransfers() *TransferMap
 }
 
-// StateCode represents the state of a service
-// FIXME: Should implement json.Marshaler and json.Unmarshaler
+// StateCode represents the state of a service.
+// FIXME: Should implement json.Marshaler and json.Unmarshaler.
 type StateCode uint8
 
 const (
@@ -62,18 +60,18 @@ const (
 	// Starting means the service is in its starting phase.
 	Starting
 
-	// Running means the service is alive and functions normally
+	// Running means the service is alive and functions normally.
 	Running
 
-	// ShuttingDown means that the service has been asked to exit
+	// ShuttingDown means that the service has been asked to exit.
 	ShuttingDown
 
 	// Error means that the service is not properly functioning.
 	Error
 )
 
-// Name returns the human representation is StateCode as a string
-// FIXME: Should be String()
+// Name returns the human representation is StateCode as a string.
+// FIXME: Should be String().
 func (s StateCode) Name() string {
 	switch s {
 	case Starting:
@@ -90,7 +88,7 @@ func (s StateCode) Name() string {
 }
 
 // State handles a service global state. It associates a code with a reason.
-// the reason contains an message explaining why the service is in this state.
+// The reason contains an message explaining why the service is in this state.
 type State struct {
 	code   StateCode
 	reason string
@@ -101,11 +99,12 @@ type State struct {
 func (s *State) Get() (StateCode, string) {
 	defer s.mutex.RUnlock()
 	s.mutex.RLock()
+
 	return s.code, s.reason
 }
 
 // Set allows one to change the StateCode of a service and the associated
-// reason
+// reason.
 func (s *State) Set(code StateCode, reason string) {
 	defer s.mutex.Unlock()
 	s.mutex.Lock()

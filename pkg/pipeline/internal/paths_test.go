@@ -3,25 +3,34 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
-	. "path/filepath"
+	"path/filepath"
 	"testing"
 
+	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
+const testProtocol = "test_proto"
+
+//nolint:gochecknoinits // init is used to ease the tests
 func init() {
 	_ = log.InitBackend("DEBUG", "stdout", "")
+
+	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
+		return new(testhelpers.TestProtoConfig)
+	}
 }
 
 func hash(pwd string) []byte {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	So(err, ShouldBeNil)
+
 	return h
 }
 
@@ -37,7 +46,7 @@ func TestPathBuilder(t *testing.T) {
 
 		server := &model.LocalAgent{
 			Name:        "server",
-			Protocol:    testhelpers.TestProtocol,
+			Protocol:    testProtocol,
 			Root:        "serRoot",
 			LocalInDir:  "serIn",
 			LocalOutDir: "serOut",
@@ -94,14 +103,14 @@ func TestPathBuilder(t *testing.T) {
 			}
 			gwRoot := db.Conf.Paths.GatewayHome
 			testCases := []testCase{
-				{"", "", "", Join(gwRoot, "gwTmp", file)},
-				{"serRoot", "", "", Join(gwRoot, "serRoot", "serTmp", file)},
-				{"", "recvLoc", "", Join(gwRoot, "recvLoc", file)},
-				{"", "", "recvTmp", Join(gwRoot, "recvTmp", file)},
-				{"serRoot", "recvLoc", "", Join(gwRoot, "serRoot", "recvLoc", file)},
-				{"serRoot", "", "recvTmp", Join(gwRoot, "serRoot", "recvTmp", file)},
-				{"", "recvLoc", "recvTmp", Join(gwRoot, "recvTmp", file)},
-				{"serRoot", "recvLoc", "recvTmp", Join(gwRoot, "serRoot", "recvTmp", file)},
+				{"", "", "", filepath.Join(gwRoot, "gwTmp", file)},
+				{"serRoot", "", "", filepath.Join(gwRoot, "serRoot", "serTmp", file)},
+				{"", "recvLoc", "", filepath.Join(gwRoot, "recvLoc", file)},
+				{"", "", "recvTmp", filepath.Join(gwRoot, "recvTmp", file)},
+				{"serRoot", "recvLoc", "", filepath.Join(gwRoot, "serRoot", "recvLoc", file)},
+				{"serRoot", "", "recvTmp", filepath.Join(gwRoot, "serRoot", "recvTmp", file)},
+				{"", "recvLoc", "recvTmp", filepath.Join(gwRoot, "recvTmp", file)},
+				{"serRoot", "recvLoc", "recvTmp", filepath.Join(gwRoot, "serRoot", "recvTmp", file)},
 			}
 
 			for _, tc := range testCases {
@@ -156,10 +165,10 @@ func TestPathBuilder(t *testing.T) {
 			}
 			gwRoot := db.Conf.Paths.GatewayHome
 			testCases := []testCase{
-				{"", "", Join(gwRoot, "gwOut", file)},
-				{"serRoot", "", Join(gwRoot, "serRoot", "serOut", file)},
-				{"", "sendLoc", Join(gwRoot, "sendLoc", file)},
-				{"serRoot", "sendLoc", Join(gwRoot, "serRoot", "sendLoc", file)},
+				{"", "", filepath.Join(gwRoot, "gwOut", file)},
+				{"serRoot", "", filepath.Join(gwRoot, "serRoot", "serOut", file)},
+				{"", "sendLoc", filepath.Join(gwRoot, "sendLoc", file)},
+				{"serRoot", "sendLoc", filepath.Join(gwRoot, "serRoot", "sendLoc", file)},
 			}
 
 			for _, tc := range testCases {

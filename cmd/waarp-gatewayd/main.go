@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	flags "github.com/jessevdk/go-flags"
 )
 
+//nolint:lll // tags can be long for flags
 type options struct {
 	Server  serverCommand  `command:"server" description:"Start/Create the gateway"`
 	Import  importCommand  `command:"import" description:"Imports the data of source file into the gateway database"`
@@ -20,7 +22,8 @@ func main() {
 	parser := flags.NewParser(&opts, flags.Default)
 
 	if _, err := parser.Parse(); err != nil {
-		if _, ok := err.(*flags.Error); ok && !flags.WroteHelp(err) {
+		var err2 *flags.Error
+		if ok := errors.As(err, &err2); ok && !flags.WroteHelp(err2) {
 			fmt.Fprintln(os.Stderr)
 			parser.WriteHelp(os.Stderr)
 		}

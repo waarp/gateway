@@ -2,14 +2,16 @@
 package log
 
 import (
+	"fmt"
 	"time"
 
 	"code.bcarlin.xyz/go/logging"
 )
 
+//nolint:gochecknoglobals // FIXME global var is used by design
 var backend logging.Backend
 
-// Logger is an internal abstraction of the underlying logging library
+// Logger is an internal abstraction of the underlying logging library.
 type Logger struct {
 	*logging.Logger
 }
@@ -21,12 +23,13 @@ func InitBackend(level, logTo, facility string) (err error) {
 	case "stdout":
 		backend = logging.NewStdoutBackend()
 	case "/dev/null", "nul", "NUL":
-		backend, _ = logging.NewNoopBackend()
+		backend, _ = logging.NewNoopBackend() //nolint:errcheck // error is always nil
 	case "syslog":
 		backend, err = newSyslogBackend(facility)
 	default:
 		backend, err = logging.NewFileBackend(logTo)
 	}
+
 	if err != nil {
 		return
 	}
@@ -38,26 +41,31 @@ func InitBackend(level, logTo, facility string) (err error) {
 			Level:     logging.ERROR,
 			Message:   err.Error(),
 		}
+
 		if err := backend.Write(record); err != nil {
-			return err
+			return fmt.Errorf("cannot initialize logging backend: %w", err)
 		}
 	}
+
 	return
 }
 
-// NewLogger initiates a new logger
+// NewLogger initiates a new logger.
 func NewLogger(name string) *Logger {
 	l := &Logger{Logger: logging.NewLogger(name)}
 	l.Logger.SetBackend(backend)
+
 	return l
 }
 
-// setLevel sets the level of the logger
+// setLevel sets the level of the logger.
 func setLevel(level string, b logging.Backend) error {
 	logLevel, err := logging.LevelByName(level)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot set log level to %q: %w", level, err)
 	}
+
 	b.SetLevel(logLevel)
+
 	return nil
 }

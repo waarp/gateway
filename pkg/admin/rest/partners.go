@@ -3,11 +3,12 @@ package rest
 import (
 	"net/http"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func getPart(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
@@ -21,11 +22,14 @@ func getPart(r *http.Request, db *database.DB) (*model.RemoteAgent, error) {
 		if database.IsNotFound(err) {
 			return nil, notFound("partner '%s' not found", agentName)
 		}
+
 		return nil, err
 	}
+
 	return &partner, nil
 }
 
+//nolint:dupl // duplicated code is about a different type
 func addPartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var part api.InPartner
@@ -56,11 +60,12 @@ func listPartners(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var partners model.RemoteAgents
 		query, err := parseSelectQuery(r, db, validSorting, &partners)
+
 		if handleError(w, logger, err) {
 			return
 		}
 
-		if err := parseProtoParam(r, query); handleError(w, logger, err) {
+		if err2 := parseProtoParam(r, query); handleError(w, logger, err2) {
 			return
 		}
 
@@ -72,6 +77,7 @@ func listPartners(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		for i := range partners {
 			ids[i] = partners[i].ID
 		}
+
 		rules, err := getAuthorizedRuleList(db, typ, ids)
 		if handleError(w, logger, err) {
 			return
@@ -110,10 +116,12 @@ func deletePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		if err := db.Delete(partner).Run(); handleError(w, logger, err) {
 			return
 		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
+//nolint:dupl // duplicated code is about a different type
 func updatePartner(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		old, err := getPart(r, db)

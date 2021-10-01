@@ -18,7 +18,7 @@ type Engine struct {
 func NewEngine(db *sql.DB, dialect string, out io.Writer) (*Engine, error) {
 	constr, ok := dialects[dialect]
 	if !ok {
-		return nil, fmt.Errorf("unknown SQL dialect %s", dialect)
+		return nil, fmt.Errorf("unknown SQL dialect %s", dialect) //nolint:goerr113 // base error
 	}
 
 	return &Engine{DB: db, constr: constr, out: out}, nil
@@ -26,42 +26,48 @@ func NewEngine(db *sql.DB, dialect string, out io.Writer) (*Engine, error) {
 
 // Upgrade takes a slice of migrations, and executes them sequentially by calling
 // all their Up functions in order. All the migrations are run inside a single
-// transaction, and if any of them fails, the whole transaction will be cancelled.
+// transaction, and if any of them fails, the whole transaction will be canceled.
 func (e *Engine) Upgrade(migrations []Migration) (txErr error) {
 	tx, err := e.DB.Begin()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot open transaction: %w", err)
 	}
+
 	defer func() {
 		if txErr != nil {
-			_ = tx.Rollback()
+			_ = tx.Rollback() //nolint:errcheck // no logger to handle the error
 		}
 	}()
+
 	dialect := e.constr(&queryWriter{db: tx, writer: e.out})
 
-	for _, m := range migrations {
-		if txErr = m.Script.Up(dialect); txErr != nil {
+	for i := range migrations {
+		if txErr = migrations[i].Script.Up(dialect); txErr != nil {
 			return
 		}
 	}
+
 	txErr = tx.Commit()
+
 	return
 }
 
 // Downgrade takes a slice of migrations, and "reverts" them by calling all their
 // Down functions in reverse order, starting from the last one. All the migrations
 // are run inside a single transaction, and if any of them fails, the whole
-// transaction will be cancelled.
+// transaction will be canceled.
 func (e *Engine) Downgrade(migrations []Migration) (txErr error) {
 	tx, err := e.DB.Begin()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot open transaction: %w", err)
 	}
+
 	defer func() {
 		if txErr != nil {
-			_ = tx.Rollback()
+			_ = tx.Rollback() //nolint:errcheck // no logger to handle the error
 		}
 	}()
+
 	dialect := e.constr(&queryWriter{db: tx, writer: e.out})
 
 	for i := len(migrations) - 1; i >= 0; i-- {
@@ -69,6 +75,8 @@ func (e *Engine) Downgrade(migrations []Migration) (txErr error) {
 			return
 		}
 	}
+
 	txErr = tx.Commit()
+
 	return
 }

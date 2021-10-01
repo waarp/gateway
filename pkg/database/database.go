@@ -6,30 +6,37 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"xorm.io/xorm"
 	log2 "xorm.io/xorm/log"
 	"xorm.io/xorm/names"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+const aesKeySize = 32
+
+//nolint:gochecknoglobals // global var is used by design
 var (
 	// GCM is the Galois Counter Mode cipher used to encrypt external accounts passwords.
 	GCM cipher.AEAD
 
 	// Owner is the name of the gateway instance specified in the configuration file.
 	Owner string
+
+	errUnsuportedDB = errors.New("unsupported database")
 )
 
 // DB is the database service. It encapsulates a data connection and implements
-// Accessor
+// Accessor.
 type DB struct {
 	// The gateway configuration
 	Conf *conf.ServerConfig
@@ -51,29 +58,31 @@ func (db *DB) loadAESKey() error {
 	filename := db.Conf.Database.AESPassphrase
 	if _, err := os.Stat(utils.ToOSPath(filename)); os.IsNotExist(err) {
 		db.logger.Infof("Creating AES passphrase file at '%s'", filename)
-		key := make([]byte, 32)
+
+		key := make([]byte, aesKeySize)
+
 		if _, err := rand.Read(key); err != nil {
-			return err
+			return fmt.Errorf("cannot generate AES key: %w", err)
 		}
 
-		if err := ioutil.WriteFile(utils.ToOSPath(filename), key, 0600); err != nil {
-			return err
+		if err := ioutil.WriteFile(utils.ToOSPath(filename), key, 0o600); err != nil {
+			return fmt.Errorf("cannot write AES key to file %q: %w", filename, err)
 		}
 	}
 
 	key, err := ioutil.ReadFile(utils.ToOSPath(filename))
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot read AES key from file %q: %w", filename, err)
 	}
 
 	c, err := aes.NewCipher(key)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot initialize AES key: %w", err)
 	}
 
 	GCM, err = cipher.NewGCM(c)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot initialize AES key: %w", err)
 	}
 
 	return nil
@@ -87,38 +96,45 @@ func (db *DB) createConnectionInfo() (string, string, func(*xorm.Engine) error, 
 
 	info, ok := supportedRBMS[rdbms]
 	if !ok {
-		return "", "", nil, fmt.Errorf("unknown database type '%s'", rdbms)
+		return "", "", nil, fmt.Errorf("unknown database type '%s': %w", rdbms, errUnsuportedDB)
 	}
 
 	driver, dsn, f := info(&db.Conf.Database)
+
 	return driver, dsn, f, nil
 }
 
 type dbinfo func(*conf.DatabaseConfig) (string, string, func(*xorm.Engine) error)
 
+//nolint:gochecknoglobals // global var is used by design
 var supportedRBMS = map[string]dbinfo{}
 
 func (db *DB) initEngine() (*xorm.Engine, error) {
 	driver, dsn, init, err := db.createConnectionInfo()
 	if err != nil {
 		db.logger.Criticalf("Database configuration invalid: %s", err)
+
 		return nil, err
 	}
 
 	engine, err := xorm.NewEngine(driver, dsn)
 	if err != nil {
 		db.logger.Criticalf("Failed to open database: %s", err)
-		return nil, err
+
+		return nil, fmt.Errorf("cannot initialize database access: %w", err)
 	}
+
 	engine.SetLogger(log2.DiscardLogger{})
 	engine.SetMapper(names.GonicMapper{})
+
 	if err := init(engine); err != nil {
 		return nil, err
 	}
 
 	if err := engine.Ping(); err != nil {
 		db.logger.Errorf("Failed to access database: %s", err)
-		return nil, err
+
+		return nil, fmt.Errorf("cannot access database: %w", err)
 	}
 
 	return engine, nil
@@ -134,22 +150,27 @@ func (db *DB) Start() error {
 	}
 
 	db.logger.Info("Starting database service...")
+
 	if code, _ := db.state.Get(); code != service.Offline && code != service.Error {
 		db.logger.Info("Service is already running")
+
 		return nil
 	}
+
 	db.state.Set(service.Starting, "")
 	Owner = db.Conf.GatewayName
 
 	if err := db.loadAESKey(); err != nil {
 		db.state.Set(service.Error, err.Error())
 		db.logger.Criticalf("Failed to load AES key: %s", err)
+
 		return err
 	}
 
 	engine, err := db.initEngine()
 	if err != nil {
 		db.state.Set(service.Error, err.Error())
+
 		return err
 	}
 
@@ -160,14 +181,23 @@ func (db *DB) Start() error {
 	}
 
 	if err := initTables(db.Standalone); err != nil {
-		_ = engine.Close()
+		if err2 := engine.Close(); err2 != nil {
+			db.logger.Warningf("an error occurred while closing the database: %v", err2)
+		}
+
 		db.state.Set(service.Error, err.Error())
 		db.logger.Errorf("Failed to create tables: %s", err)
+
 		return err
 	}
+
 	if err := db.checkVersion(); err != nil {
-		_ = engine.Close()
+		if err2 := engine.Close(); err2 != nil {
+			db.logger.Warningf("an error occurred while closing the database: %v", err2)
+		}
+
 		db.state.Set(service.Error, err.Error())
+
 		return err
 	}
 
@@ -182,21 +212,27 @@ func (db *DB) Start() error {
 // If the service is not running, this function does nothing.
 func (db *DB) Stop(_ context.Context) error {
 	db.logger.Info("Shutting down...")
+
 	if code, _ := db.state.Get(); code != service.Running {
 		db.logger.Info("Service is already offline")
+
 		return nil
 	}
+
 	db.state.Set(service.ShuttingDown, "")
 
 	err := db.Standalone.engine.Close()
 	if err != nil {
 		db.state.Set(service.Error, err.Error())
 		db.logger.Infof("Error while closing the database: %s", err)
-		return err
+
+		return fmt.Errorf("an error occurred while closing the database: %w", err)
 	}
+
 	db.state.Set(service.Offline, "")
 	db.logger.Info("Shutdown complete")
 	db.Standalone.engine = nil
+
 	return nil
 }
 
@@ -204,6 +240,9 @@ func (db *DB) Stop(_ context.Context) error {
 func (db *DB) State() *service.State {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
+
+	//nolint:errcheck //this error is handled another inside ping
 	_ = ping(&db.state, db.Standalone.engine.Context(ctx), db.logger)
+
 	return &db.state
 }

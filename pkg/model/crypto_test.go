@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestCryptoTableName(t *testing.T) {
@@ -32,7 +32,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 			parentAgent := &LocalAgent{
 				Owner:       "test_gateway",
 				Name:        "parent",
-				Protocol:    dummyProto,
+				Protocol:    testProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6666",
 			}
@@ -63,7 +63,6 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 						Convey("Then it should NOT return an error", func() {
 							So(err, ShouldBeNil)
-
 						})
 					})
 				})
@@ -124,7 +123,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 					otherAgent := &LocalAgent{
 						Owner:       "test_gateway",
 						Name:        "other",
-						Protocol:    dummyProto,
+						Protocol:    testProtocol,
 						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:6666",
 					}

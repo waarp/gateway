@@ -1,7 +1,8 @@
 package model
 
-import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+import "code.waarp.fr/apps/gateway/gateway/pkg/database"
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&TransferInfo{})
 }
@@ -30,6 +31,7 @@ func (e *TransferInfo) BeforeWrite(db database.ReadAccess) database.Error {
 	if err != nil {
 		return database.NewValidationError("failed to retrieve transfer list: %s", err)
 	}
+
 	if n > 0 {
 		return database.NewValidationError("no transfer %d found", e.TransferID)
 	}
@@ -38,6 +40,7 @@ func (e *TransferInfo) BeforeWrite(db database.ReadAccess) database.Error {
 	if err != nil {
 		return database.NewValidationError("failed to retrieve info list: %s", err)
 	}
+
 	if n > 0 {
 		return database.NewValidationError("transfer %d already has a property '%s'",
 			e.TransferID, e.Name)

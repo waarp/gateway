@@ -36,10 +36,12 @@ func (t *transferHandler) RunPostTask() error {
 
 func (t *transferHandler) ValidEndRequest() error {
 	defer t.runningTransfers.Delete(t.trans.pip.TransCtx.Transfer.ID)
+
 	return t.trans.validEndRequest()
 }
 
 func (t *transferHandler) RunErrorTask(err error) error {
 	defer t.runningTransfers.Delete(t.trans.pip.TransCtx.Transfer.ID)
+
 	return t.trans.runErrorTasks(err)
 }
