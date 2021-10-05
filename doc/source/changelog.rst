@@ -3,6 +3,11 @@
 Historique des versions
 =======================
 
+* :feature:`274` Les contraintes d'unicité déclarées dans les scripts de migration
+  de la base de données sont désormais via des indexes uniques, au lieu des
+  contraintes sur les colonnes. Le module de migration est désormais consistant
+  avec le module d'initialisation de la base sur ce point.
+
 * :release:`0.4.3 <2021-09-24>`
 * :bug:`-` Activation des migrations de base de données vers la version 0.4.2
 * :bug:`-` Correction de la compilation avec certaines versions de Go
