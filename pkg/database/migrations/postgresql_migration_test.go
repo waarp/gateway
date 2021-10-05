@@ -1,3 +1,4 @@
+//go:build test_full || test_db_postgresql
 // +build test_full test_db_postgresql
 
 package migrations
@@ -7,7 +8,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
 func TestPostgreSQLMigrations(t *testing.T) {

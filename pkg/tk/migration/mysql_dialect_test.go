@@ -1,3 +1,4 @@
+//go:build test_full || test_db_mysql
 // +build test_full test_db_mysql
 
 package migration
@@ -10,12 +11,17 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
+type mysqlTestEngine struct{ *mySQLActions }
+
+func (m *mysqlTestEngine) getTranslator() translator { return m.trad }
+
 func testMySQLEngine(db *sql.DB) testEngine {
-	return &mySQLDialect{
+	return &mysqlTestEngine{&mySQLActions{
 		standardSQL: &standardSQL{
 			queryWriter: &queryWriter{db: db, writer: os.Stdout},
 		},
-	}
+		trad: &mysqlTranslator{},
+	}}
 }
 
 func TestMySQLCreateTable(t *testing.T) {

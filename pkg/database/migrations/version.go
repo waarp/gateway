@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
 var errUnsuportedDB = errors.New("unsupported database")

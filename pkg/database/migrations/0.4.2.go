@@ -3,7 +3,7 @@ package migrations
 import (
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
 type ver0_4_2RemoveHistoryRemoteIDUnique struct{}

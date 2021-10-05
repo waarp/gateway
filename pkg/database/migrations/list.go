@@ -3,7 +3,7 @@
 package migrations
 
 import (
-	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
 // Migrations should be declared here in chronological order. This means that

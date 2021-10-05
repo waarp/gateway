@@ -9,7 +9,7 @@ import (
 	"golang.org/x/mod/semver"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
 var errInvalidVersion = errors.New("invalid database version")

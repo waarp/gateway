@@ -1,3 +1,4 @@
+//go:build test_full || test_db_mysql
 // +build test_full test_db_mysql
 
 package migrations
@@ -6,9 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/smartystreets/goconvey/convey"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 

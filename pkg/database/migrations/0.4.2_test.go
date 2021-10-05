@@ -3,7 +3,7 @@ package migrations
 import (
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
 //nolint:stylecheck // function should contain the name of the version

@@ -1,3 +1,4 @@
+//go:build test_full || test_db_postgresql
 // +build test_full test_db_postgresql
 
 package migration
@@ -7,16 +8,22 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 	_ "github.com/jackc/pgx/v4"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
+type postgreTestEngine struct{ *postgreActions }
+
+func (p *postgreActions) getTranslator() translator { return p.trad }
+
 func testPostgreEngine(db *sql.DB) testEngine {
-	return &postgreDialect{
+	return &postgreTestEngine{&postgreActions{
 		standardSQL: &standardSQL{
 			queryWriter: &queryWriter{db: db, writer: os.Stdout},
 		},
-	}
+		trad: &postgreTranslator{},
+	}}
 }
 
 func TestPostgreCreateTable(t *testing.T) {
