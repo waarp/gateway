@@ -91,9 +91,9 @@ func initTestDB(c C) *testContext {
 		DefaultOutDir: "out",
 		DefaultTmpDir: "work",
 	}
-	So(os.Mkdir(filepath.Join(root, db.Conf.Paths.DefaultInDir), 0700), ShouldBeNil)
-	So(os.Mkdir(filepath.Join(root, db.Conf.Paths.DefaultOutDir), 0700), ShouldBeNil)
-	So(os.Mkdir(filepath.Join(root, db.Conf.Paths.DefaultTmpDir), 0700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, db.Conf.Paths.DefaultInDir), 0o700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, db.Conf.Paths.DefaultOutDir), 0o700), ShouldBeNil)
+	So(os.Mkdir(filepath.Join(root, db.Conf.Paths.DefaultTmpDir), 0o700), ShouldBeNil)
 
 	send := &model.Rule{
 		Name:   "send",

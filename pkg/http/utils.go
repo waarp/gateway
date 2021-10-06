@@ -18,9 +18,9 @@ const (
 	crBitSize = 64
 )
 
-type errContentRange struct{ msg string }
+type contentRangeError struct{ msg string }
 
-func (e *errContentRange) Error() string {
+func (e *contentRangeError) Error() string {
 	return fmt.Sprintf("could not parse Content-Range header: %s", e.msg)
 }
 
@@ -95,7 +95,7 @@ func getRange(req *http.Request) (progress uint64, err error) {
 
 	matches := reg.FindAllStringSubmatch(head, -1)
 	if matches == nil {
-		err = &errContentRange{fmt.Sprintf("invalid Range value '%s' "+
+		err = &contentRangeError{fmt.Sprintf("invalid Range value '%s' "+
 			"(only a single range-start is allowed)", head)}
 
 		return
@@ -103,7 +103,7 @@ func getRange(req *http.Request) (progress uint64, err error) {
 
 	progress, err = strconv.ParseUint(matches[0][1], crBase, crBitSize)
 	if err != nil {
-		err = &errContentRange{fmt.Sprintf("invalid range-start value '%s'", head)}
+		err = &contentRangeError{fmt.Sprintf("invalid range-start value '%s'", head)}
 
 		return
 	}
@@ -133,7 +133,7 @@ func getContentRange(headers http.Header) (progress uint64, filesize int64, err 
 
 	matches := reg.FindAllStringSubmatch(head, -1)
 	if matches == nil {
-		err = &errContentRange{fmt.Sprintf("malformed header value '%s'", head)}
+		err = &contentRangeError{fmt.Sprintf("malformed header value '%s'", head)}
 
 		return
 	}
@@ -143,7 +143,7 @@ func getContentRange(headers http.Header) (progress uint64, filesize int64, err 
 
 		progress, err = strconv.ParseUint(startEnd[0], crBase, crBitSize)
 		if err != nil {
-			err = &errContentRange{fmt.Sprintf("invalid range-start value '%s'", matches[0][1])}
+			err = &contentRangeError{fmt.Sprintf("invalid range-start value '%s'", matches[0][1])}
 
 			return
 		}
@@ -154,7 +154,7 @@ func getContentRange(headers http.Header) (progress uint64, filesize int64, err 
 
 		s, err = strconv.ParseInt(size, crBase, crBitSize)
 		if err != nil {
-			err = &errContentRange{fmt.Sprintf("invalid size value '%s'", matches[0][2])}
+			err = &contentRangeError{fmt.Sprintf("invalid size value '%s'", matches[0][2])}
 		}
 
 		if s >= 0 {

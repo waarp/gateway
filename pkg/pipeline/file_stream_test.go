@@ -135,7 +135,7 @@ func TestStreamRead(t *testing.T) {
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
-			So(ioutil.WriteFile(trans.LocalPath, content, 0600), ShouldBeNil)
+			So(ioutil.WriteFile(trans.LocalPath, content, 0o600), ShouldBeNil)
 			stream := initFilestream(ctx, logger, transCtx)
 
 			Convey("When reading from the stream", func(c C) {
@@ -220,7 +220,7 @@ func TestStreamReadAt(t *testing.T) {
 
 		Convey("Given a file stream for this transfer", func(c C) {
 			content := []byte("read file content")
-			So(ioutil.WriteFile(trans.LocalPath, content, 0600), ShouldBeNil)
+			So(ioutil.WriteFile(trans.LocalPath, content, 0o600), ShouldBeNil)
 			stream := initFilestream(ctx, logger, transCtx)
 
 			Convey("When reading from the stream with an offset", func(c C) {

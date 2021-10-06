@@ -11,11 +11,11 @@ var (
 	errCommandTimeout   = errors.New("an external command timed out")
 )
 
-type errWarning struct {
+type warningError struct {
 	msg string
 }
 
-func (e *errWarning) Error() string {
+func (e *warningError) Error() string {
 	return e.msg
 }
 

@@ -93,7 +93,7 @@ func (r *Runner) runTask(task model.Task, taskInfo string, isErrTasks bool) *typ
 	if err != nil {
 		errMsg := fmt.Sprintf("%s: %s", taskInfo, err)
 
-		var warning *errWarning
+		var warning *warningError
 		if !errors.As(err, &warning) {
 			r.logger.Error(errMsg)
 			r.transCtx.Transfer.Error = *types.NewTransferError(types.TeExternalOperation, errMsg)
