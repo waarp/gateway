@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"reflect"
 
-	_ "github.com/jackc/pgx/v4/stdlib" //register the PostgreSQL driver
+	// Register the PostgreSQL driver.
+	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
 // PostgreSQL is the constant name of the PostgreSQL dialect translator.
 const PostgreSQL = "postgresql"
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	dialects[PostgreSQL] = newPostgreEngine
 }
@@ -28,13 +30,15 @@ func (p *postgreDialect) formatValueToSQL(val interface{}, sqlTyp sqlType) (stri
 	if valuer, ok := val.(driver.Valuer); ok {
 		value, err := valuer.Value()
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("cannot get SQL value: %w", err)
 		}
+
 		return p.formatValueToSQL(value, sqlTyp)
 	}
 
 	typ := reflect.TypeOf(val)
 	kind := typ.Kind()
+
 	switch sqlTyp.code {
 	case internal:
 		return fmt.Sprint(val), nil
@@ -42,12 +46,17 @@ func (p *postgreDialect) formatValueToSQL(val interface{}, sqlTyp sqlType) (stri
 		if typ.AssignableTo(reflect.TypeOf(0)) {
 			return fmt.Sprintf("'\\x%X'", val), nil
 		}
+
 		fallthrough
+
 	case blob:
 		if kind != reflect.Slice && typ.Elem().Kind() != reflect.Uint8 {
+			//nolint:goerr113 // it is a base error
 			return "", fmt.Errorf("expected value of type []byte, got %T", val)
 		}
+
 		return fmt.Sprintf("'\\x%X'", val), nil
+
 	default:
 		return p.standardSQL.formatValueToSQL(val, sqlTyp)
 	}
@@ -82,12 +91,13 @@ func (p *postgreDialect) sqlTypeToDBType(typ sqlType) (string, error) {
 	case binary, blob:
 		return "BYTEA", nil
 	default:
-		return "", fmt.Errorf("unsupported SQL datatype")
+		return "", fmt.Errorf("unsupported SQL datatype") //nolint:goerr113 // base error
 	}
 }
 
 func (p *postgreDialect) makeConstraints(col *Column) ([]string, error) {
 	var consList []string
+
 	for _, c := range col.Constraints {
 		switch con := c.(type) {
 		case pk:
@@ -99,9 +109,11 @@ func (p *postgreDialect) makeConstraints(col *Column) ([]string, error) {
 		case autoIncr:
 			if !isIntegerType(col.Type) {
 				return nil, fmt.Errorf("auto-increments can only be used on "+
-					"integer types (%s is not an integer type)", col.Type.code.String())
+					"integer types (%s is not an integer type): %w",
+					col.Type.code.String(), errBadConstraint)
 			}
 			// PostgreSQL handles auto-increments by changing the type to a serial.
+			//nolint:exhaustive // those are the only possible values
 			switch col.Type.code {
 			case tinyint, smallint:
 				col.Type = custom("SMALLSERIAL")
@@ -117,11 +129,14 @@ func (p *postgreDialect) makeConstraints(col *Column) ([]string, error) {
 			if err != nil {
 				return nil, err
 			}
+
 			consList = append(consList, fmt.Sprintf("DEFAULT %s", sqlVal))
+
 		default:
-			return nil, fmt.Errorf("unknown constraint type %T", c)
+			return nil, fmt.Errorf("unknown constraint type %T: %w", c, errBadConstraint)
 		}
 	}
+
 	return consList, nil
 }
 
@@ -134,18 +149,19 @@ func (p *postgreDialect) AddColumn(table, column string, dataType sqlType,
 	return p.standardSQL.addColumn(p, table, column, dataType, constraints)
 }
 
-func (p *postgreDialect) ChangeColumnType(table, col string, old, new sqlType) error {
-	if !old.canConvertTo(new) {
-		return fmt.Errorf("cannot convert from type %s to type %s", old.code.String(),
-			new.code.String())
+func (p *postgreDialect) ChangeColumnType(table, col string, from, to sqlType) error {
+	if !from.canConvertTo(to) {
+		return fmt.Errorf("cannot convert from type %s to type %s: %w", from.code.String(),
+			to.code.String(), errOperation)
 	}
 
-	newType, err := p.sqlTypeToDBType(new)
+	newType, err := p.sqlTypeToDBType(to)
 	if err != nil {
 		return err
 	}
 
 	query := "ALTER TABLE %s\nALTER COLUMN %s TYPE %s USING %s::%s"
+
 	return p.Exec(query, table, col, newType, col, newType)
 }
 

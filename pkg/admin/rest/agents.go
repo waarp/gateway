@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func newInServer(old *model.LocalAgent) *api.InServer {
@@ -28,19 +28,25 @@ func newInServer(old *model.LocalAgent) *api.InServer {
 // servToDB transforms the JSON local agent into its database equivalent.
 func servToDB(serv *api.InServer, id uint64, logger *log.Logger) *model.LocalAgent {
 	in := str(serv.LocalInDir)
+	out := str(serv.LocalOutDir)
+	tmp := str(serv.LocalTmpDir)
+
 	if serv.InDir != nil {
 		logger.Warning("JSON field 'inDir' is deprecated, use 'serverLocalInDir' instead")
+
 		in = str(serv.InDir)
 	}
-	out := str(serv.LocalOutDir)
+
 	if serv.OutDir != nil {
 		logger.Warning("JSON field 'outDir' is deprecated, use 'serverLocalOutDir' instead")
-		in = str(serv.OutDir)
+
+		out = str(serv.OutDir)
 	}
-	tmp := str(serv.LocalTmpDir)
+
 	if serv.WorkDir != nil {
 		logger.Warning("JSON field 'workDir' is deprecated, use 'serverLocalTmpDir' instead")
-		in = str(serv.WorkDir)
+
+		tmp = str(serv.WorkDir)
 	}
 
 	return &model.LocalAgent{
@@ -80,7 +86,6 @@ func partToDB(part *api.InPartner, id uint64) *model.RemoteAgent {
 // FromLocalAgent transforms the given database local agent into its JSON
 // equivalent.
 func FromLocalAgent(ag *model.LocalAgent, rules *api.AuthorizedRules) *api.OutServer {
-
 	return &api.OutServer{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
@@ -101,10 +106,12 @@ func FromLocalAgent(ag *model.LocalAgent, rules *api.AuthorizedRules) *api.OutSe
 // its JSON equivalent.
 func FromLocalAgents(ags []model.LocalAgent, rules []api.AuthorizedRules) []api.OutServer {
 	agents := make([]api.OutServer, len(ags))
-	for i, ag := range ags {
-		agent := ag
-		agents[i] = *FromLocalAgent(&agent, &rules[i])
+
+	for i := range ags {
+		agent := &ags[i]
+		agents[i] = *FromLocalAgent(agent, &rules[i])
 	}
+
 	return agents
 }
 
@@ -124,23 +131,29 @@ func FromRemoteAgent(ag *model.RemoteAgent, rules *api.AuthorizedRules) *api.Out
 // its JSON equivalent.
 func FromRemoteAgents(ags []model.RemoteAgent, rules []api.AuthorizedRules) []api.OutPartner {
 	agents := make([]api.OutPartner, len(ags))
-	for i, ag := range ags {
-		agent := ag
-		agents[i] = *FromRemoteAgent(&agent, &rules[i])
+
+	for i := range ags {
+		agent := &ags[i]
+		agents[i] = *FromRemoteAgent(agent, &rules[i])
 	}
+
 	return agents
 }
 
 func parseProtoParam(r *http.Request, query *database.SelectQuery) error {
 	if len(r.Form["protocol"]) > 0 {
 		protos := make([]string, len(r.Form["protocol"]))
+
 		for i, p := range r.Form["protocol"] {
 			if _, ok := config.ProtoConfigs[p]; !ok {
 				return badRequest(fmt.Sprintf("'%s' is not a valid protocol", p))
 			}
+
 			protos[i] = p
 		}
+
 		query.In("protocol", protos)
 	}
+
 	return nil
 }

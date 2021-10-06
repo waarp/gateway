@@ -10,14 +10,16 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
+//nolint:gochecknoglobals // global var is used by design
 var (
 	sqliteTestDatabase *DB
 	sqliteConfig       *conf.ServerConfig
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	BcryptRounds = bcrypt.MinCost
 
@@ -47,9 +49,11 @@ func testSelectForUpdate(db *DB) {
 			if err := ses.SelectForUpdate(&beans).Where("string=? AND id<>0", "str2").Run(); err != nil {
 				return err
 			}
+
 			if len(beans) != 0 {
 				return NewValidationError("%+v should be empty", beans)
 			}
+
 			return nil
 		})
 	}
@@ -69,6 +73,7 @@ func testSelectForUpdate(db *DB) {
 
 			err2 := ses.UpdateAll(&testValid{}, UpdVals{"string": "new_str2"}, "string=?", "str2").Run()
 			So(err2, ShouldBeNil)
+
 			return nil
 		})
 
@@ -668,7 +673,8 @@ func testTransaction(db *DB) {
 	Convey("Given an invalid transaction", func() {
 		trans := func(ses *Session) Error {
 			So(ses.Insert(&bean).Run(), ShouldBeNil)
-			return NewInternalError(fmt.Errorf("transaction failed"))
+
+			return NewInternalError(fmt.Errorf("transaction failed")) //nolint:goerr113 // this is a test
 		}
 
 		Convey("When executing the transaction", func() {
@@ -713,9 +719,11 @@ func TestSqlite(t *testing.T) {
 		if err := db.engine.Close(); err != nil {
 			t.Logf("Failed to close database: %s", err)
 		}
+
 		if err := os.Remove(sqliteConfig.Database.AESPassphrase); err != nil {
 			t.Logf("Failed to delete passphrase file: %s", err)
 		}
+
 		if err := os.Remove(sqliteConfig.Database.Address); err != nil {
 			t.Logf("Failed to delete sqlite file: %s", err)
 		}
@@ -729,6 +737,7 @@ func TestSqlite(t *testing.T) {
 func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 	gcm := GCM
 	GCM = nil
+
 	defer func() { GCM = gcm }()
 
 	Convey("Given a test database", t, func() {

@@ -4,16 +4,14 @@ import (
 	"encoding/json"
 	"testing"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func TestImportRules(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
@@ -63,7 +61,7 @@ func TestImportRules(t *testing.T) {
 
 			agent := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    testhelpers.TestProtocol,
+				Protocol:    testProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -84,7 +82,7 @@ func TestImportRules(t *testing.T) {
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
 			Convey("Given a new Rule to import", func() {
-				Rule1 := Rule{
+				Rule1 := file.Rule{
 					Name:   "foo",
 					IsSend: true,
 					Path:   "/test/path",
@@ -93,19 +91,19 @@ func TestImportRules(t *testing.T) {
 						"local::server::account1",
 						"local::server::account2",
 					},
-					Pre: []Task{
+					Pre: []file.Task{
 						{
 							Type: "COPY",
 							Args: []byte(`{"path":"copy/destination"}`),
 						},
 					},
-					Post: []Task{
+					Post: []file.Task{
 						{
 							Type: "DELETE",
 							Args: []byte("{}"),
 						},
 					},
-					Error: []Task{
+					Error: []file.Task{
 						{
 							Type: "COPY",
 							Args: []byte(`{"path":"copy/destination"}`),
@@ -116,7 +114,7 @@ func TestImportRules(t *testing.T) {
 						},
 					},
 				}
-				Rules := []Rule{Rule1}
+				Rules := []file.Rule{Rule1}
 
 				Convey("When calling importRules with the new Rules", func() {
 					err := importRules(discard, db, Rules)
@@ -160,7 +158,7 @@ func TestImportRules(t *testing.T) {
 			})
 
 			Convey("Given a existing Rule to fully updated", func() {
-				Rule1 := Rule{
+				Rule1 := file.Rule{
 					Name:   insert.Name,
 					IsSend: insert.IsSend,
 					Path:   "/testing",
@@ -168,19 +166,19 @@ func TestImportRules(t *testing.T) {
 						"local::server",
 						"local::server::account2",
 					},
-					Pre: []Task{
+					Pre: []file.Task{
 						{
 							Type: "COPY",
 							Args: []byte(`{"path":"copy/destination"}`),
 						},
 					},
-					Post: []Task{
+					Post: []file.Task{
 						{
 							Type: "DELETE",
 							Args: []byte("{}"),
 						},
 					},
-					Error: []Task{
+					Error: []file.Task{
 						{
 							Type: "COPY",
 							Args: []byte(`{"path":"copy/destination"}`),
@@ -191,7 +189,7 @@ func TestImportRules(t *testing.T) {
 						},
 					},
 				}
-				Rules := []Rule{Rule1}
+				Rules := []file.Rule{Rule1}
 
 				Convey("When calling importRules with the new Rules", func() {
 					err := importRules(discard, db, Rules)
@@ -234,7 +232,7 @@ func TestImportRules(t *testing.T) {
 			})
 
 			Convey("Given a existing Rule to partially updated", func() {
-				Rule1 := Rule{
+				Rule1 := file.Rule{
 					Name:   insert.Name,
 					IsSend: insert.IsSend,
 					Path:   "/testing",
@@ -243,7 +241,7 @@ func TestImportRules(t *testing.T) {
 						"local::server::account2",
 					},
 				}
-				Rules := []Rule{Rule1}
+				Rules := []file.Rule{Rule1}
 
 				Convey("When calling importRules with the new Rules", func() {
 					err := importRules(discard, db, Rules)
@@ -290,7 +288,6 @@ func TestImportRules(t *testing.T) {
 }
 
 func TestImportRuleAccess(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
@@ -304,7 +301,7 @@ func TestImportRuleAccess(t *testing.T) {
 
 			agent := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    testhelpers.TestProtocol,
+				Protocol:    testProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -348,19 +345,20 @@ func TestImportRuleAccess(t *testing.T) {
 							"the ones imported", func() {
 							for i := 0; i < len(dbAccesses); i++ {
 								acc := dbAccesses[i]
-								if acc.ObjectType == model.TableLocAgents &&
-									acc.ObjectID == agent.ID {
+								switch {
+								case acc.ObjectType == model.TableLocAgents &&
+									acc.ObjectID == agent.ID:
 									Convey("Then access for agent is found", func() {
 									})
-								} else if acc.ObjectType == model.TableLocAccounts &&
-									acc.ObjectID == account1.ID {
+								case acc.ObjectType == model.TableLocAccounts &&
+									acc.ObjectID == account1.ID:
 									Convey("Then access for accunt1 is found", func() {
 									})
-								} else if acc.ObjectType == model.TableLocAccounts &&
-									acc.ObjectID == account2.ID {
+								case acc.ObjectType == model.TableLocAccounts &&
+									acc.ObjectID == account2.ID:
 									Convey("Then access for accunt2 is found", func() {
 									})
-								} else {
+								default:
 									Convey("Then they should be no "+
 										"other records", func() {
 										So(1, ShouldBeNil)
@@ -403,19 +401,20 @@ func TestImportRuleAccess(t *testing.T) {
 								"the ones imported", func() {
 								for i := 0; i < len(dbAccesses); i++ {
 									acc := dbAccesses[i]
-									if acc.ObjectType == model.TableLocAgents &&
-										acc.ObjectID == agent.ID {
+									switch {
+									case acc.ObjectType == model.TableLocAgents &&
+										acc.ObjectID == agent.ID:
 										Convey("Then access for agent is found", func() {
 										})
-									} else if acc.ObjectType == model.TableLocAccounts &&
-										acc.ObjectID == account1.ID {
+									case acc.ObjectType == model.TableLocAccounts &&
+										acc.ObjectID == account1.ID:
 										Convey("Then access for account1 is found", func() {
 										})
-									} else if acc.ObjectType == model.TableLocAccounts &&
-										acc.ObjectID == account2.ID {
+									case acc.ObjectType == model.TableLocAccounts &&
+										acc.ObjectID == account2.ID:
 										Convey("Then access for account2 is found", func() {
 										})
-									} else {
+									default:
 										Convey("Then they should be no other records", func() {
 											So(1, ShouldBeNil)
 										})
@@ -431,7 +430,6 @@ func TestImportRuleAccess(t *testing.T) {
 }
 
 func TestImportTasks(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
@@ -489,7 +487,7 @@ func TestImportTasks(t *testing.T) {
 			So(db.Insert(error1).Run(), ShouldBeNil)
 
 			Convey("Given some tasks to import", func() {
-				tasks := []Task{
+				tasks := []file.Task{
 					{
 						Type: "COPY",
 						Args: []byte(`{"path":"copy/destination"}`),

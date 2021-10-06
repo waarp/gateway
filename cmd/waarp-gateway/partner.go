@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
 
 type partnerCommand struct {
@@ -41,6 +41,7 @@ func displayPartner(w io.Writer, partner *api.OutPartner) {
 
 // ######################## ADD ##########################
 
+//nolint:lll // struct tags for command line arguments can be long
 type partnerAdd struct {
 	Name        string `required:"yes" short:"n" long:"name" description:"The partner's name"`
 	Protocol    string `required:"yes" short:"p" long:"protocol" description:"The partner's protocol"`
@@ -60,12 +61,15 @@ func (p *partnerAdd) Execute([]string) error {
 	if err := add(partner); err != nil {
 		return err
 	}
+
 	fmt.Fprintln(getColorable(), "The partner", bold(p.Name), "was successfully added.")
+
 	return nil
 }
 
 // ######################## LIST ##########################
 
+//nolint:lll // struct tags for command line arguments can be long
 type partnerList struct {
 	listOptions
 	SortBy    string   `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" choice:"protocol+" choice:"protocol-" default:"name+"`
@@ -81,16 +85,19 @@ func (p *partnerList) Execute([]string) error {
 	}
 
 	partners := body["partners"]
-	w := getColorable()
+
+	w := getColorable() //nolint:ifshort // decrease readability
+
 	if len(partners) > 0 {
 		fmt.Fprintln(w, bold("Partners:"))
-		for _, p := range partners {
-			partner := p
-			displayPartner(w, &partner)
+
+		for i := range partners {
+			displayPartner(w, &partners[i])
 		}
 	} else {
 		fmt.Fprintln(w, "No partners found.")
 	}
+
 	return nil
 }
 
@@ -109,7 +116,9 @@ func (p *partnerGet) Execute([]string) error {
 	if err := get(partner); err != nil {
 		return err
 	}
+
 	displayPartner(getColorable(), partner)
+
 	return nil
 }
 
@@ -127,7 +136,9 @@ func (p *partnerDelete) Execute([]string) error {
 	if err := remove(uri); err != nil {
 		return err
 	}
+
 	fmt.Fprintln(getColorable(), "The partner", bold(p.Args.Name), "was successfully deleted.")
+
 	return nil
 }
 
@@ -146,8 +157,9 @@ type partnerUpdate struct {
 func (p *partnerUpdate) Execute([]string) error {
 	conf, err := json.Marshal(p.ProtoConfig)
 	if err != nil {
-		return fmt.Errorf("invalid config: %s", err)
+		return fmt.Errorf("invalid config: %w", err)
 	}
+
 	partner := &api.InPartner{
 		Name:        p.Name,
 		Protocol:    p.Protocol,
@@ -160,16 +172,20 @@ func (p *partnerUpdate) Execute([]string) error {
 	if err := update(partner); err != nil {
 		return err
 	}
+
 	name := p.Args.Name
 	if partner.Name != nil && *partner.Name != "" {
 		name = *partner.Name
 	}
+
 	fmt.Fprintln(getColorable(), "The partner", bold(name), "was successfully updated.")
+
 	return nil
 }
 
 // ######################## AUTHORIZE ##########################
 
+//nolint:lll // struct tags for command line arguments can be long
 type partnerAuthorize struct {
 	Args struct {
 		Partner   string `required:"yes" positional-arg-name:"partner" description:"The partner's name"`

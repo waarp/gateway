@@ -3,11 +3,12 @@ package rest
 import (
 	"net/http"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func newInUser(old *model.User) *api.InUser {
@@ -46,6 +47,7 @@ func writeUsers(users model.Users, w http.ResponseWriter) error {
 	for i := range users {
 		jUsers[i] = *FromUser(&users[i])
 	}
+
 	return writeJSON(w, map[string][]api.OutUser{"users": jUsers})
 }
 
@@ -61,8 +63,10 @@ func getUsr(r *http.Request, db *database.DB) (*model.User, error) {
 		if database.IsNotFound(err) {
 			return nil, notFound("user '%s' not found", username)
 		}
+
 		return nil, err
 	}
+
 	return &user, nil
 }
 
@@ -87,6 +91,7 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var users model.Users
 		query, err := parseSelectQuery(r, db, validSorting, &users)
+
 		if handleError(w, logger, err) {
 			return
 		}
@@ -128,7 +133,7 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		jUser := newInUser(old)
-		if err := readJSON(r, jUser); handleError(w, logger, err) {
+		if err2 := readJSON(r, jUser); handleError(w, logger, err2) {
 			return
 		}
 
@@ -154,7 +159,7 @@ func replaceUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		var jUser api.InUser
-		if err := readJSON(r, &jUser); handleError(w, logger, err) {
+		if err2 := readJSON(r, &jUser); handleError(w, logger, err2) {
 			return
 		}
 
@@ -182,6 +187,7 @@ func deleteUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		login, _, _ := r.BasicAuth()
 		if user.Username == login {
 			handleError(w, logger, &forbidden{"user cannot delete self"})
+
 			return
 		}
 

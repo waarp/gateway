@@ -6,15 +6,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 type clientData struct {
@@ -57,6 +55,7 @@ func InitClientPush(c convey.C, proto string, partConf config.ProtoConfig) *Clie
 	ctx := initClient(c, proto, partConf)
 	ctx.ClientRule = makeClientPush(c, ctx.DB)
 	ctx.addPushTransfer(c)
+
 	return ctx
 }
 
@@ -67,6 +66,7 @@ func InitClientPull(c convey.C, proto string, cont []byte, partConf config.Proto
 	ctx := initClient(c, proto, partConf)
 	ctx.ClientRule = makeClientPull(c, ctx.DB)
 	ctx.addPullTransfer(c, cont)
+
 	return ctx
 }
 
@@ -86,6 +86,7 @@ func makeClientPush(c convey.C, db *database.DB) *model.Rule {
 	}
 	c.So(db.Insert(rule).Run(), convey.ShouldBeNil)
 	makeRuleTasks(c, db, rule)
+
 	return rule
 }
 
@@ -98,13 +99,14 @@ func makeClientPull(c convey.C, db *database.DB) *model.Rule {
 	}
 	c.So(db.Insert(rule).Run(), convey.ShouldBeNil)
 	makeRuleTasks(c, db, rule)
+
 	return rule
 }
 
 func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
 	partConf config.ProtoConfig) (*model.RemoteAgent, *model.RemoteAccount) {
-
 	jsonPartConf := json.RawMessage(`{}`)
+
 	if partConf != nil {
 		var err error
 		jsonPartConf, err = json.Marshal(partConf)
@@ -129,6 +131,7 @@ func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
 	return partner, remAccount
 }
 
+//nolint:dupl // factorizing would hurt readability
 func (cc *ClientContext) addPushTransfer(c convey.C) {
 	testDir := filepath.Join(cc.Paths.GatewayHome, cc.Paths.DefaultOutDir)
 	cc.fileContent = AddSourceFile(c, testDir, "self_transfer_push")
@@ -147,6 +150,7 @@ func (cc *ClientContext) addPushTransfer(c convey.C) {
 	cc.ClientTrans = trans
 }
 
+//nolint:dupl // factorizing would hurt readability
 func (cc *ClientContext) addPullTransfer(c convey.C, cont []byte) {
 	cc.fileContent = cont
 
@@ -181,6 +185,7 @@ func (cc *ClientContext) RunTransfer(c convey.C) {
 // expected.
 func (cc *ClientContext) CheckTransferOK(c convey.C) {
 	var actual model.HistoryEntry
+
 	c.So(cc.DB.Get(&actual, "id=?", cc.ClientTrans.ID).Run(), convey.ShouldBeNil)
 	cc.checkClientTransferOK(c, cc.transData, cc.DB, &actual)
 }

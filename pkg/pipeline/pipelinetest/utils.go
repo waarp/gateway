@@ -6,18 +6,17 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-
+	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks/taskstest"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-	"github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tasks/taskstest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 // TestLogin and TestPassword are the credentials used for authentication
@@ -26,6 +25,8 @@ const (
 	TestLogin    = "foo"
 	TestPassword = "sesame"
 )
+
+type serviceConstructor func(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService
 
 // TestFileSize defines the size of the file used for transfer tests.
 const TestFileSize int64 = 1000000 // 1MB
@@ -40,18 +41,23 @@ type testData struct {
 func hash(pwd string) []byte {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	convey.So(err, convey.ShouldBeNil)
+
 	return h
 }
 
 // AddSourceFile creates a file under the given directory with the given name,
 // fills it with random data, and then returns said data.
 func AddSourceFile(c convey.C, dir, file string) []byte {
-	c.So(os.MkdirAll(dir, 0700), convey.ShouldBeNil)
+	c.So(os.MkdirAll(dir, 0o700), convey.ShouldBeNil)
+
 	cont := make([]byte, TestFileSize)
+
 	_, err := rand.Read(cont)
 	c.So(err, convey.ShouldBeNil)
+
 	path := filepath.Join(dir, file)
 	c.So(ioutil.WriteFile(path, cont, 0o600), convey.ShouldBeNil)
+
 	return cont
 }
 
@@ -87,9 +93,11 @@ func makePaths(c convey.C, home string) *conf.PathsConfig {
 		DefaultOutDir: "out",
 		DefaultTmpDir: "tmp",
 	}
+
 	c.So(os.MkdirAll(filepath.Join(home, paths.DefaultInDir), 0o700), convey.ShouldBeNil)
 	c.So(os.MkdirAll(filepath.Join(home, paths.DefaultOutDir), 0o700), convey.ShouldBeNil)
 	c.So(os.MkdirAll(filepath.Join(home, paths.DefaultTmpDir), 0o700), convey.ShouldBeNil)
+
 	return paths
 }
 

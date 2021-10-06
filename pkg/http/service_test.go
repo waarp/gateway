@@ -11,15 +11,15 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/http/httpconst"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/gatewayd"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline/pipelinetest"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd"
+	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
 func TestServiceStart(t *testing.T) {
@@ -76,9 +76,8 @@ func TestServiceStop(t *testing.T) {
 }
 
 func TestServerInterruption(t *testing.T) {
-
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
-		test := pipelinetest.InitServerPush(c, "http", nil)
+		test := pipelinetest.InitServerPush(c, "http", NewService, nil)
 
 		serv := gatewayd.ServiceConstructors["http"](test.DB, test.Server, log.NewLogger("server"))
 		c.So(serv.Start(), ShouldBeNil)
@@ -102,11 +101,11 @@ func TestServerInterruption(t *testing.T) {
 					error
 				})
 				go func() {
-					resp, err := cli.Do(req)
+					resp, rErr := cli.Do(req) //nolint:bodyclose // body is closed elsewhere
 					resChan <- struct {
 						*http.Response
 						error
-					}{Response: resp, error: err}
+					}{Response: resp, error: rErr}
 				}()
 				_, err = w.Write([]byte("abc"))
 				So(err, ShouldBeNil)
@@ -118,6 +117,8 @@ func TestServerInterruption(t *testing.T) {
 					So(serv.Stop(ctx), ShouldBeNil)
 
 					result := <-resChan
+					defer result.Body.Close()
+
 					So(result.error, ShouldBeNil)
 					So(result.StatusCode, ShouldEqual, http.StatusServiceUnavailable)
 					So(result.Header.Get(httpconst.TransferStatus), ShouldEqual, types.StatusInterrupted)

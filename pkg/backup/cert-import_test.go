@@ -4,23 +4,22 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
+
+	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestImportCerts(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a database with some Cryptos", func() {
 			agent := &model.LocalAgent{
 				Name:        "server",
-				Protocol:    testhelpers.TestProtocol,
+				Protocol:    testProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6666",
 			}
@@ -28,7 +27,7 @@ func TestImportCerts(t *testing.T) {
 
 			agent2 := &model.LocalAgent{
 				Name:        "agent2",
-				Protocol:    testhelpers.TestProtocol,
+				Protocol:    testProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:6666",
 			}
@@ -78,7 +77,6 @@ func TestImportCerts(t *testing.T) {
 			})
 
 			Convey("Given a updated Certificate to import", func() {
-
 				insert := Certificate{
 					Name:        "foo",
 					PrivateKey:  testhelpers.LocalhostKey,

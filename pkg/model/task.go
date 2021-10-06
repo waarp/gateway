@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
-// ValidTasks is a list of all the tasks known by the gateway
-var ValidTasks = make(map[string]TaskRunner)
+// ValidTasks is a list of all the tasks known by the gateway.
+//nolint:gochecknoglobals // global var is used by design
+var ValidTasks = map[string]TaskRunner{}
 
 // TaskValidator is an optional interface which can be implemented by task
 // executors (alongside TaskRunner). This interface can be implemented if the
@@ -24,20 +25,21 @@ type TaskRunner interface {
 	Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error)
 }
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&Task{})
 }
 
-// Chain represents the valid chains for a task entry
+// Chain represents the valid chains for a task entry.
 type Chain string
 
 const (
-	// ChainPre is the chain for pre transfer tasks
+	// ChainPre is the chain for pre transfer tasks.
 	ChainPre Chain = "PRE"
-	// ChainPost is the chain for post transfer tasks
+	// ChainPost is the chain for post transfer tasks.
 	ChainPost Chain = "POST"
 
-	// ChainError is the chain for error transfer tasks
+	// ChainError is the chain for error transfer tasks.
 	ChainError Chain = "ERROR"
 )
 
@@ -68,6 +70,7 @@ func (t *Task) validateTasks() database.Error {
 	if len(t.Args) == 0 {
 		t.Args = json.RawMessage(`{}`)
 	}
+
 	args := map[string]string{}
 	if err := json.Unmarshal(t.Args, &args); err != nil {
 		return database.NewValidationError("incorrect task format: %s", err)
@@ -97,8 +100,8 @@ func (t *Task) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("no rule found with ID %d", t.RuleID)
 	}
 
-	if err := t.validateTasks(); err != nil {
-		return err
+	if err2 := t.validateTasks(); err2 != nil {
+		return err2
 	}
 
 	n, err = db.Count(t).Where("rule_id=? AND chain=? AND rank=?", t.RuleID,

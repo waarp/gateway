@@ -1,3 +1,4 @@
+//go:build test_full || test_db_mysql
 // +build test_full test_db_mysql
 
 package database
@@ -7,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -16,6 +17,7 @@ var (
 	mysqlConfig       *conf.ServerConfig
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	mysqlConfig = &conf.ServerConfig{}
 	mysqlConfig.Database.Type = MySQL

@@ -3,10 +3,11 @@ package model
 import (
 	"path"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&Rule{})
 }
@@ -64,15 +65,19 @@ func (r *Rule) normalizePaths() database.Error {
 			r.Path = "/" + r.Path
 		}
 	}
+
 	if r.LocalDir != "" {
 		r.LocalDir = utils.ToOSPath(r.LocalDir)
 	}
+
 	if r.RemoteDir != "" {
 		r.RemoteDir = utils.ToStandardPath(r.RemoteDir)
 	}
+
 	if r.LocalTmpDir != "" {
 		r.LocalTmpDir = utils.ToOSPath(r.LocalTmpDir)
 	}
+
 	return nil
 }
 
@@ -111,6 +116,7 @@ func (r *Rule) Direction() string {
 	if r.IsSend {
 		return "send"
 	}
+
 	return "receive"
 }
 
@@ -121,6 +127,7 @@ func (r *Rule) BeforeDelete(db database.Access) database.Error {
 	if err != nil {
 		return err
 	}
+
 	if n > 0 {
 		return database.NewValidationError("this rule is currently being used in a " +
 			"running transfer and cannot be deleted, cancel the transfer or wait " +
@@ -136,6 +143,7 @@ func (r *Rule) BeforeDelete(db database.Access) database.Error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -146,10 +154,12 @@ func (r *Rule) BeforeDelete(db database.Access) database.Error {
 // Valid target types are: LocalAgent, RemoteAgent, LocalAccount & RemoteAccount.
 func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bool, database.Error) {
 	var perms RuleAccess
+
 	n, err := db.Count(&perms).Where("rule_id=?", r.ID).Run()
 	if err != nil {
 		return false, err
 	}
+
 	if n == 0 {
 		return true, nil
 	}
@@ -178,5 +188,6 @@ func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bo
 	if err != nil {
 		return false, err
 	}
+
 	return n != 0, nil
 }

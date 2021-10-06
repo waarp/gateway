@@ -1,24 +1,24 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-
+	"code.bcarlin.xyz/go/logging"
+	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
 
+//nolint:gochecknoglobals // global var is used by design
 var discard *log.Logger
 
 const (
@@ -27,6 +27,7 @@ const (
 	testProtoErr = "cli_proto_err"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	_ = log.InitBackend("CRITICAL", "stdout", "")
 	discard = log.NewLogger("test_client")
@@ -44,6 +45,7 @@ func testHandler(db *database.DB) http.Handler {
 func hash(pwd string) []byte {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	So(err, ShouldBeNil)
+
 	return h
 }
 
@@ -54,8 +56,10 @@ func writeFile(content string) *os.File {
 		_ = file.Close()
 		_ = os.Remove(file.Name())
 	})
+
 	_, err = file.WriteString(content)
 	So(err, ShouldBeNil)
+
 	return file
 }
 
@@ -67,10 +71,13 @@ func (*TestProtoConfig) ValidPartner() error { return nil }
 type TestProtoConfigFail struct{}
 
 func (*TestProtoConfigFail) ValidServer() error {
-	return fmt.Errorf("server config validation failed")
+	//nolint:goerr113 // base case for a test
+	return errors.New("server config validation failed")
 }
+
 func (*TestProtoConfigFail) ValidPartner() error {
-	return fmt.Errorf("partner config validation failed")
+	//nolint:goerr113 // base case for a test
+	return errors.New("partner config validation failed")
 }
 
 func testFile() io.Writer {
@@ -80,5 +87,6 @@ func testFile() io.Writer {
 func getOutput() string {
 	str, ok := out.(*strings.Builder)
 	So(ok, ShouldBeTrue)
+
 	return str.String()
 }

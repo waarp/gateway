@@ -3,11 +3,12 @@ package admin
 import (
 	"net/http"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 // authentication checks if the request is authenticated using Basic HTTP
@@ -21,6 +22,7 @@ func authentication(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 			if !ok {
 				w.Header().Set("WWW-Authenticate", "Basic")
 				http.Error(w, "the request is missing credentials", http.StatusUnauthorized)
+
 				return
 			}
 
@@ -31,10 +33,12 @@ func authentication(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 					logger.Warningf("Invalid authentication for user '%s'", login)
 					w.Header().Set("WWW-Authenticate", "Basic")
 					http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)
+
 					return
 				}
 				logger.Criticalf("Database error: %s", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)
+
 				return
 			}
 
@@ -42,6 +46,7 @@ func authentication(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 				logger.Warningf("Invalid password for user '%s'", login)
 				w.Header().Set("WWW-Authenticate", "Basic")
 				http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)
+
 				return
 			}
 

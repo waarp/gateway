@@ -8,54 +8,63 @@ import (
 	"strings"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func direction(r *model.Rule) string {
 	if r.IsSend {
-		return "send"
+		return directionSend
 	}
-	return "receive"
+
+	return directionRecv
 }
 
 func ruleInfoString(r *api.OutRule) string {
-	way := "receive"
+	way := directionRecv
 	if r.IsSend {
-		way = "send"
+		way = directionSend
 	}
 
 	servers := strings.Join(r.Authorized.LocalServers, ", ")
 	partners := strings.Join(r.Authorized.RemotePartners, ", ")
 	la := []string{}
+
 	for server, accounts := range r.Authorized.LocalAccounts {
 		for _, account := range accounts {
 			la = append(la, fmt.Sprint(server, ".", account))
 		}
 	}
+
 	ra := []string{}
+
 	for partner, accounts := range r.Authorized.RemoteAccounts {
 		for _, account := range accounts {
 			ra = append(ra, fmt.Sprint(partner, ".", account))
 		}
 	}
+
 	locAcc := strings.Join(la, ", ")
 	remAcc := strings.Join(ra, ", ")
 
 	taskStr := func(tasks []api.Task) string {
 		str := ""
+
 		for i, t := range tasks {
 			prefix := "    ├─Command "
 			if i == len(tasks)-1 {
 				prefix = "    └─Command "
 			}
+
 			str += prefix + t.Type + " with args: " + string(t.Args) + "\n"
 		}
+
 		return str
 	}
 
@@ -78,7 +87,6 @@ func ruleInfoString(r *api.OutRule) string {
 }
 
 func TestDisplayRule(t *testing.T) {
-
 	Convey("Given a rule entry", t, func() {
 		out = testFile()
 
@@ -130,7 +138,6 @@ func TestDisplayRule(t *testing.T) {
 }
 
 func TestGetRule(t *testing.T) {
-
 	Convey("Testing the rule 'get' command", t, func() {
 		out = testFile()
 		command := &ruleGet{}
@@ -187,7 +194,6 @@ func TestGetRule(t *testing.T) {
 }
 
 func TestAddRule(t *testing.T) {
-
 	Convey("Testing the rule 'add' command", t, func() {
 		out = testFile()
 		command := &ruleAdd{}
@@ -208,7 +214,8 @@ func TestAddRule(t *testing.T) {
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given valid parameters", func() {
-				args := []string{"-n", "new_rule", "-c", "new_rule comment",
+				args := []string{
+					"-n", "new_rule", "-c", "new_rule comment",
 					"-d", "receive", "--path=/new_path", "--local_dir=/new_rule/local",
 					"--remote_dir=/new_rule/remote", "--tmp_dir=/new_rule/tmp",
 					`--pre={"type":"COPY","args":{"path":"/path/to/copy"}}`,
@@ -306,8 +313,10 @@ func TestAddRule(t *testing.T) {
 			})
 
 			Convey("Given that the rule's name already exist", func() {
-				args := []string{"-n", existing.Name, "-c", "new_rule comment",
-					"-d", "receive", "-p", "new_path"}
+				args := []string{
+					"-n", existing.Name, "-c", "new_rule comment",
+					"-d", "receive", "-p", "new_path",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -331,7 +340,6 @@ func TestAddRule(t *testing.T) {
 }
 
 func TestDeleteRule(t *testing.T) {
-
 	Convey("Testing the rule 'delete' command", t, func() {
 		out = testFile()
 		command := &ruleDelete{}
@@ -395,7 +403,6 @@ func TestDeleteRule(t *testing.T) {
 }
 
 func TestListRules(t *testing.T) {
-
 	Convey("Testing the rule 'list' command", t, func() {
 		out = testFile()
 		command := &ruleList{}
@@ -408,7 +415,7 @@ func TestListRules(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			receive := &model.Rule{
-				Name:        "receive",
+				Name:        "receive_rule",
 				Comment:     "receive comment",
 				IsSend:      false,
 				Path:        "/receive",
@@ -419,7 +426,7 @@ func TestListRules(t *testing.T) {
 			So(db.Insert(receive).Run(), ShouldBeNil)
 
 			send := &model.Rule{
-				Name:        "send",
+				Name:        "send_rule",
 				Comment:     "send comment",
 				IsSend:      true,
 				Path:        "/send",
@@ -498,7 +505,6 @@ func TestListRules(t *testing.T) {
 }
 
 func TestRuleAllowAll(t *testing.T) {
-
 	Convey("Testing the rule 'list' command", t, func() {
 		out = testFile()
 		command := &ruleAllowAll{}
@@ -621,7 +627,8 @@ func TestRuleAllowAll(t *testing.T) {
 						err = command.Execute(params)
 
 						Convey("Then it should return an error", func() {
-							So(err, ShouldBeError, "invalid rule direction 'toto'")
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldContainSubstring, "invalid rule direction 'toto'")
 						})
 
 						Convey("Then the accesses should still exist", func() {

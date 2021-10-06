@@ -5,7 +5,8 @@ package migrations
 import (
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -13,7 +14,8 @@ func TestMySQLMigrations(t *testing.T) {
 	const dbType = migration.MySQL
 
 	Convey("Given an un-migrated MySQL database engine", t, func(c C) {
-		_ = getMySQLEngine(c)
+		eng := getSQLiteEngine(c)
 
+		testVer0_4_2RemoveHistoryRemoteIdUnique(eng, dbType)
 	})
 }

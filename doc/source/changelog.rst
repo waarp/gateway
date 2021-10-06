@@ -6,9 +6,17 @@ Historique des versions
 * :feature:`247` Ajout d'un client et d'un serveur HTTP/S à la *gateway*. Il est
   donc désormais possible d'effectuer des transferts via ces 2 protocoles.
 
+* :release:`0.4.3 <2021-09-24>`
+* :bug:`-` Activation des migrations de base de données vers la version 0.4.2
+* :bug:`-` Correction de la compilation avec certaines versions de Go
+
+* :release:`0.4.2 <2021-09-21>`
 * :bug:`273` Correction d'une erreur "database table locked" pouvant survenir
   lorsqu'une base de données SQLite est partagée entre plusieurs instances de
   *gateway*.
+* :bug:`272` Correction d'une erreur pouvant survenir lors de l'import d'un
+  serveur local dont le nom existe déjà sur une autre instance de *gateway*
+  partageant la même base de données.
 * :bug:`263` Suppression du '/' présent au début des noms de dossiers renvoyés
   lors de l'envoi d'une commande SFTP *ls* . Cela devrait résoudre un certains
   nombre de problèmes survenant lors de l'utilisation de cette commande.
@@ -35,49 +43,49 @@ Historique des versions
   pour 2 instances d'une même *gateway* de récupérer un même transfert depuis la
   base de données, et de l'exécuter 2 fois en parallèle. Ce n'est désormais plus
   possible.
-* :bug:`` Sous système Unix, l'interruption de tâches externes se fait désormais
+* :bug:`-` Sous système Unix, l'interruption de tâches externes se fait désormais
   via un *SIGINT* (au lieu de *SIGKILL*).
-* :feature:`0` Ajout d'un champ taille de fichier ``filesize`` au modèles de
+* :feature:`-` Ajout d'un champ taille de fichier ``filesize`` au modèles de
   transfert et d'historique.
-* :feature:`0` Il n'est plus obligatoire pour un partenaire SFTP d'avoir une
+* :feature:`-` Il n'est plus obligatoire pour un partenaire SFTP d'avoir une
   *hostkey* (certificat) pour pouvoir créer un transfert vers/depuis cet agent.
   Une *hostkey*, reste nécessaire pour les transferts SFTP, mais la vérification
   sera désormais faite au démarrage du transfert (au lieu de son enregistrement).
-* :feature:`0` Dépréciation des options ``InDirectory``, ``OutDirectory`` &
+* :feature:`-` Dépréciation des options ``InDirectory``, ``OutDirectory`` &
   ``WorkDirectory`` du fichier de configuration de la *Gateway*. Ces options ont
   été remplacés respectivement par ``DefaultInDir``, ``DefaultOutDir`` &
   ``DefaultTmpDir``.
-* :feature:`0` Dépréciation des champs JSON ``inDir``, ``outDir`` & ``workDir`` de
+* :feature:`-` Dépréciation des champs JSON ``inDir``, ``outDir`` & ``workDir`` de
   l'objet REST de serveur local. Les champs ont été remplacé par ``serverLocalInDir``,
   ``serverLocalOutDir`` & ``serverLocalTmpDir`` représentant respectivement le
   dossier de réception du serveur, le dossier d'envoi du serveur, et le dossier
   de réception temporaire.
-* :feature:`0` Dépréciation des champs JSON ``inPath``, ``outPath`` & ``workPath``
+* :feature:`-` Dépréciation des champs JSON ``inPath``, ``outPath`` & ``workPath``
   de l'objet REST de règle. Les champs ont été remplacé par ``localDir``,
   ``remoteDir`` & ``localTmpDir`` représentant respectivement le dossier sur le
   disque local de la *Gateway*, le dossier sur l'hôte distant, et le dossier
   temporaire local.
-* :feature:`0` Dépréciation des champs JSON ``sourcePath``, ``destPath`` & ``trueFilepath``
+* :feature:`-` Dépréciation des champs JSON ``sourcePath``, ``destPath`` & ``trueFilepath``
   des objets REST de consultation des transferts et de l'historique. Ces champs ont été
   remplacé par les champs ``localPath`` & ``remotePath`` contenant respectivement
   le chemin du fichier sur le disque local de la *Gateway*, et le chemin d'accès au
   fichier sur l'hôte distant.
-* :feature:`0` Dépréciation des champs ``sourcePath`` & ``destPath`` des objets
+* :feature:`-` Dépréciation des champs ``sourcePath`` & ``destPath`` des objets
   REST de création de transfert. Ces champs ont été remplacé par le champ
   ``file`` contenant le nom du fichier à transférer. Il ne sera donc, à terme,
   plus possible de donner au fichier de destination du transfer un nom différent
   de celui du fichier source.
-* :feature:`0` Un champ `passwordHash` a été ajouté à l'objet JSON de compte local
+* :feature:`-` Un champ `passwordHash` a été ajouté à l'objet JSON de compte local
   du fichier d'import/export. Il remplace le champ `password` pour l'export de
   configuration. La gateway ne stockant que des hash de mots de passe, le nom du
   champ n'était pas approprié. Le champ `password` reste cependant utilisable
   pour l'import de fichiers de configuration généré par des outils tiers.
-* :bug:`0` Les champs optionnels vides ne seront désormais plus ajouté aux fichiers
+* :bug:`-` Les champs optionnels vides ne seront désormais plus ajouté aux fichiers
   de sauvegarde lors d'un export de configuration.
 * :bug:`252` Les certificats, clés publiques & clés privées sont désormais parsés
   avant d'être insérés en base de données. Les données invalides seront désormais
   refusées.
-* :bug:`0` Correction d'une régression empêchant le redémarrage des transferts SFTP.
+* :bug:`-` Correction d'une régression empêchant le redémarrage des transferts SFTP.
 * :feature:`242` Ajout de la direction (`isSend`) à l'objet *transfer* de REST.
 * :bug:`239` Correction d'une erreur de base de données survenant lors de la mise
   à jour de la progression des transferts.
@@ -87,7 +95,7 @@ Historique des versions
   de configuration.
 * :bug:`254` Ajout des contraintes d'unicité manquantes lors de l'initialisation
   de la base de données.
-* :bug:`0` Les dates de début/fin de transfert sont désormais précises à la
+* :bug:`-` Les dates de début/fin de transfert sont désormais précises à la
   milliseconde près (au lieu de la seconde).
 * :bug:`243` Correction d'un bug empêchant l'annulation d'un transfert avant
   qu'il n'ait commencé car sa date de fin se retrouvait antérieure à sa date de
@@ -169,10 +177,10 @@ Historique des versions
   désormais à intervalles réguliers (1 fois par seconde) au lieu de que ce soit
   à chaque écriture sur disque. Cela devrait grandement réduire le nombre
   d'écritures en base de données lors d'un transfert, notamment pour les gros fichiers.
-* :bug:`0` Correction d'un bug dans le serveur SFTP qui causait le déplacement
+* :bug:`-` Correction d'un bug dans le serveur SFTP qui causait le déplacement
   du fichier temporaire de réception vers son chemin final malgré le fait qu'une
   erreur ait survenue durant le transfert de données.
-* :bug:`0` Lors d'un transfert SFTP entrant, le fichier (temporaire) de destination
+* :bug:`-` Lors d'un transfert SFTP entrant, le fichier (temporaire) de destination
   est désormais créé lors de la réception du 1er packet de données, au lieu du
   packet de requête.
 * :bug:`199` Correction d'un bug qui causait une double fermeture des fichiers
@@ -181,10 +189,10 @@ Historique des versions
 * :feature:`129` Ajout d'un client et d'un serveur R66 à la *gateway*. Il est
   donc désormais possible d'effectuer des transferts R66 sans avoir recours à un
   serveur externe.
-* :bug:`0` Lors d'un transfert, le compteur ``task_number`` est désormais
+* :bug:`-` Lors d'un transfert, le compteur ``task_number`` est désormais
   réinitialisé lors du passage à l'étape suivante au lieu de la fin de la chaîne
   de traitements.
-* :feature:`0` Afin de faciliter la reprise de transfert, les transferts en erreur
+* :feature:`-` Afin de faciliter la reprise de transfert, les transferts en erreur
   resteront désormais dans la table ``transfers`` au lieu d'être déplacés dans
   la table ``transfer_history``. Cette dernière ne contiendra donc que les
   transferts terminés ou annulés. Ce changement a 2 conséquences:
@@ -195,11 +203,11 @@ Historique des versions
     identifiant.
   - La reprise des transferts en erreur se fait désormais via la commande
     ``transfer resume`` (ou le point d'accès REST ``/api/transfer/{id}/resume``).
-* :feature:`0` La colonne ``ext_info`` a été supprimée des tables ``transfers`` &
+* :feature:`-` La colonne ``ext_info`` a été supprimée des tables ``transfers`` &
   ``transfer_history``, et une nouvelle table ``transfer_info`` a été créée à la
   place. Cette table permet d'associer un ensemble de clés & valeurs arbitraires
   à un transfert.
-* :bug:`0` Retrait de l'auto-incrément sur la colonne ``id`` de la table
+* :bug:`-` Retrait de l'auto-incrément sur la colonne ``id`` de la table
   ``transfer_history`` qui causait l'attribution d'un identifiant erroné au
   transfert lors de son insertion dans la table d'historique.
 * :bug:`197` Un transfert dont le temps d'exécution est supérieur à la durée

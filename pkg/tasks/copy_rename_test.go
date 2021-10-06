@@ -1,15 +1,17 @@
 package tasks
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestCopyRenameTaskValidate(t *testing.T) {
@@ -40,7 +42,7 @@ func TestCopyRenameTaskValidate(t *testing.T) {
 			})
 
 			Convey("Then error should say `need path argument`", func() {
-				So(err.Error(), ShouldEqual, "cannot create a copy_rename task without a `path` argument")
+				So(err.Error(), ShouldContainSubstring, "cannot create a copy_rename task without a `path` argument")
 			})
 		})
 	})
@@ -53,7 +55,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 		srcFile := filepath.Join(root, "test.src")
 
 		transCtx := &model.TransferContext{Transfer: &model.Transfer{
-			LocalPath: utils.ToStandardPath(srcFile),
+			LocalPath: utils.ToOSPath(srcFile),
 		}}
 
 		So(ioutil.WriteFile(srcFile, []byte("Hello World"), 0o700), ShouldBeNil)
@@ -63,8 +65,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 			args["path"] = filepath.Join(root, "test.src.copy")
 
 			Convey("When the task is run", func() {
-
-				_, err := task.Run(nil, args, nil, transCtx)
+				_, err := task.Run(context.Background(), args, nil, transCtx)
 
 				Convey("Then it should NOT return error", func() {
 					So(err, ShouldBeNil)
@@ -81,14 +82,14 @@ func TestCopyRenameTaskRun(t *testing.T) {
 			So(os.Remove(srcFile), ShouldBeNil)
 
 			Convey("When calling the run method", func() {
-				_, err := task.Run(nil, args, nil, transCtx)
+				_, err := task.Run(context.Background(), args, nil, transCtx)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldNotBeNil)
 				})
 
 				Convey("Then error should say `no such file`", func() {
-					So(err, ShouldBeError, &errFileNotFound{"open source file", srcFile})
+					So(err, ShouldBeError, &fileNotFoundError{"open source file", srcFile})
 				})
 			})
 		})
@@ -97,9 +98,8 @@ func TestCopyRenameTaskRun(t *testing.T) {
 			args["path"] = filepath.Join(root, "subdir", "test.src.copy")
 
 			Convey("Given the target can be created", func() {
-
 				Convey("When the task is run", func() {
-					_, err := task.Run(nil, args, nil, transCtx)
+					_, err := task.Run(context.Background(), args, nil, transCtx)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -117,7 +117,7 @@ func TestCopyRenameTaskRun(t *testing.T) {
 					[]byte("hello"), 0o600), ShouldBeNil)
 
 				Convey("When the task is run", func() {
-					_, err := task.Run(nil, args, nil, transCtx)
+					_, err := task.Run(context.Background(), args, nil, transCtx)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)

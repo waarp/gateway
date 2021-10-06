@@ -2,25 +2,23 @@ package sftp
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"io"
 	"net"
 	"path"
 	"sync"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/sftp/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 type sshListener struct {
@@ -40,6 +38,7 @@ type sshListener struct {
 
 func (l *sshListener) listen() {
 	l.handlerMaker = l.makeHandlers
+
 	go func() {
 		for {
 			conn, err := l.Listener.Accept()
@@ -47,9 +46,11 @@ func (l *sshListener) listen() {
 				select {
 				case <-l.shutdown:
 					return
+
 				default:
 					l.Logger.Errorf("Failed to accept connection: %s", err)
 				}
+
 				continue
 			}
 
@@ -58,43 +59,63 @@ func (l *sshListener) listen() {
 	}()
 }
 
+//nolint:funlen // factorizing would add complexity
 func (l *sshListener) handleConnection(nConn net.Conn) {
 	l.connWg.Add(1)
 
 	go func() {
 		defer l.connWg.Done()
-		defer func() { _ = nConn.Close() }()
+
+		defer func() {
+			if err := nConn.Close(); err != nil {
+				l.Logger.Warningf("An error occurred while closing the TCP connection: %v", err)
+			}
+		}()
 
 		servConn, channels, reqs, err := ssh.NewServerConn(nConn, l.SSHConf)
 		if err != nil {
 			l.Logger.Errorf("Failed to perform handshake: %s", err)
+
 			return
 		}
-		defer func() { _ = servConn.Close() }()
+
+		defer func() {
+			if err := servConn.Close(); err != nil {
+				l.Logger.Warningf("An error occurred while closing the SFTP connection: %v", err)
+			}
+		}()
+
 		go ssh.DiscardRequests(reqs)
 
 		var acc model.LocalAccount
 		if err := l.DB.Get(&acc, "local_agent_id=? AND login=?", l.Agent.ID,
 			servConn.User()).Run(); err != nil {
 			l.Logger.Errorf("Failed to retrieve SFTP user: %s", err)
+
 			return
 		}
 
 		sesWg := &sync.WaitGroup{}
 		defer sesWg.Wait()
+
 		for {
 			select {
 			case <-l.shutdown:
 				return
+
 			case newChannel, ok := <-channels:
 				if !ok {
 					return
 				}
 				select {
 				case <-l.shutdown:
-					_ = newChannel.Reject(ssh.ResourceShortage, "server shutting down")
+					if err := newChannel.Reject(ssh.ResourceShortage, "server shutting down"); err != nil {
+						l.Logger.Warningf("An error occurred while rejecting an SFTP channel: %v", err)
+					}
+
 				default:
 					sesWg.Add(1)
+
 					go func() {
 						defer sesWg.Done()
 						l.handleSession(&acc, newChannel)
@@ -106,23 +127,30 @@ func (l *sshListener) handleConnection(nConn net.Conn) {
 }
 
 func (l *sshListener) handleSession(acc *model.LocalAccount, newChannel ssh.NewChannel) {
-
 	if newChannel.ChannelType() != "session" {
 		l.Logger.Warning("Unknown channel type received")
-		_ = newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
+
+		if err := newChannel.Reject(ssh.UnknownChannelType, "unknown channel type"); err != nil {
+			l.Logger.Warningf("An error occurred while rejecting an SFTP channel: %v", err)
+		}
+
 		return
 	}
 
 	channel, requests, err := newChannel.Accept()
 	if err != nil {
 		l.Logger.Errorf("Failed to accept SFTP session: %s", err)
+
 		return
 	}
-	go internal.AcceptRequests(requests)
+
+	go acceptRequests(requests, l.Logger)
 
 	done := make(chan struct{})
 	defer close(done)
+
 	var server *sftp.RequestServer
+
 	endSession := func(ctx context.Context) {
 		timer := time.NewTimer(time.Second)
 		select {
@@ -130,14 +158,26 @@ func (l *sshListener) handleSession(acc *model.LocalAccount, newChannel ssh.NewC
 		case <-timer.C:
 		case <-ctx.Done():
 		}
+
 		if server != nil {
-			_ = server.Close()
+			if err := server.Close(); err != nil {
+				l.Logger.Warningf("An error occurred while closing the SFTP session: %v", err)
+			}
 		}
-		_ = channel.Close()
+
+		if err := channel.Close(); err != nil {
+			l.Logger.Warningf("An error occurred while closing the SFTP channel: %v", err)
+		}
 	}
 	server = sftp.NewRequestServer(channel, l.handlerMaker(endSession, acc))
-	_ = server.Serve()
-	_ = server.Close()
+
+	if err := server.Serve(); err != nil {
+		l.Logger.Warningf("An error occurred while serving SFTP requests: %v", err)
+	}
+
+	if err := server.Close(); err != nil {
+		l.Logger.Warningf("An error occurred while ending the SFTP session: %v", err)
+	}
 }
 
 func (l *sshListener) makeHandlers(endSession func(context.Context), acc *model.LocalAccount) sftp.Handlers {
@@ -149,7 +189,6 @@ func (l *sshListener) makeHandlers(endSession func(context.Context), acc *model.
 	}
 }
 
-//nolint:dupl
 func (l *sshListener) makeFileReader(endSession func(context.Context), acc *model.LocalAccount,
 ) internal.ReaderAtFunc {
 	return func(r *sftp.Request) (io.ReaderAt, error) {
@@ -157,13 +196,16 @@ func (l *sshListener) makeFileReader(endSession func(context.Context), acc *mode
 
 		// Get rule according to request filepath
 		filepath := path.Join("/", path.Dir(r.Filepath))
-		rule, rErr := internal.GetRule(l.DB, l.Logger, acc, filepath, true)
+
+		rule, rErr := getRule(l.DB, l.Logger, acc, filepath, true)
 		if rule == nil {
 			return nil, sftp.ErrSSHFxNoSuchFile
 		}
+
 		if rErr != nil {
 			l.Logger.Errorf("Failed to retrieve transfer rule: %s", rErr)
-			return nil, errors.New("database error")
+
+			return nil, errDatabase
 		}
 
 		// Create Transfer
@@ -183,15 +225,15 @@ func (l *sshListener) makeFileReader(endSession func(context.Context), acc *mode
 		l.Logger.Infof("Download of file '%s' requested by '%s' using rule '%s'",
 			trans.RemotePath, acc.Login, rule.Name)
 
-		pip, err := internal.NewServerPipeline(l.DB, l.Logger, trans, l.runningTransfers, endSession)
+		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.runningTransfers, endSession)
 		if err != nil {
 			return nil, err
 		}
+
 		return pip, nil
 	}
 }
 
-//nolint:dupl
 func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *model.LocalAccount,
 ) internal.WriterAtFunc {
 	return func(r *sftp.Request) (io.WriterAt, error) {
@@ -199,13 +241,16 @@ func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *mode
 
 		// Get rule according to request filepath
 		filepath := path.Join("/", path.Dir(r.Filepath))
-		rule, rErr := internal.GetRule(l.DB, l.Logger, acc, filepath, false)
+
+		rule, rErr := getRule(l.DB, l.Logger, acc, filepath, false)
 		if rule == nil {
 			return nil, sftp.ErrSSHFxNoSuchFile
 		}
+
 		if rErr != nil {
 			l.Logger.Errorf("Failed to retrieve transfer rule: %s", rErr)
-			return nil, errors.New("database error")
+
+			return nil, errDatabase
 		}
 
 		// Create Transfer
@@ -225,10 +270,11 @@ func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *mode
 		l.Logger.Infof("Upload of file '%s' requested by '%s' using rule '%s'",
 			trans.RemotePath, acc.Login, rule.Name)
 
-		pip, err := internal.NewServerPipeline(l.DB, l.Logger, trans, l.runningTransfers, endSession)
+		pip, err := newServerPipeline(l.DB, l.Logger, trans, l.runningTransfers, endSession)
 		if err != nil {
-			return nil, err
+			return nil, toSFTPErr(err)
 		}
+
 		return pip, nil
 	}
 }
@@ -237,14 +283,21 @@ func (l *sshListener) close(ctx context.Context) error {
 	if l.shutdown == nil {
 		l.shutdown = make(chan struct{})
 	}
+
 	close(l.shutdown)
 
-	_ = l.Listener.Close()
+	if err := l.Listener.Close(); err != nil {
+		l.Logger.Warningf("An error occurred while closing the network connection: %v", err)
+	}
+
 	if err := l.runningTransfers.InterruptAll(ctx); err != nil {
 		l.Logger.Errorf("Could not interrupt running transfers")
-		return err
+
+		return fmt.Errorf("could not interrupt running transfers: %w", err)
 	}
+
 	finished := make(chan struct{})
+
 	go func() {
 		l.connWg.Wait()
 		close(finished)
@@ -253,7 +306,8 @@ func (l *sshListener) close(ctx context.Context) error {
 	select {
 	case <-finished:
 		return nil
+
 	case <-ctx.Done():
-		return ctx.Err()
+		return fmt.Errorf("failed interrupt running transfers in time: %w", ctx.Err())
 	}
 }

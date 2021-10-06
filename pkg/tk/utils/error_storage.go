@@ -28,8 +28,10 @@ func (e *ErrorStorage) Store(err error) {
 	if err == nil {
 		return
 	}
+
 	e.mux.Lock()
 	defer e.mux.Unlock()
+
 	e.once.Do(func() {
 		defer close(e.done)
 		e.err = err
@@ -39,13 +41,15 @@ func (e *ErrorStorage) Store(err error) {
 // StoreCtx stores the given error in the storage. If an error is already stored,
 // the function does nothing. Unlike Store, StoreCtx waits until a goroutine has
 // retrieved the stored error via the Wait channel (to unsure the error has been
-// taken into account), or until the given context is cancelled.
+// taken into account), or until the given context is canceled.
 func (e *ErrorStorage) StoreCtx(ctx context.Context, err error) {
 	if err == nil {
 		return
 	}
+
 	e.mux.Lock()
 	defer e.mux.Unlock()
+
 	e.once.Do(func() {
 		defer close(e.done)
 		e.err = err
@@ -60,6 +64,7 @@ func (e *ErrorStorage) StoreCtx(ctx context.Context, err error) {
 func (e *ErrorStorage) Get() error {
 	e.mux.Lock()
 	defer e.mux.Unlock()
+
 	return e.err
 }
 
@@ -71,6 +76,7 @@ func (e *ErrorStorage) Wait() <-chan error {
 	if e.done == nil {
 		e.done = make(chan error)
 	}
+
 	return e.done
 }
 

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"code.waarp.fr/waarp-r66/r66"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 )
 
 // NewR66Error returns a new r66.Error from the given code and message. The
@@ -16,7 +16,7 @@ func NewR66Error(code rune, details string, args ...interface{}) *r66.Error {
 	return &r66.Error{Code: code, Detail: fmt.Sprintf(details, args...)}
 }
 
-//nolint:funlen
+//nolint:funlen,gocyclo,cyclop // splitting the function would add complexity
 // ToR66Error takes an error (preferably a types.TransferError) and returns the
 // equivalent r66.Error.
 func ToR66Error(err error) *r66.Error {
@@ -76,7 +76,7 @@ func ToR66Error(err error) *r66.Error {
 	}
 }
 
-//nolint:funlen
+//nolint:funlen,gocyclo,cyclop // splitting the function would add complexity
 // FromR66Error takes an R66 error (most likely of type r66.Error) and returns
 // the corresponding types.TransferError.
 func FromR66Error(err error, pip *pipeline.Pipeline) *types.TransferError {
@@ -132,9 +132,11 @@ func FromR66Error(err error, pip *pipeline.Pipeline) *types.TransferError {
 
 	case r66.StoppedTransfer:
 		pip.Pause()
+
 		return nil
 	case r66.CanceledTransfer:
 		pip.Cancel()
+
 		return nil
 
 	default:

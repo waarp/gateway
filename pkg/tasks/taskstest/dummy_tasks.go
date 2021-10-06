@@ -4,13 +4,14 @@ package taskstest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync/atomic"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 const (
@@ -23,6 +24,8 @@ const (
 	TaskErr = "TASKERR"
 )
 
+const taskTimeout = 10 * time.Second
+
 // TaskChecker is a struct used in tests to check if a transfer's tasks have been
 // executed properly.
 type TaskChecker struct {
@@ -33,10 +36,11 @@ type TaskChecker struct {
 	cDone, sDone chan struct{}
 }
 
-// InitTaskChecker initialises and returns a new TaskChecker.
+// InitTaskChecker initializes and returns a new TaskChecker.
 func InitTaskChecker() *TaskChecker {
 	cond := make(chan bool)
 	defer close(cond)
+
 	return &TaskChecker{
 		Cond:  cond,
 		cDone: make(chan struct{}),
@@ -77,7 +81,7 @@ func (t *TaskChecker) ServerDone() { close(t.sDone) }
 
 // WaitClientDone waits for the client to have finished its side of the transfer.
 func (t *TaskChecker) WaitClientDone() {
-	timer := time.NewTimer(time.Second * 10)
+	timer := time.NewTimer(taskTimeout)
 	select {
 	case <-timer.C:
 		panic("timeout waiting for client transfer end")
@@ -87,7 +91,7 @@ func (t *TaskChecker) WaitClientDone() {
 
 // WaitServerDone waits for the server to have finished its side of the transfer.
 func (t *TaskChecker) WaitServerDone() {
-	timer := time.NewTimer(time.Second * 10)
+	timer := time.NewTimer(taskTimeout)
 	select {
 	case <-timer.C:
 		panic("timeout waiting for server transfer end")
@@ -99,8 +103,9 @@ func (t *TaskChecker) execTask(ctx context.Context, c *model.TransferContext) er
 	select {
 	case <-t.Cond:
 	case <-ctx.Done():
-		return ctx.Err()
+		return fmt.Errorf("task failed: %w", ctx.Err())
 	}
+
 	if c.Transfer.IsServer {
 		switch c.Transfer.Step {
 		case types.StepPreTasks:
@@ -124,6 +129,7 @@ func (t *TaskChecker) execTask(ctx context.Context, c *model.TransferContext) er
 			panic(fmt.Sprintf("invalid transfer state '%s' for tasks", c.Transfer.Step))
 		}
 	}
+
 	return nil
 }
 
@@ -133,7 +139,6 @@ type TestTask struct{ *TaskChecker }
 // Run executes the dummy task, which will always succeed.
 func (t *TestTask) Run(ctx context.Context, _ map[string]string, _ *database.DB,
 	c *model.TransferContext) (string, error) {
-
 	return "", t.execTask(ctx, c)
 }
 
@@ -143,9 +148,10 @@ type TestTaskError struct{ *TaskChecker }
 // Run executes the dummy task, which will always return an error.
 func (t *TestTaskError) Run(ctx context.Context, _ map[string]string, _ *database.DB,
 	c *model.TransferContext) (string, error) {
-
 	if err := t.execTask(ctx, c); err != nil {
 		return "", err
 	}
-	return "task failed", fmt.Errorf("task failed")
+
+	//nolint:goerr113 // this is a test error, its value is irrelevant
+	return "task failed", errors.New("task failed")
 }

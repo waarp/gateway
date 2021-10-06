@@ -1,7 +1,7 @@
 package api
 
 // AuthorizedRules represents a list of all the rules which an agent/account
-// is allowed to use
+// is allowed to use.
 type AuthorizedRules struct {
 	Sending   []string `json:"sending"`
 	Reception []string `json:"reception"`
@@ -10,8 +10,8 @@ type AuthorizedRules struct {
 // RuleAccess is the struct containing all the agents/accounts which are allowed
 // to use a given rule.
 type RuleAccess struct {
-	LocalServers   []string            `json:"servers,omitempty"`
-	RemotePartners []string            `json:"partners,omitempty"`
+	LocalServers   []string            `json:"servers,omitempty"`  //nolint:tagliatelle // ok here
+	RemotePartners []string            `json:"partners,omitempty"` //nolint:tagliatelle // ok here
 	LocalAccounts  map[string][]string `json:"localAccounts,omitempty"`
 	RemoteAccounts map[string][]string `json:"remoteAccounts,omitempty"`
 }

@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func TestNewFileStream(t *testing.T) {
@@ -486,7 +486,7 @@ func TestStreamClose(t *testing.T) {
 				So(stream.close(), ShouldBeNil)
 
 				Convey("Then the underlying file should be closed", func(c C) {
-					So(stream.file.Close(), ShouldBeError, fmt.Errorf(
+					So(stream.file.Close(), ShouldBeError, fmt.Sprintf(
 						"close %s: file already closed", trans.LocalPath))
 				})
 

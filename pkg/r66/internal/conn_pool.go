@@ -2,12 +2,13 @@ package internal
 
 import (
 	"crypto/tls"
+	"fmt"
 	"sync"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 
 	"code.bcarlin.xyz/go/logging"
 	"code.waarp.fr/waarp-r66/r66"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 type connInfo struct {
@@ -37,21 +38,27 @@ func (c *ConnPool) Add(addr string, tlsConf *tls.Config, logger *log.Logger) (*r
 	info, ok := c.m[addr]
 	if ok {
 		info.num++
+
 		return info.conn, nil
 	}
 
-	var cli *r66.Client
-	var err error
+	var (
+		cli *r66.Client
+		err error
+	)
+
 	if tlsConf == nil {
 		cli, err = r66.Dial(addr, logger.AsStdLog(logging.DEBUG))
 	} else {
 		cli, err = r66.DialTLS(addr, tlsConf, logger.AsStdLog(logging.DEBUG))
 	}
+
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to remote host: %w", err)
 	}
 
 	c.m[addr] = &connInfo{conn: cli, num: 1}
+
 	return cli, nil
 }
 

@@ -2,8 +2,12 @@ package migration
 
 import (
 	"database/sql"
+	"errors"
 )
 
+var errOperation = errors.New("an operation failed")
+
+//nolint:gochecknoglobals // global var is used by design
 var dialects = map[string]func(*queryWriter) Actions{}
 
 // Definition represents one part of a column definition. It can be a column
@@ -33,7 +37,7 @@ type Executor interface {
 	Exec(string, ...interface{}) error
 }
 
-// Actions is an interface regrouping all the
+// Actions is an interface regrouping all the.
 type Actions interface {
 	Querier
 	Executor
@@ -66,7 +70,7 @@ type Actions interface {
 
 	// ChangeColumnType changes the type of the given column. This is a
 	// destructive (non retro-compatible) operation.
-	ChangeColumnType(table, col string, old, new sqlType) error
+	ChangeColumnType(table, col string, from, to sqlType) error
 
 	// DropColumn drops the given column. This is a destructive (non
 	// retro-compatible) operation.

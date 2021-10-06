@@ -1,9 +1,12 @@
-//+build !windows
+//go:build !windows
+// +build !windows
 
 package conf
 
-var fileList = []string{
-	"gatewayd.ini",
-	"etc/gatewayd.ini",
-	"/etc/waarp-gateway/gatewayd.ini",
+func getDefaultConfFiles() []string {
+	return []string{
+		"gatewayd.ini",
+		"etc/gatewayd.ini",
+		"/etc/waarp-gateway/gatewayd.ini",
+	}
 }

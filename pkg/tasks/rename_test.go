@@ -1,14 +1,16 @@
 package tasks
 
 import (
+	"context"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestRenameTaskValidate(t *testing.T) {
@@ -39,7 +41,7 @@ func TestRenameTaskValidate(t *testing.T) {
 			})
 
 			Convey("Then error should say `need path argument`", func() {
-				So(err.Error(), ShouldEqual, "cannot create a rename task without a `path` argument")
+				So(err.Error(), ShouldContainSubstring, "cannot create a rename task without a `path` argument")
 			})
 		})
 	})
@@ -69,14 +71,14 @@ func TestRenameTaskRun(t *testing.T) {
 			args := map[string]string{"path": dstPath}
 
 			Convey("When calling the `run` method", func() {
-				_, err := task.Run(nil, args, nil, transCtx)
+				_, err := task.Run(context.Background(), args, nil, transCtx)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
 				})
 
 				Convey("Then transfer filepath should be modified", func() {
-					So(transCtx.Transfer.LocalPath, ShouldEqual, utils.ToStandardPath(dstPath))
+					So(transCtx.Transfer.LocalPath, ShouldEqual, utils.ToOSPath(dstPath))
 				})
 
 				Convey("Then transfer source path should be modified", func() {
@@ -89,11 +91,10 @@ func TestRenameTaskRun(t *testing.T) {
 			args := map[string]string{"path": filepath.Join(root, "dummy")}
 
 			Convey("When calling the `run` method", func() {
-				_, err := task.Run(nil, args, nil, transCtx)
+				_, err := task.Run(context.Background(), args, nil, transCtx)
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError, &errFileNotFound{"change transfer target file to",
-						args["path"]})
+					So(err, ShouldBeError, &fileNotFoundError{"change transfer target file to", args["path"]})
 				})
 			})
 		})

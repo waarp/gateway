@@ -1,4 +1,4 @@
-module code.waarp.fr/waarp-gateway/waarp-gateway
+module code.waarp.fr/apps/gateway/gateway
 
 require (
 	code.bcarlin.xyz/go/logging v0.1.0
@@ -18,8 +18,31 @@ require (
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/mod v0.4.2
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
+	golang.org/x/tools v0.1.5 // indirect
 	xorm.io/builder v0.3.8
 	xorm.io/xorm v1.1.2
 )
 
-go 1.13
+require (
+	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
+	github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 // indirect
+	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
+	github.com/jackc/pgio v1.0.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgproto3/v2 v2.0.6 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
+	github.com/jackc/pgtype v1.6.2 // indirect
+	github.com/json-iterator/go v1.1.11 // indirect
+	github.com/jtolds/gls v4.20.0+incompatible // indirect
+	github.com/kr/fs v0.1.0 // indirect
+	github.com/mattn/go-isatty v0.0.12 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/pkg/errors v0.8.1 // indirect
+	github.com/syndtr/goleveldb v1.0.0 // indirect
+	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
+	golang.org/x/text v0.3.3 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+)
+
+go 1.17

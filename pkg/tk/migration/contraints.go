@@ -1,16 +1,23 @@
 package migration
 
-type pk struct{}
-type fk struct{ table, col string }
-type notNull struct{}
-type autoIncr struct{}
-type unique struct{}
-type defaul struct{ val interface{} }
+import "errors"
+
+type (
+	pk       struct{}
+	fk       struct{ table, col string }
+	notNull  struct{}
+	autoIncr struct{}
+	unique   struct{}
+	defaul   struct{ val interface{} }
+)
+
+var errBadConstraint = errors.New("bad constraint")
 
 func defaultFn(val interface{}) defaul { return defaul{val: val} }
 func fkFn(table, col string) fk        { return fk{table: table, col: col} }
 
 // The different types of column constraints usable in a CREATE TABLE statement.
+//nolint:gochecknoglobals // global var is used by design
 var (
 	// PrimaryKey declares the column as the table's primary key. Only 1 primary
 	// key is allowed per table. For multi-column primary keys, use table constraints
@@ -32,17 +39,20 @@ var (
 	Unique = unique{}
 
 	// Default adds a default value to the column. The value should be given as
-	// parameter of the constraint (ex: Default(0))
+	// parameter of the constraint (ex: Default(0)).
 	Default = defaultFn
 )
 
-type tblPk struct{ cols []string }
-type tblUnique struct{ cols []string }
+type (
+	tblPk     struct{ cols []string }
+	tblUnique struct{ cols []string }
+)
 
 func pkFn(cols ...string) tblPk         { return tblPk{cols: cols} }
 func uniqueFn(cols ...string) tblUnique { return tblUnique{cols: cols} }
 
 // The different types of table constraints usable in a CREATE TABLE statement.
+//nolint:gochecknoglobals // global var is used by design
 var (
 	// MultiPrimaryKey adds a primary-key constraint to the given columns.
 	MultiPrimaryKey = pkFn

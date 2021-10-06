@@ -1,5 +1,6 @@
 package config
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	ProtoConfigs["http"] = func() ProtoConfig { return new(HTTPProtoConfig) }
 	ProtoConfigs["https"] = func() ProtoConfig { return new(HTTPProtoConfig) }

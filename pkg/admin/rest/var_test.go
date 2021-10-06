@@ -1,10 +1,11 @@
 package rest
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
 
 const (
@@ -12,6 +13,7 @@ const (
 	testProto2 = "rest_test_2"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(TestProtoConfig) }
 	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(TestProtoConfig) }
@@ -29,5 +31,6 @@ func (*TestProtoConfig) ValidPartner() error { return nil }
 func hash(pwd string) []byte {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	convey.So(err, convey.ShouldBeNil)
+
 	return h
 }

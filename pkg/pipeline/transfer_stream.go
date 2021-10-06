@@ -3,8 +3,8 @@ package pipeline
 import (
 	"io"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func leaf(s string) utils.Leaf     { return utils.Leaf(s) }
@@ -35,9 +35,11 @@ func newVoidStream(p *Pipeline) (*voidStream, *types.TransferError) {
 	} else {
 		err = p.machine.Transition("writing")
 	}
+
 	if err != nil {
 		return nil, types.NewTransferError(types.TeInternal, err.Error())
 	}
+
 	return &voidStream{p}, nil
 }
 
@@ -46,8 +48,10 @@ type voidStream struct{ *Pipeline }
 func (v *voidStream) checkState(state, fun string, defaultN int, defaultErr error) (int, error) {
 	if curr := v.machine.Current(); curr != state {
 		v.handleStateErr(fun, curr)
+
 		return 0, errStateMachine
 	}
+
 	return defaultN, defaultErr
 }
 
@@ -70,16 +74,20 @@ func (v *voidStream) WriteAt(p []byte, _ int64) (int, error) {
 func (v *voidStream) close() *types.TransferError {
 	if err := v.machine.Transition("close"); err != nil {
 		v.handleStateErr("close", v.machine.Current())
+
 		return errStateMachine
 	}
+
 	return nil
 }
 
 func (v *voidStream) move() *types.TransferError {
 	if err := v.machine.Transition("move"); err != nil {
 		v.handleStateErr("move", v.machine.Current())
+
 		return errStateMachine
 	}
+
 	return nil
 }
 

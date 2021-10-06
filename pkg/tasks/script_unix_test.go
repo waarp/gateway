@@ -1,10 +1,13 @@
+//go:build !windows
 // +build !windows
 
 package tasks
 
-var execScriptFile = "./exec_test_script.sh"
-var execMoveScriptFile = "./execmove_test_script.sh"
-var execOutputScriptFile = "./execoutput_test_script.sh"
+const (
+	execScriptFile       = "./exec_test_script.sh"
+	execMoveScriptFile   = "./execmove_test_script.sh"
+	execOutputScriptFile = "./execoutput_test_script.sh"
+)
 
 const scriptExecOK = `#!/bin/sh
 echo $1

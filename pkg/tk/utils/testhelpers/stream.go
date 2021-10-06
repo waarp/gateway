@@ -21,13 +21,16 @@ type TestReader struct {
 
 // NewTestReader returns a new TestReader which can be used in tests. The buffer
 // will be filled with random data, which can then be retrieved with the
-// TestReader.Content function
+// TestReader.Content function.
 func NewTestReader(c convey.C) *TestReader {
 	r := &TestReader{}
 	r.cont = make([]byte, TestStreamSize)
 	_, err := rand.Read(r.cont)
+
 	c.So(err, convey.ShouldBeNil)
+
 	r.Buffer = bytes.NewBuffer(r.cont)
+
 	return r
 }
 

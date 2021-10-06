@@ -6,18 +6,13 @@ import (
 	"path"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/http/httpconst"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 type httpHandler struct {
@@ -38,9 +33,11 @@ func (h *httpHandler) getRule(isSend bool) bool {
 		name = h.req.FormValue(httpconst.Rule)
 		if name == "" {
 			h.sendError(http.StatusBadRequest, types.TeInternal, "missing rule name")
+
 			return false
 		}
 	}
+
 	return h.getRuleFromName(name, isSend)
 }
 
@@ -49,14 +46,19 @@ func (h *httpHandler) getRuleFromName(name string, isSend bool) bool {
 		if database.IsNotFound(err) {
 			h.rule.IsSend = isSend
 			msg := fmt.Sprintf("No %s rule with name '%s' found", h.rule.Direction(), name)
+
 			h.logger.Warning(msg)
 			h.sendError(http.StatusBadRequest, types.TeInternal, "rule not found")
+
 			return false
 		}
+
 		h.logger.Errorf("Failed to retrieve transfer rule: %s", err)
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to retrieve transfer rule")
+
 		return false
 	}
+
 	return true
 }
 
@@ -65,12 +67,16 @@ func (h *httpHandler) checkRulePermission() bool {
 	if err != nil {
 		h.logger.Errorf("Failed to retrieve rule permissions: %s", err)
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to check rule permissions")
+
 		return false
 	}
+
 	if isAuthorized {
 		return true
 	}
+
 	h.sendError(http.StatusForbidden, types.TeForbidden, "you do not have permission to use this rule")
+
 	return false
 }
 
@@ -82,10 +88,13 @@ func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
 		if err != nil {
 			h.logger.Errorf("Failed to parse transfer file attributes: %s", err)
 			h.sendError(http.StatusRequestedRangeNotSatisfiable, types.TeInternal, err.Error())
+
 			return false
 		}
+
 		if progress < trans.Progress {
 			trans.Progress = progress
+
 			cols = append(cols, "progression")
 		}
 	} else {
@@ -93,10 +102,12 @@ func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
 		if err != nil {
 			h.logger.Errorf("Failed to parse transfer file attributes: %s", err)
 			h.sendError(http.StatusBadRequest, types.TeInternal, err.Error())
+
 			return false
 		}
 		if progress > trans.Progress {
 			h.sendError(http.StatusRequestedRangeNotSatisfiable, types.TeBadSize, "unacceptable range start")
+
 			return false
 		}
 		if progress < trans.Progress {
@@ -113,20 +124,25 @@ func (h *httpHandler) getSizeProgress(trans *model.Transfer) bool {
 		if err := h.db.Update(trans).Cols(cols...).Run(); err != nil {
 			h.logger.Errorf("Failed to update transfer file attributes: %s", err)
 			h.sendError(http.StatusInternalServerError, types.TeInternal, "failed to update transfer file attributes")
+
 			return false
 		}
 	}
+
 	return true
 }
 
 func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 	if h.req.URL.Path == "" || path.Clean(h.req.URL.Path) == "/" {
 		h.sendError(http.StatusBadRequest, types.TeFileNotFound, "missing file path")
+
 		return nil, false
 	}
+
 	if !h.getRule(isSend) {
 		return nil, false
 	}
+
 	if !h.checkRulePermission() {
 		return nil, false
 	}
@@ -150,11 +166,14 @@ func (h *httpHandler) getTransfer(isSend bool) (*model.Transfer, bool) {
 	}
 
 	var err *types.TransferError
+
 	trans, err = pipeline.GetServerTransfer(h.db, h.logger, trans)
 	if err != nil {
 		h.sendError(http.StatusInternalServerError, err.Code, err.Details)
+
 		return nil, false
 	}
+
 	if !h.getSizeProgress(trans) {
 		return nil, false
 	}
@@ -168,6 +187,7 @@ func (h *httpHandler) handleHead() {
 		remoteID = h.req.FormValue(httpconst.ID)
 		if remoteID == "" {
 			h.sendError(http.StatusBadRequest, types.TeInternal, "missing transfer ID")
+
 			return
 		}
 	}
@@ -178,19 +198,25 @@ func (h *httpHandler) handleHead() {
 		true, remoteID, h.account.ID).Run(); err != nil {
 		if !database.IsNotFound(err) {
 			h.sendError(http.StatusBadRequest, types.TeInternal, "unknown transfer ID")
+
 			return
 		}
+
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "database error")
+
 		return
 	}
 
 	var rule model.Rule
 	if err := h.db.Get(&rule, "id=?", trans.RuleID).Run(); err != nil {
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "database error")
+
 		return
 	}
+
 	if ok, err := rule.IsAuthorized(h.db, h.account); err != nil {
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "database error")
+
 		return
 	} else if !ok {
 		h.sendError(http.StatusForbidden, types.TeForbidden, "you do not have permission to see this transfer")
@@ -215,6 +241,7 @@ func (h *httpHandler) handle(isSend bool) {
 	if isSend {
 		op = "Download"
 	}
+
 	h.logger.Debugf("%s of file %s requested by %s using rule %s, transfer "+
 		"was given ID n°%d", op, path.Base(h.req.URL.Path), h.account.Login,
 		h.rule.Name, trans.ID)
@@ -222,6 +249,7 @@ func (h *httpHandler) handle(isSend bool) {
 	pip, err := pipeline.NewServerPipeline(h.db, trans)
 	if err != nil {
 		http.Error(h.resp, err.Error(), http.StatusInternalServerError)
+
 		return
 	}
 

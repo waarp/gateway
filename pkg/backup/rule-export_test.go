@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func TestExportRules(t *testing.T) {
@@ -54,14 +53,13 @@ func TestExportRules(t *testing.T) {
 }
 
 func TestExportRuleAccesses(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a rules with accesses", func() {
 			agent := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    testhelpers.TestProtocol,
+				Protocol:    testProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2022",
 			}
@@ -149,7 +147,6 @@ func TestExportRuleAccesses(t *testing.T) {
 }
 
 func TestExportRuleTasks(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 

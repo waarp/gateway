@@ -3,10 +3,11 @@ package pipelinetest
 import (
 	"path/filepath"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 type transData struct {
@@ -16,7 +17,6 @@ type transData struct {
 
 func (d *clientData) checkClientTransferOK(c convey.C, t *transData, db *database.DB,
 	actual *model.HistoryEntry) {
-
 	c.Convey("Then there should be a client-side history entry", func(c convey.C) {
 		expected := &model.HistoryEntry{
 			ID:         t.ClientTrans.ID,
@@ -44,7 +44,6 @@ func (d *clientData) checkClientTransferOK(c convey.C, t *transData, db *databas
 
 func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filename string,
 	progress uint64, db *database.DB, actual *model.HistoryEntry) {
-
 	c.Convey("Then there should be a server-side history entry", func(c convey.C) {
 		expected := &model.HistoryEntry{
 			ID:               actual.ID,

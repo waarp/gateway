@@ -18,12 +18,13 @@ const (
 	StatusPaused TransferStatus = "PAUSED"
 
 	// StatusCancelled is the state of a transfer when canceled by a user.
+	//nolint:misspell // too late to change it
 	StatusCancelled TransferStatus = "CANCELLED"
 
-	// StatusDone is the state of a transfer when finished without error
+	// StatusDone is the state of a transfer when finished without error.
 	StatusDone TransferStatus = "DONE"
 
-	// StatusError is the state of a transfer when interrupted by an error
+	// StatusError is the state of a transfer when interrupted by an error.
 	StatusError TransferStatus = "ERROR"
 )
 

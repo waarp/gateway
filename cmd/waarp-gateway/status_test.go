@@ -6,10 +6,11 @@ import (
 	"net/url"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 type emptyService struct {
@@ -35,8 +36,10 @@ func (e emptyService) ManageTransfers() *service.TransferMap {
 func TestRequestStatus(t *testing.T) {
 	runningState := service.State{}
 	runningState.Set(service.Running, "")
+
 	offlineState := service.State{}
 	offlineState.Set(service.Offline, "")
+
 	errorState := service.State{}
 	errorState.Set(service.Error, "Error message")
 

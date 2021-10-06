@@ -1,32 +1,33 @@
 package backup
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAgent, error) {
-
 	var dbRemotes model.RemoteAgents
 	if err := db.Select(&dbRemotes).Run(); err != nil {
 		return nil, err
 	}
+
 	res := make([]file.RemoteAgent, len(dbRemotes))
 
 	for i, src := range dbRemotes {
-
 		accounts, err := exportRemoteAccounts(logger, db, src.ID)
 		if err != nil {
 			return nil, err
 		}
+
 		certificates, err := exportCertificates(logger, db, model.TableRemAgents, src.ID)
 		if err != nil {
 			return nil, err
 		}
 
 		logger.Infof("Export remote partner %s\n", src.Name)
+
 		agent := file.RemoteAgent{
 			Name:          src.Name,
 			Protocol:      src.Protocol,
@@ -37,26 +38,27 @@ func exportRemotes(logger *log.Logger, db database.ReadAccess) ([]file.RemoteAge
 		}
 		res[i] = agent
 	}
+
 	return res, nil
 }
 
 func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
 	agentID uint64) ([]file.RemoteAccount, error) {
-
 	var dbAccounts model.RemoteAccounts
 	if err := db.Select(&dbAccounts).Where("remote_agent_id=?", agentID).Run(); err != nil {
 		return nil, err
 	}
+
 	res := make([]file.RemoteAccount, len(dbAccounts))
 
 	for i, src := range dbAccounts {
-
 		certificates, err := exportCertificates(logger, db, model.TableRemAccounts, src.ID)
 		if err != nil {
 			return nil, err
 		}
 
 		logger.Infof("Export remote account %s\n", src.Login)
+
 		account := file.RemoteAccount{
 			Login:    src.Login,
 			Password: string(src.Password),
@@ -64,5 +66,6 @@ func exportRemoteAccounts(logger *log.Logger, db database.ReadAccess,
 		}
 		res[i] = account
 	}
+
 	return res, nil
 }

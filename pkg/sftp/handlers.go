@@ -7,16 +7,15 @@ import (
 	"os"
 	"path"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/sftp/internal"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils"
 	"github.com/pkg/sftp"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/sftp/internal"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-var (
-	leaf   = func(str string) utils.Leaf { return utils.Leaf(str) }
-	branch = func(str string) utils.Branch { return utils.Branch(str) }
-)
+func leaf(str string) utils.Leaf     { return utils.Leaf(str) }
+func branch(str string) utils.Branch { return utils.Branch(str) }
 
 func makeFileCmder() internal.CmdFunc {
 	return func(r *sftp.Request) error {
@@ -42,19 +41,22 @@ func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.
 		var infos []os.FileInfo
 
 		l.Logger.Debugf("Received 'List' request on %s", r.Filepath)
+
 		if r.Filepath == "" || r.Filepath == "/" {
-			paths, err := internal.GetRulesPaths(l.DB, l.Logger, l.Agent, acc)
+			paths, err := getRulesPaths(l.DB, l.Logger, l.Agent, acc)
 			if err != nil {
-				return 0, fmt.Errorf("cannot list rule directories")
+				return 0, fmt.Errorf("cannot list rule directories: %w", err)
 			}
+
 			for i := range paths {
 				infos = append(infos, internal.DirInfo(paths[i]))
 			}
 		} else {
-			rule, err := internal.GetListRule(l.DB, l.Logger, acc, r.Filepath)
+			rule, err := getListRule(l.DB, l.Logger, acc, r.Filepath)
 			if err != nil {
 				return 0, err
 			}
+
 			if rule != nil {
 				dir := utils.GetPath("", leaf(rule.LocalDir), leaf(l.Agent.LocalOutDir),
 					branch(l.Agent.Root), leaf(l.DB.Conf.Paths.DefaultOutDir),
@@ -62,20 +64,22 @@ func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.
 
 				infos, err = ioutil.ReadDir(utils.ToOSPath(dir))
 				if err != nil {
-					l.Logger.Errorf("Failed to list directory: %s", err)
-					return 0, fmt.Errorf("failed to list directory")
+					l.Logger.Errorf("Failed to list directory: %v", err)
+
+					return 0, fmt.Errorf("failed to list directory: %w", err)
 				}
 			}
 		}
 
-		var n int
 		if offset >= int64(len(infos)) {
 			return 0, io.EOF
 		}
-		n = copy(ls, infos[offset:])
+
+		n := copy(ls, infos[offset:])
 		if n < len(ls) {
 			return n, io.EOF
 		}
+
 		return n, nil
 	}
 }
@@ -84,9 +88,9 @@ func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.
 	return func(ls []os.FileInfo, offset int64) (int, error) {
 		l.Logger.Debugf("Received 'Stat' request on %s", r.Filepath)
 
-		rule, err := internal.GetRule(l.DB, l.Logger, acc, path.Dir(r.Filepath), true)
+		rule, err := getRule(l.DB, l.Logger, acc, path.Dir(r.Filepath), true)
 		if err != nil || rule == nil {
-			return 0, fmt.Errorf("failed to retrieve rule for path '%s'", r.Filepath)
+			return 0, fmt.Errorf("failed to retrieve rule for path '%s': %w", r.Filepath, err)
 		}
 
 		file := utils.GetPath(path.Base(r.Filepath), leaf(rule.LocalDir),
@@ -98,14 +102,19 @@ func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.
 			if os.IsNotExist(err) {
 				return 0, sftp.ErrSSHFxNoSuchFile
 			}
+
 			l.Logger.Errorf("Failed to get file stats: %s", r.Filepath)
-			return 0, fmt.Errorf("failed to get file stats")
+
+			return 0, fmt.Errorf("failed to get file stats: %w", err)
 		}
+
 		tmp := []os.FileInfo{fi}
+
 		n := copy(ls, tmp)
 		if n < len(ls) {
 			return n, io.EOF
 		}
+
 		return n, nil
 	}
 }

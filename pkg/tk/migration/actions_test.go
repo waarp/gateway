@@ -11,6 +11,7 @@ import (
 
 func testSQLCreateTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
+	t.Helper()
 
 	Convey(fmt.Sprintf("Given a %s database", dbms), t, func(c C) {
 		db := initDB(c)
@@ -57,6 +58,7 @@ func testSQLCreateTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 func testSQLRenameTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
+	t.Helper()
 
 	Convey(fmt.Sprintf("Given a %s database with 2 tables", dbms), t, func(c C) {
 		db := initDB(c)
@@ -101,6 +103,7 @@ func testSQLRenameTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 func testSQLDropTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
+	t.Helper()
 
 	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func(c C) {
 		db := initDB(c)
@@ -132,6 +135,7 @@ func testSQLDropTable(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 func testSQLRenameColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
+	t.Helper()
 
 	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func(c C) {
 		db := initDB(c)
@@ -183,6 +187,7 @@ func testSQLRenameColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 func testSQLChangeColumnType(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
+	t.Helper()
 
 	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func(c C) {
 		db := initDB(c)
@@ -202,7 +207,8 @@ func testSQLChangeColumnType(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 			Convey("When the type conversion is not possible", func() {
 				err := engine.ChangeColumnType("toto", "str", Varchar(10), Double)
-				So(err, ShouldBeError, "cannot convert from type varchar to type double")
+				So(err, ShouldBeError)
+				So(err.Error(), ShouldContainSubstring, "cannot convert from type varchar to type double")
 
 				Convey("Then the table should be unchanged", func() {
 					colShouldHaveType(engine, "toto", "str", Varchar(10))
@@ -214,6 +220,7 @@ func testSQLChangeColumnType(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 func testSQLAddColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
+	t.Helper()
 
 	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func(c C) {
 		db := initDB(c)
@@ -257,6 +264,7 @@ func testSQLAddColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 func testSQLDropColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
+	t.Helper()
 
 	Convey(fmt.Sprintf("Given a %s database with a table", dbms), t, func(c C) {
 		db := initDB(c)
@@ -280,7 +288,6 @@ func testSQLDropColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 				Convey("Then the existing table should be unchanged", func() {
 					tableShouldHaveColumns(db, "toto", "str", "id")
-
 				})
 			})
 
@@ -298,6 +305,7 @@ func testSQLDropColumn(t *testing.T, dbms string, initDB func(C) *sql.DB,
 
 func testSQLAddRow(t *testing.T, dbms string, initDB func(C) *sql.DB,
 	getEngine func(*sql.DB) testEngine) {
+	t.Helper()
 
 	Convey(fmt.Sprintf("Given a %s database", dbms), t, func(c C) {
 		db := initDB(c)
@@ -325,7 +333,7 @@ func testSQLAddRow(t *testing.T, dbms string, initDB func(C) *sql.DB,
 				), ShouldBeNil)
 
 				Convey("When adding a row", func() {
-					tDat := time.Date(1970, 1, 1, 1, 0, 0, 0, time.UTC)
+					tDat := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 					tTs := time.Date(1980, 1, 1, 1, 0, 0, 111111111, time.UTC)
 					tTsz := time.Date(1990, 1, 1, 1, 0, 0, 222222222, time.Local)
 
@@ -349,6 +357,7 @@ func testSQLAddRow(t *testing.T, dbms string, initDB func(C) *sql.DB,
 					Convey("Then the row should have been added", func() {
 						rows, err := db.Query("SELECT * FROM toto")
 						So(err, ShouldBeNil)
+						So(rows.Err(), ShouldBeNil)
 						defer func() { So(rows.Close(), ShouldBeNil) }()
 
 						So(rows.Next(), ShouldBeTrue)
@@ -380,8 +389,8 @@ func testSQLAddRow(t *testing.T, dbms string, initDB func(C) *sql.DB,
 						So(str, ShouldEqual, "message")
 						So(bin, ShouldResemble, []byte{0x0, 0xFF, 0x00, 0xFF})
 						So(blo, ShouldResemble, []byte{0x0, 0xFF, 0xFF, 0x00})
-						SkipSo(dat, ShouldEqual, tDat.Format(dateFormat))
-						SkipSo(ts, ShouldEqual, tTs.Format(tsFormat))
+						So(dat, ShouldEqual, tDat.Format(dateFormat))
+						So(ts, ShouldEqual, tTs.Format(tsFormat))
 						So(tsz, ShouldEqual, tTsz.Format(tszFormat))
 					})
 				})

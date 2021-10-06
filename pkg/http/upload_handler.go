@@ -2,17 +2,19 @@ package http
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"sync"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/http/httpconst"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
+
+var errReadClosed = errors.New("read of closed body")
 
 type uploadHandler struct {
 	pip     *pipeline.Pipeline
@@ -25,34 +27,49 @@ type uploadHandler struct {
 func (u *uploadHandler) Pause(ctx context.Context) error {
 	u.reply.Do(func() {
 		u.pip.Pause()
-		_ = u.reqBody.Close()
+		_ = u.reqBody.Close() //nolint:errcheck // error is irrelevant at this point
 		u.resp.Header().Set(httpconst.TransferStatus, string(types.StatusPaused))
 		u.resp.WriteHeader(http.StatusServiceUnavailable)
 		fmt.Fprintf(u.resp, "transfer paused by user")
 	})
-	return ctx.Err()
+
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
+	}
+
+	return nil
 }
 
 func (u *uploadHandler) Interrupt(ctx context.Context) error {
 	u.reply.Do(func() {
 		u.pip.Interrupt()
-		_ = u.reqBody.Close()
+		_ = u.reqBody.Close() //nolint:errcheck // error is irrelevant at this point
 		u.resp.Header().Set(httpconst.TransferStatus, string(types.StatusInterrupted))
 		u.resp.WriteHeader(http.StatusServiceUnavailable)
 		fmt.Fprintf(u.resp, "transfer interrupted by a server shutdown")
 	})
-	return ctx.Err()
+
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
+	}
+
+	return nil
 }
 
 func (u *uploadHandler) Cancel(ctx context.Context) error {
 	u.reply.Do(func() {
 		u.pip.Cancel()
-		_ = u.reqBody.Close()
+		_ = u.reqBody.Close() //nolint:errcheck // error is irrelevant at this point
 		u.resp.Header().Set(httpconst.TransferStatus, string(types.StatusCancelled))
 		u.resp.WriteHeader(http.StatusServiceUnavailable)
-		fmt.Fprintf(u.resp, "transfer cancelled by user")
+		fmt.Fprintf(u.resp, "transfer canceled by user")
 	})
-	return ctx.Err()
+
+	if err := ctx.Err(); err != nil {
+		return context.Canceled
+	}
+
+	return nil
 }
 
 func runUpload(r *http.Request, w http.ResponseWriter, running *service.TransferMap,
@@ -63,7 +80,9 @@ func runUpload(r *http.Request, w http.ResponseWriter, running *service.Transfer
 		reqBody: &postBody{src: r.Body, closed: make(chan struct{})},
 		resp:    w,
 	}
+
 	running.Add(pip.TransCtx.Transfer.ID, up)
+
 	defer running.Delete(pip.TransCtx.Transfer.ID)
 
 	up.run()
@@ -90,6 +109,7 @@ func (u *uploadHandler) handleError(err *types.TransferError) bool {
 	if err == nil {
 		return false
 	}
+
 	u.sendError(err.Code, err.Details, http.StatusInternalServerError)
 
 	return true
@@ -107,12 +127,16 @@ func (u *uploadHandler) run() {
 
 	if _, err := io.Copy(file, u.reqBody); err != nil {
 		u.pip.Logger.Errorf("Failed to copy data: %s", err.Error())
+
 		cErr := types.NewTransferError(types.TeDataTransfer, "failed to copy data")
 		u.handleError(cErr)
+
 		return
 	}
+
 	if err := getRemoteStatus(u.req.Trailer, u.pip); err != nil {
 		u.sendError(err.Code, err.Details, http.StatusBadRequest)
+
 		return
 	}
 
@@ -139,19 +163,31 @@ type postBody struct {
 
 func (b *postBody) Read(p []byte) (n int, err error) {
 	done := make(chan struct{})
+
 	go func() {
 		n, err = b.src.Read(p)
+
 		close(done)
 	}()
+
 	select {
 	case <-done:
-		return n, err
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return n, io.EOF
+			}
+
+			return n, fmt.Errorf("error while reading request body: %w", err)
+		}
+
+		return n, nil
 	case <-b.closed:
-		return 0, fmt.Errorf("read of closed body")
+		return 0, errReadClosed
 	}
 }
 
 func (b *postBody) Close() error {
 	close(b.closed)
+
 	return nil
 }

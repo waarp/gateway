@@ -8,34 +8,40 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func transferInfoString(t *api.OutTransfer) string {
-	role := "client"
+	role := roleClient
 	if t.IsServer {
-		role = "server"
+		role = roleServer
 	}
-	size := "unknown"
+
+	size := sizeUnknown
 	if t.Filesize >= 0 {
 		size = fmt.Sprint(t.Filesize)
 	}
-	dir := "receive"
+
+	dir := directionRecv
+
 	if t.IsSend {
-		dir = "send"
+		dir = directionSend
 	}
 
 	rv := "● Transfer " + fmt.Sprint(t.ID) + " (" + dir + " as " + role + ") [" +
 		string(t.Status) + "]\n"
+
 	if t.RemoteID != "" {
 		rv += "    Remote ID:        " + t.RemoteID + "\n"
 	}
+
 	rv += "    Rule:            " + t.Rule + "\n" +
 		"    Requester:       " + t.Requester + "\n" +
 		"    Requested:       " + t.Requested + "\n" +
@@ -46,17 +52,19 @@ func transferInfoString(t *api.OutTransfer) string {
 		"    Step:            " + t.Step + "\n" +
 		"    Progress:        " + fmt.Sprint(t.Progress) + "\n" +
 		"    Task number:     " + fmt.Sprint(t.TaskNumber) + "\n"
+
 	if t.ErrorCode != types.TeOk.String() {
 		rv += "    Error code:      " + t.ErrorCode + "\n"
 	}
+
 	if t.ErrorMsg != "" {
 		rv += "    Error message:   " + t.ErrorMsg + "\n"
 	}
+
 	return rv
 }
 
 func TestDisplayTransfer(t *testing.T) {
-
 	Convey("Given a transfer entry", t, func() {
 		out = testFile()
 
@@ -88,7 +96,6 @@ func TestDisplayTransfer(t *testing.T) {
 }
 
 func TestAddTransfer(t *testing.T) {
-
 	Convey("Testing the partner 'add' command", t, func() {
 		out = testFile()
 		command := &transferAdd{}
@@ -123,9 +130,11 @@ func TestAddTransfer(t *testing.T) {
 			So(db.Insert(account).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
-				args := []string{"-p", partner.Name, "-l", account.Login, "-w",
+				args := []string{
+					"-p", partner.Name, "-l", account.Login, "-w",
 					"send", "-r", rule.Name, "-f", "test_file",
-					"-d", "2020-01-01T01:00:00+01:00"}
+					"-d", "2020-01-01T01:00:00+01:00",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -166,9 +175,11 @@ func TestAddTransfer(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{"-p", partner.Name, "-l", account.Login, "-w",
+				args := []string{
+					"-p", partner.Name, "-l", account.Login, "-w",
 					"send", "-r", "toto", "-f", "file",
-					"-d", "2020-01-01T01:00:00+01:00"}
+					"-d", "2020-01-01T01:00:00+01:00",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -182,9 +193,11 @@ func TestAddTransfer(t *testing.T) {
 			})
 
 			Convey("Given an invalid account name", func() {
-				args := []string{"-p", partner.Name, "-l", "tata", "-w",
+				args := []string{
+					"-p", partner.Name, "-l", "tata", "-w",
 					"send", "-r", rule.Name, "-f", "file",
-					"-d", "2020-01-01T01:00:00+01:00"}
+					"-d", "2020-01-01T01:00:00+01:00",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -199,9 +212,11 @@ func TestAddTransfer(t *testing.T) {
 			})
 
 			Convey("Given an invalid partner name", func() {
-				args := []string{"-p", "tata", "-l", account.Login, "-w",
+				args := []string{
+					"-p", "tata", "-l", account.Login, "-w",
 					"send", "-r", rule.Name, "-f", "file",
-					"-d", "2020-01-01T01:00:00+01:00"}
+					"-d", "2020-01-01T01:00:00+01:00",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -215,9 +230,11 @@ func TestAddTransfer(t *testing.T) {
 			})
 
 			Convey("Given an invalid start date", func() {
-				args := []string{"-p", partner.Name, "-l", account.Login, "-w",
+				args := []string{
+					"-p", partner.Name, "-l", account.Login, "-w",
 					"send", "-r", rule.Name, "-f", "file",
-					"-d", "toto"}
+					"-d", "toto",
+				}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -225,7 +242,8 @@ func TestAddTransfer(t *testing.T) {
 					err = command.Execute(params)
 
 					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError, "'toto' is not a valid date")
+						So(err, ShouldBeError)
+						So(err.Error(), ShouldContainSubstring, "'toto' is not a valid date")
 					})
 				})
 			})
@@ -234,7 +252,6 @@ func TestAddTransfer(t *testing.T) {
 }
 
 func TestGetTransfer(t *testing.T) {
-
 	Convey("Testing the partner 'get' command", t, func() {
 		out = testFile()
 		command := &transferGet{}
@@ -316,7 +333,6 @@ func TestGetTransfer(t *testing.T) {
 }
 
 func TestListTransfer(t *testing.T) {
-
 	Convey("Testing the transfer 'list' command", t, func() {
 		out = testFile()
 		command := &transferList{}
@@ -392,7 +408,6 @@ func TestListTransfer(t *testing.T) {
 			So(db.Insert(r4).Run(), ShouldBeNil)
 
 			Convey("Given 4 valid transfers", func() {
-
 				trans1 := &model.Transfer{
 					RuleID:     r1.ID,
 					AgentID:    p1.ID,
@@ -560,7 +575,8 @@ func TestListTransfer(t *testing.T) {
 				})
 
 				Convey("Given multiple parameters", func() {
-					args := []string{"-d", t2.Start.Add(-time.Minute).Format(time.RFC3339Nano),
+					args := []string{
+						"-d", t2.Start.Add(-time.Minute).Format(time.RFC3339Nano),
 						"-r", r1.Name, "-r", r2.Name, "-r", r4.Name,
 						"-t", "RUNNING",
 					}
@@ -583,7 +599,6 @@ func TestListTransfer(t *testing.T) {
 }
 
 func TestPauseTransfer(t *testing.T) {
-
 	Convey("Testing the transfer 'pause' command", t, func() {
 		out = testFile()
 		command := &transferPause{}
@@ -653,7 +668,6 @@ func TestPauseTransfer(t *testing.T) {
 							So(db.Select(&transfers).Run(), ShouldBeNil)
 							So(transfers, ShouldContain, *trans)
 						})
-
 					})
 				})
 
@@ -676,7 +690,6 @@ func TestPauseTransfer(t *testing.T) {
 }
 
 func TestResumeTransfer(t *testing.T) {
-
 	Convey("Testing the transfer 'resume' command", t, func() {
 		out = testFile()
 		command := &transferResume{}
@@ -767,7 +780,6 @@ func TestResumeTransfer(t *testing.T) {
 }
 
 func TestCancelTransfer(t *testing.T) {
-
 	Convey("Testing the transfer 'cancel' command", t, func() {
 		out = testFile()
 		command := &transferCancel{}
@@ -826,7 +838,7 @@ func TestCancelTransfer(t *testing.T) {
 
 						Convey("Then is should display a message saying the transfer was restarted", func() {
 							So(getOutput(), ShouldEqual, "The transfer "+id+
-								" was successfully cancelled.\n")
+								" was successfully canceled.\n")
 						})
 
 						Convey("Then the transfer should have been updated", func() {
