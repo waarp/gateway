@@ -23,7 +23,7 @@ func TestClientPipelineRun(t *testing.T) {
 			file := "client_pipeline_push"
 			So(ioutil.WriteFile(filepath.Join(ctx.db.Conf.Paths.GatewayHome,
 				ctx.db.Conf.Paths.DefaultOutDir,
-				file), content, 0600), ShouldBeNil)
+				file), content, 0o600), ShouldBeNil)
 
 			trans := &model.Transfer{
 				IsServer:   false,

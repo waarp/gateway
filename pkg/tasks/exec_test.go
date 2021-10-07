@@ -115,7 +115,7 @@ func TestExecRun(t *testing.T) {
 				_, err := exec.Run(context.Background(), args, nil, nil)
 
 				Convey("Then it should return a 'warning' error", func() {
-					So(err, ShouldHaveSameTypeAs, &errWarning{})
+					So(err, ShouldHaveSameTypeAs, &warningError{})
 					So(err, ShouldBeError, "exit status 1")
 				})
 			})

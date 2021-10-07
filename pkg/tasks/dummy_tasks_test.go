@@ -54,7 +54,7 @@ func (t *testTaskWarning) Run(context.Context, map[string]string, *database.DB,
 	*model.TransferContext) (string, error) {
 	dummyTaskCheck <- "WARNING"
 
-	return "warning message", &errWarning{"warning message"}
+	return "warning message", &warningError{"warning message"}
 }
 
 type testTaskFail struct{}

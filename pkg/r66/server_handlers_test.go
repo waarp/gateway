@@ -317,8 +317,8 @@ func TestUpdateTransferInfo(t *testing.T) {
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
 			dir := filepath.Join(root, server.Root, send.LocalDir)
-			So(os.MkdirAll(dir, 0700), ShouldBeNil)
-			So(ioutil.WriteFile(filepath.Join(dir, "new.file"), []byte("file content"), 0600), ShouldBeNil)
+			So(os.MkdirAll(dir, 0o700), ShouldBeNil)
+			So(ioutil.WriteFile(filepath.Join(dir, "new.file"), []byte("file content"), 0o600), ShouldBeNil)
 
 			pip, err := pipeline.NewServerPipeline(db, trans)
 			So(err, ShouldBeNil)

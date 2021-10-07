@@ -105,7 +105,7 @@ func TestExecMoveRun(t *testing.T) {
 		}
 
 		Convey("Given that the command succeeds", func() {
-			err := ioutil.WriteFile(scriptPath, []byte(scriptExecMove), 0700)
+			err := ioutil.WriteFile(scriptPath, []byte(scriptExecMove), 0o700)
 			So(err, ShouldBeNil)
 
 			Convey("When running the task", func() {
@@ -123,20 +123,20 @@ func TestExecMoveRun(t *testing.T) {
 		})
 
 		Convey("Given that the command sends a warning", func() {
-			err := ioutil.WriteFile(scriptPath, []byte(scriptExecWarn), 0700)
+			err := ioutil.WriteFile(scriptPath, []byte(scriptExecWarn), 0o700)
 			So(err, ShouldBeNil)
 
 			Convey("When running the task", func() {
 				_, err := exec.Run(context.Background(), args, nil, transCtx)
 
 				Convey("Then it should return a 'warning' error", func() {
-					So(err, ShouldHaveSameTypeAs, &errWarning{})
+					So(err, ShouldHaveSameTypeAs, &warningError{})
 				})
 			})
 		})
 
 		Convey("Given that the command fails", func() {
-			err := ioutil.WriteFile(scriptPath, []byte(scriptExecFail), 0700)
+			err := ioutil.WriteFile(scriptPath, []byte(scriptExecFail), 0o700)
 			So(err, ShouldBeNil)
 
 			Convey("When running the task", func() {
@@ -144,13 +144,13 @@ func TestExecMoveRun(t *testing.T) {
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError)
-					So(err, ShouldNotHaveSameTypeAs, &errWarning{})
+					So(err, ShouldNotHaveSameTypeAs, &warningError{})
 				})
 			})
 		})
 
 		Convey("Given that the command delay expires", func() {
-			err := ioutil.WriteFile(scriptPath, []byte(scriptExecInfinite), 0700)
+			err := ioutil.WriteFile(scriptPath, []byte(scriptExecInfinite), 0o700)
 			So(err, ShouldBeNil)
 
 			args["delay"] = "100"

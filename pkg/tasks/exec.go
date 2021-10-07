@@ -128,7 +128,7 @@ func runExec(parent context.Context, params map[string]string, withOutput bool) 
 	case cmdErr := <-waitDone:
 		var ex *exec.ExitError
 		if ok := errors.As(cmdErr, &ex); ok && ex.ExitCode() == 1 {
-			return &output, &errWarning{cmdErr.Error()}
+			return &output, &warningError{cmdErr.Error()}
 		}
 
 		return &output, cmdErr
