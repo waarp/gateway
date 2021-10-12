@@ -24,10 +24,10 @@ type Constraint interface{}
 type TableConstraint interface{}
 
 // Querier is an interface exposing the common function for sending database
-// queries in the standard SQL library. However, unlike the standard library,
-// Querier uses the fmt placeholder verbs instead of the database's verbs.
+// queries in the standard SQL library.
 type Querier interface {
 	Query(string, ...interface{}) (*sql.Rows, error)
+	QueryRow(string, ...interface{}) *sql.Row
 }
 
 // Executor is an interface exposing the common function for executing database

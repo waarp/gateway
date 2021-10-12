@@ -9,6 +9,7 @@ import (
 // Can be an *sql.DB or *sql.Tx.
 type dbInterface interface {
 	Query(string, ...interface{}) (*sql.Rows, error)
+	QueryRow(string, ...interface{}) *sql.Row
 	Exec(string, ...interface{}) (sql.Result, error)
 }
 
@@ -41,12 +42,14 @@ func (q *queryWriter) Exec(query string, args ...interface{}) error {
 }
 
 func (q *queryWriter) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	command := fmt.Sprintf(query, args...)
-
-	rows, err := q.db.Query(command)
+	rows, err := q.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("cannot execute query: %w", err)
 	}
 
 	return rows, nil
+}
+
+func (q *queryWriter) QueryRow(query string, args ...interface{}) *sql.Row {
+	return q.db.QueryRow(query, args...)
 }

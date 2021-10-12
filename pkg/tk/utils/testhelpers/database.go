@@ -35,7 +35,7 @@ func GetTestSqliteDB(c convey.C) *sql.DB {
 // and use the default 'postgres' user.
 func GetTestPostgreDB(c convey.C) *sql.DB {
 	db, err := sql.Open("pgx", "user='postgres' host='localhost' port='5432' "+
-		"dbname='waarp_gateway_test' sslmode='disable'")
+		"dbname='waarp_gateway_test' sslmode='disable' statement_cache_capacity=0")
 	c.So(err, convey.ShouldBeNil)
 
 	c.Reset(func() {

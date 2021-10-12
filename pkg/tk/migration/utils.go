@@ -40,7 +40,7 @@ func Col(name string, typ sqlType, constraints ...Constraint) Column {
 }
 
 func getColumnsNames(db Querier, table string) ([]string, error) {
-	rows, err := db.Query("SELECT * FROM %s", table)
+	rows, err := db.Query("SELECT * FROM " + table)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get column names: %w", err)
 	}

@@ -165,8 +165,8 @@ func (s *sqliteDialect) DropColumn(table, name string) error {
 		return sqliteError(fmt.Sprintf(`no such column: "%s"`, name))
 	}
 
-	query := fmt.Sprintf("CREATE TABLE %s_new AS SELECT %s FROM %s", table,
-		strings.Join(cols, ", "), table)
+	query := fmt.Sprintf("CREATE TABLE " + table + "_new AS SELECT " +
+		strings.Join(cols, ", ") + " FROM " + table)
 
 	if err := s.Exec(query); err != nil {
 		return err
