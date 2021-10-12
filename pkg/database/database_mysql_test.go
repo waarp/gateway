@@ -1,5 +1,5 @@
-//go:build test_full || test_db_mysql
-// +build test_full test_db_mysql
+//go:build test_db_mysql
+// +build test_db_mysql
 
 package database
 
@@ -8,8 +8,9 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 var (

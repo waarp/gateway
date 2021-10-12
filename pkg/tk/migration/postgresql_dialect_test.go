@@ -1,4 +1,5 @@
-// +build test_full test_db_postgresql
+//go:build test_db_postgresql
+// +build test_db_postgresql
 
 package migration
 
@@ -7,8 +8,9 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 	_ "github.com/jackc/pgx/v4"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func testPostgreEngine(db *sql.DB) testEngine {
