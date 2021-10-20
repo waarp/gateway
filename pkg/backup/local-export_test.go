@@ -94,9 +94,9 @@ func TestExportLocalAgents(t *testing.T) {
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent1.Protocol)
 										So(res[i].Root, ShouldEqual, agent1.Root)
-										So(res[i].LocalInDir, ShouldEqual, agent1.LocalInDir)
-										So(res[i].LocalOutDir, ShouldEqual, agent1.LocalOutDir)
-										So(res[i].LocalTmpDir, ShouldEqual, agent1.LocalTmpDir)
+										So(res[i].LocalInDir, ShouldEqual, agent1.InDir)
+										So(res[i].LocalOutDir, ShouldEqual, agent1.OutDir)
+										So(res[i].LocalTmpDir, ShouldEqual, agent1.TmpDir)
 										So(res[i].Address, ShouldEqual, agent1.Address)
 										So(res[i].Configuration, ShouldResemble,
 											agent1.ProtoConfig)
@@ -115,9 +115,9 @@ func TestExportLocalAgents(t *testing.T) {
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent2.Protocol)
 										So(res[i].Root, ShouldEqual, agent2.Root)
-										So(res[i].LocalInDir, ShouldEqual, agent2.LocalInDir)
-										So(res[i].LocalOutDir, ShouldEqual, agent2.LocalOutDir)
-										So(res[i].LocalTmpDir, ShouldEqual, agent2.LocalTmpDir)
+										So(res[i].LocalInDir, ShouldEqual, agent2.InDir)
+										So(res[i].LocalOutDir, ShouldEqual, agent2.OutDir)
+										So(res[i].LocalTmpDir, ShouldEqual, agent2.TmpDir)
 										So(res[i].Address, ShouldEqual, agent2.Address)
 										So(res[i].Configuration, ShouldResemble,
 											agent2.ProtoConfig)

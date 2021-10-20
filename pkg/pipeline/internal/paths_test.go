@@ -48,9 +48,9 @@ func TestPathBuilder(t *testing.T) {
 			Name:        "server",
 			Protocol:    testProtocol,
 			Root:        "serRoot",
-			LocalInDir:  "serIn",
-			LocalOutDir: "serOut",
-			LocalTmpDir: "serTmp",
+			InDir:       "serIn",
+			OutDir:      "serOut",
+			TmpDir:      "serTmp",
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:0",
 		}
@@ -121,13 +121,13 @@ func TestPathBuilder(t *testing.T) {
 				Convey(testCaseName, func() {
 					transCtx.LocalAgent.Root = tc.serRoot
 					if tc.serRoot != "" {
-						transCtx.LocalAgent.LocalInDir = "serIn"
-						transCtx.LocalAgent.LocalOutDir = "serOut"
-						transCtx.LocalAgent.LocalTmpDir = "serTmp"
+						transCtx.LocalAgent.InDir = "serIn"
+						transCtx.LocalAgent.OutDir = "serOut"
+						transCtx.LocalAgent.TmpDir = "serTmp"
 					} else {
-						transCtx.LocalAgent.LocalInDir = ""
-						transCtx.LocalAgent.LocalOutDir = ""
-						transCtx.LocalAgent.LocalTmpDir = ""
+						transCtx.LocalAgent.InDir = ""
+						transCtx.LocalAgent.OutDir = ""
+						transCtx.LocalAgent.TmpDir = ""
 					}
 
 					transCtx.Rule.LocalDir = tc.ruleLoc
@@ -179,13 +179,13 @@ func TestPathBuilder(t *testing.T) {
 				Convey(testCaseName, func() {
 					transCtx.LocalAgent.Root = tc.serRoot
 					if tc.serRoot != "" {
-						transCtx.LocalAgent.LocalInDir = "serIn"
-						transCtx.LocalAgent.LocalOutDir = "serOut"
-						transCtx.LocalAgent.LocalTmpDir = "serTmp"
+						transCtx.LocalAgent.InDir = "serIn"
+						transCtx.LocalAgent.OutDir = "serOut"
+						transCtx.LocalAgent.TmpDir = "serTmp"
 					} else {
-						transCtx.LocalAgent.LocalInDir = ""
-						transCtx.LocalAgent.LocalOutDir = ""
-						transCtx.LocalAgent.LocalTmpDir = ""
+						transCtx.LocalAgent.InDir = ""
+						transCtx.LocalAgent.OutDir = ""
+						transCtx.LocalAgent.TmpDir = ""
 					}
 
 					transCtx.Rule.LocalDir = tc.ruleLoc

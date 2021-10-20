@@ -122,9 +122,9 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string
 	}
 
 	c.So(db.Insert(server).Run(), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(root, server.LocalInDir), 0o700), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(root, server.LocalOutDir), 0o700), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(root, server.LocalTmpDir), 0o700), convey.ShouldBeNil)
+	c.So(os.MkdirAll(filepath.Join(root, server.InDir), 0o700), convey.ShouldBeNil)
+	c.So(os.MkdirAll(filepath.Join(root, server.OutDir), 0o700), convey.ShouldBeNil)
+	c.So(os.MkdirAll(filepath.Join(root, server.TmpDir), 0o700), convey.ShouldBeNil)
 
 	pswd := TestPassword
 	if proto == "r66" {

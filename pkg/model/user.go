@@ -48,14 +48,14 @@ func (u *User) GetID() uint64 {
 }
 
 // Init inserts the default user in the database when the table is created.
-func (u *User) Init(ses *database.Session) database.Error {
+func (u *User) Init(db database.Access) database.Error {
 	user := &User{
 		Username:    "admin",
 		Owner:       database.Owner,
 		Password:    []byte("admin_password"),
 		Permissions: PermAll,
 	}
-	err := ses.Insert(user).Run()
+	err := db.Insert(user).Run()
 
 	return err
 }

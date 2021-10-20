@@ -66,9 +66,9 @@ func (d *serverData) checkServerTransferOK(c convey.C, remoteTransferID, filenam
 			TaskNumber:       0,
 		}
 		if d.ServerRule.IsSend {
-			expected.LocalPath = filepath.Join(d.Server.Root, d.Server.LocalOutDir, filename)
+			expected.LocalPath = filepath.Join(d.Server.Root, d.Server.OutDir, filename)
 		} else {
-			expected.LocalPath = filepath.Join(d.Server.Root, d.Server.LocalInDir, filename)
+			expected.LocalPath = filepath.Join(d.Server.Root, d.Server.InDir, filename)
 		}
 		c.So(*actual, convey.ShouldResemble, *expected)
 	})

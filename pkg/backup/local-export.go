@@ -38,9 +38,9 @@ func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent
 			Address:       src.Address,
 			Configuration: src.ProtoConfig,
 			Root:          src.Root,
-			LocalInDir:    src.LocalInDir,
-			LocalOutDir:   src.LocalOutDir,
-			LocalTmpDir:   src.LocalTmpDir,
+			LocalInDir:    src.InDir,
+			LocalOutDir:   src.OutDir,
+			LocalTmpDir:   src.TmpDir,
 			Accounts:      accounts,
 			Certs:         certificates,
 		}

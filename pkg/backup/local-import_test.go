@@ -316,7 +316,7 @@ func TestImportLocalAccounts(t *testing.T) {
 										var cryptos model.Cryptos
 										So(db.Select(&cryptos).Where(
 											"owner_type=? AND owner_id=?",
-											dbAccount.ID, model.TableLocAccounts).
+											model.TableLocAccounts, dbAccount.ID).
 											Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)

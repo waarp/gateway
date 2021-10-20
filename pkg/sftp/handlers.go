@@ -58,7 +58,7 @@ func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.
 			}
 
 			if rule != nil {
-				dir := utils.GetPath("", leaf(rule.LocalDir), leaf(l.Agent.LocalOutDir),
+				dir := utils.GetPath("", leaf(rule.LocalDir), leaf(l.Agent.OutDir),
 					branch(l.Agent.Root), leaf(l.DB.Conf.Paths.DefaultOutDir),
 					branch(l.DB.Conf.Paths.GatewayHome))
 
@@ -94,7 +94,7 @@ func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.
 		}
 
 		file := utils.GetPath(path.Base(r.Filepath), leaf(rule.LocalDir),
-			leaf(l.Agent.LocalOutDir), branch(l.Agent.Root),
+			leaf(l.Agent.OutDir), branch(l.Agent.Root),
 			leaf(l.DB.Conf.Paths.DefaultOutDir), branch(l.DB.Conf.Paths.GatewayHome))
 
 		fi, err := os.Stat(utils.ToOSPath(file))

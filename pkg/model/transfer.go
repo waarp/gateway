@@ -31,7 +31,7 @@ type Transfer struct {
 	AccountID        uint64               `xorm:"notnull 'account_id'"`
 	LocalPath        string               `xorm:"notnull 'local_path'"`
 	RemotePath       string               `xorm:"notnull 'remote_path'"`
-	Filesize         int64                `xorm:"notnull 'filesize'"`
+	Filesize         int64                `xorm:"bigint notnull default(-1) 'filesize'"`
 	Start            time.Time            `xorm:"notnull timestampz 'start'"`
 	Status           types.TransferStatus `xorm:"notnull 'status'"`
 	Step             types.TransferStep   `xorm:"notnull varchar(50) 'step'"`
@@ -55,7 +55,7 @@ func (t *Transfer) GetID() uint64 {
 	return t.ID
 }
 
-// SetTransferInfo replaces all the TransferInfo in the database of the the given transfer
+// SetTransferInfo replaces all the TransferInfo in the database of the given transfer
 // by those given in the map parameter.
 func (t *Transfer) SetTransferInfo(db database.Access, info map[string]interface{}) error {
 	if err := db.DeleteAll(&TransferInfo{TransferID: t.ID}).Run(); err != nil {
