@@ -72,6 +72,10 @@ type Actions interface {
 	// destructive (non retro-compatible) operation.
 	ChangeColumnType(table, col string, from, to sqlType) error
 
+	// SwapColumns swaps all the values of col1 and col2. The columns' types MUST
+	// be compatible for this operation to work.
+	SwapColumns(table, col1, col2, cond string) error
+
 	// DropColumn drops the given column. This is a destructive (non
 	// retro-compatible) operation.
 	DropColumn(table, name string) error

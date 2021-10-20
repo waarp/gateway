@@ -124,3 +124,12 @@ func (m *mySQLDialect) ChangeColumnType(table, col string, from, to sqlType) err
 func (m *mySQLDialect) AddRow(table string, values Cells) error {
 	return m.addRow(m, table, values)
 }
+
+func (m *mySQLDialect) SwapColumns(table, col1, col2, cond string) error {
+	query := "UPDATE %s SET %s=(@temp:=%s), %s=%s, %s=@temp"
+	if cond != "" {
+		query += " WHERE " + cond
+	}
+
+	return m.Exec(query, table, col1, col1, col1, col2, col2)
+}

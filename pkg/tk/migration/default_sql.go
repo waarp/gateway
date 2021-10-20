@@ -137,3 +137,12 @@ func (s *standardSQL) createTable(formatter sqlFormatter, table string, defs []D
 
 	return s.Exec("CREATE TABLE %s (\n    %s\n)", table, strings.Join(colDefs, ",\n    "))
 }
+
+func (s *standardSQL) SwapColumns(table, col1, col2, cond string) error {
+	query := "UPDATE %s SET %s=%s, %s=%s"
+	if cond != "" {
+		query += " WHERE " + cond
+	}
+
+	return s.Exec(query, table, col1, col2, col2, col1)
+}

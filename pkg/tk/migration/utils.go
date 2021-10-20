@@ -1,7 +1,5 @@
 package migration
 
-import "fmt"
-
 // isTest indicates whether the current environment is a test environnement or not.
 // Should be used to run specific tests, even when the normal conditions are not met
 // (like the test database's version).
@@ -37,20 +35,4 @@ type Column struct {
 // the attributes' names.
 func Col(name string, typ sqlType, constraints ...Constraint) Column {
 	return Column{Name: name, Type: typ, Constraints: constraints}
-}
-
-func getColumnsNames(db Querier, table string) ([]string, error) {
-	rows, err := db.Query("SELECT * FROM " + table)
-	if err != nil {
-		return nil, fmt.Errorf("cannot get column names: %w", err)
-	}
-
-	defer rows.Close() //nolint:errcheck // no logger to handle the error
-
-	names, err := rows.Columns()
-	if err != nil {
-		return nil, fmt.Errorf("cannot get column names: %w", err)
-	}
-
-	return names, nil
 }
