@@ -45,11 +45,7 @@ func TestMySQLCreationScript(t *testing.T) {
 }
 
 func TestMySQLMigrations(t *testing.T) {
-	const dbType = migration.MySQL
-
 	Convey("Given an un-migrated MySQL database engine", t, func(c C) {
-		eng := getSQLiteEngine(c)
-
-		testVer0_4_2RemoveHistoryRemoteIdUnique(eng, dbType)
+		testMigrations(getMySQLEngine(c), migration.MySQL)
 	})
 }

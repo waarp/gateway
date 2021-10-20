@@ -182,8 +182,11 @@ func startViaMigration(c convey.C, config *conf.ServerConfig) {
 	migrEngine, err := migration.NewEngine(sqlDB, dialect, nil)
 	c.So(err, convey.ShouldBeNil)
 
+	//nolint:gocritic //append result is assigned to new slice instead of the old
+	// one because we do not want to alter the global, constant, migration list
 	migr := append(migrations.Migrations, migration.Migration{
-		Script: migrations.BumpVersion{To: vers.Num}})
+		Script: migrations.BumpVersion{To: vers.Num},
+	})
 
 	c.So(migrEngine.Upgrade(migr), convey.ShouldBeNil)
 	c.So(sqlDB.Close(), convey.ShouldBeNil)

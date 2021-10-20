@@ -42,11 +42,7 @@ func TestPostgreSQLCreationScript(t *testing.T) {
 }
 
 func TestPostgreSQLMigrations(t *testing.T) {
-	const dbType = migration.PostgreSQL
-
 	Convey("Given an un-migrated PostgreSQL database engine", t, func(c C) {
-		eng := getSQLiteEngine(c)
-
-		testVer0_4_2RemoveHistoryRemoteIdUnique(eng, dbType)
+		testMigrations(getPostgreEngine(c), migration.PostgreSQL)
 	})
 }

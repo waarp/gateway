@@ -37,12 +37,25 @@ func TestSQLiteCreationScript(t *testing.T) {
 	})
 }
 
+func testMigrations(eng *migration.Engine, dbType string) {
+	// 0.4.2
+	testVer0_4_2RemoveHistoryRemoteIdUnique(eng, dbType)
+
+	// 0.5.0
+	testVer0_5_0LocalAgentChangePaths(eng)
+	testVer0_5_0LocalAgentDisallowReservedNames(eng)
+	testVer0_5_0RuleNewPathCols(eng)
+	testVer0_5_0RulePathChanges(eng)
+	testVer0_5_0AddFilesize(eng)
+	testVer0_5_0TransferChangePaths(eng)
+	testVer0_5_0TransferFormatLocalPath(eng)
+	testVer0_5_0HistoryChangePaths(eng)
+	testVer0_5_0LocalAccountPasswordHash(eng)
+	testVer0_5_0CertificatesRename(eng, dbType)
+}
+
 func TestSQLiteMigrations(t *testing.T) {
-	const dbType = migration.SQLite
-
 	Convey("Given an un-migrated SQLite database engine", t, func(c C) {
-		eng := getSQLiteEngine(c)
-
-		testVer0_4_2RemoveHistoryRemoteIdUnique(eng, dbType)
+		testMigrations(getSQLiteEngine(c), migration.SQLite)
 	})
 }

@@ -12,6 +12,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
+const windowsRuntime = "windows"
+
 var errInvalidVersion = errors.New("invalid database version")
 
 func getTarget(version string) (index int, err error) {

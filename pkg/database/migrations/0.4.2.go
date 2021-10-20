@@ -3,18 +3,18 @@ package migrations
 import (
 	"fmt"
 
-	migration2 "code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
 type ver0_4_2RemoveHistoryRemoteIDUnique struct{}
 
-func (ver0_4_2RemoveHistoryRemoteIDUnique) Up(db migration2.Actions) error {
+func (ver0_4_2RemoveHistoryRemoteIDUnique) Up(db migration.Actions) error {
 	var err error
 
 	switch db.GetDialect() {
-	case migration2.PostgreSQL, migration2.SQLite:
+	case migration.PostgreSQL, migration.SQLite:
 		err = db.Exec(`DROP INDEX "UQE_transfer_history_histRemID"`)
-	case migration2.MySQL:
+	case migration.MySQL:
 		err = db.Exec("DROP INDEX UQE_transfer_history_histRemID ON transfer_history")
 	default:
 		return fmt.Errorf("unknown dialect engine %T: %w", db, errUnsuportedDB)
@@ -27,14 +27,14 @@ func (ver0_4_2RemoveHistoryRemoteIDUnique) Up(db migration2.Actions) error {
 	return nil
 }
 
-func (ver0_4_2RemoveHistoryRemoteIDUnique) Down(db migration2.Actions) error {
+func (ver0_4_2RemoveHistoryRemoteIDUnique) Down(db migration.Actions) error {
 	var err error
 
 	switch db.GetDialect() {
-	case migration2.PostgreSQL:
+	case migration.PostgreSQL:
 		err = db.Exec(`CREATE UNIQUE INDEX "UQE_transfer_history_histRemID"
 				ON transfer_history (remote_transfer_id, account, agent)`)
-	case migration2.SQLite, migration2.MySQL:
+	case migration.SQLite, migration.MySQL:
 		err = db.Exec(`CREATE UNIQUE INDEX UQE_transfer_history_histRemID
 				ON transfer_history (remote_transfer_id, account, agent)`)
 	default:
