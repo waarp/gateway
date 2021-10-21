@@ -66,7 +66,7 @@ func (h *httpService) makeTLSConf() (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		MinVersion:   tls.VersionTLS12,
 		Certificates: tlsCerts,
-		ClientAuth:   tls.VerifyClientCertIfGiven,
+		ClientAuth:   tls.RequestClientCert, // client certs are manually verified
 		ClientCAs:    clientCAs,
 	}
 

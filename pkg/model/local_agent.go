@@ -38,13 +38,13 @@ type LocalAgent struct {
 	Root string `xorm:"notnull 'root'"`
 
 	// The server's directory for received files.
-	LocalInDir string `xorm:"notnull 'server_local_in_dir'"`
+	InDir string `xorm:"notnull 'in_dir'"`
 
 	// The server's directory for files to be sent.
-	LocalOutDir string `xorm:"notnull 'server_local_out_dir'"`
+	OutDir string `xorm:"notnull 'out_dir'"`
 
 	// The server's temporary directory for partially received files.
-	LocalTmpDir string `xorm:"notnull 'server_local_tmp_dir'"`
+	TmpDir string `xorm:"notnull 'work_dir'"`
 
 	// The agent's configuration in raw JSON format.
 	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
@@ -97,22 +97,22 @@ func (l *LocalAgent) makePaths() {
 	if !isEmpty(l.Root) {
 		l.Root = utils.ToOSPath(l.Root)
 
-		if isEmpty(l.LocalInDir) {
-			l.LocalInDir = "in"
+		if isEmpty(l.InDir) {
+			l.InDir = "in"
 		} else {
-			l.LocalInDir = utils.ToOSPath(l.LocalInDir)
+			l.InDir = utils.ToOSPath(l.InDir)
 		}
 
-		if isEmpty(l.LocalOutDir) {
-			l.LocalOutDir = "out"
+		if isEmpty(l.OutDir) {
+			l.OutDir = "out"
 		} else {
-			l.LocalOutDir = utils.ToOSPath(l.LocalOutDir)
+			l.OutDir = utils.ToOSPath(l.OutDir)
 		}
 
-		if isEmpty(l.LocalTmpDir) {
-			l.LocalTmpDir = "tmp"
+		if isEmpty(l.TmpDir) {
+			l.TmpDir = "tmp"
 		} else {
-			l.LocalTmpDir = utils.ToOSPath(l.LocalTmpDir)
+			l.TmpDir = utils.ToOSPath(l.TmpDir)
 		}
 	}
 }

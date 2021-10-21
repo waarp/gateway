@@ -110,14 +110,14 @@ func MakeFilepaths(transCtx *model.TransferContext) {
 	// Partner client <- GW server
 	case transCtx.Transfer.IsServer && transCtx.Rule.IsSend:
 		transCtx.Transfer.LocalPath = utils.GetPath(transCtx.Transfer.LocalPath,
-			leaf(transCtx.Rule.LocalDir), leaf(transCtx.LocalAgent.LocalOutDir),
+			leaf(transCtx.Rule.LocalDir), leaf(transCtx.LocalAgent.OutDir),
 			branch(transCtx.LocalAgent.Root), leaf(transCtx.Paths.DefaultOutDir),
 			branch(transCtx.Paths.GatewayHome))
 	// Partner client -> GW server
 	case transCtx.Transfer.IsServer && !transCtx.Rule.IsSend:
 		transCtx.Transfer.LocalPath = utils.GetPath(transCtx.Transfer.LocalPath,
 			leaf(transCtx.Rule.LocalTmpDir), leaf(transCtx.Rule.LocalDir),
-			leaf(transCtx.LocalAgent.LocalTmpDir), leaf(transCtx.LocalAgent.LocalInDir),
+			leaf(transCtx.LocalAgent.TmpDir), leaf(transCtx.LocalAgent.InDir),
 			branch(transCtx.LocalAgent.Root), leaf(transCtx.Paths.DefaultTmpDir),
 			leaf(transCtx.Paths.DefaultInDir), branch(transCtx.Paths.GatewayHome))
 	// GW client -> Partner server

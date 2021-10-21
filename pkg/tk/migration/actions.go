@@ -24,10 +24,10 @@ type Constraint interface{}
 type TableConstraint interface{}
 
 // Querier is an interface exposing the common function for sending database
-// queries in the standard SQL library. However, unlike the standard library,
-// Querier uses the fmt placeholder verbs instead of the database's verbs.
+// queries in the standard SQL library.
 type Querier interface {
 	Query(string, ...interface{}) (*sql.Rows, error)
+	QueryRow(string, ...interface{}) *sql.Row
 }
 
 // Executor is an interface exposing the common function for executing database
@@ -71,6 +71,10 @@ type Actions interface {
 	// ChangeColumnType changes the type of the given column. This is a
 	// destructive (non retro-compatible) operation.
 	ChangeColumnType(table, col string, from, to sqlType) error
+
+	// SwapColumns swaps all the values of col1 and col2. The columns' types MUST
+	// be compatible for this operation to work.
+	SwapColumns(table, col1, col2, cond string) error
 
 	// DropColumn drops the given column. This is a destructive (non
 	// retro-compatible) operation.

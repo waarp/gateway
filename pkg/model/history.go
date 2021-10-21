@@ -27,7 +27,7 @@ type HistoryEntry struct {
 	Protocol         string               `xorm:"notnull 'protocol'"`
 	LocalPath        string               `xorm:"notnull 'local_path'"`
 	RemotePath       string               `xorm:"notnull 'remote_path'"`
-	Filesize         int64                `xorm:"notnull 'filesize'"`
+	Filesize         int64                `xorm:"bigint notnull default(-1) 'filesize'"`
 	Start            time.Time            `xorm:"notnull timestampz 'start'"`
 	Stop             time.Time            `xorm:"timestampz 'stop'"`
 	Status           types.TransferStatus `xorm:"notnull varchar(50) 'status'"`

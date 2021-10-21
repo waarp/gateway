@@ -5,9 +5,11 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 
 	"code.bcarlin.xyz/go/logging"
@@ -17,12 +19,17 @@ import (
 	"xorm.io/xorm/contexts"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 const (
-	testDBType = "test_db"
-	testDBEnv  = "GATEWAY_TEST_DB"
+	memoryDBType    = "test_db"
+	testDBEnv       = "GATEWAY_TEST_DB"
+	testDBMechanism = "GATEWAY_TEST_DB_MECHANISM"
 )
 
 var errSimulated = fmt.Errorf("simulated database error")
@@ -75,11 +82,11 @@ func initTestDBConf(config *conf.DatabaseConfig) {
 		config.Type = SQLite
 		config.Address = tempFilename()
 	case "":
-		supportedRBMS[testDBType] = testinfo
-		config.Type = testDBType
+		supportedRBMS[memoryDBType] = testinfo
+		config.Type = memoryDBType
 		config.Address = tempFilename()
 	default:
-		panic(fmt.Sprintf("Unknown database type '%s'\n", dbType))
+		panic(fmt.Sprintf("Unknown database type '%s'\n", memoryDBType))
 	}
 }
 
@@ -87,15 +94,16 @@ func resetDB(db *DB, config *conf.DatabaseConfig) {
 	switch config.Type {
 	case PostgreSQL, MySQL:
 		for _, tbl := range tables {
-			convey.So(db.engine.DropTables(tbl.TableName()), convey.ShouldBeNil)
+			convey.So(db.engine.Cascade(true).DropTable(tbl.TableName()), convey.ShouldBeNil)
 		}
 
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
-	case testDBType:
+	case memoryDBType, SQLite:
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
-	case SQLite:
-		convey.So(db.engine.Close(), convey.ShouldBeNil)
-		convey.So(os.Remove(config.Address), convey.ShouldBeNil)
+
+		if _, err := os.Stat(config.Address); err == nil {
+			convey.So(os.Remove(config.Address), convey.ShouldBeNil)
+		}
 	default:
 		panic(fmt.Sprintf("Unknown database type '%s'\n", config.Type))
 	}
@@ -124,10 +132,64 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 		logger: &log.Logger{Logger: logger},
 	}
 
+	if os.Getenv(testDBMechanism) == "migration" {
+		startViaMigration(c, config)
+	}
+
 	c.So(db.Start(), convey.ShouldBeNil)
 	c.Reset(func() { resetDB(db, &config.Database) })
 
 	return db
+}
+
+func startViaMigration(c convey.C, config *conf.ServerConfig) {
+	Owner = config.GatewayName
+
+	var (
+		sqlDB   *sql.DB
+		dialect string
+	)
+
+	switch config.Database.Type {
+	case PostgreSQL:
+		sqlDB = testhelpers.GetTestPostgreDBNoReset(c)
+		dialect = migration.PostgreSQL
+
+		_, err := sqlDB.Exec(migrations.PostgresCreationScript)
+		c.So(err, convey.ShouldBeNil)
+	case MySQL:
+		sqlDB = testhelpers.GetTestMySQLDBNoReset(c)
+		dialect = migration.MySQL
+
+		script := strings.Split(migrations.MysqlCreationScript, ";\n")
+		for _, cmd := range script {
+			_, err := sqlDB.Exec(cmd)
+			c.So(err, convey.ShouldBeNil)
+		}
+	case SQLite, memoryDBType:
+		var addr string
+		sqlDB, addr = testhelpers.GetTestSqliteDBNoReset(c)
+
+		dialect = migration.SQLite
+		config.Database.Address = addr
+
+		_, err := sqlDB.Exec(migrations.SqliteCreationScript)
+		c.So(err, convey.ShouldBeNil)
+	default:
+		panic(fmt.Sprintf("Unknown database type '%s'\n", config.Database.Type))
+	}
+
+	migrEngine, err := migration.NewEngine(sqlDB, dialect, nil)
+	c.So(err, convey.ShouldBeNil)
+
+	//nolint:gocritic //append result is assigned to new slice instead of the old
+	// one because we do not want to alter the global, constant, migration list
+	migr := append(migrations.Migrations, migration.Migration{
+		Script: migrations.BumpVersion{To: vers.Num},
+	})
+
+	c.So(migrEngine.Upgrade(migr), convey.ShouldBeNil)
+	c.So(sqlDB.Close(), convey.ShouldBeNil)
 }
 
 type errHook struct{ once sync.Once }

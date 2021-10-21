@@ -2,10 +2,8 @@ package admin
 
 import (
 	"context"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -17,21 +15,18 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
+//nolint:gochecknoinits // init is used by design
+func init() {
+	_ = log.InitBackend("DEBUG", "stdout", "")
+}
+
 func TestStart(t *testing.T) {
 	Convey("Given an admin service", t, func() {
-		So(ioutil.WriteFile("cert.pem", []byte(cert), 0o700), ShouldBeNil)
-		So(ioutil.WriteFile("key.pem", []byte(key), 0o700), ShouldBeNil)
-
-		Reset(func() {
-			_ = os.Remove("cert.pem")
-			_ = os.Remove("key.pem")
-		})
-
 		config := &conf.ServerConfig{}
 		config.Admin.Host = "localhost"
 		config.Admin.Port = 0
-		config.Admin.TLSCert = "cert.pem"
-		config.Admin.TLSKey = "key.pem"
+		config.Admin.TLSCert = "../../test_data/rest_cert.pem"
+		config.Admin.TLSKey = "../../test_data/rest_key.pem"
 		server := &Server{
 			Conf:          config,
 			CoreServices:  map[string]service.Service{},

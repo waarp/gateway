@@ -106,7 +106,7 @@ func (s *SelfContext) addPushTransfer(c convey.C) {
 
 //nolint:dupl // factorizing would hurt readability
 func (s *SelfContext) addPullTransfer(c convey.C) {
-	testDir := filepath.Join(s.Server.Root, s.Server.LocalOutDir)
+	testDir := filepath.Join(s.Server.Root, s.Server.OutDir)
 	s.fileContent = AddSourceFile(c, testDir, "self_transfer_pull")
 
 	trans := &model.Transfer{
@@ -286,7 +286,7 @@ func (s *SelfContext) CheckDestFile(c convey.C) {
 	c.Convey("Then the file should have been sent entirely", func(c convey.C) {
 		path := s.ClientTrans.LocalPath
 		if s.ClientRule.IsSend {
-			path = filepath.Join(s.Server.Root, s.Server.LocalInDir,
+			path = filepath.Join(s.Server.Root, s.Server.InDir,
 				filepath.Base(s.ClientTrans.LocalPath))
 		}
 

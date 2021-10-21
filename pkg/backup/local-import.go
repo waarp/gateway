@@ -32,9 +32,9 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 		// Populate
 		agent.Name = src.Name
 		agent.Root = src.Root
-		agent.LocalInDir = src.LocalInDir
-		agent.LocalOutDir = src.LocalOutDir
-		agent.LocalTmpDir = src.LocalTmpDir
+		agent.InDir = src.LocalInDir
+		agent.OutDir = src.LocalOutDir
+		agent.TmpDir = src.LocalTmpDir
 		agent.Address = src.Address
 		agent.Protocol = src.Protocol
 		agent.ProtoConfig = src.Configuration
@@ -43,19 +43,19 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 		if src.InDir != "" {
 			logger.Warning("JSON field 'locals.inDir' is deprecated, use 'localInDir' instead")
 
-			agent.LocalInDir = src.InDir
+			agent.InDir = src.InDir
 		}
 
 		if src.OutDir != "" {
 			logger.Warning("JSON field 'locals.outDir' is deprecated, use 'localOutDir' instead")
 
-			agent.LocalOutDir = src.OutDir
+			agent.OutDir = src.OutDir
 		}
 
 		if src.WorkDir != "" {
 			logger.Warning("JSON field 'locals.workDir' is deprecated, use 'localTmpDir' instead")
 
-			agent.LocalTmpDir = src.WorkDir
+			agent.TmpDir = src.WorkDir
 		}
 
 		// Create/Update

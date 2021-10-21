@@ -5,23 +5,25 @@ import (
 	"errors"
 	"fmt"
 
-	migration2 "code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
 var errUnsuportedDB = errors.New("unsupported database")
 
-type bumpVersion struct{ from, to string }
+// BumpVersion is a migration scripts which bump the database version from a
+// given version to another.
+type BumpVersion struct{ From, To string }
 
-func (b bumpVersion) Up(db migration2.Actions) error {
-	if err := db.Exec("UPDATE version SET current='%s'", b.to); err != nil {
+func (b BumpVersion) Up(db migration.Actions) error {
+	if err := db.Exec("UPDATE version SET current='%s'", b.To); err != nil {
 		return fmt.Errorf("cannot set data model version: %w", err)
 	}
 
 	return nil
 }
 
-func (b bumpVersion) Down(db migration2.Actions) error {
-	if err := db.Exec("UPDATE version SET current='%s'", b.from); err != nil {
+func (b BumpVersion) Down(db migration.Actions) error {
+	if err := db.Exec("UPDATE version SET current='%s'", b.From); err != nil {
 		return fmt.Errorf("cannot set data model version: %w", err)
 	}
 
@@ -30,7 +32,7 @@ func (b bumpVersion) Down(db migration2.Actions) error {
 
 func checkVersionTableExist(db *sql.DB, dialect string) (bool, error) {
 	switch dialect {
-	case migration2.SQLite:
+	case migration.SQLite:
 		row := db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='version'")
 
 		var name string
@@ -43,7 +45,7 @@ func checkVersionTableExist(db *sql.DB, dialect string) (bool, error) {
 		}
 
 		return true, nil
-	case migration2.PostgreSQL:
+	case migration.PostgreSQL:
 		row := db.QueryRow("SELECT to_regclass('version')")
 
 		var regclass interface{}
@@ -52,7 +54,7 @@ func checkVersionTableExist(db *sql.DB, dialect string) (bool, error) {
 		}
 
 		return regclass != nil, nil
-	case migration2.MySQL:
+	case migration.MySQL:
 		row := db.QueryRow("SHOW TABLES LIKE 'version')")
 
 		var name string

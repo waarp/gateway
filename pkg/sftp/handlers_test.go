@@ -192,7 +192,7 @@ func TestFileWriter(t *testing.T) {
 
 							Convey("With a valid file and status", func() {
 								So(trans.LocalPath, ShouldEqual, filepath.Join(
-									root, agent.LocalTmpDir, "file.dst.part"))
+									root, agent.TmpDir, "file.dst.part"))
 								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
 						})

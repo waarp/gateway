@@ -22,6 +22,18 @@ type exister interface {
 
 func (db *DB) checkVersion() error {
 	dbVer := &version{}
+
+	ok, err := db.engine.IsTableExist(dbVer.TableName())
+	if err != nil {
+		db.logger.Errorf("Failed to query database version table: %v", err)
+
+		return NewInternalError(err)
+	}
+
+	if !ok {
+		return nil
+	}
+
 	if err := db.Get(dbVer, "").Run(); err != nil {
 		db.logger.Errorf("Failed to retrieve database version: %v", err)
 

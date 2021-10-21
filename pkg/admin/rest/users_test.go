@@ -243,7 +243,7 @@ func TestCreateUser(t *testing.T) {
 						Convey("Then the new user should be inserted in the "+
 							"database", func() {
 							var users model.Users
-							So(db.Select(&users).Run(), ShouldBeNil)
+							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(users, ShouldHaveLength, 2)
 
 							So(bcrypt.CompareHashAndPassword(users[1].Password,

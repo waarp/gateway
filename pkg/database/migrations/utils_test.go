@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -49,32 +50,61 @@ func doesIndexExist(db *sql.DB, dialect, table, index string) bool {
 	return rows.Next()
 }
 
-// func tableShouldHaveColumn(db *sql.DB, table string, cols ...string) {
-// 	rows, err := db.Query("SELECT * FROM " + table)
-// 	So(err, ShouldBeNil)
-// 	So(rows.Err(), ShouldBeNil)
-//
-// 	defer rows.Close()
-//
-// 	names, err := rows.Columns()
-// 	So(err, ShouldBeNil)
-//
-// 	for _, col := range cols {
-// 		So(names, ShouldContain, col)
-// 	}
-// }
+func tableShouldHaveColumn(db *sql.DB, table string, cols ...string) {
+	rows, err := db.Query("SELECT * FROM " + table)
+	So(err, ShouldBeNil)
+	So(rows.Err(), ShouldBeNil)
 
-// func tableShouldNotHaveColumn(db *sql.DB, table string, cols ...string) {
-// 	rows, err := db.Query("SELECT * FROM " + table)
-// 	So(err, ShouldBeNil)
-// 	So(rows.Err(), ShouldBeNil)
-//
-// 	defer rows.Close()
-//
-// 	names, err := rows.Columns()
-// 	So(err, ShouldBeNil)
-//
-// 	for _, col := range cols {
-// 		So(names, ShouldNotContain, col)
-// 	}
-// }
+	defer rows.Close()
+
+	names, err := rows.Columns()
+	So(err, ShouldBeNil)
+
+	for _, col := range cols {
+		So(names, ShouldContain, col)
+	}
+}
+
+func tableShouldNotHaveColumn(db *sql.DB, table string, cols ...string) {
+	rows, err := db.Query("SELECT * FROM " + table)
+	So(err, ShouldBeNil)
+	So(rows.Err(), ShouldBeNil)
+
+	defer rows.Close()
+
+	names, err := rows.Columns()
+	So(err, ShouldBeNil)
+
+	for _, col := range cols {
+		So(names, ShouldNotContain, col)
+	}
+}
+
+func doesTableExist(db *sql.DB, dbType, table string) bool {
+	var (
+		row  *sql.Row
+		name string
+	)
+
+	switch dbType {
+	case migration.SQLite:
+		row = db.QueryRow(`SELECT name FROM sqlite_master WHERE 
+			type='table' AND name=?`, table)
+	case migration.PostgreSQL:
+		row = db.QueryRow(`SELECT tablename FROM pg_tables WHERE tablename=$1`, table)
+	case migration.MySQL:
+		row = db.QueryRow(`SHOW TABLES LIKE ?`, table)
+	default:
+		panic(fmt.Sprintf("unknown database type: %s", dbType))
+	}
+
+	if err := row.Scan(&name); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false
+		}
+
+		So(err, ShouldBeNil)
+	}
+
+	return true
+}

@@ -165,7 +165,7 @@ func TestHTTPSServer(t *testing.T) {
 				RootCAs:      rootCAs,
 				Certificates: []tls.Certificate{cert},
 			}}
-			client := &http.Client{Transport: transport, Timeout: time.Second}
+			client := &http.Client{Transport: transport, Timeout: time.Hour}
 			addr := "https://" + ctx.Server.Address + "/" + ctx.Filename()
 
 			Convey("When executing the transfer", func(c C) {
@@ -176,10 +176,19 @@ func TestHTTPSServer(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				req.SetBasicAuth(ctx.LocAccount.Login, "")
-				_, err = client.Do(req) //nolint:bodyclose // response is always nil
+				resp, err := client.Do(req)
+				So(err, ShouldBeNil)
+
+				defer resp.Body.Close()
+
+				body, err := ioutil.ReadAll(resp.Body)
+				So(err, ShouldBeNil)
+
+				code := resp.StatusCode
 
 				Convey("Then it should return an error", func() {
-					So(err, ShouldBeError)
+					So(code, ShouldEqual, http.StatusUnauthorized)
+					So(string(body), ShouldEqual, "Certificate is not valid for this user\n")
 				})
 			})
 		})

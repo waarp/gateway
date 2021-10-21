@@ -88,18 +88,19 @@ func (db *DB) loadAESKey() error {
 	return nil
 }
 
-// createDSN creates and returns the dataSourceName string necessary to open
-// a connection to the database. The DSN varies depending on the options given
+// createConnectionInfo creates and returns the dataSourceName string necessary
+// to open a connection to the database, along with the driver and an optional
+// initialisation function. The DSN varies depending on the options given
 // in the database configuration.
-func (db *DB) createConnectionInfo() (string, string, func(*xorm.Engine) error, error) {
-	rdbms := db.Conf.Database.Type
+func createConnectionInfo(c *conf.DatabaseConfig) (string, string, func(*xorm.Engine) error, error) {
+	rdbms := c.Type
 
 	info, ok := supportedRBMS[rdbms]
 	if !ok {
 		return "", "", nil, fmt.Errorf("unknown database type '%s': %w", rdbms, errUnsuportedDB)
 	}
 
-	driver, dsn, f := info(&db.Conf.Database)
+	driver, dsn, f := info(c)
 
 	return driver, dsn, f, nil
 }
@@ -110,7 +111,7 @@ type dbinfo func(*conf.DatabaseConfig) (string, string, func(*xorm.Engine) error
 var supportedRBMS = map[string]dbinfo{}
 
 func (db *DB) initEngine() (*xorm.Engine, error) {
-	driver, dsn, init, err := db.createConnectionInfo()
+	driver, dsn, init, err := createConnectionInfo(&db.Conf.Database)
 	if err != nil {
 		db.logger.Criticalf("Database configuration invalid: %s", err)
 
@@ -180,6 +181,16 @@ func (db *DB) Start() error {
 		conf:   &db.Conf.Database,
 	}
 
+	if err := db.checkVersion(); err != nil {
+		if err2 := engine.Close(); err2 != nil {
+			db.logger.Warningf("an error occurred while closing the database: %v", err2)
+		}
+
+		db.state.Set(service.Error, err.Error())
+
+		return err
+	}
+
 	if err := initTables(db.Standalone); err != nil {
 		if err2 := engine.Close(); err2 != nil {
 			db.logger.Warningf("an error occurred while closing the database: %v", err2)
@@ -187,16 +198,6 @@ func (db *DB) Start() error {
 
 		db.state.Set(service.Error, err.Error())
 		db.logger.Errorf("Failed to create tables: %s", err)
-
-		return err
-	}
-
-	if err := db.checkVersion(); err != nil {
-		if err2 := engine.Close(); err2 != nil {
-			db.logger.Warningf("an error occurred while closing the database: %v", err2)
-		}
-
-		db.state.Set(service.Error, err.Error())
 
 		return err
 	}

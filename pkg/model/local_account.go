@@ -24,7 +24,7 @@ type LocalAccount struct {
 	Login string `xorm:"unique(loc_ac) notnull 'login'"`
 
 	// A bcrypt hash of the account's password
-	PasswordHash []byte `xorm:"text 'password_hash'"`
+	PasswordHash []byte `xorm:"'password_hash'"`
 }
 
 // TableName returns the local accounts table name.

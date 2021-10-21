@@ -1,16 +1,11 @@
 package migration
 
 import (
-	"errors"
 	"fmt"
-	"strings"
 
 	// Register the SQLite driver.
 	_ "github.com/mattn/go-sqlite3"
-	"golang.org/x/mod/semver"
 )
-
-var errSqliteVersion = errors.New("cannot get sqlite version")
 
 // SQLite is the constant name of the SQLite dialect translator.
 const SQLite = "sqlite"
@@ -33,27 +28,24 @@ func newSqliteEngine(db *queryWriter) Actions {
 
 func (*sqliteDialect) GetDialect() string { return SQLite }
 
+/*
 func (s *sqliteDialect) isAtLeastVersion(target string) (bool, error) {
-	res, err := s.Query("SELECT sqlite_version()")
-	if err != nil {
-		return false, fmt.Errorf("failed to run a query to retrieve SQLite version: %w", err)
-	}
-
-	defer res.Close() //nolint:errcheck // no logger to handle the error
+	res := s.QueryRow("SELECT sqlite_version()")
 
 	var version string
-	if !res.Next() || res.Scan(&version) != nil {
-		return false, fmt.Errorf("failed to retrieve SQLite version: %w", errSqliteVersion)
+	if err := res.Scan(&version); err != nil {
+		return false, fmt.Errorf("failed to retrieve SQLite version: %w", err)
 	}
 
 	version = "v" + version
 	if !semver.IsValid(version) {
-		return false, fmt.Errorf("failed to parse SQLite version: '%s' is not a valid version: %w",
-			version, err)
+		return false, fmt.Errorf("failed to parse SQLite version: '%s' is not a valid version",
+			version)
 	}
 
 	return semver.Compare(version, target) >= 0, nil
 }
+*/
 
 func (s *sqliteDialect) sqlTypeToDBType(typ sqlType) (string, error) {
 	switch typ.code {
@@ -131,54 +123,4 @@ func (s *sqliteDialect) AddRow(table string, values Cells) error {
 func (s *sqliteDialect) AddColumn(table, column string, dataType sqlType,
 	constraints ...Constraint) error {
 	return s.standardSQL.addColumn(s, table, column, dataType, constraints)
-}
-
-func (s *sqliteDialect) DropColumn(table, name string) error {
-	ok, err := s.isAtLeastVersion("v3.35.0")
-	if err != nil {
-		return err
-	}
-
-	// DROP COLUMN is supported on SQLite versions >= 3.35
-	if !isTest && ok {
-		return s.standardSQL.DropColumn(table, name)
-	}
-	// otherwise, we have to create a new table without the column, and copy the content
-
-	cols, err := getColumnsNames(s, table)
-	if err != nil {
-		return err
-	}
-
-	var found bool
-
-	for i, col := range cols {
-		if col == name {
-			cols = append(cols[:i], cols[i+1:]...)
-			found = true
-
-			break
-		}
-	}
-
-	if !found {
-		return sqliteError(fmt.Sprintf(`no such column: "%s"`, name))
-	}
-
-	query := fmt.Sprintf("CREATE TABLE %s_new AS SELECT %s FROM %s", table,
-		strings.Join(cols, ", "), table)
-
-	if err := s.Exec(query); err != nil {
-		return err
-	}
-
-	if err := s.DropTable(table); err != nil {
-		return err
-	}
-
-	if err := s.RenameTable(table+"_new", table); err != nil {
-		return err
-	}
-
-	return nil
 }

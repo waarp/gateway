@@ -304,7 +304,7 @@ func (f *fileStream) move() *types.TransferError {
 	var dest string
 	if f.TransCtx.Transfer.IsServer {
 		dest = utils.GetPath(file, leaf(f.TransCtx.Rule.LocalDir),
-			leaf(f.TransCtx.LocalAgent.LocalInDir), branch(f.TransCtx.LocalAgent.Root),
+			leaf(f.TransCtx.LocalAgent.InDir), branch(f.TransCtx.LocalAgent.Root),
 			leaf(f.TransCtx.Paths.DefaultInDir), branch(f.TransCtx.Paths.GatewayHome))
 	} else {
 		dest = utils.GetPath(file, leaf(f.TransCtx.Rule.LocalDir),
