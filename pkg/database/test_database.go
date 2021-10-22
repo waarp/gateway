@@ -134,6 +134,14 @@ func TestDatabase(c convey.C, logLevel string) *DB {
 
 	if os.Getenv(testDBMechanism) == "migration" {
 		startViaMigration(c, config)
+
+		defer func() {
+			for i := range tables {
+				if init, ok := tables[i].(initialiser); ok {
+					c.So(init.Init(db), convey.ShouldBeNil)
+				}
+			}
+		}()
 	}
 
 	c.So(db.Start(), convey.ShouldBeNil)

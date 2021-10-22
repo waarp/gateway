@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -80,6 +79,7 @@ func tableShouldNotHaveColumn(db *sql.DB, table string, cols ...string) {
 	}
 }
 
+/*
 func doesTableExist(db *sql.DB, dbType, table string) bool {
 	var (
 		row  *sql.Row
@@ -88,7 +88,7 @@ func doesTableExist(db *sql.DB, dbType, table string) bool {
 
 	switch dbType {
 	case migration.SQLite:
-		row = db.QueryRow(`SELECT name FROM sqlite_master WHERE 
+		row = db.QueryRow(`SELECT name FROM sqlite_master WHERE
 			type='table' AND name=?`, table)
 	case migration.PostgreSQL:
 		row = db.QueryRow(`SELECT tablename FROM pg_tables WHERE tablename=$1`, table)
@@ -108,3 +108,4 @@ func doesTableExist(db *sql.DB, dbType, table string) bool {
 
 	return true
 }
+*/

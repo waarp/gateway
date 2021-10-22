@@ -54,11 +54,5 @@ var Migrations = []migration.Migration{
 	}, {
 		Description: "Replace the existing history filename columns with new ones",
 		Script:      ver0_5_0HistoryPathsChange{},
-	}, {
-		Description: "Rename the local account 'password' column to 'password hash'",
-		Script:      ver0_5_0LocalAccountPasswordHash{},
-	}, {
-		Description: "Rename the 'certificates' table to 'crypto_credentials'",
-		Script:      ver0_5_0CertificatesRename{},
 	},
 }
