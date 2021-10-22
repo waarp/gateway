@@ -1,3 +1,4 @@
+//go:build test_full || test_db_postgresql
 // +build test_full test_db_postgresql
 
 package migrations
@@ -5,16 +6,17 @@ package migrations
 import (
 	"testing"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 	"github.com/smartystreets/goconvey/convey"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 //nolint:lll // this won't change a lot, readability might not be that important
 const postgresCreationScript = `
 CREATE TABLE IF NOT EXISTS "version" ("current" TEXT NOT NULL);
-INSERT INTO "version" ("current") VALUES ('0.0.0');
+INSERT INTO "version" ("current") VALUES ('0.4.0');
 CREATE TABLE IF NOT EXISTS "certificates" ("id" BIGSERIAL PRIMARY KEY  NOT NULL, "owner_type" VARCHAR(255) NOT NULL, "owner_id" BIGINT NOT NULL, "name" VARCHAR(255) NOT NULL, "private_key" BYTEA NULL, "public_key" BYTEA NULL, "cert" BYTEA NULL);
 CREATE UNIQUE INDEX "UQE_certificates_cert" ON "certificates" ("owner_type","owner_id","name");
 CREATE TABLE IF NOT EXISTS "transfer_history" ("id" BIGINT PRIMARY KEY NOT NULL, "owner" VARCHAR(255) NOT NULL, "remote_transfer_id" VARCHAR(255) NULL, "is_server" BOOL NOT NULL, "is_send" BOOL NOT NULL, "account" VARCHAR(255) NOT NULL, "agent" VARCHAR(255) NOT NULL, "protocol" VARCHAR(255) NOT NULL, "source_filename" VARCHAR(255) NOT NULL, "dest_filename" VARCHAR(255) NOT NULL, "rule" VARCHAR(255) NOT NULL, "start" timestamp with time zone NOT NULL, "stop" timestamp with time zone, "status" VARCHAR(50) NOT NULL, "error_code" VARCHAR(50) NOT NULL, "error_details" VARCHAR(255) NOT NULL, "step" VARCHAR(50) NOT NULL, "progression" BIGINT NOT NULL, "task_number" BIGINT NOT NULL);

@@ -12,8 +12,8 @@ import (
 //nolint:gochecknoglobals // global var is used by design
 var Migrations = []migration.Migration{
 	{
-		Description: "Bump the database version to 0.4.0",
-		Script:      bumpVersion{from: "0.0.0", to: "0.4.0"},
+		Description: "Starting version",
+		Script:      bumpVersion{from: "", to: "0.4.0"}, // should never be called
 		VersionTag:  "0.4.0",
 	}, {
 		Description: "Bump the database version to 0.4.1",

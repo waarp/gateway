@@ -1,3 +1,4 @@
+//go:build test_full || test_db_postgresql
 // +build test_full test_db_postgresql
 
 package migrations
@@ -14,7 +15,7 @@ func TestPostgreSQLMigrations(t *testing.T) {
 	const dbType = migration.PostgreSQL
 
 	Convey("Given an un-migrated PostgreSQL database engine", t, func(c C) {
-		eng := getSQLiteEngine(c)
+		eng := getPostgreEngine(c)
 
 		testVer0_4_2RemoveHistoryRemoteIdUnique(eng, dbType)
 	})

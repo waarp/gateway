@@ -21,7 +21,7 @@ import (
 //nolint:lll // this won't change a lot, readability might not be that important
 const sqliteCreationScript = `
 CREATE TABLE IF NOT EXISTS 'version' ('current' TEXT NOT NULL);
-INSERT INTO 'version' ('current') VALUES ('0.0.0');
+INSERT INTO 'version' ('current') VALUES ('0.4.0');
 CREATE TABLE IF NOT EXISTS 'certificates' ('id' INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 'owner_type' TEXT NOT NULL, 'owner_id' INTEGER NOT NULL, 'name' TEXT NOT NULL, 'private_key' BLOB NULL, 'public_key' BLOB NULL, 'cert' BLOB NULL);
 CREATE UNIQUE INDEX 'UQE_certificates_cert' ON 'certificates' ('owner_type','owner_id','name');
 CREATE TABLE IF NOT EXISTS 'transfer_history' ('id' INTEGER PRIMARY KEY NOT NULL, 'owner' TEXT NOT NULL, 'remote_transfer_id' TEXT NULL, 'is_server' INTEGER NOT NULL, 'is_send' INTEGER NOT NULL, 'account' TEXT NOT NULL, 'agent' TEXT NOT NULL, 'protocol' TEXT NOT NULL, 'source_filename' TEXT NOT NULL, 'dest_filename' TEXT NOT NULL, 'rule' TEXT NOT NULL, 'start' TEXT NOT NULL, 'stop' TEXT, 'status' TEXT NOT NULL, 'error_code' TEXT NOT NULL, 'error_details' TEXT NOT NULL, 'step' TEXT NOT NULL, 'progression' INTEGER NOT NULL, 'task_number' INTEGER NOT NULL);
