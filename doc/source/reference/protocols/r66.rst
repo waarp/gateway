@@ -16,6 +16,7 @@ Voici les fonctionnalités qui ont déjà été implémentées dans la *Gateway*
 - Vérification du hash du fichier à la fin du transfert (**Attention**: seul
   l'algorithme SHA-256 est supporté pour l'instant)
 - Vérification du hash individuel de chaque bloc.
+- Envoi des :term:`infos de transfert` du client vers le serveur
 
 .. warning:: La version 1.2 de TLS est requise au minimum pour effectuer des
    transferts avec R66 avec TLS. Toutes les versions antérieures seront
