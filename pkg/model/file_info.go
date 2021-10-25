@@ -1,15 +1,17 @@
+//go:build removed_file_info
+// +build removed_file_info
+
 package model
 
 import "code.waarp.fr/apps/gateway/gateway/pkg/database"
 
-//nolint:gochecknoinits // init is used by design
 func init() {
-	database.AddTable(&TransferInfo{})
+	database.AddTable(&FileInfo{})
 }
 
-// TransferInfo represents the transfer_info database table, which contains all the
+// FileInfo represents the file_info database table, which contains all the
 // protocol-specific information attached to a transfer.
-type TransferInfo struct {
+type FileInfo struct {
 	TransferID uint64 `xorm:"notnull unique(infoName) 'transfer_id'"`
 	IsHistory  bool   `xorm:"notnull 'is_history'"`
 	Name       string `xorm:"notnull unique(infoName) 'name'"`
@@ -17,29 +19,29 @@ type TransferInfo struct {
 }
 
 // TableName returns the name of the transfers table.
-func (*TransferInfo) TableName() string {
-	return TableTransferInfo
+func (*FileInfo) TableName() string {
+	return TableFileInfo
 }
 
 // Appellation returns the display name of a transfer info entry.
-func (*TransferInfo) Appellation() string {
+func (*FileInfo) Appellation() string {
 	return "transfer info"
 }
 
-// BeforeWrite checks if the TransferInfo entry is valid for insertion in the database.
-func (t *TransferInfo) BeforeWrite(db database.ReadAccess) database.Error {
+// BeforeWrite checks if the FileInfo entry is valid for insertion in the database.
+func (t *FileInfo) BeforeWrite(db database.ReadAccess) database.Error {
 	n, err := db.Count(&Transfer{}).Where("id=?", t.TransferID).Run()
 	if err != nil {
 		return database.NewValidationError("failed to retrieve transfer list: %s", err)
-	} else if n == 0 {
+	}
+	if n == 0 {
 		return database.NewValidationError("no transfer %d found", t.TransferID)
 	}
 
-	n, err = db.Count(&TransferInfo{}).Where("transfer_id=? AND name=?", t.TransferID, t.Name).Run()
+	n, err = db.Count(&FileInfo{}).Where("transfer_id=? AND name=?", t.TransferID, t.Name).Run()
 	if err != nil {
 		return database.NewValidationError("failed to retrieve info list: %s", err)
 	}
-
 	if n > 0 {
 		return database.NewValidationError("transfer %d already has a property '%s'",
 			t.TransferID, t.Name)
@@ -48,12 +50,11 @@ func (t *TransferInfo) BeforeWrite(db database.ReadAccess) database.Error {
 	return nil
 }
 
-// ToMap converts and returns the TransferInfoList into an equivalent map.
-func (t TransferInfoList) ToMap() map[string]string {
+// ToMap converts and returns the FileInfoList into an equivalent map.
+func (t FileInfoList) ToMap() map[string]string {
 	infoMap := map[string]string{}
 	for _, info := range t {
 		infoMap[info.Name] = info.Value
 	}
-
 	return infoMap
 }

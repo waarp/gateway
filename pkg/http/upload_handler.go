@@ -73,7 +73,8 @@ func (u *uploadHandler) Cancel(ctx context.Context) error {
 }
 
 func runUpload(r *http.Request, w http.ResponseWriter, running *service.TransferMap,
-	pip *pipeline.Pipeline) {
+	pip *pipeline.Pipeline,
+) {
 	up := &uploadHandler{
 		pip:     pip,
 		req:     r,
@@ -88,21 +89,8 @@ func runUpload(r *http.Request, w http.ResponseWriter, running *service.Transfer
 	up.run()
 }
 
-func (u *uploadHandler) sendError(code types.TransferErrorCode, msg string, status int) {
-	u.reply.Do(func() {
-		select {
-		case <-u.req.Context().Done():
-			code = types.TeConnectionReset
-			msg = "connection closed by remote host"
-		default:
-		}
-
-		u.pip.SetError(types.NewTransferError(code, msg))
-		u.resp.Header().Set(httpconst.TransferStatus, string(types.StatusError))
-		u.resp.Header().Set(httpconst.ErrorCode, code.String())
-		u.resp.Header().Set(httpconst.ErrorMessage, msg)
-		u.resp.WriteHeader(status)
-	})
+func (u *uploadHandler) sendError(status int, err *types.TransferError) {
+	sendServerError(u.pip, u.req, u.resp, &u.reply, status, err)
 }
 
 func (u *uploadHandler) handleError(err *types.TransferError) bool {
@@ -110,12 +98,20 @@ func (u *uploadHandler) handleError(err *types.TransferError) bool {
 		return false
 	}
 
-	u.sendError(err.Code, err.Details, http.StatusInternalServerError)
+	u.sendError(http.StatusInternalServerError, err)
 
 	return true
 }
 
 func (u *uploadHandler) run() {
+	if !setServerTransferInfo(u.pip, u.req.Header, u.sendError) {
+		return
+	}
+
+	// if !setServerFileInfo(u.pip, u.req.Header, u.sendError) {
+	// 	return
+	// }
+
 	if pErr := u.pip.PreTasks(); u.handleError(pErr) {
 		return
 	}
@@ -135,7 +131,7 @@ func (u *uploadHandler) run() {
 	}
 
 	if err := getRemoteStatus(u.req.Trailer, nil, u.pip); err != nil {
-		u.sendError(err.Code, err.Details, http.StatusBadRequest)
+		u.sendError(http.StatusBadRequest, err)
 
 		return
 	}

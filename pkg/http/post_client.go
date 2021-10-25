@@ -113,6 +113,14 @@ func (p *postClient) setRequestHeaders(req *http.Request) *types.TransferError {
 	req.Header.Set(httpconst.RuleName, p.pip.TransCtx.Rule.Name)
 	makeContentRange(req.Header, p.pip.TransCtx.Transfer)
 
+	if err := makeTransferInfo(req.Header, p.pip); err != nil {
+		return err
+	}
+
+	// if err := makeFileInfo(req.Header, p.pip); err != nil {
+	//	return err
+	// }
+
 	req.Trailer = make(http.Header)
 	req.Trailer.Set(httpconst.TransferStatus, "")
 	req.Trailer.Set(httpconst.ErrorCode, "")

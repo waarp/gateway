@@ -13,6 +13,8 @@ var errDatabase = types.NewTransferError(types.TeInternal, "database error")
 // transfer.
 type TransferContext struct {
 	Transfer  *Transfer
+	TransInfo map[string]interface{}
+	// FileInfo  map[string]interface{}
 	Rule      *Rule
 	PreTasks  Tasks
 	PostTasks Tasks
@@ -40,6 +42,7 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 ) (*TransferContext, *types.TransferError) {
 	transCtx := &TransferContext{
 		Transfer:      trans,
+		TransInfo:     map[string]interface{}{},
 		Paths:         &conf.GlobalConfig.Paths,
 		Rule:          &Rule{},
 		RemoteAgent:   &RemoteAgent{},
@@ -81,34 +84,44 @@ func GetTransferContext(db *database.DB, logger *log.Logger, trans *Transfer,
 func makeAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferContext,
 ) (*TransferContext, *types.TransferError) {
 	if transCtx.Transfer.IsServer {
-		if err := db.Get(transCtx.LocalAgent, "id=?", transCtx.Transfer.AgentID).Run(); err != nil {
-			logger.Errorf("Failed to retrieve transfer server: %s", err)
-
-			return nil, errDatabase
-		}
-
-		var err database.Error
-		if transCtx.LocalAgentCryptos, err = transCtx.LocalAgent.GetCryptos(db); err != nil {
-			logger.Errorf("Failed to retrieve server certificates: %s", err)
-
-			return nil, errDatabase
-		}
-
-		if err = db.Get(transCtx.LocalAccount, "id=?", transCtx.Transfer.AccountID).Run(); err != nil {
-			logger.Errorf("Failed to retrieve transfer local account: %s", err)
-
-			return nil, errDatabase
-		}
-
-		if transCtx.LocalAccountCryptos, err = transCtx.LocalAccount.GetCryptos(db); err != nil {
-			logger.Errorf("Failed to retrieve local account certificates: %s", err)
-
-			return nil, errDatabase
-		}
-
-		return transCtx, nil
+		return makeLocalAgentContext(db, logger, transCtx)
 	}
 
+	return makeRemoteAgentContext(db, logger, transCtx)
+}
+
+func makeLocalAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferContext,
+) (*TransferContext, *types.TransferError) {
+	if err := db.Get(transCtx.LocalAgent, "id=?", transCtx.Transfer.AgentID).Run(); err != nil {
+		logger.Errorf("Failed to retrieve transfer server: %s", err)
+
+		return nil, errDatabase
+	}
+
+	var err database.Error
+	if transCtx.LocalAgentCryptos, err = transCtx.LocalAgent.GetCryptos(db); err != nil {
+		logger.Errorf("Failed to retrieve server certificates: %s", err)
+
+		return nil, errDatabase
+	}
+
+	if err = db.Get(transCtx.LocalAccount, "id=?", transCtx.Transfer.AccountID).Run(); err != nil {
+		logger.Errorf("Failed to retrieve transfer local account: %s", err)
+
+		return nil, errDatabase
+	}
+
+	if transCtx.LocalAccountCryptos, err = transCtx.LocalAccount.GetCryptos(db); err != nil {
+		logger.Errorf("Failed to retrieve local account certificates: %s", err)
+
+		return nil, errDatabase
+	}
+
+	return transCtx, nil
+}
+
+func makeRemoteAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferContext,
+) (*TransferContext, *types.TransferError) {
 	if err := db.Get(transCtx.RemoteAgent, "id=?", transCtx.Transfer.AgentID).Run(); err != nil {
 		logger.Errorf("Failed to retrieve transfer partner: %s", err)
 
@@ -130,6 +143,12 @@ func makeAgentContext(db *database.DB, logger *log.Logger, transCtx *TransferCon
 
 	if transCtx.RemoteAccountCryptos, err = transCtx.RemoteAccount.GetCryptos(db); err != nil {
 		logger.Errorf("Failed to retrieve remote account certificates: %s", err)
+
+		return nil, errDatabase
+	}
+
+	if transCtx.TransInfo, err = transCtx.Transfer.GetTransferInfo(db); err != nil {
+		logger.Errorf("Failed to retrieve the transfer info: %s", err)
 
 		return nil, errDatabase
 	}

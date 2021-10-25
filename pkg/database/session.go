@@ -101,9 +101,10 @@ func (s *Session) Update(bean UpdateBean) *UpdateQuery {
 // extreme caution.
 //
 // The request can then be executed using the UpdateAllQuery.Run method.
-func (s *Session) UpdateAll(bean UpdateAllBean, vals UpdVals, sql string,
-	args ...interface{}) *UpdateAllQuery {
-	return &UpdateAllQuery{db: s, bean: bean, vals: vals, conds: sql, args: args}
+func (s *Session) UpdateAll(bean UpdateAllBean, vals UpdVals, where string,
+	args ...interface{},
+) *UpdateAllQuery {
+	return &UpdateAllQuery{db: s, bean: bean, vals: vals, conds: where, args: args}
 }
 
 // Delete starts building a SQL 'DELETE' query to delete a single entry of

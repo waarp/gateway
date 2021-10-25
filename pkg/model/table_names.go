@@ -14,5 +14,6 @@ const (
 	TableTasks        = "tasks"
 	TableTransfers    = "transfers"
 	TableTransferInfo = "transfer_info"
+	TableFileInfo     = "file_info"
 	TableUsers        = "users"
 )

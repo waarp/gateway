@@ -41,6 +41,10 @@ func (g *getClient) Request() *types.TransferError {
 
 	req.SetBasicAuth(g.pip.TransCtx.RemoteAccount.Login, string(g.pip.TransCtx.RemoteAccount.Password))
 
+	if err := makeTransferInfo(req.Header, g.pip); err != nil {
+		return err
+	}
+
 	req.Header.Set(httpconst.TransferID, g.pip.TransCtx.Transfer.RemoteTransferID)
 	req.Header.Set(httpconst.RuleName, g.pip.TransCtx.Rule.Name)
 	makeRange(req, g.pip.TransCtx.Transfer)
@@ -58,6 +62,9 @@ func (g *getClient) Request() *types.TransferError {
 
 	switch g.resp.StatusCode {
 	case http.StatusOK, http.StatusPartialContent:
+		/* if err := setFileInfo(g.pip, g.resp.Header); err != nil {
+		return err
+		} */
 		return g.getSizeProgress()
 	default:
 		return getRemoteStatus(g.resp.Header, g.resp.Body, g.pip)
@@ -87,6 +94,10 @@ func (g *getClient) getSizeProgress() *types.TransferError {
 
 		return types.NewTransferError(types.TeInternal, "database error")
 	}
+
+	/* if err := setFileInfo(g.pip, g.resp.Header); err != nil {
+		return err
+	} */
 
 	return nil
 }

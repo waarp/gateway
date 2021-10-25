@@ -87,24 +87,16 @@ func runDownload(r *http.Request, w http.ResponseWriter, running *service.Transf
 	down.run()
 }
 
+func (d *downloadHandler) sendEarlyError(status int, err *types.TransferError) {
+	sendServerError(d.pip, d.req, d.resp, &d.reply, status, err)
+}
+
 func (d *downloadHandler) handleEarlyError(err *types.TransferError) bool {
 	if err == nil {
 		return false
 	}
 
-	d.reply.Do(func() {
-		select {
-		case <-d.req.Context().Done():
-			err = types.NewTransferError(types.TeConnectionReset, "connection closed by remote host")
-		default:
-		}
-
-		d.pip.SetError(err)
-		d.resp.Header().Set(httpconst.TransferStatus, string(types.StatusError))
-		d.resp.Header().Set(httpconst.ErrorCode, err.Code.String())
-		d.resp.Header().Set(httpconst.ErrorMessage, err.Details)
-		d.resp.WriteHeader(http.StatusInternalServerError)
-	})
+	d.sendEarlyError(http.StatusInternalServerError, err)
 
 	return true
 }
@@ -133,7 +125,9 @@ func (d *downloadHandler) handleLateError(err *types.TransferError) bool {
 func (d *downloadHandler) makeHeaders() {
 	d.resp.Header().Set(httpconst.TransferID, d.pip.TransCtx.Transfer.RemoteTransferID)
 	d.resp.Header().Set(httpconst.RuleName, d.pip.TransCtx.Rule.Name)
-	makeContentRange(d.resp.Header(), d.pip.TransCtx.Transfer)
+	head := d.resp.Header()
+	makeContentRange(head, d.pip.TransCtx.Transfer)
+	// _ = makeFileInfo(head, d.pip)
 
 	d.resp.Header().Add("Trailer", httpconst.TransferStatus)
 	d.resp.Header().Add("Trailer", httpconst.ErrorCode)
@@ -147,6 +141,10 @@ func (d *downloadHandler) makeHeaders() {
 }
 
 func (d *downloadHandler) run() {
+	if !setServerTransferInfo(d.pip, d.req.Header, d.sendEarlyError) {
+		return
+	}
+
 	if pErr := d.pip.PreTasks(); d.handleEarlyError(pErr) {
 		return
 	}

@@ -9,7 +9,7 @@ func (*Cryptos) TableName() string { return TableCrypto }
 // Elem returns the name of 1 element of the crypto table.
 func (*Cryptos) Elem() string { return "crypto credential" }
 
-// TransferInfoList is the type representing a slice of ExtInfo.
+// TransferInfoList is the type representing a slice of TransferInfo.
 type TransferInfoList []TransferInfo
 
 // TableName returns the name of the transfer info table.
@@ -108,3 +108,14 @@ func (*Users) TableName() string { return TableUsers }
 
 // Elem returns the name of 1 element of the users table.
 func (*Users) Elem() string { return "user" }
+
+/*
+// FileInfoList is the type representing a slice of FileInfo.
+type FileInfoList []FileInfo
+
+// TableName returns the name of the file info table.
+func (*FileInfoList) TableName() string { return TableFileInfo }
+
+// Elem returns the name of 1 element of the file info table.
+func (*FileInfoList) Elem() string { return "file info" }
+*/

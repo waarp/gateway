@@ -93,7 +93,7 @@ func doesTableExist(db *sql.DB, dbType, table string) bool {
 	case migration.PostgreSQL:
 		row = db.QueryRow(`SELECT tablename FROM pg_tables WHERE tablename=$1`, table)
 	case migration.MySQL:
-		row = db.QueryRow(`SHOW TABLES LIKE ?`, table)
+		row = db.QueryRow(fmt.Sprintf(`SHOW TABLES LIKE '%s'`, table))
 	default:
 		panic(fmt.Sprintf("unknown database type: %s", dbType))
 	}

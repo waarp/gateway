@@ -1,13 +1,16 @@
 package http
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/http/httpconst"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -36,7 +39,8 @@ func getRemoteError(headers http.Header, body io.ReadCloser) *types.TransferErro
 }
 
 func parseRemoteError(headers http.Header, body io.ReadCloser,
-	defaultCode types.TransferErrorCode, defaultMsg string) *types.TransferError {
+	defaultCode types.TransferErrorCode, defaultMsg string,
+) *types.TransferError {
 	code := defaultCode
 	if c := headers.Get(httpconst.ErrorCode); c != "" {
 		code = types.TecFromString(c)
@@ -173,4 +177,120 @@ func getContentRange(headers http.Header) (progress uint64, filesize int64, err 
 	}
 
 	return progress, filesize, err
+}
+
+func setServerTransferInfo(pip *pipeline.Pipeline, headers http.Header,
+	sendError func(int, *types.TransferError),
+) bool {
+	if err := setTransferInfo(pip, headers); err != nil {
+		sendError(http.StatusInternalServerError, err)
+
+		return false
+	}
+
+	return true
+}
+
+/*
+func setServerFileInfo(pip *pipeline.Pipeline, headers http.Header,
+	sendError func(int, *types.TransferError)) bool {
+
+	if err := setFileInfo(pip, headers); err != nil {
+		sendError(http.StatusInternalServerError, err)
+		return false
+	}
+
+	return true
+}
+*/
+
+func setTransferInfo(pip *pipeline.Pipeline, headers http.Header) *types.TransferError {
+	return setInfo(pip, headers, httpconst.TransferInfo, pip.TransCtx.Transfer.SetTransferInfo)
+}
+
+/*
+func setFileInfo(pip *pipeline.Pipeline, headers http.Header) *types.TransferError {
+	return setInfo(pip, headers, httpconst.FileInfo, pip.TransCtx.Transfer.SetFileInfo)
+}
+*/
+
+func setInfo(pip *pipeline.Pipeline, headers http.Header, key string,
+	set func(*database.DB, map[string]interface{}) database.Error,
+) *types.TransferError {
+	info := map[string]interface{}{}
+
+	for _, text := range headers.Values(key) {
+		subStr := strings.SplitN(text, "=", 2) //nolint:gomnd //necessary here
+		if len(subStr) < 2 {                   //nolint:gomnd //necessary here
+			pip.Logger.Errorf("Invalid transfer info header format '%s'", text)
+
+			return types.NewTransferError(types.TeUnimplemented, "invalid transfer info header")
+		}
+
+		name := subStr[0]
+		strVal := subStr[1]
+
+		var value interface{}
+		if err := json.Unmarshal([]byte(strVal), &value); err != nil {
+			pip.Logger.Errorf("Failed to unmarshall transfer info value '%s': %s", strVal, err)
+
+			return types.NewTransferError(types.TeInternal, "failed to parse transfer info value")
+		}
+
+		info[name] = value
+	}
+
+	if err := set(pip.DB, info); err != nil {
+		pip.Logger.Errorf("Failed to set transfer info: %s", err)
+		pip.SetError(types.NewTransferError(types.TeInternal, "failed to set transfer info"))
+
+		return types.NewTransferError(types.TeInternal, "database error")
+	}
+
+	return nil
+}
+
+func makeInfo(headers http.Header, pip *pipeline.Pipeline, key string,
+	info map[string]interface{},
+) *types.TransferError {
+	for name, val := range info {
+		jVal, err := json.Marshal(val)
+		if err != nil {
+			pip.Logger.Errorf("Failed to encode transfer info '%s': %s", name, err)
+
+			return types.NewTransferError(types.TeInternal, "failed to encode transfer info")
+		}
+
+		headers.Add(key, fmt.Sprintf("%s=%s", name, string(jVal)))
+	}
+
+	return nil
+}
+
+func makeTransferInfo(headers http.Header, pip *pipeline.Pipeline) *types.TransferError {
+	return makeInfo(headers, pip, httpconst.TransferInfo, pip.TransCtx.TransInfo)
+}
+
+/*
+func makeFileInfo(headers http.Header, pip *pipeline.Pipeline) *types.TransferError {
+	return makeInfo(headers, pip, httpconst.FileInfo, pip.TransCtx.FileInfo)
+}
+*/
+
+func sendServerError(pip *pipeline.Pipeline, req *http.Request, resp http.ResponseWriter,
+	once *sync.Once, status int, err *types.TransferError,
+) {
+	once.Do(func() {
+		select {
+		case <-req.Context().Done():
+			err = types.NewTransferError(types.TeConnectionReset, "connection closed by remote host")
+		default:
+		}
+
+		pip.SetError(err)
+		resp.Header().Set(httpconst.TransferStatus, string(types.StatusError))
+		resp.Header().Set(httpconst.ErrorCode, err.Code.String())
+		resp.Header().Set(httpconst.ErrorMessage, err.Details)
+		resp.WriteHeader(status)
+	})
 }
