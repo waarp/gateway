@@ -554,39 +554,3 @@ func (ver0_5_0HistoryPathsChange) Down(db migration.Actions) (err error) {
 
 	return nil
 }
-
-type ver0_5_0LocalAccountPasswordHash struct{}
-
-func (ver0_5_0LocalAccountPasswordHash) Up(db migration.Actions) error {
-	if err := db.RenameColumn("local_accounts", "password", "password_hash"); err != nil {
-		return fmt.Errorf("failed to rename the local account 'password' column: %w", err)
-	}
-
-	return nil
-}
-
-func (ver0_5_0LocalAccountPasswordHash) Down(db migration.Actions) error {
-	if err := db.RenameColumn("local_accounts", "password_hash", "password"); err != nil {
-		return fmt.Errorf("failed to restore the local account 'password' column: %w", err)
-	}
-
-	return nil
-}
-
-type ver0_5_0CertificatesRename struct{}
-
-func (ver0_5_0CertificatesRename) Up(db migration.Actions) error {
-	if err := db.RenameTable("certificates", "crypto_credentials"); err != nil {
-		return fmt.Errorf("failed to rename the 'certificates' table: %w", err)
-	}
-
-	return nil
-}
-
-func (ver0_5_0CertificatesRename) Down(db migration.Actions) error {
-	if err := db.RenameTable("crypto_credentials", "certificates"); err != nil {
-		return fmt.Errorf("failed to restore the 'certificates' table: %w", err)
-	}
-
-	return nil
-}

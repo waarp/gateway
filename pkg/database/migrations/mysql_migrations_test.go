@@ -17,7 +17,7 @@ func getMySQLEngine(c C) *migration.Engine {
 	db := testhelpers.GetTestMySQLDB(c)
 
 	script := strings.Split(MysqlCreationScript, ";\n")
-	for _, cmd := range script[:len(script)-1] {
+	for _, cmd := range script {
 		_, err := db.Exec(cmd)
 		So(err, ShouldBeNil)
 	}

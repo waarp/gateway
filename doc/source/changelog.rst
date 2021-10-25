@@ -3,8 +3,14 @@
 Historique des versions
 =======================
 
+* :release:`0.5.0 <>`
 * :feature:`247` Ajout d'un client et d'un serveur HTTP/S à la *gateway*. Il est
   donc désormais possible d'effectuer des transferts via ces 2 protocoles.
+
+* :release:`0.4.4 <>`
+* :bug:`282` Correction d'un bug dans le moteur de migration de base de données
+  qui laissait la base dans un état inutilisable après une migration à cause
+  d'une disparité de version entre la base et l'exécutable.
 
 * :release:`0.4.3 <2021-09-24>`
 * :bug:`-` Activation des migrations de base de données vers la version 0.4.2

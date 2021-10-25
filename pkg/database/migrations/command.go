@@ -81,14 +81,14 @@ func doMigration(db *sql.DB, version, dialect string, out io.Writer) error {
 	}
 
 	if target > current {
-		if err := engine.Upgrade(Migrations[current:target]); err != nil {
+		if err := engine.Upgrade(Migrations[current+1 : target+1]); err != nil {
 			return fmt.Errorf("cannot upgrade database: %w", err)
 		}
 
 		return nil
 	}
 
-	if err := engine.Downgrade(Migrations[target:current]); err != nil {
+	if err := engine.Downgrade(Migrations[target+1 : current+1]); err != nil {
 		return fmt.Errorf("cannot downgrade database: %w", err)
 	}
 

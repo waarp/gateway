@@ -50,8 +50,6 @@ func testMigrations(eng *migration.Engine, dbType string) {
 	testVer0_5_0TransferChangePaths(eng)
 	testVer0_5_0TransferFormatLocalPath(eng)
 	testVer0_5_0HistoryChangePaths(eng)
-	testVer0_5_0LocalAccountPasswordHash(eng)
-	testVer0_5_0CertificatesRename(eng, dbType)
 }
 
 func TestSQLiteMigrations(t *testing.T) {
