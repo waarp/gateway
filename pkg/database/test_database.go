@@ -23,7 +23,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
-	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 const (
@@ -190,13 +189,7 @@ func startViaMigration(c convey.C, config *conf.ServerConfig) {
 	migrEngine, err := migration.NewEngine(sqlDB, dialect, nil)
 	c.So(err, convey.ShouldBeNil)
 
-	//nolint:gocritic //append result is assigned to new slice instead of the old
-	// one because we do not want to alter the global, constant, migration list
-	migr := append(migrations.Migrations, migration.Migration{
-		Script: migrations.BumpVersion{To: vers.Num},
-	})
-
-	c.So(migrEngine.Upgrade(migr), convey.ShouldBeNil)
+	c.So(migrEngine.Upgrade(migrations.Migrations), convey.ShouldBeNil)
 	c.So(sqlDB.Close(), convey.ShouldBeNil)
 }
 

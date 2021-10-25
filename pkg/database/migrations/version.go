@@ -10,20 +10,20 @@ import (
 
 var errUnsuportedDB = errors.New("unsupported database")
 
-// BumpVersion is a migration scripts which bump the database version from a
+// bumpVersion is a migration scripts which bump the database version from a
 // given version to another.
-type BumpVersion struct{ From, To string }
+type bumpVersion struct{ from, to string }
 
-func (b BumpVersion) Up(db migration.Actions) error {
-	if err := db.Exec("UPDATE version SET current='%s'", b.To); err != nil {
+func (b bumpVersion) Up(db migration.Actions) error {
+	if err := db.Exec("UPDATE version SET current='%s'", b.to); err != nil {
 		return fmt.Errorf("cannot set data model version: %w", err)
 	}
 
 	return nil
 }
 
-func (b BumpVersion) Down(db migration.Actions) error {
-	if err := db.Exec("UPDATE version SET current='%s'", b.From); err != nil {
+func (b bumpVersion) Down(db migration.Actions) error {
+	if err := db.Exec("UPDATE version SET current='%s'", b.from); err != nil {
 		return fmt.Errorf("cannot set data model version: %w", err)
 	}
 
