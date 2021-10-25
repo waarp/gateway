@@ -1,3 +1,4 @@
+//go:build test_full || test_db_mysql
 // +build test_full test_db_mysql
 
 package migrations
@@ -6,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/smartystreets/goconvey/convey"
+	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
@@ -15,7 +16,7 @@ import (
 //nolint:lll // this won't change a lot, readability might not be that important
 const mysqlCreationScript = `
 CREATE TABLE IF NOT EXISTS version (current TEXT NOT NULL);
-INSERT INTO version (current) VALUES ('0.0.0');
+INSERT INTO version (current) VALUES ('0.4.0');
 CREATE TABLE IF NOT EXISTS certificates (id BIGINT(20) PRIMARY KEY AUTO_INCREMENT NOT NULL, owner_type VARCHAR(255) NOT NULL, owner_id BIGINT(20) NOT NULL, name VARCHAR(255) NOT NULL, private_key BLOB NULL, public_key BLOB NULL, cert BLOB NULL);
 CREATE UNIQUE INDEX UQE_certificates_cert ON certificates (owner_type,owner_id,name);
 CREATE TABLE IF NOT EXISTS transfer_history (id BIGINT(20) PRIMARY KEY NOT NULL, owner VARCHAR(255) NOT NULL, remote_transfer_id VARCHAR(255) NULL, is_server TINYINT(1) NOT NULL, is_send TINYINT(1) NOT NULL, account VARCHAR(255) NOT NULL, agent VARCHAR(255) NOT NULL, protocol VARCHAR(255) NOT NULL, source_filename VARCHAR(255) NOT NULL, dest_filename VARCHAR(255) NOT NULL, rule VARCHAR(255) NOT NULL, start CHAR(64) NOT NULL, stop CHAR(64), status VARCHAR(50) NOT NULL, error_code VARCHAR(50) NOT NULL, error_details VARCHAR(255) NOT NULL, step VARCHAR(50) NOT NULL, progression BIGINT(20) NOT NULL, task_number BIGINT(20) NOT NULL);

@@ -32,7 +32,7 @@ func doesIndexExist(db *sql.DB, dialect, table, index string) bool {
 
 	switch dialect {
 	case migration.SQLite:
-		rows, err = db.Query("SELECT * FROM sqlite_master WHERE type=? AND name=?", "index", index)
+		rows, err = db.Query("SELECT name FROM sqlite_master WHERE type=? AND name=?", "index", index)
 	case migration.PostgreSQL:
 		rows, err = db.Query("SELECT indexname FROM pg_indexes WHERE indexname=$1", index)
 	case migration.MySQL:
