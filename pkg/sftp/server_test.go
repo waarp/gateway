@@ -51,8 +51,8 @@ func TestServerStop(t *testing.T) {
 		}
 		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
-		server := NewService(db, agent, logger)
-		So(server.Start(), ShouldBeNil)
+		server := NewService(db, logger)
+		So(server.Start(agent), ShouldBeNil)
 
 		Convey("When stopping the service", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -95,11 +95,11 @@ func TestServerStart(t *testing.T) {
 		}
 		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
-		sftpServer := newService(db, agent, logger)
+		sftpServer := newService(db, logger)
 
 		Convey("Given that the configuration is valid", func() {
 			Convey("When starting the server", func() {
-				err := sftpServer.Start()
+				err := sftpServer.Start(agent)
 
 				Reset(func() {
 					ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -120,7 +120,7 @@ func TestServerStart(t *testing.T) {
 			So(db.Update(agent).Cols("address").Run(), ShouldBeNil)
 
 			Convey("When starting the server", func() {
-				err := sftpServer.Start()
+				err := sftpServer.Start(agent)
 
 				Reset(func() {
 					_ = sftpServer.Stop(context.Background())
@@ -138,7 +138,7 @@ func TestServerStart(t *testing.T) {
 			So(db.Delete(hostKey).Run(), ShouldBeNil)
 
 			Convey("When starting the server", func() {
-				err := sftpServer.Start()
+				err := sftpServer.Start(agent)
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError)
@@ -155,8 +155,8 @@ func TestSSHServerInterruption(t *testing.T) {
 		test := pipelinetest.InitServerPush(c, "sftp", NewService, nil)
 		test.AddCryptos(c, makeServerKey(test.Server))
 
-		serv := newService(test.DB, test.Server, testhelpers.TestLogger(c, "ssh_test_server"))
-		c.So(serv.Start(), ShouldBeNil)
+		serv := newService(test.DB, testhelpers.TestLogger(c, "ssh_test_server"))
+		c.So(serv.Start(test.Server), ShouldBeNil)
 
 		Convey("Given a dummy SFTP client", func() {
 			cli := makeDummyClient(test.Server.Address, pipelinetest.TestLogin, pipelinetest.TestPassword)
@@ -206,7 +206,6 @@ func TestSSHServerInterruption(t *testing.T) {
 						}
 						So(transfers[0], ShouldResemble, trans)
 
-						//nolint:forcetypeassert //no need, the type assertion will always succeed
 						ok := serv.listener.runningTransfers.Exists(trans.ID)
 						So(ok, ShouldBeFalse)
 					})

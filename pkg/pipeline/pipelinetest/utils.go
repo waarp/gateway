@@ -26,8 +26,7 @@ const (
 	TestPassword = "sesame"
 )
 
-type serviceConstructor func(db *database.DB, agent *model.LocalAgent,
-	logger *log.Logger) service.ProtoService
+type serviceConstructor func(db *database.DB, logger *log.Logger) service.ProtoService
 
 // TestFileSize defines the size of the file used for transfer tests.
 const TestFileSize int64 = 1000000 // 1MB

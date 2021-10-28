@@ -41,9 +41,9 @@ func TestValidAuth(t *testing.T) {
 		So(db.Insert(toto).Run(), ShouldBeNil)
 
 		handler := &authHandler{Service: &Service{
-			db:     db,
-			logger: logger,
-			agent:  r66Server,
+			db:      db,
+			logger:  logger,
+			agentID: r66Server.ID,
 		}}
 
 		Convey("Given an authentication packet", func() {
@@ -132,7 +132,7 @@ func TestValidRequest(t *testing.T) {
 			authHandler: &authHandler{Service: &Service{
 				db:               db,
 				logger:           logger,
-				agent:            server,
+				agentID:          server.ID,
 				runningTransfers: service.NewTransferMap(),
 			}},
 			account: account,
@@ -273,9 +273,9 @@ func TestUpdateTransferInfo(t *testing.T) {
 			hand := transferHandler{
 				sessionHandler: &sessionHandler{
 					authHandler: &authHandler{Service: &Service{
-						db:     db,
-						logger: logger,
-						agent:  server,
+						db:      db,
+						logger:  logger,
+						agentID: server.ID,
 					}},
 				},
 				trans: &serverTransfer{
@@ -327,9 +327,9 @@ func TestUpdateTransferInfo(t *testing.T) {
 			hand := transferHandler{
 				sessionHandler: &sessionHandler{
 					authHandler: &authHandler{Service: &Service{
-						db:     db,
-						logger: logger,
-						agent:  server,
+						db:      db,
+						logger:  logger,
+						agentID: server.ID,
 					}},
 				},
 				trans: &serverTransfer{

@@ -65,8 +65,7 @@ func TestFileReader(t *testing.T) {
 				handler := (&sshListener{
 					DB:               db,
 					Logger:           logger,
-					Agent:            agent,
-					ProtoConfig:      &serverConf,
+					AgentID:          agent.ID,
 					runningTransfers: service.NewTransferMap(),
 				}).makeFileReader(nil, account)
 
@@ -171,8 +170,7 @@ func TestFileWriter(t *testing.T) {
 				handler := (&sshListener{
 					DB:               db,
 					Logger:           logger,
-					Agent:            agent,
-					ProtoConfig:      &serverConf,
+					AgentID:          agent.ID,
 					runningTransfers: service.NewTransferMap(),
 				}).makeFileWriter(nil, account)
 

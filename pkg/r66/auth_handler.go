@@ -65,7 +65,7 @@ func (a *authHandler) certAuth(auth *r66.Authent) (*model.LocalAccount, *r66.Err
 	}
 
 	var acc model.LocalAccount
-	if err := a.db.Get(&acc, "local_agent_id=? AND login=?", a.agent.ID, auth.Login).Run(); err != nil {
+	if err := a.db.Get(&acc, "local_agent_id=? AND login=?", a.agentID, auth.Login).Run(); err != nil {
 		if !database.IsNotFound(err) {
 			a.logger.Error("Failed to retrieve client account: %s", err)
 
@@ -97,7 +97,7 @@ func (a *authHandler) passwordAuth(auth *r66.Authent) (*model.LocalAccount, *r66
 
 	var acc model.LocalAccount
 	if err := a.db.Get(&acc, "login=? AND local_agent_id=?", auth.Login,
-		a.agent.ID).Run(); err != nil {
+		a.agentID).Run(); err != nil {
 		if !database.IsNotFound(err) {
 			a.logger.Error("Failed to retrieve credentials from database: %s", err)
 

@@ -12,7 +12,8 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/names"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 )
 
 // Controller is the service responsible for checking the database for new
@@ -22,7 +23,7 @@ type Controller struct {
 
 	ticker *time.Ticker
 	logger *log.Logger
-	state  service.State
+	state  state.State
 
 	wg     *sync.WaitGroup
 	done   chan struct{}
@@ -52,13 +53,13 @@ func (c *Controller) listen() {
 
 // Start starts the transfer controller service.
 func (c *Controller) Start() error {
-	c.logger = conf.GetLogger(service.ControllerServiceName)
+	c.logger = conf.GetLogger(names.ControllerServiceName)
 
 	config := &conf.GlobalConfig.Controller
 	pipeline.TransferInCount.SetLimit(config.MaxTransfersIn)
 	pipeline.TransferOutCount.SetLimit(config.MaxTransfersOut)
 	c.ticker = time.NewTicker(config.Delay)
-	c.state.Set(service.Running, "")
+	c.state.Set(state.Running, "")
 
 	c.listen()
 	c.logger.Info("Controller started")
@@ -69,7 +70,7 @@ func (c *Controller) Start() error {
 // Stop stops the transfer controller service.
 func (c *Controller) Stop(ctx context.Context) error {
 	defer func() {
-		c.state.Set(service.Offline, "")
+		c.state.Set(state.Offline, "")
 		c.ticker.Stop()
 	}()
 	c.logger.Info("Shutting down controller...")
@@ -93,6 +94,6 @@ func (c *Controller) Stop(ctx context.Context) error {
 }
 
 // State returns the state of the transfer controller service.
-func (c *Controller) State() *service.State {
+func (c *Controller) State() *state.State {
 	return &c.state
 }

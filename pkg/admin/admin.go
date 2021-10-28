@@ -20,6 +20,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/names"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 )
 
 var ErrMissingKeyFile = errors.New("missing certificate private key")
@@ -31,7 +33,7 @@ type Server struct {
 	ProtoServices map[string]service.ProtoService
 
 	logger *log.Logger
-	state  service.State
+	state  state.State
 	server http.Server
 }
 
@@ -40,7 +42,7 @@ func listen(s *Server) {
 	s.logger.Info("Listening at address %s", s.server.Addr)
 
 	go func() {
-		s.state.Set(service.Running, "")
+		s.state.Set(state.Running, "")
 
 		var err error
 
@@ -52,9 +54,9 @@ func listen(s *Server) {
 
 		if !errors.Is(err, http.ErrServerClosed) {
 			s.logger.Error("Unexpected error: %s", err)
-			s.state.Set(service.Error, err.Error())
+			s.state.Set(state.Error, err.Error())
 		} else {
-			s.state.Set(service.Offline, "")
+			s.state.Set(state.Offline, "")
 		}
 	}()
 }
@@ -180,28 +182,28 @@ func initServer(serv *Server) error {
 // Start launches the administration service. If the service cannot be launched,
 // the function returns an error.
 func (s *Server) Start() error {
-	s.logger = conf.GetLogger(service.AdminServiceName)
+	s.logger = conf.GetLogger(names.AdminServiceName)
 
 	s.logger.Info("Startup command received...")
 
-	if state, _ := s.state.Get(); state != service.Offline && state != service.Error {
+	if st, _ := s.state.Get(); st != state.Offline && st != state.Error {
 		s.logger.Info("Cannot start because the server is already running.")
 
 		return nil
 	}
 
-	s.state.Set(service.Starting, "")
+	s.state.Set(state.Starting, "")
 
 	if err := initServer(s); err != nil {
 		s.logger.Error("Failed to start: %s", err)
-		s.state.Set(service.Error, err.Error())
+		s.state.Set(state.Error, err.Error())
 
 		return err
 	}
 
 	listen(s)
 
-	s.state.Set(service.Running, "")
+	s.state.Set(state.Running, "")
 	s.logger.Info("Server started")
 
 	return nil
@@ -212,13 +214,13 @@ func (s *Server) Start() error {
 func (s *Server) Stop(ctx context.Context) error {
 	s.logger.Info("Shutdown command received...")
 
-	if state, _ := s.state.Get(); state != service.Running {
+	if st, _ := s.state.Get(); st != state.Running {
 		s.logger.Info("Cannot stop because the server is not running")
 
 		return nil
 	}
 
-	s.state.Set(service.ShuttingDown, "")
+	s.state.Set(state.ShuttingDown, "")
 	err := s.server.Shutdown(ctx)
 
 	if err == nil {
@@ -229,7 +231,7 @@ func (s *Server) Stop(ctx context.Context) error {
 		s.logger.Warning("The server was forcefully stopped")
 	}
 
-	s.state.Set(service.Offline, "")
+	s.state.Set(state.Offline, "")
 
 	if err != nil {
 		return fmt.Errorf("an error occurred while stopping the server: %w", err)
@@ -239,6 +241,6 @@ func (s *Server) Stop(ctx context.Context) error {
 }
 
 // State returns the state of the service.
-func (s *Server) State() *service.State {
+func (s *Server) State() *state.State {
 	return &s.state
 }

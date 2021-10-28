@@ -13,7 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -59,7 +59,7 @@ func testSetup(c C) (*WG, *model.LocalAgent, *model.LocalAgent) {
 	return &WG{Logger: testhelpers.TestLogger(c, "test_wg")}, s1, s2
 }
 
-func checkState(wg *WG, code service.StateCode, s1, s2 *model.LocalAgent) {
+func checkState(wg *WG, code state.StateCode, s1, s2 *model.LocalAgent) {
 	So(wg.dbService, ShouldNotBeNil)
 	So(wg.adminService, ShouldNotBeNil)
 	So(wg.controller, ShouldNotBeNil)
@@ -94,7 +94,7 @@ func TestStartServices(t *testing.T) {
 			defer wg.stopServices()
 
 			Convey("Then it should have started all the gateway services", func() {
-				checkState(wg, service.Running, s1, s2)
+				checkState(wg, state.Running, s1, s2)
 			})
 		})
 	})
@@ -111,7 +111,7 @@ func TestStopServices(t *testing.T) {
 				wg.stopServices()
 
 				Convey("Then it should have stopped all the services", func() {
-					checkState(wg, service.Offline, s1, s2)
+					checkState(wg, state.Offline, s1, s2)
 				})
 			})
 		})

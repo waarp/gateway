@@ -13,16 +13,16 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 var errNoValidCert = errors.New("could not find a valid certificate for HTTP server")
 
-func (h *httpService) makeTLSConf() (*tls.Config, error) {
+func (h *httpService) makeTLSConf(agent *model.LocalAgent) (*tls.Config, error) {
 	var certs model.Cryptos
-	if err := h.db.Select(&certs).Where("owner_type=? AND owner_id=?", h.agent.TableName(),
-		h.agent.ID).Run(); err != nil {
+	if err := h.db.Select(&certs).Where("owner_type=? AND owner_id=?", agent.TableName(),
+		agent.ID).Run(); err != nil {
 		h.logger.Error("Failed to retrieve server certificates: %s", err)
 
 		return nil, fmt.Errorf("failed to retrieve server certificates: %w", err)
@@ -50,7 +50,7 @@ func (h *httpService) makeTLSConf() (*tls.Config, error) {
 	var clientCerts model.Cryptos
 	if err := h.db.Select(&clientCerts).Where("owner_type='local_accounts' AND "+
 		"owner_id IN (SELECT id FROM local_accounts WHERE local_agent_id=?)",
-		h.agent.ID).Run(); err != nil {
+		agent.ID).Run(); err != nil {
 		h.logger.Error("Failed to retrieve client certificates: %s", err)
 
 		return nil, fmt.Errorf("failed to retrieve server certificates: %w", err)
@@ -76,8 +76,8 @@ func (h *httpService) makeTLSConf() (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
-func (h *httpService) listen() error {
-	addr, err := conf.GetRealAddress(h.agent.Address)
+func (h *httpService) listen(agent *model.LocalAgent) error {
+	addr, err := conf.GetRealAddress(agent.Address)
 	if err != nil {
 		h.logger.Error("Failed to retrieve HTTP server address: %s", err)
 
@@ -93,7 +93,7 @@ func (h *httpService) listen() error {
 
 	go func() {
 		var err error
-		if h.agent.Protocol == "https" {
+		if agent.Protocol == "https" {
 			err = h.serv.ServeTLS(list, "", "")
 		} else {
 			err = h.serv.Serve(list)
@@ -101,29 +101,38 @@ func (h *httpService) listen() error {
 
 		if !errors.Is(err, http.ErrServerClosed) {
 			h.logger.Error("Unexpected error: %h", err)
-			h.state.Set(service.Error, err.Error())
+			h.state.Set(state.Error, err.Error())
 		} else {
-			h.state.Set(service.Offline, "")
+			h.state.Set(state.Offline, "")
 		}
 	}()
 
 	return nil
 }
 
+//nolint:contextcheck //would be too complicated to change
 func (h *httpService) makeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if h.checkShutdown(w) {
 			return
 		}
 
-		acc, canContinue := h.checkAuthent(w, r)
+		var agent model.LocalAgent
+		if err := h.db.Get(&agent, "id=?", h.agentID).Run(); err != nil {
+			h.logger.Error("Failed to retrieve user credentials: %s", err)
+			http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
+
+			return
+		}
+
+		acc, canContinue := h.checkAuthent(w, r, &agent)
 		if !canContinue {
 			return
 		}
 
 		handler := &httpHandler{
 			running: h.running,
-			agent:   h.agent,
+			agent:   &agent,
 			account: acc,
 			db:      h.db,
 			logger:  h.logger,
@@ -145,6 +154,7 @@ func (h *httpService) makeHandler() http.HandlerFunc {
 }
 
 func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
+	agent *model.LocalAgent,
 ) (*model.LocalAccount, bool) {
 	var acc *model.LocalAccount
 
@@ -156,7 +166,7 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 	}
 
 	if pswd != "" {
-		acc1, canContinue := h.passwdAuth(w, login, pswd)
+		acc1, canContinue := h.passwdAuth(w, agent, login, pswd)
 		if !canContinue {
 			return nil, false
 		}
@@ -165,7 +175,7 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 	}
 
 	if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
-		acc2, canContinue := h.certAuth(w, login, r.TLS.PeerCertificates)
+		acc2, canContinue := h.certAuth(w, login, r.TLS.PeerCertificates, agent)
 		if !canContinue {
 			return nil, false
 		}
@@ -182,10 +192,11 @@ func (h *httpService) checkAuthent(w http.ResponseWriter, r *http.Request,
 	return acc, true
 }
 
-func (h *httpService) passwdAuth(w http.ResponseWriter, login, pswd string,
+func (h *httpService) passwdAuth(w http.ResponseWriter, agent *model.LocalAgent,
+	login, pswd string,
 ) (*model.LocalAccount, bool) {
 	var acc model.LocalAccount
-	if err := h.db.Get(&acc, "login=? AND local_agent_id=?", login, h.agent.ID).Run(); err != nil {
+	if err := h.db.Get(&acc, "login=? AND local_agent_id=?", login, agent.ID).Run(); err != nil {
 		if !database.IsNotFound(err) {
 			h.logger.Error("Failed to retrieve user credentials: %s", err)
 			http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)
@@ -205,9 +216,10 @@ func (h *httpService) passwdAuth(w http.ResponseWriter, login, pswd string,
 }
 
 func (h *httpService) certAuth(w http.ResponseWriter, login string, certs []*x509.Certificate,
+	agent *model.LocalAgent,
 ) (*model.LocalAccount, bool) {
 	var acc model.LocalAccount
-	if err := h.db.Get(&acc, "login=? AND local_agent_id=?", login, h.agent.ID).Run(); err != nil {
+	if err := h.db.Get(&acc, "login=? AND local_agent_id=?", login, agent.ID).Run(); err != nil {
 		if !database.IsNotFound(err) {
 			h.logger.Error("Failed to retrieve user credentials: %s", err)
 			http.Error(w, "Failed to retrieve user credentials", http.StatusInternalServerError)

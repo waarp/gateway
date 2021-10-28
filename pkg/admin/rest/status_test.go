@@ -10,45 +10,51 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
-type testService struct {
-	state service.State
-}
+type testService struct{ state state.State }
 
-func (*testService) Start() error                          { return nil }
-func (*testService) Stop(context.Context) error            { return nil }
-func (t *testService) State() *service.State               { return &t.state }
-func (*testService) ManageTransfers() *service.TransferMap { return service.NewTransferMap() }
+func (*testService) Start() error               { return nil }
+func (*testService) Stop(context.Context) error { return nil }
+func (t *testService) State() *state.State      { return &t.state }
+
+type testServer struct{ state state.State }
+
+func (*testServer) Start(*model.LocalAgent) error         { return nil }
+func (*testServer) Stop(context.Context) error            { return nil }
+func (t *testServer) State() *state.State                 { return &t.state }
+func (*testServer) ManageTransfers() *service.TransferMap { return service.NewTransferMap() }
 
 func TestStatus(t *testing.T) {
 	core := map[string]service.Service{
-		"Core Running Service": &testService{state: service.State{}},
-		"Core Offline Service": &testService{state: service.State{}},
-		"Core Error Service":   &testService{state: service.State{}},
+		"Core Running Service": &testService{state: state.State{}},
+		"Core Offline Service": &testService{state: state.State{}},
+		"Core Error Service":   &testService{state: state.State{}},
 	}
-	core["Core Running Service"].State().Set(service.Running, "")
-	core["Core Offline Service"].State().Set(service.Offline, "")
-	core["Core Error Service"].State().Set(service.Error, "Test Reason")
+	core["Core Running Service"].State().Set(state.Running, "")
+	core["Core Offline Service"].State().Set(state.Offline, "")
+	core["Core Error Service"].State().Set(state.Error, "Test Reason")
 
 	proto := map[string]service.ProtoService{
-		"Proto Running Service": &testService{state: service.State{}},
-		"Proto Offline Service": &testService{state: service.State{}},
-		"Proto Error Service":   &testService{state: service.State{}},
+		"Proto Running Service": &testServer{state: state.State{}},
+		"Proto Offline Service": &testServer{state: state.State{}},
+		"Proto Error Service":   &testServer{state: state.State{}},
 	}
-	proto["Proto Running Service"].State().Set(service.Running, "")
-	proto["Proto Offline Service"].State().Set(service.Offline, "")
-	proto["Proto Error Service"].State().Set(service.Error, "Test Reason")
+	proto["Proto Running Service"].State().Set(state.Running, "")
+	proto["Proto Offline Service"].State().Set(state.Offline, "")
+	proto["Proto Error Service"].State().Set(state.Error, "Test Reason")
 
 	statuses := map[string]api.Status{
-		"Core Error Service":    {State: service.Error.Name(), Reason: "Test Reason"},
-		"Core Offline Service":  {State: service.Offline.Name()},
-		"Core Running Service":  {State: service.Running.Name()},
-		"Proto Error Service":   {State: service.Error.Name(), Reason: "Test Reason"},
-		"Proto Offline Service": {State: service.Offline.Name()},
-		"Proto Running Service": {State: service.Running.Name()},
+		"Core Error Service":    {State: state.Error.Name(), Reason: "Test Reason"},
+		"Core Offline Service":  {State: state.Offline.Name()},
+		"Core Running Service":  {State: state.Running.Name()},
+		"Proto Error Service":   {State: state.Error.Name(), Reason: "Test Reason"},
+		"Proto Offline Service": {State: state.Offline.Name()},
+		"Proto Running Service": {State: state.Running.Name()},
 	}
 
 	Convey("Given the REST status handler", t, func(c C) {

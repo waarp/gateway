@@ -140,7 +140,7 @@ func (s *sessionHandler) getTransfer(req *r66.Request, rule *model.Rule) (*model
 		RemoteTransferID: fmt.Sprint(req.ID),
 		RuleID:           rule.ID,
 		IsServer:         true,
-		AgentID:          s.agent.ID,
+		AgentID:          s.agentID,
 		AccountID:        s.account.ID,
 		LocalPath:        strings.TrimPrefix(req.Filepath, "/"),
 		RemotePath:       path.Base(req.Filepath),
@@ -191,9 +191,8 @@ func (s *sessionHandler) GetTransferInfo(id int64, isClient bool) (*r66.Transfer
 	remoteID := fmt.Sprint(id)
 	trans := model.Transfer{}
 
-	err := s.db.Get(&trans, "remote_transfer_id=? AND is_server=? AND account_id=?",
-		remoteID, true, s.account.ID).Run()
-	if database.IsNotFound(err) {
+	if err := s.db.Get(&trans, "remote_transfer_id=? AND is_server=? AND account_id=?",
+		remoteID, true, s.account.ID).Run(); database.IsNotFound(err) {
 		return s.getInfoFromHistory(id)
 	} else if err != nil {
 		s.logger.Error("Failed to retrieve transfer entry: %v", err)
@@ -223,7 +222,12 @@ func (s *sessionHandler) getInfoFromTransfer(remoteID int64, trans *model.Transf
 		return nil, internal.ToR66Error(err)
 	}
 
-	file, fErr := filepath.Rel(s.makeDir(ctx.Rule), trans.LocalPath)
+	dir, dirErr := s.makeDir(ctx.Rule)
+	if dirErr != nil {
+		return nil, dirErr
+	}
+
+	file, fErr := filepath.Rel(dir, trans.LocalPath)
 	if fErr != nil {
 		s.logger.Error("Failed to build file path: %v", err)
 
@@ -309,7 +313,11 @@ func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, erro
 	}
 
 	pattern := filepath.FromSlash(pat)
-	dir := s.makeDir(&rule)
+
+	dir, err := s.makeDir(&rule)
+	if err != nil {
+		return nil, err
+	}
 
 	return s.listDirFiles(dir, pattern)
 }
@@ -398,16 +406,21 @@ func (s *sessionHandler) listSubFiles(full, dir string) []r66.FileInfo {
 	return infos
 }
 
-func (s *sessionHandler) makeDir(rule *model.Rule) string {
-	servDir := s.agent.ReceiveDir
+func (s *sessionHandler) makeDir(rule *model.Rule) (string, error) {
+	var agent model.LocalAgent
+	if err := s.db.Get(&agent, "id=?", s.agentID).Run(); err != nil {
+		return "", fmt.Errorf("failed to retrieve the server info: %w", err)
+	}
+
+	servDir := agent.ReceiveDir
 	defDir := conf.GlobalConfig.Paths.DefaultInDir
 
 	if rule.IsSend {
-		servDir = s.agent.SendDir
+		servDir = agent.SendDir
 		defDir = conf.GlobalConfig.Paths.DefaultOutDir
 	}
 
 	return utils.GetPath("", utils.Leaf(rule.LocalDir), utils.Leaf(servDir),
-		utils.Branch(s.agent.RootDir), utils.Leaf(defDir),
-		utils.Branch(conf.GlobalConfig.Paths.GatewayHome))
+		utils.Branch(agent.RootDir), utils.Leaf(defDir),
+		utils.Branch(conf.GlobalConfig.Paths.GatewayHome)), nil
 }

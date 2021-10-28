@@ -8,7 +8,7 @@ import (
 	"sort"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 )
 
 // Status regroups all the options of the 'status' command.
@@ -25,9 +25,9 @@ func showStatus(statuses api.Statuses, w io.Writer) {
 
 	for name, status := range statuses {
 		switch status.State {
-		case service.Running.Name():
+		case state.Running.Name():
 			actives = append(actives, name)
-		case service.Error.Name():
+		case state.Error.Name():
 			errors = append(errors, name)
 		default:
 			offlines = append(offlines, name)

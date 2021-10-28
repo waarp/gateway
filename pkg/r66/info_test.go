@@ -57,9 +57,9 @@ func TestGetFileInfo(t *testing.T) {
 		handle := sessionHandler{
 			authHandler: &authHandler{
 				Service: &Service{
-					db:     db,
-					logger: logger,
-					agent:  agent,
+					db:      db,
+					logger:  logger,
+					agentID: agent.ID,
 				},
 			},
 			account: account,
@@ -190,9 +190,9 @@ func TestGetTransferInfo(t *testing.T) {
 		handle := sessionHandler{
 			authHandler: &authHandler{
 				Service: &Service{
-					db:     db,
-					logger: logger,
-					agent:  agent,
+					db:      db,
+					logger:  logger,
+					agentID: agent.ID,
 				},
 			},
 			account: account,

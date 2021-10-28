@@ -161,10 +161,10 @@ func (s *ServerContext) AddCryptos(c convey.C, certs ...model.Crypto) {
 }
 
 // StartService starts the service associated with the server defined in ServerContext.
-func (s *ServerContext) StartService(c convey.C) service.Service {
+func (s *ServerContext) StartService(c convey.C) service.ProtoService {
 	logger := conf.GetLogger(fmt.Sprintf("test_%s_server", s.Server.Protocol))
-	serv := s.constr(s.DB, s.Server, logger)
-	c.So(serv.Start(), convey.ShouldBeNil)
+	serv := s.constr(s.DB, logger)
+	c.So(serv.Start(s.Server), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()

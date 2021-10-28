@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -23,23 +24,23 @@ func init() {
 	ServiceConstructors[testProtocol] = newTestServ
 }
 
-type testServ struct{ state *service.State }
+type testServ struct{ state *state.State }
 
-func newTestServ(*database.DB, *model.LocalAgent, *log.Logger) service.ProtoService {
-	return &testServ{state: &service.State{}}
+func newTestServ(*database.DB, *log.Logger) service.ProtoService {
+	return &testServ{state: &state.State{}}
 }
 
-func (t *testServ) Start() error {
-	t.state.Set(service.Running, "")
+func (t *testServ) Start(*model.LocalAgent) error {
+	t.state.Set(state.Running, "")
 
 	return nil
 }
 
 func (t *testServ) Stop(context.Context) error {
-	t.state.Set(service.Offline, "")
+	t.state.Set(state.Offline, "")
 
 	return nil
 }
 
-func (t *testServ) State() *service.State                 { return t.state }
+func (t *testServ) State() *state.State                   { return t.state }
 func (t *testServ) ManageTransfers() *service.TransferMap { return service.NewTransferMap() }

@@ -141,8 +141,8 @@ func (s *SelfContext) addPullTransfer(c convey.C) {
 // the SelfContext.
 func (s *SelfContext) StartService(c convey.C) {
 	logger := testhelpers.TestLogger(c, fmt.Sprintf("test_%s_server", s.Server.Protocol))
-	s.service = s.constr(s.DB, s.Server, logger)
-	c.So(s.service.Start(), convey.ShouldBeNil)
+	s.service = s.constr(s.DB, logger)
+	c.So(s.service.Start(s.Server), convey.ShouldBeNil)
 	c.Reset(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()

@@ -15,7 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -142,11 +142,11 @@ func TestControllerListen(t *testing.T) {
 				So(gwController.DB.Insert(trans).Run(), ShouldBeNil)
 
 				Convey("Given that the database stops responding", func() {
-					gwController.DB.State().Set(service.Error, "test error")
+					gwController.DB.State().Set(state.Error, "test error")
 					gwController.wasDown = true
 
 					Convey("When the database comes back online", func() {
-						gwController.DB.State().Set(service.Running, "")
+						gwController.DB.State().Set(state.Running, "")
 
 						Convey("When the controller starts new transfers again", func() {
 							cont.Action(cont.wg, *cont.logger)

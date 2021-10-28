@@ -13,6 +13,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -47,7 +48,7 @@ func TestStart(t *testing.T) {
 				Convey("Then the service should be running", func() {
 					code, reason := server.State().Get()
 
-					So(code, ShouldEqual, service.Running)
+					So(code, ShouldEqual, state.Running)
 					So(reason, ShouldBeEmpty)
 				})
 
@@ -57,7 +58,7 @@ func TestStart(t *testing.T) {
 					Convey("Then the service should still be running", func() {
 						code, reason := server.State().Get()
 
-						So(code, ShouldEqual, service.Running)
+						So(code, ShouldEqual, state.Running)
 						So(reason, ShouldBeEmpty)
 					})
 				})
@@ -80,7 +81,7 @@ func TestStart(t *testing.T) {
 			Convey("Then the service should be running", func() {
 				code, reason := server.State().Get()
 
-				So(code, ShouldEqual, service.Running)
+				So(code, ShouldEqual, state.Running)
 				So(reason, ShouldBeEmpty)
 			})
 		})

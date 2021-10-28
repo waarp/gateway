@@ -32,10 +32,10 @@ func TestServiceStart(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
-		serv := NewService(db, server, logger)
+		serv := NewService(db, logger)
 
 		Convey("When calling the 'Start' function", func() {
-			err := serv.Start()
+			err := serv.Start(server)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -56,8 +56,8 @@ func TestServiceStop(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
-		serv := NewService(db, server, logger)
-		So(serv.Start(), ShouldBeNil)
+		serv := NewService(db, logger)
+		So(serv.Start(server), ShouldBeNil)
 
 		Convey("When calling the 'Stop' function", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -76,8 +76,8 @@ func TestServerInterruption(t *testing.T) {
 		test := pipelinetest.InitServerPush(c, "http", NewService, nil)
 		logger := testhelpers.TestLogger(c, "http_server")
 
-		serv := newService(test.DB, test.Server, logger)
-		c.So(serv.Start(), ShouldBeNil)
+		serv := newService(test.DB, logger)
+		c.So(serv.Start(test.Server), ShouldBeNil)
 
 		Convey("Given a dummy HTTP client", func() {
 			cli := http.DefaultClient

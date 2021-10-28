@@ -74,8 +74,7 @@ func TestSFTPList(t *testing.T) {
 			sshList := &sshListener{
 				DB:               db,
 				Logger:           logger,
-				Agent:            agent,
-				ProtoConfig:      &protoConfig,
+				AgentID:          agent.ID,
 				SSHConf:          serverConfig,
 				Listener:         listener,
 				runningTransfers: service.NewTransferMap(),

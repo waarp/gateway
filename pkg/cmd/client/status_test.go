@@ -10,38 +10,31 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 )
 
-type emptyService struct {
-	state *service.State
-}
+type dummyService struct{ state *state.State }
 
-func (emptyService) Start() error {
-	return nil
-}
+func (*dummyService) Start() error               { return nil }
+func (*dummyService) Stop(context.Context) error { return nil }
+func (e *dummyService) State() *state.State      { return e.state }
 
-func (emptyService) Stop(context.Context) error {
-	return nil
-}
+type dummyServer struct{ *dummyService }
 
-func (e emptyService) State() *service.State {
-	return e.state
-}
-
-func (e emptyService) ManageTransfers() *service.TransferMap {
-	return nil
-}
+func (*dummyServer) Start(*model.LocalAgent) error          { return nil }
+func (e dummyServer) ManageTransfers() *service.TransferMap { return nil }
 
 func TestRequestStatus(t *testing.T) {
-	runningState := service.State{}
-	runningState.Set(service.Running, "")
+	runningState := state.State{}
+	runningState.Set(state.Running, "")
 
-	offlineState := service.State{}
-	offlineState.Set(service.Offline, "")
+	offlineState := state.State{}
+	offlineState.Set(state.Offline, "")
 
-	errorState := service.State{}
-	errorState.Set(service.Error, "Error message")
+	errorState := state.State{}
+	errorState.Set(state.Error, "Error message")
 
 	Convey("Testing the 'status' command", t, func() {
 		out = testFile()
@@ -50,20 +43,20 @@ func TestRequestStatus(t *testing.T) {
 		Convey("Given a running gateway", func(c C) {
 			db := database.TestDatabase(c)
 			core := map[string]service.Service{
-				"Core Service 1": &emptyService{state: &offlineState},
-				"Core Service 2": &emptyService{state: &runningState},
-				"Core Service 3": &emptyService{state: &offlineState},
-				"Core Service 4": &emptyService{state: &errorState},
-				"Core Service 5": &emptyService{state: &errorState},
-				"Core Service 6": &emptyService{state: &runningState},
+				"Core Service 1": &dummyService{&offlineState},
+				"Core Service 2": &dummyService{&runningState},
+				"Core Service 3": &dummyService{&offlineState},
+				"Core Service 4": &dummyService{&errorState},
+				"Core Service 5": &dummyService{&errorState},
+				"Core Service 6": &dummyService{&runningState},
 			}
 			proto := map[string]service.ProtoService{
-				"Proto Service 1": &emptyService{state: &offlineState},
-				"Proto Service 2": &emptyService{state: &runningState},
-				"Proto Service 3": &emptyService{state: &offlineState},
-				"Proto Service 4": &emptyService{state: &errorState},
-				"Proto Service 5": &emptyService{state: &errorState},
-				"Proto Service 6": &emptyService{state: &runningState},
+				"Proto Service 1": &dummyServer{&dummyService{&offlineState}},
+				"Proto Service 2": &dummyServer{&dummyService{&runningState}},
+				"Proto Service 3": &dummyServer{&dummyService{&offlineState}},
+				"Proto Service 4": &dummyServer{&dummyService{&errorState}},
+				"Proto Service 5": &dummyServer{&dummyService{&errorState}},
+				"Proto Service 6": &dummyServer{&dummyService{&runningState}},
 			}
 			gw := httptest.NewServer(admin.MakeHandler(discard(), db, core, proto))
 
