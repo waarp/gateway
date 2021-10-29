@@ -15,18 +15,12 @@ import (
 	"code.waarp.fr/waarp-r66/r66"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
-
-//nolint:gochecknoinits // init is used by design
-func init() {
-	gatewayd.ServiceConstructors["r66"] = NewService
-}
 
 var errInvalidCertificate = errors.New("invalid certificate")
 

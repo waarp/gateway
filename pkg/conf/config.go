@@ -28,9 +28,9 @@ type ServerConfig struct {
 //nolint:lll // cannot split struct tags
 type PathsConfig struct {
 	GatewayHome   string `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the working directory of the process."`
-	InDirectory   string `ini-name:"InDirectory" default:"in" description:"DEPRECATED, use DefaultInDir instead"`      // DEPRECATED
-	OutDirectory  string `ini-name:"OutDirectory" default:"out" description:"DEPRECATED, use DefaultOutDir instead"`   // DEPRECATED
-	WorkDirectory string `ini-name:"WorkDirectory" default:"work" description:"DEPRECATED, use DefaultTmpDir instead"` // DEPRECATED
+	InDirectory   string `ini-name:"InDirectory" default:"" description:"DEPRECATED, use DefaultInDir instead"`    // DEPRECATED
+	OutDirectory  string `ini-name:"OutDirectory" default:"" description:"DEPRECATED, use DefaultOutDir instead"`  // DEPRECATED
+	WorkDirectory string `ini-name:"WorkDirectory" default:"" description:"DEPRECATED, use DefaultTmpDir instead"` // DEPRECATED
 	DefaultInDir  string `ini-name:"DefaultInDir" default:"in" description:"The directory for all incoming files."`
 	DefaultOutDir string `ini-name:"DefaultOutDir" default:"out" description:"The directory for all outgoing files."`
 	DefaultTmpDir string `ini-name:"DefaultTmpDir" default:"tmp" description:"The directory for all running transfer files."`
@@ -90,19 +90,19 @@ func normalizePaths(configFile *ServerConfig, logger *log.Logger) error {
 		configFile.Paths.GatewayHome = wd
 	}
 
-	if configFile.Paths.InDirectory != "" {
+	if configFile.Paths.DefaultInDir == "" && configFile.Paths.InDirectory != "" {
 		logger.Warning("Option 'InDirectory' is deprecated, use 'DefaultInDir' instead")
 
 		configFile.Paths.DefaultInDir = configFile.Paths.InDirectory
 	}
 
-	if configFile.Paths.OutDirectory != "" {
+	if configFile.Paths.DefaultOutDir == "" && configFile.Paths.OutDirectory != "" {
 		logger.Warning("Option 'OutDirectory' is deprecated, use 'DefaultOutDir' instead")
 
 		configFile.Paths.DefaultOutDir = configFile.Paths.OutDirectory
 	}
 
-	if configFile.Paths.WorkDirectory != "" {
+	if configFile.Paths.DefaultTmpDir == "" && configFile.Paths.WorkDirectory != "" {
 		logger.Warning("Option 'WorkDirectory' is deprecated, use 'DefaultTmpDir' instead")
 
 		configFile.Paths.DefaultTmpDir = configFile.Paths.WorkDirectory

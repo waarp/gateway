@@ -17,12 +17,10 @@ type LocalAgent struct {
 	Name          string          `json:"name"`
 	Protocol      string          `json:"protocol"`
 	Root          string          `json:"root,omitempty"`
-	InDir         string          `json:"inDir,omitempty"`   // DEPRECATED
-	OutDir        string          `json:"outDir,omitempty"`  // DEPRECATED
+	InDir         string          `json:"inDir,omitempty"`
+	OutDir        string          `json:"outDir,omitempty"`
 	WorkDir       string          `json:"workDir,omitempty"` // DEPRECATED
-	LocalInDir    string          `json:"localInDir,omitempty"`
-	LocalOutDir   string          `json:"localOutDir,omitempty"`
-	LocalTmpDir   string          `json:"localTmpDir,omitempty"`
+	TmpDir        string          `json:"tmpDir,omitempty"`
 	Address       string          `json:"address"`
 	Configuration json.RawMessage `json:"configuration"`
 	Accounts      []LocalAccount  `json:"accounts"`

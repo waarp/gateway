@@ -27,13 +27,6 @@ const (
 
 type serviceConstructor func(db *database.DB, agent *model.LocalAgent, logger *log.Logger) service.ProtoService
 
-// ServiceConstructors is a map associating each protocol with a constructor for
-// a client of said protocol. In order for the gateway to be able to perform
-// client transfer with a protocol, a constructor must be added to this map, to
-// allow a client to be instantiated.
-//nolint:gochecknoglobals // global var is used by design
-var ServiceConstructors = map[string]serviceConstructor{}
-
 // WG is the top level service handler. It manages all other components.
 type WG struct {
 	*log.Logger
@@ -58,15 +51,15 @@ func (wg *WG) makeDirs() error {
 		return fmt.Errorf("failed to create gateway home directory: %w", err)
 	}
 
-	if err := os.MkdirAll(wg.Conf.Paths.InDirectory, 0o744); err != nil {
+	if err := os.MkdirAll(wg.Conf.Paths.DefaultInDir, 0o744); err != nil {
 		return fmt.Errorf("failed to create gateway in directory: %w", err)
 	}
 
-	if err := os.MkdirAll(wg.Conf.Paths.OutDirectory, 0o744); err != nil {
+	if err := os.MkdirAll(wg.Conf.Paths.DefaultOutDir, 0o744); err != nil {
 		return fmt.Errorf("failed to create gateway out directory: %w", err)
 	}
 
-	if err := os.MkdirAll(wg.Conf.Paths.WorkDirectory, 0o744); err != nil {
+	if err := os.MkdirAll(wg.Conf.Paths.DefaultTmpDir, 0o744); err != nil {
 		return fmt.Errorf("failed to create gateway work directory: %w", err)
 	}
 
@@ -92,8 +85,22 @@ func (wg *WG) initServices() {
 }
 
 func (wg *WG) startServices() error {
+	if err := wg.makeDirs(); err != nil {
+		return err
+	}
+
+	wg.initServices()
+
 	if err := wg.dbService.Start(); err != nil {
 		return fmt.Errorf("cannot start database service: %w", err)
+	}
+
+	if err := wg.adminService.Start(); err != nil {
+		return fmt.Errorf("cannot start admin service: %w", err)
+	}
+
+	if err := wg.controller.Start(); err != nil {
+		return fmt.Errorf("cannot start controller service: %w", err)
 	}
 
 	var servers model.LocalAgents
@@ -109,9 +116,12 @@ func (wg *WG) startServices() error {
 		if !ok {
 			wg.Logger.Warningf("Unknown protocol '%s' for server %s",
 				servers[i].Protocol, servers[i].Name)
+
+			continue
 		}
 
-		constr(wg.dbService, &servers[i], l)
+		serv := constr(wg.dbService, &servers[i], l)
+		wg.ProtoServices[servers[i].Name] = serv
 	}
 
 	for _, serv := range wg.ProtoServices {
@@ -163,12 +173,6 @@ func (wg *WG) stopServices() {
 // Start starts the main service of the Gateway.
 func (wg *WG) Start() error {
 	wg.Infof("Waarp Gateway '%s' is starting", wg.Conf.GatewayName)
-
-	if err := wg.makeDirs(); err != nil {
-		return err
-	}
-
-	wg.initServices()
 
 	if err := wg.startServices(); err != nil {
 		return err

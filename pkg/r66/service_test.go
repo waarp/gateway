@@ -14,7 +14,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -78,7 +77,7 @@ func TestR66ServerInterruption(t *testing.T) {
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
 		test := pipelinetest.InitServerPush(c, "r66", NewService, servConf)
 
-		serv := gatewayd.ServiceConstructors["r66"](test.DB, test.Server, log.NewLogger("server"))
+		serv := NewService(test.DB, test.Server, log.NewLogger("server"))
 		c.So(serv.Start(), ShouldBeNil)
 
 		Convey("Given a dummy R66 client", func() {
