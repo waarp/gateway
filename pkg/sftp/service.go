@@ -7,7 +7,6 @@ import (
 	"net"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
@@ -20,13 +19,8 @@ type Service struct {
 	agent  *model.LocalAgent
 	logger *log.Logger
 
-	state    service.State
+	state    *service.State
 	listener *sshListener
-}
-
-//nolint:gochecknoinits // init is used by design
-func init() {
-	gatewayd.ServiceConstructors["sftp"] = NewService
 }
 
 // NewService returns a new SFTP service instance with the given attributes.
@@ -35,6 +29,7 @@ func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) se
 		db:     db,
 		agent:  agent,
 		logger: logger,
+		state:  &service.State{},
 	}
 }
 
@@ -125,13 +120,7 @@ func (s *Service) Stop(ctx context.Context) error {
 
 // State returns the state of the SFTP service.
 func (s *Service) State() *service.State {
-	if s.listener == nil {
-		if code, _ := s.state.Get(); code == service.Running {
-			s.state.Set(service.Offline, "")
-		}
-	}
-
-	return &s.state
+	return s.state
 }
 
 // ManageTransfers returns a map of the transfers currently running on the server.

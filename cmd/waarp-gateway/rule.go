@@ -302,7 +302,7 @@ type ruleUpdate struct {
 	OutPath    *string  `short:"o" long:"out_path" description:"[DEPRECATED] The path to the source of the file"`     // DEPRECATED
 	WorkPath   *string  `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file"`   // DEPRECATED
 	LocalDir   *string  `short:"l" long:"local_dir" description:"The directory for files on the local disk"`
-	RemoteDir  *string  `short:"e" long:"remote_dir" description:"The directory for files on the remote host"`
+	RemoteDir  *string  `short:"m" long:"remote_dir" description:"The directory for files on the remote host"`
 	TempDir    *string  `short:"t" long:"tmp_dir" description:"The local temp directory for partially received files "`
 	PreTasks   []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
 	PostTasks  []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`

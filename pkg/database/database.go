@@ -181,25 +181,25 @@ func (db *DB) Start() error {
 		conf:   &db.Conf.Database,
 	}
 
-	if err := db.checkVersion(); err != nil {
+	if err1 := db.checkVersion(); err1 != nil {
 		if err2 := engine.Close(); err2 != nil {
 			db.logger.Warningf("an error occurred while closing the database: %v", err2)
 		}
 
-		db.state.Set(service.Error, err.Error())
+		db.state.Set(service.Error, err1.Error())
 
-		return err
+		return err1
 	}
 
-	if err := initTables(db.Standalone); err != nil {
+	if err1 := initTables(db.Standalone); err1 != nil {
 		if err2 := engine.Close(); err2 != nil {
 			db.logger.Warningf("an error occurred while closing the database: %v", err2)
 		}
 
-		db.state.Set(service.Error, err.Error())
-		db.logger.Errorf("Failed to create tables: %s", err)
+		db.state.Set(service.Error, err1.Error())
+		db.logger.Errorf("Failed to create tables: %s", err1)
 
-		return err
+		return err1
 	}
 
 	db.logger.Info("Startup successful")
@@ -242,8 +242,10 @@ func (db *DB) State() *service.State {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	//nolint:errcheck //this error is handled another inside ping
-	_ = ping(&db.state, db.Standalone.engine.Context(ctx), db.logger)
+	if db.engine != nil {
+		//nolint:errcheck //this error is handled another inside ping
+		_ = ping(&db.state, db.Standalone.engine.Context(ctx), db.logger)
+	}
 
 	return &db.state
 }

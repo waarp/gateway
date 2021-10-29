@@ -13,24 +13,17 @@ import (
 	"code.bcarlin.xyz/go/logging"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	gatewayd.ServiceConstructors["http"] = NewService
-	gatewayd.ServiceConstructors["https"] = NewService
-}
-
 type httpService struct {
 	logger *log.Logger
 	db     *database.DB
 	agent  *model.LocalAgent
-	state  service.State
+	state  *service.State
 
 	conf    config.HTTPProtoConfig
 	serv    *http.Server
@@ -46,6 +39,7 @@ func NewService(db *database.DB, agent *model.LocalAgent, logger *log.Logger) se
 		db:      db,
 		agent:   agent,
 		running: service.NewTransferMap(),
+		state:   &service.State{},
 	}
 }
 
@@ -125,12 +119,13 @@ func (h *httpService) Stop(ctx context.Context) error {
 	}
 
 	h.state.Set(service.Offline, "")
+	h.logger.Info("HTTP server shutdown successful")
 
 	return nil
 }
 
 func (h *httpService) State() *service.State {
-	panic("implement me")
+	return h.state
 }
 
 func (h *httpService) ManageTransfers() *service.TransferMap {
