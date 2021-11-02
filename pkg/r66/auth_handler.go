@@ -109,8 +109,7 @@ func (a *authHandler) passwordAuth(auth *r66.Authent) (*model.LocalAccount, *r66
 		if acc.Login == "" {
 			a.logger.Warningf("Authentication failed with unknown account '%s'", auth.Login)
 		} else {
-			a.logger.Warningf("Account '%s' authenticated with wrong password %s",
-				auth.Login, string(auth.Password))
+			a.logger.Warningf("Account '%s' authenticated with wrong password", auth.Login)
 		}
 
 		return nil, internal.NewR66Error(r66.BadAuthent, "incorrect credentials")

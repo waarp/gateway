@@ -6,6 +6,7 @@ package sftp
 import (
 	"encoding/json"
 	"io"
+	"strings"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -82,14 +83,16 @@ func (c *client) Request() *types.TransferError {
 	}
 
 	if c.pip.TransCtx.Rule.IsSend {
-		c.remoteFile, err = c.sftpSession.Create(c.pip.TransCtx.Transfer.RemotePath)
+		c.remoteFile, err = c.sftpSession.Create(strings.TrimPrefix(
+			c.pip.TransCtx.Transfer.RemotePath, "/"))
 		if err != nil {
 			c.pip.Logger.Errorf("Failed to create remote file: %s", err)
 
 			return c.fromSFTPErr(err, types.TeUnknownRemote)
 		}
 	} else {
-		c.remoteFile, err = c.sftpSession.Open(c.pip.TransCtx.Transfer.RemotePath)
+		c.remoteFile, err = c.sftpSession.Open(strings.TrimPrefix(
+			c.pip.TransCtx.Transfer.RemotePath, "/"))
 		if err != nil {
 			c.pip.Logger.Errorf("Failed to open remote file: %s", err)
 
