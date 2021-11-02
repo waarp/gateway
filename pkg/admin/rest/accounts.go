@@ -14,7 +14,7 @@ import (
 func newInLocAccount(old *model.LocalAccount) *api.InAccount {
 	return &api.InAccount{
 		Login:    &old.Login,
-		Password: strPtr(string(old.PasswordHash)),
+		Password: strPtr(old.PasswordHash),
 	}
 }
 
@@ -33,7 +33,7 @@ func accToLocal(acc *api.InAccount, agent *model.LocalAgent, id uint64) (*model.
 		acc.Password = strPtr(string(r66.CryptPass([]byte(str(acc.Password)))))
 	}
 
-	hash, err := utils.HashPassword(database.BcryptRounds, []byte(str(acc.Password)))
+	hash, err := utils.HashPassword(database.BcryptRounds, str(acc.Password))
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash passwordi: %w", err)
 	}

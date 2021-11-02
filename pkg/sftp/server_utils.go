@@ -61,7 +61,7 @@ func makeServerConf(db *database.DB, protoConfig *config.SftpProtoConfig,
 				}
 			}
 
-			err2 := bcrypt.CompareHashAndPassword(user.PasswordHash, pass)
+			err2 := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), pass)
 			if err1 != nil || err2 != nil {
 				return nil, errAuthFailed
 			}

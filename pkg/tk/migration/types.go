@@ -117,15 +117,16 @@ func (s *standardSQL) formatValueToSQL(val interface{}, sqlTyp sqlType) (string,
 	case tinyint:
 		return convert(val, kind, "%d", reflect.Int8)
 	case smallint:
-		return convert(val, kind, "%d", reflect.Int16)
+		return convert(val, kind, "%d", reflect.Int16, reflect.Int8)
 	case integer:
-		return convert(val, kind, "%d", reflect.Int, reflect.Int32)
+		return convert(val, kind, "%d", reflect.Int, reflect.Int32, reflect.Int16, reflect.Int8)
 	case bigint:
-		return convert(val, kind, "%d", reflect.Int64)
+		return convert(val, kind, "%d", reflect.Int64, reflect.Int, reflect.Int32,
+			reflect.Int16, reflect.Int8)
 	case float:
 		return convert(val, kind, "%f", reflect.Float32)
 	case double:
-		return convert(val, kind, "%f", reflect.Float64)
+		return convert(val, kind, "%f", reflect.Float64, reflect.Float32)
 	case varchar, text:
 		return convert(val, kind, "'%s'", reflect.String)
 	case date:

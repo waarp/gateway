@@ -200,14 +200,14 @@ func TestImportLocalAccounts(t *testing.T) {
 								case accounts[i].Login == account1.Login:
 									Convey("Then account1 is found", func() {
 										So(bcrypt.CompareHashAndPassword(
-											accounts[i].PasswordHash, []byte("pwd")),
-											ShouldBeNil)
+											[]byte(accounts[i].PasswordHash),
+											[]byte("pwd")), ShouldBeNil)
 									})
 								case accounts[i].Login == account2.Login:
 									Convey("Then account2 is found", func() {
 										So(bcrypt.CompareHashAndPassword(
-											accounts[i].PasswordHash, []byte("pwd")),
-											ShouldBeNil)
+											[]byte(accounts[i].PasswordHash),
+											[]byte("pwd")), ShouldBeNil)
 									})
 								case accounts[i].Login == dbAccount.Login:
 									Convey("Then dbAccount is found", func() {

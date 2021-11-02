@@ -461,3 +461,94 @@ func testVer0_5_0HistoryChangePaths(eng *migration.Engine) {
 		})
 	})
 }
+
+func testVer0_5_0LocalAccountsPasswordDecode(eng *migration.Engine) {
+	Convey("Given the 0.5.0 local accounts password decoding", func() {
+		setupDatabaseUpTo(eng, ver0_5_0LocalAccountsPasswordDecode{})
+
+		_, err := eng.DB.Exec(`INSERT INTO local_accounts (id,local_agent_id,
+				login,password_hash) VALUES (1,'1','toto','Zm9vYmFy')`)
+		So(err, ShouldBeNil)
+
+		Convey("When applying the migration", func() {
+			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAccountsPasswordDecode{}}})
+			So(err, ShouldBeNil)
+
+			Convey("Then it should have decoded the password hash", func() {
+				row := eng.DB.QueryRow(`SELECT password_hash FROM local_accounts`)
+
+				var hash string
+				So(row.Scan(&hash), ShouldBeNil)
+
+				So(hash, ShouldEqual, "foobar")
+			})
+
+			Convey("When reverting the migration", func() {
+				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0LocalAccountsPasswordDecode{}}})
+				So(err, ShouldBeNil)
+
+				Convey("Then it should have re-encoded the password hash", func() {
+					row := eng.DB.QueryRow(`SELECT password_hash FROM local_accounts`)
+
+					var hash string
+					So(row.Scan(&hash), ShouldBeNil)
+
+					So(hash, ShouldEqual, "Zm9vYmFy")
+				})
+			})
+		})
+	})
+}
+
+func testVer0_5_0UserPasswordChange(eng *migration.Engine, dialect string) {
+	Convey("Given the 0.5.0 user password changes", func() {
+		setupDatabaseUpTo(eng, ver0_5_0UserPasswordChange{})
+
+		pswd := []byte("Zm9vYmFy")
+		perm := []byte{0b10101010}
+
+		if dialect == migration.PostgreSQL {
+			_, err := eng.DB.Exec(`INSERT INTO users (owner,id,username,password,
+			   permissions)	VALUES ('gw',1,'toto',$1,$2)`, pswd, perm)
+			So(err, ShouldBeNil)
+		} else {
+			_, err := eng.DB.Exec(`INSERT INTO users (owner,id,username,password,
+			   permissions)	VALUES ('gw',1,'toto',?,?)`, pswd, perm)
+			So(err, ShouldBeNil)
+		}
+
+		Convey("When applying the migration", func() {
+			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0UserPasswordChange{}}})
+			So(err, ShouldBeNil)
+
+			Convey("Then it should have changed the password column", func() {
+				tableShouldNotHaveColumn(eng.DB, "users", "password")
+				tableShouldHaveColumn(eng.DB, "users", "password_hash")
+
+				row := eng.DB.QueryRow(`SELECT password_hash FROM users`)
+
+				var hash string
+				So(row.Scan(&hash), ShouldBeNil)
+
+				So(hash, ShouldEqual, "Zm9vYmFy")
+			})
+
+			Convey("When reverting the migration", func() {
+				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0UserPasswordChange{}}})
+				So(err, ShouldBeNil)
+
+				Convey("Then it should have reverted the password changes", func() {
+					tableShouldNotHaveColumn(eng.DB, "users", "password_hash")
+					tableShouldHaveColumn(eng.DB, "users", "password")
+
+					row := eng.DB.QueryRow(`SELECT password FROM users`)
+
+					var hash []byte
+					So(row.Scan(&hash), ShouldBeNil)
+
+					So(hash, ShouldResemble, []byte("Zm9vYmFy"))
+				})
+			})
+		})
+	})
+}

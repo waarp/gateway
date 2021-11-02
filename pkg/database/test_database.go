@@ -190,6 +190,7 @@ func startViaMigration(c convey.C, config *conf.ServerConfig) {
 	c.So(err, convey.ShouldBeNil)
 
 	c.So(migrEngine.Upgrade(migrations.Migrations), convey.ShouldBeNil)
+	c.So(migrEngine.Upgrade(migrations.BumpToCurrent()), convey.ShouldBeNil)
 	c.So(sqlDB.Close(), convey.ShouldBeNil)
 }
 

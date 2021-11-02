@@ -38,11 +38,11 @@ type testData struct {
 	TasksChecker *taskstest.TaskChecker
 }
 
-func hash(pwd string) []byte {
+func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	convey.So(err, convey.ShouldBeNil)
 
-	return h
+	return string(h)
 }
 
 // AddSourceFile creates a file under the given directory with the given name,

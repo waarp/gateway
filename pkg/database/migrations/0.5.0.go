@@ -1,6 +1,7 @@
 package migrations
 
 import (
+	"encoding/base64"
 	"fmt"
 	"path"
 	"runtime"
@@ -269,12 +270,12 @@ type ver0_5_0AddFilesize struct{}
 
 func (ver0_5_0AddFilesize) Up(db migration.Actions) error {
 	if err := db.AddColumn("transfers", "filesize", migration.BigInt,
-		migration.NotNull, migration.Default(int64(-1))); err != nil {
+		migration.NotNull, migration.Default(-1)); err != nil {
 		return fmt.Errorf("failed to add transfer 'filesize' column: %w", err)
 	}
 
 	if err := db.AddColumn("transfer_history", "filesize", migration.BigInt,
-		migration.NotNull, migration.Default(int64(-1))); err != nil {
+		migration.NotNull, migration.Default(-1)); err != nil {
 		return fmt.Errorf("failed to add history 'filesize' column: %w", err)
 	}
 
@@ -550,6 +551,121 @@ func (ver0_5_0HistoryPathsChange) Down(db migration.Actions) (err error) {
 
 	if err := db.RenameColumn("transfer_history", "remote_path", "source_filename"); err != nil {
 		return fmt.Errorf("failed to restore the history 'source_filename' column: %w", err)
+	}
+
+	return nil
+}
+
+type ver0_5_0LocalAccountsPasswordDecode struct{}
+
+func (ver0_5_0LocalAccountsPasswordDecode) makeAccountList(db migration.Actions) ([]struct {
+	id   uint64
+	hash string
+}, error) {
+	var accounts []struct {
+		id   uint64
+		hash string
+	}
+
+	rows, err := db.Query("SELECT id,password_hash FROM local_accounts")
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve local accounts: %w", err)
+	}
+
+	defer rows.Close() //nolint:errcheck //this error is unimportant
+
+	for rows.Next() {
+		var acc struct {
+			id   uint64
+			hash string
+		}
+
+		if err := rows.Scan(&acc.id, &acc.hash); err != nil {
+			return nil, fmt.Errorf("failed to parse account information: %w", err)
+		}
+
+		accounts = append(accounts, acc)
+	}
+
+	return accounts, nil
+}
+
+func (v ver0_5_0LocalAccountsPasswordDecode) Up(db migration.Actions) error {
+	accounts, err := v.makeAccountList(db)
+	if err != nil {
+		return err
+	}
+
+	for i := range accounts {
+		dec, err := base64.StdEncoding.DecodeString(accounts[i].hash)
+		if err != nil {
+			return fmt.Errorf("failed to decode password hash: %w", err)
+		}
+
+		if err := db.Exec("UPDATE local_accounts SET password_hash='%s' WHERE id=%d",
+			dec, accounts[i].id); err != nil {
+			return fmt.Errorf("failed to update account entry: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (v ver0_5_0LocalAccountsPasswordDecode) Down(db migration.Actions) (err error) {
+	accounts, err := v.makeAccountList(db)
+	if err != nil {
+		return err
+	}
+
+	for i := range accounts {
+		enc := base64.StdEncoding.EncodeToString([]byte(accounts[i].hash))
+
+		if err := db.Exec("UPDATE local_accounts SET password_hash='%s' WHERE id=%d",
+			enc, accounts[i].id); err != nil {
+			return fmt.Errorf("failed to update account entry: %w", err)
+		}
+	}
+
+	return nil
+}
+
+type ver0_5_0UserPasswordChange struct{}
+
+func (ver0_5_0UserPasswordChange) Up(db migration.Actions) error {
+	if err := db.AddColumn("users", "password_hash", migration.Text, migration.NotNull,
+		migration.Default("")); err != nil {
+		return fmt.Errorf("failed to add the user 'password_hash' column: %w", err)
+	}
+
+	if db.GetDialect() == migration.PostgreSQL {
+		if err := db.Exec("UPDATE users SET password_hash=encode(password, 'escape')"); err != nil {
+			return fmt.Errorf("failed to update user entries: %w", err)
+		}
+	} else {
+		if err := db.Exec("UPDATE users SET password_hash=password"); err != nil {
+			return fmt.Errorf("failed to update user entries: %w", err)
+		}
+	}
+
+	if err := db.DropColumn("users", "password"); err != nil {
+		return fmt.Errorf("failed to drop the user 'password' column: %w", err)
+	}
+
+	return nil
+}
+
+func (ver0_5_0UserPasswordChange) Down(db migration.Actions) (err error) {
+	if err := db.AddColumn("users", "password", migration.Text, migration.NotNull,
+		migration.Default("")); err != nil {
+		return fmt.Errorf("failed to add the user 'password' column: %w", err)
+	}
+
+	if err := db.Exec("UPDATE users SET password=password_hash"); err != nil {
+		return fmt.Errorf("failed to update user entries: %w", err)
+	}
+
+	if err := db.DropColumn("users", "password_hash"); err != nil {
+		return fmt.Errorf("failed to drop the user 'password_hash' column: %w", err)
 	}
 
 	return nil

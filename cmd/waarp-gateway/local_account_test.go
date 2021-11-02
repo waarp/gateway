@@ -161,7 +161,7 @@ func TestAddLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldNotBeEmpty)
 
-						So(bcrypt.CompareHashAndPassword(accounts[0].PasswordHash,
+						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
 							[]byte(command.Password)), ShouldBeNil)
 						exp := model.LocalAccount{
 							ID:           1,
@@ -334,7 +334,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(accounts, ShouldNotBeEmpty)
 
-						So(bcrypt.CompareHashAndPassword(accounts[0].PasswordHash,
+						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
 							[]byte("new_password")), ShouldBeNil)
 						exp := model.LocalAccount{
 							ID:           account.ID,

@@ -24,7 +24,7 @@ type LocalAccount struct {
 	Login string `xorm:"unique(loc_ac) notnull 'login'"`
 
 	// A bcrypt hash of the account's password
-	PasswordHash []byte `xorm:"'password_hash'"`
+	PasswordHash string `xorm:"text 'password_hash'"`
 }
 
 // TableName returns the local accounts table name.
@@ -59,8 +59,8 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the account's login cannot be empty")
 	}
 
-	if len(l.PasswordHash) > 0 {
-		if _, isHashed := bcrypt.Cost(l.PasswordHash); isHashed != nil {
+	if l.PasswordHash != "" {
+		if _, isHashed := bcrypt.Cost([]byte(l.PasswordHash)); isHashed != nil {
 			return database.NewValidationError("the password is not hashed")
 		}
 	}

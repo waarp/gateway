@@ -198,7 +198,7 @@ func TestExportLocalAccounts(t *testing.T) {
 								Convey("When login1 is found", func() {
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].PasswordHash, ShouldResemble,
-											string(account1.PasswordHash))
+											account1.PasswordHash)
 									})
 
 									Convey("Then it should have no certificate", func() {
@@ -209,7 +209,7 @@ func TestExportLocalAccounts(t *testing.T) {
 								Convey("When login2 is found", func() {
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].PasswordHash, ShouldResemble,
-											string(account2.PasswordHash))
+											account2.PasswordHash)
 									})
 
 									Convey("Then it should have 1 certificate", func() {

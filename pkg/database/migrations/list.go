@@ -4,7 +4,6 @@ package migrations
 
 import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
-	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 // Migrations should be declared here in chronological order. This means that
@@ -68,12 +67,12 @@ var Migrations = []migration.Migration{
 		Description: "Replace the existing history filename columns with new ones",
 		Script:      ver0_5_0HistoryPathsChange{},
 	},
-
-	// NOTICE: This migration script should always be last in the list.
-	//
-	// This migration script bumps the database version up to the current executable
-	// version, including dirty, untagged versions. Be aware that migrating a
-	// database to an untagged version should only be done for testing purposes,
-	// as there will be no way to
-	{Script: bumpVersion{to: version.Num}, VersionTag: version.Num},
+	{
+		Description: "Decode the (double) base64 encoded local agent password hashes",
+		Script:      ver0_5_0LocalAccountsPasswordDecode{},
+	},
+	{
+		Description: "Rename and change the type of the user 'password' column",
+		Script:      ver0_5_0UserPasswordChange{},
+	},
 }

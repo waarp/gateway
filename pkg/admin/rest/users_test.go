@@ -29,8 +29,8 @@ func TestGetUser(t *testing.T) {
 
 		Convey("Given a database with 1 user", func() {
 			expected := &model.User{
-				Username: "existing",
-				Password: []byte("existing"),
+				Username:     "existing",
+				PasswordHash: hash("existing"),
 			}
 			So(db.Insert(expected).Run(), ShouldBeNil)
 
@@ -112,20 +112,20 @@ func TestListUsers(t *testing.T) {
 
 		Convey("Given a database with 4 users", func() {
 			u1 := &model.User{
-				Username: "user1",
-				Password: []byte("user1"),
+				Username:     "user1",
+				PasswordHash: hash("user1"),
 			}
 			u2 := &model.User{
-				Username: "user2",
-				Password: []byte("user2"),
+				Username:     "user2",
+				PasswordHash: hash("user2"),
 			}
 			u3 := &model.User{
-				Username: "user3",
-				Password: []byte("user3"),
+				Username:     "user3",
+				PasswordHash: hash("user3"),
 			}
 			u4 := &model.User{
-				Username: "user4",
-				Password: []byte("user4"),
+				Username:     "user4",
+				PasswordHash: hash("user4"),
 			}
 
 			So(db.Insert(u1).Run(), ShouldBeNil)
@@ -200,8 +200,8 @@ func TestCreateUser(t *testing.T) {
 
 		Convey("Given a database with 1 user", func() {
 			existing := model.User{
-				Username: "old",
-				Password: []byte("old_password"),
+				Username:     "old",
+				PasswordHash: hash("old_password"),
 			}
 			So(db.Insert(&existing).Run(), ShouldBeNil)
 			So(db.DeleteAll(&model.User{}).Where("username='admin'").Run(), ShouldBeNil)
@@ -246,13 +246,13 @@ func TestCreateUser(t *testing.T) {
 							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(users, ShouldHaveLength, 2)
 
-							So(bcrypt.CompareHashAndPassword(users[1].Password,
+							So(bcrypt.CompareHashAndPassword([]byte(users[1].PasswordHash),
 								[]byte("sesame")), ShouldBeNil)
 							So(users[1], ShouldResemble, model.User{
-								ID:       3,
-								Owner:    database.Owner,
-								Username: "toto",
-								Password: users[1].Password,
+								ID:           3,
+								Owner:        database.Owner,
+								Username:     "toto",
+								PasswordHash: users[1].PasswordHash,
 								Permissions: model.PermTransfersRead | model.PermTransfersWrite |
 									model.PermServersRead | model.PermServersDelete |
 									model.PermPartnersRead | model.PermPartnersWrite |
@@ -283,12 +283,12 @@ func TestDeleteUser(t *testing.T) {
 
 		Convey("Given a database with 2 users", func() {
 			existing := model.User{
-				Username: "existing",
-				Password: []byte("existing"),
+				Username:     "existing",
+				PasswordHash: hash("existing"),
 			}
 			other := model.User{
-				Username: "other",
-				Password: []byte("other_password"),
+				Username:     "other",
+				PasswordHash: hash("other_password"),
 			}
 			So(db.Insert(&existing).Run(), ShouldBeNil)
 			So(db.Insert(&other).Run(), ShouldBeNil)
@@ -388,8 +388,8 @@ func TestUpdateUser(t *testing.T) {
 
 		Convey("Given a database with 2 users", func() {
 			old := model.User{
-				Username: "old",
-				Password: []byte("old_password"),
+				Username:     "old",
+				PasswordHash: hash("old_password"),
 				Permissions: model.PermTransfersRead | model.PermTransfersWrite |
 					model.PermServersRead | model.PermServersDelete |
 					model.PermPartnersWrite |
@@ -397,9 +397,9 @@ func TestUpdateUser(t *testing.T) {
 					model.PermUsersRead,
 			}
 			other := model.User{
-				Username:    "other",
-				Password:    []byte("other_password"),
-				Permissions: model.PermAll,
+				Username:     "other",
+				PasswordHash: hash("other_password"),
+				Permissions:  model.PermAll,
 			}
 			So(db.Insert(&old).Run(), ShouldBeNil)
 			So(db.Insert(&other).Run(), ShouldBeNil)
@@ -445,13 +445,13 @@ func TestUpdateUser(t *testing.T) {
 							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(users, ShouldHaveLength, 2)
 
-							So(bcrypt.CompareHashAndPassword(users[0].Password,
+							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
 								[]byte("sesame")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
-								ID:       2,
-								Owner:    database.Owner,
-								Username: "toto",
-								Password: users[0].Password,
+								ID:           2,
+								Owner:        database.Owner,
+								Username:     "toto",
+								PasswordHash: users[0].PasswordHash,
 								Permissions: model.PermTransfersRead |
 									model.PermServersRead | model.PermServersWrite |
 									model.PermPartnersWrite | model.PermPartnersDelete |
@@ -526,16 +526,16 @@ func TestUpdateUser(t *testing.T) {
 							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(users), ShouldEqual, 2)
 
-							So(bcrypt.CompareHashAndPassword(users[0].Password,
+							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
 								[]byte("old_password")), ShouldBeNil)
 							So(maskToPerms(users[0].Permissions), ShouldResemble,
 								maskToPerms(old.Permissions))
 							So(users[0], ShouldResemble, model.User{
-								ID:          2,
-								Owner:       database.Owner,
-								Username:    "upd_user",
-								Password:    users[0].Password,
-								Permissions: old.Permissions,
+								ID:           2,
+								Owner:        database.Owner,
+								Username:     "upd_user",
+								PasswordHash: users[0].PasswordHash,
+								Permissions:  old.Permissions,
 							})
 						})
 
@@ -579,14 +579,14 @@ func TestUpdateUser(t *testing.T) {
 							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(users), ShouldEqual, 2)
 
-							So(bcrypt.CompareHashAndPassword(users[0].Password,
+							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
 								[]byte("upd_password")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
-								ID:          2,
-								Owner:       database.Owner,
-								Username:    "old",
-								Password:    users[0].Password,
-								Permissions: old.Permissions,
+								ID:           2,
+								Owner:        database.Owner,
+								Username:     "old",
+								PasswordHash: users[0].PasswordHash,
+								Permissions:  old.Permissions,
 							})
 						})
 					})
@@ -606,12 +606,12 @@ func TestReplaceUser(t *testing.T) {
 
 		Convey("Given a database with 2 users", func() {
 			old := model.User{
-				Username: "old",
-				Password: []byte("old"),
+				Username:     "old",
+				PasswordHash: hash("old"),
 			}
 			other := model.User{
-				Username: "other",
-				Password: []byte("other"),
+				Username:     "other",
+				PasswordHash: hash("other"),
 			}
 			So(db.Insert(&old).Run(), ShouldBeNil)
 			So(db.Insert(&other).Run(), ShouldBeNil)
@@ -650,13 +650,13 @@ func TestReplaceUser(t *testing.T) {
 							So(db.Select(&users).OrderBy("id", true).Run(), ShouldBeNil)
 							So(len(users), ShouldEqual, 2)
 
-							So(bcrypt.CompareHashAndPassword(users[0].Password,
+							So(bcrypt.CompareHashAndPassword([]byte(users[0].PasswordHash),
 								[]byte("upd_password")), ShouldBeNil)
 							So(users[0], ShouldResemble, model.User{
-								ID:       2,
-								Owner:    database.Owner,
-								Username: "upd_user",
-								Password: users[0].Password,
+								ID:           2,
+								Owner:        database.Owner,
+								Username:     "upd_user",
+								PasswordHash: users[0].PasswordHash,
 							})
 						})
 

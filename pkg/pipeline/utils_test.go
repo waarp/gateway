@@ -53,11 +53,11 @@ func initTaskChecker() *taskstest.TaskChecker {
 	return taskChecker
 }
 
-func hash(pwd string) []byte {
+func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	So(err, ShouldBeNil)
 
-	return h
+	return string(h)
 }
 
 func waitEndTransfer(pip *Pipeline) {

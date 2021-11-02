@@ -20,6 +20,10 @@ type migrateCommand struct {
 	Args          struct {
 		Version string `default:"latest" positional-arg-name:"version" description:"The version to which the database should be migrated"`
 	} `positional-args:"yes"`
+
+	// Can be used in testing to specify the index from which the migration should
+	// start (useful for testing untagged versions).
+	FromIndex int `hidden:"yes" long:"from-index" default:"-1"`
 }
 
 func (cmd *migrateCommand) Execute([]string) error {
@@ -44,7 +48,7 @@ func (cmd *migrateCommand) Execute([]string) error {
 		out = file
 	}
 
-	if err := migrations.Execute(&config.Database, cmd.Args.Version, out); err != nil {
+	if err := migrations.Execute(&config.Database, cmd.Args.Version, cmd.FromIndex, out); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 

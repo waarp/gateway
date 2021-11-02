@@ -353,10 +353,10 @@ func TestUpdateTransferInfo(t *testing.T) {
 	})
 }
 
-func hash(pwd string) []byte {
+func hash(pwd string) string {
 	crypt := r66.CryptPass([]byte(pwd))
 	h, err := bcrypt.GenerateFromPassword(crypt, bcrypt.MinCost)
 	So(err, ShouldBeNil)
 
-	return h
+	return string(h)
 }
