@@ -43,7 +43,7 @@ func (cmd *migrateCommand) Execute([]string) error {
 			return fmt.Errorf("cannot open destination file: %w", err)
 		}
 
-		defer func() { _ = file.Close() }() //nolint:errcheck // cannot handle the error
+		defer func() { _ = file.Close() }() //nolint:errcheck,gosec // Close() must be deferred
 
 		out = file
 	}

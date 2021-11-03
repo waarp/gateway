@@ -624,6 +624,7 @@ linters-settings:
       - wg
       - r
       - w
+      - i
 
   whitespace:
     multi-if: false   # Enforces newlines (or comments) after every multi-line if statement

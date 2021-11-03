@@ -119,6 +119,10 @@ func (ver0_5_0LocalAgentDisallowReservedNames) Up(db migration.Actions) error {
 
 	defer rows.Close() //nolint:errcheck //this error is irrelevant
 
+	if rows.Err() != nil {
+		return fmt.Errorf("failed to retrieve local servers list: %w", rows.Err())
+	}
+
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
@@ -573,6 +577,10 @@ func (ver0_5_0LocalAccountsPasswordDecode) makeAccountList(db migration.Actions)
 	}
 
 	defer rows.Close() //nolint:errcheck //this error is unimportant
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("failed to retrieve local accounts: %w", rows.Err())
+	}
 
 	for rows.Next() {
 		var acc struct {

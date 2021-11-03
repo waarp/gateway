@@ -27,26 +27,26 @@ func newInServer(old *model.LocalAgent) *api.InServer {
 
 // servToDB transforms the JSON local agent into its database equivalent.
 func servToDB(serv *api.InServer, id uint64, logger *log.Logger) *model.LocalAgent {
-	in := str(serv.LocalInDir)
-	out := str(serv.LocalOutDir)
-	tmp := str(serv.LocalTmpDir)
+	inDir := str(serv.LocalInDir)
+	outDir := str(serv.LocalOutDir)
+	tmpDir := str(serv.LocalTmpDir)
 
 	if serv.InDir != nil {
 		logger.Warning("JSON field 'inDir' is deprecated, use 'serverLocalInDir' instead")
 
-		in = str(serv.InDir)
+		inDir = str(serv.InDir)
 	}
 
 	if serv.OutDir != nil {
 		logger.Warning("JSON field 'outDir' is deprecated, use 'serverLocalOutDir' instead")
 
-		out = str(serv.OutDir)
+		outDir = str(serv.OutDir)
 	}
 
 	if serv.WorkDir != nil {
 		logger.Warning("JSON field 'workDir' is deprecated, use 'serverLocalTmpDir' instead")
 
-		tmp = str(serv.WorkDir)
+		tmpDir = str(serv.WorkDir)
 	}
 
 	return &model.LocalAgent{
@@ -55,9 +55,9 @@ func servToDB(serv *api.InServer, id uint64, logger *log.Logger) *model.LocalAge
 		Name:        str(serv.Name),
 		Address:     str(serv.Address),
 		Root:        str(serv.Root),
-		InDir:       in,
-		OutDir:      out,
-		TmpDir:      tmp,
+		InDir:       inDir,
+		OutDir:      outDir,
+		TmpDir:      tmpDir,
 		Protocol:    str(serv.Protocol),
 		ProtoConfig: serv.ProtoConfig,
 	}

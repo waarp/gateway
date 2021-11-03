@@ -95,8 +95,7 @@ func TestExecMoveRun(t *testing.T) {
 
 		srcFile := filepath.Join(root, "test.src")
 		dstFile := filepath.Join(root, "test.dst")
-		So(ioutil.WriteFile(filepath.Join(srcFile), []byte("Hello world"), 0o600),
-			ShouldBeNil)
+		So(ioutil.WriteFile(srcFile, []byte("Hello world"), 0o600), ShouldBeNil)
 
 		args := map[string]string{
 			"path":  scriptPath,

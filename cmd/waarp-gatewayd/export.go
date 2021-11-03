@@ -31,7 +31,7 @@ func (e *exportCommand) Execute([]string) error {
 			return fmt.Errorf("failed to open the output file: %w", err)
 		}
 
-		defer func() { _ = f.Close() }() //nolint:errcheck // cannot handle the error
+		defer func() { _ = f.Close() }() //nolint:errcheck,gosec // Close() must be deferred
 	}
 
 	if err := backup.ExportData(db, f, e.Target); err != nil {

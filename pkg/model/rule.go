@@ -155,12 +155,12 @@ func (r *Rule) BeforeDelete(db database.Access) database.Error {
 func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bool, database.Error) {
 	var perms RuleAccess
 
-	n, err := db.Count(&perms).Where("rule_id=?", r.ID).Run()
+	permCount, err := db.Count(&perms).Where("rule_id=?", r.ID).Run()
 	if err != nil {
 		return false, err
 	}
 
-	if n == 0 {
+	if permCount == 0 {
 		return true, nil
 	}
 
@@ -184,10 +184,10 @@ func (r *Rule) IsAuthorized(db database.Access, target database.IterateBean) (bo
 		return false, database.NewValidationError("%T is not a valid target model for RuleAccess", target)
 	}
 
-	n, err = query.Run()
+	permCount, err = query.Run()
 	if err != nil {
 		return false, err
 	}
 
-	return n != 0, nil
+	return permCount != 0, nil
 }

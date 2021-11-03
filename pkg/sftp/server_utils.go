@@ -2,6 +2,7 @@ package sftp
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/pkg/sftp"
@@ -127,12 +128,12 @@ func getRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
 
 			logger.Debugf("No %s rule found for path '%s'", direction, rulePath)
 
-			return nil, nil
+			return nil, sftp.ErrSSHFxNoSuchFile
 		}
 
 		logger.Errorf("Failed to retrieve rule: %v", err)
 
-		return nil, fmt.Errorf("failed to retrieve rule: %w", err)
+		return nil, errDatabase
 	}
 
 	ok, err := rule.IsAuthorized(db, acc)
@@ -155,12 +156,12 @@ func getRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
 func getListRule(db *database.DB, logger *log.Logger, acc *model.LocalAccount,
 	rulePath string) (*model.Rule, error) {
 	sndRule, err := getRule(db, logger, acc, rulePath, true)
-	if err != nil {
+	if err != nil && !errors.Is(err, sftp.ErrSSHFxNoSuchFile) {
 		return nil, err
 	}
 
 	rcvRule, err := getRule(db, logger, acc, rulePath, false)
-	if err != nil {
+	if err != nil && !errors.Is(err, sftp.ErrSSHFxNoSuchFile) {
 		return nil, err
 	}
 

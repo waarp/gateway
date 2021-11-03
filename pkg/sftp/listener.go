@@ -198,14 +198,8 @@ func (l *sshListener) makeFileReader(endSession func(context.Context), acc *mode
 		filepath := path.Join("/", path.Dir(r.Filepath))
 
 		rule, rErr := getRule(l.DB, l.Logger, acc, filepath, true)
-		if rule == nil {
-			return nil, sftp.ErrSSHFxNoSuchFile
-		}
-
 		if rErr != nil {
-			l.Logger.Errorf("Failed to retrieve transfer rule: %s", rErr)
-
-			return nil, errDatabase
+			return nil, rErr
 		}
 
 		// Create Transfer
@@ -243,14 +237,8 @@ func (l *sshListener) makeFileWriter(endSession func(context.Context), acc *mode
 		filepath := path.Join("/", path.Dir(r.Filepath))
 
 		rule, rErr := getRule(l.DB, l.Logger, acc, filepath, false)
-		if rule == nil {
-			return nil, sftp.ErrSSHFxNoSuchFile
-		}
-
 		if rErr != nil {
-			l.Logger.Errorf("Failed to retrieve transfer rule: %s", rErr)
-
-			return nil, errDatabase
+			return nil, rErr
 		}
 
 		// Create Transfer

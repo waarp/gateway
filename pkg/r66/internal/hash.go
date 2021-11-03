@@ -22,25 +22,29 @@ func MakeHash(ctx context.Context, logger *log.Logger, path string) ([]byte, *ty
 		return nil, types.NewTransferError(types.TeInternal, "failed to open file")
 	}
 
-	defer func() { _ = file.Close() }() //nolint:errcheck // this error is irrelevant
-
-	res := make(chan *types.TransferError)
+	errorChan := make(chan *types.TransferError)
 
 	go func() {
-		defer close(res)
+		defer close(errorChan)
 
 		_, err = io.Copy(hasher, file)
 		if err != nil {
 			logger.Errorf("Failed to read file content to hash: %s", err)
-			res <- types.NewTransferError(types.TeInternal, "failed to read file")
+			errorChan <- types.NewTransferError(types.TeInternal, "failed to read file")
 		}
 	}()
 	select {
 	case <-ctx.Done():
+		_ = file.Close() //nolint:errcheck // this error is irrelevant here
+
 		return nil, types.NewTransferError(types.TeInternal, "hash calculation stopped")
-	case err := <-res:
-		if err != nil {
-			return nil, err
+	case cErr := <-errorChan:
+		if cErr != nil {
+			return nil, cErr
+		}
+
+		if fErr := file.Close(); fErr != nil {
+			logger.Warningf("Failed to close file: %s", fErr)
 		}
 
 		return hasher.Sum(nil), nil

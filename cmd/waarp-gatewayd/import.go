@@ -67,7 +67,7 @@ func (i *importCommand) Execute([]string) error {
 			return fmt.Errorf("failed to open file: %w", err)
 		}
 
-		defer func() { _ = f.Close() }() //nolint:errcheck // cannot handle the error
+		defer func() { _ = f.Close() }() //nolint:errcheck,gosec // Close() must be deferred
 	}
 
 	if err := backup.ImportData(db, f, i.Target, i.Dry); err != nil {

@@ -14,7 +14,7 @@ import (
 )
 
 // ruleToDB transforms the JSON transfer rule into its database equivalent.
-func ruleToDB(rule *api.InRule, id uint64, logger *log.Logger) (*model.Rule, error) {
+func ruleToDB(rule *api.InRule, ruleID uint64, logger *log.Logger) (*model.Rule, error) {
 	if rule.IsSend == nil {
 		return nil, badRequest("missing rule direction")
 	}
@@ -52,7 +52,7 @@ func ruleToDB(rule *api.InRule, id uint64, logger *log.Logger) (*model.Rule, err
 	}
 
 	return &model.Rule{
-		ID:          id,
+		ID:          ruleID,
 		Name:        str(rule.Name),
 		Comment:     str(rule.Comment),
 		IsSend:      *rule.IsSend,

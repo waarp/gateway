@@ -61,7 +61,8 @@ func doCopy(dest, source string) error {
 		return normalizeFileError("open source file", err)
 	}
 
-	//nolint:errcheck // checking errors in deferred function seems useless
+	//nolint:errcheck,gosec // Close() must be deferred so the file is closed
+	// even in case of error or panic
 	defer func() { _ = srcFile.Close() }()
 
 	destFile, err := os.Create(trueDest)
@@ -69,7 +70,8 @@ func doCopy(dest, source string) error {
 		return normalizeFileError("create destination file", err)
 	}
 
-	//nolint:errcheck // checking errors in deferred function seems useless
+	//nolint:errcheck,gosec // Close() must be deferred so the file is closed
+	// even in case of error or panic
 	defer func() { _ = destFile.Close() }()
 
 	_, err = io.Copy(destFile, srcFile)
