@@ -187,8 +187,8 @@ func (p *postClient) Request() *types.TransferError {
 	case resp := <-p.resp:
 		defer resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 
-		msg := ""
-		if body, err := ioutil.ReadAll(resp.Body); err == nil {
+		msg := resp.Header.Get(httpconst.ErrorMessage)
+		if body, err := ioutil.ReadAll(resp.Body); msg == "" && err == nil {
 			msg = string(body)
 		}
 

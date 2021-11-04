@@ -229,12 +229,12 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 			ctx.RunTransfer(c)
 
 			Convey("Then it should have executed all the tasks in order", func(c C) {
-				ctx.ClientShouldHavePreTasked(c)
 				ctx.ServerShouldHavePreTasked(c)
-				// Whether the client had time to execute its post-tasks or not
-				// in this test is undefined. For this reason, we can only check
-				// if the post-tasks have been executed after the retry, when
-				// it's guaranteed that they have.
+				// Whether the client had time to execute its pre- & post-tasks
+				// or not in this test is undefined. For this reason, we can
+				// only check if the client's tasks have been executed after the
+				// retry, when it's guaranteed that they have.
+				// ctx.ClientShouldHavePreTasked(c)
 				// ctx.ClientShouldHavePostTasked(c)
 				ctx.ServerShouldHaveErrorTasked(c)
 				ctx.ClientShouldHaveErrorTasked(c)
@@ -248,6 +248,7 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 					"Pre-tasks failed: Task TASKERR @ PUSH PRE[1]: task failed",
 					types.StepPreTasks)
 				ctx.TestRetry(c,
+					ctx.ClientShouldHavePreTasked,
 					ctx.ClientShouldHavePostTasked,
 					ctx.ServerShouldHavePostTasked,
 				)
