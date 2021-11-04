@@ -100,7 +100,7 @@ func TestR66ServerInterruption(t *testing.T) {
 				Convey("When the server shuts down", func(c C) {
 					go func() {
 						time.Sleep(500 * time.Millisecond)
-						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 						defer cancel()
 						if err := serv.Stop(ctx); err != nil {
 							panic(err)

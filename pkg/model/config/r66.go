@@ -57,12 +57,12 @@ func (c *R66ProtoConfig) ValidPartner() error {
 
 	pwd := r66.CryptPass([]byte(c.ServerPassword))
 
-	hashed, err := utils.HashPassword(database.BcryptRounds, pwd)
+	hashed, err := utils.HashPassword(database.BcryptRounds, string(pwd))
 	if err != nil {
 		return fmt.Errorf("failed to hash server password: %w", err)
 	}
 
-	c.ServerPassword = string(hashed)
+	c.ServerPassword = hashed
 
 	return nil
 }

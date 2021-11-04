@@ -91,13 +91,13 @@ func importLocalAccounts(logger *log.Logger, db database.Access,
 		account.Login = src.Login
 
 		if src.PasswordHash != "" {
-			account.PasswordHash = []byte(src.PasswordHash)
+			account.PasswordHash = src.PasswordHash
 		} else if src.Password != "" {
-			pswd := []byte(src.Password)
+			pswd := src.Password
 			if server.Protocol == "r66" {
 				// Unlike other protocols, when authenticating, an R66 client sends a
 				// hash instead of a password, so we replace the password with its hash.
-				pswd = r66.CryptPass(pswd)
+				pswd = string(r66.CryptPass([]byte(pswd)))
 			}
 			var err error
 			if account.PasswordHash, err = utils.HashPassword(database.BcryptRounds, pswd); err != nil {

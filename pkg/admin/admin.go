@@ -72,16 +72,16 @@ func checkAddress(config conf.AdminConfig) (string, error) {
 // initServer initializes the HTTP server instance using the parameters defined
 // in the Admin configuration.
 // If the configuration is invalid, this function returns an error.
-func initServer(s *Server) error {
+func initServer(serv *Server) error {
 	// Load REST s address
-	addr, err := checkAddress(s.Conf.Admin)
+	addr, err := checkAddress(serv.Conf.Admin)
 	if err != nil {
 		return err
 	}
 
 	// Load TLS configuration
-	certFile := s.Conf.Admin.TLSCert
-	keyFile := s.Conf.Admin.TLSKey
+	certFile := serv.Conf.Admin.TLSCert
+	keyFile := serv.Conf.Admin.TLSKey
 
 	var tlsConfig *tls.Config
 
@@ -96,17 +96,17 @@ func initServer(s *Server) error {
 			Certificates: []tls.Certificate{cert},
 		}
 	} else {
-		s.logger.Info("No TLS certificate configured, using plain HTTP.")
+		serv.logger.Info("No TLS certificate configured, using plain HTTP.")
 	}
 
-	handler := MakeHandler(s.logger, s.DB, s.CoreServices, s.ProtoServices)
+	handler := MakeHandler(serv.logger, serv.DB, serv.CoreServices, serv.ProtoServices)
 
 	// Create http.Server instance
-	s.server = http.Server{
+	serv.server = http.Server{
 		Addr:      addr,
 		TLSConfig: tlsConfig,
 		Handler:   handler,
-		ErrorLog:  s.logger.AsStdLog(logging.ERROR),
+		ErrorLog:  serv.logger.AsStdLog(logging.ERROR),
 	}
 
 	return nil

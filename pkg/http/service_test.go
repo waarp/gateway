@@ -111,7 +111,7 @@ func TestServerInterruption(t *testing.T) {
 
 				Convey("When the server shuts down", func() {
 					time.Sleep(500 * time.Millisecond)
-					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 					defer cancel()
 					So(serv.Stop(ctx), ShouldBeNil)
 

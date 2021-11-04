@@ -42,7 +42,8 @@ func authentication(logger *log.Logger, db *database.DB) mux.MiddlewareFunc {
 				return
 			}
 
-			if err := bcrypt.CompareHashAndPassword(user.Password, []byte(password)); err != nil {
+			if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash),
+				[]byte(password)); err != nil {
 				logger.Warningf("Invalid password for user '%s'", login)
 				w.Header().Set("WWW-Authenticate", "Basic")
 				http.Error(w, "the given credentials are invalid", http.StatusUnauthorized)

@@ -158,30 +158,30 @@ func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) d
 		err         error
 	)
 
-	switch t := parent.(type) {
+	switch owner := parent.(type) {
 	case *LocalAgent:
 		isServer = true
 
-		host, _, err = net.SplitHostPort(t.Address)
+		host, _, err = net.SplitHostPort(owner.Address)
 		if err != nil {
 			return database.NewValidationError("failed to parse certificate owner address")
 		}
 
-		proto = t.Protocol
+		proto = owner.Protocol
 
 		if err := c.checkContentLocal(parent); err != nil {
 			return err
 		}
 
 	case *LocalAccount:
-		host = t.Login
+		host = owner.Login
 
 		if err := c.checkContentRemote(parent); err != nil {
 			return err
 		}
 
 		var parentParent LocalAgent
-		if err := db.Get(&parentParent, "id=?", t.LocalAgentID).Run(); err != nil {
+		if err := db.Get(&parentParent, "id=?", owner.LocalAgentID).Run(); err != nil {
 			return err
 		}
 
@@ -190,26 +190,26 @@ func (c *Crypto) checkContent(db database.ReadAccess, parent database.GetBean) d
 	case *RemoteAgent:
 		isServer = true
 
-		host, _, err = net.SplitHostPort(t.Address)
+		host, _, err = net.SplitHostPort(owner.Address)
 		if err != nil {
 			return database.NewValidationError("failed to parse certificate owner address")
 		}
 
-		proto = t.Protocol
+		proto = owner.Protocol
 
 		if err := c.checkContentRemote(parent); err != nil {
 			return err
 		}
 
 	case *RemoteAccount:
-		host = t.Login
+		host = owner.Login
 
 		if err := c.checkContentLocal(parent); err != nil {
 			return err
 		}
 
 		var parentParent RemoteAgent
-		if err := db.Get(&parentParent, "id=?", t.RemoteAgentID).Run(); err != nil {
+		if err := db.Get(&parentParent, "id=?", owner.RemoteAgentID).Run(); err != nil {
 			return err
 		}
 

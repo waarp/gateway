@@ -42,11 +42,11 @@ func testHandler(db *database.DB) http.Handler {
 	return admin.MakeHandler(discard, db, nil, nil)
 }
 
-func hash(pwd string) []byte {
+func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	So(err, ShouldBeNil)
 
-	return h
+	return string(h)
 }
 
 func writeFile(content string) *os.File {

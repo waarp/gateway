@@ -116,6 +116,7 @@ func (h *httpService) Stop(ctx context.Context) error {
 
 	if err := h.serv.Shutdown(ctx); err != nil {
 		h.logger.Warningf("Error while closing HTTP listener: %v", err)
+		_ = h.serv.Close() //nolint:errcheck //error is irrelevant at this point
 	}
 
 	h.state.Set(service.Offline, "")

@@ -72,18 +72,22 @@ func AESDecrypt(gcm cipher.AEAD, cipherStr string) (string, error) {
 //
 // If the password is already hashed, the hash is returned unchanged.
 // If the password cannot be hashed, an error is returned.
-func HashPassword(bcryptRounds int, password []byte) ([]byte, error) {
+func HashPassword(bcryptRounds int, password string) (string, error) {
+	if password == "" {
+		return "", nil
+	}
+
 	// If password is already hashed, don't encrypt it again.
-	if _, isHashed := bcrypt.Cost(password); isHashed == nil {
+	if _, isHashed := bcrypt.Cost([]byte(password)); isHashed == nil {
 		return password, nil
 	}
 
-	hash, err := bcrypt.GenerateFromPassword(password, bcryptRounds)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptRounds)
 	if err != nil {
-		return nil, fmt.Errorf("cannot hash password: %w", err)
+		return "", fmt.Errorf("cannot hash password: %w", err)
 	}
 
-	return hash, nil
+	return string(hash), nil
 }
 
 // ConstantEqual takes a pair of strings and returns whether they are equal or

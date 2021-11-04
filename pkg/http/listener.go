@@ -184,7 +184,7 @@ func (h *httpService) passwdAuth(w http.ResponseWriter, login, pswd string,
 		}
 	}
 
-	if err := bcrypt.CompareHashAndPassword(acc.PasswordHash, []byte(pswd)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(acc.PasswordHash), []byte(pswd)); err != nil {
 		h.logger.Warningf("Invalid credentials for user '%s'", login)
 		unauthorized(w, "the given credentials are invalid")
 

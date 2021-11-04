@@ -37,10 +37,10 @@ func (l *sshListener) makeFileLister(acc *model.LocalAccount) internal.FileListe
 }
 
 func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.ListerAtFunc {
-	return func(ls []os.FileInfo, offset int64) (int, error) {
-		var infos []os.FileInfo
-
+	return func(fileInfos []os.FileInfo, offset int64) (int, error) {
 		l.Logger.Debugf("Received 'List' request on %s", r.Filepath)
+
+		var infos []os.FileInfo
 
 		if r.Filepath == "" || r.Filepath == "/" {
 			paths, err := getRulesPaths(l.DB, l.Logger, l.Agent, acc)
@@ -75,8 +75,8 @@ func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.
 			return 0, io.EOF
 		}
 
-		n := copy(ls, infos[offset:])
-		if n < len(ls) {
+		n := copy(fileInfos, infos[offset:])
+		if n < len(fileInfos) {
 			return n, io.EOF
 		}
 
@@ -85,12 +85,12 @@ func (l *sshListener) listAt(r *sftp.Request, acc *model.LocalAccount) internal.
 }
 
 func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.ListerAtFunc {
-	return func(ls []os.FileInfo, offset int64) (int, error) {
+	return func(fileInfos []os.FileInfo, offset int64) (int, error) {
 		l.Logger.Debugf("Received 'Stat' request on %s", r.Filepath)
 
 		rule, err := getRule(l.DB, l.Logger, acc, path.Dir(r.Filepath), true)
-		if err != nil || rule == nil {
-			return 0, fmt.Errorf("failed to retrieve rule for path '%s': %w", r.Filepath, err)
+		if err != nil {
+			return 0, err
 		}
 
 		file := utils.GetPath(path.Base(r.Filepath), leaf(rule.LocalDir),
@@ -110,8 +110,8 @@ func (l *sshListener) statAt(r *sftp.Request, acc *model.LocalAccount) internal.
 
 		tmp := []os.FileInfo{fi}
 
-		n := copy(ls, tmp)
-		if n < len(ls) {
+		n := copy(fileInfos, tmp)
+		if n < len(fileInfos) {
 			return n, io.EOF
 		}
 

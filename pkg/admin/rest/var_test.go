@@ -28,9 +28,9 @@ type TestProtoConfig struct {
 func (*TestProtoConfig) ValidServer() error  { return nil }
 func (*TestProtoConfig) ValidPartner() error { return nil }
 
-func hash(pwd string) []byte {
+func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	convey.So(err, convey.ShouldBeNil)
 
-	return h
+	return string(h)
 }

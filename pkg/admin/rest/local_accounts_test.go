@@ -332,7 +332,7 @@ func TestCreateLocalAccount(t *testing.T) {
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
 
-							So(bcrypt.CompareHashAndPassword(accs[0].PasswordHash,
+							So(bcrypt.CompareHashAndPassword([]byte(accs[0].PasswordHash),
 								[]byte("new_password")), ShouldBeNil)
 							So(accs[0], ShouldResemble, model.LocalAccount{
 								ID:           1,
@@ -534,7 +534,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(len(accounts), ShouldEqual, 1)
 
-						So(bcrypt.CompareHashAndPassword(accounts[0].PasswordHash,
+						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
 							[]byte("upd_password")), ShouldBeNil)
 						So(accounts[0], ShouldResemble, model.LocalAccount{
 							ID:           old.ID,
@@ -665,7 +665,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(len(accounts), ShouldEqual, 1)
 
-						So(bcrypt.CompareHashAndPassword(accounts[0].PasswordHash,
+						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
 							[]byte("upd_password")), ShouldBeNil)
 						So(accounts[0], ShouldResemble, model.LocalAccount{
 							ID:           old.ID,

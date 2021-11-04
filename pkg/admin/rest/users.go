@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -9,12 +10,13 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func newInUser(old *model.User) *api.InUser {
 	return &api.InUser{
 		Username: &old.Username,
-		Password: strPtr(string(old.Password)),
+		Password: strPtr(old.PasswordHash),
 	}
 }
 
@@ -25,12 +27,17 @@ func userToDB(user *api.InUser, old *model.User) (*model.User, error) {
 		return nil, err
 	}
 
+	hash, err := utils.HashPassword(database.BcryptRounds, str(user.Password))
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash passwordi: %w", err)
+	}
+
 	return &model.User{
-		ID:          old.ID,
-		Owner:       database.Owner,
-		Username:    str(user.Username),
-		Password:    []byte(str(user.Password)),
-		Permissions: mask,
+		ID:           old.ID,
+		Owner:        database.Owner,
+		Username:     str(user.Username),
+		PasswordHash: hash,
+		Permissions:  mask,
 	}, nil
 }
 

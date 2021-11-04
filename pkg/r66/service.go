@@ -58,7 +58,7 @@ func (s *Service) makeTLSConf() (*tls.Config, error) {
 	}
 
 	if len(certs) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // returning nil is ok here
 	}
 
 	tlsCerts := make([]tls.Certificate, len(certs))

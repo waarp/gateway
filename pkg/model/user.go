@@ -26,7 +26,7 @@ type User struct {
 	Username string `xorm:"unique(name) notnull 'username'"`
 
 	// The user's password
-	Password []byte `xorm:"notnull 'password'"`
+	PasswordHash string `xorm:"text notnull default('') 'password_hash'"`
 
 	// The users permissions for reading and writing the database.
 	Permissions PermsMask `xorm:"notnull binary(4) 'permissions'"`
@@ -49,15 +49,24 @@ func (u *User) GetID() uint64 {
 
 // Init inserts the default user in the database when the table is created.
 func (u *User) Init(db database.Access) database.Error {
-	user := &User{
-		Username:    "admin",
-		Owner:       database.Owner,
-		Password:    []byte("admin_password"),
-		Permissions: PermAll,
-	}
-	err := db.Insert(user).Run()
+	hash, err := utils.HashPassword(database.BcryptRounds, "admin_password")
+	if err != nil {
+		db.GetLogger().Errorf("Failed to hash the user password: %s", err)
 
-	return err
+		return database.NewInternalError(err)
+	}
+
+	user := &User{
+		Username:     "admin",
+		Owner:        database.Owner,
+		PasswordHash: hash,
+		Permissions:  PermAll,
+	}
+
+	if err := db.Insert(user).Run(); err != nil {
+	}
+
+	return nil
 }
 
 // BeforeDelete is called before removing the user from the database. Its
@@ -85,7 +94,7 @@ func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the username cannot be empty")
 	}
 
-	if len(u.Password) == 0 {
+	if u.PasswordHash == "" {
 		return database.NewValidationError("the user password cannot be empty")
 	}
 
@@ -95,13 +104,6 @@ func (u *User) BeforeWrite(db database.ReadAccess) database.Error {
 		return err
 	} else if n != 0 {
 		return database.NewValidationError("a user named '%s' already exist", u.Username)
-	}
-
-	var err1 error
-	if u.Password, err1 = utils.HashPassword(database.BcryptRounds, u.Password); err1 != nil {
-		db.GetLogger().Errorf("Failed to hash the user password: %s", err)
-
-		return database.NewInternalError(err)
 	}
 
 	return nil

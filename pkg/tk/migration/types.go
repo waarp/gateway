@@ -36,33 +36,33 @@ type sqlType struct {
 	size uint64
 }
 
-func (s1 sqlType) canConvertTo(s2 sqlType) bool {
-	if s1.code == s2.code {
+func (t sqlType) canConvertTo(target sqlType) bool {
+	if t.code == target.code {
 		return true
 	}
 
 	//nolint:exhaustive // missing cases are handled by the final return
-	switch s1.code {
+	switch t.code {
 	case tinyint:
-		switch s2.code {
+		switch target.code {
 		case smallint, integer, bigint:
 			return true
 		}
 	case smallint:
-		switch s2.code {
+		switch target.code {
 		case integer, bigint:
 			return true
 		}
 	case integer:
-		if s2.code == bigint {
+		if target.code == bigint {
 			return true
 		}
 	case float:
-		if s2.code == double {
+		if target.code == double {
 			return true
 		}
 	case varchar:
-		if s2.code == text {
+		if target.code == text {
 			return true
 		}
 	}
@@ -117,15 +117,16 @@ func (s *standardSQL) formatValueToSQL(val interface{}, sqlTyp sqlType) (string,
 	case tinyint:
 		return convert(val, kind, "%d", reflect.Int8)
 	case smallint:
-		return convert(val, kind, "%d", reflect.Int16)
+		return convert(val, kind, "%d", reflect.Int16, reflect.Int8)
 	case integer:
-		return convert(val, kind, "%d", reflect.Int, reflect.Int32)
+		return convert(val, kind, "%d", reflect.Int, reflect.Int32, reflect.Int16, reflect.Int8)
 	case bigint:
-		return convert(val, kind, "%d", reflect.Int64)
+		return convert(val, kind, "%d", reflect.Int64, reflect.Int, reflect.Int32,
+			reflect.Int16, reflect.Int8)
 	case float:
 		return convert(val, kind, "%f", reflect.Float32)
 	case double:
-		return convert(val, kind, "%f", reflect.Float64)
+		return convert(val, kind, "%f", reflect.Float64, reflect.Float32)
 	case varchar, text:
 		return convert(val, kind, "'%s'", reflect.String)
 	case date:

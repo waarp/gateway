@@ -233,7 +233,6 @@ func cancelTransfer(protoServices map[string]service.ProtoService) handler {
 					return
 				}
 
-				w.WriteHeader(http.StatusAccepted)
 			case types.StatusRunning:
 				pips, err := getPipelineMap(db, protoServices, trans)
 				if handleError(w, logger, err) {
@@ -250,9 +249,6 @@ func cancelTransfer(protoServices map[string]service.ProtoService) handler {
 					return
 				}
 
-				w.WriteHeader(http.StatusAccepted)
-
-				return
 			default:
 				err := badRequest("cannot pause an already interrupted transfer")
 				handleError(w, logger, err)
