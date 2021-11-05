@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`255` Ajout de *handlers* REST permettant l'arrêt et le redémarrage
+  des :term:`serveur locaux<serveur>` à chaud. Des sous-commandes ``start``,
+  ``stop`` et ``restart`` ont en conséquence été ajoutées à la commande ``server``
+  du client en ligne de commande.
 * :bug:`346` Correction d'un bug causant l'échec de la validation des chaînes de
   certification comprenant plus de un certificat lors de leur insertion en base
   de données.
