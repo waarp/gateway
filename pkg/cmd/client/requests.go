@@ -173,3 +173,25 @@ func remove() error {
 		return fmt.Errorf("unexpected error: %w", getResponseMessage(resp))
 	}
 }
+
+func exec(path string) error {
+	addr.Path = path
+
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodPut)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
+
+	switch resp.StatusCode {
+	case http.StatusAccepted:
+		return nil
+	case http.StatusNotFound:
+		return getResponseMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error: %w", getResponseMessage(resp))
+	}
+}

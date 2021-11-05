@@ -11,10 +11,13 @@ import (
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -866,6 +869,211 @@ func TestEnableDisableServer(t *testing.T) {
 				Convey("Then it should display a message saying the server was disabled", func() {
 					So(getOutput(), ShouldEqual, "The server "+locAgentName+
 						" was successfully disabled.\n")
+				})
+			})
+		})
+	})
+}
+
+func TestStartServer(t *testing.T) {
+	Convey("Testing the server 'start' command", t, func() {
+		out = testFile()
+		command := &serverStart{}
+
+		Convey("Given a gateway with 1 local server", func(c C) {
+			db := database.TestDatabase(c)
+			protoServices := map[uint64]proto.Service{}
+			gw := httptest.NewServer(admin.MakeHandler(discard(), db, nil, protoServices))
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
+
+			agent := &model.LocalAgent{
+				Name:        "server_name",
+				Protocol:    testProto1,
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
+			}
+			So(db.Insert(agent).Run(), ShouldBeNil)
+
+			Convey("Given a valid server name", func() {
+				args := []string{agent.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the server was started", func() {
+						So(getOutput(), ShouldEqual, "The server "+agent.Name+
+							" was successfully started.\n")
+					})
+
+					Convey("Then the server should have been started", func() {
+						So(protoServices, ShouldContainKey, agent.ID)
+
+						code, _ := protoServices[agent.ID].State().Get()
+						So(code, ShouldEqual, state.Running)
+					})
+				})
+			})
+
+			Convey("Given an invalid name", func() {
+				args := []string{"toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "server 'toto' not found")
+					})
+
+					Convey("Then the server should not have been started", func() {
+						So(protoServices, ShouldBeEmpty)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestStopServer(t *testing.T) {
+	Convey("Testing the server 'stop' command", t, func() {
+		out = testFile()
+		command := &serverStop{}
+
+		Convey("Given a gateway with 1 local server", func(c C) {
+			db := database.TestDatabase(c)
+			protoServices := map[uint64]proto.Service{}
+			gw := httptest.NewServer(admin.MakeHandler(discard(), db, nil, protoServices))
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
+
+			agent := &model.LocalAgent{
+				Name:        "server_name",
+				Protocol:    testProto1,
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
+			}
+			So(db.Insert(agent).Run(), ShouldBeNil)
+
+			serv := &testLocalServer{}
+			So(serv.Start(agent), ShouldBeNil)
+
+			protoServices[agent.ID] = serv
+
+			Convey("Given a valid server name", func() {
+				args := []string{agent.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the server was stopped", func() {
+						So(getOutput(), ShouldEqual, "The server "+agent.Name+
+							" was successfully stopped.\n")
+					})
+
+					Convey("Then the server should have been stopped", func() {
+						code, _ := serv.State().Get()
+						So(code, ShouldEqual, state.Offline)
+					})
+				})
+			})
+
+			Convey("Given an invalid name", func() {
+				args := []string{"toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "server 'toto' not found")
+					})
+
+					Convey("Then the server should not have been stopped", func() {
+						code, _ := serv.State().Get()
+						So(code, ShouldEqual, state.Running)
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestRestartServer(t *testing.T) {
+	Convey("Testing the server 'restart' command", t, func() {
+		out = testFile()
+		command := &serverRestart{}
+
+		Convey("Given a gateway with 1 local server", func(c C) {
+			db := database.TestDatabase(c)
+			protoServices := map[uint64]proto.Service{}
+			gw := httptest.NewServer(admin.MakeHandler(discard(), db, nil, protoServices))
+			var err error
+			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
+			So(err, ShouldBeNil)
+
+			agent := &model.LocalAgent{
+				Name:        "server_name",
+				Protocol:    testProto1,
+				ProtoConfig: json.RawMessage(`{}`),
+				Address:     "localhost:1",
+			}
+			So(db.Insert(agent).Run(), ShouldBeNil)
+
+			serv := &testLocalServer{}
+			So(serv.Start(agent), ShouldBeNil)
+
+			protoServices[agent.ID] = serv
+
+			agent.Name = "restarted server_name"
+			So(db.Update(agent).Run(), ShouldBeNil)
+
+			Convey("Given a valid server name", func() {
+				args := []string{agent.Name}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					So(command.Execute(params), ShouldBeNil)
+
+					Convey("Then is should display a message saying the server was restarted", func() {
+						So(getOutput(), ShouldEqual, "The server "+agent.Name+
+							" was successfully restarted.\n")
+					})
+
+					Convey("Then the server should have been restarted", func() {
+						code, _ := serv.State().Get()
+						So(code, ShouldEqual, state.Running)
+						So(serv.name, ShouldEqual, "restarted server_name")
+					})
+				})
+			})
+
+			Convey("Given an invalid name", func() {
+				args := []string{"toto"}
+
+				Convey("When executing the command", func() {
+					params, err := flags.ParseArgs(command, args)
+					So(err, ShouldBeNil)
+					err = command.Execute(params)
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, "server 'toto' not found")
+					})
+
+					Convey("Then the server should not have been restarted", func() {
+						code, _ := serv.State().Get()
+						So(code, ShouldEqual, state.Running)
+						So(serv.name, ShouldEqual, "server_name")
+					})
 				})
 			})
 		})
