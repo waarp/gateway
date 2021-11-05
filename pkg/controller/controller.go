@@ -11,9 +11,9 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/names"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 )
 
 // Controller is the service responsible for checking the database for new

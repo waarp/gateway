@@ -1,7 +1,11 @@
 package rest
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"net/http"
+	"time"
 
 	"code.waarp.fr/lib/log"
 	"github.com/gorilla/mux"
@@ -9,6 +13,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
@@ -300,5 +306,105 @@ func enableDisableServer(logger *log.Logger, db *database.DB, enable bool) http.
 		}
 
 		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+func getProtoService(r *http.Request, protoServices map[uint64]proto.Service,
+	db *database.DB,
+) (*model.LocalAgent, proto.Service, error) {
+	ag, err := getServ(r, db)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	serv, ok := protoServices[ag.ID]
+	if !ok {
+		return nil, nil, errServiceNotFound
+	}
+
+	return ag, serv, nil
+}
+
+func haltServer(r *http.Request, serv proto.Service) error {
+	const haltTimeout = 10 * time.Second
+
+	ctx, cancel := context.WithTimeout(r.Context(), haltTimeout)
+	defer cancel()
+
+	if err := serv.Stop(ctx); err != nil {
+		return fmt.Errorf("failed to stop service: %w", err)
+	}
+
+	return nil
+}
+
+func stopServer(protoServices map[uint64]proto.Service) handler {
+	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			_, serv, err := getProtoService(r, protoServices, db)
+			if handleError(w, logger, err) {
+				return
+			}
+
+			if err := haltServer(r, serv); handleError(w, logger, err) {
+				return
+			}
+
+			w.WriteHeader(http.StatusAccepted)
+		}
+	}
+}
+
+var errConstructorNotFound = errors.New("could not instantiate the service: protocol not found")
+
+func startServer(protoServices map[uint64]proto.Service) handler {
+	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			ag, err := getServ(r, db)
+			if handleError(w, logger, err) {
+				return
+			}
+
+			serv, ok := protoServices[ag.ID]
+			if !ok {
+				constr, ok := constructors.ServiceConstructors[ag.Protocol]
+				if !ok {
+					handleError(w, logger, errConstructorNotFound)
+
+					return
+				}
+
+				servLogger := conf.GetLogger(ag.Name)
+				serv = constr(db, servLogger)
+				protoServices[ag.ID] = serv
+			}
+
+			if err := serv.Start(ag); handleError(w, logger, err) {
+				return
+			}
+
+			w.WriteHeader(http.StatusAccepted)
+		}
+	}
+}
+
+func restartServer(protoServices map[uint64]proto.Service) handler {
+	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			ag, serv, err := getProtoService(r, protoServices, db)
+			if handleError(w, logger, err) {
+				return
+			}
+
+			if err := haltServer(r, serv); handleError(w, logger, err) {
+				return
+			}
+
+			if err := serv.Start(ag); handleError(w, logger, err) {
+				return
+			}
+
+			w.WriteHeader(http.StatusAccepted)
+		}
 	}
 }

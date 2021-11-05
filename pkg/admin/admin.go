@@ -19,9 +19,10 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/names"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 )
 
 var ErrMissingKeyFile = errors.New("missing certificate private key")
@@ -30,7 +31,7 @@ var ErrMissingKeyFile = errors.New("missing certificate private key")
 type Server struct {
 	DB            *database.DB
 	CoreServices  map[string]service.Service
-	ProtoServices map[string]service.ProtoService
+	ProtoServices map[uint64]proto.Service
 
 	logger *log.Logger
 	state  state.State

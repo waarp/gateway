@@ -2,6 +2,7 @@ package wg
 
 import (
 	"context"
+	"encoding/json"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -10,9 +11,10 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 )
 
 type dummyService struct{ state *state.State }
@@ -42,6 +44,18 @@ func TestRequestStatus(t *testing.T) {
 
 		Convey("Given a running gateway", func(c C) {
 			db := database.TestDatabase(c)
+			addServ := func(name string) *model.LocalAgent {
+				a := &model.LocalAgent{
+					Name:        name,
+					Protocol:    testProto1,
+					ProtoConfig: json.RawMessage("{}"),
+					Address:     "localhost:1234",
+				}
+				So(db.Insert(a).Run(), ShouldBeNil)
+
+				return a
+			}
+
 			core := map[string]service.Service{
 				"Core Service 1": &dummyService{&offlineState},
 				"Core Service 2": &dummyService{&runningState},
@@ -50,15 +64,16 @@ func TestRequestStatus(t *testing.T) {
 				"Core Service 5": &dummyService{&errorState},
 				"Core Service 6": &dummyService{&runningState},
 			}
-			proto := map[string]service.ProtoService{
-				"Proto Service 1": &dummyServer{&dummyService{&offlineState}},
-				"Proto Service 2": &dummyServer{&dummyService{&runningState}},
-				"Proto Service 3": &dummyServer{&dummyService{&offlineState}},
-				"Proto Service 4": &dummyServer{&dummyService{&errorState}},
-				"Proto Service 5": &dummyServer{&dummyService{&errorState}},
-				"Proto Service 6": &dummyServer{&dummyService{&runningState}},
+			protoServices := map[uint64]proto.Service{
+				addServ("Proto Service 1").ID: &dummyServer{&dummyService{&offlineState}},
+				addServ("Proto Service 2").ID: &dummyServer{&dummyService{&runningState}},
+				addServ("Proto Service 3").ID: &dummyServer{&dummyService{&offlineState}},
+				addServ("Proto Service 4").ID: &dummyServer{&dummyService{&errorState}},
+				addServ("Proto Service 5").ID: &dummyServer{&dummyService{&errorState}},
+				addServ("Proto Service 6").ID: &dummyServer{&dummyService{&runningState}},
 			}
-			gw := httptest.NewServer(admin.MakeHandler(discard(), db, core, proto))
+
+			gw := httptest.NewServer(admin.MakeHandler(discard(), db, core, protoServices))
 
 			Convey("When executing the command", func() {
 				var err error

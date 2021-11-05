@@ -16,9 +16,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -80,7 +80,7 @@ func transToDB(trans *api.InTransfer, db *database.DB, logger *log.Logger) (*mod
 
 // FromTransfer transforms the given database transfer into its JSON equivalent.
 func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, error) {
-	rule, requester, requested, proto, err := getTransNames(db, trans)
+	rule, requester, requested, protocol, err := getTransNames(db, trans)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 		IsSend:         rule.IsSend,
 		Requested:      requested,
 		Requester:      requester,
-		Protocol:       proto,
+		Protocol:       protocol,
 		LocalFilepath:  trans.LocalPath,
 		RemoteFilepath: trans.RemotePath,
 		Filesize:       trans.Filesize,
@@ -232,7 +232,7 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func pauseTransfer(protoServices map[string]service.ProtoService) handler {
+func pauseTransfer(protoServices map[uint64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			trans, tErr := getTrans(r, db)
@@ -251,7 +251,7 @@ func pauseTransfer(protoServices map[string]service.ProtoService) handler {
 
 				return
 			case types.StatusRunning:
-				pips, err := getPipelineMap(db, protoServices, trans)
+				pips, err := getPipelineMap(protoServices, trans)
 				if handleError(w, logger, err) {
 					return
 				}
@@ -286,7 +286,7 @@ func pauseTransfer(protoServices map[string]service.ProtoService) handler {
 	}
 }
 
-func cancelTransfer(protoServices map[string]service.ProtoService) handler {
+func cancelTransfer(protoServices map[uint64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			trans, tErr := getTrans(r, db)
@@ -295,7 +295,7 @@ func cancelTransfer(protoServices map[string]service.ProtoService) handler {
 			}
 
 			if trans.Status == types.StatusRunning {
-				pips, err := getPipelineMap(db, protoServices, trans)
+				pips, err := getPipelineMap(protoServices, trans)
 				if handleError(w, logger, err) {
 					return
 				}

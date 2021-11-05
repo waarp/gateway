@@ -1,6 +1,11 @@
-package gatewayd
+// Package constructors contains a list of all the
+package constructors
 
 import (
+	"code.waarp.fr/lib/log"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/r66"
@@ -14,6 +19,8 @@ import (
 //
 //nolint:gochecknoglobals // global var is used by design
 var ServiceConstructors = map[string]serviceConstructor{}
+
+type serviceConstructor func(db *database.DB, logger *log.Logger) proto.Service
 
 //nolint:gochecknoinits // init is used by design
 func init() {

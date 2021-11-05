@@ -8,7 +8,7 @@ import (
 	"sort"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 )
 
 // Status regroups all the options of the 'status' command.

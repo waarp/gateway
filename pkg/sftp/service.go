@@ -10,10 +10,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 )
 
 // Service represents an instance of SFTP server.
@@ -22,20 +23,21 @@ type Service struct {
 	agentID uint64
 	logger  *log.Logger
 
-	state    *state.State
-	listener *sshListener
+	state            state.State
+	listener         *sshListener
+	runningTransfers *service.TransferMap
 }
 
 // NewService returns a new SFTP service instance with the given attributes.
-func NewService(db *database.DB, logger *log.Logger) service.ProtoService {
+func NewService(db *database.DB, logger *log.Logger) proto.Service {
 	return newService(db, logger)
 }
 
 func newService(db *database.DB, logger *log.Logger) *Service {
 	return &Service{
-		db:     db,
-		logger: logger,
-		state:  &state.State{},
+		db:               db,
+		logger:           logger,
+		runningTransfers: service.NewTransferMap(),
 	}
 }
 
@@ -81,7 +83,7 @@ func (s *Service) start(agent *model.LocalAgent) error {
 		AgentID:          agent.ID,
 		SSHConf:          sshConf,
 		Listener:         listener,
-		runningTransfers: service.NewTransferMap(),
+		runningTransfers: s.runningTransfers,
 		shutdown:         make(chan struct{}),
 	}
 
@@ -135,10 +137,10 @@ func (s *Service) Stop(ctx context.Context) error {
 
 // State returns the state of the SFTP service.
 func (s *Service) State() *state.State {
-	return s.state
+	return &s.state
 }
 
 // ManageTransfers returns a map of the transfers currently running on the server.
 func (s *Service) ManageTransfers() *service.TransferMap {
-	return s.listener.runningTransfers
+	return s.runningTransfers
 }

@@ -11,9 +11,10 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64, error) {
@@ -56,7 +57,8 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64
 // getTransNames returns (in this order) the transfer's rule, and the names of
 // the requester, the requested, and the protocol.
 func getTransNames(db *database.DB, trans *model.Transfer) (rule *model.Rule,
-	requester, requested, proto string, err error) {
+	requester, requested, protocol string, err error,
+) {
 	rule = &model.Rule{}
 
 	if err := db.Get(rule, "id=?", trans.RuleID).Run(); err != nil {
@@ -92,7 +94,8 @@ func getTransNames(db *database.DB, trans *model.Transfer) (rule *model.Rule,
 
 //nolint:funlen // FIXME should be refactored
 func parseTransferListQuery(r *http.Request, db *database.DB,
-	transfers *model.Transfers) (*database.SelectQuery, error) {
+	transfers *model.Transfers,
+) (*database.SelectQuery, error) {
 	query := db.Select(transfers).Where("owner=?", conf.GlobalConfig.GatewayName)
 
 	sorting := orders{
@@ -172,18 +175,14 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 
 var errServiceNotFound = errors.New("cannot find the service associated with the transfer")
 
-func getPipelineMap(db *database.DB, protoServices map[string]service.ProtoService,
-	trans *model.Transfer) (*service.TransferMap, error) {
+func getPipelineMap(protoServices map[uint64]proto.Service,
+	trans *model.Transfer,
+) (*service.TransferMap, error) {
 	if !trans.IsServer {
 		return pipeline.ClientTransfers, nil
 	}
 
-	var agent model.LocalAgent
-	if err := db.Get(&agent, "id=?", trans.AgentID).Run(); err != nil {
-		return nil, err
-	}
-
-	serv, ok := protoServices[agent.Name]
+	serv, ok := protoServices[trans.AgentID]
 	if !ok {
 		return nil, errServiceNotFound
 	}

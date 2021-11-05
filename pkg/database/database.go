@@ -18,8 +18,8 @@ import (
 	xNames "xorm.io/xorm/names"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/names"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/names"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 

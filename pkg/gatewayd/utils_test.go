@@ -6,10 +6,12 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -21,12 +23,12 @@ func init() {
 		return new(testhelpers.TestProtoConfig)
 	}
 
-	ServiceConstructors[testProtocol] = newTestServ
+	constructors.ServiceConstructors[testProtocol] = newTestServ
 }
 
 type testServ struct{ state *state.State }
 
-func newTestServ(*database.DB, *log.Logger) service.ProtoService {
+func newTestServ(*database.DB, *log.Logger) proto.Service {
 	return &testServ{state: &state.State{}}
 }
 

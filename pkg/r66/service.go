@@ -15,10 +15,11 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
@@ -36,7 +37,7 @@ type Service struct {
 	db      *database.DB
 	logger  *log.Logger
 	agentID uint64
-	state   *state.State
+	state   state.State
 
 	r66Conf  *config.R66ProtoConfig
 	list     net.Listener
@@ -47,7 +48,7 @@ type Service struct {
 }
 
 // NewService returns a new R66 service instance with the given attributes.
-func NewService(db *database.DB, logger *log.Logger) service.ProtoService {
+func NewService(db *database.DB, logger *log.Logger) proto.Service {
 	return newService(db, logger)
 }
 
@@ -55,7 +56,6 @@ func newService(db *database.DB, logger *log.Logger) *Service {
 	return &Service{
 		db:               db,
 		logger:           logger,
-		state:            &state.State{},
 		shutdown:         make(chan struct{}),
 		runningTransfers: service.NewTransferMap(),
 	}
@@ -225,13 +225,7 @@ func (s *Service) Stop(ctx context.Context) error {
 
 // State returns the r66 service's state.
 func (s *Service) State() *state.State {
-	if s.server == nil {
-		if code, _ := s.state.Get(); code == state.Running {
-			s.state.Set(state.Offline, "")
-		}
-	}
-
-	return s.state
+	return &s.state
 }
 
 // ManageTransfers returns a map of the transfers currently running on the server.

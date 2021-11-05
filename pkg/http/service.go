@@ -14,10 +14,11 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 )
 
 const readHeaderTimeout = 10 * time.Second
@@ -26,7 +27,7 @@ type httpService struct {
 	logger  *log.Logger
 	db      *database.DB
 	agentID uint64
-	state   *state.State
+	state   state.State
 
 	conf    config.HTTPProtoConfig
 	serv    *http.Server
@@ -36,7 +37,7 @@ type httpService struct {
 }
 
 // NewService initializes and returns a new HTTP service.
-func NewService(db *database.DB, logger *log.Logger) service.ProtoService {
+func NewService(db *database.DB, logger *log.Logger) proto.Service {
 	return newService(db, logger)
 }
 
@@ -45,7 +46,6 @@ func newService(db *database.DB, logger *log.Logger) *httpService {
 		db:      db,
 		logger:  logger,
 		running: service.NewTransferMap(),
-		state:   &state.State{},
 	}
 }
 
@@ -150,7 +150,7 @@ func (h *httpService) stop(ctx context.Context) error {
 }
 
 func (h *httpService) State() *state.State {
-	return h.state
+	return &h.state
 }
 
 func (h *httpService) ManageTransfers() *service.TransferMap {

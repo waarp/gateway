@@ -12,8 +12,8 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -72,10 +72,10 @@ func checkState(wg *WG, code state.StateCode, s1, s2 *model.LocalAgent) {
 	So(adState, ShouldEqual, code)
 	So(contState, ShouldEqual, code)
 
-	serv1, ok := wg.ProtoServices[s1.Name]
+	serv1, ok := wg.ProtoServices[s1.ID]
 	So(ok, ShouldBeTrue)
 
-	serv2, ok := wg.ProtoServices[s2.Name]
+	serv2, ok := wg.ProtoServices[s2.ID]
 	So(ok, ShouldBeTrue)
 
 	s1State, _ := serv1.State().Get()

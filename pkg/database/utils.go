@@ -9,7 +9,7 @@ import (
 	"xorm.io/builder"
 	"xorm.io/xorm"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service/state"
+	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/state"
 	vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
