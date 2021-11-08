@@ -36,6 +36,11 @@ var Migrations = []migration.Migration{
 		VersionTag:  "0.4.3",
 	},
 	{
+		Description: "Bump the database version to 0.4.4",
+		Script:      bumpVersion{from: "0.4.3", to: "0.4.4"},
+		VersionTag:  "0.4.4",
+	},
+	{
 		Description: "Change the new local agent paths to OS specific paths",
 		Script:      ver0_5_0LocalAgentChangePaths{},
 	},

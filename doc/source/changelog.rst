@@ -3,6 +3,7 @@
 Historique des versions
 =======================
 
+* :release:`0.4.4 <2021-10-25>`
 * :bug:`282` Correction d'un bug dans le moteur de migration de base de données
   qui laissait la base dans un état inutilisable après une migration à cause
   d'une disparité de version entre la base et l'exécutable.
