@@ -29,19 +29,19 @@ func getTarget(version string) (index int, err error) {
 	}
 
 	if !semver.IsValid("v" + version) {
-		return -1, fmt.Errorf("bad version %q: %w", version, errInvalidVersion)
+		return -1, fmt.Errorf("bad target version %q: %w", version, errInvalidVersion)
 	}
 
 	for i, m := range Migrations {
 		if m.VersionTag == version {
-			return i, nil
+			return i + 1, nil
 		}
 	}
 
-	return -1, fmt.Errorf("bad version %q: %w", version, errInvalidVersion)
+	return -1, fmt.Errorf("bad target version %q: %w", version, errInvalidVersion)
 }
 
-func getCurrent(db *sql.DB, dialect string, from int) (index int, err error) {
+func getStart(db *sql.DB, dialect string, from int) (index int, err error) {
 	if from > 0 && from < len(Migrations) {
 		return from, nil
 	}
@@ -64,7 +64,7 @@ func getCurrent(db *sql.DB, dialect string, from int) (index int, err error) {
 
 	for i, m := range Migrations {
 		if m.VersionTag == current {
-			return i, nil
+			return i + 1, nil
 		}
 	}
 
@@ -72,7 +72,7 @@ func getCurrent(db *sql.DB, dialect string, from int) (index int, err error) {
 }
 
 func doMigration(db *sql.DB, version, dialect string, from int, out io.Writer) error {
-	current, err := getCurrent(db, dialect, from)
+	start, err := getStart(db, dialect, from)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func doMigration(db *sql.DB, version, dialect string, from int, out io.Writer) e
 		return err
 	}
 
-	if target == current {
+	if target == start {
 		return nil // nothing to do
 	}
 
@@ -91,15 +91,15 @@ func doMigration(db *sql.DB, version, dialect string, from int, out io.Writer) e
 		return fmt.Errorf("cannot initialize migration engine: %w", err)
 	}
 
-	if target > current {
-		if err := engine.Upgrade(Migrations[current+1 : target+1]); err != nil {
+	if target > start {
+		if err := engine.Upgrade(Migrations[start:target]); err != nil {
 			return fmt.Errorf("cannot upgrade database: %w", err)
 		}
 
 		return nil
 	}
 
-	if err := engine.Downgrade(Migrations[target+1 : current+1]); err != nil {
+	if err := engine.Downgrade(Migrations[target:start]); err != nil {
 		return fmt.Errorf("cannot downgrade database: %w", err)
 	}
 
