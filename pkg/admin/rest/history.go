@@ -172,6 +172,8 @@ func listHistory(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		"status-":    order{col: "status", asc: false},
 		"start+":     order{col: "start", asc: true},
 		"start-":     order{col: "start", asc: false},
+		"stop+":      order{col: "stop", asc: true},
+		"stop-":      order{col: "stop", asc: false},
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
