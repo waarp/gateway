@@ -134,7 +134,7 @@ dans lequel ce fichier est situé est comparé aux chemins des règles (proprié
 transfert est refusé.
 
 Ici, nous voulons envoyer un fichier à la Gateway. La règle aura donc le sens
-``RECEIVE`` (« réception ») : le sens des règles est toujours à prendre du point
+``receive`` (« réception ») : le sens des règles est toujours à prendre du point
 de vu de la Gateway (si on envoi un fichier à la Gateway, celle-ci le *reçoit*).
 
 Assemblons tout dans une commande pour créer la règle :
@@ -175,15 +175,15 @@ transferts de la Gateway :
    $ waarp-gateway history list
    History:
    ● Transfer 1 (as server) [DONE]
-       Way:              RECEIVE
-       Protocol:         sftp
-       Rule:             sftp_recv
-       Requester:        myuser
-       Requested:        sftp_server
-       Source file:      test01.txt
-       Destination file: test01.txt
-       Start date:       2020-08-27T10:10:05Z
-       End date:         2020-08-27T10:10:05Z
+       Way:             receive
+       Protocol:        sftp
+       Rule:            sftp_recv
+       Requester:       myuser
+       Requested:       sftp_server
+       Local filepath:  /etc/waarp-gateway/in/test01.txt
+       Remote filepath: /test01.txt
+       Start date:      2020-08-27T10:10:05Z
+       End date:        2020-08-27T10:10:05Z
    
 Le fichier disponible est maintenant dans le dossier ``in`` de la Gateway.
 Comme nous n'avons pas spécifié de dossier spécifique dans la règle, c'est le
