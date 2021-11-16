@@ -3,6 +3,8 @@ package rest
 import (
 	"fmt"
 	"net/http"
+	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -13,35 +15,46 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 // FromHistory transforms the given database history entry into its JSON equivalent.
-func FromHistory(h *model.HistoryEntry) *api.OutHistory {
+func FromHistory(hist *model.HistoryEntry) *api.OutHistory {
 	var stop *time.Time
-	if !h.Stop.IsZero() {
-		stop = &h.Stop
+	if !hist.Stop.IsZero() {
+		stop = &hist.Stop
+	}
+
+	src := path.Base(hist.RemotePath)
+	dst := filepath.Base(hist.LocalPath)
+
+	if hist.IsSend {
+		dst = path.Base(hist.RemotePath)
+		src = filepath.Base(hist.LocalPath)
 	}
 
 	return &api.OutHistory{
-		ID:         h.ID,
-		RemoteID:   h.RemoteTransferID,
-		IsServer:   h.IsServer,
-		IsSend:     h.IsSend,
-		Requester:  h.Account,
-		Requested:  h.Agent,
-		Protocol:   h.Protocol,
-		LocalPath:  h.LocalPath,
-		RemotePath: h.RemotePath,
-		Filesize:   h.Filesize,
-		Rule:       h.Rule,
-		Start:      h.Start.Local(),
-		Stop:       stop,
-		Status:     h.Status,
-		ErrorCode:  h.Error.Code,
-		ErrorMsg:   h.Error.Details,
-		Step:       h.Step,
-		Progress:   h.Progress,
-		TaskNumber: h.TaskNumber,
+		ID:             hist.ID,
+		RemoteID:       hist.RemoteTransferID,
+		IsServer:       hist.IsServer,
+		IsSend:         hist.IsSend,
+		Requester:      hist.Account,
+		Requested:      hist.Agent,
+		Protocol:       hist.Protocol,
+		SourceFilename: utils.NormalizePath(src),
+		DestFilename:   utils.NormalizePath(dst),
+		LocalFilepath:  hist.LocalPath,
+		RemoteFilepath: hist.RemotePath,
+		Filesize:       hist.Filesize,
+		Rule:           hist.Rule,
+		Start:          hist.Start.Local(),
+		Stop:           stop,
+		Status:         hist.Status,
+		ErrorCode:      hist.Error.Code,
+		ErrorMsg:       hist.Error.Details,
+		Step:           hist.Step,
+		Progress:       hist.Progress,
+		TaskNumber:     hist.TaskNumber,
 	}
 }
 

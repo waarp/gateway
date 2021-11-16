@@ -4,7 +4,7 @@ Ajouter un partenaire
 
 .. program:: waarp-gateway partner add
 
-.. describe:: waarp-gateway <ADDR> partner add
+.. describe:: waarp-gateway partner add
 
 Ajoute un nouveau partenaire avec les attributs renseignés.
 

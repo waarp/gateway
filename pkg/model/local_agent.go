@@ -35,16 +35,16 @@ type LocalAgent struct {
 	Protocol string `xorm:"notnull 'protocol'"`
 
 	// The root directory of the agent.
-	Root string `xorm:"notnull 'root'"`
+	RootDir string `xorm:"notnull 'root_dir'"`
 
 	// The server's directory for received files.
-	InDir string `xorm:"notnull 'in_dir'"`
+	ReceiveDir string `xorm:"notnull 'receive_dir'"`
 
 	// The server's directory for files to be sent.
-	OutDir string `xorm:"notnull 'out_dir'"`
+	SendDir string `xorm:"notnull 'send_dir'"`
 
 	// The server's temporary directory for partially received files.
-	TmpDir string `xorm:"notnull 'work_dir'"`
+	TmpReceiveDir string `xorm:"notnull 'tmp_receive_dir'"`
 
 	// The agent's configuration in raw JSON format.
 	ProtoConfig json.RawMessage `xorm:"notnull 'proto_config'"`
@@ -94,25 +94,25 @@ func (l *LocalAgent) makePaths() {
 		return path == "." || path == ""
 	}
 
-	if !isEmpty(l.Root) {
-		l.Root = utils.ToOSPath(l.Root)
+	if !isEmpty(l.RootDir) {
+		l.RootDir = utils.ToOSPath(l.RootDir)
 
-		if isEmpty(l.InDir) {
-			l.InDir = "in"
+		if isEmpty(l.ReceiveDir) {
+			l.ReceiveDir = "in"
 		} else {
-			l.InDir = utils.ToOSPath(l.InDir)
+			l.ReceiveDir = utils.ToOSPath(l.ReceiveDir)
 		}
 
-		if isEmpty(l.OutDir) {
-			l.OutDir = "out"
+		if isEmpty(l.SendDir) {
+			l.SendDir = "out"
 		} else {
-			l.OutDir = utils.ToOSPath(l.OutDir)
+			l.SendDir = utils.ToOSPath(l.SendDir)
 		}
 
-		if isEmpty(l.TmpDir) {
-			l.TmpDir = "tmp"
+		if isEmpty(l.TmpReceiveDir) {
+			l.TmpReceiveDir = "tmp"
 		} else {
-			l.TmpDir = utils.ToOSPath(l.TmpDir)
+			l.TmpReceiveDir = utils.ToOSPath(l.TmpReceiveDir)
 		}
 	}
 }
@@ -140,7 +140,7 @@ func (l *LocalAgent) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	if l.ProtoConfig == nil {
-		return database.NewValidationError("the agent's configuration cannot be empty")
+		l.ProtoConfig = json.RawMessage(`{}`)
 	}
 
 	if err := l.validateProtoConfig(); err != nil {

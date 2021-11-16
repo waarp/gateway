@@ -21,15 +21,15 @@ func ruleToDB(rule *api.InRule, ruleID uint64, logger *log.Logger) (*model.Rule,
 
 	local := str(rule.LocalDir)
 	remote := str(rule.RemoteDir)
-	tmp := str(rule.LocalTmpDir)
+	tmp := str(rule.TmpLocalRcvDir)
 
 	if rule.InPath != nil {
 		logger.Warning("JSON field 'inPath' is deprecated, use 'localDir' & 'remoteDir' instead")
 
 		if *rule.IsSend && remote == "" {
-			remote = *rule.InPath
+			remote = utils.DenormalizePath(*rule.InPath)
 		} else if local == "" {
-			local = *rule.InPath
+			local = utils.DenormalizePath(*rule.InPath)
 		}
 	}
 
@@ -37,9 +37,9 @@ func ruleToDB(rule *api.InRule, ruleID uint64, logger *log.Logger) (*model.Rule,
 		logger.Warning("JSON field 'outPath' is deprecated, use 'localDir' & 'remoteDir' instead")
 
 		if *rule.IsSend && local == "" {
-			local = *rule.OutPath
+			local = utils.DenormalizePath(*rule.OutPath)
 		} else if remote == "" {
-			remote = *rule.OutPath
+			remote = utils.DenormalizePath(*rule.OutPath)
 		}
 	}
 
@@ -47,31 +47,31 @@ func ruleToDB(rule *api.InRule, ruleID uint64, logger *log.Logger) (*model.Rule,
 		logger.Warning("JSON field 'workPath' is deprecated, use 'localTmpDir' instead")
 
 		if tmp == "" {
-			tmp = *rule.WorkPath
+			tmp = utils.DenormalizePath(*rule.WorkPath)
 		}
 	}
 
 	return &model.Rule{
-		ID:          ruleID,
-		Name:        str(rule.Name),
-		Comment:     str(rule.Comment),
-		IsSend:      *rule.IsSend,
-		Path:        str(rule.Path),
-		LocalDir:    local,
-		RemoteDir:   remote,
-		LocalTmpDir: tmp,
+		ID:             ruleID,
+		Name:           str(rule.Name),
+		Comment:        str(rule.Comment),
+		IsSend:         *rule.IsSend,
+		Path:           str(rule.Path),
+		LocalDir:       local,
+		RemoteDir:      remote,
+		TmpLocalRcvDir: tmp,
 	}, nil
 }
 
 func newInRule(old *model.Rule) *api.InRule {
 	return &api.InRule{
 		UptRule: &api.UptRule{
-			Name:        &old.Name,
-			Comment:     &old.Comment,
-			Path:        &old.Path,
-			LocalDir:    &old.LocalDir,
-			RemoteDir:   &old.RemoteDir,
-			LocalTmpDir: &old.LocalTmpDir,
+			Name:           &old.Name,
+			Comment:        &old.Comment,
+			Path:           &old.Path,
+			LocalDir:       &old.LocalDir,
+			RemoteDir:      &old.RemoteDir,
+			TmpLocalRcvDir: &old.TmpLocalRcvDir,
 		},
 		IsSend: &old.IsSend,
 	}
@@ -92,20 +92,20 @@ func FromRule(db *database.DB, r *model.Rule) (*api.OutRule, error) {
 		out = utils.NormalizePath(r.LocalDir)
 	}
 
-	work := utils.NormalizePath(r.LocalTmpDir)
+	work := utils.NormalizePath(r.TmpLocalRcvDir)
 
 	rule := &api.OutRule{
-		Name:        r.Name,
-		Comment:     r.Comment,
-		IsSend:      r.IsSend,
-		Path:        r.Path,
-		InPath:      in,
-		OutPath:     out,
-		WorkPath:    work,
-		LocalDir:    r.LocalDir,
-		RemoteDir:   r.RemoteDir,
-		LocalTmpDir: r.LocalTmpDir,
-		Authorized:  access,
+		Name:           r.Name,
+		Comment:        r.Comment,
+		IsSend:         r.IsSend,
+		Path:           r.Path,
+		InPath:         in,
+		OutPath:        out,
+		WorkPath:       work,
+		LocalDir:       r.LocalDir,
+		RemoteDir:      r.RemoteDir,
+		TmpLocalRcvDir: r.TmpLocalRcvDir,
+		Authorized:     access,
 	}
 	if err := doListTasks(db, rule, r.ID); err != nil {
 		return nil, err

@@ -30,10 +30,9 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 
 		Convey("Given a remote agent entry", func() {
 			ag := RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
@@ -131,19 +130,17 @@ func TestRemoteAgentValidate(t *testing.T) {
 
 		Convey("Given the database contains 1 remote agent", func() {
 			oldAgent := RemoteAgent{
-				Name:        "old",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "old",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(&oldAgent).Run(), ShouldBeNil)
 
 			Convey("Given a new remote agent", func() {
 				newAgent := &RemoteAgent{
-					Name:        "new",
-					Protocol:    testProtocol,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:2023",
+					Name:     "new",
+					Protocol: testProtocol,
+					Address:  "localhost:2023",
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {

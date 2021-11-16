@@ -34,10 +34,9 @@ func TestTransferBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains a valid remote agent", func() {
 			server := LocalAgent{
-				Name:        "remote",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "remote",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(&server).Run(), ShouldBeNil)
 

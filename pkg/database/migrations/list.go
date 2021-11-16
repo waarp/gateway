@@ -42,41 +42,45 @@ var Migrations = []migration.Migration{
 	},
 	{ // #6
 		Description: "Change the new local agent paths to OS specific paths",
-		Script:      ver0_5_0LocalAgentChangePaths{},
+		Script:      ver0_5_0LocalAgentDenormalizePaths{},
 	},
 	{ // #7
-		Description: "Disallow reserved names for local servers",
-		Script:      ver0_5_0LocalAgentDisallowReservedNames{},
+		Description: "Replace the local agent path columns with new send/receive ones",
+		Script:      ver0_5_0LocalAgentsPathsRename{},
 	},
 	{ // #8
-		Description: "Add new path columns to the rule table",
-		Script:      ver0_5_0RuleNewPathCols{},
+		Description: "Disallow reserved names for local servers",
+		Script:      ver0_5_0LocalAgentsDisallowReservedNames{},
 	},
 	{ // #9
+		Description: "Add new path columns to the rule table",
+		Script:      ver0_5_0RulesPathsRename{},
+	},
+	{ // #10
 		Description: "Change the new rule paths to OS specific paths",
 		Script:      ver0_5_0RulePathChanges{},
 	},
-	{ // #10
+	{ // #11
 		Description: "Add a filesize to the transfers & history tables",
 		Script:      ver0_5_0AddFilesize{},
 	},
-	{ // #11
+	{ // #12
 		Description: "Replace the existing transfer path columns with new ones",
 		Script:      ver0_5_0TransferChangePaths{},
 	},
-	{ // #12
+	{ // #13
 		Description: "Change the transfer's local path to the OS specific format",
 		Script:      ver0_5_0TransferFormatLocalPath{},
 	},
-	{ // #13
-		Description: "Replace the existing history filename columns with new ones",
+	{ // #14
+		Description: "Replace the existing history filename columns with new local/remote ones",
 		Script:      ver0_5_0HistoryPathsChange{},
 	},
-	{ // #14
+	{ // #15
 		Description: "Decode the (double) base64 encoded local agent password hashes",
 		Script:      ver0_5_0LocalAccountsPasswordDecode{},
 	},
-	{ // #15
+	{ // #16
 		Description: "Rename and change the type of the user 'password' column",
 		Script:      ver0_5_0UserPasswordChange{},
 	},

@@ -50,28 +50,24 @@ func TestListPartners(t *testing.T) {
 
 		Convey("Given a database with 4 partners", func() {
 			a1 := &model.RemoteAgent{
-				Name:        "partner1",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner1",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			a2 := &model.RemoteAgent{
-				Name:        "partner2",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2",
+				Name:     "partner2",
+				Protocol: testProto1,
+				Address:  "localhost:2",
 			}
 			a3 := &model.RemoteAgent{
-				Name:        "partner3",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:3",
+				Name:     "partner3",
+				Protocol: testProto1,
+				Address:  "localhost:3",
 			}
 			a4 := &model.RemoteAgent{
-				Name:        "partner4",
-				Protocol:    testProto2,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:4",
+				Name:     "partner4",
+				Protocol: testProto2,
+				Address:  "localhost:4",
 			}
 
 			So(db.Insert(a1).Run(), ShouldBeNil)
@@ -157,10 +153,9 @@ func TestGetPartner(t *testing.T) {
 
 		Convey("Given a database with 1 partner", func() {
 			existing := &model.RemoteAgent{
-				Name:        "existing",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "existing",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
 

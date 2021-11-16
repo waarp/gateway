@@ -30,10 +30,9 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 
 		Convey("Given a local agent entry", func() {
 			ag := LocalAgent{
-				Name:        "test agent",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "test agent",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
@@ -125,25 +124,23 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains 1 local agent", func() {
 			oldAgent := LocalAgent{
-				Owner:       "test_gateway",
-				Name:        "old",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Owner:    "test_gateway",
+				Name:     "old",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(&oldAgent).Run(), ShouldBeNil)
 
 			Convey("Given a new local agent", func() {
 				newAgent := &LocalAgent{
-					Owner:       "test_gateway",
-					Name:        "new",
-					Root:        "root",
-					InDir:       "rcv",
-					OutDir:      "send",
-					TmpDir:      "tmp",
-					Protocol:    testProtocol,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:2023",
+					Owner:         "test_gateway",
+					Name:          "new",
+					RootDir:       "root",
+					ReceiveDir:    "rcv",
+					SendDir:       "send",
+					TmpReceiveDir: "tmp",
+					Protocol:      testProtocol,
+					Address:       "localhost:2023",
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {

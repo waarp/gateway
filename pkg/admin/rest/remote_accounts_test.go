@@ -31,10 +31,9 @@ func TestGetRemoteAccount(t *testing.T) {
 
 		Convey("Given a database with 1 account", func() {
 			parent := &model.RemoteAgent{
-				Name:        "parent",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
@@ -145,16 +144,14 @@ func TestListRemoteAccounts(t *testing.T) {
 
 		Convey("Given a database with 4 remote accounts", func() {
 			p1 := &model.RemoteAgent{
-				Name:        "parent1",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent1",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			p2 := &model.RemoteAgent{
-				Name:        "parent2",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2",
+				Name:     "parent2",
+				Protocol: testProto1,
+				Address:  "localhost:2",
 			}
 			So(db.Insert(p1).Run(), ShouldBeNil)
 			So(db.Insert(p2).Run(), ShouldBeNil)

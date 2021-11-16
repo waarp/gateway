@@ -4,7 +4,7 @@ Supprimer un serveur
 
 .. program:: waarp-gateway server delete
 
-.. describe:: waarp-gateway <ADDR> server delete <SERVER>
+.. describe:: waarp-gateway server delete <SERVER>
 
 Supprime le serveur donné en paramètre.
 

@@ -9,7 +9,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 type transferCommand struct {
@@ -65,16 +64,16 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 	fmt.Fprintln(w, bold("● Transfer", trans.ID, "("+dir+" as "+role+")"), coloredStatus(trans.Status))
 
 	if trans.RemoteID != "" {
-		fmt.Fprintln(w, orange("    Remote ID:       "), trans.RemoteID)
+		fmt.Fprintln(w, orange("    Remote ID:      "), trans.RemoteID)
 	}
 
 	fmt.Fprintln(w, orange("    Rule:           "), trans.Rule)
 	fmt.Fprintln(w, orange("    Requester:      "), trans.Requester)
 	fmt.Fprintln(w, orange("    Requested:      "), trans.Requested)
-	fmt.Fprintln(w, orange("    Local filepath: "), trans.LocalPath)
-	fmt.Fprintln(w, orange("    Remote filepath:"), trans.RemotePath)
+	fmt.Fprintln(w, orange("    Local filepath: "), trans.LocalFilepath)
+	fmt.Fprintln(w, orange("    Remote filepath:"), trans.RemoteFilepath)
 	fmt.Fprintln(w, orange("    File size:      "), size)
-	fmt.Fprintln(w, orange("    Start time:     "), trans.Start.Format(time.RFC3339Nano))
+	fmt.Fprintln(w, orange("    Start date:     "), trans.Start.Format(time.RFC3339Nano))
 	fmt.Fprintln(w, orange("    Step:           "), trans.Step)
 	fmt.Fprintln(w, orange("    Progress:       "), trans.Progress)
 	fmt.Fprintln(w, orange("    Task number:    "), trans.TaskNumber)
@@ -92,12 +91,12 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 
 //nolint:lll // struct tags can be long for command line args
 type transferAdd struct {
-	File    string  `required:"true" short:"f" long:"file" description:"The file to transfer"`
-	Way     string  `required:"true" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
-	Name    *string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer"` // DEPRECATED
-	Partner string  `required:"true" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
-	Account string  `required:"true" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
-	Rule    string  `required:"true" short:"r" long:"rule" description:"The rule to use for the transfer"`
+	File    string  `required:"yes" short:"f" long:"file" description:"The file to transfer"`
+	Way     string  `required:"yes" short:"w" long:"way" description:"The direction of the transfer" choice:"send" choice:"receive"`
+	Name    *string `short:"n" long:"name" description:"[DEPRECATED] The name of the file after the transfer"` // Deprecated: the source name is used instead
+	Partner string  `required:"yes" short:"p" long:"partner" description:"The partner with which the transfer is performed"`
+	Account string  `required:"yes" short:"l" long:"login" description:"The login of the account used to connect on the partner"`
+	Rule    string  `required:"yes" short:"r" long:"rule" description:"The rule to use for the transfer"`
 	Date    string  `short:"d" long:"date" description:"The starting date (in ISO 8601 format) of the transfer"`
 }
 
@@ -105,13 +104,13 @@ func (t *transferAdd) Execute([]string) (err error) {
 	trans := api.InTransfer{
 		Partner: t.Partner,
 		Account: t.Account,
-		IsSend:  utils.BoolPtr(t.Way == directionSend),
+		IsSend:  dirToBoolPtr(t.Way),
 		File:    t.File,
 		Rule:    t.Rule,
 	}
 
 	if t.Name != nil {
-		fmt.Fprintln(out, "[WARNING] The '-n' ('-name') option is deprecated. "+
+		fmt.Fprintln(out, "[WARNING] The '-n' ('--name') option is deprecated. "+
 			"For simplicity, in the future, files will have the same name at "+
 			"the source and the destination")
 

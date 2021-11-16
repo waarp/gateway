@@ -4,7 +4,7 @@ Lister les transferts
 
 .. program:: waarp-gateway transfer list
 
-.. describe:: waarp-gateway <ADDR> transfer list
+.. describe:: waarp-gateway transfer list
 
 Affiche une liste des transferts remplissant les critères ci-dessous.
 

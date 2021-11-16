@@ -4,7 +4,7 @@ Ajouter un transfert
 
 .. program:: waarp-gateway transfer add
 
-.. describe:: waarp-gateway <ADDR> transfer add
+.. describe:: waarp-gateway transfer add
 
 Programme un nouveau transfert avec les attributs ci-dessous.
 
@@ -13,6 +13,9 @@ Programme un nouveau transfert avec les attributs ci-dessous.
    Le nom du fichier à transférer.
 
 .. option:: -n <FILENAME>, --name=<FILENAME>
+
+   OBSOLÈTE: le nom d'origine du fichier sera toujours utilisé avant et après
+   le transfert.
 
    Le nom du fichier après le transfer. Par défaut, le nom d'origine est
    utilisé.

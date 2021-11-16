@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"encoding/json"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -18,18 +17,16 @@ func TestImportCerts(t *testing.T) {
 
 		Convey("Given a database with some Cryptos", func() {
 			agent := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			agent2 := &model.LocalAgent{
-				Name:        "agent2",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "agent2",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(agent2).Run(), ShouldBeNil)
 

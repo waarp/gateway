@@ -49,7 +49,7 @@ func doesIndexExist(db *sql.DB, dialect, table, index string) bool {
 	return rows.Next()
 }
 
-func tableShouldHaveColumn(db *sql.DB, table string, cols ...string) {
+func tableShouldHaveColumns(db *sql.DB, table string, cols ...string) {
 	rows, err := db.Query("SELECT * FROM " + table)
 	So(err, ShouldBeNil)
 	So(rows.Err(), ShouldBeNil)
@@ -64,7 +64,7 @@ func tableShouldHaveColumn(db *sql.DB, table string, cols ...string) {
 	}
 }
 
-func tableShouldNotHaveColumn(db *sql.DB, table string, cols ...string) {
+func tableShouldNotHaveColumns(db *sql.DB, table string, cols ...string) {
 	rows, err := db.Query("SELECT * FROM " + table)
 	So(err, ShouldBeNil)
 	So(rows.Err(), ShouldBeNil)

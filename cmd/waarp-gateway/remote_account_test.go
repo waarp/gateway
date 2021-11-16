@@ -29,10 +29,9 @@ func TestGetRemoteAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 			commandLine.Account.Remote.Args.Partner = partner.Name
@@ -127,10 +126,9 @@ func TestAddRemoteAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "parent",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 			commandLine.Account.Remote.Args.Partner = partner.Name

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 var errBadPerm = errors.New("permissions are insorrect")
@@ -108,4 +109,15 @@ func parsePerms(str string) (*api.Perms, error) {
 	}
 
 	return &perms, nil
+}
+
+func dirToBoolPtr(dir string) *bool {
+	switch dir {
+	case directionSend:
+		return utils.TruePtr
+	case directionRecv:
+		return utils.FalsePtr
+	default:
+		return nil
+	}
 }

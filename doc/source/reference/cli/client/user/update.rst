@@ -4,7 +4,7 @@ Modifier un utilisateur
 
 .. program:: waarp-gateway user update
 
-.. describe:: waarp-gateway <ADDR> user update <USER>
+.. describe:: waarp-gateway user update <USER>
 
 Remplace les attributs de l'utilisateur demandé avec ceux donnés. Les attributs
 omis restent inchangés.

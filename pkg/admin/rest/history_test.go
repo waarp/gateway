@@ -391,10 +391,9 @@ func TestRestartTransfer(t *testing.T) {
 
 		Convey("Given a database with 1 transfer history", func() {
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 

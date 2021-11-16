@@ -113,10 +113,10 @@ func TestValidRequest(t *testing.T) {
 		root := testhelpers.TempDir(c, "r66_valid_request")
 
 		rule := &model.Rule{
-			Name:        "rule",
-			IsSend:      false,
-			Path:        "/rule",
-			LocalTmpDir: "rule_tmp",
+			Name:           "rule",
+			IsSend:         false,
+			Path:           "/rule",
+			TmpLocalRcvDir: "rule_tmp",
 		}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -125,7 +125,7 @@ func TestValidRequest(t *testing.T) {
 			Protocol:    "r66",
 			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:6666",
-			Root:        filepath.Join(root, "server_root"),
+			RootDir:     filepath.Join(root, "server_root"),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -186,7 +186,7 @@ func TestValidRequest(t *testing.T) {
 						So(handler.trans.pip.TransCtx.Transfer.AgentID, ShouldEqual, server.ID)
 						So(handler.trans.pip.TransCtx.Transfer.AccountID, ShouldEqual, account.ID)
 						So(handler.trans.pip.TransCtx.Transfer.LocalPath, ShouldEqual, filepath.Join(
-							server.Root, rule.LocalTmpDir, path.Base(packet.Filepath)))
+							server.RootDir, rule.TmpLocalRcvDir, path.Base(packet.Filepath)))
 						So(handler.trans.pip.TransCtx.Transfer.RemotePath, ShouldEqual, "/"+path.Base(packet.Filepath))
 						So(handler.trans.pip.TransCtx.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
 						So(handler.trans.pip.TransCtx.Transfer.Step, ShouldEqual, types.StepSetup)
@@ -242,7 +242,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 			Protocol:    "r66",
 			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:6666",
-			Root:        "server_root",
+			RootDir:     "server_root",
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -316,7 +316,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
-			dir := filepath.Join(root, server.Root, send.LocalDir)
+			dir := filepath.Join(root, server.RootDir, send.LocalDir)
 			So(os.MkdirAll(dir, 0o700), ShouldBeNil)
 			So(ioutil.WriteFile(filepath.Join(dir, "new.file"), []byte("file content"), 0o600), ShouldBeNil)
 

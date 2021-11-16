@@ -4,7 +4,7 @@ Ajouter un certificat à un compte distant
 
 .. program:: waarp-gateway account remote cert add
 
-.. describe:: waarp-gateway <ADDR> account remote <PARTNER> cert <LOGIN> add
+.. describe:: waarp-gateway account remote <PARTNER> cert <LOGIN> add
 
 Attache un nouveau certificat au compte donné à partir des informations renseignées.
 

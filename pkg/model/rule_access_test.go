@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -37,10 +36,9 @@ func TestIsRuleAuthorized(t *testing.T) {
 			So(db.Insert(&r).Run(), ShouldBeNil)
 
 			rAgent := RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:1111",
 			}
 			So(db.Insert(&rAgent).Run(), ShouldBeNil)
 
@@ -52,10 +50,9 @@ func TestIsRuleAuthorized(t *testing.T) {
 			So(db.Insert(&rAccount).Run(), ShouldBeNil)
 
 			lAgent := LocalAgent{
-				Name:        "server",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2222",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2222",
 			}
 			So(db.Insert(&lAgent).Run(), ShouldBeNil)
 
@@ -112,10 +109,9 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 			So(db.Insert(r).Run(), ShouldBeNil)
 
 			rAgent := RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:1111",
 			}
 			So(db.Insert(&rAgent).Run(), ShouldBeNil)
 
@@ -127,10 +123,9 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 			So(db.Insert(&rAccount).Run(), ShouldBeNil)
 
 			lAgent := LocalAgent{
-				Name:        "server",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2222",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2222",
 			}
 			So(db.Insert(&lAgent).Run(), ShouldBeNil)
 

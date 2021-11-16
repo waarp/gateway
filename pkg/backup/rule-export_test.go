@@ -58,10 +58,9 @@ func TestExportRuleAccesses(t *testing.T) {
 
 		Convey("Given a rules with accesses", func() {
 			agent := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -179,7 +178,6 @@ func TestExportRuleTasks(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   0,
 				Type:   "DELETE",
-				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(post1).Run(), ShouldBeNil)
 

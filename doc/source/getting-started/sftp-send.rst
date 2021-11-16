@@ -40,8 +40,8 @@ commencer par ajouter un partenaire SFTP :
 
 .. code-block:: shell-session
 
-   $ waarp-gateway partner add -n sftp_localhost -p sftp -a localhost:22 -c '{}'
-   The partner sftp_localhost was successfully added.
+   $ waarp-gateway partner add --name "openssh" --path "sftp" --address "localhost:22"
+   The partner openssh was successfully added.
 
 Pour créer un partenaire, nous devons préciser son nom, le protocole de ce
 serveur, ainsi que des informations additionnelles pour paramétrer le serveur
@@ -62,8 +62,8 @@ sa clef à l'enplacement par défaut : :file:`/etc/ssh/ssh_host_rsa_key.pub` :
 
 .. code-block:: shell-session
 
-   $ waarp-gateway partner cert sftp_localhost add -n sftp_localhost_cert -b /etc/ssh/ssh_host_rsa_key.pub
-   The certificate sftp_localhost_cert was successfully added.
+   $ waarp-gateway partner cert "openssh" add --name "openssh_hostkey" --public_key "/etc/ssh/ssh_host_rsa_key.pub"
+   The certificate openssh_hostkey was successfully added.
 
 
 Création d'un utilisateur
@@ -76,7 +76,7 @@ passe (ceux définis plus tôt lors de la création de l'utilisateur système) 
 
 .. code-block:: shell-session
 
-   $ waarp-gateway account remote sftp_localhost add -l sftpuser -p mypassword
+   $ waarp-gateway account remote "openssh" add --login "sftpuser" --password "mypassword"
    The account sftpuser was successfully added.
 
 L'utilisateur est maintenant créé. Pour pouvoir faire un transfert, nous devons
@@ -88,7 +88,7 @@ Ajout d'un règle
 
 
 Ici, nous voulons envoyer avec fichier à la Gateway. La règle aura donc le sens
-``SEND`` (« envoi ») : le sens des règles est toujours à prendre du point
+``send`` (« envoi ») : le sens des règles est toujours à prendre du point
 de vu de la Gateway (si on envoi un fichier à la Gateway, celle-ci le *reçoit*).
 
 Le chemin doit être renseigné pour la règle : celui-ci est obligatoire. Il ne
@@ -100,7 +100,7 @@ Assemblons tout dans une commande pour créer la règle :
 
 .. code-block:: shell-session
 
-   $ waarp-gateway rule add -n sftp_send -d SEND -p sftp_send
+   $ waarp-gateway rule add --name "sftp_send" --direction "send" --path "sftp_send"
    The rule sftp_send was successfully added.
 
 
@@ -115,7 +115,7 @@ envoyons le avec la gateway :
 
    # echo "hello world!" > /var/lib/waarp-gateway/out/a-envoyer.txt
 
-   $ transfer add -f a-envoyer.txt -w push -p sftp_localhost -l sftpuser -r sftp_send
+   $ transfer add --file "a-envoyer.txt" --way "send" --partner "openssh" --login "sftpuser" --rule "sftp_send"
    The transfer of file a-envoyer.txt was successfully added.
 
 Après avoir établi une connexion avec la Gateway, nous avons déposé un fichier
@@ -135,7 +135,7 @@ transferts de la Gateway :
        Protocol:         sftp
        Rule:             sftp_send
        Requester:        sftpuser
-       Requested:        sftp_localhost
+       Requested:        openssh
        Source file:      a-envoyer.txt
        Destination file: a-envoyer.txt
        Start date:       2020-09-17T17:27:44Z

@@ -53,28 +53,28 @@ func TestListServers(t *testing.T) {
 			a1 := model.LocalAgent{
 				Name:        "server1",
 				Protocol:    testProto1,
-				Root:        "/root1",
+				RootDir:     "/root1",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			a2 := model.LocalAgent{
 				Name:        "server2",
 				Protocol:    testProto1,
-				Root:        "/root2",
+				RootDir:     "/root2",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
 			a3 := model.LocalAgent{
 				Name:        "server3",
 				Protocol:    testProto1,
-				Root:        "/root3",
+				RootDir:     "/root3",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:3",
 			}
 			a4 := model.LocalAgent{
 				Name:        "server4",
 				Protocol:    testProto2,
-				Root:        "/root4",
+				RootDir:     "/root4",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:4",
 			}
@@ -164,7 +164,7 @@ func TestGetServer(t *testing.T) {
 			existing := model.LocalAgent{
 				Name:        "existing",
 				Protocol:    testProto1,
-				Root:        "/root",
+				RootDir:     "/root",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -227,7 +227,7 @@ func TestCreateServer(t *testing.T) {
 			existing := model.LocalAgent{
 				Name:        "existing",
 				Protocol:    testProto1,
-				Root:        "/root",
+				RootDir:     "/root",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -237,7 +237,7 @@ func TestCreateServer(t *testing.T) {
 				body := strings.NewReader(`{
 					"name": "new_server",
 					"protocol": "` + testProto1 + `",
-					"root": "/new_root",
+					"rootDir": "/new_root",
 					"protoConfig": {},
 					"address": "localhost:2"
 				}`)
@@ -267,16 +267,16 @@ func TestCreateServer(t *testing.T) {
 						Convey("Then the new server should be inserted in "+
 							"the database", func() {
 							exp := model.LocalAgent{
-								ID:          2,
-								Owner:       database.Owner,
-								Name:        "new_server",
-								Protocol:    testProto1,
-								Address:     "localhost:2",
-								Root:        filepath.FromSlash("/new_root"),
-								InDir:       filepath.FromSlash("in"),
-								OutDir:      filepath.FromSlash("out"),
-								TmpDir:      filepath.FromSlash("tmp"),
-								ProtoConfig: json.RawMessage("{}"),
+								ID:            2,
+								Owner:         database.Owner,
+								Name:          "new_server",
+								Protocol:      testProto1,
+								Address:       "localhost:2",
+								RootDir:       filepath.FromSlash("/new_root"),
+								ReceiveDir:    filepath.FromSlash("in"),
+								SendDir:       filepath.FromSlash("out"),
+								TmpReceiveDir: filepath.FromSlash("tmp"),
+								ProtoConfig:   json.RawMessage("{}"),
 							}
 							var res model.LocalAgents
 							So(db.Select(&res).Run(), ShouldBeNil)
@@ -311,7 +311,7 @@ func TestDeleteServer(t *testing.T) {
 			existing := model.LocalAgent{
 				Name:        "existing1",
 				Protocol:    testProto1,
-				Root:        "/root",
+				RootDir:     "/root",
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -368,23 +368,23 @@ func TestUpdateServer(t *testing.T) {
 
 		Convey("Given a database with 1 agent", func() {
 			old := model.LocalAgent{
-				Name:        "old",
-				Protocol:    testProto1,
-				Address:     "localhost:1",
-				Root:        "/old/root",
-				InDir:       "/old/in",
-				OutDir:      "/old/out",
-				TmpDir:      "/old/tmp",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:          "old",
+				Protocol:      testProto1,
+				Address:       "localhost:1",
+				RootDir:       "/old/root",
+				ReceiveDir:    "/old/in",
+				SendDir:       "/old/out",
+				TmpReceiveDir: "/old/tmp",
+				ProtoConfig:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(&old).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
 				body := strings.NewReader(`{
 					"name": "update",
-					"root": "/upt/root",
-					"serverLocalInDir": "/upt/in",
-					"serverLocalOutDir": "",
+					"rootDir": "/upt/root",
+					"receiveDir": "/upt/in",
+					"sendDir": "",
 					"address": "localhost:2"
 				}`)
 
@@ -411,17 +411,17 @@ func TestUpdateServer(t *testing.T) {
 
 					Convey("Then the agent should have been updated", func() {
 						exp := model.LocalAgent{
-							ID:       old.ID,
-							Owner:    database.Owner,
-							Name:     "update",
-							Protocol: testProto1,
-							Address:  "localhost:2",
-							Root:     filepath.FromSlash("/upt/root"),
-							InDir:    filepath.FromSlash("/upt/in"),
+							ID:         old.ID,
+							Owner:      database.Owner,
+							Name:       "update",
+							Protocol:   testProto1,
+							Address:    "localhost:2",
+							RootDir:    filepath.FromSlash("/upt/root"),
+							ReceiveDir: filepath.FromSlash("/upt/in"),
 							// sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
-							OutDir:      filepath.FromSlash("out"),
-							TmpDir:      filepath.FromSlash("/old/tmp"),
-							ProtoConfig: json.RawMessage(`{}`),
+							SendDir:       filepath.FromSlash("out"),
+							TmpReceiveDir: filepath.FromSlash("/old/tmp"),
+							ProtoConfig:   json.RawMessage(`{}`),
 						}
 
 						var res model.LocalAgents
@@ -470,14 +470,14 @@ func TestReplaceServer(t *testing.T) {
 
 		Convey("Given a database with 1 agent", func() {
 			old := model.LocalAgent{
-				Name:        "old",
-				Protocol:    testProto1,
-				Address:     "localhost:1",
-				Root:        "/old/root",
-				InDir:       "/old/in",
-				OutDir:      "/old/out",
-				TmpDir:      "/old/tmp",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:          "old",
+				Protocol:      testProto1,
+				Address:       "localhost:1",
+				RootDir:       "/old/root",
+				ReceiveDir:    "/old/in",
+				SendDir:       "/old/out",
+				TmpReceiveDir: "/old/tmp",
+				ProtoConfig:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(&old).Run(), ShouldBeNil)
 
@@ -486,9 +486,9 @@ func TestReplaceServer(t *testing.T) {
 					"name": "update",
 					"protocol": "` + testProto2 + `",
 					"address": "localhost:2",
-					"root": "/upt/root",
-					"serverLocalInDir": "/upt/in",
-					"serverLocalOutDir": "",
+					"rootDir": "/upt/root",
+					"receiveDir": "/upt/in",
+					"sendDir": "",
 					"protoConfig": {}
 				}`)
 
@@ -516,17 +516,17 @@ func TestReplaceServer(t *testing.T) {
 
 					Convey("Then the agent should have been updated", func() {
 						exp := model.LocalAgent{
-							ID:       old.ID,
-							Owner:    database.Owner,
-							Name:     "update",
-							Protocol: testProto2,
-							Address:  "localhost:2",
-							Root:     filepath.FromSlash("/upt/root"),
-							InDir:    filepath.FromSlash("/upt/in"),
+							ID:         old.ID,
+							Owner:      database.Owner,
+							Name:       "update",
+							Protocol:   testProto2,
+							Address:    "localhost:2",
+							RootDir:    filepath.FromSlash("/upt/root"),
+							ReceiveDir: filepath.FromSlash("/upt/in"),
 							// sub-dirs cannot be empty if root isn't empty, so OutDir is reset to default
-							OutDir:      filepath.FromSlash("out"),
-							TmpDir:      filepath.FromSlash("tmp"), // idem
-							ProtoConfig: json.RawMessage(`{}`),
+							SendDir:       filepath.FromSlash("out"),
+							TmpReceiveDir: filepath.FromSlash("tmp"), // idem
+							ProtoConfig:   json.RawMessage(`{}`),
 						}
 
 						var res model.LocalAgents

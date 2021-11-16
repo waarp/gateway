@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -121,10 +120,9 @@ func TestRuleBeforeDelete(t *testing.T) {
 			So(db.Insert(&t2).Run(), ShouldBeNil)
 
 			server := LocalAgent{
-				Name:        "server",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:1111",
 			}
 			So(db.Insert(&server).Run(), ShouldBeNil)
 			account := LocalAccount{LocalAgentID: server.ID, Login: "toto", PasswordHash: hash("sesame")}

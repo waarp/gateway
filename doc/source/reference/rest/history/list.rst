@@ -55,10 +55,10 @@ Filtrer l'historique
    :resjsonarr string account: Le nom du compte ayant demandé le transfert
    :resjsonarr string remote: Le nom du partenaire avec lequel le transfert a été effectué
    :resjsonarr string protocol: Le protocole utilisé pour le transfert
-   :resjsonarr string sourceFilename: Le nom du fichier avant le transfert (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
-   :resjsonarr string destFilename: Le nom du fichier après le transfert (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
-   :resjsonarr string localPath: Le chemin du fichier sur le disque local
-   :resjsonarr string remotePath: Le chemin du fichier sur le partenaire distant
+   :resjsonarr string sourceFilename: Le nom du fichier avant le transfert (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
+   :resjsonarr string destFilename: Le nom du fichier après le transfert (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
+   :resjsonarr string localFilepath: Le chemin du fichier sur le disque local
+   :resjsonarr string remoteFilepath: Le chemin d'accès au fichier sur le partenaire distant
    :resjsonarr number filesize: La taille du fichier (-1 si inconnue)
    :resjsonarr string rule: Le nom de la règle de transfert
    :resjsonarr date start: La date de début du transfert

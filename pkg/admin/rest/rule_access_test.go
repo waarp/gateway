@@ -62,10 +62,9 @@ func TestAuthorizeRule(t *testing.T) {
 
 		Convey("Given a server", func() {
 			server := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -103,10 +102,9 @@ func TestAuthorizeRule(t *testing.T) {
 
 		Convey("Given a partner", func() {
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -190,10 +188,9 @@ func TestRevokeRule(t *testing.T) {
 
 		Convey("Given a server", func() {
 			server := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 			vals["server"] = server.Name

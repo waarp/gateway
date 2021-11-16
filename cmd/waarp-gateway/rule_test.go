@@ -69,11 +69,11 @@ func ruleInfoString(r *api.OutRule) string {
 	}
 
 	rv := "● Rule " + r.Name + " (" + way + ")\n" +
-		"    Comment:          " + r.Comment + "\n" +
-		"    Path:             " + r.Path + "\n" +
-		"    Local directory:  " + r.LocalDir + "\n" +
-		"    Remote directory: " + r.RemoteDir + "\n" +
-		"    Temp directory:   " + r.LocalTmpDir + "\n" +
+		"    Comment:                " + r.Comment + "\n" +
+		"    Path:                   " + r.Path + "\n" +
+		"    Local directory:        " + r.LocalDir + "\n" +
+		"    Remote directory:       " + r.RemoteDir + "\n" +
+		"    Temp receive directory: " + r.TmpLocalRcvDir + "\n" +
 		"    Pre tasks:\n" + taskStr(r.PreTasks) +
 		"    Post tasks:\n" + taskStr(r.PostTasks) +
 		"    Error tasks:\n" + taskStr(r.ErrorTasks) +
@@ -91,13 +91,13 @@ func TestDisplayRule(t *testing.T) {
 		out = testFile()
 
 		rule := &api.OutRule{
-			Name:        "rule_name",
-			Comment:     "this is a comment",
-			IsSend:      true,
-			Path:        "/rule",
-			LocalDir:    "/rule/local",
-			RemoteDir:   "/rule/remote",
-			LocalTmpDir: "/rule/tmp",
+			Name:           "rule_name",
+			Comment:        "this is a comment",
+			IsSend:         true,
+			Path:           "/rule",
+			LocalDir:       "/rule/local",
+			RemoteDir:      "/rule/remote",
+			TmpLocalRcvDir: "/rule/tmp",
 			Authorized: &api.RuleAccess{
 				LocalServers:   []string{"server1", "server2"},
 				RemotePartners: []string{"partner1", "partner2"},
@@ -150,13 +150,13 @@ func TestGetRule(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			rule := &model.Rule{
-				Name:        "rule_name",
-				Comment:     "this is a test rule",
-				IsSend:      false,
-				Path:        "/rule",
-				LocalDir:    "/rule/local",
-				RemoteDir:   "/rule/remote",
-				LocalTmpDir: "/rule/tmp",
+				Name:           "rule_name",
+				Comment:        "this is a test rule",
+				IsSend:         false,
+				Path:           "/rule",
+				LocalDir:       "/rule/local",
+				RemoteDir:      "/rule/remote",
+				TmpLocalRcvDir: "/rule/tmp",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -215,15 +215,17 @@ func TestAddRule(t *testing.T) {
 
 			Convey("Given valid parameters", func() {
 				args := []string{
-					"-n", "new_rule", "-c", "new_rule comment",
-					"-d", "receive", "--path=/new_path", "--local_dir=/new_rule/local",
-					"--remote_dir=/new_rule/remote", "--tmp_dir=/new_rule/tmp",
-					`--pre={"type":"COPY","args":{"path":"/path/to/copy"}}`,
-					`--pre={"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
-					`--post={"type":"DELETE","args":{}}`,
-					`--post={"type":"TRANSFER","args":{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}}`,
-					`--err={"type":"MOVE","args":{"path":"/path/to/move"}}`,
-					`--err={"type":"RENAME","args":{"path":"/path/to/rename"}}`,
+					"--name", "new_rule", "--comment", "new_rule comment",
+					"--direction", "receive", "--path", "new_rule/path",
+					"--local-dir", "new_rule/local",
+					"--remote-dir", "new_rule/remote",
+					"--tmp-dir", "new_rule/tmp",
+					"--pre", `{"type":"COPY","args":{"path":"/path/to/copy"}}`,
+					"--pre", `{"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
+					"--post", `{"type":"DELETE","args":{}}`,
+					"--post", `{"type":"TRANSFER","args":{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}}`,
+					"--err", `{"type":"MOVE","args":{"path":"/path/to/move"}}`,
+					"--err", `{"type":"RENAME","args":{"path":"/path/to/rename"}}`,
 				}
 
 				Convey("When executing the command", func() {
@@ -238,19 +240,20 @@ func TestAddRule(t *testing.T) {
 
 					Convey("Then the new rule should have been added", func() {
 						var rules model.Rules
-						So(db.Select(&rules).Run(), ShouldBeNil)
+						So(db.Select(&rules).Where("id=?", 2).Run(), ShouldBeNil)
+						So(rules, ShouldNotBeEmpty)
 
 						rule := model.Rule{
-							ID:          2,
-							Name:        "new_rule",
-							Comment:     "new_rule comment",
-							IsSend:      false,
-							Path:        "/new_path",
-							LocalDir:    utils.ToOSPath("/new_rule/local"),
-							RemoteDir:   "/new_rule/remote",
-							LocalTmpDir: utils.ToOSPath("/new_rule/tmp"),
+							ID:             2,
+							Name:           "new_rule",
+							Comment:        "new_rule comment",
+							IsSend:         false,
+							Path:           "/new_rule/path",
+							LocalDir:       utils.ToOSPath("new_rule/local"),
+							RemoteDir:      "new_rule/remote",
+							TmpLocalRcvDir: utils.ToOSPath("new_rule/tmp"),
 						}
-						So(rules, ShouldContain, rule)
+						So(rules[0], ShouldResemble, rule)
 
 						Convey("Then the rule's tasks should have been added", func() {
 							var tasks model.Tasks
@@ -314,8 +317,8 @@ func TestAddRule(t *testing.T) {
 
 			Convey("Given that the rule's name already exist", func() {
 				args := []string{
-					"-n", existing.Name, "-c", "new_rule comment",
-					"-d", "receive", "-p", "new_path",
+					"--name", existing.Name, "--direction", "receive",
+					"--path", "new_rule/path",
 				}
 
 				Convey("When executing the command", func() {
@@ -415,24 +418,24 @@ func TestListRules(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			receive := &model.Rule{
-				Name:        "receive_rule",
-				Comment:     "receive comment",
-				IsSend:      false,
-				Path:        "/receive",
-				LocalDir:    "/receive/local",
-				RemoteDir:   "/receive/remote",
-				LocalTmpDir: "/receive/tmp",
+				Name:           "receive_rule",
+				Comment:        "receive comment",
+				IsSend:         false,
+				Path:           "/receive",
+				LocalDir:       "/receive/local",
+				RemoteDir:      "/receive/remote",
+				TmpLocalRcvDir: "/receive/tmp",
 			}
 			So(db.Insert(receive).Run(), ShouldBeNil)
 
 			send := &model.Rule{
-				Name:        "send_rule",
-				Comment:     "send comment",
-				IsSend:      true,
-				Path:        "/send",
-				LocalDir:    "/send/local",
-				RemoteDir:   "/send/remote",
-				LocalTmpDir: "/send/tmp",
+				Name:           "send_rule",
+				Comment:        "send comment",
+				IsSend:         true,
+				Path:           "/send",
+				LocalDir:       "/send/local",
+				RemoteDir:      "/send/remote",
+				TmpLocalRcvDir: "/send/tmp",
 			}
 			So(db.Insert(send).Run(), ShouldBeNil)
 

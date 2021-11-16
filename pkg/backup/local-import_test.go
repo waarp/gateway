@@ -19,18 +19,16 @@ func TestImportLocalAgents(t *testing.T) {
 
 		Convey("Given a database with some local agent", func() {
 			agent := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 
 			// add another LocalAgent with the same name but different owner
 			agent2 := &model.LocalAgent{
-				Name:        agent.Name,
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:9999",
+				Name:     agent.Name,
+				Protocol: testProtocol,
+				Address:  "localhost:9999",
 			}
 			owner := database.Owner
 			database.Owner = "toto"
@@ -152,10 +150,9 @@ func TestImportLocalAccounts(t *testing.T) {
 
 		Convey("Given a database with some a local agent and some local accounts", func() {
 			agent := &model.LocalAgent{
-				Name:        "server",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 

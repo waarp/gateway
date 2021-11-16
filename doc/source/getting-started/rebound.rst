@@ -49,9 +49,9 @@ avec la commande suivante :
 .. code-block:: shell-session
 
    $ waarp-gateway rule update sftp_recv RECEIVE \
-      -p '/sftp_recv' \
-      -s '{"type": "MOVERENAME", "args": {"path":"#OUTPATH#/#ORIGINALFILENAME#"}}' \
-      -s '{"type": "TRANSFER", "args":{"file": "#OUTPATH#/#ORIGINALFILENAME#", "to":"sftp_localhost", "as":"sftpuser", "rule":"sftp_send"}}'
+      --path 'sftp_recv' \
+      --post '{"type": "MOVERENAME", "args": {"path":"#OUTPATH#/#ORIGINALFILENAME#"}}' \
+      --post '{"type": "TRANSFER", "args":{"file": "#OUTPATH#/#ORIGINALFILENAME#", "to":"openssh", "as":"sftpuser", "rule":"sftp_send"}}'
    The rule sftp_recv was successfully updated.
 
 
@@ -111,7 +111,7 @@ transferts de la Gateway :
        Protocol:         sftp
        Rule:             sftp_send
        Requester:        sftpuser
-       Requested:        sftp_localhost
+       Requested:        openssh
        Source file:      test04.txt
        Destination file: test04.txt
        Start date:       2020-10-02T15:10:49Z

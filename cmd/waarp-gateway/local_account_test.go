@@ -37,10 +37,9 @@ func TestGetLocalAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "parent",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
@@ -135,10 +134,9 @@ func TestAddLocalAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "parent",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
@@ -205,10 +203,9 @@ func TestDeleteLocalAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "parent",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name
@@ -300,10 +297,9 @@ func TestUpdateLocalAccount(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			server := &model.LocalAgent{
-				Name:        "parent",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "parent",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(server).Run(), ShouldBeNil)
 			commandLine.Account.Local.Args.Server = server.Name

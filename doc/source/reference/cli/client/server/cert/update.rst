@@ -4,7 +4,7 @@ Modifier un certificat de serveur
 
 .. program:: waarp-gateway server cert update
 
-.. describe:: waarp-gateway <ADDR> server cert <SERVER> update <CERT>
+.. describe:: waarp-gateway server cert <SERVER> update <CERT>
 
 Change les attributs du certificat donné. Les noms du serveur et du certificat
 doivent être renseignés en arguments de programme. Les attributs omis resteront

@@ -47,11 +47,10 @@ func TestFileReader(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:        "test_sftp_server",
-				Protocol:    "sftp",
-				Root:        root,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2023",
+				Name:     "test_sftp_server",
+				Protocol: "sftp",
+				RootDir:  root,
+				Address:  "localhost:2023",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -148,11 +147,10 @@ func TestFileWriter(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			agent := &model.LocalAgent{
-				Name:        "test_sftp_server",
-				Protocol:    "sftp",
-				Root:        root,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2023",
+				Name:     "test_sftp_server",
+				Protocol: "sftp",
+				RootDir:  root,
+				Address:  "localhost:2023",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -192,7 +190,7 @@ func TestFileWriter(t *testing.T) {
 
 							Convey("With a valid file and status", func() {
 								So(trans.LocalPath, ShouldEqual, filepath.Join(
-									root, agent.TmpDir, "file.dst.part"))
+									root, agent.TmpReceiveDir, "file.dst.part"))
 								So(trans.Status, ShouldEqual, types.StatusRunning)
 							})
 						})

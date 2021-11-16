@@ -3,6 +3,41 @@
 Historique des versions
 =======================
 
+* :release:`0.5.0 <>`
+* :feature:`194` Dépréciation des champs REST ``sourceFilename`` et ``destFilename``
+  de l'objet JSON *history*, remplacés par les champs ``localFilepath`` et
+  ``remoteFilepath``.
+* :feature:`194` Dépréciation des champs REST ``inPath`` et ``outPath`` de l'objet
+  JSON *rule*, remplacés par les champs ``localDir`` et ``remoteDir``. Le champ
+  ``workPath`` du même objet est également déprécié, remplacé par le champ
+  ``tmpLocalRcvDir``. Ces champs ont également été dépréciés dans le fichier JSON
+  d'import/export. Les nouveaux champs de remplacement sont identiques à ceux de
+  REST.
+
+  Les options de commande correspondantes du CLI ont également été dépréciées.
+  Ainsi, les options ``-i, --in_path`` et ``-o, --out_path`` des commandes
+  ``rule add`` et ``rule update`` ont été remplacées par les options
+  ``--local-dir`` et ``--remote-dir``. L'option ``-w, --work_path`` a, elle, été
+  remplacée par ``--tmp-dir``.
+
+* :feature:`194` Dépréciation des champs REST ``root``, ``inDir``, ``outDir`` et
+  ``workDir`` de l'objet JSON *server*, remplacés respectivement par ``rootDir``,
+  ``receiveDir``, ``sendDir`` et ``tmpReceiveDir``. Ces champs ont également été
+  dépréciés dans le fichier JSON d'import/export. Les nouveaux champs de
+  remplacement sont identiques à ceux de REST.
+
+  Les options de commande correspondantes du CLI ont également été dépréciées.
+  Ainsi, les options ``-r, --root``, ``-i, --in``, ``-o, --out`` et ``-w, --work``
+  des commandes ``server add`` et ``server update`` ont été remplacées respectivement
+  par les options ``--root-dir``, ``--receive-dir``, ``--send-dir`` et ``--tmp-dir``.
+* :feature:`194` Dépréciation des champs REST ``trueFilepath``, ``sourcePath``
+  et ``destPath`` de l'objet JSON *transfer*, remplacés par les champs
+  ``localFilepath`` et ``remoteFilepath``. Le champ ``startDate`` du même objet
+  est également déprécié en faveur du champ ``start``.
+
+  De plus, l'option ``-n, --name`` de la commande ``transfer add`` est dépréciée
+  en faveur de l'option ``-f, --file`` déjà existante.
+
 * :release:`0.4.4 <2021-10-25>`
 * :bug:`282` Correction d'un bug dans le moteur de migration de base de données
   qui laissait la base dans un état inutilisable après une migration à cause

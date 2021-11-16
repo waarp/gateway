@@ -31,20 +31,16 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 
 		// Populate
 		agent.Name = src.Name
-		agent.Root = src.Root
-		agent.InDir = src.InDir
-		agent.OutDir = src.OutDir
-		agent.TmpDir = src.TmpDir
+		agent.RootDir = src.RootDir
+		agent.ReceiveDir = src.ReceiveDir
+		agent.SendDir = src.SendDir
+		agent.TmpReceiveDir = src.TmpReceiveDir
 		agent.Address = src.Address
 		agent.Protocol = src.Protocol
 		agent.ProtoConfig = src.Configuration
 		agent.Owner = ""
 
-		if agent.TmpDir == "" && src.WorkDir != "" {
-			logger.Warning("JSON field 'locals.workDir' is deprecated, use 'tmpDir' instead")
-
-			agent.TmpDir = src.WorkDir
-		}
+		checkLocalAgentDeprecatedFields(logger, &agent, src)
 
 		// Create/Update
 		if exists {
@@ -70,6 +66,41 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 	}
 
 	return nil
+}
+
+func checkLocalAgentDeprecatedFields(logger *log.Logger, agent *model.LocalAgent,
+	src *file.LocalAgent) {
+	if src.Root != "" {
+		logger.Warning("JSON field 'locals.Root' is deprecated, use 'rootDir' instead")
+
+		if agent.RootDir == "" {
+			agent.RootDir = utils.DenormalizePath(src.Root)
+		}
+	}
+
+	if src.InDir != "" {
+		logger.Warning("JSON field 'locals.inDir' is deprecated, use 'receiveDir' instead")
+
+		if agent.ReceiveDir == "" {
+			agent.ReceiveDir = utils.DenormalizePath(src.InDir)
+		}
+	}
+
+	if src.OutDir != "" {
+		logger.Warning("JSON field 'locals.outDir' is deprecated, use 'sendDir' instead")
+
+		if agent.SendDir == "" {
+			agent.ReceiveDir = utils.DenormalizePath(src.OutDir)
+		}
+	}
+
+	if src.WorkDir != "" {
+		logger.Warning("JSON field 'locals.workDir' is deprecated, use 'tmpDir' instead")
+
+		if agent.TmpReceiveDir == "" {
+			agent.TmpReceiveDir = utils.DenormalizePath(src.WorkDir)
+		}
+	}
 }
 
 //nolint:dupl // duplicated code is about two different types

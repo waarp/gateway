@@ -36,11 +36,10 @@ func TestSFTPList(t *testing.T) {
 			addr := listener.Addr().String()
 
 			agent := &model.LocalAgent{
-				Name:        "test_sftp_server",
-				Protocol:    "sftp",
-				Root:        root,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     addr,
+				Name:     "test_sftp_server",
+				Protocol: "sftp",
+				RootDir:  root,
+				Address:  addr,
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 			var protoConfig config.SftpProtoConfig

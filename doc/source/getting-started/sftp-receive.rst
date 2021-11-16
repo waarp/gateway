@@ -17,7 +17,7 @@ commencer par ajouter un serveur SFTP :
 
 .. code-block:: shell-session
 
-   # waarp-gateway server add -n sftp_server -p sftp -a 127.0.0.1:2223 -c '{}'
+   # waarp-gateway server add --name "sftp_server" --protocol "sftp" --address "127.0.0.1:2223"
    The server sftp_server was successfully added.
 
 Pour créer un serveur, nous devons préciser son nom, le protocole de ce serveur,
@@ -57,7 +57,7 @@ ajoutons au serveur SFTP :
    |           .o    |
    +----[SHA256]-----+
 
-   # waarp-gateway server cert sftp_server add -n sftp_server -p gateway-sftp -b gateway-sftp.pub 
+   # waarp-gateway server cert "sftp_server" add --name "sftp_hostkey" --private_key "./gateway-sftp" --public_key "./gateway-sftp.pub"
    The certificate sftp_server was successfully added.
 
 Le serveur SFTP est maintenant créé mais n'est pas actif. Comme la Gateway doit
@@ -86,7 +86,7 @@ passe :
 
 .. code-block:: shell-session
 
-   # waarp-gateway account local sftp_server add  -l myuser -p mypassword
+   # waarp-gateway account local "sftp_server" add  --login "myuser" --password "mypassword"
    The account myuser was successfully added.
 
 Nous pouvons essayer de nous connecter pour tester le paramétrage (entrez le mot
@@ -141,7 +141,7 @@ Assemblons tout dans une commande pour créer la règle :
 
 .. code-block:: shell-session
 
-   # waarp-gateway rule add -n sftp_recv -d RECEIVE -p sftp_recv
+   # waarp-gateway rule add --name "sftp_recv" --direction "receive" --path "sftp_recv"
    The rule sftp_recv was successfully added.
 
 Premier transfert

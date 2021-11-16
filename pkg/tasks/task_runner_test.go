@@ -39,10 +39,9 @@ func TestSetup(t *testing.T) {
 			db := database.TestDatabase(c, "ERROR")
 
 			agent := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6622",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:6622",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -242,10 +241,9 @@ func TestRunTasks(t *testing.T) {
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		agent := &model.RemoteAgent{
-			Name:        "agent",
-			Protocol:    testProtocol,
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:6622",
+			Name:     "agent",
+			Protocol: testProtocol,
+			Address:  "localhost:6622",
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
