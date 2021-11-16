@@ -105,7 +105,7 @@ func TestNewPipeline(t *testing.T) {
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
 						So(info.Transfer.LocalPath, ShouldEqual, filepath.Join(
-							ctx.root, ctx.recv.LocalTmpDir, filename))
+							ctx.root, ctx.recv.TmpLocalRcvDir, filename))
 						So(info.Transfer.RemotePath, ShouldEqual, path.Join("/",
 							ctx.recv.RemoteDir, filename))
 					})
@@ -253,7 +253,7 @@ func TestPipelineStartData(t *testing.T) {
 			})
 
 			Convey("Then it should have opened/created the file", func(c C) {
-				_, err := os.Stat(filepath.Join(ctx.root, info.Rule.LocalTmpDir, filename+".part"))
+				_, err := os.Stat(filepath.Join(ctx.root, info.Rule.TmpLocalRcvDir, filename+".part"))
 				So(err, ShouldBeNil)
 			})
 

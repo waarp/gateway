@@ -4,7 +4,7 @@ Afficher l'historique
 
 .. program:: waarp-gateway transfer list
 
-.. describe:: waarp-gateway <ADDR> history list
+.. describe:: waarp-gateway history list
 
 Affiche une liste des entrées d'historique remplissant les critères ci-dessous.
 

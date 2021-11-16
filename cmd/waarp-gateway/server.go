@@ -31,13 +31,13 @@ func displayServer(w io.Writer, server *api.OutServer) {
 	recv := strings.Join(server.AuthorizedRules.Reception, ", ")
 
 	fmt.Fprintln(w, orange(bold("● Server", server.Name)))
-	fmt.Fprintln(w, orange("    Protocol:           "), server.Protocol)
-	fmt.Fprintln(w, orange("    Address:            "), server.Address)
-	fmt.Fprintln(w, orange("    Root:               "), server.Root)
-	fmt.Fprintln(w, orange("    Local IN directory: "), server.LocalInDir)
-	fmt.Fprintln(w, orange("    Local OUT directory:"), server.LocalOutDir)
-	fmt.Fprintln(w, orange("    Local TMP directory:"), server.LocalTmpDir)
-	fmt.Fprintln(w, orange("    Configuration:      "), string(server.ProtoConfig))
+	fmt.Fprintln(w, orange("    Protocol:              "), server.Protocol)
+	fmt.Fprintln(w, orange("    Address:               "), server.Address)
+	fmt.Fprintln(w, orange("    Root directory:        "), server.RootDir)
+	fmt.Fprintln(w, orange("    Receive directory:     "), server.ReceiveDir)
+	fmt.Fprintln(w, orange("    Send directory:        "), server.SendDir)
+	fmt.Fprintln(w, orange("    Temp receive directory:"), server.TmpReceiveDir)
+	fmt.Fprintln(w, orange("    Configuration:         "), string(server.ProtoConfig))
 	fmt.Fprintln(w, orange("    Authorized rules"))
 	fmt.Fprintln(w, bold("    ├─Sending:  "), send)
 	fmt.Fprintln(w, bold("    └─Reception:"), recv)
@@ -71,12 +71,17 @@ type serverAdd struct {
 	Name        string             `required:"yes" short:"n" long:"name" description:"The server's name"`
 	Protocol    string             `required:"yes" short:"p" long:"protocol" description:"The server's protocol"`
 	Address     string             `required:"yes" short:"a" long:"address" description:"The server's [address:port]"`
-	Root        *string            `short:"r" long:"root" description:"The server's root directory"`
-	InDir       *string            `short:"i" long:"in" description:"The server's local in directory"`
-	OutDir      *string            `short:"o" long:"out" description:"The server's local out directory"`
-	WorkDir     *string            `short:"w" long:"work" description:"[DEPRECATED] The server's work directory"` // DEPRECATED
-	TempDir     *string            `short:"t" long:"tmp" description:"The server's local temp directory"`
+	RootDir     *string            `long:"root-dir" description:"The server's local root directory"`
+	ReceiveDir  *string            `long:"receive-dir" description:"The server's local directory for received files"`
+	SendDir     *string            `long:"send-dir" description:"The server's local directory for files to send"`
+	TempRcvDir  *string            `long:"tmp-dir" description:"The server's local temporary directory for incoming files"`
 	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The server's configuration, in key:val format. Can be repeated."`
+
+	// Deprecated options
+	Root    *string `short:"r" long:"root" description:"[DEPRECATED] The server's root directory"`     // Deprecated: replaced by RootDir
+	InDir   *string `short:"i" long:"in" description:"[DEPRECATED] The server's local in directory"`   // Deprecated: replaced by ReceiveDir
+	OutDir  *string `short:"o" long:"out" description:"[DEPRECATED] The server's local out directory"` // Deprecated: replaced by SendDir
+	WorkDir *string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory"`     // Deprecated: replaced by TempRcvDir
 }
 
 func (s *serverAdd) Execute([]string) error {
@@ -86,19 +91,40 @@ func (s *serverAdd) Execute([]string) error {
 	}
 
 	server := &api.InServer{
-		Name:        &s.Name,
-		Protocol:    &s.Protocol,
-		Address:     &s.Address,
-		Root:        s.Root,
-		LocalInDir:  s.InDir,
-		LocalOutDir: s.OutDir,
-		LocalTmpDir: s.TempDir,
-		ProtoConfig: conf,
+		Name:          &s.Name,
+		Protocol:      &s.Protocol,
+		Address:       &s.Address,
+		RootDir:       s.RootDir,
+		ReceiveDir:    s.ReceiveDir,
+		SendDir:       s.SendDir,
+		TmpReceiveDir: s.TempRcvDir,
+		ProtoConfig:   conf,
+	}
+
+	if s.Root != nil {
+		fmt.Fprintln(out, "[WARNING] The '-r' ('--root') option is deprecated. "+
+			"Use '--root-dir' instead.")
+
+		server.Root = s.Root
+	}
+
+	if s.InDir != nil {
+		fmt.Fprintln(out, "[WARNING] The '-i' ('--in') option is deprecated. "+
+			"Use '--receive-dir' instead.")
+
+		server.InDir = s.InDir
+	}
+
+	if s.OutDir != nil {
+		fmt.Fprintln(out, "[WARNING] The '-o' ('--out') option is deprecated. "+
+			"Use '--send-dir' instead.")
+
+		server.OutDir = s.OutDir
 	}
 
 	if s.WorkDir != nil {
-		fmt.Fprintln(out, "[WARNING] The '-w' ('-work') option is deprecated. "+
-			"Use '-t' ('-tmp') instead.")
+		fmt.Fprintln(out, "[WARNING] The '-w' ('--work') option is deprecated. "+
+			"Use '--tmp-dir' instead.")
 
 		server.WorkDir = s.WorkDir
 	}
@@ -180,12 +206,17 @@ type serverUpdate struct {
 	Name        *string            `short:"n" long:"name" description:"The server's name"`
 	Protocol    *string            `short:"p" long:"protocol" description:"The server's protocol"`
 	Address     *string            `short:"a" long:"address" description:"The server's [address:port]"`
-	Root        *string            `short:"r" long:"root" description:"The server's root directory"`
-	InDir       *string            `short:"i" long:"in" description:"The server's in directory"`
-	OutDir      *string            `short:"o" long:"out" description:"The server's out directory"`
-	WorkDir     *string            `short:"w" long:"work" description:"[DEPRECATED] The server's work directory"` // DEPRECATED
-	TempDir     *string            `short:"t" long:"tmp" description:"The server's local temp directory"`
+	RootDir     *string            `long:"root-dir" description:"The server's local root directory"`
+	ReceiveDir  *string            `long:"receive-dir" description:"The server's local directory for received files"`
+	SendDir     *string            `long:"send-dir" description:"The server's local directory for files to send"`
+	TempRcvDir  *string            `long:"tmp-dir" description:"The server's local temporary directory for incoming files"`
 	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The server's configuration in JSON"`
+
+	// Deprecated options
+	Root    *string `short:"r" long:"root" description:"[DEPRECATED] The server's root directory"`     // Deprecated: replaced by RootDir
+	InDir   *string `short:"i" long:"in" description:"[DEPRECATED] The server's local in directory"`   // Deprecated: replaced by ReceiveDir
+	OutDir  *string `short:"o" long:"out" description:"[DEPRECATED] The server's local out directory"` // Deprecated: replaced by SendDir
+	WorkDir *string `short:"w" long:"work" description:"[DEPRECATED] The server's work directory"`     // Deprecated: replaced by TempRcvDir
 }
 
 func (s *serverUpdate) Execute([]string) error {
@@ -195,19 +226,40 @@ func (s *serverUpdate) Execute([]string) error {
 	}
 
 	server := &api.InServer{
-		Name:        s.Name,
-		Protocol:    s.Protocol,
-		Address:     s.Address,
-		Root:        s.Root,
-		LocalInDir:  s.InDir,
-		LocalOutDir: s.OutDir,
-		LocalTmpDir: s.TempDir,
-		ProtoConfig: conf,
+		Name:          s.Name,
+		Protocol:      s.Protocol,
+		Address:       s.Address,
+		RootDir:       s.RootDir,
+		ReceiveDir:    s.ReceiveDir,
+		SendDir:       s.SendDir,
+		TmpReceiveDir: s.TempRcvDir,
+		ProtoConfig:   conf,
+	}
+
+	if s.Root != nil {
+		fmt.Fprintln(out, "[WARNING] The '-r' ('--root') option is deprecated. "+
+			"Use '--root-dir' instead.")
+
+		server.Root = s.Root
+	}
+
+	if s.InDir != nil {
+		fmt.Fprintln(out, "[WARNING] The '-i' ('--in') option is deprecated. "+
+			"Use '--receive-dir' instead.")
+
+		server.InDir = s.InDir
+	}
+
+	if s.OutDir != nil {
+		fmt.Fprintln(out, "[WARNING] The '-o' ('--out') option is deprecated. "+
+			"Use '--send-dir' instead.")
+
+		server.OutDir = s.OutDir
 	}
 
 	if s.WorkDir != nil {
-		fmt.Fprintln(out, "[WARNING] The '-w' ('-work') option is deprecated. "+
-			"Use '-t' ('-tmp') instead.")
+		fmt.Fprintln(out, "[WARNING] The '-w' ('--work') option is deprecated. "+
+			"Use '--tmp-dir' instead.")
 
 		server.WorkDir = s.WorkDir
 	}

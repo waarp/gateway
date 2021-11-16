@@ -6,7 +6,7 @@ Lister les partenaires
 
 .. program:: waarp-gateway partner list
 
-.. describe:: waarp-gateway <ADDR> partner list
+.. describe:: waarp-gateway partner list
 
 Affiche une liste des partenaires remplissant les critères renseignés ci-dessous.
 

@@ -6,7 +6,7 @@ Lister les règles
 
 .. program:: waarp-gateway rule list
 
-.. describe:: waarp-gateway <ADDR> rule list
+.. describe:: waarp-gateway rule list
 
 Affiche une liste de toutes les règles remplissant les critères ci-dessous.
 

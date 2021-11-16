@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"encoding/json"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -18,10 +17,9 @@ func TestExportRemoteAgents(t *testing.T) {
 
 		Convey("Given the database contains remotes agents with accounts", func() {
 			agent1 := &model.RemoteAgent{
-				Name:        "agent1",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "agent1",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(agent1).Run(), ShouldBeNil)
 
@@ -41,10 +39,9 @@ func TestExportRemoteAgents(t *testing.T) {
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			agent2 := &model.RemoteAgent{
-				Name:        "agent2",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2023",
+				Name:     "agent2",
+				Protocol: testProtocol,
+				Address:  "localhost:2023",
 			}
 			So(db.Insert(agent2).Run(), ShouldBeNil)
 
@@ -131,10 +128,9 @@ func TestExportRemoteAccounts(t *testing.T) {
 			pwd1 := "pwd"
 			pwd2 := "bar"
 			agent := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 

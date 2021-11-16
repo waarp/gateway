@@ -37,8 +37,8 @@ type Rule struct {
 	// The remote directory for all file transfers using this rule.
 	RemoteDir string `xorm:"notnull 'remote_dir'"`
 
-	// The temporary directory for all running transfer files.
-	LocalTmpDir string `xorm:"notnull 'local_tmp_dir'"`
+	// The temporary directory for running incoming transfer files.
+	TmpLocalRcvDir string `xorm:"notnull 'tmp_local_receive_dir'"`
 }
 
 // TableName returns the remote accounts table name.
@@ -74,8 +74,8 @@ func (r *Rule) normalizePaths() database.Error {
 		r.RemoteDir = utils.ToStandardPath(r.RemoteDir)
 	}
 
-	if r.LocalTmpDir != "" {
-		r.LocalTmpDir = utils.ToOSPath(r.LocalTmpDir)
+	if r.TmpLocalRcvDir != "" {
+		r.TmpLocalRcvDir = utils.ToOSPath(r.TmpLocalRcvDir)
 	}
 
 	return nil

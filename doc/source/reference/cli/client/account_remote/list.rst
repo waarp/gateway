@@ -6,7 +6,7 @@ Lister les comptes d'un partenaire
 
 .. program:: waarp-gateway account remote list
 
-.. describe:: waarp-gateway <ADDR> account remote <PARTNER> list
+.. describe:: waarp-gateway account remote <PARTNER> list
 
 Affiche un liste des comptes remplissant les critères ci-dessous.
 

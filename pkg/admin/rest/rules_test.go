@@ -48,7 +48,7 @@ func TestCreateRule(t *testing.T) {
 					"path": "/test_path",
 					"localDir": "/local/dir",
 					"remoteDir": "/remote/dir",
-					"localTmpDir": "/local/tmp",
+					"tmpLocalRcvDir": "/local/tmp",
 					"preTasks": [{
 						"type": "DELETE"
 					}]
@@ -83,14 +83,14 @@ func TestCreateRule(t *testing.T) {
 							So(len(rules), ShouldEqual, 2)
 
 							exp := model.Rule{
-								ID:          2,
-								Name:        "new_name",
-								Comment:     "new comment",
-								IsSend:      false,
-								Path:        "/test_path",
-								LocalDir:    filepath.FromSlash("/local/dir"),
-								RemoteDir:   "/remote/dir",
-								LocalTmpDir: filepath.FromSlash("/local/tmp"),
+								ID:             2,
+								Name:           "new_name",
+								Comment:        "new comment",
+								IsSend:         false,
+								Path:           "/test_path",
+								LocalDir:       filepath.FromSlash("/local/dir"),
+								RemoteDir:      "/remote/dir",
+								TmpLocalRcvDir: filepath.FromSlash("/local/tmp"),
 							}
 							So(rules[1], ShouldResemble, exp)
 						})
@@ -522,12 +522,12 @@ func TestUpdateRule(t *testing.T) {
 				RemoteDir: "/send/remote/dir",
 			}
 			oldRecv := &model.Rule{
-				Name:        "old",
-				IsSend:      false,
-				Path:        "/old_recv",
-				LocalDir:    "/recv/local/dir",
-				RemoteDir:   "/recv/remote/dir",
-				LocalTmpDir: "/recv/local/tmp",
+				Name:           "old",
+				IsSend:         false,
+				Path:           "/old_recv",
+				LocalDir:       "/recv/local/dir",
+				RemoteDir:      "/recv/remote/dir",
+				TmpLocalRcvDir: "/recv/local/tmp",
 			}
 			other := &model.Rule{
 				Name:   "other",
@@ -569,7 +569,7 @@ func TestUpdateRule(t *testing.T) {
 				body := strings.NewReader(`{
 					"name": "update_name",
 					"localDir": "",
-					"localTmpDir": "/local/update/work",
+					"tmpLocalRcvDir": "/local/update/work",
 					"postTasks": [{
 						"type": "MOVE",
 						"args": {"path": "/move/path"}
@@ -607,13 +607,13 @@ func TestUpdateRule(t *testing.T) {
 							So(len(results), ShouldEqual, 3)
 
 							expected := model.Rule{
-								ID:          old.ID,
-								Name:        "update_name",
-								Path:        old.Path,
-								LocalDir:    "",
-								RemoteDir:   old.RemoteDir,
-								LocalTmpDir: filepath.FromSlash("/local/update/work"),
-								IsSend:      true,
+								ID:             old.ID,
+								Name:           "update_name",
+								Path:           old.Path,
+								LocalDir:       "",
+								RemoteDir:      old.RemoteDir,
+								TmpLocalRcvDir: filepath.FromSlash("/local/update/work"),
+								IsSend:         true,
 							}
 							So(results[0], ShouldResemble, expected)
 
@@ -682,7 +682,7 @@ func TestUpdateRule(t *testing.T) {
 						}, {
 							RemoteDir: strPtr("/update/remote"),
 						}, {
-							LocalTmpDir: strPtr("/update/tmp"),
+							TmpLocalRcvDir: strPtr("/update/tmp"),
 						}, {
 							PreTasks: []Task{
 								{
@@ -755,14 +755,14 @@ func doUpdate(handler http.HandlerFunc, old *model.Rule, update *UptRule) (*http
 
 func getExpected(src *model.Rule, upt *UptRule) *model.Rule {
 	res := &model.Rule{
-		ID:          src.ID,
-		Name:        src.Name,
-		Comment:     src.Comment,
-		IsSend:      src.IsSend,
-		Path:        src.Path,
-		LocalDir:    src.LocalDir,
-		RemoteDir:   src.RemoteDir,
-		LocalTmpDir: src.LocalTmpDir,
+		ID:             src.ID,
+		Name:           src.Name,
+		Comment:        src.Comment,
+		IsSend:         src.IsSend,
+		Path:           src.Path,
+		LocalDir:       src.LocalDir,
+		RemoteDir:      src.RemoteDir,
+		TmpLocalRcvDir: src.TmpLocalRcvDir,
 	}
 
 	if upt.Name != nil {
@@ -785,8 +785,8 @@ func getExpected(src *model.Rule, upt *UptRule) *model.Rule {
 		res.RemoteDir = *upt.RemoteDir
 	}
 
-	if upt.LocalTmpDir != nil {
-		res.LocalTmpDir = utils.ToOSPath(*upt.LocalTmpDir)
+	if upt.TmpLocalRcvDir != nil {
+		res.TmpLocalRcvDir = utils.ToOSPath(*upt.TmpLocalRcvDir)
 	}
 
 	// TODO Tasks
@@ -812,12 +812,12 @@ func TestReplaceRule(t *testing.T) {
 
 		Convey("Given a database with a rule & a task", func() {
 			old := &model.Rule{
-				Name:        "old",
-				Path:        "/old",
-				LocalDir:    "/old/local",
-				RemoteDir:   "/old/remote",
-				LocalTmpDir: "/old/tmp",
-				IsSend:      true,
+				Name:           "old",
+				Path:           "/old",
+				LocalDir:       "/old/local",
+				RemoteDir:      "/old/remote",
+				TmpLocalRcvDir: "/old/tmp",
+				IsSend:         true,
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
 

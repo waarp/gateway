@@ -16,15 +16,20 @@ type Data struct {
 type LocalAgent struct {
 	Name          string          `json:"name"`
 	Protocol      string          `json:"protocol"`
-	Root          string          `json:"root,omitempty"`
-	InDir         string          `json:"inDir,omitempty"`
-	OutDir        string          `json:"outDir,omitempty"`
-	WorkDir       string          `json:"workDir,omitempty"` // DEPRECATED
-	TmpDir        string          `json:"tmpDir,omitempty"`
+	RootDir       string          `json:"rootDir,omitempty"`
+	ReceiveDir    string          `json:"receiveDir,omitempty"`
+	SendDir       string          `json:"sendDir,omitempty"`
+	TmpReceiveDir string          `json:"tmpReceiveDir,omitempty"`
 	Address       string          `json:"address"`
 	Configuration json.RawMessage `json:"configuration"`
 	Accounts      []LocalAccount  `json:"accounts"`
 	Certs         []Certificate   `json:"certificates"` //nolint:tagliatelle // doesn't matter
+
+	// Deprecated fields.
+	Root    string `json:"root,omitempty"`    // Deprecated: replaced by Root
+	InDir   string `json:"inDir,omitempty"`   // Deprecated: replaced by ReceiveDir
+	OutDir  string `json:"outDir,omitempty"`  // Deprecated: replaced by SendDir
+	WorkDir string `json:"workDir,omitempty"` // Deprecated: replaced by TmpReceiveDir
 }
 
 // LocalAccount is the JSON struct representing a local account.
@@ -63,19 +68,21 @@ type Certificate struct {
 
 // Rule is the JSON struct representing a transfer rule.
 type Rule struct {
-	Name        string   `json:"name"`
-	IsSend      bool     `json:"isSend"`
-	Path        string   `json:"path"`
-	InPath      string   `json:"inPath,omitempty"`   // DEPRECATED
-	OutPath     string   `json:"outPath,omitempty"`  // DEPRECATED
-	WorkPath    string   `json:"workPath,omitempty"` // DEPRECATED
-	LocalDir    string   `json:"localDir,omitempty"`
-	RemoteDir   string   `json:"remoteDir,omitempty"`
-	LocalTmpDir string   `json:"localTmpDir,omitempty"`
-	Accesses    []string `json:"auth,omitempty"` //nolint:tagliatelle // doesn't matter
-	Pre         []Task   `json:"pre,omitempty"`
-	Post        []Task   `json:"post,omitempty"`
-	Error       []Task   `json:"error,omitempty"`
+	Name           string   `json:"name"`
+	IsSend         bool     `json:"isSend"`
+	Path           string   `json:"path"`
+	LocalDir       string   `json:"localDir,omitempty"`
+	RemoteDir      string   `json:"remoteDir,omitempty"`
+	TmpLocalRcvDir string   `json:"tmpLocalRcvDir,omitempty"`
+	Accesses       []string `json:"auth,omitempty"` //nolint:tagliatelle // doesn't matter
+	Pre            []Task   `json:"pre,omitempty"`
+	Post           []Task   `json:"post,omitempty"`
+	Error          []Task   `json:"error,omitempty"`
+
+	// Deprecated fields.
+	InPath   string `json:"inPath,omitempty"`   // Deprecated: replaced by LocalDir & RemoteDir
+	OutPath  string `json:"outPath,omitempty"`  // Deprecated: replaced by LocalDir & RemoteDir
+	WorkPath string `json:"workPath,omitempty"` // Deprecated: replaced by TmpLocalRcvDir
 }
 
 // Task is the JSON struct representing a rule task.

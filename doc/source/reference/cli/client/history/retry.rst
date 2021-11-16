@@ -4,7 +4,7 @@ Retenter un transfer
 
 .. program:: waarp-gateway transfer retry
 
-.. describe:: waarp-gateway <ADDR> transfer retry <TRANS>
+.. describe:: waarp-gateway transfer retry <TRANS>
 
 Retente le transfert demandé. L'ID du transfert doit être fournit en
 argument de commande. Seuls les transferts ayant échoué peuvent être retentés.

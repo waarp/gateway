@@ -49,7 +49,7 @@ Ajouter une entrée sous la forme suivante :
 .. code-block:: xml
 
    <entry>
-     <hostid>waarp-gateway</hostid>
+     <hostid>gw_r66user</hostid>
      <address>127.0.0.1</address>
      <port>6699</port>
      <isssl>false</isssl>
@@ -71,7 +71,7 @@ la commande suivante :
    $ ./bin/waarp-r66client.sh r66_server loadconf
 
 C'est suffisant, on va maintenant pouvoir se connecter au serveur ``r66_server``
-sur le port ``6666``, avec l'utilisateur ``waarp_gateway`` et le mot de passe
+sur le port ``6666``, avec l'utilisateur ``gw_r66user`` et le mot de passe
 ``gateway_password``.
 
 
@@ -83,8 +83,8 @@ par ajouter un partenaire R66 :
 
 .. code-block:: shell-session
 
-   $ waarp-gateway partner add -n "r66_localhost" -p "r66" -a "localhost:6666" -c "serverLogin:r66_server" -c "serverPassword:wm-clientpassword"
-   The partner r66_localhost was successfully added.
+   $ waarp-gateway partner add --name "r66_server" --protocol "r66" --address "localhost:6666" --config "serverLogin:r66_server" --config "serverPassword:wm-clientpassword"
+   The partner r66_server was successfully added.
 
 Pour créer un partenaire, nous devons préciser son nom, le protocole de ce
 serveur, ainsi que des informations additionnelles pour paramétrer le serveur
@@ -105,7 +105,7 @@ avec TLS, il faut altérer la configuration du partenaire en activant l'option
 
 .. code-block:: shell-session
 
-   $ waarp-gateway partner update "r66_localhost" -c "serverLogin:waarp_r66" -c "serverPassword:sesame" -c "isTLS:true"
+   $ waarp-gateway partner update "r66_server" --config "serverLogin:waarp_r66" --config "serverPassword:sesame" --config "isTLS:true"
 
 .. note:: Il est nécessaire de re-entrer la configuration en entier pour que les
    valeurs de ``serverLogin`` et ``serverPassword`` ne soient pas perdues.
@@ -116,8 +116,8 @@ de confiance du partenaire comme ceci :
 
 .. code-block:: shell-session
 
-   $ waarp-gateway partner cert "r66_localhost" add -n "r66_localhost_cert" -c "cert.pem"
-   The certificate r66_localhost was successfully added.
+   $ waarp-gateway partner cert "r66_server" add --name "r66_server_cert" --certificate "cert.pem"
+   The certificate r66_server was successfully added.
 
 Il vous faudra également activer TLS dans la configuration de l'agent *Waarp-R66*,
 veuillez vous référer à la `documentation Waarp-R66`_ pour la marche à suivre.
@@ -128,13 +128,13 @@ Création d'un utilisateur
 
 Pour pouvoir se connecter au partenaire, nous devons maintenant créer un
 utilisateur. Cela se fait en créant un "compte distant" dans la Gateway.
-Cet utilisateur aura ``waarp-gateway`` comme login et ``gateway_password`` comme
+Cet utilisateur aura ``gw_r66user`` comme login et ``gateway_password`` comme
 mot de passe (ceux définis plus tôt lors de la configuration de l'agent R66) :
 
 .. code-block:: shell-session
 
-   $ waarp-gateway account remote "waarp-gateway" add -l "gateway_password" -p "gateway_password"
-   The account waarp-gateway was successfully added.
+   $ waarp-gateway account remote "r66_server" add --login "gw_r66user" --password "gateway_password"
+   The account gw_r66user was successfully added.
 
 L'utilisateur est maintenant créé. Pour pouvoir faire un transfert, nous devons
 maintenant créer une :term:`règle` de transfert
@@ -144,7 +144,7 @@ Ajout d'un règle
 ----------------
 
 Ici, nous voulons envoyer un fichier à la Gateway. La règle aura donc le sens
-``SEND`` («envoi») : le sens des règles est toujours à prendre du point
+``send`` («envoi») : le sens des règles est toujours à prendre du point
 de vu de la Gateway (si on envoi un fichier à la Gateway, celle-ci le *reçoit*).
 Attention, le nom de la règle doit être identique à celui de la règle définie
 dans l'instance *Waarp-R66* (``default`` dans notre exemple).
@@ -153,7 +153,7 @@ Voici donc la commande pour créer la règle :
 
 .. code-block:: shell-session
 
-   $ waarp-gateway rule add -n "default" -d "SEND"
+   $ waarp-gateway rule add --name "default" --direction "send"
    The rule default was successfully added.
 
 
@@ -168,7 +168,7 @@ envoyons-le avec la gateway :
 
    # echo "hello world!" > /var/lib/waarp-gateway/out/a-envoyer.txt
 
-   $ transfer add -f "a-envoyer.txt" -w "push" -p "r66_localhost" -l "waarp-gateway" -r "default"
+   $ transfer add --file "a-envoyer.txt" --way "send" --partner "r66_server" --login "gw_r66user" --rule "default"
    The transfer of file a-envoyer.txt was successfully added.
 
 Après avoir établi une connexion avec la Gateway, nous avons déposé un fichier
@@ -183,15 +183,15 @@ transferts de la Gateway :
    History:
    [...]
    * Transfer 2 (as client) [DONE]
-       Way:              SEND
-       Protocol:         r66
-       Rule:             default
-       Requester:        r66user
-       Requested:        r66_localhost
-       Source file:      a-envoyer.txt
-       Destination file: a-envoyer.txt
-       Start date:       2020-09-17T17:27:44Z
-       End date:         2020-09-17T17:27:45Z
+       Way:             send
+       Protocol:        r66
+       Rule:            default
+       Requester:       gw_r66user
+       Requested:       r66_server
+       Local filepath:  /etc/waarp-gateway/out/a-envoyer.txt
+       Remote filepath: /a-envoyer.txt
+       Start date:      2020-09-17T17:27:44Z
+       End date:        2020-09-17T17:27:45Z
 
 Le fichier disponible est maintenant dans le dossier ``in`` de *Waarp-R66*.
 Comme nous n'avons pas spécifié de dossier spécifique dans la règle, c'est le

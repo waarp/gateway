@@ -43,6 +43,7 @@ func testMigrations(eng *migration.Engine, dbType string) {
 
 	// 0.5.0
 	testVer0_5_0LocalAgentChangePaths(eng)
+	testVer0_5_0LocalAgentsPathsRename(eng)
 	testVer0_5_0LocalAgentDisallowReservedNames(eng)
 	testVer0_5_0RuleNewPathCols(eng)
 	testVer0_5_0RulePathChanges(eng)

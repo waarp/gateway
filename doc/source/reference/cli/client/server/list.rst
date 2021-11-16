@@ -6,7 +6,7 @@ Lister les serveurs
 
 .. program:: waarp-gateway server list
 
-.. describe:: waarp-gateway <ADDR> server list
+.. describe:: waarp-gateway server list
 
 Affiche les informations des serveurs remplissant les critères ci-dessous.
 

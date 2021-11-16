@@ -2,7 +2,6 @@ package sftp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"path"
@@ -36,10 +35,9 @@ func TestServerStop(t *testing.T) {
 		port := getTestPort()
 
 		agent := &model.LocalAgent{
-			Name:        "test_sftp_server",
-			Protocol:    "sftp",
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:" + port,
+			Name:     "test_sftp_server",
+			Protocol: "sftp",
+			Address:  "localhost:" + port,
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -79,11 +77,10 @@ func TestServerStart(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		agent := &model.LocalAgent{
-			Name:        "test_sftp_server",
-			Protocol:    "sftp",
-			Root:        root,
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:" + port,
+			Name:     "test_sftp_server",
+			Protocol: "sftp",
+			RootDir:  root,
+			Address:  "localhost:" + port,
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -172,8 +169,8 @@ func TestSSHServerInterruption(t *testing.T) {
 							IsServer:  true,
 							AccountID: test.LocAccount.ID,
 							AgentID:   test.Server.ID,
-							LocalPath: filepath.Join(test.Server.Root,
-								test.Server.TmpDir, "test_in_shutdown.dst.part"),
+							LocalPath: filepath.Join(test.Server.RootDir,
+								test.Server.TmpReceiveDir, "test_in_shutdown.dst.part"),
 							RemotePath: "/test_in_shutdown.dst",
 							Filesize:   model.UnknownSize,
 							RuleID:     test.ServerRule.ID,

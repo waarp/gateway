@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -30,10 +29,9 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 
 		Convey("Given a remote account entry", func() {
 			ag := RemoteAgent{
-				Name:        "server",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:1111",
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
@@ -109,10 +107,9 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains 1 remote agent with 1 remote account", func() {
 			parentAgent := RemoteAgent{
-				Name:        "parent_agent",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "parent_agent",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(&parentAgent).Run(), ShouldBeNil)
 
@@ -182,10 +179,9 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 				Convey("Given that the new account's name is already taken but the"+
 					"parent agent is different", func() {
 					otherAgent := RemoteAgent{
-						Name:        "other",
-						Protocol:    testProtocol,
-						ProtoConfig: json.RawMessage(`{}`),
-						Address:     "localhost:2022",
+						Name:     "other",
+						Protocol: testProtocol,
+						Address:  "localhost:2022",
 					}
 					So(db.Insert(&otherAgent).Run(), ShouldBeNil)
 

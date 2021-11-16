@@ -4,7 +4,7 @@ Lister les certificats d'un compte distant
 
 .. program:: waarp-gateway account remote cert list
 
-.. describe:: waarp-gateway <ADDR> account remote <PARTNER> cert <LOGIN> list
+.. describe:: waarp-gateway account remote <PARTNER> cert <LOGIN> list
 
 Affiche les informations des certificats du compte suivant les critères donnés.
 

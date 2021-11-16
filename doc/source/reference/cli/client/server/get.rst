@@ -4,7 +4,7 @@ Afficher un serveur
 
 .. program:: waarp-gateway server get
 
-.. describe:: waarp-gateway <ADDR> server get <SERVER>
+.. describe:: waarp-gateway server get <SERVER>
 
 Affiche les informations du serveur donné en paramètre de commande.
 

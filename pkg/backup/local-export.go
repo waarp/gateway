@@ -5,6 +5,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent, error) {
@@ -37,10 +38,14 @@ func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent
 			Protocol:      src.Protocol,
 			Address:       src.Address,
 			Configuration: src.ProtoConfig,
-			Root:          src.Root,
-			InDir:         src.InDir,
-			OutDir:        src.OutDir,
-			TmpDir:        src.TmpDir,
+			RootDir:       src.RootDir,
+			ReceiveDir:    src.ReceiveDir,
+			SendDir:       src.SendDir,
+			TmpReceiveDir: src.TmpReceiveDir,
+			Root:          utils.NormalizePath(src.RootDir),
+			InDir:         utils.NormalizePath(src.ReceiveDir),
+			OutDir:        utils.NormalizePath(src.SendDir),
+			WorkDir:       utils.NormalizePath(src.TmpReceiveDir),
 			Accounts:      accounts,
 			Certs:         certificates,
 		}

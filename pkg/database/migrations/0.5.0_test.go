@@ -11,7 +11,7 @@ import (
 
 func testVer0_5_0LocalAgentChangePaths(eng *migration.Engine) {
 	Convey("Given the 0.5.0 local agent paths change", func() {
-		setupDatabaseUpTo(eng, ver0_5_0LocalAgentChangePaths{})
+		setupDatabaseUpTo(eng, ver0_5_0LocalAgentDenormalizePaths{})
 
 		_, err := eng.DB.Exec(`INSERT INTO local_agents (owner,name,protocol,
             proto_config,address,root,in_dir,out_dir,work_dir) 
@@ -20,7 +20,7 @@ func testVer0_5_0LocalAgentChangePaths(eng *migration.Engine) {
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAgentChangePaths{}}})
+			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAgentDenormalizePaths{}}})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have changed the paths", func() {
@@ -41,7 +41,7 @@ func testVer0_5_0LocalAgentChangePaths(eng *migration.Engine) {
 			})
 
 			Convey("When reversing the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0LocalAgentChangePaths{}}})
+				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0LocalAgentDenormalizePaths{}}})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have restored the paths", func() {
@@ -60,9 +60,41 @@ func testVer0_5_0LocalAgentChangePaths(eng *migration.Engine) {
 	})
 }
 
+func testVer0_5_0LocalAgentsPathsRename(eng *migration.Engine) {
+	Convey("Given the 0.5.0 local agent path column rename", func() {
+		setupDatabaseUpTo(eng, ver0_5_0LocalAgentsPathsRename{})
+		tableShouldHaveColumns(eng.DB, "local_agents", "root", "in_dir",
+			"out_dir", "work_dir")
+
+		Convey("When applying the migration", func() {
+			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAgentsPathsRename{}}})
+			So(err, ShouldBeNil)
+
+			Convey("Then it should have renamed the path columns", func() {
+				tableShouldNotHaveColumns(eng.DB, "local_agents", "root", "in_dir",
+					"out_dir", "work_dir")
+				tableShouldHaveColumns(eng.DB, "local_agents", "root_dir",
+					"receive_dir", "send_dir", "tmp_receive_dir")
+			})
+
+			Convey("When reversing the migration", func() {
+				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0LocalAgentsPathsRename{}}})
+				So(err, ShouldBeNil)
+
+				Convey("Then it should have restored the old column names", func() {
+					tableShouldNotHaveColumns(eng.DB, "local_agents", "root_dir",
+						"receive_dir", "send_dir", "tmp_receive_dir")
+					tableShouldHaveColumns(eng.DB, "local_agents", "root", "in_dir",
+						"out_dir", "work_dir")
+				})
+			})
+		})
+	})
+}
+
 func testVer0_5_0LocalAgentDisallowReservedNames(eng *migration.Engine) {
 	Convey("Given the 0.5.0 local agent name verification", func() {
-		setupDatabaseUpTo(eng, ver0_5_0LocalAgentChangePaths{})
+		setupDatabaseUpTo(eng, ver0_5_0LocalAgentDenormalizePaths{})
 
 		_, err := eng.DB.Exec(`INSERT INTO local_agents (
             owner,name,protocol,proto_config,address,root,in_dir,out_dir,work_dir) 
@@ -71,7 +103,7 @@ func testVer0_5_0LocalAgentDisallowReservedNames(eng *migration.Engine) {
 
 		Convey("Given that all server names are valid", func() {
 			Convey("When applying the migration", func() {
-				err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAgentDisallowReservedNames{}}})
+				err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAgentsDisallowReservedNames{}}})
 
 				Convey("Then it should return no error", func() {
 					So(err, ShouldBeNil)
@@ -86,7 +118,7 @@ func testVer0_5_0LocalAgentDisallowReservedNames(eng *migration.Engine) {
 			So(err, ShouldBeNil)
 
 			Convey("When applying the migration", func() {
-				err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAgentDisallowReservedNames{}}})
+				err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAgentsDisallowReservedNames{}}})
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError, "'Database' is a reserved service name, "+
@@ -99,7 +131,7 @@ func testVer0_5_0LocalAgentDisallowReservedNames(eng *migration.Engine) {
 
 func testVer0_5_0RuleNewPathCols(eng *migration.Engine) {
 	Convey("Given the 0.5.0 rule new path columns addition", func() {
-		setupDatabaseUpTo(eng, ver0_5_0RuleNewPathCols{})
+		setupDatabaseUpTo(eng, ver0_5_0RulesPathsRename{})
 
 		_, err := eng.DB.Exec(`INSERT INTO rules (
             name,send,comment,path,in_path,out_path,work_path) 
@@ -111,19 +143,19 @@ func testVer0_5_0RuleNewPathCols(eng *migration.Engine) {
 			VALUES ('rcv',false,'','/rcv_path','in','out','tmp')`)
 		So(err, ShouldBeNil)
 
-		tableShouldHaveColumn(eng.DB, "rules", "in_path", "out_path", "work_path")
+		tableShouldHaveColumns(eng.DB, "rules", "in_path", "out_path", "work_path")
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0RuleNewPathCols{}}})
+			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0RulesPathsRename{}}})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have added the new columns", func() {
-				tableShouldNotHaveColumn(eng.DB, "rules", "in_path", "out_path", "work_path")
-				tableShouldHaveColumn(eng.DB, "rules", "local_dir", "remote_dir", "local_tmp_dir")
+				tableShouldNotHaveColumns(eng.DB, "rules", "in_path", "out_path", "work_path")
+				tableShouldHaveColumns(eng.DB, "rules", "local_dir", "remote_dir", "tmp_local_receive_dir")
 
 				Convey("Then the columns should have been filled", func() {
 					rows, err := eng.DB.Query(`SELECT send, local_dir,remote_dir,
-       					local_tmp_dir FROM rules`)
+       					tmp_local_receive_dir FROM rules`)
 					So(err, ShouldBeNil)
 					So(rows.Err(), ShouldBeNil)
 
@@ -150,13 +182,13 @@ func testVer0_5_0RuleNewPathCols(eng *migration.Engine) {
 			})
 
 			Convey("When reversing the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0RuleNewPathCols{}}})
+				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0RulesPathsRename{}}})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have dropped the new column", func() {
-					tableShouldHaveColumn(eng.DB, "rules", "in_path", "out_path", "work_path")
-					tableShouldNotHaveColumn(eng.DB, "rules", "local_dir",
-						"remote_dir", "local_tmp_dir")
+					tableShouldHaveColumns(eng.DB, "rules", "in_path", "out_path", "work_path")
+					tableShouldNotHaveColumns(eng.DB, "rules", "local_dir",
+						"remote_dir", "tmp_local_receive_dir")
 				})
 			})
 		})
@@ -168,7 +200,7 @@ func testVer0_5_0RulePathChanges(eng *migration.Engine) {
 		setupDatabaseUpTo(eng, ver0_5_0RulePathChanges{})
 
 		_, err := eng.DB.Exec(`INSERT INTO rules (
-            name,send,comment,path,local_dir,remote_dir,local_tmp_dir) VALUES 
+            name,send,comment,path,local_dir,remote_dir,tmp_local_receive_dir) VALUES 
             ('snd',true,'','/snd_path','local/dir','remote/dir','/C:/tmp/dir')`)
 		So(err, ShouldBeNil)
 
@@ -177,7 +209,7 @@ func testVer0_5_0RulePathChanges(eng *migration.Engine) {
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have changed the paths", func() {
-				row := eng.DB.QueryRow("SELECT local_dir,remote_dir,local_tmp_dir FROM rules")
+				row := eng.DB.QueryRow("SELECT local_dir,remote_dir,tmp_local_receive_dir FROM rules")
 
 				var loc, rem, tmp string
 				So(row.Scan(&loc, &rem, &tmp), ShouldBeNil)
@@ -197,7 +229,7 @@ func testVer0_5_0RulePathChanges(eng *migration.Engine) {
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have restored the paths", func() {
-					row := eng.DB.QueryRow("SELECT local_dir,remote_dir,local_tmp_dir FROM rules")
+					row := eng.DB.QueryRow("SELECT local_dir,remote_dir,tmp_local_receive_dir FROM rules")
 
 					var loc, rem, tmp string
 					So(row.Scan(&loc, &rem, &tmp), ShouldBeNil)
@@ -214,16 +246,16 @@ func testVer0_5_0RulePathChanges(eng *migration.Engine) {
 func testVer0_5_0AddFilesize(eng *migration.Engine) {
 	Convey("Given the 0.5.0 filesize addition", func() {
 		setupDatabaseUpTo(eng, ver0_5_0AddFilesize{})
-		tableShouldNotHaveColumn(eng.DB, "transfers", "filesize")
-		tableShouldNotHaveColumn(eng.DB, "transfer_history", "filesize")
+		tableShouldNotHaveColumns(eng.DB, "transfers", "filesize")
+		tableShouldNotHaveColumns(eng.DB, "transfer_history", "filesize")
 
 		Convey("When applying the migration", func() {
 			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0AddFilesize{}}})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have added the columns", func() {
-				tableShouldHaveColumn(eng.DB, "transfers", "filesize")
-				tableShouldHaveColumn(eng.DB, "transfer_history", "filesize")
+				tableShouldHaveColumns(eng.DB, "transfers", "filesize")
+				tableShouldHaveColumns(eng.DB, "transfer_history", "filesize")
 			})
 
 			Convey("When reversing the migration", func() {
@@ -231,8 +263,8 @@ func testVer0_5_0AddFilesize(eng *migration.Engine) {
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have removed the columns", func() {
-					tableShouldNotHaveColumn(eng.DB, "transfers", "filesize")
-					tableShouldNotHaveColumn(eng.DB, "transfer_history", "filesize")
+					tableShouldNotHaveColumns(eng.DB, "transfers", "filesize")
+					tableShouldNotHaveColumns(eng.DB, "transfer_history", "filesize")
 				})
 			})
 		})
@@ -244,12 +276,12 @@ func testVer0_5_0TransferChangePaths(eng *migration.Engine) {
 		setupDatabaseUpTo(eng, ver0_5_0TransferChangePaths{})
 
 		_, err := eng.DB.Exec(`INSERT INTO rules (
-            id,name,send,comment,path,local_dir,remote_dir,local_tmp_dir)
+            id,name,send,comment,path,local_dir,remote_dir,tmp_local_receive_dir)
 			VALUES (1,'snd',true,'','/snd_path','snd_loc','snd_rem','snd_tmp')`)
 		So(err, ShouldBeNil)
 
 		_, err = eng.DB.Exec(`INSERT INTO rules (
-            id,name,send,comment,path,local_dir,remote_dir,local_tmp_dir)
+            id,name,send,comment,path,local_dir,remote_dir,tmp_local_receive_dir)
 			VALUES (2,'rcv',false,'','/rcv_path','rcv_loc','rcv_rem','rcv_tmp')`)
 		So(err, ShouldBeNil)
 
@@ -272,13 +304,13 @@ func testVer0_5_0TransferChangePaths(eng *migration.Engine) {
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have renamed the local path column", func() {
-				tableShouldHaveColumn(eng.DB, "transfers", "local_path")
-				tableShouldNotHaveColumn(eng.DB, "transfers", "true_filepath")
+				tableShouldHaveColumns(eng.DB, "transfers", "local_path")
+				tableShouldNotHaveColumns(eng.DB, "transfers", "true_filepath")
 			})
 
 			Convey("Then it should have replaced the source & dest file columns", func() {
-				tableShouldHaveColumn(eng.DB, "transfers", "remote_path")
-				tableShouldNotHaveColumn(eng.DB, "transfers", "source_file", "dest_file")
+				tableShouldHaveColumns(eng.DB, "transfers", "remote_path")
+				tableShouldNotHaveColumns(eng.DB, "transfers", "source_file", "dest_file")
 
 				rows, err := eng.DB.Query(`SELECT transfers.remote_path, rules.send
 					FROM transfers INNER JOIN rules ON transfers.rule_id=rules.id`)
@@ -407,8 +439,8 @@ func testVer0_5_0HistoryChangePaths(eng *migration.Engine) {
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have renamed the filename columns", func() {
-				tableShouldHaveColumn(eng.DB, "transfer_history", "local_path", "remote_path")
-				tableShouldNotHaveColumn(eng.DB, "transfers", "source_filename", "dest_filename")
+				tableShouldHaveColumns(eng.DB, "transfer_history", "local_path", "remote_path")
+				tableShouldNotHaveColumns(eng.DB, "transfers", "source_filename", "dest_filename")
 
 				rows, err := eng.DB.Query(`SELECT is_send,local_path,remote_path FROM transfer_history`)
 				So(err, ShouldBeNil)
@@ -439,8 +471,8 @@ func testVer0_5_0HistoryChangePaths(eng *migration.Engine) {
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have reverted the changes", func() {
-					tableShouldNotHaveColumn(eng.DB, "transfer_history", "local_path", "remote_path")
-					tableShouldHaveColumn(eng.DB, "transfer_history", "source_filename", "dest_filename")
+					tableShouldNotHaveColumns(eng.DB, "transfer_history", "local_path", "remote_path")
+					tableShouldHaveColumns(eng.DB, "transfer_history", "source_filename", "dest_filename")
 
 					rows, err := eng.DB.Query(`SELECT source_filename,dest_filename FROM transfer_history`)
 					So(err, ShouldBeNil)
@@ -522,8 +554,8 @@ func testVer0_5_0UserPasswordChange(eng *migration.Engine, dialect string) {
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have changed the password column", func() {
-				tableShouldNotHaveColumn(eng.DB, "users", "password")
-				tableShouldHaveColumn(eng.DB, "users", "password_hash")
+				tableShouldNotHaveColumns(eng.DB, "users", "password")
+				tableShouldHaveColumns(eng.DB, "users", "password_hash")
 
 				row := eng.DB.QueryRow(`SELECT password_hash FROM users`)
 
@@ -538,8 +570,8 @@ func testVer0_5_0UserPasswordChange(eng *migration.Engine, dialect string) {
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have reverted the password changes", func() {
-					tableShouldNotHaveColumn(eng.DB, "users", "password_hash")
-					tableShouldHaveColumn(eng.DB, "users", "password")
+					tableShouldNotHaveColumns(eng.DB, "users", "password_hash")
+					tableShouldHaveColumns(eng.DB, "users", "password")
 
 					row := eng.DB.QueryRow(`SELECT password FROM users`)
 

@@ -49,8 +49,8 @@ func historyInfoString(h *api.OutHistory) string {
 		"    Rule:            " + h.Rule + "\n" +
 		"    Requester:       " + h.Requester + "\n" +
 		"    Requested:       " + h.Requested + "\n" +
-		"    Local filepath:  " + h.LocalPath + "\n" +
-		"    Remote filepath: " + h.RemotePath + "\n" +
+		"    Local filepath:  " + h.LocalFilepath + "\n" +
+		"    Remote filepath: " + h.RemoteFilepath + "\n" +
 		"    File size:       " + size + "\n" +
 		"    Start date:      " + h.Start.Local().Format(time.RFC3339Nano) + "\n" +
 		"    End date:        " + stop + "\n"
@@ -80,23 +80,23 @@ func TestDisplayHistory(t *testing.T) {
 		out = testFile()
 
 		hist := &api.OutHistory{
-			ID:         1,
-			IsServer:   true,
-			IsSend:     false,
-			Rule:       "Rule",
-			Requester:  "Account",
-			Requested:  "Server",
-			Protocol:   testProto1,
-			LocalPath:  "/local/path",
-			RemotePath: "/remote/path",
-			Start:      time.Now(),
-			Stop:       nil,
-			Status:     types.StatusCancelled,
-			Step:       types.StepSetup,
-			Progress:   1,
-			TaskNumber: 2,
-			ErrorMsg:   "error message",
-			ErrorCode:  types.TeUnknown,
+			ID:             1,
+			IsServer:       true,
+			IsSend:         false,
+			Rule:           "Rule",
+			Requester:      "Account",
+			Requested:      "Server",
+			Protocol:       testProto1,
+			LocalFilepath:  "/local/path",
+			RemoteFilepath: "/remote/path",
+			Start:          time.Now(),
+			Stop:           nil,
+			Status:         types.StatusCancelled,
+			Step:           types.StepSetup,
+			Progress:       1,
+			TaskNumber:     2,
+			ErrorMsg:       "error message",
+			ErrorCode:      types.TeUnknown,
 		}
 		Convey("When calling the `displayHistory` function", func() {
 			w := getColorable()
@@ -113,20 +113,20 @@ func TestDisplayHistory(t *testing.T) {
 
 		stopTime := time.Now().Add(time.Hour)
 		hist := api.OutHistory{
-			ID:         1,
-			IsServer:   true,
-			IsSend:     false,
-			Rule:       "rule",
-			Requester:  "source",
-			Requested:  "destination",
-			Protocol:   testProto1,
-			LocalPath:  "/local/path",
-			RemotePath: "/remote/path",
-			Start:      time.Now(),
-			Stop:       &stopTime,
-			Status:     types.StatusPlanned,
-			ErrorCode:  types.TeConnectionReset,
-			ErrorMsg:   "connection reset by peer",
+			ID:             1,
+			IsServer:       true,
+			IsSend:         false,
+			Rule:           "rule",
+			Requester:      "source",
+			Requested:      "destination",
+			Protocol:       testProto1,
+			LocalFilepath:  "/local/path",
+			RemoteFilepath: "/remote/path",
+			Start:          time.Now(),
+			Stop:           &stopTime,
+			Status:         types.StatusPlanned,
+			ErrorCode:      types.TeConnectionReset,
+			ErrorMsg:       "connection reset by peer",
 		}
 		Convey("When calling the `displayHistory` function", func() {
 			w := getColorable()

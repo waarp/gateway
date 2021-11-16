@@ -19,11 +19,11 @@ Consulter un transfert
    :resjson string rule: L'identifiant de la règle de transfert
    :resjson string requester: Le nom du compte ayant demandé le transfert
    :resjson string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
-   :resjson string trueFilepath: Le chemin local complet du fichier (OBSOLÈTE: remplacé par 'localPath')
-   :resjson string sourcePath: Le fichier source du transfer (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
-   :resjson string destPath: Le fichier destination du transfer (OBSOLÈTE: remplacé par 'localPath' & 'remotePath')
-   :resjson string localPath: Le chemin du fichier sur le disque local
-   :resjson string remotePath: Le chemin du fichier sur le partenaire distant
+   :resjson string trueFilepath: Le chemin local complet du fichier (OBSOLÈTE: remplacé par 'localFilepath')
+   :resjson string sourcePath: Le fichier source du transfer (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
+   :resjson string destPath: Le fichier destination du transfer (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
+   :resjson string localFilepath: Le chemin du fichier sur le disque local
+   :resjson string remoteFilepath: Le chemin du fichier sur le partenaire distant
    :resjson number filesize: La taille du fichier (-1 si inconnue)
    :resjson date start: La date de début du transfert
    :resjson string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED*, *INTERRUPTED* ou *ERROR*)
@@ -57,8 +57,8 @@ Consulter un transfert
            "rule": "règle_1",
            "requester": "toto",
            "requested": "waarp_sftp",
-           "localPath": "/chemin/local/fichier1",
-           "remotePath": "/chemin/distant/fichier1",
+           "localFilepath": "/chemin/local/fichier1",
+           "remoteFilepath": "/chemin/distant/fichier1",
            "start": "2019-01-01T02:00:00+02:00",
            "status": "RUNNING",
            "step": "DATA",

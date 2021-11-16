@@ -9,9 +9,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
-type ver0_5_0LocalAgentChangePaths struct{}
+type ver0_5_0LocalAgentDenormalizePaths struct{}
 
-func (ver0_5_0LocalAgentChangePaths) Up(db migration.Actions) (err error) {
+func (ver0_5_0LocalAgentDenormalizePaths) Up(db migration.Actions) (err error) {
 	if runtime.GOOS != windowsRuntime {
 		return nil // nothing to do
 	}
@@ -46,7 +46,7 @@ func (ver0_5_0LocalAgentChangePaths) Up(db migration.Actions) (err error) {
 	return nil
 }
 
-func (ver0_5_0LocalAgentChangePaths) Down(db migration.Actions) (err error) {
+func (ver0_5_0LocalAgentDenormalizePaths) Down(db migration.Actions) (err error) {
 	if runtime.GOOS != windowsRuntime {
 		return nil // nothing to do
 	}
@@ -109,9 +109,53 @@ func (ver0_5_0LocalAgentChangePaths) Down(db migration.Actions) (err error) {
 	return nil
 }
 
-type ver0_5_0LocalAgentDisallowReservedNames struct{}
+type ver0_5_0LocalAgentsPathsRename struct{}
 
-func (ver0_5_0LocalAgentDisallowReservedNames) Up(db migration.Actions) error {
+//nolint:dupl // cannot factorize the Up and Down functions
+func (ver0_5_0LocalAgentsPathsRename) Up(db migration.Actions) error {
+	if err := db.RenameColumn("local_agents", "root", "root_dir"); err != nil {
+		return fmt.Errorf("failed to rename the local agent 'root' column: %w", err)
+	}
+
+	if err := db.RenameColumn("local_agents", "in_dir", "receive_dir"); err != nil {
+		return fmt.Errorf("failed to rename the local agent 'in_dir' column: %w", err)
+	}
+
+	if err := db.RenameColumn("local_agents", "out_dir", "send_dir"); err != nil {
+		return fmt.Errorf("failed to rename the local agent 'out_dir' column: %w", err)
+	}
+
+	if err := db.RenameColumn("local_agents", "work_dir", "tmp_receive_dir"); err != nil {
+		return fmt.Errorf("failed to rename the local agent 'work_dir' column: %w", err)
+	}
+
+	return nil
+}
+
+//nolint:dupl // cannot factorize the Up and Down functions
+func (ver0_5_0LocalAgentsPathsRename) Down(db migration.Actions) error {
+	if err := db.RenameColumn("local_agents", "root_dir", "root"); err != nil {
+		return fmt.Errorf("failed to restore the local agent 'root' column: %w", err)
+	}
+
+	if err := db.RenameColumn("local_agents", "receive_dir", "in_dir"); err != nil {
+		return fmt.Errorf("failed to restore the local agent 'in_dir' column: %w", err)
+	}
+
+	if err := db.RenameColumn("local_agents", "send_dir", "out_dir"); err != nil {
+		return fmt.Errorf("failed to restore the local agent 'out_dir' column: %w", err)
+	}
+
+	if err := db.RenameColumn("local_agents", "tmp_receive_dir", "work_dir"); err != nil {
+		return fmt.Errorf("failed to restore the local agent 'work_dir' column: %w", err)
+	}
+
+	return nil
+}
+
+type ver0_5_0LocalAgentsDisallowReservedNames struct{}
+
+func (ver0_5_0LocalAgentsDisallowReservedNames) Up(db migration.Actions) error {
 	rows, err := db.Query(`SELECT name FROM local_agents`)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve local servers list: %w", err)
@@ -139,13 +183,13 @@ func (ver0_5_0LocalAgentDisallowReservedNames) Up(db migration.Actions) error {
 	return nil
 }
 
-func (ver0_5_0LocalAgentDisallowReservedNames) Down(migration.Actions) error {
+func (ver0_5_0LocalAgentsDisallowReservedNames) Down(migration.Actions) error {
 	return nil // nothing to do
 }
 
-type ver0_5_0RuleNewPathCols struct{}
+type ver0_5_0RulesPathsRename struct{}
 
-func (ver0_5_0RuleNewPathCols) Up(db migration.Actions) error {
+func (ver0_5_0RulesPathsRename) Up(db migration.Actions) error {
 	if err := db.RenameColumn("rules", "in_path", "local_dir"); err != nil {
 		return fmt.Errorf("failed to rename the rule 'in_path' column: %w", err)
 	}
@@ -154,7 +198,7 @@ func (ver0_5_0RuleNewPathCols) Up(db migration.Actions) error {
 		return fmt.Errorf("failed to rename the rule 'out_path' column: %w", err)
 	}
 
-	if err := db.RenameColumn("rules", "work_path", "local_tmp_dir"); err != nil {
+	if err := db.RenameColumn("rules", "work_path", "tmp_local_receive_dir"); err != nil {
 		return fmt.Errorf("failed to rename the rule 'work_dir' column: %w", err)
 	}
 
@@ -165,7 +209,7 @@ func (ver0_5_0RuleNewPathCols) Up(db migration.Actions) error {
 	return nil
 }
 
-func (ver0_5_0RuleNewPathCols) Down(db migration.Actions) error {
+func (ver0_5_0RulesPathsRename) Down(db migration.Actions) error {
 	if err := db.SwapColumns("rules", "local_dir", "remote_dir", "send=true"); err != nil {
 		return fmt.Errorf("failed to re-swap the rule path columns values: %w", err)
 	}
@@ -178,7 +222,7 @@ func (ver0_5_0RuleNewPathCols) Down(db migration.Actions) error {
 		return fmt.Errorf("failed to revert renaming the rule 'out_path' column: %w", err)
 	}
 
-	if err := db.RenameColumn("rules", "local_tmp_dir", "work_path"); err != nil {
+	if err := db.RenameColumn("rules", "tmp_local_receive_dir", "work_path"); err != nil {
 		return fmt.Errorf("failed to revert renaming the rule 'work_dir' column: %w", err)
 	}
 
@@ -196,15 +240,15 @@ func (ver0_5_0RulePathChanges) Up(db migration.Actions) (err error) {
 	case migration.SQLite:
 		err = db.Exec(`UPDATE rules SET 
 			local_dir = REPLACE(LTRIM(local_dir, '/'), '/', '\'),
-			local_tmp_dir = REPLACE(LTRIM(local_tmp_dir, '/'), '/', '\')`)
+			tmp_local_receive_dir = REPLACE(LTRIM(tmp_local_receive_dir, '/'), '/', '\')`)
 	case migration.PostgreSQL:
 		err = db.Exec(`UPDATE rules SET
 			local_dir = replace(trim(leading '/' from local_dir), '/', '\'),
-			local_tmp_dir = replace(trim(leading '/' from local_tmp_dir), '/', '\')`)
+			tmp_local_receive_dir = replace(trim(leading '/' from tmp_local_receive_dir), '/', '\')`)
 	case migration.MySQL:
 		err = db.Exec(`UPDATE rules SET
 			local_dir = REPLACE(TRIM(LEADING '/' FROM local_dir), '/', '\\'),
-			local_tmp_dir = REPLACE(TRIM(LEADING '/' FROM local_tmp_dir), '/', '\\')`)
+			tmp_local_receive_dir = REPLACE(TRIM(LEADING '/' FROM tmp_local_receive_dir), '/', '\\')`)
 	default:
 		return fmt.Errorf("unknown dialect engine %T: %w", db, errUnsuportedDB)
 	}
@@ -228,8 +272,8 @@ func (ver0_5_0RulePathChanges) Down(db migration.Actions) (err error) {
 			return fmt.Errorf("failed to restore rule local directory: %w", err)
 		}
 
-		if err = db.Exec(`UPDATE rules SET local_tmp_dir = CONCAT('/', local_tmp_dir) 
-			WHERE local_tmp_dir LIKE '_:%%'`); err != nil {
+		if err = db.Exec(`UPDATE rules SET tmp_local_receive_dir = CONCAT('/', tmp_local_receive_dir) 
+			WHERE tmp_local_receive_dir LIKE '_:%%'`); err != nil {
 			return fmt.Errorf("failed to restore rule tmp directory: %w", err)
 		}
 	case migration.SQLite, migration.PostgreSQL:
@@ -238,8 +282,8 @@ func (ver0_5_0RulePathChanges) Down(db migration.Actions) (err error) {
 			return fmt.Errorf("failed to restore rule local directory: %w", err)
 		}
 
-		if err = db.Exec(`UPDATE rules SET local_tmp_dir = ('/' || local_tmp_dir) 
-			WHERE local_tmp_dir LIKE '_:%%'`); err != nil {
+		if err = db.Exec(`UPDATE rules SET tmp_local_receive_dir = ('/' || tmp_local_receive_dir) 
+			WHERE tmp_local_receive_dir LIKE '_:%%'`); err != nil {
 			return fmt.Errorf("failed to restore rule tmp directory: %w", err)
 		}
 	default:
@@ -250,15 +294,15 @@ func (ver0_5_0RulePathChanges) Down(db migration.Actions) (err error) {
 	case migration.SQLite:
 		err = db.Exec(`UPDATE rules SET 
 			local_dir = REPLACE(local_dir, '\', '/'),
-			local_tmp_dir = REPLACE(local_tmp_dir, '\', '/')`)
+			tmp_local_receive_dir = REPLACE(tmp_local_receive_dir, '\', '/')`)
 	case migration.PostgreSQL:
 		err = db.Exec(`UPDATE rules SET
 			local_dir = replace(local_dir, '\', '/'),
-			local_tmp_dir = replace(local_tmp_dir, '\', '/')`)
+			tmp_local_receive_dir = replace(tmp_local_receive_dir, '\', '/')`)
 	case migration.MySQL:
 		err = db.Exec(`UPDATE rules SET
 			local_dir = REPLACE(local_dir, '\\', '/'),
-			local_tmp_dir = REPLACE(local_tmp_dir, '\\', '/')`)
+			tmp_local_receive_dir = REPLACE(tmp_local_receive_dir, '\\', '/')`)
 	default:
 		return fmt.Errorf("unknown dialect engine %T: %w", db, errUnsuportedDB)
 	}

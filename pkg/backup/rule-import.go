@@ -32,7 +32,7 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule) datab
 		rule.Path = src.Path
 		rule.LocalDir = src.LocalDir
 		rule.RemoteDir = src.RemoteDir
-		rule.LocalTmpDir = src.LocalTmpDir
+		rule.TmpLocalRcvDir = src.TmpLocalRcvDir
 
 		importRuleCheckDeprecated(logger, src, &rule)
 
@@ -93,9 +93,9 @@ func importRuleCheckDeprecated(logger *log.Logger, src *file.Rule, rule *model.R
 	}
 
 	if src.WorkPath != "" {
-		logger.Warning("JSON field 'rule.workPath' is deprecated, use 'localTmpDir' instead")
+		logger.Warning("JSON field 'rule.workPath' is deprecated, use 'tmpReceiveDir' instead")
 
-		rule.LocalTmpDir = src.WorkPath
+		rule.TmpLocalRcvDir = src.WorkPath
 	}
 }
 

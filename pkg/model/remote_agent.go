@@ -84,7 +84,7 @@ func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) database.Error {
 	}
 
 	if r.ProtoConfig == nil {
-		return database.NewValidationError("the agent's configuration cannot be empty")
+		r.ProtoConfig = json.RawMessage(`{}`)
 	}
 
 	if err := r.validateProtoConfig(); err != nil {

@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"testing"
@@ -45,14 +44,13 @@ func TestPathBuilder(t *testing.T) {
 		db.Conf.Paths.DefaultTmpDir = "gwTmp"
 
 		server := &model.LocalAgent{
-			Name:        "server",
-			Protocol:    testProtocol,
-			Root:        "serRoot",
-			InDir:       "serIn",
-			OutDir:      "serOut",
-			TmpDir:      "serTmp",
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:0",
+			Name:          "server",
+			Protocol:      testProtocol,
+			RootDir:       "serRoot",
+			ReceiveDir:    "serIn",
+			SendDir:       "serOut",
+			TmpReceiveDir: "serTmp",
+			Address:       "localhost:0",
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -64,22 +62,22 @@ func TestPathBuilder(t *testing.T) {
 		So(db.Insert(acc).Run(), ShouldBeNil)
 
 		send := &model.Rule{
-			Name:        "SEND",
-			IsSend:      true,
-			Path:        "/path",
-			LocalDir:    "sendLoc",
-			RemoteDir:   "sendRem",
-			LocalTmpDir: "sendTmp",
+			Name:           "SEND",
+			IsSend:         true,
+			Path:           "/path",
+			LocalDir:       "sendLoc",
+			RemoteDir:      "sendRem",
+			TmpLocalRcvDir: "sendTmp",
 		}
 		So(db.Insert(send).Run(), ShouldBeNil)
 
 		recv := &model.Rule{
-			Name:        "RECEIVE",
-			IsSend:      false,
-			Path:        "/path",
-			LocalDir:    "recvLoc",
-			RemoteDir:   "recvRem",
-			LocalTmpDir: "recvTmp",
+			Name:           "RECEIVE",
+			IsSend:         false,
+			Path:           "/path",
+			LocalDir:       "recvLoc",
+			RemoteDir:      "recvRem",
+			TmpLocalRcvDir: "recvTmp",
 		}
 		So(db.Insert(recv).Run(), ShouldBeNil)
 
@@ -119,19 +117,19 @@ func TestPathBuilder(t *testing.T) {
 					tc.serRoot, tc.ruleLoc, tc.ruleTmp,
 				)
 				Convey(testCaseName, func() {
-					transCtx.LocalAgent.Root = tc.serRoot
+					transCtx.LocalAgent.RootDir = tc.serRoot
 					if tc.serRoot != "" {
-						transCtx.LocalAgent.InDir = "serIn"
-						transCtx.LocalAgent.OutDir = "serOut"
-						transCtx.LocalAgent.TmpDir = "serTmp"
+						transCtx.LocalAgent.ReceiveDir = "serIn"
+						transCtx.LocalAgent.SendDir = "serOut"
+						transCtx.LocalAgent.TmpReceiveDir = "serTmp"
 					} else {
-						transCtx.LocalAgent.InDir = ""
-						transCtx.LocalAgent.OutDir = ""
-						transCtx.LocalAgent.TmpDir = ""
+						transCtx.LocalAgent.ReceiveDir = ""
+						transCtx.LocalAgent.SendDir = ""
+						transCtx.LocalAgent.TmpReceiveDir = ""
 					}
 
 					transCtx.Rule.LocalDir = tc.ruleLoc
-					transCtx.Rule.LocalTmpDir = tc.ruleTmp
+					transCtx.Rule.TmpLocalRcvDir = tc.ruleTmp
 
 					Convey("When building the filepath", func() {
 						MakeFilepaths(transCtx)
@@ -177,15 +175,15 @@ func TestPathBuilder(t *testing.T) {
 					tc.serRoot, tc.ruleLoc,
 				)
 				Convey(testCaseName, func() {
-					transCtx.LocalAgent.Root = tc.serRoot
+					transCtx.LocalAgent.RootDir = tc.serRoot
 					if tc.serRoot != "" {
-						transCtx.LocalAgent.InDir = "serIn"
-						transCtx.LocalAgent.OutDir = "serOut"
-						transCtx.LocalAgent.TmpDir = "serTmp"
+						transCtx.LocalAgent.ReceiveDir = "serIn"
+						transCtx.LocalAgent.SendDir = "serOut"
+						transCtx.LocalAgent.TmpReceiveDir = "serTmp"
 					} else {
-						transCtx.LocalAgent.InDir = ""
-						transCtx.LocalAgent.OutDir = ""
-						transCtx.LocalAgent.TmpDir = ""
+						transCtx.LocalAgent.ReceiveDir = ""
+						transCtx.LocalAgent.SendDir = ""
+						transCtx.LocalAgent.TmpReceiveDir = ""
 					}
 
 					transCtx.Rule.LocalDir = tc.ruleLoc

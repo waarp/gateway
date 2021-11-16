@@ -14,52 +14,67 @@ import (
 
 func newInServer(old *model.LocalAgent) *api.InServer {
 	return &api.InServer{
-		Name:        &old.Name,
-		Protocol:    &old.Protocol,
-		Address:     &old.Address,
-		Root:        &old.Root,
-		LocalInDir:  &old.InDir,
-		LocalOutDir: &old.OutDir,
-		LocalTmpDir: &old.TmpDir,
-		ProtoConfig: old.ProtoConfig,
+		Name:          &old.Name,
+		Protocol:      &old.Protocol,
+		Address:       &old.Address,
+		RootDir:       &old.RootDir,
+		ReceiveDir:    &old.ReceiveDir,
+		SendDir:       &old.SendDir,
+		TmpReceiveDir: &old.TmpReceiveDir,
+		ProtoConfig:   old.ProtoConfig,
 	}
 }
 
 // servToDB transforms the JSON local agent into its database equivalent.
-func servToDB(serv *api.InServer, id uint64, logger *log.Logger) *model.LocalAgent {
-	inDir := str(serv.LocalInDir)
-	outDir := str(serv.LocalOutDir)
-	tmpDir := str(serv.LocalTmpDir)
+func servToDB(serv *api.InServer, serverID uint64, logger *log.Logger) *model.LocalAgent {
+	root := str(serv.RootDir)
+	sndDir := str(serv.SendDir)
+	rcvDir := str(serv.ReceiveDir)
+	tmpDir := str(serv.TmpReceiveDir)
+
+	if serv.Root != nil {
+		logger.Warning("JSON field 'root' is deprecated, use 'rootDir' instead")
+
+		if root == "" {
+			root = utils.DenormalizePath(str(serv.Root))
+		}
+	}
 
 	if serv.InDir != nil {
-		logger.Warning("JSON field 'inDir' is deprecated, use 'serverLocalInDir' instead")
+		logger.Warning("JSON field 'inDir' is deprecated, use 'receiveDir' instead")
 
-		inDir = str(serv.InDir)
+		if rcvDir == "" {
+			rcvDir = utils.DenormalizePath(str(serv.InDir))
+		}
 	}
 
 	if serv.OutDir != nil {
-		logger.Warning("JSON field 'outDir' is deprecated, use 'serverLocalOutDir' instead")
+		logger.Warning("JSON field 'outDir' is deprecated, use 'sendDir' instead")
 
-		outDir = str(serv.OutDir)
+		if sndDir == "" {
+			sndDir = utils.DenormalizePath(str(serv.OutDir))
+		}
 	}
 
 	if serv.WorkDir != nil {
-		logger.Warning("JSON field 'workDir' is deprecated, use 'serverLocalTmpDir' instead")
+		logger.Warning("JSON field 'workDir' is deprecated, use 'tmpLocalRcvDir' instead")
 
-		tmpDir = str(serv.WorkDir)
+		if tmpDir == "" {
+			tmpDir = utils.DenormalizePath(str(serv.WorkDir))
+		}
 	}
 
 	return &model.LocalAgent{
-		ID:          id,
-		Owner:       database.Owner,
-		Name:        str(serv.Name),
-		Address:     str(serv.Address),
-		Root:        str(serv.Root),
-		InDir:       inDir,
-		OutDir:      outDir,
-		TmpDir:      tmpDir,
-		Protocol:    str(serv.Protocol),
-		ProtoConfig: serv.ProtoConfig,
+		ID:            serverID,
+		Owner:         database.Owner,
+		Name:          str(serv.Name),
+		Address:       str(serv.Address),
+		RootDir:       root,
+		ReceiveDir:    rcvDir,
+		SendDir:       sndDir,
+		TmpReceiveDir: tmpDir,
+		Protocol:      str(serv.Protocol),
+		ProtoConfig:   serv.ProtoConfig,
 	}
 }
 
@@ -90,13 +105,14 @@ func FromLocalAgent(ag *model.LocalAgent, rules *api.AuthorizedRules) *api.OutSe
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
 		Address:         ag.Address,
-		Root:            ag.Root,
-		InDir:           utils.NormalizePath(ag.InDir),
-		OutDir:          utils.NormalizePath(ag.OutDir),
-		WorkDir:         utils.NormalizePath(ag.TmpDir),
-		LocalInDir:      ag.InDir,
-		LocalOutDir:     ag.InDir,
-		LocalTmpDir:     ag.TmpDir,
+		Root:            utils.NormalizePath(ag.RootDir),
+		RootDir:         ag.RootDir,
+		InDir:           utils.NormalizePath(ag.ReceiveDir),
+		OutDir:          utils.NormalizePath(ag.SendDir),
+		WorkDir:         utils.NormalizePath(ag.TmpReceiveDir),
+		SendDir:         ag.SendDir,
+		ReceiveDir:      ag.ReceiveDir,
+		TmpReceiveDir:   ag.TmpReceiveDir,
 		ProtoConfig:     ag.ProtoConfig,
 		AuthorizedRules: *rules,
 	}

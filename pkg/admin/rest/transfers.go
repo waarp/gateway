@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -15,13 +17,37 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 // transToDB transforms the JSON transfer into its database equivalent.
-func transToDB(trans *api.InTransfer, db *database.DB) (*model.Transfer, error) {
+func transToDB(trans *api.InTransfer, db *database.DB, logger *log.Logger) (*model.Transfer, error) {
 	ruleID, accountID, agentID, err := getTransIDs(db, trans)
 	if err != nil {
 		return nil, err
+	}
+
+	file := trans.File
+	if file == "" {
+		if trans.SourcePath != "" {
+			logger.Warning("JSON field 'sourcePath' is deprecated, use 'file' instead")
+
+			file = utils.DenormalizePath(trans.SourcePath)
+		} else if trans.DestPath != "" {
+			logger.Warning("JSON field 'destPath' is deprecated, use 'file' instead")
+
+			file = utils.DenormalizePath(trans.DestPath)
+		}
+	}
+
+	start := trans.Start
+
+	if !trans.StartDate.IsZero() {
+		logger.Warning("JSON field 'startDate' is deprecated, use 'start' instead")
+
+		if start.IsZero() {
+			start = trans.StartDate
+		}
 	}
 
 	return &model.Transfer{
@@ -29,10 +55,10 @@ func transToDB(trans *api.InTransfer, db *database.DB) (*model.Transfer, error) 
 		IsServer:   false,
 		AgentID:    agentID,
 		AccountID:  accountID,
-		LocalPath:  trans.File,
-		RemotePath: trans.File,
+		LocalPath:  file,
+		RemotePath: file,
 		Filesize:   model.UnknownSize,
-		Start:      trans.Start,
+		Start:      start,
 	}, nil
 }
 
@@ -43,23 +69,34 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 		return nil, err
 	}
 
+	src := path.Base(trans.RemotePath)
+	dst := filepath.Base(trans.LocalPath)
+
+	if rule.IsSend {
+		dst = path.Base(trans.RemotePath)
+		src = filepath.Base(trans.LocalPath)
+	}
+
 	return &api.OutTransfer{
-		ID:         trans.ID,
-		RemoteID:   trans.RemoteTransferID,
-		Rule:       rule.Name,
-		IsServer:   trans.IsServer,
-		Requested:  requested,
-		Requester:  requester,
-		LocalPath:  trans.LocalPath,
-		RemotePath: trans.RemotePath,
-		Filesize:   trans.Filesize,
-		Start:      trans.Start.Local(),
-		Status:     trans.Status,
-		Step:       trans.Step.String(),
-		Progress:   trans.Progress,
-		TaskNumber: trans.TaskNumber,
-		ErrorCode:  trans.Error.Code.String(),
-		ErrorMsg:   trans.Error.Details,
+		ID:             trans.ID,
+		RemoteID:       trans.RemoteTransferID,
+		Rule:           rule.Name,
+		IsServer:       trans.IsServer,
+		Requested:      requested,
+		Requester:      requester,
+		TrueFilepath:   trans.LocalPath,
+		SourcePath:     src,
+		DestPath:       dst,
+		LocalFilepath:  trans.LocalPath,
+		RemoteFilepath: trans.RemotePath,
+		Filesize:       trans.Filesize,
+		Start:          trans.Start.Local(),
+		Status:         trans.Status,
+		Step:           trans.Step.String(),
+		Progress:       trans.Progress,
+		TaskNumber:     trans.TaskNumber,
+		ErrorCode:      trans.Error.Code.String(),
+		ErrorMsg:       trans.Error.Details,
 	}, nil
 }
 
@@ -110,7 +147,7 @@ func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		trans, err := transToDB(&jsonTrans, db)
+		trans, err := transToDB(&jsonTrans, db, logger)
 		if handleError(w, logger, err) {
 			return
 		}

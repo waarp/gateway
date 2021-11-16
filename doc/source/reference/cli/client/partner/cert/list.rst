@@ -4,7 +4,7 @@ Lister les certificats d'un partenaire
 
 .. program:: waarp-gateway partner cert list
 
-.. describe:: waarp-gateway <ADDR> partner cert <PARTNER> list
+.. describe:: waarp-gateway partner cert <PARTNER> list
 
 Affiche les informations des certificats du partenaire suivant les critères donnés.
 

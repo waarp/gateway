@@ -23,14 +23,14 @@ Ajouter une règle
       remplacé par 'localDir' & 'remoteDir')
    :reqjson string workPath: Le dossier temporaire de la règle. Tous les fichiers
       entrants transférés avec cette règle sont déposés dans ce dossier le temps
-      du transfert. (OBSOLÈTE: remplacé par 'localTmpDir')
+      du transfert. (OBSOLÈTE: remplacé par 'tmpReceiveDir')
    :reqjson string localDir: Le dossier de la règle sur le disque local de la
       Gateway. Si la règle est une règle d'envoi, ce dossier sert de source au
       fichier; dans le cas contraire, il sert de destination.
    :reqjson string remoteDir: Le chemin de la règle sur l'hôte distant. Si la
       règle est une règle d'envoi, ce dossier sert de destination au fichier;
       dans le cas contraire, il sert de source.
-   :reqjson string localTmpDir: Le dossier temporaire local de la règle. Tous
+   :reqjson string tmpReceiveDir: Le dossier temporaire local de la règle. Tous
       les fichiers reçu avec cette règle sont déposés dans ce dossier le temps
       du transfert, puis déplacé dans le 'localDir' une fois terminé.
    :reqjson array preTasks: La liste des pré-traitements de la règle.
@@ -83,7 +83,7 @@ Ajouter une règle
            "path": "/chemin/identificateur/de/la/règle",
            "localDir": "/dossier/local",
            "remoteDir": "/dossier/distant",
-           "localTmpDir": "/dossier/temporaire",
+           "tmpReceiveDir": "/dossier/temporaire",
            "preTasks": [{
              "type": "COPY",
              "args": {"path":"/chemin/de/copie"}

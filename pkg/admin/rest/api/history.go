@@ -16,18 +16,20 @@ type OutHistory struct {
 	Requester      string                  `json:"requester"`
 	Requested      string                  `json:"requested"`
 	Protocol       string                  `json:"protocol"`
-	SourceFilename string                  `json:"sourceFilename"` // DEPRECATED
-	DestFilename   string                  `json:"destFilename"`   // DEPRECATED
-	LocalPath      string                  `json:"localPath"`
-	RemotePath     string                  `json:"remotePath"`
+	LocalFilepath  string                  `json:"localFilepath"`
+	RemoteFilepath string                  `json:"remoteFilepath"`
 	Filesize       int64                   `json:"filesize"`
 	Rule           string                  `json:"rule"`
 	Start          time.Time               `json:"start"`
-	Stop           *time.Time              `json:"stop"`
+	Stop           *time.Time              `json:"stop,omitempty"`
 	Status         types.TransferStatus    `json:"status"`
 	ErrorCode      types.TransferErrorCode `json:"errorCode,omitempty"`
 	ErrorMsg       string                  `json:"errorMsg,omitempty"`
 	Step           types.TransferStep      `json:"step,omitempty"`
 	Progress       uint64                  `json:"progress,omitempty"`
 	TaskNumber     uint64                  `json:"taskNumber,omitempty"`
+
+	// Deprecated fields
+	SourceFilename string `json:"sourceFilename"` // Deprecated: replaced by LocalFilepath & RemoteFilepath
+	DestFilename   string `json:"destFilename"`   // Deprecated: replaced by LocalFilepath & RemoteFilepath
 }

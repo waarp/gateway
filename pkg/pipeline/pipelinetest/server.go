@@ -116,15 +116,15 @@ func makeServerConf(c convey.C, db *database.DB, port uint16, home, proto string
 	server := &model.LocalAgent{
 		Name:        "server",
 		Protocol:    proto,
-		Root:        utils.ToOSPath(root),
+		RootDir:     utils.ToOSPath(root),
 		ProtoConfig: jsonServConf,
 		Address:     fmt.Sprintf("localhost:%d", port),
 	}
 
 	c.So(db.Insert(server).Run(), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(root, server.InDir), 0o700), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(root, server.OutDir), 0o700), convey.ShouldBeNil)
-	c.So(os.MkdirAll(filepath.Join(root, server.TmpDir), 0o700), convey.ShouldBeNil)
+	c.So(os.MkdirAll(filepath.Join(root, server.ReceiveDir), 0o700), convey.ShouldBeNil)
+	c.So(os.MkdirAll(filepath.Join(root, server.SendDir), 0o700), convey.ShouldBeNil)
+	c.So(os.MkdirAll(filepath.Join(root, server.TmpReceiveDir), 0o700), convey.ShouldBeNil)
 
 	pswd := TestPassword
 	if proto == "r66" {

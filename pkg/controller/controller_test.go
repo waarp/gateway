@@ -25,10 +25,9 @@ func TestControllerListen(t *testing.T) {
 		db := database.TestDatabase(c, "ERROR")
 
 		remote := &model.RemoteAgent{
-			Name:        "test remote",
-			Protocol:    testProtocol,
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:1111",
+			Name:     "test remote",
+			Protocol: testProtocol,
+			Address:  "localhost:1111",
 		}
 		So(db.Insert(remote).Run(), ShouldBeNil)
 

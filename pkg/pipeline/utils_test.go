@@ -152,10 +152,10 @@ func initTestDB(c C) *testContext {
 
 func mkRecvTransfer(ctx *testContext, filename string) *model.TransferContext {
 	ctx.recv.LocalDir = "local"
-	ctx.recv.LocalTmpDir = "tmp"
+	ctx.recv.TmpLocalRcvDir = "tmp"
 	ctx.recv.RemoteDir = "remote"
 	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalDir), 0o700), ShouldBeNil)
-	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalTmpDir), 0o700), ShouldBeNil)
+	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.TmpLocalRcvDir), 0o700), ShouldBeNil)
 
 	trans := &model.Transfer{
 		IsServer:   false,
@@ -178,10 +178,10 @@ func mkRecvTransfer(ctx *testContext, filename string) *model.TransferContext {
 
 func mkSendTransfer(ctx *testContext, filename string) *model.TransferContext {
 	ctx.send.LocalDir = "local"
-	ctx.send.LocalTmpDir = "tmp"
+	ctx.send.TmpLocalRcvDir = "tmp"
 	ctx.send.RemoteDir = "remote"
 	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalDir), 0o700), ShouldBeNil)
-	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.LocalTmpDir), 0o700), ShouldBeNil)
+	So(os.MkdirAll(filepath.Join(ctx.root, ctx.send.TmpLocalRcvDir), 0o700), ShouldBeNil)
 
 	trans := &model.Transfer{
 		IsServer:   false,

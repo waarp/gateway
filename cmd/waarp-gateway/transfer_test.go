@@ -39,16 +39,16 @@ func transferInfoString(t *api.OutTransfer) string {
 		string(t.Status) + "]\n"
 
 	if t.RemoteID != "" {
-		rv += "    Remote ID:        " + t.RemoteID + "\n"
+		rv += "    Remote ID:       " + t.RemoteID + "\n"
 	}
 
 	rv += "    Rule:            " + t.Rule + "\n" +
 		"    Requester:       " + t.Requester + "\n" +
 		"    Requested:       " + t.Requested + "\n" +
-		"    Local filepath:  " + t.LocalPath + "\n" +
-		"    Remote filepath: " + t.RemotePath + "\n" +
+		"    Local filepath:  " + t.LocalFilepath + "\n" +
+		"    Remote filepath: " + t.RemoteFilepath + "\n" +
 		"    File size:       " + size + "\n" +
-		"    Start time:      " + t.Start.Local().Format(time.RFC3339Nano) + "\n" +
+		"    Start date:      " + t.Start.Local().Format(time.RFC3339Nano) + "\n" +
 		"    Step:            " + t.Step + "\n" +
 		"    Progress:        " + fmt.Sprint(t.Progress) + "\n" +
 		"    Task number:     " + fmt.Sprint(t.TaskNumber) + "\n"
@@ -69,20 +69,21 @@ func TestDisplayTransfer(t *testing.T) {
 		out = testFile()
 
 		trans := &api.OutTransfer{
-			ID:         1,
-			RemoteID:   "1234",
-			Rule:       "rule",
-			Requester:  "requester",
-			Requested:  "requested",
-			LocalPath:  "/local/path",
-			RemotePath: "/remote/path",
-			Start:      time.Now(),
-			Status:     types.StatusPlanned,
-			Step:       types.StepData.String(),
-			Progress:   1,
-			TaskNumber: 2,
-			ErrorCode:  types.TeForbidden.String(),
-			ErrorMsg:   "custom error message",
+			ID:             1,
+			RemoteID:       "1234",
+			Rule:           "rule",
+			Requester:      "requester",
+			Requested:      "requested",
+			LocalFilepath:  "/local/path",
+			RemoteFilepath: "/remote/path",
+			Start:          time.Now(),
+			Status:         types.StatusPlanned,
+			Step:           types.StepData.String(),
+			Filesize:       98765,
+			Progress:       1,
+			TaskNumber:     2,
+			ErrorCode:      types.TeForbidden.String(),
+			ErrorMsg:       "custom error message",
 		}
 		Convey("When calling the `displayTransfer` function", func() {
 			w := getColorable()
@@ -115,10 +116,9 @@ func TestAddTransfer(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -131,9 +131,9 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given all valid flags", func() {
 				args := []string{
-					"-p", partner.Name, "-l", account.Login, "-w",
-					"send", "-r", rule.Name, "-f", "test_file",
-					"-d", "2020-01-01T01:00:00+01:00",
+					"--partner", partner.Name, "--login", account.Login,
+					"--way", "send", "--rule", rule.Name, "--file", "test_file",
+					"--date", "2020-01-01T01:00:00+01:00",
 				}
 
 				Convey("When executing the command", func() {
@@ -176,9 +176,9 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid rule name", func() {
 				args := []string{
-					"-p", partner.Name, "-l", account.Login, "-w",
-					"send", "-r", "toto", "-f", "file",
-					"-d", "2020-01-01T01:00:00+01:00",
+					"--partner", partner.Name, "--login", account.Login,
+					"--way", "send", "--rule", "toto", "--file", "file",
+					"--date", "2020-01-01T01:00:00+01:00",
 				}
 
 				Convey("When executing the command", func() {
@@ -194,9 +194,9 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid account name", func() {
 				args := []string{
-					"-p", partner.Name, "-l", "tata", "-w",
-					"send", "-r", rule.Name, "-f", "file",
-					"-d", "2020-01-01T01:00:00+01:00",
+					"--partner", partner.Name, "--login", "tata",
+					"--way", "send", "--rule", rule.Name, "--file", "file",
+					"--date", "2020-01-01T01:00:00+01:00",
 				}
 
 				Convey("When executing the command", func() {
@@ -213,9 +213,9 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid partner name", func() {
 				args := []string{
-					"-p", "tata", "-l", account.Login, "-w",
-					"send", "-r", rule.Name, "-f", "file",
-					"-d", "2020-01-01T01:00:00+01:00",
+					"--partner", "tata", "--login", account.Login,
+					"--way", "send", "--rule", rule.Name, "--file", "file",
+					"--date", "2020-01-01T01:00:00+01:00",
 				}
 
 				Convey("When executing the command", func() {
@@ -231,9 +231,9 @@ func TestAddTransfer(t *testing.T) {
 
 			Convey("Given an invalid start date", func() {
 				args := []string{
-					"-p", partner.Name, "-l", account.Login, "-w",
-					"send", "-r", rule.Name, "-f", "file",
-					"-d", "toto",
+					"--partner", partner.Name, "--login", account.Login,
+					"--way", "send", "--rule", rule.Name, "--file", "file",
+					"--date", "toto",
 				}
 
 				Convey("When executing the command", func() {
@@ -345,28 +345,24 @@ func TestListTransfer(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			p1 := &model.RemoteAgent{
-				Name:        "remote1",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "remote1",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			p2 := &model.RemoteAgent{
-				Name:        "remote2",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2",
+				Name:     "remote2",
+				Protocol: testProto1,
+				Address:  "localhost:2",
 			}
 			p3 := &model.RemoteAgent{
-				Name:        "remote3",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:3",
+				Name:     "remote3",
+				Protocol: testProto1,
+				Address:  "localhost:3",
 			}
 			p4 := &model.RemoteAgent{
-				Name:        "remote4",
-				Protocol:    testProto1,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:4",
+				Name:     "remote4",
+				Protocol: testProto1,
+				Address:  "localhost:4",
 			}
 			So(db.Insert(p1).Run(), ShouldBeNil)
 			So(db.Insert(p2).Run(), ShouldBeNil)
@@ -526,7 +522,7 @@ func TestListTransfer(t *testing.T) {
 				})
 
 				Convey("Given a start parameter", func() {
-					args := []string{"-d", time.Date(2019, 1, 1, 2, 30, 0, 0, time.Local).
+					args := []string{"--date", time.Date(2019, 1, 1, 2, 30, 0, 0, time.Local).
 						Format(time.RFC3339Nano)}
 
 					Convey("When executing the command", func() {
@@ -543,7 +539,7 @@ func TestListTransfer(t *testing.T) {
 				})
 
 				Convey("Given a rule parameter", func() {
-					args := []string{"-r", r1.Name, "-r", r4.Name}
+					args := []string{"--rule", r1.Name, "--rule", r4.Name}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -576,8 +572,8 @@ func TestListTransfer(t *testing.T) {
 
 				Convey("Given multiple parameters", func() {
 					args := []string{
-						"-d", t2.Start.Add(-time.Minute).Format(time.RFC3339Nano),
-						"-r", r1.Name, "-r", r2.Name, "-r", r4.Name,
+						"--date", t2.Start.Add(-time.Minute).Format(time.RFC3339Nano),
+						"--rule", r1.Name, "--rule", r2.Name, "--rule", r4.Name,
 						"-t", "RUNNING",
 					}
 

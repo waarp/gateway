@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -181,10 +180,9 @@ func TestTransferHistoryRestart(t *testing.T) {
 
 		Convey("Given a client history entry", func() {
 			agent := &RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -246,10 +244,9 @@ func TestTransferHistoryRestart(t *testing.T) {
 
 		Convey("Given a server history entry", func() {
 			agent := &LocalAgent{
-				Name:        "server",
-				Protocol:    testProtocol,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 

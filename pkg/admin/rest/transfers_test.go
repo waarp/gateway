@@ -34,10 +34,9 @@ func TestAddTransfer(t *testing.T) {
 
 		Convey("Given a database with 1 partner, 1 certificate & 1 account", func() {
 			partner := &model.RemoteAgent{
-				Name:        "remote",
-				Protocol:    testProto1,
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "remote",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -226,10 +225,9 @@ func TestGetTransfer(t *testing.T) {
 
 		Convey("Given a database with 1 transfer", func() {
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    testProto1,
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -315,18 +313,16 @@ func TestListTransfer(t *testing.T) {
 
 		Convey("Given a database with 2 transfer", func() {
 			p1 := &model.RemoteAgent{
-				Name:        "part1",
-				Protocol:    testProto1,
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "part1",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(p1).Run(), ShouldBeNil)
 
 			p2 := &model.RemoteAgent{
-				Name:        "part2",
-				Protocol:    testProto2,
-				Address:     "localhost:2",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "part2",
+				Protocol: testProto2,
+				Address:  "localhost:2",
 			}
 			So(db.Insert(p2).Run(), ShouldBeNil)
 
@@ -517,10 +513,9 @@ func TestResumeTransfer(t *testing.T) {
 
 		Convey("Given a database with 1 transfer in error", func() {
 			partner := &model.RemoteAgent{
-				Name:        "test_server",
-				Protocol:    testProto1,
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "test_server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 

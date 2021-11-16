@@ -4,7 +4,7 @@ Ajouter un compte à un serveur
 
 .. program:: waarp-gateway account local add
 
-.. describe:: waarp-gateway <ADDR> account local <SERVER> add
+.. describe:: waarp-gateway account local <SERVER> add
 
 Attache un nouveau compte au serveur donné à partir des informations renseignées.
 
