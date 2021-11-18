@@ -231,7 +231,7 @@ func TestImportRules(t *testing.T) {
 				})
 			})
 
-			Convey("Given a existing Rule to partially updated", func() {
+			Convey("Given a existing rule to partially update", func() {
 				Rule1 := file.Rule{
 					Name:   insert.Name,
 					IsSend: insert.IsSend,
@@ -240,10 +240,11 @@ func TestImportRules(t *testing.T) {
 						"local::server",
 						"local::server::account2",
 					},
+					Post: []file.Task{},
 				}
 				Rules := []file.Rule{Rule1}
 
-				Convey("When calling importRules with the new Rules", func() {
+				Convey("When calling importRules with the new rule", func() {
 					err := importRules(discard, db, Rules)
 
 					Convey("Then it should return no error", func() {
@@ -251,7 +252,7 @@ func TestImportRules(t *testing.T) {
 					})
 
 					Convey("Then the database should contains the "+
-						"Rule imported", func() {
+						"imported rule", func() {
 						var dbRule model.Rule
 						So(db.Get(&dbRule, "name=? AND send=?", insert.Name,
 							insert.IsSend).Run(), ShouldBeNil)
@@ -273,7 +274,7 @@ func TestImportRules(t *testing.T) {
 							var posts model.Tasks
 							So(db.Select(&posts).Where("rule_id=? AND chain='POST'",
 								dbRule.ID).Run(), ShouldBeNil)
-							So(len(posts), ShouldEqual, 2)
+							So(len(posts), ShouldEqual, 0)
 
 							var errors model.Tasks
 							So(db.Select(&errors).Where("rule_id=? AND chain='ERROR'",

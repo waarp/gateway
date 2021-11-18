@@ -4,6 +4,10 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :bug:`278` Dans le fichier d'import, si une des listes définissant les chaînes
+  de traitements de la règle (``pre``, ``post`` ou ``error``) est vide mais non-nulle,
+  la chaîne de traitements en question sera vidée. Si la liste est manquante ou
+  nulle, la chaîne de traitements restera inchangée.
 * :feature:`194` Dépréciation des champs REST ``sourceFilename`` et ``destFilename``
   de l'objet JSON *history*, remplacés par les champs ``localFilepath`` et
   ``remoteFilepath``.
