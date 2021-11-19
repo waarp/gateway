@@ -17,15 +17,15 @@ func TestImportRules(t *testing.T) {
 		db := database.TestDatabase(c)
 
 		Convey("Given a database with some Rules", func() {
-			insert := &model.Rule{
+			existing := &model.Rule{
 				Name:   "rule_insert",
 				IsSend: true,
 				Path:   "path/to/Rule",
 			}
-			So(db.Insert(insert).Run(), ShouldBeNil)
+			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			pre1 := &model.Task{
-				RuleID: insert.ID,
+				RuleID: existing.ID,
 				Chain:  model.ChainPre,
 				Rank:   0,
 				Type:   "COPY",
@@ -34,7 +34,7 @@ func TestImportRules(t *testing.T) {
 			So(db.Insert(pre1).Run(), ShouldBeNil)
 
 			pre2 := &model.Task{
-				RuleID: insert.ID,
+				RuleID: existing.ID,
 				Chain:  model.ChainPre,
 				Rank:   1,
 				Type:   "DELETE",
@@ -43,7 +43,7 @@ func TestImportRules(t *testing.T) {
 			So(db.Insert(pre2).Run(), ShouldBeNil)
 
 			post1 := &model.Task{
-				RuleID: insert.ID,
+				RuleID: existing.ID,
 				Chain:  model.ChainPost,
 				Rank:   0,
 				Type:   "COPY",
@@ -52,7 +52,7 @@ func TestImportRules(t *testing.T) {
 			So(db.Insert(post1).Run(), ShouldBeNil)
 
 			post2 := &model.Task{
-				RuleID: insert.ID,
+				RuleID: existing.ID,
 				Chain:  model.ChainPost,
 				Rank:   1,
 				Type:   "DELETE",
@@ -118,50 +118,68 @@ func TestImportRules(t *testing.T) {
 				Rules := []file.Rule{Rule1}
 
 				Convey("When calling importRules with the new Rules", func() {
-					err := importRules(discard(), db, Rules)
+					err := importRules(discard(), db, Rules, false)
+					So(err, ShouldBeNil)
 
-					Convey("Then it should return no error", func() {
-						So(err, ShouldBeNil)
+					var dbRules model.Rules
+					So(db.Select(&dbRules).Run(), ShouldBeNil)
+					So(dbRules, ShouldHaveLength, 2)
+
+					Convey("Then new rule should have been imported", func() {
+						dbRule := dbRules[1]
+
+						So(dbRule.Name, ShouldEqual, Rule1.Name)
+						So(dbRule.IsSend, ShouldEqual, Rule1.IsSend)
+						So(dbRule.Path, ShouldEqual, Rule1.Path)
+
+						var auths model.RuleAccesses
+						So(db.Select(&auths).Where("rule_id=?", dbRule.ID).
+							Run(), ShouldBeNil)
+						So(len(auths), ShouldEqual, 3)
+
+						var pres model.Tasks
+						So(db.Select(&pres).Where("rule_id=? AND chain='PRE'",
+							dbRule.ID).Run(), ShouldBeNil)
+						So(len(pres), ShouldEqual, 1)
+
+						var posts model.Tasks
+						So(db.Select(&posts).Where("rule_id=? AND chain='POST'",
+							dbRule.ID).Run(), ShouldBeNil)
+						So(len(posts), ShouldEqual, 1)
+
+						var errors model.Tasks
+						So(db.Select(&errors).Where("rule_id= ? AND chain='ERROR'",
+							dbRule.ID).Run(), ShouldBeNil)
+						So(len(errors), ShouldEqual, 2)
 					})
 
-					Convey("Then the database should contains the Rule "+
-						"imported", func() {
-						var dbRule model.Rule
-						So(db.Get(&dbRule, "name=? AND send=?", Rule1.Name,
-							Rule1.IsSend).Run(), ShouldBeNil)
+					Convey("Then the other rules should be unchanged", func() {
+						So(dbRules[0], ShouldResemble, *existing)
+					})
+				})
 
-						Convey("Then the record should correspond to "+
-							"the data imported", func() {
-							So(dbRule.Path, ShouldEqual, Rule1.Path)
+				Convey("When calling importRules with the new Rules with reset ON", func() {
+					err := importRules(discard(), db, Rules, true)
+					So(err, ShouldBeNil)
 
-							var auths model.RuleAccesses
-							So(db.Select(&auths).Where("rule_id=?", dbRule.ID).
-								Run(), ShouldBeNil)
-							So(len(auths), ShouldEqual, 3)
+					var dbRules model.Rules
+					So(db.Select(&dbRules).Run(), ShouldBeNil)
+					So(dbRules, ShouldHaveLength, 1)
 
-							var pres model.Tasks
-							So(db.Select(&pres).Where("rule_id=? AND chain='PRE'",
-								dbRule.ID).Run(), ShouldBeNil)
-							So(len(pres), ShouldEqual, 1)
+					Convey("Then only the imported rule should be left", func() {
+						dbRule := dbRules[0]
 
-							var posts model.Tasks
-							So(db.Select(&posts).Where("rule_id=? AND chain='POST'",
-								dbRule.ID).Run(), ShouldBeNil)
-							So(len(posts), ShouldEqual, 1)
-
-							var errors model.Tasks
-							So(db.Select(&errors).Where("rule_id= ? AND chain='ERROR'",
-								dbRule.ID).Run(), ShouldBeNil)
-							So(len(errors), ShouldEqual, 2)
-						})
+						So(dbRule.Name, ShouldEqual, Rule1.Name)
+						So(dbRule.IsSend, ShouldEqual, Rule1.IsSend)
+						So(dbRule.Path, ShouldEqual, Rule1.Path)
 					})
 				})
 			})
 
 			Convey("Given a existing Rule to fully updated", func() {
 				Rule1 := file.Rule{
-					Name:   insert.Name,
-					IsSend: insert.IsSend,
+					Name:   existing.Name,
+					IsSend: existing.IsSend,
 					Path:   "testing",
 					Accesses: []string{
 						"local::server",
@@ -193,7 +211,7 @@ func TestImportRules(t *testing.T) {
 				Rules := []file.Rule{Rule1}
 
 				Convey("When calling importRules with the new Rules", func() {
-					err := importRules(discard(), db, Rules)
+					err := importRules(discard(), db, Rules, false)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -201,8 +219,8 @@ func TestImportRules(t *testing.T) {
 
 					Convey("Then the database should contains the Rule imported", func() {
 						var dbRule model.Rule
-						So(db.Get(&dbRule, "name=? AND send=?", insert.Name,
-							insert.IsSend).Run(), ShouldBeNil)
+						So(db.Get(&dbRule, "name=? AND send=?", existing.Name,
+							existing.IsSend).Run(), ShouldBeNil)
 
 						Convey("Then the record should correspond to "+
 							"the data imported", func() {
@@ -234,8 +252,8 @@ func TestImportRules(t *testing.T) {
 
 			Convey("Given a existing rule to partially update", func() {
 				Rule1 := file.Rule{
-					Name:   insert.Name,
-					IsSend: insert.IsSend,
+					Name:   existing.Name,
+					IsSend: existing.IsSend,
 					Path:   "testing",
 					Accesses: []string{
 						"local::server",
@@ -246,7 +264,7 @@ func TestImportRules(t *testing.T) {
 				Rules := []file.Rule{Rule1}
 
 				Convey("When calling importRules with the new rule", func() {
-					err := importRules(discard(), db, Rules)
+					err := importRules(discard(), db, Rules, false)
 
 					Convey("Then it should return no error", func() {
 						So(err, ShouldBeNil)
@@ -255,8 +273,8 @@ func TestImportRules(t *testing.T) {
 					Convey("Then the database should contains the "+
 						"imported rule", func() {
 						var dbRule model.Rule
-						So(db.Get(&dbRule, "name=? AND send=?", insert.Name,
-							insert.IsSend).Run(), ShouldBeNil)
+						So(db.Get(&dbRule, "name=? AND send=?", existing.Name,
+							existing.IsSend).Run(), ShouldBeNil)
 
 						Convey("Then the record should correspond to "+
 							"the data imported", func() {

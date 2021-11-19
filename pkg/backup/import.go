@@ -1,4 +1,4 @@
-// Package backup provides two methods too generate export of the database for
+// Package backup provides two methods to generate export of the database for
 // backup or migration purpose, and to import a previous dump in order to
 // restore the database.
 package backup
@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
@@ -17,6 +18,11 @@ import (
 
 var errDry = database.NewValidationError("dry run")
 
+const (
+	ImportReset int8 = iota + 1
+	ImportForceReset
+)
+
 // ImportData reads the content of the reader r, parses it as json and imports
 // the subsets specified in targets.
 // If dry is true, then the data is not really imported, but a simulation of
@@ -25,29 +31,49 @@ var errDry = database.NewValidationError("dry run")
 // Possible values for targets are 'rules' for the transfer rules, 'servers' for
 // local servers and accounts, 'partners' for remote partners and accounts, or
 // 'all' for all data.
-func ImportData(db *database.DB, r io.Reader, targets []string, dry bool) error {
+//
+// The reset parameter states whether the database should be reset before
+// importing. A value of 1 means 'reset', a value of 2 means
+// 'reset with no confirmation prompt', and any other value means 'no reset'.
+func ImportData(db *database.DB, r io.Reader, targets []string, dry bool, reset int8) error {
 	logger := conf.GetLogger("import")
-
 	data := &file.Data{}
 
-	err := json.NewDecoder(r).Decode(data)
-	if err != nil {
+	if err := json.NewDecoder(r).Decode(data); err != nil {
 		return fmt.Errorf("cannot read data: %w", err)
 	}
 
-	err = db.Transaction(func(ses *database.Session) database.Error {
+	if reset == 1 {
+		var yes string
+
+		fmt.Fprintln(os.Stdout, "You are about to reset the database prior to the import.")
+		fmt.Fprintln(os.Stdout, "This operation cannot be undone. Do you wish to proceed anyway ?")
+		fmt.Fprintln(os.Stdout)
+		fmt.Fprint(os.Stdout, "(Type 'YES' in all caps to proceed): ")
+		fmt.Fscanf(os.Stdin, "%s", &yes) //nolint:gosec //error is handled bellow
+
+		if yes != "YES" {
+			fmt.Fprintln(os.Stderr, "Import aborted.")
+
+			return nil
+		}
+	}
+
+	isReset := reset == ImportReset || reset == ImportForceReset
+
+	transErr := db.Transaction(func(ses *database.Session) database.Error {
 		if utils.ContainsStrings(targets, "partners", "all") {
-			if err := importRemoteAgents(logger, ses, data.Remotes); err != nil {
+			if err := importRemoteAgents(logger, ses, data.Remotes, isReset); err != nil {
 				return err
 			}
 		}
 		if utils.ContainsStrings(targets, "servers", "all") {
-			if err := importLocalAgents(logger, ses, data.Locals); err != nil {
+			if err := importLocalAgents(logger, ses, data.Locals, isReset); err != nil {
 				return err
 			}
 		}
 		if utils.ContainsStrings(targets, "rules", "all") {
-			if err := importRules(logger, ses, data.Rules); err != nil {
+			if err := importRules(logger, ses, data.Rules, isReset); err != nil {
 				return err
 			}
 		}
@@ -64,12 +90,12 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry bool) error 
 		return nil
 	})
 
-	if err != nil {
-		if dry && errors.Is(err, errDry) {
+	if transErr != nil {
+		if dry && errors.Is(transErr, errDry) {
 			return nil
 		}
 
-		return fmt.Errorf("cannot import file: %w", err)
+		return fmt.Errorf("cannot import file: %w", transErr)
 	}
 
 	return nil

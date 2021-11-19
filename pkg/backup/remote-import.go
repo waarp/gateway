@@ -9,7 +9,23 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
-func importRemoteAgents(logger *log.Logger, db database.Access, list []file.RemoteAgent) database.Error {
+func importRemoteAgents(logger *log.Logger, db database.Access,
+	list []file.RemoteAgent, reset bool,
+) database.Error {
+	if reset {
+		var partners model.RemoteAgents
+		if err := db.Select(&partners).Run(); err != nil {
+			return err
+		}
+
+		for i := range partners {
+			partner := &partners[i]
+			if err := db.Delete(partner).Run(); err != nil {
+				return err
+			}
+		}
+	}
+
 	for _, src := range list {
 		// Create model with basic info to check existence
 		var agent model.RemoteAgent

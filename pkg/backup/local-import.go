@@ -14,7 +14,24 @@ import (
 )
 
 //nolint:funlen // splitting the function would add complexity
-func importLocalAgents(logger *log.Logger, db database.Access, list []file.LocalAgent) database.Error {
+func importLocalAgents(logger *log.Logger, db database.Access, list []file.LocalAgent,
+	reset bool,
+) database.Error {
+	if reset {
+		var servers model.LocalAgents
+		if err := db.Select(&servers).Where("owner=?",
+			conf.GlobalConfig.GatewayName).Run(); err != nil {
+			return err
+		}
+
+		for i := range servers {
+			server := &servers[i]
+			if err := db.Delete(server).Run(); err != nil {
+				return err
+			}
+		}
+	}
+
 	for i := range list {
 		src := &list[i]
 		// Create model with basic info to check existence
@@ -22,7 +39,8 @@ func importLocalAgents(logger *log.Logger, db database.Access, list []file.Local
 
 		// Check if agent exists
 		exists := true
-		err := db.Get(&agent, "name=? AND owner=?", src.Name, conf.GlobalConfig.GatewayName).Run()
+		err := db.Get(&agent, "name=? AND owner=?", src.Name,
+			conf.GlobalConfig.GatewayName).Run()
 
 		if database.IsNotFound(err) {
 			exists = false

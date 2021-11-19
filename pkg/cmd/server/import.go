@@ -60,6 +60,8 @@ type ImportCommand struct {
 	Target     []string `short:"t" long:"target" default:"all" choice:"rules" choice:"servers" choice:"partners" choice:"all" description:"Limit the import to a subset of data. Can be repeated to import multiple subsets."`
 	Dry        bool     `short:"d" long:"dry-run" description:"Do not make any changes, but simulate the import of the file"`
 	Verbose    []bool   `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity"`
+	Reset      bool     `short:"r" long:"reset-before-import" description:"Empty the database tables before importing the elements from the file"`
+	ForceReset bool     `long:"force-reset-before-import" description:"Empty the database tables before importing the elements from the file without confirmation prompt"`
 }
 
 func (i *ImportCommand) Execute([]string) error {
@@ -74,25 +76,35 @@ func (i *ImportCommand) Execute([]string) error {
 }
 
 func (i *ImportCommand) Run(db *database.DB, logger *log.Logger) error {
-	f := os.Stdin
+	file := os.Stdin
 
 	if i.File != "" {
 		var err error
 
-		f, err = os.Open(i.File)
+		file, err = os.Open(i.File)
 		if err != nil {
 			return fmt.Errorf("failed to open file: %w", err)
 		}
 
 		//nolint:gosec //close must be deferred here
 		defer func() {
-			if err := f.Close(); err != nil {
+			if err := file.Close(); err != nil {
 				logger.Warning("Error while closing the source file: %s", err)
 			}
 		}()
 	}
 
-	if err := backup.ImportData(db, f, i.Target, i.Dry); err != nil {
+	var reset int8
+
+	if i.Reset {
+		reset = backup.ImportReset
+	}
+
+	if i.ForceReset {
+		reset = backup.ImportForceReset
+	}
+
+	if err := backup.ImportData(db, file, i.Target, i.Dry, reset); err != nil {
 		return fmt.Errorf("error at import: %w", err)
 	}
 
