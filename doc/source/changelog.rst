@@ -3,7 +3,12 @@
 Historique des versions
 =======================
 
-* :release:`0.7.0 <>`
+* :feature:`285` Ajout d'une option ``-r, --reset-before-import`` à la commande
+  d'import. Quand présente, cette option indique à la *gateway* que la base de
+  données doit être vidée avant d'effectuer l'import. Ainsi, tous les éléments
+  présents en base concernés par l'opération d'import seront supprimés. Une 2nde
+  option nommée ``--force-reset-before-import`` a été ajoutée, permettant aux
+  scripts d'outrepasser le message de confirmation de l'option ``-r``.
 * :feature:`224` Ajout des utilisateurs *gateway* au fichier d'import/export.
   Il est désormais possible d'exporter et importer les utilisateurs *gateway*
   servant à l'administration. Par conséquent, l'option ``-t --target`` des
@@ -16,9 +21,9 @@ Historique des versions
   0.6.1.
 
 * :release:`0.6.1 <2022-08-18>`
-* :bug:`340` Correction d'une erreur causant l'échec des migrations de base de 
+* :bug:`340` Correction d'une erreur causant l'échec des migrations de base de
   données due à une mauvaise prise en compte du fichier de configuration.
-* :bug:`341` La commande de listing des partneraires liste correctement les 
+* :bug:`341` La commande de listing des partneraires liste correctement les
   partenaires au lieu des serveur locaux.
 
 * :release:`0.6.0 <2022-07-22>`
