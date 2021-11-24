@@ -109,7 +109,7 @@ func (c *client) request() *types.TransferError {
 		return types.NewTransferError(types.TeInternal, err.Error())
 	}
 
-	userContent, tErr := internal.MakeUserContent(c.pip)
+	userContent, tErr := internal.MakeUserContent(c.pip.Logger, c.pip.TransCtx)
 	if tErr != nil {
 		return tErr
 	}

@@ -6,6 +6,8 @@ import (
 
 	"code.waarp.fr/lib/r66"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -113,12 +115,13 @@ func MakeFileInfo(pip *pipeline.Pipeline, info *r66.SystemData) *types.TransferE
 
 // MakeTransferInfo fills the given r66.TransferData instance with transfer information
 // relating to the given transfer pipeline.
-func MakeTransferInfo(pip *pipeline.Pipeline, info *r66.TransferData) *types.TransferError {
+func MakeTransferInfo(logger *log.Logger, transCtx *model.TransferContext,
+	info *r66.TransferData) *types.TransferError {
 	var fID float64
 
-	if follow, ok := pip.TransCtx.TransInfo[FollowID]; ok {
+	if follow, ok := transCtx.TransInfo[FollowID]; ok {
 		if fID, ok = follow.(float64); !ok {
-			pip.Logger.Errorf("Invalid type '%T' for R66 follow ID", follow)
+			logger.Errorf("Invalid type '%T' for R66 follow ID", follow)
 
 			return types.NewTransferError(types.TeInternal, "failed to make file info")
 		}
@@ -126,7 +129,7 @@ func MakeTransferInfo(pip *pipeline.Pipeline, info *r66.TransferData) *types.Tra
 
 	info.SystemData.FollowID = int(fID)
 
-	userContent, err := MakeUserContent(pip)
+	userContent, err := MakeUserContent(logger, transCtx)
 	if err != nil {
 		return err
 	}
@@ -137,19 +140,19 @@ func MakeTransferInfo(pip *pipeline.Pipeline, info *r66.TransferData) *types.Tra
 }
 
 // MakeUserContent returns a string containing the marshaled transfer infos.
-func MakeUserContent(pip *pipeline.Pipeline) (string, *types.TransferError) {
+func MakeUserContent(logger *log.Logger, transCtx *model.TransferContext) (string, *types.TransferError) {
 	var userContent string
 
-	if cont, ok := pip.TransCtx.TransInfo[UserContent]; ok {
+	if cont, ok := transCtx.TransInfo[UserContent]; ok {
 		if userContent, ok = cont.(string); !ok {
-			pip.Logger.Errorf("Invalid type '%T' for R66 user content", cont)
+			logger.Errorf("Invalid type '%T' for R66 user content", cont)
 
 			return "", types.NewTransferError(types.TeInternal, "failed to make transfer info")
 		}
 	} else {
-		cont, err := json.Marshal(pip.TransCtx.TransInfo)
+		cont, err := json.Marshal(transCtx.TransInfo)
 		if err != nil {
-			pip.Logger.Errorf("Failed to marshal transfer info: %s", err)
+			logger.Errorf("Failed to marshal transfer info: %s", err)
 
 			return "", types.NewTransferError(types.TeInternal, "failed to make transfer info")
 		}

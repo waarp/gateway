@@ -2,12 +2,15 @@ package r66
 
 import (
 	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"code.waarp.fr/lib/r66"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
@@ -202,4 +205,111 @@ func (s *sessionHandler) setProgress(req *r66.Request, trans *model.Transfer) *r
 	}
 
 	return nil
+}
+
+func (s *sessionHandler) GetTransferInfo(int64, bool) (*r66.TransferInfo, error) {
+	return nil, r66.ErrUnsupportedFeature
+}
+
+func (s *sessionHandler) GetFileInfo(ruleName string, pat string) ([]r66.FileInfo, error) {
+	var rule model.Rule
+
+	if err := s.db.Get(&rule, "name=? AND send=?", ruleName, true).Run(); database.IsNotFound(err) {
+		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "rule not found"}
+	} else if err != nil {
+		s.logger.Errorf("Failed to retrieve rule: %s", err)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+	}
+
+	pattern := filepath.FromSlash(pat)
+	dir := utils.GetPath("", utils.Leaf(rule.LocalDir), utils.Leaf(s.agent.SendDir),
+		utils.Branch(s.agent.RootDir), utils.Leaf(conf.GlobalConfig.Paths.DefaultOutDir),
+		utils.Branch(conf.GlobalConfig.Paths.GatewayHome))
+
+	return s.listDirFiles(dir, pattern)
+}
+
+func (s *sessionHandler) listDirFiles(root, pattern string) ([]r66.FileInfo, error) {
+	matches, err := filepath.Glob(filepath.Join(root, pattern))
+	if err != nil {
+		s.logger.Errorf("Failed to retrieve matching files: %s", err)
+
+		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "incorrect file pattern"}
+	}
+
+	if len(matches) == 0 {
+		return nil, &r66.Error{Code: r66.FileNotFound, Detail: "no files found for the given pattern"}
+	}
+
+	var infos []r66.FileInfo
+
+	for _, match := range matches {
+		file, err := os.Stat(match)
+		if err != nil {
+			s.logger.Errorf("Failed to retrieve file '%s' info: %s", match, err)
+
+			continue
+		}
+
+		fp, err := filepath.Rel(root, match)
+		if err != nil {
+			s.logger.Errorf("Failed to split path '%s': %s", match, err)
+
+			continue
+		}
+
+		fp = filepath.ToSlash(fp)
+
+		if file.IsDir() {
+			infos = append(infos, s.listSubFiles(match, fp)...)
+
+			continue
+		}
+
+		infos = append(infos, r66.FileInfo{
+			Name:       fp,
+			Size:       file.Size(),
+			LastModify: file.ModTime(),
+			Type:       "File",
+			Permission: file.Mode().Perm().String(),
+		})
+	}
+
+	return infos, nil
+}
+
+func (s *sessionHandler) listSubFiles(full, dir string) []r66.FileInfo {
+	entries, err := os.ReadDir(full)
+	if err != nil {
+		s.logger.Errorf("Failed to open sub-directory '%s': %s", full, err)
+
+		return nil
+	}
+
+	infos := make([]r66.FileInfo, 0, len(entries))
+
+	for _, entry := range entries {
+		file, err := entry.Info()
+		if err != nil {
+			s.logger.Errorf("Failed to retrieve info of file '%s': %s", entry.Name(), err)
+
+			continue
+		}
+
+		fileType := "File"
+		if file.IsDir() {
+			fileType = "Directory"
+		}
+
+		infos = append(infos, r66.FileInfo{
+			Name:       path.Join(dir, file.Name()),
+			Size:       file.Size(),
+			LastModify: file.ModTime(),
+			Type:       fileType,
+			Permission: file.Mode().Perm().String(),
+		})
+	}
+
+	return infos
 }

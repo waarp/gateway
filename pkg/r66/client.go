@@ -97,7 +97,8 @@ func (c *client) EndPreTasks() *types.TransferError {
 			FileInfo: &r66.TransferData{},
 		}
 
-		if err := internal.MakeTransferInfo(c.pip, outInfo.FileInfo); err != nil {
+		if err := internal.MakeTransferInfo(c.pip.Logger, c.pip.TransCtx,
+			outInfo.FileInfo); err != nil {
 			return err
 		}
 
