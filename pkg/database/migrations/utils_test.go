@@ -6,10 +6,10 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
+	"code.waarp.fr/lib/migration"
 )
 
-func setupDatabaseUpTo(eng *migration.Engine, target migration.Script) {
+func setupDatabaseUpTo(eng *testEngine, target script) {
 	index := -1
 
 	for i, mig := range Migrations {
@@ -21,7 +21,7 @@ func setupDatabaseUpTo(eng *migration.Engine, target migration.Script) {
 	}
 
 	So(index, ShouldBeGreaterThanOrEqualTo, 0)
-	So(eng.Upgrade(Migrations[:index]), ShouldBeNil)
+	So(eng.Engine.Upgrade(makeMigration(Migrations[:index])), ShouldBeNil)
 }
 
 func doesIndexExist(db *sql.DB, dialect, table, index string) bool {

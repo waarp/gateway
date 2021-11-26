@@ -55,7 +55,8 @@ func (cmd *MigrateCommand) Execute([]string) error {
 		out = file
 	}
 
-	if err := migrations.Execute(&config.Database, cmd.Args.Version, cmd.FromIndex, out); err != nil {
+	if err := migrations.Execute(&config.Database, logger, cmd.Args.Version,
+		cmd.FromIndex, out); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 

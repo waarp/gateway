@@ -6,7 +6,7 @@ import (
 	"path"
 	"runtime"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
+	"code.waarp.fr/lib/migration"
 )
 
 type ver0_5_0RemoveRulePathSlash struct{}
@@ -56,9 +56,9 @@ func (v ver0_5_0CheckRulePathParent) Up(db migration.Actions) error {
 
 	switch dial := db.GetDialect(); dial {
 	case migration.SQLite, migration.PostgreSQL:
-		query = `SELECT A.name, A.path, B.name, B.path FROM rules A, rules B WHERE B.path LIKE A.path || '/%%'`
+		query = `SELECT A.name, A.path, B.name, B.path FROM rules A, rules B WHERE B.path LIKE A.path || '/%'`
 	case migration.MySQL:
-		query = `SELECT A.name, A.path, B.name, B.path FROM rules A, rules B WHERE B.path LIKE CONCAT(A.path ,'/%%')`
+		query = `SELECT A.name, A.path, B.name, B.path FROM rules A, rules B WHERE B.path LIKE CONCAT(A.path, '/%')`
 	default:
 		return errUnknownEngine(dial)
 	}
@@ -133,22 +133,22 @@ func (ver0_5_0LocalAgentDenormalizePaths) Down(db migration.Actions) (err error)
 
 	switch db.GetDialect() {
 	case migration.SQLite, migration.PostgreSQL:
-		if err = db.Exec(`UPDATE local_agents SET root = ('/' || root) WHERE root LIKE '_:%%'`); err != nil {
+		if err = db.Exec(`UPDATE local_agents SET root = ('/' || root) WHERE root LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to reformat the server root directory: %w", err)
 		}
 
 		if err = db.Exec(`UPDATE local_agents SET in_dir = ('/' || in_dir) 
-			WHERE in_dir LIKE '_:%%'`); err != nil {
+			WHERE in_dir LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to reformat the server in directory: %w", err)
 		}
 
 		if err = db.Exec(`UPDATE local_agents SET out_dir = ('/' || out_dir)
-			WHERE out_dir LIKE '_:%%'`); err != nil {
+			WHERE out_dir LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to reformat the server out directory: %w", err)
 		}
 
 		if err = db.Exec(`UPDATE local_agents SET work_dir = ('/' || work_dir)
-			WHERE work_dir LIKE '_:%%'`); err != nil {
+			WHERE work_dir LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to reformat the server tmp directory: %w", err)
 		}
 
@@ -158,22 +158,22 @@ func (ver0_5_0LocalAgentDenormalizePaths) Down(db migration.Actions) (err error)
 			return fmt.Errorf("failed to change server paths: %w", err)
 		}
 	case migration.MySQL:
-		if err = db.Exec(`UPDATE local_agents SET root = CONCAT('/', root) WHERE root LIKE '_:%%'`); err != nil {
+		if err = db.Exec(`UPDATE local_agents SET root = CONCAT('/', root) WHERE root LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to reformat the server root directory: %w", err)
 		}
 
 		if err = db.Exec(`UPDATE local_agents SET in_dir = CONCAT('/', in_dir) 
-			WHERE in_dir LIKE '_:%%'`); err != nil {
+			WHERE in_dir LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to reformat the server in directory: %w", err)
 		}
 
 		if err = db.Exec(`UPDATE local_agents SET out_dir = CONCAT('/', out_dir) 
-			WHERE out_dir LIKE '_:%%'`); err != nil {
+			WHERE out_dir LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to reformat the server out directory: %w", err)
 		}
 
 		if err = db.Exec(`UPDATE local_agents SET work_dir = CONCAT('/', work_dir) 
-			WHERE work_dir LIKE '_:%%'`); err != nil {
+			WHERE work_dir LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to reformat the server tmp directory: %w", err)
 		}
 
@@ -348,22 +348,22 @@ func (ver0_5_0RulePathChanges) Down(db migration.Actions) (err error) {
 	switch db.GetDialect() {
 	case migration.MySQL:
 		if err = db.Exec(`UPDATE rules SET local_dir = CONCAT('/', local_dir) 
-			WHERE local_dir LIKE '_:%%'`); err != nil {
+			WHERE local_dir LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to restore rule local directory: %w", err)
 		}
 
 		if err = db.Exec(`UPDATE rules SET tmp_local_receive_dir = CONCAT('/', tmp_local_receive_dir) 
-			WHERE tmp_local_receive_dir LIKE '_:%%'`); err != nil {
+			WHERE tmp_local_receive_dir LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to restore rule tmp directory: %w", err)
 		}
 	case migration.SQLite, migration.PostgreSQL:
 		if err = db.Exec(`UPDATE rules SET local_dir = ('/' || local_dir) 
-			WHERE local_dir LIKE '_:%%'`); err != nil {
+			WHERE local_dir LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to restore rule local directory: %w", err)
 		}
 
 		if err = db.Exec(`UPDATE rules SET tmp_local_receive_dir = ('/' || tmp_local_receive_dir) 
-			WHERE tmp_local_receive_dir LIKE '_:%%'`); err != nil {
+			WHERE tmp_local_receive_dir LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to restore rule tmp directory: %w", err)
 		}
 	default:
@@ -466,7 +466,8 @@ func (ver0_5_0TransferChangePaths) makeTransList(db migration.Actions, off uint6
 	id             uint64
 	full, src, dst string
 	send           bool
-}, error) {
+}, error,
+) {
 	const buffSize = 100
 
 	rows, err := db.Query(fmt.Sprintf(`SELECT transfers.id, transfers.true_filepath, 
@@ -537,8 +538,8 @@ func (v ver0_5_0TransferChangePaths) Down(db migration.Actions) error {
 				trans[i].src = path.Base(trans[i].src)
 			}
 
-			if err := db.Exec(`UPDATE transfers SET source_file='%s', dest_file='%s'
-				WHERE id=%d`, trans[i].src, trans[i].dst, trans[i].id); err != nil {
+			if err := db.Exec(`UPDATE transfers SET source_file=?, dest_file=?
+				WHERE id=?`, trans[i].src, trans[i].dst, trans[i].id); err != nil {
 				return fmt.Errorf("failed to revert transfer paths formatting: %w", err)
 			}
 		}
@@ -583,7 +584,7 @@ func (ver0_5_0TransferFormatLocalPath) Down(db migration.Actions) (err error) {
 	switch db.GetDialect() {
 	case migration.SQLite, migration.PostgreSQL:
 		if err = db.Exec(`UPDATE transfers SET local_path = ('/' || local_path) 
-			WHERE local_path LIKE '_:%%'`); err != nil {
+			WHERE local_path LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to reformat the transfer local path: %w", err)
 		}
 
@@ -592,7 +593,7 @@ func (ver0_5_0TransferFormatLocalPath) Down(db migration.Actions) (err error) {
 		}
 	case migration.MySQL:
 		if err = db.Exec(`UPDATE transfers SET local_path = CONCAT('/', local_path)
-			WHERE local_path LIKE '_:%%'`); err != nil {
+			WHERE local_path LIKE '_:%'`); err != nil {
 			return fmt.Errorf("failed to reformat the transfer local path: %w", err)
 		}
 
@@ -689,7 +690,8 @@ type ver0_5_0LocalAccountsPasswordDecode struct{}
 func (ver0_5_0LocalAccountsPasswordDecode) makeAccountList(db migration.Actions) ([]struct {
 	id   uint64
 	hash string
-}, error) {
+}, error,
+) {
 	var accounts []struct {
 		id   uint64
 		hash string
@@ -734,7 +736,7 @@ func (v ver0_5_0LocalAccountsPasswordDecode) Up(db migration.Actions) error {
 			return fmt.Errorf("failed to decode password hash: %w", err)
 		}
 
-		if err := db.Exec("UPDATE local_accounts SET password_hash='%s' WHERE id=%d",
+		if err := db.Exec("UPDATE local_accounts SET password_hash=? WHERE id=?",
 			dec, accounts[i].id); err != nil {
 			return fmt.Errorf("failed to update account entry: %w", err)
 		}
@@ -752,7 +754,7 @@ func (v ver0_5_0LocalAccountsPasswordDecode) Down(db migration.Actions) (err err
 	for i := range accounts {
 		enc := base64.StdEncoding.EncodeToString([]byte(accounts[i].hash))
 
-		if err := db.Exec("UPDATE local_accounts SET password_hash='%s' WHERE id=%d",
+		if err := db.Exec("UPDATE local_accounts SET password_hash=? WHERE id=?",
 			enc, accounts[i].id); err != nil {
 			return fmt.Errorf("failed to update account entry: %w", err)
 		}

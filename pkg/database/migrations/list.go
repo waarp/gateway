@@ -3,14 +3,25 @@
 package migrations
 
 import (
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
+	"code.waarp.fr/lib/migration"
 )
+
+type script interface {
+	Up(db migration.Actions) error
+	Down(db migration.Actions) error
+}
+
+type change struct {
+	Description string
+	Script      script
+	VersionTag  string
+}
 
 // Migrations should be declared here in chronological order. This means that
 // new migrations should ALWAYS be added at the end of the list so that the order
 // never changes.
 //nolint:gochecknoglobals // global var is used by design
-var Migrations = []migration.Migration{
+var Migrations = []change{
 	{ // #0
 		Description: "Starting version",
 		Script:      bumpVersion{from: "", to: "0.4.0"}, // should never be called

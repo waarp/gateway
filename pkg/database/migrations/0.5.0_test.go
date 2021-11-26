@@ -6,11 +6,11 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
+	"code.waarp.fr/lib/migration"
 )
 
-func testVer0_5_0RemoveRulePathSlash(eng *migration.Engine, dialect string) {
-	Convey("Given the 0.5.0 rule slash removal script", func() {
+func testVer0_5_0RemoveRulePathSlash(eng *testEngine, dialect string) {
+	Convey("Given the 0.5.0 rule slash removal change", func() {
 		setupDatabaseUpTo(eng, ver0_5_0RemoveRulePathSlash{})
 
 		query := `INSERT INTO rules (name, comment, send, path, in_path, 
@@ -26,7 +26,7 @@ func testVer0_5_0RemoveRulePathSlash(eng *migration.Engine, dialect string) {
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0RemoveRulePathSlash{}}})
+			err := eng.Upgrade(ver0_5_0RemoveRulePathSlash{})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have removed the leading slash", func() {
@@ -47,7 +47,7 @@ func testVer0_5_0RemoveRulePathSlash(eng *migration.Engine, dialect string) {
 			})
 
 			Convey("When reversing the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0RemoveRulePathSlash{}}})
+				err := eng.Downgrade(ver0_5_0RemoveRulePathSlash{})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have restored the leading slash", func() {
@@ -71,7 +71,7 @@ func testVer0_5_0RemoveRulePathSlash(eng *migration.Engine, dialect string) {
 	})
 }
 
-func testVer0_5_0CheckRulePathAncestor(eng *migration.Engine, dialect string) {
+func testVer0_5_0CheckRulePathAncestor(eng *testEngine, dialect string) {
 	Convey("Given the 0.5.0 rule path ancestry check", func() {
 		setupDatabaseUpTo(eng, ver0_5_0CheckRulePathParent{})
 
@@ -89,7 +89,7 @@ func testVer0_5_0CheckRulePathAncestor(eng *migration.Engine, dialect string) {
 
 		Convey("Given that no rule path is another one's parent", func() {
 			Convey("When applying the migration", func() {
-				err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0CheckRulePathParent{}}})
+				err := eng.Upgrade(ver0_5_0CheckRulePathParent{})
 
 				Convey("Then it should not return an error", func() {
 					So(err, ShouldBeNil)
@@ -106,7 +106,7 @@ func testVer0_5_0CheckRulePathAncestor(eng *migration.Engine, dialect string) {
 			So(err, ShouldBeNil)
 
 			Convey("When applying the migration", func() {
-				err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0CheckRulePathParent{}}})
+				err := eng.Upgrade(ver0_5_0CheckRulePathParent{})
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError, "the path of the rule 'recv' (dir) "+
@@ -118,7 +118,7 @@ func testVer0_5_0CheckRulePathAncestor(eng *migration.Engine, dialect string) {
 	})
 }
 
-func testVer0_5_0LocalAgentChangePaths(eng *migration.Engine) {
+func testVer0_5_0LocalAgentChangePaths(eng *testEngine) {
 	Convey("Given the 0.5.0 local agent paths change", func() {
 		setupDatabaseUpTo(eng, ver0_5_0LocalAgentDenormalizePaths{})
 
@@ -129,7 +129,7 @@ func testVer0_5_0LocalAgentChangePaths(eng *migration.Engine) {
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAgentDenormalizePaths{}}})
+			err := eng.Upgrade(ver0_5_0LocalAgentDenormalizePaths{})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have changed the paths", func() {
@@ -150,7 +150,7 @@ func testVer0_5_0LocalAgentChangePaths(eng *migration.Engine) {
 			})
 
 			Convey("When reversing the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0LocalAgentDenormalizePaths{}}})
+				err := eng.Downgrade(ver0_5_0LocalAgentDenormalizePaths{})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have restored the paths", func() {
@@ -169,14 +169,14 @@ func testVer0_5_0LocalAgentChangePaths(eng *migration.Engine) {
 	})
 }
 
-func testVer0_5_0LocalAgentsPathsRename(eng *migration.Engine) {
+func testVer0_5_0LocalAgentsPathsRename(eng *testEngine) {
 	Convey("Given the 0.5.0 local agent path column rename", func() {
 		setupDatabaseUpTo(eng, ver0_5_0LocalAgentsPathsRename{})
 		tableShouldHaveColumns(eng.DB, "local_agents", "root", "in_dir",
 			"out_dir", "work_dir")
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAgentsPathsRename{}}})
+			err := eng.Upgrade(ver0_5_0LocalAgentsPathsRename{})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have renamed the path columns", func() {
@@ -187,7 +187,7 @@ func testVer0_5_0LocalAgentsPathsRename(eng *migration.Engine) {
 			})
 
 			Convey("When reversing the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0LocalAgentsPathsRename{}}})
+				err := eng.Downgrade(ver0_5_0LocalAgentsPathsRename{})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have restored the old column names", func() {
@@ -201,7 +201,7 @@ func testVer0_5_0LocalAgentsPathsRename(eng *migration.Engine) {
 	})
 }
 
-func testVer0_5_0LocalAgentDisallowReservedNames(eng *migration.Engine) {
+func testVer0_5_0LocalAgentDisallowReservedNames(eng *testEngine) {
 	Convey("Given the 0.5.0 local agent name verification", func() {
 		setupDatabaseUpTo(eng, ver0_5_0LocalAgentDenormalizePaths{})
 
@@ -212,7 +212,7 @@ func testVer0_5_0LocalAgentDisallowReservedNames(eng *migration.Engine) {
 
 		Convey("Given that all server names are valid", func() {
 			Convey("When applying the migration", func() {
-				err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAgentsDisallowReservedNames{}}})
+				err := eng.Upgrade(ver0_5_0LocalAgentsDisallowReservedNames{})
 
 				Convey("Then it should return no error", func() {
 					So(err, ShouldBeNil)
@@ -227,7 +227,7 @@ func testVer0_5_0LocalAgentDisallowReservedNames(eng *migration.Engine) {
 			So(err, ShouldBeNil)
 
 			Convey("When applying the migration", func() {
-				err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAgentsDisallowReservedNames{}}})
+				err := eng.Upgrade(ver0_5_0LocalAgentsDisallowReservedNames{})
 
 				Convey("Then it should return an error", func() {
 					So(err, ShouldBeError, "'Database' is a reserved service name, "+
@@ -238,7 +238,7 @@ func testVer0_5_0LocalAgentDisallowReservedNames(eng *migration.Engine) {
 	})
 }
 
-func testVer0_5_0RuleNewPathCols(eng *migration.Engine) {
+func testVer0_5_0RuleNewPathCols(eng *testEngine) {
 	Convey("Given the 0.5.0 rule new path columns addition", func() {
 		setupDatabaseUpTo(eng, ver0_5_0RulesPathsRename{})
 
@@ -255,7 +255,7 @@ func testVer0_5_0RuleNewPathCols(eng *migration.Engine) {
 		tableShouldHaveColumns(eng.DB, "rules", "in_path", "out_path", "work_path")
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0RulesPathsRename{}}})
+			err := eng.Upgrade(ver0_5_0RulesPathsRename{})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have added the new columns", func() {
@@ -291,7 +291,7 @@ func testVer0_5_0RuleNewPathCols(eng *migration.Engine) {
 			})
 
 			Convey("When reversing the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0RulesPathsRename{}}})
+				err := eng.Downgrade(ver0_5_0RulesPathsRename{})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have dropped the new column", func() {
@@ -304,7 +304,7 @@ func testVer0_5_0RuleNewPathCols(eng *migration.Engine) {
 	})
 }
 
-func testVer0_5_0RulePathChanges(eng *migration.Engine) {
+func testVer0_5_0RulePathChanges(eng *testEngine) {
 	Convey("Given the 0.5.0 rule paths change", func() {
 		setupDatabaseUpTo(eng, ver0_5_0RulePathChanges{})
 
@@ -314,7 +314,7 @@ func testVer0_5_0RulePathChanges(eng *migration.Engine) {
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0RulePathChanges{}}})
+			err := eng.Upgrade(ver0_5_0RulePathChanges{})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have changed the paths", func() {
@@ -334,7 +334,7 @@ func testVer0_5_0RulePathChanges(eng *migration.Engine) {
 			})
 
 			Convey("When reversing the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0RulePathChanges{}}})
+				err := eng.Downgrade(ver0_5_0RulePathChanges{})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have restored the paths", func() {
@@ -352,14 +352,14 @@ func testVer0_5_0RulePathChanges(eng *migration.Engine) {
 	})
 }
 
-func testVer0_5_0AddFilesize(eng *migration.Engine) {
+func testVer0_5_0AddFilesize(eng *testEngine) {
 	Convey("Given the 0.5.0 filesize addition", func() {
 		setupDatabaseUpTo(eng, ver0_5_0AddFilesize{})
 		tableShouldNotHaveColumns(eng.DB, "transfers", "filesize")
 		tableShouldNotHaveColumns(eng.DB, "transfer_history", "filesize")
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0AddFilesize{}}})
+			err := eng.Upgrade(ver0_5_0AddFilesize{})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have added the columns", func() {
@@ -368,7 +368,7 @@ func testVer0_5_0AddFilesize(eng *migration.Engine) {
 			})
 
 			Convey("When reversing the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0AddFilesize{}}})
+				err := eng.Downgrade(ver0_5_0AddFilesize{})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have removed the columns", func() {
@@ -380,7 +380,7 @@ func testVer0_5_0AddFilesize(eng *migration.Engine) {
 	})
 }
 
-func testVer0_5_0TransferChangePaths(eng *migration.Engine) {
+func testVer0_5_0TransferChangePaths(eng *testEngine) {
 	Convey("Given the 0.5.0 transfer paths changes", func() {
 		setupDatabaseUpTo(eng, ver0_5_0TransferChangePaths{})
 
@@ -409,7 +409,7 @@ func testVer0_5_0TransferChangePaths(eng *migration.Engine) {
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0TransferChangePaths{}}})
+			err := eng.Upgrade(ver0_5_0TransferChangePaths{})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have renamed the local path column", func() {
@@ -444,7 +444,7 @@ func testVer0_5_0TransferChangePaths(eng *migration.Engine) {
 			})
 
 			Convey("When reverting the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0TransferChangePaths{}}})
+				err := eng.Downgrade(ver0_5_0TransferChangePaths{})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have reverted the changes", func() {
@@ -480,7 +480,7 @@ func testVer0_5_0TransferChangePaths(eng *migration.Engine) {
 	})
 }
 
-func testVer0_5_0TransferFormatLocalPath(eng *migration.Engine) {
+func testVer0_5_0TransferFormatLocalPath(eng *testEngine) {
 	Convey("Given the 0.5.0 transfer local path formatting", func() {
 		setupDatabaseUpTo(eng, ver0_5_0TransferFormatLocalPath{})
 
@@ -492,7 +492,7 @@ func testVer0_5_0TransferFormatLocalPath(eng *migration.Engine) {
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0TransferFormatLocalPath{}}})
+			err := eng.Upgrade(ver0_5_0TransferFormatLocalPath{})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have formatted the local path to the OS format", func() {
@@ -509,7 +509,7 @@ func testVer0_5_0TransferFormatLocalPath(eng *migration.Engine) {
 			})
 
 			Convey("When undoing the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0TransferFormatLocalPath{}}})
+				err := eng.Downgrade(ver0_5_0TransferFormatLocalPath{})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have reverted the local path to a URI", func() {
@@ -525,7 +525,7 @@ func testVer0_5_0TransferFormatLocalPath(eng *migration.Engine) {
 	})
 }
 
-func testVer0_5_0HistoryChangePaths(eng *migration.Engine) {
+func testVer0_5_0HistoryChangePaths(eng *testEngine) {
 	Convey("Given the 0.5.0 history paths changes", func() {
 		setupDatabaseUpTo(eng, ver0_5_0HistoryPathsChange{})
 
@@ -544,7 +544,7 @@ func testVer0_5_0HistoryChangePaths(eng *migration.Engine) {
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0HistoryPathsChange{}}})
+			err := eng.Upgrade(ver0_5_0HistoryPathsChange{})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have renamed the filename columns", func() {
@@ -576,7 +576,7 @@ func testVer0_5_0HistoryChangePaths(eng *migration.Engine) {
 			})
 
 			Convey("When reverting the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0HistoryPathsChange{}}})
+				err := eng.Downgrade(ver0_5_0HistoryPathsChange{})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have reverted the changes", func() {
@@ -603,7 +603,7 @@ func testVer0_5_0HistoryChangePaths(eng *migration.Engine) {
 	})
 }
 
-func testVer0_5_0LocalAccountsPasswordDecode(eng *migration.Engine) {
+func testVer0_5_0LocalAccountsPasswordDecode(eng *testEngine) {
 	Convey("Given the 0.5.0 local accounts password decoding", func() {
 		setupDatabaseUpTo(eng, ver0_5_0LocalAccountsPasswordDecode{})
 
@@ -612,7 +612,7 @@ func testVer0_5_0LocalAccountsPasswordDecode(eng *migration.Engine) {
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0LocalAccountsPasswordDecode{}}})
+			err := eng.Upgrade(ver0_5_0LocalAccountsPasswordDecode{})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have decoded the password hash", func() {
@@ -625,7 +625,7 @@ func testVer0_5_0LocalAccountsPasswordDecode(eng *migration.Engine) {
 			})
 
 			Convey("When reverting the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0LocalAccountsPasswordDecode{}}})
+				err := eng.Downgrade(ver0_5_0LocalAccountsPasswordDecode{})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have re-encoded the password hash", func() {
@@ -641,7 +641,7 @@ func testVer0_5_0LocalAccountsPasswordDecode(eng *migration.Engine) {
 	})
 }
 
-func testVer0_5_0UserPasswordChange(eng *migration.Engine, dialect string) {
+func testVer0_5_0UserPasswordChange(eng *testEngine, dialect string) {
 	Convey("Given the 0.5.0 user password changes", func() {
 		setupDatabaseUpTo(eng, ver0_5_0UserPasswordChange{})
 
@@ -659,7 +659,7 @@ func testVer0_5_0UserPasswordChange(eng *migration.Engine, dialect string) {
 		}
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_0UserPasswordChange{}}})
+			err := eng.Upgrade(ver0_5_0UserPasswordChange{})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have changed the password column", func() {
@@ -675,7 +675,7 @@ func testVer0_5_0UserPasswordChange(eng *migration.Engine, dialect string) {
 			})
 
 			Convey("When reverting the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_0UserPasswordChange{}}})
+				err := eng.Downgrade(ver0_5_0UserPasswordChange{})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have reverted the password changes", func() {

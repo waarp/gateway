@@ -7,16 +7,20 @@ import (
 	"net/url"
 	"strings"
 
+	"code.waarp.fr/lib/migration"
 	// Register the SQL drivers.
 	"github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	_ "modernc.org/sqlite"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
 const (
+	SQLite     = migration.SQLite
+	PostgreSQL = migration.PostgreSQL
+	MySQL      = migration.MySQL
+
 	// SqliteDriver is the name of the SQLite database driver.
 	SqliteDriver = "sqlite"
 
@@ -34,15 +38,15 @@ type dbInfo struct {
 
 //nolint:gochecknoglobals // global var is used by design
 var rdbms = map[string]dbInfo{
-	migration.SQLite: {
+	SQLite: {
 		driver:  SqliteDriver,
 		makeDSN: SqliteDSN,
 	},
-	migration.PostgreSQL: {
+	PostgreSQL: {
 		driver:  PostgresDriver,
 		makeDSN: PostgresDSN,
 	},
-	migration.MySQL: {
+	MySQL: {
 		driver:  MysqlDriver,
 		makeDSN: MysqlDSN,
 	},

@@ -20,7 +20,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database/migrations"
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -174,13 +173,13 @@ func startViaMigration(c convey.C) {
 	switch config.Database.Type {
 	case PostgreSQL:
 		sqlDB = testhelpers.GetTestPostgreDBNoReset(c)
-		dialect = migration.PostgreSQL
+		dialect = migrations.PostgreSQL
 
 		_, err := sqlDB.Exec(migrations.PostgresCreationScript)
 		c.So(err, convey.ShouldBeNil)
 	case MySQL:
 		sqlDB = testhelpers.GetTestMySQLDBNoReset(c)
-		dialect = migration.MySQL
+		dialect = migrations.MySQL
 
 		script := strings.Split(migrations.MysqlCreationScript, ";\n")
 		for _, cmd := range script {
@@ -191,7 +190,7 @@ func startViaMigration(c convey.C) {
 		var addr string
 		sqlDB, addr = testhelpers.GetTestSqliteDBNoReset(c)
 
-		dialect = migration.SQLite
+		dialect = migrations.SQLite
 		config.Database.Address = addr
 
 		_, err := sqlDB.Exec(migrations.SqliteCreationScript)
@@ -200,11 +199,8 @@ func startViaMigration(c convey.C) {
 		panic(fmt.Sprintf("Unknown database type '%s'\n", config.Database.Type))
 	}
 
-	migrEngine, err := migration.NewEngine(sqlDB, dialect, nil)
-	c.So(err, convey.ShouldBeNil)
-
-	c.So(migrEngine.Upgrade(migrations.Migrations), convey.ShouldBeNil)
-	c.So(migrEngine.Upgrade(migrations.BumpToCurrent()), convey.ShouldBeNil)
+	logger := testhelpers.TestLogger(c, "migration_engine")
+	migrations.BumpToCurrent(c, sqlDB, logger, dialect)
 	c.So(sqlDB.Close(), convey.ShouldBeNil)
 }
 

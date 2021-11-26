@@ -2,11 +2,9 @@ package migrations
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
-
-	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
-func testVer0_5_2FillRemoteTransferID(eng *migration.Engine) {
+func testVer0_5_2FillRemoteTransferID(eng *testEngine) {
 	Convey("Given the 0.5.2 remote transfer id change", func() {
 		setupDatabaseUpTo(eng, ver0_5_2FillRemoteTransferID{})
 
@@ -25,7 +23,7 @@ func testVer0_5_2FillRemoteTransferID(eng *migration.Engine) {
 		So(err, ShouldBeNil)
 
 		Convey("When applying the migration", func() {
-			err := eng.Upgrade([]migration.Migration{{Script: ver0_5_2FillRemoteTransferID{}}})
+			err := eng.Upgrade(ver0_5_2FillRemoteTransferID{})
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have filled the remote transfer id", func() {
@@ -53,7 +51,7 @@ func testVer0_5_2FillRemoteTransferID(eng *migration.Engine) {
 			})
 
 			Convey("When reverting the migration", func() {
-				err := eng.Downgrade([]migration.Migration{{Script: ver0_5_2FillRemoteTransferID{}}})
+				err := eng.Downgrade(ver0_5_2FillRemoteTransferID{})
 				So(err, ShouldBeNil)
 
 				Convey("Then it should have re-emptied the remote transfer id", func() {
