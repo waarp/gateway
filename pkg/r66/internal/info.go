@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -116,7 +117,8 @@ func MakeFileInfo(pip *pipeline.Pipeline, info *r66.SystemData) *types.TransferE
 // MakeTransferInfo fills the given r66.TransferData instance with transfer information
 // relating to the given transfer pipeline.
 func MakeTransferInfo(logger *log.Logger, transCtx *model.TransferContext,
-	info *r66.TransferData) *types.TransferError {
+	info *r66.TransferData,
+) *types.TransferError {
 	var fID float64
 
 	if follow, ok := transCtx.TransInfo[FollowID]; ok {
@@ -129,7 +131,7 @@ func MakeTransferInfo(logger *log.Logger, transCtx *model.TransferContext,
 
 	info.SystemData.FollowID = int(fID)
 
-	userContent, err := MakeUserContent(logger, transCtx)
+	userContent, err := MakeUserContent(logger, transCtx.TransInfo)
 	if err != nil {
 		return err
 	}
@@ -140,17 +142,17 @@ func MakeTransferInfo(logger *log.Logger, transCtx *model.TransferContext,
 }
 
 // MakeUserContent returns a string containing the marshaled transfer infos.
-func MakeUserContent(logger *log.Logger, transCtx *model.TransferContext) (string, *types.TransferError) {
+func MakeUserContent(logger *log.Logger, transInfo map[string]interface{}) (string, *types.TransferError) {
 	var userContent string
 
-	if cont, ok := transCtx.TransInfo[UserContent]; ok {
+	if cont, ok := transInfo[UserContent]; ok {
 		if userContent, ok = cont.(string); !ok {
 			logger.Errorf("Invalid type '%T' for R66 user content", cont)
 
 			return "", types.NewTransferError(types.TeInternal, "failed to make transfer info")
 		}
 	} else {
-		cont, err := json.Marshal(transCtx.TransInfo)
+		cont, err := json.Marshal(transInfo)
 		if err != nil {
 			logger.Errorf("Failed to marshal transfer info: %s", err)
 
@@ -161,4 +163,21 @@ func MakeUserContent(logger *log.Logger, transCtx *model.TransferContext) (strin
 	}
 
 	return userContent, nil
+}
+
+// GetRuleMode returns the appropriate R66 rule mode based on the given rule and
+// agent configuration.
+func GetRuleMode(rule *model.Rule, conf *config.R66ProtoConfig) uint32 {
+	switch {
+	case rule.IsSend && conf.CheckBlockHash:
+		return uint32(r66.ModeRecvMD5)
+	case rule.IsSend && !conf.CheckBlockHash:
+		return uint32(r66.ModeRecv)
+	case !rule.IsSend && conf.CheckBlockHash:
+		return uint32(r66.ModeSendMD5)
+	case !rule.IsSend && !conf.CheckBlockHash:
+		return uint32(r66.ModeSend)
+	default:
+		return uint32(r66.ModeUnknown) // can never happen but required anyway
+	}
 }

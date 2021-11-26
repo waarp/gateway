@@ -3,6 +3,7 @@ package model
 import (
 	"bytes"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/big"
@@ -84,6 +85,26 @@ func (c *Cryptos) checkAuthent(name string, certs []*x509.Certificate,
 	}
 
 	return nil
+}
+
+func getTransferInfo(db database.ReadAccess, id uint64) (map[string]interface{}, database.Error) {
+	var infoList TransferInfoList
+	if err := db.Select(&infoList).Where("transfer_id=?", id).Run(); err != nil {
+		return nil, err
+	}
+
+	infoMap := map[string]interface{}{}
+
+	for _, info := range infoList {
+		var val interface{}
+		if err := json.Unmarshal([]byte(info.Value), &val); err != nil {
+			return nil, database.NewValidationError("invalid transfer info value '%s': %s", info.Value, err)
+		}
+
+		infoMap[info.Name] = val
+	}
+
+	return infoMap, nil
 }
 
 func makeIDGenerator() (*snowflake.Node, error) {

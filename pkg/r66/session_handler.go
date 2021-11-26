@@ -1,6 +1,7 @@
 package r66
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -13,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/r66/internal"
@@ -207,11 +209,112 @@ func (s *sessionHandler) setProgress(req *r66.Request, trans *model.Transfer) *r
 	return nil
 }
 
-func (s *sessionHandler) GetTransferInfo(int64, bool) (*r66.TransferInfo, error) {
-	return nil, r66.ErrUnsupportedFeature
+func (s *sessionHandler) GetTransferInfo(id int64, isClient bool) (*r66.TransferInfo, error) {
+	if isClient {
+		return nil, &r66.Error{
+			Code:   r66.IncorrectCommand,
+			Detail: "requesting info on client transfers is forbidden",
+		}
+	}
+
+	remoteID := fmt.Sprint(id)
+	trans := model.Transfer{}
+
+	err := s.db.Get(&trans, "remote_transfer_id=? AND is_server=? AND account_id=?",
+		remoteID, true, s.account.ID).Run()
+	if database.IsNotFound(err) {
+		return s.getInfoFromHistory(id)
+	} else if err != nil {
+		s.logger.Errorf("Failed to retrieve transfer entry: %s", err)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+	}
+
+	return s.getInfoFromTransfer(id, &trans)
 }
 
-func (s *sessionHandler) GetFileInfo(ruleName string, pat string) ([]r66.FileInfo, error) {
+func (s *sessionHandler) getInfoFromTransfer(remoteID int64, trans *model.Transfer,
+) (*r66.TransferInfo, error) {
+	ctx, err := model.GetTransferContext(s.db, s.logger, trans)
+	if err != nil {
+		return nil, internal.ToR66Error(err)
+	}
+
+	var protoConf config.R66ProtoConfig
+	if err := json.Unmarshal(ctx.LocalAgent.ProtoConfig, &protoConf); err != nil {
+		s.logger.Errorf("Failed to parse server configuration: %s", err)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to parse server configuration"}
+	}
+
+	userContent, err := internal.MakeUserContent(s.logger, ctx.TransInfo)
+	if err != nil {
+		return nil, internal.ToR66Error(err)
+	}
+
+	file, fErr := filepath.Rel(s.makeDir(ctx.Rule), trans.LocalPath)
+	if fErr != nil {
+		s.logger.Errorf("Failed to build file path: %s", err)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "failed to build file path"}
+	}
+
+	return &r66.TransferInfo{
+		ID:        remoteID,
+		Client:    ctx.LocalAccount.Login,
+		Server:    ctx.LocalAgent.Name,
+		File:      filepath.ToSlash(file),
+		Rule:      ctx.Rule.Name,
+		RuleMode:  internal.GetRuleMode(ctx.Rule, &protoConf),
+		BlockSize: protoConf.BlockSize,
+		Info:      userContent,
+		Start:     trans.Start,
+	}, nil
+}
+
+func (s *sessionHandler) getInfoFromHistory(transID int64) (*r66.TransferInfo, error) {
+	var hist model.HistoryEntry
+
+	dbErr := s.db.Get(&hist, "remote_transfer_id=? AND is_server=? AND account=?",
+		fmt.Sprint(transID), true, s.account.Login).Run()
+	if database.IsNotFound(dbErr) {
+		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "transfer not found"}
+	} else if dbErr != nil {
+		s.logger.Errorf("Failed to retrieve history entry: %s", dbErr)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+	}
+
+	transInfo, dbErr := hist.GetTransferInfo(s.db)
+	if dbErr != nil {
+		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+	}
+
+	userContent, err := internal.MakeUserContent(s.logger, transInfo)
+	if err != nil {
+		return nil, internal.ToR66Error(err)
+	}
+
+	mode := r66.ModeSend
+	if hist.IsSend {
+		mode = r66.ModeRecv
+	}
+
+	return &r66.TransferInfo{
+		ID:        transID,
+		Client:    hist.Account,
+		Server:    hist.Agent,
+		File:      filepath.Base(hist.LocalPath),
+		Rule:      hist.Rule,
+		RuleMode:  uint32(mode), // FIXME once issue #284 is implemented
+		BlockSize: 0,            // FIXME once issue #284 is implemented
+		Info:      userContent,
+		Start:     hist.Start,
+		Stop:      hist.Stop,
+	}, nil
+}
+
+func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, error) {
 	var rule model.Rule
 
 	if err := s.db.Get(&rule, "name=? AND send=?", ruleName, true).Run(); database.IsNotFound(err) {
@@ -222,10 +325,19 @@ func (s *sessionHandler) GetFileInfo(ruleName string, pat string) ([]r66.FileInf
 		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
 	}
 
+	if ok, err := rule.IsAuthorized(s.db, s.account); err != nil {
+		s.logger.Errorf("Failed to check rule permissions: %s", err)
+
+		return nil, &r66.Error{Code: r66.Internal, Detail: "database error"}
+	} else if !ok {
+		return nil, &r66.Error{
+			Code:   r66.IncorrectCommand,
+			Detail: "you do not have the rights to use this transfer rule",
+		}
+	}
+
 	pattern := filepath.FromSlash(pat)
-	dir := utils.GetPath("", utils.Leaf(rule.LocalDir), utils.Leaf(s.agent.SendDir),
-		utils.Branch(s.agent.RootDir), utils.Leaf(conf.GlobalConfig.Paths.DefaultOutDir),
-		utils.Branch(conf.GlobalConfig.Paths.GatewayHome))
+	dir := s.makeDir(&rule)
 
 	return s.listDirFiles(dir, pattern)
 }
@@ -312,4 +424,18 @@ func (s *sessionHandler) listSubFiles(full, dir string) []r66.FileInfo {
 	}
 
 	return infos
+}
+
+func (s *sessionHandler) makeDir(rule *model.Rule) string {
+	servDir := s.agent.ReceiveDir
+	defDir := conf.GlobalConfig.Paths.DefaultInDir
+
+	if rule.IsSend {
+		servDir = s.agent.SendDir
+		defDir = conf.GlobalConfig.Paths.DefaultOutDir
+	}
+
+	return utils.GetPath("", utils.Leaf(rule.LocalDir), utils.Leaf(servDir),
+		utils.Branch(s.agent.RootDir), utils.Leaf(defDir),
+		utils.Branch(conf.GlobalConfig.Paths.GatewayHome))
 }

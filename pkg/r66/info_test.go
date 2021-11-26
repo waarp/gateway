@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
@@ -14,6 +15,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
@@ -101,17 +103,211 @@ func TestGetFileInfo(t *testing.T) {
 
 			Convey("When calling the GetFileInfo function with an incorrect pattern", func() {
 				_, err := handle.GetFileInfo(rule.Name, "barfoo")
-				So(err, ShouldBeError, &r66.Error{
-					Code:   r66.FileNotFound,
-					Detail: "no files found for the given pattern",
+
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, &r66.Error{
+						Code:   r66.FileNotFound,
+						Detail: "no files found for the given pattern",
+					})
 				})
 			})
 
 			Convey("When calling the GetFileInfo function with an unknown rule", func() {
 				_, err := handle.GetFileInfo("no_rule", "")
-				So(err, ShouldBeError, &r66.Error{
-					Code:   r66.IncorrectCommand,
-					Detail: "rule not found",
+
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, &r66.Error{
+						Code:   r66.IncorrectCommand,
+						Detail: "rule not found",
+					})
+				})
+			})
+
+			Convey("Given that the user is not allowed to use the given rule", func() {
+				other := &model.LocalAccount{
+					LocalAgentID: agent.ID,
+					Login:        "other",
+					PasswordHash: hash("other_pswd"),
+				}
+				So(db.Insert(other).Run(), ShouldBeNil)
+
+				accs := &model.RuleAccess{
+					RuleID:     rule.ID,
+					ObjectID:   other.ID,
+					ObjectType: other.TableName(),
+				}
+				So(db.Insert(accs).Run(), ShouldBeNil)
+
+				Convey("When calling the GetFileInfo function", func() {
+					_, err := handle.GetFileInfo(rule.Name, "")
+
+					Convey("Then it should return an error", func() {
+						So(err, ShouldBeError, &r66.Error{
+							Code:   r66.IncorrectCommand,
+							Detail: "you do not have the rights to use this transfer rule",
+						})
+					})
+				})
+			})
+		})
+	})
+}
+
+func TestGetTransferInfo(t *testing.T) {
+	Convey("Given an R66 server", t, func(c C) {
+		root := testhelpers.TempDir(c, "r66_get_file_info")
+		db := database.TestDatabase(c, "ERROR")
+		conf.GlobalConfig.Paths.GatewayHome = root
+
+		protoConf, err := json.Marshal(config.R66ProtoConfig{
+			ServerLogin: "r66_server", ServerPassword: "foobar",
+		})
+		So(err, ShouldBeNil)
+
+		agent := &model.LocalAgent{
+			Name:        "r66_server",
+			Protocol:    "r66",
+			RootDir:     "r66_root",
+			SendDir:     "send",
+			Address:     "localhost:6666",
+			ProtoConfig: protoConf,
+		}
+		So(db.Insert(agent).Run(), ShouldBeNil)
+
+		account := &model.LocalAccount{
+			LocalAgentID: agent.ID,
+			Login:        "foo",
+			PasswordHash: hash("bar"),
+		}
+		So(db.Insert(account).Run(), ShouldBeNil)
+
+		rule := &model.Rule{
+			Name:     "snd",
+			IsSend:   true,
+			Path:     "snd",
+			LocalDir: "snd_dir",
+		}
+		So(db.Insert(rule).Run(), ShouldBeNil)
+
+		handle := sessionHandler{
+			authHandler: &authHandler{
+				Service: &Service{
+					db:     db,
+					logger: log.NewLogger("r66"),
+					agent:  agent,
+				},
+			},
+			account: account,
+		}
+
+		Convey("Given a transfer on the R66 server", func() {
+			trans := &model.Transfer{
+				RemoteTransferID: "123",
+				IsServer:         true,
+				RuleID:           rule.ID,
+				AgentID:          agent.ID,
+				AccountID:        account.ID,
+				LocalPath:        filepath.Join(root, agent.RootDir, rule.LocalDir, "file.ex"),
+				RemotePath:       "file.ex",
+				Filesize:         100,
+				Start:            time.Date(2021, 2, 1, 0, 0, 0, 0, time.Local),
+				Status:           types.StatusRunning,
+				Step:             types.StepData,
+				Progress:         50,
+				TaskNumber:       0,
+			}
+			So(db.Insert(trans).Run(), ShouldBeNil)
+
+			tInfo := &model.TransferInfo{
+				TransferID: trans.ID,
+				IsHistory:  false,
+				Name:       "key",
+				Value:      `"val"`,
+			}
+			So(db.Insert(tInfo).Run(), ShouldBeNil)
+
+			Convey("When calling the GetTransferInfo function", func() {
+				info, err := handle.GetTransferInfo(123, false)
+				So(err, ShouldBeNil)
+
+				Convey("Then it should return the correct information", func() {
+					So(info, ShouldResemble, &r66.TransferInfo{
+						ID:        123,
+						Client:    account.Login,
+						Server:    agent.Name,
+						File:      "file.ex",
+						Rule:      rule.Name,
+						RuleMode:  uint32(r66.ModeRecv),
+						BlockSize: 65536,
+						Info:      `{"key":"val"}`,
+						Start:     trans.Start,
+						Stop:      time.Time{},
+					})
+				})
+			})
+
+			Convey("When calling GetTransferInfo with an unknown ID", func() {
+				_, err := handle.GetTransferInfo(789, false)
+
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, &r66.Error{
+						Code:   r66.IncorrectCommand,
+						Detail: "transfer not found",
+					})
+				})
+			})
+
+			Convey("When calling GetTransferInfo for a client transfer", func() {
+				_, err := handle.GetTransferInfo(123, true)
+
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, &r66.Error{
+						Code:   r66.IncorrectCommand,
+						Detail: "requesting info on client transfers is forbidden",
+					})
+				})
+			})
+		})
+
+		Convey("Given a history entry on the R66 server", func() {
+			hist := &model.HistoryEntry{
+				ID:               1,
+				RemoteTransferID: "123",
+				IsServer:         true,
+				IsSend:           true,
+				Rule:             rule.Name,
+				Account:          account.Login,
+				Agent:            agent.Name,
+				Protocol:         "r66",
+				LocalPath:        filepath.Join(root, agent.RootDir, rule.LocalDir, "file.ex"),
+				RemotePath:       "file.ex",
+				Filesize:         100,
+				Start:            time.Date(2021, 2, 1, 0, 0, 0, 0, time.Local),
+				Stop:             time.Date(2021, 2, 2, 0, 0, 0, 0, time.Local),
+				Status:           types.StatusDone,
+				Step:             types.StepNone,
+				Progress:         100,
+				TaskNumber:       0,
+			}
+			So(db.Insert(hist).Run(), ShouldBeNil)
+
+			Convey("When calling the GetTransferInfo function", func() {
+				info, err := handle.GetTransferInfo(123, false)
+				So(err, ShouldBeNil)
+
+				Convey("Then it should return the correct information", func() {
+					So(info, ShouldResemble, &r66.TransferInfo{
+						ID:        123,
+						Client:    account.Login,
+						Server:    agent.Name,
+						File:      "file.ex",
+						Rule:      rule.Name,
+						RuleMode:  uint32(r66.ModeRecv),
+						BlockSize: 0,
+						Info:      "{}",
+						Start:     hist.Start,
+						Stop:      hist.Stop,
+					})
 				})
 			})
 		})

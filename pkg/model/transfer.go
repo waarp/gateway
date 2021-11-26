@@ -402,23 +402,7 @@ func (t *Transfer) ToHistory(db *database.DB, logger *log.Logger, end time.Time)
 
 // GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.
 func (t *Transfer) GetTransferInfo(db database.ReadAccess) (map[string]interface{}, database.Error) {
-	var infoList TransferInfoList
-	if err := db.Select(&infoList).Where("transfer_id=?", t.ID).Run(); err != nil {
-		return nil, err
-	}
-
-	infoMap := map[string]interface{}{}
-
-	for _, info := range infoList {
-		var val interface{}
-		if err := json.Unmarshal([]byte(info.Value), &val); err != nil {
-			return nil, database.NewValidationError("invalid transfer info value '%s': %s", info.Value, err)
-		}
-
-		infoMap[info.Name] = val
-	}
-
-	return infoMap, nil
+	return getTransferInfo(db, t.ID)
 }
 
 /*
