@@ -4,6 +4,11 @@ Historique des versions
 =======================
 
 * :release:`0.6.0 <>`
+* :feature:`256` Ajout du listing de fichiers et de la requête de métadonnées de
+  transferts au serveur R66 de la gateway. Il est désormais possible pour un
+  client R66 de demander au serveur une liste des fichiers transférables avec
+  une règle données. Il est également possible désormais pour un client de
+  demander des informations sur un transfert qu'il a effectué avec le serveur.
 * :feature:`250` Ajout du support des *transfers info* à la gateway. Les
   *transfer info* sont une liste de paires clé-valeur définies par l'utilisateur
   à la création du transfert, et qui seront envoyées par le client en même temps
