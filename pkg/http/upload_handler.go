@@ -134,7 +134,7 @@ func (u *uploadHandler) run() {
 		return
 	}
 
-	if err := getRemoteStatus(u.req.Trailer, u.pip); err != nil {
+	if err := getRemoteStatus(u.req.Trailer, nil, u.pip); err != nil {
 		u.sendError(err.Code, err.Details, http.StatusBadRequest)
 
 		return

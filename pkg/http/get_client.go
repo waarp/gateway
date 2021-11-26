@@ -60,7 +60,7 @@ func (g *getClient) Request() *types.TransferError {
 	case http.StatusOK, http.StatusPartialContent:
 		return g.getSizeProgress()
 	default:
-		return getRemoteStatus(g.resp.Header, g.pip)
+		return getRemoteStatus(g.resp.Header, g.resp.Body, g.pip)
 	}
 }
 
@@ -110,7 +110,7 @@ func (g *getClient) Data(stream pipeline.DataStream) *types.TransferError {
 			"failed to close remote HTTP file")
 	}
 
-	return getRemoteStatus(g.resp.Trailer, g.pip)
+	return getRemoteStatus(g.resp.Trailer, g.resp.Body, g.pip)
 }
 
 func (g *getClient) EndTransfer() *types.TransferError {

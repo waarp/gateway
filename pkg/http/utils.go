@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -30,21 +31,30 @@ func unauthorized(w http.ResponseWriter, msg string) {
 	w.Header().Add("WWW-Authenticate", `Transport mode="tls-client-certificate"`)
 }
 
-func getRemoteError(headers http.Header) *types.TransferError {
-	code := types.TeUnknownRemote
+func getRemoteError(headers http.Header, body io.ReadCloser) *types.TransferError {
+	return parseRemoteError(headers, body, types.TeUnknownRemote, "unknown error on remote")
+}
+
+func parseRemoteError(headers http.Header, body io.ReadCloser,
+	defaultCode types.TransferErrorCode, defaultMsg string) *types.TransferError {
+	code := defaultCode
 	if c := headers.Get(httpconst.ErrorCode); c != "" {
 		code = types.TecFromString(c)
 	}
 
-	msg := "unknown error on remote"
+	msg := defaultMsg
 	if m := headers.Get(httpconst.ErrorMessage); m != "" {
 		msg = m
+	} else {
+		if bodMsg, err := io.ReadAll(body); msg == "" && err == nil {
+			msg = string(bodMsg)
+		}
 	}
 
 	return types.NewTransferError(code, msg)
 }
 
-func getRemoteStatus(headers http.Header, pip *pipeline.Pipeline) *types.TransferError {
+func getRemoteStatus(headers http.Header, body io.ReadCloser, pip *pipeline.Pipeline) *types.TransferError {
 	status := types.StatusDone
 
 	if st := headers.Get(httpconst.TransferStatus); st != "" {
@@ -68,7 +78,7 @@ func getRemoteStatus(headers http.Header, pip *pipeline.Pipeline) *types.Transfe
 
 		return errCancel
 	case types.StatusError:
-		return getRemoteError(headers)
+		return getRemoteError(headers, body)
 	default:
 		return types.NewTransferError(types.TeUnknownRemote, "unknown error on remote")
 	}

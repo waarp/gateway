@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/http/httptrace"
@@ -73,7 +72,7 @@ func (p *postClient) checkResume(url string) *types.TransferError {
 	default:
 		p.pip.Logger.Errorf("HTTP Head replied with %s", resp.Status)
 
-		return getRemoteError(resp.Header)
+		return getRemoteError(resp.Header, resp.Body)
 	}
 
 	return p.updateTransForResume(prog)
@@ -187,12 +186,8 @@ func (p *postClient) Request() *types.TransferError {
 	case resp := <-p.resp:
 		defer resp.Body.Close() //nolint:errcheck // error is irrelevant at this point
 
-		msg := resp.Header.Get(httpconst.ErrorMessage)
-		if body, err := ioutil.ReadAll(resp.Body); msg == "" && err == nil {
-			msg = string(body)
-		}
-
-		return types.NewTransferError(types.TeConnection, "HTTP request failed: %s", msg)
+		return parseRemoteError(resp.Header, resp.Body, types.TeConnection,
+			"failed to connect to remote host")
 	}
 }
 
@@ -212,7 +207,7 @@ func (p *postClient) Data(stream pipeline.DataStream) *types.TransferError {
 			}
 
 			if resp.StatusCode != http.StatusCreated {
-				return getRemoteStatus(resp.Header, p.pip)
+				return getRemoteStatus(resp.Header, resp.Body, p.pip)
 			}
 
 			return types.NewTransferError(types.TeDataTransfer,
@@ -245,7 +240,7 @@ func (p *postClient) EndTransfer() *types.TransferError {
 		}
 
 		if resp.StatusCode != http.StatusCreated {
-			return getRemoteStatus(resp.Header, p.pip)
+			return getRemoteStatus(resp.Header, resp.Body, p.pip)
 		}
 	}
 
