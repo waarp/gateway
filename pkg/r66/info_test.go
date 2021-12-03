@@ -159,9 +159,11 @@ func TestGetTransferInfo(t *testing.T) {
 		db := database.TestDatabase(c, "ERROR")
 		conf.GlobalConfig.Paths.GatewayHome = root
 
-		protoConf, err := json.Marshal(config.R66ProtoConfig{
+		protoConfig := config.R66ProtoConfig{
 			ServerLogin: "r66_server", ServerPassword: "foobar",
-		})
+		}
+
+		jsonProtoConf, err := json.Marshal(protoConfig)
 		So(err, ShouldBeNil)
 
 		agent := &model.LocalAgent{
@@ -170,7 +172,7 @@ func TestGetTransferInfo(t *testing.T) {
 			RootDir:     "r66_root",
 			SendDir:     "send",
 			Address:     "localhost:6666",
-			ProtoConfig: protoConf,
+			ProtoConfig: jsonProtoConf,
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -237,7 +239,8 @@ func TestGetTransferInfo(t *testing.T) {
 						Server:    agent.Name,
 						File:      "file.ex",
 						Rule:      rule.Name,
-						RuleMode:  uint32(r66.ModeRecv),
+						IsRecv:    rule.IsSend,
+						IsMd5:     protoConfig.CheckBlockHash,
 						BlockSize: 65536,
 						Info:      `{"key":"val"}`,
 						Start:     trans.Start,

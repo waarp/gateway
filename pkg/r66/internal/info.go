@@ -8,7 +8,6 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
@@ -163,21 +162,4 @@ func MakeUserContent(logger *log.Logger, transInfo map[string]interface{}) (stri
 	}
 
 	return userContent, nil
-}
-
-// GetRuleMode returns the appropriate R66 rule mode based on the given rule and
-// agent configuration.
-func GetRuleMode(rule *model.Rule, conf *config.R66ProtoConfig) uint32 {
-	switch {
-	case rule.IsSend && conf.CheckBlockHash:
-		return uint32(r66.ModeRecvMD5)
-	case rule.IsSend && !conf.CheckBlockHash:
-		return uint32(r66.ModeRecv)
-	case !rule.IsSend && conf.CheckBlockHash:
-		return uint32(r66.ModeSendMD5)
-	case !rule.IsSend && !conf.CheckBlockHash:
-		return uint32(r66.ModeSend)
-	default:
-		return uint32(r66.ModeUnknown) // can never happen but required anyway
-	}
 }
