@@ -220,7 +220,7 @@ func TestImportRules(t *testing.T) {
 
 					Convey("Then the database should contains the Rule imported", func() {
 						var dbRule model.Rule
-						So(db.Get(&dbRule, "name=? AND send=?", existing.Name,
+						So(db.Get(&dbRule, "name=? AND is_send=?", existing.Name,
 							existing.IsSend).Run(), ShouldBeNil)
 
 						Convey("Then the record should correspond to "+
@@ -274,7 +274,7 @@ func TestImportRules(t *testing.T) {
 					Convey("Then the database should contains the "+
 						"imported rule", func() {
 						var dbRule model.Rule
-						So(db.Get(&dbRule, "name=? AND send=?", existing.Name,
+						So(db.Get(&dbRule, "name=? AND is_send=?", existing.Name,
 							existing.IsSend).Run(), ShouldBeNil)
 
 						Convey("Then the record should correspond to "+

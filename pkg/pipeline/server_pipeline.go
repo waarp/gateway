@@ -83,7 +83,7 @@ func newServerPipeline(db *database.DB, trans *model.Transfer,
 			return nil, errDatabase
 		}
 
-		pipeline.Logger = conf.GetLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
+		*logger = *conf.GetLogger(fmt.Sprintf("Pipeline %d (server)", trans.ID))
 	} else if err := pipeline.UpdateTrans(); err != nil {
 		logger.Error("Failed to update the transfer details: %s", err)
 

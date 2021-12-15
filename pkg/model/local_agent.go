@@ -12,11 +12,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&LocalAgent{})
-}
-
 // LocalAgent represents a local server instance operated by the gateway itself.
 // The struct contains the information needed by external agents to connect to
 // the server.
@@ -26,13 +21,13 @@ type LocalAgent struct {
 
 	// The agent's owner (i.e. the name of the gateway instance to which the
 	// agent belongs to).
-	Owner string `xorm:"VARCHAR(100) UNIQUE(loc_ag) NOTNULL DEFAULT('waarp-gateway') 'owner'"`
+	Owner string `xorm:"VARCHAR(100) UNIQUE(loc_ag) NOTNULL 'owner'"`
 
 	// The agent's display name.
-	Name string `xorm:"VARCHAR(100) UNIQUE(loc_ag) NOTNULL DEFAULT('') 'name'"`
+	Name string `xorm:"VARCHAR(100) UNIQUE(loc_ag) NOTNULL 'name'"`
 
 	// The protocol used by the agent.
-	Protocol string `xorm:"VARCHAR(50) NOTNULL DEFAULT('') 'protocol'"`
+	Protocol string `xorm:"VARCHAR(50) NOTNULL 'protocol'"`
 
 	// Whether the server is enabled at startup or not.
 	Enabled bool `xorm:"BOOL NOTNULL DEFAULT(true) 'enabled'"`

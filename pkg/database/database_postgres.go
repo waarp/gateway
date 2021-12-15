@@ -16,8 +16,8 @@ func init() {
 	supportedRBMS[PostgreSQL] = postgresinfo
 }
 
+func postgresInit(*xorm.Engine) error { return nil }
+
 func postgresinfo() (string, string, func(*xorm.Engine) error) {
-	return migrations.PostgresDriver, migrations.PostgresDSN(), func(*xorm.Engine) error {
-		return nil
-	}
+	return migrations.PostgresDriver, migrations.PostgresDSN(), postgresInit
 }

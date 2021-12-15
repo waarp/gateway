@@ -18,7 +18,7 @@ const (
 	StatusPaused TransferStatus = "PAUSED"
 
 	// StatusCancelled is the state of a transfer when canceled by a user.
-	//nolint:misspell // too late to change it
+	//nolint:misspell // must be kept for retro-compatibility
 	StatusCancelled TransferStatus = "CANCELLED"
 
 	// StatusDone is the state of a transfer when finished without error.

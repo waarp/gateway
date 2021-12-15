@@ -299,7 +299,7 @@ func TestListHistory(t *testing.T) {
 			})
 
 			Convey("Given a request with 1 valid 'start' parameter", func() {
-				date := h3.Start.Format(time.RFC3339Nano)
+				date := time.Date(2019, 1, 1, 2, 30, 0, 0, time.Local).Format(time.RFC3339)
 				req, err := http.NewRequest(http.MethodGet,
 					fmt.Sprintf("?start=%s", url.QueryEscape(date)), nil)
 				So(err, ShouldBeNil)
@@ -322,7 +322,7 @@ func TestListHistory(t *testing.T) {
 			})
 
 			Convey("Given a request with 1 valid 'stop' parameter", func() {
-				date := h2.Stop.Format(time.RFC3339Nano)
+				date := time.Date(2019, 1, 1, 4, 30, 0, 0, time.Local).Format(time.RFC3339)
 				req, err := http.NewRequest(http.MethodGet,
 					fmt.Sprintf("?stop=%s", url.QueryEscape(date)), nil)
 				So(err, ShouldBeNil)
@@ -345,11 +345,11 @@ func TestListHistory(t *testing.T) {
 			})
 
 			Convey("Given a request with 1 valid 'stop' and 1 valid 'start' parameter", func() {
-				start := h2.Start.Add(-time.Minute)
-				stop := h3.Stop.Add(time.Minute)
+				start := time.Date(2019, 1, 1, 1, 30, 0, 0, time.Local).Format(time.RFC3339)
+				stop := time.Date(2019, 1, 1, 5, 30, 0, 0, time.Local).Format(time.RFC3339)
 				req, err := http.NewRequest(http.MethodGet,
-					fmt.Sprintf("?start=%s&stop=%s", url.QueryEscape(start.Format(time.RFC3339Nano)),
-						url.QueryEscape(stop.Format(time.RFC3339Nano))), nil)
+					fmt.Sprintf("?start=%s&stop=%s", url.QueryEscape(start),
+						url.QueryEscape(stop)), nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {

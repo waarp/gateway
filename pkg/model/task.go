@@ -27,11 +27,6 @@ type TaskRunner interface {
 	Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error)
 }
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&Task{})
-}
-
 // Chain represents the valid chains for a task entry.
 type Chain string
 
@@ -46,9 +41,9 @@ const (
 
 // Task represents one record of the 'tasks' table.
 type Task struct {
-	RuleID int64           `xorm:"BIGINT NOTNULL 'rule_id'"` // foreign key (rules.id)
-	Chain  Chain           `xorm:"VARCHAR(10) NOTNULL 'chain'"`
-	Rank   int16           `xorm:"SMALLINT NOTNULL 'rank'"`
+	RuleID int64           `xorm:"BIGINT NOTNULL UNIQUE(taskNb) 'rule_id'"` // foreign key (rules.id)
+	Chain  Chain           `xorm:"VARCHAR(10) NOTNULL UNIQUE(taskNb) 'chain'"`
+	Rank   int16           `xorm:"SMALLINT NOTNULL UNIQUE(taskNb) 'rank'"`
 	Type   string          `xorm:"VARCHAR(50) NOTNULL 'type'"`
 	Args   json.RawMessage `xorm:"TEXT NOTNULL DEFAULT('{}') 'args'"`
 }
@@ -118,7 +113,13 @@ func (t *Task) BeforeWrite(db database.ReadAccess) database.Error {
 }
 
 func (*Task) MakeExtraConstraints(db *database.Executor) database.Error {
-	return redefineColumn(db, TableTasks, "rule_id", fmt.Sprintf(
-		`BIGINT NOT NULL REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`,
-		TableRules))
+	if err := redefineColumn(db, TableTasks, "rule_id", fmt.Sprintf(
+		`BIGINT NOT NULL REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
+		TableRules)); err != nil {
+		return err
+	}
+
+	return addTableConstraint(db, TableTasks, fmt.Sprintf(
+		`chain = '%s' OR chain = '%s' OR chain = '%s'`,
+		ChainPre, ChainPost, ChainError))
 }

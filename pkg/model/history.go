@@ -11,16 +11,11 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&HistoryEntry{})
-}
-
 // HistoryEntry represents one record of the 'transfers_history' table.
 type HistoryEntry struct {
 	ID               int64                `xorm:"BIGINT PK 'id'"`
 	Owner            string               `xorm:"VARCHAR(100) NOTNULL 'owner'"`
-	RemoteTransferID string               `xorm:"VARCHAR(100) NOTNULL DEFAULT('') 'remote_transfer_id'"`
+	RemoteTransferID string               `xorm:"VARCHAR(100) NOTNULL 'remote_transfer_id'"`
 	IsServer         bool                 `xorm:"BOOL NOTNULL 'is_server'"`
 	IsSend           bool                 `xorm:"BOOL NOTNULL 'is_send'"`
 	Rule             string               `xorm:"VARCHAR(100) NOTNULL 'rule'"`
@@ -30,11 +25,11 @@ type HistoryEntry struct {
 	LocalPath        string               `xorm:"TEXT NOTNULL 'local_path'"`
 	RemotePath       string               `xorm:"TEXT NOTNULL 'remote_path'"`
 	Filesize         int64                `xorm:"BIGINT NOTNULL DEFAULT(-1) 'filesize'"`
-	Start            time.Time            `xorm:"TIMESTAMPZ UTC NOTNULL 'start'"`
-	Stop             time.Time            `xorm:"TIMESTAMPZ UTC 'stop'"`
+	Start            time.Time            `xorm:"DATETIME(6) UTC NOTNULL 'start'"`
+	Stop             time.Time            `xorm:"DATETIME(6) UTC 'stop'"`
 	Status           types.TransferStatus `xorm:"VARCHAR(50) NOTNULL 'status'"`
 	Step             types.TransferStep   `xorm:"VARCHAR(50) NOTNULL 'step'"`
-	Progress         int64                `xorm:"BIGINT NOTNULL DEFAULT(0) 'progression'"`
+	Progress         int64                `xorm:"BIGINT NOTNULL DEFAULT(0) 'progress'"`
 	TaskNumber       int16                `xorm:"SMALLINT NOTNULL DEFAULT(0) 'task_number'"`
 	Error            types.TransferError  `xorm:"extends"`
 }
@@ -127,7 +122,7 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 // to be executed.
 func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, database.Error) {
 	rule := &Rule{}
-	if err := db.Get(rule, "name=? AND send=?", h.Rule, h.IsSend).Run(); err != nil {
+	if err := db.Get(rule, "name=? AND is_send=?", h.Rule, h.IsSend).Run(); err != nil {
 		return nil, err
 	}
 

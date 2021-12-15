@@ -23,7 +23,7 @@ func (i *InsertQuery) run(s *Session) Error {
 
 	query := s.session.Table(i.bean.TableName())
 
-	if _, err := query.InsertOne(i.bean); err != nil {
+	if _, err := query.Insert(i.bean); err != nil {
 		s.logger.Error("Failed to insert the new %s entry: %s", i.bean.Appellation(), err)
 
 		return NewInternalError(err)

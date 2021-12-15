@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/snowflake"
@@ -232,17 +233,20 @@ func redefineColumn(db *database.Executor, table, col, colDef string) database.E
 
 func addTableConstraint(db *database.Executor, table, cons string) database.Error {
 	if db.Dialect != database.SQLite {
-		if _, err := db.Exec(fmt.Sprintf(`ALTER TABLE %s ADD %s`, table, cons)); err != nil {
+		command := fmt.Sprintf(`ALTER TABLE %s ADD CHECK (%s)`, table, cons)
+		if _, err := db.Exec(command); err != nil {
 			db.Logger.Error("Failed to add new constraint to table %s: %s", table, err)
 
 			return database.NewInternalError(err)
 		}
+
+		return nil
 	}
 
 	return addSqliteTableConstraint(db, table, cons)
 }
 
-//nolint:funlen //splitting the function would hurt
+//nolint:funlen //splitting the function would hurt readability
 func addSqliteTableConstraint(db *database.Executor, table, cons string) database.Error {
 	// SQLite alter table procedure
 	res, err1 := db.Query("PRAGMA schema_version") // query the schema version
@@ -253,8 +257,10 @@ func addSqliteTableConstraint(db *database.Executor, table, cons string) databas
 		return database.NewInternalError(err1)
 	}
 
-	//nolint:errcheck,forcetypeassert //schema version is always an int64, no need to check
-	vers := res[0]["schema_version"].(int64) // save the schema version
+	//nolint:errcheck,forcetypeassert //schema version is always a string, no need to check
+	versStr := res[0]["schema_version"].(string) // save the schema version
+	//nolint:errcheck,gomnd //schema version is always a base 10 int, so the conversion always succeeds
+	vers, _ := strconv.ParseInt(versStr, 10, 64)
 
 	if _, err := db.Exec("PRAGMA writable_schema=ON"); err != nil { // allow schema editing
 		db.Logger.Error("Failed to add new constraint to table %s: "+

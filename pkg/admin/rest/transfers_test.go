@@ -500,9 +500,9 @@ func TestListTransfer(t *testing.T) {
 			})
 
 			Convey("Given a request with a valid 'start' parameter", func() {
-				date := t3.Start
+				date := time.Date(2021, 1, 1, 2, 30, 0, 0, time.Local).Format(time.RFC3339)
 				req, err := http.NewRequest(http.MethodGet,
-					fmt.Sprintf("?start=%s", url.QueryEscape(date.Format(time.RFC3339Nano))), nil)
+					fmt.Sprintf("?start=%s", url.QueryEscape(date)), nil)
 				So(err, ShouldBeNil)
 
 				Convey("When sending the request to the handler", func() {

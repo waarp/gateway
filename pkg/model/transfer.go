@@ -25,8 +25,6 @@ var idGenerator *snowflake.Node
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	database.AddTable(&Transfer{})
-
 	var err error
 	if idGenerator, err = makeIDGenerator(); err != nil {
 		panic(err)
@@ -37,17 +35,17 @@ func init() {
 type Transfer struct {
 	ID               int64                `xorm:"BIGINT PK AUTOINCR <- 'id'"`
 	Owner            string               `xorm:"VARCHAR(100) NOTNULL 'owner'"`
-	RemoteTransferID string               `xorm:"VARCHAR(100) 'remote_transfer_id'"`
+	RemoteTransferID string               `xorm:"VARCHAR(100) NOTNULL 'remote_transfer_id'"`
 	RuleID           int64                `xorm:"BIGINT NOTNULL 'rule_id'"`   // foreign key (rules.id)
 	LocalAccountID   sql.NullInt64        `xorm:"BIGINT 'local_account_id'"`  // foreign_key (local_accounts.id)
 	RemoteAccountID  sql.NullInt64        `xorm:"BIGINT 'remote_account_id'"` // foreign_key (remote_accounts.id)
-	LocalPath        string               `xorm:"TEXT NOTNULL DEFAULT('') 'local_path'"`
-	RemotePath       string               `xorm:"TEXT NOTNULL DEFAULT('') 'remote_path'"`
+	LocalPath        string               `xorm:"TEXT NOTNULL 'local_path'"`
+	RemotePath       string               `xorm:"TEXT NOTNULL 'remote_path'"`
 	Filesize         int64                `xorm:"BIGINT NOTNULL DEFAULT(-1) 'filesize'"`
-	Start            time.Time            `xorm:"TIMESTAMPZ UTC NOTNULL DEFAULT(CURRENT_TIMESTAMP) 'start'"`
+	Start            time.Time            `xorm:"DATETIME(6) UTC NOTNULL DEFAULT(CURRENT_TIMESTAMP) 'start'"`
 	Status           types.TransferStatus `xorm:"VARCHAR(50) NOTNULL DEFAULT('PLANNED') 'status'"`
 	Step             types.TransferStep   `xorm:"VARCHAR(50) NOTNULL DEFAULT('StepNone') 'step'"`
-	Progress         int64                `xorm:"BIGINT NOTNULL DEFAULT(0) 'progression'"`
+	Progress         int64                `xorm:"BIGINT NOTNULL DEFAULT(0) 'progress'"`
 	TaskNumber       int16                `xorm:"SMALLINT NOTNULL DEFAULT(0) 'task_number'"`
 	Error            types.TransferError  `xorm:"extends"`
 }
@@ -384,27 +382,27 @@ func (t *Transfer) TransferID() (int64, error) {
 func (*Transfer) MakeExtraConstraints(db *database.Executor) database.Error {
 	// add a not null foreign key to 'rule_id'
 	if err := redefineColumn(db, TableTransfers, "rule_id", fmt.Sprintf(
-		`BIGINT NOT NULL REFERENCES %s ON UPDATE RESTRICT ON DELETE RESTRICT`,
+		`BIGINT NOT NULL REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE RESTRICT`,
 		TableRules)); err != nil {
 		return err
 	}
 
 	// add a foreign key to 'local_account_id'
 	if err := redefineColumn(db, TableTransfers, "local_account_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s ON UPDATE RESTRICT ON DELETE RESTRICT`,
+		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE RESTRICT`,
 		TableLocAccounts)); err != nil {
 		return err
 	}
 
 	// add a foreign key to 'remote_account_id'
 	if err := redefineColumn(db, TableTransfers, "remote_account_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s ON UPDATE RESTRICT ON DELETE RESTRICT`,
+		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE RESTRICT`,
 		TableRemAccounts)); err != nil {
 		return err
 	}
 
 	// add a constraint to enforce that one (and only one) of 'local_account_id'
 	// and 'remote_account_id' must be defined
-	return addTableConstraint(db, TableTransfers,
-		`CHECK ( (local_account_id IS NULL) + (remote_account_id IS NULL) = 1 )`)
+	return addTableConstraint(db, TableTransfers, utils.CheckOnlyOneNotNull(
+		db.Dialect, "local_account_id", "remote_account_id"))
 }

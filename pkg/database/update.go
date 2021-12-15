@@ -41,7 +41,8 @@ func (u *UpdateQuery) run(s *Session) Error {
 	}
 
 	if _, err := query.Update(u.bean); err != nil {
-		s.logger.Error("Failed to update the %s entry: %s", u.bean.Appellation(), err)
+		s.logger.Error("Failed to update the %s entry n°%d: %s",
+			u.bean.Appellation(), u.bean.GetID(), err)
 
 		return NewInternalError(err)
 	}

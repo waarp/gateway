@@ -607,9 +607,9 @@ func TestUpdateRule(t *testing.T) {
 								So(db.Select(&tasks).Run(), ShouldBeNil)
 								So(len(tasks), ShouldEqual, 3)
 
-								So(tasks[0], ShouldResemble, pTask)
-								So(tasks[1], ShouldResemble, eTask)
-								So(tasks[2], ShouldResemble, &model.Task{
+								So(tasks, ShouldContain, pTask)
+								So(tasks, ShouldContain, eTask)
+								So(tasks, ShouldContain, &model.Task{
 									RuleID: 1,
 									Chain:  model.ChainPost,
 									Rank:   0,
@@ -779,7 +779,7 @@ func getExpected(src *model.Rule, upt *UptRule) *model.Rule {
 
 func getFromDb(db *database.DB, name string, isSend bool) (*model.Rule, error) {
 	var rule model.Rule
-	if err := db.Get(&rule, "name=? AND send=?", name, isSend).Run(); err != nil {
+	if err := db.Get(&rule, "name=? AND is_send=?", name, isSend).Run(); err != nil {
 		return nil, err
 	}
 

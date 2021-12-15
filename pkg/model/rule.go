@@ -7,11 +7,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&Rule{})
-}
-
 // Rule represents a transfer rule.
 type Rule struct {
 	// The Rule's ID
@@ -24,7 +19,7 @@ type Rule struct {
 	Comment string `xorm:"TEXT NOTNULL DEFAULT('') 'comment'"`
 
 	// The rule's direction (pull/push)
-	IsSend bool `xorm:"BOOL UNIQUE(dir) UNIQUE(path) NOTNULL 'send'"`
+	IsSend bool `xorm:"BOOL UNIQUE(dir) UNIQUE(path) NOTNULL 'is_send'"`
 
 	// The path used to differentiate the rule when the protocol does not allow it.
 	// This path is always an absolute path (must start with a slash).
@@ -98,7 +93,7 @@ func (r *Rule) checkAncestor(db database.ReadAccess, rulePath string) database.E
 }
 
 func (r *Rule) checkPath(db database.ReadAccess) database.Error {
-	if n, err := db.Count(r).Where("id<>? AND path=? AND send=?", r.ID, r.Path,
+	if n, err := db.Count(r).Where("id<>? AND path=? AND is_send=?", r.ID, r.Path,
 		r.IsSend).Run(); err != nil {
 		return err
 	} else if n > 0 {
@@ -123,7 +118,7 @@ func (r *Rule) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("the rule's name cannot be empty")
 	}
 
-	n, err := db.Count(r).Where("id<>? AND name=? AND send=?", r.ID,
+	n, err := db.Count(r).Where("id<>? AND name=? AND is_send=?", r.ID,
 		r.Name, r.IsSend).Run()
 	if err != nil {
 		return err

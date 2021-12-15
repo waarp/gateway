@@ -25,19 +25,6 @@ func AddTable(t Table) {
 	tables = append(tables, t)
 }
 
-// UpdateTable adds the given model to the pool of database tables.
-func UpdateTable(t Table) {
-	for i, e := range tables {
-		if e.TableName() == t.TableName() {
-			tables[i] = t
-
-			return
-		}
-	}
-
-	tables = append(tables, t)
-}
-
 // initialiser is an interface which models can optionally implement in order to
 // set default values after the table is created when the application is launched
 // for the first time.
@@ -74,49 +61,75 @@ func (e *Executor) Query(query string, args ...interface{}) ([]map[string]interf
 // initTables creates the database tables if they don't exist and fills them
 // with the default entries.
 func initTables(db *Standalone, withInit bool) error {
-	return db.Transaction(func(ses *Session) Error {
-		for _, tbl := range tables {
-			if ok, err := ses.session.IsTableExist(tbl.TableName()); err != nil {
-				db.logger.Critical("Failed to retrieve database table list: %s", err)
+	addedTables := make([]Table, 0, len(tables))
 
-				return NewInternalError(err)
-			} else if !ok {
-				if err := ses.session.Table(tbl.TableName()).CreateTable(tbl); err != nil {
-					db.logger.Critical("Failed to create the '%s' database table: %s",
-						tbl.TableName(), err)
-
-					return NewInternalError(err)
-				}
-
-				if fker, ok := tbl.(ExtraConstraintsMaker); ok {
-					exe := &Executor{conf.GlobalConfig.Database.Type, ses.logger, ses.session}
-					if err := fker.MakeExtraConstraints(exe); err != nil {
-						return err
-					}
-				}
-
-				if err := ses.session.Table(tbl.TableName()).CreateUniques(tbl); err != nil {
-					db.logger.Critical("Failed to create the '%s' table uniques: %s",
-						tbl.TableName(), err)
-
-					return NewInternalError(err)
-				}
-
-				if err := ses.session.Table(tbl.TableName()).CreateIndexes(tbl); err != nil {
-					db.logger.Critical("Failed to create the '%s' table indexes: %s",
-						tbl.TableName(), err)
-
-					return NewInternalError(err)
-				}
+	if err := db.Transaction(func(ses *Session) Error {
+		return initTablesFunc(ses, withInit, addedTables)
+	}); err != nil {
+		// MySQL commits after each CREATE TABLE, thus, if an error occurs during
+		// the database initialisation, we must drop all the tables which were
+		// added before that error to mirror the effect of a rollback.
+		if conf.GlobalConfig.Database.Type == MySQL {
+			names := make([]interface{}, len(addedTables))
+			for i := range addedTables {
+				names[len(addedTables)-1-i] = addedTables[i].TableName()
 			}
 
-			if init, ok := tbl.(initialiser); ok && withInit {
-				if err := init.Init(ses); err != nil {
+			_ = db.engine.DropTables(names...) //nolint:errcheck //this error is irrelevant
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+// initTables creates the database tables if they don't exist and fills them
+// with the default entries.
+func initTablesFunc(ses *Session, withInit bool, addedTables []Table) Error {
+	for _, tbl := range tables {
+		if ok, err := ses.session.IsTableExist(tbl.TableName()); err != nil {
+			ses.logger.Critical("Failed to retrieve database table list: %s", err)
+
+			return NewInternalError(err)
+		} else if !ok {
+			if err := ses.session.Table(tbl.TableName()).CreateTable(tbl); err != nil {
+				ses.logger.Critical("Failed to create the '%s' database table: %s",
+					tbl.TableName(), err)
+
+				return NewInternalError(err)
+			}
+
+			addedTables = append(addedTables, tbl)
+
+			if fker, ok := tbl.(ExtraConstraintsMaker); ok {
+				exe := &Executor{conf.GlobalConfig.Database.Type, ses.logger, ses.session}
+				if err := fker.MakeExtraConstraints(exe); err != nil {
 					return err
 				}
 			}
+
+			if err := ses.session.Table(tbl.TableName()).CreateUniques(tbl); err != nil {
+				ses.logger.Critical("Failed to create the '%s' table uniques: %s",
+					tbl.TableName(), err)
+
+				return NewInternalError(err)
+			}
+
+			if err := ses.session.Table(tbl.TableName()).CreateIndexes(tbl); err != nil {
+				ses.logger.Critical("Failed to create the '%s' table indexes: %s",
+					tbl.TableName(), err)
+
+				return NewInternalError(err)
+			}
 		}
 
-		return nil
-	})
+		if init, ok := tbl.(initialiser); ok && withInit {
+			if err := init.Init(ses); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

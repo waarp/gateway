@@ -23,7 +23,7 @@ func getTransIDs(db *database.DB, trans *api.InTransfer) (int64, int64, error) {
 	}
 
 	var rule model.Rule
-	if err := db.Get(&rule, "name=? AND send=?", trans.Rule, trans.IsSend).Run(); err != nil {
+	if err := db.Get(&rule, "name=? AND is_send=?", trans.Rule, trans.IsSend).Run(); err != nil {
 		if database.IsNotFound(err) {
 			return 0, 0, badRequest("no rule '%s' found", trans.Rule)
 		}
@@ -153,8 +153,7 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 			return nil, badRequest("'%s' is not a valid date", startStr)
 		}
 
-		query.Where("start >= ?", start.UTC().Truncate(time.Microsecond).
-			Format(time.RFC3339Nano))
+		query.Where("start >= ?", start.UTC())
 	}
 
 	sort := sorting["default"]

@@ -45,7 +45,7 @@ func (h *httpHandler) getRule(isSend bool) bool {
 }
 
 func (h *httpHandler) getRuleFromName(name string, isSend bool) bool {
-	if err := h.db.Get(&h.rule, "name=? AND send=?", name, isSend).Run(); err != nil {
+	if err := h.db.Get(&h.rule, "name=? AND is_send=?", name, isSend).Run(); err != nil {
 		if database.IsNotFound(err) {
 			h.rule.IsSend = isSend
 			msg := fmt.Sprintf("No %s rule with name '%s' found", h.rule.Direction(), name)
@@ -233,16 +233,16 @@ func (h *httpHandler) handle(isSend bool) {
 		op = "Download"
 	}
 
-	h.logger.Debug("%s of file %s requested by %s using rule %s, transfer "+
-		"was given ID n°%d", op, path.Base(h.req.URL.Path), h.account.Login,
-		h.rule.Name, trans.ID)
-
 	pip, err := pipeline.NewServerPipeline(h.db, trans)
 	if err != nil {
 		h.sendError(http.StatusInternalServerError, err.Code, err.Details)
 
 		return
 	}
+
+	h.logger.Debug("%s of file %s requested by %s using rule %s, transfer "+
+		"was given ID n°%d", op, path.Base(h.req.URL.Path), h.account.Login,
+		h.rule.Name, trans.ID)
 
 	if isSend {
 		runDownload(h.req, h.resp, h.running, pip)

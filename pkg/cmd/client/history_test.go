@@ -376,7 +376,8 @@ func TestListHistory(t *testing.T) {
 				})
 
 				Convey("Given a start parameter", func() {
-					args := []string{"--start=" + h3.Start.Format(time.RFC3339Nano)}
+					start := time.Date(2019, 1, 1, 2, 30, 0, 0, time.Local)
+					args := []string{"--start", start.Format(time.RFC3339)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -392,7 +393,8 @@ func TestListHistory(t *testing.T) {
 				})
 
 				Convey("Given a stop parameter", func() {
-					args := []string{"--stop=" + h2.Stop.Format(time.RFC3339Nano)}
+					stop := time.Date(2019, 1, 1, 2, 30, 0, 0, time.Local)
+					args := []string{"--stop", stop.Format(time.RFC3339)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)

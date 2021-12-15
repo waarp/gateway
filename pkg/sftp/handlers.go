@@ -174,14 +174,14 @@ func (l *sshListener) getClosestRule(acc *model.LocalAccount, rulePath string,
 	}
 
 	var rule model.Rule
-	if err := l.DB.Get(&rule, "path=? AND send=?", rulePath, isSendPriority).Run(); err != nil {
+	if err := l.DB.Get(&rule, "path=? AND is_send=?", rulePath, isSendPriority).Run(); err != nil {
 		if !database.IsNotFound(err) {
 			l.Logger.Error("Failed to retrieve rule: %s", err)
 
 			return nil, errDatabase
 		}
 
-		if err := l.DB.Get(&rule, "path=? AND send=?", rulePath, !isSendPriority).Run(); err != nil {
+		if err := l.DB.Get(&rule, "path=? AND is_send=?", rulePath, !isSendPriority).Run(); err != nil {
 			if database.IsNotFound(err) {
 				return l.getClosestRule(acc, path.Dir(rulePath), isSendPriority)
 			}

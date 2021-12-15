@@ -86,8 +86,7 @@ func (c *GatewayController) retrieveTransfers() (model.Transfers, error) {
 
 		query := ses.SelectForUpdate(&transfers).Where("owner=? AND status=? AND "+
 			"remote_account_id IS NOT NULL AND start<?", conf.GlobalConfig.GatewayName,
-			types.StatusPlanned, time.Now().UTC().Truncate(time.Microsecond).
-				Format(time.RFC3339Nano)).Limit(lim, 0)
+			types.StatusPlanned, time.Now().UTC()).Limit(lim, 0)
 
 		if err := query.Run(); err != nil {
 			// c.logger.Error("Failed to access database: %s", err.Error())

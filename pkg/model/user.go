@@ -8,11 +8,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&User{})
-}
-
 // User represents a human account on the gateway. These accounts allow users
 // to manage the gateway via its administration interface.
 type User struct {
@@ -27,10 +22,10 @@ type User struct {
 	Username string `xorm:"VARCHAR(100) UNIQUE(name) NOTNULL 'username'"`
 
 	// The user's password
-	PasswordHash string `xorm:"TEXT NOTNULL 'password_hash'"`
+	PasswordHash string `xorm:"TEXT NOTNULL DEFAULT('') 'password_hash'"`
 
 	// The users permissions for reading and writing the database.
-	Permissions PermsMask `xorm:"BINARY(4) NOTNULL 'permissions'"`
+	Permissions PermsMask `xorm:"BIGINT NOTNULL DEFAULT(0) 'permissions'"`
 }
 
 // TableName returns the users table name.

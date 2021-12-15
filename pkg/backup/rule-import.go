@@ -51,7 +51,7 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule,
 		src := &list[i]
 		exists := true
 
-		err := db.Get(&rule, "name=? AND send=?", src.Name, src.IsSend).Run()
+		err := db.Get(&rule, "name=? AND is_send=?", src.Name, src.IsSend).Run()
 		if database.IsNotFound(err) {
 			exists = false
 		} else if err != nil {

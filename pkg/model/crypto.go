@@ -14,11 +14,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&Crypto{})
-}
-
 // CryptoOwner is the interface implemented by all valid Crypto owner types.
 // Valid owner types are LocalAgent, RemoteAgent, LocalAccount & RemoteAccount.
 type CryptoOwner interface {
@@ -265,35 +260,34 @@ func (c *Crypto) validateContent(host, proto string, isServer bool) database.Err
 func (*Crypto) MakeExtraConstraints(db *database.Executor) database.Error {
 	// add a foreign key to 'local_agent_id'
 	if err := redefineColumn(db, TableCrypto, "local_agent_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`,
+		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
 		TableLocAgents)); err != nil {
 		return err
 	}
 
 	// add a foreign key to 'remote_agent_id'
 	if err := redefineColumn(db, TableCrypto, "remote_agent_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`,
+		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
 		TableRemAgents)); err != nil {
 		return err
 	}
 
 	// add a foreign key to 'local_account_id'
 	if err := redefineColumn(db, TableCrypto, "local_account_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`,
+		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
 		TableLocAccounts)); err != nil {
 		return err
 	}
 
 	// add a foreign key to 'remote_account_id'
 	if err := redefineColumn(db, TableCrypto, "remote_account_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`,
+		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`,
 		TableRemAccounts)); err != nil {
 		return err
 	}
 
 	// add a constraint to enforce that one (and ONLY ONE) of 'local_agent_id',
 	// 'remote_agent_id', 'local_account_id' and 'remote_account_id' must be defined
-	return addTableConstraint(db, TableCrypto,
-		`CHECK ( (local_agent_id IS NOT NULL) + (remote_agent_id IS NOT NULL) + `+
-			`(local_account_id IS NOT NULL) + (remote_account_id IS NOT NULL) = 1 )`)
+	return addTableConstraint(db, TableCrypto, utils.CheckOnlyOneNotNull(db.Dialect,
+		"local_agent_id", "remote_agent_id", "local_account_id", "remote_account_id"))
 }

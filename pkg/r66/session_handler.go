@@ -107,7 +107,7 @@ func (s *sessionHandler) checkRequest(req *r66.Request) *r66.Error {
 
 func (s *sessionHandler) getRule(ruleName string, isSend bool) (*model.Rule, *r66.Error) {
 	var rule model.Rule
-	if err := s.db.Get(&rule, "name=? AND send=?", ruleName, isSend).Run(); err != nil {
+	if err := s.db.Get(&rule, "name=? AND is_send=?", ruleName, isSend).Run(); err != nil {
 		if database.IsNotFound(err) {
 			rule.IsSend = isSend
 			s.logger.Warning("Requested %s transfer rule '%s' does not exist",
@@ -291,7 +291,7 @@ func (s *sessionHandler) getInfoFromHistory(transID int64) (*r66.TransferInfo, e
 func (s *sessionHandler) GetFileInfo(ruleName, pat string) ([]r66.FileInfo, error) {
 	var rule model.Rule
 
-	if err := s.db.Get(&rule, "name=? AND send=?", ruleName, true).Run(); database.IsNotFound(err) {
+	if err := s.db.Get(&rule, "name=? AND is_send=?", ruleName, true).Run(); database.IsNotFound(err) {
 		return nil, &r66.Error{Code: r66.IncorrectCommand, Detail: "rule not found"}
 	} else if err != nil {
 		s.logger.Error("Failed to retrieve rule: %v", err)

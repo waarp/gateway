@@ -5,12 +5,8 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
-
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&TransferInfo{})
-}
 
 // TransferInfo represents the transfer_info database table, which contains all the
 // protocol-specific information attached to a transfer.
@@ -18,7 +14,7 @@ type TransferInfo struct {
 	TransferID sql.NullInt64 `xorm:"BIGINT UNIQUE(tranInfo) 'transfer_id'"`
 	HistoryID  sql.NullInt64 `xorm:"BIGINT UNIQUE(histInfo) 'history_id'"`
 	Name       string        `xorm:"VARCHAR(100) NOTNULL UNIQUE(tranInfo) UNIQUE(histInfo) 'name'"`
-	Value      string        `xorm:"TEXT NOTNULL DEFAULT(null) 'value'"`
+	Value      string        `xorm:"TEXT NOTNULL DEFAULT('null') 'value'"`
 }
 
 // TableName returns the name of the transfers table.
@@ -77,18 +73,18 @@ func (t *TransferInfo) BeforeWrite(db database.ReadAccess) database.Error {
 func (*TransferInfo) MakeExtraConstraints(db *database.Executor) database.Error {
 	// add a foreign key to 'transfer_id'
 	if err := redefineColumn(db, TableTransferInfo, "transfer_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`, TableTransfers)); err != nil {
+		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`, TableTransfers)); err != nil {
 		return err
 	}
 
 	// add a foreign key to 'history_id'
 	if err := redefineColumn(db, TableTransferInfo, "history_id", fmt.Sprintf(
-		`BIGINT REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE`, TableHistory)); err != nil {
+		`BIGINT REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE`, TableHistory)); err != nil {
 		return err
 	}
 
 	// add a constraint to enforce that one (and only one) of 'transfer_id'
 	// and 'history_id' must be defined
-	return addTableConstraint(db, TableTransferInfo,
-		`CHECK ( (transfer_id IS NULL) + (history_id IS NULL) = 1 )`)
+	return addTableConstraint(db, TableTransferInfo, utils.CheckOnlyOneNotNull(
+		db.Dialect, "transfer_id", "history_id"))
 }

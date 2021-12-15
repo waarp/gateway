@@ -5,10 +5,6 @@ package model
 
 import "code.waarp.fr/apps/gateway/gateway/pkg/database"
 
-func init() {
-	database.AddTable(&FileInfo{})
-}
-
 // FileInfo represents the file_info database table, which contains all the
 // protocol-specific information attached to a transfer.
 type FileInfo struct {

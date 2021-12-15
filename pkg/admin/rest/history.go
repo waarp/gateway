@@ -139,8 +139,7 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 			return badRequest("'%s' is not a valid date", starts[0])
 		}
 
-		query.Where("start >= ?", start.UTC().Truncate(time.Microsecond).
-			Format(time.RFC3339Nano))
+		query.Where("start >= ?", start.UTC())
 	}
 
 	stops := r.Form["stop"]
@@ -150,8 +149,7 @@ func parseHistoryCond(r *http.Request, query *database.SelectQuery) error {
 			return badRequest("'%s' is not a valid date", stops[0])
 		}
 
-		query.Where("stop <= ?", stop.UTC().Truncate(time.Microsecond).
-			Format(time.RFC3339Nano))
+		query.Where("stop <= ?", stop.UTC())
 	}
 
 	return nil

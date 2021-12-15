@@ -107,11 +107,19 @@ func resetDB(db *DB) {
 	config := &conf.GlobalConfig.Database
 
 	switch config.Type {
-	case PostgreSQL, MySQL:
-		for _, tbl := range tables {
-			convey.So(db.engine.Cascade(true).DropTable(tbl.TableName()), convey.ShouldBeNil)
-		}
+	case PostgreSQL:
+		_, err := db.engine.Exec("DROP SCHEMA public CASCADE")
+		convey.So(err, convey.ShouldBeNil)
 
+		_, err = db.engine.Exec("CREATE SCHEMA public")
+		convey.So(err, convey.ShouldBeNil)
+		convey.So(db.engine.Close(), convey.ShouldBeNil)
+	case MySQL:
+		_, err := db.engine.Exec("DROP DATABASE waarp_gateway_test")
+		convey.So(err, convey.ShouldBeNil)
+
+		_, err = db.engine.Exec("CREATE DATABASE waarp_gateway_test")
+		convey.So(err, convey.ShouldBeNil)
 		convey.So(db.engine.Close(), convey.ShouldBeNil)
 	case SQLite:
 		convey.So(db.engine.Close(), convey.ShouldBeNil)

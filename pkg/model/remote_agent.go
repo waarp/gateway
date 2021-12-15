@@ -10,11 +10,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&RemoteAgent{})
-}
-
 // RemoteAgent represents a distant server instance with which the gateway can
 // communicate and make transfers. The struct contains the information needed by
 // the gateway to connect to the server.
@@ -29,7 +24,7 @@ type RemoteAgent struct {
 	Protocol string `xorm:"VARCHAR(50) NOTNULL 'protocol'"`
 
 	// The agent's configuration in raw JSON format.
-	ProtoConfig json.RawMessage `xorm:"TEXT NOTNULL DEFAULT('') 'proto_config'"`
+	ProtoConfig json.RawMessage `xorm:"TEXT NOTNULL DEFAULT('{}') 'proto_config'"`
 
 	// The agent's address (including the port)
 	Address string `xorm:"VARCHAR(260) NOTNULL 'address'"`

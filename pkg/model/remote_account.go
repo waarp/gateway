@@ -8,11 +8,6 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-//nolint:gochecknoinits // init is used by design
-func init() {
-	database.AddTable(&RemoteAccount{})
-}
-
 // RemoteAccount represents an account on a remote agent. It is used by the
 // gateway to authenticate on distant servers for transfers.
 type RemoteAccount struct {
@@ -26,7 +21,7 @@ type RemoteAccount struct {
 	Login string `xorm:"VARCHAR(100) UNIQUE(rem_ac) NOTNULL 'login'"`
 
 	// The account's password
-	Password types.CypherText `xorm:"TEXT 'password'"`
+	Password types.CypherText `xorm:"TEXT NOTNULL DEFAULT('') 'password'"`
 }
 
 // TableName returns the remote accounts table name.
@@ -99,7 +94,7 @@ func (r *RemoteAccount) GetCryptos(db database.ReadAccess) ([]*Crypto, error) {
 func (*RemoteAccount) MakeExtraConstraints(db *database.Executor) database.Error {
 	// add a foreign key to 'remote_agent_id'
 	return redefineColumn(db, TableRemAccounts, "remote_agent_id", fmt.Sprintf(
-		`BIGINT NOT NULL REFERENCES %s ON UPDATE RESTRICT ON DELETE CASCADE `, TableRemAgents))
+		`BIGINT NOT NULL REFERENCES %s(id) ON UPDATE RESTRICT ON DELETE CASCADE `, TableRemAgents))
 }
 
 //nolint:goconst //different columns having the same name does not warrant making that name a constant

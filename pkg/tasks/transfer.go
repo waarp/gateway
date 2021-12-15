@@ -75,7 +75,7 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 	}
 
 	rule := &model.Rule{}
-	if err := db.Get(rule, "name=? AND send=?", ruleName, args["to"] != "").Run(); err != nil {
+	if err := db.Get(rule, "name=? AND is_send=?", ruleName, args["to"] != "").Run(); err != nil {
 		infoErr = fmt.Errorf("failed to retrieve rule '%s': %w", ruleName, err)
 
 		return

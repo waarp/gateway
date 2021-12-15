@@ -71,6 +71,7 @@ func GetTestMySQLDBNoReset(c convey.C) *sql.DB {
 	conf.User = "root"
 	conf.DBName = "waarp_gateway_test"
 	conf.Addr = "localhost:3306"
+	conf.ParseTime = true
 
 	db, err := sql.Open("mysql", conf.FormatDSN())
 	c.So(err, convey.ShouldBeNil)

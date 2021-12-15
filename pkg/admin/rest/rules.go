@@ -148,7 +148,7 @@ func retrieveDBRule(r *http.Request, db *database.DB) (*model.Rule, error) {
 	}
 
 	var rule model.Rule
-	if err := db.Get(&rule, "name=? AND send=?", ruleName,
+	if err := db.Get(&rule, "name=? AND is_send=?", ruleName,
 		direction == "send").Run(); err != nil {
 		if database.IsNotFound(err) {
 			return nil, notFound("%s rule '%s' not found", direction, ruleName)

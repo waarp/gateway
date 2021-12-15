@@ -121,7 +121,7 @@ func TestPurgeCommand(t *testing.T) {
 			in := strings.NewReader("YES")
 
 			Convey("When purging the history with a date limit", func() {
-				command.OlderThan = t2.Stop.Local().Format(untilFormat)
+				command.OlderThan = t2.Stop.Add(time.Second).Local().Format(untilFormat)
 				So(command.run(db, time.Now(), in, out), ShouldBeNil)
 
 				Convey("Then it should say that the history was purged", func() {
@@ -142,7 +142,7 @@ func TestPurgeCommand(t *testing.T) {
 			})
 
 			Convey("When purging the history with a duration limit", func() {
-				now := t2.Stop.Local().AddDate(1, 4, 17)
+				now := t2.Stop.Local().AddDate(1, 4, 17).Add(time.Second)
 				command.OlderThan = "1year4months2weeks3days"
 				So(command.run(db, now, in, out), ShouldBeNil)
 
