@@ -14,23 +14,21 @@ import (
 
 //nolint:gochecknoglobals // global var is used by design
 var (
-	// Tables lists the schema of all database tables.
-	tables []Table
+	inits []Initialiser
 
 	// BcryptRounds defines the number of rounds taken by bcrypt to hash passwords
 	// in the database.
 	BcryptRounds = 12
 )
 
-// AddTable adds the given model to the pool of database tables.
-func AddTable(t Table) {
-	tables = append(tables, t)
-}
+// AddInit adds the given model to the pool of table initializations.
+func AddInit(t Initialiser) { inits = append(inits, t) }
 
-// initialiser is an interface which models can optionally implement in order to
+// Initialiser is an interface which models can optionally implement in order to
 // set default values after the table is created when the application is launched
 // for the first time.
-type initialiser interface {
+type Initialiser interface {
+	Table
 	Init(Access) Error
 }
 
@@ -96,13 +94,11 @@ func initDatabase(db *Standalone) error {
 }
 
 func initTables(ses *Session) Error {
-	for _, tbl := range tables {
-		if init, ok := tbl.(initialiser); ok {
-			if err := init.Init(ses); err != nil {
-				ses.logger.Error("failed to initialize table %q: %v", tbl.TableName(), err)
+	for _, init := range inits {
+		if err := init.Init(ses); err != nil {
+			ses.logger.Error("failed to initialize table %q: %v", init.TableName(), err)
 
-				return err
-			}
+			return err
 		}
 	}
 

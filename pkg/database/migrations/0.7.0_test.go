@@ -1253,3 +1253,117 @@ func testVer0_7_0AddLocalAgentsAddressUnique(eng *testEngine) {
 		})
 	})
 }
+
+func testVer0_7_0AddNormalizedTransfersView(eng *testEngine) {
+	Convey("Given the 0.7.0 normalized transfer view addition", func() {
+		setupDatabaseUpTo(eng, ver0_7_0AddNormalizedTransfersView{})
+
+		// ### Rules ###
+		_, err := eng.DB.Exec(`INSERT INTO rules(id,name,is_send,path) 
+			VALUES (1,'push',TRUE,'/push')`)
+		So(err, ShouldBeNil)
+
+		_, err = eng.DB.Exec(`INSERT INTO rules(id,name,is_send,path) 
+			VALUES (2,'pull',FALSE,'/pull')`)
+		So(err, ShouldBeNil)
+
+		// ### Local ###
+		_, err = eng.DB.Exec(`INSERT INTO local_agents(id,owner,name,protocol,
+			address,root_dir,receive_dir,send_dir,tmp_receive_dir,proto_config)
+			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222','root',
+			        'rcv','snd','tmp','{}')`)
+		So(err, ShouldBeNil)
+
+		_, err = eng.DB.Exec(`INSERT INTO local_accounts(id,local_agent_id,login)
+			VALUES (100,10,'toto')`)
+		So(err, ShouldBeNil)
+
+		_, err = eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
+            rule_id,local_account_id,local_path,remote_path)
+            VALUES(1000,'waarp_gw','efgh',1,100,'/loc/path/1','/rem/path/1')`)
+		So(err, ShouldBeNil)
+
+		// ### Remote ###
+		_, err = eng.DB.Exec(`INSERT INTO remote_agents(id,name,protocol,address,
+        	proto_config) VALUES (20,'sftp_part','sftp','localhost:3333','{}')`)
+		So(err, ShouldBeNil)
+
+		_, err = eng.DB.Exec(`INSERT INTO remote_accounts(id,remote_agent_id,login)
+			VALUES (200,20,'tata')`)
+		So(err, ShouldBeNil)
+
+		_, err = eng.DB.Exec(`INSERT INTO transfers(id,owner,remote_transfer_id,
+            rule_id,remote_account_id,local_path,remote_path)
+            VALUES(2000,'waarp_gw','efgh',2,200,'/loc/path/2','/rem/path/2')`)
+		So(err, ShouldBeNil)
+
+		_, err = eng.DB.Exec(`INSERT INTO transfer_history(id,owner,is_server,
+            	is_send,remote_transfer_id,rule,account,agent,protocol,local_path,
+            	remote_path,filesize,start,stop,status,step) 
+			VALUES (3000,'waarp_gw',FALSE,TRUE,'xyz','push','tutu','r66_part',
+				'r66','/loc/path/3','/rem/path/3',123,'2021-01-03 01:00:00',
+            	'2021-01-03 02:00:00','CANCELLED','StepData')`)
+		So(err, ShouldBeNil)
+
+		Convey("When applying the migration", func() {
+			So(eng.Upgrade(ver0_7_0AddNormalizedTransfersView{}), ShouldBeNil)
+
+			Convey("Then it should have added the view", func() {
+				type normTrans struct {
+					id                          int64
+					isServ, isSend, isTrans     bool
+					rule, account, agent, proto string
+				}
+
+				rows, err := eng.DB.Query(`SELECT id,is_server,is_send,is_transfer,
+       				rule,account,agent,protocol FROM normalized_transfers ORDER BY id`)
+				So(err, ShouldBeNil)
+				defer rows.Close()
+
+				transfers := make([]normTrans, 0, 3)
+
+				for rows.Next() {
+					var (
+						id                          int64
+						isServ, isSend, isTrans     bool
+						rule, account, agent, proto string
+					)
+
+					So(rows.Scan(&id, &isServ, &isSend, &isTrans, &rule, &account,
+						&agent, &proto), ShouldBeNil)
+
+					transfers = append(transfers, normTrans{
+						id: id, isServ: isServ, isSend: isSend, isTrans: isTrans,
+						rule: rule, account: account, agent: agent, proto: proto,
+					})
+				}
+
+				So(rows.Err(), ShouldBeNil)
+
+				So(transfers, ShouldResemble, []normTrans{
+					{
+						id: 1000, isServ: true, isSend: true, isTrans: true,
+						rule: "push", account: "toto", agent: "sftp_serv", proto: "sftp",
+					},
+					{
+						id: 2000, isServ: false, isSend: false, isTrans: true,
+						rule: "pull", account: "tata", agent: "sftp_part", proto: "sftp",
+					},
+					{
+						id: 3000, isServ: false, isSend: true, isTrans: false,
+						rule: "push", account: "tutu", agent: "r66_part", proto: "r66",
+					},
+				})
+			})
+
+			Convey("When reversing the migration", func() {
+				So(eng.Downgrade(ver0_7_0AddNormalizedTransfersView{}), ShouldBeNil)
+
+				Convey("Then it should have dropped the view", func() {
+					_, err := eng.DB.Exec(`SELECT * FROM normalized_transfers`)
+					So(err, ShouldNotBeNil)
+				})
+			})
+		})
+	})
+}

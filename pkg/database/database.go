@@ -28,7 +28,7 @@ var (
 	// GCM is the Galois Counter Mode cipher used to encrypt external accounts passwords.
 	GCM cipher.AEAD
 
-	errUnsuportedDB = errors.New("unsupported database")
+	errUnsupportedDB = errors.New("unsupported database")
 )
 
 // DB is the database service. It encapsulates a data connection and implements
@@ -90,7 +90,7 @@ func (db *DB) createConnectionInfo() (*dbInfo, error) {
 
 	makeConnInfo, ok := supportedRBMS[rdbms]
 	if !ok {
-		return nil, fmt.Errorf("unknown database type '%s': %w", rdbms, errUnsuportedDB)
+		return nil, fmt.Errorf("unknown database type '%s': %w", rdbms, errUnsupportedDB)
 	}
 
 	return makeConnInfo(), nil

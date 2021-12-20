@@ -146,4 +146,8 @@ var Migrations = []change{
 		Description: "Add a unique constraint to the local agent 'address' column",
 		Script:      ver0_7_0AddLocalAgentsAddressUnique{},
 	},
+	{ // 31
+		Description: "Add a normalized transfer view which combines transfers & history",
+		Script:      ver0_7_0AddNormalizedTransfersView{},
+	},
 }

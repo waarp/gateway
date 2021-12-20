@@ -14,7 +14,6 @@ import (
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -363,8 +362,7 @@ func TestGetTransfer(t *testing.T) {
 						So(command.Execute(params), ShouldBeNil)
 
 						Convey("Then it should display the transfer's info", func() {
-							jsonObj, err := rest.FromTransfer(db, trans)
-							So(err, ShouldBeNil)
+							jsonObj := fromTransfer(db, trans)
 							So(getOutput(), ShouldEqual, transferInfoString(jsonObj))
 						})
 					})
@@ -502,14 +500,10 @@ func TestListTransfer(t *testing.T) {
 				So(db.Insert(trans3).Run(), ShouldBeNil)
 				So(db.Insert(trans4).Run(), ShouldBeNil)
 
-				t1, err := rest.FromTransfer(db, trans1)
-				So(err, ShouldBeNil)
-				t2, err := rest.FromTransfer(db, trans2)
-				So(err, ShouldBeNil)
-				t3, err := rest.FromTransfer(db, trans3)
-				So(err, ShouldBeNil)
-				t4, err := rest.FromTransfer(db, trans4)
-				So(err, ShouldBeNil)
+				t1 := fromTransfer(db, trans1)
+				t2 := fromTransfer(db, trans2)
+				t3 := fromTransfer(db, trans3)
+				t4 := fromTransfer(db, trans4)
 
 				Convey("Given a no filters", func() {
 					args := []string{}

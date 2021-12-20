@@ -393,11 +393,11 @@ func TestListHistory(t *testing.T) {
 	})
 }
 
-func TestRestartTransfer(t *testing.T) {
+func TestRestartHistory(t *testing.T) {
 	Convey("Testing the transfer restart handler", t, func(c C) {
 		logger := testhelpers.TestLogger(c, "rest_history_restart_test")
 		db := database.TestDatabase(c)
-		handler := retryTransfer(logger, db)
+		handler := retryHistory(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 transfer history", func() {

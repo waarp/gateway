@@ -28,10 +28,11 @@ const (
 	TransPausePath  = "/api/transfers/{transfer}/pause"
 	TransResumePath = "/api/transfers/{transfer}/resume"
 	TransCancelPath = "/api/transfers/{transfer}/cancel"
+	TransRetryPath  = "/api/transfers/{transfer}/retry"
 
-	HistoriesPath = "/api/history"
-	HistoryPath   = "/api/history/{history}"
-	HistRetryPath = "/api/history/{history}/retry"
+	HistoriesPath = "/api/history"                 // Deprecated: merged with transfers
+	HistoryPath   = "/api/history/{history}"       // Deprecated: merged with transfers
+	HistRetryPath = "/api/history/{history}/retry" // Deprecated: merged with transfers
 
 	ServersPath       = "/api/servers"
 	ServerPath        = "/api/servers/{server}"
@@ -110,11 +111,12 @@ func MakeRESTHandler(logger *log.Logger, db *database.DB, router *mux.Router,
 	mkHandler(TransPausePath, pauseTransfer(protoServices), model.PermTransfersWrite, http.MethodPut)
 	mkHandler(TransResumePath, resumeTransfer, model.PermTransfersWrite, http.MethodPut)
 	mkHandler(TransCancelPath, cancelTransfer(protoServices), model.PermTransfersWrite, http.MethodPut)
+	mkHandler(TransRetryPath, retryTransfer, model.PermTransfersWrite, http.MethodPut)
 
 	// History
 	mkHandler(HistoriesPath, listHistory, model.PermTransfersRead, http.MethodGet)
 	mkHandler(HistoryPath, getHistory, model.PermTransfersRead, http.MethodGet)
-	mkHandler(HistRetryPath, retryTransfer, model.PermTransfersWrite, http.MethodPut)
+	mkHandler(HistRetryPath, retryHistory, model.PermTransfersWrite, http.MethodPut)
 
 	// Servers
 	mkHandler(ServersPath, listServers, model.PermServersRead, http.MethodGet)

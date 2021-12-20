@@ -336,7 +336,7 @@ func (t *Transfer) ToHistory(db *database.DB, logger *log.Logger, end time.Time)
 
 // GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.
 func (t *Transfer) GetTransferInfo(db database.ReadAccess) (map[string]interface{}, database.Error) {
-	return getTransferInfo(db, t.ID)
+	return getTransferInfo(db, t.ID, true)
 }
 
 /*

@@ -4,7 +4,7 @@ import vers "code.waarp.fr/apps/gateway/gateway/pkg/version"
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	AddTable(&version{})
+	AddInit(&version{})
 }
 
 type version struct {

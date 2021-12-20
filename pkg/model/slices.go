@@ -79,3 +79,12 @@ type FileInfoList []FileInfo
 func (*FileInfoList) TableName() string { return TableFileInfo }
 func (*FileInfoList) Elem() string      { return "file info" }
 */
+
+// NormalizedTransfers is the type representing a slice of NormalizedTransferView.
+type NormalizedTransfers []*NormalizedTransferView
+
+// TableName returns the name of the users table.
+func (*NormalizedTransfers) TableName() string { return ViewNormalizedTransfers }
+
+// Elem returns the name of 1 element of the users table.
+func (*NormalizedTransfers) Elem() string { return "normalized transfer" }

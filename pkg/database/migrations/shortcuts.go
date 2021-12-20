@@ -13,6 +13,7 @@ type (
 	Table  = migration.Table
 	Column = migration.Column
 	Index  = migration.Index
+	View   = migration.View
 )
 
 // Shortcuts for SQL types.

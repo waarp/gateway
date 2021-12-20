@@ -22,8 +22,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-// transToDB transforms the JSON transfer into its database equivalent.
-func transToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logger) (*model.Transfer, error) {
+// restTransferToDB transforms the JSON transfer into its database equivalent.
+func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logger) (*model.Transfer, error) {
 	ruleID, accountID, err := getTransIDs(db, jTrans)
 	if err != nil {
 		return nil, err
@@ -76,19 +76,19 @@ func transToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logger) (*mo
 	}, nil
 }
 
-// FromTransfer transforms the given database transfer into its JSON equivalent.
-func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, error) {
-	rule, requester, requested, protocol, err := getTransNames(db, trans)
-	if err != nil {
-		return nil, err
-	}
-
+// DBTransferToREST transforms the given database transfer into its JSON equivalent.
+func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*api.OutTransfer, error) {
 	src := path.Base(trans.RemotePath)
 	dst := filepath.Base(trans.LocalPath)
 
-	if rule.IsSend {
+	if trans.IsSend {
 		dst = path.Base(trans.RemotePath)
 		src = filepath.Base(trans.LocalPath)
+	}
+
+	var stop *time.Time
+	if !trans.Stop.IsZero() {
+		stop = &trans.Stop
 	}
 
 	info, iErr := trans.GetTransferInfo(db)
@@ -99,16 +99,17 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 	return &api.OutTransfer{
 		ID:             trans.ID,
 		RemoteID:       trans.RemoteTransferID,
-		Rule:           rule.Name,
-		IsServer:       trans.IsServer(),
-		IsSend:         rule.IsSend,
-		Requested:      requested,
-		Requester:      requester,
-		Protocol:       protocol,
+		Rule:           trans.Rule,
+		IsServer:       trans.IsServer,
+		IsSend:         trans.IsSend,
+		Requested:      trans.Agent,
+		Requester:      trans.Account,
+		Protocol:       trans.Protocol,
 		LocalFilepath:  trans.LocalPath,
 		RemoteFilepath: trans.RemotePath,
 		Filesize:       trans.Filesize,
-		Start:          trans.Start.Local(),
+		Start:          trans.Start,
+		Stop:           stop,
 		Status:         trans.Status,
 		Step:           trans.Step.String(),
 		Progress:       trans.Progress,
@@ -119,17 +120,17 @@ func FromTransfer(db *database.DB, trans *model.Transfer) (*api.OutTransfer, err
 		TrueFilepath:   trans.LocalPath,
 		SourcePath:     src,
 		DestPath:       dst,
-		StartDate:      trans.Start.Local(),
+		StartDate:      trans.Start,
 	}, nil
 }
 
-// FromTransfers transforms the given list of database transfers into its
+// DBTransfersToREST transforms the given list of database transfers into its
 // JSON equivalent.
-func FromTransfers(db *database.DB, models []*model.Transfer) ([]*api.OutTransfer, error) {
+func DBTransfersToREST(db *database.DB, models []*model.NormalizedTransferView) ([]*api.OutTransfer, error) {
 	jsonArray := make([]*api.OutTransfer, len(models))
 
 	for i, trans := range models {
-		jsonObj, err := FromTransfer(db, trans)
+		jsonObj, err := DBTransferToREST(db, trans)
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +142,7 @@ func FromTransfers(db *database.DB, models []*model.Transfer) ([]*api.OutTransfe
 }
 
 //nolint:dupl // dupicated code is about a different type
-func getTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
+func getDBTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 	val := mux.Vars(r)["transfer"]
 
 	id, err := strconv.ParseUint(val, 10, 64) //nolint:gomnd // useless to add a constant for that
@@ -162,6 +163,28 @@ func getTrans(r *http.Request, db *database.DB) (*model.Transfer, error) {
 	return &transfer, nil
 }
 
+//nolint:dupl // dupicated code is about a different type
+func getDBTransView(r *http.Request, db *database.DB) (*model.NormalizedTransferView, error) {
+	val := mux.Vars(r)["transfer"]
+
+	id, err := strconv.ParseUint(val, 10, 64) //nolint:gomnd // useless to add a constant for that
+	if err != nil || id == 0 {
+		return nil, notFound("'%s' is not a valid transfer ID", val)
+	}
+
+	var transfer model.NormalizedTransferView
+	if err := db.Get(&transfer, "id=? AND owner=?", id, conf.GlobalConfig.GatewayName).
+		Run(); err != nil {
+		if database.IsNotFound(err) {
+			return nil, notFound("transfer %v not found", id)
+		}
+
+		return nil, err
+	}
+
+	return &transfer, nil
+}
+
 func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var jsonTrans api.InTransfer
@@ -169,7 +192,7 @@ func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		trans, err := transToDB(&jsonTrans, db, logger)
+		trans, err := restTransferToDB(&jsonTrans, db, logger)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -189,12 +212,12 @@ func addTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func getTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		result, err := getTrans(r, db)
+		result, err := getDBTransView(r, db)
 		if handleError(w, logger, err) {
 			return
 		}
 
-		json, err := FromTransfer(db, result)
+		json, err := DBTransferToREST(db, result)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -206,7 +229,7 @@ func getTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var transfers model.Transfers
+		var transfers model.NormalizedTransfers
 
 		query, err := parseTransferListQuery(r, db, &transfers)
 		if handleError(w, logger, err) {
@@ -218,7 +241,7 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		json, err := FromTransfers(db, transfers)
+		json, err := DBTransfersToREST(db, transfers)
 		if handleError(w, logger, err) {
 			return
 		}
@@ -231,7 +254,7 @@ func listTransfers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 func pauseTransfer(protoServices map[int64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			trans, tErr := getTrans(r, db)
+			trans, tErr := getDBTrans(r, db)
 			if handleError(w, logger, tErr) {
 				return
 			}
@@ -285,7 +308,7 @@ func pauseTransfer(protoServices map[int64]proto.Service) handler {
 func cancelTransfer(protoServices map[int64]proto.Service) handler {
 	return func(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			trans, tErr := getTrans(r, db)
+			trans, tErr := getDBTrans(r, db)
 			if handleError(w, logger, tErr) {
 				return
 			}
@@ -331,32 +354,85 @@ func cancelTransfer(protoServices map[int64]proto.Service) handler {
 
 func resumeTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		check, err := getTrans(r, db)
-		if handleError(w, logger, err) {
+		dbTransView, getErr := getDBTransView(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
-		if check.IsServer() {
+		if !dbTransView.IsTransfer {
+			handleError(w, logger, badRequest("cannot resume completed transfers"))
+
+			return
+		}
+
+		if dbTransView.IsServer {
 			handleError(w, logger, badRequest("only the client can restart a transfer"))
 
 			return
 		}
 
-		if check.Status != types.StatusPaused && check.Status != types.StatusInterrupted &&
-			check.Status != types.StatusError {
+		if dbTransView.Status != types.StatusPaused && dbTransView.Status != types.StatusInterrupted &&
+			dbTransView.Status != types.StatusError {
 			handleError(w, logger, badRequest("cannot resume an already running transfer"))
 
 			return
 		}
 
-		check.Status = types.StatusPlanned
-		check.Error = types.TransferError{}
+		var dbHist model.Transfer
+		if err := db.Get(&dbHist, "id=?", dbTransView.ID).Run(); handleError(w, logger, err) {
+			return
+		}
 
-		if err := db.Update(check).Cols("status", "error_code", "error_details").
+		dbHist.Status = types.StatusPlanned
+		dbHist.Error = types.TransferError{}
+
+		if err := db.Update(&dbHist).Cols("status", "error_code", "error_details").
 			Run(); handleError(w, logger, err) {
 			return
 		}
 
 		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+func retryTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbTransView, getErr := getDBTransView(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		if dbTransView.IsTransfer {
+			handleError(w, logger, badRequest("cannot retry non-ended transfer"))
+
+			return
+		}
+
+		var dbHist model.HistoryEntry
+		if err := db.Get(&dbHist, "id=?", dbTransView.ID).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		date := time.Now()
+
+		if dateStr := r.FormValue("date"); dateStr != "" {
+			var err error
+			if date, err = time.Parse(time.RFC3339Nano, dateStr); handleError(w, logger, err) {
+				return
+			}
+		}
+
+		trans, restartErr := dbHist.Restart(db, date)
+		if handleError(w, logger, restartErr) {
+			return
+		}
+
+		if err := db.Insert(trans).Run(); handleError(w, logger, err) {
+			return
+		}
+
+		r.URL.Path = "/api/transfers"
+		w.Header().Set("Location", location(r.URL, fmt.Sprint(trans.ID)))
+		w.WriteHeader(http.StatusCreated)
 	}
 }

@@ -1078,3 +1078,50 @@ func (ver0_7_0AddLocalAgentsAddressUnique) Down(db Actions) error {
 
 	return nil
 }
+
+type ver0_7_0AddNormalizedTransfersView struct{}
+
+func (ver0_7_0AddNormalizedTransfersView) Up(db Actions) error {
+	transStop := utils.If(db.GetDialect() == PostgreSQL,
+		"null::timestamp", "null")
+
+	if err := db.CreateView(&View{
+		Name: "normalized_transfers",
+		As: `WITH transfers_as_history(id, owner, remote_transfer_id, is_server,
+				is_send, rule, account, agent, protocol, local_path, remote_path, 
+				filesize, start, stop, status, step, progress, task_number, error_code, 
+				error_details, is_transfer) AS (
+					SELECT t.id, t.owner, t.remote_transfer_id, 
+						t.local_account_id IS NOT NULL, r.is_send, r.name,
+						(CASE WHEN t.local_account_id IS NULL THEN ra.login ELSE la.login END),
+						(CASE WHEN t.local_account_id IS NULL THEN p.name ELSE s.name END),
+						(CASE WHEN t.local_account_id IS NULL THEN p.protocol ELSE s.protocol END),
+						t.local_path, t.remote_path, t.filesize, t.start, ` + transStop + `, t.status,
+						t.step, t.progress, t.task_number, t.error_code, t.error_details, true
+					FROM transfers AS t
+					LEFT JOIN rules AS r ON t.rule_id = r.id
+					LEFT JOIN local_accounts  AS la ON  t.local_account_id = la.id
+					LEFT JOIN remote_accounts AS ra ON t.remote_account_id = ra.id
+					LEFT JOIN local_agents    AS s ON la.local_agent_id = s.id 
+					LEFT JOIN remote_agents   AS p ON ra.remote_agent_id = p.id
+				)
+			SELECT id, owner, remote_transfer_id, is_server, is_send, rule, account,
+				agent, protocol, local_path, remote_path, filesize, start, stop, 
+				status,	step, progress, task_number, error_code, error_details,
+				false AS is_transfer
+			FROM transfer_history UNION
+			SELECT * FROM transfers_as_history`,
+	}); err != nil {
+		return fmt.Errorf("failed to create the normalized transfer view: %w", err)
+	}
+
+	return nil
+}
+
+func (ver0_7_0AddNormalizedTransfersView) Down(db Actions) error {
+	if err := db.DropView("normalized_transfers"); err != nil {
+		return fmt.Errorf("failed to drop the normalized transfer view: %w", err)
+	}
+
+	return nil
+}

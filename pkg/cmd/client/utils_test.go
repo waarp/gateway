@@ -14,6 +14,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
@@ -130,4 +132,15 @@ func (t *testLocalServer) Stop(context.Context) error {
 	t.state.Set(state.Offline, "")
 
 	return nil
+}
+
+func fromTransfer(db *database.DB, trans *model.Transfer) *api.OutTransfer {
+	var t model.NormalizedTransferView
+
+	So(db.Get(&t, "id=?", trans.ID).Run(), ShouldBeNil)
+
+	jTrans, err := rest.DBTransferToREST(db, &t)
+	So(err, ShouldBeNil)
+
+	return jTrans
 }

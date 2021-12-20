@@ -2,7 +2,7 @@ module code.waarp.fr/apps/gateway/gateway
 
 require (
 	code.waarp.fr/lib/log v1.2.0
-	code.waarp.fr/lib/migration v0.3.1-0.20221129172014-834129ab7880
+	code.waarp.fr/lib/migration v0.3.1-0.20221130121956-e57db175a09e
 	code.waarp.fr/lib/r66 v0.1.5
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/go-sql-driver/mysql v1.6.0

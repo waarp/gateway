@@ -152,7 +152,7 @@ func (s *Session) ResetIncrement(bean IterateBean) Error {
 
 		return &InternalError{
 			msg:   fmt.Sprintf("unsupported database: %s", dbType),
-			cause: errUnsuportedDB,
+			cause: errUnsupportedDB,
 		}
 	}
 

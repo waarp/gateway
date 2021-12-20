@@ -12,10 +12,12 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/constructors"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/service/proto"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
 
@@ -81,4 +83,15 @@ func makeTestRequest(method, host, path string, body io.Reader) *http.Response {
 	convey.So(err, convey.ShouldBeNil)
 
 	return resp
+}
+
+func fromTransfer(db *database.DB, trans *model.Transfer) *api.OutTransfer {
+	var t model.NormalizedTransferView
+
+	convey.So(db.Get(&t, "id=?", trans.ID).Run(), convey.ShouldBeNil)
+
+	jTrans, err := DBTransferToREST(db, &t)
+	convey.So(err, convey.ShouldBeNil)
+
+	return jTrans
 }
