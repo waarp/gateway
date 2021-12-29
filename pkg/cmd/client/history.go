@@ -217,6 +217,7 @@ type HistoryRetry struct {
 	Date string `short:"d" long:"date" description:"Set the date at which the transfer should restart. Date must be in RFC3339 format."`
 }
 
+//nolint:dupl //must be kept separate for retro-compatibility
 func (h *HistoryRetry) Execute([]string) error {
 	addr.Path = fmt.Sprintf("/api/history/%d/retry", h.Args.ID)
 

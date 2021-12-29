@@ -558,7 +558,7 @@ func TestAuthorizePartner(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner & rule names", func() {
-				args := []string{partner.Name, rule.Name, direction(rule)}
+				args := []string{partner.Name, rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -566,9 +566,9 @@ func TestAuthorizePartner(t *testing.T) {
 					So(command.Execute(params), ShouldBeNil)
 
 					Convey("Then is should display a message saying the partner can use the rule", func() {
-						So(getOutput(), ShouldEqual, "Usage of the "+direction(rule)+" rule '"+
+						So(getOutput(), ShouldEqual, "Usage of the "+getDirection(rule)+" rule '"+
 							rule.Name+"' is now restricted.\nThe partner "+partner.Name+
-							" is now allowed to use the "+direction(rule)+" rule "+rule.Name+
+							" is now allowed to use the "+getDirection(rule)+" rule "+rule.Name+
 							" for transfers.\n")
 					})
 
@@ -585,7 +585,7 @@ func TestAuthorizePartner(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{partner.Name, "toto", direction(rule)}
+				args := []string{partner.Name, "toto", getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -605,7 +605,7 @@ func TestAuthorizePartner(t *testing.T) {
 			})
 
 			Convey("Given an invalid partner name", func() {
-				args := []string{"toto", rule.Name, direction(rule)}
+				args := []string{"toto", rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -661,7 +661,7 @@ func TestRevokePartner(t *testing.T) {
 			So(db.Insert(access).Run(), ShouldBeNil)
 
 			Convey("Given a valid partner & rule names", func() {
-				args := []string{partner.Name, rule.Name, direction(rule)}
+				args := []string{partner.Name, rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -670,8 +670,8 @@ func TestRevokePartner(t *testing.T) {
 
 					Convey("Then is should display a message saying the partner cannot use the rule", func() {
 						So(getOutput(), ShouldEqual, "The partner "+partner.Name+
-							" is no longer allowed to use the "+direction(rule)+" rule "+
-							rule.Name+" for transfers.\nUsage of the "+direction(rule)+
+							" is no longer allowed to use the "+getDirection(rule)+" rule "+
+							rule.Name+" for transfers.\nUsage of the "+getDirection(rule)+
 							" rule '"+rule.Name+"' is now unrestricted.\n")
 					})
 
@@ -684,7 +684,7 @@ func TestRevokePartner(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{partner.Name, "toto", direction(rule)}
+				args := []string{partner.Name, "toto", getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -704,7 +704,7 @@ func TestRevokePartner(t *testing.T) {
 			})
 
 			Convey("Given an invalid partner name", func() {
-				args := []string{"toto", rule.Name, direction(rule)}
+				args := []string{"toto", rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)

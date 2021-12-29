@@ -18,7 +18,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-func direction(r *model.Rule) string {
+func getDirection(r *model.Rule) string {
 	if r.IsSend {
 		return directionSend
 	}
@@ -161,7 +161,7 @@ func TestGetRule(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given a valid rule name", func() {
-				args := []string{rule.Name, direction(rule)}
+				args := []string{rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -177,7 +177,7 @@ func TestGetRule(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{"toto", direction(rule)}
+				args := []string{"toto", getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -391,7 +391,7 @@ func TestDeleteRule(t *testing.T) {
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given a valid rule name", func() {
-				args := []string{rule.Name, direction(rule)}
+				args := []string{rule.Name, getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -412,7 +412,7 @@ func TestDeleteRule(t *testing.T) {
 			})
 
 			Convey("Given an invalid rule name", func() {
-				args := []string{"toto", direction(rule)}
+				args := []string{"toto", getDirection(rule)}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -606,7 +606,7 @@ func TestRuleAllowAll(t *testing.T) {
 				So(db.Insert(raAcc).Run(), ShouldBeNil)
 
 				Convey("Given correct command parameters", func() {
-					args := []string{rule.Name, direction(rule)}
+					args := []string{rule.Name, getDirection(rule)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)
@@ -614,7 +614,7 @@ func TestRuleAllowAll(t *testing.T) {
 						So(command.Execute(params), ShouldBeNil)
 
 						Convey("Then it should say that the rule is now unrestricted", func() {
-							So(getOutput(), ShouldEqual, "The use of the "+direction(rule)+
+							So(getOutput(), ShouldEqual, "The use of the "+getDirection(rule)+
 								" rule "+rule.Name+" is now unrestricted.\n")
 						})
 
@@ -627,7 +627,7 @@ func TestRuleAllowAll(t *testing.T) {
 				})
 
 				Convey("Given an incorrect rule name", func() {
-					args := []string{"toto", direction(rule)}
+					args := []string{"toto", getDirection(rule)}
 
 					Convey("When executing the command", func() {
 						params, err := flags.ParseArgs(command, args)

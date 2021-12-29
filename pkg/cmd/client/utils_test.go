@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"code.waarp.fr/lib/log"
 	"github.com/jessevdk/go-flags"
@@ -144,3 +145,5 @@ func fromTransfer(db *database.DB, trans *model.Transfer) *api.OutTransfer {
 
 	return jTrans
 }
+
+func timePtr(t time.Time) *time.Time { return &t }

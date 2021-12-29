@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -54,34 +55,43 @@ func displayTransfer(w io.Writer, trans *api.OutTransfer) {
 		size = fmt.Sprint(trans.Filesize)
 	}
 
-	fmt.Fprintln(w, bold("● Transfer", trans.ID, "("+dir+" as "+role+")"), coloredStatus(trans.Status))
-
-	if trans.RemoteID != "" {
-		fmt.Fprintln(w, orange("    Remote ID:      "), trans.RemoteID)
+	stop := "N/A"
+	if trans.Stop != nil {
+		stop = trans.Stop.Local().String()
 	}
 
-	fmt.Fprintln(w, orange("    Rule:           "), trans.Rule)
-	fmt.Fprintln(w, orange("    Protocol:       "), trans.Protocol)
-	fmt.Fprintln(w, orange("    Requester:      "), trans.Requester)
-	fmt.Fprintln(w, orange("    Requested:      "), trans.Requested)
-	fmt.Fprintln(w, orange("    Local filepath: "), trans.LocalFilepath)
-	fmt.Fprintln(w, orange("    Remote filepath:"), trans.RemoteFilepath)
-	fmt.Fprintln(w, orange("    File size:      "), size)
-	fmt.Fprintln(w, orange("    Start date:     "), trans.Start.Format(time.RFC3339Nano))
-	fmt.Fprintln(w, orange("    Step:           "), trans.Step)
-	fmt.Fprintln(w, orange("    Progress:       "), trans.Progress)
-	fmt.Fprintln(w, orange("    Task number:    "), trans.TaskNumber)
+	fmt.Fprintln(w, bold("● Transfer", trans.ID, "("+dir+" as "+role+")"), coloredStatus(trans.Status))
+	fmt.Fprintln(w, orange("    Remote ID:        "), trans.RemoteID)
+	fmt.Fprintln(w, orange("    Protocol:         "), trans.Protocol)
+	fmt.Fprintln(w, orange("    Rule:             "), trans.Rule)
+	fmt.Fprintln(w, orange("    Requester:        "), trans.Requester)
+	fmt.Fprintln(w, orange("    Requested:        "), trans.Requested)
+	fmt.Fprintln(w, orange("    Local filepath:   "), trans.LocalFilepath)
+	fmt.Fprintln(w, orange("    Remote filepath:  "), trans.RemoteFilepath)
+	fmt.Fprintln(w, orange("    File size:        "), size)
+	fmt.Fprintln(w, orange("    Start date:       "), trans.Start.Local())
+	fmt.Fprintln(w, orange("    End date:         "), stop)
+
+	if trans.Step != types.StepNone.String() {
+		fmt.Fprintln(w, orange("    Step:             "), trans.Step)
+	}
+
+	fmt.Fprintln(w, orange("    Bytes transferred:"), trans.Progress)
+
+	if trans.TaskNumber != 0 {
+		fmt.Fprintln(w, orange("    Tasks executed:   "), trans.TaskNumber)
+	}
 
 	if trans.ErrorCode != types.TeOk.String() {
-		fmt.Fprintln(w, orange("    Error code:     "), fmt.Sprint(trans.ErrorCode))
+		fmt.Fprintln(w, orange("    Error code:       "), trans.ErrorCode)
 	}
 
 	if trans.ErrorMsg != "" {
-		fmt.Fprintln(w, orange("    Error message:  "), trans.ErrorMsg)
+		fmt.Fprintln(w, orange("    Error message:    "), trans.ErrorMsg)
 	}
 
 	if len(trans.TransferInfo) > 0 {
-		fmt.Fprintln(w, orange("    Transfer info:"))
+		fmt.Fprintln(w, orange("    Transfer values:"))
 
 		info := make([]string, 0, len(trans.TransferInfo))
 
@@ -364,6 +374,67 @@ func (t *TransferCancel) Execute([]string) error {
 		return getResponseErrorMessage(resp)
 
 	default:
-		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseErrorMessage(resp))
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
+	}
+}
+
+// ######################## RESTART ##########################
+
+//nolint:lll // struct tags can be long for command line args
+type TransferRetry struct {
+	Args struct {
+		ID uint64 `required:"yes" positional-arg-name:"id" description:"The transfer's ID"`
+	} `positional-args:"yes"`
+	Date string `short:"d" long:"date" description:"Set the date at which the transfer should restart. Date must be in RFC3339 format."`
+}
+
+//nolint:dupl //must be kept separate for retro-compatibility
+func (t *TransferRetry) Execute([]string) error {
+	addr.Path = fmt.Sprintf("/api/transfers/%d/retry", t.Args.ID)
+
+	query := url.Values{}
+
+	if t.Date != "" {
+		start, err := time.Parse(time.RFC3339Nano, t.Date)
+		if err != nil {
+			return fmt.Errorf("'%s' is not a start valid date (accepted format: '%s'): %w",
+				t.Date, time.RFC3339Nano, err)
+		}
+
+		query.Set("date", start.Format(time.RFC3339Nano))
+	}
+
+	addr.RawQuery = query.Encode()
+
+	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
+	defer cancel()
+
+	resp, err := sendRequest(ctx, nil, http.MethodPut)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck // nothing to handle the error
+
+	w := getColorable()
+
+	switch resp.StatusCode {
+	case http.StatusCreated:
+		loc, err := resp.Location()
+		if err != nil {
+			return fmt.Errorf("cannot get the resource location: %w", err)
+		}
+
+		id := filepath.Base(loc.Path)
+		fmt.Fprintln(w, "The transfer will be retried under the ID:", bold(id))
+
+		return nil
+	case http.StatusBadRequest:
+		return getResponseErrorMessage(resp)
+	case http.StatusNotFound:
+		return getResponseErrorMessage(resp)
+	default:
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status,
+			getResponseErrorMessage(resp))
 	}
 }
