@@ -157,7 +157,7 @@ func TestCryptoBeforeWrite(t *testing.T) {
 				})
 
 				Convey("Given the legacy R66 certificate", func() {
-					const protoR66 = "r66"
+					const protoR66TLS = config.ProtocolR66TLS
 
 					newCert.PrivateKey = testhelpers.LegacyR66Key
 					newCert.Certificate = testhelpers.LegacyR66Cert
@@ -179,12 +179,12 @@ func TestCryptoBeforeWrite(t *testing.T) {
 						})
 
 						Convey("Given an R66 owner", func() {
-							config.ProtoConfigs[protoR66] = func() config.ProtoConfig {
+							config.ProtoConfigs[protoR66TLS] = func() config.ProtoConfig {
 								return new(testhelpers.TestProtoConfig)
 							}
-							defer delete(config.ProtoConfigs, protoR66)
+							defer delete(config.ProtoConfigs, protoR66TLS)
 
-							parentAgent.Protocol = protoR66
+							parentAgent.Protocol = protoR66TLS
 							So(db.Update(parentAgent).Cols("protocol").Run(), ShouldBeNil)
 
 							err := newCert.BeforeWrite(db)
@@ -197,12 +197,12 @@ func TestCryptoBeforeWrite(t *testing.T) {
 
 					Convey("Given that the legacy certificate is NOT allowed", func() {
 						Convey("Given an R66 owner", func() {
-							config.ProtoConfigs[protoR66] = func() config.ProtoConfig {
+							config.ProtoConfigs[protoR66TLS] = func() config.ProtoConfig {
 								return new(testhelpers.TestProtoConfig)
 							}
-							defer delete(config.ProtoConfigs, protoR66)
+							defer delete(config.ProtoConfigs, protoR66TLS)
 
-							parentAgent.Protocol = protoR66
+							parentAgent.Protocol = protoR66TLS
 							So(db.Update(parentAgent).Cols("protocol").Run(), ShouldBeNil)
 
 							err := newCert.BeforeWrite(db)

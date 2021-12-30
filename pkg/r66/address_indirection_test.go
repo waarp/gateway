@@ -17,7 +17,7 @@ func TestAddressIndirection(t *testing.T) {
 	fakeAddr := "not_a_real_address:99999"
 
 	Convey("Given a r66 service with an indirect address", t, func(c C) {
-		ctx := pipelinetest.InitSelfPushTransfer(c, "r66", NewService, partConf, servConf)
+		ctx := pipelinetest.InitSelfPushTransfer(c, ProtocolR66, NewService, partConf, servConf)
 		realAddr := ctx.Server.Address
 		conf.InitTestOverrides(c)
 

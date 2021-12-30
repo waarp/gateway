@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -103,6 +104,16 @@ func partToDB(part *api.InPartner, id uint64) *model.RemoteAgent {
 // FromLocalAgent transforms the given database local agent into its JSON
 // equivalent.
 func FromLocalAgent(ag *model.LocalAgent, rules *api.AuthorizedRules) *api.OutServer {
+	if ag.Protocol == config.ProtocolR66TLS {
+		var r66Conf *config.R66ProtoConfig
+		if json.Unmarshal(ag.ProtoConfig, r66Conf) == nil && r66Conf.IsTLS != nil {
+			// To preserve backwards compatibility, when `ìsTLS` is defined, we
+			// change the protocol back to config.ProtocolR66, like it was before the addition
+			// of the config.ProtocolR66TLS protocol.
+			ag.Protocol = config.ProtocolR66
+		}
+	}
+
 	return &api.OutServer{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
@@ -136,6 +147,16 @@ func FromLocalAgents(ags []model.LocalAgent, rules []api.AuthorizedRules) []api.
 // FromRemoteAgent transforms the given database remote agent into its JSON
 // equivalent.
 func FromRemoteAgent(ag *model.RemoteAgent, rules *api.AuthorizedRules) *api.OutPartner {
+	if ag.Protocol == config.ProtocolR66TLS {
+		var r66Conf *config.R66ProtoConfig
+		if json.Unmarshal(ag.ProtoConfig, r66Conf) == nil && r66Conf.IsTLS != nil {
+			// To preserve backwards compatibility, when `ìsTLS` is defined, we
+			// change the protocol back to config.ProtocolR66, like it was before the addition
+			// of the config.ProtocolR66TLS protocol.
+			ag.Protocol = config.ProtocolR66
+		}
+	}
+
 	return &api.OutPartner{
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,

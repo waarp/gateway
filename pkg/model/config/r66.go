@@ -10,9 +10,15 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
+const (
+	ProtocolR66    = "r66"
+	ProtocolR66TLS = "r66-tls"
+)
+
 //nolint:gochecknoinits // init is used by design
 func init() {
-	ProtoConfigs["r66"] = func() ProtoConfig { return new(R66ProtoConfig) }
+	ProtoConfigs[ProtocolR66] = func() ProtoConfig { return new(R66ProtoConfig) }
+	ProtoConfigs[ProtocolR66TLS] = func() ProtoConfig { return new(R66ProtoConfig) }
 }
 
 // R66ProtoConfig represents the configuration of a R66 agent.
@@ -27,8 +33,9 @@ type R66ProtoConfig struct {
 	ServerPassword string `json:"serverPassword,omitempty"`
 
 	// Specifies whether the partner uses TLS or not. Useless for servers.
+	// Deprecated: use the r66-tls protocol instead.
 	//nolint:tagliatelle // FIXME cannot be changed for compatibility reasons
-	IsTLS bool `json:"isTLS,omitempty"`
+	IsTLS *bool `json:"isTLS,omitempty"`
 
 	// If true, the final hash verification will be disabled.
 	NoFinalHash bool `json:"noFinalHash,omitempty"`

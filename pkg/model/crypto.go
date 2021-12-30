@@ -7,6 +7,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
@@ -227,7 +228,7 @@ func (c *Crypto) validateContent(host, proto string, isServer bool) database.Err
 			return newErr("failed to parse certificate: %s", err)
 		}
 
-		if proto != "r66" || !isLegacyR66Cert(certChain[0]) {
+		if proto != config.ProtocolR66TLS || !isLegacyR66Cert(certChain[0]) {
 			if err := utils.CheckCertChain(certChain, isServer, host); err != nil {
 				return newErr(err.Error())
 			}

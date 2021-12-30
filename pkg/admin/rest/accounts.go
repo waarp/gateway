@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -27,7 +28,7 @@ func newInRemAccount(old *model.RemoteAccount) *api.InAccount {
 
 // accToLocal transforms the JSON local account into its database equivalent.
 func accToLocal(acc *api.InAccount, agent *model.LocalAgent, id uint64) (*model.LocalAccount, error) {
-	if agent.Protocol == "r66" {
+	if agent.Protocol == config.ProtocolR66 || agent.Protocol == config.ProtocolR66TLS {
 		// Unlike other protocols, when authenticating, an R66 client sends a
 		// hash instead of a password, so we replace the password with its hash.
 		acc.Password = strPtr(string(r66.CryptPass([]byte(str(acc.Password)))))

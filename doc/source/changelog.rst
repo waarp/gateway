@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`287` Séparation de R66 et R66-TLS en 2 protocoles distincts. La
+  distinction entre les deux se fait désormais via le nom du protocole au lieu
+  de la protoConfig. L'option ``isTLS`` de la protoConfig R66 existe toujours
+  mais est dorénavant dépréciée.
 * :bug:`291` Correction d'une erreur causant l'apparition impromptue de messages
   d'erreur (*warnings*) lorsqu'un client SFTP termine normalement une connexion
   vers un serveur SFTP de la *gateway*.

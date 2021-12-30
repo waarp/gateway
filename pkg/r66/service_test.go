@@ -25,7 +25,7 @@ func TestServiceStart(t *testing.T) {
 		db := database.TestDatabase(c)
 		server := &model.LocalAgent{
 			Name:        "r66_server",
-			Protocol:    "r66",
+			Protocol:    ProtocolR66,
 			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     testhelpers.GetLocalAddress(c),
 		}
@@ -47,7 +47,7 @@ func TestServiceStart(t *testing.T) {
 		db := database.TestDatabase(c)
 		server := &model.LocalAgent{
 			Name:        "r66_server",
-			Protocol:    "r66",
+			Protocol:    ProtocolR66,
 			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l","isTLS":true}`),
 			Address:     testhelpers.GetLocalAddress(c),
 		}
@@ -77,7 +77,7 @@ func TestServiceStart(t *testing.T) {
 		db := database.TestDatabase(c)
 		server := &model.LocalAgent{
 			Name:        "r66_server",
-			Protocol:    "r66",
+			Protocol:    ProtocolR66,
 			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l","isTLS":true}`),
 			Address:     testhelpers.GetLocalAddress(c),
 		}
@@ -90,8 +90,7 @@ func TestServiceStart(t *testing.T) {
 			err := serv.Start()
 
 			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, "failed to make the server TLS config: "+
-					"no certificates found")
+				So(err, ShouldBeError, errNoCertificates)
 			})
 		})
 	})
@@ -102,7 +101,7 @@ func TestServiceStop(t *testing.T) {
 		db := database.TestDatabase(c)
 		server := &model.LocalAgent{
 			Name:        "r66_server",
-			Protocol:    "r66",
+			Protocol:    ProtocolR66,
 			ProtoConfig: json.RawMessage(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:8067",
 		}
@@ -126,7 +125,7 @@ func TestServiceStop(t *testing.T) {
 
 func TestR66ServerInterruption(t *testing.T) {
 	Convey("Given an R66 server ready for push transfers", t, func(c C) {
-		test := pipelinetest.InitServerPush(c, "r66", NewService, servConf)
+		test := pipelinetest.InitServerPush(c, ProtocolR66, NewService, servConf)
 
 		logger := testhelpers.TestLogger(c, "test_r66_start")
 		serv := newService(test.DB, test.Server, logger)
