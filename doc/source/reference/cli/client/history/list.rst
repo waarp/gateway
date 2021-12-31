@@ -2,7 +2,7 @@
 Afficher l'historique
 =====================
 
-.. program:: waarp-gateway transfer list
+.. program:: waarp-gateway history list
 
 .. describe:: waarp-gateway history list
 
