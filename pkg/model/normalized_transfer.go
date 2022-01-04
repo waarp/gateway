@@ -25,5 +25,21 @@ func (n *NormalizedTransferView) BeforeDelete(database.Access) database.Error {
 
 // GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.
 func (n *NormalizedTransferView) GetTransferInfo(db database.ReadAccess) (map[string]interface{}, database.Error) {
-	return getTransferInfo(db, n.ID, n.IsTransfer)
+	return getTransferInfo(db, n)
+}
+
+func (n *NormalizedTransferView) getTransInfoCondition() (string, int64) {
+	if n.IsTransfer {
+		return (&Transfer{}).getTransInfoCondition()
+	}
+
+	return (&HistoryEntry{}).getTransInfoCondition()
+}
+
+func (n *NormalizedTransferView) setTransInfoOwner(info *TransferInfo) {
+	if n.IsTransfer {
+		(&Transfer{ID: n.ID}).setTransInfoOwner(info)
+	} else {
+		(&HistoryEntry{ID: n.ID}).setTransInfoOwner(info)
+	}
 }

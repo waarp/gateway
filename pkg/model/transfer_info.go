@@ -6,6 +6,11 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
+type transferInfoOwner interface {
+	getTransInfoCondition() (string, int64)
+	setTransInfoOwner(*TransferInfo)
+}
+
 // TransferInfo represents the transfer_info database table, which contains all the
 // protocol-specific information attached to a transfer.
 type TransferInfo struct {

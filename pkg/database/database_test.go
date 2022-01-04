@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 
@@ -740,7 +741,14 @@ func TestDatabaseStartWithNoPassPhraseFile(t *testing.T) {
 
 		Convey("When the database service is started", func() {
 			So(db.Start(), ShouldBeNil)
-			Reset(func() { _ = os.Remove(conf.GlobalConfig.Database.AESPassphrase) })
+			Reset(func() {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				defer cancel()
+
+				So(db.Stop(ctx), ShouldBeNil)
+				So(os.Remove(conf.GlobalConfig.Database.Address), ShouldBeNil)
+				So(os.Remove(conf.GlobalConfig.Database.AESPassphrase), ShouldBeNil)
+			})
 
 			Convey("Then there is a new passphrase file", func() {
 				stats, err := os.Stat(conf.GlobalConfig.Database.AESPassphrase)
@@ -765,8 +773,10 @@ func TestDatabaseStartVersionMismatch(t *testing.T) {
 	Convey("Given a test database", t, func() {
 		db := &DB{}
 		So(db.Start(), ShouldBeNil)
-		defer os.Remove(conf.GlobalConfig.Database.Address)
-		defer os.Remove(conf.GlobalConfig.Database.AESPassphrase)
+		Reset(func() {
+			_ = os.Remove(conf.GlobalConfig.Database.Address)
+			_ = os.Remove(conf.GlobalConfig.Database.AESPassphrase)
+		})
 
 		Convey("Given that the database version does not match the program", func() {
 			ver := &version{Current: "0.0.0"}

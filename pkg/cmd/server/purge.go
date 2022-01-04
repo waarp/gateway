@@ -9,6 +9,7 @@ import (
 
 	"github.com/karrick/tparse/v2"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/backup"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
@@ -27,6 +28,7 @@ type PurgeCommand struct {
 	ConfigFile string `short:"c" long:"config" required:"yes" description:"The configuration file to use"`
 	Reset      bool   `short:"r" long:"reset" description:"Reset the transfer ID auto-increment after the purge (NOTE: cannot be used in combination with -o)."`
 	OlderThan  string `short:"o" long:"older-than" description:"Limit the purge to transfers older than the given time (can be either a date or a duration)."`
+	ExportTo   string `short:"e" long:"export-to" description:"Export the purged entries to a json file."`
 	Verbose    []bool `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity"`
 
 	olderThan time.Time
@@ -53,6 +55,17 @@ func (p *PurgeCommand) run(db *database.DB, now time.Time, in io.Reader,
 		return err
 	} else if !proceed {
 		return nil
+	}
+
+	if p.ExportTo != "" {
+		file, err := os.Create(p.ExportTo)
+		if err != nil {
+			return fmt.Errorf("failed to open the export file: %w", err)
+		}
+
+		if err := backup.ExportHistory(db, file, p.olderThan); err != nil {
+			return fmt.Errorf("failed to export the history: %w", err)
+		}
 	}
 
 	if err := db.Transaction(func(ses *database.Session) database.Error {

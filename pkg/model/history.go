@@ -9,6 +9,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 // HistoryEntry represents one record of the 'transfers_history' table.
@@ -37,6 +38,14 @@ type HistoryEntry struct {
 func (*HistoryEntry) TableName() string   { return TableHistory }
 func (*HistoryEntry) Appellation() string { return "history entry" }
 func (h *HistoryEntry) GetID() int64      { return h.ID }
+
+func (h *HistoryEntry) getTransInfoCondition() (string, int64) {
+	return "history_id=?", h.ID
+}
+
+func (h *HistoryEntry) setTransInfoOwner(info *TransferInfo) {
+	info.HistoryID = utils.NewNullInt64(h.ID)
+}
 
 // BeforeWrite checks if the new `HistoryEntry` entry is valid and can be
 // inserted in the database.
@@ -163,12 +172,12 @@ func (h *HistoryEntry) Restart(db database.Access, date time.Time) (*Transfer, d
 }
 
 // GetTransferInfo returns the list of the transfer's TransferInfo as a map of interfaces.
-func (h *HistoryEntry) GetTransferInfo(db database.ReadAccess) (map[string]interface{}, database.Error) {
-	return getTransferInfo(db, h.ID, false)
+func (h *HistoryEntry) GetTransferInfo(db database.ReadAccess) (map[string]any, database.Error) {
+	return getTransferInfo(db, h)
 }
 
 // SetTransferInfo replaces all the TransferInfo in the database of the given
 // history entry by those given in the map parameter.
-func (h *HistoryEntry) SetTransferInfo(db *database.DB, info map[string]interface{}) database.Error {
-	return setTransferInfo(db, info, h.ID, true)
+func (h *HistoryEntry) SetTransferInfo(db *database.DB, info map[string]any) database.Error {
+	return setTransferInfo(db, h, info)
 }
