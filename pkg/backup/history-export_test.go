@@ -68,7 +68,7 @@ func TestExportHistory(t *testing.T) {
 			So(ExportHistory(db, buf, time.Time{}), ShouldBeNil)
 
 			Convey("Then it should have written the JSON to the output", func() {
-				//nolint:misspell //CANCELED is spelled wrong for retro-compatibility purposes
+				//nolint:misspell //spelling mistake must be kept for compatibility reasons
 				So(buf.String(), ShouldEqual, `[
   {
     "id": 1,

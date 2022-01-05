@@ -37,37 +37,43 @@ func jsonTransToDbHist(trans *file.Transfer) *model.HistoryEntry {
 
 var ErrInvalidJSONInput = errors.New("invalid JSON input")
 
-func importHistory(db database.Access, r io.Reader) error {
+func importHistory(ses *database.Session, r io.Reader) (int64, error) {
 	decoder := json.NewDecoder(r)
 
 	if tok, err := decoder.Token(); err != nil {
-		return fmt.Errorf("failed to parse JSON input: %w", err)
+		return 0, fmt.Errorf("failed to parse JSON input: %w", err)
 	} else if tok != json.Delim('[') {
-		return fmt.Errorf("%w: expected array start, got '%v'", ErrInvalidJSONInput, tok)
+		return 0, fmt.Errorf("%w: expected array start, got '%v'", ErrInvalidJSONInput, tok)
 	}
+
+	var maxID int64
 
 	for decoder.More() {
 		var trans file.Transfer
 		if err := decoder.Decode(&trans); err != nil {
-			return fmt.Errorf("failed to parse JSON history entry: %w", err)
+			return 0, fmt.Errorf("failed to parse JSON history entry: %w", err)
+		}
+
+		if trans.ID > maxID {
+			maxID = trans.ID
 		}
 
 		h := jsonTransToDbHist(&trans)
 
-		if err := db.Insert(h).Run(); err != nil {
-			return err
+		if err := ses.Insert(h).Run(); err != nil {
+			return 0, err
 		}
 
-		if err := h.SetTransferInfo(db, trans.TransferInfo); err != nil {
-			return err
+		if err := h.SetTransferInfo(ses, trans.TransferInfo); err != nil {
+			return 0, err
 		}
 	}
 
 	if tok, err := decoder.Token(); err != nil {
-		return fmt.Errorf("failed to parse JSON input: %w", err)
+		return 0, fmt.Errorf("failed to parse JSON input: %w", err)
 	} else if tok != json.Delim(']') {
-		return fmt.Errorf("%w: expected array end, got '%v'", ErrInvalidJSONInput, tok)
+		return 0, fmt.Errorf("%w: expected array end, got '%v'", ErrInvalidJSONInput, tok)
 	}
 
-	return nil
+	return maxID, nil
 }

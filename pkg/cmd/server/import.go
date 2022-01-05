@@ -138,28 +138,24 @@ type RestoreHistCommand struct {
 	File       string `short:"s" long:"source" description:"The data file to import. If none is given, the content will be read from the standard output"`
 	Dry        bool   `short:"d" long:"dry-run" description:"Do not make any changes, but simulate the import of the file"`
 	Verbose    []bool `short:"v" long:"verbose" description:"Show verbose debug information. Can be repeated to increase verbosity"`
-	Reset      bool   `short:"r" long:"reset-before-import" description:"Empty the database tables before importing the elements from the file"`
-	ForceReset bool   `long:"force-reset-before-import" description:"Empty the database tables before importing the elements from the file without confirmation prompt"`
 }
 
 func (r *RestoreHistCommand) Execute([]string) error {
-	if r.Reset {
-		var yes string
+	var yes string
 
-		fmt.Fprintln(os.Stdout, "You are about to reset the database prior to the import.")
-		fmt.Fprintln(os.Stdout, "This operation cannot be undone. Do you wish to proceed anyway ?")
-		fmt.Fprintln(os.Stdout)
-		fmt.Fprint(os.Stdout, "(Type 'YES' in all caps to proceed): ")
-		_, err := fmt.Fscanf(os.Stdin, "%s", &yes)
+	fmt.Fprintln(os.Stdout, "You are about to restore a transfer history backup.")
+	fmt.Fprintln(os.Stdout, "The restored history will replace the existing one.")
+	fmt.Fprintln(os.Stdout, "This means that ALL the existing history entries will be lost.")
+	fmt.Fprintln(os.Stdout, "This operation cannot be undone. Do you wish to proceed anyway ?")
+	fmt.Fprintln(os.Stdout)
+	fmt.Fprint(os.Stdout, "(Type 'YES' in all caps to proceed): ")
+	_, err := fmt.Fscanf(os.Stdin, "%s", &yes)
 
-		if yes != "YES" || err != nil {
-			fmt.Fprintln(os.Stderr, "Import aborted.")
+	if yes != "YES" || err != nil {
+		fmt.Fprintln(os.Stderr, "Import aborted.")
 
-			return nil
-		}
+		return nil
 	}
-
-	reset := r.Reset || r.ForceReset
 
 	db, logger, err := initImportExport(r.ConfigFile, r.Verbose)
 	if err != nil {
@@ -178,7 +174,7 @@ func (r *RestoreHistCommand) Execute([]string) error {
 		defer func() { _ = f.Close() }() //nolint:errcheck,gosec // Close() must be deferred
 	}
 
-	if err := backup.ImportHistory(db, f, r.Dry, reset); err != nil {
+	if err := backup.ImportHistory(db, f, r.Dry); err != nil {
 		return fmt.Errorf("error at restore: %w", err)
 	}
 

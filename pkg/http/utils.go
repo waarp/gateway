@@ -215,7 +215,7 @@ func setFileInfo(pip *pipeline.Pipeline, headers http.Header) *types.TransferErr
 */
 
 func setInfo(pip *pipeline.Pipeline, headers http.Header, key string,
-	set func(database.Access, map[string]interface{}) database.Error,
+	set func(database.Access, map[string]any) database.Error,
 ) *types.TransferError {
 	info := map[string]interface{}{}
 

@@ -163,14 +163,14 @@ func (tec *TransferErrorCode) Scan(v interface{}) error {
 }
 
 // FromDB implements xorm/core.Conversion. As xorm ignores standard converters
-// for non-struct types (Value() and Scan()), thos must be mapped to xorm own
+// for non-struct types (Value() and Scan()), thus must be mapped to xorm own
 // conversion interface.
 func (tec *TransferErrorCode) FromDB(v []byte) error {
 	return tec.Scan(v)
 }
 
 // ToDB implements xorm/core.Conversion. As xorm ignores standard converters
-// for non-struct types (Value() and Scan()), thos must be mapped to xorm own
+// for non-struct types (Value() and Scan()), thus must be mapped to xorm own
 // conversion interface.
 func (tec TransferErrorCode) ToDB() ([]byte, error) {
 	v, err := tec.Value()
@@ -181,7 +181,7 @@ func (tec TransferErrorCode) ToDB() ([]byte, error) {
 
 // R66Code returns the error code as a single character usable by R66.
 //
-//nolint:funlen,cyclop // cannot be shorten without adding complexity
+//nolint:funlen,cyclop // cannot be shortened without adding complexity
 func (tec TransferErrorCode) R66Code() rune {
 	switch tec {
 	case TeOk:

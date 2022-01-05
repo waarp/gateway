@@ -11,10 +11,11 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func TestImportHistory(t *testing.T) {
-	//nolint:misspell //CANCELED is spelled wrong for retro-compatibility
+	//nolint:misspell //spelling mistake must be kept for compatibility reasons
 	const jsonInput = `[
   {
     "id": 1,
@@ -133,13 +134,12 @@ func TestImportHistory(t *testing.T) {
 
 		Convey("When importing the history dump file", func() {
 			buf := bytes.NewBufferString(jsonInput)
-			So(ImportHistory(db, buf, false, false), ShouldBeNil)
+			So(ImportHistory(db, buf, false), ShouldBeNil)
 
 			Convey("Then it should have imported the history entries", func() {
 				var hist model.HistoryEntries
 				So(db.Select(&hist).OrderBy("id", true).Run(), ShouldBeNil)
-				So(hist, ShouldHaveLength, 3)
-				So(hist[2], ShouldResemble, hist3)
+				So(hist, ShouldHaveLength, 2)
 				So(hist[0], ShouldResemble, expected1)
 				So(hist[1], ShouldResemble, expected2)
 
@@ -147,30 +147,38 @@ func TestImportHistory(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(info["key"], ShouldResemble, "val")
 			})
+
+			Convey("Then any newly inserted transfer should not have a conflicting ID", func() {
+				rule := &model.Rule{Name: "rule", IsSend: false}
+				So(db.Insert(rule).Run(), ShouldBeNil)
+
+				locAg := &model.LocalAgent{Name: "locAg", Protocol: testProtocol, Address: "1.2.3.4:5"}
+				So(db.Insert(locAg).Run(), ShouldBeNil)
+
+				locAcc := &model.LocalAccount{LocalAgentID: locAg.ID, Login: "locAcc"}
+				So(db.Insert(locAcc).Run(), ShouldBeNil)
+
+				newTrans := &model.Transfer{
+					RuleID:         rule.ID,
+					LocalAccountID: utils.NewNullInt64(locAcc.ID),
+					LocalPath:      "/loc/path",
+					RemotePath:     "/rem/path",
+				}
+				So(db.Insert(newTrans).Run(), ShouldBeNil)
+
+				So(newTrans.ID, ShouldEqual, 3)
+			})
 		})
 
 		Convey("When importing the history dump file with the dry flag", func() {
 			buf := bytes.NewBufferString(jsonInput)
-			So(ImportHistory(db, buf, true, false), ShouldBeNil)
+			So(ImportHistory(db, buf, true), ShouldBeNil)
 
 			Convey("Then it should NOT have imported the history entries", func() {
 				var hist model.HistoryEntries
 				So(db.Select(&hist).OrderBy("id", true).Run(), ShouldBeNil)
 				So(hist, ShouldHaveLength, 1)
 				So(hist[0], ShouldResemble, hist3)
-			})
-		})
-
-		Convey("When importing the history dump file with the reset flag", func() {
-			buf := bytes.NewBufferString(jsonInput)
-			So(ImportHistory(db, buf, false, true), ShouldBeNil)
-
-			Convey("Then it should have removed the entries not from the dump", func() {
-				var hist model.HistoryEntries
-				So(db.Select(&hist).OrderBy("id", true).Run(), ShouldBeNil)
-				So(hist, ShouldHaveLength, 2)
-				So(hist[0], ShouldResemble, expected1)
-				So(hist[1], ShouldResemble, expected2)
 			})
 		})
 	})
