@@ -24,7 +24,7 @@ func testSelectForUpdate(db *DB) {
 	transRes := make(chan Error, 1)
 	trans2 := func(ready chan<- bool) {
 		close(ready)
-		transRes <- db2.WriteTransaction(func(ses *Session) Error {
+		transRes <- db2.Transaction(func(ses *Session) Error {
 			var beans validList
 			if err := ses.SelectForUpdate(&beans).Where("string=? AND id<>0", "str2").Run(); err != nil {
 				return err
@@ -42,7 +42,7 @@ func testSelectForUpdate(db *DB) {
 		_, err := db.engine.Insert(&bean1, &bean2, &bean3)
 		So(err, ShouldBeNil)
 
-		tErr1 := db.WriteTransaction(func(ses *Session) Error {
+		tErr1 := db.Transaction(func(ses *Session) Error {
 			var beans validList
 			err := ses.SelectForUpdate(&beans).Where("string=?", "str2").Run()
 			So(err, ShouldBeNil)
