@@ -3,6 +3,10 @@
 Historique des versions
 =======================
 
+* :feature:`74` Ajout de la commande :ref:`reference-cmd-waarp-gatewayd-restore-history`
+  permettant d'importer un dump de l'historique de transfert depuis un fichier JSON.
+  Ce dump peut être créé via la nouvelle option ``-e, --export-to`` de la commande
+  :ref:`reference-cmd-waarp-gatewayd-purge`.
 * :feature:`286` Unifications des *handlers* REST pour les transferts et pour
   l'historique. Tous les transferts (qu'ils soient terminés ou non) sont désormais
   accessibles via le *handler* de transferts. En conséquence, le *handler*

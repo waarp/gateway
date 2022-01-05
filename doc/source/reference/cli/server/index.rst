@@ -9,4 +9,5 @@ Serveur ``waarp-gatewayd``
    import
    export
    purge
+   restore_history
    version

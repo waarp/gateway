@@ -11,7 +11,7 @@
 configuration de la Gateway depuis un fichier JSON.
 
 La structure et le contenu du fichier JSON est documenté :any:`ici
-<reference-backup-file>`. Il peut également être généré avec la commande
+<reference-backup-json>`. Il peut également être généré avec la commande
 :any:`reference-cmd-waarp-gatewayd-export`.
 
 Cette commande accepte les options suivantes :
