@@ -121,32 +121,44 @@ func getTransferInfo(db database.ReadAccess, owner transferInfoOwner,
 	return infoMap, nil
 }
 
-// SetTransferInfo replaces all the TransferInfo in the database of the given
-// transfer by those given in the map parameter.
-func setTransferInfo(db *database.DB, owner transferInfoOwner,
+func setTransferInfo(access database.Access, owner transferInfoOwner,
 	info map[string]any,
 ) database.Error {
-	return db.Transaction(func(ses *database.Session) database.Error {
-		if err := ses.DeleteAll(&TransferInfo{}).Where(owner.getTransInfoCondition()).
-			Run(); err != nil {
+	switch db := access.(type) {
+	case *database.DB:
+		return db.Transaction(func(ses *database.Session) database.Error {
+			return doSetTransferInfo(ses, owner, info)
+		})
+	case *database.Session:
+		return doSetTransferInfo(db, owner, info)
+	default:
+		panic(fmt.Sprintf("unknown database access type %T", access))
+	}
+}
+
+func doSetTransferInfo(ses *database.Session, owner transferInfoOwner,
+	info map[string]any,
+) database.Error {
+	if err := ses.DeleteAll(&TransferInfo{}).Where(owner.getTransInfoCondition()).
+		Run(); err != nil {
+		return err
+	}
+
+	for name, val := range info {
+		str, err := json.Marshal(val)
+		if err != nil {
+			return database.NewValidationError("invalid transfer info value '%v': %s", val, err)
+		}
+
+		i := &TransferInfo{Name: name, Value: string(str)}
+		owner.setTransInfoOwner(i)
+
+		if err := ses.Insert(i).Run(); err != nil {
 			return err
 		}
-		for name, val := range info {
-			str, err := json.Marshal(val)
-			if err != nil {
-				return database.NewValidationError("invalid transfer info value '%v': %s", val, err)
-			}
+	}
 
-			i := &TransferInfo{Name: name, Value: string(str)}
-			owner.setTransInfoOwner(i)
-
-			if err := ses.Insert(i).Run(); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
+	return nil
 }
 
 func makeIDGenerator() (*snowflake.Node, error) {

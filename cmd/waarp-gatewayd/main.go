@@ -11,12 +11,13 @@ import (
 
 //nolint:lll // tags can be long for flags
 type commands struct {
-	Server  wgd.ServerCommand  `command:"server" description:"Start/Create the gateway"`
-	Import  wgd.ImportCommand  `command:"import" description:"Imports the data of source file into the gateway database"`
-	Export  wgd.ExportCommand  `command:"export" description:"Exports the data of the gateway database to the destination file"`
-	Purge   wgd.PurgeCommand   `command:"purge" description:"Purge the transfer history"`
-	Version wgd.VersionCommand `command:"version" description:"Print version and exit"`
-	Migrate wgd.MigrateCommand `command:"migrate" description:"Migrate the gateway database to a different version"`
+	Server      wgd.ServerCommand      `command:"server" description:"Start/Create the gateway"`
+	Import      wgd.ImportCommand      `command:"import" description:"Imports the data of source file into the gateway database"`
+	Export      wgd.ExportCommand      `command:"export" description:"Exports the data of the gateway database to the destination file"`
+	Purge       wgd.PurgeCommand       `command:"purge" description:"Purge the transfer history"`
+	RestoreHist wgd.RestoreHistCommand `command:"restore-history" description:"Restore the given transfer history dump"`
+	Version     wgd.VersionCommand     `command:"version" description:"Print version and exit"`
+	Migrate     wgd.MigrateCommand     `command:"migrate" description:"Migrate the gateway database to a different version"`
 }
 
 func main() {

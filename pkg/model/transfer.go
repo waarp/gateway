@@ -320,7 +320,7 @@ func (t *Transfer) GetTransferInfo(db database.ReadAccess) (map[string]any, data
 
 // SetTransferInfo replaces all the TransferInfo in the database of the given
 // history entry by those given in the map parameter.
-func (t *Transfer) SetTransferInfo(db *database.DB, info map[string]any) database.Error {
+func (t *Transfer) SetTransferInfo(db database.Access, info map[string]any) database.Error {
 	return setTransferInfo(db, t, info)
 }
 

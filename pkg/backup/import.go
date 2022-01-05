@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -77,6 +78,41 @@ func ImportData(db *database.DB, r io.Reader, targets []string, dry, reset bool)
 		}
 
 		return fmt.Errorf("cannot import file: %w", transErr)
+	}
+
+	return nil
+}
+
+func ImportHistory(db *database.DB, r io.Reader, dry, reset bool) error {
+	tErr := db.Transaction(func(ses *database.Session) database.Error {
+		if reset {
+			if err := ses.DeleteAll(&model.HistoryEntry{}).Run(); err != nil {
+				return err
+			}
+		}
+
+		if err := importHistory(ses, r); err != nil {
+			var dbErr database.Error
+			if errors.As(err, &dbErr) {
+				return dbErr
+			}
+
+			return database.NewInternalError(err)
+		}
+
+		if dry {
+			return errDry
+		}
+
+		return nil
+	})
+
+	if tErr != nil {
+		if dry && errors.Is(tErr, errDry) {
+			return nil
+		}
+
+		return fmt.Errorf("cannot import file: %w", tErr)
 	}
 
 	return nil
