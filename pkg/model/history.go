@@ -94,6 +94,12 @@ func (h *HistoryEntry) BeforeWrite(db database.ReadAccess) database.Error {
 		return database.NewValidationError("'%s' is not a valid transfer history status", h.Status)
 	}
 
+	if n, err := db.Count(&HistoryEntry{}).Where("id=?", h.ID).Run(); err != nil {
+		return database.NewInternalError(err)
+	} else if n != 0 {
+		return database.NewValidationError("a history entry with the same ID already exist")
+	}
+
 	if n, err := db.Count(&HistoryEntry{}).Where("remote_transfer_id=? AND "+
 		"is_server=? AND agent=? AND account=?", h.RemoteTransferID, h.IsServer,
 		h.Agent, h.Account).Run(); err != nil {

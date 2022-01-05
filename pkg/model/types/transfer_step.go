@@ -2,11 +2,13 @@ package types
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
 
 // TransferStep represents the different steps of a transfer.
+//
 //go:generate stringer -type TransferStep
 type TransferStep uint8
 
@@ -69,10 +71,15 @@ func (ts TransferStep) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + ts.String() + `"`), nil
 }
 
-// UnmarshalJSON implements json.Unmarshaler. This operation is not supported:
-// a user cannot modify the step from an external API, so unmarshaling an
-// transfer step from json is a noop.
-func (ts TransferStep) UnmarshalJSON([]byte) error {
+// UnmarshalJSON implements json.Unmarshaler.
+func (ts *TransferStep) UnmarshalJSON(b []byte) error {
+	var str string
+	if err := json.Unmarshal(b, &str); err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	*ts = tsFromString(str)
+
 	return nil
 }
 

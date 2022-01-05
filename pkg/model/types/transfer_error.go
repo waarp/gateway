@@ -2,6 +2,7 @@ package types
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -125,10 +126,15 @@ func (tec TransferErrorCode) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + tec.String() + `"`), nil
 }
 
-// UnmarshalJSON implements json.Unmarshaler. This operation is not supported:
-// a user cannot modify the error code from an external API, so unmarshaling an
-// error code from json is a noop.
-func (tec TransferErrorCode) UnmarshalJSON([]byte) error {
+// UnmarshalJSON implements json.Unmarshaler.
+func (tec *TransferErrorCode) UnmarshalJSON(b []byte) error {
+	var str string
+	if err := json.Unmarshal(b, &str); err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	*tec = TecFromString(str)
+
 	return nil
 }
 

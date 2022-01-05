@@ -175,7 +175,7 @@ func testIterate(db *DB) {
 			&bean3, &bean4, &bean5)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -290,7 +290,7 @@ func testSelect(db *DB) {
 			&bean3, &bean4, &bean5)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -349,7 +349,7 @@ func testInsert(db *DB) {
 		_, err := db.engine.InsertOne(&existing)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -391,7 +391,7 @@ func testGet(db *DB) {
 		_, err := db.engine.Insert(&toGet, &other)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -461,7 +461,7 @@ func testUpdate(db *DB) {
 		_, err := db.engine.Insert(&toUpdate, &other)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -535,7 +535,7 @@ func testDelete(db *DB) {
 		_, err := db.engine.Insert(&toDelete1, &toDelete2, &toDeleteFail)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
@@ -571,7 +571,7 @@ func testDeleteAll(db *DB) {
 		_, err := db.engine.Insert(&toDelete1, &toDelete2, &toDelete3, &toDelete4)
 		So(err, ShouldBeNil)
 
-		Convey("As a standalone query", func() {
+		Convey("As a Standalone query", func() {
 			runTests(db)
 		})
 
