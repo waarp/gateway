@@ -16,3 +16,4 @@ Le point d'accès pour gérer tous les transferts en cours et terminés est ``/a
    resume
    cancel
    retry
+   cancel-all

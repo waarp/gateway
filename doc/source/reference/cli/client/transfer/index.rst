@@ -14,3 +14,4 @@ Gestion des transfers
    resume
    cancel
    retry
+   cancel-all
