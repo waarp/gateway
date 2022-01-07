@@ -57,6 +57,10 @@ func testHandler(db *database.DB) http.Handler {
 	return admin.MakeHandler(discard(), db, testCoreServices, testProtoServices)
 }
 
+func testHandlerProto(db *database.DB, s map[int64]proto.Service) http.Handler {
+	return admin.MakeHandler(discard(), db, nil, s)
+}
+
 func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	So(err, ShouldBeNil)
@@ -147,3 +151,55 @@ func fromTransfer(db *database.DB, trans *model.Transfer) *api.OutTransfer {
 }
 
 func timePtr(t time.Time) *time.Time { return &t }
+
+type testInterrupter int
+
+const (
+	none testInterrupter = iota
+	paused
+	interrupted
+	canceled
+)
+
+func (t *testInterrupter) Pause(context.Context) error {
+	*t = paused
+
+	return nil
+}
+
+func (t *testInterrupter) Interrupt(context.Context) error {
+	*t = interrupted
+
+	return nil
+}
+
+func (t *testInterrupter) Cancel(context.Context) error {
+	*t = canceled
+
+	return nil
+}
+
+type testProtoService struct {
+	m  *service.TransferMap
+	st *state.State
+}
+
+func newTestProtoService(trans ...*testInterrupter) *testProtoService {
+	serv := &testProtoService{
+		m:  service.NewTransferMap(),
+		st: &state.State{},
+	}
+
+	for i, t := range trans {
+		serv.m.Add(int64(i), t)
+	}
+
+	serv.st.Set(state.Running, "")
+
+	return serv
+}
+
+func (t *testProtoService) Start(*model.LocalAgent) error         { return nil }
+func (t *testProtoService) Stop(context.Context) error            { return nil }
+func (t *testProtoService) State() *state.State                   { return t.st }
+func (t *testProtoService) ManageTransfers() *service.TransferMap { return t.m }

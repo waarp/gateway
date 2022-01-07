@@ -233,10 +233,10 @@ func TestTransferToHistory(t *testing.T) {
 			}
 			So(db.Insert(&trans).Run(), ShouldBeNil)
 
-			Convey("When calling the `ToHistory` method", func(c C) {
+			Convey("When calling the `MoveToHistory` method", func() {
 				trans.Status = types.StatusDone
 				end := time.Date(2022, 1, 1, 1, 0, 0, 0, time.Local)
-				So(trans.ToHistory(db, logger, end), ShouldBeNil)
+				So(trans.MoveToHistory(db, logger, end), ShouldBeNil)
 
 				Convey("Then it should have inserted an equivalent `HistoryEntry` entry", func() {
 					var hist HistoryEntry
@@ -286,8 +286,8 @@ func TestTransferToHistory(t *testing.T) {
 				Convey(fmt.Sprintf("Given the status is set to '%s'", tc.status), func() {
 					trans.Status = tc.status
 
-					Convey("When calling the `ToHistory` method", func() {
-						err := trans.ToHistory(db, logger, time.Now())
+					Convey("When calling the `MoveToHistory` method", func() {
+						err := trans.MoveToHistory(db, logger, time.Now())
 						var hist HistoryEntries
 						So(db.Select(&hist).Run(), ShouldBeNil)
 

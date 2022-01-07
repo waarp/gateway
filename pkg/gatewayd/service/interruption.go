@@ -121,8 +121,9 @@ func (t *TransferMap) Delete(id int64) {
 	delete(t.m, id)
 }
 
-// InterruptAll interrupts all the transfers in the TransferMap.
-func (t *TransferMap) InterruptAll(ctx context.Context) error {
+func (t *TransferMap) iterateAll(ctx context.Context, f func(TransferInterrupter,
+	context.Context) error,
+) error {
 	t.mut.Lock()
 	defer t.mut.Unlock()
 
@@ -140,7 +141,7 @@ func (t *TransferMap) InterruptAll(ctx context.Context) error {
 		go func() {
 			defer wg.Done()
 
-			if iErr := ti.Interrupt(ctx); iErr != nil {
+			if iErr := f(ti, ctx); iErr != nil {
 				errOnce.Do(func() { err = iErr })
 			}
 		}()
@@ -150,4 +151,14 @@ func (t *TransferMap) InterruptAll(ctx context.Context) error {
 	wg.Wait()
 
 	return err
+}
+
+// InterruptAll interrupts all the transfers in the TransferMap.
+func (t *TransferMap) InterruptAll(ctx context.Context) error {
+	return t.iterateAll(ctx, TransferInterrupter.Interrupt)
+}
+
+// CancelAll cancels all the transfers in the TransferMap.
+func (t *TransferMap) CancelAll(ctx context.Context) error {
+	return t.iterateAll(ctx, TransferInterrupter.Cancel)
 }

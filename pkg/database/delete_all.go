@@ -1,5 +1,11 @@
 package database
 
+import (
+	"strings"
+
+	"xorm.io/builder"
+)
+
 // DeleteAllBean is the interface that a model must implement in order to be
 // deletable via the Delete query builder.
 type DeleteAllBean interface {
@@ -22,6 +28,20 @@ type DeleteAllQuery struct {
 // using the 'AND' operator.
 func (d *DeleteAllQuery) Where(sql string, args ...interface{}) *DeleteAllQuery {
 	d.conds = append(d.conds, &condition{sql: sql, args: args})
+
+	return d
+}
+
+// In add a 'WHERE col IN' condition to the 'DELETE' query. Because the database/sql
+// package cannot handle variadic placeholders in the Where function, a separate
+// method is required.
+func (d *DeleteAllQuery) In(col string, vals ...interface{}) *DeleteAllQuery {
+	sql := &inCond{Builder: &strings.Builder{}}
+	if builder.In(col, vals...).WriteTo(sql) != nil {
+		return d
+	}
+
+	d.conds = append(d.conds, &condition{sql: sql.String(), args: sql.args})
 
 	return d
 }
