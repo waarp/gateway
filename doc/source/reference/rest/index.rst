@@ -22,4 +22,5 @@ en interrogeant l'adresse d'administration donnée dans la configuration.
    rules/index
    clouds/index
    override/index
+   authorities/index
 

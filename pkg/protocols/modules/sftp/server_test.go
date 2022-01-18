@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"strconv"
 	"testing"
 	"time"
 
@@ -19,17 +20,19 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
-func getTestPort() string {
+func getTestPort() uint16 {
 	listener, err := net.Listen("tcp", "localhost:0")
 	So(err, ShouldBeNil)
 	_, port, err := net.SplitHostPort(listener.Addr().String())
 	So(err, ShouldBeNil)
 	So(listener.Close(), ShouldBeNil)
 
-	return port
+	portNb, err := strconv.ParseUint(port, 10, 16)
+	So(err, ShouldBeNil)
+
+	return uint16(portNb)
 }
 
 func TestServerStop(t *testing.T) {
@@ -38,16 +41,15 @@ func TestServerStop(t *testing.T) {
 		port := getTestPort()
 
 		agent := &model.LocalAgent{
-			Name:     "test_sftp_server",
-			Protocol: SFTP,
-			Address:  "localhost:" + port,
+			Name: "test_sftp_server", Protocol: SFTP,
+			Address: types.Addr("localhost", port),
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
-		hostKey := &model.Crypto{
+		hostKey := &model.Credential{
 			LocalAgentID: utils.NewNullInt64(agent.ID),
-			Name:         "test_sftp_server_key",
-			PrivateKey:   testhelpers.RSAPk,
+			Type:         AuthSSHPrivateKey,
+			Value:        RSAPk,
 		}
 		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
@@ -64,7 +66,7 @@ func TestServerStop(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("Then the SFTP server should no longer respond", func() {
-					_, err := ssh.Dial("tcp", "localhost:"+port, &ssh.ClientConfig{})
+					_, err := ssh.Dial("tcp", agent.Address.String(), &ssh.ClientConfig{})
 					So(err, ShouldNotBeNil)
 				})
 			})
@@ -80,17 +82,15 @@ func TestServerStart(t *testing.T) {
 		root := "memory:/server_start_root"
 
 		agent := &model.LocalAgent{
-			Name:     "test_sftp_server",
-			Protocol: SFTP,
-			RootDir:  root,
-			Address:  "localhost:" + port,
+			Name: "test_sftp_server", Protocol: SFTP,
+			RootDir: root, Address: types.Addr("localhost", port),
 		}
 		So(db.Insert(agent).Run(), ShouldBeNil)
 
-		hostKey := &model.Crypto{
+		hostKey := &model.Credential{
 			LocalAgentID: utils.NewNullInt64(agent.ID),
-			Name:         "test_sftp_server_key",
-			PrivateKey:   testhelpers.RSAPk,
+			Type:         AuthSSHPrivateKey,
+			Value:        RSAPk,
 		}
 		So(db.Insert(hostKey).Run(), ShouldBeNil)
 
@@ -114,9 +114,10 @@ func TestServerStart(t *testing.T) {
 
 		Convey("Given that the server address is indirect", func(c C) {
 			conf.InitTestOverrides(c)
-			So(conf.AddIndirection("9.9.9.9:9999", "127.0.0.1:"+port), ShouldBeNil)
+			realAddr := fmt.Sprintf("127.0.0.1:%d", port)
+			So(conf.AddIndirection("9.9.9.9:9999", realAddr), ShouldBeNil)
 
-			agent.Address = "9.9.9.9:9999"
+			agent.Address = types.Addr("9.9.9.9", 9999)
 			So(db.Update(agent).Cols("address").Run(), ShouldBeNil)
 
 			Convey("When starting the server", func() {
@@ -128,14 +129,13 @@ func TestServerStart(t *testing.T) {
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
-					So(sftpServer.listener.Listener.Addr().String(), ShouldEqual,
-						"127.0.0.1:"+port)
+					So(sftpServer.listener.Listener.Addr().String(), ShouldEqual, realAddr)
 				})
 			})
 		})
 
 		Convey("Given that the server is missing a hostkey", func() {
-			So(db.Delete(hostKey).Run(), ShouldBeNil)
+			So(db.DeleteAll(&model.Credential{}).Run(), ShouldBeNil)
 
 			Convey("When starting the server", func() {
 				err := sftpServer.Start()
@@ -153,13 +153,14 @@ func TestServerStart(t *testing.T) {
 func TestSSHServerInterruption(t *testing.T) {
 	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
 		test := pipelinetest.InitServerPush(c, SFTP, nil)
-		test.AddCryptos(c, makeServerKey(test.Server))
+		test.AddAuths(c, makeServerKey(test.Server))
 
 		serv := &service{db: test.DB, server: test.Server}
 		c.So(serv.Start(), ShouldBeNil)
 
 		Convey("Given a dummy SFTP client", func() {
-			cli := makeDummyClient(test.Server.Address, pipelinetest.TestLogin, pipelinetest.TestPassword)
+			cli := makeDummyClient(test.Server.Address.String(),
+				pipelinetest.TestLogin, pipelinetest.TestPassword)
 
 			Convey("Given that a push transfer started", func(c C) {
 				dst, err := cli.Create(path.Join(test.ServerRule.Path, "test_in_shutdown.dst"))

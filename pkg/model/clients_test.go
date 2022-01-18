@@ -1,12 +1,15 @@
 package model
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func TestClientBeforeWrite(t *testing.T) {
@@ -15,9 +18,8 @@ func TestClientBeforeWrite(t *testing.T) {
 
 		Convey("Given a new client entry", func() {
 			client := &Client{
-				Name:         "new_client",
-				Protocol:     testProtocol,
-				LocalAddress: "1.2.3.4:5",
+				Name: "new_client", Protocol: testProtocol,
+				LocalAddress: types.Addr("1.2.3.4", 5),
 			}
 
 			Convey("Given that the new client is valid", func() {
@@ -55,12 +57,14 @@ func TestClientBeforeWrite(t *testing.T) {
 			})
 
 			Convey("Given that the client's address is invalid", func() {
-				client.LocalAddress = "not_an_address"
+				client.LocalAddress.Host = "not_an_address"
 
 				Convey("Then the 'BeforeWrite' method should return an error", func() {
-					So(client.BeforeWrite(db), ShouldBeError,
-						`"not_an_address" is not a valid client address: `+
-							`address not_an_address: missing port in address`)
+					var dnsErr *net.DNSError
+
+					err := client.BeforeWrite(db)
+					So(err, ShouldNotBeNil)
+					So(errors.As(err, &dnsErr), ShouldBeTrue)
 				})
 			})
 
@@ -74,9 +78,8 @@ func TestClientBeforeWrite(t *testing.T) {
 
 			Convey("Given that another client with the same name already exist", func() {
 				otherClient := &Client{
-					Name:         client.Name,
-					Protocol:     testProtocol,
-					LocalAddress: "9.8.7.6:5",
+					Name: client.Name, Protocol: testProtocol,
+					LocalAddress: types.Addr("9.8.7.6", 5),
 				}
 				So(db.Insert(otherClient).Run(), ShouldBeNil)
 

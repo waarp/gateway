@@ -46,9 +46,10 @@ func NewConnPool(client *model.Client) (*ConnPool, error) {
 		connGracePeriod: DefaultConnectionGracePeriod,
 	}
 
-	if client.LocalAddress != "" {
+	if client.LocalAddress.IsSet() {
 		var err error
-		if pool.dialer.LocalAddr, err = net.ResolveTCPAddr("tcp", client.LocalAddress); err != nil {
+		if pool.dialer.LocalAddr, err = net.ResolveTCPAddr("tcp",
+			client.LocalAddress.String()); err != nil {
 			return nil, fmt.Errorf("failed to parse the R66 client's local address: %w", err)
 		}
 	}
@@ -99,7 +100,7 @@ func (c *ConnPool) Add(addr string, tlsConf *tls.Config, logger *log.Logger) (*r
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to remote host: %w", err)
+		return nil, fmt.Errorf("failed to initiate the TCP connection: %w", err)
 	}
 
 	cli, err := r66.NewClient(conn, logger.AsStdLogger(log.LevelTrace))

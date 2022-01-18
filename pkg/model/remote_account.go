@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -14,13 +13,14 @@ type RemoteAccount struct {
 	ID            int64 `xorm:"<- id AUTOINCR"`  // The account's database ID
 	RemoteAgentID int64 `xorm:"remote_agent_id"` // The ID of the RemoteAgent this account is attached to
 
-	Login    string           `xorm:"login"`    // The account's login
-	Password types.CypherText `xorm:"password"` // The account's password
+	Login string `xorm:"login"` // The account's login
 }
 
 func (*RemoteAccount) TableName() string   { return TableRemAccounts }
-func (*RemoteAccount) Appellation() string { return "remote account" }
+func (*RemoteAccount) Appellation() string { return NameRemoteAccount }
 func (r *RemoteAccount) GetID() int64      { return r.ID }
+func (r *RemoteAccount) Host() string      { return "" }
+func (*RemoteAccount) IsServer() bool      { return false }
 
 // BeforeWrite checks if the new `RemoteAccount` entry is valid and can be
 // inserted in the database.
@@ -38,7 +38,7 @@ func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) error {
 	if n, err := db.Count(&RemoteAgent{}).Where("id=?", r.RemoteAgentID).Run(); err != nil {
 		return fmt.Errorf("failed to check parent remote agent: %w", err)
 	} else if n == 0 {
-		return database.NewValidationError("no remote agent found with the ID '%v'",
+		return database.NewValidationError(`no remote agent found with the ID "%v"`,
 			r.RemoteAgentID)
 	}
 
@@ -47,7 +47,7 @@ func (r *RemoteAccount) BeforeWrite(db database.ReadAccess) error {
 		return fmt.Errorf("failed to check for duplicate remote accounts: %w", err)
 	} else if n > 0 {
 		return database.NewValidationError(
-			"a remote account with the same login '%s' already exist", r.Login)
+			"a remote account with the same login %q already exist", r.Login)
 	}
 
 	return nil
@@ -67,14 +67,15 @@ func (r *RemoteAccount) BeforeDelete(db database.Access) error {
 	return nil
 }
 
-// GetCryptos fetch in the database then return the associated Cryptos if they exist.
-func (r *RemoteAccount) GetCryptos(db database.ReadAccess) ([]*Crypto, error) {
-	return getCryptos(db, r)
+// GetCredentials fetch in the database then return the associated Credentials if they exist.
+func (r *RemoteAccount) GetCredentials(db database.ReadAccess, authTypes ...string,
+) (Credentials, error) {
+	return getCredentials(db, r, authTypes...)
 }
 
-//nolint:goconst //different columns having the same name does not warrant making that name a constant
-func (r *RemoteAccount) GenCryptoSelectCond() (string, int64) { return "remote_account_id=?", r.ID }
-func (r *RemoteAccount) SetCryptoOwner(c *Crypto)             { c.RemoteAccountID = utils.NewNullInt64(r.ID) }
+//nolint:goconst //duplicates are for different tables, best not to factorize
+func (r *RemoteAccount) GetCredCond() (string, int64)         { return "remote_account_id=?", r.ID }
+func (r *RemoteAccount) SetCredOwner(a *Credential)           { a.RemoteAccountID = utils.NewNullInt64(r.ID) }
 func (r *RemoteAccount) GenAccessSelectCond() (string, int64) { return "remote_account_id=?", r.ID }
 func (r *RemoteAccount) SetAccessTarget(a *RuleAccess)        { a.RemoteAccountID = utils.NewNullInt64(r.ID) }
 

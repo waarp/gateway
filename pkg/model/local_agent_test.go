@@ -7,8 +7,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestLocalAgentTableName(t *testing.T) {
@@ -31,13 +31,12 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 
 		Convey("Given a local agent entry", func() {
 			ag := LocalAgent{
-				Name:     "test agent",
-				Protocol: testProtocol,
-				Address:  "localhost:6666",
+				Name: "test agent", Protocol: testProtocol,
+				Address: types.Addr("localhost", 6666),
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("sesame")}
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
@@ -49,20 +48,21 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 			accAccess := RuleAccess{RuleID: rule.ID, LocalAccountID: utils.NewNullInt64(acc.ID)}
 			So(db.Insert(&accAccess).Run(), ShouldBeNil)
 
-			certAg := Crypto{
+			authAg := Credential{
 				LocalAgentID: utils.NewNullInt64(ag.ID),
 				Name:         "test agent cert",
-				PrivateKey:   testhelpers.LocalhostKey,
-				Certificate:  testhelpers.LocalhostCert,
+				Type:         testExternalAuth,
+				Value:        "val",
 			}
-			So(db.Insert(&certAg).Run(), ShouldBeNil)
+			So(db.Insert(&authAg).Run(), ShouldBeNil)
 
-			certAcc := Crypto{
+			authAcc := Credential{
 				LocalAccountID: utils.NewNullInt64(acc.ID),
 				Name:           "test account cert",
-				Certificate:    testhelpers.ClientFooCert,
+				Type:           testInternalAuth,
+				Value:          "val",
 			}
-			So(db.Insert(&certAcc).Run(), ShouldBeNil)
+			So(db.Insert(&authAcc).Run(), ShouldBeNil)
 
 			Convey("Given that the agent is unused", func() {
 				Convey("When calling the `BeforeDelete` hook", func() {
@@ -85,7 +85,7 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 					})
 
 					Convey("Then both certificates should have been deleted", func() {
-						var cryptos Cryptos
+						var cryptos Credentials
 						So(db.Select(&cryptos).Run(), ShouldBeNil)
 						So(cryptos, ShouldBeEmpty)
 					})
@@ -127,10 +127,8 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains 1 local agent", func() {
 			oldAgent := LocalAgent{
-				Owner:    "test_gateway",
-				Name:     "old",
-				Protocol: testProtocol,
-				Address:  "localhost:2022",
+				Name: "old", Protocol: testProtocol,
+				Address: types.Addr("localhost", 2022),
 			}
 			So(db.Insert(&oldAgent).Run(), ShouldBeNil)
 
@@ -143,7 +141,7 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 					SendDir:       "send",
 					TmpReceiveDir: "tmp",
 					Protocol:      testProtocol,
-					Address:       "localhost:2023",
+					Address:       types.Addr("localhost", 2023),
 				}
 
 				shouldFailWith := func(expMsg string, args ...any) {
@@ -182,20 +180,20 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 				Convey("Given that the new agent's name is already taken", func() {
 					newAgent.Name = oldAgent.Name
 					shouldFailWith(
-						"a local agent with the same name '%s' already exist",
+						"a local agent with the same name %q already exist",
 						newAgent.Name)
 				})
 
 				Convey("Given that the new agent is missing an address", func() {
-					newAgent.Address = ""
+					newAgent.Address = types.Address{}
 
-					shouldFailWith("the server's address cannot be empty")
+					shouldFailWith(types.ErrEmptyAddress.Error())
 				})
 
 				Convey("Given that the new agent's address is invalid", func() {
-					newAgent.Address = "not_an_address"
+					newAgent.Address.Host = "not_an_address"
 
-					shouldFailWith(`'not_an_address' is not a valid server address`)
+					shouldFailWith(`address validation failed`)
 				})
 
 				Convey("Given that the new agent's protocol is not valid", func() {

@@ -1,5 +1,5 @@
-Supprimer un certificat
-=======================
+[OBSOLÈTE] Supprimer un certificat
+==================================
 
 .. http:delete:: /api/servers/(string:server)/certificates/(string:cert_name)
 

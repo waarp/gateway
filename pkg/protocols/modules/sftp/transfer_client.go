@@ -12,6 +12,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
@@ -68,7 +69,7 @@ func newTransferClient(pip *pipeline.Pipeline, dialer *net.Dialer, sshClientConf
 	}, nil
 }
 
-func (c *transferClient) makePartnerHostKeys(cryptos model.Cryptos,
+func (c *transferClient) makePartnerHostKeys(creds model.Credentials,
 ) ([]ssh.PublicKey, []string, *pipeline.Error) {
 	var (
 		hostKeys []ssh.PublicKey
@@ -77,11 +78,11 @@ func (c *transferClient) makePartnerHostKeys(cryptos model.Cryptos,
 
 	partner := c.pip.TransCtx.RemoteAgent.Name
 
-	for _, crypto := range cryptos {
-		key, err := ParseAuthorizedKey([]byte(crypto.SSHPublicKey))
+	for _, cred := range creds {
+		key, err := ParseAuthorizedKey(cred.Value)
 		if err != nil {
 			c.pip.Logger.Warning("Failed to parse the SFTP partner %q's hostkey %q: %v",
-				partner, crypto.Name, err)
+				partner, cred.Name, err)
 
 			continue
 		}
@@ -103,20 +104,26 @@ func (c *transferClient) makePartnerHostKeys(cryptos model.Cryptos,
 	return hostKeys, algos, nil
 }
 
-func (*transferClient) makeClientAuthMethods(password string, cryptos model.Cryptos,
+func (*transferClient) makeClientAuthMethods(creds model.Credentials,
 ) []ssh.AuthMethod {
 	var (
-		signers []ssh.Signer
-		auths   []ssh.AuthMethod
+		signers  []ssh.Signer
+		auths    []ssh.AuthMethod
+		password string
 	)
 
-	for _, c := range cryptos {
-		signer, err := ssh.ParsePrivateKey([]byte(c.PrivateKey))
-		if err != nil {
-			continue
-		}
+	for _, c := range creds {
+		switch c.Type {
+		case auth.Password:
+			password = c.Value
+		case AuthSSHPrivateKey:
+			signer, err := ParsePrivateKey(c.Value)
+			if err != nil {
+				continue
+			}
 
-		signers = append(signers, signer)
+			signers = append(signers, signer)
+		}
 	}
 
 	if len(signers) > 0 {
@@ -146,13 +153,12 @@ func setDefaultClientAlgos(conf *ssh.ClientConfig) {
 
 func (c *transferClient) makeSSHClientConfig(info *model.TransferContext,
 ) (*ssh.ClientConfig, *pipeline.Error) {
-	hostKeys, algos, err := c.makePartnerHostKeys(info.RemoteAgentCryptos)
+	hostKeys, algos, err := c.makePartnerHostKeys(info.RemoteAgentCreds)
 	if err != nil {
 		return nil, err
 	}
 
-	authMethods := c.makeClientAuthMethods(string(info.RemoteAccount.Password),
-		info.RemoteAccountCryptos)
+	authMethods := c.makeClientAuthMethods(info.RemoteAccountCreds)
 
 	conf := &ssh.ClientConfig{
 		Config:            *c.sshConf,
@@ -173,7 +179,7 @@ func (c *transferClient) openSSHConn() *pipeline.Error {
 		return confErr
 	}
 
-	addr := c.pip.TransCtx.RemoteAgent.Address
+	addr := c.pip.TransCtx.RemoteAgent.Address.String()
 
 	conn, dialErr := c.dialer.Dial("tcp", addr)
 	if dialErr != nil {

@@ -122,6 +122,12 @@ type WriteCallBack interface {
 	AfterWrite(db Access) error
 }
 
+// ReadCallback is an interface which adds a function which will be run after an
+// entry has been retrieved from the database.
+type ReadCallback interface {
+	AfterRead(db ReadAccess) error
+}
+
 // Table is the interface which adds the base methods that all database models
 // must implement.
 type Table interface {
@@ -147,6 +153,7 @@ type Identifier interface {
 // Iterator instances MUST be closed once all the entries have been retrieved.
 type Iterator struct {
 	*xorm.Rows
+	db ReadAccess
 }
 
 // Scan parses the current line of the iterator, and fills the given model
@@ -155,6 +162,12 @@ type Iterator struct {
 func (i *Iterator) Scan(bean IterateBean) error {
 	if err := i.Rows.Scan(bean); err != nil {
 		return fmt.Errorf("cannot scan database row: %w", err)
+	}
+
+	if hook, ok := bean.(ReadCallback); ok {
+		if err := hook.AfterRead(i.db); err != nil {
+			return fmt.Errorf("%s entry ITERATE callback failed: %w", bean.Appellation(), err)
+		}
 	}
 
 	return nil

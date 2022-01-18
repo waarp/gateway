@@ -75,7 +75,8 @@ func (ts TransferStep) MarshalJSON() ([]byte, error) {
 func (ts *TransferStep) UnmarshalJSON(b []byte) error {
 	var str string
 	if err := json.Unmarshal(b, &str); err != nil {
-		return fmt.Errorf("%w", err)
+		//nolint:wrapcheck //function is already a wrapper, no need to wrap errors
+		return err
 	}
 
 	*ts = tsFromString(str)

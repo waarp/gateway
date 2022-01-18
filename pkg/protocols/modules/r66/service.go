@@ -5,6 +5,7 @@ package r66
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
@@ -16,6 +17,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/logging"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
@@ -39,33 +41,59 @@ type service struct {
 }
 
 func (s *service) makeTLSConf(*tls.ClientHelloInfo) (*tls.Config, error) {
-	certs, err := s.agent.GetCryptos(s.db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve the server's certificates: %w", err)
-	}
-
-	if len(certs) == 0 {
-		return nil, errNoCertificates
-	}
-
-	tlsCerts := make([]tls.Certificate, len(certs))
-
-	for i := range certs {
-		var err error
-		if tlsCerts[i], err = tls.X509KeyPair(
-			[]byte(certs[i].Certificate),
-			[]byte(certs[i].PrivateKey),
-		); err != nil {
-			return nil, fmt.Errorf("failed to parse certificate %s: %w", certs[i].Name, err)
-		}
-	}
-
-	return &tls.Config{
-		Certificates:     tlsCerts,
+	tlsConfig := &tls.Config{
 		MinVersion:       tls.VersionTLS12,
 		ClientAuth:       tls.RequestClientCert,
 		VerifyConnection: compatibility.LogSha1(s.logger),
-	}, nil
+	}
+
+	if compatibility.IsLegacyR66CertificateAllowed {
+		tlsConfig.InsecureSkipVerify = true
+		tlsConfig.VerifyPeerCertificate = func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
+			if len(rawCerts) == 0 {
+				return errMissingCertificate
+			}
+
+			chain, parsErr := auth.ParseRawCertChain(rawCerts)
+			if parsErr != nil {
+				return fmt.Errorf("failed to parse the certification chain: %w", parsErr)
+			}
+
+			if !compatibility.IsLegacyR66Cert(chain[0]) {
+				return auth.VerifyClientCert(s.db, s.logger, s.agent.ID)(rawCerts, nil)
+			}
+
+			return nil
+		}
+	} else {
+		tlsConfig.VerifyPeerCertificate = auth.VerifyClientCert(s.db, s.logger, s.agent.ID)
+	}
+
+	if usesLegacyCert(s.db, s.agent) {
+		tlsConfig.Certificates = []tls.Certificate{compatibility.LegacyR66Cert}
+	} else {
+		certs, dbErr := s.agent.GetCredentials(s.db, auth.TLSCertificate)
+		if dbErr != nil {
+			return nil, fmt.Errorf("failed to retrieve the server's certificates: %w", dbErr)
+		}
+
+		if len(certs) == 0 {
+			return nil, errNoCertificates
+		}
+
+		tlsConfig.Certificates = make([]tls.Certificate, len(certs))
+
+		for i, cert := range certs {
+			var parseErr error
+			tlsConfig.Certificates[i], parseErr = utils.X509KeyPair(cert.Value, cert.Value2)
+
+			if parseErr != nil {
+				return nil, fmt.Errorf("failed to parse certificate %s: %w", certs[i].Name, parseErr)
+			}
+		}
+	}
+
+	return tlsConfig, nil
 }
 
 // Start launches a r66 service with an integrated r66 server.
@@ -90,22 +118,28 @@ func (s *service) start() error {
 	s.logger = logging.NewLogger(s.agent.Name)
 	s.logger.Info("Starting R66 server '%s'...", s.agent.Name)
 
-	s.r66Conf = &serverConfig{}
-	if err := utils.JSONConvert(s.agent.ProtoConfig, s.r66Conf); err != nil {
-		s.logger.Error("Failed to parse server the R66 proto config: %s", err)
-		err1 := fmt.Errorf("failed to parse the R66 proto config: %w", err)
-		s.state.Set(utils.StateError, err1.Error())
+	setLogAndReturnError := func(msg string, args ...any) error {
+		//nolint:goerr113 //dynamic error is better here for readability
+		err := fmt.Errorf(msg, args...)
+		s.logger.Error(err.Error())
+		s.state.Set(utils.StateError, err.Error())
 
-		return err1
+		return err
 	}
 
-	pwd, pwdErr := utils.AESDecrypt(database.GCM, s.r66Conf.ServerPassword)
-	if pwdErr != nil {
-		s.logger.Error("Failed to decrypt server password: %s", pwdErr)
-		dErr := fmt.Errorf("failed to decrypt server password: %w", pwdErr)
-		s.state.Set(utils.StateError, dErr.Error())
+	s.r66Conf = &serverConfig{}
+	if err := utils.JSONConvert(s.agent.ProtoConfig, s.r66Conf); err != nil {
+		return setLogAndReturnError("Failed to parse the R66 proto config: %s", err)
+	}
 
-		return dErr
+	var pswd model.Credential
+	if err := s.db.Get(&pswd, "type=?", auth.Password).And(s.agent.GetCredCond()).
+		Run(); err != nil {
+		if database.IsNotFound(err) {
+			return setLogAndReturnError("The R66 server is missing a password")
+		}
+
+		return setLogAndReturnError("Failed to retrieve the R66 server's password: %w", err)
 	}
 
 	login := s.r66Conf.ServerLogin
@@ -115,7 +149,7 @@ func (s *service) start() error {
 
 	s.server = &r66.Server{
 		Login:    login,
-		Password: []byte(pwd),
+		Password: []byte(pswd.Value),
 		Logger:   s.logger.AsStdLogger(log.LevelTrace),
 		Conf: &r66.Config{
 			FileSize:   true,
@@ -131,18 +165,16 @@ func (s *service) start() error {
 	}
 
 	s.state.Set(utils.StateRunning, "")
-	s.logger.Info("R66 server started at %s", s.agent.Address)
+	s.logger.Info("R66 server started at %v", s.agent.Address)
 
 	return nil
 }
 
 func (s *service) listen() error {
-	addr, err := conf.GetRealAddress(s.agent.Address)
-	if err != nil {
-		s.logger.Error("Failed to parse server TLS config: %s", err)
+	addr := conf.GetRealAddress(s.agent.Address.Host,
+		utils.FormatUint(s.agent.Address.Port))
 
-		return fmt.Errorf("failed to indirect the server address: %w", err)
-	}
+	var err error
 
 	if s.agent.Protocol == R66TLS {
 		s.list, err = tls.Listen("tcp", addr, &tls.Config{

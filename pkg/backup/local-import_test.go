@@ -10,6 +10,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -19,16 +22,14 @@ func TestImportLocalAgents(t *testing.T) {
 
 		Convey("Given a database with some local agent", func() {
 			agent := &model.LocalAgent{
-				Name:     "server",
-				Protocol: testProtocol,
-				Address:  "localhost:2022",
+				Name: "server", Protocol: testProtocol,
+				Address: types.Addr("localhost", 2022),
 			}
 
 			// add another LocalAgent with the same name but different owner
 			agent2 := &model.LocalAgent{
-				Name:     agent.Name,
-				Protocol: testProtocol,
-				Address:  "localhost:9999",
+				Name: agent.Name, Protocol: testProtocol,
+				Address: types.Addr("localhost", 9999),
 			}
 			owner := conf.GlobalConfig.GatewayName
 			conf.GlobalConfig.GatewayName = "toto"
@@ -40,9 +41,8 @@ func TestImportLocalAgents(t *testing.T) {
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			other := &model.LocalAgent{
-				Name:     "other",
-				Protocol: testProtocol,
-				Address:  "localhost:8888",
+				Name: "other", Protocol: testProtocol,
+				Address: types.Addr("localhost", 8888),
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
 
@@ -132,11 +132,11 @@ func TestImportLocalAgents(t *testing.T) {
 							Password: "pwd",
 						},
 					},
-					Certs: []Certificate{
+					Credentials: []Credential{
 						{
-							Name:        "cert",
-							PrivateKey:  testhelpers.LocalhostKey,
-							Certificate: testhelpers.LocalhostCert,
+							Type:   auth.TLSCertificate,
+							Value:  testhelpers.LocalhostCert,
+							Value2: testhelpers.LocalhostKey,
 						},
 					},
 				}
@@ -170,13 +170,13 @@ func TestImportLocalAgents(t *testing.T) {
 							So(db.Select(&accounts).Where("local_agent_id=?",
 								dbAgent.ID).Run(), ShouldBeNil)
 
-							So(len(accounts), ShouldEqual, 1)
+							So(accounts, ShouldHaveLength, 1)
 
-							var cryptos model.Cryptos
+							var cryptos model.Credentials
 							So(db.Select(&cryptos).Where("local_agent_id=?",
 								dbAgent.ID).Run(), ShouldBeNil)
 
-							So(len(accounts), ShouldEqual, 1)
+							So(accounts, ShouldHaveLength, 1)
 						})
 
 						Convey("Then the other agents should be unchanged", func() {
@@ -195,33 +195,28 @@ func TestImportLocalAccounts(t *testing.T) {
 
 		Convey("Given a database with some a local agent and some local accounts", func() {
 			agent := &model.LocalAgent{
-				Name:     "server",
-				Protocol: testProtocol,
-				Address:  "localhost:2022",
+				Name: "server", Protocol: testProtocol,
+				Address: types.Addr("localhost", 2022),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			dbAccount := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "foo",
-				PasswordHash: hash("bar"),
 			}
 			So(db.Insert(dbAccount).Run(), ShouldBeNil)
 
+			accPswd := &model.Credential{
+				LocalAccountID: utils.NewNullInt64(dbAccount.ID),
+				Type:           auth.PasswordHash,
+				Value:          "bar",
+			}
+			So(db.Insert(accPswd).Run(), ShouldBeNil)
+
 			Convey("Given a list of new accounts", func() {
-				account1 := LocalAccount{
-					Login:        "toto",
-					Password:     "pwd",
-					PasswordHash: hash("pwd"),
-				}
-				account2 := LocalAccount{
-					Login:        "tata",
-					Password:     "pwd",
-					PasswordHash: hash("pwd"),
-				}
-				accounts := []LocalAccount{
-					account1, account2,
-				}
+				account1 := LocalAccount{Login: "toto", Password: "pwd"}
+				account2 := LocalAccount{Login: "tata", Password: "pwd"}
+				accounts := []LocalAccount{account1, account2}
 
 				Convey("When calling the importLocalAccounts method", func() {
 					err := importLocalAccounts(discard(), db, accounts, agent)
@@ -233,38 +228,32 @@ func TestImportLocalAccounts(t *testing.T) {
 						"accounts", func() {
 						var accounts model.LocalAccounts
 						So(db.Select(&accounts).Where("local_agent_id=?",
-							agent.ID).Run(), ShouldBeNil)
+							agent.ID).OrderBy("id", true).Run(), ShouldBeNil)
 
-						So(len(accounts), ShouldEqual, 3)
+						So(accounts, ShouldHaveLength, 3)
 
-						Convey("Then the data should correspond to the "+
-							"one imported", func() {
-							for i := 0; i < len(accounts); i++ {
-								switch {
-								case accounts[i].Login == account1.Login:
-									Convey("Then account1 is found", func() {
-										So(bcrypt.CompareHashAndPassword(
-											[]byte(accounts[i].PasswordHash),
-											[]byte("pwd")), ShouldBeNil)
-									})
-								case accounts[i].Login == account2.Login:
-									Convey("Then account2 is found", func() {
-										So(bcrypt.CompareHashAndPassword(
-											[]byte(accounts[i].PasswordHash),
-											[]byte("pwd")), ShouldBeNil)
-									})
-								case accounts[i].Login == dbAccount.Login:
-									Convey("Then dbAccount is found", func() {
-										So(accounts[i].PasswordHash, ShouldResemble,
-											dbAccount.PasswordHash)
-									})
-								default:
-									Convey("Then they should be no other "+
-										"records", func() {
-										So(1, ShouldBeNil)
-									})
-								}
-							}
+						Convey("Then the exiting account should be unchanged", func() {
+							So(accounts[0], ShouldResemble, dbAccount)
+						})
+
+						Convey("Then the 1st account should have been imported", func() {
+							var pswd model.Credential
+							So(db.Get(&pswd, "local_account_id=? AND type=?",
+								accounts[1].ID, auth.PasswordHash).Run(), ShouldBeNil)
+
+							So(accounts[1].Login, ShouldEqual, account1.Login)
+							So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
+								[]byte(account1.Password)), ShouldBeNil)
+						})
+
+						Convey("Then the 2nd account should have been imported", func() {
+							var pswd model.Credential
+							So(db.Get(&pswd, "local_account_id=? AND type=?",
+								accounts[2].ID, auth.PasswordHash).Run(), ShouldBeNil)
+
+							So(accounts[2].Login, ShouldEqual, account2.Login)
+							So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
+								[]byte(account2.Password)), ShouldBeNil)
 						})
 					})
 				})
@@ -272,13 +261,12 @@ func TestImportLocalAccounts(t *testing.T) {
 
 			Convey("Given a list of fully updated agents", func() {
 				account1 := LocalAccount{
-					Login:        "foo",
-					Password:     "notbar",
-					PasswordHash: hash("notbar"),
-					Certs: []Certificate{
+					Login:    dbAccount.Login,
+					Password: "notbar",
+					Credentials: []Credential{
 						{
-							Name:        "cert",
-							Certificate: testhelpers.ClientFooCert,
+							Type:  auth.TLSTrustedCertificate,
+							Value: testhelpers.ClientFooCert,
 						},
 					},
 				}
@@ -296,28 +284,22 @@ func TestImportLocalAccounts(t *testing.T) {
 						So(db.Select(&accounts).Where("local_agent_id=?",
 							agent.ID).Run(), ShouldBeNil)
 
-						So(len(accounts), ShouldEqual, 1)
+						So(accounts, ShouldHaveLength, 1)
 
 						Convey("Then the data should correspond to the "+
 							"one imported", func() {
-							for i := 0; i < len(accounts); i++ {
-								if accounts[i].Login == dbAccount.Login {
-									Convey("When dbAccount is found", func() {
-										So(accounts[i].PasswordHash, ShouldNotResemble,
-											dbAccount.PasswordHash)
-										var cryptos model.Cryptos
-										So(db.Select(&cryptos).Where("local_account_id=?",
-											dbAccount.ID).Run(), ShouldBeNil)
+							So(accounts[0].Login, ShouldEqual, dbAccount.Login)
 
-										So(len(accounts), ShouldEqual, 1)
-									})
-								} else {
-									Convey("Then they should be no "+
-										"other records", func() {
-										So(1, ShouldBeNil)
-									})
-								}
-							}
+							var pswd model.Credential
+							So(db.Get(&pswd, "local_account_id=? AND type=?",
+								accounts[0].ID, auth.PasswordHash).Run(), ShouldBeNil)
+							So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
+								[]byte(account1.Password)), ShouldBeNil)
+
+							var cert model.Credential
+							So(db.Get(&cert, "local_account_id=? AND type=?",
+								accounts[0].ID, auth.TLSTrustedCertificate).Run(), ShouldBeNil)
+							So(cert.Value, ShouldEqual, account1.Credentials[0].Value)
 						})
 					})
 				})
@@ -326,10 +308,10 @@ func TestImportLocalAccounts(t *testing.T) {
 			Convey("Given a list of partially updated agents", func() {
 				account1 := LocalAccount{
 					Login: "foo",
-					Certs: []Certificate{
+					Credentials: []Credential{
 						{
-							Name:        "cert",
-							Certificate: testhelpers.ClientFooCert,
+							Type:  auth.TLSTrustedCertificate,
+							Value: testhelpers.ClientFooCert,
 						},
 					},
 				}
@@ -347,28 +329,15 @@ func TestImportLocalAccounts(t *testing.T) {
 						So(db.Select(&accounts).Where("local_agent_id=?",
 							agent.ID).Run(), ShouldBeNil)
 
-						So(len(accounts), ShouldEqual, 1)
+						So(accounts, ShouldHaveLength, 1)
 
-						Convey("Then the data should correspond to the "+
-							"one imported", func() {
-							for i := 0; i < len(accounts); i++ {
-								if accounts[i].Login == dbAccount.Login {
-									Convey("When dbAccount is found", func() {
-										So(accounts[i].PasswordHash, ShouldResemble,
-											dbAccount.PasswordHash)
-										var cryptos model.Cryptos
-										So(db.Select(&cryptos).Where("local_account_id=?",
-											dbAccount.ID).Run(), ShouldBeNil)
+						Convey("Then the data should correspond to the one imported", func() {
+							So(accounts[0].Login, ShouldEqual, dbAccount.Login)
 
-										So(len(accounts), ShouldEqual, 1)
-									})
-								} else {
-									Convey("Then they should be no "+
-										"other records", func() {
-										So(1, ShouldBeNil)
-									})
-								}
-							}
+							var cert model.Credential
+							So(db.Get(&cert, "local_account_id=? AND type=?",
+								accounts[0].ID, auth.TLSTrustedCertificate).Run(), ShouldBeNil)
+							So(cert.Value, ShouldEqual, account1.Credentials[0].Value)
 						})
 					})
 				})

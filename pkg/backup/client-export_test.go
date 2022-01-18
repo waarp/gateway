@@ -8,6 +8,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 func TestExportClients(t *testing.T) {
@@ -18,14 +19,14 @@ func TestExportClients(t *testing.T) {
 			client1 := &model.Client{
 				Name:         "client1",
 				Protocol:     testProtocol,
-				LocalAddress: "localhost:1111",
+				LocalAddress: types.Addr("localhost", 1111),
 			}
 			So(db.Insert(client1).Run(), ShouldBeNil)
 
 			client2 := &model.Client{
 				Name:         "client2",
 				Protocol:     testProtocol,
-				LocalAddress: "localhost:2222",
+				LocalAddress: types.Addr("localhost", 2222),
 			}
 			So(db.Insert(client2).Run(), ShouldBeNil)
 
@@ -40,7 +41,7 @@ func TestExportClients(t *testing.T) {
 						Name:         client1.Name,
 						Protocol:     client1.Protocol,
 						Disabled:     client1.Disabled,
-						LocalAddress: client1.LocalAddress,
+						LocalAddress: client1.LocalAddress.String(),
 						ProtoConfig:  client1.ProtoConfig,
 					})
 
@@ -48,7 +49,7 @@ func TestExportClients(t *testing.T) {
 						Name:         client2.Name,
 						Protocol:     client2.Protocol,
 						Disabled:     client2.Disabled,
-						LocalAddress: client2.LocalAddress,
+						LocalAddress: client2.LocalAddress.String(),
 						ProtoConfig:  client2.ProtoConfig,
 					})
 				})

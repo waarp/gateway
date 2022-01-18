@@ -1,6 +1,10 @@
-###################################
-Gestion des certificat d'un serveur
-###################################
+##############################################
+[OBSOLÈTE] Gestion des certificats d'un serveur
+##############################################
+
+.. deprecated:: 0.6
+   Les certificats sont désormais gérés via les commandes de gestion des
+   :ref:`reference-auth-methods`. Les commandes suivantes sont donc dépréciées.
 
 .. toctree::
    :maxdepth: 1

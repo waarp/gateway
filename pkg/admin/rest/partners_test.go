@@ -14,6 +14,9 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -50,24 +53,20 @@ func TestListPartners(t *testing.T) {
 
 		Convey("Given a database with 4 partners", func() {
 			a1 := &model.RemoteAgent{
-				Name:     "partner1",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "partner1", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			a2 := &model.RemoteAgent{
-				Name:     "partner2",
-				Protocol: testProto1,
-				Address:  "localhost:2",
+				Name: "partner2", Protocol: testProto1,
+				Address: types.Addr("localhost", 2),
 			}
 			a3 := &model.RemoteAgent{
-				Name:     "partner3",
-				Protocol: testProto1,
-				Address:  "localhost:3",
+				Name: "partner3", Protocol: testProto1,
+				Address: types.Addr("localhost", 3),
 			}
 			a4 := &model.RemoteAgent{
-				Name:     "partner4",
-				Protocol: testProto2,
-				Address:  "localhost:4",
+				Name: "partner4", Protocol: testProto2,
+				Address: types.Addr("localhost", 4),
 			}
 
 			So(db.Insert(a1).Run(), ShouldBeNil)
@@ -156,11 +155,21 @@ func TestGetPartner(t *testing.T) {
 
 		Convey("Given a database with 1 partner", func() {
 			existing := &model.RemoteAgent{
-				Name:     "existing",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "existing", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
+
+			pswd := model.Credential{
+				RemoteAgentID: utils.NewNullInt64(existing.ID),
+				Name:          "partner pswd",
+				Type:          auth.PasswordHash,
+				Value:         "sesame",
+			}
+			So(db.Insert(&pswd).Run(), ShouldBeNil)
+
+			rule := model.Rule{Name: "rule name", IsSend: true}
+			So(db.Insert(&rule).Run(), ShouldBeNil)
 
 			Convey("Given a request with a valid agent name parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -183,13 +192,14 @@ func TestGetPartner(t *testing.T) {
 
 					Convey("Then the body should contain the requested partner "+
 						"in JSON format", func() {
-						expected, err := DBPartnerToREST(db, existing)
-						So(err, ShouldBeNil)
-
-						exp, err := json.Marshal(expected)
-						So(err, ShouldBeNil)
-
-						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
+						So(w.Body.String(), ShouldResemble, `{`+
+							`"name":"`+existing.Name+`",`+
+							`"protocol":"`+existing.Protocol+`",`+
+							`"address":"`+existing.Address.String()+`",`+
+							`"credentials":["`+pswd.Name+`"],`+
+							`"protoConfig":{},`+
+							`"authorizedRules":{"sending":["`+rule.Name+`"]}`+
+							"}\n")
 					})
 				})
 			})
@@ -221,9 +231,8 @@ func TestCreatePartner(t *testing.T) {
 
 		Convey("Given a database with 1 partner", func() {
 			existing := &model.RemoteAgent{
-				Name:     "existing",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "existing", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
@@ -267,7 +276,7 @@ func TestCreatePartner(t *testing.T) {
 								Owner:       conf.GlobalConfig.GatewayName,
 								Name:        "new_partner",
 								Protocol:    testProto1,
-								Address:     "localhost:2",
+								Address:     types.Addr("localhost", 2),
 								ProtoConfig: map[string]any{},
 							})
 						})
@@ -296,9 +305,8 @@ func TestDeletePartner(t *testing.T) {
 
 		Convey("Given a database with 1 partner", func() {
 			existing := model.RemoteAgent{
-				Name:     "existing",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "existing", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(&existing).Run(), ShouldBeNil)
 
@@ -354,23 +362,29 @@ func TestUpdatePartner(t *testing.T) {
 
 		Convey("Given a database with 1 agent", func() {
 			old := &model.RemoteAgent{
-				Name:     "old",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "old", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the agent with", func() {
-				body := strings.NewReader(`{
-					"name": "update",
-					"protocol": "` + testProto1 + `",
-					"protoConfig": {"key":"val"},
-					"address": "localhost:2"
-				}`)
+				const (
+					newName  = "update"
+					newProto = testProto2
+					newAddr  = "localhost:2"
+				)
+				newConf := map[string]any{"key": "val"}
+
+				body := map[string]any{
+					"name":        newName,
+					"protocol":    newProto,
+					"protoConfig": newConf,
+					"address":     newAddr,
+				}
 
 				Convey("Given a valid agent name parameter", func() {
 					r, err := http.NewRequest(http.MethodPatch, testPartnersURI+
-						old.Name, body)
+						old.Name, utils.ToJSONBody(body))
 					So(err, ShouldBeNil)
 
 					r = mux.SetURLVars(r, map[string]string{"partner": old.Name})
@@ -396,10 +410,10 @@ func TestUpdatePartner(t *testing.T) {
 							exp := &model.RemoteAgent{
 								ID:          old.ID,
 								Owner:       conf.GlobalConfig.GatewayName,
-								Name:        "update",
-								Protocol:    testProto1,
-								Address:     "localhost:2",
-								ProtoConfig: map[string]any{"key": "val"},
+								Name:        newName,
+								Protocol:    newProto,
+								Address:     mustAddr(newAddr),
+								ProtoConfig: newConf,
 							}
 
 							var parts model.RemoteAgents
@@ -412,7 +426,8 @@ func TestUpdatePartner(t *testing.T) {
 				})
 
 				Convey("Given an invalid agent name parameter", func() {
-					r, err := http.NewRequest(http.MethodPatch, testPartnersURI+"toto", body)
+					r, err := http.NewRequest(http.MethodPatch, testPartnersURI+"toto",
+						utils.ToJSONBody(body))
 					So(err, ShouldBeNil)
 
 					r = mux.SetURLVars(r, map[string]string{"partner": "toto"})
@@ -452,9 +467,8 @@ func TestReplacePartner(t *testing.T) {
 
 		Convey("Given a database with 2 agents", func() {
 			old := &model.RemoteAgent{
-				Name:     "old",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "old", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
 
@@ -496,7 +510,7 @@ func TestReplacePartner(t *testing.T) {
 								Owner:       conf.GlobalConfig.GatewayName,
 								Name:        "update",
 								Protocol:    testProto2,
-								Address:     "localhost:2",
+								Address:     types.Addr("localhost", 2),
 								ProtoConfig: map[string]any{},
 							}
 

@@ -1,6 +1,6 @@
-======================================
-Lister les certificats d'un partenaire
-======================================
+=================================================
+[OBSOLÈTE] Lister les certificats d'un partenaire
+=================================================
 
 .. program:: waarp-gateway partner cert list
 

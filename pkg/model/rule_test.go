@@ -7,6 +7,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -82,7 +83,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 				rule.IsSend = old.IsSend
 
 				shouldFailWith("the rule already exist", database.NewValidationError(
-					"a %s rule named '%s' already exist", rule.Direction(), rule.Name))
+					"a %s rule named %q already exist", rule.Direction(), rule.Name))
 			})
 
 			Convey("Given a rule with a path ancestor to this rule's path", func() {
@@ -90,7 +91,7 @@ func TestRuleBeforeWrite(t *testing.T) {
 
 				shouldFailWith("the path cannot be a descendant", database.NewValidationError(
 					"the rule's path cannot be the descendant of another rule's path "+
-						"(the path '%s' is already used by rule '%s')", old.Path, old.Name))
+						"(the path %q is already used by rule %q)", old.Path, old.Name))
 			})
 
 			Convey("Given a rule with a path descendant to this rule's path", func() {
@@ -140,12 +141,11 @@ func TestRuleBeforeDelete(t *testing.T) {
 			So(db.Insert(&t2).Run(), ShouldBeNil)
 
 			server := LocalAgent{
-				Name:     "server",
-				Protocol: testProtocol,
-				Address:  "localhost:1111",
+				Name: "server", Protocol: testProtocol,
+				Address: types.Addr("localhost", 1111),
 			}
 			So(db.Insert(&server).Run(), ShouldBeNil)
-			account := LocalAccount{LocalAgentID: server.ID, Login: "toto", PasswordHash: hash("sesame")}
+			account := LocalAccount{LocalAgentID: server.ID, Login: "toto"}
 			So(db.Insert(&account).Run(), ShouldBeNil)
 
 			a1 := RuleAccess{RuleID: rule.ID, LocalAgentID: utils.NewNullInt64(server.ID)}

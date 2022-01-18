@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:gochecknoglobals //a global var is required here
@@ -35,6 +35,7 @@ func displayPartner(f *Formatter, partner *api.OutPartner) {
 
 	f.Value("Protocol", partner.Protocol)
 	f.Value("Address", partner.Address)
+	f.ValueWithDefault("Credentials", strings.Join(partner.Credentials, ", "), "<none>")
 
 	displayProtoConfig(f, partner.ProtoConfig)
 	displayAuthorizedRules(f, partner.AuthorizedRules)
@@ -44,27 +45,17 @@ func displayPartner(f *Formatter, partner *api.OutPartner) {
 
 //nolint:lll // struct tags for command line arguments can be long
 type PartnerAdd struct {
-	Name        string             `required:"yes" short:"n" long:"name" description:"The partner's name"`
-	Protocol    string             `required:"yes" short:"p" long:"protocol" description:"The partner's protocol"`
-	Address     string             `required:"yes" short:"a" long:"address" description:"The partner's [address:port]"`
-	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated."`
+	Name        string             `required:"yes" short:"n" long:"name" description:"The partner's name" json:"name,omitempty"`
+	Protocol    string             `required:"yes" short:"p" long:"protocol" description:"The partner's protocol" json:"protocol,omitempty"`
+	Address     string             `required:"yes" short:"a" long:"address" description:"The partner's [address:port]" json:"address,omitempty"`
+	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
 }
 
 func (p *PartnerAdd) Execute([]string) error { return p.execute(stdOutput) }
 func (p *PartnerAdd) execute(w io.Writer) error {
-	partner := api.InPartner{
-		Name:     &p.Name,
-		Protocol: &p.Protocol,
-		Address:  &p.Address,
-	}
-
-	if err := utils.JSONConvert(p.ProtoConfig, &partner.ProtoConfig); err != nil {
-		return fmt.Errorf("invalid config: %w", err)
-	}
-
 	addr.Path = "/api/partners"
 
-	if _, err := add(w, partner); err != nil {
+	if _, err := add(w, p); err != nil {
 		return err
 	}
 
@@ -158,34 +149,24 @@ func (p *PartnerDelete) execute(w io.Writer) error {
 type PartnerUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The partner's name"`
-	} `positional-args:"yes"`
-	Name        *string            `short:"n" long:"name" description:"The partner's name"`
-	Protocol    *string            `short:"p" long:"protocol" description:"The partner's protocol'"`
-	Address     *string            `short:"a" long:"address" description:"The partner's [address:port]"`
-	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated."`
+	} `positional-args:"yes" json:"-"`
+	Name        string             `short:"n" long:"name" description:"The partner's name" json:"name,omitempty"`
+	Protocol    string             `short:"p" long:"protocol" description:"The partner's protocol'" json:"protocol,omitempty"`
+	Address     string             `short:"a" long:"address" description:"The partner's [address:port]" json:"address,omitempty"`
+	ProtoConfig map[string]confVal `short:"c" long:"config" description:"The partner's configuration, in key:val format. Can be repeated." json:"protoConfig,omitempty"`
 }
 
 func (p *PartnerUpdate) Execute([]string) error { return p.execute(stdOutput) }
 func (p *PartnerUpdate) execute(w io.Writer) error {
-	partner := &api.InPartner{
-		Name:     p.Name,
-		Protocol: p.Protocol,
-		Address:  p.Address,
-	}
-
-	if err := utils.JSONConvert(p.ProtoConfig, &partner.ProtoConfig); err != nil {
-		return fmt.Errorf("invalid config: %w", err)
-	}
-
 	addr.Path = path.Join("/api/partners", p.Args.Name)
 
-	if err := update(w, partner); err != nil {
+	if err := update(w, p); err != nil {
 		return err
 	}
 
 	name := p.Args.Name
-	if partner.Name != nil && *partner.Name != "" {
-		name = *partner.Name
+	if p.Name != "" {
+		name = p.Name
 	}
 
 	fmt.Fprintf(w, "The partner %q was successfully updated.\n", name)

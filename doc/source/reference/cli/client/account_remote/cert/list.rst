@@ -1,6 +1,6 @@
-==========================================
-Lister les certificats d'un compte distant
-==========================================
+=====================================================
+[OBSOLÈTE] Lister les certificats d'un compte distant
+=====================================================
 
 .. program:: waarp-gateway account remote cert list
 

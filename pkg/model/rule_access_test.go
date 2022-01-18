@@ -6,6 +6,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -36,30 +37,26 @@ func TestIsRuleAuthorized(t *testing.T) {
 			So(db.Insert(&r).Run(), ShouldBeNil)
 
 			rAgent := RemoteAgent{
-				Name:     "partner",
-				Protocol: testProtocol,
-				Address:  "localhost:1111",
+				Name: "partner", Protocol: testProtocol,
+				Address: types.Addr("localhost", 1111),
 			}
 			So(db.Insert(&rAgent).Run(), ShouldBeNil)
 
 			rAccount := RemoteAccount{
 				RemoteAgentID: rAgent.ID,
 				Login:         "toto",
-				Password:      "sesame",
 			}
 			So(db.Insert(&rAccount).Run(), ShouldBeNil)
 
 			lAgent := LocalAgent{
-				Name:     "server",
-				Protocol: testProtocol,
-				Address:  "localhost:2222",
+				Name: "server", Protocol: testProtocol,
+				Address: types.Addr("localhost", 2222),
 			}
 			So(db.Insert(&lAgent).Run(), ShouldBeNil)
 
 			lAccount := LocalAccount{
 				LocalAgentID: lAgent.ID,
 				Login:        "titi",
-				PasswordHash: hash("sesame"),
 			}
 			So(db.Insert(&lAccount).Run(), ShouldBeNil)
 
@@ -106,30 +103,26 @@ func TestRuleAccessBeforeWrite(t *testing.T) {
 			So(db.Insert(r).Run(), ShouldBeNil)
 
 			rAgent := RemoteAgent{
-				Name:     "partner",
-				Protocol: testProtocol,
-				Address:  "localhost:1111",
+				Name: "partner", Protocol: testProtocol,
+				Address: types.Addr("localhost", 1111),
 			}
 			So(db.Insert(&rAgent).Run(), ShouldBeNil)
 
 			rAccount := RemoteAccount{
 				RemoteAgentID: rAgent.ID,
 				Login:         "toto",
-				Password:      "sesame",
 			}
 			So(db.Insert(&rAccount).Run(), ShouldBeNil)
 
 			lAgent := LocalAgent{
-				Name:     "server",
-				Protocol: testProtocol,
-				Address:  "localhost:2222",
+				Name: "server", Protocol: testProtocol,
+				Address: types.Addr("localhost", 2222),
 			}
 			So(db.Insert(&lAgent).Run(), ShouldBeNil)
 
 			lAccount := LocalAccount{
 				LocalAgentID: lAgent.ID,
 				Login:        "titi",
-				PasswordHash: hash("sesame"),
 			}
 			So(db.Insert(&lAccount).Run(), ShouldBeNil)
 

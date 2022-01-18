@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -46,7 +47,7 @@ func TestClientAdd(t *testing.T) {
 						Owner:        conf.GlobalConfig.GatewayName,
 						Name:         jsonClient["name"].(string),
 						Protocol:     jsonClient["protocol"].(string),
-						LocalAddress: jsonClient["localAddress"].(string),
+						LocalAddress: mustAddr(jsonClient["localAddress"].(string)),
 						ProtoConfig:  jsonClient["protoConfig"].(map[string]any),
 					})
 				})
@@ -67,16 +68,14 @@ func TestClientList(t *testing.T) {
 		test := makeTestRESTServer(c)
 
 		dbClient1 := &model.Client{
-			Name:         "test_client1",
-			Protocol:     testProto1,
-			LocalAddress: ":1",
+			Name: "test_client1", Protocol: testProto1,
+			LocalAddress: types.Addr("localhost", 1),
 		}
 		So(test.db.Insert(dbClient1).Run(), ShouldBeNil)
 
 		dbClient2 := &model.Client{
-			Name:         "test_client2",
-			Protocol:     testProto2,
-			LocalAddress: ":2",
+			Name: "test_client2", Protocol: testProto2,
+			LocalAddress: types.Addr("localhost", 2),
 		}
 		So(test.db.Insert(dbClient2).Run(), ShouldBeNil)
 
@@ -96,14 +95,14 @@ func TestClientList(t *testing.T) {
 								"name":         dbClient1.Name,
 								"enabled":      !dbClient1.Disabled,
 								"protocol":     dbClient1.Protocol,
-								"localAddress": dbClient1.LocalAddress,
+								"localAddress": dbClient1.LocalAddress.String(),
 								"protoConfig":  dbClient1.ProtoConfig,
 							},
 							map[string]any{
 								"name":         dbClient2.Name,
 								"enabled":      !dbClient2.Disabled,
 								"protocol":     dbClient2.Protocol,
-								"localAddress": dbClient2.LocalAddress,
+								"localAddress": dbClient2.LocalAddress.String(),
 								"protoConfig":  dbClient2.ProtoConfig,
 							},
 						},
@@ -121,9 +120,8 @@ func TestClientGet(t *testing.T) {
 		test := makeTestRESTServer(c)
 
 		dbClient := &model.Client{
-			Name:         "test_client",
-			Protocol:     testProto1,
-			LocalAddress: ":1",
+			Name: "test_client", Protocol: testProto1,
+			LocalAddress: types.Addr("localhost", 1),
 		}
 		So(test.db.Insert(dbClient).Run(), ShouldBeNil)
 
@@ -141,7 +139,7 @@ func TestClientGet(t *testing.T) {
 						"name":         dbClient.Name,
 						"enabled":      !dbClient.Disabled,
 						"protocol":     dbClient.Protocol,
-						"localAddress": dbClient.LocalAddress,
+						"localAddress": dbClient.LocalAddress.String(),
 						"protoConfig":  dbClient.ProtoConfig,
 					}
 
@@ -157,9 +155,8 @@ func TestClientUpdate(t *testing.T) {
 		test := makeTestRESTServer(c)
 
 		dbClient := &model.Client{
-			Name:         "test_client",
-			Protocol:     testProto1,
-			LocalAddress: ":1",
+			Name: "test_client", Protocol: testProto1,
+			LocalAddress: types.Addr("localhost", 1),
 		}
 		So(test.db.Insert(dbClient).Run(), ShouldBeNil)
 
@@ -190,7 +187,7 @@ func TestClientUpdate(t *testing.T) {
 						Owner:        dbClient.Owner,
 						Name:         jsonClient["name"].(string),
 						Protocol:     jsonClient["protocol"].(string),
-						LocalAddress: jsonClient["localAddress"].(string),
+						LocalAddress: mustAddr(jsonClient["localAddress"].(string)),
 						ProtoConfig:  dbClient.ProtoConfig,
 					})
 				})
@@ -212,9 +209,8 @@ func TestClientReplace(t *testing.T) {
 		test := makeTestRESTServer(c)
 
 		dbClient := &model.Client{
-			Name:         "test_client",
-			Protocol:     testProto1,
-			LocalAddress: ":1",
+			Name: "test_client", Protocol: testProto1,
+			LocalAddress: types.Addr("localhost", 1),
 		}
 		So(test.db.Insert(dbClient).Run(), ShouldBeNil)
 
@@ -245,7 +241,7 @@ func TestClientReplace(t *testing.T) {
 						Owner:        dbClient.Owner,
 						Name:         jsonClient["name"].(string),
 						Protocol:     jsonClient["protocol"].(string),
-						LocalAddress: jsonClient["localAddress"].(string),
+						LocalAddress: mustAddr(jsonClient["localAddress"].(string)),
 						ProtoConfig:  map[string]any{},
 					})
 				})
@@ -267,16 +263,14 @@ func TestClientDelete(t *testing.T) {
 		test := makeTestRESTServer(c)
 
 		dbClient := &model.Client{
-			Name:         "test_client",
-			Protocol:     testProto1,
-			LocalAddress: ":1",
+			Name: "test_client", Protocol: testProto1,
+			LocalAddress: types.Addr("localhost", 1),
 		}
 		So(test.db.Insert(dbClient).Run(), ShouldBeNil)
 
 		dbClient2 := &model.Client{
-			Name:         "test_client2",
-			Protocol:     testProto2,
-			LocalAddress: ":2",
+			Name: "test_client2", Protocol: testProto2,
+			LocalAddress: types.Addr("localhost", 2),
 		}
 		So(test.db.Insert(dbClient2).Run(), ShouldBeNil)
 

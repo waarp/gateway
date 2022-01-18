@@ -27,29 +27,30 @@ func exportLocals(logger *log.Logger, db database.ReadAccess) ([]file.LocalAgent
 			return nil, err
 		}
 
-		certificates, err := exportCertificates(logger, db, src)
+		credentials, certs, _, err := exportCredentials(logger, db, src)
 		if err != nil {
 			return nil, err
 		}
 
-		logger.Info("Export local server %s\n", src.Name)
+		logger.Info("Export local server %s", src.Name)
 
 		res[i] = file.LocalAgent{
 			Name:          src.Name,
 			Protocol:      src.Protocol,
 			Disabled:      src.Disabled,
-			Address:       src.Address,
+			Address:       src.Address.String(),
 			Configuration: src.ProtoConfig,
 			RootDir:       src.RootDir,
 			ReceiveDir:    src.ReceiveDir,
 			SendDir:       src.SendDir,
 			TmpReceiveDir: src.TmpReceiveDir,
+			Accounts:      accounts,
+			Credentials:   credentials,
 			Root:          utils.NormalizePath(src.RootDir),
 			InDir:         utils.NormalizePath(src.ReceiveDir),
 			OutDir:        utils.NormalizePath(src.SendDir),
 			WorkDir:       utils.NormalizePath(src.TmpReceiveDir),
-			Accounts:      accounts,
-			Certs:         certificates,
+			Certs:         certs,
 		}
 	}
 
@@ -67,17 +68,18 @@ func exportLocalAccounts(logger *log.Logger, db database.ReadAccess,
 	res := make([]file.LocalAccount, len(dbAccounts))
 
 	for i, src := range dbAccounts {
-		certificates, err := exportCertificates(logger, db, src)
+		credentials, certs, pswd, err := exportCredentials(logger, db, src)
 		if err != nil {
 			return nil, err
 		}
 
-		logger.Info("Export local account %s\n", src.Login)
+		logger.Info("Export local account %s", src.Login)
 
 		res[i] = file.LocalAccount{
 			Login:        src.Login,
-			PasswordHash: src.PasswordHash,
-			Certs:        certificates,
+			Credentials:  credentials,
+			PasswordHash: pswd,
+			Certs:        certs,
 		}
 	}
 

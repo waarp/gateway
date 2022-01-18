@@ -18,6 +18,8 @@ func TestRemoteAccountGet(t *testing.T) {
 		send2    = "send2"
 		receive1 = "receive1"
 		receive2 = "receive2"
+		cred1    = "cred1"
+		cred2    = "cred2"
 
 		path = "/api/partners/" + partner + "/accounts/" + login
 	)
@@ -37,7 +39,8 @@ func TestRemoteAccountGet(t *testing.T) {
 		result := &expectedResponse{
 			status: http.StatusOK,
 			body: map[string]any{
-				"login": login,
+				"login":       login,
+				"credentials": []string{cred1, cred2},
 				"authorizedRules": map[string]any{
 					"sending":   []string{send1, send2},
 					"reception": []string{receive1, receive2},
@@ -54,6 +57,7 @@ func TestRemoteAccountGet(t *testing.T) {
 
 				assert.Equal(t,
 					fmt.Sprintf("── Account %q\n", login)+
+						fmt.Sprintf("   ├─ Credentials: %s, %s\n", cred1, cred2)+
 						fmt.Sprintf("   ╰─ Authorized rules\n")+
 						fmt.Sprintf("      ├─ Send: %s, %s\n", send1, send2)+
 						fmt.Sprintf("      ╰─ Receive: %s, %s\n", receive1, receive2),
@@ -264,10 +268,12 @@ func TestRemoteAccountList(t *testing.T) {
 
 				assert.Equal(t, fmt.Sprintf("Accounts of partner %q:\n", partner)+
 					fmt.Sprintf("╭─ Account %q\n", login1)+
+					fmt.Sprintf("│  ├─ Credentials: <none>\n")+
 					fmt.Sprintf("│  ╰─ Authorized rules\n")+
 					fmt.Sprintf("│     ├─ Send: <none>\n")+
 					fmt.Sprintf("│     ╰─ Receive: <none>\n")+
 					fmt.Sprintf("╰─ Account %q\n", login2)+
+					fmt.Sprintf("   ├─ Credentials: <none>\n")+
 					fmt.Sprintf("   ╰─ Authorized rules\n")+
 					fmt.Sprintf("      ├─ Send: <none>\n")+
 					fmt.Sprintf("      ╰─ Receive: <none>\n"),

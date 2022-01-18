@@ -6,54 +6,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/r66"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 )
-
-func dbLocalAccountToRESTInput(old *model.LocalAccount) *api.InAccount {
-	return &api.InAccount{
-		Login:    &old.Login,
-		Password: strPtr(old.PasswordHash),
-	}
-}
-
-func dbRemoteAccountToRESTInput(old *model.RemoteAccount) *api.InAccount {
-	return &api.InAccount{
-		Login:    &old.Login,
-		Password: strPtr(string(old.Password)),
-	}
-}
-
-// restLocalAccountToDB transforms the JSON local account into its database equivalent.
-func restLocalAccountToDB(restAccount *api.InAccount, parent *model.LocalAgent,
-) (*model.LocalAccount, error) {
-	if parent.Protocol == r66.R66 || parent.Protocol == r66.R66TLS {
-		// Unlike other protocols, when authenticating, an R66 client sends a
-		// hash instead of a password, so we replace the password with its hash.
-		restAccount.Password = strPtr(utils.R66Hash(str(restAccount.Password)))
-	}
-
-	hash, err := utils.HashPassword(database.BcryptRounds, str(restAccount.Password))
-	if err != nil {
-		return nil, fmt.Errorf("failed to hash passwordi: %w", err)
-	}
-
-	return &model.LocalAccount{
-		LocalAgentID: parent.ID,
-		Login:        str(restAccount.Login),
-		PasswordHash: hash,
-	}, nil
-}
-
-// restRemoteAccountToDB transforms the JSON remote account into its database equivalent.
-func restRemoteAccountToDB(restAccount *api.InAccount, parent *model.RemoteAgent,
-) *model.RemoteAccount {
-	return &model.RemoteAccount{
-		RemoteAgentID: parent.ID,
-		Login:         str(restAccount.Login),
-		Password:      cStr(restAccount.Password),
-	}
-}
 
 // DBLocalAccountToREST transforms the given database local account into its JSON
 // equivalent.
@@ -64,8 +18,14 @@ func DBLocalAccountToREST(db database.ReadAccess, dbAccount *model.LocalAccount,
 		return nil, err
 	}
 
+	credentials, err := makeCredList(db, dbAccount)
+	if err != nil {
+		return nil, err
+	}
+
 	return &api.OutAccount{
 		Login:           dbAccount.Login,
+		Credentials:     credentials,
 		AuthorizedRules: authorizedRules,
 	}, nil
 }
@@ -95,8 +55,14 @@ func DBRemoteAccountToREST(db database.ReadAccess, dbAccount *model.RemoteAccoun
 		return nil, err
 	}
 
+	credentials, err := makeCredList(db, dbAccount)
+	if err != nil {
+		return nil, err
+	}
+
 	return &api.OutAccount{
 		Login:           dbAccount.Login,
+		Credentials:     credentials,
 		AuthorizedRules: authorizedRules,
 	}, nil
 }
@@ -115,4 +81,39 @@ func DBRemoteAccountsToREST(db database.ReadAccess, dbAccounts []*model.RemoteAc
 	}
 
 	return restAccounts, nil
+}
+
+func updateAccountPassword(ses *database.Session, account model.CredOwnerTable,
+	password, passwdType, protocol string,
+) error {
+	var cred model.Credential
+	if err := ses.Get(&cred, "type=?", passwdType).And(
+		account.GetCredCond()).Run(); database.IsNotFound(err) {
+		cred.Type = passwdType
+		cred.Value = password
+		account.SetCredOwner(&cred)
+
+		if err2 := ses.Insert(&cred).Run(); err2 != nil {
+			return fmt.Errorf("failed to insert account password: %w", err2)
+		}
+	} else if err != nil {
+		return fmt.Errorf("failed to retrieve old account password: %w", err)
+	}
+
+	if password == "" {
+		if err := ses.Delete(&cred).Run(); err != nil {
+			return fmt.Errorf("failed to delete old account password: %w", err)
+		}
+	}
+
+	cred.Value = password
+	if passwdType == auth.PasswordHash {
+		checkR66Password(&cred, protocol)
+	}
+
+	if err := ses.Update(&cred).Run(); err != nil {
+		return fmt.Errorf("failed to update account password: %w", err)
+	}
+
+	return nil
 }

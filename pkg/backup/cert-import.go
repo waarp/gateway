@@ -8,44 +8,59 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/sftp"
 )
 
+// Deprecated: to be replaced by importAuth.
 func importCerts(logger *log.Logger, db database.Access, list []file.Certificate,
-	owner model.CryptoOwner,
+	owner model.CredOwnerTable,
 ) error {
 	for _, src := range list {
 		// Create model with basic info to check existence
-		var crypto model.Crypto
+		var crypto model.Credential
 
 		// Check if crypto exists
 		exist := true
 
-		err := db.Get(&crypto, "name=?", src.Name).And(owner.GenCryptoSelectCond()).Run()
-		if database.IsNotFound(err) {
+		dbErr := db.Get(&crypto, "name=?", src.Name).And(owner.GetCredCond()).Run()
+		if database.IsNotFound(dbErr) {
 			exist = false
-		} else if err != nil {
-			return fmt.Errorf("failed to retrieve certificate %q: %w", src.Name, err)
+		} else if dbErr != nil {
+			return fmt.Errorf("failed to retrieve certificate %q: %w", src.Name, dbErr)
 		}
 
 		// Populate
-		owner.SetCryptoOwner(&crypto)
+		owner.SetCredOwner(&crypto)
 		crypto.Name = src.Name
-		crypto.PrivateKey = types.CypherText(src.PrivateKey)
-		crypto.SSHPublicKey = src.PublicKey
-		crypto.Certificate = src.Certificate
+
+		switch {
+		case src.Certificate != "" && src.PrivateKey != "":
+			crypto.Type = auth.TLSCertificate
+			crypto.Value = src.Certificate
+			crypto.Value2 = src.PrivateKey
+		case src.Certificate != "":
+			crypto.Type = auth.TLSTrustedCertificate
+			crypto.Value = src.Certificate
+		case src.PublicKey != "":
+			crypto.Type = sftp.AuthSSHPublicKey
+			crypto.Value = src.PublicKey
+		case src.PrivateKey != "":
+			crypto.Type = sftp.AuthSSHPrivateKey
+			crypto.Value = src.PrivateKey
+		}
 
 		// Create/Update
 		if exist {
-			logger.Info("Update certificate %s\n", crypto.Name)
-			err = db.Update(&crypto).Run()
+			logger.Info("Update certificate %s", crypto.Name)
+			dbErr = db.Update(&crypto).Run()
 		} else {
-			logger.Info("Create certificate %s\n", crypto.Name)
-			err = db.Insert(&crypto).Run()
+			logger.Info("Create certificate %s", crypto.Name)
+			dbErr = db.Insert(&crypto).Run()
 		}
 
-		if err != nil {
-			return fmt.Errorf("failed to import certificate %q: %w", crypto.Name, err)
+		if dbErr != nil {
+			return fmt.Errorf("failed to import certificate %q: %w", crypto.Name, dbErr)
 		}
 	}
 

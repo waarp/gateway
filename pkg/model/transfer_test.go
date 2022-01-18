@@ -35,16 +35,14 @@ func TestTransferBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains a valid local agent", func() {
 			server := LocalAgent{
-				Name:     "server",
-				Protocol: testProtocol,
-				Address:  "localhost:2022",
+				Name: "server", Protocol: testProtocol,
+				Address: types.Addr("localhost", 2022),
 			}
 			So(db.Insert(&server).Run(), ShouldBeNil)
 
 			account := LocalAccount{
 				LocalAgentID: server.ID,
 				Login:        "toto",
-				PasswordHash: hash("sesame"),
 			}
 			So(db.Insert(&account).Run(), ShouldBeNil)
 
@@ -199,16 +197,14 @@ func TestTransferToHistory(t *testing.T) {
 		So(db.Insert(&cli).Run(), ShouldBeNil)
 
 		remote := RemoteAgent{
-			Name:     "remote",
-			Protocol: cli.Protocol,
-			Address:  "localhost:2022",
+			Name: "remote", Protocol: cli.Protocol,
+			Address: types.Addr("localhost", 2022),
 		}
 		So(db.Insert(&remote).Run(), ShouldBeNil)
 
 		account := RemoteAccount{
 			RemoteAgentID: remote.ID,
 			Login:         "toto",
-			Password:      "sesame",
 		}
 		So(db.Insert(&account).Run(), ShouldBeNil)
 
@@ -288,7 +284,7 @@ func TestTransferToHistory(t *testing.T) {
 			}
 
 			for _, tc := range statusesTestCases {
-				Convey(fmt.Sprintf("Given the status is set to '%s'", tc.status), func() {
+				Convey(fmt.Sprintf("Given the status is set to %q", tc.status), func() {
 					trans.Status = tc.status
 
 					Convey("When calling the `MoveToHistory` method", func() {
@@ -307,7 +303,7 @@ func TestTransferToHistory(t *testing.T) {
 						} else {
 							Convey("Then it should return an error", func() {
 								expectedError := fmt.Sprintf("failed to move transfer to history: "+
-									"a transfer cannot be recorded in history with status '%s'",
+									"a transfer cannot be recorded in history with status %q",
 									tc.status,
 								)
 								So(err, ShouldBeError, expectedError)

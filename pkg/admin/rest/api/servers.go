@@ -5,20 +5,20 @@ package api
 //
 //nolint:lll // JSON tags can be long
 type InServer struct {
-	Name          *string        `json:"name,omitempty"`
-	Protocol      *string        `json:"protocol,omitempty"`
-	Address       *string        `json:"address,omitempty"`
-	RootDir       *string        `json:"rootDir,omitempty"`
-	ReceiveDir    *string        `json:"receiveDir,omitempty"`
-	SendDir       *string        `json:"sendDir,omitempty"`
-	TmpReceiveDir *string        `json:"tmpReceiveDir,omitempty"`
-	ProtoConfig   map[string]any `json:"protoConfig,omitempty"`
+	Name          Nullable[string] `json:"name,omitempty"`
+	Protocol      Nullable[string] `json:"protocol,omitempty"`
+	Address       Nullable[string] `json:"address,omitempty"`
+	RootDir       Nullable[string] `json:"rootDir,omitempty"`
+	ReceiveDir    Nullable[string] `json:"receiveDir,omitempty"`
+	SendDir       Nullable[string] `json:"sendDir,omitempty"`
+	TmpReceiveDir Nullable[string] `json:"tmpReceiveDir,omitempty"`
+	ProtoConfig   map[string]any   `json:"protoConfig,omitempty"`
 
 	// Deprecated fields
-	Root    *string `json:"root,omitempty"`    // Deprecated: replaced by RootDir
-	InDir   *string `json:"inDir,omitempty"`   // Deprecated: replaced by ReceiveDir & SendDir
-	OutDir  *string `json:"outDir,omitempty"`  // Deprecated: replaced by ReceiveDir & SendDir
-	WorkDir *string `json:"workDir,omitempty"` // Deprecated: replaced by TmpReceiveDir
+	Root    Nullable[string] `json:"root,omitempty"`    // Deprecated: replaced by RootDir
+	InDir   Nullable[string] `json:"inDir,omitempty"`   // Deprecated: replaced by ReceiveDir & SendDir
+	OutDir  Nullable[string] `json:"outDir,omitempty"`  // Deprecated: replaced by ReceiveDir & SendDir
+	WorkDir Nullable[string] `json:"workDir,omitempty"` // Deprecated: replaced by TmpReceiveDir
 }
 
 // OutServer is the JSON representation of a local server in responses sent by
@@ -34,6 +34,7 @@ type OutServer struct {
 	ReceiveDir      string          `json:"receiveDir,omitempty"`
 	SendDir         string          `json:"sendDir,omitempty"`
 	TmpReceiveDir   string          `json:"tmpReceiveDir,omitempty"`
+	Credentials     []string        `json:"credentials,omitempty"`
 	ProtoConfig     map[string]any  `json:"protoConfig"`
 	AuthorizedRules AuthorizedRules `json:"authorizedRules"`
 

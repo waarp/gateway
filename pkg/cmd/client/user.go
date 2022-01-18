@@ -26,27 +26,25 @@ func displayUser(f *Formatter, user *api.OutUser) {
 
 // ######################## ADD ##########################
 
+//nolint:lll //tags are long
 type UserAdd struct {
-	Username string `required:"true" short:"u" long:"username" description:"The user's name"`
-	Password string `required:"true" short:"p" long:"password" description:"The user's password"`
-	Perms    string `required:"true" short:"r" long:"rights" description:"The user's rights in chmod symbolic format"`
+	Username string     `required:"true" short:"u" long:"username" description:"The user's name" json:"username,omitempty" `
+	Password string     `required:"true" short:"p" long:"password" description:"The user's password" json:"password,omitempty" `
+	PermsStr string     `required:"true" short:"r" long:"rights" description:"The user's rights in chmod symbolic format" json:"-" `
+	Perms    *api.Perms `json:"perms,omitempty"`
 }
 
 func (u *UserAdd) Execute([]string) error { return u.execute(stdOutput) }
 func (u *UserAdd) execute(w io.Writer) error {
-	perms, err := parsePerms(u.Perms)
+	perms, err := parsePerms(u.PermsStr)
 	if err != nil {
 		return err
 	}
 
-	newUser := &api.InUser{
-		Username: &u.Username,
-		Password: &u.Password,
-		Perms:    perms,
-	}
+	u.Perms = perms
 	addr.Path = "/api/users"
 
-	if _, err := add(w, newUser); err != nil {
+	if _, err := add(w, u); err != nil {
 		return err
 	}
 
@@ -82,37 +80,31 @@ func (u *UserGet) execute(w io.Writer) error {
 type UserUpdate struct {
 	Args struct {
 		Username string `required:"yes" positional-arg-name:"username" description:"The old username"`
-	} `positional-args:"yes"`
-	Username *string `short:"u" long:"username" description:"The new username"`
-	Password *string `short:"p" long:"password" description:"The new password"`
-	Perms    *string `short:"r" long:"rights" description:"The user's rights in chmod symbolic format"`
+	} `positional-args:"yes" json:"-"`
+	Username string     `short:"u" long:"username" description:"The new username" json:"username,omitempty"`
+	Password string     `short:"p" long:"password" description:"The new password" json:"password,omitempty"`
+	PermsStr string     `short:"r" long:"rights" description:"The user's rights in chmod symbolic format" json:"-"`
+	Perms    *api.Perms `json:"perms,omitempty"`
 }
 
 func (u *UserUpdate) Execute([]string) error { return u.execute(stdOutput) }
 func (u *UserUpdate) execute(w io.Writer) error {
-	var perms *api.Perms
-
-	if u.Perms != nil {
+	if u.PermsStr != "" {
 		var err error
-		if perms, err = parsePerms(*u.Perms); err != nil {
+		if u.Perms, err = parsePerms(u.PermsStr); err != nil {
 			return err
 		}
 	}
 
-	user := &api.InUser{
-		Username: u.Username,
-		Password: u.Password,
-		Perms:    perms,
-	}
 	addr.Path = path.Join("/api/users", u.Args.Username)
 
-	if err := update(w, user); err != nil {
+	if err := update(w, u); err != nil {
 		return err
 	}
 
 	username := u.Args.Username
-	if user.Username != nil && *user.Username != "" {
-		username = *user.Username
+	if u.Username != "" {
+		username = u.Username
 	}
 
 	fmt.Fprintf(w, "The user %q was successfully updated.\n", username)

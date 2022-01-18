@@ -10,6 +10,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -30,14 +31,13 @@ func TestPathBuilder(t *testing.T) {
 			ReceiveDir:    "serIn",
 			SendDir:       "serOut",
 			TmpReceiveDir: "serTmp",
-			Address:       "localhost:0",
+			Address:       types.Addr("localhost", 0),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
 		acc := &model.LocalAccount{
 			LocalAgentID: server.ID,
 			Login:        "toto",
-			PasswordHash: hash("sesame"),
 		}
 		So(db.Insert(acc).Run(), ShouldBeNil)
 

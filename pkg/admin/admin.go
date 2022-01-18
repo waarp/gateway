@@ -59,12 +59,7 @@ func listen(s *Server) {
 // valid address on which the server can listen.
 func checkAddress() (string, error) {
 	config := &conf.GlobalConfig.Admin
-	addr := net.JoinHostPort(config.Host, utils.FormatUint(config.Port))
-
-	addr, err := conf.GetRealAddress(addr)
-	if err != nil {
-		return "", fmt.Errorf("failed to indirect the admin address: %w", err)
-	}
+	addr := conf.GetRealAddress(config.Host, utils.FormatUint(config.Port))
 
 	l, err := net.Listen("tcp", addr)
 	if err == nil {

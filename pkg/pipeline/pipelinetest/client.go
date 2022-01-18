@@ -1,7 +1,6 @@
 package pipelinetest
 
 import (
-	"fmt"
 	"path"
 	"sync/atomic"
 	"time"
@@ -12,6 +11,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -95,9 +96,9 @@ func InitClientPull(c convey.C, proto string, cont []byte,
 }
 
 // AddCryptos adds the given cryptos to the test database.
-func (cc *ClientContext) AddCryptos(c convey.C, certs ...model.Crypto) {
-	for i := range certs {
-		c.So(cc.DB.Insert(&certs[i]).Run(), convey.ShouldBeNil)
+func (cc *ClientContext) AddCryptos(c convey.C, auths ...*model.Credential) {
+	for _, a := range auths {
+		c.So(cc.DB.Insert(a).Run(), convey.ShouldBeNil)
 	}
 }
 
@@ -162,19 +163,24 @@ func makeClientConf(c convey.C, db *database.DB, port uint16, proto string,
 	c.So(db.Insert(client).Run(), convey.ShouldBeNil)
 
 	partner := &model.RemoteAgent{
-		Name:        "partner",
-		Protocol:    proto,
-		ProtoConfig: jsonPartConf,
-		Address:     fmt.Sprintf("127.0.0.1:%d", port),
+		Name:     testServerName,
+		Protocol: proto, ProtoConfig: jsonPartConf,
+		Address: types.Addr("127.0.0.1", port),
 	}
 	c.So(db.Insert(partner).Run(), convey.ShouldBeNil)
 
 	remAccount := &model.RemoteAccount{
 		RemoteAgentID: partner.ID,
 		Login:         TestLogin,
-		Password:      TestPassword,
 	}
 	c.So(db.Insert(remAccount).Run(), convey.ShouldBeNil)
+
+	accPwd := &model.Credential{
+		RemoteAccountID: utils.NewNullInt64(remAccount.ID),
+		Type:            auth.Password,
+		Value:           TestPassword,
+	}
+	c.So(db.Insert(accPwd).Run(), convey.ShouldBeNil)
 
 	return client, partner, remAccount
 }
@@ -235,22 +241,22 @@ func (cc *ClientContext) CheckTransferOK(c convey.C) {
 }
 
 func (cc *ClientContext) GetTransferContent(c convey.C) *model.TransferContext {
-	partnerCryptos, err := cc.Partner.GetCryptos(cc.DB)
+	partnerCryptos, err := cc.Partner.GetCredentials(cc.DB)
 	c.So(err, convey.ShouldBeNil)
 
-	accountCryptos, err := cc.RemAccount.GetCryptos(cc.DB)
+	accountCryptos, err := cc.RemAccount.GetCredentials(cc.DB)
 	c.So(err, convey.ShouldBeNil)
 
 	return &model.TransferContext{
-		Transfer:             cc.ClientTrans,
-		TransInfo:            cc.transferInfo,
-		Rule:                 cc.ClientRule,
-		Client:               cc.Client,
-		RemoteAgent:          cc.Partner,
-		RemoteAgentCryptos:   partnerCryptos,
-		RemoteAccount:        cc.RemAccount,
-		RemoteAccountCryptos: accountCryptos,
-		Paths:                cc.Paths,
+		Transfer:           cc.ClientTrans,
+		TransInfo:          cc.transferInfo,
+		Rule:               cc.ClientRule,
+		Client:             cc.Client,
+		RemoteAgent:        cc.Partner,
+		RemoteAgentCreds:   partnerCryptos,
+		RemoteAccount:      cc.RemAccount,
+		RemoteAccountCreds: accountCryptos,
+		Paths:              cc.Paths,
 	}
 }
 

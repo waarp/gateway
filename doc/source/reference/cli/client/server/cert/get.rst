@@ -1,6 +1,6 @@
-=================================
-Afficher un certificat de serveur
-=================================
+============================================
+[OBSOLÈTE] Afficher un certificat de serveur
+============================================
 
 .. program:: waarp-gateway server cert get
 

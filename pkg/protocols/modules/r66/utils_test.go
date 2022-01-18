@@ -3,22 +3,27 @@ package r66
 import (
 	"path"
 
-	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/gatewayd/services"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+)
+
+const (
+	serverLogin = "r66_login"
+	serverPass  = "sesames"
 )
 
 //nolint:gochecknoglobals // these are test variables
 var (
 	cliConf  = &clientConfig{}
-	servConf = &serverConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
-	partConf = &partnerConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
+	servConf = &serverConfig{ServerLogin: serverLogin}
+	partConf = &partnerConfig{ServerLogin: serverLogin}
 )
 
 func init() {
@@ -36,12 +41,22 @@ func init() {
 	}
 }
 
-func hash(pwd string) string {
-	crypt := r66.CryptPass([]byte(pwd))
-	h, err := bcrypt.GenerateFromPassword(crypt, bcrypt.MinCost)
-	So(err, ShouldBeNil)
+func serverPassword(server *model.LocalAgent) *model.Credential {
+	return &model.Credential{
+		LocalAgentID: utils.NewNullInt64(server.ID),
+		Name:         "server_password",
+		Type:         auth.Password,
+		Value:        serverPass,
+	}
+}
 
-	return string(h)
+func partnerPassword(partner *model.RemoteAgent) *model.Credential {
+	return &model.Credential{
+		RemoteAgentID: utils.NewNullInt64(partner.ID),
+		Name:          "partner_password",
+		Type:          auth.PasswordHash,
+		Value:         CryptPass(serverPass),
+	}
 }
 
 func mkURL(elem ...string) *types.URL {

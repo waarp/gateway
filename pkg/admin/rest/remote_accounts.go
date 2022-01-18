@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.waarp.fr/lib/log"
@@ -9,15 +10,17 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:dupl // duplicated code is about a different type
 func getDBRemoteAccount(r *http.Request, db *database.DB) (*model.RemoteAgent,
 	*model.RemoteAccount, error,
 ) {
-	parent, err := retrievePartner(r, db)
-	if err != nil {
-		return nil, nil, err
+	parent, parentErr := retrievePartner(r, db)
+	if parentErr != nil {
+		return nil, nil, parentErr
 	}
 
 	login, ok := mux.Vars(r)["remote_account"]
@@ -33,7 +36,7 @@ func getDBRemoteAccount(r *http.Request, db *database.DB) (*model.RemoteAgent,
 				login, parent.Name)
 		}
 
-		return parent, nil, err
+		return parent, nil, fmt.Errorf("failed to retrieve remote account %q: %w", login, err)
 	}
 
 	return parent, &dbAccount, nil
@@ -92,30 +95,7 @@ func getRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
-func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		parent, oldAccount, getErr := getDBRemoteAccount(r, db)
-		if handleError(w, logger, getErr) {
-			return
-		}
-
-		restAccount := dbRemoteAccountToRESTInput(oldAccount)
-		if err := readJSON(r, restAccount); handleError(w, logger, err) {
-			return
-		}
-
-		dbAccount := restRemoteAccountToDB(restAccount, parent)
-		dbAccount.ID = oldAccount.ID
-
-		if err := db.Update(dbAccount).Run(); handleError(w, logger, err) {
-			return
-		}
-
-		w.Header().Set("Location", locationUpdate(r.URL, dbAccount.Login))
-		w.WriteHeader(http.StatusCreated)
-	}
-}
-
+//nolint:dupl //duplicated code is about a different type, best keep separate
 func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parent, oldAccount, getErr := getDBRemoteAccount(r, db)
@@ -128,10 +108,24 @@ func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc 
 			return
 		}
 
-		dbAccount := restRemoteAccountToDB(&restAccount, parent)
-		dbAccount.ID = oldAccount.ID
+		dbAccount := &model.RemoteAccount{
+			ID:            oldAccount.ID,
+			RemoteAgentID: parent.ID,
+			Login:         restAccount.Login.Value,
+		}
 
-		if err := db.Update(dbAccount).Run(); handleError(w, logger, err) {
+		if tErr := db.Transaction(func(ses *database.Session) error {
+			if err := ses.Update(dbAccount).Run(); err != nil {
+				return fmt.Errorf("failed to update remote account: %w", err)
+			}
+
+			if err := updateAccountPassword(ses, dbAccount, restAccount.Password.Value,
+				auth.Password, parent.Protocol); err != nil {
+				return err
+			}
+
+			return nil
+		}); handleError(w, logger, tErr) {
 			return
 		}
 
@@ -140,6 +134,48 @@ func replaceRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc 
 	}
 }
 
+//nolint:dupl //duplicated code is about a different type, best keep separate
+func updateRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		parent, oldAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		restAccount := &api.InAccount{Login: api.AsNullable(oldAccount.Login)}
+		if err := readJSON(r, restAccount); handleError(w, logger, err) {
+			return
+		}
+
+		dbAccount := &model.RemoteAccount{
+			ID:            oldAccount.ID,
+			RemoteAgentID: parent.ID,
+			Login:         restAccount.Login.Value,
+		}
+
+		if tErr := db.Transaction(func(ses *database.Session) error {
+			if err := ses.Update(dbAccount).Run(); err != nil {
+				return fmt.Errorf("failed to update remote account: %w", err)
+			}
+
+			if restAccount.Password.Valid {
+				if err := updateAccountPassword(ses, dbAccount, restAccount.Password.Value,
+					auth.Password, parent.Protocol); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}); handleError(w, logger, tErr) {
+			return
+		}
+
+		w.Header().Set("Location", locationUpdate(r.URL, dbAccount.Login))
+		w.WriteHeader(http.StatusCreated)
+	}
+}
+
+//nolint:dupl //duplicate is for a different type, best keep separate
 func addRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parent, getErr := retrievePartner(r, db)
@@ -152,8 +188,28 @@ func addRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		dbAccount := restRemoteAccountToDB(&restAccount, parent)
-		if err := db.Insert(dbAccount).Run(); handleError(w, logger, err) {
+		dbAccount := &model.RemoteAccount{
+			RemoteAgentID: parent.ID,
+			Login:         restAccount.Login.Value,
+		}
+
+		if tErr := db.Transaction(func(ses *database.Session) error {
+			if err := ses.Insert(dbAccount).Run(); err != nil {
+				return fmt.Errorf("failed to insert remote account: %w", err)
+			}
+
+			if restAccount.Password.Value != "" {
+				if err := ses.Insert(&model.Credential{
+					RemoteAccountID: utils.NewNullInt64(dbAccount.ID),
+					Type:            auth.Password,
+					Value:           restAccount.Password.Value,
+				}).Run(); err != nil {
+					return fmt.Errorf("failed to insert password credential: %w", err)
+				}
+			}
+
+			return nil
+		}); handleError(w, logger, tErr) {
 			return
 		}
 
@@ -164,8 +220,8 @@ func addRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 
 func deleteRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, acc, err := getDBRemoteAccount(r, db)
-		if handleError(w, logger, err) {
+		_, acc, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
 			return
 		}
 
@@ -199,6 +255,29 @@ func revokeRemoteAccount(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+func addRemAccCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbPartner, dbAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		handleError(w, logger, addCredential(w, r, db, dbAccount, dbPartner.Protocol))
+	}
+}
+
+func removeRemAccCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, dbAccount, getErr := getDBRemoteAccount(r, db)
+		if handleError(w, logger, getErr) {
+			return
+		}
+
+		handleError(w, logger, removeCredential(w, r, db, dbAccount))
+	}
+}
+
+// Deprecated: replaced by Credentials.
 func getRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBRemoteAccount(r, db)
@@ -210,6 +289,7 @@ func getRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func addRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBRemoteAccount(r, db)
@@ -221,6 +301,7 @@ func addRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func listRemAccountCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBRemoteAccount(r, db)
@@ -232,6 +313,7 @@ func listRemAccountCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func deleteRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBRemoteAccount(r, db)
@@ -243,6 +325,7 @@ func deleteRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc 
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func updateRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBRemoteAccount(r, db)
@@ -254,6 +337,7 @@ func updateRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc 
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func replaceRemAccountCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, dbAccount, getErr := getDBRemoteAccount(r, db)

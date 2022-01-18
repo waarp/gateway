@@ -26,7 +26,7 @@ func TestServiceStart(t *testing.T) {
 		server := &model.LocalAgent{
 			Name:     "http_server",
 			Protocol: HTTP,
-			Address:  "localhost:0",
+			Address:  types.Addr("localhost", 0),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -48,7 +48,7 @@ func TestServiceStop(t *testing.T) {
 		server := &model.LocalAgent{
 			Name:     "http_server",
 			Protocol: HTTP,
-			Address:  "localhost:0",
+			Address:  types.Addr("localhost", 0),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -98,7 +98,7 @@ func TestServerInterruption(t *testing.T) {
 				body := testhelpers.NewSlowReader()
 
 				url := fmt.Sprintf("http://%s/test_in_shutdown.dst?%s=%s",
-					test.Server.Address, httpconst.Rule, test.ServerRule.Name)
+					&test.Server.Address, httpconst.Rule, test.ServerRule.Name)
 				req, err := http.NewRequest(http.MethodPost, url, body)
 				So(err, ShouldBeNil)
 				req.SetBasicAuth(pipelinetest.TestLogin, pipelinetest.TestPassword)

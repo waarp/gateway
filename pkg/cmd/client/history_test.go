@@ -123,7 +123,7 @@ func TestDisplayHistory(t *testing.T) {
 			w := getColorable()
 			displayHistory(w, hist)
 
-			Convey("Then it should display the entry's info correctly", func() {
+			Convey("Then it should println the entry's info correctly", func() {
 				So(getOutput(), ShouldEqual, historyInfoString(hist))
 			})
 		})
@@ -154,7 +154,7 @@ func TestDisplayHistory(t *testing.T) {
 			w := getColorable()
 			displayHistory(w, &hist)
 
-			Convey("Then it should display the entry's info correctly", func() {
+			Convey("Then it should println the entry's info correctly", func() {
 				So(getOutput(), ShouldEqual, historyInfoString(&hist))
 			})
 		})
@@ -205,7 +205,7 @@ func TestGetHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display the entry's info", func() {
+						Convey("Then it should println the entry's info", func() {
 							hist, _ := rest.FromHistory(db, h)
 							So(getOutput(), ShouldEqual, historyInfoString(hist))
 						})
@@ -337,7 +337,7 @@ func TestListHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display all the entries", func() {
+						Convey("Then it should println all the entries", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist1)+historyInfoString(hist2)+
 								historyInfoString(hist3)+historyInfoString(hist4))
@@ -353,7 +353,7 @@ func TestListHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display the first 2 entries", func() {
+						Convey("Then it should println the first 2 entries", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist1)+historyInfoString(hist2))
 						})
@@ -368,7 +368,7 @@ func TestListHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display all but the first 2 entries", func() {
+						Convey("Then it should println all but the first 2 entries", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist3)+historyInfoString(hist4))
 						})
@@ -383,7 +383,7 @@ func TestListHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display all the entries "+
+						Convey("Then it should println all the entries "+
 							"sorted & in reverse order", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist4)+historyInfoString(hist3)+
@@ -401,7 +401,7 @@ func TestListHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display all the entries that "+
+						Convey("Then it should println all the entries that "+
 							"started after that date", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist3)+historyInfoString(hist4))
@@ -418,7 +418,7 @@ func TestListHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display all the entries that "+
+						Convey("Then it should println all the entries that "+
 							"ended before that date", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist1)+historyInfoString(hist2))
@@ -434,7 +434,7 @@ func TestListHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display all the entries from "+
+						Convey("Then it should println all the entries from "+
 							"one of these sources", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist1)+historyInfoString(hist2))
@@ -450,7 +450,7 @@ func TestListHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display all the entries to "+
+						Convey("Then it should println all the entries to "+
 							"one of these destinations", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist2)+historyInfoString(hist3))
@@ -466,7 +466,7 @@ func TestListHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display all the entries using "+
+						Convey("Then it should println all the entries using "+
 							"one of these rules", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist3)+historyInfoString(hist4))
@@ -482,7 +482,7 @@ func TestListHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display all the entries in "+
+						Convey("Then it should println all the entries in "+
 							"one of these statuses", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist1)+historyInfoString(hist3))
@@ -498,7 +498,7 @@ func TestListHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display all the entries using "+
+						Convey("Then it should println all the entries using "+
 							"one of these protocols", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist1)+historyInfoString(hist2))
@@ -522,7 +522,7 @@ func TestListHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then it should display all the entries that "+
+						Convey("Then it should println all the entries that "+
 							"fill all of these parameters", func() {
 							So(getOutput(), ShouldEqual, "History:\n"+
 								historyInfoString(hist1))
@@ -561,7 +561,6 @@ func TestRetryHistory(t *testing.T) {
 
 				acc := &model.RemoteAccount{
 					Login:         "login",
-					Password:      "password",
 					RemoteAgentID: part.ID,
 				}
 				So(db.Insert(acc).Run(), ShouldBeNil)
@@ -605,7 +604,7 @@ func TestRetryHistory(t *testing.T) {
 						So(err, ShouldBeNil)
 						So(command.Execute(params), ShouldBeNil)
 
-						Convey("Then is should display a message saying the transfer was restarted", func() {
+						Convey("Then is should println a message saying the transfer was restarted", func() {
 							So(getOutput(), ShouldEqual, "The transfer will be "+
 								"retried under the ID: 1\n")
 						})

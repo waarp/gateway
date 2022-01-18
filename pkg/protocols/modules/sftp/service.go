@@ -31,26 +31,22 @@ func (s *service) start() error {
 		return fmt.Errorf("cannot parse the protocol configuration of this agent: %w", err)
 	}
 
-	hostKeys, err := s.server.GetCryptos(s.db)
+	hostKeys, err := s.server.GetCredentials(s.db, AuthSSHPrivateKey)
 	if err != nil {
 		s.logger.Error("Failed to retrieve the server host keys: %s", err)
 
 		return fmt.Errorf("failed to retrieve the server host keys: %w", err)
 	}
 
-	sshConf, err1 := getSSHServerConfig(s.db, hostKeys, &protoConfig, s.server)
+	sshConf, err1 := getSSHServerConfig(s.db, s.logger, hostKeys, &protoConfig, s.server)
 	if err1 != nil {
 		s.logger.Error("Failed to parse the SSH server configuration: %s", err1)
 
 		return fmt.Errorf("failed to parse the SSH server configuration: %w", err1)
 	}
 
-	addr, err2 := conf.GetRealAddress(s.server.Address)
-	if err2 != nil {
-		s.logger.Error("Failed to indirect the server address: %s", err2)
-
-		return fmt.Errorf("failed to indirect the server address: %w", err2)
-	}
+	addr := conf.GetRealAddress(s.server.Address.Host,
+		utils.FormatUint(s.server.Address.Port))
 
 	listener, err3 := net.Listen("tcp", addr)
 	if err3 != nil {

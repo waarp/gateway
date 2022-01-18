@@ -1,5 +1,5 @@
-Consulter un certificat
-=======================
+[OBSOLÈTE] Consulter un certificat
+==================================
 
 .. http:get:: /api/partners/(string:partner)/certificates/(string:cert_name)
 

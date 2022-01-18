@@ -60,7 +60,7 @@ func (h *httpService) start() error {
 	}
 
 	h.serv = &http.Server{
-		Addr:              h.agent.Address,
+		Addr:              h.agent.Address.String(),
 		Handler:           h.makeHandler(),
 		ErrorLog:          h.logger.AsStdLogger(log.LevelError),
 		ReadHeaderTimeout: readHeaderTimeout,
@@ -70,7 +70,7 @@ func (h *httpService) start() error {
 		return err
 	}
 
-	h.logger.Info("HTTP server started at: %s", h.agent.Address)
+	h.logger.Info("HTTP server started at: %s", &h.agent.Address)
 
 	h.shutdown = make(chan struct{})
 

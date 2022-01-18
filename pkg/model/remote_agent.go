@@ -2,10 +2,11 @@ package model
 
 import (
 	"fmt"
-	"net"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -16,17 +17,19 @@ type RemoteAgent struct {
 	ID    int64  `xorm:"<- id AUTOINCR"` // The partner's database ID.
 	Owner string `xorm:"owner"`          // The client's owner (the gateway to which it belongs)
 
-	Name     string `xorm:"name"`     // The partner's display name.
-	Protocol string `xorm:"protocol"` // The partner's protocol.
-	Address  string `xorm:"address"`  // The partner's address (including the port)
+	Name     string        `xorm:"name"`     // The partner's display name.
+	Protocol string        `xorm:"protocol"` // The partner's protocol.
+	Address  types.Address `xorm:"address"`  // The partner's address (including the port)
 
 	// The partner's protocol configuration as a map.
 	ProtoConfig map[string]any `xorm:"proto_config"`
 }
 
 func (*RemoteAgent) TableName() string   { return TableRemAgents }
-func (*RemoteAgent) Appellation() string { return "partner" }
+func (*RemoteAgent) Appellation() string { return NameRemoteAgent }
 func (r *RemoteAgent) GetID() int64      { return r.ID }
+func (*RemoteAgent) IsServer() bool      { return true }
+func (r *RemoteAgent) Host() string      { return r.Address.Host }
 
 // BeforeWrite is called before inserting a new `RemoteAgent` entry in the
 // database. It checks whether the new entry is valid or not.
@@ -37,12 +40,8 @@ func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) error {
 		return database.NewValidationError("the agent's name cannot be empty")
 	}
 
-	if r.Address == "" {
-		return database.NewValidationError("the partner's address cannot be empty")
-	}
-
-	if _, err := net.ResolveTCPAddr("tcp", r.Address); err != nil {
-		return database.NewValidationError("'%s' is not a valid partner address", r.Address)
+	if err := r.Address.Validate(); err != nil {
+		return database.NewValidationError("address validation failed: %w", err)
 	}
 
 	if r.ProtoConfig == nil {
@@ -50,14 +49,14 @@ func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) error {
 	}
 
 	if err := ConfigChecker.CheckPartnerConfig(r.Protocol, r.ProtoConfig); err != nil {
-		return database.NewValidationError("%v", err)
+		return database.WrapAsValidationError(err)
 	}
 
 	if n, err := db.Count(&RemoteAgent{}).Where("id<>? AND owner=? AND name=?",
 		r.ID, r.Owner, r.Name).Run(); err != nil {
 		return fmt.Errorf("failed to check for duplicate remote agents: %w", err)
 	} else if n > 0 {
-		return database.NewValidationError("a remote agent with the same name '%s' "+
+		return database.NewValidationError("a remote agent with the same name %q "+
 			"already exist", r.Name)
 	}
 
@@ -79,14 +78,14 @@ func (r *RemoteAgent) BeforeDelete(db database.Access) error {
 	return nil
 }
 
-// GetCryptos returns a list of all the partner's certificates.
-func (r *RemoteAgent) GetCryptos(db database.ReadAccess) ([]*Crypto, error) {
-	return getCryptos(db, r)
+// GetCredentials returns a list of all the partner's auth methods.
+func (r *RemoteAgent) GetCredentials(db database.ReadAccess, authTypes ...string,
+) (Credentials, error) {
+	return getCredentials(db, r, authTypes...)
 }
 
-//nolint:goconst //duplicate is for different columns, best keep separate
-func (r *RemoteAgent) GenCryptoSelectCond() (string, int64) { return "remote_agent_id=?", r.ID }
-func (r *RemoteAgent) SetCryptoOwner(c *Crypto)             { c.RemoteAgentID = utils.NewNullInt64(r.ID) }
+func (r *RemoteAgent) SetCredOwner(a *Credential)           { a.RemoteAgentID = utils.NewNullInt64(r.ID) }
+func (r *RemoteAgent) GetCredCond() (string, int64)         { return "remote_agent_id=?", r.ID }
 func (r *RemoteAgent) SetAccessTarget(a *RuleAccess)        { a.RemoteAgentID = utils.NewNullInt64(r.ID) }
 func (r *RemoteAgent) GenAccessSelectCond() (string, int64) { return "remote_agent_id=?", r.ID }
 
@@ -100,4 +99,50 @@ func (r *RemoteAgent) GetAuthorizedRules(db database.ReadAccess) ([]*Rule, error
 	}
 
 	return rules, nil
+}
+
+func (r *RemoteAgent) Authenticate(db database.ReadAccess, authType string, value any,
+) (*authentication.Result, error) {
+	return authenticate(db, r, authType, value)
+}
+
+// AfterWrite is called after any write operation on the remote_agents table.
+// If the agent uses R66, the function checks if is still uses the old credentials
+// stored in the proto config. If it does, an equivalent Credential is inserted.
+// Will be removed once server passwords are definitely removed from the proto config.
+//
+//nolint:dupl //duplicate is for LocalAgent, best keep separate
+func (r *RemoteAgent) AfterWrite(db database.Access) error {
+	if r.Protocol != protoR66 && r.Protocol != protoR66TLS {
+		return nil
+	}
+
+	serverPwd, hasPwd := r.ProtoConfig["serverPassword"]
+	if !hasPwd {
+		return nil
+	}
+
+	serverPasswd, pwdIsStr := serverPwd.(string)
+	if !pwdIsStr || serverPasswd == "" {
+		return nil
+	}
+
+	if n, err := db.Count(&Credential{}).Where("remote_agent_id=? AND type=?",
+		r.ID, authPasswordHash).Run(); err != nil {
+		return fmt.Errorf("failed to check for existing credentials: %w", err)
+	} else if n != 0 {
+		return nil // already has a password
+	}
+
+	pswd := &Credential{
+		RemoteAgentID: utils.NewNullInt64(r.ID),
+		Type:          authPasswordHash,
+		Value:         serverPasswd,
+	}
+
+	if err := db.Insert(pswd).Run(); err != nil {
+		return fmt.Errorf("failed to insert partner password: %w", err)
+	}
+
+	return nil
 }

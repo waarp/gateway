@@ -9,7 +9,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
 //nolint:funlen //splitting would add complexity
@@ -29,16 +30,16 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 		}
 	}
 
-	for _, src := range list {
+	for i := range list {
+		src := &list[i]
+
 		// Create model with basic info to check existence
 		var agent model.RemoteAgent
 
 		// Check if agent exists
 		exists := true
-		err := db.Get(&agent, "name=? AND owner=?", src.Name,
-			conf.GlobalConfig.GatewayName).Run()
-
-		if database.IsNotFound(err) {
+		if err := db.Get(&agent, "name=? AND owner=?", src.Name,
+			conf.GlobalConfig.GatewayName).Run(); database.IsNotFound(err) {
 			exists = false
 		} else if err != nil {
 			return fmt.Errorf("failed to retrieve partner %q: %w", src.Name, err)
@@ -46,21 +47,26 @@ func importRemoteAgents(logger *log.Logger, db database.Access,
 
 		// Populate
 		agent.Name = src.Name
-		agent.Address = src.Address
 		agent.Protocol = src.Protocol
 		agent.ProtoConfig = src.Configuration
 
-		// Create/Update
-		if exists {
-			logger.Info("Update remote partner %s\n", agent.Name)
-			err = db.Update(&agent).Run()
-		} else {
-			logger.Info("Create remote partner %s\n", agent.Name)
-			err = db.Insert(&agent).Run()
+		if err := agent.Address.Set(src.Address); err != nil {
+			return database.NewValidationError(err.Error())
 		}
 
-		if err != nil {
-			return fmt.Errorf("failed to import partner %q: %w", agent.Name, err)
+		var dbErr error
+
+		// Create/Update
+		if exists {
+			logger.Info("Update remote partner %s", agent.Name)
+			dbErr = db.Update(&agent).Run()
+		} else {
+			logger.Info("Create remote partner %s", agent.Name)
+			dbErr = db.Insert(&agent).Run()
+		}
+
+		if dbErr != nil {
+			return fmt.Errorf("failed to create/update partner %q: %w", agent.Name, dbErr)
 		}
 
 		if err := importCerts(logger, db, src.Certs, &agent); err != nil {
@@ -94,21 +100,39 @@ func importRemoteAccounts(logger *log.Logger, db database.Access,
 		account.RemoteAgentID = partner.ID
 		account.Login = src.Login
 
-		if src.Password != "" {
-			account.Password = types.CypherText(src.Password)
-		}
-
 		// Create/Update
 		if exist {
-			logger.Info("Update remote account %s\n", account.Login)
+			logger.Info("Update remote account %s", account.Login)
 			err = db.Update(&account).Run()
 		} else {
-			logger.Info("Create remote account %s\n", account.Login)
+			logger.Info("Create remote account %s", account.Login)
 			err = db.Insert(&account).Run()
 		}
 
 		if err != nil {
-			return fmt.Errorf("failed to import remote account %q: %w", account.Login, err)
+			return fmt.Errorf("failed to create/update remote account %q: %w", account.Login, err)
+		}
+
+		if src.Password != "" {
+			pswd := &model.Credential{
+				RemoteAccountID: utils.NewNullInt64(account.ID),
+				Type:            auth.Password,
+				Value:           src.Password,
+			}
+
+			if err := db.DeleteAll(&model.Credential{}).Where("type=?", pswd.Type).
+				Where(account.GetCredCond()).Run(); err != nil {
+				return fmt.Errorf("failed to delete the old password: %w", err)
+			}
+
+			if err := db.Insert(pswd).Run(); err != nil {
+				return fmt.Errorf("failed to insert the new password: %w", err)
+			}
+		}
+
+		if err := credentialsImport(logger, db, src.Credentials, &account,
+			partner.Protocol); err != nil {
+			return err
 		}
 
 		if err := importCerts(logger, db, src.Certs, &account); err != nil {

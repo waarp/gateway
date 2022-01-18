@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httpconst"
@@ -47,7 +48,16 @@ func (p *postClient) checkResume(url string) error {
 		return pipeline.NewErrorWith(types.TeInternal, "failed to make head HTTP request", err)
 	}
 
-	req.SetBasicAuth(p.pip.TransCtx.RemoteAccount.Login, string(p.pip.TransCtx.RemoteAccount.Password))
+	var pwd string
+
+	for _, a := range p.pip.TransCtx.RemoteAccountCreds {
+		if a.Type == auth.Password {
+			pwd = a.Value
+		}
+	}
+
+	req.SetBasicAuth(p.pip.TransCtx.RemoteAccount.Login, pwd)
+
 	req.Header.Set(httpconst.TransferID, p.pip.TransCtx.Transfer.RemoteTransferID)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -98,7 +108,15 @@ func (p *postClient) updateTransForResume(prog int64) error {
 }
 
 func (p *postClient) setRequestHeaders(req *http.Request) error {
-	req.SetBasicAuth(p.pip.TransCtx.RemoteAccount.Login, string(p.pip.TransCtx.RemoteAccount.Password))
+	var pwd string
+
+	for _, a := range p.pip.TransCtx.RemoteAccountCreds {
+		if a.Type == auth.Password {
+			pwd = a.Value
+		}
+	}
+
+	req.SetBasicAuth(p.pip.TransCtx.RemoteAccount.Login, pwd)
 
 	ct := mime.TypeByExtension(path.Ext(p.pip.TransCtx.Transfer.LocalPath.Path))
 	if ct == "" {
@@ -145,8 +163,8 @@ func (p *postClient) prepareRequest(ready chan struct{}) error {
 		scheme = schemeHTTPS
 	}
 
-	addr := p.pip.TransCtx.RemoteAgent.Address
-	url := scheme + path.Join(addr, p.pip.TransCtx.Transfer.RemotePath)
+	url := scheme + path.Join(p.pip.TransCtx.RemoteAgent.Address.String(),
+		p.pip.TransCtx.Transfer.RemotePath)
 
 	if err := p.checkResume(url); err != nil {
 		return err

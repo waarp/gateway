@@ -23,7 +23,7 @@ type TransferInfo struct {
 }
 
 func (*TransferInfo) TableName() string   { return TableTransferInfo }
-func (*TransferInfo) Appellation() string { return "transfer info" }
+func (*TransferInfo) Appellation() string { return NameTransferInfo }
 func (t *TransferInfo) IsHistory() bool   { return t.HistoryID.Valid }
 
 // BeforeWrite checks if the TransferInfo entry is valid for insertion in the database.
@@ -58,7 +58,7 @@ func (t *TransferInfo) BeforeWrite(db database.ReadAccess) error {
 		transID, t.Name).Run(); err != nil {
 		return database.NewValidationError("failed to retrieve info list: %s", err)
 	} else if n > 0 {
-		return database.NewValidationError("transfer %d already has a property '%s'",
+		return database.NewValidationError("transfer %d already has a property %q",
 			transID, t.Name)
 	}
 

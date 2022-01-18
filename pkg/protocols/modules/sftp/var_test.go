@@ -4,10 +4,10 @@ import (
 	"path"
 
 	"github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func init() {
@@ -23,13 +23,6 @@ func init() {
 	}
 }
 
-func hash(pwd string) string {
-	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
-	convey.So(err, convey.ShouldBeNil)
-
-	return string(h)
-}
-
 func mkURL(elem ...string) *types.URL {
 	full := path.Join(elem...)
 
@@ -38,3 +31,8 @@ func mkURL(elem ...string) *types.URL {
 
 	return url
 }
+
+const (
+	RSAPk  = testhelpers.RSAPk
+	SSHPbk = testhelpers.SSHPbk
+)

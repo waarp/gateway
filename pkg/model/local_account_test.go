@@ -6,8 +6,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestLocalAccountTableName(t *testing.T) {
@@ -30,21 +30,21 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 
 		Convey("Given a local account entry", func() {
 			ag := &LocalAgent{
-				Name:     "server",
-				Protocol: testProtocol,
-				Address:  "localhost:1111",
+				Name: "server", Protocol: testProtocol,
+				Address: types.Addr("localhost", 1111),
 			}
 			So(db.Insert(ag).Run(), ShouldBeNil)
 
-			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("sesame")}
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
-			cert := Crypto{
+			accAuth := Credential{
 				LocalAccountID: utils.NewNullInt64(acc.ID),
 				Name:           "test cert",
-				Certificate:    testhelpers.ClientFooCert,
+				Type:           testInternalAuth,
+				Value:          "val",
 			}
-			So(db.Insert(&cert).Run(), ShouldBeNil)
+			So(db.Insert(&accAuth).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: true, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
@@ -66,10 +66,10 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 						So(accounts, ShouldBeEmpty)
 					})
 
-					Convey("Then the account's certificates should have been deleted", func() {
-						var certs Cryptos
-						So(db.Select(&certs).Run(), ShouldBeNil)
-						So(certs, ShouldBeEmpty)
+					Convey("Then the account's auth methods should have been deleted", func() {
+						var auths Credentials
+						So(db.Select(&auths).Run(), ShouldBeNil)
+						So(auths, ShouldBeEmpty)
 					})
 
 					Convey("Then the account's accesses should have been deleted", func() {
@@ -109,10 +109,8 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains 1 local agent with 1 local account", func() {
 			parentAgent := LocalAgent{
-				Owner:    "test_gateway",
-				Name:     "parent_agent",
-				Protocol: testProtocol,
-				Address:  "localhost:2222",
+				Name: "parent_agent", Protocol: testProtocol,
+				Address: types.Addr("localhost", 2222),
 			}
 			So(db.Insert(&parentAgent).Run(), ShouldBeNil)
 
@@ -120,7 +118,6 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 				newAccount := &LocalAccount{
 					LocalAgentID: parentAgent.ID,
 					Login:        "new",
-					PasswordHash: hash("sesame"),
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -161,37 +158,33 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 					newAccount.LocalAgentID = 1000
 
 					shouldFailWith("the agent ID is invalid", database.NewValidationError(
-						"no local agent found with the ID '%d'", newAccount.LocalAgentID))
+						`no local agent found with the ID "%d"`, newAccount.LocalAgentID))
 				})
 
 				Convey("Given that the new account's login is already taken", func() {
 					oldAccount := LocalAccount{
 						LocalAgentID: parentAgent.ID,
 						Login:        "old",
-						PasswordHash: hash("sesame"),
 					}
 					So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
 					newAccount.Login = oldAccount.Login
 					shouldFailWith("the login is already taken", database.NewValidationError(
-						"a local account with the same login '%s' already exist",
+						"a local account with the same login %q already exist",
 						newAccount.Login))
 				})
 
 				Convey("Given that the new account's name is already taken but the"+
 					"parent agent is different", func() {
 					otherAgent := LocalAgent{
-						Owner:    "test_gateway",
-						Name:     "other",
-						Protocol: testProtocol,
-						Address:  "localhost:2022",
+						Name: "other", Protocol: testProtocol,
+						Address: types.Addr("localhost", 2022),
 					}
 					So(db.Insert(&otherAgent).Run(), ShouldBeNil)
 
 					oldAccount := LocalAccount{
 						LocalAgentID: parentAgent.ID,
 						Login:        "old",
-						PasswordHash: hash("sesame"),
 					}
 					So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 

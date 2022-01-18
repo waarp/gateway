@@ -17,7 +17,7 @@ func testVer0_8_0DropNormalizedTransfersView(t *testing.T, eng *testEngine) Chan
 			"The migration should not fail")
 
 		t.Run("Then it should have dropped the view", func(t *testing.T) {
-			_, err := eng.DB.Exec(`SELECT * FROM normalized_transfers`)
+			err := eng.Exec(`SELECT * FROM normalized_transfers`)
 			shouldBeTableNotExist(t, err)
 		})
 
@@ -26,7 +26,7 @@ func testVer0_8_0DropNormalizedTransfersView(t *testing.T, eng *testEngine) Chan
 				"Reverting the migration should not fail")
 
 			t.Run("Then it should have restored the view", func(t *testing.T) {
-				_, err := eng.DB.Exec(`SELECT * FROM normalized_transfers`)
+				err := eng.Exec(`SELECT * FROM normalized_transfers`)
 				require.NoError(t, err)
 			})
 		})
@@ -142,7 +142,7 @@ func testVer0_8_0AddTransferFilename(t *testing.T, eng *testEngine) Change {
 			})
 
 			t.Run("Then the local/remote path columns should again be mandatory", func(t *testing.T) {
-				_, err := eng.DB.Exec(`INSERT INTO transfers(id, owner,
+				err := eng.Exec(`INSERT INTO transfers(id, owner,
                     	remote_transfer_id, rule_id, remote_account_id)
             		VALUES (3000, 'waarp_gw', 'new', 1, 100)`)
 				require.Error(t, err)
@@ -249,7 +249,7 @@ func testVer0_8_0AddHistoryFilename(t *testing.T, eng *testEngine) Change {
 		})
 
 		t.Run("Then the local/remote path columns should no longer be mandatory", func(t *testing.T) {
-			_, err := eng.DB.Exec(`INSERT INTO transfer_history(id,owner,
+			err := eng.Exec(`INSERT INTO transfer_history(id,owner,
 					remote_transfer_id,is_server,is_send,account,agent,protocol,
                     src_filename,rule,start,status,step)
             		VALUES (5,'waarp_gw','555',false,true,'acc','ag','proto','file5',
@@ -267,7 +267,7 @@ func testVer0_8_0AddHistoryFilename(t *testing.T, eng *testEngine) Change {
 			})
 
 			t.Run("Then the local/remote path columns should again be mandatory", func(t *testing.T) {
-				_, err := eng.DB.Exec(`INSERT INTO transfer_history(id,owner,
+				err := eng.Exec(`INSERT INTO transfer_history(id,owner,
 					remote_transfer_id,is_server,is_send,account,agent,protocol,
                     rule,start,status,step)
             		VALUES (5,'waarp_gw','555',false,true,'acc','ag','proto','push',
@@ -305,14 +305,14 @@ func testVer0_8_0UpdateNormalizedTransfersView(t *testing.T, eng *testEngine) Ch
 	mig := Migrations[36]
 
 	t.Run("When applying the 0.8.0 normalized transfer view restoration", func(t *testing.T) {
-		_, preErr := eng.DB.Exec(`SELECT * FROM normalized_transfers`)
+		preErr := eng.Exec(`SELECT * FROM normalized_transfers`)
 		require.Error(t, preErr)
 
 		require.NoError(t, eng.Upgrade(mig),
 			"The migration should not fail")
 
 		t.Run("Then it should have restored the view", func(t *testing.T) {
-			_, err := eng.DB.Exec(`SELECT src_filename, dest_filename
+			err := eng.Exec(`SELECT src_filename, dest_filename
 				FROM normalized_transfers`)
 			require.NoError(t, err)
 		})
@@ -322,7 +322,7 @@ func testVer0_8_0UpdateNormalizedTransfersView(t *testing.T, eng *testEngine) Ch
 				"Reverting the migration should not fail")
 
 			t.Run("Then it should have dropped the view", func(t *testing.T) {
-				_, err := eng.DB.Exec(`SELECT * FROM normalized_transfers`)
+				err := eng.Exec(`SELECT * FROM normalized_transfers`)
 				require.Error(t, err)
 			})
 		})

@@ -1,6 +1,6 @@
-======================================
-Modifier un certificat de compte local
-======================================
+=================================================
+[OBSOLÈTE] Modifier un certificat de compte local
+=================================================
 
 .. program:: waarp-gateway account local cert update
 

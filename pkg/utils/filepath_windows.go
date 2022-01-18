@@ -12,6 +12,10 @@ import (
 // RFC 8089.
 // Deprecated: file URIs are no longer used.
 func NormalizePath(path string) string {
+	if path == "" {
+		return ""
+	}
+
 	norm := filepath.ToSlash(filepath.Clean(path))
 	if filepath.IsAbs(path) {
 		return "/" + norm

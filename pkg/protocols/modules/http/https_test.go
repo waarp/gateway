@@ -14,6 +14,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/modules/http/httpconst"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -21,6 +22,11 @@ import (
 )
 
 func TestHTTPSClient(t *testing.T) {
+	setAddress := func(agent *model.RemoteAgent, url string) {
+		err := agent.Address.Set(strings.TrimPrefix(url, schemeHTTPS))
+		So(err, ShouldBeNil)
+	}
+
 	Convey("Given an external HTTPS server", t, func(c C) {
 		src := testhelpers.NewTestReader(c)
 		serv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,17 +50,17 @@ func TestHTTPSClient(t *testing.T) {
 		serv.StartTLS()
 		Reset(serv.Close)
 
-		addr := strings.TrimLeft(serv.URL, schemeHTTPS) //nolint:staticcheck // duplicate characters are expected here
-
 		Convey("Given a new HTTPS push transfer", func(c C) {
 			ctx := pipelinetest.InitClientPush(c, HTTPS, nil, nil)
 
-			ctx.Partner.Address = addr
+			setAddress(ctx.Partner, serv.URL)
 			So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
-			cert := model.Crypto{
+
+			cert := &model.Credential{
 				RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
 				Name:          "partner_cert",
-				Certificate:   testhelpers.LocalhostCert,
+				Type:          auth.TLSTrustedCertificate,
+				Value:         testhelpers.LocalhostCert,
 			}
 			ctx.AddCryptos(c, cert)
 
@@ -73,12 +79,14 @@ func TestHTTPSClient(t *testing.T) {
 		Convey("Given a new HTTPS pull transfer", func(c C) {
 			ctx := pipelinetest.InitClientPull(c, HTTPS, src.Content(), nil, nil)
 
-			ctx.Partner.Address = addr
+			setAddress(ctx.Partner, serv.URL)
 			So(ctx.DB.Update(ctx.Partner).Cols("address").Run(), ShouldBeNil)
-			cert := model.Crypto{
+
+			cert := &model.Credential{
 				RemoteAgentID: utils.NewNullInt64(ctx.Partner.ID),
 				Name:          "partner_cert",
-				Certificate:   testhelpers.LocalhostCert,
+				Type:          auth.TLSTrustedCertificate,
+				Value:         testhelpers.LocalhostCert,
 			}
 			ctx.AddCryptos(c, cert)
 
@@ -99,18 +107,20 @@ func TestHTTPSClient(t *testing.T) {
 func TestHTTPSServer(t *testing.T) {
 	Convey("Given a HTTPS server for push transfers", t, func(c C) {
 		ctx := pipelinetest.InitServerPush(c, HTTPS, &serverConfig{})
-		serverCert := &model.Crypto{
+		serverCert := &model.Credential{
 			LocalAgentID: utils.NewNullInt64(ctx.Server.ID),
 			Name:         "server_cert",
-			PrivateKey:   testhelpers.LocalhostKey,
-			Certificate:  testhelpers.LocalhostCert,
+			Type:         auth.TLSCertificate,
+			Value:        testhelpers.LocalhostCert,
+			Value2:       testhelpers.LocalhostKey,
 		}
-		clientCert := &model.Crypto{
+		clientCert := &model.Credential{
 			LocalAccountID: utils.NewNullInt64(ctx.LocAccount.ID),
 			Name:           "client_cert",
-			Certificate:    testhelpers.ClientFooCert,
+			Type:           auth.TLSTrustedCertificate,
+			Value:          testhelpers.ClientFooCert,
 		}
-		ctx.AddCryptos(c, serverCert, clientCert)
+		ctx.AddAuths(c, serverCert, clientCert)
 
 		ctx.StartService(c)
 
@@ -125,7 +135,7 @@ func TestHTTPSServer(t *testing.T) {
 				Certificates: []tls.Certificate{cert},
 			}}
 			client := &http.Client{Transport: transport, Timeout: time.Second}
-			addr := schemeHTTPS + ctx.Server.Address + "/" + ctx.Filename()
+			addr := schemeHTTPS + ctx.Server.Address.String() + "/" + ctx.Filename()
 
 			Convey("When executing the transfer", func(c C) {
 				file := testhelpers.NewTestReader(c)
@@ -162,7 +172,7 @@ func TestHTTPSServer(t *testing.T) {
 				Certificates: []tls.Certificate{cert},
 			}}
 			client := &http.Client{Transport: transport, Timeout: time.Hour}
-			addr := schemeHTTPS + ctx.Server.Address + "/" + ctx.Filename()
+			addr := schemeHTTPS + ctx.Server.Address.String() + "/" + ctx.Filename()
 
 			Convey("When executing the transfer", func(c C) {
 				file := testhelpers.NewTestReader(c)
@@ -172,20 +182,8 @@ func TestHTTPSServer(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				req.SetBasicAuth(ctx.LocAccount.Login, "")
-				resp, err := client.Do(req)
-				So(err, ShouldBeNil)
-
-				defer resp.Body.Close()
-
-				body, err := io.ReadAll(resp.Body)
-				So(err, ShouldBeNil)
-
-				code := resp.StatusCode
-
-				Convey("Then it should return an error", func() {
-					So(code, ShouldEqual, http.StatusUnauthorized)
-					So(string(body), ShouldEqual, "Certificate is not valid for this user\n")
-				})
+				_, err = client.Do(req)
+				SoMsg("Then it should return an error", err, ShouldNotBeNil)
 			})
 		})
 	})

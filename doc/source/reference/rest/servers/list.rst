@@ -30,6 +30,24 @@ Lister les serveurs
    :resjsonarr string address: L'adresse du serveur (en format [adresse:port])
    :resjsonarr bool enabled: Indique si le serveur est activé ou non au démarrage
       de la *gateway*.
+   :resjsonarr string rootDir: Chemin du dossier racine du serveur. Peut être
+      relatif (à la racine de la *gateway*) ou absolu.
+   :resjsonarr string receiveDir: Le dossier de réception du serveur. Peut
+      être relatif (à la racine du serveur) ou absolu.
+   :resjsonarr string sendDir: Le dossier d'envoi du serveur. Peut être
+      relatif (à la racine du serveur) ou absolu.
+   :resjsonarr string tmpReceiveDir: Le dossier temporaire du serveur. Peut
+      être relatif (à la racine du serveur) ou absolu.
+   :resjsonarr array authMethods: La liste des valeurs utilisées par le serveur
+      pour s'authentifier auprès des clients externes qui s'y connectent.
+   :resjsonarr object protoConfig: La configuration du serveur encodé sous forme
+      d'un objet JSON. Cet objet dépend du protocole.
+   :resjsonarr object authorizedRules: Les règles que le serveur est autorisé à
+      utiliser pour les transferts.
+
+      * **sending** (*array* of *string*) - Les règles d'envoi.
+      * **reception** (*array* of *string*) - Les règles de réception.
+
    :resjsonarr string root: La racine du serveur. Peut être relatif (à la racine
       de la *gateway*) ou absolu (OBSOLÈTE: remplacé par 'rootDir').
    :resjsonarr string inDir: Le dossier de réception du serveur. Peut être
@@ -41,21 +59,6 @@ Lister les serveurs
    :resjsonarr string workDir: Le dossier temporaire du serveur. Peut être
       relatif (à la racine du serveur) ou absolu. (OBSOLÈTE: remplacé par
       'tmpReceiveDir')
-   :resjsonarr string rootDir: Chemin du dossier racine du serveur. Peut être
-      relatif (à la racine de la *gateway*) ou absolu.
-   :resjsonarr string receiveDir: Le dossier de réception du serveur. Peut
-      être relatif (à la racine du serveur) ou absolu.
-   :resjsonarr string sendDir: Le dossier d'envoi du serveur. Peut être
-      relatif (à la racine du serveur) ou absolu.
-   :resjsonarr string tmpReceiveDir: Le dossier temporaire du serveur. Peut
-      être relatif (à la racine du serveur) ou absolu.
-   :resjsonarr object protoConfig: La configuration du serveur encodé sous forme
-      d'un objet JSON. Cet objet dépend du protocole.
-   :resjsonarr object authorizedRules: Les règles que le serveur est autorisé à
-      utiliser pour les transferts.
-
-      * **sending** (*array* of *string*) - Les règles d'envoi.
-      * **reception** (*array* of *string*) - Les règles de réception.
 
 
    |
@@ -80,7 +83,9 @@ Lister les serveurs
              "name": "sftp_server_2",
              "protocol": "sftp",
              "address": "localhost:2023",
+             "enabled": false,
              "rootDir": "/sftp2/root",
+             "authMethods": ["sftp_hostkey_2"],
              "protoConfig": {},
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],
@@ -90,8 +95,10 @@ Lister les serveurs
              "name": "sftp_server_1",
              "protocol": "sftp",
              "address": "localhost:2022",
+             "enabled": true,
              "rootDir": "/sftp/root",
              "protoConfig": {},
+             "authMethods": ["sftp_hostkey_1"],
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],
                "reception": ["règle_récep_1", "règle_récep_2"]

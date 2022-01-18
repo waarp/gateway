@@ -2,10 +2,10 @@ package http
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net/http"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/protocols/protocol"
@@ -39,13 +39,14 @@ func (h *httpsClient) InitTransfer(pip *pipeline.Pipeline) (protocol.TransferCli
 }
 
 func (h *httpsClient) makeTransport(pip *pipeline.Pipeline) (*http.Transport, error) {
-	rootCAs, err := x509.SystemCertPool()
-	if err != nil {
-		rootCAs = x509.NewCertPool()
-	}
+	rootCAs := utils.TLSCertPool()
 
-	for _, crypto := range pip.TransCtx.RemoteAgentCryptos {
-		certChain, parseErr := utils.ParsePEMCertChain(crypto.Certificate)
+	for _, cred := range pip.TransCtx.RemoteAgentCreds {
+		if cred.Type != auth.TLSTrustedCertificate {
+			continue
+		}
+
+		certChain, parseErr := utils.ParsePEMCertChain(cred.Value)
 		if parseErr != nil {
 			return nil, fmt.Errorf("failed to parse the certificate chain: %w", parseErr)
 		}
@@ -55,8 +56,12 @@ func (h *httpsClient) makeTransport(pip *pipeline.Pipeline) (*http.Transport, er
 
 	var certs []tls.Certificate
 
-	for _, ce := range pip.TransCtx.RemoteAccountCryptos {
-		cert, err := tls.X509KeyPair([]byte(ce.Certificate), []byte(ce.PrivateKey))
+	for _, ce := range pip.TransCtx.RemoteAccountCreds {
+		if ce.Type != auth.TLSCertificate {
+			continue
+		}
+
+		cert, err := utils.X509KeyPair(ce.Value, ce.Value2)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse client certificate %s: %w", ce.Name, err)
 		}

@@ -61,26 +61,18 @@ func (c *CloudGet) execute(w io.Writer) error {
 
 //nolint:lll //tags can be long for flags
 type CloudAdd struct {
-	Name    string             `required:"yes" short:"n" long:"name" description:"The name of the cloud instance"`
-	Type    string             `required:"yes" short:"t" long:"type" description:"The type of the cloud instance"`
-	Key     string             `short:"k" long:"key" description:"The authentication key of the cloud instance"`
-	Secret  string             `short:"s" long:"secret" description:"The authentication secret of the cloud instance"`
-	Options map[string]confVal `short:"o" long:"options" description:"The options of the cloud instance, in key:val format. Can be repeated."`
+	Name    string             `required:"yes" short:"n" long:"name" description:"The name of the cloud instance" json:"name,omitempty"`
+	Type    string             `required:"yes" short:"t" long:"type" description:"The type of the cloud instance" json:"type,omitempty"`
+	Key     string             `short:"k" long:"key" description:"The authentication key of the cloud instance" json:"key,omitempty"`
+	Secret  string             `short:"s" long:"secret" description:"The authentication secret of the cloud instance" json:"secret,omitempty"`
+	Options map[string]confVal `short:"o" long:"options" description:"The options of the cloud instance, in key:val format. Can be repeated." json:"options,omitempty"`
 }
 
 func (c *CloudAdd) Execute([]string) error { return c.execute(os.Stdout) }
 func (c *CloudAdd) execute(w io.Writer) error {
 	addr.Path = cloudsAPIPath
 
-	newCloud := map[string]any{}
-
-	optionalProperty(newCloud, "name", c.Name)
-	optionalProperty(newCloud, "type", c.Type)
-	optionalProperty(newCloud, "key", c.Key)
-	optionalProperty(newCloud, "secret", c.Secret)
-	optionalProperty(newCloud, "options", c.Options)
-
-	if _, err := add(w, newCloud); err != nil {
+	if _, err := add(w, c); err != nil {
 		return err
 	}
 
@@ -112,28 +104,20 @@ func (c *CloudDelete) execute(w io.Writer) error {
 type CloudUpdate struct {
 	Args struct {
 		Name string `required:"yes" positional-arg-name:"name" description:"The name of the cloud instance"`
-	} `positional-args:"yes"`
+	} `positional-args:"yes" json:"-"`
 
-	Name    string             `required:"yes" short:"n" long:"name" description:"The name of the cloud instance"`
-	Type    string             `required:"yes" short:"t" long:"type" description:"The type of the cloud instance"`
-	Key     string             `short:"k" long:"key" description:"The authentication key of the cloud instance"`
-	Secret  string             `short:"s" long:"secret" description:"The authentication secret of the cloud instance"`
-	Options map[string]confVal `short:"o" long:"options" description:"The options of the cloud instance, in key:val format. Can be repeated."`
+	Name    string             `required:"yes" short:"n" long:"name" description:"The name of the cloud instance" json:"name,omitempty"`
+	Type    string             `required:"yes" short:"t" long:"type" description:"The type of the cloud instance" json:"type,omitempty"`
+	Key     string             `short:"k" long:"key" description:"The authentication key of the cloud instance" json:"key,omitempty"`
+	Secret  string             `short:"s" long:"secret" description:"The authentication secret of the cloud instance" json:"secret,omitempty"`
+	Options map[string]confVal `short:"o" long:"options" description:"The options of the cloud instance, in key:val format. Can be repeated." json:"options,omitempty"`
 }
 
 func (c *CloudUpdate) Execute([]string) error { return c.execute(os.Stdout) }
 func (c *CloudUpdate) execute(w io.Writer) error {
 	addr.Path = path.Join(cloudsAPIPath, c.Args.Name)
 
-	newCloud := map[string]any{}
-
-	optionalProperty(newCloud, "name", c.Name)
-	optionalProperty(newCloud, "type", c.Type)
-	optionalProperty(newCloud, "key", c.Key)
-	optionalProperty(newCloud, "secret", c.Secret)
-	optionalProperty(newCloud, "options", c.Options)
-
-	if err := update(w, newCloud); err != nil {
+	if err := update(w, c); err != nil {
 		return err
 	}
 

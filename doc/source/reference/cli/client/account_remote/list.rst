@@ -31,4 +31,4 @@ Affiche un liste des comptes rattachés au partenaire donné.
 
 .. code-block:: shell
 
-   waarp-gateway -a http://user:password@remotehost:8080 account remote 'waarp_sftp list' -l 10 -o 5 -s 'login-'
+   waarp-gateway -a http://user:password@remotehost:8080 account remote 'openssh' list -l 10 -o 5 -s 'login-'

@@ -11,6 +11,7 @@ Référence
    container
    protocols/index
    proto_config/index
+   auth_methods
    tasks/index
    cloud/index
    errorcodes

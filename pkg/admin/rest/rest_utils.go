@@ -13,15 +13,6 @@ import (
 	"code.waarp.fr/lib/log"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-)
-
-//nolint:gochecknoglobals // global var is used by design
-var (
-	str    = utils.String
-	strPtr = utils.StringPtr
-	cStr   = func(s *string) types.CypherText { return types.CypherText(str(s)) }
 )
 
 type order struct {
@@ -31,7 +22,7 @@ type order struct {
 
 type orders map[string]order
 
-func parseSelectQuery(r *http.Request, db *database.DB, validOrders orders,
+func parseSelectQuery(r *http.Request, db database.ReadAccess, validOrders orders,
 	elem database.SelectBean,
 ) (*database.SelectQuery, error) {
 	query := db.Select(elem)

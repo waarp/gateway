@@ -14,4 +14,4 @@ Supprime le serveur donné en paramètre.
 
 .. code-block:: shell
 
-   waarp-gateway -a 'http://user:password@localhost:8080' server delete 'serveur_sftp'
+   waarp-gateway -a 'http://user:password@localhost:8080' server delete 'gw_r66'

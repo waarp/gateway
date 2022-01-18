@@ -41,3 +41,10 @@ func mkURL(elem ...string) *types.URL {
 
 	return url
 }
+
+func mustAddr(addr string) types.Address {
+	a, err := types.NewAddress(addr)
+	convey.So(err, convey.ShouldBeNil)
+
+	return *a
+}

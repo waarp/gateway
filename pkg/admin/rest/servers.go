@@ -101,7 +101,11 @@ func addServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		dbServer := restServerToDB(&restServer, logger)
+		dbServer, err := restServerToDB(&restServer, logger)
+		if handleError(w, logger, err) {
+			return
+		}
+
 		if err := db.Insert(dbServer).Run(); handleError(w, logger, err) {
 			return
 		}
@@ -128,21 +132,34 @@ func updateServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		oldName := oldServer.Name
-		restServer := dbServerToRESTInput(oldServer)
+		restServer := &api.InServer{
+			Name:          api.AsNullable(oldServer.Name),
+			Protocol:      api.AsNullable(oldServer.Protocol),
+			Address:       api.AsNullable(oldServer.Address.String()),
+			RootDir:       api.AsNullable(oldServer.RootDir),
+			ReceiveDir:    api.AsNullable(oldServer.ReceiveDir),
+			SendDir:       api.AsNullable(oldServer.SendDir),
+			TmpReceiveDir: api.AsNullable(oldServer.TmpReceiveDir),
+			ProtoConfig:   oldServer.ProtoConfig,
+		}
 
 		if err := readJSON(r, restServer); handleError(w, logger, err) {
 			return
 		}
 
-		dbServer := restServerToDB(restServer, logger)
+		dbServer, convErr := restServerToDB(restServer, logger)
+		if handleError(w, logger, convErr) {
+			return
+		}
+
 		dbServer.ID = oldServer.ID
 
 		if err := db.Update(dbServer).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		newService, err := makeServerService(db, dbServer)
-		if handleError(w, logger, err) {
+		newService, servErr := makeServerService(db, dbServer)
+		if handleError(w, logger, servErr) {
 			return
 		}
 
@@ -179,16 +196,19 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		oldName := oldServer.Name
-		dbServer := restServerToDB(&restServer, logger)
+		dbServer, convErr := restServerToDB(&restServer, logger)
+		if handleError(w, logger, convErr) {
+			return
+		}
+
 		dbServer.ID = oldServer.ID
 
 		if err := db.Update(dbServer).Run(); handleError(w, logger, err) {
 			return
 		}
 
-		newService, err := makeServerService(db, dbServer)
-		if handleError(w, logger, err) {
+		newService, servErr := makeServerService(db, dbServer)
+		if handleError(w, logger, servErr) {
 			return
 		}
 
@@ -205,7 +225,7 @@ func replaceServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			}
 		}
 
-		delete(services.Servers, oldName)
+		delete(services.Servers, oldServer.Name)
 		services.Servers[dbServer.Name] = newService
 
 		w.Header().Set("Location", locationUpdate(r.URL, dbServer.Name))
@@ -264,6 +284,29 @@ func revokeServer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+func addServerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dbServer, err := getDBServer(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		handleError(w, logger, addCredential(w, r, db, dbServer, dbServer.Protocol))
+	}
+}
+
+func removeServerCred(logger *log.Logger, db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ag, err := getDBServer(r, db)
+		if handleError(w, logger, err) {
+			return
+		}
+
+		handleError(w, logger, removeCredential(w, r, db, ag))
+	}
+}
+
+// Deprecated: replaced by Credentials.
 func getServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbServer, getErr := getDBServer(r, db)
@@ -275,6 +318,7 @@ func getServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func addServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbServer, getErr := getDBServer(r, db)
@@ -288,6 +332,7 @@ func addServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func listServerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbServer, getErr := getDBServer(r, db)
@@ -299,6 +344,7 @@ func listServerCerts(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func deleteServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbServer, getErr := getDBServer(r, db)
@@ -312,6 +358,7 @@ func deleteServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func updateServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbServer, getErr := getDBServer(r, db)
@@ -325,6 +372,7 @@ func updateServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	}
 }
 
+// Deprecated: replaced by Credentials.
 func replaceServerCert(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbServer, getErr := getDBServer(r, db)

@@ -1,6 +1,6 @@
-=================================
-Modifier un certificat de serveur
-=================================
+============================================
+[OBSOLÈTE] Modifier un certificat de serveur
+============================================
 
 .. program:: waarp-gateway server cert update
 

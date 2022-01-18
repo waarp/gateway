@@ -49,11 +49,11 @@ func restTransferToDB(jTrans *api.InTransfer, db *database.DB, logger *log.Logge
 
 	start := jTrans.Start
 
-	if jTrans.StartDate != nil {
+	if jTrans.StartDate.Valid {
 		logger.Warning("JSON field 'startDate' is deprecated, use 'start' instead")
 
 		if start.IsZero() {
-			start = *jTrans.StartDate
+			start = jTrans.StartDate.Value
 		}
 	}
 
@@ -78,9 +78,9 @@ func DBTransferToREST(db *database.DB, trans *model.NormalizedTransferView) (*ap
 		src = trans.LocalPath.OSPath()
 	}
 
-	var stop *time.Time
+	var stop api.Nullable[time.Time]
 	if !trans.Stop.IsZero() {
-		stop = &trans.Stop
+		stop = api.AsNullable(trans.Stop)
 	}
 
 	info, iErr := trans.GetTransferInfo(db)
@@ -216,8 +216,7 @@ func getTransfer(logger *log.Logger, db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		err = writeJSON(w, json)
-		handleError(w, logger, err)
+		handleError(w, logger, writeJSON(w, json))
 	}
 }
 

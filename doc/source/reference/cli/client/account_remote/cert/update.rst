@@ -1,6 +1,6 @@
-========================================
-Modifier un certificat de compte distant
-========================================
+===================================================
+[OBSOLÈTE] Modifier un certificat de compte distant
+===================================================
 
 .. program:: waarp-gateway account remote cert update
 

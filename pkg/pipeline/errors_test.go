@@ -8,7 +8,6 @@ import (
 
 	"code.waarp.fr/lib/log"
 	. "github.com/smartystreets/goconvey/convey"
-	"golang.org/x/crypto/bcrypt"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -51,13 +50,6 @@ func mkURL(elem ...string) *types.URL {
 	So(err, ShouldBeNil)
 
 	return url
-}
-
-func hash(pwd string) string {
-	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
-	So(err, ShouldBeNil)
-
-	return string(h)
 }
 
 func waitEndTransfer(pip *Pipeline) {
@@ -124,37 +116,32 @@ func initTestDB(c C) *testContext {
 	So(fs.MkdirAll(testFS, rootPath.JoinPath(recv.TmpLocalRcvDir)), ShouldBeNil)
 
 	server := &model.LocalAgent{
-		Name:     "server",
-		Protocol: testProtocol,
-		Address:  "localhost:1111",
+		Name: "server", Protocol: testProtocol,
+		Address: types.Addr("localhost", 1111),
 	}
 	So(db.Insert(server).Run(), ShouldBeNil)
 
 	locAccount := &model.LocalAccount{
 		LocalAgentID: server.ID,
 		Login:        "toto",
-		PasswordHash: hash("sesame"),
 	}
 	So(db.Insert(locAccount).Run(), ShouldBeNil)
 
 	client := &model.Client{
-		Name:         "client",
-		Protocol:     testProtocol,
-		LocalAddress: "127.0.0.1:2000",
+		Name: "client", Protocol: testProtocol,
+		LocalAddress: types.Addr("127.0.0.1", 2000),
 	}
 	So(db.Insert(client).Run(), ShouldBeNil)
 
 	partner := &model.RemoteAgent{
-		Name:     "partner",
-		Protocol: testProtocol,
-		Address:  "localhost:2222",
+		Name: "partner", Protocol: testProtocol,
+		Address: types.Addr("localhost", 2222),
 	}
 	So(db.Insert(partner).Run(), ShouldBeNil)
 
 	remAccount := &model.RemoteAccount{
 		RemoteAgentID: partner.ID,
 		Login:         "titi",
-		Password:      "sesame",
 	}
 	So(db.Insert(remAccount).Run(), ShouldBeNil)
 

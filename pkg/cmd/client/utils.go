@@ -139,17 +139,6 @@ func parsePerms(str string) (*api.Perms, error) {
 	return &perms, nil
 }
 
-func dirToBoolPtr(dir string) *bool {
-	switch dir {
-	case directionSend:
-		return utils.TruePtr
-	case directionRecv:
-		return utils.FalsePtr
-	default:
-		return nil
-	}
-}
-
 type ListOptions struct {
 	Limit  uint `short:"l" long:"limit" description:"Max number of returned entries" default:"20"`
 	Offset uint `short:"o" long:"offset" description:"Index of the first returned entry" default:"0"`
@@ -175,30 +164,4 @@ func listURL(s *ListOptions, sort string) {
 	query.Set("offset", utils.FormatUint(s.Offset))
 	query.Set("sort", sort)
 	addr.RawQuery = query.Encode()
-}
-
-func stringMapToAnyMap(input map[string]string) (map[string]any, error) {
-	output := map[string]any{}
-
-	for key, strVal := range input {
-		if !json.Valid([]byte(strVal)) {
-			strVal = fmt.Sprintf(`"%s"`, strVal)
-		}
-
-		var val any
-
-		if err := json.Unmarshal([]byte(strVal), &val); err != nil {
-			return nil, fmt.Errorf("cannot parse value '%s': %w", strVal, err)
-		}
-
-		output[key] = val
-	}
-
-	return output, nil
-}
-
-func optionalProperty(m map[string]any, key string, val any) {
-	if !reflect.ValueOf(val).IsZero() {
-		m[key] = val
-	}
 }

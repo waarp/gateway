@@ -3,6 +3,7 @@ package wg
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 )
@@ -31,25 +32,23 @@ func displayAccount(f *Formatter, account *api.OutAccount) {
 
 	defer f.UnIndent()
 
+	f.ValueWithDefault("Credentials", strings.Join(account.Credentials, ", "), "<none>")
 	displayAuthorizedRules(f, account.AuthorizedRules)
 }
 
 // ######################## ADD ##########################
 
+//nolint:lll //tags are long
 type LocAccAdd struct {
-	Login    string `required:"yes" short:"l" long:"login" description:"The account's login"`
-	Password string `required:"yes" short:"p" long:"password" description:"The account's password"`
+	Login    string `required:"yes" short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
+	Password string `required:"yes" short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
 func (l *LocAccAdd) Execute([]string) error { return l.execute(stdOutput) }
 func (l *LocAccAdd) execute(w io.Writer) error {
-	account := &api.InAccount{
-		Login:    &l.Login,
-		Password: &l.Password,
-	}
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", Server)
 
-	if _, err := add(w, account); err != nil {
+	if _, err := add(w, l); err != nil {
 		return err
 	}
 
@@ -85,29 +84,22 @@ func (l *LocAccGet) execute(w io.Writer) error {
 type LocAccUpdate struct {
 	Args struct {
 		Login string `required:"yes" positional-arg-name:"old-login" description:"The account's login"`
-	} `positional-args:"yes"`
-	Login    *string `short:"l" long:"login" description:"The account's login"`
-	Password *string `short:"p" long:"password" description:"The account's password"`
+	} `positional-args:"yes" json:"-"`
+	Login    string `short:"l" long:"login" description:"The account's login" json:"login,omitempty"`
+	Password string `short:"p" long:"password" description:"The account's password" json:"password,omitempty"`
 }
 
 func (l *LocAccUpdate) Execute([]string) error { return l.execute(stdOutput) }
-
-//nolint:dupl //duplicate is for a different command, better keep separate
 func (l *LocAccUpdate) execute(w io.Writer) error {
-	account := &api.InAccount{
-		Login:    l.Login,
-		Password: l.Password,
-	}
-
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts/%s", Server, l.Args.Login)
 
-	if err := update(w, account); err != nil {
+	if err := update(w, l); err != nil {
 		return err
 	}
 
 	login := l.Args.Login
-	if l.Login != nil && *l.Login != "" {
-		login = *l.Login
+	if l.Login != "" {
+		login = l.Login
 	}
 
 	fmt.Fprintf(w, "The account %q was successfully updated.\n", login)
@@ -146,7 +138,7 @@ type LocAccList struct {
 
 func (l *LocAccList) Execute([]string) error { return l.execute(stdOutput) }
 
-//nolint:dupl //duplicate is for a different command, better keep separate
+//nolint:dupl //duplicate is for a different command, best keep separate
 func (l *LocAccList) execute(w io.Writer) error {
 	addr.Path = fmt.Sprintf("/api/servers/%s/accounts", Server)
 

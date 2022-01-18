@@ -22,4 +22,4 @@ Remplace les informations du compte donné par celles fournies ci-dessous.
 
 .. code-block:: shell
 
-   waarp-gateway -a http://user:password@remotehost:8080 account remote 'waarp_sftp' update 'titi' -l 'titi2' -p 'password2'
+   waarp-gateway -a http://user:password@remotehost:8080 account remote 'openssh' update 'titi' -l 'titi2' -p 'password2'

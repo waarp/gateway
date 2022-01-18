@@ -1,5 +1,5 @@
-Lister les certificats
-======================
+[OBSOLÈTE] Lister les certificats
+=================================
 
 .. http:get:: /api/partners/(string:partner)/accounts/(string:login)/certificates
 

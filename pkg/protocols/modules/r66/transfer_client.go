@@ -135,7 +135,7 @@ func (c *transferClient) Receive(file protocol.ReceiveFile) error {
 // EndTransfer send a transfer end message, and then closes the session.
 func (c *transferClient) EndTransfer() error {
 	defer c.cancel()
-	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address)
+	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
 
 	if c.ses == nil {
 		return nil
@@ -163,7 +163,7 @@ func (c *transferClient) SendError(code types.TransferErrorCode, msg string) {
 	c.pip.Logger.Debug("Sending error '%v' to remote partner", pErr)
 
 	defer c.cancel()
-	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address)
+	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
 
 	if c.ses == nil {
 		return
@@ -180,7 +180,7 @@ func (c *transferClient) SendError(code types.TransferErrorCode, msg string) {
 // session.
 func (c *transferClient) Pause() error {
 	defer c.cancel()
-	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address)
+	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
 
 	if c.ses == nil {
 		return nil
@@ -201,7 +201,7 @@ func (c *transferClient) Pause() error {
 // session.
 func (c *transferClient) Cancel() error {
 	defer c.cancel()
-	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address)
+	defer c.conns.Done(c.pip.TransCtx.RemoteAgent.Address.String())
 
 	if c.ses == nil {
 		return nil

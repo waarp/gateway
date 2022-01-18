@@ -189,7 +189,7 @@ func (h *httpHandler) handleHead() {
 
 	if err := h.db.Get(&trans, "remote_transfer_id=? AND local_account_id=?",
 		remoteID, h.account.ID).Run(); err != nil {
-		if !database.IsNotFound(err) {
+		if database.IsNotFound(err) {
 			h.sendError(http.StatusBadRequest, types.TeInternal, "unknown transfer ID")
 
 			return
@@ -202,6 +202,12 @@ func (h *httpHandler) handleHead() {
 
 	var rule model.Rule
 	if err := h.db.Get(&rule, "id=?", trans.RuleID).Run(); err != nil {
+		if database.IsNotFound(err) {
+			h.sendError(http.StatusBadRequest, types.TeInternal, "unknown rule ID")
+
+			return
+		}
+
 		h.sendError(http.StatusInternalServerError, types.TeInternal, "database error")
 
 		return

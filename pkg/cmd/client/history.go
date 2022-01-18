@@ -35,8 +35,8 @@ func displayHistory(f *Formatter, hist *api.OutHistory) {
 	}
 
 	stop := NotApplicable
-	if hist.Stop != nil {
-		stop = hist.Stop.Local().Format(time.RFC3339Nano)
+	if hist.Stop.Valid {
+		stop = hist.Stop.Value.Local().Format(time.RFC3339Nano)
 	}
 
 	f.Title("Transfer %d (as %s) [%s]", hist.ID, role, coloredStatus(hist.Status))

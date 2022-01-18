@@ -15,5 +15,7 @@ Le point d'accès pour gérer les différents partenaires distants de la gateway
    delete
    authorize
    revoke
-   certificates/index
+   auth_add
+   auth_delete
    accounts/index
+   certificates/index

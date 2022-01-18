@@ -1,5 +1,5 @@
-Modifier un certificat
-======================
+[OBSOLÈTE] Modifier un certificat
+=================================
 
 .. http:patch:: /api/servers/(string:server)/accounts/(string:login)/certificates/(string:cert_name)
 

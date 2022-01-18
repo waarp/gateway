@@ -205,8 +205,7 @@ func TestGetRealAddress(t *testing.T) {
 		}
 
 		Convey("Given a full address match", func() {
-			redirect, err := GetRealAddress("localhost:5555")
-			So(err, ShouldBeNil)
+			redirect := GetRealAddress("localhost", "5555")
 
 			Convey("Then it should return the associated address", func() {
 				So(redirect, ShouldEqual, "127.0.0.1:8080")
@@ -214,8 +213,7 @@ func TestGetRealAddress(t *testing.T) {
 		})
 
 		Convey("Given a host match", func() {
-			redirect, err := GetRealAddress("1.2.3.4:5555")
-			So(err, ShouldBeNil)
+			redirect := GetRealAddress("1.2.3.4", "5555")
 
 			Convey("Then it should return the associated host with the old port", func() {
 				So(redirect, ShouldEqual, "9.8.7.6:5555")
@@ -223,20 +221,10 @@ func TestGetRealAddress(t *testing.T) {
 		})
 
 		Convey("Given no match", func() {
-			redirect, err := GetRealAddress("192.168.1.1:6666")
-			So(err, ShouldBeNil)
+			redirect := GetRealAddress("192.168.1.1", "6666")
 
 			Convey("Then it should return the address as is", func() {
 				So(redirect, ShouldEqual, "192.168.1.1:6666")
-			})
-		})
-
-		Convey("Given that the address is incorrectly formatted", func() {
-			_, err := GetRealAddress("waarp.fr")
-
-			Convey("Then it should return an error", func() {
-				So(err, ShouldBeError, "failed to split the target address: "+
-					"address waarp.fr: missing port in address")
 			})
 		})
 	})

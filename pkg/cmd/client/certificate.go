@@ -3,14 +3,19 @@ package wg
 import (
 	"fmt"
 	"io"
-	"os"
 	"path"
 
-	"github.com/jessevdk/go-flags"
+	"github.com/jedib0t/go-pretty/v6/text"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
+
+const certDeprecatedMsg = `‼WARNING‼ The "certificate" command is deprecated.` +
+	`Please use the "credentials" command instead.`
+
+func warnCertDeprecated() {
+	fmt.Fprintln(asColorable(stdOutput), text.FgRed.Sprint(certDeprecatedMsg))
+}
 
 func DisplayCrypto(w io.Writer, cert *api.OutCrypto) {
 	f := NewFormatter(w)
@@ -55,7 +60,12 @@ type CertGet struct {
 	} `positional-args:"yes"`
 }
 
-func (c *CertGet) Execute([]string) error { return c.execute(stdOutput) }
+func (c *CertGet) Execute([]string) error {
+	warnCertDeprecated()
+
+	return c.execute(stdOutput)
+}
+
 func (c *CertGet) execute(w io.Writer) error {
 	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
@@ -73,47 +83,24 @@ func (c *CertGet) execute(w io.Writer) error {
 
 // TODO: replace underscores "_" with hyphens "-" in flags names.
 
+//nolint:lll //tags are long
 type CertAdd struct {
-	Name        string         `required:"true" short:"n" long:"name" description:"The certificate's name"`
-	PrivateKey  flags.Filename `short:"p" long:"private_key" description:"The path to the certificate's private key file"`
-	PublicKey   flags.Filename `short:"b" long:"public_key" description:"The path to the certificate's public key file"`
-	Certificate flags.Filename `short:"c" long:"certificate" description:"The path to the certificate file"`
+	Name        string `required:"true" short:"n" long:"name" description:"The certificate's name" json:"name,omitempty"`
+	PrivateKey  file   `short:"p" long:"private_key" description:"The path to the certificate's private key file" json:"privateKey,omitempty"`
+	PublicKey   file   `short:"b" long:"public_key" description:"The path to the certificate's public key file" json:"publicKey,omitempty"`
+	Certificate file   `short:"c" long:"certificate" description:"The path to the certificate file" json:"certificate,omitempty"`
 }
 
-func (c *CertAdd) Execute([]string) error { return c.execute(stdOutput) }
+func (c *CertAdd) Execute([]string) error {
+	warnCertDeprecated()
+
+	return c.execute(stdOutput)
+}
+
 func (c *CertAdd) execute(w io.Writer) error {
-	inCrypto := &api.InCrypto{Name: &c.Name}
-
-	if c.PrivateKey != "" {
-		pk, err := os.ReadFile(string(c.PrivateKey))
-		if err != nil {
-			return fmt.Errorf("cannot read file %q: %w", c.PrivateKey, err)
-		}
-
-		inCrypto.PrivateKey = utils.StringPtr(string(pk))
-	}
-
-	if c.PublicKey != "" {
-		pbk, err := os.ReadFile(string(c.PublicKey))
-		if err != nil {
-			return fmt.Errorf("cannot read file %q: %w", c.PublicKey, err)
-		}
-
-		inCrypto.PublicKey = utils.StringPtr(string(pbk))
-	}
-
-	if c.Certificate != "" {
-		cert, err := os.ReadFile(string(c.Certificate))
-		if err != nil {
-			return fmt.Errorf("cannot read file %q: %w", c.Certificate, err)
-		}
-
-		inCrypto.Certificate = utils.StringPtr(string(cert))
-	}
-
 	addr.Path = path.Join(getCertPath(), "certificates")
 
-	if _, err := add(w, inCrypto); err != nil {
+	if _, err := add(w, c); err != nil {
 		return err
 	}
 
@@ -130,7 +117,12 @@ type CertDelete struct {
 	} `positional-args:"yes"`
 }
 
-func (c *CertDelete) Execute([]string) error { return c.execute(stdOutput) }
+func (c *CertDelete) Execute([]string) error {
+	warnCertDeprecated()
+
+	return c.execute(stdOutput)
+}
+
 func (c *CertDelete) execute(w io.Writer) error {
 	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
@@ -151,7 +143,12 @@ type CertList struct {
 	SortBy string `short:"s" long:"sort" description:"Attribute used to sort the returned entries" choice:"name+" choice:"name-" default:"name+"`
 }
 
-func (c *CertList) Execute([]string) error { return c.execute(stdOutput) }
+func (c *CertList) Execute([]string) error {
+	warnCertDeprecated()
+
+	return c.execute(stdOutput)
+}
+
 func (c *CertList) execute(w io.Writer) error {
 	addr.Path = path.Join(getCertPath(), "certificates")
 
@@ -180,58 +177,33 @@ func (c *CertList) execute(w io.Writer) error {
 
 // ######################## UPDATE ##########################
 
+//nolint:lll //tags are long
 type CertUpdate struct {
 	Args struct {
 		Cert string `required:"yes" positional-arg-name:"cert" description:"The certificate's name"`
-	} `positional-args:"yes"`
-	Name        *string        `short:"n" long:"name" description:"The certificate's name"`
-	PrivateKey  flags.Filename `short:"p" long:"private_key" description:"The path to the certificate's private key file"`
-	PublicKey   flags.Filename `short:"b" long:"public_key" description:"The path to the certificate's public key file"`
-	Certificate flags.Filename `short:"c" long:"certificate" description:"The path to the certificate file"`
+	} `positional-args:"yes" json:"-"`
+	Name        string `short:"n" long:"name" description:"The certificate's name" json:"name,omitempty"`
+	PrivateKey  file   `short:"p" long:"private_key" description:"The path to the certificate's private key file" json:"privateKey,omitempty"`
+	PublicKey   file   `short:"b" long:"public_key" description:"The path to the certificate's public key file" json:"publicKey,omitempty"`
+	Certificate file   `short:"c" long:"certificate" description:"The path to the certificate file" json:"certificate,omitempty"`
 }
 
-func (c *CertUpdate) Execute([]string) error { return c.execute(stdOutput) }
+func (c *CertUpdate) Execute([]string) error {
+	warnCertDeprecated()
+
+	return c.execute(stdOutput)
+}
+
 func (c *CertUpdate) execute(w io.Writer) error {
-	inCrypto := &api.InCrypto{
-		Name: c.Name,
-	}
-
-	if c.PrivateKey != "" {
-		pk, err := os.ReadFile(string(c.PrivateKey))
-		if err != nil {
-			return fmt.Errorf("cannot read file %q: %w", c.PrivateKey, err)
-		}
-
-		inCrypto.PrivateKey = utils.StringPtr(string(pk))
-	}
-
-	if c.PublicKey != "" {
-		pbk, err := os.ReadFile(string(c.PublicKey))
-		if err != nil {
-			return fmt.Errorf("cannot read file %q: %w", c.PublicKey, err)
-		}
-
-		inCrypto.PublicKey = utils.StringPtr(string(pbk))
-	}
-
-	if c.Certificate != "" {
-		cert, err := os.ReadFile(string(c.Certificate))
-		if err != nil {
-			return fmt.Errorf("cannot read file %q: %w", c.Certificate, err)
-		}
-
-		inCrypto.Certificate = utils.StringPtr(string(cert))
-	}
-
 	addr.Path = path.Join(getCertPath(), "certificates", c.Args.Cert)
 
-	if err := update(w, inCrypto); err != nil {
+	if err := update(w, c); err != nil {
 		return err
 	}
 
 	name := c.Args.Cert
-	if inCrypto.Name != nil && *inCrypto.Name != "" {
-		name = *inCrypto.Name
+	if c.Name != "" {
+		name = c.Name
 	}
 
 	fmt.Fprintf(w, "The certificate %q was successfully updated.\n", name)

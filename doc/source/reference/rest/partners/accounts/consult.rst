@@ -12,6 +12,8 @@ Consulter un compte distant
    :statuscode 404: Le compte demandé n'existe pas
 
    :resjson string login: Le login du compte
+   :resjson array authMethods: La liste des valeurs utilisées par la gateway
+      pour s'authentifier auprès du partenaire quand celle-ci s'y connecte.
    :resjson object authorizedRules: Les règles que le compte est autorisé à
       utiliser pour les transferts.
 
@@ -36,6 +38,7 @@ Consulter un compte distant
 
          {
            "login": "titi",
+           "authMethods": ["titi_private_key", "password"],
            "authorizedRules": {
              "sending": ["règle_envoi_1", "règle_envoi_2"],
              "reception": ["règle_récep_1", "règle_récep_2"]

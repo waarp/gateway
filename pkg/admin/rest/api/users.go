@@ -5,9 +5,9 @@ package api
 // InUser is the JSON representation of a user account in requests made to the
 // REST interface.
 type InUser struct {
-	Username *string `json:"username,omitempty"`
-	Password *string `json:"password,omitempty"`
-	Perms    *Perms  `json:"perms"`
+	Username Nullable[string] `json:"username,omitempty"`
+	Password Nullable[string] `json:"password,omitempty"`
+	Perms    Perms            `json:"perms,omitempty"`
 }
 
 // OutUser is the JSON representation of a user account in responses sent by

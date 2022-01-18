@@ -40,6 +40,13 @@ func stateCode(service services.Service) utils.StateCode {
 	return code
 }
 
+func mustAddr(s string) types.Address {
+	addr, err := types.NewAddress(s)
+	convey.So(err, convey.ShouldBeNil)
+
+	return *addr
+}
+
 type testModule struct{}
 
 func (t testModule) NewServer(*database.DB, *model.LocalAgent) protocol.Server { return &testService{} }

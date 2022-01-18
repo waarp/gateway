@@ -119,5 +119,5 @@ func (i *IterateQuery) Run() (*Iterator, error) {
 		return nil, NewInternalError(err)
 	}
 
-	return &Iterator{Rows: rows}, nil
+	return &Iterator{Rows: rows, db: i.db}, nil
 }

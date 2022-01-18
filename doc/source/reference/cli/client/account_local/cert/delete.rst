@@ -1,6 +1,6 @@
-======================================
-Supprime un certificat de compte local
-======================================
+==================================================
+[OBSOLÈTE] Supprimer un certificat de compte local
+==================================================
 
 .. program:: waarp-gateway account local cert delete
 

@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
@@ -28,16 +29,22 @@ func TestValidAuth(t *testing.T) {
 			Name:        "r66 server",
 			Protocol:    R66,
 			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
-			Address:     "localhost:6666",
+			Address:     types.Addr("localhost", 0),
 		}
 		So(db.Insert(r66Server).Run(), ShouldBeNil)
 
 		toto := &model.LocalAccount{
 			LocalAgentID: r66Server.ID,
 			Login:        "toto",
-			PasswordHash: hash("sesame"),
 		}
 		So(db.Insert(toto).Run(), ShouldBeNil)
+
+		totoPswd := &model.Credential{
+			LocalAccountID: utils.NewNullInt64(toto.ID),
+			Type:           auth.PasswordHash,
+			Value:          CryptPass("sesame"),
+		}
+		So(db.Insert(totoPswd).Run(), ShouldBeNil)
 
 		handler := &authHandler{service: &service{
 			db:      db,
@@ -48,8 +55,8 @@ func TestValidAuth(t *testing.T) {
 
 		Convey("Given an authentication packet", func() {
 			packet := &r66.Authent{
-				Login:     "toto",
-				Password:  r66.CryptPass([]byte("sesame")),
+				Login:     toto.Login,
+				Password:  []byte(CryptPass("sesame")),
 				Filesize:  true,
 				FinalHash: true,
 				Digest:    "SHA-256",
@@ -83,13 +90,13 @@ func TestValidAuth(t *testing.T) {
 			Convey("Given an incorrect login", func() {
 				packet.Login = "tata"
 
-				shouldFailWith("the credentials are incorrect", "A: incorrect credentials")
+				shouldFailWith("the credentials are incorrect", "A: authentication failed")
 			})
 
 			Convey("Given an incorrect password", func() {
 				packet.Password = []byte("not sesame")
 
-				shouldFailWith("the credentials are incorrect", "A: incorrect credentials")
+				shouldFailWith("the credentials are incorrect", "A: authentication failed")
 			})
 
 			Convey("Given an incorrect hash digest", func() {
@@ -128,7 +135,7 @@ func TestValidRequest(t *testing.T) {
 			Name:        "r66 server",
 			Protocol:    R66,
 			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
-			Address:     "localhost:6666",
+			Address:     types.Addr("localhost", 0),
 			RootDir:     path.Join(root, "server_root"),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
@@ -136,9 +143,15 @@ func TestValidRequest(t *testing.T) {
 		account := &model.LocalAccount{
 			LocalAgentID: server.ID,
 			Login:        "toto",
-			PasswordHash: hash("sesame"),
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
+
+		accPswd := &model.Credential{
+			LocalAccountID: utils.NewNullInt64(account.ID),
+			Type:           auth.PasswordHash,
+			Value:          "sesame",
+		}
+		So(db.Insert(accPswd).Run(), ShouldBeNil)
 
 		ses := sessionHandler{
 			authHandler: &authHandler{service: &service{
@@ -259,7 +272,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 			Name:        "r66 server",
 			Protocol:    R66,
 			ProtoConfig: map[string]any{"blockSize": 512, "serverPassword": "c2VzYW1l"},
-			Address:     "localhost:6666",
+			Address:     types.Addr("localhost", 0),
 			RootDir:     "server_root",
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
@@ -267,9 +280,15 @@ func TestUpdateTransferInfo(t *testing.T) {
 		account := &model.LocalAccount{
 			LocalAgentID: server.ID,
 			Login:        "toto",
-			PasswordHash: hash("sesame"),
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
+
+		accPswd := &model.Credential{
+			LocalAccountID: utils.NewNullInt64(account.ID),
+			Type:           auth.PasswordHash,
+			Value:          "sesame",
+		}
+		So(db.Insert(accPswd).Run(), ShouldBeNil)
 
 		Convey("Given a push transfer", func() {
 			trans := &model.Transfer{

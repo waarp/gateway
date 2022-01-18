@@ -20,6 +20,8 @@ Lister les comptes locaux
 
    :resjson array localAccounts: La liste des comptes demandés
    :resjsonarr string login: Le login du compte
+   :resjsonarr array authMethods: La liste des valeurs utilisées par le client
+      pour s'authentifier auprès de la gateway quand il se connecte à celle-ci.
    :resjsonarr object authorizedRules: Les règles que le compte est autorisé à
          utiliser pour les transferts.
 
@@ -47,12 +49,14 @@ Lister les comptes locaux
          {
            "localAccounts": [{
              "login": "tutu",
+             "authMethods": ["password"],
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],
                "reception": ["règle_récep_1", "règle_récep_2"]
              }
            },{
              "login": "toto",
+             "authMethods": ["password", "toto_public_key"],
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],
                "reception": ["règle_récep_1", "règle_récep_2"]

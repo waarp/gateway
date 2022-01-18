@@ -20,5 +20,7 @@ Le point d'accès pour gérer les différents serveurs locaux de la gateway est
    start
    stop
    restart
-   certificates/index
+   auth_add
+   auth_delete
    accounts/index
+   certificates/index

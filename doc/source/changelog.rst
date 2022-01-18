@@ -3,6 +3,17 @@
 Historique des versions
 =======================
 
+* :feature:`289` Les certificats et les mots de passe sont remplacés par les
+  plus génériques "méthodes d'authentification", permettant d'ajouter plus
+  facilement de nouvelles formes d'authentification. Ajout également des
+  "autorités d'authentification" permettant de déléguer l'authentification de
+  certains types de partenaires à un tier de confiance. Pour plus d'information
+  voir :ref:`le chapitre sur l'authentification <reference-auth-methods>`.
+* :feature:`289` Les certificats et les mots de passe sont remplacés par les
+  plus génériques "méthodes d'authentification", permettant d'ajouter plus
+  facilement de nouvelles formes d'authentification. Pour plus de simplicité,
+  l'option *password* des commandes de création des comptes locaux et distants
+  est maintenue.
 * :feature:`-` Ajouter ou enlever des certificats TLS à un agent de transfert
   ne nécessite plus un redémarrage du service en question pour que les
   changements soient pris en compte.

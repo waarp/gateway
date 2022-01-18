@@ -8,6 +8,7 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 )
 
@@ -45,7 +46,7 @@ func TestExportRules(t *testing.T) {
 				})
 
 				Convey("Then it should return 3 records", func() {
-					So(len(res), ShouldEqual, 3)
+					So(res, ShouldHaveLength, 3)
 				})
 			})
 		})
@@ -58,23 +59,20 @@ func TestExportRuleAccesses(t *testing.T) {
 
 		Convey("Given a rules with accesses", func() {
 			agent := &model.RemoteAgent{
-				Name:     "partner",
-				Protocol: testProtocol,
-				Address:  "localhost:2022",
+				Name: "partner", Protocol: testProtocol,
+				Address: types.Addr("localhost", 2022),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account1 := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "account1",
-				Password:      "sesame",
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
 				Login:         "acc2",
-				Password:      "sesame",
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
@@ -118,7 +116,7 @@ func TestExportRuleAccesses(t *testing.T) {
 				})
 
 				Convey("Then it should return 1 records", func() {
-					So(len(res), ShouldEqual, 1)
+					So(res, ShouldHaveLength, 1)
 
 					Convey("Then the result should correspond to the access of rule1", func() {
 						value := fmt.Sprintf("remote::%s", agent.Name)
@@ -135,7 +133,7 @@ func TestExportRuleAccesses(t *testing.T) {
 				})
 
 				Convey("Then it should return 2 records", func() {
-					So(len(res), ShouldEqual, 2)
+					So(res, ShouldHaveLength, 2)
 				})
 			})
 		})
@@ -204,7 +202,7 @@ func TestExportRuleTasks(t *testing.T) {
 				})
 
 				Convey("Then it should return 1 result", func() {
-					So(len(res), ShouldEqual, 1)
+					So(res, ShouldHaveLength, 1)
 
 					Convey("Then this result should correspond to the pre1 Task", func() {
 						So(res[0].Type, ShouldEqual, pre1.Type)
@@ -221,7 +219,7 @@ func TestExportRuleTasks(t *testing.T) {
 				})
 
 				Convey("Then it should return 2 result", func() {
-					So(len(res), ShouldEqual, 2)
+					So(res, ShouldHaveLength, 2)
 
 					Convey("Then this result should correspond to the pre1 Task", func() {
 						So(res[0].Type, ShouldEqual, post1.Type)
@@ -240,7 +238,7 @@ func TestExportRuleTasks(t *testing.T) {
 				})
 
 				Convey("Then it should return 0 result", func() {
-					So(len(res), ShouldEqual, 0)
+					So(res, ShouldHaveLength, 0)
 				})
 			})
 
@@ -252,7 +250,7 @@ func TestExportRuleTasks(t *testing.T) {
 				})
 
 				Convey("Then it should return 1 result", func() {
-					So(len(res), ShouldEqual, 1)
+					So(res, ShouldHaveLength, 1)
 
 					Convey("Then this result should correspond to the pre1 Task", func() {
 						So(res[0].Type, ShouldEqual, error1.Type)

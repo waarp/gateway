@@ -7,8 +7,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestRemoteAgentTableName(t *testing.T) {
@@ -31,13 +31,12 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 
 		Convey("Given a remote agent entry", func() {
 			ag := RemoteAgent{
-				Name:     "partner",
-				Protocol: testProtocol,
-				Address:  "localhost:6666",
+				Name: "partner", Protocol: testProtocol,
+				Address: types.Addr("localhost", 6666),
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo", Password: "sesame"}
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
@@ -55,20 +54,21 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 			}
 			So(db.Insert(&accAccess).Run(), ShouldBeNil)
 
-			certAg := Crypto{
+			authAg := Credential{
 				RemoteAgentID: utils.NewNullInt64(ag.ID),
 				Name:          "test agent cert",
-				Certificate:   testhelpers.LocalhostCert,
+				Type:          testInternalAuth,
+				Value:         "val",
 			}
-			So(db.Insert(&certAg).Run(), ShouldBeNil)
+			So(db.Insert(&authAg).Run(), ShouldBeNil)
 
-			certAcc := Crypto{
+			authAcc := Credential{
 				RemoteAccountID: utils.NewNullInt64(acc.ID),
 				Name:            "test account cert",
-				PrivateKey:      testhelpers.ClientFooKey,
-				Certificate:     testhelpers.ClientFooCert,
+				Type:            testExternalAuth,
+				Value:           "val",
 			}
-			So(db.Insert(&certAcc).Run(), ShouldBeNil)
+			So(db.Insert(&authAcc).Run(), ShouldBeNil)
 
 			Convey("Given that the agent is unused", func() {
 				Convey("When calling the `BeforeDelete` hook", func() {
@@ -90,10 +90,10 @@ func TestRemoteAgentBeforeDelete(t *testing.T) {
 						So(accounts, ShouldBeEmpty)
 					})
 
-					Convey("Then both certificates should have been deleted", func() {
-						var certs Cryptos
-						So(db.Select(&certs).Run(), ShouldBeNil)
-						So(certs, ShouldBeEmpty)
+					Convey("Then both auth methods should have been deleted", func() {
+						var auths Credentials
+						So(db.Select(&auths).Run(), ShouldBeNil)
+						So(auths, ShouldBeEmpty)
 					})
 
 					Convey("Then the rule accesses should have been deleted", func() {
@@ -137,17 +137,15 @@ func TestRemoteAgentValidate(t *testing.T) {
 
 		Convey("Given the database contains 1 remote agent", func() {
 			oldAgent := RemoteAgent{
-				Name:     "old",
-				Protocol: testProtocol,
-				Address:  "localhost:2022",
+				Name: "old", Protocol: testProtocol,
+				Address: types.Addr("localhost", 2022),
 			}
 			So(db.Insert(&oldAgent).Run(), ShouldBeNil)
 
 			Convey("Given a new remote agent", func() {
 				newAgent := &RemoteAgent{
-					Name:     "new",
-					Protocol: testProtocol,
-					Address:  "localhost:2023",
+					Name: "new", Protocol: testProtocol,
+					Address: types.Addr("localhost", 2023),
 				}
 
 				shouldFailWith := func(expMsg string, args ...any) {
@@ -187,20 +185,20 @@ func TestRemoteAgentValidate(t *testing.T) {
 					newAgent.Name = oldAgent.Name
 
 					shouldFailWith(
-						"a remote agent with the same name '%s' already exist",
+						"a remote agent with the same name %q already exist",
 						newAgent.Name)
 				})
 
 				Convey("Given that the new agent is missing an address", func() {
-					newAgent.Address = ""
+					newAgent.Address = types.Address{}
 
-					shouldFailWith("the partner's address cannot be empty")
+					shouldFailWith(types.ErrEmptyAddress.Error())
 				})
 
 				Convey("Given that the new agent's address is invalid", func() {
-					newAgent.Address = "not_an_address"
+					newAgent.Address.Host = "not_an_address"
 
-					shouldFailWith("'not_an_address' is not a valid partner address")
+					shouldFailWith(`address validation failed`)
 				})
 
 				Convey("Given that the new agent's protocol is not valid", func() {

@@ -1,6 +1,6 @@
-======================================
-Afficher un certificat de compte local
-======================================
+=================================================
+[OBSOLÈTE] Afficher un certificat de compte local
+=================================================
 
 .. program:: waarp-gateway account local cert get
 

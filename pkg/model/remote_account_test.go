@@ -6,8 +6,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
-	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
 func TestRemoteAccountTableName(t *testing.T) {
@@ -30,22 +30,21 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 
 		Convey("Given a remote account entry", func() {
 			ag := RemoteAgent{
-				Name:     "server",
-				Protocol: testProtocol,
-				Address:  "localhost:1111",
+				Name: "server", Protocol: testProtocol,
+				Address: types.Addr("localhost", 1111),
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo", Password: "sesame"}
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
-			cert := Crypto{
+			accAuth := Credential{
 				RemoteAccountID: utils.NewNullInt64(acc.ID),
 				Name:            "test cert",
-				PrivateKey:      testhelpers.ClientFooKey,
-				Certificate:     testhelpers.ClientFooCert,
+				Type:            testExternalAuth,
+				Value:           "val",
 			}
-			So(db.Insert(&cert).Run(), ShouldBeNil)
+			So(db.Insert(&accAuth).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: true, Path: "path"}
 			So(db.Insert(&rule).Run(), ShouldBeNil)
@@ -68,9 +67,9 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 					})
 
 					Convey("Then the account's certificates should have been deleted", func() {
-						var certs Cryptos
-						So(db.Select(&certs).Run(), ShouldBeNil)
-						So(certs, ShouldBeEmpty)
+						var auths Credentials
+						So(db.Select(&auths).Run(), ShouldBeNil)
+						So(auths, ShouldBeEmpty)
 					})
 
 					Convey("Then the account's accesses should have been deleted", func() {
@@ -114,16 +113,14 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains 1 remote agent with 1 remote account", func() {
 			parentAgent := RemoteAgent{
-				Name:     "parent_agent",
-				Protocol: testProtocol,
-				Address:  "localhost:2022",
+				Name: "parent_agent", Protocol: testProtocol,
+				Address: types.Addr("localhost", 2022),
 			}
 			So(db.Insert(&parentAgent).Run(), ShouldBeNil)
 
 			oldAccount := RemoteAccount{
 				RemoteAgentID: parentAgent.ID,
 				Login:         "old",
-				Password:      "sesame",
 			}
 			So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
@@ -131,7 +128,6 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 				newAccount := RemoteAccount{
 					RemoteAgentID: parentAgent.ID,
 					Login:         "new",
-					Password:      "sesame_new",
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -176,23 +172,22 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 					newAccount.RemoteAgentID = 1000
 
 					shouldFailWith("the agent ID is invalid", database.NewValidationError(
-						"no remote agent found with the ID '%d'", newAccount.RemoteAgentID))
+						`no remote agent found with the ID "%d"`, newAccount.RemoteAgentID))
 				})
 
 				Convey("Given that the new account's login is already taken", func() {
 					newAccount.Login = oldAccount.Login
 
 					shouldFailWith("the login is already taken", database.NewValidationError(
-						"a remote account with the same login '%s' already exist",
+						"a remote account with the same login %q already exist",
 						newAccount.Login))
 				})
 
 				Convey("Given that the new account's name is already taken but the"+
 					"parent agent is different", func() {
 					otherAgent := RemoteAgent{
-						Name:     "other",
-						Protocol: testProtocol,
-						Address:  "localhost:2022",
+						Name: "other", Protocol: testProtocol,
+						Address: types.Addr("localhost", 2022),
 					}
 					So(db.Insert(&otherAgent).Run(), ShouldBeNil)
 

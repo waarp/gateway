@@ -2,11 +2,15 @@ package migrations
 
 import (
 	"database/sql"
+	"encoding/json"
 	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils/compatibility"
 )
 
 func testVer0_9_0AddCloudInstances(t *testing.T, eng *testEngine) Change {
@@ -152,7 +156,7 @@ func testVer0_9_0FixLocalServerEnabled(t *testing.T, eng *testEngine) Change {
 			t.Run(`Then the "normalized_transfer" view should still	exist
 				(sqlite only)`, func(t *testing.T) {
 				if eng.Dialect == SQLite {
-					_, err := eng.DB.Exec(`SELECT * FROM normalized_transfers`)
+					err := eng.Exec(`SELECT * FROM normalized_transfers`)
 					require.NoError(t, err)
 				}
 			})
@@ -169,7 +173,7 @@ func testVer0_9_0FixLocalServerEnabled(t *testing.T, eng *testEngine) Change {
 				t.Run(`Then the "normalized_transfer" view should still
 						exist (sqlite only)`, func(t *testing.T) {
 					if eng.Dialect == SQLite {
-						_, err := eng.DB.Exec(`SELECT * FROM normalized_transfers`)
+						err := eng.Exec(`SELECT * FROM normalized_transfers`)
 						require.NoError(t, err)
 					}
 				})
@@ -903,7 +907,7 @@ func testVer0_9_0AddTransfersClientID(t *testing.T, eng *testEngine) Change {
 func testVer0_9_0AddHistoryClient(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[45]
 
-	t.Run("Given the 0.9.0 history client addition", func(t *testing.T) {
+	t.Run("When applying the 0.9.0 history client addition", func(t *testing.T) {
 		eng.NoError(t, `INSERT INTO transfer_history(id,owner,
         	remote_transfer_id,is_server,is_send,rule,account,agent,
             protocol,local_path,remote_path,start,stop,status,step) VALUES
@@ -970,7 +974,7 @@ func testVer0_9_0AddHistoryClient(t *testing.T, eng *testEngine) Change {
 func testVer0_9_0AddNormalizedTransfersView(t *testing.T, eng *testEngine) Change {
 	mig := Migrations[46]
 
-	t.Run("Given the 0.9.0 normalized transfer view restoration", func(t *testing.T) {
+	t.Run("When applying the 0.9.0 normalized transfer view restoration", func(t *testing.T) {
 		// ### CLIENTS ###
 		eng.NoError(t, `INSERT INTO clients(id, owner, name, protocol)
 			VALUES (2222, 'bbb', 'sftp', 'sftp')`)
@@ -1089,8 +1093,562 @@ func testVer0_9_0AddNormalizedTransfersView(t *testing.T, eng *testEngine) Chang
 				"Reverting the migration should not fail")
 
 			t.Run("Then it should have dropped the view", func(t *testing.T) {
-				_, err := eng.DB.Exec(`SELECT * FROM normalized_transfers`)
+				err := eng.Exec(`SELECT * FROM normalized_transfers`)
 				shouldBeTableNotExist(t, err)
+			})
+		})
+	})
+
+	return mig
+}
+
+func testVer0_9_0AddCredTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[47]
+
+	t.Run("When applying the 0.9.0 'credentials' table creation", func(t *testing.T) {
+		assert.False(t, doesTableExist(t, eng.DB, eng.Dialect, "credentials"))
+
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
+
+		t.Run("Then it should have added the table", func(t *testing.T) {
+			assert.True(t, doesTableExist(t, eng.DB, eng.Dialect, "credentials"))
+			tableShouldHaveColumns(t, eng.DB, "credentials",
+				"local_agent_id", "remote_agent_id", "local_account_id", "remote_account_id",
+				"name", "type", "value", "value2")
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have dropped the table", func(t *testing.T) {
+				assert.False(t, doesTableExist(t, eng.DB, eng.Dialect, "credentials"))
+			})
+		})
+	})
+
+	return mig
+}
+
+func testVer0_9_0FillCredTable(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[48]
+
+	t.Run("When applying the 0.9.0 'credentials' table filling", func(t *testing.T) {
+		_ver0_9_0FillAuthTableIgnoreCertParseError = true
+		compatibility.IsLegacyR66CertificateAllowed = true
+
+		defer func() {
+			_ver0_9_0FillAuthTableIgnoreCertParseError = false
+			compatibility.IsLegacyR66CertificateAllowed = false
+		}()
+
+		// ### Local agent ###
+		eng.NoError(t, `INSERT INTO local_agents(id,owner,name,protocol,address)
+			VALUES (10,'waarp_gw','sftp_serv','sftp','localhost:2222')`)
+
+		// ### Local account ###
+		eng.NoError(t, `INSERT INTO local_accounts(id,local_agent_id,login,
+        	password_hash) VALUES (100,10,'toto','pswd_hash')`)
+
+		// ### Remote agent ###
+		eng.NoError(t, `INSERT INTO remote_agents(id,name,protocol,address)
+			VALUES (20,'sftp_part','sftp','localhost:3333')`)
+
+		// ### Remote account ###
+		eng.NoError(t, `INSERT INTO remote_accounts(id,remote_agent_id,login,
+            password) VALUES (200,20,'toto','$AES$pswd')`)
+
+		// ##### Certificates #####
+		//nolint:dupword //NULL is repeated on purpose
+		eng.NoError(t, `INSERT INTO crypto_credentials
+    		(id,name,local_agent_id,remote_agent_id,local_account_id,remote_account_id,
+    		 private_key,certificate,ssh_public_key) 
+			VALUES (1010, '1-lag_cert',     10,   NULL, NULL, NULL, 'pk1',    'cert1', ''),
+			       (1020, '2-rag_cert',     NULL, 20,   NULL, NULL, '',       'cert2', ''),
+			       (1100, '3-lac_ssh',      NULL, NULL, 100,  NULL, '',       '',      'ssh_pbk1'),
+			       (1200, '4-rac_ssh',      NULL, NULL, NULL, 200, 'ssh_pk1', '',      ''),
+			       (1011, '5-lag_r66_cert', 10,   NULL, NULL, NULL, ?,        ?,       ''),
+			       (1021, '6-rag_r66_cert', NULL, 20,   NULL, NULL, '',       ?,       '')`,
+			compatibility.LegacyR66KeyPEM, compatibility.LegacyR66CertPEM,
+			compatibility.LegacyR66CertPEM)
+
+		t.Cleanup(func() {
+			eng.NoError(t, `DELETE FROM crypto_credentials`)
+			eng.NoError(t, `DELETE FROM remote_accounts`)
+			eng.NoError(t, `DELETE FROM local_accounts`)
+			eng.NoError(t, `DELETE FROM remote_agents`)
+			eng.NoError(t, `DELETE FROM local_agents`)
+		})
+
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
+
+		t.Run("Then it should have filled the table", func(t *testing.T) {
+			rows, err := eng.DB.Query(`SELECT local_agent_id,remote_agent_id,
+       			local_account_id,remote_account_id,name,type,value,value2 
+				FROM credentials ORDER BY name,type`)
+			require.NoError(t, err)
+
+			defer rows.Close()
+
+			var (
+				lagID, ragID, lacID, racID sql.NullInt64
+				name, typ, val, val2       string
+			)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &typ, &val, &val2))
+			assert.Equal(t, utils.NewNullInt64(10), lagID)
+			assert.Zero(t, ragID)
+			assert.Zero(t, lacID)
+			assert.Zero(t, racID)
+			assert.Equal(t, "1-lag_cert", name)
+			assert.Equal(t, "tls_certificate", typ)
+			assert.Equal(t, "cert1", val)
+			assert.Equal(t, "pk1", val2)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &typ, &val, &val2))
+			assert.Zero(t, lagID)
+			assert.Equal(t, utils.NewNullInt64(20), ragID)
+			assert.Zero(t, lacID)
+			assert.Zero(t, racID)
+			assert.Equal(t, "2-rag_cert", name)
+			assert.Equal(t, "trusted_tls_certificate", typ)
+			assert.Equal(t, "cert2", val)
+			assert.Zero(t, val2)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &typ, &val, &val2))
+			assert.Zero(t, lagID)
+			assert.Zero(t, ragID)
+			assert.Equal(t, utils.NewNullInt64(100), lacID)
+			assert.Zero(t, racID)
+			assert.Equal(t, "3-lac_ssh", name)
+			assert.Equal(t, "ssh_public_key", typ)
+			assert.Equal(t, "ssh_pbk1", val)
+			assert.Zero(t, val2)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &typ, &val, &val2))
+			assert.Zero(t, lagID)
+			assert.Zero(t, ragID)
+			assert.Zero(t, lacID)
+			assert.Equal(t, utils.NewNullInt64(200), racID)
+			assert.Equal(t, "4-rac_ssh", name)
+			assert.Equal(t, "ssh_private_key", typ)
+			assert.Equal(t, "ssh_pk1", val)
+			assert.Zero(t, val2)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &typ, &val, &val2))
+			assert.Equal(t, utils.NewNullInt64(10), lagID)
+			assert.Zero(t, ragID)
+			assert.Zero(t, lacID)
+			assert.Zero(t, racID)
+			assert.Equal(t, "5-lag_r66_cert", name)
+			assert.Equal(t, "r66_legacy_certificate", typ)
+			assert.Zero(t, val)
+			assert.Zero(t, val2)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &typ, &val, &val2))
+			assert.Zero(t, lagID)
+			assert.Equal(t, utils.NewNullInt64(20), ragID)
+			assert.Zero(t, lacID)
+			assert.Zero(t, racID)
+			assert.Equal(t, "6-rag_r66_cert", name)
+			assert.Equal(t, "r66_legacy_certificate", typ)
+			assert.Zero(t, val)
+			assert.Zero(t, val2)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &typ, &val, &val2))
+			assert.Zero(t, lagID)
+			assert.Zero(t, ragID)
+			assert.Zero(t, lacID)
+			assert.Equal(t, utils.NewNullInt64(200), racID)
+			assert.Equal(t, "password", name)
+			assert.Equal(t, "password", typ)
+			assert.Equal(t, "pswd", val)
+			assert.Zero(t, val2)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &typ, &val, &val2))
+			assert.Zero(t, lagID)
+			assert.Zero(t, ragID)
+			assert.Equal(t, utils.NewNullInt64(100), lacID)
+			assert.Zero(t, racID)
+			assert.Equal(t, "password", name)
+			assert.Equal(t, "password_hash", typ)
+			assert.Equal(t, "pswd_hash", val)
+			assert.Zero(t, val2)
+
+			require.False(t, rows.Next())
+			require.NoError(t, rows.Err())
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have dropped the table", func(t *testing.T) {
+				row := eng.DB.QueryRow("SELECT COUNT(*) FROM credentials")
+
+				var count int64
+				require.NoError(t, row.Scan(&count))
+				assert.Zero(t, count)
+			})
+		})
+	})
+
+	return mig
+}
+
+func testVer0_9_0RemoveOldCreds(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[49]
+
+	t.Run("When applying the 0.9.0 'crypto_credentials' table removal", func(t *testing.T) {
+		// ### Local agent ###
+		eng.NoError(t, `INSERT INTO local_agents(id,owner,name,protocol,
+            address) VALUES (10,'waarp_gw','http_serv','http','localhost:2222')`)
+
+		// ### Local account ###
+		eng.NoError(t, `INSERT INTO local_accounts(id,local_agent_id,login,
+        	password_hash) VALUES (100,10,'toto','pswd_hash')`)
+
+		// ### Remote agent ###
+		eng.NoError(t, `INSERT INTO remote_agents(id,name,protocol,address)
+			VALUES (20,'sftp_part','sftp','localhost:3333')`)
+
+		// ### Remote account ###
+		eng.NoError(t, `INSERT INTO remote_accounts(id,remote_agent_id,login,
+            password) VALUES (200,20,'toto','$AES$pswd')`)
+
+		// ##### Credentials #####
+		eng.NoError(t, `INSERT INTO credentials
+    		(local_agent_id,remote_agent_id,local_account_id,remote_account_id,
+    		 name,type,value,value2) VALUES
+			( 10 ,NULL,NULL,NULL,'1_lag_cert','tls_certificate','cert1','pk1'),
+			(NULL, 20 ,NULL,NULL,'2_rag_pblk','ssh_public_key','pbk2',''),
+			(NULL,NULL,100 ,NULL,'3_lac_cert','trusted_tls_certificate','cert3',''),
+			(NULL,NULL,NULL,200 ,'4_rac_prvk','ssh_private_key','pk4',''),
+			(NULL,NULL,100 ,NULL,'5_lac_pswd','password','pswd_hash',''),
+			(NULL,NULL,NULL,200 ,'6_rac_pswd','password','pswd',''),
+			( 10 ,NULL,NULL,NULL,'7_lag_r66_cert','r66_legacy_certificate','',''),
+			(NULL, 20 ,NULL,NULL,'8_rag_r66_cert','r66_legacy_certificate','','')`)
+
+		t.Cleanup(func() {
+			eng.NoError(t, "DELETE FROM credentials")
+			eng.NoError(t, "DELETE FROM remote_accounts")
+			eng.NoError(t, "DELETE FROM local_accounts")
+			eng.NoError(t, "DELETE FROM remote_agents")
+			eng.NoError(t, "DELETE FROM local_agents")
+		})
+
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
+
+		t.Run("Then it should have deleted the 'crypto_credentials' table", func(t *testing.T) {
+			assert.False(t, doesTableExist(t, eng.DB, eng.Dialect, "crypto_credentials"))
+		})
+
+		t.Run("Then it should have deleted the account password columns", func(t *testing.T) {
+			tableShouldNotHaveColumns(t, eng.DB, "local_accounts", "password_hash")
+			tableShouldNotHaveColumns(t, eng.DB, "remote_accounts", "password")
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have restored the 'crypto_credentials' table", func(t *testing.T) {
+				rows, err := eng.DB.Query(`SELECT local_agent_id,remote_agent_id,
+   					local_account_id,remote_account_id,name,certificate,private_key,
+   					ssh_public_key FROM crypto_credentials ORDER BY name`)
+				require.NoError(t, err)
+
+				defer rows.Close()
+
+				var (
+					lagID, ragID, lacID, racID sql.NullInt64
+					name, cert, pk, pbk        string
+				)
+
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &cert, &pk, &pbk))
+				assert.Equal(t, utils.NewNullInt64(10), lagID)
+				assert.Zero(t, ragID)
+				assert.Zero(t, lacID)
+				assert.Zero(t, racID)
+				assert.Equal(t, "1_lag_cert", name)
+				assert.Equal(t, "cert1", cert)
+				assert.Equal(t, "pk1", pk)
+				assert.Zero(t, pbk)
+
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &cert, &pk, &pbk))
+				assert.Zero(t, lagID)
+				assert.Equal(t, utils.NewNullInt64(20), ragID)
+				assert.Zero(t, lacID)
+				assert.Zero(t, racID)
+				assert.Equal(t, "2_rag_pblk", name)
+				assert.Zero(t, cert)
+				assert.Zero(t, pk)
+				assert.Equal(t, "pbk2", pbk)
+
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &cert, &pk, &pbk))
+				assert.Zero(t, lagID)
+				assert.Zero(t, ragID)
+				assert.Equal(t, utils.NewNullInt64(100), lacID)
+				assert.Zero(t, racID)
+				assert.Equal(t, "3_lac_cert", name)
+				assert.Equal(t, "cert3", cert)
+				assert.Zero(t, pk)
+				assert.Zero(t, pbk)
+
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &cert, &pk, &pbk))
+				assert.Zero(t, lagID)
+				assert.Zero(t, ragID)
+				assert.Zero(t, lacID)
+				assert.Equal(t, utils.NewNullInt64(200), racID)
+				assert.Equal(t, "4_rac_prvk", name)
+				assert.Zero(t, cert)
+				assert.Equal(t, "pk4", pk)
+				assert.Zero(t, pbk)
+
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &cert, &pk, &pbk))
+				assert.Equal(t, utils.NewNullInt64(10), lagID)
+				assert.Zero(t, ragID)
+				assert.Zero(t, lacID)
+				assert.Zero(t, racID)
+				assert.Equal(t, "7_lag_r66_cert", name)
+				assert.Equal(t, compatibility.LegacyR66CertPEM, cert)
+				assert.Equal(t, compatibility.LegacyR66KeyPEM, pk)
+				assert.Zero(t, pbk)
+
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&lagID, &ragID, &lacID, &racID, &name, &cert, &pk, &pbk))
+				assert.Zero(t, lagID)
+				assert.Equal(t, utils.NewNullInt64(20), ragID)
+				assert.Zero(t, lacID)
+				assert.Zero(t, racID)
+				assert.Equal(t, "8_rag_r66_cert", name)
+				assert.Equal(t, compatibility.LegacyR66CertPEM, cert)
+				assert.Zero(t, pk)
+				assert.Zero(t, pbk)
+
+				require.False(t, rows.Next())
+				require.NoError(t, rows.Err())
+			})
+
+			t.Run("Then it should have restored the local account password column", func(t *testing.T) {
+				tableShouldHaveColumns(t, eng.DB, "local_accounts", "password_hash")
+
+				query := `SELECT password_hash FROM local_accounts WHERE id=100`
+				row := eng.DB.QueryRow(query)
+
+				var hash string
+				require.NoError(t, row.Scan(&hash))
+				assert.Equal(t, "pswd_hash", hash)
+			})
+
+			t.Run("Then it should have restored the remote account password column", func(t *testing.T) {
+				tableShouldHaveColumns(t, eng.DB, "remote_accounts", "password")
+
+				query := `SELECT password FROM remote_accounts WHERE id=200`
+				row := eng.DB.QueryRow(query)
+
+				var pswd string
+				require.NoError(t, row.Scan(&pswd))
+				assert.Equal(t, "$AES$pswd", pswd)
+			})
+		})
+	})
+
+	return mig
+}
+
+func testVer0_9_0MoveR66ServerCreds(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[50]
+
+	t.Run("When applying the 0.9.0 R66 credentials extraction", func(t *testing.T) {
+		// ### Local agents ###
+		eng.NoError(t, `
+			INSERT INTO local_agents(id,owner,name,protocol,address,proto_config)
+			VALUES (1,'waarp_gw','gw_r66_1','r66','localhost:1',
+			        '{"serverLogin":"gw_1","serverPassword":"$AES$pwd1"}'),
+			       (2,'waarp_gw','gw_r66_2','r66','localhost:2',
+			        '{"serverLogin":"gw_2","serverPassword":"$AES$pwd2"}')`)
+
+		// ### Remote agents ###
+		eng.NoError(t, `
+			INSERT INTO remote_agents(id,name,protocol,address,proto_config)
+			VALUES (3,'waarp_r66_1','r66','localhost:3',
+			        '{"serverLogin":"wr66_1","serverPassword":"pwd_hash3"}'),
+			       (4,'waarp_r66_2','r66','localhost:4',
+			        '{"serverLogin":"wr66_2","serverPassword":"pwd_hash4"}')`)
+
+		t.Cleanup(func() {
+			eng.NoError(t, `DELETE FROM remote_agents`)
+			eng.NoError(t, `DELETE FROM local_agents`)
+		})
+
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
+
+		t.Run("Then it should have extracted the credentials from the proto config", func(t *testing.T) {
+			rows, err := eng.DB.Query(`
+					SELECT local_agents.id AS id,proto_config,credentials.name,type,value
+					FROM local_agents LEFT JOIN credentials ON local_agent_id = local_agents.id
+					UNION ALL
+					SELECT remote_agents.id AS id,proto_config,credentials.name,type,value
+					FROM remote_agents LEFT JOIN credentials ON remote_agent_id = remote_agents.id
+					ORDER BY id`)
+			require.NoError(t, err)
+
+			defer rows.Close()
+
+			var (
+				id                   int
+				conf, name, typ, val string
+				checkConf            = func(tb testing.TB) {
+					tb.Helper()
+
+					var parsedConf map[string]any
+
+					require.NoError(t, json.Unmarshal([]byte(conf), &parsedConf))
+					assert.NotContains(t, parsedConf, "serverPassword")
+				}
+			)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&id, &conf, &name, &typ, &val))
+			assert.Equal(t, 1, id)
+			assert.Equal(t, "password", name)
+			assert.Equal(t, "password", typ)
+			assert.Equal(t, "pwd1", val)
+			checkConf(t)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&id, &conf, &name, &typ, &val))
+			assert.Equal(t, 2, id)
+			assert.Equal(t, "password", name)
+			assert.Equal(t, "password", typ)
+			assert.Equal(t, "pwd2", val)
+			checkConf(t)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&id, &conf, &name, &typ, &val))
+			assert.Equal(t, 3, id)
+			assert.Equal(t, "password", name)
+			assert.Equal(t, "password_hash", typ)
+			assert.Equal(t, "pwd_hash3", val)
+			checkConf(t)
+
+			require.True(t, rows.Next())
+			require.NoError(t, rows.Scan(&id, &conf, &name, &typ, &val))
+			assert.Equal(t, 4, id)
+			assert.Equal(t, "password", name)
+			assert.Equal(t, "password_hash", typ)
+			assert.Equal(t, "pwd_hash4", val)
+			checkConf(t)
+
+			require.False(t, rows.Next())
+			require.NoError(t, rows.Err())
+		})
+
+		t.Run("When reverting the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have reinserted the credentials in the proto config", func(t *testing.T) {
+				rows, err := eng.DB.Query(`SELECT id,proto_config FROM local_agents
+						UNION ALL SELECT id,proto_config FROM remote_agents
+						ORDER BY id`)
+				require.NoError(t, err)
+
+				defer rows.Close()
+
+				var (
+					id        int
+					conf      string
+					checkConf = func(tb testing.TB, expectedServPswd string) {
+						tb.Helper()
+
+						var parsedConf map[string]any
+
+						require.NoError(t, json.Unmarshal([]byte(conf), &parsedConf))
+						assert.Contains(t, parsedConf, "serverPassword")
+						assert.Equal(t, expectedServPswd, parsedConf["serverPassword"])
+					}
+				)
+
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&id, &conf))
+				assert.Equal(t, 1, id)
+				checkConf(t, "$AES$pwd1")
+
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&id, &conf))
+				assert.Equal(t, 2, id)
+				checkConf(t, "$AES$pwd2")
+
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&id, &conf))
+				assert.Equal(t, 3, id)
+				checkConf(t, "pwd_hash3")
+
+				require.True(t, rows.Next())
+				require.NoError(t, rows.Scan(&id, &conf))
+				assert.Equal(t, 4, id)
+				checkConf(t, "pwd_hash4")
+
+				require.False(t, rows.Next())
+				require.NoError(t, rows.Err())
+			})
+
+			t.Run("Then it should have deleted the credentials entries", func(t *testing.T) {
+				row := eng.DB.QueryRow(`SELECT * FROM credentials`)
+				require.ErrorIs(t, row.Scan(), sql.ErrNoRows)
+			})
+		})
+	})
+
+	return mig
+}
+
+func testVer0_9_0AddAuthorities(t *testing.T, eng *testEngine) Change {
+	mig := Migrations[51]
+
+	t.Run("When applying the 0.9.0 'authorities' table creation", func(t *testing.T) {
+		assert.False(t, doesTableExist(t, eng.DB, eng.Dialect, "auth_authorities"))
+		assert.False(t, doesTableExist(t, eng.DB, eng.Dialect, "authority_hosts"))
+
+		require.NoError(t, eng.Upgrade(mig),
+			"The migration should not fail")
+
+		t.Run("Then it should have added the tables", func(t *testing.T) {
+			require.True(t, doesTableExist(t, eng.DB, eng.Dialect, "auth_authorities"))
+			require.True(t, doesTableExist(t, eng.DB, eng.Dialect, "authority_hosts"))
+
+			tableShouldHaveColumns(t, eng.DB, "auth_authorities",
+				"id", "name", "type", "public_identity")
+			tableShouldHaveColumns(t, eng.DB, "authority_hosts",
+				"authority_id", "host")
+		})
+
+		t.Run("When reversing the migration", func(t *testing.T) {
+			require.NoError(t, eng.Downgrade(mig),
+				"Reverting the migration should not fail")
+
+			t.Run("Then it should have dropped the tables", func(t *testing.T) {
+				assert.False(t, doesTableExist(t, eng.DB, eng.Dialect, "auth_authorities"))
+				assert.False(t, doesTableExist(t, eng.DB, eng.Dialect, "authority_hosts"))
 			})
 		})
 	})

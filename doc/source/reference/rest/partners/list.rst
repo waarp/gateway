@@ -30,6 +30,8 @@ Lister les partenaires
    :resjsonarr string address: L'adresse du partenaire (en format [adresse:port])
    :resjsonarr object protoConfig: La configuration du partenaire encodé sous forme
       d'un objet JSON. Cet objet dépend du protocole.
+   :resjsonarr array authMethods: La liste des valeurs utilisées par le partenaire
+      pour s'authentifier auprès de la gateway quand celle-ci s'y connecte.
    :resjsonarr object authorizedRules: Les règles que le partenaire est autorisé à
       utiliser pour les transferts.
 
@@ -52,7 +54,7 @@ Lister les partenaires
 
          HTTP/1.1 200 OK
          Content-Type: application/json
-         Content-Length: 619
+         Content-Length: 648
 
          {
            "partners": [{
@@ -60,6 +62,7 @@ Lister les partenaires
              "protocol": "sftp",
              "address": "waarp.org:2023",
              "protoConfig": {},
+             "authMethods": ["waarp_hostkey_2"],
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],
                "reception": ["règle_récep_1", "règle_récep_2"]
@@ -69,6 +72,7 @@ Lister les partenaires
              "protocol": "sftp",
              "address": "waarp.fr:2022",
              "protoConfig": {},
+             "authMethods": ["waarp_hostkey_1"],
              "authorizedRules": {
                "sending": ["règle_envoi_1", "règle_envoi_2"],
                "reception": ["règle_récep_1", "règle_récep_2"]

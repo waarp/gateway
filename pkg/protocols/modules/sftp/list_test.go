@@ -2,6 +2,7 @@ package sftp
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"path"
 	"testing"
@@ -16,6 +17,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs"
 	"code.waarp.fr/apps/gateway/gateway/pkg/fs/fstest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
@@ -30,42 +33,54 @@ func TestSFTPList(t *testing.T) {
 		conf.GlobalConfig.Paths.GatewayHome = root
 
 		Convey("Given an SFTP server", func(c C) {
-			listener, err := net.Listen("tcp", "localhost:0")
+			port := getTestPort()
+			listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 			So(err, ShouldBeNil)
 
 			addr := listener.Addr().String()
 
 			agent := &model.LocalAgent{
-				Name:     "test_sftp_server",
-				Protocol: SFTP,
-				RootDir:  root,
-				Address:  addr,
+				Name: "test_sftp_server", Protocol: SFTP,
+				RootDir: root, Address: types.Addr("localhost", port),
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			toto := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "toto",
-				PasswordHash: hash("toto"),
 			}
 			So(db.Insert(toto).Run(), ShouldBeNil)
+
+			totoPswd := &model.Credential{
+				LocalAccountID: utils.NewNullInt64(toto.ID),
+				Type:           auth.PasswordHash,
+				Value:          "toto",
+			}
+			So(db.Insert(totoPswd).Run(), ShouldBeNil)
 
 			tata := &model.LocalAccount{
 				LocalAgentID: agent.ID,
 				Login:        "tata",
-				PasswordHash: hash("tata"),
 			}
 			So(db.Insert(tata).Run(), ShouldBeNil)
 
-			hostKey := &model.Crypto{
+			tataPswd := &model.Credential{
+				LocalAccountID: utils.NewNullInt64(tata.ID),
+				Type:           auth.PasswordHash,
+				Value:          "tata",
+			}
+			So(db.Insert(tataPswd).Run(), ShouldBeNil)
+
+			hostKey := &model.Credential{
 				LocalAgentID: utils.NewNullInt64(agent.ID),
-				Name:         "test_sftp_server_key",
-				PrivateKey:   testhelpers.RSAPk,
+				Type:         AuthSSHPrivateKey,
+				Value:        RSAPk,
 			}
 			So(db.Insert(hostKey).Run(), ShouldBeNil)
 
-			serverConfig, err := getSSHServerConfig(db, []*model.Crypto{hostKey},
-				&serverConfig{}, agent)
+			hostKey.Value = RSAPk
+			serverConfig, err := getSSHServerConfig(db, testhelpers.TestLogger(c, "sftp_test"),
+				[]*model.Credential{hostKey}, &serverConfig{}, agent)
 			So(err, ShouldBeNil)
 
 			logger := testhelpers.TestLogger(c, "test_sftp_list")

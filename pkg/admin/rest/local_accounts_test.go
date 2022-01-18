@@ -15,6 +15,9 @@ import (
 	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/authentication/auth"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/utils/testhelpers"
 )
 
@@ -31,18 +34,27 @@ func TestGetLocalAccount(t *testing.T) {
 
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
-				Name:     "parent",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "parent", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			existing := &model.LocalAccount{
 				Login:        "existing",
 				LocalAgentID: parent.ID,
-				PasswordHash: hash("existing"),
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
+
+			pswd := model.Credential{
+				LocalAccountID: utils.NewNullInt64(existing.ID),
+				Name:           "foo password",
+				Type:           auth.PasswordHash,
+				Value:          "sesame",
+			}
+			So(db.Insert(&pswd).Run(), ShouldBeNil)
+
+			rule := model.Rule{Name: "rule name", IsSend: false}
+			So(db.Insert(&rule).Run(), ShouldBeNil)
 
 			Convey("Given a request with a valid account login parameter", func() {
 				r, err := http.NewRequest(http.MethodGet, "", nil)
@@ -69,13 +81,11 @@ func TestGetLocalAccount(t *testing.T) {
 
 					Convey("Then the body should contain the requested server "+
 						"in JSON format", func() {
-						expected, err := DBLocalAccountToREST(db, existing)
-						So(err, ShouldBeNil)
-
-						exp, err := json.Marshal(expected)
-						So(err, ShouldBeNil)
-
-						So(w.Body.String(), ShouldResemble, string(exp)+"\n")
+						So(w.Body.String(), ShouldEqual, `{`+
+							`"login":"`+existing.Login+`",`+
+							`"credentials":["`+pswd.Name+`"],`+
+							`"authorizedRules":{"reception":["`+rule.Name+`"]}`+
+							"}\n")
 					})
 				})
 			})
@@ -149,14 +159,12 @@ func TestListLocalAccounts(t *testing.T) {
 
 		Convey("Given a database with 4 local accounts", func() {
 			p1 := &model.LocalAgent{
-				Name:     "parent1",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "parent1", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			p2 := &model.LocalAgent{
-				Name:     "parent2",
-				Protocol: testProto1,
-				Address:  "localhost:2",
+				Name: "parent2", Protocol: testProto1,
+				Address: types.Addr("localhost", 2),
 			}
 
 			So(db.Insert(p1).Run(), ShouldBeNil)
@@ -164,22 +172,18 @@ func TestListLocalAccounts(t *testing.T) {
 
 			a1 := &model.LocalAccount{
 				Login:        "account1",
-				PasswordHash: hash("account1"),
 				LocalAgentID: p1.ID,
 			}
 			a2 := &model.LocalAccount{
 				Login:        "account2",
-				PasswordHash: hash("account2"),
 				LocalAgentID: p1.ID,
 			}
 			a3 := &model.LocalAccount{
 				Login:        "account3",
-				PasswordHash: hash("account3"),
 				LocalAgentID: p2.ID,
 			}
 			a4 := &model.LocalAccount{
 				Login:        "account4",
-				PasswordHash: hash("account4"),
 				LocalAgentID: p1.ID,
 			}
 
@@ -298,9 +302,8 @@ func TestCreateLocalAccount(t *testing.T) {
 
 		Convey("Given a database with 1 agent", func() {
 			parent := &model.LocalAgent{
-				Name:     "parent",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "parent", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
@@ -340,15 +343,17 @@ func TestCreateLocalAccount(t *testing.T) {
 							var accs model.LocalAccounts
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
-
-							So(bcrypt.CompareHashAndPassword([]byte(accs[0].PasswordHash),
-								[]byte("new_password")), ShouldBeNil)
 							So(accs[0], ShouldResemble, &model.LocalAccount{
 								ID:           1,
 								LocalAgentID: parent.ID,
 								Login:        "new_account",
-								PasswordHash: accs[0].PasswordHash,
 							})
+
+							var pswd model.Credential
+							So(db.Get(&pswd, "local_account_id=? AND type=?",
+								accs[0].ID, auth.PasswordHash).Run(), ShouldBeNil)
+							So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
+								[]byte("new_password")), ShouldBeNil)
 						})
 					})
 				})
@@ -393,15 +398,13 @@ func TestDeleteLocalAccount(t *testing.T) {
 
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
-				Name:     "parent",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "parent", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			existing := &model.LocalAccount{
 				Login:        "existing",
-				PasswordHash: hash("existing"),
 				LocalAgentID: parent.ID,
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
@@ -494,18 +497,22 @@ func TestUpdateLocalAccount(t *testing.T) {
 
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
-				Name:     "parent",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "parent", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			old := &model.LocalAccount{
 				Login:        "old",
-				PasswordHash: hash("old"),
 				LocalAgentID: parent.ID,
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
+
+			oldPwd := &model.Credential{
+				LocalAccountID: utils.NewNullInt64(old.ID),
+				Type:           auth.PasswordHash, Value: "old_password",
+			}
+			So(db.Insert(oldPwd).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
 				body := strings.NewReader(`{
@@ -544,14 +551,17 @@ func TestUpdateLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(len(accounts), ShouldEqual, 1)
 
-						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
-							[]byte("upd_password")), ShouldBeNil)
 						So(accounts[0], ShouldResemble, &model.LocalAccount{
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
 							Login:        "old",
-							PasswordHash: accounts[0].PasswordHash,
 						})
+
+						var pswd model.Credential
+						So(db.Get(&pswd, "local_account_id=? AND type=?",
+							accounts[0].ID, auth.PasswordHash).Run(), ShouldBeNil)
+						So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
+							[]byte("upd_password")), ShouldBeNil)
 					})
 				})
 
@@ -625,18 +635,22 @@ func TestReplaceLocalAccount(t *testing.T) {
 
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
-				Name:     "parent",
-				Protocol: testProto1,
-				Address:  "localhost:1",
+				Name: "parent", Protocol: testProto1,
+				Address: types.Addr("localhost", 1),
 			}
 			So(db.Insert(parent).Run(), ShouldBeNil)
 
 			old := &model.LocalAccount{
 				Login:        "old",
-				PasswordHash: hash("old"),
 				LocalAgentID: parent.ID,
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
+
+			oldPwd := &model.Credential{
+				LocalAccountID: utils.NewNullInt64(old.ID),
+				Type:           auth.PasswordHash, Value: "old_password",
+			}
+			So(db.Insert(oldPwd).Run(), ShouldBeNil)
 
 			Convey("Given new values to update the account with", func() {
 				body := strings.NewReader(`{
@@ -675,15 +689,17 @@ func TestReplaceLocalAccount(t *testing.T) {
 						var accounts model.LocalAccounts
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(len(accounts), ShouldEqual, 1)
-
-						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
-							[]byte("upd_password")), ShouldBeNil)
 						So(accounts[0], ShouldResemble, &model.LocalAccount{
 							ID:           old.ID,
 							LocalAgentID: parent.ID,
 							Login:        "upd_login",
-							PasswordHash: accounts[0].PasswordHash,
 						})
+
+						var pswd model.Credential
+						So(db.Get(&pswd, "local_account_id=? AND type=?",
+							accounts[0].ID, auth.PasswordHash).Run(), ShouldBeNil)
+						So(bcrypt.CompareHashAndPassword([]byte(pswd.Value),
+							[]byte("upd_password")), ShouldBeNil)
 					})
 				})
 

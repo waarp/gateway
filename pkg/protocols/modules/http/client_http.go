@@ -55,8 +55,8 @@ func (h *httpClient) start() error {
 	h.logger = logging.NewLogger(h.client.Name)
 	h.transport = &http.Transport{}
 
-	if h.client.LocalAddress != "" {
-		localAddr, err := net.ResolveTCPAddr("tcp", h.client.LocalAddress)
+	if h.client.LocalAddress.IsSet() {
+		localAddr, err := net.ResolveTCPAddr("tcp", h.client.LocalAddress.String())
 		if err != nil {
 			h.logger.Error("Failed to parse the HTTP client's local address: %v", err)
 

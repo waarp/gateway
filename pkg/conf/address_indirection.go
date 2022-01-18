@@ -138,28 +138,25 @@ func GetIndirection(target string) string {
 //
 // Finally, if no match is found for the host either, this means that the given
 // address has no known indirection, and so the address is returned as is.
-func GetRealAddress(target string) (string, error) {
+func GetRealAddress(host, port string) string {
+	target := net.JoinHostPort(host, port)
+
 	if LocalOverrides == nil {
-		return target, nil
+		return target
 	}
 
 	LocalOverrides.overrideLock.RLock()
 	defer LocalOverrides.overrideLock.RUnlock()
 
-	host, port, err := net.SplitHostPort(target)
-	if err != nil {
-		return "", fmt.Errorf("failed to split the target address: %w", err)
-	}
-
 	if realAddr := LocalOverrides.ListenAddresses.addressMap[target]; realAddr != "" {
-		return realAddr, nil
+		return realAddr
 	}
 
 	if realHost := LocalOverrides.ListenAddresses.addressMap[host]; realHost != "" {
-		return net.JoinHostPort(realHost, port), nil
+		return net.JoinHostPort(realHost, port)
 	}
 
-	return target, nil
+	return target
 }
 
 // GetAllIndirections return a map containing all the address indirections present

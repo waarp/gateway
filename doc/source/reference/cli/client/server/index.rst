@@ -9,7 +9,7 @@ ajouter/modifier les serveurs sert en fait à gérer la configuration de la gate
 Une fois démarré, chaque serveur sera considéré comme un service de la gateway.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    add
    list
@@ -23,4 +23,6 @@ Une fois démarré, chaque serveur sera considéré comme un service de la gatew
    start
    stop
    restart
+   auth_add
+   auth_delete
    cert/index

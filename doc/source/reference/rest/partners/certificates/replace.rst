@@ -1,5 +1,5 @@
-Remplacer un certificat
-=======================
+[OBSOLÈTE] Remplacer un certificat
+==================================
 
 .. http:put:: /api/partners/(string:partner)/certificates/(string:cert_name)
 

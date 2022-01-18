@@ -17,11 +17,11 @@ func TestAddressIndirection(t *testing.T) {
 	Convey("Given a HTTP service with an indirect address", t, func(c C) {
 		Convey("Given a new POST HTTP transfer", func(c C) {
 			ctx := pipelinetest.InitSelfPushTransfer(c, HTTP, nil, nil, nil)
-			realAddr := ctx.Server.Address
+			realAddr := ctx.Server.Address.String()
 
 			conf.InitTestOverrides(c)
 			So(conf.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
-			ctx.Server.Address = fakeAddr
+			So(ctx.Server.Address.Set(fakeAddr), ShouldBeNil)
 			So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
 
 			ctx.StartService(c)
@@ -48,11 +48,11 @@ func TestAddressIndirection(t *testing.T) {
 
 		Convey("Given a new GET HTTP transfer", func(c C) {
 			ctx := pipelinetest.InitSelfPullTransfer(c, HTTP, nil, nil, nil)
-			realAddr := ctx.Server.Address
+			realAddr := ctx.Server.Address.String()
 
 			conf.InitTestOverrides(c)
 			So(conf.AddIndirection(fakeAddr, realAddr), ShouldBeNil)
-			ctx.Server.Address = fakeAddr
+			So(ctx.Server.Address.Set(fakeAddr), ShouldBeNil)
 			So(ctx.DB.Update(ctx.Server).Cols("address").Run(), ShouldBeNil)
 
 			ctx.StartService(c)
