@@ -34,7 +34,7 @@ func TestNewPipeline(t *testing.T) {
 					So(pip, ShouldNotBeNil)
 
 					Convey("Then the pipeline's state machine should have been initiated", func(c C) {
-						So(pip.machine.Current(), ShouldEqual, "init")
+						So(pip.machine.Current(), ShouldEqual, stateInit)
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
@@ -100,7 +100,7 @@ func TestNewPipeline(t *testing.T) {
 					So(pip, ShouldNotBeNil)
 
 					Convey("Then the pipeline's state machine should have been initiated", func(c C) {
-						So(pip.machine.Current(), ShouldEqual, "init")
+						So(pip.machine.Current(), ShouldEqual, stateInit)
 					})
 
 					Convey("Then the transfer's paths should have been initiated", func(c C) {
@@ -239,8 +239,8 @@ func TestPipelineStartData(t *testing.T) {
 
 		pip, err := newPipeline(ctx.db, logger, info)
 		So(err, ShouldBeNil)
-		So(pip.machine.Transition("pre-tasks"), ShouldBeNil)
-		So(pip.machine.Transition("pre-tasks done"), ShouldBeNil)
+		So(pip.machine.Transition(statePreTasks), ShouldBeNil)
+		So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
 		Convey("When starting the data transfer", func(c C) {
 			stream, err := pip.StartData()
@@ -313,8 +313,8 @@ func TestPipelineEndData(t *testing.T) {
 
 		pip, err := newPipeline(ctx.db, logger, info)
 		So(err, ShouldBeNil)
-		So(pip.machine.Transition("pre-tasks"), ShouldBeNil)
-		So(pip.machine.Transition("pre-tasks done"), ShouldBeNil)
+		So(pip.machine.Transition(statePreTasks), ShouldBeNil)
+		So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
 
 		Convey("When ending the data transfer", func(c C) {
 			_, err := pip.StartData()
@@ -373,14 +373,12 @@ func TestPipelinePostTasks(t *testing.T) {
 
 		pip, err := newPipeline(ctx.db, logger, info)
 		So(err, ShouldBeNil)
-		So(pip.machine.Transition("pre-tasks"), ShouldBeNil)
-		So(pip.machine.Transition("pre-tasks done"), ShouldBeNil)
-		So(pip.machine.Transition("start data"), ShouldBeNil)
-		So(pip.machine.Transition("writing"), ShouldBeNil)
-		So(pip.machine.Transition("end data"), ShouldBeNil)
-		So(pip.machine.Transition("close"), ShouldBeNil)
-		So(pip.machine.Transition("move"), ShouldBeNil)
-		So(pip.machine.Transition("data ended"), ShouldBeNil)
+		So(pip.machine.Transition(statePreTasks), ShouldBeNil)
+		So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+		So(pip.machine.Transition(stateStartData), ShouldBeNil)
+		So(pip.machine.Transition(stateWriting), ShouldBeNil)
+		So(pip.machine.Transition(stateDataEnd), ShouldBeNil)
+		So(pip.machine.Transition(stateDataEndDone), ShouldBeNil)
 
 		Convey("When calling the post-tasks", func(c C) {
 			So(pip.PostTasks(), ShouldBeNil)

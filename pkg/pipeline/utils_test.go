@@ -209,9 +209,9 @@ func initFilestream(ctx *testContext, logger *log.Logger, transCtx *model.Transf
 	pip, err := newPipeline(ctx.db, logger, transCtx)
 	So(err, ShouldBeNil)
 
-	So(pip.machine.Transition("pre-tasks"), ShouldBeNil)
-	So(pip.machine.Transition("pre-tasks done"), ShouldBeNil)
-	So(pip.machine.Transition("start data"), ShouldBeNil)
+	So(pip.machine.Transition(statePreTasks), ShouldBeNil)
+	So(pip.machine.Transition(statePreTasksDone), ShouldBeNil)
+	So(pip.machine.Transition(stateStartData), ShouldBeNil)
 
 	stream, err := newFileStream(pip, time.Nanosecond, false)
 	So(err, ShouldBeNil)

@@ -14,6 +14,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
@@ -59,9 +60,9 @@ func newFileStream(pipeline *Pipeline, updateInterval time.Duration, isResume bo
 
 	var mErr error
 	if stream.TransCtx.Rule.IsSend {
-		mErr = stream.machine.Transition(internal.PipelineReadState)
+		mErr = stream.machine.Transition(stateReading)
 	} else {
-		mErr = stream.machine.Transition(internal.PipelineWriteState)
+		mErr = stream.machine.Transition(stateWriting)
 	}
 
 	if mErr != nil {
@@ -93,7 +94,7 @@ func (f *fileStream) updateProgress() *types.TransferError {
 }
 
 func (f *fileStream) Read(p []byte) (int, error) {
-	if curr := f.machine.Current(); curr != internal.PipelineReadState {
+	if curr := f.machine.Current(); curr != stateReading {
 		f.handleStateErr("Read", curr)
 
 		return 0, errStateMachine
@@ -123,7 +124,7 @@ func (f *fileStream) Read(p []byte) (int, error) {
 }
 
 func (f *fileStream) Write(p []byte) (int, error) {
-	if curr := f.machine.Current(); curr != internal.PipelineWriteState {
+	if curr := f.machine.Current(); curr != stateWriting {
 		f.handleStateErr("Write", curr)
 
 		return 0, errStateMachine
@@ -150,7 +151,7 @@ func (f *fileStream) Write(p []byte) (int, error) {
 
 // ReadAt reads the stream, starting at the given offset.
 func (f *fileStream) ReadAt(p []byte, off int64) (int, error) {
-	if curr := f.machine.Current(); curr != internal.PipelineReadState {
+	if curr := f.machine.Current(); curr != stateReading {
 		f.handleStateErr("ReadAt", curr)
 
 		return 0, errStateMachine
@@ -181,7 +182,7 @@ func (f *fileStream) ReadAt(p []byte, off int64) (int, error) {
 
 // WriteAt writes the given bytes to the stream, starting at the given offset.
 func (f *fileStream) WriteAt(p []byte, off int64) (int, error) {
-	if curr := f.machine.Current(); curr != internal.PipelineWriteState {
+	if curr := f.machine.Current(); curr != stateWriting {
 		f.handleStateErr("WriteAt", curr)
 
 		return 0, errStateMachine
@@ -206,14 +207,14 @@ func (f *fileStream) WriteAt(p []byte, off int64) (int, error) {
 	return n, errWrite
 }
 
-func (f *fileStream) handleStateErr(fun, currentState string) {
+func (f *fileStream) handleStateErr(fun string, currentState statemachine.State) {
 	f.handleError(types.TeInternal, "File stream state machine violation",
 		fmt.Sprintf("cannot call %s while in state %s", fun, currentState))
 }
 
 func (f *fileStream) handleError(code types.TransferErrorCode, msg, cause string) {
 	f.errOnce.Do(func() {
-		if mErr := f.machine.Transition("error"); mErr != nil {
+		if mErr := f.machine.Transition(stateError); mErr != nil {
 			f.Logger.Warningf("Failed to transition to state 'error': %v", mErr)
 		}
 
@@ -242,7 +243,7 @@ func (f *fileStream) handleError(code types.TransferErrorCode, msg, cause string
 				f.Logger.Errorf("Failed to update transfer status to ERROR: %s", dbErr)
 			}
 
-			if err := f.machine.Transition("in error"); err != nil {
+			if err := f.machine.Transition(stateInError); err != nil {
 				f.handleStateErr("ErrorDone", f.machine.Current())
 
 				return
@@ -253,7 +254,7 @@ func (f *fileStream) handleError(code types.TransferErrorCode, msg, cause string
 
 // close closes the file and stops the progress tracker.
 func (f *fileStream) close() *types.TransferError {
-	if err := f.machine.Transition("close"); err != nil {
+	if curr := f.machine.Current(); curr != stateDataEnd {
 		f.handleStateErr("close", f.machine.Current())
 
 		return errStateMachine
@@ -289,7 +290,7 @@ func (f *fileStream) close() *types.TransferError {
 // (if the file is the transfer's destination). The method returns an error if
 // the file cannot be moved.
 func (f *fileStream) move() *types.TransferError {
-	if err := f.machine.Transition("move"); err != nil {
+	if curr := f.machine.Current(); curr != stateDataEnd {
 		f.handleStateErr("move", f.machine.Current())
 
 		return errStateMachine

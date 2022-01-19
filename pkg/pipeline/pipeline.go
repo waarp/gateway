@@ -12,6 +12,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/internal"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tasks"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/statemachine"
 )
 
 var (
@@ -40,7 +41,7 @@ type Pipeline struct {
 	Logger   *log.Logger
 	Stream   TransferStream
 
-	machine *internal.Machine
+	machine *statemachine.Machine
 	errOnce sync.Once
 
 	runner *tasks.Runner
@@ -96,7 +97,7 @@ func newPipeline(db *database.DB, logger *log.Logger, transCtx *model.TransferCo
 		DB:       db,
 		Logger:   logger,
 		TransCtx: transCtx,
-		machine:  internal.PipelineSateMachine.New(),
+		machine:  pipelineSateMachine.New(),
 		Stream:   nil,
 		runner:   runner,
 	}, nil
@@ -120,14 +121,14 @@ func (p *Pipeline) UpdateTrans(cols ...string) *types.TransferError {
 //
 // When resuming a transfer, tasks already successfully executed will be skipped.
 func (p *Pipeline) PreTasks() *types.TransferError {
-	if err := p.machine.Transition("pre-tasks"); err != nil {
+	if err := p.machine.Transition(statePreTasks); err != nil {
 		p.handleStateErr("PreTasks", p.machine.Current())
 
 		return errStateMachine
 	}
 
 	if p.TransCtx.Transfer.Step > types.StepPreTasks {
-		if err := p.machine.Transition("pre-tasks done"); err != nil {
+		if err := p.machine.Transition(statePreTasksDone); err != nil {
 			p.handleStateErr("PreTasksDone", p.machine.Current())
 
 			return errStateMachine
@@ -150,7 +151,7 @@ func (p *Pipeline) PreTasks() *types.TransferError {
 		return types.NewTransferError(types.TeExternalOperation, "pre-tasks failed")
 	}
 
-	if err := p.machine.Transition("pre-tasks done"); err != nil {
+	if err := p.machine.Transition(statePreTasksDone); err != nil {
 		p.handleStateErr("PreTasksDone", p.machine.Current())
 
 		return errStateMachine
@@ -163,7 +164,7 @@ func (p *Pipeline) PreTasks() *types.TransferError {
 // TransferStream and returns it. In the case of a retry, the data transfer will
 // resume at the offset indicated by the Transfer.Progress field.
 func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
-	if err := p.machine.Transition("start data"); err != nil {
+	if err := p.machine.Transition(stateStartData); err != nil {
 		p.handleStateErr("StartData", p.machine.Current())
 
 		return nil, errStateMachine
@@ -211,7 +212,7 @@ func (p *Pipeline) StartData() (TransferStream, *types.TransferError) {
 // TransferStream, and moves the file (when needed) from it's temporary location
 // to its final destination.
 func (p *Pipeline) EndData() *types.TransferError {
-	if err := p.machine.Transition("end data"); err != nil {
+	if err := p.machine.Transition(stateDataEnd); err != nil {
 		p.handleStateErr("EndData", p.machine.Current())
 
 		return errStateMachine
@@ -233,7 +234,7 @@ func (p *Pipeline) EndData() *types.TransferError {
 		}
 	}
 
-	if err := p.machine.Transition("data ended"); err != nil {
+	if err := p.machine.Transition(stateDataEndDone); err != nil {
 		p.handleStateErr("EndDataDone", p.machine.Current())
 
 		return errStateMachine
@@ -248,14 +249,14 @@ func (p *Pipeline) EndData() *types.TransferError {
 //
 // When resuming a transfer, tasks already successfully executed will be skipped.
 func (p *Pipeline) PostTasks() *types.TransferError {
-	if err := p.machine.Transition("post-tasks"); err != nil {
+	if err := p.machine.Transition(statePostTasks); err != nil {
 		p.handleStateErr("PostTasks", p.machine.Current())
 
 		return errStateMachine
 	}
 
 	if p.TransCtx.Transfer.Step > types.StepPostTasks {
-		if err := p.machine.Transition("post-tasks done"); err != nil {
+		if err := p.machine.Transition(statePostTasksDone); err != nil {
 			p.handleStateErr("PostTasksDone", p.machine.Current())
 
 			return errStateMachine
@@ -278,7 +279,7 @@ func (p *Pipeline) PostTasks() *types.TransferError {
 		return types.NewTransferError(types.TeExternalOperation, "post-tasks failed")
 	}
 
-	if err := p.machine.Transition("post-tasks done"); err != nil {
+	if err := p.machine.Transition(statePostTasksDone); err != nil {
 		p.handleStateErr("PostTasksDone", p.machine.Current())
 
 		return errStateMachine
@@ -290,7 +291,7 @@ func (p *Pipeline) PostTasks() *types.TransferError {
 // EndTransfer signals that the transfer has ended normally, and archives in the
 // transfer history.
 func (p *Pipeline) EndTransfer() *types.TransferError {
-	if err := p.machine.Transition("end transfer"); err != nil {
+	if err := p.machine.Transition(stateEndTransfer); err != nil {
 		p.handleStateErr("EndTransfer", p.machine.Current())
 
 		return errStateMachine
@@ -307,7 +308,7 @@ func (p *Pipeline) EndTransfer() *types.TransferError {
 		return errDatabase
 	}
 
-	if err := p.machine.Transition("all done"); err != nil {
+	if err := p.machine.Transition(stateAllDone); err != nil {
 		p.handleStateErr("Done", p.machine.Current())
 
 		return errStateMachine
@@ -348,7 +349,7 @@ func (p *Pipeline) errorTasks() {
 }
 
 func (p *Pipeline) errDo(code types.TransferErrorCode, msg, cause string) {
-	if err := p.machine.Transition("error"); err != nil {
+	if err := p.machine.Transition(stateError); err != nil {
 		p.Logger.Critical(err.Error())
 
 		return
@@ -373,7 +374,7 @@ func (p *Pipeline) errDo(code types.TransferErrorCode, msg, cause string) {
 			p.Logger.Errorf("Failed to update transfer status to ERROR: %s", dbErr)
 		}
 
-		if err := p.machine.Transition("in error"); err != nil {
+		if err := p.machine.Transition(stateInError); err != nil {
 			p.Logger.Critical(err.Error())
 
 			return
@@ -391,7 +392,7 @@ func (p *Pipeline) handleError(code types.TransferErrorCode, msg, cause string) 
 	})
 }
 
-func (p *Pipeline) handleStateErr(fun, currentState string) {
+func (p *Pipeline) handleStateErr(fun string, currentState statemachine.State) {
 	p.handleError(types.TeInternal, "Pipeline state machine violation", fmt.Sprintf(
 		"cannot call %s while in state %s", fun, currentState))
 }
@@ -406,9 +407,9 @@ func (p *Pipeline) SetError(err *types.TransferError) {
 
 func (p *Pipeline) stop() {
 	switch p.machine.Current() {
-	case "pre-tasks", "post-tasks":
+	case statePreTasks, statePostTasks:
 		p.runner.Stop()
-	case "reading", "writing", "close":
+	case stateReading, stateWriting, stateDataEnd:
 		p.Stream.stop()
 	}
 }
@@ -432,7 +433,7 @@ func (p *Pipeline) halt(msg string, status types.TransferStatus, handles ...func
 		p.Logger.Info(msg)
 		p.stop()
 
-		if mErr := p.machine.Transition("error"); mErr != nil {
+		if mErr := p.machine.Transition(stateError); mErr != nil {
 			p.Logger.Warningf("Failed to transition to 'error' state: %v", mErr)
 		}
 
@@ -441,7 +442,7 @@ func (p *Pipeline) halt(msg string, status types.TransferStatus, handles ...func
 			p.Logger.Errorf("Failed to update transfer status to %v: %s", status, err)
 		}
 
-		if mErr := p.machine.Transition("in error"); mErr != nil {
+		if mErr := p.machine.Transition(stateInError); mErr != nil {
 			p.Logger.Warningf("Failed to transition to 'in error' state: %v", mErr)
 		}
 
@@ -461,7 +462,7 @@ func (p *Pipeline) Cancel(handles ...func()) {
 		p.Logger.Info("Transfer canceled by user")
 		p.stop()
 
-		if mErr := p.machine.Transition("error"); mErr != nil {
+		if mErr := p.machine.Transition(stateError); mErr != nil {
 			p.Logger.Warningf("Failed to transition to 'error' state: %v", mErr)
 		}
 
@@ -470,7 +471,7 @@ func (p *Pipeline) Cancel(handles ...func()) {
 			p.Logger.Errorf("Failed to move canceled transfer to history: %s", err)
 		}
 
-		if mErr := p.machine.Transition("in error"); mErr != nil {
+		if mErr := p.machine.Transition(stateInError); mErr != nil {
 			p.Logger.Warningf("Failed to transition to 'in error' state: %v", mErr)
 		}
 
