@@ -12,7 +12,7 @@ import (
 func TestLoadServerConfig(t *testing.T) {
 	directContent := []byte(`[Log]
 LogTo = stdout
-Level = direct-bar
+Level = INFO
 
 [Admin]
 Host = direct-address

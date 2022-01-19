@@ -11,12 +11,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
-func initImportExport(configFile string, verbose []bool) (*database.DB, error) {
-	config, err := conf.LoadServerConfig(configFile)
-	if err != nil {
-		return nil, fmt.Errorf("cannot load server config: %w", err)
-	}
-
+func makeLogConf(verbose []bool) conf.LogConfig {
 	logConf := conf.LogConfig{LogTo: "/dev/null"}
 
 	switch len(verbose) {
@@ -29,18 +24,29 @@ func initImportExport(configFile string, verbose []bool) (*database.DB, error) {
 		logConf = conf.LogConfig{LogTo: "stderr", Level: "DEBUG"}
 	}
 
-	if err2 := log.InitBackend(logConf.Level, logConf.LogTo, ""); err2 != nil {
-		return nil, fmt.Errorf("cannot initialize log backend: %w", err2)
+	return logConf
+}
+
+func initImportExport(configFile string, verbose []bool) (*database.DB, *log.Logger, error) {
+	config, err := conf.InitServerConfig(configFile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot load server config: %w", err)
+	}
+
+	config.Log = makeLogConf(verbose)
+
+	if err2 := log.InitBackend(config.Log.Level, config.Log.LogTo, ""); err2 != nil {
+		return nil, nil, fmt.Errorf("cannot initialize log backend: %w", err2)
 	}
 
 	db := &database.DB{Conf: config}
 
 	err = db.Start()
 	if err != nil {
-		return nil, fmt.Errorf("cannot start database: %w", err)
+		return nil, nil, fmt.Errorf("cannot start database: %w", err)
 	}
 
-	return db, nil
+	return db, log.NewLogger("Import/Export"), nil
 }
 
 //nolint:lll // tags can be long for flags
@@ -53,7 +59,7 @@ type importCommand struct {
 }
 
 func (i *importCommand) Execute([]string) error {
-	db, err := initImportExport(i.ConfigFile, i.Verbose)
+	db, logger, err := initImportExport(i.ConfigFile, i.Verbose)
 	if err != nil {
 		return fmt.Errorf("error at init: %w", err)
 	}
@@ -67,14 +73,19 @@ func (i *importCommand) Execute([]string) error {
 			return fmt.Errorf("failed to open file: %w", err)
 		}
 
-		defer func() { _ = f.Close() }() //nolint:errcheck,gosec // Close() must be deferred
+		//nolint:gosec //close must be deferred here
+		defer func() {
+			if err := f.Close(); err != nil {
+				logger.Warningf("Error while closing the source file: %s", err)
+			}
+		}()
 	}
 
 	if err := backup.ImportData(db, f, i.Target, i.Dry); err != nil {
 		return fmt.Errorf("error at import: %w", err)
 	}
 
-	fmt.Fprintln(os.Stderr, "Import successful.")
+	logger.Info("Import successful.")
 
 	return nil
 }

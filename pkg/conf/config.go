@@ -42,7 +42,7 @@ type PathsConfig struct {
 //nolint:lll // cannot split struct tags
 type LogConfig struct {
 	Level          string `ini-name:"Level" default:"INFO" description:"All messages with a severity above this level will be logged. Possible values are DEBUG, INFO, WARNING, ERROR and CRITICAL."`
-	LogTo          string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout' and 'syslog' log respectively to the standard output and to the syslog daemon"`
+	LogTo          string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout', 'stderr' and 'syslog' log respectively to the standard output, standard error output, and to the syslog daemon"`
 	SyslogFacility string `ini-name:"SyslogFacility" default:"local0" description:"If LogTo is set on 'syslog', the logs will be written to this facility."`
 }
 
@@ -113,13 +113,7 @@ func normalizePaths(configFile *ServerConfig, logger *log.Logger) error {
 	return nil
 }
 
-// LoadServerConfig creates a configuration object.
-// It tries to read configuration files from common places to populate the
-// configuration object (paths are relative to cwd):
-// - gatewayd.ini,
-// - etc/gatewayd.ini,
-// - /etc/waarp/gatewayd.ini.
-func LoadServerConfig(userConfig string) (*ServerConfig, error) {
+func InitServerConfig(userConfig string) (*ServerConfig, error) {
 	c := &ServerConfig{}
 
 	p, err := config.NewParser(c)
@@ -135,6 +129,21 @@ func LoadServerConfig(userConfig string) (*ServerConfig, error) {
 		if err := loadDefaultConfig(p); err != nil {
 			return nil, err
 		}
+	}
+
+	return c, nil
+}
+
+// LoadServerConfig creates a configuration object.
+// It tries to read configuration files from common places to populate the
+// configuration object (paths are relative to cwd):
+// - gatewayd.ini,
+// - etc/gatewayd.ini,
+// - /etc/waarp/gatewayd.ini.
+func LoadServerConfig(userConfig string) (*ServerConfig, error) {
+	c, err := InitServerConfig(userConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	if err := log.InitBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility); err != nil {
