@@ -1598,7 +1598,7 @@ func TestListCertificate(t *testing.T) {
 }
 
 func TestUpdateCertificate(t *testing.T) {
-	Convey("Testing the certificate 'delete' command", t, func() {
+	Convey("Testing the certificate 'update' command", t, func() {
 		out = testFile()
 		command := &certUpdate{}
 		commandLine = options{}
