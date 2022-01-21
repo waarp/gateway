@@ -242,7 +242,7 @@ func TestSelfPushServerPreTasksFail(t *testing.T) {
 				ctx.CheckClientTransferError(c,
 					types.TeExternalOperation,
 					"Error on remote partner: pre-tasks failed",
-					types.StepData, types.StepPostTasks)
+					types.StepSetup, types.StepPreTasks, types.StepData, types.StepPostTasks)
 				ctx.CheckServerTransferError(c,
 					types.TeExternalOperation,
 					"Pre-tasks failed: Task TASKERR @ PUSH PRE[1]: task failed",
