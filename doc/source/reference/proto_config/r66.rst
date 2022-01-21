@@ -1,3 +1,5 @@
+.. _proto-config-r66:
+
 Configuration R66
 #################
 

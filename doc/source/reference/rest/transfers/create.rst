@@ -10,8 +10,10 @@ Programmer un transfert
 
    :reqjson bool isServer: Précise si la gateway était à l'origine du transfert
    :reqjson string rule: L'identifiant de la règle utilisée
-   :reqjson string requester: Le nom du compte ayant demandé le transfert
-   :reqjson string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
+   :reqjson bool isSend: Indique le transfert est un envoi (``true``) ou une
+     réception (``false``).
+   :reqjson string account: Le nom du compte ayant demandé le transfert
+   :reqjson string partner: Le nom du serveur/partenaire auquel le transfert a été demandé
    :reqjson string sourcePath: Le chemin du fichier source (OBSOLÈTE: remplacé par 'file')
    :reqjson string destPath: Le chemin de destination du fichier (OBSOLÈTE: remplacé par 'file')
    :reqjson string file: Le nom du fichier à transférer
@@ -38,10 +40,9 @@ Programmer un transfert
          {
            "isServer": false,
            "rule": "règle_1",
-           "requester": "toto",
-           "requested": "waarp_sftp",
-           "sourcePath": "chemin/du/fichier",
-           "destPath": "chemin/de/destination",
+           "account": "toto",
+           "partner": "waarp_sftp",
+           "file": "chemin/du/fichier",
            "start": "2019-01-01T02:00:00+02:00"
          }
 

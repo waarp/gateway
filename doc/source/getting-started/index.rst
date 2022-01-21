@@ -8,6 +8,7 @@ Premiers pas
 
    intro
    start
+   folders
    sftp-receive
    r66-send
    rebound

@@ -4,6 +4,8 @@ Historique des versions
 =======================
 
 * :release:`0.5.0 <>`
+* :feature:`247` Ajout d'un client et d'un serveur HTTP/S à la *gateway*. Il est
+  donc désormais possible d'effectuer des transferts via ces 2 protocoles.
 * :feature:`194` Dépréciation des champs REST ``sourceFilename`` et ``destFilename``
   de l'objet JSON *history*, remplacés par les champs ``localFilepath`` et
   ``remoteFilepath``.
@@ -143,7 +145,7 @@ Historique des versions
 * :release:`0.3.3 <2021-04-07>`
 * :bug:`251` Corrige le problème de création du fichier distant en SFTP
   lorsque le serveur refuse l'ouverture de fichier en écriture ET en lecture.
-* :bug:`251` Corrige un problème du script d'updateconf qui sort en erreur
+* :bug:`251` Corrige un problème du script d'update-conf qui sort en erreur
   si les fichiers optionnels ne sont pas dans l'archive de déploiement.
 
 * :release:`0.3.2 <2021-04-06>`
@@ -233,6 +235,7 @@ Historique des versions
   resteront désormais dans la table ``transfers`` au lieu d'être déplacés dans
   la table ``transfer_history``. Cette dernière ne contiendra donc que les
   transferts terminés ou annulés. Ce changement a 2 conséquences:
+
   - Il est désormais possible de redémarrer n'importe quel transfert de l'historique
     via la commande ``history retry`` (ou le point d'accès REST ``/api/history/{id}/retry``).
     En revanche, ceux-ci reprendront dorénavant depuis le début avec un nouvel

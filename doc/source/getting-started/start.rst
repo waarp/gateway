@@ -11,9 +11,9 @@ Celle-ci peut être trouvée dans le fichier
 
 .. seealso::
 
-   La documentation complète du fichier de configuration est disponible
-   :any:`ici <configuration-file>`.
 
+La documentation complète du fichier de configuration est disponible
+:any:`ici <configuration-file>`.
 Après l'installation, la Gateway n'est pas démarrée. Lançons le service avec la
 commande :
 
@@ -68,4 +68,3 @@ la variable d'environnement :envvar:`WAARP_GATEWAY_ADDRESS` :
    [Active]  Admin
    [Active]  Controller
    [Active]  Database
-

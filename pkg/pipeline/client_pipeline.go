@@ -27,7 +27,7 @@ type ClientPipeline struct {
 // NewClientPipeline initializes and returns a new ClientPipeline for the given
 // transfer.
 func NewClientPipeline(db *database.DB, trans *model.Transfer) (*ClientPipeline, *types.TransferError) {
-	logger := log.NewLogger(fmt.Sprintf("Pipeline %d", trans.ID))
+	logger := log.NewLogger(fmt.Sprintf("Pipeline %d (client)", trans.ID))
 
 	transCtx, err := model.GetTransferContext(db, logger, trans)
 	if err != nil {

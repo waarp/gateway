@@ -38,7 +38,7 @@ Glossaire
    compte local
    (*local account*)
       Un compte local désigne les identifiants avec lesquels un agent extérieur
-      s'authentifie auprès d'un serveur local de la *gateway*. Les comptes distants
+      s'authentifie auprès d'un serveur local de la *gateway*. Les comptes locaux
       représentent donc l'ensemble des agents externes qui peuvent initier
       un transfert avec la gateway.
 

@@ -1,6 +1,7 @@
 package gatewayd
 
 import (
+	"code.waarp.fr/apps/gateway/gateway/pkg/http"
 	"code.waarp.fr/apps/gateway/gateway/pkg/r66"
 	"code.waarp.fr/apps/gateway/gateway/pkg/sftp"
 )
@@ -16,4 +17,6 @@ var ServiceConstructors = map[string]serviceConstructor{}
 func init() {
 	ServiceConstructors["sftp"] = sftp.NewService
 	ServiceConstructors["r66"] = r66.NewService
+	ServiceConstructors["http"] = http.NewService
+	ServiceConstructors["https"] = http.NewService
 }

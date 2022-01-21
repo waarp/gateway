@@ -32,7 +32,7 @@ Paramètres de connexion
       Comme la validation du certificat serveur n'est plus faite, le client fait
       aveuglément confiance au serveur.
 
-      Celapeut reprensenter une faille de sécurité si vous n'êtes pas absolument
+      Cela peut représenter une faille de sécurité si vous n'êtes pas absolument
       certain du serveur quand vous utilisez cette option.
 
 

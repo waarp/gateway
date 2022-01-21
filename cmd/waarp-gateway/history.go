@@ -16,7 +16,7 @@ import (
 type historyCommand struct {
 	Get     historyGet   `command:"get" description:"Consult a finished transfer"`
 	List    historyList  `command:"list" description:"List the finished transfers"`
-	Restart historyRetry `command:"retry" description:"Retry a failed transfer"`
+	Restart historyRetry `command:"retry" description:"Reprogram a canceled transfer"`
 }
 
 func displayHistory(w io.Writer, hist *api.OutHistory) {
