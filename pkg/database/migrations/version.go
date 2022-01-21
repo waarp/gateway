@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/version"
 )
 
 var errUnsuportedDB = errors.New("unsupported database")
 
+// bumpVersion is a migration scripts which bump the database version from a
+// given version to another.
 type bumpVersion struct{ from, to string }
 
 func (b bumpVersion) Up(db migration.Actions) error {
@@ -68,4 +71,10 @@ func checkVersionTableExist(db *sql.DB, dialect string) (bool, error) {
 	default:
 		return false, fmt.Errorf("unknown SQL dialect %s: %w", dialect, errUnsuportedDB)
 	}
+}
+
+// BumpToCurrent returns a migration script to bump the database version to the
+// current program version. Use only for testing.
+func BumpToCurrent() []migration.Migration {
+	return []migration.Migration{{Script: bumpVersion{to: version.Num}}}
 }

@@ -23,19 +23,44 @@ La section ``[path]`` contient les différents chemins de la gateway.
 
 .. confval:: InDirectory
 
+   *[OBSOLÈTE]: remplacé par ``DefaultInDir``*
+
    Le dossier dans lequel sont déposés les fichiers reçus. Par défaut, la racine
    de la *gateway* est utilisée à la place.
 
 .. confval:: OutDirectory
+
+   *[OBSOLÈTE]: remplacé par ``DefaultOutDir``*
 
    Le dossier dans lequel les fichiers à envoyer sont cherchés. Par défaut,
    la racine de la *gateway* est utilisée à la place.
 
 .. confval:: WorkDirectory
 
+   *[OBSOLÈTE]: remplacé par ``DefaultTmpDir``*
+
    Le dossier dans lequel les fichiers en cours de réception sont déposés avant
    d'être déplacés dans le ``InDirectory``. Par défaut, la racine de la *gateway*
    est utilisée à la place.
+
+.. confval:: DefaultInDirectory
+
+   Le dossier par défaut dans lequel sont déposés les fichiers reçus si le serveur
+   et la règle concernés ne spécifient pas ce dossier de réception. Par défaut,
+   un dossier 'in' est créé à cet effet sous la racine de la *Gateway*.
+
+.. confval:: DefaultOutDirectory
+
+   Le dossier par défaut depuis lequel sont récupérés les fichiers à envoyer si
+   le serveur et la règle concernés ne spécifient pas ce dossier d'envoi. Par
+   défaut, un dossier 'out' est créé à cet effet sous la racine de la *Gateway*.
+
+.. confval:: DefaultTmpDirectory
+
+   Le dossier par défaut dans lequel sont déposés les fichiers en cours de réception
+   (avant dépôt dans le dossier de réception *in*) si le serveur et la règle
+   concernés ne spécifient pas ce dossier temporaire. Par défaut, un dossier
+   'tmp' est créé à cet effet sous la racine de la *Gateway*.
 
 Section ``[log]``
 =================

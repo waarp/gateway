@@ -103,15 +103,15 @@ func TestPermMiddleware(t *testing.T) {
 		db := database.TestDatabase(c, "ERROR")
 
 		success := model.User{
-			Username:    "success",
-			Password:    []byte("success"),
-			Permissions: model.PermAll,
+			Username:     "success",
+			PasswordHash: hash("success"),
+			Permissions:  model.PermAll,
 		}
 		So(db.Insert(&success).Run(), ShouldBeNil)
 		fail := model.User{
-			Username:    "fail",
-			Password:    []byte("fail"),
-			Permissions: 0,
+			Username:     "fail",
+			PasswordHash: hash("fail"),
+			Permissions:  0,
 		}
 		So(db.Insert(&fail).Run(), ShouldBeNil)
 
@@ -132,7 +132,7 @@ func TestPermMiddleware(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("If the user is authorized", func() {
-					r.SetBasicAuth(success.Username, string(success.Password))
+					r.SetBasicAuth(success.Username, success.PasswordHash)
 
 					Convey("Then it should reply 'OK'", func() {
 						router.ServeHTTP(w, r)
@@ -145,7 +145,7 @@ func TestPermMiddleware(t *testing.T) {
 				})
 
 				Convey("If the user is NOT authorized", func() {
-					r.SetBasicAuth(fail.Username, string(fail.Password))
+					r.SetBasicAuth(fail.Username, fail.PasswordHash)
 
 					Convey("Then it should reply 'FORBIDDEN'", func() {
 						router.ServeHTTP(w, r)

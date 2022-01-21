@@ -6,36 +6,75 @@ import (
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func newInServer(old *model.LocalAgent) *api.InServer {
 	return &api.InServer{
-		Name:        &old.Name,
-		Protocol:    &old.Protocol,
-		Address:     &old.Address,
-		Root:        &old.Root,
-		InDir:       &old.InDir,
-		OutDir:      &old.OutDir,
-		WorkDir:     &old.WorkDir,
-		ProtoConfig: old.ProtoConfig,
+		Name:          &old.Name,
+		Protocol:      &old.Protocol,
+		Address:       &old.Address,
+		RootDir:       &old.RootDir,
+		ReceiveDir:    &old.ReceiveDir,
+		SendDir:       &old.SendDir,
+		TmpReceiveDir: &old.TmpReceiveDir,
+		ProtoConfig:   old.ProtoConfig,
 	}
 }
 
 // servToDB transforms the JSON local agent into its database equivalent.
-func servToDB(serv *api.InServer, id uint64) *model.LocalAgent {
+func servToDB(serv *api.InServer, serverID uint64, logger *log.Logger) *model.LocalAgent {
+	root := str(serv.RootDir)
+	sndDir := str(serv.SendDir)
+	rcvDir := str(serv.ReceiveDir)
+	tmpDir := str(serv.TmpReceiveDir)
+
+	if serv.Root != nil {
+		logger.Warning("JSON field 'root' is deprecated, use 'rootDir' instead")
+
+		if root == "" {
+			root = utils.DenormalizePath(str(serv.Root))
+		}
+	}
+
+	if serv.InDir != nil {
+		logger.Warning("JSON field 'inDir' is deprecated, use 'receiveDir' instead")
+
+		if rcvDir == "" {
+			rcvDir = utils.DenormalizePath(str(serv.InDir))
+		}
+	}
+
+	if serv.OutDir != nil {
+		logger.Warning("JSON field 'outDir' is deprecated, use 'sendDir' instead")
+
+		if sndDir == "" {
+			sndDir = utils.DenormalizePath(str(serv.OutDir))
+		}
+	}
+
+	if serv.WorkDir != nil {
+		logger.Warning("JSON field 'workDir' is deprecated, use 'tmpLocalRcvDir' instead")
+
+		if tmpDir == "" {
+			tmpDir = utils.DenormalizePath(str(serv.WorkDir))
+		}
+	}
+
 	return &model.LocalAgent{
-		ID:          id,
-		Owner:       database.Owner,
-		Name:        str(serv.Name),
-		Address:     str(serv.Address),
-		Root:        str(serv.Root),
-		InDir:       str(serv.InDir),
-		OutDir:      str(serv.OutDir),
-		WorkDir:     str(serv.WorkDir),
-		Protocol:    str(serv.Protocol),
-		ProtoConfig: serv.ProtoConfig,
+		ID:            serverID,
+		Owner:         database.Owner,
+		Name:          str(serv.Name),
+		Address:       str(serv.Address),
+		RootDir:       root,
+		ReceiveDir:    rcvDir,
+		SendDir:       sndDir,
+		TmpReceiveDir: tmpDir,
+		Protocol:      str(serv.Protocol),
+		ProtoConfig:   serv.ProtoConfig,
 	}
 }
 
@@ -66,10 +105,14 @@ func FromLocalAgent(ag *model.LocalAgent, rules *api.AuthorizedRules) *api.OutSe
 		Name:            ag.Name,
 		Protocol:        ag.Protocol,
 		Address:         ag.Address,
-		Root:            ag.Root,
-		InDir:           ag.InDir,
-		OutDir:          ag.OutDir,
-		WorkDir:         ag.WorkDir,
+		Root:            utils.NormalizePath(ag.RootDir),
+		RootDir:         ag.RootDir,
+		InDir:           utils.NormalizePath(ag.ReceiveDir),
+		OutDir:          utils.NormalizePath(ag.SendDir),
+		WorkDir:         utils.NormalizePath(ag.TmpReceiveDir),
+		SendDir:         ag.SendDir,
+		ReceiveDir:      ag.ReceiveDir,
+		TmpReceiveDir:   ag.TmpReceiveDir,
 		ProtoConfig:     ag.ProtoConfig,
 		AuthorizedRules: *rules,
 	}

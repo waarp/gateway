@@ -5,7 +5,7 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/migration"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/migration"
 )
 
 func TestDoMigration(t *testing.T) {
@@ -13,7 +13,7 @@ func TestDoMigration(t *testing.T) {
 		db := getSQLiteEngine(c).DB
 
 		Convey("When migrating up to a version", func() {
-			err := doMigration(db, "0.4.1", migration.SQLite, nil)
+			err := doMigration(db, "0.4.1", migration.SQLite, -1, nil)
 			So(err, ShouldBeNil)
 
 			Convey("Then it should have executed all the migrations scripts "+
@@ -26,7 +26,7 @@ func TestDoMigration(t *testing.T) {
 				So(curr, ShouldEqual, "0.4.1")
 
 				Convey("When migrating down to a version", func() {
-					err := doMigration(db, "0.4.0", migration.SQLite, nil)
+					err := doMigration(db, "0.4.0", migration.SQLite, -1, nil)
 					So(err, ShouldBeNil)
 
 					Convey("Then it should have executed all the migrations scripts "+

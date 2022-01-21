@@ -1,16 +1,19 @@
 package tasks
 
 import (
+	"context"
 	"io/ioutil"
-	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestExecValidate(t *testing.T) {
 	Convey("Given an 'EXEC' task", t, func() {
-		exec := &ExecTask{}
+		exec := &execTask{}
 
 		Convey("Given valid arguments", func() {
 			args := map[string]string{
@@ -78,84 +81,68 @@ func TestExecValidate(t *testing.T) {
 }
 
 func TestExecRun(t *testing.T) {
-	Convey("Given an 'EXEC' task", t, func() {
-		exec := &ExecTask{}
+	Convey("Given an 'EXEC' task", t, func(c C) {
+		root := testhelpers.TempDir(c, "task_exec")
+		scriptPath := filepath.Join(root, execScriptFile)
+
+		exec := &execTask{}
 		args := map[string]string{
-			"path":  execScriptFile,
+			"path":  scriptPath,
 			"args":  "'exec run test message'",
 			"delay": "0",
 		}
 
-		Convey("Given that the task is valid", func() {
-			Reset(func() { _ = os.Remove(execScriptFile) })
+		Convey("Given that the command succeeds", func() {
+			So(ioutil.WriteFile(scriptPath, []byte(scriptExecOK), 0o700), ShouldBeNil)
 
-			Convey("Given that the command succeeds", func() {
-				err := ioutil.WriteFile(execScriptFile, []byte(scriptExecOK), 0o700)
-				So(err, ShouldBeNil)
+			Convey("When running the task", func() {
+				msg, err := exec.Run(context.Background(), args, nil, nil)
 
-				Convey("When running the task", func() {
-					msg, err := exec.Run(args, nil)
+				Convey("Then it should NOT return an error", func() {
+					So(err, ShouldBeNil)
 
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
-
-						Convey("Then the message should be empty", func() {
-							So(msg, ShouldBeEmpty)
-						})
+					Convey("Then the message should be empty", func() {
+						So(msg, ShouldBeEmpty)
 					})
 				})
 			})
+		})
 
-			Convey("Given that the command sends a warning", func() {
-				err := ioutil.WriteFile(execScriptFile, []byte(scriptExecWarn), 0o700)
-				So(err, ShouldBeNil)
+		Convey("Given that the command sends a warning", func() {
+			So(ioutil.WriteFile(scriptPath, []byte(scriptExecWarn), 0o700), ShouldBeNil)
 
-				Convey("When running the task", func() {
-					msg, err := exec.Run(args, nil)
+			Convey("When running the task", func() {
+				_, err := exec.Run(context.Background(), args, nil, nil)
 
-					Convey("Then it should return a 'warning' error", func() {
-						So(err, ShouldBeError, errWarning)
-
-						Convey("Then the message should say the cause of warning", func() {
-							So(msg, ShouldEqual, "exit status 1")
-						})
-					})
+				Convey("Then it should return a 'warning' error", func() {
+					So(err, ShouldHaveSameTypeAs, &warningError{})
+					So(err, ShouldBeError, "exit status 1")
 				})
 			})
+		})
 
-			Convey("Given that the command fails", func() {
-				err := ioutil.WriteFile(execScriptFile, []byte(scriptExecFail), 0o700)
-				So(err, ShouldBeNil)
+		Convey("Given that the command fails", func() {
+			So(ioutil.WriteFile(scriptPath, []byte(scriptExecFail), 0o700), ShouldBeNil)
 
-				Convey("When running the task", func() {
-					msg, err := exec.Run(args, nil)
+			Convey("When running the task", func() {
+				_, err := exec.Run(context.Background(), args, nil, nil)
 
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-
-						Convey("Then the message should say the cause of warning", func() {
-							So(msg, ShouldEqual, "exit status 2")
-						})
-					})
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, "exit status 2")
 				})
 			})
+		})
 
-			Convey("Given that the command delay expires", func() {
-				err := ioutil.WriteFile(execScriptFile, []byte(scriptExecInfinite), 0o700)
-				So(err, ShouldBeNil)
+		Convey("Given that the command delay expires", func() {
+			So(ioutil.WriteFile(scriptPath, []byte(scriptExecInfinite), 0o700), ShouldBeNil)
 
-				args["delay"] = "100"
+			args["delay"] = "100"
 
-				Convey("When running the task", func() {
-					msg, err := exec.Run(args, nil)
+			Convey("When running the task", func() {
+				_, err := exec.Run(context.Background(), args, nil, nil)
 
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-
-						Convey("Then the message should say that the delay has expired", func() {
-							So(msg, ShouldEqual, "max exec delay expired")
-						})
-					})
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, errCommandTimeout)
 				})
 			})
 		})

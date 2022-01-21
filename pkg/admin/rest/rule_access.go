@@ -136,6 +136,10 @@ func makePartnerAccess(db *database.DB, rule *model.Rule) ([]string, error) {
 }
 
 func convertAgentIDs(db *database.DB, isLocal bool, access map[uint64][]string) (map[string][]string, error) {
+	if len(access) == 0 {
+		return map[string][]string{}, nil
+	}
+
 	ids := make([]uint64, len(access))
 	i := 0
 

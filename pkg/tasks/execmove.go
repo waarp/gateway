@@ -3,27 +3,26 @@ package tasks
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"time"
+	"path"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-// ExecMoveTask is a task which executes an external program which moves the
+// execMoveTask is a task which executes an external program which moves the
 // transferred file.
-type ExecMoveTask struct{}
+type execMoveTask struct{}
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	RunnableTasks["EXECMOVE"] = &ExecMoveTask{}
-	model.ValidTasks["EXECMOVE"] = &ExecMoveTask{}
+	model.ValidTasks["EXECMOVE"] = &execMoveTask{}
 }
 
 // Validate checks if the EXECMOVE task has all the required arguments.
-func (e *ExecMoveTask) Validate(params map[string]string) error {
+func (e *execMoveTask) Validate(params map[string]string) error {
 	if _, _, _, err := parseExecArgs(params); err != nil {
 		return fmt.Errorf("failed to parse task arguments: %w", err)
 	}
@@ -32,76 +31,27 @@ func (e *ExecMoveTask) Validate(params map[string]string) error {
 }
 
 // Run executes the task by executing an external program with the given parameters.
-// FIXME: Should be refactored and factorized between all exec* tasks
-//nolint:funlen // Should be refactored
-func (e *ExecMoveTask) Run(params map[string]string, processor *Processor) (string, error) {
-	path, args, delay, err := parseExecArgs(params)
-	if err != nil {
-		return err.Error(), fmt.Errorf("failed to parse task arguments: %w", err)
+func (e *execMoveTask) Run(parent context.Context, params map[string]string,
+	_ *database.DB, transCtx *model.TransferContext) (string, error) {
+	output, cmdErr := runExec(parent, params, true)
+	if cmdErr != nil {
+		return "", cmdErr
 	}
-
-	var (
-		ctx    context.Context
-		cancel context.CancelFunc
-	)
-
-	if delay != 0 {
-		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(delay)*
-			time.Millisecond)
-	} else {
-		ctx, cancel = context.WithCancel(context.Background())
-	}
-
-	defer cancel()
-
-	cmd := getCommand(ctx, path, args)
-
-	in, out, err := os.Pipe()
-	if err != nil {
-		return err.Error(), err
-	}
-
-	//nolint:errcheck // Those errors can be useless in a defered function
-	defer func() {
-		_ = in.Close()
-		_ = out.Close()
-	}()
-
-	cmd.Stdout = out
-
-	if err := cmd.Run(); err != nil {
-		select {
-		case <-ctx.Done():
-			return maxDelayExpired, errCommandTimeout
-		default:
-			var ex *exec.ExitError
-			if ok := errors.As(err, &ex); ok && ex.ExitCode() == 1 {
-				return err.Error(), errWarning
-			}
-
-			return err.Error(), err
-		}
-	}
-
-	//nolint:errcheck // Those errors can be useless in this case
-	_ = out.Close()
 
 	var newPath string
 
-	scanner := bufio.NewScanner(in)
+	scanner := bufio.NewScanner(output)
 	for scanner.Scan() {
 		newPath = scanner.Text()
 	}
 
 	if _, err := os.Stat(newPath); err != nil {
-		return "could not find moved file", fmt.Errorf("could not find moved file: %w", err)
+		return "", fmt.Errorf("could not find moved file: %w", err)
 	}
 
-	if processor.Rule.IsSend {
-		processor.Transfer.SourceFile = newPath
-	} else {
-		processor.Transfer.DestFile = newPath
-	}
+	transCtx.Transfer.LocalPath = utils.ToOSPath(newPath)
+	transCtx.Transfer.RemotePath = path.Join(path.Dir(transCtx.Transfer.RemotePath),
+		path.Base(transCtx.Transfer.LocalPath))
 
 	return "", nil
 }

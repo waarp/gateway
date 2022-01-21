@@ -4,7 +4,7 @@ Ajouter un utilisateur
 
 .. program:: waarp-gateway user add
 
-.. describe:: waarp-gateway <ADDR> user add
+.. describe:: waarp-gateway user add
 
 Ajoute un nouvel utilisateur avec les identifiants donnés.
 

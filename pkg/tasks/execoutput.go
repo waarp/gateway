@@ -2,29 +2,26 @@ package tasks
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"os/exec"
+	"path"
 	"strings"
-	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
-// ExecOutputTask is a task which executes an external program which moves the
+// execOutputTask is a task which executes an external program which moves the
 // transferred file.
-type ExecOutputTask struct{}
+type execOutputTask struct{}
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	RunnableTasks["EXECOUTPUT"] = &ExecOutputTask{}
-	model.ValidTasks["EXECOUTPUT"] = &ExecOutputTask{}
+	model.ValidTasks["EXECOUTPUT"] = &execOutputTask{}
 }
 
 // Validate checks if the EXECMOVE task has all the required arguments.
-func (e *ExecOutputTask) Validate(params map[string]string) error {
+func (e *execOutputTask) Validate(params map[string]string) error {
 	if _, _, _, err := parseExecArgs(params); err != nil {
 		return fmt.Errorf("failed to parse task arguments: %w", err)
 	}
@@ -33,7 +30,7 @@ func (e *ExecOutputTask) Validate(params map[string]string) error {
 }
 
 func getNewFileName(output string) string {
-	lines := strings.Split(strings.TrimSpace(output), "\n")
+	lines := strings.Split(strings.TrimSpace(output), lineSeparator)
 	lastLine := lines[len(lines)-1]
 
 	if strings.HasPrefix(lastLine, "NEWFILENAME:") {
@@ -44,73 +41,24 @@ func getNewFileName(output string) string {
 }
 
 // Run executes the task by executing an external program with the given parameters.
-// FIXME: Should be refactored and factorized between all exec* tasks
-//nolint:funlen // Should be refactored
-func (e *ExecOutputTask) Run(params map[string]string, processor *Processor) (string, error) {
-	path, args, delay, err := parseExecArgs(params)
-	if err != nil {
-		return err.Error(), fmt.Errorf("failed to parse task arguments: %w", err)
+func (e *execOutputTask) Run(parent context.Context, params map[string]string,
+	_ *database.DB, transCtx *model.TransferContext) (string, error) {
+	output, cmdErr := runExec(parent, params, true)
+	msg := ""
+
+	if output != nil {
+		msg = output.String()
 	}
 
-	var (
-		ctx    context.Context
-		cancel context.CancelFunc
-	)
-
-	if delay != 0 {
-		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(delay)*
-			time.Millisecond)
-	} else {
-		ctx, cancel = context.WithCancel(context.Background())
-	}
-
-	defer cancel()
-
-	cmd := getCommand(ctx, path, args)
-
-	in, out, err := os.Pipe()
-	if err != nil {
-		return err.Error(), err
-	}
-
-	//nolint:errcheck // Those errors can be useless in a defered function
-	defer func() {
-		_ = in.Close()
-		_ = out.Close()
-	}()
-
-	cmd.Stdout = out
-
-	cmdErr := cmd.Run()
-	if cmdErr == nil {
-		return "", nil
-	}
-
-	select {
-	case <-ctx.Done():
-		return maxDelayExpired, errCommandTimeout
-	default:
-		var ex *exec.ExitError
-		if ok := errors.As(cmdErr, &ex); ok && ex.ExitCode() == 1 {
-			return cmdErr.Error(), errWarning
+	if cmdErr != nil {
+		if newPath := getNewFileName(msg); newPath != "" {
+			transCtx.Transfer.LocalPath = utils.ToOSPath(newPath)
+			transCtx.Transfer.RemotePath = utils.ToStandardPath(path.Dir(
+				transCtx.Transfer.RemotePath), path.Base(transCtx.Transfer.LocalPath))
 		}
+
+		return "", cmdErr
 	}
 
-	//nolint:errcheck // This error can be useless at this stage
-	_ = out.Close()
-
-	msg, err := ioutil.ReadAll(in)
-	if err != nil {
-		return err.Error(), err
-	}
-
-	if newPath := getNewFileName(string(msg)); newPath != "" {
-		if processor.Rule.IsSend {
-			processor.Transfer.SourceFile = newPath
-		} else {
-			processor.Transfer.DestFile = newPath
-		}
-	}
-
-	return string(msg), cmdErr
+	return msg, nil
 }

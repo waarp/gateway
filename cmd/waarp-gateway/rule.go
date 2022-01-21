@@ -22,7 +22,7 @@ type ruleCommand struct {
 }
 
 func checkRuleDir(direction string) error {
-	if direction != "send" && direction != "receive" {
+	if direction != directionSend && direction != directionRecv {
 		return fmt.Errorf("invalid rule direction '%s': %w", direction, errBadArgs)
 	}
 
@@ -54,9 +54,9 @@ func displayTasks(w io.Writer, rule *api.OutRule) {
 }
 
 func displayRule(w io.Writer, rule *api.OutRule) {
-	way := "receive"
+	way := directionRecv
 	if rule.IsSend {
-		way = "send"
+		way = directionSend
 	}
 
 	var servers, partners, locAcc, remAcc string
@@ -86,11 +86,11 @@ func displayRule(w io.Writer, rule *api.OutRule) {
 	}
 
 	fmt.Fprintln(w, orange(bold("● Rule", rule.Name, "("+way+")")))
-	fmt.Fprintln(w, orange("    Comment:       "), rule.Comment)
-	fmt.Fprintln(w, orange("    Path:          "), rule.Path)
-	fmt.Fprintln(w, orange("    In directory:  "), rule.InPath)
-	fmt.Fprintln(w, orange("    Out directory: "), rule.OutPath)
-	fmt.Fprintln(w, orange("    Work directory:"), rule.WorkPath)
+	fmt.Fprintln(w, orange("    Comment:               "), rule.Comment)
+	fmt.Fprintln(w, orange("    Path:                  "), rule.Path)
+	fmt.Fprintln(w, orange("    Local directory:       "), rule.LocalDir)
+	fmt.Fprintln(w, orange("    Remote directory:      "), rule.RemoteDir)
+	fmt.Fprintln(w, orange("    Temp receive directory:"), rule.TmpLocalRcvDir)
 	displayTasks(w, rule)
 	fmt.Fprintln(w, orange("    Authorized agents:"))
 	fmt.Fprintln(w, bold("    ├─Servers:         "), servers)
@@ -161,30 +161,56 @@ func (r *ruleGet) Execute([]string) error {
 
 //nolint:lll // struct tags for command line arguments can be long
 type ruleAdd struct {
-	Name       string   `required:"true" short:"n" long:"name" description:"The rule's name"`
-	Comment    *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
-	Direction  string   `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"send" choice:"receive"`
-	Path       string   `short:"p" long:"path" description:"The path used to identify the rule, by default, the rule's name is used"`
-	InPath     *string  `short:"i" long:"in_path" description:"The path to the destination of the file"`
-	OutPath    *string  `short:"o" long:"out_path" description:"The path to the source of the file"`
-	WorkPath   *string  `short:"w" long:"work_path" description:"The path to write the received file"`
-	PreTasks   []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
-	PostTasks  []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`
-	ErrorTasks []string `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated"`
+	Name          string   `required:"true" short:"n" long:"name" description:"The rule's name"`
+	Comment       *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
+	Direction     string   `required:"true" short:"d" long:"direction" description:"The direction of the file transfer" choice:"send" choice:"receive"`
+	Path          string   `short:"p" long:"path" description:"The path used to identify the rule, by default, the rule's name is used"`
+	LocalDir      *string  `long:"local-dir" description:"The directory for files on the local disk"`
+	RemoteDir     *string  `long:"remote-dir" description:"The directory for files on the remote host"`
+	TmpReceiveDir *string  `long:"tmp-dir" description:"The local temp directory for partially received files "`
+	PreTasks      []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
+	PostTasks     []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`
+	ErrorTasks    []string `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated"`
+
+	// Deprecated options
+	InPath   *string `short:"i" long:"in_path" description:"[DEPRECATED] The path to the destination of the file"` // Deprecated: replaced by LocalDir & RemoteDir
+	OutPath  *string `short:"o" long:"out_path" description:"[DEPRECATED] The path to the source of the file"`     // Deprecated: replaced by LocalDir & RemoteDir
+	WorkPath *string `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file"`   // Deprecated: replaced by TmpReceiveDir
 }
 
 func (r *ruleAdd) Execute([]string) error {
-	isSend := r.Direction == "send"
+	isSend := r.Direction == directionSend
 	rule := &api.InRule{
 		UptRule: &api.UptRule{
-			Name:     &r.Name,
-			Comment:  r.Comment,
-			Path:     &r.Path,
-			InPath:   r.InPath,
-			OutPath:  r.OutPath,
-			WorkPath: r.WorkPath,
+			Name:           &r.Name,
+			Comment:        r.Comment,
+			Path:           &r.Path,
+			LocalDir:       r.LocalDir,
+			RemoteDir:      r.RemoteDir,
+			TmpLocalRcvDir: r.TmpReceiveDir,
 		},
 		IsSend: &isSend,
+	}
+
+	if r.InPath != nil {
+		fmt.Fprintln(out, "[WARNING] The '-i' ('--in_path') option is deprecated. "+
+			"Use '--local-dir' and '--remote-dir' instead.")
+
+		rule.InPath = r.InPath
+	}
+
+	if r.OutPath != nil {
+		fmt.Fprintln(out, "[WARNING] The '-o' ('--out_path') option is deprecated. "+
+			"Use '--local-dir' and '--remote-dir' instead.")
+
+		rule.OutPath = r.OutPath
+	}
+
+	if r.WorkPath != nil {
+		fmt.Fprintln(out, "[WARNING] The '-w' ('--work_path') option is deprecated. "+
+			"Use '--tmp-dir' instead.")
+
+		rule.WorkPath = r.WorkPath
 	}
 
 	if err := parseTasks(rule.UptRule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {
@@ -271,15 +297,20 @@ type ruleUpdate struct {
 		Name      string `required:"yes" positional-arg-name:"name" description:"The server's name"`
 		Direction string `required:"yes" positional-arg-name:"direction" description:"The rule's direction" choice:"send" choice:"receive"`
 	} `positional-args:"yes"`
-	Name       *string  `short:"n" long:"name" description:"The rule's name"`
-	Comment    *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
-	Path       *string  `short:"p" long:"path" description:"The path used to identify the rule"`
-	InPath     *string  `short:"i" long:"in_path" description:"The path to the destination of the file"`
-	OutPath    *string  `short:"o" long:"out_path" description:"The path to the source of the file"`
-	WorkPath   *string  `short:"w" long:"work_path" description:"The path to write the received file"`
-	PreTasks   []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
-	PostTasks  []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`
-	ErrorTasks []string `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated"`
+	Name          *string  `short:"n" long:"name" description:"The rule's name"`
+	Comment       *string  `short:"c" long:"comment" description:"A short comment describing the rule"`
+	Path          *string  `short:"p" long:"path" description:"The path used to identify the rule"`
+	LocalDir      *string  `long:"local-dir" description:"The directory for files on the local disk"`
+	RemoteDir     *string  `long:"remote-dir" description:"The directory for files on the remote host"`
+	TmpReceiveDir *string  `long:"tmp-dir" description:"The local temp directory for partially received files "`
+	PreTasks      []string `short:"r" long:"pre" description:"A pre-transfer task in JSON format, can be repeated"`
+	PostTasks     []string `short:"s" long:"post" description:"A post-transfer task in JSON format, can be repeated"`
+	ErrorTasks    []string `short:"e" long:"err" description:"A transfer error task in JSON format, can be repeated"`
+
+	// Deprecated options
+	InPath   *string `short:"i" long:"in_path" description:"[DEPRECATED] The path to the destination of the file"` // Deprecated: replaced by LocalDir & RemoteDir
+	OutPath  *string `short:"o" long:"out_path" description:"[DEPRECATED] The path to the source of the file"`     // Deprecated: replaced by LocalDir & RemoteDir
+	WorkPath *string `short:"w" long:"work_path" description:"[DEPRECATED] The path to write the received file"`   // Deprecated: replaced by TmpReceiveDir
 }
 
 func (r *ruleUpdate) Execute([]string) error {
@@ -290,12 +321,33 @@ func (r *ruleUpdate) Execute([]string) error {
 	addr.Path = path.Join("/api/rules", r.Args.Name, strings.ToLower(r.Args.Direction))
 
 	rule := &api.UptRule{
-		Name:     r.Name,
-		Comment:  r.Comment,
-		Path:     r.Path,
-		InPath:   r.InPath,
-		OutPath:  r.OutPath,
-		WorkPath: r.WorkPath,
+		Name:           r.Name,
+		Comment:        r.Comment,
+		Path:           r.Path,
+		LocalDir:       r.LocalDir,
+		RemoteDir:      r.RemoteDir,
+		TmpLocalRcvDir: r.TmpReceiveDir,
+	}
+
+	if r.InPath != nil {
+		fmt.Fprintln(out, "[WARNING] The '-i' ('--in_path') option is deprecated. "+
+			"Use '--local-dir' and '--remote-dir' instead.")
+
+		rule.InPath = r.InPath
+	}
+
+	if r.OutPath != nil {
+		fmt.Fprintln(out, "[WARNING] The '-o' ('--out_path') option is deprecated. "+
+			"Use '--local-dir' and '--remote-dir' instead.")
+
+		rule.OutPath = r.OutPath
+	}
+
+	if r.WorkPath != nil {
+		fmt.Fprintln(out, "[WARNING] The '-w' ('--work_path') option is deprecated. "+
+			"Use '--tmp-dir' instead.")
+
+		rule.WorkPath = r.WorkPath
 	}
 
 	if err := parseTasks(rule, r.PreTasks, r.PostTasks, r.ErrorTasks); err != nil {

@@ -18,7 +18,7 @@ func newLogger(path string) (*logger, error) {
 		return nil, fmt.Errorf("cannot open logfile: %w", err)
 	}
 
-	defer func() { _ = f.Close() }() //nolint:errcheck // nothing to handle the error
+	_ = f.Close() //nolint:errcheck // error is irrelevant
 
 	l := &logger{
 		path: path,
@@ -34,7 +34,7 @@ func (l logger) Print(msg string) {
 		return
 	}
 
-	defer func() { _ = f.Close() }() //nolint:errcheck // nothing to handle the error
+	defer func() { _ = f.Close() }() //nolint:errcheck,gosec // error is irrelevant
 
 	fmt.Fprintf(f, "%s [%d] %s\n", time.Now().Format(time.RFC3339Nano), l.pid, msg)
 	//nolint:forbidigo // A logger should be able to print

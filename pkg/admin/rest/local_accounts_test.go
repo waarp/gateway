@@ -33,7 +33,7 @@ func TestGetLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -147,13 +147,13 @@ func TestListLocalAccounts(t *testing.T) {
 		Convey("Given a database with 4 local accounts", func() {
 			p1 := &model.LocalAgent{
 				Name:        "parent1",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
 			p2 := &model.LocalAgent{
 				Name:        "parent2",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2",
 			}
@@ -290,7 +290,7 @@ func TestCreateLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 agent", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -332,7 +332,7 @@ func TestCreateLocalAccount(t *testing.T) {
 							So(db.Select(&accs).Run(), ShouldBeNil)
 							So(len(accs), ShouldEqual, 1)
 
-							So(bcrypt.CompareHashAndPassword(accs[0].PasswordHash,
+							So(bcrypt.CompareHashAndPassword([]byte(accs[0].PasswordHash),
 								[]byte("new_password")), ShouldBeNil)
 							So(accs[0], ShouldResemble, model.LocalAccount{
 								ID:           1,
@@ -385,7 +385,7 @@ func TestDeleteLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -485,7 +485,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -534,7 +534,7 @@ func TestUpdateLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(len(accounts), ShouldEqual, 1)
 
-						So(bcrypt.CompareHashAndPassword(accounts[0].PasswordHash,
+						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
 							[]byte("upd_password")), ShouldBeNil)
 						So(accounts[0], ShouldResemble, model.LocalAccount{
 							ID:           old.ID,
@@ -615,7 +615,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 		Convey("Given a database with 1 account", func() {
 			parent := &model.LocalAgent{
 				Name:        "parent",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -665,7 +665,7 @@ func TestReplaceLocalAccount(t *testing.T) {
 						So(db.Select(&accounts).Run(), ShouldBeNil)
 						So(len(accounts), ShouldEqual, 1)
 
-						So(bcrypt.CompareHashAndPassword(accounts[0].PasswordHash,
+						So(bcrypt.CompareHashAndPassword([]byte(accounts[0].PasswordHash),
 							[]byte("upd_password")), ShouldBeNil)
 						So(accounts[0], ShouldResemble, model.LocalAccount{
 							ID:           old.ID,

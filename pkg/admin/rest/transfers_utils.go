@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,6 +11,8 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 func getTransIDs(db *database.DB, trans *api.InTransfer) (uint64, uint64, uint64, error) {
@@ -162,4 +165,25 @@ func parseTransferListQuery(r *http.Request, db *database.DB,
 	query.OrderBy(sort.col, sort.asc)
 
 	return query, nil
+}
+
+var errServiceNotFound = errors.New("cannot find the service associated with the transfer")
+
+func getPipelineMap(db *database.DB, protoServices map[string]service.ProtoService,
+	trans *model.Transfer) (*service.TransferMap, error) {
+	if !trans.IsServer {
+		return pipeline.ClientTransfers, nil
+	}
+
+	var agent model.LocalAgent
+	if err := db.Get(&agent, "id=?", trans.AgentID).Run(); err != nil {
+		return nil, err
+	}
+
+	serv, ok := protoServices[agent.Name]
+	if !ok {
+		return nil, errServiceNotFound
+	}
+
+	return serv.ManageTransfers(), nil
 }

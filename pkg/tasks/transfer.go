@@ -1,8 +1,8 @@
 package tasks
 
 import (
+	"context"
 	"fmt"
-	"path/filepath"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
@@ -13,7 +13,6 @@ type TransferTask struct{}
 
 //nolint:gochecknoinits // This package is designed this way
 func init() {
-	RunnableTasks["TRANSFER"] = &TransferTask{}
 	model.ValidTasks["TRANSFER"] = &TransferTask{}
 }
 
@@ -104,23 +103,23 @@ func getTransferInfo(db *database.DB, args map[string]string) (file string,
 }
 
 // Run executes the task by scheduling a new transfer with the given parameters.
-func (t *TransferTask) Run(args map[string]string, processor *Processor) (string, error) {
-	file, ruleID, agentID, accID, err := getTransferInfo(processor.DB, args)
+func (t *TransferTask) Run(_ context.Context, args map[string]string,
+	db *database.DB, _ *model.TransferContext) (string, error) {
+	file, ruleID, agentID, accID, err := getTransferInfo(db, args)
 	if err != nil {
 		return err.Error(), err
 	}
 
 	trans := &model.Transfer{
-		RuleID:       ruleID,
-		IsServer:     false,
-		AgentID:      agentID,
-		AccountID:    accID,
-		TrueFilepath: file,
-		SourceFile:   filepath.Base(file),
-		DestFile:     filepath.Base(file),
+		RuleID:     ruleID,
+		IsServer:   false,
+		AgentID:    agentID,
+		AccountID:  accID,
+		LocalPath:  file,
+		RemotePath: file,
 	}
 
-	if err := processor.DB.Insert(trans).Run(); err != nil {
+	if err := db.Insert(trans).Run(); err != nil {
 		return fmt.Sprintf("cannot create transfer of file '%s': %s", file, err), err
 	}
 

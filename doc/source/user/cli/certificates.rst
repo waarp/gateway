@@ -2,7 +2,7 @@
 Gestion des certificats
 #######################
 
-Il est possible t'attacher un :term:`certificat` à un agent de la gateway. Cet 
+Il est possible d'attacher un :term:`certificat` à un agent de la gateway. Cet
 agent peut être un :term:`serveur`, un :term:`partenaire`, un :term:`compte local`
 ou un :term:`compte distant`.
 

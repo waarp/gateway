@@ -10,7 +10,6 @@ import (
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -34,20 +33,19 @@ func TestGetPartner(t *testing.T) {
 
 		Convey("Given a gateway with 1 distant partner", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "partner_name",
-				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner_name",
+				Protocol: "sftp",
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
-			send := &model.Rule{Name: "send", IsSend: true, Path: "send_path"}
+			send := &model.Rule{Name: "send_rule", IsSend: true, Path: "send_path"}
 			So(db.Insert(send).Run(), ShouldBeNil)
 			receive := &model.Rule{Name: "receive", IsSend: false, Path: "rcv_path"}
 			So(db.Insert(receive).Run(), ShouldBeNil)
@@ -108,15 +106,15 @@ func TestAddPartner(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			Convey("Given valid flags", func() {
 				args := []string{
-					"-n", "server_name", "-p", "test",
-					"-c", `{}`, "-a", "localhost:1",
+					"--name", "server_name", "--protocol", testProto1,
+					"--address", "localhost:1",
 				}
 
 				Convey("When executing the command", func() {
@@ -136,7 +134,7 @@ func TestAddPartner(t *testing.T) {
 						exp := model.RemoteAgent{
 							ID:          1,
 							Name:        "server_name",
-							Protocol:    "test",
+							Protocol:    testProto1,
 							ProtoConfig: json.RawMessage(`{}`),
 							Address:     "localhost:1",
 						}
@@ -147,8 +145,8 @@ func TestAddPartner(t *testing.T) {
 
 			Convey("Given an invalid protocol", func() {
 				args := []string{
-					"-n", "server_name", "-p", "invalid",
-					"-c", `{}`, "-a", "localhost:1",
+					"--name", "server_name", "--protocol", "invalid",
+					"--address", "localhost:1",
 				}
 
 				Convey("When executing the command", func() {
@@ -165,8 +163,8 @@ func TestAddPartner(t *testing.T) {
 
 			Convey("Given an invalid configuration", func() {
 				args := []string{
-					"-n", "server_name", "-p", "fail",
-					"-c", `{"unknown":"val"}`, "-a", "localhost:1",
+					"--name", "server_name", "--protocol", testProtoErr,
+					"--config", `{"key":"val"}`, "--address", "localhost:1",
 				}
 
 				Convey("When executing the command", func() {
@@ -177,15 +175,15 @@ func TestAddPartner(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldContainSubstring, `failed to parse protocol `+
-							`configuration: json: unknown field "unknown"`)
+							`configuration: json: unknown field "key"`)
 					})
 				})
 			})
 
 			Convey("Given an invalid address", func() {
 				args := []string{
-					"-n", "server_name", "-p", "fail",
-					"-c", `{"key":"val"}`, "-a", "invalid_address",
+					"--name", "server_name", "--protocol", testProtoErr,
+					"--config", `{"key":"val"}`, "--address", "invalid_address",
 				}
 
 				Convey("When executing the command", func() {
@@ -209,24 +207,22 @@ func TestListPartners(t *testing.T) {
 
 		Convey("Given a gateway with 2 distant partners", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner1 := &model.RemoteAgent{
-				Name:        "partner1",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner1",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner1).Run(), ShouldBeNil)
 
 			partner2 := &model.RemoteAgent{
-				Name:        "partner2",
-				Protocol:    "test2",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2",
+				Name:     "partner2",
+				Protocol: testProto2,
+				Address:  "localhost:2",
 			}
 			So(db.Insert(partner2).Run(), ShouldBeNil)
 
@@ -294,7 +290,7 @@ func TestListPartners(t *testing.T) {
 			})
 
 			Convey("Given the 'protocol' parameter is set to 'test'", func() {
-				args := []string{"-p", "test"}
+				args := []string{"--protocol", testProto1}
 
 				Convey("When executing the command", func() {
 					params, err := flags.ParseArgs(command, args)
@@ -318,16 +314,15 @@ func TestDeletePartner(t *testing.T) {
 
 		Convey("Given a gateway with 1 distant partner", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "existing",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "existing",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -382,23 +377,23 @@ func TestUpdatePartner(t *testing.T) {
 
 		Convey("Given a gateway with 1 distant partner", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			Convey("Given all valid flags", func() {
 				args := []string{
-					"-n", "new_partner", "-p", "test2",
-					"-a", "localhost:1", partner.Name,
+					partner.Name,
+					"--name", "new_partner", "--protocol", testProto2,
+					"--address", "localhost:1",
 				}
 
 				Convey("When executing the command", func() {
@@ -419,7 +414,7 @@ func TestUpdatePartner(t *testing.T) {
 						exp := model.RemoteAgent{
 							ID:          partner.ID,
 							Name:        "new_partner",
-							Protocol:    "test2",
+							Protocol:    testProto2,
 							Address:     "localhost:1",
 							ProtoConfig: json.RawMessage(`{}`),
 						}
@@ -430,8 +425,9 @@ func TestUpdatePartner(t *testing.T) {
 
 			Convey("Given an invalid protocol", func() {
 				args := []string{
-					"-n", "new_partner", "-p", "invalid",
-					"-a", "localhost:1", partner.Name,
+					partner.Name,
+					"--name", "new_partner", "--protocol", "invalid",
+					"--address", "localhost:1",
 				}
 
 				Convey("When executing the command", func() {
@@ -454,8 +450,9 @@ func TestUpdatePartner(t *testing.T) {
 
 			Convey("Given an invalid configuration", func() {
 				args := []string{
-					"-n", "new_partner", "-p", "fail",
-					"-c", `unknown:val`, "-a", "localhost:1", partner.Name,
+					partner.Name,
+					"--name", "new_partner", "--protocol", testProtoErr,
+					"--config", `key:val`, "--address", "localhost:1",
 				}
 
 				Convey("When executing the command", func() {
@@ -466,7 +463,7 @@ func TestUpdatePartner(t *testing.T) {
 					Convey("Then it should return an error", func() {
 						So(err, ShouldBeError)
 						So(err.Error(), ShouldContainSubstring, `failed to parse protocol `+
-							`configuration: json: unknown field "unknown"`)
+							`configuration: json: unknown field "key"`)
 					})
 
 					Convey("Then the partner should stay unchanged", func() {
@@ -479,8 +476,9 @@ func TestUpdatePartner(t *testing.T) {
 
 			Convey("Given an invalid address", func() {
 				args := []string{
-					"-n", "new_partner", "-p", "fail",
-					"-a", "invalid_address", partner.Name,
+					partner.Name,
+					"--name", "new_partner", "--protocol", testProtoErr,
+					"--address", "invalid_address",
 				}
 
 				Convey("When executing the command", func() {
@@ -503,8 +501,9 @@ func TestUpdatePartner(t *testing.T) {
 
 			Convey("Given an non-existing name", func() {
 				args := []string{
-					"-n", "new_partner", "-p", "test2",
-					"-a", "localhost:1", "toto",
+					"toto",
+					"--name", "new_partner", "--protocol", testProto2,
+					"--address", "localhost:1",
 				}
 
 				Convey("When executing the command", func() {
@@ -534,23 +533,22 @@ func TestAuthorizePartner(t *testing.T) {
 
 		Convey("Given a gateway with 1 distant partner and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1",
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -633,14 +631,14 @@ func TestRevokePartner(t *testing.T) {
 
 		Convey("Given a gateway with 1 distant partner and 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			partner := &model.RemoteAgent{
 				Name:        "partner",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1",
 			}
@@ -649,7 +647,7 @@ func TestRevokePartner(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 

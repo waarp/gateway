@@ -12,8 +12,9 @@ Programmer un transfert
    :reqjson string rule: L'identifiant de la règle utilisée
    :reqjson string requester: Le nom du compte ayant demandé le transfert
    :reqjson string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
-   :reqjson string sourcePath: Le chemin du fichier source
-   :reqjson string destPath: Le chemin de destination du fichier
+   :reqjson string sourcePath: Le chemin du fichier source (OBSOLÈTE: remplacé par 'file')
+   :reqjson string destPath: Le chemin de destination du fichier (OBSOLÈTE: remplacé par 'file')
+   :reqjson string file: Le nom du fichier à transférer
    :reqjson date start: La date de début du transfert (en format ISO 8601)
 
    :statuscode 202: Le transfert a été lancé avec succès

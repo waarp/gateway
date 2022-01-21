@@ -9,7 +9,7 @@ Premiers pas
    intro
    start
    sftp-receive
-   sftp-send
+   r66-send
    rebound
 
 .. xx-re-transfer

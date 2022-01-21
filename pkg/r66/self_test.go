@@ -6,612 +6,316 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
+)
+
+//nolint:gochecknoglobals // these are test variables
+var (
+	servConf = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
+	partConf = &config.R66ProtoConfig{ServerLogin: "r66_login", ServerPassword: "sesame"}
 )
 
 func TestSelfPushOK(t *testing.T) {
-	Convey("Given a r66 service", t, func(c C) {
-		ctx := initForSelfTransfer(c)
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
 
-		Convey("Given a new r66 push transfer", func(c C) {
-			makeTransfer(c, ctx, true)
+		Convey("When executing the transfer", func(c C) {
+			ctx.RunTransfer(c)
 
-			Convey("Once the transfer has been processed", func(c C) {
-				processTransfer(c, ctx)
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
 
-				Convey("Then it should have executed all the tasks in order", func(c C) {
-					serverMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
-					clientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[0] | OK")
-					serverMsgShouldBe(c, "SERVER | PUSH | POST-TASKS[0] | OK")
-					clientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[0] | OK")
-					serverMsgShouldBe(c, "SERVER END TRANSFER OK")
-					clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-					checkTransfersOK(c, ctx)
-				})
+				ctx.CheckEndTransferOK(c)
 			})
 		})
 	})
 }
 
 func TestSelfPullOK(t *testing.T) {
-	SkipConvey("Given a r66 service", t, func(c C) {
-		ctx := initForSelfTransfer(c)
+	Convey("Given a new r66 pull transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
 
-		Convey("Given a new r66 pull transfer", func(c C) {
-			makeTransfer(c, ctx, false)
+		Convey("When executing the transfer", func(c C) {
+			ctx.RunTransfer(c)
 
-			Convey("Once the transfer has been processed", func(c C) {
-				processTransfer(c, ctx)
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
 
-				Convey("Then it should have executed all the tasks in order", func(c C) {
-					serverMsgShouldBe(c, "SERVER | PULL | PRE-TASKS[0] | OK")
-					clientMsgShouldBe(c, "CLIENT | PULL | PRE-TASKS[0] | OK")
-					clientMsgShouldBe(c, "CLIENT | PULL | POST-TASKS[0] | OK")
-					serverMsgShouldBe(c, "SERVER | PULL | POST-TASKS[0] | OK")
-					serverMsgShouldBe(c, "SERVER END TRANSFER OK")
-					clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-					checkTransfersOK(c, ctx)
-				})
+				ctx.CheckEndTransferOK(c)
 			})
 		})
 	})
 }
 
 func TestSelfPushClientPreTasksFail(t *testing.T) {
-	SkipConvey("Given a r66 service", t, func(c C) {
-		ctx := initForSelfTransfer(c)
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
 
-		Convey("Given a new r66 push transfer", func(c C) {
-			makeTransfer(c, ctx, true)
+		Convey("Given that an error occurs in client pre-tasks", func(c C) {
+			ctx.AddClientPreTaskError(c)
+			ctx.RunTransfer(c)
 
-			Convey("Given an error during the client's pre-tasks", func(c C) {
-				errMsg, removeFail := addClientFailure(c, ctx, model.ChainPre)
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
 
-				Convey("Once the transfer has been processed", func(c C) {
-					processTransfer(c, ctx)
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Pre-tasks failed: Task TASKERR @ PUSH PRE[1]: task failed",
+					types.StepPreTasks)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: pre-tasks failed",
+					types.StepPreTasks)
 
-					Convey("Then it should have executed all the tasks in order", func(c C) {
-						serverMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[1] | ERROR")
-						clientMsgShouldBe(c, "CLIENT | PUSH | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER | PUSH | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER END TRANSFER ERROR")
-						clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-						cTrans := &model.Transfer{
-							Step: types.StepPreTasks,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   0,
-							TaskNumber: 1,
-						}
-
-						sTrans := &model.Transfer{
-							Step: types.StepPreTasks,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   0,
-							TaskNumber: 1,
-						}
-
-						checkTransfersErr(c, ctx, cTrans, sTrans)
-
-						Convey("When retrying the transfer", func(c C) {
-							retryTransfer(c, ctx, removeFail)
-
-							Convey("Once the transfer has been processed", func(c C) {
-								processTransfer(c, ctx)
-
-								Convey("Then it should have executed all the tasks in order", func(c C) {
-									serverMsgShouldBe(c, "SERVER | PUSH | POST-TASKS[0] | OK")
-									clientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[0] | OK")
-									serverMsgShouldBe(c, "SERVER END TRANSFER OK")
-									clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-									checkTransfersOK(c, ctx)
-								})
-							})
-						})
-					})
-				})
+				ctx.TestRetry(c,
+					ctx.ServerShouldHavePostTasked,
+					ctx.ClientShouldHavePostTasked,
+				)
 			})
 		})
 	})
 }
 
 func TestSelfPushServerPreTasksFail(t *testing.T) {
-	Convey("Given a r66 service", t, func(c C) {
-		ctx := initForSelfTransfer(c)
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
 
-		Convey("Given a new r66 push transfer", func(c C) {
-			makeTransfer(c, ctx, true)
+		Convey("Given an error during the server's pre-tasks", func(c C) {
+			ctx.AddServerPreTaskError(c)
+			ctx.RunTransfer(c)
 
-			Convey("Given an error during the server's pre-tasks", func(c C) {
-				errMsg, removeFail := addServerFailure(c, ctx, model.ChainPre)
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
-				Convey("Once the transfer has been processed", func(c C) {
-					processTransfer(c, ctx)
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: pre-tasks failed",
+					types.StepSetup)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Pre-tasks failed: Task TASKERR @ PUSH PRE[1]: task failed",
+					types.StepPreTasks)
 
-					Convey("Then it should have executed all the tasks in order", func(c C) {
-						serverMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[1] | ERROR")
-						serverMsgShouldBe(c, "SERVER | PUSH | ERROR-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PUSH | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER END TRANSFER ERROR")
-						clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-						cTrans := &model.Transfer{
-							Step: types.StepSetup,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   0,
-							TaskNumber: 0,
-						}
-
-						sTrans := &model.Transfer{
-							Step: types.StepPreTasks,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   0,
-							TaskNumber: 1,
-						}
-
-						checkTransfersErr(c, ctx, cTrans, sTrans)
-
-						Convey("When retrying the transfer", func(c C) {
-							retryTransfer(c, ctx, removeFail)
-
-							Convey("Once the transfer has been processed", func(c C) {
-								processTransfer(c, ctx)
-
-								Convey("Then it should have executed all the tasks in order", func(c C) {
-									clientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[0] | OK")
-									serverMsgShouldBe(c, "SERVER | PUSH | POST-TASKS[0] | OK")
-									clientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[0] | OK")
-									serverMsgShouldBe(c, "SERVER END TRANSFER OK")
-									clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-									checkTransfersOK(c, ctx)
-								})
-							})
-						})
-					})
-				})
+				ctx.TestRetry(c,
+					ctx.ClientShouldHavePreTasked,
+					ctx.ServerShouldHavePostTasked,
+					ctx.ClientShouldHavePostTasked,
+				)
 			})
 		})
 	})
 }
 
 func TestSelfPullClientPreTasksFail(t *testing.T) {
-	SkipConvey("Given a r66 service", t, func(c C) {
-		ctx := initForSelfTransfer(c)
+	Convey("Given a new r66 pull transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
 
-		Convey("Given a new r66 pull transfer", func(c C) {
-			makeTransfer(c, ctx, false)
+		Convey("Given that an error occurs in client pre-tasks", func(c C) {
+			ctx.AddClientPreTaskError(c)
+			ctx.RunTransfer(c)
 
-			Convey("Given an error during the client's pre-tasks", func(c C) {
-				errMsg, removeFail := addClientFailure(c, ctx, model.ChainPre)
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
 
-				Convey("Once the transfer has been processed", func(c C) {
-					processTransfer(c, ctx)
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Pre-tasks failed: Task TASKERR @ PULL PRE[1]: task failed",
+					types.StepPreTasks)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: pre-tasks failed",
+					types.StepData)
 
-					Convey("Then it should have executed all the tasks in order", func(c C) {
-						serverMsgShouldBe(c, "SERVER | PULL | PRE-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PULL | PRE-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PULL | PRE-TASKS[1] | ERROR")
-						clientMsgShouldBe(c, "CLIENT | PULL | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER | PULL | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER END TRANSFER ERROR")
-						clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-						cTrans := &model.Transfer{
-							Step: types.StepPreTasks,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   0,
-							TaskNumber: 1,
-						}
-
-						sTrans1 := &model.Transfer{
-							Step: types.StepPreTasks,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   0,
-							TaskNumber: 1,
-						}
-
-						sTrans2 := &model.Transfer{
-							Step: types.StepData,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   uint64(len(testFileContent)),
-							TaskNumber: 0,
-						}
-
-						sTrans3 := &model.Transfer{
-							Step: types.StepData,
-							Error: types.TransferError{
-								Code:    types.TeUnknownRemote,
-								Details: "Session closed",
-							},
-							Progress:   uint64(len(testFileContent)),
-							TaskNumber: 0,
-						}
-
-						checkTransfersErr(c, ctx, cTrans, sTrans1, sTrans2, sTrans3)
-
-						Convey("When retrying the transfer", func(c C) {
-							retryTransfer(c, ctx, removeFail)
-
-							Convey("Once the transfer has been processed", func(c C) {
-								processTransfer(c, ctx)
-
-								Convey("Then it should have executed all the tasks in order", func(c C) {
-									clientMsgShouldBe(c, "CLIENT | PULL | POST-TASKS[0] | OK")
-									serverMsgShouldBe(c, "SERVER | PULL | POST-TASKS[0] | OK")
-									serverMsgShouldBe(c, "SERVER END TRANSFER OK")
-									clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-									checkTransfersOK(c, ctx)
-								})
-							})
-						})
-					})
-				})
+				ctx.TestRetry(c,
+					ctx.ClientShouldHavePostTasked,
+					ctx.ServerShouldHavePostTasked,
+				)
 			})
 		})
 	})
 }
 
 func TestSelfPullServerPreTasksFail(t *testing.T) {
-	SkipConvey("Given a r66 service", t, func(c C) {
-		ctx := initForSelfTransfer(c)
+	Convey("Given a new r66 pull transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
 
-		Convey("Given a new r66 pull transfer", func(c C) {
-			makeTransfer(c, ctx, false)
+		Convey("Given an error during the server's pre-tasks", func(c C) {
+			ctx.AddServerPreTaskError(c)
+			ctx.RunTransfer(c)
 
-			Convey("Given an error during the server's pre-tasks", func(c C) {
-				errMsg, removeFail := addServerFailure(c, ctx, model.ChainPre)
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
-				Convey("Once the transfer has been processed", func(c C) {
-					processTransfer(c, ctx)
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: pre-tasks failed",
+					types.StepSetup)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Pre-tasks failed: Task TASKERR @ PULL PRE[1]: task failed",
+					types.StepPreTasks)
 
-					Convey("Then it should have executed all the tasks in order", func(c C) {
-						serverMsgShouldBe(c, "SERVER | PULL | PRE-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER | PULL | PRE-TASKS[1] | ERROR")
-						serverMsgShouldBe(c, "SERVER | PULL | ERROR-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PULL | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER END TRANSFER ERROR")
-						clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-						cTrans := &model.Transfer{
-							Step: types.StepSetup,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   0,
-							TaskNumber: 0,
-						}
-
-						sTrans := &model.Transfer{
-							Step: types.StepPreTasks,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   0,
-							TaskNumber: 1,
-						}
-
-						checkTransfersErr(c, ctx, cTrans, sTrans)
-
-						Convey("When retrying the transfer", func(c C) {
-							retryTransfer(c, ctx, removeFail)
-
-							Convey("Once the transfer has been processed", func(c C) {
-								processTransfer(c, ctx)
-
-								Convey("Then it should have executed all the tasks in order", func(c C) {
-									clientMsgShouldBe(c, "CLIENT | PULL | PRE-TASKS[0] | OK")
-									clientMsgShouldBe(c, "CLIENT | PULL | POST-TASKS[0] | OK")
-									serverMsgShouldBe(c, "SERVER | PULL | POST-TASKS[0] | OK")
-									serverMsgShouldBe(c, "SERVER END TRANSFER OK")
-									clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-									checkTransfersOK(c, ctx)
-								})
-							})
-						})
-					})
-				})
+				ctx.TestRetry(c,
+					ctx.ClientShouldHavePreTasked,
+					ctx.ClientShouldHavePostTasked,
+					ctx.ServerShouldHavePostTasked,
+				)
 			})
 		})
 	})
 }
 
 func TestSelfPushClientPostTasksFail(t *testing.T) {
-	SkipConvey("Given a r66 service", t, func(c C) {
-		ctx := initForSelfTransfer(c)
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
 
-		Convey("Given a new r66 push transfer", func(c C) {
-			makeTransfer(c, ctx, true)
+		Convey("Given an error during the client's post-tasks", func(c C) {
+			ctx.AddClientPostTaskError(c)
+			ctx.RunTransfer(c)
 
-			Convey("Given an error during the client's post-tasks", func(c C) {
-				errMsg, removeFail := addClientFailure(c, ctx, model.ChainPost)
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
 
-				Convey("Once the transfer has been processed", func(c C) {
-					processTransfer(c, ctx)
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Post-tasks failed: Task TASKERR @ PUSH POST[1]: task failed",
+					types.StepPostTasks)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: post-tasks failed",
+					types.StepPostTasks)
 
-					Convey("Then it should have executed all the tasks in order", func(c C) {
-						serverMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER | PUSH | POST-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[1] | ERROR")
-						clientMsgShouldBe(c, "CLIENT | PUSH | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER | PUSH | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER END TRANSFER ERROR")
-						clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-						cTrans := &model.Transfer{
-							Step: types.StepPostTasks,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   uint64(len(testFileContent)),
-							TaskNumber: 1,
-						}
-
-						sTrans := &model.Transfer{
-							Step: types.StepPostTasks,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   uint64(len(testFileContent)),
-							TaskNumber: 1,
-						}
-
-						checkTransfersErr(c, ctx, cTrans, sTrans)
-
-						Convey("When retrying the transfer", func(c C) {
-							retryTransfer(c, ctx, removeFail)
-
-							Convey("Once the transfer has been processed", func(c C) {
-								processTransfer(c, ctx)
-
-								Convey("Then it should have executed all the tasks in order", func(c C) {
-									serverMsgShouldBe(c, "SERVER END TRANSFER OK")
-									clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-									checkTransfersOK(c, ctx)
-								})
-							})
-						})
-					})
-				})
+				ctx.TestRetry(c)
 			})
 		})
 	})
 }
 
 func TestSelfPushServerPostTasksFail(t *testing.T) {
-	Convey("Given a r66 service", t, func(c C) {
-		ctx := initForSelfTransfer(c)
+	Convey("Given a new r66 push transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPushTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
 
-		Convey("Given a new r66 push transfer", func(c C) {
-			makeTransfer(c, ctx, true)
+		Convey("Given an error during the server's post-tasks", func(c C) {
+			ctx.AddServerPostTaskError(c)
+			ctx.RunTransfer(c)
 
-			Convey("Given an error during the server's post-tasks", func(c C) {
-				errMsg, removeFail := addServerFailure(c, ctx, model.ChainPost)
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
-				Convey("Once the transfer has been processed", func(c C) {
-					processTransfer(c, ctx)
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: post-tasks failed",
+					types.StepData)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Post-tasks failed: Task TASKERR @ PUSH POST[1]: task failed",
+					types.StepPostTasks)
 
-					Convey("Then it should have executed all the tasks in order", func(c C) {
-						serverMsgShouldBe(c, "SERVER | PUSH | PRE-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PUSH | PRE-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER | PUSH | POST-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER | PUSH | POST-TASKS[1] | ERROR")
-						serverMsgShouldBe(c, "SERVER | PUSH | ERROR-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PUSH | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER END TRANSFER ERROR")
-						clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-						cTrans := &model.Transfer{
-							Step: types.StepData,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   uint64(len(testFileContent)),
-							TaskNumber: 0,
-						}
-
-						sTrans := &model.Transfer{
-							Step: types.StepPostTasks,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   uint64(len(testFileContent)),
-							TaskNumber: 1,
-						}
-
-						checkTransfersErr(c, ctx, cTrans, sTrans)
-
-						Convey("When retrying the transfer", func(c C) {
-							retryTransfer(c, ctx, removeFail)
-
-							Convey("Once the transfer has been processed", func(c C) {
-								processTransfer(c, ctx)
-
-								Convey("Then it should have executed all the tasks in order", func(c C) {
-									clientMsgShouldBe(c, "CLIENT | PUSH | POST-TASKS[0] | OK")
-									serverMsgShouldBe(c, "SERVER END TRANSFER OK")
-									clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-									checkTransfersOK(c, ctx)
-								})
-							})
-						})
-					})
-				})
+				var transs model.Transfers
+				_ = ctx.DB.Select(&transs).Run()
+				ctx.TestRetry(c,
+					ctx.ClientShouldHavePostTasked,
+				)
 			})
 		})
 	})
 }
 
 func TestSelfPullClientPostTasksFail(t *testing.T) {
-	SkipConvey("Given a r66 service", t, func(c C) {
-		ctx := initForSelfTransfer(c)
+	Convey("Given a new r66 pull transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
 
-		Convey("Given a new r66 pull transfer", func(c C) {
-			makeTransfer(c, ctx, false)
+		Convey("Given an error during the client's post-tasks", func(c C) {
+			ctx.AddClientPostTaskError(c)
+			ctx.RunTransfer(c)
 
-			Convey("Given an error during the client's post-tasks", func(c C) {
-				errMsg, removeFail := addClientFailure(c, ctx, model.ChainPost)
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
 
-				Convey("Once the transfer has been processed", func(c C) {
-					processTransfer(c, ctx)
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Post-tasks failed: Task TASKERR @ PULL POST[1]: task failed",
+					types.StepPostTasks)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: post-tasks failed",
+					types.StepData)
 
-					Convey("Then it should have executed all the tasks in order", func(c C) {
-						serverMsgShouldBe(c, "SERVER | PULL | PRE-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PULL | PRE-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PULL | POST-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PULL | POST-TASKS[1] | ERROR")
-						clientMsgShouldBe(c, "CLIENT | PULL | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER | PULL | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER END TRANSFER ERROR")
-						clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-						cTrans := &model.Transfer{
-							Step: types.StepPostTasks,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   uint64(len(testFileContent)),
-							TaskNumber: 1,
-						}
-
-						sTrans := &model.Transfer{
-							Step: types.StepData,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   uint64(len(testFileContent)),
-							TaskNumber: 0,
-						}
-
-						checkTransfersErr(c, ctx, cTrans, sTrans)
-
-						Convey("When retrying the transfer", func(c C) {
-							retryTransfer(c, ctx, removeFail)
-
-							Convey("Once the transfer has been processed", func(c C) {
-								processTransfer(c, ctx)
-
-								Convey("Then it should have executed all the tasks in order", func(c C) {
-									serverMsgShouldBe(c, "SERVER | PULL | POST-TASKS[0] | OK")
-									serverMsgShouldBe(c, "SERVER END TRANSFER OK")
-									clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-									checkTransfersOK(c, ctx)
-								})
-							})
-						})
-					})
-				})
+				ctx.TestRetry(c,
+					ctx.ServerShouldHavePostTasked,
+				)
 			})
 		})
 	})
 }
 
 func TestSelfPullServerPostTasksFail(t *testing.T) {
-	SkipConvey("Given a r66 service", t, func(c C) {
-		ctx := initForSelfTransfer(c)
+	Convey("Given a new r66 pull transfer", t, func(c C) {
+		ctx := pipelinetest.InitSelfPullTransfer(c, "r66", NewService, partConf, servConf)
+		ctx.StartService(c)
 
-		Convey("Given a new r66 pull transfer", func(c C) {
-			makeTransfer(c, ctx, false)
+		Convey("Given an error during the server's post-tasks", func(c C) {
+			ctx.AddServerPostTaskError(c)
+			ctx.RunTransfer(c)
 
-			Convey("Given an error during the server's post-tasks", func(c C) {
-				errMsg, removeFail := addServerFailure(c, ctx, model.ChainPost)
+			Convey("Then it should have executed all the tasks in order", func(c C) {
+				ctx.ServerShouldHavePreTasked(c)
+				ctx.ClientShouldHavePreTasked(c)
+				ctx.ClientShouldHavePostTasked(c)
+				ctx.ServerShouldHavePostTasked(c)
+				ctx.ServerShouldHaveErrorTasked(c)
+				ctx.ClientShouldHaveErrorTasked(c)
 
-				Convey("Once the transfer has been processed", func(c C) {
-					processTransfer(c, ctx)
+				ctx.CheckClientTransferError(c,
+					types.TeExternalOperation,
+					"Error on remote partner: post-tasks failed",
+					types.StepPostTasks)
+				ctx.CheckServerTransferError(c,
+					types.TeExternalOperation,
+					"Post-tasks failed: Task TASKERR @ PULL POST[1]: task failed",
+					types.StepPostTasks)
 
-					Convey("Then it should have executed all the tasks in order", func(c C) {
-						serverMsgShouldBe(c, "SERVER | PULL | PRE-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PULL | PRE-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PULL | POST-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER | PULL | POST-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER | PULL | POST-TASKS[1] | ERROR")
-						serverMsgShouldBe(c, "SERVER | PULL | ERROR-TASKS[0] | OK")
-						clientMsgShouldBe(c, "CLIENT | PULL | ERROR-TASKS[0] | OK")
-						serverMsgShouldBe(c, "SERVER END TRANSFER ERROR")
-						clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-						cTrans := &model.Transfer{
-							Status: types.StatusError,
-							Step:   types.StepFinalization,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   uint64(len(testFileContent)),
-							TaskNumber: 0,
-						}
-
-						sTrans := &model.Transfer{
-							Status: types.StatusError,
-							Step:   types.StepPostTasks,
-							Error: types.TransferError{
-								Code:    types.TeExternalOperation,
-								Details: errMsg,
-							},
-							Progress:   uint64(len(testFileContent)),
-							TaskNumber: 1,
-						}
-
-						checkTransfersErr(c, ctx, cTrans, sTrans)
-
-						Convey("When retrying the transfer", func(c C) {
-							retryTransfer(c, ctx, removeFail)
-
-							Convey("Once the transfer has been processed", func(c C) {
-								processTransfer(c, ctx)
-
-								Convey("Then it should have executed all the tasks in order", func(c C) {
-									serverMsgShouldBe(c, "SERVER END TRANSFER OK")
-									clientMsgShouldBe(c, "CLIENT END TRANSFER")
-
-									checkTransfersOK(c, ctx)
-								})
-							})
-						})
-					})
-				})
+				ctx.TestRetry(c)
 			})
 		})
 	})

@@ -4,7 +4,7 @@ Modifier un certificat de compte local
 
 .. program:: waarp-gateway account local cert update
 
-.. describe:: waarp-gateway <ADDR> account local <SERVER> cert <LOGIN> update <CERT>
+.. describe:: waarp-gateway account local <SERVER> cert <LOGIN> update <CERT>
 
 Remplace les attributs du certificats par ceux renseignés ci-dessous.
 

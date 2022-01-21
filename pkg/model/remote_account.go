@@ -97,11 +97,8 @@ func (r *RemoteAccount) BeforeDelete(db database.Access) database.Error {
 
 	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
 		"object_type=? AND object_id=?", TableRemAccounts, r.ID)
-	if err := accessQuery.Run(); err != nil {
-		return err
-	}
 
-	return nil
+	return accessQuery.Run()
 }
 
 // GetCryptos fetch in the database then return the associated Cryptos if they exist.

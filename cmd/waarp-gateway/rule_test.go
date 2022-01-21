@@ -11,25 +11,25 @@ import (
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func direction(r *model.Rule) string {
 	if r.IsSend {
-		return "send"
+		return directionSend
 	}
 
-	return "receive"
+	return directionRecv
 }
 
 func ruleInfoString(r *api.OutRule) string {
-	way := "receive"
+	way := directionRecv
 	if r.IsSend {
-		way = "send"
+		way = directionSend
 	}
 
 	servers := strings.Join(r.Authorized.LocalServers, ", ")
@@ -69,11 +69,11 @@ func ruleInfoString(r *api.OutRule) string {
 	}
 
 	rv := "● Rule " + r.Name + " (" + way + ")\n" +
-		"    Comment:        " + r.Comment + "\n" +
-		"    Path:           " + r.Path + "\n" +
-		"    In directory:   " + r.InPath + "\n" +
-		"    Out directory:  " + r.OutPath + "\n" +
-		"    Work directory: " + r.WorkPath + "\n" +
+		"    Comment:                " + r.Comment + "\n" +
+		"    Path:                   " + r.Path + "\n" +
+		"    Local directory:        " + r.LocalDir + "\n" +
+		"    Remote directory:       " + r.RemoteDir + "\n" +
+		"    Temp receive directory: " + r.TmpLocalRcvDir + "\n" +
 		"    Pre tasks:\n" + taskStr(r.PreTasks) +
 		"    Post tasks:\n" + taskStr(r.PostTasks) +
 		"    Error tasks:\n" + taskStr(r.ErrorTasks) +
@@ -91,12 +91,13 @@ func TestDisplayRule(t *testing.T) {
 		out = testFile()
 
 		rule := &api.OutRule{
-			Name:    "rule_name",
-			Comment: "this is a comment",
-			IsSend:  true,
-			Path:    "rule/path",
-			InPath:  "rule/in_path",
-			OutPath: "rule/out_path",
+			Name:           "rule_name",
+			Comment:        "this is a comment",
+			IsSend:         true,
+			Path:           "/rule",
+			LocalDir:       "/rule/local",
+			RemoteDir:      "/rule/remote",
+			TmpLocalRcvDir: "/rule/tmp",
 			Authorized: &api.RuleAccess{
 				LocalServers:   []string{"server1", "server2"},
 				RemotePartners: []string{"partner1", "partner2"},
@@ -143,19 +144,19 @@ func TestGetRule(t *testing.T) {
 
 		Convey("Given a gateway with 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			rule := &model.Rule{
-				Name:     "rule_name",
-				Comment:  "this is a test rule",
-				IsSend:   false,
-				Path:     "test/rule/path",
-				InPath:   "test/rule/in",
-				OutPath:  "test/rule/out",
-				WorkPath: "test/rule/work",
+				Name:           "rule_name",
+				Comment:        "this is a test rule",
+				IsSend:         false,
+				Path:           "/rule",
+				LocalDir:       "/rule/local",
+				RemoteDir:      "/rule/remote",
+				TmpLocalRcvDir: "/rule/tmp",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -199,7 +200,7 @@ func TestAddRule(t *testing.T) {
 
 		Convey("Given a gateway with 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
@@ -208,21 +209,23 @@ func TestAddRule(t *testing.T) {
 				Name:    "existing rule",
 				Comment: "comment about existing rule",
 				IsSend:  false,
-				Path:    "existing/rule/path",
+				Path:    "/existing",
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given valid parameters", func() {
 				args := []string{
-					"-n", "new_rule", "-c", "new_rule comment",
-					"-d", "receive", "--path=/new/rule/path", "--out_path=/out/path",
-					"--in_path=/in/path", "--work_path=/work/path",
-					`--pre={"type":"COPY","args":{"path":"/path/to/copy"}}`,
-					`--pre={"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
-					`--post={"type":"DELETE","args":{}}`,
-					`--post={"type":"TRANSFER","args":{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}}`,
-					`--err={"type":"MOVE","args":{"path":"/path/to/move"}}`,
-					`--err={"type":"RENAME","args":{"path":"/path/to/rename"}}`,
+					"--name", "new_rule", "--comment", "new_rule comment",
+					"--direction", "receive", "--path", "new_rule/path",
+					"--local-dir", "new_rule/local",
+					"--remote-dir", "new_rule/remote",
+					"--tmp-dir", "new_rule/tmp",
+					"--pre", `{"type":"COPY","args":{"path":"/path/to/copy"}}`,
+					"--pre", `{"type":"EXEC","args":{"path":"/path/to/script","args":"{}","delay":"0"}}`,
+					"--post", `{"type":"DELETE","args":{}}`,
+					"--post", `{"type":"TRANSFER","args":{"file":"/path/to/file","to":"server","as":"account","rule":"rule"}}`,
+					"--err", `{"type":"MOVE","args":{"path":"/path/to/move"}}`,
+					"--err", `{"type":"RENAME","args":{"path":"/path/to/rename"}}`,
 				}
 
 				Convey("When executing the command", func() {
@@ -237,19 +240,20 @@ func TestAddRule(t *testing.T) {
 
 					Convey("Then the new rule should have been added", func() {
 						var rules model.Rules
-						So(db.Select(&rules).Run(), ShouldBeNil)
+						So(db.Select(&rules).Where("id=?", 2).Run(), ShouldBeNil)
+						So(rules, ShouldNotBeEmpty)
 
 						rule := model.Rule{
-							ID:       2,
-							Name:     "new_rule",
-							Comment:  "new_rule comment",
-							IsSend:   false,
-							Path:     "/new/rule/path",
-							InPath:   "/in/path",
-							OutPath:  "/out/path",
-							WorkPath: "/work/path",
+							ID:             2,
+							Name:           "new_rule",
+							Comment:        "new_rule comment",
+							IsSend:         false,
+							Path:           "/new_rule/path",
+							LocalDir:       utils.ToOSPath("new_rule/local"),
+							RemoteDir:      "new_rule/remote",
+							TmpLocalRcvDir: utils.ToOSPath("new_rule/tmp"),
 						}
-						So(rules, ShouldContain, rule)
+						So(rules[0], ShouldResemble, rule)
 
 						Convey("Then the rule's tasks should have been added", func() {
 							var tasks model.Tasks
@@ -313,8 +317,8 @@ func TestAddRule(t *testing.T) {
 
 			Convey("Given that the rule's name already exist", func() {
 				args := []string{
-					"-n", existing.Name, "-c", "new_rule comment",
-					"-d", "receive", "-p", "new/rule/path",
+					"--name", existing.Name, "--direction", "receive",
+					"--path", "new_rule/path",
 				}
 
 				Convey("When executing the command", func() {
@@ -345,7 +349,7 @@ func TestDeleteRule(t *testing.T) {
 
 		Convey("Given a gateway with 1 rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
@@ -353,7 +357,7 @@ func TestDeleteRule(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule_name",
 				IsSend: true,
-				Path:   "existing/rule/path",
+				Path:   "/existing",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -408,30 +412,30 @@ func TestListRules(t *testing.T) {
 
 		Convey("Given a gateway with 2 rules", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			receive := &model.Rule{
-				Name:     "receive",
-				Comment:  "receive comment",
-				IsSend:   false,
-				Path:     "receive/path",
-				InPath:   "receive/in_path",
-				OutPath:  "receive/out_path",
-				WorkPath: "receive/work_path",
+				Name:           "receive_rule",
+				Comment:        "receive comment",
+				IsSend:         false,
+				Path:           "/receive",
+				LocalDir:       "/receive/local",
+				RemoteDir:      "/receive/remote",
+				TmpLocalRcvDir: "/receive/tmp",
 			}
 			So(db.Insert(receive).Run(), ShouldBeNil)
 
 			send := &model.Rule{
-				Name:     "send",
-				Comment:  "send comment",
-				IsSend:   true,
-				Path:     "send/path",
-				InPath:   "send/in_path",
-				OutPath:  "send/out_path",
-				WorkPath: "send/work_path",
+				Name:           "send_rule",
+				Comment:        "send comment",
+				IsSend:         true,
+				Path:           "/send",
+				LocalDir:       "/send/local",
+				RemoteDir:      "/send/remote",
+				TmpLocalRcvDir: "/send/tmp",
 			}
 			So(db.Insert(send).Run(), ShouldBeNil)
 
@@ -510,7 +514,7 @@ func TestRuleAllowAll(t *testing.T) {
 
 		Convey("Given a database with a rule", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
@@ -518,20 +522,20 @@ func TestRuleAllowAll(t *testing.T) {
 			rule := &model.Rule{
 				Name:   "rule",
 				IsSend: true,
-				Path:   "rule/path",
+				Path:   "/rule",
 			}
 			So(db.Insert(rule).Run(), ShouldBeNil)
 
 			Convey("Given multiple accesses to that rule", func() {
 				s := &model.LocalAgent{
 					Name:        "server",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:1",
 				}
 				p := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:2",
 				}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -17,6 +18,7 @@ import (
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 const ruleURI = "http://remotehost:8080/api/rules/"
@@ -34,19 +36,19 @@ func TestCreateRule(t *testing.T) {
 				Name:    "existing",
 				Comment: "",
 				IsSend:  false,
-				Path:    "test/existing/path",
+				Path:    "/existing",
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given a new rule to insert in the database", func() {
 				body := strings.NewReader(`{
 					"name": "new_name",
+					"isSend": false,
 					"comment": "new comment",
 					"path": "/test_path",
-					"inPath": "/test_in",
-					"outPath": "/test_out",
-					"workPath": "/test_work",
-					"isSend": false,
+					"localDir": "/local/dir",
+					"remoteDir": "/remote/dir",
+					"tmpLocalRcvDir": "/local/tmp",
 					"preTasks": [{
 						"type": "DELETE"
 					}]
@@ -81,14 +83,14 @@ func TestCreateRule(t *testing.T) {
 							So(len(rules), ShouldEqual, 2)
 
 							exp := model.Rule{
-								ID:       2,
-								Name:     "new_name",
-								Comment:  "new comment",
-								IsSend:   false,
-								Path:     "/test_path",
-								InPath:   "/test_in",
-								OutPath:  "/test_out",
-								WorkPath: "/test_work",
+								ID:             2,
+								Name:           "new_name",
+								Comment:        "new comment",
+								IsSend:         false,
+								Path:           "/test_path",
+								LocalDir:       filepath.FromSlash("/local/dir"),
+								RemoteDir:      "/remote/dir",
+								TmpLocalRcvDir: filepath.FromSlash("/local/tmp"),
 							}
 							So(rules[1], ShouldResemble, exp)
 						})
@@ -137,15 +139,15 @@ func TestGetRule(t *testing.T) {
 				Name:    "existing",
 				Comment: "receive",
 				IsSend:  false,
-				Path:    "recv/existing/path",
+				Path:    "/existing",
 			}
 			So(db.Insert(recv).Run(), ShouldBeNil)
 
 			send := &model.Rule{
-				Name:    recv.Name,
+				Name:    "existing",
 				Comment: "send",
 				IsSend:  true,
-				Path:    "send/existing/path",
+				Path:    "/existing",
 			}
 			So(db.Insert(send).Run(), ShouldBeNil)
 
@@ -240,13 +242,13 @@ func TestGetRule(t *testing.T) {
 				serv1 := &model.LocalAgent{
 					Name:        "serv1",
 					Address:     "localhost:1",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 				}
 				serv2 := &model.LocalAgent{
 					Name:        "serv2",
 					Address:     "localhost:2",
-					Protocol:    "test",
+					Protocol:    testProto2,
 					ProtoConfig: json.RawMessage(`{}`),
 				}
 				So(db.Insert(serv1).Run(), ShouldBeNil)
@@ -274,13 +276,13 @@ func TestGetRule(t *testing.T) {
 				part1 := &model.RemoteAgent{
 					Name:        "part1",
 					Address:     "localhost:10",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 				}
 				part2 := &model.RemoteAgent{
 					Name:        "part2",
 					Address:     "localhost:20",
-					Protocol:    "test",
+					Protocol:    testProto2,
 					ProtoConfig: json.RawMessage(`{}`),
 				}
 				So(db.Insert(part1).Run(), ShouldBeNil)
@@ -513,18 +515,19 @@ func TestUpdateRule(t *testing.T) {
 
 		Convey("Given a database with 2 rules & a task", func() {
 			old := &model.Rule{
-				Name:    "old",
-				Path:    "/old_path",
-				InPath:  "/old_in",
-				OutPath: "/old_out",
-				IsSend:  true,
+				Name:      "old",
+				IsSend:    true,
+				Path:      "/old_send",
+				LocalDir:  "/send/local/dir",
+				RemoteDir: "/send/remote/dir",
 			}
 			oldRecv := &model.Rule{
-				Name:    "old",
-				Path:    "/old/pathRecv",
-				InPath:  "/old/in",
-				OutPath: "/old/out",
-				IsSend:  false,
+				Name:           "old",
+				IsSend:         false,
+				Path:           "/old_recv",
+				LocalDir:       "/recv/local/dir",
+				RemoteDir:      "/recv/remote/dir",
+				TmpLocalRcvDir: "/recv/local/tmp",
 			}
 			other := &model.Rule{
 				Name:   "other",
@@ -565,8 +568,8 @@ func TestUpdateRule(t *testing.T) {
 			Convey("Given new values to update the rule with", func() {
 				body := strings.NewReader(`{
 					"name": "update_name",
-					"inPath": "",
-					"workPath": "/update_work",
+					"localDir": "",
+					"tmpLocalRcvDir": "/local/update/work",
 					"postTasks": [{
 						"type": "MOVE",
 						"args": {"path": "/move/path"}
@@ -604,13 +607,13 @@ func TestUpdateRule(t *testing.T) {
 							So(len(results), ShouldEqual, 3)
 
 							expected := model.Rule{
-								ID:       old.ID,
-								Name:     "update_name",
-								Path:     "/old_path",
-								InPath:   "",
-								OutPath:  "/old_out",
-								WorkPath: "/update_work",
-								IsSend:   true,
+								ID:             old.ID,
+								Name:           "update_name",
+								Path:           old.Path,
+								LocalDir:       "",
+								RemoteDir:      old.RemoteDir,
+								TmpLocalRcvDir: filepath.FromSlash("/local/update/work"),
+								IsSend:         true,
 							}
 							So(results[0], ShouldResemble, expected)
 
@@ -673,13 +676,13 @@ func TestUpdateRule(t *testing.T) {
 						}, {
 							Comment: strPtr("update comment"),
 						}, {
-							Path: strPtr("/path/update"),
+							Path: strPtr("/path_update"),
 						}, {
-							InPath: strPtr("/update/in"),
+							LocalDir: strPtr("/update/local"),
 						}, {
-							OutPath: strPtr("/update/out"),
+							RemoteDir: strPtr("/update/remote"),
 						}, {
-							WorkPath: strPtr("/update/work"),
+							TmpLocalRcvDir: strPtr("/update/tmp"),
 						}, {
 							PreTasks: []Task{
 								{
@@ -752,14 +755,14 @@ func doUpdate(handler http.HandlerFunc, old *model.Rule, update *UptRule) (*http
 
 func getExpected(src *model.Rule, upt *UptRule) *model.Rule {
 	res := &model.Rule{
-		ID:       src.ID,
-		Name:     src.Name,
-		Comment:  src.Comment,
-		IsSend:   src.IsSend,
-		Path:     src.Path,
-		InPath:   src.InPath,
-		OutPath:  src.OutPath,
-		WorkPath: src.WorkPath,
+		ID:             src.ID,
+		Name:           src.Name,
+		Comment:        src.Comment,
+		IsSend:         src.IsSend,
+		Path:           src.Path,
+		LocalDir:       src.LocalDir,
+		RemoteDir:      src.RemoteDir,
+		TmpLocalRcvDir: src.TmpLocalRcvDir,
 	}
 
 	if upt.Name != nil {
@@ -774,16 +777,16 @@ func getExpected(src *model.Rule, upt *UptRule) *model.Rule {
 		res.Path = *upt.Path
 	}
 
-	if upt.InPath != nil {
-		res.InPath = *upt.InPath
+	if upt.LocalDir != nil {
+		res.LocalDir = utils.ToOSPath(*upt.LocalDir)
 	}
 
-	if upt.OutPath != nil {
-		res.OutPath = *upt.OutPath
+	if upt.RemoteDir != nil {
+		res.RemoteDir = *upt.RemoteDir
 	}
 
-	if upt.WorkPath != nil {
-		res.WorkPath = *upt.WorkPath
+	if upt.TmpLocalRcvDir != nil {
+		res.TmpLocalRcvDir = utils.ToOSPath(*upt.TmpLocalRcvDir)
 	}
 
 	// TODO Tasks
@@ -809,12 +812,12 @@ func TestReplaceRule(t *testing.T) {
 
 		Convey("Given a database with a rule & a task", func() {
 			old := &model.Rule{
-				Name:     "old",
-				Path:     "/old/path",
-				InPath:   "/old/in",
-				OutPath:  "/old/out",
-				WorkPath: "/old/work",
-				IsSend:   true,
+				Name:           "old",
+				Path:           "/old",
+				LocalDir:       "/old/local",
+				RemoteDir:      "/old/remote",
+				TmpLocalRcvDir: "/old/tmp",
+				IsSend:         true,
 			}
 			So(db.Insert(old).Run(), ShouldBeNil)
 

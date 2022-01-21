@@ -2,15 +2,22 @@ package r66
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
+	"fmt"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"code.bcarlin.xyz/go/logging"
+	"code.waarp.fr/waarp-r66/r66"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline/pipelinetest"
 )
 
 func TestServiceStart(t *testing.T) {
@@ -26,10 +33,10 @@ func TestServiceStart(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
-		service := NewService(db, server, logger)
+		serv := NewService(db, server, logger)
 
 		Convey("When calling the 'Start' function", func() {
-			err := service.Start()
+			err := serv.Start()
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
@@ -51,17 +58,111 @@ func TestServiceStop(t *testing.T) {
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
-		service := NewService(db, server, logger)
-		So(service.Start(), ShouldBeNil)
+		serv := NewService(db, server, logger)
+		So(serv.Start(), ShouldBeNil)
 
 		Convey("When calling the 'Stop' function", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			err := service.Stop(ctx)
+			err := serv.Stop(ctx)
 
 			Convey("Then it should not return an error", func() {
 				So(err, ShouldBeNil)
 			})
 		})
 	})
+}
+
+func TestR66ServerInterruption(t *testing.T) {
+	Convey("Given an SFTP server ready for push transfers", t, func(c C) {
+		test := pipelinetest.InitServerPush(c, "r66", NewService, servConf)
+
+		serv := NewService(test.DB, test.Server, log.NewLogger("server"))
+		c.So(serv.Start(), ShouldBeNil)
+
+		Convey("Given a dummy R66 client", func() {
+			ses := makeDummyClient(test)
+
+			Convey("Given that a push transfer started", func() {
+				req := &r66.Request{
+					ID:       1,
+					Filepath: "/test_in_shutdown.dst",
+					FileSize: 100,
+					Rule:     test.ServerRule.Name,
+					IsRecv:   false,
+					IsMD5:    false,
+					Block:    10,
+					Rank:     0,
+				}
+				_, err := ses.Request(req)
+				So(err, ShouldBeNil)
+
+				Convey("When the server shuts down", func(c C) {
+					go func() {
+						time.Sleep(500 * time.Millisecond)
+						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+						defer cancel()
+						if err := serv.Stop(ctx); err != nil {
+							panic(err)
+						}
+					}()
+					f := func() ([]byte, error) { panic("should never be called") }
+					_, err := ses.Send(&dummyFile{}, f)
+					So(err, ShouldBeError, "S: service is shutting down")
+
+					Convey("Then the transfer should have been interrupted", func(c C) {
+						test.ServerShouldHavePreTasked(c)
+						test.TasksChecker.WaitServerDone()
+
+						var transfers model.Transfers
+						So(test.DB.Select(&transfers).Run(), ShouldBeNil)
+						So(transfers, ShouldNotBeEmpty)
+
+						trans := model.Transfer{
+							ID:               transfers[0].ID,
+							RemoteTransferID: fmt.Sprint(req.ID),
+							Start:            transfers[0].Start,
+							IsServer:         true,
+							AccountID:        test.LocAccount.ID,
+							AgentID:          test.Server.ID,
+							LocalPath: filepath.Join(test.Server.RootDir,
+								test.Server.TmpReceiveDir, "test_in_shutdown.dst.part"),
+							RemotePath: "/test_in_shutdown.dst",
+							Filesize:   100,
+							RuleID:     test.ServerRule.ID,
+							Status:     types.StatusInterrupted,
+							Step:       types.StepData,
+							Owner:      database.Owner,
+							Progress:   transfers[0].Progress,
+						}
+						So(transfers[0], ShouldResemble, trans)
+
+						ok := serv.(*Service).runningTransfers.Exists(trans.ID)
+						So(ok, ShouldBeFalse)
+					})
+				})
+			})
+		})
+	})
+}
+
+func makeDummyClient(test *pipelinetest.ServerContext) *r66.Session {
+	logger := log.NewLogger("client")
+	cli, err := r66.Dial(test.Server.Address, logger.AsStdLog(logging.DEBUG))
+	So(err, ShouldBeNil)
+
+	ses, err := cli.NewSession()
+	So(err, ShouldBeNil)
+	_, err = ses.Authent(pipelinetest.TestLogin, []byte(pipelinetest.TestPassword), &r66.Config{})
+	So(err, ShouldBeNil)
+
+	return ses
+}
+
+type dummyFile struct{}
+
+func (d *dummyFile) ReadAt(p []byte, _ int64) (int, error) {
+	time.Sleep(100 * time.Millisecond)
+
+	return rand.Read(p) //nolint:wrapcheck // this is a test
 }

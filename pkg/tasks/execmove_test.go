@@ -1,18 +1,21 @@
 package tasks
 
 import (
+	"context"
 	"io/ioutil"
-	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestExecMoveValidate(t *testing.T) {
 	Convey("Given an 'EXECMOVE' task", t, func() {
-		exec := &ExecMoveTask{}
+		exec := &execMoveTask{}
 
 		Convey("Given valid argument", func() {
 			args := map[string]string{
@@ -80,83 +83,82 @@ func TestExecMoveValidate(t *testing.T) {
 }
 
 func TestExecMoveRun(t *testing.T) {
-	Convey("Given an 'EXECMOVE' task", t, func() {
-		exec := &ExecMoveTask{}
-		proc := &Processor{
+	Convey("Given an 'EXECMOVE' task", t, func(c C) {
+		root := testhelpers.TempDir(c, "task_execmove")
+		scriptPath := filepath.Join(root, execMoveScriptFile)
+
+		exec := &execMoveTask{}
+		transCtx := &model.TransferContext{
+			Rule:     &model.Rule{IsSend: false},
 			Transfer: &model.Transfer{},
-			Rule:     &model.Rule{},
 		}
 
-		Reset(func() { _ = os.Remove(execMoveScriptFile) })
+		srcFile := filepath.Join(root, "test.src")
+		dstFile := filepath.Join(root, "test.dst")
+		So(ioutil.WriteFile(srcFile, []byte("Hello world"), 0o600), ShouldBeNil)
 
-		Convey("Given valid arguments", func() {
-			args := map[string]string{
-				"path":  execMoveScriptFile,
-				"args":  "execmove.go",
-				"delay": "1000",
-			}
+		args := map[string]string{
+			"path":  scriptPath,
+			"args":  srcFile + " " + dstFile,
+			"delay": "0",
+		}
 
-			Convey("Given that the command succeeds", func() {
-				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecOK), 0o700)
-				So(err, ShouldBeNil)
+		Convey("Given that the command succeeds", func() {
+			err := ioutil.WriteFile(scriptPath, []byte(scriptExecMove), 0o700)
+			So(err, ShouldBeNil)
 
-				Convey("When running the task", func() {
-					_, err := exec.Run(args, proc)
+			Convey("When running the task", func() {
+				_, err := exec.Run(context.Background(), args, nil, transCtx)
 
-					Convey("Then it should NOT return an error", func() {
-						So(err, ShouldBeNil)
+				Convey("Then it should NOT return an error", func() {
+					So(err, ShouldBeNil)
 
-						Convey("Then the transfer destination should have "+
-							"changed", func() {
-							So(proc.Transfer.DestFile, ShouldEqual, "execmove.go")
-						})
+					Convey("Then the transfer filepath should have changed", func() {
+						So(utils.ToOSPath(transCtx.Transfer.LocalPath),
+							ShouldEqual, dstFile)
 					})
 				})
 			})
+		})
 
-			Convey("Given that the command sends a warning", func() {
-				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecWarn), 0o700)
-				So(err, ShouldBeNil)
+		Convey("Given that the command sends a warning", func() {
+			err := ioutil.WriteFile(scriptPath, []byte(scriptExecWarn), 0o700)
+			So(err, ShouldBeNil)
 
-				Convey("When running the task", func() {
-					_, err := exec.Run(args, proc)
+			Convey("When running the task", func() {
+				_, err := exec.Run(context.Background(), args, nil, transCtx)
 
-					Convey("Then it should return a 'warning' error", func() {
-						So(err, ShouldBeError, errWarning)
-					})
+				Convey("Then it should return a 'warning' error", func() {
+					So(err, ShouldHaveSameTypeAs, &warningError{})
 				})
 			})
+		})
 
-			Convey("Given that the command fails", func() {
-				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecFail), 0o700)
-				So(err, ShouldBeNil)
+		Convey("Given that the command fails", func() {
+			err := ioutil.WriteFile(scriptPath, []byte(scriptExecFail), 0o700)
+			So(err, ShouldBeNil)
 
-				Convey("When running the task", func() {
-					_, err := exec.Run(args, proc)
+			Convey("When running the task", func() {
+				_, err := exec.Run(context.Background(), args, nil, transCtx)
 
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-						So(err, ShouldNotEqual, errWarning)
-					})
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError)
+					So(err, ShouldNotHaveSameTypeAs, &warningError{})
 				})
 			})
+		})
 
-			Convey("Given that the command delay expires", func() {
-				err := ioutil.WriteFile(execMoveScriptFile, []byte(scriptExecInfinite), 0o700)
-				So(err, ShouldBeNil)
+		Convey("Given that the command delay expires", func() {
+			err := ioutil.WriteFile(scriptPath, []byte(scriptExecInfinite), 0o700)
+			So(err, ShouldBeNil)
 
-				args["delay"] = "100"
+			args["delay"] = "100"
 
-				Convey("When running the task", func() {
-					msg, err := exec.Run(args, proc)
+			Convey("When running the task", func() {
+				_, err := exec.Run(context.Background(), args, nil, transCtx)
 
-					Convey("Then it should return an error", func() {
-						So(err, ShouldBeError)
-
-						Convey("Then the message should say that the delay has expired", func() {
-							So(msg, ShouldEqual, "max exec delay expired")
-						})
-					})
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, errCommandTimeout)
 				})
 			})
 		})

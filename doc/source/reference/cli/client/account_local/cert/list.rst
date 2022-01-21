@@ -4,7 +4,7 @@ Lister les certificats d'un compte local
 
 .. program:: waarp-gateway account local cert list
 
-.. describe:: waarp-gateway <ADDR> account local <SERVER> cert <LOGIN> list
+.. describe:: waarp-gateway account local <SERVER> cert <LOGIN> list
 
 Affiche les informations des certificats du compte suivant les critères donnés.
 

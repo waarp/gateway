@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"encoding/json"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -18,25 +17,24 @@ func TestImportRemoteAgents(t *testing.T) {
 
 		Convey("Given a database with some remote agent", func() {
 			agent := &model.RemoteAgent{
-				Name:        "test",
-				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			Convey("Given a list of new agents", func() {
 				agent1 := RemoteAgent{
 					Name:          "foo",
-					Protocol:      "sftp",
+					Protocol:      testProtocol,
 					Configuration: []byte(`{}`),
 					Address:       "localhost:2022",
 					Accounts: []RemoteAccount{
 						{
-							Login:    "test",
+							Login:    "acc1",
 							Password: "pwd",
 						}, {
-							Login:    "test2",
+							Login:    "acc2",
 							Password: "pwd",
 						},
 					},
@@ -73,13 +71,13 @@ func TestImportRemoteAgents(t *testing.T) {
 
 		Convey("Given a list of fully updated agents", func() {
 			agent1 := RemoteAgent{
-				Name:          "test",
-				Protocol:      "sftp",
+				Name:          "agent1",
+				Protocol:      testProtocol,
 				Configuration: []byte(`{}`),
 				Address:       "localhost:6666",
 				Accounts: []RemoteAccount{
 					{
-						Login:    "test",
+						Login:    "acc1",
 						Password: "pwd",
 					},
 				},
@@ -133,10 +131,9 @@ func TestImportRemoteAccounts(t *testing.T) {
 
 		Convey("Given a database with some a remote agent and some remote accounts", func() {
 			agent := &model.RemoteAgent{
-				Name:        "test",
-				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -149,11 +146,11 @@ func TestImportRemoteAccounts(t *testing.T) {
 
 			Convey("Given a list of new accounts", func() {
 				account1 := RemoteAccount{
-					Login:    "test",
+					Login:    "acc1",
 					Password: "pwd",
 				}
 				account2 := RemoteAccount{
-					Login:    "test2",
+					Login:    "acc2",
 					Password: "pwd",
 				}
 				accounts := []RemoteAccount{
@@ -212,8 +209,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							PrivateKey:  testhelpers.ClientKey,
-							Certificate: testhelpers.ClientCert,
+							PrivateKey:  testhelpers.ClientFooKey,
+							Certificate: testhelpers.ClientFooCert,
 						},
 					},
 				}
@@ -266,8 +263,8 @@ func TestImportRemoteAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							PrivateKey:  testhelpers.ClientKey,
-							Certificate: testhelpers.ClientCert,
+							PrivateKey:  testhelpers.ClientFooKey,
+							Certificate: testhelpers.ClientFooCert,
 						},
 					},
 				}

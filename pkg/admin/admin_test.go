@@ -2,9 +2,7 @@ package admin
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -34,7 +32,11 @@ func TestStart(t *testing.T) {
 		config.Admin.Port = 0
 		config.Admin.TLSCert = "cert.pem"
 		config.Admin.TLSKey = "key.pem"
-		server := &Server{Conf: config, Services: make(map[string]service.Service)}
+		server := &Server{
+			Conf:          config,
+			CoreServices:  map[string]service.Service{},
+			ProtoServices: map[string]service.ProtoService{},
+		}
 		Reset(func() { _ = server.server.Close() })
 
 		Convey("Given a correct configuration", func() {
@@ -72,24 +74,11 @@ func TestStart(t *testing.T) {
 		Convey("Given an incorrect host", func() {
 			config.Admin.Host = "invalid_host"
 			config.Admin.Port = 0
-			rest := &Server{Conf: config, Services: make(map[string]service.Service)}
-
-			Convey("When starting the service", func() {
-				err := rest.Start()
-
-				Convey("Then it should produce an error", func() {
-					So(err, ShouldBeError)
-				})
-			})
-		})
-
-		Convey("Given an incorrect port number", func() {
-			config.Admin.Host = "localhost"
-			config.Admin.Port = 9999
-			rest := &Server{Conf: config, Services: make(map[string]service.Service)}
-			l, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", config.Admin.Port))
-			So(err, ShouldBeNil)
-			Reset(func() { _ = l.Close() })
+			rest := &Server{
+				Conf:          config,
+				CoreServices:  map[string]service.Service{},
+				ProtoServices: map[string]service.ProtoService{},
+			}
 
 			Convey("When starting the service", func() {
 				err := rest.Start()
@@ -105,7 +94,11 @@ func TestStart(t *testing.T) {
 			config.Admin.Port = 0
 			config.Admin.TLSCert = "not_a_cert"
 			config.Admin.TLSKey = "not_a_key"
-			rest := &Server{Conf: config, Services: make(map[string]service.Service)}
+			rest := &Server{
+				Conf:          config,
+				CoreServices:  map[string]service.Service{},
+				ProtoServices: map[string]service.ProtoService{},
+			}
 
 			Convey("When starting the service", func() {
 				err := rest.Start()
@@ -123,7 +116,11 @@ func TestStop(t *testing.T) {
 		config := &conf.ServerConfig{}
 		config.Admin.Host = "localhost"
 		config.Admin.Port = 0
-		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
+		rest := &Server{
+			Conf:          config,
+			CoreServices:  map[string]service.Service{},
+			ProtoServices: map[string]service.ProtoService{},
+		}
 
 		err := rest.Start()
 		So(err, ShouldBeNil)

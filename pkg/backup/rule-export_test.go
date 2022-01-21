@@ -17,23 +17,23 @@ func TestExportRules(t *testing.T) {
 
 		Convey("Given the database contains 3 rules", func() {
 			rule1 := &model.Rule{
-				Name:   "test1",
+				Name:   "rule1",
 				IsSend: true,
-				Path:   "test1/send",
+				Path:   "rule1/send",
 			}
 			So(db.Insert(rule1).Run(), ShouldBeNil)
 
 			rule2 := &model.Rule{
-				Name:   "test2",
+				Name:   "rule2",
 				IsSend: false,
-				Path:   "test2",
+				Path:   "/rule2",
 			}
 			So(db.Insert(rule2).Run(), ShouldBeNil)
 
 			rule1b := &model.Rule{
-				Name:   "test1",
+				Name:   "rule1",
 				IsSend: false,
-				Path:   "test1/recv",
+				Path:   "rule1/recv",
 			}
 			So(db.Insert(rule1b).Run(), ShouldBeNil)
 
@@ -58,31 +58,30 @@ func TestExportRuleAccesses(t *testing.T) {
 
 		Convey("Given a rules with accesses", func() {
 			agent := &model.RemoteAgent{
-				Name:        "agent",
-				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "partner",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account1 := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
-				Login:         "test",
+				Login:         "account1",
 				Password:      "sesame",
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
 
 			account2 := &model.RemoteAccount{
 				RemoteAgentID: agent.ID,
-				Login:         "test2",
+				Login:         "acc2",
 				Password:      "sesame",
 			}
 			So(db.Insert(account2).Run(), ShouldBeNil)
 
 			rule1 := &model.Rule{
-				Name:   "test1",
+				Name:   "rule1",
 				IsSend: true,
-				Path:   "test1/send",
+				Path:   "rule1/send",
 			}
 			So(db.Insert(rule1).Run(), ShouldBeNil)
 
@@ -94,9 +93,9 @@ func TestExportRuleAccesses(t *testing.T) {
 			So(db.Insert(access1).Run(), ShouldBeNil)
 
 			rule2 := &model.Rule{
-				Name:   "test2",
+				Name:   "rule2",
 				IsSend: false,
-				Path:   "test2/path",
+				Path:   "rule2/path",
 			}
 			So(db.Insert(rule2).Run(), ShouldBeNil)
 
@@ -152,16 +151,16 @@ func TestExportRuleTasks(t *testing.T) {
 
 		Convey("Given rules with tasks", func() {
 			rule1 := &model.Rule{
-				Name:   "test1",
+				Name:   "rule1",
 				IsSend: true,
-				Path:   "test1/send",
+				Path:   "rule1/send",
 			}
 			So(db.Insert(rule1).Run(), ShouldBeNil)
 
 			rule2 := &model.Rule{
-				Name:   "test2",
+				Name:   "rule2",
 				IsSend: true,
-				Path:   "test2/send",
+				Path:   "rule2/send",
 			}
 			So(db.Insert(rule2).Run(), ShouldBeNil)
 
@@ -179,7 +178,6 @@ func TestExportRuleTasks(t *testing.T) {
 				Chain:  model.ChainPost,
 				Rank:   0,
 				Type:   "DELETE",
-				Args:   json.RawMessage(`{}`),
 			}
 			So(db.Insert(post1).Run(), ShouldBeNil)
 

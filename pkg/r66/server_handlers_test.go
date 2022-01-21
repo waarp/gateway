@@ -1,7 +1,6 @@
 package r66
 
 import (
-	"context"
 	"io/ioutil"
 	"os"
 	"path"
@@ -11,15 +10,22 @@ import (
 
 	"code.waarp.fr/waarp-r66/r66"
 	. "github.com/smartystreets/goconvey/convey"
+	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
+
+//nolint:gochecknoinits // init is used by design
+func init() {
+	_ = log.InitBackend("DEBUG", "stdout", "")
+}
 
 func TestValidAuth(t *testing.T) {
 	logger := log.NewLogger("test_valid_auth")
@@ -75,8 +81,8 @@ func TestValidAuth(t *testing.T) {
 						ses, ok := s.(*sessionHandler)
 						So(ok, ShouldBeTrue)
 						So(ses.account, ShouldResemble, toto)
-						So(ses.hasHash, ShouldBeTrue)
-						So(ses.hasFileSize, ShouldBeTrue)
+						So(ses.conf.FinalHash, ShouldBeTrue)
+						So(ses.conf.Filesize, ShouldBeTrue)
 					})
 				})
 			})
@@ -104,11 +110,13 @@ func TestValidRequest(t *testing.T) {
 
 	Convey("Given an R66 authentication handler", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
+		root := testhelpers.TempDir(c, "r66_valid_request")
 
 		rule := &model.Rule{
-			Name:   "rule",
-			IsSend: false,
-			Path:   "/rule",
+			Name:           "rule",
+			IsSend:         false,
+			Path:           "/rule",
+			TmpLocalRcvDir: "rule_tmp",
 		}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
@@ -117,6 +125,7 @@ func TestValidRequest(t *testing.T) {
 			Protocol:    "r66",
 			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:6666",
+			RootDir:     filepath.Join(root, "server_root"),
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -129,13 +138,16 @@ func TestValidRequest(t *testing.T) {
 
 		ses := sessionHandler{
 			authHandler: &authHandler{Service: &Service{
-				db:     db,
-				logger: logger,
-				agent:  server,
+				db:               db,
+				logger:           logger,
+				agent:            server,
+				runningTransfers: service.NewTransferMap(),
 			}},
-			account:     account,
-			hasHash:     true,
-			hasFileSize: true,
+			account: account,
+			conf: &r66.Authent{
+				FinalHash: true,
+				Filesize:  true,
+			},
 		}
 
 		Convey("Given a request packet", func() {
@@ -144,11 +156,11 @@ func TestValidRequest(t *testing.T) {
 				Filepath: "/file",
 				FileSize: 4,
 				Rule:     rule.Name,
-				Mode:     3,
+				IsRecv:   false,
+				IsMD5:    true,
 				Block:    512,
 				Rank:     0,
-				// Limit:      0,
-				Infos: nil,
+				Infos:    "",
 			}
 
 			shouldFailWith := func(desc, msg string) {
@@ -165,26 +177,26 @@ func TestValidRequest(t *testing.T) {
 				Convey("When calling the `ValidAuth` function", func() {
 					t, err := ses.ValidRequest(packet)
 					So(err, ShouldBeNil)
-					trans, ok := t.(*transferHandler)
+					handler, ok := t.(*transferHandler)
 					So(ok, ShouldBeTrue)
 
 					Convey("Then it should have created a transfer", func() {
-						So(trans.file.Transfer.RuleID, ShouldEqual, rule.ID)
-						So(trans.file.Transfer.IsServer, ShouldBeTrue)
-						So(trans.file.Transfer.AgentID, ShouldEqual, server.ID)
-						So(trans.file.Transfer.AccountID, ShouldEqual, account.ID)
-						So(trans.file.Transfer.TrueFilepath, ShouldEqual, packet.Filepath+".tmp")
-						So(trans.file.Transfer.SourceFile, ShouldEqual, path.Base(packet.Filepath))
-						So(trans.file.Transfer.DestFile, ShouldEqual, path.Base(packet.Filepath))
-						So(trans.file.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
-						So(trans.file.Transfer.Step, ShouldEqual, types.StepNone)
-						So(trans.file.Transfer.Status, ShouldEqual, types.StatusRunning)
+						So(handler.trans.pip.TransCtx.Transfer.RuleID, ShouldEqual, rule.ID)
+						So(handler.trans.pip.TransCtx.Transfer.IsServer, ShouldBeTrue)
+						So(handler.trans.pip.TransCtx.Transfer.AgentID, ShouldEqual, server.ID)
+						So(handler.trans.pip.TransCtx.Transfer.AccountID, ShouldEqual, account.ID)
+						So(handler.trans.pip.TransCtx.Transfer.LocalPath, ShouldEqual, filepath.Join(
+							server.RootDir, rule.TmpLocalRcvDir, path.Base(packet.Filepath)))
+						So(handler.trans.pip.TransCtx.Transfer.RemotePath, ShouldEqual, "/"+path.Base(packet.Filepath))
+						So(handler.trans.pip.TransCtx.Transfer.Start, ShouldHappenOnOrBefore, time.Now())
+						So(handler.trans.pip.TransCtx.Transfer.Step, ShouldEqual, types.StepSetup)
+						So(handler.trans.pip.TransCtx.Transfer.Status, ShouldEqual, types.StatusRunning)
 					})
 
-					Convey("Then it should return a new session handler", func() {
-						So(trans.file.Rule, ShouldResemble, rule)
-						So(trans.isMD5, ShouldBeTrue)
-						So(trans.fileSize, ShouldEqual, packet.FileSize)
+					Convey("Then it should have returned a new session handler", func() {
+						So(handler.trans.pip.TransCtx.Rule, ShouldResemble, rule)
+						So(handler.trans.pip.TransCtx.LocalAgent, ShouldResemble, server)
+						So(handler.trans.pip.TransCtx.LocalAccount, ShouldResemble, account)
 					})
 				})
 			})
@@ -205,7 +217,7 @@ func TestValidRequest(t *testing.T) {
 			})
 
 			Convey("Given that the file size is missing", func() {
-				packet.FileSize = -1
+				packet.FileSize = model.UnknownSize
 				shouldFailWith("the file size is missing", "n: missing file size")
 			})
 		})
@@ -217,22 +229,12 @@ func TestUpdateTransferInfo(t *testing.T) {
 
 	Convey("Given an R66 transfer handler", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
-		paths := pipeline.Paths{
-			PathsConfig: conf.PathsConfig{
-				GatewayHome:   testhelpers.TempDir(c, "test_r66_updatetransferinfo"),
-				InDirectory:   "gw_in",
-				OutDirectory:  "gw_out",
-				WorkDirectory: "gw_tmp",
-			},
-			ServerRoot: "serv_root",
-			ServerIn:   "serv_in",
-			ServerOut:  "serv_out",
-			ServerWork: "serv_tmp",
-		}
+		root := testhelpers.TempDir(c, "r66_update_info")
+		db.Conf.Paths.GatewayHome = root
 
-		send := &model.Rule{Name: "send", IsSend: true, Path: "/send"}
+		send := &model.Rule{Name: "send", IsSend: true, Path: "/send", LocalDir: "send_dir"}
 		So(db.Insert(send).Run(), ShouldBeNil)
-		recv := &model.Rule{Name: "recv", IsSend: false, Path: "/recv"}
+		recv := &model.Rule{Name: "recv", IsSend: false, Path: "/recv", LocalDir: "recv_dir"}
 		So(db.Insert(recv).Run(), ShouldBeNil)
 
 		server := &model.LocalAgent{
@@ -240,6 +242,7 @@ func TestUpdateTransferInfo(t *testing.T) {
 			Protocol:    "r66",
 			ProtoConfig: []byte(`{"blockSize":512,"serverPassword":"c2VzYW1l"}`),
 			Address:     "localhost:6666",
+			RootDir:     "server_root",
 		}
 		So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -257,18 +260,14 @@ func TestUpdateTransferInfo(t *testing.T) {
 				IsServer:         true,
 				AgentID:          server.ID,
 				AccountID:        account.ID,
-				SourceFile:       "old.file",
-				DestFile:         "old.file",
-				Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
-				Step:             types.StepPreTasks,
-				Status:           types.StatusRunning,
-				Owner:            database.Owner,
+				LocalPath:        "old.file",
+				RemotePath:       "old.file",
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
-			pip, err := pipeline.NewTransferStream(context.Background(), logger, db,
-				paths, trans)
+			pip, err := pipeline.NewServerPipeline(db, trans)
 			So(err, ShouldBeNil)
+
 			hand := transferHandler{
 				sessionHandler: &sessionHandler{
 					authHandler: &authHandler{Service: &Service{
@@ -277,11 +276,10 @@ func TestUpdateTransferInfo(t *testing.T) {
 						agent:  server,
 					}},
 				},
-				file: &stream{
-					TransferStream: pip,
+				trans: &serverTransfer{
+					pip:   pip,
+					store: utils.NewErrorStorage(),
 				},
-				isMD5:    false,
-				fileSize: 100,
 			}
 
 			Convey("When calling the 'UpdateTransferInfo' handler", func() {
@@ -296,13 +294,12 @@ func TestUpdateTransferInfo(t *testing.T) {
 				So(db.Get(&check, "id=?", trans.ID).Run(), ShouldBeNil)
 
 				Convey("Then it should have updated the transfer's filename", func() {
-					So(check.SourceFile, ShouldEqual, "new.file")
-					So(check.DestFile, ShouldEqual, "new.file")
-					So(filepath.Base(check.TrueFilepath), ShouldEqual, "new.file")
+					So(path.Base(check.RemotePath), ShouldEqual, "new.file")
+					So(filepath.Base(check.LocalPath), ShouldEqual, "new.file")
 				})
 
 				Convey("Then it should have updated the transfer's file size", func() {
-					So(hand.fileSize, ShouldEqual, 200)
+					So(check.Filesize, ShouldEqual, 200)
 				})
 			})
 		})
@@ -314,21 +311,18 @@ func TestUpdateTransferInfo(t *testing.T) {
 				IsServer:         true,
 				AgentID:          server.ID,
 				AccountID:        account.ID,
-				SourceFile:       "new.file",
-				DestFile:         "new.file",
-				Start:            time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
-				Step:             types.StepPreTasks,
-				Status:           types.StatusRunning,
-				Owner:            database.Owner,
+				LocalPath:        "new.file",
+				RemotePath:       "new.file",
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
 
-			dir := filepath.Join(paths.GatewayHome, paths.ServerRoot, paths.ServerOut)
+			dir := filepath.Join(root, server.RootDir, send.LocalDir)
 			So(os.MkdirAll(dir, 0o700), ShouldBeNil)
 			So(ioutil.WriteFile(filepath.Join(dir, "new.file"), []byte("file content"), 0o600), ShouldBeNil)
-			pip, err := pipeline.NewTransferStream(context.Background(), logger, db,
-				paths, trans)
+
+			pip, err := pipeline.NewServerPipeline(db, trans)
 			So(err, ShouldBeNil)
+
 			hand := transferHandler{
 				sessionHandler: &sessionHandler{
 					authHandler: &authHandler{Service: &Service{
@@ -337,31 +331,32 @@ func TestUpdateTransferInfo(t *testing.T) {
 						agent:  server,
 					}},
 				},
-				file: &stream{
-					TransferStream: pip,
+				trans: &serverTransfer{
+					pip:   pip,
+					store: utils.NewErrorStorage(),
 				},
-				isMD5:    false,
-				fileSize: 100,
 			}
 
-			Convey("When calling the 'UpdateTransferInfo' handler", func() {
-				info := &r66.UpdateInfo{}
-				So(hand.UpdateTransferInfo(info), ShouldBeNil)
+			Convey("When calling the 'RunPreTask' handler", func() {
+				info, err := hand.RunPreTask()
+				So(err, ShouldBeNil)
 
-				var check model.Transfer
-				So(db.Get(&check, "id=?", trans.ID).Run(), ShouldBeNil)
-
-				Convey("Then it should have updated the transfer's filename", func() {
+				Convey("Then it should have returned the transfer's filename", func() {
 					So(info.Filename, ShouldEqual, "new.file")
-					So(check.DestFile, ShouldEqual, "new.file")
-					So(filepath.Base(check.TrueFilepath), ShouldEqual, "new.file")
 				})
 
-				Convey("Then it should have updated the transfer's file size", func() {
+				Convey("Then it should have returned the transfer's file size", func() {
 					So(info.FileSize, ShouldEqual, 12)
-					So(hand.fileSize, ShouldEqual, 12)
 				})
 			})
 		})
 	})
+}
+
+func hash(pwd string) string {
+	crypt := r66.CryptPass([]byte(pwd))
+	h, err := bcrypt.GenerateFromPassword(crypt, bcrypt.MinCost)
+	So(err, ShouldBeNil)
+
+	return string(h)
 }

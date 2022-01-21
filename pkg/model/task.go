@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"encoding/json"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -8,11 +9,20 @@ import (
 
 // ValidTasks is a list of all the tasks known by the gateway.
 //nolint:gochecknoglobals // global var is used by design
-var ValidTasks = map[string]Validator{}
+var ValidTasks = map[string]TaskRunner{}
 
-// Validator permits to validate the arguments for a given task.
-type Validator interface {
-	Validate(map[string]string) error
+// TaskValidator is an optional interface which can be implemented by task
+// executors (alongside TaskRunner). This interface can be implemented if the
+// task's arguments need to be checked before executing the task.
+type TaskValidator interface {
+	Validate(args map[string]string) error
+}
+
+// TaskRunner is the interface which represents a task. All tasks executors must
+// implement this interface in order for the tasks.Runner to be able to execute
+// them.
+type TaskRunner interface {
+	Run(context.Context, map[string]string, *database.DB, *TransferContext) (string, error)
 }
 
 //nolint:gochecknoinits // init is used by design
@@ -66,13 +76,15 @@ func (t *Task) validateTasks() database.Error {
 		return database.NewValidationError("incorrect task format: %s", err)
 	}
 
-	v, ok := ValidTasks[t.Type]
+	runner, ok := ValidTasks[t.Type]
 	if !ok {
 		return database.NewValidationError("%s is not a valid task Type", t.Type)
 	}
 
-	if err := v.Validate(args); err != nil {
-		return database.NewValidationError("invalid task: %s", err)
+	if validator, ok := runner.(TaskValidator); ok {
+		if err := validator.Validate(args); err != nil {
+			return database.NewValidationError("invalid task: %s", err)
+		}
 	}
 
 	return nil

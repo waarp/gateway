@@ -4,7 +4,7 @@ Supprime un certificat de partenaire
 
 .. program:: waarp-gateway partner cert delete
 
-.. describe:: waarp-gateway <ADDR> partner cert <PARTNER> delete <CERT>
+.. describe:: waarp-gateway partner cert <PARTNER> delete <CERT>
 
 Supprime le certificat demandé. Les noms du partenaire et du certificat doivent
 être spécifiés en arguments de programme.

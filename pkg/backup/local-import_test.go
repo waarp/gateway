@@ -19,18 +19,16 @@ func TestImportLocalAgents(t *testing.T) {
 
 		Convey("Given a database with some local agent", func() {
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 
 			// add another LocalAgent with the same name but different owner
 			agent2 := &model.LocalAgent{
-				Name:        agent.Name,
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:9999",
+				Name:     agent.Name,
+				Protocol: testProtocol,
+				Address:  "localhost:9999",
 			}
 			owner := database.Owner
 			database.Owner = "toto"
@@ -42,15 +40,15 @@ func TestImportLocalAgents(t *testing.T) {
 			Convey("Given a list of new agents", func() {
 				agent1 := LocalAgent{
 					Name:          "foo",
-					Protocol:      "sftp",
+					Protocol:      testProtocol,
 					Configuration: json.RawMessage(`{}`),
 					Address:       "localhost:2022",
 					Accounts: []LocalAccount{
 						{
-							Login:    "test",
+							Login:    "acc1",
 							Password: "pwd",
 						}, {
-							Login:    "test2",
+							Login:    "acc2",
 							Password: "pwd",
 						},
 					},
@@ -89,13 +87,13 @@ func TestImportLocalAgents(t *testing.T) {
 
 			Convey("Given a list of fully updated agents", func() {
 				agent1 := LocalAgent{
-					Name:          "test",
-					Protocol:      "sftp",
+					Name:          "server",
+					Protocol:      testProtocol,
 					Configuration: json.RawMessage(`{}`),
 					Address:       "localhost:6666",
 					Accounts: []LocalAccount{
 						{
-							Login:    "test",
+							Login:    "toto",
 							Password: "pwd",
 						},
 					},
@@ -152,10 +150,9 @@ func TestImportLocalAccounts(t *testing.T) {
 
 		Convey("Given a database with some a local agent and some local accounts", func() {
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "sftp",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
@@ -168,11 +165,11 @@ func TestImportLocalAccounts(t *testing.T) {
 
 			Convey("Given a list of new accounts", func() {
 				account1 := LocalAccount{
-					Login:    "test",
+					Login:    "toto",
 					Password: "pwd",
 				}
 				account2 := LocalAccount{
-					Login:    "test2",
+					Login:    "tata",
 					Password: "pwd",
 				}
 				accounts := []LocalAccount{
@@ -200,14 +197,14 @@ func TestImportLocalAccounts(t *testing.T) {
 								case accounts[i].Login == account1.Login:
 									Convey("Then account1 is found", func() {
 										So(bcrypt.CompareHashAndPassword(
-											accounts[i].PasswordHash, []byte("pwd")),
-											ShouldBeNil)
+											[]byte(accounts[i].PasswordHash),
+											[]byte("pwd")), ShouldBeNil)
 									})
 								case accounts[i].Login == account2.Login:
 									Convey("Then account2 is found", func() {
 										So(bcrypt.CompareHashAndPassword(
-											accounts[i].PasswordHash, []byte("pwd")),
-											ShouldBeNil)
+											[]byte(accounts[i].PasswordHash),
+											[]byte("pwd")), ShouldBeNil)
 									})
 								case accounts[i].Login == dbAccount.Login:
 									Convey("Then dbAccount is found", func() {
@@ -233,7 +230,7 @@ func TestImportLocalAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							Certificate: testhelpers.ClientCert,
+							Certificate: testhelpers.ClientFooCert,
 						},
 					},
 				}
@@ -286,7 +283,7 @@ func TestImportLocalAccounts(t *testing.T) {
 					Certs: []Certificate{
 						{
 							Name:        "cert",
-							Certificate: testhelpers.ClientCert,
+							Certificate: testhelpers.ClientFooCert,
 						},
 					},
 				}
@@ -316,7 +313,7 @@ func TestImportLocalAccounts(t *testing.T) {
 										var cryptos model.Cryptos
 										So(db.Select(&cryptos).Where(
 											"owner_type=? AND owner_id=?",
-											dbAccount.ID, model.TableLocAccounts).
+											model.TableLocAccounts, dbAccount.ID).
 											Run(), ShouldBeNil)
 
 										So(len(accounts), ShouldEqual, 1)

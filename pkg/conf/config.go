@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 	"code.waarp.fr/apps/gateway/gateway/pkg/tk/config"
 )
 
@@ -27,16 +28,21 @@ type ServerConfig struct {
 //nolint:lll // cannot split struct tags
 type PathsConfig struct {
 	GatewayHome   string `ini-name:"GatewayHome" description:"The root directory of the gateway. By default, it is the working directory of the process."`
-	InDirectory   string `ini-name:"InDirectory" default:"in" description:"The directory for all incoming files."`
-	OutDirectory  string `ini-name:"OutDirectory" default:"out" description:"The directory for all outgoing files."`
-	WorkDirectory string `ini-name:"WorkDirectory" default:"work" description:"The directory for all running transfer files."`
+	DefaultInDir  string `ini-name:"DefaultInDir" default:"in" description:"The directory for all incoming files."`
+	DefaultOutDir string `ini-name:"DefaultOutDir" default:"out" description:"The directory for all outgoing files."`
+	DefaultTmpDir string `ini-name:"DefaultTmpDir" default:"tmp" description:"The directory for all running transfer files."`
+
+	// Deprecated fields.
+	InDirectory   string `ini-name:"InDirectory" default:"" description:"DEPRECATED, use DefaultInDir instead"`    // Deprecated: replaced by DefaultInDir
+	OutDirectory  string `ini-name:"OutDirectory" default:"" description:"DEPRECATED, use DefaultOutDir instead"`  // Deprecated: replaced by DefaultOutDir
+	WorkDirectory string `ini-name:"WorkDirectory" default:"" description:"DEPRECATED, use DefaultTmpDir instead"` // Deprecated: replaced by DefaultTmpDir
 }
 
 // LogConfig holds the server logging options.
 //nolint:lll // cannot split struct tags
 type LogConfig struct {
 	Level          string `ini-name:"Level" default:"INFO" description:"All messages with a severity above this level will be logged. Possible values are DEBUG, INFO, WARNING, ERROR and CRITICAL."`
-	LogTo          string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout' and 'syslog' log respectively to the standard output and to the syslog daemon"`
+	LogTo          string `ini-name:"LogTo" default:"stdout" description:"The path to the file where the logs must be written. Special values 'stdout', 'stderr' and 'syslog' log respectively to the standard output, standard error output, and to the syslog daemon"`
 	SyslogFacility string `ini-name:"SyslogFacility" default:"local0" description:"If LogTo is set on 'syslog', the logs will be written to this facility."`
 }
 
@@ -70,7 +76,7 @@ type ControllerConfig struct {
 	MaxTransfersOut uint64        `ini-name:"MaxTransferOut" description:"The maximum number of concurrent outgoing transfers allowed on the gateway (0 = unlimited)."`
 }
 
-func normalizePaths(configFile *ServerConfig) error {
+func normalizePaths(configFile *ServerConfig, logger *log.Logger) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to retrieve current working directory: %w", err)
@@ -86,46 +92,28 @@ func normalizePaths(configFile *ServerConfig) error {
 		configFile.Paths.GatewayHome = wd
 	}
 
-	if configFile.Paths.InDirectory != "" {
-		if filepath.IsAbs(configFile.Paths.InDirectory) {
-			configFile.Paths.InDirectory = filepath.Clean(configFile.Paths.InDirectory)
-		} else {
-			configFile.Paths.InDirectory = filepath.Join(configFile.Paths.GatewayHome, configFile.Paths.InDirectory)
-		}
-	} else {
-		configFile.Paths.InDirectory = configFile.Paths.GatewayHome
+	if configFile.Paths.DefaultInDir == "" && configFile.Paths.InDirectory != "" {
+		logger.Warning("Option 'InDirectory' is deprecated, use 'DefaultInDir' instead")
+
+		configFile.Paths.DefaultInDir = configFile.Paths.InDirectory
 	}
 
-	if configFile.Paths.OutDirectory != "" {
-		if filepath.IsAbs(configFile.Paths.OutDirectory) {
-			configFile.Paths.OutDirectory = filepath.Clean(configFile.Paths.OutDirectory)
-		} else {
-			configFile.Paths.OutDirectory = filepath.Join(configFile.Paths.GatewayHome, configFile.Paths.OutDirectory)
-		}
-	} else {
-		configFile.Paths.OutDirectory = configFile.Paths.GatewayHome
+	if configFile.Paths.DefaultOutDir == "" && configFile.Paths.OutDirectory != "" {
+		logger.Warning("Option 'OutDirectory' is deprecated, use 'DefaultOutDir' instead")
+
+		configFile.Paths.DefaultOutDir = configFile.Paths.OutDirectory
 	}
 
-	if configFile.Paths.WorkDirectory != "" {
-		if filepath.IsAbs(configFile.Paths.WorkDirectory) {
-			configFile.Paths.WorkDirectory = filepath.Clean(configFile.Paths.WorkDirectory)
-		} else {
-			configFile.Paths.WorkDirectory = filepath.Join(configFile.Paths.GatewayHome, configFile.Paths.WorkDirectory)
-		}
-	} else {
-		configFile.Paths.WorkDirectory = configFile.Paths.GatewayHome
+	if configFile.Paths.DefaultTmpDir == "" && configFile.Paths.WorkDirectory != "" {
+		logger.Warning("Option 'WorkDirectory' is deprecated, use 'DefaultTmpDir' instead")
+
+		configFile.Paths.DefaultTmpDir = configFile.Paths.WorkDirectory
 	}
 
 	return nil
 }
 
-// LoadServerConfig creates a configuration object.
-// It tries to read configuration files from common places to populate the
-// configuration object (paths are relative to cwd):
-// - gatewayd.ini,
-// - etc/gatewayd.ini,
-// - /etc/waarp/gatewayd.ini.
-func LoadServerConfig(userConfig string) (*ServerConfig, error) {
+func InitServerConfig(userConfig string) (*ServerConfig, error) {
 	c := &ServerConfig{}
 
 	p, err := config.NewParser(c)
@@ -143,7 +131,27 @@ func LoadServerConfig(userConfig string) (*ServerConfig, error) {
 		}
 	}
 
-	if err := normalizePaths(c); err != nil {
+	return c, nil
+}
+
+// LoadServerConfig creates a configuration object.
+// It tries to read configuration files from common places to populate the
+// configuration object (paths are relative to cwd):
+// - gatewayd.ini,
+// - etc/gatewayd.ini,
+// - /etc/waarp/gatewayd.ini.
+func LoadServerConfig(userConfig string) (*ServerConfig, error) {
+	c, err := InitServerConfig(userConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := log.InitBackend(c.Log.Level, c.Log.LogTo, c.Log.SyslogFacility); err != nil {
+		return nil, fmt.Errorf("failed to initialize log backend: %w", err)
+	}
+
+	logger := log.NewLogger("Config file")
+	if err := normalizePaths(c, logger); err != nil {
 		return nil, err
 	}
 

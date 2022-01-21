@@ -9,7 +9,6 @@ import (
 	"github.com/jessevdk/go-flags"
 	. "github.com/smartystreets/goconvey/convey"
 
-	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest"
 	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
@@ -32,17 +31,16 @@ func TestGetCertificate(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    "test",
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "partner",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -113,8 +111,8 @@ func TestGetCertificate(t *testing.T) {
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert",
-						PrivateKey:  testhelpers.ClientKey,
-						Certificate: testhelpers.ClientCert,
+						PrivateKey:  testhelpers.ClientFooKey,
+						Certificate: testhelpers.ClientFooCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -187,10 +185,9 @@ func TestGetCertificate(t *testing.T) {
 
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
-					Name:        "server",
-					Protocol:    "test",
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "server",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(server).Run(), ShouldBeNil)
 
@@ -262,7 +259,7 @@ func TestGetCertificate(t *testing.T) {
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert",
-						Certificate: testhelpers.ClientCert,
+						Certificate: testhelpers.ClientFooCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -344,22 +341,21 @@ func TestAddCertificate(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
-			cPk := writeFile(testhelpers.ClientKey)
-			cCrt := writeFile(testhelpers.ClientCert)
+			cPk := writeFile(testhelpers.ClientFooKey)
+			cCrt := writeFile(testhelpers.ClientFooCert)
 			sPk := writeFile(testhelpers.LocalhostKey)
 			sCrt := writeFile(testhelpers.LocalhostCert)
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
-					Name:        "partner",
-					Protocol:    "test",
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:6666",
+					Name:     "partner",
+					Protocol: testProto1,
+					Address:  "localhost:6666",
 				}
 				So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -461,8 +457,8 @@ func TestAddCertificate(t *testing.T) {
 										OwnerType:   account.TableName(),
 										OwnerID:     account.ID,
 										Name:        "account_cert",
-										PrivateKey:  testhelpers.ClientKey,
-										Certificate: testhelpers.ClientCert,
+										PrivateKey:  testhelpers.ClientFooKey,
+										Certificate: testhelpers.ClientFooCert,
 									}
 									So(certs, ShouldContain, exp)
 								})
@@ -527,7 +523,7 @@ func TestAddCertificate(t *testing.T) {
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
 					Name:        "server",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -633,7 +629,7 @@ func TestAddCertificate(t *testing.T) {
 										OwnerType:   account.TableName(),
 										OwnerID:     account.ID,
 										Name:        "account_cert",
-										Certificate: testhelpers.ClientCert,
+										Certificate: testhelpers.ClientFooCert,
 									}
 									So(certs, ShouldContain, exp)
 								})
@@ -706,7 +702,7 @@ func TestDeleteCertificate(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
@@ -714,7 +710,7 @@ func TestDeleteCertificate(t *testing.T) {
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -808,8 +804,8 @@ func TestDeleteCertificate(t *testing.T) {
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert",
-						PrivateKey:  testhelpers.ClientKey,
-						Certificate: testhelpers.ClientCert,
+						PrivateKey:  testhelpers.ClientFooKey,
+						Certificate: testhelpers.ClientFooCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -910,7 +906,7 @@ func TestDeleteCertificate(t *testing.T) {
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
 					Name:        "server",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -1005,7 +1001,7 @@ func TestDeleteCertificate(t *testing.T) {
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert",
-						Certificate: testhelpers.ClientCert,
+						Certificate: testhelpers.ClientFooCert,
 					}
 					So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -1114,7 +1110,7 @@ func TestListCertificate(t *testing.T) {
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
@@ -1122,7 +1118,7 @@ func TestListCertificate(t *testing.T) {
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -1140,7 +1136,7 @@ func TestListCertificate(t *testing.T) {
 						OwnerType:   partner.TableName(),
 						OwnerID:     partner.ID,
 						Name:        "partner_cert_2",
-						Certificate: testhelpers.LocalhostCert,
+						Certificate: testhelpers.OtherLocalhostCert,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -1239,8 +1235,8 @@ func TestListCertificate(t *testing.T) {
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert_1",
-						PrivateKey:  testhelpers.ClientKey,
-						Certificate: testhelpers.ClientCert,
+						PrivateKey:  testhelpers.ClientFooKey,
+						Certificate: testhelpers.ClientFooCert,
 					}
 					So(db.Insert(cert1).Run(), ShouldBeNil)
 
@@ -1248,8 +1244,8 @@ func TestListCertificate(t *testing.T) {
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert_2",
-						PrivateKey:  testhelpers.ClientKey,
-						Certificate: testhelpers.ClientCert,
+						PrivateKey:  testhelpers.ClientFooKey2,
+						Certificate: testhelpers.ClientFooCert2,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -1361,7 +1357,7 @@ func TestListCertificate(t *testing.T) {
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
 					Name:        "server",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -1381,8 +1377,8 @@ func TestListCertificate(t *testing.T) {
 						OwnerType:   server.TableName(),
 						OwnerID:     server.ID,
 						Name:        "server_cert_2",
-						PrivateKey:  testhelpers.LocalhostKey,
-						Certificate: testhelpers.LocalhostCert,
+						PrivateKey:  testhelpers.OtherLocalhostKey,
+						Certificate: testhelpers.OtherLocalhostCert,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -1481,7 +1477,7 @@ func TestListCertificate(t *testing.T) {
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert_1",
-						Certificate: testhelpers.ClientCert,
+						Certificate: testhelpers.ClientFooCert,
 					}
 					So(db.Insert(cert1).Run(), ShouldBeNil)
 
@@ -1489,7 +1485,7 @@ func TestListCertificate(t *testing.T) {
 						OwnerType:   account.TableName(),
 						OwnerID:     account.ID,
 						Name:        "account_cert_2",
-						Certificate: testhelpers.ClientCert,
+						Certificate: testhelpers.ClientFooCert2,
 					}
 					So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -1602,27 +1598,27 @@ func TestListCertificate(t *testing.T) {
 }
 
 func TestUpdateCertificate(t *testing.T) {
-	Convey("Testing the certificate 'delete' command", t, func() {
+	Convey("Testing the certificate 'update' command", t, func() {
 		out = testFile()
 		command := &certUpdate{}
 		commandLine = options{}
 
 		Convey("Given a gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, nil))
+			gw := httptest.NewServer(testHandler(db))
 			var err error
 			addr, err = url.Parse("http://admin:admin_password@" + gw.Listener.Addr().String())
 			So(err, ShouldBeNil)
 
-			cPk := writeFile(testhelpers.ClientKey)
-			cCrt := writeFile(testhelpers.ClientCert)
+			cPk := writeFile(testhelpers.ClientFooKey)
+			cCrt := writeFile(testhelpers.ClientFooCert)
 			sPk := writeFile(testhelpers.LocalhostKey)
 			sCrt := writeFile(testhelpers.LocalhostCert)
 
 			Convey("Given a partner", func() {
 				partner := &model.RemoteAgent{
 					Name:        "partner",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -1739,8 +1735,8 @@ func TestUpdateCertificate(t *testing.T) {
 							OwnerType:   account.TableName(),
 							OwnerID:     account.ID,
 							Name:        "account_cert",
-							PrivateKey:  testhelpers.ClientKey,
-							Certificate: testhelpers.ClientCert,
+							PrivateKey:  testhelpers.ClientFooKey,
+							Certificate: testhelpers.ClientFooCert,
 						}
 						So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -1770,8 +1766,8 @@ func TestUpdateCertificate(t *testing.T) {
 										OwnerType:   account.TableName(),
 										OwnerID:     account.ID,
 										Name:        "account_cert",
-										PrivateKey:  testhelpers.ClientKey,
-										Certificate: testhelpers.ClientCert,
+										PrivateKey:  testhelpers.ClientFooKey,
+										Certificate: testhelpers.ClientFooCert,
 									}
 									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)
@@ -1869,7 +1865,7 @@ func TestUpdateCertificate(t *testing.T) {
 			Convey("Given a server", func() {
 				server := &model.LocalAgent{
 					Name:        "server",
-					Protocol:    "test",
+					Protocol:    testProto1,
 					ProtoConfig: json.RawMessage(`{}`),
 					Address:     "localhost:6666",
 				}
@@ -1987,7 +1983,7 @@ func TestUpdateCertificate(t *testing.T) {
 							OwnerType:   account.TableName(),
 							OwnerID:     account.ID,
 							Name:        "account_cert",
-							Certificate: testhelpers.ClientCert,
+							Certificate: testhelpers.ClientFooCert,
 						}
 						So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -2016,7 +2012,7 @@ func TestUpdateCertificate(t *testing.T) {
 										OwnerType:   account.TableName(),
 										OwnerID:     account.ID,
 										Name:        "account_cert",
-										Certificate: testhelpers.ClientCert,
+										Certificate: testhelpers.ClientFooCert,
 									}
 									var certs model.Cryptos
 									So(db.Select(&certs).Run(), ShouldBeNil)

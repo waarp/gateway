@@ -1,39 +1,31 @@
 package controller
 
 import (
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
-	"code.waarp.fr/apps/gateway/gateway/pkg/executor"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
-	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
-//nolint:gochecknoinits // init is used by design
+const testProtocol = "test_proto"
+
+//nolint:gochecknoinits // init is used to ease the tests
 func init() {
-	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
-	executor.ClientsConstructors["test"] = NewAllSuccess
+	_ = log.InitBackend("DEBUG", "stdout", "")
 
-	logConf := conf.LogConfig{
-		Level: "DEBUG",
-		LogTo: "stdout",
+	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
+		return new(testhelpers.TestProtoConfig)
 	}
-	_ = log.InitBackend(logConf)
+	pipeline.ClientConstructors[testProtocol] = newAllSuccess
 }
 
-type TestProtoConfig struct{}
+type allSuccess struct{}
 
-func (*TestProtoConfig) ValidServer() error  { return nil }
-func (*TestProtoConfig) ValidPartner() error { return nil }
-func (*TestProtoConfig) CertRequired() bool  { return false }
-
-type AllSuccess struct{}
-
-func NewAllSuccess(_ *model.OutTransferInfo, _ <-chan model.Signal) (pipeline.Client, error) {
-	return AllSuccess{}, nil
+func newAllSuccess(*pipeline.Pipeline) (pipeline.Client, *types.TransferError) {
+	return &allSuccess{}, nil
 }
-func (AllSuccess) Connect() error                 { return nil }
-func (AllSuccess) Authenticate() error            { return nil }
-func (AllSuccess) Request() error                 { return nil }
-func (AllSuccess) Data(pipeline.DataStream) error { return nil }
-func (AllSuccess) Close(error) error              { return nil }
+func (a *allSuccess) Request() *types.TransferError                 { return nil }
+func (a *allSuccess) Data(pipeline.DataStream) *types.TransferError { return nil }
+func (a *allSuccess) EndTransfer() *types.TransferError             { return nil }
+func (a *allSuccess) SendError(*types.TransferError)                {}

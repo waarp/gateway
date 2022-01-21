@@ -138,8 +138,8 @@ type (
 	handlerFactory func(string, handler, model.PermsMask, ...string)
 )
 
-func makeHandlerFactory(l *log.Logger, db *database.DB, router *mux.Router) handlerFactory {
-	return func(path string, h handler, perm model.PermsMask, methods ...string) {
+func makeHandlerFactory(logger *log.Logger, db *database.DB, router *mux.Router) handlerFactory {
+	return func(path string, handle handler, perm model.PermsMask, methods ...string) {
 		var auth http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
 			login, _, ok := r.BasicAuth()
 			if !ok {
@@ -152,14 +152,14 @@ func makeHandlerFactory(l *log.Logger, db *database.DB, router *mux.Router) hand
 			var user model.User
 			if err := db.Get(&user, "username=? AND owner=?", login, database.Owner).
 				Run(); err != nil {
-				l.Errorf("Database error: %s", err)
+				logger.Errorf("Database error: %s", err)
 				http.Error(w, "internal database error", http.StatusInternalServerError)
 
 				return
 			}
 
 			if perm&user.Permissions != perm {
-				l.Warningf("User '%s' tried method '%s' on '%s' without sufficient privileges",
+				logger.Warningf("User '%s' tried method '%s' on '%s' without sufficient privileges",
 					login, r.Method, r.URL)
 				http.Error(w, "you do not have sufficient privileges to perform this action",
 					http.StatusForbidden)
@@ -167,7 +167,7 @@ func makeHandlerFactory(l *log.Logger, db *database.DB, router *mux.Router) hand
 				return
 			}
 
-			h(l, db).ServeHTTP(w, r)
+			handle(logger, db).ServeHTTP(w, r)
 		}
 
 		router.HandleFunc(path, auth).Methods(methods...)

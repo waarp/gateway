@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -30,22 +29,21 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 
 		Convey("Given a remote account entry", func() {
 			ag := RemoteAgent{
-				Name:        "server",
-				Protocol:    dummyProto,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:1111",
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo", Password: "bar"}
+			acc := RemoteAccount{RemoteAgentID: ag.ID, Login: "foo", Password: "sesame"}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			cert := Crypto{
 				OwnerType:   TableRemAccounts,
 				OwnerID:     acc.ID,
 				Name:        "test cert",
-				PrivateKey:  testhelpers.ClientKey,
-				Certificate: testhelpers.ClientCert,
+				PrivateKey:  testhelpers.ClientFooKey,
+				Certificate: testhelpers.ClientFooCert,
 			}
 			So(db.Insert(&cert).Run(), ShouldBeNil)
 
@@ -81,8 +79,8 @@ func TestRemoteAccountBeforeDelete(t *testing.T) {
 					IsServer:   false,
 					AgentID:    ag.ID,
 					AccountID:  acc.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 
@@ -109,17 +107,16 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains 1 remote agent with 1 remote account", func() {
 			parentAgent := RemoteAgent{
-				Name:        "parent_agent",
-				Protocol:    dummyProto,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "parent_agent",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(&parentAgent).Run(), ShouldBeNil)
 
 			oldAccount := RemoteAccount{
 				RemoteAgentID: parentAgent.ID,
 				Login:         "old",
-				Password:      "password",
+				Password:      "sesame",
 			}
 			So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
@@ -127,7 +124,7 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 				newAccount := RemoteAccount{
 					RemoteAgentID: parentAgent.ID,
 					Login:         "new",
-					Password:      "password",
+					Password:      "sesame_new",
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -182,10 +179,9 @@ func TestRemoteAccountBeforeWrite(t *testing.T) {
 				Convey("Given that the new account's name is already taken but the"+
 					"parent agent is different", func() {
 					otherAgent := RemoteAgent{
-						Name:        "other",
-						Protocol:    dummyProto,
-						ProtoConfig: json.RawMessage(`{}`),
-						Address:     "localhost:2022",
+						Name:     "other",
+						Protocol: testProtocol,
+						Address:  "localhost:2022",
 					}
 					So(db.Insert(&otherAgent).Run(), ShouldBeNil)
 

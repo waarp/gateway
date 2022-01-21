@@ -18,8 +18,8 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule) datab
 
 		// Check if rule exists
 		exists := true
-		err := db.Get(&rule, "name=? AND send=?", src.Name, src.IsSend).Run()
 
+		err := db.Get(&rule, "name=? AND send=?", src.Name, src.IsSend).Run()
 		if database.IsNotFound(err) {
 			exists = false
 		} else if err != nil {
@@ -30,9 +30,11 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule) datab
 		rule.Name = src.Name
 		rule.IsSend = src.IsSend
 		rule.Path = src.Path
-		rule.InPath = src.InPath
-		rule.OutPath = src.OutPath
-		rule.WorkPath = src.WorkPath
+		rule.LocalDir = src.LocalDir
+		rule.RemoteDir = src.RemoteDir
+		rule.TmpLocalRcvDir = src.TmpLocalRcvDir
+
+		importRuleCheckDeprecated(logger, src, &rule)
 
 		// Create/Update
 		if exists {
@@ -65,6 +67,36 @@ func importRules(logger *log.Logger, db database.Access, list []file.Rule) datab
 	}
 
 	return nil
+}
+
+func importRuleCheckDeprecated(logger *log.Logger, src *file.Rule, rule *model.Rule) {
+	if src.InPath != "" {
+		logger.Warning("JSON field 'rule.inPath' is deprecated, use 'localDir' & " +
+			"'remoteDir' instead")
+
+		if src.IsSend {
+			rule.RemoteDir = src.InPath
+		} else {
+			rule.LocalDir = src.InPath
+		}
+	}
+
+	if src.OutPath != "" {
+		logger.Warning("JSON field 'rule.outPath' is deprecated, use 'localDir' & " +
+			"'remoteDir' instead")
+
+		if src.IsSend {
+			rule.LocalDir = src.OutPath
+		} else {
+			rule.RemoteDir = src.OutPath
+		}
+	}
+
+	if src.WorkPath != "" {
+		logger.Warning("JSON field 'rule.workPath' is deprecated, use 'tmpReceiveDir' instead")
+
+		rule.TmpLocalRcvDir = src.WorkPath
+	}
 }
 
 func importRuleAccesses(db database.Access, list []string, ruleID uint64) database.Error {

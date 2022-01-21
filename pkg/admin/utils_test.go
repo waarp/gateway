@@ -1,17 +1,12 @@
 package admin
 
 import (
-	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 //nolint:gochecknoinits // init is used by design
 func init() {
-	logConf := conf.LogConfig{
-		Level: "DEBUG",
-		LogTo: "stdout",
-	}
-	_ = log.InitBackend(logConf)
+	_ = log.InitBackend("DEBUG", "stdout", "")
 }
 
 const cert = `-----BEGIN CERTIFICATE-----

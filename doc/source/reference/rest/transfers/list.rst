@@ -47,8 +47,12 @@ Lister les transferts
    :resjsonarr string rule: L'identifiant de la règle de transfert
    :resjsonarr string requester: Le nom du compte ayant demandé le transfert
    :resjsonarr string requested: Le nom du serveur/partenaire auquel le transfert a été demandé
-   :resjsonarr string sourcePath: Le chemin d'origine du fichier
-   :resjsonarr string destPath: Le chemin de destination du fichier
+   :resjsonarr string trueFilepath: Le chemin local complet du fichier (OBSOLÈTE: remplacé par 'localFilepath')
+   :resjsonarr string sourcePath: Le fichier source du transfer (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
+   :resjsonarr string destPath: Le fichier destination du transfer (OBSOLÈTE: remplacé par 'localFilepath' & 'remoteFilepath')
+   :resjsonarr string localFilepath: Le chemin du fichier sur le disque local
+   :resjsonarr string remoteFilepath: Le chemin du fichier sur le partenaire distant
+   :resjsonarr number filesize: La taille du fichier (-1 si inconnue)
    :resjsonarr date start: La date de début du transfert
    :resjsonarr string status: Le statut actuel du transfert (*PLANNED*, *RUNNING*, *PAUSED* ou *INTERRUPTED*)
    :resjsonarr string step: L'étape actuelle du transfert (*NONE*, *PRE TASKS*, *DATA*, *POST TASKS*, *ERROR TASKS* ou *FINALIZATION*)
@@ -82,8 +86,8 @@ Lister les transferts
              "rule": "règle_1",
              "requester": "toto",
              "requested": "waarp_sftp",
-             "source": "chemin/source/fichier1",
-             "destination": "chemin/dest/fichier1",
+             "localFilepath": "/chemin/local/fichier1",
+             "remoteFilepath": "/chemin/distant/fichier1",
              "start": "2019-01-01T02:00:00+02:00",
              "status": "RUNNING",
              "step": "DATA",
@@ -94,8 +98,8 @@ Lister les transferts
              "rule": "règle_2",
              "requester": "tata",
              "requested": "sftp_serveur",
-             "source": "chemin/source/fichier2",
-             "destination": "chemin/dest/fichier2",
+             "localFilepath": "/chemin/local/fichier2",
+             "remoteFilepath": "/chemin/distant/fichier2",
              "start": "2019-01-01T03:00:00+02:00",
              "status": "PLANNED"
            }]

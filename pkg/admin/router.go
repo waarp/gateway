@@ -12,12 +12,13 @@ import (
 )
 
 // MakeHandler returns the router for the REST & Admin http interface.
-func MakeHandler(logger *log.Logger, db *database.DB, services map[string]service.Service) http.Handler {
+func MakeHandler(logger *log.Logger, db *database.DB, coreServices map[string]service.Service,
+	protoServices map[string]service.ProtoService) http.Handler {
 	// REST handler
 	adminHandler := mux.NewRouter()
 	adminHandler.Use(mux.CORSMethodMiddleware(adminHandler), authentication(logger, db))
 
-	rest.MakeRESTHandler(logger, db, adminHandler, services)
+	rest.MakeRESTHandler(logger, db, adminHandler, coreServices, protoServices)
 
 	return adminHandler
 }

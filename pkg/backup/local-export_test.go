@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"encoding/json"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -18,27 +17,25 @@ func TestExportLocalAgents(t *testing.T) {
 
 		Convey("Given the database contains locals agents with accounts", func() {
 			agent1 := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "agent1",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(agent1).Run(), ShouldBeNil)
 
 			// Change owner for this insert
-			database.Owner = "tata"
+			database.Owner = "unknown"
 			So(db.Insert(&model.LocalAgent{
-				Name:        "foo",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "foo",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}).Run(), ShouldBeNil)
 			// Revert database owner
 			database.Owner = owner
 
 			account1a := &model.LocalAccount{
 				LocalAgentID: agent1.ID,
-				Login:        "test",
+				Login:        "acc1a",
 				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1a).Run(), ShouldBeNil)
@@ -53,16 +50,15 @@ func TestExportLocalAgents(t *testing.T) {
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
 			agent2 := &model.LocalAgent{
-				Name:        "test2",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "agent2",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(agent2).Run(), ShouldBeNil)
 
 			account2a := &model.LocalAccount{
 				LocalAgentID: agent2.ID,
-				Login:        "test",
+				Login:        "acc2a",
 				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account2a).Run(), ShouldBeNil)
@@ -93,10 +89,10 @@ func TestExportLocalAgents(t *testing.T) {
 								Convey("When agent1 is found", func() {
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent1.Protocol)
-										So(res[i].Root, ShouldEqual, agent1.Root)
-										So(res[i].InDir, ShouldEqual, agent1.InDir)
-										So(res[i].OutDir, ShouldEqual, agent1.OutDir)
-										So(res[i].WorkDir, ShouldEqual, agent1.WorkDir)
+										So(res[i].RootDir, ShouldEqual, agent1.RootDir)
+										So(res[i].ReceiveDir, ShouldEqual, agent1.ReceiveDir)
+										So(res[i].SendDir, ShouldEqual, agent1.SendDir)
+										So(res[i].TmpReceiveDir, ShouldEqual, agent1.TmpReceiveDir)
 										So(res[i].Address, ShouldEqual, agent1.Address)
 										So(res[i].Configuration, ShouldResemble,
 											agent1.ProtoConfig)
@@ -114,10 +110,10 @@ func TestExportLocalAgents(t *testing.T) {
 								Convey("When agent2 is found", func() {
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].Protocol, ShouldEqual, agent2.Protocol)
-										So(res[i].Root, ShouldEqual, agent2.Root)
-										So(res[i].InDir, ShouldEqual, agent2.InDir)
-										So(res[i].OutDir, ShouldEqual, agent2.OutDir)
-										So(res[i].WorkDir, ShouldEqual, agent2.WorkDir)
+										So(res[i].RootDir, ShouldEqual, agent2.RootDir)
+										So(res[i].ReceiveDir, ShouldEqual, agent2.ReceiveDir)
+										So(res[i].SendDir, ShouldEqual, agent2.SendDir)
+										So(res[i].TmpReceiveDir, ShouldEqual, agent2.TmpReceiveDir)
 										So(res[i].Address, ShouldEqual, agent2.Address)
 										So(res[i].Configuration, ShouldResemble,
 											agent2.ProtoConfig)
@@ -150,16 +146,15 @@ func TestExportLocalAccounts(t *testing.T) {
 
 		Convey("Given the dabase contains a local agent with accounts", func() {
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			account1 := &model.LocalAccount{
 				LocalAgentID: agent.ID,
-				Login:        "test",
+				Login:        "acc1",
 				PasswordHash: hash("pwd"),
 			}
 			So(db.Insert(account1).Run(), ShouldBeNil)
@@ -175,7 +170,7 @@ func TestExportLocalAccounts(t *testing.T) {
 				Name:        "test_cert",
 				OwnerType:   model.TableLocAccounts,
 				OwnerID:     account2.ID,
-				Certificate: testhelpers.ClientCert,
+				Certificate: testhelpers.ClientFooCert,
 			}
 			So(db.Insert(cert).Run(), ShouldBeNil)
 
@@ -198,7 +193,7 @@ func TestExportLocalAccounts(t *testing.T) {
 								Convey("When login1 is found", func() {
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].PasswordHash, ShouldResemble,
-											string(account1.PasswordHash))
+											account1.PasswordHash)
 									})
 
 									Convey("Then it should have no certificate", func() {
@@ -209,7 +204,7 @@ func TestExportLocalAccounts(t *testing.T) {
 								Convey("When login2 is found", func() {
 									Convey("Then it should be equal to the data in DB", func() {
 										So(res[i].PasswordHash, ShouldResemble,
-											string(account2.PasswordHash))
+											account2.PasswordHash)
 									})
 
 									Convey("Then it should have 1 certificate", func() {
