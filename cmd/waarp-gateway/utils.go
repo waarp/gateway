@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,24 +10,37 @@ import (
 	"reflect"
 	"strings"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+)
+
+var errBadPerm = errors.New("permissions are insorrect")
+
+const (
+	roleClient    = "client"
+	roleServer    = "server"
+	directionRecv = "receive"
+	directionSend = "send"
+	sizeUnknown   = "unknown"
 )
 
 func unmarshalBody(body io.Reader, object interface{}) error {
 	b, err := ioutil.ReadAll(body)
 	if err != nil {
-		return fmt.Errorf("failed to read response body: %s", err.Error())
+		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	if err := json.Unmarshal(b, object); err != nil {
-		return fmt.Errorf("invalid JSON response object: %s", err.Error())
+		return fmt.Errorf("invalid JSON response object: %w", err)
 	}
+
 	return nil
 }
 
 func getResponseMessage(resp *http.Response) error {
 	body, _ := ioutil.ReadAll(resp.Body)
-	return fmt.Errorf(strings.TrimSpace(string(body)))
+
+	return errors.New(strings.TrimSpace(string(body))) //nolint:goerr113 // too specific
 }
 
 func isNotUpdate(obj interface{}) bool {
@@ -36,6 +50,7 @@ func isNotUpdate(obj interface{}) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -73,22 +88,36 @@ func parsePerms(str string) (*api.Perms, error) {
 		if len(grp) == 0 {
 			continue
 		}
+
 		if len(grp) == 1 {
-			return nil, fmt.Errorf("misssing permission operator after '%s'", grp)
+			return nil, fmt.Errorf("misssing permission operator after '%s': %w", grp, errBadPerm)
 		}
 
 		dest := getPermTarget(rune(grp[0]), &perms)
 		if dest == nil {
-			return nil, fmt.Errorf("invalid permission target '%c'", grp[0])
+			return nil, fmt.Errorf("invalid permission target '%c': %w", grp[0], errBadPerm)
 		}
 
 		modes := grp[1:]
 		for _, m := range modes {
 			if !isPermOp(m) && !isPermMode(m) {
-				return nil, fmt.Errorf("invalid permission mode '%s'", modes)
+				return nil, fmt.Errorf("invalid permission mode '%s': %w", modes, errBadPerm)
 			}
 		}
+
 		*dest += modes
 	}
+
 	return &perms, nil
+}
+
+func dirToBoolPtr(dir string) *bool {
+	switch dir {
+	case directionSend:
+		return utils.TruePtr
+	case directionRecv:
+		return utils.FalsePtr
+	default:
+		return nil
+	}
 }

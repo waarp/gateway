@@ -8,19 +8,19 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	"github.com/pkg/sftp"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/ssh"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestSFTPList(t *testing.T) {
@@ -33,15 +33,13 @@ func TestSFTPList(t *testing.T) {
 		Convey("Given an SFTP server", func() {
 			listener, err := net.Listen("tcp", "localhost:0")
 			So(err, ShouldBeNil)
-			_, port, err := net.SplitHostPort(listener.Addr().String())
-			So(err, ShouldBeNil)
+			addr := listener.Addr().String()
 
 			agent := &model.LocalAgent{
-				Name:        "test_sftp_server",
-				Protocol:    "sftp",
-				Root:        root,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:" + port,
+				Name:     "test_sftp_server",
+				Protocol: "sftp",
+				RootDir:  root,
+				Address:  addr,
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 			var protoConfig config.SftpProtoConfig
@@ -72,19 +70,14 @@ func TestSFTPList(t *testing.T) {
 			serverConfig, err := getSSHServerConfig(db, []model.Crypto{hostKey}, &protoConfig, agent)
 			So(err, ShouldBeNil)
 
-			ctx, cancel := context.WithCancel(context.Background())
-
 			sshList := &sshListener{
-				DB:          db,
-				Logger:      logger,
-				Agent:       agent,
-				ProtoConfig: &protoConfig,
-				GWConf:      &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: root}},
-				SSHConf:     serverConfig,
-				Listener:    listener,
-				connWg:      sync.WaitGroup{},
-				ctx:         ctx,
-				cancel:      cancel,
+				DB:               db,
+				Logger:           logger,
+				Agent:            agent,
+				ProtoConfig:      &protoConfig,
+				SSHConf:          serverConfig,
+				Listener:         listener,
+				runningTransfers: service.NewTransferMap(),
 			}
 			sshList.listen()
 			Reset(func() {
@@ -165,16 +158,13 @@ func TestSFTPList(t *testing.T) {
 						},
 						HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 					}
-					addr := "localhost:" + port
 
-					conn, err := net.Dial("tcp", addr)
+					sshClient, err := ssh.Dial("tcp", addr, sshConf)
 					So(err, ShouldBeNil)
-					sshConn, chans, reqs, err := ssh.NewClientConn(conn, addr, sshConf)
-					So(err, ShouldBeNil)
-
-					sshClient := ssh.NewClient(sshConn, chans, reqs)
+					defer sshClient.Close()
 					client, err := sftp.NewClient(sshClient)
 					So(err, ShouldBeNil)
+					defer client.Close()
 
 					Convey("When sending a List request at top level", func() {
 						list, err := client.ReadDir("/")

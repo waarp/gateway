@@ -4,7 +4,7 @@ Interdire une règle sur un serveur
 
 .. program:: waarp-gateway server revoke
 
-.. describe:: waarp-gateway <ADDR> server revoke <SERVER> <RULE>
+.. describe:: waarp-gateway server revoke <SERVER> <RULE>
 
 Retire au serveur fourni en paramètre la permission d'utiliser la règle donnée.
 

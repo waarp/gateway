@@ -17,7 +17,7 @@ commencer par ajouter un serveur SFTP :
 
 .. code-block:: shell-session
 
-   # waarp-gateway server add -n sftp_server -p sftp -a 127.0.0.1:2223 -c '{}'
+   # waarp-gateway server add --name "sftp_server" --protocol "sftp" --address "127.0.0.1:2223"
    The server sftp_server was successfully added.
 
 Pour créer un serveur, nous devons préciser son nom, le protocole de ce serveur,
@@ -57,7 +57,7 @@ ajoutons au serveur SFTP :
    |           .o    |
    +----[SHA256]-----+
 
-   # waarp-gateway server cert sftp_server add -n sftp_server -p gateway-sftp -b gateway-sftp.pub 
+   # waarp-gateway server cert "sftp_server" add --name "sftp_hostkey" --private_key "./gateway-sftp" --public_key "./gateway-sftp.pub"
    The certificate sftp_server was successfully added.
 
 Le serveur SFTP est maintenant créé mais n'est pas actif. Comme la Gateway doit
@@ -67,7 +67,7 @@ Le serveur SFTP est maintenant créé mais n'est pas actif. Comme la Gateway doi
 
    # systemctl restart waarp-gatewayd
    # systemctl status waarp-gatewayd
-   ● waarp-gatewayd.service - Waarp Gateway server
+   * waarp-gatewayd.service - Waarp Gateway server
       Loaded: loaded (/usr/lib/systemd/system/waarp-gatewayd.service; disabled; vendor preset: disabled)
       Active: active (running) since Thu 2020-08-27 08:52:23 UTC; 5s ago
     Main PID: 20584 (waarp-gatewayd)
@@ -76,17 +76,28 @@ Le serveur SFTP est maintenant créé mais n'est pas actif. Comme la Gateway doi
       CGroup: /system.slice/waarp-gatewayd.service
               └─20584 /usr/bin/waarp-gatewayd server -c /etc/waarp-gateway/waarp-gatewayd.ini
 
+Si tout s'est bien passé, la commande ``status`` devrait lister le nouveau serveur :
+
+.. code-block:: shell-session
+
+   # waarp-gateway -a "http://admin:admin_password@127.0.0.1:8080" status
+   Waarp-Gateway services:
+   [Active]  Admin
+   [Active]  Controller
+   [Active]  Database
+   [Active]  sftp_server
+
 Création d'un utilisateur
 =========================
 
 Pour pouvoir se connecter au serveur, nous devons maintenant créer un
 utilisateur. Cela se fait en créant un "compte local" dans la Gateway.
 Cet utilisateur aura ``myuser`` comme login et ``mypassword`` comme mot de
-passe :
+passe :
 
 .. code-block:: shell-session
 
-   # waarp-gateway account local sftp_server add  -l myuser -p mypassword
+   # waarp-gateway account local "sftp_server" add  --login "myuser" --password "mypassword"
    The account myuser was successfully added.
 
 Nous pouvons essayer de nous connecter pour tester le paramétrage (entrez le mot
@@ -134,14 +145,14 @@ dans lequel ce fichier est situé est comparé aux chemins des règles (proprié
 transfert est refusé.
 
 Ici, nous voulons envoyer un fichier à la Gateway. La règle aura donc le sens
-``RECEIVE`` (« réception ») : le sens des règles est toujours à prendre du point
+``receive`` (« réception ») : le sens des règles est toujours à prendre du point
 de vu de la Gateway (si on envoi un fichier à la Gateway, celle-ci le *reçoit*).
 
 Assemblons tout dans une commande pour créer la règle :
 
 .. code-block:: shell-session
 
-   # waarp-gateway rule add -n sftp_recv -d RECEIVE -p sftp_recv
+   # waarp-gateway rule add --name "sftp_recv" --direction "receive" --path "sftp_recv"
    The rule sftp_recv was successfully added.
 
 Premier transfert
@@ -174,16 +185,16 @@ transferts de la Gateway :
 
    $ waarp-gateway history list
    History:
-   ● Transfer 1 (as server) [DONE]
-       Way:              RECEIVE
-       Protocol:         sftp
-       Rule:             sftp_recv
-       Requester:        myuser
-       Requested:        sftp_server
-       Source file:      test01.txt
-       Destination file: test01.txt
-       Start date:       2020-08-27T10:10:05Z
-       End date:         2020-08-27T10:10:05Z
+   * Transfer 1 (as server) [DONE]
+       Way:             receive
+       Protocol:        sftp
+       Rule:            sftp_recv
+       Requester:       myuser
+       Requested:       sftp_server
+       Local filepath:  /etc/waarp-gateway/in/test01.txt
+       Remote filepath: /test01.txt
+       Start date:      2020-08-27T10:10:05Z
+       End date:        2020-08-27T10:10:05Z
    
 Le fichier disponible est maintenant dans le dossier ``in`` de la Gateway.
 Comme nous n'avons pas spécifié de dossier spécifique dans la règle, c'est le
@@ -197,7 +208,6 @@ dossier par défaut du service qui est utilisé :
 
 .. seealso::
    
-   Plus d'informations sur la gestion des dossiers.
+   Plus d'informations sur la :any:`gestion des dossiers <gestion_dossiers>`.
 
-.. todo:: Créer une page gestion des dossiers
 

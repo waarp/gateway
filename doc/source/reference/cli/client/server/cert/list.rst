@@ -6,7 +6,7 @@ Lister les certificats d'un serveur
 
 .. program:: waarp-gateway server cert list
 
-.. describe:: waarp-gateway <ADDR> server cert <SERVER> list
+.. describe:: waarp-gateway server cert <SERVER> list
 
 Affiche les informations des certificats du serveur suivant les critères donnés.
 

@@ -1,125 +1,22 @@
 package sftp
 
 import (
-	"context"
-	"fmt"
-	"io"
-
 	"github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
-	"github.com/pkg/sftp"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
-const (
-	testLogin    = "test_user"
-	testPassword = "test_password"
-)
-
-var (
-	clientTestPort uint16
-)
-
+//nolint:gochecknoinits // it is used by design
 func init() {
-	tasks.RunnableTasks["TESTCHECK"] = &testTaskSuccess{}
-	tasks.RunnableTasks["TESTFAIL"] = &testTaskFail{}
-	model.ValidTasks["TESTCHECK"] = &testTaskSuccess{}
-	model.ValidTasks["TESTFAIL"] = &testTaskFail{}
-
-	logConf := conf.LogConfig{
-		Level: "DEBUG",
-		LogTo: "stdout",
-	}
-	_ = log.InitBackend(logConf)
+	_ = log.InitBackend("DEBUG", "stdout", "")
 }
 
-func hash(pwd string) []byte {
+func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	convey.So(err, convey.ShouldBeNil)
-	return h
-}
 
-var checkChannel = make(chan string, 100)
-
-type testTaskSuccess struct{}
-
-func (t *testTaskSuccess) Validate(map[string]string) error {
-	return nil
-}
-func (t *testTaskSuccess) Run(args map[string]string, _ *tasks.Processor) (string, error) {
-	checkChannel <- args["msg"]
-	return "", nil
-}
-
-type testTaskFail struct {
-	msg string
-}
-
-func (t *testTaskFail) Validate(map[string]string) error {
-	return nil
-}
-
-func (t *testTaskFail) Run(args map[string]string, _ *tasks.Processor) (string, error) {
-	checkChannel <- args["msg"]
-	return "task failed", fmt.Errorf("task failed")
-}
-
-type testSFTPStream struct {
-	*sftpStream
-}
-
-func (t *testSFTPStream) Close() error {
-	err := t.sftpStream.Close()
-	checkChannel <- "END SERVER TRANSFER"
-	return err
-}
-
-func (l *sshListener) makeTestFileReader(ctx context.Context, acc *model.LocalAccount,
-	paths *pipeline.Paths) fileReaderFunc {
-
-	handler := l.makeFileReader(ctx, acc, paths)
-	return func(r *sftp.Request) (io.ReaderAt, error) {
-		reader, err := handler(r)
-		if err != nil {
-			return nil, err
-		}
-		return &testSFTPStream{reader.(*sftpStream)}, nil
-	}
-}
-
-func (l *sshListener) makeTestFileWriter(ctx context.Context, acc *model.LocalAccount,
-	paths *pipeline.Paths) fileWriterFunc {
-
-	handler := l.makeFileWriter(ctx, acc, paths)
-	return func(r *sftp.Request) (io.WriterAt, error) {
-		writer, err := handler(r)
-		if err != nil {
-			return nil, err
-		}
-		return &testSFTPStream{writer.(*sftpStream)}, nil
-	}
-}
-
-func (l *sshListener) makeTestHandlers(ctx context.Context, acc *model.LocalAccount) sftp.Handlers {
-	paths := &pipeline.Paths{
-		PathsConfig: l.GWConf.Paths,
-		ServerRoot:  l.Agent.Root,
-		ServerIn:    l.Agent.InDir,
-		ServerOut:   l.Agent.OutDir,
-		ServerWork:  l.Agent.WorkDir,
-	}
-
-	return sftp.Handlers{
-		FileGet:  l.makeTestFileReader(ctx, acc, paths),
-		FilePut:  l.makeTestFileWriter(ctx, acc, paths),
-		FileCmd:  makeFileCmder(),
-		FileList: l.makeFileLister(paths, acc),
-	}
+	return string(h)
 }
 
 const rsaPK = `-----BEGIN RSA PRIVATE KEY-----

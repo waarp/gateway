@@ -1,3 +1,4 @@
+//go:build test_db_oracle
 // +build test_db_oracle
 
 package database
@@ -7,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -38,7 +39,7 @@ func TestOracleDB(t *testing.T) {
 		if err := db.engine.Close(); err != nil {
 			t.Logf("Failed to close database: %s", err)
 		}
-		if err := os.Remove(sqliteConfig.Database.AESPassphrase); err != nil {
+		if err := os.Remove(oracleConfig.Database.AESPassphrase); err != nil {
 			t.Logf("Failed to delete passphrase file: %s", err)
 		}
 	}()

@@ -2,12 +2,14 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&RemoteAgent{})
 }
@@ -51,14 +53,19 @@ func (r *RemoteAgent) GetID() uint64 {
 func (r *RemoteAgent) validateProtoConfig() error {
 	conf, err := config.GetProtoConfig(r.Protocol, r.ProtoConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot parse protocol configuration for server %q: %w", r.Name, err)
 	}
-	if err := conf.ValidPartner(); err != nil {
-		return err
-	}
-	r.ProtoConfig, err = json.Marshal(conf)
 
-	return err
+	if err2 := conf.ValidPartner(); err2 != nil {
+		return fmt.Errorf("protocol configuration for %q is invalid: %w", r.Name, err2)
+	}
+
+	r.ProtoConfig, err = json.Marshal(conf)
+	if err != nil {
+		return fmt.Errorf("cannot marshal protocol configuration for %q to JSON: %w", r.Name, err)
+	}
+
+	return nil
 }
 
 // BeforeWrite is called before inserting a new `RemoteAgent` entry in the
@@ -67,16 +74,19 @@ func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) database.Error {
 	if r.Name == "" {
 		return database.NewValidationError("the agent's name cannot be empty")
 	}
+
 	if r.Address == "" {
 		return database.NewValidationError("the partner's address cannot be empty")
 	}
+
 	if _, _, err := net.SplitHostPort(r.Address); err != nil {
 		return database.NewValidationError("'%s' is not a valid partner address", r.Address)
 	}
 
 	if r.ProtoConfig == nil {
-		return database.NewValidationError("the agent's configuration cannot be empty")
+		r.ProtoConfig = json.RawMessage(`{}`)
 	}
+
 	if err := r.validateProtoConfig(); err != nil {
 		return database.NewValidationError(err.Error())
 	}
@@ -94,12 +104,13 @@ func (r *RemoteAgent) BeforeWrite(db database.ReadAccess) database.Error {
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
-//nolint:dupl
+//nolint:dupl // too many differences to factorize esily into a function
 func (r *RemoteAgent) BeforeDelete(db database.Access) database.Error {
 	n, err := db.Count(&Transfer{}).Where("is_server=? AND agent_id=?", false, r.ID).Run()
 	if err != nil {
 		return err
 	}
+
 	if n > 0 {
 		return database.NewValidationError("this partner is currently being used in one " +
 			"or more running transfers and thus cannot be deleted, cancel these " +
@@ -123,11 +134,8 @@ func (r *RemoteAgent) BeforeDelete(db database.Access) database.Error {
 	}
 
 	accountQuery := db.DeleteAll(&RemoteAccount{}).Where("remote_agent_id=?", r.ID)
-	if err := accountQuery.Run(); err != nil {
-		return err
-	}
 
-	return nil
+	return accountQuery.Run()
 }
 
 // GetCryptos returns a list of all the partner's certificates.

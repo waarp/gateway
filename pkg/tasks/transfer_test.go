@@ -1,17 +1,18 @@
 package tasks
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
 func TestTransferValidate(t *testing.T) {
-
 	Convey("Given a 'TRANSFER' task", t, func() {
 		trans := &TransferTask{}
 
@@ -68,7 +69,6 @@ func TestTransferValidate(t *testing.T) {
 }
 
 func TestTransferRun(t *testing.T) {
-
 	Convey("Given a coherent database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
@@ -81,7 +81,7 @@ func TestTransferRun(t *testing.T) {
 
 		partner := &model.RemoteAgent{
 			Name:        "test partner",
-			Protocol:    "test",
+			Protocol:    testProtocol,
 			ProtoConfig: json.RawMessage(`{}`),
 			Address:     "localhost:1111",
 		}
@@ -90,7 +90,7 @@ func TestTransferRun(t *testing.T) {
 		account := &model.RemoteAccount{
 			RemoteAgentID: partner.ID,
 			Login:         "test account",
-			Password:      "password",
+			Password:      "sesame",
 		}
 		So(db.Insert(account).Run(), ShouldBeNil)
 
@@ -102,12 +102,10 @@ func TestTransferRun(t *testing.T) {
 				"as":   account.Login,
 				"rule": rule.Name,
 			}
-			processor := &Processor{DB: db}
 
 			Convey("Given that the parameters are valid", func() {
-
 				Convey("When running the task", func() {
-					msg, err := trans.Run(args, processor)
+					msg, err := trans.Run(context.Background(), args, db, nil)
 
 					Convey("Then it should NOT return an error", func() {
 						So(err, ShouldBeNil)
@@ -123,7 +121,7 @@ func TestTransferRun(t *testing.T) {
 				args["to"] = "toto"
 
 				Convey("When running the task", func() {
-					msg, err := trans.Run(args, processor)
+					msg, err := trans.Run(context.Background(), args, db, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)
@@ -142,7 +140,7 @@ func TestTransferRun(t *testing.T) {
 				args["as"] = "toto"
 
 				Convey("When running the task", func() {
-					msg, err := trans.Run(args, processor)
+					msg, err := trans.Run(context.Background(), args, db, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)
@@ -161,7 +159,7 @@ func TestTransferRun(t *testing.T) {
 				args["rule"] = "toto"
 
 				Convey("When running the task", func() {
-					msg, err := trans.Run(args, processor)
+					msg, err := trans.Run(context.Background(), args, db, nil)
 
 					Convey("Then it should return an error", func() {
 						So(err, ShouldNotBeNil)

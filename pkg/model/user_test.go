@@ -3,9 +3,10 @@ package model
 import (
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 func TestUsersTableName(t *testing.T) {
@@ -28,25 +29,24 @@ func TestUsersBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains 1 user", func() {
 			existing := &User{
-				Username: "existing",
-				Password: []byte("password_existing"),
+				Username:     "existing",
+				PasswordHash: hash("password_existing"),
 			}
 			So(db.Insert(existing).Run(), ShouldBeNil)
 
 			Convey("Given a user account", func() {
 				user := &User{
-					Username:    "user",
-					Password:    []byte("password_user"),
-					Permissions: PermPartnersRead,
+					Username:     "user",
+					PasswordHash: hash("password_user"),
+					Permissions:  PermPartnersRead,
 				}
 
 				Convey("Given that the new account is valid", func() {
-
 					Convey("When calling the 'BeforeWrite' function", func() {
 						So(user.BeforeWrite(db), ShouldBeNil)
 
 						Convey("Then the user's password should be hashed", func() {
-							So(bcrypt.CompareHashAndPassword(user.Password,
+							So(bcrypt.CompareHashAndPassword([]byte(user.PasswordHash),
 								[]byte("password_user")), ShouldBeNil)
 						})
 					})
@@ -88,16 +88,16 @@ func TestUsersBeforeDelete(t *testing.T) {
 		owner := database.Owner
 		Convey("Given the database contains 1 user for this gateway", func() {
 			mine := &User{
-				Username: "existing",
-				Password: []byte("password_existing"),
+				Username:     "existing",
+				PasswordHash: hash("password_existing"),
 			}
 			So(db.Insert(mine).Run(), ShouldBeNil)
 
 			// Change database ownership
 			database.Owner = "tata"
 			other := &User{
-				Username: "old",
-				Password: []byte("password_old"),
+				Username:     "old",
+				PasswordHash: hash("password_old"),
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
 			// Revert database ownership
@@ -124,14 +124,14 @@ func TestUsersBeforeDelete(t *testing.T) {
 
 		Convey("Given the database contains 2 users for this gateway", func() {
 			mine := &User{
-				Username: "existing",
-				Password: []byte("password_existing"),
+				Username:     "existing",
+				PasswordHash: hash("password_existing"),
 			}
 			So(db.Insert(mine).Run(), ShouldBeNil)
 
 			other := &User{
-				Username: "old",
-				Password: []byte("password_old"),
+				Username:     "old",
+				PasswordHash: hash("password_old"),
 			}
 			So(db.Insert(other).Run(), ShouldBeNil)
 

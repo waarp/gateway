@@ -18,18 +18,22 @@ func (d *DeleteQuery) run(s *Session) Error {
 	if hook, ok := d.bean.(DeletionHook); ok {
 		if err := hook.BeforeDelete(s); err != nil {
 			s.logger.Errorf("%s deletion hook failed: %s", d.bean.Appellation(), err)
+
 			return err
 		}
 	}
+
 	query := s.session.NoAutoCondition().Table(d.bean.TableName()).
 		ID(d.bean.GetID())
-	_, err := query.Delete(d.bean)
-	logSQL(query, s.logger)
 
-	if err != nil {
+	defer logSQL(query, s.logger)
+
+	if _, err := query.Delete(d.bean); err != nil {
 		s.logger.Errorf("Failed to delete the %s entry: %s", d.bean.Appellation(), err)
+
 		return NewInternalError(err)
 	}
+
 	return nil
 }
 

@@ -32,6 +32,8 @@ const (
 	PermAll PermsMask = math.MaxUint32 &^ permTransferDelete
 )
 
+const permMaskSize = 4
+
 // FromDB implements xorm/core.Conversion. As XORM ignores standard converters
 // for non-struct types (Value() and Scan()), thus must be mapped to XORM own
 // conversion interface.
@@ -44,6 +46,7 @@ func (p *PermsMask) FromDB(bytes []byte) error {
 // conversion interface.
 func (p PermsMask) ToDB() ([]byte, error) {
 	v, err := p.Value()
+
 	return v.([]byte), err
 }
 
@@ -53,8 +56,10 @@ func (p *PermsMask) Scan(src interface{}) error {
 	switch v := src.(type) {
 	case []byte:
 		*p = PermsMask(binary.LittleEndian.Uint32(v))
+
 		return nil
 	default:
+		//nolint:goerr113 // too specific to have a base error
 		return fmt.Errorf("cannot scan %+v of type %T into a PermMask", v, v)
 	}
 }
@@ -62,7 +67,9 @@ func (p *PermsMask) Scan(src interface{}) error {
 // Value implements database/driver.Valuer. PermsMask is represented in the
 // database as a binary blob.
 func (p PermsMask) Value() (driver.Value, error) {
-	b := make([]byte, 4)
+	b := make([]byte, permMaskSize)
+
 	binary.LittleEndian.PutUint32(b, uint32(p))
+
 	return b, nil
 }

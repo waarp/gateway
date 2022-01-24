@@ -4,7 +4,7 @@ Supprime un certificat de serveur
 
 .. program:: waarp-gateway server cert delete
 
-.. describe:: waarp-gateway <ADDR> server cert <SERVER> delete <CERT>
+.. describe:: waarp-gateway server cert <SERVER> delete <CERT>
 
 Supprime le certificat demandé. Les noms du serveur et du certificat doivent
 être spécifiés en arguments de programme.

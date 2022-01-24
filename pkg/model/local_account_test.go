@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestLocalAccountTableName(t *testing.T) {
@@ -31,20 +31,20 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 		Convey("Given a local account entry", func() {
 			ag := &LocalAgent{
 				Name:        "server",
-				Protocol:    dummyProto,
+				Protocol:    testProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:1111",
 			}
 			So(db.Insert(ag).Run(), ShouldBeNil)
 
-			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("bar")}
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("sesame")}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			cert := Crypto{
 				OwnerType:   TableLocAccounts,
 				OwnerID:     acc.ID,
 				Name:        "test cert",
-				Certificate: testhelpers.ClientCert,
+				Certificate: testhelpers.ClientFooCert,
 			}
 			So(db.Insert(&cert).Run(), ShouldBeNil)
 
@@ -55,7 +55,6 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 			So(db.Insert(&access).Run(), ShouldBeNil)
 
 			Convey("Given that the account is unused", func() {
-
 				Convey("When calling the `BeforeDelete` hook", func() {
 					So(acc.BeforeDelete(db), ShouldBeNil)
 
@@ -79,8 +78,8 @@ func TestLocalAccountBeforeDelete(t *testing.T) {
 					IsServer:   true,
 					AgentID:    ag.ID,
 					AccountID:  acc.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -107,7 +106,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 			parentAgent := LocalAgent{
 				Owner:       "test_gateway",
 				Name:        "parent_agent",
-				Protocol:    dummyProto,
+				Protocol:    testProtocol,
 				ProtoConfig: json.RawMessage(`{}`),
 				Address:     "localhost:2222",
 			}
@@ -117,7 +116,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 				newAccount := &LocalAccount{
 					LocalAgentID: parentAgent.ID,
 					Login:        "new",
-					PasswordHash: hash("password"),
+					PasswordHash: hash("sesame"),
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -131,7 +130,6 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 				}
 
 				Convey("Given that the new account is valid", func() {
-
 					Convey("When calling the 'BeforeWrite' function", func() {
 						err := newAccount.BeforeWrite(db)
 
@@ -163,7 +161,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 					oldAccount := LocalAccount{
 						LocalAgentID: parentAgent.ID,
 						Login:        "old",
-						PasswordHash: hash("password"),
+						PasswordHash: hash("sesame"),
 					}
 					So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 
@@ -178,7 +176,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 					otherAgent := LocalAgent{
 						Owner:       "test_gateway",
 						Name:        "other",
-						Protocol:    dummyProto,
+						Protocol:    testProtocol,
 						ProtoConfig: json.RawMessage(`{}`),
 						Address:     "localhost:2022",
 					}
@@ -187,7 +185,7 @@ func TestLocalAccountBeforeWrite(t *testing.T) {
 					oldAccount := LocalAccount{
 						LocalAgentID: parentAgent.ID,
 						Login:        "old",
-						PasswordHash: hash("password"),
+						PasswordHash: hash("sesame"),
 					}
 					So(db.Insert(&oldAccount).Run(), ShouldBeNil)
 

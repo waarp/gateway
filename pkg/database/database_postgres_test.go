@@ -1,4 +1,5 @@
-// +build test_full test_db_postgresql
+//go:build test_db_postgresql
+// +build test_db_postgresql
 
 package database
 
@@ -7,8 +8,9 @@ import (
 	"os"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
 )
 
 var (
@@ -37,7 +39,7 @@ func TestPostgreSQL(t *testing.T) {
 		if err := db.engine.Close(); err != nil {
 			t.Logf("Failed to close database: %s", err)
 		}
-		if err := os.Remove(sqliteConfig.Database.AESPassphrase); err != nil {
+		if err := os.Remove(psqlConfig.Database.AESPassphrase); err != nil {
 			t.Logf("Failed to delete passphrase file: %s", err)
 		}
 	}()

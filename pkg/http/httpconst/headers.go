@@ -1,0 +1,26 @@
+// Package httpconst regroups a list of constants defining the various headers
+// and URL variables which can be used when making HTTP transfers with the
+// gateway, to activate certain features.
+package httpconst
+
+const (
+	// TransferID defines the name of the (optional) request HTTP header
+	// containing the ID of the requested transfer.
+	TransferID = "Waarp-Transfer-ID"
+
+	// RuleName defines the name of the (optional) request HTTP header
+	// containing the name of the rule to be used during the transfer.
+	RuleName = "Waarp-Rule-Name"
+
+	// TransferStatus defines the name of the response HTTP header containing
+	// the status in which the transfer ended.
+	TransferStatus = "Waarp-Transfer-Status"
+
+	// ErrorCode defines the name of the response HTTP header containing the
+	// error code, if an error occurred.
+	ErrorCode = "Waarp-Error-Code"
+
+	// ErrorMessage defines the name of the response HTTP header containing the
+	// error message, if an error occurred.
+	ErrorMessage = "Waarp-Error-Message"
+)

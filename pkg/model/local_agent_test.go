@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestLocalAgentTableName(t *testing.T) {
@@ -30,14 +30,13 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 
 		Convey("Given a local agent entry", func() {
 			ag := LocalAgent{
-				Name:        "test agent",
-				Protocol:    dummyProto,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "test agent",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(&ag).Run(), ShouldBeNil)
 
-			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("bar")}
+			acc := LocalAccount{LocalAgentID: ag.ID, Login: "foo", PasswordHash: hash("sesame")}
 			So(db.Insert(&acc).Run(), ShouldBeNil)
 
 			rule := Rule{Name: "rule", IsSend: false, Path: "path"}
@@ -61,12 +60,11 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 				OwnerType:   TableLocAccounts,
 				OwnerID:     acc.ID,
 				Name:        "test account cert",
-				Certificate: testhelpers.ClientCert,
+				Certificate: testhelpers.ClientFooCert,
 			}
 			So(db.Insert(&certAcc).Run(), ShouldBeNil)
 
 			Convey("Given that the agent is unused", func() {
-
 				Convey("When calling the `BeforeDelete` hook", func() {
 					So(db.Transaction(func(ses *database.Session) database.Error {
 						return ag.BeforeDelete(ses)
@@ -98,8 +96,8 @@ func TestLocalAgentBeforeDelete(t *testing.T) {
 					IsServer:   true,
 					AgentID:    ag.ID,
 					AccountID:  acc.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 
@@ -126,25 +124,23 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 
 		Convey("Given the database contains 1 local agent", func() {
 			oldAgent := LocalAgent{
-				Owner:       "test_gateway",
-				Name:        "old",
-				Protocol:    dummyProto,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:2022",
+				Owner:    "test_gateway",
+				Name:     "old",
+				Protocol: testProtocol,
+				Address:  "localhost:2022",
 			}
 			So(db.Insert(&oldAgent).Run(), ShouldBeNil)
 
 			Convey("Given a new local agent", func() {
 				newAgent := &LocalAgent{
-					Owner:       "test_gateway",
-					Name:        "new",
-					Root:        "root",
-					InDir:       "rcv",
-					OutDir:      "send",
-					WorkDir:     "tmp",
-					Protocol:    dummyProto,
-					ProtoConfig: json.RawMessage(`{}`),
-					Address:     "localhost:2023",
+					Owner:         "test_gateway",
+					Name:          "new",
+					RootDir:       "root",
+					ReceiveDir:    "rcv",
+					SendDir:       "send",
+					TmpReceiveDir: "tmp",
+					Protocol:      testProtocol,
+					Address:       "localhost:2023",
 				}
 
 				shouldFailWith := func(errDesc string, expErr error) {
@@ -154,7 +150,8 @@ func TestLocalAgentBeforeWrite(t *testing.T) {
 						})
 
 						Convey("Then the error should say that "+errDesc, func() {
-							So(err, ShouldBeError, expErr)
+							So(err, ShouldBeError)
+							So(err.Error(), ShouldContainSubstring, expErr.Error())
 						})
 					})
 				}

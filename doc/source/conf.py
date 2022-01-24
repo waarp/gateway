@@ -199,7 +199,7 @@ todo_include_todos = True
 
 # -- Options for releases ----------------------------------------------
 releases_document_name = ["changelog"]
-releases_issue_uri = "https://code.waarp.fr/waarp-gateway/waarp-gateway/issues/%s"
+releases_issue_uri = "https://code.waarp.fr/apps/gateway/gateway/issues/%s"
 releases_unstable_prehistory = True
 
 

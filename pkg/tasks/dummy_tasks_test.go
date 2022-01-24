@@ -3,24 +3,26 @@
 package tasks
 
 import (
-	"fmt"
+	"context"
+	"errors"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
+//nolint:gochecknoinits // designed this way
 func init() {
-	RunnableTasks[taskSuccess] = &testTaskSuccess{}
-	RunnableTasks[taskWarning] = &testTaskWarning{}
-	RunnableTasks[taskFail] = &testTaskFail{}
-	RunnableTasks[taskLong] = &testTaskLong{}
 	model.ValidTasks[taskSuccess] = &testTaskSuccess{}
 	model.ValidTasks[taskWarning] = &testTaskWarning{}
 	model.ValidTasks[taskFail] = &testTaskFail{}
 	model.ValidTasks[taskLong] = &testTaskLong{}
 }
 
-var dummyTaskCheck = make(chan string)
+var (
+	dummyTaskCheck = make(chan string) //nolint:gochecknoglobals // cannot be a constant
+	errTaskFailed  = errors.New("task failed")
+)
 
 const (
 	taskSuccess = "TESTSUCCESS"
@@ -35,8 +37,10 @@ func (t *testTaskSuccess) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskSuccess) Run(map[string]string, *Processor) (string, error) {
+func (t *testTaskSuccess) Run(context.Context, map[string]string, *database.DB,
+	*model.TransferContext) (string, error) {
 	dummyTaskCheck <- "SUCCESS"
+
 	return "", nil
 }
 
@@ -46,9 +50,11 @@ func (t *testTaskWarning) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskWarning) Run(map[string]string, *Processor) (string, error) {
+func (t *testTaskWarning) Run(context.Context, map[string]string, *database.DB,
+	*model.TransferContext) (string, error) {
 	dummyTaskCheck <- "WARNING"
-	return "warning message", errWarning
+
+	return "warning message", &warningError{"warning message"}
 }
 
 type testTaskFail struct{}
@@ -57,9 +63,10 @@ func (t *testTaskFail) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskFail) Run(map[string]string, *Processor) (string, error) {
+func (t *testTaskFail) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
 	dummyTaskCheck <- "FAILURE"
-	return "task failed", fmt.Errorf("task failed")
+
+	return "task failed", errTaskFailed
 }
 
 type testTaskLong struct{}
@@ -68,8 +75,10 @@ func (t *testTaskLong) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskLong) Run(map[string]string, *Processor) (string, error) {
+func (t *testTaskLong) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
 	dummyTaskCheck <- "LONG"
+
 	time.Sleep(time.Minute)
-	return "task failed", fmt.Errorf("task failed")
+
+	return "task failed", errTaskFailed
 }

@@ -1,20 +1,18 @@
 package tasks
 
-import "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
+import (
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
+)
 
+const testProtocol = "test_proto"
+
+//nolint:gochecknoinits // init is used to ease the tests
 func init() {
-	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
-}
+	_ = log.InitBackend("DEBUG", "stdout", "")
 
-type TestProtoConfig struct{}
-
-func (*TestProtoConfig) ValidServer() error  { return nil }
-func (*TestProtoConfig) ValidPartner() error { return nil }
-func (*TestProtoConfig) CertRequired() bool  { return false }
-
-func fileNotFound(path string, op ...string) *errFileNotFound {
-	if len(op) > 0 {
-		return &errFileNotFound{op[0], path}
+	config.ProtoConfigs[testProtocol] = func() config.ProtoConfig {
+		return new(testhelpers.TestProtoConfig)
 	}
-	return &errFileNotFound{"open", path}
 }

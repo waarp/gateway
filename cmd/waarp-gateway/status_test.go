@@ -6,10 +6,11 @@ import (
 	"net/url"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
 type emptyService struct {
@@ -28,11 +29,17 @@ func (e emptyService) State() *service.State {
 	return e.state
 }
 
+func (e emptyService) ManageTransfers() *service.TransferMap {
+	return nil
+}
+
 func TestRequestStatus(t *testing.T) {
 	runningState := service.State{}
 	runningState.Set(service.Running, "")
+
 	offlineState := service.State{}
 	offlineState.Set(service.Offline, "")
+
 	errorState := service.State{}
 	errorState.Set(service.Error, "Error message")
 
@@ -42,15 +49,23 @@ func TestRequestStatus(t *testing.T) {
 
 		Convey("Given a running gateway", func(c C) {
 			db := database.TestDatabase(c, "ERROR")
-			services := map[string]service.Service{
-				"Service 1": &emptyService{state: &offlineState},
-				"Service 2": &emptyService{state: &runningState},
-				"Service 3": &emptyService{state: &offlineState},
-				"Service 4": &emptyService{state: &errorState},
-				"Service 5": &emptyService{state: &errorState},
-				"Service 6": &emptyService{state: &runningState},
+			core := map[string]service.Service{
+				"Core Service 1": &emptyService{state: &offlineState},
+				"Core Service 2": &emptyService{state: &runningState},
+				"Core Service 3": &emptyService{state: &offlineState},
+				"Core Service 4": &emptyService{state: &errorState},
+				"Core Service 5": &emptyService{state: &errorState},
+				"Core Service 6": &emptyService{state: &runningState},
 			}
-			gw := httptest.NewServer(admin.MakeHandler(discard, db, services))
+			proto := map[string]service.ProtoService{
+				"Proto Service 1": &emptyService{state: &offlineState},
+				"Proto Service 2": &emptyService{state: &runningState},
+				"Proto Service 3": &emptyService{state: &offlineState},
+				"Proto Service 4": &emptyService{state: &errorState},
+				"Proto Service 5": &emptyService{state: &errorState},
+				"Proto Service 6": &emptyService{state: &runningState},
+			}
+			gw := httptest.NewServer(admin.MakeHandler(discard, db, core, proto))
 
 			Convey("When executing the command", func() {
 				var err error
@@ -61,12 +76,18 @@ func TestRequestStatus(t *testing.T) {
 
 				Convey("Then it should display the services' status", func() {
 					So(getOutput(), ShouldEqual, "Waarp-Gateway services:\n"+
-						"[Error]   Service 4 (Error message)\n"+
-						"[Error]   Service 5 (Error message)\n"+
-						"[Active]  Service 2\n"+
-						"[Active]  Service 6\n"+
-						"[Offline] Service 1\n"+
-						"[Offline] Service 3\n",
+						"[Error]   Core Service 4 (Error message)\n"+
+						"[Error]   Core Service 5 (Error message)\n"+
+						"[Error]   Proto Service 4 (Error message)\n"+
+						"[Error]   Proto Service 5 (Error message)\n"+
+						"[Active]  Core Service 2\n"+
+						"[Active]  Core Service 6\n"+
+						"[Active]  Proto Service 2\n"+
+						"[Active]  Proto Service 6\n"+
+						"[Offline] Core Service 1\n"+
+						"[Offline] Core Service 3\n"+
+						"[Offline] Proto Service 1\n"+
+						"[Offline] Proto Service 3\n",
 					)
 				})
 			})

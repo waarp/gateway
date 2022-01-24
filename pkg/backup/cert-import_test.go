@@ -1,36 +1,32 @@
 package backup
 
 import (
-	"encoding/json"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
-
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/backup/file"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
+
+	. "code.waarp.fr/apps/gateway/gateway/pkg/backup/file"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestImportCerts(t *testing.T) {
-
 	Convey("Given a database", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
 
 		Convey("Given a database with some Cryptos", func() {
 			agent := &model.LocalAgent{
-				Name:        "test",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(agent).Run(), ShouldBeNil)
 
 			agent2 := &model.LocalAgent{
-				Name:        "test2",
-				Protocol:    "test",
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:6666",
+				Name:     "agent2",
+				Protocol: testProtocol,
+				Address:  "localhost:6666",
 			}
 			So(db.Insert(agent2).Run(), ShouldBeNil)
 
@@ -38,8 +34,8 @@ func TestImportCerts(t *testing.T) {
 				Name:        "foo",
 				OwnerType:   model.TableLocAgents,
 				OwnerID:     agent2.ID,
-				PrivateKey:  testhelpers.LocalhostKey,
-				Certificate: testhelpers.LocalhostCert,
+				PrivateKey:  testhelpers.OtherLocalhostKey,
+				Certificate: testhelpers.OtherLocalhostCert,
 			}
 			So(db.Insert(cert2).Run(), ShouldBeNil)
 
@@ -78,7 +74,6 @@ func TestImportCerts(t *testing.T) {
 			})
 
 			Convey("Given a updated Certificate to import", func() {
-
 				insert := Certificate{
 					Name:        "foo",
 					PrivateKey:  testhelpers.LocalhostKey,

@@ -4,7 +4,7 @@ Supprimer un compte local
 
 .. program:: waarp-gateway account local delete
 
-.. describe:: waarp-gateway <ADDR> account local <SERVER> delete <LOGIN>
+.. describe:: waarp-gateway account local <SERVER> delete <LOGIN>
 
 Supprime le compte donné en paramètre de commande.
 

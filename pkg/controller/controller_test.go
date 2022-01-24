@@ -10,15 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tasks"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/utils/testhelpers"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestControllerListen(t *testing.T) {
@@ -26,10 +25,9 @@ func TestControllerListen(t *testing.T) {
 		db := database.TestDatabase(c, "ERROR")
 
 		remote := &model.RemoteAgent{
-			Name:        "test remote",
-			Protocol:    "test",
-			ProtoConfig: json.RawMessage(`{}`),
-			Address:     "localhost:1111",
+			Name:     "test remote",
+			Protocol: testProtocol,
+			Address:  "localhost:1111",
 		}
 		So(db.Insert(remote).Run(), ShouldBeNil)
 
@@ -43,19 +41,17 @@ func TestControllerListen(t *testing.T) {
 		tmpDir := testhelpers.TempDir(c, "controller-listen")
 
 		rule := &model.Rule{
-			Name:    "test rule",
-			Path:    "test_rule",
-			IsSend:  true,
-			OutPath: tmpDir,
+			Name:     "test rule",
+			Path:     "test_rule",
+			IsSend:   true,
+			LocalDir: tmpDir,
 		}
 		So(db.Insert(rule).Run(), ShouldBeNil)
 
 		sleepTask := &testTaskSleep{}
-		tasks.RunnableTasks["TESTSLEEP"] = sleepTask
-		defer delete(tasks.RunnableTasks, "TESTSLEEP")
 
 		model.ValidTasks["TESTSLEEP"] = sleepTask
-		defer delete(tasks.RunnableTasks, "TESTSLEEP")
+		defer delete(model.ValidTasks, "TESTSLEEP")
 
 		ruleTask := &model.Task{
 			RuleID: rule.ID,
@@ -72,7 +68,6 @@ func TestControllerListen(t *testing.T) {
 			tick := time.Nanosecond
 			cont := &Controller{
 				DB:     db,
-				Conf:   &conf.ServerConfig{Paths: conf.PathsConfig{GatewayHome: "."}},
 				ticker: time.NewTicker(tick),
 				logger: log.NewLogger("test_controller"),
 				wg:     new(sync.WaitGroup),
@@ -80,21 +75,20 @@ func TestControllerListen(t *testing.T) {
 			}
 
 			Convey("Given a planned transfer", func() {
-				err := ioutil.WriteFile(filepath.Join(tmpDir, "source_file_1"),
-					[]byte("hello world"), 0o644)
+				path1 := filepath.Join(tmpDir, "file_1")
+				err := ioutil.WriteFile(path1, []byte("hello world"), 0o644)
 				So(err, ShouldBeNil)
 
 				trans := &model.Transfer{
-					RuleID:       rule.ID,
-					IsServer:     false,
-					AgentID:      remote.ID,
-					AccountID:    account.ID,
-					TrueFilepath: "/filepath_1",
-					SourceFile:   "source_file_1",
-					DestFile:     "dest_file_1",
-					Start:        start,
-					Status:       types.StatusPlanned,
-					Owner:        database.Owner,
+					RuleID:     rule.ID,
+					IsServer:   false,
+					AgentID:    remote.ID,
+					AccountID:  account.ID,
+					LocalPath:  path1,
+					RemotePath: "/file_1",
+					Start:      start,
+					Status:     types.StatusPlanned,
+					Owner:      database.Owner,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -113,8 +107,10 @@ func TestControllerListen(t *testing.T) {
 							var trans model.Transfers
 							So(db.Select(&trans).Run(), ShouldBeNil)
 							So(trans, ShouldBeEmpty)
+						})
 
-							var hist model.Histories
+						Convey("Then it should have created the new history entries", func() {
+							var hist model.HistoryEntries
 							So(db.Select(&hist).Run(), ShouldBeNil)
 							So(hist, ShouldNotBeEmpty)
 						})
@@ -141,21 +137,20 @@ func TestControllerListen(t *testing.T) {
 			})
 
 			Convey("Given a running transfer", func() {
-				err := ioutil.WriteFile(filepath.Join(tmpDir, "source_file_2"),
-					[]byte("hello world"), 0o644)
+				path2 := filepath.Join(tmpDir, "file_2")
+				err := ioutil.WriteFile(path2, []byte("hello world"), 0o644)
 				So(err, ShouldBeNil)
 
 				trans := &model.Transfer{
-					RuleID:       rule.ID,
-					IsServer:     false,
-					AgentID:      remote.ID,
-					AccountID:    account.ID,
-					TrueFilepath: "/filepath_2",
-					SourceFile:   "source_file_2",
-					DestFile:     "dest_file_2",
-					Start:        start,
-					Status:       types.StatusRunning,
-					Owner:        database.Owner,
+					RuleID:     rule.ID,
+					IsServer:   false,
+					AgentID:    remote.ID,
+					AccountID:  account.ID,
+					LocalPath:  path2,
+					RemotePath: "/file_2",
+					Start:      start,
+					Status:     types.StatusRunning,
+					Owner:      database.Owner,
 				}
 				So(db.Insert(trans).Run(), ShouldBeNil)
 
@@ -200,7 +195,7 @@ func (t *testTaskSleep) Validate(map[string]string) error {
 	return nil
 }
 
-func (t *testTaskSleep) Run(map[string]string, *tasks.Processor) (string, error) {
+func (t *testTaskSleep) Run(context.Context, map[string]string, *database.DB, *model.TransferContext) (string, error) {
 	t.c++
 
 	time.Sleep(30 * time.Millisecond)

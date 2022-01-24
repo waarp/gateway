@@ -4,88 +4,110 @@ import (
 	"bytes"
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/ssh"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
 
-func getSSHServerConfig(db *database.DB, hostKeys []model.Crypto, protoConfig *config.SftpProtoConfig,
-	agent *model.LocalAgent) (*ssh.ServerConfig, error) {
-	conf := &ssh.ServerConfig{
+func makeServerConf(db *database.DB, protoConfig *config.SftpProtoConfig,
+	agent *model.LocalAgent) *ssh.ServerConfig {
+	return &ssh.ServerConfig{
 		Config: ssh.Config{
 			KeyExchanges: protoConfig.KeyExchanges,
 			Ciphers:      protoConfig.Ciphers,
 			MACs:         protoConfig.MACs,
 		},
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			user := &model.LocalAccount{LocalAgentID: agent.ID, Login: conn.User()}
-			if err := db.Get(user, "local_agent_id=? AND login=?", agent.ID,
+			var user model.LocalAccount
+			if err := db.Get(&user, "local_agent_id=? AND login=?", agent.ID,
 				conn.User()).Run(); err != nil {
-				return nil, fmt.Errorf("authentication failed")
-			}
-			userKeys, err := user.GetCryptos(db)
-			if err != nil {
-				return nil, fmt.Errorf("authentication failed")
+				if !database.IsNotFound(err) {
+					return nil, errDatabase
+				}
+
+				return nil, errAuthFailed
 			}
 
-			for _, userKey := range userKeys {
-				publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(userKey.SSHPublicKey))
+			certs, err := user.GetCryptos(db)
+			if err != nil {
+				return nil, errAuthFailed
+			}
+
+			for _, cert := range certs {
+				publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(cert.SSHPublicKey))
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("failed to parse public key: %w", err)
 				}
 				if bytes.Equal(publicKey.Marshal(), key.Marshal()) {
 					return &ssh.Permissions{}, nil
 				}
 			}
-			return nil, fmt.Errorf("authentication failed")
+
+			return nil, errAuthFailed
 		},
 		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			var user model.LocalAccount
-			if err := db.Get(&user, "local_agent_id=? AND login=?", agent.ID,
-				conn.User()).Run(); err != nil {
-				return nil, fmt.Errorf("authentication failed")
+
+			err1 := db.Get(&user, "local_agent_id=? AND login=?", agent.ID,
+				conn.User()).Run()
+			if err1 != nil {
+				if !database.IsNotFound(err1) {
+					return nil, errDatabase
+				}
 			}
-			if err := bcrypt.CompareHashAndPassword(user.PasswordHash, pass); err != nil {
-				return nil, fmt.Errorf("authentication failed")
+
+			err2 := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), pass)
+			if err1 != nil || err2 != nil {
+				return nil, errAuthFailed
 			}
 
 			return &ssh.Permissions{}, nil
 		},
 	}
+}
 
-	if len(hostKeys) == 0 {
-		return nil, fmt.Errorf("'%s' SFTP server is missing a hostkey", agent.Name)
+// getSSHServerConfig builds and returns an ssh.ServerConfig from the given
+// parameters. By default, the server accepts both public key & password
+// authentication, with the former having priority over the later.
+func getSSHServerConfig(db *database.DB, hostkeys []model.Crypto, protoConfig *config.SftpProtoConfig,
+	agent *model.LocalAgent) (*ssh.ServerConfig, error) {
+	conf := makeServerConf(db, protoConfig, agent)
+
+	if len(hostkeys) == 0 {
+		return nil, fmt.Errorf("'%s' SFTP server is missing a hostkey: %w",
+			agent.Name, errSSHNoKey)
 	}
-	for _, hostKey := range hostKeys {
-		privateKey, err := ssh.ParsePrivateKey([]byte(hostKey.PrivateKey))
+
+	for _, cert := range hostkeys {
+		privateKey, err := ssh.ParsePrivateKey([]byte(cert.PrivateKey))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to parse SSH hostkey: %w", err)
 		}
+
 		conf.AddHostKey(privateKey)
 	}
 
 	return conf, nil
 }
 
-func getAccount(db *database.DB, agentID uint64, login string) (*model.LocalAccount, error) {
-	var account model.LocalAccount
-	if err := db.Get(&account, "local_agent_id=? AND login=?", agentID, login).Run(); err != nil {
-		return nil, err
-	}
-	return &account, nil
-}
-
-func acceptRequests(in <-chan *ssh.Request) {
+// acceptRequests accepts all SFTP requests received on the given channel, and
+// rejects all other types of SSH requests.
+func acceptRequests(in <-chan *ssh.Request, l *log.Logger) {
 	for req := range in {
 		ok := false
-		switch req.Type {
-		case "subsystem":
+
+		if req.Type == "subsystem" {
 			if string(req.Payload[4:]) == "sftp" {
 				ok = true
 			}
 		}
-		_ = req.Reply(ok, nil)
+
+		if err := req.Reply(ok, nil); err != nil {
+			l.Warningf("An error occurred while replying to a request: %v", err)
+		}
 	}
 }

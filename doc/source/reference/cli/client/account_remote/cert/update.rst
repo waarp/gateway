@@ -4,7 +4,7 @@ Modifier un certificat de compte distant
 
 .. program:: waarp-gateway account remote cert update
 
-.. describe:: waarp-gateway <ADDR> account remote <PARTNER> cert <LOGIN> update <CERT>
+.. describe:: waarp-gateway account remote <PARTNER> cert <LOGIN> update <CERT>
 
 Change les attributs du certificat donné. Les noms du partenaire, du compte et du
 certificat doivent être renseignés en arguments de programme. Les attributs omis

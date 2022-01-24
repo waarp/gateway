@@ -1,12 +1,12 @@
 package model
 
 import (
-	"encoding/json"
 	"path"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
 func TestRuleTableName(t *testing.T) {
@@ -20,7 +20,6 @@ func TestRuleTableName(t *testing.T) {
 				So(name, ShouldEqual, TableRules)
 			})
 		})
-
 	})
 }
 
@@ -81,7 +80,6 @@ func TestRuleBeforeWrite(t *testing.T) {
 				rule.IsSend = old.IsSend
 				shouldFailWith("the rule already exist", database.NewValidationError(
 					"a %s rule named '%s' already exist", rule.Direction(), rule.Name))
-
 			})
 
 			Convey("Given a rule with a path ancestor to this rule's path", func() {
@@ -113,7 +111,6 @@ func TestRuleBeforeWrite(t *testing.T) {
 						})
 					})
 				})
-
 			})
 		})
 	})
@@ -137,13 +134,12 @@ func TestRuleBeforeDelete(t *testing.T) {
 			So(db.Insert(&t2).Run(), ShouldBeNil)
 
 			server := LocalAgent{
-				Name:        "server",
-				Protocol:    dummyProto,
-				ProtoConfig: json.RawMessage(`{}`),
-				Address:     "localhost:1111",
+				Name:     "server",
+				Protocol: testProtocol,
+				Address:  "localhost:1111",
 			}
 			So(db.Insert(&server).Run(), ShouldBeNil)
-			account := LocalAccount{LocalAgentID: server.ID, Login: "toto", PasswordHash: hash("password")}
+			account := LocalAccount{LocalAgentID: server.ID, Login: "toto", PasswordHash: hash("sesame")}
 			So(db.Insert(&account).Run(), ShouldBeNil)
 
 			a1 := RuleAccess{RuleID: rule.ID, ObjectID: server.ID, ObjectType: server.TableName()}
@@ -152,7 +148,6 @@ func TestRuleBeforeDelete(t *testing.T) {
 			So(db.Insert(&a2).Run(), ShouldBeNil)
 
 			Convey("Given that the rule is unused", func() {
-
 				Convey("When calling the `BeforeDelete` function", func() {
 					err := db.Transaction(func(ses *database.Session) database.Error {
 						return rule.BeforeDelete(ses)
@@ -170,8 +165,8 @@ func TestRuleBeforeDelete(t *testing.T) {
 					IsServer:   true,
 					AgentID:    server.ID,
 					AccountID:  account.ID,
-					SourceFile: "file.src",
-					DestFile:   "file.dst",
+					LocalPath:  "file.loc",
+					RemotePath: "file.rem",
 				}
 				So(db.Insert(&trans).Run(), ShouldBeNil)
 

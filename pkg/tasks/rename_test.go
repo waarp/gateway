@@ -1,10 +1,16 @@
 package tasks
 
 import (
+	"context"
+	"io/ioutil"
+	"path/filepath"
 	"testing"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils/testhelpers"
 )
 
 func TestRenameTaskValidate(t *testing.T) {
@@ -14,7 +20,7 @@ func TestRenameTaskValidate(t *testing.T) {
 		}
 
 		Convey("When calling the `Validate` method", func() {
-			runner := &RenameTask{}
+			runner := &renameTask{}
 			err := runner.Validate(args)
 
 			Convey("Then it should NOT return an error", func() {
@@ -27,7 +33,7 @@ func TestRenameTaskValidate(t *testing.T) {
 		args := map[string]string{}
 
 		Convey("When calling the `Validate` method", func() {
-			runner := &RenameTask{}
+			runner := &renameTask{}
 			err := runner.Validate(args)
 
 			Convey("Then it should return an error", func() {
@@ -35,70 +41,60 @@ func TestRenameTaskValidate(t *testing.T) {
 			})
 
 			Convey("Then error should say `need path argument`", func() {
-				So(err.Error(), ShouldEqual, "cannot create a rename task without a `path` argument")
+				So(err.Error(), ShouldContainSubstring, "cannot create a rename task without a `path` argument")
 			})
 		})
 	})
 }
 
-func TestRebaneTaskRun(t *testing.T) {
-	Convey("Given a Processor for a sending Transfer", t, func() {
-		runner := &Processor{
+func TestRenameTaskRun(t *testing.T) {
+	Convey("Given a Runner for a sending Transfer", t, func(c C) {
+		root := testhelpers.TempDir(c, "task_rename")
+		task := &renameTask{}
+
+		srcPath := filepath.Join(root, "rename.src")
+		So(ioutil.WriteFile(srcPath, []byte("Hello World"), 0o700), ShouldBeNil)
+		dstPath := filepath.Join(root, "rename.dst")
+		So(ioutil.WriteFile(dstPath, []byte("Goodbye World"), 0o700), ShouldBeNil)
+
+		transCtx := &model.TransferContext{
 			Rule: &model.Rule{
 				IsSend: true,
 			},
 			Transfer: &model.Transfer{
-				SourceFile: "test/dummy",
-				DestFile:   "test/dest",
+				LocalPath:  srcPath,
+				RemotePath: "/remote/rename.src",
 			},
 		}
 
-		Convey("Given a model.Task", func() {
-			args := map[string]string{
-				"path": "test",
-			}
+		Convey("Given a valid new path", func() {
+			args := map[string]string{"path": dstPath}
 
-			Convey("When caliing the `run` method", func() {
-				task := &RenameTask{}
-				_, err := task.Run(args, runner)
+			Convey("When calling the `run` method", func() {
+				_, err := task.Run(context.Background(), args, nil, transCtx)
 
 				Convey("Then it should NOT return an error", func() {
 					So(err, ShouldBeNil)
+				})
+
+				Convey("Then transfer filepath should be modified", func() {
+					So(transCtx.Transfer.LocalPath, ShouldEqual, utils.ToOSPath(dstPath))
 				})
 
 				Convey("Then transfer source path should be modified", func() {
-					So(runner.Transfer.SourceFile, ShouldEqual, "test")
+					So(transCtx.Transfer.RemotePath, ShouldEqual, "/remote/rename.dst")
 				})
 			})
 		})
-	})
 
-	Convey("Given a Processor for a sending Transfer", t, func() {
-		runner := &Processor{
-			Rule: &model.Rule{
-				IsSend: false,
-			},
-			Transfer: &model.Transfer{
-				SourceFile: "test/dummy",
-				DestFile:   "test/dest",
-			},
-		}
+		Convey("Given an invalid new path", func() {
+			args := map[string]string{"path": filepath.Join(root, "dummy")}
 
-		Convey("Given a model.Task", func() {
-			args := map[string]string{
-				"path": "test",
-			}
+			Convey("When calling the `run` method", func() {
+				_, err := task.Run(context.Background(), args, nil, transCtx)
 
-			Convey("When caliing the `run` method", func() {
-				task := &RenameTask{}
-				_, err := task.Run(args, runner)
-
-				Convey("Then it should NOT return an error", func() {
-					So(err, ShouldBeNil)
-				})
-
-				Convey("Then transfer DestPath should be modified", func() {
-					So(runner.Transfer.DestFile, ShouldEqual, "test")
+				Convey("Then it should return an error", func() {
+					So(err, ShouldBeError, &fileNotFoundError{"change transfer target file to", args["path"]})
 				})
 			})
 		})

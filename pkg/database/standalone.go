@@ -1,9 +1,10 @@
 package database
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
 	"xorm.io/xorm"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
 )
 
 // Standalone is a struct used to execute standalone commands on the database.
@@ -45,26 +46,44 @@ func (s *Standalone) transaction(isWrite bool, f func(*Session) Error) Error {
 
 	if err := ses.session.Begin(); err != nil {
 		s.logger.Errorf("Failed to start transaction: %s", err)
+
 		return NewInternalError(err)
 	}
+
 	if isWrite && s.conf.Type == SQLite {
 		if _, err := ses.session.Exec("ROLLBACK; BEGIN IMMEDIATE"); err != nil {
+			s.logger.Errorf("Failed to start immediate transaction: %s", err)
+
 			return &InternalError{msg: "failed to start transaction", cause: err}
 		}
 	}
-	defer func() { _ = ses.session.Close() }()
+
+	defer func() {
+		if err := ses.session.Close(); err != nil {
+			s.logger.Warningf("an error occurred while closing the session: %v", err)
+		}
+	}()
 
 	s.logger.Debug("[SQL] Beginning transaction")
+
 	if err := f(ses); err != nil {
 		s.logger.Error("Transaction failed, changes have been rolled back")
-		_ = ses.session.Rollback()
+
+		if err := ses.session.Rollback(); err != nil {
+			s.logger.Warningf("an error occurred while rollbacking the session: %v", err)
+		}
+
 		return err
 	}
+
 	if err := ses.session.Commit(); err != nil {
 		s.logger.Errorf("Failed to commit changes: %s", err)
+
 		return NewInternalError(err)
 	}
+
 	s.logger.Debug("[SQL] Transaction succeeded, changes have been committed")
+
 	return nil
 }
 

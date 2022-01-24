@@ -4,7 +4,7 @@ Autoriser une règle sur un serveur
 
 .. program:: waarp-gateway server authorize
 
-.. describe:: waarp-gateway <ADDR> server authorize <SERVER> <RULE>
+.. describe:: waarp-gateway server authorize <SERVER> <RULE>
 
 Autorise le serveur fourni en paramètre à utiliser la règle donnée.
 

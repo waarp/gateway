@@ -2,63 +2,76 @@
 package log
 
 import (
+	"fmt"
 	"time"
 
 	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
 )
 
+//nolint:gochecknoglobals // FIXME global var is used by design
 var backend logging.Backend
 
-// Logger is an internal abstraction of the underlying logging library
+// Logger is an internal abstraction of the underlying logging library.
 type Logger struct {
 	*logging.Logger
 }
 
 // InitBackend initializes the logging backend according to the given configuration.
 // If the backend cannot be accessed, an error is returned.
-func InitBackend(conf conf.LogConfig) (err error) {
-	switch conf.LogTo {
+func InitBackend(level, logTo, facility string) error {
+	var err error
+
+	switch logTo {
 	case "stdout":
 		backend = logging.NewStdoutBackend()
+	case "stderr":
+		backend = logging.NewStderrBackend()
 	case "/dev/null", "nul", "NUL":
-		backend, _ = logging.NewNoopBackend()
+		backend, _ = logging.NewNoopBackend() //nolint:errcheck // error is always nil
 	case "syslog":
-		backend, err = newSyslogBackend(conf.SyslogFacility)
+		backend, err = newSyslogBackend(facility)
 	default:
-		backend, err = logging.NewFileBackend(conf.LogTo)
-	}
-	if err != nil {
-		return
+		backend, err = logging.NewFileBackend(logTo)
 	}
 
-	if err := setLevel(conf.Level, backend); err != nil {
+	if err != nil {
+		return fmt.Errorf("failed to initialize log backend: %w", err)
+	}
+
+	if err1 := setLevel(level, backend); err1 != nil {
 		record := &logging.Record{
 			Logger:    "log",
 			Timestamp: time.Now(),
 			Level:     logging.ERROR,
-			Message:   err.Error(),
+			Message:   err1.Error(),
 		}
-		if err := backend.Write(record); err != nil {
-			return err
+
+		if err2 := backend.Write(record); err2 != nil {
+			return fmt.Errorf("cannot initialize logging backend: %w", err2)
 		}
+
+		return err1
 	}
-	return
+
+	return nil
 }
 
-// NewLogger initiates a new logger
+// NewLogger initiates a new logger.
 func NewLogger(name string) *Logger {
 	l := &Logger{Logger: logging.NewLogger(name)}
 	l.Logger.SetBackend(backend)
+
 	return l
 }
 
-// setLevel sets the level of the logger
+// setLevel sets the level of the logger.
 func setLevel(level string, b logging.Backend) error {
 	logLevel, err := logging.LevelByName(level)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot set log level to %q: %w", level, err)
 	}
+
 	b.SetLevel(logLevel)
+
 	return nil
 }

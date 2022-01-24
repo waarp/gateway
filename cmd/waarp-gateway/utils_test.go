@@ -1,41 +1,52 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 
+	"code.bcarlin.xyz/go/logging"
+	. "github.com/smartystreets/goconvey/convey"
 	"golang.org/x/crypto/bcrypt"
 
-	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/config"
-	. "github.com/smartystreets/goconvey/convey"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/config"
 )
 
+//nolint:gochecknoglobals // global var is used by design
 var discard *log.Logger
 
+const (
+	testProto1   = "cli_proto_1"
+	testProto2   = "cli_proto_2"
+	testProtoErr = "cli_proto_err"
+)
+
+//nolint:gochecknoinits // init is used by design
 func init() {
-	logConf := conf.LogConfig{
-		Level: "CRITICAL",
-		LogTo: "stdout",
-	}
-	_ = log.InitBackend(logConf)
+	_ = log.InitBackend("CRITICAL", "stdout", "")
 	discard = log.NewLogger("test_client")
 	discard.SetBackend(&logging.NoopBackend{})
 
-	config.ProtoConfigs["test"] = func() config.ProtoConfig { return new(TestProtoConfig) }
-	config.ProtoConfigs["test2"] = func() config.ProtoConfig { return new(TestProtoConfig) }
-	config.ProtoConfigs["fail"] = func() config.ProtoConfig { return new(TestProtoConfigFail) }
+	config.ProtoConfigs[testProto1] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs[testProto2] = func() config.ProtoConfig { return new(TestProtoConfig) }
+	config.ProtoConfigs[testProtoErr] = func() config.ProtoConfig { return new(TestProtoConfigFail) }
 }
 
-func hash(pwd string) []byte {
+func testHandler(db *database.DB) http.Handler {
+	return admin.MakeHandler(discard, db, nil, nil)
+}
+
+func hash(pwd string) string {
 	h, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.MinCost)
 	So(err, ShouldBeNil)
-	return h
+
+	return string(h)
 }
 
 func writeFile(content string) *os.File {
@@ -45,8 +56,10 @@ func writeFile(content string) *os.File {
 		_ = file.Close()
 		_ = os.Remove(file.Name())
 	})
+
 	_, err = file.WriteString(content)
 	So(err, ShouldBeNil)
+
 	return file
 }
 
@@ -54,17 +67,18 @@ type TestProtoConfig struct{}
 
 func (*TestProtoConfig) ValidServer() error  { return nil }
 func (*TestProtoConfig) ValidPartner() error { return nil }
-func (*TestProtoConfig) CertRequired() bool  { return false }
 
 type TestProtoConfigFail struct{}
 
 func (*TestProtoConfigFail) ValidServer() error {
-	return fmt.Errorf("server config validation failed")
+	//nolint:goerr113 // base case for a test
+	return errors.New("server config validation failed")
 }
+
 func (*TestProtoConfigFail) ValidPartner() error {
-	return fmt.Errorf("partner config validation failed")
+	//nolint:goerr113 // base case for a test
+	return errors.New("partner config validation failed")
 }
-func (*TestProtoConfigFail) CertRequired() bool { return false }
 
 func testFile() io.Writer {
 	return &strings.Builder{}
@@ -73,5 +87,6 @@ func testFile() io.Writer {
 func getOutput() string {
 	str, ok := out.(*strings.Builder)
 	So(ok, ShouldBeTrue)
+
 	return str.String()
 }

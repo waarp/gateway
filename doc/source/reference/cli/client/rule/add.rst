@@ -4,7 +4,7 @@ Ajouter une règle
 
 .. program:: waarp-gateway rule add
 
-.. describe:: waarp-gateway <ADDR> rule add
+.. describe:: waarp-gateway rule add
 
 Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
 
@@ -30,16 +30,36 @@ Ajoute une nouvelle règle avec les attributs fournis ci-dessous.
 
 .. option:: -o <PATH>, --out_path=<PATH>
 
+   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
+
    Le chemin source des fichiers transférés. Lorsqu'un transfert est créé,
    le fichier sera cherché dans ce dossier. Ce chemin peut être laissé vide
    si l'on ne souhaite pas que la règle ait un dossier source spécifique.
 
 .. option:: -i <PATH>, --in_path=<PATH>
 
+   OBSOLÈTE: remplacé par les options ``--local-dir`` et ``--remote-dir``.
+
    Le chemin de destination des fichiers transférés. Une fois un transfert
    terminé, le fichier est déposé dans ce dossier. Ce chemin peut être
    laissé vide si l'on ne souhaite pas que la règle ait un dossier destination
    spécifique.
+
+.. option:: --local-dir=<DIRECTORY>
+
+   Le chemin du dossier local des fichiers transférés. Dans le cas d'une règle
+   d'envoi, ce dossier est utilisé comme source des fichiers. Dans le cas d'une
+   règle de réception, ce dossier est utilisé comme destination des fichiers.
+   Peut être un chemin relatif ou absolu. Le format du chemin dépend de l'OS de
+   la *gateway*.
+
+.. option:: --remote-dir=<DIRECTORY>
+
+   Le chemin d'accès sur le serveur distant des fichiers transférés. Dans le cas
+   d'une règle d'envoi, ce dossier est utilisé comme destination des fichiers.
+   Dans le cas d'une règle de réception, ce dossier est utilisé comme source des
+   fichiers. Ce chemin faisant partie d'un URI, il doit toujours être au format
+   Unix standard.
 
 .. option:: -r <TASK>, --pre=<TASK>
 

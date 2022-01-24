@@ -4,28 +4,22 @@ package controller
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"sync"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/executor"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/pipeline"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
+	"code.waarp.fr/apps/gateway/gateway/pkg/pipeline"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
-
-// ServiceName is the name of the controller service.
-const ServiceName = "Controller"
 
 // Controller is the service responsible for checking the database for new
 // transfers at regular intervals, and starting those new transfers.
 type Controller struct {
-	Conf *conf.ServerConfig
-	DB   *database.DB
+	DB *database.DB
 
 	ticker *time.Ticker
 	logger *log.Logger
@@ -46,8 +40,10 @@ func (c *Controller) checkIsDBDown() bool {
 		"owner=? AND status=?", database.Owner, types.StatusRunning)
 	if err := query.Run(); err != nil {
 		c.logger.Errorf("Failed to access database: %s", err.Error())
+
 		return true
 	}
+
 	return false
 }
 
@@ -62,6 +58,7 @@ func (c *Controller) listen() {
 			case <-c.ctx.Done():
 				c.wg.Wait()
 				close(c.done)
+
 				return
 			case <-c.ticker.C:
 				c.startNewTransfers()
@@ -72,17 +69,21 @@ func (c *Controller) listen() {
 
 func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 	var transfers model.Transfers
-	if tErr := c.DB.Transaction(func(ses *database.Session) database.Error {
+
+	if tErr := c.DB.WriteTransaction(func(ses *database.Session) database.Error {
+		lim, hasLimit := pipeline.TransferOutCount.GetAvailable()
+		if hasLimit && lim == 0 {
+			return nil // cannot start more transfers, limit has been reached
+		}
+
 		query := ses.SelectForUpdate(&transfers).Where("owner=? AND status=? AND "+
 			"is_server=? AND start<?", database.Owner, types.StatusPlanned, false,
-			time.Now().UTC().Truncate(time.Microsecond).Format(time.RFC3339Nano))
-		lim := pipeline.TransferOutCount.GetLimit()
-		if lim > 0 {
-			query.Limit(int(lim-pipeline.TransferOutCount.Get()), 0)
-		}
+			time.Now().UTC().Truncate(time.Microsecond).Format(time.RFC3339Nano)).
+			Limit(lim, 0)
 
 		if err := query.Run(); err != nil {
 			c.logger.Errorf("Failed to access database: %s", err.Error())
+
 			return err
 		}
 
@@ -92,17 +93,18 @@ func (c *Controller) retrieveTransfers() (model.Transfers, error) {
 				return err
 			}
 		}
+
 		return nil
 	}); tErr != nil {
 		return nil, tErr
 	}
+
 	return transfers, nil
 }
 
 // startNewTransfers checks the database for new planned transfers and starts
 // them, as long as there are available transfer slots.
 func (c *Controller) startNewTransfers() {
-
 	if c.checkIsDBDown() {
 		return
 	}
@@ -112,44 +114,28 @@ func (c *Controller) startNewTransfers() {
 		return
 	}
 
-	for _, trans := range plannedTrans {
-		exe, err := c.getExecutor(trans)
+	for i := range plannedTrans {
+		pip, err := pipeline.NewClientPipeline(c.DB, &plannedTrans[i])
 		if err != nil {
-			if errors.Is(err, pipeline.ErrLimitReached) {
-				break
-			}
 			continue
 		}
 
 		c.wg.Add(1)
+
 		go func() {
-			defer c.wg.Done()
-			exe.Run()
+			pip.Run()
+			c.wg.Done()
 		}()
 	}
 }
 
-func (c *Controller) getExecutor(trans model.Transfer) (*executor.Executor, error) {
-	paths := pipeline.Paths{PathsConfig: c.Conf.Paths}
-
-	stream, err := pipeline.NewTransferStream(c.ctx, c.logger, c.DB, paths, &trans)
-	if err != nil {
-		c.logger.Errorf("Failed to create transfer stream: %s", err.Error())
-		return nil, err
-	}
-
-	exe := &executor.Executor{TransferStream: stream}
-
-	return exe, nil
-}
-
 // Start starts the transfer controller service.
 func (c *Controller) Start() error {
-	c.logger = log.NewLogger(ServiceName)
+	c.logger = log.NewLogger(service.ControllerServiceName)
 
-	pipeline.TransferInCount.SetLimit(c.Conf.Controller.MaxTransfersIn)
-	pipeline.TransferOutCount.SetLimit(c.Conf.Controller.MaxTransfersOut)
-	c.ticker = time.NewTicker(c.Conf.Controller.Delay)
+	pipeline.TransferInCount.SetLimit(c.DB.Conf.Controller.MaxTransfersIn)
+	pipeline.TransferOutCount.SetLimit(c.DB.Conf.Controller.MaxTransfersOut)
+	c.ticker = time.NewTicker(c.DB.Conf.Controller.Delay)
 	c.state.Set(service.Running, "")
 
 	c.listen()
@@ -171,10 +157,16 @@ func (c *Controller) Stop(ctx context.Context) error {
 	select {
 	case <-c.done:
 		c.logger.Info("Shutdown complete")
+
 		return nil
 	case <-ctx.Done():
 		c.logger.Info("Shutdown failed, forcing exit")
-		return ctx.Err()
+
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("shutdown done with error: %w", err)
+		}
+
+		return nil
 	}
 }
 

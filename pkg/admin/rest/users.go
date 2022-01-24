@@ -1,19 +1,22 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
 	"github.com/gorilla/mux"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/utils"
 )
 
 func newInUser(old *model.User) *api.InUser {
 	return &api.InUser{
 		Username: &old.Username,
-		Password: strPtr(string(old.Password)),
+		Password: strPtr(old.PasswordHash),
 	}
 }
 
@@ -24,12 +27,17 @@ func userToDB(user *api.InUser, old *model.User) (*model.User, error) {
 		return nil, err
 	}
 
+	hash, err := utils.HashPassword(database.BcryptRounds, str(user.Password))
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash passwordi: %w", err)
+	}
+
 	return &model.User{
-		ID:          old.ID,
-		Owner:       database.Owner,
-		Username:    str(user.Username),
-		Password:    []byte(str(user.Password)),
-		Permissions: mask,
+		ID:           old.ID,
+		Owner:        database.Owner,
+		Username:     str(user.Username),
+		PasswordHash: hash,
+		Permissions:  mask,
 	}, nil
 }
 
@@ -46,11 +54,8 @@ func writeUsers(users model.Users, w http.ResponseWriter) error {
 	for i := range users {
 		jUsers[i] = *FromUser(&users[i])
 	}
-	if err := writeJSON(w, map[string][]api.OutUser{"users": jUsers}); err != nil {
-		return err
-	}
 
-	return nil
+	return writeJSON(w, map[string][]api.OutUser{"users": jUsers})
 }
 
 func getUsr(r *http.Request, db *database.DB) (*model.User, error) {
@@ -65,8 +70,10 @@ func getUsr(r *http.Request, db *database.DB) (*model.User, error) {
 		if database.IsNotFound(err) {
 			return nil, notFound("user '%s' not found", username)
 		}
+
 		return nil, err
 	}
+
 	return &user, nil
 }
 
@@ -91,6 +98,7 @@ func listUsers(logger *log.Logger, db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var users model.Users
 		query, err := parseSelectQuery(r, db, validSorting, &users)
+
 		if handleError(w, logger, err) {
 			return
 		}
@@ -132,7 +140,7 @@ func updateUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		jUser := newInUser(old)
-		if err := readJSON(r, jUser); handleError(w, logger, err) {
+		if err2 := readJSON(r, jUser); handleError(w, logger, err2) {
 			return
 		}
 
@@ -158,7 +166,7 @@ func replaceUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		}
 
 		var jUser api.InUser
-		if err := readJSON(r, &jUser); handleError(w, logger, err) {
+		if err2 := readJSON(r, &jUser); handleError(w, logger, err2) {
 			return
 		}
 
@@ -186,6 +194,7 @@ func deleteUser(logger *log.Logger, db *database.DB) http.HandlerFunc {
 		login, _, _ := r.BasicAuth()
 		if user.Username == login {
 			handleError(w, logger, &forbidden{"user cannot delete self"})
+
 			return
 		}
 

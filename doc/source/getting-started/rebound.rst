@@ -9,8 +9,8 @@ différents agents de transfert :
 
 1. Un fichier va être envoyer à la Gateway en SFTP (utilisation de la première
    règle définie)
-2. Le fichier reçu est renvoyé vers un partenaire tiers avec la deuxième règle
-   définie.
+2. Le fichier reçu est renvoyé avec R66 vers le serveur Waarp-R66 à l'aide de la
+   deuxième règle définie.
 
 Pour ce faire, nous allons modifier la première règle et ajouter un traitement
 post-transfert pour ré-émettre le fichier automatiquement.
@@ -48,10 +48,9 @@ avec la commande suivante :
 
 .. code-block:: shell-session
 
-   $ waarp-gateway rule update sftp_recv RECEIVE \
-      -p '/sftp_recv' \
-      -s '{"type": "MOVERENAME", "args": {"path":"#OUTPATH#/#ORIGINALFILENAME#"}}' \
-      -s '{"type": "TRANSFER", "args":{"file": "#OUTPATH#/#ORIGINALFILENAME#", "to":"sftp_localhost", "as":"sftpuser", "rule":"sftp_send"}}'
+   $ waarp-gateway rule update "sftp_recv" "receive" \
+      --post '{"type": "MOVERENAME", "args": {"path":"#OUTPATH#/#ORIGINALFILENAME#"}}' \
+      --post '{"type": "TRANSFER", "args":{"file": "#OUTPATH#/#ORIGINALFILENAME#", "to":"r66_server", "as":"gw_r66user", "rule":"default"}}'
    The rule sftp_recv was successfully updated.
 
 
@@ -97,25 +96,25 @@ transferts de la Gateway :
    History:
    [...]
    ● Transfer 25 (as server) [DONE]
-       Way:              RECEIVE
-       Protocol:         sftp
-       Rule:             sftp_recv
-       Requester:        myuser
-       Requested:        sftp_server
-       Source file:      test04.txt
-       Destination file: test04.txt
-       Start date:       2020-10-02T15:10:48Z
-       End date:         2020-10-02T15:10:49Z
+       Way:             receive
+       Protocol:        sftp
+       Rule:            sftp_recv
+       Requester:       myuser
+       Requested:       sftp_server
+       Local filepath:  /etc/waarp-gateway/out/test04.txt
+       Remote filepath: /test04.txt
+       Start date:      2020-10-02T15:10:48Z
+       End date:        2020-10-02T15:10:49Z
    ● Transfer 26 (as client) [DONE]
-       Way:              SEND
-       Protocol:         sftp
-       Rule:             sftp_send
-       Requester:        sftpuser
-       Requested:        sftp_localhost
-       Source file:      test04.txt
-       Destination file: test04.txt
-       Start date:       2020-10-02T15:10:49Z
-       End date:         2020-10-02T15:10:49Z
+       Way:             send
+       Protocol:        r66
+       Rule:            default
+       Requester:       gw_r66user
+       Requested:       r66_server
+       Local filepath:  /etc/waarp-gateway/out/test04.txt
+       Remote filepath: /test04.txt
+       Start date:      2020-10-02T15:10:49Z
+       End date:        2020-10-02T15:10:49Z
    
 Le fichier disponible est maintenant dans le dossier ``in`` de la Gateway.
 Comme nous n'avons pas spécifié de dossier spécifique dans la règle

@@ -6,21 +6,22 @@ import (
 	"net/http"
 	"sort"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
+	"code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
-// statusCommand regroups all the Options of the 'status' command
+// statusCommand regroups all the Options of the 'status' command.
 type statusCommand struct{}
 
 // showStatus writes the status of the gateway services in the given
 // writer with colors, using ANSI coloration codes.
 func showStatus(statuses api.Statuses, w io.Writer) {
-	var errors = make([]string, 0)
-	var actives = make([]string, 0)
-	var offlines = make([]string, 0)
+	errors := make([]string, 0)
+	actives := make([]string, 0)
+	offlines := make([]string, 0)
 
 	fmt.Fprintln(w, bold("Waarp-Gateway services:"))
+
 	for name, status := range statuses {
 		switch status.State {
 		case service.Running.Name():
@@ -40,9 +41,11 @@ func showStatus(statuses api.Statuses, w io.Writer) {
 		fmt.Fprintln(w, red("[Error]  "), bold(name), "("+
 			statuses[name].Reason+")")
 	}
+
 	for _, name := range actives {
 		fmt.Fprintln(w, green("[Active] "), bold(name))
 	}
+
 	for _, name := range offlines {
 		fmt.Fprintln(w, yellow("[Offline]"), bold(name))
 	}
@@ -58,18 +61,22 @@ func (s *statusCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // FIXME nothing to handle the error
 
 	w := getColorable()
+
 	switch resp.StatusCode {
 	case http.StatusOK:
 		statuses := api.Statuses{}
 		if err := unmarshalBody(resp.Body, &statuses); err != nil {
 			return err
 		}
+
 		showStatus(statuses, w)
+
 		return nil
+
 	default:
-		return fmt.Errorf("unexpected error (%s): %s", resp.Status, getResponseMessage(resp).Error())
+		return fmt.Errorf("unexpected error (%s): %w", resp.Status, getResponseMessage(resp))
 	}
 }

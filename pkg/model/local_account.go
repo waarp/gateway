@@ -1,10 +1,12 @@
 package model
 
 import (
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
 	"golang.org/x/crypto/bcrypt"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
 )
 
+//nolint:gochecknoinits // init is used by design
 func init() {
 	database.AddTable(&LocalAccount{})
 }
@@ -22,7 +24,7 @@ type LocalAccount struct {
 	Login string `xorm:"unique(loc_ac) notnull 'login'"`
 
 	// A bcrypt hash of the account's password
-	PasswordHash []byte `xorm:"text 'password_hash'"`
+	PasswordHash string `xorm:"text 'password_hash'"`
 }
 
 // TableName returns the local accounts table name.
@@ -40,24 +42,25 @@ func (l *LocalAccount) GetID() uint64 {
 	return l.ID
 }
 
-// GetCryptos fetch in the database then return the associated Cryptos if they exist
+// GetCryptos fetch in the database then return the associated Cryptos if they exist.
 func (l *LocalAccount) GetCryptos(db *database.DB) ([]Crypto, database.Error) {
 	return GetCryptos(db, l)
 }
 
 // BeforeWrite checks if the new `LocalAccount` entry is valid and can be
 // inserted in the database.
-//nolint:dupl
+//nolint:dupl // too many differences
 func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 	if l.LocalAgentID == 0 {
 		return database.NewValidationError("the account's agentID cannot be empty")
 	}
+
 	if l.Login == "" {
 		return database.NewValidationError("the account's login cannot be empty")
 	}
 
-	if len(l.PasswordHash) > 0 {
-		if _, isHashed := bcrypt.Cost(l.PasswordHash); isHashed != nil {
+	if l.PasswordHash != "" {
+		if _, isHashed := bcrypt.Cost([]byte(l.PasswordHash)); isHashed != nil {
 			return database.NewValidationError("the password is not hashed")
 		}
 	}
@@ -67,6 +70,7 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 		if database.IsNotFound(err) {
 			return database.NewValidationError("no local agent found with the ID '%v'", l.LocalAgentID)
 		}
+
 		return err
 	}
 
@@ -84,12 +88,14 @@ func (l *LocalAccount) BeforeWrite(db database.ReadAccess) database.Error {
 
 // BeforeDelete is called before deleting the account from the database. Its
 // role is to delete all the certificates tied to the account.
+//nolint:dupl // to many differences
 func (l *LocalAccount) BeforeDelete(db database.Access) database.Error {
 	n, err := db.Count(&Transfer{}).Where("is_server=? AND account_id=?",
 		true, l.ID).Run()
 	if err != nil {
 		return err
 	}
+
 	if n > 0 {
 		return database.NewValidationError("this account is currently being used in one " +
 			"or more running transfers and thus cannot be deleted, cancel " +
@@ -104,9 +110,6 @@ func (l *LocalAccount) BeforeDelete(db database.Access) database.Error {
 
 	accessQuery := db.DeleteAll(&RuleAccess{}).Where(
 		"object_type=? AND object_id=?", TableLocAccounts, l.ID)
-	if err := accessQuery.Run(); err != nil {
-		return err
-	}
 
-	return nil
+	return accessQuery.Run()
 }

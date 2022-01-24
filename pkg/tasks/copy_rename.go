@@ -1,38 +1,38 @@
 package tasks
 
 import (
+	"context"
 	"fmt"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
 )
 
-// CopyRenameTask is a task which allow to copy the current file
-// to a given destination
-type CopyRenameTask struct{}
+// copyRenameTask is a task which allow to copy the current file
+// to a given destination.
+type copyRenameTask struct{}
 
+//nolint:gochecknoinits // designed to use init
 func init() {
-	RunnableTasks["COPYRENAME"] = &CopyRenameTask{}
-	model.ValidTasks["COPYRENAME"] = &CopyRenameTask{}
+	model.ValidTasks["COPYRENAME"] = &copyRenameTask{}
 }
 
-// Validate check if the task has a destination for the copy
-func (*CopyRenameTask) Validate(args map[string]string) error {
+// Validate check if the task has a destination for the copy.
+func (*copyRenameTask) Validate(args map[string]string) error {
 	if _, ok := args["path"]; !ok {
-		return fmt.Errorf("cannot create a copy_rename task without a `path` argument")
+		return fmt.Errorf("cannot create a copy_rename task without a `path` argument: %w", errBadTaskArguments)
 	}
+
 	return nil
 }
 
-// Run copy the current file to the destination
-func (*CopyRenameTask) Run(args map[string]string, processor *Processor) (string, error) {
-	var (
-		newPath = args["path"]
-		srcPath string
-	)
+// Run copies the current file to the destination.
+func (*copyRenameTask) Run(_ context.Context, args map[string]string, _ *database.DB,
+	transCtx *model.TransferContext) (string, error) {
+	dstPath := args["path"]
+	srcPath := transCtx.Transfer.LocalPath
 
-	srcPath = processor.Transfer.TrueFilepath
-
-	if err := doCopy(newPath, srcPath); err != nil {
+	if err := doCopy(dstPath, srcPath); err != nil {
 		return err.Error(), err
 	}
 

@@ -18,14 +18,38 @@ const (
 	StatusPaused TransferStatus = "PAUSED"
 
 	// StatusCancelled is the state of a transfer when canceled by a user.
+	//nolint:misspell // too late to change it
 	StatusCancelled TransferStatus = "CANCELLED"
 
-	// StatusDone is the state of a transfer when finished without error
+	// StatusDone is the state of a transfer when finished without error.
 	StatusDone TransferStatus = "DONE"
 
-	// StatusError is the state of a transfer when interrupted by an error
+	// StatusError is the state of a transfer when interrupted by an error.
 	StatusError TransferStatus = "ERROR"
 )
+
+// StatusFromString takes a string and returns the corresponding TransferStatus.
+// If the string does not match any status, the returned boolean will be false.
+func StatusFromString(str string) (TransferStatus, bool) {
+	switch str {
+	case string(StatusPlanned):
+		return StatusPlanned, true
+	case string(StatusRunning):
+		return StatusRunning, true
+	case string(StatusInterrupted):
+		return StatusInterrupted, true
+	case string(StatusPaused):
+		return StatusPaused, true
+	case string(StatusCancelled):
+		return StatusCancelled, true
+	case string(StatusDone):
+		return StatusDone, true
+	case string(StatusError):
+		return StatusError, true
+	default:
+		return "", false
+	}
+}
 
 // this function has been commented out because it was unused. might be useful
 // later

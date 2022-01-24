@@ -2,43 +2,39 @@ package admin
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
-	"net"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/conf"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/tk/service"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"code.waarp.fr/apps/gateway/gateway/pkg/conf"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/tk/service"
 )
 
+//nolint:gochecknoinits // init is used by design
+func init() {
+	_ = log.InitBackend("DEBUG", "stdout", "")
+}
+
 func TestStart(t *testing.T) {
-
 	Convey("Given an admin service", t, func() {
-		So(ioutil.WriteFile("cert.pem", []byte(cert), 0700), ShouldBeNil)
-		So(ioutil.WriteFile("key.pem", []byte(key), 0700), ShouldBeNil)
-
-		Reset(func() {
-			_ = os.Remove("cert.pem")
-			_ = os.Remove("key.pem")
-		})
-
 		config := &conf.ServerConfig{}
 		config.Admin.Host = "localhost"
 		config.Admin.Port = 0
-		config.Admin.TLSCert = "cert.pem"
-		config.Admin.TLSKey = "key.pem"
-		server := &Server{Conf: config, Services: make(map[string]service.Service)}
+		config.Admin.TLSCert = "../../test_data/rest_cert.pem"
+		config.Admin.TLSKey = "../../test_data/rest_key.pem"
+		server := &Server{
+			Conf:          config,
+			CoreServices:  map[string]service.Service{},
+			ProtoServices: map[string]service.ProtoService{},
+		}
 		Reset(func() { _ = server.server.Close() })
 
 		Convey("Given a correct configuration", func() {
-
 			Convey("When starting the service", func() {
 				err := server.Start()
 
@@ -73,24 +69,11 @@ func TestStart(t *testing.T) {
 		Convey("Given an incorrect host", func() {
 			config.Admin.Host = "invalid_host"
 			config.Admin.Port = 0
-			rest := &Server{Conf: config, Services: make(map[string]service.Service)}
-
-			Convey("When starting the service", func() {
-				err := rest.Start()
-
-				Convey("Then it should produce an error", func() {
-					So(err, ShouldBeError)
-				})
-			})
-		})
-
-		Convey("Given an incorrect port number", func() {
-			config.Admin.Host = "localhost"
-			config.Admin.Port = 9999
-			rest := &Server{Conf: config, Services: make(map[string]service.Service)}
-			l, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", config.Admin.Port))
-			So(err, ShouldBeNil)
-			Reset(func() { _ = l.Close() })
+			rest := &Server{
+				Conf:          config,
+				CoreServices:  map[string]service.Service{},
+				ProtoServices: map[string]service.ProtoService{},
+			}
 
 			Convey("When starting the service", func() {
 				err := rest.Start()
@@ -106,7 +89,11 @@ func TestStart(t *testing.T) {
 			config.Admin.Port = 0
 			config.Admin.TLSCert = "not_a_cert"
 			config.Admin.TLSKey = "not_a_key"
-			rest := &Server{Conf: config, Services: make(map[string]service.Service)}
+			rest := &Server{
+				Conf:          config,
+				CoreServices:  map[string]service.Service{},
+				ProtoServices: map[string]service.ProtoService{},
+			}
 
 			Convey("When starting the service", func() {
 				err := rest.Start()
@@ -124,7 +111,11 @@ func TestStop(t *testing.T) {
 		config := &conf.ServerConfig{}
 		config.Admin.Host = "localhost"
 		config.Admin.Port = 0
-		rest := &Server{Conf: config, Services: make(map[string]service.Service)}
+		rest := &Server{
+			Conf:          config,
+			CoreServices:  map[string]service.Service{},
+			ProtoServices: map[string]service.ProtoService{},
+		}
 
 		err := rest.Start()
 		So(err, ShouldBeNil)
@@ -143,7 +134,7 @@ func TestStop(t *testing.T) {
 
 			Convey("Then the service should no longer respond to requests", func() {
 				client := new(http.Client)
-				response, err := client.Get(addr)
+				response, err := client.Get(addr) //nolint:noctx // this is a test
 
 				So(err, ShouldBeError)
 				So(response, ShouldBeNil)

@@ -8,8 +8,9 @@ Premiers pas
 
    intro
    start
+   folders
    sftp-receive
-   sftp-send
+   r66-send
    rebound
 
 .. xx-re-transfer

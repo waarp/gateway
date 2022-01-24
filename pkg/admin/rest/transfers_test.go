@@ -12,13 +12,14 @@ import (
 	"testing"
 	"time"
 
-	. "code.waarp.fr/waarp-gateway/waarp-gateway/pkg/admin/rest/api"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/database"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/log"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model"
-	"code.waarp.fr/waarp-gateway/waarp-gateway/pkg/model/types"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
+
+	. "code.waarp.fr/apps/gateway/gateway/pkg/admin/rest/api"
+	"code.waarp.fr/apps/gateway/gateway/pkg/database"
+	"code.waarp.fr/apps/gateway/gateway/pkg/log"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model"
+	"code.waarp.fr/apps/gateway/gateway/pkg/model/types"
 )
 
 const transferURI = "http://localhost:8080/api/transfers"
@@ -33,22 +34,20 @@ func TestAddTransfer(t *testing.T) {
 
 		Convey("Given a database with 1 partner, 1 certificate & 1 account", func() {
 			partner := &model.RemoteAgent{
-				Name:        "remote",
-				Protocol:    "test",
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "remote",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
 			account := &model.RemoteAccount{
 				RemoteAgentID: partner.ID,
 				Login:         "toto",
-				Password:      "password",
+				Password:      "sesame",
 			}
-
 			So(db.Insert(account).Run(), ShouldBeNil)
 
-			push := model.Rule{Name: "push", IsSend: true, Path: "path"}
+			push := model.Rule{Name: "push", IsSend: true, Path: "/push"}
 			So(db.Insert(&push).Run(), ShouldBeNil)
 
 			Convey("Given a valid new transfer", func() {
@@ -57,8 +56,7 @@ func TestAddTransfer(t *testing.T) {
 					"partner": "remote",
 					"account": "toto",
 					"isSend": true,
-					"sourcePath": "file.src",
-					"destPath": "file.dst"
+					"file": "test.file"
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -67,12 +65,12 @@ func TestAddTransfer(t *testing.T) {
 
 					handler.ServeHTTP(w, r)
 
-					Convey("Then it should return a code 201", func() {
-						So(w.Code, ShouldEqual, http.StatusCreated)
-					})
-
 					Convey("Then the response body should be empty", func() {
 						So(w.Body.String(), ShouldBeBlank)
+					})
+
+					Convey("Then it should return a code 201", func() {
+						So(w.Code, ShouldEqual, http.StatusCreated)
 					})
 
 					Convey("Then the 'Location' header should contain the URI "+
@@ -94,9 +92,9 @@ func TestAddTransfer(t *testing.T) {
 							IsServer:         false,
 							AgentID:          partner.ID,
 							AccountID:        account.ID,
-							TrueFilepath:     "",
-							SourceFile:       "file.src",
-							DestFile:         "file.dst",
+							LocalPath:        "test.file",
+							RemotePath:       "test.file",
+							Filesize:         model.UnknownSize,
 							Start:            transfers[0].Start,
 							Step:             types.StepNone,
 							Status:           types.StatusPlanned,
@@ -117,8 +115,7 @@ func TestAddTransfer(t *testing.T) {
 					"partner": "remote",
 					"account": "toto",
 					"isSend": true,
-					"sourcePath": "file.src",
-					"destPath": "file.dst"
+					"file": "test.file"
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -143,8 +140,7 @@ func TestAddTransfer(t *testing.T) {
 					"partner": "tata",
 					"account": "toto",
 					"isSend": true,
-					"sourcePath": "file.src",
-					"destPath": "file.dst"
+					"file": "test.file"
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -169,8 +165,7 @@ func TestAddTransfer(t *testing.T) {
 					"partner": "remote",
 					"account": "tata",
 					"isSend": true,
-					"sourcePath": "file.src",
-					"destPath": "file.dst"
+					"file": "test.file"
 				}`)
 
 				Convey("When calling the handler", func() {
@@ -190,36 +185,6 @@ func TestAddTransfer(t *testing.T) {
 				})
 			})
 
-			Convey("Given the partner does not have a certificate", func() {
-				partner.Protocol = "sftp"
-				So(db.Update(partner).Run(), ShouldBeNil)
-
-				body := strings.NewReader(`{
-					"rule": "push",
-					"partner": "remote",
-					"account": "toto",
-					"isSend": true,
-					"sourcePath": "file.src",
-					"destPath": "file.dst"
-				}`)
-
-				Convey("When calling the handler", func() {
-					r, err := http.NewRequest(http.MethodPost, "", body)
-					So(err, ShouldBeNil)
-
-					handler.ServeHTTP(w, r)
-
-					Convey("Then it should return a code 400", func() {
-						So(w.Code, ShouldEqual, http.StatusBadRequest)
-					})
-
-					Convey("Then the response body should say a host key is missing", func() {
-						So(w.Body.String(), ShouldEqual, "the sftp partner is missing "+
-							"a certificate when it was required\n")
-					})
-				})
-			})
-
 			Convey("Given the transfer direction is missing", func() {
 				body := strings.NewReader(`{
 					"rule": "push",
@@ -230,6 +195,7 @@ func TestAddTransfer(t *testing.T) {
 				}`)
 
 				Convey("When calling the handler", func() {
+					//nolint:noctx //this is a test
 					r, err := http.NewRequest(http.MethodPost, "", body)
 					So(err, ShouldBeNil)
 
@@ -259,10 +225,9 @@ func TestGetTransfer(t *testing.T) {
 
 		Convey("Given a database with 1 transfer", func() {
 			partner := &model.RemoteAgent{
-				Name:        "partner",
-				Protocol:    "test",
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "partner",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -280,8 +245,8 @@ func TestGetTransfer(t *testing.T) {
 				RuleID:     push.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
-				SourceFile: "src",
-				DestFile:   "dst",
+				LocalPath:  "/local/file.test",
+				RemotePath: "/remote/file.test",
 				Start:      time.Date(2021, 1, 1, 1, 0, 0, 0, time.Local),
 			}
 			So(db.Insert(trans).Run(), ShouldBeNil)
@@ -348,18 +313,16 @@ func TestListTransfer(t *testing.T) {
 
 		Convey("Given a database with 2 transfer", func() {
 			p1 := &model.RemoteAgent{
-				Name:        "part1",
-				Protocol:    "test",
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "part1",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(p1).Run(), ShouldBeNil)
 
 			p2 := &model.RemoteAgent{
-				Name:        "part2",
-				Protocol:    "test2",
-				Address:     "localhost:2",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "part2",
+				Protocol: testProto2,
+				Address:  "localhost:2",
 			}
 			So(db.Insert(p2).Run(), ShouldBeNil)
 
@@ -387,8 +350,8 @@ func TestListTransfer(t *testing.T) {
 				RuleID:     r1.ID,
 				AgentID:    p1.ID,
 				AccountID:  a1.ID,
-				SourceFile: "src1",
-				DestFile:   "dst2",
+				LocalPath:  "/local/file1.test",
+				RemotePath: "/remote/file1.test",
 				Progress:   1,
 				TaskNumber: 2,
 				Start:      time.Date(2021, 1, 1, 1, 0, 0, 123000, time.Local),
@@ -401,8 +364,8 @@ func TestListTransfer(t *testing.T) {
 				RuleID:     r2.ID,
 				AgentID:    p2.ID,
 				AccountID:  a2.ID,
-				SourceFile: "src2",
-				DestFile:   "dst2",
+				LocalPath:  "/local/file2.test",
+				RemotePath: "/remote/file2.test",
 				Start:      time.Date(2021, 1, 1, 2, 0, 0, 234000, time.Local),
 				Step:       types.StepPostTasks,
 				Status:     types.StatusError,
@@ -413,8 +376,8 @@ func TestListTransfer(t *testing.T) {
 				RuleID:     r2.ID,
 				AgentID:    p1.ID,
 				AccountID:  a1.ID,
-				SourceFile: "src3",
-				DestFile:   "dst3",
+				LocalPath:  "/local/file3.test",
+				RemotePath: "/remote/file3.test",
 				Start:      time.Date(2021, 1, 1, 3, 0, 0, 345000, time.Local),
 				Step:       types.StepData,
 				Status:     types.StatusPaused,
@@ -550,10 +513,9 @@ func TestResumeTransfer(t *testing.T) {
 
 		Convey("Given a database with 1 transfer in error", func() {
 			partner := &model.RemoteAgent{
-				Name:        "test_server",
-				Protocol:    "test",
-				Address:     "localhost:1",
-				ProtoConfig: json.RawMessage(`{}`),
+				Name:     "test_server",
+				Protocol: testProto1,
+				Address:  "localhost:1",
 			}
 			So(db.Insert(partner).Run(), ShouldBeNil)
 
@@ -571,8 +533,8 @@ func TestResumeTransfer(t *testing.T) {
 				RuleID:     rule.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
-				SourceFile: "src",
-				DestFile:   "dst",
+				LocalPath:  "file.loc",
+				RemotePath: "file.rem",
 				Start:      time.Date(2020, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:     types.StatusError,
 				Step:       types.StepData,
@@ -609,8 +571,8 @@ func TestResumeTransfer(t *testing.T) {
 							RuleID:     rule.ID,
 							AgentID:    partner.ID,
 							AccountID:  account.ID,
-							SourceFile: "src",
-							DestFile:   "dst",
+							LocalPath:  "file.loc",
+							RemotePath: "file.rem",
 							Start:      trans.Start.Local(),
 							Status:     types.StatusPlanned,
 							Step:       types.StepData,
@@ -633,15 +595,15 @@ func TestResumeTransfer(t *testing.T) {
 func TestPauseTransfer(t *testing.T) {
 	logger := log.NewLogger("rest_transfer_pause_test")
 
-	Convey("Testing the transfer resume handler", t, func(c C) {
+	Convey("Testing the transfer pause handler", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
-		handler := pauseTransfer(logger, db)
+		handler := pauseTransfer(nil)(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 planned transfer", func() {
 			partner := &model.RemoteAgent{
 				Name:        "test_server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				Address:     "localhost:1",
 				ProtoConfig: json.RawMessage(`{}`),
 			}
@@ -661,8 +623,8 @@ func TestPauseTransfer(t *testing.T) {
 				RuleID:     rule.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
-				SourceFile: "src",
-				DestFile:   "dst",
+				LocalPath:  "file.loc",
+				RemotePath: "file.rem",
 				Start:      time.Date(2020, 1, 2, 3, 4, 5, 678000, time.Local),
 				Status:     types.StatusPlanned,
 				Step:       types.StepData,
@@ -696,8 +658,8 @@ func TestPauseTransfer(t *testing.T) {
 							RuleID:     rule.ID,
 							AgentID:    partner.ID,
 							AccountID:  account.ID,
-							SourceFile: "src",
-							DestFile:   "dst",
+							LocalPath:  "file.loc",
+							RemotePath: "file.rem",
 							Start:      trans.Start.Local(),
 							Status:     types.StatusPaused,
 							Step:       types.StepData,
@@ -722,13 +684,13 @@ func TestCancelTransfer(t *testing.T) {
 
 	Convey("Testing the transfer resume handler", t, func(c C) {
 		db := database.TestDatabase(c, "ERROR")
-		handler := cancelTransfer(logger, db)
+		handler := cancelTransfer(nil)(logger, db)
 		w := httptest.NewRecorder()
 
 		Convey("Given a database with 1 planned transfer", func() {
 			partner := &model.RemoteAgent{
 				Name:        "test_server",
-				Protocol:    "test",
+				Protocol:    testProto1,
 				Address:     "localhost:1",
 				ProtoConfig: json.RawMessage(`{}`),
 			}
@@ -748,8 +710,8 @@ func TestCancelTransfer(t *testing.T) {
 				RuleID:     rule.ID,
 				AgentID:    partner.ID,
 				AccountID:  account.ID,
-				SourceFile: "src",
-				DestFile:   "dst",
+				LocalPath:  "file.loc",
+				RemotePath: "file.rem",
 				Start:      time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
 				Status:     types.StatusPlanned,
 				Step:       types.StepNone,
@@ -776,8 +738,8 @@ func TestCancelTransfer(t *testing.T) {
 						So(w.Code, ShouldEqual, http.StatusAccepted)
 					})
 
-					Convey("Then the transfer should have been cancelled", func() {
-						exp := model.TransferHistory{
+					Convey("Then the transfer should have been canceled", func() {
+						exp := model.HistoryEntry{
 							ID:               trans.ID,
 							Owner:            database.Owner,
 							RemoteTransferID: "",
@@ -785,9 +747,9 @@ func TestCancelTransfer(t *testing.T) {
 							IsSend:           false,
 							Account:          account.Login,
 							Agent:            partner.Name,
-							Protocol:         "test",
-							SourceFilename:   "src",
-							DestFilename:     "dst",
+							Protocol:         testProto1,
+							LocalPath:        "file.loc",
+							RemotePath:       "file.rem",
 							Rule:             rule.Name,
 							Start:            time.Date(2030, 1, 1, 1, 0, 0, 0, time.Local),
 							Stop:             time.Time{},
@@ -798,10 +760,10 @@ func TestCancelTransfer(t *testing.T) {
 							TaskNumber:       0,
 						}
 
-						var t model.Histories
-						So(db.Select(&t).Run(), ShouldBeNil)
-						So(t, ShouldNotBeEmpty)
-						So(t[0], ShouldResemble, exp)
+						var hist model.HistoryEntries
+						So(db.Select(&hist).Run(), ShouldBeNil)
+						So(hist, ShouldNotBeEmpty)
+						So(hist[0], ShouldResemble, exp)
 					})
 				})
 			})

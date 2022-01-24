@@ -6,27 +6,39 @@ import (
 	"fmt"
 )
 
+var (
+	errInvalidPEM           = fmt.Errorf("certificate input is not a valid PEM block")
+	errCertParse            = fmt.Errorf("failed to parse certificate")
+	errNoCertInPEM          = fmt.Errorf("no certificate found in PEM block")
+	errVerifyEmptyCertChain = fmt.Errorf("cannot verify an empty certificate chain")
+)
+
 // ParsePEMCertChain takes a certification chain in PEM format, parses it, and
 // returns it as a slice of x509.Certificate. If the decoding or the parsing
 // fails, an error is returned.
 func ParsePEMCertChain(pemCert string) ([]*x509.Certificate, error) {
 	var certChain []*x509.Certificate
+
 	rest := []byte(pemCert)
+
 	for len(rest) > 0 {
 		var block *pem.Block
+
 		block, rest = pem.Decode(rest)
 		if block == nil || block.Type != "CERTIFICATE" {
-			return nil, fmt.Errorf("certificate input is not a valid PEM block")
+			return nil, errInvalidPEM
 		}
+
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse certificate")
+			return nil, errCertParse
 		}
 
 		certChain = append(certChain, cert)
 	}
+
 	if len(certChain) == 0 {
-		return nil, fmt.Errorf("no certificate found in PEM block")
+		return nil, errNoCertInPEM
 	}
 
 	return certChain, nil
@@ -38,7 +50,7 @@ func ParsePEMCertChain(pemCert string) ([]*x509.Certificate, error) {
 // that domain.
 func CheckCertChain(certChain []*x509.Certificate, isServer bool) error {
 	if len(certChain) == 0 {
-		return fmt.Errorf("cannot verify an empty certificate chain")
+		return errVerifyEmptyCertChain
 	}
 
 	options := x509.VerifyOptions{Intermediates: x509.NewCertPool()}
@@ -47,8 +59,9 @@ func CheckCertChain(certChain []*x509.Certificate, isServer bool) error {
 	} else {
 		options.KeyUsages = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
 	}
-	roots, _ := x509.SystemCertPool()
-	if roots == nil {
+
+	roots, err := x509.SystemCertPool()
+	if err != nil || roots == nil {
 		roots = x509.NewCertPool()
 	}
 
@@ -69,7 +82,8 @@ func CheckCertChain(certChain []*x509.Certificate, isServer bool) error {
 	}
 
 	if _, err := certChain[0].Verify(options); err != nil {
-		return err
+		return fmt.Errorf("certificate is invalid: %w", err)
 	}
+
 	return nil
 }

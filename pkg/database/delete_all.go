@@ -24,6 +24,7 @@ type DeleteAllQuery struct {
 // using the 'AND' operator.
 func (d *DeleteAllQuery) Where(sql string, args ...interface{}) *DeleteAllQuery {
 	d.conds = append(d.conds, cond{sql: sql, args: args})
+
 	return d
 }
 
@@ -35,21 +36,27 @@ func (d *DeleteAllQuery) Run() Error {
 	if len(d.conds) == 0 {
 		_, err := query.Exec("DELETE FROM " + d.bean.TableName())
 		logSQL(query, logger)
+
 		if err != nil {
 			logger.Errorf("Failed to delete the %s entries: %s", d.bean.Appellation(), err)
+
 			return NewInternalError(err)
 		}
+
 		return nil
 	}
 
-	for _, cond := range d.conds {
-		query.Where(builder.Expr(cond.sql, cond.args...))
+	for i := range d.conds {
+		query.Where(builder.Expr(d.conds[i].sql, d.conds[i].args...))
 	}
 
 	_, err := query.Table(d.bean.TableName()).Delete(d.bean)
+
 	logSQL(query, logger)
+
 	if err != nil {
 		logger.Errorf("Failed to delete the %s entries: %s", d.bean.Appellation(), err)
+
 		return NewInternalError(err)
 	}
 
