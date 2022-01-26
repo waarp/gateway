@@ -2,7 +2,6 @@ module code.waarp.fr/apps/gateway/gateway
 
 require (
 	code.bcarlin.xyz/go/logging v0.1.0
-	code.waarp.fr/waarp-r66/r66 v0.0.0-20210628093438-71179762c052
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gorilla/mux v1.7.3
 	github.com/jackc/pgconn v1.8.0
@@ -22,6 +21,8 @@ require (
 	xorm.io/builder v0.3.8
 	xorm.io/xorm v1.1.2
 )
+
+require code.waarp.fr/lib/r66 v0.0.0-20211118104505-678bf4967d4a
 
 require (
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"code.bcarlin.xyz/go/logging"
-	"code.waarp.fr/waarp-r66/r66"
+	"code.waarp.fr/lib/r66"
 	. "github.com/smartystreets/goconvey/convey"
 
 	"code.waarp.fr/apps/gateway/gateway/pkg/database"
